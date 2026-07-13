@@ -5,7 +5,6 @@ import { Badge } from '@/components/ui/badge';
 import {
   Smartphone,
   Star,
-  Clock,
   Loader2,
   RefreshCw,
   QrCode,
@@ -18,27 +17,17 @@ import {
   BatteryFull,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
 import { BusinessHoursIndicator } from './BusinessHoursIndicator';
 import { OfficialApiConfigDialog } from './OfficialApiConfigDialog';
 import { ConnectionAuditDialog } from './ConnectionAuditDialog';
 import { ConnectionCardMenu } from './ConnectionCardMenu';
-import { useEvolutionApi } from '@/hooks/useEvolutionApi';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+import { ConnectionDisconnectDialog } from './ConnectionDisconnectDialog';
+import { useConnectionCardActions } from './useConnectionCardActions';
 import type { WhatsAppConnection } from '@/features/connections';
 import { evolutionInstanceName } from '@/lib/evolutionInstance';
 import { statusConfig, HEALTH_REASON_LABEL, getLastActivity } from './connectionCardHelpers';
+import { toast } from '@/hooks/use-toast';
 
 interface ConnectionCardProps {
   connection: WhatsAppConnection;
@@ -75,13 +64,10 @@ export function ConnectionCard({
   const isOfficial = (connection.api_type ?? 'evolution') === 'official';
   const [officialConfigOpen, setOfficialConfigOpen] = useState(false);
   const [auditDialogOpen, setAuditDialogOpen] = useState(false);
-  const [recheckingHealth, setRecheckingHealth] = useState(false);
-  const [reconnecting, setReconnecting] = useState(false);
   const [confirmDisconnect, setConfirmDisconnect] = useState(false);
-  const [isDisconnecting, setIsDisconnecting] = useState(false);
-  const { restartInstance, connectInstance } = useEvolutionApi();
+  const { handleReconnect, reconnecting, handleRecheckNow, recheckingHealth } =
+    useConnectionCardActions(connection, onShowQrCode);
   const isConnected = connection.status === 'connected';
-  // Nome roteável na Evolution API (nunca o UUID interno — ver src/lib/evolutionInstance.ts)
   const evoName = evolutionInstanceName(connection);
 
   const reasonInfo = connection.health_reason
@@ -89,73 +75,6 @@ export function ConnectionCard({
     : null;
   const isPhantomLike = reasonInfo?.severe && connection.health_status !== 'healthy';
   const needsAction = isPhantomLike || connection.status === 'disconnected';
-
-  const handleReconnect = async () => {
-    // Evolution API roteia por NOME de instância; passar o instance_id (UUID)
-    // gera 404 e o auto-create da edge function cria uma instância fantasma
-    // (incidente wpp2 de 2026-07-04).
-    const instanceName = evolutionInstanceName(connection);
-    if (!instanceName) {
-      toast({
-        title: 'Conexão sem nome de instância',
-        description: 'Cadastre o instance_name desta conexão antes de reconectar.',
-        variant: 'destructive',
-      });
-      return;
-    }
-    setReconnecting(true);
-    try {
-      await restartInstance(instanceName);
-      await new Promise((r) => setTimeout(r, 4000));
-      const { data, error } = await supabase.functions.invoke('connection-health-check', {
-        body: { instanceName },
-      });
-      if (error) throw error;
-      const isStillClosed =
-        data?.connections?.[0]?.socket_state === 'close' ||
-        data?.connections?.[0]?.status === 'disconnected';
-      if (isStillClosed) {
-        toast({
-          title: 'Ação automática',
-          description: 'A instância ainda está desconectada. Gerando novo QR Code...',
-        });
-        await connectInstance(instanceName);
-        onShowQrCode(connection);
-      } else {
-        toast({ title: 'Sucesso', description: 'Instância reconectada e operacional.' });
-      }
-    } catch (e: unknown) {
-      toast({
-        title: 'Erro ao reconectar',
-        description: e instanceof Error ? e.message : 'Erro desconhecido',
-        variant: 'destructive',
-      });
-    } finally {
-      setReconnecting(false);
-    }
-  };
-
-  const handleRecheckNow = async () => {
-    const instanceName = evolutionInstanceName(connection);
-    if (!instanceName) return;
-    setRecheckingHealth(true);
-    try {
-      const { error } = await supabase.functions.invoke('connection-health-check', {
-        body: { instanceName },
-      });
-      if (error) throw error;
-      toast({ title: 'Verificação concluída', description: 'O status foi atualizado.' });
-    } catch (e: unknown) {
-      toast({
-        title: 'Falha na verificação',
-        description: e instanceof Error ? e.message : 'Erro desconhecido',
-        variant: 'destructive',
-      });
-    } finally {
-      setRecheckingHealth(false);
-    }
-  };
-
   const lastActivity = getLastActivity(connection.updated_at);
   const severe = !!isPhantomLike || connection.status === 'disconnected';
 
@@ -174,7 +93,6 @@ export function ConnectionCard({
         >
           <CardContent className="p-4">
             <div className="flex items-start justify-between gap-3">
-              {/* Left: Status orb + info */}
               <div className="flex min-w-0 items-start gap-3">
                 <div className="relative mt-0.5 shrink-0">
                   <motion.div
@@ -285,7 +203,6 @@ export function ConnectionCard({
                 </div>
               </div>
 
-              {/* Right: primary action buttons + menu */}
               <div className="flex shrink-0 items-center gap-2">
                 {(connection.status === 'disconnected' ||
                   connection.status === 'disconnecting' ||
@@ -383,7 +300,6 @@ export function ConnectionCard({
               </div>
             </div>
 
-            {/* Status banner — destructive when severe, soft warning otherwise */}
             {(needsAction || reasonInfo) && !isOfficial && (
               <motion.div
                 initial={{ opacity: 0, y: -4 }}
@@ -431,43 +347,12 @@ export function ConnectionCard({
         )}
       </motion.div>
 
-      <AlertDialog open={confirmDisconnect} onOpenChange={setConfirmDisconnect}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Desconectar "{connection.name}"?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Esta ação encerrará a sessão do WhatsApp. Você precisará escanear o QR Code novamente
-              para reconectar e poderá perder o recebimento de novas mensagens até lá.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDisconnecting}>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={async (e) => {
-                e.preventDefault();
-                setIsDisconnecting(true);
-                try {
-                  await onDisconnect(connection);
-                  setConfirmDisconnect(false);
-                } finally {
-                  setIsDisconnecting(false);
-                }
-              }}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              disabled={isDisconnecting}
-            >
-              {isDisconnecting ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Desconectando...
-                </>
-              ) : (
-                'Sim, desconectar'
-              )}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ConnectionDisconnectDialog
+        open={confirmDisconnect}
+        onOpenChange={setConfirmDisconnect}
+        connection={connection}
+        onDisconnect={onDisconnect}
+      />
     </>
   );
 }
