@@ -49,6 +49,7 @@ export function NewConversationDialog({ open, onOpenChange, onCreated }: Props) 
 
   const { data: departments = [], isLoading: loadingDepts } = useQuery({
     queryKey: ['departments-list'],
+    staleTime: Infinity,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('departments')

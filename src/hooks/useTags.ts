@@ -27,6 +27,7 @@ export function useTags() {
     refetch,
   } = useQuery({
     queryKey: ['tags'],
+    staleTime: Infinity,
     queryFn: async () => {
       const { data: tagsData, error: tagsError } = await supabase
         .from('tags')
