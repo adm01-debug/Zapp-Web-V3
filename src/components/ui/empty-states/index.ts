@@ -1,34 +1,52 @@
 /**
- * Empty states barrel export — canonical source for empty-state components.
+ * @file src/components/ui/empty-states/index.ts
+ * @description Public barrel for the empty-states directory.
  *
- * This directory (empty-states/) is the reference implementation.
- * The project has several older empty-state files at the ui/ level:
+ * This is the canonical import path for the contextual empty-state system.
+ * The three files in this directory form a cohesive module:
+ *   contextConfigs.tsx  — data: icons, titles, descriptions per context
+ *   ContextualEmptyState.tsx — component: renders from contextConfigs
+ *   ConvenienceExports.tsx   — DX: pre-wired single-purpose components
  *
- *   ui/EmptyState.tsx             ← standalone, no context config
- *   ui/GenericEmptyState.tsx      ← generic, no context config
- *   ui/empty-state.tsx            ← shadcn-style primitive
- *   ui/empty-states.tsx           ← plural, exports multiple variants
- *   ui/contextual-empty-states.tsx← thin wrapper
+ * Recommended usage for new code:
+ * ```ts
+ * // Import the generic contextual component
+ * import { ContextualEmptyState } from '@/components/ui/empty-states';
  *
- * Prefer importing from this barrel when you need a context-aware variant.
- * See REFACTORING.md §3.2 for the consolidation plan.
+ * // Or import a pre-wired convenience component
+ * import { InboxEmptyState, SearchEmptyState } from '@/components/ui/empty-states';
  *
- * Usage:
- *   import { ContextualEmptyState, EmptyInbox } from '@/components/ui/empty-states';
+ * // Or access config types for advanced use
+ * import type { EmptyStateConfig } from '@/components/ui/empty-states';
+ * ```
+ *
+ * For the VARIANT-based system (inbox/contacts/campaigns/chatbot/pipeline/etc.),
+ * use EmptyState from @/components/ui/EmptyState instead.
+ *
+ * @see src/components/ui/EmptyState.tsx — variant-based, optional props
+ * @see src/components/ui/empty-state.tsx — explicit-props + illustration + size variants
+ * @see src/components/ui/GenericEmptyState.tsx — explicit-props + animated badge
+ * @see docs/SIMULATION_REPORT.md — full analysis of all empty-state implementations
  */
 
-export { ContextualEmptyState } from './ContextualEmptyState';
-export type { ContextualEmptyStateProps } from './ContextualEmptyState';
-
-export {
-  EmptyInbox,
-  EmptyContacts,
-  EmptyChats,
-  EmptySearch,
-  EmptyQueue,
-  EmptyReports,
-  EmptyTags,
-} from './ConvenienceExports';
-
-export { contextConfigs } from './contextConfigs';
+// ─── Types ───────────────────────────────────────────────────────────────────────
 export type { EmptyStateConfig } from './contextConfigs';
+
+// ─── Configuration ────────────────────────────────────────────────────────────
+export { contextConfigs } from './contextConfigs';
+
+// ─── Primary component ─────────────────────────────────────────────────────────
+export { ContextualEmptyState } from './ContextualEmptyState';
+
+// ─── Convenience components (pre-wired for each module) ──────────────────────
+export {
+  InboxEmptyState,
+  ContactsEmptyState,
+  QueuesEmptyState,
+  AgentsEmptyState,
+  TagsEmptyState,
+  SearchEmptyState,
+  DashboardEmptyState,
+  NotificationsEmptyState,
+  TranscriptionsEmptyState,
+} from './ConvenienceExports';
