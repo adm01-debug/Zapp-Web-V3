@@ -4,9 +4,9 @@
  * Scenarios: 100+ test cases across input validation pipeline
  */
 
-// MIGRATION: sanitizeHtml is now an alias for sanitizeHtmlStrict in sanitize-v2.ts
-// Both work; new code should use sanitizeHtmlStrict directly
-import { sanitizeHtmlStrict as sanitizeHtml, sanitizeHtmlWithHooks, sanitizeHtmlWithHookCleanup } from '../sanitize-v2';
+// MIGRATION: Consolidated from sanitize-v2.ts to sanitize.ts (v3.0)
+// Both implementations now live in a single module for easier maintenance
+import { sanitizeHtmlStrict as sanitizeHtml, sanitizeHtmlWithHooks, sanitizeHtmlWithHookCleanup } from '../sanitize';
 
 describe('sanitize-v2: Round 15 Comprehensive Tests', () => {
   // =========================================================================

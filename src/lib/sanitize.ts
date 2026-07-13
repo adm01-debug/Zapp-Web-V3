@@ -1,14 +1,20 @@
 /**
- * sanitize.ts — v2.1
- * XSS prevention utilities using DOMPurify (OWASP A03:2021).
- * All user input rendering MUST pass through these functions.
+ * sanitize.ts — v3.0 Unified
+ * XSS prevention utilities combining DOMPurify and DOM-based sanitization.
+ * All user input rendering MUST pass through these functions (OWASP A03:2021).
  *
- * Updated in v2.1:
- * - sanitizeContactFields() now maps evolution_contacts field names
- * - truncateText() utility added
- * - sanitizeForSearch() added (safe for DB query building)
+ * v3.0 Consolidates sanitize.ts (v2.1) + sanitize-v2.ts (v15) into single module:
+ * - sanitizeText() — DOMPurify-based plain text sanitization
+ * - sanitizeHtml() — DOMPurify-based rich HTML with hook cleanup
+ * - sanitizeHtmlStrict() — DOM-based strict sanitization with unicode normalization
+ * - sanitizeHtmlWithHooks() — DOM-based with tabnabbing prevention
+ * - sanitizeContactFields(), sanitizeUrl(), sanitizeForSearch(), sanitizePostgrestFilter()
+ * - truncateText()
  */
 import DOMPurify from 'dompurify';
+import { getLogger } from '@/lib/logger';
+
+const log = getLogger('sanitize');
 
 // ── Allowed HTML for rich content ──────────────────────────────────────────
 
@@ -190,4 +196,204 @@ export function truncateText(text: string, maxLength: number, ellipsis = '…'):
   if (!text) return '';
   const safe = sanitizeText(text);
   return safe.length > maxLength ? safe.slice(0, maxLength) + ellipsis : safe;
+}
+
+// ── DOM-Based Sanitization (from sanitize-v2) ──────────────────────────────
+
+const ALLOWED_TAGS_SET = new Set<string>(['b', 'i', 'em', 'strong', 'u', 'p', 'br', 'a']);
+const ALLOWED_ATTRS_MAP: Record<string, Set<string>> = {
+  a: new Set(['href', 'title', 'target']),
+};
+const VOID_DANGEROUS_TAGS = new Set<string>([
+  'script',
+  'style',
+  'object',
+  'embed',
+  'link',
+  'meta',
+  'base',
+  'iframe',
+  'frame',
+  'frameset',
+  'applet',
+  'svg',
+  'math',
+]);
+const DANGEROUS_PROTOCOL_RE = /^(javascript|data|vbscript):/i;
+const EVENT_ATTR_RE = /^on/i;
+const normalizationCache = new Map<string, string>();
+
+function normalizeUnicodeNFKC(text: string): string {
+  if (!text) return text;
+  if (normalizationCache.has(text)) {
+    return normalizationCache.get(text)!;
+  }
+  try {
+    const normalized = text.normalize('NFKC');
+    if (normalizationCache.size >= 1000) {
+      const firstKey = normalizationCache.keys().next().value;
+      if (firstKey !== undefined) normalizationCache.delete(firstKey);
+    }
+    normalizationCache.set(text, normalized);
+    return normalized;
+  } catch (err) {
+    log.warn(`[normalizeUnicodeNFKC] Normalization failed: ${err}`);
+    return text;
+  }
+}
+
+function decodeHtmlEntities(html: string): string {
+  if (!html) return html;
+  let decoded = html;
+  const entityMap: Record<string, string> = {
+    '&lt;': '<',
+    '&gt;': '>',
+    '&amp;': '&',
+    '&quot;': '"',
+    '&#39;': "'",
+    '&apos;': "'",
+    '&nbsp;': ' ',
+    '&copy;': '©',
+  };
+  Object.entries(entityMap).forEach(([entity, char]) => {
+    decoded = decoded.replace(new RegExp(entity, 'g'), char);
+  });
+  decoded = decoded.replace(/&#(\d+);/g, (_match, charCode) => {
+    try {
+      return String.fromCharCode(parseInt(charCode, 10));
+    } catch {
+      return _match;
+    }
+  });
+  decoded = decoded.replace(/&#x([0-9a-fA-F]+);/gi, (_match, charCode) => {
+    try {
+      return String.fromCharCode(parseInt(charCode, 16));
+    } catch {
+      return _match;
+    }
+  });
+  return decoded;
+}
+
+function validateNoControlCharacters(text: string): void {
+  if (/[\x00-\x1F\x7F]/.test(text)) {
+    throw new Error('Input contains invalid control characters');
+  }
+}
+
+function sanitizeNode(node: Node): void {
+  const children = Array.from(node.childNodes);
+  for (const child of children) {
+    if (child.nodeType === 8 /* COMMENT_NODE */) {
+      node.removeChild(child);
+      continue;
+    }
+    if (child.nodeType !== 1 /* ELEMENT_NODE */) {
+      continue;
+    }
+    const el = child as Element;
+    const tag = el.tagName.toLowerCase();
+    if (VOID_DANGEROUS_TAGS.has(tag)) {
+      node.removeChild(el);
+      continue;
+    }
+    if (ALLOWED_TAGS_SET.has(tag)) {
+      const allowedAttrs = ALLOWED_ATTRS_MAP[tag] ?? new Set<string>();
+      for (const attr of Array.from(el.attributes)) {
+        const name = attr.name.toLowerCase();
+        if (EVENT_ATTR_RE.test(name) || !allowedAttrs.has(name)) {
+          el.removeAttribute(attr.name);
+        }
+      }
+      if (tag === 'a' && el.hasAttribute('href')) {
+        const href = (el.getAttribute('href') ?? '').trim();
+        if (DANGEROUS_PROTOCOL_RE.test(href)) {
+          el.removeAttribute('href');
+        }
+      }
+      sanitizeNode(el);
+    } else {
+      sanitizeNode(el);
+      while (el.firstChild) {
+        node.insertBefore(el.firstChild, el);
+      }
+      node.removeChild(el);
+    }
+  }
+}
+
+function domSanitize(html: string, opts?: { addNoopener?: boolean }): string {
+  const doc = document.implementation.createHTMLDocument('');
+  doc.body.innerHTML = html;
+  sanitizeNode(doc.body);
+  if (opts?.addNoopener) {
+    doc.body.querySelectorAll('a[target="_blank"]').forEach((link) => {
+      link.setAttribute('rel', 'noopener noreferrer nofollow');
+    });
+  }
+  return doc.body.innerHTML;
+}
+
+export interface SanitizeResult {
+  success: boolean;
+  html: string;
+  sanitized: boolean;
+  error?: string;
+}
+
+export function sanitizeHtmlStrict(html: unknown, _options?: Record<string, unknown>): SanitizeResult {
+  try {
+    if (html === null || html === undefined) {
+      log.error('[sanitizeHtmlStrict] Received null/undefined input');
+      throw new TypeError('sanitizeHtmlStrict() requires non-null string input');
+    }
+    if (typeof html !== 'string') {
+      console.error(`[sanitizeHtmlStrict] Received non-string: ${typeof html}`);
+      throw new TypeError(`sanitizeHtmlStrict() expects string, received ${typeof html}`);
+    }
+    if (html.length === 0) {
+      return { success: true, html: '', sanitized: false };
+    }
+    let processed = html;
+    processed = normalizeUnicodeNFKC(processed);
+    processed = decodeHtmlEntities(processed);
+    validateNoControlCharacters(processed);
+    const sanitized = domSanitize(processed);
+    if (typeof sanitized !== 'string') {
+      throw new Error('Sanitization returned invalid result');
+    }
+    return {
+      success: true,
+      html: sanitized,
+      sanitized: html !== sanitized,
+    };
+  } catch (err) {
+    const errorMsg = err instanceof Error ? err.message : String(err);
+    log.error('[sanitizeHtmlStrict] Sanitization failed:', errorMsg);
+    return {
+      success: false,
+      html: '',
+      sanitized: false,
+      error: errorMsg,
+    };
+  }
+}
+
+export function sanitizeHtmlWithHooks(html: string): string {
+  if (!html || typeof html !== 'string') {
+    return '';
+  }
+  return domSanitize(html, { addNoopener: true });
+}
+
+export function sanitizeHtmlWithHookCleanup(html: string): string {
+  if (!html || typeof html !== 'string') {
+    return '';
+  }
+  try {
+    return domSanitize(html);
+  } catch (err) {
+    log.error(`[sanitizeHtmlWithHookCleanup] Error: ${err}`);
+    return '';
+  }
 }
