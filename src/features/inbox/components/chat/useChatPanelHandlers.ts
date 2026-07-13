@@ -3,14 +3,16 @@ import { log } from '@/lib/logger';
 import { supabase } from '@/integrations/supabase/client';
 import { undoToast } from '@/lib/undoToast';
 import { useAuth } from '@/features/auth';
-import { Message, InteractiveMessage, InteractiveButton, LocationMessage } from '@/types/chat';
-import { SlashCommand } from '../SlashCommands';
-import { ExternalProduct } from '@/hooks/useExternalCatalog';
+import { Message } from '@/types/chat';
 import { toast } from '@/hooks/use-toast';
 import { dbFrom } from '@/integrations/datasource/db';
 import { isValidUUID } from '@/utils/uuid';
 import { type DialogKey } from './hooks/useChatDialogs';
 import { type ActiveTool } from './ChatHeaderToolbar';
+import { useInputHandlers } from './useInputHandlers';
+import { useProductHandlers } from './useProductHandlers';
+import { useAudioVoiceChange } from './useAudioVoiceChange';
+import { useMessageReactionHandlers } from './useMessageReactionHandlers';
 
 interface UseChatPanelHandlersOptions {
   conversationId: string;
@@ -50,9 +52,9 @@ export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
   const [isRecordingAudio, setIsRecordingAudio] = useState(false);
   const [lastSendError, setLastSendError] = useState<string | null>(null);
   const [lastSendErrorDetail, setLastSendErrorDetail] = useState<string | null>(null);
-  // Guarda content + attachments juntos (não só o texto): um envio só-mídia
-  // falho tem messageContent === '' (falsy), então checar `!payload` sozinho
-  // fazia retryLastSend virar no-op silencioso para esse caso.
+  // Guarda content + attachments juntos: um envio só-mídia falho tem
+  // messageContent === '' (falsy), então checar `!payload` sozinho fazia
+  // retryLastSend virar no-op silencioso para esse caso.
   const lastFailedSendRef = useRef<{ content: string; attachments?: File[] } | null>(null);
   const lastFailedAudioRef = useRef<{
     blob: Blob;
@@ -102,14 +104,8 @@ export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
       const currentInput = inputValueRef.current;
       const currentEditing = editingMessageRef.current;
       const hasAttachments = !!attachments && attachments.length > 0;
-      // Legenda é opcional para mídia (onSendMessage/sendExternalMedia já tratam
-      // content vazio); bloquear aqui descartava silenciosamente qualquer anexo
-      // enviado sem texto — nada era enviado e nenhum erro era mostrado. O bypass
-      // só vale para envio novo: em modo de edição, texto vazio deve continuar
-      // bloqueado (senão apagaria o conteúdo da mensagem ao invés de editá-la).
-      // Também exclui modo sussurro: whisper_messages não suporta anexos (ver
-      // toast "Arquivos nao sao suportados" abaixo), então liberar o bypass aqui
-      // criava uma nota interna vazia após mostrar o aviso de "não suportado".
+      // Legenda é opcional para mídia: applySignature('') retorna texto não-vazio
+      // quando assinatura ativa. Bypass só vale para envio novo (não edição nem whisper).
       const bypassEmptyText = hasAttachments && !currentEditing && !isWhisperRef.current;
       if ((!currentInput.trim() && !bypassEmptyText) || isSendingRef.current) return;
 
@@ -146,9 +142,7 @@ export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
         return;
       }
 
-      // Só aplica assinatura quando há texto real: applySignature('') retorna
-      // "*Agente:*\n" (não vazio) quando a assinatura está ativa, o que faria
-      // um envio só-mídia sair com a assinatura como legenda visível.
+      // Só aplica assinatura quando há texto real.
       const trimmedInput = currentInput.trim();
       const messageContent = trimmedInput ? applySignature(trimmedInput) : '';
       const wasReply = replyToMessageRef.current;
@@ -176,8 +170,7 @@ export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
           if (!profile?.id) throw new Error('Usuario nao autenticado');
 
           // Guard: whisper_messages.contact_id is uuid. When USE_EXTERNAL_DB=true,
-          // opts.contactId may be a WhatsApp JID (phone number). Passing a JID
-          // causes PostgREST 400 "invalid input syntax for type uuid" on INSERT.
+          // opts.contactId may be a WhatsApp JID. Passing a JID causes PostgREST 400.
           if (!isValidUUID(opts.contactId)) {
             toast({
               title: 'Sussurro indisponivel',
@@ -297,202 +290,7 @@ export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
     lastFailedSendRef.current = null;
     lastFailedAudioRef.current = null;
   }, []);
-  const handleReplyToMessage = useCallback((message: Message) => {
-    setReplyToMessage(message);
-    inputRef.current?.focus();
-  }, []);
-  const handleCopyMessage = useCallback((content: string) => {
-    navigator.clipboard.writeText(content);
-    toast({ title: 'Copiado!', description: 'Mensagem copiada para a area de transferencia.' });
-  }, []);
-  const handleForwardMessage = useCallback(
-    (message: Message) => {
-      setForwardMessage(message);
-      openDialog('forwardDialog');
-    },
-    [openDialog]
-  );
-  const handleForwardToTargets = useCallback(
-    (targetIds: string[], targetType: 'contact' | 'group') => {
-      log.debug('Forwarding to:', { targetIds, targetType, message: forwardMessage });
-    },
-    [forwardMessage]
-  );
-  const handleInputChange = useCallback(
-    (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-      const value = e.target.value;
-      setInputValue(value);
-      if (value.startsWith('/')) {
-        openDialog('slashCommands');
-        closeDialog('quickReplies');
-      } else {
-        closeDialog('slashCommands');
-      }
-      if (value.length > 0) handleTypingStart();
-      else handleTypingStop();
-    },
-    [openDialog, closeDialog, handleTypingStart, handleTypingStop]
-  );
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent, slashCommandsOpen: boolean) => {
-      if (slashCommandsOpen && (e.key === 'Enter' || e.key === 'ArrowUp' || e.key === 'ArrowDown'))
-        return;
-      if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        handleSend();
-      }
-      if (e.key === 'k' && e.ctrlKey) {
-        e.preventDefault();
-        openDialog('globalSearch');
-      }
-      if (e.key === 'f' && (e.ctrlKey || e.metaKey)) {
-        e.preventDefault();
-        handleSetActiveTool('chatSearch');
-      }
-      if (e.key === 'w' && e.altKey) {
-        e.preventDefault();
-        setIsWhisper((prev) => !prev);
-      }
-      if (e.key === 'Escape' && slashCommandsOpen) closeDialog('slashCommands');
-    },
-    [handleSend, openDialog, closeDialog, handleSetActiveTool]
-  );
-  const handleSlashCommand = useCallback(
-    (command: Pick<SlashCommand, 'id'> & Partial<SlashCommand>, subCommand?: string) => {
-      closeDialog('slashCommands');
-      setInputValue('');
-      switch (command.id) {
-        case 'transfer':
-          openDialog('transferDialog');
-          break;
-        case 'resolve':
-          toast({
-            title: 'Conversa Resolvida',
-            description: 'A conversa foi marcada como resolvida.',
-          });
-          break;
-        case 'template':
-          openDialog('quickReplies');
-          break;
-        case 'note':
-          toast({ title: 'Nota Privada', description: 'Funcionalidade de notas sera aberta.' });
-          break;
-        case 'tag':
-          toast({
-            title: subCommand === 'add' ? 'Adicionar Tag' : 'Remover Tag',
-            description:
-              subCommand === 'add'
-                ? 'Selecione uma tag para adicionar.'
-                : 'Selecione uma tag para remover.',
-          });
-          break;
-        case 'priority': {
-          const labels: Record<string, string> = { high: 'Alta', medium: 'Media', low: 'Baixa' };
-          toast({
-            title: 'Prioridade Definida',
-            description: `Prioridade definida como ${labels[subCommand || ''] || subCommand}.`,
-          });
-          break;
-        }
-        case 'assign':
-          toast({ title: 'Atribuir Conversa', description: 'Selecione um agente para atribuir.' });
-          break;
-        case 'snooze': {
-          const labels: Record<string, string> = {
-            '1h': '1 hora',
-            '3h': '3 horas',
-            tomorrow: 'amanha',
-            nextweek: 'proxima semana',
-          };
-          toast({
-            title: 'Conversa Adiada',
-            description: `Conversa adiada para ${labels[subCommand || ''] || subCommand}.`,
-          });
-          break;
-        }
-        case 'star':
-          toast({
-            title: 'Conversa Favoritada',
-            description: 'A conversa foi marcada como favorita.',
-          });
-          break;
-        case 'archive':
-          toast({ title: 'Conversa Arquivada', description: 'A conversa foi arquivada.' });
-          break;
-        case 'remind':
-          toast({
-            title: 'Lembrete Criado',
-            description: 'Um lembrete foi criado para esta conversa.',
-          });
-          break;
-        case 'quick':
-          openDialog('quickReplies');
-          break;
-        case 'summary':
-          handleSetActiveTool('aiAssistant');
-          break;
-        case 'produto':
-          openDialog('catalogDirect');
-          break;
-        case 'internal-note':
-          setIsWhisper((prev) => !prev);
-          break;
-        case 'internal-file':
-          handleSetActiveTool('teamFiles');
-          break;
-        default:
-          toast({ title: `Comando: ${command.label}`, description: command.description });
-          break;
-      }
-    },
-    [closeDialog, openDialog, handleSetActiveTool, setIsWhisper]
-  );
-  const handleSendProduct = useCallback(
-    (product: ExternalProduct) => {
-      const price = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
-        product.sale_price
-      );
-      const lines = [
-        `Produto: *${product.name}*`,
-        product.brand ? `Marca: ${product.brand}` : '',
-        `Preco: ${price}`,
-        product.min_quantity ? `Qtd. minima: ${product.min_quantity} un.` : '',
-        product.colors?.length ? `Cores: ${product.colors.join(', ')}` : '',
-        product.dimensions_display ? `Dimensoes: ${product.dimensions_display}` : '',
-        product.allows_personalization ? 'Permite personalizacao' : '',
-        product.lead_time_days ? `Prazo: ${product.lead_time_days} dias uteis` : '',
-        product.is_stockout
-          ? '*Sem estoque no momento*'
-          : `Em estoque: ${product.stock_quantity} un.`,
-        product.short_description || product.description
-          ? `\n${(product.short_description || product.description || '').slice(0, 300)}`
-          : '',
-        product.primary_image_url ? `\n${product.primary_image_url}` : '',
-      ]
-        .filter(Boolean)
-        .join('\n');
-      onSendMessage(lines);
-      toast({ title: 'Produto enviado!', description: `${product.name} - ${price}` });
-    },
-    [onSendMessage]
-  );
-  const handleSendInteractiveMessage = useCallback((interactive: InteractiveMessage) => {
-    toast({
-      title: 'Mensagem interativa enviada!',
-      description: `Mensagem com ${interactive.buttons?.length || 0} botoes enviada.`,
-    });
-  }, []);
-  const handleInteractiveButtonClick = useCallback((button: InteractiveButton) => {
-    toast({ title: 'Botao clicado', description: `Resposta: ${button.title}` });
-  }, []);
-  const handleSendLocation = useCallback((location: LocationMessage) => {
-    toast({
-      title: 'Localizacao enviada!',
-      description: location.isLive
-        ? `Localizacao em tempo real por ${location.liveUntil ? Math.round((location.liveUntil.getTime() - Date.now()) / 60000) : 15} minutos`
-        : location.name || 'Localizacao compartilhada',
-    });
-  }, []);
+
   const handleAudioSend = useCallback(
     async (audioBlob: Blob, onSendAudio?: (blob: Blob) => Promise<void>) => {
       if (!onSendAudio) {
@@ -530,31 +328,35 @@ export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
     },
     []
   );
-  const handleAudioVoiceChange = useCallback(async (messageId: string, newBlob: Blob) => {
-    try {
-      toast({ title: 'Voz alterada!', description: 'Enviando nova versao do audio...' });
-      const filePath = `audios/${Date.now()}.mp3`;
-      const { error: uploadError } = await supabase.storage
-        .from('chat-media')
-        .upload(filePath, newBlob);
-      if (uploadError) throw uploadError;
-      const {
-        data: { publicUrl },
-      } = supabase.storage.from('chat-media').getPublicUrl(filePath);
-      await dbFrom('messages')
-        .update({ mediaUrl: publicUrl, updated_at: new Date().toISOString() })
-        .eq('id', messageId);
-      toast({ title: 'Sucesso', description: 'Audio atualizado com a nova voz.' });
-    } catch (err: unknown) {
-      // ignore-audit
-      log.error('Failed to change audio voice:', err);
-      toast({
-        title: 'Erro na conversao',
-        description: err instanceof Error ? err.message : String(err),
-        variant: 'destructive',
-      });
-    }
-  }, []);
+
+  const { handleReplyToMessage, handleCopyMessage, handleForwardMessage, handleForwardToTargets } =
+    useMessageReactionHandlers({
+      inputRef,
+      forwardMessage,
+      setReplyToMessage,
+      setForwardMessage,
+      openDialog,
+    });
+
+  const { handleInputChange, handleKeyDown, handleSlashCommand } = useInputHandlers({
+    setInputValue,
+    setIsWhisper,
+    openDialog,
+    closeDialog,
+    handleTypingStart,
+    handleTypingStop,
+    handleSend,
+    handleSetActiveTool,
+  });
+
+  const {
+    handleSendProduct,
+    handleSendInteractiveMessage,
+    handleInteractiveButtonClick,
+    handleSendLocation,
+  } = useProductHandlers({ onSendMessage });
+
+  const { handleAudioVoiceChange } = useAudioVoiceChange();
 
   return {
     inputValue,
