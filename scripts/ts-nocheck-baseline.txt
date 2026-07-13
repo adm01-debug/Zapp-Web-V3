@@ -10,7 +10,6 @@ src/components/diagnostics/ConnectionHealthPanel.tsx
 src/components/email/EmailChatBubble-v2.tsx
 src/components/email/EmailChatInbox.tsx
 src/components/email/EmailThreadList.tsx
-src/components/layout/ConnectionStatusIndicator.tsx
 src/components/monitoring/RetryMetricsPanel.tsx
 src/components/monitoring/TopReasonsChart.tsx
 src/components/queues/QueueCharts.tsx
