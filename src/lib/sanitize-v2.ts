@@ -326,12 +326,3 @@ export function sanitizeHtmlWithHookCleanup(html: string): string {
     return '';
   }
 }
-
-
-/**
- * @deprecated Use `sanitizeHtmlStrict` instead.
- * This alias exists for internal test backward compatibility only.
- * External code should use `sanitizeHtmlStrict` from this module
- * or `sanitizeHtml` from '@/lib/sanitize' (returns string, not SanitizeResult).
- */
-export const sanitizeHtml = sanitizeHtmlStrict;

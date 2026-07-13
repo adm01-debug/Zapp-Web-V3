@@ -1,7 +1,7 @@
 import { useState, useMemo, useRef } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { cn } from '@/lib/utils';
-import { EmptyState } from '@/components/ui/empty-state';
+import { EmptyState } from '@/components/ui/empty-states';
 import { Conversation } from '@/types/chat';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';

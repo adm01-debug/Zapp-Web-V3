@@ -1,4 +1,4 @@
-import { EmptyState } from '@/components/ui/empty-state';
+import { EmptyState } from '@/components/ui/empty-states';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { motion } from '@/components/ui/motion';
 import { FloatingParticles } from '@/components/dashboard/FloatingParticles';

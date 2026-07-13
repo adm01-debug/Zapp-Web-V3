@@ -4,7 +4,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { motion, StaggeredList, StaggeredItem } from '@/components/ui/motion';
-import { EmptyState } from '@/components/ui/empty-state';
+import { EmptyState } from '@/components/ui/empty-states';
 import { getAvatarColor, getInitials } from '@/lib/avatarColors';
 import {
   MessageSquare, Users, Clock, CheckCircle2,

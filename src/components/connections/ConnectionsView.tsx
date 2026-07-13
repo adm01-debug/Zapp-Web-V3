@@ -4,7 +4,7 @@ import { PageHeader } from '@/components/layout/PageHeader';
 import { StaggeredList, StaggeredItem } from '@/components/ui/motion';
 import { FloatingParticles } from '@/components/dashboard/FloatingParticles';
 import { AuroraBorealis } from '@/components/effects/AuroraBorealis';
-import { EmptyState } from '@/components/ui/empty-state';
+import { EmptyState } from '@/components/ui/empty-states';
 import { Input } from '@/components/ui/input';
 import {
   Select,

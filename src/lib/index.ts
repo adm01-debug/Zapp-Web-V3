@@ -17,7 +17,7 @@
  *   sanitize    → sanitizeText, sanitizeHtml, sanitizeUrl, sanitizeContactFields…
  *
  * Excluded intentionally (see commit message for reasons):
- *   sanitize-v2, avatar-colors, contact-health, web-vitals, react-refs
+ *   sanitize-v2 (direct import), avatarColors, contactHealth, webVitals, reactRefs
  */
 
 // ─── Core UI helpers ───────────────────────────────────────────────────────────

@@ -14,7 +14,7 @@ import { Loader2, Lock, ChevronDown, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getLogger } from '@/lib/logger';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { EmptyState } from '@/components/ui/empty-state';
+import { EmptyState } from '@/components/ui/empty-states';
 import { supabase } from '@/integrations/supabase/client';
 import { ChatWatermark } from './ChatWatermark';
 import { Message, InteractiveButton } from '@/types/chat';
