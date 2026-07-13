@@ -7,7 +7,7 @@ import { useTalkX, TalkXCampaign } from '@/hooks/useTalkX';
 // Format an ISO/UTC timestamp into the "YYYY-MM-DDTHH:mm" a <input type="datetime-local">
 // expects, in the browser's LOCAL time. Using toISOString() here would show UTC and
 // shift the displayed time (e.g. +3h in UTC-3), corrupting the value on re-save.
-function toLocalDateTimeInput(value: string): string {
+export function toLocalDateTimeInput(value: string): string {
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return '';
   const pad = (n: number) => String(n).padStart(2, '0');
