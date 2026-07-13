@@ -225,7 +225,7 @@ export function useUserSettings() {
           log.error('Error fetching settings', {
             userId: user.id,
             error: error.message,
-            code: (error as any).code,
+            code: error.code,
           });
           return;
         }
@@ -411,10 +411,10 @@ export function useUserSettings() {
 
         // Check if update succeeded or hit version conflict
         if (!data.success && data.error_code === 'CONFLICT') {
-          const conflictError = new Error(
-            'Version conflict: settings were modified. Reloading and retrying...'
+          const conflictError = Object.assign(
+            new Error('Version conflict: settings were modified. Reloading and retrying...'),
+            { code: 'CONFLICT' }
           );
-          (conflictError as any).code = 'CONFLICT';
           throw conflictError;
         }
 
