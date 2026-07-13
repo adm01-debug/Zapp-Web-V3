@@ -40,13 +40,6 @@ interface Invitation {
   uses: number;
 }
 
-interface AuditLog {
-  id: string;
-  action: 'ADD_MEMBER' | 'REMOVE_MEMBER';
-  created_at: string;
-  details: { profile_name?: string };
-}
-
 interface Props {
   department: Department;
   open: boolean;

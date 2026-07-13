@@ -54,7 +54,7 @@ export const DS_CONFIG = {
   ],
   FORBIDDEN_PATTERNS: [
     { pattern: /(?:bg|text|border)-(?:\[(?:#(?:[0-9a-fA-F]{3,6})|rgb|hsl|rgba|hsla)\])/, label: 'Arbitrary Color' },
-    { pattern: /(?:bg|text|border)-(?:white|black(?:(?!\-[0-9]))|(?:red|blue|green|yellow|slate|gray|zinc|neutral|stone|orange|amber|lime|emerald|teal|cyan|sky|indigo|violet|purple|fuchsia|pink|rose)-[0-9]+)\b/, label: 'Literal Color' },
+    { pattern: /(?:bg|text|border)-(?:white|black(?:(?!-[0-9]))|(?:red|blue|green|yellow|slate|gray|zinc|neutral|stone|orange|amber|lime|emerald|teal|cyan|sky|indigo|violet|purple|fuchsia|pink|rose)-[0-9]+)\b/, label: 'Literal Color' },
     { pattern: /font-(?:inter|sans|mono|serif)\b/, label: 'Literal Font' },
     { pattern: /(?<!linear-gradient\(|radial-gradient\(|conic-gradient\()#([0-9a-fA-F]{3,6})\b/, label: 'Raw Hex' },
   ],

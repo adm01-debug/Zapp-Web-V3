@@ -70,9 +70,9 @@ test.describe('Voice Changer Integration', () => {
     await audioMsg.locator('button[title="Alterar voz com IA"]').click();
 
     // Mock 504 Timeout
-    let callCount = 0;
+    let _callCount = 0;
     await page.route('**/functions/v1/voice-changer', async (route) => {
-      callCount++;
+      _callCount++;
       await route.fulfill({
         status: 504,
         contentType: 'application/json',

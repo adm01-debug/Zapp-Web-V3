@@ -53,12 +53,12 @@
 ## src/components/connections/ConnectionAuditDialog.tsx
 | Priority | Line | Raw Match | Clean | Suggestion | Patch |
 |---|---|---|---|---|---|
-| Low | 127 | `font-mono` | `font-mono` | VALID: Technical data (ID/Metric/Log) | - |
+| Low | 140 | `font-mono` | `font-mono` | VALID: Technical data (ID/Metric/Log) | - |
 ## src/components/connections/ConnectionsView.tsx
 | Priority | Line | Raw Match | Clean | Suggestion | Patch |
 |---|---|---|---|---|---|
-| High | 261 | `bg-black` | `bg-black` | bg-foreground | `bg-foreground` |
-| Low | 261 | `font-mono` | `font-mono` | VALID: Technical data (ID/Metric/Log) | - |
+| High | 241 | `bg-black` | `bg-black` | bg-foreground | `bg-foreground` |
+| Low | 241 | `font-mono` | `font-mono` | VALID: Technical data (ID/Metric/Log) | - |
 ## src/components/connections/DegradedQuickActions.tsx
 | Priority | Line | Raw Match | Clean | Suggestion | Patch |
 |---|---|---|---|---|---|
@@ -66,7 +66,7 @@
 ## src/components/connections/InstanceSettingsDialog.tsx
 | Priority | Line | Raw Match | Clean | Suggestion | Patch |
 |---|---|---|---|---|---|
-| Low | 231 | `font-mono` | `font-mono` | VALID: Technical data (ID/Metric/Log) | - |
+| Low | 234 | `font-mono` | `font-mono` | VALID: Technical data (ID/Metric/Log) | - |
 ## src/components/connections/bridge/BridgeInfoRow.tsx
 | Priority | Line | Raw Match | Clean | Suggestion | Patch |
 |---|---|---|---|---|---|
@@ -136,7 +136,7 @@
 ## src/hooks/admin/useDepartmentsAdmin.ts
 | Priority | Line | Raw Match | Clean | Suggestion | Patch |
 |---|---|---|---|---|---|
-| Low | 4 | `#243` | `#243` | Check design system tokens | - |
+| Low | 5 | `#243` | `#243` | Check design system tokens | - |
 ## src/hooks/admin/useAdminChannels.ts
 | Priority | Line | Raw Match | Clean | Suggestion | Patch |
 |---|---|---|---|---|---|
@@ -145,11 +145,11 @@
 ## src/hooks/admin/useAdminQueues.ts
 | Priority | Line | Raw Match | Clean | Suggestion | Patch |
 |---|---|---|---|---|---|
-| Medium | 98 | `#3B82F6` | `#3B82F6` | bg-primary | `bg-primary` |
+| Medium | 165 | `#3B82F6` | `#3B82F6` | bg-primary | `bg-primary` |
 ## src/hooks/useQueues.ts
 | Priority | Line | Raw Match | Clean | Suggestion | Patch |
 |---|---|---|---|---|---|
-| Medium | 105 | `#3B82F6` | `#3B82F6` | bg-primary | `bg-primary` |
+| Medium | 106 | `#3B82F6` | `#3B82F6` | bg-primary | `bg-primary` |
 ## src/hooks/useEvolutionAutoReconnect.ts
 | Priority | Line | Raw Match | Clean | Suggestion | Patch |
 |---|---|---|---|---|---|
@@ -171,12 +171,12 @@
 ## src/features/admin/components/AIUsageDashboard.tsx
 | Priority | Line | Raw Match | Clean | Suggestion | Patch |
 |---|---|---|---|---|---|
-| Low | 184 | `#666` | `#666` | VALID: Log/Technical Dimmed | - |
-| Low | 196 | `#666` | `#666` | VALID: Log/Technical Dimmed | - |
+| Low | 185 | `#666` | `#666` | VALID: Log/Technical Dimmed | - |
+| Low | 197 | `#666` | `#666` | VALID: Log/Technical Dimmed | - |
 ## src/features/admin/components/InboxScopeConfig.tsx
 | Priority | Line | Raw Match | Clean | Suggestion | Patch |
 |---|---|---|---|---|---|
-| Medium | 408 | `font-mono` | `font-mono` | Ensure font-mono is only for technical data (IDs, logs, metrics) | - |
+| Medium | 411 | `font-mono` | `font-mono` | Ensure font-mono is only for technical data (IDs, logs, metrics) | - |
 ## src/features/admin/components/AIUsageLogsTab.tsx
 | Priority | Line | Raw Match | Clean | Suggestion | Patch |
 |---|---|---|---|---|---|
@@ -190,20 +190,6 @@
 | Medium | 36 | `#10b981` | `#10b981` | bg-success | `bg-success` |
 | Medium | 37 | `#ef4444` | `#ef4444` | bg-destructive | `bg-destructive` |
 | Low | 38 | `#06b6d4` | `#06b6d4` | Check design system tokens | - |
-## src/features/inbox/components/conversation-list/ConversationItem.tsx
-| Priority | Line | Raw Match | Clean | Suggestion | Patch |
-|---|---|---|---|---|---|
-| High | 236 | `bg-white` | `bg-white` | bg-background | `bg-background` |
-| High | 301 | `font-sans` | `font-sans` | Remove redundant font-sans; inherits from global | - |
-| High | 326 | `bg-white` | `bg-white` | bg-background | `bg-background` |
-| High | 388 | `border-white` | `border-white` | border-border | `border-border` |
-| High | 388 | `bg-white` | `bg-white` | bg-background | `bg-background` |
-| High | 388 | `text-white` | `text-white` | text-foreground | `text-foreground` |
-| High | 534 | `font-sans` | `font-sans` | Remove redundant font-sans; inherits from global | - |
-| High | 559 | `bg-white` | `bg-white` | bg-background | `bg-background` |
-| High | 622 | `border-white` | `border-white` | border-border | `border-border` |
-| High | 622 | `bg-white` | `bg-white` | bg-background | `bg-background` |
-| High | 622 | `text-white` | `text-white` | text-foreground | `text-foreground` |
 ## src/features/inbox/components/monitoring/QueueMetricsDashboard.tsx
 | Priority | Line | Raw Match | Clean | Suggestion | Patch |
 |---|---|---|---|---|---|
@@ -270,16 +256,16 @@
 ## src/features/inbox/components/chat/MessageBubble.tsx
 | Priority | Line | Raw Match | Clean | Suggestion | Patch |
 |---|---|---|---|---|---|
-| High | 393 | `bg-black` | `bg-black` | bg-foreground | `bg-foreground` |
-| High | 393 | `text-white` | `text-white` | text-foreground | `text-foreground` |
+| High | 394 | `bg-black` | `bg-black` | bg-foreground | `bg-foreground` |
+| High | 394 | `text-white` | `text-white` | text-foreground | `text-foreground` |
 ## src/features/inbox/components/linkPreviewUtils.ts
 | Priority | Line | Raw Match | Clean | Suggestion | Patch |
 |---|---|---|---|---|---|
-| Low | 59 | `#039` | `#039` | VALID: Legacy Link Color | - |
+| Low | 60 | `#039` | `#039` | VALID: Legacy Link Color | - |
 ## src/features/inbox/hooks/realtime/messageSender.ts
 | Priority | Line | Raw Match | Clean | Suggestion | Patch |
 |---|---|---|---|---|---|
-| Low | 257 | `#192` | `#192` | Check design system tokens | - |
+| Low | 260 | `#192` | `#192` | Check design system tokens | - |
 ## src/App.css
 | Priority | Line | Raw Match | Clean | Suggestion | Patch |
 |---|---|---|---|---|---|
@@ -288,8 +274,10 @@
 | Priority | Line | Raw Match | Clean | Suggestion | Patch |
 |---|---|---|---|---|---|
 | High | 167 | `#000` | `#000` | bg-foreground | `bg-foreground` |
-| Low | 173 | `#000000` | `#000000` | VALID: OLED Black (Intentional) | - |
-| Low | 186 | `#000000` | `#000000` | VALID: OLED Black (Intentional) | - |
+## src/styles/tokens.css
+| Priority | Line | Raw Match | Clean | Suggestion | Patch |
+|---|---|---|---|---|---|
+| Low | 236 | `#5187fb` | `#5187fb` | Check design system tokens | - |
 ## src/lib/devRealtimeLogger.ts
 | Priority | Line | Raw Match | Clean | Suggestion | Patch |
 |---|---|---|---|---|---|
@@ -299,6 +287,10 @@
 | Low | 93 | `#d97706` | `#d97706` | Check design system tokens | - |
 | Medium | 94 | `#dc2626` | `#dc2626` | bg-destructive | `bg-destructive` |
 | Low | 95 | `#888` | `#888` | VALID: Log/Technical Neutral | - |
+## src/lib/sanitize-v2.ts
+| Priority | Line | Raw Match | Clean | Suggestion | Patch |
+|---|---|---|---|---|---|
+| Low | 92 | `#123` | `#123` | Check design system tokens | - |
 ## src/utils/emailMappers.test.ts
 | Priority | Line | Raw Match | Clean | Suggestion | Patch |
 |---|---|---|---|---|---|
@@ -311,34 +303,34 @@
 ## src/pages/admin/AdminBridgeStatusPage.tsx
 | Priority | Line | Raw Match | Clean | Suggestion | Patch |
 |---|---|---|---|---|---|
-| Medium | 317 | `font-mono` | `font-mono` | Ensure font-mono is only for technical data (IDs, logs, metrics) | - |
-| High | 401 | `bg-black` | `bg-black` | bg-foreground | `bg-foreground` |
-| Low | 401 | `font-mono` | `font-mono` | VALID: Technical data (ID/Metric/Log) | - |
-| High | 452 | `bg-white` | `bg-white` | bg-background | `bg-background` |
-| Medium | 521 | `font-mono` | `font-mono` | Ensure font-mono is only for technical data (IDs, logs, metrics) | - |
-| Medium | 548 | `font-mono` | `font-mono` | Ensure font-mono is only for technical data (IDs, logs, metrics) | - |
-| Low | 581 | `font-mono` | `font-mono` | VALID: Technical data (ID/Metric/Log) | - |
+| Medium | 332 | `font-mono` | `font-mono` | Ensure font-mono is only for technical data (IDs, logs, metrics) | - |
+| High | 416 | `bg-black` | `bg-black` | bg-foreground | `bg-foreground` |
+| Low | 416 | `font-mono` | `font-mono` | VALID: Technical data (ID/Metric/Log) | - |
+| High | 467 | `bg-white` | `bg-white` | bg-background | `bg-background` |
+| Medium | 536 | `font-mono` | `font-mono` | Ensure font-mono is only for technical data (IDs, logs, metrics) | - |
+| Medium | 563 | `font-mono` | `font-mono` | Ensure font-mono is only for technical data (IDs, logs, metrics) | - |
+| Low | 596 | `font-mono` | `font-mono` | VALID: Technical data (ID/Metric/Log) | - |
 ## src/pages/admin/Connections.tsx
 | Priority | Line | Raw Match | Clean | Suggestion | Patch |
 |---|---|---|---|---|---|
-| Medium | 424 | `font-mono` | `font-mono` | Ensure font-mono is only for technical data (IDs, logs, metrics) | - |
-| Medium | 441 | `font-mono` | `font-mono` | Ensure font-mono is only for technical data (IDs, logs, metrics) | - |
-| Medium | 452 | `border-amber-500` | `border-amber-500` | border-warning | `border-warning` |
-| Medium | 452 | `bg-amber-500` | `bg-amber-500` | bg-warning | `bg-warning` |
-| Medium | 452 | `text-amber-600` | `text-amber-600` | text-warning | `text-warning` |
-| Medium | 557 | `text-blue-500` | `text-blue-500` | text-primary | `text-primary` |
-| Medium | 582 | `text-orange-500` | `text-orange-500` | text-warning | `text-warning` |
-| Medium | 618 | `text-emerald-500` | `text-emerald-500` | text-success | `text-success` |
-| Medium | 649 | `border-emerald-500` | `border-emerald-500` | border-success | `border-success` |
-| Medium | 649 | `bg-emerald-500` | `bg-emerald-500` | bg-success | `bg-success` |
-| Medium | 649 | `text-emerald-600` | `text-emerald-600` | text-success | `text-success` |
-| Medium | 686 | `border-purple-500` | `border-purple-500` | border-accent | `border-accent` |
-| Medium | 686 | `bg-purple-500` | `bg-purple-500` | bg-accent | `bg-accent` |
-| Medium | 689 | `text-purple-500` | `text-purple-500` | text-accent | `text-accent` |
-| Medium | 698 | `border-purple-500` | `border-purple-500` | border-accent | `border-accent` |
-| Medium | 700 | `text-purple-500` | `text-purple-500` | text-accent | `text-accent` |
-| Medium | 714 | `font-mono` | `font-mono` | Ensure font-mono is only for technical data (IDs, logs, metrics) | - |
-| Medium | 736 | `font-mono` | `font-mono` | Ensure font-mono is only for technical data (IDs, logs, metrics) | - |
+| Medium | 448 | `font-mono` | `font-mono` | Ensure font-mono is only for technical data (IDs, logs, metrics) | - |
+| Medium | 466 | `font-mono` | `font-mono` | Ensure font-mono is only for technical data (IDs, logs, metrics) | - |
+| Medium | 477 | `border-amber-500` | `border-amber-500` | border-warning | `border-warning` |
+| Medium | 477 | `bg-amber-500` | `bg-amber-500` | bg-warning | `bg-warning` |
+| Medium | 477 | `text-amber-600` | `text-amber-600` | text-warning | `text-warning` |
+| Medium | 582 | `text-blue-500` | `text-blue-500` | text-primary | `text-primary` |
+| Medium | 614 | `text-orange-500` | `text-orange-500` | text-warning | `text-warning` |
+| Medium | 657 | `text-emerald-500` | `text-emerald-500` | text-success | `text-success` |
+| Medium | 696 | `border-emerald-500` | `border-emerald-500` | border-success | `border-success` |
+| Medium | 696 | `bg-emerald-500` | `bg-emerald-500` | bg-success | `bg-success` |
+| Medium | 696 | `text-emerald-600` | `text-emerald-600` | text-success | `text-success` |
+| Medium | 739 | `border-purple-500` | `border-purple-500` | border-accent | `border-accent` |
+| Medium | 739 | `bg-purple-500` | `bg-purple-500` | bg-accent | `bg-accent` |
+| Medium | 742 | `text-purple-500` | `text-purple-500` | text-accent | `text-accent` |
+| Medium | 751 | `border-purple-500` | `border-purple-500` | border-accent | `border-accent` |
+| Medium | 753 | `text-purple-500` | `text-purple-500` | text-accent | `text-accent` |
+| Medium | 768 | `font-mono` | `font-mono` | Ensure font-mono is only for technical data (IDs, logs, metrics) | - |
+| Medium | 795 | `font-mono` | `font-mono` | Ensure font-mono is only for technical data (IDs, logs, metrics) | - |
 ## src/pages/admin/PerformanceDashboard.tsx
 | Priority | Line | Raw Match | Clean | Suggestion | Patch |
 |---|---|---|---|---|---|
@@ -364,20 +356,20 @@
 ## src/pages/admin/AdminChannelsPage.tsx
 | Priority | Line | Raw Match | Clean | Suggestion | Patch |
 |---|---|---|---|---|---|
-| Medium | 59 | `#3B82F6` | `#3B82F6` | bg-primary | `bg-primary` |
+| Medium | 57 | `#3B82F6` | `#3B82F6` | bg-primary | `bg-primary` |
 | Medium | 342 | `#3B82F6` | `#3B82F6` | bg-primary | `bg-primary` |
 ## src/pages/admin/AdminQueuesPage.tsx
 | Priority | Line | Raw Match | Clean | Suggestion | Patch |
 |---|---|---|---|---|---|
 | Medium | 53 | `#3B82F6` | `#3B82F6` | bg-primary | `bg-primary` |
-| Medium | 88 | `#3B82F6` | `#3B82F6` | bg-primary | `bg-primary` |
+| Medium | 91 | `#3B82F6` | `#3B82F6` | bg-primary | `bg-primary` |
 ## src/pages/admin/AdminEmailStatusPage.tsx
 | Priority | Line | Raw Match | Clean | Suggestion | Patch |
 |---|---|---|---|---|---|
-| Medium | 216 | `text-yellow-500` | `text-yellow-500` | text-warning | `text-warning` |
-| Medium | 266 | `border-yellow-200` | `border-yellow-200` | border-warning | `border-warning` |
-| Medium | 266 | `bg-yellow-50` | `bg-yellow-50` | bg-warning | `bg-warning` |
-| Medium | 266 | `text-yellow-800` | `text-yellow-800` | text-warning | `text-warning` |
+| Medium | 218 | `text-yellow-500` | `text-yellow-500` | text-warning | `text-warning` |
+| Medium | 268 | `border-yellow-200` | `border-yellow-200` | border-warning | `border-warning` |
+| Medium | 268 | `bg-yellow-50` | `bg-yellow-50` | bg-warning | `bg-warning` |
+| Medium | 268 | `text-yellow-800` | `text-yellow-800` | text-warning | `text-warning` |
 ## src/pages/BackendDiagnostics.tsx
 | Priority | Line | Raw Match | Clean | Suggestion | Patch |
 |---|---|---|---|---|---|
@@ -387,7 +379,8 @@
 ## src/pages/Auth.tsx
 | Priority | Line | Raw Match | Clean | Suggestion | Patch |
 |---|---|---|---|---|---|
-| Low | 347 | `#4285F4` | `#4285F4` | VALID: Google Blue | - |
-| Low | 351 | `#34A853` | `#34A853` | VALID: Google Green | - |
-| Low | 355 | `#FBBC05` | `#FBBC05` | VALID: Google Yellow | - |
-| Low | 359 | `#EA4335` | `#EA4335` | VALID: Google Red | - |
+| Medium | 264 | `dark:text-blue-400` | `text-blue-400` | dark:text-primary | `dark:text-primary` |
+| Low | 351 | `#4285F4` | `#4285F4` | VALID: Google Blue | - |
+| Low | 355 | `#34A853` | `#34A853` | VALID: Google Green | - |
+| Low | 359 | `#FBBC05` | `#FBBC05` | VALID: Google Yellow | - |
+| Low | 363 | `#EA4335` | `#EA4335` | VALID: Google Red | - |

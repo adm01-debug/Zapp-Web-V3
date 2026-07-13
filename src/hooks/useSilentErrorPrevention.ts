@@ -2,7 +2,6 @@ import { useEffect, useCallback, useRef } from 'react';
 import { getLogger } from '@/lib/logger';
 import {
   safeCallback,
-  safeEventListener,
   handlePromiseRejection,
   fireAndForget,
   retryWithBackoff,

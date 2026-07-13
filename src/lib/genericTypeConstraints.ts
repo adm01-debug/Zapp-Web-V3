@@ -177,7 +177,7 @@ export function partial<T extends (...args: any[]) => any>(
 /**
  * Type-safe generic object creation with constraint
  */
-export function createObject<T extends object>(shape: T): T {
+export function createObject<T extends object>(_shape: T): T {
   return Object.create(null) as T;
 }
 
@@ -214,7 +214,7 @@ export type FixedLengthArray<T, L extends number> = {
 /**
  * Ensures generic parameter is a class (constructor) type
  */
-export type Constructor<T = {}> = new (...args: any[]) => T;
+export type Constructor<T = Record<string, unknown>> = new (...args: any[]) => T;
 
 /**
  * Type-safe class instantiation with constraint

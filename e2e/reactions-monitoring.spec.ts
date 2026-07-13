@@ -14,7 +14,7 @@ test.describe('Reactions Operations Monitoring', () => {
     const firstChat = page.locator('[data-testid="conversation-item"]').first();
     await firstChat.click();
     const msg = page.locator('[data-testid="chat-message"]').last();
-    const msgId = await msg.getAttribute('data-message-id') || 'unknown';
+    const _msgId = await msg.getAttribute('data-message-id') || 'unknown';
     
     // 2. Perform Reaction
     await msg.hover();

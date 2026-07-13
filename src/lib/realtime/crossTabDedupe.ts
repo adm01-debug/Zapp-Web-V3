@@ -47,7 +47,7 @@ const BUS_MSG_TTL = 15_000;
 const STORAGE_RETRY_MAX = 3;
 const STORAGE_RETRY_BACKOFF = [10, 20, 40]; // ms
 const DEDUP_RING_SIZE = 100;
-const EVENT_PROCESSING_BUFFER = 50; // ms for out-of-order events
+const _EVENT_PROCESSING_BUFFER = 50; // ms for out-of-order events
 const CLOCK_MASTER_TIMEOUT = 30_000; // re-elect master if no heartbeat
 
 /** @internal — exposto para testes que precisam do prefixo de lock. */

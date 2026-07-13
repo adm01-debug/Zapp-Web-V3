@@ -40,7 +40,7 @@ test.describe('Chat Stickers, Memes e Interatividade', () => {
     await input.fill('/template'); 
     await page.keyboard.press('Enter');
 
-    const interactiveMsg = page.locator('text=Escolha uma opção').last();
+    const _interactiveMsg = page.locator('text=Escolha uma opção').last();
     const button = page.locator('button:has-text("Sim"), button:has-text("Não")').first();
     
     await expect(button).toBeVisible();

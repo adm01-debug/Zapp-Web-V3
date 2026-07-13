@@ -97,7 +97,7 @@ test.describe('Conversation & Routing Flows', () => {
     await page.locator('[role="menuitem"]').first().click();
 
     // Verify loading state is shown during delay
-    const loadingSpinner = page.locator('.animate-spin, [role="status"]').first();
+    const _loadingSpinner = page.locator('.animate-spin, [role="status"]').first();
     // This might be too fast to catch if not careful, but good to have
     
     // Verify error recovery
