@@ -50,6 +50,19 @@ export default tseslint.config(
       },
     },
   },
+  // shadcn/ui vendor files and test mocks legitimately export multiple values per
+  // file (components + sub-components + hooks + types). The react-refresh rule
+  // only matters for HMR fast-refresh correctness on *app* components, not for
+  // library-style files.
+  {
+    files: [
+      "src/components/ui/**/*.{ts,tsx}",
+      "src/test/**/*.{ts,tsx}",
+    ],
+    rules: {
+      "react-refresh/only-export-components": "off",
+    },
+  },
   // DOMAIN BOUNDARY ENFORCEMENT — Bloqueia importações diretas entre domínios.
   {
     files: ["src/features/**/*.{ts,tsx}"],
@@ -67,16 +80,20 @@ export default tseslint.config(
       ]
     }
   },
-  // Stricter checks for test files: forbid `any` and force explicit typing
+  // Stricter checks for test files: forbid `any` and force explicit typing.
+  // `no-non-null-assertion` is turned off for tests: `!` assertions are idiomatic
+  // in test helpers (RTL queries, mock data access) and don't run in production.
   {
     files: [
       "src/**/__tests__/**/*.{ts,tsx}",
       "src/**/*.test.{ts,tsx}",
+      "src/**/*.spec.{ts,tsx}",
       "src/test/**/*.{ts,tsx}",
+      "src/tests/**/*.{ts,tsx}",
     ],
     rules: {
       "@typescript-eslint/no-explicit-any": "error",
-      "@typescript-eslint/no-non-null-assertion": "warn",
+      "@typescript-eslint/no-non-null-assertion": "off",
     },
   },
   // INBOX READ CONTRACT — bloqueia leitura via Evolution API dentro do inbox.

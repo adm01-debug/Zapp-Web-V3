@@ -166,10 +166,11 @@ export function TicketHistorySheet({ contactId, open, onOpenChange }: TicketHist
     queryKey: ['conversation-events', contactId],
     enabled: open && !!contactId,
     queryFn: async () => {
+      if (!contactId) return [];
       const { data, error } = await supabase
         .from('conversation_events')
         .select('*')
-        .eq('contact_id', contactId!)
+        .eq('contact_id', contactId)
         .order('created_at', { ascending: false })
         .limit(100);
       if (error) throw error;
@@ -191,11 +192,12 @@ export function TicketHistorySheet({ contactId, open, onOpenChange }: TicketHist
     queryKey: ['conversation-audit-logs', contactId],
     enabled: open && !!contactId,
     queryFn: async () => {
+      if (!contactId) return [];
       const { data, error } = await supabase
         .from('audit_logs')
         .select('*')
         .eq('entity_type', 'conversation')
-        .eq('entity_id', contactId!)
+        .eq('entity_id', contactId)
         .order('created_at', { ascending: false })
         .limit(50);
       if (error) return [];

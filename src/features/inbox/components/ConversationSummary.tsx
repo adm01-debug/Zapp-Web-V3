@@ -143,6 +143,7 @@ export function ConversationSummary({
         contactName,
         contactId,
       });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       setSummary(data as any); setHasGenerated(true); toast.success('Resumo gerado com sucesso!');
     } catch (error) { log.error('Error generating summary:', error); toast.error('Erro ao gerar resumo. Tente novamente.'); }
     finally { setIsLoading(false); }

@@ -86,9 +86,10 @@ export function useContactEnrichedData(contactId: string) {
   const { data: enrichedData } = useQuery({
     queryKey: ['contact-enriched', localId],
     queryFn: async () => {
+      if (!localId) return null;
       const { data, error } = await dbFrom('contacts')
         .select('company, job_title, nickname, surname, contact_type, ai_sentiment, ai_priority, channel_type')
-        .eq('id', localId!)
+        .eq('id', localId)
         .single();
 
       if (error) {
@@ -105,10 +106,11 @@ export function useContactEnrichedData(contactId: string) {
   const { data: aiTags = [] } = useQuery({
     queryKey: ['contact-ai-tags', localId],
     queryFn: async () => {
+      if (!localId) return [];
       const { data, error } = await supabase
         .from('ai_conversation_tags')
         .select('id, tag_name, confidence, source')
-        .eq('contact_id', localId!)
+        .eq('contact_id', localId)
         .order('confidence', { ascending: false });
 
       if (error) {
@@ -125,10 +127,11 @@ export function useContactEnrichedData(contactId: string) {
   const { data: slaInfo } = useQuery({
     queryKey: ['contact-sla', localId],
     queryFn: async () => {
+      if (!localId) return null;
       const { data, error } = await supabase
         .from('conversation_sla')
         .select('first_response_breached, resolution_breached, first_response_at, resolved_at')
-        .eq('contact_id', localId!)
+        .eq('contact_id', localId)
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle();

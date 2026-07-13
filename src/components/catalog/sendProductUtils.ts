@@ -35,7 +35,7 @@ export function groupVariantsByColor(variants: ExternalProductVariant[]): Varian
     if (!map.has(key)) {
       map.set(key, { colorName: key, colorHex: v.color_hex, variants: [], images: [] });
     }
-    const group = map.get(key)!;
+    const group = map.get(key) ?? { colorName: key, colorHex: v.color_hex, variants: [], images: [] };
     group.variants.push(v);
     if (v.selected_thumbnail && !group.images.includes(v.selected_thumbnail)) {
       group.images.push(v.selected_thumbnail);
@@ -120,7 +120,7 @@ export function collectAllImages(product: ExternalProduct): { url: string; label
   if (product.variants) {
     product.variants.forEach((v) => {
       if (v.selected_thumbnail && !imgs.some((i) => i.url === v.selected_thumbnail)) {
-        imgs.push({ url: v.selected_thumbnail!, label: v.color_name || v.name });
+        imgs.push({ url: v.selected_thumbnail, label: v.color_name || v.name });
       }
     });
   }

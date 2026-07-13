@@ -189,7 +189,7 @@ export function IncidentDetailDialog({ pause, onClose }: Props) {
                 <div className="flex justify-between gap-2 pt-2 border-t">
                   <span className="text-muted-foreground">Investigado em:</span>
                   <span className="text-xs">
-                    {format(new Date(pause.investigated_at!), "dd/MM/yyyy HH:mm", { locale: ptBR })}
+                    {format(new Date(pause.investigated_at ?? ''), "dd/MM/yyyy HH:mm", { locale: ptBR })}
                   </span>
                 </div>
                 {pause.investigation_notes && (

@@ -52,6 +52,7 @@ function WithHeader({ viewId, children }: WithHeaderProps) {
 }
 
 // Declarative route map — easier to maintain than switch/case
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const VIEW_MAP: Record<string, React.LazyExoticComponent<React.ComponentType<any>>> = {
   inbox: Views.RealtimeInboxView,
   dashboard: Views.DashboardView,

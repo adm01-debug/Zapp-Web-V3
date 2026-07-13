@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { log } from '@/lib/logger';

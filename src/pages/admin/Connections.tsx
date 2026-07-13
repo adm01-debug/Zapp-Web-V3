@@ -121,7 +121,7 @@ export default function AdminConnectionsPage() {
 
         if (rolesError) throw rolesError;
 
-        const hasAccess = !!roles?.some((r: any) => r.role === 'admin' || r.role === 'dev'); // ignore-audit
+        const hasAccess = !!roles?.some((r: { role: string }) => r.role === 'admin' || r.role === 'dev');
         setIsAdmin(hasAccess);
 
         if (!hasAccess) {
@@ -255,8 +255,7 @@ export default function AdminConnectionsPage() {
 
     try {
       const existing = connections.find(
-        // ignore-audit
-        (c: any) => c.provider === 'supabase_external' || c.name === 'FATOR X' // ignore-audit
+        (c: { provider?: string; name?: string }) => c.provider === 'supabase_external' || c.name === 'FATOR X'
       );
       const insertPayload = currentUserId ? { ...payload, created_by: currentUserId } : payload;
 

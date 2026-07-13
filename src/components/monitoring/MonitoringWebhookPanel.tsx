@@ -333,7 +333,7 @@ export function MonitoringWebhookPanel({
                         variant="ghost"
                         size="sm"
                         className="h-5 w-5 p-0"
-                        onClick={() => copyUrl(webhookConfig.url!)}
+                        onClick={() => copyUrl(webhookConfig.url ?? '')}
                       >
                         <Copy className="h-3 w-3" />
                       </Button>

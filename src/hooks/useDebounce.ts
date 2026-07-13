@@ -18,6 +18,7 @@ interface UseDebounceOptions {
  * - Scroll position tracking
  * - Auto-save form fields
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function useDebounce<T extends (...args: any[]) => any>(
   callback: T,
   optionsOrDelay: UseDebounceOptions | number = {},

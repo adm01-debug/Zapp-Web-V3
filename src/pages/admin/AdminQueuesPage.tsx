@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
+// editing! assertions are safe here: fields are only rendered when editing !== null (controlled by Dialog open state)
 import {
   useAdminQueues,
   ALGO_LABEL,

@@ -132,7 +132,7 @@ export function HmacAuditHistoryPanel({ instance: initialInstance = null, limit 
     setInstanceFilter(initialInstance ?? ALL_INSTANCES);
   }, [initialInstance]);
 
-  const rangeCfg = useMemo(() => RANGES.find((r) => r.value === range)!, [range]);
+  const rangeCfg = useMemo(() => RANGES.find((r) => r.value === range) ?? RANGES[0], [range]);
   const since = useMemo(() => subHours(new Date(), rangeCfg.hours).toISOString(), [rangeCfg]);
 
   const queryKey = useMemo(

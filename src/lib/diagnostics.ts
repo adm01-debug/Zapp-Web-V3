@@ -78,6 +78,7 @@ export async function runConnectionDiagnostics(): Promise<DiagResult> {
     };
 
     const validatedPayload = systemConnectionSchema.parse(payload);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { error: upsertError } = await safeClient.from('system_connections', (q: any) => // ignore-audit — query builder shape not in generated types
       q.upsert({
         ...validatedPayload,
@@ -92,6 +93,7 @@ export async function runConnectionDiagnostics(): Promise<DiagResult> {
       const testName = '_DIAGNOSTICS_TEST';
       const { data: _verifyData, error: _verifyError } = await safeClient.single<SystemConnectionRow>(
         'system_connections',
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (q: any) => q.select('*').eq('name', testName) // ignore-audit
       );
       return diagnostics;

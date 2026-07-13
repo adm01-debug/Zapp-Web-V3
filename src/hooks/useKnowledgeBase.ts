@@ -61,6 +61,7 @@ export function useKnowledgeBase() {
     ]);
     if (!mountedRef.current) return;
     if (articlesRes.data)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       setArticles(articlesRes.data.map((a: any) => ({ ...a, tags: a.tags || [] })));
     if (filesRes.data) setFiles(filesRes.data);
     setLoading(false);

@@ -110,7 +110,7 @@ export function BlockedIPsPanel() {
                             <Badge variant="outline">
                               <Clock className="mr-1 h-3 w-3" />
                               Expira{' '}
-                              {formatDistanceToNow(new Date(ip.expires_at!), {
+                              {formatDistanceToNow(new Date(ip.expires_at ?? ''), {
                                 addSuffix: true,
                                 locale: ptBR,
                               })}

@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { motion, AnimatePresence } from 'framer-motion';
 import { Trophy, Zap, MessageSquare, Star, Flame, Rocket, Target, PartyPopper, Crown } from 'lucide-react';
 import { cn } from '@/lib/utils';

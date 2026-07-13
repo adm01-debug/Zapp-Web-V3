@@ -89,6 +89,7 @@ export async function compressImage(
   // Prefer OffscreenCanvas (non-blocking, Web Worker compatible)
   if (typeof OffscreenCanvas !== 'undefined') {
     const offscreen = new OffscreenCanvas(width, height);
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const ctx = offscreen.getContext('2d')!;
     ctx.drawImage(source, 0, 0, width, height);
 
@@ -109,6 +110,7 @@ export async function compressImage(
     const canvas = document.createElement('canvas');
     canvas.width = width;
     canvas.height = height;
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const ctx = canvas.getContext('2d')!;
     ctx.drawImage(source, 0, 0, width, height);
 

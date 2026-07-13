@@ -43,7 +43,7 @@ class ValidationLogger {
     const originalWarn = console.warn;
 
     // eslint-disable-next-line no-console
-    console.log = (...args: any[]) => {
+    console.log = (...args: unknown[]) => {
       const msg = args.map((a) => (typeof a === 'object' ? '[Object]' : String(a))).join(' ');
       if (!msg.includes('[validationLogger]')) {
         this.addEvent('log', msg);
@@ -51,7 +51,7 @@ class ValidationLogger {
       originalLog.apply(console, args);
     };
 
-    console.error = (...args: any[]) => {
+    console.error = (...args: unknown[]) => {
       const msg = args.map((a) => (typeof a === 'object' ? '[Error Object]' : String(a))).join(' ');
       if (!msg.includes('[validationLogger]')) {
         this.addEvent('error', msg);
@@ -59,7 +59,7 @@ class ValidationLogger {
       originalError.apply(console, args);
     };
 
-    console.warn = (...args: any[]) => {
+    console.warn = (...args: unknown[]) => {
       const msg = args.map((a) => (typeof a === 'object' ? '[Object]' : String(a))).join(' ');
       if (!msg.includes('[validationLogger]')) {
         this.addEvent('log', `[WARN] ${msg}`);

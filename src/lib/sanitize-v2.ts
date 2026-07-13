@@ -47,7 +47,7 @@ function normalizeUnicodeNFKC(text: string): string {
   if (!text) return text;
 
   if (normalizationCache.has(text)) {
-    return normalizationCache.get(text)!;
+    return normalizationCache.get(text) ?? text;
   }
 
   try {

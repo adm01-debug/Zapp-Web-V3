@@ -48,8 +48,10 @@ export function ParticipantStatsGraph({ conversationId }: ParticipantStatsGraphP
       const messageIds = messages.map(m => m.id);
       
       type ReceiptRow = { status: string; profile_id: string | null; profiles: { name: string | null } | null };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data: rawReceipts, error: recError } = await (safeClient.from as any)(
         'team_message_receipts',
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (q: any) => q
           .select('status, profile_id, profiles(name)')
           .in('message_id', messageIds),

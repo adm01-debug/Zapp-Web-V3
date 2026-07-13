@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 /**
  * MessageStatusFilterBar — chips toggláveis para filtrar a lista
  * de mensagens da conversa por status (sent / delivered / read).

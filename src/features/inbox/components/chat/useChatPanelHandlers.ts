@@ -224,7 +224,7 @@ export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
         const msg = err instanceof Error ? err.message : 'Falha ao invocar a funcao de envio.';
         const detail =
           typeof (err as { detail?: string }).detail === 'string'
-            ? (err as { detail?: string }).detail!
+            ? (err as { detail: string }).detail
             : null;
         lastFailedSendRef.current = { content: messageContent, attachments };
         setLastSendError(msg);
@@ -256,7 +256,7 @@ export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
         const msg = err instanceof Error ? err.message : 'Falha ao reenviar audio.';
         const detail =
           typeof (err as { detail?: string }).detail === 'string'
-            ? (err as { detail?: string }).detail!
+            ? (err as { detail: string }).detail
             : null;
         setLastSendError(msg);
         setLastSendErrorDetail(detail);
@@ -281,7 +281,7 @@ export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
       const msg = err instanceof Error ? err.message : 'Falha ao reenviar.';
       const detail =
         typeof (err as { detail?: string }).detail === 'string'
-          ? (err as { detail?: string }).detail!
+          ? (err as { detail: string }).detail
           : null;
       setLastSendError(msg);
       setLastSendErrorDetail(detail);
@@ -513,7 +513,7 @@ export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
         const msg = err instanceof Error ? err.message : 'Falha ao enviar audio.';
         const detail =
           typeof (err as { detail?: string }).detail === 'string'
-            ? (err as { detail?: string }).detail!
+            ? (err as { detail: string }).detail
             : null;
         lastFailedAudioRef.current = { blob: audioBlob, onSendAudio };
         lastFailedSendRef.current = null;

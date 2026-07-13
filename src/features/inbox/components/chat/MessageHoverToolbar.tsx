@@ -187,7 +187,7 @@ export function MessageHoverToolbar({
               <>
                 <DropdownMenuItem
                   className="cursor-pointer gap-2"
-                  onClick={() => onEditStart!(message)}
+                  onClick={() => onEditStart?.(message)}
                 >
                   <Pencil className="h-4 w-4" /> Editar mensagem
                 </DropdownMenuItem>

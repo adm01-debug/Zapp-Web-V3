@@ -222,7 +222,7 @@ export function useUserSettings() {
           log.error('Error fetching settings', {
             userId: user.id,
             error: error.message,
-            code: (error as any).code,
+            code: (error as { code?: string }).code,
           });
           return;
         }
@@ -386,6 +386,7 @@ export function useUserSettings() {
           error_code: string | null;
         }>(
           'user_settings',
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           (q: any) =>
             q.rpc('upsert_user_settings', {
               _user_id: user.id,
@@ -413,7 +414,7 @@ export function useUserSettings() {
           const conflictError = new Error(
             'Version conflict: settings were modified. Reloading and retrying...'
           );
-          (conflictError as any).code = 'CONFLICT';
+          (conflictError as Error & { code?: string }).code = 'CONFLICT';
           throw conflictError;
         }
 

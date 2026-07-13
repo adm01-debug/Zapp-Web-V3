@@ -20,9 +20,9 @@ export function ScopeRulesList({ scope }: ScopeRulesListProps) {
   const [editingRule, setEditingRule] = useState<SLARule | null>(null);
 
   // Resolve human-readable names for UUID-based scopes
-  const contactIds = rules.filter((r) => r.contact_id).map((r) => r.contact_id!);
-  const queueIds = rules.filter((r) => r.queue_id).map((r) => r.queue_id!);
-  const agentIds = rules.filter((r) => r.agent_id).map((r) => r.agent_id!);
+  const contactIds = rules.flatMap((r) => r.contact_id ? [r.contact_id] : []);
+  const queueIds = rules.flatMap((r) => r.queue_id ? [r.queue_id] : []);
+  const agentIds = rules.flatMap((r) => r.agent_id ? [r.agent_id] : []);
 
   const { data: contactNames = {} } = useQuery({
     queryKey: ['sla-contact-names', contactIds],

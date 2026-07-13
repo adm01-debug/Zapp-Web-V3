@@ -21,7 +21,7 @@ const SOUND_CATEGORIES = {
 
 const playSoundPreview = (soundId: string) => {
   const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext; // ignore-audit — webkit-prefixed AudioContext not in standard lib
-  const ctx = new AudioCtx!();
+  const ctx = new AudioCtx();
   const osc = ctx.createOscillator();
   const gain = ctx.createGain();
   osc.connect(gain); gain.connect(ctx.destination);

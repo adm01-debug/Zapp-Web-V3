@@ -258,7 +258,7 @@ export function SLATimelineSection({ conversation }: SLATimelineSectionProps) {
           icon={Clock}
           label="Última mensagem"
           timestamp={timeline.lastMessageAt}
-          durationLabel={`há ${formatDistanceStrict(timeline.lastMessageAt!, new Date(), { locale: ptBR })}`}
+          durationLabel={`há ${formatDistanceStrict(new Date(timeline.lastMessageAt as string), new Date(), { locale: ptBR })}`}
           iconColor="text-muted-foreground"
         />
       ),

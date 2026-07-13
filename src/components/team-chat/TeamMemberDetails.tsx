@@ -132,7 +132,7 @@ export function TeamMemberDetails({ conversation, onClose }: TeamMemberDetailsPr
             <SectionHeader icon={Cake} label="Próximos Aniversários" open={sections.activity} onToggle={() => setSections(s => ({ ...s, activity: !s.activity }))} />
             <CollapsibleContent>
               <div className="px-4 pb-3 space-y-2">
-                {groupMembers.filter(m => m.birthday).map(m => ({ ...m, bInfo: getBirthdayInfo(m.birthday)! })).sort((a, b) => a.bInfo.daysUntil - b.bInfo.daysUntil).slice(0, 5).map(member => (
+                {groupMembers.filter(m => m.birthday).map(m => ({ ...m, bInfo: getBirthdayInfo(m.birthday as string) ?? { date: new Date(), age: 0, isToday: false, daysUntil: 365 } })).sort((a, b) => a.bInfo.daysUntil - b.bInfo.daysUntil).slice(0, 5).map(member => (
                   <div key={member.id} className="flex items-center gap-2.5 text-sm">
                     <Cake className={cn('w-3.5 h-3.5 shrink-0', member.bInfo.isToday ? 'text-chart-4' : 'text-muted-foreground')} />
                     <span className="truncate flex-1">{member.name}</span>

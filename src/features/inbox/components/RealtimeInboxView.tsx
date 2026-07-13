@@ -230,7 +230,8 @@ export function RealtimeInboxView() {
   const lastUnreadRef = useRef(0);
   useEffect(() => {
     const total = (inboxFilters.filteredConversations || []).reduce(
-      (sum: number, c: any) => sum + (c?.unreadCount || 0), // ignore-audit
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (sum: number, c: any) => sum + (c?.unreadCount || 0),
       0
     );
     if (total > lastUnreadRef.current && lastUnreadRef.current > 0) {

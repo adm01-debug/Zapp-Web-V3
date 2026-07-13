@@ -105,7 +105,8 @@ export function ConversationListSidebar({
   const [_contactSearch, setContactSearch] = useState('');
 
   const _conversationsWithUnreadCount = useMemo(
-    () => inbox.conversations.filter((c: any) => c.unreadCount > 0).length, // ignore-audit
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    () => inbox.conversations.filter((c: any) => c.unreadCount > 0).length,
     [inbox.conversations]
   );
 
@@ -130,7 +131,8 @@ export function ConversationListSidebar({
   }, [inbox]);
 
   const sortedFilteredIds = useMemo(
-    () => inboxFilters.filteredConversations.map((c: any) => c.contact.id), // ignore-audit
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    () => inboxFilters.filteredConversations.map((c: any) => c.contact.id),
     [inboxFilters.filteredConversations]
   );
 

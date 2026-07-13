@@ -65,6 +65,7 @@ export function getIsExternalConfigured(): boolean {
 }
 
 export let externalSupabase: SupabaseClient<ExtendedDatabase> = isExternalConfigured
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   ? createClient<ExtendedDatabase>(EXTERNAL_URL!, EXTERNAL_ANON_KEY!, {
       auth: {
         persistSession: true,

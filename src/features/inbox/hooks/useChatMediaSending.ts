@@ -36,7 +36,7 @@ export function useChatMediaSending(contactId: string, contactPhone: string | un
   /** Update message status with error logging and 1 retry */
   const updateMessageStatus = useCallback(
     async (messageId: string, status: string, externalId?: string | null) => {
-      const payload: any = { status }; // ignore-audit
+      const payload: Record<string, unknown> = { status };
       if (externalId) payload.external_id = externalId;
 
       try {

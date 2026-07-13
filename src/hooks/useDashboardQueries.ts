@@ -152,7 +152,7 @@ export const useSlaQuery = () =>
       if (!data || data.length === 0) return { avgResponseTime: null };
       const responseTimes = data.map((sla) => {
         const messageTime = new Date(sla.first_message_at).getTime();
-        const responseTime = new Date(sla.first_response_at!).getTime();
+        const responseTime = new Date(sla.first_response_at ?? '').getTime();
         return (responseTime - messageTime) / 1000;
       });
       return {

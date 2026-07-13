@@ -43,7 +43,8 @@ const VirtualizedItem = memo(
     onToggleSelection,
     onSelectConversation,
   }: {
-    virtualRow: any; // ignore-audit
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    virtualRow: any; // react-virtual row shape not in generated types
     conversation: ConversationWithMessages;
     selectedContactId: string | null;
     selectedIds: Set<string>;

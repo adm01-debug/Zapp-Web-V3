@@ -212,7 +212,7 @@ export default function AdminFailedAuthMessagesPage() {
                         {isLocked ? (
                           <Badge variant="destructive">
                             Bloqueado até{" "}
-                            {format(new Date(r.locked_until!), "HH:mm", { locale: ptBR })}
+                            {format(new Date(r.locked_until ?? ''), "HH:mm", { locale: ptBR })}
                           </Badge>
                         ) : (
                           <Badge variant="secondary">Liberado</Badge>

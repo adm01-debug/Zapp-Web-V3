@@ -71,8 +71,10 @@ export function TalkXBlacklist() {
   const { data: blacklist = [], isLoading } = useQuery({
     queryKey: ['talkx-blacklist'],
     queryFn: async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data, error } = await (safeClient.from as any)(
         'talkx_blacklist',
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (q: any) => q
           .select('*, contacts:contact_id(name, phone, company, avatar_url)')
           .order('created_at', { ascending: false }),

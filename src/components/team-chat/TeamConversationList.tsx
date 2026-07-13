@@ -222,7 +222,7 @@ export const TeamConversationList = forwardRef<HTMLDivElement, Props>(function T
                           onClick={(e) => {
                             e.stopPropagation();
                             setMgmtDept({
-                              id: conv.department_id!,
+                              id: conv.department_id ?? '',
                               name: conv.name || 'Departamento',
                             });
                           }}

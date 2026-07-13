@@ -173,7 +173,7 @@ export function PaymentLinksView() {
                     </div>
                     <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                       {link.payment_url && (
-                        <Button aria-label="Copiar link de pagamento" variant="ghost" size="icon" className="h-7 w-7" onClick={() => copyLink(link.payment_url!)}>
+                        <Button aria-label="Copiar link de pagamento" variant="ghost" size="icon" className="h-7 w-7" onClick={() => copyLink(link.payment_url ?? '')}>
                           <Copy className="w-3.5 h-3.5" />
                         </Button>
                       )}

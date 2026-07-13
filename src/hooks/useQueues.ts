@@ -105,7 +105,7 @@ export function useQueues() {
     try {
       const { data, error } = await safeFrom('queues')
         .insert({
-          name: queue.name!,
+          name: queue.name ?? '',
           description: queue.description,
           color: queue.color || '#3B82F6',
           max_wait_time_minutes: queue.max_wait_time_minutes || 30,

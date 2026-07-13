@@ -123,7 +123,7 @@ export function useInboxBulkActions({ refetch, filteredConversations }: UseInbox
             const byAssignee = new Map<string | null, string[]>();
             for (const c of originalContacts) {
               if (!byAssignee.has(c.assigned_to)) byAssignee.set(c.assigned_to, []);
-              byAssignee.get(c.assigned_to)!.push(c.id);
+              byAssignee.get(c.assigned_to)?.push(c.id);
             }
             await Promise.all(
               Array.from(byAssignee.entries()).map(([assignedTo, ids]) =>

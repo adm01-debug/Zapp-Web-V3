@@ -11,7 +11,8 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ALL_ROOT_CAUSES, getRootCauseMeta } from '@/lib/failureRootCause';
 
-export function FailedMessagesFilters({ ui, stats }: { ui: any; stats: any }) { // ignore-audit
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function FailedMessagesFilters({ ui, stats }: { ui: any; stats: any }) {
   const { api } = ui;
 
   return (
@@ -126,7 +127,7 @@ export function FailedMessagesFilters({ ui, stats }: { ui: any; stats: any }) { 
               {ALL_ROOT_CAUSES.map((c) => {
                 const meta = getRootCauseMeta(c);
                 const count =
-                  api.aggregates.byRootCause.find((x: any) => x.cause === c)?.count ?? 0; // ignore-audit
+                  api.aggregates.byRootCause.find((x: { cause: string; count?: number }) => x.cause === c)?.count ?? 0;
                 return (
                   <SelectItem key={c} value={c}>
                     {meta.label}

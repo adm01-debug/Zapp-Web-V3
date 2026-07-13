@@ -28,7 +28,7 @@ function getUpcomingBirthdays(contacts: Contact[], days = 30) {
   return contacts
     .filter(c => c.birthday)
     .map(c => {
-      const bday = new Date(c.birthday!);
+      const bday = new Date(c.birthday as string);
       let nextBday = setYear(bday, thisYear);
       if (nextBday < today) nextBday = setYear(bday, thisYear + 1);
       const daysUntil = differenceInDays(nextBday, today);

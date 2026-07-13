@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { ChatbotNode } from '@/hooks/useChatbotFlows';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';

@@ -77,8 +77,7 @@ export function AutoTicketClassifier() {
               lastMessage: '',
             });
           } else {
-            const existing = grouped.get(contactId)!;
-            existing.tags.push(tag.tag_name);
+            grouped.get(contactId)?.tags.push(tag.tag_name);
           }
         });
 

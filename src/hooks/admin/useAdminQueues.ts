@@ -121,8 +121,9 @@ export function useAdminQueues() {
       max_per_queue_per_agent: editing.max_per_queue_per_agent ?? null,
       overflow_queue_id: editing.overflow_queue_id ?? null,
     };
-    const { error } = editing.id
-      ? await safeClient.from('queues', q => q.update(payload).eq("id", editing.id!))
+    const editingId = editing.id;
+    const { error } = editingId
+      ? await safeClient.from('queues', q => q.update(payload).eq("id", editingId))
       : await safeClient.from('queues', q => q.insert(payload));
     if (error) {
       toast({ title: "Erro ao salvar fila", description: error.message, variant: "destructive" });

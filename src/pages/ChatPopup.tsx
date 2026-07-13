@@ -44,7 +44,7 @@ export default function ChatPopup() {
 
   const conversation: Conversation | null = contact
     ? {
-        id: contactId!,
+        id: contactId ?? '',
         contact: {
           id: contact.id,
           name: contact.name,

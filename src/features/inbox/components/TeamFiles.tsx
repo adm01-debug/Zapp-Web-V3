@@ -207,6 +207,7 @@ export const TeamFiles = memo(function TeamFiles({ contactId }: TeamFilesProps) 
           <div className="flex items-center justify-center py-10">
             <Loader2 className="h-6 w-6 animate-spin text-warning-foreground" />
           </div>
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         ) : (filteredFiles as any[]).length === 0 ? (
           <div className="flex flex-col items-center justify-center py-10 text-center opacity-40 grayscale">
             <File className="mb-2 h-8 w-8" />
@@ -217,8 +218,8 @@ export const TeamFiles = memo(function TeamFiles({ contactId }: TeamFilesProps) 
             </p>
           </div>
         ) : (
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           filteredFiles.map((file: any) => (
-            // ignore-audit
             <div
               key={file.id}
               className="group flex items-center gap-3 rounded-xl border border-warning bg-warning/50 p-2 transition-colors hover:bg-warning/50"

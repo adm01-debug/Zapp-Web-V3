@@ -180,7 +180,7 @@ export function useContactTags(contactId: string | undefined) {
 
       type ContactTagRow = { tag_id: string; tags: Tag | null };
       const { data, error } = await safeClient.from<ContactTagRow>('contact_tags', q =>
-        q.select('tag_id, tags(*)').eq('contact_id', contactId!),
+        q.select('tag_id, tags(*)').eq('contact_id', contactId ?? ''),
       );
 
       if (error) throw error;

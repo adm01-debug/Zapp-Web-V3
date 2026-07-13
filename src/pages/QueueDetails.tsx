@@ -120,7 +120,7 @@ export default function QueueDetails() {
         });
 
         const agentMap = new Map(
-          (agentResult.data || []).map((p: any) => [
+          (agentResult.data || []).map((p: { id: string; name: string; avatar_url: string | null }) => [
             p.id,
             { name: p.name, avatar_url: p.avatar_url },
           ])

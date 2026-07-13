@@ -99,7 +99,7 @@ export const safeWhatsAppConnectionsQuery = (supabase: SupabaseClient<Database>)
    * Safe for: realtime updates with masking
    */
   subscribe: (
-    callback: (changes: any) => void,
+    callback: (changes: unknown) => void,
     options?: { event?: string; filter?: string }
   ) => {
     return supabase
@@ -159,7 +159,7 @@ export const safeChannelConnectionsQuery = (supabase: SupabaseClient<Database>) 
    * Subscribe to channel changes (RLS enforced)
    * Safe for: realtime updates with masking
    */
-  subscribe: (callback: (changes: any) => void) => {
+  subscribe: (callback: (changes: unknown) => void) => {
     return supabase
       .channel('channel_connections_safe')
       .on(

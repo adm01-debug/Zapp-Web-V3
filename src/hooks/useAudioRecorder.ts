@@ -157,8 +157,8 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
           recognition.continuous = true;
           recognition.interimResults = true;
 
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           recognition.onresult = (event: any) => {
-            // ignore-audit
             for (let i = event.resultIndex; i < event.results.length; i++) {
               if (event.results[i].isFinal) {
                 setTranscription((prev) => (prev + ' ' + event.results[i][0].transcript).trim());
@@ -166,8 +166,8 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
             }
           };
 
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           recognition.onerror = async (event: any) => {
-            // ignore-audit
             log.warn('Speech recognition error:', event.error);
             if (event.error === 'no-speech') return;
 

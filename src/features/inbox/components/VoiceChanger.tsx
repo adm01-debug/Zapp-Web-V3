@@ -147,7 +147,7 @@ export const VoiceChanger = memo(function VoiceChanger({
       const formData = new FormData();
       formData.append('audio', activeBlob, 'audio.webm');
       formData.append('voice_preset', voice.id);
-      formData.append('task_id', taskId!);
+      formData.append('task_id', taskId ?? '');
       formData.append('authorized', isCloned ? 'true' : 'false');
 
       const response = await fetch(

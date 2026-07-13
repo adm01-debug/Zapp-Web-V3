@@ -40,6 +40,7 @@ const createMockMessage = (
   is_deleted: false,
 });
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const MOCK_CONVERSATIONS: any[] = [
   {
     id: 'mock-1',
