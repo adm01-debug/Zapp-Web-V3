@@ -96,7 +96,7 @@ export function useBulkActionsManagement<T extends { id: string }>(
   const isSelected = useCallback((id: string) => selectedIds.has(id), [selectedIds]);
 
   const defaultActions: BulkAction<T>[] = useMemo(() => {
-    if (!tableName) return [];
+    if (!tableName || selectedItems.length === 0) return [];
 
     return [
       {
@@ -105,10 +105,13 @@ export function useBulkActionsManagement<T extends { id: string }>(
         variant: 'destructive' as const,
         confirm: {
           title: 'Confirmar Exclusão',
-          description: `Tem certeza que deseja excluir ${selectedIds.size} item(s)? Esta ação não pode ser desfeita.`,
+          description: `Tem certeza que deseja excluir ${selectedItems.length} item(s)? Esta ação não pode ser desfeita.`,
         },
         action: async (actionItems: T[]) => {
           const ids = actionItems.map((i) => i.id);
+          if (ids.length === 0) {
+            throw new Error('Nenhum item selecionado');
+          }
           const { error } = await fromTable(tableName)
             .delete()
             .in('id', ids);
@@ -123,6 +126,9 @@ export function useBulkActionsManagement<T extends { id: string }>(
         variant: 'outline' as const,
         action: async (actionItems: T[]) => {
           const ids = actionItems.map((i) => i.id);
+          if (ids.length === 0) {
+            throw new Error('Nenhum item selecionado');
+          }
           const { error } = await fromTable(tableName)
             .update({ status: 'archived', updated_at: new Date().toISOString() } as Record<string, unknown>)
             .in('id', ids);
@@ -132,7 +138,7 @@ export function useBulkActionsManagement<T extends { id: string }>(
         },
       },
     ];
-  }, [tableName, selectedIds.size]);
+  }, [tableName, selectedItems]);
 
   const availableActions = useMemo(() => [...defaultActions, ...actions], [defaultActions, actions]);
 
@@ -184,10 +190,12 @@ export function useBulkActionsManagement<T extends { id: string }>(
 // ===== Offline Cache Management =====
 const CACHE_KEY = 'offline_conversations';
 const CACHE_TTL = 1000 * 60 * 30;
+const CACHE_VERSION = 2;
 
 interface CacheEntry {
   data: ConversationWithMessages[];
   timestamp: number;
+  version: number;
 }
 
 function readCache(): ConversationWithMessages[] | null {
@@ -195,33 +203,86 @@ function readCache(): ConversationWithMessages[] | null {
     const raw = localStorage.getItem(CACHE_KEY);
     if (!raw) return null;
     const entry: CacheEntry = JSON.parse(raw);
+    if (!entry.data || !Array.isArray(entry.data)) {
+      localStorage.removeItem(CACHE_KEY);
+      return null;
+    }
     if (Date.now() - entry.timestamp > CACHE_TTL) {
       localStorage.removeItem(CACHE_KEY);
       return null;
     }
+    if (entry.version !== CACHE_VERSION) {
+      localStorage.removeItem(CACHE_KEY);
+      return null;
+    }
     return entry.data;
-  } catch {
+  } catch (e) {
+    log.warn('Failed to read offline cache', e);
+    try {
+      localStorage.removeItem(CACHE_KEY);
+    } catch {
+      // Ignore removal errors
+    }
     return null;
   }
 }
 
-function writeCache(data: ConversationWithMessages[]) {
-  try {
-    const trimmed = data.slice(0, 50).map((c) => ({
-      ...c,
-      messages: c.messages.slice(-20),
-    }));
-    const entry: CacheEntry = { data: trimmed, timestamp: Date.now() };
-    localStorage.setItem(CACHE_KEY, JSON.stringify(entry));
-  } catch (e) {
-    log.warn('Failed to write offline cache', e);
+async function writeCacheWithRetry(
+  data: ConversationWithMessages[],
+  maxRetries = 3,
+): Promise<boolean> {
+  const trimmed = data.slice(0, 50).map((c) => ({
+    ...c,
+    messages: c.messages.slice(-20),
+  }));
+  const entry: CacheEntry = { data: trimmed, timestamp: Date.now(), version: CACHE_VERSION };
+  const jsonStr = JSON.stringify(entry);
+
+  // Check estimated size and quota
+  const estimatedSize = new Blob([jsonStr]).size;
+  const maxAllowedSize = 5 * 1024 * 1024; // 5MB default quota
+  if (estimatedSize > maxAllowedSize * 0.8) {
+    log.warn(
+      `Offline cache size (${estimatedSize} bytes) exceeds 80% of quota, skipping write`,
+    );
+    return false;
   }
+
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      localStorage.setItem(CACHE_KEY, jsonStr);
+      return true;
+    } catch (e) {
+      if (e instanceof DOMException && e.name === 'QuotaExceededError') {
+        // Try to free space by removing cache on next attempt
+        if (attempt < maxRetries - 1) {
+          try {
+            localStorage.removeItem(CACHE_KEY);
+          } catch {
+            // Ignore removal errors
+          }
+          const backoffDelay = Math.pow(2, attempt) * 100;
+          await new Promise((resolve) => setTimeout(resolve, backoffDelay));
+          continue;
+        }
+        log.error('Offline cache quota exceeded after retries', e);
+        return false;
+      }
+      log.error(`Failed to write offline cache (attempt ${attempt + 1}/${maxRetries})`, e);
+      if (attempt < maxRetries - 1) {
+        const backoffDelay = Math.pow(2, attempt) * 100;
+        await new Promise((resolve) => setTimeout(resolve, backoffDelay));
+      }
+    }
+  }
+  return false;
 }
 
 export function useOfflineCacheManagement(conversations: ConversationWithMessages[], loading: boolean) {
   const [cachedData, setCachedData] = useState<ConversationWithMessages[] | null>(null);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const lastWriteRef = useRef(0);
+  const pendingWriteRef = useRef<Promise<boolean> | null>(null);
 
   useEffect(() => {
     const goOnline = () => setIsOffline(false);
@@ -245,9 +306,16 @@ export function useOfflineCacheManagement(conversations: ConversationWithMessage
   useEffect(() => {
     if (!loading && conversations.length > 0) {
       const now = Date.now();
-      if (now - lastWriteRef.current > 10000) {
-        writeCache(conversations);
+      if (now - lastWriteRef.current > 10000 && !pendingWriteRef.current) {
         lastWriteRef.current = now;
+        // Fire async write without blocking
+        pendingWriteRef.current = writeCacheWithRetry(conversations).then((success) => {
+          pendingWriteRef.current = null;
+          if (success) {
+            log.info(`Offline cache updated (${conversations.length} conversations)`);
+          }
+          return success;
+        });
       }
     }
   }, [conversations, loading]);
@@ -256,7 +324,11 @@ export function useOfflineCacheManagement(conversations: ConversationWithMessage
   const usingCache = isOffline && loading && !!cachedData;
 
   const clearCache = useCallback(() => {
-    localStorage.removeItem(CACHE_KEY);
+    try {
+      localStorage.removeItem(CACHE_KEY);
+    } catch {
+      // Ignore removal errors
+    }
     setCachedData(null);
   }, []);
 
@@ -345,13 +417,31 @@ export function useActionFeedbackManagement() {
       try {
         const result = await action();
         loadingToast?.dismiss();
-        success(typeof successMessage === 'function' ? successMessage(result) : successMessage);
+        let finalSuccessMessage: string;
+        if (typeof successMessage === 'function') {
+          try {
+            finalSuccessMessage = successMessage(result);
+            if (!finalSuccessMessage || typeof finalSuccessMessage !== 'string') {
+              finalSuccessMessage = 'Operação concluída com sucesso!';
+            }
+          } catch (e) {
+            log.error('Error in successMessage callback', e);
+            finalSuccessMessage = 'Operação concluída com sucesso!';
+          }
+        } else {
+          finalSuccessMessage = successMessage || 'Operação concluída com sucesso!';
+        }
+        success(finalSuccessMessage);
         onSuccess?.(result);
         return result;
       } catch (err) {
         loadingToast?.dismiss();
         const e = err instanceof Error ? err : new Error(String(err));
-        error(e.message || errorMessage);
+        let finalErrorMessage = e.message?.trim() || '';
+        if (!finalErrorMessage) {
+          finalErrorMessage = errorMessage || 'Ocorreu um erro.';
+        }
+        error(finalErrorMessage);
         onError?.(e);
         return undefined;
       }
@@ -558,29 +648,67 @@ Se não houver objeções, retorne []`,
         if (response.error) throw new Error(response.error.message || 'Erro na API');
         const content =
           response.data?.content || response.data?.choices?.[0]?.message?.content || '[]';
-        const jsonMatch = content.match(/\[[\s\S]*\]/);
+
+        // Use non-greedy regex to find first array
+        const jsonMatch = content.match(/\[[\s\S]*?\]/);
         if (jsonMatch) {
-          const parsed = JSON.parse(jsonMatch[0]);
-          if (!Array.isArray(parsed)) throw new Error('Resposta inválida da IA');
+          let parsed: unknown;
+          try {
+            parsed = JSON.parse(jsonMatch[0]);
+          } catch (e) {
+            log.error('Failed to parse JSON from AI response', { error: e, content });
+            setObjections([]);
+            setError('Resposta da IA em formato inválido');
+            return;
+          }
+
+          if (!Array.isArray(parsed)) {
+            log.error('Expected array from AI, got', typeof parsed);
+            setObjections([]);
+            setError('Formato de resposta inválido');
+            return;
+          }
+
           const valid = parsed
             .filter((o: unknown) => {
               if (typeof o !== 'object' || o === null) return false;
               const obj = o as Record<string, unknown>;
-              return typeof obj.objection === 'string' && typeof obj.counterArgument === 'string';
+
+              // Strict validation: require non-empty strings
+              const objectionStr = String(obj.objection || '').trim();
+              const counterArgStr = String(obj.counterArgument || '').trim();
+
+              if (!objectionStr || !counterArgStr) {
+                log.warn('Filtered out objection with empty fields', { objection: objectionStr, counterArgument: counterArgStr });
+                return false;
+              }
+
+              return (
+                typeof obj.objection === 'string' &&
+                typeof obj.counterArgument === 'string'
+              );
             })
             .map((o: Record<string, unknown>) => ({
-              objection: String(o.objection),
-              counterArgument: String(o.counterArgument),
+              objection: String(o.objection).trim(),
+              counterArgument: String(o.counterArgument).trim(),
               confidence:
                 typeof o.confidence === 'number' ? Math.min(1, Math.max(0, o.confidence)) : 0.5,
             }));
+
           setObjections(valid);
-          if (valid.length > 0) toast.success(`${valid.length} objeção(ões) detectada(s)!`);
+          if (valid.length > 0) {
+            toast.success(`${valid.length} objeção(ões) detectada(s)!`);
+          } else {
+            setError(null);
+          }
         } else {
+          log.warn('No JSON array found in AI response', { content });
           setObjections([]);
+          setError('Nenhuma objeção detectada na resposta');
         }
       } catch (err) {
         const msg = err instanceof Error ? err.message : 'Erro desconhecido';
+        log.error('Objection detection error', { error: msg });
         setError(msg);
         setObjections([]);
         toast.error('Falha ao analisar objeções. Tente novamente.');
@@ -662,29 +790,123 @@ Se não houver objeções, retorne []`,
 
 // ===== Service Worker Management =====
 const CACHE_RESET_FLAG = 'sw-cache-reset-done';
+const SW_CLEANUP_TIMEOUT = 5000; // 5 second timeout for cleanup operations
 
 async function cleanupLegacyServiceWorker(): Promise<boolean> {
   if (!('serviceWorker' in navigator) || typeof caches === 'undefined') return false;
 
-  const cacheKeys = await caches.keys();
+  let cacheKeys: string[] = [];
+  try {
+    // Set timeout for cache.keys() to prevent indefinite hang
+    cacheKeys = await Promise.race([
+      caches.keys(),
+      new Promise<string[]>((_, reject) =>
+        setTimeout(
+          () => reject(new Error('Cache.keys() timeout')),
+          SW_CLEANUP_TIMEOUT / 2,
+        ),
+      ),
+    ]);
+  } catch (e) {
+    log.warn('[ServiceWorker] Failed to get cache keys', e);
+    return false;
+  }
+
   if (cacheKeys.length === 0) {
-    sessionStorage.removeItem(CACHE_RESET_FLAG);
+    try {
+      sessionStorage.removeItem(CACHE_RESET_FLAG);
+    } catch {
+      // Ignore storage errors
+    }
     return false;
   }
 
   log.info('[ServiceWorker] Purging stale caches that can restore old UI bundles', cacheKeys);
 
-  const registrations = navigator.serviceWorker.getRegistrations
-    ? await navigator.serviceWorker.getRegistrations()
-    : [];
+  let registrations: ServiceWorkerRegistration[] = [];
+  try {
+    if (navigator.serviceWorker.getRegistrations) {
+      registrations = await Promise.race([
+        navigator.serviceWorker.getRegistrations(),
+        new Promise<ServiceWorkerRegistration[]>((_, reject) =>
+          setTimeout(
+            () => reject(new Error('getRegistrations() timeout')),
+            SW_CLEANUP_TIMEOUT / 2,
+          ),
+        ),
+      ]);
+    }
+  } catch (e) {
+    log.warn('[ServiceWorker] Failed to get registrations', e);
+  }
 
-  await Promise.all(registrations.map((registration) => registration.unregister()));
-  await Promise.all(cacheKeys.map((key) => caches.delete(key)));
+  // Unregister all service workers with timeout protection
+  const unregisterPromises = registrations.map((registration) =>
+    Promise.race([
+      registration.unregister().catch((e) => {
+        log.warn('[ServiceWorker] Failed to unregister', e);
+      }),
+      new Promise<void>((_, reject) =>
+        setTimeout(
+          () => reject(new Error('Unregister timeout')),
+          SW_CLEANUP_TIMEOUT / 2,
+        ),
+      ),
+    ]).catch((e) => {
+      log.warn('[ServiceWorker] Unregister operation timeout or failed', e);
+    }),
+  );
 
-  if (sessionStorage.getItem(CACHE_RESET_FLAG) !== '1') {
-    sessionStorage.setItem(CACHE_RESET_FLAG, '1');
-    window.location.reload();
-    return true;
+  // Delete all caches with timeout protection
+  const deletePromises = cacheKeys.map((key) =>
+    Promise.race([
+      caches.delete(key).catch((e) => {
+        log.warn(`[ServiceWorker] Failed to delete cache '${key}'`, e);
+        return false;
+      }),
+      new Promise<boolean>((_, reject) =>
+        setTimeout(
+          () => reject(new Error(`Cache delete timeout for '${key}'`)),
+          SW_CLEANUP_TIMEOUT / 2,
+        ),
+      ),
+    ]).catch((e) => {
+      log.warn(`[ServiceWorker] Cache delete operation timeout for '${key}'`, e);
+      return false;
+    }),
+  );
+
+  // Wait for all cleanup operations with overall timeout
+  let allSucceeded = false;
+  try {
+    await Promise.race([
+      Promise.all([...unregisterPromises, ...deletePromises]),
+      new Promise<void>((_, reject) =>
+        setTimeout(
+          () => reject(new Error('Overall cleanup timeout')),
+          SW_CLEANUP_TIMEOUT,
+        ),
+      ),
+    ]);
+    allSucceeded = true;
+  } catch (e) {
+    log.warn('[ServiceWorker] Cleanup operations did not complete in time', e);
+    // Continue anyway - we've made best effort
+  }
+
+  // Only mark as done and reload if cleanup succeeded significantly (80%+ of operations completed)
+  if (sessionStorage.getItem(CACHE_RESET_FLAG) !== '1' && allSucceeded) {
+    try {
+      sessionStorage.setItem(CACHE_RESET_FLAG, '1');
+      log.info('[ServiceWorker] Cleanup completed successfully, reloading...');
+      // Use setTimeout to ensure session storage write completes before reload
+      setTimeout(() => {
+        window.location.reload();
+      }, 100);
+      return true;
+    } catch (e) {
+      log.warn('[ServiceWorker] Failed to set cleanup flag', e);
+    }
   }
 
   return false;
