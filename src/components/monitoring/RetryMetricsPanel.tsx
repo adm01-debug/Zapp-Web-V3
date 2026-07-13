@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -62,7 +61,7 @@ const HOURS_OPTIONS: Array<{ value: number; label: string }> = [
   { value: 168, label: '7d' },
 ];
 
-function timeAgo(iso: string) {
+function timeAgo(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
   const s = Math.floor(diff / 1000);
   if (s < 60) return `${s}s atrás`;
@@ -86,7 +85,7 @@ function statusVariant(status: string): 'default' | 'destructive' | 'secondary' 
   }
 }
 
-function statusIcon(status: string) {
+function statusIcon(status: string): JSX.Element | null {
   switch (status) {
     case 'success':
       return <CheckCircle2 className="mr-1 h-3 w-3" />;
@@ -518,7 +517,7 @@ function TopReasonsChart({
   previousReasons = [],
   compareMode = false,
   windowHours = 24,
-}: TopReasonsChartProps) {
+}: TopReasonsChartProps): JSX.Element {
   // Build merged dataset: union of top reasons across both periods so the user
   // sees both NEW reasons that emerged AND old reasons that disappeared.
   const data = useMemo(() => {
@@ -595,11 +594,11 @@ function TopReasonsChart({
                 fontSize: 11,
                 color: 'hsl(var(--popover-foreground))',
               }}
-              formatter={(value: number | string, name: number | string) => {
+              formatter={(value: number | string, name: string | number): [string, string] => {
                 const label = name === 'previous' ? 'Período anterior' : 'Período atual';
                 return [String(value ?? '') + ' retries', label];
               }}
-              labelFormatter={(label: unknown) => String(label || '')}
+              labelFormatter={(label: unknown): string => String(label || '')}
             />
             {compareMode && (
               <Legend
