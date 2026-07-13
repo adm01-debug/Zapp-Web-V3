@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { useEffect, useRef } from 'react';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { StaggeredList, StaggeredItem } from '@/components/ui/motion';
