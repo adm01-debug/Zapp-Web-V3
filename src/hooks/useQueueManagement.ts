@@ -85,6 +85,7 @@ interface DateRange {
   endDate: Date;
 }
 
+/** Provides queue CRUD operations and management capabilities. */
 export function useQueuesCrudManagement() {
   const { user } = useAuth();
   const [queues, setQueues] = useState<Queue[]>([]);
@@ -128,6 +129,7 @@ export function useQueuesCrudManagement() {
   return { queues, loading, error, refetch: fetchQueues };
 }
 
+/** Retrieves queue performance metrics and analytics. */
 export function useQueueAnalyticsManagement(params: { queueId: string; dateRange: DateRange }) {
   const { user } = useAuth();
   const { queueId } = params;
@@ -172,6 +174,7 @@ export function useQueueAnalyticsManagement(params: { queueId: string; dateRange
   return { analytics, loading, refetch: fetchAnalytics };
 }
 
+/** Manages queue goals, targets, and performance thresholds. */
 export function useQueueGoalsManagement(queueId?: string) {
   const { user } = useAuth();
   const [goals, setGoals] = useState<QueueGoal[]>([]);
@@ -231,6 +234,7 @@ export function useQueueGoalsManagement(queueId?: string) {
   return { goals, loading, updateGoalStatus, refetch: fetchGoals };
 }
 
+/** Monitors SLA compliance across queues with filterable metrics. */
 export function useQueueSlaManagement(params: { filters: { skill_name: string | null; channel_type: string | null; sla_status: 'on_track' | 'at_risk' | 'breached' | null } }) {
   const { user } = useAuth();
   const { filters } = params;
@@ -281,6 +285,7 @@ export function useQueueSlaManagement(params: { filters: { skill_name: string | 
   return { slaRows, loading, refetch: fetchSla };
 }
 
+/** Compares queue performance metrics across time periods. */
 export function useQueuesComparisonManagement(params: { dateRange: DateRange }) {
   const { user } = useAuth();
   const [comparison, setComparison] = useState<QueueComparison[]>([]);

@@ -18,6 +18,7 @@ interface FavoriteContact {
   contact_id: string;
 }
 
+/** Manages conversation pinning, archiving, and status operations. */
 export function useConversationActions() {
   const [pinnedIds, setPinnedIds] = useState<Set<string>>(new Set());
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
@@ -237,6 +238,7 @@ export interface ConversationAnalysis {
   created_at: string;
 }
 
+/** Retrieves AI-generated conversation analyses and insights. */
 export function useConversationAnalyses(contactId: string | null) {
   const [analyses, setAnalyses] = useState<ConversationAnalysis[]>([]);
   const [loading, setLoading] = useState(false);
@@ -411,6 +413,7 @@ const EMPTY: SLATimelineData = {
   resolvedBy: null,
 };
 
+/** Tracks SLA compliance and timeline events for conversations. */
 export function useConversationSLATimeline(remoteJid: string | null, contactId: string | null) {
   const enabled = Boolean(remoteJid && isExternalConfigured);
 
