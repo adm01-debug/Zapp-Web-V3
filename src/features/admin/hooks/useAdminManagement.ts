@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Admin Management Hook — Unified orchestration of all admin panel integrations.
  * Consolidates 7 domain-specific hooks into one comprehensive module.
