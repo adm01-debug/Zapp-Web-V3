@@ -6,6 +6,7 @@ import { getLogger } from '@/lib/logger';
 
 const log = getLogger('useEmailHealth');
 
+/** Monitors Gmail account health status and displays health information. */
 export function useEmailHealth() {
   const [health, setHealth] = useState<EmailHealthInfo | null>(null);
   const [isLoading, setIsLoading] = useState(true);

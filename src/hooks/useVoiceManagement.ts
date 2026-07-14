@@ -11,6 +11,7 @@ interface VoiceState {
   error: string | null;
 }
 
+/** Consolidated hook for speech-to-text, text-to-speech, voice agent, and voice actions. */
 export function useSpeechToTextManagement(language: string = 'pt-BR'): VoiceState & {
   startListening: () => void;
   stopListening: () => void;
@@ -35,7 +36,8 @@ export function useSpeechToTextManagement(language: string = 'pt-BR'): VoiceStat
 
   const startListening = useCallback(() => {
     if (!recognitionRef.current) {
-      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      const SpeechRecognition =
+        (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
       if (!SpeechRecognition) {
         if (mountedRef.current) {
           setVoiceState((prev) => ({
@@ -131,24 +133,27 @@ export function useTextToSpeechManagement(text: string) {
   const [error, setError] = useState<string | null>(null);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
 
-  const speak = useCallback((textToSpeak?: string) => {
-    const textContent = textToSpeak || text;
-    if (!textContent) return;
+  const speak = useCallback(
+    (textToSpeak?: string) => {
+      const textContent = textToSpeak || text;
+      if (!textContent) return;
 
-    try {
-      const utterance = new SpeechSynthesisUtterance(textContent);
-      utterance.onstart = () => setIsPlaying(true);
-      utterance.onend = () => setIsPlaying(false);
-      utterance.onerror = (event) => setError(event.error);
+      try {
+        const utterance = new SpeechSynthesisUtterance(textContent);
+        utterance.onstart = () => setIsPlaying(true);
+        utterance.onend = () => setIsPlaying(false);
+        utterance.onerror = (event) => setError(event.error);
 
-      utteranceRef.current = utterance;
-      speechSynthesis.speak(utterance);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Speech synthesis error';
-      setError(message);
-      log.error('Text to speech error:', err);
-    }
-  }, [text]);
+        utteranceRef.current = utterance;
+        speechSynthesis.speak(utterance);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Speech synthesis error';
+        setError(message);
+        log.error('Text to speech error:', err);
+      }
+    },
+    [text]
+  );
 
   const stop = useCallback(() => {
     speechSynthesis.cancel();

@@ -19,10 +19,7 @@ const log = getLogger('ConnectionManagement');
 // CONNECTION ALERTS PUSH
 // ──────────────────────────────────────────────────────────────────────────
 
-/**
- * Hook for listening to connection alerts via realtime and displaying push notifications.
- * Monitors new connection_alert notifications and shows browser notifications.
- */
+/** Manages connection alerts, queues, and Supabase connection pool health monitoring. */
 export function useConnectionAlertsPush() {
   useEffect(() => {
     if (typeof Notification === 'undefined') return;
@@ -118,35 +115,41 @@ export function useConnectionQueues(connectionId?: string) {
     void fetchQueues();
   }, [fetchQueues]);
 
-  const addQueue = useCallback(async (queueId: string) => {
-    if (!connectionId) return;
-    try {
-      const { error } = await supabase
-        .from('whatsapp_connection_queues')
-        .insert({ whatsapp_connection_id: connectionId, queue_id: queueId });
-      if (error) throw error;
-      await fetchQueues();
-    } catch (err) {
-      log.error('Error adding queue to connection:', err);
-      throw err;
-    }
-  }, [connectionId, fetchQueues]);
+  const addQueue = useCallback(
+    async (queueId: string) => {
+      if (!connectionId) return;
+      try {
+        const { error } = await supabase
+          .from('whatsapp_connection_queues')
+          .insert({ whatsapp_connection_id: connectionId, queue_id: queueId });
+        if (error) throw error;
+        await fetchQueues();
+      } catch (err) {
+        log.error('Error adding queue to connection:', err);
+        throw err;
+      }
+    },
+    [connectionId, fetchQueues]
+  );
 
-  const removeQueue = useCallback(async (queueId: string) => {
-    if (!connectionId) return;
-    try {
-      const { error } = await supabase
-        .from('whatsapp_connection_queues')
-        .delete()
-        .eq('whatsapp_connection_id', connectionId)
-        .eq('queue_id', queueId);
-      if (error) throw error;
-      setConnectionQueues(prev => prev.filter(cq => cq.queue_id !== queueId));
-    } catch (err) {
-      log.error('Error removing queue from connection:', err);
-      throw err;
-    }
-  }, [connectionId]);
+  const removeQueue = useCallback(
+    async (queueId: string) => {
+      if (!connectionId) return;
+      try {
+        const { error } = await supabase
+          .from('whatsapp_connection_queues')
+          .delete()
+          .eq('whatsapp_connection_id', connectionId)
+          .eq('queue_id', queueId);
+        if (error) throw error;
+        setConnectionQueues((prev) => prev.filter((cq) => cq.queue_id !== queueId));
+      } catch (err) {
+        log.error('Error removing queue from connection:', err);
+        throw err;
+      }
+    },
+    [connectionId]
+  );
 
   return { connectionQueues, isLoading, addQueue, removeQueue, refetch: fetchQueues };
 }

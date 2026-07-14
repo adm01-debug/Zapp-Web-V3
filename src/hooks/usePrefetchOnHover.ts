@@ -24,6 +24,7 @@ const VIEW_QUERY_KEYS: Record<string, string[][]> = {
  *
  * Only prefetches if data is stale (respects staleTime).
  */
+/** Prefetches query data on navigation item hover for instant view transitions. */
 export function usePrefetchOnHover() {
   const queryClient = useQueryClient();
 

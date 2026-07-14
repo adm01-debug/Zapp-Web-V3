@@ -6,6 +6,7 @@ interface UseWebhookHealthAlertsOptions {
   config?: unknown;
 }
 
+/** Monitors webhook health status and triggers alerts on failures or breaches. */
 export function useWebhookHealthAlerts(options: UseWebhookHealthAlertsOptions = {}) {
   const { alerts, loading, acknowledgeAlert, checkHealth } = useWebhookHealthAlertsManagement();
 

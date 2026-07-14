@@ -37,6 +37,7 @@ async function cleanupLegacyServiceWorker(): Promise<boolean> {
   return false;
 }
 
+/** Cleans up legacy service worker caches to prevent stale UI bundles. */
 export function useServiceWorker() {
   const registeredRef = useRef(false);
 
@@ -72,7 +73,7 @@ export function useServiceWorker() {
           if (error.message.includes('404') && retryCount < 3) {
             log.warn(`[ServiceWorker] 404 on registration attempt ${retryCount + 1}, retrying...`);
             const jitter = Math.random() * 1000;
-            const delay = (2000 * Math.pow(2, retryCount)) + jitter;
+            const delay = 2000 * Math.pow(2, retryCount) + jitter;
             const timeoutId = setTimeout(() => {
               if (!disposed) {
                 registerServiceWorker(retryCount + 1);
@@ -128,9 +129,11 @@ export function useServiceWorker() {
         const onMessage = (event: MessageEvent) => {
           log.debug('[ServiceWorker] Message received:', event.data);
           if (event.data.type === 'NOTIFICATION_CLICK') {
-            document.dispatchEvent(new CustomEvent('notification-click', {
-              detail: event.data.data,
-            }));
+            document.dispatchEvent(
+              new CustomEvent('notification-click', {
+                detail: event.data.data,
+              })
+            );
           }
         };
         navigator.serviceWorker.addEventListener('message', onMessage);
@@ -138,7 +141,7 @@ export function useServiceWorker() {
         // Cleanup on unmount (interval was leaking before)
         cleanup = () => {
           clearInterval(intervalId);
-          timeoutIds.forEach(id => clearTimeout(id));
+          timeoutIds.forEach((id) => clearTimeout(id));
           navigator.serviceWorker.removeEventListener('message', onMessage);
         };
       } catch (error) {

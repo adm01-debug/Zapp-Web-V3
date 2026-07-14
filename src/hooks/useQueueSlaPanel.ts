@@ -4,6 +4,7 @@ import type { QueueSlaFilters, QueueSlaPatch, QueueSlaRow, SlaStatusFilter } fro
 
 export type { QueueSlaFilters, QueueSlaPatch, QueueSlaRow, SlaStatusFilter };
 
+/** Displays and manages queue SLA status with skill and channel filtering. */
 export function useQueueSlaPanel(filters: QueueSlaFilters) {
   return useQueueSlaManagement({ filters });
 }

@@ -1,6 +1,6 @@
 /**
  * Hook para Ações em Massa
- * 
+ *
  * @module hooks/useBulkActions
  * @description Gerenciamento de seleção e ações em múltiplos itens
  */
@@ -54,6 +54,7 @@ interface UseBulkActionsResult<T> {
 // HOOK
 // ============================================
 
+/** Manages selection and batch operations on multiple items with action execution. */
 export function useBulkActions<T extends { id: string }>(
   items: T[],
   options: UseBulkActionsOptions<T> = {}
@@ -97,10 +98,7 @@ export function useBulkActions<T extends { id: string }>(
     setSelectedIds(new Set());
   }, []);
 
-  const isSelected = useCallback(
-    (id: string) => selectedIds.has(id),
-    [selectedIds]
-  );
+  const isSelected = useCallback((id: string) => selectedIds.has(id), [selectedIds]);
 
   const defaultActions: BulkAction<T>[] = useMemo(() => {
     if (!tableName) return [];
@@ -116,10 +114,8 @@ export function useBulkActions<T extends { id: string }>(
         },
         action: async (actionItems: T[]) => {
           const ids = actionItems.map((i) => i.id);
-          const { error } = await fromTable(tableName)
-            .delete()
-            .in('id', ids);
-          
+          const { error } = await fromTable(tableName).delete().in('id', ids);
+
           if (error) throw error;
           toast.success(`${ids.length} item(s) excluído(s)`);
         },
@@ -131,9 +127,12 @@ export function useBulkActions<T extends { id: string }>(
         action: async (actionItems: T[]) => {
           const ids = actionItems.map((i) => i.id);
           const { error } = await fromTable(tableName)
-            .update({ status: 'archived', updated_at: new Date().toISOString() } as Record<string, unknown>)
+            .update({ status: 'archived', updated_at: new Date().toISOString() } as Record<
+              string,
+              unknown
+            >)
             .in('id', ids);
-          
+
           if (error) throw error;
           toast.success(`${ids.length} item(s) arquivado(s)`);
         },
@@ -146,27 +145,32 @@ export function useBulkActions<T extends { id: string }>(
     [defaultActions, actions]
   );
 
-  const executeAction = useCallback(async (actionId: string) => {
-    const action = availableActions.find((a) => a.id === actionId);
-    if (!action || selectedItems.length === 0) return;
+  const executeAction = useCallback(
+    async (actionId: string) => {
+      const action = availableActions.find((a) => a.id === actionId);
+      if (!action || selectedItems.length === 0) return;
 
-    setIsExecuting(true);
+      setIsExecuting(true);
 
-    try {
-      await action.action(selectedItems);
-      
-      if (queryKey) {
-        await queryClient.invalidateQueries({ queryKey });
+      try {
+        await action.action(selectedItems);
+
+        if (queryKey) {
+          await queryClient.invalidateQueries({ queryKey });
+        }
+
+        deselectAll();
+        onActionComplete?.();
+      } catch (error) {
+        toast.error(
+          `Erro ao executar ação: ${error instanceof Error ? error.message : 'Erro desconhecido'}`
+        );
+      } finally {
+        setIsExecuting(false);
       }
-
-      deselectAll();
-      onActionComplete?.();
-    } catch (error) {
-      toast.error(`Erro ao executar ação: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
-    } finally {
-      setIsExecuting(false);
-    }
-  }, [availableActions, selectedItems, queryClient, queryKey, deselectAll, onActionComplete]);
+    },
+    [availableActions, selectedItems, queryClient, queryKey, deselectAll, onActionComplete]
+  );
 
   return {
     selectedIds,

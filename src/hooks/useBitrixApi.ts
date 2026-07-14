@@ -16,6 +16,7 @@ async function callBitrix<T = unknown>(action: string, payload: Record<string, u
   return { data: data?.data ?? data ?? null, success: true };
 }
 
+/** Provides access to Bitrix API management and operations. */
 export function useBitrixApi() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);

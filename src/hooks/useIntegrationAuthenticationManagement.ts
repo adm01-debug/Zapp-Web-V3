@@ -62,16 +62,21 @@ function extractHttpStatus(err: unknown): number | undefined {
   return undefined;
 }
 
+/** Consolidated hook for integration authentication, MFA, WebAuthn, email health, and labels. */
 export function useEvolutionAutoSyncManagement(onSynced?: () => void) {
   const ran = useRef(false);
   const { listInstances } = useEvolutionApi();
 
   const syncAll = async () => {
     try {
-      const { data: existing, error } = await supabase.from('whatsapp_connections').select('instance_id, phone_number');
+      const { data: existing, error } = await supabase
+        .from('whatsapp_connections')
+        .select('instance_id, phone_number');
       if (error) throw error;
       const knownIds = new Set((existing ?? []).map((c) => c.instance_id));
-      const knownPhones = (existing ?? []).map((c) => normalizePhone(c.phone_number ?? '')).filter(Boolean);
+      const knownPhones = (existing ?? [])
+        .map((c) => normalizePhone(c.phone_number ?? ''))
+        .filter(Boolean);
 
       const evoResult = await listInstances();
       const instances: unknown[] = Array.isArray(evoResult)
@@ -84,7 +89,8 @@ export function useEvolutionAutoSyncManagement(onSynced?: () => void) {
         const i = inst as any;
         if (!i?.instance?.instanceName) return false;
         if (knownIds.has(i.instance.instanceName)) return false;
-        const phone = i.instance?.number || i.instance?.ownerJid?.replace('@s.whatsapp.net', '') || '';
+        const phone =
+          i.instance?.number || i.instance?.ownerJid?.replace('@s.whatsapp.net', '') || '';
         if (phone && knownPhones.some((kp) => isSamePhone(kp, phone))) return false;
         return true;
       });
@@ -95,7 +101,8 @@ export function useEvolutionAutoSyncManagement(onSynced?: () => void) {
         const i = inst as any;
         const instanceName = i.instance?.instanceName ?? '';
         const name = i.instance?.profileName || instanceName || 'Auto-synced';
-        const phone = i.instance?.number || i.instance?.ownerJid?.replace('@s.whatsapp.net', '') || '';
+        const phone =
+          i.instance?.number || i.instance?.ownerJid?.replace('@s.whatsapp.net', '') || '';
 
         await supabase.from('whatsapp_connections').insert({
           instance_id: instanceName,
@@ -156,12 +163,15 @@ export function useEvolutionAutoReconnectManagement(instanceName?: string) {
     }
   }, [instanceName, connectInstance]);
 
-  const scheduleReconnect = useCallback((delayMs: number) => {
-    if (timerRef.current) clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(() => {
-      void performReconnect();
-    }, delayMs);
-  }, [performReconnect]);
+  const scheduleReconnect = useCallback(
+    (delayMs: number) => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+      timerRef.current = setTimeout(() => {
+        void performReconnect();
+      }, delayMs);
+    },
+    [performReconnect]
+  );
 
   useEffect(() => {
     return () => {

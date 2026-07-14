@@ -26,6 +26,7 @@ interface UndoableActionState {
  * Hook for actions with temporal undo capability
  * Shows a toast with undo button for specified duration before committing
  */
+/** Executes actions with temporal undo capability and toast notifications. */
 export function useUndoableAction() {
   const [state, setState] = useState<UndoableActionState>({
     isPending: false,

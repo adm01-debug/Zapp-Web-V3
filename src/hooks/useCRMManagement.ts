@@ -27,6 +27,7 @@ interface ContactCustomField {
   field_value: any;
 }
 
+/** Consolidated CRM management hook for contact intelligence, notes, assignments, and custom fields. */
 export function useContactIntelligenceManagement(contactId?: string) {
   const [intelligence, setIntelligence] = useState<ContactIntelligence | null>(null);
   const [loading, setLoading] = useState(true);
@@ -137,7 +138,9 @@ export function useContactEnrichedDataManagement(contactId?: string) {
 
     const fetchEnrichedData = async () => {
       try {
-        const { data, error: err } = await supabase.rpc('enrich_contact', { contact_id: contactId });
+        const { data, error: err } = await supabase.rpc('enrich_contact', {
+          contact_id: contactId,
+        });
 
         if (err) throw err;
         setEnrichedData(data);

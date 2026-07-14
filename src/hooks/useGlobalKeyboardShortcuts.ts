@@ -6,6 +6,7 @@ interface GlobalShortcutAction {
   action: () => void;
 }
 
+/** Manages global keyboard shortcuts with custom action support. */
 export function useGlobalKeyboardShortcuts(customActions?: GlobalShortcutAction[]) {
   return useGlobalKeyboardShortcutsManagement(customActions);
 }

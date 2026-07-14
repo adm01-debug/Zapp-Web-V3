@@ -28,6 +28,7 @@ interface PasskeyCredential {
   last_used_at: string | null;
 }
 
+/** Manages WebAuthn/passkey registration, authentication, and credential storage. */
 export function useWebAuthn() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);

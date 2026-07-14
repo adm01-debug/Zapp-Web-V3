@@ -2,6 +2,7 @@
 import { useVoiceActionHandlerManagement } from '@/hooks/useVoiceManagement';
 import type { VoiceAgentAction } from '@/features/inbox/hooks/voice/types';
 
+/** Processes voice commands and handles corresponding application actions. */
 export function useVoiceActionHandler(onViewChange?: (viewId: string) => void) {
   const { handleVoiceAction } = useVoiceActionHandlerManagement();
 

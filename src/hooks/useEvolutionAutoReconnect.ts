@@ -83,6 +83,7 @@ function extractHttpStatus(err: unknown): number | undefined {
  *  9. isRetriableStatus (useEvolutionApiCore) nao excluia explicitamente 401/403.
  *     Corrigido no arquivo irmao useEvolutionApiCore.ts.
  */
+/** Manages Evolution API auto-reconnection with exponential backoff and circuit-breaker pattern. */
 export function useEvolutionAutoReconnect(instanceName?: string) {
   const { restartInstance, getInstanceStatus, connectInstance } = useEvolutionApi();
   const queryClient = useQueryClient();

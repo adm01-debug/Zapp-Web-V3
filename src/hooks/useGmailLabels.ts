@@ -19,6 +19,7 @@ export const SYSTEM_LABELS: Array<{ id: string; name: string; icon: string; colo
   { id: 'TRASH', name: 'Lixeira', icon: 'delete', color: '#777777' },
 ];
 
+/** Fetches and manages Gmail labels with caching and real-time updates. */
 export function useEmailLabels(accountId: string | null) {
   const [labels, setLabels] = useState<EmailLabel[]>([]);
   const [isLoading, setIsLoading] = useState(false);

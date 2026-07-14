@@ -4,6 +4,7 @@ import type { Queue, QueueMember, QueueWithMembers } from '@/hooks/useQueueManag
 
 export type { Queue, QueueMember, QueueWithMembers };
 
+/** Provides CRUD operations and management for queue data and members. */
 export function useQueues() {
   return useQueuesCrudManagement();
 }
