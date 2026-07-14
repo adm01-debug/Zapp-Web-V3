@@ -96,7 +96,19 @@ export function useContactEnrichedData(contactId: string) {
         log.error('Error fetching enriched contact data:', error);
         return null;
       }
-      return data as EnrichedContactData; // ignore-audit: narrows Supabase query result to local interface
+      if (!data) return null;
+      // Normalize: ensure no field is `undefined` — Inbox components render these directly.
+      const normalized: EnrichedContactData = {
+        company: data.company ?? null,
+        job_title: data.job_title ?? null,
+        nickname: data.nickname ?? null,
+        surname: data.surname ?? null,
+        contact_type: data.contact_type ?? null,
+        ai_sentiment: data.ai_sentiment ?? null,
+        ai_priority: data.ai_priority ?? null,
+        channel_type: data.channel_type ?? null,
+      };
+      return normalized;
     },
     enabled: !!localId,
     staleTime: 3 * 60 * 1000, // 3min — coordinate with mutation invalidation
