@@ -145,6 +145,7 @@ function computeSparklines(
 // Monitoring Data Management (useMonitoringData consolidation)
 // ═══════════════════════════════════════════════════════════
 
+/** Fetches and manages monitoring data including connection status, health logs, and metrics. */
 export function useMonitoringDataManagement(
   params: UseMonitoringDataParams = {}
 ): UseMonitoringDataResult {
@@ -271,6 +272,7 @@ export function useMonitoringDataManagement(
 // Monitoring Actions Management (useMonitoringActions consolidation)
 // ═══════════════════════════════════════════════════════════
 
+/** Manages monitoring actions including webhook configuration, testing, and diagnostic operations. */
 export function useMonitoringActionsManagement(
   params: UseMonitoringActionsParams
 ): UseMonitoringActionsResult {
