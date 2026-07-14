@@ -1,8 +1,8 @@
-// @ts-nocheck
 // Re-export from consolidated useQueueManagement module (ETAPA 26 consolidation)
+import { useCallback } from 'react';
 import { useQueueGoalsManagement } from '@/hooks/useQueueManagement';
 import type { QueueGoal } from '@/hooks/useQueueManagement';
-import { supabase } from '@/integrations/supabase/client';
+import { safeFrom } from '@/integrations/supabase/safeClient';
 import { getLogger } from '@/lib/logger';
 
 const log = getLogger('useQueueGoals');
@@ -37,20 +37,20 @@ const DEFAULT_GOAL: QueueGoalForm = {
   alerts_enabled: true,
 };
 
-export function useQueueGoals() {
-  const base = useQueueGoalsManagement();
+export function useQueueGoals(queueId?: string) {
+  const base = useQueueGoalsManagement(queueId);
   const goals = base.goals.reduce<Record<string, QueueGoalRecord>>((acc, goal) => {
     acc[goal.queue_id] = { ...DEFAULT_GOAL, ...goal } as QueueGoalRecord;
     return acc;
   }, {});
 
-  const getDefaultGoal = (): QueueGoalForm => ({ ...DEFAULT_GOAL });
+  const getDefaultGoal = useCallback((): QueueGoalForm => ({ ...DEFAULT_GOAL }), []);
 
-  const saveGoal = async (queueId: string, formData: QueueGoalForm): Promise<void> => {
+  const saveGoal = async (targetQueueId: string, formData: QueueGoalForm): Promise<void> => {
     try {
-      const existing = goals[queueId];
+      const existing = goals[targetQueueId];
       const payload = {
-        queue_id: queueId,
+        queue_id: targetQueueId,
         metric: 'queue_health',
         target_value: formData.max_waiting_contacts,
         current_value: 0,
@@ -59,8 +59,8 @@ export function useQueueGoals() {
         ...formData,
       };
       const query = existing
-        ? supabase.from('queue_goals').update(payload).eq('id', existing.id)
-        : supabase.from('queue_goals').insert(payload);
+        ? safeFrom('queue_goals').update(payload).eq('id', existing.id)
+        : safeFrom('queue_goals').insert(payload);
       const { error } = await query;
       if (error) throw error;
       await base.refetch();

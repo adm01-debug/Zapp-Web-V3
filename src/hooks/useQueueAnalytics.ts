@@ -17,9 +17,20 @@ export function useQueueAnalytics(queueId: string, dateRange: DateRange | Legacy
   const analytics = result.analytics;
   return {
     ...result,
-    dailyData: analytics ? [{ date: analytics.timestamp, messages: analytics.total_messages }] : [],
-    hourlyData: analytics ? [{ hour: 'Atual', messages: analytics.total_messages }] : [],
-    agentPerformance: [],
+    dailyData: analytics
+      ? [{
+          date: analytics.timestamp,
+          day: new Date(analytics.timestamp).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }),
+          messages: analytics.total_messages,
+          mensagens: analytics.total_messages,
+          resolvidos: Math.round((analytics.total_messages * analytics.resolution_rate) / 100),
+          novos: Math.max(0, analytics.total_messages - Math.round((analytics.total_messages * analytics.resolution_rate) / 100)),
+        }]
+      : [],
+    hourlyData: analytics
+      ? [{ hour: 'Atual', hora: 'Atual', messages: analytics.total_messages, atendimentos: analytics.total_messages }]
+      : [],
+    agentPerformance: [] as Array<{ name: string; atendimentos: number }>,
     statusData: analytics
       ? [
           { name: 'Resolvidas', value: analytics.resolution_rate, color: 'hsl(var(--success))' },

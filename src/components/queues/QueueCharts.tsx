@@ -1,5 +1,5 @@
-// @ts-nocheck
 import { useState } from 'react';
+import type { ElementType, ReactNode } from 'react';
 import { subDays } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -36,8 +36,8 @@ function ChartCard({
   className,
 }: {
   title: string;
-  icon: React.ElementType;
-  children: React.ReactNode;
+    icon: ElementType;
+  children: ReactNode;
   className?: string;
 }) {
   return (
@@ -68,6 +68,8 @@ export function QueueCharts({ queueId, queueColor }: QueueChartsProps) {
     setPeriod(newPeriod);
     setDateRange(newRange);
   };
+
+  const percentFormatter = (value: unknown): [string, string] => [`${String(value)}%`, ''];
 
   if (loading)
     return (
@@ -197,7 +199,7 @@ export function QueueCharts({ queueId, queueColor }: QueueChartsProps) {
                   </Pie>
                   <Tooltip
                     contentStyle={TOOLTIP_STYLE}
-                    formatter={(value: number | string) => [String(value) + '%', '']}
+                    formatter={percentFormatter}
                   />
                 </PieChart>
               </ResponsiveContainer>
