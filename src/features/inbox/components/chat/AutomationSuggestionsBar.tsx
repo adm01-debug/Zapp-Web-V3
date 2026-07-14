@@ -2,7 +2,7 @@ import { Sparkles, Check, X, Send, Tag, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { useAutomationSuggestions } from "@/hooks/useAutomationSuggestions";
+import { useAutomationSuggestions } from "@/hooks/useAutomationManagement";
 import { cn } from "@/lib/utils";
 
 interface AutomationSuggestionsBarProps {

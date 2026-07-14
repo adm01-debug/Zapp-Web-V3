@@ -6,20 +6,20 @@
  *
  * Architecture note:
  *   - EmailChatBubble (v1) renders via the main DOMPurify sanitizer (sanitize.ts).
- *   - EmailChatBubble-v2 uses the DOM-native sanitizer (sanitize-v2.ts) to avoid
- *     mutable DOMPurify hook collisions in recursive render trees.
+ *   - EmailChatBubble-v2 uses the DOM-native sanitizer (from sanitize.ts v3.0)
+ *     to avoid mutable DOMPurify hook collisions in recursive render trees.
  *
- *   See docs/sanitize-architecture.md before switching between the two.
+ *   Both sanitizers are now unified in src/lib/sanitize.ts (v3.0 consolidated sanitize + sanitize-v2).
  */
 
-export { default as EmailAttachmentPreview } from './EmailAttachmentPreview';
-export { default as EmailChatBubble } from './EmailChatBubble';
-export { default as EmailChatInbox } from './EmailChatInbox';
-export { default as EmailChatReplyBar } from './EmailChatReplyBar';
-export { default as EmailChatThread } from './EmailChatThread';
-export { default as EmailSLABadge } from './EmailSLABadge';
-export { default as EmailSearchBar } from './EmailSearchBar';
-export { default as EmailThreadList } from './EmailThreadList';
+export { EmailAttachmentPreview } from './EmailAttachmentPreview';
+export { EmailChatBubble } from './EmailChatBubble';
+export { EmailChatInbox } from './EmailChatInbox';
+export { EmailChatReplyBar } from './EmailChatReplyBar';
+export { EmailChatThread } from './EmailChatThread';
+export { EmailSLABadge, SLADot, SLAProgressBar } from './EmailSLABadge';
+export { EmailSearchBar } from './EmailSearchBar';
+export { EmailThreadList } from './EmailThreadList';
 
 // v2 variant — uses DOM-native sanitization instead of DOMPurify.
 // Re-exported with a descriptive alias to make the intent explicit at call sites.

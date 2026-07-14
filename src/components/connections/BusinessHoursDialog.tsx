@@ -16,7 +16,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Loader2, Clock, MessageSquare, Save, Copy } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { useBusinessHours, BusinessHour, AwayMessage } from '@/hooks/useBusinessHours';
+import { useBusinessHours, BusinessHour, AwayMessage } from '@/hooks/useBusinessHoursManagement';
 
 interface BusinessHoursDialogProps {
   open: boolean;

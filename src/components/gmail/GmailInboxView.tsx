@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { useEmail, type EmailThread } from '@/hooks/useEmail';
+import { useEmail, type EmailThread } from '@/hooks/useEmailManagement';
 import { EmailLabelSidebar } from './GmailLabelSidebar';
 import { EmailAccountSelector } from './GmailAccountSelector';
 import { type TokenStatus } from '@/hooks/useGmailOAuthFlow';

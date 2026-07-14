@@ -6,7 +6,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { AISuggestions } from '../AISuggestions';
 import { MessageTemplates } from '../MessageTemplates';
 import { ExternalProductCatalog } from '@/components/catalog/ExternalProductCatalog';
-import { ExternalProduct } from '@/hooks/useExternalCatalog';
+import { ExternalProduct } from '@/hooks/useExternalApiManagement';
 import { Message } from '@/types/chat';
 import { cn } from '@/lib/utils';
 import { Zap, Mic, Clock, MapPin, Package, Layers } from 'lucide-react';

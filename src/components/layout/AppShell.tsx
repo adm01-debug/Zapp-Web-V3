@@ -12,7 +12,7 @@ import { AutomationFailureAlertsMount } from '@/components/system/AutomationFail
 import { IntegrationMigrationMount } from '@/components/system/IntegrationMigrationMount';
 import { MobileShell } from '@/components/mobile/MobileShell';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { useSwipeNavigation } from '@/hooks/useSwipeNavigation';
+import { useSwipeNavigation } from '@/hooks/useSwipeControl';
 import { useZenMode } from '@/hooks/useZenMode';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { toast } from 'sonner';

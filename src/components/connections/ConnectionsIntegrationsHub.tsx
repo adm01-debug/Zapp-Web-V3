@@ -13,7 +13,7 @@ import { HubTab } from './types';
  */
 export function ConnectionsIntegrationsHub() {
   const { isDev } = useUserRole();
-  const { tab, setTab } = useHubTabNavigation(isDev);
+  const { tab, setTab } = useHubTabNavigation({ isDev });
 
   return (
     <div className="flex flex-col h-full">

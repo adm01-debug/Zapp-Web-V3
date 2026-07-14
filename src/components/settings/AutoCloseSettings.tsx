@@ -6,7 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Timer, Save } from 'lucide-react';
-import { useAutoCloseConversations } from '@/hooks/useAutoCloseConversations';
+import { useAutoCloseConversations } from '@/hooks/useAutomationManagement';
 
 export function AutoCloseSettings() {
   const { config, isLoading, updateConfig } = useAutoCloseConversations();

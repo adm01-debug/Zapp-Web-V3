@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import { useEvolutionApi } from '@/hooks/useEvolutionApi';
 import { newRequestId } from '@/lib/withRequestId';
 import { dbFrom } from '@/integrations/datasource/db';
-import type { AudioMemeItem } from '@/hooks/useAudioMemes';
+import type { AudioMemeItem } from '@/hooks/useAudioManagement';
 import { evolutionInstanceName } from '@/lib/evolutionInstance';
 
 /**

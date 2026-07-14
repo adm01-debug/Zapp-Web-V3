@@ -1,23 +1,8 @@
-/**
- * Hook de Exportação - Controlado por permissão de download do usuário.
- */
+// Re-export from consolidated useMediaManagement module (ETAPA 40 consolidation)
+import { useExportDataManagement } from '@/hooks/useMediaManagement';
 
-import { useCallback, useState } from 'react';
-import { toast } from 'sonner';
-import { useDownloadPermission } from '@/hooks/useDownloadPermission';
-
-export type ExportFormat = 'csv' | 'xlsx' | 'pdf';
-
-export interface ExportColumn<T> {
-  key: keyof T;
-  header: string;
-  width?: number;
-  format?: (value: unknown) => string;
-}
-
-interface UseExportDataOptions<T> {
-  columns: ExportColumn<T>[];
-  fileName: string;
+export function useExportData() {
+  return useExportDataManagement();
 }
 
 const BLOCKED_MSG = 'Exportação bloqueada por política de segurança';

@@ -11,7 +11,7 @@ import { SLAIndicatorForContact } from '../SLAIndicatorForContact';
 import { VoiceSelector } from '../VoiceSelector';
 import { KeyboardShortcutsHelp } from '../KeyboardShortcutsHelp';
 import { RealtimeCollaboration } from '../RealtimeCollaboration';
-import { useExternalContact360 } from '@/hooks/useExternalContact360';
+import { useExternalContact360 } from '@/hooks/useExternalApiManagement';
 import { useContactIntelligence } from '@/hooks/useContactIntelligence';
 import { isExternalConfigured } from '@/integrations/supabase/externalClient';
 import {

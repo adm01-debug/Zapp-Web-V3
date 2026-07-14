@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import { toast } from '@/hooks/use-toast';
 import { InteractiveMessage, InteractiveButton, LocationMessage } from '@/types/chat';
-import { ExternalProduct } from '@/hooks/useExternalCatalog';
+import { ExternalProduct } from '@/hooks/useExternalApiManagement';
 
 interface UseProductHandlersOptions {
   onSendMessage: (content: string) => void;

@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { motion } from 'framer-motion';
 import { Music, Tag, X, Check } from 'lucide-react';
-import { type PendingUpload } from '@/hooks/useAudioMemes';
+import { type PendingUpload } from '@/hooks/useAudioManagement';
 import { CATEGORY_LABELS } from './audioMemeConstants';
 import { AudioMemeCategorySelector } from './AudioMemeCategorySelector';
 

@@ -10,7 +10,7 @@ import {
   Search, RefreshCw, ChevronLeft, ChevronRight, X,
   Download, ArrowUpDown, Plus,
 } from 'lucide-react';
-import { useExternalTableBrowser } from '@/hooks/useExternalDB';
+import { useExternalTableBrowser } from '@/hooks/useExternalApiManagement';
 import { formatCellValue, exportToCSV, RFM_SEGMENT_COLORS } from './crm360TabsConfig';
 import type { TabConfig } from './crm360TabsConfig';
 import type { ExternalTableName } from '@/types/externalDB';
