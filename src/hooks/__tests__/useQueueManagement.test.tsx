@@ -64,7 +64,7 @@ describe('useQueueManagement — hooks consolidados', () => {
     it('define erro quando query falha', async () => {
       mockFrom.mockReturnValue({
         select: vi.fn().mockReturnValue({
-          order: vi.fn().mockResolvedValue({ data: null, error: { message: 'boom' } }),
+          order: vi.fn().mockResolvedValue({ data: null, error: new Error('boom') }),
         }),
       });
 
