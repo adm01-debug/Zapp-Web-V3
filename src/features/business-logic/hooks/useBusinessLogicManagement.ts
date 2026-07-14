@@ -57,6 +57,7 @@ export interface UseBusinessLogicCampaignsResult {
   declareWinner: (id: string) => Promise<void>;
 }
 
+/** Manages A/B campaign variants, analytics, and winner declaration. */
 export function useBusinessLogicCampaignsManagement(
   params: UseBusinessLogicCampaignsParams
 ): UseBusinessLogicCampaignsResult {
@@ -163,6 +164,7 @@ export interface UseBusinessLogicCatalogResult {
   sendProductToContact: (contact: ContactResult, message: string, imageUrls: string[]) => Promise<void>;
 }
 
+/** Manages product catalog sending to contacts with image uploads and media handling. */
 export function useBusinessLogicCatalogManagement(
   params: UseBusinessLogicCatalogParams
 ): UseBusinessLogicCatalogResult {
@@ -370,6 +372,7 @@ export interface UseBusinessLogicPipelineResult {
   markAsLost: (deal: Deal) => Promise<void>;
 }
 
+/** Manages sales pipeline stages, deals, activities, and deal lifecycle (won/lost). */
 export function useBusinessLogicPipelineManagement(
   _params: UseBusinessLogicPipelineParams = {}
 ): UseBusinessLogicPipelineResult {

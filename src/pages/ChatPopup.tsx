@@ -14,6 +14,7 @@ import { toast } from 'sonner';
 
 const ChatPanel = lazy(() => import('@/features/inbox').then((m) => ({ default: m.ChatPanel })));
 
+/** Popup chat window for direct contact communication with window management and audio support. */
 export default function ChatPopup() {
   const { contactId } = useParams<{ contactId: string }>();
   const [isMaximized, setIsMaximized] = useState(false);

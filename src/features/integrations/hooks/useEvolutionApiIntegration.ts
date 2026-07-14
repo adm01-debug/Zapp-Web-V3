@@ -31,6 +31,7 @@ export interface HealthLog {
 
 export const DEFAULT_URL = 'https://evolution.atomicabr.com.br';
 
+/** Manages Evolution API instance credentials, health checks, and connection testing with timeout protection. */
 export function useEvolutionApiIntegration() {
   const [credentials, setCredentials] = useState<EvolutionInstanceCredential[]>([]);
   const [healthLogs, setHealthLogs] = useState<HealthLog[]>([]);

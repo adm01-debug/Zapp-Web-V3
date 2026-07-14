@@ -140,6 +140,7 @@ function getDateRange(period: string) {
   }
 }
 
+/** Fetches and aggregates dashboard data with filtering by date range, queue, and agent. */
 export function useDashboardDataManagement(filters?: DashboardFilters) {
   const { user } = useAuth();
   const merged = { dateRange: { from: startOfDay(new Date()), to: endOfDay(new Date()) }, queueId: null, agentId: null, ...filters };
@@ -244,6 +245,7 @@ export function useDashboardDataManagement(filters?: DashboardFilters) {
   return { stats, isLoading, error, refetch: () => {} };
 }
 
+/** Manages dashboard widget visibility, ordering, resizing, and persistence to localStorage. */
 export function useDashboardWidgetsManagement() {
   const [widgets, setWidgets] = useState<DashboardWidget[]>(() => {
     const stored = localStorage.getItem(STORAGE_KEY);
@@ -322,6 +324,7 @@ export function useDashboardWidgetsManagement() {
   };
 }
 
+/** Manages user goals tracking, celebration notifications, and custom goal configurations. */
 export function useGoalsDashboardManagement() {
   const [period, setPeriod] = useState('today');
   const [configDialogOpen, setConfigDialogOpen] = useState(false);
@@ -446,6 +449,7 @@ export function useGoalsDashboardManagement() {
   };
 }
 
+/** Manages agent leaderboard data, rankings, XP, and real-time updates via Realtime. */
 export function useLeaderboardManagement() {
   const [timeRange, setTimeRange] = useState<'today' | 'week' | 'month'>('week');
   const [agents, setAgents] = useState<LeaderboardAgent[]>([]);
@@ -520,6 +524,7 @@ export function useLeaderboardManagement() {
   return { agents, isLoading, isRefreshing, timeRange, setTimeRange, handleRefresh };
 }
 
+/** Fetches war room data including agents, queues, and real-time metrics. */
 export function useWarRoomDataManagement() {
   const { data: agents = [] } = useQuery({
     queryKey: ['warroom-agents'],
