@@ -18,6 +18,7 @@ interface NavigationState {
   forward: string[];
 }
 
+/** Searches contacts by name or phone with query support and loading state. */
 export function useContactsSearchManagement(query?: string) {
   const { user } = useAuth();
   const [results, setResults] = useState<SearchResult[]>([]);
@@ -58,6 +59,7 @@ export function useContactsSearchManagement(query?: string) {
   return { results, loading, search };
 }
 
+/** Fetches and manages user's saved dashboard queries with loading state. */
 export function useDashboardQueriesManagement() {
   const { user } = useAuth();
   const [queries, setQueries] = useState<any[]>([]);
@@ -98,6 +100,7 @@ export function useDashboardQueriesManagement() {
   return { queries, loading, refetch: fetchQueries };
 }
 
+/** Manages URL filter state with update and clear operations. */
 export function useUrlFiltersManagement() {
   const [filters, setFilters] = useState<Record<string, any>>({});
 
@@ -112,6 +115,7 @@ export function useUrlFiltersManagement() {
   return { filters, updateFilter, clearFilters };
 }
 
+/** Manages navigation history with back, forward, and navigate capabilities. */
 export function useNavigationHistoryManagement() {
   const [state, setState] = useState<NavigationState>({
     current: '',
@@ -154,6 +158,7 @@ export function useNavigationHistoryManagement() {
   return { ...state, navigate, goBack, goForward };
 }
 
+/** Manages navigation through a list of items with index tracking and movement. */
 export function useIndexNavigationManagement() {
   const [index, setIndex] = useState(0);
   const [items, setItems] = useState<any[]>([]);
@@ -173,6 +178,7 @@ export function useIndexNavigationManagement() {
   return { index, items, setItems, next, previous, goTo, currentItem: items[index] };
 }
 
+/** Searches messages within a specific chat by content query. */
 export function useChatSearchManagement(chatId?: string, query?: string) {
   const [results, setResults] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
