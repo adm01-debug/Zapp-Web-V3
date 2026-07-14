@@ -7,6 +7,12 @@ import { getLogger } from '@/lib/logger';
 
 const log = getLogger('useContactNotes');
 
+export interface ContactNoteAuthor {
+  id: string;
+  name: string | null;
+  avatar_url: string | null;
+}
+
 export interface ContactNote {
   id: string;
   contact_id: string;
@@ -14,11 +20,8 @@ export interface ContactNote {
   content: string;
   created_at: string;
   updated_at: string;
-  author?: {
-    id: string;
-    name: string;
-    avatar_url: string | null;
-  };
+  /** Sempre presente. Quando o autor não é encontrado, retorna um autor placeholder com id === author_id. */
+  author: ContactNoteAuthor;
 }
 
 export function useContactNotes(contactId: string) {
@@ -68,12 +71,14 @@ export function useContactNotes(contactId: string) {
         .select('id, name, avatar_url')
         .in('id', authorIds);
 
-      const authorsMap = new Map(authors?.map(a => [a.id, a]) || []);
+      const authorsMap = new Map<string, ContactNoteAuthor>(
+        (authors ?? []).map((a) => [a.id, { id: a.id, name: a.name ?? null, avatar_url: a.avatar_url ?? null }])
+      );
 
-      return (data || []).map(note => ({
+      return (data || []).map<ContactNote>((note) => ({
         ...note,
-        author: authorsMap.get(note.author_id),
-      })) as ContactNote[];
+        author: authorsMap.get(note.author_id) ?? { id: note.author_id, name: null, avatar_url: null },
+      }));
     },
     enabled: !!contactId,
   });
@@ -157,6 +162,6 @@ export function useContactNotes(contactId: string) {
     deleteNote,
     isAdding: addNoteMutation.isPending,
     isDeleting: deleteNoteMutation.isPending,
-    currentProfileId: profile?.id,
+    currentProfileId: (profile?.id ?? null) as string | null,
   };
 }
