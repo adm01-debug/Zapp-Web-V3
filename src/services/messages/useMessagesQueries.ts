@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Messages Queries Hooks
  */

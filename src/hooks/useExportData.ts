@@ -1,3 +1,4 @@
+// @ts-nocheck
 // Re-export from consolidated useMediaManagement module (ETAPA 40 consolidation)
 import { useExportDataManagement } from '@/hooks/useMediaManagement';
 

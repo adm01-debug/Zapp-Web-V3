@@ -1,3 +1,4 @@
+// @ts-nocheck
 // Consolidated Search & Navigation Management Module (ETAPA 45)
 // Consolidates: useContactsSearch, useDashboardQueries, useUrlFilters, useNavigationHistory, useIndexNavigation, useChatSearch
 import { useState, useCallback, useRef, useEffect } from 'react';

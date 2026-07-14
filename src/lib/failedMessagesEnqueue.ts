@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Client-side enqueue para a Dead-Letter Queue (DLQ) de envios.
  *

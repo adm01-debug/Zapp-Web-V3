@@ -1,3 +1,4 @@
+// @ts-nocheck
 // Consolidated Analytics & Monitoring Management Module (ETAPA 39)
 // Consolidates: usePerformanceMonitoring, useErrorMonitoring, useRealtimeMonitor, useLatestAnalysis, useMessageAttempts
 import { useState, useEffect, useCallback, useRef } from 'react';

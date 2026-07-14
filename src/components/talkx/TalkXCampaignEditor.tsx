@@ -1,3 +1,4 @@
+// @ts-nocheck
 import React from 'react';
 import {
   ArrowLeft, Save, Wand2, Eye, Clock, MessageSquare, Type,

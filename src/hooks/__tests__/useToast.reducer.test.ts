@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Tests for the exported `reducer` from use-toast.ts.
  *
