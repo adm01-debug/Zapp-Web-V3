@@ -26,6 +26,7 @@ interface SLAScopeOptions {
   contacts: ContactOption[];
 }
 
+/** Hook for fetching scope options for SLA rule configuration (companies, queues, agents, contacts). */
 export function useSLAScopeOptions(
   open: boolean,
   scope: SLARuleScope,

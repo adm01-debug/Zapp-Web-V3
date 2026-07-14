@@ -65,6 +65,7 @@ export interface UseChannelRoutingRulesResult {
 // Channels Management (useOmnichannelChannels consolidation)
 // ═══════════════════════════════════════════════════════════
 
+/** Manages omnichannel channels including add and delete operations. */
 export function useOmnichannelChannelsManagement(
   _params: UseOmnichannelChannelsParams = {}
 ): UseOmnichannelChannelsResult {
@@ -124,6 +125,7 @@ export function useOmnichannelChannelsManagement(
 // Routing Rules Management (useChannelRoutingRules consolidation)
 // ═══════════════════════════════════════════════════════════
 
+/** Manages channel routing rules with toggle, create, and delete operations. */
 export function useChannelRoutingRulesManagement(
   _params: UseChannelRoutingRulesParams = {}
 ): UseChannelRoutingRulesResult {

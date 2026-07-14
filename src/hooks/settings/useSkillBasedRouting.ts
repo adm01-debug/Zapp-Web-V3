@@ -26,6 +26,7 @@ interface QueueSkillRequirement {
   min_level: number;
 }
 
+/** Hook for managing skill-based routing including agent skills and queue skill requirements. */
 export function useSkillBasedRouting(selectedProfile: string, selectedQueue: string) {
   const queryClient = useQueryClient();
 

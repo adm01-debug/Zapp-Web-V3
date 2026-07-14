@@ -26,6 +26,7 @@ interface FollowUpSequence {
 
 const QUERY_KEY = ['followup-sequences'];
 
+/** Hook for managing follow-up sequences with create, toggle, and delete operations. */
 export function useFollowUpSequences() {
   const queryClient = useQueryClient();
 

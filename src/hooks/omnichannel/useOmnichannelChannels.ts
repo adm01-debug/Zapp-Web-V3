@@ -7,5 +7,11 @@ import type {
   OmnichannelChannel,
 } from './useOmnichannelManagement';
 
+/** Hook for managing omnichannel communication channels across multiple platforms. */
 export { useOmnichannelChannelsManagement as useOmnichannelChannels };
-export type { UseOmnichannelChannelsParams, UseOmnichannelChannelsResult, ChannelType, OmnichannelChannel };
+export type {
+  UseOmnichannelChannelsParams,
+  UseOmnichannelChannelsResult,
+  ChannelType,
+  OmnichannelChannel,
+};

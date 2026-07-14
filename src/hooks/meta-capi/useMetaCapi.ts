@@ -21,6 +21,7 @@ export interface CAPIEvent {
   created_at: string | null;
 }
 
+/** Hook for managing Meta CAPI (Conversion API) events and Pixel configuration. */
 export function useMetaCapi() {
   const [events, setEvents] = useState<CAPIEvent[]>([]);
   const [loading, setLoading] = useState(true);

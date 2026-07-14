@@ -7,5 +7,11 @@ import type {
   RoutingRule,
 } from './useOmnichannelManagement';
 
+/** Hook for managing channel routing rules and message queue distribution. */
 export { useChannelRoutingRulesManagement as useChannelRoutingRules };
-export type { UseChannelRoutingRulesParams, UseChannelRoutingRulesResult, NewRoutingRule, RoutingRule };
+export type {
+  UseChannelRoutingRulesParams,
+  UseChannelRoutingRulesResult,
+  NewRoutingRule,
+  RoutingRule,
+};
