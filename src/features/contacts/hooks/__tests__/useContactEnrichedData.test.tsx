@@ -152,9 +152,8 @@ describe('useContactEnrichedData', () => {
     };
     const { result } = renderHook(() => useContactEnrichedData(LOCAL_ID), { wrapper: wrapper() });
     await waitFor(() => {
-      expect(result.current.slaInfo).not.toBeNull();
+      expect(result.current.slaInfo).toBeTruthy();
     });
-    // Consumidores podem ler qualquer campo sem crash: valores são boolean|string|null
     expect(result.current.slaInfo?.resolution_breached ?? null).toBeNull();
     expect(result.current.slaInfo?.resolved_at ?? null).toBeNull();
     expect(result.current.slaInfo?.first_response_breached).toBe(false);
