@@ -6,6 +6,7 @@ interface UsePullToRefreshOptions {
   disabled?: boolean;
 }
 
+/** Enables iOS-style pull-to-refresh gesture with visual progress tracking. */
 export function usePullToRefresh({ onRefresh, threshold = 80, disabled = false }: UsePullToRefreshOptions) {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [pullDistance, setPullDistance] = useState(0);

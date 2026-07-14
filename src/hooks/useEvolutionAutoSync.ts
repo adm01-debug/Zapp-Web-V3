@@ -7,19 +7,7 @@ import { normalizePhone, isSamePhone } from '@/lib/phoneUtils';
 
 const log = getLogger('useEvolutionAutoSync');
 
-/**
- * Auto-syncs Evolution API instances into `whatsapp_connections`.
- *
- * When instances exist in Evolution but not in the Supabase table
- * (e.g. created via API/CLI), this hook auto-inserts them so they
- * appear in the Connections page.
- *
- * Protections:
- * - Runs once on mount (idempotent)
- * - Skips instances already in Supabase (by instance_id)
- * - Skips instances whose phone number already exists (prevents duplicates)
- * - Insert-only (never deletes or overwrites)
- */
+/** Auto-syncs Evolution API instances into Supabase connections with deduplication. */
 export function useEvolutionAutoSync(onSynced?: () => void) {
   const ran = useRef(false);
   const { listInstances } = useEvolutionApi();

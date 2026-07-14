@@ -1098,6 +1098,7 @@ function useHmacSecurityManagement(instance: string, includeNegative: boolean) {
 
 // ─── Section 8: Orchestration ────────────────────────────────────────────────
 
+/** Unified admin panel orchestration combining automations, channels, queues, departments, roles, and security. */
 export function useAdminManagement(options?: {
   channelStatusFilter?: string;
   channelSearch?: string;
