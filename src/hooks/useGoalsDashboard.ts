@@ -8,6 +8,7 @@ export const PERIOD_OPTIONS = [
   { value: 'month', label: 'Este Mês' },
 ];
 
+/** Maps progress percentage to Tailwind text color class. */
 export function getProgressColor(percentage: number): string {
   if (percentage >= 100) return 'text-success';
   if (percentage >= 75) return 'text-primary';
@@ -15,6 +16,7 @@ export function getProgressColor(percentage: number): string {
   return 'text-destructive';
 }
 
+/** Maps progress percentage to Tailwind background color class. */
 export function getProgressBgColor(percentage: number): string {
   if (percentage >= 100) return 'bg-success';
   if (percentage >= 75) return 'bg-primary';
@@ -22,6 +24,7 @@ export function getProgressBgColor(percentage: number): string {
   return 'bg-destructive';
 }
 
+/** Retrieves goals dashboard data with configurable period targets. */
 export function useGoalsDashboard() {
   return useGoalsDashboardManagement();
 }

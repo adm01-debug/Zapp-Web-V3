@@ -25,6 +25,7 @@ export type CampaignInput = {
   send_interval_seconds?: number;
 };
 
+/** Provides campaigns CRUD operations and contact targeting for campaigns. */
 export function useCampaigns() {
   const queryClient = useQueryClient();
 

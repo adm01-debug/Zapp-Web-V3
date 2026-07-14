@@ -12,11 +12,13 @@ export interface WarRoomAlert {
   isNew?: boolean;
 }
 
+/** Retrieves war room agents, queues, and real-time alerts. */
 export function useWarRoomData() {
   const { agents, queues } = useWarRoomDataManagement();
   return { agents, queues, alerts: [] as WarRoomAlert[] };
 }
 
+/** Computes aggregated metrics for war room agents and queues. */
 export function useWarRoomMetrics(agents: any[], queues: any[]) {
   return useMemo(() => {
     const totalWaiting = queues.reduce((acc, q) => acc + q.waiting, 0);
