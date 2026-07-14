@@ -22,13 +22,21 @@ interface QueueMember {
   id: string;
   queue_id: string;
   user_id: string;
+  profile_id?: string;
   name: string;
   email: string;
   status: string;
+  is_active?: boolean;
+  profile?: {
+    id?: string;
+    name?: string | null;
+    avatar_url?: string | null;
+    is_active?: boolean | null;
+  } | null;
 }
 
 interface QueueWithMembers extends Queue {
-  members?: QueueMember[];
+  members: QueueMember[];
 }
 
 interface QueueAnalytics {
@@ -49,6 +57,11 @@ interface QueueGoal {
   current_value: number;
   period: 'daily' | 'weekly' | 'monthly';
   status: 'on_track' | 'at_risk' | 'missed';
+  max_waiting_contacts?: number;
+  max_avg_wait_minutes?: number;
+  min_assignment_rate?: number;
+  max_messages_pending?: number;
+  alerts_enabled?: boolean;
   updated_at: string;
 }
 

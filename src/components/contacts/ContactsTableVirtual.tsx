@@ -27,14 +27,9 @@ import { CONTACT_TYPE_CONFIG } from './contactTypeConfig';
 import { CompanyLogo } from './CompanyLogo';
 import { HighlightText } from './HighlightText';
 import { type Contact } from './types';
+import type { CRMBatchResult } from '@/hooks/useExternalContact360Batch';
 
 // ── Types ──────────────────────────────────────────────────────────────────
-
-interface CRMData {
-  logo_url?: string | null;
-  company_name?: string | null;
-  [key: string]: unknown;
-}
 
 interface ContactsTableVirtualProps {
   contacts: Contact[];
@@ -43,7 +38,7 @@ interface ContactsTableVirtualProps {
   onOpenChat: (id: string) => void;
   onEdit: (contact: Contact) => void;
   onDelete: (contact: Contact) => void;
-  getCRMData?: (phone: string) => CRMData | null;
+  getCRMData?: (phone: string) => CRMBatchResult | null;
   searchQuery?: string;
   loadMoreRef?: React.RefObject<HTMLDivElement>;
   loadingMore?: boolean;
@@ -70,7 +65,7 @@ const ContactRow = memo(
     onOpenChat: (id: string) => void;
     onEdit: (contact: Contact) => void;
     onDelete: (contact: Contact) => void;
-    getCRMData?: (phone: string) => CRMData | null;
+    getCRMData?: (phone: string) => CRMBatchResult | null;
     searchQuery?: string;
   }) => {
     const avatarColors = getAvatarColor(contact.name);
