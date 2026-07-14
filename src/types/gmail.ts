@@ -53,6 +53,7 @@ export interface EmailThread {
   first_reply_at:  string | null;
   created_at:      string;
   contact?:        Record<string, unknown>;
+  participant_emails?: string[];
   tags?:           string[];
 }
 

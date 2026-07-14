@@ -71,6 +71,8 @@ export function ContactContentArea({
   workspaceId,
   onRefresh,
 }: ContactContentAreaProps) {
+  const getCRMDataOrNull = (phone: string) => getCRMData(phone) ?? null;
+
   if (activeTab === 'duplicates') {
     return (
       <Card className="border-warning/20">
@@ -188,7 +190,7 @@ export function ContactContentArea({
             onOpenChat={onContactClick}
             onEdit={onEdit}
             onDelete={onDelete}
-            getCRMData={getCRMData}
+            getCRMData={getCRMDataOrNull}
             searchQuery={search}
           />
         ) : (
