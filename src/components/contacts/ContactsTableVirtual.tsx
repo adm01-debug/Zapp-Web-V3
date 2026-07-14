@@ -31,8 +31,8 @@ import { type Contact } from './types';
 // ── Types ──────────────────────────────────────────────────────────────────
 
 interface CRMData {
-  logo_url?: string;
-  company_name?: string;
+  logo_url?: string | null;
+  company_name?: string | null;
   [key: string]: unknown;
 }
 

@@ -3,10 +3,24 @@ import { useSpeechToTextManagement } from '@/hooks/useVoiceManagement';
 
 interface SpeechToTextOptions {
   language?: string;
+  continuous?: boolean;
   onResult?: (text: string) => void;
 }
 
-export function useSpeechToText(options: SpeechToTextOptions = {}) {
+interface SpeechToTextCompatResult {
+  isListening: boolean;
+  transcript: string;
+  isFinal?: boolean;
+  interim?: string;
+  error?: string | null;
+  startListening: () => void;
+  stopListening: () => void;
+  resetTranscript?: () => void;
+  isSupported: boolean;
+  toggleListening: () => void;
+}
+
+export function useSpeechToText(options: SpeechToTextOptions = {}): SpeechToTextCompatResult {
   const speech = useSpeechToTextManagement(options.language);
 
   const toggleListening = () => {
