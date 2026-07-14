@@ -33,16 +33,22 @@ export function useCustomEmojis(enabled = true) {
   const [emojis, setEmojis] = useState<CustomEmoji[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const [pendingUpload, setPendingUpload] = useState<PendingEmojiUpload | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const mountedRef = useRef(true);
+  const progressTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     mountedRef.current = true;
     return () => {
       mountedRef.current = false;
+      if (progressTimerRef.current) clearInterval(progressTimerRef.current);
     };
   }, []);
+
+  const resetUploadError = useCallback(() => setUploadError(null), []);
 
   const fetchEmojis = useCallback(async () => {
     try {
@@ -109,32 +115,58 @@ export function useCustomEmojis(enabled = true) {
   }, []);
 
   const handleConfirmUpload = useCallback(async (p: PendingEmojiUpload) => {
+    if (!p.name.trim()) {
+      setUploadError('Informe um nome para o emoji');
+      toast.error('Informe um nome para o emoji');
+      return;
+    }
     setUploading(true);
+    setUploadError(null);
+    setUploadProgress(5);
+    if (progressTimerRef.current) clearInterval(progressTimerRef.current);
+    progressTimerRef.current = setInterval(() => {
+      setUploadProgress((v) => (v < 85 ? v + 7 : v));
+    }, 150);
     try {
       const { error: upErr } = await supabase.storage
         .from(BUCKET)
         .upload(p.storagePath, p.file, { upsert: false, contentType: p.file.type });
       if (upErr) throw upErr;
+      if (mountedRef.current) setUploadProgress(90);
       const { data: pub } = supabase.storage.from(BUCKET).getPublicUrl(p.storagePath);
       const { data: userData } = await supabase.auth.getUser();
       const { error: insErr } = await supabase.from('custom_emojis').insert({
-        name: p.name,
+        name: p.name.trim(),
         image_url: pub.publicUrl,
         category: p.selectedCategory,
         uploaded_by: userData.user?.id ?? null,
       });
       if (insErr) throw insErr;
+      if (mountedRef.current) setUploadProgress(100);
       toast.success('Emoji adicionado');
       URL.revokeObjectURL(p.imageUrl);
-      setPendingUpload(null);
+      if (mountedRef.current) {
+        setPendingUpload(null);
+        setUploadError(null);
+      }
       await fetchEmojis();
     } catch (err) {
       log.error('[useCustomEmojis] upload failed', err);
-      toast.error('Falha ao salvar emoji');
+      const msg = err instanceof Error ? err.message : 'Falha ao salvar emoji';
+      if (mountedRef.current) setUploadError(msg);
+      toast.error(msg);
     } finally {
-      if (mountedRef.current) setUploading(false);
+      if (progressTimerRef.current) {
+        clearInterval(progressTimerRef.current);
+        progressTimerRef.current = null;
+      }
+      if (mountedRef.current) {
+        setUploading(false);
+        setTimeout(() => mountedRef.current && setUploadProgress(0), 400);
+      }
     }
   }, [fetchEmojis]);
+
 
   const handleSend = useCallback(
     async (emoji: CustomEmoji, onSend: (url: string) => void, close?: () => void) => {
@@ -210,6 +242,9 @@ export function useCustomEmojis(enabled = true) {
     emojis,
     loading,
     uploading,
+    uploadProgress,
+    uploadError,
+    resetUploadError,
     pendingUpload,
     fileInputRef,
     handleFileSelect,
