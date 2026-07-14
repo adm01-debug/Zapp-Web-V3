@@ -140,12 +140,16 @@ export function useImportDataManagement() {
   return { isImporting, error, importData };
 }
 
-export function useDownloadPermissionManagement(resourceId: string) {
-  const [hasPermission, setHasPermission] = useState(false);
-  const [loading, setLoading] = useState(true);
+export function useDownloadPermissionManagement(resourceId?: string) {
+  const [hasPermission, setHasPermission] = useState(!resourceId);
+  const [loading, setLoading] = useState(Boolean(resourceId));
 
   useEffect(() => {
-    if (!resourceId) return;
+    if (!resourceId) {
+      setHasPermission(true);
+      setLoading(false);
+      return;
+    }
 
     const checkPermission = async () => {
       try {
@@ -165,7 +169,7 @@ export function useDownloadPermissionManagement(resourceId: string) {
     checkPermission();
   }, [resourceId]);
 
-  return { hasPermission, loading };
+  return { hasPermission, canDownload: hasPermission, loading };
 }
 
 export type { Sticker, Emoji };
