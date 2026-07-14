@@ -50,6 +50,7 @@ interface UseKeyboardHeightResult {
 
 const STORAGE_KEY = 'custom-keyboard-shortcuts';
 
+/** Manages custom keyboard shortcuts with persistent storage. */
 export function useCustomShortcutsManagement() {
   const [shortcuts, setShortcuts] = useState<ShortcutBinding[]>(DEFAULT_SHORTCUTS);
   const [isRecording, setIsRecording] = useState<string | null>(null);
@@ -254,6 +255,7 @@ const STATIC_ACTIONS: Record<string, () => void> = {
   },
 };
 
+/** Manages global keyboard shortcuts with conflict detection and custom action binding. */
 export function useGlobalKeyboardShortcutsManagement(customActions?: GlobalShortcutAction[]) {
   const navigate = useNavigate();
   const { shortcuts, getActiveBinding } = useCustomShortcutsManagement();
@@ -336,6 +338,7 @@ export function useGlobalKeyboardShortcutsManagement(customActions?: GlobalShort
 // INDEX KEYBOARD SHORTCUTS MANAGEMENT
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════════════
 
+/** Manages keyboard shortcuts for navigation in index view with history and escape handling. */
 export function useIndexKeyboardShortcutsManagement(params: UseIndexKeyboardShortcutsParams) {
   const { goBack, goForward, canGoBack, setCurrentView } = params;
 
@@ -369,6 +372,7 @@ export function useIndexKeyboardShortcutsManagement(params: UseIndexKeyboardShor
 // KEYBOARD HEIGHT MANAGEMENT
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════════════
 
+/** Tracks mobile keyboard height and open state using VisualViewport API. */
 export function useKeyboardHeightManagement(): UseKeyboardHeightResult {
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
