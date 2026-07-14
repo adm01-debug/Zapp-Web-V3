@@ -140,6 +140,7 @@ function generateMockData(remoteJid: string): DeliveryStatsResult {
   };
 }
 
+/** Retrieves message delivery statistics and success rates. */
 export function useDeliveryStats(remoteJid: string | undefined, instance = 'wpp2') {
   return useQuery<DeliveryStatsResult>({
     queryKey: ['delivery-stats', remoteJid, instance],

@@ -25,6 +25,7 @@ interface NPSMetrics {
   avgScore: number;
 }
 
+/** Manages NPS survey campaigns and response tracking. */
 export function useNPSSurveys() {
   const [surveys, setSurveys] = useState<NPSSurvey[]>([]);
   const [isLoading, setIsLoading] = useState(true);

@@ -15,6 +15,7 @@ export interface Tag {
   contact_count?: number;
 }
 
+/** Provides tag CRUD operations, bulk assignment, and filtering capabilities. */
 export function useTags() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -169,7 +170,7 @@ export function useTags() {
   };
 }
 
-// Hook for managing tags on a specific contact
+/** Manages tags for a specific contact with add/remove capabilities. */
 export function useContactTags(contactId: string | undefined) {
   const queryClient = useQueryClient();
 
