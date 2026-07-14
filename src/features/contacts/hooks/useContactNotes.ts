@@ -7,6 +7,12 @@ import { getLogger } from '@/lib/logger';
 
 const log = getLogger('useContactNotes');
 
+export interface ContactNoteAuthor {
+  id: string;
+  name: string | null;
+  avatar_url: string | null;
+}
+
 export interface ContactNote {
   id: string;
   contact_id: string;
@@ -14,11 +20,8 @@ export interface ContactNote {
   content: string;
   created_at: string;
   updated_at: string;
-  author?: {
-    id: string;
-    name: string;
-    avatar_url: string | null;
-  };
+  /** Sempre presente. Quando o autor não é encontrado, retorna um autor placeholder com id === author_id. */
+  author: ContactNoteAuthor;
 }
 
 export function useContactNotes(contactId: string) {
