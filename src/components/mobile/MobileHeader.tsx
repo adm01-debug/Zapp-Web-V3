@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { forwardRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Menu, Search, Bell } from 'lucide-react';

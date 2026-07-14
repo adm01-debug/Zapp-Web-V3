@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Admin: Realtime monitoring page.
  * Single consolidated dashboard with connection status, webhook event volume
