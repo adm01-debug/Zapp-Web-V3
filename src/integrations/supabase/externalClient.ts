@@ -15,26 +15,45 @@
  *
  * Isso elimina a classe de erros "[datasource] cliente external indisponível"
  * causada por env vars ausentes no build.
+ *
+ * ES MODULE LIVE BINDINGS
+ * -----------------------
+ * `isExternalConfigured` and `externalSupabase` are exported as `let` so
+ * `updateRuntimeExternalConfig` can mutate them. ES module import bindings
+ * are LIVE — importers automatically see the updated value without re-importing.
+ * This is correct by design; it is NOT the same as a mutable global object in CJS.
+ * Prefer the getter functions (getExternalSupabase, getIsExternalConfigured) in
+ * new code for cleaner dependency inversion and easier testing.
  */
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import type { ExtendedDatabase } from './types-manual';
 import { supabase } from './client';
 import { createLogger } from '@/lib/logger';
 
 const log = createLogger('externalClient');
 
-const APP_ENV = (import.meta.env.VITE_APP_ENV || 'production') as 'development' | 'staging' | 'production';
+const APP_ENV = (import.meta.env.VITE_APP_ENV || 'production') as
+  'development' | 'staging' | 'production';
 
 const getEnvConfig = () => {
   switch (APP_ENV) {
     case 'development':
       return {
-        url: import.meta.env.VITE_DEV_EXTERNAL_SUPABASE_URL || import.meta.env.VITE_EXTERNAL_SUPABASE_URL,
-        key: import.meta.env.VITE_DEV_EXTERNAL_SUPABASE_ANON_KEY || import.meta.env.VITE_EXTERNAL_SUPABASE_ANON_KEY,
+        url:
+          import.meta.env.VITE_DEV_EXTERNAL_SUPABASE_URL ||
+          import.meta.env.VITE_EXTERNAL_SUPABASE_URL,
+        key:
+          import.meta.env.VITE_DEV_EXTERNAL_SUPABASE_ANON_KEY ||
+          import.meta.env.VITE_EXTERNAL_SUPABASE_ANON_KEY,
       };
     case 'staging':
       return {
-        url: import.meta.env.VITE_STAGING_EXTERNAL_SUPABASE_URL || import.meta.env.VITE_EXTERNAL_SUPABASE_URL,
-        key: import.meta.env.VITE_STAGING_EXTERNAL_SUPABASE_ANON_KEY || import.meta.env.VITE_EXTERNAL_SUPABASE_ANON_KEY,
+        url:
+          import.meta.env.VITE_STAGING_EXTERNAL_SUPABASE_URL ||
+          import.meta.env.VITE_EXTERNAL_SUPABASE_URL,
+        key:
+          import.meta.env.VITE_STAGING_EXTERNAL_SUPABASE_ANON_KEY ||
+          import.meta.env.VITE_EXTERNAL_SUPABASE_ANON_KEY,
       };
     default:
       return {
@@ -50,12 +69,12 @@ let EXTERNAL_ANON_KEY = config.key;
 
 export let isExternalConfigured = Boolean(EXTERNAL_URL && EXTERNAL_ANON_KEY);
 
-/**
- * Nunca é `null`: cai para o client principal autenticado quando as envs
- * dedicadas não existem (mesmo banco após a consolidação single-database).
- */
-export let externalSupabase: SupabaseClient = isExternalConfigured
-  ? createClient(EXTERNAL_URL!, EXTERNAL_ANON_KEY!, {
+export function getIsExternalConfigured(): boolean {
+  return isExternalConfigured;
+}
+
+export let externalSupabase: SupabaseClient<ExtendedDatabase> = isExternalConfigured
+  ? createClient<ExtendedDatabase>(EXTERNAL_URL!, EXTERNAL_ANON_KEY!, {
       auth: {
         persistSession: true,
         autoRefreshToken: true,
@@ -68,22 +87,14 @@ export let externalSupabase: SupabaseClient = isExternalConfigured
         },
       },
     })
-  : (supabase as unknown as SupabaseClient);
+  : supabase;
 
 if (!isExternalConfigured) {
-  // Expected in production (single-database FATOR X): VITE_EXTERNAL_* are not
-  // set; the main authenticated client is reused. Not an error — use debug level
-  // to avoid polluting the console on every production session.
   log.debug(
-    'VITE_EXTERNAL_* ausentes — usando o client principal autenticado (single-database FATOR X).',
+    'VITE_EXTERNAL_* ausentes — usando o client principal autenticado (single-database FATOR X).'
   );
 }
 
-/**
- * Updates the external client at runtime.
- * Useful when credentials are changed in the Admin Connections UI
- * without needing a full redeploy.
- */
 export function updateRuntimeExternalConfig(url: string, key: string) {
   if (!url || !key) return;
 
@@ -91,8 +102,7 @@ export function updateRuntimeExternalConfig(url: string, key: string) {
   EXTERNAL_ANON_KEY = key;
   isExternalConfigured = true;
 
-  // Re-create the client instance
-  externalSupabase = createClient(url, key, {
+  externalSupabase = createClient<ExtendedDatabase>(url, key, {
     auth: {
       persistSession: true,
       autoRefreshToken: true,
@@ -109,6 +119,20 @@ export function updateRuntimeExternalConfig(url: string, key: string) {
   log.info('Runtime config updated successfully');
 }
 
-export function getExternalSupabase(): SupabaseClient {
+export function getExternalSupabase(): SupabaseClient<ExtendedDatabase> {
   return externalSupabase;
+}
+
+/**
+ * Call an RPC function that exists only in the external (FATOR X) DB schema and
+ * therefore is not present in the generated ExtendedDatabase.Functions types.
+ * Centralises the type narrowing so callers stay cast-free.
+ */
+export function callExtRpc(
+  client: SupabaseClient<ExtendedDatabase>,
+  fn: string,
+  args: Record<string, unknown>
+): Promise<{ data: unknown; error: { message: string } | null }> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (client as any).rpc(fn, args); // ignore-audit — external DB schema RPCs not in generated types
 }

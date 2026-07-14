@@ -1,22 +1,25 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
+import type { ReactNode } from 'react';
 
-const mockFrom = vi.fn();
+const mockFrom = vi.hoisted(() => vi.fn());
 
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
-    from: (...args: any[]) => mockFrom(...args),
+    from: (...args: unknown[]) => mockFrom(...args),
     auth: {
-      onAuthStateChange: vi.fn().mockReturnValue({ data: { subscription: { unsubscribe: vi.fn() } } }),
+      onAuthStateChange: vi
+        .fn()
+        .mockReturnValue({ data: { subscription: { unsubscribe: vi.fn() } } }),
       getSession: vi.fn().mockResolvedValue({ data: { session: null } }),
     },
   },
 }));
 
-const mockUseAuth = vi.fn();
+const mockUseAuth = vi.hoisted(() => vi.fn());
 vi.mock('@/hooks/useAuth', () => ({
   useAuth: () => mockUseAuth(),
-  AuthProvider: ({ children }: any) => children,
+  AuthProvider: ({ children }: { children: ReactNode }) => children,
 }));
 vi.mock('@/features/auth/hooks/useAuth', () => ({
   useAuth: () => mockUseAuth(),
@@ -24,7 +27,7 @@ vi.mock('@/features/auth/hooks/useAuth', () => ({
 
 import { usePermissions } from '@/hooks/usePermissions';
 
-function makeSelectChain(data: any[] = [], error: any = null) {
+function makeSelectChain(data: unknown[] = [], error: { message: string } | null = null) {
   return {
     select: vi.fn().mockReturnValue({
       order: vi.fn().mockResolvedValue({ data, error }),
@@ -87,17 +90,41 @@ describe('usePermissions', () => {
     mockUseAuth.mockReturnValue({ user: { id: 'user-1' }, permissions: ['manage_users'] });
 
     mockFrom.mockImplementation((table: string) => {
-      if (table === 'permissions') return makeSelectChain([{ id: 'p1', name: 'manage_users', category: 'admin' }]);
+      if (table === 'permissions')
+        return makeSelectChain([{ id: 'p1', name: 'manage_users', category: 'admin' }]);
       if (table === 'user_roles') return makeSelectChain([{ role: 'admin' }]);
       if (table === 'role_permissions') {
         return {
           select: vi.fn().mockReturnValue({
-            order: vi.fn().mockResolvedValue({ data: [{ role: 'admin', permission_id: 'p1', permissions: { name: 'manage_users' } }], error: null }),
-            eq: vi.fn().mockResolvedValue({ data: [{ role: 'admin', permission_id: 'p1', permissions: { name: 'manage_users' } }], error: null }),
-            in: vi.fn().mockResolvedValue({ data: [{ permissions: { name: 'manage_users' } }], error: null }),
+            order: vi
+              .fn()
+              .mockResolvedValue({
+                data: [
+                  { role: 'admin', permission_id: 'p1', permissions: { name: 'manage_users' } },
+                ],
+                error: null,
+              }),
+            eq: vi
+              .fn()
+              .mockResolvedValue({
+                data: [
+                  { role: 'admin', permission_id: 'p1', permissions: { name: 'manage_users' } },
+                ],
+                error: null,
+              }),
+            in: vi
+              .fn()
+              .mockResolvedValue({
+                data: [{ permissions: { name: 'manage_users' } }],
+                error: null,
+              }),
           }),
           insert: vi.fn().mockResolvedValue({ error: null }),
-          delete: vi.fn().mockReturnValue({ eq: vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) }) }),
+          delete: vi
+            .fn()
+            .mockReturnValue({
+              eq: vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) }),
+            }),
         };
       }
       return makeSelectChain();
@@ -121,7 +148,12 @@ describe('usePermissions', () => {
         return {
           select: vi.fn().mockReturnValue({
             order: vi.fn().mockResolvedValue({ data: [], error: null }),
-            in: vi.fn().mockResolvedValue({ data: [{ permissions: { name: 'view_dashboard' } }], error: null }),
+            in: vi
+              .fn()
+              .mockResolvedValue({
+                data: [{ permissions: { name: 'view_dashboard' } }],
+                error: null,
+              }),
           }),
         };
       }
@@ -137,17 +169,25 @@ describe('usePermissions', () => {
   });
 
   it('hasAllPermissions works correctly', async () => {
-    mockUseAuth.mockReturnValue({ user: { id: 'user-1' }, permissions: ['view_dashboard', 'manage_users'] });
+    mockUseAuth.mockReturnValue({
+      user: { id: 'user-1' },
+      permissions: ['view_dashboard', 'manage_users'],
+    });
     mockFrom.mockImplementation((table: string) => {
       if (table === 'user_roles') return makeSelectChain([{ role: 'admin' }]);
       if (table === 'role_permissions') {
         return {
           select: vi.fn().mockReturnValue({
             order: vi.fn().mockResolvedValue({ data: [], error: null }),
-            in: vi.fn().mockResolvedValue({ data: [
-              { permissions: { name: 'view_dashboard' } },
-              { permissions: { name: 'manage_users' } },
-            ], error: null }),
+            in: vi
+              .fn()
+              .mockResolvedValue({
+                data: [
+                  { permissions: { name: 'view_dashboard' } },
+                  { permissions: { name: 'manage_users' } },
+                ],
+                error: null,
+              }),
           }),
         };
       }

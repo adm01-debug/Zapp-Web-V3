@@ -32,16 +32,22 @@ export function useAgentRecentSends() {
   const query = useQuery({
     queryKey: ['agent-recent-sends'],
     queryFn: async () => {
-      const { data: sends, error: sendsErr } = await safeClient.from<Omit<RecentSend, 'message_id'>>(
+      const { data: sends, error: sendsErr } = await safeClient.from(
         'evolution_send_idempotency',
-        (q) => q.select('idem_key, instance_name, http_status, external_message_id, created_at, path').order('created_at', { ascending: false }).limit(SENDS_LIMIT),
+        (q) =>
+          q
+            .select('idem_key, instance_name, http_status, external_message_id, created_at, path')
+            .order('created_at', { ascending: false })
+            .limit(SENDS_LIMIT)
       );
       if (sendsErr) throw sendsErr;
 
-      const parsed = (sends ?? [])
-        .map((s) => {
-          const match = s.idem_key.match(IDEM_PREFIX_RE);
-          return match ? { ...s, message_id: match[1] } : null;
+      const parsed = ((sends as unknown) ?? [])
+        .map((s: unknown) => {
+          const record = s as Record<string, unknown>;
+          const idemKey = record.idem_key as string;
+          const match = idemKey.match(IDEM_PREFIX_RE);
+          return match ? { ...(record as any), message_id: match[1] } : null;
         })
         .filter((x): x is NonNullable<typeof x> => x !== null);
 

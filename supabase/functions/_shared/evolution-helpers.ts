@@ -1,6 +1,7 @@
 // Shared helpers for Evolution API webhook and sync functions
 declare const Deno: { env: { get(key: string): string | undefined } };
 
+
 export interface WebhookPayload {
   event: string;
   instance: string;
@@ -54,11 +55,124 @@ export async function markEventProcessed(supabase: any, eventId: string, instanc
   return true;
 }
 
+// Rolls back a prior markEventProcessed() so the event can be re-delivered and
+// reprocessed later. Used ONLY on the rate-limit (429) path: idempotency is marked
+// BEFORE the rate-limit check (so genuine retries don't reconsume quota), but a 429
+// must NOT leave the event permanently deduped — otherwise the consumer's re-delivery
+// is short-circuited as "duplicate" and the message is silently lost. Fail-safe:
+// never throws; a failed rollback is logged but does not change the 429 response.
+// CRITICAL: failed rollback writes to DLQ to ensure audit trail (G1 fix 2026-07-12).
+// deno-lint-ignore no-explicit-any
+export async function unmarkEventProcessed(supabase: any, eventId: string, instance?: string, eventType?: string): Promise<boolean> {
+  try {
+    const { error } = await supabase.from('webhook_events_processed').delete().eq('event_id', eventId);
+    if (error) {
+      console.error(`[idempotency] rollback FAILED for ${eventId.slice(0, 48)}…: ${error.message ?? error.code}`);
+      // [FIX-08 2026-07-12 S11] Write audit entry using SECURITY DEFINER RPC to bypass RLS
+      // so operators can detect this event is permanently deduplicated
+      try {
+        const { error: auditError } = await supabase.rpc('fn_insert_idempotency_failure_audit', {
+          p_event_id: eventId,
+          p_instance: instance || null,
+          p_event_type: eventType || null,
+          p_error_code: error.code,
+          p_error_message: error.message,
+        });
+        if (auditError) {
+          console.error(`[idempotency] audit RPC failed: ${auditError.message ?? auditError.code}`);
+        }
+      } catch (e) {
+        console.error(`[idempotency] failed to write audit row for rollback failure: ${e}`);
+      }
+      return false;
+    }
+    return true;
+  } catch (e) {
+    console.error(`[idempotency] rollback exception for ${eventId.slice(0, 48)}…: ${e instanceof Error ? e.message : String(e)}`);
+    // [FIX-08 2026-07-12 S11] Write audit entry using SECURITY DEFINER RPC
+    try {
+      const { error: auditError } = await supabase.rpc('fn_insert_idempotency_failure_audit', {
+        p_event_id: eventId,
+        p_instance: instance || null,
+        p_event_type: eventType || null,
+        p_error_code: 'EXCEPTION',
+        p_error_message: e instanceof Error ? e.message : String(e),
+      });
+      if (auditError) {
+        console.error(`[idempotency] audit RPC failed: ${auditError.message ?? auditError.code}`);
+      }
+    } catch (ex) {
+      console.error(`[idempotency] failed to write audit row for exception: ${ex}`);
+    }
+    return false;
+  }
+}
+
+// Deep-redacts producer secrets from a webhook payload before it is persisted to
+// the DLQ / reprocess queue. Evolution ships `apikey` (and echoes `sender`) inside
+// every webhook body; writing the raw payload to a Postgres table leaks the
+// instance's admin key at rest (readable via admin dashboards, exports, backups).
+// Returns a defensive deep copy with the sensitive keys stripped; the original is
+// left untouched so live processing keeps whatever it needs.
+//
+// [FIX-12 2026-07-12 C-6] Expanded secret patterns to cover:
+// - API Keys: apikey, api_key, api-key, api_secret, key, secret
+// - Tokens: token, access_token, refresh_token, bearer, auth_token
+// - Credentials: password, username, credential
+// - Authorization: authorization, auth, x-auth-token, x-api-key
+// - Personal Info: phone, email, ssn, cpf
+// - Cloud/OAuth: aws_access_key, oauth_token, consumer_key
+// - Pattern matching: *_secret, *_token, *_key, *_password, bearer_*, basic_*
+const __SECRET_PATTERNS = [
+  // API Keys
+  'apikey', 'api_key', 'api-key', 'api_secret', 'key', 'secret',
+  // Tokens
+  'token', 'access_token', 'refresh_token', 'bearer', 'auth_token',
+  // Authorization
+  'authorization', 'auth', 'x-auth-token', 'x-api-key', 'x-token',
+  // Credentials
+  'password', 'passwd', 'pwd', 'credential', 'credentials',
+  'username', 'user', 'login', 'sender',
+  // Personal Info
+  'phone', 'email', 'ssn', 'cpf', 'cnpj', 'credit_card', 'cc_number',
+  // OAuth
+  'oauth_token', 'oauth_secret', 'consumer_key', 'consumer_secret',
+  // AWS
+  'aws_access_key', 'aws_secret_key', 'access_key', 'secret_key',
+  // Database
+  'db_password', 'database_password', 'db_url', 'connection_string',
+  // Webhook
+  'webhook_secret', 'webhook_key', 'signature', 'hmac',
+];
+
+function isSecretKey(key: string): boolean {
+  const lowerKey = key.toLowerCase();
+  // Direct match
+  if (__SECRET_PATTERNS.includes(lowerKey)) return true;
+  // Pattern match: contains secret, token, key, password
+  if (lowerKey.includes('_secret') || lowerKey.includes('_token') ||
+      lowerKey.includes('_key') || lowerKey.includes('_password')) return true;
+  if (lowerKey.startsWith('bearer_') || lowerKey.startsWith('basic_')) return true;
+  return false;
+}
+
+export function scrubWebhookSecrets(value: unknown, depth = 0): unknown {
+  if (depth > 12 || value === null || typeof value !== 'object') return value;
+  if (Array.isArray(value)) return value.map((v) => scrubWebhookSecrets(v, depth + 1));
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+    if (isSecretKey(k)) { out[k] = '[REDACTED]'; continue; }
+    out[k] = scrubWebhookSecrets(v, depth + 1);
+  }
+  return out;
+}
+
 export interface WebhookAuditRow {
   request_id: string;
   instance?: string | null;
   event_type?: string | null;
   status: 'received' | 'processed' | 'duplicate' | 'error' | 'rejected';
+  status_code?: number | null;
   duration_ms?: number | null;
   error_message?: string | null;
 }
@@ -84,7 +198,7 @@ export function normalizePhone(rawJid?: string): string | null {
   if (!rawJid) return null;
   const sanitized = rawJid
     .trim()
-    .replace(/:\d+(?=@)/g, '')
+    .replace(/(:\d+)+(?=@)/g, '')
     .replace('@s.whatsapp.net', '')
     .replace('@g.us', '')
     .replace('@broadcast', '')
@@ -187,14 +301,25 @@ export function shouldUpdateStatus(currentStatus: string | null, newStatus: stri
 
 // deno-lint-ignore no-explicit-any
 export async function getConnectionByInstance(supabase: any, instance: string): Promise<{ id: string } | null> {
-  const { data } = await supabase
+  // [PATCH 2026-07-05 conn-resolver] Evolution envia payload.instance = NOME da instancia,
+  // mas fluxos de criacao gravam UUID em whatsapp_connections.instance_id. Resolve por
+  // instance_name (estavel) com fallback para instance_id (compat) e LOGA o miss -
+  // o return silencioso aqui escondeu 2 semanas de mensagens nao espelhadas (21/06-05/07).
+  const { data: byName } = await supabase
     .from('whatsapp_connections')
     .select('id')
-    .or(instanceOrFilter(instance))
+    .eq('instance_name', instance)
     .maybeSingle();
-  return data;
+  if (byName) return byName;
+  const { data: byId } = await supabase
+    .from('whatsapp_connections')
+    .select('id')
+    .eq('instance_id', instance)
+    .maybeSingle();
+  if (byId) return byId;
+  console.error(`[conn-resolver] whatsapp_connections MISS instance='${instance}' - message will NOT be mirrored`);
+  return null;
 }
-
 // deno-lint-ignore no-explicit-any
 export async function getContactByPhone(
   supabase: any,
@@ -291,39 +416,6 @@ export async function persistProfilePicture(supabase: any, phone: string, profil
   } catch (err) { console.error('Avatar persist error:', err); return null; }
 }
 
-export function instanceOrFilter(instance: string): string {
-  // Strip chars that are significant in PostgREST filter syntax to prevent injection.
-  // Allowed: alphanumeric, hyphen, underscore, dot (Evolution instance names use these).
-  const escaped = instance.replace(/[^a-zA-Z0-9._-]/g, '');
-  return `instance_id.eq.${escaped},instance_name.eq.${escaped}`;
-}
-
-export interface DeadLetterInput {
-  event_type?: string | null;
-  instance?: string | null;
-  payload?: unknown;
-  error_message?: string | null;
-  error_stack?: string | null;
-  request_id?: string | null;
-}
-
-// deno-lint-ignore no-explicit-any
-export async function routeToDeadLetter(supabase: any, input: DeadLetterInput): Promise<void> {
-  try {
-    await supabase.from('webhook_dead_letter').insert({
-      event_type: input.event_type ?? null,
-      instance: input.instance ?? null,
-      payload: input.payload ?? null,
-      error_message: input.error_message ?? null,
-      error_stack: input.error_stack ?? null,
-      request_id: input.request_id ?? null,
-      created_at: new Date().toISOString(),
-    });
-  } catch (e) {
-    console.warn('[dead-letter] insert failed:', (e as Error).message ?? String(e));
-  }
-}
-
 // deno-lint-ignore no-explicit-any
 export async function handleReactionEvent(supabase: any, instance: string, reactionMessage: Record<string, unknown>, actorFromMe: boolean) {
   const emoji = (reactionMessage.text as string) || '';
@@ -331,9 +423,11 @@ export async function handleReactionEvent(supabase: any, instance: string, react
   if (!reactKey?.id) return;
 
   const targetExternalId = reactKey.id as string;
-  const { data: targetMessage } = await supabase.schema('evo')
-    .from('evolution_messages').select('id, contact_id').eq('message_id', targetExternalId)
-    .eq('instance_name', instance).maybeSingle();
+  const connection = await getConnectionByInstance(supabase, instance);
+  if (!connection) { console.log(`Reaction: no connection for instance ${instance}`); return; }
+  const { data: targetMessage } = await supabase
+    .from('messages').select('id, contact_id').eq('external_id', targetExternalId)
+    .eq('whatsapp_connection_id', connection.id).maybeSingle();
   if (!targetMessage) { console.log(`Reaction target not found: ${targetExternalId}`); return; }
 
   if (emoji === '') {
@@ -353,5 +447,55 @@ export async function handleReactionEvent(supabase: any, instance: string, react
       await supabase.from('messages').update({ updated_at: new Date().toISOString() }).eq('id', targetMessage.id);
       console.log(`Reaction synced: ${emoji} on message ${targetExternalId}`);
     }
+  }
+}
+
+// ─── [RESTORE 2026-07-10] Exports perdidos em merge — dependidos por
+// evolution-webhook/index.ts e evolution-webhook-handlers.ts ─────────────────
+
+/**
+ * Filtro PostgREST nome-OU-uuid para whatsapp_connections.
+ * (Mesma implementação validada em connection-health-check/index.ts.)
+ */
+export function instanceOrFilter(instance: string): string {
+  const safe = String(instance).replace(/[",()\\]/g, '');
+  return `instance_name.eq."${safe}",instance_id.eq."${safe}"`;
+}
+
+export interface DeadLetterInput {
+  event_type: string;
+  instance?: string | null;
+  payload?: unknown;
+  error_message: string;
+  error_stack?: string | null;
+  request_id?: string | null;
+}
+
+/**
+ * Roteia um evento com falha de handler para a DLQ `evolution_webhook_dlq`
+ * (via camada public.*). Colunas mapeadas 1:1 ao schema evo.evolution_webhook_dlq
+ * (event_type/instance_name/error_message NOT NULL — defaults defensivos).
+ * Fail-safe: nunca lança — perda da DLQ não pode derrubar a resposta 200 ao
+ * Evolution (evita retry-storm). request_id vai apenas para o log.
+ */
+// deno-lint-ignore no-explicit-any
+export async function routeToDeadLetter(supabase: any, input: DeadLetterInput): Promise<void> {
+  try {
+    const { error } = await supabase.from('evolution_webhook_dlq').insert({
+      event_type: input.event_type || 'unknown',
+      instance_name: input.instance || 'unknown',
+      // [A-2 2026-07-12] scrub producer secrets (apikey/sender/token) before persisting.
+      payload: input.payload == null ? null : scrubWebhookSecrets(input.payload),
+      error_message: (input.error_message || 'unknown_error').slice(0, 2000),
+      error_stack: input.error_stack ? String(input.error_stack).slice(0, 8000) : null,
+      status: 'pending',
+      queue_name: 'edge:evolution-webhook',
+      consumer_version: 'edge-webhook:v1',
+    });
+    if (error) {
+      console.error(`[dlq] insert failed (request_id=${input.request_id ?? '-'}): ${error.message}`);
+    }
+  } catch (e) {
+    console.error(`[dlq] insert exception (request_id=${input.request_id ?? '-'}): ${e instanceof Error ? e.message : String(e)}`);
   }
 }

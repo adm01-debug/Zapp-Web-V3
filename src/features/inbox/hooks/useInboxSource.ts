@@ -1,8 +1,8 @@
 import { useMemo } from 'react';
-import { useRealtimeMessages } from '@/features/inbox/hooks/useRealtimeMessages';
+import { useRealtimeMessages } from './useRealtimeMessages';
 import { useExternalConversations, useExternalMessages } from '@/hooks/useExternalEvolution';
-import { useMessages } from '@/features/inbox/hooks/useMessages';
-import type { LoadOlderCallback, CancelLoadOlderCallback } from '@/features/inbox';
+import { useMessages } from './useMessages';
+import type { LoadOlderCallback, CancelLoadOlderCallback } from '../components/chat/loadOlderTypes';
 
 export function useInboxSource(useExternalDb: boolean, selectedContactId: string | null) {
   // Local DB source
@@ -14,14 +14,14 @@ export function useInboxSource(useExternalDb: boolean, selectedContactId: string
   const conversations = useExternalDb ? externalData.conversations : localRealtime.conversations;
   const loading = useExternalDb ? externalData.loading : localRealtime.loading;
   const error = useExternalDb ? externalData.error : localRealtime.error;
-  const refetch = useExternalDb ? (() => { externalData.refetch(); }) : localRealtime.refetch;
+  const refetch = useExternalDb
+    ? () => {
+        externalData.refetch();
+      }
+    : localRealtime.refetch;
 
   // Search and Filter controls (always from localRealtime for UI consistency)
-  const { 
-    search, setSearch, 
-    statusFilter, setStatusFilter, 
-    sortBy, setSortBy 
-  } = localRealtime;
+  const { search, setSearch, statusFilter, setStatusFilter, sortBy, setSortBy } = localRealtime;
 
   // Messages for selected contact
   const externalMsgs = useExternalMessages(useExternalDb ? selectedContactId : null);
@@ -36,13 +36,23 @@ export function useInboxSource(useExternalDb: boolean, selectedContactId: string
 
   // Pagination for older messages
   const loadOlderMessages = useMemo<LoadOlderCallback | undefined>(
-    () => (useExternalDb ? () => { void externalMsgs.loadOlder(); } : undefined),
-    [useExternalDb, externalMsgs],
+    () =>
+      useExternalDb
+        ? () => {
+            void externalMsgs.loadOlder();
+          }
+        : undefined,
+    [useExternalDb, externalMsgs]
   );
-  
+
   const cancelLoadOlderMessages = useMemo<CancelLoadOlderCallback | undefined>(
-    () => (useExternalDb ? () => { externalMsgs.cancelLoadOlder(); } : undefined),
-    [useExternalDb, externalMsgs],
+    () =>
+      useExternalDb
+        ? () => {
+            externalMsgs.cancelLoadOlder();
+          }
+        : undefined,
+    [useExternalDb, externalMsgs]
   );
 
   return {
@@ -65,6 +75,6 @@ export function useInboxSource(useExternalDb: boolean, selectedContactId: string
     hasMoreMessages: useExternalDb ? externalMsgs.hasMore : false,
     addExternalMessage: useExternalDb ? externalMsgs.addMessage : undefined,
     // Original realtime hooks for notifications etc
-    localRealtime
+    localRealtime,
   };
 }

@@ -12,15 +12,8 @@ import { toast } from 'sonner';
 
 export function ThemeCustomizer() {
   const { theme, setTheme } = useTheme();
-  const {
-    activePreset,
-    borderRadius,
-    applyPreset,
-    handleBorderRadiusChange,
-    resetTheme,
-    exportTheme,
-    importTheme,
-  } = useThemePreset();
+  const { activePreset, borderRadius, applyPreset, handleBorderRadiusChange, resetTheme } =
+    useThemePreset();
 
   return (
     <div className="space-y-6">
@@ -28,32 +21,37 @@ export function ThemeCustomizer() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Button
+            aria-label="Voltar"
             variant="ghost"
             size="icon"
             className="h-8 w-8 rounded-lg"
             onClick={() => window.history.back()}
           >
-            <ChevronLeft className="w-4 h-4" />
+            <ChevronLeft className="h-4 w-4" />
           </Button>
           <div>
-          <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
-            <Palette className="w-5 h-5 text-primary" />
-            Skins
-          </h3>
-          <p className="text-sm text-muted-foreground">Escolha sua skin favorita</p>
+            <h3 className="flex items-center gap-2 text-lg font-semibold text-foreground">
+              <Palette className="h-5 w-5 text-primary" />
+              Skins
+            </h3>
+            <p className="text-sm text-muted-foreground">Escolha sua skin favorita</p>
           </div>
         </div>
         <div className="flex items-center gap-3">
           <ThemeDebugTooltip />
           <div className="flex gap-2">
-            <Button variant="default" size="sm" onClick={() => {
-              const preset = PRESETS.find(p => p.id === activePreset);
-              toast.success(`Tema "${preset?.name || 'Padrão'}" salvo com sucesso!`);
-            }}>
-              <Save className="w-4 h-4 mr-1" /> Salvar
+            <Button
+              variant="default"
+              size="sm"
+              onClick={() => {
+                const preset = PRESETS.find((p) => p.id === activePreset);
+                toast.success(`Tema "${preset?.name || 'Padrão'}" salvo com sucesso!`);
+              }}
+            >
+              <Save className="mr-1 h-4 w-4" /> Salvar
             </Button>
             <Button variant="outline" size="sm" onClick={resetTheme}>
-              <RotateCcw className="w-4 h-4 mr-1" /> Resetar tema
+              <RotateCcw className="mr-1 h-4 w-4" /> Resetar tema
             </Button>
           </div>
         </div>
@@ -74,7 +72,7 @@ export function ThemeCustomizer() {
                     size="sm"
                     onClick={() => setTheme('light')}
                   >
-                    <Sun className="w-4 h-4 mr-1" /> Claro
+                    <Sun className="mr-1 h-4 w-4" /> Claro
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>Força o tema claro independente do sistema</TooltipContent>
@@ -86,7 +84,7 @@ export function ThemeCustomizer() {
                     size="sm"
                     onClick={() => setTheme('dark')}
                   >
-                    <Moon className="w-4 h-4 mr-1" /> Escuro
+                    <Moon className="mr-1 h-4 w-4" /> Escuro
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>Força o tema escuro independente do sistema</TooltipContent>
@@ -98,10 +96,12 @@ export function ThemeCustomizer() {
                     size="sm"
                     onClick={() => setTheme('system')}
                   >
-                    <Monitor className="w-4 h-4 mr-1" /> Sistema
+                    <Monitor className="mr-1 h-4 w-4" /> Sistema
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent>Segue automaticamente a preferência do seu dispositivo</TooltipContent>
+                <TooltipContent>
+                  Segue automaticamente a preferência do seu dispositivo
+                </TooltipContent>
               </Tooltip>
             </div>
           </TooltipProvider>
@@ -110,10 +110,10 @@ export function ThemeCustomizer() {
 
       {/* Presets Grid */}
       <div>
-        <h4 className="text-sm font-medium text-muted-foreground mb-3">
+        <h4 className="mb-3 text-sm font-medium text-muted-foreground">
           {PRESETS.length} skins disponíveis
         </h4>
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
           {PRESETS.map((preset) => (
             <PresetCard
               key={preset.id}
@@ -126,10 +126,7 @@ export function ThemeCustomizer() {
       </div>
 
       {/* Border Radius */}
-      <BorderRadiusControl
-        borderRadius={borderRadius}
-        onChange={handleBorderRadiusChange}
-      />
+      <BorderRadiusControl borderRadius={borderRadius} onChange={handleBorderRadiusChange} />
     </div>
   );
 }

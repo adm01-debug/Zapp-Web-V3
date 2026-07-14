@@ -1,15 +1,10 @@
 import { useState, useEffect, useCallback, useRef, useMemo, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { useQueryClient } from '@tanstack/react-query';
-import { toast } from 'sonner';
-import { authService, Profile } from '@/features/auth/services/authService';
-import { getLogger } from '@/lib/logger';
-import { AuthContext } from '@/features/auth/context/AuthContext';
-
-const log = getLogger('AuthProvider');
+import { authService, Profile } from '../services/authService';
+import { log } from '@/lib/logger';
+import { AuthContext } from '../context/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-
-
 
 /**
  * Componente central que fornece o estado de autenticação para toda a aplicação.
@@ -27,7 +22,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const fetchingPermissionsRef = useRef(false);
   const queryClient = useQueryClient();
 
-
   const fetchProfile = useCallback(async (userId: string) => {
     if (fetchingProfileRef.current) return;
     fetchingProfileRef.current = true;
@@ -38,22 +32,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     } catch (err: unknown) {
       log.warn('[Auth] Failed to fetch profile for user:', userId, err);
-      toast.warning('Não foi possível carregar seu perfil. Por favor, recarregue a página.');
     } finally {
       fetchingProfileRef.current = false;
     }
   }, []);
 
-  /**
-   * Fetch roles + permissions in a single coordinated pass, avoiding the
-   * previous duplicate query against `user_roles` (called by both fetchRoles
-   * and fetchPermissions on every login / token refresh).
-   */
   const fetchRolesAndPermissions = useCallback(async (userId: string) => {
     if (fetchingRolesRef.current) return;
     fetchingRolesRef.current = true;
     fetchingPermissionsRef.current = true;
     try {
+      if (!supabase) {
+        log.warn('[Auth] Supabase client not initialized for user:', userId);
+        setRoles([]);
+        setPermissions([]);
+        return;
+      }
       const { data: userRoles, error } = await supabase
         .from('user_roles')
         .select('role')
@@ -76,47 +70,47 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const { data: perms } = await supabase
         .from('role_permissions')
         .select('permissions(name)')
-        .in('role', roleNames as never);
+        .in(
+          'role',
+          roleNames as Array<'admin' | 'agent' | 'dev' | 'manager' | 'special_agent' | 'supervisor'>
+        );
 
       if (perms) {
-        const permNames = perms
-          .map((p) => (p.permissions as unknown as { name: string } | null)?.name)
-          .filter(Boolean) as string[];
+        const permNames = (perms as Array<{ permissions: { name: string } | null }>)
+          .map((p) => p.permissions?.name)
+          .filter((n): n is string => typeof n === 'string');
         setPermissions([...new Set(permNames)]);
       }
     } catch (err: unknown) {
       log.warn('[Auth] Failed to fetch roles/permissions for user:', userId, err);
-      toast.warning('Não foi possível carregar suas permissões. Alguns recursos podem estar indisponíveis.');
     } finally {
       fetchingRolesRef.current = false;
       fetchingPermissionsRef.current = false;
     }
   }, []);
 
-  // Backward-compatible helpers used by refreshRoles / refreshPermissions consumers.
   const fetchRoles = useCallback(
     (userId: string) => fetchRolesAndPermissions(userId),
-    [fetchRolesAndPermissions],
+    [fetchRolesAndPermissions]
   );
   const fetchPermissions = useCallback(
     (userId: string) => fetchRolesAndPermissions(userId),
-    [fetchRolesAndPermissions],
+    [fetchRolesAndPermissions]
   );
 
-  const refreshAll = useCallback(async (userId: string) => {
-    setLoading(true);
-    await Promise.all([
-      fetchProfile(userId),
-      fetchRolesAndPermissions(userId),
-    ]);
-    setLoading(false);
-  }, [fetchProfile, fetchRolesAndPermissions]);
-
+  const refreshAll = useCallback(
+    async (userId: string) => {
+      setLoading(true);
+      await Promise.all([fetchProfile(userId), fetchRolesAndPermissions(userId)]);
+      setLoading(false);
+    },
+    [fetchProfile, fetchRolesAndPermissions]
+  );
 
   useEffect(() => {
     const subscription = authService.onAuthStateChange((event, session) => {
       log.info(`[Auth] Event: ${event}`);
-      
+
       if (event === 'TOKEN_REFRESHED' && !session) {
         try {
           Object.keys(localStorage)
@@ -140,34 +134,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     });
 
-    authService.getUser().then(({ data: { user } }) => {
-      setUser(user);
-      if (user) {
-        refreshAll(user.id);
-      } else {
+    authService
+      .getUser()
+      .then(({ data: { user } }) => {
+        setUser(user);
+        if (user) {
+          refreshAll(user.id);
+        } else {
+          setLoading(false);
+        }
+      })
+      .catch((err) => {
+        log.warn('[Auth] getUser failed, clearing local session', err);
+        try {
+          Object.keys(localStorage)
+            .filter((k) => k.startsWith('sb-') && k.includes('-auth-token'))
+            .forEach((k) => localStorage.removeItem(k));
+        } catch {
+          /* noop */
+        }
         setLoading(false);
-      }
-    }).catch((err) => {
-      log.warn('[Auth] getUser failed, clearing local session', err);
-      toast.error('Erro ao recuperar dados da sessão. Por favor, faça login novamente.');
-      try {
-        Object.keys(localStorage)
-          .filter((k) => k.startsWith('sb-') && k.includes('-auth-token'))
-          .forEach((k) => localStorage.removeItem(k));
-      } catch { /* noop */ }
-      setLoading(false);
-    });
+      });
 
-    authService.getSession().then(({ data: { session } }) => {
-      setSession(session);
-    }).catch(() => {
-      // getSession error is already handled by getUser catch
-    });
+    authService
+      .getSession()
+      .then(({ data: { session } }) => {
+        setSession(session);
+      })
+      .catch(() => {
+        // getSession error is already handled by getUser catch
+      });
 
     return () => subscription.unsubscribe();
   }, [refreshAll]);
 
-  // Real-time profile updates (e.g., department changes)
   useEffect(() => {
     if (!user) return;
 
@@ -186,7 +186,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (payload.eventType === 'DELETE') {
             setProfile(null);
           } else {
-            // Refetch to ensure we have full data and respect RLS
             await fetchProfile(user.id);
           }
         }
@@ -212,11 +211,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .subscribe();
 
     return () => {
-      supabase.removeChannel(profileChannel);
-      supabase.removeChannel(rolesChannel);
+      profileChannel.unsubscribe();
+      rolesChannel.unsubscribe();
     };
   }, [user, profile?.id, fetchRoles, fetchPermissions]);
-
 
   const refreshProfile = useCallback(async () => {
     if (user) await fetchProfile(user.id);
@@ -241,11 +239,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = async () => {
     try {
       await authService.signOut();
-      // Explicitly clear stale Supabase tokens from localStorage to prevent ghost sessions
       if (typeof window !== 'undefined') {
         Object.keys(localStorage)
-          .filter(k => k.startsWith('sb-') && k.includes('-auth-token'))
-          .forEach(k => localStorage.removeItem(k));
+          .filter((k) => k.startsWith('sb-') && k.includes('-auth-token'))
+          .forEach((k) => localStorage.removeItem(k));
       }
     } catch (e) {
       log.warn('[Auth] Error during signOut:', e);
@@ -272,13 +269,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       refreshRoles,
       refreshPermissions,
     }),
-    [user, session, profile, roles, permissions, loading, refreshProfile, refreshRoles, refreshPermissions]
+    [
+      user,
+      session,
+      profile,
+      roles,
+      permissions,
+      loading,
+      refreshProfile,
+      refreshRoles,
+      refreshPermissions,
+    ]
   );
 
-  return (
-    <AuthContext.Provider value={contextValue}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>;
 }
-

@@ -571,13 +571,17 @@ export type Database = {
       automations: {
         Row: {
           actions: Json
+          channel_id: string | null
+          cooldown_seconds: number
           created_at: string
           created_by: string | null
+          department_id: string | null
           description: string | null
           id: string
           is_active: boolean
           last_triggered_at: string | null
           name: string
+          priority: number
           trigger_config: Json
           trigger_count: number
           trigger_type: string
@@ -585,13 +589,17 @@ export type Database = {
         }
         Insert: {
           actions?: Json
+          channel_id?: string | null
+          cooldown_seconds?: number
           created_at?: string
           created_by?: string | null
+          department_id?: string | null
           description?: string | null
           id?: string
           is_active?: boolean
           last_triggered_at?: string | null
           name: string
+          priority?: number
           trigger_config?: Json
           trigger_count?: number
           trigger_type?: string
@@ -599,13 +607,17 @@ export type Database = {
         }
         Update: {
           actions?: Json
+          channel_id?: string | null
+          cooldown_seconds?: number
           created_at?: string
           created_by?: string | null
+          department_id?: string | null
           description?: string | null
           id?: string
           is_active?: boolean
           last_triggered_at?: string | null
           name?: string
+          priority?: number
           trigger_config?: Json
           trigger_count?: number
           trigger_type?: string
@@ -624,6 +636,20 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "automations_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "automations_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments_safe"
             referencedColumns: ["id"]
           },
         ]
@@ -2902,6 +2928,7 @@ export type Database = {
           id: string
           is_active: boolean | null
           name: string
+          slug: string
           updated_at: string | null
           whatsapp_api_key: string | null
           whatsapp_instance_id: string | null
@@ -2913,6 +2940,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           name: string
+          slug: string
           updated_at?: string | null
           whatsapp_api_key?: string | null
           whatsapp_instance_id?: string | null
@@ -2924,6 +2952,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           name?: string
+          slug?: string
           updated_at?: string | null
           whatsapp_api_key?: string | null
           whatsapp_instance_id?: string | null
@@ -5233,6 +5262,7 @@ export type Database = {
           max_chats: number | null
           name: string
           nickname: string | null
+          onboarding_status: string
           online_status: string | null
           permissions: Json | null
           phone: string | null
@@ -5259,6 +5289,7 @@ export type Database = {
           max_chats?: number | null
           name: string
           nickname?: string | null
+          onboarding_status?: string
           online_status?: string | null
           permissions?: Json | null
           phone?: string | null
@@ -5285,6 +5316,7 @@ export type Database = {
           max_chats?: number | null
           name?: string
           nickname?: string | null
+          onboarding_status?: string
           online_status?: string | null
           permissions?: Json | null
           phone?: string | null
@@ -6402,6 +6434,51 @@ export type Database = {
           },
         ]
       }
+      sicoob_reply_outbox: {
+        Row: {
+          agent_id: string | null
+          attempts: number
+          contact_id: string
+          content: string
+          created_at: string
+          id: string
+          last_error: string | null
+          message_id: string
+          next_attempt_at: string
+          processed_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          agent_id?: string | null
+          attempts?: number
+          contact_id: string
+          content: string
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          message_id: string
+          next_attempt_at?: string
+          processed_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          agent_id?: string | null
+          attempts?: number
+          contact_id?: string
+          content?: string
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          message_id?: string
+          next_attempt_at?: string
+          processed_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       sla_configurations: {
         Row: {
           created_at: string
@@ -6892,7 +6969,9 @@ export type Database = {
           avatar_url: string | null
           created_at: string
           created_by: string | null
+          department_id: string | null
           id: string
+          metadata: Json
           name: string | null
           type: string
           updated_at: string
@@ -6901,7 +6980,9 @@ export type Database = {
           avatar_url?: string | null
           created_at?: string
           created_by?: string | null
+          department_id?: string | null
           id?: string
+          metadata?: Json
           name?: string | null
           type?: string
           updated_at?: string
@@ -6910,7 +6991,9 @@ export type Database = {
           avatar_url?: string | null
           created_at?: string
           created_by?: string | null
+          department_id?: string | null
           id?: string
+          metadata?: Json
           name?: string | null
           type?: string
           updated_at?: string
@@ -6928,6 +7011,20 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_conversations_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_conversations_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments_safe"
             referencedColumns: ["id"]
           },
         ]
@@ -6990,6 +7087,7 @@ export type Database = {
           message_type: string
           reply_to_id: string | null
           sender_id: string
+          status: string
           updated_at: string
         }
         Insert: {
@@ -7003,6 +7101,7 @@ export type Database = {
           message_type?: string
           reply_to_id?: string | null
           sender_id: string
+          status?: string
           updated_at?: string
         }
         Update: {
@@ -7016,6 +7115,7 @@ export type Database = {
           message_type?: string
           reply_to_id?: string | null
           sender_id?: string
+          status?: string
           updated_at?: string
         }
         Relationships: [
@@ -7459,7 +7559,7 @@ export type Database = {
       }
       warroom_alerts: {
         Row: {
-          alert_type: string
+          alert_type: Database["public"]["Enums"]["warroom_alert_type"]
           created_at: string | null
           dismissed_by: string | null
           id: string
@@ -7469,7 +7569,7 @@ export type Database = {
           title: string
         }
         Insert: {
-          alert_type?: string
+          alert_type?: Database["public"]["Enums"]["warroom_alert_type"]
           created_at?: string | null
           dismissed_by?: string | null
           id?: string
@@ -7479,7 +7579,7 @@ export type Database = {
           title: string
         }
         Update: {
-          alert_type?: string
+          alert_type?: Database["public"]["Enums"]["warroom_alert_type"]
           created_at?: string | null
           dismissed_by?: string | null
           id?: string
@@ -8587,21 +8687,14 @@ export type Database = {
       }
       decrypt_gmail_token: { Args: { p_encrypted: string }; Returns: string }
       encrypt_gmail_token: { Args: { p_token: string }; Returns: string }
-      fn_accept_transfer:
-        | {
-            Args: { p_agent_id: string; p_transfer_id: string }
-            Returns: boolean
-          }
-        | {
-            Args: { p_operator: string; p_transfer_id: string }
-            Returns: boolean
-          }
-      fn_complete_transfer:
-        | { Args: { p_transfer_id: string }; Returns: boolean }
-        | {
-            Args: { p_notes: string; p_transfer_id: string; p_type?: string }
-            Returns: boolean
-          }
+      fn_accept_transfer: {
+        Args: { p_agent_id: string; p_transfer_id: string }
+        Returns: boolean
+      }
+      fn_complete_transfer: {
+        Args: { p_notes: string; p_transfer_id: string; p_type?: string }
+        Returns: boolean
+      }
       fn_create_transfer:
         | {
             Args: {
@@ -8663,24 +8756,10 @@ export type Database = {
         Args: { p_meme_id: string }
         Returns: boolean
       }
-      fn_transfer_comment:
-        | {
-            Args: {
-              p_agent_id: string
-              p_content: string
-              p_transfer_id: string
-            }
-            Returns: string
-          }
-        | {
-            Args: {
-              p_author: string
-              p_content: string
-              p_instance: string
-              p_transfer_id: string
-            }
-            Returns: string
-          }
+      fn_transfer_comment: {
+        Args: { p_agent_id: string; p_content: string; p_transfer_id: string }
+        Returns: string
+      }
       generate_transfer_ticket: { Args: never; Returns: string }
       get_channel_credentials: {
         Args: { _connection_id: string }
@@ -8880,14 +8959,6 @@ export type Database = {
           }
         | {
             Args: {
-              p_action: string
-              p_department_id: string
-              p_profile_id: string
-            }
-            Returns: boolean
-          }
-        | {
-            Args: {
               _admin_user_id?: string
               p_action: string
               p_department_id: string
@@ -8918,9 +8989,10 @@ export type Database = {
           locked_until: string
         }[]
       }
-      rpc_dlq_abandon:
-        | { Args: { p_item_id: string }; Returns: boolean }
-        | { Args: { p_id?: string; p_item_id?: string }; Returns: boolean }
+      rpc_dlq_abandon: {
+        Args: { p_id?: string; p_item_id?: string }
+        Returns: boolean
+      }
       rpc_dlq_bulk_abandon: { Args: { p_ids: string[] }; Returns: boolean }
       rpc_dlq_list_audit:
         | {
@@ -8967,9 +9039,10 @@ export type Database = {
             Args: { p_action: string; p_item_id: string; p_reason?: string }
             Returns: boolean
           }
-      rpc_dlq_retry_now:
-        | { Args: { p_item_id: string }; Returns: boolean }
-        | { Args: { p_id?: string; p_item_id?: string }; Returns: boolean }
+      rpc_dlq_retry_now: {
+        Args: { p_id?: string; p_item_id?: string }
+        Returns: boolean
+      }
       rpc_instance_auth_event_summary: {
         Args: { p_instance: string }
         Returns: {
@@ -9078,7 +9151,6 @@ export type Database = {
           transfer_type: string
         }[]
       }
-      rpc_migrate_whatsapp_integration: { Args: never; Returns: Json }
       rpc_upsert_contact: {
         Args: { p_instance: string; p_push_name?: string; p_remote_jid: string }
         Returns: string
@@ -9171,6 +9243,7 @@ export type Database = {
         | "google_calendar"
         | "google_drive"
         | "dropbox"
+      warroom_alert_type: "info" | "warning" | "critical" | "sla_breach"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -9328,6 +9401,7 @@ export const Constants = {
         "google_drive",
         "dropbox",
       ],
+      warroom_alert_type: ["info", "warning", "critical", "sla_breach"],
     },
   },
 } as const

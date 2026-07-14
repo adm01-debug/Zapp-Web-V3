@@ -22,7 +22,7 @@ import type { Mock } from 'vitest';
  *   expect(res.signature_valid).toBe(true);
  */
 export function asTyped<T>(value: unknown): T {
-  return value as T;
+  return value as T; // ignore-audit: test utility — intentional escape hatch for bridging unknown to T in test fixtures
 }
 
 /**
@@ -33,7 +33,7 @@ export function asTyped<T>(value: unknown): T {
  *   const data = fromUnknown<InvokeResponse>(rawInvokeResult);
  */
 export function fromUnknown<T>(value: unknown): T {
-  return value as T;
+  return value as T; // ignore-audit: test utility — intentional escape hatch for bridging unknown to T in test fixtures
 }
 
 /**
@@ -44,7 +44,7 @@ export function fromUnknown<T>(value: unknown): T {
  *   const msg = mockOf<Message>({ id: '1', body: 'hi' });
  */
 export function mockOf<T>(partial: Partial<T> = {}): T {
-  return partial as T;
+  return partial as T; // ignore-audit: test utility — Partial<T> narrowed to T; caller controls which fields are required for the test
 }
 
 /**

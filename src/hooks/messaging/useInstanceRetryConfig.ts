@@ -35,7 +35,9 @@ export interface UseInstanceRetryConfigResult {
  * Lê + grava overrides de retry para uma instância (ou global se '_global'/undefined).
  * Persistência em `global_settings` via upsert/delete por chave.
  */
-export function useInstanceRetryConfig(instanceName: string = GLOBAL): UseInstanceRetryConfigResult {
+export function useInstanceRetryConfig(
+  instanceName: string = GLOBAL
+): UseInstanceRetryConfigResult {
   const [config, setConfig] = useState<RetryConfig>(DEFAULT_RETRY_CONFIG);
   const [globalConfig, setGlobalConfig] = useState<RetryConfig>(DEFAULT_RETRY_CONFIG);
   const [hasInstanceOverride, setHasInstanceOverride] = useState(false);
@@ -55,10 +57,7 @@ export function useInstanceRetryConfig(instanceName: string = GLOBAL): UseInstan
 
       if (instanceName !== GLOBAL) {
         const keys = RETRY_CONFIG_FIELDS.map((f) => settingKeyFor(f, instanceName));
-        const { data, error } = await supabase
-          .from('global_settings')
-          .select('key')
-          .in('key', keys);
+        const { data } = await supabase.from('global_settings').select('key').in('key', keys);
         setHasInstanceOverride((data?.length ?? 0) > 0);
       } else {
         setHasInstanceOverride(false);
@@ -70,55 +69,61 @@ export function useInstanceRetryConfig(instanceName: string = GLOBAL): UseInstan
     }
   }, [instanceName]);
 
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => {
+    void load();
+  }, [load]);
 
-  const save = useCallback(async (partial: Partial<RetryConfig>) => {
-    setIsSaving(true);
-    try {
-      // Clampa cada campo informado e monta o estado resultante (merge com config atual)
-      // pra validar combinações cruzadas ANTES de tocar no banco.
-      const clampedPartial: Partial<RetryConfig> = {};
-      for (const [field, value] of Object.entries(partial)) {
-        if (value == null || !Number.isFinite(value as number)) continue;
-        clampedPartial[field as keyof RetryConfig] = clampToRange(
-          field as keyof RetryConfig,
-          value as number,
-        );
-      }
-      const projected: RetryConfig = { ...config, ...clampedPartial };
-      const errors = validateRetryConfig(projected);
-      if (hasRetryConfigErrors(errors)) {
-        const err = new RetryConfigValidationError(errors);
-        toast.error(err.message);
+  const save = useCallback(
+    async (partial: Partial<RetryConfig>) => {
+      setIsSaving(true);
+      try {
+        // Clampa cada campo informado e monta o estado resultante (merge com config atual)
+        // pra validar combinações cruzadas ANTES de tocar no banco.
+        const clampedPartial: Partial<RetryConfig> = {};
+        for (const [field, value] of Object.entries(partial)) {
+          if (value == null || !Number.isFinite(value as number)) continue;
+          clampedPartial[field as keyof RetryConfig] = clampToRange(
+            field as keyof RetryConfig,
+            value as number
+          );
+        }
+        const projected: RetryConfig = { ...config, ...clampedPartial };
+        const errors = validateRetryConfig(projected);
+        if (hasRetryConfigErrors(errors)) {
+          const err = new RetryConfigValidationError(errors);
+          toast.error(err.message);
+          throw err;
+        }
+
+        const rows = Object.entries(clampedPartial).map(([field, value]) => ({
+          key: settingKeyFor(field as keyof RetryConfig, instanceName),
+          value: String(value),
+          description:
+            instanceName === GLOBAL
+              ? `Retry global: ${field}`
+              : `Retry override para instância ${instanceName}: ${field}`,
+        }));
+        if (rows.length === 0) return;
+
+        const { error } = await supabase
+          .from('global_settings')
+          .upsert(rows, { onConflict: 'key' });
+        if (error) throw error;
+
+        invalidateRetryConfigCache(instanceName === GLOBAL ? undefined : instanceName);
+        await load();
+        toast.success('Configuração de retry salva');
+      } catch (err) {
+        if (err instanceof RetryConfigValidationError) throw err;
+        log.error('[useInstanceRetryConfig] save failed', err);
+        toast.error('Falha ao salvar configuração');
         throw err;
+      } finally {
+        setIsSaving(false);
       }
-
-      const rows = Object.entries(clampedPartial).map(([field, value]) => ({
-        key: settingKeyFor(field as keyof RetryConfig, instanceName),
-        value: String(value),
-        description: instanceName === GLOBAL
-          ? `Retry global: ${field}`
-          : `Retry override para instância ${instanceName}: ${field}`,
-      }));
-      if (rows.length === 0) return;
-
-      const { error } = await supabase
-        .from('global_settings')
-        .upsert(rows, { onConflict: 'key' });
-      if (error) throw error;
-
-      invalidateRetryConfigCache(instanceName === GLOBAL ? undefined : instanceName);
-      await load();
-      toast.success('Configuração de retry salva');
-    } catch (err) {
-      if (err instanceof RetryConfigValidationError) throw err;
-      log.error('[useInstanceRetryConfig] save failed', err);
-      toast.error('Falha ao salvar configuração');
-      throw err;
-    } finally {
-      setIsSaving(false);
-    }
-  }, [instanceName, load, config]);
+    },
+    [instanceName, load, config]
+  );
 
   const resetToGlobal = useCallback(async () => {
     if (instanceName === GLOBAL) return;

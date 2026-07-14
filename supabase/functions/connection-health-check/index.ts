@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { handleCors, errorResponse, jsonResponse, requireEnv, Logger } from "../_shared/validation.ts";
+import { requireAdminOrSupervisor } from "../_shared/auth.ts";
 
 /**
  * 3-layer health check para conexões Evolution.
@@ -60,13 +61,18 @@ async function fetchOwnerJid(baseUrl: string, key: string, instanceName: string,
 async function fetchLastActivityAt(externalUrl: string, externalKey: string, instanceName: string, log: Logger): Promise<Date | null> {
   try {
     const ext = createClient(externalUrl, externalKey);
-    const { data, error } = await ext
+    const TIMEOUT_MS = 8000;
+    const queryPromise = ext
       .from('evolution_messages')
       .select('created_at')
       .eq('instance_name', instanceName)
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle();
+    const timeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('external query timeout')), TIMEOUT_MS)
+    );
+    const { data, error } = await Promise.race([queryPromise, timeoutPromise]);
     if (error) { log.warn('external messages query error', { error: error.message }); return null; }
     if (!data?.created_at) return null;
     return new Date(data.created_at as string);
@@ -167,6 +173,16 @@ Deno.serve(async (req) => {
 
   const log = new Logger("connection-health-check");
 
+  const serviceKey = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')) ?? '';
+  const cronSecret = Deno.env.get('CRON_SECRET') ?? '';
+  const bearer = (req.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '');
+  const xCron = req.headers.get('x-cron-secret') ?? '';
+  const isInternalCaller = (serviceKey && bearer === serviceKey) || (cronSecret && xCron === cronSecret);
+  if (!isInternalCaller) {
+    const authed = await requireAdminOrSupervisor(req);
+    if (authed instanceof Response) return authed;
+  }
+
   try {
     const evolutionUrl = requireEnv('EVOLUTION_API_URL');
     const evolutionKey = requireEnv('EVOLUTION_API_KEY');
@@ -179,10 +195,10 @@ Deno.serve(async (req) => {
     const baseUrl = evolutionUrl.replace(/\/+$/, '');
 
     // FATOR X (opcional — se faltar, layer 3 é skipped graciosamente)
-    const externalUrl = Deno.env.get('EXTERNAL_SUPABASE_URL') ?? Deno.env.get('FATOR_X_URL');
-    const externalKey = Deno.env.get('EXTERNAL_SUPABASE_SERVICE_ROLE_KEY')
+    const externalUrl = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('EXTERNAL_SUPABASE_URL')) ?? Deno.env.get('FATOR_X_URL');
+    const externalKey = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('EXTERNAL_SUPABASE_SERVICE_ROLE_KEY'))
                      ?? Deno.env.get('FATOR_X_SERVICE_ROLE_KEY')
-                     ?? Deno.env.get('EXTERNAL_SUPABASE_ANON_KEY');
+                     ?? (Deno.env.get('SELFHOSTED_SUPABASE_ANON_KEY') ?? Deno.env.get('EXTERNAL_SUPABASE_ANON_KEY'));
 
     // Allow targeting a single instance (manual "Verificar agora" do card)
     let onlyInstance: string | null = null;
@@ -317,8 +333,8 @@ Deno.serve(async (req) => {
         .from('connection_alert_preferences')
         .select('user_id, alert_on_degraded, alert_on_disconnected, push_enabled');
       optInUserIds = (prefs ?? [])
-        .filter((p: any) => p.push_enabled && (p.alert_on_degraded || p.alert_on_disconnected))
-        .map((p: any) => p.user_id);
+        .filter((p: { push_enabled: boolean; alert_on_degraded: boolean; alert_on_disconnected: boolean }) => p.push_enabled && (p.alert_on_degraded || p.alert_on_disconnected))
+        .map((p: { user_id: string }) => p.user_id);
     }
 
     for (const alert of alertsToCreate) {
@@ -358,15 +374,13 @@ Deno.serve(async (req) => {
     log.done(200, { checked: results.length, alerts: alertsToCreate.length });
     return jsonResponse({ success: true, checked_at: new Date().toISOString(), connections: results, alerts_created: alertsToCreate.length }, 200, req);
   } catch (err) {
-    const msg = err instanceof Error ? err.message : 'Unknown error';
-    log.error("Health check error", { error: msg });
-    return errorResponse(msg, 500, req);
+    log.error("Health check error", { error: err instanceof Error ? err.message : String(err) });
+    return errorResponse('Internal server error', 500, req);
   }
 });
 
 async function persistResult(
-  // deno-lint-ignore no-explicit-any
-  supabase: any,
+  supabase: ReturnType<typeof createClient>,
   conn: { id: string; instance_id: string; status: string; health_status: string | null; phone_number: string | null },
   evalResult: EvalResult,
   responseTime: number,
@@ -415,7 +429,7 @@ async function persistResult(
           connection_id: conn.id,
           instance_id: conn.instance_id,
           phone: conn.phone_number,
-          reason: (evalResult.reason as any) || 'disconnected',
+          reason: (evalResult.reason as 'disconnected' | 'degraded' | 'phantom_session' | 'webhook_silent' | 'stale_session' | null) || 'disconnected',
         });
       }
     }
@@ -436,7 +450,7 @@ async function persistResult(
       connection_id: conn.id,
       instance_id: conn.instance_id,
       phone: conn.phone_number,
-      reason: (evalResult.reason as any) || 'degraded',
+      reason: (evalResult.reason as 'disconnected' | 'degraded' | 'phantom_session' | 'webhook_silent' | 'stale_session' | null) || 'degraded',
     });
   }
 

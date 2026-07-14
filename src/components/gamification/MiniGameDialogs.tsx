@@ -62,7 +62,7 @@ export function SpeedTypingGame({ isOpen, onClose, onComplete }: GameDialogProps
               ))}
             </p>
           </Card>
-          <Input value={userInput} onChange={(e) => handleInputChange(e.target.value)} placeholder="Digite aqui..." className="text-lg" autoFocus />
+          <Input aria-label="Resposta do desafio" value={userInput} onChange={(e) => handleInputChange(e.target.value)} placeholder="Digite aqui..." className="text-lg" autoFocus />
           <Progress value={accuracy} className="h-2" />
           <p className="text-sm text-center text-muted-foreground">Precisão: {accuracy.toFixed(0)}%</p>
         </div>
@@ -159,7 +159,7 @@ export function EmojiDecodeGame({ isOpen, onClose, onComplete }: GameDialogProps
           </Card>
           {showHint && <p className="text-sm text-center text-muted-foreground">Dica: O sentimento é {challenge.sentiment === 'positive' ? 'positivo 😊' : challenge.sentiment === 'negative' ? 'negativo 😔' : 'neutro 😐'}</p>}
           <div className="flex gap-2">
-            <Input value={userGuess} onChange={(e) => setUserGuess(e.target.value)} placeholder="Digite o sentimento..." onKeyDown={(e) => e.key === 'Enter' && handleSubmit()} />
+            <Input aria-label="Sentimento do cliente" value={userGuess} onChange={(e) => setUserGuess(e.target.value)} placeholder="Digite o sentimento..." onKeyDown={(e) => e.key === 'Enter' && handleSubmit()} />
             <Button onClick={handleSubmit}>Confirmar</Button>
           </div>
           {!showHint && <Button variant="ghost" size="sm" onClick={() => setShowHint(true)}>Mostrar Dica (-10 pts)</Button>}

@@ -27,7 +27,7 @@ async function invoke<T>(action: string, payload: Record<string, unknown> = {}):
   });
   if (error) throw error;
   if ((data as { error?: string })?.error) throw new Error((data as { error: string }).error);
-  return data as T;
+  return data as T; // ignore-audit: narrows Supabase query result to local interface
 }
 
 export default function AdminInstancePausesPage() {
@@ -178,12 +178,12 @@ export default function AdminInstancePausesPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b text-left text-xs uppercase text-muted-foreground">
-                    <th className="py-2 pr-4">Instância</th>
-                    <th className="py-2 pr-4">Tipo</th>
-                    <th className="py-2 pr-4">Motivo</th>
-                    <th className="py-2 pr-4">Gatilhos</th>
-                    <th className="py-2 pr-4">Termina</th>
-                    <th className="py-2 pr-4">Ação</th>
+                    <th scope="col" className="py-2 pr-4">Instância</th>
+                    <th scope="col" className="py-2 pr-4">Tipo</th>
+                    <th scope="col" className="py-2 pr-4">Motivo</th>
+                    <th scope="col" className="py-2 pr-4">Gatilhos</th>
+                    <th scope="col" className="py-2 pr-4">Termina</th>
+                    <th scope="col" className="py-2 pr-4">Ação</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -191,7 +191,9 @@ export default function AdminInstancePausesPage() {
                     <tr
                       key={p.id}
                       className="border-b last:border-0 hover:bg-muted/30 cursor-pointer"
+                      tabIndex={0}
                       onClick={() => setSelected(p)}
+                      onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && setSelected(p)}
                     >
                       <td className="py-2 pr-4  text-xs">{p.instance_name}</td>
                       <td className="py-2 pr-4">
@@ -236,12 +238,12 @@ export default function AdminInstancePausesPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b text-left text-xs uppercase text-muted-foreground">
-                    <th className="py-2 pr-4">Quando</th>
-                    <th className="py-2 pr-4">Instância</th>
-                    <th className="py-2 pr-4">Tipo</th>
-                    <th className="py-2 pr-4">Motivo</th>
-                    <th className="py-2 pr-4">Gatilhos</th>
-                    <th className="py-2 pr-4">Status</th>
+                    <th scope="col" className="py-2 pr-4">Quando</th>
+                    <th scope="col" className="py-2 pr-4">Instância</th>
+                    <th scope="col" className="py-2 pr-4">Tipo</th>
+                    <th scope="col" className="py-2 pr-4">Motivo</th>
+                    <th scope="col" className="py-2 pr-4">Gatilhos</th>
+                    <th scope="col" className="py-2 pr-4">Status</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -251,7 +253,9 @@ export default function AdminInstancePausesPage() {
                       <tr
                         key={p.id}
                         className="border-b last:border-0 hover:bg-muted/30 cursor-pointer"
+                        tabIndex={0}
                         onClick={() => setSelected(p)}
+                        onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && setSelected(p)}
                       >
                         <td className="py-2 pr-4 text-xs text-muted-foreground">
                           {formatDistanceToNow(new Date(p.created_at), { addSuffix: true, locale: ptBR })}

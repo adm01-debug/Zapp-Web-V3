@@ -2,145 +2,83 @@
  * HmacAuditHistoryPanel
  *
  * Histórico das execuções do botão "Testar HMAC" com:
- *  - Filtros: janela de tempo (24h / 7d / 30d) + instância (lista derivada
- *    dos próprios registros dentro da janela).
+ *  - Filtros: janela de tempo (24h / 7d / 30d) + instância.
  *  - KPIs da janela: total, OK, falhas, taxa de sucesso, duração média.
- *  - Gráfico de tendência (área empilhada OK vs FALHA) bucketed por hora
- *    (24h) ou por dia (7d/30d).
+ *  - Gráfico de tendência (área empilhada OK vs FALHA).
  *  - Tabela das últimas execuções (cap configurável).
  *  - Atualização em tempo real via Realtime + debounce (300ms).
- *
- * RLS: somente admin/supervisor enxergam linhas — usuários sem permissão
- * recebem array vazio e o card simplesmente exibe o estado "sem dados".
  */
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { format, subHours } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+import { useEffect, useState } from 'react';
 import { History, RefreshCw, Radio, TrendingUp } from 'lucide-react';
 import {
-  AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend,
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  CartesianGrid,
+  Legend,
 } from 'recharts';
-import { supabase } from '@/integrations/supabase/client';
-import { safeClient } from '@/integrations/supabase/safeClient';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from '@/components/ui/select';
 import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
+import { RANGES, ALL_INSTANCES, tooltipStyle, fmtDate } from './hmacAuditHistoryHelpers';
+import type { HmacAuditHistoryPanelProps, RangeKey } from './hmacAuditHistoryHelpers';
+import { useHmacAuditHistory } from './useHmacAuditHistory';
 
-interface AuditRow {
-  id: string;
-  instance: string | null;
-  ok: boolean;
-  duration_ms: number | null;
-  error: string | null;
-  message: string | null;
-  good_accepted: boolean | null;
-  tampered_rejected: boolean | null;
-  created_at: string;
-}
-
-interface Props {
-  /** Quando definido, pré-seleciona a instância no filtro. */
-  instance?: string | null;
-  /** Quantidade máxima de execuções a exibir na tabela. */
-  limit?: number;
-}
-
-type RangeKey = '24h' | '7d' | '30d';
-
-const RANGES: { value: RangeKey; label: string; hours: number; bucket: 'hour' | 'day' }[] = [
-  { value: '24h', label: 'Últimas 24h', hours: 24, bucket: 'hour' },
-  { value: '7d',  label: 'Últimos 7 dias', hours: 24 * 7, bucket: 'day' },
-  { value: '30d', label: 'Últimos 30 dias', hours: 24 * 30, bucket: 'day' },
-];
-
-const ALL_INSTANCES = '__all__';
-
-const tooltipStyle = {
-  background: 'hsl(var(--card))',
-  border: '1px solid hsl(var(--border))',
-  borderRadius: 8,
-  fontSize: 12,
-} as const;
-
-function fmtDate(iso: string) {
-  try {
-    return format(new Date(iso), 'dd/MM HH:mm:ss', { locale: ptBR });
-  } catch {
-    return iso;
-  }
-}
-
-/** Agrupa execuções em buckets (hora ou dia). Devolve série ordenada. */
-function bucketize(rows: AuditRow[], bucket: 'hour' | 'day') {
-  const map = new Map<string, { time: string; ok: number; fail: number; iso: string }>();
-  for (const r of rows) {
-    const d = new Date(r.created_at);
-    let key: string;
-    let label: string;
-    if (bucket === 'hour') {
-      d.setMinutes(0, 0, 0);
-      key = d.toISOString();
-      label = format(d, 'dd/MM HH:00', { locale: ptBR });
-    } else {
-      d.setHours(0, 0, 0, 0);
-      key = d.toISOString();
-      label = format(d, 'dd/MM', { locale: ptBR });
-    }
-    const cur = map.get(key) ?? { time: label, ok: 0, fail: 0, iso: key };
-    if (r.ok) cur.ok += 1; else cur.fail += 1;
-    map.set(key, cur);
-  }
-  return Array.from(map.values()).sort((a, b) => a.iso.localeCompare(b.iso));
-}
-
-export function HmacAuditHistoryPanel({ instance: initialInstance = null, limit = 25 }: Props) {
-  const queryClient = useQueryClient();
-  const [realtimeStatus, setRealtimeStatus] = useState<'connecting' | 'live' | 'offline'>('connecting');
+export function HmacAuditHistoryPanel({
+  instance: initialInstance = null,
+  limit = 25,
+}: HmacAuditHistoryPanelProps) {
   const [range, setRange] = useState<RangeKey>('24h');
   const [instanceFilter, setInstanceFilter] = useState<string>(initialInstance ?? ALL_INSTANCES);
 
-  // Sincroniza quando o pai troca a instância selecionada.
   useEffect(() => {
     setInstanceFilter(initialInstance ?? ALL_INSTANCES);
   }, [initialInstance]);
 
-  const rangeCfg = useMemo(() => RANGES.find(r => r.value === range)!, [range]);
-  const since = useMemo(
-    () => subHours(new Date(), rangeCfg.hours).toISOString(),
-    [rangeCfg],
-  );
+  const rangeCfg = useMemo(() => RANGES.find((r) => r.value === range)!, [range]);
+  const since = useMemo(() => subHours(new Date(), rangeCfg.hours).toISOString(), [rangeCfg]);
 
   const queryKey = useMemo(
     () => ['hmac-selftest-audit', range, instanceFilter],
-    [range, instanceFilter],
+    [range, instanceFilter]
   );
 
   const { data, isLoading, isFetching, refetch } = useQuery({
     queryKey,
     queryFn: async () => {
-      const { data, error } = await safeClient.from<AuditRow>(
-        'hmac_selftest_audit',
-        (q) => {
-          let query = q
-            .select('id, instance, ok, duration_ms, error, message, good_accepted, tampered_rejected, created_at')
-            .gte('created_at', since)
-            .order('created_at', { ascending: false })
-            .limit(2000);
-          if (instanceFilter !== ALL_INSTANCES) query = query.eq('instance', instanceFilter);
-          return query;
-        },
-      );
+      const { data, error } = await safeClient.from<AuditRow>('hmac_selftest_audit', (q) => {
+        let query = q
+          .select(
+            'id, instance, ok, duration_ms, error, message, good_accepted, tampered_rejected, created_at'
+          )
+          .gte('created_at', since)
+          .order('created_at', { ascending: false })
+          .limit(2000);
+        if (instanceFilter !== ALL_INSTANCES) query = query.eq('instance', instanceFilter);
+        return query;
+      });
       // Return empty array when table is not yet provisioned (pending migration)
       if (error) return [] as AuditRow[];
-      return data;
+      return data ?? [];
     },
     retry: false,
     staleTime: 5_000,
@@ -153,14 +91,13 @@ export function HmacAuditHistoryPanel({ instance: initialInstance = null, limit 
   const { data: instanceOptions } = useQuery({
     queryKey: ['hmac-selftest-audit-instances', range],
     queryFn: async () => {
-      const { data, error } = await safeClient.from<{ instance: string | null }>(
-        'hmac_selftest_audit',
-        (q) => q.select('instance').gte('created_at', since).not('instance', 'is', null).limit(1000),
+      const { data, error } = await safeClient.from('hmac_selftest_audit', (q) =>
+        q.select('instance').gte('created_at', since).not('instance', 'is', null).limit(1000)
       );
       // Return empty list when table is not yet provisioned
       if (error) return [] as string[];
       const set = new Set<string>();
-      data.forEach((r) => {
+      (data ?? []).forEach((r: { instance: string | null }) => {
         if (r.instance) set.add(r.instance);
       });
       return Array.from(set).sort();
@@ -183,7 +120,7 @@ export function HmacAuditHistoryPanel({ instance: initialInstance = null, limit 
             queryClient.invalidateQueries({ queryKey: ['hmac-selftest-audit'] });
             queryClient.invalidateQueries({ queryKey: ['hmac-selftest-audit-instances'] });
           }, 300);
-        },
+        }
       )
       .subscribe((status) => {
         if (status === 'SUBSCRIBED') setRealtimeStatus('live');
@@ -193,7 +130,7 @@ export function HmacAuditHistoryPanel({ instance: initialInstance = null, limit 
       });
     return () => {
       if (debounceRef.current) window.clearTimeout(debounceRef.current);
-      supabase.removeChannel(channel);
+      channel.unsubscribe();
     };
   }, [queryClient]);
 
@@ -202,12 +139,11 @@ export function HmacAuditHistoryPanel({ instance: initialInstance = null, limit 
 
   const stats = useMemo(() => {
     const total = rows.length;
-    const oks = rows.filter(r => r.ok).length;
+    const oks = rows.filter((r) => r.ok).length;
     const fails = total - oks;
     const successRate = total > 0 ? Math.round((oks / total) * 1000) / 10 : 0;
-    const avgDuration = total > 0
-      ? Math.round(rows.reduce((s, r) => s + (r.duration_ms ?? 0), 0) / total)
-      : 0;
+    const avgDuration =
+      total > 0 ? Math.round(rows.reduce((s, r) => s + (r.duration_ms ?? 0), 0) / total) : 0;
     return { total, oks, fails, successRate, avgDuration };
   }, [rows]);
 
@@ -215,24 +151,33 @@ export function HmacAuditHistoryPanel({ instance: initialInstance = null, limit 
 
   return (
     <Card data-testid="hmac-audit-history-card">
-      <CardHeader className="pb-3 flex flex-row items-start justify-between gap-2 space-y-0 flex-wrap">
+      <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-2 space-y-0 pb-3">
         <div>
-          <CardTitle className="text-sm font-medium flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2 text-sm font-medium">
             <History className="h-4 w-4" />
             Histórico de testes HMAC
           </CardTitle>
-          <p className="text-xs text-muted-foreground mt-1">
+          <p className="mt-1 text-xs text-muted-foreground">
             Resultado, duração e tendência das execuções de <code>Testar HMAC</code>.
           </p>
         </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          <Select value={range} onValueChange={(v) => setRange(v as RangeKey)}>
+        <div className="flex flex-wrap items-center gap-2">
+          <Select
+            value={range}
+            onValueChange={(v) =>
+              setRange(
+                v as RangeKey /* ignore-audit: Select/Tabs value string narrowed to union; developer controls option values */
+              )
+            }
+          >
             <SelectTrigger className="h-8 w-[160px] text-xs" data-testid="hmac-audit-range">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {RANGES.map(r => (
-                <SelectItem key={r.value} value={r.value} className="text-xs">{r.label}</SelectItem>
+              {RANGES.map((r) => (
+                <SelectItem key={r.value} value={r.value} className="text-xs">
+                  {r.label}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -241,9 +186,13 @@ export function HmacAuditHistoryPanel({ instance: initialInstance = null, limit 
               <SelectValue placeholder="Instância" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value={ALL_INSTANCES} className="text-xs">Todas as instâncias</SelectItem>
-              {(instanceOptions ?? []).map(i => (
-                <SelectItem key={i} value={i} className="text-xs">{i}</SelectItem>
+              <SelectItem value={ALL_INSTANCES} className="text-xs">
+                Todas as instâncias
+              </SelectItem>
+              {instanceOptions.map((i) => (
+                <SelectItem key={i} value={i} className="text-xs">
+                  {i}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -252,13 +201,18 @@ export function HmacAuditHistoryPanel({ instance: initialInstance = null, limit 
             className={cn(
               'gap-1.5 text-[10px]',
               realtimeStatus === 'live' && 'border-success/40 bg-success/10 text-success',
-              realtimeStatus === 'offline' && 'border-destructive/40 bg-destructive/10 text-destructive',
-              realtimeStatus === 'connecting' && 'border-muted-foreground/30 text-muted-foreground',
+              realtimeStatus === 'offline' &&
+                'border-destructive/40 bg-destructive/10 text-destructive',
+              realtimeStatus === 'connecting' && 'border-muted-foreground/30 text-muted-foreground'
             )}
             data-testid="hmac-audit-realtime-status"
           >
-            <Radio className={cn('w-2.5 h-2.5', realtimeStatus === 'live' && 'animate-pulse')} />
-            {realtimeStatus === 'live' ? 'Ao vivo' : realtimeStatus === 'connecting' ? '…' : 'Offline'}
+            <Radio className={cn('h-2.5 w-2.5', realtimeStatus === 'live' && 'animate-pulse')} />
+            {realtimeStatus === 'live'
+              ? 'Ao vivo'
+              : realtimeStatus === 'connecting'
+                ? '…'
+                : 'Offline'}
           </Badge>
           <Button
             variant="ghost"
@@ -273,18 +227,24 @@ export function HmacAuditHistoryPanel({ instance: initialInstance = null, limit 
       </CardHeader>
       <CardContent className="space-y-4">
         {/* KPIs da janela */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+        <div className="grid grid-cols-2 gap-2 md:grid-cols-5">
           <div className="rounded-lg border p-2">
             <div className="text-[10px] uppercase text-muted-foreground">Execuções</div>
-            <div className="text-lg font-bold" data-testid="hmac-audit-total-count">{stats.total}</div>
+            <div className="text-lg font-bold" data-testid="hmac-audit-total-count">
+              {stats.total}
+            </div>
           </div>
           <div className="rounded-lg border p-2">
             <div className="text-[10px] uppercase text-muted-foreground">OK</div>
-            <div className="text-lg font-bold text-success" data-testid="hmac-audit-ok-count">{stats.oks}</div>
+            <div className="text-lg font-bold text-success" data-testid="hmac-audit-ok-count">
+              {stats.oks}
+            </div>
           </div>
           <div className="rounded-lg border p-2">
             <div className="text-[10px] uppercase text-muted-foreground">Falhas</div>
-            <div className="text-lg font-bold text-destructive" data-testid="hmac-audit-fail-count">{stats.fails}</div>
+            <div className="text-lg font-bold text-destructive" data-testid="hmac-audit-fail-count">
+              {stats.fails}
+            </div>
           </div>
           <div className="rounded-lg border p-2">
             <div className="text-[10px] uppercase text-muted-foreground">Taxa de sucesso</div>
@@ -293,8 +253,11 @@ export function HmacAuditHistoryPanel({ instance: initialInstance = null, limit 
                 'text-lg font-bold',
                 stats.total === 0 && 'text-muted-foreground',
                 stats.total > 0 && stats.successRate >= 99 && 'text-success',
-                stats.total > 0 && stats.successRate < 99 && stats.successRate >= 90 && 'text-warning',
-                stats.total > 0 && stats.successRate < 90 && 'text-destructive',
+                stats.total > 0 &&
+                  stats.successRate < 99 &&
+                  stats.successRate >= 90 &&
+                  'text-warning',
+                stats.total > 0 && stats.successRate < 90 && 'text-destructive'
               )}
               data-testid="hmac-audit-success-rate"
             >
@@ -304,23 +267,24 @@ export function HmacAuditHistoryPanel({ instance: initialInstance = null, limit 
           <div className="rounded-lg border p-2">
             <div className="text-[10px] uppercase text-muted-foreground">Duração média</div>
             <div className="text-lg font-bold" data-testid="hmac-audit-avg-duration">
-              {stats.avgDuration}<span className="text-xs ml-1 text-muted-foreground">ms</span>
+              {stats.avgDuration}
+              <span className="ml-1 text-xs text-muted-foreground">ms</span>
             </div>
           </div>
         </div>
 
         {/* Gráfico de tendência */}
         <div>
-          <div className="text-xs font-medium mb-2 flex items-center gap-1.5 text-muted-foreground">
+          <div className="mb-2 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
             <TrendingUp className="h-3.5 w-3.5" />
             Tendência por {rangeCfg.bucket === 'hour' ? 'hora' : 'dia'}
           </div>
           {isLoading ? (
-            <div className="h-48 flex items-center justify-center text-sm text-muted-foreground border border-dashed rounded">
+            <div className="flex h-48 items-center justify-center rounded border border-dashed text-sm text-muted-foreground">
               Carregando…
             </div>
           ) : trendData.length === 0 ? (
-            <div className="h-48 flex items-center justify-center text-sm text-muted-foreground border border-dashed rounded">
+            <div className="flex h-48 items-center justify-center rounded border border-dashed text-sm text-muted-foreground">
               Sem execuções no período.
             </div>
           ) : (
@@ -328,17 +292,38 @@ export function HmacAuditHistoryPanel({ instance: initialInstance = null, limit 
               <ResponsiveContainer width="100%" height={200}>
                 <AreaChart data={trendData} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border/30" />
-                  <XAxis dataKey="time" tick={{ fontSize: 10 }} className="fill-muted-foreground" />
-                  <YAxis allowDecimals={false} tick={{ fontSize: 10 }} className="fill-muted-foreground" />
-                  <Tooltip contentStyle={tooltipStyle} labelStyle={{ color: 'hsl(var(--foreground))' }} />
-                  <Legend wrapperStyle={{ fontSize: 11 }} />
+                  <XAxis
+                    dataKey="time"
+                    tick={{ style: { fontSize: '0.75rem' } }}
+                    className="fill-muted-foreground"
+                  />
+                  <YAxis
+                    allowDecimals={false}
+                    tick={{ style: { fontSize: '0.75rem' } }}
+                    className="fill-muted-foreground"
+                  />
+                  <Tooltip
+                    contentStyle={tooltipStyle}
+                    labelStyle={{ color: 'hsl(var(--foreground))' }}
+                  />
+                  <Legend wrapperStyle={{ fontSize: '0.6875rem' }} />
                   <Area
-                    type="monotone" dataKey="ok" stackId="1" name="OK"
-                    stroke="hsl(var(--success))" fill="hsl(var(--success))" fillOpacity={0.35}
+                    type="monotone"
+                    dataKey="ok"
+                    stackId="1"
+                    name="OK"
+                    stroke="hsl(var(--success))"
+                    fill="hsl(var(--success))"
+                    fillOpacity={0.35}
                   />
                   <Area
-                    type="monotone" dataKey="fail" stackId="1" name="Falha"
-                    stroke="hsl(var(--destructive))" fill="hsl(var(--destructive))" fillOpacity={0.5}
+                    type="monotone"
+                    dataKey="fail"
+                    stackId="1"
+                    name="Falha"
+                    stroke="hsl(var(--destructive))"
+                    fill="hsl(var(--destructive))"
+                    fillOpacity={0.5}
                   />
                 </AreaChart>
               </ResponsiveContainer>
@@ -348,32 +333,38 @@ export function HmacAuditHistoryPanel({ instance: initialInstance = null, limit 
 
         {/* Tabela das últimas N execuções */}
         <div>
-          <div className="text-xs font-medium mb-2 text-muted-foreground">
+          <div className="mb-2 text-xs font-medium text-muted-foreground">
             Últimas {Math.min(limit, visibleRows.length)} execuções
           </div>
           {isLoading ? (
-            <div className="text-sm text-muted-foreground py-6 text-center">Carregando…</div>
+            <div className="py-6 text-center text-sm text-muted-foreground">Carregando…</div>
           ) : visibleRows.length === 0 ? (
-            <div className="text-sm text-muted-foreground py-6 text-center border border-dashed rounded">
+            <div className="rounded border border-dashed py-6 text-center text-sm text-muted-foreground">
               Nenhuma execução registrada no período
               {instanceFilter !== ALL_INSTANCES ? ` para ${instanceFilter}` : ''}.
             </div>
           ) : (
-            <div className="rounded-md border overflow-hidden">
+            <div className="overflow-hidden rounded-md border">
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead className="text-xs">Quando</TableHead>
                     <TableHead className="text-xs">Instância</TableHead>
                     <TableHead className="text-xs">Resultado</TableHead>
-                    <TableHead className="text-xs text-right">Duração</TableHead>
+                    <TableHead className="text-right text-xs">Duração</TableHead>
                     <TableHead className="text-xs">Detalhe</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {visibleRows.map((r) => (
-                    <TableRow key={r.id} data-testid="hmac-audit-row" data-result={r.ok ? 'ok' : 'fail'}>
-                      <TableCell className="text-xs whitespace-nowrap">{fmtDate(r.created_at)}</TableCell>
+                    <TableRow
+                      key={r.id}
+                      data-testid="hmac-audit-row"
+                      data-result={r.ok ? 'ok' : 'fail'}
+                    >
+                      <TableCell className="whitespace-nowrap text-xs">
+                        {fmtDate(r.created_at)}
+                      </TableCell>
                       <TableCell className="text-xs">
                         <code className="text-[11px]">{r.instance ?? '—'}</code>
                       </TableCell>
@@ -382,13 +373,19 @@ export function HmacAuditHistoryPanel({ instance: initialInstance = null, limit 
                           {r.ok ? 'OK' : 'FALHA'}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-xs text-right tabular-nums">
-                        {r.duration_ms ?? '—'}<span className="text-muted-foreground ml-0.5">ms</span>
+                      <TableCell className="text-right text-xs tabular-nums">
+                        {r.duration_ms ?? '—'}
+                        <span className="ml-0.5 text-muted-foreground">ms</span>
                       </TableCell>
-                      <TableCell className="text-xs text-muted-foreground max-w-[280px] truncate" title={r.error ?? r.message ?? ''}>
-                        {r.error ?? r.message ?? (r.tampered_rejected === false
-                          ? '⚠ assinatura adulterada foi aceita'
-                          : '—')}
+                      <TableCell
+                        className="max-w-[280px] truncate text-xs text-muted-foreground"
+                        title={r.error ?? r.message ?? ''}
+                      >
+                        {r.error ??
+                          r.message ??
+                          (r.tampered_rejected === false
+                            ? '⚠ assinatura adulterada foi aceita'
+                            : '—')}
                       </TableCell>
                     </TableRow>
                   ))}

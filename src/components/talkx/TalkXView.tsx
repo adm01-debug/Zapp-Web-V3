@@ -2,15 +2,28 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { GenericEmptyState } from '@/components/ui/GenericEmptyState';
 import { AnimatePresence } from 'framer-motion';
 import {
-  Zap, Plus, Play, Eye, MessageSquare,
-  Send, BarChart3, CheckCircle2, Search, Filter, ShieldBan
+  Zap,
+  Plus,
+  Play,
+  Eye,
+  MessageSquare,
+  Send,
+  BarChart3,
+  CheckCircle2,
+  Search,
+  Filter,
+  ShieldBan,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from '@/components/ui/select';
 import { useTalkX, TalkXCampaign } from '@/hooks/useTalkX';
 import { supabase } from '@/integrations/supabase/client';
@@ -23,8 +36,16 @@ import { TalkXAnalytics } from './TalkXAnalytics';
 
 export default function TalkXView() {
   const {
-    campaigns, isLoading, selectedCampaignId, setSelectedCampaignId,
-    createCampaign, deleteCampaign, startCampaign, pauseCampaign, cancelCampaign, refetchCampaigns,
+    campaigns,
+    isLoading,
+    selectedCampaignId,
+    setSelectedCampaignId,
+    createCampaign,
+    deleteCampaign,
+    startCampaign,
+    pauseCampaign,
+    cancelCampaign,
+    refetchCampaigns,
   } = useTalkX();
 
   const [showEditor, setShowEditor] = useState(false);
@@ -41,22 +62,23 @@ export default function TalkXView() {
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       result = result.filter(
-        (c) =>
-          c.name.toLowerCase().includes(q) ||
-          c.message_template.toLowerCase().includes(q)
+        (c) => c.name.toLowerCase().includes(q) || c.message_template.toLowerCase().includes(q)
       );
     }
     return result;
   }, [campaigns, searchQuery, statusFilter]);
 
   // Keyboard shortcuts
-  const handleKeyDown = useCallback((e: KeyboardEvent) => {
-    if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
-    if (e.key === 'n' && !e.ctrlKey && !e.metaKey && !showEditor) {
-      e.preventDefault();
-      handleNewCampaign();
-    }
-  }, [showEditor]);
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      if (e.key === 'n' && !e.ctrlKey && !e.metaKey && !showEditor) {
+        e.preventDefault();
+        handleNewCampaign();
+      }
+    },
+    [showEditor]
+  );
 
   useEffect(() => {
     document.addEventListener('keydown', handleKeyDown);
@@ -70,7 +92,9 @@ export default function TalkXView() {
         refetchCampaigns();
       })
       .subscribe();
-    return () => { supabase.removeChannel(channel); };
+    return () => {
+      channel.unsubscribe();
+    };
   }, [refetchCampaigns]);
 
   const handleNewCampaign = () => {
@@ -107,49 +131,69 @@ export default function TalkXView() {
     return (
       <TalkXCampaignEditor
         campaign={editingCampaign}
-        onClose={() => { setShowEditor(false); refetchCampaigns(); }}
+        onClose={() => {
+          setShowEditor(false);
+          refetchCampaigns();
+        }}
       />
     );
   }
 
   const stats = [
     { label: 'Total', value: campaigns.length, icon: BarChart3, cls: 'text-primary' },
-    { label: 'Ativas', value: campaigns.filter(c => c.status === 'sending').length, icon: Play, cls: 'text-primary' },
-    { label: 'Concluídas', value: campaigns.filter(c => c.status === 'completed').length, icon: CheckCircle2, cls: 'text-accent-foreground' },
-    { label: 'Enviadas', value: campaigns.reduce((a, c) => a + c.sent_count, 0), icon: Send, cls: 'text-primary' },
+    {
+      label: 'Ativas',
+      value: campaigns.filter((c) => c.status === 'sending').length,
+      icon: Play,
+      cls: 'text-primary',
+    },
+    {
+      label: 'Concluídas',
+      value: campaigns.filter((c) => c.status === 'completed').length,
+      icon: CheckCircle2,
+      cls: 'text-accent-foreground',
+    },
+    {
+      label: 'Enviadas',
+      value: campaigns.reduce((a, c) => a + c.sent_count, 0),
+      icon: Send,
+      cls: 'text-primary',
+    },
   ];
 
   return (
-    <div className="h-full flex flex-col gap-4 md:gap-6 p-4 md:p-6 overflow-auto">
+    <div className="flex h-full flex-col gap-4 overflow-auto p-4 md:gap-6 md:p-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+      <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
         <div className="flex items-center gap-3">
           <div
-            className="w-10 h-10 md:w-12 md:h-12 rounded-2xl flex items-center justify-center shrink-0"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl md:h-12 md:w-12"
             style={{ background: 'var(--gradient-primary)' }}
           >
-            <Zap className="w-5 h-5 md:w-6 md:h-6 text-primary-foreground" />
+            <Zap className="h-5 w-5 text-primary-foreground md:h-6 md:w-6" />
           </div>
           <div>
-            <h1 className="text-xl md:text-2xl font-bold font-display text-foreground">Talk X</h1>
-            <p className="text-xs md:text-sm text-muted-foreground">Marketing humanizado com simulação de digitação</p>
+            <h1 className="font-display text-xl font-bold text-foreground md:text-2xl">Talk X</h1>
+            <p className="text-xs text-muted-foreground md:text-sm">
+              Marketing humanizado com simulação de digitação
+            </p>
           </div>
         </div>
-        <Button onClick={handleNewCampaign} className="gap-2 w-full sm:w-auto">
-          <Plus className="w-4 h-4" />
+        <Button onClick={handleNewCampaign} className="w-full gap-2 sm:w-auto">
+          <Plus className="h-4 w-4" />
           Nova Campanha
         </Button>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         {stats.map(({ label, value, icon: Icon, cls }) => (
           <Card key={label} className="border-border/50">
             <CardContent className="flex items-center gap-3 p-3 md:p-4">
-              <Icon className={`w-5 h-5 ${cls} shrink-0`} />
+              <Icon className={`h-5 w-5 ${cls} shrink-0`} />
               <div className="min-w-0">
-                <p className="text-xl md:text-2xl font-bold text-foreground">{value}</p>
-                <p className="text-[10px] md:text-xs text-muted-foreground truncate">{label}</p>
+                <p className="text-xl font-bold text-foreground md:text-2xl">{value}</p>
+                <p className="truncate text-[10px] text-muted-foreground md:text-xs">{label}</p>
               </div>
             </CardContent>
           </Card>
@@ -157,42 +201,47 @@ export default function TalkXView() {
       </div>
 
       {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex min-h-0 flex-1 flex-col">
         <TabsList className="w-full sm:w-auto">
-          <TabsTrigger value="campaigns" className="gap-2 flex-1 sm:flex-none">
-            <MessageSquare className="w-4 h-4" />
+          <TabsTrigger value="campaigns" className="flex-1 gap-2 sm:flex-none">
+            <MessageSquare className="h-4 w-4" />
             <span className="hidden sm:inline">Campanhas</span>
           </TabsTrigger>
-          <TabsTrigger value="monitor" className="gap-2 flex-1 sm:flex-none" disabled={!selectedCampaignId}>
-            <Eye className="w-4 h-4" />
+          <TabsTrigger
+            value="monitor"
+            className="flex-1 gap-2 sm:flex-none"
+            disabled={!selectedCampaignId}
+          >
+            <Eye className="h-4 w-4" />
             <span className="hidden sm:inline">Monitor</span>
           </TabsTrigger>
-          <TabsTrigger value="blacklist" className="gap-2 flex-1 sm:flex-none">
-            <ShieldBan className="w-4 h-4" />
+          <TabsTrigger value="blacklist" className="flex-1 gap-2 sm:flex-none">
+            <ShieldBan className="h-4 w-4" />
             <span className="hidden sm:inline">Opt-out</span>
           </TabsTrigger>
-          <TabsTrigger value="analytics" className="gap-2 flex-1 sm:flex-none">
-            <BarChart3 className="w-4 h-4" />
+          <TabsTrigger value="analytics" className="flex-1 gap-2 sm:flex-none">
+            <BarChart3 className="h-4 w-4" />
             <span className="hidden sm:inline">Analytics</span>
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="campaigns" className="flex-1 overflow-auto mt-4 space-y-4">
+        <TabsContent value="campaigns" className="mt-4 flex-1 space-y-4 overflow-auto">
           {/* Search & Filter Bar */}
           {campaigns.length > 0 && (
-            <div className="flex flex-col sm:flex-row gap-2">
+            <div className="flex flex-col gap-2 sm:flex-row">
               <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
+                  aria-label="Buscar campanhas"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Buscar campanhas... (N para nova)"
-                  className="pl-9 h-9 text-sm"
+                  className="h-9 pl-9 text-sm"
                 />
               </div>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-full sm:w-[160px] h-9">
-                  <Filter className="w-3.5 h-3.5 mr-1.5 text-muted-foreground" />
+                <SelectTrigger className="h-9 w-full sm:w-[160px]">
+                  <Filter className="mr-1.5 h-3.5 w-3.5 text-muted-foreground" />
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -212,43 +261,54 @@ export default function TalkXView() {
             <div className="grid gap-3">
               {Array.from({ length: 3 }).map((_, i) => (
                 <Card key={i} className="animate-pulse">
-                  <CardContent className="p-4 md:p-5 space-y-3">
+                  <CardContent className="space-y-3 p-4 md:p-5">
                     <div className="flex items-center gap-2">
-                      <div className="h-5 bg-muted rounded w-1/3" />
-                      <div className="h-5 bg-muted rounded w-16" />
+                      <div className="h-5 w-1/3 rounded bg-muted" />
+                      <div className="h-5 w-16 rounded bg-muted" />
                     </div>
-                    <div className="h-4 bg-muted rounded w-2/3" />
+                    <div className="h-4 w-2/3 rounded bg-muted" />
                     <div className="flex gap-3">
-                      <div className="h-3 bg-muted rounded w-12" />
-                      <div className="h-3 bg-muted rounded w-20" />
-                      <div className="h-3 bg-muted rounded w-16" />
+                      <div className="h-3 w-12 rounded bg-muted" />
+                      <div className="h-3 w-20 rounded bg-muted" />
+                      <div className="h-3 w-16 rounded bg-muted" />
                     </div>
                   </CardContent>
                 </Card>
               ))}
             </div>
           ) : campaigns.length === 0 ? (
-            <Card className="border-dashed border-2 border-border/50">
-              <CardContent className="flex flex-col items-center justify-center py-12 md:py-16 gap-4 px-6">
-                <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center">
-                  <Zap className="w-8 h-8 text-primary" />
+            <Card className="border-2 border-dashed border-border/50">
+              <CardContent className="flex flex-col items-center justify-center gap-4 px-6 py-12 md:py-16">
+                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10">
+                  <Zap className="h-8 w-8 text-primary" />
                 </div>
                 <div className="text-center">
-                  <h3 className="font-semibold text-lg text-foreground">Crie sua primeira campanha Talk X</h3>
-                  <p className="text-muted-foreground text-sm mt-1 max-w-md">
+                  <h3 className="text-lg font-semibold text-foreground">
+                    Crie sua primeira campanha Talk X
+                  </h3>
+                  <p className="mt-1 max-w-md text-sm text-muted-foreground">
                     Envie mensagens personalizadas para vários contatos simulando digitação humana.
                     Use variáveis como {'{{nome}}'}, {'{{apelido}}'} e {'{{empresa}}'}.
                   </p>
                 </div>
-                <Button onClick={handleNewCampaign} className="gap-2 mt-2">
-                  <Plus className="w-4 h-4" />
+                <Button onClick={handleNewCampaign} className="mt-2 gap-2">
+                  <Plus className="h-4 w-4" />
                   Criar Campanha
                 </Button>
               </CardContent>
             </Card>
           ) : filteredCampaigns.length === 0 ? (
-            <GenericEmptyState icon={Search} title="Sem campanhas" description="Nenhuma campanha encontrada com os filtros atuais"
-              actionLabel="Limpar filtros" onAction={() => { setSearchQuery(''); setStatusFilter('all'); }} className="py-8" />
+            <GenericEmptyState
+              icon={Search}
+              title="Sem campanhas"
+              description="Nenhuma campanha encontrada com os filtros atuais"
+              actionLabel="Limpar filtros"
+              onAction={() => {
+                setSearchQuery('');
+                setStatusFilter('all');
+              }}
+              className="py-8"
+            />
           ) : (
             <div className="grid gap-3">
               <AnimatePresence mode="popLayout">
@@ -256,7 +316,10 @@ export default function TalkXView() {
                   <TalkXCampaignCard
                     key={campaign.id}
                     campaign={campaign}
-                    onEdit={(c) => { setEditingCampaign(c); setShowEditor(true); }}
+                    onEdit={(c) => {
+                      setEditingCampaign(c);
+                      setShowEditor(true);
+                    }}
                     onView={handleView}
                     onDuplicate={handleDuplicate}
                     onStart={startCampaign}
@@ -270,7 +333,7 @@ export default function TalkXView() {
           )}
         </TabsContent>
 
-        <TabsContent value="monitor" className="flex-1 overflow-auto mt-4">
+        <TabsContent value="monitor" className="mt-4 flex-1 overflow-auto">
           {selectedCampaignId ? (
             <TalkXLiveMonitor campaignId={selectedCampaignId} />
           ) : (
@@ -280,11 +343,11 @@ export default function TalkXView() {
           )}
         </TabsContent>
 
-        <TabsContent value="blacklist" className="flex-1 overflow-auto mt-4">
+        <TabsContent value="blacklist" className="mt-4 flex-1 overflow-auto">
           <TalkXBlacklist />
         </TabsContent>
 
-        <TabsContent value="analytics" className="flex-1 overflow-auto mt-4">
+        <TabsContent value="analytics" className="mt-4 flex-1 overflow-auto">
           <TalkXAnalytics campaigns={campaigns} />
         </TabsContent>
       </Tabs>

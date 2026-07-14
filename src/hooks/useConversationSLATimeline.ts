@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { externalSupabase, isExternalConfigured } from '@/integrations/supabase/externalClient';
-import { supabase } from '@/integrations/supabase/client';
+import { safeClient } from '@/integrations/supabase/safeClient';
 import { dbList } from '@/integrations/datasource/db';
 import { RPC } from '@/integrations/datasource/rpcCatalog';
 
@@ -20,10 +20,7 @@ export interface SLAAttribution {
  * - 'not-applicable': there is no first response yet.
  */
 export type FirstResponseAttributionSource =
-  | 'assign-event'
-  | 'pre-contact-assign'
-  | 'insufficient-events'
-  | 'not-applicable';
+  'assign-event' | 'pre-contact-assign' | 'insufficient-events' | 'not-applicable';
 
 export interface SLATimelineData {
   firstContactAt: Date | null;
@@ -92,7 +89,7 @@ export function useConversationSLATimeline(remoteJid: string | null, contactId: 
     enabled,
     staleTime: 30_000,
     refetchInterval: (query) => {
-      const data = query.state.data as SLATimelineData | undefined;
+      const data = query.state.data as SLATimelineData | undefined; // ignore-audit: narrows Supabase query result to local interface
       return data?.isAwaitingFirstResponse ? 30_000 : false;
     },
     queryFn: async (): Promise<SLATimelineData> => {
@@ -112,12 +109,8 @@ export function useConversationSLATimeline(remoteJid: string | null, contactId: 
         (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
       );
 
-      const firstInbound = sorted.find(
-        (m) => m.from_me === false || m.direction === 'inbound'
-      );
-      const firstOutbound = sorted.find(
-        (m) => m.from_me === true || m.direction === 'outbound'
-      );
+      const firstInbound = sorted.find((m) => m.from_me === false || m.direction === 'inbound');
+      const firstOutbound = sorted.find((m) => m.from_me === true || m.direction === 'outbound');
       const last = sorted[sorted.length - 1];
 
       const firstContactAt = firstInbound ? new Date(firstInbound.created_at) : null;
@@ -131,9 +124,7 @@ export function useConversationSLATimeline(remoteJid: string | null, contactId: 
 
       const isAwaitingFirstResponse = Boolean(firstContactAt && !firstResponseAt);
       const awaitingMs =
-        isAwaitingFirstResponse && firstContactAt
-          ? Date.now() - firstContactAt.getTime()
-          : null;
+        isAwaitingFirstResponse && firstContactAt ? Date.now() - firstContactAt.getTime() : null;
 
       // 2. Close / reopen / assign events from Lovable Cloud (best-effort)
       let closedAt: Date | null = null;
@@ -146,21 +137,26 @@ export function useConversationSLATimeline(remoteJid: string | null, contactId: 
         : 'not-applicable';
 
       if (contactId) {
-        const { data: events } = await supabase
-          .from('conversation_events')
-          .select(`
+        const { data: events } = await safeClient.from<ConversationEventRow>(
+          'conversation_events',
+          (q) =>
+            q
+              .select(
+                `
             event_type, created_at, performed_by, from_agent_id, to_agent_id,
             from_queue_id, to_queue_id,
             performed_by_profile:profiles!conversation_events_performed_by_fkey(id, name),
             to_agent:profiles!conversation_events_to_agent_id_fkey(id, name),
             to_queue:queues!conversation_events_to_queue_id_fkey(id, name)
-          `)
-          .eq('contact_id', contactId)
-          .in('event_type', ['close', 'reopen', 'assign'])
-          .order('created_at', { ascending: false })
-          .limit(50);
+          `
+              )
+              .eq('contact_id', contactId)
+              .in('event_type', ['close', 'reopen', 'assign'])
+              .order('created_at', { ascending: false })
+              .limit(50)
+        );
 
-        const eventRows = (events || []) as unknown as ConversationEventRow[];
+        const eventRows = events ?? [];
         const lastClose = eventRows.find((e) => e.event_type === 'close');
         const lastReopen = eventRows.find((e) => e.event_type === 'reopen');
 

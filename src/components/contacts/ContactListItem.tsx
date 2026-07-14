@@ -15,11 +15,11 @@ import {
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
-import { getAvatarColor, getInitials } from '@/lib/avatar-colors';
+import { getAvatarColor, getInitials } from '@/lib/avatarColors';
 import { CONTACT_TYPE_CONFIG } from './contactTypeConfig';
 import { CompanyLogo } from './CompanyLogo';
 import { HighlightText } from './HighlightText';
-import { calculateContactHealth, getHealthColor } from '@/lib/contact-health';
+import { calculateContactHealth, getHealthColor } from '@/lib/contactHealth';
 import type { ContactItemProps } from './types';
 
 export function ContactListItem({
@@ -53,7 +53,7 @@ export function ContactListItem({
       <div className="relative shrink-0">
         <motion.div layoutId={`avatar-${contact.id}`}>
           <Avatar className="w-[53px] h-[53px]">
-            <AvatarImage src={contact.avatar_url || undefined} />
+            <AvatarImage src={contact.avatar_url || undefined} alt={contact.name} />
             <AvatarFallback className={cn('font-semibold text-sm', avatarColors.bg, avatarColors.text)}>
               {getInitials(contact.name)}
             </AvatarFallback>
@@ -176,12 +176,12 @@ export function ContactListItem({
         className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
         onClick={(e) => e.stopPropagation()}
       >
-        <Button variant="ghost" size="icon" className="w-7 h-7 hover:bg-primary/10 hover:text-primary" onClick={() => onOpenChat(contact.id)} title="Conversar">
+        <Button aria-label="Conversar" variant="ghost" size="icon" className="w-7 h-7 hover:bg-primary/10 hover:text-primary" onClick={() => onOpenChat(contact.id)} title="Conversar">
           <MessageSquare className="w-3.5 h-3.5" />
         </Button>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="w-7 h-7">
+            <Button aria-label="Opções do contato" variant="ghost" size="icon" className="w-7 h-7">
               <MoreVertical className="w-3.5 h-3.5" />
             </Button>
           </DropdownMenuTrigger>

@@ -67,25 +67,25 @@ export function EditNodeDialog({ node, onClose, onSave, onChange }: EditNodeDial
         <DialogHeader><DialogTitle>Editar Nó: {node.data.label}</DialogTitle></DialogHeader>
         <div className="space-y-4">
           <div>
-            <Label>Nome</Label>
-            <Input value={node.data.label} onChange={e => onChange({ ...node, data: { ...node.data, label: e.target.value } })} />
+            <Label htmlFor="node-label">Nome</Label>
+            <Input id="node-label" value={node.data.label} onChange={e => onChange({ ...node, data: { ...node.data, label: e.target.value } })} />
           </div>
           {(node.type === 'message' || node.type === 'question') && (
             <div>
-              <Label>Conteúdo da mensagem</Label>
-              <Textarea value={node.data.content || ''} onChange={e => onChange({ ...node, data: { ...node.data, content: e.target.value } })} rows={3} />
+              <Label htmlFor="node-content">Conteúdo da mensagem</Label>
+              <Textarea id="node-content" value={node.data.content || ''} onChange={e => onChange({ ...node, data: { ...node.data, content: e.target.value } })} rows={3} />
             </div>
           )}
           {node.type === 'question' && (
             <div>
-              <Label>Opções (uma por linha)</Label>
-              <Textarea value={(node.data.options || []).join('\n')} onChange={e => onChange({ ...node, data: { ...node.data, options: e.target.value.split('\n').filter(Boolean) } })} rows={3} />
+              <Label htmlFor="node-options">Opções (uma por linha)</Label>
+              <Textarea id="node-options" value={(node.data.options || []).join('\n')} onChange={e => onChange({ ...node, data: { ...node.data, options: e.target.value.split('\n').filter(Boolean) } })} rows={3} />
             </div>
           )}
           {node.type === 'delay' && (
             <div>
-              <Label>Tempo de espera (segundos)</Label>
-              <Input type="number" value={node.data.delaySeconds || 5} onChange={e => onChange({ ...node, data: { ...node.data, delaySeconds: Number(e.target.value) } })} />
+              <Label htmlFor="node-delay">Tempo de espera (segundos)</Label>
+              <Input id="node-delay" type="number" value={node.data.delaySeconds || 5} onChange={e => onChange({ ...node, data: { ...node.data, delaySeconds: Number(e.target.value) } })} />
             </div>
           )}
         </div>

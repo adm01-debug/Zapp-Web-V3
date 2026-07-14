@@ -34,11 +34,12 @@ interface ConversationTasksPanelProps {
   profileId?: string | null;
 }
 
-const priorityConfig: Record<string, { label: string; color: string; icon: typeof AlertTriangle }> = {
-  high: { label: 'Alta', color: 'bg-destructive/10 text-destructive', icon: AlertTriangle },
-  medium: { label: 'Média', color: 'bg-warning/10 text-warning', icon: Clock },
-  low: { label: 'Baixa', color: 'bg-success/10 text-success', icon: CheckCircle2 },
-};
+const priorityConfig: Record<string, { label: string; color: string; icon: typeof AlertTriangle }> =
+  {
+    high: { label: 'Alta', color: 'bg-destructive/10 text-destructive', icon: AlertTriangle },
+    medium: { label: 'Média', color: 'bg-warning/10 text-warning', icon: Clock },
+    low: { label: 'Baixa', color: 'bg-success/10 text-success', icon: CheckCircle2 },
+  };
 
 export function ConversationTasksPanel({ contactId, profileId }: ConversationTasksPanelProps) {
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -53,7 +54,7 @@ export function ConversationTasksPanel({ contactId, profileId }: ConversationTas
 
   const loadTasks = async () => {
     setLoading(true);
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from('conversation_tasks')
       .select('*')
       .eq('contact_id', contactId)
@@ -65,15 +66,13 @@ export function ConversationTasksPanel({ contactId, profileId }: ConversationTas
   const addTask = async () => {
     if (!newTitle.trim()) return;
     setAdding(true);
-    const { error } = await supabase
-      .from('conversation_tasks')
-      .insert({
-        contact_id: contactId,
-        title: newTitle.trim(),
-        priority: newPriority,
-        created_by: profileId,
-        assigned_to: profileId,
-      });
+    const { error } = await supabase.from('conversation_tasks').insert({
+      contact_id: contactId,
+      title: newTitle.trim(),
+      priority: newPriority,
+      created_by: profileId,
+      assigned_to: profileId,
+    });
     if (!error) {
       setNewTitle('');
       toast.success('Tarefa criada');
@@ -102,8 +101,8 @@ export function ConversationTasksPanel({ contactId, profileId }: ConversationTas
     loadTasks();
   };
 
-  const pendingTasks = tasks.filter(t => t.status !== 'completed');
-  const completedTasks = tasks.filter(t => t.status === 'completed');
+  const pendingTasks = tasks.filter((t) => t.status !== 'completed');
+  const completedTasks = tasks.filter((t) => t.status === 'completed');
 
   return (
     <div className="space-y-3">
@@ -117,7 +116,7 @@ export function ConversationTasksPanel({ contactId, profileId }: ConversationTas
           onKeyDown={(e) => e.key === 'Enter' && addTask()}
         />
         <Select value={newPriority} onValueChange={setNewPriority}>
-          <SelectTrigger className="w-24 h-8 text-xs">
+          <SelectTrigger className="h-8 w-24 text-xs">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -126,22 +125,28 @@ export function ConversationTasksPanel({ contactId, profileId }: ConversationTas
             <SelectItem value="low">Baixa</SelectItem>
           </SelectContent>
         </Select>
-        <Button size="sm" className="h-8 px-2" onClick={addTask} disabled={adding || !newTitle.trim()} aria-label="Adicionar tarefa">
-          <Plus className="w-4 h-4" />
+        <Button
+          size="sm"
+          className="h-8 px-2"
+          onClick={addTask}
+          disabled={adding || !newTitle.trim()}
+          aria-label="Adicionar tarefa"
+        >
+          <Plus className="h-4 w-4" />
         </Button>
       </div>
 
       {/* Task list */}
       {loading ? (
         <div className="space-y-2">
-          {[1,2].map(i => (
-            <div key={i} className="h-10 bg-muted/30 rounded-lg animate-pulse" />
+          {[1, 2].map((i) => (
+            <div key={i} className="h-10 animate-pulse rounded-lg bg-muted/30" />
           ))}
         </div>
       ) : (
         <AnimatePresence mode="popLayout">
           {pendingTasks.length === 0 && completedTasks.length === 0 && (
-            <p className="text-xs text-muted-foreground text-center py-3">Nenhuma tarefa</p>
+            <p className="py-3 text-center text-xs text-muted-foreground">Nenhuma tarefa</p>
           )}
           {pendingTasks.map((task) => {
             const cfg = priorityConfig[task.priority] || priorityConfig.medium;
@@ -151,41 +156,44 @@ export function ConversationTasksPanel({ contactId, profileId }: ConversationTas
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
                 exit={{ opacity: 0, height: 0 }}
-                className="flex items-center gap-2 p-2 rounded-lg bg-muted/20 hover:bg-muted/40 transition-colors group"
+                className="group flex items-center gap-2 rounded-lg bg-muted/20 p-2 transition-colors hover:bg-muted/40"
               >
                 <Checkbox
                   checked={false}
                   onCheckedChange={() => toggleTask(task)}
                   className="shrink-0"
                 />
-                <span className="text-sm flex-1 truncate">{task.title}</span>
+                <span className="flex-1 truncate text-sm">{task.title}</span>
                 <Badge variant="outline" className={`text-[10px] ${cfg.color}`}>
                   {cfg.label}
                 </Badge>
                 {task.due_date && (
-                  <span className="text-[10px] text-muted-foreground flex items-center gap-1">
-                    <Calendar className="w-3 h-3" />
+                  <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                    <Calendar className="h-3 w-3" />
                     {format(new Date(task.due_date), 'dd/MM', { locale: ptBR })}
                   </span>
                 )}
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="w-6 h-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                  className="h-6 w-6 opacity-0 transition-opacity group-hover:opacity-100"
+                  aria-label="Excluir tarefa"
                   onClick={() => deleteTask(task.id)}
                 >
-                  <Trash2 className="w-3 h-3 text-destructive" />
+                  <Trash2 className="h-3 w-3 text-destructive" />
                 </Button>
               </motion.div>
             );
           })}
           {completedTasks.length > 0 && (
-            <div className="pt-2 border-t border-border/30">
-              <p className="text-xs text-muted-foreground mb-1">Concluídas ({completedTasks.length})</p>
+            <div className="border-t border-border/30 pt-2">
+              <p className="mb-1 text-xs text-muted-foreground">
+                Concluídas ({completedTasks.length})
+              </p>
               {completedTasks.slice(0, 3).map((task) => (
                 <div key={task.id} className="flex items-center gap-2 p-1.5 opacity-60">
                   <Checkbox checked onCheckedChange={() => toggleTask(task)} className="shrink-0" />
-                  <span className="text-xs line-through flex-1 truncate">{task.title}</span>
+                  <span className="flex-1 truncate text-xs line-through">{task.title}</span>
                 </div>
               ))}
             </div>

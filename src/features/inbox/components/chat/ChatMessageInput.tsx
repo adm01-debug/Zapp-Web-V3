@@ -4,28 +4,23 @@ import { Message } from '@/types/chat';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { motion, AnimatePresence } from '@/components/ui/motion';
-import { ReplyPreview } from '@/features/inbox/components/ReplyQuote';
-import { SlashCommands, SlashCommand } from '@/features/inbox/components/SlashCommands';
-import { AudioRecorder } from '@/features/inbox/components/AudioRecorder';
-import { FileUploader, FileUploaderRef } from '@/features/inbox/components/FileUploader';
+import { ReplyPreview } from '../ReplyQuote';
+import { SlashCommands, SlashCommand } from '../SlashCommands';
+import { AudioRecorder } from '../AudioRecorder';
+import { FileUploader, FileUploaderRef } from '../FileUploader';
 import { ExternalProduct } from '@/hooks/useExternalCatalog';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Send, Smile, Plus, Loader2, X, Image as ImageIcon, FileText, FileVideo, FileAudio } from 'lucide-react';
+import { Send, Smile, Plus, Loader2 } from 'lucide-react';
 import { AIEnhanceButton } from './AIEnhanceButton';
 import { InputExtraTools } from './InputExtraTools';
+import { ChatAttachmentsPreview } from './ChatAttachmentsPreview';
+import { ChatSendProgress } from './ChatSendProgress';
 import { toast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { validateFile, formatFileSize } from '@/utils/whatsappFileTypes';
+import type { QuickReply } from '@/types/chat';
 
-interface QuickReply {
-  id: string;
-  title: string;
-  shortcut: string;
-  content: string;
-  category: string;
-}
-
-interface QueuedFile {
+export interface QueuedFile {
   id: string;
   file: File;
   preview?: string;
@@ -67,227 +62,262 @@ export interface ChatMessageInputRef {
   handleExternalFiles: (files: File[]) => void;
 }
 
-export const ChatMessageInput = forwardRef<ChatMessageInputRef, ChatMessageInputProps>(({
-  inputValue, replyToMessage, isRecordingAudio, showSlashCommands,
-  contactId, contactPhone, contactName, messages, quickReplies,
-  onInputChange, onSend, onCancelReply, onSlashCommand, onCloseSlashCommands,
-  onQuickReply, onRecordToggle, onAudioSend, onAudioCancel,
-  onOpenInteractiveBuilder, onOpenSchedule, onOpenLocationPicker,
-  onSendProduct, onTypingStart, onTypingStop,
-  isSending = false, sendProgress = 0,
-}, ref) => {
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const fileUploaderRef = useRef<FileUploaderRef>(null);
-  const isMobile = useIsMobile();
-  const [attachments, setAttachments] = useState<QueuedFile[]>([]);
+export const ChatMessageInput = forwardRef<ChatMessageInputRef, ChatMessageInputProps>(
+  (
+    {
+      inputValue,
+      replyToMessage,
+      isRecordingAudio,
+      showSlashCommands,
+      contactId,
+      contactPhone,
+      contactName,
+      messages,
+      quickReplies,
+      onInputChange,
+      onSend,
+      onCancelReply,
+      onSlashCommand,
+      onCloseSlashCommands,
+      onQuickReply,
+      onRecordToggle,
+      onAudioSend,
+      onAudioCancel,
+      onOpenInteractiveBuilder,
+      onOpenSchedule,
+      onOpenLocationPicker,
+      onSendProduct,
+      onTypingStart,
+      onTypingStop,
+      isSending = false,
+      sendProgress = 0,
+    },
+    ref
+  ) => {
+    const textareaRef = useRef<HTMLTextAreaElement>(null);
+    const fileUploaderRef = useRef<FileUploaderRef>(null);
+    const isMobile = useIsMobile();
+    const [attachments, setAttachments] = useState<QueuedFile[]>([]);
 
-  const handleFileSelect = useCallback((file: File) => {
-    const validation = validateFile(file);
-    if (!validation.valid) {
-      toast({ title: 'Arquivo inválido', description: validation.error, variant: 'destructive' });
-      return;
-    }
-    
-    const preview = (validation.category === 'image' || file.type === 'application/pdf') 
-      ? URL.createObjectURL(file) 
-      : undefined;
-      
-    setAttachments(prev => [...prev, {
-      id: Math.random().toString(36).substr(2, 9),
-      file,
-      preview,
-      category: validation.category || 'document'
-    }]);
-  }, []);
+    const handleFileSelect = useCallback((file: File) => {
+      const validation = validateFile(file);
+      if (!validation.valid) {
+        toast({ title: 'Arquivo inválido', description: validation.error, variant: 'destructive' });
+        return;
+      }
 
-  const removeAttachment = useCallback((id: string) => {
-    setAttachments(prev => {
-      const att = prev.find(a => a.id === id);
-      if (att?.preview) URL.revokeObjectURL(att.preview);
-      return prev.filter(a => a.id !== id);
-    });
-  }, []);
+      const preview =
+        validation.category === 'image' || file.type === 'application/pdf'
+          ? URL.createObjectURL(file)
+          : undefined;
 
-  const handleSend = () => {
-    onSend(attachments.map(a => a.file));
-    setAttachments([]);
-  };
+      setAttachments((prev) => [
+        ...prev,
+        {
+          id: Math.random().toString(36).substr(2, 9),
+          file,
+          preview,
+          category: validation.category || 'document',
+        },
+      ]);
+    }, []);
 
-  useImperativeHandle(ref, () => ({
-    focus: () => textareaRef.current?.focus(),
-    handleExternalFiles: (files: File[]) => fileUploaderRef.current?.handleExternalFiles(files),
-  }));
+    const removeAttachment = useCallback((id: string) => {
+      setAttachments((prev) => {
+        const att = prev.find((a) => a.id === id);
+        if (att?.preview) URL.revokeObjectURL(att.preview);
+        return prev.filter((a) => a.id !== id);
+      });
+    }, []);
 
-  const autoResize = useCallback((el: HTMLTextAreaElement) => {
-    el.style.height = 'auto';
-    el.style.height = `${Math.min(el.scrollHeight, 120)}px`;
-  }, []);
+    const handleSend = () => {
+      onSend(attachments.map((a) => a.file));
+      setAttachments([]);
+    };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const value = e.target.value;
-    onInputChange(value);
-    autoResize(e.target);
-    if (value.length > 0) onTypingStart();
-    else onTypingStop();
-  };
+    useImperativeHandle(ref, () => ({
+      focus: () => textareaRef.current?.focus(),
+      handleExternalFiles: (files: File[]) => fileUploaderRef.current?.handleExternalFiles(files),
+    }));
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (showSlashCommands && (e.key === 'Enter' || e.key === 'ArrowUp' || e.key === 'ArrowDown')) return;
-    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); }
-    if (e.key === 'Escape' && showSlashCommands) onCloseSlashCommands();
-  };
+    const autoResize = useCallback((el: HTMLTextAreaElement) => {
+      el.style.height = 'auto';
+      el.style.height = `${Math.min(el.scrollHeight, 120)}px`;
+    }, []);
 
-  const extraTools = (
-    <InputExtraTools
-      isRecordingAudio={isRecordingAudio}
-      messages={messages}
-      contactName={contactName}
-      quickReplies={quickReplies}
-      onInputChange={onInputChange}
-      onQuickReply={onQuickReply}
-      onRecordToggle={onRecordToggle}
-      onOpenInteractiveBuilder={onOpenInteractiveBuilder}
-      onOpenSchedule={onOpenSchedule}
-      onOpenLocationPicker={onOpenLocationPicker}
-      onSendProduct={onSendProduct}
-    />
-  );
+    const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+      const value = e.target.value;
+      onInputChange(value);
+      autoResize(e.target);
+      if (value.length > 0) onTypingStart();
+      else onTypingStop();
+    };
 
-  return (
-    <>
-      <AnimatePresence>
-        {replyToMessage && <ReplyPreview message={replyToMessage} onCancel={onCancelReply} />}
-      </AnimatePresence>
+    const handleKeyDown = (e: React.KeyboardEvent) => {
+      if (showSlashCommands && (e.key === 'Enter' || e.key === 'ArrowUp' || e.key === 'ArrowDown'))
+        return;
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        handleSend();
+      }
+      if (e.key === 'Escape' && showSlashCommands) onCloseSlashCommands();
+    };
 
-      <AnimatePresence>
-        {attachments.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            className="px-4 py-2 border-t border-border/50 bg-background/80 backdrop-blur-sm"
-          >
-            <div className="flex flex-wrap gap-2">
-              {attachments.map((att) => (
-                <motion.div
-                  key={att.id}
-                  layout
-                  initial={{ scale: 0.8, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  exit={{ scale: 0.8, opacity: 0 }}
-                  className="relative group w-20 h-20 rounded-lg overflow-hidden border border-border bg-muted flex items-center justify-center"
-                >
-                  {att.preview ? (
-                    <img src={att.preview} alt="Preview" className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="flex flex-col items-center gap-1 text-muted-foreground p-1">
-                      {att.category === 'video' ? <FileVideo className="w-6 h-6" /> :
-                       att.category === 'audio' ? <FileAudio className="w-6 h-6" /> :
-                       att.category === 'image' ? <ImageIcon className="w-6 h-6" /> :
-                       <FileText className="w-6 h-6" />}
-                      <span className="text-[8px] truncate max-w-full text-center">{att.file.name}</span>
-                    </div>
-                  )}
-                  <button
-                    onClick={() => removeAttachment(att.id)}
-                    className="absolute top-1 right-1 p-0.5 rounded-full bg-background/80 text-foreground opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive hover:text-foreground"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                  <div className="absolute bottom-0 left-0 right-0 bg-background/60 backdrop-blur-xs py-0.5 px-1">
-                    <span className="text-[8px] block truncate font-medium">{formatFileSize(att.file.size)}</span>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+    const extraTools = (
+      <InputExtraTools
+        isRecordingAudio={isRecordingAudio}
+        messages={messages}
+        contactName={contactName}
+        quickReplies={quickReplies}
+        onInputChange={onInputChange}
+        onQuickReply={onQuickReply}
+        onRecordToggle={onRecordToggle}
+        onOpenInteractiveBuilder={onOpenInteractiveBuilder}
+        onOpenSchedule={onOpenSchedule}
+        onOpenLocationPicker={onOpenLocationPicker}
+        onSendProduct={onSendProduct}
+      />
+    );
 
-      <AnimatePresence>
-        {isSending && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            className="px-4 py-1.5 bg-primary/5 border-t border-primary/10"
-          >
-            <div className="flex items-center justify-between gap-3 mb-1">
-              <span className="text-[10px] font-medium text-primary uppercase tracking-wider">Enviando...</span>
-              <span className="text-[10px] font-bold text-primary">{Math.round(sendProgress)}%</span>
-            </div>
-            <div className="h-1 w-full bg-primary/10 rounded-full overflow-hidden">
-              <motion.div 
-                className="h-full bg-primary"
-                initial={{ width: 0 }}
-                animate={{ width: `${sendProgress}%` }}
-                transition={{ type: 'spring', bounce: 0, duration: 0.3 }}
-              />
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className={cn("bg-background/95 backdrop-blur-md border-t border-border/50 shadow-[0_-4px_12px_rgba(0,0,0,0.03)]", isMobile ? "p-3 safe-area-bottom" : "p-4")}>
-        <div className="flex items-end gap-1">
-          <FileUploader ref={fileUploaderRef} instanceName={contactId} recipientNumber={contactPhone} contactId={contactId} connectionId={undefined}
-            onFileSelect={handleFileSelect}
-            onFileSent={() => toast({ title: 'Arquivo enviado!', description: 'O arquivo foi enviado com sucesso via WhatsApp.' })}
-            showDialog={false}
-          />
-
-          {isMobile ? (
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-primary hover:bg-primary/10 flex-shrink-0 w-9 h-9 touch-manipulation active:scale-95" aria-label="Mais opções">
-                  <Plus className="w-5 h-5" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-2 glass-strong border-border/50" align="start" side="top">
-                <div className="flex flex-wrap gap-1 max-w-[240px]">{extraTools}</div>
-              </PopoverContent>
-            </Popover>
-          ) : (
-            <div className="flex items-center gap-1">{extraTools}</div>
-          )}
-
-          <div className="flex-1 relative group min-w-0">
-            <SlashCommands inputValue={inputValue} onSelectCommand={onSlashCommand} onClose={onCloseSlashCommands} isOpen={showSlashCommands} />
-            <Textarea ref={textareaRef} value={inputValue} onChange={handleInputChange} onKeyDown={handleKeyDown} onBlur={onTypingStop}
-              placeholder={replyToMessage ? "Digite sua resposta..." : isMobile ? "Mensagem..." : "Digite / para comandos... (Shift+Enter para nova linha)"}
-              className={cn("min-h-[44px] max-h-[120px] resize-none pr-10 bg-background/50 border-border/50 focus:border-primary/50 focus:ring-primary/20 transition-all  text-[14px] font-medium tracking-normal rounded-2xl", isMobile ? "py-2.5 text-[16px] leading-snug" : "py-3", isSending && "opacity-50 pointer-events-none")}
-              rows={1}
-              disabled={isSending}
-            />
-            <div className="absolute right-1 top-1.5 flex items-center gap-0.5">
-              <AIEnhanceButton inputValue={inputValue} onInputChange={onInputChange} contactName={contactName} />
-              {!isMobile && (
-                <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
-                  <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-primary w-8 h-8" aria-label="Emojis">
-                    <Smile className="w-5 h-5" />
-                  </Button>
-                </motion.div>
-              )}
-            </div>
-          </div>
-
-          <div className="flex-shrink-0">
-            <Button onClick={handleSend} disabled={(!inputValue.trim() && attachments.length === 0) || isSending} size="icon"
-              className={cn("text-primary-foreground shadow-lg shadow-primary/25 hover:shadow-primary/40 transition-all disabled:opacity-50 touch-manipulation active:scale-95", isMobile ? "w-10 h-10 rounded-full" : "w-9 h-9")}
-              style={{ background: 'var(--gradient-primary)' }} aria-label="Enviar mensagem">
-              {isSending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-            </Button>
-          </div>
-        </div>
-
+    return (
+      <>
         <AnimatePresence>
-          {isRecordingAudio && (
-            <div className="mt-3"><AudioRecorder onSend={onAudioSend} onCancel={onAudioCancel} /></div>
-          )}
+          {replyToMessage && <ReplyPreview message={replyToMessage} onCancel={onCancelReply} />}
         </AnimatePresence>
-      </motion.div>
-    </>
-  );
-});
+
+        <ChatAttachmentsPreview attachments={attachments} onRemove={removeAttachment} />
+        <ChatSendProgress isSending={isSending} sendProgress={sendProgress} />
+
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className={cn(
+            'border-t border-border/50 bg-background/95 shadow-[0_-4px_12px_rgba(0,0,0,0.03)] backdrop-blur-md',
+            isMobile ? 'safe-area-bottom p-3' : 'p-4'
+          )}
+        >
+          <div className="flex items-end gap-1">
+            <FileUploader
+              ref={fileUploaderRef}
+              instanceName={contactId}
+              recipientNumber={contactPhone}
+              contactId={contactId}
+              connectionId={undefined}
+              onFileSelect={handleFileSelect}
+              onFileSent={() =>
+                toast({
+                  title: 'Arquivo enviado!',
+                  description: 'O arquivo foi enviado com sucesso via WhatsApp.',
+                })
+              }
+              showDialog={false}
+            />
+
+            {isMobile ? (
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-9 w-9 flex-shrink-0 touch-manipulation text-muted-foreground hover:bg-primary/10 hover:text-primary active:scale-95"
+                    aria-label="Mais opções"
+                  >
+                    <Plus className="h-5 w-5" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent
+                  className="glass-strong w-auto border-border/50 p-2"
+                  align="start"
+                  side="top"
+                >
+                  <div className="flex max-w-[240px] flex-wrap gap-1">{extraTools}</div>
+                </PopoverContent>
+              </Popover>
+            ) : (
+              <div className="flex items-center gap-1">{extraTools}</div>
+            )}
+
+            <div className="group relative min-w-0 flex-1">
+              <SlashCommands
+                inputValue={inputValue}
+                onSelectCommand={onSlashCommand}
+                onClose={onCloseSlashCommands}
+                isOpen={showSlashCommands}
+              />
+              <Textarea
+                ref={textareaRef}
+                value={inputValue}
+                onChange={handleInputChange}
+                onKeyDown={handleKeyDown}
+                onBlur={onTypingStop}
+                placeholder={
+                  replyToMessage
+                    ? 'Digite sua resposta...'
+                    : isMobile
+                      ? 'Mensagem...'
+                      : 'Digite / para comandos... (Shift+Enter para nova linha)'
+                }
+                className={cn(
+                  'max-h-[120px] min-h-[44px] resize-none rounded-2xl border-border/50 bg-background/50 pr-10 text-[14px] font-medium tracking-normal transition-all focus:border-primary/50 focus:ring-primary/20',
+                  isMobile ? 'py-2.5 text-[16px] leading-snug' : 'py-3',
+                  isSending && 'pointer-events-none opacity-50'
+                )}
+                rows={1}
+                disabled={isSending}
+              />
+              <div className="absolute right-1 top-1.5 flex items-center gap-0.5">
+                <AIEnhanceButton
+                  inputValue={inputValue}
+                  onInputChange={onInputChange}
+                  contactName={contactName}
+                />
+                {!isMobile && (
+                  <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-muted-foreground hover:text-primary"
+                      aria-label="Emojis"
+                    >
+                      <Smile className="h-5 w-5" />
+                    </Button>
+                  </motion.div>
+                )}
+              </div>
+            </div>
+
+            <div className="flex-shrink-0">
+              <Button
+                onClick={handleSend}
+                disabled={(!inputValue.trim() && attachments.length === 0) || isSending}
+                size="icon"
+                className={cn(
+                  'touch-manipulation text-primary-foreground shadow-lg shadow-primary/25 transition-all hover:shadow-primary/40 active:scale-95 disabled:opacity-50',
+                  isMobile ? 'h-10 w-10 rounded-full' : 'h-9 w-9'
+                )}
+                style={{ background: 'var(--gradient-primary)' }}
+                aria-label="Enviar mensagem"
+              >
+                {isSending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Send className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
+          </div>
+
+          <AnimatePresence>
+            {isRecordingAudio && (
+              <div className="mt-3">
+                <AudioRecorder onSend={onAudioSend} onCancel={onAudioCancel} />
+              </div>
+            )}
+          </AnimatePresence>
+        </motion.div>
+      </>
+    );
+  }
+);
 
 ChatMessageInput.displayName = 'ChatMessageInput';

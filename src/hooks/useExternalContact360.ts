@@ -35,7 +35,7 @@ export function useExternalContact360(phone: string | undefined) {
         return null;
       }
 
-      return data as Contact360Data;
+      return data as Contact360Data; // ignore-audit: narrows Supabase query result to local interface
     },
     enabled: isExternalConfigured && !!cleanedPhone && cleanedPhone.length >= 8,
     staleTime: 1000 * 60 * 10, // 10 min cache

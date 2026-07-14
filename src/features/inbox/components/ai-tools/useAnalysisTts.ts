@@ -8,10 +8,12 @@ export function useAnalysisTts() {
   const [autoplayBlocked, setAutoplayBlocked] = useState(false);
   const [lastTtsText, setLastTtsText] = useState<string | null>(null);
   const ttsRef = useRef<TtsPlayback | null>(null);
+  const mountedRef = useRef(true);
 
   useEffect(() => {
     return () => {
       ttsRef.current?.stop();
+      mountedRef.current = false;
     };
   }, []);
 
@@ -24,40 +26,51 @@ export function useAnalysisTts() {
     }
   }, []);
 
-  const startTtsPlayback = useCallback((text: string) => {
-    if (isTtsPlaying && ttsRef.current) {
-      stopTts();
-      return;
-    }
-    if (!text.trim()) return;
+  const startTtsPlayback = useCallback(
+    (text: string) => {
+      if (isTtsPlaying && ttsRef.current) {
+        stopTts();
+        return;
+      }
+      if (!text.trim()) return;
 
-    setAutoplayBlocked(false);
-    setLastTtsText(text);
+      setAutoplayBlocked(false);
+      setLastTtsText(text);
 
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-    const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
-    const ttsOptions: PlayTtsOptions = {
-      onLoadingChange: setIsTtsLoading,
-      onError: (err) => {
-        if (err.message === 'AUTOPLAY_BLOCKED') return;
-        toast.error('Erro ao gerar áudio: ' + err.message);
-      },
-      onAutoplayBlocked: () => {
-        setAutoplayBlocked(true);
-        setIsTtsPlaying(false);
-        setIsTtsLoading(false);
-      },
-    };
+      const ttsOptions: PlayTtsOptions = {
+        onLoadingChange: setIsTtsLoading,
+        onError: (err) => {
+          if (err.message === 'AUTOPLAY_BLOCKED') return;
+          toast.error('Erro ao gerar áudio: ' + err.message);
+        },
+        onAutoplayBlocked: () => {
+          setAutoplayBlocked(true);
+          setIsTtsPlaying(false);
+          setIsTtsLoading(false);
+        },
+      };
 
-    const playback = playTtsAudio(text, supabaseUrl, supabaseKey, ttsOptions);
-    ttsRef.current = playback;
-    setIsTtsPlaying(true);
+      const playback = playTtsAudio(text, supabaseUrl, supabaseKey, ttsOptions);
+      ttsRef.current = playback;
+      setIsTtsPlaying(true);
 
-    playback.promise
-      .then(() => setIsTtsPlaying(false))
-      .catch(() => setIsTtsPlaying(false));
-  }, [isTtsPlaying, stopTts]);
+      playback.promise
+        .then(() => {
+          if (mountedRef.current) {
+            setIsTtsPlaying(false);
+          }
+        })
+        .catch(() => {
+          if (mountedRef.current) {
+            setIsTtsPlaying(false);
+          }
+        });
+    },
+    [isTtsPlaying, stopTts]
+  );
 
   const handleRetryAutoplay = useCallback(() => {
     if (lastTtsText) {

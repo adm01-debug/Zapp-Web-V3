@@ -1,9 +1,16 @@
 import { useState, useEffect } from 'react';
+import { useMountedRef } from '@/hooks/useMountedRef';
 import { supabase } from '@/integrations/supabase/client';
-import { getLogger } from '@/lib/logger';
-import { startOfDay, format, startOfHour, eachDayOfInterval, eachHourOfInterval, startOfToday, differenceInDays } from 'date-fns';
-
-const log = getLogger('useQueueAnalytics');
+import { log } from '@/lib/logger';
+import {
+  startOfDay,
+  format,
+  startOfHour,
+  eachDayOfInterval,
+  eachHourOfInterval,
+  startOfToday,
+  differenceInDays,
+} from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { dbFrom } from '@/integrations/datasource/db';
 
@@ -51,6 +58,7 @@ export function useQueueAnalytics(queueId: string, dateRange: DateRange): QueueA
   const [agentPerformance, setAgentPerformance] = useState<AgentPerformance[]>([]);
   const [statusData, setStatusData] = useState<StatusData[]>([]);
   const [loading, setLoading] = useState(true);
+  const mountedRef = useMountedRef();
 
   useEffect(() => {
     if (queueId && dateRange.from && dateRange.to) {
@@ -68,8 +76,9 @@ export function useQueueAnalytics(queueId: string, dateRange: DateRange): QueueA
         .eq('queue_id', queueId);
 
       if (contactsError) throw contactsError;
+      if (!mountedRef.current) return;
 
-      const contactIds = contacts?.map(c => c.id) || [];
+      const contactIds = contacts?.map((c) => c.id) || [];
 
       if (contactIds.length === 0) {
         setDailyData(generateEmptyDailyData(dateRange));
@@ -93,6 +102,7 @@ export function useQueueAnalytics(queueId: string, dateRange: DateRange): QueueA
         .order('created_at', { ascending: true });
 
       if (messagesError) throw messagesError;
+      if (!mountedRef.current) return;
 
       // Process daily data
       const dailyAggregation = processDailyData(messages || [], contacts || [], dateRange);
@@ -104,26 +114,26 @@ export function useQueueAnalytics(queueId: string, dateRange: DateRange): QueueA
 
       // Process agent performance
       const agentAggregation = await processAgentPerformance(messages || []);
+      if (!mountedRef.current) return;
       setAgentPerformance(agentAggregation);
 
       // Process status distribution
       const statusAggregation = processStatusData(contacts || []);
       setStatusData(statusAggregation);
-
     } catch (error) {
       log.error('Error fetching queue analytics:', error);
     } finally {
-      setLoading(false);
+      if (mountedRef.current) setLoading(false);
     }
   };
 
   const generateEmptyDailyData = (range: DateRange): DailyData[] => {
     const days = eachDayOfInterval({
       start: range.from,
-      end: range.to
+      end: range.to,
     });
 
-    return days.map(date => ({
+    return days.map((date) => ({
       day: format(date, 'dd/MM', { locale: ptBR }),
       date: format(date, 'yyyy-MM-dd'),
       mensagens: 0,
@@ -146,7 +156,7 @@ export function useQueueAnalytics(queueId: string, dateRange: DateRange): QueueA
   ): DailyData[] => {
     const days = eachDayOfInterval({
       start: range.from,
-      end: range.to
+      end: range.to,
     });
 
     // For longer periods, group by week or show fewer data points
@@ -155,25 +165,25 @@ export function useQueueAnalytics(queueId: string, dateRange: DateRange): QueueA
 
     return days
       .filter((_, index) => index % showEveryNth === 0 || index === days.length - 1)
-      .map(date => {
+      .map((date) => {
         const dayStart = startOfDay(date);
         const dayEnd = new Date(dayStart);
         dayEnd.setDate(dayEnd.getDate() + showEveryNth);
 
         // Count messages for this period
-        const periodMessages = messages.filter(m => {
+        const periodMessages = messages.filter((m) => {
           const msgDate = new Date(m.created_at);
           return msgDate >= dayStart && msgDate < dayEnd;
         });
 
         // Count new contacts for this period
-        const newContacts = contacts.filter(c => {
+        const newContacts = contacts.filter((c) => {
           const contactDate = new Date(c.created_at);
           return contactDate >= dayStart && contactDate < dayEnd;
         });
 
         // Count resolved (assigned) contacts for this period
-        const resolvedContacts = contacts.filter(c => {
+        const resolvedContacts = contacts.filter((c) => {
           if (!c.assigned_to) return false;
           const contactDate = new Date(c.created_at);
           return contactDate >= dayStart && contactDate < dayEnd;
@@ -189,27 +199,25 @@ export function useQueueAnalytics(queueId: string, dateRange: DateRange): QueueA
       });
   };
 
-  const processHourlyData = (
-    messages: Array<{ id: string; created_at: string }>
-  ): HourlyData[] => {
+  const processHourlyData = (messages: Array<{ id: string; created_at: string }>): HourlyData[] => {
     const today = startOfToday();
     const hours = eachHourOfInterval({
       start: new Date(today.setHours(8)),
-      end: new Date(today.setHours(19))
+      end: new Date(today.setHours(19)),
     });
 
-    return hours.map(hour => {
+    return hours.map((hour) => {
       const hourStart = startOfHour(hour);
       const hourEnd = new Date(hourStart);
       hourEnd.setHours(hourEnd.getHours() + 1);
 
-      const hourMessages = messages.filter(m => {
+      const hourMessages = messages.filter((m) => {
         const msgDate = new Date(m.created_at);
         return msgDate >= hourStart && msgDate < hourEnd;
       });
 
       return {
-        hora: format(hour, 'HH\'h\''),
+        hora: format(hour, "HH'h'"),
         atendimentos: hourMessages.length,
       };
     });
@@ -220,8 +228,8 @@ export function useQueueAnalytics(queueId: string, dateRange: DateRange): QueueA
   ): Promise<AgentPerformance[]> => {
     // Count messages sent by agents
     const agentMessages: Record<string, number> = {};
-    
-    messages.forEach(m => {
+
+    messages.forEach((m) => {
       if (m.sender === 'agent' && m.agent_id) {
         agentMessages[m.agent_id] = (agentMessages[m.agent_id] || 0) + 1;
       }
@@ -239,7 +247,7 @@ export function useQueueAnalytics(queueId: string, dateRange: DateRange): QueueA
     if (error || !profiles) return [];
 
     return profiles
-      .map(p => ({
+      .map((p) => ({
         name: p.name,
         profile_id: p.id,
         atendimentos: agentMessages[p.id] || 0,
@@ -260,8 +268,7 @@ export function useQueueAnalytics(queueId: string, dateRange: DateRange): QueueA
       ];
     }
 
-    const assigned = contacts.filter(c => c.assigned_to).length;
-    const waiting = total - assigned;
+    const assigned = contacts.filter((c) => c.assigned_to).length;
 
     // Estimate resolved as 70% of assigned (since we don't have resolved status)
     const resolved = Math.floor(assigned * 0.7);

@@ -30,10 +30,15 @@ export function useLocationPicker(open: boolean, activeTab: 'map' | 'current') {
   useEffect(() => {
     if (!open) return;
     let cancelled = false;
-    supabase.functions.invoke('get-mapbox-token').then(({ data, error }) => {
-      if (!cancelled && !error && data?.token) setMapboxToken(data.token);
-    }).catch(err => log.error('Error fetching Mapbox token:', err));
-    return () => { cancelled = true; };
+    supabase.functions
+      .invoke('get-mapbox-token')
+      .then(({ data, error }) => {
+        if (!cancelled && !error && data?.token) setMapboxToken(data.token);
+      })
+      .catch((err) => log.error('Error fetching Mapbox token:', err));
+    return () => {
+      cancelled = true;
+    };
   }, [open]);
 
   const updateMarker = useCallback((lng: number, lat: number) => {
@@ -42,50 +47,92 @@ export function useLocationPicker(open: boolean, activeTab: 'map' | 'current') {
       marker.current.setLngLat([lng, lat]);
     } else {
       const el = document.createElement('div');
-      el.textContent = `<div class="w-10 h-10 bg-primary rounded-full flex items-center justify-center shadow-lg animate-bounce"><svg class="w-5 h-5 text-primary-foreground" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg></div>`; // FIX: innerHTML ? textContent (XSS prevention)
-      marker.current = new mapboxgl.Marker(el, { anchor: 'bottom' }).setLngLat([lng, lat]).addTo(map.current);
+      el.innerHTML = `<div class="w-10 h-10 bg-primary rounded-full flex items-center justify-center shadow-lg animate-bounce"><svg class="w-5 h-5 text-primary-foreground" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg></div>`;
+      marker.current = new mapboxgl.Marker(el, { anchor: 'bottom' })
+        .setLngLat([lng, lat])
+        .addTo(map.current);
     }
     map.current.flyTo({ center: [lng, lat], zoom: 16 });
   }, []);
 
-  const reverseGeocode = useCallback(async (lng: number, lat: number) => {
-    if (!mapboxToken) return;
-    try {
-      const response = await fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?access_token=${mapboxToken}&language=pt`);
-      const data = await response.json();
-      if (!mountedRef.current) return;
-      if (data.features?.length > 0) {
-        setSelectedLocation({ lat, lng, name: data.features[0].text, address: data.features[0].place_name });
-      } else {
+  const reverseGeocode = useCallback(
+    async (lng: number, lat: number) => {
+      if (!mapboxToken) return;
+      try {
+        const response = await fetch(
+          `https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?access_token=${mapboxToken}&language=pt`
+        );
+        const data = await response.json();
+        if (!mountedRef.current) return;
+        if (data.features?.length > 0) {
+          setSelectedLocation({
+            lat,
+            lng,
+            name: data.features[0].text,
+            address: data.features[0].place_name,
+          });
+        } else {
+          setSelectedLocation({ lat, lng });
+        }
+      } catch (error) {
+        if (!mountedRef.current) return;
+        log.error('Error reverse geocoding:', error);
         setSelectedLocation({ lat, lng });
       }
-    } catch (error) {
-      if (!mountedRef.current) return;
-      log.error('Error reverse geocoding:', error);
-      setSelectedLocation({ lat, lng });
-    }
-  }, [mapboxToken, mountedRef]);
+    },
+    [mapboxToken, mountedRef]
+  );
 
   useEffect(() => {
     if (!mapContainer.current || !mapboxToken || !open || activeTab !== 'map') return;
     mapboxgl.accessToken = mapboxToken;
-    map.current = new mapboxgl.Map({ container: mapContainer.current, style: 'mapbox://styles/mapbox/streets-v12', center: [-46.6333, -23.5505], zoom: 12 });
+    map.current = new mapboxgl.Map({
+      container: mapContainer.current,
+      style: 'mapbox://styles/mapbox/streets-v12',
+      center: [-46.6333, -23.5505],
+      zoom: 12,
+    });
     map.current.addControl(new mapboxgl.NavigationControl(), 'top-right');
     map.current.on('load', () => setIsMapLoaded(true));
-    map.current.on('click', async (e) => { const { lng, lat } = e.lngLat; updateMarker(lng, lat); await reverseGeocode(lng, lat); });
-    return () => { map.current?.remove(); map.current = null; setIsMapLoaded(false); };
+    map.current.on('click', async (e) => {
+      const { lng, lat } = e.lngLat;
+      updateMarker(lng, lat);
+      await reverseGeocode(lng, lat);
+    });
+    return () => {
+      map.current?.remove();
+      map.current = null;
+      setIsMapLoaded(false);
+    };
   }, [mapboxToken, open, activeTab, updateMarker, reverseGeocode]);
 
   const getCurrentLocation = useCallback(() => {
     setIsLoadingLocation(true);
     if (!navigator.geolocation) {
-      toast({ title: 'Não suportado', description: 'Geolocalização não é suportada pelo seu navegador.', variant: 'destructive' });
+      toast({
+        title: 'Não suportado',
+        description: 'Geolocalização não é suportada pelo seu navegador.',
+        variant: 'destructive',
+      });
       setIsLoadingLocation(false);
       return;
     }
     navigator.geolocation.getCurrentPosition(
-      async (position) => { const { latitude, longitude } = position.coords; updateMarker(longitude, latitude); await reverseGeocode(longitude, latitude); setIsLoadingLocation(false); },
-      (error) => { log.error('Error getting location:', error); toast({ title: 'Erro ao obter localização', description: 'Verifique se a permissão de localização está ativada.', variant: 'destructive' }); setIsLoadingLocation(false); },
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        updateMarker(longitude, latitude);
+        await reverseGeocode(longitude, latitude);
+        setIsLoadingLocation(false);
+      },
+      (error) => {
+        log.error('Error getting location:', error);
+        toast({
+          title: 'Erro ao obter localização',
+          description: 'Verifique se a permissão de localização está ativada.',
+          variant: 'destructive',
+        });
+        setIsLoadingLocation(false);
+      },
       { enableHighAccuracy: true, timeout: 10000 }
     );
   }, [updateMarker, reverseGeocode]);
@@ -94,18 +141,32 @@ export function useLocationPicker(open: boolean, activeTab: 'map' | 'current') {
     if (!searchQuery.trim() || !mapboxToken) return;
     setIsSearching(true);
     try {
-      const response = await fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(searchQuery)}.json?access_token=${mapboxToken}&language=pt&country=br`);
+      const response = await fetch(
+        `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(searchQuery)}.json?access_token=${mapboxToken}&language=pt&country=br`
+      );
       const data = await response.json();
       if (!mountedRef.current) return;
       if (data.features?.length > 0) {
         const [lng, lat] = data.features[0].center;
         updateMarker(lng, lat);
-        setSelectedLocation({ lat, lng, name: data.features[0].text, address: data.features[0].place_name });
+        setSelectedLocation({
+          lat,
+          lng,
+          name: data.features[0].text,
+          address: data.features[0].place_name,
+        });
       } else {
-        toast({ title: 'Local não encontrado', description: 'Tente buscar por outro endereço.', variant: 'destructive' });
+        toast({
+          title: 'Local não encontrado',
+          description: 'Tente buscar por outro endereço.',
+          variant: 'destructive',
+        });
       }
-    } catch (error) { if (mountedRef.current) log.error('Error searching location:', error); }
-    finally { if (mountedRef.current) setIsSearching(false); }
+    } catch (error) {
+      if (mountedRef.current) log.error('Error searching location:', error);
+    } finally {
+      if (mountedRef.current) setIsSearching(false);
+    }
   }, [searchQuery, mapboxToken, updateMarker, mountedRef]);
 
   const reset = useCallback(() => {
@@ -114,7 +175,15 @@ export function useLocationPicker(open: boolean, activeTab: 'map' | 'current') {
   }, []);
 
   return {
-    mapContainer, isMapLoaded, isLoadingLocation, searchQuery, setSearchQuery, isSearching,
-    selectedLocation, getCurrentLocation, searchLocation, reset,
+    mapContainer,
+    isMapLoaded,
+    isLoadingLocation,
+    searchQuery,
+    setSearchQuery,
+    isSearching,
+    selectedLocation,
+    getCurrentLocation,
+    searchLocation,
+    reset,
   };
 }

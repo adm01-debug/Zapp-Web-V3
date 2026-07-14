@@ -1,7 +1,7 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { Shield, Users, UserPlus, Trash2, Search, Loader2, Crown, Eye, Headphones, Code } from 'lucide-react';
 import { useUserRole } from '@/features/auth';
-import { useRolesPageState } from './useRolesPageState';
+import { useRolesPageState } from '@/hooks/admin/useRolesPageState';
 import { PermissionMatrix } from '@/features/auth';
 import { VisibilityGrantsManager } from '@/features/admin';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -142,7 +142,7 @@ export default function RolesPage() {
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Role</label>
-              <Select value={selectedRole} onValueChange={(v) => setSelectedRole(v as 'dev' | 'admin' | 'supervisor' | 'agent')}>
+              <Select value={selectedRole} onValueChange={(v) => setSelectedRole(v as 'dev' | 'admin' | 'supervisor' | 'agent' /* ignore-audit: Select/Tabs value string narrowed to union; developer controls option values */)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {Object.entries(ROLE_CONFIG).map(([role, config]) => (

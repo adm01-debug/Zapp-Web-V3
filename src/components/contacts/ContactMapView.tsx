@@ -6,16 +6,10 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { MapPin, Users, Globe } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { getAvatarColor, getInitials } from '@/lib/avatar-colors';
+import { getAvatarColor, getInitials } from '@/lib/avatarColors';
+import type { Tables } from '@/integrations/supabase/types';
 
-interface Contact {
-  id: string;
-  name: string;
-  company?: string | null;
-  phone: string;
-  avatar_url?: string | null;
-  lead_origin?: string | null;
-}
+type Contact = Pick<Tables<'contacts'>, 'id' | 'name' | 'company' | 'phone' | 'avatar_url'> & Partial<Pick<Tables<'contacts'>, 'lead_origin'>>;
 
 interface ContactMapViewProps {
   contacts: Contact[];
@@ -79,8 +73,9 @@ export function ContactMapView({ contacts, onContactClick }: ContactMapViewProps
     const map = new Map<string, Contact[]>();
     contacts.forEach(c => {
       const region = getRegionFromPhone(c.phone);
-      if (!map.has(region)) map.set(region, []);
-      map.get(region)!.push(c);
+      const group = map.get(region);
+      if (group) group.push(c);
+      else map.set(region, [c]);
     });
     return Array.from(map.entries())
       .sort((a, b) => b[1].length - a[1].length);
@@ -117,11 +112,16 @@ export function ContactMapView({ contacts, onContactClick }: ContactMapViewProps
               transition={{ delay: i * 0.04 }}
             >
               <Card
+                role="button"
+                tabIndex={0}
+                aria-expanded={isExpanded}
+                aria-label={region}
                 className={cn(
                   'cursor-pointer transition-all hover:shadow-md border-border/40',
                   isExpanded && 'ring-1 ring-primary/30'
                 )}
                 onClick={() => setExpandedRegion(isExpanded ? null : region)}
+                onKeyDown={(e) => e.key === 'Enter' && setExpandedRegion(isExpanded ? null : region)}
               >
                 <CardContent className="p-3 space-y-2">
                   <div className="flex items-center gap-2">
@@ -163,7 +163,7 @@ export function ContactMapView({ contacts, onContactClick }: ContactMapViewProps
                                 className="w-full flex items-center gap-2 p-1.5 rounded-md hover:bg-muted/50 transition-colors text-left"
                               >
                                 <Avatar className="h-6 w-6">
-                                  <AvatarImage src={c.avatar_url || undefined} />
+                                  <AvatarImage src={c.avatar_url || undefined} alt={c.name} />
                                   <AvatarFallback className={cn(colors.bg, colors.text, 'text-[8px]')}>
                                     {getInitials(c.name)}
                                   </AvatarFallback>

@@ -2,7 +2,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Brain, Plus } from 'lucide-react';
-import { useAIProviders } from './ai-providers/useAIProviders';
+import { useAIProviders } from '@/hooks/ai-providers/useAIProviders';
 import { AIProviderCard } from './ai-providers/AIProviderCard';
 import { AIProviderFormDialog } from './ai-providers/AIProviderFormDialog';
 import { AIProviderHealthPanel } from './ai-providers/AIProviderHealthPanel';

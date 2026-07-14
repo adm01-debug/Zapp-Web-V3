@@ -51,12 +51,12 @@ export function useFailedMessageAlerts(enabled = true): void {
 
     const channel = supabase
       .channel('failed_messages_alerts')
-      .on(
+      .on<FailedMessageRowMinimal>(
         'postgres_changes',
         { event: 'UPDATE', schema: 'zapp', table: 'failed_messages' },
         (payload) => {
-          const next = payload.new as FailedMessageRowMinimal | null;
-          const prev = payload.old as FailedMessageRowMinimal | null;
+          const next = payload.new;
+          const prev = payload.old;
           if (!next || next.status !== 'abandoned') return;
           // Evita repetir toast caso o realtime reentregue o mesmo update.
           if (seenRef.current.has(next.id)) return;
@@ -75,20 +75,21 @@ export function useFailedMessageAlerts(enabled = true): void {
               description:
                 'O reprocessador da fila esgotou as tentativas. Verifique o painel de mensagens com falha.',
               duration: 12_000,
-            },
+            }
           );
           log.warn('[dlq-alert] abandoned', {
             id: next.id,
             instance: next.instance_name,
             error_code: next.error_code,
           });
-        },
+        }
       )
       .subscribe((status) => {
         if (status === 'CHANNEL_ERROR') log.warn('[dlq-alert] channel error');
       });
 
     return () => {
+      void channel.unsubscribe();
       supabase.removeChannel(channel);
     };
   }, [enabled]);

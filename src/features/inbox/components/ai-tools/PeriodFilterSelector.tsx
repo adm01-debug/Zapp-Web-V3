@@ -204,11 +204,20 @@ export function PeriodFilterSelector({
           {hasFilter && (
             <span
               role="button"
+              tabIndex={0}
               className="ml-0.5 p-0.5 rounded-full hover:bg-primary-foreground/20"
               onClick={(e) => {
                 e.stopPropagation();
                 onPeriodChange('all');
                 onClearCustom();
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onPeriodChange('all');
+                  onClearCustom();
+                }
               }}
               aria-label="Remover filtro de data"
             >

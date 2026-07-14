@@ -19,18 +19,19 @@ export default function AdminSearchInsightsPage() {
   const { data, isLoading, isFetching, refetch, error } = useSearchInsights(days);
 
   return (
-    <div className="space-y-4 max-w-7xl mx-auto">
-      <header className="flex items-center justify-between flex-wrap gap-3">
+    <div className="mx-auto max-w-7xl space-y-4">
+      <header className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold flex items-center gap-2">
+          <h1 className="flex items-center gap-2 text-2xl font-semibold">
             <Search className="h-5 w-5" /> Search Insights
           </h1>
           <p className="text-sm text-muted-foreground">
-            KPIs e queries mais frequentes da busca global. Use as queries zero-result para curar a base de conhecimento.
+            KPIs e queries mais frequentes da busca global. Use as queries zero-result para curar a
+            base de conhecimento.
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <div className="flex items-center bg-muted rounded-lg p-0.5">
+          <div className="flex items-center rounded-lg bg-muted p-0.5">
             {WINDOWS.map((w) => (
               <Button
                 key={w.days}
@@ -75,7 +76,25 @@ export default function AdminSearchInsightsPage() {
         </Card>
       ) : (
         <>
-          <SearchInsightsKPICards data={data ?? { total_searches: 0, unique_queries: 0, vector_searches: 0, vector_share: 0, total_clicks: 0, click_through_rate: 0, zero_result_count: 0, zero_result_rate: 0, avg_result_count: 0, top_queries: [], zero_result_queries: [], window_days: days }} isLoading={isLoading} />
+          <SearchInsightsKPICards
+            data={
+              data ?? {
+                total_searches: 0,
+                unique_queries: 0,
+                vector_searches: 0,
+                vector_share: 0,
+                total_clicks: 0,
+                click_through_rate: 0,
+                zero_result_count: 0,
+                zero_result_rate: 0,
+                avg_result_count: 0,
+                top_queries: [],
+                zero_result_queries: [],
+                window_days: days,
+              }
+            }
+            isLoading={isLoading}
+          />
           {data && <SearchInsightsTables data={data} />}
         </>
       )}

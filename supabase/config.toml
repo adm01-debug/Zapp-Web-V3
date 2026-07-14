@@ -1,4 +1,7 @@
-project_id = "allrjhkpuscmgbsnmjlv"
+# BANCO CANÔNICO: supabase.atomicabr.com.br (self-hosted VPS)
+# O projeto Lovable Cloud allrjhkpuscmgbsnmjlv foi DESCONTINUADO em 30/06/2026.
+# Refs: docs/cutover/2026-06-30_RUNBOOK.md
+project_id = "default"
 
 [functions.ai-conversation-summary]
 verify_jwt = true
@@ -25,6 +28,18 @@ verify_jwt = false
 verify_jwt = true
 
 [functions.evolution-webhook]
+verify_jwt = false
+
+[functions.evolution-credentials]
+verify_jwt = true
+
+[functions.connection-health-check]
+verify_jwt = false
+
+[functions.evolution-health]
+verify_jwt = false
+
+[functions.evolution-sender]
 verify_jwt = false
 
 [functions.bitrix-api]

@@ -1,6 +1,8 @@
 import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { safeFrom } from '@/integrations/supabase/safeClient';
 import { toast } from '@/hooks/use-toast';
+import { useMountedRef } from '@/hooks/useMountedRef';
 
 export interface Article {
   id: string;
@@ -25,58 +27,133 @@ export interface KBFile {
   created_at: string;
 }
 
-export const CATEGORIES = ['general', 'product', 'support', 'sales', 'onboarding', 'technical', 'faq'];
+export const CATEGORIES = [
+  'general',
+  'product',
+  'support',
+  'sales',
+  'onboarding',
+  'technical',
+  'faq',
+];
 
 export const CATEGORY_LABELS: Record<string, string> = {
-  general: 'Geral', product: 'Produto', support: 'Suporte', sales: 'Vendas',
-  onboarding: 'Onboarding', technical: 'Técnico', faq: 'FAQ'
+  general: 'Geral',
+  product: 'Produto',
+  support: 'Suporte',
+  sales: 'Vendas',
+  onboarding: 'Onboarding',
+  technical: 'Técnico',
+  faq: 'FAQ',
 };
 
 export function useKnowledgeBase() {
   const [articles, setArticles] = useState<Article[]>([]);
   const [files, setFiles] = useState<KBFile[]>([]);
   const [loading, setLoading] = useState(true);
+  const mountedRef = useMountedRef();
 
   const fetchData = useCallback(async () => {
     setLoading(true);
     const [articlesRes, filesRes] = await Promise.all([
-      supabase.from('knowledge_base_articles').select('*').order('updated_at', { ascending: false }),
-      supabase.from('knowledge_base_files').select('*').order('created_at', { ascending: false }),
+      safeFrom('knowledge_base_articles').select('*').order('updated_at', { ascending: false }),
+      safeFrom('knowledge_base_files').select('*').order('created_at', { ascending: false }),
     ]);
-    if (articlesRes.data) setArticles(articlesRes.data.map((a) => ({ ...a, tags: a.tags || [] })));
+    if (!mountedRef.current) return;
+    if (articlesRes.data)
+      setArticles(
+        articlesRes.data.map((a: Record<string, unknown>) => ({
+          ...a,
+          tags: (a.tags as string[]) || [],
+        }))
+      );
     if (filesRes.data) setFiles(filesRes.data);
     setLoading(false);
   }, []);
 
-  const saveArticle = useCallback(async (payload: { title: string; content: string; category: string; tags: string[]; is_published: boolean }, editingId?: string) => {
-    if (editingId) {
-      const { error } = await supabase.from('knowledge_base_articles').update(payload).eq('id', editingId);
-      if (error) { toast({ title: 'Erro', description: error.message, variant: 'destructive' }); return false; }
-      toast({ title: 'Artigo atualizado!' });
-    } else {
-      const { error } = await supabase.from('knowledge_base_articles').insert(payload);
-      if (error) { toast({ title: 'Erro', description: error.message, variant: 'destructive' }); return false; }
-      toast({ title: 'Artigo criado!' });
-    }
-    void fetchData();
-    return true;
-  }, [fetchData]);
+  const saveArticle = useCallback(
+    async (
+      payload: {
+        title: string;
+        content: string;
+        category: string;
+        tags: string[];
+        is_published: boolean;
+      },
+      editingId?: string
+    ) => {
+      if (editingId) {
+        const { error } = await safeFrom('knowledge_base_articles')
+          .update(payload)
+          .eq('id', editingId);
+        if (error) {
+          const errMsg =
+            typeof error === 'object' && error !== null && 'message' in error
+              ? String((error as { message: unknown }).message)
+              : 'Erro desconhecido';
+          toast({ title: 'Erro', description: errMsg, variant: 'destructive' });
+          return false;
+        }
+        toast({ title: 'Artigo atualizado!' });
+      } else {
+        const { error } = await safeFrom('knowledge_base_articles').insert(payload);
+        if (error) {
+          const errMsg =
+            typeof error === 'object' && error !== null && 'message' in error
+              ? String((error as { message: unknown }).message)
+              : 'Erro desconhecido';
+          toast({ title: 'Erro', description: errMsg, variant: 'destructive' });
+          return false;
+        }
+        toast({ title: 'Artigo criado!' });
+      }
+      void fetchData();
+      return true;
+    },
+    [fetchData]
+  );
 
-  const deleteArticle = useCallback(async (id: string) => {
-    await supabase.from('knowledge_base_articles').delete().eq('id', id);
-    toast({ title: 'Artigo removido' });
-    void fetchData();
-  }, [fetchData]);
+  const deleteArticle = useCallback(
+    async (id: string) => {
+      await safeFrom('knowledge_base_articles').delete().eq('id', id);
+      toast({ title: 'Artigo removido' });
+      void fetchData();
+    },
+    [fetchData]
+  );
 
-  const uploadFile = useCallback(async (file: File) => {
-    const fileName = `kb/${Date.now()}_${file.name}`;
-    const { error: uploadError } = await supabase.storage.from('whatsapp-media').upload(fileName, file);
-    if (uploadError) { toast({ title: 'Erro no upload', description: uploadError.message, variant: 'destructive' }); return; }
-    const { data: signedData , error: signedDataErr } = await supabase.storage.from('whatsapp-media').createSignedUrl(fileName, 86400);
-    await supabase.from('knowledge_base_files').insert({ file_name: file.name, file_url: signedData?.signedUrl || '', file_type: file.type, file_size: file.size });
-    toast({ title: 'Arquivo enviado!', description: file.name });
-    void fetchData();
-  }, [fetchData]);
+  const uploadFile = useCallback(
+    async (file: File) => {
+      const fileName = `kb/${Date.now()}_${file.name}`;
+      const { error: uploadError } = await supabase.storage
+        .from('whatsapp-media')
+        .upload(fileName, file);
+      if (uploadError) {
+        const errMsg =
+          typeof uploadError === 'object' && uploadError !== null && 'message' in uploadError
+            ? String((uploadError as { message: unknown }).message)
+            : 'Erro desconhecido';
+        toast({
+          title: 'Erro no upload',
+          description: errMsg,
+          variant: 'destructive',
+        });
+        return;
+      }
+      const { data: signedData } = await supabase.storage
+        .from('whatsapp-media')
+        .createSignedUrl(fileName, 86400);
+      await safeFrom('knowledge_base_files').insert({
+        file_name: file.name,
+        file_url: signedData?.signedUrl || '',
+        file_type: file.type,
+        file_size: file.size,
+      });
+      toast({ title: 'Arquivo enviado!', description: file.name });
+      void fetchData();
+    },
+    [fetchData]
+  );
 
   return { articles, files, loading, fetchData, saveArticle, deleteArticle, uploadFile };
 }

@@ -7,13 +7,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { authorizeRoles, errorResponse, jsonResponse } from "../_shared/validation.ts";
 
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, idempotency-key, x-idempotency-key",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
-
+import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
 interface Credentials {
   connection_id: string;
   phone_number_id: string;
@@ -64,6 +58,7 @@ async function callGraph(
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(body),
+    signal: AbortSignal.timeout(15_000),
   });
   const text = await res.text();
   let parsed: unknown = text;
@@ -91,15 +86,23 @@ async function persistOutbound(
       p_metadata: metadata ?? { source: 'whatsapp_cloud_api' },
     } as Record<string, unknown>);
   } catch (e) {
-    console.error('[whatsapp-cloud-api] rpc_insert_message failed', e);
+    console.error('[whatsapp-cloud-api] rpc_insert_message failed', e instanceof Error ? e.message : String(e));
   }
 }
 
 Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: getCorsHeaders(req) });
 
-  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-  const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+  const supabaseUrl = Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL');
+  const supabaseAnonKey = Deno.env.get('SELFHOSTED_SUPABASE_ANON_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY');
+
+  if (!supabaseUrl || !supabaseAnonKey) {
+    console.error('[whatsapp-cloud-api] missing environment configuration', {
+      url_present: !!supabaseUrl,
+      key_present: !!supabaseAnonKey,
+    });
+    return errorResponse('Supabase configuration missing. Contact administrator.', 500, req);
+  }
 
   try {
     // Basic staff authorization for all actions
@@ -114,13 +117,16 @@ Deno.serve(async (req) => {
   if (!action) return jsonResponse({ error: true, message: 'Missing action' }, 400, req);
   if (!instanceName) return jsonResponse({ error: true, message: 'Missing instanceName' }, 400, req);
 
-  const supabase = createClient(
-    Deno.env.get('SUPABASE_URL')!,
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
-  );
-  const externalUrl = Deno.env.get('EXTERNAL_SUPABASE_URL');
-  const externalKey = Deno.env.get('EXTERNAL_SUPABASE_SERVICE_ROLE_KEY')
-    ?? Deno.env.get('EXTERNAL_SUPABASE_ANON_KEY');
+  const supabaseServiceRoleKey = Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+  if (!supabaseServiceRoleKey) {
+    console.error('[whatsapp-cloud-api] missing service role key for admin operations');
+    return errorResponse('Service role key not configured. Contact administrator.', 500, req);
+  }
+
+  const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
+  const externalUrl = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('EXTERNAL_SUPABASE_URL'));
+  const externalKey = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('EXTERNAL_SUPABASE_SERVICE_ROLE_KEY'))
+    ?? (Deno.env.get('SELFHOSTED_SUPABASE_ANON_KEY') ?? Deno.env.get('EXTERNAL_SUPABASE_ANON_KEY'));
   const externalClient = externalUrl && externalKey
     ? createClient(externalUrl, externalKey)
     : null;
@@ -137,7 +143,7 @@ Deno.serve(async (req) => {
   // PING / status
   if (action === 'ping' || action === 'status' || action === 'instance-info') {
     const url = `https://graph.facebook.com/${creds.graph_api_version}/${creds.phone_number_id}?fields=display_phone_number,verified_name,quality_rating`;
-    const res = await fetch(url, { headers: { Authorization: `Bearer ${creds.access_token}` } });
+    const res = await fetch(url, { headers: { Authorization: `Bearer ${creds.access_token}` }, signal: AbortSignal.timeout(10_000) });
     const data = await res.json().catch(() => ({}));
     return jsonResponse({ ok: res.ok, status: res.status, data }, 200, req);
   }
@@ -223,6 +229,7 @@ Deno.serve(async (req) => {
         method: 'POST',
         headers: { Authorization: `Bearer ${creds.access_token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ messaging_product: 'whatsapp', status: 'read', message_id: wamid }),
+        signal: AbortSignal.timeout(10_000),
       });
       const data = await res.json().catch(() => ({}));
       return jsonResponse({ ok: res.ok, status: res.status, data }, 200, req);
@@ -278,9 +285,12 @@ Deno.serve(async (req) => {
     messageId: wamid,
     raw: data,
   }, 200, req);
-  } catch (error: any) {
-    if (error.status) return errorResponse(error.message, error.status, req);
-    console.error("[whatsapp-cloud-api] Global Error:", error);
-    return errorResponse(error.message || 'Internal Server Error', 500, req);
+  } catch (error: unknown) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    console.error("[whatsapp-cloud-api] Global Error:", errorMsg);
+    if (error instanceof Error && 'status' in error && typeof (error as Record<string, unknown>).status === 'number') {
+      return errorResponse(errorMsg, (error as Record<string, unknown>).status as number, req);
+    }
+    return errorResponse('Internal server error', 500, req);
   }
 });

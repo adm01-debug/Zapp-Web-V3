@@ -21,7 +21,7 @@ export class BridgeService {
         .select('id')
         .limit(1);
 
-      if (pingErr && (pingErr.message?.includes('does not exist') || (pingErr as { code?: string }).code === '42P01')) {
+      if (pingErr && (pingErr.message?.includes('does not exist') || pingErr.code === '42P01')) {
         // Table missing but DB is reachable — report online with no health detail
         return { health: null, error: null, status: 'online' };
       }

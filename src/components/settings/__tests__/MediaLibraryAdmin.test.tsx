@@ -5,16 +5,16 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 // Mock Setup
 // ═══════════════════════════════════════════════════════════
 
-const mockFrom = vi.fn();
-const mockStorage = vi.fn();
+const mockFrom = vi.hoisted(() => vi.fn());
+const mockStorage = vi.hoisted(() => vi.fn());
 const mockFunctions = { invoke: vi.fn() };
 const mockAuth = { getUser: vi.fn().mockResolvedValue({ data: { user: { id: 'user-1' } } }) };
 
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
-    from: (...args: any[]) => mockFrom(...args),
-    storage: { from: (...args: any[]) => mockStorage(...args) },
-    functions: { invoke: (...args: any[]) => mockFunctions.invoke(...args) },
+    from: (...args: unknown[]) => mockFrom(...args),
+    storage: { from: (...args: unknown[]) => mockStorage(...args) },
+    functions: { invoke: (...args: unknown[]) => mockFunctions.invoke(...args) },
     auth: { getUser: () => mockAuth.getUser() },
   },
 }));
@@ -33,8 +33,19 @@ import { MediaLibraryAdmin } from '../MediaLibraryAdmin';
 // Test Factories
 // ═══════════════════════════════════════════════════════════
 
+type StickerRecord = {
+  id?: string;
+  name?: string;
+  category?: string;
+  is_favorite?: boolean;
+  use_count?: number | null;
+  created_at?: string;
+  uploaded_by?: string;
+  image_url?: string;
+};
+
 let counter = 0;
-function makeSticker(overrides: Partial<any> = {}) {
+function makeSticker(overrides: Partial<StickerRecord> = {}) {
   counter++;
   return {
     id: overrides.id || `sticker-${counter}`,
@@ -49,54 +60,23 @@ function makeSticker(overrides: Partial<any> = {}) {
   };
 }
 
-function makeAudioMeme(overrides: Partial<any> = {}) {
-  counter++;
-  return {
-    id: overrides.id || `audio-${counter}`,
-    name: 'Test Audio',
-    category: 'risada',
-    is_favorite: false,
-    use_count: 5,
-    created_at: '2025-01-01T00:00:00Z',
-    uploaded_by: 'user-1',
-    audio_url: 'https://storage.example.com/audio-memes/test.mp3',
-    duration_seconds: 3,
-    ...overrides,
-  };
-}
-
-function makeEmoji(overrides: Partial<any> = {}) {
-  counter++;
-  return {
-    id: overrides.id || `emoji-${counter}`,
-    name: 'Test Emoji',
-    category: 'riso',
-    is_favorite: false,
-    use_count: 2,
-    created_at: '2025-01-01T00:00:00Z',
-    uploaded_by: 'user-1',
-    image_url: 'https://storage.example.com/custom-emojis/test.png',
-    ...overrides,
-  };
-}
-
-function setupSupabaseQuery(data: any[] = [], error: any = null) {
-  const chain: any = {
+function setupSupabaseQuery(data: unknown[] = [], error: unknown = null) {
+  const chain = {
     select: vi.fn().mockReturnThis(),
     order: vi.fn().mockReturnThis(),
     limit: vi.fn().mockResolvedValue({ data, error }),
     insert: vi.fn().mockResolvedValue({ error: null }),
     eq: vi.fn().mockResolvedValue({ error: null }),
     in: vi.fn().mockResolvedValue({ error: null }),
+    update: vi.fn().mockReturnValue({
+      eq: vi.fn().mockResolvedValue({ error: null }),
+      in: vi.fn().mockResolvedValue({ error: null }),
+    }),
+    delete: vi.fn().mockReturnValue({
+      eq: vi.fn().mockResolvedValue({ error: null }),
+      in: vi.fn().mockResolvedValue({ error: null }),
+    }),
   };
-  chain.update = vi.fn().mockReturnValue({
-    eq: vi.fn().mockResolvedValue({ error: null }),
-    in: vi.fn().mockResolvedValue({ error: null }),
-  });
-  chain.delete = vi.fn().mockReturnValue({
-    eq: vi.fn().mockResolvedValue({ error: null }),
-    in: vi.fn().mockResolvedValue({ error: null }),
-  });
   mockFrom.mockReturnValue(chain);
   return chain;
 }
@@ -105,7 +85,9 @@ function setupStorage() {
   const storageChain = {
     upload: vi.fn().mockResolvedValue({ error: null }),
     remove: vi.fn().mockResolvedValue({ error: null }),
-    getPublicUrl: vi.fn().mockReturnValue({ data: { publicUrl: 'https://storage.example.com/file.mp3' } }),
+    getPublicUrl: vi
+      .fn()
+      .mockReturnValue({ data: { publicUrl: 'https://storage.example.com/file.mp3' } }),
   };
   mockStorage.mockReturnValue(storageChain);
   return storageChain;
@@ -174,7 +156,7 @@ describe('MediaLibraryAdmin', () => {
 
   describe('Data Loading', () => {
     it('fetches stickers table on mount', async () => {
-      const chain = setupSupabaseQuery([]);
+      setupSupabaseQuery([]);
       render(<MediaLibraryAdmin />);
       await waitFor(() => {
         expect(mockFrom).toHaveBeenCalledWith('stickers');
@@ -190,7 +172,9 @@ describe('MediaLibraryAdmin', () => {
     it('orders by created_at descending', async () => {
       const chain = setupSupabaseQuery([]);
       render(<MediaLibraryAdmin />);
-      await waitFor(() => expect(chain.order).toHaveBeenCalledWith('created_at', { ascending: false }));
+      await waitFor(() =>
+        expect(chain.order).toHaveBeenCalledWith('created_at', { ascending: false })
+      );
     });
 
     it('handles empty data gracefully', async () => {
@@ -628,17 +612,33 @@ describe('MediaLibraryAdmin', () => {
 // ═══════════════════════════════════════════════════════════
 
 describe('MediaLibraryAdmin - Pure Logic', () => {
-
   // ─── Category Definitions ──────────────────────────────
 
   describe('Sticker Categories', () => {
     const STICKER_CATEGORIES: Record<string, string> = {
-      'comemoração': '🎉', 'riso': '😂', 'chorando': '😢', 'amor': '❤️',
-      'raiva': '😡', 'surpresa': '😲', 'pensativo': '🤔', 'cumprimento': '👋',
-      'despedida': '👋', 'concordância': '👍', 'negação': '🙅', 'sono': '😴',
-      'fome': '🍔', 'medo': '😨', 'vergonha': '🙈', 'deboche': '😏',
-      'fofo': '🥰', 'triste': '😔', 'animado': '🤩', 'engraçado': '🤣',
-      'outros': '📦', 'recebidas': '📥', 'enviadas': '📤',
+      comemoração: '🎉',
+      riso: '😂',
+      chorando: '😢',
+      amor: '❤️',
+      raiva: '😡',
+      surpresa: '😲',
+      pensativo: '🤔',
+      cumprimento: '👋',
+      despedida: '👋',
+      concordância: '👍',
+      negação: '🙅',
+      sono: '😴',
+      fome: '🍔',
+      medo: '😨',
+      vergonha: '🙈',
+      deboche: '😏',
+      fofo: '🥰',
+      triste: '😔',
+      animado: '🤩',
+      engraçado: '🤣',
+      outros: '📦',
+      recebidas: '📥',
+      enviadas: '📤',
     };
 
     it('has 23 categories', () => {
@@ -678,12 +678,27 @@ describe('MediaLibraryAdmin - Pure Logic', () => {
 
   describe('Audio Categories', () => {
     const AUDIO_CATEGORIES: Record<string, string> = {
-      'risada': '😂', 'aplausos': '👏', 'suspense': '🎭', 'vitória': '🏆',
-      'falha': '💥', 'surpresa': '😱', 'triste': '😢', 'raiva': '😡',
-      'romântico': '💕', 'medo': '👻', 'deboche': '😏', 'narração': '🎙️',
-      'bordão': '💬', 'efeito sonoro': '🔊', 'viral': '🔥', 'cumprimento': '👋',
-      'despedida': '👋', 'animação': '🤩', 'drama': '🎬', 'gospel': '⛪',
-      'outros': '📦',
+      risada: '😂',
+      aplausos: '👏',
+      suspense: '🎭',
+      vitória: '🏆',
+      falha: '💥',
+      surpresa: '😱',
+      triste: '😢',
+      raiva: '😡',
+      romântico: '💕',
+      medo: '👻',
+      deboche: '😏',
+      narração: '🎙️',
+      bordão: '💬',
+      'efeito sonoro': '🔊',
+      viral: '🔥',
+      cumprimento: '👋',
+      despedida: '👋',
+      animação: '🤩',
+      drama: '🎬',
+      gospel: '⛪',
+      outros: '📦',
     };
 
     it('has 21 categories', () => {
@@ -714,8 +729,14 @@ describe('MediaLibraryAdmin - Pure Logic', () => {
 
   describe('Emoji Categories', () => {
     const EMOJI_CATEGORIES: Record<string, string> = {
-      'riso': '😂', 'amor': '❤️', 'triste': '😢', 'raiva': '😡',
-      'surpresa': '😲', 'fofo': '🥰', 'deboche': '😏', 'outros': '📦',
+      riso: '😂',
+      amor: '❤️',
+      triste: '😢',
+      raiva: '😡',
+      surpresa: '😲',
+      fofo: '🥰',
+      deboche: '😏',
+      outros: '📦',
     };
 
     it('has 8 categories', () => {
@@ -739,9 +760,9 @@ describe('MediaLibraryAdmin - Pure Logic', () => {
   });
 
   describe('All Types Have Fallback Category', () => {
-    it('stickers have outros', () => expect({ 'outros': '📦' }).toHaveProperty('outros'));
-    it('audio have outros', () => expect({ 'outros': '📦' }).toHaveProperty('outros'));
-    it('emojis have outros', () => expect({ 'outros': '📦' }).toHaveProperty('outros'));
+    it('stickers have outros', () => expect({ outros: '📦' }).toHaveProperty('outros'));
+    it('audio have outros', () => expect({ outros: '📦' }).toHaveProperty('outros'));
+    it('emojis have outros', () => expect({ outros: '📦' }).toHaveProperty('outros'));
   });
 
   // ─── Filter Logic ──────────────────────────────────────
@@ -755,27 +776,30 @@ describe('MediaLibraryAdmin - Pure Logic', () => {
     ];
 
     it('search matches name substring', () => {
-      const r = items.filter(i => i.name?.toLowerCase().includes('alph'));
+      const r = items.filter((i) => i.name?.toLowerCase().includes('alph'));
       expect(r).toHaveLength(1);
       expect(r[0].name).toBe('Alpha');
     });
 
     it('search matches category substring', () => {
-      const r = items.filter(i => i.category?.toLowerCase().includes('ris'));
+      const r = items.filter((i) => i.category?.toLowerCase().includes('ris'));
       expect(r).toHaveLength(2);
     });
 
     it('null name does not crash filter', () => {
       const search = 'test';
-      const r = items.filter(i =>
-        !search || i.name?.toLowerCase().includes(search) || i.category?.toLowerCase().includes(search)
+      const r = items.filter(
+        (i) =>
+          !search ||
+          i.name?.toLowerCase().includes(search) ||
+          i.category?.toLowerCase().includes(search)
       );
       expect(r).toHaveLength(0);
     });
 
     it('empty search returns all items', () => {
       const search: string = '';
-      const r = items.filter(i => {
+      const r = items.filter((i) => {
         if (!search) return true;
         return i.name?.toLowerCase().includes(search) || i.category?.toLowerCase().includes(search);
       });
@@ -784,36 +808,36 @@ describe('MediaLibraryAdmin - Pure Logic', () => {
 
     it('category filter "all" returns everything', () => {
       const f: string = 'all';
-      const r = items.filter(i => f === 'all' || i.category === f);
+      const r = items.filter((i) => f === 'all' || i.category === f);
       expect(r).toHaveLength(4);
     });
 
     it('category filter specific returns matching', () => {
       const f: string = 'riso';
-      const r = items.filter(i => f === 'all' || i.category === f);
+      const r = items.filter((i) => f === 'all' || i.category === f);
       expect(r).toHaveLength(2);
     });
 
     it('case-insensitive search works', () => {
-      const r = items.filter(i => i.name?.toLowerCase().includes('alpha'));
+      const r = items.filter((i) => i.name?.toLowerCase().includes('alpha'));
       expect(r).toHaveLength(1);
     });
 
     it('partial category match works', () => {
-      const r = items.filter(i => i.category?.toLowerCase().includes('am'));
+      const r = items.filter((i) => i.category?.toLowerCase().includes('am'));
       expect(r).toHaveLength(1);
       expect(r[0].name).toBe('Beta');
     });
 
     it('no match returns empty', () => {
-      const r = items.filter(i => i.name?.toLowerCase().includes('zzzzz'));
+      const r = items.filter((i) => i.name?.toLowerCase().includes('zzzzz'));
       expect(r).toHaveLength(0);
     });
 
     it('combined search and filter works', () => {
       const search = 'alpha';
       const filterCat: string = 'riso';
-      const r = items.filter(i => {
+      const r = items.filter((i) => {
         const matchSearch = !search || i.name?.toLowerCase().includes(search);
         const matchCat = filterCat === 'all' || i.category === filterCat;
         return matchSearch && matchCat;
@@ -842,7 +866,7 @@ describe('MediaLibraryAdmin - Pure Logic', () => {
 
     it('select all adds all IDs', () => {
       const filtered = [{ id: 's1' }, { id: 's2' }, { id: 's3' }];
-      const set = new Set(filtered.map(i => i.id));
+      const set = new Set(filtered.map((i) => i.id));
       expect(set.size).toBe(3);
     });
 
@@ -853,7 +877,7 @@ describe('MediaLibraryAdmin - Pure Logic', () => {
 
     it('toggle all when all selected deselects all', () => {
       const filtered = [{ id: 's1' }, { id: 's2' }];
-      let selected = new Set(filtered.map(i => i.id));
+      let selected = new Set(filtered.map((i) => i.id));
       if (selected.size === filtered.length) selected = new Set();
       expect(selected.size).toBe(0);
     });
@@ -862,7 +886,7 @@ describe('MediaLibraryAdmin - Pure Logic', () => {
       const filtered = [{ id: 's1' }, { id: 's2' }];
       let selected = new Set<string>();
       if (selected.size === filtered.length) selected = new Set();
-      else selected = new Set(filtered.map(i => i.id));
+      else selected = new Set(filtered.map((i) => i.id));
       expect(selected.size).toBe(2);
     });
 
@@ -870,7 +894,7 @@ describe('MediaLibraryAdmin - Pure Logic', () => {
       const filtered = [{ id: 's1' }, { id: 's2' }, { id: 's3' }];
       let selected = new Set<string>(['s1']);
       if (selected.size === filtered.length) selected = new Set();
-      else selected = new Set(filtered.map(i => i.id));
+      else selected = new Set(filtered.map((i) => i.id));
       expect(selected.size).toBe(3);
     });
 
@@ -902,11 +926,11 @@ describe('MediaLibraryAdmin - Pure Logic', () => {
     });
 
     it('counts favorites', () => {
-      expect(items.filter(i => i.is_favorite).length).toBe(2);
+      expect(items.filter((i) => i.is_favorite).length).toBe(2);
     });
 
     it('counts unique categories', () => {
-      expect([...new Set(items.map(i => i.category))].length).toBe(3);
+      expect([...new Set(items.map((i) => i.category))].length).toBe(3);
     });
 
     it('sorts by use_count desc for top used', () => {
@@ -967,7 +991,8 @@ describe('MediaLibraryAdmin - Pure Logic', () => {
     });
 
     it('handles nested paths', () => {
-      const url = 'https://ex.com/storage/v1/object/public/whatsapp-media/stickers/sub/dir/file.webp';
+      const url =
+        'https://ex.com/storage/v1/object/public/whatsapp-media/stickers/sub/dir/file.webp';
       expect(url.split('/whatsapp-media/')[1]).toBe('stickers/sub/dir/file.webp');
     });
 
@@ -985,20 +1010,31 @@ describe('MediaLibraryAdmin - Pure Logic', () => {
   // ─── Upload File Validation ────────────────────────────
 
   describe('Upload File Validation', () => {
-    it('accepts audio/mpeg for audio_memes', () => expect('audio/mpeg'.startsWith('audio/')).toBe(true));
-    it('accepts audio/wav for audio_memes', () => expect('audio/wav'.startsWith('audio/')).toBe(true));
-    it('accepts audio/ogg for audio_memes', () => expect('audio/ogg'.startsWith('audio/')).toBe(true));
-    it('accepts audio/webm for audio_memes', () => expect('audio/webm'.startsWith('audio/')).toBe(true));
-    it('rejects video/mp4 for audio_memes', () => expect('video/mp4'.startsWith('audio/')).toBe(false));
-    it('rejects text/plain for audio_memes', () => expect('text/plain'.startsWith('audio/')).toBe(false));
-    it('rejects application/pdf for audio_memes', () => expect('application/pdf'.startsWith('audio/')).toBe(false));
+    it('accepts audio/mpeg for audio_memes', () =>
+      expect('audio/mpeg'.startsWith('audio/')).toBe(true));
+    it('accepts audio/wav for audio_memes', () =>
+      expect('audio/wav'.startsWith('audio/')).toBe(true));
+    it('accepts audio/ogg for audio_memes', () =>
+      expect('audio/ogg'.startsWith('audio/')).toBe(true));
+    it('accepts audio/webm for audio_memes', () =>
+      expect('audio/webm'.startsWith('audio/')).toBe(true));
+    it('rejects video/mp4 for audio_memes', () =>
+      expect('video/mp4'.startsWith('audio/')).toBe(false));
+    it('rejects text/plain for audio_memes', () =>
+      expect('text/plain'.startsWith('audio/')).toBe(false));
+    it('rejects application/pdf for audio_memes', () =>
+      expect('application/pdf'.startsWith('audio/')).toBe(false));
 
-    it('accepts image/webp for stickers', () => expect('image/webp'.startsWith('image/')).toBe(true));
+    it('accepts image/webp for stickers', () =>
+      expect('image/webp'.startsWith('image/')).toBe(true));
     it('accepts image/png for stickers', () => expect('image/png'.startsWith('image/')).toBe(true));
     it('accepts image/gif for stickers', () => expect('image/gif'.startsWith('image/')).toBe(true));
-    it('accepts image/jpeg for stickers', () => expect('image/jpeg'.startsWith('image/')).toBe(true));
-    it('rejects application/pdf for stickers', () => expect('application/pdf'.startsWith('image/')).toBe(false));
-    it('rejects text/html for stickers', () => expect('text/html'.startsWith('image/')).toBe(false));
+    it('accepts image/jpeg for stickers', () =>
+      expect('image/jpeg'.startsWith('image/')).toBe(true));
+    it('rejects application/pdf for stickers', () =>
+      expect('application/pdf'.startsWith('image/')).toBe(false));
+    it('rejects text/html for stickers', () =>
+      expect('text/html'.startsWith('image/')).toBe(false));
 
     it('extracts extension from filename', () => {
       expect('myfile.mp3'.split('.').pop()).toBe('mp3');
@@ -1092,21 +1128,32 @@ describe('MediaLibraryAdmin - Pure Logic', () => {
     it('Music min is 5s', () => expect(5).toBe(5));
     it('Music max is 60s', () => expect(60).toBe(60));
     it('Music default is 15s', () => expect(15).toBe(15));
-    it('SFX default within range', () => { expect(5).toBeGreaterThanOrEqual(1); expect(5).toBeLessThanOrEqual(22); });
-    it('Music default within range', () => { expect(15).toBeGreaterThanOrEqual(5); expect(15).toBeLessThanOrEqual(60); });
+    it('SFX default within range', () => {
+      expect(5).toBeGreaterThanOrEqual(1);
+      expect(5).toBeLessThanOrEqual(22);
+    });
+    it('Music default within range', () => {
+      expect(15).toBeGreaterThanOrEqual(5);
+      expect(15).toBeLessThanOrEqual(60);
+    });
   });
 
   // ─── Classify Function Mapping ─────────────────────────
 
   describe('Classify Function Mapping', () => {
     const getFn = (type: string) =>
-      type === 'audio_memes' ? 'classify-audio-meme' :
-      type === 'stickers' ? 'classify-sticker' : 'classify-emoji';
+      type === 'audio_memes'
+        ? 'classify-audio-meme'
+        : type === 'stickers'
+          ? 'classify-sticker'
+          : 'classify-emoji';
 
-    it('maps audio_memes correctly', () => expect(getFn('audio_memes')).toBe('classify-audio-meme'));
+    it('maps audio_memes correctly', () =>
+      expect(getFn('audio_memes')).toBe('classify-audio-meme'));
     it('maps stickers correctly', () => expect(getFn('stickers')).toBe('classify-sticker'));
     it('maps custom_emojis correctly', () => expect(getFn('custom_emojis')).toBe('classify-emoji'));
-    it('unknown type falls to classify-emoji', () => expect(getFn('unknown')).toBe('classify-emoji'));
+    it('unknown type falls to classify-emoji', () =>
+      expect(getFn('unknown')).toBe('classify-emoji'));
   });
 
   // ─── Bucket Mapping ───────────────────────────────────
@@ -1118,13 +1165,14 @@ describe('MediaLibraryAdmin - Pure Logic', () => {
     it('maps stickers', () => expect(getBucket('stickers')).toBe('stickers'));
     it('maps audio_memes', () => expect(getBucket('audio_memes')).toBe('audio-memes'));
     it('maps custom_emojis', () => expect(getBucket('custom_emojis')).toBe('custom-emojis'));
-    it('unknown defaults to custom-emojis', () => expect(getBucket('unknown')).toBe('custom-emojis'));
+    it('unknown defaults to custom-emojis', () =>
+      expect(getBucket('unknown')).toBe('custom-emojis'));
   });
 
   // ─── URL Field Mapping ────────────────────────────────
 
   describe('URL Field Mapping', () => {
-    const getField = (type: string) => type === 'audio_memes' ? 'audio_url' : 'image_url';
+    const getField = (type: string) => (type === 'audio_memes' ? 'audio_url' : 'image_url');
 
     it('audio_memes uses audio_url', () => expect(getField('audio_memes')).toBe('audio_url'));
     it('stickers uses image_url', () => expect(getField('stickers')).toBe('image_url'));
@@ -1136,27 +1184,24 @@ describe('MediaLibraryAdmin - Pure Logic', () => {
   describe('Classify Request Body', () => {
     it('audio_memes sends audio_url + file_name', () => {
       const type = 'audio_memes';
-      const body = type === 'audio_memes'
-        ? { audio_url: 'url', file_name: 'name' }
-        : { image_url: 'url' };
+      const body =
+        type === 'audio_memes' ? { audio_url: 'url', file_name: 'name' } : { image_url: 'url' };
       expect(body).toHaveProperty('audio_url');
       expect(body).toHaveProperty('file_name');
     });
 
     it('stickers sends image_url', () => {
       const type: string = 'stickers';
-      const body = type === 'audio_memes'
-        ? { audio_url: 'url', file_name: 'name' }
-        : { image_url: 'url' };
+      const body =
+        type === 'audio_memes' ? { audio_url: 'url', file_name: 'name' } : { image_url: 'url' };
       expect(body).toHaveProperty('image_url');
       expect(body).not.toHaveProperty('audio_url');
     });
 
     it('custom_emojis sends image_url', () => {
       const type: string = 'custom_emojis';
-      const body = type === 'audio_memes'
-        ? { audio_url: 'url', file_name: 'name' }
-        : { image_url: 'url' };
+      const body =
+        type === 'audio_memes' ? { audio_url: 'url', file_name: 'name' } : { image_url: 'url' };
       expect(body).toHaveProperty('image_url');
     });
   });
@@ -1211,31 +1256,31 @@ describe('MediaLibraryAdmin - Pure Logic', () => {
     it('filters items by selected set', () => {
       const items = [{ id: 's1' }, { id: 's2' }, { id: 's3' }];
       const selected = new Set(['s1', 's3']);
-      const toDelete = items.filter(i => selected.has(i.id));
+      const toDelete = items.filter((i) => selected.has(i.id));
       expect(toDelete).toHaveLength(2);
-      expect(toDelete.map(i => i.id)).toEqual(['s1', 's3']);
+      expect(toDelete.map((i) => i.id)).toEqual(['s1', 's3']);
     });
 
     it('empty selection deletes nothing', () => {
       const items = [{ id: 's1' }];
       const selected = new Set<string>();
-      const toDelete = items.filter(i => selected.has(i.id));
+      const toDelete = items.filter((i) => selected.has(i.id));
       expect(toDelete).toHaveLength(0);
     });
 
     it('all selected deletes all', () => {
       const items = [{ id: 's1' }, { id: 's2' }];
       const selected = new Set(['s1', 's2']);
-      const toDelete = items.filter(i => selected.has(i.id));
+      const toDelete = items.filter((i) => selected.has(i.id));
       expect(toDelete).toHaveLength(2);
     });
 
     it('removes deleted items from state', () => {
       const items = [{ id: 's1' }, { id: 's2' }, { id: 's3' }];
       const selected = new Set(['s2']);
-      const remaining = items.filter(i => !selected.has(i.id));
+      const remaining = items.filter((i) => !selected.has(i.id));
       expect(remaining).toHaveLength(2);
-      expect(remaining.map(i => i.id)).toEqual(['s1', 's3']);
+      expect(remaining.map((i) => i.id)).toEqual(['s1', 's3']);
     });
   });
 
@@ -1248,15 +1293,18 @@ describe('MediaLibraryAdmin - Pure Logic', () => {
         { id: 's2', category: 'amor' },
       ];
       const selected = new Set(['s1']);
-      const updated = items.map(i => selected.has(i.id) ? { ...i, category: 'deboche' } : i);
+      const updated = items.map((i) => (selected.has(i.id) ? { ...i, category: 'deboche' } : i));
       expect(updated[0].category).toBe('deboche');
       expect(updated[1].category).toBe('amor');
     });
 
     it('does not modify unselected items', () => {
-      const items = [{ id: 's1', category: 'riso' }, { id: 's2', category: 'amor' }];
+      const items = [
+        { id: 's1', category: 'riso' },
+        { id: 's2', category: 'amor' },
+      ];
       const selected = new Set(['s1']);
-      const updated = items.map(i => selected.has(i.id) ? { ...i, category: 'novo' } : i);
+      const updated = items.map((i) => (selected.has(i.id) ? { ...i, category: 'novo' } : i));
       expect(updated[1].category).toBe('amor');
     });
   });
@@ -1266,11 +1314,11 @@ describe('MediaLibraryAdmin - Pure Logic', () => {
   describe('Reclassify Logic', () => {
     it('counts updated items correctly', () => {
       const results = [
-        { oldCategory: 'riso', newCategory: 'amor' },    // changed
-        { oldCategory: 'riso', newCategory: 'riso' },    // same
+        { oldCategory: 'riso', newCategory: 'amor' }, // changed
+        { oldCategory: 'riso', newCategory: 'riso' }, // same
         { oldCategory: 'amor', newCategory: 'deboche' }, // changed
       ];
-      const updated = results.filter(r => r.oldCategory !== r.newCategory).length;
+      const updated = results.filter((r) => r.oldCategory !== r.newCategory).length;
       expect(updated).toBe(2);
     });
 
@@ -1279,7 +1327,7 @@ describe('MediaLibraryAdmin - Pure Logic', () => {
         { oldCategory: 'riso', newCategory: 'riso' },
         { oldCategory: 'amor', newCategory: 'amor' },
       ];
-      const updated = results.filter(r => r.oldCategory !== r.newCategory).length;
+      const updated = results.filter((r) => r.oldCategory !== r.newCategory).length;
       expect(updated).toBe(0);
     });
 
@@ -1288,7 +1336,7 @@ describe('MediaLibraryAdmin - Pure Logic', () => {
         { oldCategory: 'riso', newCategory: 'amor' },
         { oldCategory: 'amor', newCategory: 'deboche' },
       ];
-      const updated = results.filter(r => r.oldCategory !== r.newCategory).length;
+      const updated = results.filter((r) => r.oldCategory !== r.newCategory).length;
       expect(updated).toBe(2);
     });
 
@@ -1325,19 +1373,22 @@ describe('MediaLibraryAdmin - Pure Logic', () => {
   describe('Accept Types Per Tab', () => {
     it('audio_memes accept type', () => {
       const type = 'audio_memes';
-      const accept = type === 'audio_memes' ? 'audio/*' : 'image/webp,image/png,image/gif,image/jpeg';
+      const accept =
+        type === 'audio_memes' ? 'audio/*' : 'image/webp,image/png,image/gif,image/jpeg';
       expect(accept).toBe('audio/*');
     });
 
     it('stickers accept type', () => {
       const type: string = 'stickers';
-      const accept = type === 'audio_memes' ? 'audio/*' : 'image/webp,image/png,image/gif,image/jpeg';
+      const accept =
+        type === 'audio_memes' ? 'audio/*' : 'image/webp,image/png,image/gif,image/jpeg';
       expect(accept).toBe('image/webp,image/png,image/gif,image/jpeg');
     });
 
     it('custom_emojis accept type', () => {
       const type: string = 'custom_emojis';
-      const accept = type === 'audio_memes' ? 'audio/*' : 'image/webp,image/png,image/gif,image/jpeg';
+      const accept =
+        type === 'audio_memes' ? 'audio/*' : 'image/webp,image/png,image/gif,image/jpeg';
       expect(accept).toBe('image/webp,image/png,image/gif,image/jpeg');
     });
   });
@@ -1352,18 +1403,18 @@ describe('MediaLibraryAdmin - Pure Logic', () => {
         { category: 'riso' },
         { category: 'deboche' },
       ];
-      const cats = [...new Set(items.map(i => i.category))].sort();
+      const cats = [...new Set(items.map((i) => i.category))].sort();
       expect(cats).toEqual(['amor', 'deboche', 'riso']);
     });
 
     it('single category returns single', () => {
       const items = [{ category: 'riso' }, { category: 'riso' }];
-      const cats = [...new Set(items.map(i => i.category))].sort();
+      const cats = [...new Set(items.map((i) => i.category))].sort();
       expect(cats).toEqual(['riso']);
     });
 
     it('empty items returns empty', () => {
-      const cats = [...new Set(([] as any[]).map(i => i.category))].sort();
+      const cats = [...new Set(([] as { category: string }[]).map((i) => i.category))].sort();
       expect(cats).toEqual([]);
     });
   });
@@ -1401,22 +1452,49 @@ describe('MediaLibraryAdmin - Pure Logic', () => {
   // ─── Null/Undefined Safety ────────────────────────────
 
   describe('Null/Undefined Safety', () => {
-    it('name || "Sem nome" for null', () => { const v: string | null = null; expect(v || 'Sem nome').toBe('Sem nome'); });
-    it('name || "Sem nome" for undefined', () => { const v: string | undefined = undefined; expect(v || 'Sem nome').toBe('Sem nome'); });
-    it('name || "Sem nome" for empty string', () => { const v: string = ''; expect(v || 'Sem nome').toBe('Sem nome'); });
-    it('name || "Sem nome" for valid name', () => { const v: string = 'Test'; expect(v || 'Sem nome').toBe('Test'); });
+    it('name || "Sem nome" for null', () => {
+      const v: string | null = null;
+      expect(v || 'Sem nome').toBe('Sem nome');
+    });
+    it('name || "Sem nome" for undefined', () => {
+      const v: string | undefined = undefined;
+      expect(v || 'Sem nome').toBe('Sem nome');
+    });
+    it('name || "Sem nome" for empty string', () => {
+      const v: string = '';
+      expect(v || 'Sem nome').toBe('Sem nome');
+    });
+    it('name || "Sem nome" for valid name', () => {
+      const v: string = 'Test';
+      expect(v || 'Sem nome').toBe('Test');
+    });
 
-    it('use_count || 0 for null', () => { const v: number | null = null; expect(v || 0).toBe(0); });
-    it('use_count || 0 for undefined', () => { const v: number | undefined = undefined; expect(v || 0).toBe(0); });
-    it('use_count || 0 for 0', () => { const v: number = 0; expect(v || 0).toBe(0); });
-    it('use_count || 0 for positive', () => { const v: number = 42; expect(v || 0).toBe(42); });
+    it('use_count || 0 for null', () => {
+      const v: number | null = null;
+      expect(v || 0).toBe(0);
+    });
+    it('use_count || 0 for undefined', () => {
+      const v: number | undefined = undefined;
+      expect(v || 0).toBe(0);
+    });
+    it('use_count || 0 for 0', () => {
+      const v: number = 0;
+      expect(v || 0).toBe(0);
+    });
+    it('use_count || 0 for positive', () => {
+      const v: number = 42;
+      expect(v || 0).toBe(42);
+    });
   });
 
   // ─── extractStoragePath Logic ─────────────────────────
 
   describe('Storage Path Extraction', () => {
     // Replicate the extractStoragePath logic for testing
-    function extractStoragePath(url: string, bucket: string): { bucket: string; path: string } | null {
+    function extractStoragePath(
+      url: string,
+      bucket: string
+    ): { bucket: string; path: string } | null {
       if (!url) return null;
       if (url.includes('/whatsapp-media/')) {
         const path = url.split('/whatsapp-media/')[1];
@@ -1433,7 +1511,10 @@ describe('MediaLibraryAdmin - Pure Logic', () => {
         if (afterPublic) {
           const slashIdx = afterPublic.indexOf('/');
           if (slashIdx > 0) {
-            return { bucket: afterPublic.substring(0, slashIdx), path: afterPublic.substring(slashIdx + 1) };
+            return {
+              bucket: afterPublic.substring(0, slashIdx),
+              path: afterPublic.substring(slashIdx + 1),
+            };
           }
         }
       }
@@ -1441,27 +1522,42 @@ describe('MediaLibraryAdmin - Pure Logic', () => {
     }
 
     it('extracts from whatsapp-media bucket', () => {
-      const result = extractStoragePath('https://example.com/storage/v1/object/public/whatsapp-media/sticker123.webp', 'stickers');
+      const result = extractStoragePath(
+        'https://example.com/storage/v1/object/public/whatsapp-media/sticker123.webp',
+        'stickers'
+      );
       expect(result).toEqual({ bucket: 'whatsapp-media', path: 'sticker123.webp' });
     });
 
     it('extracts from dedicated stickers bucket', () => {
-      const result = extractStoragePath('https://example.com/storage/v1/object/public/stickers/bulk_123.webp', 'stickers');
+      const result = extractStoragePath(
+        'https://example.com/storage/v1/object/public/stickers/bulk_123.webp',
+        'stickers'
+      );
       expect(result).toEqual({ bucket: 'stickers', path: 'bulk_123.webp' });
     });
 
     it('extracts from audio-memes bucket', () => {
-      const result = extractStoragePath('https://example.com/storage/v1/object/public/audio-memes/file.mp3', 'audio-memes');
+      const result = extractStoragePath(
+        'https://example.com/storage/v1/object/public/audio-memes/file.mp3',
+        'audio-memes'
+      );
       expect(result).toEqual({ bucket: 'audio-memes', path: 'file.mp3' });
     });
 
     it('extracts from custom-emojis bucket', () => {
-      const result = extractStoragePath('https://example.com/storage/v1/object/public/custom-emojis/emoji.png', 'custom-emojis');
+      const result = extractStoragePath(
+        'https://example.com/storage/v1/object/public/custom-emojis/emoji.png',
+        'custom-emojis'
+      );
       expect(result).toEqual({ bucket: 'custom-emojis', path: 'emoji.png' });
     });
 
     it('fallback extracts from /object/public/ pattern', () => {
-      const result = extractStoragePath('https://example.com/storage/v1/object/public/unknown-bucket/deep/path/file.webp', 'stickers');
+      const result = extractStoragePath(
+        'https://example.com/storage/v1/object/public/unknown-bucket/deep/path/file.webp',
+        'stickers'
+      );
       expect(result).toEqual({ bucket: 'unknown-bucket', path: 'deep/path/file.webp' });
     });
 
@@ -1474,7 +1570,10 @@ describe('MediaLibraryAdmin - Pure Logic', () => {
     });
 
     it('handles nested paths in whatsapp-media', () => {
-      const result = extractStoragePath('https://example.com/whatsapp-media/contacts/abc/sticker.webp', 'stickers');
+      const result = extractStoragePath(
+        'https://example.com/whatsapp-media/contacts/abc/sticker.webp',
+        'stickers'
+      );
       expect(result).toEqual({ bucket: 'whatsapp-media', path: 'contacts/abc/sticker.webp' });
     });
   });
@@ -1502,10 +1601,12 @@ describe('MediaLibraryAdmin - Pure Logic', () => {
       const targetId = 'i1';
       const newValue = true;
       // Simulate optimistic update
-      const updated = items.map(i => i.id === targetId ? { ...i, is_favorite: newValue } : i);
+      const updated = items.map((i) => (i.id === targetId ? { ...i, is_favorite: newValue } : i));
       expect(updated[0].is_favorite).toBe(true);
       // Simulate revert
-      const reverted = updated.map(i => i.id === targetId ? { ...i, is_favorite: !newValue } : i);
+      const reverted = updated.map((i) =>
+        i.id === targetId ? { ...i, is_favorite: !newValue } : i
+      );
       expect(reverted[0].is_favorite).toBe(false);
     });
   });
@@ -1537,9 +1638,9 @@ describe('MediaLibraryAdmin - Pure Logic', () => {
         { name: 'big.mp3', size: 15 * 1024 * 1024 },
         { name: 'medium.mp3', size: 9 * 1024 * 1024 },
       ];
-      const valid = files.filter(f => f.size <= MAX_UPLOAD_SIZE_BYTES);
+      const valid = files.filter((f) => f.size <= MAX_UPLOAD_SIZE_BYTES);
       expect(valid).toHaveLength(2);
-      expect(valid.map(f => f.name)).toEqual(['small.mp3', 'medium.mp3']);
+      expect(valid.map((f) => f.name)).toEqual(['small.mp3', 'medium.mp3']);
     });
   });
 
@@ -1567,7 +1668,7 @@ describe('MediaLibraryAdmin - Pure Logic', () => {
 
   describe('InlineCategorySelect Unknown Categories', () => {
     it('adds unknown category to list', () => {
-      const categories: Record<string, string> = { 'riso': '😂', 'amor': '❤️' };
+      const categories: Record<string, string> = { riso: '😂', amor: '❤️' };
       const value = 'desconhecido';
       const allCategories = { ...categories };
       if (value && !(value in allCategories)) {
@@ -1578,7 +1679,7 @@ describe('MediaLibraryAdmin - Pure Logic', () => {
     });
 
     it('does not duplicate known category', () => {
-      const categories: Record<string, string> = { 'riso': '😂', 'amor': '❤️' };
+      const categories: Record<string, string> = { riso: '😂', amor: '❤️' };
       const value = 'riso';
       const allCategories = { ...categories };
       if (value && !(value in allCategories)) {
@@ -1598,15 +1699,17 @@ describe('MediaLibraryAdmin - Pure Logic', () => {
         { id: 'i2', category: 'amor' },
       ];
       const selected = new Set(['i1']);
-      const oldItems = items.filter(i => selected.has(i.id)).map(i => ({ id: i.id, category: i.category }));
-      
+      const oldItems = items
+        .filter((i) => selected.has(i.id))
+        .map((i) => ({ id: i.id, category: i.category }));
+
       // Optimistic
-      const updated = items.map(i => selected.has(i.id) ? { ...i, category: 'deboche' } : i);
+      const updated = items.map((i) => (selected.has(i.id) ? { ...i, category: 'deboche' } : i));
       expect(updated[0].category).toBe('deboche');
-      
+
       // Revert
-      const reverted = updated.map(i => {
-        const old = oldItems.find(o => o.id === i.id);
+      const reverted = updated.map((i) => {
+        const old = oldItems.find((o) => o.id === i.id);
         return old ? { ...i, category: old.category } : i;
       });
       expect(reverted[0].category).toBe('riso');
@@ -1640,7 +1743,6 @@ describe('MediaLibraryAdmin - Pure Logic', () => {
 
   describe('Selection Clearing', () => {
     it('new Set() clears all selections', () => {
-      const selected = new Set(['a', 'b', 'c']);
       const cleared = new Set<string>();
       expect(cleared.size).toBe(0);
     });
@@ -1648,7 +1750,6 @@ describe('MediaLibraryAdmin - Pure Logic', () => {
     it('filter change should reset selection', () => {
       // Simulates the useEffect behavior
       let selected = new Set(['a', 'b']);
-      const filterCategory = 'riso';
       // When filter changes, selection is cleared
       selected = new Set();
       expect(selected.size).toBe(0);
@@ -1694,14 +1795,18 @@ describe('MediaLibraryAdmin - Pure Logic', () => {
   describe('Edit Keyboard Shortcuts', () => {
     it('Enter key triggers save', () => {
       let saved = false;
-      const onKeyDown = (key: string) => { if (key === 'Enter') saved = true; };
+      const onKeyDown = (key: string) => {
+        if (key === 'Enter') saved = true;
+      };
       onKeyDown('Enter');
       expect(saved).toBe(true);
     });
 
     it('Escape key cancels edit', () => {
       let cancelled = false;
-      const onKeyDown = (key: string) => { if (key === 'Escape') cancelled = true; };
+      const onKeyDown = (key: string) => {
+        if (key === 'Escape') cancelled = true;
+      };
       onKeyDown('Escape');
       expect(cancelled).toBe(true);
     });
@@ -1752,14 +1857,14 @@ describe('MediaLibraryAdmin - Pure Logic', () => {
     it('does nothing when selection is empty', () => {
       const selected = new Set<string>();
       const items = [{ id: 's1' }, { id: 's2' }];
-      const toDelete = items.filter(i => selected.has(i.id));
+      const toDelete = items.filter((i) => selected.has(i.id));
       expect(toDelete).toHaveLength(0);
     });
 
     it('handles selection with non-existent IDs', () => {
       const selected = new Set(['nonexistent1', 'nonexistent2']);
       const items = [{ id: 's1' }, { id: 's2' }];
-      const toDelete = items.filter(i => selected.has(i.id));
+      const toDelete = items.filter((i) => selected.has(i.id));
       expect(toDelete).toHaveLength(0);
     });
   });

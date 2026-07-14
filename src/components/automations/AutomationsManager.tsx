@@ -7,7 +7,7 @@ import { Zap, Plus } from 'lucide-react';
 import { AnimatePresence } from 'framer-motion';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/features/auth';
-import { useAutomations, type AutomationRow } from './useAutomations';
+import { useAutomations, type AutomationRow } from '@/hooks/automations/useAutomations';
 import { AutomationCard } from './AutomationCard';
 import { AutomationEditorDialog } from './AutomationEditorDialog';
 
@@ -70,7 +70,7 @@ export function AutomationsManager() {
             <CardDescription>Configure respostas e ações automáticas</CardDescription>
           </div>
           <div className="flex items-center gap-2">
-            <Select value={filter} onValueChange={(v) => setFilter(v as 'all' | 'active' | 'inactive')}>
+            <Select value={filter} onValueChange={(v) => setFilter(v as 'all' | 'active' | 'inactive' /* ignore-audit: Select/Tabs value string narrowed to union; developer controls option values */)}>
               <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todas</SelectItem>
@@ -108,7 +108,7 @@ export function AutomationsManager() {
           </div>
         </ScrollArea>
       </CardContent>
-      <AutomationEditorDialog open={editorOpen} onOpenChange={setEditorOpen} automation={editingAutomation} onSave={handleSave} />
+      <AutomationEditorDialog key={editingAutomation?.id ?? 'new'} open={editorOpen} onOpenChange={setEditorOpen} automation={editingAutomation} onSave={handleSave} />
     </Card>
   );
 }

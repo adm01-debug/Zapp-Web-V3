@@ -95,6 +95,7 @@ interface State {
   error: Error | null;
   errorInfo: ErrorInfo | null;
   prevResetKey?: string | number;
+  isStackOverflow?: boolean;
 }
 
 export class ErrorBoundary extends Component<Props, State> {
@@ -105,7 +106,13 @@ export class ErrorBoundary extends Component<Props, State> {
   };
 
   public static getDerivedStateFromError(error: Error): Partial<State> {
-    return { hasError: true, error, errorInfo: null };
+    const isStackOverflow = error?.message?.includes('Maximum call stack size exceeded');
+    return {
+      hasError: true,
+      error,
+      errorInfo: null,
+      isStackOverflow,
+    };
   }
 
   public static getDerivedStateFromProps(props: Props, state: State): Partial<State> | null {
@@ -123,10 +130,7 @@ export class ErrorBoundary extends Component<Props, State> {
    * exactly once per recovery (when getDerivedStateFromProps clears the error
    * due to a resetKey change OR when handleRetry resets the state manually).
    */
-  public componentDidUpdate(
-    _prevProps: Props,
-    prevState: State
-  ): void {
+  public componentDidUpdate(_prevProps: Props, prevState: State): void {
     if (prevState.hasError && !this.state.hasError) {
       this.props.onReset?.();
     }
@@ -142,22 +146,25 @@ export class ErrorBoundary extends Component<Props, State> {
 
     try {
       const { isQueryFailure, severity, target } = classifyRenderFailure(error);
+      const isStackOverflow = error?.message?.includes('Maximum call stack size exceeded');
+
       recordQueryEvent({
         operation: 'select',
         source: isQueryFailure ? 'externalProxy' : 'lovableCloud',
-        target,
+        target: isStackOverflow ? 'render:stack_overflow' : target,
         durationMs: 0,
         limit: null,
         offset: null,
         filters: null,
         recordCount: null,
         errorMessage: `[ErrorBoundary] ${error.message}`,
-        severity,
+        severity: isStackOverflow ? 'error' : severity,
         startedAt: performance.now(),
         correlationId: extractCorrelationId(error),
       });
-    } catch {
+    } catch (telemetryError) {
       // Telemetry must never crash the boundary itself.
+      log.warn('Failed to record error telemetry:', telemetryError);
     }
 
     this.props.onError?.(error, errorInfo);
@@ -186,43 +193,50 @@ export class ErrorBoundary extends Component<Props, State> {
       // "Recarregar Pagina" primary button so the user is not confused by
       // "Tentar novamente" which would just re-trigger the same 404 errors.
       const isChunkErr = this.state.error ? isChunkLoadError(this.state.error) : false;
+      const isStackOverflow = this.state.isStackOverflow;
+
+      const errorTitle = isChunkErr
+        ? 'Atualiza\u00e7\u00e3o dispon\u00edvel'
+        : isStackOverflow
+          ? 'Erro de recurs\u00e3o infinita'
+          : 'Ops! Algo deu errado';
+
+      const errorDescription = isChunkErr
+        ? 'A p\u00e1gina foi atualizada no servidor. Recarregue para obter a vers\u00e3o mais recente.'
+        : isStackOverflow
+          ? 'Detectamos uma recurs\u00e3o infinita. A p\u00e1gina ser\u00e1 recarregada para recuperar.'
+          : 'Encontramos um erro inesperado. Tente recarregar a p\u00e1gina.';
 
       return (
         <div
-          className="min-h-screen flex items-center justify-center bg-background p-4"
+          className="flex min-h-screen items-center justify-center bg-background p-4"
           role="alert"
           aria-live="assertive"
         >
-          <Card className="max-w-lg w-full shadow-2xl border-destructive/20">
-            <CardHeader className="text-center pb-2">
+          <Card className="w-full max-w-lg border-destructive/20 shadow-2xl">
+            <CardHeader className="pb-2 text-center">
               <div className="mx-auto mb-4">
-                <div className="w-20 h-20 rounded-full bg-destructive/10 flex items-center justify-center">
-                  <AlertTriangle className="w-10 h-10 text-destructive" />
+                <div className="flex h-20 w-20 items-center justify-center rounded-full bg-destructive/10">
+                  <AlertTriangle className="h-10 w-10 text-destructive" />
                 </div>
               </div>
-              <CardTitle className="text-2xl font-bold text-foreground">
-                {isChunkErr ? 'Atualiza\u00e7\u00e3o dispon\u00edvel' : 'Ops! Algo deu errado'}
-              </CardTitle>
-              <CardDescription className="text-muted-foreground mt-2">
-                {isChunkErr
-                  ? 'A p\u00e1gina foi atualizada no servidor. Recarregue para obter a vers\u00e3o mais recente.'
-                  : 'Encontramos um erro inesperado. Tente recarregar a p\u00e1gina.'}
+              <CardTitle className="text-2xl font-bold text-foreground">{errorTitle}</CardTitle>
+              <CardDescription className="mt-2 text-muted-foreground">
+                {errorDescription}
               </CardDescription>
             </CardHeader>
 
             <CardContent className="space-y-4">
               {process.env.NODE_ENV === 'development' && this.state.error && (
-                <details className="text-sm bg-muted/50 rounded-lg p-3 border border-border">
-                  <summary className="cursor-pointer font-medium text-foreground flex items-center gap-2">
-                    <Bug className="w-4 h-4" />
+                <details className="rounded-lg border border-border bg-muted/50 p-3 text-sm">
+                  <summary className="flex cursor-pointer items-center gap-2 font-medium text-foreground">
+                    <Bug className="h-4 w-4" />
                     Detalhes do erro (desenvolvimento)
                   </summary>
                   <div className="mt-2 space-y-2">
-                    <p className="text-destructive text-xs break-all">
-                      {this.state.error.message}
-                    </p>
+                    <p className="break-all text-xs text-destructive">{this.state.error.message}</p>
                     {this.state.errorInfo?.componentStack && (
-                      <pre className="text-xs text-muted-foreground overflow-auto max-h-32 bg-background p-2 rounded">
+                      <pre className="max-h-32 overflow-auto rounded bg-background p-2 text-xs text-muted-foreground">
                         {this.state.errorInfo.componentStack}
                       </pre>
                     )}
@@ -230,30 +244,30 @@ export class ErrorBoundary extends Component<Props, State> {
                 </details>
               )}
 
-              <div className="flex flex-col sm:flex-row gap-3 pt-2">
-                {isChunkErr ? (
-                  // Chunk error: reload is the only meaningful action.
+              <div className="flex flex-col gap-3 pt-2 sm:flex-row">
+                {isChunkErr || isStackOverflow ? (
                   <Button onClick={this.handleReload} className="flex-1" variant="default">
-                    <RotateCw className="w-4 h-4 mr-2" />
-                    Recarregar P\u00e1gina
+                    <RotateCw className="mr-2 h-4 w-4" />
+                    {isStackOverflow ? 'Recarregar e Recuperar' : 'Recarregar P\u00e1gina'}
                   </Button>
                 ) : (
-                  // Normal error: try re-rendering first.
                   <Button onClick={this.handleRetry} className="flex-1" variant="default">
-                    <RefreshCw className="w-4 h-4 mr-2" />
+                    <RefreshCw className="mr-2 h-4 w-4" />
                     Tentar novamente
                   </Button>
                 )}
-                <Button onClick={this.handleGoHome} variant="outline" className="flex-1">
-                  <Home className="w-4 h-4 mr-2" />
-                  Voltar ao in\u00edcio
-                </Button>
+                {!isStackOverflow && (
+                  <Button onClick={this.handleGoHome} variant="outline" className="flex-1">
+                    <Home className="mr-2 h-4 w-4" />
+                    Voltar ao in\u00edcio
+                  </Button>
+                )}
               </div>
 
               {!isChunkErr && (
                 <button
                   onClick={this.handleReload}
-                  className="w-full text-sm text-muted-foreground hover:text-foreground transition-colors underline-offset-4 hover:underline"
+                  className="w-full text-sm text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline"
                 >
                   Ou recarregue a p\u00e1gina completamente
                 </button>
@@ -289,12 +303,12 @@ export function ErrorFallback({
   resetErrorBoundary: () => void;
 }) {
   return (
-    <div className="p-4 bg-destructive/5 border border-destructive/20 rounded-lg">
+    <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-4">
       <div className="flex items-center gap-3">
-        <AlertTriangle className="w-5 h-5 text-destructive flex-shrink-0" />
-        <div className="flex-1 min-w-0">
+        <AlertTriangle className="h-5 w-5 flex-shrink-0 text-destructive" />
+        <div className="min-w-0 flex-1">
           <h3 className="font-medium text-foreground">Erro ao carregar componente</h3>
-          <p className="text-sm text-muted-foreground truncate">{error.message}</p>
+          <p className="truncate text-sm text-muted-foreground">{error.message}</p>
         </div>
         <Button size="sm" variant="outline" onClick={resetErrorBoundary}>
           Tentar novamente

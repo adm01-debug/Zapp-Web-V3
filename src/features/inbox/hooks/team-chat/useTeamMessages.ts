@@ -1,6 +1,7 @@
 import { useEffect, useRef, useMemo } from 'react';
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { safeClient } from '@/integrations/supabase/safeClient';
 import { useAuth } from '@/features/auth';
 import type { TeamMessage } from './teamChatTypes';
 
@@ -11,55 +12,54 @@ export function useTeamMessages(conversationId: string | null, searchQuery: stri
   const queryClient = useQueryClient();
   const lastReadRef = useRef<string | null>(null);
 
-  const {
-    data,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-    isLoading,
-    isError,
-    error
-  } = useInfiniteQuery({
-    queryKey: ['team-messages', conversationId, searchQuery],
-    queryFn: async ({ pageParam }) => {
-      if (!conversationId) return { messages: [], nextCursor: null };
-      
-      let query = supabase
-        .from('team_messages')
-        .select('*, sender:profiles!team_messages_sender_id_fkey(id, name, avatar_url)')
-        .eq('conversation_id', conversationId)
-        .order('created_at', { ascending: false })
-        .order('id', { ascending: false })
-        .limit(MESSAGES_PER_PAGE);
+  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading, isError, error } =
+    useInfiniteQuery({
+      queryKey: ['team-messages', conversationId, searchQuery],
+      queryFn: async ({ pageParam }) => {
+        if (!conversationId) return { messages: [], nextCursor: null };
 
-      if (pageParam) {
-        const [createdAt, id] = (pageParam as string).split('|');
-        query = query.or(`created_at.lt."${createdAt}",and(created_at.eq."${createdAt}",id.lt."${id}")`);
-      }
+        const { data: messages, error } = await safeClient.from<TeamMessage>(
+          'team_messages',
+          (q) => {
+            let query = q
+              .select('*, sender:profiles!team_messages_sender_id_fkey(id, name, avatar_url)')
+              .eq('conversation_id', conversationId)
+              .order('created_at', { ascending: false })
+              .order('id', { ascending: false })
+              .limit(MESSAGES_PER_PAGE);
+            if (pageParam) {
+              const [createdAt, id] = (pageParam as string).split('|');
+              query = query.or(
+                `created_at.lt."${createdAt}",and(created_at.eq."${createdAt}",id.lt."${id}")`
+              );
+            }
+            if (searchQuery.trim()) {
+              query = query.ilike('content', `%${searchQuery.trim()}%`);
+            }
+            return query;
+          }
+        );
 
-      if (searchQuery.trim()) {
-        query = query.ilike('content', `%${searchQuery.trim()}%`);
-      }
+        if (error) throw error;
 
-      const { data: messages, error } = await query;
-      
-      if (error) throw error;
+        const sortedMessages = (messages || []).slice().reverse() as TeamMessage[];
 
-      const sortedMessages = (messages || []).slice().reverse() as TeamMessage[];
-      
-      return {
-        messages: sortedMessages,
-        nextCursor: messages?.length === MESSAGES_PER_PAGE ? `${messages[messages.length - 1].created_at}|${messages[messages.length - 1].id}` : null,
-      };
-    },
-    getNextPageParam: (lastPage) => lastPage.nextCursor,
-    enabled: !!conversationId && !!profile,
-    initialPageParam: null as string | null,
-  });
+        return {
+          messages: sortedMessages,
+          nextCursor:
+            messages?.length === MESSAGES_PER_PAGE
+              ? `${messages[messages.length - 1].created_at}|${messages[messages.length - 1].id}`
+              : null,
+        };
+      },
+      getNextPageParam: (lastPage) => lastPage.nextCursor,
+      enabled: !!conversationId && !!profile,
+      initialPageParam: null as string | null,
+    });
 
   const messages = useMemo(() => {
     if (!data?.pages) return [];
-    const allMessages = [...data.pages].reverse().flatMap(page => page.messages);
+    const allMessages = [...data.pages].reverse().flatMap((page) => page.messages);
     return allMessages;
   }, [data?.pages]);
 
@@ -67,34 +67,41 @@ export function useTeamMessages(conversationId: string | null, searchQuery: stri
     if (!conversationId) return;
     const channel = supabase
       .channel(`team-messages-${conversationId}`)
-      .on('postgres_changes', { 
-        event: 'INSERT', 
-        schema: 'zapp', // Wave 1: team_messages is a view in public — zapp is base table
-        table: 'team_messages', 
-        filter: `conversation_id=eq.${conversationId}` 
-      }, (payload) => {
-        const newMessage = payload.new as TeamMessage;
-        
-        if (!searchQuery.trim()) {
-          queryClient.setQueryData(['team-messages', conversationId, ''], (oldData: { pages: { messages: TeamMessage[] }[] } | undefined) => {
-            if (!oldData || !oldData.pages) return oldData;
-            
-            const newPages = [...oldData.pages];
-            if (newPages.length > 0) {
-              newPages[0] = {
-                ...newPages[0],
-                messages: [...newPages[0].messages, newMessage]
-              };
-            }
-            return { ...oldData, pages: newPages };
-          });
+      .on<TeamMessage>(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'zapp', // Wave 1: team_messages is a view in public — zapp is base table
+          table: 'team_messages',
+          filter: `conversation_id=eq.${conversationId}`,
+        },
+        (payload) => {
+          if (!searchQuery.trim()) {
+            queryClient.setQueryData(
+              ['team-messages', conversationId, ''],
+              (oldData: { pages: { messages: TeamMessage[] }[] } | undefined) => {
+                if (!oldData || !oldData.pages) return oldData;
+
+                const newPages = [...oldData.pages];
+                if (newPages.length > 0) {
+                  newPages[0] = {
+                    ...newPages[0],
+                    messages: [...newPages[0].messages, payload.new],
+                  };
+                }
+                return { ...oldData, pages: newPages };
+              }
+            );
+          }
+
+          void queryClient.invalidateQueries({ queryKey: ['team-messages', conversationId] });
         }
-        
-        queryClient.invalidateQueries({ queryKey: ['team-messages', conversationId] });
-      })
+      )
       .subscribe();
 
-    return () => { void supabase.removeChannel(channel); };
+    return () => {
+      void supabase.removeChannel(channel);
+    };
   }, [conversationId, queryClient, searchQuery]);
 
   return {

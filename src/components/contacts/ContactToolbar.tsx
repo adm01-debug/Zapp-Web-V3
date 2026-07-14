@@ -168,16 +168,16 @@ export function ContactToolbar({
             {filterCompany && (
               <Badge variant="outline" className="pl-2 pr-1 h-7 gap-1 bg-primary/5 border-primary/20 text-primary animate-in fade-in slide-in-from-left-2">
                 Empresa: {filterCompany}
-                <Button variant="ghost" size="icon" className="h-4 w-4 rounded-full hover:bg-primary/20" onClick={() => setFilterCompany('')}>
+                <Button aria-label="Limpar filtro de empresa" variant="ghost" size="icon" className="h-4 w-4 rounded-full hover:bg-primary/20" onClick={() => setFilterCompany('')}>
                   <X className="w-3 h-3" />
                 </Button>
               </Badge>
             )}
-            
+
             {filterJobTitle && (
               <Badge variant="outline" className="pl-2 pr-1 h-7 gap-1 bg-primary/5 border-primary/20 text-primary animate-in fade-in slide-in-from-left-2">
                 Cargo: {filterJobTitle}
-                <Button variant="ghost" size="icon" className="h-4 w-4 rounded-full hover:bg-primary/20" onClick={() => setFilterJobTitle('')}>
+                <Button aria-label="Limpar filtro de cargo" variant="ghost" size="icon" className="h-4 w-4 rounded-full hover:bg-primary/20" onClick={() => setFilterJobTitle('')}>
                   <X className="w-3 h-3" />
                 </Button>
               </Badge>
@@ -186,7 +186,7 @@ export function ContactToolbar({
             {filterTag && (
               <Badge variant="outline" className="pl-2 pr-1 h-7 gap-1 bg-primary/5 border-primary/20 text-primary animate-in fade-in slide-in-from-left-2">
                 Tag: {filterTag}
-                <Button variant="ghost" size="icon" className="h-4 w-4 rounded-full hover:bg-primary/20" onClick={() => setFilterTag('')}>
+                <Button aria-label="Limpar filtro de etiqueta" variant="ghost" size="icon" className="h-4 w-4 rounded-full hover:bg-primary/20" onClick={() => setFilterTag('')}>
                   <X className="w-3 h-3" />
                 </Button>
               </Badge>
@@ -195,7 +195,7 @@ export function ContactToolbar({
             {filterDateRange !== 'all' && (
               <Badge variant="outline" className="pl-2 pr-1 h-7 gap-1 bg-primary/5 border-primary/20 text-primary animate-in fade-in slide-in-from-left-2">
                 Período: {filterDateRange}
-                <Button variant="ghost" size="icon" className="h-4 w-4 rounded-full hover:bg-primary/20" onClick={() => setFilterDateRange('all')}>
+                <Button aria-label="Limpar filtro de período" variant="ghost" size="icon" className="h-4 w-4 rounded-full hover:bg-primary/20" onClick={() => setFilterDateRange('all')}>
                   <X className="w-3 h-3" />
                 </Button>
               </Badge>

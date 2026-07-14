@@ -1,6 +1,6 @@
 import { createContext } from 'react';
-import { User, Session } from '@supabase/supabase-js';
-import { Profile } from '@/features/auth/services/authService';
+import { User, Session, AuthError } from '@supabase/supabase-js';
+import { Profile } from '../services/authService';
 
 export interface AuthContextType {
   user: User | null;
@@ -9,8 +9,8 @@ export interface AuthContextType {
   roles: string[];
   permissions: string[];
   loading: boolean;
-  signIn: (email: string, password: string) => Promise<{ error: any }>;
-  signUp: (email: string, password: string, name: string) => Promise<{ error: any }>;
+  signIn: (email: string, password: string) => Promise<{ error: AuthError | null }>;
+  signUp: (email: string, password: string, name: string) => Promise<{ error: AuthError | null }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
   refreshRoles: () => Promise<void>;

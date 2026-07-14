@@ -95,8 +95,8 @@ export { CATEGORY_LABELS as EMOJI_CATEGORY_LABELS, ALL_CATEGORIES as EMOJI_ALL_C
 export * from './linkPreviewUtils';
 export * from './swipeActions';
 export * from './template-utils';
-export * from './useChatMediaSending';
-export * from './useFileUploadLogic';
+export * from '../hooks/useChatMediaSending';
+export { useFileUploadLogic, type FileMessageData, type FilePreview } from './useFileUploadLogic';
 export * from './useGlobalSearchData';
 export * from './agents-ops';
 export * from './ai-tools';

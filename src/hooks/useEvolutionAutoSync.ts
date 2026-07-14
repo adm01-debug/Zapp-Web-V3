@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { safeClient } from '@/integrations/supabase/safeClient';
 import { useEvolutionApi } from '@/hooks/useEvolutionApi';
 import { getLogger } from '@/lib/logger';
 import { normalizePhone, isSamePhone } from '@/lib/phoneUtils';
@@ -39,20 +40,23 @@ export function useEvolutionAutoSync(onSynced?: () => void) {
       const evoResult = await listInstances();
       const instances: unknown[] = Array.isArray(evoResult)
         ? evoResult
-        : (evoResult as { data?: unknown[]; instances?: unknown[] })?.data ??
-          (evoResult as { data?: unknown[]; instances?: unknown[] })?.instances ?? [];
+        : ((evoResult as { data?: unknown[]; instances?: unknown[] })?.data ??
+          (evoResult as { data?: unknown[]; instances?: unknown[] })?.instances ??
+          []);
 
       if (!instances.length) return;
 
       // 3. Find instances NOT in Supabase (by instance_id AND phone number)
       const missing = instances.filter((inst) => {
-        const i = inst as { instance?: { instanceName?: string; number?: string; ownerJid?: string } };
+        const i = inst as {
+          instance?: { instanceName?: string; number?: string; ownerJid?: string };
+        };
         if (!i?.instance?.instanceName) return false;
         if (knownIds.has(i.instance.instanceName)) return false;
 
         // Also skip if phone number already exists in another connection
-        const phone = i.instance?.number ||
-          i.instance?.ownerJid?.replace('@s.whatsapp.net', '') || '';
+        const phone =
+          i.instance?.number || i.instance?.ownerJid?.replace('@s.whatsapp.net', '') || '';
         if (phone && knownPhones.some((kp) => isSamePhone(kp, phone))) {
           return false;
         }
@@ -63,21 +67,32 @@ export function useEvolutionAutoSync(onSynced?: () => void) {
 
       // 4. Insert missing instances
       for (const inst of missing) {
-        const i = inst as { instance?: { instanceName?: string; profileName?: string; number?: string; ownerJid?: string; status?: string } };
+        const i = inst as {
+          instance?: {
+            instanceName?: string;
+            profileName?: string;
+            number?: string;
+            ownerJid?: string;
+            status?: string;
+          };
+        };
         const instanceName = i.instance?.instanceName ?? '';
         const name = i.instance?.profileName || instanceName || 'Auto-synced';
-        const phone = i.instance?.number ||
-          i.instance?.ownerJid?.replace('@s.whatsapp.net', '') || '';
+        const phone =
+          i.instance?.number || i.instance?.ownerJid?.replace('@s.whatsapp.net', '') || '';
         const status = i.instance?.status === 'open' ? 'connected' : 'disconnected';
 
-        const { error: insertError } = await supabase.from('whatsapp_connections').insert({
-          name,
-          phone_number: phone,
-          instance_id: instanceName,
-          status,
-          is_default: false,
-          api_type: 'evolution',
-        } as never);
+        const { error: insertError } = await safeClient.from('whatsapp_connections', (q) =>
+          q.insert({
+            name,
+            phone_number: phone,
+            instance_id: instanceName,
+            instance_name: instanceName,
+            status,
+            is_default: false,
+            api_type: 'evolution',
+          })
+        );
 
         if (insertError) {
           log.warn(`Failed to sync ${instanceName}`, { error: insertError.message });

@@ -93,21 +93,21 @@ export function SentryIntegrationView() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <Label>DSN</Label>
-            <Input placeholder="https://...@sentry.io/..." value={config.dsn} onChange={e => setConfig(p => ({ ...p, dsn: e.target.value }))} />
+            <Label htmlFor="sentry-dsn">DSN</Label>
+            <Input id="sentry-dsn" placeholder="https://...@sentry.io/..." value={config.dsn} onChange={e => setConfig(p => ({ ...p, dsn: e.target.value }))} />
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div>
               <Label>Ambiente</Label>
-              <select className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm" value={config.environment} onChange={e => setConfig(p => ({ ...p, environment: e.target.value }))}>
+              <select aria-label="Ambiente" className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm" value={config.environment} onChange={e => setConfig(p => ({ ...p, environment: e.target.value }))}>
                 <option value="production">Production</option>
                 <option value="staging">Staging</option>
                 <option value="development">Development</option>
               </select>
             </div>
             <div>
-              <Label>Traces Rate</Label>
-              <Input type="number" step="0.01" min="0" max="1" value={config.tracesSampleRate} onChange={e => setConfig(p => ({ ...p, tracesSampleRate: Number(e.target.value) }))} />
+              <Label htmlFor="sentry-traces-rate">Traces Rate</Label>
+              <Input id="sentry-traces-rate" type="number" step="0.01" min="0" max="1" value={config.tracesSampleRate} onChange={e => setConfig(p => ({ ...p, tracesSampleRate: Number(e.target.value) }))} />
             </div>
             <div className="flex items-center gap-2 mt-auto">
               <Switch checked={config.enablePerformance} onCheckedChange={v => setConfig(p => ({ ...p, enablePerformance: v }))} />

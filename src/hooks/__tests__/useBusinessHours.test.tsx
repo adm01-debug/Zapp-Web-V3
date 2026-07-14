@@ -3,11 +3,11 @@ import { renderHook, waitFor } from '@testing-library/react';
 import React from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
-const mockFrom = vi.fn();
+const mockFrom = vi.hoisted(() => vi.fn());
 
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
-    from: (...args: any[]) => mockFrom(...args),
+    from: (...args: unknown[]) => mockFrom(...args),
   },
 }));
 
@@ -27,11 +27,25 @@ function createWrapper() {
 }
 
 const mockHours = [
-  { id: 'bh1', whatsapp_connection_id: 'wc1', day_of_week: 1, is_open: true, open_time: '09:00', close_time: '18:00' },
-  { id: 'bh2', whatsapp_connection_id: 'wc1', day_of_week: 0, is_open: false, open_time: null, close_time: null },
+  {
+    id: 'bh1',
+    whatsapp_connection_id: 'wc1',
+    day_of_week: 1,
+    is_open: true,
+    open_time: '09:00',
+    close_time: '18:00',
+  },
+  {
+    id: 'bh2',
+    whatsapp_connection_id: 'wc1',
+    day_of_week: 0,
+    is_open: false,
+    open_time: null,
+    close_time: null,
+  },
 ];
 
-function makeMockChain(data: any[] | null, error: any = null) {
+function makeMockChain(data: unknown[] | null, error: { message: string } | null = null) {
   return {
     select: vi.fn().mockReturnValue({
       eq: vi.fn().mockReturnValue({
@@ -65,7 +79,7 @@ describe('useBusinessHours', () => {
   it('identifies closed days correctly', async () => {
     const { result } = renderHook(() => useBusinessHours('wc1'), { wrapper: createWrapper() });
     await waitFor(() => expect(result.current.isLoading).toBe(false));
-    const sunday = result.current.businessHours?.find((h: any) => h.day_of_week === 0);
+    const sunday = result.current.businessHours?.find((h) => h.day_of_week === 0);
     // @ts-expect-error is_open not in generated Supabase types but exists at runtime
     expect(sunday?.is_open).toBe(false);
   });

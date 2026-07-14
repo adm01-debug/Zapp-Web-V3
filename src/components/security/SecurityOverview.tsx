@@ -1,9 +1,17 @@
 import { useState, useEffect } from 'react';
+import { useMountedRef } from '@/hooks/useMountedRef';
 import { motion } from 'framer-motion';
-import { getLogger } from '@/lib/logger';
-
-const log = getLogger('SecurityOverview');
-import { Shield, Smartphone, Key, AlertTriangle, CheckCircle2, XCircle, Monitor, Lock } from 'lucide-react';
+import { log } from '@/lib/logger';
+import {
+  Shield,
+  Smartphone,
+  Key,
+  AlertTriangle,
+  CheckCircle2,
+  XCircle,
+  Monitor,
+  Lock,
+} from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { useAuth } from '@/features/auth';
@@ -12,6 +20,7 @@ import { useDeviceDetection } from '@/hooks/useDeviceDetection';
 import { useUserRole } from '@/features/auth';
 import { supabase } from '@/integrations/supabase/client';
 import { SecurityAlertsPanel, SecurityDevicesPanel } from './SecurityPanels';
+import { normalizeUserDevice } from '@/lib/normalizers';
 
 interface SecurityScore {
   total: number;
@@ -36,10 +45,11 @@ export function SecurityOverview() {
   const { isMFAEnabled, factors } = useMFA();
   const { devices, sessions, loading: devicesLoading } = useDeviceDetection();
   const { hasRole } = useUserRole();
-  const isAdmin = hasRole('admin');
+  const _isAdmin = hasRole('admin');
 
   const [securityAlerts, setSecurityAlerts] = useState<SecurityAlert[]>([]);
   const [loadingAlerts, setLoadingAlerts] = useState(true);
+  const mountedRef = useMountedRef();
 
   // Fetch security alerts
   useEffect(() => {
@@ -55,11 +65,12 @@ export function SecurityOverview() {
           .limit(5);
 
         if (error) throw error;
+        if (!mountedRef.current) return;
         setSecurityAlerts(data || []);
       } catch (error) {
         log.error('Error fetching alerts:', error);
       } finally {
-        setLoadingAlerts(false);
+        if (mountedRef.current) setLoadingAlerts(false);
       }
     }
 
@@ -69,7 +80,7 @@ export function SecurityOverview() {
   // Calculate security score
   const calculateScore = (): SecurityScore => {
     const mfaScore = isMFAEnabled ? 25 : 0;
-    const deviceScore = devices.filter(d => d.is_trusted).length > 0 ? 25 : 15;
+    const deviceScore = devices.filter((d) => d.is_trusted).length > 0 ? 25 : 15;
     const sessionScore = sessions.length <= 3 ? 25 : 15;
     const passwordScore = 25; // Assume good password for now
 
@@ -90,13 +101,13 @@ export function SecurityOverview() {
     return 'text-destructive';
   };
 
-  const getScoreBg = (total: number) => {
+  const _getScoreBg = (total: number) => {
     if (total >= 80) return 'bg-success';
     if (total >= 60) return 'bg-warning';
     return 'bg-destructive';
   };
 
-  const getSeverityColor = (severity: string) => {
+  const _getSeverityColor = (severity: string) => {
     switch (severity) {
       case 'high':
       case 'critical':
@@ -121,9 +132,9 @@ export function SecurityOverview() {
     {
       id: 'devices',
       title: 'Dispositivos Confiáveis',
-      description: `${devices.filter(d => d.is_trusted).length} de ${devices.length} dispositivos são confiáveis`,
+      description: `${devices.filter((d) => d.is_trusted).length} de ${devices.length} dispositivos são confiáveis`,
       icon: Smartphone,
-      enabled: devices.filter(d => d.is_trusted).length > 0,
+      enabled: devices.filter((d) => d.is_trusted).length > 0,
       score: score.devices,
       maxScore: 25,
     },
@@ -150,15 +161,12 @@ export function SecurityOverview() {
   return (
     <div className="space-y-6">
       {/* Security Score Card */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-      >
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
         <Card className="overflow-hidden">
           <div className="bg-gradient-to-br from-primary/10 via-primary/5 to-transparent p-6">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-lg font-semibold mb-1">Pontuação de Segurança</h3>
+                <h3 className="mb-1 text-lg font-semibold">Pontuação de Segurança</h3>
                 <p className="text-sm text-muted-foreground">
                   Baseado nas suas configurações atuais
                 </p>
@@ -171,17 +179,14 @@ export function SecurityOverview() {
               </div>
             </div>
             <div className="mt-4">
-              <Progress 
-                value={score.total} 
-                className="h-3"
-              />
+              <Progress value={score.total} className="h-3" />
             </div>
           </div>
         </Card>
       </motion.div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -190,8 +195,8 @@ export function SecurityOverview() {
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-info/10">
-                  <Smartphone className="w-5 h-5 text-info" />
+                <div className="rounded-lg bg-info/10 p-2">
+                  <Smartphone className="h-5 w-5 text-info" />
                 </div>
                 <div>
                   <div className="text-2xl font-bold">{devices.length}</div>
@@ -210,8 +215,8 @@ export function SecurityOverview() {
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-success/10">
-                  <Monitor className="w-5 h-5 text-success" />
+                <div className="rounded-lg bg-success/10 p-2">
+                  <Monitor className="h-5 w-5 text-success" />
                 </div>
                 <div>
                   <div className="text-2xl font-bold">{sessions.length}</div>
@@ -230,8 +235,10 @@ export function SecurityOverview() {
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
-                <div className={`p-2 rounded-lg ${isMFAEnabled ? 'bg-success/10' : 'bg-warning/10'}`}>
-                  <Key className={`w-5 h-5 ${isMFAEnabled ? 'text-success' : 'text-warning'}`} />
+                <div
+                  className={`rounded-lg p-2 ${isMFAEnabled ? 'bg-success/10' : 'bg-warning/10'}`}
+                >
+                  <Key className={`h-5 w-5 ${isMFAEnabled ? 'text-success' : 'text-warning'}`} />
                 </div>
                 <div>
                   <div className="text-2xl font-bold">{factors.length}</div>
@@ -250,12 +257,16 @@ export function SecurityOverview() {
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
-                <div className={`p-2 rounded-lg ${securityAlerts.filter(a => !a.is_resolved).length > 0 ? 'bg-destructive/10' : 'bg-success/10'}`}>
-                  <AlertTriangle className={`w-5 h-5 ${securityAlerts.filter(a => !a.is_resolved).length > 0 ? 'text-destructive' : 'text-success'}`} />
+                <div
+                  className={`rounded-lg p-2 ${securityAlerts.filter((a) => !a.is_resolved).length > 0 ? 'bg-destructive/10' : 'bg-success/10'}`}
+                >
+                  <AlertTriangle
+                    className={`h-5 w-5 ${securityAlerts.filter((a) => !a.is_resolved).length > 0 ? 'text-destructive' : 'text-success'}`}
+                  />
                 </div>
                 <div>
                   <div className="text-2xl font-bold">
-                    {securityAlerts.filter(a => !a.is_resolved).length}
+                    {securityAlerts.filter((a) => !a.is_resolved).length}
                   </div>
                   <div className="text-xs text-muted-foreground">Alertas</div>
                 </div>
@@ -274,12 +285,10 @@ export function SecurityOverview() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Shield className="w-5 h-5" />
+              <Shield className="h-5 w-5" />
               Status de Segurança
             </CardTitle>
-            <CardDescription>
-              Revise e melhore a segurança da sua conta
-            </CardDescription>
+            <CardDescription>Revise e melhore a segurança da sua conta</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {securityItems.map((item) => {
@@ -287,11 +296,15 @@ export function SecurityOverview() {
               return (
                 <div
                   key={item.id}
-                  className="flex items-center justify-between p-4 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
+                  className="flex items-center justify-between rounded-lg border bg-card p-4 transition-colors hover:bg-muted/50"
                 >
                   <div className="flex items-center gap-4">
-                    <div className={`p-2 rounded-lg ${item.enabled ? 'bg-success/10' : 'bg-warning/10'}`}>
-                      <Icon className={`w-5 h-5 ${item.enabled ? 'text-success' : 'text-warning'}`} />
+                    <div
+                      className={`rounded-lg p-2 ${item.enabled ? 'bg-success/10' : 'bg-warning/10'}`}
+                    >
+                      <Icon
+                        className={`h-5 w-5 ${item.enabled ? 'text-success' : 'text-warning'}`}
+                      />
                     </div>
                     <div>
                       <h4 className="font-medium">{item.title}</h4>
@@ -300,12 +313,14 @@ export function SecurityOverview() {
                   </div>
                   <div className="flex items-center gap-3">
                     <div className="text-right">
-                      <span className="text-sm font-medium">{item.score}/{item.maxScore}</span>
+                      <span className="text-sm font-medium">
+                        {item.score}/{item.maxScore}
+                      </span>
                     </div>
                     {item.enabled ? (
-                      <CheckCircle2 className="w-5 h-5 text-success" />
+                      <CheckCircle2 className="h-5 w-5 text-success" />
                     ) : (
-                      <XCircle className="w-5 h-5 text-warning" />
+                      <XCircle className="h-5 w-5 text-warning" />
                     )}
                   </div>
                 </div>
@@ -316,7 +331,10 @@ export function SecurityOverview() {
       </motion.div>
 
       <SecurityAlertsPanel alerts={securityAlerts} loading={loadingAlerts} />
-      <SecurityDevicesPanel devices={devices} loading={devicesLoading} />
+      <SecurityDevicesPanel
+        devices={devices.map((d) => normalizeUserDevice(d as unknown as Record<string, unknown>))}
+        loading={devicesLoading}
+      />
     </div>
   );
 }

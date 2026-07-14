@@ -34,8 +34,8 @@ export function escapeCsvCell(value: unknown): string {
 // ── CSV Builder ────────────────────────────────────────────────────────────
 
 export interface CsvColumn<T = Record<string, unknown>> {
-  key:    keyof T | string;
-  label:  string;
+  key: keyof T | string;
+  label: string;
   format?: (value: unknown, row: T) => string;
 }
 
@@ -46,20 +46,24 @@ export interface CsvColumn<T = Record<string, unknown>> {
  * - All values properly escaped
  */
 export function buildCsv<T extends Record<string, unknown>>(
-  rows:    T[],
+  rows: T[],
   columns: CsvColumn<T>[]
 ): string {
   // Header row
   const header = columns.map((col) => escapeCsvCell(col.label)).join(',');
 
   // Data rows
-  const body = rows.map((row) =>
-    columns.map((col) => {
-      const rawValue = row[col.key as keyof T];
-      const formatted = col.format ? col.format(rawValue, row) : rawValue;
-      return escapeCsvCell(formatted);
-    }).join(',')
-  ).join('\r\n');
+  const body = rows
+    .map((row) =>
+      columns
+        .map((col) => {
+          const rawValue = row[col.key as keyof T];
+          const formatted = col.format ? col.format(rawValue, row) : rawValue;
+          return escapeCsvCell(formatted);
+        })
+        .join(',')
+    )
+    .join('\r\n');
 
   // UTF-8 BOM + header + CRLF + body
   return '\uFEFF' + header + '\r\n' + body;
@@ -74,9 +78,9 @@ export function buildCsv<T extends Record<string, unknown>>(
  */
 export function downloadCsvFile(csvContent: string, filename: string): void {
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-  const url  = URL.createObjectURL(blob);
+  const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
-  link.href     = url;
+  link.href = url;
   link.download = filename.endsWith('.csv') ? filename : `${filename}.csv`;
   link.style.display = 'none';
   document.body.appendChild(link);
@@ -101,7 +105,7 @@ export function downloadCsvFile(csvContent: string, filename: string): void {
 export function parseCsvString(csvContent: string): Array<Record<string, string>> {
   // Strip BOM
   const clean = csvContent.startsWith('\uFEFF') ? csvContent.slice(1) : csvContent;
-  const lines  = clean.split(/\r?\n/).filter((l) => l.trim().length > 0);
+  const lines = clean.split(/\r?\n/).filter((l) => l.trim().length > 0);
   if (lines.length < 2) return [];
 
   const parseRow = (row: string): string[] => {
@@ -135,9 +139,7 @@ export function parseCsvString(csvContent: string): Array<Record<string, string>
 
   return lines.slice(1).map((line) => {
     const cells = parseRow(line);
-    return Object.fromEntries(
-      headers.map((h, i) => [h, (cells[i] ?? '').trim()])
-    );
+    return Object.fromEntries(headers.map((h, i) => [h, (cells[i] ?? '').trim()]));
   });
 }
 
@@ -151,7 +153,7 @@ export function getCsvFilename(prefix: string, suffix?: string): string {
   const date = new Date().toISOString().slice(0, 10);
   const parts = [prefix, suffix, date].filter(Boolean).join('-');
   // Strip unsafe filename chars
-  return parts.replace(/[^a-zA-Z0-9_\-\.]/g, '_') + '.csv';
+  return parts.replace(/[^a-zA-Z0-9_\-.]/g, '_') + '.csv';
 }
 
 // ── Compat wrappers ──────────────────────────────────────────────────────
@@ -164,7 +166,7 @@ export function getCsvFilename(prefix: string, suffix?: string): string {
  * compatibilidade com `ContactImportDialog.parseRows`.
  */
 export async function parseCsvFile(file: File): Promise<string[][]> {
-  const raw   = await file.text();
+  const raw = await file.text();
   const clean = raw.startsWith('\uFEFF') ? raw.slice(1) : raw;
   const lines = clean.split(/\r?\n/).filter((l) => l.trim().length > 0);
 
@@ -175,10 +177,14 @@ export async function parseCsvFile(file: File): Promise<string[][]> {
     for (let i = 0; i < row.length; i++) {
       const ch = row[i];
       if (ch === '"') {
-        if (inQuotes && row[i + 1] === '"') { current += '"'; i++; }
-        else inQuotes = !inQuotes;
-      } else if (ch === ',' && !inQuotes) { cells.push(current); current = ''; }
-      else current += ch;
+        if (inQuotes && row[i + 1] === '"') {
+          current += '"';
+          i++;
+        } else inQuotes = !inQuotes;
+      } else if (ch === ',' && !inQuotes) {
+        cells.push(current);
+        current = '';
+      } else current += ch;
     }
     cells.push(current);
     return cells.map((c) => c.trim());

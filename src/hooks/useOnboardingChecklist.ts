@@ -1,9 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '@/features/auth';
 import { supabase } from '@/integrations/supabase/client';
-import { getLogger } from '@/lib/logger';
-
-const log = getLogger('useOnboardingChecklist');
+import { safeWhatsAppConnectionsQuery } from '@/integrations/supabase/safe-queries';
+import { log } from '@/lib/logger';
 
 export interface ChecklistStatus {
   profile: boolean;
@@ -31,7 +30,9 @@ export function useOnboardingChecklist({ enabled = true }: { enabled?: boolean }
   const mountedRef = useRef(true);
   useEffect(() => {
     mountedRef.current = true;
-    return () => { mountedRef.current = false; };
+    return () => {
+      mountedRef.current = false;
+    };
   }, []);
 
   const checkStatus = useCallback(async () => {
@@ -42,7 +43,7 @@ export function useOnboardingChecklist({ enabled = true }: { enabled?: boolean }
 
     try {
       // Check profile
-      const { data: profile , error } = await supabase
+      const { data: profile } = await supabase
         .from('profiles')
         .select('name, avatar_url')
         .eq('user_id', user.id)
@@ -51,18 +52,15 @@ export function useOnboardingChecklist({ enabled = true }: { enabled?: boolean }
 
       // Check WhatsApp connection
       try {
-        const { data: connections , error: connectionsErr } = await supabase
-          .from('whatsapp_connections')
-          .select('id')
-          .eq('status', 'connected')
-          .limit(1);
+        const safeQueries = safeWhatsAppConnectionsQuery(supabase);
+        const { data: connections } = await safeQueries.getList({ status: 'connected' });
         newStatus.connection = (connections?.length || 0) > 0;
       } catch {
         newStatus.connection = false;
       }
 
       // Check user settings
-      const { data: settings , error: settingsErr } = await supabase
+      const { data: settings } = await supabase
         .from('user_settings')
         .select('business_hours_enabled, browser_notifications_enabled, sound_enabled, theme')
         .eq('user_id', user.id)
@@ -70,12 +68,13 @@ export function useOnboardingChecklist({ enabled = true }: { enabled?: boolean }
 
       if (settings) {
         newStatus.hours = settings.business_hours_enabled === true;
-        newStatus.notifications = settings.browser_notifications_enabled === true || settings.sound_enabled === true;
+        newStatus.notifications =
+          settings.browser_notifications_enabled === true || settings.sound_enabled === true;
         newStatus.theme = settings.theme !== null && settings.theme !== 'system';
       }
 
       // Check templates
-      const { data: templates , error: templatesErr } = await supabase
+      const { data: templates } = await supabase
         .from('message_templates')
         .select('id')
         .eq('user_id', user.id)
@@ -98,7 +97,11 @@ export function useOnboardingChecklist({ enabled = true }: { enabled?: boolean }
     }
 
     let dismissed = false;
-    try { dismissed = localStorage.getItem(`checklist_dismissed_${user.id}`) === 'true'; } catch { /* storage unavailable */ }
+    try {
+      dismissed = localStorage.getItem(`checklist_dismissed_${user.id}`) === 'true';
+    } catch {
+      /* storage unavailable */
+    }
     setIsDismissed(dismissed);
 
     // Don't run queries if already dismissed
@@ -112,14 +115,22 @@ export function useOnboardingChecklist({ enabled = true }: { enabled?: boolean }
 
   const dismiss = useCallback(() => {
     if (user) {
-      try { localStorage.setItem(`checklist_dismissed_${user.id}`, 'true'); } catch { /* storage unavailable */ }
+      try {
+        localStorage.setItem(`checklist_dismissed_${user.id}`, 'true');
+      } catch {
+        /* storage unavailable */
+      }
       setIsDismissed(true);
     }
   }, [user]);
 
   const reset = useCallback(() => {
     if (user) {
-      try { localStorage.removeItem(`checklist_dismissed_${user.id}`); } catch { /* storage unavailable */ }
+      try {
+        localStorage.removeItem(`checklist_dismissed_${user.id}`);
+      } catch {
+        /* storage unavailable */
+      }
       setIsDismissed(false);
     }
   }, [user]);

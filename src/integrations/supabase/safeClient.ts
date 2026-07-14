@@ -1,338 +1,370 @@
 import { supabase as _supabase } from './client';
 import { getLogger } from '@/lib/logger';
-import { PostgrestError } from '@supabase/supabase-js';
+import type { PostgrestError } from '@supabase/supabase-js';
+import type { AnyQueryBuilderResult, SafeQueryBuilder } from './safeClientTypes';
+import type {
+  SafeResponse,
+  OperationFailure,
+  ClientTelemetry,
+  CacheInfo,
+  FailureRecord,
+} from './safeClientTypes';
+import {
+  maskEmail as _maskEmail,
+  maskSensitiveData as _maskSensitiveData,
+  applyMasking as _applyMasking,
+} from './safeClientMasking';
+
+export type { SafeResponse, OperationFailure, ClientTelemetry, CacheInfo };
+export { maskEmail, maskSensitiveData } from './safeClientMasking';
 
 const supabase = _supabase;
 const _log = getLogger('safeClient');
 
-/**
- * Interface para retorno padronizado do safeClient
- */
-export interface SafeResponse<T> {
-  data: T | null;
-  error: Error | null;
-  requestId?: string;
-}
+// Dynamic table accessor — bypasses the overloaded `from()` signature that
+// requires a string-literal table name from the generated types.
+type DynamicSupabaseClient = { from(t: string): ReturnType<typeof supabase.from> };
 
-/**
- * Cache de recursos validados para evitar chamadas repetidas ao schema
- */
-const CACHE_TTL = 300000; // 5 minutos
-const resourceCache = new Map<string, { exists: boolean; expires: number }>();
+const MAX_FAILURES = 20;
+const CACHE_TTL = 5 * 60 * 1000;
+const CACHE_MAX_SIZE = 100;
 
-// Telemetria interna
-let lastValidation: Date | null = null;
-const recentFailures: unknown[] = [];
-const MAX_FAILURES = 50;
-const stats = {
-  totalCalls: 0,
-  failedCalls: 0,
-  cacheHits: 0
+const telemetry: ClientTelemetry = {
+  lastValidation: null,
+  recentFailures: [],
+  stats: { totalCalls: 0, failedCalls: 0, cacheHits: 0 },
 };
 
-/**
- * safeClient — Wrapper para chamadas Supabase com tratamento de erro e tipagem opcional.
- * Resolve problemas de tabelas não tipadas e schemas externos.
- */
+const resourceCache = new Map<string, { exists: boolean; expires: number }>();
+let _healthLogInProgress = false;
+
+function pruneResourceCache(): void {
+  const entries = Array.from(resourceCache.entries()).sort((a, b) => a[1].expires - b[1].expires);
+  while (resourceCache.size > CACHE_MAX_SIZE) {
+    const oldest = entries.shift();
+    if (oldest) resourceCache.delete(oldest[0]);
+  }
+}
+
+// Prevents SQL injection via dynamic table names: only identifier-safe chars allowed.
+function validateTableName(table: string): void {
+  if (!/^[a-zA-Z_][a-zA-Z0-9_.]*$/.test(table)) {
+    throw new Error(
+      `Invalid table name: "${table}". Only alphanumeric, underscore, and dot characters are allowed.`
+    );
+  }
+}
+
+export function safeFrom(table: string): SafeQueryBuilder {
+  return (supabase as unknown as DynamicSupabaseClient).from(table);
+}
+
 export const safeClient = {
-  /**
-   * Executa uma query 'from' com tratamento de erro e validação de existência
-   */
-  async from<T = any>(
+  async from<T = unknown>(
     table: string,
-    queryBuilder: (query: any) => any
+    queryBuilder: (query: SafeQueryBuilder) => PromiseLike<{ data: unknown; error: unknown }>
   ): Promise<SafeResponse<T[]>> {
-    const requestId = Math.random().toString(36).substring(7);
-    stats.totalCalls++;
+    const requestId = crypto.randomUUID();
+    telemetry.stats.totalCalls++;
     try {
-      // Validação automática para tabelas email_*
       if (table.startsWith('email_')) {
         const exists = await this.validateResource(table, 'table');
         if (!exists) {
           this.log(requestId, 'warn', `Tabela ${table} não encontrada no schema.`, { table });
-          this.recordFailure(requestId, 'from', table, `Tabela ${table} não encontrada`);
+          await this.recordFailure(requestId, 'from', table, `Tabela ${table} não encontrada`);
           return { data: [] as T[], error: new Error(`Tabela ${table} não disponível`), requestId };
         }
       }
-
-      const { data, error } = await queryBuilder((supabase as any).from(table));
+      const { data, error } = await queryBuilder(
+        supabase.from(table as Parameters<typeof supabase.from>[0])
+      );
       if (error) {
         this.log(requestId, 'error', `Erro na query from ${table}`, error);
-        this.recordFailure(requestId, 'from', table, error.message || 'Erro desconhecido');
-        stats.failedCalls++;
+        await this.recordFailure(
+          requestId,
+          'from',
+          table,
+          (error as { message?: string }).message || 'Erro desconhecido'
+        );
+        telemetry.stats.failedCalls++;
         return { data: [] as T[], error: this.formatError(error), requestId };
       }
-      
       return { data: (Array.isArray(data) ? data : []) as T[], error: null, requestId };
     } catch (err) {
       this.log(requestId, 'error', `Erro crítico ao consultar tabela ${table}`, err);
-      this.recordFailure(requestId, 'from', table, err instanceof Error ? err.message : String(err));
-      stats.failedCalls++;
-      return { data: [] as T[], error: err instanceof Error ? err : new Error(String(err)), requestId };
+      await this.recordFailure(
+        requestId,
+        'from',
+        table,
+        err instanceof Error ? err.message : String(err)
+      );
+      telemetry.stats.failedCalls++;
+      return {
+        data: [] as T[],
+        error: err instanceof Error ? err : new Error(String(err)),
+        requestId,
+      };
     }
   },
 
-  /**
-   * Executa uma query 'from' que retorna um único item
-   */
-  async single<T = any>(
+  async single<T = unknown>(
     table: string,
-    queryBuilder: (query: any) => any
+    queryBuilder: (query: SafeQueryBuilder) => {
+      single(): PromiseLike<{ data: unknown; error: unknown }>;
+    }
   ): Promise<SafeResponse<T>> {
-    const requestId = Math.random().toString(36).substring(7);
-    stats.totalCalls++;
+    const requestId = crypto.randomUUID();
+    telemetry.stats.totalCalls++;
     try {
+      validateTableName(table);
+
       if (table.startsWith('email_')) {
         const exists = await this.validateResource(table, 'table');
         if (!exists) {
           this.log(requestId, 'warn', `Tabela ${table} não encontrada para single()`, { table });
-          this.recordFailure(requestId, 'single', table, `Tabela ${table} não encontrada`);
+          await this.recordFailure(requestId, 'single', table, `Tabela ${table} não encontrada`);
           return { data: null, error: new Error(`Tabela ${table} não disponível`), requestId };
         }
       }
-
-      const { data, error } = await queryBuilder((supabase as any).from(table)).single();
+      const { data, error } = await queryBuilder(
+        supabase.from(table as Parameters<typeof supabase.from>[0])
+      ).single();
       if (error) {
         this.log(requestId, 'error', `Erro single query ${table}`, error);
-        this.recordFailure(requestId, 'single', table, error.message || 'Erro desconhecido');
-        stats.failedCalls++;
+        await this.recordFailure(
+          requestId,
+          'single',
+          table,
+          (error as { message?: string }).message || 'Erro desconhecido'
+        );
+        telemetry.stats.failedCalls++;
         return { data: null, error: this.formatError(error), requestId };
       }
-      return { data: data as T, error: null, requestId };
+      return { data: data as T, error: null, requestId }; // ignore-audit: narrows Supabase query result to local interface
     } catch (err) {
       this.log(requestId, 'error', `Erro crítico single ${table}`, err);
-      this.recordFailure(requestId, 'single', table, err instanceof Error ? err.message : String(err));
-      stats.failedCalls++;
+      await this.recordFailure(
+        requestId,
+        'single',
+        table,
+        err instanceof Error ? err.message : String(err)
+      );
+      telemetry.stats.failedCalls++;
       return { data: null, error: err instanceof Error ? err : new Error(String(err)), requestId };
     }
   },
 
-  /**
-   * Executa um RPC com validação e tratamento de erro
-   */
-  async rpc<T = any>(
-    name: string,
-    params?: Record<string, any>
-  ): Promise<SafeResponse<T>> {
-    const requestId = Math.random().toString(36).substring(7);
-    stats.totalCalls++;
+  async rpc<T = unknown>(name: string, params?: Record<string, unknown>): Promise<SafeResponse<T>> {
+    const requestId = crypto.randomUUID();
+    telemetry.stats.totalCalls++;
     try {
-      // Validação automática para RPCs rpc_email_*
       if (name.startsWith('rpc_email_')) {
         const exists = await this.validateResource(name, 'function');
         if (!exists) {
           this.log(requestId, 'warn', `RPC ${name} não encontrada no schema.`, { function: name });
-          this.recordFailure(requestId, 'rpc', name, `Função ${name} não encontrada`);
+          await this.recordFailure(requestId, 'rpc', name, `Função ${name} não encontrada`);
           return { data: null, error: new Error(`Função ${name} não disponível`), requestId };
         }
       }
-
-      const { data, error } = await supabase.rpc(name as any, params);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await supabase.rpc(name as any, params); // ignore-audit — dynamic RPC name not in generated union
       if (error) {
         this.log(requestId, 'error', `Erro ao executar RPC ${name}`, error);
-        this.recordFailure(requestId, 'rpc', name, error.message || 'Erro desconhecido');
-        stats.failedCalls++;
+        await this.recordFailure(requestId, 'rpc', name, error.message || 'Erro desconhecido');
+        telemetry.stats.failedCalls++;
         return { data: null, error: this.formatError(error), requestId };
       }
-      
       if (data === undefined || data === null) return { data: null, error: null, requestId };
-      
-      return { data: data as T, error: null, requestId };
+      return { data: data as T, error: null, requestId }; // ignore-audit: narrows Supabase query result to local interface
     } catch (err) {
       this.log(requestId, 'error', `Erro crítico RPC ${name}`, err);
-      this.recordFailure(requestId, 'rpc', name, err instanceof Error ? err.message : String(err));
-      stats.failedCalls++;
+      await this.recordFailure(
+        requestId,
+        'rpc',
+        name,
+        err instanceof Error ? err.message : String(err)
+      );
+      telemetry.stats.failedCalls++;
       return { data: null, error: err instanceof Error ? err : new Error(String(err)), requestId };
     }
   },
 
-  /**
-   * Verifica se um RPC ou Tabela existe no schema público com cache
-   */
+  // 401/403/permission_denied = resource EXISTS, role lacks access; 42P01/42883 = truly absent.
   async validateResource(name: string, type: 'function' | 'table' = 'table'): Promise<boolean> {
     const cacheKey = `${type}:${name}`;
     const cached = resourceCache.get(cacheKey);
-    
-    if (cached && cached.expires > Date.now()) {
-      stats.cacheHits++;
-      return cached.exists;
+    if (cached) {
+      if (cached.expires > Date.now()) {
+        telemetry.stats.cacheHits++;
+        return cached.exists;
+      }
+      resourceCache.delete(cacheKey);
     }
 
-    lastValidation = new Date();
-
+    telemetry.lastValidation = new Date();
     try {
       let exists = false;
       if (type === 'table') {
-        const { error } = await (supabase as any).from(name).select('count', { count: 'exact', head: true }).limit(0);
-        exists = !error || !error.message || !error.message.toLowerCase().includes('does not exist');
-      } else {
-        const { error } = await supabase.rpc(name as any).limit(0);
+        const { error } = await supabase
+          .from(name as Parameters<typeof supabase.from>[0])
+          .select('count', { count: 'exact', head: true })
+          .limit(0);
         if (!error) {
           exists = true;
         } else {
-          const msg = error.message ? error.message.toLowerCase() : '';
-          exists = !msg.includes('does not exist') && !msg.includes('não existe');
+          const msg = (error.message ?? '').toLowerCase();
+          const isPermissionError =
+            msg.includes('permission denied') ||
+            msg.includes('42501') ||
+            msg.includes('jwt') ||
+            msg.includes('unauthorized') ||
+            msg.includes('invalid api key') ||
+            msg.includes('row-level security');
+          const isNotFound =
+            msg.includes('does not exist') ||
+            msg.includes('not found') ||
+            msg.includes('42p01') ||
+            msg.includes('relation');
+          exists = isPermissionError || !isNotFound;
+        }
+      } else {
+        const { error } = await (
+          supabase.rpc(name as Parameters<typeof supabase.rpc>[0]) as any
+        ).limit(0); // ignore-audit — .limit() not on RPC return type in generated types
+        if (!error) {
+          exists = true;
+        } else {
+          const msg = (error.message ?? '').toLowerCase();
+          const isPermissionError =
+            msg.includes('permission denied') ||
+            msg.includes('42501') ||
+            msg.includes('jwt') ||
+            msg.includes('unauthorized') ||
+            msg.includes('invalid api key');
+          const isNotFound =
+            msg.includes('does not exist') || msg.includes('not found') || msg.includes('42883');
+          exists = isPermissionError || !isNotFound;
         }
       }
-      
       resourceCache.set(cacheKey, { exists, expires: Date.now() + CACHE_TTL });
-      
-      // Sincronizar estado de saúde com o banco para que o Edge possa ver
-      this.syncHealthState();
-      
+      if (resourceCache.size > CACHE_MAX_SIZE) pruneResourceCache();
       return exists;
     } catch {
       return false;
     }
   },
 
-  /**
-   * Sincroniza o estado de saúde local (in-memory) com a tabela compartilhada no banco
-   */
+  // Uses supabase.rpc() directly — NOT this.rpc() — to avoid recordFailure() recursion.
   async syncHealthState() {
-    const telemetry = this.getTelemetry();
-    let status: 'healthy' | 'degraded' | 'error' = 'healthy';
-    if (telemetry.recentFailures.length > 10) status = 'error';
-    else if (telemetry.recentFailures.length > 0) status = 'degraded';
-
+    if (_healthLogInProgress) return;
+    _healthLogInProgress = true;
     try {
-      await safeClient.rpc('rpc_update_email_health_state', {
+      const snap = this.getTelemetry();
+      let status: 'healthy' | 'degraded' | 'error' = 'healthy';
+      if (snap.recentFailures.length > 10) status = 'error';
+      else if (snap.recentFailures.length > 0) status = 'degraded';
+
+      type RpcResult = { data: unknown; error: { message: string } | null };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error: rpcErr } = (await (supabase as any).rpc('rpc_update_email_health_state', {
         p_status: status,
-        p_failure_count: telemetry.recentFailures.length,
+        p_failure_count: snap.recentFailures.length,
         p_metadata: {
-          total_calls: telemetry.stats.totalCalls,
-          cache_hits: telemetry.stats.cacheHits,
-          last_validation: lastValidation?.toISOString()
-        }
-      });
+          total_calls: snap.stats.totalCalls,
+          cache_hits: snap.stats.cacheHits,
+          last_validation: snap.lastValidation?.toISOString(),
+        },
+      })) as RpcResult;
+      if (rpcErr) {
+        _log.warn('Erro ao sincronizar estado de saúde', { error: rpcErr.message });
+      }
     } catch (err) {
-      _log.warn('Erro ao sincronizar estado de saúde', { error: err instanceof Error ? err.message : String(err) });
+      _log.warn('Erro ao sincronizar estado de saúde (exceção)', {
+        error: err instanceof Error ? err.message : String(err),
+      });
+    } finally {
+      _healthLogInProgress = false;
     }
   },
 
-  /**
-   * Logger estruturado com masking de dados sensíveis — usa o logger de produção
-   * em vez de console.* para que os logs sigam o nível de verbosidade configurado.
-   */
   log(requestId: string, level: 'info' | 'warn' | 'error', message: string, detail?: unknown) {
     const maskedDetail = this.maskSensitiveData(detail);
     const meta: Record<string, unknown> = { requestId };
-    if (maskedDetail != null) {
-      meta['detail'] = maskedDetail;
-    }
-    if (level === 'error') {
-      _log.error(`${message}`, meta);
-    } else if (level === 'warn') {
-      _log.warn(`${message}`, meta);
-    } else {
-      _log.info(`${message}`, meta);
-    }
+    if (maskedDetail != null) meta['detail'] = maskedDetail;
+    if (level === 'error') _log.error(`${message}`, meta);
+    else if (level === 'warn') _log.warn(`${message}`, meta);
+    else _log.info(`${message}`, meta);
   },
 
-  /**
-   * Redação de dados sensíveis para logs
-   */
-  maskSensitiveData(data: any): any {
+  maskSensitiveData(data: unknown): unknown {
     if (!data) return data;
     if (typeof data !== 'object') {
-      if (typeof data === 'string') {
-        if (data.length > 50 || data.includes('@')) {
-          return this.applyMasking(data);
-        }
+      if (typeof data === 'string' && (data.length > 50 || data.includes('@'))) {
+        return this.applyMasking(data);
       }
       return data;
     }
-
-    const masked = Array.isArray(data) ? [...data] : { ...data };
-    
-    for (const key in masked) {
-      const val = masked[key];
-      const lowerKey = key.toLowerCase();
-      
-      if (
-        lowerKey.includes('token') || 
-        lowerKey.includes('secret') || 
-        lowerKey.includes('password') || 
-        lowerKey.includes('key') ||
-        lowerKey.includes('auth') ||
-        lowerKey.includes('credential') ||
-        lowerKey.includes('session') ||
-        lowerKey.includes('cookie')
-      ) {
-        masked[key] = '***MASKED***';
-      } else if (lowerKey.includes('email') && typeof val === 'string') {
-        masked[key] = this.maskEmail(val);
-      } else if (typeof val === 'object') {
-        masked[key] = this.maskSensitiveData(val);
-      }
-    }
-    
-    return masked;
+    return _maskSensitiveData(data as Record<string, unknown> | unknown[]);
   },
 
   maskEmail(email: string): string {
-    if (!email || !email.includes('@')) return email;
-    const [user, domain] = email.split('@');
-    if (user.length <= 2) return `***@${domain}`;
-    return `${user.substring(0, 2)}***@${domain}`;
+    return _maskEmail(email);
   },
 
   applyMasking(str: string): string {
-    if (str.length > 30 && (str.includes('.') || /^[a-zA-Z0-9_-]+$/.test(str))) {
-      return str.substring(0, 5) + '...' + str.substring(str.length - 5);
-    }
-    return str;
+    return _applyMasking(str);
   },
 
-  /**
-   * Registra uma falha na telemetria e opcionalmente no banco
-   */
+  // Uses supabase.rpc() directly — NOT this.rpc() — to prevent recordFailure() → rpc() → recordFailure() recursion.
   async recordFailure(requestId: string, operation: string, resource: string, error: string) {
-    const failure = {
+    const record: FailureRecord = {
       requestId,
       operation,
       resource,
       error,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
-    
-    recentFailures.unshift(failure);
-    
-    if (recentFailures.length > MAX_FAILURES) {
-      recentFailures.pop();
-    }
+    telemetry.recentFailures.unshift(record as OperationFailure);
+    if (telemetry.recentFailures.length > MAX_FAILURES) telemetry.recentFailures.pop();
 
-    // Persistir falha no banco para monitoramento assíncrono
+    if (_healthLogInProgress) return;
+    _healthLogInProgress = true;
     try {
-      await safeClient.rpc('rpc_log_email_health', {
+      type RpcResult = { data: unknown; error: { message: string } | null };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error: rpcErr } = (await (supabase as any).rpc('rpc_log_email_health', {
         p_status: 'error',
         p_operation: operation,
         p_resource: resource,
         p_request_id: requestId,
         p_error_message: error,
-        p_is_failure: true
-      });
+        p_is_failure: true,
+      })) as RpcResult;
+      if (rpcErr) {
+        _log.warn('Falha ao persistir log de saúde', { error: rpcErr.message });
+      }
     } catch (dbErr) {
-      // Ignorar erros de persistência para não travar a operação principal
-      _log.warn('Falha ao persistir log de saúde', { error: dbErr instanceof Error ? dbErr.message : String(dbErr) });
+      _log.warn('Falha ao persistir log de saúde (exceção)', {
+        error: dbErr instanceof Error ? dbErr.message : String(dbErr),
+      });
+    } finally {
+      _healthLogInProgress = false;
     }
   },
 
-  getTelemetry() {
+  getTelemetry(): ClientTelemetry {
     return {
-      lastValidation,
-      recentFailures: [...recentFailures],
-      stats: { ...stats }
+      lastValidation: telemetry.lastValidation,
+      recentFailures: [...telemetry.recentFailures],
+      stats: { ...telemetry.stats },
     };
   },
 
-  getCacheInfo() {
+  getCacheInfo(): CacheInfo {
     const values = Array.from(resourceCache.values());
-    const expiration = values.length > 0 ? Math.max(...values.map(v => v.expires)) : null;
-    return {
-      expiration,
-      size: resourceCache.size
-    };
+    const maxExpires = values.length > 0 ? Math.max(...values.map((v) => v.expires)) : null;
+    const expiration = maxExpires !== null ? new Date(maxExpires) : null;
+    return { expiration, size: resourceCache.size };
   },
 
   clearCache(prefix?: string) {
@@ -341,19 +373,18 @@ export const safeClient = {
       return;
     }
     for (const key of resourceCache.keys()) {
-      if (key.includes(prefix)) {
-        resourceCache.delete(key);
-      }
+      if (key.includes(prefix)) resourceCache.delete(key);
     }
   },
 
-  formatError(error: PostgrestError | any): Error {
-    if (error.message) {
-      if (error.message.toLowerCase().includes('does not exist')) {
-        return new Error(`Recurso indisponível: ${error.message}`);
+  formatError(error: PostgrestError | unknown): Error {
+    if (error && typeof error === 'object' && 'message' in error) {
+      const msg = (error as { message: string }).message;
+      if (msg.toLowerCase().includes('does not exist')) {
+        return new Error(`Recurso indisponível: ${msg}`);
       }
-      return new Error(error.message);
+      return new Error(msg);
     }
     return new Error(String(error));
-  }
+  },
 };

@@ -35,7 +35,7 @@ export const BuildValidationOverlay: React.FC = () => {
               <Shield className={cn("w-4 h-4", status === 'healthy' ? "text-green-500" : "text-red-500")} />
               Build Validation Checklist
             </div>
-            <button onClick={() => setIsOpen(false)} className="text-muted-foreground hover:text-foreground">
+            <button onClick={() => setIsOpen(false)} className="text-muted-foreground hover:text-foreground" aria-label="Fechar validação de build">
               <X className="w-4 h-4" />
             </button>
           </div>
@@ -122,6 +122,7 @@ export const BuildValidationOverlay: React.FC = () => {
           "bg-red-600 text-white border-red-400 animate-pulse"
         )}
         title="Post-Build Validation Status"
+        aria-label={`Status de validação: ${status === 'healthy' ? 'operacional' : status === 'warning' ? 'alertas' : 'crítico'}`}
       >
         {status === 'healthy' ? <Shield className="w-6 h-6" /> : 
          status === 'warning' ? <AlertTriangle className="w-6 h-6" /> :

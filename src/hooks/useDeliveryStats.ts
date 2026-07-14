@@ -71,9 +71,7 @@ function extractParticipant(msg: Record<string, unknown>): { jid: string; name: 
   const payload = (msg.payload ?? {}) as Record<string, unknown>;
   const key = (payload.key ?? {}) as Record<string, unknown>;
   const participant =
-    (key.participant as string | undefined) ??
-    (payload.participant as string | undefined) ??
-    null;
+    (key.participant as string | undefined) ?? (payload.participant as string | undefined) ?? null;
 
   if (participant) {
     return { jid: participant, name: pushName || participant.split('@')[0] };
@@ -88,7 +86,7 @@ function generateMockData(remoteJid: string): DeliveryStatsResult {
   const isGroup = isGroupJid(remoteJid);
   const now = new Date();
   const timeline: DeliveryTimelinePoint[] = [];
-  
+
   for (let i = 24; i >= 0; i--) {
     const time = format(subHours(now, i), 'yyyy-MM-dd HH:00');
     timeline.push({
@@ -99,10 +97,32 @@ function generateMockData(remoteJid: string): DeliveryStatsResult {
     });
   }
 
-  const participants: ParticipantStats[] = isGroup ? [
-    { participantJid: 'p1@s.whatsapp.net', displayName: 'Mock Member 1', sent: 150, delivered: 140, read: 120, lastSentAt: now.toISOString(), lastDeliveredAt: now.toISOString(), lastReadAt: now.toISOString(), timeline: timeline.map(t => ({ ...t, read: Math.floor(t.read * 0.4) })) },
-    { participantJid: 'p2@s.whatsapp.net', displayName: 'Mock Member 2', sent: 200, delivered: 190, read: 180, lastSentAt: now.toISOString(), lastDeliveredAt: now.toISOString(), lastReadAt: now.toISOString(), timeline: timeline.map(t => ({ ...t, read: Math.floor(t.read * 0.6) })) }
-  ] : [];
+  const participants: ParticipantStats[] = isGroup
+    ? [
+        {
+          participantJid: 'p1@s.whatsapp.net',
+          displayName: 'Mock Member 1',
+          sent: 150,
+          delivered: 140,
+          read: 120,
+          lastSentAt: now.toISOString(),
+          lastDeliveredAt: now.toISOString(),
+          lastReadAt: now.toISOString(),
+          timeline: timeline.map((t) => ({ ...t, read: Math.floor(t.read * 0.4) })),
+        },
+        {
+          participantJid: 'p2@s.whatsapp.net',
+          displayName: 'Mock Member 2',
+          sent: 200,
+          delivered: 190,
+          read: 180,
+          lastSentAt: now.toISOString(),
+          lastDeliveredAt: now.toISOString(),
+          lastReadAt: now.toISOString(),
+          timeline: timeline.map((t) => ({ ...t, read: Math.floor(t.read * 0.6) })),
+        },
+      ]
+    : [];
 
   return {
     isGroup,
@@ -116,7 +136,7 @@ function generateMockData(remoteJid: string): DeliveryStatsResult {
       lastReadAt: now.toISOString(),
     },
     participants,
-    timeline
+    timeline,
   };
 }
 
@@ -141,19 +161,33 @@ export function useDeliveryStats(remoteJid: string | undefined, instance = 'wpp2
       // Fallback para quando o retorno do Supabase vier em formato inesperado
       if (error) {
         log.error('Delivery stats query error', error);
-        return { 
-          isGroup: isGroupJid(remoteJid!), 
-          totals: { sent: 0, delivered: 0, read: 0, lastSentAt: null, lastDeliveredAt: null, lastReadAt: null }, 
-          participants: [], 
+        return {
+          isGroup: isGroupJid(remoteJid!),
+          totals: {
+            sent: 0,
+            delivered: 0,
+            read: 0,
+            lastSentAt: null,
+            lastDeliveredAt: null,
+            lastReadAt: null,
+          },
+          participants: [],
           timeline: [],
-          totalMessages: 0 
+          totalMessages: 0,
         };
       }
 
-      const messages = (data && Array.isArray(data) ? data : []) as unknown as Record<string, unknown>[];
+      const messages = (data && Array.isArray(data) ? data : []) as Record<string, unknown>[];
       const isGroup = isGroupJid(remoteJid!);
 
-      const totals = { sent: 0, delivered: 0, read: 0, lastSentAt: null as string | null, lastDeliveredAt: null as string | null, lastReadAt: null as string | null };
+      const totals = {
+        sent: 0,
+        delivered: 0,
+        read: 0,
+        lastSentAt: null as string | null,
+        lastDeliveredAt: null as string | null,
+        lastReadAt: null as string | null,
+      };
       const byParticipant = new Map<string, ParticipantStats>();
 
       const timelineMap = new Map<string, DeliveryTimelinePoint>();
@@ -161,7 +195,8 @@ export function useDeliveryStats(remoteJid: string | undefined, instance = 'wpp2
       for (const msg of messages) {
         const status = String(msg.status ?? 'pending').toLowerCase();
         const rank = STATUS_RANK[status] ?? 0;
-        const tsString = (msg.status_at as string | null) ?? (msg.created_at as string | null) ?? null;
+        const tsString =
+          (msg.status_at as string | null) ?? (msg.created_at as string | null) ?? null;
         const { jid, name } = extractParticipant(msg);
 
         // Timeline aggregation (by hour)
@@ -181,8 +216,12 @@ export function useDeliveryStats(remoteJid: string | undefined, instance = 'wpp2
           byParticipant.set(jid, {
             participantJid: jid,
             displayName: name,
-            sent: 0, delivered: 0, read: 0,
-            lastSentAt: null, lastDeliveredAt: null, lastReadAt: null,
+            sent: 0,
+            delivered: 0,
+            read: 0,
+            lastSentAt: null,
+            lastDeliveredAt: null,
+            lastReadAt: null,
             timeline: [], // Initial state for participant timeline
           });
         }
@@ -193,7 +232,7 @@ export function useDeliveryStats(remoteJid: string | undefined, instance = 'wpp2
         if (tsString) {
           const date = parseISO(tsString);
           const hourKey = format(startOfHour(date), 'yyyy-MM-dd HH:00');
-          let pPoint = p.timeline.find(pt => pt.time === hourKey);
+          let pPoint = p.timeline.find((pt) => pt.time === hourKey);
           if (!pPoint) {
             pPoint = { time: hourKey, sent: 0, delivered: 0, read: 0 };
             p.timeline.push(pPoint);
@@ -203,19 +242,36 @@ export function useDeliveryStats(remoteJid: string | undefined, instance = 'wpp2
           if (rank >= 3) pPoint.read++;
         }
 
-        if (rank >= 1) { p.sent++; totals.sent++; p.lastSentAt = maxDate(p.lastSentAt, tsString); totals.lastSentAt = maxDate(totals.lastSentAt, tsString); }
-        if (rank >= 2) { p.delivered++; totals.delivered++; p.lastDeliveredAt = maxDate(p.lastDeliveredAt, tsString); totals.lastDeliveredAt = maxDate(totals.lastDeliveredAt, tsString); }
-        if (rank >= 3) { p.read++; totals.read++; p.lastReadAt = maxDate(p.lastReadAt, tsString); totals.lastReadAt = maxDate(totals.lastReadAt, tsString); }
+        if (rank >= 1) {
+          p.sent++;
+          totals.sent++;
+          p.lastSentAt = maxDate(p.lastSentAt, tsString);
+          totals.lastSentAt = maxDate(totals.lastSentAt, tsString);
+        }
+        if (rank >= 2) {
+          p.delivered++;
+          totals.delivered++;
+          p.lastDeliveredAt = maxDate(p.lastDeliveredAt, tsString);
+          totals.lastDeliveredAt = maxDate(totals.lastDeliveredAt, tsString);
+        }
+        if (rank >= 3) {
+          p.read++;
+          totals.read++;
+          p.lastReadAt = maxDate(p.lastReadAt, tsString);
+          totals.lastReadAt = maxDate(totals.lastReadAt, tsString);
+        }
       }
 
       const participants = Array.from(byParticipant.values())
-        .map(p => ({
+        .map((p) => ({
           ...p,
-          timeline: p.timeline.sort((a, b) => a.time.localeCompare(b.time))
+          timeline: p.timeline.sort((a, b) => a.time.localeCompare(b.time)),
         }))
         .sort((a, b) => b.sent - a.sent);
-        
-      const timeline = Array.from(timelineMap.values()).sort((a, b) => a.time.localeCompare(b.time));
+
+      const timeline = Array.from(timelineMap.values()).sort((a, b) =>
+        a.time.localeCompare(b.time)
+      );
 
       return { isGroup, totals, participants, timeline, totalMessages: messages.length };
     },

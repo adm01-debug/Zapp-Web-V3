@@ -1,25 +1,37 @@
+/* eslint-disable no-console */
 // Centralized logging utility with correlation IDs and structured output
 // Logs are automatically filtered in production builds
-import * as Sentry from "@sentry/react";
+import * as Sentry from '@sentry/react';
 
 const isDev = import.meta.env.DEV;
 
 type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
-interface LogContext {
-  module?: string;
-  correlationId?: string;
-  [key: string]: unknown;
-}
-
 // Session-level correlation ID for tracing across the app lifetime
-const sessionId = crypto.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+const sessionId: string = (() => {
+  if (typeof crypto.randomUUID === 'function') return crypto.randomUUID();
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
+})();
 
-// Per-request correlation ID generator
+// Per-request tag generator — counter-based, for log output only.
+// NOT cryptographically random. For security-grade correlation IDs,
+// use generateCorrelationId from @/lib/correlationId instead.
 let requestCounter = 0;
-export function generateCorrelationId(prefix = 'req'): string {
+export function generateRequestTag(prefix = 'req'): string {
   return `${prefix}_${++requestCounter}_${Date.now().toString(36)}`;
 }
+
+/**
+ * @deprecated Renamed to generateRequestTag() to clarify this uses a predictable
+ * counter, NOT crypto.randomUUID. For security-grade IDs, import
+ * generateCorrelationId from '@/lib/correlationId' instead.
+ *
+ * This alias is kept for backward compatibility with callers that were already
+ * importing from '@/lib/logger'. It will be removed in a future cleanup.
+ */
+export const generateCorrelationId = generateRequestTag;
 
 export function getSessionId(): string {
   return sessionId;
@@ -79,14 +91,14 @@ class Logger {
 
   /** Log with explicit correlation ID for request tracing */
   withCorrelation(correlationId: string) {
-    const self = this;
     return {
-      debug: (msg: string, ...a: unknown[]) => self.debug(`[cid:${correlationId}] ${msg}`, ...a),
-      info: (msg: string, ...a: unknown[]) => self.info(`[cid:${correlationId}] ${msg}`, ...a),
-      warn: (msg: string, ...a: unknown[]) => self.warn(`[cid:${correlationId}] ${msg}`, ...a),
-      error: (msg: string, ...a: unknown[]) => self.error(`[cid:${correlationId}] ${msg}`, ...a),
+      debug: (msg: string, ...a: unknown[]) => this.debug(`[cid:${correlationId}] ${msg}`, ...a),
+      info: (msg: string, ...a: unknown[]) => this.info(`[cid:${correlationId}] ${msg}`, ...a),
+      warn: (msg: string, ...a: unknown[]) => this.warn(`[cid:${correlationId}] ${msg}`, ...a),
+      error: (msg: string, ...a: unknown[]) => this.error(`[cid:${correlationId}] ${msg}`, ...a),
     };
   }
+
 }
 
 // Factory function to create module-specific loggers
@@ -114,7 +126,7 @@ export function logPerformance(label: string, fn: () => void): void {
     fn();
     return;
   }
-  
+
   const start = performance.now();
   fn();
   const end = performance.now();
@@ -126,7 +138,7 @@ export async function logAsyncPerformance<T>(label: string, fn: () => Promise<T>
   if (!isDev) {
     return fn();
   }
-  
+
   const start = performance.now();
   const result = await fn();
   const end = performance.now();

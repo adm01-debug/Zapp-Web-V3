@@ -3,7 +3,7 @@ import { getLogger } from '@/lib/logger';
 
 const log = getLogger('PerformanceSnapshots');
 import { supabase } from '@/integrations/supabase/client';
-import type { Database } from '@/integrations/supabase/types';
+import type { Database } from '@/integrations/supabase/schema';
 import { useAuth } from '@/features/auth';
 import { toast } from 'sonner';
 
@@ -29,31 +29,34 @@ export function usePerformanceSnapshots() {
   const [history, setHistory] = useState<PerformanceSnapshot[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const saveSnapshot = useCallback(async (data: {
-    fcp: number;
-    page_load: number;
-    dom_ready: number;
-    ttfb: number;
-    memory_used: number;
-    memory_total: number;
-    dom_nodes: number;
-    network_type: string;
-    rtt: number;
-    overall_score: number;
-  }) => {
-    if (!profile?.id) return;
+  const saveSnapshot = useCallback(
+    async (data: {
+      fcp: number;
+      page_load: number;
+      dom_ready: number;
+      ttfb: number;
+      memory_used: number;
+      memory_total: number;
+      dom_nodes: number;
+      network_type: string;
+      rtt: number;
+      overall_score: number;
+    }) => {
+      if (!profile?.id) return;
 
-    try {
-      await supabase.from('performance_snapshots').insert({
-        profile_id: profile.id,
-        ...data,
-        user_agent: navigator.userAgent,
-      } as unknown as Database['public']['Tables']['performance_snapshots']['Insert']);
-    } catch (err) {
-      // Silent fail — don't interrupt UX for telemetry
-      log.warn('Failed to save performance snapshot:', err);
-    }
-  }, [profile?.id]);
+      try {
+        await supabase.from('performance_snapshots').insert({
+          profile_id: profile.id,
+          ...data,
+          user_agent: navigator.userAgent,
+        } as unknown as Database['public']['Tables']['performance_snapshots']['Insert']); // ignore-audit — spread of typed metrics object; shape matches Insert row at runtime
+      } catch (err) {
+        // Silent fail — don't interrupt UX for telemetry
+        log.warn('Failed to save performance snapshot:', err);
+      }
+    },
+    [profile?.id]
+  );
 
   const loadHistory = useCallback(async (hours = 24) => {
     setLoading(true);
@@ -78,13 +81,10 @@ export function usePerformanceSnapshots() {
   const clearOldSnapshots = useCallback(async () => {
     try {
       const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-      await supabase
-        .from('performance_snapshots')
-        .delete()
-        .lt('created_at', sevenDaysAgo);
+      await supabase.from('performance_snapshots').delete().lt('created_at', sevenDaysAgo);
       toast.success('Dados antigos removidos');
       await loadHistory();
-    } catch (err) {
+    } catch {
       toast.error('Erro ao limpar dados');
     }
   }, [loadHistory]);

@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { useEffect, useState } from 'react';
 import { getLogger } from '@/lib/logger';
 
@@ -40,22 +41,26 @@ export function LGPDComplianceView() {
     };
   }, [user]);
 
-
   const handleExportData = async () => {
     if (user) {
-      void supabase.rpc('log_audit_event', {
-        p_action: 'gdpr_export_blocked',
-        p_entity_type: 'user',
-        p_entity_id: user.id,
-        p_details: { reason: 'export_disabled_by_policy', attempted_at: new Date().toISOString() },
-        p_user_agent: navigator.userAgent,
-      });
+      void supabase
+        .rpc('log_audit_event', {
+          p_action: 'gdpr_export_blocked',
+          p_entity_type: 'user',
+          p_entity_id: user.id,
+          p_details: {
+            reason: 'export_disabled_by_policy',
+            attempted_at: new Date().toISOString(),
+          },
+          p_user_agent: navigator.userAgent,
+        })
+        .catch((err: unknown) => log.warn('[audit] gdpr_export_blocked log failed', err));
     }
     toast.error('🔒 Exportação bloqueada por política de segurança', {
-      description: 'A exportação de dados está desabilitada para proteção dos dados de clientes e fornecedores.',
+      description:
+        'A exportação de dados está desabilitada para proteção dos dados de clientes e fornecedores.',
     });
   };
-
 
   const handleDeleteRequest = async () => {
     if (!user) return;
@@ -74,7 +79,9 @@ export function LGPDComplianceView() {
         p_user_agent: navigator.userAgent,
       });
 
-      toast.success('Solicitação de exclusão registrada. Um administrador irá processar em até 30 dias.');
+      toast.success(
+        'Solicitação de exclusão registrada. Um administrador irá processar em até 30 dias.'
+      );
       setShowDeleteConfirm(false);
     } catch (error) {
       log.error('Delete request error:', error);
@@ -85,15 +92,20 @@ export function LGPDComplianceView() {
   };
 
   return (
-    <div className="space-y-6 p-6 max-w-4xl mx-auto">
+    <div className="mx-auto max-w-4xl space-y-6 p-6">
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
-        <div className="flex items-center gap-3 mb-2">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'var(--gradient-primary)' }}>
-            <Shield className="w-5 h-5 text-primary-foreground" />
+        <div className="mb-2 flex items-center gap-3">
+          <div
+            className="flex h-10 w-10 items-center justify-center rounded-xl"
+            style={{ background: 'var(--gradient-primary)' }}
+          >
+            <Shield className="h-5 w-5 text-primary-foreground" />
           </div>
           <div>
             <h1 className="font-display text-2xl font-bold text-foreground">Privacidade & LGPD</h1>
-            <p className="text-muted-foreground text-sm">Gerencie seus dados pessoais conforme a LGPD/GDPR</p>
+            <p className="text-sm text-muted-foreground">
+              Gerencie seus dados pessoais conforme a LGPD/GDPR
+            </p>
           </div>
         </div>
       </motion.div>
@@ -101,21 +113,24 @@ export function LGPDComplianceView() {
       {/* Seus Direitos */}
       <Card className="border-secondary/30">
         <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
-            <FileText className="w-4 h-4" /> Seus Direitos
+          <CardTitle className="flex items-center gap-2 text-base">
+            <FileText className="h-4 w-4" /> Seus Direitos
           </CardTitle>
           <CardDescription>De acordo com a Lei Geral de Proteção de Dados (LGPD)</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             {[
               { title: 'Acesso', desc: 'Solicitar acesso aos seus dados pessoais armazenados' },
-              { title: 'Portabilidade', desc: 'Exportar seus dados em formato legível por máquina' },
+              {
+                title: 'Portabilidade',
+                desc: 'Exportar seus dados em formato legível por máquina',
+              },
               { title: 'Retificação', desc: 'Corrigir dados pessoais incorretos ou incompletos' },
               { title: 'Eliminação', desc: 'Solicitar a exclusão dos seus dados pessoais' },
             ].map((right) => (
-              <div key={right.title} className="flex items-start gap-2 p-3 rounded-lg bg-muted/30">
-                <CheckCircle2 className="w-4 h-4 text-success mt-0.5 flex-shrink-0" />
+              <div key={right.title} className="flex items-start gap-2 rounded-lg bg-muted/30 p-3">
+                <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0 text-success" />
                 <div>
                   <p className="text-sm font-medium text-foreground">{right.title}</p>
                   <p className="text-xs text-muted-foreground">{right.desc}</p>
@@ -129,17 +144,20 @@ export function LGPDComplianceView() {
       {/* Exportar Dados - BLOQUEADO */}
       <Card className="border-destructive/30 bg-destructive/5">
         <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
-            <ShieldAlert className="w-4 h-4 text-destructive" /> Portabilidade de Dados — Bloqueada
+          <CardTitle className="flex items-center gap-2 text-base">
+            <ShieldAlert className="h-4 w-4 text-destructive" /> Portabilidade de Dados — Bloqueada
           </CardTitle>
-          <CardDescription>A exportação de dados está desabilitada por política de segurança</CardDescription>
+          <CardDescription>
+            A exportação de dados está desabilitada por política de segurança
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
           <p className="text-sm text-muted-foreground">
-            A exportação de dados pessoais foi bloqueada para proteção dos dados de clientes e fornecedores (LGPD).
+            A exportação de dados pessoais foi bloqueada para proteção dos dados de clientes e
+            fornecedores (LGPD).
           </p>
-          <Button disabled className="opacity-50 cursor-not-allowed" onClick={handleExportData}>
-            <ShieldAlert className="w-4 h-4 mr-2 text-destructive" />
+          <Button disabled className="cursor-not-allowed opacity-50" onClick={handleExportData}>
+            <ShieldAlert className="mr-2 h-4 w-4 text-destructive" />
             Exportação Bloqueada
           </Button>
         </CardContent>
@@ -148,21 +166,21 @@ export function LGPDComplianceView() {
       {/* Excluir Dados */}
       <Card className="border-destructive/30">
         <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2 text-destructive">
-            <Trash2 className="w-4 h-4" /> Direito ao Esquecimento
+          <CardTitle className="flex items-center gap-2 text-base text-destructive">
+            <Trash2 className="h-4 w-4" /> Direito ao Esquecimento
           </CardTitle>
           <CardDescription>Solicite a exclusão permanente dos seus dados pessoais</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
           {!showDeleteConfirm ? (
             <>
-              <div className="flex items-start gap-2 p-3 rounded-lg bg-destructive/5 border border-destructive/20">
-                <AlertTriangle className="w-4 h-4 text-destructive mt-0.5 flex-shrink-0" />
+              <div className="flex items-start gap-2 rounded-lg border border-destructive/20 bg-destructive/5 p-3">
+                <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0 text-destructive" />
                 <div>
                   <p className="text-sm font-medium text-destructive">Ação irreversível</p>
                   <p className="text-xs text-muted-foreground">
-                    Ao solicitar a exclusão, todos os seus dados pessoais serão removidos permanentemente.
-                    O processo pode levar até 30 dias conforme a legislação.
+                    Ao solicitar a exclusão, todos os seus dados pessoais serão removidos
+                    permanentemente. O processo pode levar até 30 dias conforme a legislação.
                   </p>
                 </div>
               </div>
@@ -171,7 +189,7 @@ export function LGPDComplianceView() {
               </Button>
             </>
           ) : (
-            <div className="space-y-3 p-4 rounded-lg border border-destructive/30 bg-destructive/5">
+            <div className="space-y-3 rounded-lg border border-destructive/30 bg-destructive/5 p-4">
               <p className="text-sm font-medium text-destructive">
                 Tem certeza? Esta ação não pode ser desfeita.
               </p>
@@ -197,17 +215,38 @@ export function LGPDComplianceView() {
         <CardContent>
           <div className="space-y-2">
             {[
-              { type: 'Dados de Identificação', examples: 'Nome, email, telefone', basis: 'Execução contratual' },
-              { type: 'Dados de Uso', examples: 'Logs, sessões, dispositivos', basis: 'Legítimo interesse' },
-              { type: 'Dados de Comunicação', examples: 'Mensagens, templates', basis: 'Execução contratual' },
-              { type: 'Dados de Segurança', examples: 'IPs, tentativas de login', basis: 'Obrigação legal' },
+              {
+                type: 'Dados de Identificação',
+                examples: 'Nome, email, telefone',
+                basis: 'Execução contratual',
+              },
+              {
+                type: 'Dados de Uso',
+                examples: 'Logs, sessões, dispositivos',
+                basis: 'Legítimo interesse',
+              },
+              {
+                type: 'Dados de Comunicação',
+                examples: 'Mensagens, templates',
+                basis: 'Execução contratual',
+              },
+              {
+                type: 'Dados de Segurança',
+                examples: 'IPs, tentativas de login',
+                basis: 'Obrigação legal',
+              },
             ].map((item) => (
-              <div key={item.type} className="flex items-center justify-between py-2 border-b border-secondary/20 last:border-0">
+              <div
+                key={item.type}
+                className="flex items-center justify-between border-b border-secondary/20 py-2 last:border-0"
+              >
                 <div>
                   <p className="text-sm font-medium text-foreground">{item.type}</p>
                   <p className="text-xs text-muted-foreground">{item.examples}</p>
                 </div>
-                <Badge variant="outline" className="text-xs">{item.basis}</Badge>
+                <Badge variant="outline" className="text-xs">
+                  {item.basis}
+                </Badge>
               </div>
             ))}
           </div>

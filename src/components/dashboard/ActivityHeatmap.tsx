@@ -9,12 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Calendar, Activity, TrendingUp, Flame } from 'lucide-react';
 import { format, subDays, eachDayOfInterval, getDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -49,7 +44,7 @@ export const ActivityHeatmap = ({
   metric = 'messages',
 }: ActivityHeatmapProps) => {
   const [selectedPeriod, setSelectedPeriod] = useState<'3m' | '6m' | '1y'>('3m');
-  const [hoveredDay, setHoveredDay] = useState<ActivityData | null>(null);
+  const [_hoveredDay, setHoveredDay] = useState<ActivityData | null>(null);
 
   // Fetch real activity data from messages table
   const { data: realData } = useQuery({
@@ -57,25 +52,25 @@ export const ActivityHeatmap = ({
     queryFn: async () => {
       const days = selectedPeriod === '3m' ? 90 : selectedPeriod === '6m' ? 180 : 365;
       const startDate = subDays(new Date(), days);
-      
+
       const { data: messages, error } = await dbFrom('messages')
         .select('created_at')
         .gte('created_at', startDate.toISOString());
-      
+
       if (error) throw error;
-      
+
       // Group by day
       const dayCounts = new Map<string, number>();
-      (messages || []).forEach(m => {
+      (messages || []).forEach((m) => {
         const dateKey = format(new Date(m.created_at), 'yyyy-MM-dd');
         dayCounts.set(dateKey, (dayCounts.get(dateKey) || 0) + 1);
       });
-      
+
       const endDate = new Date();
-      return eachDayOfInterval({ start: startDate, end: endDate }).map(date => {
+      return eachDayOfInterval({ start: startDate, end: endDate }).map((date) => {
         const dateKey = format(date, 'yyyy-MM-dd');
         const count = dayCounts.get(dateKey) || 0;
-        
+
         let level: 0 | 1 | 2 | 3 | 4 = 0;
         if (count > 0) level = 1;
         if (count > 20) level = 2;
@@ -101,7 +96,7 @@ export const ActivityHeatmap = ({
 
     data.forEach((day, index) => {
       const dayOfWeek = getDay(day.date);
-      
+
       if (index === 0) {
         // Fill empty days at the start of the first week
         for (let i = 0; i < dayOfWeek; i++) {
@@ -129,8 +124,8 @@ export const ActivityHeatmap = ({
   // Calculate stats
   const stats = useMemo(() => {
     const total = data.reduce((sum, d) => sum + d.count, 0);
-    const activeDays = data.filter(d => d.count > 0).length;
-    const maxCount = Math.max(...data.map(d => d.count));
+    const activeDays = data.filter((d) => d.count > 0).length;
+    const maxCount = Math.max(...data.map((d) => d.count));
     const avgCount = Math.round(total / activeDays) || 0;
 
     // Calculate current streak
@@ -145,10 +140,14 @@ export const ActivityHeatmap = ({
 
   const getMetricLabel = () => {
     switch (metric) {
-      case 'messages': return 'mensagens';
-      case 'conversations': return 'conversas';
-      case 'resolutions': return 'resoluções';
-      default: return 'atividades';
+      case 'messages':
+        return 'mensagens';
+      case 'conversations':
+        return 'conversas';
+      case 'resolutions':
+        return 'resoluções';
+      default:
+        return 'atividades';
     }
   };
 
@@ -179,7 +178,10 @@ export const ActivityHeatmap = ({
             <Activity className="h-5 w-5 text-primary" />
             <CardTitle className="text-lg">{title}</CardTitle>
           </div>
-          <Select value={selectedPeriod} onValueChange={(v) => setSelectedPeriod(v as '3m' | '6m' | '1y')}>
+          <Select
+            value={selectedPeriod}
+            onValueChange={(v) => setSelectedPeriod(v as '3m' | '6m' | '1y' /* ignore-audit: Select/Tabs value string narrowed to union; developer controls option values */)}
+          >
             <SelectTrigger className="w-[100px]">
               <SelectValue />
             </SelectTrigger>
@@ -216,13 +218,16 @@ export const ActivityHeatmap = ({
         <div className="overflow-x-auto">
           <div className="min-w-max">
             {/* Month labels */}
-            <div className="flex mb-1 ml-8">
+            <div className="mb-1 ml-8 flex">
               {monthLabels.map(({ month, weekIndex }, i) => (
                 <div
                   key={`${month}-${weekIndex}`}
                   className="text-xs text-muted-foreground"
-                  style={{ 
-                    marginLeft: i === 0 ? weekIndex * 14 : (weekIndex - (monthLabels[i-1]?.weekIndex || 0)) * 14 - 20
+                  style={{
+                    marginLeft:
+                      i === 0
+                        ? weekIndex * 14
+                        : (weekIndex - (monthLabels[i - 1]?.weekIndex || 0)) * 14 - 20,
                   }}
                 >
                   {month}
@@ -232,11 +237,11 @@ export const ActivityHeatmap = ({
 
             <div className="flex gap-0.5">
               {/* Weekday labels */}
-              <div className="flex flex-col gap-0.5 mr-1">
+              <div className="mr-1 flex flex-col gap-0.5">
                 {WEEKDAYS.map((day, i) => (
                   <div
                     key={day}
-                    className="h-3 text-[10px] text-muted-foreground flex items-center"
+                    className="flex h-3 items-center text-[10px] text-muted-foreground"
                     style={{ visibility: i % 2 === 1 ? 'visible' : 'hidden' }}
                   >
                     {day}
@@ -254,7 +259,7 @@ export const ActivityHeatmap = ({
                           <TooltipTrigger asChild>
                             <motion.div
                               whileHover={{ scale: 1.3 }}
-                              className={`w-3 h-3 rounded-sm cursor-pointer ${getLevelColor(day.level)}`}
+                              className={`h-3 w-3 cursor-pointer rounded-sm ${getLevelColor(day.level)}`}
                               onMouseEnter={() => setHoveredDay(day)}
                               onMouseLeave={() => setHoveredDay(null)}
                             />
@@ -278,13 +283,10 @@ export const ActivityHeatmap = ({
             </div>
 
             {/* Legend */}
-            <div className="flex items-center justify-end gap-1 mt-2 text-xs text-muted-foreground">
+            <div className="mt-2 flex items-center justify-end gap-1 text-xs text-muted-foreground">
               <span>Menos</span>
-              {[0, 1, 2, 3, 4].map(level => (
-                <div
-                  key={level}
-                  className={`w-3 h-3 rounded-sm ${getLevelColor(level)}`}
-                />
+              {[0, 1, 2, 3, 4].map((level) => (
+                <div key={level} className={`h-3 w-3 rounded-sm ${getLevelColor(level)}`} />
               ))}
               <span>Mais</span>
             </div>

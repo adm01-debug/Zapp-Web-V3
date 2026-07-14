@@ -114,13 +114,13 @@ export function GeoBlockingPanel() {
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'whitelist' | 'blacklist')}>
+          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'whitelist' | 'blacklist' /* ignore-audit: Select/Tabs value string narrowed to union; developer controls option values */)}>
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="whitelist" className="gap-2"><ShieldCheck className="w-4 h-4" />Whitelist ({allowedCountries.length})</TabsTrigger>
               <TabsTrigger value="blacklist" className="gap-2"><Shield className="w-4 h-4" />Blacklist ({blockedCountries.length})</TabsTrigger>
             </TabsList>
             <div className="mt-4">
-              <div className="relative mb-4"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" /><Input placeholder="Buscar país..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" /></div>
+              <div className="relative mb-4"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" /><Input aria-label="Buscar país" placeholder="Buscar país..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" /></div>
               {loading ? <div className="text-center py-8 text-muted-foreground">Carregando...</div> :
                filteredCountries.length === 0 ? (
                 <div className="text-center py-8"><Globe className="w-12 h-12 mx-auto text-muted-foreground/50 mb-3" /><p className="text-muted-foreground">{search ? 'Nenhum país encontrado' : `Nenhum país na ${activeTab}`}</p>
@@ -135,7 +135,7 @@ export function GeoBlockingPanel() {
                           <div className={`p-2 rounded-lg ${activeTab === 'whitelist' ? 'bg-success/10' : 'bg-destructive/10'}`}><MapPin className={`w-4 h-4 ${activeTab === 'whitelist' ? 'text-success' : 'text-destructive'}`} /></div>
                           <div><div className="flex items-center gap-2"><span className="font-medium">{country.country_name}</span><Badge variant="outline" className="text-xs">{country.country_code}</Badge></div><p className="text-xs text-muted-foreground">Adicionado {formatDistanceToNow(new Date(country.created_at), { addSuffix: true, locale: ptBR })}</p></div>
                         </div>
-                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => setCountryToRemove(country)}><Trash2 className="w-4 h-4" /></Button>
+                        <Button aria-label="Remover país" variant="ghost" size="icon" className="text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => setCountryToRemove(country)}><Trash2 className="w-4 h-4" /></Button>
                       </motion.div>
                     ))}
                   </AnimatePresence>

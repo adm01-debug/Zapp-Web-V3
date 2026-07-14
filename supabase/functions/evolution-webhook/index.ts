@@ -1,11 +1,11 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCorsHeaders, handleCors, redactSecrets, contractErrorResponse } from "../_shared/validation.ts";
 import { WebhookPayloadSchema } from "../_shared/webhook-schemas.ts";
 import {
   isRecord, normalizeEventName, toEventRecords,
   handleReactionEvent, redactJid, generateRequestId,
-  sha256Hex, markEventProcessed, auditWebhookEvent,
+  sha256Hex, markEventProcessed, unmarkEventProcessed, auditWebhookEvent,
   routeToDeadLetter, instanceOrFilter,
   type WebhookPayload,
 } from "../_shared/evolution-helpers.ts";
@@ -77,8 +77,13 @@ serve(async (req) => {
     return new Response('Method not allowed', { status: 405, headers: corsHeaders });
   }
 
-  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-  const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+  const supabaseUrl = Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL') ?? '';
+  const supabaseServiceKey = Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+  // FIX B5: falhar com 503 legível em vez de crashar (BOOT_ERROR 500) quando env está incompleta.
+  if (!supabaseUrl || !supabaseServiceKey) {
+    return new Response(JSON.stringify({ error: 'webhook_misconfigured', hint: 'SUPABASE_URL/SERVICE_ROLE ausentes' }),
+      { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+  }
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
   // HMAC validation before reading body as JSON so we can verify on raw text.
@@ -101,7 +106,7 @@ serve(async (req) => {
       // Auto-pause: conta invalid_signature na janela e persiste o evento
       recordAuthFailureAndMaybePause(supabase, headerInstance ?? 'unknown', 'invalid_signature', 'webhook', { message: result.error ?? 'invalid_signature' });
       await auditWebhookEvent(supabase, {
-        request_id: requestId, status: 'rejected',
+        request_id: requestId, status: 'rejected', status_code: 401,
         error_message: result.error ?? 'invalid_signature',
         duration_ms: Date.now() - startedAt,
       });
@@ -111,8 +116,24 @@ serve(async (req) => {
       );
     }
     rawBody = result.payload ?? '';
+  } else if (STRICT_MODE) {
+    // [A-1 FIX 2026-07-12] Fail-CLOSED: sem nenhum secret configurado, o webhook
+    // ficava público (aceitava qualquer POST). Um deploy sem o secret provisionado
+    // deixava qualquer um injetar eventos/mensagens falsas, criar contatos e
+    // disparar alertas. Em modo estrito (default), rejeitamos com 503 até que o
+    // secret esteja presente — nunca aceitamos tráfego não autenticado.
+    console.error(redactSecrets(`[webhook][${requestId}] NO webhook secret configured and STRICT_MODE=on — refusing (fail-closed)`));
+    await auditWebhookEvent(supabase, {
+      request_id: requestId, status: 'rejected', status_code: 503,
+      error_message: 'webhook_secret_unconfigured',
+      duration_ms: Date.now() - startedAt,
+    });
+    return new Response(
+      JSON.stringify({ error: 'webhook_misconfigured', reason: 'no_secret_configured', requestId }),
+      { status: 503, headers: { ...corsHeaders, 'Retry-After': '120' } },
+    );
   } else {
-    console.warn(redactSecrets(`[webhook][${requestId}] WEBHOOK_SECRET not configured — signature validation skipped`));
+    console.warn(redactSecrets(`[webhook][${requestId}] WEBHOOK_SECRET not configured and STRICT_MODE=off — signature validation skipped`));
     rawBody = await req.text();
   }
 
@@ -123,7 +144,7 @@ serve(async (req) => {
     if (!parsed.success) {
       console.warn(`[webhook][${requestId}] contract_violation:`, parsed.error.issues);
       await auditWebhookEvent(supabase, {
-        request_id: requestId, status: 'rejected', error_message: 'contract_violation',
+        request_id: requestId, status: 'rejected', status_code: 422, error_message: 'contract_violation',
         duration_ms: Date.now() - startedAt,
       });
       return contractErrorResponse(
@@ -137,7 +158,7 @@ serve(async (req) => {
     payload = parsed.data as WebhookPayload;
   } catch {
     await auditWebhookEvent(supabase, {
-      request_id: requestId, status: 'rejected', error_message: 'invalid_json',
+      request_id: requestId, status: 'rejected', status_code: 400, error_message: 'invalid_json',
       duration_ms: Date.now() - startedAt,
     });
     return new Response(JSON.stringify({ error: 'invalid_json', requestId }), { status: 400, headers: corsHeaders });
@@ -153,7 +174,7 @@ serve(async (req) => {
   // janela de pausa preferimos isso a continuar processando lixo.
   if (await isInstancePaused(supabase, instance)) {
     await auditWebhookEvent(supabase, {
-      request_id: requestId, instance, event_type: event, status: 'rejected',
+      request_id: requestId, instance, event_type: event, status: 'rejected', status_code: 503,
       error_message: 'instance_paused',
       duration_ms: Date.now() - startedAt,
     });
@@ -170,7 +191,7 @@ serve(async (req) => {
   const __knownInstance = await isKnownInstance(supabase, instance);
   if (__knownInstance === false) {
     await auditWebhookEvent(supabase, {
-      request_id: requestId, instance, event_type: event, status: 'rejected',
+      request_id: requestId, instance, event_type: event, status: 'rejected', status_code: 200,
       error_message: 'unknown_instance',
       duration_ms: Date.now() - startedAt,
     });
@@ -183,12 +204,16 @@ serve(async (req) => {
 
   // [ORDER 2026-07-04] Idempotency ANTES do rate-limit: retries duplicados do Evolution nao consomem quota.
   // Dedup by hash of (instance + event + body); se ja vimos este event_id, short-circuit 200.
-  const bodyHash = await sha256Hex(rawBody);
+  // [FIX-07 2026-07-12 S2] Apply NFC Unicode normalization before hashing to prevent
+  // normalization attacks where semantically identical messages with different Unicode
+  // representations (e.g., café as precomposed U+00E9 vs combining U+0301) bypass dedup.
+  const normalizedBody = rawBody.normalize('NFC');
+  const bodyHash = await sha256Hex(normalizedBody);
   const eventId = `${instance || 'unknown'}:${event}:${bodyHash}`;
   const isNew = await markEventProcessed(supabase, eventId, instance, event);
   if (!isNew) {
     await auditWebhookEvent(supabase, {
-      request_id: requestId, instance, event_type: event, status: 'duplicate',
+      request_id: requestId, instance, event_type: event, status: 'duplicate', status_code: 200,
       duration_ms: Date.now() - startedAt,
     });
     console.log(`[webhook][${requestId}] duplicate event_id=${eventId.slice(0, 48)}… skipped`);
@@ -196,21 +221,51 @@ serve(async (req) => {
   }
 
   // Rate Limit guard: conta apenas eventos UNICOS (idempotency ja filtrou retries)
+  // [FIX 2026-07-06] Limites por event-type: eventos de sync de alto volume recebiam 429
+  // em bursts normais (sync grupos, atualizacao em massa de contatos). Default 300/min mantido.
+  const EVENT_RATE_LIMITS: Record<string, number> = {
+    "chats.update":    2000, // sync de chat: gerado por toda mensagem recebida
+    "contacts.update": 1000, // importacao/sync de contatos em massa
+    "messages.upsert":  600, // 2x default: bursts em grupos grandes
+    "groups.upsert":    600, // sincronizacao inicial de grupos
+  };
+  const WINDOW_SECONDS = 60; // [FIX 2026-07-12 G3] Match rate-limiter window
   const rateLimit = await checkRateLimit(supabase, {
     instanceId: instance || 'unknown',
     eventType: event,
-    limit: 300, // 300 events per minute per instance/event
+    limit: EVENT_RATE_LIMITS[event] ?? 300,
+    windowSeconds: WINDOW_SECONDS,
   });
   if (!rateLimit.allowed) {
+    // [C-1 FIX 2026-07-12] Roll back the idempotency mark so this 429'd event stays
+    // re-deliverable. Idempotency is marked BEFORE the rate-limit check (so genuine
+    // retries don't reconsume quota), but without this rollback a burst-throttled
+    // event would be permanently deduped: the consumer's requeue/redelivery would
+    // short-circuit as "duplicate" at markEventProcessed() and the message would be
+    // silently lost — the exact wpp2 data-loss class this pipeline guards against.
+    // [G1 FIX 2026-07-12] Track rollback failures to audit trail for event-loss detection.
+    const rollbackOk = await unmarkEventProcessed(supabase, eventId, instance, event);
+
+    // [G3 FIX 2026-07-12] Calculate Retry-After to next window boundary (not fixed 30s)
+    const now = Date.now();
+    const windowMs = WINDOW_SECONDS * 1000;
+    const bucketStart = Math.floor(now / windowMs) * windowMs;
+    const bucketEnd = bucketStart + windowMs;
+    const retryAfterSeconds = Math.ceil((bucketEnd - now) / 1000);
+
     await auditWebhookEvent(supabase, {
-      request_id: requestId, instance, event_type: event, status: 'rejected',
-      error_message: 'rate_limit_exceeded',
+      request_id: requestId, instance, event_type: event, status: 'rejected', status_code: 429,
+      error_message: rollbackOk ? 'rate_limit_exceeded' : 'rate_limit_exceeded_rollback_failed',
       duration_ms: Date.now() - startedAt,
     });
-    console.warn(`[webhook][${requestId}] rate limit exceeded for ${instance}:${event} (${rateLimit.currentCount}/${rateLimit.limit})`);
+    if (!rollbackOk) {
+      console.error(`[webhook][${requestId}] CRITICAL: idempotency rollback FAILED for event_id=${eventId.slice(0,48)}… — event will be silently lost on re-delivery`);
+    } else {
+      console.warn(`[webhook][${requestId}] rate limit exceeded for ${instance}:${event} (${rateLimit.currentCount}/${rateLimit.limit}) — idempotency rolled back, retry after ${retryAfterSeconds}s`);
+    }
     return new Response(
       JSON.stringify({ error: 'rate_limit_exceeded', instance, requestId }),
-      { status: 429, headers: corsHeaders }
+      { status: 429, headers: { ...corsHeaders, 'Retry-After': String(retryAfterSeconds) } }
     );
   }
 
@@ -227,6 +282,26 @@ serve(async (req) => {
         await supabase.from('whatsapp_connections')
           .update({ qr_code: qrCode, status: 'qr_pending', updated_at: new Date().toISOString() })
           .or(instanceOrFilter(instance));
+      }
+      // [M-6 FIX 2026-07-12] QR alert via n8n (fire-and-forget). URL agora é
+      // sobrescrevível por env (QR_ALERT_WEBHOOK_URL) em vez de fixa/acoplada a
+      // wpp2, com header de auth opcional (QR_ALERT_WEBHOOK_TOKEN) para que a URL
+      // não seja disparável por qualquer um que a conheça. Mantemos o valor atual
+      // como default explícito para NÃO desligar um alerta vivo caso a env não
+      // esteja provisionada.
+      const _n8nQrUrl = Deno.env.get('QR_ALERT_WEBHOOK_URL') ?? 'https://webhook.atomicabr.com.br/webhook/qr-alert-wpp2';
+      if (_n8nQrUrl) {
+        const _qrHeaders: Record<string, string> = { 'Content-Type': 'application/json' };
+        const _qrToken = Deno.env.get('QR_ALERT_WEBHOOK_TOKEN');
+        if (_qrToken) _qrHeaders['x-webhook-token'] = _qrToken;
+        fetch(_n8nQrUrl, {
+          method: 'POST',
+          headers: _qrHeaders,
+          body: JSON.stringify({ event: 'qrcode.updated', instance, status: 'qr_pending', ts: new Date().toISOString() }),
+          signal: AbortSignal.timeout(4000),
+        }).catch((e: unknown) => console.warn('[qr-alert] n8n call failed:', e instanceof Error ? e.message : String(e)));
+      } else {
+        console.warn(`[qr-alert] QR_ALERT_WEBHOOK_URL not set — skipping QR alert for instance=${instance}`);
       }
     }
 
@@ -332,7 +407,7 @@ serve(async (req) => {
     if (event === 'messages.edited' || event === 'messages.edit') await handleMessagesEdited(supabase, instance, data, baseData);
 
     await auditWebhookEvent(supabase, {
-      request_id: requestId, instance, event_type: event, status: 'processed',
+      request_id: requestId, instance, event_type: event, status: 'processed', status_code: 200,
       duration_ms: Date.now() - startedAt,
     });
     return new Response(JSON.stringify({ success: true, requestId }), { status: 200, headers: corsHeaders });
@@ -351,7 +426,7 @@ serve(async (req) => {
       request_id: requestId,
     });
     await auditWebhookEvent(supabase, {
-      request_id: requestId, instance, event_type: event, status: 'error',
+      request_id: requestId, instance, event_type: event, status: 'error', status_code: 200,
       duration_ms: Date.now() - startedAt, error_message: detail.slice(0, 500),
     });
     return new Response(

@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { handleCors, errorResponse, jsonResponse, requireEnv, Logger } from "../_shared/validation.ts";
+import { requireUser } from "../_shared/auth.ts";
 
 type VitalName = 'LCP' | 'FID' | 'CLS' | 'INP' | 'TTFB';
 
@@ -23,11 +24,14 @@ Deno.serve(async (req) => {
 
   const log = new Logger('client-observability');
 
-  if (req.method !== 'POST') {
-    return errorResponse('Method not allowed', 405, req);
-  }
-
   try {
+    const authed = await requireUser(req);
+    if (authed instanceof Response) return authed;
+
+    if (req.method !== 'POST') {
+      return errorResponse('Method not allowed', 405, req);
+    }
+
     const body = await req.json();
     const events: VitalPayload[] = Array.isArray(body?.metrics) ? body.metrics : [];
 
@@ -62,12 +66,12 @@ Deno.serve(async (req) => {
     const { error } = await supabase.from('query_telemetry').insert(rows);
     if (error) {
       log.error('failed inserting query_telemetry', { error: error.message });
-      return errorResponse(error.message, 500, req);
+      return errorResponse('Internal server error', 500, req);
     }
 
     return jsonResponse({ ok: true, accepted: rows.length }, 200, req);
   } catch (error: unknown) {
     log.error('Unhandled error', { error: error instanceof Error ? error.message : String(error) });
-    return errorResponse(error instanceof Error ? error.message : 'Internal error', 500, req);
+    return errorResponse('Internal server error', 500, req);
   }
 });

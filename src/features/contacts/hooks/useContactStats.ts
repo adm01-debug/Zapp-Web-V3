@@ -1,14 +1,3 @@
-/**
- * useContactStats.ts — Estatísticas de contatos para dashboard CRM
- *
- * Usa rpc_contact_stats para dados consolidados:
- * - Total de contatos
- * - Por status, instância, lead_status
- * - Candidatos a duplicata
- * - Pendências LGPD
- * - Crescimento nos últimos 30 dias
- */
-
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { safeClient } from '@/integrations/supabase/safeClient';
 
@@ -40,7 +29,9 @@ export function useContactStats(): UseContactStatsReturn {
   const mountedRef = useRef(true);
   useEffect(() => {
     mountedRef.current = true;
-    return () => { mountedRef.current = false; };
+    return () => {
+      mountedRef.current = false;
+    };
   }, []);
 
   const fetch = useCallback(async () => {
@@ -53,9 +44,7 @@ export function useContactStats(): UseContactStatsReturn {
       if (!mountedRef.current) return;
       if (rpcErr) throw new Error(rpcErr.message);
 
-      // Supabase retorna o JSONB como objeto direto
-      const statsData = data as ContactStatsData;
-      setStats(statsData);
+      setStats(data);
     } catch (err) {
       if (mountedRef.current) setError(err instanceof Error ? err : new Error(String(err)));
     } finally {

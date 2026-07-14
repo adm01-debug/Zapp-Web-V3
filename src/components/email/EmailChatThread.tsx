@@ -30,8 +30,8 @@ export function EmailChatThread({
   const bottomRef = useRef<HTMLDivElement>(null);
   const { getRecord, getStatus, markReplied } = useEmailSLA(accountId);
 
-  const slaRecord = getRecord(thread.thread_id);
-  const slaStatus = getStatus(thread.thread_id);
+  const slaRecord = getRecord(thread.email_thread_id);
+  const slaStatus = getStatus(thread.email_thread_id);
 
   // Auto-scroll para o final ao carregar novas mensagens
   useEffect(() => {
@@ -42,42 +42,49 @@ export function EmailChatThread({
 
   // Recebe emails dos participantes para reply
   const externalEmails = messages
-    .filter(m => !m.is_sent)
-    .map(m => m.from_email ?? '')
+    .filter((m) => !m.is_sent)
+    .map((m) => m.from_email ?? '')
     .filter(Boolean);
-  const replyTo = externalEmails.length > 0 ? [externalEmails[0]] : (thread as any).participant_emails ?? [];
+  const replyTo =
+    externalEmails.length > 0 ? [externalEmails[0]] : (thread.participant_emails ?? []);
 
   return (
-    <div className={cn('flex flex-col h-full', className)}>
+    <div className={cn('flex h-full flex-col', className)}>
       {/* Header */}
-      <div className="px-4 py-3 border-b border-border/10 bg-background/80 backdrop-blur-xl sticky top-0 z-10 shadow-sm h-[70px] flex flex-col justify-center">
+      <div className="sticky top-0 z-10 flex h-[70px] flex-col justify-center border-b border-border/10 bg-background/80 px-4 py-3 shadow-sm backdrop-blur-xl">
         <div className="flex items-center gap-3">
           {onBack && (
-            <Button variant="ghost" size="icon" className="w-8 h-8 md:hidden rounded-full hover:bg-primary/5" onClick={onBack}>
+            <Button
+              aria-label="Voltar"
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 rounded-full hover:bg-primary/5 md:hidden"
+              onClick={onBack}
+            >
               <ArrowLeft className="h-4 w-4" />
             </Button>
           )}
 
-          <div className="flex-1 min-w-0">
-            <h2 className=" font-bold text-[15px] text-foreground truncate tracking-tight leading-tight">
+          <div className="min-w-0 flex-1">
+            <h2 className="truncate text-[15px] font-bold leading-tight tracking-tight text-foreground">
               {thread.subject || '(sem assunto)'}
             </h2>
-            <div className="flex items-center h-4 mt-0.5">
-              <span className=" text-[11px] text-[hsl(var(--muted-foreground))] font-semibold uppercase tracking-[0.04em]">
+            <div className="mt-0.5 flex h-4 items-center">
+              <span className="text-[11px] font-semibold uppercase tracking-[0.04em] text-[hsl(var(--muted-foreground))]">
                 {thread.message_count} {thread.message_count === 1 ? 'mensagem' : 'mensagens'}
               </span>
-              {(thread as any).participant_emails?.length > 0 && (
+              {thread.participant_emails && thread.participant_emails.length > 0 && (
                 <>
-                  <span className="mx-1.5 w-1 h-1 rounded-full bg-border" />
-                  <span className=" text-[11px] text-[hsl(var(--muted-foreground))] font-semibold truncate max-w-md uppercase tracking-[0.04em]">
-                    {(thread as any).participant_emails.join(', ')}
+                  <span className="mx-1.5 h-1 w-1 rounded-full bg-border" />
+                  <span className="max-w-md truncate text-[11px] font-semibold uppercase tracking-[0.04em] text-[hsl(var(--muted-foreground))]">
+                    {thread.participant_emails.join(', ')}
                   </span>
                 </>
               )}
             </div>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex shrink-0 items-center gap-2">
             {slaRecord && (
               <EmailSLABadge
                 status={slaStatus}
@@ -86,15 +93,22 @@ export function EmailChatThread({
                 thresholdMinutes={slaRecord.sla_threshold_minutes}
               />
             )}
-            
+
             {/* Labels */}
-            {thread.label_ids.filter(l => !['INBOX','UNREAD','STARRED'].includes(l)).length > 0 && (
+            {thread.label_ids.filter((l) => !['INBOX', 'UNREAD', 'STARRED'].includes(l)).length >
+              0 && (
               <div className="flex gap-1">
                 {thread.label_ids
-                  .filter(l => !['INBOX','UNREAD','STARRED'].includes(l))
+                  .filter((l) => !['INBOX', 'UNREAD', 'STARRED'].includes(l))
                   .slice(0, 2)
-                  .map(l => (
-                    <Badge key={l} variant="outline" className="text-[9px] h-4.5 px-2 font-black uppercase tracking-widest border-0 bg-primary/10 text-primary shadow-sm">{l}</Badge>
+                  .map((l) => (
+                    <Badge
+                      key={l}
+                      variant="outline"
+                      className="h-4.5 border-0 bg-primary/10 px-2 text-[9px] font-black uppercase tracking-widest text-primary shadow-sm"
+                    >
+                      {l}
+                    </Badge>
                   ))}
               </div>
             )}
@@ -117,19 +131,30 @@ export function EmailChatThread({
       <ScrollArea className="flex-1">
         <div className="divide-y divide-border/20 bg-background/30">
           {isLoading ? (
-            <div className="flex flex-col h-full p-4 space-y-6">
-              {[1, 2, 3].map(i => (
-                <div key={i} className={cn("flex flex-col gap-2 max-w-[80%]", i % 2 === 0 ? "self-end items-end" : "self-start items-start")}>
-                  <div className="flex gap-2 items-center">
-                    <div className="h-4 w-24 bg-muted animate-pulse rounded" />
-                    <div className="h-4 w-12 bg-muted animate-pulse rounded" />
+            <div className="flex h-full flex-col space-y-6 p-4">
+              {[1, 2, 3].map((i) => (
+                <div
+                  key={i}
+                  className={cn(
+                    'flex max-w-[80%] flex-col gap-2',
+                    i % 2 === 0 ? 'items-end self-end' : 'items-start self-start'
+                  )}
+                >
+                  <div className="flex items-center gap-2">
+                    <div className="h-4 w-24 animate-pulse rounded bg-muted" />
+                    <div className="h-4 w-12 animate-pulse rounded bg-muted" />
                   </div>
-                  <div className={cn("h-16 w-64 bg-muted animate-pulse rounded-2xl", i % 2 === 0 ? "rounded-tr-none" : "rounded-tl-none")} />
+                  <div
+                    className={cn(
+                      'h-16 w-64 animate-pulse rounded-2xl bg-muted',
+                      i % 2 === 0 ? 'rounded-tr-none' : 'rounded-tl-none'
+                    )}
+                  />
                 </div>
               ))}
             </div>
           ) : messages.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-48 gap-2 text-muted-foreground">
+            <div className="flex h-48 flex-col items-center justify-center gap-2 text-muted-foreground">
               <Mail className="h-8 w-8 opacity-30" />
               <p className="text-sm">Nenhuma mensagem</p>
             </div>
@@ -149,15 +174,15 @@ export function EmailChatThread({
         </div>
       </ScrollArea>
 
-      <div className="bg-background/80 backdrop-blur-xl border-t border-border/10">
+      <div className="border-t border-border/10 bg-background/80 backdrop-blur-xl">
         <EmailChatReplyBar
           accountId={accountId}
           threadId={thread.id}
-          threadEmailId={thread.thread_id}
+          threadEmailId={thread.email_thread_id}
           toEmails={replyTo}
           subject={thread.subject ?? ''}
           onSent={() => {
-            markReplied(thread.thread_id);
+            markReplied(thread.email_thread_id);
           }}
           className="border-none"
         />

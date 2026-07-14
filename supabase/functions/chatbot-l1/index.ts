@@ -187,6 +187,6 @@ Responda em JSON:
     }, 200, req);
   } catch (error: unknown) {
     log.error("Error in chatbot-l1", { error: error instanceof Error ? error.message : String(error) });
-    return jsonResponse({ handled: false, error: error instanceof Error ? error.message : "Unknown error" }, 500, req);
+    return jsonResponse({ handled: false, error: "Internal server error" }, 500, req);
   }
 });

@@ -145,11 +145,21 @@ export function AdvancedMessageMenu({ instanceName, recipientNumber, onPollSent,
     { icon: Radio, label: 'Status/Story', onClick: () => { setPopoverOpen(false); setStatusDialog(true); } },
   ];
 
+  const stickerPreviewSrc = (() => {
+    if (!stickerUrl) return '';
+    try {
+      const parsed = new URL(stickerUrl);
+      return ['http:', 'https:'].includes(parsed.protocol) ? parsed.href : '';
+    } catch {
+      return '';
+    }
+  })();
+
   return (
     <>
       <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
         <PopoverTrigger asChild>
-          <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-primary hover:bg-primary/10" title="Mais opções de mensagem">
+          <Button aria-label="Mais opções de mensagem" variant="ghost" size="icon" className="text-muted-foreground hover:text-primary hover:bg-primary/10">
             <MoreHorizontal className="w-5 h-5" />
           </Button>
         </PopoverTrigger>
@@ -180,16 +190,17 @@ export function AdvancedMessageMenu({ instanceName, recipientNumber, onPollSent,
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label>URL da figurinha (imagem/webp)</Label>
+              <Label htmlFor="sticker-url">URL da figurinha (imagem/webp)</Label>
               <Input
+                id="sticker-url"
                 value={stickerUrl}
                 onChange={(e) => setStickerUrl(e.target.value)}
                 placeholder="https://exemplo.com/sticker.webp"
               />
             </div>
-            {stickerUrl && (
+            {stickerPreviewSrc && (
               <div className="flex justify-center p-4 bg-muted/20 rounded-lg">
-                <img src={stickerUrl} alt="Preview" className="max-w-32 max-h-32 object-contain" />
+                <img src={stickerPreviewSrc} alt="Pré-visualização da figurinha" className="max-w-32 max-h-32 object-contain" />
               </div>
             )}
             <Button onClick={handleSendSticker} disabled={isLoading || !stickerUrl.trim()} className="w-full">
@@ -210,16 +221,18 @@ export function AdvancedMessageMenu({ instanceName, recipientNumber, onPollSent,
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label>Pergunta</Label>
+              <Label htmlFor="poll-question">Pergunta</Label>
               <Input
+                id="poll-question"
                 value={pollName}
                 onChange={(e) => setPollName(e.target.value)}
                 placeholder="Qual horário preferem?"
               />
             </div>
             <div>
-              <Label>Seleções permitidas</Label>
+              <Label htmlFor="poll-selectable-count">Seleções permitidas</Label>
               <Input
+                id="poll-selectable-count"
                 type="number"
                 min={1}
                 max={pollOptions.length}
@@ -233,6 +246,7 @@ export function AdvancedMessageMenu({ instanceName, recipientNumber, onPollSent,
               {pollOptions.map((opt, i) => (
                 <div key={i} className="flex gap-2">
                   <Input
+                    aria-label={`Opção ${i + 1} da enquete`}
                     value={opt}
                     onChange={(e) => {
                       const updated = [...pollOptions];
@@ -242,7 +256,7 @@ export function AdvancedMessageMenu({ instanceName, recipientNumber, onPollSent,
                     placeholder={`Opção ${i + 1}`}
                   />
                   {pollOptions.length > 2 && (
-                    <Button variant="ghost" size="icon" onClick={() => setPollOptions(pollOptions.filter((_, j) => j !== i))}>
+                    <Button aria-label="Remover opção de enquete" variant="ghost" size="icon" onClick={() => setPollOptions(pollOptions.filter((_, j) => j !== i))}>
                       <Trash2 className="w-4 h-4 text-destructive" />
                     </Button>
                   )}
@@ -272,20 +286,20 @@ export function AdvancedMessageMenu({ instanceName, recipientNumber, onPollSent,
           </DialogHeader>
           <div className="space-y-3">
             <div>
-              <Label>Nome completo *</Label>
-              <Input value={contactCard.fullName} onChange={(e) => setContactCard({ ...contactCard, fullName: e.target.value })} placeholder="João Silva" />
+              <Label htmlFor="contact-full-name">Nome completo *</Label>
+              <Input id="contact-full-name" value={contactCard.fullName} onChange={(e) => setContactCard({ ...contactCard, fullName: e.target.value })} placeholder="João Silva" />
             </div>
             <div>
-              <Label>Telefone *</Label>
-              <Input value={contactCard.phoneNumber} onChange={(e) => setContactCard({ ...contactCard, phoneNumber: e.target.value })} placeholder="5511999999999" />
+              <Label htmlFor="contact-phone">Telefone *</Label>
+              <Input id="contact-phone" value={contactCard.phoneNumber} onChange={(e) => setContactCard({ ...contactCard, phoneNumber: e.target.value })} placeholder="5511999999999" />
             </div>
             <div>
-              <Label>Empresa</Label>
-              <Input value={contactCard.organization} onChange={(e) => setContactCard({ ...contactCard, organization: e.target.value })} placeholder="Empresa XYZ" />
+              <Label htmlFor="contact-org">Empresa</Label>
+              <Input id="contact-org" value={contactCard.organization} onChange={(e) => setContactCard({ ...contactCard, organization: e.target.value })} placeholder="Empresa XYZ" />
             </div>
             <div>
-              <Label>E-mail</Label>
-              <Input value={contactCard.email} onChange={(e) => setContactCard({ ...contactCard, email: e.target.value })} placeholder="joao@empresa.com" />
+              <Label htmlFor="contact-email">E-mail</Label>
+              <Input id="contact-email" value={contactCard.email} onChange={(e) => setContactCard({ ...contactCard, email: e.target.value })} placeholder="joao@empresa.com" />
             </div>
             <Button onClick={handleSendContact} disabled={isLoading} className="w-full">
               <Send className="w-4 h-4 mr-2" /> Enviar Contato
@@ -305,8 +319,9 @@ export function AdvancedMessageMenu({ instanceName, recipientNumber, onPollSent,
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label>Texto do status</Label>
+              <Label htmlFor="status-text">Texto do status</Label>
               <Textarea
+                id="status-text"
                 value={statusText}
                 onChange={(e) => setStatusText(e.target.value)}
                 placeholder="Seu status aqui..."

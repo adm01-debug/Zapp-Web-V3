@@ -13,7 +13,7 @@ CREATE OR REPLACE FUNCTION zapp.fn_alert_ghost_message_events()
 RETURNS int
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = zapp, public, evo, pg_catalog
+SET search_path = pg_catalog, zapp, public, evo
 AS $$
 DECLARE v_ghosts jsonb; v_n int;
 BEGIN

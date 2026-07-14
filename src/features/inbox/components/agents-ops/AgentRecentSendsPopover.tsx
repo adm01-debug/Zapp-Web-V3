@@ -8,18 +8,11 @@ import { Copy, History } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
 import type { RecentSend } from '@/features/inbox';
+import { formatTimeHMS } from '@/lib/formatters';
 
 interface Props {
   agentName: string;
   sends: RecentSend[];
-}
-
-function formatTime(iso: string): string {
-  try {
-    return new Date(iso).toLocaleTimeString('pt-BR', { hour12: false });
-  } catch {
-    return iso;
-  }
 }
 
 function statusVariant(http: number): 'success' | 'destructive' | 'warning' {
@@ -43,18 +36,14 @@ export function AgentRecentSendsPopover({ agentName, sends }: Props) {
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button variant="ghost" size="sm" className="gap-1.5 h-8">
+        <Button variant="ghost" size="sm" className="h-8 gap-1.5">
           <History className="h-3.5 w-3.5" />
           <span className="text-xs">Ver últimos {sends.length || 5}</span>
         </Button>
       </PopoverTrigger>
-      <PopoverContent
-        align="end"
-        className="w-[360px] p-0"
-        data-testid="recent-sends-popover"
-      >
-        <div className="p-3 border-b border-border/60">
-          <div className="text-sm font-semibold text-foreground truncate">{agentName}</div>
+      <PopoverContent align="end" className="w-[360px] p-0" data-testid="recent-sends-popover">
+        <div className="border-b border-border/60 p-3">
+          <div className="truncate text-sm font-semibold text-foreground">{agentName}</div>
           <div className="text-xs text-muted-foreground">Últimos envios via Evolution proxy</div>
         </div>
         {sends.length === 0 ? (
@@ -65,18 +54,21 @@ export function AgentRecentSendsPopover({ agentName, sends }: Props) {
             className="py-8"
           />
         ) : (
-          <ul className="divide-y divide-border/60 max-h-[320px] overflow-auto">
+          <ul className="max-h-[320px] divide-y divide-border/60 overflow-auto">
             {sends.map((s) => (
-              <li key={s.idem_key} className="p-3 space-y-1.5">
+              <li key={s.idem_key} className="space-y-1.5 p-3">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-xs  text-muted-foreground tabular-nums">
-                    {formatTime(s.created_at)}
+                  <span className="text-xs tabular-nums text-muted-foreground">
+                    {formatTimeHMS(s.created_at)}
                   </span>
                   <div className="flex items-center gap-1.5">
-                    <Badge variant="outline" className="text-[10px] py-0 px-1.5">
+                    <Badge variant="outline" className="px-1.5 py-0 text-[10px]">
                       {s.instance_name}
                     </Badge>
-                    <Badge variant={statusVariant(s.http_status)} className="text-[10px] py-0 px-1.5">
+                    <Badge
+                      variant={statusVariant(s.http_status)}
+                      className="px-1.5 py-0 text-[10px]"
+                    >
                       {s.http_status}
                     </Badge>
                   </div>
@@ -88,9 +80,9 @@ export function AgentRecentSendsPopover({ agentName, sends }: Props) {
                         type="button"
                         onClick={() => copyKey(s.idem_key)}
                         className={cn(
-                          'flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] ',
-                          'bg-muted/40 hover:bg-muted text-muted-foreground transition-colors',
-                          'truncate max-w-[220px]',
+                          'flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px]',
+                          'bg-muted/40 text-muted-foreground transition-colors hover:bg-muted',
+                          'max-w-[220px] truncate'
                         )}
                       >
                         <Copy className="h-3 w-3 shrink-0" />
@@ -98,7 +90,7 @@ export function AgentRecentSendsPopover({ agentName, sends }: Props) {
                       </button>
                     </TooltipTrigger>
                     <TooltipContent side="bottom">
-                      <p className="text-xs ">{s.idem_key}</p>
+                      <p className="text-xs">{s.idem_key}</p>
                       <p className="text-[10px] text-muted-foreground">Clique para copiar</p>
                     </TooltipContent>
                   </Tooltip>

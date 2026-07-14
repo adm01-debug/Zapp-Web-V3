@@ -18,8 +18,12 @@ Deno.serve(async (req) => {
   const log = new Logger("talkx-scheduler");
 
   try {
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabaseUrl = Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL');
+    const serviceKey = Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    if (!supabaseUrl || !serviceKey) {
+      log.error('Missing Supabase configuration');
+      return new Response(JSON.stringify({ error: 'Supabase configuration missing' }), { status: 503, headers });
+    }
     const supabase = createClient(supabaseUrl, serviceKey);
 
     const now = new Date().toISOString();
@@ -27,11 +31,13 @@ Deno.serve(async (req) => {
       .from("talkx_campaigns")
       .select("id, name, scheduled_at")
       .eq("status", "scheduled")
-      .lte("scheduled_at", now);
+      .lte("scheduled_at", now)
+      .order("scheduled_at", { ascending: true })
+      .limit(20);
 
     if (error) {
       log.error("Error fetching scheduled campaigns", { error: error.message });
-      return new Response(JSON.stringify({ error: error.message }), { status: 500, headers });
+      return new Response(JSON.stringify({ error: "Failed to fetch scheduled campaigns" }), { status: 500, headers });
     }
 
     if (!dueCampaigns || dueCampaigns.length === 0) {
@@ -41,26 +47,68 @@ Deno.serve(async (req) => {
       );
     }
 
-    const results = [];
+    // Each campaign is claimed atomically (per campaign.id), so parallel processing is safe.
+    const settled = await Promise.allSettled(
+      dueCampaigns.map(async (campaign) => {
+        // Atomic claim: only proceed if we can flip status from 'scheduled' → 'processing'.
+        // Concurrent cron invocations will fail this update and skip the campaign.
+        const { count: claimed, error: claimError } = await supabase
+          .from("talkx_campaigns")
+          .update({ status: "processing" })
+          .eq("id", campaign.id)
+          .eq("status", "scheduled")
+          .select("id", { count: "exact", head: true });
 
-    for (const campaign of dueCampaigns) {
-      try {
-        const response = await fetch(
-          `${supabaseUrl}/functions/v1/talkx-send`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json", Authorization: `Bearer ${serviceKey}` },
-            body: JSON.stringify({ campaignId: campaign.id, action: "start" }),
+        if (claimError) {
+          log.error(`Failed to claim campaign ${campaign.id}`, { error: claimError.message });
+          return null;
+        }
+        if (!claimed || claimed === 0) {
+          log.info(`Campaign ${campaign.id} already claimed by another invocation, skipping`);
+          return null;
+        }
+
+        const revertStatus = async () => {
+          const { error: revertErr } = await supabase
+            .from("talkx_campaigns")
+            .update({ status: "scheduled" })
+            .eq("id", campaign.id)
+            .eq("status", "processing"); // only revert if still in processing state
+          if (revertErr) {
+            log.error(`Failed to revert campaign ${campaign.id} to scheduled`, { error: revertErr.message });
           }
-        );
-        const result = await response.json();
-        results.push({ campaignId: campaign.id, name: campaign.name, success: response.ok, result });
-        log.info(`Scheduled campaign started: ${campaign.name} (${campaign.id})`);
-      } catch (err) {
-        log.error(`Failed to start campaign ${campaign.id}`, { error: err instanceof Error ? err.message : String(err) });
-        results.push({ campaignId: campaign.id, name: campaign.name, success: false, error: err instanceof Error ? err.message : "Unknown error" });
-      }
-    }
+        };
+
+        try {
+          const response = await fetch(
+            `${supabaseUrl}/functions/v1/talkx-send`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json", Authorization: `Bearer ${serviceKey}` },
+              body: JSON.stringify({ campaignId: campaign.id, action: "start" }),
+              signal: AbortSignal.timeout(30_000),
+            }
+          );
+          const result = await response.json();
+          if (!response.ok) {
+            log.error(`talkx-send returned ${response.status} for campaign ${campaign.id}`, { result });
+            await revertStatus();
+            return { campaignId: campaign.id, name: campaign.name, success: false, error: result };
+          }
+          log.info(`Scheduled campaign started: ${campaign.name} (${campaign.id})`);
+          return { campaignId: campaign.id, name: campaign.name, success: true, result };
+        } catch (err) {
+          log.error(`Failed to start campaign ${campaign.id}`, { error: err instanceof Error ? err.message : String(err) });
+          // Revert status so the campaign can be retried on the next cron tick
+          await revertStatus();
+          return { campaignId: campaign.id, name: campaign.name, success: false, error: "Failed to start campaign" };
+        }
+      })
+    );
+
+    const results = settled
+      .map(r => (r.status === 'fulfilled' ? r.value : null))
+      .filter((v): v is NonNullable<typeof v> => v !== null);
 
     log.done(200, { started: results.filter((r) => r.success).length });
 
@@ -76,7 +124,7 @@ Deno.serve(async (req) => {
   } catch (err) {
     log.error("Scheduler error", { error: err instanceof Error ? err.message : String(err) });
     return new Response(
-      JSON.stringify({ error: err instanceof Error ? err.message : "Internal error" }),
+      JSON.stringify({ error: "Internal server error" }),
       { status: 500, headers }
     );
   }

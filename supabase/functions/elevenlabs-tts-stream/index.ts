@@ -1,5 +1,6 @@
 import { handleCors, errorResponse, jsonResponse, requireEnv, Logger, getCorsHeaders } from "../_shared/validation.ts";
 import { ElevenLabsTTSSchema, parseBody } from "../_shared/schemas.ts";
+import { requireUser } from "../_shared/auth.ts";
 
 Deno.serve(async (req) => {
   const cors = handleCors(req);
@@ -8,6 +9,9 @@ Deno.serve(async (req) => {
   const log = new Logger("elevenlabs-tts-stream");
 
   try {
+    const authed = await requireUser(req);
+    if (authed instanceof Response) return authed;
+
     const parsed = parseBody(ElevenLabsTTSSchema, await req.json());
     if (!parsed.success) return errorResponse(parsed.error, 400, req);
 
@@ -39,6 +43,7 @@ Deno.serve(async (req) => {
             use_speaker_boost: true,
           },
         }),
+        signal: AbortSignal.timeout(30_000),
       }
     );
 
@@ -59,8 +64,7 @@ Deno.serve(async (req) => {
       },
     });
   } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    log.error("Unhandled error", { error: errorMessage });
-    return errorResponse(errorMessage, 500, req);
+    log.error("Unhandled error", { error: error instanceof Error ? error.message : String(error) });
+    return errorResponse('Internal server error', 500, req);
   }
 });

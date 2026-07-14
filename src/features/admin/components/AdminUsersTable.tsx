@@ -10,7 +10,7 @@ import {
   UserCheck, UserX, Edit, Code,
 } from 'lucide-react';
 import { ForceLogoutButton } from './ForceLogoutButton';
-import { accessLevelConfig, type UserWithRole } from './useAdminData';
+import { accessLevelConfig, type UserWithRole } from '../hooks/useAdminData';
 import type { AppRole } from '@/features/auth';
 
 const roleIconMap = { dev: Code, admin: Crown, supervisor: UserCog, agent: User } as const;
@@ -50,7 +50,7 @@ export function AdminUsersTable({ users, isAdmin, onRoleChange, onToggleActive, 
                   <TableCell>
                     <div className="flex items-center gap-3">
                       <Avatar className="w-8 h-8">
-                        <AvatarImage src={user.avatar_url || undefined} />
+                        <AvatarImage src={user.avatar_url || undefined} alt={user.name} />
                         <AvatarFallback>{user.name?.[0] || 'U'}</AvatarFallback>
                       </Avatar>
                       <div>
@@ -69,7 +69,7 @@ export function AdminUsersTable({ users, isAdmin, onRoleChange, onToggleActive, 
                   </TableCell>
                   <TableCell>
                     {isAdmin ? (
-                      <Select value={user.role} onValueChange={(v) => onRoleChange(user.user_id, v as AppRole)}>
+                      <Select value={user.role} onValueChange={(v) => onRoleChange(user.user_id, v as AppRole /* ignore-audit: Select/Tabs value string narrowed to union; developer controls option values */)}>
                         <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
                         <SelectContent>
                           <SelectItem value="admin">Admin</SelectItem>
@@ -96,7 +96,7 @@ export function AdminUsersTable({ users, isAdmin, onRoleChange, onToggleActive, 
                   {isAdmin && (
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <Button variant="ghost" size="icon" className="w-8 h-8" onClick={() => onEditUser(user)}>
+                        <Button aria-label="Editar usuário" variant="ghost" size="icon" className="w-8 h-8" onClick={() => onEditUser(user)}>
                           <Edit className="w-4 h-4" />
                         </Button>
                         <ForceLogoutButton userId={user.user_id} userName={user.name} />

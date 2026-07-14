@@ -33,7 +33,7 @@ export function useZappConversations(opts: Options = {}) {
            last_message_type, last_message_at, last_inbound_at, assigned_to,
            priority, instance_name,
            evolution_contacts ( id, push_name, full_name, phone_number,
-             profile_picture_url, lead_status, company, tags )`,
+             profile_picture_url, lead_status, company, tags )`
         )
         .eq('instance_name', instance)
         .eq('status', status)
@@ -42,9 +42,9 @@ export function useZappConversations(opts: Options = {}) {
       if (err) throw err;
       setConversations((data ?? []) as unknown as EvolutionConversation[]);
       setError(null);
-    } catch (e: any) {
+    } catch (e: unknown) {
       log.error('[useZappConversations]', e);
-      setError(e.message);
+      setError(e instanceof Error ? e.message : String(e));
     } finally {
       setLoading(false);
     }
@@ -62,11 +62,11 @@ export function useZappConversations(opts: Options = {}) {
           table: 'evolution_conversations',
           filter: `instance_name=eq.${instance}`,
         },
-        () => fetchAll(),
+        () => fetchAll()
       )
       .subscribe();
     return () => {
-      zappSupabase.removeChannel(ch);
+      ch.unsubscribe();
     };
   }, [instance, fetchAll]);
 

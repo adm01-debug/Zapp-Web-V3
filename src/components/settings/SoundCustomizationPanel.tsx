@@ -7,7 +7,7 @@ import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Volume2, VolumeX, Bell, MessageSquare, AlertTriangle, Trophy, Clock, Moon, Upload } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { useUserSettings, UserSettings } from '@/hooks/useUserSettings';
+import { useUserSettings, type UserSettings } from '@/hooks/useUserSettings';
 import { toast } from 'sonner';
 import { SoundCategoryCard } from './SoundCategoryCard';
 
@@ -20,7 +20,7 @@ const SOUND_CATEGORIES = {
 };
 
 const playSoundPreview = (soundId: string) => {
-  const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+  const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext; // ignore-audit — webkit-prefixed AudioContext not in standard lib
   const ctx = new AudioCtx!();
   const osc = ctx.createOscillator();
   const gain = ctx.createGain();
@@ -39,7 +39,7 @@ export function SoundCustomizationPanel() {
   const [masterVolume, setMasterVolume] = useState(80);
 
   const handleSoundChange = (category: string, soundId: string) => {
-    updateSettings({ [`${category}_sound_type`]: soundId } as unknown as Partial<UserSettings>);
+    updateSettings({ [`${category}_sound_type`]: soundId } as Partial<UserSettings>);
     if (soundId !== 'none') { playSoundPreview(soundId); setPlayingSound(`${category}-${soundId}`); setTimeout(() => setPlayingSound(null), 500); }
   };
 
@@ -94,8 +94,8 @@ export function SoundCustomizationPanel() {
             <AnimatePresence>
               {settings.quiet_hours_enabled && (
                 <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2"><Label>Início</Label><input type="time" value={settings.quiet_hours_start || '22:00'} onChange={(e) => updateSettings({ quiet_hours_start: e.target.value })} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" /></div>
-                  <div className="space-y-2"><Label>Término</Label><input type="time" value={settings.quiet_hours_end || '08:00'} onChange={(e) => updateSettings({ quiet_hours_end: e.target.value })} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" /></div>
+                  <div className="space-y-2"><Label htmlFor="quiet-start">Início</Label><input id="quiet-start" type="time" value={settings.quiet_hours_start || '22:00'} onChange={(e) => updateSettings({ quiet_hours_start: e.target.value })} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" /></div>
+                  <div className="space-y-2"><Label htmlFor="quiet-end">Término</Label><input id="quiet-end" type="time" value={settings.quiet_hours_end || '08:00'} onChange={(e) => updateSettings({ quiet_hours_end: e.target.value })} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" /></div>
                 </motion.div>
               )}
             </AnimatePresence>

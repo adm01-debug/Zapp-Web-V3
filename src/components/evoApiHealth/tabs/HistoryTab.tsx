@@ -17,15 +17,15 @@ export const HistoryTab = React.memo(({ history }: HistoryTabProps) => {
       </CardHeader>
       <CardContent>
         <ScrollArea className="h-[500px]">
-          <table className="w-full text-sm">
+          <table className="w-full text-sm" aria-label="Histórico de snapshots das últimas 24h">
             <thead className="text-left text-muted-foreground border-b">
               <tr>
-                <th className="py-2 pr-3">Bucket</th>
-                <th className="py-2 pr-3">Inst. abertas</th>
-                <th className="py-2 pr-3">Pico msgs/5m</th>
-                <th className="py-2 pr-3">Lag médio</th>
-                <th className="py-2 pr-3">Lag máx</th>
-                <th className="py-2">OK?</th>
+                <th scope="col" className="py-2 pr-3">Bucket</th>
+                <th scope="col" className="py-2 pr-3">Inst. abertas</th>
+                <th scope="col" className="py-2 pr-3">Pico msgs/5m</th>
+                <th scope="col" className="py-2 pr-3">Lag médio</th>
+                <th scope="col" className="py-2 pr-3">Lag máx</th>
+                <th scope="col" className="py-2">OK?</th>
               </tr>
             </thead>
             <tbody>

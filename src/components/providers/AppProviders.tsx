@@ -1,15 +1,14 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { AuthProvider } from "@/features/auth";
-import { ThemeSync } from "@/hooks/useTheme";
-import { HighContrastProvider } from "@/components/theme/HighContrastToggle";
-import { AccessibleToastProvider } from "@/components/ui/accessible-toast";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { ErrorBoundary } from "@/components/errors/ErrorBoundary";
-import { ValidationProvider } from "@/components/providers/ValidationProvider";
-import { useState, useRef, useEffect, useMemo } from "react";
-import { getLogger } from "@/lib/logger";
-import { isChunkLoadError, triggerChunkReload } from "@/lib/lazyWithRetry";
-
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { AuthProvider } from '@/features/auth';
+import { ThemeSync } from '@/hooks/useTheme';
+import { HighContrastProvider } from '@/components/theme/HighContrastToggle';
+import { AccessibleToastProvider } from '@/components/ui/accessible-toast';
+import { TooltipProvider } from '@/components/ui/tooltip';
+import { ErrorBoundary } from '@/components/errors/ErrorBoundary';
+import { ValidationProvider } from '@/components/providers/ValidationProvider';
+import { useState, useRef, useEffect, useMemo } from 'react';
+import { getLogger } from '@/lib/logger';
+import { isChunkLoadError, triggerChunkReload } from '@/lib/lazyWithRetry';
 
 const log = getLogger('AppProviders');
 
@@ -20,31 +19,28 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
   const MAX_RETRIES = 3;
 
   // Memoize QueryClient to prevent recreation on re-renders
-  const queryClient = useMemo(() => new QueryClient({
-    defaultOptions: {
-      queries: {
-        staleTime: 1000 * 60 * 5, // 5 minutes
-        gcTime: 1000 * 60 * 60, // 1 hour (formerly cacheTime)
-        retry: (failureCount, error: any) => {
-          // Don't retry for 401/403 errors (authentication/authorization)
-          if (error?.status === 401 || error?.status === 403 || error?.code === 'PGRST301') return false;
-          return failureCount < 2;
+  const queryClient = useMemo(
+    () =>
+      new QueryClient({
+        defaultOptions: {
+          queries: {
+            staleTime: 1000 * 60 * 5, // 5 minutes
+            gcTime: 1000 * 60 * 60, // 1 hour (formerly cacheTime)
+            retry: (failureCount, error) => {
+              const e = error as { status?: number; code?: string }; // ignore-audit: React Query types error as unknown; narrowing via cast is the intended pattern
+              // Don't retry for 401/403 errors (authentication/authorization)
+              if (e?.status === 401 || e?.status === 403 || e?.code === 'PGRST301') return false;
+              return failureCount < 2;
+            },
+          },
         },
-        retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 10000),
-        refetchOnWindowFocus: false,
-        refetchOnReconnect: 'always',
-        // Critical: Deduplicate requests and use cache effectively
-        placeholderData: (previousData) => previousData,
-      },
-      mutations: {
-        retry: 1,
-      },
-    },
-  }), []);
+      }),
+    []
+  );
 
   useEffect(() => {
     log.info('AppProviders mounted');
-    setErrorKey(prev => prev + 1);
+    setErrorKey((prev) => prev + 1);
     retryCountRef.current = 0;
   }, []);
 
@@ -74,7 +70,10 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
           retryCountRef.current += 1;
           log.warn(`Auto-retry ${retryCountRef.current}/${MAX_RETRIES}`);
           clearTimeout(retryTimerRef.current);
-          retryTimerRef.current = setTimeout(() => setErrorKey(prev => prev + 1), 2000 * retryCountRef.current);
+          retryTimerRef.current = setTimeout(
+            () => setErrorKey((prev) => prev + 1),
+            2000 * retryCountRef.current
+          );
         } else {
           log.error('Max retries reached. Manual intervention required.');
         }
@@ -94,7 +93,6 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
           </AuthProvider>
         </ValidationProvider>
       </QueryClientProvider>
-
     </ErrorBoundary>
   );
 }

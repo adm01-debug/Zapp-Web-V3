@@ -14,13 +14,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { dbFrom } from '@/integrations/datasource/db';
-import {
-  MoreVertical,
-  Pencil,
-  Trash2,
-  CheckCheck,
-  EyeOff,
-} from 'lucide-react';
+import { MoreVertical, Pencil, Trash2, CheckCheck, EyeOff } from 'lucide-react';
 
 interface MessageContextActionsProps {
   message: Message;
@@ -39,12 +33,12 @@ export function MessageContextActions({
 }: MessageContextActionsProps) {
   const {
     deleteMessage,
-    updateMessage,
+    updateMessage: _updateMessage,
     markMessageAsRead,
     markMessageAsUnread,
     archiveChat,
     updateBlockStatus,
-    isLoading,
+    isLoading: _isLoading,
   } = useEvolutionApi();
 
   const isSent = message.sender === 'agent';
@@ -62,7 +56,9 @@ export function MessageContextActions({
         }
       }
       // Always mark as deleted in local DB
-      await dbFrom('messages').update({ is_deleted: true, content: '[Mensagem apagada]' }).eq('id', message.id);
+      await dbFrom('messages')
+        .update({ is_deleted: true, content: '[Mensagem apagada]' })
+        .eq('id', message.id);
       toast.success(externalId ? 'Mensagem deletada para todos' : 'Mensagem removida');
       onMessageDeleted?.(message.id);
     } catch {
@@ -98,7 +94,7 @@ export function MessageContextActions({
     }
   }, [instanceName, externalId, contactJid, isSent, markMessageAsUnread]);
 
-  const handleArchive = useCallback(async () => {
+  const _handleArchive = useCallback(async () => {
     try {
       await archiveChat(instanceName, {}, contactJid, true);
       toast.success('Chat arquivado');
@@ -107,7 +103,7 @@ export function MessageContextActions({
     }
   }, [instanceName, contactJid, archiveChat]);
 
-  const handleBlock = useCallback(async () => {
+  const _handleBlock = useCallback(async () => {
     try {
       await updateBlockStatus(instanceName, contactJid, 'block');
     } catch {
@@ -115,7 +111,7 @@ export function MessageContextActions({
     }
   }, [instanceName, contactJid, updateBlockStatus]);
 
-  const handleUnblock = useCallback(async () => {
+  const _handleUnblock = useCallback(async () => {
     try {
       await updateBlockStatus(instanceName, contactJid, 'unblock');
     } catch {
@@ -129,33 +125,40 @@ export function MessageContextActions({
         <Button
           variant="ghost"
           size="icon"
-          className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+          className="h-6 w-6 opacity-0 transition-opacity group-hover:opacity-100"
+          aria-label="Mais ações da mensagem"
         >
-          <MoreVertical className="w-3.5 h-3.5" />
+          <MoreVertical className="h-3.5 w-3.5" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align={isSent ? 'end' : 'start'} className="w-48">
-        {isSent && message.type === 'text' && onEditStart && (() => {
-          const ts = message.timestamp instanceof Date ? message.timestamp : new Date(message.created_at || String(message.timestamp));
-          const minutesAgo = (Date.now() - ts.getTime()) / 60000;
-          return minutesAgo <= 15;
-        })() && (
-          <DropdownMenuItem onClick={() => onEditStart(message)}>
-            <Pencil className="w-4 h-4 mr-2" />
-            Editar mensagem
-          </DropdownMenuItem>
-        )}
+        {isSent &&
+          message.type === 'text' &&
+          onEditStart &&
+          (() => {
+            const ts =
+              message.timestamp instanceof Date
+                ? message.timestamp
+                : new Date(message.created_at || String(message.timestamp));
+            const minutesAgo = (Date.now() - ts.getTime()) / 60000;
+            return minutesAgo <= 15;
+          })() && (
+            <DropdownMenuItem onClick={() => onEditStart(message)}>
+              <Pencil className="mr-2 h-4 w-4" />
+              Editar mensagem
+            </DropdownMenuItem>
+          )}
         <DropdownMenuItem onClick={handleDelete} className="text-destructive">
-          <Trash2 className="w-4 h-4 mr-2" />
+          <Trash2 className="mr-2 h-4 w-4" />
           {isSent && externalId ? 'Apagar para todos' : 'Apagar mensagem'}
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleMarkRead}>
-          <CheckCheck className="w-4 h-4 mr-2" />
+          <CheckCheck className="mr-2 h-4 w-4" />
           Marcar como lida
         </DropdownMenuItem>
         <DropdownMenuItem onClick={handleMarkUnread}>
-          <EyeOff className="w-4 h-4 mr-2" />
+          <EyeOff className="mr-2 h-4 w-4" />
           Marcar como não lida
         </DropdownMenuItem>
       </DropdownMenuContent>

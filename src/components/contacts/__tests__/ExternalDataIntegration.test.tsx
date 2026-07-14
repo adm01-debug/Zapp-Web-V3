@@ -7,16 +7,20 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 // useExternalEmpresas / useExternalCargos call:
 //   - getExternalSupabase().from('salespeople')  → externalClient mock
 //   - dbRpc(RPC.searchContactsAdvanced, ...)     → datasource/db mock (routes to 'lovable' client)
-const mockDbRpc = vi.fn();  // intercepts dbRpc calls (search_contacts_advanced etc.)
-const mockFrom = vi.fn();   // tracks getExternalSupabase().from() calls
+const mockDbRpc = vi.hoisted(() => vi.fn()); // intercepts dbRpc calls (search_contacts_advanced etc.)
+const mockFrom = vi.hoisted(() => vi.fn()); // tracks getExternalSupabase().from() calls
 
 vi.mock('@/integrations/datasource/db', () => ({
-  dbRpc: (...a: unknown[]) => (globalThis as any).__mockDbRpc(...a),
+  dbRpc: (...a: unknown[]) => {
+    const __mockDbRpc = (globalThis as unknown as Record<string, unknown>).__mockDbRpc as
+      ((...args: unknown[]) => unknown) | undefined;
+    return __mockDbRpc?.(...a);
+  },
 }));
 
 vi.mock('@/integrations/supabase/externalClient', () => {
   const _mockFrom = (table: string) => {
-    (globalThis as any).__extMockFrom(table);
+    (globalThis as unknown as Record<string, (t: string) => void>).__extMockFrom(table);
     return {
       select: vi.fn(() => ({
         not: vi.fn(() => ({
@@ -49,8 +53,8 @@ vi.mock('@/integrations/supabase/externalClient', () => {
 });
 
 // Bridge mock fns to globalThis so hoisted factories can access them at call time
-(globalThis as any).__mockDbRpc = mockDbRpc;
-(globalThis as any).__extMockFrom = mockFrom;
+(globalThis as Record<string, unknown>).__mockDbRpc = mockDbRpc;
+(globalThis as Record<string, unknown>).__extMockFrom = mockFrom;
 
 vi.mock('@/lib/logger');
 
@@ -77,16 +81,18 @@ describe('useExternalEmpresas', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     // Default: single page with diverse company names
-    mockDbRpc.mockReturnValue(rpcOk({
-      results: [
-        { company_name: 'Acme Corp' },
-        { company_name: 'TechBR' },
-        { company_name: '  SpaceLabs  ' },
-        { company_name: 'Acme Corp' }, // duplicate
-        { company_name: '' }, // empty
-        { company_name: null }, // null
-      ],
-    }));
+    mockDbRpc.mockReturnValue(
+      rpcOk({
+        results: [
+          { company_name: 'Acme Corp' },
+          { company_name: 'TechBR' },
+          { company_name: '  SpaceLabs  ' },
+          { company_name: 'Acme Corp' }, // duplicate
+          { company_name: '' }, // empty
+          { company_name: null }, // null
+        ],
+      })
+    );
   });
 
   it('fetches unique trimmed empresa names via RPC', async () => {
@@ -97,9 +103,9 @@ describe('useExternalEmpresas', () => {
     expect(data).toContain('TechBR');
     expect(data).toContain('SpaceLabs');
     // No duplicates
-    expect(data.filter(e => e === 'Acme Corp')).toHaveLength(1);
+    expect(data.filter((e) => e === 'Acme Corp')).toHaveLength(1);
     // No empty strings
-    expect(data.filter(e => e === '')).toHaveLength(0);
+    expect(data.filter((e) => e === '')).toHaveLength(0);
   });
 
   it('calls dbRpc with search_contacts_advanced def and p_page=0', async () => {
@@ -108,19 +114,23 @@ describe('useExternalEmpresas', () => {
     // dbRpc is called with (RpcDefinition, params) — first arg is the def object
     expect(mockDbRpc).toHaveBeenCalledWith(
       expect.objectContaining({ name: 'search_contacts_advanced' }),
-      expect.objectContaining({ p_page: 0, p_page_size: 200 }),
+      expect.objectContaining({ p_page: 0, p_page_size: 200 })
     );
   });
 
   it('paginates until fewer results than page size', async () => {
     // First call returns full page, second returns partial
     mockDbRpc
-      .mockReturnValueOnce(rpcOk({
-        results: Array.from({ length: 200 }, (_, i) => ({ company_name: `Company ${i}` })),
-      }))
-      .mockReturnValueOnce(rpcOk({
-        results: [{ company_name: 'Last Company' }],
-      }));
+      .mockReturnValueOnce(
+        rpcOk({
+          results: Array.from({ length: 200 }, (_, i) => ({ company_name: `Company ${i}` })),
+        })
+      )
+      .mockReturnValueOnce(
+        rpcOk({
+          results: [{ company_name: 'Last Company' }],
+        })
+      );
 
     const { result } = renderHook(() => useExternalEmpresas(), { wrapper: createWrapper() });
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
@@ -150,14 +160,16 @@ describe('useExternalCargos', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     // Default: RPC returns cargo field entries
-    mockDbRpc.mockReturnValue(rpcOk({
-      results: [
-        { cargo: 'Diretor' },
-        { cargo: 'Analista' },
-        { cargo: 'Gerente' }, // duplicate with salespeople
-        { cargo: '' },
-      ],
-    }));
+    mockDbRpc.mockReturnValue(
+      rpcOk({
+        results: [
+          { cargo: 'Diretor' },
+          { cargo: 'Analista' },
+          { cargo: 'Gerente' }, // duplicate with salespeople
+          { cargo: '' },
+        ],
+      })
+    );
   });
 
   it('merges salespeople.role + RPC cargos, deduplicates', async () => {
@@ -172,9 +184,9 @@ describe('useExternalCargos', () => {
     expect(data).toContain('Diretor');
     expect(data).toContain('Analista');
     // Deduplicated "Gerente" (both sources)
-    expect(data.filter(c => c === 'Gerente')).toHaveLength(1);
+    expect(data.filter((c) => c === 'Gerente')).toHaveLength(1);
     // No empty strings
-    expect(data.filter(c => c === '')).toHaveLength(0);
+    expect(data.filter((c) => c === '')).toHaveLength(0);
   });
 
   it('queries salespeople table directly for roles', async () => {
@@ -188,7 +200,7 @@ describe('useExternalCargos', () => {
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(mockDbRpc).toHaveBeenCalledWith(
       expect.objectContaining({ name: 'search_contacts_advanced' }),
-      expect.objectContaining({ p_page: 0 }),
+      expect.objectContaining({ p_page: 0 })
     );
   });
 
@@ -222,7 +234,7 @@ describe('ContactForm — Empresa autocomplete logic', () => {
 
   function filterEmpresas(list: string[], query: string) {
     if (query.length < 1) return [];
-    return list.filter(e => e.toLowerCase().includes(query.toLowerCase())).slice(0, 8);
+    return list.filter((e) => e.toLowerCase().includes(query.toLowerCase())).slice(0, 8);
   }
 
   it('returns empty for empty query', () => {
@@ -280,8 +292,10 @@ describe('ContactForm — Validation', () => {
     if (cleaned.length <= 2) return cleaned;
     if (cleaned.startsWith('55')) {
       if (cleaned.length <= 4) return `+${cleaned.slice(0, 2)} (${cleaned.slice(2)}`;
-      if (cleaned.length <= 6) return `+${cleaned.slice(0, 2)} (${cleaned.slice(2, 4)}) ${cleaned.slice(4)}`;
-      if (cleaned.length <= 11) return `+${cleaned.slice(0, 2)} (${cleaned.slice(2, 4)}) ${cleaned.slice(4, 9)}-${cleaned.slice(9)}`;
+      if (cleaned.length <= 6)
+        return `+${cleaned.slice(0, 2)} (${cleaned.slice(2, 4)}) ${cleaned.slice(4)}`;
+      if (cleaned.length <= 11)
+        return `+${cleaned.slice(0, 2)} (${cleaned.slice(2, 4)}) ${cleaned.slice(4, 9)}-${cleaned.slice(9)}`;
       return `+${cleaned.slice(0, 2)} (${cleaned.slice(2, 4)}) ${cleaned.slice(4, 9)}-${cleaned.slice(9, 13)}`;
     }
     return value;

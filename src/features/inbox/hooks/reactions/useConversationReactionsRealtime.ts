@@ -15,7 +15,7 @@ const log = getLogger('useConversationReactionsRealtime');
  */
 export function useConversationReactionsRealtime(
   conversationId: string | undefined,
-  messageIds: string[],
+  messageIds: string[]
 ) {
   const queryClient = useQueryClient();
   const idsRef = useRef<Set<string>>(new Set(messageIds));
@@ -39,13 +39,15 @@ export function useConversationReactionsRealtime(
           if (!messageId) return;
           if (!idsRef.current.has(messageId)) return;
           queryClient.invalidateQueries({ queryKey: ['message-reactions', messageId] });
-        },
+        }
       )
       .subscribe((status) => {
-        if (status === 'CHANNEL_ERROR') log.error('Falha ao assinar canal de reações', { conversationId });
+        if (status === 'CHANNEL_ERROR')
+          log.error('Falha ao assinar canal de reações', { conversationId });
       });
 
     return () => {
+      void channel.unsubscribe();
       void supabase.removeChannel(channel);
     };
   }, [conversationId, queryClient]);

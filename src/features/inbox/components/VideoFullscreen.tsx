@@ -32,7 +32,7 @@ export function VideoFullscreen({ url, onClose }: VideoFullscreenProps) {
     >
       <div className="absolute top-4 right-4 flex items-center gap-2 z-10">
         <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-          <Button variant="secondary" size="icon" onClick={(e) => { e.stopPropagation(); setIsMuted(!isMuted); }}>
+          <Button aria-label={isMuted ? 'Ativar som' : 'Silenciar'} variant="secondary" size="icon" onClick={(e) => { e.stopPropagation(); setIsMuted(!isMuted); }}>
             {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
           </Button>
         </motion.div>
@@ -47,6 +47,7 @@ export function VideoFullscreen({ url, onClose }: VideoFullscreenProps) {
         </motion.div>
         <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
           <Button
+            aria-label="Download bloqueado"
             variant="secondary" size="icon" disabled className="opacity-50 cursor-not-allowed"
             onClick={(e) => { e.stopPropagation(); import('sonner').then(({ toast }) => toast.error('🔒 Download bloqueado por política de segurança')); }}
           >
@@ -54,7 +55,7 @@ export function VideoFullscreen({ url, onClose }: VideoFullscreenProps) {
           </Button>
         </motion.div>
         <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-          <Button variant="secondary" size="icon" onClick={onClose}>
+          <Button aria-label="Fechar vídeo" variant="secondary" size="icon" onClick={onClose}>
             <X className="w-4 h-4" />
           </Button>
         </motion.div>
@@ -67,6 +68,7 @@ export function VideoFullscreen({ url, onClose }: VideoFullscreenProps) {
         onLoadedMetadata={() => { if (videoRef.current) videoRef.current.playbackRate = playbackRate; }}
         className="max-w-[90vw] max-h-[85vh] rounded-lg shadow-2xl"
       />
+      <p className="sr-only">Legendas não disponíveis para conteúdo de vídeo gerado pelos usuários.</p>
     </motion.div>
   );
 }

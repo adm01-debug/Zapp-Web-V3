@@ -1,18 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
 
-const mockFrom = vi.fn();
-const mockChannel = vi.fn().mockReturnValue({
-  on: vi.fn().mockReturnThis(),
-  subscribe: vi.fn().mockReturnValue({ unsubscribe: vi.fn() }),
-});
-const mockRemoveChannel = vi.fn();
+const mockFrom = vi.hoisted(() => vi.fn());
+const mockChannel = vi.hoisted(() => vi.fn());
+const mockRemoveChannel = vi.hoisted(() => vi.fn());
 
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
-    from: (...args: any[]) => mockFrom(...args),
-    channel: (...args: any[]) => mockChannel(...args),
-    removeChannel: (...args: any[]) => mockRemoveChannel(...args),
+    from: (...args: unknown[]) => mockFrom(...args),
+    channel: (...args: unknown[]) => mockChannel(...args),
+    removeChannel: (...args: unknown[]) => mockRemoveChannel(...args),
   },
 }));
 
@@ -25,8 +22,24 @@ vi.mock('@/lib/logger');
 import { useQueueGoals } from '@/hooks/useQueueGoals';
 
 const mockGoals = [
-  { id: 'g1', queue_id: 'q1', max_waiting_contacts: 10, max_avg_wait_minutes: 5, min_assignment_rate: 80, max_messages_pending: 50, alerts_enabled: true },
-  { id: 'g2', queue_id: 'q2', max_waiting_contacts: 20, max_avg_wait_minutes: 10, min_assignment_rate: 70, max_messages_pending: 100, alerts_enabled: false },
+  {
+    id: 'g1',
+    queue_id: 'q1',
+    max_waiting_contacts: 10,
+    max_avg_wait_minutes: 5,
+    min_assignment_rate: 80,
+    max_messages_pending: 50,
+    alerts_enabled: true,
+  },
+  {
+    id: 'g2',
+    queue_id: 'q2',
+    max_waiting_contacts: 20,
+    max_avg_wait_minutes: 10,
+    min_assignment_rate: 70,
+    max_messages_pending: 100,
+    alerts_enabled: false,
+  },
 ];
 
 describe('useQueueGoals', () => {
@@ -35,6 +48,10 @@ describe('useQueueGoals', () => {
     mockFrom.mockReturnValue({
       select: vi.fn().mockResolvedValue({ data: mockGoals, error: null }),
       upsert: vi.fn().mockResolvedValue({ error: null }),
+    });
+    mockChannel.mockReturnValue({
+      on: vi.fn().mockReturnThis(),
+      subscribe: vi.fn().mockReturnValue({ unsubscribe: vi.fn() }),
     });
   });
 

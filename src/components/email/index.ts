@@ -1,32 +1,30 @@
 /**
- * Módulo Email Chat — Barrel exports v3 (FINAL)
+ * Email components barrel export.
  *
- * Cobertura completa:
- * - Email (Google OAuth2) — useEmail, useEmailOAuthFlow
- * - Outlook (Microsoft Graph API) — useOutlookEmail
- * - IMAP/SMTP genérico — email-imap-bridge Edge Function
- * - Interface unificada — EmailChatInboxUnified, useEmailAccounts
+ * Usage:
+ *   import { EmailChatThread, EmailThreadList } from '@/components/email';
+ *
+ * Architecture note:
+ *   - EmailChatBubble (v1) renders via the main DOMPurify sanitizer (sanitize.ts).
+ *   - EmailChatBubble-v2 uses the DOM-native sanitizer (sanitize-v2.ts) to avoid
+ *     mutable DOMPurify hook collisions in recursive render trees.
+ *
+ *   See docs/sanitize-architecture.md before switching between the two.
  */
 
-// ── Email Components ──────────────────────────────────────────────────────
-export { EmailChatInbox }         from './EmailChatInbox';
-export { EmailChatThread }        from './EmailChatThread';
-export { EmailChatBubble }        from './EmailChatBubble';
-export { EmailChatReplyBar }      from './EmailChatReplyBar';
-export { EmailThreadList }        from './EmailThreadList';
-export { EmailContactPanel }      from './EmailContactPanel';
-export { EmailSearchBar }         from './EmailSearchBar';
-export { EmailSLABadge }          from './EmailSLABadge';
-export { SLADot, SLAProgressBar } from './EmailSLABadge';
-export { EmailSignatureEditor }   from './EmailSignatureEditor';
-export { EmailAttachmentPreview } from './EmailAttachmentPreview';
-export { EmailSLADashboard }      from './EmailSLADashboard';
+export { default as EmailAttachmentPreview } from './EmailAttachmentPreview';
+export { default as EmailChatBubble } from './EmailChatBubble';
+export { default as EmailChatInbox } from './EmailChatInbox';
+export { default as EmailChatReplyBar } from './EmailChatReplyBar';
+export { default as EmailChatThread } from './EmailChatThread';
+export { default as EmailSLABadge } from './EmailSLABadge';
+export { default as EmailSearchBar } from './EmailSearchBar';
+export { default as EmailThreadList } from './EmailThreadList';
 
-// ── Outlook Components ────────────────────────────────────────────────────
-export { OutlookInboxView }       from './OutlookInboxView';
-
-// ── Unified (Email + Outlook) ─────────────────────────────────────────────
-export { EmailChatInboxUnified }  from './EmailChatInboxUnified';
-
-// ── Settings ──────────────────────────────────────────────────────────────
-export { EmailSettingsPage }      from './EmailSettingsPage';
+// v2 variant — uses DOM-native sanitization instead of DOMPurify.
+// Re-exported with a descriptive alias to make the intent explicit at call sites.
+export {
+  EmailChatBubble as EmailChatBubbleDOMSafe,
+  EmailChatBubbleV2,
+} from './EmailChatBubble-v2';
+export type { EmailChatBubbleProps } from './EmailChatBubble-v2';

@@ -21,7 +21,7 @@ export const ZAPPWEB_INSTANCE = (import.meta.env.VITE_ZAPPWEB_INSTANCE ||
   'wpp2') as string;
 
 /** Client autenticado compartilhado (sessão do usuário logado). */
-export const zappSupabase: SupabaseClient = supabase as unknown as SupabaseClient;
+export const zappSupabase: SupabaseClient = supabase as unknown as SupabaseClient; // ignore-audit — SupabaseClient<Database> ≠ SupabaseClient<unknown> structurally; same runtime object
 
 export const ZAPPWEB_CONFIG = {
   url: import.meta.env.VITE_SUPABASE_URL as string,

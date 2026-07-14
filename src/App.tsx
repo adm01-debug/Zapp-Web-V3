@@ -1,51 +1,70 @@
-import { lazy, Suspense, useEffect, useState, forwardRef } from "react";
-import { BrowserRouter } from "react-router-dom";
-import { getLogger } from "@/lib/logger";
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { GlobalKeyboardProvider } from "@/components/keyboard/GlobalKeyboardProvider";
-import { SkipLinks } from "@/components/ui/skip-link";
-import { LiveRegion } from "@/components/ui/visually-hidden";
-import { ThemeInitializer } from "@/components/ThemeInitializer";
-import { ThemeDebugger } from "@/components/debug/ThemeDebugger";
-import { AppProviders } from "@/components/providers/AppProviders";
-import { AppRoutes } from "@/components/routing/AppRoutes";
-import { ServiceWorkerUpdateBanner } from "@/components/system/ServiceWorkerUpdateBanner";
-import { BuildValidationOverlay } from "@/components/debug/BuildValidationOverlay";
-import { HardResetButton } from "@/components/debug/HardResetButton";
-import { useThemeAudit } from "@/hooks/useThemeAudit";
-import { TransitionProvider } from "@/components/transitions";
-
+import { lazy, Suspense, useEffect, useState } from 'react';
+import { BrowserRouter } from 'react-router-dom';
+import { getLogger } from '@/lib/logger';
+import { Toaster } from '@/components/ui/toaster';
+import { Toaster as Sonner } from '@/components/ui/sonner';
+import { GlobalKeyboardProvider } from '@/components/keyboard/GlobalKeyboardProvider';
+import { SkipLinks } from '@/components/ui/skip-link';
+import { LiveRegion } from '@/components/ui/visually-hidden';
+import { ThemeInitializer } from '@/components/ThemeInitializer';
+import { ThemeDebugger } from '@/components/debug/ThemeDebugger';
+import { AppProviders } from '@/components/providers/AppProviders';
+import { AppRoutes } from '@/components/routing/AppRoutes';
+import { ServiceWorkerUpdateBanner } from '@/components/system/ServiceWorkerUpdateBanner';
+import { BuildValidationOverlay } from '@/components/debug/BuildValidationOverlay';
+import { HardResetButton } from '@/components/debug/HardResetButton';
+import { useThemeAudit } from '@/hooks/useThemeAudit';
+import { TransitionProvider } from '@/components/transitions';
 
 const log = getLogger('App');
 
 // Deferred non-critical providers loaded after first paint
-const RealtimeSentimentAlertProvider = lazy(() => import("@/components/notifications/RealtimeSentimentAlertProvider").then(m => ({ default: m.RealtimeSentimentAlertProvider })));
-const IncomingCallAlert = lazy(() => import("@/components/calls/IncomingCallAlert").then(m => ({ default: m.IncomingCallAlert })));
-const EasterEggsProvider = lazy(() => import("@/components/effects/EasterEggs").then(m => ({ default: m.EasterEggsProvider })));
-const InAppNotificationProvider = lazy(() => import("@/components/mobile/InAppNotificationProvider").then(m => ({ default: m.InAppNotificationProvider })));
+const RealtimeSentimentAlertProvider = lazy(() =>
+  import('@/components/notifications/RealtimeSentimentAlertProvider').then((m) => ({
+    default: m.RealtimeSentimentAlertProvider,
+  }))
+);
+const IncomingCallAlert = lazy(() =>
+  import('@/components/calls/IncomingCallAlert').then((m) => ({ default: m.IncomingCallAlert }))
+);
+const EasterEggsProvider = lazy(() =>
+  import('@/components/effects/EasterEggs').then((m) => ({ default: m.EasterEggsProvider }))
+);
+const InAppNotificationProvider = lazy(() =>
+  import('@/components/mobile/InAppNotificationProvider').then((m) => ({
+    default: m.InAppNotificationProvider,
+  }))
+);
 
-function DeferredProviders({ children }: { children?: React.ReactNode }) {
+/**
+ * Side-effect-only providers loaded after first paint.
+ * These components provide context via React context, not via children prop.
+ * No children are passed — EasterEggsProvider renders its own content.
+ */
+function DeferredProviders() {
   return (
     <Suspense fallback={null}>
       <RealtimeSentimentAlertProvider />
       <IncomingCallAlert />
       <InAppNotificationProvider>
-        <EasterEggsProvider>{children ?? null}</EasterEggsProvider>
+        <EasterEggsProvider />
       </InAppNotificationProvider>
     </Suspense>
   );
 }
 
-/** Deferred hooks component — lazy-loaded so hooks don't run until after first paint */
+/**
+ * Deferred hooks component — lazy-loaded so hooks don't run until after first paint.
+ * Plain function (no forwardRef): renders nothing, exists only to call hooks.
+ */
 const DeferredHooks = lazy(() =>
-  import('@/hooks/useServiceWorker').then(swMod =>
-    import('@/features/auth').then(spMod => ({
-      default: forwardRef(function DeferredHooksInner(_props: Record<string, never>, _ref: React.ForwardedRef<unknown>) {
+  import('@/hooks/useServiceWorker').then((swMod) =>
+    import('@/features/auth').then((spMod) => ({
+      default: function DeferredHooksInner(): null {
         swMod.useServiceWorker();
         spMod.useScreenProtection();
         return null;
-      })
+      },
     }))
   )
 );
@@ -60,13 +79,16 @@ function AppContent() {
     const id = requestAnimationFrame(() => {
       timerId = setTimeout(() => setDeferredReady(true), 800);
     });
-    return () => { cancelAnimationFrame(id); clearTimeout(timerId); };
+    return () => {
+      cancelAnimationFrame(id);
+      clearTimeout(timerId);
+    };
   }, []);
 
   // Hide the initial boot loader once the App is mounted
   useEffect(() => {
     log.info('AppContent mounted, checking root loader status');
-    
+
     // Immediate check if React has already rendered something inside #root
     const root = document.getElementById('root');
     if (root && root.childElementCount > 0) {
@@ -93,23 +115,8 @@ function AppContent() {
     return () => clearTimeout(timer);
   }, []);
 
-  // Global error handlers are managed in main.tsx or dedicated providers
-  useEffect(() => {
-    const handler = (event: PromiseRejectionEvent) => {
-      const reason = event.reason;
-      if (reason && typeof reason === 'object' && 'name' in reason) {
-        const name = (reason as { name: string }).name;
-        if (name === 'TimeoutError' || name === 'InvalidStateError') {
-          event.preventDefault();
-          return;
-        }
-      }
-    };
-    window.addEventListener("unhandledrejection", handler);
-    return () => {
-      window.removeEventListener("unhandledrejection", handler);
-    };
-  }, []);
+  // Global error handling for TimeoutError and InvalidStateError is now
+  // consolidated in main.tsx to avoid duplicate handler firing order issues.
 
   return (
     <BrowserRouter>
@@ -119,7 +126,11 @@ function AppContent() {
       <LiveRegion />
       <GlobalKeyboardProvider>
         {deferredReady && <DeferredProviders />}
-        {deferredReady && <Suspense fallback={null}><DeferredHooks /></Suspense>}
+        {deferredReady && (
+          <Suspense fallback={null}>
+            <DeferredHooks />
+          </Suspense>
+        )}
         <Toaster />
         <Sonner />
         <ServiceWorkerUpdateBanner />
@@ -129,7 +140,6 @@ function AppContent() {
         <BuildValidationOverlay />
         <HardResetButton />
       </GlobalKeyboardProvider>
-
     </BrowserRouter>
   );
 }

@@ -1,6 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
-import { useMountedRef } from '@/hooks/useMountedRef';
-import { supabase } from "@/integrations/supabase/client";
+import { useState } from "react";
+import { useAdminChannels, type ServiceChannel, type ChannelStatus } from '@/hooks/admin/useAdminChannels';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,14 +17,11 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { useToast } from "@/hooks/use-toast";
 import {
   Plus, Pencil, Pause, Play, PowerOff, Eraser, MessageSquare,
   Instagram, Send, Mail, Globe, Search, Facebook,
 } from "lucide-react";
 import { EvolutionFallbackStatusCard } from "@/features/admin";
-import { getLogger } from "@/lib/logger";
-const log = getLogger("AdminChannelsPage");
 
 const CHANNEL_TYPES = [
   { value: "whatsapp", label: "WhatsApp", icon: MessageSquare },
@@ -43,30 +39,6 @@ const ROUTING_MODES = [
   { value: "round_robin", label: "Round-robin" },
 ] as const;
 
-type ChannelStatus = "active" | "paused" | "disabled";
-
-interface ServiceChannel {
-  id: string;
-  name: string;
-  display_name: string | null;
-  channel_type: string;
-  whatsapp_connection_id: string | null;
-  default_queue_id: string | null;
-  routing_mode: string;
-  sticky_enabled: boolean;
-  sticky_ttl_hours: number;
-  status: ChannelStatus;
-  is_default: boolean;
-  description: string | null;
-  color: string;
-  paused_at: string | null;
-  paused_reason: string | null;
-  disabled_at: string | null;
-  disabled_reason: string | null;
-}
-
-interface QueueOption { id: string; name: string; color: string }
-interface WppConnOption { id: string; name: string; phone_number: string }
 
 const STATUS_BADGE: Record<ChannelStatus, { label: string; variant: "default" | "secondary" | "destructive" }> = {
   active: { label: "Ativo", variant: "default" },
@@ -87,11 +59,6 @@ function emptyChannel(): Partial<ServiceChannel> {
 }
 
 export default function AdminChannelsPage() {
-  const { toast } = useToast();
-  const [channels, setChannels] = useState<ServiceChannel[]>([]);
-  const [queues, setQueues] = useState<QueueOption[]>([]);
-  const [wppConns, setWppConns] = useState<WppConnOption[]>([]);
-  const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<Partial<ServiceChannel> | null>(null);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -101,120 +68,7 @@ export default function AdminChannelsPage() {
   >(null);
   const [actionReason, setActionReason] = useState("");
 
-  const mountedRef = useMountedRef();
-
-  const load = async () => {
-    setLoading(true);
-    try {
-      const [chRes, qRes, wRes] = await Promise.all([
-        (supabase.rpc as never as (n: string, args?: Record<string, unknown>) => Promise<{ data: ServiceChannel[] | null; error: { message: string } | null }>)(
-          "rpc_list_service_channels",
-          {
-            p_status: statusFilter === "all" ? null : statusFilter,
-            p_search: search.trim() || null,
-          },
-        ),
-        supabase.from('queues').select("id,name,color").order("name"),
-        supabase.from('whatsapp_connections').select("id,name,phone_number").order("name"),
-      ]);
-      if (!mountedRef.current) return;
-      if (chRes.error) throw new Error(chRes.error.message);
-      setChannels((chRes.data ?? []) as ServiceChannel[]);
-      setQueues((qRes.data ?? []) as QueueOption[]);
-      setWppConns((wRes.data ?? []) as WppConnOption[]);
-    } catch (e) {
-      log.error("Load service channels failed", e);
-      toast({ title: "Erro ao carregar canais", description: (e as Error).message, variant: "destructive" });
-    } finally {
-      if (mountedRef.current) setLoading(false);
-    }
-  };
-
-  useEffect(() => { load();   }, [statusFilter]);
-
-  const filteredChannels = useMemo(() => {
-    if (!search.trim()) return channels;
-    const q = search.toLowerCase();
-    return channels.filter((c) =>
-      c.name.toLowerCase().includes(q) ||
-      (c.display_name?.toLowerCase().includes(q) ?? false),
-    );
-  }, [channels, search]);
-
-  const save = async () => {
-    if (!editing) return;
-    if (!editing.name?.trim()) {
-      toast({ title: "Nome é obrigatório", variant: "destructive" });
-      return;
-    }
-    try {
-      const { error } = await (supabase.rpc as never as (n: string, args: Record<string, unknown>) => Promise<{ error: { message: string } | null }>)(
-        "rpc_upsert_service_channel",
-        {
-          p_id: editing.id ?? null,
-          p_name: editing.name.trim(),
-          p_display_name: editing.display_name?.trim() || null,
-          p_channel_type: editing.channel_type ?? "whatsapp",
-          p_whatsapp_connection_id: editing.whatsapp_connection_id ?? null,
-          p_default_queue_id: editing.default_queue_id ?? null,
-          p_routing_mode: editing.routing_mode ?? "manual",
-          p_sticky_enabled: !!editing.sticky_enabled,
-          p_sticky_ttl_hours: editing.sticky_ttl_hours ?? 24,
-          p_is_default: !!editing.is_default,
-          p_description: editing.description?.trim() || null,
-          p_color: editing.color ?? "#3B82F6",
-        },
-      );
-      if (error) throw new Error(error.message);
-      toast({ title: editing.id ? "Canal atualizado" : "Canal criado" });
-      setEditing(null);
-      load();
-    } catch (e) {
-      toast({ title: "Erro ao salvar", description: (e as Error).message, variant: "destructive" });
-    }
-  };
-
-  const runAction = async () => {
-    if (!actionDialog) return;
-    const { kind, channel } = actionDialog;
-    try {
-      const rpcName =
-        kind === "pause" ? "rpc_pause_service_channel" :
-        kind === "disable" ? "rpc_disable_service_channel" :
-        "rpc_purge_channel_sticky";
-      const args: Record<string, unknown> =
-        kind === "purge"
-          ? { p_id: channel.id }
-          : { p_id: channel.id, p_reason: actionReason.trim() || null };
-      const { error } = await (supabase.rpc as never as (n: string, a: Record<string, unknown>) => Promise<{ error: { message: string } | null }>)(rpcName, args);
-      if (error) throw new Error(error.message);
-      toast({
-        title:
-          kind === "pause" ? "Canal pausado" :
-          kind === "disable" ? "Canal desativado" :
-          "Sticky removido",
-      });
-      setActionDialog(null);
-      setActionReason("");
-      load();
-    } catch (e) {
-      toast({ title: "Erro", description: (e as Error).message, variant: "destructive" });
-    }
-  };
-
-  const reactivate = async (channel: ServiceChannel) => {
-    try {
-      const { error } = await (supabase.rpc as never as (n: string, a: Record<string, unknown>) => Promise<{ error: { message: string } | null }>)(
-        "rpc_reactivate_service_channel",
-        { p_id: channel.id },
-      );
-      if (error) throw new Error(error.message);
-      toast({ title: "Canal reativado" });
-      load();
-    } catch (e) {
-      toast({ title: "Erro", description: (e as Error).message, variant: "destructive" });
-    }
-  };
+  const { filteredChannels, queues, wppConns, loading, load, save, runAction, reactivate } = useAdminChannels(statusFilter, search);
 
   const channelIcon = (type: string) => {
     const found = CHANNEL_TYPES.find((t) => t.value === type);
@@ -242,10 +96,11 @@ export default function AdminChannelsPage() {
       <Card>
         <CardContent className="pt-6 flex flex-wrap items-end gap-3">
           <div className="flex-1 min-w-[220px]">
-            <Label className="text-xs">Buscar</Label>
+            <Label htmlFor="channel-search" className="text-xs">Buscar</Label>
             <div className="relative">
               <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
+                id="channel-search"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && load()}
@@ -255,9 +110,9 @@ export default function AdminChannelsPage() {
             </div>
           </div>
           <div className="w-[180px]">
-            <Label className="text-xs">Status</Label>
+            <Label htmlFor="channel-status-filter" className="text-xs">Status</Label>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger id="channel-status-filter"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos</SelectItem>
                 <SelectItem value="active">Ativos</SelectItem>
@@ -388,17 +243,17 @@ export default function AdminChannelsPage() {
           {editing && (
             <div className="space-y-4 py-4">
               <div>
-                <Label>Nome *</Label>
-                <Input value={editing.name ?? ""} onChange={(e) => setEditing({ ...editing, name: e.target.value })} />
+                <Label htmlFor="ch-name">Nome *</Label>
+                <Input id="ch-name" value={editing.name ?? ""} onChange={(e) => setEditing({ ...editing, name: e.target.value })} />
               </div>
               <div>
-                <Label>Nome de exibição</Label>
-                <Input value={editing.display_name ?? ""} onChange={(e) => setEditing({ ...editing, display_name: e.target.value })} />
+                <Label htmlFor="ch-display-name">Nome de exibição</Label>
+                <Input id="ch-display-name" value={editing.display_name ?? ""} onChange={(e) => setEditing({ ...editing, display_name: e.target.value })} />
               </div>
               <div>
-                <Label>Tipo</Label>
+                <Label htmlFor="ch-type">Tipo</Label>
                 <Select value={editing.channel_type ?? "whatsapp"} onValueChange={(v) => setEditing({ ...editing, channel_type: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger id="ch-type"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {CHANNEL_TYPES.map((t) => (
                       <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
@@ -408,12 +263,12 @@ export default function AdminChannelsPage() {
               </div>
               {editing.channel_type === "whatsapp" && (
                 <div>
-                  <Label>Conexão WhatsApp</Label>
+                  <Label htmlFor="ch-wpp-conn">Conexão WhatsApp</Label>
                   <Select
                     value={editing.whatsapp_connection_id ?? "none"}
                     onValueChange={(v) => setEditing({ ...editing, whatsapp_connection_id: v === "none" ? null : v })}
                   >
-                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectTrigger id="ch-wpp-conn"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="none">— nenhuma —</SelectItem>
                       {wppConns.map((w) => (
@@ -424,12 +279,12 @@ export default function AdminChannelsPage() {
                 </div>
               )}
               <div>
-                <Label>Fila padrão</Label>
+                <Label htmlFor="ch-default-queue">Fila padrão</Label>
                 <Select
                   value={editing.default_queue_id ?? "none"}
                   onValueChange={(v) => setEditing({ ...editing, default_queue_id: v === "none" ? null : v })}
                 >
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger id="ch-default-queue"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">Sem fila padrão</SelectItem>
                     {queues.map((q) => (
@@ -442,9 +297,9 @@ export default function AdminChannelsPage() {
                 </p>
               </div>
               <div>
-                <Label>Modo de roteamento</Label>
+                <Label htmlFor="ch-routing-mode">Modo de roteamento</Label>
                 <Select value={editing.routing_mode ?? "manual"} onValueChange={(v) => setEditing({ ...editing, routing_mode: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger id="ch-routing-mode"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {ROUTING_MODES.map((m) => (
                       <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
@@ -456,20 +311,22 @@ export default function AdminChannelsPage() {
               <div className="rounded-md border p-3 space-y-3 bg-muted/30">
                 <div className="flex items-center justify-between">
                   <div>
-                    <Label className="text-sm font-semibold">Sticky agent</Label>
+                    <Label htmlFor="ch-sticky-enabled" className="text-sm font-semibold">Sticky agent</Label>
                     <p className="text-xs text-muted-foreground">
                       Mantém o contato com o último atendente que falou com ele.
                     </p>
                   </div>
                   <Switch
+                    id="ch-sticky-enabled"
                     checked={!!editing.sticky_enabled}
                     onCheckedChange={(v) => setEditing({ ...editing, sticky_enabled: v })}
                   />
                 </div>
                 {editing.sticky_enabled && (
                   <div>
-                    <Label className="text-xs">TTL (horas)</Label>
+                    <Label htmlFor="ch-sticky-ttl" className="text-xs">TTL (horas)</Label>
                     <Input
+                      id="ch-sticky-ttl"
                       type="number"
                       min={1}
                       max={720}
@@ -481,23 +338,23 @@ export default function AdminChannelsPage() {
               </div>
 
               <div>
-                <Label>Cor</Label>
-                <Input type="color" value={editing.color ?? "#3B82F6"} onChange={(e) => setEditing({ ...editing, color: e.target.value })} />
+                <Label htmlFor="ch-color">Cor</Label>
+                <Input id="ch-color" type="color" value={editing.color ?? "#3B82F6"} onChange={(e) => setEditing({ ...editing, color: e.target.value })} />
               </div>
               <div>
-                <Label>Descrição</Label>
-                <Textarea value={editing.description ?? ""} onChange={(e) => setEditing({ ...editing, description: e.target.value })} rows={2} />
+                <Label htmlFor="ch-description">Descrição</Label>
+                <Textarea id="ch-description" value={editing.description ?? ""} onChange={(e) => setEditing({ ...editing, description: e.target.value })} rows={2} />
               </div>
               <div className="flex items-center justify-between">
-                <Label>Padrão para este tipo</Label>
-                <Switch checked={!!editing.is_default} onCheckedChange={(v) => setEditing({ ...editing, is_default: v })} />
+                <Label htmlFor="ch-is-default">Padrão para este tipo</Label>
+                <Switch id="ch-is-default" checked={!!editing.is_default} onCheckedChange={(v) => setEditing({ ...editing, is_default: v })} />
               </div>
             </div>
           )}
 
           <SheetFooter className="gap-2">
             <Button variant="outline" onClick={() => setEditing(null)}>Cancelar</Button>
-            <Button onClick={save}>Salvar</Button>
+            <Button onClick={() => { void (async () => { if (await save(editing)) setEditing(null); })(); }}>Salvar</Button>
           </SheetFooter>
         </SheetContent>
       </Sheet>
@@ -519,13 +376,13 @@ export default function AdminChannelsPage() {
           </AlertDialogHeader>
           {actionDialog?.kind !== "purge" && (
             <div className="py-2">
-              <Label className="text-xs">Motivo (opcional, fica no audit log)</Label>
-              <Textarea value={actionReason} onChange={(e) => setActionReason(e.target.value)} rows={2} placeholder="Ex.: manutenção programada" />
+              <Label htmlFor="action-reason" className="text-xs">Motivo (opcional, fica no audit log)</Label>
+              <Textarea id="action-reason" value={actionReason} onChange={(e) => setActionReason(e.target.value)} rows={2} placeholder="Ex.: manutenção programada" />
             </div>
           )}
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={runAction}>
+            <AlertDialogAction onClick={() => { void (async () => { if (await runAction(actionDialog, actionReason)) { setActionDialog(null); setActionReason(""); } })(); }}>
               {actionDialog?.kind === "purge" ? "Limpar" : "Confirmar"}
             </AlertDialogAction>
           </AlertDialogFooter>

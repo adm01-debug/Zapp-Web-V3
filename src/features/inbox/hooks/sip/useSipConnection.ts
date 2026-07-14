@@ -29,11 +29,32 @@ export function useSipConnection() {
       clearTimeout(reconnectTimerRef.current);
       reconnectTimerRef.current = null;
     }
+    // Tear down the SIP registration and WebSocket transport on unmount, otherwise
+    // the UserAgent keeps a registered session and an open socket alive in the background.
+    reconnectAttemptsRef.current = maxReconnectAttempts; // suppress auto-reconnect during teardown
+    const registerer = registererRef.current;
+    const ua = uaRef.current;
+    if (ua) ua.transport.onDisconnect = () => {};
+    (async () => {
+      try { if (registerer) await registerer.unregister(); } catch { /* ignore */ }
+      try { if (ua) await ua.stop(); } catch { /* ignore */ }
+    })();
+    registererRef.current = null;
+    uaRef.current = null;
   }, []);
 
   const connect = useCallback(async (config: SipConfig) => {
     try {
       setSipStatus('connecting');
+      // Stop any existing UserAgent before creating a new one, so a reconnect
+      // does not leave a second registered session / open socket behind.
+      if (uaRef.current) {
+        uaRef.current.transport.onDisconnect = () => {};
+        try { if (registererRef.current) await registererRef.current.unregister(); } catch { /* ignore */ }
+        try { await uaRef.current.stop(); } catch { /* ignore */ }
+        uaRef.current = null;
+        registererRef.current = null;
+      }
       const wsPort = config.wsPort || 8089;
       const wsServer = `wss://${config.server}:${wsPort}/ws`;
       const uri = UserAgent.makeURI(`sip:${config.user}@${config.server}`);

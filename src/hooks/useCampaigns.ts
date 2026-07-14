@@ -1,14 +1,28 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import type { Database } from '@/integrations/supabase/types';
+import type { Tables, TablesInsert, TablesUpdate } from '@/integrations/supabase/types';
 
-type CampaignRow = Database['public']['Tables']['campaigns']['Row'];
-type CampaignInsert = Database['public']['Tables']['campaigns']['Insert'];
-type CampaignUpdate = Database['public']['Tables']['campaigns']['Update'];
+type CampaignRow = Tables<'campaigns'>;
+type CampaignInsert = TablesInsert<'campaigns'>;
+type CampaignUpdate = TablesUpdate<'campaigns'>;
 
 export type Campaign = CampaignRow & {
   target_filter: Record<string, unknown> | null;
+};
+
+/**
+ * Payload aceito por `createCampaign.mutate`. Mantém `name` e
+ * `message_content` obrigatórios (não `Partial<Campaign>`) para casar com
+ * o formulário do `CampaignCreateDialog` e evitar `undefined` em runtime.
+ */
+export type CampaignInput = {
+  name: string;
+  message_content: string;
+  description?: string;
+  message_type?: string;
+  target_type?: 'all' | 'custom' | 'queue' | 'tag';
+  send_interval_seconds?: number;
 };
 
 export function useCampaigns() {
@@ -22,19 +36,19 @@ export function useCampaigns() {
         .select('*')
         .order('created_at', { ascending: false });
       if (error) throw error;
-      return data as Campaign[];
+      return data as Campaign[]; // ignore-audit: Campaign.target_filter narrows Supabase Json to Record<string,unknown>
     },
   });
 
-  const createCampaign = useMutation({
-    mutationFn: async (campaign: Partial<Campaign>) => {
+  const createCampaign = useMutation<Campaign, Error, CampaignInput>({
+    mutationFn: async (campaign: CampaignInput) => {
       const { data, error } = await supabase
         .from('campaigns')
-        .insert(campaign as unknown as CampaignInsert)
+        .insert(campaign as CampaignInsert)
         .select()
         .single();
       if (error) throw error;
-      return data;
+      return data as Campaign;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['campaigns'] });
@@ -43,11 +57,12 @@ export function useCampaigns() {
     onError: (err: Error) => toast.error(`Erro: ${err.message}`),
   });
 
+
   const updateCampaign = useMutation({
     mutationFn: async ({ id, ...updates }: Partial<Campaign> & { id: string }) => {
       const { data, error } = await supabase
         .from('campaigns')
-        .update(updates as unknown as CampaignUpdate)
+        .update(updates as CampaignUpdate)
         .eq('id', id)
         .select()
         .single();
@@ -63,10 +78,7 @@ export function useCampaigns() {
 
   const deleteCampaign = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from('campaigns')
-        .delete()
-        .eq('id', id);
+      const { error } = await supabase.from('campaigns').delete().eq('id', id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -77,22 +89,18 @@ export function useCampaigns() {
   });
 
   const addContactsToCampaign = useMutation({
-    mutationFn: async ({ campaignId, contactIds }: { campaignId: string; contactIds: string[] }) => {
-      const records = contactIds.map(contactId => ({
-        campaign_id: campaignId,
-        contact_id: contactId,
-        status: 'pending',
-      }));
-      const { error } = await supabase
-        .from('campaign_contacts')
-        .insert(records);
+    mutationFn: async ({
+      campaignId,
+      contactIds,
+    }: {
+      campaignId: string;
+      contactIds: string[];
+    }) => {
+      const { error } = await supabase.rpc('add_contacts_to_campaign', {
+        p_campaign_id: campaignId,
+        p_contact_ids: contactIds,
+      });
       if (error) throw error;
-
-      // Update total
-      await supabase
-        .from('campaigns')
-        .update({ total_contacts: contactIds.length })
-        .eq('id', campaignId);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['campaigns'] });

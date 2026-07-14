@@ -105,7 +105,7 @@ export function WebhookAlertHistoryPanel({ history, onCleared }: Props) {
         <CollapsibleContent>
           <CardContent className="space-y-4">
             <div className="flex flex-wrap items-center gap-2">
-              <Select value={typeFilter} onValueChange={(v) => setTypeFilter(v as TypeFilter)}>
+              <Select value={typeFilter} onValueChange={(v) => setTypeFilter(v as TypeFilter /* ignore-audit: Select/Tabs value string narrowed to union; developer controls option values */)}>
                 <SelectTrigger className="h-8 w-[220px]">
                   <SelectValue placeholder="Tipo" />
                 </SelectTrigger>
@@ -115,7 +115,7 @@ export function WebhookAlertHistoryPanel({ history, onCleared }: Props) {
                   <SelectItem value="webhook_silence">Silêncio do webhook</SelectItem>
                 </SelectContent>
               </Select>
-              <Select value={severityFilter} onValueChange={(v) => setSeverityFilter(v as SeverityFilter)}>
+              <Select value={severityFilter} onValueChange={(v) => setSeverityFilter(v as SeverityFilter /* ignore-audit: Select/Tabs value string narrowed to union; developer controls option values */)}>
                 <SelectTrigger className="h-8 w-[180px]">
                   <SelectValue placeholder="Severidade" />
                 </SelectTrigger>
@@ -150,11 +150,11 @@ export function WebhookAlertHistoryPanel({ history, onCleared }: Props) {
                 <table className="w-full text-xs">
                   <thead className="bg-muted/50">
                     <tr className="text-left">
-                      <th className="px-3 py-2 font-medium">Data/Hora</th>
-                      <th className="px-3 py-2 font-medium">Severidade</th>
-                      <th className="px-3 py-2 font-medium">Instância</th>
-                      <th className="px-3 py-2 font-medium">Tipo</th>
-                      <th className="px-3 py-2 font-medium">Métrica excedida</th>
+                      <th scope="col" className="px-3 py-2 font-medium">Data/Hora</th>
+                      <th scope="col" className="px-3 py-2 font-medium">Severidade</th>
+                      <th scope="col" className="px-3 py-2 font-medium">Instância</th>
+                      <th scope="col" className="px-3 py-2 font-medium">Tipo</th>
+                      <th scope="col" className="px-3 py-2 font-medium">Métrica excedida</th>
                     </tr>
                   </thead>
                   <tbody>

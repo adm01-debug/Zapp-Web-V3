@@ -12,14 +12,17 @@
  *  - nunca lança exceção.
  */
 import { ENTITY_MAP } from './registry';
+import { getLogger } from '@/lib/logger';
+
+const log = getLogger('datasource-sentinel');
 
 export function validateEntityAccess(entity: string, clientName: 'lovable' | 'external'): void {
   if (!import.meta.env.DEV) return;
-  const mapping = Object.values(ENTITY_MAP).find(m => m.table === entity);
+  const mapping = Object.values(ENTITY_MAP).find((m) => m.table === entity);
   if (entity.startsWith('evolution_') && !mapping) {
-    console.debug(
+    log.warn(
       `[Datasource Sentinel] Acesso direto a "${entity}" fora do ENTITY_MAP (client: ${clientName}). ` +
-        'Preferir RPCs do rpcCatalog para o domínio evolution_*.',
+        'Preferir RPCs do rpcCatalog para o domínio evolution_*.'
     );
   }
 }

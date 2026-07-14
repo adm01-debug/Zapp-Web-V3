@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { safeWhatsAppConnectionsQuery } from '@/integrations/supabase/safe-queries';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AlertTriangle, ArrowRight, X } from 'lucide-react';
 
@@ -7,11 +8,9 @@ interface DegradedInstance {
   id: string;
   name: string | null;
   instance_name: string | null;
-  instance_id: string | null;
   health_status: string | null;
   health_response_ms: number | null;
   last_health_check: string | null;
-  degraded_at: string | null;
 }
 
 interface Props {
@@ -31,18 +30,22 @@ export function DegradedConnectionsBanner({ onNavigate, recentWindowMs = 10 * 60
   const mountedRef = useRef(true);
   useEffect(() => {
     mountedRef.current = true;
-    return () => { mountedRef.current = false; };
+    return () => {
+      mountedRef.current = false;
+    };
   }, []);
 
   const fetchDegraded = useCallback(async () => {
     const since = new Date(Date.now() - recentWindowMs).toISOString();
-    const { data, error } = await supabase
-      .from('whatsapp_connections')
-      .select('id, name, instance_id, instance_name, health_status, health_response_ms, last_health_check, degraded_at')
-      .eq('health_status', 'degraded')
-      .gte('last_health_check', since);
+    const safeQueries = safeWhatsAppConnectionsQuery(supabase as never);
+    const { data } = await safeQueries.getDegraded(since);
     if (!mountedRef.current) return;
-    setDegraded(((data as unknown) as DegradedInstance[]) ?? []);
+    // `data` pode vir como SelectQueryError quando alguma coluna do select
+    // não existe no schema atual — nesse caso, tratamos como lista vazia.
+    const rows: DegradedInstance[] = Array.isArray(data)
+      ? (data as unknown as DegradedInstance[])
+      : [];
+    setDegraded(rows);
   }, [recentWindowMs]);
 
   useEffect(() => {
@@ -52,18 +55,21 @@ export function DegradedConnectionsBanner({ onNavigate, recentWindowMs = 10 * 60
       .on(
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'whatsapp_connections' },
-        () => fetchDegraded(),
+        () => fetchDegraded()
       )
       .subscribe();
     const interval = setInterval(fetchDegraded, 60_000);
     return () => {
-      supabase.removeChannel(channel);
+      channel.unsubscribe();
       clearInterval(interval);
     };
   }, [fetchDegraded]);
 
   // Re-show whenever the active set of degraded instances changes
-  const currentSignature = degraded.map((d) => d.id).sort().join(',');
+  const currentSignature = degraded
+    .map((d) => d.id)
+    .sort()
+    .join(',');
   const isDismissed = dismissedIds === currentSignature && currentSignature !== '';
 
   if (degraded.length === 0 || isDismissed) return null;
@@ -72,15 +78,21 @@ export function DegradedConnectionsBanner({ onNavigate, recentWindowMs = 10 * 60
     if (!iso) return null;
     try {
       return new Date(iso).toLocaleString('pt-BR', {
-        day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
+        day: '2-digit',
+        month: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
       });
-    } catch { return null; }
+    } catch {
+      return null;
+    }
   };
 
-  const firstDegradedAt = formatDegradedAt(degraded[0]?.degraded_at ?? null);
-  const label = degraded.length === 1
-    ? `Conexão "${degraded[0].name || degraded[0].instance_name || degraded[0].instance_id || 'sem nome'}" rebaixada${firstDegradedAt ? ` em ${firstDegradedAt}` : ''}`
-    : `${degraded.length} conexões com desempenho degradado`;
+  const firstDegradedAt = formatDegradedAt(degraded[0]?.last_health_check ?? null);
+  const label =
+    degraded.length === 1
+      ? `Conexão "${degraded[0].name || degraded[0].instance_name || 'sem nome'}" rebaixada${firstDegradedAt ? ` em ${firstDegradedAt}` : ''}`
+      : `${degraded.length} conexões com desempenho degradado`;
 
   return (
     <AnimatePresence>
@@ -88,31 +100,31 @@ export function DegradedConnectionsBanner({ onNavigate, recentWindowMs = 10 * 60
         initial={{ opacity: 0, y: -32 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -32 }}
-        className="fixed top-0 left-0 right-0 z-[85] bg-warning text-warning-foreground shadow-md"
+        className="fixed left-0 right-0 top-0 z-[85] bg-warning text-warning-foreground shadow-md"
         role="status"
         aria-live="polite"
       >
-        <div className="flex items-center gap-3 py-2 px-4 max-w-screen-xl mx-auto">
-          <AlertTriangle className="w-4 h-4 shrink-0" />
-          <span className="text-sm font-medium truncate">{label}</span>
-          <span className="text-xs opacity-80 hidden sm:inline">
+        <div className="mx-auto flex max-w-screen-xl items-center gap-3 px-4 py-2">
+          <AlertTriangle className="h-4 w-4 shrink-0" />
+          <span className="truncate text-sm font-medium">{label}</span>
+          <span className="hidden text-xs opacity-80 sm:inline">
             {degraded.length > 1 && firstDegradedAt
               ? `Rebaixamento mais recente em ${firstDegradedAt}.`
               : 'Latência alta ou estado intermitente detectado.'}
           </span>
           <button
             onClick={() => onNavigate('connections')}
-            className="ml-auto inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold bg-warning-foreground/15 hover:bg-warning-foreground/25 transition-colors"
+            className="ml-auto inline-flex items-center gap-1.5 rounded-md bg-warning-foreground/15 px-3 py-1 text-xs font-semibold transition-colors hover:bg-warning-foreground/25"
           >
             Ver conexões
-            <ArrowRight className="w-3 h-3" />
+            <ArrowRight className="h-3 w-3" />
           </button>
           <button
             onClick={() => setDismissedIds(currentSignature)}
-            className="p-1 rounded hover:bg-warning-foreground/20 transition-colors shrink-0"
+            className="shrink-0 rounded p-1 transition-colors hover:bg-warning-foreground/20"
             aria-label="Fechar alerta"
           >
-            <X className="w-4 h-4" />
+            <X className="h-4 w-4" />
           </button>
         </div>
       </motion.div>

@@ -10,7 +10,7 @@ import type { IncomingCall } from '@/types/incomingCall';
 export type { IncomingCall } from '@/types/incomingCall';
 
 export function useIncomingCallListener() {
-  const { user, profile } = useAuth();
+  const { profile } = useAuth();
   const [incomingCall, setIncomingCall] = useState<IncomingCall | null>(null);
   const mountedRef = useMountedRef();
 
@@ -33,7 +33,7 @@ export function useIncomingCallListener() {
         },
         async (payload) => {
           const call = payload.new as Record<string, unknown>;
-          
+
           if (call.direction !== 'inbound' || call.status === 'ended') return;
 
           // Fetch contact info
@@ -76,10 +76,9 @@ export function useIncomingCallListener() {
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      channel.unsubscribe();
     };
   }, [profile?.id]);
-
 
   return { incomingCall, dismissCall };
 }

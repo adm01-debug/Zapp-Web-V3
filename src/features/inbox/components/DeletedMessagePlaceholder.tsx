@@ -47,7 +47,7 @@ export function DeletedMessagePlaceholder({ isSent, content, deletedAt }: Delete
         <div className={cn(
           'inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-semibold mb-2',
           isSent
-            ? 'bg-primary/10 text-primary/60'
+            ? 'bg-primary/10 text-muted-foreground'
             : 'bg-warning/10 text-warning-foreground dark:text-warning-foreground'
         )}>
           {isSent ? (

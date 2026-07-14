@@ -1,12 +1,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1'
 import { LogPayload, QueryLogContext, QueryOutcome, MetricSample } from './types.ts'
 
-export const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-correlation-id',
-  'Access-Control-Expose-Headers': 'x-correlation-id, x-request-id, server-timing',
-}
-
+import { getCorsHeaders, handleCorsPreflight } from '../../_shared/cors.ts';
 export function shortRid(): string {
   try {
     return crypto.randomUUID().slice(0, 8)
@@ -80,8 +75,8 @@ export function classifyUpstreamError(
 let metricsClient: ReturnType<typeof createClient> | null = null
 function getMetricsClient() {
   if (metricsClient) return metricsClient
-  const url = Deno.env.get('SUPABASE_URL')
-  const key = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+  const url = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'))
+  const key = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))
   if (!url || !key) return null
   metricsClient = createClient(url, key, {
     auth: { persistSession: false, autoRefreshToken: false },

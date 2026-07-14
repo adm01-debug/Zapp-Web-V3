@@ -48,7 +48,7 @@ export function SentimentTrendChart({ data: externalData, isLoading, onRefresh, 
             <Smile className="w-5 h-5 text-primary" />Tendência de Sentimento
           </CardTitle>
           <div className="flex items-center gap-2">
-            <Select value={period} onValueChange={(v) => setPeriod(v as '7' | '14' | '30')}>
+            <Select value={period} onValueChange={(v) => setPeriod(v as '7' | '14' | '30' /* ignore-audit: Select/Tabs value string narrowed to union; developer controls option values */)}>
               <SelectTrigger className="w-32"><Calendar className="w-4 h-4 mr-2" /><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="7">7 dias</SelectItem>
@@ -56,8 +56,8 @@ export function SentimentTrendChart({ data: externalData, isLoading, onRefresh, 
                 <SelectItem value="30">30 dias</SelectItem>
               </SelectContent>
             </Select>
-            {onRefresh && <Button variant="ghost" size="icon" onClick={onRefresh}><RefreshCw className={cn('w-4 h-4', isLoading && 'animate-spin')} /></Button>}
-            {onExport && <Button variant="ghost" size="icon" onClick={onExport}><Download className="w-4 h-4" /></Button>}
+            {onRefresh && <Button aria-label="Atualizar gráfico" variant="ghost" size="icon" onClick={onRefresh}><RefreshCw className={cn('w-4 h-4', isLoading && 'animate-spin')} /></Button>}
+            {onExport && <Button aria-label="Exportar dados" variant="ghost" size="icon" onClick={onExport}><Download className="w-4 h-4" /></Button>}
           </div>
         </div>
       </CardHeader>

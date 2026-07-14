@@ -3,39 +3,39 @@ import { getLogger } from '@/lib/logger';
 const log = getLogger('InboxScopeConfig');
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Shield, Eye, Lock, Loader2, Info, Instagram, Globe, MessageSquare, Plus, Trash2, Settings2, Sparkles, X } from 'lucide-react';
+import {
+  Shield,
+  Eye,
+  Lock,
+  Loader2,
+  Info,
+  Instagram,
+  Globe,
+  MessageSquare,
+  Plus,
+  Trash2,
+  Settings2,
+  Sparkles,
+  X,
+} from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { usePermissions } from '@/features/auth';
 import { toast } from 'sonner';
-import { motion } from 'framer-motion';
-
-const INBOX_PERMISSIONS = [
-  { id: 'inbox.view_mine', label: 'Meus (Apenas as próprias)', description: 'O usuário vê apenas as conversas atribuídas a ele.' },
-  { id: 'inbox.view_department', label: 'Departamento', description: 'O usuário vê todas as conversas do seu departamento.' },
-  { id: 'inbox.view_all', label: 'Todos depts. (Empresa)', description: 'O usuário vê conversas de todos os departamentos da empresa.' }
-];
-
-const CHANNEL_PERMISSIONS = [
-  { id: 'inbox.view_whatsapp', label: 'WhatsApp', icon: 'MessageSquare' },
-  { id: 'inbox.view_instagram', label: 'Instagram', icon: 'Instagram' },
-  { id: 'inbox.view_chat', label: 'Web Chat', icon: 'Globe' }
-];
-
-const ROLES = [
-  { id: 'admin', label: 'Administrador', color: 'text-destructive' },
-  { id: 'manager', label: 'Gerente', color: 'text-warning' },
-  { id: 'supervisor', label: 'Supervisor', color: 'text-info' },
-  { id: 'agent', label: 'Agente', color: 'text-whatsapp' }
-];
+import {
+  INBOX_PERMISSIONS,
+  CHANNEL_PERMISSIONS,
+  ROLES,
+  NewScopeForm,
+} from './InboxScopeConfigParts';
 
 export function InboxScopeConfig() {
-  const { permissions, rolePermissions, addPermissionToRole, removePermissionFromRole, loading } = usePermissions();
+  const { permissions, rolePermissions, addPermissionToRole, removePermissionFromRole, loading } =
+    usePermissions();
   const queryClient = useQueryClient();
   const [updating, setUpdating] = useState<string | null>(null);
   const [newScope, setNewScope] = useState({ label: '', description: '', name: '' });
@@ -44,7 +44,10 @@ export function InboxScopeConfig() {
   const { data: customScopes = [], isLoading: loadingScopes } = useQuery({
     queryKey: ['admin', 'inbox-custom-scopes'],
     queryFn: async () => {
-      const { data, error } = await supabase.from('inbox_custom_scopes').select('*').order('created_at', { ascending: true });
+      const { data, error } = await supabase
+        .from('inbox_custom_scopes')
+        .select('*')
+        .order('created_at', { ascending: true });
       if (error) throw error;
       return data || [];
     },
@@ -58,19 +61,21 @@ export function InboxScopeConfig() {
 
     setIsAddingScope(true);
     try {
-      const { error } = await supabase.from('inbox_custom_scopes').insert([{
-        label: newScope.label,
-        name: newScope.name.toLowerCase().replace(/\s+/g, '_'),
-        description: newScope.description,
-        filter_criteria: {}
-      }]);
+      const { error } = await supabase.from('inbox_custom_scopes').insert([
+        {
+          label: newScope.label,
+          name: newScope.name.toLowerCase().replace(/\s+/g, '_'),
+          description: newScope.description,
+          filter_criteria: {},
+        },
+      ]);
 
       if (error) throw error;
 
       toast.success('Escopo personalizado criado!');
       setNewScope({ label: '', description: '', name: '' });
       void queryClient.invalidateQueries({ queryKey: ['admin', 'inbox-custom-scopes'] });
-    } catch (err) {
+    } catch {
       toast.error('Erro ao criar escopo');
     } finally {
       setIsAddingScope(false);
@@ -83,23 +88,26 @@ export function InboxScopeConfig() {
       if (error) throw error;
       toast.success('Escopo removido');
       void queryClient.invalidateQueries({ queryKey: ['admin', 'inbox-custom-scopes'] });
-    } catch (err) {
+    } catch {
       toast.error('Erro ao remover escopo');
     }
   };
 
   // Map permission name to ID
   const permissionMap = useMemo(() => {
-    return permissions.reduce((acc, p) => {
-      acc[p.name] = p.id;
-      return acc;
-    }, {} as Record<string, string>);
+    return permissions.reduce(
+      (acc, p) => {
+        acc[p.name] = p.id;
+        return acc;
+      },
+      {} as Record<string, string>
+    );
   }, [permissions]);
 
   const hasPermission = (role: string, permissionName: string): boolean => {
     const permissionId = permissionMap[permissionName];
     if (!permissionId) return false;
-    return rolePermissions.some(rp => rp.role === role && rp.permission_id === permissionId);
+    return rolePermissions.some((rp) => rp.role === role && rp.permission_id === permissionId);
   };
 
   const handleToggle = async (role: string, permissionName: string) => {
@@ -132,7 +140,7 @@ export function InboxScopeConfig() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );
   }
@@ -142,23 +150,25 @@ export function InboxScopeConfig() {
       <Card className="border-whatsapp/20 bg-whatsapp/5">
         <CardHeader>
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-whatsapp/10 rounded-full flex items-center justify-center text-whatsapp">
-              <Shield className="w-5 h-5" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-whatsapp/10 text-whatsapp">
+              <Shield className="h-5 w-5" />
             </div>
             <div>
               <CardTitle>Configuração de Escopo da Inbox</CardTitle>
               <CardDescription>
-                Defina quais níveis de visualização cada perfil de usuário pode acessar na Caixa de Entrada
+                Defina quais níveis de visualização cada perfil de usuário pode acessar na Caixa de
+                Entrada
               </CardDescription>
             </div>
           </div>
         </CardHeader>
         <CardContent>
-          <div className="bg-background/50 rounded-lg p-4 border border-border/50 flex gap-3 items-start">
-            <Info className="w-5 h-5 text-info shrink-0 mt-0.5" />
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              As alterações aqui são aplicadas em tempo real. Usuários <strong>Agentes</strong> por padrão devem ver apenas "Meus". 
-              Supervisores geralmente veem "Departamento" e Administradores veem "Todos".
+          <div className="flex items-start gap-3 rounded-lg border border-border/50 bg-background/50 p-4">
+            <Info className="mt-0.5 h-5 w-5 shrink-0 text-info" />
+            <p className="text-sm leading-relaxed text-muted-foreground">
+              As alterações aqui são aplicadas em tempo real. Usuários <strong>Agentes</strong> por
+              padrão devem ver apenas "Meus". Supervisores geralmente veem "Departamento" e
+              Administradores veem "Todos".
             </p>
           </div>
         </CardContent>
@@ -166,34 +176,46 @@ export function InboxScopeConfig() {
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-2">
         {ROLES.map((role) => (
-          <Card key={role.id} className="overflow-hidden border-border/50 shadow-sm hover:shadow-md transition-all">
-            <CardHeader className="pb-3 bg-muted/30">
+          <Card
+            key={role.id}
+            className="overflow-hidden border-border/50 shadow-sm transition-all hover:shadow-md"
+          >
+            <CardHeader className="bg-muted/30 pb-3">
               <div className="flex items-center justify-between">
                 <CardTitle className={`text-base font-bold ${role.color}`}>{role.label}</CardTitle>
-                <div className="px-2 py-0.5 bg-background rounded-full border text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                <div className="rounded-full border bg-background px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
                   Role: {role.id}
                 </div>
               </div>
             </CardHeader>
-            <CardContent className="pt-4 space-y-4">
+            <CardContent className="space-y-4 pt-4">
               <div className="space-y-4">
-                <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 border-b pb-1">Permissões de Escopo</div>
+                <div className="border-b pb-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60">
+                  Permissões de Escopo
+                </div>
                 {INBOX_PERMISSIONS.map((perm) => {
                   const isActive = hasPermission(role.id, perm.id);
                   const isUpdating = updating === `${role.id}-${perm.id}`;
                   const isDisabled = role.id === 'admin' || isUpdating;
 
                   return (
-                    <div key={perm.id} className="flex items-start justify-between gap-4 p-2 rounded-lg hover:bg-muted/20 transition-all">
+                    <div
+                      key={perm.id}
+                      className="flex items-start justify-between gap-4 rounded-lg p-2 transition-all hover:bg-muted/20"
+                    >
                       <div className="space-y-1">
                         <div className="flex items-center gap-2">
-                          {isActive ? <Eye className="w-3 h-3 text-whatsapp" /> : <Lock className="w-3 h-3 text-muted-foreground/50" />}
-                          <Label className="text-xs font-bold cursor-pointer">{perm.label}</Label>
+                          {isActive ? (
+                            <Eye className="h-3 w-3 text-whatsapp" />
+                          ) : (
+                            <Lock className="h-3 w-3 text-muted-foreground/50" />
+                          )}
+                          <Label className="cursor-pointer text-xs font-bold">{perm.label}</Label>
                         </div>
                       </div>
                       <div className="flex items-center">
                         {isUpdating ? (
-                          <Loader2 className="w-3 h-3 animate-spin text-whatsapp" />
+                          <Loader2 className="h-3 w-3 animate-spin text-whatsapp" />
                         ) : (
                           <Switch
                             checked={isActive}
@@ -207,22 +229,37 @@ export function InboxScopeConfig() {
                   );
                 })}
 
-                <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 border-b pb-1 pt-2">Visibilidade de Canais</div>
+                <div className="border-b pb-1 pt-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60">
+                  Visibilidade de Canais
+                </div>
                 <div className="grid grid-cols-2 gap-2">
                   {CHANNEL_PERMISSIONS.map((chan) => {
                     const isActive = hasPermission(role.id, chan.id);
                     const isUpdating = updating === `${role.id}-${chan.id}`;
                     const isDisabled = role.id === 'admin' || isUpdating;
-                    const Icon = chan.icon === 'Instagram' ? Instagram : (chan.icon === 'Globe' ? Globe : MessageSquare);
+                    const Icon =
+                      chan.icon === 'Instagram'
+                        ? Instagram
+                        : chan.icon === 'Globe'
+                          ? Globe
+                          : MessageSquare;
 
                     return (
-                      <div key={chan.id} className="flex items-center justify-between p-2 rounded-lg bg-background/40 border border-border/10">
+                      <div
+                        key={chan.id}
+                        className="flex items-center justify-between rounded-lg border border-border/10 bg-background/40 p-2"
+                      >
                         <div className="flex items-center gap-2">
-                          <Icon className={cn("w-3 h-3", isActive ? "text-primary" : "text-muted-foreground/40")} />
+                          <Icon
+                            className={cn(
+                              'h-3 w-3',
+                              isActive ? 'text-primary' : 'text-muted-foreground/40'
+                            )}
+                          />
                           <span className="text-[10px] font-medium">{chan.label}</span>
                         </div>
                         {isUpdating ? (
-                          <Loader2 className="w-3 h-3 animate-spin text-primary" />
+                          <Loader2 className="h-3 w-3 animate-spin text-primary" />
                         ) : (
                           <Switch
                             checked={isActive}
@@ -236,9 +273,9 @@ export function InboxScopeConfig() {
                   })}
                 </div>
               </div>
-              
+
               {role.id === 'admin' && (
-                <div className="mt-2 text-[10px] text-center text-muted-foreground bg-muted/50 py-1 rounded">
+                <div className="mt-2 rounded bg-muted/50 py-1 text-center text-[10px] text-muted-foreground">
                   Administradores possuem acesso total por padrão
                 </div>
               )}
@@ -251,72 +288,75 @@ export function InboxScopeConfig() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center text-primary">
-                <Sparkles className="w-5 h-5" />
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
+                <Sparkles className="h-5 w-5" />
               </div>
               <div>
                 <CardTitle className="text-lg">Escopos Personalizados</CardTitle>
-                <CardDescription>Crie novos filtros de visualização sem precisar alterar o código</CardDescription>
+                <CardDescription>
+                  Crie novos filtros de visualização sem precisar alterar o código
+                </CardDescription>
               </div>
             </div>
-            <Button size="sm" onClick={() => setIsAddingScope(!isAddingScope)} className="bg-primary hover:bg-primary-dark">
-              {isAddingScope ? <X className="w-4 h-4 mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
+            <Button
+              size="sm"
+              onClick={() => setIsAddingScope(!isAddingScope)}
+              className="hover:bg-primary-dark bg-primary"
+            >
+              {isAddingScope ? <X className="mr-2 h-4 w-4" /> : <Plus className="mr-2 h-4 w-4" />}
               {isAddingScope ? 'Cancelar' : 'Novo Escopo'}
             </Button>
           </div>
         </CardHeader>
         <CardContent className="space-y-6">
           {isAddingScope && (
-            <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="p-4 rounded-xl border bg-background space-y-4 shadow-inner">
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label>Nome de Exibição</Label>
-                  <Input placeholder="Ex: Urgentes" value={newScope.label} onChange={e => setNewScope({...newScope, label: e.target.value})} />
-                </div>
-                <div className="space-y-2">
-                  <Label>Identificador (slug)</Label>
-                  <Input placeholder="Ex: urgent_tickets" value={newScope.name} onChange={e => setNewScope({...newScope, name: e.target.value})} />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label>Descrição</Label>
-                <Input placeholder="O que este escopo filtra?" value={newScope.description} onChange={e => setNewScope({...newScope, description: e.target.value})} />
-              </div>
-              <div className="flex justify-end gap-2 pt-2">
-                <Button size="sm" variant="ghost" onClick={() => setIsAddingScope(false)}>Descartar</Button>
-                <Button size="sm" disabled={isAddingScope} onClick={handleAddScope}>Criar Escopo</Button>
-              </div>
-            </motion.div>
+            <NewScopeForm
+              newScope={newScope}
+              isSubmitting={isAddingScope}
+              onChangeScope={setNewScope}
+              onDiscard={() => setIsAddingScope(false)}
+              onSubmit={handleAddScope}
+            />
           )}
 
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {loadingScopes ? (
-              <div className="col-span-full py-8 text-center"><Loader2 className="w-6 h-6 animate-spin mx-auto text-primary" /></div>
+              <div className="col-span-full py-8 text-center">
+                <Loader2 className="mx-auto h-6 w-6 animate-spin text-primary" />
+              </div>
             ) : customScopes.length === 0 ? (
-              <div className="col-span-full py-8 text-center bg-muted/20 rounded-xl border border-dashed border-border/50">
-                <p className="text-sm text-muted-foreground">Nenhum escopo personalizado definido ainda.</p>
+              <div className="col-span-full rounded-xl border border-dashed border-border/50 bg-muted/20 py-8 text-center">
+                <p className="text-sm text-muted-foreground">
+                  Nenhum escopo personalizado definido ainda.
+                </p>
               </div>
             ) : (
-              customScopes.map(scope => (
-                <div key={scope.id} className="p-3 rounded-xl border bg-background/50 hover:bg-background transition-all group relative">
+              customScopes.map((scope) => (
+                <div
+                  key={scope.id}
+                  className="group relative rounded-xl border bg-background/50 p-3 transition-all hover:bg-background"
+                >
                   <div className="flex items-start justify-between gap-2">
                     <div className="space-y-1">
-                      <div className="text-sm font-bold flex items-center gap-1.5">
-                        <Settings2 className="w-3.5 h-3.5 text-primary" />
+                      <div className="flex items-center gap-1.5 text-sm font-bold">
+                        <Settings2 className="h-3.5 w-3.5 text-primary" />
                         {scope.label}
                       </div>
-                      <p className="text-[10px] text-muted-foreground line-clamp-2">{scope.description || 'Sem descrição'}</p>
-                      <div className="inline-block px-1.5 py-0.5 rounded bg-muted text-[8px] font-mono uppercase mt-1">
+                      <p className="line-clamp-2 text-[10px] text-muted-foreground">
+                        {scope.description || 'Sem descrição'}
+                      </p>
+                      <div className="mt-1 inline-block rounded bg-muted px-1.5 py-0.5 font-mono text-[8px] uppercase">
                         ID: {scope.name}
                       </div>
                     </div>
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
+                    <Button
+                      variant="ghost"
+                      size="icon"
                       onClick={() => handleDeleteScope(scope.id)}
-                      className="w-7 h-7 rounded-lg text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="h-7 w-7 rounded-lg text-destructive opacity-0 transition-opacity hover:bg-destructive/10 group-hover:opacity-100"
+                      aria-label="Excluir escopo"
                     >
-                      <Trash2 className="w-3.5 h-3.5" />
+                      <Trash2 className="h-3.5 w-3.5" />
                     </Button>
                   </div>
                 </div>

@@ -1,4 +1,5 @@
-import { agentRepository, AgentProfile } from '@/features/admin/data-access/agentRepository';
+import { agentRepository, AgentProfile } from '../data-access/agentRepository';
+import { normalizeAgentProfiles } from '../utils/profileMappers';
 
 export interface AgentWithStats extends AgentProfile {
   activeChats: number;
@@ -16,7 +17,7 @@ export const agentService = {
     const now = new Date();
     const lastActive = new Date(lastActivity);
     const diffMinutes = (now.getTime() - lastActive.getTime()) / (1000 * 60);
-    
+
     if (diffMinutes < 5) return 'online';
     if (diffMinutes < 30) return 'away';
     return 'offline';
@@ -55,19 +56,20 @@ export const agentService = {
         }
       });
 
-      return (profilesResult.data as AgentProfile[]).map((profile) => {
-        const agentQueues = membersResult.data
-          ?.filter((m) => m.profile_id === profile.id)
-          .map((m) => {
-            const queue = queuesResult.data?.find((q) => q.id === m.queue_id);
-            return queue ? { id: queue.id, name: queue.name, color: queue.color } : null;
-          })
-          .filter(Boolean) as Array<{ id: string; name: string; color: string }> || [];
+      return (profilesResult.data as AgentProfile[] /* ignore-audit: narrows Supabase query result to local interface */).map((profile) => {
+        const agentQueues =
+          (membersResult.data
+            ?.filter((m) => m.profile_id === profile.id)
+            .map((m) => {
+              const queue = queuesResult.data?.find((q) => q.id === m.queue_id);
+              return queue ? { id: queue.id, name: queue.name, color: queue.color } : null;
+            })
+            .filter(Boolean) as Array<{ id: string; name: string; color: string }>) || [];
 
         return {
           ...profile,
           activeChats: chatCounts[profile.id] || 0,
-          status: this.getAgentStatus(profile.updated_at),
+          status: this.getAgentStatus(profile.updated_at ?? undefined),
           queues: agentQueues,
         };
       });

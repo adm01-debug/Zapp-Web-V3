@@ -1,12 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { renderHook } from '@testing-library/react';
 
-const mockChannel = vi.fn();
-const mockRemoveChannel = vi.fn();
+const mockChannel = vi.hoisted(() => vi.fn());
+const mockRemoveChannel = vi.hoisted(() => vi.fn());
 
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
-    channel: (...args: any[]) => mockChannel(...args),
-    removeChannel: mockRemoveChannel,
+    channel: (...args: unknown[]) => mockChannel(...args),
+    removeChannel: (...args: unknown[]) => mockRemoveChannel(...args),
     from: vi.fn().mockReturnValue({
       select: vi.fn().mockReturnValue({
         eq: vi.fn().mockReturnValue({
@@ -48,9 +49,17 @@ vi.mock('@/integrations/datasource/db', () => ({
   dbTable: vi.fn((t: string) => t),
 }));
 
-// Must import AFTER mocks
-const { useTranscriptionNotifications } = await import('@/hooks/useTranscriptionNotifications');
-const { renderHook } = await import('@testing-library/react');
+vi.mock('@/lib/logger', () => ({
+  getLogger: vi.fn(() => ({
+    warn: vi.fn(),
+    error: vi.fn(),
+    info: vi.fn(),
+    debug: vi.fn(),
+  })),
+  log: { warn: vi.fn(), error: vi.fn(), info: vi.fn(), debug: vi.fn() },
+}));
+
+import { useTranscriptionNotifications } from '@/hooks/useTranscriptionNotifications';
 
 describe('useTranscriptionNotifications', () => {
   beforeEach(() => {
@@ -58,6 +67,7 @@ describe('useTranscriptionNotifications', () => {
     mockChannel.mockReturnValue({
       on: vi.fn().mockReturnThis(),
       subscribe: vi.fn().mockReturnThis(),
+      unsubscribe: vi.fn(),
     });
   });
 
@@ -82,6 +92,7 @@ describe('useTranscriptionNotifications', () => {
     mockChannel.mockReturnValue({
       on: onMock,
       subscribe: vi.fn().mockReturnThis(),
+      unsubscribe: vi.fn().mockResolvedValue(undefined),
     });
     renderHook(() => useTranscriptionNotifications());
     expect(onMock).toHaveBeenCalledWith(
@@ -92,11 +103,13 @@ describe('useTranscriptionNotifications', () => {
   });
 
   it('accepts custom options', () => {
-    renderHook(() => useTranscriptionNotifications({
-      showToast: false,
-      playSound: false,
-      showBrowserNotification: false,
-    }));
+    renderHook(() =>
+      useTranscriptionNotifications({
+        showToast: false,
+        playSound: false,
+        showBrowserNotification: false,
+      })
+    );
     expect(mockChannel).toHaveBeenCalled();
   });
 });

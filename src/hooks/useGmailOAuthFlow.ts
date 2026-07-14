@@ -11,9 +11,21 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { safeClient } from '@/integrations/supabase/safeClient';
 import { emailMappers } from '@/utils/emailMappers';
 import { EmailAccount } from '@/types/gmail';
 import { emailRefreshToken, emailRevokeAccount, emailRegisterWatch } from './gmail/gmailApi';
+
+interface EmailAccountRow {
+  id: string;
+  user_id: string;
+  email: string;
+  display_name: string | null;
+  picture_url: string | null;
+  token_expiry: string | null;
+  is_active: boolean;
+  created_at: string;
+}
 import { toast } from 'sonner';
 import { getLogger } from '@/lib/logger';
 
@@ -25,7 +37,6 @@ const REFRESH_AHEAD_MS = 5 * 60 * 1000;
 const CHECK_INTERVAL_MS = 60 * 1000;
 
 export type TokenStatus = 'loading' | 'valid' | 'expiring' | 'expired' | 'disconnected';
-
 
 interface UseEmailOAuthFlowReturn {
   accounts: EmailAccount[];
@@ -49,11 +60,14 @@ export function useEmailOAuthFlow(): UseEmailOAuthFlowReturn {
   // ── Carrega contas ──────────────────────────────────────────────────
 
   const loadAccounts = useCallback(async () => {
-    const { data, error } = await supabase
-      .from('email_accounts')
-      .select('id, user_id, email:email_address, display_name, picture_url, token_expiry:token_expires_at, is_active, created_at')
-      .eq('is_active', true)
-      .order('created_at');
+    const { data, error } = await safeClient.from<Record<string, unknown>>('email_accounts', (q) =>
+      q
+        .select(
+          'id, user_id, email:email_address, display_name, picture_url, token_expiry:token_expires_at, is_active, created_at'
+        )
+        .eq('is_active', true)
+        .order('created_at')
+    );
 
     if (error) {
       log.error('Erro ao carregar contas Email', error);
@@ -91,25 +105,23 @@ export function useEmailOAuthFlow(): UseEmailOAuthFlowReturn {
     if (refreshingRef.current.has(accountId)) return;
     refreshingRef.current.add(accountId);
 
-    setTokenStatus(prev => ({ ...prev, [accountId]: 'loading' }));
+    setTokenStatus((prev) => ({ ...prev, [accountId]: 'loading' }));
 
     try {
       const result = await emailRefreshToken(accountId);
 
       // Atualiza token_expiry local
-      setAccounts(prev =>
-        prev.map(a =>
-          a.id === accountId
-            ? { ...a, token_expiry: result.data?.expiresAt ?? a.token_expiry }
-            : a
+      setAccounts((prev) =>
+        prev.map((a) =>
+          a.id === accountId ? { ...a, token_expiry: result.data?.expiresAt ?? a.token_expiry } : a
         )
       );
-      setTokenStatus(prev => ({ ...prev, [accountId]: 'valid' }));
+      setTokenStatus((prev) => ({ ...prev, [accountId]: 'valid' }));
 
       log.info(`Token refreshed for account ${accountId}, expires at ${result.data?.expiresAt}`);
     } catch (err) {
       log.error(`Falha ao refreshar token para conta ${accountId}`, err);
-      setTokenStatus(prev => ({ ...prev, [accountId]: 'expired' }));
+      setTokenStatus((prev) => ({ ...prev, [accountId]: 'expired' }));
       toast.error('Sessão Email expirada', {
         description: 'Reconecte sua conta Email nas configurações.',
         duration: 8000,
@@ -121,43 +133,51 @@ export function useEmailOAuthFlow(): UseEmailOAuthFlowReturn {
 
   // ── Auto-refresh loop ───────────────────────────────────────────────
 
-  const checkAndRefresh = useCallback(async (accs: EmailAccount[]) => {
-    const statuses = computeStatuses(accs);
+  const checkAndRefresh = useCallback(
+    async (accs: EmailAccount[]) => {
+      const statuses = computeStatuses(accs);
 
-    for (const acc of accs) {
-      const status = statuses[acc.id];
-      if (status === 'expiring' || status === 'expired') {
-        await refreshNow(acc.id);
+      for (const acc of accs) {
+        const status = statuses[acc.id];
+        if (status === 'expiring' || status === 'expired') {
+          await refreshNow(acc.id);
+        }
       }
-    }
-  }, [computeStatuses, refreshNow]);
+    },
+    [computeStatuses, refreshNow]
+  );
 
   // ── Ensure Pub/Sub watch ────────────────────────────────────────────
 
-  const ensureWatch = useCallback(async (accountId: string) => {
-    const acc = accounts.find(a => a.id === accountId);
-    if (!acc) return;
+  const ensureWatch = useCallback(
+    async (accountId: string) => {
+      const acc = accounts.find((a) => a.id === accountId);
+      if (!acc) return;
 
-    // Renova watch se faltam menos de 24h para expirar
-    const watchExpiry = acc.watch_expiry ? new Date(acc.watch_expiry).getTime() : 0;
-    const renewThreshold = 24 * 60 * 60 * 1000;
+      // Renova watch se faltam menos de 24h para expirar
+      const watchExpiry = acc.watch_expiry ? new Date(acc.watch_expiry).getTime() : 0;
+      const renewThreshold = 24 * 60 * 60 * 1000;
 
-    if (!acc.watch_expiry || watchExpiry - Date.now() < renewThreshold) {
-      try {
-        const result = await emailRegisterWatch(accountId);
-        setAccounts(prev =>
-          prev.map(a =>
-            a.id === accountId
-              ? { ...a, watch_expiry: result.data?.watchExpiry ?? a.watch_expiry }
-              : a
-          )
-        );
-        log.info(`Pub/Sub watch renovado para ${accountId}, expira em ${result.data?.watchExpiry}`);
-      } catch (err) {
-        log.warn(`Não foi possível renovar watch para ${accountId}`, err);
+      if (!acc.watch_expiry || watchExpiry - Date.now() < renewThreshold) {
+        try {
+          const result = await emailRegisterWatch(accountId);
+          setAccounts((prev) =>
+            prev.map((a) =>
+              a.id === accountId
+                ? { ...a, watch_expiry: result.data?.watchExpiry ?? a.watch_expiry }
+                : a
+            )
+          );
+          log.info(
+            `Pub/Sub watch renovado para ${accountId}, expira em ${result.data?.watchExpiry}`
+          );
+        } catch (err) {
+          log.warn(`Não foi possível renovar watch para ${accountId}`, err);
+        }
       }
-    }
-  }, [accounts]);
+    },
+    [accounts]
+  );
 
   // ── OAuth initiate ──────────────────────────────────────────────────
 
@@ -178,11 +198,7 @@ export function useEmailOAuthFlow(): UseEmailOAuthFlowReturn {
           return;
         }
         // Abre popup OAuth
-        const popup = window.open(
-          data.url,
-          'email-oauth',
-          'width=500,height=600,scrollbars=yes'
-        );
+        const popup = window.open(data.url, 'email-oauth', 'width=500,height=600,scrollbars=yes');
         if (!popup) {
           toast.error('Popup bloqueado. Permita popups para este site.');
           oauthInFlightRef.current = false;
@@ -228,7 +244,9 @@ export function useEmailOAuthFlow(): UseEmailOAuthFlowReturn {
             return;
           }
           try {
-            const { data: { user } } = await supabase.auth.getUser();
+            const {
+              data: { user },
+            } = await supabase.auth.getUser();
             if (!user) {
               toast.error('Sessão expirada. Faça login novamente.');
               return;
@@ -262,9 +280,16 @@ export function useEmailOAuthFlow(): UseEmailOAuthFlowReturn {
         // popup.closed; nesse caso simplesmente tentamos de novo no próximo
         // tick em vez de derrubar a sessão.
         closeCheckInterval = setInterval(() => {
-          if (settled) { if (closeCheckInterval !== null) clearInterval(closeCheckInterval); return; }
+          if (settled) {
+            if (closeCheckInterval !== null) clearInterval(closeCheckInterval);
+            return;
+          }
           let closed = false;
-          try { closed = popup.closed; } catch { closed = false; }
+          try {
+            closed = popup.closed;
+          } catch {
+            closed = false;
+          }
           if (closed) {
             settled = true;
             cleanupListeners();
@@ -279,8 +304,8 @@ export function useEmailOAuthFlow(): UseEmailOAuthFlowReturn {
   const disconnect = useCallback(async (accountId: string) => {
     try {
       await emailRevokeAccount(accountId);
-      setAccounts(prev => prev.filter(a => a.id !== accountId));
-      setTokenStatus(prev => {
+      setAccounts((prev) => prev.filter((a) => a.id !== accountId));
+      setTokenStatus((prev) => {
         const next = { ...prev };
         delete next[accountId];
         return next;
@@ -303,14 +328,14 @@ export function useEmailOAuthFlow(): UseEmailOAuthFlowReturn {
   useEffect(() => {
     const channel = supabase
       .channel('email_accounts_changes')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'email_app', table: 'email_accounts' },
-        () => loadAccounts()
+      .on('postgres_changes', { event: '*', schema: 'email_app', table: 'email_accounts' }, () =>
+        loadAccounts()
       )
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
+    return () => {
+      channel.unsubscribe();
+    };
   }, [loadAccounts]);
 
   // Auto-refresh timer
@@ -333,11 +358,13 @@ export function useEmailOAuthFlow(): UseEmailOAuthFlowReturn {
     for (const acc of accounts) {
       ensureWatch(acc.id);
     }
-  }, [accounts.map(a => a.id).join(','), ensureWatch]);
+  }, [accounts.map((a) => a.id).join(','), ensureWatch]);
 
   // Cleanup OAuth listeners if component unmounts mid-flow
   useEffect(() => {
-    return () => { oauthCleanupRef.current?.(); };
+    return () => {
+      oauthCleanupRef.current?.();
+    };
   }, []);
 
   return {

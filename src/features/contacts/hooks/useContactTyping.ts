@@ -86,7 +86,7 @@ export interface UseContactTypingOptions {
  */
 export function useContactTyping(
   remoteJid?: string | null,
-  enabledOrOptions: boolean | UseContactTypingOptions = true,
+  enabledOrOptions: boolean | UseContactTypingOptions = true
 ): boolean {
   return useContactTypingState(remoteJid, enabledOrOptions).isTyping;
 }
@@ -97,7 +97,7 @@ export function useContactTyping(
  */
 export function useContactTypingState(
   remoteJid?: string | null,
-  enabledOrOptions: boolean | UseContactTypingOptions = true,
+  enabledOrOptions: boolean | UseContactTypingOptions = true
 ): ContactTypingState {
   const opts: UseContactTypingOptions =
     typeof enabledOrOptions === 'boolean' ? { enabled: enabledOrOptions } : enabledOrOptions;
@@ -178,7 +178,7 @@ export function useContactTypingState(
     return () => {
       clearAutoClear();
       clearStopDebounce();
-      supabase.removeChannel(channel);
+      channel.unsubscribe();
     };
   }, [remoteJid, enabled, allowGroups]);
 

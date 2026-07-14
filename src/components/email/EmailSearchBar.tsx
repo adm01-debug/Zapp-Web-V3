@@ -33,6 +33,7 @@ export function EmailSearchBar({ accountId, onSelectThread, className }: EmailSe
         />
         {query && (
           <Button
+            aria-label="Limpar busca"
             variant="ghost"
             size="icon"
             className="absolute right-1 h-7 w-7 hover:bg-transparent"

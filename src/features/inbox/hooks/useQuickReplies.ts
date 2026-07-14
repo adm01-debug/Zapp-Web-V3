@@ -42,7 +42,12 @@ export function useQuickReplies() {
   const [searchQuery, setSearchQuery] = useState('');
 
   // Fetch templates from Supabase
-  const { data: templates, isLoading, error, refetch } = useQuery({
+  const {
+    data: templates,
+    isLoading,
+    error,
+    refetch,
+  } = useQuery({
     queryKey: ['quick-replies', user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
@@ -54,7 +59,7 @@ export function useQuickReplies() {
         .order('use_count', { ascending: false });
 
       if (error) throw error;
-      return data as QuickReplyTemplate[];
+      return data as QuickReplyTemplate[]; // ignore-audit: narrows Supabase query result to local interface
     },
     enabled: !!user?.id,
   });
@@ -72,41 +77,54 @@ export function useQuickReplies() {
   // Save favorites to localStorage
   const saveFavorites = useCallback((newFavorites: QuickReplyFavorite[]) => {
     setFavorites(newFavorites);
-    try { localStorage.setItem(FAVORITES_STORAGE_KEY, JSON.stringify(newFavorites)); } catch { /* storage unavailable */ }
+    try {
+      localStorage.setItem(FAVORITES_STORAGE_KEY, JSON.stringify(newFavorites));
+    } catch {
+      /* storage unavailable */
+    }
   }, []);
 
   // Toggle favorite
-  const toggleFavorite = useCallback((templateId: string) => {
-    const isFav = favorites.some(f => f.templateId === templateId);
-    
-    if (isFav) {
-      const newFavorites = favorites.filter(f => f.templateId !== templateId);
-      saveFavorites(newFavorites);
-      toast.success('Removido dos favoritos');
-    } else {
-      const newFavorite: QuickReplyFavorite = {
-        id: crypto.randomUUID(),
-        templateId,
-        order: favorites.length,
-      };
-      saveFavorites([...favorites, newFavorite]);
-      toast.success('Adicionado aos favoritos');
-    }
-  }, [favorites, saveFavorites]);
+  const toggleFavorite = useCallback(
+    (templateId: string) => {
+      const isFav = favorites.some((f) => f.templateId === templateId);
+
+      if (isFav) {
+        const newFavorites = favorites.filter((f) => f.templateId !== templateId);
+        saveFavorites(newFavorites);
+        toast.success('Removido dos favoritos');
+      } else {
+        const newFavorite: QuickReplyFavorite = {
+          id: crypto.randomUUID(),
+          templateId,
+          order: favorites.length,
+        };
+        saveFavorites([...favorites, newFavorite]);
+        toast.success('Adicionado aos favoritos');
+      }
+    },
+    [favorites, saveFavorites]
+  );
 
   // Check if template is favorite
-  const isFavorite = useCallback((templateId: string) => {
-    return favorites.some(f => f.templateId === templateId);
-  }, [favorites]);
+  const isFavorite = useCallback(
+    (templateId: string) => {
+      return favorites.some((f) => f.templateId === templateId);
+    },
+    [favorites]
+  );
 
   // Reorder favorites
-  const reorderFavorites = useCallback((fromIndex: number, toIndex: number) => {
-    const result = Array.from(favorites);
-    const [removed] = result.splice(fromIndex, 1);
-    result.splice(toIndex, 0, removed);
-    const reordered = result.map((f, index) => ({ ...f, order: index }));
-    saveFavorites(reordered);
-  }, [favorites, saveFavorites]);
+  const reorderFavorites = useCallback(
+    (fromIndex: number, toIndex: number) => {
+      const result = Array.from(favorites);
+      const [removed] = result.splice(fromIndex, 1);
+      result.splice(toIndex, 0, removed);
+      const reordered = result.map((f, index) => ({ ...f, order: index }));
+      saveFavorites(reordered);
+    },
+    [favorites, saveFavorites]
+  );
 
   // Create template mutation
   const createMutation = useMutation({
@@ -173,15 +191,12 @@ export function useQuickReplies() {
   // Delete template mutation
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from('message_templates')
-        .delete()
-        .eq('id', id);
+      const { error } = await supabase.from('message_templates').delete().eq('id', id);
 
       if (error) throw error;
-      
+
       // Also remove from favorites
-      const newFavorites = favorites.filter(f => f.templateId !== id);
+      const newFavorites = favorites.filter((f) => f.templateId !== id);
       saveFavorites(newFavorites);
     },
     onSuccess: () => {
@@ -195,43 +210,51 @@ export function useQuickReplies() {
   });
 
   // Increment use count
-  const incrementUseCount = useCallback(async (templateId: string) => {
-    const template = templates?.find((t) => t.id === templateId);
-    if (!template) return;
+  const incrementUseCount = useCallback(
+    async (templateId: string) => {
+      const template = templates?.find((t) => t.id === templateId);
+      if (!template) return;
 
-    await supabase
-      .from('message_templates')
-      .update({ use_count: (template.use_count || 0) + 1 })
-      .eq('id', templateId);
+      await supabase
+        .from('message_templates')
+        .update({ use_count: (template.use_count || 0) + 1 })
+        .eq('id', templateId);
 
-    queryClient.invalidateQueries({ queryKey: ['quick-replies'] });
-  }, [templates, queryClient]);
+      void queryClient.invalidateQueries({ queryKey: ['quick-replies'] });
+    },
+    [templates, queryClient]
+  );
 
   // Smart search with fuzzy matching
-  const searchTemplates = useCallback((query: string) => {
-    if (!templates) return [];
-    if (!query.trim()) return templates;
+  const searchTemplates = useCallback(
+    (query: string) => {
+      if (!templates) return [];
+      if (!query.trim()) return templates;
 
-    const lowerQuery = query.toLowerCase();
-    
-    return templates.filter(t => {
-      const titleMatch = t.title.toLowerCase().includes(lowerQuery);
-      const contentMatch = t.content.toLowerCase().includes(lowerQuery);
-      const shortcutMatch = t.shortcut?.toLowerCase().includes(lowerQuery);
-      const categoryMatch = t.category?.toLowerCase().includes(lowerQuery);
-      
-      return titleMatch || contentMatch || shortcutMatch || categoryMatch;
-    }).sort((a, b) => {
-      // Prioritize title matches
-      const aTitle = a.title.toLowerCase().includes(lowerQuery);
-      const bTitle = b.title.toLowerCase().includes(lowerQuery);
-      if (aTitle && !bTitle) return -1;
-      if (!aTitle && bTitle) return 1;
-      
-      // Then by use count
-      return (b.use_count || 0) - (a.use_count || 0);
-    });
-  }, [templates]);
+      const lowerQuery = query.toLowerCase();
+
+      return templates
+        .filter((t) => {
+          const titleMatch = t.title.toLowerCase().includes(lowerQuery);
+          const contentMatch = t.content.toLowerCase().includes(lowerQuery);
+          const shortcutMatch = t.shortcut?.toLowerCase().includes(lowerQuery);
+          const categoryMatch = t.category?.toLowerCase().includes(lowerQuery);
+
+          return titleMatch || contentMatch || shortcutMatch || categoryMatch;
+        })
+        .sort((a, b) => {
+          // Prioritize title matches
+          const aTitle = a.title.toLowerCase().includes(lowerQuery);
+          const bTitle = b.title.toLowerCase().includes(lowerQuery);
+          if (aTitle && !bTitle) return -1;
+          if (!aTitle && bTitle) return 1;
+
+          // Then by use count
+          return (b.use_count || 0) - (a.use_count || 0);
+        });
+    },
+    [templates]
+  );
 
   // Filtered templates based on search
   const filteredTemplates = useMemo(() => {
@@ -241,33 +264,31 @@ export function useQuickReplies() {
   // Favorite templates
   const favoriteTemplates = useMemo(() => {
     if (!templates) return [];
-    
+
     return favorites
-      .map(f => templates.find(t => t.id === f.templateId))
+      .map((f) => templates.find((t) => t.id === f.templateId))
       .filter(Boolean) as QuickReplyTemplate[];
   }, [templates, favorites]);
 
   // Categories list
   const categories = useMemo(() => {
     if (!templates) return [];
-    
-    const cats = new Set(templates.map(t => t.category || 'geral'));
+
+    const cats = new Set(templates.map((t) => t.category || 'geral'));
     return Array.from(cats).sort();
   }, [templates]);
 
   // Recent templates (most used)
   const recentTemplates = useMemo(() => {
     if (!templates) return [];
-    
-    return [...templates]
-      .sort((a, b) => (b.use_count || 0) - (a.use_count || 0))
-      .slice(0, 5);
+
+    return [...templates].sort((a, b) => (b.use_count || 0) - (a.use_count || 0)).slice(0, 5);
   }, [templates]);
 
   // Convert to QuickReply format for compatibility
   const quickReplies = useMemo(() => {
     if (!templates) return [];
-    
+
     return templates.map((t) => ({
       id: t.id,
       title: t.title,
@@ -286,28 +307,28 @@ export function useQuickReplies() {
     recentTemplates,
     categories,
     favorites,
-    
+
     // State
     isLoading,
     error,
     searchQuery,
     setSearchQuery,
-    
+
     // Actions
     refetch,
     incrementUseCount,
     createTemplate: createMutation.mutateAsync,
     updateTemplate: updateMutation.mutateAsync,
     deleteTemplate: deleteMutation.mutateAsync,
-    
+
     // Favorites
     toggleFavorite,
     isFavorite,
     reorderFavorites,
-    
+
     // Search
     searchTemplates,
-    
+
     // Loading states
     isCreating: createMutation.isPending,
     isUpdating: updateMutation.isPending,

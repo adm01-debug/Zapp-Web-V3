@@ -100,6 +100,7 @@ export function NotificationsPanel({
                   size="icon"
                   className="w-7 h-7 rounded-lg"
                   onClick={onClose}
+                  aria-label="Fechar notificações"
                 >
                   <X className="w-4 h-4" />
                 </Button>

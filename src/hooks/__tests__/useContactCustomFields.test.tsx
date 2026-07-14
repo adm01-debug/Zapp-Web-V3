@@ -1,13 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
 
-const mockSelect = vi.fn();
-const mockUpsert = vi.fn();
-const mockDelete = vi.fn();
-const mockFrom = vi.fn();
+const _mockSelect = vi.hoisted(() => vi.fn());
+const _mockUpsert = vi.hoisted(() => vi.fn());
+const _mockDelete = vi.hoisted(() => vi.fn());
+const mockFrom = vi.hoisted(() => vi.fn());
 
 vi.mock('@/integrations/supabase/client', () => ({
-  supabase: { from: (...args: any[]) => mockFrom(...args) },
+  supabase: { from: (...args: unknown[]) => mockFrom(...args) },
 }));
 vi.mock('@/lib/logger');
 
@@ -19,9 +19,18 @@ describe('useContactCustomFields', () => {
     mockFrom.mockReturnValue({
       select: vi.fn().mockReturnValue({
         eq: vi.fn().mockReturnValue({
-          order: vi.fn().mockResolvedValue({ data: [
-            { id: 'cf1', contact_id: 'c1', field_name: 'CPF', field_value: '123', field_type: 'text' },
-          ], error: null }),
+          order: vi.fn().mockResolvedValue({
+            data: [
+              {
+                id: 'cf1',
+                contact_id: 'c1',
+                field_name: 'CPF',
+                field_value: '123',
+                field_type: 'text',
+              },
+            ],
+            error: null,
+          }),
         }),
       }),
       upsert: vi.fn().mockResolvedValue({ error: null }),

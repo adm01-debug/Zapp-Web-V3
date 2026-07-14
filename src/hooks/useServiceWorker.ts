@@ -48,24 +48,67 @@ export function useServiceWorker() {
 
     let cleanup: (() => void) | undefined;
     let disposed = false;
+    const timeoutIds: NodeJS.Timeout[] = [];
 
-    const registerServiceWorker = async () => {
+    const registerServiceWorker = async (retryCount = 0) => {
+      // Capture disposed state at entry to prevent race conditions
+      const wasDisposed = disposed;
+      if (wasDisposed) return;
+
       try {
         const reloadedForLegacyCleanup = await cleanupLegacyServiceWorker();
-        if (reloadedForLegacyCleanup || disposed) return;
+        if (reloadedForLegacyCleanup) return;
+        // Re-check disposed flag after async operation
+        if (disposed) return;
 
-        const registration = await navigator.serviceWorker.register('/sw.js', {
-          scope: '/',
-          updateViaCache: 'none',
-        });
+        let registration;
+        try {
+          registration = await navigator.serviceWorker.register('/sw.js', {
+            scope: '/',
+            updateViaCache: 'none',
+          });
+        } catch (err) {
+          const error = err as Error;
+          if (error.message.includes('404') && retryCount < 3) {
+            log.warn(`[ServiceWorker] 404 on registration attempt ${retryCount + 1}, retrying...`);
+            const jitter = Math.random() * 1000;
+            const delay = (2000 * Math.pow(2, retryCount)) + jitter;
+            const timeoutId = setTimeout(() => {
+              if (!disposed) {
+                registerServiceWorker(retryCount + 1);
+              }
+            }, delay);
+            timeoutIds.push(timeoutId);
+            return;
+          }
+          throw err;
+        }
 
+        // Final disposed check before setting up event listeners
         if (disposed) return;
 
         log.debug('[ServiceWorker] Registration successful:', registration.scope);
 
         // Check for updates every 5 minutes (was 1 min — too frequent)
+        let updateFailureCount = 0;
         const intervalId = setInterval(() => {
-          registration.update();
+          registration
+            .update()
+            .then(() => {
+              updateFailureCount = 0;
+            })
+            .catch((err) => {
+              updateFailureCount++;
+              if (updateFailureCount >= 3) {
+                log.error('[ServiceWorker] Update check failed 3 times consecutively:', err);
+                updateFailureCount = 0;
+              } else {
+                log.debug(
+                  `[ServiceWorker] Update check failed (${updateFailureCount}/3), will retry:`,
+                  err
+                );
+              }
+            });
         }, 300_000);
 
         // Handle service worker updates
@@ -95,6 +138,7 @@ export function useServiceWorker() {
         // Cleanup on unmount (interval was leaking before)
         cleanup = () => {
           clearInterval(intervalId);
+          timeoutIds.forEach(id => clearTimeout(id));
           navigator.serviceWorker.removeEventListener('message', onMessage);
         };
       } catch (error) {

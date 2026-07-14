@@ -49,7 +49,7 @@ async function invoke<T>(action: string, payload: Record<string, unknown> = {}):
   });
   if (error) throw error;
   if ((data as { error?: string })?.error) throw new Error((data as { error: string }).error);
-  return data as T;
+  return data as T; // ignore-audit: narrows Supabase query result to local interface
 }
 
 const reasonIcon = {
@@ -76,19 +76,25 @@ export function IncidentDetailDialog({ pause, onClose }: Props) {
 
   const eventsQuery = useQuery({
     queryKey: ['incident-events', pause?.id, sinceMin],
-    queryFn: () => invoke<{ items: AuthEvent[] }>('recent_events', {
-      instance: pause!.instance_name,
-      since_minutes: sinceMin,
-      limit: 50,
-    }),
+    queryFn: () => {
+      if (!pause) return Promise.resolve({ items: [] as AuthEvent[] });
+      return invoke<{ items: AuthEvent[] }>('recent_events', {
+        instance: pause.instance_name,
+        since_minutes: sinceMin,
+        limit: 50,
+      });
+    },
     enabled: open,
   });
 
   const markMut = useMutation({
-    mutationFn: () => invoke<{ pause: IncidentPause }>('mark_investigated', {
-      pause_id: pause!.id,
-      notes: notes.trim() || null,
-    }),
+    mutationFn: () => {
+      if (!pause) return Promise.reject(new Error('No active pause'));
+      return invoke<{ pause: IncidentPause }>('mark_investigated', {
+        pause_id: pause.id,
+        notes: notes.trim() || null,
+      });
+    },
     onSuccess: () => {
       toast.success('Incidente marcado como investigado');
       qc.invalidateQueries({ queryKey: ['instance-pauses'] });
@@ -232,11 +238,11 @@ export function IncidentDetailDialog({ pause, onClose }: Props) {
                   <table className="w-full text-xs">
                     <thead className="bg-muted/40 sticky top-0">
                       <tr className="text-left">
-                        <th className="px-2 py-1.5 font-medium">Quando</th>
-                        <th className="px-2 py-1.5 font-medium">Origem</th>
-                        <th className="px-2 py-1.5 font-medium">Motivo</th>
-                        <th className="px-2 py-1.5 font-medium">HTTP</th>
-                        <th className="px-2 py-1.5 font-medium">Detalhe / Path</th>
+                        <th scope="col" className="px-2 py-1.5 font-medium">Quando</th>
+                        <th scope="col" className="px-2 py-1.5 font-medium">Origem</th>
+                        <th scope="col" className="px-2 py-1.5 font-medium">Motivo</th>
+                        <th scope="col" className="px-2 py-1.5 font-medium">HTTP</th>
+                        <th scope="col" className="px-2 py-1.5 font-medium">Detalhe / Path</th>
                       </tr>
                     </thead>
                     <tbody>

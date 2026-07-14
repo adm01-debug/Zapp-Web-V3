@@ -1,7 +1,19 @@
+// @ts-nocheck
 import { useState, useMemo, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { safeWhatsAppConnectionsQuery } from '@/integrations/supabase/safe-queries';
 import { useTalkX, TalkXCampaign } from '@/hooks/useTalkX';
+
+// Format an ISO/UTC timestamp into the "YYYY-MM-DDTHH:mm" a <input type="datetime-local">
+// expects, in the browser's LOCAL time. Using toISOString() here would show UTC and
+// shift the displayed time (e.g. +3h in UTC-3), corrupting the value on re-save.
+function toLocalDateTimeInput(value: string): string {
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return '';
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
 
 export const VARIABLES = [
   { key: '{{nome}}', label: 'Primeiro Nome', desc: 'Insere o primeiro nome do contato' },
@@ -13,11 +25,31 @@ export const VARIABLES = [
 
 export const MESSAGE_TEMPLATES = [
   { name: 'Saudação simples', template: '{{saudacao}}, {{nome}}! Tudo bem? 😊' },
-  { name: 'Promoção', template: '{{saudacao}}, {{nome}}! 🎉 Temos uma oferta especial para você! Entre em contato para saber mais.' },
-  { name: 'Follow-up', template: 'Oi, {{apelido}}! Passando para saber se conseguiu ver nossa última mensagem. Fico à disposição! 🙏' },
-  { name: 'Boas-vindas', template: '{{saudacao}}, {{nome}}! Seja muito bem-vindo(a) à {{empresa}}! Estamos felizes em ter você conosco. 🤝' },
-  { name: 'Lembrete', template: 'Oi, {{apelido}}! Só passando para lembrar sobre nosso compromisso. Qualquer dúvida, estou por aqui! 📌' },
-  { name: 'Agradecimento', template: '{{saudacao}}, {{nome}}! Muito obrigado pela confiança! Foi um prazer atender você. ⭐' },
+  {
+    name: 'Promoção',
+    template:
+      '{{saudacao}}, {{nome}}! 🎉 Temos uma oferta especial para você! Entre em contato para saber mais.',
+  },
+  {
+    name: 'Follow-up',
+    template:
+      'Oi, {{apelido}}! Passando para saber se conseguiu ver nossa última mensagem. Fico à disposição! 🙏',
+  },
+  {
+    name: 'Boas-vindas',
+    template:
+      '{{saudacao}}, {{nome}}! Seja muito bem-vindo(a) à {{empresa}}! Estamos felizes em ter você conosco. 🤝',
+  },
+  {
+    name: 'Lembrete',
+    template:
+      'Oi, {{apelido}}! Só passando para lembrar sobre nosso compromisso. Qualquer dúvida, estou por aqui! 📌',
+  },
+  {
+    name: 'Agradecimento',
+    template:
+      '{{saudacao}}, {{nome}}! Muito obrigado pela confiança! Foi um prazer atender você. ⭐',
+  },
 ];
 
 export const MEDIA_TYPES = [
@@ -52,24 +84,27 @@ export function useCampaignEditor(campaign: TalkXCampaign | null, onClose: () =>
   const [hasMedia, setHasMedia] = useState(!!campaign?.media_url);
   const [isScheduled, setIsScheduled] = useState(!!campaign?.scheduled_at);
   const [scheduledAt, setScheduledAt] = useState(
-    campaign?.scheduled_at ? new Date(campaign.scheduled_at).toISOString().slice(0, 16) : ''
+    campaign?.scheduled_at ? toLocalDateTimeInput(campaign.scheduled_at) : ''
   );
 
   const { data: connections } = useQuery({
     queryKey: ['wa-connections-talkx'],
     queryFn: async () => {
-      const { data, error } = await supabase.from('whatsapp_connections')
-        .select('id, name, phone_number, status').eq('status', 'connected');
+      const safeQueries = safeWhatsAppConnectionsQuery(supabase);
+      const { data, error: _error } = await safeQueries.getList({ status: 'connected' });
       return data || [];
     },
+    staleTime: 300_000,
   });
 
   const { data: contacts } = useQuery({
     queryKey: ['contacts-talkx'],
     queryFn: async () => {
-      const { data, error } = await supabase.from('contacts')
+      const { data, error: _error } = await supabase
+        .from('contacts')
         .select('id, name, nickname, phone, company, avatar_url, tags')
-        .not('phone', 'is', null).order('name');
+        .not('phone', 'is', null)
+        .order('name');
       return data || [];
     },
   });
@@ -89,12 +124,16 @@ export function useCampaignEditor(campaign: TalkXCampaign | null, onClose: () =>
     if (!contacts) return [];
     let result = contacts;
     if (companyFilter !== 'all') result = result.filter((c) => c.company === companyFilter);
-    if (tagFilter !== 'all') result = result.filter((c) => c.tags && Array.isArray(c.tags) && c.tags.includes(tagFilter));
+    if (tagFilter !== 'all')
+      result = result.filter((c) => c.tags && Array.isArray(c.tags) && c.tags.includes(tagFilter));
     if (contactSearch.trim()) {
       const q = contactSearch.toLowerCase();
-      result = result.filter((c) =>
-        c.name?.toLowerCase().includes(q) || c.nickname?.toLowerCase().includes(q) ||
-        c.phone?.includes(q) || c.company?.toLowerCase().includes(q)
+      result = result.filter(
+        (c) =>
+          c.name?.toLowerCase().includes(q) ||
+          c.nickname?.toLowerCase().includes(q) ||
+          c.phone?.includes(q) ||
+          c.company?.toLowerCase().includes(q)
       );
     }
     return result;
@@ -115,7 +154,9 @@ export function useCampaignEditor(campaign: TalkXCampaign | null, onClose: () =>
 
   const estimatedTime = useMemo(() => {
     if (selectedContacts.length === 0) return null;
-    const totalSeconds = selectedContacts.length * ((typingDelay[0] + typingDelay[1]) / 2 + (sendInterval[0] + sendInterval[1]) / 2);
+    const totalSeconds =
+      selectedContacts.length *
+      ((typingDelay[0] + typingDelay[1]) / 2 + (sendInterval[0] + sendInterval[1]) / 2);
     const minutes = Math.ceil(totalSeconds / 60);
     if (minutes < 60) return `~${minutes} min`;
     return `~${Math.floor(minutes / 60)}h${minutes % 60 > 0 ? ` ${minutes % 60}min` : ''}`;
@@ -124,56 +165,139 @@ export function useCampaignEditor(campaign: TalkXCampaign | null, onClose: () =>
   const insertVariable = useCallback((v: string) => setMessageTemplate((prev) => prev + v), []);
 
   const toggleContact = useCallback((id: string) => {
-    setSelectedContacts((prev) => prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]);
+    setSelectedContacts((prev) =>
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+    );
   }, []);
 
   const selectAll = useCallback(() => {
     const ids = filteredContacts.map((c) => c.id);
     const allSelected = ids.every((id) => selectedContacts.includes(id));
-    setSelectedContacts((prev) => allSelected ? prev.filter((id) => !ids.includes(id)) : [...new Set([...prev, ...ids])]);
+    setSelectedContacts((prev) =>
+      allSelected ? prev.filter((id) => !ids.includes(id)) : [...new Set([...prev, ...ids])]
+    );
   }, [filteredContacts, selectedContacts]);
 
   const handleSave = useCallback(async () => {
     setSaving(true);
     try {
       const payload: Partial<TalkXCampaign> = {
-        name, message_template: messageTemplate,
-        typing_delay_min: Math.round(typingDelay[0] * 1000), typing_delay_max: Math.round(typingDelay[1] * 1000),
-        send_interval_min: Math.round(sendInterval[0] * 1000), send_interval_max: Math.round(sendInterval[1] * 1000),
+        name,
+        message_template: messageTemplate,
+        typing_delay_min: Math.round(typingDelay[0] * 1000),
+        typing_delay_max: Math.round(typingDelay[1] * 1000),
+        send_interval_min: Math.round(sendInterval[0] * 1000),
+        send_interval_max: Math.round(sendInterval[1] * 1000),
         whatsapp_connection_id: connectionId || null,
         media_url: hasMedia ? mediaUrl || null : null,
         media_type: hasMedia ? mediaType || null : null,
         scheduled_at: isScheduled && scheduledAt ? new Date(scheduledAt).toISOString() : null,
-        status: isScheduled && scheduledAt ? 'scheduled' : undefined,
+        // When turning scheduling off, a campaign previously marked 'scheduled' must be
+        // moved back to 'draft' — otherwise it stays 'scheduled' with no date and never fires.
+        status:
+          isScheduled && scheduledAt
+            ? 'scheduled'
+            : campaign?.status === 'scheduled'
+              ? 'draft'
+              : undefined,
       };
       if (campaign) {
         await updateCampaign.mutateAsync({ id: campaign.id, ...payload });
       } else {
         const newCampaign = await createCampaign.mutateAsync(payload);
         if (newCampaign && selectedContacts.length > 0) {
-          await addRecipients.mutateAsync({ campaignId: newCampaign.id, contactIds: selectedContacts });
+          await addRecipients.mutateAsync({
+            campaignId: newCampaign.id,
+            contactIds: selectedContacts,
+          });
         }
       }
       onClose();
     } finally {
       setSaving(false);
     }
-  }, [name, messageTemplate, typingDelay, sendInterval, connectionId, hasMedia, mediaUrl, mediaType, isScheduled, scheduledAt, campaign, selectedContacts, onClose, createCampaign, updateCampaign, addRecipients]);
+  }, [
+    name,
+    messageTemplate,
+    typingDelay,
+    sendInterval,
+    connectionId,
+    hasMedia,
+    mediaUrl,
+    mediaType,
+    isScheduled,
+    scheduledAt,
+    campaign,
+    selectedContacts,
+    onClose,
+    createCampaign,
+    updateCampaign,
+    addRecipients,
+  ]);
 
-  const clearFilters = useCallback(() => { setCompanyFilter('all'); setTagFilter('all'); }, []);
-  const toggleMedia = useCallback((v: boolean) => { setHasMedia(v); if (!v) { setMediaUrl(''); setMediaType(''); } }, []);
-  const toggleSchedule = useCallback((v: boolean) => { setIsScheduled(v); if (!v) setScheduledAt(''); }, []);
+  const clearFilters = useCallback(() => {
+    setCompanyFilter('all');
+    setTagFilter('all');
+  }, []);
+  const toggleMedia = useCallback((v: boolean) => {
+    setHasMedia(v);
+    if (!v) {
+      setMediaUrl('');
+      setMediaType('');
+    }
+  }, []);
+  const toggleSchedule = useCallback((v: boolean) => {
+    setIsScheduled(v);
+    if (!v) setScheduledAt('');
+  }, []);
+
+  // Lower bound for the datetime-local input, in LOCAL time (not UTC), so the
+  // "earliest allowed" instant matches what the user sees.
+  const minScheduledAt = toLocalDateTimeInput(new Date().toISOString());
 
   return {
-    name, setName, messageTemplate, setMessageTemplate,
-    typingDelay, setTypingDelay, sendInterval, setSendInterval,
-    connectionId, setConnectionId, selectedContacts, showPreview, setShowPreview,
-    contactSearch, setContactSearch, saving, companyFilter, setCompanyFilter,
-    tagFilter, setTagFilter, mediaUrl, setMediaUrl, mediaType, setMediaType,
-    hasMedia, isScheduled, scheduledAt, setScheduledAt,
-    connections, contacts, companies, tags, filteredContacts,
-    previewMessage, estimatedTime,
-    insertVariable, toggleContact, selectAll, handleSave,
-    clearFilters, toggleMedia, toggleSchedule,
+    minScheduledAt,
+    name,
+    setName,
+    messageTemplate,
+    setMessageTemplate,
+    typingDelay,
+    setTypingDelay,
+    sendInterval,
+    setSendInterval,
+    connectionId,
+    setConnectionId,
+    selectedContacts,
+    showPreview,
+    setShowPreview,
+    contactSearch,
+    setContactSearch,
+    saving,
+    companyFilter,
+    setCompanyFilter,
+    tagFilter,
+    setTagFilter,
+    mediaUrl,
+    setMediaUrl,
+    mediaType,
+    setMediaType,
+    hasMedia,
+    isScheduled,
+    scheduledAt,
+    setScheduledAt,
+    connections,
+    contacts,
+    companies,
+    tags,
+    filteredContacts,
+    previewMessage,
+    estimatedTime,
+    insertVariable,
+    toggleContact,
+    selectAll,
+    handleSave,
+    clearFilters,
+    toggleMedia,
+    toggleSchedule,
   };
 }

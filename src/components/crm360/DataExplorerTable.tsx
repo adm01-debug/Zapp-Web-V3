@@ -92,7 +92,7 @@ export function DataExplorerTable({ tabConfig, onRowClick, onCreateClick }: Data
         <Button variant="outline" size="sm" onClick={() => void browser.refetch()} className="h-9">
           <RefreshCw className="h-3.5 w-3.5" />
         </Button>
-        <Button variant="outline" size="sm" onClick={() => exportToCSV(browser.data as Record<string, unknown>[], tabConfig.columns, tabConfig.id)} disabled={browser.data.length === 0} className="h-9">
+        <Button variant="outline" size="sm" onClick={() => exportToCSV(browser.data as Record<string, unknown>[] /* ignore-audit: narrows Supabase query result to local interface */, tabConfig.columns, tabConfig.id)} disabled={browser.data.length === 0} className="h-9">
           <Download className="h-3.5 w-3.5 mr-1" /> CSV
         </Button>
         {onCreateClick && (
@@ -115,7 +115,10 @@ export function DataExplorerTable({ tabConfig, onRowClick, onCreateClick }: Data
                 <TableHead className="w-[40px] text-[10px]">#</TableHead>
                 {tabConfig.columns.map((col) => (
                   <TableHead key={col.key} className="cursor-pointer hover:bg-muted/50 transition-colors text-xs"
-                    onClick={() => { const isAsc = browser.order?.column === col.key && browser.order?.ascending; browser.setSort(col.key, !isAsc); }}>
+                    tabIndex={0}
+                    aria-sort={browser.order?.column === col.key ? (browser.order.ascending ? 'ascending' : 'descending') : 'none'}
+                    onClick={() => { const isAsc = browser.order?.column === col.key && browser.order?.ascending; browser.setSort(col.key, !isAsc); }}
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { const isAsc = browser.order?.column === col.key && browser.order?.ascending; browser.setSort(col.key, !isAsc); } }}>
                     <div className="flex items-center gap-1">
                       {col.label}
                       {browser.order?.column === col.key && <ArrowUpDown className="h-3 w-3 text-primary" />}

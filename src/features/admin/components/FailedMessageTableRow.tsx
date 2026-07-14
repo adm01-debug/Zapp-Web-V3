@@ -1,4 +1,4 @@
-import { format, formatDistanceToNow } from 'date-fns';
+import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { MessageSquare, Eye, RotateCw, Ban } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -7,11 +7,9 @@ import { TableCell, TableRow } from '@/components/ui/table';
 import { Checkbox } from '@/components/ui/checkbox';
 import { FailedMessageStatusBadge } from '@/features/admin';
 import { cn } from '@/lib/utils';
-import {
-  classifyRootCause,
-  getRootCauseMeta,
-} from '@/lib/failureRootCause';
+import { classifyRootCause, getRootCauseMeta } from '@/lib/failureRootCause';
 import { FailedMessageRow } from '@/features/admin';
+import { formatDateTimeCompact } from '@/lib/formatters';
 
 const ROOT_CAUSE_TONE_CLASS: Record<'warning' | 'destructive' | 'info' | 'muted', string> = {
   warning: 'bg-warning/15 text-warning-foreground border-warning/40',
@@ -19,15 +17,6 @@ const ROOT_CAUSE_TONE_CLASS: Record<'warning' | 'destructive' | 'info' | 'muted'
   info: 'bg-primary/15 text-primary border-primary/40',
   muted: 'bg-muted text-muted-foreground border-border',
 };
-
-function formatDate(iso: string | null) {
-  if (!iso) return '—';
-  try {
-    return format(new Date(iso), "dd/MM HH:mm:ss", { locale: ptBR });
-  } catch {
-    return iso;
-  }
-}
 
 function shortJid(jid: string | null) {
   if (!jid) return '—';
@@ -82,8 +71,12 @@ export function FailedMessageTableRow({
       <TableCell data-testid="failed-message-status">
         <FailedMessageStatusBadge status={row.status} />
       </TableCell>
-      <TableCell className=" text-xs" data-testid="failed-message-instance">{row.instance_name}</TableCell>
-      <TableCell className=" text-xs" data-testid="failed-message-jid">{shortJid(row.remote_jid)}</TableCell>
+      <TableCell className="text-xs" data-testid="failed-message-instance">
+        {row.instance_name}
+      </TableCell>
+      <TableCell className="text-xs" data-testid="failed-message-jid">
+        {shortJid(row.remote_jid)}
+      </TableCell>
       <TableCell className="max-w-[280px]" data-testid="failed-message-error">
         <div className="flex flex-col gap-1">
           {(() => {
@@ -92,7 +85,7 @@ export function FailedMessageTableRow({
             return (
               <Badge
                 variant="outline"
-                className={cn('w-fit text-[10px] px-1.5 py-0', ROOT_CAUSE_TONE_CLASS[meta.tone])}
+                className={cn('w-fit px-1.5 py-0 text-[10px]', ROOT_CAUSE_TONE_CLASS[meta.tone])}
                 title={meta.hint}
                 data-testid="failed-message-root-cause"
               >
@@ -105,7 +98,7 @@ export function FailedMessageTableRow({
           </span>
           {row.error_message && (
             <span
-              className="text-xs text-muted-foreground truncate"
+              className="truncate text-xs text-muted-foreground"
               title={row.error_message}
               data-testid="failed-message-error-message"
             >
@@ -135,7 +128,9 @@ export function FailedMessageTableRow({
           ? formatDistanceToNow(new Date(row.next_attempt_at), { addSuffix: true, locale: ptBR })
           : '—'}
       </TableCell>
-      <TableCell className="text-xs" data-testid="failed-message-created-at">{formatDate(row.created_at)}</TableCell>
+      <TableCell className="text-xs" data-testid="failed-message-created-at">
+        {formatDateTimeCompact(row.created_at)}
+      </TableCell>
       <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
         <div className="flex justify-end gap-1">
           {row.remote_jid && (
@@ -144,6 +139,7 @@ export function FailedMessageTableRow({
               variant="ghost"
               onClick={() => onViewInChat(row)}
               title="Ver no chat"
+              aria-label="Ver no chat"
               data-testid="failed-message-view-in-chat-button"
             >
               <MessageSquare className="h-4 w-4" />
@@ -154,22 +150,27 @@ export function FailedMessageTableRow({
             variant="ghost"
             onClick={() => onSelect(row)}
             title="Ver detalhes"
+            aria-label="Ver detalhes"
             data-testid="failed-message-details-button"
           >
             <Eye className="h-4 w-4" />
           </Button>
-          {canEdit && (row.status === 'pending' || row.status === 'retrying' || row.status === 'abandoned') && (
-            <Button
-              size="icon"
-              variant="ghost"
-              onClick={() => onRetry(row.id)}
-              disabled={isRetrying}
-              title="Reprocessar agora"
-              data-testid="failed-message-retry-button"
-            >
-              <RotateCw className="h-4 w-4" />
-            </Button>
-          )}
+          {canEdit &&
+            (row.status === 'pending' ||
+              row.status === 'retrying' ||
+              row.status === 'abandoned') && (
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={() => onRetry(row.id)}
+                disabled={isRetrying}
+                title="Reprocessar agora"
+                aria-label="Reprocessar agora"
+                data-testid="failed-message-retry-button"
+              >
+                <RotateCw className="h-4 w-4" />
+              </Button>
+            )}
           {canEdit && (row.status === 'pending' || row.status === 'retrying') && (
             <Button
               size="icon"
@@ -177,6 +178,7 @@ export function FailedMessageTableRow({
               onClick={() => onAbandon(row.id)}
               disabled={isAbandoning}
               title="Abandonar"
+              aria-label="Abandonar mensagem"
               data-testid="failed-message-abandon-button"
             >
               <Ban className="h-4 w-4" />

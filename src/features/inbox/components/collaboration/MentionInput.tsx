@@ -58,7 +58,7 @@ export function MentionInput({ value, onChange, onSubmit, placeholder, disabled 
         <Input value={value} onChange={handleInputChange} placeholder={placeholder} disabled={disabled}
           onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey && !showMentions) { e.preventDefault(); onSubmit(); } }}
           className="flex-1" />
-        <Button onClick={onSubmit} disabled={disabled || !value.trim()} size="icon">
+        <Button aria-label="Enviar" onClick={onSubmit} disabled={disabled || !value.trim()} size="icon">
           <Send className="w-4 h-4" />
         </Button>
       </div>
@@ -71,7 +71,7 @@ export function MentionInput({ value, onChange, onSubmit, placeholder, disabled 
                 <button key={agent.id} className="w-full flex items-center gap-2 p-2 hover:bg-muted text-left"
                   onClick={() => handleSelectMention(agent)}>
                   <Avatar className="w-6 h-6">
-                    <AvatarImage src={agent.avatar_url || undefined} />
+                    <AvatarImage src={agent.avatar_url || undefined} alt={agent.name} />
                     <AvatarFallback className="text-xs">{agent.name.substring(0, 2).toUpperCase()}</AvatarFallback>
                   </Avatar>
                   <span className="text-sm">{agent.name}</span>

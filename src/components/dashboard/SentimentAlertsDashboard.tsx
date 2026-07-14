@@ -5,7 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useSentimentData, getSentimentColor, getSentimentBg } from './useSentimentData';
+import { useSentimentData, getSentimentColor, getSentimentBg } from '@/hooks/dashboard/useSentimentData';
 import { OverviewTab, AgentsTab, AlertsTab, DistributionTab } from './SentimentTabContent';
 
 export function SentimentAlertsDashboard() {
@@ -26,7 +26,7 @@ export function SentimentAlertsDashboard() {
               <SelectItem value="30">Últimos 30 dias</SelectItem><SelectItem value="90">Últimos 90 dias</SelectItem>
             </SelectContent>
           </Select>
-          <Button variant="outline" size="icon" onClick={fetchData} disabled={loading}><RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} /></Button>
+          <Button aria-label="Atualizar dados" variant="outline" size="icon" onClick={fetchData} disabled={loading}><RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} /></Button>
         </div>
       </div>
 

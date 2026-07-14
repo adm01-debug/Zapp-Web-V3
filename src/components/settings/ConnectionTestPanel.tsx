@@ -47,7 +47,7 @@ export function ConnectionTestPanel() {
         body: { mode },
       });
       if (invokeErr) throw invokeErr;
-      setResult(data as TestResult);
+      setResult(data as TestResult); // ignore-audit: supabase.functions.invoke returns unknown
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
       toast.error("Falha ao executar teste de conexão");
@@ -117,7 +117,7 @@ export function ConnectionTestPanel() {
                 <span className=" truncate max-w-[260px]" title={result.webhookUrl}>
                   {result.webhookUrl}
                 </span>
-                <Button size="icon" variant="ghost" className="h-6 w-6" onClick={copyWebhook}>
+                <Button aria-label="Copiar webhook" size="icon" variant="ghost" className="h-6 w-6" onClick={copyWebhook}>
                   <Copy className="h-3 w-3" />
                 </Button>
               </div>

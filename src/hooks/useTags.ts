@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { safeClient } from '@/integrations/supabase/safeClient';
 import { useAuth } from '@/features/auth';
 import { toast } from '@/hooks/use-toast';
 
@@ -19,8 +20,14 @@ export function useTags() {
   const queryClient = useQueryClient();
 
   // Fetch all tags with contact count
-  const { data: tags = [], isLoading, error, refetch } = useQuery({
+  const {
+    data: tags = [],
+    isLoading,
+    error,
+    refetch,
+  } = useQuery({
     queryKey: ['tags'],
+    staleTime: Infinity,
     queryFn: async () => {
       const { data: tagsData, error: tagsError } = await supabase
         .from('tags')
@@ -37,12 +44,15 @@ export function useTags() {
       if (countError) throw countError;
 
       // Count contacts per tag
-      const countMap = (contactCounts || []).reduce((acc, ct) => {
-        acc[ct.tag_id] = (acc[ct.tag_id] || 0) + 1;
-        return acc;
-      }, {} as Record<string, number>);
+      const countMap = (contactCounts || []).reduce(
+        (acc, ct) => {
+          acc[ct.tag_id] = (acc[ct.tag_id] || 0) + 1;
+          return acc;
+        },
+        {} as Record<string, number>
+      );
 
-      return (tagsData || []).map(tag => ({
+      return (tagsData || []).map((tag) => ({
         ...tag,
         contact_count: countMap[tag.id] || 0,
       })) as Tag[];
@@ -56,22 +66,20 @@ export function useTags() {
       const { data: profile } = await supabase
         .from('profiles')
         .select('id')
-        .eq('user_id', user?.id)
+        .eq('user_id', user?.id ?? '')
         .maybeSingle();
 
-      const { data: tag, error } = await supabase
-        .from('tags')
-        .insert({
+      const { error } = await safeClient.from('tags', (q) =>
+        q.insert({
           name: data.name,
           color: data.color,
           description: data.description || null,
           created_by: profile?.id || null,
         })
-        .select()
-        .single();
+      );
 
       if (error) throw error;
-      return tag;
+      return null;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tags'] });
@@ -83,8 +91,8 @@ export function useTags() {
     onError: (error: Error) => {
       toast({
         title: 'Erro ao criar etiqueta',
-        description: error.message.includes('duplicate') 
-          ? 'Já existe uma etiqueta com este nome.' 
+        description: error.message.includes('duplicate')
+          ? 'Já existe uma etiqueta com este nome.'
           : error.message,
         variant: 'destructive',
       });
@@ -105,7 +113,7 @@ export function useTags() {
         .select()
         .single();
 
-      if (error) throw error;
+      if (tagErr) throw tagErr;
       return tag;
     },
     onSuccess: () => {
@@ -127,10 +135,7 @@ export function useTags() {
   // Delete tag mutation
   const deleteMutation = useMutation({
     mutationFn: async (tagId: string) => {
-      const { error } = await supabase
-        .from('tags')
-        .delete()
-        .eq('id', tagId);
+      const { error } = await supabase.from('tags').delete().eq('id', tagId);
 
       if (error) throw error;
     },
@@ -173,13 +178,13 @@ export function useContactTags(contactId: string | undefined) {
     queryFn: async () => {
       if (!contactId) return [];
 
-      const { data, error } = await supabase
-        .from('contact_tags')
-        .select('tag_id, tags(*)')
-        .eq('contact_id', contactId);
+      type ContactTagRow = { tag_id: string; tags: Tag | null };
+      const { data, error } = await safeClient.from<ContactTagRow>('contact_tags', (q) =>
+        q.select('tag_id, tags(*)').eq('contact_id', contactId!)
+      );
 
       if (error) throw error;
-      return data?.map(ct => ct.tags).filter(Boolean) as Tag[];
+      return data?.map((ct) => ct.tags).filter(Boolean) as Tag[];
     },
     enabled: !!contactId,
   });
@@ -198,6 +203,13 @@ export function useContactTags(contactId: string | undefined) {
       queryClient.invalidateQueries({ queryKey: ['contact-tags', contactId] });
       queryClient.invalidateQueries({ queryKey: ['tags'] });
     },
+    onError: (error: Error) => {
+      toast({
+        title: 'Erro ao adicionar etiqueta',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
   });
 
   const removeTagMutation = useMutation({
@@ -215,6 +227,13 @@ export function useContactTags(contactId: string | undefined) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['contact-tags', contactId] });
       queryClient.invalidateQueries({ queryKey: ['tags'] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Erro ao remover etiqueta',
+        description: error.message,
+        variant: 'destructive',
+      });
     },
   });
 

@@ -1,5 +1,7 @@
 import React from 'react';
 import { vi } from 'vitest';
+import type { User, Session } from '@supabase/supabase-js';
+import type { Profile } from '@/features/auth/services/authService';
 
 export const mockUser = {
   id: 'test-user-id',
@@ -29,9 +31,9 @@ export const mockSession = {
 };
 
 export const mockAuthContext = {
-  user: mockUser as any,
-  session: mockSession as any,
-  profile: mockProfile as any,
+  user: mockUser as unknown as User,
+  session: mockSession as unknown as Session,
+  profile: mockProfile as unknown as Profile,
   loading: false,
   signIn: vi.fn().mockResolvedValue({ error: null }),
   signUp: vi.fn().mockResolvedValue({ error: null }),
@@ -49,10 +51,10 @@ export const mockAuthContextLoggedOut = {
 };
 
 // Mock AuthProvider that provides test auth context
-export function MockAuthProvider({ 
-  children, 
-  value = mockAuthContext 
-}: { 
+export function MockAuthProvider({
+  children,
+  value: _value = mockAuthContext,
+}: {
   children: React.ReactNode;
   value?: typeof mockAuthContext;
 }) {

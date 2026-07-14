@@ -27,9 +27,10 @@ export function useIncomingCallBroadcast(instance: string = DEFAULT_INSTANCE) {
 
   useEffect(() => {
     if (!isExternalConfigured || !externalSupabase || !profile?.id) return;
+    const supabase = externalSupabase;
 
     const topic = `incoming-calls:${instance}`;
-    const channel = externalSupabase
+    const channel = supabase
       .channel(topic)
       .on('broadcast', { event: 'call_received' }, async ({ payload }) => {
         const p = (payload ?? {}) as BroadcastPayload;
@@ -57,7 +58,7 @@ export function useIncomingCallBroadcast(instance: string = DEFAULT_INSTANCE) {
         let contactId: string | null = null;
 
         try {
-          const { data, error } = await externalSupabase!.rpc('rpc_get_contact', {
+          const { data, error } = await supabase.rpc('rpc_get_contact', {
             p_remote_jid: p.remote_jid,
             p_instance: instance,
           });
@@ -65,12 +66,20 @@ export function useIncomingCallBroadcast(instance: string = DEFAULT_INSTANCE) {
           if (error) {
             log.error('rpc_get_contact failed, using phone fallback', error);
           } else if (data) {
-            const row = Array.isArray(data) ? data[0] : data;
+            type ContactLookup = {
+              push_name?: string | null;
+              name?: string | null;
+              full_name?: string | null;
+              phone?: string | null;
+              profile_picture_url?: string | null;
+              id?: string | null;
+            };
+            const row = (Array.isArray(data) ? data[0] : data) as ContactLookup | null;
             if (row) {
-              contactName = (row.push_name as string) || (row.name as string) || phoneFallback;
-              contactPhone = (row.phone as string) || phoneFallback;
-              contactAvatar = (row.profile_picture_url as string) || null;
-              contactId = (row.id as string) || null;
+              contactName = row.push_name || row.name || row.full_name || phoneFallback;
+              contactPhone = row.phone || phoneFallback;
+              contactAvatar = row.profile_picture_url ?? null;
+              contactId = row.id ?? null;
             }
           }
         } catch (err) {
@@ -93,6 +102,8 @@ export function useIncomingCallBroadcast(instance: string = DEFAULT_INSTANCE) {
       .subscribe();
 
     return () => {
+      supabase.removeChannel(channel);
+      void channel.unsubscribe();
       externalSupabase!.removeChannel(channel);
     };
   }, [profile?.id, instance]);

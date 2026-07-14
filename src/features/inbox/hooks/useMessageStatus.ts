@@ -5,11 +5,7 @@ import { getLogger } from '@/lib/logger';
 const log = getLogger('useMessageStatus');
 import { logMessagesSubscribe, wrapMessagesHandler } from '@/lib/devRealtimeLogger';
 import { dbFrom, dbTable } from '@/integrations/datasource/db';
-import {
-  subscribeAllSendStatus,
-  getSendStatus,
-  type SendStatusDetail,
-} from '@/features/inbox';
+import { subscribeAllSendStatus, getSendStatus, type SendStatusDetail } from '@/features/inbox';
 import type {
   MessageStatusDbRow,
   MessageStatusDetail,
@@ -77,7 +73,11 @@ export const useMessageStatus = (contactId?: string) => {
   useEffect(() => {
     if (!contactId) return;
 
-    logMessagesSubscribe('useMessageStatus', { event: 'UPDATE', table: dbTable('messages'), filter: `contact_id=eq.${contactId}` });
+    logMessagesSubscribe('useMessageStatus', {
+      event: 'UPDATE',
+      table: dbTable('messages'),
+      filter: `contact_id=eq.${contactId}`,
+    });
     const channel = supabase
       .channel(`message-status-${contactId}`)
       .on(
@@ -88,33 +88,40 @@ export const useMessageStatus = (contactId?: string) => {
           table: 'evolution_messages',
           filter: `contact_id=eq.${contactId}`,
         },
-        wrapMessagesHandler<{ new: Record<string, unknown>; old?: Record<string, unknown> }>('useMessageStatus', (payload) => {
-          const newData = payload.new as {
-            id: string;
-            status: string;
-            status_updated_at?: string;
-            status_at?: string; // fonte evo.evolution_messages usa status_at
-            error_code?: string | null;
-            error_reason?: string | null;
-          };
-          if (newData.status) {
-            setStatusUpdates((prev) => {
-              const updated = new Map(prev);
-              updated.set(newData.id, {
-                id: newData.id,
-                status: newData.status as MessageUIStatus,
-                status_updated_at: newData.status_updated_at ?? newData.status_at ?? new Date().toISOString(),
-                error_code: newData.error_code ?? null,
-                error_reason: newData.error_reason ?? null,
+        wrapMessagesHandler<{ new: Record<string, unknown>; old?: Record<string, unknown> }>(
+          'useMessageStatus',
+          (payload) => {
+            const newData = payload.new as {
+              id: string;
+              status: string;
+              status_updated_at?: string;
+              status_at?: string; // fonte evo.evolution_messages usa status_at
+              error_code?: string | null;
+              error_reason?: string | null;
+            };
+            if (newData.status) {
+              setStatusUpdates((prev) => {
+                const updated = new Map(prev);
+                updated.set(newData.id, {
+                  id: newData.id,
+                  status: newData.status as MessageUIStatus,
+                  status_updated_at:
+                    newData.status_updated_at ?? newData.status_at ?? new Date().toISOString(),
+                  error_code: newData.error_code ?? null,
+                  error_reason: newData.error_reason ?? null,
+                });
+                return updated;
               });
-              return updated;
-            });
+            }
           }
-        })
+        )
       )
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
+    return () => {
+      void channel.unsubscribe();
+      supabase.removeChannel(channel);
+    };
   }, [contactId]);
 
   // Subscribe to in-memory bus (transient + immediate updates)
@@ -148,7 +155,12 @@ export const useMessageStatus = (contactId?: string) => {
       const db = statusUpdates.get(messageId);
       const status = getMessageStatus(messageId);
       if (!status) return undefined;
-      if (bus && (TRANSIENT.includes(bus.status) || !db || bus.updatedAt >= new Date(db.status_updated_at).getTime())) {
+      if (
+        bus &&
+        (TRANSIENT.includes(bus.status) ||
+          !db ||
+          bus.updatedAt >= new Date(db.status_updated_at).getTime())
+      ) {
         return {
           status,
           attempt: bus.attempt,
@@ -166,20 +178,17 @@ export const useMessageStatus = (contactId?: string) => {
     [statusUpdates, busTick, getMessageStatus]
   );
 
-  const updateLocalStatus = useCallback(
-    (messageId: string, status: MessageUIStatus) => {
-      setStatusUpdates((prev) => {
-        const updated = new Map(prev);
-        updated.set(messageId, {
-          id: messageId,
-          status,
-          status_updated_at: new Date().toISOString(),
-        });
-        return updated;
+  const updateLocalStatus = useCallback((messageId: string, status: MessageUIStatus) => {
+    setStatusUpdates((prev) => {
+      const updated = new Map(prev);
+      updated.set(messageId, {
+        id: messageId,
+        status,
+        status_updated_at: new Date().toISOString(),
       });
-    },
-    []
-  );
+      return updated;
+    });
+  }, []);
 
   return {
     statusUpdates,

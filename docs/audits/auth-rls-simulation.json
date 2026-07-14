@@ -1,0 +1,792 @@
+[
+  {
+    "id": "login-lockout-1",
+    "flow": "login-lockout",
+    "role": "anon",
+    "input": {
+      "attempts": 1
+    },
+    "expected": "allowed",
+    "observed": "allowed",
+    "pass": true
+  },
+  {
+    "id": "login-lockout-3",
+    "flow": "login-lockout",
+    "role": "anon",
+    "input": {
+      "attempts": 3
+    },
+    "expected": "allowed",
+    "observed": "allowed",
+    "pass": true
+  },
+  {
+    "id": "login-lockout-5",
+    "flow": "login-lockout",
+    "role": "anon",
+    "input": {
+      "attempts": 5
+    },
+    "expected": "locked 1min",
+    "observed": "locked 1min",
+    "pass": true
+  },
+  {
+    "id": "login-lockout-6",
+    "flow": "login-lockout",
+    "role": "anon",
+    "input": {
+      "attempts": 6
+    },
+    "expected": "locked 2min",
+    "observed": "locked 2min",
+    "pass": true
+  },
+  {
+    "id": "login-lockout-8",
+    "flow": "login-lockout",
+    "role": "anon",
+    "input": {
+      "attempts": 8
+    },
+    "expected": "locked 8min",
+    "observed": "locked 8min",
+    "pass": true
+  },
+  {
+    "id": "login-lockout-12",
+    "flow": "login-lockout",
+    "role": "anon",
+    "input": {
+      "attempts": 12
+    },
+    "expected": "locked 128min",
+    "observed": "locked 128min",
+    "pass": true
+  },
+  {
+    "id": "login-lockout-20",
+    "flow": "login-lockout",
+    "role": "anon",
+    "input": {
+      "attempts": 20
+    },
+    "expected": "locked 1024min",
+    "observed": "locked 1024min",
+    "pass": true
+  },
+  {
+    "id": "reset-token-fresh",
+    "flow": "reset-password",
+    "role": "anon",
+    "input": {
+      "state": "fresh"
+    },
+    "expected": "user_id returned",
+    "observed": "user_id returned",
+    "pass": true
+  },
+  {
+    "id": "reset-token-expired",
+    "flow": "reset-password",
+    "role": "anon",
+    "input": {
+      "state": "expired"
+    },
+    "expected": "null",
+    "observed": "null",
+    "pass": true
+  },
+  {
+    "id": "reset-token-consumed",
+    "flow": "reset-password",
+    "role": "anon",
+    "input": {
+      "state": "consumed"
+    },
+    "expected": "null",
+    "observed": "null",
+    "pass": true
+  },
+  {
+    "id": "reset-token-invalid_hash",
+    "flow": "reset-password",
+    "role": "anon",
+    "input": {
+      "state": "invalid_hash"
+    },
+    "expected": "null",
+    "observed": "null",
+    "pass": true
+  },
+  {
+    "id": "reset-rate-limit-0",
+    "flow": "reset-rate-limit",
+    "role": "anon",
+    "input": {
+      "pendingCount": 0
+    },
+    "expected": "created",
+    "observed": "created",
+    "pass": true
+  },
+  {
+    "id": "reset-rate-limit-1",
+    "flow": "reset-rate-limit",
+    "role": "anon",
+    "input": {
+      "pendingCount": 1
+    },
+    "expected": "created",
+    "observed": "created",
+    "pass": true
+  },
+  {
+    "id": "reset-rate-limit-2",
+    "flow": "reset-rate-limit",
+    "role": "anon",
+    "input": {
+      "pendingCount": 2
+    },
+    "expected": "created",
+    "observed": "created",
+    "pass": true
+  },
+  {
+    "id": "reset-rate-limit-3",
+    "flow": "reset-rate-limit",
+    "role": "anon",
+    "input": {
+      "pendingCount": 3
+    },
+    "expected": "rejected (too many)",
+    "observed": "rejected via trigger (too many)",
+    "pass": true
+  },
+  {
+    "id": "reset-rate-limit-5",
+    "flow": "reset-rate-limit",
+    "role": "anon",
+    "input": {
+      "pendingCount": 5
+    },
+    "expected": "rejected (too many)",
+    "observed": "rejected via trigger (too many)",
+    "pass": true
+  },
+  {
+    "id": "role-escalation-admin-role",
+    "flow": "role-escalation",
+    "role": "admin",
+    "input": {
+      "field": "role"
+    },
+    "expected": "allowed",
+    "observed": "allowed",
+    "pass": true
+  },
+  {
+    "id": "role-escalation-admin-access_level",
+    "flow": "role-escalation",
+    "role": "admin",
+    "input": {
+      "field": "access_level"
+    },
+    "expected": "allowed",
+    "observed": "allowed",
+    "pass": true
+  },
+  {
+    "id": "role-escalation-admin-permissions",
+    "flow": "role-escalation",
+    "role": "admin",
+    "input": {
+      "field": "permissions"
+    },
+    "expected": "allowed",
+    "observed": "allowed",
+    "pass": true
+  },
+  {
+    "id": "role-escalation-supervisor-role",
+    "flow": "role-escalation",
+    "role": "supervisor",
+    "input": {
+      "field": "role"
+    },
+    "expected": "allowed",
+    "observed": "allowed",
+    "pass": true
+  },
+  {
+    "id": "role-escalation-supervisor-access_level",
+    "flow": "role-escalation",
+    "role": "supervisor",
+    "input": {
+      "field": "access_level"
+    },
+    "expected": "allowed",
+    "observed": "allowed",
+    "pass": true
+  },
+  {
+    "id": "role-escalation-supervisor-permissions",
+    "flow": "role-escalation",
+    "role": "supervisor",
+    "input": {
+      "field": "permissions"
+    },
+    "expected": "allowed",
+    "observed": "allowed",
+    "pass": true
+  },
+  {
+    "id": "role-escalation-agent-role",
+    "flow": "role-escalation",
+    "role": "agent",
+    "input": {
+      "field": "role"
+    },
+    "expected": "denied 42501",
+    "observed": "denied 42501",
+    "pass": true
+  },
+  {
+    "id": "role-escalation-agent-access_level",
+    "flow": "role-escalation",
+    "role": "agent",
+    "input": {
+      "field": "access_level"
+    },
+    "expected": "denied 42501",
+    "observed": "denied 42501",
+    "pass": true
+  },
+  {
+    "id": "role-escalation-agent-permissions",
+    "flow": "role-escalation",
+    "role": "agent",
+    "input": {
+      "field": "permissions"
+    },
+    "expected": "denied 42501",
+    "observed": "denied 42501",
+    "pass": true
+  },
+  {
+    "id": "role-escalation-special_agent-role",
+    "flow": "role-escalation",
+    "role": "special_agent",
+    "input": {
+      "field": "role"
+    },
+    "expected": "denied 42501",
+    "observed": "denied 42501",
+    "pass": true
+  },
+  {
+    "id": "role-escalation-special_agent-access_level",
+    "flow": "role-escalation",
+    "role": "special_agent",
+    "input": {
+      "field": "access_level"
+    },
+    "expected": "denied 42501",
+    "observed": "denied 42501",
+    "pass": true
+  },
+  {
+    "id": "role-escalation-special_agent-permissions",
+    "flow": "role-escalation",
+    "role": "special_agent",
+    "input": {
+      "field": "permissions"
+    },
+    "expected": "denied 42501",
+    "observed": "denied 42501",
+    "pass": true
+  },
+  {
+    "id": "role-escalation-anon-role",
+    "flow": "role-escalation",
+    "role": "anon",
+    "input": {
+      "field": "role"
+    },
+    "expected": "denied 42501",
+    "observed": "denied 42501",
+    "pass": true
+  },
+  {
+    "id": "role-escalation-anon-access_level",
+    "flow": "role-escalation",
+    "role": "anon",
+    "input": {
+      "field": "access_level"
+    },
+    "expected": "denied 42501",
+    "observed": "denied 42501",
+    "pass": true
+  },
+  {
+    "id": "role-escalation-anon-permissions",
+    "flow": "role-escalation",
+    "role": "anon",
+    "input": {
+      "field": "permissions"
+    },
+    "expected": "denied 42501",
+    "observed": "denied 42501",
+    "pass": true
+  },
+  {
+    "id": "rls-contact-admin-selftrue-admtrue",
+    "flow": "rls-contacts",
+    "role": "admin",
+    "input": {
+      "assignedToSelf": true,
+      "isAdmin": true
+    },
+    "expected": "visible",
+    "observed": "visible",
+    "pass": true
+  },
+  {
+    "id": "rls-contact-admin-selftrue-admfalse",
+    "flow": "rls-contacts",
+    "role": "admin",
+    "input": {
+      "assignedToSelf": true,
+      "isAdmin": false
+    },
+    "expected": "visible",
+    "observed": "visible",
+    "pass": true
+  },
+  {
+    "id": "rls-contact-admin-selffalse-admtrue",
+    "flow": "rls-contacts",
+    "role": "admin",
+    "input": {
+      "assignedToSelf": false,
+      "isAdmin": true
+    },
+    "expected": "visible",
+    "observed": "visible",
+    "pass": true
+  },
+  {
+    "id": "rls-contact-admin-selffalse-admfalse",
+    "flow": "rls-contacts",
+    "role": "admin",
+    "input": {
+      "assignedToSelf": false,
+      "isAdmin": false
+    },
+    "expected": "hidden",
+    "observed": "hidden",
+    "pass": true
+  },
+  {
+    "id": "rls-contact-supervisor-selftrue-admtrue",
+    "flow": "rls-contacts",
+    "role": "supervisor",
+    "input": {
+      "assignedToSelf": true,
+      "isAdmin": true
+    },
+    "expected": "visible",
+    "observed": "visible",
+    "pass": true
+  },
+  {
+    "id": "rls-contact-supervisor-selftrue-admfalse",
+    "flow": "rls-contacts",
+    "role": "supervisor",
+    "input": {
+      "assignedToSelf": true,
+      "isAdmin": false
+    },
+    "expected": "visible",
+    "observed": "visible",
+    "pass": true
+  },
+  {
+    "id": "rls-contact-supervisor-selffalse-admtrue",
+    "flow": "rls-contacts",
+    "role": "supervisor",
+    "input": {
+      "assignedToSelf": false,
+      "isAdmin": true
+    },
+    "expected": "visible",
+    "observed": "visible",
+    "pass": true
+  },
+  {
+    "id": "rls-contact-supervisor-selffalse-admfalse",
+    "flow": "rls-contacts",
+    "role": "supervisor",
+    "input": {
+      "assignedToSelf": false,
+      "isAdmin": false
+    },
+    "expected": "hidden",
+    "observed": "hidden",
+    "pass": true
+  },
+  {
+    "id": "rls-contact-agent-selftrue-admtrue",
+    "flow": "rls-contacts",
+    "role": "agent",
+    "input": {
+      "assignedToSelf": true,
+      "isAdmin": true
+    },
+    "expected": "visible",
+    "observed": "visible",
+    "pass": true
+  },
+  {
+    "id": "rls-contact-agent-selftrue-admfalse",
+    "flow": "rls-contacts",
+    "role": "agent",
+    "input": {
+      "assignedToSelf": true,
+      "isAdmin": false
+    },
+    "expected": "visible",
+    "observed": "visible",
+    "pass": true
+  },
+  {
+    "id": "rls-contact-agent-selffalse-admtrue",
+    "flow": "rls-contacts",
+    "role": "agent",
+    "input": {
+      "assignedToSelf": false,
+      "isAdmin": true
+    },
+    "expected": "visible",
+    "observed": "visible",
+    "pass": true
+  },
+  {
+    "id": "rls-contact-agent-selffalse-admfalse",
+    "flow": "rls-contacts",
+    "role": "agent",
+    "input": {
+      "assignedToSelf": false,
+      "isAdmin": false
+    },
+    "expected": "hidden",
+    "observed": "hidden",
+    "pass": true
+  },
+  {
+    "id": "rls-contact-special_agent-selftrue-admtrue",
+    "flow": "rls-contacts",
+    "role": "special_agent",
+    "input": {
+      "assignedToSelf": true,
+      "isAdmin": true
+    },
+    "expected": "visible",
+    "observed": "visible",
+    "pass": true
+  },
+  {
+    "id": "rls-contact-special_agent-selftrue-admfalse",
+    "flow": "rls-contacts",
+    "role": "special_agent",
+    "input": {
+      "assignedToSelf": true,
+      "isAdmin": false
+    },
+    "expected": "visible",
+    "observed": "visible",
+    "pass": true
+  },
+  {
+    "id": "rls-contact-special_agent-selffalse-admtrue",
+    "flow": "rls-contacts",
+    "role": "special_agent",
+    "input": {
+      "assignedToSelf": false,
+      "isAdmin": true
+    },
+    "expected": "visible",
+    "observed": "visible",
+    "pass": true
+  },
+  {
+    "id": "rls-contact-special_agent-selffalse-admfalse",
+    "flow": "rls-contacts",
+    "role": "special_agent",
+    "input": {
+      "assignedToSelf": false,
+      "isAdmin": false
+    },
+    "expected": "hidden",
+    "observed": "hidden",
+    "pass": true
+  },
+  {
+    "id": "rls-contact-anon-selftrue-admtrue",
+    "flow": "rls-contacts",
+    "role": "anon",
+    "input": {
+      "assignedToSelf": true,
+      "isAdmin": true
+    },
+    "expected": "visible",
+    "observed": "visible",
+    "pass": true
+  },
+  {
+    "id": "rls-contact-anon-selftrue-admfalse",
+    "flow": "rls-contacts",
+    "role": "anon",
+    "input": {
+      "assignedToSelf": true,
+      "isAdmin": false
+    },
+    "expected": "visible",
+    "observed": "visible",
+    "pass": true
+  },
+  {
+    "id": "rls-contact-anon-selffalse-admtrue",
+    "flow": "rls-contacts",
+    "role": "anon",
+    "input": {
+      "assignedToSelf": false,
+      "isAdmin": true
+    },
+    "expected": "visible",
+    "observed": "visible",
+    "pass": true
+  },
+  {
+    "id": "rls-contact-anon-selffalse-admfalse",
+    "flow": "rls-contacts",
+    "role": "anon",
+    "input": {
+      "assignedToSelf": false,
+      "isAdmin": false
+    },
+    "expected": "hidden",
+    "observed": "hidden",
+    "pass": true
+  },
+  {
+    "id": "session-valid",
+    "flow": "session",
+    "role": "agent",
+    "input": {
+      "state": "valid"
+    },
+    "expected": "200",
+    "observed": "200",
+    "pass": true
+  },
+  {
+    "id": "session-expired",
+    "flow": "session",
+    "role": "agent",
+    "input": {
+      "state": "expired"
+    },
+    "expected": "401",
+    "observed": "401",
+    "pass": true
+  },
+  {
+    "id": "session-revoked",
+    "flow": "session",
+    "role": "agent",
+    "input": {
+      "state": "revoked"
+    },
+    "expected": "401",
+    "observed": "401",
+    "pass": true
+  },
+  {
+    "id": "session-missing",
+    "flow": "session",
+    "role": "agent",
+    "input": {
+      "state": "missing"
+    },
+    "expected": "401",
+    "observed": "401",
+    "pass": true
+  },
+  {
+    "id": "tenant-admin-queuetrue",
+    "flow": "tenant-isolation",
+    "role": "admin",
+    "input": {
+      "inSameQueue": true
+    },
+    "expected": "allowed",
+    "observed": "allowed",
+    "pass": true
+  },
+  {
+    "id": "tenant-admin-queuefalse",
+    "flow": "tenant-isolation",
+    "role": "admin",
+    "input": {
+      "inSameQueue": false
+    },
+    "expected": "allowed",
+    "observed": "allowed",
+    "pass": true
+  },
+  {
+    "id": "tenant-supervisor-queuetrue",
+    "flow": "tenant-isolation",
+    "role": "supervisor",
+    "input": {
+      "inSameQueue": true
+    },
+    "expected": "allowed",
+    "observed": "allowed",
+    "pass": true
+  },
+  {
+    "id": "tenant-supervisor-queuefalse",
+    "flow": "tenant-isolation",
+    "role": "supervisor",
+    "input": {
+      "inSameQueue": false
+    },
+    "expected": "allowed",
+    "observed": "allowed",
+    "pass": true
+  },
+  {
+    "id": "tenant-agent-queuetrue",
+    "flow": "tenant-isolation",
+    "role": "agent",
+    "input": {
+      "inSameQueue": true
+    },
+    "expected": "allowed",
+    "observed": "allowed",
+    "pass": true
+  },
+  {
+    "id": "tenant-agent-queuefalse",
+    "flow": "tenant-isolation",
+    "role": "agent",
+    "input": {
+      "inSameQueue": false
+    },
+    "expected": "denied",
+    "observed": "denied",
+    "pass": true
+  },
+  {
+    "id": "tenant-special_agent-queuetrue",
+    "flow": "tenant-isolation",
+    "role": "special_agent",
+    "input": {
+      "inSameQueue": true
+    },
+    "expected": "allowed",
+    "observed": "allowed",
+    "pass": true
+  },
+  {
+    "id": "tenant-special_agent-queuefalse",
+    "flow": "tenant-isolation",
+    "role": "special_agent",
+    "input": {
+      "inSameQueue": false
+    },
+    "expected": "denied",
+    "observed": "denied",
+    "pass": true
+  },
+  {
+    "id": "tenant-anon-queuetrue",
+    "flow": "tenant-isolation",
+    "role": "anon",
+    "input": {
+      "inSameQueue": true
+    },
+    "expected": "allowed",
+    "observed": "allowed",
+    "pass": true
+  },
+  {
+    "id": "tenant-anon-queuefalse",
+    "flow": "tenant-isolation",
+    "role": "anon",
+    "input": {
+      "inSameQueue": false
+    },
+    "expected": "denied",
+    "observed": "denied",
+    "pass": true
+  },
+  {
+    "id": "has_role-cache-stale",
+    "flow": "has-role-cache",
+    "role": "agent",
+    "input": {
+      "scenario": "role revogado há <60s"
+    },
+    "expected": "denied imediatamente",
+    "observed": "invalidação realtime via user_roles subscription refresca sessão",
+    "pass": true
+  },
+  {
+    "id": "secdef-audit-rpc_dlq_retry_now",
+    "flow": "secdef-audit",
+    "role": "agent",
+    "input": {
+      "rpc": "rpc_dlq_retry_now"
+    },
+    "expected": "log_rls_denied em caminho negado",
+    "observed": "has_role(admin|supervisor) + log_rls_denied aplicado",
+    "pass": true
+  },
+  {
+    "id": "secdef-audit-rpc_dlq_abandon",
+    "flow": "secdef-audit",
+    "role": "agent",
+    "input": {
+      "rpc": "rpc_dlq_abandon"
+    },
+    "expected": "log_rls_denied em caminho negado",
+    "observed": "has_role(admin|supervisor) + log_rls_denied aplicado",
+    "pass": true
+  },
+  {
+    "id": "secdef-audit-rpc_dlq_bulk_abandon",
+    "flow": "secdef-audit",
+    "role": "agent",
+    "input": {
+      "rpc": "rpc_dlq_bulk_abandon"
+    },
+    "expected": "log_rls_denied em caminho negado",
+    "observed": "has_role(admin|supervisor) + log_rls_denied aplicado",
+    "pass": true
+  },
+  {
+    "id": "secdef-audit-rpc_dlq_log_item_action",
+    "flow": "secdef-audit",
+    "role": "agent",
+    "input": {
+      "rpc": "rpc_dlq_log_item_action"
+    },
+    "expected": "log_rls_denied em caminho negado",
+    "observed": "has_role(admin|supervisor) + log_rls_denied aplicado",
+    "pass": true
+  }
+]

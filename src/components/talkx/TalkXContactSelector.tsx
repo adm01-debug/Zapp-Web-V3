@@ -62,7 +62,7 @@ export const TalkXContactSelector: React.FC<Props> = ({
           <div className="space-y-2 mt-2">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input value={contactSearch} onChange={(e) => setContactSearch(e.target.value)} placeholder="Buscar por nome, telefone, empresa..." className="pl-9 h-9 text-sm" />
+              <Input aria-label="Buscar contatos por nome, telefone ou empresa" value={contactSearch} onChange={(e) => setContactSearch(e.target.value)} placeholder="Buscar por nome, telefone, empresa..." className="pl-9 h-9 text-sm" />
             </div>
             <div className="flex gap-1.5 flex-wrap">
               {companies.length > 0 && (

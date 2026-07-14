@@ -80,9 +80,10 @@ export const MessageBubble = memo(({
     >
       {!isSent && (
         <Avatar className="w-9 h-9 shrink-0 self-end mb-1 ring-2 ring-background shadow-md border border-border/5 transition-transform group-hover:scale-105">
-          <AvatarImage 
-            src={avatarUrl || undefined} 
-            referrerPolicy="no-referrer" 
+          <AvatarImage
+            src={avatarUrl || undefined}
+            alt={message.senderName || 'Contato'}
+            referrerPolicy="no-referrer"
             className="object-cover"
             onError={(e) => {
               (e.target as HTMLImageElement).removeAttribute('src');
@@ -126,7 +127,7 @@ export const MessageBubble = memo(({
                 ? 'bg-primary text-primary-foreground rounded-2xl rounded-br-md shadow-md shadow-primary/20 ml-12'
                 : 'bg-card text-card-foreground rounded-2xl rounded-bl-md shadow-sm border border-border/70 mr-12'
             )}>
-            {message.replyTo && <QuotedMessage replyTo={message.replyTo} isSent={isSent} onClick={() => scrollToMessage(message.replyTo!.messageId)} />}
+            {message.replyTo && <QuotedMessage replyTo={message.replyTo} isSent={isSent} onClick={() => { if (message.replyTo) scrollToMessage(message.replyTo.messageId); }} />}
             {message.buttonResponse && <ButtonResponseBadge buttonTitle={message.buttonResponse.buttonTitle} isSent={isSent} />}
             {message.type === 'interactive' && message.interactive && <InteractiveMessageDisplay interactive={message.interactive} isSent={isSent} onButtonClick={onInteractiveButtonClick} />}
             {message.type === 'image' && message.mediaUrl && <div className="mb-2 rounded-lg overflow-hidden"><MessageImage src={message.mediaUrl} refreshKey={mediaRefreshKey} /></div>}

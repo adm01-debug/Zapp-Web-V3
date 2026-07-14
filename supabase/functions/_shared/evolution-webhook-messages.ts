@@ -1,19 +1,15 @@
 // Message-specific handlers for evolution-webhook: incoming, outgoing, sticker, transcription
 
+import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 import {
   isRecord, normalizePhone, resolveEventJid,
   getConnectionByInstance, getContactByPhone, fetchProfilePicFromApi, persistProfilePicture,
   generatePhoneVariants,
 } from "./evolution-helpers.ts";
-import { persistMediaToStorage, persistMediaViaApi, parseMessageContent } from "./evolution-media.ts";
+import { persistMediaToStorage, persistMediaViaApi, parseMessageContent, isSafeMediaCdnUrl } from "./evolution-media.ts";
 
-// All message reads/writes go directly to evo.evolution_messages via supabase.schema('evo').
-// Column mapping: external_id → message_id, whatsapp_connection_id → (dropped; use instance_name),
-//                 sender 'agent' → from_me:true/direction:'outbound', sender 'contact' → from_me:false/direction:'inbound'
-
-// deno-lint-ignore no-explicit-any
 export async function handleOutgoingWhatsAppMessage(
-  supabase: any, instance: string, data: Record<string, unknown>,
+  supabase: SupabaseClient, instance: string, data: Record<string, unknown>,
   key: { remoteJid?: string; remoteJidAlt?: string; participant?: string; participantAlt?: string; fromMe: boolean; id: string },
 ) {
   const externalId = key.id;
@@ -97,9 +93,8 @@ export async function handleOutgoingWhatsAppMessage(
   await supabase.from('contacts').update({ updated_at: new Date().toISOString() }).eq('id', contact.id);
 }
 
-// deno-lint-ignore no-explicit-any
 export async function handleIncomingMessage(
-  supabase: any, instance: string, data: Record<string, unknown>,
+  supabase: SupabaseClient, instance: string, data: Record<string, unknown>,
   key: { remoteJid?: string; remoteJidAlt?: string; participant?: string; participantAlt?: string; fromMe: boolean; id: string },
   supabaseUrl: string, supabaseServiceKey: string
 ) {
@@ -221,9 +216,8 @@ export async function handleIncomingMessage(
   if (messageType === 'audio' && mediaUrl) await handleAudioTranscription(supabase, contact.id, insertedMessage.id, mediaUrl, supabaseUrl, supabaseServiceKey);
 }
 
-// deno-lint-ignore no-explicit-any
 export async function handleStickerMedia(
-  supabase: any, instance: string, data: Record<string, unknown>,
+  supabase: SupabaseClient, instance: string, data: Record<string, unknown>,
   message: Record<string, unknown> | undefined, key: { id: string }
 ): Promise<string | null> {
   let mediaUrl: string | null = null;
@@ -250,9 +244,9 @@ export async function handleStickerMedia(
 
   if (!mediaUrl) {
     const directMediaUrl = (data.mediaUrl as string) || ((message?.stickerMessage as Record<string, unknown>)?.mediaUrl as string);
-    if (directMediaUrl && directMediaUrl.startsWith('http')) {
+    if (directMediaUrl && isSafeMediaCdnUrl(directMediaUrl)) {
       try {
-        const resp = await fetch(directMediaUrl, { signal: AbortSignal.timeout(10000) });
+        const resp = await fetch(directMediaUrl, { signal: AbortSignal.timeout(10000), redirect: 'error' });
         if (resp.ok) {
           const arrayBuf = await resp.arrayBuffer();
           const bytes = new Uint8Array(arrayBuf);
@@ -292,8 +286,8 @@ export async function handleStickerMedia(
       if (!existing) {
         let category = 'recebidas';
         try {
-          const classifyResp = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/classify-sticker`, {
-            method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}` },
+          const classifyResp = await fetch(`${(Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'))}/functions/v1/classify-sticker`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${(Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))}` },
             body: JSON.stringify({ image_url: mediaUrl }), signal: AbortSignal.timeout(20000),
           });
           if (classifyResp.ok) { const classifyResult = await classifyResp.json(); category = classifyResult.category || 'recebidas'; }
@@ -306,8 +300,7 @@ export async function handleStickerMedia(
   return mediaUrl;
 }
 
-// deno-lint-ignore no-explicit-any
-export async function handleAudioTranscription(supabase: any, _contactId: string, messageId: string, mediaUrl: string, supabaseUrl: string, supabaseServiceKey: string) {
+export async function handleAudioTranscription(supabase: SupabaseClient, _contactId: string, messageId: string, mediaUrl: string, supabaseUrl: string, supabaseServiceKey: string) {
   const { data: globalSetting } = await supabase.from('global_settings')
     .select('value').eq('key', 'auto_transcription_enabled').maybeSingle();
   if (globalSetting?.value === 'false') return;

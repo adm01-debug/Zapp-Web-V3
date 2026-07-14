@@ -25,8 +25,8 @@ let cached: ReturnType<typeof createClient> | null = null;
 
 function getServiceClient() {
   if (cached) return cached;
-  const url = Deno.env.get('SUPABASE_URL') ?? Deno.env.get('VITE_SUPABASE_URL');
-  const key = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+  const url = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL')) ?? Deno.env.get('VITE_SUPABASE_URL');
+  const key = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'));
   if (!url || !key) return null;
   cached = createClient(url, key, { auth: { persistSession: false } });
   return cached;
@@ -64,8 +64,7 @@ export function logRetryMetric(input: RetryMetricInput): void {
     // PostgrestBuilder is a PromiseLike, not a Promise — use the two-arg
     // .then(onFulfilled, onRejected) form so type-checking succeeds.
     .then(
-      // deno-lint-ignore no-explicit-any
-      (res: any) => {
+      (res: { error: { message: string } | null }) => {
         if (res?.error) {
           console.warn('[retry-metric] insert failed:', res.error.message);
         }

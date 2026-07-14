@@ -1,9 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { getLogger } from '@/lib/logger';
-
-const log = getLogger('AIConversationAssistant');
-import { PeriodFilterSelector, usePeriodFilter, getPeriodDays } from './ai-tools/PeriodFilterSelector';
+import { log } from '@/lib/logger';
+import {
+  PeriodFilterSelector,
+  usePeriodFilter,
+  getPeriodDays,
+} from './ai-tools/PeriodFilterSelector';
 import {
   Loader2,
   AlertCircle,
@@ -26,7 +28,11 @@ import { withRetry } from '@/lib/retry';
 import { VisionIcon } from './ai-tools/VisionIcon';
 import { useAnalysisTts } from './ai-tools/useAnalysisTts';
 import { AnalysisTabs } from './ai-tools/AnalysisTabs';
-import { type AnalysisData, type AnalysisMessage, sentimentConfig } from './ai-tools/analysisConfigs';
+import {
+  type AnalysisData,
+  type AnalysisMessage,
+  sentimentConfig,
+} from './ai-tools/analysisConfigs';
 
 interface AIConversationAssistantProps {
   messages: AnalysisMessage[];
@@ -36,7 +42,12 @@ interface AIConversationAssistantProps {
   onClose: () => void;
 }
 
-export function AIConversationAssistant({ messages, contactId, contactName, isOpen }: AIConversationAssistantProps) {
+export function AIConversationAssistant({
+  messages,
+  contactId,
+  contactName,
+  isOpen,
+}: AIConversationAssistantProps) {
   const [analysis, setAnalysis] = useState<AnalysisData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('resumo');
@@ -52,7 +63,12 @@ export function AIConversationAssistant({ messages, contactId, contactName, isOp
     filteredMessages,
   } = usePeriodFilter(messages, '7d');
 
-  const { analyses, refetch, getSentimentTrend, loading: historyLoading } = useConversationAnalyses(contactId);
+  const {
+    analyses,
+    refetch,
+    getSentimentTrend,
+    loading: historyLoading,
+  } = useConversationAnalyses(contactId);
   const { checkAndTriggerAlert, threshold: SENTIMENT_THRESHOLD } = useSentimentAlerts();
   const {
     isTtsPlaying,
@@ -104,14 +120,18 @@ export function AIConversationAssistant({ messages, contactId, contactName, isOp
           });
 
           if (error) throw error;
-          return data as AnalysisData;
+          return data as AnalysisData; // ignore-audit: narrows Supabase query result to local interface
         },
         {
           maxRetries: 2,
           shouldRetry: (error) => {
             if (error instanceof Error) {
               const message = error.message.toLowerCase();
-              return message.includes('fetch') || message.includes('network') || message.includes('timeout');
+              return (
+                message.includes('fetch') ||
+                message.includes('network') ||
+                message.includes('timeout')
+              );
             }
             return false;
           },
@@ -141,11 +161,21 @@ export function AIConversationAssistant({ messages, contactId, contactName, isOp
     } finally {
       setIsLoading(false);
     }
-  }, [analysisPeriod, analyses, canAnalyze, checkAndTriggerAlert, contactId, contactName, filteredMessages, refetch, SENTIMENT_THRESHOLD]);
+  }, [
+    analysisPeriod,
+    analyses,
+    canAnalyze,
+    checkAndTriggerAlert,
+    contactId,
+    contactName,
+    filteredMessages,
+    refetch,
+    SENTIMENT_THRESHOLD,
+  ]);
 
   const sentimentTrend = getSentimentTrend();
   const currentSentiment = analysis?.sentiment || 'neutro';
-  const SentimentIcon = sentimentConfig[currentSentiment]?.icon || Minus;
+  const _SentimentIcon = sentimentConfig[currentSentiment]?.icon || Minus;
   const sentimentScore = analysis?.sentimentScore ?? 50;
 
   if (!isOpen) return null;
@@ -171,11 +201,17 @@ export function AIConversationAssistant({ messages, contactId, contactName, isOp
           disabled={isLoading || !canAnalyze}
           className="gap-2 rounded-xl bg-primary px-6 text-primary-foreground shadow-lg shadow-primary/20 hover:bg-primary/90"
         >
-          {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+          {isLoading ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Sparkles className="h-4 w-4" />
+          )}
           {isLoading ? 'Analisando...' : `Analisar (${filteredMessages.length} msgs)`}
         </Button>
         {canAnalyze && !isLoading && !analysis && (
-          <p className="text-[9px] text-muted-foreground">Resumo · Sentimento · Pontos-chave · Histórico</p>
+          <p className="text-[9px] text-muted-foreground">
+            Resumo · Sentimento · Pontos-chave · Histórico
+          </p>
         )}
       </div>
 
@@ -200,7 +236,12 @@ export function AIConversationAssistant({ messages, contactId, contactName, isOp
               <RefreshCcw className="h-3 w-3" />
               Tentar
             </Button>
-            <Button size="sm" variant="ghost" className="h-7 rounded-lg px-1.5 text-[10px] text-muted-foreground" onClick={handleDismissAutoplayWarning}>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-7 rounded-lg px-1.5 text-[10px] text-muted-foreground"
+              onClick={handleDismissAutoplayWarning}
+            >
               <X className="h-3 w-3" />
             </Button>
           </div>
@@ -214,24 +255,28 @@ export function AIConversationAssistant({ messages, contactId, contactName, isOp
           className="flex items-center gap-2 rounded-xl border border-warning/20 bg-warning/10 p-3"
         >
           <AlertCircle className="h-4 w-4 shrink-0 text-warning" />
-          <p className="text-xs text-warning">Mínimo de 5 mensagens necessárias ({filteredMessages.length}/5)</p>
+          <p className="text-xs text-warning">
+            Mínimo de 5 mensagens necessárias ({filteredMessages.length}/5)
+          </p>
         </motion.div>
       )}
 
       {isLoading && (
-        <div className="space-y-3">
+        <div role="status" aria-live="polite" aria-atomic="true" className="space-y-3">
           <div className="flex items-center gap-2 px-1">
-            <Loader2 className="w-4 h-4 text-primary animate-spin" />
-            <span className="text-xs font-medium text-muted-foreground">Analisando {filteredMessages.length} mensagens...</span>
+            <Loader2 className="h-4 w-4 animate-spin text-primary" />
+            <span className="text-xs font-medium text-muted-foreground">
+              Analisando {filteredMessages.length} mensagens...
+            </span>
           </div>
-          <div className="space-y-3 animate-pulse">
-            <div className="h-24 rounded-xl bg-muted/40 border border-border/20" />
+          <div className="animate-pulse space-y-3">
+            <div className="h-24 rounded-xl border border-border/20 bg-muted/40" />
             <div className="flex gap-2">
               <div className="h-6 w-24 rounded-full bg-muted/40" />
               <div className="h-6 w-20 rounded-full bg-muted/40" />
               <div className="h-6 w-16 rounded-full bg-muted/40" />
             </div>
-            <div className="h-20 rounded-xl bg-muted/40 border border-border/20" />
+            <div className="h-20 rounded-xl border border-border/20 bg-muted/40" />
           </div>
         </div>
       )}
@@ -252,7 +297,12 @@ export function AIConversationAssistant({ messages, contactId, contactName, isOp
           {sentimentTrend === 'declining' && <TrendingDown className="h-4 w-4" />}
           {sentimentTrend === 'stable' && <ArrowRight className="h-4 w-4" />}
           <span>
-            Tendência: {sentimentTrend === 'improving' ? 'Melhorando ↑' : sentimentTrend === 'declining' ? 'Piorando ↓' : 'Estável →'}
+            Tendência:{' '}
+            {sentimentTrend === 'improving'
+              ? 'Melhorando ↑'
+              : sentimentTrend === 'declining'
+                ? 'Piorando ↓'
+                : 'Estável →'}
           </span>
         </motion.div>
       )}
@@ -280,12 +330,14 @@ export function AIConversationAssistant({ messages, contactId, contactName, isOp
             <VisionIcon className="h-8 w-8 text-primary/60" />
           </div>
           <p className="mb-1 text-sm font-medium text-foreground">Analise esta conversa</p>
-          <p className="text-xs leading-relaxed text-muted-foreground">Resumo, sentimento, pontos-chave, desempenho e oportunidades</p>
+          <p className="text-xs leading-relaxed text-muted-foreground">
+            Resumo, sentimento, pontos-chave, desempenho e oportunidades
+          </p>
         </motion.div>
       )}
 
       {analysis && !isLoading && (
-        <div className="border-t border-border pt-3 mt-3">
+        <div className="mt-3 border-t border-border pt-3">
           <Button
             variant="ghost"
             size="sm"

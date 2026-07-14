@@ -1,4 +1,12 @@
-import { createContext, useContext, useState, useCallback, ReactNode, useEffect, useRef } from 'react';
+import {
+  createContext,
+  useContext,
+  useState,
+  useCallback,
+  ReactNode,
+  useEffect,
+  useRef,
+} from 'react';
 import { AchievementToast, AchievementType } from './AchievementToast';
 import { useAgentGamification, ACHIEVEMENT_TYPES, calculateLevel } from '@/features/admin';
 import { getLogger } from '@/lib/logger';
@@ -56,8 +64,13 @@ export function GamificationProvider({ children }: { children: ReactNode }) {
   const [queue, setQueue] = useState<Achievement[]>([]);
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  useEffect(() => () => { if (closeTimerRef.current) clearTimeout(closeTimerRef.current); }, []);
-  
+  useEffect(
+    () => () => {
+      if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+    },
+    []
+  );
+
   const {
     stats: dbStats,
     isLoading,
@@ -65,17 +78,18 @@ export function GamificationProvider({ children }: { children: ReactNode }) {
     updateStreak,
     incrementMessages,
     incrementResolutions,
-    addXp,
   } = useAgentGamification();
 
-  const stats = dbStats ? {
-    xp: dbStats.xp,
-    level: dbStats.level,
-    streak: dbStats.current_streak,
-    messagesHandled: dbStats.messages_sent + dbStats.messages_received,
-    resolutions: dbStats.conversations_resolved,
-    achievementsCount: dbStats.achievements_count,
-  } : null;
+  const stats = dbStats
+    ? {
+        xp: dbStats.xp,
+        level: dbStats.level,
+        streak: dbStats.current_streak,
+        messagesHandled: dbStats.messages_sent + dbStats.messages_received,
+        resolutions: dbStats.conversations_resolved,
+        achievementsCount: dbStats.achievements_count,
+      }
+    : null;
 
   const processQueue = useCallback(() => {
     if (queue.length > 0 && !currentAchievement) {
@@ -85,14 +99,17 @@ export function GamificationProvider({ children }: { children: ReactNode }) {
     }
   }, [queue, currentAchievement]);
 
-  const showAchievement = useCallback((type: AchievementType, message: string, xpReward?: number) => {
-    const achievement = { type, message, xpReward };
-    if (!currentAchievement) {
-      setCurrentAchievement(achievement);
-    } else {
-      setQueue(prev => [...prev, achievement]);
-    }
-  }, [currentAchievement]);
+  const showAchievement = useCallback(
+    (type: AchievementType, message: string, xpReward?: number) => {
+      const achievement = { type, message, xpReward };
+      if (!currentAchievement) {
+        setCurrentAchievement(achievement);
+      } else {
+        setQueue((prev) => [...prev, achievement]);
+      }
+    },
+    [currentAchievement]
+  );
 
   const handleClose = useCallback(() => {
     setCurrentAchievement(null);
@@ -100,74 +117,143 @@ export function GamificationProvider({ children }: { children: ReactNode }) {
     closeTimerRef.current = setTimeout(processQueue, 300);
   }, [processQueue]);
 
-  const triggerFastResponse = useCallback(async (seconds: number) => {
-    try {
-      let xpReward = 0;
-      let dbType: string = ACHIEVEMENT_TYPES.FAST_RESPONSE;
-      let toastType: AchievementType = 'fast_response';
-      let message = '';
-      let name = '';
+  const triggerFastResponse = useCallback(
+    async (seconds: number) => {
+      try {
+        let xpReward = 0;
+        let dbType: string = ACHIEVEMENT_TYPES.FAST_RESPONSE;
+        let toastType: AchievementType = 'fast_response';
+        let message = '';
+        let name = '';
 
-      if (seconds <= 30) {
-        xpReward = 50; dbType = ACHIEVEMENT_TYPES.SPEED_DEMON; toastType = 'speed_demon';
-        message = `Incrível! Respondeu em ${seconds}s!`; name = 'Speed Demon';
-      } else if (seconds <= 60) {
-        xpReward = 30; toastType = 'fast_response';
-        message = `Excelente! Respondeu em menos de 1 minuto!`; name = 'Resposta Rápida';
-      } else if (seconds <= 120) {
-        xpReward = 20; toastType = 'fast_response';
-        message = `Parabéns! Respondeu em menos de 2 minutos!`; name = 'Resposta Rápida';
-      } else { return; }
+        if (seconds <= 30) {
+          xpReward = 50;
+          dbType = ACHIEVEMENT_TYPES.SPEED_DEMON;
+          toastType = 'speed_demon';
+          message = `Incrível! Respondeu em ${seconds}s!`;
+          name = 'Speed Demon';
+        } else if (seconds <= 60) {
+          xpReward = 30;
+          toastType = 'fast_response';
+          message = `Excelente! Respondeu em menos de 1 minuto!`;
+          name = 'Resposta Rápida';
+        } else if (seconds <= 120) {
+          xpReward = 20;
+          toastType = 'fast_response';
+          message = `Parabéns! Respondeu em menos de 2 minutos!`;
+          name = 'Resposta Rápida';
+        } else {
+          return;
+        }
 
-      await grantAchievement({ type: dbType, name, description: message, xpReward });
-      showAchievement(toastType, message, xpReward);
-    } catch (error) {
-      log.error('Error triggering fast response achievement:', error);
-      if (seconds <= 30) showAchievement('speed_demon', `Incrível! Respondeu em ${seconds}s!`, 50);
-      else if (seconds <= 60) showAchievement('fast_response', `Excelente! Respondeu em menos de 1 minuto!`, 30);
-    }
-  }, [grantAchievement, showAchievement]);
+        await grantAchievement({ type: dbType, name, description: message, xpReward });
+        showAchievement(toastType, message, xpReward);
+      } catch (error) {
+        log.error('Error triggering fast response achievement:', error);
+        if (seconds <= 30)
+          showAchievement('speed_demon', `Incrível! Respondeu em ${seconds}s!`, 50);
+        else if (seconds <= 60)
+          showAchievement('fast_response', `Excelente! Respondeu em menos de 1 minuto!`, 30);
+      }
+    },
+    [grantAchievement, showAchievement]
+  );
 
-  const triggerStreak = useCallback(async (count: number) => {
-    try {
-      let xpReward = 0, message = '', name = '';
-      if (count >= 10) { xpReward = 100; message = `Streak de ${count}! Você está on fire! 🔥`; name = 'Streak Master'; }
-      else if (count >= 5) { xpReward = 50; message = `${count} respostas seguidas! Continue assim!`; name = 'Streak'; }
-      else if (count >= 3) { xpReward = 25; message = `Streak de ${count}! Mandando bem!`; name = 'Mini Streak'; }
-      else return;
-      await grantAchievement({ type: count >= 10 ? ACHIEVEMENT_TYPES.STREAK_MASTER : ACHIEVEMENT_TYPES.STREAK, name, description: message, xpReward });
-      showAchievement('streak', message, xpReward);
-    } catch (error) { log.error('Error triggering streak achievement:', error); }
-  }, [grantAchievement, showAchievement]);
+  const triggerStreak = useCallback(
+    async (count: number) => {
+      try {
+        let xpReward = 0,
+          message = '',
+          name = '';
+        if (count >= 10) {
+          xpReward = 100;
+          message = `Streak de ${count}! Você está on fire! 🔥`;
+          name = 'Streak Master';
+        } else if (count >= 5) {
+          xpReward = 50;
+          message = `${count} respostas seguidas! Continue assim!`;
+          name = 'Streak';
+        } else if (count >= 3) {
+          xpReward = 25;
+          message = `Streak de ${count}! Mandando bem!`;
+          name = 'Mini Streak';
+        } else return;
+        await grantAchievement({
+          type: count >= 10 ? ACHIEVEMENT_TYPES.STREAK_MASTER : ACHIEVEMENT_TYPES.STREAK,
+          name,
+          description: message,
+          xpReward,
+        });
+        showAchievement('streak', message, xpReward);
+      } catch (error) {
+        log.error('Error triggering streak achievement:', error);
+      }
+    },
+    [grantAchievement, showAchievement]
+  );
 
   const triggerResolution = useCallback(async () => {
     try {
       await incrementResolutions();
-      await grantAchievement({ type: ACHIEVEMENT_TYPES.RESOLUTION, name: 'Problema Resolvido', description: 'Cliente satisfeito! Problema resolvido!', xpReward: 40 });
+      await grantAchievement({
+        type: ACHIEVEMENT_TYPES.RESOLUTION,
+        name: 'Problema Resolvido',
+        description: 'Cliente satisfeito! Problema resolvido!',
+        xpReward: 40,
+      });
       showAchievement('resolution', 'Cliente satisfeito! Problema resolvido!', 40);
-    } catch (error) { log.error('Error triggering resolution achievement:', error); }
+    } catch (error) {
+      log.error('Error triggering resolution achievement:', error);
+    }
   }, [incrementResolutions, grantAchievement, showAchievement]);
 
   const triggerPerfectRating = useCallback(async () => {
     try {
-      await grantAchievement({ type: ACHIEVEMENT_TYPES.PERFECT_RATING, name: 'Avaliação Perfeita', description: 'O cliente deu nota máxima! ⭐⭐⭐⭐⭐', xpReward: 75 });
+      await grantAchievement({
+        type: ACHIEVEMENT_TYPES.PERFECT_RATING,
+        name: 'Avaliação Perfeita',
+        description: 'O cliente deu nota máxima! ⭐⭐⭐⭐⭐',
+        xpReward: 75,
+      });
       showAchievement('perfect_rating', 'O cliente deu nota máxima! ⭐⭐⭐⭐⭐', 75);
-    } catch (error) { log.error('Error triggering perfect rating achievement:', error); }
+    } catch (error) {
+      log.error('Error triggering perfect rating achievement:', error);
+    }
   }, [grantAchievement, showAchievement]);
 
-  const triggerLevelUp = useCallback(async (level: number) => {
-    try {
-      await grantAchievement({ type: ACHIEVEMENT_TYPES.LEVEL_UP, name: `Nível ${level}`, description: `Você alcançou o Nível ${level}!`, xpReward: 100 });
-      showAchievement('level_up', `Você alcançou o Nível ${level}!`, 100);
-    } catch (error) { log.error('Error triggering level up achievement:', error); }
-  }, [grantAchievement, showAchievement]);
+  const triggerLevelUp = useCallback(
+    async (level: number) => {
+      try {
+        await grantAchievement({
+          type: ACHIEVEMENT_TYPES.LEVEL_UP,
+          name: `Nível ${level}`,
+          description: `Você alcançou o Nível ${level}!`,
+          xpReward: 100,
+        });
+        showAchievement('level_up', `Você alcançou o Nível ${level}!`, 100);
+      } catch (error) {
+        log.error('Error triggering level up achievement:', error);
+      }
+    },
+    [grantAchievement, showAchievement]
+  );
 
-  const triggerDailyGoal = useCallback(async (goal: string) => {
-    try {
-      await grantAchievement({ type: ACHIEVEMENT_TYPES.DAILY_GOAL, name: 'Meta Diária', description: `Meta "${goal}" concluída!`, xpReward: 60 });
-      showAchievement('daily_goal', `Meta "${goal}" concluída!`, 60);
-    } catch (error) { log.error('Error triggering daily goal achievement:', error); }
-  }, [grantAchievement, showAchievement]);
+  const triggerDailyGoal = useCallback(
+    async (goal: string) => {
+      try {
+        await grantAchievement({
+          type: ACHIEVEMENT_TYPES.DAILY_GOAL,
+          name: 'Meta Diária',
+          description: `Meta "${goal}" concluída!`,
+          xpReward: 60,
+        });
+        showAchievement('daily_goal', `Meta "${goal}" concluída!`, 60);
+      } catch (error) {
+        log.error('Error triggering daily goal achievement:', error);
+      }
+    },
+    [grantAchievement, showAchievement]
+  );
 
   const triggerMessageSent = useCallback(async () => {
     try {
@@ -175,14 +261,29 @@ export function GamificationProvider({ children }: { children: ReactNode }) {
       await updateStreak(true);
       const totalMessages = result.newSent + (dbStats?.messages_received || 0);
       if ([10, 50, 100, 500, 1000].includes(totalMessages)) {
-        await grantAchievement({ type: ACHIEVEMENT_TYPES.MESSAGE_MILESTONE, name: `${totalMessages} Mensagens`, description: `Você enviou/recebeu ${totalMessages} mensagens!`, xpReward: Math.min(100, totalMessages / 10) });
-        showAchievement('fast_response', `Marco atingido: ${totalMessages} mensagens!`, Math.min(100, totalMessages / 10));
+        await grantAchievement({
+          type: ACHIEVEMENT_TYPES.MESSAGE_MILESTONE,
+          name: `${totalMessages} Mensagens`,
+          description: `Você enviou/recebeu ${totalMessages} mensagens!`,
+          xpReward: Math.min(100, totalMessages / 10),
+        });
+        showAchievement(
+          'fast_response',
+          `Marco atingido: ${totalMessages} mensagens!`,
+          Math.min(100, totalMessages / 10)
+        );
       }
-    } catch (error) { log.error('Error tracking message sent:', error); }
+    } catch (error) {
+      log.error('Error tracking message sent:', error);
+    }
   }, [incrementMessages, updateStreak, grantAchievement, showAchievement, dbStats]);
 
   const triggerMessageReceived = useCallback(async () => {
-    try { await incrementMessages('received'); } catch (error) { log.error('Error tracking message received:', error); }
+    try {
+      await incrementMessages('received');
+    } catch (error) {
+      log.error('Error tracking message received:', error);
+    }
   }, [incrementMessages]);
 
   useEffect(() => {
@@ -196,9 +297,17 @@ export function GamificationProvider({ children }: { children: ReactNode }) {
   return (
     <GamificationContext.Provider
       value={{
-        showAchievement, triggerFastResponse, triggerStreak, triggerResolution,
-        triggerPerfectRating, triggerLevelUp, triggerDailyGoal, triggerMessageSent,
-        triggerMessageReceived, stats, isLoading,
+        showAchievement,
+        triggerFastResponse,
+        triggerStreak,
+        triggerResolution,
+        triggerPerfectRating,
+        triggerLevelUp,
+        triggerDailyGoal,
+        triggerMessageSent,
+        triggerMessageReceived,
+        stats,
+        isLoading,
       }}
     >
       {children}

@@ -21,19 +21,25 @@ export function useMessageReactions(messageId: string, options?: UseMessageReact
 
     const channel = supabase
       .channel(`reactions:${messageId}`)
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'zapp',
-        table: 'message_reactions',
-        filter: `message_id=eq.${messageId}`,
-      }, () => {
-        queryClient.invalidateQueries({ queryKey: ['message-reactions', messageId] });
-        // Also trigger a background fetch of the logs for operations if needed
-        queryClient.invalidateQueries({ queryKey: ['operations-logs'] });
-      })
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'zapp',
+          table: 'message_reactions',
+          filter: `message_id=eq.${messageId}`,
+        },
+        () => {
+          void queryClient.invalidateQueries({ queryKey: ['message-reactions', messageId] });
+          void queryClient.invalidateQueries({ queryKey: ['operations-logs'] });
+        }
+      )
       .subscribe();
 
-    return () => { void supabase.removeChannel(channel); };
+    return () => {
+      void channel.unsubscribe();
+      void supabase.removeChannel(channel);
+    };
   }, [messageId, options?.disableRealtime, queryClient]);
 
   const { data: profile } = useQuery({
@@ -53,7 +59,11 @@ export function useMessageReactions(messageId: string, options?: UseMessageReact
     gcTime: 10 * 60 * 1000,
   });
 
-  const { data: reactions = [], isLoading, refetch } = useQuery({
+  const {
+    data: reactions = [],
+    isLoading,
+    refetch,
+  } = useQuery({
     queryKey: ['message-reactions', messageId],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -62,17 +72,17 @@ export function useMessageReactions(messageId: string, options?: UseMessageReact
         .eq('message_id', messageId);
       if (error) throw error;
 
-      const userIds = data?.filter(r => r.user_id).map(r => r.user_id) || [];
+      const userIds = (data?.filter((r) => r.user_id).map((r) => r.user_id) || []) as string[];
       let usersMap = new Map<string, string>();
       if (userIds.length > 0) {
-        const { data: users , error: usersErr } = await supabase
+        const { data: users } = await supabase
           .from('profiles')
           .select('id, name')
           .in('id', userIds);
-        usersMap = new Map(users?.map(u => [u.id, u.name]) || []);
+        usersMap = new Map(users?.map((u) => [u.id, u.name]) || []);
       }
 
-      return (data || []).map(r => ({
+      return (data || []).map((r) => ({
         ...r,
         user_name: r.user_id ? usersMap.get(r.user_id) || 'Agente' : 'Cliente',
       })) as MessageReaction[];
@@ -93,18 +103,24 @@ export function useMessageReactions(messageId: string, options?: UseMessageReact
   const { addMutation, removeMutation } = useReactionMutations(messageId, profile?.id, options);
 
   const addReaction = useCallback((emoji: string) => addMutation.mutateAsync(emoji), [addMutation]);
-  const removeReaction = useCallback((emoji: string) => removeMutation.mutateAsync(emoji), [removeMutation]);
+  const removeReaction = useCallback(
+    (emoji: string) => removeMutation.mutateAsync(emoji),
+    [removeMutation]
+  );
 
   const hasReacted = useCallback(
-    (emoji: string) => reactions.some(r => r.user_id === profile?.id && r.emoji === emoji),
+    (emoji: string) => reactions.some((r) => r.user_id === profile?.id && r.emoji === emoji),
     [reactions, profile?.id]
   );
 
-  const groupedReactions = reactions.reduce((acc, r) => {
-    if (!acc[r.emoji]) acc[r.emoji] = [];
-    acc[r.emoji].push(r);
-    return acc;
-  }, {} as Record<string, MessageReaction[]>);
+  const groupedReactions = reactions.reduce(
+    (acc, r) => {
+      if (!acc[r.emoji]) acc[r.emoji] = [];
+      acc[r.emoji].push(r);
+      return acc;
+    },
+    {} as Record<string, MessageReaction[]>
+  );
 
   return {
     reactions,

@@ -2,7 +2,7 @@ import React from 'react';
 import { CheckCircle2, XCircle, Clock, Loader2, SkipForward } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { safeClient } from '@/integrations/supabase/safeClient';
 import { motion } from 'framer-motion';
 import type { TalkXRecipient } from '@/hooks/useTalkX';
 
@@ -23,13 +23,14 @@ export function TalkXRecipientsList({ campaignId }: Props) {
   const { data: recipients = [], isLoading } = useQuery({
     queryKey: ['talkx-recipients-list', campaignId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('talkx_recipients')
-        .select('*, contacts:contact_id(name, nickname, phone, company, avatar_url)')
-        .eq('campaign_id', campaignId)
-        .order('created_at');
+      const { data, error } = await safeClient.from<TalkXRecipient>('talkx_recipients', (q) =>
+        q
+          .select('*, contacts:contact_id(name, nickname, phone, company, avatar_url)')
+          .eq('campaign_id', campaignId)
+          .order('created_at', { ascending: true })
+      );
       if (error) throw error;
-      return data as TalkXRecipient[];
+      return data ?? [];
     },
     enabled: !!campaignId,
     refetchInterval: 5000,
@@ -39,13 +40,13 @@ export function TalkXRecipientsList({ campaignId }: Props) {
     return (
       <div className="space-y-2">
         {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="flex items-center gap-3 p-2.5 animate-pulse">
-            <div className="w-8 h-8 rounded-full bg-muted" />
+          <div key={i} className="flex animate-pulse items-center gap-3 p-2.5">
+            <div className="h-8 w-8 rounded-full bg-muted" />
             <div className="flex-1 space-y-1.5">
-              <div className="h-3.5 bg-muted rounded w-2/3" />
-              <div className="h-2.5 bg-muted rounded w-1/3" />
+              <div className="h-3.5 w-2/3 rounded bg-muted" />
+              <div className="h-2.5 w-1/3 rounded bg-muted" />
             </div>
-            <div className="h-5 bg-muted rounded w-16" />
+            <div className="h-5 w-16 rounded bg-muted" />
           </div>
         ))}
       </div>
@@ -54,7 +55,7 @@ export function TalkXRecipientsList({ campaignId }: Props) {
 
   if (recipients.length === 0) {
     return (
-      <p className="text-sm text-muted-foreground text-center py-8">
+      <p className="py-8 text-center text-sm text-muted-foreground">
         Nenhum destinatário adicionado
       </p>
     );
@@ -72,31 +73,31 @@ export function TalkXRecipientsList({ campaignId }: Props) {
             initial={{ opacity: 0, x: -8 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: Math.min(index * 0.03, 0.5) }}
-            className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-muted/50 transition-colors"
+            className="flex items-center gap-3 rounded-xl p-2.5 transition-colors hover:bg-muted/50"
           >
-            <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-xs font-semibold text-muted-foreground shrink-0 overflow-hidden">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-muted text-xs font-semibold text-muted-foreground">
               {r.contacts?.avatar_url ? (
-                <img src={r.contacts.avatar_url} alt="" className="w-full h-full object-cover" />
+                <img src={r.contacts.avatar_url} alt="" className="h-full w-full object-cover" />
               ) : (
                 (r.contacts?.name || '?')[0].toUpperCase()
               )}
             </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-foreground truncate">
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-medium text-foreground">
                 {r.contacts?.name || 'Desconhecido'}
                 {r.contacts?.nickname && (
-                  <span className="text-muted-foreground ml-1">({r.contacts.nickname})</span>
+                  <span className="ml-1 text-muted-foreground">({r.contacts.nickname})</span>
                 )}
               </p>
               {r.personalized_message && (
-                <p className="text-xs text-muted-foreground truncate">{r.personalized_message}</p>
+                <p className="truncate text-xs text-muted-foreground">{r.personalized_message}</p>
               )}
               {r.error_message && (
-                <p className="text-xs text-destructive truncate">{r.error_message}</p>
+                <p className="truncate text-xs text-destructive">{r.error_message}</p>
               )}
             </div>
-            <Badge variant="outline" className={`gap-1 shrink-0 ${cfg.color}`}>
-              <Icon className={`w-3 h-3 ${r.status === 'sending' ? 'animate-spin' : ''}`} />
+            <Badge variant="outline" className={`shrink-0 gap-1 ${cfg.color}`}>
+              <Icon className={`h-3 w-3 ${r.status === 'sending' ? 'animate-spin' : ''}`} />
               {cfg.label}
             </Badge>
           </motion.div>

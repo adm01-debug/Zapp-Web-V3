@@ -21,7 +21,11 @@ const requirements: PasswordRequirement[] = [
   { label: 'Letra maiúscula (A-Z)', test: (p) => /[A-Z]/.test(p), weight: 1 },
   { label: 'Letra minúscula (a-z)', test: (p) => /[a-z]/.test(p), weight: 1 },
   { label: 'Número (0-9)', test: (p) => /\d/.test(p), weight: 1 },
-  { label: 'Caractere especial (!@#$%)', test: (p) => /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(p), weight: 1 },
+  {
+    label: 'Caractere especial (!@#$%)',
+    test: (p) => /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(p),
+    weight: 1,
+  },
 ];
 
 // Simple hash function for k-anonymity check
@@ -30,7 +34,10 @@ async function sha1Hash(str: string): Promise<string> {
   const data = encoder.encode(str);
   const hashBuffer = await crypto.subtle.digest('SHA-1', data);
   const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('').toUpperCase();
+  return hashArray
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('')
+    .toUpperCase();
 }
 
 export function PasswordStrengthMeter({ password, onStrengthChange }: PasswordStrengthMeterProps) {
@@ -45,11 +52,11 @@ export function PasswordStrengthMeter({ password, onStrengthChange }: PasswordSt
   const strength = useMemo(() => {
     if (!password) return 0;
     let score = metRequirements.length;
-    
+
     // Bonus for length
     if (password.length >= 12) score += 0.5;
     if (password.length >= 16) score += 0.5;
-    
+
     return Math.min(score, requirements.length + 1);
   }, [password, metRequirements]);
 
@@ -66,9 +73,12 @@ export function PasswordStrengthMeter({ password, onStrengthChange }: PasswordSt
   }, [strength, strengthPercent]);
 
   const strengthColor = useMemo(() => {
-    if (strengthPercent < 40) return { bg: 'bg-destructive', text: 'text-destructive', glow: 'shadow-destructive/50' };
-    if (strengthPercent < 60) return { bg: 'bg-warning', text: 'text-warning', glow: 'shadow-warning/50' };
-    if (strengthPercent < 80) return { bg: 'bg-info', text: 'text-info', glow: 'shadow-blue-500/50' };
+    if (strengthPercent < 40)
+      return { bg: 'bg-destructive', text: 'text-destructive', glow: 'shadow-destructive/50' };
+    if (strengthPercent < 60)
+      return { bg: 'bg-warning', text: 'text-warning', glow: 'shadow-warning/50' };
+    if (strengthPercent < 80)
+      return { bg: 'bg-info', text: 'text-info', glow: 'shadow-blue-500/50' };
     return { bg: 'bg-success', text: 'text-success', glow: 'shadow-green-500/50' };
   }, [strengthPercent]);
 
@@ -125,7 +135,10 @@ export function PasswordStrengthMeter({ password, onStrengthChange }: PasswordSt
     };
 
     const debounce = setTimeout(checkBreach, 500);
-    return () => { clearTimeout(debounce); ctrl.abort(); };
+    return () => {
+      clearTimeout(debounce);
+      ctrl.abort();
+    };
   }, [password]);
 
   // Notify parent of strength changes
@@ -140,29 +153,25 @@ export function PasswordStrengthMeter({ password, onStrengthChange }: PasswordSt
       initial={{ opacity: 0, height: 0 }}
       animate={{ opacity: 1, height: 'auto' }}
       exit={{ opacity: 0, height: 0 }}
-      className="space-y-3 mt-3"
+      className="mt-3 space-y-3"
     >
       {/* Strength Bar with Glow Effect */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             {strengthPercent >= 80 ? (
-              <ShieldCheck className={`w-4 h-4 ${strengthColor.text}`} />
+              <ShieldCheck className={`h-4 w-4 ${strengthColor.text}`} />
             ) : strengthPercent >= 40 ? (
-              <Shield className={`w-4 h-4 ${strengthColor.text}`} />
+              <Shield className={`h-4 w-4 ${strengthColor.text}`} />
             ) : (
-              <ShieldAlert className={`w-4 h-4 ${strengthColor.text}`} />
+              <ShieldAlert className={`h-4 w-4 ${strengthColor.text}`} />
             )}
-            <span className={`text-sm font-medium ${strengthColor.text}`}>
-              {strengthLabel}
-            </span>
+            <span className={`text-sm font-medium ${strengthColor.text}`}>{strengthLabel}</span>
           </div>
-          <span className="text-xs text-muted-foreground">
-            {strengthPercent}%
-          </span>
+          <span className="text-xs text-muted-foreground">{strengthPercent}%</span>
         </div>
-        
-        <div className="relative h-2 bg-muted rounded-full overflow-hidden">
+
+        <div className="relative h-2 overflow-hidden rounded-full bg-muted">
           <motion.div
             initial={{ width: 0 }}
             animate={{ width: `${strengthPercent}%` }}
@@ -189,30 +198,28 @@ export function PasswordStrengthMeter({ password, onStrengthChange }: PasswordSt
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className="flex items-center gap-2 p-2 rounded-lg bg-muted"
+            className="flex items-center gap-2 rounded-lg bg-muted p-2"
           >
-            <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
             <span className="text-xs text-muted-foreground">
               Verificando em bancos de vazamentos...
             </span>
           </motion.div>
         )}
-        
+
         {!checkingBreach && isBreached === true && (
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            className="flex items-start gap-2 p-3 rounded-lg bg-destructive/10 border border-destructive/20"
+            className="flex items-start gap-2 rounded-lg border border-destructive/20 bg-destructive/10 p-3"
           >
-            <AlertTriangle className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
+            <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-destructive" />
             <div>
-              <p className="text-sm font-medium text-destructive">
-                Senha comprometida!
-              </p>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Esta senha apareceu em {breachCount.toLocaleString()} vazamentos de dados. 
-                Escolha outra senha para sua segurança.
+              <p className="text-sm font-medium text-destructive">Senha comprometida!</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Esta senha apareceu em {breachCount.toLocaleString()} vazamentos de dados. Escolha
+                outra senha para sua segurança.
               </p>
             </div>
           </motion.div>
@@ -223,9 +230,9 @@ export function PasswordStrengthMeter({ password, onStrengthChange }: PasswordSt
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            className="flex items-center gap-2 p-2 rounded-lg bg-success/10 border border-success/20"
+            className="flex items-center gap-2 rounded-lg border border-success/20 bg-success/10 p-2"
           >
-            <ShieldCheck className="w-4 h-4 text-success" />
+            <ShieldCheck className="h-4 w-4 text-success" />
             <span className="text-xs text-success dark:text-success">
               Senha não encontrada em vazamentos conhecidos
             </span>
@@ -234,7 +241,7 @@ export function PasswordStrengthMeter({ password, onStrengthChange }: PasswordSt
       </AnimatePresence>
 
       {/* Requirements Checklist */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 p-3 rounded-lg bg-muted/50">
+      <div className="grid grid-cols-1 gap-2 rounded-lg bg-muted/50 p-3 sm:grid-cols-2">
         {requirements.map((req, index) => {
           const met = req.test(password);
           return (
@@ -247,25 +254,27 @@ export function PasswordStrengthMeter({ password, onStrengthChange }: PasswordSt
             >
               <motion.div
                 initial={false}
-                animate={{ 
+                animate={{
                   scale: met ? [1, 1.2, 1] : 1,
-                  rotate: met ? [0, 10, 0] : 0
+                  rotate: met ? [0, 10, 0] : 0,
                 }}
                 transition={{ duration: 0.3 }}
               >
                 {met ? (
-                  <div className="p-0.5 rounded-full bg-success/20">
-                    <Check className="w-3 h-3 text-success" />
+                  <div className="rounded-full bg-success/20 p-0.5">
+                    <Check className="h-3 w-3 text-success" />
                   </div>
                 ) : (
-                  <div className="p-0.5 rounded-full bg-muted">
-                    <X className="w-3 h-3 text-muted-foreground" />
+                  <div className="rounded-full bg-muted p-0.5">
+                    <X className="h-3 w-3 text-muted-foreground" />
                   </div>
                 )}
               </motion.div>
-              <span className={`text-xs transition-colors ${
-                met ? 'text-success dark:text-success font-medium' : 'text-muted-foreground'
-              }`}>
+              <span
+                className={`text-xs transition-colors ${
+                  met ? 'font-medium text-success dark:text-success' : 'text-muted-foreground'
+                }`}
+              >
                 {req.label}
               </span>
             </motion.div>
@@ -278,7 +287,7 @@ export function PasswordStrengthMeter({ password, onStrengthChange }: PasswordSt
         <motion.p
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="text-xs text-muted-foreground flex items-center gap-1"
+          className="flex items-center gap-1 text-xs text-muted-foreground"
         >
           💡 Dica: senhas com 12+ caracteres são ainda mais seguras
         </motion.p>

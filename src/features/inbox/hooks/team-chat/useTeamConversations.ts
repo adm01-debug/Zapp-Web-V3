@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { safeClient } from '@/integrations/supabase/safeClient';
 import { useAuth } from '@/features/auth';
 import type { TeamConversation, TeamMember, TeamMessage } from './teamChatTypes';
 
@@ -22,7 +23,7 @@ export function useTeamConversations() {
       if (convErr) throw convErr;
       if (!conversations?.length) return [];
 
-      const convIds = conversations.map(c => c.id);
+      const convIds = conversations.map((c) => c.id);
 
       // Fetch memberships and profiles for these conversations
       const [membershipsResult, membersResult] = await Promise.all([
@@ -31,13 +32,16 @@ export function useTeamConversations() {
           .select('conversation_id, last_read_at')
           .eq('profile_id', profile.id)
           .in('conversation_id', convIds),
-        supabase
-          .from('team_conversation_members')
-          .select('*, profile:profiles(id, name, email, avatar_url, is_active)')
-          .in('conversation_id', convIds),
+        safeClient.from('team_conversation_members', (q) =>
+          q
+            .select('*, profile:profiles(id, name, email, avatar_url, is_active)')
+            .in('conversation_id', convIds)
+        ),
       ]);
 
-      const lastReadMap = new Map(membershipsResult.data?.map(m => [m.conversation_id, m.last_read_at]) || []);
+      const lastReadMap = new Map(
+        membershipsResult.data?.map((m) => [m.conversation_id, m.last_read_at]) || []
+      );
       const allMembers = membersResult.data || [];
 
       const { data: recentMessages } = await supabase
@@ -47,49 +51,62 @@ export function useTeamConversations() {
         .order('created_at', { ascending: false })
         .limit(convIds.length * 2);
 
-      const lastMessageMap = new Map<string, { id: string; conversation_id: string; content: string; sender_id: string; created_at: string }>();
+      const lastMessageMap = new Map<
+        string,
+        {
+          id: string;
+          conversation_id: string;
+          content: string;
+          sender_id: string;
+          created_at: string;
+        }
+      >();
       for (const msg of recentMessages || []) {
         if (!lastMessageMap.has(msg.conversation_id)) {
           lastMessageMap.set(msg.conversation_id, msg);
         }
       }
 
-      const unreadPromises = convIds.map(async (cid) => {
-        const lastRead = lastReadMap.get(cid);
-        let query = supabase
-          .from('team_messages')
-          .select('*', { count: 'exact', head: true })
-          .eq('conversation_id', cid)
-          .neq('sender_id', profile.id);
+      // Single batch query replaces the former N×COUNT pattern (one per conversation).
+      // Fetch all messages not from the current user since 30 days ago and count in-memory,
+      // applying each conversation's individual last_read_at cutoff.
+      const cutoff = new Date();
+      cutoff.setDate(cutoff.getDate() - 30);
+      const { data: unreadMessages } = await supabase
+        .from('team_messages')
+        .select('conversation_id, created_at')
+        .in('conversation_id', convIds)
+        .neq('sender_id', profile.id)
+        .gte('created_at', cutoff.toISOString());
 
-        if (lastRead) {
-          query = query.gt('created_at', lastRead);
+      const unreadMap = new Map<string, number>(convIds.map((cid) => [cid, 0]));
+      for (const msg of unreadMessages || []) {
+        const lastRead = lastReadMap.get(msg.conversation_id);
+        if (!lastRead || msg.created_at > lastRead) {
+          unreadMap.set(msg.conversation_id, (unreadMap.get(msg.conversation_id) ?? 0) + 1);
         }
+      }
 
-        const { count } = await query;
-        return { cid, count: count || 0 };
-      });
-
-      const unreadResults = await Promise.all(unreadPromises);
-      const unreadMap = new Map(unreadResults.map(r => [r.cid, r.count]));
-
-      const enriched: TeamConversation[] = conversations.map(conv => {
-        const members = ((allMembers || []).filter(m => m.conversation_id === conv.id)) as unknown as TeamMember[];
+      const enriched: TeamConversation[] = conversations.map((conv) => {
+        const members = (allMembers || []).filter(
+          (m) => m.conversation_id === conv.id
+        ) as TeamMember[];
         const lastMsg = lastMessageMap.get(conv.id) || null;
 
         let displayName = conv.name;
         if (conv.type === 'direct' && !conv.name) {
-          const other = members.find(m => m.profile_id !== profile.id);
+          const other = members.find((m) => m.profile_id !== profile.id);
           displayName = other?.profile?.name || 'Chat Direto';
         }
 
         return {
           ...conv,
           type: conv.type as 'direct' | 'group' | 'department',
-          name: displayName,
-          avatar_url: conv.type === 'direct' && !conv.avatar_url
-            ? members.find(m => m.profile_id !== profile.id)?.profile?.avatar_url
-            : conv.avatar_url,
+          name: displayName ?? 'Conversa',
+          avatar_url:
+            conv.type === 'direct' && !conv.avatar_url
+              ? members.find((m) => m.profile_id !== profile.id)?.profile?.avatar_url
+              : conv.avatar_url,
           members,
           last_message: lastMsg as TeamMessage | null,
           unread_count: unreadMap.get(conv.id) || 0,
@@ -109,17 +126,23 @@ export function useTeamConversations() {
       .channel('team-chat-updates')
       // Wave 1: team_messages is a view in public — repoint to zapp base table
       .on('postgres_changes', { event: '*', schema: 'zapp', table: 'team_messages' }, () => {
-        queryClient.invalidateQueries({ queryKey: ['team-conversations'] });
+        void queryClient.invalidateQueries({ queryKey: ['team-conversations'] });
       })
       // Wave 1: team_conversations and team_conversation_members are views in public — zapp is base schema
       .on('postgres_changes', { event: '*', schema: 'zapp', table: 'team_conversations' }, () => {
-        queryClient.invalidateQueries({ queryKey: ['team-conversations'] });
+        void queryClient.invalidateQueries({ queryKey: ['team-conversations'] });
       })
-      .on('postgres_changes', { event: '*', schema: 'zapp', table: 'team_conversation_members' }, () => {
-        queryClient.invalidateQueries({ queryKey: ['team-conversations'] });
-      })
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'zapp', table: 'team_conversation_members' },
+        () => {
+          void queryClient.invalidateQueries({ queryKey: ['team-conversations'] });
+        }
+      )
       .subscribe();
-    return () => { supabase.removeChannel(channel); };
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [profile, queryClient]);
 
   return query;

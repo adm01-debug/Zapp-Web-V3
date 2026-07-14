@@ -135,7 +135,7 @@ flowchart LR
   UTN -.-> MB
 
   %% AUTO:CLICKS:START — gerado por scripts/regen-trilha-mensagens.ts
-  click AMP "src/features/inbox/components/AudioMessagePlayer.tsx"
+  click AMP "src/features/inbox/components/useAudioMessagePlayer.ts"
   click BATCH "src/features/inbox/hooks/realtime/useMessageUpdateBatcher.ts"
   click BUCKET "src/lib/sendIdempotency.ts"
   click CIL "src/features/inbox/components/chat/useChatInputLogic.ts"
@@ -183,7 +183,7 @@ flowchart LR
 %%   4. useTranscriptionNotifications    — alerta quando transcricao conclui (UPDATE)
 %%   5. useRealtimeDashboard             — KPIs em tempo real (INSERT)
 %%   6. useEvolutionMonitoring           — saude do webhook/instancia (INSERT)
-%%   7. AudioMessagePlayer               — refresh de media_url assinada (UPDATE)
+%%   7. useAudioMessagePlayer             — refresh de media_url assinada (UPDATE)
 %%   8. useRetryResolutionAlerts         — toast quando retrying -> sent/failed (UPDATE)
 %%   9. ChatMessagesArea                 — refetch/scroll no realtime (INSERT/UPDATE)
 %% Gerado por scripts/regen-trilha-mensagens.ts em 2026-05-06T22:21:06.045Z

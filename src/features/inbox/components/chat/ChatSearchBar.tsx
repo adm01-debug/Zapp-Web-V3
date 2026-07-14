@@ -78,7 +78,7 @@ export function ChatSearchBar({ messages, isOpen, onClose, onNavigateToMessage, 
                   <TooltipContent>Próximo (Enter)</TooltipContent>
                 </Tooltip>
               </div>
-              <Button variant="ghost" size="icon" className="w-8 h-10 rounded-xl shrink-0 hover:bg-accent text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]" onClick={onClose}><X className="w-4 h-4" /></Button>
+              <Button aria-label="Fechar busca" variant="ghost" size="icon" className="w-8 h-10 rounded-xl shrink-0 hover:bg-accent text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]" onClick={onClose}><X className="w-4 h-4" /></Button>
             </div>
 
             <ChatSearchFilters filter={filter} setFilter={setFilter} filterCounts={filterCounts} debouncedQuery={debouncedQuery} hasDateFilter={hasDateFilter}

@@ -1,27 +1,28 @@
-/**
- * AlertInstanceDetailDialog
- *
- * Painel detalhado por instância acionado a partir de um cartão de alerta.
- * Mostra para as últimas 24h:
- *  - % de eventos inválidos (invalid_signature + auth_401/403) por bucket horário
- *  - Intervalo (minutos) entre eventos de autenticação consecutivos
- *
- * Reutiliza as RPCs já existentes:
- *  - rpc_instance_auth_event_trend(p_hours, p_instance) — buckets horários
- *  - rpc_instance_auth_event_summary(p_hours, p_instance) — totais agregados
- */
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
-  Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
 } from '@/components/ui/dialog';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ShieldAlert, Activity, Timer, CheckCircle2 } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
+import { ShieldAlert, Activity, Timer } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { AlertInstanceSLACard } from './AlertInstanceSLACard';
 import {
-  AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend,
+  AreaChart,
+  Area,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  CartesianGrid,
+  Legend,
 } from 'recharts';
 
 interface Props {
@@ -58,20 +59,19 @@ export function AlertInstanceDetailDialog({ open, onOpenChange, instance }: Prop
     queryFn: async () => {
       const { data, error } = await supabase.rpc('rpc_instance_auth_event_trend', {
         p_hours: 24,
-        p_instance: instance,
+        p_instance: instance!,
       });
       if (error) throw error;
       return ((data ?? []) as TrendRow[])
-        .filter(r => !instance || r.instance_name === instance)
+        .filter((r) => !instance || r.instance_name === instance)
         .sort((a, b) => a.bucket.localeCompare(b.bucket));
     },
     enabled,
     refetchInterval: 30_000,
   });
 
-  // Série %inválido por bucket
   const invalidPctData = useMemo(() => {
-    return (rows ?? []).map(r => {
+    return (rows ?? []).map((r) => {
       const invalid = r.invalid_signature + r.auth_401 + r.auth_403;
       const total = Math.max(r.total, invalid);
       const pct = total > 0 ? (invalid / total) * 100 : 0;
@@ -83,10 +83,9 @@ export function AlertInstanceDetailDialog({ open, onOpenChange, instance }: Prop
     });
   }, [rows]);
 
-  // Intervalo entre buckets com eventos (min)
   const intervalData = useMemo(() => {
-    const withEvents = (rows ?? []).filter(r =>
-      (r.invalid_signature + r.auth_401 + r.auth_403) > 0
+    const withEvents = (rows ?? []).filter(
+      (r) => r.invalid_signature + r.auth_401 + r.auth_403 > 0
     );
     const out: { time: string; intervaloMin: number }[] = [];
     for (let i = 1; i < withEvents.length; i++) {
@@ -100,24 +99,18 @@ export function AlertInstanceDetailDialog({ open, onOpenChange, instance }: Prop
     return out;
   }, [rows]);
 
-  // SLA por instância — incidentes (run de buckets com inválidos) e tempo até resolução.
-  // Definição:
-  //  - Incidente inicia em um bucket com >=1 evento inválido após um bucket "limpo" (ou início da janela).
-  //  - Incidente é resolvido quando aparece um bucket "limpo" subsequente.
-  //  - Tempo até resolver = (bucket_resolução - bucket_início) em minutos.
-  //  - Incidentes ainda abertos (sem resolução até o fim da janela) são sinalizados separadamente.
   const slaIncidents = useMemo(() => {
     const ordered = rows ?? [];
     type Incident = { startIso: string; endIso: string | null; minutesToResolve: number | null };
     const incidents: Incident[] = [];
     let openStart: string | null = null;
     for (const r of ordered) {
-      const isBad = (r.invalid_signature + r.auth_401 + r.auth_403) > 0;
+      const isBad = r.invalid_signature + r.auth_401 + r.auth_403 > 0;
       if (isBad && !openStart) {
         openStart = r.bucket;
       } else if (!isBad && openStart) {
         const minutes = Math.round(
-          (new Date(r.bucket).getTime() - new Date(openStart).getTime()) / 60_000,
+          (new Date(r.bucket).getTime() - new Date(openStart).getTime()) / 60_000
         );
         incidents.push({ startIso: openStart, endIso: r.bucket, minutesToResolve: minutes });
         openStart = null;
@@ -130,17 +123,21 @@ export function AlertInstanceDetailDialog({ open, onOpenChange, instance }: Prop
   }, [rows]);
 
   const sla = useMemo(() => {
-    const resolved = slaIncidents.filter(i => i.minutesToResolve !== null) as Array<{
+    const resolved = slaIncidents.filter((i) => i.minutesToResolve !== null) as Array<{
       minutesToResolve: number;
     }>;
     const open = slaIncidents.length - resolved.length;
     if (resolved.length === 0) {
       return {
-        total: slaIncidents.length, resolved: 0, open,
-        avgMin: 0, maxMin: 0, p95Min: 0,
+        total: slaIncidents.length,
+        resolved: 0,
+        open,
+        avgMin: 0,
+        maxMin: 0,
+        p95Min: 0,
       };
     }
-    const values = resolved.map(i => i.minutesToResolve).sort((a, b) => a - b);
+    const values = resolved.map((i) => i.minutesToResolve).sort((a, b) => a - b);
     const avg = Math.round(values.reduce((s, v) => s + v, 0) / values.length);
     const max = values[values.length - 1];
     const p95Idx = Math.min(values.length - 1, Math.floor(values.length * 0.95));
@@ -157,22 +154,26 @@ export function AlertInstanceDetailDialog({ open, onOpenChange, instance }: Prop
   const totals = useMemo(() => {
     const r = rows ?? [];
     const invalid = r.reduce((s, x) => s + x.invalid_signature + x.auth_401 + x.auth_403, 0);
-    const total = r.reduce((s, x) => s + Math.max(x.total, x.invalid_signature + x.auth_401 + x.auth_403), 0);
+    const total = r.reduce(
+      (s, x) => s + Math.max(x.total, x.invalid_signature + x.auth_401 + x.auth_403),
+      0
+    );
     const pct = total > 0 ? (invalid / total) * 100 : 0;
-    const avgInterval = intervalData.length > 0
-      ? Math.round(intervalData.reduce((s, x) => s + x.intervaloMin, 0) / intervalData.length)
-      : 0;
+    const avgInterval =
+      intervalData.length > 0
+        ? Math.round(intervalData.reduce((s, x) => s + x.intervaloMin, 0) / intervalData.length)
+        : 0;
     return { invalid, total, pct: pct.toFixed(1), avgInterval };
   }, [rows, intervalData]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <ShieldAlert className="w-5 h-5 text-primary" />
+            <ShieldAlert className="h-5 w-5 text-primary" />
             Diagnóstico da instância
-            {instance && <code className="text-xs bg-muted px-2 py-0.5 rounded">{instance}</code>}
+            {instance && <code className="rounded bg-muted px-2 py-0.5 text-xs">{instance}</code>}
           </DialogTitle>
           <DialogDescription>
             Últimas 24h — eventos inválidos e intervalos entre ocorrências.
@@ -188,108 +189,76 @@ export function AlertInstanceDetailDialog({ open, onOpenChange, instance }: Prop
         ) : (
           <div className="space-y-4">
             {/* KPIs */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <Card><CardContent className="p-3">
-                <div className="text-xs text-muted-foreground">Eventos totais</div>
-                <div className="text-2xl font-bold">{totals.total}</div>
-              </CardContent></Card>
-              <Card><CardContent className="p-3">
-                <div className="text-xs text-muted-foreground">Inválidos</div>
-                <div className="text-2xl font-bold text-destructive">{totals.invalid}</div>
-              </CardContent></Card>
-              <Card><CardContent className="p-3">
-                <div className="text-xs text-muted-foreground">% inválido</div>
-                <div className="text-2xl font-bold text-warning">{totals.pct}%</div>
-              </CardContent></Card>
-              <Card><CardContent className="p-3">
-                <div className="text-xs text-muted-foreground">Intervalo médio</div>
-                <div className="text-2xl font-bold">{totals.avgInterval}<span className="text-sm ml-1">min</span></div>
-              </CardContent></Card>
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+              <Card>
+                <CardContent className="p-3">
+                  <div className="text-xs text-muted-foreground">Eventos totais</div>
+                  <div className="text-2xl font-bold">{totals.total}</div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-3">
+                  <div className="text-xs text-muted-foreground">Inválidos</div>
+                  <div className="text-2xl font-bold text-destructive">{totals.invalid}</div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-3">
+                  <div className="text-xs text-muted-foreground">% inválido</div>
+                  <div className="text-2xl font-bold text-warning">{totals.pct}%</div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-3">
+                  <div className="text-xs text-muted-foreground">Intervalo médio</div>
+                  <div className="text-2xl font-bold">
+                    {totals.avgInterval}
+                    <span className="ml-1 text-sm">min</span>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
 
-            {/* SLA — tempo até resolver */}
-            <Card data-testid="instance-sla-card">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="text-sm font-medium flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-primary" />
-                    SLA de resolução (últimas 24h)
-                  </div>
-                  {sla.open > 0 ? (
-                    <Badge variant="destructive" data-testid="instance-sla-open-badge">
-                      {sla.open} aberto{sla.open > 1 ? 's' : ''}
-                    </Badge>
-                  ) : sla.resolved > 0 ? (
-                    <Badge variant="secondary" data-testid="instance-sla-resolved-badge">
-                      Tudo resolvido
-                    </Badge>
-                  ) : (
-                    <Badge variant="outline" data-testid="instance-sla-clean-badge">
-                      Sem incidentes
-                    </Badge>
-                  )}
-                </div>
-                {sla.total === 0 ? (
-                  <div className="text-sm text-muted-foreground border border-dashed rounded p-4 text-center">
-                    Nenhum incidente detectado no período.
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3" data-testid="instance-sla-metrics">
-                    <div>
-                      <div className="text-xs text-muted-foreground">Incidentes</div>
-                      <div className="text-xl font-bold" data-testid="instance-sla-total">{sla.total}</div>
-                      <div className="text-[10px] text-muted-foreground mt-0.5">
-                        {sla.resolved} resolvido{sla.resolved !== 1 ? 's' : ''}
-                      </div>
-                    </div>
-                    <div>
-                      <div className="text-xs text-muted-foreground">Tempo médio</div>
-                      <div className="text-xl font-bold text-primary" data-testid="instance-sla-avg">
-                        {sla.avgMin}<span className="text-sm ml-1">min</span>
-                      </div>
-                    </div>
-                    <div>
-                      <div className="text-xs text-muted-foreground">P95</div>
-                      <div className="text-xl font-bold text-warning" data-testid="instance-sla-p95">
-                        {sla.p95Min}<span className="text-sm ml-1">min</span>
-                      </div>
-                    </div>
-                    <div>
-                      <div className="text-xs text-muted-foreground">Pior caso</div>
-                      <div className="text-xl font-bold text-destructive" data-testid="instance-sla-max">
-                        {sla.maxMin}<span className="text-sm ml-1">min</span>
-                      </div>
-                    </div>
-                  </div>
-                )}
-                <div className="mt-3 text-[11px] text-muted-foreground">
-                  Incidente = janela contígua de horas com eventos inválidos. Resolução = primeira hora subsequente sem inválidos.
-                </div>
-              </CardContent>
-            </Card>
-
+            <AlertInstanceSLACard sla={sla} />
 
             <Card>
               <CardContent className="p-4">
-                <div className="text-sm font-medium mb-3 flex items-center gap-2">
-                  <Activity className="w-4 h-4 text-destructive" />
-                  % de eventos inválidos por hora
+                <div className="mb-3 flex items-center gap-2 text-sm font-medium">
+                  <Activity className="h-4 w-4 text-destructive" />% de eventos inválidos por hora
                 </div>
                 {invalidPctData.length === 0 ? (
-                  <div className="h-48 flex items-center justify-center text-sm text-muted-foreground border border-dashed rounded">
+                  <div className="flex h-48 items-center justify-center rounded border border-dashed text-sm text-muted-foreground">
                     Sem eventos no período.
                   </div>
                 ) : (
                   <ResponsiveContainer width="100%" height={200}>
-                    <AreaChart data={invalidPctData} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
+                    <AreaChart
+                      data={invalidPctData}
+                      margin={{ top: 8, right: 8, left: -12, bottom: 0 }}
+                    >
                       <CartesianGrid strokeDasharray="3 3" className="stroke-border/30" />
-                      <XAxis dataKey="time" tick={{ fontSize: 10 }} className="fill-muted-foreground" />
-                      <YAxis tick={{ fontSize: 10 }} className="fill-muted-foreground" unit="%" domain={[0, 100]} />
-                      <Tooltip contentStyle={tooltipStyle} labelStyle={{ color: 'hsl(var(--foreground))' }} />
-                      <Legend wrapperStyle={{ fontSize: 11 }} />
+                      <XAxis
+                        dataKey="time"
+                        tick={{ style: { fontSize: '0.75rem' } }}
+                        className="fill-muted-foreground"
+                      />
+                      <YAxis
+                        tick={{ style: { fontSize: '0.75rem' } }}
+                        className="fill-muted-foreground"
+                        unit="%"
+                        domain={[0, 100]}
+                      />
+                      <Tooltip
+                        contentStyle={tooltipStyle}
+                        labelStyle={{ color: 'hsl(var(--foreground))' }}
+                      />
+                      <Legend wrapperStyle={{ fontSize: '0.6875rem' }} />
                       <Area
-                        type="monotone" dataKey="invalido" name="% inválido"
-                        stroke="hsl(var(--destructive))" fill="hsl(var(--destructive))"
+                        type="monotone"
+                        dataKey="invalido"
+                        name="% inválido"
+                        stroke="hsl(var(--destructive))"
+                        fill="hsl(var(--destructive))"
                         fillOpacity={0.35}
                       />
                     </AreaChart>
@@ -301,22 +270,41 @@ export function AlertInstanceDetailDialog({ open, onOpenChange, instance }: Prop
             {/* Intervalos */}
             <Card>
               <CardContent className="p-4">
-                <div className="text-sm font-medium mb-3 flex items-center gap-2">
-                  <Timer className="w-4 h-4 text-primary" />
+                <div className="mb-3 flex items-center gap-2 text-sm font-medium">
+                  <Timer className="h-4 w-4 text-primary" />
                   Intervalo entre eventos consecutivos (min)
                 </div>
                 {intervalData.length === 0 ? (
-                  <div className="h-48 flex items-center justify-center text-sm text-muted-foreground border border-dashed rounded">
+                  <div className="flex h-48 items-center justify-center rounded border border-dashed text-sm text-muted-foreground">
                     Não há eventos suficientes para calcular intervalos.
                   </div>
                 ) : (
                   <ResponsiveContainer width="100%" height={200}>
-                    <BarChart data={intervalData} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
+                    <BarChart
+                      data={intervalData}
+                      margin={{ top: 8, right: 8, left: -12, bottom: 0 }}
+                    >
                       <CartesianGrid strokeDasharray="3 3" className="stroke-border/30" />
-                      <XAxis dataKey="time" tick={{ fontSize: 10 }} className="fill-muted-foreground" />
-                      <YAxis tick={{ fontSize: 10 }} className="fill-muted-foreground" unit="m" />
-                      <Tooltip contentStyle={tooltipStyle} labelStyle={{ color: 'hsl(var(--foreground))' }} />
-                      <Bar dataKey="intervaloMin" name="Intervalo (min)" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                      <XAxis
+                        dataKey="time"
+                        tick={{ style: { fontSize: '0.75rem' } }}
+                        className="fill-muted-foreground"
+                      />
+                      <YAxis
+                        tick={{ style: { fontSize: '0.75rem' } }}
+                        className="fill-muted-foreground"
+                        unit="m"
+                      />
+                      <Tooltip
+                        contentStyle={tooltipStyle}
+                        labelStyle={{ color: 'hsl(var(--foreground))' }}
+                      />
+                      <Bar
+                        dataKey="intervaloMin"
+                        name="Intervalo (min)"
+                        fill="hsl(var(--primary))"
+                        radius={[4, 4, 0, 0]}
+                      />
                     </BarChart>
                   </ResponsiveContainer>
                 )}

@@ -26,7 +26,7 @@ interface AIProviderFormDialogProps {
 function FieldError({ message }: { message?: string }) {
   if (!message) return null;
   return (
-    <p className="text-xs text-destructive flex items-center gap-1 mt-1">
+    <p role="alert" className="text-xs text-destructive flex items-center gap-1 mt-1">
       <AlertCircle className="w-3 h-3 shrink-0" />
       {message}
     </p>
@@ -68,8 +68,9 @@ export function AIProviderFormDialog({
         </DialogHeader>
         <div className="space-y-4 py-2">
           <div className="space-y-1.5">
-            <Label>Nome *</Label>
+            <Label htmlFor="provider-name">Nome *</Label>
             <Input
+              id="provider-name"
               value={form.name}
               onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
               placeholder="Ex: Gemini Pro, Agente de Vendas"
@@ -79,8 +80,9 @@ export function AIProviderFormDialog({
           </div>
 
           <div className="space-y-1.5">
-            <Label>Descrição</Label>
+            <Label htmlFor="provider-description">Descrição</Label>
             <Input
+              id="provider-description"
               value={form.description || ''}
               onChange={e => setForm(p => ({ ...p, description: e.target.value }))}
               placeholder="Descrição breve do provedor"
@@ -89,12 +91,12 @@ export function AIProviderFormDialog({
           </div>
 
           <div className="space-y-1.5">
-            <Label>Tipo de Provedor *</Label>
+            <Label htmlFor="provider-type">Tipo de Provedor *</Label>
             <Select
               value={form.provider_type}
-              onValueChange={v => setForm(p => ({ ...p, provider_type: v as ProviderType }))}
+              onValueChange={v => setForm(p => ({ ...p, provider_type: v as ProviderType  /* ignore-audit: Select/Tabs value string narrowed to union; developer controls option values */}))}
             >
-              <SelectTrigger className="rounded-xl">
+              <SelectTrigger id="provider-type" className="rounded-xl">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -110,8 +112,9 @@ export function AIProviderFormDialog({
           {form.provider_type !== 'lovable_ai' && (
             <>
               <div className="space-y-1.5">
-                <Label>Endpoint da API *</Label>
+                <Label htmlFor="provider-endpoint">Endpoint da API *</Label>
                 <Input
+                  id="provider-endpoint"
                   value={form.api_endpoint || ''}
                   onChange={e => setForm(p => ({ ...p, api_endpoint: e.target.value }))}
                   placeholder="https://api.openai.com/v1/chat/completions"
@@ -126,8 +129,9 @@ export function AIProviderFormDialog({
               </div>
 
               <div className="space-y-1.5">
-                <Label>Nome do Secret da API Key</Label>
+                <Label htmlFor="provider-key-secret">Nome do Secret da API Key</Label>
                 <Input
+                  id="provider-key-secret"
                   value={form.api_key_secret_name || ''}
                   onChange={e => setForm(p => ({ ...p, api_key_secret_name: e.target.value }))}
                   placeholder="OPENAI_API_KEY"
@@ -141,8 +145,9 @@ export function AIProviderFormDialog({
           )}
 
           <div className="space-y-1.5">
-            <Label>Modelo</Label>
+            <Label htmlFor="provider-model">Modelo</Label>
             <Input
+              id="provider-model"
               value={form.model || ''}
               onChange={e => setForm(p => ({ ...p, model: e.target.value }))}
               placeholder={form.provider_type === 'lovable_ai' ? 'google/gemini-3-flash-preview' : 'gpt-4o'}
@@ -151,8 +156,9 @@ export function AIProviderFormDialog({
           </div>
 
           <div className="space-y-1.5">
-            <Label>Prompt de Sistema</Label>
+            <Label htmlFor="provider-system-prompt">Prompt de Sistema</Label>
             <Textarea
+              id="provider-system-prompt"
               value={form.system_prompt || ''}
               onChange={e => setForm(p => ({ ...p, system_prompt: e.target.value }))}
               placeholder="Instruções personalizadas para o modelo..."

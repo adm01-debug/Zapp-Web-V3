@@ -1,9 +1,17 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { handleCors, errorResponse, jsonResponse, requireEnv, Logger, checkRateLimit, getClientIP } from "../_shared/validation.ts";
+import { requireServiceRoleOrCron, requireUser } from "../_shared/auth.ts";
+import { isSafeMediaCdnUrl } from "../_shared/evolution-media.ts";
 
 Deno.serve(async (req) => {
   const cors = handleCors(req);
   if (cors) return cors;
+
+  // Accept service-role/cron (automated) OR user JWT (UI-triggered)
+  if (requireServiceRoleOrCron(req)) {
+    const authed = await requireUser(req);
+    if (authed instanceof Response) return authed;
+  }
 
   const log = new Logger("batch-fetch-avatars");
 
@@ -61,7 +69,12 @@ Deno.serve(async (req) => {
           const picUrl = result?.profilePictureUrl || result?.picture || result?.url || null;
           if (!picUrl) { failed++; return; }
 
-          const imgResp = await fetch(picUrl, { signal: AbortSignal.timeout(8000) });
+          if (!isSafeMediaCdnUrl(picUrl)) {
+            log.error('Unsafe avatar URL from Evolution API, skipping', { contactId: contact.id });
+            failed++;
+            return;
+          }
+          const imgResp = await fetch(picUrl, { signal: AbortSignal.timeout(8000), redirect: 'error' });
           if (!imgResp.ok) { failed++; return; }
           const blob = await imgResp.arrayBuffer();
           const bytes = new Uint8Array(blob);
@@ -89,8 +102,7 @@ Deno.serve(async (req) => {
       message: `${updated} avatares atualizados de ${contacts.length} contatos processados.`,
     }, 200, req);
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : 'Unknown error';
-    log.error("Batch avatar error", { error: msg });
-    return errorResponse(msg, 500, req);
+    log.error("Batch avatar error", { error: err instanceof Error ? err.message : String(err) });
+    return errorResponse('Internal server error', 500, req);
   }
 });

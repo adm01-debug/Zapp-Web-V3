@@ -45,7 +45,9 @@ export function useRealtimeDashboard() {
   const mountedRef = useRef(true);
   useEffect(() => {
     mountedRef.current = true;
-    return () => { mountedRef.current = false; };
+    return () => {
+      mountedRef.current = false;
+    };
   }, []);
 
   // Fetch initial counts
@@ -75,16 +77,16 @@ export function useRealtimeDashboard() {
       ]);
 
       // Get active conversations (contacts with messages in last hour)
-      const { data: activeContacts , error } = await supabase
+      const { data: activeContacts } = await supabase
         .from('messages')
         .select('contact_id')
         .gte('created_at', hourAgo.toISOString())
         .not('contact_id', 'is', null);
 
-      const uniqueContacts = new Set(activeContacts?.map(m => m.contact_id) || []);
+      const uniqueContacts = new Set(activeContacts?.map((m) => m.contact_id) || []);
 
       if (!mountedRef.current) return;
-      setState(prev => ({
+      setState((prev) => ({
         ...prev,
         messagesThisHour: messagesThisHour.count || 0,
         messagesLastHour: messagesLastHour.count || 0,
@@ -116,11 +118,12 @@ export function useRealtimeDashboard() {
           minuteCountRef.current++;
           messageCountRef.current++;
 
-          setState(prev => ({
+          setState((prev) => ({
             ...prev,
             messagesThisHour: messageCountRef.current,
             lastMessageAt: new Date(),
-            unreadMessages: payload.new.from_me === false ? prev.unreadMessages + 1 : prev.unreadMessages,
+            unreadMessages:
+              payload.new.from_me === false ? prev.unreadMessages + 1 : prev.unreadMessages,
           }));
         })
       )
@@ -128,7 +131,7 @@ export function useRealtimeDashboard() {
         'postgres_changes',
         { event: 'INSERT', schema: 'evo', table: 'evolution_contacts' }, // FATOR X v6.2
         () => {
-          setState(prev => ({
+          setState((prev) => ({
             ...prev,
             newContactsToday: prev.newContactsToday + 1,
           }));
@@ -137,22 +140,25 @@ export function useRealtimeDashboard() {
       .on(
         'postgres_changes',
         { event: 'UPDATE', schema: 'evo', table: 'evolution_messages' }, // FATOR X v6.2
-        wrapMessagesHandler<{ new: { is_read?: boolean }; old?: { is_read?: boolean } }>('useRealtimeDashboard', (payload) => {
-          if (payload.new.is_read && !payload.old?.is_read) {
-            setState(prev => ({
-              ...prev,
-              unreadMessages: Math.max(0, prev.unreadMessages - 1),
-            }));
+        wrapMessagesHandler<{ new: { is_read?: boolean }; old?: { is_read?: boolean } }>(
+          'useRealtimeDashboard',
+          (payload) => {
+            if (payload.new.is_read && !payload.old?.is_read) {
+              setState((prev) => ({
+                ...prev,
+                unreadMessages: Math.max(0, prev.unreadMessages - 1),
+              }));
+            }
           }
-        })
+        )
       )
       .subscribe((status) => {
-        setState(prev => ({ ...prev, isConnected: status === 'SUBSCRIBED' }));
+        setState((prev) => ({ ...prev, isConnected: status === 'SUBSCRIBED' }));
       });
 
     // Collect metrics every minute
     const metricsInterval = setInterval(() => {
-      setState(prev => {
+      setState((prev) => {
         const metric: RealtimeMetric = {
           timestamp: new Date(),
           messagesPerMinute: minuteCountRef.current,
@@ -161,7 +167,7 @@ export function useRealtimeDashboard() {
         };
 
         const newHistory = [...prev.metricsHistory, metric].slice(-MAX_HISTORY);
-        
+
         return {
           ...prev,
           messagesPerMinute: minuteCountRef.current,
@@ -176,7 +182,7 @@ export function useRealtimeDashboard() {
     const refreshInterval = setInterval(fetchInitialData, 5 * 60 * 1000);
 
     return () => {
-      supabase.removeChannel(channel);
+      channel.unsubscribe();
       clearInterval(metricsInterval);
       clearInterval(refreshInterval);
     };

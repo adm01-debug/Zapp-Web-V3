@@ -1,4 +1,4 @@
-// Evolution API Message Sender v6.0 (2026-04-26) — current version v8
+// Evolution API Message Sender v7.0 (2026-07-12) — fast-fail terminal + jittered backoff + circuit breaker
 // CRÍTICO v6+: Refactor para Vault-based config
 //   - URL/key/instance lidos do Vault via fn_get_vault_secret
 //   - Hardcoded fallback REMOVIDO (era ponto de falha em sessões passadas)
@@ -10,8 +10,9 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
 import { requireServiceRoleOrCron } from "../_shared/auth.ts";
 
-const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
+const SUPABASE_URL = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'))!;
+const SUPABASE_SERVICE_ROLE_KEY = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))!;
 const BATCH_SIZE = 10;
 const SEND_DELAY_MS = 600;
 
@@ -54,6 +55,21 @@ interface QueuedMessage {
 
 interface SendResult { success: boolean; messageId?: string; error?: string; http_status?: number; }
 
+/** HTTP status considered terminal — never retry (auth/permission/validation). */
+function isTerminalStatus(status?: number): boolean {
+  return status === 400 || status === 401 || status === 403 || status === 404 || status === 422;
+}
+
+/** Exponential backoff with jitter (ms). base=30s, cap=10min. */
+function nextBackoffMs(attempts: number): number {
+  const base = 30_000;
+  const cap = 600_000;
+  const exp = Math.min(cap, base * Math.pow(2, Math.max(0, attempts - 1)));
+  const jitter = Math.floor(Math.random() * Math.min(exp, 15_000));
+  return exp + jitter;
+}
+
+
 /** Escape regex metacharacters in template variable keys to prevent injection. */
 function escapeRegex(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -76,15 +92,24 @@ async function callEvolution(endpoint: string, body: Record<string, any>, instan
     if (!response.ok) {
       return { success: false, error: `HTTP ${response.status}: ${text.slice(0, 250)}`, http_status: response.status };
     }
-    let result: any = {};
-    try { result = JSON.parse(text); } catch { /* manter success se 2xx */ }
+    let result: Record<string, unknown> = {};
+    try {
+      const parsed = JSON.parse(text);
+      if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
+        result = parsed;
+      }
+    } catch { /* manter success se 2xx */ }
+    const key = result.key;
+    const messageId = (typeof key === 'object' && key !== null && !Array.isArray(key) && typeof key.id === 'string' ? key.id : null)
+      || (typeof result.messageId === 'string' ? result.messageId : null)
+      || (typeof result.id === 'string' ? result.id : null);
     return {
       success: true,
-      messageId: result?.key?.id || result?.messageId || result?.id,
+      messageId: messageId || undefined,
       http_status: response.status,
     };
   } catch (error) {
-    return { success: false, error: (error as Error).message };
+    return { success: false, error: error instanceof Error ? error.message : String(error) };
   }
 }
 
@@ -193,7 +218,7 @@ async function processMessage(message: QueuedMessage): Promise<SendResult> {
         const obj = typeof message.content === "string" ? JSON.parse(message.content!) : message.content;
         return sendButtonMessage(message.remote_jid, obj as Record<string, any>, instance);
       } catch (e) {
-        return { success: false, error: `invalid buttons JSON: ${(e as Error).message}` };
+        return { success: false, error: `invalid buttons JSON: ${e instanceof Error ? e.message : String(e)}` };
       }
     case "template":
       return sendTemplateMessage(message, instance);
@@ -218,13 +243,18 @@ async function markFailed(messageId: string, result: SendResult): Promise<void> 
   if (error) console.error(`[markFailed] ${messageId}:`, error.message);
 }
 
-async function markPending(messageId: string, lastError?: string): Promise<void> {
-  // v6: preserva error_message no retry pra debug
+async function markPending(messageId: string, lastError?: string, backoffMs?: number, httpStatus?: number): Promise<void> {
+  // v7: preserva error_message + agenda scheduled_at com jitter para evitar tempestades de retry
   const update: Record<string, any> = { status: "pending" };
   if (lastError) update.error_message = lastError.slice(0, 1000);
+  if (typeof httpStatus === "number") update.last_http_status = httpStatus;
+  if (backoffMs && backoffMs > 0) {
+    update.scheduled_at = new Date(Date.now() + backoffMs).toISOString();
+  }
   const { error } = await supabase.from("evolution_message_queue").update(update).eq("id", messageId);
   if (error) console.error(`[markPending] ${messageId}:`, error.message);
 }
+
 
 async function processQueue(): Promise<{
   processed: number; sent: number; failed: number; retried: number;
@@ -272,37 +302,39 @@ async function processQueue(): Promise<{
     try {
       result = await processMessage(m);
     } catch (e) {
-      // Unexpected exception — return row to pending so the next cycle can retry
-      const msg = (e as Error).message;
+      // Unexpected exception — return row to pending com backoff exponencial
+      const msg = e instanceof Error ? e.message : String(e);
       console.error(`[processQueue] unexpected error processing ${m.id}:`, msg);
-      await markPending(m.id, msg);
+      await markPending(m.id, msg, nextBackoffMs(newAttempts));
       retried++;
+      // Vault indisponível: aborta o batch — evita tempestade de erros e drena créditos
+      if (msg.startsWith("Vault secrets missing")) {
+        errors.push(msg);
+        break;
+      }
       continue;
     }
 
     if (result.success) {
       await markSent(m.id, result);
       sent++;
-    } else if (newAttempts >= maxAttempts) {
+    } else if (isTerminalStatus(result.http_status) || newAttempts >= maxAttempts) {
+      // Fast-fail em 400/401/403/404/422 — nunca retry (config/permissão/validação)
       await markFailed(m.id, result);
       failed++;
       if (errors.length < 5 && result.error) errors.push(result.error.slice(0, 200));
     } else {
-      await markPending(m.id, result.error);
+      await markPending(m.id, result.error, nextBackoffMs(newAttempts), result.http_status);
       retried++;
     }
+
     await new Promise((r) => setTimeout(r, SEND_DELAY_MS));
   }
   return { processed, sent, failed, retried, duration_ms: Date.now() - startTime, errors };
 }
 
 Deno.serve(async (request: Request) => {
-  const corsHeaders = {
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Headers": "authorization, content-type",
-    "Access-Control-Allow-Methods": "POST, GET, OPTIONS",
-  };
-  if (request.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  if (request.method === "OPTIONS") return handleCorsPreflight(request);
 
   // Internal cron endpoint — require service role or cron secret
   const authErr = requireServiceRoleOrCron(request);
@@ -322,12 +354,12 @@ Deno.serve(async (request: Request) => {
       },
     }).then(() => {}, () => {});
     return new Response(JSON.stringify({
-      success: true, version: "v6", ...result, timestamp: new Date().toISOString(),
-    }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      success: true, version: "v7", ...result, timestamp: new Date().toISOString(),
+    }), { status: 200, headers: { ...getCorsHeaders(request), "Content-Type": "application/json" } });
   } catch (error) {
     console.error("evolution-sender v6 error:", error);
     return new Response(JSON.stringify({
       error: "Internal server error",
-    }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }), { status: 500, headers: { ...getCorsHeaders(request), "Content-Type": "application/json" } });
   }
 });

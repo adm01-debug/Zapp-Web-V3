@@ -33,14 +33,13 @@ export function useTeamMessageReactions(conversationId: string | undefined) {
         .from('team_messages')
         .select('id')
         .eq('conversation_id', conversationId);
-      const ids = (msgs || []).map((m) => m.id);
+      const ids = (msgs || []).map((m: { id: string }) => m.id);
       if (!ids.length) return [];
-      const { data, error } = await safeClient.from<TeamReaction>(
-        'team_message_reactions',
-        (q) => q.select('*').in('message_id', ids),
+      const { data, error } = await safeClient.from<TeamReaction>('team_message_reactions', (q) =>
+        q.select('*').in('message_id', ids)
       );
       if (error) throw error;
-      return data;
+      return (data || []) as TeamReaction[];
     },
     enabled: !!conversationId,
   });
@@ -50,12 +49,18 @@ export function useTeamMessageReactions(conversationId: string | undefined) {
     if (!conversationId) return;
     const channel = supabase
       .channel(`team-reactions-${conversationId}`)
-      .on('postgres_changes',
+      .on(
+        'postgres_changes',
         { event: '*', schema: 'zapp', table: 'team_message_reactions' },
-        () => queryClient.invalidateQueries({ queryKey: ['team-reactions', conversationId] })
+        () => {
+          void queryClient.invalidateQueries({ queryKey: ['team-reactions', conversationId] });
+        }
       )
       .subscribe();
-    return () => { supabase.removeChannel(channel); };
+    return () => {
+      void channel.unsubscribe();
+      supabase.removeChannel(channel);
+    };
   }, [conversationId, queryClient]);
 
   const toggle = useMutation({
@@ -65,22 +70,23 @@ export function useTeamMessageReactions(conversationId: string | undefined) {
         (r) => r.message_id === messageId && r.profile_id === profile.id && r.emoji === emoji
       );
       if (existing) {
-        const { error } = await safeClient.from(
-          'team_message_reactions',
-          (q) => q.delete().eq('id', existing.id),
+        const { error } = await safeClient.from('team_message_reactions', (q) =>
+          q.delete().eq('id', existing.id)
         );
         if (error) throw error;
       } else {
-        const { error } = await safeClient.from(
-          'team_message_reactions',
-          (q) => q.insert({ message_id: messageId, profile_id: profile.id, emoji }),
+        const { error } = await safeClient.from('team_message_reactions', (q) =>
+          q.insert({ message_id: messageId, profile_id: profile.id, emoji })
         );
         if (error) throw error;
       }
     },
     onMutate: async ({ messageId, emoji }) => {
       await queryClient.cancelQueries({ queryKey: ['team-reactions', conversationId] });
-      const previousReactions = queryClient.getQueryData<TeamReaction[]>(['team-reactions', conversationId]);
+      const previousReactions = queryClient.getQueryData<TeamReaction[]>([
+        'team-reactions',
+        conversationId,
+      ]);
 
       if (profile && previousReactions) {
         const existingIdx = previousReactions.findIndex(
@@ -107,16 +113,17 @@ export function useTeamMessageReactions(conversationId: string | undefined) {
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['team-reactions', conversationId] });
     },
-    onError: (err: any, variables, context) => {
+    onError: (err: { status?: number; code?: string | number } & Error, variables, context) => {
       if (context?.previousReactions) {
         queryClient.setQueryData(['team-reactions', conversationId], context.previousReactions);
       }
-      const status = err?.status || err?.code;
+      const e = err as { status?: number; code?: string };
+      const status = e?.status || e?.code;
       const message = status === 401 ? 'Não autorizado' : 'Erro interno no servidor';
-      toast({ 
-        title: 'Erro ao reagir', 
+      toast({
+        title: 'Erro ao reagir',
         description: message,
-        variant: 'destructive' 
+        variant: 'destructive',
       });
     },
   });
@@ -125,7 +132,12 @@ export function useTeamMessageReactions(conversationId: string | undefined) {
     const filtered = reactions.filter((r) => r.message_id === messageId);
     const map = new Map<string, AggregatedReaction>();
     for (const r of filtered) {
-      const cur = map.get(r.emoji) || { emoji: r.emoji, count: 0, reactedByMe: false, profileIds: [] };
+      const cur = map.get(r.emoji) || {
+        emoji: r.emoji,
+        count: 0,
+        reactedByMe: false,
+        profileIds: [],
+      };
       cur.count += 1;
       cur.profileIds.push(r.profile_id);
       if (profile && r.profile_id === profile.id) cur.reactedByMe = true;

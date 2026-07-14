@@ -65,7 +65,12 @@ export function useRetryResolutionAlerts(enabled = true): void {
   useEffect(() => {
     if (!enabled) return;
 
-    const notifySuccess = (messageId: string, contactId: string | null, attempt?: number, total?: number) => {
+    const notifySuccess = (
+      messageId: string,
+      contactId: string | null,
+      attempt?: number,
+      total?: number
+    ) => {
       if (seenRef.current.has(messageId)) return;
       seenRef.current.add(messageId);
       pruneIfNeeded(seenRef.current);
@@ -89,7 +94,7 @@ export function useRetryResolutionAlerts(enabled = true): void {
       finalStatus: SendUIStatus | string,
       reason?: string | null,
       attempt?: number,
-      total?: number,
+      total?: number
     ) => {
       if (seenRef.current.has(messageId)) return;
       seenRef.current.add(messageId);
@@ -111,7 +116,7 @@ export function useRetryResolutionAlerts(enabled = true): void {
                 onClick: () => navigate(`/chat-popup/${contactId}`),
               }
             : undefined,
-        },
+        }
       );
       log.warn('[retry-resolved] failure', { messageId, contactId, finalStatus, reason });
     };
@@ -135,7 +140,7 @@ export function useRetryResolutionAlerts(enabled = true): void {
           detail.status,
           detail.errorReason,
           detail.attempt,
-          detail.totalRetries,
+          detail.totalRetries
         );
       }
     });
@@ -143,12 +148,12 @@ export function useRetryResolutionAlerts(enabled = true): void {
     // ── Source 2: Postgres realtime (cross-tab / cross-agent) ──────────────
     const channel = supabase
       .channel('retry_resolution_alerts')
-      .on(
+      .on<MessageRowMinimal>(
         'postgres_changes',
         { event: 'UPDATE', schema: 'evo', table: 'evolution_messages' },
         (payload) => {
-          const next = payload.new as MessageRowMinimal | null;
-          const prev = payload.old as MessageRowMinimal | null;
+          const next = payload.new;
+          const prev = payload.old;
           if (!next || !prev) return;
 
           // Only react when prior status was 'retrying' and now resolved.
@@ -165,16 +170,9 @@ export function useRetryResolutionAlerts(enabled = true): void {
             next.status === 'failed' ||
             next.status === 'failed_auth'
           ) {
-            notifyFailure(
-              next.id,
-              next.contact_id,
-              next.status,
-              next.error_reason,
-              attempt,
-              total,
-            );
+            notifyFailure(next.id, next.contact_id, next.status, next.error_reason, attempt, total);
           }
-        },
+        }
       )
       .subscribe((status) => {
         if (status === 'CHANNEL_ERROR') log.warn('[retry-resolved] channel error');
@@ -182,6 +180,7 @@ export function useRetryResolutionAlerts(enabled = true): void {
 
     return () => {
       unsubBus();
+      void channel.unsubscribe();
       supabase.removeChannel(channel);
     };
   }, [enabled, navigate]);

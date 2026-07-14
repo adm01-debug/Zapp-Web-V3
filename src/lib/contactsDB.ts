@@ -104,8 +104,8 @@ function getClient(): SupabaseClient {
   if (!client) {
     throw new Error(
       '[contactsDB] External Supabase not configured. ' +
-      'Set VITE_EXTERNAL_SUPABASE_URL and VITE_EXTERNAL_SUPABASE_ANON_KEY. ' +
-      'Contacts live on the external CRM database, not Lovable Cloud.'
+        'Set VITE_EXTERNAL_SUPABASE_URL and VITE_EXTERNAL_SUPABASE_ANON_KEY. ' +
+        'Contacts live on the external CRM database, not Lovable Cloud.'
     );
   }
   return client;
@@ -127,7 +127,7 @@ export const contactsDB = {
       .is('deleted_at', null)
       .maybeSingle();
     if (error) throw error;
-    return data as ExternalContact | null;
+    return data as ExternalContact | null; // ignore-audit: narrows Supabase query result to local interface
   },
 
   /** Find contact by phone number (cleaned digits only) */
@@ -143,7 +143,7 @@ export const contactsDB = {
       .limit(1)
       .maybeSingle();
     if (error) throw error;
-    return data as ExternalContact | null;
+    return data as ExternalContact | null; // ignore-audit: narrows Supabase query result to local interface
   },
 
   /** Find contact by phone via contact_phones table */
@@ -159,11 +159,14 @@ export const contactsDB = {
       .maybeSingle();
     if (error) throw error;
     if (!data) return null;
-    return (data as unknown as { contacts: ExternalContact }).contacts;
+    return (data as typeof data & { contacts: ExternalContact }).contacts;
   },
 
   /** Update contact fields */
-  async update(contactId: string, fields: Partial<ExternalContact>): Promise<ExternalContact | null> {
+  async update(
+    contactId: string,
+    fields: Partial<ExternalContact>
+  ): Promise<ExternalContact | null> {
     const { updated_at: _updated_at, ...rest } = fields;
     const { data, error } = await getClient()
       .from('contacts')
@@ -172,7 +175,7 @@ export const contactsDB = {
       .select()
       .single();
     if (error) throw error;
-    return data as ExternalContact;
+    return data as ExternalContact; // ignore-audit: narrows Supabase query result to local interface
   },
 
   /** Update avatar URL */
@@ -195,12 +198,12 @@ export const contactsDB = {
       .is('deleted_at', null)
       .or(
         `full_name.ilike.%${cleaned}%,` +
-        `first_name.ilike.%${cleaned}%,` +
-        `last_name.ilike.%${cleaned}%,` +
-        `email.ilike.%${cleaned}%,` +
-        `phone.ilike.%${cleaned}%,` +
-        `whatsapp.ilike.%${cleaned}%,` +
-        `apelido.ilike.%${cleaned}%`
+          `first_name.ilike.%${cleaned}%,` +
+          `last_name.ilike.%${cleaned}%,` +
+          `email.ilike.%${cleaned}%,` +
+          `phone.ilike.%${cleaned}%,` +
+          `whatsapp.ilike.%${cleaned}%,` +
+          `apelido.ilike.%${cleaned}%`
       )
       .order('updated_at', { ascending: false })
       .limit(limit);
@@ -241,14 +244,19 @@ export const contactsDB = {
       return (data ?? []) as ContactNote[];
     },
 
-    async create(note: { contact_id: string; user_id: string; content: string; note_type?: string }): Promise<ContactNote> {
+    async create(note: {
+      contact_id: string;
+      user_id: string;
+      content: string;
+      note_type?: string;
+    }): Promise<ContactNote> {
       const { data, error } = await getClient()
         .from('contact_notes')
         .insert(note)
         .select()
         .single();
       if (error) throw error;
-      return data as ContactNote;
+      return data as ContactNote; // ignore-audit: narrows Supabase query result to local interface
     },
 
     async update(noteId: string, content: string): Promise<void> {
@@ -260,10 +268,7 @@ export const contactsDB = {
     },
 
     async delete(noteId: string): Promise<void> {
-      const { error } = await getClient()
-        .from('contact_notes')
-        .delete()
-        .eq('id', noteId);
+      const { error } = await getClient().from('contact_notes').delete().eq('id', noteId);
       if (error) throw error;
     },
   },

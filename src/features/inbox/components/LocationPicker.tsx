@@ -46,7 +46,7 @@ export function LocationPicker({ open, onOpenChange, onSend }: LocationPickerPro
           <DialogDescription>Envie sua localização ou escolha um ponto no mapa</DialogDescription>
         </DialogHeader>
 
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'map' | 'current')} className="w-full">
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'map' | 'current' /* ignore-audit: Select/Tabs value string narrowed to union; developer controls option values */)} className="w-full">
           <div className="px-4 pt-3">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="current" className="gap-2"><LocateFixed className="w-4 h-4" />Minha Localização</TabsTrigger>
@@ -85,8 +85,8 @@ export function LocationPicker({ open, onOpenChange, onSend }: LocationPickerPro
             </div>
             <div className="relative">
               <div ref={mapContainer} className="w-full h-64 bg-muted" />
-              {!isMapLoaded && <div className="absolute inset-0 flex items-center justify-center bg-muted"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>}
-              <Button size="icon" variant="secondary" className="absolute bottom-3 right-3 shadow-lg" onClick={getCurrentLocation} disabled={isLoadingLocation}>
+              {!isMapLoaded && <div role="status" aria-live="polite" aria-label="Carregando mapa" className="absolute inset-0 flex items-center justify-center bg-muted"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" aria-hidden="true" /></div>}
+              <Button aria-label="Usar localização atual" size="icon" variant="secondary" className="absolute bottom-3 right-3 shadow-lg" onClick={getCurrentLocation} disabled={isLoadingLocation}>
                 {isLoadingLocation ? <Loader2 className="w-4 h-4 animate-spin" /> : <Crosshair className="w-4 h-4" />}
               </Button>
             </div>

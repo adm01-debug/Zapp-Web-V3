@@ -35,13 +35,13 @@ export function PerformanceMonitor() {
     const fcp = perf.getEntriesByName('first-contentful-paint')[0];
     const fcpValue = fcp ? Math.round(fcp.startTime) : 0;
 
-    const memInfo = (performance as unknown as { memory?: { usedJSHeapSize: number; totalJSHeapSize: number } }).memory;
+    const memInfo = (performance as unknown as { memory?: { usedJSHeapSize: number; totalJSHeapSize: number } }).memory; // ignore-audit — performance.memory is a Chrome-only extension not in standard lib
     const memoryUsed = memInfo ? Math.round(memInfo.usedJSHeapSize / 1048576) : 0;
     const memoryTotal = memInfo ? Math.round(memInfo.totalJSHeapSize / 1048576) : 256;
     const memoryPercent = memInfo ? Math.round((memInfo.usedJSHeapSize / memInfo.totalJSHeapSize) * 100) : 0;
 
     const domNodes = document.querySelectorAll('*').length;
-    const conn = (navigator as unknown as { connection?: { effectiveType: string; rtt: number } }).connection;
+    const conn = (navigator as unknown as { connection?: { effectiveType: string; rtt: number } }).connection; // ignore-audit — navigator.connection (Network Information API) not yet in standard lib
     const networkType = conn?.effectiveType || '4g';
     const rtt = conn?.rtt || 0;
 
@@ -172,7 +172,7 @@ export function PerformanceMonitor() {
         <CardContent className="pt-6">
           <div className="flex items-center gap-6">
             <div className="relative">
-              <svg className="w-24 h-24 -rotate-90" viewBox="0 0 36 36">
+              <svg className="w-24 h-24 -rotate-90" viewBox="0 0 36 36" aria-hidden="true">
                 <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="hsl(var(--muted))" strokeWidth="3" />
                 <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke={overallScore >= 80 ? 'hsl(var(--primary))' : overallScore >= 50 ? 'hsl(40, 100%, 50%)' : 'hsl(var(--destructive))'} strokeWidth="3" strokeDasharray={`${overallScore}, 100`} />
               </svg>

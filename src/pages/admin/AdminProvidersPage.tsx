@@ -60,7 +60,7 @@ export const AdminProvidersPage = () => {
     const ok = await upsertProvider({
       id: editing.provider_id,
       ...editing,
-    } as Partial<ProviderRow> & { id?: string });
+    });
     if (ok) setEditorOpen(false);
   };
 
@@ -208,20 +208,21 @@ export const AdminProvidersPage = () => {
           {editing && (
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label>Nome</Label>
+                <Label htmlFor="provider-name">Nome</Label>
                 <Input
+                  id="provider-name"
                   value={editing.name ?? ''}
                   onChange={(e) => setEditing({ ...editing, name: e.target.value })}
                   placeholder="Ex.: Evolution Principal"
                 />
               </div>
               <div className="space-y-2">
-                <Label>Tipo</Label>
+                <Label htmlFor="provider-type">Tipo</Label>
                 <Select
                   value={editing.provider_type ?? 'evolution'}
-                  onValueChange={(v) => setEditing({ ...editing, provider_type: v as ProviderType })}
+                  onValueChange={(v) => setEditing({ ...editing, provider_type: v as ProviderType  /* ignore-audit: Select/Tabs value string narrowed to union; developer controls option values */})}
                 >
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger id="provider-type"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="evolution">Evolution API</SelectItem>
                     <SelectItem value="wppconnect">WPPConnect</SelectItem>
@@ -231,16 +232,18 @@ export const AdminProvidersPage = () => {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>URL base</Label>
+                <Label htmlFor="provider-base-url">URL base</Label>
                 <Input
+                  id="provider-base-url"
                   value={editing.base_url ?? ''}
                   onChange={(e) => setEditing({ ...editing, base_url: e.target.value })}
                   placeholder="https://evolution.exemplo.com"
                 />
               </div>
               <div className="space-y-2">
-                <Label>Token / API key {editing.provider_id && <span className="text-xs text-muted-foreground">(deixe em branco para manter)</span>}</Label>
+                <Label htmlFor="provider-auth-token">Token / API key {editing.provider_id && <span className="text-xs text-muted-foreground">(deixe em branco para manter)</span>}</Label>
                 <Input
+                  id="provider-auth-token"
                   type="password"
                   value={editing.auth_token ?? ''}
                   onChange={(e) => setEditing({ ...editing, auth_token: e.target.value })}
@@ -249,8 +252,9 @@ export const AdminProvidersPage = () => {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Prioridade (menor = primeiro)</Label>
+                  <Label htmlFor="provider-priority">Prioridade (menor = primeiro)</Label>
                   <Input
+                    id="provider-priority"
                     type="number"
                     value={editing.priority ?? 10}
                     onChange={(e) => setEditing({ ...editing, priority: Number(e.target.value) })}

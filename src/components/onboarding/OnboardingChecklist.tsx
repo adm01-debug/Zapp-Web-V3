@@ -9,8 +9,8 @@ import { Progress } from '@/components/ui/progress';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/features/auth';
-import { CHECKLIST_STEPS } from './checklistSteps';
-import type { ChecklistStep } from './checklistSteps';
+import { CHECKLIST_STEPS } from '@/lib/onboarding/checklistSteps';
+import type { ChecklistStep } from '@/lib/onboarding/checklistSteps';
 
 interface OnboardingChecklistProps {
   onNavigate?: (view: string) => void;
@@ -96,8 +96,8 @@ export function OnboardingChecklist({ onNavigate, onDismiss, compact = false }: 
               <div><CardTitle className="text-lg">Configure sua conta</CardTitle><p className="text-sm text-muted-foreground">{completedSteps.length} de {CHECKLIST_STEPS.length} passos concluídos</p></div>
             </div>
             <div className="flex items-center gap-2">
-              <Button variant="ghost" size="icon" onClick={() => setIsExpanded(!isExpanded)} className="h-8 w-8">{isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}</Button>
-              <Button variant="ghost" size="icon" onClick={handleDismiss} className="h-8 w-8"><X className="w-4 h-4" /></Button>
+              <Button aria-label={isExpanded ? 'Recolher checklist' : 'Expandir checklist'} variant="ghost" size="icon" onClick={() => setIsExpanded(!isExpanded)} className="h-8 w-8">{isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}</Button>
+              <Button aria-label="Dispensar checklist" variant="ghost" size="icon" onClick={handleDismiss} className="h-8 w-8"><X className="w-4 h-4" /></Button>
             </div>
           </div>
           <div className="mt-4"><Progress value={progress} className="h-2" /></div>

@@ -1,9 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
 import React from 'react';
+import type { ReactNode } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
-const mockFrom = vi.fn();
+const mockFrom = vi.hoisted(() => vi.fn());
 
 vi.mock('@/integrations/supabase/client', () => {
   const channel = {
@@ -17,17 +18,19 @@ vi.mock('@/integrations/supabase/client', () => {
       channel: vi.fn(() => channel),
       removeChannel: vi.fn(),
       auth: {
-        onAuthStateChange: vi.fn().mockReturnValue({ data: { subscription: { unsubscribe: vi.fn() } } }),
+        onAuthStateChange: vi
+          .fn()
+          .mockReturnValue({ data: { subscription: { unsubscribe: vi.fn() } } }),
         getSession: vi.fn().mockResolvedValue({ data: { session: null } }),
       },
     },
   };
 });
 
-const mockUseAuth = vi.fn();
+const mockUseAuth = vi.hoisted(() => vi.fn());
 vi.mock('@/hooks/useAuth', () => ({
   useAuth: () => mockUseAuth(),
-  AuthProvider: ({ children }: any) => children,
+  AuthProvider: ({ children }: { children: ReactNode }) => children,
 }));
 vi.mock('@/features/auth/hooks/useAuth', () => ({
   useAuth: () => mockUseAuth(),
@@ -50,8 +53,22 @@ function createWrapper() {
 }
 
 const mockReactions = [
-  { id: 'r1', message_id: 'm1', user_id: 'u1', contact_id: null, emoji: '👍', created_at: '2024-01-01' },
-  { id: 'r2', message_id: 'm1', user_id: null, contact_id: 'c1', emoji: '❤️', created_at: '2024-01-02' },
+  {
+    id: 'r1',
+    message_id: 'm1',
+    user_id: 'u1',
+    contact_id: null,
+    emoji: '👍',
+    created_at: '2024-01-01',
+  },
+  {
+    id: 'r2',
+    message_id: 'm1',
+    user_id: null,
+    contact_id: 'c1',
+    emoji: '❤️',
+    created_at: '2024-01-02',
+  },
 ];
 
 describe('useMessageReactions', () => {
@@ -63,7 +80,9 @@ describe('useMessageReactions', () => {
         return {
           select: vi.fn().mockReturnValue({
             eq: vi.fn().mockReturnValue({
-              maybeSingle: vi.fn().mockResolvedValue({ data: { id: 'p1', name: 'Agent' }, error: null }),
+              maybeSingle: vi
+                .fn()
+                .mockResolvedValue({ data: { id: 'p1', name: 'Agent' }, error: null }),
             }),
           }),
         };
@@ -94,12 +113,28 @@ describe('useMessageReactions', () => {
   it('returns empty reactions for non-existent message', async () => {
     mockFrom.mockImplementation((table: string) => {
       if (table === 'profiles') {
-        return { select: vi.fn().mockReturnValue({ eq: vi.fn().mockReturnValue({ maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }) }) }) };
+        return {
+          select: vi
+            .fn()
+            .mockReturnValue({
+              eq: vi
+                .fn()
+                .mockReturnValue({
+                  maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+                }),
+            }),
+        };
       }
-      return { select: vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ data: [], error: null }) }) };
+      return {
+        select: vi
+          .fn()
+          .mockReturnValue({ eq: vi.fn().mockResolvedValue({ data: [], error: null }) }),
+      };
     });
 
-    const { result } = renderHook(() => useMessageReactions('nonexistent'), { wrapper: createWrapper() });
+    const { result } = renderHook(() => useMessageReactions('nonexistent'), {
+      wrapper: createWrapper(),
+    });
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(result.current.reactions).toEqual([]);
   });
@@ -107,9 +142,21 @@ describe('useMessageReactions', () => {
   it('handles fetch error gracefully', async () => {
     mockFrom.mockImplementation((table: string) => {
       if (table === 'profiles') {
-        return { select: vi.fn().mockReturnValue({ eq: vi.fn().mockReturnValue({ maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }) }) }) };
+        return {
+          select: vi
+            .fn()
+            .mockReturnValue({
+              eq: vi
+                .fn()
+                .mockReturnValue({
+                  maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+                }),
+            }),
+        };
       }
-      return { select: vi.fn().mockReturnValue({ eq: vi.fn().mockRejectedValue(new Error('DB error')) }) };
+      return {
+        select: vi.fn().mockReturnValue({ eq: vi.fn().mockRejectedValue(new Error('DB error')) }),
+      };
     });
 
     const { result } = renderHook(() => useMessageReactions('m1'), { wrapper: createWrapper() });

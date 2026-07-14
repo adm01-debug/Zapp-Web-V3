@@ -42,14 +42,14 @@ export function KnowledgeBaseSearchPanel({ onInsertText, className }: KnowledgeB
             className="pl-8 pr-8 h-8 text-xs"
           />
           {query && (
-            <Button variant="ghost" size="icon" className="absolute right-0.5 top-0.5 w-7 h-7" onClick={clear}>
+            <Button aria-label="Limpar busca" variant="ghost" size="icon" className="absolute right-0.5 top-0.5 w-7 h-7" onClick={clear}>
               <X className="w-3 h-3" />
             </Button>
           )}
         </div>
 
         {isLoading && (
-          <div className="flex items-center justify-center py-4 text-muted-foreground">
+          <div role="status" aria-live="polite" className="flex items-center justify-center py-4 text-muted-foreground">
             <Loader2 className="w-4 h-4 animate-spin mr-2" />
             <span className="text-xs">Pesquisando...</span>
           </div>
@@ -65,11 +65,15 @@ export function KnowledgeBaseSearchPanel({ onInsertText, className }: KnowledgeB
               {articles.map((article) => (
                 <div
                   key={article.id}
+                  role="button"
+                  tabIndex={0}
+                  aria-expanded={expandedId === article.id}
                   className={cn(
                     'p-2 rounded-lg border border-border/20 hover:border-primary/30 cursor-pointer transition-colors',
                     expandedId === article.id && 'border-primary/40 bg-primary/5'
                   )}
                   onClick={() => setExpandedId(expandedId === article.id ? null : article.id)}
+                  onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && setExpandedId(expandedId === article.id ? null : article.id)}
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1 min-w-0">
@@ -89,6 +93,7 @@ export function KnowledgeBaseSearchPanel({ onInsertText, className }: KnowledgeB
                         size="icon"
                         className="w-6 h-6"
                         onClick={(e) => { e.stopPropagation(); handleCopy(article.content); }}
+                        aria-label="Copiar conteúdo"
                       >
                         <Copy className="w-3 h-3" />
                       </Button>
@@ -98,6 +103,7 @@ export function KnowledgeBaseSearchPanel({ onInsertText, className }: KnowledgeB
                           size="icon"
                           className="w-6 h-6 text-primary"
                           onClick={(e) => { e.stopPropagation(); onInsertText(article.content); }}
+                          aria-label="Inserir no texto"
                         >
                           <BookOpen className="w-3 h-3" />
                         </Button>

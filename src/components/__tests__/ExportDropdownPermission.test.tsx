@@ -16,8 +16,10 @@ vi.mock('sonner', () => ({
 // Mock tooltip
 vi.mock('@/components/ui/tooltip', () => ({
   Tooltip: ({ children }: React.PropsWithChildren) => React.createElement('div', null, children),
-  TooltipTrigger: ({ children, asChild }: React.PropsWithChildren<{ asChild?: boolean }>) =>
-    React.createElement('div', null, children),
+  TooltipTrigger: ({
+    children,
+    asChild: _asChild,
+  }: React.PropsWithChildren<{ asChild?: boolean }>) => React.createElement('div', null, children),
   TooltipContent: ({ children }: React.PropsWithChildren) =>
     React.createElement('div', { 'data-testid': 'tooltip-content' }, children),
 }));

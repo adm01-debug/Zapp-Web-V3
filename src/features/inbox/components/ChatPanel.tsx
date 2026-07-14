@@ -1,60 +1,25 @@
-import { useState, useRef, useEffect, lazy, Suspense, useCallback, useMemo } from 'react';
-import { AnimatePresence } from 'framer-motion';
-import { getLogger } from '@/lib/logger';
-
-const log = getLogger('ChatPanel');
-import { supabase } from '@/integrations/supabase/client';
-import { Conversation, Message } from '@/types/chat';
-import { Button } from '@/components/ui/button';
-import { X } from 'lucide-react';
-import { FileUploaderRef } from './FileUploader';
-import { useTypingPresence } from '@/hooks/useTypingPresence';
-import { useContactTyping } from '@/hooks/useContactTyping';
-import { useEvolutionApi } from '@/hooks/useEvolutionApi';
-import { useQuickReplies } from '@/features/inbox';
-import { useTextToSpeech } from '@/hooks/useTextToSpeech';
-import { useUserSettings } from '@/hooks/useUserSettings';
-import { toast } from '@/hooks/use-toast';
-import { useScheduledMessages } from '@/hooks/useScheduledMessages';
-import { useMessageSignature } from '@/features/inbox';
-import { useChatMediaSending } from './useChatMediaSending';
 import { CRMAutoSync } from './CRMAutoSync';
-import { useAmbientColor } from '@/hooks/useAmbientColor';
 import { ChatToolPanels } from './chat/ChatToolPanels';
 import { ChatDialogs } from './chat/ChatDialogs';
 import { ChatPanelHeader } from './chat/ChatPanelHeader';
-import { TemplatesWithVariables } from './TemplatesWithVariables';
 import { ChatAssignedBar } from './chat/ChatAssignedBar';
 import { TicketActionsBar } from './chat/TicketActionsBar';
 import { TicketHistorySheet } from './TicketHistorySheet';
-import { ChatMessagesArea, ChatMessagesAreaRef } from './chat/ChatMessagesArea';
-import type { LoadOlderProps } from './chat/loadOlderTypes';
+import { ChatMessagesArea } from './chat/ChatMessagesArea';
 import { ChatInputArea } from './chat/ChatInputArea';
-import { SectionErrorBoundary } from '@/components/ui/section-error-boundary';
 import { AutomationSuggestionsBar } from './chat/AutomationSuggestionsBar';
-import { useAutomations } from '@/hooks/useAutomations';
 import { SendErrorBanner } from './chat/SendErrorBanner';
 import { ChatDragOverlay } from './chat/ChatDragOverlay';
 import { ChatQuickRepliesPopover } from './chat/ChatQuickRepliesPopover';
 import { ChatSearchBar } from './chat/ChatSearchBar';
-import { useChatPanelHandlers } from './chat/useChatPanelHandlers';
-import type { SlashCommand } from './SlashCommands';
-import type { ActiveTool } from './chat/ChatHeaderToolbar';
-import { QueueMetricsDashboard } from './monitoring/QueueMetricsDashboard';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { FailureFilterBar } from './chat/FailureFilterBar';
-import { useChatFilters } from './chat/hooks/useChatFilters';
-import { useSLADelivery } from './chat/hooks/useSLADelivery';
-import { useChatSearchState } from './chat/hooks/useChatSearchState';
-import { useChatDialogs } from './chat/hooks/useChatDialogs';
-import { useTransferConversation } from '@/features/inbox/hooks/useTransferConversation';
-import { useInboxShortcuts } from '@/features/inbox/hooks/useInboxShortcuts';
-import { dbFrom } from '@/integrations/datasource/db';
-import { useUserRole } from '@/features/auth/hooks/useUserRole';
+import { ChatTemplatesOverlay } from './chat/ChatTemplatesOverlay';
+import { ChatMonitoringDialog } from './chat/ChatMonitoringDialog';
+import { ChatPanelOverlays } from './chat/ChatPanelOverlays';
+import { useChatPanel } from './chat/useChatPanel';
+import type { ChatPanelProps } from './chat/useChatPanel';
 
-const WhisperMode = lazy(() => import('./WhisperMode').then(m => ({ default: m.WhisperMode })));
-const VisualValidationChecklist = lazy(() => import('./VisualValidationChecklist').then(m => ({ default: m.VisualValidationChecklist })));
-const NextBestActionEngine = lazy(() => import('./NextBestActionEngine').then(m => ({ default: m.NextBestActionEngine })));
+export type { ChatPanelProps };
 
 if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
   (window as Window).requestIdleCallback(() => {
@@ -64,329 +29,94 @@ if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
   });
 }
 
-interface ChatPanelProps extends LoadOlderProps {
-  conversation: Conversation;
-  messages: Message[];
-  onSendMessage: (content: string) => void;
-  onSendAudio?: (blob: Blob) => Promise<void>;
-  showDetails?: boolean;
-  onToggleDetails?: () => void;
-  onBack?: () => void;
-  hideHeader?: boolean;
-  initialHighlightMessageId?: string | null;
-  onHighlightConsumed?: () => void;
-  whisperCount?: number;
-  isLoading?: boolean;
-  messageQueue?: any;
-}
-
-export function ChatPanel({ conversation, messages, onSendMessage, onSendAudio, showDetails = false, onToggleDetails, onBack, hideHeader = false, onLoadOlder, onCancelLoadOlder, loadingOlder = false, hasMoreOlder = false, initialHighlightMessageId, onHighlightConsumed, whisperCount = 0, isLoading = false, messageQueue }: ChatPanelProps) {
-  const { templates: quickReplyTemplates } = useQuickReplies();
-  // Ferramentas de desenvolvimento (Checklist 10/10) só para devs reais.
-  const { roles: userRoles } = useUserRole();
-  const isDevExact = userRoles.includes('dev');
-  const [selectedQuickReplyIndex, setSelectedQuickReplyIndex] = useState(0);
-  const { dialogs, openDialog, closeDialog, toggleDialog, resetDialogs } = useChatDialogs();
-  const [historyOpen, setHistoryOpen] = useState(false);
-
-  const [activeTool, setActiveTool] = useState<ActiveTool>(null);
-  const handleSetActiveTool = useCallback((tool: ActiveTool) => {
-    setActiveTool(prev => prev === tool ? null : tool);
-  }, []);
-
-  useEffect(() => {
-    const isSearch = (activeTool as string) === 'chatSearch';
-    const isAssistant = (activeTool as string) === 'aiAssistant';
-    
-    if (isSearch) openDialog('chatSearch');
-    else closeDialog('chatSearch');
-
-    if (isAssistant) openDialog('aiAssistant');
-    else closeDialog('aiAssistant');
-  }, [activeTool, openDialog, closeDialog]);
-
-  const [callDirection, setCallDirection] = useState<'inbound' | 'outbound'>('outbound');
-  
-  const chatSearch = useChatSearchState();
-  const { highlightedMessageIds, activeHighlightId, searchQuery, setSearchQuery, resetSearch, handleHighlightChange, setHighlightedMessageIds, setActiveHighlightId } = chatSearch;
-
-  const filters = useChatFilters(messages);
-  const { failuresOnly, failureCategory, setFailuresOnly, setFailureCategory, failedMessages, categoryCounts, categoryFilteredMessages, visibleMessages } = filters;
-
-  const [isDraggingOver, setIsDraggingOver] = useState(false);
-
-  const fileUploaderRef = useRef<FileUploaderRef>(null);
-  const messagesAreaRef = useRef<ChatMessagesAreaRef>(null);
-  const dragCounterRef = useRef(0);
-
-  const { typingUsers, handleTypingStart, handleTypingStop } = useTypingPresence({
-    conversationId: conversation.id,
-    remoteJid: conversation.contact.id,
-    currentUserId: conversation.assignedTo?.id || 'agent',
-    currentUserName: conversation.assignedTo?.name || 'Agente',
-  });
-  // `isContactTyping` vem do canal compartilhado `typing:${jid}` (broadcast do webhook).
-  // Mantido em hook dedicado para evitar colisão de canais Realtime no client.
-  const isContactTyping = useContactTyping(
-    conversation.contact.id,
-    { allowGroups: conversation.contact.id?.endsWith('@g.us') === true },
-  );
-  const { quickReplies: dbQuickReplies, incrementUseCount } = useQuickReplies();
-  const { settings, updateSettings, saveSettings } = useUserSettings();
-  const { editMessage } = useEvolutionApi();
-  const { scheduleMessage } = useScheduledMessages(conversation.contact.id);
-  const { signatureEnabled, agentName, toggleSignature, applySignature } = useMessageSignature();
-  const { instanceName, whatsappConnectionId, initResolve, handleSendSticker, handleSendCustomEmoji, handleSendAudioMeme } = useChatMediaSending(conversation.contact.id, conversation.contact.phone);
-
-  const handleVoiceChange = (v: string) => { updateSettings({ tts_voice_id: v }); setTimeout(() => saveSettings(), 100); };
-  const handleSpeedChange = (s: number) => { updateSettings({ tts_speed: s }); setTimeout(() => saveSettings(), 100); };
-  const { speak, stop, isLoading: ttsLoading, isPlaying: ttsPlaying, currentMessageId: ttsMessageId, voiceId, setVoiceId, speed, setSpeed } = useTextToSpeech({
-    initialVoiceId: settings.tts_voice_id, initialSpeed: settings.tts_speed, onVoiceChange: handleVoiceChange, onSpeedChange: handleSpeedChange,
-  });
-
-  const handlers = useChatPanelHandlers({
-    conversationId: conversation.id, contactId: conversation.contact.id, contactPhone: conversation.contact.phone,
-    instanceName, onSendMessage, editMessageApi: editMessage, applySignature,
-    handleTypingStart, handleTypingStop, openDialog, closeDialog, handleSetActiveTool,
-  });
-
-  useEffect(() => { initResolve(); }, [conversation.contact.id]);
-
-  // Avalia regras de automação para a conversa ativa
-  useAutomations({
-    remoteJid: conversation.contact.id,
+export function ChatPanel(props: ChatPanelProps) {
+  const {
+    conversation,
+    messages,
+    showDetails = false,
+    onToggleDetails,
+    onBack,
+    hideHeader = false,
+    isDevExact,
+    dialogs,
+    openDialog,
+    closeDialog,
+    historyOpen,
+    setHistoryOpen,
+    activeTool,
+    setActiveTool,
+    handleSetActiveTool,
+    callDirection,
+    setCallDirection,
+    highlightedMessageIds,
+    activeHighlightId,
+    searchQuery,
+    handleHighlightChange,
+    setSearchQuery,
+    failuresOnly,
+    failureCategory,
+    setFailuresOnly,
+    setFailureCategory,
+    failedMessages,
+    categoryCounts,
+    categoryFilteredMessages,
+    visibleMessages,
+    fileUploaderRef,
+    messagesAreaRef,
+    isDraggingOver,
+    dragHandlers,
+    typingUsers,
+    handleTypingStop,
+    isContactTyping,
+    dbQuickReplies,
+    speak,
+    stop,
+    ttsLoading,
+    ttsPlaying,
+    ttsMessageId,
+    voiceId,
+    setVoiceId,
+    speed,
+    setSpeed,
     instanceName,
-    assignedTo: conversation.assignedTo?.id ?? null,
-  });
-
-  // Monitora atraso na entrega (SLA Delivery)
-  useSLADelivery({ contactId: conversation.contact.id, messages });
-
-  const lastMsgIdRef = useRef<string | null>(null);
-  useEffect(() => {
-    const lastId = messages[messages.length - 1]?.id ?? null;
-    // Only auto-scroll when a new message was appended at the end (not when older ones were prepended)
-    if (lastId !== lastMsgIdRef.current) {
-      lastMsgIdRef.current = lastId;
-      messagesAreaRef.current?.scrollToBottom();
-    } else if (isContactTyping) {
-      messagesAreaRef.current?.scrollToBottom();
-    }
-  }, [messages, isContactTyping]);
-
-  useInboxShortcuts({
-    onSearchFocus: () => {
-      if (activeTool === 'chatSearch') {
-        // Already open, try to focus input via DOM if possible or just no-op
-      } else {
-        handleSetActiveTool('chatSearch');
-      }
-    },
-    onNextConversation: () => {}, // Handled in Sidebar
-    onPrevConversation: () => {}, // Handled in Sidebar
-    onArchive: () => {}, // Handled in Sidebar
-    onTransfer: () => handlers.handleSlashCommand({ id: 'transfer' } as unknown as SlashCommand),
-    onRefresh: () => {}, // Handled in Sidebar
-    onSearchFocusChat: () => handleSetActiveTool('chatSearch'),
-  });
-
-  useEffect(() => {
-    setActiveTool(null); 
-    resetSearch();
-    setFailuresOnly(false);
-  }, [conversation.id, resetSearch, setFailuresOnly]);
-
-  // Deep-link "Ver no chat": quando o caller abre o Inbox apontando para
-  // uma mensagem específica, scrollamos até ela e aplicamos um destaque
-  // temporário (~3 s) reaproveitando os mesmos states usados pela busca
-  // dentro do chat. Tentamos durante alguns frames porque a mensagem
-  // pode não estar no DOM no primeiro paint (lista virtualizada / fetch
-  // assíncrono). Após sumir o ring, removemos o pending no caller.
-  useEffect(() => {
-    if (!initialHighlightMessageId) return;
-
-    const targetId = initialHighlightMessageId;
-    const findInternal = () => {
-      const list = messages;
-      return (
-        list.find((m) => m.id === targetId)?.id ??
-        list.find((m) => m.external_id === targetId)?.id ??
-        null
-      );
-    };
-
-    let cancelled = false;
-    let highlightTimer: ReturnType<typeof setTimeout> | null = null;
-    let attempts = 0;
-
-    const tryFindAndScroll = () => {
-      if (cancelled) return;
-      
-      const internalId = findInternal();
-      if (internalId) {
-        setHighlightedMessageIds(new Set([internalId]));
-        setActiveHighlightId(internalId);
-
-        let scrollAttempts = 0;
-        const tryScroll = () => {
-          if (cancelled) return;
-          scrollAttempts++;
-          const found = messagesAreaRef.current?.scrollToMessage(internalId) ?? false;
-          if (!found && scrollAttempts < 10) setTimeout(tryScroll, 150);
-        };
-        tryScroll();
-
-        highlightTimer = setTimeout(() => {
-          if (cancelled) return;
-          setActiveHighlightId(null);
-          setHighlightedMessageIds(new Set());
-          onHighlightConsumed?.();
-        }, 3500);
-        return;
-      }
-
-      attempts++;
-      
-      // Retry for up to ~5 seconds (20 * 250ms) if not found, 
-      // but only if loading is still in progress or we haven't reached the limit.
-      if (attempts < 20) {
-        setTimeout(tryFindAndScroll, 250);
-      } else {
-        toast({
-          title: 'Mensagem não encontrada',
-          description: 'A mensagem original pode ter sido removida ou ainda não foi carregada.',
-          variant: 'destructive',
-        });
-        onHighlightConsumed?.();
-      }
-    };
-
-    tryFindAndScroll();
-
-    return () => {
-      cancelled = true;
-      if (highlightTimer) clearTimeout(highlightTimer);
-    };
-  }, [initialHighlightMessageId, messages, onHighlightConsumed]);
-
-  const canGenerateSummary = messages.length >= 10;
-
-  // Memoize expensive derived arrays to avoid re-creation on every keystroke
-  const lastContactMessages = useMemo(
-    () => messages.filter(m => m.sender === 'contact').slice(-5).map(m => m.content),
-    [messages]
-  );
-  const allMessagesForHeader = useMemo(
-    () => messages.map(m => ({ id: m.id, content: m.content, sender: m.sender, timestamp: m.timestamp.toISOString() })),
-    [messages]
-  );
-  const handleQuickReply = useCallback((reply: any) => {
-    handlers.setInputValue(reply.content);
-    closeDialog('quickReplies');
-    setTimeout(() => handlers.inputRef.current?.focus(), 10);
-    incrementUseCount(reply.id);
-  }, [handlers.setInputValue, closeDialog, incrementUseCount]);
-
-  const filteredQuickReplies = useMemo(() => {
-    if (!handlers.inputValue.startsWith('/')) return [];
-    const query = handlers.inputValue.slice(1).toLowerCase();
-    return dbQuickReplies.filter(r => 
-      r.shortcut.toLowerCase().includes(query) || 
-      r.title.toLowerCase().includes(query)
-    );
-  }, [dbQuickReplies, handlers.inputValue]);
-
-  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (dialogs.quickReplies && filteredQuickReplies.length > 0) {
-      if (e.key === 'ArrowDown') {
-        e.preventDefault();
-        setSelectedQuickReplyIndex(prev => (prev + 1) % filteredQuickReplies.length);
-        return;
-      }
-      if (e.key === 'ArrowUp') {
-        e.preventDefault();
-        setSelectedQuickReplyIndex(prev => (prev - 1 + filteredQuickReplies.length) % filteredQuickReplies.length);
-        return;
-      }
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        const selected = filteredQuickReplies[selectedQuickReplyIndex];
-        if (selected) handleQuickReply(selected);
-        return;
-      }
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        closeDialog('quickReplies');
-        return;
-      }
-    }
-    handlers.handleKeyDown(e, dialogs.slashCommands);
-  }, [dialogs.quickReplies, dialogs.slashCommands, filteredQuickReplies, selectedQuickReplyIndex, handlers.handleKeyDown, handleQuickReply, closeDialog]);
-
-  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const value = e.target.value;
-    handlers.handleInputChange(e);
-    
-    if (value.startsWith('/')) {
-      if (!dialogs.quickReplies) openDialog('quickReplies');
-      setSelectedQuickReplyIndex(0);
-    } else if (dialogs.quickReplies) {
-      closeDialog('quickReplies');
-    }
-  }, [handlers.handleInputChange, dialogs.quickReplies, openDialog, closeDialog]);
-
-  // Global search shortcut removed in favor of useInboxShortcuts (react-hotkeys-hook)
-  // which handles cleanup and focus checks automatically.
-
-  // Stable refs for ChatMessagesArea to prevent re-renders on input change
-  const contactJid = useMemo(() => conversation.contact.phone ? `${conversation.contact.phone}@s.whatsapp.net` : '', [conversation.contact.phone]);
-  const contactAvatar = conversation.contact.avatar || undefined;
-  const handleScrollToMessage = useCallback((id: string) => messagesAreaRef.current?.scrollToMessage(id), []);
-
-  // Redundância removida: handleQuickReply já está definido acima como useCallback.
-
-  const { transferConversation: handleTransfer } = useTransferConversation({
-    contactId: conversation.contact.id,
-    whatsappConnectionId,
-  });
-
-  const handleScheduleMessage = async (content: string, scheduledAt: Date, attachment?: File) => {
-    try {
-      let mediaUrl: string | undefined;
-      let messageType = 'text';
-      if (attachment) {
-        const fileName = `scheduled_${Date.now()}_${attachment.name}`;
-        const { error: uploadError } = await supabase.storage.from('whatsapp-media').upload(fileName, attachment);
-        if (uploadError) {
-          toast({ title: 'Erro no upload', description: `Falha ao anexar: ${uploadError.message}`, variant: 'destructive' });
-        } else {
-          const { data: signedData } = await supabase.storage.from('whatsapp-media').createSignedUrl(fileName, 604800);
-          mediaUrl = signedData?.signedUrl;
-          messageType = attachment.type.startsWith('audio') ? 'audio' : attachment.type.startsWith('image') ? 'image' : attachment.type.startsWith('video') ? 'video' : 'document';
-        }
-      }
-      await scheduleMessage({ contactId: conversation.contact.id, content, scheduledAt, messageType, mediaUrl });
-      closeDialog('scheduleDialog');
-    } catch (err) { log.error('Failed to schedule message:', err); }
-  };
-
-  const handleDragEnter = (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); dragCounterRef.current++; if (e.dataTransfer.types.includes('Files')) setIsDraggingOver(true); };
-  const handleDragLeave = (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); dragCounterRef.current--; if (dragCounterRef.current === 0) setIsDraggingOver(false); };
-  const handleDragOver = (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); };
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault(); e.stopPropagation(); dragCounterRef.current = 0; setIsDraggingOver(false);
-    const files = Array.from(e.dataTransfer.files);
-    if (files.length > 0 && fileUploaderRef.current) fileUploaderRef.current.handleExternalFiles(files);
-  };
-
-  const ambient = useAmbientColor(conversation.sentiment);
+    handleSendSticker,
+    handleSendCustomEmoji,
+    handleSendAudioMeme,
+    signatureEnabled,
+    agentName,
+    toggleSignature,
+    handlers,
+    filteredQuickReplies,
+    selectedQuickReplyIndex,
+    handleQuickReply,
+    handleKeyDown,
+    handleInputChange,
+    contactJid,
+    contactAvatar,
+    handleScrollToMessage,
+    handleTransfer,
+    handleScheduleMessage,
+    handlePollSent,
+    handleContactSent,
+    onSendAudio,
+    onLoadOlder,
+    onCancelLoadOlder,
+    loadingOlder,
+    hasMoreOlder,
+    isLoading,
+    messageQueue,
+  } = useChatPanel(props);
 
   return (
-    <div data-testid="chat-window" className={`flex h-full min-h-0 min-w-0 overflow-hidden relative bg-muted/20 antialiased`} onDragEnter={handleDragEnter} onDragLeave={handleDragLeave} onDragOver={handleDragOver} onDrop={handleDrop}>
+    <div
+      data-testid="chat-window"
+      className={`relative flex h-full min-h-0 min-w-0 overflow-hidden bg-muted/20 antialiased`}
+      {...dragHandlers}
+    >
       <ChatDragOverlay isDraggingOver={isDraggingOver} />
       <CRMAutoSync conversation={conversation} messageCount={messages.length} messages={messages} />
 
-      <div className="flex flex-col flex-1 h-full min-h-0 min-w-0 overflow-hidden bg-[hsl(var(--background))]">
+      <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-[hsl(var(--background))]">
         {!hideHeader && (
           <ChatPanelHeader
             conversation={conversation}
@@ -397,7 +127,10 @@ export function ChatPanel({ conversation, messages, onSendMessage, onSendAudio, 
             speed={speed}
             onToggleAIAssistant={() => handleSetActiveTool('aiAssistant')}
             onToggleDetails={onToggleDetails || (() => {})}
-            onStartCall={() => { setCallDirection('outbound'); openDialog('callDialog'); }}
+            onStartCall={() => {
+              setCallDirection('outbound');
+              openDialog('callDialog');
+            }}
             onOpenSearch={() => handleSetActiveTool('chatSearch')}
             onOpenValidation={isDevExact ? () => openDialog('visualValidation') : undefined}
             onOpenTransfer={() => openDialog('transferDialog')}
@@ -416,40 +149,43 @@ export function ChatPanel({ conversation, messages, onSendMessage, onSendAudio, 
         )}
 
         {activeTool === 'templates' && (
-          <div className="absolute inset-0 z-50 bg-foreground/80 backdrop-blur-sm p-4 overflow-auto flex items-center justify-center">
-            <div className="w-full max-w-2xl relative">
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="absolute -right-2 -top-2 z-[60] bg-background border border-border rounded-full hover:bg-muted" 
-                onClick={() => setActiveTool(null)}
-              >
-                <X className="w-4 h-4" />
-              </Button>
-              <TemplatesWithVariables 
-                onUseTemplate={(content) => {
-                  handlers.setInputValue(content);
-                  setActiveTool(null);
-                  setTimeout(() => handlers.inputRef.current?.focus(), 10);
-                }}
-                contactData={{
-                  name: conversation.contact.name,
-                  company: conversation.contact.company,
-                }}
-              />
-            </div>
-          </div>
+          <ChatTemplatesOverlay
+            contactName={conversation.contact.name}
+            contactCompany={conversation.contact.company ?? undefined}
+            onClose={() => setActiveTool(null)}
+            onUseTemplate={(content) => {
+              handlers.setInputValue(content);
+              setActiveTool(null);
+              setTimeout(() => handlers.inputRef.current?.focus(), 10);
+            }}
+          />
         )}
 
-        <ChatSearchBar messages={messages} isOpen={(activeTool as string) === 'chatSearch'}
-          onClose={() => { handleSetActiveTool('chatSearch'); setTimeout(() => handlers.inputRef.current?.focus(), 150); }}
+        <ChatSearchBar
+          messages={messages}
+          isOpen={(activeTool as string) === 'chatSearch'}
+          onClose={() => {
+            handleSetActiveTool('chatSearch');
+            setTimeout(() => handlers.inputRef.current?.focus(), 150);
+          }}
           onNavigateToMessage={(id) => messagesAreaRef.current?.scrollToMessage(id)}
           onHighlightChange={handleHighlightChange}
-          onSearchQueryChange={setSearchQuery} />
+          onSearchQueryChange={setSearchQuery}
+        />
 
-        <TicketActionsBar contactId={conversation.contact.id} onOpenHistory={() => setHistoryOpen(true)} />
-        <TicketHistorySheet contactId={conversation.contact.id} open={historyOpen} onOpenChange={setHistoryOpen} />
-        <ChatAssignedBar conversation={conversation} onOpenTransfer={() => openDialog('transferDialog')} />
+        <TicketActionsBar
+          contactId={conversation.contact.id}
+          onOpenHistory={() => setHistoryOpen(true)}
+        />
+        <TicketHistorySheet
+          contactId={conversation.contact.id}
+          open={historyOpen}
+          onOpenChange={setHistoryOpen}
+        />
+        <ChatAssignedBar
+          conversation={conversation}
+          onOpenTransfer={() => openDialog('transferDialog')}
+        />
 
         <FailureFilterBar
           failuresOnly={failuresOnly}
@@ -461,43 +197,51 @@ export function ChatPanel({ conversation, messages, onSendMessage, onSendAudio, 
           setFailuresOnly={setFailuresOnly}
         />
 
-        <SectionErrorBoundary sectionName="NextBestAction">
-          <Suspense fallback={null}>
-            <NextBestActionEngine contactId={conversation.contact.id} contactName={conversation.contact.name} />
-          </Suspense>
-        </SectionErrorBoundary>
+        <ChatPanelOverlays
+          contactId={conversation.contact.id}
+          contactName={conversation.contact.name}
+          showVisualValidation={dialogs.visualValidation}
+          onCloseVisualValidation={() => closeDialog('visualValidation')}
+          showWhisper={dialogs.whisper}
+        />
 
-        <ChatMessagesArea ref={messagesAreaRef} messages={visibleMessages} isContactTyping={isContactTyping} typingUserName={typingUsers[0]?.name || conversation.contact.name}
-          ttsLoading={ttsLoading} ttsPlaying={ttsPlaying} ttsMessageId={ttsMessageId} instanceName={instanceName}
-          contactJid={contactJid} contactAvatar={contactAvatar}
-          onSpeak={speak} onStop={stop} onReply={handlers.handleReplyToMessage} onForward={handlers.handleForwardMessage} onCopy={handlers.handleCopyMessage}
-          onScrollToMessage={handleScrollToMessage} onInteractiveButtonClick={handlers.handleInteractiveButtonClick} onEditStart={handlers.handleEditStart}
-          highlightedMessageIds={highlightedMessageIds} activeHighlightId={activeHighlightId} searchQuery={searchQuery}
+        <ChatMessagesArea
+          ref={messagesAreaRef}
+          messages={visibleMessages}
+          isContactTyping={isContactTyping}
+          typingUserName={typingUsers[0]?.name || conversation.contact.name}
+          ttsLoading={ttsLoading}
+          ttsPlaying={ttsPlaying}
+          ttsMessageId={ttsMessageId}
+          instanceName={instanceName}
+          contactJid={contactJid}
+          contactAvatar={contactAvatar}
+          onSpeak={speak}
+          onStop={stop}
+          onReply={handlers.handleReplyToMessage}
+          onForward={handlers.handleForwardMessage}
+          onCopy={handlers.handleCopyMessage}
+          onScrollToMessage={handleScrollToMessage}
+          onInteractiveButtonClick={handlers.handleInteractiveButtonClick}
+          onEditStart={handlers.handleEditStart}
+          highlightedMessageIds={highlightedMessageIds}
+          activeHighlightId={activeHighlightId}
+          searchQuery={searchQuery}
           onLoadOlder={failuresOnly ? undefined : onLoadOlder}
           onCancelLoadOlder={failuresOnly ? undefined : onCancelLoadOlder}
           loadingOlder={failuresOnly ? false : loadingOlder}
-          hasMoreOlder={failuresOnly ? false : hasMoreOlder} isLoading={isLoading}
-          onAudioVoiceChange={handlers.handleAudioVoiceChange} />
+          hasMoreOlder={failuresOnly ? false : hasMoreOlder}
+          isLoading={isLoading}
+          onAudioVoiceChange={handlers.handleAudioVoiceChange}
+        />
 
-        <ChatQuickRepliesPopover show={dialogs.quickReplies} replies={filteredQuickReplies} onSelect={handleQuickReply} onClose={() => closeDialog('quickReplies')} selectedIndex={selectedQuickReplyIndex} />
-
-        <AnimatePresence>
-          {dialogs.visualValidation && (
-            <SectionErrorBoundary sectionName="VisualValidation">
-              <Suspense fallback={null}>
-                <VisualValidationChecklist onClose={() => closeDialog('visualValidation')} />
-              </Suspense>
-            </SectionErrorBoundary>
-          )}
-        </AnimatePresence>
-
-        {dialogs.whisper && (
-          <SectionErrorBoundary sectionName="WhisperMode">
-            <Suspense fallback={null}>
-              <WhisperMode contactId={conversation.contact.id} className="mx-3 mb-2" defaultExpanded={true} />
-            </Suspense>
-          </SectionErrorBoundary>
-        )}
+        <ChatQuickRepliesPopover
+          show={dialogs.quickReplies}
+          replies={filteredQuickReplies}
+          onSelect={handleQuickReply}
+          onClose={() => closeDialog('quickReplies')}
+          selectedIndex={selectedQuickReplyIndex}
+        />
 
         <SendErrorBanner
           error={handlers.lastSendError}
@@ -512,48 +256,86 @@ export function ChatPanel({ conversation, messages, onSendMessage, onSendAudio, 
           onUseSuggestion={(t) => handlers.setInputValue(t)}
         />
 
-        <ChatInputArea inputValue={handlers.inputValue} replyToMessage={handlers.replyToMessage} editingMessage={handlers.editingMessage} isRecordingAudio={handlers.isRecordingAudio}
-          showSlashCommands={dialogs.slashCommands} contactId={conversation.contact.id} contactPhone={conversation.contact.phone}
-          contactName={conversation.contact.name} instanceName={instanceName} messages={messages} quickReplies={dbQuickReplies} isSending={handlers.isSending} sendProgress={handlers.sendProgress}
-          isWhisper={handlers.isWhisper} onToggleWhisper={() => handlers.setIsWhisper(!handlers.isWhisper)}
-          onInputChange={handleInputChange} onKeyDown={handleKeyDown} onBlur={handleTypingStop} onSend={(att) => handlers.handleSend(att)}
-          onCancelReply={() => handlers.setReplyToMessage(null)} onCancelEdit={handlers.handleCancelEdit} onSlashCommand={handlers.handleSlashCommand}
-          onCloseSlashCommands={() => closeDialog('slashCommands')} onQuickReply={handleQuickReply}
-          onRecordToggle={() => handlers.setIsRecordingAudio(!handlers.isRecordingAudio)} onAudioSend={(blob) => handlers.handleAudioSend(blob, onSendAudio)} onAudioCancel={() => handlers.setIsRecordingAudio(false)}
-          onOpenInteractiveBuilder={() => openDialog('interactiveBuilder')} onOpenSchedule={() => openDialog('scheduleDialog')}
-          onOpenLocationPicker={() => openDialog('locationPicker')} onSendProduct={handlers.handleSendProduct} onSendSticker={handleSendSticker}
-          onSendAudioMeme={handleSendAudioMeme} onSendCustomEmoji={handleSendCustomEmoji}
-          signatureEnabled={signatureEnabled} signatureName={agentName} onToggleSignature={toggleSignature}
-          onPollSent={async (poll) => { await dbFrom('messages').insert({ contact_id: conversation.contact.id, whatsapp_connection_id: whatsappConnectionId, content: `📊 *Enquete:* ${poll.name}\n${poll.options.map((o, i) => `${i + 1}. ${o}`).join('\n')}`, message_type: 'text', sender: 'agent', status: 'sending' }); }}
-          onContactSent={async (contactName) => { await dbFrom('messages').insert({ contact_id: conversation.contact.id, whatsapp_connection_id: whatsappConnectionId, content: `📇 Cartão de contato: ${contactName}`, message_type: 'text', sender: 'agent', status: 'sending' }); }}
-          onOpenCatalog={() => openDialog('catalogDirect')} onSelectSuggestion={(text) => handlers.setInputValue(text)} onSelectTemplate={(text) => handlers.setInputValue(text)}
+        <ChatInputArea
+          inputValue={handlers.inputValue}
+          replyToMessage={handlers.replyToMessage}
+          editingMessage={handlers.editingMessage}
+          isRecordingAudio={handlers.isRecordingAudio}
+          showSlashCommands={dialogs.slashCommands}
+          contactId={conversation.contact.id}
+          contactPhone={conversation.contact.phone}
+          contactName={conversation.contact.name}
+          instanceName={instanceName}
+          messages={messages}
+          quickReplies={dbQuickReplies}
+          isSending={handlers.isSending}
+          sendProgress={handlers.sendProgress}
+          isWhisper={handlers.isWhisper}
+          onToggleWhisper={() => handlers.setIsWhisper(!handlers.isWhisper)}
+          onInputChange={handleInputChange}
+          onKeyDown={handleKeyDown}
+          onBlur={handleTypingStop}
+          onSend={(att) => handlers.handleSend(att)}
+          onCancelReply={() => handlers.setReplyToMessage(null)}
+          onCancelEdit={handlers.handleCancelEdit}
+          onSlashCommand={handlers.handleSlashCommand}
+          onCloseSlashCommands={() => closeDialog('slashCommands')}
+          onQuickReply={handleQuickReply}
+          onRecordToggle={() => handlers.setIsRecordingAudio(!handlers.isRecordingAudio)}
+          onAudioSend={(blob) => handlers.handleAudioSend(blob, onSendAudio)}
+          onAudioCancel={() => handlers.setIsRecordingAudio(false)}
+          onOpenInteractiveBuilder={() => openDialog('interactiveBuilder')}
+          onOpenSchedule={() => openDialog('scheduleDialog')}
+          onOpenLocationPicker={() => openDialog('locationPicker')}
+          onSendProduct={handlers.handleSendProduct}
+          onSendSticker={handleSendSticker}
+          onSendAudioMeme={handleSendAudioMeme}
+          onSendCustomEmoji={handleSendCustomEmoji}
+          signatureEnabled={signatureEnabled}
+          signatureName={agentName}
+          onToggleSignature={toggleSignature}
+          onPollSent={handlePollSent}
+          onContactSent={handleContactSent}
+          onOpenCatalog={() => openDialog('catalogDirect')}
+          onSelectSuggestion={(text) => handlers.setInputValue(text)}
+          onSelectTemplate={(text) => handlers.setInputValue(text)}
           onOpenTeamFiles={() => handleSetActiveTool('teamFiles')}
-          fileUploaderRef={fileUploaderRef} inputRef={handlers.inputRef} 
-          queue={messageQueue?.queue} onRetry={messageQueue?.retryMessage} onRemoveFromQueue={messageQueue?.removeFromQueue} />
+          fileUploaderRef={fileUploaderRef}
+          inputRef={handlers.inputRef}
+          queue={messageQueue}
+        />
 
         <ChatDialogs
-          dialogs={dialogs} openDialog={openDialog} closeDialog={closeDialog}
-          conversation={conversation} forwardMessage={handlers.forwardMessage} callDirection={callDirection}
-          contactId={conversation.contact.id} onTransfer={handleTransfer}
-          onScheduleMessage={handleScheduleMessage} onSendInteractiveMessage={handlers.handleSendInteractiveMessage}
-          onForwardToTargets={handlers.handleForwardToTargets} onSendLocation={handlers.handleSendLocation}
-          onSendProduct={handlers.handleSendProduct} onSetInputValue={handlers.setInputValue}
+          dialogs={dialogs}
+          openDialog={openDialog}
+          closeDialog={closeDialog}
+          conversation={conversation}
+          forwardMessage={handlers.forwardMessage}
+          callDirection={callDirection}
+          contactId={conversation.contact.id}
+          onTransfer={handleTransfer}
+          onScheduleMessage={handleScheduleMessage}
+          onSendInteractiveMessage={handlers.handleSendInteractiveMessage}
+          onForwardToTargets={handlers.handleForwardToTargets}
+          onSendLocation={handlers.handleSendLocation}
+          onSendProduct={handlers.handleSendProduct}
+          onSetInputValue={handlers.setInputValue}
         />
       </div>
 
       <ChatToolPanels
-        activeTool={activeTool} onSetActiveTool={handleSetActiveTool}
-        messages={messages} contactId={conversation.contact.id}
-        contactName={conversation.contact.name} onSelectSuggestion={(text) => handlers.setInputValue(text)}
+        activeTool={activeTool}
+        onSetActiveTool={handleSetActiveTool}
+        messages={messages}
+        contactId={conversation.contact.id}
+        contactName={conversation.contact.name}
+        onSelectSuggestion={(text) => handlers.setInputValue(text)}
       />
-      <Dialog open={activeTool === 'monitoring'} onOpenChange={(open) => !open && handleSetActiveTool(null)}>
-        <DialogContent className="max-w-4xl max-h-[90vh]">
-          <DialogHeader>
-            <DialogTitle>Métricas de Envio e Performance</DialogTitle>
-          </DialogHeader>
-          <QueueMetricsDashboard metrics={messageQueue?.getMetrics() || { totalSent: 0, totalFailed: 0, totalRetries: 0, averageLatency: 0, byType: {}, byConversation: {} }} />
-        </DialogContent>
-      </Dialog>
+      <ChatMonitoringDialog
+        open={activeTool === 'monitoring'}
+        onOpenChange={(open) => !open && handleSetActiveTool(null)}
+        metrics={undefined}
+      />
     </div>
   );
 }

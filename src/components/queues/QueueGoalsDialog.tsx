@@ -83,6 +83,7 @@ export function QueueGoalsDialog({
               </div>
             </div>
             <Switch
+              id="alerts-enabled"
               checked={formData.alerts_enabled}
               onCheckedChange={(checked) =>
                 setFormData((prev) => ({ ...prev, alerts_enabled: checked }))
@@ -94,10 +95,11 @@ export function QueueGoalsDialog({
           <div className="space-y-3">
             <div className="flex items-center gap-2">
               <Users className="w-4 h-4 text-muted-foreground" />
-              <Label className="text-foreground">Máximo de Contatos Aguardando</Label>
+              <Label id="max-waiting-label" htmlFor="max-waiting-contacts" className="text-foreground">Máximo de Contatos Aguardando</Label>
             </div>
             <div className="flex items-center gap-4">
               <Slider
+                aria-labelledby="max-waiting-label"
                 value={[formData.max_waiting_contacts]}
                 onValueChange={([value]) =>
                   setFormData((prev) => ({ ...prev, max_waiting_contacts: value }))
@@ -108,6 +110,7 @@ export function QueueGoalsDialog({
                 className="flex-1"
               />
               <Input
+                id="max-waiting-contacts"
                 type="number"
                 value={formData.max_waiting_contacts}
                 onChange={(e) =>
@@ -128,10 +131,11 @@ export function QueueGoalsDialog({
           <div className="space-y-3">
             <div className="flex items-center gap-2">
               <Clock className="w-4 h-4 text-muted-foreground" />
-              <Label className="text-foreground">Tempo Máximo de Espera (minutos)</Label>
+              <Label id="max-wait-label" htmlFor="max-wait-minutes" className="text-foreground">Tempo Máximo de Espera (minutos)</Label>
             </div>
             <div className="flex items-center gap-4">
               <Slider
+                aria-labelledby="max-wait-label"
                 value={[formData.max_avg_wait_minutes]}
                 onValueChange={([value]) =>
                   setFormData((prev) => ({ ...prev, max_avg_wait_minutes: value }))
@@ -142,6 +146,7 @@ export function QueueGoalsDialog({
                 className="flex-1"
               />
               <Input
+                id="max-wait-minutes"
                 type="number"
                 value={formData.max_avg_wait_minutes}
                 onChange={(e) =>
@@ -162,10 +167,11 @@ export function QueueGoalsDialog({
           <div className="space-y-3">
             <div className="flex items-center gap-2">
               <TrendingUp className="w-4 h-4 text-muted-foreground" />
-              <Label className="text-foreground">Taxa Mínima de Atribuição (%)</Label>
+              <Label id="min-assignment-label" htmlFor="min-assignment-rate" className="text-foreground">Taxa Mínima de Atribuição (%)</Label>
             </div>
             <div className="flex items-center gap-4">
               <Slider
+                aria-labelledby="min-assignment-label"
                 value={[formData.min_assignment_rate]}
                 onValueChange={([value]) =>
                   setFormData((prev) => ({ ...prev, min_assignment_rate: value }))
@@ -176,6 +182,7 @@ export function QueueGoalsDialog({
                 className="flex-1"
               />
               <Input
+                id="min-assignment-rate"
                 type="number"
                 value={formData.min_assignment_rate}
                 onChange={(e) =>
@@ -196,10 +203,11 @@ export function QueueGoalsDialog({
           <div className="space-y-3">
             <div className="flex items-center gap-2">
               <MessageSquare className="w-4 h-4 text-muted-foreground" />
-              <Label className="text-foreground">Máximo de Mensagens Pendentes</Label>
+              <Label id="max-pending-label" htmlFor="max-messages-pending" className="text-foreground">Máximo de Mensagens Pendentes</Label>
             </div>
             <div className="flex items-center gap-4">
               <Slider
+                aria-labelledby="max-pending-label"
                 value={[formData.max_messages_pending]}
                 onValueChange={([value]) =>
                   setFormData((prev) => ({ ...prev, max_messages_pending: value }))
@@ -210,6 +218,7 @@ export function QueueGoalsDialog({
                 className="flex-1"
               />
               <Input
+                id="max-messages-pending"
                 type="number"
                 value={formData.max_messages_pending}
                 onChange={(e) =>

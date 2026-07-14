@@ -67,6 +67,7 @@ export function ScheduleSettings({ settings, updateSettings, toggleWorkDay }: Sc
                   {workDays.map((day) => (
                     <motion.button
                       key={day.id}
+                      aria-pressed={settings.work_days.includes(day.id)}
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
                       onClick={() => toggleWorkDay(day.id)}

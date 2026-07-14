@@ -17,10 +17,10 @@ export function ChatbotL1Config() {
   const { profile } = useAuth();
   const queryClient = useQueryClient();
 
-  const { data: flow, isLoading } = useQuery({
+  const { data: flow } = useQuery({
     queryKey: ['chatbot-l1-flow'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('chatbot_flows')
         .select('*')
         .eq('trigger_type', 'ai_l1')
@@ -56,11 +56,11 @@ export function ChatbotL1Config() {
     if (flow) {
       setIsActive(flow.is_active ?? false);
       setName(flow.name ?? 'Chatbot IA L1');
-      const vars = flow.variables as Record<string, any> | null;
+      const vars = flow.variables as Record<string, unknown> | null; // ignore-audit: Json column narrowed to typed Record for field access
       if (vars) {
-        if (vars.confidence_threshold) setConfidenceThreshold(vars.confidence_threshold);
-        if (vars.welcome_message) setWelcomeMessage(vars.welcome_message);
-        if (vars.transfer_message) setTransferMessage(vars.transfer_message);
+        if (vars.confidence_threshold) setConfidenceThreshold(vars.confidence_threshold as number);
+        if (vars.welcome_message) setWelcomeMessage(vars.welcome_message as string);
+        if (vars.transfer_message) setTransferMessage(vars.transfer_message as string);
       }
     }
   }, [flow]);
@@ -74,12 +74,15 @@ export function ChatbotL1Config() {
       };
 
       if (flow?.id) {
-        const { error } = await supabase.from('chatbot_flows').update({
-          name,
-          is_active: isActive,
-          variables,
-          updated_at: new Date().toISOString(),
-        }).eq('id', flow.id);
+        const { error } = await supabase
+          .from('chatbot_flows')
+          .update({
+            name,
+            is_active: isActive,
+            variables,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', flow.id);
         if (error) throw error;
       } else {
         const { error } = await supabase.from('chatbot_flows').insert({
@@ -97,7 +100,10 @@ export function ChatbotL1Config() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['chatbot-l1-flow'] });
-      toast({ title: 'Chatbot IA salvo!', description: 'O assistente L1 foi configurado com sucesso.' });
+      toast({
+        title: 'Chatbot IA salvo!',
+        description: 'O assistente L1 foi configurado com sucesso.',
+      });
     },
     onError: (e: Error) => {
       toast({ title: 'Erro', description: e.message, variant: 'destructive' });
@@ -107,21 +113,21 @@ export function ChatbotL1Config() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-bold flex items-center gap-2">
-          <Bot className="w-5 h-5 text-primary" />
+        <h2 className="flex items-center gap-2 text-xl font-bold">
+          <Bot className="h-5 w-5 text-primary" />
           Chatbot IA Generativa (L1)
         </h2>
-        <p className="text-sm text-muted-foreground mt-1">
+        <p className="mt-1 text-sm text-muted-foreground">
           Atendimento automático inteligente que responde com base na Base de Conhecimento.
         </p>
       </div>
 
       {/* Status Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
         <Card className="p-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-              <BookOpen className="w-5 h-5 text-primary" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+              <BookOpen className="h-5 w-5 text-primary" />
             </div>
             <div>
               <p className="text-2xl font-bold">{kbCount}</p>
@@ -131,8 +137,8 @@ export function ChatbotL1Config() {
         </Card>
         <Card className="p-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-success/10 flex items-center justify-center">
-              <Brain className="w-5 h-5 text-success" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-success/10">
+              <Brain className="h-5 w-5 text-success" />
             </div>
             <div>
               <p className="text-2xl font-bold">{confidenceThreshold}%</p>
@@ -142,8 +148,10 @@ export function ChatbotL1Config() {
         </Card>
         <Card className="p-4">
           <div className="flex items-center gap-3">
-            <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${isActive ? 'bg-success/10' : 'bg-muted'}`}>
-              <Zap className={`w-5 h-5 ${isActive ? 'text-success' : 'text-muted-foreground'}`} />
+            <div
+              className={`flex h-10 w-10 items-center justify-center rounded-lg ${isActive ? 'bg-success/10' : 'bg-muted'}`}
+            >
+              <Zap className={`h-5 w-5 ${isActive ? 'text-success' : 'text-muted-foreground'}`} />
             </div>
             <div>
               <p className="text-2xl font-bold">{isActive ? 'Ativo' : 'Inativo'}</p>
@@ -155,39 +163,42 @@ export function ChatbotL1Config() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
-            <Shield className="w-4 h-4" />
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Shield className="h-4 w-4" />
             Configuração do Chatbot
           </CardTitle>
           <CardDescription>
-            O chatbot usará a Base de Conhecimento para responder automaticamente. Se não tiver certeza, transfere para humano.
+            O chatbot usará a Base de Conhecimento para responder automaticamente. Se não tiver
+            certeza, transfere para humano.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="flex items-center justify-between">
             <div>
               <Label className="font-medium">Ativar Chatbot IA L1</Label>
-              <p className="text-xs text-muted-foreground">Responder automaticamente novas mensagens</p>
+              <p className="text-xs text-muted-foreground">
+                Responder automaticamente novas mensagens
+              </p>
             </div>
             <Switch checked={isActive} onCheckedChange={setIsActive} />
           </div>
 
           <div className="space-y-2">
             <Label>Nome do Bot</Label>
-            <Input value={name} onChange={e => setName(e.target.value)} />
+            <Input value={name} onChange={(e) => setName(e.target.value)} />
           </div>
 
           <div className="space-y-3">
             <Label className="flex items-center justify-between">
               <span className="flex items-center gap-2">
-                <Brain className="w-4 h-4" />
+                <Brain className="h-4 w-4" />
                 Nível de Confiança Mínimo
               </span>
               <Badge variant="outline">{confidenceThreshold}%</Badge>
             </Label>
             <Slider
               value={[confidenceThreshold]}
-              onValueChange={v => setConfidenceThreshold(v[0])}
+              onValueChange={(v) => setConfidenceThreshold(v[0])}
               min={30}
               max={95}
               step={5}
@@ -199,45 +210,70 @@ export function ChatbotL1Config() {
 
           <div className="space-y-2">
             <Label>Mensagem de Boas-vindas</Label>
-            <Textarea value={welcomeMessage} onChange={e => setWelcomeMessage(e.target.value)} rows={2} />
+            <Textarea
+              value={welcomeMessage}
+              onChange={(e) => setWelcomeMessage(e.target.value)}
+              rows={2}
+            />
           </div>
 
           <div className="space-y-2">
             <Label className="flex items-center gap-2">
-              <ArrowRightLeft className="w-4 h-4" />
+              <ArrowRightLeft className="h-4 w-4" />
               Mensagem de Transferência
             </Label>
-            <Textarea value={transferMessage} onChange={e => setTransferMessage(e.target.value)} rows={2} />
+            <Textarea
+              value={transferMessage}
+              onChange={(e) => setTransferMessage(e.target.value)}
+              rows={2}
+            />
             <p className="text-xs text-muted-foreground">
               Enviada quando o bot decide transferir para um atendente humano.
             </p>
           </div>
 
-          <div className="p-4 rounded-lg bg-muted/50 border space-y-2">
+          <div className="space-y-2 rounded-lg border bg-muted/50 p-4">
             <p className="text-xs font-medium">Como funciona:</p>
-            <div className="text-xs text-muted-foreground space-y-1">
+            <div className="space-y-1 text-xs text-muted-foreground">
               <p>1. 📩 Cliente envia mensagem</p>
               <p>2. 🤖 IA analisa usando a Base de Conhecimento ({kbCount} artigos)</p>
               <p>3. ✅ Se confiança ≥ {confidenceThreshold}% → Responde automaticamente</p>
-              <p>4. 🔄 Se confiança {'<'} {confidenceThreshold}% → Transfere para humano</p>
+              <p>
+                4. 🔄 Se confiança {'<'} {confidenceThreshold}% → Transfere para humano
+              </p>
             </div>
           </div>
 
           <div className="flex gap-3">
-            <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending} className="flex-1">
+            <Button
+              onClick={() => saveMutation.mutate()}
+              disabled={saveMutation.isPending}
+              className="flex-1"
+            >
               {saveMutation.isPending ? 'Salvando...' : 'Salvar Configuração'}
             </Button>
             <Button
               variant="outline"
               onClick={async () => {
                 try {
-                  const { data, error } = await supabase.functions.invoke('chatbot-l1', {
-                    body: { contactId: 'test', message: 'Olá, teste de conexão', connectionId: 'test' },
+                  const { data: _data, error } = await supabase.functions.invoke('chatbot-l1', {
+                    body: {
+                      contactId: 'test',
+                      message: 'Olá, teste de conexão',
+                      connectionId: 'test',
+                    },
                   });
                   if (error) throw error;
-                  toast({ title: '✅ Conexão OK', description: 'Edge Function chatbot-l1 está acessível.' });
+                  toast({
+                    title: '✅ Conexão OK',
+                    description: 'Edge Function chatbot-l1 está acessível.',
+                  });
                 } catch (err: unknown) {
-                  toast({ title: 'Status', description: err instanceof Error ? err.message : 'Verificação concluída', variant: 'destructive' });
+                  toast({
+                    title: 'Status',
+                    description: err instanceof Error ? err.message : 'Verificação concluída',
+                    variant: 'destructive',
+                  });
                 }
               }}
             >

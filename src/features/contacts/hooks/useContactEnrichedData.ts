@@ -1,8 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { getLogger } from '@/lib/logger';
-
-const log = getLogger('useContactEnrichedData');
+import { log } from '@/lib/logger';
+import { sanitizePostgrestFilter } from '@/lib/sanitize';
 import { dbFrom } from '@/integrations/datasource/db';
 import { isValidUUID } from '@/utils/uuid';
 
@@ -57,11 +56,12 @@ async function resolveLocalContactId(identifier: string): Promise<string | null>
 
   const phone = jidToPhone(identifier);
   if (!phone) return null;
+  const safePhone = sanitizePostgrestFilter(phone);
 
   // Try exact match first, then trailing-digits fallback for stored numbers with country code variations
   const { data, error } = await dbFrom('contacts')
     .select('id')
-    .or(`phone.eq.${phone},phone.eq.+${phone},phone.ilike.%${phone.slice(-8)}`)
+    .or(`phone.eq.${safePhone},phone.eq.+${safePhone},phone.ilike.%${safePhone.slice(-8)}`)
     .limit(1)
     .maybeSingle();
 
@@ -95,9 +95,10 @@ export function useContactEnrichedData(contactId: string) {
         log.error('Error fetching enriched contact data:', error);
         return null;
       }
-      return data as EnrichedContactData;
+      return data as EnrichedContactData; // ignore-audit: narrows Supabase query result to local interface
     },
     enabled: !!localId,
+    staleTime: 3 * 60 * 1000, // 3min — coordinate with mutation invalidation
   });
 
   // Fetch AI conversation tags
@@ -114,9 +115,10 @@ export function useContactEnrichedData(contactId: string) {
         log.error('Error fetching AI tags:', error);
         return [];
       }
-      return data as AIConversationTag[];
+      return data as AIConversationTag[]; // ignore-audit: narrows Supabase query result to local interface
     },
     enabled: !!localId,
+    staleTime: 5 * 60 * 1000, // 5min — matches parent query staleTime
   });
 
   // Fetch SLA info
@@ -135,9 +137,10 @@ export function useContactEnrichedData(contactId: string) {
         log.error('Error fetching SLA info:', error);
         return null;
       }
-      return data as SLAInfo | null;
+      return data as SLAInfo | null; // ignore-audit: narrows Supabase query result to local interface
     },
     enabled: !!localId,
+    staleTime: 2 * 60 * 1000, // 2min — SLA is more volatile, refresh more frequently
   });
 
   return { enrichedData, aiTags, slaInfo };

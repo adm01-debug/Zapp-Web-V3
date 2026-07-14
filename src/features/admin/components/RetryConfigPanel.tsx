@@ -6,7 +6,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Slider } from '@/components/ui/slider';
 import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
@@ -19,14 +25,31 @@ import {
   hasRetryConfigErrors,
   type RetryConfig,
 } from '@/lib/retryConfig';
+import { RetryConfigBackoffTable } from './RetryConfigBackoffTable';
 
 const GLOBAL = '_global';
 
 const FIELD_LABELS: Record<keyof RetryConfig, { label: string; help: string; unit: string }> = {
-  maxRetries: { label: 'Máximo de tentativas', help: 'Total incluindo a primeira chamada.', unit: '' },
-  baseBackoffMs: { label: 'Backoff inicial', help: 'Espera antes da 2ª tentativa (dobra a cada falha).', unit: 'ms' },
-  maxBackoffMs: { label: 'Backoff máximo', help: 'Limite superior da espera entre tentativas.', unit: 'ms' },
-  timeoutMs: { label: 'Timeout por chamada', help: 'Aborta a chamada se passar disso.', unit: 'ms' },
+  maxRetries: {
+    label: 'Máximo de tentativas',
+    help: 'Total incluindo a primeira chamada.',
+    unit: '',
+  },
+  baseBackoffMs: {
+    label: 'Backoff inicial',
+    help: 'Espera antes da 2ª tentativa (dobra a cada falha).',
+    unit: 'ms',
+  },
+  maxBackoffMs: {
+    label: 'Backoff máximo',
+    help: 'Limite superior da espera entre tentativas.',
+    unit: 'ms',
+  },
+  timeoutMs: {
+    label: 'Timeout por chamada',
+    help: 'Aborta a chamada se passar disso.',
+    unit: 'ms',
+  },
 };
 
 function buildPreview(c: RetryConfig): string {
@@ -43,8 +66,14 @@ export function RetryConfigPanel() {
   const [instances, setInstances] = useState<string[]>([]);
   const [selected, setSelected] = useState<string>(GLOBAL);
   const {
-    config, globalConfig, isLoading, isSaving, hasInstanceOverride,
-    save, resetToGlobal, resetToDefault,
+    config,
+    globalConfig,
+    isLoading,
+    isSaving,
+    hasInstanceOverride,
+    save,
+    resetToGlobal,
+    resetToDefault,
   } = useInstanceRetryConfig(selected);
 
   const [draft, setDraft] = useState<RetryConfig>(DEFAULT_RETRY_CONFIG);
@@ -67,23 +96,32 @@ export function RetryConfigPanel() {
     let cancelled = false;
     (async () => {
       try {
-        const { data, error } = await supabase
+        const { data } = await supabase
           .from('whatsapp_connections')
           .select('instance_id')
           .not('instance_id', 'is', null);
         if (cancelled) return;
-        const list = Array.from(new Set((data ?? [])
-          .map((r) => r.instance_id as string | null)
-          .filter((v): v is string => !!v && v.trim() !== '')));
+        const list = Array.from(
+          new Set(
+            (data ?? [])
+              .map((r) => r.instance_id as string | null)
+              .filter((v): v is string => !!v && v.trim() !== '')
+          )
+        );
         setInstances(list.sort());
       } catch {
         setInstances([]);
       }
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  const dirty = useMemo(() => RETRY_CONFIG_FIELDS.some((f) => draft[f] !== config[f]), [draft, config]);
+  const dirty = useMemo(
+    () => RETRY_CONFIG_FIELDS.some((f) => draft[f] !== config[f]),
+    [draft, config]
+  );
   const validationErrors = useMemo(() => validateRetryConfig(draft), [draft]);
   const isInvalid = hasRetryConfigErrors(validationErrors);
 
@@ -97,7 +135,9 @@ export function RetryConfigPanel() {
   async function handleSave() {
     if (isInvalid) return;
     const partial: Partial<RetryConfig> = {};
-    RETRY_CONFIG_FIELDS.forEach((f) => { if (draft[f] !== config[f]) partial[f] = draft[f]; });
+    RETRY_CONFIG_FIELDS.forEach((f) => {
+      if (draft[f] !== config[f]) partial[f] = draft[f];
+    });
     try {
       await save(partial);
       userHasEditsRef.current = false;
@@ -109,22 +149,26 @@ export function RetryConfigPanel() {
   return (
     <Card>
       <CardHeader className="pb-3">
-        <CardTitle className="text-sm font-medium flex items-center gap-2">
+        <CardTitle className="flex items-center gap-2 text-sm font-medium">
           <Settings2 className="h-4 w-4" />
           Configuração de retry (sem deploy)
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-5">
         {/* Instance selector */}
-        <div className="flex items-end gap-3 flex-wrap">
+        <div className="flex flex-wrap items-end gap-3">
           <div className="flex flex-col gap-1">
             <Label className="text-xs text-muted-foreground">Escopo</Label>
             <Select value={selected} onValueChange={setSelected}>
-              <SelectTrigger className="w-[260px]"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="w-[260px]">
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value={GLOBAL}>Global (default para todas)</SelectItem>
                 {instances.map((i) => (
-                  <SelectItem key={i} value={i}>Instância: {i}</SelectItem>
+                  <SelectItem key={i} value={i}>
+                    Instância: {i}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -139,10 +183,12 @@ export function RetryConfigPanel() {
         {/* Fields */}
         {isLoading ? (
           <div className="space-y-3">
-            {RETRY_CONFIG_FIELDS.map((f) => <Skeleton key={f} className="h-16 w-full" />)}
+            {RETRY_CONFIG_FIELDS.map((f) => (
+              <Skeleton key={f} className="h-16 w-full" />
+            ))}
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
             {RETRY_CONFIG_FIELDS.map((field) => {
               const meta = FIELD_LABELS[field];
               const range = RETRY_CONFIG_RANGES[field];
@@ -164,8 +210,8 @@ export function RetryConfigPanel() {
                       onChange={(e) => updateField(field, Number(e.target.value))}
                       aria-invalid={!!fieldError}
                       className={cn(
-                        'w-28 h-8 text-right tabular-nums',
-                        fieldError && 'border-destructive focus-visible:ring-destructive',
+                        'h-8 w-28 text-right tabular-nums',
+                        fieldError && 'border-destructive focus-visible:ring-destructive'
                       )}
                     />
                   </div>
@@ -179,12 +225,15 @@ export function RetryConfigPanel() {
                   <div className="flex items-center justify-between text-xs text-muted-foreground">
                     <span>{meta.help}</span>
                     {inheritedFromGlobal && (
-                      <span className="italic">global: {globalConfig[field]}{meta.unit}</span>
+                      <span className="italic">
+                        global: {globalConfig[field]}
+                        {meta.unit}
+                      </span>
                     )}
                   </div>
                   {fieldError && (
                     <div className="flex items-start gap-1.5 text-xs text-destructive" role="alert">
-                      <AlertCircle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                      <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                       <span>{fieldError}</span>
                     </div>
                   )}
@@ -197,16 +246,16 @@ export function RetryConfigPanel() {
         {/* Validation summary */}
         {isInvalid && (
           <div
-            className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-xs flex items-start gap-2"
+            className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-xs"
             role="alert"
             data-testid="retry-config-validation-banner"
           >
-            <AlertCircle className="h-4 w-4 mt-0.5 text-destructive shrink-0" />
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
             <div>
-              <div className="font-medium text-destructive mb-0.5">
+              <div className="mb-0.5 font-medium text-destructive">
                 Combinações inválidas — corrija antes de salvar
               </div>
-              <ul className="list-disc list-inside text-destructive/90 space-y-0.5">
+              <ul className="list-inside list-disc space-y-0.5 text-destructive/90">
                 {Object.entries(validationErrors).map(([k, msg]) => (
                   <li key={k}>{msg}</li>
                 ))}
@@ -216,98 +265,40 @@ export function RetryConfigPanel() {
         )}
 
         {/* Preview */}
-        <div className="rounded-md border bg-muted/30 p-3 text-xs flex items-start gap-2">
-          <Info className="h-3.5 w-3.5 mt-0.5 text-muted-foreground shrink-0" />
+        <div className="flex items-start gap-2 rounded-md border bg-muted/30 p-3 text-xs">
+          <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
           <div>
-            <div className="font-medium mb-0.5">Comportamento resultante</div>
-            <div className=" text-muted-foreground">{buildPreview(draft)}</div>
+            <div className="mb-0.5 font-medium">Comportamento resultante</div>
+            <div className="text-muted-foreground">{buildPreview(draft)}</div>
           </div>
         </div>
 
         {/* Actions */}
-        <div className="flex flex-wrap gap-2 pt-2 border-t">
-          <Button size="sm" onClick={handleSave} disabled={!dirty || isSaving || isLoading || isInvalid}>
-            <Save className="h-4 w-4 mr-2" />
+        <div className="flex flex-wrap gap-2 border-t pt-2">
+          <Button
+            size="sm"
+            onClick={handleSave}
+            disabled={!dirty || isSaving || isLoading || isInvalid}
+          >
+            <Save className="mr-2 h-4 w-4" />
             Salvar
           </Button>
           {selected !== GLOBAL && hasInstanceOverride && (
             <Button size="sm" variant="outline" onClick={resetToGlobal} disabled={isSaving}>
-              <RotateCcw className="h-4 w-4 mr-2" />
+              <RotateCcw className="mr-2 h-4 w-4" />
               Restaurar global
             </Button>
           )}
           {selected === GLOBAL && (
             <Button size="sm" variant="outline" onClick={resetToDefault} disabled={isSaving}>
-              <RotateCcw className="h-4 w-4 mr-2" />
+              <RotateCcw className="mr-2 h-4 w-4" />
               Restaurar padrão de fábrica
             </Button>
           )}
         </div>
 
-        {/* Reason-aware backoff (informativo) */}
-        <ReasonBackoffTable />
+        <RetryConfigBackoffTable />
       </CardContent>
     </Card>
-  );
-}
-
-const REASON_PROFILE_UI: Array<{
-  reason: string;
-  label: string;
-  multiplier: number;
-  minDelayMs: number;
-  hint: string;
-}> = [
-  { reason: 'rate_limit',      label: 'Rate limit (429)',         multiplier: 4.0, minDelayMs: 120_000, hint: 'Espera mais para não piorar throttling.' },
-  { reason: 'unavailable',     label: 'Indisponível (502/503/504)', multiplier: 2.0, minDelayMs:  60_000, hint: 'Serviço pode voltar logo.' },
-  { reason: 'server_error',    label: 'Erro do servidor (5xx)',   multiplier: 2.0, minDelayMs:  60_000, hint: 'Outros 5xx genéricos.' },
-  { reason: 'auth',            label: 'Autenticação (401/403)',   multiplier: 1.5, minDelayMs:  90_000, hint: 'Dá tempo de refresh de token.' },
-  { reason: 'timeout',         label: 'Timeout',                  multiplier: 1.0, minDelayMs:  30_000, hint: 'Reagenda agressivo, geralmente resolve.' },
-  { reason: 'network',         label: 'Rede',                     multiplier: 1.0, minDelayMs:  30_000, hint: 'Reagenda agressivo, geralmente resolve.' },
-  { reason: 'invalid_payload', label: 'Payload inválido (400/422)', multiplier: 1.0, minDelayMs:  60_000, hint: 'Não recupera por retry — só respeita.' },
-  { reason: 'not_found',       label: 'Não encontrado (404)',     multiplier: 1.0, minDelayMs:  60_000, hint: 'Não recupera por retry — só respeita.' },
-  { reason: 'unknown',         label: 'Desconhecido',             multiplier: 1.0, minDelayMs:  60_000, hint: 'Comportamento padrão (compat).' },
-];
-
-function fmtMs(ms: number): string {
-  if (ms >= 60_000) return `${Math.round(ms / 60_000)}min`;
-  return `${Math.round(ms / 1000)}s`;
-}
-
-function ReasonBackoffTable() {
-  return (
-    <div className="rounded-md border bg-muted/20 p-3 text-xs space-y-2">
-      <div className="flex items-start gap-2">
-        <Info className="h-3.5 w-3.5 mt-0.5 text-muted-foreground shrink-0" />
-        <div className="flex-1">
-          <div className="font-medium mb-0.5">Backoff escalonado por motivo</div>
-          <div className="text-muted-foreground">
-            Aplicado pela DLQ ao reprocessar — multiplica o exponencial base e respeita o piso por motivo. Cap global de 1h.
-          </div>
-        </div>
-      </div>
-      <div className="overflow-x-auto -mx-3 px-3">
-        <table className="w-full text-xs tabular-nums">
-          <thead className="text-muted-foreground">
-            <tr className="border-b">
-              <th className="text-left font-medium py-1.5 pr-2">Motivo</th>
-              <th className="text-right font-medium py-1.5 px-2">Mult.</th>
-              <th className="text-right font-medium py-1.5 px-2">Mín.</th>
-              <th className="text-left font-medium py-1.5 pl-2">Quando aplica</th>
-            </tr>
-          </thead>
-          <tbody>
-            {REASON_PROFILE_UI.map((r) => (
-              <tr key={r.reason} className="border-b last:border-0">
-                <td className="py-1.5 pr-2 font-medium">{r.label}</td>
-                <td className="py-1.5 px-2 text-right">{r.multiplier.toFixed(1)}×</td>
-                <td className="py-1.5 px-2 text-right">{fmtMs(r.minDelayMs)}</td>
-                <td className="py-1.5 pl-2 text-muted-foreground">{r.hint}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
   );
 }

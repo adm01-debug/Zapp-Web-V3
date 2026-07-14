@@ -1,15 +1,19 @@
-import React from "react";
-import ReactDOM from "react-dom/client";
-import App from "./App.tsx";
-import "./index.css";
-import "./i18n"; // Initialize i18n 
-import { getLogger } from "./lib/logger";
-import { initSentry, SentryErrorBoundary } from "./lib/sentry";
-import { initWebVitals } from "./lib/web-vitals";
-import { registerExternalSessionBridge } from "./integrations/supabase/externalSessionBridge";
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import App from './App.tsx';
+import './index.css';
+import './i18n'; // Initialize i18n
+import { getLogger } from './lib/logger';
+import { initSentry, SentryErrorBoundary } from './lib/sentry';
+import { initWebVitals } from './lib/webVitals';
+import { registerExternalSessionBridge } from './integrations/supabase/externalSessionBridge';
+import { initializeSilentErrorPrevention } from './lib/silentErrorPrevention';
 
 // Instala bridge dual-session (FATOR X external)
 registerExternalSessionBridge();
+
+// Initialize silent error prevention (MELHORIA #11)
+initializeSilentErrorPrevention();
 
 declare global {
   interface Window {
@@ -24,8 +28,29 @@ const log = getLogger('App');
 if (sentryEnabled) log.info('Sentry SDK ativo');
 log.info('Initialized at', new Date().toISOString());
 
-// Global unhandled error handlers for resilience
-window.addEventListener('unhandledrejection', (event) => {
+/**
+ * Consolidated unhandledrejection handler.
+ *
+ * Handles both logging and suppression in a single listener to avoid the
+ * double-handler problem (previously main.tsx logged everything, then
+ * App.tsx registered a second handler to suppress some errors — but
+ * main.tsx fired first, logging errors that the second handler would
+ * have silenced).
+ *
+ * Suppresses:
+ * - TimeoutError: expected browser timeout from storage/IDB operations
+ * - InvalidStateError: expected from service worker / IDB lifecycle events
+ */
+window.addEventListener('unhandledrejection', (event: PromiseRejectionEvent) => {
+  const reason = event.reason;
+  if (reason && typeof reason === 'object' && 'name' in reason) {
+    const name = (reason as { name: string }).name;
+    if (name === 'TimeoutError' || name === 'InvalidStateError') {
+      // Known browser noise — suppress silently.
+      event.preventDefault();
+      return;
+    }
+  }
   log.error('Unhandled promise rejection:', event.reason);
 });
 
@@ -44,7 +69,9 @@ if (import.meta.env.DEV) {
       if (violations?.length) {
         log.warn(`[A11Y] ${violations.length} accessibility violation(s) detected`);
         violations.forEach((v) => {
-          log.warn(`[A11Y] ${String(v.impact || 'UNKNOWN').toUpperCase()}: ${v.id} — ${v.description} (${v.nodes.length} element(s))`);
+          log.warn(
+            `[A11Y] ${String(v.impact || 'UNKNOWN').toUpperCase()}: ${v.id} — ${v.description} (${v.nodes.length} element(s))`
+          );
         });
       }
     });
@@ -52,19 +79,25 @@ if (import.meta.env.DEV) {
   });
 }
 
-ReactDOM.createRoot(document.getElementById("root")!).render(
+ReactDOM.createRoot(document.getElementById('root')!).render(
   <SentryErrorBoundary
     fallback={({ error, resetError }) => (
-      <div role="alert" className="p-6  max-w-2xl mx-auto my-10 bg-card rounded-2xl border border-border shadow-xl">
-        <h1 className="text-2xl font-bold mb-3 text-foreground">Algo deu errado</h1>
-        <p className="text-muted-foreground mb-4">
+      <div
+        role="alert"
+        className="mx-auto my-10 max-w-2xl rounded-2xl border border-border bg-card p-6 shadow-xl"
+      >
+        <h1 className="mb-3 text-2xl font-bold text-foreground">Algo deu errado</h1>
+        <p className="mb-4 text-muted-foreground">
           O erro foi registrado e nossa equipe foi notificada. Você pode tentar de novo:
         </p>
-        <button onClick={resetError} className="px-4 py-2 rounded-lg bg-primary text-primary-foreground font-semibold hover:opacity-90 transition-opacity">
+        <button
+          onClick={resetError}
+          className="rounded-lg bg-primary px-4 py-2 font-semibold text-primary-foreground transition-opacity hover:opacity-90"
+        >
           Tentar novamente
         </button>
         {import.meta.env.DEV && (
-          <pre className="mt-4 p-3 bg-muted text-destructive rounded-lg overflow-auto text-xs ">
+          <pre className="mt-4 overflow-auto rounded-lg bg-muted p-3 text-xs text-destructive">
             {String(error?.toString?.() ?? error)}
           </pre>
         )}

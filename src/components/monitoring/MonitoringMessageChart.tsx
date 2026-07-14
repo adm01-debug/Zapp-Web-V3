@@ -62,8 +62,8 @@ export function MonitoringMessageChart({ messageStats, period }: Props) {
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-              <XAxis dataKey="hour" tick={{ fontSize: 10 }} />
-              <YAxis allowDecimals={false} tick={{ fontSize: 10 }} />
+              <XAxis dataKey="hour" tick={{ style: { fontSize: '0.75rem' } }} />
+              <YAxis allowDecimals={false} tick={{ style: { fontSize: '0.75rem' } }} />
               <Tooltip content={<CustomTooltip />} />
               <Legend iconSize={8} wrapperStyle={{ fontSize: '11px' }} />
               <Area type={chartType === 'area' ? 'monotone' : 'step'} dataKey="incoming" name="Recebidas" stroke="hsl(var(--primary))" fillOpacity={1} fill="url(#colorIncoming)" strokeWidth={2} dot={{ r: 2, strokeWidth: 0 }} activeDot={{ r: 4, strokeWidth: 2 }} />

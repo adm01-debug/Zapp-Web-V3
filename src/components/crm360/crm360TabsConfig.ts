@@ -3,22 +3,16 @@
  */
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import type { ExternalTableName } from '@/types/externalDB';
+import type { TabConfig } from './crm360TabsData';
 import {
-  CORE_TABS, COMMUNICATION_TABS, SALES_TABS,
-  CRM_PIPELINE_TABS, GAMIFICATION_TABS, METADATA_TABS,
+  CORE_TABS,
+  COMMUNICATION_TABS,
+  SALES_TABS,
+  CRM_PIPELINE_TABS,
+  GAMIFICATION_TABS,
+  METADATA_TABS,
 } from './crm360TabsData';
-
-// ─── Tab configuration type ─────────────────────────────────
-export interface TabConfig {
-  id: ExternalTableName | string;
-  label: string;
-  icon: React.ElementType;
-  description: string;
-  searchColumn?: string;
-  editable?: boolean;
-  columns: { key: string; label: string; format?: 'date' | 'currency' | 'boolean' | 'number' }[];
-}
+export type { TabConfig } from './crm360TabsData';
 
 // ─── Aggregated TABS array ──────────────────────────────────
 export const TABS: TabConfig[] = [
@@ -36,7 +30,9 @@ export function formatCellValue(value: unknown, format?: string): string {
   if (format === 'date' && typeof value === 'string') {
     try {
       return formatDistanceToNow(new Date(value), { addSuffix: true, locale: ptBR });
-    } catch { return String(value); }
+    } catch {
+      return String(value);
+    }
   }
   if (format === 'currency' && typeof value === 'number') {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
@@ -50,15 +46,21 @@ export function formatCellValue(value: unknown, format?: string): string {
 }
 
 // ─── CSV Export ──────────────────────────────────────────────
-export function exportToCSV(data: Record<string, unknown>[], columns: TabConfig['columns'], filename: string) {
+export function exportToCSV(
+  data: Record<string, unknown>[],
+  columns: TabConfig['columns'],
+  filename: string
+) {
   if (!data.length) return;
-  const header = columns.map(c => c.label).join(',');
-  const rows = data.map(row =>
-    columns.map(c => {
-      const val = row[c.key];
-      const str = val === null || val === undefined ? '' : String(val);
-      return `"${str.replace(/"/g, '""')}"`;
-    }).join(',')
+  const header = columns.map((c) => c.label).join(',');
+  const rows = data.map((row) =>
+    columns
+      .map((c) => {
+        const val = row[c.key];
+        const str = val === null || val === undefined ? '' : String(val);
+        return `"${str.replace(/"/g, '""')}"`;
+      })
+      .join(',')
   );
   const csv = [header, ...rows].join('\n');
   const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });

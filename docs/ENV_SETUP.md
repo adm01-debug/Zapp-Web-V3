@@ -21,15 +21,13 @@ bun run dev
 
 ### Frontend (prefixo `VITE_*` — vão pro bundle)
 
-| Variável | Obrigatório | Descrição |
-|---|---|---|
-| `VITE_SUPABASE_URL` | ✅ | URL do Lovable Cloud (auth + tabelas locais). |
-| `VITE_SUPABASE_ANON_KEY` | ✅ | Anon key do Lovable Cloud. |
-| `VITE_SUPABASE_PROJECT_ID` | ✅ | Ref do projeto Supabase. |
-| `VITE_EXTERNAL_SUPABASE_URL` | ✅ | FATOR X (domínio `evolution_*`). |
-| `VITE_EXTERNAL_SUPABASE_ANON_KEY` | ✅ | Anon key do FATOR X. |
-| `VITE_EVOLUTION_API_URL` / `VITE_EVOLUTION_API_KEY` | opcional | Adapter WhatsApp direto (fallback). |
-| `VITE_SENTRY_DSN` | recomendado | Observabilidade frontend. |
+| Variável                                            | Obrigatório | Descrição                                                                                                                                                                                                   |
+| --------------------------------------------------- | ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `VITE_SUPABASE_URL`                                 | ✅          | https://supabase.atomicabr.com.br                                                                                                                                                                           |
+| `VITE_SUPABASE_ANON_KEY`                            | ✅          | **anon** public key do projeto (NUNCA a `service_role`). ⚠️ O valor antes documentado aqui era um JWT `service_role` (bypassa RLS) — foi removido e DEVE ser rotacionado no Supabase. Use apenas a anon key. |
+| `VITE_SUPABASE_PROJECT_ID`                          | ✅          | Ref do projeto Supabase.                                                                                                                                                                                    |
+| `VITE_EVOLUTION_API_URL` / `VITE_EVOLUTION_API_KEY` | opcional    | Adapter WhatsApp direto (fallback).                                                                                                                                                                         |
+| `VITE_SENTRY_DSN`                                   | recomendado | Observabilidade frontend.                                                                                                                                                                                   |
 
 ### Backend / Edge Functions (sem prefixo — só servidor)
 
@@ -37,16 +35,16 @@ Configure como **secrets** no Lovable Cloud (Connectors → Secrets).
 Eles ficam disponíveis automaticamente em todas as edge functions via
 `Deno.env.get(...)`.
 
-| Secret | Usado por | Descrição |
-|---|---|---|
-| `EXTERNAL_SUPABASE_URL` / `EXTERNAL_SUPABASE_ANON_KEY` | `external-db-proxy`, várias | Banco FATOR X. |
-| `EVOLUTION_API_URL` / `EVOLUTION_API_KEY` | `evolution-*` | Servidor Evolution API. |
-| `EVOLUTION_WEBHOOK_SECRET[S]` | `evolution-webhook` | HMAC dos webhooks. |
-| `PROMOGIFTS_SUPABASE_URL` / `PROMOGIFTS_SUPABASE_ANON_KEY` | `promogifts-catalog` | Catálogo de brindes externo. |
-| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` / `GOOGLE_REDIRECT_URI` | `gmail-*` | OAuth Gmail. |
-| `RESEND_API_KEY` | emails transacionais | Provedor de email. |
-| `SIP_PASSWORD` | `get-sip-password` | VoIP/SIP. |
-| `ELEVENLABS_API_KEY` | voz/transcrição | Gerenciado por Connector. |
+| Secret                                                              | Usado por                   | Descrição                    |
+| ------------------------------------------------------------------- | --------------------------- | ---------------------------- |
+| `EXTERNAL_SUPABASE_URL` / `EXTERNAL_SUPABASE_ANON_KEY`              | `external-db-proxy`, várias | Banco FATOR X.               |
+| `EVOLUTION_API_URL` / `EVOLUTION_API_KEY`                           | `evolution-*`               | Servidor Evolution API.      |
+| `EVOLUTION_WEBHOOK_SECRET[S]`                                       | `evolution-webhook`         | HMAC dos webhooks.           |
+| `PROMOGIFTS_SUPABASE_URL` / `PROMOGIFTS_SUPABASE_ANON_KEY`          | `promogifts-catalog`        | Catálogo de brindes externo. |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` / `GOOGLE_REDIRECT_URI` | `gmail-*`                   | OAuth Gmail.                 |
+| `RESEND_API_KEY`                                                    | emails transacionais        | Provedor de email.           |
+| `SIP_PASSWORD`                                                      | `get-sip-password`          | VoIP/SIP.                    |
+| `ELEVENLABS_API_KEY`                                                | voz/transcrição             | Gerenciado por Connector.    |
 
 > ✅ `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` e
 > `LOVABLE_API_KEY` são injetados automaticamente — **não precisa configurar**.
@@ -95,15 +93,15 @@ definidos em **Settings → Secrets and variables → Actions** do repositório.
 
 ### Secrets mínimos para CI
 
-| Secret | Necessário para |
-|---|---|
-| `VITE_SUPABASE_URL` | build + Vitest |
-| `VITE_SUPABASE_PUBLISHABLE_KEY` | build + Vitest |
-| `VITE_SUPABASE_PROJECT_ID` | build |
-| `VITE_EXTERNAL_SUPABASE_URL` | testes de integração |
-| `VITE_EXTERNAL_SUPABASE_ANON_KEY` | testes de integração |
-| `EVOLUTION_API_URL` / `EVOLUTION_API_KEY` | testes de edge function |
-| `PROMOGIFTS_SUPABASE_URL` / `PROMOGIFTS_SUPABASE_ANON_KEY` | testes do catálogo |
+| Secret                                                     | Necessário para         |
+| ---------------------------------------------------------- | ----------------------- |
+| `VITE_SUPABASE_URL`                                        | build + Vitest          |
+| `VITE_SUPABASE_PUBLISHABLE_KEY`                            | build + Vitest          |
+| `VITE_SUPABASE_PROJECT_ID`                                 | build                   |
+| `VITE_EXTERNAL_SUPABASE_URL`                               | testes de integração    |
+| `VITE_EXTERNAL_SUPABASE_ANON_KEY`                          | testes de integração    |
+| `EVOLUTION_API_URL` / `EVOLUTION_API_KEY`                  | testes de edge function |
+| `PROMOGIFTS_SUPABASE_URL` / `PROMOGIFTS_SUPABASE_ANON_KEY` | testes do catálogo      |
 
 ### Como adicionar
 
@@ -127,10 +125,10 @@ Ou pela UI: repo → **Settings → Secrets and variables → Actions → New re
 
 ## 5. Troubleshooting
 
-| Sintoma | Causa provável | Ação |
-|---|---|---|
-| `Edge function returned 500: External DB not configured` | Secret faltando no Lovable Cloud | Adicione em Connectors → Secrets. Sem redeploy manual. |
-| `503 EXTERNAL_DB_NOT_CONFIGURED` | Mesma causa, nova mensagem detalhada | Veja `missing[]` na resposta. |
-| `502 EXTERNAL_DB_UNREACHABLE` | Secrets presentes mas URL/anon key errados | Confira URL (sem `/`) e anon key no painel do Supabase. |
-| Build do Vite ignora variáveis | Faltou prefixo `VITE_` | Apenas `VITE_*` chegam ao bundle. |
-| CI falha com `undefined` em `import.meta.env.*` | Secret não cadastrado em GitHub Actions | Adicione com `gh secret set`. |
+| Sintoma                                                  | Causa provável                             | Ação                                                    |
+| -------------------------------------------------------- | ------------------------------------------ | ------------------------------------------------------- |
+| `Edge function returned 500: External DB not configured` | Secret faltando no Lovable Cloud           | Adicione em Connectors → Secrets. Sem redeploy manual.  |
+| `503 EXTERNAL_DB_NOT_CONFIGURED`                         | Mesma causa, nova mensagem detalhada       | Veja `missing[]` na resposta.                           |
+| `502 EXTERNAL_DB_UNREACHABLE`                            | Secrets presentes mas URL/anon key errados | Confira URL (sem `/`) e anon key no painel do Supabase. |
+| Build do Vite ignora variáveis                           | Faltou prefixo `VITE_`                     | Apenas `VITE_*` chegam ao bundle.                       |
+| CI falha com `undefined` em `import.meta.env.*`          | Secret não cadastrado em GitHub Actions    | Adicione com `gh secret set`.                           |

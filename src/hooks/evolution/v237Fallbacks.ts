@@ -35,15 +35,17 @@ export { isEndpointUnavailable };
 export async function withV237Fallback<T>(
   primary: () => Promise<T>,
   fallback: () => Promise<T>,
-  label: string,
+  label: string
 ): Promise<T> {
   try {
     const result = await primary();
     // Some Evolution proxies wrap 404 into payload `{ error: 'not_found' }`.
-    const wrapped = result as unknown as { error?: unknown; status?: number } | null;
-    if (wrapped && typeof wrapped === 'object' && (isEndpointUnavailable(wrapped) || wrapped.error === 'not_found')) {
-      log.warn(`[${label}] primary returned not-found payload; using FATOR X fallback`);
-      return await fallback();
+    if (result && typeof result === 'object') {
+      const wrapped = result as { error?: unknown; status?: number };
+      if (isEndpointUnavailable(wrapped) || wrapped.error === 'not_found') {
+        log.warn(`[${label}] primary returned not-found payload; using FATOR X fallback`);
+        return await fallback();
+      }
     }
     return result;
   } catch (err) {
@@ -64,38 +66,50 @@ function ensureExternal() {
   return externalSupabase;
 }
 
+/** Call an RPC function not present in the generated external-client types. */
+function callExternalRpc(
+  client: ReturnType<typeof ensureExternal>,
+  fn: string,
+  args: Record<string, unknown>
+) {
+  return (client as unknown as { rpc: typeof client.rpc }).rpc(fn, args); // ignore-audit — rpc not in generated types for evolution client; shape is identical at runtime
+}
+
 export async function fallbackFindChats(instanceName: string, limit = 200): Promise<unknown[]> {
   const client = ensureExternal();
-  const { data, error } = await client.rpc('rpc_list_conversations' as never, {
+  const { data, error } = await callExternalRpc(client, 'rpc_list_conversations', {
     p_instance: instanceName,
     p_status: null,
     p_assigned_to: null,
     p_limit: limit,
-  } as never);
+  });
   if (error) throw error;
   return Array.isArray(data) ? data : [];
 }
 
 export async function fallbackFindContacts(instanceName: string, limit = 500): Promise<unknown[]> {
   const client = ensureExternal();
-  const { data, error } = await client.rpc('rpc_list_contacts' as never, {
+  const { data, error } = await callExternalRpc(client, 'rpc_list_contacts', {
     p_instance: instanceName,
     p_lead_status: null,
     p_assigned_to: null,
     p_search: null,
     p_limit: limit,
     p_offset: 0,
-  } as never);
+  });
   if (error) throw error;
   return Array.isArray(data) ? data : [];
 }
 
-export async function fallbackFetchProfile(remoteJid: string, instanceName: string): Promise<unknown | null> {
+export async function fallbackFetchProfile(
+  remoteJid: string,
+  instanceName: string
+): Promise<unknown | null> {
   const client = ensureExternal();
-  const { data, error } = await client.rpc('rpc_get_contact' as never, {
+  const { data, error } = await callExternalRpc(client, 'rpc_get_contact', {
     p_remote_jid: remoteJid,
     p_instance: instanceName,
-  } as never);
+  });
   if (error) throw error;
   return data ?? null;
 }

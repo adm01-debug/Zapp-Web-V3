@@ -7,8 +7,13 @@ import { toast } from '@/hooks/use-toast';
 import type { MediaRefreshKey } from '@/types/mediaRefresh';
 import { audioPlaybackBus } from '@/features/inbox';
 
+interface SeekInput {
+  currentTarget: EventTarget & HTMLDivElement;
+  clientX: number;
+}
+
 interface UseAudioPlayerOptions {
-  audioUrl: string;
+  audioUrl: string | null;
   messageId: string;
   /** Optional Evolution refresh key — enables `getMediaBase64` fallback when the URL expires (410/403). */
   refreshKey?: MediaRefreshKey;
@@ -28,7 +33,9 @@ export function useAudioPlayer({ audioUrl, messageId, refreshKey }: UseAudioPlay
       const saved = localStorage.getItem('audio-player:volume');
       const n = saved !== null ? parseFloat(saved) : 1;
       return isFinite(n) ? Math.min(1, Math.max(0, n)) : 1;
-    } catch { return 1; }
+    } catch {
+      return 1;
+    }
   });
   const audioRef = useRef<HTMLAudioElement>(null);
   /**
@@ -43,7 +50,11 @@ export function useAudioPlayer({ audioUrl, messageId, refreshKey }: UseAudioPlay
     if (clamped > 0) lastNonZeroVolumeRef.current = clamped;
     setVolumeState(clamped);
     if (audioRef.current) audioRef.current.volume = clamped;
-    try { localStorage.setItem('audio-player:volume', String(clamped)); } catch { /* noop */ }
+    try {
+      localStorage.setItem('audio-player:volume', String(clamped));
+    } catch {
+      /* noop */
+    }
   }, []);
 
   /**
@@ -61,10 +72,11 @@ export function useAudioPlayer({ audioUrl, messageId, refreshKey }: UseAudioPlay
     return { muted: false, volume: restored };
   }, [volume, setVolume]);
 
-  // Apply volume whenever audio element re-mounts or volume changes
+  // Apply volume to audio element. HTML5 audio maintains volume independently
+  // of src, so we only need to re-run when volume state changes.
   useEffect(() => {
     if (audioRef.current) audioRef.current.volume = volume;
-  }, [volume, resolvedUrl]);
+  }, [volume]);
 
   /**
    * Registra/desregistra este player no `audioPlaybackBus` enquanto está
@@ -90,71 +102,92 @@ export function useAudioPlayer({ audioUrl, messageId, refreshKey }: UseAudioPlay
     []
   );
 
-  const resolveAudioUrl = useCallback(async (url: string): Promise<string> => {
-    if (url.includes('/storage/v1/')) {
+  const resolveAudioUrl = useCallback(
+    async (url: string | null): Promise<string> => {
+      if (!url) return '';
+      if (url.includes('/storage/v1/')) {
+        try {
+          const buckets = ['whatsapp-media', 'audio-messages'];
+          for (const bucket of buckets) {
+            const marker = `/${bucket}/`;
+            const idx = url.indexOf(marker);
+            if (idx !== -1) {
+              const pathWithQuery = url.substring(idx + marker.length);
+              const path = decodeURIComponent(pathWithQuery.split('?')[0]);
+              const { data } = await supabase.storage.from(bucket).createSignedUrl(path, 3600);
+              if (data?.signedUrl) return data.signedUrl;
+            }
+          }
+        } catch (e) {
+          log.error('Failed to refresh signed URL:', e);
+        }
+      }
+
+      // Try a HEAD check to see if the URL is reachable
+      let urlExpired = false;
+      try {
+        const resp = await fetch(url, { method: 'HEAD', mode: 'cors' });
+        if (resp.ok) return url;
+        // 410 Gone / 403 Forbidden are typical WhatsApp URL expirations.
+        if (resp.status === 410 || resp.status === 403 || resp.status === 404) urlExpired = true;
+      } catch (err) {
+        log.error('Unexpected error in useAudioPlayer:', err);
+      }
+
+      // Try to find the file in known buckets by messageId (storage fallback)
       try {
         const buckets = ['whatsapp-media', 'audio-messages'];
         for (const bucket of buckets) {
-          const marker = `/${bucket}/`;
-          const idx = url.indexOf(marker);
-          if (idx !== -1) {
-            const pathWithQuery = url.substring(idx + marker.length);
-            const path = decodeURIComponent(pathWithQuery.split('?')[0]);
-            const { data, error } = await supabase.storage.from(bucket).createSignedUrl(path, 3600);
+          const { data: files } = await supabase.storage
+            .from(bucket)
+            .list('', { search: messageId, limit: 5 });
+          if (files && files.length > 0) {
+            const { data } = await supabase.storage
+              .from(bucket)
+              .createSignedUrl(files[0].name, 3600);
             if (data?.signedUrl) return data.signedUrl;
           }
         }
-      } catch (e) {
-        log.error('Failed to refresh signed URL:', e);
-      }
-    }
-
-    // Try a HEAD check to see if the URL is reachable
-    let urlExpired = false;
-    try {
-      const resp = await fetch(url, { method: 'HEAD', mode: 'cors' });
-      if (resp.ok) return url;
-      // 410 Gone / 403 Forbidden are typical WhatsApp URL expirations.
-      if (resp.status === 410 || resp.status === 403 || resp.status === 404) urlExpired = true;
-    } catch (err) { log.error('Unexpected error in useAudioPlayer:', err); }
-
-    // Try to find the file in known buckets by messageId (storage fallback)
-    try {
-      const buckets = ['whatsapp-media', 'audio-messages'];
-      for (const bucket of buckets) {
-        const { data: files , error: filesErr } = await supabase.storage.from(bucket).list('', { search: messageId, limit: 5 });
-        if (files && files.length > 0) {
-          const { data, error } = await supabase.storage.from(bucket).createSignedUrl(files[0].name, 3600);
-          if (data?.signedUrl) return data.signedUrl;
-        }
-      }
-    } catch (err) { log.error('Unexpected error in useAudioPlayer:', err); }
-
-    // Last resort: ask Evolution for a fresh base64 payload (works for any
-    // expired WhatsApp media as long as we have the original message key).
-    if (refreshKey && urlExpired) {
-      try {
-        const { data, error } = await supabase.functions.invoke('evolution-api/get-media-base64', {
-          method: 'POST',
-          body: {
-            instanceName: refreshKey.instanceName,
-            message: { key: { remoteJid: refreshKey.remoteJid, fromMe: refreshKey.fromMe, id: refreshKey.id } },
-          },
-        });
-        if (!error) {
-          const payload = (data as { base64?: string; mimetype?: string } | null) ?? null;
-          if (payload?.base64) {
-            const mime = payload.mimetype || 'audio/ogg';
-            return `data:${mime};base64,${payload.base64}`;
-          }
-        }
       } catch (err) {
-        log.error('Evolution audio refresh failed:', err);
+        log.error('Unexpected error in useAudioPlayer:', err);
       }
-    }
 
-    return url;
-  }, [messageId, refreshKey]);
+      // Last resort: ask Evolution for a fresh base64 payload (works for any
+      // expired WhatsApp media as long as we have the original message key).
+      if (refreshKey && urlExpired) {
+        try {
+          const { data, error } = await supabase.functions.invoke(
+            'evolution-api/get-media-base64',
+            {
+              method: 'POST',
+              body: {
+                instanceName: refreshKey.instanceName,
+                message: {
+                  key: {
+                    remoteJid: refreshKey.remoteJid,
+                    fromMe: refreshKey.fromMe,
+                    id: refreshKey.id,
+                  },
+                },
+              },
+            }
+          );
+          if (!error) {
+            const payload = (data as { base64?: string; mimetype?: string } | null) ?? null;
+            if (payload?.base64) {
+              const mime = payload.mimetype || 'audio/ogg';
+              return `data:${mime};base64,${payload.base64}`;
+            }
+          }
+        } catch (err) {
+          log.error('Evolution audio refresh failed:', err);
+        }
+      }
+
+      return url;
+    },
+    [messageId, refreshKey]
+  );
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -168,10 +201,20 @@ export function useAudioPlayer({ audioUrl, messageId, refreshKey }: UseAudioPlay
     };
     const handleTimeUpdate = () => {
       setCurrentTime(audio.currentTime);
-      if (audio.duration && isFinite(audio.duration)) setProgress((audio.currentTime / audio.duration) * 100);
+      if (audio.duration && isFinite(audio.duration))
+        setProgress((audio.currentTime / audio.duration) * 100);
     };
-    const handleEnded = () => { setIsPlaying(false); setProgress(0); setCurrentTime(0); };
-    const handleError = () => { log.error('Audio error:', messageId); setIsPlaying(false); setIsLoading(false); setHasError(true); };
+    const handleEnded = () => {
+      setIsPlaying(false);
+      setProgress(0);
+      setCurrentTime(0);
+    };
+    const handleError = () => {
+      log.error('Audio error:', messageId);
+      setIsPlaying(false);
+      setIsLoading(false);
+      setHasError(true);
+    };
     const handleWaiting = () => setIsLoading(true);
     const handleCanPlay = () => setIsLoading(false);
 
@@ -196,15 +239,23 @@ export function useAudioPlayer({ audioUrl, messageId, refreshKey }: UseAudioPlay
     const audio = audioRef.current;
     if (!audio) return;
 
-    if (isPlaying) { audio.pause(); setIsPlaying(false); return; }
+    if (isPlaying) {
+      audio.pause();
+      setIsPlaying(false);
+      return;
+    }
 
     if (hasError) {
-      setIsLoading(true); setHasError(false);
+      setIsLoading(true);
+      setHasError(false);
       try {
         const freshUrl = await resolveAudioUrl(audioUrl);
-        setResolvedUrl(freshUrl); audio.src = freshUrl; audio.load();
+        setResolvedUrl(freshUrl);
+        audio.src = freshUrl;
+        audio.load();
       } catch {
-        setHasError(true); setIsLoading(false);
+        setHasError(true);
+        setIsLoading(false);
         toast({ title: 'Erro ao carregar áudio', variant: 'destructive' });
         return;
       }
@@ -212,38 +263,73 @@ export function useAudioPlayer({ audioUrl, messageId, refreshKey }: UseAudioPlay
 
     setIsLoading(true);
     try {
-      await audio.play(); setIsPlaying(true); setIsLoading(false); setHasError(false);
+      await audio.play();
+      setIsPlaying(true);
+      setIsLoading(false);
+      setHasError(false);
     } catch {
       setIsPlaying(false);
       try {
         const freshUrl = await resolveAudioUrl(audioUrl);
         if (freshUrl !== resolvedUrl) {
-          setResolvedUrl(freshUrl); audio.src = freshUrl; audio.load();
+          setResolvedUrl(freshUrl);
+          audio.src = freshUrl;
+          audio.load();
           await new Promise<void>((resolve, reject) => {
-            const timeout = setTimeout(() => { cleanup(); reject(); }, 15000);
-            const cleanup = () => { audio.removeEventListener('canplay', onCanPlay); audio.removeEventListener('error', onErr); clearTimeout(timeout); };
-            const onCanPlay = () => { cleanup(); resolve(); };
-            const onErr = () => { cleanup(); reject(); };
-            audio.addEventListener('canplay', onCanPlay); audio.addEventListener('error', onErr);
+            const timeout = setTimeout(() => {
+              cleanup();
+              reject();
+            }, 15000);
+            const cleanup = () => {
+              audio.removeEventListener('canplay', onCanPlay);
+              audio.removeEventListener('error', onErr);
+              clearTimeout(timeout);
+            };
+            const onCanPlay = () => {
+              cleanup();
+              resolve();
+            };
+            const onErr = () => {
+              cleanup();
+              reject();
+            };
+            audio.addEventListener('canplay', onCanPlay);
+            audio.addEventListener('error', onErr);
           });
-          await audio.play(); setIsPlaying(true); setIsLoading(false); setHasError(false);
+          await audio.play();
+          setIsPlaying(true);
+          setIsLoading(false);
+          setHasError(false);
         } else {
-          setIsLoading(false); setHasError(true);
-          toast({ title: 'Erro ao reproduzir', description: 'O arquivo de áudio expirou ou foi removido. Tente recarregar a conversa.', variant: 'destructive' });
+          setIsLoading(false);
+          setHasError(true);
+          toast({
+            title: 'Erro ao reproduzir',
+            description: 'O arquivo de áudio expirou ou foi removido. Tente recarregar a conversa.',
+            variant: 'destructive',
+          });
         }
       } catch {
-        setIsLoading(false); setHasError(true);
-        toast({ title: 'Erro ao reproduzir', description: 'Não foi possível carregar o áudio. Verifique sua conexão.', variant: 'destructive' });
+        setIsLoading(false);
+        setHasError(true);
+        toast({
+          title: 'Erro ao reproduzir',
+          description: 'Não foi possível carregar o áudio. Verifique sua conexão.',
+          variant: 'destructive',
+        });
       }
     }
   }, [isPlaying, hasError, audioUrl, resolvedUrl, resolveAudioUrl]);
 
-  const handleSeek = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    const audio = audioRef.current;
-    if (!audio || !duration) return;
-    const rect = e.currentTarget.getBoundingClientRect();
-    audio.currentTime = ((e.clientX - rect.left) / rect.width) * duration;
-  }, [duration]);
+  const handleSeek = useCallback(
+    (e: SeekInput) => {
+      const audio = audioRef.current;
+      if (!audio || !duration) return;
+      const rect = e.currentTarget.getBoundingClientRect();
+      audio.currentTime = ((e.clientX - rect.left) / rect.width) * duration;
+    },
+    [duration]
+  );
 
   const cycleSpeed = useCallback(() => {
     const speeds = [1, 1.25, 1.5, 1.75, 2, 0.5, 0.75];
@@ -255,13 +341,29 @@ export function useAudioPlayer({ audioUrl, messageId, refreshKey }: UseAudioPlay
 
   const formatTime = (seconds: number) => {
     if (!isFinite(seconds) || isNaN(seconds) || seconds < 0) return '0:00';
-    return `${Math.floor(seconds / 60)}:${Math.floor(seconds % 60).toString().padStart(2, '0')}`;
+    return `${Math.floor(seconds / 60)}:${Math.floor(seconds % 60)
+      .toString()
+      .padStart(2, '0')}`;
   };
 
   return {
-    audioRef, resolvedUrl, isPlaying, isLoading, hasError,
-    playbackRate, progress, duration, currentTime, waveformHeights,
-    volume, setVolume, toggleMute,
-    togglePlay, handleSeek, cycleSpeed, formatTime, resolveAudioUrl,
+    audioRef,
+    resolvedUrl,
+    isPlaying,
+    isLoading,
+    hasError,
+    playbackRate,
+    progress,
+    duration,
+    currentTime,
+    waveformHeights,
+    volume,
+    setVolume,
+    toggleMute,
+    togglePlay,
+    handleSeek,
+    cycleSpeed,
+    formatTime,
+    resolveAudioUrl,
   };
 }

@@ -5,20 +5,28 @@ import * as path from 'path';
 // Read source files for static analysis
 const root = path.resolve(__dirname, '../../..');
 const readSrc = (p: string) => {
-  try { return fs.readFileSync(path.join(root, p), 'utf-8'); } catch { return ''; }
+  try {
+    return fs.readFileSync(path.join(root, p), 'utf-8');
+  } catch {
+    return '';
+  }
 };
 
-const panelSrc = readSrc('components/team-chat/TeamChatPanel.tsx');
+const panelSrc =
+  readSrc('components/team-chat/TeamChatMessageRow.tsx') +
+  '\n' +
+  readSrc('components/team-chat/TeamChatPanel.tsx') +
+  '\n' +
+  readSrc('components/team-chat/teamChatParts.tsx');
 const inputSrc = readSrc('components/team-chat/TeamChatInputArea.tsx');
 const headerSrc = readSrc('components/team-chat/TeamChatHeader.tsx');
 const uploaderSrc = readSrc('components/team-chat/TeamFileUploader.tsx');
 const viewSrc = readSrc('components/team-chat/TeamChatView.tsx');
-const hookSrc = readSrc('hooks/team-chat/useTeamMessages.ts');
-const mutationHookSrc = readSrc('hooks/team-chat/useTeamChatMutations.ts');
+const _hookSrc = readSrc('hooks/team-chat/useTeamMessages.ts');
+const _mutationHookSrc = readSrc('hooks/team-chat/useTeamChatMutations.ts');
 const panelHookSrc = readSrc('components/team-chat/useTeamChatPanel.ts');
 
 describe('Team Chat — Exhaustive Audit', () => {
-
   // ═══════════════════════════════════════════
   // 1. INPUT AREA — EDGE CASES
   // ═══════════════════════════════════════════
@@ -98,7 +106,9 @@ describe('Team Chat — Exhaustive Audit', () => {
     });
 
     it('should render image with click-to-open', () => {
-      expect(panelSrc).toMatch(/onClick.*window\.open.*media_url/);
+      // Image is now wrapped in an accessible <a> link instead of onClick+window.open
+      expect(panelSrc).toMatch(/href=\{msg\.media_url/);
+      expect(panelSrc).toContain('target="_blank"');
     });
 
     it('should render video with controls', () => {
@@ -311,11 +321,11 @@ describe('Team Chat — Exhaustive Audit', () => {
     });
 
     it('should support Enter to save edit', () => {
-      expect(panelSrc).toMatch(/onKeyDown.*Enter.*handleSaveEdit/);
+      expect(panelSrc).toMatch(/onKeyDown.*Enter.*handleSaveEdit/s);
     });
 
     it('should support Escape to cancel edit', () => {
-      expect(panelSrc).toMatch(/Escape.*handleCancelEdit/);
+      expect(panelSrc).toMatch(/Escape.*handleCancelEdit/s);
     });
 
     it('should show edited indicator on messages', () => {
@@ -371,11 +381,11 @@ describe('Team Chat — Exhaustive Audit', () => {
     });
 
     it('should highlight active search button', () => {
-      expect(headerSrc).toMatch(/showSearch\s*&&\s*"text-primary/);
+      expect(headerSrc).toMatch(/showSearch\s*&&\s*'[^']*text-primary/);
     });
 
     it('should highlight active details button', () => {
-      expect(headerSrc).toMatch(/showDetails\s*&&\s*"text-primary/);
+      expect(headerSrc).toMatch(/showDetails\s*&&\s*'[^']*text-primary/);
     });
   });
 
@@ -586,7 +596,8 @@ describe('Team Chat — Exhaustive Audit', () => {
     });
 
     it('should have proper alt text on media', () => {
-      expect(panelSrc).toContain('alt="media"');
+      // Descriptive Portuguese alt text replaces the generic 'media' value
+      expect(panelSrc).toContain("'Imagem da mensagem'");
     });
 
     it('should use semantic HTML roles', () => {
@@ -594,8 +605,8 @@ describe('Team Chat — Exhaustive Audit', () => {
     });
 
     it('should have keyboard shortcuts for editing', () => {
-      expect(panelSrc).toMatch(/onKeyDown.*Enter.*handleSaveEdit/);
-      expect(panelSrc).toMatch(/Escape.*handleCancelEdit/);
+      expect(panelSrc).toMatch(/onKeyDown.*Enter.*handleSaveEdit/s);
+      expect(panelSrc).toMatch(/Escape.*handleCancelEdit/s);
     });
   });
 

@@ -60,7 +60,7 @@ export function SLAMetricsDashboard() {
           <Badge variant="outline" className="gap-1"><Calendar className="w-3 h-3" />{PERIOD_LABELS[periodFilter]}</Badge>
         </div>
         <div className="flex items-center gap-3">
-          <ToggleGroup type="single" value={periodFilter} onValueChange={(v) => v && setPeriodFilter(v as PeriodFilter)} className="bg-muted/30 p-1 rounded-lg">
+          <ToggleGroup type="single" value={periodFilter} onValueChange={(v) => v && setPeriodFilter(v as PeriodFilter /* ignore-audit: Select/Tabs value string narrowed to union; developer controls option values */)} className="bg-muted/30 p-1 rounded-lg">
             <ToggleGroupItem value="today" size="sm" className="text-xs px-3">Hoje</ToggleGroupItem>
             <ToggleGroupItem value="week" size="sm" className="text-xs px-3">Semana</ToggleGroupItem>
             <ToggleGroupItem value="month" size="sm" className="text-xs px-3">Mês</ToggleGroupItem>
@@ -95,7 +95,7 @@ export function SLAMetricsDashboard() {
                 <motion.div key={agent.agentId} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.6 + index * 0.05 }} className="p-3 rounded-xl bg-muted/20 border border-border/30 hover:border-primary/20 transition-all">
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-3">
-                      <Avatar className="w-8 h-8 ring-2 ring-border/50"><AvatarImage src={agent.avatarUrl} /><AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">{agent.agentName.split(' ').map(n => n[0]).join('').slice(0, 2)}</AvatarFallback></Avatar>
+                      <Avatar className="w-8 h-8 ring-2 ring-border/50"><AvatarImage src={agent.avatarUrl} alt={agent.agentName} /><AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">{agent.agentName.split(' ').map(n => n[0]).join('').slice(0, 2)}</AvatarFallback></Avatar>
                       <span className="font-medium text-foreground">{agent.agentName}</span>
                     </div>
                     <Badge className={cn("font-semibold border-0", getRateBadge(agent.overallRate))}>{Math.round(agent.overallRate)}%</Badge>
@@ -136,7 +136,7 @@ export function SLAMetricsDashboard() {
                     {agentSLAData.slice(0, 6).map((agent) => (
                       <div key={agent.agentId} className="p-3 rounded-lg bg-muted/10 border border-border/20">
                         <div className="flex items-center gap-2 mb-1">
-                          <Avatar className="w-5 h-5"><AvatarImage src={agent.avatarUrl} /><AvatarFallback className="text-[8px]">{agent.agentName.split(' ').map(n => n[0]).join('').slice(0, 2)}</AvatarFallback></Avatar>
+                          <Avatar className="w-5 h-5"><AvatarImage src={agent.avatarUrl} alt={agent.agentName} /><AvatarFallback className="text-[8px]">{agent.agentName.split(' ').map(n => n[0]).join('').slice(0, 2)}</AvatarFallback></Avatar>
                           <span className="text-xs font-medium truncate">{agent.agentName}</span>
                         </div>
                         <div className={cn("text-lg font-bold", getRateColor(agent.overallRate))}>{Math.round(agent.overallRate)}%</div>

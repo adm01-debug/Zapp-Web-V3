@@ -235,15 +235,15 @@ export function ChatbotFlowsView() {
                             {format(new Date(flow.created_at), "dd/MM/yyyy", { locale: ptBR })}
                           </span>
                           <div className="flex items-center gap-1">
-                            <Button size="icon" variant="ghost" className="h-7 w-7"
+                            <Button aria-label="Editar fluxo" size="icon" variant="ghost" className="h-7 w-7"
                               onClick={() => setEditingFlow(flow)}>
                               <Edit2 className="w-3.5 h-3.5" />
                             </Button>
-                            <Button size="icon" variant="ghost" className="h-7 w-7"
+                            <Button aria-label="Duplicar fluxo" size="icon" variant="ghost" className="h-7 w-7"
                               onClick={() => handleDuplicate(flow)}>
                               <Copy className="w-3.5 h-3.5" />
                             </Button>
-                            <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive"
+                            <Button aria-label="Excluir fluxo" size="icon" variant="ghost" className="h-7 w-7 text-destructive"
                               onClick={() => deleteFlow.mutate(flow.id)}>
                               <Trash2 className="w-3.5 h-3.5" />
                             </Button>
@@ -279,18 +279,18 @@ export function ChatbotFlowsView() {
 
           <div className="space-y-4">
             <div>
-              <Label>Nome do fluxo</Label>
-              <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+              <Label htmlFor="flow-name">Nome do fluxo</Label>
+              <Input id="flow-name" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                 placeholder="Ex: Boas-vindas" />
             </div>
             <div>
-              <Label>Descrição</Label>
-              <Textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
+              <Label htmlFor="flow-description">Descrição</Label>
+              <Textarea id="flow-description" value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
                 placeholder="O que este fluxo faz..." rows={2} />
             </div>
             <div>
               <Label>Tipo de gatilho</Label>
-              <Select value={form.trigger_type} onValueChange={(v: string) => setForm(f => ({ ...f, trigger_type: v as TriggerType }))}>
+              <Select value={form.trigger_type} onValueChange={(v: string) => setForm(f => ({ ...f, trigger_type: v as TriggerType  /* ignore-audit: Select/Tabs value string narrowed to union; developer controls option values */}))}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="keyword">Palavra-chave</SelectItem>
@@ -303,8 +303,8 @@ export function ChatbotFlowsView() {
             </div>
             {form.trigger_type === 'keyword' && (
               <div>
-                <Label>Palavra-chave</Label>
-                <Input value={form.trigger_value} onChange={e => setForm(f => ({ ...f, trigger_value: e.target.value }))}
+                <Label htmlFor="flow-trigger-value">Palavra-chave</Label>
+                <Input id="flow-trigger-value" value={form.trigger_value} onChange={e => setForm(f => ({ ...f, trigger_value: e.target.value }))}
                   placeholder="Ex: menu, ajuda, oi" />
               </div>
             )}

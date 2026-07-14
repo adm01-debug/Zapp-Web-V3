@@ -43,9 +43,9 @@ async function withTimeout<T>(promise: (signal: AbortSignal) => Promise<T>): Pro
   }
 }
 
-async function timed<T>(
+async function timed(
   step: string,
-  fn: () => Promise<Omit<DiagnosticResult, 'step' | 'latencyMs'>>,
+  fn: () => Promise<Omit<DiagnosticResult, 'step' | 'latencyMs'>>
 ): Promise<DiagnosticResult> {
   const t0 = performance.now();
   try {
@@ -71,12 +71,20 @@ async function pingAuth(): Promise<DiagnosticResult> {
       });
       const body = await res.text();
       if (!res.ok) {
-        return { status: 'fail' as const, message: `HTTP ${res.status} — ${truncate(body)}`, details: { status: res.status } };
+        return {
+          status: 'fail' as const,
+          message: `HTTP ${res.status} — ${truncate(body)}`,
+          details: { status: res.status },
+        };
       }
       let parsed: unknown = body;
-      try { parsed = JSON.parse(body); } catch { /* keep raw */ }
+      try {
+        parsed = JSON.parse(body);
+      } catch {
+        /* keep raw */
+      }
       return { status: 'ok' as const, message: 'GoTrue aceitou a anon key.', details: parsed };
-    }),
+    })
   );
 }
 
@@ -93,10 +101,18 @@ async function pingRest(): Promise<DiagnosticResult> {
       });
       const body = await res.text();
       if (!res.ok) {
-        return { status: 'fail' as const, message: `HTTP ${res.status} — ${truncate(body)}`, details: { status: res.status } };
+        return {
+          status: 'fail' as const,
+          message: `HTTP ${res.status} — ${truncate(body)}`,
+          details: { status: res.status },
+        };
       }
-      return { status: 'ok' as const, message: 'PostgREST aceitou a anon key.', details: { status: res.status, bodyPreview: truncate(body, 120) } };
-    }),
+      return {
+        status: 'ok' as const,
+        message: 'PostgREST aceitou a anon key.',
+        details: { status: res.status, bodyPreview: truncate(body, 120) },
+      };
+    })
   );
 }
 
@@ -105,7 +121,11 @@ async function pingRlsRead(): Promise<DiagnosticResult> {
     // global_settings tem RLS pública/leve; se falhar, é sinal claro de problema na stack.
     const { data, error, status } = await supabase.from('global_settings').select('id').limit(1);
     if (error) {
-      return { status: 'fail' as const, message: `Supabase error (${status}): ${error.message}`, details: error };
+      return {
+        status: 'fail' as const,
+        message: `Supabase error (${status}): ${error.message}`,
+        details: error,
+      };
     }
     return {
       status: 'ok' as const,
@@ -115,7 +135,12 @@ async function pingRlsRead(): Promise<DiagnosticResult> {
   });
 }
 
-async function jsonRpc(signal: AbortSignal, id: number, method: string, params?: Record<string, unknown>) {
+async function jsonRpc(
+  signal: AbortSignal,
+  id: number,
+  method: string,
+  params?: Record<string, unknown>
+) {
   const res = await fetch(MCP_URL, {
     method: 'POST',
     headers: {
@@ -144,15 +169,20 @@ async function pingMcpHandshake(): Promise<DiagnosticResult> {
         clientInfo: { name: 'zapp-web-selfhosted-probe', version: '1.0.0' },
       });
       if (body.error) {
-        return { status: 'fail' as const, message: `JSON-RPC error: ${body.error.message}`, details: body };
+        return {
+          status: 'fail' as const,
+          message: `JSON-RPC error: ${body.error.message}`,
+          details: body,
+        };
       }
-      const info = (body.result as { serverInfo?: { name?: string; version?: string } })?.serverInfo;
+      const info = (body.result as { serverInfo?: { name?: string; version?: string } })
+        ?.serverInfo;
       return {
         status: 'ok' as const,
         message: `MCP OK — ${info?.name ?? 'unknown'} v${info?.version ?? '?'}`,
         details: body.result,
       };
-    }),
+    })
   );
 }
 
@@ -161,15 +191,22 @@ async function pingMcpToolsList(): Promise<DiagnosticResult> {
     withTimeout(async (signal) => {
       const body = await jsonRpc(signal, 2, 'tools/list');
       if (body.error) {
-        return { status: 'fail' as const, message: `JSON-RPC error: ${body.error.message}`, details: body };
+        return {
+          status: 'fail' as const,
+          message: `JSON-RPC error: ${body.error.message}`,
+          details: body,
+        };
       }
       const tools = (body.result as { tools?: Array<{ name: string }> })?.tools ?? [];
       return {
         status: 'ok' as const,
-        message: `${tools.length} tools disponíveis: ${tools.map((t) => t.name).slice(0, 4).join(', ')}${tools.length > 4 ? '…' : ''}`,
+        message: `${tools.length} tools disponíveis: ${tools
+          .map((t) => t.name)
+          .slice(0, 4)
+          .join(', ')}${tools.length > 4 ? '…' : ''}`,
         details: tools.map((t) => t.name),
       };
-    }),
+    })
   );
 }
 

@@ -10,7 +10,7 @@ import {
   Star, Handshake, GripVertical,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { getAvatarColor, getInitials } from '@/lib/avatar-colors';
+import { getAvatarColor, getInitials } from '@/lib/avatarColors';
 import { toast } from 'sonner';
 import { dbFrom } from '@/integrations/datasource/db';
 
@@ -141,7 +141,7 @@ export function ContactKanbanView({ contacts, onContactClick }: ContactKanbanVie
                                 {(dragProvided, dragSnapshot) => (
                                   <div
                                     ref={dragProvided.innerRef}
-                                    {...(dragProvided.draggableProps as unknown as HTMLAttributes<HTMLDivElement>)}
+                                    {...(dragProvided.draggableProps as unknown as HTMLAttributes<HTMLDivElement>)} // ignore-audit — react-beautiful-dnd DraggableProps doesn't extend HTMLAttributes; same shape at runtime
                                     className={cn(
                                       "w-full text-left p-3 rounded-lg border border-border/30",
                                       "bg-card hover:bg-muted/40 hover:border-primary/20",
@@ -149,6 +149,7 @@ export function ContactKanbanView({ contacts, onContactClick }: ContactKanbanVie
                                       dragSnapshot.isDragging && "shadow-lg ring-2 ring-primary/30 rotate-1"
                                     )}
                                     onClick={() => !dragSnapshot.isDragging && onContactClick(contact.id)}
+                                    onKeyDown={(e) => !dragSnapshot.isDragging && e.key === 'Enter' && onContactClick(contact.id)}
                                   >
                                     <div className="flex items-center gap-2.5">
                                       <div
@@ -158,7 +159,7 @@ export function ContactKanbanView({ contacts, onContactClick }: ContactKanbanVie
                                         <GripVertical className="w-3.5 h-3.5 text-muted-foreground" />
                                       </div>
                                       <Avatar className="w-8 h-8">
-                                        <AvatarImage src={contact.avatar_url || undefined} />
+                                        <AvatarImage src={contact.avatar_url || undefined} alt={contact.name} />
                                         <AvatarFallback className={cn(colors.bg, colors.text, 'text-[10px] font-bold')}>
                                           {getInitials(contact.name)}
                                         </AvatarFallback>

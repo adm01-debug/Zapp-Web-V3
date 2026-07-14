@@ -8,14 +8,13 @@ import { Cake, Gift, PartyPopper, Calendar } from 'lucide-react';
 import { format, differenceInDays, setYear, startOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
-import { getAvatarColor, getInitials } from '@/lib/avatar-colors';
+import { getAvatarColor, getInitials } from '@/lib/avatarColors';
+import type { Tables } from '@/integrations/supabase/types';
 
-interface Contact {
-  id: string;
-  name: string;
-  avatar_url?: string | null;
-  birthday?: string | null;
-}
+// W4 (2026-07-06): derivado do schema gerado. ATENÇÃO: 'birthday' NÃO existe em
+// public.contacts (verificado via information_schema) — painel fica inerte até a
+// coluna existir ou a fonte ser metadata. Decisão de produto registrada no REFACTOR_PLAN.
+type Contact = Pick<Tables<'contacts'>, 'id' | 'name'> & Partial<Pick<Tables<'contacts'>, 'avatar_url'>> & { birthday?: string | null };
 
 interface ContactBirthdayPanelProps {
   contacts: Contact[];
@@ -94,7 +93,7 @@ export function ContactBirthdayPanel({ contacts, onContactClick }: ContactBirthd
                   )}
                 >
                   <Avatar className="h-8 w-8">
-                    <AvatarImage src={item.contact.avatar_url || undefined} />
+                    <AvatarImage src={item.contact.avatar_url || undefined} alt={item.contact.name} />
                     <AvatarFallback className={cn(colors.bg, colors.text, 'text-[10px]')}>
                       {getInitials(item.contact.name)}
                     </AvatarFallback>

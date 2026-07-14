@@ -8,7 +8,7 @@ export const ContractErrorCode = {
 export type ContractErrorCode = typeof ContractErrorCode[keyof typeof ContractErrorCode];
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-type ZodLike = any;
+type ZodLike = any; // ignore-audit — Zod's builder API has no simple structural equivalent without importing the full library
 
 type ValidationIssue = {
   path?: Array<string | number>;

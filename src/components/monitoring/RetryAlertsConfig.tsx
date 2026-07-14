@@ -186,14 +186,14 @@ export function RetryAlertsConfig({
         </div>
 
         <div className="rounded-md border border-border/60 bg-muted/30 p-2.5 space-y-1.5">
-          <Label className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+          <Label htmlFor="dedupe-mode" className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
             Granularidade do toast
           </Label>
           <Select
             value={draftDedupeMode}
-            onValueChange={(v) => setDraftDedupeMode(v as RetryAlertDedupeMode)}
+            onValueChange={(v) => setDraftDedupeMode(v as RetryAlertDedupeMode /* ignore-audit: Select/Tabs value string narrowed to union; developer controls option values */)}
           >
-            <SelectTrigger className="h-8 text-xs" aria-label="Granularidade de dedupe do toast">
+            <SelectTrigger id="dedupe-mode" className="h-8 text-xs">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -212,7 +212,7 @@ export function RetryAlertsConfig({
           </p>
         </div>
 
-        <Tabs value={tab} onValueChange={(v) => setTab(v as 'global' | 'instance')}>
+        <Tabs value={tab} onValueChange={(v) => setTab(v as 'global' | 'instance' /* ignore-audit: Select/Tabs value string narrowed to union; developer controls option values */)}>
           <TabsList className="grid w-full grid-cols-2 h-8">
             <TabsTrigger value="global" className="text-xs">Global</TabsTrigger>
             <TabsTrigger value="instance" className="text-xs">
@@ -367,10 +367,12 @@ interface FieldProps {
 }
 
 function Field({ label, value, onChange, hint, min, max }: FieldProps) {
+  const fieldId = `field-${label.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')}`;
   return (
     <div className="space-y-1">
-      <Label className="text-xs">{label}</Label>
+      <Label htmlFor={fieldId} className="text-xs">{label}</Label>
       <Input
+        id={fieldId}
         type="number"
         inputSize="sm"
         value={Number.isFinite(value) ? value : ''}

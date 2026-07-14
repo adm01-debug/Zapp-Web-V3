@@ -15,7 +15,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { CONTACT_TYPE_CONFIG } from './contactTypeConfig';
-import { calculateContactHealth, getHealthColor } from '@/lib/contact-health';
+import { calculateContactHealth, getHealthColor } from '@/lib/contactHealth';
 import type { Contact } from './types';
 
 interface ContactQuickViewProps {
@@ -48,17 +48,17 @@ export const ContactQuickView: React.FC<ContactQuickViewProps> = ({
           <div className="flex items-start justify-between">
             <motion.div layoutId={`avatar-${contact.id}`}>
               <Avatar className="w-20 h-20 border-4 border-background shadow-xl">
-                <AvatarImage src={contact.avatar_url || ''} />
+                <AvatarImage src={contact.avatar_url || ''} alt={contact.name} />
                 <AvatarFallback className="text-2xl font-bold bg-primary/10 text-primary">
                   {initials}
                 </AvatarFallback>
               </Avatar>
             </motion.div>
             <div className="flex gap-2">
-              <Button size="icon" variant="outline" className="rounded-full" onClick={() => onEdit(contact)}>
+              <Button aria-label="Editar contato" size="icon" variant="outline" className="rounded-full" onClick={() => onEdit(contact)}>
                 <Edit3 className="w-4 h-4" />
               </Button>
-              <Button size="icon" variant="outline" className="rounded-full text-destructive hover:bg-destructive/5" onClick={() => onDelete(contact)}>
+              <Button aria-label="Excluir contato" size="icon" variant="outline" className="rounded-full text-destructive hover:bg-destructive/5" onClick={() => onDelete(contact)}>
                 <Trash2 className="w-4 h-4" />
               </Button>
             </div>
@@ -173,7 +173,7 @@ export const ContactQuickView: React.FC<ContactQuickViewProps> = ({
                     variant="secondary"
                     className="h-8 w-8 p-0 rounded-full"
                     onClick={() => window.open(`tel:${contact.phone}`)}
-                    title="Ligar"
+                    aria-label="Ligar"
                   >
                     <Phone className="w-4 h-4" />
                   </Button>
@@ -201,7 +201,7 @@ export const ContactQuickView: React.FC<ContactQuickViewProps> = ({
                     variant="secondary"
                     className="h-8 w-8 p-0 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
                     onClick={() => window.open(`mailto:${contact.email}`)}
-                    title="Enviar e-mail"
+                    aria-label="Enviar e-mail"
                   >
                     <Mail className="w-4 h-4" />
                   </Button>

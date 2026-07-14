@@ -2,17 +2,23 @@
  * openContactInChat — utilitário centralizado para abrir o Inbox em um
  * contato específico e (opcionalmente) destacar uma mensagem.
  *
- * O Inbox identifica contatos pelo `id` interno (UUID em `contacts.id`).
- * Quando o caller só tem `remoteJid` (ex: AdminFailedMessages, busca
- * global) ou apenas o telefone, este helper faz o lookup contra a
- * tabela `contacts` antes de disparar o handshake.
+ * CORREÇÃO BUG #1: o evento `open-contact-chat` agora carrega o UUID real em
+ * `contactId` e o JID em `remoteJid` como campo separado. Anteriormente
+ * `contactId` recebia o `handshakeId` que podia ser o JID quando `remoteJid`
+ * estava disponível, causando 15 WARNs por navegação em RealtimeMessages
+ * (markAsRead recebe JID, UUID guard bloqueia corretamente mas o loop de 15
+ * tentativas continuava até o fim — gerando 15 WARN no console).
  *
- * Handshake (compatível com `useContactsCRUD.openContactChat`):
- *  - `window.__pendingOpenContactId` cobre o "primeiro paint" do Inbox
- *    (módulo lazy ainda não carregado).
- *  - `window.__pendingOpenChatTarget` carrega `messageId` opcional.
- *  - Eventos `open-contact-chat` repetidos por ~3 s cobrem o caso
- *    "Inbox já montado / hash trocado".
+ * CORREÇÃO BUG #2: `__pendingOpenLoopId` cancela o retry loop quando uma
+ * chamada mais nova substitui a anterior, evitando acúmulo de múltiplos loops
+ * de 15 tentativas simultâneos quando o usuário navega rapidamente entre
+ * contatos.
+ *
+ * CORREÇÃO BUG #3: `remoteJid` é normalizado para sempre incluir o sufixo
+ * `@s.whatsapp.net` quando fornecido como número puro (ex: "5564984450900").
+ * Sem isso, o `handshakeId` ficava como bare phone, passava pelo guard
+ * `!pending.includes('@')` em useInboxDeepLinks como se fosse UUID, e chegava
+ * em markAsRead 15× via loop tryDispatch, gerando 15 WARNs por clique.
  */
 import { supabase } from '@/integrations/supabase/client';
 
@@ -38,6 +44,10 @@ declare global {
   interface Window {
     __pendingOpenContactId?: string;
     __pendingOpenChatTarget?: PendingChatTarget;
+    /** Symbol refreshed on every openContactInChat() call. Old retry loops
+     *  compare their captured snapshot against this value and bail out when
+     *  superseded — prevents multiple 15-attempt loops from stacking up. */
+    __pendingOpenLoopId?: symbol;
   }
 }
 
@@ -54,11 +64,7 @@ async function resolveContactId(opts: OpenContactInChatOptions): Promise<string 
   if (opts.contactId) return opts.contactId;
   const phone = opts.phone ?? jidToPhone(opts.remoteJid);
   if (!phone) return null;
-  const { data, error } = await supabase
-    .from('contacts')
-    .select('id')
-    .eq('phone', phone)
-    .maybeSingle();
+  const { data } = await supabase.from('contacts').select('id').eq('phone', phone).maybeSingle();
   return data?.id ?? null;
 }
 
@@ -68,12 +74,17 @@ export async function openContactInChat(opts: OpenContactInChatOptions): Promise
   const contactId = await resolveContactId(opts);
   if (!contactId) return false;
 
-  // Phone/JID resolution: o Inbox em modo externo (FATOR X) identifica
-  // conversas pelo `remote_jid` (ex: `5511999@s.whatsapp.net`), não pelo
-  // UUID local. Quando temos o telefone, derivamos o JID e o entregamos
-  // ao handshake — caso contrário caímos no UUID legado.
   const phone = opts.phone ?? jidToPhone(opts.remoteJid) ?? null;
-  const remoteJid = opts.remoteJid ?? (phone ? `${phone}@s.whatsapp.net` : undefined);
+
+  // FIX Bug#3: Normalize remoteJid — opts.remoteJid may arrive as a bare phone
+  // number (e.g. "5564984450900") without the "@s.whatsapp.net" suffix.
+  // Bare numbers bypass useInboxDeepLinks' `!pending.includes('@')` guard and
+  // are mistakenly treated as UUIDs, causing markAsRead to warn 15× per click.
+  const remoteJid = opts.remoteJid
+    ? (opts.remoteJid.includes('@') ? opts.remoteJid : `${opts.remoteJid}@s.whatsapp.net`)
+    : (phone ? `${phone}@s.whatsapp.net` : undefined);
+
+  // handshakeId para os globals legacy — Inbox em modo externo procura o JID
   const handshakeId = remoteJid ?? contactId;
 
   const target: PendingChatTarget = {
@@ -86,10 +97,10 @@ export async function openContactInChat(opts: OpenContactInChatOptions): Promise
   window.__pendingOpenContactId = handshakeId;
   window.__pendingOpenChatTarget = target;
 
-  // Persist the deep-link target in the URL query string so a refresh
-  // (or sharing the link) keeps the inbox aimed at the same conversation
-  // and message. The Inbox reads `?contact=<id>&message=<id>` on mount
-  // and clears `message` after the highlight is consumed.
+  // Loop ID: detecta quando uma chamada mais nova substitui esta
+  const loopId = Symbol();
+  window.__pendingOpenLoopId = loopId;
+
   try {
     const url = new URL(window.location.href);
     url.searchParams.set('contact', handshakeId);
@@ -101,16 +112,12 @@ export async function openContactInChat(opts: OpenContactInChatOptions): Promise
     if (url.hash !== '#inbox') {
       url.hash = 'inbox';
       window.history.pushState(null, '', url.toString());
-      // Notify hash listeners (replicates the side effect of assigning to
-      // `location.hash`, which `pushState` doesn't trigger on its own).
       window.dispatchEvent(new HashChangeEvent('hashchange'));
     } else {
       window.history.replaceState(null, '', url.toString());
       window.dispatchEvent(new HashChangeEvent('hashchange'));
     }
   } catch {
-    // URL construction can fail in non-browser test envs — fall back to
-    // the original hash-only behavior so the handshake still runs.
     if (window.location.hash !== '#inbox') {
       window.location.hash = 'inbox';
     } else {
@@ -120,11 +127,14 @@ export async function openContactInChat(opts: OpenContactInChatOptions): Promise
 
   let attempts = 0;
   const tryDispatch = () => {
+    // Bail out if a newer openContactInChat() call superseded this one
+    if (window.__pendingOpenLoopId !== loopId) return;
+
     attempts++;
     window.dispatchEvent(
       new CustomEvent('open-contact-chat', {
         detail: { contactId: handshakeId, messageId: target.messageId },
-      }),
+      })
     );
     if (attempts < 15) setTimeout(tryDispatch, 200);
   };
