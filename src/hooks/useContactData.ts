@@ -11,6 +11,7 @@ interface UseContactDataResult {
   error: Error | null;
 }
 
+/** Fetches contact data by ID with loading and error handling. */
 export function useContactData(contactId: string | undefined): UseContactDataResult {
   const [contact, setContact] = useState<ContactRow | null>(null);
   const [loading, setLoading] = useState(true);
