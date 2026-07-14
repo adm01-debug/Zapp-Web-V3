@@ -1,4 +1,3 @@
-// @ts-nocheck
 import type { Message } from '@/types/chat';
 import type { ExternalProduct } from '@/hooks/useExternalCatalog';
 import type { QueueItem } from '../../hooks/useMessageQueue';
