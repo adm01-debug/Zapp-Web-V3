@@ -4,7 +4,3 @@ import type { PipelineStage, UseBusinessLogicPipelineParams, UseBusinessLogicPip
 
 export { useBusinessLogicPipelineManagement as useSalesPipeline };
 export type { PipelineStage, UseBusinessLogicPipelineParams, UseBusinessLogicPipelineResult };
-
-export function useSalesPipeline() {
-  return useBusinessLogicPipelineManagement();
-}

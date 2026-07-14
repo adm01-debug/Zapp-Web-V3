@@ -17,8 +17,8 @@
 // ════════════════════════════════════════════════════════════════════════════════════
 
 import { useQuery } from '@tanstack/react-query';
-import { isExternalConfigured } from '@/integrations/supabase/externalClient';
-import { dbGet, dbRpc, getExternalSupabase } from '@/integrations/datasource/db';
+import { isExternalConfigured, getExternalSupabase } from '@/integrations/supabase/externalClient';
+import { dbGet, dbRpc } from '@/integrations/datasource/db';
 import { RPC } from '@/integrations/datasource/rpcCatalog';
 import { Contact360Data } from '@/types/contact360';
 import { log } from '@/lib/logger';
