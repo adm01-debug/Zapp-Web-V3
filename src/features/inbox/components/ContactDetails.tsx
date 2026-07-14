@@ -196,6 +196,12 @@ export function ContactDetails({ conversation, onClose }: ContactDetailsProps) {
             aiTags={aiTags}
             slaInfo={slaInfo ?? null}
             profileId={profileId}
+            isLoadingAITags={isLoadingAITags}
+            isLoadingSLA={isLoadingSLA}
+            aiTagsError={aiTagsError}
+            slaError={slaError}
+            onRetryAITags={() => { void refetchAITags(); }}
+            onRetrySLA={() => { void refetchSLA(); }}
           />
         </Accordion>
 
