@@ -47,6 +47,7 @@ export interface ChatbotFlow {
   updated_at: string;
 }
 
+/** Manages chatbot flow creation, updates, deletion, and activation with React Query. */
 export function useChatbotFlows() {
   const queryClient = useQueryClient();
 

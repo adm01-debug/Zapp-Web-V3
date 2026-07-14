@@ -33,6 +33,7 @@ export interface FallbackStats {
   recent: FallbackStatsRecent[];
 }
 
+/** Fetches Evolution API fallback event statistics aggregated by RPC for the specified hour window. */
 export function useEvolutionFallbackStats(windowHours = 24) {
   return useQuery<FallbackStats>({
     queryKey: ["evolution-fallback-stats", windowHours],

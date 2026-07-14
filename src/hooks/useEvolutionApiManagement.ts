@@ -206,6 +206,7 @@ async function fallbackFetchProfile(
   return data ?? null;
 }
 
+/** Provides low-level Evolution API HTTP calls with retry logic and idempotency. */
 export function useEvolutionApiCore() {
   const [isLoading, setIsLoading] = useState(false);
   const mountedRef = useMountedRef();
@@ -1602,6 +1603,7 @@ function useEvolutionMisc(
 // SECTION 11: ORCHESTRATION — Main hook combining all domains
 // ═══════════════════════════════════════════════════════════════════════════
 
+/** Orchestrates all Evolution API domains (instances, messaging, groups, profiles, chats, bots, AI agents, streaming, misc) into a unified interface. */
 export function useEvolutionApiManagement() {
   const { isLoading, callApi, withToast } = useEvolutionApiCore();
   const instance = useEvolutionInstance(callApi, withToast);

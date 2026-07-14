@@ -19,6 +19,7 @@ interface GeoSettings {
   mode: 'disabled' | 'whitelist' | 'blacklist';
 }
 
+/** Manages geographic blocking settings with whitelist and blacklist country controls. */
 export function useGeoBlocking() {
   const [settings, setSettings] = useState<GeoSettings | null>(null);
   const [allowedCountries, setAllowedCountries] = useState<Country[]>([]);

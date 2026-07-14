@@ -43,6 +43,7 @@ const DEFAULT_AWAY_MESSAGE: Omit<AwayMessage, 'whatsapp_connection_id'> = {
 
 /* ============ SECTION 1: useBusinessHours ============ */
 
+/** Manages business hours configuration with timezone support and out-of-hours messaging. */
 export function useBusinessHours(connectionId: string) {
   const queryClient = useQueryClient();
 
@@ -166,6 +167,7 @@ export function useBusinessHours(connectionId: string) {
 
 /* ============ SECTION 2: useBusinessHoursCheck ============ */
 
+/** Checks whether a connection is currently within business hours using Supabase RPC. */
 export function useBusinessHoursCheck(connectionId: string | null | undefined) {
   return useQuery({
     queryKey: ['business-hours-check', connectionId],

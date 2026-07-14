@@ -7,6 +7,7 @@ import type { IncomingCall } from '@/types/incomingCall';
 
 export type { IncomingCall } from '@/types/incomingCall';
 
+/** Listens for incoming calls via Supabase realtime and fetches contact information. */
 export function useIncomingCallListener() {
   const { profile } = useAuth();
   const [incomingCall, setIncomingCall] = useState<IncomingCall | null>(null);

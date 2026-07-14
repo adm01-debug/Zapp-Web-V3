@@ -53,6 +53,7 @@ interface RetryState { loading: boolean; attempt: number; lastError: string | nu
  * Simple retry hook for operations with exponential backoff (multiplier 3)
  * and state management. Used for contact save/update operations.
  */
+/** Retries async operations with exponential backoff, state tracking, and automatic fatal error detection. */
 export function useRetryOperation(maxAttempts = 3, baseDelayMs = 500) {
   const { toast } = useToast();
   const [state, setState] = useState<RetryState>({ loading: false, attempt: 0, lastError: null });
@@ -96,6 +97,7 @@ export function useRetryOperation(maxAttempts = 3, baseDelayMs = 500) {
 /**
  * Hook for wrapping event handlers with automatic error logging.
  */
+/** Wraps event handlers with automatic error logging and exception handling. */
 export function useSafeEventHandler<K extends keyof HTMLElementEventMap>(
   handler: (ev: HTMLElementEventMap[K]) => void,
   eventName: K
@@ -115,6 +117,7 @@ export function useSafeEventHandler<K extends keyof HTMLElementEventMap>(
 /**
  * Hook for safely handling async operations with error recovery.
  */
+/** Safely executes async operations with error recovery, fallback values, and optional throwing. */
 export function useSafeAsync<T>(
   fn: () => Promise<T>,
   options?: {
@@ -140,6 +143,7 @@ export function useSafeAsync<T>(
 /**
  * Hook for automatically retrying failed operations with exponential backoff (multiplier 2).
  */
+/** Retries async operations with configurable exponential backoff strategy. */
 export function useSafeRetry<T>(
   fn: () => Promise<T>,
   options?: {
@@ -175,6 +179,7 @@ export function useSafeRetry<T>(
 /**
  * Hook for managing fire-and-forget promises (e.g., analytics tracking).
  */
+/** Executes promises without waiting for resolution, ideal for analytics and tracking. */
 export function useFireAndForget() {
   return useCallback((promise: Promise<any>, operation: string = 'Unknown operation') => {
     fireAndForget(promise, { operation });
@@ -184,6 +189,7 @@ export function useFireAndForget() {
 /**
  * Hook for wrapping callbacks with automatic error logging.
  */
+/** Wraps callbacks with automatic error logging, fallback returns, and optional throwing. */
 export function useSafeCallback<T extends (...args: any[]) => any>(
   callback: T,
   options?: {
@@ -213,6 +219,7 @@ export function useSafeCallback<T extends (...args: any[]) => any>(
 /**
  * Hook for handling promise rejections with custom error handling.
  */
+/** Handles promise rejections with custom error handling and optional throwing. */
 export function useSafePromise<T>(
   promise: Promise<T>,
   options?: {
@@ -238,6 +245,7 @@ export function useSafePromise<T>(
 /**
  * Hook to mark intentional error suppression in cleanup code.
  */
+/** Marks intentional error suppression for cleanup and recovery code paths. */
 export function useSuppressError(reason: string, suppression: ErrorSuppression = 'intentional') {
   return useCallback(() => {
     suppressError(reason, suppression);
@@ -247,6 +255,7 @@ export function useSuppressError(reason: string, suppression: ErrorSuppression =
 /**
  * Hook for comprehensive error handling in async effects.
  */
+/** Executes async effects with error recovery, cleanup, and fallback handling. */
 export function useAsyncEffect<T>(
   effect: () => Promise<T | void>,
   options?: {
@@ -283,6 +292,7 @@ export function useAsyncEffect<T>(
 /**
  * Hook to track errors in a component lifecycle.
  */
+/** Tracks errors throughout component lifecycle with history and retrieval capabilities. */
 export function useErrorTracking() {
   const errorsRef = useRef<Array<{ error: Error; timestamp: number }>>([]);
 
@@ -318,6 +328,7 @@ export function useErrorTracking() {
 /**
  * Hook for executing async operations with automatic retry strategy
  */
+/** Executes async operations with automatic retry strategy and metrics tracking. */
 export function useRetryableAsync<T>(
   fn: () => Promise<T>,
   options?: {
@@ -359,6 +370,7 @@ export function useRetryableAsync<T>(
 /**
  * Hook for tracking retry metrics in a component
  */
+/** Tracks retry metrics for a specific operation with periodic updates. */
 export function useRetryMetrics(operationName?: string) {
   const [metrics, setMetrics] = useState<RetryMetrics | undefined>(undefined);
 
@@ -380,6 +392,7 @@ export function useRetryMetrics(operationName?: string) {
 /**
  * Hook for monitoring all retry operations
  */
+/** Monitors all retry operations globally with health status tracking. */
 export function useGlobalRetryMetrics() {
   const [allMetrics, setAllMetrics] = useState<Map<string, RetryMetrics>>(new Map());
   const [healthStatus, setHealthStatus] = useState({ healthy: [], degraded: [] });
@@ -399,6 +412,7 @@ export function useGlobalRetryMetrics() {
 /**
  * Hook for retry strategy with exponential backoff
  */
+/** Provides retry configuration with exponential backoff strategy. */
 export function useExponentialBackoff(config?: Partial<RetryConfig>) {
   const defaultConfig: RetryConfig = {
     ...RETRY_CONFIG_TRANSIENT,
@@ -411,6 +425,7 @@ export function useExponentialBackoff(config?: Partial<RetryConfig>) {
 /**
  * Hook for API retry strategy (higher attempt count)
  */
+/** Provides retry configuration optimized for API calls with higher attempt count. */
 export function useApiRetryStrategy(config?: Partial<RetryConfig>) {
   const defaultConfig: RetryConfig = {
     ...RETRY_CONFIG_API,
@@ -423,6 +438,7 @@ export function useApiRetryStrategy(config?: Partial<RetryConfig>) {
 /**
  * Hook for database retry strategy (lower delay)
  */
+/** Provides retry configuration optimized for database operations with lower delays. */
 export function useDatabaseRetryStrategy(config?: Partial<RetryConfig>) {
   const defaultConfig: RetryConfig = {
     ...RETRY_CONFIG_DATABASE,
@@ -435,6 +451,7 @@ export function useDatabaseRetryStrategy(config?: Partial<RetryConfig>) {
 /**
  * Hook for long-running async retry strategy
  */
+/** Provides retry configuration optimized for long-running async operations. */
 export function useAsyncRetryStrategy(config?: Partial<RetryConfig>) {
   const defaultConfig: RetryConfig = {
     ...RETRY_CONFIG_ASYNC,

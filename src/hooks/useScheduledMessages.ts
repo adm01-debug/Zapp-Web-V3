@@ -19,6 +19,7 @@ export interface ScheduledMessage {
   updated_at: string;
 }
 
+/** Manages scheduled WhatsApp messages with schedule, cancel, and list operations. */
 export function useScheduledMessages(contactId?: string) {
   const { user } = useAuth();
   const queryClient = useQueryClient();

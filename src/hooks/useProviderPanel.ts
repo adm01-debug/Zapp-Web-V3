@@ -36,6 +36,7 @@ export interface ProviderLog {
   created_at: string;
 }
 
+/** Manages WhatsApp provider configuration panel with health monitoring and provider CRUD. */
 export function useProviderPanel() {
   const [rows, setRows] = useState<ProviderRow[]>([]);
   const [logs, setLogs] = useState<ProviderLog[]>([]);

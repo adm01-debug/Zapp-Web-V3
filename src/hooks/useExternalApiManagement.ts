@@ -38,6 +38,7 @@ export interface CRMBatchResult {
   rfm_score: number | null;
 }
 
+/** Fetches 360-degree contact data by phone number with caching. */
 export function useExternalContact360(phone: string | undefined) {
   const cleanedPhone = phone ? cleanPhone(phone) : '';
 
@@ -64,6 +65,7 @@ export function useExternalContact360(phone: string | undefined) {
   });
 }
 
+/** Fetches 360-degree contact data for multiple phones with batch lookup optimization. */
 export function useExternalContact360Batch(phones: string[]) {
   // Deduplicate and clean phones
   const cleanedPhones = [...new Set(phones.map(cleanPhone).filter(p => p.length >= 8))];
@@ -125,6 +127,7 @@ export function useExternalContact360Batch(phones: string[]) {
 // SECTION 2: Contact Metadata (Cargos, Empresas)
 // ════════════════════════════════════════════════════════════════════════════════════
 
+/** Fetches unique job titles from external CRM database with deduplication. */
 export function useExternalCargos() {
   return useQuery<string[]>({
     queryKey: ['external-cargos'],
@@ -182,6 +185,7 @@ export function useExternalCargos() {
   });
 }
 
+/** Fetches unique company names from external CRM database with pagination. */
 export function useExternalEmpresas() {
   return useQuery<string[]>({
     queryKey: ['external-empresas'],
@@ -273,6 +277,7 @@ import { OPTIMISTIC_PREFIX, applyReconciliation } from './evolutionReconcile';
 const logConversations = getLogger('useExternalConversations');
 const logMessages = getLogger('useExternalMessages');
 
+/** Fetches Evolution API conversations with contact enrichment from external database. */
 export function useExternalConversations(enabled = true) {
   const query = useQuery({
     queryKey: [
@@ -383,6 +388,7 @@ export function useExternalConversations(enabled = true) {
   };
 }
 
+/** Fetches Evolution API messages for a contact with pagination and cross-tab synchronization. */
 export function useExternalMessages(remoteJid: string | null) {
   const queryClient = useQueryClient();
   const [messages, setMessages] = useState<RealtimeMessage[]>([]);
@@ -735,6 +741,7 @@ export function withSafeVariants(product: ExternalProduct | null | undefined): E
   };
 }
 
+/** Manages external product catalog with filtering, searching, and variant handling. */
 export function useExternalCatalog() {
   const queryClient = useQueryClient();
   const [filters, setFilters] = useState<CatalogFilters>({});
@@ -914,6 +921,7 @@ interface UseExternalSelectOptions {
   staleTime?: number;
 }
 
+/** Queries external database tables with filtering, ordering, and pagination. */
 export function useExternalSelect<T = Record<string, unknown>>(options: UseExternalSelectOptions) {
   const {
     table,
@@ -953,6 +961,7 @@ interface UseExternalRPCOptions {
   staleTime?: number;
 }
 
+/** Calls external database RPC functions with access validation and metrics. */
 export function useExternalRPC<T = unknown>(options: UseExternalRPCOptions) {
   return useQuery({
     queryKey: ['external-db', 'rpc', options.rpc, options.params],
@@ -977,6 +986,7 @@ export function useExternalRPC<T = unknown>(options: UseExternalRPCOptions) {
 }
 
 // ─── Paginated table browser ──────────────────────────────────
+/** Provides paginated browsing of external database tables with filtering and sorting. */
 export function useExternalTableBrowser<T = Record<string, unknown>>(
   tableName: ExternalTableName | string
 ) {
@@ -1049,6 +1059,7 @@ export function useExternalTableBrowser<T = Record<string, unknown>>(
 }
 
 // ─── Mutation (insert/update/delete via external client) ──────
+/** Performs insert, update, and delete mutations on external database tables. */
 export function useExternalMutation() {
   const queryClient = useQueryClient();
 

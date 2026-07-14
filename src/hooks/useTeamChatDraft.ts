@@ -16,6 +16,7 @@ interface UseTeamChatDraftOptions {
   onFileSent: (mediaUrl: string, mediaType: string, fileName: string) => void;
 }
 
+/** Manages team chat message drafts with auto-save, paste image uploads, and character limits. */
 export function useTeamChatDraft({ conversationId, text, setText, onFileSent }: UseTeamChatDraftOptions) {
   const { profile } = useAuth();
   const [pasteUploading, setPasteUploading] = useState(false);

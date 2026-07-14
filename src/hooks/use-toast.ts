@@ -1,5 +1,6 @@
 import { toast as sonnerToast } from 'sonner';
 
+/** Wrapper hook providing toast notification functionality via Sonner library. */
 const useToast = () => {
   return {
     toasts: [],

@@ -1,9 +1,9 @@
 // Re-export from consolidated useMediaManagement module (ETAPA 40 consolidation)
 import { useImportDataManagement } from '@/hooks/useMediaManagement';
 
+/** Imports user data from JSON file with validation and error handling. */
 export function useImportData() {
   return useImportDataManagement();
-  fileName: string;
 }
 
 export interface ImportError {
@@ -26,6 +26,7 @@ interface UseImportDataOptions<T> {
 // HOOK
 // ============================================
 
+/** Imports and validates data from CSV/Excel files with Zod schema validation. */
 export function useImportData<T>(options: UseImportDataOptions<T>) {
   const { schema, onImport, maxRows = 10000, skipFirstRow = false } = options;
 

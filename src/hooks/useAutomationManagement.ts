@@ -97,6 +97,7 @@ const POLL_MS = 20_000;
 
 /* ============ SECTION 1: useAutomations (Rule Evaluation) ============ */
 
+/** Evaluates and applies automation rules to conversations with tag matching and filtering. */
 export function useAutomations({
   remoteJid,
   instanceName = 'wpp2',
@@ -363,6 +364,7 @@ export function useAutomations({
 
 /* ============ SECTION 2: useAutomationSuggestions ============ */
 
+/** Generates AI-powered automation suggestions based on conversation patterns and history. */
 export function useAutomationSuggestions(remoteJid: string | null) {
   const [suggestions, setSuggestions] = useState<AutomationSuggestion[]>([]);
   const [loading, setLoading] = useState(false);
@@ -486,6 +488,7 @@ export function useAutomationSuggestions(remoteJid: string | null) {
 
 /* ============ SECTION 3: useAutoCloseConversations ============ */
 
+/** Manages automatic conversation closure rules with configurable inactivity thresholds. */
 export function useAutoCloseConversations() {
   const queryClient = useQueryClient();
 
@@ -539,6 +542,7 @@ export function useAutoCloseConversations() {
 
 /* ============ SECTION 4: useAutomationsManagementCRUD ============ */
 
+/** Provides CRUD operations for automation rules with list, create, update, and delete capabilities. */
 export function useAutomationsManagementCRUD() {
   const queryClient = useQueryClient();
 

@@ -1,12 +1,14 @@
 // Re-export from consolidated useMediaManagement module (ETAPA 40 consolidation)
 import { useExportDataManagement } from '@/hooks/useMediaManagement';
 
+/** Exports user data in JSON or CSV format with permission checks. */
 export function useExportData() {
   return useExportDataManagement();
 }
 
 const BLOCKED_MSG = 'Exportação bloqueada por política de segurança';
 
+/** Exports typed data to CSV/PDF/Excel formats with column mapping and formatting. */
 export function useExportData<T extends Record<string, unknown>>(
   options: UseExportDataOptions<T>
 ) {

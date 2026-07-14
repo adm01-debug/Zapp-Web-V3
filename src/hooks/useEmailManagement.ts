@@ -205,6 +205,7 @@ interface EmailThreadRow {
 // MAIN EMAIL HOOK
 // ──────────────────────────────────────────────────────────────────────────
 
+/** Manages email accounts, threads, messages, and token lifecycle with Gmail integration. */
 export function useEmail() {
   const [accounts, setAccounts] = useState<EmailAccount[]>([]);
   const [tokenStatus, setTokenStatus] = useState<EmailTokenInfo[]>([]);
@@ -823,6 +824,7 @@ export function useEmail() {
 // EMAIL DRAFT HOOK
 // ──────────────────────────────────────────────────────────────────────────
 
+/** Manages email draft state with auto-save, persistence, and discard functionality. */
 export function useEmailDraft(accountId: string | null, threadId?: string) {
   const [draft, setDraft] = useState<DraftState>({
     to: [],
@@ -934,6 +936,7 @@ export function useEmailDraft(accountId: string | null, threadId?: string) {
 // EMAIL SEARCH HOOK
 // ──────────────────────────────────────────────────────────────────────────
 
+/** Performs full-text email search across local and remote email sources with debouncing. */
 export function useEmailSearch(accountId: string | null) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<EmailSearchResult[]>([]);
@@ -1095,6 +1098,7 @@ export function useEmailSearch(accountId: string | null) {
 // EMAIL SLA HOOK
 // ──────────────────────────────────────────────────────────────────────────
 
+/** Tracks SLA metrics for email threads with configurable thresholds and status monitoring. */
 export function useEmailSLA(accountId: string | null, config: Partial<SLAConfig> = {}) {
   const slaConfig: SLAConfig = { ...DEFAULT_SLA, ...config };
   const [records, setRecords] = useState<Record<string, EmailSLARecord>>({});
@@ -1227,6 +1231,7 @@ export function useEmailSLA(accountId: string | null, config: Partial<SLAConfig>
 // EMAIL SIGNATURE HOOK
 // ──────────────────────────────────────────────────────────────────────────
 
+/** Manages email signatures per account with create, update, delete, and default selection capabilities. */
 export function useEmailSignature(accountId: string | null) {
   const [signatures, setSignatures] = useState<EmailSignature[]>([]);
   const [isLoading, setIsLoading] = useState(false);

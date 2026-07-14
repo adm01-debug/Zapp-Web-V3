@@ -10,6 +10,7 @@ import type { WhatsAppGroup, WhatsAppConnection } from './groups/types';
 export type { WhatsAppGroup, WhatsAppConnection } from './groups/types';
 export { GROUP_CATEGORIES } from './groups/types';
 
+/** Manages WhatsApp groups with filtering, selection, and bulk action capabilities. */
 export function useGroupsManager() {
   const [groups, setGroups] = useState<WhatsAppGroup[]>([]);
   const [connections, setConnections] = useState<WhatsAppConnection[]>([]);
