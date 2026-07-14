@@ -6,6 +6,15 @@ import { safeFrom } from '@/integrations/supabase/safeClient';
 import { useAuth } from '@/features/auth';
 import { log } from '@/lib/logger';
 
+type DynamicRpcClient = {
+  rpc: (
+    functionName: string,
+    args?: Record<string, unknown>
+  ) => Promise<{ data: unknown; error: { code?: string; message?: string } | null }>;
+};
+
+const rpcClient = supabase as unknown as DynamicRpcClient;
+
 interface Queue {
   id: string;
   name: string;
@@ -191,8 +200,7 @@ export function useQueueAnalyticsManagement(params: { queueId: string; dateRange
 
     try {
       setLoading(true);
-      const { data, error: err } = await supabase
-        .from('queue_analytics')
+      const { data, error: err } = await safeFrom('queue_analytics')
         .select('*')
         .eq('queue_id', queueId)
         .order('timestamp', { ascending: false })
@@ -200,7 +208,7 @@ export function useQueueAnalyticsManagement(params: { queueId: string; dateRange
         .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
 
       if (err && err.code !== 'PGRST116') throw err;
-      if (mountedRef.current) setAnalytics(data || null);
+      if (mountedRef.current) setAnalytics((data as QueueAnalytics | null) || null);
     } catch (err) {
       if (mountedRef.current) {
         log.error('Error fetching queue analytics:', err);
@@ -231,7 +239,10 @@ export function useQueueGoalsManagement(queueId?: string) {
   }, []);
 
   const fetchGoals = useCallback(async () => {
-    if (!user || !queueId) return;
+    if (!user) {
+      if (mountedRef.current) setLoading(false);
+      return;
+    }
 
     try {
       setLoading(true);
@@ -253,8 +264,7 @@ export function useQueueGoalsManagement(queueId?: string) {
   const updateGoalStatus = useCallback(
     async (goalId: string, status: 'on_track' | 'at_risk' | 'missed') => {
       try {
-        const { error: err } = await supabase
-          .from('queue_goals' as never)
+        const { error: err } = await safeFrom('queue_goals')
           .update({ status })
           .eq('id', goalId);
 
@@ -328,7 +338,7 @@ export function useQueueSlaManagement(params: { filters: QueueSlaFilters }) {
 
     try {
       setLoading(true);
-      const { data, error: err } = await supabase.rpc('rpc_queue_sla_panel', {
+      const { data, error: err } = await rpcClient.rpc('rpc_queue_sla_panel', {
         p_skill_name: filters.skill_name,
         p_channel_type: filters.channel_type,
         p_sla_status: filters.sla_status,
@@ -354,8 +364,7 @@ export function useQueueSlaManagement(params: { filters: QueueSlaFilters }) {
   const updateQueueConfig = useCallback(
     async (queueId: string, patch: QueueSlaPatch): Promise<boolean> => {
       try {
-        const { error: err } = await supabase
-          .from('queues' as never)
+        const { error: err } = await safeFrom('queues')
           .update(patch)
           .eq('id', queueId);
 
@@ -372,7 +381,7 @@ export function useQueueSlaManagement(params: { filters: QueueSlaFilters }) {
 
   const triggerRebalance = useCallback(async (limit = 50): Promise<boolean> => {
     try {
-      const { error: err } = await supabase.rpc('rpc_queue_rebalance_candidates', { p_limit: limit });
+      const { error: err } = await rpcClient.rpc('rpc_queue_rebalance_candidates', { p_limit: limit });
       if (err) throw err;
       await fetchSla();
       return true;
@@ -403,8 +412,7 @@ export function useQueuesComparisonManagement(params: { dateRange: DateRange }) 
 
     try {
       setLoading(true);
-      const { data, error: err } = await supabase
-        .from('queues' as never)
+      const { data, error: err } = await safeFrom('queues')
         .select(`
           id,
           name,
