@@ -9,6 +9,7 @@ interface UseDebounceOptions {
   leading?: boolean;
 }
 
+/** Debounces a callback function with optional leading and trailing calls. */
 export function useDebounceManagement<T extends (...args: any[]) => any>(
   callback: T,
   optionsOrDelay: UseDebounceOptions | number = {},
@@ -55,6 +56,7 @@ export function useDebounceManagement<T extends (...args: any[]) => any>(
   return debouncedFn;
 }
 
+/** Returns a debounced version of a value with specified delay. */
 export function useDebouncedValueManagement<T>(value: T, delay = 300): T {
   const [debouncedValue, setDebouncedValue] = useState(value);
 
@@ -69,6 +71,7 @@ export function useDebouncedValueManagement<T>(value: T, delay = 300): T {
 // ===== Document Title Management =====
 const BASE_TITLE = 'WhatsApp Omnichannel';
 
+/** Updates the document title and restores the previous title on unmount. */
 export function useDocumentTitleManagement(title?: string) {
   useEffect(() => {
     const prev = document.title;
@@ -87,6 +90,7 @@ export interface UseInViewportOptions {
   disabled?: boolean;
 }
 
+/** Detects when an element enters the viewport using Intersection Observer API. */
 export function useInViewportManagement(
   ref: RefObject<Element | null>,
   options: UseInViewportOptions = {},
@@ -151,6 +155,7 @@ const VIEW_QUERY_KEYS: Record<string, string[][]> = {
   tags: [['tags']],
 };
 
+/** Provides prefetching of query data when hovering over view navigation elements. */
 export function usePrefetchOnHoverManagement() {
   const queryClient = useQueryClient();
 
@@ -173,6 +178,7 @@ export function usePrefetchOnHoverManagement() {
 }
 
 // ===== Mounted Ref Management =====
+/** Returns a ref that tracks whether the component is currently mounted. */
 export function useMountedRefManagement() {
   const mountedRef = useRef(true);
   useEffect(() => () => {
@@ -197,6 +203,7 @@ interface UndoableActionState {
   timeRemaining: number;
 }
 
+/** Manages actions with undo capability and time-limited reversal window. */
 export function useUndoableActionManagement() {
   const [state, setState] = useState<UndoableActionState>({
     isPending: false,
@@ -328,6 +335,7 @@ interface UsePullToRefreshOptions {
   disabled?: boolean;
 }
 
+/** Implements pull-to-refresh gesture handling with customizable threshold. */
 export function usePullToRefreshManagement({ onRefresh, threshold = 80, disabled = false }: UsePullToRefreshOptions) {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [pullDistance, setPullDistance] = useState(0);

@@ -1,6 +1,7 @@
 // Re-export from consolidated useSettingsManagement module (ETAPA 41 consolidation)
 import { useUserSettingsManagement } from '@/hooks/useSettingsManagement';
 
+/** Fetches and manages user settings with persistence, versioning, and conflict resolution. */
 export function useUserSettings(userId?: string) {
   return useUserSettingsManagement(userId);
 

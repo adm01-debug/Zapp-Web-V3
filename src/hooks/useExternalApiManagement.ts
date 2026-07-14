@@ -733,6 +733,7 @@ async function invokeAction<T = unknown>(action: string, params: Record<string, 
   return data as T; // ignore-audit: narrows Supabase query result to local interface
 }
 
+/** Safely parses and validates product variants, returning a product with safe variant data. */
 export function withSafeVariants(product: ExternalProduct | null | undefined): ExternalProduct | null {
   if (!product) return null;
   return {

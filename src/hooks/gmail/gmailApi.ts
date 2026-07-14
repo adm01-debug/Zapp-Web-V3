@@ -23,6 +23,7 @@ export type {
   ListThreadsParams,
 } from './gmailApiTypes';
 
+/** Fetches the body, text content, and attachments of an email message. */
 export async function fetchMessageBody(
   accountId: string,
   emailMessageId: string
@@ -38,6 +39,7 @@ export async function fetchMessageBody(
   return { data, error: null };
 }
 
+/** Downloads an email attachment by its ID and returns base64 data with MIME type. */
 export async function downloadAttachment(
   accountId: string,
   messageId: string,
@@ -52,6 +54,7 @@ export async function downloadAttachment(
   return { data, error: null };
 }
 
+/** Creates a new email label with optional custom color for an account. */
 export async function createEmailLabel(
   accountId: string,
   name: string,
@@ -66,6 +69,7 @@ export async function createEmailLabel(
   return { data, error: null };
 }
 
+/** Moves an email thread to trash. */
 export async function moveThreadToTrash(
   accountId: string,
   emailThreadId: string
@@ -79,6 +83,7 @@ export async function moveThreadToTrash(
   return { data, error: null };
 }
 
+/** Adds and removes labels from an email thread. */
 export async function modifyThreadLabels(
   accountId: string,
   emailThreadId: string,
@@ -100,6 +105,7 @@ export async function modifyThreadLabels(
   return { data, error: null };
 }
 
+/** Renews the Gmail watch subscription to receive push notifications for new messages. */
 export async function renewEmailWatch(
   accountId: string
 ): Promise<EmailApiResponse<{ watchExpiry: string; historyId: string }>> {
@@ -112,6 +118,7 @@ export async function renewEmailWatch(
   return { data, error: null };
 }
 
+/** Lists all email labels (system and user-created) for an account. */
 export async function listEmailLabels(
   accountId: string
 ): Promise<
@@ -126,6 +133,7 @@ export async function listEmailLabels(
   return { data, error: null };
 }
 
+/** Creates a new email draft with recipients, subject, and HTML body content. */
 export async function createDraft(
   accountId: string,
   params: {
@@ -145,6 +153,7 @@ export async function createDraft(
   return { data, error: null };
 }
 
+/** Updates an existing email draft's recipients, subject, or HTML body. */
 export async function updateDraft(
   accountId: string,
   draftId: string,
@@ -164,6 +173,7 @@ export async function updateDraft(
   return { data, error: null };
 }
 
+/** Sends a draft email and returns the resulting message ID. */
 export async function sendDraft(
   accountId: string,
   draftId: string
@@ -177,6 +187,7 @@ export async function sendDraft(
   return { data, error: null };
 }
 
+/** Refreshes an email account's OAuth access token. */
 export async function emailRefreshToken(
   accountId: string
 ): Promise<EmailApiResponse<{ accessToken: string; expiresAt: string }>> {
@@ -189,6 +200,7 @@ export async function emailRefreshToken(
   return { data, error: null };
 }
 
+/** Revokes OAuth access for an email account. */
 export async function emailRevokeAccount(
   accountId: string
 ): Promise<EmailApiResponse<{ success: boolean }>> {
@@ -201,17 +213,20 @@ export async function emailRevokeAccount(
   return { data, error: null };
 }
 
+/** Registers a Gmail watch subscription to receive push notifications for an account. */
 export async function emailRegisterWatch(
   accountId: string
 ): Promise<EmailApiResponse<{ watchExpiry: string; historyId: string }>> {
   return renewEmailWatch(accountId);
 }
 
+/** Checks if an error is an authentication error (401 or UNAUTHENTICATED). */
 export function isAuthError(error: EmailApiError | null): boolean {
   if (!error) return false;
   return error.code === 401 || error.status === 'UNAUTHENTICATED';
 }
 
+/** Builds a MIME-formatted email message string with headers and HTML body. */
 export function buildMimeMessage(params: {
   from: string;
   to: string[];
@@ -240,6 +255,7 @@ export function buildMimeMessage(params: {
     .replace(/=+$/, '');
 }
 
+/** Marks email messages or threads as read. */
 export async function emailMarkRead(params: MarkReadParams): Promise<EmailApiResponse<void>> {
   const { data, error } = await supabase.functions.invoke('gmail-send', {
     body: { action: 'markRead', ...params },
@@ -249,6 +265,7 @@ export async function emailMarkRead(params: MarkReadParams): Promise<EmailApiRes
   return { data: data ?? null, error: null };
 }
 
+/** Adds and removes labels from email messages. */
 export async function emailModifyLabels(
   params: ModifyLabelsParams
 ): Promise<EmailApiResponse<void>> {
@@ -260,6 +277,7 @@ export async function emailModifyLabels(
   return { data: data ?? null, error: null };
 }
 
+/** Sends an email message and returns the message and thread IDs. */
 export async function emailSendMessage(
   params: SendMessageParams
 ): Promise<EmailApiResponse<{ id: string; threadId: string }>> {
@@ -271,6 +289,7 @@ export async function emailSendMessage(
   return { data, error: null };
 }
 
+/** Moves email messages to trash. */
 export async function emailTrashMessage(
   params: TrashMessageParams
 ): Promise<EmailApiResponse<void>> {
@@ -282,6 +301,7 @@ export async function emailTrashMessage(
   return { data: data ?? null, error: null };
 }
 
+/** Saves an email draft, creating or updating as needed. */
 export async function emailSaveDraft(
   params: SaveDraftParams
 ): Promise<EmailApiResponse<{ draftId: string }>> {
@@ -296,6 +316,7 @@ export async function emailSaveDraft(
   }
 }
 
+/** Deletes an email draft. */
 export async function emailDeleteDraft(
   accountId: string,
   draftId: string
@@ -308,6 +329,7 @@ export async function emailDeleteDraft(
   return { data: data ?? null, error: null };
 }
 
+/** Lists email threads with pagination support and thread metadata. */
 export async function emailListThreads(params: ListThreadsParams): Promise<
   EmailApiResponse<{
     threads: Array<{ id: string; snippet: string; historyId: string }>;
