@@ -71,12 +71,14 @@ export function useContactNotes(contactId: string) {
         .select('id, name, avatar_url')
         .in('id', authorIds);
 
-      const authorsMap = new Map(authors?.map(a => [a.id, a]) || []);
+      const authorsMap = new Map<string, ContactNoteAuthor>(
+        (authors ?? []).map((a) => [a.id, { id: a.id, name: a.name ?? null, avatar_url: a.avatar_url ?? null }])
+      );
 
-      return (data || []).map(note => ({
+      return (data || []).map<ContactNote>((note) => ({
         ...note,
-        author: authorsMap.get(note.author_id),
-      })) as ContactNote[];
+        author: authorsMap.get(note.author_id) ?? { id: note.author_id, name: null, avatar_url: null },
+      }));
     },
     enabled: !!contactId,
   });
