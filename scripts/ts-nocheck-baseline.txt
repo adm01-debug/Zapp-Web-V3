@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream
 src/components/compliance/LGPDComplianceView.tsx
 src/components/connections/ConnectionsView.tsx
 src/components/connections/InstanceSettingsDialog.tsx
@@ -32,3 +33,6 @@ src/features/admin/hooks/useDiagnosticsData.ts
 src/features/connections/hooks/parts/useConnectionsActions.ts
 src/features/connections/hooks/useConnectionsManager.ts
 src/integrations/supabase/schema.ts
+=======
+
+>>>>>>> Stashed changes

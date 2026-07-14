@@ -125,7 +125,7 @@ export function useContactNotesManagement(contactId?: string) {
     if (contactId) fetchNotes();
   }, [contactId, fetchNotes]);
 
-  return { notes, loading, addNote, refetch: fetchNotes };
+  return { notes, loading, isLoading: loading, addNote, refetch: fetchNotes }; // ✅ fix: isLoading alias
 }
 
 export function useContactEnrichedDataManagement(contactId?: string) {
