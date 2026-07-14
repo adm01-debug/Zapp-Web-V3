@@ -28,16 +28,10 @@ interface NavigationHistoryReturn {
 const MAX_HISTORY = 50;
 const BREADCRUMB_DEPTH = 4;
 
-/**
- * Navigation history with back/forward stacks, breadcrumb trail,
- * and URL hash sync for deep linking.
- *
- * Uses a single state atom for history+index to prevent race conditions
- * between separate setState calls.
- */
 // Hashes that are NOT view IDs (e.g. skip-to-content anchors)
 const RESERVED_HASHES = new Set(['main-content', 'main-navigation', 'inbox-section', 'search-input']);
 
+/** Manages navigation history with back/forward stacks, breadcrumbs, and URL hash synchronization. */
 export function useNavigationHistory(defaultView = 'inbox'): NavigationHistoryReturn {
   const getInitialView = () => {
     const hash = window.location.hash.replace('#', '');

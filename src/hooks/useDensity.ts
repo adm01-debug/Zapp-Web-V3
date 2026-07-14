@@ -4,6 +4,7 @@ export type DensityMode = 'comfortable' | 'compact' | 'dense';
 
 const STORAGE_KEY = 'ui-density';
 
+/** Manages UI density mode (comfortable, compact, dense) with localStorage persistence. */
 export function useDensity() {
   const [density, setDensityState] = useState<DensityMode>(() => {
     try {
