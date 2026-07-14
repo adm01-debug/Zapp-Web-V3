@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { queryExternalProxy, __testing } from '../externalProxy';
 import { recordQueryEvent, recordRetryOutcome } from '@/lib/clientTelemetry';

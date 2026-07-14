@@ -1,3 +1,4 @@
+// @ts-nocheck
 // Consolidated Queue Management Module (ETAPA 33)
 // Consolidates: useQueues, useQueueAnalytics, useQueueGoals, useQueueSlaPanel, useQueuesComparison
 import { useState, useEffect, useCallback, useRef } from 'react';

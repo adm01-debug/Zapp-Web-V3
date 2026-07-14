@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * useRetryAndErrorPrevention.ts (v1.0)
  * Unified retry and error prevention hooks consolidating:

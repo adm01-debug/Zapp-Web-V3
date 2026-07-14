@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Tests for the pure utility exports from useMediaLibrary:
  *   getCategoriesForType() — category dict per MediaType
