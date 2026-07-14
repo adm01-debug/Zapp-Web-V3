@@ -34,8 +34,9 @@ export function TrainingMiniGames({ onXPEarned }: TrainingMiniGamesProps) {
   };
 
   const handleGameComplete = (finalScore: number, xpEarned: number) => {
+    if (!selectedGame) return;
     const game = GAMES.find((g) => g.id === selectedGame);
-    const isNewHighScore = saveHighScore(selectedGame ?? '', finalScore);
+    const isNewHighScore = saveHighScore(selectedGame, finalScore);
     if (isNewHighScore)
       celebrate({ title: '🏆 Novo Recorde!', subtitle: `${finalScore} pontos!`, emoji: '🎮' });
     onXPEarned?.(xpEarned);
