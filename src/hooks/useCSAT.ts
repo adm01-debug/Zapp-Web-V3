@@ -59,12 +59,17 @@ export function useCSAT(period: 'today' | 'week' | 'month' = 'month') {
     queryFn: async () => {
       const surveys = surveysQuery.data || [];
       if (surveys.length === 0) {
-        return { average: 0, total: 0, distribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 }, trend: 0 } as CSATStats;
+        return {
+          average: 0,
+          total: 0,
+          distribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
+          trend: 0,
+        } as CSATStats;
       }
 
       const distribution: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
       let sum = 0;
-      surveys.forEach(s => {
+      surveys.forEach((s) => {
         distribution[s.rating] = (distribution[s.rating] || 0) + 1;
         sum += s.rating;
       });
@@ -80,10 +85,15 @@ export function useCSAT(period: 'today' | 'week' | 'month' = 'month') {
   });
 
   const submitSurvey = useMutation({
-    mutationFn: async (data: { contact_id: string; agent_id?: string; rating: number; feedback?: string }) => {
+    mutationFn: async (data: {
+      contact_id: string;
+      agent_id?: string;
+      rating: number;
+      feedback?: string;
+    }) => {
       const { error } = await supabase.from('csat_surveys').insert({
         contact_id: data.contact_id,
-        ...(data.agent_id ? { agent_id: data.agent_id } : {}),
+        agent_id: data.agent_id,
         rating: data.rating,
         feedback: data.feedback || null,
         conversation_resolved_at: new Date().toISOString(),

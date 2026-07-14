@@ -11,8 +11,20 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { motion, AnimatePresence } from 'framer-motion';
-import { WifiOff, RefreshCw, CheckCircle2, XCircle, AlertTriangle,
-  Clock, Activity, Loader2, HeartPulse, Zap, Timer, Link as LinkIcon, Check,
+import {
+  WifiOff,
+  RefreshCw,
+  CheckCircle2,
+  XCircle,
+  AlertTriangle,
+  Clock,
+  Activity,
+  Loader2,
+  HeartPulse,
+  Zap,
+  Timer,
+  Link as LinkIcon,
+  Check,
 } from 'lucide-react';
 import { format, formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -48,9 +60,12 @@ export function ConnectionHealthPanel() {
   const mountedRef = useMountedRef();
   const copiedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  useEffect(() => () => {
-    if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
-  }, []);
+  useEffect(
+    () => () => {
+      if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
+    },
+    []
+  );
 
   const handleCopyQrLink = async (_conn: ConnectionHealth) => {
     toast.error('Funcionalidade de QR link requer acesso seguro — use o painel de configurações.');
@@ -73,17 +88,25 @@ export function ConnectionHealthPanel() {
     setLoading(false);
   }, []);
 
-  useEffect(() => { fetchData(); }, [fetchData]);
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   // Realtime updates
   useEffect(() => {
     const channel = supabase
       .channel('health-updates')
-      .on('postgres_changes', { event: 'INSERT', schema: 'zapp', table: 'connection_health_logs' }, () => {
-        fetchData();
-      })
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'zapp', table: 'connection_health_logs' },
+        () => {
+          fetchData();
+        }
+      )
       .subscribe();
-    return () => { supabase.removeChannel(channel); };
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [fetchData]);
 
   const runHealthCheck = async () => {
@@ -91,7 +114,9 @@ export function ConnectionHealthPanel() {
     try {
       const { data, error } = await supabase.functions.invoke('connection-health-check');
       if (error) throw error;
-      toast.success(`Health check concluído: ${data?.connections?.length || 0} conexões verificadas`);
+      toast.success(
+        `Health check concluído: ${data?.connections?.length || 0} conexões verificadas`
+      );
       await fetchData();
     } catch (err) {
       toast.error('Erro ao executar health check');
@@ -101,24 +126,45 @@ export function ConnectionHealthPanel() {
     }
   };
 
-  const statusConfig: Record<string, { icon: typeof CheckCircle2; color: string; label: string; bg: string }> = {
+  const statusConfig: Record<
+    string,
+    { icon: typeof CheckCircle2; color: string; label: string; bg: string }
+  > = {
     healthy: { icon: CheckCircle2, color: 'text-success', label: 'Saudável', bg: 'bg-success/10' },
-    degraded: { icon: AlertTriangle, color: 'text-warning', label: 'Degradado', bg: 'bg-warning/10' },
-    disconnected: { icon: WifiOff, color: 'text-destructive', label: 'Desconectado', bg: 'bg-destructive/10' },
+    degraded: {
+      icon: AlertTriangle,
+      color: 'text-warning',
+      label: 'Degradado',
+      bg: 'bg-warning/10',
+    },
+    disconnected: {
+      icon: WifiOff,
+      color: 'text-destructive',
+      label: 'Desconectado',
+      bg: 'bg-destructive/10',
+    },
     error: { icon: XCircle, color: 'text-destructive', label: 'Erro', bg: 'bg-destructive/10' },
     timeout: { icon: Timer, color: 'text-warning', label: 'Timeout', bg: 'bg-warning/10' },
-    unknown: { icon: Activity, color: 'text-muted-foreground', label: 'Desconhecido', bg: 'bg-muted/50' },
+    unknown: {
+      icon: Activity,
+      color: 'text-muted-foreground',
+      label: 'Desconhecido',
+      bg: 'bg-muted/50',
+    },
   };
 
-  const healthyCount = connections.filter(c => c.health_status === 'healthy').length;
-  const avgResponseTime = connections.length > 0
-    ? Math.round(connections.reduce((sum, c) => sum + (c.health_response_ms || 0), 0) / connections.length)
-    : 0;
+  const healthyCount = connections.filter((c) => c.health_status === 'healthy').length;
+  const avgResponseTime =
+    connections.length > 0
+      ? Math.round(
+          connections.reduce((sum, c) => sum + (c.health_response_ms || 0), 0) / connections.length
+        )
+      : 0;
 
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="w-6 h-6 animate-spin text-primary" />
+        <Loader2 className="h-6 w-6 animate-spin text-primary" />
       </div>
     );
   }
@@ -126,38 +172,44 @@ export function ConnectionHealthPanel() {
   return (
     <div className="space-y-6">
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
         <Card className="border-border/50">
-          <CardContent className="pt-4 pb-3">
-            <div className="flex items-center gap-2 text-muted-foreground mb-1">
-              <HeartPulse className="w-4 h-4" />
+          <CardContent className="pb-3 pt-4">
+            <div className="mb-1 flex items-center gap-2 text-muted-foreground">
+              <HeartPulse className="h-4 w-4" />
               <span className="text-xs font-medium">Conexões Saudáveis</span>
             </div>
-            <p className="text-2xl font-bold">{healthyCount}/{connections.length}</p>
+            <p className="text-2xl font-bold">
+              {healthyCount}/{connections.length}
+            </p>
           </CardContent>
         </Card>
         <Card className="border-border/50">
-          <CardContent className="pt-4 pb-3">
-            <div className="flex items-center gap-2 text-muted-foreground mb-1">
-              <Zap className="w-4 h-4" />
+          <CardContent className="pb-3 pt-4">
+            <div className="mb-1 flex items-center gap-2 text-muted-foreground">
+              <Zap className="h-4 w-4" />
               <span className="text-xs font-medium">Tempo Médio</span>
             </div>
             <p className="text-2xl font-bold">{avgResponseTime}ms</p>
           </CardContent>
         </Card>
         <Card className="border-border/50">
-          <CardContent className="pt-4 pb-3">
-            <div className="flex items-center gap-2 text-muted-foreground mb-1">
-              <Activity className="w-4 h-4" />
+          <CardContent className="pb-3 pt-4">
+            <div className="mb-1 flex items-center gap-2 text-muted-foreground">
+              <Activity className="h-4 w-4" />
               <span className="text-xs font-medium">Checks (7d)</span>
             </div>
             <p className="text-2xl font-bold">{recentLogs.length}</p>
           </CardContent>
         </Card>
         <Card className="border-border/50">
-          <CardContent className="pt-4 pb-3 flex items-center justify-center">
+          <CardContent className="flex items-center justify-center pb-3 pt-4">
             <Button onClick={runHealthCheck} disabled={checking} className="w-full gap-2">
-              {checking ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+              {checking ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <RefreshCw className="h-4 w-4" />
+              )}
               {checking ? 'Verificando...' : 'Executar Health Check'}
             </Button>
           </CardContent>
@@ -165,7 +217,7 @@ export function ConnectionHealthPanel() {
       </div>
 
       {/* Connection Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
         <AnimatePresence>
           {connections.map((conn) => {
             const cfg = statusConfig[conn.health_status || 'unknown'] || statusConfig.unknown;
@@ -178,15 +230,17 @@ export function ConnectionHealthPanel() {
                 exit={{ opacity: 0, scale: 0.95 }}
               >
                 <Card className={cn('border-border/50 transition-all hover:shadow-md', cfg.bg)}>
-                  <CardContent className="pt-4 pb-4 space-y-3">
+                  <CardContent className="space-y-3 pb-4 pt-4">
                     <div className="flex items-start justify-between">
                       <div className="space-y-1">
                         <div className="flex items-center gap-2">
-                          <Icon className={cn('w-5 h-5', cfg.color)} />
-                          <span className="font-semibold text-sm">{conn.name || conn.instance_name || 'Sem nome'}</span>
+                          <Icon className={cn('h-5 w-5', cfg.color)} />
+                          <span className="text-sm font-semibold">
+                            {conn.name || conn.instance_name || 'Sem nome'}
+                          </span>
                         </div>
                         {conn.phone_number && (
-                          <p className="text-xs text-muted-foreground pl-7">{conn.phone_number}</p>
+                          <p className="pl-7 text-xs text-muted-foreground">{conn.phone_number}</p>
                         )}
                       </div>
                       <Badge variant="outline" className={cn('text-xs', cfg.color)}>
@@ -196,16 +250,21 @@ export function ConnectionHealthPanel() {
 
                     <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
                       <div className="flex items-center gap-1">
-                        <Clock className="w-3 h-3" />
+                        <Clock className="h-3 w-3" />
                         <span>
                           {conn.last_health_check
-                            ? formatDistanceToNow(new Date(conn.last_health_check), { addSuffix: true, locale: ptBR })
+                            ? formatDistanceToNow(new Date(conn.last_health_check), {
+                                addSuffix: true,
+                                locale: ptBR,
+                              })
                             : 'Nunca verificado'}
                         </span>
                       </div>
                       <div className="flex items-center gap-1">
-                        <Zap className="w-3 h-3" />
-                        <span>{conn.health_response_ms ? `${conn.health_response_ms}ms` : '—'}</span>
+                        <Zap className="h-3 w-3" />
+                        <span>
+                          {conn.health_response_ms ? `${conn.health_response_ms}ms` : '—'}
+                        </span>
                       </div>
                     </div>
 
@@ -214,12 +273,16 @@ export function ConnectionHealthPanel() {
                         {conn.status === 'connected' && (
                           <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-success opacity-75" />
                         )}
-                        <span className={cn(
-                          'relative inline-flex h-2 w-2 rounded-full',
-                          conn.status === 'connected' ? 'bg-success' : 'bg-destructive'
-                        )} />
+                        <span
+                          className={cn(
+                            'relative inline-flex h-2 w-2 rounded-full',
+                            conn.status === 'connected' ? 'bg-success' : 'bg-destructive'
+                          )}
+                        />
                       </span>
-                      <span className="text-xs text-muted-foreground capitalize">{conn.status}</span>
+                      <span className="text-xs capitalize text-muted-foreground">
+                        {conn.status}
+                      </span>
                     </div>
 
                     <Button
@@ -229,9 +292,17 @@ export function ConnectionHealthPanel() {
                       onClick={() => handleCopyQrLink(conn)}
                       aria-label={`Copiar link do QR Code da instância ${conn.name || conn.instance_name}`}
                     >
-                      {copiedId === conn.id
-                        ? <><Check className="w-3.5 h-3.5 text-success" />Link copiado</>
-                        : <><LinkIcon className="w-3.5 h-3.5" />Copiar link do QR</>}
+                      {copiedId === conn.id ? (
+                        <>
+                          <Check className="h-3.5 w-3.5 text-success" />
+                          Link copiado
+                        </>
+                      ) : (
+                        <>
+                          <LinkIcon className="h-3.5 w-3.5" />
+                          Copiar link do QR
+                        </>
+                      )}
                     </Button>
                   </CardContent>
                 </Card>
@@ -244,8 +315,8 @@ export function ConnectionHealthPanel() {
       {/* Recent Logs */}
       <Card className="border-border/50">
         <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2">
-            <Activity className="w-4 h-4 text-primary" />
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Activity className="h-4 w-4 text-primary" />
             Histórico de Health Checks
           </CardTitle>
           <CardDescription>Últimas 50 verificações</CardDescription>
@@ -253,37 +324,40 @@ export function ConnectionHealthPanel() {
         <CardContent>
           <ScrollArea className="h-[300px]">
             <div className="space-y-1.5">
-              {recentLogs.map((log) => {
-                const cfg = statusConfig[log.status] || statusConfig.unknown;
+              {recentLogs.map((entry) => {
+                const cfg = statusConfig[entry.status] || statusConfig.unknown;
                 const Icon = cfg.icon;
                 return (
-                  <div key={log.id} className="flex items-center gap-3 py-2 px-3 rounded-lg hover:bg-muted/50 text-sm">
-                    <Icon className={cn('w-4 h-4 flex-shrink-0', cfg.color)} />
-                    <span className="font-medium min-w-[120px]">{log.instance_id}</span>
+                  <div
+                    key={entry.id}
+                    className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm hover:bg-muted/50"
+                  >
+                    <Icon className={cn('h-4 w-4 flex-shrink-0', cfg.color)} />
+                    <span className="min-w-[120px] font-medium">{entry.instance_id}</span>
                     <Badge variant="outline" className={cn('text-[10px]', cfg.color)}>
                       {cfg.label}
                     </Badge>
-                    <span className="text-muted-foreground text-xs">
-                      {log.response_time_ms ? `${log.response_time_ms}ms` : '—'}
+                    <span className="text-xs text-muted-foreground">
+                      {entry.response_time_ms ? `${entry.response_time_ms}ms` : '—'}
                     </span>
-                    {log.error_message && (
+                    {entry.error_message && (
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <AlertTriangle className="w-3.5 h-3.5 text-warning cursor-help" />
+                          <AlertTriangle className="h-3.5 w-3.5 cursor-help text-warning" />
                         </TooltipTrigger>
                         <TooltipContent className="max-w-xs">
-                          <p className="text-xs">{log.error_message}</p>
+                          <p className="text-xs">{entry.error_message}</p>
                         </TooltipContent>
                       </Tooltip>
                     )}
-                    <span className="text-muted-foreground text-xs ml-auto">
-                      {format(new Date(log.checked_at), 'dd/MM HH:mm:ss', { locale: ptBR })}
+                    <span className="ml-auto text-xs text-muted-foreground">
+                      {format(new Date(entry.checked_at), 'dd/MM HH:mm:ss', { locale: ptBR })}
                     </span>
                   </div>
                 );
               })}
               {recentLogs.length === 0 && (
-                <p className="text-center text-sm text-muted-foreground py-8">
+                <p className="py-8 text-center text-sm text-muted-foreground">
                   Nenhum health check registrado. Execute uma verificação acima.
                 </p>
               )}

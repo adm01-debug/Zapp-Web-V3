@@ -106,9 +106,10 @@ export function useAutomations({
       if (error) throw error;
       if (!msgs || !Array.isArray(msgs) || !isMounted.current) return;
 
-      const sorted = [...(msgs as ExternalMessage[] /* ignore-audit: narrows Supabase query result to local interface */)].sort(
-        (a, b) =>
-          new Date(a.message_timestamp).getTime() - new Date(b.message_timestamp).getTime()
+      const sorted = [
+        ...(msgs as ExternalMessage[]) /* ignore-audit: narrows Supabase query result to local interface */,
+      ].sort(
+        (a, b) => new Date(a.message_timestamp).getTime() - new Date(b.message_timestamp).getTime()
       );
       const last = sorted[sorted.length - 1];
       if (!last) return;

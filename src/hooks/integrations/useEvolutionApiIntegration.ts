@@ -101,7 +101,7 @@ export function useEvolutionApiIntegration() {
 
       const responseTime = Date.now() - startTime;
       const isSuccess = response.ok;
-      let errorMsg = null;
+      let errorMsg: string | null = null;
       let onlineCount = 0;
       let totalCount = 0;
 
@@ -109,7 +109,9 @@ export function useEvolutionApiIntegration() {
         const data = await response.json();
         const instances = Array.isArray(data) ? data : [];
         totalCount = instances.length;
-        onlineCount = instances.filter((i: { connectionStatus?: string }) => i.connectionStatus === 'open').length;
+        onlineCount = instances.filter(
+          (i: { connectionStatus?: string }) => i.connectionStatus === 'open'
+        ).length;
         toast.success(`Teste bem-sucedido para ${creds.instance_name || 'nova config'}`);
       } else {
         errorMsg =

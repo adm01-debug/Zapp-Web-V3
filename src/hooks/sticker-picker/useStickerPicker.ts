@@ -262,7 +262,7 @@ export function useStickerPicker(onSendSticker: (url: string) => void) {
     [onSendSticker]
   );
 
-  const toggleFavorite = useCallback(async (e: React.MouseEvent, sticker: StickerItem) => {
+  const toggleFavorite = useCallback(async (e: React.SyntheticEvent, sticker: StickerItem) => {
     e.stopPropagation();
     const newVal = !sticker.is_favorite;
     setStickers((prev) =>

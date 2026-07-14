@@ -156,7 +156,9 @@ export function ContactDetails({ conversation, onClose }: ContactDetailsProps) {
 
       <div className="shrink-0">
         <ContactHeaderSection
-          contact={contact}
+          contact={
+            contact as { id: string; name: string; phone: string; avatar?: string; email?: string }
+          }
           enrichedData={enrichedData}
           conversation={conversation}
           onQuickAction={handleQuickAction}
@@ -168,9 +170,7 @@ export function ContactDetails({ conversation, onClose }: ContactDetailsProps) {
         />
       </div>
 
-      <div
-        className="scrollbar-thin min-h-0 flex-1 overflow-y-auto bg-background/50"
-      >
+      <div className="scrollbar-thin min-h-0 flex-1 overflow-y-auto bg-background/50">
         <AnalysisBadges contactId={contact.id} className="px-4 pb-2 pt-2" />
 
         <Accordion
@@ -182,9 +182,9 @@ export function ContactDetails({ conversation, onClose }: ContactDetailsProps) {
           <ContactAccordionSections
             contact={contact}
             conversation={conversation}
-            enrichedData={enrichedData}
+            enrichedData={enrichedData ?? null}
             aiTags={aiTags}
-            slaInfo={slaInfo}
+            slaInfo={slaInfo ?? null}
             profileId={profileId}
           />
         </Accordion>

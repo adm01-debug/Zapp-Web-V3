@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Tag, Brain, Loader2, CheckCircle, BarChart3 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -46,19 +46,28 @@ export function AutoTicketClassifier() {
   const [loading, setLoading] = useState(true);
   const [classifying, setClassifying] = useState(false);
   const [categoryStats, setCategoryStats] = useState<Record<string, number>>({});
+  const isMountedRef = useRef(true);
 
   useEffect(() => {
     loadClassifiedTickets();
+    return () => {
+      isMountedRef.current = false;
+    };
   }, []);
 
   const loadClassifiedTickets = async () => {
     setLoading(true);
     try {
       // Fetch AI-tagged contacts
-      type AiTagRow = { contact_id: string; tag_name: string; confidence: number | null; created_at: string; contacts: { name: string | null; phone: string | null } | null };
-      const { data: tags, error } = await safeClient.from<AiTagRow>(
-        'ai_conversation_tags',
-        q => q.select('*, contacts(name, phone)').order('created_at', { ascending: false }).limit(100),
+      type AiTagRow = {
+        contact_id: string;
+        tag_name: string;
+        confidence: number | null;
+        created_at: string;
+        contacts: { name: string | null; phone: string | null } | null;
+      };
+      const { data: tags, error } = await safeClient.from<AiTagRow>('ai_conversation_tags', (q) =>
+        q.select('*, contacts(name, phone)').order('created_at', { ascending: false }).limit(100)
       );
 
       if (!error && tags) {
@@ -82,19 +91,21 @@ export function AutoTicketClassifier() {
         });
 
         const list = Array.from(grouped.values());
-        setTickets(list);
 
         // Compute category stats
         const stats: Record<string, number> = {};
         list.forEach((t) => {
           stats[t.category] = (stats[t.category] || 0) + 1;
         });
-        setCategoryStats(stats);
+        if (isMountedRef.current) {
+          setTickets(list);
+          setCategoryStats(stats);
+        }
       }
     } catch {
-      toast.error('Erro ao carregar tickets classificados');
+      if (isMountedRef.current) toast.error('Erro ao carregar tickets classificados');
     } finally {
-      setLoading(false);
+      if (isMountedRef.current) setLoading(false);
     }
   };
 
@@ -158,7 +169,9 @@ export function AutoTicketClassifier() {
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
             <Switch id="auto-classify" checked={autoClassify} onCheckedChange={setAutoClassify} />
-            <Label htmlFor="auto-classify" className="text-sm">Auto-classificar</Label>
+            <Label htmlFor="auto-classify" className="text-sm">
+              Auto-classificar
+            </Label>
           </div>
           <Button size="sm" onClick={runBatchClassification} disabled={classifying}>
             {classifying ? (

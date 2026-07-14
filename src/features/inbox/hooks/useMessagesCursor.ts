@@ -55,7 +55,7 @@ function dedupeAndSort(rows: EvolutionMessageLite[]): EvolutionMessageLite[] {
   const seen = new Map<string, EvolutionMessageLite>();
   for (const r of rows) seen.set(r.id, r);
   return Array.from(seen.values()).sort(
-    (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+    (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
   );
 }
 
@@ -78,9 +78,12 @@ export function useMessagesCursor({
   // Lock current contact identity so async callbacks ignore stale results.
   const remoteJidRef = useRef<string | null>(remoteJid);
 
-  useEffect(() => () => {
-    abortRef.current?.abort();
-  }, []);
+  useEffect(
+    () => () => {
+      abortRef.current?.abort();
+    },
+    []
+  );
 
   // Compute flat sorted messages from pages, deduped.
   const messages = useMemo(() => dedupeAndSort(pages.flat()), [pages]);
@@ -110,7 +113,7 @@ export function useMessagesCursor({
       // diretamente em todas as versoes.
       const withSignal = builder.abortSignal?.(controller.signal) ?? builder;
 
-      const { data, error: rpcError } = await withSignal;
+      const { data, error: rpcError } = (await withSignal) as { data: unknown; error: unknown };
       if (controller.signal.aborted) {
         const e = new Error('Aborted');
         e.name = 'AbortError';
@@ -121,10 +124,10 @@ export function useMessagesCursor({
       const rows = ((data || []) as EvolutionMessageLite[]).filter((m) => !!m && !!m.id);
       // RPC retorna DESC por created_at; convertemos para ASC.
       return [...rows].sort(
-        (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+        (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
       );
     },
-    [remoteJid, instanceName, pageSize],
+    [remoteJid, instanceName, pageSize]
   );
 
   // First-page load (also used by refetch).
@@ -229,8 +232,8 @@ export function useMessagesCursor({
           filter: `remote_jid=eq.${remoteJid}`,
         },
         (payload) => {
-          const raw = payload.new;
-          if (!raw || !raw.id) return;
+          const raw = (payload as any).new;
+          if (!raw || !(raw as any).id) return;
           // Realtime payloads are full rows; project to lite to keep memory low.
           const m = toEvolutionMessageLite(raw);
           setPages((prev) => {
@@ -241,7 +244,7 @@ export function useMessagesCursor({
             const last = prev[prev.length - 1];
             return [...prev.slice(0, -1), [...last, m]];
           });
-        },
+        }
       )
       .on(
         'postgres_changes',
@@ -253,13 +256,13 @@ export function useMessagesCursor({
           filter: `remote_jid=eq.${remoteJid}`,
         },
         (payload) => {
-          const raw = payload.new;
-          if (!raw || !raw.id) return;
+          const raw = (payload as any).new;
+          if (!raw || !(raw as any).id) return;
           const m = toEvolutionMessageLite(raw);
           setPages((prev) =>
-            prev.map((page) => page.map((x) => (x.id === m.id ? { ...x, ...m } : x))),
+            prev.map((page) => page.map((x) => (x.id === m.id ? { ...x, ...m } : x)))
           );
-        },
+        }
       )
       .on(
         'postgres_changes',
@@ -271,20 +274,22 @@ export function useMessagesCursor({
           filter: `remote_jid=eq.${remoteJid}`,
         },
         (payload) => {
-          const id = payload.old?.id;
+          const id = ((payload as any).old as any)?.id;
           if (!id) return;
           setPages((prev) => prev.map((page) => page.filter((x) => x.id !== id)));
-        },
+        }
       )
       .subscribe();
 
     return () => {
-      client.removeChannel(channel);
+      channel.unsubscribe();
     };
   }, [enabled, remoteJid]);
 
   const addMessage = useCallback((input: EvolutionMessageLite | EvolutionMessage) => {
-    const isFull = 'payload' in (input as Record<string, unknown>) || 'raw_data' in (input as Record<string, unknown>);
+    const isFull =
+      'payload' in (input as Record<string, unknown>) ||
+      'raw_data' in (input as Record<string, unknown>);
     const m: EvolutionMessageLite = isFull
       ? toEvolutionMessageLite(input as Partial<EvolutionMessage> & { id: string })
       : (input as EvolutionMessageLite);
@@ -298,7 +303,7 @@ export function useMessagesCursor({
 
   const updateMessage = useCallback((id: string, updates: Partial<EvolutionMessageLite>) => {
     setPages((prev) =>
-      prev.map((page) => page.map((x) => (x.id === id ? { ...x, ...updates } : x))),
+      prev.map((page) => page.map((x) => (x.id === id ? { ...x, ...updates } : x)))
     );
   }, []);
 

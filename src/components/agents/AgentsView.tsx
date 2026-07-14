@@ -32,7 +32,7 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { getAvatarColor, getInitials } from '@/lib/avatar-colors';
+import { getAvatarColor, getInitials } from '@/lib/avatarColors';
 
 export function AgentsView() {
   const { agents, stats, isLoading, refetch } = useAgents();

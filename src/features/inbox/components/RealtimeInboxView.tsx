@@ -1,5 +1,4 @@
-import { useEffect, useState, useCallback, useRef, lazy, Suspense } from 'react';
-import { useAuth } from '@/features/auth';
+import { useEffect, useRef, lazy, Suspense } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { MiniChatPiP } from '@/components/mobile/MiniChatPiP';
@@ -21,9 +20,10 @@ import { useAriaAnnouncer } from '@/hooks/useAriaAnnouncer';
 import { isValidUUID } from '@/utils/uuid';
 import { WifiOff, RefreshCw, Loader2, MessageSquarePlus } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { useInboxSidebarResize } from './useInboxSidebarResize';
+import { useInboxKeyboardShortcuts } from './useInboxKeyboardShortcuts';
 
 const ChatPanel = lazy(() => import('./ChatPanel').then((m) => ({ default: m.ChatPanel })));
 const _ContactDetails = lazy(() =>
@@ -62,128 +62,8 @@ interface SearchResult {
 export function RealtimeInboxView() {
   const isMobile = useIsMobile();
   const inbox = useRealtimeInbox();
-  const { profile } = useAuth();
+  const { sidebarWidth, windowWidth, startResizing, resetWidth } = useInboxSidebarResize();
 
-  const [windowWidth, setWindowWidth] = useState(() =>
-    typeof window !== 'undefined' ? window.innerWidth : 1024
-  );
-
-  const [sidebarWidth, setSidebarWidth] = useState(() => {
-    const workspacePart = profile?.department_id ? `:${profile.department_id}` : '';
-    const key = profile?.id
-      ? `zapp:sidebarWidth:${profile.id}${workspacePart}`
-      : 'zapp:sidebarWidth';
-    const saved = localStorage.getItem(key);
-    const initialWidth = saved ? parseInt(saved, 10) : 391;
-    // Clamp initial width
-    const maxWidth =
-      typeof window !== 'undefined' ? Math.min(600, window.innerWidth - (isMobile ? 0 : 60)) : 600;
-    return Math.min(initialWidth, maxWidth);
-  });
-
-  const isResizing = useRef(false);
-
-  const saveWidth = useCallback(
-    (width: number) => {
-      const workspacePart = profile?.department_id ? `:${profile.department_id}` : '';
-      const key = profile?.id
-        ? `zapp:sidebarWidth:${profile.id}${workspacePart}`
-        : 'zapp:sidebarWidth';
-      localStorage.setItem(key, width.toString());
-    },
-    [profile?.id, profile?.department_id]
-  );
-
-  const handleMouseMoveRef = useRef<(e: MouseEvent) => void>(() => {});
-  const handleTouchMoveRef = useRef<(e: TouchEvent) => void>(() => {});
-  const stopResizingRef = useRef<() => void>(() => {});
-
-  const stopResizing = useCallback(() => {
-    isResizing.current = false;
-    document.removeEventListener('mousemove', handleMouseMoveRef.current);
-    document.removeEventListener('mouseup', stopResizingRef.current);
-    document.removeEventListener('touchmove', handleTouchMoveRef.current);
-    document.removeEventListener('touchend', stopResizingRef.current);
-    document.body.style.cursor = 'default';
-    document.body.style.userSelect = 'auto';
-  }, []);
-
-  const handleResize = useCallback(
-    (clientX: number) => {
-      const minWidth = 280;
-      const maxWidth = Math.min(600, window.innerWidth - (isMobile ? 0 : 60));
-
-      let newWidth = clientX;
-      if (newWidth < minWidth) newWidth = minWidth;
-      if (newWidth > maxWidth) newWidth = maxWidth;
-
-      setSidebarWidth(newWidth);
-      saveWidth(newWidth);
-    },
-    [saveWidth, isMobile]
-  );
-
-  const handleMouseMove = useCallback(
-    (e: MouseEvent) => {
-      if (!isResizing.current) return;
-      handleResize(e.clientX);
-    },
-    [handleResize]
-  );
-
-  const handleTouchMove = useCallback(
-    (e: TouchEvent) => {
-      if (!isResizing.current) return;
-      handleResize(e.touches[0].clientX);
-    },
-    [handleResize]
-  );
-
-  useEffect(() => {
-    handleMouseMoveRef.current = handleMouseMove;
-    handleTouchMoveRef.current = handleTouchMove;
-    stopResizingRef.current = stopResizing;
-  }, [handleMouseMove, handleTouchMove, stopResizing]);
-
-  useEffect(() => {
-    if (profile?.id) {
-      const workspacePart = profile?.department_id ? `:${profile.department_id}` : '';
-      const key = `zapp:sidebarWidth:${profile.id}${workspacePart}`;
-      const saved = localStorage.getItem(key);
-      if (saved) setSidebarWidth(parseInt(saved, 10));
-    }
-  }, [profile?.id, profile?.department_id]);
-
-  useEffect(() => {
-    const onWindowResize = () => {
-      setWindowWidth(window.innerWidth);
-      setSidebarWidth((prev) => {
-        const maxWidth = Math.min(600, window.innerWidth - (isMobile ? 0 : 60));
-        if (prev > maxWidth) return maxWidth;
-        return prev;
-      });
-    };
-    window.addEventListener('resize', onWindowResize);
-    return () => window.removeEventListener('resize', onWindowResize);
-  }, [isMobile]);
-
-  const startResizing = useCallback((e: React.MouseEvent | React.TouchEvent) => {
-    e.preventDefault();
-    isResizing.current = true;
-    document.addEventListener('mousemove', handleMouseMoveRef.current);
-    document.addEventListener('mouseup', stopResizingRef.current);
-    document.addEventListener('touchmove', handleTouchMoveRef.current, { passive: false });
-    document.addEventListener('touchend', stopResizingRef.current);
-    document.body.style.cursor = 'col-resize';
-    document.body.style.userSelect = 'none';
-  }, []);
-
-  const resetWidth = useCallback(() => {
-    setSidebarWidth(391);
-    saveWidth(391);
-  }, [saveWidth]);
-
-  // Monitora a conexão com o provedor e reconecta automaticamente se necessário
   useEvolutionAutoReconnect('wpp2');
 
   useSLAAlerts({
@@ -201,6 +81,7 @@ export function RealtimeInboxView() {
   });
   useRealtimeContacts({ instance: 'wpp2' });
   useRealtimeFallbackRefetch();
+
   const inboxFilters = useInboxFilters({
     conversations: inbox.cachedConversations,
     profileId: inbox.profile?.id,
@@ -208,6 +89,7 @@ export function RealtimeInboxView() {
     sortBy: inbox.sortBy,
     statusFilter: inbox.statusFilter,
   });
+
   const { agentIds: departmentAgentIds } = useDepartmentAgents();
   const setDepartmentAgentIds = inboxFilters.setDepartmentAgentIds;
   useEffect(() => {
@@ -218,6 +100,7 @@ export function RealtimeInboxView() {
     refetch: inbox.refetch,
     filteredConversations: inboxFilters.filteredConversations,
   });
+
   const pullToRefresh = usePullToRefresh({
     onRefresh: async () => {
       await inbox.refetch();
@@ -229,8 +112,7 @@ export function RealtimeInboxView() {
   const lastUnreadRef = useRef(0);
   useEffect(() => {
     const total = (inboxFilters.filteredConversations || []).reduce(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (sum: number, c: any) => sum + (c?.unreadCount || 0),
+      (sum: number, c) => sum + Number(c?.['unreadCount'] ?? 0), // ignore-audit
       0
     );
     if (total > lastUnreadRef.current && lastUnreadRef.current > 0) {
@@ -255,38 +137,16 @@ export function RealtimeInboxView() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [inbox.pendingContactId, inbox.loading]);
 
-  // FIX: destructure stable action refs to avoid re-running effect when bulkActions
-  // object reference changes (new object on every render from useInboxBulkActions).
   const { selectAll, selectionMode, selectedIds, bulkArchive, clearSelection, bulkMarkAsRead } =
     bulkActions;
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      const active = document.activeElement;
-      const isInput =
-        active?.tagName === 'INPUT' ||
-        active?.tagName === 'TEXTAREA' ||
-        active?.getAttribute('contenteditable') === 'true';
-      if (isInput) return;
-      if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
-        e.preventDefault();
-        selectAll();
-      }
-      if ((e.key === 'Delete' || e.key === 'Backspace') && selectionMode && selectedIds.size > 0) {
-        e.preventDefault();
-        bulkArchive();
-      }
-      if (e.key === 'Escape' && selectionMode) {
-        e.preventDefault();
-        clearSelection();
-      }
-      if (e.key === 'r' && selectionMode && selectedIds.size > 0 && !e.ctrlKey && !e.metaKey) {
-        e.preventDefault();
-        bulkMarkAsRead();
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectAll, selectionMode, selectedIds, bulkArchive, clearSelection, bulkMarkAsRead]);
+  useInboxKeyboardShortcuts({
+    selectAll,
+    selectionMode,
+    selectedIds,
+    bulkArchive,
+    clearSelection,
+    bulkMarkAsRead,
+  });
 
   const handleGlobalSearchResult = (result: SearchResult) => {
     if (!result.contactId) return;
@@ -362,7 +222,9 @@ export function RealtimeInboxView() {
               <MessageSquarePlus className="h-6 w-6" />
             </button>
           </TooltipTrigger>
-          <TooltipContent side="left" sideOffset={8}>Nova Conversa</TooltipContent>
+          <TooltipContent side="left" sideOffset={8}>
+            Nova Conversa
+          </TooltipContent>
         </Tooltip>
       )}
 
@@ -414,7 +276,6 @@ export function RealtimeInboxView() {
           className={cn(
             'group/handle absolute z-50 flex h-full w-4 cursor-col-resize items-center justify-center transition-all hover:bg-primary/10 active:bg-primary/20',
             isMobile && inbox.selectedContactId && 'hidden',
-            // Feedback visual ao atingir limites
             sidebarWidth <= 280 &&
               'bg-destructive/5 after:absolute after:inset-y-0 after:left-0 after:w-1 after:animate-pulse after:bg-destructive',
             sidebarWidth >= Math.min(600, windowWidth - (isMobile ? 0 : 60)) &&

@@ -9,6 +9,10 @@
 // instead of DOMPurify, which behaves inconsistently across DOM environments (happy-dom,
 // jsdom, real browser). The DOM API approach is deterministic in all supported environments.
 
+import { getLogger } from '@/lib/logger';
+
+const log = getLogger('sanitize');
+
 // Allowed HTML elements — any tag not in this set is unwrapped (content kept, tag removed)
 const ALLOWED_TAGS_SET = new Set<string>(['b', 'i', 'em', 'strong', 'u', 'p', 'br', 'a']);
 
@@ -19,8 +23,19 @@ const ALLOWED_ATTRS_MAP: Record<string, Set<string>> = {
 
 // Tags whose entire subtree must be removed (content is NOT preserved)
 const VOID_DANGEROUS_TAGS = new Set<string>([
-  'script', 'style', 'object', 'embed', 'link', 'meta', 'base',
-  'iframe', 'frame', 'frameset', 'applet', 'svg', 'math',
+  'script',
+  'style',
+  'object',
+  'embed',
+  'link',
+  'meta',
+  'base',
+  'iframe',
+  'frame',
+  'frameset',
+  'applet',
+  'svg',
+  'math',
 ]);
 
 const DANGEROUS_PROTOCOL_RE = /^(javascript|data|vbscript):/i;
@@ -61,7 +76,7 @@ function normalizeUnicodeNFKC(text: string): string {
 
     return normalized;
   } catch (err) {
-    console.warn(`[normalizeUnicodeNFKC] Normalization failed: ${err}`);
+    log.warn(`[normalizeUnicodeNFKC] Normalization failed: ${err}`);
     return text;
   }
 }
@@ -222,22 +237,20 @@ export interface SanitizeResult {
  * @param _options - Reserved for API compatibility (not used by DOM sanitizer)
  * @returns SanitizeResult with success flag and sanitized HTML
  */
-export function sanitizeHtml(
+export function sanitizeHtmlStrict(
   html: unknown,
   _options?: Partial<typeof _SANITIZE_CONFIG>
 ): SanitizeResult {
   try {
     // EXPLICIT validation (Gap 6.1 - prevent null coercion)
     if (html === null || html === undefined) {
-      console.error('[sanitizeHtml] Received null/undefined input');
+      log.error('[sanitizeHtml] Received null/undefined input');
       throw new TypeError('sanitizeHtml() requires non-null string input');
     }
 
     if (typeof html !== 'string') {
       console.error(`[sanitizeHtml] Received non-string: ${typeof html}`);
-      throw new TypeError(
-        `sanitizeHtml() expects string, received ${typeof html}`
-      );
+      throw new TypeError(`sanitizeHtml() expects string, received ${typeof html}`);
     }
 
     if (html.length === 0) {
@@ -269,7 +282,7 @@ export function sanitizeHtml(
     };
   } catch (err) {
     const errorMsg = err instanceof Error ? err.message : String(err);
-    console.error('[sanitizeHtml] Sanitization failed:', errorMsg);
+    log.error('[sanitizeHtml] Sanitization failed:', errorMsg);
 
     return {
       success: false,
@@ -310,7 +323,7 @@ export function sanitizeHtmlWithHookCleanup(html: string): string {
   try {
     return domSanitize(html);
   } catch (err) {
-    console.error(`[sanitizeHtmlWithHookCleanup] Error: ${err}`);
+    log.error(`[sanitizeHtmlWithHookCleanup] Error: ${err}`);
     return '';
   }
 }

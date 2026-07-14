@@ -29,11 +29,12 @@ export function InternalNotesPanel({ contactId }: { contactId: string }) {
   const { data: notes, isLoading } = useQuery<NoteRow[]>({
     queryKey: ['internal-notes', contactId],
     queryFn: async () => {
-      const { data, error } = await safeClient.from<NoteRow>('contact_notes', q =>
-        q.select(`id, content, created_at, author:author_id (id, name, avatar_url)`)
-         .eq('contact_id', contactId)
-         .order('created_at', { ascending: false })
-         .limit(50)
+      const { data, error } = await safeClient.from<NoteRow>('contact_notes', (q) =>
+        q
+          .select(`id, content, created_at, author:author_id (id, name, avatar_url)`)
+          .eq('contact_id', contactId)
+          .order('created_at', { ascending: false })
+          .limit(50)
       );
       if (error) throw error;
       return (data || []) as NoteRow[];
@@ -42,10 +43,11 @@ export function InternalNotesPanel({ contactId }: { contactId: string }) {
 
   const addNoteMutation = useMutation({
     mutationFn: async (content: string) => {
+      if (!user?.id) throw new Error('User not authenticated');
       const { data: profile } = await supabase
         .from('profiles')
         .select('id')
-        .eq('user_id', user?.id)
+        .eq('user_id', user.id)
         .single();
       if (!profile) throw new Error('Profile not found');
       const { error } = await supabase.from('contact_notes').insert({

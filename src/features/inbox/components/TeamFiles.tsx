@@ -48,13 +48,14 @@ export const TeamFiles = memo(function TeamFiles({ contactId }: TeamFilesProps) 
 
   const { data: files = [], isLoading } = useQuery({
     queryKey: ['team-files', contactId],
+    enabled: !!contactId,
     queryFn: async () => {
       const { data, error } = await safeClient.from<WhisperFile>('whisper_files', (q) =>
         q.select('*').eq('contact_id', contactId).order('created_at', { ascending: false })
       );
 
       if (error) throw error;
-      return data;
+      return data ?? [];
     },
   });
 
@@ -112,6 +113,13 @@ export const TeamFiles = memo(function TeamFiles({ contactId }: TeamFilesProps) 
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['team-files', contactId] });
       toast({ title: 'Arquivo removido' });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Erro ao remover arquivo',
+        description: error.message,
+        variant: 'destructive',
+      });
     },
   });
 
@@ -206,8 +214,7 @@ export const TeamFiles = memo(function TeamFiles({ contactId }: TeamFilesProps) 
           <div className="flex items-center justify-center py-10">
             <Loader2 className="h-6 w-6 animate-spin text-warning-foreground" />
           </div>
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        ) : (filteredFiles as any[]).length === 0 ? (
+        ) : filteredFiles.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-10 text-center opacity-40 grayscale">
             <File className="mb-2 h-8 w-8" />
             <p className="text-[10px]">
@@ -217,8 +224,8 @@ export const TeamFiles = memo(function TeamFiles({ contactId }: TeamFilesProps) 
             </p>
           </div>
         ) : (
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          filteredFiles.map((file: any) => (
+          filteredFiles.map((file) => (
+            // ignore-audit
             <div
               key={file.id}
               className="group flex items-center gap-3 rounded-xl border border-warning bg-warning/50 p-2 transition-colors hover:bg-warning/50"

@@ -30,7 +30,8 @@ export function getBirthdayInfo(birthday: string | null) {
   const today = new Date();
   const age = differenceInYears(today, date);
   let nextBirthday = new Date(today.getFullYear(), date.getMonth(), date.getDate());
-  if (nextBirthday < today && !isSameDay(nextBirthday, today)) nextBirthday = addYears(nextBirthday, 1);
+  if (nextBirthday < today && !isSameDay(nextBirthday, today))
+    nextBirthday = addYears(nextBirthday, 1);
   const isToday = isSameDay(nextBirthday, today);
   const daysUntil = Math.ceil((nextBirthday.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
   return { date, age, isToday, daysUntil };
@@ -38,21 +39,34 @@ export function getBirthdayInfo(birthday: string | null) {
 
 export function getRoleBadge(role: string | null) {
   const map: Record<string, { label: string; className: string }> = {
-    admin: { label: 'Admin', className: 'bg-destructive/10 text-destructive border-destructive/20' },
+    admin: {
+      label: 'Admin',
+      className: 'bg-destructive/10 text-destructive border-destructive/20',
+    },
     supervisor: { label: 'Supervisor', className: 'bg-chart-4/10 text-chart-4 border-chart-4/20' },
     agent: { label: 'Agente', className: 'bg-primary/10 text-primary border-primary/20' },
   };
-  return map[role || ''] || { label: role || 'Membro', className: 'bg-muted text-muted-foreground' };
+  return (
+    map[role || ''] || { label: role || 'Membro', className: 'bg-muted text-muted-foreground' }
+  );
 }
 
-export function InfoRow({ icon: Icon, label, value }: { icon: React.ElementType; label: string; value: string | null | undefined }) {
+export function InfoRow({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: React.ElementType;
+  label: string;
+  value: string | null | undefined;
+}) {
   if (!value) return null;
   return (
     <div className="flex items-start gap-3 py-2">
-      <Icon className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
+      <Icon className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
       <div className="min-w-0">
         <p className="text-[10px] text-muted-foreground">{label}</p>
-        <p className="text-sm text-foreground break-words">{value}</p>
+        <p className="break-words text-sm text-foreground">{value}</p>
       </div>
     </div>
   );
@@ -66,9 +80,9 @@ interface DirectProfileHeaderProps {
 export function DirectProfileHeader({ memberProfile, isLoading }: DirectProfileHeaderProps) {
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center py-6 px-4">
-        <Skeleton className="h-20 w-20 rounded-full mb-3" />
-        <Skeleton className="h-4 w-32 mb-1" />
+      <div className="flex flex-col items-center px-4 py-6">
+        <Skeleton className="mb-3 h-20 w-20 rounded-full" />
+        <Skeleton className="mb-1 h-4 w-32" />
         <Skeleton className="h-3 w-24" />
       </div>
     );
@@ -79,33 +93,62 @@ export function DirectProfileHeader({ memberProfile, isLoading }: DirectProfileH
   const roleBadge = getRoleBadge(memberProfile.role);
 
   return (
-    <div className="flex flex-col items-center py-6 px-4">
+    <div className="flex flex-col items-center px-4 py-6">
       <div className="relative mb-3">
         <Avatar className="h-20 w-20 ring-2 ring-border">
-          <AvatarImage src={memberProfile.avatar_url || undefined} alt={memberProfile.name || ""} />
-          <AvatarFallback className="text-xl bg-primary/10 text-primary">{memberProfile.name?.charAt(0) || '?'}</AvatarFallback>
+          <AvatarImage src={memberProfile.avatar_url || undefined} alt={memberProfile.name || ''} />
+          <AvatarFallback className="bg-primary/10 text-xl text-primary">
+            {memberProfile.name?.charAt(0) || '?'}
+          </AvatarFallback>
         </Avatar>
-        {memberProfile.is_active && <div className="absolute bottom-1 right-1 w-4 h-4 rounded-full bg-success border-2 border-card" />}
-        {birthdayInfo?.isToday && <div className="absolute -top-1 -right-1 text-lg" title="Aniversário hoje!">🎂</div>}
+        {memberProfile.is_active && (
+          <div className="absolute bottom-1 right-1 h-4 w-4 rounded-full border-2 border-card bg-success" />
+        )}
+        {birthdayInfo?.isToday && (
+          <div className="absolute -right-1 -top-1 text-lg" title="Aniversário hoje!">
+            🎂
+          </div>
+        )}
       </div>
       <h3 className="text-base font-bold text-foreground">{memberProfile.name}</h3>
-      {memberProfile.job_title && <p className="text-xs text-muted-foreground mt-0.5">{memberProfile.job_title}</p>}
-      <div className="flex items-center gap-2 mt-2">
-        <Badge variant="outline" className={cn('text-[10px] px-2', roleBadge.className)}><Shield className="w-2.5 h-2.5 mr-1" />{roleBadge.label}</Badge>
-        <Badge variant="outline" className={cn('text-[10px] px-2', memberProfile.is_active ? 'bg-success/10 text-success border-success/20' : '')}>
+      {memberProfile.job_title && (
+        <p className="mt-0.5 text-xs text-muted-foreground">{memberProfile.job_title}</p>
+      )}
+      <div className="mt-2 flex items-center gap-2">
+        <Badge variant="outline" className={cn('px-2 text-[10px]', roleBadge.className)}>
+          <Shield className="mr-1 h-2.5 w-2.5" />
+          {roleBadge.label}
+        </Badge>
+        <Badge
+          variant="outline"
+          className={cn(
+            'px-2 text-[10px]',
+            memberProfile.is_active ? 'border-success/20 bg-success/10 text-success' : ''
+          )}
+        >
           {memberProfile.is_active ? 'Online' : 'Offline'}
         </Badge>
       </div>
       {birthdayInfo && (
-        <div className={cn('mt-3 w-full rounded-lg px-3 py-2 text-center', birthdayInfo.isToday ? 'bg-chart-4/10 border border-chart-4/20' : 'bg-muted/50')}>
+        <div
+          className={cn(
+            'mt-3 w-full rounded-lg px-3 py-2 text-center',
+            birthdayInfo.isToday ? 'bg-chart-4/10 border-chart-4/20 border' : 'bg-muted/50'
+          )}
+        >
           <div className="flex items-center justify-center gap-1.5 text-xs">
-            <Cake className="w-3.5 h-3.5" />
+            <Cake className="h-3.5 w-3.5" />
             {birthdayInfo.isToday ? (
-              <span className="font-semibold text-chart-4">🎉 Aniversário hoje! {birthdayInfo.age} anos</span>
+              <span className="text-chart-4 font-semibold">
+                🎉 Aniversário hoje! {birthdayInfo.age} anos
+              </span>
             ) : (
               <span className="text-muted-foreground">
-                {format(birthdayInfo.date, "dd 'de' MMMM", { locale: ptBR })} ({birthdayInfo.age} anos)
-                {birthdayInfo.daysUntil <= 30 && birthdayInfo.daysUntil > 0 && <span className="text-chart-4 ml-1">• em {birthdayInfo.daysUntil} dias</span>}
+                {format(birthdayInfo.date, "dd 'de' MMMM", { locale: ptBR })} ({birthdayInfo.age}{' '}
+                anos)
+                {birthdayInfo.daysUntil <= 30 && birthdayInfo.daysUntil > 0 && (
+                  <span className="text-chart-4 ml-1">• em {birthdayInfo.daysUntil} dias</span>
+                )}
               </span>
             )}
           </div>
@@ -117,16 +160,22 @@ export function DirectProfileHeader({ memberProfile, isLoading }: DirectProfileH
 
 export function GroupProfileHeader({ conversation }: { conversation: TeamConversation }) {
   return (
-    <div className="flex flex-col items-center py-6 px-4">
-      <Avatar className="h-20 w-20 mb-3 ring-2 ring-border">
+    <div className="flex flex-col items-center px-4 py-6">
+      <Avatar className="mb-3 h-20 w-20 ring-2 ring-border">
         <AvatarImage src={conversation.avatar_url || undefined} alt={conversation.name} />
-        <AvatarFallback className="text-xl bg-primary/10 text-primary">
-          {conversation.type === 'department' ? <Building2 className="w-8 h-8" /> : <Users className="w-8 h-8" />}
+        <AvatarFallback className="bg-primary/10 text-xl text-primary">
+          {conversation.type === 'department' ? (
+            <Building2 className="h-8 w-8" />
+          ) : (
+            <Users className="h-8 w-8" />
+          )}
         </AvatarFallback>
       </Avatar>
       <h3 className="text-base font-bold text-foreground">{conversation.name}</h3>
-      <p className="text-xs text-muted-foreground mt-0.5">
-        {conversation.type === 'department' ? 'Grupo de Departamento' : `${conversation.members?.length || 0} membros`}
+      <p className="mt-0.5 text-xs text-muted-foreground">
+        {conversation.type === 'department'
+          ? 'Grupo de Departamento'
+          : `${conversation.members?.length || 0} membros`}
       </p>
     </div>
   );

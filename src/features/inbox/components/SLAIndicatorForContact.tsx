@@ -43,6 +43,14 @@ function levelLabel(level: SLAMatchedLevel, conversation: Conversation): string 
   }
 }
 
+function resolveMessageTimestamp(message: Conversation['lastMessage']): Date | null {
+  if (!message || message.sender !== 'agent') return null;
+  if (message.timestamp instanceof Date) return message.timestamp;
+  if (!message.created_at) return null;
+  const parsed = new Date(message.created_at);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
 interface SLATooltipContentProps {
   applicable: ApplicableSLA | undefined;
   isLoading: boolean;
@@ -131,19 +139,17 @@ export function SLAIndicatorForContact({
     company: contact?.company ?? null,
     jobTitle: contact?.job_title ?? null,
     contactType: contact?.contact_type ?? null,
-    queueId: conversation.queue?.id || conversation.queue_id || null,
-    agentId: conversation.assignedTo?.id || conversation.assigned_to || null,
+    queueId: conversation.queue?.id ?? null,
+    agentId: conversation.assignedTo?.id ?? null,
   });
 
   const lastSlaRef = useRef<string | null>(null);
   const convId = conversation.id || contact?.id || '';
   const priority = conversation.priority || 'medium';
-  const createdAt =
-    conversation.createdAt || (contact?.created_at ? new Date(contact.created_at) : new Date());
+  const createdAt = conversation.createdAt || contact?.createdAt || new Date();
   const lastMessage = conversation.lastMessage;
   const status = conversation.status || 'open';
-  const updatedAt =
-    conversation.updatedAt || (contact?.updated_at ? new Date(contact.updated_at) : new Date());
+  const updatedAt = conversation.updatedAt || new Date();
 
   useEffect(() => {
     if (applicable?.ruleName && applicable.ruleName !== lastSlaRef.current) {
@@ -165,11 +171,7 @@ export function SLAIndicatorForContact({
         <span className="inline-flex">
           <SLAIndicator
             firstMessageAt={createdAt}
-            firstResponseAt={
-              lastMessage?.sender === 'agent'
-                ? lastMessage.timestamp || new Date(lastMessage.created_at)
-                : null
-            }
+            firstResponseAt={resolveMessageTimestamp(lastMessage)}
             resolvedAt={status === 'resolved' ? updatedAt : null}
             firstResponseMinutes={applicable?.firstResponseMinutes ?? fallbackFr}
             resolutionMinutes={applicable?.resolutionMinutes ?? fallbackRes}

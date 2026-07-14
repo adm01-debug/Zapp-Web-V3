@@ -12,6 +12,7 @@ interface QueuePositionNotifierProps {
 export function QueuePositionNotifier({ contactId, className }: QueuePositionNotifierProps) {
   const { data: position } = useQuery({
     queryKey: ['queue-position', contactId],
+    enabled: !!contactId,
     queryFn: async () => {
       const { data } = await supabase
         .from('queue_positions')
@@ -42,7 +43,7 @@ export function QueuePositionNotifier({ contactId, className }: QueuePositionNot
       <Badge
         variant="outline"
         className="gap-1 text-[11px]"
-        style={{ borderColor: position.queueColor }}
+        style={{ borderColor: position.queueColor ?? undefined }}
       >
         <Users className="h-3 w-3" />#{position.position} na fila
       </Badge>

@@ -1,6 +1,6 @@
 /**
  * useExternalCargos
- * 
+ *
  * Fetches unique job titles/roles from the external CRM database.
  * - salespeople.role: accessible directly (no RLS blocking anon)
  * - contacts.cargo: blocked by RLS, so we extract from search_contacts_advanced RPC
@@ -50,7 +50,8 @@ export function useExternalCargos() {
       if (e2) {
         log.error('Error fetching cargos via RPC:', e2);
       } else {
-        const results = (searchData as Record<string, unknown>)?.results as Record<string, unknown>[] || [];
+        const results =
+          ((searchData as Record<string, unknown>)?.results as Record<string, unknown>[]) || [];
         for (const r of results) {
           const v = String(r.cargo || '').trim();
           if (v) allCargos.push(v);

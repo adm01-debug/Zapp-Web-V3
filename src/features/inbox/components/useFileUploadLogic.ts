@@ -3,42 +3,28 @@ import { log } from '@/lib/logger';
 import { supabase } from '@/integrations/supabase/client';
 import { useEvolutionApi } from '@/hooks/useEvolutionApi';
 import { toast } from 'sonner';
-import { validateFile, FileValidationResult } from '@/utils/whatsappFileTypes';
+import { validateFile } from '@/utils/whatsappFileTypes';
 import { compressImage, formatCompressionInfo } from '@/utils/imageCompression';
 import { extractEvolutionMessageId } from '@/lib/evolutionMessageId';
 import { parseScanInvocation, ScanBlockedError } from '@/lib/scanResponse';
 import { useScanResponseHandler } from '@/hooks/useScanResponseHandler';
 import { dbFrom } from '@/integrations/datasource/db';
+import {
+  type FileMessageData,
+  type FilePreview,
+  type QueuedFile,
+  categoryOrder,
+  MAX_FILES,
+} from './useFileUploadLogicTypes';
+export type { FileMessageData, FilePreview, QueuedFile } from './useFileUploadLogicTypes';
 
-interface FileMessageData {
-  mediaUrl?: string;
-  messageType?: string;
-  [key: string]: unknown;
+function buildFileMessageData(result: unknown, mediaUrl: string, messageType?: string): FileMessageData {
+  return {
+    ...(typeof result === 'object' && result !== null ? result : {}),
+    mediaUrl,
+    messageType,
+  };
 }
-
-interface FilePreview {
-  file: File;
-  validation: FileValidationResult;
-  preview?: string;
-}
-
-interface QueuedFile extends FilePreview {
-  id: string;
-  status: 'pending' | 'uploading' | 'sending' | 'done' | 'error';
-  progress: number;
-  error?: string;
-}
-
-const categoryOrder: Record<string, number> = {
-  image: 0,
-  video: 1,
-  audio: 2,
-  document: 3,
-  sticker: 4,
-};
-const MAX_FILES = 10;
-
-export type { FileMessageData, FilePreview, QueuedFile };
 
 export function useFileUploadLogic(opts: {
   instanceName?: string;
@@ -119,8 +105,6 @@ export function useFileUploadLogic(opts: {
     const formData = new FormData();
     formData.append('file', fileToUpload);
     formData.append('bucket', 'whatsapp-media');
-
-    // Edge Function: secure-upload (with VirusTotal middleware)
     const { data, error } = await supabase.functions.invoke('secure-upload', {
       body: formData,
     });
@@ -238,8 +222,7 @@ export function useFileUploadLogic(opts: {
       try {
         const sent = await sendFileViaApi(file, category, currentCaption);
         toast.success('Arquivo enviado!', { id: 'file-upload' });
-        if (sent)
-          onFileSent?.({ ...sent.result, mediaUrl: sent.mediaUrl, messageType: sent.category });
+        if (sent) onFileSent?.(buildFileMessageData(sent.result, sent.mediaUrl, sent.category));
       } catch (err) {
         if (err instanceof ScanBlockedError) {
           handleScanResult(err.result, {
@@ -285,8 +268,7 @@ export function useFileUploadLogic(opts: {
         setFileQueue((prev) =>
           prev.map((f, i) => (i === index ? { ...f, status: 'done', progress: 100 } : f))
         );
-        if (sent)
-          onFileSent?.({ ...sent.result, mediaUrl: sent.mediaUrl, messageType: sent.category });
+        if (sent) onFileSent?.(buildFileMessageData(sent.result, sent.mediaUrl, sent.category));
         return true;
       } catch (err) {
         if (err instanceof ScanBlockedError) {

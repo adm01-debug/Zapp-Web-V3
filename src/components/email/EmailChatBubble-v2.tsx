@@ -1,27 +1,46 @@
 // Round 14 Fix P6: EmailChatBubble with config-based sanitization
 // Gap 3.2: Recursive component hook collision prevention
+//
+// NOTE: This file uses the DOM-native sanitizer (sanitize-v2.ts) instead of DOMPurify
+// to avoid mutable global hook collisions when this component is used recursively.
+// See docs/sanitize-architecture.md for the full explanation.
+//
+// DEPENDENCY FIX (2026-07-13): Replaced 'isomorphic-dompurify' (not in package.json)
+// with 'dompurify' (already a production dependency) in EmailChatBubbleV2.
 
 import React, { useMemo } from 'react';
-import DOMPurify from 'isomorphic-dompurify';
+import DOMPurify from 'dompurify';
 import { sanitizeHtmlWithHooks } from '@/lib/sanitize-v2';
+import { getLogger } from '@/lib/logger';
 
-interface EmailChatBubbleProps {
+const log = getLogger('EmailChatBubble');
+
+/** Props shared by both EmailChatBubble variants. */
+export interface EmailChatBubbleProps {
+  /** Raw HTML e-mail body. Will be sanitized before rendering. */
   email?: string;
+  /** Additional CSS class applied to the wrapper div. */
   className?: string;
 }
 
-export const EmailChatBubble: React.FC<EmailChatBubbleProps> = ({
-  email,
-  className,
-}) => {
-  // Memoize sanitization to prevent re-runs on component re-render
+/**
+ * `EmailChatBubble` — renders sanitized HTML e-mail content.
+ *
+ * Uses the DOM-native sanitizer (`sanitize-v2.ts`) for hook-collision safety
+ * in recursive render trees. Prefer this variant when the component may be
+ * rendered inside another component that also calls DOMPurify with hooks.
+ *
+ * @see docs/sanitize-architecture.md
+ */
+export const EmailChatBubble: React.FC<EmailChatBubbleProps> = ({ email, className }) => {
+  // Memoize sanitization to avoid re-runs on unrelated re-renders.
   const sanitizedHtml = useMemo(() => {
     if (!email) return '';
-    
+
     try {
       return sanitizeHtmlWithHooks(email);
     } catch (err) {
-      console.error('Email sanitization failed:', err);
+      log.error('Email sanitization failed:', err);
       return '';
     }
   }, [email]);
@@ -33,36 +52,41 @@ export const EmailChatBubble: React.FC<EmailChatBubbleProps> = ({
   return (
     <div
       className={className}
+      // eslint-disable-next-line react/no-danger
       dangerouslySetInnerHTML={{ __html: sanitizedHtml }}
-      // Safe because sanitized with config-based approach
-      // No mutable hook state that could collide in recursive renders
+      // Safe: sanitized with DOM-native config-based approach.
+      // No mutable hook state that could collide in recursive renders.
     />
   );
 };
 
-// Alternative: Safer version using DOMParser
-export const EmailChatBubbleV2: React.FC<EmailChatBubbleProps> = ({
-  email,
-  className,
-}) => {
+/**
+ * `EmailChatBubbleV2` — alternative variant using DOMPurify + DOMParser.
+ *
+ * Use this when you need explicit control over `ALLOWED_TAGS`/`ALLOWED_ATTR`
+ * or when tabnabbing prevention must run via DOMParser (rather than the DOM
+ * walker in `sanitize-v2.ts`).
+ *
+ * @see docs/sanitize-architecture.md
+ */
+export const EmailChatBubbleV2: React.FC<EmailChatBubbleProps> = ({ email, className }) => {
   const sanitizedElement = useMemo(() => {
     if (!email) return null;
 
     try {
-      // Use immutable config (no hooks)
+      // Immutable DOMPurify config — no hooks, no mutable global state.
       const sanitized = DOMPurify.sanitize(email, {
         ALLOWED_TAGS: ['p', 'br', 'a', 'b', 'i', 'em', 'strong', 'u'],
         ALLOWED_ATTR: ['href', 'title'],
         RETURN_DOM: false,
         FORCE_BODY: true,
-      });
+      }) as string;
 
-      // Parse result and apply tabnabbing prevention
+      // Parse result and apply tabnabbing prevention to all external links.
       const parser = new DOMParser();
       const doc = parser.parseFromString(sanitized, 'text/html');
-      
-      // Prevent tabnabbing on all external links
-      doc.querySelectorAll('a').forEach(link => {
+
+      doc.querySelectorAll('a').forEach((link) => {
         if (link.hasAttribute('href')) {
           link.setAttribute('target', '_blank');
           link.setAttribute('rel', 'noopener noreferrer nofollow');
@@ -71,7 +95,7 @@ export const EmailChatBubbleV2: React.FC<EmailChatBubbleProps> = ({
 
       return doc.body.innerHTML;
     } catch (err) {
-      console.error('Email rendering failed:', err);
+      log.error('Email rendering failed:', err);
       return '';
     }
   }, [email]);
@@ -83,11 +107,11 @@ export const EmailChatBubbleV2: React.FC<EmailChatBubbleProps> = ({
   return (
     <div
       className={className}
+      // eslint-disable-next-line react/no-danger
       dangerouslySetInnerHTML={{ __html: sanitizedElement }}
-      // Safe: config-based sanitization, no mutable global hooks
+      // Safe: config-based sanitization, no mutable global hooks.
     />
   );
 };
 
 export default EmailChatBubble;
-

@@ -50,20 +50,40 @@ export interface QueueMetrics {
   byConversation: Record<string, { sent: number; failed: number; latency: number[] }>;
 }
 
+export interface MessageQueueController {
+  queue: QueueItem[];
+  addToQueue: (
+    contactId: string,
+    content: string,
+    attachments?: File[],
+    type?: QueueItem['type']
+  ) => void;
+  retryMessage: (id: string) => void;
+  updateProgress: (id: string, progress: number) => void;
+  reconcileWithDelivery: (contactId: string, externalId: string, status: 'confirmed' | 'failed') => void;
+  getMetrics: () => QueueMetrics;
+  removeFromQueue: (id: string) => void;
+}
+
+const MAX_CONCURRENT_SENDS = 5;
+
 export function useMessageQueue(
   processMessage: (item: QueueItem) => Promise<void>,
   configOverrides?: Partial<Record<string, Partial<QueueConfig>>>
-) {
+): MessageQueueController {
   const [queue, setQueue] = useState<QueueItem[]>([]);
   const isProcessingRef = useRef<Record<string, boolean>>({});
   const activeTimersRef = useRef(new Set<ReturnType<typeof setTimeout>>());
+  const processedDeliveriesRef = useRef<Set<string>>(new Set());
+  const currentlySendingRef = useRef<number>(0);
 
-  useEffect(
-    () => () => {
+  useEffect(() => {
+    return () => {
       activeTimersRef.current.forEach(clearTimeout);
-    },
-    []
-  );
+      processedDeliveriesRef.current.clear();
+      currentlySendingRef.current = 0;
+    };
+  }, []);
   const QUEUE_STORAGE_KEY = 'chat_message_queue';
 
   const getConfig = useCallback(
@@ -137,6 +157,14 @@ export function useMessageQueue(
   // Versão corrigida e simplificada do processamento
   const processNextInQueue = useCallback(
     async (contactId: string) => {
+      // Controle de concorrência global: máximo de MAX_CONCURRENT_SENDS simultâneos
+      if (currentlySendingRef.current >= MAX_CONCURRENT_SENDS) {
+        log.debug(
+          `[concurrency] Max concurrent sends (${MAX_CONCURRENT_SENDS}) reached, deferring`
+        );
+        return;
+      }
+
       if (isProcessingRef.current[contactId]) return;
 
       // Encontrar o próximo item pendente para este contato
@@ -148,6 +176,7 @@ export function useMessageQueue(
 
         // Se achamos um item, marcamos como enviando e iniciamos o processo fora do setQueue
         isProcessingRef.current[contactId] = true;
+        currentlySendingRef.current += 1;
 
         // Iniciamos o processamento assíncrono
         void (async () => {
@@ -158,6 +187,7 @@ export function useMessageQueue(
             // Verificar se o item já passou do tempo de retry se estiver pendente após falha
             if (itemToProcess.nextRetryAt && itemToProcess.nextRetryAt > Date.now()) {
               isProcessingRef.current[contactId] = false;
+              currentlySendingRef.current = Math.max(0, currentlySendingRef.current - 1);
               // Agendar verificação para o tempo exato do retry
               const t1 = setTimeout(
                 () => {
@@ -281,6 +311,7 @@ export function useMessageQueue(
             }
           } finally {
             isProcessingRef.current[contactId] = false;
+            currentlySendingRef.current = Math.max(0, currentlySendingRef.current - 1);
             // Tentar processar o próximo após um pequeno delay ou o tempo do retry
             const t3 = setTimeout(() => {
               activeTimersRef.current.delete(t3);
@@ -356,6 +387,13 @@ export function useMessageQueue(
 
   const reconcileWithDelivery = useCallback(
     (contactId: string, externalId: string, status: 'confirmed' | 'failed') => {
+      const dedupeKey = `${contactId}:${externalId}:${status}`;
+      if (processedDeliveriesRef.current.has(dedupeKey)) {
+        log.debug('[dedup] Already processed delivery event', { contactId, externalId, status });
+        return;
+      }
+      processedDeliveriesRef.current.add(dedupeKey);
+
       setQueue((prev) => {
         const item = prev.find(
           (i) =>
@@ -366,8 +404,9 @@ export function useMessageQueue(
         if (status === 'confirmed') {
           return prev.filter((i) => i.id !== item.id);
         } else {
-          // Apenas marca como falha se não houver mais tentativas automáticas
-          return prev.map((i) => (i.id === item.id ? { ...i, status: 'failed' } : i));
+          return prev.map((i) =>
+            i.id === item.id ? { ...i, status: 'failed', completedAt: Date.now() } : i
+          );
         }
       });
     },

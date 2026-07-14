@@ -55,51 +55,16 @@ export async function runConnectionDiagnostics(): Promise<DiagResult> {
     record('Auth Check', 'pass', { user: session.user.email });
 
     // Passo 2: Buscar Configuração Atual no Banco
-    const { data: configRows, error: _fetchError } = await safeClient.from<{
+    // Passo 2: Buscar Configuração Atual no Banco
+    const { data: configRows } = await safeClient.from<{
       config: { url?: string; anon_key?: string };
     }>('system_connections', (q) =>
       q.select('*').eq('name', 'FATOR X').eq('provider', 'supabase_external').limit(1)
     );
     const currentConfigs = configRows?.[0] ?? null;
 
-    results.connectionFetch = connError ? { error: connError.message } : { data: connData };
-
-    // Test basic rpc call
-    const { data: rpcResult, error: rpcError } = await safeClient.rpc('rpc_get_server_time');
-    results.rpcTest = rpcError ? { error: rpcError.message } : { data: rpcResult };
-
-    // Test upsert to system_connections
-    const payload: SystemConnectionForm = {
-      name: '_DIAGNOSTICS_TEST',
-      provider: 'diagnostics',
-      config: { test: true },
-      is_active: false,
-    };
-
-    const validatedPayload = systemConnectionSchema.parse(payload);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error: upsertError } = await safeClient.from('system_connections', (q: any) => // ignore-audit — query builder shape not in generated types
-      q.upsert({
-        ...validatedPayload,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })
-    );
-    results.upsertTest = upsertError ? { error: upsertError.message } : { success: true };
-
-    // Verify the upsert
-    if (!upsertError) {
-      const testName = '_DIAGNOSTICS_TEST';
-      const { data: _verifyData, error: _verifyError } = await safeClient.single<SystemConnectionRow>(
-        'system_connections',
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (q: any) => q.select('*').eq('name', testName) // ignore-audit
-      );
-      return diagnostics;
-    }
-
-    const externalUrl = currentConfigs.config?.url;
-    const externalKey = currentConfigs.config?.anon_key;
+    const externalUrl = currentConfigs?.config?.url;
+    const externalKey = currentConfigs?.config?.anon_key;
 
     if (!externalUrl || !externalKey) {
       record('Config Validation', 'fail', 'URL ou Anon Key ausentes na configuração do banco.');

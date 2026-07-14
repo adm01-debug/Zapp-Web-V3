@@ -64,10 +64,16 @@ export default function QueueDetails() {
     if (!authLoading && !user) navigate('/auth');
   }, [user, authLoading, navigate]);
   useEffect(() => {
-    if (id && user) fetchQueueData();
+    if (id && user) {
+      let cancelled = false;
+      void fetchQueueData(() => cancelled);
+      return () => {
+        cancelled = true;
+      };
+    }
   }, [id, user]);
 
-  const fetchQueueData = async () => {
+  const fetchQueueData = async (isCancelled: () => boolean = () => false) => {
     if (!id) return;
     try {
       setLoading(true);
@@ -77,12 +83,13 @@ export default function QueueDetails() {
         .eq('id', id)
         .single();
       if (queueError) throw queueError;
-      setQueue(queueData);
+      setQueue(queueData as any);
 
       const { data: membersData } = await supabase
         .from('queue_members')
         .select('id, profile_id, profile:profiles(name, avatar_url, is_active)')
         .eq('queue_id', id);
+      if (isCancelled()) return;
       setMembers(membersData as unknown as QueueMember[]);
 
       const { data: contactsData } = await dbFrom('contacts')
@@ -106,8 +113,12 @@ export default function QueueDetails() {
             .order('created_at', { ascending: false }),
           assignedToIds.length > 0
             ? supabase.from('profiles').select('id, name, avatar_url').in('id', assignedToIds)
-            : Promise.resolve({ data: [] }),
+            : Promise.resolve({
+                data: [] as { id: string; name: string; avatar_url: string | null }[],
+              }),
         ]);
+
+        if (isCancelled()) return;
 
         const countMap = new Map<string, number>();
         const lastMessageMap = new Map<string, string>();
@@ -119,10 +130,7 @@ export default function QueueDetails() {
         });
 
         const agentMap = new Map(
-          (agentResult.data || []).map((p: { id: string; name: string; avatar_url: string | null }) => [
-            p.id,
-            { name: p.name, avatar_url: p.avatar_url },
-          ])
+          (agentResult.data || []).map((p) => [p.id, { name: p.name, avatar_url: p.avatar_url }])
         );
 
         contactsWithDetails = contactsData.map((contact) => ({
@@ -147,7 +155,7 @@ export default function QueueDetails() {
     } catch (error) {
       log.error('Error fetching queue data:', error);
     } finally {
-      setLoading(false);
+      if (!isCancelled()) setLoading(false);
     }
   };
 

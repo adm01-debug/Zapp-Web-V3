@@ -11,6 +11,20 @@ export type Campaign = CampaignRow & {
   target_filter: Record<string, unknown> | null;
 };
 
+/**
+ * Payload aceito por `createCampaign.mutate`. Mantém `name` e
+ * `message_content` obrigatórios (não `Partial<Campaign>`) para casar com
+ * o formulário do `CampaignCreateDialog` e evitar `undefined` em runtime.
+ */
+export type CampaignInput = {
+  name: string;
+  message_content: string;
+  description?: string;
+  message_type?: string;
+  target_type?: 'all' | 'custom' | 'queue' | 'tag';
+  send_interval_seconds?: number;
+};
+
 export function useCampaigns() {
   const queryClient = useQueryClient();
 
@@ -26,15 +40,15 @@ export function useCampaigns() {
     },
   });
 
-  const createCampaign = useMutation({
-    mutationFn: async (campaign: Partial<Campaign>) => {
+  const createCampaign = useMutation<Campaign, Error, CampaignInput>({
+    mutationFn: async (campaign: CampaignInput) => {
       const { data, error } = await supabase
         .from('campaigns')
         .insert(campaign as CampaignInsert)
         .select()
         .single();
       if (error) throw error;
-      return data;
+      return data as Campaign;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['campaigns'] });
@@ -42,6 +56,7 @@ export function useCampaigns() {
     },
     onError: (err: Error) => toast.error(`Erro: ${err.message}`),
   });
+
 
   const updateCampaign = useMutation({
     mutationFn: async ({ id, ...updates }: Partial<Campaign> & { id: string }) => {
@@ -63,10 +78,7 @@ export function useCampaigns() {
 
   const deleteCampaign = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from('campaigns')
-        .delete()
-        .eq('id', id);
+      const { error } = await supabase.from('campaigns').delete().eq('id', id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -77,7 +89,13 @@ export function useCampaigns() {
   });
 
   const addContactsToCampaign = useMutation({
-    mutationFn: async ({ campaignId, contactIds }: { campaignId: string; contactIds: string[] }) => {
+    mutationFn: async ({
+      campaignId,
+      contactIds,
+    }: {
+      campaignId: string;
+      contactIds: string[];
+    }) => {
       const { error } = await supabase.rpc('add_contacts_to_campaign', {
         p_campaign_id: campaignId,
         p_contact_ids: contactIds,

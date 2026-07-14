@@ -30,9 +30,8 @@ export function useMessageReactions(messageId: string, options?: UseMessageReact
           filter: `message_id=eq.${messageId}`,
         },
         () => {
-          queryClient.invalidateQueries({ queryKey: ['message-reactions', messageId] });
-          // Also trigger a background fetch of the logs for operations if needed
-          queryClient.invalidateQueries({ queryKey: ['operations-logs'] });
+          void queryClient.invalidateQueries({ queryKey: ['message-reactions', messageId] });
+          void queryClient.invalidateQueries({ queryKey: ['operations-logs'] });
         }
       )
       .subscribe();
@@ -73,7 +72,7 @@ export function useMessageReactions(messageId: string, options?: UseMessageReact
         .eq('message_id', messageId);
       if (error) throw error;
 
-      const userIds = data?.filter((r) => r.user_id).map((r) => r.user_id) || [];
+      const userIds = (data?.filter((r) => r.user_id).map((r) => r.user_id) || []) as string[];
       let usersMap = new Map<string, string>();
       if (userIds.length > 0) {
         const { data: users } = await supabase

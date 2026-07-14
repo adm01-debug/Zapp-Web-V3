@@ -10,7 +10,7 @@ import {
   Star, Handshake, GripVertical,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { getAvatarColor, getInitials } from '@/lib/avatar-colors';
+import { getAvatarColor, getInitials } from '@/lib/avatarColors';
 import { toast } from 'sonner';
 import { dbFrom } from '@/integrations/datasource/db';
 

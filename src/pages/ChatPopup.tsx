@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useMessages } from '@/features/inbox';
 import { Conversation } from '@/types/chat';
 import { log } from '@/lib/logger';
+import type { Tables } from '@/integrations/supabase/types';
 
 type ContactRow = Tables<'contacts'>;
 import { Skeleton } from '@/components/ui/skeleton';

@@ -15,64 +15,21 @@ import { useExternalContact360 } from '@/hooks/useExternalContact360';
 import { useContactIntelligence } from '@/hooks/useContactIntelligence';
 import { isExternalConfigured } from '@/integrations/supabase/externalClient';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import {
-  MoreVertical,
   Video,
-  Tag,
-  Archive,
-  CheckCircle,
-  Clock,
-  ArrowRight,
   PhoneCall,
   Search,
-  Brain,
   Info,
-  Users,
-  UserCheck,
-  Truck,
-  Wrench,
-  LayoutGrid,
   Maximize2,
   Minimize2,
   ArrowLeft,
-  XCircle,
   AlertCircle,
   EyeOff,
-  Share2,
   ClipboardCheck,
+  LayoutGrid,
 } from 'lucide-react';
 import { useContactAvatar } from '@/features/inbox';
 import { useDensity } from '@/hooks/useDensity';
-
-const _contactTypeConfig: Record<string, { label: string; icon: typeof Users; color: string }> = {
-  cliente: { label: 'Cliente', icon: Users, color: 'bg-info/10 text-info border-info/30' },
-  colaborador: {
-    label: 'Colaborador',
-    icon: UserCheck,
-    color: 'bg-success/10 text-success border-success/30',
-  },
-  fornecedor: {
-    label: 'Fornecedor',
-    icon: Truck,
-    color: 'bg-secondary/10 text-secondary border-secondary/30',
-  },
-  prestador_servico: {
-    label: 'Prestador',
-    icon: Wrench,
-    color: 'bg-warning/10 text-warning border-warning/30',
-  },
-  transportadora: {
-    label: 'Transportadora',
-    icon: Truck,
-    color: 'bg-info/10 text-info border-info/30',
-  },
-};
+import { ChatHeaderMenu } from './ChatHeaderMenu';
 
 interface ChatHeaderProps {
   conversation: Conversation;
@@ -293,6 +250,7 @@ export const ChatHeader = memo(function ChatHeader({
             <TooltipContent>Abrir Modo Sussurro (Chat Interno - Alt+W)</TooltipContent>
           </Tooltip>
         )}
+
         {[
           { icon: Search, label: 'Buscar (Ctrl+K)', onClick: onOpenSearch },
           { icon: PhoneCall, label: 'Iniciar chamada', onClick: onStartCall },
@@ -360,6 +318,7 @@ export const ChatHeader = memo(function ChatHeader({
         </Tooltip>
 
         <VoiceSelector selectedVoiceId={voiceId} onVoiceChange={onVoiceChange} />
+
         <Tooltip>
           <TooltipTrigger asChild>
             <motion.div>
@@ -392,65 +351,15 @@ export const ChatHeader = memo(function ChatHeader({
 
         <KeyboardShortcutsHelp />
 
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <motion.div>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="text-muted-foreground hover:bg-primary/10 hover:text-primary"
-                aria-label="Mais opções"
-              >
-                <MoreVertical className="h-4 w-4" />
-              </Button>
-            </motion.div>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48 border-border/30 bg-card">
-            <DropdownMenuItem>
-              <Tag className="mr-2 h-4 w-4" />
-              Adicionar tag
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={onOpenTransfer}>
-              <ArrowRight className="mr-2 h-4 w-4" />
-              Transferir
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={onOpenSchedule}>
-              <Clock className="mr-2 h-4 w-4" />
-              Agendar mensagem
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => onGenerateSummary?.()}>
-              <Brain className="mr-2 h-4 w-4" />
-              Gerar Resumo
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={onToggleFailuresOnly}
-              className={cn(failuresOnly && 'font-medium text-destructive')}
-            >
-              <XCircle className="mr-2 h-4 w-4" />
-              {failuresOnly ? 'Ocultar Falhas' : `Ver Falhas (${failuresCount || 0})`}
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem>
-              <CheckCircle className="mr-2 h-4 w-4" />
-              Marcar como resolvido
-            </DropdownMenuItem>
-            <DropdownMenuItem>
-              <Archive className="mr-2 h-4 w-4" />
-              Arquivar
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => onGenerateSummary?.('teamFiles')}>
-              <Share2 className="mr-2 h-4 w-4 text-warning-foreground" />
-              Arquivos da Equipe
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={onCloseConversation} className="text-destructive">
-              <XCircle className="mr-2 h-4 w-4" />
-              Encerrar Conversa
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <ChatHeaderMenu
+          onOpenTransfer={onOpenTransfer}
+          onOpenSchedule={onOpenSchedule}
+          onGenerateSummary={onGenerateSummary}
+          onToggleFailuresOnly={onToggleFailuresOnly}
+          failuresOnly={failuresOnly}
+          failuresCount={failuresCount}
+          onCloseConversation={onCloseConversation}
+        />
       </div>
     </motion.div>
   );

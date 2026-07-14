@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
+import type { ElementType } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/features/auth';
@@ -14,7 +15,7 @@ export interface Goal {
   target: number;
   current: number;
   unit: string;
-  icon: React.ElementType;
+  icon: ElementType;
   color: string;
   priority: 'high' | 'medium' | 'low';
 }
@@ -191,9 +192,12 @@ export function useGoalsDashboard() {
     const resolutionRate =
       totalAnalyses > 0 ? Math.round((resolvedAnalyses / totalAnalyses) * 100) : 0;
 
-    const isMessageGoalActive = customGoals?.find(g => g.goal_type === 'messages_sent')?.is_active !== false;
-    const isContactGoalActive = customGoals?.find(g => g.goal_type === 'contacts_handled')?.is_active !== false;
-    const isResolutionGoalActive = customGoals?.find(g => g.goal_type === 'resolution_rate')?.is_active !== false;
+    const isMessageGoalActive =
+      customGoals?.find((g) => g.goal_type === 'messages_sent')?.is_active !== false;
+    const isContactGoalActive =
+      customGoals?.find((g) => g.goal_type === 'contacts_handled')?.is_active !== false;
+    const isResolutionGoalActive =
+      customGoals?.find((g) => g.goal_type === 'resolution_rate')?.is_active !== false;
 
     const allGoals: Goal[] = [];
     if (isMessageGoalActive) {

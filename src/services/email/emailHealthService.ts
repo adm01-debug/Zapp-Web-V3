@@ -1,4 +1,3 @@
-
 import { EmailHealthInfo, EmailHealthFilters, EmailFailure } from './types';
 import { EmailHealthRepository } from './emailHealthRepository';
 
@@ -17,10 +16,12 @@ export class EmailHealthService {
     if (summary) {
       return {
         status: (summary.status as 'healthy' | 'degraded' | 'error') || 'healthy',
-        lastValidation: summary.last_validation ? new Date(summary.last_validation) : telemetry.lastValidation,
+        lastValidation: summary.last_validation
+          ? new Date(summary.last_validation)
+          : telemetry.lastValidation,
         cacheExpiration: cacheInfo.expiration,
         recentFailures: telemetry.recentFailures,
-        stats: telemetry.stats
+        stats: telemetry.stats,
       };
     }
 
@@ -29,25 +30,27 @@ export class EmailHealthService {
       lastValidation: telemetry.lastValidation,
       cacheExpiration: cacheInfo.expiration,
       recentFailures: telemetry.recentFailures,
-      stats: telemetry.stats
+      stats: telemetry.stats,
     };
   }
 
-  getFailures(filters: EmailHealthFilters = {}): { items: EmailFailure[], total: number } {
+  getFailures(filters: EmailHealthFilters = {}): { items: EmailFailure[]; total: number } {
     const telemetry = this.repository.getLocalTelemetry();
-    let failures: EmailFailure[] = Array.isArray(telemetry?.recentFailures) ? telemetry.recentFailures : [];
+    let failures: EmailFailure[] = Array.isArray(telemetry?.recentFailures)
+      ? telemetry.recentFailures
+      : [];
 
     if (filters.requestId) {
       const { requestId } = filters;
-      failures = failures.filter(f => f.requestId.includes(requestId));
+      failures = failures.filter((f) => f.requestId.includes(requestId));
     }
     if (filters.operation) {
       const { operation } = filters;
-      failures = failures.filter(f => f.operation.toLowerCase() === operation.toLowerCase());
+      failures = failures.filter((f) => f.operation.toLowerCase() === operation.toLowerCase());
     }
     if (filters.resource) {
       const { resource } = filters;
-      failures = failures.filter(f => f.resource.toLowerCase().includes(resource.toLowerCase()));
+      failures = failures.filter((f) => f.resource.toLowerCase().includes(resource.toLowerCase()));
     }
 
     const total = failures.length;

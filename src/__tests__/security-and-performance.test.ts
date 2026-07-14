@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Mock supabase
@@ -175,20 +174,21 @@ describe('Security - Knowledge Base Search', () => {
       search_query: 'como funciona',
       max_results: 5,
     });
+    expect(result.data).toBeDefined();
     expect(result.data).toHaveLength(1);
-    expect(result.data[0].title).toBe('FAQ');
+    expect(result.data?.[0]?.title).toBe('FAQ');
   });
 });
 
 describe('Web Vitals', () => {
   it('should export initWebVitals and getWebVitalsReport', async () => {
-    const { initWebVitals, getWebVitalsReport } = await import('@/lib/web-vitals');
+    const { initWebVitals, getWebVitalsReport } = await import('@/lib/webVitals');
     expect(typeof initWebVitals).toBe('function');
     expect(typeof getWebVitalsReport).toBe('function');
   });
 
   it('getWebVitalsReport should return array', async () => {
-    const { getWebVitalsReport } = await import('@/lib/web-vitals');
+    const { getWebVitalsReport } = await import('@/lib/webVitals');
     const report = getWebVitalsReport();
     expect(Array.isArray(report)).toBe(true);
   });

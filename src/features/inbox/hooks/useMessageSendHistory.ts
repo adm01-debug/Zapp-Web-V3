@@ -9,6 +9,7 @@
  */
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { fromTable } from '@/lib/supabaseHelpers';
 import {
   type AuditEntry,
   type FinalStatus,
@@ -41,17 +42,33 @@ export interface MessageSendHistory {
 
 const STALE_MS = 15_000;
 
+interface OutboundAuditRow {
+  id: string;
+  event_type: string | null;
+  status: string | null;
+  latency_ms: number | null;
+  instance_name: string | null;
+  error_message: string | null;
+  created_at: string;
+  metadata: Record<string, unknown> | null;
+}
+
 export function useMessageSendHistory(messageId: string | undefined, enabled: boolean) {
   return useQuery<MessageSendHistory>({
     queryKey: ['message-send-history', messageId],
     enabled: Boolean(messageId) && enabled,
     staleTime: STALE_MS,
-    queryFn: async () => {
+    queryFn: async (): Promise<MessageSendHistory> => {
       if (!messageId) return { metric: null, auditEntries: [] };
 
       const idempotencyKey = `msg:${messageId}`;
-      // Tabelas evolution_retry_metrics/outbound_delivery_audit ainda não estão em types.ts —
-      // ignore-audit — evolution_retry_metrics/outbound_delivery_audit not in generated types
+      const outboundQuery = fromTable('outbound_delivery_audit')
+        .select(
+          'id, event_type, status, latency_ms, instance_name, error_message, created_at, metadata'
+        )
+        .eq('idempotency_key', idempotencyKey)
+        .order('created_at', { ascending: false })
+        .limit(10);
       const [metricRes, auditRes, outboundAuditRes] = await Promise.all([
         supabase
           .from('evolution_retry_metrics')
@@ -92,16 +109,16 @@ export function useMessageSendHistory(messageId: string | undefined, enabled: bo
 
       const combinedAudit = dedupeAuditEntries(
         [...auditEntries, ...outboundEntries].sort(
-          (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-        ),
+          (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        )
       );
 
-      const row = metricRes.data;
+      const row = metricRes.data as any;
       if (!row) return { metric: null, auditEntries: combinedAudit };
 
       const attempts = padRetryAttempts(
         normalizeRetryReasons(row.retry_reasons),
-        row.attempt_count ?? 0,
+        row.attempt_count ?? 0
       );
       const finalStatus = deriveFinalStatus({
         externalMessageId:
@@ -109,8 +126,7 @@ export function useMessageSendHistory(messageId: string | undefined, enabled: bo
         retryCount: row.attempt_count ?? 0,
         maxRetries:
           (row as unknown as { max_retries?: number | null }).max_retries ?? attempts.length,
-        nextRetryAt:
-          (row as unknown as { next_retry_at?: string | null }).next_retry_at ?? null,
+        nextRetryAt: (row as unknown as { next_retry_at?: string | null }).next_retry_at ?? null,
         storedFinalStatus: row.final_status,
       });
 

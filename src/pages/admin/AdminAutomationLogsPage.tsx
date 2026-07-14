@@ -62,7 +62,10 @@ interface RuleLite {
   name: string;
 }
 
-const STATUS_META: Record<string, { label: string; icon: React.ComponentType<{ className?: string }>; variant: string }> = {
+const STATUS_META: Record<
+  string,
+  { label: string; icon: React.ComponentType<{ className?: string }>; variant: string }
+> = {
   pending: { label: 'Pendente', icon: Clock, variant: 'outline' },
   accepted: { label: 'Aceita', icon: CheckCircle2, variant: 'default' },
   executed: { label: 'Executada', icon: CheckCircle2, variant: 'default' },
@@ -151,7 +154,7 @@ export default function AdminAutomationLogsPage() {
       )
       .subscribe();
     return () => {
-      supabase.removeChannel(ch);
+      ch.unsubscribe();
     };
   }, [page, load]);
 

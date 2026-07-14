@@ -21,6 +21,7 @@ export function SLADeliveryConfigSection({ contactId }: SLADeliveryConfigSection
 
   const { data: config, isLoading } = useQuery({
     queryKey: ['sla-delivery-config', contactId],
+    enabled: !!contactId,
     queryFn: async () => {
       const { data: rows, error } = await safeClient.from('sla_delivery_rules', (q) =>
         q.select('*').eq('contact_id', contactId).limit(1)
@@ -32,9 +33,10 @@ export function SLADeliveryConfigSection({ contactId }: SLADeliveryConfigSection
 
   useEffect(() => {
     if (config) {
-      setWarningThreshold(config.warning_threshold_minutes);
-      setBreachThreshold(config.breach_threshold_minutes);
-      setCustomMessage(config.custom_message || '');
+      const cfg = config as any;
+      setWarningThreshold(cfg.warning_threshold_minutes);
+      setBreachThreshold(cfg.breach_threshold_minutes);
+      setCustomMessage(cfg.custom_message || '');
     }
   }, [config]);
 
@@ -50,9 +52,9 @@ export function SLADeliveryConfigSection({ contactId }: SLADeliveryConfigSection
         updated_at: new Date().toISOString(),
       };
 
-      if (config?.id) {
+      if ((config as any)?.id) {
         const { error } = await safeClient.from('sla_delivery_rules', (q) =>
-          q.update(payload).eq('id', config.id)
+          q.update(payload).eq('id', (config as any).id)
         );
         if (error) throw error;
       } else {
@@ -146,7 +148,7 @@ export function SLADeliveryConfigSection({ contactId }: SLADeliveryConfigSection
             const current = localStorage.getItem('zappweb:sla-simulation') === 'true';
             localStorage.setItem('zappweb:sla-simulation', String(!current));
             toast.info(`Modo Simulação ${!current ? 'ATIVADO' : 'DESATIVADO'}`);
-            queryClient.invalidateQueries({ queryKey: ['delivery-stats'] });
+            void queryClient.invalidateQueries({ queryKey: ['delivery-stats'] });
           }}
         >
           <Beaker className="mr-2 h-3 w-3" />

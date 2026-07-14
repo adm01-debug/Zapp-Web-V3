@@ -1,7 +1,7 @@
 import { useState, useMemo, useRef } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { cn } from '@/lib/utils';
-import { EmptyState } from '@/components/ui/empty-state';
+import { EmptyState } from '@/components/ui/empty-states';
 import { Conversation } from '@/types/chat';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -9,10 +9,40 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { motion } from '@/components/ui/motion';
 import { Search, Filter } from 'lucide-react';
 import { ConversationItem } from './conversation-list/ConversationItem';
+import type { ConversationItemData } from './conversation-list/conversationItemShared';
 import { useDensity } from '@/hooks/useDensity';
 
 const _ITEM_HEIGHT = 140;
 const _COMPACT_ITEM_HEIGHT = 80;
+
+function toConversationItemData(conversation: Conversation): ConversationItemData {
+  return {
+    id: conversation.id,
+    contact: conversation.contact,
+    status: conversation.status,
+    unreadCount: conversation.unreadCount,
+    lastMessage: conversation.lastMessage
+      ? {
+          id: conversation.lastMessage.id,
+          content: conversation.lastMessage.content,
+          created_at:
+            conversation.lastMessage.created_at ?? conversation.lastMessage.timestamp.toISOString(),
+          sender: conversation.lastMessage.sender,
+          status: conversation.lastMessage.status,
+          retry_attempt: conversation.lastMessage.retry_attempt,
+          retry_total: conversation.lastMessage.retry_total,
+        }
+      : null,
+    updatedAt: conversation.updatedAt,
+    createdAt: conversation.createdAt,
+    sentiment: conversation.sentiment,
+    sentimentScore: conversation.sentimentScore,
+    assignedTo: conversation.assignedTo,
+    queue: conversation.queue,
+    tags: conversation.tags,
+    priority: conversation.priority,
+  };
+}
 
 interface VirtualizedConversationListProps {
   conversations: Conversation[];
@@ -182,9 +212,9 @@ export function VirtualizedConversationList({
                   }}
                 >
                   <ConversationItem
-                    conversation={conversation}
+                    conversation={toConversationItemData(conversation)}
                     isSelected={selectedId === conversation.id}
-                    onSelect={onSelect}
+                    onSelect={() => onSelect(conversation)}
                     compact={isCompactMode}
                   />
                 </div>

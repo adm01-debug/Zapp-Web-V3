@@ -7,6 +7,7 @@ import { useMFA } from '@/features/auth';
 import { MFAVerify } from '@/features/auth';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
+import { log } from '@/lib/logger';
 
 export default function TwoFactorAuth() {
   const navigate = useNavigate();
@@ -65,7 +66,10 @@ export default function TwoFactorAuth() {
           onSuccess={() => navigate('/')}
           onCancel={() => {
             // Sign out and go back to login
-            supabase.auth.signOut().then(() => navigate('/auth'));
+            supabase.auth
+              .signOut()
+              .then(() => navigate('/auth'))
+              .catch((err) => log.warn('[2FA] signOut failed:', err));
           }}
         />
 

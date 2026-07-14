@@ -27,6 +27,7 @@ export function useOmnichannelChannels() {
       if (error) throw error;
       return (data ?? []) as OmnichannelChannel[];
     },
+    staleTime: 300_000,
   });
 
   const addChannel = useMutation({

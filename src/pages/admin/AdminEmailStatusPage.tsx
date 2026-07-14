@@ -1,6 +1,3 @@
-import { useState, useEffect } from 'react';
-import { useMountedRef } from '@/hooks/useMountedRef';
-import { getLogger } from '@/lib/logger';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -20,24 +17,32 @@ import {
   Filter,
   History as HistoryIcon,
 } from 'lucide-react';
-import { useEmail } from '@/hooks/useEmail';
-import { emailHealthService } from '@/services/email/emailHealthService';
-import type { EmailHealthInfo, EmailFailure } from '@/services/email/types';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
-import {
-  emailApi,
-  type EmailHealthSummary,
-  type EmailRevalidationJob,
-} from '@/services/email/emailApi';
+import { useEmailHealthStatus } from './email/useEmailHealthStatus';
 
-const log = getLogger('AdminEmailStatusPage');
-
-const castStatus = (status: string | null): EmailHealthInfo['status'] => {
-  if (status && ['healthy', 'degraded', 'error'].includes(status)) {
-    return status as EmailHealthInfo['status']; // ignore-audit: includes guard above confirms status is a valid union member
+const getStatusIcon = (status?: string) => {
+  switch (status) {
+    case 'healthy':
+      return <CheckCircle2 className="h-5 w-5 text-primary" />;
+    case 'degraded':
+      return <AlertTriangle className="h-5 w-5 text-yellow-500" />;
+    case 'error':
+      return <AlertCircle className="h-5 w-5 text-destructive" />;
+    default:
+      return <Clock className="h-5 w-5 text-muted-foreground" />;
   }
-  return 'error';
+};
+
+const getStatusLabel = (status?: string) => {
+  switch (status) {
+    case 'healthy':
+      return 'Operacional';
+    case 'degraded':
+      return 'Degradado';
+    case 'error':
+      return 'Crítico';
+    default:
+      return 'Desconhecido';
+  }
 };
 
 export default function AdminEmailStatusPage() {
@@ -158,7 +163,7 @@ export default function AdminEmailStatusPage() {
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      channel.unsubscribe();
     };
   }, [filters]);
 

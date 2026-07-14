@@ -2,21 +2,13 @@
  * HmacAuditHistoryPanel
  *
  * Histórico das execuções do botão "Testar HMAC" com:
- *  - Filtros: janela de tempo (24h / 7d / 30d) + instância (lista derivada
- *    dos próprios registros dentro da janela).
+ *  - Filtros: janela de tempo (24h / 7d / 30d) + instância.
  *  - KPIs da janela: total, OK, falhas, taxa de sucesso, duração média.
- *  - Gráfico de tendência (área empilhada OK vs FALHA) bucketed por hora
- *    (24h) ou por dia (7d/30d).
+ *  - Gráfico de tendência (área empilhada OK vs FALHA).
  *  - Tabela das últimas execuções (cap configurável).
  *  - Atualização em tempo real via Realtime + debounce (300ms).
- *
- * RLS: somente admin/supervisor enxergam linhas — usuários sem permissão
- * recebem array vazio e o card simplesmente exibe o estado "sem dados".
  */
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { format, subHours } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+import { useEffect, useState } from 'react';
 import { History, RefreshCw, Radio, TrendingUp } from 'lucide-react';
 import {
   AreaChart,
@@ -28,8 +20,6 @@ import {
   CartesianGrid,
   Legend,
 } from 'recharts';
-import { supabase } from '@/integrations/supabase/client';
-import { safeClient } from '@/integrations/supabase/safeClient';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -49,84 +39,17 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
+import { RANGES, ALL_INSTANCES, tooltipStyle, fmtDate } from './hmacAuditHistoryHelpers';
+import type { HmacAuditHistoryPanelProps, RangeKey } from './hmacAuditHistoryHelpers';
+import { useHmacAuditHistory } from './useHmacAuditHistory';
 
-interface AuditRow {
-  id: string;
-  instance: string | null;
-  ok: boolean;
-  duration_ms: number | null;
-  error: string | null;
-  message: string | null;
-  good_accepted: boolean | null;
-  tampered_rejected: boolean | null;
-  created_at: string;
-}
-
-interface Props {
-  /** Quando definido, pré-seleciona a instância no filtro. */
-  instance?: string | null;
-  /** Quantidade máxima de execuções a exibir na tabela. */
-  limit?: number;
-}
-
-type RangeKey = '24h' | '7d' | '30d';
-
-const RANGES: { value: RangeKey; label: string; hours: number; bucket: 'hour' | 'day' }[] = [
-  { value: '24h', label: 'Últimas 24h', hours: 24, bucket: 'hour' },
-  { value: '7d', label: 'Últimos 7 dias', hours: 24 * 7, bucket: 'day' },
-  { value: '30d', label: 'Últimos 30 dias', hours: 24 * 30, bucket: 'day' },
-];
-
-const ALL_INSTANCES = '__all__';
-
-const tooltipStyle = {
-  background: 'hsl(var(--card))',
-  border: '1px solid hsl(var(--border))',
-  borderRadius: 8,
-  fontSize: 12,
-} as const;
-
-function fmtDate(iso: string) {
-  try {
-    return format(new Date(iso), 'dd/MM HH:mm:ss', { locale: ptBR });
-  } catch {
-    return iso;
-  }
-}
-
-/** Agrupa execuções em buckets (hora ou dia). Devolve série ordenada. */
-function bucketize(rows: AuditRow[], bucket: 'hour' | 'day') {
-  const map = new Map<string, { time: string; ok: number; fail: number; iso: string }>();
-  for (const r of rows) {
-    const d = new Date(r.created_at);
-    let key: string;
-    let label: string;
-    if (bucket === 'hour') {
-      d.setMinutes(0, 0, 0);
-      key = d.toISOString();
-      label = format(d, 'dd/MM HH:00', { locale: ptBR });
-    } else {
-      d.setHours(0, 0, 0, 0);
-      key = d.toISOString();
-      label = format(d, 'dd/MM', { locale: ptBR });
-    }
-    const cur = map.get(key) ?? { time: label, ok: 0, fail: 0, iso: key };
-    if (r.ok) cur.ok += 1;
-    else cur.fail += 1;
-    map.set(key, cur);
-  }
-  return Array.from(map.values()).sort((a, b) => a.iso.localeCompare(b.iso));
-}
-
-export function HmacAuditHistoryPanel({ instance: initialInstance = null, limit = 25 }: Props) {
-  const queryClient = useQueryClient();
-  const [realtimeStatus, setRealtimeStatus] = useState<'connecting' | 'live' | 'offline'>(
-    'connecting'
-  );
+export function HmacAuditHistoryPanel({
+  instance: initialInstance = null,
+  limit = 25,
+}: HmacAuditHistoryPanelProps) {
   const [range, setRange] = useState<RangeKey>('24h');
   const [instanceFilter, setInstanceFilter] = useState<string>(initialInstance ?? ALL_INSTANCES);
 
-  // Sincroniza quando o pai troca a instância selecionada.
   useEffect(() => {
     setInstanceFilter(initialInstance ?? ALL_INSTANCES);
   }, [initialInstance]);
@@ -207,7 +130,7 @@ export function HmacAuditHistoryPanel({ instance: initialInstance = null, limit 
       });
     return () => {
       if (debounceRef.current) window.clearTimeout(debounceRef.current);
-      supabase.removeChannel(channel);
+      channel.unsubscribe();
     };
   }, [queryClient]);
 
@@ -239,7 +162,14 @@ export function HmacAuditHistoryPanel({ instance: initialInstance = null, limit 
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Select value={range} onValueChange={(v) => setRange(v as RangeKey /* ignore-audit: Select/Tabs value string narrowed to union; developer controls option values */)}>
+          <Select
+            value={range}
+            onValueChange={(v) =>
+              setRange(
+                v as RangeKey /* ignore-audit: Select/Tabs value string narrowed to union; developer controls option values */
+              )
+            }
+          >
             <SelectTrigger className="h-8 w-[160px] text-xs" data-testid="hmac-audit-range">
               <SelectValue />
             </SelectTrigger>
@@ -259,7 +189,7 @@ export function HmacAuditHistoryPanel({ instance: initialInstance = null, limit 
               <SelectItem value={ALL_INSTANCES} className="text-xs">
                 Todas as instâncias
               </SelectItem>
-              {(instanceOptions ?? []).map((i) => (
+              {instanceOptions.map((i) => (
                 <SelectItem key={i} value={i} className="text-xs">
                   {i}
                 </SelectItem>
@@ -362,7 +292,11 @@ export function HmacAuditHistoryPanel({ instance: initialInstance = null, limit 
               <ResponsiveContainer width="100%" height={200}>
                 <AreaChart data={trendData} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border/30" />
-                  <XAxis dataKey="time" tick={{ style: { fontSize: '0.75rem' } }} className="fill-muted-foreground" />
+                  <XAxis
+                    dataKey="time"
+                    tick={{ style: { fontSize: '0.75rem' } }}
+                    className="fill-muted-foreground"
+                  />
                   <YAxis
                     allowDecimals={false}
                     tick={{ style: { fontSize: '0.75rem' } }}

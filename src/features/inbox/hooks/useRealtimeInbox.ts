@@ -1,23 +1,20 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useOfflineCache } from '@/hooks/useOfflineCache';
-import type {
-  ConversationWithMessages,
-  ConversationContact,
-  RealtimeMessage,
-} from './realtime/types';
+import type { ConversationWithMessages, RealtimeMessage } from './realtime/types';
 import { seedAvatarCache } from './realtime/avatarBatchStore';
 import { useAuth } from '@/features/auth';
 import { supabase } from '@/integrations/supabase/client';
 import { getLogger } from '@/lib/logger';
 import { toast } from 'sonner';
 import { validatePttBlob } from '@/lib/audio/pttLimits';
-import { isValidUUID } from '@/utils/uuid';
 import { mapToLegacyConversation, mapToLegacyMessages } from '@/adapters/inboxLegacyMapper';
 import { dbFrom } from '@/integrations/datasource/db';
 import { useMessageQueue, QueueItem } from './useMessageQueue';
 import { useInboxHeartbeat } from './useInboxHeartbeat';
 import { useInboxDeepLinks } from './useInboxDeepLinks';
 import { useInboxSource } from './useInboxSource';
+import { useWhisperCount } from './useWhisperCount';
+import { useFallbackContact } from './useFallbackContact';
 
 const log = getLogger('useRealtimeInbox');
 
@@ -46,9 +43,6 @@ export function useRealtimeInbox() {
     delay: number;
     message?: string;
   } | null>(null);
-  const [selectedContactFallback, setSelectedContactFallback] =
-    useState<ConversationContact | null>(null);
-  const [whisperCount, setWhisperCount] = useState(0);
   const postSendTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   // 1. Data Source (Local or External)
@@ -123,49 +117,12 @@ export function useRealtimeInbox() {
       conversations.find(
         (c) =>
           c.contact.id === selectedContactId ||
-          (c.contact as ConversationContact & { remote_jid?: string }).remote_jid ===
-            selectedContactId
+          (c.contact as { remote_jid?: string }).remote_jid === selectedContactId
       ) || null,
     [conversations, selectedContactId]
   );
 
-  useEffect(() => {
-    if (!selectedContactId || selectedConversation) {
-      setSelectedContactFallback(null);
-      return;
-    }
-
-    let cancelled = false;
-    const loadSelectedContact = async () => {
-      // FIX B1: o handshake pode chegar como UUID, JID (`num@s.whatsapp.net`)
-      // ou telefone puro (só dígitos). Detectamos qual é para não enviar telefone
-      // para a coluna `id` (UUID) — isso causa 400 no PostgREST.
-      const raw = String(selectedContactId);
-      const isJid = raw.includes('@');
-      const isUuid = isValidUUID(raw);
-      const phone = isJid
-        ? raw.split('@')[0].replace(/\D/g, '')
-        : !isUuid
-          ? raw.replace(/\D/g, '')
-          : null;
-
-      let query = supabase.from('contacts').select('*');
-      query = phone && !isUuid ? query.eq('phone', phone) : query.eq('id', raw);
-
-      const { data, error } = await query.maybeSingle();
-      if (!cancelled && !error) setSelectedContactFallback(data || null);
-    };
-    void loadSelectedContact();
-    return () => {
-      cancelled = true;
-    };
-  }, [selectedContactId, selectedConversation]);
-
-  const resolvedSelectedConversation = useMemo<ConversationWithMessages | null>(() => {
-    if (selectedConversation) return selectedConversation;
-    if (!selectedContactFallback) return null;
-    return { contact: selectedContactFallback, messages: [], unreadCount: 0, lastMessage: null };
-  }, [selectedConversation, selectedContactFallback]);
+  const resolvedSelectedConversation = useFallbackContact(selectedContactId, selectedConversation);
 
   // Reconcile message queue with incoming messages
   useEffect(() => {
@@ -188,76 +145,24 @@ export function useRealtimeInbox() {
     });
   }, [selectedMessages, selectedContactId]);
 
-  // Listen for SLA alerts
+  // Listen for SLA alerts — bound by selectedContactId to avoid memory leak
   useEffect(() => {
+    if (!selectedContactId) return;
+
     const handler = (e: Event) => {
       const detail = (e as CustomEvent).detail;
-      if (detail && detail.contactId === selectedContactId) {
+      if (detail?.contactId === selectedContactId) {
         setDeliveryAlert({ status: detail.status, delay: detail.delay, message: detail.message });
       }
     };
     window.addEventListener('sla-delivery-alert', handler);
-    return () => window.removeEventListener('sla-delivery-alert', handler);
+    return () => {
+      window.removeEventListener('sla-delivery-alert', handler);
+    };
   }, [selectedContactId]);
 
   // Whisper count
-  useEffect(() => {
-    if (!selectedContactId || !profile?.id) {
-      setWhisperCount(0);
-      return;
-    }
-
-    // ── UUID guard ──────────────────────────────────────────────────────────
-    // whisper_messages.contact_id is a uuid column. When USE_EXTERNAL_DB=true,
-    // selectedContactId may be a WhatsApp JID / phone number (e.g. "551146375517")
-    // instead of a UUID. PostgREST returns 400 "invalid input syntax for type uuid"
-    // when a non-UUID string is used as a filter on a uuid column.
-    // Skip both the count query and the realtime subscription in that case.
-
-    if (!isValidUUID(selectedContactId)) {
-      log.debug(
-        '[whisperCount] selectedContactId is not a UUID — skipping whisper query (likely a WhatsApp JID)',
-        { selectedContactId }
-      );
-      setWhisperCount(0);
-      return;
-    }
-    // ────────────────────────────────────────────────────────────────────────
-
-    let cancelled = false;
-    const fetchWhisperCount = async () => {
-      const { count, error } = await supabase
-        .from('whisper_messages')
-        .select('*', { count: 'exact', head: true })
-        .eq('contact_id', selectedContactId)
-        .eq('is_read', false);
-      if (!cancelled && !error && count !== null) setWhisperCount(count);
-    };
-    void fetchWhisperCount();
-
-    // Wave 2: whisper_messages is a VIEW in public schema — zapp.whisper_messages is the base table.
-    // PostgreSQL views never emit WAL events, so Realtime subscriptions must target the base table.
-    const channel = supabase
-      .channel(`whisper-count-${selectedContactId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'zapp',
-          table: 'whisper_messages',
-          filter: `contact_id=eq.${selectedContactId}`,
-        },
-        () => {
-          void fetchWhisperCount();
-        }
-      )
-      .subscribe();
-    return () => {
-      cancelled = true;
-      void channel.unsubscribe();
-      supabase.removeChannel(channel);
-    };
-  }, [selectedContactId, profile?.id]);
+  const whisperCount = useWhisperCount(selectedContactId, profile?.id);
 
   const messageQueue = useMessageQueue(async (item: QueueItem) => {
     const { contactId, content, attachments } = item;

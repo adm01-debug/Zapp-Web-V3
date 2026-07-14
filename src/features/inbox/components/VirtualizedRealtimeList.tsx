@@ -1,10 +1,11 @@
 import { useRef, useMemo, memo } from 'react';
-import { useVirtualizer } from '@tanstack/react-virtual';
+import { useVirtualizer, type VirtualItem } from '@tanstack/react-virtual';
 
 import { ConversationWithMessages } from '@/features/inbox';
 import { useDensity } from '@/hooks/useDensity';
 import { MOCK_CONVERSATIONS } from './conversation-list/__mocks__/mockConversations';
 import { ConversationItem as SharedConversationItem } from './conversation-list/ConversationItem';
+import type { ConversationItemData } from './conversation-list/conversationItemShared';
 
 // Mocks: estritamente opt-in (localStorage mockConversations='1') e apenas em
 // DEV. Nunca usamos demo-fallback em produção: um inbox legitimamente vazio
@@ -31,6 +32,30 @@ const ITEM_HEIGHT_NORMAL = 96; // Comfortable mode with breathing room
 const ITEM_HEIGHT_COMPACT = 82; // Compact mode with clear card separation
 const EMPTY_SET = new Set<string>();
 
+function toConversationItemData(conversation: ConversationWithMessages): ConversationItemData {
+  return {
+    id: conversation.contact.id,
+    contact: conversation.contact,
+    unreadCount: conversation.unreadCount,
+    lastMessage: conversation.lastMessage
+      ? {
+          id: conversation.lastMessage.id,
+          content: conversation.lastMessage.content,
+          created_at: conversation.lastMessage.created_at,
+          sender: conversation.lastMessage.sender,
+          status: conversation.lastMessage.status,
+          retry_attempt: conversation.lastMessage.retry_attempt,
+          retry_total: conversation.lastMessage.retry_total,
+        }
+      : null,
+    updatedAt: conversation.contact.updated_at,
+    createdAt: conversation.contact.created_at,
+    assignedTo: conversation.contact.assigned_to,
+    tags: conversation.contact.tags,
+    priority: 'medium',
+  };
+}
+
 const VirtualizedItem = memo(
   ({
     virtualRow,
@@ -42,8 +67,7 @@ const VirtualizedItem = memo(
     onToggleSelection,
     onSelectConversation,
   }: {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    virtualRow: any; // react-virtual row shape not in generated types
+    virtualRow: VirtualItem;
     conversation: ConversationWithMessages;
     selectedContactId: string | null;
     selectedIds: Set<string>;
@@ -70,7 +94,7 @@ const VirtualizedItem = memo(
         className="w-full"
       >
         <SharedConversationItem
-          conversation={conversation}
+          conversation={toConversationItemData(conversation)}
           isSelected={isSelected}
           onSelect={() => onSelectConversation(contactId)}
           selectionMode={selectionMode}

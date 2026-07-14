@@ -43,7 +43,9 @@ export interface MessageAttemptRow {
 
 const EPOCH = new Date(0).toISOString();
 
-function normalizeAttempt(r: Partial<MessageAttemptRow> | null | undefined): MessageAttemptRow | null {
+function normalizeAttempt(
+  r: Partial<MessageAttemptRow> | null | undefined
+): MessageAttemptRow | null {
   if (!r || typeof r !== 'object') return null;
   return {
     id: r.id ?? '',
@@ -83,14 +85,12 @@ export function useMessageAttempts(messageRowId: string | null, opts: { enabled?
 
       // Tentativa primária: idempotency_key padrão `msg:<id>`.
       const primaryKey = `msg:${messageRowId}`;
-      const { data: byKeyArr, error: keyErr } = await safeClient.from(
-        'failed_messages',
-        (q) =>
-          q
-            .select(SELECT_COLS)
-            .eq('idempotency_key', primaryKey)
-            .order('created_at', { ascending: false })
-            .limit(1),
+      const { data: byKeyArr, error: keyErr } = await safeClient.from('failed_messages', (q) =>
+        q
+          .select(SELECT_COLS)
+          .eq('idempotency_key', primaryKey)
+          .order('created_at', { ascending: false })
+          .limit(1)
       );
 
       // 42501/permission/RLS → trata como "sem permissão", não erro.
@@ -102,14 +102,12 @@ export function useMessageAttempts(messageRowId: string | null, opts: { enabled?
       if (byKey) return byKey;
 
       // Fallback: payload->>'message_id' (reprocessos legados).
-      const { data: byPayloadArr, error: pErr } = await safeClient.from(
-        'failed_messages',
-        (q) =>
-          q
-            .select(SELECT_COLS)
-            .eq('payload->>message_id', messageRowId)
-            .order('created_at', { ascending: false })
-            .limit(1),
+      const { data: byPayloadArr, error: pErr } = await safeClient.from('failed_messages', (q) =>
+        q
+          .select(SELECT_COLS)
+          .eq('payload->>message_id', messageRowId)
+          .order('created_at', { ascending: false })
+          .limit(1)
       );
 
       if (pErr && !RLS_ERROR_RE.test(pErr.message)) {

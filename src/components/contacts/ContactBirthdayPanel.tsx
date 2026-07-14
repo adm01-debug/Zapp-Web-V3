@@ -8,7 +8,7 @@ import { Cake, Gift, PartyPopper, Calendar } from 'lucide-react';
 import { format, differenceInDays, setYear, startOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
-import { getAvatarColor, getInitials } from '@/lib/avatar-colors';
+import { getAvatarColor, getInitials } from '@/lib/avatarColors';
 import type { Tables } from '@/integrations/supabase/types';
 
 // W4 (2026-07-06): derivado do schema gerado. ATENÇÃO: 'birthday' NÃO existe em

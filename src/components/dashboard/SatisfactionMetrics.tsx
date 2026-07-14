@@ -17,7 +17,6 @@ import { Star, Info } from 'lucide-react';
 export const SatisfactionMetrics = () => {
   const [selectedPeriod, setSelectedPeriod] = useState<'7d' | '30d' | '90d'>('30d');
 
-  // TODO: substituir por hook real quando a tabela de avaliações estiver disponível.
   const dataUnavailable = true;
 
   return (

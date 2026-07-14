@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { log } from '@/lib/logger';
 import { Key, Clock, CheckCircle, XCircle, Search, User, RefreshCw } from 'lucide-react';
@@ -36,6 +36,7 @@ export function PasswordResetRequestsPanel() {
   const [selectedRequest, setSelectedRequest] = useState<ResetRequest | null>(null);
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   const [processing, setProcessing] = useState(false);
+  const isMountedRef = useRef(true);
 
   useEffect(() => {
     void fetchRequests();
@@ -50,7 +51,7 @@ export function PasswordResetRequestsPanel() {
       )
       .subscribe();
     return () => {
-      supabase.removeChannel(channel);
+      channel.unsubscribe();
     };
   }, []);
 
@@ -61,12 +62,12 @@ export function PasswordResetRequestsPanel() {
         (q) => q.select('*').order('created_at', { ascending: false })
       );
       if (error) throw error;
-      setRequests((data || []) as ResetRequest[]);
+      if (isMountedRef.current) setRequests((data || []) as ResetRequest[]);
     } catch (error) {
       log.error('Error fetching requests:', error);
-      toast.error('Erro ao carregar solicitações');
+      if (isMountedRef.current) toast.error('Erro ao carregar solicitações');
     } finally {
-      setLoading(false);
+      if (isMountedRef.current) setLoading(false);
     }
   };
 
@@ -164,7 +165,16 @@ export function PasswordResetRequestsPanel() {
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'pending' | 'all' /* ignore-audit: Select/Tabs value string narrowed to union; developer controls option values */)}>
+        <Tabs
+          value={activeTab}
+          onValueChange={(v) =>
+            setActiveTab(
+              v as
+                | 'pending'
+                | 'all' /* ignore-audit: Select/Tabs value string narrowed to union; developer controls option values */
+            )
+          }
+        >
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="pending" className="gap-2">
               <Clock className="h-4 w-4" />

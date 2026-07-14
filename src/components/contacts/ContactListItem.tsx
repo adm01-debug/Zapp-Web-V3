@@ -15,11 +15,11 @@ import {
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
-import { getAvatarColor, getInitials } from '@/lib/avatar-colors';
+import { getAvatarColor, getInitials } from '@/lib/avatarColors';
 import { CONTACT_TYPE_CONFIG } from './contactTypeConfig';
 import { CompanyLogo } from './CompanyLogo';
 import { HighlightText } from './HighlightText';
-import { calculateContactHealth, getHealthColor } from '@/lib/contact-health';
+import { calculateContactHealth, getHealthColor } from '@/lib/contactHealth';
 import type { ContactItemProps } from './types';
 
 export function ContactListItem({

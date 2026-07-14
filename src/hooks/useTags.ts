@@ -27,6 +27,7 @@ export function useTags() {
     refetch,
   } = useQuery({
     queryKey: ['tags'],
+    staleTime: Infinity,
     queryFn: async () => {
       const { data: tagsData, error: tagsError } = await supabase
         .from('tags')
@@ -68,7 +69,7 @@ export function useTags() {
         .eq('user_id', user?.id ?? '')
         .maybeSingle();
 
-      const { error } = await safeClient.from('tags', q =>
+      const { error } = await safeClient.from('tags', (q) =>
         q.insert({
           name: data.name,
           color: data.color,
@@ -178,8 +179,8 @@ export function useContactTags(contactId: string | undefined) {
       if (!contactId) return [];
 
       type ContactTagRow = { tag_id: string; tags: Tag | null };
-      const { data, error } = await safeClient.from<ContactTagRow>('contact_tags', q =>
-        q.select('tag_id, tags(*)').eq('contact_id', contactId ?? ''),
+      const { data, error } = await safeClient.from<ContactTagRow>('contact_tags', (q) =>
+        q.select('tag_id, tags(*)').eq('contact_id', contactId!)
       );
 
       if (error) throw error;
@@ -202,6 +203,13 @@ export function useContactTags(contactId: string | undefined) {
       queryClient.invalidateQueries({ queryKey: ['contact-tags', contactId] });
       queryClient.invalidateQueries({ queryKey: ['tags'] });
     },
+    onError: (error: Error) => {
+      toast({
+        title: 'Erro ao adicionar etiqueta',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
   });
 
   const removeTagMutation = useMutation({
@@ -219,6 +227,13 @@ export function useContactTags(contactId: string | undefined) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['contact-tags', contactId] });
       queryClient.invalidateQueries({ queryKey: ['tags'] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Erro ao remover etiqueta',
+        description: error.message,
+        variant: 'destructive',
+      });
     },
   });
 
