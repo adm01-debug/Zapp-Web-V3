@@ -1,21 +1,16 @@
-/**
- * useEmailOAuthFlow.ts — OAuth2 Email com refresh automático de token
- *
- * Responsabilidades:
- * 1. Iniciar fluxo OAuth (redirect para Google)
- * 2. Trocar code por tokens (Edge Function email-oauth)
- * 3. Refresh automático do access_token 5 min antes de expirar
- * 4. Revogar acesso (disconnect)
- * 5. Retornar estado do token (valid | expiring | expired | loading)
- */
+// Re-export from consolidated useIntegrationManagement module (ETAPA 42 consolidation)
+import { useGmailOAuthFlowManagement } from '@/hooks/useIntegrationManagement';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { safeClient } from '@/integrations/supabase/safeClient';
-import { emailMappers } from '@/utils/emailMappers';
-import { EmailAccount } from '@/types/gmail';
-import { emailRefreshToken, emailRevokeAccount, emailRegisterWatch } from './gmail/gmailApi';
-
+export function useGmailOAuthFlow() {
+  return useGmailOAuthFlowManagement();
+  user_id: string;
+  email: string;
+  display_name: string | null;
+  picture_url: string | null;
+  token_expiry: string | null;
+  is_active: boolean;
+  created_at: string;
+}
 import { toast } from 'sonner';
 import { getLogger } from '@/lib/logger';
 

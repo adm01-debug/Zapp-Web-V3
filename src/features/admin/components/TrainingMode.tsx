@@ -1,11 +1,5 @@
 import { useState, useEffect } from 'react';
 
-interface TrainingSession {
-  id: string;
-  scenario_name?: string | null;
-  status?: string | null;
-  score?: number | null;
-}
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -66,7 +60,7 @@ const SCENARIOS = [
   },
 ];
 
-export function TrainingMode() {
+export function TrainingMode(): JSX.Element {
   const [activeSession, setActiveSession] = useState<string | null>(null);
   const [scenario, setScenario] = useState<(typeof SCENARIOS)[0] | null>(null);
   const [messages, setMessages] = useState<SimMessage[]>([]);

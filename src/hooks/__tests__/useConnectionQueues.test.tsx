@@ -7,7 +7,7 @@ vi.mock('@/integrations/supabase/client', () => ({
 }));
 vi.mock('@/lib/logger');
 
-import { useConnectionQueues } from '@/hooks/useConnectionQueues';
+import { useConnectionQueues } from '@/hooks/useConnectionManagement';
 
 describe('useConnectionQueues', () => {
   beforeEach(() => {

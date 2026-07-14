@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useEffect, useRef } from 'react';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { StaggeredList, StaggeredItem } from '@/components/ui/motion';
@@ -44,7 +43,7 @@ function isWhatsAppConnection(c: DegradedConnection | WhatsAppConnection): c is 
   );
 }
 
-export function ConnectionsView() {
+export function ConnectionsView(): JSX.Element {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [businessHoursDialog, setBusinessHoursDialog] = useState({
@@ -116,7 +115,7 @@ export function ConnectionsView() {
     id: string;
     instance_id?: string | null;
     instance_name?: string | null;
-  }) => {
+  }): Promise<void> => {
     const evoName = evolutionInstanceName(connection);
     if (!evoName) {
       toast({

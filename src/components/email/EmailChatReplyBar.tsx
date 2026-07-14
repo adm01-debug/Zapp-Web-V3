@@ -20,9 +20,7 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { emailSendMessage } from '@/hooks/gmail/gmailApi';
 import { MessageTemplates } from '@/features/inbox/components/MessageTemplates';
-import { useEmailSignature } from '@/hooks/useEmailSignature';
-import { useEmailDraft } from '@/hooks/useEmailDraft';
-import { useEmailSLA } from '@/hooks/useEmailSLA';
+import { useEmailSignature, useEmailDraft, useEmailSLA } from '@/hooks/useEmailManagement';
 
 interface EmailChatReplyBarProps {
   accountId: string;

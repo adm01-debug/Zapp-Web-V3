@@ -1,6 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { validationLogger } from '@/utils/validationLogger';
 import { supabase, isSupabaseConfigured, warnSupabaseUnconfigured } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -17,8 +17,20 @@ const ValidationContext = createContext<ValidationContextType | undefined>(undef
 export const ValidationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [status, setStatus] = useState<ValidationContextType['status']>('loading');
   const [lastError, setLastError] = useState<string>();
+  const mountedAtRef = useRef(new Date().toISOString());
 
-  const runProactiveChecks = async () => {
+  const getCurrentSessionEvidence = useCallback(() => {
+    const mountedAt = mountedAtRef.current;
+    const events = validationLogger.getEvents().filter((event) => event.timestamp >= mountedAt);
+
+    return {
+      events,
+      errors: events.filter((event) => event.type === 'error').length,
+      networkFailures: events.filter((event) => event.type === 'network').length,
+    };
+  }, []);
+
+  const runProactiveChecks = useCallback(async () => {
     validationLogger.addEvent('render', 'Starting proactive validation checks');
 
     // When Supabase isn't configured, skip the network checks entirely (they
@@ -38,14 +50,24 @@ export const ValidationProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       return;
     }
 
-    // Check 1: Supabase Connection
+    // Check 1: Backend/Auth availability.
+    // Do not probe protected tables as a global health check before a valid
+    // session exists: RLS/401 is an expected unauthenticated state, not a
+    // critical app failure. The previous `profiles.select(id).limit(1)` check
+    // produced a false critical banner on the login screen and made the system
+    // appear broken even when the UI rendered correctly.
     try {
-      const { error } = await supabase.from('profiles').select('id').limit(1).maybeSingle();
+      const { data, error } = await supabase.auth.getSession();
       if (error) throw error;
-      validationLogger.addEvent('network', 'Supabase API connection verified');
+
+      if (!data.session) {
+        validationLogger.addEvent('network', 'Backend reachable — protected data check skipped without active session');
+      } else {
+        validationLogger.addEvent('network', 'Auth session verified');
+      }
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      validationLogger.addEvent('error', `Critical: Supabase connection failed: ${msg}`);
+      validationLogger.addEvent('network', `Backend auth check failed: ${msg}`);
     }
 
     // Check 2: Auth Session
@@ -66,8 +88,8 @@ export const ValidationProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     }
 
     // Update status based on results
-    const evidence = validationLogger.getEvidence();
-    if (evidence.summary.errors > 0) {
+    const evidence = getCurrentSessionEvidence();
+    if (evidence.errors > 0) {
       setStatus('error');
       const criticalErr = evidence.events.find(e => e.type === 'error' && e.message.includes('Critical'));
       if (criticalErr) {
@@ -76,12 +98,12 @@ export const ValidationProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           duration: 6000,
         });
       }
-    } else if (evidence.summary.networkFailures > 0) {
+    } else if (evidence.networkFailures > 0) {
       setStatus('warning');
     } else {
       setStatus('healthy');
     }
-  };
+  }, [getCurrentSessionEvidence]);
 
   useEffect(() => {
     // Run proactive checks after app has had time to stabilize
@@ -89,12 +111,12 @@ export const ValidationProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
     // Continuous monitoring
     const checkInterval = setInterval(() => {
-      const evidence = validationLogger.getEvidence();
-      if (evidence.summary.errors > 0) {
+      const evidence = getCurrentSessionEvidence();
+      if (evidence.errors > 0) {
         setStatus('error');
         const lastErr = evidence.events.find(e => e.type === 'error' || e.type === 'network');
         setLastError(lastErr?.message);
-      } else if (evidence.summary.networkFailures > 0) {
+      } else if (evidence.networkFailures > 0) {
         setStatus('warning');
       } else {
         setStatus('healthy');
@@ -112,7 +134,7 @@ export const ValidationProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       clearTimeout(timeout);
       clearInterval(checkInterval);
     };
-  }, []);
+  }, [getCurrentSessionEvidence, runProactiveChecks]);
 
   const generateEvidence = () => {
     const evidence = validationLogger.getEvidence();

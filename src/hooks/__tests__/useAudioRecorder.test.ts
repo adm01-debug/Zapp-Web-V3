@@ -19,7 +19,7 @@ vi.mock('@/hooks/use-toast', () => ({
 
 vi.mock('@/lib/logger');
 
-import { useAudioRecorder } from '@/hooks/useAudioRecorder';
+import { useAudioRecorder } from '@/hooks/useAudioManagement';
 
 describe('useAudioRecorder', () => {
   beforeEach(() => {

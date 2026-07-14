@@ -11,9 +11,9 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
-import { type EmailThread } from '@/hooks/gmail/gmailTypes';
+import { type EmailThread } from '@/types/gmail';
 import { SLADot } from './EmailSLABadge';
-import { useEmailSLA } from '@/hooks/useEmailSLA';
+import { useEmailSLA } from '@/hooks/useEmailManagement';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -182,7 +182,7 @@ export function EmailThreadList({
   });
 
   const unreadTotal = threads.filter((t) => t.unread_count > 0).length;
-  const breachedCount = threads.filter((t) => getStatus(t.thread_id) === 'breached').length;
+  const breachedCount = threads.filter((t) => getStatus(t.thread_id ?? t.email_thread_id) === 'breached').length;
 
   return (
     <div className={cn('flex h-full flex-col', className)}>

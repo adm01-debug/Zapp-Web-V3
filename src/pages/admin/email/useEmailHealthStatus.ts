@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useMountedRef } from '@/hooks/useMountedRef';
 import { getLogger } from '@/lib/logger';
-import { useEmail } from '@/hooks/useEmail';
+import { useEmail } from '@/hooks/useEmailManagement';
 import { emailHealthService } from '@/services/email/emailHealthService';
 import type { EmailHealthInfo, EmailFailure } from '@/services/email/types';
 import { supabase } from '@/integrations/supabase/client';

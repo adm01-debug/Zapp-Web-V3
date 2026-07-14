@@ -1,7 +1,7 @@
 /**
  * SendProductDialog — utility functions and message builders
  */
-import { ExternalProduct, ExternalProductVariant } from '@/hooks/useExternalCatalog';
+import { ExternalProduct, ExternalProductVariant } from '@/hooks/useExternalApiManagement';
 
 export type MessageTemplate = 'formal' | 'informal' | 'promo';
 export type SendMode = 'product' | 'variant';

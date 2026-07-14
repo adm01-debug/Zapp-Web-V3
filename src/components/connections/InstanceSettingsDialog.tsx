@@ -1,12 +1,4 @@
 import { useState, useEffect } from 'react';
-
-interface ReconnectionLog {
-  id: string;
-  created_at: string;
-  result: 'success' | 'failure' | string;
-  attempt_number?: number | null;
-  error_message?: string | null;
-}
 import { useMountedRef } from '@/hooks/useMountedRef';
 import {
   Dialog,
@@ -35,6 +27,8 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import type { SupabaseClient } from '@supabase/supabase-js';
+import type { Database } from '@/integrations/supabase/types';
 
 const log = getLogger('InstanceSettingsDialog');
 
@@ -44,6 +38,68 @@ interface ReconnectionLog {
   created_at: string;
   attempt_number: number;
   error_message: string | null;
+}
+
+interface EvolutionInstanceSettings {
+  rejectCall?: boolean;
+  msgCall?: string;
+  groupsIgnore?: boolean;
+  alwaysOnline?: boolean;
+  readMessages?: boolean;
+  readStatus?: boolean;
+  syncFullHistory?: boolean;
+}
+
+interface EvolutionLabel {
+  id: string;
+  name: string;
+  color: string;
+}
+
+interface ReconnectionLogRow {
+  id: string;
+  status: string | null;
+  created_at: string | null;
+  attempt_number: number | null;
+  error_message: string | null;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function normalizeInstanceSettings(value: unknown): EvolutionInstanceSettings {
+  if (!isRecord(value)) return {};
+  return {
+    rejectCall: typeof value.rejectCall === 'boolean' ? value.rejectCall : undefined,
+    msgCall: typeof value.msgCall === 'string' ? value.msgCall : undefined,
+    groupsIgnore: typeof value.groupsIgnore === 'boolean' ? value.groupsIgnore : undefined,
+    alwaysOnline: typeof value.alwaysOnline === 'boolean' ? value.alwaysOnline : undefined,
+    readMessages: typeof value.readMessages === 'boolean' ? value.readMessages : undefined,
+    readStatus: typeof value.readStatus === 'boolean' ? value.readStatus : undefined,
+    syncFullHistory: typeof value.syncFullHistory === 'boolean' ? value.syncFullHistory : undefined,
+  };
+}
+
+function normalizeReconnectionLogs(rows: ReconnectionLogRow[]): ReconnectionLog[] {
+  return rows.map((row) => ({
+    id: row.id,
+    result: row.status ?? 'failed',
+    created_at: row.created_at ?? new Date(0).toISOString(),
+    attempt_number: row.attempt_number ?? 0,
+    error_message: row.error_message,
+  }));
+}
+
+function normalizeLabels(value: unknown): EvolutionLabel[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((item) => {
+    if (!isRecord(item)) return [];
+    const id = typeof item.id === 'string' ? item.id : typeof item._id === 'string' ? item._id : '';
+    const name = typeof item.name === 'string' ? item.name : typeof item.label === 'string' ? item.label : '';
+    const color = typeof item.color === 'string' ? item.color : 'hsl(var(--primary))';
+    return id && name ? [{ id, name, color }] : [];
+  });
 }
 
 interface InstanceSettingsDialogProps {
@@ -119,6 +175,35 @@ export function InstanceSettingsDialog({
   });
   const [auditLogs, setAuditLogs] = useState<ReconnectionLog[]>([]);
   const [loadingTab, setLoadingTab] = useState('');
+  const [reconnectConfig, setReconnectConfig] = useState<{
+    enabled: boolean;
+    interval: number;
+    maxAttempts: number;
+    loopProtection: boolean;
+  }>({
+    enabled: true,
+    interval: 30,
+    maxAttempts: 5,
+    loopProtection: false,
+  });
+  const [profile, setProfile] = useState<{
+    name: string;
+    status: string;
+    pictureUrl: string;
+  }>({
+    name: '',
+    status: '',
+    pictureUrl: '',
+  });
+  const [privacy, setPrivacy] = useState<Record<string, string>>({
+    readreceipts: 'all',
+    profile: 'all',
+    status: 'all',
+    online: 'all',
+    last: 'all',
+    groupadd: 'all',
+  });
+  const [labels, setLabels] = useState<EvolutionLabel[]>([]);
 
   useEffect(() => {
     if (open && instanceName) {
@@ -133,7 +218,7 @@ export function InstanceSettingsDialog({
   const loadReconnectConfig = async () => {
     if (!connectionId) return;
     try {
-      const safeQueries = safeWhatsAppConnectionsQuery(supabase);
+      const safeQueries = safeWhatsAppConnectionsQuery(supabase as unknown as SupabaseClient<Database>);
       const { data, error } = await safeQueries.getById(connectionId);
 
       if (!error && data && mountedRef.current) {
@@ -181,7 +266,9 @@ export function InstanceSettingsDialog({
         .order('created_at', { ascending: false })
         .limit(20);
 
-      if (!error && data && mountedRef.current) setAuditLogs(data);
+      if (!error && data && mountedRef.current) {
+        setAuditLogs(normalizeReconnectionLogs(data as ReconnectionLogRow[]));
+      }
     } catch (err) {
       log.error('Error loading audit logs:', err);
     }
@@ -191,7 +278,7 @@ export function InstanceSettingsDialog({
   const loadSettings = async () => {
     setLoadingTab('settings');
     try {
-      const data = await getSettings(instanceName);
+      const data = normalizeInstanceSettings(await getSettings(instanceName));
       if (data && mountedRef.current)
         setSettingsData({
           rejectCall: data.rejectCall ?? false,
@@ -230,7 +317,7 @@ export function InstanceSettingsDialog({
     setLoadingTab('labels');
     try {
       const data = await findLabels(instanceName);
-      if (Array.isArray(data) && mountedRef.current) setLabels(data);
+      if (mountedRef.current) setLabels(normalizeLabels(data));
     } catch (err) {
       log.error('Error loading labels:', err);
     }

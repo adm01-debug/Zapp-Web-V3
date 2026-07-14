@@ -60,7 +60,7 @@ export function WarRoomDashboard({
       type: a.alert_type as 'critical' | 'warning' | 'info',
       title: a.title,
       message: a.message,
-      timestamp: new Date(a.created_at),
+      timestamp: new Date(a.created_at ?? Date.now()),
       isNew: !a.is_read,
     }));
   const [isFullscreen, setIsFullscreen] = useState(false);

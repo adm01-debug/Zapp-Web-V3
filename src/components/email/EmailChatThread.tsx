@@ -4,11 +4,12 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
-import { type EmailThread, type EmailMessage } from '@/hooks/gmail/gmailTypes';
+import { type EmailMessage } from '@/hooks/gmail/gmailTypes';
+import { type EmailThread } from '@/types/gmail';
 import { EmailChatBubble } from './EmailChatBubble';
 import { EmailChatReplyBar } from './EmailChatReplyBar';
 import { EmailSLABadge, SLAProgressBar } from './EmailSLABadge';
-import { useEmailSLA } from '@/hooks/useEmailSLA';
+import { useEmailSLA } from '@/hooks/useEmailManagement';
 
 interface EmailChatThreadProps {
   thread: EmailThread;

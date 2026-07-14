@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useEffect, useMemo, useState, useRef } from 'react';
 import { format } from 'date-fns';
 import { ErrorBoundary } from 'react-error-boundary';
@@ -31,7 +30,7 @@ interface Props {
 
 const log = getLogger('TeamChatPanel');
 
-export function TeamChatPanel(props: Props) {
+export function TeamChatPanel(props: Props): JSX.Element {
   return (
     <ErrorBoundary
       fallback={
@@ -46,7 +45,7 @@ export function TeamChatPanel(props: Props) {
   );
 }
 
-function TeamChatPanelContent({ conversation, onBack, onToggleDetails, showDetails }: Props) {
+function TeamChatPanelContent({ conversation, onBack, onToggleDetails, showDetails }: Props): JSX.Element {
   const [showStats, setShowStats] = useState<'participants' | 'performance' | null>(null);
   const s = useTeamChatPanel(conversation);
   const { profile: liveProfile } = useAuth();
@@ -286,10 +285,10 @@ function TeamChatPanelContent({ conversation, onBack, onToggleDetails, showDetai
                   listRef={s.listRef}
                   rowCount={s.filteredMessages.length}
                   rowHeight={dynamicRowHeight}
-                  rowProps={{}}
+                  rowProps={{} as Record<string, unknown>}
                   className="scrollbar-none absolute inset-0"
                   overscanCount={10}
-                  rowComponent={({ index, style, ariaAttributes }) => {
+                  rowComponent={({ index, style, ariaAttributes }): JSX.Element => {
                     const msg = s.filteredMessages[index];
                     const isMine = msg.sender_id === s.profile?.id;
                     const repliedMsg = msg.reply_to_id

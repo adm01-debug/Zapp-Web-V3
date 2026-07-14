@@ -1,16 +1,13 @@
 // Round 14 Fix P6: EmailChatBubble with config-based sanitization
 // Gap 3.2: Recursive component hook collision prevention
 //
-// NOTE: This file uses the DOM-native sanitizer (sanitize-v2.ts) instead of DOMPurify
+// NOTE: This file uses the DOM-native sanitizer from sanitize.ts
 // to avoid mutable global hook collisions when this component is used recursively.
 // See docs/sanitize-architecture.md for the full explanation.
-//
-// DEPENDENCY FIX (2026-07-13): Replaced 'isomorphic-dompurify' (not in package.json)
-// with 'dompurify' (already a production dependency) in EmailChatBubbleV2.
 
 import React, { useMemo } from 'react';
 import DOMPurify from 'dompurify';
-import { sanitizeHtmlWithHooks } from '@/lib/sanitize-v2';
+import { sanitizeHtmlWithHooks } from '@/lib/sanitize';
 import { getLogger } from '@/lib/logger';
 
 const log = getLogger('EmailChatBubble');
@@ -26,7 +23,7 @@ export interface EmailChatBubbleProps {
 /**
  * `EmailChatBubble` — renders sanitized HTML e-mail content.
  *
- * Uses the DOM-native sanitizer (`sanitize-v2.ts`) for hook-collision safety
+ * Uses the DOM-native sanitizer from sanitize.ts for hook-collision safety
  * in recursive render trees. Prefer this variant when the component may be
  * rendered inside another component that also calls DOMPurify with hooks.
  *
@@ -65,7 +62,7 @@ export const EmailChatBubble: React.FC<EmailChatBubbleProps> = ({ email, classNa
  *
  * Use this when you need explicit control over `ALLOWED_TAGS`/`ALLOWED_ATTR`
  * or when tabnabbing prevention must run via DOMParser (rather than the DOM
- * walker in `sanitize-v2.ts`).
+ * walker in sanitize.ts).
  *
  * @see docs/sanitize-architecture.md
  */

@@ -1,31 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
-import { BridgeService } from '@/services/connections/BridgeService';
-import { HealthRow, BridgeStatus } from '@/components/connections/types';
+// Re-export from consolidated useConnectionsManagement module (ETAPA 24 consolidation)
+import { useBridgeHealthManagement } from './useConnectionsManagement';
+import type { UseBridgeHealthParams, UseBridgeHealthResult } from './useConnectionsManagement';
 
-/**
- * Hook para gerenciar o estado de saúde da Ponte Supabase.
- */
-export function useBridgeHealth() {
-  const [status, setStatus] = useState<BridgeStatus>('idle');
-  const [health, setHealth] = useState<HealthRow | null>(null);
-  const [checkedAt, setCheckedAt] = useState<Date | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  const runCheck = useCallback(async () => {
-    setStatus('checking');
-    setError(null);
-    
-    const result = await BridgeService.checkHealth();
-    
-    setHealth(result.health);
-    setError(result.error);
-    setStatus(result.status);
-    setCheckedAt(new Date());
-  }, []);
-
-  useEffect(() => {
-    void runCheck();
-  }, [runCheck]);
-
-  return { status, health, checkedAt, error, runCheck };
-}
+export { useBridgeHealthManagement as useBridgeHealth };
+export type { UseBridgeHealthParams, UseBridgeHealthResult };

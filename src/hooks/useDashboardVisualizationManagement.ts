@@ -1,0 +1,550 @@
+// Consolidated Dashboard & Data Visualization Module (ETAPA 46)
+// Consolidates: useDashboardData, useDashboardWidgets, useGoalsDashboard, useLeaderboard, useWarRoomData
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
+import type { ElementType } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { dbFrom } from '@/integrations/datasource/db';
+import { useAuth } from '@/features/auth';
+import { log } from '@/lib/logger';
+import { useMountedRef } from '@/hooks/useMountedRef';
+import { startOfDay, endOfDay, startOfMonth, endOfMonth, startOfWeek, endOfWeek } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { MessageSquare, Users, CheckCircle2 } from 'lucide-react';
+import type {
+  DashboardFilters,
+  DashboardStats,
+  QueueStats,
+  RecentActivity,
+} from './dashboardTypes';
+
+export interface DashboardWidget {
+  id: string;
+  title: string;
+  type: 'stats' | 'challenges' | 'ai-stats' | 'queues' | 'leaderboard' | 'activity' | 'achievements' | 'mini-games';
+  visible: boolean;
+  order: number;
+  size: 'small' | 'medium' | 'large' | 'full';
+  column?: number;
+  row?: number;
+  width?: number;
+  height?: number;
+  level: 1 | 2 | 3;
+}
+
+export interface Goal {
+  id: string;
+  label: string;
+  description: string;
+  target: number;
+  current: number;
+  unit: string;
+  icon: ElementType;
+  color: string;
+  priority: 'high' | 'medium' | 'low';
+}
+
+export interface LeaderboardAgent {
+  id: string;
+  profile_id: string;
+  name: string;
+  avatar?: string;
+  xp: number;
+  level: number;
+  streak: number;
+  messagesHandled: number;
+  avgResponseTime: number;
+  satisfaction: number;
+  rank: number;
+  previousRank: number;
+  achievements: string[];
+  achievementsCount: number;
+  isOnline: boolean;
+}
+
+export interface WarRoomAgent {
+  id: string;
+  name: string;
+  avatar?: string;
+  status: 'online' | 'busy' | 'away' | 'offline';
+  activeChats: number;
+  maxChats: number;
+  avgResponseTime: number;
+  resolvedToday: number;
+  satisfaction: number;
+}
+
+export interface WarRoomQueue {
+  id: string;
+  name: string;
+  color: string | null;
+  waiting: number;
+  avgWaitTime: number;
+  slaBreaches: number;
+  slaWarnings: number;
+  inProgress: number;
+}
+
+const DEFAULT_GOALS = {
+  messages_sent: { daily: 50, weekly: 250, monthly: 1000 },
+  contacts_handled: { daily: 10, weekly: 50, monthly: 200 },
+  resolution_rate: { daily: 80, weekly: 80, monthly: 85 },
+};
+
+const defaultWidgets: DashboardWidget[] = [
+  { id: 'stats', title: 'Estatísticas', type: 'stats', visible: true, order: 0, size: 'full', column: 0, row: 0, width: 4, height: 1, level: 1 },
+  { id: 'challenges', title: 'Desafios do Dia', type: 'challenges', visible: true, order: 1, size: 'full', column: 0, row: 1, width: 4, height: 1, level: 2 },
+  { id: 'queues', title: 'Status das Filas', type: 'queues', visible: true, order: 2, size: 'medium', column: 0, row: 2, width: 2, height: 1, level: 2 },
+  { id: 'activity', title: 'Atividade Recente', type: 'activity', visible: true, order: 3, size: 'medium', column: 2, row: 2, width: 2, height: 1, level: 2 },
+  { id: 'ai-stats', title: 'IA Stats', type: 'ai-stats', visible: true, order: 4, size: 'medium', column: 0, row: 3, width: 2, height: 1, level: 3 },
+  { id: 'leaderboard', title: 'Ranking', type: 'leaderboard', visible: true, order: 5, size: 'medium', column: 2, row: 3, width: 2, height: 1, level: 3 },
+  { id: 'achievements', title: 'Conquistas', type: 'achievements', visible: true, order: 6, size: 'full', column: 0, row: 4, width: 4, height: 1, level: 3 },
+  { id: 'mini-games', title: 'Mini-games', type: 'mini-games', visible: true, order: 7, size: 'full', column: 0, row: 5, width: 4, height: 1, level: 3 },
+];
+
+const STORAGE_KEY = 'dashboard-widgets-config-v3';
+const sizeToGrid: Record<string, { width: number; height: number }> = {
+  small: { width: 1, height: 1 },
+  medium: { width: 2, height: 1 },
+  large: { width: 3, height: 1 },
+  full: { width: 4, height: 1 },
+};
+
+function rangeStart(range: 'today' | 'week' | 'month'): Date {
+  const d = new Date();
+  if (range === 'today') {
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }
+  if (range === 'week') {
+    d.setDate(d.getDate() - 6);
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }
+  d.setDate(d.getDate() - 29);
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+function getDateRange(period: string) {
+  const now = new Date();
+  switch (period) {
+    case 'today':
+      return { from: startOfDay(now), to: endOfDay(now) };
+    case 'week':
+      return { from: startOfWeek(now, { locale: ptBR }), to: endOfWeek(now, { locale: ptBR }) };
+    case 'month':
+      return { from: startOfMonth(now), to: endOfMonth(now) };
+    default:
+      return { from: startOfDay(now), to: endOfDay(now) };
+  }
+}
+
+export function useDashboardDataManagement(filters?: DashboardFilters) {
+  const { user } = useAuth();
+  const merged = { dateRange: { from: startOfDay(new Date()), to: endOfDay(new Date()) }, queueId: null, agentId: null, ...filters };
+
+  const { data: agentsData } = useQuery({
+    queryKey: ['dashboard-agents', merged.agentId],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('profiles').select('id, name, avatar_url, is_active');
+      if (error) throw error;
+      return { onlineAgents: (data || []).filter(p => p.is_active).length, totalAgents: (data || []).length };
+    },
+  });
+
+  const { data: contactsData } = useQuery({
+    queryKey: ['dashboard-contacts', merged.dateRange],
+    queryFn: async () => {
+      const { data, error } = await dbFrom('contacts').select('id, assigned_to, queue_id, updated_at');
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  const { data: queuesData } = useQuery({
+    queryKey: ['dashboard-queues'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('queues').select('id, name, color, queue_members(is_active, profiles(is_active))');
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  const stats = useMemo(() => {
+    if (!contactsData || !agentsData || !queuesData) return null;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const openConversations = contactsData.filter(c => c.assigned_to).length;
+    const pendingConversations = contactsData.filter(c => !c.assigned_to && c.queue_id).length;
+    const resolvedToday = contactsData.filter(c => {
+      const updatedAt = new Date(c.updated_at);
+      return updatedAt >= today && !c.assigned_to;
+    }).length;
+
+    const queuesStats: QueueStats[] = (queuesData as any[]).map(queue => {
+      const members = queue.queue_members || [];
+      const onlineMembers = members.filter((m: any) => m.is_active && m.profiles?.is_active).length;
+      return {
+        id: queue.id,
+        name: queue.name,
+        color: queue.color,
+        waitingCount: pendingConversations,
+        onlineAgents: onlineMembers,
+        totalAgents: members.length,
+      };
+    });
+
+    const recentActivity: RecentActivity[] = contactsData.slice(0, 10).map(c => ({
+      id: c.id,
+      contactName: 'Contact',
+      contactPhone: '',
+      contactAvatar: null,
+      lastMessage: '',
+      timestamp: c.updated_at,
+      status: 'unread',
+      unreadCount: 0,
+    }));
+
+    return {
+      openConversations,
+      pendingConversations,
+      resolvedToday,
+      totalConversations: contactsData.length,
+      onlineAgents: agentsData.onlineAgents,
+      totalAgents: agentsData.totalAgents,
+      avgResponseTime: null,
+      queuesStats,
+      recentActivity,
+    };
+  }, [contactsData, agentsData, queuesData]);
+
+  return { stats, isLoading: false, error: null, refetch: () => {} };
+}
+
+export function useDashboardWidgetsManagement() {
+  const [widgets, setWidgets] = useState<DashboardWidget[]>(() => {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        const mergedWidgets = defaultWidgets.map(defaultWidget => {
+          const storedWidget = parsed.find((w: DashboardWidget) => w.id === defaultWidget.id);
+          return storedWidget ? { ...defaultWidget, ...storedWidget } : defaultWidget;
+        });
+        return mergedWidgets.sort((a, b) => a.order - b.order);
+      } catch {
+        return defaultWidgets;
+      }
+    }
+    return defaultWidgets;
+  });
+
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [draggedWidget, setDraggedWidget] = useState<string | null>(null);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(widgets));
+  }, [widgets]);
+
+  const reorderWidgets = useCallback((sourceIndex: number, destinationIndex: number) => {
+    const result = Array.from(widgets);
+    const [removed] = result.splice(sourceIndex, 1);
+    result.splice(destinationIndex, 0, removed);
+    const reordered = result.map((widget, index) => ({ ...widget, order: index }));
+    setWidgets(reordered);
+  }, [widgets]);
+
+  const toggleWidgetVisibility = useCallback((widgetId: string) => {
+    setWidgets(prev => prev.map(widget => widget.id === widgetId ? { ...widget, visible: !widget.visible } : widget));
+  }, []);
+
+  const updateWidgetSize = useCallback((widgetId: string, newSize: string) => {
+    setWidgets(prev => prev.map(widget => widget.id === widgetId ? { ...widget, size: newSize as any, width: sizeToGrid[newSize]?.width, height: sizeToGrid[newSize]?.height } : widget));
+  }, []);
+
+  const updateWidgetPosition = useCallback((widgetId: string, column: number, row: number) => {
+    setWidgets(prev => prev.map(widget => widget.id === widgetId ? { ...widget, column, row } : widget));
+  }, []);
+
+  const moveWidget = useCallback((widgetId: string, direction: 'up' | 'down' | 'left' | 'right') => {
+    setWidgets(prev => {
+      const widget = prev.find(w => w.id === widgetId);
+      if (!widget) return prev;
+      let newColumn = widget.column ?? 0;
+      let newRow = widget.row ?? 0;
+      switch (direction) {
+        case 'up': newRow = Math.max(0, newRow - 1); break;
+        case 'down': newRow = newRow + 1; break;
+        case 'left': newColumn = Math.max(0, newColumn - 1); break;
+        case 'right': newColumn = Math.min(3, newColumn + 1); break;
+      }
+      return prev.map(w => w.id === widgetId ? { ...w, column: newColumn, row: newRow } : w);
+    });
+  }, []);
+
+  const resetToDefaults = useCallback(() => {
+    setWidgets(defaultWidgets);
+    localStorage.removeItem(STORAGE_KEY);
+  }, []);
+
+  const visibleWidgets = widgets.filter(w => w.visible);
+  const level1Widgets = visibleWidgets.filter(w => w.level === 1);
+  const level2Widgets = visibleWidgets.filter(w => w.level === 2);
+  const level3Widgets = visibleWidgets.filter(w => w.level === 3);
+
+  return {
+    widgets, visibleWidgets, level1Widgets, level2Widgets, level3Widgets,
+    isEditMode, setIsEditMode, draggedWidget, setDraggedWidget,
+    reorderWidgets, toggleWidgetVisibility, updateWidgetSize, updateWidgetPosition, moveWidget, resetToDefaults,
+  };
+}
+
+export function useGoalsDashboardManagement() {
+  const [period, setPeriod] = useState('today');
+  const [configDialogOpen, setConfigDialogOpen] = useState(false);
+  const [showCelebration, setShowCelebration] = useState(false);
+  const [celebrationData, setCelebrationData] = useState({ title: '', subtitle: '', emoji: '🎉' });
+  const previousCompletedGoals = useRef<Set<string>>(new Set());
+  const previousOverallComplete = useRef(false);
+  const { user } = useAuth();
+
+  const dateRange = useMemo(() => getDateRange(period), [period]);
+
+  const { data: profile } = useQuery({
+    queryKey: ['my-profile', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      const { data, error } = await supabase.from('profiles').select('id, name').eq('user_id', user.id).single();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user?.id,
+  });
+
+  const { data: messagesData, isLoading: loadingMessages } = useQuery({
+    queryKey: ['goals-messages', period, profile?.id],
+    queryFn: async () => {
+      if (!profile?.id) return [];
+      const { data, error } = await dbFrom('messages').select('id, sender, created_at').eq('agent_id', profile.id).gte('created_at', dateRange.from.toISOString()).lte('created_at', dateRange.to.toISOString());
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!profile?.id,
+  });
+
+  const { data: contactsData, isLoading: loadingContacts } = useQuery({
+    queryKey: ['goals-contacts', period, profile?.id],
+    queryFn: async () => {
+      if (!profile?.id) return [];
+      const { data, error } = await dbFrom('contacts').select('id, created_at').eq('assigned_to', profile.id).gte('created_at', dateRange.from.toISOString()).lte('created_at', dateRange.to.toISOString());
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!profile?.id,
+  });
+
+  const { data: customGoals } = useQuery({
+    queryKey: ['goals-config', profile?.id],
+    queryFn: async () => {
+      if (!profile?.id) return [];
+      const { data, error } = await supabase.from('goals_configurations').select('goal_type, daily_target, weekly_target, monthly_target, is_active').eq('profile_id', profile.id);
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!profile?.id,
+  });
+
+  const goals = useMemo((): Goal[] => {
+    const messagesSent = messagesData?.filter((m: any) => m.sender === 'agent').length || 0;
+    const contactsHandled = contactsData?.length || 0;
+
+    const allGoals: Goal[] = [];
+    allGoals.push({
+      id: 'messages-sent',
+      label: 'Mensagens Enviadas',
+      description: 'Total de mensagens enviadas no período',
+      target: DEFAULT_GOALS.messages_sent[period as keyof typeof DEFAULT_GOALS.messages_sent],
+      current: messagesSent,
+      unit: 'mensagens',
+      icon: MessageSquare,
+      color: 'hsl(var(--primary))',
+      priority: 'high',
+    });
+    allGoals.push({
+      id: 'contacts-handled',
+      label: 'Contatos Atendidos',
+      description: 'Novos contatos atribuídos a você',
+      target: DEFAULT_GOALS.contacts_handled[period as keyof typeof DEFAULT_GOALS.contacts_handled],
+      current: contactsHandled,
+      unit: 'contatos',
+      icon: Users,
+      color: 'hsl(var(--chart-2))',
+      priority: 'high',
+    });
+    return allGoals;
+  }, [messagesData, contactsData, period]);
+
+  const overallProgress = useMemo(() => {
+    if (goals.length === 0) return 0;
+    return Math.round(goals.reduce((acc, g) => acc + Math.min((g.current / g.target) * 100, 100), 0) / goals.length);
+  }, [goals]);
+
+  const completedGoals = useMemo(() => goals.filter((g) => g.current >= g.target).length, [goals]);
+  const isLoading = loadingMessages || loadingContacts;
+
+  useEffect(() => {
+    if (isLoading || goals.length === 0) return;
+    const allGoalsCompleted = overallProgress >= 100;
+    if (allGoalsCompleted && !previousOverallComplete.current) {
+      setCelebrationData({ title: 'Todas as Metas Alcançadas! 🏆', subtitle: 'Parabéns! Você completou todas as metas do período!', emoji: '🎉' });
+      setShowCelebration(true);
+      previousOverallComplete.current = true;
+    } else if (!allGoalsCompleted) {
+      previousOverallComplete.current = false;
+    }
+  }, [goals, overallProgress, isLoading]);
+
+  return {
+    period, setPeriod, configDialogOpen, setConfigDialogOpen,
+    showCelebration, setShowCelebration, celebrationData,
+    goals, overallProgress, completedGoals, isLoading, dateRange,
+  };
+}
+
+export function useLeaderboardManagement() {
+  const [timeRange, setTimeRange] = useState<'today' | 'week' | 'month'>('week');
+  const [agents, setAgents] = useState<LeaderboardAgent[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const fetchTokenRef = useRef(0);
+  const mountedRef = useMountedRef();
+
+  const fetchLeaderboard = useCallback(async (range: 'today' | 'week' | 'month') => {
+    const token = ++fetchTokenRef.current;
+    const since = rangeStart(range).toISOString();
+    try {
+      const { data: rawStats, error } = await supabase.from('agent_stats').select('*, profiles:profile_id (id, name, avatar_url, is_active)').order('xp', { ascending: false }).limit(10);
+      if (error) throw error;
+      if (!mountedRef.current) return;
+      if (!rawStats || rawStats.length === 0) {
+        setAgents([]);
+        return;
+      }
+
+      if (fetchTokenRef.current !== token) return;
+      if (!mountedRef.current) return;
+
+      setAgents(
+        (rawStats as any[]).map((stat, index) => {
+          const profile = Array.isArray(stat.profiles) ? stat.profiles[0] : stat.profiles;
+          return {
+            id: stat.id,
+            profile_id: stat.profile_id,
+            name: profile?.name || 'Agente',
+            avatar: profile?.avatar_url || undefined,
+            xp: stat.xp,
+            level: stat.level,
+            streak: stat.current_streak,
+            messagesHandled: 0,
+            avgResponseTime: stat.avg_response_time_seconds || 0,
+            satisfaction: Number(stat.customer_satisfaction_score) * 100 || 0,
+            rank: index + 1,
+            previousRank: index + 1,
+            achievements: [],
+            achievementsCount: 0,
+            isOnline: profile?.is_active ?? false,
+          };
+        })
+      );
+    } catch (error) {
+      log.error('Error fetching leaderboard:', error);
+    } finally {
+      if (fetchTokenRef.current === token && mountedRef.current) {
+        setIsLoading(false);
+        setIsRefreshing(false);
+      }
+    }
+  }, [mountedRef]);
+
+  useEffect(() => {
+    void fetchLeaderboard(timeRange);
+    const channel = supabase.channel('leaderboard-updates').on('postgres_changes', { event: '*', schema: 'zapp', table: 'agent_stats' }, () => {
+      log.debug('Agent stats updated, refreshing leaderboard...');
+      void fetchLeaderboard(timeRange);
+    }).subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [timeRange, fetchLeaderboard]);
+
+  const handleRefresh = useCallback(() => {
+    setIsRefreshing(true);
+    void fetchLeaderboard(timeRange);
+  }, [fetchLeaderboard, timeRange]);
+
+  return { agents, isLoading, isRefreshing, timeRange, setTimeRange, handleRefresh };
+}
+
+export function useWarRoomDataManagement() {
+  const { data: agents = [] } = useQuery({
+    queryKey: ['warroom-agents'],
+    queryFn: async () => {
+      const { data: profiles, error } = await supabase.from('profiles').select('id, name, avatar_url, is_active, max_chats').eq('is_active', true);
+      if (error) throw error;
+
+      const { data: contacts, error: contactsErr } = await dbFrom('contacts').select('assigned_to');
+      if (contactsErr) log.warn('contacts fetch failed (warroom agents)');
+
+      const contactCounts = (contacts || []).reduce((acc: any, c: any) => {
+        if (c.assigned_to) acc[c.assigned_to] = (acc[c.assigned_to] || 0) + 1;
+        return acc;
+      }, {});
+
+      return (profiles || []).map((p: any): WarRoomAgent => ({
+        id: p.id,
+        name: p.name,
+        avatar: p.avatar_url || undefined,
+        status: contactCounts[p.id] >= (p.max_chats || 5) ? 'busy' : 'online',
+        activeChats: contactCounts[p.id] || 0,
+        maxChats: p.max_chats || 5,
+        avgResponseTime: 0,
+        resolvedToday: 0,
+        satisfaction: 0,
+      }));
+    },
+    staleTime: 25_000,
+    refetchInterval: 30000,
+  });
+
+  const { data: queues = [] } = useQuery({
+    queryKey: ['warroom-queues'],
+    queryFn: async () => {
+      const { data: dbQueues, error: dbQueuesErr } = await supabase.from('queues').select('id, name, color, is_active').eq('is_active', true);
+      if (dbQueuesErr) throw dbQueuesErr;
+
+      return (dbQueues || []).map((q: any): WarRoomQueue => ({
+        id: q.id,
+        name: q.name,
+        color: q.color,
+        waiting: 0,
+        avgWaitTime: 0,
+        slaBreaches: 0,
+        slaWarnings: 0,
+        inProgress: 0,
+      }));
+    },
+    staleTime: 30_000,
+    refetchInterval: 30000,
+  });
+
+  return { agents, queues };
+}
+
+export type {
+  DashboardFilters,
+  DashboardStats,
+  QueueStats,
+  RecentActivity,
+} from './dashboardTypes';

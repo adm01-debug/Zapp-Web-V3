@@ -50,7 +50,7 @@ const CATEGORIES = [
   { value: 'general', label: 'Geral' },
 ];
 
-export function PlaybooksManager() {
+export function PlaybooksManager(): JSX.Element {
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedPlaybook, setSelectedPlaybook] = useState<Playbook | null>(null);
@@ -76,7 +76,7 @@ export function PlaybooksManager() {
     },
   });
 
-  const openCreate = () => {
+  const openCreate = (): void => {
     setSelectedPlaybook(null);
     setName('');
     setDescription('');
@@ -85,7 +85,7 @@ export function PlaybooksManager() {
     setDialogOpen(true);
   };
 
-  const openEdit = (pb: Playbook) => {
+  const openEdit = (pb: Playbook): void => {
     setSelectedPlaybook(pb);
     setName(pb.name);
     setDescription(pb.description || '');
@@ -94,19 +94,19 @@ export function PlaybooksManager() {
     setDialogOpen(true);
   };
 
-  const addStep = () => {
+  const addStep = (): void => {
     setSteps((prev) => [...prev, { order: prev.length + 1, title: '', description: '', tips: '' }]);
   };
 
-  const updateStep = (index: number, field: keyof PlaybookStep, value: string) => {
+  const updateStep = (index: number, field: keyof PlaybookStep, value: string): void => {
     setSteps((prev) => prev.map((s, i) => (i === index ? { ...s, [field]: value } : s)));
   };
 
-  const removeStep = (index: number) => {
+  const removeStep = (index: number): void => {
     setSteps((prev) => prev.filter((_, i) => i !== index).map((s, i) => ({ ...s, order: i + 1 })));
   };
 
-  const save = async () => {
+  const save = async (): Promise<void> => {
     if (!name.trim()) {
       toast.error('Nome obrigatório');
       return;
@@ -131,7 +131,7 @@ export function PlaybooksManager() {
     }
   };
 
-  const deletePlaybook = async (id: string) => {
+  const deletePlaybook = async (id: string): Promise<void> => {
     await supabase.from('playbooks').delete().eq('id', id);
     toast.success('Playbook removido');
     void queryClient.invalidateQueries({ queryKey: ['admin', 'playbooks'] });

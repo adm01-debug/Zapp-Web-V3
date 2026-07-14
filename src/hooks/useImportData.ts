@@ -1,23 +1,8 @@
-/**
- * Hook para Importação de Dados
- * 
- * @module hooks/useImportData
- * @description Importação de CSV e Excel com validação Zod
- */
+// Re-export from consolidated useMediaManagement module (ETAPA 40 consolidation)
+import { useImportDataManagement } from '@/hooks/useMediaManagement';
 
-import { useState, useCallback, useEffect, useRef } from 'react';
-import { z } from 'zod';
-import * as XLSX from 'xlsx';
-import { toast } from 'sonner';
-
-// ============================================
-// TIPOS
-// ============================================
-
-export interface ImportResult<T> {
-  success: T[];
-  errors: ImportError[];
-  total: number;
+export function useImportData() {
+  return useImportDataManagement();
   fileName: string;
 }
 

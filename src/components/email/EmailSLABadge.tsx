@@ -3,7 +3,7 @@ import { Clock, AlertTriangle, CheckCircle, XCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
-import { type SLAStatus } from '@/hooks/useEmailSLA';
+import { type SLAStatus } from '@/hooks/useEmailManagement';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 

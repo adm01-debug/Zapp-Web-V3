@@ -27,7 +27,7 @@ import { useToast } from '@/hooks/use-toast';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { sanitizeText, sanitizeHtml } from '@/lib/sanitize';
 import { validatePhone } from '@/lib/phoneUtils';
-import { useRetryOperation } from '@/hooks/useRetryOperation';
+import { useRetryOperation } from '@/hooks/useRetryAndErrorPrevention';
 import { ContactPhoneManager, PhoneEntry } from '@/components/contacts/ContactPhoneManager';
 import { ContactConsentManager } from '@/components/contacts/ContactConsentManager';
 import { AuditLogPanel } from '@/components/contacts/AuditLogPanel';

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useConnectionQueues } from '@/hooks/useConnectionQueues';
+import { useConnectionQueues } from '@/hooks/useConnectionManagement';
 import { useQueues } from '@/hooks/useQueues';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -82,7 +82,7 @@ export function ConnectionQueuesDialog({
                     />
                     <div
                       className="w-3 h-3 rounded-full"
-                      style={{ backgroundColor: queue.color }}
+                      style={{ backgroundColor: queue.color ?? 'hsl(var(--primary))' }}
                     />
                     <span className="text-sm font-medium">{queue.name}</span>
                   </div>

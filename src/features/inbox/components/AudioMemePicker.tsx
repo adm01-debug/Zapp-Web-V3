@@ -19,7 +19,7 @@ import {
   Pause,
   Volume2,
 } from 'lucide-react';
-import { useAudioMemes, formatDuration, type AudioMemeItem } from '@/hooks/useAudioMemes';
+import { useAudioMemes, formatDuration, type AudioMemeItem } from '@/hooks/useAudioManagement';
 import { CATEGORY_LABELS } from './audioMemeConstants';
 import { AudioMemeCategorySelector } from './AudioMemeCategorySelector';
 import { AudioMemeUploadPreview } from './AudioMemeUploadPreview';

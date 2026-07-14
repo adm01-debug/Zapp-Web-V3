@@ -1,12 +1,4 @@
 import { useState } from 'react';
-
-interface EvolutionInstance {
-  instance?: {
-    status?: string;
-    instanceName?: string;
-    number?: string;
-  };
-}
 import { useGlobalSettings } from '@/hooks/useGlobalSettings';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -65,7 +57,7 @@ const INTEGRATION_KEYS: KeyField[] = [
   },
 ];
 
-export function IntegrationKeysSection() {
+export function IntegrationKeysSection(): JSX.Element {
   const { isLoading, getSetting, addSetting } = useGlobalSettings();
   const { listInstances } = useEvolutionApi();
   const [visibleKeys, setVisibleKeys] = useState<Record<string, boolean>>({});
@@ -81,15 +73,15 @@ export function IntegrationKeysSection() {
 
   const { syncAll } = useEvolutionAutoSync();
 
-  const toggleVisibility = (key: string) => {
+  const toggleVisibility = (key: string): void => {
     setVisibleKeys((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
-  const handleChange = (key: string, value: string) => {
+  const handleChange = (key: string, value: string): void => {
     setEditValues((prev) => ({ ...prev, [key]: value }));
   };
 
-  const handleTestConnection = async () => {
+  const handleTestConnection = async (): Promise<void> => {
     setTestingConnection(true);
     setTestResult(null);
     try {
@@ -125,7 +117,7 @@ export function IntegrationKeysSection() {
     }
   };
 
-  const handleSave = async (key: string) => {
+  const handleSave = async (key: string): Promise<void> => {
     const value = editValues[key];
     if (!value || value.trim() === '') {
       toast.error('Insira um valor válido');
