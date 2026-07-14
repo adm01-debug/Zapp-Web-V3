@@ -59,6 +59,12 @@ interface ContactAccordionSectionsProps {
   aiTags: AIConversationTag[];
   slaInfo: SLAInfo | null;
   profileId: string | null;
+  isLoadingAITags?: boolean;
+  isLoadingSLA?: boolean;
+  aiTagsError?: Error | null;
+  slaError?: Error | null;
+  onRetryAITags?: () => void;
+  onRetrySLA?: () => void;
 }
 
 export function ContactAccordionSections({
@@ -68,6 +74,12 @@ export function ContactAccordionSections({
   aiTags,
   slaInfo,
   profileId,
+  isLoadingAITags,
+  isLoadingSLA,
+  aiTagsError,
+  slaError,
+  onRetryAITags,
+  onRetrySLA,
 }: ContactAccordionSectionsProps) {
   const [mediaOpen, setMediaOpen] = useState(false);
   const [mediaMounted, setMediaMounted] = useState(false);
