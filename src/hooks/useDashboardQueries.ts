@@ -4,6 +4,7 @@ import { safeClient } from '@/integrations/supabase/safeClient';
 import type { DashboardFilters } from './dashboardTypes';
 import { dbFrom } from '@/integrations/datasource/db';
 
+/** Fetches agents list with online and total counts, optionally filtered by agent ID. */
 export const useAgentsQuery = (agentId?: string | null) =>
   useQuery({
     queryKey: ['dashboard-agents', agentId],
@@ -25,6 +26,7 @@ export const useAgentsQuery = (agentId?: string | null) =>
     refetchInterval: 30000,
   });
 
+/** Fetches contacts with optional queue, agent, and date range filtering. */
 export const useContactsQuery = (filters: DashboardFilters) =>
   useQuery({
     queryKey: [
@@ -54,6 +56,7 @@ export const useContactsQuery = (filters: DashboardFilters) =>
     refetchInterval: 15000,
   });
 
+/** Fetches recent messages with contact details and optional filtering by date and agent. */
 export const useMessagesQuery = (filters: DashboardFilters) =>
   useQuery({
     queryKey: [
@@ -89,6 +92,7 @@ export const useMessagesQuery = (filters: DashboardFilters) =>
     refetchInterval: 10000,
   });
 
+/** Fetches active queues with member and activity information. */
 export const useQueuesQuery = () =>
   useQuery({
     queryKey: ['dashboard-queues'],
@@ -116,6 +120,7 @@ export const useQueuesQuery = () =>
     refetchInterval: 30000,
   });
 
+/** Counts unassigned contacts grouped by queue ID. */
 export const useContactsPerQueueQuery = () =>
   useQuery({
     queryKey: ['dashboard-contacts-per-queue'],
@@ -136,6 +141,7 @@ export const useContactsPerQueueQuery = () =>
     refetchInterval: 15000,
   });
 
+/** Calculates average first-response time SLA metrics from recent conversations. */
 export const useSlaQuery = () =>
   useQuery({
     queryKey: ['dashboard-sla'],

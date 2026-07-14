@@ -3,6 +3,7 @@ import { useSearchInsightsManagement, type SearchInsights, type SearchInsightsTo
 
 export type { SearchInsights, SearchInsightsTopQuery, SearchInsightsZeroResult };
 
+/** Retrieves search analytics and trends for specified number of days. */
 export function useSearchInsights(days: number) {
   return useSearchInsightsManagement(days);
 }

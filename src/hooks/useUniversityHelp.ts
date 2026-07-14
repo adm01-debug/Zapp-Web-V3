@@ -14,6 +14,7 @@ function normalizeMessages(messages: ChatMessage[]) {
   }));
 }
 
+/** Generates AI-powered assistance responses for chat messages with tone and period filtering. */
 export function useUniversityHelp(
   contactId: string,
   contactName: string | undefined,

@@ -16,6 +16,7 @@ interface Group {
   participant_count: number;
 }
 
+/** Manages message forwarding to multiple contacts and groups with search and filtering. */
 export function useForwardMessage(
   open: boolean,
   onForward: (targetIds: string[], targetType: 'contact' | 'group') => void,

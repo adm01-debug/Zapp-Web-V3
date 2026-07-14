@@ -149,6 +149,7 @@ const initializeTheme = () => {
   applyThemeToDocument(themeState.resolvedTheme, false);
 };
 
+/** Manages application theme state with persistence and cross-tab synchronization. */
 export function useThemeManagement(): UseThemeReturn {
   const [snapshot, setSnapshot] = useState<ThemeSnapshot>(() => {
     if (typeof window !== 'undefined') {
@@ -205,6 +206,7 @@ export function useThemeManagement(): UseThemeReturn {
   };
 }
 
+/** Component that synchronizes theme state on mount to ensure consistent styling. */
 export function ThemeSync() {
   useEffect(() => {
     initializeTheme();
@@ -218,6 +220,7 @@ export function ThemeSync() {
 
 const ZEN_MODE_STORAGE_KEY = 'zen-mode';
 
+/** Manages zen mode state with keyboard escape exit and persistent storage. */
 export function useZenModeManagement(): UseZenModeReturn {
   const [isZen, setIsZen] = useState(() => {
     try {
@@ -260,6 +263,7 @@ export function useZenModeManagement(): UseZenModeReturn {
 // AMBIENT COLOR MANAGEMENT
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════════════
 
+/** Returns color theme values based on sentiment classification for ambient styling. */
 export function useAmbientColorManagement(sentiment: Sentiment): AmbientColors {
   return useMemo(() => {
     switch (sentiment) {
@@ -303,6 +307,7 @@ function getElementPath(el: Element): string {
   return path.join(' > ');
 }
 
+/** Audits theme consistency checking OLED backgrounds, font settings, and color variables. */
 export function useThemeAuditManagement(): AuditResult {
   const { resolvedTheme } = useThemeManagement();
   const [result, setResult] = useState<AuditResult>({

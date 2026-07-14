@@ -35,6 +35,7 @@ export interface PendingUpload {
   name: string;
 }
 
+/** Manages audio meme library with loading, syncing, categorization, and playback control. */
 export function useAudioMemes(open: boolean) {
   const [memes, setMemes] = useState<AudioMemeItem[]>([]);
   const [loading, setLoading] = useState(false);
@@ -353,6 +354,7 @@ interface UseAudioPlayerOptions {
   refreshKey?: MediaRefreshKey;
 }
 
+/** Manages audio playback with rate control, progress tracking, and URL resolution. */
 export function useAudioPlayer({ audioUrl, messageId, refreshKey }: UseAudioPlayerOptions) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -700,6 +702,7 @@ interface UseAudioRecorderOptions {
   maxDuration?: number;
 }
 
+/** Manages audio recording with pause/resume, duration limits, and blob generation. */
 export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
   const { onRecordingComplete, maxDuration = MAX_PTT_DURATION_SEC } = options;
 

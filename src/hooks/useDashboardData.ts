@@ -1,11 +1,13 @@
 // Re-export from consolidated useDashboardVisualizationManagement module (ETAPA 46 consolidation)
-import { useDashboardDataManagement } from '@/hooks/useDashboardVisualizationManagement';
+import { useDashboardDataManagement } from '@/features/dashboard/hooks/useDashboardVisualizationManagement';
 import type { DashboardFilters, DashboardStats, QueueStats, RecentActivity } from './dashboardTypes';
 
+/** Retrieves dashboard statistics and data with optional filtering. */
 export function useDashboardData(filters?: DashboardFilters) {
   return useDashboardDataManagement(filters);
 }
 
+/** Formats response time in seconds to human-readable duration string. */
 export const formatResponseTime = (seconds: number | null): string => {
   if (seconds === null) return 'N/A';
   if (seconds < 60) return `${seconds}s`;

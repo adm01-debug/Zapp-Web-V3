@@ -7,18 +7,7 @@ interface UseDebounceOptions {
   leading?: boolean;
 }
 
-/**
- * Returns a debounced version of the callback.
- * The returned function will only execute after the specified delay
- * has passed since the last invocation.
- *
- * Use cases:
- * - Search input debouncing (don't query on every keystroke)
- * - Window resize handlers
- * - Scroll position tracking
- * - Auto-save form fields
- */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+/** Returns a debounced version of a callback that executes after specified delay. */
 export function useDebounce<T extends (...args: any[]) => any>(
   callback: T,
   optionsOrDelay: UseDebounceOptions | number = {},
@@ -73,15 +62,7 @@ export function useDebounce<T extends (...args: any[]) => any>(
   return debouncedFn;
 }
 
-/**
- * Debounces a value. Returns the debounced value that only updates
- * after the specified delay.
- *
- * Usage:
- *   const [search, setSearch] = useState('');
- *   const debouncedSearch = useDebouncedValue(search, 300);
- *   // debouncedSearch updates 300ms after the last setSearch call
- */
+/** Returns a debounced value that only updates after specified delay. */
 export function useDebouncedValue<T>(value: T, delay = 300): T {
   const [debouncedValue, setDebouncedValue] = useState(value);
 

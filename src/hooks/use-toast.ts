@@ -47,6 +47,7 @@ const toastCompat = ((message: ToastMessage | LegacyToastInput, data?: ToastOpti
 
 Object.assign(toastCompat, sonnerToast);
 
+/** Wrapper hook providing toast notification functionality via Sonner library. */
 const useToast = () => {
   return {
     toasts: [],

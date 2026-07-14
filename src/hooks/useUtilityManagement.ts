@@ -6,6 +6,7 @@ import { useEffect, useRef, useCallback, useState } from 'react';
 // DEBOUNCE HOOK
 // ──────────────────────────────────────────────────────────────────────────
 
+/** Debounces a value with configurable delay to prevent excessive updates. */
 export function useDebounceManagement<T>(value: T, delay: number = 500): T {
   const [debouncedValue, setDebouncedValue] = useState<T>(value);
 
@@ -30,6 +31,7 @@ interface UseInViewportOptions {
   root?: Element | null;
 }
 
+/** Detects if element is in viewport using IntersectionObserver API. */
 export function useInViewportManagement(
   ref: React.RefObject<HTMLElement>,
   options: UseInViewportOptions = {}
@@ -61,6 +63,7 @@ export function useInViewportManagement(
 // MOUNTED REF HOOK
 // ──────────────────────────────────────────────────────────────────────────
 
+/** Provides a ref to track component mount status for cleanup logic. */
 export function useMountedRefManagement(): React.MutableRefObject<boolean> {
   const mountedRef = useRef(true);
 
@@ -81,6 +84,7 @@ interface PrefetchOptions {
   onPrefetch?: (url: string) => Promise<void>;
 }
 
+/** Prefetches resource when element is hovered using custom or default strategy. */
 export function usePrefetchOnHoverManagement(
   ref: React.RefObject<HTMLElement>,
   url: string,
@@ -125,6 +129,7 @@ interface UndoableAction<T> {
   current: T;
 }
 
+/** Manages undo/redo history for actions with navigation through history states. */
 export function useUndoableActionManagement<T>(initialValue: T): UndoableAction<T> {
   const [history, setHistory] = useState<T[]>([initialValue]);
   const [current, setCurrent] = useState<T>(initialValue);
@@ -171,6 +176,7 @@ export function useUndoableActionManagement<T>(initialValue: T): UndoableAction<
 // DOCUMENT TITLE HOOK
 // ──────────────────────────────────────────────────────────────────────────
 
+/** Updates document title with optional suffix. */
 export function useDocumentTitleManagement(title: string, suffix?: string): void {
   useEffect(() => {
     const fullTitle = suffix ? `${title} ${suffix}` : title;
@@ -182,6 +188,7 @@ export function useDocumentTitleManagement(title: string, suffix?: string): void
 // SAFE STORAGE HOOK (localStorage wrapper)
 // ──────────────────────────────────────────────────────────────────────────
 
+/** Safely stores and retrieves values from localStorage with JSON serialization. */
 export function useSafeStorageManagement<T>(
   key: string,
   initialValue: T

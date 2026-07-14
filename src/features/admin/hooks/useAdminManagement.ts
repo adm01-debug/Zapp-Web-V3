@@ -265,6 +265,7 @@ export interface SelfTestResult {
 
 // ─── Section 1: Automations ──────────────────────────────────────────────────
 
+/** Manages automation rules, channels, and departments for rule configuration. */
 function useAdminAutomationsManagement() {
   const [rules, setRules] = useState<Rule[]>([]);
   const [automationChannels, setAutomationChannels] = useState<AutomationChannel[]>([]);
@@ -274,17 +275,34 @@ function useAdminAutomationsManagement() {
 
   const loadAutomations = async () => {
     setAutomationLoading(true);
-    const [{ data: rulesData, error }, { data: chs }, { data: deps }] = await Promise.all([
-      supabase.from('automations').select('*').order('name', { ascending: true }),
-      supabase.from('channel_connections').select('id,name').order('name'),
-      supabase.from('departments').select('id,name').order('name'),
-    ]);
-    if (!mountedRef.current) return;
-    if (error) toast.error(error.message);
-    setRules((rulesData ?? []) as unknown as Rule[]);
-    setAutomationChannels((chs ?? []) as AutomationChannel[]);
-    setAutomationDepartments((deps ?? []) as AutomationDepartment[]);
-    setAutomationLoading(false);
+    try {
+      const [{ data: rulesData, error }, { data: chs, error: chsError }, { data: deps, error: depsError }] = await Promise.all([
+        supabase.from('automations').select('*').order('name', { ascending: true }),
+        supabase.from('channel_connections').select('id,name').order('name'),
+        supabase.from('departments').select('id,name').order('name'),
+      ]);
+      if (!mountedRef.current) return;
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
+      if (chsError) {
+        toast.error('Erro ao carregar canais de automação');
+        return;
+      }
+      if (depsError) {
+        toast.error('Erro ao carregar departamentos de automação');
+        return;
+      }
+      setRules((rulesData ?? []) as unknown as Rule[]);
+      setAutomationChannels((chs ?? []) as AutomationChannel[]);
+      setAutomationDepartments((deps ?? []) as AutomationDepartment[]);
+    } catch (err) {
+      if (!mountedRef.current) return;
+      toast.error('Erro ao carregar automações');
+    } finally {
+      if (mountedRef.current) setAutomationLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -371,6 +389,7 @@ function useAdminAutomationsManagement() {
 
 // ─── Section 2: Channels ─────────────────────────────────────────────────────
 
+/** Manages service channels, routing configuration, queue binding, and channel status. */
 function useAdminChannelsManagement(statusFilter: string, search: string) {
   const [channels, setChannels] = useState<ServiceChannel[]>([]);
   const [channelQueues, setChannelQueues] = useState<QueueOption[]>([]);
@@ -511,6 +530,7 @@ function useAdminChannelsManagement(statusFilter: string, search: string) {
 
 // ─── Section 3: Queues ───────────────────────────────────────────────────────
 
+/** Manages queue creation, member assignments, skill levels, and distribution algorithms. */
 function useAdminQueuesManagement() {
   const { toast } = useToast();
   const [queues, setQueues] = useState<Queue[]>([]);
@@ -602,6 +622,7 @@ function useAdminQueuesManagement() {
 
 // ─── Section 4: Departments ──────────────────────────────────────────────────
 
+/** Manages department CRUD operations, member assignments, and department activation. */
 function useDepartmentsManagement() {
   const [departments, setDepartments] = useState<Department[]>([]);
   const [deptLoading, setDeptLoading] = useState(true);
@@ -1077,6 +1098,7 @@ function useHmacSecurityManagement(instance: string, includeNegative: boolean) {
 
 // ─── Section 8: Orchestration ────────────────────────────────────────────────
 
+/** Unified admin panel orchestration combining automations, channels, queues, departments, roles, and security. */
 export function useAdminManagement(options?: {
   channelStatusFilter?: string;
   channelSearch?: string;

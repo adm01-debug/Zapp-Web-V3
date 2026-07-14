@@ -4,6 +4,7 @@ import type { PushNotificationState, NotificationPayload } from '@/hooks/useNoti
 
 export type { PushNotificationState, NotificationPayload };
 
+/** Manages browser push notifications with permission requests and notification sending. */
 export function usePushNotifications() {
   return usePushNotificationsManagement();
 }

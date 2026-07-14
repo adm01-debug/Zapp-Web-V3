@@ -4,6 +4,7 @@ import type { NotificationSettings, SoundTypeOption } from '@/hooks/useNotificat
 
 export type { NotificationSettings, SoundTypeOption };
 
+/** Fetches and updates notification preferences including email, push, and SMS settings. */
 export const useNotificationSettings = () => {
   return useNotificationSettingsManagement();
 };

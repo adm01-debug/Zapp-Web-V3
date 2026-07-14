@@ -47,6 +47,7 @@ export const CATEGORY_LABELS: Record<string, string> = {
   faq: 'FAQ',
 };
 
+/** Manages knowledge base articles and files with create, update, delete, and upload operations. */
 export function useKnowledgeBase() {
   const [articles, setArticles] = useState<Article[]>([]);
   const [files, setFiles] = useState<KBFile[]>([]);

@@ -140,32 +140,51 @@ function getDateRange(period: string) {
   }
 }
 
+/** Fetches and aggregates dashboard data with filtering by date range, queue, and agent. */
 export function useDashboardDataManagement(filters?: DashboardFilters) {
   const { user } = useAuth();
   const merged = { dateRange: { from: startOfDay(new Date()), to: endOfDay(new Date()) }, queueId: null, agentId: null, ...filters };
 
-  const { data: agentsData } = useQuery({
+  const { data: agentsData, isLoading: loadingAgents } = useQuery({
     queryKey: ['dashboard-agents', merged.agentId],
     queryFn: async () => {
-      const { data, error } = await supabase.from('profiles').select('id, name, avatar_url, is_active');
+      let query = supabase.from('profiles').select('id, name, avatar_url, is_active');
+      if (merged.agentId) {
+        query = query.eq('id', merged.agentId);
+      }
+      const { data, error } = await query;
       if (error) throw error;
       return { onlineAgents: (data || []).filter(p => p.is_active).length, totalAgents: (data || []).length };
     },
   });
 
-  const { data: contactsData } = useQuery({
-    queryKey: ['dashboard-contacts', merged.dateRange],
+  const { data: contactsData, isLoading: loadingContacts, error: contactsError } = useQuery({
+    queryKey: ['dashboard-contacts', merged.dateRange, merged.queueId, merged.agentId],
     queryFn: async () => {
-      const { data, error } = await dbFrom('contacts').select('id, assigned_to, queue_id, updated_at');
+      let query = dbFrom('contacts').select('id, assigned_to, queue_id, updated_at');
+      if (merged.queueId) {
+        query = query.eq('queue_id', merged.queueId);
+      }
+      if (merged.agentId) {
+        query = query.eq('assigned_to', merged.agentId);
+      }
+      query = query
+        .gte('updated_at', merged.dateRange.from.toISOString())
+        .lte('updated_at', merged.dateRange.to.toISOString());
+      const { data, error } = await query;
       if (error) throw error;
       return data || [];
     },
   });
 
-  const { data: queuesData } = useQuery({
-    queryKey: ['dashboard-queues'],
+  const { data: queuesData, isLoading: loadingQueues, error: queuesError } = useQuery({
+    queryKey: ['dashboard-queues', merged.queueId],
     queryFn: async () => {
-      const { data, error } = await supabase.from('queues').select('id, name, color, queue_members(is_active, profiles(is_active))');
+      let query = supabase.from('queues').select('id, name, color, queue_members(is_active, profiles(is_active))');
+      if (merged.queueId) {
+        query = query.eq('id', merged.queueId);
+      }
+      const { data, error } = await query;
       if (error) throw error;
       return data || [];
     },
@@ -220,9 +239,13 @@ export function useDashboardDataManagement(filters?: DashboardFilters) {
     };
   }, [contactsData, agentsData, queuesData]);
 
-  return { stats, isLoading: false, error: null, refetch: () => {} };
+  const isLoading = loadingAgents || loadingContacts || loadingQueues;
+  const error = contactsError || queuesError;
+
+  return { stats, isLoading, error, refetch: () => {} };
 }
 
+/** Manages dashboard widget visibility, ordering, resizing, and persistence to localStorage. */
 export function useDashboardWidgetsManagement() {
   const [widgets, setWidgets] = useState<DashboardWidget[]>(() => {
     const stored = localStorage.getItem(STORAGE_KEY);
@@ -301,6 +324,7 @@ export function useDashboardWidgetsManagement() {
   };
 }
 
+/** Manages user goals tracking, celebration notifications, and custom goal configurations. */
 export function useGoalsDashboardManagement() {
   const [period, setPeriod] = useState('today');
   const [configDialogOpen, setConfigDialogOpen] = useState(false);
@@ -345,7 +369,7 @@ export function useGoalsDashboardManagement() {
     enabled: !!profile?.id,
   });
 
-  const { data: customGoals } = useQuery({
+  const { data: customGoals = [] } = useQuery({
     queryKey: ['goals-config', profile?.id],
     queryFn: async () => {
       if (!profile?.id) return [];
@@ -361,22 +385,34 @@ export function useGoalsDashboardManagement() {
     const contactsHandled = contactsData?.length || 0;
 
     const allGoals: Goal[] = [];
+
+    const messageConfig = customGoals.find((g: any) => g.goal_type === 'messages_sent');
+    const messagesTarget = messageConfig
+      ? messageConfig[`${period}_target` as keyof typeof messageConfig]
+      : DEFAULT_GOALS.messages_sent[period as keyof typeof DEFAULT_GOALS.messages_sent];
+
     allGoals.push({
       id: 'messages-sent',
       label: 'Mensagens Enviadas',
       description: 'Total de mensagens enviadas no período',
-      target: DEFAULT_GOALS.messages_sent[period as keyof typeof DEFAULT_GOALS.messages_sent],
+      target: messagesTarget || DEFAULT_GOALS.messages_sent[period as keyof typeof DEFAULT_GOALS.messages_sent],
       current: messagesSent,
       unit: 'mensagens',
       icon: MessageSquare,
       color: 'hsl(var(--primary))',
       priority: 'high',
     });
+
+    const contactConfig = customGoals.find((g: any) => g.goal_type === 'contacts_handled');
+    const contactsTarget = contactConfig
+      ? contactConfig[`${period}_target` as keyof typeof contactConfig]
+      : DEFAULT_GOALS.contacts_handled[period as keyof typeof DEFAULT_GOALS.contacts_handled];
+
     allGoals.push({
       id: 'contacts-handled',
       label: 'Contatos Atendidos',
       description: 'Novos contatos atribuídos a você',
-      target: DEFAULT_GOALS.contacts_handled[period as keyof typeof DEFAULT_GOALS.contacts_handled],
+      target: contactsTarget || DEFAULT_GOALS.contacts_handled[period as keyof typeof DEFAULT_GOALS.contacts_handled],
       current: contactsHandled,
       unit: 'contatos',
       icon: Users,
@@ -384,7 +420,7 @@ export function useGoalsDashboardManagement() {
       priority: 'high',
     });
     return allGoals;
-  }, [messagesData, contactsData, period]);
+  }, [messagesData, contactsData, period, customGoals]);
 
   const overallProgress = useMemo(() => {
     if (goals.length === 0) return 0;
@@ -413,6 +449,7 @@ export function useGoalsDashboardManagement() {
   };
 }
 
+/** Manages agent leaderboard data, rankings, XP, and real-time updates via Realtime. */
 export function useLeaderboardManagement() {
   const [timeRange, setTimeRange] = useState<'today' | 'week' | 'month'>('week');
   const [agents, setAgents] = useState<LeaderboardAgent[]>([]);
@@ -487,6 +524,7 @@ export function useLeaderboardManagement() {
   return { agents, isLoading, isRefreshing, timeRange, setTimeRange, handleRefresh };
 }
 
+/** Fetches war room data including agents, queues, and real-time metrics. */
 export function useWarRoomDataManagement() {
   const { data: agents = [] } = useQuery({
     queryKey: ['warroom-agents'],

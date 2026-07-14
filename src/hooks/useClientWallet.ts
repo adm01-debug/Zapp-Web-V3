@@ -24,6 +24,7 @@ interface Connection {
   phone_number: string;
 }
 
+/** Manages client wallet rules for agent and WhatsApp connection assignment by priority. */
 export function useClientWallet() {
   const [rules, setRules] = useState<WalletRule[]>([]);
   const [agents, setAgents] = useState<Profile[]>([]);

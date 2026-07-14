@@ -57,6 +57,7 @@ export interface UseBusinessLogicCampaignsResult {
   declareWinner: (id: string) => Promise<void>;
 }
 
+/** Manages A/B campaign variants, analytics, and winner declaration. */
 export function useBusinessLogicCampaignsManagement(
   params: UseBusinessLogicCampaignsParams
 ): UseBusinessLogicCampaignsResult {
@@ -120,10 +121,14 @@ export function useBusinessLogicCampaignsManagement(
   };
 
   const declareWinner = async (id: string): Promise<void> => {
-    await supabase
+    const { error: resetError } = await supabase
       .from('campaign_ab_variants')
       .update({ is_winner: false })
       .eq('campaign_id', campaignId);
+    if (resetError) {
+      toast({ title: 'Erro ao resetar variantes anteriores', variant: 'destructive' });
+      return;
+    }
     const { error } = await supabase
       .from('campaign_ab_variants')
       .update({ is_winner: true })
@@ -159,6 +164,7 @@ export interface UseBusinessLogicCatalogResult {
   sendProductToContact: (contact: ContactResult, message: string, imageUrls: string[]) => Promise<void>;
 }
 
+/** Manages product catalog sending to contacts with image uploads and media handling. */
 export function useBusinessLogicCatalogManagement(
   params: UseBusinessLogicCatalogParams
 ): UseBusinessLogicCatalogResult {
@@ -190,15 +196,23 @@ export function useBusinessLogicCatalogManagement(
   useEffect(() => {
     if (step !== 'selectContact') return;
     setSearchingContacts(true);
+    let isMounted = true;
     dbFrom('contacts')
       .select('id, name, phone, avatar_url')
       .order('updated_at', { ascending: false })
       .limit(15)
       .then(({ data }) => {
+        if (!isMounted) return;
         if (!contactSearch.trim()) setContactResults(data || []);
         setSearchingContacts(false);
+      })
+      .catch(() => {
+        if (isMounted) setSearchingContacts(false);
       });
-  }, [step]);
+    return () => {
+      isMounted = false;
+    };
+  }, [step, contactSearch]);
 
   const resetContactSelection = useCallback(() => {
     setSelectedContact(null);
@@ -358,6 +372,7 @@ export interface UseBusinessLogicPipelineResult {
   markAsLost: (deal: Deal) => Promise<void>;
 }
 
+/** Manages sales pipeline stages, deals, activities, and deal lifecycle (won/lost). */
 export function useBusinessLogicPipelineManagement(
   _params: UseBusinessLogicPipelineParams = {}
 ): UseBusinessLogicPipelineResult {
@@ -381,38 +396,50 @@ export function useBusinessLogicPipelineManagement(
 
   const fetchData = useCallback(async () => {
     setLoading(true);
-    const [stagesRes, dealsRes, contactsRes, agentsRes] = await Promise.all([
-      supabase.from('sales_pipeline_stages').select('*').order('position'),
-      safeClient.from('sales_deals', (q) =>
-        q
-          .select('*, contacts(name, phone), profiles!sales_deals_assigned_to_fkey(name)')
-          .order('created_at', { ascending: false })
-      ),
-      dbFrom('contacts').select('id, name, phone').limit(200),
-      supabase.from('profiles').select('id, name').eq('is_active', true),
-    ]);
-    if (!mountedRef.current) return;
-    if (stagesRes.data) setStages(stagesRes.data);
-    if (dealsRes.data) {
-      const dealsRows = dealsRes.data as Array<
-        Deal & {
-          contacts: { name: string; phone: string } | null;
-          profiles: { name: string } | null;
-          tags?: string[];
-        }
-      >;
-      setDeals(
-        dealsRows.map((d) => ({
-          ...d,
-          tags: d.tags || [],
-          contact: d.contacts,
-          assignee: d.profiles,
-        }))
-      );
+    try {
+      const [stagesRes, dealsRes, contactsRes, agentsRes] = await Promise.all([
+        supabase.from('sales_pipeline_stages').select('*').order('position'),
+        safeClient.from('sales_deals', (q) =>
+          q
+            .select('*, contacts(name, phone), profiles!sales_deals_assigned_to_fkey(name)')
+            .order('created_at', { ascending: false })
+        ),
+        dbFrom('contacts').select('id, name, phone').limit(200),
+        supabase.from('profiles').select('id, name').eq('is_active', true),
+      ]);
+      if (!mountedRef.current) return;
+
+      if (stagesRes.error) throw stagesRes.error;
+      if (dealsRes.error) throw dealsRes.error;
+      if (contactsRes.error) throw contactsRes.error;
+      if (agentsRes.error) throw agentsRes.error;
+
+      if (stagesRes.data) setStages(stagesRes.data);
+      if (dealsRes.data) {
+        const dealsRows = dealsRes.data as Array<
+          Deal & {
+            contacts: { name: string; phone: string } | null;
+            profiles: { name: string } | null;
+            tags?: string[];
+          }
+        >;
+        setDeals(
+          dealsRows.map((d) => ({
+            ...d,
+            tags: d.tags || [],
+            contact: d.contacts,
+            assignee: d.profiles,
+          }))
+        );
+      }
+      if (contactsRes.data) setContacts(contactsRes.data);
+      if (agentsRes.data) setAgents(agentsRes.data);
+    } catch (err) {
+      if (!mountedRef.current) return;
+      log.error('Error fetching pipeline data:', err);
+    } finally {
+      if (mountedRef.current) setLoading(false);
     }
-    if (contactsRes.data) setContacts(contactsRes.data);
-    if (agentsRes.data) setAgents(agentsRes.data);
-    setLoading(false);
   }, [mountedRef]);
 
   useEffect(() => {
@@ -510,16 +537,24 @@ export function useBusinessLogicPipelineManagement(
   };
 
   const deleteDeal = async (id: string) => {
-    await supabase.from('sales_deals').delete().eq('id', id);
+    const { error } = await supabase.from('sales_deals').delete().eq('id', id);
+    if (error) {
+      toast({ title: 'Erro ao remover deal', description: error.message, variant: 'destructive' });
+      return;
+    }
     toast({ title: 'Deal removido' });
     fetchData();
   };
 
   const markAsWon = async (deal: Deal) => {
-    await supabase
+    const { error } = await supabase
       .from('sales_deals')
       .update({ status: 'won', won_at: new Date().toISOString() })
       .eq('id', deal.id);
+    if (error) {
+      toast({ title: 'Erro ao marcar como ganho', description: error.message, variant: 'destructive' });
+      return;
+    }
     toast({
       title: '🎉 Deal ganho!',
       description: `${deal.title} - R$ ${(deal.value ?? 0).toLocaleString('pt-BR')}`,
@@ -528,10 +563,14 @@ export function useBusinessLogicPipelineManagement(
   };
 
   const markAsLost = async (deal: Deal) => {
-    await supabase
+    const { error } = await supabase
       .from('sales_deals')
       .update({ status: 'lost', lost_at: new Date().toISOString() })
       .eq('id', deal.id);
+    if (error) {
+      toast({ title: 'Erro ao marcar como perdido', description: error.message, variant: 'destructive' });
+      return;
+    }
     toast({ title: 'Deal perdido', description: deal.title });
     fetchData();
   };

@@ -3,6 +3,7 @@ import { useKnowledgeBaseSearchManagement, type KBArticle } from '@/hooks/useSea
 
 export type { KBArticle };
 
+/** Searches knowledge base articles by query. */
 export function useKnowledgeBaseSearch() {
   return useKnowledgeBaseSearchManagement();
 }

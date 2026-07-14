@@ -12,6 +12,7 @@ interface Integration {
   config: Record<string, any>;
 }
 
+/** Manages Evolution API instance connections and configuration. */
 export function useEvolutionApiManagement() {
   const [isConnected, setIsConnected] = useState(false);
   const [instances, setInstances] = useState<any[]>([]);
@@ -38,6 +39,7 @@ export function useEvolutionApiManagement() {
   return { isConnected, instances, loading };
 }
 
+/** Handles Gmail OAuth authentication flow and token management. */
 export function useGmailOAuthFlowManagement() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -72,6 +74,7 @@ export function useGmailOAuthFlowManagement() {
   return { isAuthenticated, loading, initiateOAuth, handleCallback };
 }
 
+/** Manages Bitrix24 CRM API integration and connection status. */
 export function useBitrixApiManagement() {
   const [isConnected, setIsConnected] = useState(false);
   const [webhookUrl, setWebhookUrl] = useState<string | null>(null);
@@ -101,6 +104,7 @@ export function useBitrixApiManagement() {
   return { isConnected, webhookUrl };
 }
 
+/** Fetches and manages TalkX integration configuration settings. */
 export function useTalkXManagement() {
   const [isEnabled, setIsEnabled] = useState(false);
   const [config, setConfig] = useState<any>(null);
@@ -130,6 +134,7 @@ export function useTalkXManagement() {
   return { isEnabled, config };
 }
 
+/** Synchronizes entity data to external CRM systems. */
 export function useSyncToCRMManagement(entityId?: string) {
   const [isSyncing, setIsSyncing] = useState(false);
   const [lastSyncAt, setLastSyncAt] = useState<string | null>(null);

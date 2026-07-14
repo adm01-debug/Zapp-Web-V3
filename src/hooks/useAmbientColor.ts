@@ -5,6 +5,7 @@ type Sentiment = 'positive' | 'neutral' | 'negative' | string | null | undefined
 
 export type { AmbientColors };
 
+/** Retrieves ambient color styling based on sentiment classification. */
 export function useAmbientColor(sentiment: Sentiment): AmbientColors {
   return useAmbientColorManagement(sentiment);
 }

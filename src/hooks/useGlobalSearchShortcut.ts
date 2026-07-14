@@ -5,6 +5,7 @@ interface UseGlobalSearchShortcutProps {
   onOpen: () => void;
 }
 
+/** Enables global search with Ctrl+K keyboard shortcut. */
 export function useGlobalSearchShortcut(props: UseGlobalSearchShortcutProps) {
   return useGlobalSearchShortcutManagement(props);
 }

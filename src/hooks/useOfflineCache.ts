@@ -40,6 +40,7 @@ function writeCache(data: ConversationWithMessages[]) {
   }
 }
 
+/** Caches conversations for offline access with localStorage persistence and TTL. */
 export function useOfflineCache(conversations: ConversationWithMessages[], loading: boolean) {
   const [cachedData, setCachedData] = useState<ConversationWithMessages[] | null>(null);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);

@@ -15,6 +15,7 @@ import {
 
 export type { FeedbackType, FeedbackOptions, WithFeedbackOptions, UndoableOptions };
 
+/** Provides feedback notifications for user actions with customizable types and durations. */
 export function useActionFeedback() {
   const { toast } = useToast();
   const activeToasts = useRef<Map<string, { dismiss: () => void }>>(new Map());
@@ -195,6 +196,7 @@ export function useActionFeedback() {
   };
 }
 
+/** Executes optimistic updates with automatic rollback and user feedback. */
 export function useOptimisticAction<T>() {
   const feedback = useActionFeedback();
   const [isPending, setIsPending] = useState(false);
@@ -224,6 +226,7 @@ export function useOptimisticAction<T>() {
   return { execute, isPending, ...feedback };
 }
 
+/** Provides confirmation dialogs for destructive or important user actions. */
 export function useConfirmAction() {
   const feedback = useActionFeedback();
   const confirm = useCallback(

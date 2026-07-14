@@ -31,6 +31,7 @@ export interface HealthLog {
 
 export const DEFAULT_URL = 'https://evolution.atomicabr.com.br';
 
+/** Manages Evolution API instance credentials, health checks, and connection testing with timeout protection. */
 export function useEvolutionApiIntegration() {
   const [credentials, setCredentials] = useState<EvolutionInstanceCredential[]>([]);
   const [healthLogs, setHealthLogs] = useState<HealthLog[]>([]);
@@ -91,13 +92,19 @@ export function useEvolutionApiIntegration() {
     const testId = creds.id || 'new';
     setTesting(testId);
     const startTime = Date.now();
+    const timeoutMs = 10000;
 
     try {
       const url = normalizeUrl(creds.api_url);
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
       const response = await fetch(`${url}/instance/fetchInstances`, {
         method: 'GET',
         headers: { apikey: creds.api_key },
+        signal: controller.signal,
       });
+      clearTimeout(timeoutId);
 
       const responseTime = Date.now() - startTime;
       const isSuccess = response.ok;

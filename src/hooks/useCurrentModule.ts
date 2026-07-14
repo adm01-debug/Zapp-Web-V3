@@ -12,6 +12,7 @@ const allGroups: { label: string; items: readonly NavItemConfig[] }[] = [
   { label: 'Sistema', items: systemNav },
 ];
 
+/** Returns the current module configuration including id, label, icon, and navigation group. */
 export function useCurrentModule(viewId: string) {
   return useMemo(() => {
     for (const group of allGroups) {

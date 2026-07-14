@@ -23,12 +23,12 @@ const EXPECTED_REALTIME_CONSUMERS: string[] = [
   'src/features/inbox/hooks/useRealtimeMessages.ts',
   'src/features/inbox/data-access/messageRepository.ts',
   'src/features/inbox/hooks/useMessageStatus.ts',
-  'src/hooks/useTranscriptionNotifications.ts',
-  'src/hooks/useRealtimeDashboard.ts',
+  'src/hooks/useRealtimeManagement.ts',
   'src/components/monitoring/hooks/useEvolutionMonitoring.ts',
   'src/features/inbox/components/useAudioMessagePlayer.ts',
   'src/features/inbox/hooks/realtime/useRetryResolutionAlerts.ts',
   'src/features/inbox/components/chat/ChatMessagesArea.tsx',
+  'src/services/messages/messagesRepository.ts',
 ];
 
 const UPDATE_HINT =

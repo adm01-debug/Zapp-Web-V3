@@ -1,15 +1,5 @@
 import { useEffect, useState, type RefObject } from 'react';
 
-/**
- * Observa se o elemento referenciado está (ou esteve recentemente) dentro
- * da viewport, com `rootMargin` configurável para ativar gating um pouco
- * antes do card aparecer. Útil para otimizações como assinar canais
- * Realtime apenas para itens visíveis numa lista grande.
- *
- * - SSR-safe: retorna `false` quando `IntersectionObserver` não existe.
- * - Sticky opcional (`keepVisibleMs`): mantém `true` por X ms após sair do
- *   viewport, evitando churn em scroll rápido (subscribe/unsubscribe loop).
- */
 export interface UseInViewportOptions {
   /** Margem ao redor do root para antecipar a entrada/saída. Default '200px'. */
   rootMargin?: string;
@@ -21,6 +11,7 @@ export interface UseInViewportOptions {
   disabled?: boolean;
 }
 
+/** Detects if an element is in viewport with configurable margin and sticky visibility delay. */
 export function useInViewport(
   ref: RefObject<Element | null>,
   options: UseInViewportOptions = {},

@@ -64,6 +64,7 @@ export const EMPTY_TEMPLATE: Partial<WhatsAppTemplate> = {
   status: 'draft',
 };
 
+/** Manages WhatsApp message templates with CRUD operations, preview, and variable substitution. */
 export function useWhatsAppTemplates() {
   const { user } = useAuth();
   const [templates, setTemplates] = useState<WhatsAppTemplate[]>([]);

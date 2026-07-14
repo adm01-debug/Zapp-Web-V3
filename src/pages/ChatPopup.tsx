@@ -1,46 +1,44 @@
-import { useEffect, useState, useCallback, lazy, Suspense } from 'react';
+import { useState, useCallback, lazy, Suspense, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useMessages } from '@/features/inbox';
+import { useContactData } from '@/hooks/useContactData';
 import { Conversation } from '@/types/chat';
 import { log } from '@/lib/logger';
-import type { Tables } from '@/integrations/supabase/types';
-
-type ContactRow = Tables<'contacts'>;
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { dbFrom } from '@/integrations/datasource/db';
 import { Minus, Maximize2, Minimize2, X, MessageSquare } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
+import { toast } from 'sonner';
 
 const ChatPanel = lazy(() => import('@/features/inbox').then((m) => ({ default: m.ChatPanel })));
 
+/** Popup chat window for direct contact communication with window management and audio support. */
 export default function ChatPopup() {
   const { contactId } = useParams<{ contactId: string }>();
-  const [contact, setContact] = useState<ContactRow | null>(null);
-  const [loading, setLoading] = useState(true);
   const [isMaximized, setIsMaximized] = useState(false);
+  const { contact, loading, error } = useContactData(contactId);
   const { messages } = useMessages({
     contactId: contactId || '',
     enabled: !!contactId,
   });
 
   useEffect(() => {
-    if (!contactId) return;
-    let cancelled = false;
-    void (async () => {
-      const { data } = await supabase.from('contacts').select('*').eq('id', contactId).single();
-      if (cancelled) return;
-      if (data) {
-        setContact(data);
-        document.title = `Chat — ${data.name}`;
-      }
-      setLoading(false);
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [contactId]);
+    if (contact) {
+      document.title = `Chat — ${contact.name}`;
+      return () => {
+        document.title = 'Zapp';
+      };
+    }
+  }, [contact]);
+
+  useEffect(() => {
+    if (error) {
+      toast.error('Erro ao carregar contato');
+      log.error('ChatPopup contact loading error:', error);
+    }
+  }, [error]);
 
   const conversation: Conversation | null = contact
     ? {

@@ -28,6 +28,7 @@ export interface CSATStats {
   trend: number;
 }
 
+/** Retrieves customer satisfaction scores with trend analysis. */
 export function useCSATManagement(period: 'today' | 'week' | 'month' = 'month') {
   const queryClient = useQueryClient();
 
@@ -182,6 +183,7 @@ function generatePredictionFromHistory(messageHistory: { hour: number; count: nu
   return data;
 }
 
+/** Predicts queue demand with capacity forecasting and staffing recommendations. */
 export function useDemandPredictionManagement(externalData?: PredictionPoint[], currentCapacity = 35) {
   const { data: messageHistory = [] } = useQuery({
     queryKey: ['demand-prediction-history'],
@@ -355,6 +357,7 @@ function generateMockDeliveryData(remoteJid: string): DeliveryStatsResult {
   };
 }
 
+/** Retrieves message delivery statistics and success rates. */
 export function useDeliveryStatsManagement(remoteJid: string | undefined, instance = 'wpp2') {
   return useQuery<DeliveryStatsResult>({
     queryKey: ['delivery-stats', remoteJid, instance],
@@ -508,6 +511,7 @@ interface NPSMetrics {
   avgScore: number;
 }
 
+/** Manages NPS survey campaigns and response tracking. */
 export function useNPSSurveysManagement() {
   const [surveys, setSurveys] = useState<NPSSurvey[]>([]);
   const [isLoading, setIsLoading] = useState(true);

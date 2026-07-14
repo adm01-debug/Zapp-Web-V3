@@ -79,6 +79,7 @@ export interface UseRealtimeSentimentAlertsResult {
 // WAR ROOM ALERTS MANAGEMENT
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════════════
 
+/** Manages war room alerts with sound notifications, push notifications, and alert history tracking. */
 export function useWarRoomAlertsManagement(soundEnabled = true): UseWarRoomAlertsResult {
   const queryClient = useQueryClient();
   const { permission: pushPermission } = usePushNotificationsManagement();
@@ -203,6 +204,7 @@ export function useWarRoomAlertsManagement(soundEnabled = true): UseWarRoomAlert
 // SENTIMENT ALERTS MANAGEMENT
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════════════
 
+/** Detects negative sentiment patterns with configurable thresholds and quiet hours support. */
 export function useSentimentAlertsManagement(): UseSentimentAlertsResult {
   const { settings, isQuietHours } = useNotificationSettingsManagement();
 
@@ -280,6 +282,7 @@ export function useSentimentAlertsManagement(): UseSentimentAlertsResult {
 // WEBHOOK HEALTH ALERTS MANAGEMENT
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════════════
 
+/** Monitors webhook endpoint health with failure detection and alert management. */
 export function useWebhookHealthAlertsManagement(): UseWebhookHealthAlertsResult {
   const [alerts, setAlerts] = useState<WebhookHealthAlert[]>([]);
   const [loading, setLoading] = useState(false);
@@ -327,6 +330,7 @@ export function useWebhookHealthAlertsManagement(): UseWebhookHealthAlertsResult
 // REALTIME SENTIMENT ALERTS MANAGEMENT
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════════════
 
+/** Tracks real-time sentiment alerts with Supabase subscriptions and quiet hours enforcement. */
 export function useRealtimeSentimentAlertsManagement(): UseRealtimeSentimentAlertsResult {
   const [alerts, setAlerts] = useState<RealtimeSentimentAlert[]>([]);
   const { settings, isQuietHours } = useNotificationSettingsManagement();

@@ -31,6 +31,7 @@ export type ScanOutcome = 'success' | 'blocked' | 'retry' | 'input' | 'error';
  *   INVALID_INPUT | METHOD_NOT_ALLOWED       → 'input'    (caller must change request)
  *   STORAGE_ERROR | INTERNAL_ERROR | UNKNOWN → 'error'    (generic toast)
  */
+/** Handles security scan results with appropriate toast notifications and retry logic. */
 export function useScanResponseHandler() {
   const handleScanResult = useCallback(
     (result: ScanResult, opts: HandleScanOptions = {}): ScanOutcome => {

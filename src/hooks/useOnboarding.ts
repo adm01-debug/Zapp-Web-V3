@@ -6,6 +6,7 @@ import { useMountedRef } from '@/hooks/useMountedRef';
 
 const ONBOARDING_KEY = 'onboarding_completed';
 
+/** Tracks user onboarding completion status with localStorage and database persistence. */
 export function useOnboarding() {
   const { user } = useAuth();
   const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState<boolean | null>(null);

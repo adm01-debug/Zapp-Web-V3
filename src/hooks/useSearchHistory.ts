@@ -3,6 +3,7 @@ import { useSearchHistoryManagement, type SearchHistoryItem } from '@/hooks/useS
 
 export type { SearchHistoryItem };
 
+/** Provides access to search history with add and clear operations. */
 export function useSearchHistory() {
   return useSearchHistoryManagement();
 }

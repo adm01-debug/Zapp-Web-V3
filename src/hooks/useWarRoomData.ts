@@ -1,7 +1,7 @@
 // Re-export from consolidated useDashboardVisualizationManagement module (ETAPA 46 consolidation)
 import { useMemo } from 'react';
-import { useWarRoomDataManagement } from '@/hooks/useDashboardVisualizationManagement';
-export type { WarRoomAgent, WarRoomQueue } from '@/hooks/useDashboardVisualizationManagement';
+import { useWarRoomDataManagement } from '@/features/dashboard/hooks/useDashboardVisualizationManagement';
+export type { WarRoomAgent, WarRoomQueue } from '@/features/dashboard/hooks/useDashboardVisualizationManagement';
 
 export interface WarRoomAlert {
   id: string;
@@ -12,11 +12,13 @@ export interface WarRoomAlert {
   isNew?: boolean;
 }
 
+/** Retrieves war room agents, queues, and real-time alerts. */
 export function useWarRoomData() {
   const { agents, queues } = useWarRoomDataManagement();
   return { agents, queues, alerts: [] as WarRoomAlert[] };
 }
 
+/** Computes aggregated metrics for war room agents and queues. */
 export function useWarRoomMetrics(agents: any[], queues: any[]) {
   return useMemo(() => {
     const totalWaiting = queues.reduce((acc, q) => acc + q.waiting, 0);

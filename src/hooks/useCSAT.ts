@@ -19,6 +19,7 @@ export interface CSATStats {
   trend: number; // percentage change vs previous period
 }
 
+/** Manages CSAT surveys with period-based filtering, statistics calculation, and submission. */
 export function useCSAT(period: 'today' | 'week' | 'month' = 'month') {
   const queryClient = useQueryClient();
 

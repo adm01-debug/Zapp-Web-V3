@@ -24,6 +24,7 @@ const PARAM_KEYS = {
   search: 'q',
 } as const;
 
+/** Persists and syncs filter state with URL search parameters for shareable filtered views. */
 export function useUrlFilters() {
   const [searchParams, setSearchParams] = useSearchParams();
 

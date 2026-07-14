@@ -4,6 +4,7 @@ import { useNavigationHistory } from '@/hooks/useNavigationHistory';
 import { useGlobalKeyboard } from '@/components/keyboard/GlobalKeyboardProvider';
 import { User } from '@supabase/supabase-js';
 
+/** Manages view navigation history with deep-linking, back/forward, and keyboard shortcuts. */
 export function useIndexNavigation(user: User | null, loading: boolean) {
   const { 
     currentView, 
