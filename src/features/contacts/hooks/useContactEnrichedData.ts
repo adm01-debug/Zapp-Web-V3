@@ -83,21 +83,20 @@ export function useContactEnrichedData(contactId: string) {
   });
 
   // Fetch enriched contact fields from DB
-  const { data: enrichedData } = useQuery({
+  const enrichedQuery = useQuery({
     queryKey: ['contact-enriched', localId],
     queryFn: async () => {
       if (!localId) return null;
       const { data, error } = await dbFrom('contacts')
         .select('company, job_title, nickname, surname, contact_type, ai_sentiment, ai_priority, channel_type')
         .eq('id', localId)
-        .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
+        .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
 
       if (error) {
         log.error('Error fetching enriched contact data:', error);
-        return null;
+        throw error;
       }
       if (!data) return null;
-      // Normalize: ensure no field is `undefined` — Inbox components render these directly.
       const normalized: EnrichedContactData = {
         company: data.company ?? null,
         job_title: data.job_title ?? null,
@@ -111,14 +110,14 @@ export function useContactEnrichedData(contactId: string) {
       return normalized;
     },
     enabled: !!localId,
-    staleTime: 3 * 60 * 1000, // 3min — coordinate with mutation invalidation
+    staleTime: 3 * 60 * 1000,
   });
 
   // Fetch AI conversation tags
-  const { data: aiTags = [] } = useQuery({
+  const aiTagsQuery = useQuery({
     queryKey: ['contact-ai-tags', localId],
     queryFn: async () => {
-      if (!localId) return [];
+      if (!localId) return [] as AIConversationTag[];
       const { data, error } = await supabase
         .from('ai_conversation_tags')
         .select('id, tag_name, confidence, source')
@@ -127,16 +126,16 @@ export function useContactEnrichedData(contactId: string) {
 
       if (error) {
         log.error('Error fetching AI tags:', error);
-        return [];
+        throw error;
       }
-      return data as AIConversationTag[]; // ignore-audit: narrows Supabase query result to local interface
+      return (data ?? []) as AIConversationTag[]; // ignore-audit: narrows Supabase query result to local interface
     },
     enabled: !!localId,
-    staleTime: 5 * 60 * 1000, // 5min — matches parent query staleTime
+    staleTime: 5 * 60 * 1000,
   });
 
   // Fetch SLA info
-  const { data: slaInfo } = useQuery({
+  const slaQuery = useQuery({
     queryKey: ['contact-sla', localId],
     queryFn: async () => {
       if (!localId) return null;
@@ -150,13 +149,32 @@ export function useContactEnrichedData(contactId: string) {
 
       if (error) {
         log.error('Error fetching SLA info:', error);
-        return null;
+        throw error;
       }
-      return data as SLAInfo | null; // ignore-audit: narrows Supabase query result to local interface
+      return (data ?? null) as SLAInfo | null; // ignore-audit: narrows Supabase query result to local interface
     },
     enabled: !!localId,
-    staleTime: 2 * 60 * 1000, // 2min — SLA is more volatile, refresh more frequently
+    staleTime: 2 * 60 * 1000,
   });
 
-  return { enrichedData, aiTags, slaInfo };
+  // aiTags é SEMPRE um array (nunca undefined) — contrato garantido para consumidores da Inbox.
+  const aiTags: AIConversationTag[] = aiTagsQuery.data ?? [];
+  const slaInfo: SLAInfo | null = slaQuery.data ?? null;
+
+  return {
+    enrichedData: enrichedQuery.data ?? null,
+    aiTags,
+    slaInfo,
+    // Estados de carregamento — expostos para placeholders/skeletons na Inbox.
+    isLoadingEnriched: enrichedQuery.isLoading,
+    isLoadingAITags: aiTagsQuery.isLoading,
+    isLoadingSLA: slaQuery.isLoading,
+    // Erros — expostos para banners de erro discretos.
+    enrichedError: enrichedQuery.error as Error | null,
+    aiTagsError: aiTagsQuery.error as Error | null,
+    slaError: slaQuery.error as Error | null,
+    // Retry helpers para o botão "Tentar novamente".
+    refetchAITags: aiTagsQuery.refetch,
+    refetchSLA: slaQuery.refetch,
+  };
 }

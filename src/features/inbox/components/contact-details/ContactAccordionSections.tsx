@@ -59,6 +59,12 @@ interface ContactAccordionSectionsProps {
   aiTags: AIConversationTag[];
   slaInfo: SLAInfo | null;
   profileId: string | null;
+  isLoadingAITags?: boolean;
+  isLoadingSLA?: boolean;
+  aiTagsError?: Error | null;
+  slaError?: Error | null;
+  onRetryAITags?: () => void;
+  onRetrySLA?: () => void;
 }
 
 export function ContactAccordionSections({
@@ -68,6 +74,12 @@ export function ContactAccordionSections({
   aiTags,
   slaInfo,
   profileId,
+  isLoadingAITags,
+  isLoadingSLA,
+  aiTagsError,
+  slaError,
+  onRetryAITags,
+  onRetrySLA,
 }: ContactAccordionSectionsProps) {
   const [mediaOpen, setMediaOpen] = useState(false);
   const [mediaMounted, setMediaMounted] = useState(false);
@@ -102,14 +114,28 @@ export function ContactAccordionSections({
         <WhatsAppStatusSection phone={contact.phone} />
       </Section>
 
-      {(slaInfo || aiTags.length > 0) && (
+      {(slaInfo ||
+        aiTags.length > 0 ||
+        isLoadingAITags ||
+        isLoadingSLA ||
+        aiTagsError ||
+        slaError) && (
         <Section
           index={1}
           value="sla-ai"
           icon={<Brain className="h-3.5 w-3.5 text-primary" />}
           label="SLA & Inteligência"
         >
-          <SLAAndAITagsSection slaInfo={slaInfo} aiTags={aiTags} />
+          <SLAAndAITagsSection
+            slaInfo={slaInfo}
+            aiTags={aiTags}
+            isLoadingAITags={isLoadingAITags}
+            isLoadingSLA={isLoadingSLA}
+            aiTagsError={aiTagsError}
+            slaError={slaError}
+            onRetryAITags={onRetryAITags}
+            onRetrySLA={onRetrySLA}
+          />
         </Section>
       )}
 
