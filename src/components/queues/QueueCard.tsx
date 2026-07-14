@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -20,15 +19,16 @@ interface QueueCardProps {
 export function QueueCard({ queue, alertCount, onAddMember, onRemoveMember, onSetGoals, onDelete }: QueueCardProps) {
   const navigate = useNavigate();
   const activeMembers = queue.members.filter(m => m.is_active && m.profile?.is_active);
+  const queueColor = queue.color ?? 'hsl(var(--primary))';
 
   return (
     <Card className="relative overflow-hidden border border-secondary/20 bg-card hover:border-secondary/40 transition-all hover:shadow-[0_0_20px_hsl(var(--secondary)/0.2)]">
-      <div className="absolute top-0 left-0 right-0 h-1" style={{ backgroundColor: queue.color }} />
+      <div className="absolute top-0 left-0 right-0 h-1" style={{ backgroundColor: queueColor }} />
       <CardHeader className="pb-2">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ backgroundColor: `${queue.color}15` }}>
-              <MessageSquare className="w-5 h-5" style={{ color: queue.color }} />
+            <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ backgroundColor: `${queueColor}15` }}>
+              <MessageSquare className="w-5 h-5" style={{ color: queueColor }} />
             </div>
             <div>
               <CardTitle className="text-lg text-foreground">{queue.name}</CardTitle>
@@ -54,7 +54,7 @@ export function QueueCard({ queue, alertCount, onAddMember, onRemoveMember, onSe
         <div className="grid grid-cols-2 gap-4">
           <div className="bg-muted/20 rounded-lg p-3 border border-border/20">
             <div className="flex items-center gap-2 text-muted-foreground mb-1"><Clock className="w-4 h-4" /><span className="text-xs">Aguardando</span></div>
-            <span className="text-xl font-bold text-foreground">{queue.waiting_count}</span>
+            <span className="text-xl font-bold text-foreground">{queue.waiting_count ?? 0}</span>
           </div>
           <div className="bg-muted/20 rounded-lg p-3 border border-border/20">
             <div className="flex items-center gap-2 text-muted-foreground mb-1"><Users className="w-4 h-4" /><span className="text-xs">Atendentes</span></div>
@@ -73,7 +73,7 @@ export function QueueCard({ queue, alertCount, onAddMember, onRemoveMember, onSe
                         <AvatarImage src={member.profile?.avatar_url || undefined} alt={member.profile?.name || ""} />
                         <AvatarFallback className="text-xs bg-primary/10 text-primary">{member.profile?.name?.[0] || '?'}</AvatarFallback>
                       </Avatar>
-                      <button onClick={() => onRemoveMember(queue.id, member.profile_id)} aria-label="Remover atendente da fila" className="absolute -top-1 -right-1 w-4 h-4 bg-destructive text-destructive-foreground rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                      <button onClick={() => onRemoveMember(queue.id, member.profile_id ?? member.user_id)} aria-label="Remover atendente da fila" className="absolute -top-1 -right-1 w-4 h-4 bg-destructive text-destructive-foreground rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                         <UserMinus className="w-2.5 h-2.5" />
                       </button>
                     </div>
@@ -87,7 +87,7 @@ export function QueueCard({ queue, alertCount, onAddMember, onRemoveMember, onSe
         </div>
         <div className="flex items-center justify-between pt-2 border-t border-border/20">
           <span className="text-sm text-muted-foreground">Tempo máximo de espera</span>
-          <Badge variant="secondary" className="bg-muted/30 text-foreground">{queue.max_wait_time_minutes} min</Badge>
+          <Badge variant="secondary" className="bg-muted/30 text-foreground">{queue.max_wait_time_minutes ?? 0} min</Badge>
         </div>
       </CardContent>
     </Card>
