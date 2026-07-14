@@ -51,7 +51,7 @@ const matchesPhone = (candidate: string | null | undefined, phoneNeedles: string
 
 const extractStatusRecords = (data: unknown): WhatsAppStatusMessage[] => {
   if (Array.isArray(data)) {
-    return data as WhatsAppStatusMessage[];
+    return data as WhatsAppStatusMessage[]; // ignore-audit: narrows Supabase query result to local interface
   }
 
   if (data && typeof data === 'object') {

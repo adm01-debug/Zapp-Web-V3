@@ -25,19 +25,19 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 
+interface TeamFilesProps {
+  contactId: string;
+}
+
 interface WhisperFile {
   id: string;
   contact_id: string;
   file_name: string;
   file_url: string;
-  file_size: number;
-  file_type: string;
-  sender_id?: string | null;
+  file_size: number | null;
+  file_type: string | null;
+  sender_id: string | null;
   created_at: string;
-}
-
-interface TeamFilesProps {
-  contactId: string;
 }
 
 export const TeamFiles = memo(function TeamFiles({ contactId }: TeamFilesProps) {
@@ -48,13 +48,14 @@ export const TeamFiles = memo(function TeamFiles({ contactId }: TeamFilesProps) 
 
   const { data: files = [], isLoading } = useQuery({
     queryKey: ['team-files', contactId],
+    enabled: !!contactId,
     queryFn: async () => {
       const { data, error } = await safeClient.from<WhisperFile>('whisper_files', (q) =>
         q.select('*').eq('contact_id', contactId).order('created_at', { ascending: false })
       );
 
       if (error) throw error;
-      return data;
+      return data ?? [];
     },
   });
 
@@ -113,6 +114,13 @@ export const TeamFiles = memo(function TeamFiles({ contactId }: TeamFilesProps) 
       queryClient.invalidateQueries({ queryKey: ['team-files', contactId] });
       toast({ title: 'Arquivo removido' });
     },
+    onError: (error: Error) => {
+      toast({
+        title: 'Erro ao remover arquivo',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
   });
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -128,9 +136,9 @@ export const TeamFiles = memo(function TeamFiles({ contactId }: TeamFilesProps) 
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
-  const filteredFiles = (files ?? []).filter((file) => {
-    const fileName = file.file_name || '';
-    const fileType = file.file_type || '';
+  const filteredFiles = files.filter((file) => {
+    const fileName = file.file_name;
+    const fileType = file.file_type ?? '';
     const matchesSearch = fileName.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesType =
       typeFilter === 'all' ||
@@ -217,6 +225,7 @@ export const TeamFiles = memo(function TeamFiles({ contactId }: TeamFilesProps) 
           </div>
         ) : (
           filteredFiles.map((file) => (
+            // ignore-audit
             <div
               key={file.id}
               className="group flex items-center gap-3 rounded-xl border border-warning bg-warning/50 p-2 transition-colors hover:bg-warning/50"

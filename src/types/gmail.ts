@@ -52,7 +52,7 @@ export interface EmailThread {
   last_message_at: string | null;
   first_reply_at:  string | null;
   created_at:      string;
-  contact?:        any;
+  contact?:        Record<string, unknown>;
   tags?:           string[];
 }
 

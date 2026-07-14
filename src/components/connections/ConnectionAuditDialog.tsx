@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { getLogger } from '@/lib/logger';
+import { useMountedRef } from '@/hooks/useMountedRef';
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
@@ -14,7 +15,7 @@ interface AuditLog {
   id: string;
   action: string;
   created_at: string;
-  details: Record<string, unknown> | null;
+  details: Record<string, unknown>;
 }
 
 interface ConnectionAuditDialogProps {
@@ -32,6 +33,7 @@ export function ConnectionAuditDialog({
 }: ConnectionAuditDialogProps) {
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(false);
+  const mountedRef = useMountedRef();
 
   useEffect(() => {
     if (open && instanceId) {
@@ -49,12 +51,22 @@ export function ConnectionAuditDialog({
         .order('created_at', { ascending: false })
         .limit(50);
 
+      if (!mountedRef.current) return;
       if (error) throw error;
-      setLogs(Array.isArray(data) ? (data as AuditLog[]) : []);
+      const normalized: AuditLog[] = (data ?? []).map((row) => ({
+        id: row.id,
+        action: row.action,
+        created_at: row.created_at,
+        details:
+          row.details && typeof row.details === 'object' && !Array.isArray(row.details)
+            ? (row.details as Record<string, unknown>)
+            : {},
+      }));
+      setLogs(normalized);
     } catch (err) {
       log.error('Failed to fetch connection audit logs', err);
     } finally {
-      setLoading(false);
+      if (mountedRef.current) setLoading(false);
     }
   };
 
@@ -127,16 +139,22 @@ export function ConnectionAuditDialog({
                       </span>
                     </div>
 
-                    {log.details && (
+                    {Object.keys(log.details).length > 0 && (
                       <div className="mt-2 rounded border bg-card p-2 text-xs text-muted-foreground">
-                        {typeof log.details === 'object' &&
-                          log.details !== null &&
-                          'cause' in log.details &&
-                          typeof (log.details as Record<string, unknown>).cause === 'string' && (
-                            <p className="mb-1 font-medium text-destructive">
-                              Motivo: {(log.details as Record<string, unknown>).cause as string}
-                            </p>
-                          )}
+                        {(() => {
+                          const raw = log.details.cause;
+                          const cause: string | number | boolean | null =
+                            typeof raw === 'string' ||
+                            typeof raw === 'number' ||
+                            typeof raw === 'boolean'
+                              ? raw
+                              : raw == null
+                                ? null
+                                : JSON.stringify(raw);
+                          return cause !== null && cause !== '' ? (
+                            <p className="mb-1 font-medium text-destructive">Motivo: {cause}</p>
+                          ) : null;
+                        })()}
                         <pre className="overflow-x-auto whitespace-pre-wrap font-mono">
                           {JSON.stringify(log.details, null, 2)}
                         </pre>

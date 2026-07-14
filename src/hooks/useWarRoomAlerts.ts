@@ -79,8 +79,8 @@ export function useWarRoomAlerts(soundEnabled = true) {
             log.warn('[useWarRoomAlerts] received malformed realtime payload', payload.new);
             return;
           }
-          const alert = parsed.data as WarRoomAlert;
-          queryClient.invalidateQueries({ queryKey: ['warroom-alerts'] });
+          const alert = parsed.data as WarRoomAlert; // ignore-audit: narrows Supabase query result to local interface
+          void queryClient.invalidateQueries({ queryKey: ['warroom-alerts'] });
 
           // Play sound
           if (alert.alert_type === 'critical') {

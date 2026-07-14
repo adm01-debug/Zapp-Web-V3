@@ -67,7 +67,7 @@ export function useTeamMessages(conversationId: string | null, searchQuery: stri
     if (!conversationId) return;
     const channel = supabase
       .channel(`team-messages-${conversationId}`)
-      .on(
+      .on<TeamMessage>(
         'postgres_changes',
         {
           event: 'INSERT',
@@ -76,8 +76,6 @@ export function useTeamMessages(conversationId: string | null, searchQuery: stri
           filter: `conversation_id=eq.${conversationId}`,
         },
         (payload) => {
-          const newMessage = payload.new as TeamMessage;
-
           if (!searchQuery.trim()) {
             queryClient.setQueryData(
               ['team-messages', conversationId, ''],
@@ -88,7 +86,7 @@ export function useTeamMessages(conversationId: string | null, searchQuery: stri
                 if (newPages.length > 0) {
                   newPages[0] = {
                     ...newPages[0],
-                    messages: [...newPages[0].messages, newMessage],
+                    messages: [...newPages[0].messages, payload.new],
                   };
                 }
                 return { ...oldData, pages: newPages };
@@ -96,13 +94,13 @@ export function useTeamMessages(conversationId: string | null, searchQuery: stri
             );
           }
 
-          queryClient.invalidateQueries({ queryKey: ['team-messages', conversationId] });
+          void queryClient.invalidateQueries({ queryKey: ['team-messages', conversationId] });
         }
       )
       .subscribe();
 
     return () => {
-      void channel.unsubscribe();
+      void supabase.removeChannel(channel);
     };
   }, [conversationId, queryClient, searchQuery]);
 

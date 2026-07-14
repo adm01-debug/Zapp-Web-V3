@@ -4,6 +4,17 @@ import { toast } from '@/hooks/use-toast';
 import { log } from '@/lib/logger';
 import { MAX_PTT_DURATION_SEC } from '@/lib/audio/pttLimits';
 
+interface AudioRecognitionInstance {
+  lang: string;
+  continuous: boolean;
+  interimResults: boolean;
+  onresult: unknown;
+  onerror: unknown;
+  start(): void;
+  stop(): void;
+}
+type AudioRecognitionCtor = new () => AudioRecognitionInstance;
+
 interface UseAudioRecorderOptions {
   onRecordingComplete?: (audioBlob: Blob, audioUrl: string) => void;
   /** Limite de duração em segundos. Default: limite oficial de PTT (16 min). */
@@ -28,7 +39,7 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const animationFrameRef = useRef<number | null>(null);
-  const recognitionRef = useRef<any | null>(null);
+  const recognitionRef = useRef<AudioRecognitionInstance | null>(null);
   const lastBlobRef = useRef<Blob | null>(null);
   const lastTranscriptionRef = useRef<string>('');
   // Mirror of the latest transcription so async handlers (onstop) read the
@@ -141,17 +152,18 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
         }
 
         // Enhanced Transcription with Backend Fallback Support
-        const win = window as Window & { webkitSpeechRecognition?: any; SpeechRecognition?: any };
-        const SpeechRecognitionImpl =
-          (win as any).SpeechRecognition || (win as any).webkitSpeechRecognition;
+        const w = window as unknown as {
+          SpeechRecognition?: AudioRecognitionCtor;
+          webkitSpeechRecognition?: AudioRecognitionCtor;
+        };
+        const SpeechRecognitionImpl = w.SpeechRecognition ?? w.webkitSpeechRecognition;
         if (SpeechRecognitionImpl) {
           const recognition = new SpeechRecognitionImpl();
           recognition.lang = 'pt-BR';
           recognition.continuous = true;
           recognition.interimResults = true;
 
-          recognition.onresult = (event: any) => {
-            // ignore-audit
+          recognition.onresult = (event: SpeechRecognitionEvent) => {
             for (let i = event.resultIndex; i < event.results.length; i++) {
               if (event.results[i].isFinal) {
                 setTranscription((prev) => (prev + ' ' + event.results[i][0].transcript).trim());
@@ -159,11 +171,8 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
             }
           };
 
-          recognition.onerror = async (event: any) => {
-            log.warn('Speech recognition error:', {
-              error: event.error,
-              code: event.code,
-            });
+          recognition.onerror = async (event: SpeechRecognitionErrorEvent) => {
+            log.warn('Speech recognition error:', event.error);
             if (event.error === 'no-speech') return;
 
             if (

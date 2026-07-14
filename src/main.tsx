@@ -5,7 +5,7 @@ import './index.css';
 import './i18n'; // Initialize i18n
 import { getLogger } from './lib/logger';
 import { initSentry, SentryErrorBoundary } from './lib/sentry';
-import { initWebVitals } from './lib/web-vitals';
+import { initWebVitals } from './lib/webVitals';
 import { registerExternalSessionBridge } from './integrations/supabase/externalSessionBridge';
 import { initializeSilentErrorPrevention } from './lib/silentErrorPrevention';
 

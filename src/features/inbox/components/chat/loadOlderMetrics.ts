@@ -57,7 +57,7 @@ function snapshot(): LoadOlderSnapshot {
 
 function publishToWindow() {
   if (typeof window === 'undefined') return;
-  (window as unknown as { __loadOlderMetrics?: LoadOlderSnapshot }).__loadOlderMetrics = snapshot();
+  (window as unknown as { __loadOlderMetrics?: LoadOlderSnapshot }).__loadOlderMetrics = snapshot(); // ignore-audit — window debug property for devtools inspection
 }
 
 export function recordLoadOlderStarted(meta?: Record<string, unknown>): number {

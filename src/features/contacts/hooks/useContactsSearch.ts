@@ -154,25 +154,60 @@ export function useContactsSearch() {
     page,
   ];
 
+  // Cursor-based pagination: track cursor for each page
+  const [pageIndexToCursor, setPageIndexToCursor] = useState<Map<number, string | null>>(
+    new Map([[0, null]])
+  );
+  const currentPageCursor = pageIndexToCursor.get(page) ?? null;
+
   const { data, isLoading, error, refetch } = useQuery({
     queryKey,
     queryFn: async () => {
-      const { data, error } = await supabase.rpc('search_contacts', {
-        search_term: debouncedSearch || '',
-        contact_type_filter: activeTab === 'all' ? undefined : activeTab,
-        company_filter: filterCompany || undefined,
-        job_title_filter: filterJobTitle || undefined,
-        tag_filter: filterTag || undefined,
-        date_from: dateFrom ?? undefined,
-        sort_field: sortField,
-        sort_direction: sortDirection,
-        page_size: PAGE_SIZE,
-        page_offset: page * PAGE_SIZE,
-      });
+      const { data, error } = await supabase.rpc(
+        'search_contacts_cursor' as Parameters<typeof supabase.rpc>[0],
+        {
+          search_term: debouncedSearch || '',
+          contact_type_filter: activeTab === 'all' ? undefined : activeTab,
+          company_filter: filterCompany || undefined,
+          job_title_filter: filterJobTitle || undefined,
+          tag_filter: filterTag || undefined,
+          date_from: dateFrom ?? undefined,
+          sort_field: sortField,
+          sort_direction: sortDirection,
+          page_size: PAGE_SIZE,
+          cursor_id: currentPageCursor,
+        }
+      );
       if (error) throw error;
-      return data as (Contact & { total_count: number })[];
+      return Array.isArray(data) ? (data as unknown as (Contact & { total_count: number })[]) : [];
     },
   });
+
+  // Update page history with cursor for next page when current page loads
+  useEffect(() => {
+    if (data && data.length > 0) {
+      const lastRow = data[data.length - 1];
+      setPageIndexToCursor((prev) => {
+        const updated = new Map(prev);
+        updated.set(page + 1, lastRow.id);
+        return updated;
+      });
+    }
+  }, [data, page]);
+
+  // Reset page history when search or filters change
+  useEffect(() => {
+    setPageIndexToCursor(new Map([[0, null]]));
+  }, [
+    debouncedSearch,
+    activeTab,
+    filterCompany,
+    filterJobTitle,
+    filterTag,
+    dateFrom,
+    sortField,
+    sortDirection,
+  ]);
 
   const contacts = useMemo(() => data ?? [], [data]);
   const totalCount = contacts.length > 0 ? Number(contacts[0].total_count) : 0;

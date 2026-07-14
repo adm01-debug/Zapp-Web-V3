@@ -27,7 +27,7 @@ export interface QueueItem {
   attachments?: File[];
   onProgress?: (p: number) => void;
   status: 'pending' | 'sending' | 'failed' | 'confirmed';
-  error?: any;
+  error?: unknown;
   retryCount: number;
   progress?: number;
   externalId?: string;
@@ -50,12 +50,27 @@ export interface QueueMetrics {
   byConversation: Record<string, { sent: number; failed: number; latency: number[] }>;
 }
 
+export interface MessageQueueController {
+  queue: QueueItem[];
+  addToQueue: (
+    contactId: string,
+    content: string,
+    attachments?: File[],
+    type?: QueueItem['type']
+  ) => void;
+  retryMessage: (id: string) => void;
+  updateProgress: (id: string, progress: number) => void;
+  reconcileWithDelivery: (contactId: string, externalId: string, status: 'confirmed' | 'failed') => void;
+  getMetrics: () => QueueMetrics;
+  removeFromQueue: (id: string) => void;
+}
+
 const MAX_CONCURRENT_SENDS = 5;
 
 export function useMessageQueue(
   processMessage: (item: QueueItem) => Promise<void>,
   configOverrides?: Partial<Record<string, Partial<QueueConfig>>>
-) {
+): MessageQueueController {
   const [queue, setQueue] = useState<QueueItem[]>([]);
   const isProcessingRef = useRef<Record<string, boolean>>({});
   const activeTimersRef = useRef(new Set<ReturnType<typeof setTimeout>>());
@@ -99,10 +114,13 @@ export function useMessageQueue(
       try {
         const parsed = JSON.parse(savedQueue) as QueueItem[];
         const restored = parsed.map((item) => {
-          // FIX Q1 (2026-07-12): Attachments (File/Blob) não sobrevivem ao
-          // localStorage. Para 'audio'/'attachment', resgatar como 'pending'
-          // faz o processador reenviar o rótulo de exibição como mensagem real.
-          // Marcamos como 'failed' para o usuário regravar/reanexar.
+          // Attachments (File/Blob) não são serializáveis e por isso nunca
+          // sobrevivem ao localStorage. Para 'text' isso é inofensivo (o
+          // conteúdo real É a string). Para 'audio'/'attachment', `content`
+          // é só um rótulo de exibição (ex.: "Mensagem de áudio") — resgatar
+          // esses itens como 'pending' faz o processador reenviar esse rótulo
+          // como se fosse a mensagem real ao cliente. Marcamos como 'failed'
+          // para o usuário decidir regravar/reanexar em vez de reenviar.
           const lostMedia =
             (item.type === 'audio' || item.type === 'attachment') && item.status !== 'confirmed';
           return {
@@ -135,25 +153,6 @@ export function useMessageQueue(
     }));
     localStorage.setItem(QUEUE_STORAGE_KEY, JSON.stringify(queueToSave));
   }, [queue]);
-
-  const _processQueueForContact = useCallback(
-    async (contactId: string) => {
-      if (isProcessingRef.current[contactId]) return;
-
-      // Tentar pegar o próximo item da fila sem criar um loop infinito de dependência
-      // isProcessingRef garante que não rodamos em paralelo para o mesmo contato
-      let _nextItem: QueueItem | undefined;
-
-      // Precisamos de uma forma de ler o estado atual do queue sem depender dele
-      // Como estamos dentro de um useCallback que será chamado por um useEffect,
-      // podemos usar um truque ou simplesmente aceitar que o useEffect gatilha a primeira vez.
-      // Mas para o processamento sequencial, precisamos ler o estado atualizado.
-
-      // Abordagem: processQueueForContact será disparado pelo useEffect quando o queue mudar,
-      // mas ele mesmo só age se isProcessingRef estiver false.
-    },
-    [processMessage]
-  );
 
   // Versão corrigida e simplificada do processamento
   const processNextInQueue = useCallback(
@@ -258,7 +257,6 @@ export function useMessageQueue(
                 analytics?: { track: (event: string, props?: Record<string, unknown>) => void };
               }
             ).analytics;
-            const _startTimeStr = new Date(startTime).toISOString();
             const durationMs = Date.now() - startTime;
 
             // New Monitoring Logs for Dashboard

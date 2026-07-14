@@ -53,7 +53,7 @@ interface DedupeStore {
 type Listener = () => void;
 
 const STORE_KEY = '__zw_dedupe_metrics_store__';
-const g = globalThis as unknown as Record<string, DedupeStore | undefined>;
+const g = globalThis as unknown as Record<string, DedupeStore | undefined>; // ignore-audit — globalThis extension for HMR-safe singleton store
 const store: DedupeStore = g[STORE_KEY] ?? {
   events: [],
   counters: {

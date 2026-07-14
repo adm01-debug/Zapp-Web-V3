@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useMountedRef } from '@/hooks/useMountedRef';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Check, Plus, Trash2, Globe, Loader2, Search, ShieldCheck } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -45,6 +46,7 @@ export function IPWhitelistPanel() {
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [ipToRemove, setIpToRemove] = useState<WhitelistedIP | null>(null);
   const [updating, setUpdating] = useState(false);
+  const mountedRef = useMountedRef();
 
   // Form state
   const [newIP, setNewIP] = useState('');
@@ -56,7 +58,7 @@ export function IPWhitelistPanel() {
       .from('ip_whitelist')
       .select('*')
       .order('created_at', { ascending: false });
-
+    if (!mountedRef.current) return;
     if (!error && data) {
       setWhitelistedIPs(data);
     }
@@ -81,13 +83,11 @@ export function IPWhitelistPanel() {
     }
 
     setUpdating(true);
-    const { error } = await supabase
-      .from('ip_whitelist')
-      .insert({
-        ip_address: newIP,
-        description: description || null,
-        added_by: user?.id
-      });
+    const { error } = await supabase.from('ip_whitelist').insert({
+      ip_address: newIP,
+      description: description || null,
+      added_by: user?.id,
+    });
 
     if (error) {
       if (error.code === '23505') {
@@ -108,10 +108,7 @@ export function IPWhitelistPanel() {
     if (!ipToRemove) return;
 
     setUpdating(true);
-    const { error } = await supabase
-      .from('ip_whitelist')
-      .delete()
-      .eq('id', ipToRemove.id);
+    const { error } = await supabase.from('ip_whitelist').delete().eq('id', ipToRemove.id);
 
     if (error) {
       toast.error('Erro ao remover IP');
@@ -128,9 +125,9 @@ export function IPWhitelistPanel() {
     setDescription('');
   };
 
-  const filteredIPs = whitelistedIPs.filter(ip =>
-    ip.ip_address.includes(search) ||
-    ip.description?.toLowerCase().includes(search.toLowerCase())
+  const filteredIPs = whitelistedIPs.filter(
+    (ip) =>
+      ip.ip_address.includes(search) || ip.description?.toLowerCase().includes(search.toLowerCase())
   );
 
   return (
@@ -139,18 +136,16 @@ export function IPWhitelistPanel() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-success/10 dark:bg-success/20/30 rounded-full flex items-center justify-center">
-                <ShieldCheck className="w-5 h-5 text-success dark:text-success" />
+              <div className="dark:bg-success/20/30 flex h-10 w-10 items-center justify-center rounded-full bg-success/10">
+                <ShieldCheck className="h-5 w-5 text-success dark:text-success" />
               </div>
               <div>
                 <CardTitle>Whitelist de IPs</CardTitle>
-                <CardDescription>
-                  IPs que nunca serão bloqueados pelo rate limiting
-                </CardDescription>
+                <CardDescription>IPs que nunca serão bloqueados pelo rate limiting</CardDescription>
               </div>
             </div>
             <Button onClick={() => setShowAddDialog(true)} size="sm" variant="outline">
-              <Plus className="w-4 h-4 mr-2" />
+              <Plus className="mr-2 h-4 w-4" />
               Adicionar IP
             </Button>
           </div>
@@ -158,7 +153,7 @@ export function IPWhitelistPanel() {
 
         <CardContent className="space-y-4">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               placeholder="Buscar por IP ou descrição..."
               value={search}
@@ -169,11 +164,11 @@ export function IPWhitelistPanel() {
 
           {loading ? (
             <div className="flex items-center justify-center py-8">
-              <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
           ) : filteredIPs.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <Globe className="w-12 h-12 mx-auto mb-2 opacity-20" />
+            <div className="py-8 text-center text-muted-foreground">
+              <Globe className="mx-auto mb-2 h-12 w-12 opacity-20" />
               <p>Nenhum IP na whitelist</p>
             </div>
           ) : (
@@ -185,19 +180,22 @@ export function IPWhitelistPanel() {
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10 }}
-                    className="flex items-center justify-between p-3 rounded-lg border bg-success/10/50 dark:bg-success/20/10 border-success dark:border-success"
+                    className="bg-success/10/50 dark:bg-success/20/10 flex items-center justify-between rounded-lg border border-success p-3 dark:border-success"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 bg-success/10 dark:bg-success/20/30 rounded-full flex items-center justify-center">
-                        <Check className="w-4 h-4 text-success dark:text-success" />
+                      <div className="dark:bg-success/20/30 flex h-8 w-8 items-center justify-center rounded-full bg-success/10">
+                        <Check className="h-4 w-4 text-success dark:text-success" />
                       </div>
                       <div>
-                        <code className=" font-medium">{ip.ip_address}</code>
+                        <code className="font-medium">{ip.ip_address}</code>
                         {ip.description && (
                           <p className="text-sm text-muted-foreground">{ip.description}</p>
                         )}
                         <p className="text-xs text-muted-foreground">
-                          Adicionado em {format(new Date(ip.created_at), "dd 'de' MMM 'de' yyyy", { locale: ptBR })}
+                          Adicionado em{' '}
+                          {format(new Date(ip.created_at), "dd 'de' MMM 'de' yyyy", {
+                            locale: ptBR,
+                          })}
                         </p>
                       </div>
                     </div>
@@ -205,9 +203,9 @@ export function IPWhitelistPanel() {
                       variant="ghost"
                       size="sm"
                       onClick={() => setIpToRemove(ip)}
-                      className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                      className="text-destructive hover:bg-destructive/10 hover:text-destructive"
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Trash2 className="h-4 w-4" />
                     </Button>
                   </motion.div>
                 ))}
@@ -257,7 +255,7 @@ export function IPWhitelistPanel() {
               Cancelar
             </Button>
             <Button onClick={handleAddIP} disabled={updating}>
-              {updating && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+              {updating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Adicionar
             </Button>
           </DialogFooter>
@@ -270,13 +268,14 @@ export function IPWhitelistPanel() {
           <AlertDialogHeader>
             <AlertDialogTitle>Remover da Whitelist?</AlertDialogTitle>
             <AlertDialogDescription>
-              O IP <code className="">{ipToRemove?.ip_address}</code> passará a ser monitorado pelo rate limiting.
+              O IP <code className="">{ipToRemove?.ip_address}</code> passará a ser monitorado pelo
+              rate limiting.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={updating}>Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={handleRemoveIP} disabled={updating}>
-              {updating && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+              {updating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Remover
             </AlertDialogAction>
           </AlertDialogFooter>

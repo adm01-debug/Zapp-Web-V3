@@ -12,6 +12,7 @@ import { SlashCommands, SlashCommand } from '../SlashCommands';
 import { AudioRecorder } from '../AudioRecorder';
 import { FileUploaderRef } from '../FileUploader';
 import { ExternalProduct } from '@/hooks/useExternalCatalog';
+import type { QueueItem } from '../../hooks/useMessageQueue';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { SecondaryToolbar, TertiaryToolsMenu } from './ChatInputToolbars';
 import { StickerPicker } from '../StickerPicker';
@@ -34,6 +35,13 @@ import { InputPreviewBars } from './InputPreviewBars';
 import { useChatInputLogic, setNativeValue } from './useChatInputLogic';
 import { playNotificationSound } from '@/utils/notificationSounds';
 import { formatFileSize } from '@/utils/whatsappFileTypes';
+import { asRef } from '@/lib/reactRefs';
+
+function getQueueErrorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  if (typeof error === 'string') return error;
+  return 'Erro desconhecido no envio.';
+}
 
 interface QuickReplyItem {
   id: string;
@@ -41,14 +49,6 @@ interface QuickReplyItem {
   shortcut: string;
   content: string;
   category: string;
-}
-
-interface QueueItem {
-  id: string;
-  status: 'sending' | 'failed' | 'confirmed' | 'pending';
-  progress?: number;
-  error?: { message?: string } | Error;
-  attempts?: Array<{ duration?: number }>;
 }
 
 interface ChatInputAreaProps {
@@ -321,7 +321,7 @@ export function ChatInputArea(props: ChatInputAreaProps) {
             exit={{ opacity: 0, height: 0 }}
             className="border-t border-primary/10 bg-primary/5 px-4 py-1.5"
           >
-            {(props.queue ?? []).map((item: QueueItem) => (
+            {props.queue?.map((item) => (
               <div key={item.id} className="group mb-2 last:mb-0">
                 <div className="mb-1 flex items-center justify-between gap-3">
                   <div className="flex items-center gap-2">
@@ -353,9 +353,9 @@ export function ChatInputArea(props: ChatInputAreaProps) {
                               ? 'Enviado!'
                               : 'Aguardando na fila...'}
                       </span>
-                      {item.error && (
+                      {item.error !== undefined && item.error !== null && (
                         <span className="line-clamp-1 text-[9px] italic text-destructive/80">
-                          {item.error?.message || String(item.error)}
+                          {getQueueErrorMessage(item.error)}
                         </span>
                       )}
                     </div>
@@ -554,7 +554,7 @@ export function ChatInputArea(props: ChatInputAreaProps) {
               </AnimatePresence>
 
               <textarea
-                ref={inputRef as any}
+                ref={asRef(inputRef)}
                 value={inputValue}
                 onChange={(e) => {
                   onInputChange(e);

@@ -50,7 +50,7 @@ export function useCSAT(period: 'today' | 'week' | 'month' = 'month') {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return data as CSATSurvey[];
+      return data as CSATSurvey[]; // ignore-audit: widens agent_id from string to string|null to match local interface
     },
   });
 
@@ -87,7 +87,7 @@ export function useCSAT(period: 'today' | 'week' | 'month' = 'month') {
   const submitSurvey = useMutation({
     mutationFn: async (data: {
       contact_id: string;
-      agent_id: string;
+      agent_id?: string;
       rating: number;
       feedback?: string;
     }) => {

@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
+import type { ElementType } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/features/auth';
@@ -14,7 +15,7 @@ export interface Goal {
   target: number;
   current: number;
   unit: string;
-  icon: React.ElementType;
+  icon: ElementType;
   color: string;
   priority: 'high' | 'medium' | 'low';
 }
@@ -175,7 +176,7 @@ export function useGoalsDashboard() {
       if (!profile?.id) return [];
       const { data, error } = await supabase
         .from('goals_configurations')
-        .select('*')
+        .select('goal_type, daily_target, weekly_target, monthly_target, is_active')
         .eq('profile_id', profile.id);
       if (error) throw error;
       return data || [];
@@ -204,7 +205,7 @@ export function useGoalsDashboard() {
         id: 'messages-sent',
         label: 'Mensagens Enviadas',
         description: 'Total de mensagens enviadas no período',
-        target: getGoalTarget('messages_sent', period, customGoals as any),
+        target: getGoalTarget('messages_sent', period, customGoals),
         current: messagesSent,
         unit: 'mensagens',
         icon: MessageSquare,
@@ -217,7 +218,7 @@ export function useGoalsDashboard() {
         id: 'contacts-handled',
         label: 'Contatos Atendidos',
         description: 'Novos contatos atribuídos a você',
-        target: getGoalTarget('contacts_handled', period, customGoals as any),
+        target: getGoalTarget('contacts_handled', period, customGoals),
         current: contactsHandled,
         unit: 'contatos',
         icon: Users,
@@ -230,7 +231,7 @@ export function useGoalsDashboard() {
         id: 'resolution-rate',
         label: 'Taxa de Resolução',
         description: 'Percentual de conversas resolvidas',
-        target: getGoalTarget('resolution_rate', period, customGoals as any),
+        target: getGoalTarget('resolution_rate', period, customGoals),
         current: resolutionRate,
         unit: '%',
         icon: CheckCircle2,

@@ -61,8 +61,8 @@ export function useEvolutionApiIntegration() {
       if (credsRes.error) throw credsRes.error;
       if (logsRes.error) throw logsRes.error;
 
-      setCredentials(credsRes.data as EvolutionInstanceCredential[]);
-      setHealthLogs(logsRes.data as HealthLog[]);
+      setCredentials(credsRes.data as EvolutionInstanceCredential[]); // ignore-audit: narrows nullable DB fields (api_key, api_url, is_active, health_status) to non-null
+      setHealthLogs(logsRes.data as HealthLog[]); // ignore-audit: narrows nullable DB fields (instance_name, status, response_time_ms, etc.) to non-null
     } catch (err) {
       toast.error('Erro ao carregar dados: ' + (err instanceof Error ? err.message : String(err)));
     } finally {
@@ -109,7 +109,9 @@ export function useEvolutionApiIntegration() {
         const data = await response.json();
         const instances = Array.isArray(data) ? data : [];
         totalCount = instances.length;
-        onlineCount = instances.filter((i: any) => i.connectionStatus === 'open').length;
+        onlineCount = instances.filter(
+          (i: { connectionStatus?: string }) => i.connectionStatus === 'open'
+        ).length;
         toast.success(`Teste bem-sucedido para ${creds.instance_name || 'nova config'}`);
       } else {
         errorMsg =
@@ -141,7 +143,7 @@ export function useEvolutionApiIntegration() {
       }
 
       return isSuccess;
-    } catch (err) {
+    } catch (err: unknown) {
       const rawMsg = err instanceof Error ? err.message : String(err);
       const errorMsg = rawMsg.includes('fetch') ? 'Erro de rede/URL inacessível' : rawMsg;
       toast.error(`Erro de conexão: ${errorMsg}`);
@@ -210,7 +212,7 @@ export function useEvolutionApiIntegration() {
         is_editing: null,
       });
       fetchData();
-    } catch (err) {
+    } catch (err: unknown) {
       toast.error('Erro ao salvar: ' + (err instanceof Error ? err.message : String(err)));
     }
   };
@@ -224,7 +226,7 @@ export function useEvolutionApiIntegration() {
       if (error) throw error;
       toast.success('Credenciais excluídas');
       fetchData();
-    } catch (err) {
+    } catch (err: unknown) {
       toast.error('Erro ao excluir: ' + (err instanceof Error ? err.message : String(err)));
     }
   };

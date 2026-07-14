@@ -15,7 +15,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { CONTACT_TYPE_CONFIG } from './contactTypeConfig';
-import { calculateContactHealth, getHealthColor } from '@/lib/contact-health';
+import { calculateContactHealth, getHealthColor } from '@/lib/contactHealth';
 import type { Contact } from './types';
 
 interface ContactQuickViewProps {

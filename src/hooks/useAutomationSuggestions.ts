@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
-import { getExternalSupabase, callExtRpc } from '@/integrations/supabase/externalClient';
+import { getExternalSupabase } from '@/integrations/supabase/externalClient';
 import { toast } from '@/hooks/use-toast';
 
 // Lazy: getExternalSupabase() can return null when FATOR X env vars are absent.
@@ -129,9 +130,9 @@ export function useAutomationSuggestions(remoteJid: string | null) {
       const sugg = suggestions.find((s) => s.id === id);
       if (!sugg?.recommended_tag) return false;
       try {
-        const client = getClient();
-        if (!client) return false;
-        await callExtRpc(client, 'rpc_upsert_contact', {
+        const extClient = getClient();
+        if (!extClient) return false;
+        await (extClient as unknown as SupabaseClient).rpc('rpc_upsert_contact', {
           p_remote_jid: sugg.remote_jid,
           p_instance: sugg.instance_name,
           p_tags: [sugg.recommended_tag],

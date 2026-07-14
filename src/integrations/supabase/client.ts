@@ -1,7 +1,9 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 import type { ExtendedDatabase } from './types-manual';
-import { cookieStorage } from './cookieStorage';
+import { getLogger } from '@/lib/logger';
+
+const log = getLogger('supabase-client');
 
 // Re-export so callers that need the specific type can use it
 export type { Database, ExtendedDatabase };
@@ -74,7 +76,7 @@ let warnedUnconfigured = false;
 export function warnSupabaseUnconfigured(context?: string): void {
   if (warnedUnconfigured) return;
   warnedUnconfigured = true;
-  console.warn(
+  log.warn(
     '[Supabase] Modo degradado: cliente não configurado' +
       (context ? ` (origem: ${context})` : '') +
       '. Chamadas de rede desativadas.'
@@ -82,7 +84,7 @@ export function warnSupabaseUnconfigured(context?: string): void {
 }
 
 if (!isSupabaseConfigured) {
-  console.error(
+  log.error(
     '[Supabase] URL ou chave inválida — verifique VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY.'
   );
 } else {
@@ -92,13 +94,13 @@ if (!isSupabaseConfigured) {
   // Action: set VITE_SUPABASE_URL + VITE_SUPABASE_ANON_KEY in the deploy env and
   // rotate the self-hosted anon key via `supabase gen secret` after deploy.
   if (!isValidSupabaseUrl(envUrl) || !isValidSupabaseKey(envKey)) {
-    console.warn(
+    log.warn(
       '[Supabase] ATENÇÃO: usando credenciais hardcoded (fallback). ' +
         'Defina VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY no ambiente de deploy ' +
         'e rotacione a anon key para remover a exposição do source control.'
     );
   } else if (import.meta.env.DEV) {
-    console.warn(
+    log.warn(
       `[Supabase] Conectado: ${SUPABASE_URL === SELF_HOSTED_URL ? 'self-hosted (AtomicaBR)' : SUPABASE_URL}`
     );
   }
@@ -110,7 +112,7 @@ const supabaseAnonKey = isSupabaseConfigured ? SUPABASE_ANON_KEY : 'missing-anon
 const getSupabaseStorage = () => {
   if (typeof window === 'undefined') return undefined;
   try {
-    return cookieStorage;
+    return window.localStorage;
   } catch {
     return undefined;
   }

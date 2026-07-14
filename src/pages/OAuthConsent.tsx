@@ -6,24 +6,34 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
 
 // Minimal typed wrapper — supabase.auth.oauth is in beta and TS types may lag.
+interface OAuthDetails {
+  redirect_url?: string;
+  redirect_to?: string;
+  client?: { name?: string; [key: string]: unknown };
+  [key: string]: unknown;
+}
+
 type OAuthNs = {
   getAuthorizationDetails: (
     id: string
-  ) => Promise<{ data: any; error: { message: string } | null }>;
-  approveAuthorization: (id: string) => Promise<{ data: any; error: { message: string } | null }>;
-  denyAuthorization: (id: string) => Promise<{ data: any; error: { message: string } | null }>;
+  ) => Promise<{ data: OAuthDetails | null; error: { message: string } | null }>;
+  approveAuthorization: (
+    id: string
+  ) => Promise<{ data: OAuthDetails | null; error: { message: string } | null }>;
+  denyAuthorization: (
+    id: string
+  ) => Promise<{ data: OAuthDetails | null; error: { message: string } | null }>;
 };
 
 function oauth(): OAuthNs {
-  return (supabase.auth as unknown as { oauth: OAuthNs }).oauth;
+  return (supabase.auth as unknown as { oauth: OAuthNs }).oauth; // ignore-audit — supabase.auth.oauth is beta, not in generated TS types
 }
 
 export default function OAuthConsent() {
   const [params] = useSearchParams();
   const navigate = useNavigate();
   const authorizationId = params.get('authorization_id') ?? '';
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [details, setDetails] = useState<any>(null);
+  const [details, setDetails] = useState<OAuthDetails | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useMountedRef } from '@/hooks/useMountedRef';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AlertTriangle, Shield, Ban, Clock, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -41,6 +42,7 @@ const SEVERITY_COLORS: Record<string, string> = {
 export function RateLimitRealtimeAlerts() {
   const [alerts, setAlerts] = useState<SecurityAlert[]>([]);
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
+  const mountedRef = useMountedRef();
 
   useEffect(() => {
     // Fetch recent unresolved alerts
@@ -56,6 +58,7 @@ export function RateLimitRealtimeAlerts() {
         log.error('Failed to fetch security_alerts', error);
         return;
       }
+      if (!mountedRef.current) return;
       if (data)
         setAlerts(
           data.map((row) => normalizeSecurityAlert(row as unknown as Record<string, unknown>))
@@ -67,7 +70,7 @@ export function RateLimitRealtimeAlerts() {
     // Subscribe to new alerts
     const channel = supabase
       .channel('security-alerts')
-      .on(
+      .on<SecurityAlert>(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'security_alerts' },
         (payload) => {
@@ -77,7 +80,7 @@ export function RateLimitRealtimeAlerts() {
           setAlerts((prev) => [newAlert, ...prev].slice(0, 10));
 
           // Play sound for critical alerts
-          if (newAlert.severity === 'critical' || newAlert.severity === 'high') {
+          if (payload.new.severity === 'critical' || payload.new.severity === 'high') {
             playAlertSound();
           }
         }
@@ -85,7 +88,7 @@ export function RateLimitRealtimeAlerts() {
       .subscribe();
 
     return () => {
-      void channel.unsubscribe();
+      void supabase.removeChannel(channel);
     };
   }, []);
 

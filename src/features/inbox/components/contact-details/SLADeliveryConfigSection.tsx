@@ -21,6 +21,7 @@ export function SLADeliveryConfigSection({ contactId }: SLADeliveryConfigSection
 
   const { data: config, isLoading } = useQuery({
     queryKey: ['sla-delivery-config', contactId],
+    enabled: !!contactId,
     queryFn: async () => {
       const { data: rows, error } = await safeClient.from('sla_delivery_rules', (q) =>
         q.select('*').eq('contact_id', contactId).limit(1)
@@ -65,7 +66,7 @@ export function SLADeliveryConfigSection({ contactId }: SLADeliveryConfigSection
       toast.success('Configurações de SLA salvas');
       queryClient.invalidateQueries({ queryKey: ['sla-delivery-config', contactId] });
     },
-    onError: (err: any) => {
+    onError: (err: Error) => {
       toast.error(`Erro ao salvar: ${err.message}`);
     },
   });
@@ -147,7 +148,7 @@ export function SLADeliveryConfigSection({ contactId }: SLADeliveryConfigSection
             const current = localStorage.getItem('zappweb:sla-simulation') === 'true';
             localStorage.setItem('zappweb:sla-simulation', String(!current));
             toast.info(`Modo Simulação ${!current ? 'ATIVADO' : 'DESATIVADO'}`);
-            queryClient.invalidateQueries({ queryKey: ['delivery-stats'] });
+            void queryClient.invalidateQueries({ queryKey: ['delivery-stats'] });
           }}
         >
           <Beaker className="mr-2 h-3 w-3" />

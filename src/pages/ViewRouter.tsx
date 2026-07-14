@@ -45,75 +45,75 @@ interface WithHeaderProps {
 function WithHeader({ viewId, children }: WithHeaderProps) {
   if (FULL_SCREEN_VIEWS.has(viewId)) return <>{children}</>;
   return (
-    <div className="flex flex-col h-full">
-      <div className="flex-1 min-h-0 overflow-auto p-6">{children}</div>
+    <div className="flex h-full flex-col">
+      <div className="min-h-0 flex-1 overflow-auto p-6">{children}</div>
     </div>
   );
 }
 
 // Declarative route map — easier to maintain than switch/case
 const VIEW_MAP: Record<string, React.LazyExoticComponent<React.ComponentType<any>>> = {
-  'inbox': Views.RealtimeInboxView,
-  'dashboard': Views.DashboardView,
-  'agents': Views.AgentsView,
+  inbox: Views.RealtimeInboxView,
+  dashboard: Views.DashboardView,
+  agents: Views.AgentsView,
   'agents-system': Views.AgentsView,
-  'queues': Views.QueuesView,
-  'contacts': Views.ContactsView,
-  'groups': Views.GroupsView,
-  'connections': Views.ConnectionsIntegrationsHub,
-  'wallet': Views.ClientWalletView,
-  'catalog': Views.ProductManagement,
-  'transcriptions': Views.TranscriptionsHistoryView,
-  'admin': Views.AdminView,
-  'tags': Views.TagsView,
-  'sentiment': Views.SentimentAlertsDashboard,
-  'reports': Views.AdvancedReportsView,
-  'security': Views.SecurityView,
-  'settings': Views.SettingsView,
-  'docs': Views.SystemFeaturesView,
-  'campaigns': Views.CampaignsView,
-  'chatbot': Views.ChatbotFlowsView,
-  'automations': Views.AutomationsManager,
-  'integrations': Views.ConnectionsIntegrationsHub,
-  'privacy': Views.LGPDComplianceView,
-  'pipeline': Views.SalesPipelineView,
-  'knowledge': Views.KnowledgeBaseView,
-  'payments': Views.PaymentLinksView,
+  queues: Views.QueuesView,
+  contacts: Views.ContactsView,
+  groups: Views.GroupsView,
+  connections: Views.ConnectionsIntegrationsHub,
+  wallet: Views.ClientWalletView,
+  catalog: Views.ProductManagement,
+  transcriptions: Views.TranscriptionsHistoryView,
+  admin: Views.AdminView,
+  tags: Views.TagsView,
+  sentiment: Views.SentimentAlertsDashboard,
+  reports: Views.AdvancedReportsView,
+  security: Views.SecurityView,
+  settings: Views.SettingsView,
+  docs: Views.SystemFeaturesView,
+  campaigns: Views.CampaignsView,
+  chatbot: Views.ChatbotFlowsView,
+  automations: Views.AutomationsManager,
+  integrations: Views.ConnectionsIntegrationsHub,
+  privacy: Views.LGPDComplianceView,
+  pipeline: Views.SalesPipelineView,
+  knowledge: Views.KnowledgeBaseView,
+  payments: Views.PaymentLinksView,
   'wa-flows': Views.WhatsAppFlowsBuilder,
   'meta-capi': Views.MetaCAPIView,
-  'diagnostics': Views.DiagnosticsView,
-  'voip': Views.VoIPPanel,
+  diagnostics: Views.DiagnosticsView,
+  voip: Views.VoIPPanel,
   'auto-export': Views.AutoExportManager,
   'google-calendar': Views.GoogleCalendarIntegration,
-  'themes': Views.ThemeCustomizer,
-  'schedule': Views.ScheduleCalendarView,
-  'warroom': Views.WarRoomDashboard,
+  themes: Views.ThemeCustomizer,
+  schedule: Views.ScheduleCalendarView,
+  warroom: Views.WarRoomDashboard,
   'wa-templates': Views.WhatsAppTemplatesManager,
-  'omnichannel': Views.OmnichannelManager,
-  'churn': Views.ChurnPredictionDashboard,
+  omnichannel: Views.OmnichannelManager,
+  churn: Views.ChurnPredictionDashboard,
   'ticket-classifier': Views.AutoTicketClassifier,
-  'performance': Views.PerformanceMonitor,
+  performance: Views.PerformanceMonitor,
   'omni-inbox': Views.OmnichannelInbox,
   'audit-logs': Views.AuditLogDashboard,
-  'telemetry': Views.AdminTelemetriaPage,
+  telemetry: Views.AdminTelemetriaPage,
   'failed-messages': Views.AdminFailedMessagesPage,
   'failed-auth-messages': Views.AdminFailedAuthMessagesPage,
   'webhook-events': Views.AdminWebhookEventsPage,
   'evolution-api-logs': Views.AdminEvolutionApiLogsPage,
   'alert-history': Views.AdminAlertHistoryPage,
   'webhook-overview': Views.AdminWebhookOverviewPage,
-  'nps': Views.NPSDashboard,
+  nps: Views.NPSDashboard,
   'team-chat': Views.TeamChatView,
   'email-chat': Views.EmailChatView,
-  'email': Views.EmailInboxView,
+  email: Views.EmailInboxView,
   'public-api': Views.PublicApiDashboard,
   'email-webhook': Views.EmailWebhookMonitor,
   'media-migration': Views.MediaMigrationTool,
   'sicoob-bridge': Views.SicoobBridgeDashboard,
-  'crm360': Views.CRM360ExplorerView,
+  crm360: Views.CRM360ExplorerView,
   'ai-usage': Views.AIUsageDashboard,
-  'sla': Views.SLADashboardView,
-  'talkx': Views.TalkXView,
+  sla: Views.SLADashboardView,
+  talkx: Views.TalkXView,
   'evolution-monitor': Views.EvolutionMonitoringDashboard,
   'webhook-secret': Views.AdminWebhookSecretStatusPage,
   'search-insights': Views.AdminSearchInsightsPage,
@@ -126,19 +126,28 @@ const VIEW_MAP: Record<string, React.LazyExoticComponent<React.ComponentType<any
   'email-audit': Views.AdminEmailAuditPage,
   'sla-history': Views.SLAHistory,
   'admin-connections': Views.AdminConnectionsPage,
-  'bridge': Views.ConnectionsIntegrationsHub,
+  bridge: Views.ConnectionsIntegrationsHub,
 };
 
 // Views that need custom props
 const SPECIAL_VIEWS: Record<string, (props: ViewRouterProps) => React.ReactNode> = {
-  'achievements': (props) => (
+  achievements: (props) => (
     <ErrorBoundaryView viewId="achievements">
       <Views.AchievementsSystemLazy userId={props.userId} />
     </ErrorBoundaryView>
   ),
 };
 
-export function ViewRouter({ currentView, userId, canGoBack, canGoForward, onGoBack, onGoForward, breadcrumbTrail, onNavigateTo }: ViewRouterProps) {
+export function ViewRouter({
+  currentView,
+  userId,
+  canGoBack,
+  canGoForward,
+  onGoBack,
+  onGoForward,
+  breadcrumbTrail,
+  onNavigateTo,
+}: ViewRouterProps) {
   const mod = useCurrentModule(currentView);
   useDocumentTitle(mod.label);
   const { announce } = useAriaAnnouncer();
@@ -152,7 +161,16 @@ export function ViewRouter({ currentView, userId, canGoBack, canGoForward, onGoB
   const content = useMemo(() => {
     // Check special views first (those needing props)
     if (SPECIAL_VIEWS[currentView]) {
-      return SPECIAL_VIEWS[currentView]({ currentView, userId, canGoBack, canGoForward, onGoBack, onGoForward, breadcrumbTrail, onNavigateTo });
+      return SPECIAL_VIEWS[currentView]({
+        currentView,
+        userId,
+        canGoBack,
+        canGoForward,
+        onGoBack,
+        onGoForward,
+        breadcrumbTrail,
+        onNavigateTo,
+      });
     }
     // Standard views from map
     const ViewComponent = VIEW_MAP[currentView];
@@ -164,7 +182,16 @@ export function ViewRouter({ currentView, userId, canGoBack, canGoForward, onGoB
       );
     }
     return <FallbackView currentView={currentView} />;
-  }, [currentView, userId]);
+  }, [
+    currentView,
+    userId,
+    canGoBack,
+    canGoForward,
+    onGoBack,
+    onGoForward,
+    breadcrumbTrail,
+    onNavigateTo,
+  ]);
 
   return (
     <WithHeader viewId={currentView}>
@@ -196,7 +223,11 @@ function ErrorBoundaryView({ viewId, children }: { viewId: string; children: Rea
   if (requiredRoles) {
     if (rolesLoading) {
       return (
-        <div className="h-full w-full flex items-center justify-center text-sm text-muted-foreground" role="status" aria-busy="true">
+        <div
+          className="flex h-full w-full items-center justify-center text-sm text-muted-foreground"
+          role="status"
+          aria-busy="true"
+        >
           Verificando permissões…
         </div>
       );
@@ -206,11 +237,7 @@ function ErrorBoundaryView({ viewId, children }: { viewId: string; children: Rea
   }
 
   return (
-    <ErrorBoundaryWithRetry
-      key={viewId}
-      moduleName={mod.label}
-      maxAutoRetries={2}
-    >
+    <ErrorBoundaryWithRetry key={viewId} moduleName={mod.label} maxAutoRetries={2}>
       {children}
     </ErrorBoundaryWithRetry>
   );
@@ -221,31 +248,29 @@ function FallbackView({ currentView }: { currentView: string }) {
   const Icon = mod.icon || Construction;
 
   return (
-    <div className="flex items-center justify-center h-full bg-gradient-to-b from-background to-muted/20">
-      <div className="text-center max-w-sm px-6 animate-fade-in">
+    <div className="flex h-full items-center justify-center bg-gradient-to-b from-background to-muted/20">
+      <div className="max-w-sm animate-fade-in px-6 text-center">
         <div
-          className="w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-6 border border-primary/20"
+          className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-2xl border border-primary/20"
           style={{ background: 'var(--gradient-primary)' }}
         >
-          <Icon className="w-9 h-9 text-primary-foreground" />
+          <Icon className="h-9 w-9 text-primary-foreground" />
         </div>
 
-        <h2 className="font-display text-2xl font-bold text-foreground mb-2">
-          {mod.label}
-        </h2>
+        <h2 className="mb-2 font-display text-2xl font-bold text-foreground">{mod.label}</h2>
 
         {mod.group && (
-          <span className="inline-block text-[11px] font-medium text-primary bg-primary/10 px-2.5 py-0.5 rounded-full mb-3">
+          <span className="mb-3 inline-block rounded-full bg-primary/10 px-2.5 py-0.5 text-[11px] font-medium text-primary">
             {mod.group}
           </span>
         )}
 
-        <p className="text-muted-foreground text-sm leading-relaxed">
+        <p className="text-sm leading-relaxed text-muted-foreground">
           Este módulo está em desenvolvimento e será disponibilizado em breve.
         </p>
 
-        <div className="flex items-center justify-center gap-1.5 mt-6 text-xs text-muted-foreground/60">
-          <Construction className="w-3.5 h-3.5" />
+        <div className="mt-6 flex items-center justify-center gap-1.5 text-xs text-muted-foreground/60">
+          <Construction className="h-3.5 w-3.5" />
           <span>Em construção</span>
         </div>
       </div>

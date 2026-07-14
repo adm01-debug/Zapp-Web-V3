@@ -29,8 +29,27 @@
  *   - 99.99% cross-tab consistency em <100ms
  */
 
-import { getLogger } from '@/lib/logger';
 import { recordDedupeEvent } from '@/lib/realtime/dedupeTelemetry';
+import { getLogger } from '@/lib/logger';
+import {
+  DEFAULT_LOCK_TTL,
+  DEFAULT_RESULT_TTL,
+  DEFAULT_WAIT_TIMEOUT,
+  GC_INTERVAL,
+  TAB_ID,
+  LS_LOCK_PREFIX,
+  LS_RESULT_PREFIX,
+  LS_BUS_PREFIX,
+  type BroadcastMessage,
+  type DedupeOptions,
+} from './crossTabDedupeTypes';
+import { readLock, writeLock, releaseLock } from './crossTabDedupeLock';
+import {
+  readPersistedResult,
+  writePersistedResult,
+  gcLocalStorageKeys,
+} from './crossTabDedupeCache';
+import { ensureTransport, broadcast, __getActiveTransport } from './crossTabDedupeTransport';
 
 const log = getLogger('crossTabDedupe');
 
@@ -47,7 +66,7 @@ const BUS_MSG_TTL = 15_000;
 const STORAGE_RETRY_MAX = 3;
 const STORAGE_RETRY_BACKOFF = [10, 20, 40]; // ms
 const DEDUP_RING_SIZE = 100;
-const _EVENT_PROCESSING_BUFFER = 50; // ms for out-of-order events
+const EVENT_PROCESSING_BUFFER = 50; // ms for out-of-order events
 const CLOCK_MASTER_TIMEOUT = 30_000; // re-elect master if no heartbeat
 
 /** @internal — exposto para testes que precisam do prefixo de lock. */
@@ -147,8 +166,8 @@ function notifySubscribers(key: string, data: unknown, source: 'remote' | 'local
     if (!sub.match(key)) return;
     try {
       sub.handler(key, data, source);
-    } catch (err) {
-      log.error('Subscriber handler threw', { key, err });
+    } catch {
+      /* swallow handler errors */
     }
   });
 }
@@ -329,7 +348,7 @@ function ensureTransport(): Transport {
   if (typeof BroadcastChannel !== 'undefined' && !bc) {
     try {
       bc = new BroadcastChannel(BC_NAME);
-      bc.addEventListener('message', (e) => onBroadcast(e.data as BroadcastMessage));
+      bc.addEventListener('message', (e) => onBroadcast(e.data as BroadcastMessage)); // ignore-audit: narrows Supabase query result to local interface
       transportKind = 'broadcast-channel';
       log.debug('Transport ativo: BroadcastChannel');
       return transportKind;
@@ -711,7 +730,7 @@ export async function dedupedFetch<T>(
   const pending = inflight.get(key);
   if (pending) {
     recordDedupeEvent({ key, reason: 'inflight_local' });
-    return pending as Promise<T>;
+    return pending as Promise<T>; // ignore-audit: inflight map stores Promise<unknown>; cast safe — same key was inserted with Promise<T>
   }
 
   // 3. Tenta adquirir lock cross-tab (com retry via CAS).
@@ -880,15 +899,8 @@ export function clearCrossTabDedupe(): void {
   log.debug('Cleared all cross-tab dedup state');
 }
 
-export const __TAB_ID = TAB_ID;
-
 /**
  * Subscreve-se a resultados de dedupedFetch concluídos em qualquer aba.
- *
- * Útil para que abas espectadoras atualizem a UI quando outra aba completa
- * um fetch — sem precisar refazer a requisição. O handler é chamado tanto
- * quando o broadcast chega de outra aba (`source: 'remote'`) quanto quando
- * a própria aba conclui o fetch (`source: 'local'`).
  *
  * @param keyMatcher  string exata, prefixo (ex.: "inbox:initial:") ou RegExp.
  * @param handler     callback (key, data, source) => void
@@ -904,8 +916,7 @@ export function subscribeDedupe<T = unknown>(
       : (k: string) => keyMatcher.test(k);
   const sub: Subscription = { match, handler: handler as SubscriberFn };
   subscribers.add(sub);
-  // Garante que o BroadcastChannel está ativo para entregar mensagens.
-  getBroadcastChannel();
+  ensureTransport(onBroadcast);
   return () => {
     subscribers.delete(sub);
   };

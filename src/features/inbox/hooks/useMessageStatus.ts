@@ -117,7 +117,8 @@ export const useMessageStatus = (contactId?: string) => {
       .subscribe();
 
     return () => {
-      channel.unsubscribe();
+      void channel.unsubscribe();
+      supabase.removeChannel(channel);
     };
   }, [contactId]);
 

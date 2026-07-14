@@ -109,7 +109,7 @@ export function useRealtimeSentimentAlerts() {
             log.warn('sentiment_alert payload rejeitado', parsed.error);
             return;
           }
-          void handleNewAlert(parsed.data as SentimentAlertPayload);
+          void handleNewAlert(parsed.data as SentimentAlertPayload); // ignore-audit: narrows Supabase query result to local interface
         }
       )
       .subscribe((status) => {

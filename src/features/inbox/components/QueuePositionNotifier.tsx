@@ -12,6 +12,7 @@ interface QueuePositionNotifierProps {
 export function QueuePositionNotifier({ contactId, className }: QueuePositionNotifierProps) {
   const { data: position } = useQuery({
     queryKey: ['queue-position', contactId],
+    enabled: !!contactId,
     queryFn: async () => {
       const { data } = await supabase
         .from('queue_positions')

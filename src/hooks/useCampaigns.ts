@@ -11,6 +11,20 @@ export type Campaign = CampaignRow & {
   target_filter: Record<string, unknown> | null;
 };
 
+/**
+ * Payload aceito por `createCampaign.mutate`. Mantém `name` e
+ * `message_content` obrigatórios (não `Partial<Campaign>`) para casar com
+ * o formulário do `CampaignCreateDialog` e evitar `undefined` em runtime.
+ */
+export type CampaignInput = {
+  name: string;
+  message_content: string;
+  description?: string;
+  message_type?: string;
+  target_type?: 'all' | 'custom' | 'queue' | 'tag';
+  send_interval_seconds?: number;
+};
+
 export function useCampaigns() {
   const queryClient = useQueryClient();
 
@@ -22,19 +36,19 @@ export function useCampaigns() {
         .select('*')
         .order('created_at', { ascending: false });
       if (error) throw error;
-      return data as Campaign[];
+      return data as Campaign[]; // ignore-audit: Campaign.target_filter narrows Supabase Json to Record<string,unknown>
     },
   });
 
-  const createCampaign = useMutation({
-    mutationFn: async (campaign: Partial<Campaign>) => {
+  const createCampaign = useMutation<Campaign, Error, CampaignInput>({
+    mutationFn: async (campaign: CampaignInput) => {
       const { data, error } = await supabase
         .from('campaigns')
         .insert(campaign as CampaignInsert)
         .select()
         .single();
       if (error) throw error;
-      return data;
+      return data as Campaign;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['campaigns'] });
@@ -42,6 +56,7 @@ export function useCampaigns() {
     },
     onError: (err: Error) => toast.error(`Erro: ${err.message}`),
   });
+
 
   const updateCampaign = useMutation({
     mutationFn: async ({ id, ...updates }: Partial<Campaign> & { id: string }) => {

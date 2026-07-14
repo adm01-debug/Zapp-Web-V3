@@ -34,7 +34,7 @@ export function useNewConversation(
   const [isSending, setIsSending] = useState(false);
   const [mode, setMode] = useState<'search' | 'new'>('search');
   const [connections, setConnections] = useState<
-    { id: string; name: string; instance_id: string | null; instance_name: string | null }[]
+    { id: string; name: string; instance_id: string | null }[]
   >([]);
   const [selectedConnection, setSelectedConnection] = useState('');
 
@@ -42,20 +42,13 @@ export function useNewConversation(
     if (!open) return;
     supabase
       .from('whatsapp_connections')
-      .select('id, name, instance_id, instance_name')
+      .select('id, name, instance_id')
       .eq('status', 'connected')
       .then(
         ({ data }) => {
           if (data && data.length > 0) {
-            setConnections(
-              data as unknown as {
-                id: string;
-                name: string;
-                instance_id: string | null;
-                instance_name: string | null;
-              }[]
-            );
-            setSelectedConnection((data as unknown as { id: string }[])[0].id);
+            setConnections(data);
+            setSelectedConnection(data[0].id);
           }
         },
         () => {}

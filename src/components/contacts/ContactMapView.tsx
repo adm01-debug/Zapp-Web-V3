@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { MapPin, Users, Globe } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { getAvatarColor, getInitials } from '@/lib/avatar-colors';
+import { getAvatarColor, getInitials } from '@/lib/avatarColors';
 import type { Tables } from '@/integrations/supabase/types';
 
 type Contact = Pick<Tables<'contacts'>, 'id' | 'name' | 'company' | 'phone' | 'avatar_url'> & Partial<Pick<Tables<'contacts'>, 'lead_origin'>>;
@@ -73,8 +73,9 @@ export function ContactMapView({ contacts, onContactClick }: ContactMapViewProps
     const map = new Map<string, Contact[]>();
     contacts.forEach(c => {
       const region = getRegionFromPhone(c.phone);
-      if (!map.has(region)) map.set(region, []);
-      map.get(region)!.push(c);
+      const group = map.get(region);
+      if (group) group.push(c);
+      else map.set(region, [c]);
     });
     return Array.from(map.entries())
       .sort((a, b) => b[1].length - a[1].length);

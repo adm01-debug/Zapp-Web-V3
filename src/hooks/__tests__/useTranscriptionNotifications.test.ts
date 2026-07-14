@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { renderHook } from '@testing-library/react';
 
 const mockChannel = vi.hoisted(() => vi.fn());
 const mockRemoveChannel = vi.hoisted(() => vi.fn());
@@ -48,9 +49,17 @@ vi.mock('@/integrations/datasource/db', () => ({
   dbTable: vi.fn((t: string) => t),
 }));
 
-// Must import AFTER mocks
-const { useTranscriptionNotifications } = await import('@/hooks/useTranscriptionNotifications');
-const { renderHook } = await import('@testing-library/react');
+vi.mock('@/lib/logger', () => ({
+  getLogger: vi.fn(() => ({
+    warn: vi.fn(),
+    error: vi.fn(),
+    info: vi.fn(),
+    debug: vi.fn(),
+  })),
+  log: { warn: vi.fn(), error: vi.fn(), info: vi.fn(), debug: vi.fn() },
+}));
+
+import { useTranscriptionNotifications } from '@/hooks/useTranscriptionNotifications';
 
 describe('useTranscriptionNotifications', () => {
   beforeEach(() => {
@@ -58,7 +67,7 @@ describe('useTranscriptionNotifications', () => {
     mockChannel.mockReturnValue({
       on: vi.fn().mockReturnThis(),
       subscribe: vi.fn().mockReturnThis(),
-      unsubscribe: vi.fn().mockReturnThis(),
+      unsubscribe: vi.fn(),
     });
   });
 
@@ -73,15 +82,9 @@ describe('useTranscriptionNotifications', () => {
   });
 
   it('cleans up channel on unmount', () => {
-    const unsubscribeMock = vi.fn();
-    mockChannel.mockReturnValue({
-      on: vi.fn().mockReturnThis(),
-      subscribe: vi.fn().mockReturnThis(),
-      unsubscribe: unsubscribeMock,
-    });
     const { unmount } = renderHook(() => useTranscriptionNotifications());
     unmount();
-    expect(unsubscribeMock).toHaveBeenCalled();
+    expect(mockRemoveChannel).toHaveBeenCalled();
   });
 
   it('listens for UPDATE events on evo.evolution_messages (espelho)', () => {
@@ -89,7 +92,7 @@ describe('useTranscriptionNotifications', () => {
     mockChannel.mockReturnValue({
       on: onMock,
       subscribe: vi.fn().mockReturnThis(),
-      unsubscribe: vi.fn().mockReturnThis(),
+      unsubscribe: vi.fn().mockResolvedValue(undefined),
     });
     renderHook(() => useTranscriptionNotifications());
     expect(onMock).toHaveBeenCalledWith(

@@ -98,20 +98,31 @@ jobs:
           fi
           exit 0
 
-      - name: TypeScript check (advisory in CI — private registry unavailable)
-        # bun.lock pins @supabase/postgrest-js@2.110.0 to Lovable's private
-        # Google Artifact Registry (europe-west4-npm.pkg.dev). GitHub Actions CI
-        # cannot authenticate to GAR, so bun falls back to public npm and installs
-        # an incompatible version → 156 phantom errors across 30 files. These are
-        # NOT code regressions — the code is type-safe in the Lovable environment
-        # where the correct private-registry version is available.
+      - name: TypeScript check (ratchet, blocking)
+        # Baseline em scripts/tsc-error-baseline.json congela o número de
+        # erros conhecidos. O CI falha se:
+        #   - novos erros aparecerem em arquivos hoje limpos, OU
+        #   - o total de erros crescer.
+        # Isso bloqueia merges com regressão de tipos sem impedir o
+        # progresso em arquivos legados. Para avançar o baseline após
+        # remover erros: `node scripts/check-tsc-ratchet.mjs --update`.
+        # Observação: o CI do GitHub Actions não consegue autenticar no
+        # Google Artifact Registry privado do Lovable, então a versão de
+        # `@supabase/postgrest-js` cai para a pública e pode gerar erros
+        # "fantasma" que não existem no ambiente Lovable — o baseline
+        # absorve esse ruído sem mascarar regressões reais do projeto.
+        run: node scripts/check-tsc-ratchet.mjs
+
+      - name: TypeScript check — chat components (blocking, strict)
+        # Gate estrito ADICIONAL para os componentes de chat. Esses
+        # arquivos NÃO podem ter nenhum erro (baseline = 0).
         run: |
           set +e
-          bunx tsc --noEmit -p tsconfig.app.json
-          status=$?
-          if [ "$status" -ne 0 ]; then
-            echo "::warning title=TypeScript (GAR registry mismatch)::TS errors are caused by CI falling back to public npm for @supabase/postgrest-js (Lovable private GAR is unavailable in GitHub Actions). Not a code regression."
-          fi
+          OUT=$(bunx tsgo --noEmit -p tsconfig.app.json 2>&1)
+          echo "$OUT" | grep -E "src/(features/inbox/components/chat|lib/react-refs)" | grep -E "error TS" && {
+            echo "::error title=Chat components typecheck::TypeScript errors detected in chat components (baseline is zero).";
+            exit 1;
+          }
           exit 0
 
       - name: ts-nocheck drift gate (blocking)

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
@@ -13,189 +13,49 @@ import {
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
-import { RefreshCw, Search, AlertTriangle, CheckCircle2, Webhook, Send } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
-import { safeClient } from '@/integrations/supabase/safeClient';
+import { RefreshCw, Search, AlertTriangle, Webhook, Send } from 'lucide-react';
 import { whatsapp } from '@/lib/whatsappAdapter';
+import {
+  fmtTime,
+  modeOfProvider,
+  modeBadge,
+  statusBadge,
+  kindBadge,
+  EmptyState,
+} from './whatsappLogsHelpers';
+import type { ModeFilter } from './whatsappLogsHelpers';
+import { useWhatsAppLogs } from './useWhatsAppLogs';
 
-type ModeFilter = 'all' | 'official' | 'unofficial';
-
-const OFFICIAL_PROVIDERS = ['whatsapp_cloud', 'cloud', 'meta', 'whatsapp-cloud'];
-const UNOFFICIAL_PROVIDERS = ['evolution', 'baileys', 'evolution-api'];
-const OFFICIAL_CHANNELS = ['whatsapp_cloud', 'cloud', 'official'];
-const UNOFFICIAL_CHANNELS = ['evolution', 'whatsapp', 'unofficial'];
-
-// ----- Types ----------------------------------------------------------------
-interface SendLogRow {
-  id: string;
-  provider: string;
-  instance_name: string;
-  direction: string;
-  remote_jid: string;
-  delivery_status: string;
-  http_status: number | null;
-  error_code: string | null;
-  error_message: string | null;
-  received_at: string;
-  delivered_at: string | null;
-}
-
-interface WebhookPingRow {
-  id: string;
-  kind: string;
-  meta: Record<string, unknown> | null;
-  created_at: string;
-}
-
-interface ErrorLogRow {
-  id: string;
-  instance_name: string;
-  channel_type: string | null;
-  remote_jid: string | null;
-  error_code: string | null;
-  error_message: string | null;
-  http_status: number | null;
-  retry_count: number;
-  occurred_at: string;
-}
-
-// ----- Helpers --------------------------------------------------------------
-function fmtTime(iso: string) {
-  return new Date(iso).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'medium' });
-}
-
-function modeOfProvider(provider: string | null | undefined): ModeFilter {
-  if (!provider) return 'all';
-  const p = provider.toLowerCase();
-  if (OFFICIAL_PROVIDERS.includes(p)) return 'official';
-  if (UNOFFICIAL_PROVIDERS.includes(p)) return 'unofficial';
-  return 'all';
-}
-
-function modeBadge(mode: ModeFilter) {
-  if (mode === 'official')
-    return (
-      <Badge variant="default" className="bg-primary hover:bg-primary">
-        Cloud API
-      </Badge>
-    );
-  if (mode === 'unofficial') return <Badge variant="secondary">Evolution</Badge>;
-  return <Badge variant="outline">—</Badge>;
-}
-
-function statusBadge(s: string) {
-  const ok = ['delivered', 'read', 'sent', 'received'].includes(s);
-  const warn = ['pending', 'queued', 'routing'].includes(s);
-  if (ok)
-    return (
-      <Badge variant="outline" className="border-primary text-primary">
-        {s}
-      </Badge>
-    );
-  if (warn)
-    return (
-      <Badge variant="outline" className="border-warning text-warning-foreground">
-        {s}
-      </Badge>
-    );
-  return <Badge variant="destructive">{s}</Badge>;
-}
-
-// ----- Hooks ----------------------------------------------------------------
-function useWhatsAppLogs(mode: ModeFilter, search: string) {
-  const [sends, setSends] = useState<SendLogRow[]>([]);
-  const [pings, setPings] = useState<WebhookPingRow[]>([]);
-  const [errors, setErrors] = useState<ErrorLogRow[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [refreshKey, setRefreshKey] = useState(0);
-
-  useEffect(() => {
-    let cancelled = false;
-    async function load() {
-      setLoading(true);
-      try {
-        // Envios
-        const sendQ = safeClient.from<SendLogRow>('provider_message_log', (q) => {
-          let query = q
-            .select(
-              'id,provider,instance_name,direction,remote_jid,delivery_status,http_status,error_code,error_message,received_at,delivered_at'
-            )
-            .order('received_at', { ascending: false })
-            .limit(150);
-          if (mode === 'official') query = query.in('provider', OFFICIAL_PROVIDERS);
-          if (mode === 'unofficial') query = query.in('provider', UNOFFICIAL_PROVIDERS);
-          if (search)
-            query = query.or(
-              `remote_jid.ilike.%${search}%,error_code.ilike.%${search}%,error_message.ilike.%${search}%`
-            );
-          return query;
-        });
-
-        // Webhooks Cloud (sempre busca; filtramos no client por modo)
-        const pingQ = supabase
-          .from('whatsapp_cloud_webhook_pings')
-          .select('id,kind,meta,created_at')
-          .order('created_at', { ascending: false })
-          .limit(150);
-
-        // Erros
-        const errQ = safeClient.from<ErrorLogRow>('dispatch_error_logs', (q) => {
-          let query = q
-            .select(
-              'id,instance_name,channel_type,remote_jid,error_code,error_message,http_status,retry_count,occurred_at'
-            )
-            .order('occurred_at', { ascending: false })
-            .limit(150);
-          if (mode === 'official') query = query.in('channel_type', OFFICIAL_CHANNELS);
-          if (mode === 'unofficial') query = query.in('channel_type', UNOFFICIAL_CHANNELS);
-          if (search)
-            query = query.or(
-              `remote_jid.ilike.%${search}%,error_code.ilike.%${search}%,error_message.ilike.%${search}%`
-            );
-          return query;
-        });
-
-        const [sR, pR, eR] = await Promise.all([sendQ, pingQ, errQ]);
-        if (cancelled) return;
-        setSends((sR.data ?? []) as SendLogRow[]);
-        // Webhook Cloud só faz sentido no modo oficial; no não-oficial fica vazio.
-        setPings(mode === 'unofficial' ? [] : ((pR.data ?? []) as WebhookPingRow[]));
-        setErrors((eR.data ?? []) as ErrorLogRow[]);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    }
-    load();
-    return () => {
-      cancelled = true;
-    };
-  }, [mode, search, refreshKey]);
-
-  return { sends, pings, errors, loading, refresh: () => setRefreshKey((k) => k + 1) };
-}
-
-// ----- Page -----------------------------------------------------------------
 export default function AdminWhatsAppLogsPage() {
   const [mode, setMode] = useState<ModeFilter>('all');
   const [search, setSearch] = useState('');
   const [activeMode, setActiveMode] = useState<string>('…');
   const { sends, pings, errors, loading, refresh } = useWhatsAppLogs(mode, search);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   useEffect(() => {
     whatsapp
       .resolveTransport()
       .then((r) => {
-        setActiveMode(`${r.requestedMode}${r.degraded ? ' (degraded → evolution)' : ''}`);
+        if (mountedRef.current) {
+          setActiveMode(`${r.requestedMode}${r.degraded ? ' (degraded → evolution)' : ''}`);
+        }
       })
-      .catch(() => setActiveMode('desconhecido'));
+      .catch(() => {
+        if (mountedRef.current) {
+          setActiveMode('desconhecido');
+        }
+      });
   }, []);
 
   const counts = useMemo(
-    () => ({
-      sends: sends.length,
-      pings: pings.length,
-      errors: errors.length,
-    }),
+    () => ({ sends: sends.length, pings: pings.length, errors: errors.length }),
     [sends, pings, errors]
   );
 
@@ -210,7 +70,14 @@ export default function AdminWhatsAppLogsPage() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Select value={mode} onValueChange={(v) => setMode(v as ModeFilter)}>
+          <Select
+            value={mode}
+            onValueChange={(v) =>
+              setMode(
+                v as ModeFilter /* ignore-audit: Select/Tabs value string narrowed to union; developer controls option values */
+              )
+            }
+          >
             <SelectTrigger className="w-[200px]">
               <SelectValue placeholder="Filtrar por modo" />
             </SelectTrigger>
@@ -250,7 +117,6 @@ export default function AdminWhatsAppLogsPage() {
           </TabsTrigger>
         </TabsList>
 
-        {/* ---------- Envios ---------- */}
         <TabsContent value="sends">
           <Card>
             <CardHeader>
@@ -267,14 +133,30 @@ export default function AdminWhatsAppLogsPage() {
                   <table className="w-full text-sm">
                     <thead className="border-b text-left text-muted-foreground">
                       <tr>
-                        <th scope="col" className="py-2 pr-3">Quando</th>
-                        <th scope="col" className="py-2 pr-3">Modo</th>
-                        <th scope="col" className="py-2 pr-3">Instância</th>
-                        <th scope="col" className="py-2 pr-3">Direção</th>
-                        <th scope="col" className="py-2 pr-3">JID</th>
-                        <th scope="col" className="py-2 pr-3">Status</th>
-                        <th scope="col" className="py-2 pr-3">HTTP</th>
-                        <th scope="col" className="py-2 pr-3">Erro</th>
+                        <th scope="col" className="py-2 pr-3">
+                          Quando
+                        </th>
+                        <th scope="col" className="py-2 pr-3">
+                          Modo
+                        </th>
+                        <th scope="col" className="py-2 pr-3">
+                          Instância
+                        </th>
+                        <th scope="col" className="py-2 pr-3">
+                          Direção
+                        </th>
+                        <th scope="col" className="py-2 pr-3">
+                          JID
+                        </th>
+                        <th scope="col" className="py-2 pr-3">
+                          Status
+                        </th>
+                        <th scope="col" className="py-2 pr-3">
+                          HTTP
+                        </th>
+                        <th scope="col" className="py-2 pr-3">
+                          Erro
+                        </th>
                       </tr>
                     </thead>
                     <tbody>
@@ -302,7 +184,6 @@ export default function AdminWhatsAppLogsPage() {
           </Card>
         </TabsContent>
 
-        {/* ---------- Webhooks ---------- */}
         <TabsContent value="webhooks">
           <Card>
             <CardHeader>
@@ -323,9 +204,15 @@ export default function AdminWhatsAppLogsPage() {
                   <table className="w-full text-sm">
                     <thead className="border-b text-left text-muted-foreground">
                       <tr>
-                        <th scope="col" className="py-2 pr-3">Quando</th>
-                        <th scope="col" className="py-2 pr-3">Tipo</th>
-                        <th scope="col" className="py-2 pr-3">Detalhes</th>
+                        <th scope="col" className="py-2 pr-3">
+                          Quando
+                        </th>
+                        <th scope="col" className="py-2 pr-3">
+                          Tipo
+                        </th>
+                        <th scope="col" className="py-2 pr-3">
+                          Detalhes
+                        </th>
                       </tr>
                     </thead>
                     <tbody>
@@ -348,7 +235,6 @@ export default function AdminWhatsAppLogsPage() {
           </Card>
         </TabsContent>
 
-        {/* ---------- Erros ---------- */}
         <TabsContent value="errors">
           <Card>
             <CardHeader>
@@ -367,14 +253,30 @@ export default function AdminWhatsAppLogsPage() {
                   <table className="w-full text-sm">
                     <thead className="border-b text-left text-muted-foreground">
                       <tr>
-                        <th scope="col" className="py-2 pr-3">Quando</th>
-                        <th scope="col" className="py-2 pr-3">Canal</th>
-                        <th scope="col" className="py-2 pr-3">Instância</th>
-                        <th scope="col" className="py-2 pr-3">JID</th>
-                        <th scope="col" className="py-2 pr-3">Código</th>
-                        <th scope="col" className="py-2 pr-3">HTTP</th>
-                        <th scope="col" className="py-2 pr-3">Tentativas</th>
-                        <th scope="col" className="py-2 pr-3">Mensagem</th>
+                        <th scope="col" className="py-2 pr-3">
+                          Quando
+                        </th>
+                        <th scope="col" className="py-2 pr-3">
+                          Canal
+                        </th>
+                        <th scope="col" className="py-2 pr-3">
+                          Instância
+                        </th>
+                        <th scope="col" className="py-2 pr-3">
+                          JID
+                        </th>
+                        <th scope="col" className="py-2 pr-3">
+                          Código
+                        </th>
+                        <th scope="col" className="py-2 pr-3">
+                          HTTP
+                        </th>
+                        <th scope="col" className="py-2 pr-3">
+                          Tentativas
+                        </th>
+                        <th scope="col" className="py-2 pr-3">
+                          Mensagem
+                        </th>
                       </tr>
                     </thead>
                     <tbody>
@@ -402,29 +304,6 @@ export default function AdminWhatsAppLogsPage() {
           </Card>
         </TabsContent>
       </Tabs>
-    </div>
-  );
-}
-
-function kindBadge(kind: string) {
-  if (kind === 'handshake')
-    return (
-      <Badge className="bg-primary hover:bg-primary">
-        <CheckCircle2 className="mr-1 h-3 w-3" />
-        handshake
-      </Badge>
-    );
-  if (kind === 'event') return <Badge variant="secondary">event</Badge>;
-  if (kind === 'invalid_signature') return <Badge variant="destructive">invalid_signature</Badge>;
-  if (kind === 'invalid_token') return <Badge variant="destructive">invalid_token</Badge>;
-  return <Badge variant="outline">{kind}</Badge>;
-}
-
-function EmptyState({ mode, kind }: { mode: ModeFilter; kind: string }) {
-  return (
-    <div className="py-12 text-center text-sm text-muted-foreground">
-      Nenhum {kind} encontrado
-      {mode !== 'all' ? ` no modo ${mode === 'official' ? 'oficial' : 'não-oficial'}` : ''}.
     </div>
   );
 }

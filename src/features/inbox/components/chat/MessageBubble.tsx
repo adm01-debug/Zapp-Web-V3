@@ -1,6 +1,6 @@
-import { useState, memo, lazy, Suspense } from 'react';
+import { useState, memo } from 'react';
 import { useAuth } from '@/features/auth';
-import { motion, AnimatePresence } from '@/components/ui/motion';
+import { AnimatePresence } from '@/components/ui/motion';
 import { cn } from '@/lib/utils';
 import { Reply, Forward, Copy } from 'lucide-react';
 import { SwipeableMessage } from '@/components/mobile/SwipeableMessage';
@@ -8,18 +8,7 @@ import { DeletedMessagePlaceholder } from '../DeletedMessagePlaceholder';
 import { Message, InteractiveButton } from '@/types/chat';
 import { MessageReactions, QuickReactionBar } from '../MessageReactions';
 import { MessageHoverToolbar } from './MessageHoverToolbar';
-import { MessageImage } from '../ImagePreview';
-import { DocumentPreview, VideoPreview } from '../MediaPreview';
-import { AudioMessagePlayer } from '../AudioMessagePlayer';
-import { InteractiveMessageDisplay, ButtonResponseBadge } from '../InteractiveMessage';
-import { TextWithLinks } from '../LinkPreview';
-import { QuotedMessage } from '../ReplyQuote';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { formatMessageTime } from './messageUtils';
-import { MessageStatusInline } from './MessageStatusInline';
-import { MessageReadStatus } from './MessageReadStatus';
-import { useToast } from '@/hooks/use-toast';
-import { RefreshCw, ShieldAlert } from 'lucide-react';
 import {
   ContextMenu,
   ContextMenuContent,
@@ -27,15 +16,11 @@ import {
   ContextMenuTrigger,
 } from '@/components/ui/context-menu';
 import { extractMessageType } from '@/adapters/evolutionAdapter';
-import { MessageBubbleUnsupported } from './MessageBubbleUnsupported';
 import { useContactAvatar } from '@/features/inbox';
+import { formatMessageTime } from './messageUtils';
+import { MessageBubbleBody, WhisperBadge } from './messageBubbleParts';
 
 import { getLogger } from '@/lib/logger';
-const LocationMessageDisplay = lazy(() =>
-  import('@/features/inbox/components/LocationMessage').then((m) => ({
-    default: m.LocationMessageDisplay,
-  }))
-);
 const _log = getLogger('MessageBubble');
 
 interface MessageBubbleProps {
@@ -91,9 +76,7 @@ export const MessageBubble = memo(function MessageBubble({
   density = 'comfortable',
   onAudioVoiceChange,
 }: MessageBubbleProps) {
-  const { toast: _toast } = useToast();
-  const { profile } = useAuth();
-  const [_historyOpen, _setHistoryOpen] = useState(false);
+  const { profile: _profile } = useAuth();
   const [isActionsActive, setIsActionsActive] = useState(false);
 
   const isSent = message.sender === 'agent';
@@ -103,7 +86,6 @@ export const MessageBubble = memo(function MessageBubble({
     message.contactAvatar || contactAvatar
   );
 
-  const _agentInitials = profile?.name ? profile.name.slice(0, 2).toUpperCase() : 'EU';
   const isFailedTerminal =
     isSent &&
     !message.is_deleted &&
@@ -156,9 +138,7 @@ export const MessageBubble = memo(function MessageBubble({
         tabIndex={0}
         onKeyDown={handleKeyDown}
         onClick={() => {
-          if (window.innerWidth < 768) {
-            setIsActionsActive(!isActionsActive);
-          }
+          if (window.innerWidth < 768) setIsActionsActive(!isActionsActive);
         }}
         role="listitem"
         aria-label={`Mensagem de ${senderName} às ${formatMessageTime(message.timestamp)}. Pressione R para responder, F para encaminhar, C para copiar.`}
@@ -198,18 +178,11 @@ export const MessageBubble = memo(function MessageBubble({
           className={cn('relative max-w-[85%] space-y-0.5 sm:max-w-[70%]', isSent && 'items-end')}
         >
           {!isSent && isFirstInGroup && (
-            <span className="mb-0.5 ml-1 block text-[13px] font-bold tracking-tight text-primary-accessible">
+            <span className="text-primary-accessible mb-0.5 ml-1 block text-[13px] font-bold tracking-tight">
               {senderName}
             </span>
           )}
-          {message.isWhisper && (
-            <div className="mb-1 ml-1 flex w-fit items-center gap-1.5 rounded-full border border-warning/20 bg-warning/10 px-2 py-0.5 shadow-xs dark:bg-warning/20">
-              <ShieldAlert className="h-3 w-3 animate-pulse text-warning-foreground dark:text-warning-foreground" />
-              <span className="text-[9px] font-bold uppercase tracking-widest text-warning-foreground dark:text-warning-foreground">
-                Equipe — Sussurro Interno
-              </span>
-            </div>
-          )}
+          {message.isWhisper && <WhisperBadge />}
 
           <AnimatePresence>
             <QuickReactionBar
@@ -264,159 +237,20 @@ export const MessageBubble = memo(function MessageBubble({
               deletedAt={message.deleted_at}
             />
           ) : (
-            <motion.div
-              whileHover={{ scale: 1.005 }}
-              transition={{ type: 'spring', stiffness: 400, damping: 25 }}
-              className={cn(
-                'relative overflow-visible transition-all',
-                (message.type === 'image' || message.type === 'video') && !message.content
-                  ? 'p-1 pb-0'
-                  : density === 'comfortable'
-                    ? 'px-4 py-2.5'
-                    : density === 'compact'
-                      ? 'px-3.5 py-2'
-                      : 'px-3 py-1.5',
-                isSent
-                  ? 'rounded-2xl rounded-br-md bg-primary text-primary-foreground shadow-md shadow-primary/20'
-                  : 'rounded-2xl rounded-bl-md border border-border/70 bg-card text-card-foreground shadow-sm',
-                message.isWhisper &&
-                  'border-dashed border-warning/50 bg-warning font-bold text-warning-foreground ring-4 ring-warning/5',
-                isFailedTerminal && 'border-destructive/40 ring-2 ring-destructive/50'
-              )}
-            >
-              {/* Bubble Tail */}
-              {/* Bubble Tail Removal for cleaner modern look - keeping only rounded corners */}
-
-              {message.replyTo && (
-                <QuotedMessage
-                  replyTo={message.replyTo}
-                  isSent={isSent}
-                  onClick={() => onScrollToMessage(message.replyTo!.messageId)}
-                />
-              )}
-              {message.buttonResponse && (
-                <ButtonResponseBadge
-                  buttonTitle={message.buttonResponse.buttonTitle}
-                  isSent={isSent}
-                />
-              )}
-              {message.type === 'interactive' && message.interactive && (
-                <InteractiveMessageDisplay
-                  interactive={message.interactive}
-                  isSent={isSent}
-                  onButtonClick={onInteractiveButtonClick}
-                />
-              )}
-              {showUnsupportedFallback && (
-                <MessageBubbleUnsupported
-                  extracted={extracted}
-                  rawContent={message.content}
-                  isSent={isSent}
-                />
-              )}
-              {message.type === 'image' && message.mediaUrl && (
-                <div
-                  className={cn(
-                    'overflow-hidden',
-                    message.content ? '-mx-1 -mt-0.5 mb-1.5 rounded-xl' : 'w-full'
-                  )}
-                >
-                  <MessageImage src={message.mediaUrl} refreshKey={mediaRefreshKey} />
-                </div>
-              )}
-              {message.type === 'video' && message.mediaUrl && (
-                <div className="mb-1.5">
-                  <VideoPreview
-                    url={message.mediaUrl}
-                    caption={message.content}
-                    isSent={isSent}
-                    refreshKey={mediaRefreshKey}
-                  />
-                </div>
-              )}
-              {message.type === 'audio' && message.mediaUrl && (
-                <div className="mb-1">
-                  <AudioMessagePlayer
-                    audioUrl={message.mediaUrl}
-                    messageId={message.id}
-                    isSent={isSent}
-                    existingTranscription={message.transcription}
-                    transcriptionStatus={message.transcriptionStatus}
-                    refreshKey={mediaRefreshKey}
-                    onVoiceChange={onAudioVoiceChange}
-                    conversationId={message.conversationId}
-                  />
-                </div>
-              )}
-              {message.type === 'document' && message.mediaUrl && (
-                <div className="mb-1.5">
-                  <DocumentPreview
-                    url={message.mediaUrl}
-                    fileName={message.content || 'documento'}
-                    isSent={isSent}
-                  />
-                </div>
-              )}
-              {message.type === 'location' && message.location && (
-                <Suspense
-                  fallback={<div className="h-32 w-full animate-pulse rounded-lg bg-muted" />}
-                >
-                  <LocationMessageDisplay location={message.location} isSent={isSent} />
-                </Suspense>
-              )}
-              {message.type === 'sticker' && message.mediaUrl && (
-                <div className="group/sticker relative mb-1">
-                  <img
-                    src={message.mediaUrl}
-                    alt="Figurinha"
-                    className="max-h-[160px] max-w-[160px] object-contain drop-shadow-lg"
-                    loading="lazy"
-                  />
-                </div>
-              )}
-              {!showUnsupportedFallback &&
-                message.content &&
-                !['audio', 'location', 'video', 'document', 'sticker'].includes(message.type) && (
-                  <TextWithLinks
-                    text={message.content}
-                    className={cn(
-                      'whitespace-pre-wrap text-[15px] leading-[1.6] tracking-tight',
-                      searchQuery && highlightedMessageIds?.has(message.id) ? '' : ''
-                    )}
-                    showPreviews={!message.isWhisper}
-                    maxPreviews={1}
-                  />
-                )}
-              <div
-                className={cn(
-                  '-mb-0.5 mt-1.5 flex items-center justify-end gap-1.5',
-                  (message.type === 'image' || message.type === 'video') && !message.content
-                    ? 'absolute bottom-2 right-2 rounded-full bg-black/40 px-1.5 py-0.5 text-white drop-shadow-md backdrop-blur-sm'
-                    : isSent
-                      ? 'text-primary-foreground/75'
-                      : 'text-muted-foreground'
-                )}
-              >
-                {message.isEdited && <span className="mr-0.5 text-[9px] italic">editada</span>}
-                <div className="flex items-center gap-1">
-                  {(message.status === 'sending' ||
-                    message.status === 'retrying' ||
-                    message._optimistic) && (
-                    <RefreshCw className="h-2.5 w-2.5 animate-spin text-muted-foreground/60" />
-                  )}
-                  <span className="text-[11px] font-normal leading-none">
-                    {formatMessageTime(message.timestamp)}
-                  </span>
-                </div>
-                <div className="flex min-w-[15px] items-center">
-                  {isSent ? (
-                    <MessageStatusInline message={message} className="origin-right scale-90" />
-                  ) : (
-                    <MessageReadStatus message={message} />
-                  )}
-                </div>
-              </div>
-            </motion.div>
+            <MessageBubbleBody
+              message={message}
+              isSent={isSent}
+              density={density}
+              isFailedTerminal={isFailedTerminal}
+              showUnsupportedFallback={showUnsupportedFallback}
+              extracted={extracted}
+              mediaRefreshKey={mediaRefreshKey}
+              searchQuery={searchQuery}
+              highlightedMessageIds={highlightedMessageIds}
+              onScrollToMessage={onScrollToMessage}
+              onInteractiveButtonClick={onInteractiveButtonClick}
+              onAudioVoiceChange={onAudioVoiceChange}
+            />
           )}
         </div>
       </div>

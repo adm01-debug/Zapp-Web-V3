@@ -27,65 +27,120 @@ Deno.serve(async (req) => {
       .eq("id", reportId)
       .single();
 
-    if (reportError || !report) {
+    if (reportError || !report || typeof report !== 'object' || Array.isArray(report)) {
       return errorResponse("Report not found", 404, req);
+    }
+
+    const reportObj = report as Record<string, unknown>;
+    if (typeof reportObj.id !== 'string' || typeof reportObj.report_type !== 'string') {
+      return errorResponse("Invalid report data", 400, req);
     }
 
     let reportData: Record<string, unknown> = {};
     const now = new Date();
     const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
-    switch (report.report_type) {
+    switch (reportObj.report_type) {
       case "dashboard_summary": {
         const { data: messages } = await supabase.from("messages").select("id, sender, created_at, is_read").gte("created_at", weekAgo.toISOString());
         const { data: contacts } = await supabase.from("contacts").select("id").gte("created_at", weekAgo.toISOString());
+        const msgArray = Array.isArray(messages) ? messages : [];
+        const contactArray = Array.isArray(contacts) ? contacts : [];
+        const messagesReceived = msgArray.filter((m: unknown) =>
+          typeof m === 'object' && m !== null && (m as Record<string, unknown>).sender === "contact"
+        ).length;
+        const messagesSent = msgArray.filter((m: unknown) =>
+          typeof m === 'object' && m !== null && (m as Record<string, unknown>).sender === "agent"
+        ).length;
         reportData = {
           title: "Resumo do Dashboard",
           period: `${weekAgo.toLocaleDateString("pt-BR")} - ${now.toLocaleDateString("pt-BR")}`,
-          totalMessages: messages?.length || 0,
-          messagesReceived: messages?.filter(m => m.sender === "contact").length || 0,
-          messagesSent: messages?.filter(m => m.sender === "agent").length || 0,
-          newContacts: contacts?.length || 0,
+          totalMessages: msgArray.length,
+          messagesReceived,
+          messagesSent,
+          newContacts: contactArray.length,
         };
         break;
       }
       case "agent_performance": {
         const { data: agents } = await supabase.from("agent_stats").select("*, profiles(name, email)").order("xp", { ascending: false });
+        const agentArray = Array.isArray(agents) ? agents : [];
         reportData = {
           title: "Performance de Agentes",
           period: `${weekAgo.toLocaleDateString("pt-BR")} - ${now.toLocaleDateString("pt-BR")}`,
-          agents: (agents || []).map((a: Record<string, unknown>) => ({
-            name: (a.profiles as Record<string, unknown>)?.name || "N/A",
-            messagesHandled: (a.messages_sent as number) + (a.messages_received as number),
-            resolved: a.conversations_resolved, avgResponseTime: a.avg_response_time_seconds,
-            satisfaction: a.customer_satisfaction_score, level: a.level, xp: a.xp,
-          })),
+          agents: agentArray
+            .filter((a): a is Record<string, unknown> =>
+              typeof a === 'object' && a !== null && !Array.isArray(a)
+            )
+            .map(a => {
+              const profiles = typeof a.profiles === 'object' && a.profiles !== null && !Array.isArray(a.profiles)
+                ? (a.profiles as Record<string, unknown>)
+                : {};
+              const messagesSent = typeof a.messages_sent === 'number' ? a.messages_sent : 0;
+              const messagesReceived = typeof a.messages_received === 'number' ? a.messages_received : 0;
+              return {
+                name: typeof profiles.name === 'string' ? profiles.name : "N/A",
+                messagesHandled: messagesSent + messagesReceived,
+                resolved: a.conversations_resolved,
+                avgResponseTime: a.avg_response_time_seconds,
+                satisfaction: a.customer_satisfaction_score,
+                level: a.level,
+                xp: a.xp,
+              };
+            }),
         };
         break;
       }
       case "conversation_analytics": {
         const { data: analyses } = await supabase.from("conversation_analyses").select("*").gte("created_at", weekAgo.toISOString());
+        const analyseArray = Array.isArray(analyses) ? analyses : [];
+        const avgSentiment = analyseArray.length > 0
+          ? Math.round(
+              analyseArray.reduce((sum: number, a: unknown) => {
+                if (typeof a !== 'object' || a === null) return sum;
+                const aObj = a as Record<string, unknown>;
+                const score = typeof aObj.sentiment_score === 'number' ? aObj.sentiment_score : 50;
+                return sum + score;
+              }, 0) / analyseArray.length
+            )
+          : 0;
+        const avgSatisfaction = analyseArray.length > 0
+          ? (
+              analyseArray.reduce((sum: number, a: unknown) => {
+                if (typeof a !== 'object' || a === null) return sum;
+                const aObj = a as Record<string, unknown>;
+                const score = typeof aObj.customer_satisfaction === 'number' ? aObj.customer_satisfaction : 3;
+                return sum + score;
+              }, 0) / analyseArray.length
+            ).toFixed(1)
+          : "N/A";
         reportData = {
           title: "Análise de Conversas",
           period: `${weekAgo.toLocaleDateString("pt-BR")} - ${now.toLocaleDateString("pt-BR")}`,
-          totalAnalyses: analyses?.length || 0,
-          avgSentiment: analyses?.length ? Math.round(analyses.reduce((sum: number, a: Record<string, unknown>) => sum + ((a.sentiment_score as number) || 50), 0) / analyses.length) : 0,
-          avgSatisfaction: analyses?.length ? (analyses.reduce((sum: number, a: Record<string, unknown>) => sum + ((a.customer_satisfaction as number) || 3), 0) / analyses.length).toFixed(1) : "N/A",
+          totalAnalyses: analyseArray.length,
+          avgSentiment,
+          avgSatisfaction,
         };
         break;
       }
       case "sla_compliance": {
         const { data: sla } = await supabase.from("conversation_sla").select("*").gte("created_at", weekAgo.toISOString());
-        const total = sla?.length || 0;
-        const responseBreached = sla?.filter((s: Record<string, unknown>) => s.first_response_breached).length || 0;
-        const resolutionBreached = sla?.filter((s: Record<string, unknown>) => s.resolution_breached).length || 0;
+        const slaArray = Array.isArray(sla) ? sla : [];
+        const total = slaArray.length;
+        const responseBreached = slaArray.filter((s: unknown) =>
+          typeof s === 'object' && s !== null && (s as Record<string, unknown>).first_response_breached === true
+        ).length;
+        const resolutionBreached = slaArray.filter((s: unknown) =>
+          typeof s === 'object' && s !== null && (s as Record<string, unknown>).resolution_breached === true
+        ).length;
         reportData = {
           title: "Cumprimento de SLA",
           period: `${weekAgo.toLocaleDateString("pt-BR")} - ${now.toLocaleDateString("pt-BR")}`,
           totalConversations: total,
           responseComplianceRate: total > 0 ? `${Math.round(((total - responseBreached) / total) * 100)}%` : "N/A",
           resolutionComplianceRate: total > 0 ? `${Math.round(((total - resolutionBreached) / total) * 100)}%` : "N/A",
-          responseBreaches: responseBreached, resolutionBreaches: resolutionBreached,
+          responseBreaches: responseBreached,
+          resolutionBreaches: resolutionBreached,
         };
         break;
       }
@@ -93,9 +148,10 @@ Deno.serve(async (req) => {
 
     const emailHtml = buildReportEmail(reportData);
 
-    if (resendApiKey && report.recipients?.length > 0) {
+    const recipients = Array.isArray(reportObj.recipients) ? reportObj.recipients : [];
+    if (resendApiKey && recipients.length > 0) {
       const emailResults = await Promise.allSettled(
-        report.recipients.map(async (recipient: string) => {
+        recipients.filter((r): r is string => typeof r === 'string').map(async (recipient: string) => {
           const emailResponse = await fetch("https://api.resend.com/emails", {
             method: "POST",
             headers: { Authorization: `Bearer ${resendApiKey}`, "Content-Type": "application/json" },
@@ -120,13 +176,15 @@ Deno.serve(async (req) => {
       }
     }
 
-    const nextSendAt = calculateNextSend(report.frequency);
-    await supabase.from("scheduled_reports").update({ last_sent_at: now.toISOString(), next_send_at: nextSendAt }).eq("id", reportId);
+    const frequency = typeof reportObj.frequency === 'string' ? reportObj.frequency : 'weekly';
+    const nextSendAt = calculateNextSend(frequency);
+    await supabase.from("scheduled_reports").update({ last_sent_at: now.toISOString(), next_send_at: nextSendAt }).eq("id", reportObj.id);
 
     log.done(200);
     return jsonResponse({ success: true, reportData }, 200, req);
   } catch (error) {
-    log.error("Error sending report", { error: (error as Error).message });
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    log.error("Error sending report", { error: errorMessage });
     return errorResponse('Internal server error', 500, req);
   }
 });
@@ -145,21 +203,34 @@ function buildReportEmail(data: Record<string, unknown>): string {
   const rows = Object.entries(data)
     .filter(([key]) => key !== "title" && key !== "period" && key !== "agents")
     .map(([key, value]) =>
-      `<tr><td style="padding:8px 12px;border-bottom:1px solid #eee;font-weight:500;color:#333;">${formatKey(key)}</td><td style="padding:8px 12px;border-bottom:1px solid #eee;color:#555;">${value}</td></tr>`
+      `<tr><td style="padding:8px 12px;border-bottom:1px solid #eee;font-weight:500;color:#333;">${formatKey(key)}</td><td style="padding:8px 12px;border-bottom:1px solid #eee;color:#555;">${String(value)}</td></tr>`
     ).join("");
 
   let agentsTable = "";
-  if (data.agents && Array.isArray(data.agents)) {
+  const agents = Array.isArray(data.agents) ? data.agents : [];
+  if (agents.length > 0) {
     agentsTable = `<h3 style="margin-top:24px;color:#333;">Ranking de Agentes</h3>
       <table style="width:100%;border-collapse:collapse;margin-top:8px;">
         <tr style="background:#f5f5f5;"><th style="padding:8px;text-align:left;">Agente</th><th style="padding:8px;text-align:center;">Mensagens</th><th style="padding:8px;text-align:center;">Resolvidas</th><th style="padding:8px;text-align:center;">Nível</th></tr>
-        ${data.agents.map((a: Record<string, unknown>) => `<tr><td style="padding:8px;">${a.name}</td><td style="padding:8px;text-align:center;">${a.messagesHandled}</td><td style="padding:8px;text-align:center;">${a.resolved}</td><td style="padding:8px;text-align:center;">${a.level}</td></tr>`).join("")}
+        ${agents
+          .filter((a): a is Record<string, unknown> => typeof a === 'object' && a !== null && !Array.isArray(a))
+          .map(a => {
+            const name = typeof a.name === 'string' ? a.name : 'N/A';
+            const messagesHandled = typeof a.messagesHandled === 'number' ? a.messagesHandled : 0;
+            const resolved = typeof a.resolved === 'number' ? a.resolved : 0;
+            const level = typeof a.level === 'string' || typeof a.level === 'number' ? String(a.level) : 'N/A';
+            return `<tr><td style="padding:8px;">${name}</td><td style="padding:8px;text-align:center;">${messagesHandled}</td><td style="padding:8px;text-align:center;">${resolved}</td><td style="padding:8px;text-align:center;">${level}</td></tr>`;
+          })
+          .join("")}
       </table>`;
   }
 
+  const title = typeof data.title === 'string' ? data.title : 'Relatório';
+  const period = typeof data.period === 'string' ? data.period : 'Período não especificado';
+
   return `<!DOCTYPE html><html><body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;margin:0;padding:20px;background:#f9fafb;">
     <div style="max-width:600px;margin:0 auto;background:white;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.1);">
-      <div style="background:linear-gradient(135deg,#25D366,#128C7E);padding:24px;color:white;"><h1 style="margin:0;font-size:20px;">📊 ${data.title}</h1><p style="margin:4px 0 0;opacity:0.9;font-size:14px;">${data.period}</p></div>
+      <div style="background:linear-gradient(135deg,#25D366,#128C7E);padding:24px;color:white;"><h1 style="margin:0;font-size:20px;">📊 ${title}</h1><p style="margin:4px 0 0;opacity:0.9;font-size:14px;">${period}</p></div>
       <div style="padding:24px;"><table style="width:100%;border-collapse:collapse;">${rows}</table>${agentsTable}</div>
       <div style="padding:16px 24px;background:#f9fafb;text-align:center;font-size:12px;color:#999;">Relatório gerado automaticamente • ZAPP Web</div>
     </div></body></html>`;

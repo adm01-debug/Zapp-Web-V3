@@ -2,7 +2,7 @@ import { useRef, useEffect, useCallback, useMemo, forwardRef, useImperativeHandl
 import { getLogger } from '@/lib/logger';
 
 const log = getLogger('VirtualizedMessageList');
-import { EmptyState } from '@/components/ui/empty-state';
+import { EmptyState } from '@/components/ui/empty-states';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { Message, InteractiveButton } from '@/types/chat';
 import { MessageBubble } from './VirtualMessageBubble';

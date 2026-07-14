@@ -2,6 +2,7 @@ import type { ConversationWithMessages, RealtimeMessage } from '../../../hooks/u
 
 // Extensão do tipo para compatibilidade com useRealtimeMessages e o componente ConversationItem legado
 export interface MockConversationWithMessages extends ConversationWithMessages {
+  contact: Partial<ConversationWithMessages['contact']> & Pick<ConversationWithMessages['contact'], 'id' | 'name' | 'phone' | 'created_at' | 'updated_at'>;
   id: string;
   status: 'open' | 'pending' | 'resolved' | 'waiting';
   priority: 'high' | 'medium' | 'low';
@@ -40,7 +41,7 @@ const createMockMessage = (
   is_deleted: false,
 });
 
-export const MOCK_CONVERSATIONS: any[] = [
+export const MOCK_CONVERSATIONS: MockConversationWithMessages[] = [
   {
     id: 'mock-1',
     status: 'open',

@@ -48,9 +48,12 @@ export function useDepartmentManagement(
   const [currentUser, setCurrentUser] = useState<{ id: string } | null>(null);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      if (data?.user) setCurrentUser({ id: data.user.id });
-    });
+    supabase.auth
+      .getUser()
+      .then(({ data }) => {
+        if (data?.user) setCurrentUser({ id: data.user.id });
+      })
+      .catch((err) => log.warn('[DeptMgmt] getUser failed:', err));
   }, []);
 
   // Load department whatsapp settings when view opens
@@ -67,11 +70,13 @@ export function useDepartmentManagement(
           setWhatsappApiKey(data.whatsapp_api_key || '');
           setWhatsappInstanceId(data.whatsapp_instance_id || '');
         }
-      });
+      })
+      .catch((err) => log.warn('[DeptMgmt] load whatsapp settings failed:', err));
   }, [open, view, initialDepartment.id]);
 
   const { data: allProfiles = [], isLoading: loadingProfiles } = useQuery<Profile[]>({
     queryKey: ['dept-profiles', initialDepartment.id],
+    staleTime: 30_000,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('profiles')
@@ -85,6 +90,7 @@ export function useDepartmentManagement(
 
   const { data: auditLogs = [], isLoading: loadingAudit } = useQuery<AuditLog[]>({
     queryKey: ['dept-audit', initialDepartment.id],
+    staleTime: 30_000,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('audit_logs')
@@ -106,6 +112,7 @@ export function useDepartmentManagement(
 
   const { data: invitations = [], isLoading: loadingInvites } = useQuery<Invitation[]>({
     queryKey: ['dept-invites', initialDepartment.id],
+    staleTime: 30_000,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('department_invitations')

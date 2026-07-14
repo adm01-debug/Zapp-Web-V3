@@ -4,13 +4,23 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
 } from '@/components/ui/dialog';
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from '@/components/ui/select';
 import { Megaphone, Loader2 } from 'lucide-react';
 import { UseMutationResult } from '@tanstack/react-query';
+import type { CampaignInput } from '@/hooks/useCampaigns';
 
 type TargetType = 'all' | 'tag' | 'queue' | 'groups' | 'custom';
 
@@ -24,27 +34,37 @@ interface FormData {
 }
 
 const INITIAL_FORM: FormData = {
-  name: '', description: '', message_content: '', message_type: 'text',
-  target_type: 'all', send_interval_seconds: 5,
+  name: '',
+  description: '',
+  message_content: '',
+  message_type: 'text',
+  target_type: 'all',
+  send_interval_seconds: 5,
 };
 
 interface CampaignCreateDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  createCampaign: UseMutationResult<any, Error, any, unknown>;
+  createCampaign: UseMutationResult<unknown, Error, CampaignInput, unknown>;
 }
 
-export function CampaignCreateDialog({ open, onOpenChange, createCampaign }: CampaignCreateDialogProps) {
+export function CampaignCreateDialog({
+  open,
+  onOpenChange,
+  createCampaign,
+}: CampaignCreateDialogProps) {
   const [form, setForm] = useState<FormData>(INITIAL_FORM);
 
   const handleCreate = useCallback(() => {
-    createCampaign.mutate({ ...form, target_type: form.target_type as 'all' | 'custom' | 'queue' | 'tag' }, {
-      onSuccess: () => {
-        onOpenChange(false);
-        setForm(INITIAL_FORM);
-      },
-    });
+    createCampaign.mutate(
+      { ...form, target_type: form.target_type as 'all' | 'custom' | 'queue' | 'tag' },
+      {
+        onSuccess: () => {
+          onOpenChange(false);
+          setForm(INITIAL_FORM);
+        },
+      }
+    );
   }, [form, createCampaign, onOpenChange]);
 
   return (
@@ -52,7 +72,7 @@ export function CampaignCreateDialog({ open, onOpenChange, createCampaign }: Cam
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Megaphone className="w-5 h-5 text-primary" />
+            <Megaphone className="h-5 w-5 text-primary" />
             Nova Campanha
           </DialogTitle>
           <DialogDescription>Configure sua campanha de broadcast</DialogDescription>
@@ -61,24 +81,42 @@ export function CampaignCreateDialog({ open, onOpenChange, createCampaign }: Cam
         <div className="space-y-4">
           <div>
             <Label htmlFor="campaign-name">Nome da campanha</Label>
-            <Input id="campaign-name" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-              placeholder="Ex: Black Friday 2024" />
+            <Input
+              id="campaign-name"
+              value={form.name}
+              onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+              placeholder="Ex: Black Friday 2024"
+            />
           </div>
           <div>
             <Label htmlFor="campaign-description">Descrição</Label>
-            <Input id="campaign-description" value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-              placeholder="Breve descrição..." />
+            <Input
+              id="campaign-description"
+              value={form.description}
+              onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+              placeholder="Breve descrição..."
+            />
           </div>
           <div>
             <Label htmlFor="campaign-message">Mensagem</Label>
-            <Textarea id="campaign-message" value={form.message_content} onChange={e => setForm(f => ({ ...f, message_content: e.target.value }))}
-              placeholder="Conteúdo da mensagem..." rows={4} />
+            <Textarea
+              id="campaign-message"
+              value={form.message_content}
+              onChange={(e) => setForm((f) => ({ ...f, message_content: e.target.value }))}
+              placeholder="Conteúdo da mensagem..."
+              rows={4}
+            />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label htmlFor="campaign-msg-type">Tipo de mensagem</Label>
-              <Select value={form.message_type} onValueChange={v => setForm(f => ({ ...f, message_type: v }))}>
-                <SelectTrigger id="campaign-msg-type"><SelectValue /></SelectTrigger>
+              <Select
+                value={form.message_type}
+                onValueChange={(v) => setForm((f) => ({ ...f, message_type: v }))}
+              >
+                <SelectTrigger id="campaign-msg-type">
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="text">Texto</SelectItem>
                   <SelectItem value="image">Imagem</SelectItem>
@@ -89,7 +127,7 @@ export function CampaignCreateDialog({ open, onOpenChange, createCampaign }: Cam
             </div>
             <div>
               <Label htmlFor="campaign-target">Público-alvo</Label>
-              <Select value={form.target_type} onValueChange={(v: string) => setForm(f => ({ ...f, target_type: v as TargetType }))}>
+              <Select value={form.target_type} onValueChange={(v: string) => setForm(f => ({ ...f, target_type: v as TargetType  /* ignore-audit: Select/Tabs value string narrowed to union; developer controls option values */}))}>
                 <SelectTrigger id="campaign-target"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todos os contatos</SelectItem>
@@ -103,16 +141,28 @@ export function CampaignCreateDialog({ open, onOpenChange, createCampaign }: Cam
           </div>
           <div>
             <Label htmlFor="campaign-interval">Intervalo entre envios (segundos)</Label>
-            <Input id="campaign-interval" type="number" value={form.send_interval_seconds}
-              onChange={e => setForm(f => ({ ...f, send_interval_seconds: Number(e.target.value) }))}
-              min={1} max={60} />
+            <Input
+              id="campaign-interval"
+              type="number"
+              value={form.send_interval_seconds}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, send_interval_seconds: Number(e.target.value) }))
+              }
+              min={1}
+              max={60}
+            />
           </div>
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button onClick={handleCreate} disabled={!form.name || !form.message_content || createCampaign.isPending}>
-            {createCampaign.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Cancelar
+          </Button>
+          <Button
+            onClick={handleCreate}
+            disabled={!form.name || !form.message_content || createCampaign.isPending}
+          >
+            {createCampaign.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
             Criar Campanha
           </Button>
         </DialogFooter>

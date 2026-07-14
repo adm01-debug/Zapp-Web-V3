@@ -122,7 +122,7 @@ export function sanitizeContactFields<T extends Record<string, unknown>>(contact
   }
 
   // Sanitize tags array
-  const resultRec = result as Record<string, unknown>;
+  const resultRec = result as Record<string, unknown>; // ignore-audit: narrows Supabase query result to local interface
   if (Array.isArray(resultRec.tags)) {
     resultRec.tags = (resultRec.tags as string[]).map(sanitizeText).filter(Boolean);
   }

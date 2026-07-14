@@ -7,7 +7,7 @@ import { useEvolutionApi } from '@/hooks/useEvolutionApi';
 import { newRequestId } from '@/lib/withRequestId';
 import { dbFrom } from '@/integrations/datasource/db';
 import type { AudioMemeItem } from '@/hooks/useAudioMemes';
-import { evolutionInstanceName, EvolutionInstanceRef } from '@/lib/evolutionInstance';
+import { evolutionInstanceName } from '@/lib/evolutionInstance';
 
 /**
  * Encapsulates WhatsApp instance resolution and media-message sending
@@ -35,7 +35,7 @@ export function useChatMediaSending(contactId: string, contactPhone: string | un
   /** Update message status with error logging and 1 retry */
   const updateMessageStatus = useCallback(
     async (messageId: string, status: string, externalId?: string | null) => {
-      const payload: any = { status }; // ignore-audit
+      const payload: { status: string; external_id?: string | null } = { status };
       if (externalId) payload.external_id = externalId;
 
       try {
@@ -82,7 +82,7 @@ export function useChatMediaSending(contactId: string, contactPhone: string | un
           .select('instance_id, instance_name')
           .eq('id', connectionId)
           .maybeSingle();
-        const resolved = conn ? evolutionInstanceName(conn as EvolutionInstanceRef) : null;
+        const resolved = conn ? evolutionInstanceName(conn) : null;
         if (resolved) {
           setInstanceName(resolved);
           return resolved;
@@ -98,10 +98,8 @@ export function useChatMediaSending(contactId: string, contactPhone: string | un
         .limit(1)
         .maybeSingle();
 
-      const fallbackResolved = fallbackConn
-        ? evolutionInstanceName(fallbackConn as EvolutionInstanceRef)
-        : null;
-      if (fallbackResolved && fallbackConn) {
+      const fallbackResolved = fallbackConn ? evolutionInstanceName(fallbackConn) : null;
+      if (fallbackResolved) {
         setInstanceName(fallbackResolved);
         const connId = (fallbackConn as unknown as { id?: string }).id;
         if (connId) setWhatsappConnectionId(connId);
@@ -191,9 +189,7 @@ export function useChatMediaSending(contactId: string, contactPhone: string | un
             .eq('image_url', stickerUrl)
             .maybeSingle();
 
-          if (existingErr) {
-            log.error('[auto-save sticker] Read failed, skipping insert:', existingErr.message);
-          } else if (!existing) {
+          if (!existing) {
             const {
               data: { user },
             } = await supabase.auth.getUser();

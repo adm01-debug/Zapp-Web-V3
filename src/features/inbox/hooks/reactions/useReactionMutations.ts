@@ -7,6 +7,21 @@ import { getLogger } from '@/lib/logger';
 
 const mutationLog = getLogger('useReactionMutations');
 
+interface CachedReaction {
+  id: string;
+  message_id: string;
+  user_id: string;
+  emoji: string;
+  contact_id?: string;
+  created_at?: string;
+  user_name?: string;
+}
+
+interface ApiError extends Error {
+  status?: number | string;
+  code?: number | string;
+}
+
 interface ReactionMutationOptions {
   instanceName?: string;
   contactJid?: string;
@@ -121,7 +136,7 @@ export function useReactionMutations(
       if (profileId) {
         queryClient.setQueryData(
           ['message-reactions', messageId],
-          (old: ReactionRow[] | undefined) => [
+          (old: Record<string, unknown>[] | undefined) => [
             ...(old || []),
             {
               id: 'temp-' + Date.now(),
@@ -138,17 +153,16 @@ export function useReactionMutations(
     },
     onSuccess: (data, emoji) => {
       queryClient.invalidateQueries({ queryKey: ['message-reactions', messageId] });
-      toast.dismiss(`reaction-error-${messageId}`); // Clear any previous errors on success
+      toast.dismiss(`reaction-error-${messageId}`);
       trackReactionEvent('add', { messageId, emoji, status: 'success' });
     },
-    onError: (error: unknown, emoji, context) => {
+    onError: (error: ApiError, emoji, context) => {
       if (context?.previous) {
         queryClient.setQueryData(['message-reactions', messageId], context.previous);
       }
       mutationLog.error('Failed to add reaction', error);
 
-      const err = error as { status?: number | string; code?: string; message?: string };
-      const status = err?.status || err?.code || (err?.message?.includes('401') ? 401 : 500);
+      const status = error?.status || error?.code || (error?.message?.includes('401') ? 401 : 500);
       let errorMsg = 'Erro interno no servidor (500)';
 
       if (status === 401 || status === '401')
@@ -204,8 +218,8 @@ export function useReactionMutations(
       if (profileId) {
         queryClient.setQueryData(
           ['message-reactions', messageId],
-          (old: ReactionRow[] | undefined) =>
-            (old || []).filter((r: ReactionRow) => !(r.user_id === profileId && r.emoji === emoji))
+          (old: Array<{ user_id: string; emoji: string }> | undefined) =>
+            (old || []).filter((r) => !(r.user_id === profileId && r.emoji === emoji))
         );
       }
       return { previous };
@@ -215,12 +229,12 @@ export function useReactionMutations(
       toast.dismiss(`reaction-error-${messageId}`);
       trackReactionEvent('remove', { messageId, emoji, status: 'success' });
     },
-    onError: (error: unknown, emoji, context) => {
+    onError: (error: ApiError, emoji, context) => {
       if (context?.previous) {
         queryClient.setQueryData(['message-reactions', messageId], context.previous);
       }
       toast.error('Não foi possível remover sua reação. Verifique sua conexão.', {
-        id: `reaction-error-${messageId}`,
+        id: `reaction-error-${messageId}`, // Same ID to replace add errors
         className: 'bg-destructive text-destructive-foreground font-medium',
         duration: 4000,
       });

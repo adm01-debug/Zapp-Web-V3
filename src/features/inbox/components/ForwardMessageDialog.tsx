@@ -89,7 +89,13 @@ export function ForwardMessageDialog({
 
         <Tabs
           value={fwd.activeTab}
-          onValueChange={(v) => fwd.setActiveTab(v as 'contacts' | 'groups')}
+          onValueChange={(v) =>
+            fwd.setActiveTab(
+              v as
+                | 'contacts'
+                | 'groups' /* ignore-audit: Select/Tabs value string narrowed to union; developer controls option values */
+            )
+          }
           className="px-4"
         >
           <TabsList className="grid w-full grid-cols-2">

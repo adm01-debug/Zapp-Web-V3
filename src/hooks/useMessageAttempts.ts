@@ -17,6 +17,14 @@ import { safeClient } from '@/integrations/supabase/safeClient';
 
 export type AttemptStatus = 'pending' | 'retrying' | 'succeeded' | 'failed' | 'abandoned';
 
+const VALID_STATUS = ['pending', 'retrying', 'succeeded', 'failed', 'abandoned'] as const;
+const RLS_ERROR_RE = /permission|denied|row-level/i;
+
+const normalizeStatus = (s: unknown): AttemptStatus =>
+  typeof s === 'string' && (VALID_STATUS as readonly string[]).includes(s)
+    ? (s as AttemptStatus)
+    : 'failed';
+
 export interface MessageAttemptRow {
   id: string;
   status: AttemptStatus;
@@ -33,6 +41,29 @@ export interface MessageAttemptRow {
   updated_at: string;
 }
 
+const EPOCH = new Date(0).toISOString();
+
+function normalizeAttempt(
+  r: Partial<MessageAttemptRow> | null | undefined
+): MessageAttemptRow | null {
+  if (!r || typeof r !== 'object') return null;
+  return {
+    id: r.id ?? '',
+    status: normalizeStatus(r.status),
+    retry_count: r.retry_count ?? 0,
+    max_retries: r.max_retries ?? 0,
+    error_code: r.error_code ?? null,
+    error_message: r.error_message ?? null,
+    http_status: r.http_status ?? null,
+    last_retry_reason: r.last_retry_reason ?? null,
+    last_attempt_at: r.last_attempt_at ?? null,
+    next_attempt_at: r.next_attempt_at ?? null,
+    succeeded_at: r.succeeded_at ?? null,
+    created_at: r.created_at ?? EPOCH,
+    updated_at: r.updated_at ?? EPOCH,
+  };
+}
+
 export function useMessageAttempts(messageRowId: string | null, opts: { enabled?: boolean } = {}) {
   const enabled = !!messageRowId && opts.enabled !== false;
 
@@ -42,7 +73,7 @@ export function useMessageAttempts(messageRowId: string | null, opts: { enabled?
     staleTime: 15_000,
     refetchInterval: (query) => {
       // Mantém polling enquanto a tentativa estiver em andamento.
-      const row = query.state.data as MessageAttemptRow | null | undefined;
+      const row = query.state.data as MessageAttemptRow | null | undefined; // ignore-audit: narrows Supabase query result to local interface
       if (!row) return false;
       return row.status === 'pending' || row.status === 'retrying' ? 5_000 : false;
     },
@@ -54,38 +85,36 @@ export function useMessageAttempts(messageRowId: string | null, opts: { enabled?
 
       // Tentativa primária: idempotency_key padrão `msg:<id>`.
       const primaryKey = `msg:${messageRowId}`;
-      const { data: byKeyArr, error: keyErr } = await safeClient.from<MessageAttemptRow>(
-        'failed_messages',
-        (q) =>
-          q
-            .select(SELECT_COLS)
-            .eq('idempotency_key', primaryKey)
-            .order('created_at', { ascending: false })
-            .limit(1)
+      const { data: byKeyArr, error: keyErr } = await safeClient.from('failed_messages', (q) =>
+        q
+          .select(SELECT_COLS)
+          .eq('idempotency_key', primaryKey)
+          .order('created_at', { ascending: false })
+          .limit(1)
       );
 
       // 42501/permission/RLS → trata como "sem permissão", não erro.
-      if (keyErr && !/permission|denied|row-level/i.test(keyErr.message)) {
+      if (keyErr && !RLS_ERROR_RE.test(keyErr.message)) {
         throw keyErr;
       }
-      const byKey = byKeyArr?.[0] ?? null;
+      const byKeyRows = (byKeyArr ?? []) as Partial<MessageAttemptRow>[];
+      const byKey = normalizeAttempt(byKeyRows[0]);
       if (byKey) return byKey;
 
       // Fallback: payload->>'message_id' (reprocessos legados).
-      const { data: byPayloadArr, error: pErr } = await safeClient.from<MessageAttemptRow>(
-        'failed_messages',
-        (q) =>
-          q
-            .select(SELECT_COLS)
-            .eq('payload->>message_id', messageRowId)
-            .order('created_at', { ascending: false })
-            .limit(1)
+      const { data: byPayloadArr, error: pErr } = await safeClient.from('failed_messages', (q) =>
+        q
+          .select(SELECT_COLS)
+          .eq('payload->>message_id', messageRowId)
+          .order('created_at', { ascending: false })
+          .limit(1)
       );
 
-      if (pErr && !/permission|denied|row-level/i.test(pErr.message)) {
+      if (pErr && !RLS_ERROR_RE.test(pErr.message)) {
         throw pErr;
       }
-      return byPayloadArr?.[0] ?? null;
+      const byPayloadRows = (byPayloadArr ?? []) as Partial<MessageAttemptRow>[];
+      return normalizeAttempt(byPayloadRows[0]);
     },
   });
 }

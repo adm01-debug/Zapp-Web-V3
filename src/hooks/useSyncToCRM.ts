@@ -1,13 +1,13 @@
 /**
  * useSyncToCRM
- * 
+ *
  * Syncs completed conversations from zapp-web back to the external CRM.
  * Calls sync_interaction_from_zapp RPC which:
  * - Finds the contact by phone
  * - Creates an interaction record
  * - Recalculates relationship_score
  * - Deduplicates by zapp_conversation_id
- * 
+ *
  * Usage: call syncConversation() when a conversation is resolved/closed.
  */
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -65,7 +65,7 @@ export function useSyncToCRM() {
         throw error;
       }
 
-      return data as SyncResult;
+      return data as SyncResult; // ignore-audit: dbRpc returns unknown, SyncResult is the documented RPC return shape
     },
     onSuccess: (result, params) => {
       if (result?.synced) {
@@ -76,6 +76,7 @@ export function useSyncToCRM() {
         log.info('CRM sync success:', result);
       }
     },
+    onError: (err: Error) => log.error('[useSyncToCRM] sync failed:', err),
   });
 
   return {

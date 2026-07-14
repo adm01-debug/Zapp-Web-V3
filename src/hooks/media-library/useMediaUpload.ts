@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState } from 'react';
 import { getLogger } from '@/lib/logger';
 import { supabase } from '@/integrations/supabase/client';
+import { fromTable } from '@/lib/supabaseHelpers';
 import { toast } from 'sonner';
 import {
   MediaType,
@@ -96,11 +97,8 @@ export function useMediaUpload(type: MediaType, onComplete: () => void) {
           };
           if (type === 'audio_memes') insertData.audio_url = urlData.publicUrl;
           else insertData.image_url = urlData.publicUrl;
-          interface DynamicClient {
-            from(table: string): { insert(data: unknown): Promise<{ error: unknown }> };
-          }
-          const dynamicSupabase = supabase as unknown as DynamicClient;
-          const { error: insertError } = await dynamicSupabase.from(type).insert(insertData);
+          const { error: insertError } = await fromTable(type)
+            .insert(insertData);
           if (!insertError) successCount++;
         } catch (err) {
           log.error(`Unexpected error uploading ${file.name}:`, err);

@@ -3,14 +3,16 @@ import { log } from '@/lib/logger';
 import { supabase } from '@/integrations/supabase/client';
 import { undoToast } from '@/lib/undoToast';
 import { useAuth } from '@/features/auth';
-import { Message, InteractiveMessage, InteractiveButton, LocationMessage } from '@/types/chat';
-import { SlashCommand } from '../SlashCommands';
-import { ExternalProduct } from '@/hooks/useExternalCatalog';
+import { Message } from '@/types/chat';
 import { toast } from '@/hooks/use-toast';
 import { dbFrom } from '@/integrations/datasource/db';
 import { isValidUUID } from '@/utils/uuid';
 import { type DialogKey } from './hooks/useChatDialogs';
 import { type ActiveTool } from './ChatHeaderToolbar';
+import { useInputHandlers } from './useInputHandlers';
+import { useProductHandlers } from './useProductHandlers';
+import { useAudioVoiceChange } from './useAudioVoiceChange';
+import { useMessageReactionHandlers } from './useMessageReactionHandlers';
 
 interface UseChatPanelHandlersOptions {
   conversationId: string;
@@ -21,7 +23,7 @@ interface UseChatPanelHandlersOptions {
   editMessageApi: (
     instance: string,
     params: { number: string; messageId: string; text: string }
-  ) => Promise<any>;
+  ) => Promise<unknown>;
   applySignature: (text: string) => string;
   handleTypingStart: () => void;
   handleTypingStop: () => void;
@@ -50,7 +52,10 @@ export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
   const [isRecordingAudio, setIsRecordingAudio] = useState(false);
   const [lastSendError, setLastSendError] = useState<string | null>(null);
   const [lastSendErrorDetail, setLastSendErrorDetail] = useState<string | null>(null);
-  const lastFailedPayloadRef = useRef<string | null>(null);
+  // Guarda content + attachments juntos: um envio só-mídia falho tem
+  // messageContent === '' (falsy), então checar `!payload` sozinho fazia
+  // retryLastSend virar no-op silencioso para esse caso.
+  const lastFailedSendRef = useRef<{ content: string; attachments?: File[] } | null>(null);
   const lastFailedAudioRef = useRef<{
     blob: Blob;
     onSendAudio: (blob: Blob) => Promise<void>;
@@ -97,12 +102,13 @@ export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
   const handleSend = useCallback(
     async (attachments?: File[]) => {
       const currentInput = inputValueRef.current;
-      const hasAttachments = !!attachments && attachments.length > 0;
-      // FIX C1 (2026-07-12): legenda é opcional para mídia — bloquear aqui
-      // descartava silenciosamente qualquer anexo enviado sem texto.
-      if ((!currentInput.trim() && !hasAttachments) || isSendingRef.current) return;
-
       const currentEditing = editingMessageRef.current;
+      const hasAttachments = !!attachments && attachments.length > 0;
+      // Legenda é opcional para mídia: applySignature('') retorna texto não-vazio
+      // quando assinatura ativa. Bypass só vale para envio novo (não edição nem whisper).
+      const bypassEmptyText = hasAttachments && !currentEditing && !isWhisperRef.current;
+      if ((!currentInput.trim() && !bypassEmptyText) || isSendingRef.current) return;
+
       if (currentEditing) {
         const externalId = currentEditing.external_id;
         const contactJid = contactPhone ? `${contactPhone}@s.whatsapp.net` : '';
@@ -136,7 +142,9 @@ export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
         return;
       }
 
-      const messageContent = applySignature(currentInput.trim());
+      // Só aplica assinatura quando há texto real.
+      const trimmedInput = currentInput.trim();
+      const messageContent = trimmedInput ? applySignature(trimmedInput) : '';
       const wasReply = replyToMessageRef.current;
       setIsSending(true);
       setSendProgress(0);
@@ -162,8 +170,7 @@ export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
           if (!profile?.id) throw new Error('Usuario nao autenticado');
 
           // Guard: whisper_messages.contact_id is uuid. When USE_EXTERNAL_DB=true,
-          // opts.contactId may be a WhatsApp JID (phone number). Passing a JID
-          // causes PostgREST 400 "invalid input syntax for type uuid" on INSERT.
+          // opts.contactId may be a WhatsApp JID. Passing a JID causes PostgREST 400.
           if (!isValidUUID(opts.contactId)) {
             toast({
               title: 'Sussurro indisponivel',
@@ -190,7 +197,7 @@ export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
           );
           setSendProgress(100);
         }
-        lastFailedPayloadRef.current = null;
+        lastFailedSendRef.current = null;
         undoToast({
           message: 'Mensagem enviada',
           icon: 'ok',
@@ -204,11 +211,15 @@ export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
             });
           },
         });
-      } catch (err: any) { // ignore-audit
+      } catch (err: unknown) {
+        // ignore-audit
         log.error('Failed to send message:', err);
-        const msg = err?.message || 'Falha ao invocar a funcao de envio.';
-        const detail = typeof err?.detail === 'string' ? err.detail : null;
-        lastFailedPayloadRef.current = messageContent;
+        const msg = err instanceof Error ? err.message : 'Falha ao invocar a funcao de envio.';
+        const detail =
+          typeof (err as { detail?: string }).detail === 'string'
+            ? (err as { detail?: string }).detail!
+            : null;
+        lastFailedSendRef.current = { content: messageContent, attachments };
         setLastSendError(msg);
         setLastSendErrorDetail(detail);
         setInputValue(messageContent);
@@ -232,10 +243,14 @@ export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
         await audioPending.onSendAudio(audioPending.blob);
         lastFailedAudioRef.current = null;
         toast({ title: 'Audio reenviado', description: 'O audio foi reenviado com sucesso.' });
-      } catch (err: any) { // ignore-audit
+      } catch (err: unknown) {
+        // ignore-audit
         log.error('Audio retry failed:', err);
-        const msg = err?.message || 'Falha ao reenviar audio.';
-        const detail = typeof err?.detail === 'string' ? err.detail : null;
+        const msg = err instanceof Error ? err.message : 'Falha ao reenviar audio.';
+        const detail =
+          typeof (err as { detail?: string }).detail === 'string'
+            ? (err as { detail?: string }).detail!
+            : null;
         setLastSendError(msg);
         setLastSendErrorDetail(detail);
         toast({ title: 'Erro ao reenviar audio', description: msg, variant: 'destructive' });
@@ -244,19 +259,23 @@ export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
       }
       return;
     }
-    const payload = lastFailedPayloadRef.current;
-    if (!payload) return;
+    const failedSend = lastFailedSendRef.current;
+    if (!failedSend) return;
     setIsSending(true);
     setLastSendError(null);
     setLastSendErrorDetail(null);
     try {
-      await Promise.resolve(onSendMessage(payload));
-      lastFailedPayloadRef.current = null;
+      await Promise.resolve(onSendMessage(failedSend.content, failedSend.attachments));
+      lastFailedSendRef.current = null;
       toast({ title: 'Reenviado', description: 'A mensagem foi enviada com sucesso.' });
-    } catch (err: any) { // ignore-audit
+    } catch (err: unknown) {
+      // ignore-audit
       log.error('Retry failed:', err);
-      const msg = err?.message || 'Falha ao reenviar.';
-      const detail = typeof err?.detail === 'string' ? err.detail : null;
+      const msg = err instanceof Error ? err.message : 'Falha ao reenviar.';
+      const detail =
+        typeof (err as { detail?: string }).detail === 'string'
+          ? (err as { detail?: string }).detail!
+          : null;
       setLastSendError(msg);
       setLastSendErrorDetail(detail);
       toast({ title: 'Erro ao reenviar', description: msg, variant: 'destructive' });
@@ -268,205 +287,10 @@ export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
   const dismissSendError = useCallback(() => {
     setLastSendError(null);
     setLastSendErrorDetail(null);
-    lastFailedPayloadRef.current = null;
+    lastFailedSendRef.current = null;
     lastFailedAudioRef.current = null;
   }, []);
-  const handleReplyToMessage = useCallback((message: Message) => {
-    setReplyToMessage(message);
-    inputRef.current?.focus();
-  }, []);
-  const handleCopyMessage = useCallback((content: string) => {
-    navigator.clipboard.writeText(content);
-    toast({ title: 'Copiado!', description: 'Mensagem copiada para a area de transferencia.' });
-  }, []);
-  const handleForwardMessage = useCallback(
-    (message: Message) => {
-      setForwardMessage(message);
-      openDialog('forwardDialog');
-    },
-    [openDialog]
-  );
-  const handleForwardToTargets = useCallback(
-    (targetIds: string[], targetType: 'contact' | 'group') => {
-      log.debug('Forwarding to:', { targetIds, targetType, message: forwardMessage });
-    },
-    [forwardMessage]
-  );
-  const handleInputChange = useCallback(
-    (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-      const value = e.target.value;
-      setInputValue(value);
-      if (value.startsWith('/')) {
-        openDialog('slashCommands');
-        closeDialog('quickReplies');
-      } else {
-        closeDialog('slashCommands');
-      }
-      if (value.length > 0) handleTypingStart();
-      else handleTypingStop();
-    },
-    [openDialog, closeDialog, handleTypingStart, handleTypingStop]
-  );
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent, slashCommandsOpen: boolean) => {
-      if (slashCommandsOpen && (e.key === 'Enter' || e.key === 'ArrowUp' || e.key === 'ArrowDown'))
-        return;
-      if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        handleSend();
-      }
-      if (e.key === 'k' && e.ctrlKey) {
-        e.preventDefault();
-        openDialog('globalSearch');
-      }
-      if (e.key === 'f' && (e.ctrlKey || e.metaKey)) {
-        e.preventDefault();
-        handleSetActiveTool('chatSearch');
-      }
-      if (e.key === 'w' && e.altKey) {
-        e.preventDefault();
-        setIsWhisper((prev) => !prev);
-      }
-      if (e.key === 'Escape' && slashCommandsOpen) closeDialog('slashCommands');
-    },
-    [handleSend, openDialog, closeDialog, handleSetActiveTool]
-  );
-  const handleSlashCommand = useCallback(
-    (command: Pick<SlashCommand, 'id'> & Partial<SlashCommand>, subCommand?: string) => {
-      closeDialog('slashCommands');
-      setInputValue('');
-      switch (command.id) {
-        case 'transfer':
-          openDialog('transferDialog');
-          break;
-        case 'resolve':
-          toast({
-            title: 'Conversa Resolvida',
-            description: 'A conversa foi marcada como resolvida.',
-          });
-          break;
-        case 'template':
-          openDialog('quickReplies');
-          break;
-        case 'note':
-          toast({ title: 'Nota Privada', description: 'Funcionalidade de notas sera aberta.' });
-          break;
-        case 'tag':
-          toast({
-            title: subCommand === 'add' ? 'Adicionar Tag' : 'Remover Tag',
-            description:
-              subCommand === 'add'
-                ? 'Selecione uma tag para adicionar.'
-                : 'Selecione uma tag para remover.',
-          });
-          break;
-        case 'priority': {
-          const labels: Record<string, string> = { high: 'Alta', medium: 'Media', low: 'Baixa' };
-          toast({
-            title: 'Prioridade Definida',
-            description: `Prioridade definida como ${labels[subCommand || ''] || subCommand}.`,
-          });
-          break;
-        }
-        case 'assign':
-          toast({ title: 'Atribuir Conversa', description: 'Selecione um agente para atribuir.' });
-          break;
-        case 'snooze': {
-          const labels: Record<string, string> = {
-            '1h': '1 hora',
-            '3h': '3 horas',
-            tomorrow: 'amanha',
-            nextweek: 'proxima semana',
-          };
-          toast({
-            title: 'Conversa Adiada',
-            description: `Conversa adiada para ${labels[subCommand || ''] || subCommand}.`,
-          });
-          break;
-        }
-        case 'star':
-          toast({
-            title: 'Conversa Favoritada',
-            description: 'A conversa foi marcada como favorita.',
-          });
-          break;
-        case 'archive':
-          toast({ title: 'Conversa Arquivada', description: 'A conversa foi arquivada.' });
-          break;
-        case 'remind':
-          toast({
-            title: 'Lembrete Criado',
-            description: 'Um lembrete foi criado para esta conversa.',
-          });
-          break;
-        case 'quick':
-          openDialog('quickReplies');
-          break;
-        case 'summary':
-          handleSetActiveTool('aiAssistant');
-          break;
-        case 'produto':
-          openDialog('catalogDirect');
-          break;
-        case 'internal-note':
-          setIsWhisper((prev) => !prev);
-          break;
-        case 'internal-file':
-          handleSetActiveTool('teamFiles');
-          break;
-        default:
-          toast({ title: `Comando: ${command.label}`, description: command.description });
-          break;
-      }
-    },
-    [closeDialog, openDialog, handleSetActiveTool, setIsWhisper]
-  );
-  const handleSendProduct = useCallback(
-    (product: ExternalProduct) => {
-      const price = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
-        product.sale_price
-      );
-      const lines = [
-        `Produto: *${product.name}*`,
-        product.brand ? `Marca: ${product.brand}` : '',
-        `Preco: ${price}`,
-        product.min_quantity ? `Qtd. minima: ${product.min_quantity} un.` : '',
-        product.colors?.length ? `Cores: ${product.colors.join(', ')}` : '',
-        product.dimensions_display ? `Dimensoes: ${product.dimensions_display}` : '',
-        product.allows_personalization ? 'Permite personalizacao' : '',
-        product.lead_time_days ? `Prazo: ${product.lead_time_days} dias uteis` : '',
-        product.is_stockout
-          ? '*Sem estoque no momento*'
-          : `Em estoque: ${product.stock_quantity} un.`,
-        product.short_description || product.description
-          ? `\n${(product.short_description || product.description || '').slice(0, 300)}`
-          : '',
-        product.primary_image_url ? `\n${product.primary_image_url}` : '',
-      ]
-        .filter(Boolean)
-        .join('\n');
-      onSendMessage(lines);
-      toast({ title: 'Produto enviado!', description: `${product.name} - ${price}` });
-    },
-    [onSendMessage]
-  );
-  const handleSendInteractiveMessage = useCallback((interactive: InteractiveMessage) => {
-    toast({
-      title: 'Mensagem interativa enviada!',
-      description: `Mensagem com ${interactive.buttons?.length || 0} botoes enviada.`,
-    });
-  }, []);
-  const handleInteractiveButtonClick = useCallback((button: InteractiveButton) => {
-    toast({ title: 'Botao clicado', description: `Resposta: ${button.title}` });
-  }, []);
-  const handleSendLocation = useCallback((location: LocationMessage) => {
-    toast({
-      title: 'Localizacao enviada!',
-      description: location.isLive
-        ? `Localizacao em tempo real por ${location.liveUntil ? Math.round((location.liveUntil.getTime() - Date.now()) / 60000) : 15} minutos`
-        : location.name || 'Localizacao compartilhada',
-    });
-  }, []);
+
   const handleAudioSend = useCallback(
     async (audioBlob: Blob, onSendAudio?: (blob: Blob) => Promise<void>) => {
       if (!onSendAudio) {
@@ -481,12 +305,16 @@ export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
       try {
         await onSendAudio(audioBlob);
         lastFailedAudioRef.current = null;
-      } catch (err: any) { // ignore-audit
+      } catch (err: unknown) {
+        // ignore-audit
         log.error('Error sending audio:', err);
-        const msg = err?.message || 'Falha ao enviar audio.';
-        const detail = typeof err?.detail === 'string' ? err.detail : null;
+        const msg = err instanceof Error ? err.message : 'Falha ao enviar audio.';
+        const detail =
+          typeof (err as { detail?: string }).detail === 'string'
+            ? (err as { detail?: string }).detail!
+            : null;
         lastFailedAudioRef.current = { blob: audioBlob, onSendAudio };
-        lastFailedPayloadRef.current = null;
+        lastFailedSendRef.current = null;
         setLastSendError(msg);
         setLastSendErrorDetail(detail);
         toast({
@@ -500,26 +328,35 @@ export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
     },
     []
   );
-  const handleAudioVoiceChange = useCallback(async (messageId: string, newBlob: Blob) => {
-    try {
-      toast({ title: 'Voz alterada!', description: 'Enviando nova versao do audio...' });
-      const filePath = `audios/${Date.now()}.mp3`;
-      const { error: uploadError } = await supabase.storage
-        .from('chat-media')
-        .upload(filePath, newBlob);
-      if (uploadError) throw uploadError;
-      const {
-        data: { publicUrl },
-      } = supabase.storage.from('chat-media').getPublicUrl(filePath);
-      await dbFrom('messages')
-        .update({ mediaUrl: publicUrl, updated_at: new Date().toISOString() })
-        .eq('id', messageId);
-      toast({ title: 'Sucesso', description: 'Audio atualizado com a nova voz.' });
-    } catch (err: any) { // ignore-audit
-      log.error('Failed to change audio voice:', err);
-      toast({ title: 'Erro na conversao', description: err.message, variant: 'destructive' });
-    }
-  }, []);
+
+  const { handleReplyToMessage, handleCopyMessage, handleForwardMessage, handleForwardToTargets } =
+    useMessageReactionHandlers({
+      inputRef,
+      forwardMessage,
+      setReplyToMessage,
+      setForwardMessage,
+      openDialog,
+    });
+
+  const { handleInputChange, handleKeyDown, handleSlashCommand } = useInputHandlers({
+    setInputValue,
+    setIsWhisper,
+    openDialog,
+    closeDialog,
+    handleTypingStart,
+    handleTypingStop,
+    handleSend,
+    handleSetActiveTool,
+  });
+
+  const {
+    handleSendProduct,
+    handleSendInteractiveMessage,
+    handleInteractiveButtonClick,
+    handleSendLocation,
+  } = useProductHandlers({ onSendMessage });
+
+  const { handleAudioVoiceChange } = useAudioVoiceChange();
 
   return {
     inputValue,

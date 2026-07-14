@@ -18,18 +18,16 @@ import {
   Grid3X3,
   List,
   X,
-  Check,
   Loader2,
   AlertCircle,
   RefreshCw,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
 import { MediaItem, getMediaType, getFilename } from './media-gallery/mediaUtils';
 import { MediaCard } from './media-gallery/MediaCard';
 import { MediaPreviewDialog } from './media-gallery/MediaPreviewDialog';
+import { MediaGalleryListView } from './media-gallery/MediaGalleryListView';
 import { dbFrom } from '@/integrations/datasource/db';
 
 interface MediaGalleryProps {
@@ -174,7 +172,14 @@ export function MediaGallery({ contactId, open, onOpenChange }: MediaGalleryProp
             </div>
           </div>
 
-          <Tabs value={filter} onValueChange={(v) => setFilter(v as typeof filter)}>
+          <Tabs
+            value={filter}
+            onValueChange={(v) =>
+              setFilter(
+                v as typeof filter /* ignore-audit: Select/Tabs value string narrowed to union; developer controls option values */
+              )
+            }
+          >
             <TabsList className="grid grid-cols-5">
               <TabsTrigger value="all" className="gap-1">
                 Todos{' '}
@@ -329,67 +334,12 @@ export function MediaGallery({ contactId, open, onOpenChange }: MediaGalleryProp
                 ))}
               </div>
             ) : (
-              <div className="space-y-2 p-2">
-                {filteredItems.map((item) => (
-                  <div
-                    key={item.id}
-                    role="button"
-                    tabIndex={0}
-                    className={cn(
-                      'flex cursor-pointer items-center gap-3 rounded-lg border p-2 transition-colors',
-                      selectedItems.has(item.id)
-                        ? 'border-primary bg-primary/5'
-                        : 'hover:bg-muted/50'
-                    )}
-                    onClick={() => setPreviewItem(item)}
-                    onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && setPreviewItem(item)}
-                  >
-                    <div
-                      className={cn(
-                        'flex h-5 w-5 shrink-0 items-center justify-center rounded border-2',
-                        selectedItems.has(item.id)
-                          ? 'border-primary bg-primary text-primary-foreground'
-                          : 'border-muted-foreground/50'
-                      )}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        toggleSelect(item.id);
-                      }}
-                    >
-                      {selectedItems.has(item.id) && <Check className="h-3 w-3" />}
-                    </div>
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded bg-muted">
-                      {item.type === 'image' && <Image className="h-5 w-5 text-muted-foreground" />}
-                      {item.type === 'video' && (
-                        <FileVideo className="h-5 w-5 text-muted-foreground" />
-                      )}
-                      {item.type === 'audio' && (
-                        <FileAudio className="h-5 w-5 text-muted-foreground" />
-                      )}
-                      {item.type === 'document' && (
-                        <File className="h-5 w-5 text-muted-foreground" />
-                      )}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium">{item.filename}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {format(new Date(item.created_at), 'dd/MM/yyyy HH:mm', { locale: ptBR })}
-                      </p>
-                    </div>
-                    <Button
-                      aria-label={`Baixar ${item.filename}`}
-                      variant="ghost"
-                      size="icon"
-                      asChild
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <a href={item.url} download={item.filename}>
-                        <Download className="h-4 w-4" />
-                      </a>
-                    </Button>
-                  </div>
-                ))}
-              </div>
+              <MediaGalleryListView
+                items={filteredItems}
+                selectedItems={selectedItems}
+                onToggleSelect={toggleSelect}
+                onPreview={setPreviewItem}
+              />
             )}
           </ScrollArea>
         </DialogContent>

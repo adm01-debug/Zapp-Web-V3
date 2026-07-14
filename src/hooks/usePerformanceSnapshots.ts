@@ -3,7 +3,7 @@ import { getLogger } from '@/lib/logger';
 
 const log = getLogger('PerformanceSnapshots');
 import { supabase } from '@/integrations/supabase/client';
-import type { Database } from '@/integrations/supabase/types';
+import type { Database } from '@/integrations/supabase/schema';
 import { useAuth } from '@/features/auth';
 import { toast } from 'sonner';
 
@@ -49,7 +49,7 @@ export function usePerformanceSnapshots() {
           profile_id: profile.id,
           ...data,
           user_agent: navigator.userAgent,
-        } as unknown as Database['public']['Tables']['performance_snapshots']['Insert']);
+        } as unknown as Database['public']['Tables']['performance_snapshots']['Insert']); // ignore-audit — spread of typed metrics object; shape matches Insert row at runtime
       } catch (err) {
         // Silent fail — don't interrupt UX for telemetry
         log.warn('Failed to save performance snapshot:', err);

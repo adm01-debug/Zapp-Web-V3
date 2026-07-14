@@ -3,91 +3,10 @@ import { safeClient } from '@/integrations/supabase/safeClient';
 import { useAuth } from '@/features/auth';
 import { toast } from '@/hooks/use-toast';
 import { log } from '@/lib/logger';
+import { UserSettings, DEFAULT_SETTINGS, retryWithBackoff } from './userSettingsSchema';
 
-// Default ElevenLabs voice: Custom system voice
-const DEFAULT_TTS_VOICE_ID = 'TY3h8ANhQUsJaa0Bga5F';
-const DEFAULT_TTS_SPEED = 1.0;
-
-export interface UserSettings {
-  id?: string;
-  user_id?: string;
-
-  // Business hours
-  business_hours_enabled: boolean;
-  business_hours_start: string;
-  business_hours_end: string;
-  work_days: number[];
-
-  // Messages
-  welcome_message: string;
-  away_message: string;
-  closing_message: string;
-
-  // Automation
-  auto_assignment_enabled: boolean;
-  auto_assignment_method: string;
-  inactivity_timeout: number;
-  auto_transcription_enabled: boolean;
-
-  // Notifications
-  sound_enabled: boolean;
-  browser_notifications_enabled: boolean;
-  quiet_hours_enabled: boolean;
-  quiet_hours_start: string;
-  quiet_hours_end: string;
-
-  // Appearance
-  theme: string;
-  language: string;
-  compact_mode: boolean;
-
-  // TTS
-  tts_voice_id: string;
-  tts_speed: number;
-
-  // Simulation
-  simulation_mode_enabled: boolean;
-
-  // SLA
-  global_sla_warning_minutes: number;
-  global_sla_critical_minutes: number;
-  global_sla_notification_message: string;
-}
-
-const DEFAULT_SETTINGS: UserSettings = {
-  business_hours_enabled: true,
-  business_hours_start: '09:00',
-  business_hours_end: '18:00',
-  work_days: [1, 2, 3, 4, 5],
-
-  welcome_message: '',
-  away_message: '',
-  closing_message: '',
-
-  auto_assignment_enabled: true,
-  auto_assignment_method: 'roundrobin',
-  inactivity_timeout: 30,
-  auto_transcription_enabled: true,
-
-  sound_enabled: true,
-  browser_notifications_enabled: true,
-  quiet_hours_enabled: false,
-  quiet_hours_start: '22:00',
-  quiet_hours_end: '07:00',
-
-  theme: 'system',
-  language: 'pt-BR',
-  compact_mode: false,
-
-  tts_voice_id: DEFAULT_TTS_VOICE_ID,
-  tts_speed: DEFAULT_TTS_SPEED,
-
-  simulation_mode_enabled: false,
-
-  global_sla_warning_minutes: 30,
-  global_sla_critical_minutes: 60,
-  global_sla_notification_message: 'Alerta SLA: Tempo limite excedido para resposta.',
-};
+export type { UserSettings } from './userSettingsSchema';
+export { UserSettingsSchema } from './userSettingsSchema';
 
 export function useUserSettings() {
   const { user } = useAuth();
@@ -95,7 +14,11 @@ export function useUserSettings() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Fetch settings from DB
+  // Idempotency tracking: prevents duplicate saves from concurrent requests
+  const [lastSaveId, setLastSaveId] = useState<string | null>(null);
+  const [pendingSaveId, setPendingSaveId] = useState<string | null>(null);
+
+  // Fetch settings from DB with cleanup on unmount
   useEffect(() => {
     if (!user?.id) {
       setIsLoading(false);
@@ -124,8 +47,14 @@ export function useUserSettings() {
 
         const data = rows?.[0] ?? null;
 
-        if (error) {
-          log.error('Error fetching settings:', error);
+        if (abortController.signal.aborted) return;
+
+        if (error && error.code !== 'PGRST116') {
+          log.error('Error fetching settings', {
+            userId: user.id,
+            error: error.message,
+            code: error.code,
+          });
           return;
         }
 
@@ -189,12 +118,10 @@ export function useUserSettings() {
     };
   }, [user?.id]);
 
-  // Update settings locally
   const updateSettings = useCallback((updates: Partial<UserSettings>) => {
     setSettings((prev) => ({ ...prev, ...updates }));
   }, []);
 
-  // Save settings to DB
   const saveSettings = useCallback(async () => {
     if (!user?.id) {
       toast({
@@ -257,19 +184,92 @@ export function useUserSettings() {
         }, 30000);
       });
 
-      const { error } = await Promise.race([savePromise, timeoutPromise]) as Awaited<typeof savePromise>;
+      const { error } = (await Promise.race([savePromise, timeoutPromise])) as Awaited<
+        typeof savePromise
+      >;
 
       if (timeoutId) clearTimeout(timeoutId);
 
       if (error) {
         log.error('Error saving settings:', error);
         toast({
-          title: 'Erro ao salvar',
-          description: 'Não foi possível salvar as configurações.',
+          title: 'Erro de validação',
+          description: error.message,
           variant: 'destructive',
         });
         return false;
       }
+
+      // Check for race conditions: if we already saved this ID, skip
+      if (lastSaveId === pendingSaveId) {
+        log.info('Ignoring duplicate save - already processed', { userId: user.id });
+        return true;
+      }
+
+      // Implement optimistic locking with retry logic
+      const attemptSave = async () => {
+        const { data, error: rpcError } = await safeClient!.single<{
+          success: boolean;
+          version: number;
+          error_code: string | null;
+        }>('user_settings', (q) =>
+          q.rpc('upsert_user_settings', {
+            _user_id: user.id,
+            _data: settingsData,
+            _expected_version: settings.version ?? 1,
+          })
+        );
+
+        if (rpcError) {
+          log.error('RPC error in upsert_user_settings', {
+            userId: user.id,
+            error: rpcError.message,
+          });
+          throw rpcError;
+        }
+
+        if (!data) {
+          throw new Error('No response from upsert_user_settings');
+        }
+
+        if (!data.success && data.error_code === 'CONFLICT') {
+          const conflictError = Object.assign(
+            new Error('Version conflict: settings were modified. Reloading and retrying...'),
+            { code: 'CONFLICT' }
+          );
+          throw conflictError;
+        }
+
+        if (!data.success) {
+          throw new Error(`Save failed: ${data.error_code || 'unknown error'}`);
+        }
+
+        return data;
+      };
+
+      let saveResult: { success: boolean; version: number; error_code: string | null };
+      try {
+        saveResult = await retryWithBackoff(attemptSave, 3, 100);
+      } catch (err) {
+        log.error('Settings save failed after retries', {
+          userId: user.id,
+          error: err instanceof Error ? err.message : String(err),
+        });
+        toast({
+          title: 'Erro ao salvar',
+          description:
+            err instanceof Error && err.message.includes('Version conflict')
+              ? 'Suas configurações foram modificadas. Recarregando...'
+              : 'Não foi possível salvar as configurações.',
+          variant: 'destructive',
+        });
+        return false;
+      }
+
+      setSettings((prev) => ({ ...prev, version: saveResult.version }));
+      setLastSaveId(pendingSaveId);
+
+      log.info('Settings saved successfully', { userId: user.id });
 
       toast({
         title: 'Configurações salvas',
@@ -281,23 +281,23 @@ export function useUserSettings() {
       log.error('Error in saveSettings:', err);
       toast({
         title: 'Erro ao salvar',
-        description: err instanceof Error && err.message.includes('timed out')
-          ? 'A operação demorou muito tempo. Verifique sua conexão.'
-          : 'Ocorreu um erro inesperado.',
+        description:
+          err instanceof Error && err.message.includes('timed out')
+            ? 'A operação demorou muito tempo. Verifique sua conexão.'
+            : 'Ocorreu um erro inesperado.',
         variant: 'destructive',
       });
       return false;
     } finally {
+      setPendingSaveId(null);
       setIsSaving(false);
     }
-  }, [user?.id, settings]);
+  }, [user?.id, settings, lastSaveId, pendingSaveId]);
 
-  // Reset to defaults
   const resetSettings = useCallback(() => {
     setSettings(DEFAULT_SETTINGS);
   }, []);
 
-  // Toggle work day
   const toggleWorkDay = useCallback((day: number) => {
     setSettings((prev) => {
       const workDays = prev.work_days.includes(day)

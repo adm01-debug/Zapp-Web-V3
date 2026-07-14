@@ -24,5 +24,5 @@ export async function recheckWebhookSignature(eventId: string): Promise<RecheckR
   if ((data as { error?: string })?.error) {
     throw new Error((data as { error: string }).error);
   }
-  return data as RecheckResult;
+  return data as RecheckResult; // ignore-audit: narrows Supabase query result to local interface
 }

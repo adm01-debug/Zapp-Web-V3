@@ -58,16 +58,14 @@ export const authService = {
     return await supabase.auth.signOut();
   },
 
-  async getProfile(
-    userId: string
-  ): Promise<{ data: Profile | null; error: PostgrestError | null }> {
+  async getProfile(userId: string): Promise<{ data: Profile | null; error: PostgrestError | null }> {
     const { data, error } = await supabase
       .from('profiles')
       .select('*')
       .eq('user_id', userId)
       .maybeSingle();
-
-    return { data: data as Profile | null, error };
+    
+    return { data: data as Profile | null, error }; // ignore-audit: narrows Supabase query result to local interface
   },
 
   onAuthStateChange(callback: (event: string, session: Session | null) => void) {

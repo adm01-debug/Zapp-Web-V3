@@ -1,7 +1,11 @@
 import { useCallback, useRef, useState } from 'react';
 import { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 import { normalizeMessage, buildConversation } from './realtimeUtils';
-import type { ConversationWithMessages, RealtimeMessage } from '../useRealtimeMessages';
+import type { ConversationWithMessages, RealtimeMessage } from './types';
+
+function hasRealtimeMessageId(value: unknown): value is RealtimeMessage {
+  return typeof value === 'object' && value !== null && 'id' in value;
+}
 
 export interface MessageBatcherStatus {
   /** True while there are pending updates waiting for the debounce window to flush. */
@@ -95,7 +99,8 @@ export function useMessageUpdateBatcher(
 
   const handleMessageUpdate = useCallback(
     (payload: RealtimePostgresChangesPayload<RealtimeMessage>) => {
-      const updatedMessage = normalizeMessage(payload.new as RealtimeMessage);
+      if (!hasRealtimeMessageId(payload.new)) return;
+      const updatedMessage = normalizeMessage(payload.new);
       if (!updatedMessage.contact_id) return;
 
       const existingConversation = conversationsRef.current.find(

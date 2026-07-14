@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { toast } from 'sonner';
+import { normalizeProfileRef, type AdminProfileRef } from '@/features/admin/utils/profileMappers';
 
 type RoleType = 'dev' | 'admin' | 'manager' | 'supervisor' | 'agent';
 
@@ -9,11 +10,7 @@ export interface UserWithRole {
   id: string;
   user_id: string;
   role: RoleType;
-  profile?: {
-    name: string;
-    email: string | null;
-    avatar_url: string | null;
-  };
+  profile?: Pick<AdminProfileRef, 'name' | 'email' | 'avatar_url'>;
 }
 
 export function useRolesPageState() {
@@ -31,19 +28,32 @@ export function useRolesPageState() {
 
   const fetchUsers = async () => {
     setLoading(true);
-    type RoleRow = { id: string; user_id: string; role: string; profiles: { name: string; email: string | null; avatar_url: string | null } | { name: string; email: string | null; avatar_url: string | null }[] | null };
-    const { data, error } = await safeClient.from<RoleRow>('user_roles', q =>
-      q.select(`id, user_id, role, profiles!user_roles_user_id_fkey (name, email, avatar_url)`).order('role'),
+    type RoleRow = {
+      id: string;
+      user_id: string;
+      role: string;
+      profiles: unknown;
+    };
+    const { data, error } = await safeClient.from<RoleRow>('user_roles', (q) =>
+      q
+        .select(`id, user_id, role, profiles!user_roles_user_id_fkey (name, email, avatar_url)`)
+        .order('role')
     );
+    const rows = data ?? null;
 
-    if (!error && data) {
+    if (!error && rows) {
       setUsers(
-        data.map((u) => ({
-          id: u.id,
-          user_id: u.user_id,
-          role: u.role as RoleType,
-          profile: (Array.isArray(u.profiles) ? u.profiles[0] : u.profiles) ?? undefined,
-        }))
+        rows.map((u) => {
+          const ref = normalizeProfileRef(u.profiles as never);
+          return {
+            id: u.id,
+            user_id: u.user_id,
+            role: u.role as RoleType,
+            profile: ref
+              ? { name: ref.name, email: ref.email, avatar_url: ref.avatar_url }
+              : undefined,
+          };
+        })
       );
     }
     setLoading(false);

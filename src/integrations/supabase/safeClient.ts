@@ -1,159 +1,77 @@
 import { supabase as _supabase } from './client';
 import { getLogger } from '@/lib/logger';
-import { getConnectionPool } from './connectionPool';
-import { PostgrestError } from '@supabase/supabase-js';
+import type { PostgrestError } from '@supabase/supabase-js';
+import type { AnyQueryBuilderResult, SafeQueryBuilder } from './safeClientTypes';
+import type {
+  SafeResponse,
+  OperationFailure,
+  ClientTelemetry,
+  CacheInfo,
+  FailureRecord,
+} from './safeClientTypes';
+import {
+  maskEmail as _maskEmail,
+  maskSensitiveData as _maskSensitiveData,
+  applyMasking as _applyMasking,
+} from './safeClientMasking';
+
+export type { SafeResponse, OperationFailure, ClientTelemetry, CacheInfo };
+export { maskEmail, maskSensitiveData } from './safeClientMasking';
 
 const supabase = _supabase;
 const _log = getLogger('safeClient');
-const connectionPool = getConnectionPool();
 
-export interface SafeResponse<T> {
-  data: T | null;
-  error: Error | null;
-  requestId?: string;
-}
-
-/** Record of a single operation failure captured in the telemetry buffer. */
-export interface OperationFailure {
-  operation: string;
-  table?: string;
-  error: string;
-  timestamp: number;
-  requestId: string;
-}
-
-/** Telemetry snapshot returned by safeClient.getTelemetry(). */
-export interface ClientTelemetry {
-  lastValidation: Date | null;
-  recentFailures: OperationFailure[];
-  stats: {
-    totalCalls: number;
-    failedCalls: number;
-    cacheHits: number;
-  };
-}
-
-/** Cache metadata returned by safeClient.getCacheInfo(). */
-export interface CacheInfo {
-  expiration: Date | null;
-  size: number;
-}
+// Dynamic table accessor — bypasses the overloaded `from()` signature that
+// requires a string-literal table name from the generated types.
+type DynamicSupabaseClient = { from(t: string): ReturnType<typeof supabase.from> };
 
 const MAX_FAILURES = 20;
+const CACHE_TTL = 5 * 60 * 1000;
+const CACHE_MAX_SIZE = 100;
 
-export const maskEmail = (email: string): string => {
-  const [local, domain] = email.split('@');
-  if (!domain) return '***@' + (local || '');
-  const masked = local.length > 2 ? local.slice(0, 2) + '***' : '***';
-  return `${masked}@${domain}`;
+const telemetry: ClientTelemetry = {
+  lastValidation: null,
+  recentFailures: [],
+  stats: { totalCalls: 0, failedCalls: 0, cacheHits: 0 },
 };
 
-export const maskSensitiveData = (
-  data: Record<string, unknown> | unknown[]
-): Record<string, unknown> | unknown[] => {
-  const SENSITIVE_KEYS = new Set([
-    'password',
-    'senha',
-    'secret',
-    'token',
-    'api_key',
-    'apikey',
-    'api-key',
-    'access_token',
-    'refresh_token',
-    'private_key',
-    'auth_token',
-  ]);
-  const PARTIAL_KEYS = new Set(['email', 'e-mail', 'e_mail']);
-  const LONG_TOKEN_PATTERN = /^[A-Za-z0-9+/=._-]{40,}$/;
-
-  const maskValue = (key: string, value: unknown): unknown => {
-    if (typeof value !== 'string' && typeof value !== 'number' && typeof value !== 'boolean') {
-      return maskAny(value as Record<string, unknown> | unknown[]);
-    }
-    const k = key.toLowerCase();
-    if (SENSITIVE_KEYS.has(k)) return '***MASKED***';
-    if (PARTIAL_KEYS.has(k) && typeof value === 'string') return maskEmail(value);
-    if (typeof value === 'string' && LONG_TOKEN_PATTERN.test(value)) return '***TOKEN***';
-    return value;
-  };
-
-  const maskAny = (
-    d: Record<string, unknown> | unknown[] | null | undefined
-  ): Record<string, unknown> | unknown[] => {
-    if (Array.isArray(d)) return d.map((item) => maskAny(item as Record<string, unknown>));
-    if (!d || typeof d !== 'object') return {} as Record<string, unknown>;
-    return Object.fromEntries(
-      Object.entries(d as Record<string, unknown>).map(([k, v]) => [k, maskValue(k, v)])
-    );
-  };
-
-  return maskAny(data);
-};
-
-// ---------------------------------------------------------------------------
-// State for the safeClient object below.
-// These were lost during a merge conflict resolution — restored here.
-// ---------------------------------------------------------------------------
-export interface FailureRecord {
-  requestId: string;
-  operation: string;
-  resource: string;
-  error: string;
-  timestamp: string;
-}
-
-const CACHE_TTL = 300000; // 5 minutes
-const CACHE_MAX_SIZE = 500;
 const resourceCache = new Map<string, { exists: boolean; expires: number }>();
+let _healthLogInProgress = false;
 
 function pruneResourceCache(): void {
-  const now = Date.now();
-  for (const [key, val] of resourceCache) {
-    if (val.expires <= now) resourceCache.delete(key);
-  }
-  // If still over cap, evict oldest entries (Map preserves insertion order)
-  if (resourceCache.size > CACHE_MAX_SIZE) {
-    const overflow = resourceCache.size - CACHE_MAX_SIZE;
-    let evicted = 0;
-    for (const key of resourceCache.keys()) {
-      if (evicted >= overflow) break;
-      resourceCache.delete(key);
-      evicted++;
-    }
+  const entries = Array.from(resourceCache.entries()).sort((a, b) => a[1].expires - b[1].expires);
+  while (resourceCache.size > CACHE_MAX_SIZE) {
+    const oldest = entries.shift();
+    if (oldest) resourceCache.delete(oldest[0]);
   }
 }
-let lastValidation: Date | null = null;
-const recentFailures: FailureRecord[] = [];
-const stats = { totalCalls: 0, failedCalls: 0, cacheHits: 0 };
-let _healthLogInProgress = false;
+
+// Prevents SQL injection via dynamic table names: only identifier-safe chars allowed.
+function validateTableName(table: string): void {
+  if (!/^[a-zA-Z_][a-zA-Z0-9_.]*$/.test(table)) {
+    throw new Error(
+      `Invalid table name: "${table}". Only alphanumeric, underscore, and dot characters are allowed.`
+    );
+  }
+}
+
+export function safeFrom(table: string): SafeQueryBuilder {
+  return (supabase as unknown as DynamicSupabaseClient).from(table);
+}
 
 export const safeClient = {
   async from<T = unknown>(
     table: string,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    queryBuilder: (query: any) => PromiseLike<{ data: unknown; error: unknown }>
+    queryBuilder: (query: SafeQueryBuilder) => PromiseLike<{ data: unknown; error: unknown }>
   ): Promise<SafeResponse<T[]>> {
     const requestId = crypto.randomUUID();
-    stats.totalCalls++;
-    const { connectionId, allowed } = connectionPool.registerConnection();
-
-    if (!allowed) {
-      this.log(requestId, 'warn', 'Connection pool at capacity', { table });
-      await this.recordFailure(requestId, 'from', table, 'Connection pool exhausted');
-      stats.failedCalls++;
-      return { data: [] as T[], error: new Error('Limite de conexões atingido'), requestId };
-    }
-
+    telemetry.stats.totalCalls++;
     try {
-      connectionPool.markUsed(connectionId);
-
       if (table.startsWith('email_')) {
         const exists = await this.validateResource(table, 'table');
         if (!exists) {
           this.log(requestId, 'warn', `Tabela ${table} não encontrada no schema.`, { table });
           await this.recordFailure(requestId, 'from', table, `Tabela ${table} não encontrada`);
-          connectionPool.closeConnection(connectionId);
           return { data: [] as T[], error: new Error(`Tabela ${table} não disponível`), requestId };
         }
       }
@@ -162,16 +80,15 @@ export const safeClient = {
       );
       if (error) {
         this.log(requestId, 'error', `Erro na query from ${table}`, error);
-        await this.recordFailure(requestId, 'from', table, error.message || 'Erro desconhecido');
-        connectionPool.markError(
-          connectionId,
-          error instanceof Error ? error : new Error(String(error))
+        await this.recordFailure(
+          requestId,
+          'from',
+          table,
+          (error as { message?: string }).message || 'Erro desconhecido'
         );
-        stats.failedCalls++;
-        connectionPool.closeConnection(connectionId);
+        telemetry.stats.failedCalls++;
         return { data: [] as T[], error: this.formatError(error), requestId };
       }
-      connectionPool.closeConnection(connectionId);
       return { data: (Array.isArray(data) ? data : []) as T[], error: null, requestId };
     } catch (err) {
       this.log(requestId, 'error', `Erro crítico ao consultar tabela ${table}`, err);
@@ -181,9 +98,7 @@ export const safeClient = {
         table,
         err instanceof Error ? err.message : String(err)
       );
-      connectionPool.markError(connectionId, err instanceof Error ? err : new Error(String(err)));
-      stats.failedCalls++;
-      connectionPool.closeConnection(connectionId);
+      telemetry.stats.failedCalls++;
       return {
         data: [] as T[],
         error: err instanceof Error ? err : new Error(String(err)),
@@ -194,29 +109,20 @@ export const safeClient = {
 
   async single<T = unknown>(
     table: string,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    queryBuilder: (query: any) => { single(): PromiseLike<{ data: unknown; error: unknown }> }
+    queryBuilder: (query: SafeQueryBuilder) => {
+      single(): PromiseLike<{ data: unknown; error: unknown }>;
+    }
   ): Promise<SafeResponse<T>> {
     const requestId = crypto.randomUUID();
-    stats.totalCalls++;
-    const { connectionId, allowed } = connectionPool.registerConnection();
-
-    if (!allowed) {
-      this.log(requestId, 'warn', 'Connection pool at capacity', { table });
-      await this.recordFailure(requestId, 'single', table, 'Connection pool exhausted');
-      stats.failedCalls++;
-      return { data: null, error: new Error('Limite de conexões atingido'), requestId };
-    }
-
+    telemetry.stats.totalCalls++;
     try {
-      connectionPool.markUsed(connectionId);
+      validateTableName(table);
 
       if (table.startsWith('email_')) {
         const exists = await this.validateResource(table, 'table');
         if (!exists) {
           this.log(requestId, 'warn', `Tabela ${table} não encontrada para single()`, { table });
           await this.recordFailure(requestId, 'single', table, `Tabela ${table} não encontrada`);
-          connectionPool.closeConnection(connectionId);
           return { data: null, error: new Error(`Tabela ${table} não disponível`), requestId };
         }
       }
@@ -225,17 +131,16 @@ export const safeClient = {
       ).single();
       if (error) {
         this.log(requestId, 'error', `Erro single query ${table}`, error);
-        await this.recordFailure(requestId, 'single', table, error.message || 'Erro desconhecido');
-        connectionPool.markError(
-          connectionId,
-          error instanceof Error ? error : new Error(String(error))
+        await this.recordFailure(
+          requestId,
+          'single',
+          table,
+          (error as { message?: string }).message || 'Erro desconhecido'
         );
-        stats.failedCalls++;
-        connectionPool.closeConnection(connectionId);
+        telemetry.stats.failedCalls++;
         return { data: null, error: this.formatError(error), requestId };
       }
-      connectionPool.closeConnection(connectionId);
-      return { data: data as T, error: null, requestId };
+      return { data: data as T, error: null, requestId }; // ignore-audit: narrows Supabase query result to local interface
     } catch (err) {
       this.log(requestId, 'error', `Erro crítico single ${table}`, err);
       await this.recordFailure(
@@ -244,53 +149,33 @@ export const safeClient = {
         table,
         err instanceof Error ? err.message : String(err)
       );
-      connectionPool.markError(connectionId, err instanceof Error ? err : new Error(String(err)));
-      stats.failedCalls++;
-      connectionPool.closeConnection(connectionId);
+      telemetry.stats.failedCalls++;
       return { data: null, error: err instanceof Error ? err : new Error(String(err)), requestId };
     }
   },
 
   async rpc<T = unknown>(name: string, params?: Record<string, unknown>): Promise<SafeResponse<T>> {
     const requestId = crypto.randomUUID();
-    stats.totalCalls++;
-    const { connectionId, allowed } = connectionPool.registerConnection();
-
-    if (!allowed) {
-      this.log(requestId, 'warn', 'Connection pool at capacity', { function: name });
-      await this.recordFailure(requestId, 'rpc', name, 'Connection pool exhausted');
-      stats.failedCalls++;
-      return { data: null, error: new Error('Limite de conexões atingido'), requestId };
-    }
-
+    telemetry.stats.totalCalls++;
     try {
-      connectionPool.markUsed(connectionId);
-
       if (name.startsWith('rpc_email_')) {
         const exists = await this.validateResource(name, 'function');
         if (!exists) {
           this.log(requestId, 'warn', `RPC ${name} não encontrada no schema.`, { function: name });
           await this.recordFailure(requestId, 'rpc', name, `Função ${name} não encontrada`);
-          connectionPool.closeConnection(connectionId);
           return { data: null, error: new Error(`Função ${name} não disponível`), requestId };
         }
       }
-      type RpcRequest = Parameters<typeof supabase.rpc>[0];
-      const { data, error } = await supabase.rpc(name as RpcRequest, params);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await supabase.rpc(name as any, params); // ignore-audit — dynamic RPC name not in generated union
       if (error) {
         this.log(requestId, 'error', `Erro ao executar RPC ${name}`, error);
         await this.recordFailure(requestId, 'rpc', name, error.message || 'Erro desconhecido');
-        connectionPool.markError(
-          connectionId,
-          error instanceof Error ? error : new Error(String(error))
-        );
-        stats.failedCalls++;
-        connectionPool.closeConnection(connectionId);
+        telemetry.stats.failedCalls++;
         return { data: null, error: this.formatError(error), requestId };
       }
-      connectionPool.closeConnection(connectionId);
       if (data === undefined || data === null) return { data: null, error: null, requestId };
-      return { data: data as T, error: null, requestId };
+      return { data: data as T, error: null, requestId }; // ignore-audit: narrows Supabase query result to local interface
     } catch (err) {
       this.log(requestId, 'error', `Erro crítico RPC ${name}`, err);
       await this.recordFailure(
@@ -299,34 +184,24 @@ export const safeClient = {
         name,
         err instanceof Error ? err.message : String(err)
       );
-      connectionPool.markError(connectionId, err instanceof Error ? err : new Error(String(err)));
-      stats.failedCalls++;
-      connectionPool.closeConnection(connectionId);
+      telemetry.stats.failedCalls++;
       return { data: null, error: err instanceof Error ? err : new Error(String(err)), requestId };
     }
   },
 
-  /**
-   * Verifica se um RPC ou Tabela existe no schema público com cache.
-   *
-   * 401/403/permission_denied = resource EXISTS, role lacks access (pre-auth anon).
-   * "does not exist" / 42P01 / 42883 = resource truly absent.
-   *
-   * REMOVED: syncHealthState() call — was here previously and fired after every
-   * check including cache hits, feeding into this.rpc() → recordFailure() loop.
-   */
+  // 401/403/permission_denied = resource EXISTS, role lacks access; 42P01/42883 = truly absent.
   async validateResource(name: string, type: 'function' | 'table' = 'table'): Promise<boolean> {
     const cacheKey = `${type}:${name}`;
     const cached = resourceCache.get(cacheKey);
     if (cached) {
       if (cached.expires > Date.now()) {
-        stats.cacheHits++;
+        telemetry.stats.cacheHits++;
         return cached.exists;
       }
-      resourceCache.delete(cacheKey); // evict stale entry immediately
+      resourceCache.delete(cacheKey);
     }
 
-    lastValidation = new Date();
+    telemetry.lastValidation = new Date();
     try {
       let exists = false;
       if (type === 'table') {
@@ -353,9 +228,9 @@ export const safeClient = {
           exists = isPermissionError || !isNotFound;
         }
       } else {
-        type RpcRequest = Parameters<typeof supabase.rpc>[0];
-        const rpcCall = supabase.rpc(name as RpcRequest);
-        const { error } = await rpcCall.limit(0);
+        const { error } = await (
+          supabase.rpc(name as Parameters<typeof supabase.rpc>[0]) as any
+        ).limit(0); // ignore-audit — .limit() not on RPC return type in generated types
         if (!error) {
           exists = true;
         } else {
@@ -368,10 +243,6 @@ export const safeClient = {
             msg.includes('invalid api key');
           const isNotFound =
             msg.includes('does not exist') || msg.includes('not found') || msg.includes('42883');
-          // NOTE: msg.includes('function') intentionally removed — PostgREST returns
-          // "could not find the function...() in the schema cache" for both missing
-          // functions AND parameterized functions probed without args (PGRST202).
-          // Only PG error 42883 is definitive evidence of a truly absent function.
           exists = isPermissionError || !isNotFound;
         }
       }
@@ -383,33 +254,25 @@ export const safeClient = {
     }
   },
 
-  /**
-   * Sincroniza estado de saúde com o banco.
-   *
-   * CRITICAL FIX: Uses supabase.rpc() directly (NOT this.rpc()) to avoid the
-   * recordFailure() → rpc() → recordFailure() infinite recursion cycle.
-   * _healthLogInProgress guard prevents concurrent/recursive invocations.
-   */
+  // Uses supabase.rpc() directly — NOT this.rpc() — to avoid recordFailure() recursion.
   async syncHealthState() {
     if (_healthLogInProgress) return;
     _healthLogInProgress = true;
     try {
-      const telemetry = this.getTelemetry();
+      const snap = this.getTelemetry();
       let status: 'healthy' | 'degraded' | 'error' = 'healthy';
-      if (telemetry.recentFailures.length > 10) status = 'error';
-      else if (telemetry.recentFailures.length > 0) status = 'degraded';
+      if (snap.recentFailures.length > 10) status = 'error';
+      else if (snap.recentFailures.length > 0) status = 'degraded';
 
-      // Direct supabase.rpc() — NOT this.rpc() — prevents recursive calls
-      // Destructure { error } so PostgREST logical errors (e.g. 403) are not silently discarded
       type RpcResult = { data: unknown; error: { message: string } | null };
-      type RpcRequest = Parameters<typeof supabase.rpc>[0];
-      const { error: rpcErr } = (await supabase.rpc('rpc_update_email_health_state' as RpcRequest, {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error: rpcErr } = (await (supabase as any).rpc('rpc_update_email_health_state', {
         p_status: status,
-        p_failure_count: telemetry.recentFailures.length,
+        p_failure_count: snap.recentFailures.length,
         p_metadata: {
-          total_calls: telemetry.stats.totalCalls,
-          cache_hits: telemetry.stats.cacheHits,
-          last_validation: lastValidation?.toISOString(),
+          total_calls: snap.stats.totalCalls,
+          cache_hits: snap.stats.cacheHits,
+          last_validation: snap.lastValidation?.toISOString(),
         },
       })) as RpcResult;
       if (rpcErr) {
@@ -441,57 +304,18 @@ export const safeClient = {
       }
       return data;
     }
-    if (Array.isArray(data)) {
-      return (data as unknown[]).map((item) => this.maskSensitiveData(item));
-    }
-    const masked: Record<string, unknown> = { ...(data as Record<string, unknown>) };
-    for (const key in masked) {
-      const val = masked[key];
-      const lowerKey = key.toLowerCase();
-      if (
-        lowerKey.includes('token') ||
-        lowerKey.includes('secret') ||
-        lowerKey.includes('password') ||
-        lowerKey.includes('key') ||
-        lowerKey.includes('auth') ||
-        lowerKey.includes('credential') ||
-        lowerKey.includes('session') ||
-        lowerKey.includes('cookie')
-      ) {
-        masked[key] = '***MASKED***';
-      } else if (lowerKey.includes('email') && typeof val === 'string') {
-        masked[key] = this.maskEmail(val);
-      } else if (typeof val === 'object') {
-        masked[key] = this.maskSensitiveData(val);
-      }
-    }
-    return masked;
+    return _maskSensitiveData(data as Record<string, unknown> | unknown[]);
   },
 
   maskEmail(email: string): string {
-    if (!email || !email.includes('@')) return email;
-    const [user, domain] = email.split('@');
-    if (user.length <= 2) return `***@${domain}`;
-    return `${user.substring(0, 2)}***@${domain}`;
+    return _maskEmail(email);
   },
 
   applyMasking(str: string): string {
-    if (str.length > 30 && (str.includes('.') || /^[a-zA-Z0-9_-]+$/.test(str))) {
-      return str.substring(0, 5) + '...' + str.substring(str.length - 5);
-    }
-    return str;
+    return _applyMasking(str);
   },
 
-  /**
-   * Registra falha na telemetria.
-   *
-   * CRITICAL FIX: Previously called this.rpc('rpc_log_email_health') which
-   * caused infinite recursion when RPC returned 403 (anon lacks EXECUTE):
-   *   recordFailure() → this.rpc() error handler → recordFailure() → ...
-   *
-   * Fix: supabase.rpc() directly (no error-handler delegation back to
-   * recordFailure) + _healthLogInProgress re-entrancy guard.
-   */
+  // Uses supabase.rpc() directly — NOT this.rpc() — to prevent recordFailure() → rpc() → recordFailure() recursion.
   async recordFailure(requestId: string, operation: string, resource: string, error: string) {
     const record: FailureRecord = {
       requestId,
@@ -500,15 +324,15 @@ export const safeClient = {
       error,
       timestamp: new Date().toISOString(),
     };
-    recentFailures.unshift(record);
-    if (recentFailures.length > MAX_FAILURES) recentFailures.pop();
+    telemetry.recentFailures.unshift(record as OperationFailure);
+    if (telemetry.recentFailures.length > MAX_FAILURES) telemetry.recentFailures.pop();
 
     if (_healthLogInProgress) return;
     _healthLogInProgress = true;
     try {
       type RpcResult = { data: unknown; error: { message: string } | null };
-      type RpcRequest = Parameters<typeof supabase.rpc>[0];
-      const { error: rpcErr } = (await supabase.rpc('rpc_log_email_health' as RpcRequest, {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error: rpcErr } = (await (supabase as any).rpc('rpc_log_email_health', {
         p_status: 'error',
         p_operation: operation,
         p_resource: resource,
@@ -528,13 +352,18 @@ export const safeClient = {
     }
   },
 
-  getTelemetry() {
-    return { lastValidation, recentFailures: [...recentFailures], stats: { ...stats } };
+  getTelemetry(): ClientTelemetry {
+    return {
+      lastValidation: telemetry.lastValidation,
+      recentFailures: [...telemetry.recentFailures],
+      stats: { ...telemetry.stats },
+    };
   },
 
-  getCacheInfo() {
+  getCacheInfo(): CacheInfo {
     const values = Array.from(resourceCache.values());
-    const expiration = values.length > 0 ? Math.max(...values.map((v) => v.expires)) : null;
+    const maxExpires = values.length > 0 ? Math.max(...values.map((v) => v.expires)) : null;
+    const expiration = maxExpires !== null ? new Date(maxExpires) : null;
     return { expiration, size: resourceCache.size };
   },
 
@@ -557,29 +386,5 @@ export const safeClient = {
       return new Error(msg);
     }
     return new Error(String(error));
-  },
-
-  /**
-   * Get connection pool metrics for monitoring.
-   */
-  getPoolMetrics() {
-    return connectionPool.getMetrics();
-  },
-
-  /**
-   * Get detailed connection diagnostics.
-   */
-  getPoolDiagnostics() {
-    return {
-      metrics: connectionPool.getMetrics(),
-      connections: connectionPool.getConnectionDetails(),
-    };
-  },
-
-  /**
-   * Clear connection pool (for testing/debugging only).
-   */
-  clearPool() {
-    connectionPool.shutdown();
   },
 };

@@ -25,6 +25,7 @@ export function useScheduledMessages(contactId?: string) {
 
   const { data: messages = [], isLoading } = useQuery({
     queryKey: ['scheduled-messages', contactId],
+    enabled: !!contactId,
     staleTime: 30_000,
     queryFn: async () => {
       let query = supabase
@@ -38,7 +39,7 @@ export function useScheduledMessages(contactId?: string) {
 
       const { data, error } = await query;
       if (error) throw error;
-      return data as ScheduledMessage[];
+      return data as ScheduledMessage[]; // ignore-audit: narrows status from string to 'pending'|'sent'|'failed'|'cancelled'
     },
   });
 
@@ -86,7 +87,11 @@ export function useScheduledMessages(contactId?: string) {
       toast({ title: 'Mensagem agendada com sucesso!' });
     },
     onError: (error: Error) => {
-      toast({ title: 'Erro ao agendar mensagem', description: error.message, variant: 'destructive' });
+      toast({
+        title: 'Erro ao agendar mensagem',
+        description: error.message,
+        variant: 'destructive',
+      });
     },
   });
 
@@ -102,6 +107,8 @@ export function useScheduledMessages(contactId?: string) {
       queryClient.invalidateQueries({ queryKey: ['scheduled-messages'] });
       toast({ title: 'Agendamento cancelado' });
     },
+    onError: (e: Error) =>
+      toast({ title: 'Erro ao cancelar', description: e.message, variant: 'destructive' }),
   });
 
   return {

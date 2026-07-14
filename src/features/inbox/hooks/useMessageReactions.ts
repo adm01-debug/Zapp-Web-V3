@@ -30,15 +30,15 @@ export function useMessageReactions(messageId: string, options?: UseMessageReact
           filter: `message_id=eq.${messageId}`,
         },
         () => {
-          queryClient.invalidateQueries({ queryKey: ['message-reactions', messageId] });
-          // Also trigger a background fetch of the logs for operations if needed
-          queryClient.invalidateQueries({ queryKey: ['operations-logs'] });
+          void queryClient.invalidateQueries({ queryKey: ['message-reactions', messageId] });
+          void queryClient.invalidateQueries({ queryKey: ['operations-logs'] });
         }
       )
       .subscribe();
 
     return () => {
-      channel.unsubscribe();
+      void channel.unsubscribe();
+      void supabase.removeChannel(channel);
     };
   }, [messageId, options?.disableRealtime, queryClient]);
 

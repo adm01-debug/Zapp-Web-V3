@@ -1,8 +1,8 @@
-import { useState, useCallback, useRef, useMemo } from 'react';
-import { useDebounce } from '@/hooks/useDebounce';
+import { useCallback, useRef, useMemo, type RefObject } from 'react';
 import { motion } from 'framer-motion';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useDensity } from '@/hooks/useDensity';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { MobilePullToRefreshIndicator } from '@/components/mobile/MobilePullToRefresh';
 import { VirtualizedRealtimeList } from './VirtualizedRealtimeList';
 import { ErrorBoundary } from '@/components/errors/ErrorBoundary';
@@ -11,6 +11,9 @@ import { InboxFilters } from './InboxFilters';
 import { ContactTypeFilter, FILTER_OPTIONS } from './ContactTypeFilter';
 import { FailureCategoryFilter } from './FailureCategoryFilter';
 import { TicketTabs } from './TicketTabs';
+import type { useInboxFilters } from '../hooks/useInboxFilters';
+import type { useInboxBulkActions } from '../hooks/useInboxBulkActions';
+import type { useRealtimeInbox } from '../hooks/useRealtimeInbox';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   Select,
@@ -30,11 +33,23 @@ import { WhatsAppConnectionStatus } from '@/features/connections';
 import { useInboxShortcuts } from '../hooks/useInboxShortcuts';
 import { toast } from 'sonner';
 
+type InboxState = ReturnType<typeof useRealtimeInbox>;
+type InboxFiltersState = ReturnType<typeof useInboxFilters>;
+type BulkActionsState = ReturnType<typeof useInboxBulkActions>;
+
+interface PullToRefreshState {
+  isRefreshing: boolean;
+  pullProgress: number;
+  pullDistance: number;
+  containerRef: RefObject<HTMLDivElement>;
+  handlers: Record<string, unknown>;
+}
+
 interface ConversationListSidebarProps {
-  inbox: any;
-  inboxFilters: any;
-  bulkActions: any;
-  pullToRefresh: any;
+  inbox: InboxState;
+  inboxFilters: InboxFiltersState;
+  bulkActions: BulkActionsState;
+  pullToRefresh: PullToRefreshState;
   width?: number;
 }
 
@@ -46,37 +61,11 @@ export function ConversationListSidebar({
   width: _width = 340,
 }: ConversationListSidebarProps) {
   const isMobile = useIsMobile();
-  const { density, setDensity: _setDensity } = useDensity();
+  const { density } = useDensity();
   const contactSearchRef = useRef<HTMLInputElement>(null);
-  const [_contactSearch, setContactSearch] = useState('');
-
-  const _conversationsWithUnreadCount = useMemo(
-    () => inbox.conversations.filter((c: any) => c.unreadCount > 0).length, // ignore-audit
-    [inbox.conversations]
-  );
-
-  // Debounced search to prevent heavy filter calculations on every keystroke
-  const debouncedSetSearch = useDebounce((value: string) => {
-    inbox.setSearch(value);
-  }, 250);
-
-  // Sync local search to inbox filters
-  const _handleContactSearch = useCallback(
-    (value: string) => {
-      setContactSearch(value);
-      debouncedSetSearch(value);
-    },
-    [debouncedSetSearch]
-  );
-
-  const _clearContactSearch = useCallback(() => {
-    setContactSearch('');
-    inbox.setSearch('');
-    contactSearchRef.current?.focus();
-  }, [inbox]);
 
   const sortedFilteredIds = useMemo(
-    () => inboxFilters.filteredConversations.map((c: any) => c.contact.id), // ignore-audit
+    () => inboxFilters.filteredConversations.map((c) => c.contact.id), // ignore-audit
     [inboxFilters.filteredConversations]
   );
 
@@ -157,7 +146,14 @@ export function ConversationListSidebar({
             </div>
 
             <div className="flex items-center gap-0.5">
-              <Select value={inbox.sortBy} onValueChange={inbox.setSortBy}>
+              <Select
+                value={inbox.sortBy}
+                onValueChange={(value) => {
+                  if (value === 'lastMessage' || value === 'unread' || value === 'name') {
+                    inbox.setSortBy(value);
+                  }
+                }}
+              >
                 <SelectTrigger className="h-7 w-auto gap-1.5 rounded-lg border-none bg-transparent px-2 text-[11px] font-medium hover:bg-muted/60 focus:ring-0">
                   <SelectValue placeholder="Ordenar" />
                 </SelectTrigger>
@@ -182,7 +178,7 @@ export function ConversationListSidebar({
             <ContactTypeFilter
               value={inboxFilters.selectedContactType}
               onChange={inboxFilters.handleContactTypeChange}
-              conversations={inbox.cachedConversations}
+              conversations={inbox.cachedConversations ?? []}
             />
           </div>
 
@@ -209,7 +205,7 @@ export function ConversationListSidebar({
             )}
           >
             <TicketTabs
-              conversations={inbox.allConversations || inbox.conversations}
+              conversations={inbox.conversations}
               mainTab={inboxFilters.mainTab}
               subTab={inboxFilters.subTab}
               onMainTabChange={inboxFilters.setMainTab}
@@ -222,7 +218,7 @@ export function ConversationListSidebar({
               onQueueChange={inboxFilters.setSelectedQueueId}
               contactType={inboxFilters.selectedContactType}
               onContactTypeChange={inboxFilters.handleContactTypeChange}
-              selectedAgentId={inboxFilters.filters.agentId}
+              selectedAgentId={inboxFilters.filters.agentId ?? undefined}
               onAgentChange={(agentId) =>
                 inboxFilters.setFilters({ ...inboxFilters.filters, agentId })
               }

@@ -27,9 +27,10 @@ export function useIncomingCallBroadcast(instance: string = DEFAULT_INSTANCE) {
 
   useEffect(() => {
     if (!isExternalConfigured || !externalSupabase || !profile?.id) return;
+    const supabase = externalSupabase;
 
     const topic = `incoming-calls:${instance}`;
-    const channel = externalSupabase
+    const channel = supabase
       .channel(topic)
       .on('broadcast', { event: 'call_received' }, async ({ payload }) => {
         const p = (payload ?? {}) as BroadcastPayload;
@@ -57,7 +58,7 @@ export function useIncomingCallBroadcast(instance: string = DEFAULT_INSTANCE) {
         let contactId: string | null = null;
 
         try {
-          const { data, error } = await externalSupabase!.rpc('rpc_get_contact' as any, {
+          const { data, error } = await supabase.rpc('rpc_get_contact', {
             p_remote_jid: p.remote_jid,
             p_instance: instance,
           });
@@ -101,7 +102,9 @@ export function useIncomingCallBroadcast(instance: string = DEFAULT_INSTANCE) {
       .subscribe();
 
     return () => {
-      channel.unsubscribe();
+      supabase.removeChannel(channel);
+      void channel.unsubscribe();
+      externalSupabase!.removeChannel(channel);
     };
   }, [profile?.id, instance]);
 

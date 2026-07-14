@@ -33,6 +33,7 @@ export function TransferConversationDialog({ open, onOpenChange, conversation }:
 
   const { data: departments = [] } = useQuery({
     queryKey: ['departments-list'],
+    staleTime: Infinity,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('departments')

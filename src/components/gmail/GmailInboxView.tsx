@@ -126,7 +126,7 @@ export function EmailInboxView({ onSelectThread }: EmailInboxViewProps) {
                 tokenStatus={
                   Object.fromEntries(
                     tokenStatus.map((s) => [s.account_id, s.token_status])
-                  ) as Record<string, TokenStatus>
+                  ) as Record<string, TokenStatus> /* ignore-audit: fromEntries result narrowed to typed Record */
                 }
                 isSyncing={isSyncing}
                 onSelectAccount={setActiveAccountId}

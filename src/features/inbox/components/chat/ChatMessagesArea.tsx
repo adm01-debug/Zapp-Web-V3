@@ -14,7 +14,7 @@ import { Loader2, Lock, ChevronDown, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getLogger } from '@/lib/logger';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { EmptyState } from '@/components/ui/empty-state';
+import { EmptyState } from '@/components/ui/empty-states';
 import { supabase } from '@/integrations/supabase/client';
 import { ChatWatermark } from './ChatWatermark';
 import { Message, InteractiveButton } from '@/types/chat';
@@ -114,8 +114,15 @@ export const ChatMessagesArea = memo(
         getScrollContainer: () => scrollContainerRef.current,
       }));
 
+      // `messages` é um novo array a cada mensagem recebida; usar como dep direta
+      // recriava (unsubscribe+subscribe) este canal a cada UPDATE realtime. O ref
+      // mantém o `.some()` sempre atualizado sem forçar a resubscrição.
+      const messagesRef = useRef(messages);
+      messagesRef.current = messages;
+      const conversationId = messages[0]?.conversationId;
+
       useEffect(() => {
-        if (messages.length === 0) return;
+        if (!conversationId) return;
         const channel = supabase
           .channel(`chat-updates-shared`)
           .on(
@@ -123,8 +130,8 @@ export const ChatMessagesArea = memo(
             { event: 'UPDATE', schema: 'evo', table: 'evolution_messages' },
             (payload) => {
               const updatedMsg = payload.new as { id: string };
-              if (updatedMsg.id && messages.some((m) => m.id === updatedMsg.id)) {
-                queryClient.invalidateQueries({ queryKey: ['messages'] });
+              if (updatedMsg.id && messagesRef.current.some((m) => m.id === updatedMsg.id)) {
+                void queryClient.invalidateQueries({ queryKey: ['messages'] });
               }
             }
           )
@@ -132,10 +139,9 @@ export const ChatMessagesArea = memo(
         return () => {
           void channel.unsubscribe();
         };
-      }, [messages, queryClient]);
+      }, [conversationId, queryClient]);
 
       // Realtime de reações: 1 canal por conversa, invalida apenas IDs visíveis
-      const conversationId = messages[0]?.conversationId;
       const messageIds = useMemo(() => messages.map((m) => m.id), [messages]);
       useConversationReactionsRealtime(conversationId, messageIds);
 

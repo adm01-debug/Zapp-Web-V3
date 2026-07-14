@@ -191,7 +191,7 @@ export function RetryAlertsConfig({
           </Label>
           <Select
             value={draftDedupeMode}
-            onValueChange={(v) => setDraftDedupeMode(v as RetryAlertDedupeMode)}
+            onValueChange={(v) => setDraftDedupeMode(v as RetryAlertDedupeMode /* ignore-audit: Select/Tabs value string narrowed to union; developer controls option values */)}
           >
             <SelectTrigger id="dedupe-mode" className="h-8 text-xs">
               <SelectValue />
@@ -212,7 +212,7 @@ export function RetryAlertsConfig({
           </p>
         </div>
 
-        <Tabs value={tab} onValueChange={(v) => setTab(v as 'global' | 'instance')}>
+        <Tabs value={tab} onValueChange={(v) => setTab(v as 'global' | 'instance' /* ignore-audit: Select/Tabs value string narrowed to union; developer controls option values */)}>
           <TabsList className="grid w-full grid-cols-2 h-8">
             <TabsTrigger value="global" className="text-xs">Global</TabsTrigger>
             <TabsTrigger value="instance" className="text-xs">

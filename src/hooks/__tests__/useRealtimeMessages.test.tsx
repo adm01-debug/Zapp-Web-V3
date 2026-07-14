@@ -14,7 +14,7 @@ const mockChannelInstance = {
     callback?.('SUBSCRIBED');
     return mockChannelInstance;
   }),
-  unsubscribe: vi.fn().mockReturnThis(),
+  unsubscribe: vi.fn().mockResolvedValue('ok'),
 };
 
 const mockChannel = vi.hoisted(() => vi.fn());

@@ -22,13 +22,19 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
-import { getAvatarColor, getInitials } from '@/lib/avatar-colors';
+import { getAvatarColor, getInitials } from '@/lib/avatarColors';
 import { CONTACT_TYPE_CONFIG } from './contactTypeConfig';
 import { CompanyLogo } from './CompanyLogo';
 import { HighlightText } from './HighlightText';
 import { type Contact } from './types';
 
 // ── Types ──────────────────────────────────────────────────────────────────
+
+interface CRMData {
+  logo_url?: string;
+  company_name?: string;
+  [key: string]: unknown;
+}
 
 interface ContactsTableVirtualProps {
   contacts: Contact[];
@@ -37,7 +43,7 @@ interface ContactsTableVirtualProps {
   onOpenChat: (id: string) => void;
   onEdit: (contact: Contact) => void;
   onDelete: (contact: Contact) => void;
-  getCRMData?: (phone: string) => any;
+  getCRMData?: (phone: string) => CRMData | null;
   searchQuery?: string;
   loadMoreRef?: React.RefObject<HTMLDivElement>;
   loadingMore?: boolean;
@@ -64,7 +70,7 @@ const ContactRow = memo(
     onOpenChat: (id: string) => void;
     onEdit: (contact: Contact) => void;
     onDelete: (contact: Contact) => void;
-    getCRMData?: (phone: string) => any;
+    getCRMData?: (phone: string) => CRMData | null;
     searchQuery?: string;
   }) => {
     const avatarColors = getAvatarColor(contact.name);

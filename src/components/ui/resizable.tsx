@@ -36,7 +36,7 @@ interface ResizablePanelsModule {
   PanelResizeHandle: React.ForwardRefExoticComponent<PanelResizeHandleProps & React.RefAttributes<unknown>>;
 }
 
-const RP = ResizablePrimitive as unknown as ResizablePanelsModule;
+const RP = ResizablePrimitive as unknown as ResizablePanelsModule; // ignore-audit — react-resizable-panels exports don't match inferred module shape; pattern from shadcn/ui
 
 const ResizablePanelGroup = ({ className, ...props }: PanelGroupProps) => (
   <RP.PanelGroup

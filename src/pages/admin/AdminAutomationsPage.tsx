@@ -4,14 +4,11 @@ import {
   TRIGGER_LABEL,
   EMPTY_RULE,
   type Rule,
-  type TriggerType,
 } from '@/hooks/admin/useAdminAutomations';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Textarea } from '@/components/ui/textarea';
 import {
   Select,
   SelectContent,
@@ -19,13 +16,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import {
   Plus,
@@ -39,13 +29,18 @@ import {
   Building2,
   Radio,
 } from 'lucide-react';
+import { AutomationRuleDialog } from './AutomationRuleDialog';
 
-const SLA_LEVELS = [
-  { value: 'low', label: 'Baixa' },
-  { value: 'normal', label: 'Normal' },
-  { value: 'high', label: 'Alta' },
-  { value: 'critical', label: 'Crítica' },
-];
+// Ensure escalate_sla always has required properties with proper types
+function normalizeEscalateSla(
+  partial: Partial<typeof EMPTY_RULE.actions.escalate_sla> | undefined
+): typeof EMPTY_RULE.actions.escalate_sla {
+  return {
+    enabled: partial?.enabled ?? false,
+    level: (partial?.level as string) ?? 'high',
+    reason: partial?.reason ?? '',
+  };
+}
 
 // Ensure escalate_sla always has required properties with proper types
 function normalizeEscalateSla(

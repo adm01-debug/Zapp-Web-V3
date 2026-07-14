@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -21,7 +21,7 @@ type DiagnosticLog = {
   id: string;
   action: string;
   category: string;
-  details: any;
+  details: Record<string, unknown> | null;
   created_at: string;
 };
 
@@ -31,6 +31,13 @@ export default function AdminDevDiagnosticsPage() {
   const [logs, setLogs] = useState<DiagnosticLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDev, setIsDev] = useState(false);
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   useEffect(() => {
     setIsDev(roles?.includes('dev') || false);
@@ -42,6 +49,7 @@ export default function AdminDevDiagnosticsPage() {
       q.select('*').order('created_at', { ascending: false }).limit(50)
     );
 
+    if (!isMountedRef.current) return;
     if (error) {
       toast({ title: 'Erro ao carregar logs', description: error.message, variant: 'destructive' });
     } else {

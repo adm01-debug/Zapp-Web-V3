@@ -1,6 +1,3 @@
-import { useState, useEffect } from 'react';
-import { useMountedRef } from '@/hooks/useMountedRef';
-import { getLogger } from '@/lib/logger';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -20,24 +17,32 @@ import {
   Filter,
   History as HistoryIcon,
 } from 'lucide-react';
-import { useEmail } from '@/hooks/useEmail';
-import { emailHealthService } from '@/services/email/emailHealthService';
-import type { EmailHealthInfo, EmailFailure } from '@/services/email/types';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
-import {
-  emailApi,
-  type EmailHealthSummary,
-  type EmailRevalidationJob,
-} from '@/services/email/emailApi';
+import { useEmailHealthStatus } from './email/useEmailHealthStatus';
 
-const log = getLogger('AdminEmailStatusPage');
-
-const castStatus = (status: string | null): EmailHealthInfo['status'] => {
-  if (status && ['healthy', 'degraded', 'error'].includes(status)) {
-    return status as EmailHealthInfo['status'];
+const getStatusIcon = (status?: string) => {
+  switch (status) {
+    case 'healthy':
+      return <CheckCircle2 className="h-5 w-5 text-primary" />;
+    case 'degraded':
+      return <AlertTriangle className="h-5 w-5 text-yellow-500" />;
+    case 'error':
+      return <AlertCircle className="h-5 w-5 text-destructive" />;
+    default:
+      return <Clock className="h-5 w-5 text-muted-foreground" />;
   }
-  return 'error';
+};
+
+const getStatusLabel = (status?: string) => {
+  switch (status) {
+    case 'healthy':
+      return 'Operacional';
+    case 'degraded':
+      return 'Degradado';
+    case 'error':
+      return 'Crítico';
+    default:
+      return 'Desconhecido';
+  }
 };
 
 export default function AdminEmailStatusPage() {
@@ -117,23 +122,22 @@ export default function AdminEmailStatusPage() {
 
     const channel = supabase
       .channel('email-admin-status')
-      .on(
+      .on<EmailHealthSummary>(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'email_health_summary' },
         (payload) => {
-          const newSummary = payload.new as EmailHealthSummary;
-          if (newSummary) {
+          if (payload.new) {
             setHealth((prev) =>
               prev
                 ? {
                     ...prev,
-                    status: castStatus(newSummary.status),
-                    lastValidation: newSummary.last_validation
-                      ? new Date(newSummary.last_validation)
+                    status: castStatus(payload.new.status),
+                    lastValidation: payload.new.last_validation
+                      ? new Date(payload.new.last_validation)
                       : prev.lastValidation,
                     stats: {
                       ...prev.stats,
-                      failedCalls: newSummary.failure_count_60m || 0,
+                      failedCalls: payload.new.failure_count_60m || 0,
                     },
                   }
                 : null
@@ -201,7 +205,7 @@ export default function AdminEmailStatusPage() {
         toast.success('RPC de status de token validada com sucesso.');
       }
       await loadHealth();
-    } catch (err) {
+    } catch (err: unknown) {
       toast.error(
         `Falha na etapa ${action}: ${err instanceof Error ? err.message : 'Erro desconhecido'}`
       );

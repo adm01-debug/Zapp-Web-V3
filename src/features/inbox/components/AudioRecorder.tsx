@@ -1,28 +1,12 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
-import { motion, AnimatePresence, useMotionValue, useTransform } from 'framer-motion';
+import { useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
-import {
-  Square,
-  X,
-  Pause,
-  Play,
-  Lock,
-  Trash2,
-  CheckCircle2,
-  RotateCcw,
-  Type,
-  Loader2,
-  Undo2,
-} from 'lucide-react';
+import { Square, X, Pause, Play, Lock, CheckCircle2, Type, Loader2, Trash2 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
-import { useAudioRecorder } from '@/hooks/useAudioRecorder';
 import { VoiceChanger } from './VoiceChanger';
-import { useIsMobile } from '@/hooks/use-mobile';
 import { AudioVolumeControl } from './AudioVolumeControl';
-import { toast } from '@/hooks/use-toast';
-import { getLogger } from '@/lib/logger';
-const log = getLogger('AudioRecorder');
+import { useAudioRecorderUI } from './useAudioRecorderUI';
 
 interface AudioRecorderProps {
   onSend?: (audioBlob: Blob) => void;
@@ -31,55 +15,22 @@ interface AudioRecorderProps {
 }
 
 export function AudioRecorder({ onSend, onCancel, onAudioReady }: AudioRecorderProps) {
-  const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
-  const [isConfirming, setIsConfirming] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [_voiceChanged, setVoiceChanged] = useState(false);
-  const [isLocked, setIsLocked] = useState(false);
-  const [playbackProgress, setPlaybackProgress] = useState(0);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [showTranscription, setShowTranscription] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const [_lastCancelledAudio, _setLastCancelledAudio] = useState<{
-    blob: Blob;
-    url: string;
-  } | null>(null);
-  const [volume, setVolumeState] = useState<number>(() => {
-    try {
-      const saved = localStorage.getItem('audio-player:volume');
-      const n = saved !== null ? parseFloat(saved) : 1;
-      return isFinite(n) ? Math.min(1, Math.max(0, n)) : 1;
-    } catch {
-      return 1;
-    }
-  });
-
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const isMobile = useIsMobile();
-
-  const setVolume = useCallback((v: number) => {
-    const clamped = Math.min(1, Math.max(0, v));
-    setVolumeState(clamped);
-    if (audioRef.current) audioRef.current.volume = clamped;
-    try {
-      localStorage.setItem('audio-player:volume', String(clamped));
-    } catch {
-      /* noop */
-    }
-  }, []);
-
-  // Apply volume to <audio> when it mounts/changes source
-  useEffect(() => {
-    if (audioRef.current) audioRef.current.volume = volume;
-  }, [volume]);
-
-  // Swipe-to-cancel
-  const swipeX = useMotionValue(0);
-  const cancelOpacity = useTransform(swipeX, [-120, -60, 0], [1, 0.5, 0]);
-  const swipeRef = useRef({ startX: 0, isSwiping: false });
 
   const {
+    isMobile,
+    audioBlob,
+    isConfirming,
+    isPlaying,
+    isLocked,
+    playbackProgress,
+    currentTime,
+    showTranscription,
+    setShowTranscription,
+    isUploading,
+    uploadProgress,
+    volume,
+    setVolume,
     isRecording,
     isPaused,
     duration,
@@ -87,211 +38,23 @@ export function AudioRecorder({ onSend, onCancel, onAudioReady }: AudioRecorderP
     audioLevel,
     transcription,
     setTranscription,
-    startRecording,
+    stopRecording,
     pauseRecording,
     resumeRecording,
-    stopRecording,
-    cancelRecording,
-    restoreRecording,
     formatDuration,
-  } = useAudioRecorder({
-    onRecordingComplete: (blob, _url) => {
-      setAudioBlob(blob);
-      setIsConfirming(true);
-      onAudioReady?.(blob);
-    },
-  });
-
-  // Keyboard Shortcuts - ONLY active when the panel is shown
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Ignore if typing in an input, textarea or contenteditable
-      if (
-        e.target instanceof HTMLInputElement ||
-        e.target instanceof HTMLTextAreaElement ||
-        (e.target as HTMLElement).isContentEditable
-      ) {
-        return;
-      }
-
-      if (isRecording || isPaused) {
-        if (e.key === ' ' || e.key === 'p' || e.key === 'P') {
-          e.preventDefault();
-          if (isPaused) {
-            resumeRecording();
-          } else {
-            pauseRecording();
-          }
-        }
-        if (e.key === 'Escape') {
-          e.preventDefault();
-          handleCancel();
-        }
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isRecording, isPaused, resumeRecording, pauseRecording]);
-
-  useEffect(() => {
-    startRecording();
-    return () => cancelRecording();
-  }, []);
-
-  // Playback progress tracking
-  useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
-
-    const updateProgress = () => {
-      setCurrentTime(audio.currentTime);
-      if (audio.duration) {
-        setPlaybackProgress((audio.currentTime / audio.duration) * 100);
-      }
-    };
-
-    audio.addEventListener('timeupdate', updateProgress);
-    return () => audio.removeEventListener('timeupdate', updateProgress);
-  }, [audioUrl]);
-
-  const handlePlayPause = () => {
-    if (!audioRef.current || !audioUrl) return;
-    if (isPlaying) {
-      audioRef.current.pause();
-    } else {
-      audioRef.current.play();
-    }
-    setIsPlaying(!isPlaying);
-  };
-
-  const handleSendAction = () => handleSend(0);
-
-  const handleSend = async (retryCount = 0) => {
-    if (!audioBlob) return;
-
-    setIsUploading(true);
-    setUploadProgress(10 * (retryCount + 1));
-
-    try {
-      const interval = setInterval(() => {
-        setUploadProgress((prev) => {
-          if (prev >= 95) {
-            clearInterval(interval);
-            return 95;
-          }
-          return prev + 5;
-        });
-      }, 300);
-
-      const startTime = Date.now();
-
-      // We pass the transcription along with the audio if edited
-      await onSend?.(audioBlob);
-
-      const durationMs = Date.now() - startTime;
-      log.info(
-        `[INBOX_METRIC] action=audio_upload_success size=${audioBlob.size} duration=${durationMs}ms`
-      );
-
-      clearInterval(interval);
-      setUploadProgress(100);
-      toast({ title: 'Áudio enviado com sucesso!' });
-
-      // After success, clear states
-      setAudioBlob(null);
-      setIsConfirming(false);
-    } catch (error) {
-      log.error(`Audio send failed (attempt ${retryCount + 1}):`, error);
-      const canRetry = retryCount < 3; // Allowing up to 3 retries as requested
-      const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido';
-
-      toast({
-        title: 'Erro no envio',
-        description: canRetry
-          ? `Falha técnica (${errorMsg}). Tentando novamente em breve (Tentativa ${retryCount + 1}/4)...`
-          : 'Não foi possível enviar o áudio após várias tentativas. Verifique sua conexão.',
-        variant: 'destructive',
-        action: (
-          <Button variant="outline" size="sm" onClick={() => handleSend(retryCount + 1)}>
-            <RotateCcw className="mr-1 h-3 w-3" /> Tentar agora
-          </Button>
-        ),
-      });
-
-      // Auto-retry with backoff if it's a network issue or transient
-      if (canRetry) {
-        setTimeout(() => handleSend(retryCount + 1), Math.pow(2, retryCount) * 1000);
-      }
-    } finally {
-      setIsUploading(false);
-    }
-  };
-
-  const handleCancel = () => {
-    if ((isRecording || isPaused) && duration > 2) {
-      toast({
-        title: 'Gravação descartada',
-        description: 'Você pode desfazer esta ação nos próximos segundos.',
-        action: (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleUndoCancel}
-            className="gap-2 font-bold text-primary"
-          >
-            <Undo2 className="h-4 w-4" /> Desfazer
-          </Button>
-        ),
-      });
-      cancelRecording(true);
-    } else {
-      cancelRecording(false);
-    }
-    onCancel?.();
-  };
-
-  const handleUndoCancel = () => {
-    const recovered = restoreRecording();
-    if (recovered) {
-      toast({ title: 'Áudio recuperado!', description: 'Continue revisando sua gravação.' });
-    }
-  };
-
-  const handleVoiceChanged = (newBlob: Blob) => {
-    setAudioBlob(newBlob);
-    setVoiceChanged(true);
-    if (audioRef.current) {
-      const url = URL.createObjectURL(newBlob);
-      audioRef.current.src = url;
-    }
-  };
-
-  // Lock recording (stop holding, keep recording)
-  const _handleLock = useCallback(() => {
-    setIsLocked(true);
-  }, []);
-
-  // Swipe-to-cancel handlers for mobile
-  const handleTouchStart = (e: React.TouchEvent) => {
-    swipeRef.current.startX = e.touches[0].clientX;
-    swipeRef.current.isSwiping = true;
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (!swipeRef.current.isSwiping || !isRecording) return;
-    const delta = e.touches[0].clientX - swipeRef.current.startX;
-    if (delta < 0) {
-      swipeX.set(delta);
-    }
-  };
-
-  const handleTouchEnd = () => {
-    if (swipeX.get() < -100) {
-      handleCancel();
-    }
-    swipeX.set(0);
-    swipeRef.current.isSwiping = false;
-  };
+    swipeX,
+    cancelOpacity,
+    handlePlayPause,
+    handleSend,
+    handleCancel,
+    handleVoiceChanged,
+    handleTouchStart,
+    handleTouchMove,
+    handleTouchEnd,
+    setIsPlaying,
+    setPlaybackProgress,
+    setCurrentTime,
+  } = useAudioRecorderUI(audioRef, onSend, onCancel, onAudioReady);
 
   return (
     <motion.div
@@ -446,7 +209,8 @@ export function AudioRecorder({ onSend, onCancel, onAudioReady }: AudioRecorderP
                 onKeyDown={(e) => {
                   const audio = audioRef.current;
                   if (!audio || !audio.duration) return;
-                  if (e.key === 'ArrowRight') audio.currentTime = Math.min(audio.duration, audio.currentTime + 5);
+                  if (e.key === 'ArrowRight')
+                    audio.currentTime = Math.min(audio.duration, audio.currentTime + 5);
                   if (e.key === 'ArrowLeft') audio.currentTime = Math.max(0, audio.currentTime - 5);
                 }}
               >
@@ -490,7 +254,7 @@ export function AudioRecorder({ onSend, onCancel, onAudioReady }: AudioRecorderP
                       <textarea
                         value={transcription}
                         onChange={(e) => setTranscription(e.target.value)}
-                        className="min-h-[60px] w-full resize-none border-t border-border/30 bg-transparent pt-2 text-sm font-medium italic leading-relaxed text-foreground/80 outline-none focus-visible:ring-1 focus-visible:ring-primary/50 focus-visible:rounded-sm"
+                        className="min-h-[60px] w-full resize-none border-t border-border/30 bg-transparent pt-2 text-sm font-medium italic leading-relaxed text-foreground/80 outline-none focus-visible:rounded-sm focus-visible:ring-1 focus-visible:ring-primary/50"
                         placeholder="Edite a transcrição aqui..."
                         aria-label="Editar transcrição de áudio"
                       />
@@ -591,7 +355,7 @@ export function AudioRecorder({ onSend, onCancel, onAudioReady }: AudioRecorderP
                   <Button
                     size="icon"
                     className="h-9 w-9 bg-primary shadow-md hover:bg-primary/90 md:h-10 md:w-10"
-                    onClick={handleSendAction}
+                    onClick={handleSend}
                     aria-label="Confirmar e enviar áudio"
                   >
                     <CheckCircle2 className="h-5 w-5" />

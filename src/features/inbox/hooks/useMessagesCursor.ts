@@ -99,7 +99,8 @@ export function useMessagesCursor({
       // NOTE: usa `externalSupabase.rpc` direto (em vez de `dbList(RPC.listMessagesLite, ...)`)
       // porque precisamos do `.abortSignal()` do PostgrestBuilder — o wrapper `dbRpc`
       // resolve a Promise antes do builder ser exposto. Caso de uso raro e justificado.
-      const ext = externalSupabase as any;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const ext = externalSupabase as any; // ignore-audit — .abortSignal() not in generated external types
       const builder = ext.rpc('rpc_list_messages_lite', {
         p_remote_jid: remoteJid,
         p_instance: instanceName,
@@ -215,21 +216,9 @@ export function useMessagesCursor({
     if (!enabled || !remoteJid || !externalSupabase) return;
 
     // externalSupabase is loosely typed (no Database generic), so the
-    // postgres_changes overload is not visible. Define minimal interface for dynamic access.
-    interface RealtimeClient {
-      channel(name: string): RealtimeChannel;
-      removeChannel(channel: RealtimeChannel): void;
-    }
-    interface RealtimeChannel {
-      on(
-        event: string,
-        config: Record<string, unknown>,
-        callback: (payload: Record<string, unknown>) => void
-      ): RealtimeChannel;
-      subscribe(): RealtimeChannel;
-      unsubscribe(): void;
-    }
-    const client = externalSupabase as RealtimeClient;
+    // postgres_changes overload is not visible. Cast to any for dynamic access.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const client = externalSupabase as any; // ignore-audit — postgres_changes API not in external client types
 
     const channel = client
       .channel(`evolution_messages:${remoteJid}`)

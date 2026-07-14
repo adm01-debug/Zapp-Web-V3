@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { log } from '@/lib/logger';
+import { useMountedRef } from '@/hooks/useMountedRef';
 
 export interface QueueGoal {
   id: string;
@@ -52,6 +53,7 @@ export function useQueueGoals() {
   const [goals, setGoals] = useState<Record<string, QueueGoal>>({});
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const mountedRef = useMountedRef();
 
   useEffect(() => {
     void fetchGoals();
@@ -70,6 +72,7 @@ export function useQueueGoals() {
     try {
       const { data, error } = await supabase.from('queue_goals').select('*');
 
+      if (!mountedRef.current) return;
       if (error) throw error;
 
       const goalsMap: Record<string, QueueGoal> = {};
@@ -82,7 +85,7 @@ export function useQueueGoals() {
     } catch (error) {
       log.error('Error fetching queue goals:', error);
     } finally {
-      setLoading(false);
+      if (mountedRef.current) setLoading(false);
     }
   };
 

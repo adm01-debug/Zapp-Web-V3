@@ -16,6 +16,16 @@ import { emailMappers } from '@/utils/emailMappers';
 import { EmailAccount } from '@/types/gmail';
 import { emailRefreshToken, emailRevokeAccount, emailRegisterWatch } from './gmail/gmailApi';
 
+interface EmailAccountRow {
+  id: string;
+  user_id: string;
+  email: string;
+  display_name: string | null;
+  picture_url: string | null;
+  token_expiry: string | null;
+  is_active: boolean;
+  created_at: string;
+}
 import { toast } from 'sonner';
 import { getLogger } from '@/lib/logger';
 
@@ -103,7 +113,7 @@ export function useEmailOAuthFlow(): UseEmailOAuthFlowReturn {
       // Atualiza token_expiry local
       setAccounts((prev) =>
         prev.map((a) =>
-          a.id === accountId ? { ...a, token_expiry: result.data?.expiresAt ?? null } : a
+          a.id === accountId ? { ...a, token_expiry: result.data?.expiresAt ?? a.token_expiry } : a
         )
       );
       setTokenStatus((prev) => ({ ...prev, [accountId]: 'valid' }));
@@ -153,7 +163,9 @@ export function useEmailOAuthFlow(): UseEmailOAuthFlowReturn {
           const result = await emailRegisterWatch(accountId);
           setAccounts((prev) =>
             prev.map((a) =>
-              a.id === accountId ? { ...a, watch_expiry: result.data?.watchExpiry ?? null } : a
+              a.id === accountId
+                ? { ...a, watch_expiry: result.data?.watchExpiry ?? a.watch_expiry }
+                : a
             )
           );
           log.info(
