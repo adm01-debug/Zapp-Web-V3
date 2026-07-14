@@ -66,7 +66,7 @@ export const ContactQuickView: React.FC<ContactQuickViewProps> = ({
           
           <div className="space-y-1">
             <SheetTitle className="text-2xl font-bold tracking-tight">
-              {contact.name} {contact.surname}
+              {`${contact.name ?? ''} ${contact.surname ?? ''}`.trim()}
             </SheetTitle>
             <div className="flex items-center gap-2">
               {typeCfg && (
