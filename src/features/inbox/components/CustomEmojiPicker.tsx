@@ -6,7 +6,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 // Tooltip removido para evitar loop Tooltip+Popover.
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
-import { SmilePlus, Search, Plus, Star, Trash2, Loader2, X, Tag, Check, ChevronDown, Smile } from 'lucide-react';
+import { SmilePlus, Search, Plus, Star, Trash2, Loader2, X, Tag, Check, ChevronDown, Smile, AlertCircle } from 'lucide-react';
 import { CATEGORY_LABELS, ALL_CATEGORIES, NATIVE_EMOJI_CATEGORIES } from './emojiConstants';
 import { useCustomEmojis, type PendingEmojiUpload } from '@/features/emojis/hooks/useCustomEmojis';
 
@@ -45,31 +45,61 @@ function CategorySelector({ value, onChange, size = 'sm' }: { value: string; onC
   );
 }
 
-function UploadPreview({ pending, onConfirm, onCancel }: { pending: PendingEmojiUpload; onConfirm: (p: PendingEmojiUpload) => void; onCancel: () => void }) {
+function UploadPreview({ pending, onConfirm, onCancel, uploading, progress, error, onDismissError }: { pending: PendingEmojiUpload; onConfirm: (p: PendingEmojiUpload) => void; onCancel: () => void; uploading: boolean; progress: number; error: string | null; onDismissError: () => void }) {
   const [category, setCategory] = useState(pending.selectedCategory);
   const [name, setName] = useState(pending.name);
+  const trimmedName = name.trim();
+  const canSave = !uploading && trimmedName.length > 0;
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="p-3 border border-border rounded-lg bg-card space-y-2.5">
       <div className="flex items-center gap-3">
-        <div className="w-12 h-12 rounded-lg overflow-hidden bg-muted/30 shrink-0 flex items-center justify-center border border-border/30">
+        <div className="w-12 h-12 rounded-lg overflow-hidden bg-muted/30 shrink-0 flex items-center justify-center border border-border/30 relative">
           <img src={pending.imageUrl} alt="Pré-visualização do emoji" className="w-full h-full object-contain p-0.5" />
+          {uploading && (
+            <div className="absolute inset-0 bg-background/70 flex items-center justify-center">
+              <Loader2 className="w-4 h-4 animate-spin text-primary" />
+            </div>
+          )}
         </div>
-        <Input value={name} onChange={(e) => setName(e.target.value)} className="h-7 text-xs flex-1" placeholder="Nome do emoji" />
+        <Input value={name} onChange={(e) => setName(e.target.value)} disabled={uploading} className="h-7 text-xs flex-1" placeholder="Nome do emoji" aria-invalid={!trimmedName} />
       </div>
       <div className="flex items-center gap-2">
         <Tag className="w-3 h-3 text-muted-foreground shrink-0" /><span className="text-[10px] text-muted-foreground shrink-0">Categoria:</span>
         <CategorySelector value={category} onChange={setCategory} size="sm" />
         {pending.aiCategory !== 'outros' && category !== pending.aiCategory && (
-          <button onClick={() => setCategory(pending.aiCategory)} className="text-[9px] text-primary hover:underline shrink-0">IA sugere: {CATEGORY_LABELS[pending.aiCategory]?.label}</button>
+          <button onClick={() => setCategory(pending.aiCategory)} disabled={uploading} className="text-[9px] text-primary hover:underline shrink-0 disabled:opacity-50">IA sugere: {CATEGORY_LABELS[pending.aiCategory]?.label}</button>
         )}
       </div>
+      {uploading && (
+        <div className="space-y-1" role="progressbar" aria-valuenow={progress} aria-valuemin={0} aria-valuemax={100} aria-label="Enviando emoji">
+          <div className="h-1 w-full rounded-full bg-muted overflow-hidden">
+            <motion.div className="h-full bg-primary" initial={false} animate={{ width: `${progress}%` }} transition={{ duration: 0.2 }} />
+          </div>
+          <p className="text-[10px] text-muted-foreground">Enviando emoji... {progress}%</p>
+        </div>
+      )}
+      {error && !uploading && (
+        <div className="flex items-start gap-1.5 rounded-md border border-destructive/40 bg-destructive/10 p-2 text-[11px] text-destructive" role="alert">
+          <AlertCircle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+          <div className="flex-1">
+            <p className="font-medium">Falha ao enviar</p>
+            <p className="text-destructive/80">{error}</p>
+          </div>
+          <button onClick={onDismissError} aria-label="Fechar erro" className="shrink-0 text-destructive/70 hover:text-destructive">
+            <X className="w-3 h-3" />
+          </button>
+        </div>
+      )}
       <div className="flex items-center gap-2 justify-end">
-        <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={onCancel}><X className="w-3 h-3 mr-1" /> Cancelar</Button>
-        <Button size="sm" className="h-7 text-xs" onClick={() => onConfirm({ ...pending, selectedCategory: category, name })}><Check className="w-3 h-3 mr-1" /> Salvar</Button>
+        <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={onCancel} disabled={uploading}><X className="w-3 h-3 mr-1" /> Cancelar</Button>
+        <Button size="sm" className="h-7 text-xs" onClick={() => onConfirm({ ...pending, selectedCategory: category, name: trimmedName })} disabled={!canSave}>
+          {uploading ? <><Loader2 className="w-3 h-3 mr-1 animate-spin" /> Enviando</> : error ? <><Check className="w-3 h-3 mr-1" /> Tentar novamente</> : <><Check className="w-3 h-3 mr-1" /> Salvar</>}
+        </Button>
       </div>
     </motion.div>
   );
 }
+
 
 export function CustomEmojiPicker({ onSendEmoji, disabled }: CustomEmojiPickerProps) {
   const [open, setOpen] = useState(false);
@@ -80,7 +110,8 @@ export function CustomEmojiPicker({ onSendEmoji, disabled }: CustomEmojiPickerPr
   const [nativeCategoryId, setNativeCategoryId] = useState<string>('smileys');
 
   const {
-    emojis, loading, uploading, pendingUpload, fileInputRef,
+    emojis, loading, uploading, uploadProgress, uploadError, resetUploadError,
+    pendingUpload, fileInputRef,
     handleFileSelect, handleConfirmUpload, handleCancelUpload,
     handleSend, toggleFavorite, handleCategoryChange, handleDelete, setPendingUpload,
   } = useCustomEmojis(open);
@@ -149,7 +180,7 @@ export function CustomEmojiPicker({ onSendEmoji, disabled }: CustomEmojiPickerPr
             </>
           ) : (
             <>
-              <AnimatePresence>{pendingUpload && (<div className="px-3 py-2 border-b border-border/50"><UploadPreview pending={pendingUpload} onConfirm={handleConfirmUpload} onCancel={handleCancelUpload} /></div>)}</AnimatePresence>
+              <AnimatePresence>{pendingUpload && (<div className="px-3 py-2 border-b border-border/50"><UploadPreview pending={pendingUpload} onConfirm={handleConfirmUpload} onCancel={handleCancelUpload} uploading={uploading} progress={uploadProgress} error={uploadError} onDismissError={resetUploadError} /></div>)}</AnimatePresence>
               <div className="px-3 py-2 border-b border-border/50">
                 <div className="relative">
                   <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
