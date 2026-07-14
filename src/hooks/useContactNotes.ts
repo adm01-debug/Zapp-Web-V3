@@ -1,6 +1,3 @@
-// Re-export from consolidated useCRMManagement module (ETAPA 43 consolidation)
-import { useContactNotesManagement } from '@/hooks/useCRMManagement';
-
-export function useContactNotes(contactId: string) {
-  return useContactNotesManagement(contactId);
-}
+// Re-export the full-featured hook that supports isLoading, deleteNote,
+// isAdding, isDeleting, currentProfileId and note.author.
+export { useContactNotes, type ContactNote } from '@/features/contacts/hooks/useContactNotes';
