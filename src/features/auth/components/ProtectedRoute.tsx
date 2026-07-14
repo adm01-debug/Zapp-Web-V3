@@ -146,7 +146,7 @@ export function ProtectedRoute({
     // Log already happens inside RPC 'check_user_permission' if we used it,
     // but here we might be checking differently. Let's ensure logging.
     // fire-and-forget: não bloquear navegação
-      void supabase.rpc('log_security_event', {
+    void supabase.rpc('log_security_event', {
       p_event_type: 'unauthorized_access',
       p_resource: location.pathname,
       p_action: 'NAVIGATE',

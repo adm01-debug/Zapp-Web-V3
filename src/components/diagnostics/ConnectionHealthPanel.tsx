@@ -100,7 +100,7 @@ export function ConnectionHealthPanel(): JSX.Element {
       .channel('health-updates')
       .on(
         'postgres_changes',
-        { event: 'INSERT', schema: 'public' // ✅ fix: tabelas no schema public (não zapp), table: 'connection_health_logs' },
+        { event: 'INSERT', schema: 'public', table: 'connection_health_logs' },
         () => {
           fetchData();
         }

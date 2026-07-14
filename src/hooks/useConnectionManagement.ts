@@ -40,7 +40,7 @@ export function useConnectionAlertsPush() {
           'postgres_changes',
           {
             event: 'INSERT',
-            schema: 'public' // ✅ fix: tabelas no schema public (não zapp),
+            schema: 'public',
             table: 'notifications',
             filter: `user_id=eq.${auth.user.id}`,
           },
