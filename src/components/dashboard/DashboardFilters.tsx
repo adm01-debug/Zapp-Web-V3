@@ -164,9 +164,6 @@ export function DashboardFilters({
     filters.agentId !== null,
   ].filter(Boolean).length;
 
-  const _selectedQueue = queues?.find((q) => q.id === filters.queueId);
-  const _selectedAgent = agents?.find((a) => a.id === filters.agentId);
-
   return (
     <motion.div
       initial={{ opacity: 0, y: -10 }}

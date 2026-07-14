@@ -54,6 +54,7 @@ export function IntegrationsPanel({
         cancelled = true;
       };
     }
+    return undefined;
   }, [open, instanceName]);
 
   const loadAll = async (isCancelled: () => boolean = () => false) => {

@@ -66,8 +66,6 @@ export function MessagePreview({ content, className }: MessagePreviewProps) {
       content: string;
       url?: string;
     }[] = [];
-    const _remaining = formattedContent;
-
     // Process formatting patterns
     const patterns = [
       { regex: /\*\*(.+?)\*\*/g, type: 'bold' as const },

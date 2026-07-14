@@ -23,7 +23,6 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { cn } from '@/lib/utils';
 import { MediaItem, getMediaType, getFilename } from './media-gallery/mediaUtils';
 import { MediaCard } from './media-gallery/MediaCard';
 import { MediaPreviewDialog } from './media-gallery/MediaPreviewDialog';

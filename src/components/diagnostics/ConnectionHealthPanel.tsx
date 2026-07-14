@@ -70,7 +70,12 @@ export function ConnectionHealthPanel(): JSX.Element {
   );
 
   const handleCopyQrLink = async (conn: ConnectionHealth): Promise<void> => {
-    toast.error('Funcionalidade de QR link requer acesso seguro — use o painel de configurações.');
+    const instance = conn.instance_name ?? conn.name;
+    await navigator.clipboard.writeText(instance);
+    setCopiedId(conn.id);
+    if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
+    copiedTimerRef.current = setTimeout(() => setCopiedId(null), 2000);
+    toast.success('Identificador da instância copiado.');
   };
 
   const fetchData = useCallback(async (): Promise<void> => {

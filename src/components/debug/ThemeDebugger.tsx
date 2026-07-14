@@ -61,6 +61,7 @@ export function ThemeDebugger() {
       const interval = setInterval(refreshTokens, 2000);
       return () => clearInterval(interval);
     }
+    return undefined;
   }, [isOpen]);
 
   // Esconde completamente para qualquer usuário que NÃO tenha o role 'dev'.

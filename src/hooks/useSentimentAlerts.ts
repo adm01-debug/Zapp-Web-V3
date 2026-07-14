@@ -7,14 +7,6 @@ import { getLogger } from '@/lib/logger';
 
 const log = getLogger('useSentimentAlerts');
 
-interface SentimentAlertData {
-  contactId: string;
-  contactName: string;
-  sentimentScore: number;
-  previousScore?: number;
-  analysisId: string;
-}
-
 export function useSentimentAlerts() {
   const { checkAndTriggerAlert } = useSentimentAlertsManagement();
   const { settings } = useNotificationSettings();

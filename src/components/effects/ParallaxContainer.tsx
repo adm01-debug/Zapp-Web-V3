@@ -141,12 +141,10 @@ export function ScrollReveal({
   duration = 0.6,
 }: ScrollRevealProps) {
   const ref = useRef<HTMLDivElement>(null);
-  const { scrollYProgress } = useScroll({
+  useScroll({
     target: ref,
     offset: ['start end', 'center center'],
   });
-
-  const _opacity = useTransform(scrollYProgress, [0, 0.5], [0, 1]);
 
   return (
     <motion.div

@@ -74,22 +74,6 @@ const ALL_SECRETS_MISSING = [
   { name: 'WHATSAPP_CLOUD_ACCESS_TOKEN', configured: false, length: 0 },
 ];
 
-function secretsOk() {
-  return invokeResult({ secrets: ALL_SECRETS_OK });
-}
-
-function secretsMissing(secrets = ALL_SECRETS_MISSING) {
-  return invokeResult({ secrets });
-}
-
-// Route functions.invoke by function name
-function makeInvokeRouter(routes: Record<string, () => Promise<{ data: unknown; error: unknown }>>) {
-  return (fn: string) => {
-    const handler = routes[fn];
-    return handler ? handler() : Promise.resolve({ data: null, error: { message: `unexpected invoke: ${fn}` } });
-  };
-}
-
 // ── setup / teardown ──────────────────────────────────────────────────────────
 
 beforeEach(() => {

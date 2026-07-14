@@ -93,12 +93,6 @@ describe('useSpeechToText', () => {
       result.current.startListening();
     });
 
-    // Simulate a speech recognition result
-    const _mockEvent = {
-      resultIndex: 0,
-      results: [{ 0: { transcript: 'hello world' }, isFinal: true, length: 1 }],
-    };
-
     // Get the recognition instance and trigger onresult
     // The mock is created inside startListening so we need to access it via the ref
     // Instead, we test via the hook's exposed transcript

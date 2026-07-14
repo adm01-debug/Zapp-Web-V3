@@ -105,6 +105,7 @@ export function LeaderboardRow({ agent, index }: { agent: LeaderboardAgent; inde
       const timer = setTimeout(() => setShowCelebration(false), 2000);
       return () => clearTimeout(timer);
     }
+    return undefined;
   }, [agent.rank, agent.previousRank]);
 
   return (

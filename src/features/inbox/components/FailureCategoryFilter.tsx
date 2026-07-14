@@ -6,7 +6,7 @@
  * de Radix Select para evitar o loop "Maximum update depth exceeded" causado
  * pela cascata SelectTrigger -> PopperAnchor -> composeRefs no sidebar.
  */
-import React, { memo, useCallback, useEffect, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { ShieldAlert, AlertOctagon, ServerCrash, WifiOff, HelpCircle, Filter, ChevronDown } from 'lucide-react';
 import type { FailureCategory } from '@/features/inbox';

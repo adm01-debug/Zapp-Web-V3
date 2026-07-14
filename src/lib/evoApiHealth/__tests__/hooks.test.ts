@@ -139,8 +139,7 @@ describe('useAcknowledgeAlert', () => {
   it('calls evoApi.update on alert_log with acknowledged=true', async () => {
     mockUpdate.mockResolvedValue({ data: null });
 
-    const { wrapper, queryClient } = createWrapper();
-    const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
+    const { wrapper } = createWrapper();
 
     const { result } = renderHook(() => useAcknowledgeAlert(), { wrapper });
 

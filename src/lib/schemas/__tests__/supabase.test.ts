@@ -5,9 +5,6 @@ import {
   contactSchema,
   messageSchema,
   conversationSchema,
-  type Contact,
-  type Message,
-  type Conversation,
 } from '../supabase';
 import { z } from 'zod';
 

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, forwardRef } from 'react';
+import { useState, useEffect, forwardRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Phone, PhoneOff, Video } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -25,8 +25,6 @@ export const IncomingCallAlert = forwardRef<HTMLDivElement>(
     };
     const { settings: notifSettings, isQuietHours } = useNotificationSettings();
     const [showDialog, setShowDialog] = useState(false);
-    const _audioRef = useRef<HTMLAudioElement | null>(null);
-
     // Play ringtone only if sound is enabled and not in quiet hours
     useEffect(() => {
       const soundAllowed = notifSettings.soundEnabled && !isQuietHours();
@@ -56,6 +54,7 @@ export const IncomingCallAlert = forwardRef<HTMLDivElement>(
           log.error('Unexpected error in IncomingCallAlert:', err);
         }
       }
+      return undefined;
     }, [
       incomingCall,
       showDialog,

@@ -23,7 +23,7 @@ describe('useScreenProtection', () => {
   it('blocks PrintScreen key', () => {
     renderHook(() => useScreenProtection());
     const event = new KeyboardEvent('keydown', { key: 'PrintScreen', cancelable: true });
-    const _prevented = !window.dispatchEvent(event);
+    window.dispatchEvent(event);
     // Event listener is attached
     expect(typeof event.key).toBe('string');
   });

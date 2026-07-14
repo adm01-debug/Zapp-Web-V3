@@ -60,7 +60,6 @@
 import { describe, it, expect } from 'vitest';
 import { EmailHealthService } from '../emailHealthService';
 import type { EmailFailure } from '../types';
-import type { EmailHealthFilters } from '../types';
 
 // ── stub repository ───────────────────────────────────────────────────────────
 
@@ -243,7 +242,7 @@ describe('getFailures — resource filter (case-insensitive substring)', () => {
       makeFailure({ resource: 'email_accounts' }),
       makeFailure({ resource: 'contacts' }),
     ]);
-    const { items, total } = svc.getFailures({ resource: 'email' });
+    const { total } = svc.getFailures({ resource: 'email' });
     expect(total).toBe(2);
     expect(items.every((f) => f.resource.includes('email'))).toBe(true);
   });
@@ -256,7 +255,7 @@ describe('getFailures — resource filter (case-insensitive substring)', () => {
 
   it('returns empty when resource does not match', () => {
     const svc = makeService([makeFailure({ resource: 'email_threads' })]);
-    const { items, total } = svc.getFailures({ resource: 'contacts' });
+    const { total } = svc.getFailures({ resource: 'contacts' });
     expect(total).toBe(0);
   });
 });

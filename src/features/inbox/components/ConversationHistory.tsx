@@ -169,7 +169,6 @@ export function ConversationHistory({
   };
 
   const displayedConversations = isExpanded ? conversations : conversations.slice(0, 3);
-  const _selectedPeriodLabel = periodOptions.find((p) => p.value === periodFilter)?.label || '';
 
   return (
     <div className="space-y-3">

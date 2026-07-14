@@ -53,7 +53,6 @@ export function useStableCallback<T extends (...args: unknown[]) => unknown>(
   callback: T,
   deps: DependencyList
 ): T {
-  const callbackRef = useRef(callback);
   const depsRef = useRef<DependencyList>(deps);
   const stableCallbackRef = useRef(callback);
 

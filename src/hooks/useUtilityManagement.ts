@@ -121,6 +121,7 @@ export function usePrefetchOnHoverManagement(
 // ──────────────────────────────────────────────────────────────────────────
 
 interface UndoableAction<T> {
+  execute(value: T): void;
   redo(): void;
   undo(): void;
   canUndo: boolean;
@@ -163,6 +164,7 @@ export function useUndoableActionManagement<T>(initialValue: T): UndoableAction<
   }, [pointer, history]);
 
   return {
+    execute,
     redo,
     undo,
     canUndo: pointer > 0,

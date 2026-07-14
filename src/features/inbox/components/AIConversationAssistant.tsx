@@ -17,7 +17,6 @@ import {
   VolumeX,
   RefreshCcw,
   X,
-  Minus,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
@@ -31,7 +30,6 @@ import { AnalysisTabs } from './ai-tools/AnalysisTabs';
 import {
   type AnalysisData,
   type AnalysisMessage,
-  sentimentConfig,
 } from './ai-tools/analysisConfigs';
 
 interface AIConversationAssistantProps {
@@ -175,7 +173,6 @@ export function AIConversationAssistant({
 
   const sentimentTrend = getSentimentTrend();
   const currentSentiment = analysis?.sentiment || 'neutro';
-  const _SentimentIcon = sentimentConfig[currentSentiment]?.icon || Minus;
   const sentimentScore = analysis?.sentimentScore ?? 50;
 
   if (!isOpen) return null;

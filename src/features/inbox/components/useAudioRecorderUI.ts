@@ -240,8 +240,6 @@ export function useAudioRecorderUI(
     [audioRef]
   );
 
-  const _handleLock = useCallback(() => setIsLocked(true), []);
-
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     swipeRef.current.startX = e.touches[0].clientX;
     swipeRef.current.isSwiping = true;

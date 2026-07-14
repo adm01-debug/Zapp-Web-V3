@@ -1,39 +1,14 @@
 import { useState } from 'react';
-import { useWhatsAppStatus, type WhatsAppStatusMessage } from '@/features/inbox';
+import { useWhatsAppStatus } from '@/features/inbox';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Loader2, RefreshCw, Image as ImageIcon, Video, Type, Clock, WifiOff } from 'lucide-react';
+import { Loader2, RefreshCw, Image as ImageIcon, Clock, WifiOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { formatRelativeTime } from '@/lib/formatters';
 import { StoryViewer } from './StoryViewer';
 
 interface WhatsAppStatusSectionProps {
   phone: string;
 }
-
-const _getStatusIcon = (msg: WhatsAppStatusMessage) => {
-  if (msg.message?.imageMessage) return <ImageIcon className="h-3.5 w-3.5 text-primary" />;
-  if (msg.message?.videoMessage) return <Video className="h-3.5 w-3.5 text-accent-foreground" />;
-  return <Type className="h-3.5 w-3.5 text-success" />;
-};
-
-const _getStatusLabel = (msg: WhatsAppStatusMessage) => {
-  if (msg.message?.imageMessage?.caption) return msg.message.imageMessage.caption;
-  if (msg.message?.videoMessage?.caption) return msg.message.videoMessage.caption;
-  if (msg.message?.extendedTextMessage?.text) return msg.message.extendedTextMessage.text;
-  if (msg.message?.conversation) return msg.message.conversation;
-  if (msg.message?.imageMessage) return '📷 Foto';
-  if (msg.message?.videoMessage) return '🎥 Vídeo';
-  if (msg.status) return `Status: ${msg.status}`;
-  return 'Status';
-};
-
-const _getStatusTime = (msg: WhatsAppStatusMessage) => {
-  const ts = msg.messageTimestamp;
-  if (!ts) return null;
-  const date = new Date(typeof ts === 'string' ? parseInt(ts, 10) * 1000 : ts * 1000);
-  return formatRelativeTime(date);
-};
 
 export function WhatsAppStatusSection({ phone }: WhatsAppStatusSectionProps) {
   const { statusMessages, presence, loading, error, refresh } = useWhatsAppStatus(phone);
