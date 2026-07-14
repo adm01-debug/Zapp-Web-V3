@@ -51,7 +51,7 @@ export function useTeamMessageReactions(conversationId: string | undefined) {
       .channel(`team-reactions-${conversationId}`)
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public' // ✅ fix: tabelas no schema public (não zapp), table: 'team_message_reactions' },
+        { event: '*', schema: 'public', table: 'team_message_reactions' },
         () => {
           void queryClient.invalidateQueries({ queryKey: ['team-reactions', conversationId] });
         }

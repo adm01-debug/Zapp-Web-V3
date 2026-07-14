@@ -449,7 +449,7 @@ export function useBusinessLogicPipelineManagement(
   useEffect(() => {
     const channel = supabase
       .channel('deals-changes')
-      .on('postgres_changes', { event: '*', schema: 'public' // ✅ fix: tabelas no schema public (não zapp), table: 'sales_deals' }, () =>
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'sales_deals' }, () =>
         fetchData()
       )
       .subscribe();
