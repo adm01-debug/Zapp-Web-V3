@@ -50,9 +50,10 @@ interface UseBulkActionsResult<T> {
   selectionCount: number;
 }
 
+/** Manages bulk selection and execution of actions on multiple items with confirmation dialogs. */
 export function useBulkActionsManagement<T extends { id: string }>(
   items: T[],
-  options: UseBulkActionsOptions<T> = {},
+  options: UseBulkActionsOptions<T> = {}
 ): UseBulkActionsResult<T> {
   const { tableName, queryKey, actions = [], onActionComplete } = options;
   const queryClient = useQueryClient();
@@ -62,7 +63,7 @@ export function useBulkActionsManagement<T extends { id: string }>(
 
   const selectedItems = useMemo(
     () => items.filter((item) => selectedIds.has(item.id)),
-    [items, selectedIds],
+    [items, selectedIds]
   );
 
   const isAllSelected = items.length > 0 && selectedIds.size === items.length;
@@ -112,9 +113,7 @@ export function useBulkActionsManagement<T extends { id: string }>(
           if (ids.length === 0) {
             throw new Error('Nenhum item selecionado');
           }
-          const { error } = await fromTable(tableName)
-            .delete()
-            .in('id', ids);
+          const { error } = await fromTable(tableName).delete().in('id', ids);
 
           if (error) throw error;
           toast.success(`${ids.length} item(s) excluído(s)`);
@@ -130,7 +129,10 @@ export function useBulkActionsManagement<T extends { id: string }>(
             throw new Error('Nenhum item selecionado');
           }
           const { error } = await fromTable(tableName)
-            .update({ status: 'archived', updated_at: new Date().toISOString() } as Record<string, unknown>)
+            .update({ status: 'archived', updated_at: new Date().toISOString() } as Record<
+              string,
+              unknown
+            >)
             .in('id', ids);
 
           if (error) throw error;
@@ -140,7 +142,10 @@ export function useBulkActionsManagement<T extends { id: string }>(
     ];
   }, [tableName, selectedItems]);
 
-  const availableActions = useMemo(() => [...defaultActions, ...actions], [defaultActions, actions]);
+  const availableActions = useMemo(
+    () => [...defaultActions, ...actions],
+    [defaultActions, actions]
+  );
 
   const executeAction = useCallback(
     async (actionId: string) => {
@@ -160,13 +165,13 @@ export function useBulkActionsManagement<T extends { id: string }>(
         onActionComplete?.();
       } catch (error) {
         toast.error(
-          `Erro ao executar ação: ${error instanceof Error ? error.message : 'Erro desconhecido'}`,
+          `Erro ao executar ação: ${error instanceof Error ? error.message : 'Erro desconhecido'}`
         );
       } finally {
         setIsExecuting(false);
       }
     },
-    [availableActions, selectedItems, queryClient, queryKey, deselectAll, onActionComplete],
+    [availableActions, selectedItems, queryClient, queryKey, deselectAll, onActionComplete]
   );
 
   return {
@@ -240,9 +245,7 @@ function writeCacheSync(data: ConversationWithMessages[]): boolean {
     const estimatedSize = new Blob([jsonStr]).size;
     const maxAllowedSize = 5 * 1024 * 1024; // 5MB default quota
     if (estimatedSize > maxAllowedSize * 0.8) {
-      log.warn(
-        `Offline cache size (${estimatedSize} bytes) exceeds 80% of quota, skipping write`,
-      );
+      log.warn(`Offline cache size (${estimatedSize} bytes) exceeds 80% of quota, skipping write`);
       return false;
     }
 
@@ -260,7 +263,7 @@ function writeCacheSync(data: ConversationWithMessages[]): boolean {
 
 async function writeCacheWithRetry(
   data: ConversationWithMessages[],
-  maxRetries = 3,
+  maxRetries = 3
 ): Promise<boolean> {
   // Try synchronous write first for better performance and testability
   if (writeCacheSync(data)) {
@@ -299,7 +302,10 @@ async function writeCacheWithRetry(
   return false;
 }
 
-export function useOfflineCacheManagement(conversations: ConversationWithMessages[], loading: boolean) {
+export function useOfflineCacheManagement(
+  conversations: ConversationWithMessages[],
+  loading: boolean
+) {
   const [cachedData, setCachedData] = useState<ConversationWithMessages[] | null>(null);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const lastWriteRef = useRef(0);
@@ -400,32 +406,35 @@ export function useActionFeedbackManagement() {
       }
       return toastResult;
     },
-    [toast],
+    [toast]
   );
 
   const success = useCallback(
     (d: string, t?: string) => showFeedback('success', { description: d, title: t }),
-    [showFeedback],
+    [showFeedback]
   );
   const error = useCallback(
     (d: string, t?: string) => showFeedback('error', { description: d, title: t }),
-    [showFeedback],
+    [showFeedback]
   );
   const warning = useCallback(
     (d: string, t?: string) => showFeedback('warning', { description: d, title: t }),
-    [showFeedback],
+    [showFeedback]
   );
   const info = useCallback(
     (d: string, t?: string) => showFeedback('info', { description: d, title: t }),
-    [showFeedback],
+    [showFeedback]
   );
   const loading = useCallback(
     (d: string, t?: string) => showFeedback('loading', { description: d, title: t }),
-    [showFeedback],
+    [showFeedback]
   );
 
   const withFeedback = useCallback(
-    async <T,>(action: () => Promise<T>, options: WithFeedbackOptions<T> = {}): Promise<T | undefined> => {
+    async <T>(
+      action: () => Promise<T>,
+      options: WithFeedbackOptions<T> = {}
+    ): Promise<T | undefined> => {
       const {
         loadingMessage = 'Processando...',
         successMessage = 'Operação concluída com sucesso!',
@@ -467,11 +476,14 @@ export function useActionFeedbackManagement() {
         return undefined;
       }
     },
-    [loading, success, error],
+    [loading, success, error]
   );
 
   const withUndo = useCallback(
-    <T,>(action: () => Promise<T>, options: UndoableOptions<T>): Promise<T | 'undone' | undefined> => {
+    <T>(
+      action: () => Promise<T>,
+      options: UndoableOptions<T>
+    ): Promise<T | 'undone' | undefined> => {
       return new Promise((resolve) => {
         const { description, undoDuration = 5000, onUndo, onConfirm } = options;
         let undone = false;
@@ -505,18 +517,18 @@ export function useActionFeedbackManagement() {
         }, undoDuration);
       });
     },
-    [showFeedback, info, error],
+    [showFeedback, info, error]
   );
 
   const withBatchFeedback = useCallback(
-    async <T,>(
+    async <T>(
       actions: (() => Promise<T>)[],
       options: {
         progressMessage?: (c: number, t: number) => string;
         successMessage?: string;
         errorMessage?: string;
         stopOnError?: boolean;
-      } = {},
+      } = {}
     ): Promise<{ results: T[]; errors: Error[] }> => {
       const {
         progressMessage = (c, t) => `Processando ${c} de ${t}...`,
@@ -546,7 +558,7 @@ export function useActionFeedbackManagement() {
       else warning(`${results.length} sucesso, ${errors.length} falhas`);
       return { results, errors };
     },
-    [loading, success, error, warning],
+    [loading, success, error, warning]
   );
 
   const dismissAll = useCallback(() => {
@@ -579,7 +591,7 @@ export function useObjectionDetectorManagement(
   contactId: string,
   contactName: string | undefined,
   lastMessages: string[],
-  allMessages: ChatMessage[],
+  allMessages: ChatMessage[]
 ) {
   const [objections, setObjections] = useState<Objection[]>([]);
   const [loading, setLoading] = useState(false);
@@ -592,7 +604,7 @@ export function useObjectionDetectorManagement(
 
   const normalized = useMemo(
     () => allMessages.map((m) => ({ ...m, created_at: m.created_at || m.timestamp })),
-    [allMessages],
+    [allMessages]
   );
 
   const hasPeriodMessages = normalized.length > 0;
@@ -700,14 +712,14 @@ Se não houver objeções, retorne []`,
               const counterArgStr = String(obj.counterArgument || '').trim();
 
               if (!objectionStr || !counterArgStr) {
-                log.warn('Filtered out objection with empty fields', { objection: objectionStr, counterArgument: counterArgStr });
+                log.warn('Filtered out objection with empty fields', {
+                  objection: objectionStr,
+                  counterArgument: counterArgStr,
+                });
                 return false;
               }
 
-              return (
-                typeof obj.objection === 'string' &&
-                typeof obj.counterArgument === 'string'
-              );
+              return typeof obj.objection === 'string' && typeof obj.counterArgument === 'string';
             })
             .map((o: Record<string, unknown>) => ({
               objection: String(o.objection).trim(),
@@ -737,7 +749,7 @@ Se não houver objeções, retorne []`,
       setAnalyzed(true);
       setLoading(false);
     },
-    [clientMessages, selectedTone, contactName],
+    [clientMessages, selectedTone, contactName]
   );
 
   const rewriteSingle = useCallback(
@@ -760,7 +772,7 @@ Se não houver objeções, retorne []`,
         const content = response.data?.content || response.data?.choices?.[0]?.message?.content;
         if (content) {
           setObjections((prev) =>
-            prev.map((o, i) => (i === idx ? { ...o, counterArgument: content.trim() } : o)),
+            prev.map((o, i) => (i === idx ? { ...o, counterArgument: content.trim() } : o))
           );
           toast.success('Resposta reescrita!');
         }
@@ -769,7 +781,7 @@ Se não houver objeções, retorne []`,
       }
       setRewritingIdx(null);
     },
-    [objections, selectedTone, contactName],
+    [objections, selectedTone, contactName]
   );
 
   const handleSelect = useCallback((text: string, onSelectSuggestion?: (text: string) => void) => {
@@ -822,10 +834,7 @@ async function cleanupLegacyServiceWorker(): Promise<boolean> {
     cacheKeys = await Promise.race([
       caches.keys(),
       new Promise<string[]>((_, reject) =>
-        setTimeout(
-          () => reject(new Error('Cache.keys() timeout')),
-          SW_CLEANUP_TIMEOUT / 2,
-        ),
+        setTimeout(() => reject(new Error('Cache.keys() timeout')), SW_CLEANUP_TIMEOUT / 2)
       ),
     ]);
   } catch (e) {
@@ -850,10 +859,7 @@ async function cleanupLegacyServiceWorker(): Promise<boolean> {
       registrations = await Promise.race([
         navigator.serviceWorker.getRegistrations(),
         new Promise<ServiceWorkerRegistration[]>((_, reject) =>
-          setTimeout(
-            () => reject(new Error('getRegistrations() timeout')),
-            SW_CLEANUP_TIMEOUT / 2,
-          ),
+          setTimeout(() => reject(new Error('getRegistrations() timeout')), SW_CLEANUP_TIMEOUT / 2)
         ),
       ]);
     }
@@ -868,14 +874,11 @@ async function cleanupLegacyServiceWorker(): Promise<boolean> {
         log.warn('[ServiceWorker] Failed to unregister', e);
       }),
       new Promise<void>((_, reject) =>
-        setTimeout(
-          () => reject(new Error('Unregister timeout')),
-          SW_CLEANUP_TIMEOUT / 2,
-        ),
+        setTimeout(() => reject(new Error('Unregister timeout')), SW_CLEANUP_TIMEOUT / 2)
       ),
     ]).catch((e) => {
       log.warn('[ServiceWorker] Unregister operation timeout or failed', e);
-    }),
+    })
   );
 
   // Delete all caches with timeout protection
@@ -888,13 +891,13 @@ async function cleanupLegacyServiceWorker(): Promise<boolean> {
       new Promise<boolean>((_, reject) =>
         setTimeout(
           () => reject(new Error(`Cache delete timeout for '${key}'`)),
-          SW_CLEANUP_TIMEOUT / 2,
-        ),
+          SW_CLEANUP_TIMEOUT / 2
+        )
       ),
     ]).catch((e) => {
       log.warn(`[ServiceWorker] Cache delete operation timeout for '${key}'`, e);
       return false;
-    }),
+    })
   );
 
   // Wait for all cleanup operations with overall timeout
@@ -903,10 +906,7 @@ async function cleanupLegacyServiceWorker(): Promise<boolean> {
     await Promise.race([
       Promise.all([...unregisterPromises, ...deletePromises]),
       new Promise<void>((_, reject) =>
-        setTimeout(
-          () => reject(new Error('Overall cleanup timeout')),
-          SW_CLEANUP_TIMEOUT,
-        ),
+        setTimeout(() => reject(new Error('Overall cleanup timeout')), SW_CLEANUP_TIMEOUT)
       ),
     ]);
     allSucceeded = true;
@@ -997,7 +997,7 @@ export function useServiceWorkerManagement() {
               } else {
                 log.debug(
                   `[ServiceWorker] Update check failed (${updateFailureCount}/3), will retry:`,
-                  err,
+                  err
                 );
               }
             });
@@ -1021,7 +1021,7 @@ export function useServiceWorkerManagement() {
             document.dispatchEvent(
               new CustomEvent('notification-click', {
                 detail: event.data.data,
-              }),
+              })
             );
           }
         };

@@ -60,7 +60,7 @@ export function useExternalContact360(phone: string | undefined) {
     },
     enabled: isExternalConfigured && !!cleanedPhone && cleanedPhone.length >= 8,
     staleTime: 1000 * 60 * 10, // 10 min cache
-    gcTime: 1000 * 60 * 30,    // 30 min gc
+    gcTime: 1000 * 60 * 30, // 30 min gc
     retry: 1,
   });
 }
@@ -68,7 +68,7 @@ export function useExternalContact360(phone: string | undefined) {
 /** Fetches 360-degree contact data for multiple phones with batch lookup optimization. */
 export function useExternalContact360Batch(phones: string[]) {
   // Deduplicate and clean phones
-  const cleanedPhones = [...new Set(phones.map(cleanPhone).filter(p => p.length >= 8))];
+  const cleanedPhones = [...new Set(phones.map(cleanPhone).filter((p) => p.length >= 8))];
   // Create a stable key from sorted phones
   const queryKey = cleanedPhones.sort().join(',');
 
@@ -722,7 +722,10 @@ export interface CatalogFilters {
   ascending?: boolean;
 }
 
-async function invokeAction<T = unknown>(action: string, params: Record<string, unknown> = {}): Promise<T> {
+async function invokeAction<T = unknown>(
+  action: string,
+  params: Record<string, unknown> = {}
+): Promise<T> {
   const { data, error } = await supabase.functions.invoke('promogifts-catalog', {
     body: { action, params },
   });
@@ -734,7 +737,9 @@ async function invokeAction<T = unknown>(action: string, params: Record<string, 
 }
 
 /** Safely parses and validates product variants, returning a product with safe variant data. */
-export function withSafeVariants(product: ExternalProduct | null | undefined): ExternalProduct | null {
+export function withSafeVariants(
+  product: ExternalProduct | null | undefined
+): ExternalProduct | null {
   if (!product) return null;
   return {
     ...product,
@@ -755,7 +760,10 @@ export function useExternalCatalog() {
     queryKey: ['external-catalog', 'products', filters],
     queryFn: async () => {
       logCatalog.debug('Fetching products with filters:', JSON.stringify(filters));
-      const result = await invokeAction<unknown>('list_products', filters as Record<string, unknown>);
+      const result = await invokeAction<unknown>(
+        'list_products',
+        filters as Record<string, unknown>
+      );
       const products = readArray<ExternalProduct>(result, 'data').map((p) => ({
         ...p,
         variants: readVariants<ExternalProductVariant>(p),
@@ -764,7 +772,10 @@ export function useExternalCatalog() {
         ? (result as { meta?: { total?: number; duration_ms?: number } }).meta
         : undefined) ?? { total: 0, duration_ms: 0 };
       logCatalog.debug('Got', products.length, 'products, total:', meta.total);
-      return { data: products, meta: { total: meta.total ?? 0, duration_ms: meta.duration_ms ?? 0 } };
+      return {
+        data: products,
+        meta: { total: meta.total ?? 0, duration_ms: meta.duration_ms ?? 0 },
+      };
     },
     enabled: ready,
     staleTime: 5 * 60 * 1000,
@@ -802,25 +813,29 @@ export function useExternalCatalog() {
     setReady(true);
   }, []);
 
-  const fetchProduct = useCallback(async (productId: string): Promise<ExternalProduct | null> => {
-    try {
-      const result = await queryClient.fetchQuery({
-        queryKey: ['external-catalog', 'product', productId],
-        queryFn: async () => {
-          const res = await invokeAction<unknown>('get_product', { product_id: productId });
-          const product = (res && typeof res === 'object' && 'data' in res
-            ? (res as { data?: ExternalProduct }).data
-            : null) ?? null;
-          return withSafeVariants(product);
-        },
-        staleTime: 5 * 60 * 1000,
-      });
-      return result;
-    } catch (err) {
-      logCatalog.error('Failed to fetch product', err);
-      return null;
-    }
-  }, [queryClient]);
+  const fetchProduct = useCallback(
+    async (productId: string): Promise<ExternalProduct | null> => {
+      try {
+        const result = await queryClient.fetchQuery({
+          queryKey: ['external-catalog', 'product', productId],
+          queryFn: async () => {
+            const res = await invokeAction<unknown>('get_product', { product_id: productId });
+            const product =
+              (res && typeof res === 'object' && 'data' in res
+                ? (res as { data?: ExternalProduct }).data
+                : null) ?? null;
+            return withSafeVariants(product);
+          },
+          staleTime: 5 * 60 * 1000,
+        });
+        return result;
+      } catch (err) {
+        logCatalog.error('Failed to fetch product', err);
+        return null;
+      }
+    },
+    [queryClient]
+  );
 
   const fetchCategories = useCallback(() => {
     setReady(true);
