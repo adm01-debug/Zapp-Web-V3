@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
-import { StickyNote, Plus, Trash2, Send, Loader2 } from 'lucide-react';
+import { StickyNote, Plus, Trash2, Send, Loader2, AlertCircle, X } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useContactNotes } from '@/hooks/useContactNotes';
@@ -14,32 +14,85 @@ interface PrivateNotesProps {
 }
 
 export function PrivateNotes({ contactId }: PrivateNotesProps) {
-  const { notes, isLoading, addNote, deleteNote, isAdding: isSaving, isDeleting, currentProfileId } = useContactNotes(contactId);
+  const {
+    notes,
+    isLoading,
+    error: loadError,
+    refetch,
+    addNote,
+    deleteNote,
+    isAdding: isSaving,
+    isDeleting,
+    currentProfileId,
+  } = useContactNotes(contactId);
   const [newNote, setNewNote] = useState('');
   const [isAddingNote, setIsAddingNote] = useState(false);
+  const [addError, setAddError] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const handleAddNote = async () => {
-    if (newNote.trim()) {
-      await addNote(newNote.trim());
+    const content = newNote.trim();
+    if (!content) return;
+    setAddError(null);
+    try {
+      await addNote(content);
       setNewNote('');
       setIsAddingNote(false);
+    } catch (err) {
+      setAddError(err instanceof Error ? err.message : 'Não foi possível salvar a nota.');
     }
   };
 
   const handleDeleteNote = async (id: string) => {
-    await deleteNote(id);
+    setDeleteError(null);
+    setDeletingId(id);
+    try {
+      await deleteNote(id);
+    } catch (err) {
+      setDeleteError(err instanceof Error ? err.message : 'Não foi possível remover a nota.');
+    } finally {
+      setDeletingId((curr) => (curr === id ? null : curr));
+    }
   };
 
   if (isLoading) {
+    return (
+      <div className="space-y-3" aria-busy="true" aria-live="polite">
+        <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+          <StickyNote className="w-4 h-4" />
+          <span>Notas Privadas</span>
+          <Loader2 className="w-3 h-3 animate-spin ml-1" aria-hidden="true" />
+        </div>
+        <div className="space-y-2">
+          <Skeleton className="h-16 w-full" />
+          <Skeleton className="h-16 w-full" />
+        </div>
+      </div>
+    );
+  }
+
+  if (loadError) {
     return (
       <div className="space-y-3">
         <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
           <StickyNote className="w-4 h-4" />
           <span>Notas Privadas</span>
         </div>
-        <div className="space-y-2">
-          <Skeleton className="h-16 w-full" />
-          <Skeleton className="h-16 w-full" />
+        <div
+          role="alert"
+          className="flex items-start gap-2 p-3 rounded-lg border border-destructive/40 bg-destructive/5 text-xs text-destructive"
+        >
+          <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" aria-hidden="true" />
+          <div className="flex-1">
+            <p className="font-medium">Erro ao carregar notas</p>
+            <p className="text-destructive/80 mt-0.5">
+              {loadError instanceof Error ? loadError.message : 'Tente novamente.'}
+            </p>
+          </div>
+          <Button size="sm" variant="ghost" className="h-6 text-xs" onClick={() => refetch()}>
+            Tentar novamente
+          </Button>
         </div>
       </div>
     );
