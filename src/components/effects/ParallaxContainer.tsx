@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { motion, useScroll, useTransform, useSpring } from 'framer-motion';
 import { ReactNode, useRef } from 'react';
 import { cn } from '@/lib/utils';

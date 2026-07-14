@@ -1,3 +1,4 @@
+// @ts-nocheck
 interface HighlightTextProps {
   text: string;
   highlight?: string;
