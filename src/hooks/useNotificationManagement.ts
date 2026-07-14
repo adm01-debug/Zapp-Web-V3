@@ -21,6 +21,7 @@ interface Notification {
   created_at: string;
 }
 
+/** Manages browser push notifications with permission requests and notification sending. */
 export function usePushNotificationsManagement() {
   const [permission, setPermission] = useState<NotificationPermission>('default');
   const [isSupported, setIsSupported] = useState(false);
@@ -55,6 +56,7 @@ export function usePushNotificationsManagement() {
   return { permission, isSupported, requestPermission, sendNotification };
 }
 
+/** Fetches and updates notification preferences including email, push, and SMS settings. */
 export function useNotificationSettingsManagement(userId?: string) {
   const [settings, setSettings] = useState<NotificationSettings | null>(null);
   const [loading, setLoading] = useState(true);
@@ -116,6 +118,7 @@ export function useNotificationSettingsManagement(userId?: string) {
   return { settings, loading, updateSettings, refetch: fetchSettings };
 }
 
+/** Subscribes to real-time team chat notifications with read status tracking. */
 export function useTeamChatNotificationsManagement() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const channelRef = useRef<any>(null);
@@ -145,6 +148,7 @@ export function useTeamChatNotificationsManagement() {
   return { notifications, markAsRead };
 }
 
+/** Subscribes to real-time security alerts and suspicious activity notifications. */
 export function useSecurityPushNotificationsManagement() {
   const [securityAlerts, setSecurityAlerts] = useState<Notification[]>([]);
 
@@ -164,6 +168,7 @@ export function useSecurityPushNotificationsManagement() {
   return { securityAlerts };
 }
 
+/** Subscribes to real-time goal achievement and progress notifications. */
 export function useGoalNotificationsManagement() {
   const [goalNotifications, setGoalNotifications] = useState<Notification[]>([]);
 
@@ -183,6 +188,7 @@ export function useGoalNotificationsManagement() {
   return { goalNotifications };
 }
 
+/** Subscribes to real-time transcription completion and processing status notifications. */
 export function useTranscriptionNotificationsManagement() {
   const [transcriptionNotifications, setTranscriptionNotifications] = useState<Notification[]>([]);
 

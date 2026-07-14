@@ -4,6 +4,7 @@ import type { SecurityNotificationConfig } from '@/hooks/useNotificationManageme
 
 export type { SecurityNotificationConfig };
 
+/** Subscribes to real-time security alerts and suspicious activity notifications. */
 export function useSecurityPushNotifications() {
   return useSecurityNotificationsManagement();
 }
