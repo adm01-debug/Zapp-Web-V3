@@ -33,16 +33,22 @@ export function useCustomEmojis(enabled = true) {
   const [emojis, setEmojis] = useState<CustomEmoji[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const [pendingUpload, setPendingUpload] = useState<PendingEmojiUpload | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const mountedRef = useRef(true);
+  const progressTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     mountedRef.current = true;
     return () => {
       mountedRef.current = false;
+      if (progressTimerRef.current) clearInterval(progressTimerRef.current);
     };
   }, []);
+
+  const resetUploadError = useCallback(() => setUploadError(null), []);
 
   const fetchEmojis = useCallback(async () => {
     try {
