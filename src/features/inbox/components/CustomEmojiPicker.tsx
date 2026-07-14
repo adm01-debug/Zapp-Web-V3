@@ -110,7 +110,8 @@ export function CustomEmojiPicker({ onSendEmoji, disabled }: CustomEmojiPickerPr
   const [nativeCategoryId, setNativeCategoryId] = useState<string>('smileys');
 
   const {
-    emojis, loading, uploading, pendingUpload, fileInputRef,
+    emojis, loading, uploading, uploadProgress, uploadError, resetUploadError,
+    pendingUpload, fileInputRef,
     handleFileSelect, handleConfirmUpload, handleCancelUpload,
     handleSend, toggleFavorite, handleCategoryChange, handleDelete, setPendingUpload,
   } = useCustomEmojis(open);
