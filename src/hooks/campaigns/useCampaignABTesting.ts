@@ -4,7 +4,3 @@ import type { ABVariant, UseBusinessLogicCampaignsParams, UseBusinessLogicCampai
 
 export { useBusinessLogicCampaignsManagement as useCampaignABTesting };
 export type { ABVariant, UseBusinessLogicCampaignsParams, UseBusinessLogicCampaignsResult };
-
-export function useCampaignABTesting(campaignId: string) {
-  return useBusinessLogicCampaignsManagement({ campaignId });
-}

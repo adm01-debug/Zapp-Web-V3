@@ -1,9 +1,6 @@
 // Re-export from consolidated useNotificationManagement module (ETAPA 27 consolidation)
-import { useSecurityNotificationsManagement } from '@/hooks/useNotificationManagement';
-import type { SecurityNotificationConfig } from '@/hooks/useNotificationManagement';
-
-export type { SecurityNotificationConfig };
+import { useSecurityPushNotificationsManagement } from '@/hooks/useNotificationManagement';
 
 export function useSecurityPushNotifications() {
-  return useSecurityNotificationsManagement();
+  return useSecurityPushNotificationsManagement();
 }
