@@ -128,7 +128,16 @@ export function useContactEnrichedData(contactId: string) {
         log.error('Error fetching AI tags:', error);
         throw error;
       }
-      return (data ?? []) as AIConversationTag[]; // ignore-audit: narrows Supabase query result to local interface
+      // Normaliza cada tag — nenhum campo pode chegar como `undefined` aos consumidores.
+      const rows = (data ?? []) as Array<Partial<AIConversationTag>>;
+      return rows
+        .filter((r) => typeof r?.id === 'string' && typeof r?.tag_name === 'string')
+        .map<AIConversationTag>((r) => ({
+          id: r.id as string,
+          tag_name: r.tag_name as string,
+          confidence: typeof r.confidence === 'number' ? r.confidence : null,
+          source: typeof r.source === 'string' ? r.source : null,
+        }));
     },
     enabled: !!localId,
     staleTime: 5 * 60 * 1000,
@@ -151,7 +160,18 @@ export function useContactEnrichedData(contactId: string) {
         log.error('Error fetching SLA info:', error);
         throw error;
       }
-      return (data ?? null) as SLAInfo | null; // ignore-audit: narrows Supabase query result to local interface
+      if (!data) return null;
+      // Normaliza — booleans/datas nunca vêm como `undefined`.
+      const normalized: SLAInfo = {
+        first_response_breached:
+          typeof data.first_response_breached === 'boolean' ? data.first_response_breached : null,
+        resolution_breached:
+          typeof data.resolution_breached === 'boolean' ? data.resolution_breached : null,
+        first_response_at:
+          typeof data.first_response_at === 'string' ? data.first_response_at : null,
+        resolved_at: typeof data.resolved_at === 'string' ? data.resolved_at : null,
+      };
+      return normalized;
     },
     enabled: !!localId,
     staleTime: 2 * 60 * 1000,
