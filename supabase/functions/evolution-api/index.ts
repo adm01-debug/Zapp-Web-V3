@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { Logger, checkRateLimit, getClientIP, getCorsHeaders, handleCors, authorizeRoles, errorResponse } from "../_shared/validation.ts";
+import { initSentry, captureException } from "../_shared/sentry.ts";
 import { EVOLUTION_ENVELOPE_VERSION, proxyToEvolution, resolvePrivateBucketUrl } from "../_shared/evolution-api-proxy.ts";
 import { normalizeChatList, normalizeContactList, normalizeProfile } from "../_shared/evolution-response-normalizers.ts";
 import { maybeLogFallback } from "../_shared/evolution-fallback-telemetry.ts";
@@ -80,6 +81,8 @@ import { WEBHOOK_EVENTS } from "../_shared/evolution-sync-actions.ts";
  * Misc: update-block-status, offer-call, send-chat-presence, get-{catalog, collections}
  */
 Deno.serve(async (req) => {
+  initSentry('evolution-api');
+
   const corsResponse = handleCors(req);
   if (corsResponse) return corsResponse;
 

@@ -24,7 +24,7 @@ const TARGET_FUNCTIONS = [
   "send-email"
 ];
 
-const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+const _sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 async function runFuzz(fnName: string) {
   const url = `${BASE_URL}/${fnName}`;
@@ -60,7 +60,7 @@ async function runFuzz(fnName: string) {
         } else {
           passed++;
         }
-      } catch (e) {
+      } catch {
         crashes++;
       }
     });

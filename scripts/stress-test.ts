@@ -57,7 +57,7 @@ async function worker() {
       });
       if (resp.ok) stats.success++;
       else stats.failure++;
-    } catch (e) {
+    } catch {
       stats.failure++;
     } finally {
       const end = performance.now();
@@ -68,7 +68,7 @@ async function worker() {
 }
 
 // Start workers
-const workers = Array.from({ length: concurrency }).map(() => worker());
+const _workers = Array.from({ length: concurrency }).map(() => worker());
 
 // Set timeout to stop
 setTimeout(() => {

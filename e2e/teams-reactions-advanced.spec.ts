@@ -139,7 +139,7 @@ test.describe('Teams - Message Reactions Advanced @teams @reactions @advanced', 
       await page.getByRole('gridcell', { name: /😮/ }).click();
 
       // Check toast content
-      const toast = page.locator('ol[tabindex="-1"]'); // Assuming Sonner or similar toast container
+      const _toast = page.locator('ol[tabindex="-1"]'); // Assuming Sonner or similar toast container
       await expect(page.getByText('Erro ao reagir')).toBeVisible();
       await expect(page.getByText(scenario.text)).toBeVisible();
 

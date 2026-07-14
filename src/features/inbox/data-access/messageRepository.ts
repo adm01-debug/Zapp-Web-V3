@@ -1,4 +1,4 @@
-import { dbFrom, dbChannel, dbClient, dbList } from '@/integrations/datasource/db';
+import { dbFrom, dbChannel, dbList } from '@/integrations/datasource/db';
 import { RPC } from '@/integrations/datasource/rpcCatalog';
 import { normalizeMessage } from '@/integrations/supabase/rowNormalizers';
 import { RealtimePostgresChangesPayload, RealtimeChannel } from '@supabase/supabase-js';

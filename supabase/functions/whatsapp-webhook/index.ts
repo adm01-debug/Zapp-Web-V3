@@ -3,6 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { z } from "https://esm.sh/zod@3.23.8";
 import { getCorsHeaders, jsonResponse, errorResponse, Logger, requireEnv } from "../_shared/validation.ts";
 import { verifyHmacSignature } from "../_shared/hmac-validation.ts";
+import { initSentry, captureException, captureMessage } from "../_shared/sentry.ts";
 
 const WhatsAppStatusSchema = z.object({
   id: z.string().max(500),
@@ -38,6 +39,8 @@ const WhatsAppWebhookSchema = z.object({
 });
 
 serve(async (req) => {
+  initSentry('whatsapp-webhook');
+
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: getCorsHeaders(req) });
   }
@@ -149,6 +152,14 @@ serve(async (req) => {
       return jsonResponse({ success: true }, 200, req);
     } catch (error) {
       log.error("Webhook processing error", { error: error instanceof Error ? error.message : String(error) });
+      await captureException(error, {
+        functionName: 'whatsapp-webhook',
+        requestUrl: req.url,
+        metadata: {
+          phase: 'webhook_processing',
+          entryCount: payload?.entry?.length,
+        },
+      });
       log.done(500);
       return errorResponse("Internal server error", 500, req);
     }

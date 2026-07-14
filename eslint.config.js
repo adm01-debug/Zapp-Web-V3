@@ -96,6 +96,17 @@ export default tseslint.config(
       "@typescript-eslint/no-non-null-assertion": "off",
     },
   },
+  // Allow console in e2e tests and scripts
+  {
+    files: [
+      "e2e/**/*.{ts,tsx}",
+      "scripts/**/*.{ts,tsx}",
+      "tests/**/*.{ts,tsx}",
+    ],
+    rules: {
+      "no-console": "off",
+    },
+  },
   // INBOX READ CONTRACT — bloqueia leitura via Evolution API dentro do inbox.
   {
     files: [

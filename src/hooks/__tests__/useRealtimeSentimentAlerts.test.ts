@@ -43,6 +43,7 @@ describe('useRealtimeSentimentAlerts', () => {
     mockChannel.mockReturnValue({
       on: vi.fn().mockReturnThis(),
       subscribe: vi.fn().mockReturnThis(),
+      unsubscribe: vi.fn().mockReturnThis(),
     });
   });
 
@@ -61,6 +62,7 @@ describe('useRealtimeSentimentAlerts', () => {
     mockChannel.mockReturnValue({
       on: onMock,
       subscribe: vi.fn().mockReturnThis(),
+      unsubscribe: vi.fn().mockReturnThis(),
     });
     renderHook(() => useRealtimeSentimentAlerts());
     expect(onMock).toHaveBeenCalledWith(
@@ -75,9 +77,15 @@ describe('useRealtimeSentimentAlerts', () => {
   });
 
   it('cleans up channel on unmount', () => {
+    const unsubscribeMock = vi.fn();
+    mockChannel.mockReturnValue({
+      on: vi.fn().mockReturnThis(),
+      subscribe: vi.fn().mockReturnThis(),
+      unsubscribe: unsubscribeMock,
+    });
     const { unmount } = renderHook(() => useRealtimeSentimentAlerts());
     unmount();
-    expect(mockRemoveChannel).toHaveBeenCalled();
+    expect(unsubscribeMock).toHaveBeenCalled();
   });
 
   it('calls subscribe on channel', () => {
@@ -85,6 +93,7 @@ describe('useRealtimeSentimentAlerts', () => {
     mockChannel.mockReturnValue({
       on: vi.fn().mockReturnThis(),
       subscribe: subscribeMock,
+      unsubscribe: vi.fn().mockReturnThis(),
     });
     renderHook(() => useRealtimeSentimentAlerts());
     expect(subscribeMock).toHaveBeenCalled();

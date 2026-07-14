@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test } from '@playwright/test';
 
 /**
  * Este arquivo serve como um template para testes que exigem autenticação real.
@@ -6,7 +6,7 @@ import { test, expect } from '@playwright/test';
  */
 
 test.describe('Fluxos Autenticados (Mocks/Template)', () => {
-  test('fluxo de logout', async ({ page }) => {
+  test('fluxo de logout', async ({ _page }) => {
     // 1. Mock de autenticação ou login real se disponível
     // Para o exercício, assumimos que se acessarmos uma rota protegida e virmos o conteúdo, estamos logados.
     
@@ -15,7 +15,7 @@ test.describe('Fluxos Autenticados (Mocks/Template)', () => {
     // await expect(page).toHaveURL(/\/auth/);
   });
 
-  test('persistência de sessão', async ({ page }) => {
+  test('persistência de sessão', async ({ _page }) => {
     // Verifica se a sessão é mantida após recarregar
     // await page.reload();
     // await expect(page.locator('nav')).toBeVisible();

@@ -136,6 +136,8 @@
     "@playwright/test": "^1.61.1",
     "@storybook/addon-a11y": "^10.4.6",
     "@storybook/addon-docs": "^10.4.6",
+    "@storybook/addon-essentials": "^8.6.14",
+    "@storybook/addon-interactions": "^8.6.14",
     "@storybook/addon-links": "^10.4.6",
     "@storybook/addon-onboarding": "^10.4.6",
     "@storybook/addon-vitest": "^10.4.6",

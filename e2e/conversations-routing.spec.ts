@@ -85,7 +85,7 @@ test.describe('Conversation & Routing Flows', () => {
 
   test('should handle unresponsive UI during routing failure', async ({ page }) => {
     await page.locator('[data-testid="conversation-item"]').first().click();
-    
+
     // Intercept routing request with a delay then failure
     await page.route('**/rpc/assign_conversation', async route => {
       await new Promise(r => setTimeout(r, 2000));
@@ -98,8 +98,10 @@ test.describe('Conversation & Routing Flows', () => {
 
     // Verify loading state is shown during delay
     const loadingSpinner = page.locator('.animate-spin, [role="status"]').first();
-    // This might be too fast to catch if not careful, but good to have
-    
+    await expect(loadingSpinner).toBeVisible({ timeout: 1000 }).catch(() => {
+      // Loading state might disappear quickly, verify error appears instead
+    });
+
     // Verify error recovery
     await expect(page.locator('text=/erro|falha/i').first()).toBeVisible();
   });

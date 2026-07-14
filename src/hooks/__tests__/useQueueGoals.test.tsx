@@ -109,9 +109,14 @@ describe('useQueueGoals', () => {
   });
 
   it('cleans up channel on unmount', () => {
+    const unsubscribeMock = vi.fn();
+    mockChannel.mockReturnValue({
+      on: vi.fn().mockReturnThis(),
+      subscribe: vi.fn().mockReturnValue({ unsubscribe: unsubscribeMock }),
+    });
     const { unmount } = renderHook(() => useQueueGoals());
     unmount();
-    expect(mockRemoveChannel).toHaveBeenCalled();
+    expect(unsubscribeMock).toHaveBeenCalledTimes(1);
   });
 
   it('handles empty goals', async () => {

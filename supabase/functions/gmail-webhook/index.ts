@@ -3,12 +3,15 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getSecret } from '../_shared/mod.ts';
 import { requireUser } from '../_shared/auth.ts';
 import { timingSafeEqual } from '../_shared/hmac-validation.ts';
+import { initSentry, captureException, captureMessage } from '../_shared/sentry.ts';
 
 import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
 const GMAIL_API = 'https://gmail.googleapis.com/gmail/v1/users/me';
 const PUBSUB_TOPIC = Deno.env.get('GMAIL_PUBSUB_TOPIC') ?? 'projects/your-project/topics/gmail';
 
 serve(async (req) => {
+  initSentry('gmail-webhook');
+
   if (req.method === 'OPTIONS') return new Response('ok', { headers: getCorsHeaders(req) });
 
   const supabase = createClient(
@@ -129,6 +132,13 @@ serve(async (req) => {
     return json({ error: 'Method not allowed' }, 405);
   } catch (err) {
     console.error('[gmail-webhook]', err instanceof Error ? (err.stack ?? err.message) : String(err));
+    await captureException(err, {
+      functionName: 'gmail-webhook',
+      requestUrl: req.url,
+      metadata: {
+        method: req.method,
+      },
+    });
     return json({ error: 'Internal server error' }, 500);
   }
 });

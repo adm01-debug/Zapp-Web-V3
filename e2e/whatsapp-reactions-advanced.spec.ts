@@ -127,7 +127,7 @@ test.describe('WhatsApp Message Reactions Advanced', () => {
     await expect(reactionOn2).toContainText('1');
 
     // Client 2 adds same reaction (count should go to 2)
-    const msg2 = page2.locator(`[data-testid="message-bubble-${messageId}"]`); // Need a reliable selector
+    const _msg2 = page2.locator(`[data-testid="message-bubble-${messageId}"]`); // Need a reliable selector
     // In our implementation, clicking the existing reaction summary acts as a toggle.
     await reactionOn2.click();
     await expect(reactionOn2).toContainText('2');

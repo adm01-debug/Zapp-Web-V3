@@ -29,7 +29,7 @@ import { cleanupTestData } from './utils/supabase';
 
 const SEND_GLOB = '**/functions/v1/evolution-api/**';
 const FAILED_MSGS_REST = '**/rest/v1/failed_messages*';
-const REPROCESS_FN = '**/functions/v1/reprocess-failed-messages*';
+const _REPROCESS_FN = '**/functions/v1/reprocess-failed-messages*';
 
 function isSendUrl(url: string): boolean {
   return /sendText|sendMedia|\/message\//i.test(url);

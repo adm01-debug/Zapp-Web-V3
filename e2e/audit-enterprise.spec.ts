@@ -28,7 +28,7 @@ test.describe('Audit & Compliance E2E', () => {
   test('IA Fallback UI Presence', async ({ page }) => {
     await page.goto('/chat');
     // Verifica se componentes de IA estão carregados
-    const aiAssist = page.locator('[data-testid="ai-assistant"]');
+    const _aiAssist = page.locator('[data-testid="ai-assistant"]');
     // Mesmo sem disparar falha, validamos a estrutura que suporta o fallback
   });
 });
