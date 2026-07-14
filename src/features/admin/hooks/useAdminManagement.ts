@@ -265,6 +265,7 @@ export interface SelfTestResult {
 
 // ─── Section 1: Automations ──────────────────────────────────────────────────
 
+/** Manages automation rules, channels, and departments for rule configuration. */
 function useAdminAutomationsManagement() {
   const [rules, setRules] = useState<Rule[]>([]);
   const [automationChannels, setAutomationChannels] = useState<AutomationChannel[]>([]);
@@ -388,6 +389,7 @@ function useAdminAutomationsManagement() {
 
 // ─── Section 2: Channels ─────────────────────────────────────────────────────
 
+/** Manages service channels, routing configuration, queue binding, and channel status. */
 function useAdminChannelsManagement(statusFilter: string, search: string) {
   const [channels, setChannels] = useState<ServiceChannel[]>([]);
   const [channelQueues, setChannelQueues] = useState<QueueOption[]>([]);
@@ -528,6 +530,7 @@ function useAdminChannelsManagement(statusFilter: string, search: string) {
 
 // ─── Section 3: Queues ───────────────────────────────────────────────────────
 
+/** Manages queue creation, member assignments, skill levels, and distribution algorithms. */
 function useAdminQueuesManagement() {
   const { toast } = useToast();
   const [queues, setQueues] = useState<Queue[]>([]);
@@ -619,6 +622,7 @@ function useAdminQueuesManagement() {
 
 // ─── Section 4: Departments ──────────────────────────────────────────────────
 
+/** Manages department CRUD operations, member assignments, and department activation. */
 function useDepartmentsManagement() {
   const [departments, setDepartments] = useState<Department[]>([]);
   const [deptLoading, setDeptLoading] = useState(true);
