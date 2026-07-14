@@ -242,7 +242,7 @@ describe('getFailures — resource filter (case-insensitive substring)', () => {
       makeFailure({ resource: 'email_accounts' }),
       makeFailure({ resource: 'contacts' }),
     ]);
-    const { total } = svc.getFailures({ resource: 'email' });
+    const { items, total } = svc.getFailures({ resource: 'email' });
     expect(total).toBe(2);
     expect(items.every((f) => f.resource.includes('email'))).toBe(true);
   });
