@@ -109,7 +109,7 @@ describe('useContactEnrichedData', () => {
     };
     const { result } = renderHook(() => useContactEnrichedData(LOCAL_ID), { wrapper: wrapper() });
     await waitFor(() => {
-      expect(result.current.enrichedData).not.toBeNull();
+      expect(result.current.enrichedData).toBeTruthy();
     });
     expect(result.current.enrichedData?.surname).toBeNull();
     expect(result.current.enrichedData?.surname).not.toBeUndefined();
