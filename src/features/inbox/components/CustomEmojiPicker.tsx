@@ -180,7 +180,7 @@ export function CustomEmojiPicker({ onSendEmoji, disabled }: CustomEmojiPickerPr
             </>
           ) : (
             <>
-              <AnimatePresence>{pendingUpload && (<div className="px-3 py-2 border-b border-border/50"><UploadPreview pending={pendingUpload} onConfirm={handleConfirmUpload} onCancel={handleCancelUpload} /></div>)}</AnimatePresence>
+              <AnimatePresence>{pendingUpload && (<div className="px-3 py-2 border-b border-border/50"><UploadPreview pending={pendingUpload} onConfirm={handleConfirmUpload} onCancel={handleCancelUpload} uploading={uploading} progress={uploadProgress} error={uploadError} onDismissError={resetUploadError} /></div>)}</AnimatePresence>
               <div className="px-3 py-2 border-b border-border/50">
                 <div className="relative">
                   <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
