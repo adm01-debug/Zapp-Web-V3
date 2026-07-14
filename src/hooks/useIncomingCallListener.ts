@@ -28,7 +28,7 @@ export function useIncomingCallListener() {
         'postgres_changes',
         {
           event: 'INSERT',
-          schema: 'zapp',
+          schema: 'public' // ✅ fix: tabelas no schema public (não zapp),
           table: 'calls',
           filter: `agent_id=eq.${profile.id}`,
         },

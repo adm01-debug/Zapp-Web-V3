@@ -25,7 +25,7 @@ export function useMessageReactions(messageId: string, options?: UseMessageReact
         'postgres_changes',
         {
           event: '*',
-          schema: 'zapp',
+          schema: 'public' // ✅ fix: tabelas no schema public (não zapp),
           table: 'message_reactions',
           filter: `message_id=eq.${messageId}`,
         },

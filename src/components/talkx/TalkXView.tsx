@@ -88,7 +88,7 @@ export default function TalkXView() {
   useEffect(() => {
     const channel = supabase
       .channel('talkx-realtime')
-      .on('postgres_changes', { event: '*', schema: 'zapp', table: 'talkx_campaigns' }, () => {
+      .on('postgres_changes', { event: '*', schema: 'public' // ✅ fix: tabelas no schema public (não zapp), table: 'talkx_campaigns' }, () => {
         refetchCampaigns();
       })
       .subscribe();

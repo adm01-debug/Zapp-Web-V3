@@ -95,7 +95,7 @@ export function WhisperMode({
         'postgres_changes',
         {
           event: 'INSERT',
-          schema: 'zapp',
+          schema: 'public' // ✅ fix: tabelas no schema public (não zapp),
           table: 'whisper_messages',
           filter: `contact_id=eq.${contactId}`,
         },

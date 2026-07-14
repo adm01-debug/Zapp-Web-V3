@@ -720,10 +720,10 @@ export function useEmail() {
         },
         (payload) => {
           if (payload.eventType === 'INSERT') {
-            const nt = mapBaseThreadRow(payload.new as any);
+            const nt = mapBaseThreadRow(payload.new as Record<string, unknown>);
             setThreads((prev) => [nt, ...prev]);
           } else if (payload.eventType === 'UPDATE') {
-            const ut = mapBaseThreadRow(payload.new as any);
+            const ut = mapBaseThreadRow(payload.new as Record<string, unknown>);
             setThreads((prev) =>
               prev.map((t) => (t.id === ut.id ? { ...t, ...definedOnly(ut) } : t))
             );

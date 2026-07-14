@@ -58,7 +58,7 @@ export function TalkXLiveMonitor({ campaignId }: Props) {
         'postgres_changes',
         {
           event: 'UPDATE',
-          schema: 'zapp',
+          schema: 'public' // ✅ fix: tabelas no schema public (não zapp),
           table: 'talkx_campaigns',
           filter: `id=eq.${campaignId}`,
         },
@@ -70,7 +70,7 @@ export function TalkXLiveMonitor({ campaignId }: Props) {
         'postgres_changes',
         {
           event: '*',
-          schema: 'zapp',
+          schema: 'public' // ✅ fix: tabelas no schema public (não zapp),
           table: 'talkx_recipients',
           filter: `campaign_id=eq.${campaignId}`,
         },

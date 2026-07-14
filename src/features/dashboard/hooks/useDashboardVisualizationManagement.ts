@@ -507,7 +507,7 @@ export function useLeaderboardManagement() {
 
   useEffect(() => {
     void fetchLeaderboard(timeRange);
-    const channel = supabase.channel('leaderboard-updates').on('postgres_changes', { event: '*', schema: 'zapp', table: 'agent_stats' }, () => {
+    const channel = supabase.channel('leaderboard-updates').on('postgres_changes', { event: '*', schema: 'public' // ✅ fix: tabelas no schema public (não zapp), table: 'agent_stats' }, () => {
       log.debug('Agent stats updated, refreshing leaderboard...');
       void fetchLeaderboard(timeRange);
     }).subscribe();

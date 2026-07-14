@@ -340,7 +340,7 @@ export function useRealtimeSentimentAlertsManagement(): UseRealtimeSentimentAler
       .channel('realtime-sentiment-alerts')
       .on(
         'postgres_changes',
-        { event: 'INSERT', schema: 'zapp', table: 'sentiment_alerts' },
+        { event: 'INSERT', schema: 'public' // ✅ fix: tabelas no schema public (não zapp), table: 'sentiment_alerts' },
         (payload) => {
           const newAlert = payload.new as RealtimeSentimentAlert;
           setAlerts((prev) => [newAlert, ...prev.slice(0, 49)]);

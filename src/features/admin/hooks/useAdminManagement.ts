@@ -775,7 +775,8 @@ function useRolesManagement() {
   };
 
   const fetchAvailableRoleUsers = async () => {
-    const { data } = await supabase.from('profiles').select('user_id, name, email').order('name');
+    const { data, error: profilesErr } = await supabase.from('profiles').select('user_id, name, email').order('name');
+    if (profilesErr) { log.warn('Failed to fetch profiles for role users', profilesErr); return; } // ✅ fix: error check
     if (data) {
       const usersWithRoles = roleUsers.map((u) => u.user_id);
       setAvailableRoleUsers(

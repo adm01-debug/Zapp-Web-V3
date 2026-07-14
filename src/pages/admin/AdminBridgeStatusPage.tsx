@@ -194,7 +194,7 @@ export default function BridgeStatusPage() {
       .channel('traffic-changes')
       .on(
         'postgres_changes',
-        { event: 'INSERT', schema: 'zapp', table: 'provider_message_log' },
+        { event: 'INSERT', schema: 'public' // ✅ fix: tabelas no schema public (não zapp), table: 'provider_message_log' },
         () => {
           setRecentTraffic((prev) => ({
             ...prev,

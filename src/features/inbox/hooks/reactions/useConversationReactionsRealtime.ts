@@ -31,7 +31,7 @@ export function useConversationReactionsRealtime(
       .channel(`conv-reactions:${conversationId}`)
       .on(
         'postgres_changes',
-        { event: '*', schema: 'zapp', table: 'message_reactions' },
+        { event: '*', schema: 'public' // ✅ fix: tabelas no schema public (não zapp), table: 'message_reactions' },
         (payload) => {
           const newRow = payload.new as { message_id?: string } | null;
           const oldRow = payload.old as { message_id?: string } | null;

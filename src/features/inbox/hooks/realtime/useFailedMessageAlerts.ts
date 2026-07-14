@@ -53,7 +53,7 @@ export function useFailedMessageAlerts(enabled = true): void {
       .channel('failed_messages_alerts')
       .on<FailedMessageRowMinimal>(
         'postgres_changes',
-        { event: 'UPDATE', schema: 'zapp', table: 'failed_messages' },
+        { event: 'UPDATE', schema: 'public' // ✅ fix: tabelas no schema public (não zapp), table: 'failed_messages' },
         (payload) => {
           const next = payload.new;
           const prev = payload.old;
