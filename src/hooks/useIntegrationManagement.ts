@@ -104,6 +104,7 @@ export function useBitrixApiManagement() {
   return { isConnected, webhookUrl };
 }
 
+/** Fetches and manages TalkX integration configuration settings. */
 export function useTalkXManagement() {
   const [isEnabled, setIsEnabled] = useState(false);
   const [config, setConfig] = useState<any>(null);
@@ -133,6 +134,7 @@ export function useTalkXManagement() {
   return { isEnabled, config };
 }
 
+/** Synchronizes entity data to external CRM systems. */
 export function useSyncToCRMManagement(entityId?: string) {
   const [isSyncing, setIsSyncing] = useState(false);
   const [lastSyncAt, setLastSyncAt] = useState<string | null>(null);

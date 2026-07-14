@@ -18,6 +18,7 @@ interface Emoji {
   url: string;
 }
 
+/** Fetches and manages user's personal sticker collection with lazy loading. */
 export function usePersonalStickersManagement(userId?: string) {
   const [stickers, setStickers] = useState<Sticker[]>([]);
   const [loading, setLoading] = useState(true);
@@ -57,6 +58,7 @@ export function usePersonalStickersManagement(userId?: string) {
   return { stickers, loading, refetch: fetchStickers };
 }
 
+/** Fetches and manages custom emoji library with caching. */
 export function useCustomEmojisManagement() {
   const [emojis, setEmojis] = useState<Emoji[]>([]);
   const [loading, setLoading] = useState(true);
@@ -81,6 +83,7 @@ export function useCustomEmojisManagement() {
   return { emojis, loading };
 }
 
+/** Exports user data in JSON or CSV format with progress tracking. */
 export function useExportDataManagement() {
   const [isExporting, setIsExporting] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -113,6 +116,7 @@ export function useExportDataManagement() {
   return { isExporting, progress, exportData };
 }
 
+/** Imports user data from JSON file with validation and error handling. */
 export function useImportDataManagement() {
   const [isImporting, setIsImporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -140,6 +144,7 @@ export function useImportDataManagement() {
   return { isImporting, error, importData };
 }
 
+/** Checks and manages download permissions for protected resources. */
 export function useDownloadPermissionManagement(resourceId: string) {
   const [hasPermission, setHasPermission] = useState(false);
   const [loading, setLoading] = useState(true);
