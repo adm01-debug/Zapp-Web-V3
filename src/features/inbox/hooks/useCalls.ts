@@ -73,9 +73,10 @@ export const useCalls = () => {
             whatsapp_connection_id: params.whatsappConnectionId || null,
           })
           .select()
-          .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
+          .single(); // POST-INSERT: insert retorna exatamente 1 linha
 
         if (error) throw error;
+        if (!data) throw new Error('Call insert retornou null — inesperado'); // guard extra
 
         setCurrentCallId(data.id);
         return data.id;
