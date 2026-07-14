@@ -135,7 +135,28 @@ export function PrivateNotes({ contactId }: PrivateNotesProps) {
               rows={3}
               className="text-sm resize-none"
               autoFocus
+              disabled={isSaving}
+              aria-invalid={!!addError}
+              aria-describedby={addError ? 'private-notes-add-error' : undefined}
             />
+            {addError && (
+              <div
+                id="private-notes-add-error"
+                role="alert"
+                className="flex items-start gap-2 p-2 rounded-md border border-destructive/40 bg-destructive/5 text-xs text-destructive"
+              >
+                <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" aria-hidden="true" />
+                <span className="flex-1">{addError}</span>
+                <button
+                  type="button"
+                  onClick={() => setAddError(null)}
+                  className="hover:opacity-70"
+                  aria-label="Fechar mensagem de erro"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            )}
             <div className="flex justify-end gap-2">
               <Button
                 variant="ghost"
@@ -143,6 +164,7 @@ export function PrivateNotes({ contactId }: PrivateNotesProps) {
                 onClick={() => {
                   setIsAddingNote(false);
                   setNewNote('');
+                  setAddError(null);
                 }}
                 disabled={isSaving}
               >
@@ -153,15 +175,22 @@ export function PrivateNotes({ contactId }: PrivateNotesProps) {
                 onClick={handleAddNote}
                 disabled={!newNote.trim() || isSaving}
                 className="bg-whatsapp hover:bg-whatsapp-dark"
+                aria-busy={isSaving}
               >
                 {isSaving ? (
-                  <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                  <>
+                    <Loader2 className="w-3 h-3 mr-1 animate-spin" aria-hidden="true" />
+                    Salvando...
+                  </>
                 ) : (
-                  <Send className="w-3 h-3 mr-1" />
+                  <>
+                    <Send className="w-3 h-3 mr-1" aria-hidden="true" />
+                    Salvar
+                  </>
                 )}
-                Salvar
               </Button>
             </div>
+
           </motion.div>
         )}
       </AnimatePresence>
