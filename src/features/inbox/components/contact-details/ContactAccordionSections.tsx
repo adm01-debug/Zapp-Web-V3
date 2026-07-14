@@ -114,14 +114,28 @@ export function ContactAccordionSections({
         <WhatsAppStatusSection phone={contact.phone} />
       </Section>
 
-      {(slaInfo || aiTags.length > 0) && (
+      {(slaInfo ||
+        aiTags.length > 0 ||
+        isLoadingAITags ||
+        isLoadingSLA ||
+        aiTagsError ||
+        slaError) && (
         <Section
           index={1}
           value="sla-ai"
           icon={<Brain className="h-3.5 w-3.5 text-primary" />}
           label="SLA & Inteligência"
         >
-          <SLAAndAITagsSection slaInfo={slaInfo} aiTags={aiTags} />
+          <SLAAndAITagsSection
+            slaInfo={slaInfo}
+            aiTags={aiTags}
+            isLoadingAITags={isLoadingAITags}
+            isLoadingSLA={isLoadingSLA}
+            aiTagsError={aiTagsError}
+            slaError={slaError}
+            onRetryAITags={onRetryAITags}
+            onRetrySLA={onRetrySLA}
+          />
         </Section>
       )}
 
