@@ -27,6 +27,7 @@ interface UseEmailOAuthResult {
   startOAuth: () => Promise<void>;
 }
 
+/** Manages Google OAuth flow for Gmail account authentication and token exchange. */
 function useEmailOAuthManagement({
   mountedRef,
   setError,
@@ -165,6 +166,7 @@ interface UseEmailSyncResult {
   renewWatch: (accountId?: string) => Promise<void>;
 }
 
+/** Manages Gmail inbox synchronization, token refresh, and webhook watch renewal. */
 function useEmailSyncManagement({
   activeAccountId,
   activeLabel,
@@ -256,6 +258,7 @@ interface UseEmailRealtimeParams {
   setThreads: React.Dispatch<React.SetStateAction<EmailThread[]>>;
 }
 
+/** Subscribes to real-time email thread updates via Supabase Postgres changes. */
 function useEmailRealtimeManagement({ activeAccountId, setThreads }: UseEmailRealtimeParams) {
   useEffect(() => {
     if (!activeAccountId || isMockId(activeAccountId)) return;
@@ -309,6 +312,7 @@ interface UseEmailThreadActionsResult {
   assignThread: (threadId: string, agentId: string | null) => Promise<void>;
 }
 
+/** Manages email thread actions including read status, starring, archiving, and assignment. */
 function useEmailThreadActionsManagement({
   setThreads,
 }: UseEmailThreadActionsParams): UseEmailThreadActionsResult {
