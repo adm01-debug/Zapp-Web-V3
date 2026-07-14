@@ -274,17 +274,34 @@ function useAdminAutomationsManagement() {
 
   const loadAutomations = async () => {
     setAutomationLoading(true);
-    const [{ data: rulesData, error }, { data: chs }, { data: deps }] = await Promise.all([
-      supabase.from('automations').select('*').order('name', { ascending: true }),
-      supabase.from('channel_connections').select('id,name').order('name'),
-      supabase.from('departments').select('id,name').order('name'),
-    ]);
-    if (!mountedRef.current) return;
-    if (error) toast.error(error.message);
-    setRules((rulesData ?? []) as unknown as Rule[]);
-    setAutomationChannels((chs ?? []) as AutomationChannel[]);
-    setAutomationDepartments((deps ?? []) as AutomationDepartment[]);
-    setAutomationLoading(false);
+    try {
+      const [{ data: rulesData, error }, { data: chs, error: chsError }, { data: deps, error: depsError }] = await Promise.all([
+        supabase.from('automations').select('*').order('name', { ascending: true }),
+        supabase.from('channel_connections').select('id,name').order('name'),
+        supabase.from('departments').select('id,name').order('name'),
+      ]);
+      if (!mountedRef.current) return;
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
+      if (chsError) {
+        toast.error('Erro ao carregar canais de automação');
+        return;
+      }
+      if (depsError) {
+        toast.error('Erro ao carregar departamentos de automação');
+        return;
+      }
+      setRules((rulesData ?? []) as unknown as Rule[]);
+      setAutomationChannels((chs ?? []) as AutomationChannel[]);
+      setAutomationDepartments((deps ?? []) as AutomationDepartment[]);
+    } catch (err) {
+      if (!mountedRef.current) return;
+      toast.error('Erro ao carregar automações');
+    } finally {
+      if (mountedRef.current) setAutomationLoading(false);
+    }
   };
 
   useEffect(() => {

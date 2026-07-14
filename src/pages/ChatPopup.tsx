@@ -1,4 +1,4 @@
-import { useState, useCallback, lazy, Suspense } from 'react';
+import { useState, useCallback, lazy, Suspense, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useMessages } from '@/features/inbox';
@@ -10,21 +10,34 @@ import { Button } from '@/components/ui/button';
 import { dbFrom } from '@/integrations/datasource/db';
 import { Minus, Maximize2, Minimize2, X, MessageSquare } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
+import { toast } from 'sonner';
 
 const ChatPanel = lazy(() => import('@/features/inbox').then((m) => ({ default: m.ChatPanel })));
 
 export default function ChatPopup() {
   const { contactId } = useParams<{ contactId: string }>();
   const [isMaximized, setIsMaximized] = useState(false);
-  const { contact, loading } = useContactData(contactId);
+  const { contact, loading, error } = useContactData(contactId);
   const { messages } = useMessages({
     contactId: contactId || '',
     enabled: !!contactId,
   });
 
-  if (contact) {
-    document.title = `Chat — ${contact.name}`;
-  }
+  useEffect(() => {
+    if (contact) {
+      document.title = `Chat — ${contact.name}`;
+      return () => {
+        document.title = 'Zapp';
+      };
+    }
+  }, [contact]);
+
+  useEffect(() => {
+    if (error) {
+      toast.error('Erro ao carregar contato');
+      log.error('ChatPopup contact loading error:', error);
+    }
+  }, [error]);
 
   const conversation: Conversation | null = contact
     ? {
