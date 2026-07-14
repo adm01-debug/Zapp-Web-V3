@@ -395,7 +395,7 @@ export function useQueueSlaManagement(params: { filters: QueueSlaFilters }) {
 }
 
 /** Compares queue performance metrics across time periods. */
-export function useQueuesComparisonManagement(params: { dateRange: DateRange }) {
+export function useQueuesComparisonManagement(_params: { dateRange: DateRange }) {
   const { user } = useAuth();
   const [comparison, setComparison] = useState<QueueComparison[]>([]);
   const [loading, setLoading] = useState(true);
