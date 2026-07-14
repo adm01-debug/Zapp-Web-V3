@@ -11,8 +11,14 @@ interface RealtimeUpdate {
   timestamp: string;
 }
 
+interface RealtimeMetricPoint {
+  timestamp: string;
+  messagesPerMinute: number;
+}
+
 export function useRealtimeDashboardManagement(dashboardId: string) {
   const [updates, setUpdates] = useState<RealtimeUpdate[]>([]);
+  const [isConnected, setIsConnected] = useState(false);
   const channelRef = useRef<any>(null);
 
   useEffect(() => {
@@ -31,14 +37,57 @@ export function useRealtimeDashboardManagement(dashboardId: string) {
           },
         ]);
       })
-      .subscribe();
+      .subscribe((status: string) => {
+        setIsConnected(status === 'SUBSCRIBED');
+      });
 
     return () => {
+      setIsConnected(false);
       channelRef.current?.unsubscribe();
     };
   }, [dashboardId]);
 
-  return { updates };
+  const now = Date.now();
+  const hourAgo = now - 60 * 60 * 1000;
+  const twoHoursAgo = now - 2 * 60 * 60 * 1000;
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+
+  const messageUpdates = updates.filter((update) => update.type === 'INSERT' || update.data?.type === 'message');
+  const messagesThisHour = messageUpdates.filter((update) => Date.parse(update.timestamp) >= hourAgo).length;
+  const messagesLastHour = messageUpdates.filter((update) => {
+    const t = Date.parse(update.timestamp);
+    return t >= twoHoursAgo && t < hourAgo;
+  }).length;
+  const activeConversationIds = new Set(
+    updates
+      .filter((update) => Date.parse(update.timestamp) >= hourAgo)
+      .map((update) => String(update.data?.conversation_id ?? update.data?.contact_id ?? ''))
+      .filter(Boolean)
+  );
+  const newContactsToday = updates.filter((update) => {
+    const createdAt = typeof update.data?.created_at === 'string' ? update.data.created_at : update.timestamp;
+    return update.data?.type === 'contact' && Date.parse(createdAt) >= todayStart.getTime();
+  }).length;
+  const unreadMessages = updates.filter((update) => update.data?.is_read === false || update.data?.read === false).length;
+  const lastMessageAt = messageUpdates.at(-1)?.timestamp ? new Date(messageUpdates.at(-1)!.timestamp) : null;
+  const metricsHistory: RealtimeMetricPoint[] = updates.slice(-30).map((update, index) => ({
+    timestamp: update.timestamp,
+    messagesPerMinute: Math.max(0, index === 0 ? messagesThisHour : Math.round(messagesThisHour / Math.max(1, index))),
+  }));
+
+  return {
+    updates,
+    messagesThisHour,
+    messagesLastHour,
+    messagesPerMinute: Math.round(messagesThisHour / 60),
+    activeConversationsNow: activeConversationIds.size,
+    newContactsToday,
+    unreadMessages,
+    metricsHistory,
+    lastMessageAt,
+    isConnected,
+  };
 }
 
 export function useRealtimeMessagesManagement(chatId: string) {

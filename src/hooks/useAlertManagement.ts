@@ -82,7 +82,7 @@ export interface UseRealtimeSentimentAlertsResult {
 /** Manages war room alerts with sound notifications, push notifications, and alert history tracking. */
 export function useWarRoomAlertsManagement(soundEnabled = true): UseWarRoomAlertsResult {
   const queryClient = useQueryClient();
-  const { state: pushState } = usePushNotificationsManagement();
+  const { permission: pushPermission } = usePushNotificationsManagement();
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
@@ -143,7 +143,7 @@ export function useWarRoomAlertsManagement(soundEnabled = true): UseWarRoomAlert
           playAlertSound();
         }
 
-        if (pushState.permission === 'granted') {
+        if (pushPermission === 'granted') {
           showBrowserNotification(`⚠️ ${alert.title}`, alert.message);
         }
       })
@@ -152,7 +152,7 @@ export function useWarRoomAlertsManagement(soundEnabled = true): UseWarRoomAlert
     return () => {
       void channel.unsubscribe();
     };
-  }, [queryClient, playAlertSound, pushState.permission]);
+  }, [queryClient, playAlertSound, pushPermission]);
 
   const dismissAlert = async (alertId: string) => {
     const { error } = await supabase

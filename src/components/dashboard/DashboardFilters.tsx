@@ -238,7 +238,7 @@ export function DashboardFilters({
             {queues?.map((queue) => (
               <SelectItem key={queue.id} value={queue.id}>
                 <div className="flex items-center gap-2">
-                  <div className="h-2 w-2 rounded-full" style={{ backgroundColor: queue.color }} />
+                  <div className="h-2 w-2 rounded-full" style={{ backgroundColor: queue.color ?? undefined }} />
                   {queue.name}
                 </div>
               </SelectItem>
