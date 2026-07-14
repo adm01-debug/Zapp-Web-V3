@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 import type { ExtendedDatabase } from './types-manual';
 import { getLogger } from '@/lib/logger';
+import { cookieStorage } from './cookieStorage';
 
 const log = getLogger('supabase-client');
 
@@ -109,21 +110,12 @@ if (!isSupabaseConfigured) {
 const supabaseUrl = isSupabaseConfigured ? SUPABASE_URL : 'https://supabase-unconfigured.invalid';
 const supabaseAnonKey = isSupabaseConfigured ? SUPABASE_ANON_KEY : 'missing-anon-key';
 
-const getSupabaseStorage = () => {
-  if (typeof window === 'undefined') return undefined;
-  try {
-    return window.localStorage;
-  } catch {
-    return undefined;
-  }
-};
-
 const realtimeReconnectAfterMs = (tries: number): number =>
   Math.min(1000 * 2 ** Math.max(0, tries - 1), 30000);
 
 export const supabase = createClient<ExtendedDatabase>(supabaseUrl, supabaseAnonKey, {
   auth: {
-    storage: getSupabaseStorage(),
+    storage: cookieStorage,
     persistSession: true,
     autoRefreshToken: true,
     detectSessionInUrl: true,

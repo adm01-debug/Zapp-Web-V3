@@ -1,18 +1,12 @@
 // Re-export from consolidated useIntegrationManagement module (ETAPA 42 consolidation)
 import { useGmailOAuthFlowManagement } from '@/hooks/useIntegrationManagement';
-
-export function useGmailOAuthFlow() {
-  return useGmailOAuthFlowManagement();
-  user_id: string;
-  email: string;
-  display_name: string | null;
-  picture_url: string | null;
-  token_expiry: string | null;
-  is_active: boolean;
-  created_at: string;
-}
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 import { getLogger } from '@/lib/logger';
+import { supabase } from '@/integrations/supabase/client';
+import { safeClient } from '@/integrations/supabase/safeClient';
+import { emailRefreshToken, emailRegisterWatch, emailRevokeAccount } from '@/hooks/gmail/gmailApi';
+import { emailMappers } from '@/utils/emailMappers';
 
 const log = getLogger('useEmailOAuthFlow');
 
@@ -23,6 +17,18 @@ const CHECK_INTERVAL_MS = 60 * 1000;
 
 export type TokenStatus = 'loading' | 'valid' | 'expiring' | 'expired' | 'disconnected';
 
+export interface EmailAccount {
+  id: string;
+  user_id: string;
+  email: string;
+  display_name: string | null;
+  picture_url: string | null;
+  token_expiry: string | null;
+  is_active: boolean;
+  created_at: string;
+  watch_expiry?: string | null;
+}
+
 interface UseEmailOAuthFlowReturn {
   accounts: EmailAccount[];
   tokenStatus: Record<string, TokenStatus>;
@@ -31,6 +37,10 @@ interface UseEmailOAuthFlowReturn {
   disconnect: (accountId: string) => Promise<void>;
   refreshNow: (accountId: string) => Promise<void>;
   ensureWatch: (accountId: string) => Promise<void>;
+}
+
+export function useGmailOAuthFlow() {
+  return useGmailOAuthFlowManagement();
 }
 
 export function useEmailOAuthFlow(): UseEmailOAuthFlowReturn {
