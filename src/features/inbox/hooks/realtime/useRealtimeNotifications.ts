@@ -3,7 +3,7 @@ import {
   playNotificationSound,
   showBrowserNotification,
   requestNotificationPermission,
-} from '@/utils/notificationSound';
+} from '@/utils/notificationSounds';
 import { useNotificationSettings } from '@/hooks/useNotificationSettings';
 import type { ConversationContact, RealtimeMessage, NewMessageNotification } from './types';
 

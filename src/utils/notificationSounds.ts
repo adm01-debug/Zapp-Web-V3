@@ -1,10 +1,12 @@
-import { getLogger } from '@/lib/logger';
-
-const log = getLogger('notificationSounds');
+/**
+ * Unified notification sound utilities (v2.0 consolidated)
+ * Combines playNotificationSound (config-based), requestNotificationPermission, and showBrowserNotification.
+ * Supports both legacy API (simple type parameter) and modern API (soundType + volume).
+ */
+import { log } from '@/lib/logger';
 import { SOUND_CONFIGS } from './soundConfigs';
 import type { SoundType, NotificationType } from './soundConfigs';
 
-// Re-export types
 export type { SoundType, NotificationType } from './soundConfigs';
 
 let audioContext: AudioContext | null = null;
@@ -14,8 +16,14 @@ const getAudioContext = () => {
   return audioContext;
 };
 
+/**
+ * Play a notification sound.
+ * Supports two APIs for backward compatibility:
+ * - Legacy: playNotificationSound('message')
+ * - Modern: playNotificationSound('message', 'chime', 70)
+ */
 export const playNotificationSound = (
-  notificationType: NotificationType,
+  notificationTypeOrLegacyType: NotificationType | 'message' | 'mention' | 'alert',
   soundType: SoundType = 'chime',
   volume: number = 70
 ) => {
@@ -23,6 +31,7 @@ export const playNotificationSound = (
     const ctx = getAudioContext();
     if (ctx.state === 'suspended') ctx.resume();
 
+    const notificationType = notificationTypeOrLegacyType as NotificationType;
     const config = SOUND_CONFIGS[soundType][notificationType];
     const volumeMultiplier = volume / 100;
 
@@ -54,7 +63,10 @@ export const previewSound = (soundType: SoundType, volume: number = 70) => {
 };
 
 export const requestNotificationPermission = async (): Promise<boolean> => {
-  if (!('Notification' in window)) { log.warn('Notifications not supported'); return false; }
+  if (!('Notification' in window)) {
+    log.warn('Notifications not supported');
+    return false;
+  }
   if (Notification.permission === 'granted') return true;
   if (Notification.permission === 'denied') return false;
   return (await Notification.requestPermission()) === 'granted';
@@ -63,15 +75,31 @@ export const requestNotificationPermission = async (): Promise<boolean> => {
 export const showBrowserNotification = (
   title: string,
   body: string,
-  options?: { icon?: string; tag?: string; onClick?: () => void }
+  optionsOrIcon?: string | { icon?: string; tag?: string; onClick?: () => void }
 ) => {
-  if ('Notification' in window && Notification.permission === 'granted') {
-    const notification = new Notification(title, {
-      body, icon: options?.icon || '/favicon.ico', badge: '/favicon.ico', tag: options?.tag || 'notification',
-    });
-    if (options?.onClick) {
-      notification.onclick = () => { window.focus(); options.onClick?.(); notification.close(); };
-    }
-    setTimeout(() => notification.close(), 5000);
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+
+  let options: { icon?: string; tag?: string; onClick?: () => void } = {};
+  if (typeof optionsOrIcon === 'string') {
+    options = { icon: optionsOrIcon };
+  } else if (optionsOrIcon) {
+    options = optionsOrIcon;
   }
+
+  const notification = new Notification(title, {
+    body,
+    icon: options.icon || '/favicon.ico',
+    badge: '/favicon.ico',
+    tag: options.tag || 'notification',
+  });
+
+  if (options.onClick) {
+    notification.onclick = () => {
+      window.focus();
+      options.onClick?.();
+      notification.close();
+    };
+  }
+
+  setTimeout(() => notification.close(), 5000);
 };

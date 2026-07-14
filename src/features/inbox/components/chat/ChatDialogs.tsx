@@ -4,7 +4,7 @@ import { getLogger } from '@/lib/logger';
 const log = getLogger('ChatDialogs');
 import { toast } from '@/hooks/use-toast';
 import { Conversation, Message, InteractiveMessage, LocationMessage } from '@/types/chat';
-import { ExternalProduct } from '@/hooks/useExternalCatalog';
+import { ExternalProduct } from '@/hooks/useExternalApiManagement';
 import { ExternalProductCatalog } from '@/components/catalog/ExternalProductCatalog';
 
 const TransferDialog = lazy(() => import('../TransferDialog').then(m => ({ default: m.TransferDialog })));

@@ -13,7 +13,7 @@ vi.mock('@/integrations/supabase/client', () => ({
 
 vi.mock('@/lib/logger');
 
-import { useConversationAnalyses } from '@/hooks/useConversationAnalyses';
+import { useConversationAnalyses } from '@/hooks/useConversationManagement';
 
 const mockAnalyses = [
   {

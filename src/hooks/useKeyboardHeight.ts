@@ -1,32 +1,6 @@
-import { useState, useEffect } from 'react';
+// Re-export from consolidated useKeyboardManagement module (ETAPA 30 consolidation)
+import { useKeyboardHeightManagement } from '@/hooks/useKeyboardManagement';
 
-/**
- * Tracks the virtual keyboard height on mobile devices using the Visual Viewport API.
- * Returns the keyboard height in pixels (0 when closed).
- */
 export function useKeyboardHeight() {
-  const [keyboardHeight, setKeyboardHeight] = useState(0);
-  const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
-
-  useEffect(() => {
-    const vv = window.visualViewport;
-    if (!vv) return;
-
-    const handleResize = () => {
-      const diff = window.innerHeight - vv.height;
-      const kbHeight = Math.max(0, diff);
-      setKeyboardHeight(kbHeight);
-      setIsKeyboardOpen(kbHeight > 50);
-    };
-
-    vv.addEventListener('resize', handleResize);
-    vv.addEventListener('scroll', handleResize);
-
-    return () => {
-      vv.removeEventListener('resize', handleResize);
-      vv.removeEventListener('scroll', handleResize);
-    };
-  }, []);
-
-  return { keyboardHeight, isKeyboardOpen };
+  return useKeyboardHeightManagement();
 }

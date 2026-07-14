@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useEffect, useState } from 'react';
 import { getLogger } from '@/lib/logger';
 
@@ -54,7 +53,9 @@ export function LGPDComplianceView() {
           },
           p_user_agent: navigator.userAgent,
         })
-        .catch((err: unknown) => log.warn('[audit] gdpr_export_blocked log failed', err));
+        .then(({ error }) => {
+          if (error) log.warn('[audit] gdpr_export_blocked log failed', error);
+        });
     }
     toast.error('🔒 Exportação bloqueada por política de segurança', {
       description:

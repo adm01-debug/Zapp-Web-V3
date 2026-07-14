@@ -20,7 +20,7 @@ const log = getLogger('App');
 
 // Deferred non-critical providers loaded after first paint
 const RealtimeSentimentAlertProvider = lazy(() =>
-  import('@/components/notifications/RealtimeSentimentAlertProvider').then((m) => ({
+  import('@/components/notifications/UnifiedNotificationProviders').then((m) => ({
     default: m.RealtimeSentimentAlertProvider,
   }))
 );

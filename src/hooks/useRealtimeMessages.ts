@@ -1,8 +1,6 @@
-export { useRealtimeMessages } from '@/features/inbox/hooks/useRealtimeMessages';
-export type { 
-  RealtimeMessage, 
-  ConversationContact, 
-  ConversationWithMessages, 
-  ConversationSendState,
-  NewMessageNotification
-} from '@/features/inbox/hooks/useRealtimeMessages';
+// Re-export from consolidated useRealtimeManagement module (ETAPA 37 consolidation)
+import { useRealtimeMessagesManagement } from '@/hooks/useRealtimeManagement';
+
+export function useRealtimeMessages(chatId: string) {
+  return useRealtimeMessagesManagement(chatId);
+}

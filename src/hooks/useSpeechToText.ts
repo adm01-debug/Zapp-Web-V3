@@ -1,145 +1,41 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
-import { getLogger } from '@/lib/logger';
+// Re-export from consolidated useVoiceManagement module (ETAPA 35 consolidation)
+import { useSpeechToTextManagement } from '@/hooks/useVoiceManagement';
 
-const log = getLogger('SpeechToText');
-
-interface UseSpeechToTextOptions {
+interface SpeechToTextOptions {
   language?: string;
   continuous?: boolean;
   onResult?: (text: string) => void;
-  onEnd?: () => void;
 }
 
-interface SpeechToTextReturn {
+interface SpeechToTextCompatResult {
   isListening: boolean;
-  isSupported: boolean;
   transcript: string;
+  isFinal?: boolean;
+  interim?: string;
+  error?: string | null;
   startListening: () => void;
   stopListening: () => void;
+  resetTranscript?: () => void;
+  isSupported: boolean;
   toggleListening: () => void;
 }
 
-interface SpeechResultItem { transcript: string }
-interface SpeechResult { isFinal: boolean; [index: number]: SpeechResultItem }
-interface SpeechResultList { length: number; [index: number]: SpeechResult }
-interface SpeechRecognitionEvent { resultIndex: number; results: SpeechResultList }
-interface SpeechRecognitionErrorEvent { error: string }
+export function useSpeechToText(options: SpeechToTextOptions = {}): SpeechToTextCompatResult {
+  const speech = useSpeechToTextManagement(options.language);
 
-interface SpeechRecognitionInstance {
-  lang: string;
-  continuous: boolean;
-  interimResults: boolean;
-  onresult: ((event: SpeechRecognitionEvent) => void) | null;
-  onerror: ((event: SpeechRecognitionErrorEvent) => void) | null;
-  onend: (() => void) | null;
-  start(): void;
-  stop(): void;
-  abort(): void;
-}
-type SpeechRecognitionCtor = new () => SpeechRecognitionInstance;
-
-function getSpeechRecognition(): SpeechRecognitionCtor | null {
-  if (typeof window === 'undefined') return null;
-  const w = window as unknown as Record<string, unknown>; // ignore-audit — accessing vendor-prefixed SpeechRecognition/webkitSpeechRecognition not in standard lib
-  return (w.SpeechRecognition ?? w.webkitSpeechRecognition ?? null) as SpeechRecognitionCtor | null;
-}
-
-export function useSpeechToText(options: UseSpeechToTextOptions = {}): SpeechToTextReturn {
-  const { language = 'pt-BR', continuous = true, onResult, onEnd } = options;
-  const [isListening, setIsListening] = useState(false);
-  const [transcript, setTranscript] = useState('');
-  const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
-  const onResultRef = useRef(onResult);
-  const onEndRef = useRef(onEnd);
-
-  useEffect(() => {
-    onResultRef.current = onResult;
-  }, [onResult]);
-  useEffect(() => {
-    onEndRef.current = onEnd;
-  }, [onEnd]);
-
-  const Ctor = getSpeechRecognition();
-  const isSupported = !!Ctor;
-
-  const startListening = useCallback(() => {
-    const SR = getSpeechRecognition();
-    if (!SR) return;
-
-    const recognition = new SR();
-    recognition.lang = language;
-    recognition.continuous = continuous;
-    recognition.interimResults = true;
-
-    recognition.onresult = (event: SpeechRecognitionEvent) => {
-      let finalTranscript = '';
-      let interimTranscript = '';
-
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        const result = event.results[i];
-        if (result.isFinal) {
-          finalTranscript += result[0].transcript;
-        } else {
-          interimTranscript += result[0].transcript;
-        }
-      }
-
-      const combined = finalTranscript || interimTranscript;
-      setTranscript(combined);
-
-      if (finalTranscript && onResultRef.current) {
-        onResultRef.current(finalTranscript);
-      }
-    };
-
-    recognition.onend = () => {
-      setIsListening(false);
-      onEndRef.current?.();
-    };
-
-    recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
-      log.warn('Speech recognition error:', event.error);
-      setIsListening(false);
-    };
-
-    recognitionRef.current = recognition;
-    recognition.start();
-    setIsListening(true);
-    setTranscript('');
-
-    if (navigator.vibrate) navigator.vibrate(15);
-  }, [language, continuous]);
-
-  const stopListening = useCallback(() => {
-    if (recognitionRef.current) {
-      recognitionRef.current.stop();
-      recognitionRef.current = null;
-    }
-    setIsListening(false);
-  }, []);
-
-  const toggleListening = useCallback(() => {
-    if (isListening) {
-      stopListening();
+  const toggleListening = () => {
+    if (speech.isListening) {
+      speech.stopListening();
+      if (speech.transcript.trim()) options.onResult?.(speech.transcript.trim());
     } else {
-      startListening();
+      speech.resetTranscript();
+      speech.startListening();
     }
-  }, [isListening, startListening, stopListening]);
-
-  useEffect(() => {
-    return () => {
-      if (recognitionRef.current) {
-        recognitionRef.current.stop();
-      }
-    };
-  }, []);
+  };
 
   return {
-    isListening,
-    isSupported,
-    transcript,
-    startListening,
-    stopListening,
+    ...speech,
+    isSupported: typeof window !== 'undefined' && ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window),
     toggleListening,
   };
 }

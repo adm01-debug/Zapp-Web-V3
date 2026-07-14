@@ -58,8 +58,7 @@ vi.mock('@/integrations/supabase/externalClient', () => {
 
 vi.mock('@/lib/logger');
 
-import { useExternalEmpresas } from '@/hooks/useExternalEmpresas';
-import { useExternalCargos } from '@/hooks/useExternalCargos';
+import { useExternalEmpresas, useExternalCargos } from '@/hooks/useExternalApiManagement';
 
 function createWrapper() {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });

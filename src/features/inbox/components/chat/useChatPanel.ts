@@ -16,7 +16,7 @@ import { useChatMediaSending } from '../../hooks/useChatMediaSending';
 import { useAmbientColor } from '@/hooks/useAmbientColor';
 import { ChatMessagesAreaRef } from './ChatMessagesArea';
 import type { LoadOlderProps } from './loadOlderTypes';
-import { useAutomations } from '@/hooks/useAutomations';
+import { useAutomations } from '@/hooks/useAutomationManagement';
 import { useChatPanelHandlers } from './useChatPanelHandlers';
 import type { ActiveTool } from './ChatHeaderToolbar';
 import { useChatFilters } from './hooks/useChatFilters';

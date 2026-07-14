@@ -14,7 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { GenericEmptyState } from '@/components/ui/GenericEmptyState';
 import { Conversation } from '@/types/chat';
-import { useConversationSLATimeline } from '@/hooks/useConversationSLATimeline';
+import { useConversationSLATimeline } from '@/hooks/useConversationManagement';
 import { useApplicableSLA, useSLAAlerts } from '@/features/sla';
 import { Milestone } from './sla-timeline/Milestone';
 import { SLATimelineFilters } from './sla-timeline/SLATimelineFilters';

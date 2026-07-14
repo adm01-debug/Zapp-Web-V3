@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type { Json } from '@/integrations/supabase/types';
@@ -64,7 +63,7 @@ const COMPONENT_TYPES = [
   { type: 'Footer', label: 'Botão de Ação', icon: Send },
 ] as const;
 
-export function WhatsAppFlowsBuilder() {
+export function WhatsAppFlowsBuilder(): JSX.Element {
   const [flows, setFlows] = useState<WhatsAppFlow[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedFlow, setSelectedFlow] = useState<WhatsAppFlow | null>(null);
@@ -74,7 +73,7 @@ export function WhatsAppFlowsBuilder() {
   const [formName, setFormName] = useState('');
   const [formDescription, setFormDescription] = useState('');
 
-  const fetchFlows = useCallback(async () => {
+  const fetchFlows = useCallback(async (): Promise<void> => {
     setLoading(true);
     const { data } = await supabase
       .from('whatsapp_flows')
@@ -95,7 +94,7 @@ export function WhatsAppFlowsBuilder() {
     fetchFlows();
   }, [fetchFlows]);
 
-  const createFlow = async () => {
+  const createFlow = async (): Promise<void> => {
     if (!formName.trim()) return;
     const defaultScreens: FlowScreen[] = [
       {
@@ -125,14 +124,14 @@ export function WhatsAppFlowsBuilder() {
     fetchFlows();
   };
 
-  const deleteFlow = async (id: string) => {
+  const deleteFlow = async (id: string): Promise<void> => {
     await supabase.from('whatsapp_flows').delete().eq('id', id);
     if (selectedFlow?.id === id) setSelectedFlow(null);
     toast({ title: 'Flow removido' });
     fetchFlows();
   };
 
-  const updateFlowScreens = async (screens: FlowScreen[]) => {
+  const updateFlowScreens = async (screens: FlowScreen[]): Promise<void> => {
     if (!selectedFlow) return;
     setSelectedFlow({ ...selectedFlow, screens });
     await supabase
@@ -144,7 +143,7 @@ export function WhatsAppFlowsBuilder() {
       .eq('id', selectedFlow.id);
   };
 
-  const addScreen = () => {
+  const addScreen = (): void => {
     if (!selectedFlow) return;
     updateFlowScreens([
       ...selectedFlow.screens,
@@ -159,7 +158,7 @@ export function WhatsAppFlowsBuilder() {
     ]);
   };
 
-  const addComponent = (type: string) => {
+  const addComponent = (type: string): void => {
     if (!selectedFlow) return;
     const screens = [...selectedFlow.screens];
     const newComp: FlowComponent = {
@@ -190,7 +189,7 @@ export function WhatsAppFlowsBuilder() {
     updateFlowScreens(screens);
   };
 
-  const removeComponent = (compIdx: number) => {
+  const removeComponent = (compIdx: number): void => {
     if (!selectedFlow) return;
     const screens = [...selectedFlow.screens];
     screens[editingScreen].layout.splice(compIdx, 1);

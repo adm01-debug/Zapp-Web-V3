@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import {
   Building2, ShoppingCart, DollarSign, BarChart3, Package, Truck, Activity, ExternalLink,
 } from 'lucide-react';
-import { useExternalSelect } from '@/hooks/useExternalDB';
+import { useExternalSelect } from '@/hooks/useExternalApiManagement';
 import { isExternalConfigured } from '@/integrations/supabase/externalClient';
 import { useNavigate } from 'react-router-dom';
 import type { ExtCustomer, ExtCompanyRFMScore, ExtSale } from '@/types/externalDB';

@@ -2,7 +2,6 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from '@/features/auth';
 import { ThemeSync } from '@/hooks/useTheme';
 import { HighContrastProvider } from '@/components/theme/HighContrastToggle';
-import { AccessibleToastProvider } from '@/components/ui/accessible-toast';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { ErrorBoundary } from '@/components/errors/ErrorBoundary';
 import { ValidationProvider } from '@/components/providers/ValidationProvider';
@@ -84,11 +83,9 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
           <AuthProvider>
             <ThemeSync />
             <HighContrastProvider>
-              <AccessibleToastProvider>
-                <TooltipProvider delayDuration={100} skipDelayDuration={50}>
-                  {children}
-                </TooltipProvider>
-              </AccessibleToastProvider>
+              <TooltipProvider delayDuration={100} skipDelayDuration={50}>
+                {children}
+              </TooltipProvider>
             </HighContrastProvider>
           </AuthProvider>
         </ValidationProvider>

@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useRealtimeMessages } from './useRealtimeMessages';
-import { useExternalConversations, useExternalMessages } from '@/hooks/useExternalEvolution';
+import { useExternalConversations, useExternalMessages } from '@/hooks/useExternalApiManagement';
 import { useMessages } from './useMessages';
 import type { LoadOlderCallback, CancelLoadOlderCallback } from '../components/chat/loadOlderTypes';
 

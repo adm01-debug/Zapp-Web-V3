@@ -101,7 +101,8 @@ export function buildStatsCards(stats: DashboardStats) {
   ];
 }
 
-export function DashboardWidgetRenderer({ widget, stats }: { widget: DashboardWidget; stats: DashboardStats }) {
+export function DashboardWidgetRenderer({ widget, stats }: { widget: DashboardWidget; stats: DashboardStats | null }) {
+  if (!stats) return null;
   const statsCards = buildStatsCards(stats);
 
   switch (widget.type) {

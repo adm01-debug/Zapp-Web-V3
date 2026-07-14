@@ -7,7 +7,7 @@ import { motion } from 'framer-motion';
 import { ContactHeaderSection } from './contact-details/ContactHeaderSection';
 import { ContactAccordionSections } from './contact-details/ContactAccordionSections';
 import { useContactEnrichedData } from '@/hooks/useContactEnrichedData';
-import { useConversationActions } from '@/hooks/useConversationActions';
+import { useConversationActions } from '@/hooks/useConversationManagement';
 import { Accordion } from '@/components/ui/accordion';
 import { toast } from 'sonner';
 import { undoToast } from '@/lib/undoToast';

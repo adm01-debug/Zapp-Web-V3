@@ -14,10 +14,11 @@
  *   normalizers → normalizePhone, normalizeEmail, normalizeWhatsAppPhone…
  *   phoneUtils  → isValidBrazilianPhone, formatBrazilianPhone, extractDDD…
  *   jid         → parseJid, normalizeJid, buildJid, isGroupJid, isNewsletterJid…
- *   sanitize    → sanitizeText, sanitizeHtml, sanitizeUrl, sanitizeContactFields…
+ *   sanitize    → sanitizeText, sanitizeHtml, sanitizeUrl, sanitizeContactFields,
+ *                 sanitizeHtmlStrict, sanitizeHtmlWithHooks, sanitizeHtmlWithHookCleanup (v3.0)…
  *
  * Excluded intentionally (see commit message for reasons):
- *   sanitize-v2 (direct import), avatarColors, contactHealth, webVitals, reactRefs
+ *   avatarColors, contactHealth, webVitals, reactRefs
  */
 
 // ─── Core UI helpers ───────────────────────────────────────────────────────────
@@ -45,13 +46,10 @@ export * from './phoneUtils';
 // Pure functions, no intra-lib deps.
 export * from './jid';
 
-// ─── HTML sanitization (DOMPurify) ───────────────────────────────────────────
-// sanitizeText, sanitizeHtml (→ string), sanitizeUrl, sanitizeContactFields,
+// ─── HTML sanitization (Unified v3.0: DOMPurify + DOM-based) ──────────────────
+// DOMPurify functions: sanitizeText, sanitizeHtml, sanitizeUrl, sanitizeContactFields,
 // sanitizeForSearch, sanitizePostgrestFilter, truncateText.
-// Uses DOMPurify from external npm package, no intra-lib deps.
-//
-// ✅ sanitize-v2.ts now exports: sanitizeHtmlStrict() → SanitizeResult (strict DOM sanitizer)
-// Do NOT barrel-export sanitize-v2 here — consumers should import directly for clarity:
-// Consumers needing the v2 API must import directly:
-//   import { sanitizeHtmlStrict, sanitizeHtmlWithHooks } from '@/lib/sanitize-v2';
+// DOM-based functions: sanitizeHtmlStrict, sanitizeHtmlWithHooks, sanitizeHtmlWithHookCleanup.
+// All consolidated into single module (v3.0 merged sanitize.ts + sanitize-v2.ts).
+// No intra-lib deps, uses only external packages (dompurify, logger).
 export * from './sanitize';
