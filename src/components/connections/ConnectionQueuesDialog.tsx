@@ -82,7 +82,7 @@ export function ConnectionQueuesDialog({
                     />
                     <div
                       className="w-3 h-3 rounded-full"
-                      style={{ backgroundColor: queue.color }}
+                      style={{ backgroundColor: queue.color ?? 'hsl(var(--primary))' }}
                     />
                     <span className="text-sm font-medium">{queue.name}</span>
                   </div>
