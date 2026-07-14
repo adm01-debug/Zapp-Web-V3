@@ -162,6 +162,6 @@ export function useContactNotes(contactId: string) {
     deleteNote,
     isAdding: addNoteMutation.isPending,
     isDeleting: deleteNoteMutation.isPending,
-    currentProfileId: profile?.id,
+    currentProfileId: (profile?.id ?? null) as string | null,
   };
 }
