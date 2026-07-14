@@ -93,7 +93,7 @@ export function useSendTeamMessage() {
       if (touchErr) log.warn('[useSendTeamMessage] touch updated_at failed', touchErr);
       return data;
     },
-    onSuccess: (_data, vars) => {
+    onSuccess: (data, vars) => {
       queryClient.setQueriesData(
         { queryKey: ['team-messages', vars.conversationId] },
         (oldData: TeamMessageCache | undefined): TeamMessageCache | undefined => {
@@ -177,7 +177,7 @@ export function useEditTeamMessage() {
       if (error) throw error;
       return { conversationId };
     },
-    onSuccess: (data, vars) => {
+    onSuccess: (_data, vars) => {
       queryClient.setQueriesData(
         { queryKey: ['team-messages', vars.conversationId] },
         (oldData: TeamMessageCache | undefined): TeamMessageCache | undefined => {
