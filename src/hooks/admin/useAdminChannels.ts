@@ -8,6 +8,7 @@ export {
   type WppConnOption,
 } from '@/features/admin/hooks/useAdminManagement';
 
+/** Hook for managing communication channels in the admin interface with filtering and actions. */
 export function useAdminChannels(statusFilter: string, search: string) {
   const admin = useAdminManagement({ channelStatusFilter: statusFilter, channelSearch: search });
   return {

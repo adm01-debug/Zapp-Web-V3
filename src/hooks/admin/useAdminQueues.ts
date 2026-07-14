@@ -14,6 +14,7 @@ export {
   type ChannelQueue,
 } from '@/features/admin/hooks/useAdminManagement';
 
+/** Hook for managing message distribution queues including members, skills, and channel assignment. */
 export function useAdminQueues() {
   const admin = useAdminManagement();
   return {

@@ -7,8 +7,12 @@ export type {
   SelfTestResult,
 } from '@/features/admin/hooks/useAdminManagement';
 
+/** Hook for running and managing HMAC security self-tests on admin instances. */
 export function useHmacSelfTest(instance: string, includeNegative: boolean) {
-  const admin = useAdminManagement({ hmacInstance: instance, hmacIncludeNegative: includeNegative });
+  const admin = useAdminManagement({
+    hmacInstance: instance,
+    hmacIncludeNegative: includeNegative,
+  });
   return {
     loading: admin.securityLoading,
     result: admin.securityResult,

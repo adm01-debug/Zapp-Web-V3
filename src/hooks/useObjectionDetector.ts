@@ -11,6 +11,7 @@ interface Objection {
   confidence: number;
 }
 
+/** Analyzes customer messages to detect objections and generate contextual counter-arguments using AI. */
 export function useObjectionDetector(
   contactId: string,
   contactName: string | undefined,

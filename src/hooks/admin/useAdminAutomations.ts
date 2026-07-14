@@ -10,6 +10,7 @@ export {
   type AutomationDepartment,
 } from '@/features/admin/hooks/useAdminManagement';
 
+/** Hook for managing automation rules, channels, and departments in the admin interface. */
 export function useAdminAutomations() {
   const admin = useAdminManagement();
   return {
