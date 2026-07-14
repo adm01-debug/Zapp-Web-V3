@@ -2,7 +2,9 @@
 // Consolidates: usePerformanceMonitoring, useErrorMonitoring, useRealtimeMonitor, useLatestAnalysis, useMessageAttempts
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/features/auth/hooks/useAuth';
 import { log } from '@/lib/logger';
+import type { Database } from '@/integrations/supabase/types';
 
 interface PerformanceMetric {
   name: string;
@@ -26,6 +28,13 @@ interface Analysis {
   timestamp: string;
 }
 
+export type PerformanceSnapshot = Database['public']['Tables']['performance_snapshots']['Row'];
+type PerformanceSnapshotInsert = Database['public']['Tables']['performance_snapshots']['Insert'];
+export type PerformanceSnapshotInput = Omit<
+  PerformanceSnapshotInsert,
+  'id' | 'profile_id' | 'created_at' | 'user_agent'
+>;
+
 export function usePerformanceMonitoringManagement() {
   const [metrics, setMetrics] = useState<PerformanceMetric[]>([]);
   const metricsRef = useRef<PerformanceMetric[]>([]);
@@ -41,6 +50,86 @@ export function usePerformanceMonitoringManagement() {
   }, []);
 
   return { metrics, recordMetric };
+}
+
+export function usePerformanceSnapshots() {
+  const { profile } = useAuth();
+  const [history, setHistory] = useState<PerformanceSnapshot[]>([]);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
+  const saveSnapshot = useCallback(
+    async (snapshot: PerformanceSnapshotInput) => {
+      if (!profile?.id) return;
+
+      try {
+        const payload: PerformanceSnapshotInsert = {
+          ...snapshot,
+          profile_id: profile.id,
+          user_agent: navigator.userAgent,
+        };
+
+        const { error: err } = await supabase.from('performance_snapshots').insert(payload);
+        if (err) throw err;
+      } catch (err) {
+        log.error('Error saving performance snapshot:', err);
+      }
+    },
+    [profile?.id]
+  );
+
+  const loadHistory = useCallback(
+    async (hours: number = 24) => {
+      if (!profile?.id) {
+        if (mountedRef.current) setHistory([]);
+        return;
+      }
+
+      try {
+        const since = new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
+        const { data, error: err } = await supabase
+          .from('performance_snapshots')
+          .select('*')
+          .eq('profile_id', profile.id)
+          .gte('created_at', since)
+          .order('created_at', { ascending: true })
+          .limit(500);
+
+        if (err) throw err;
+        if (mountedRef.current) setHistory(data ?? []);
+      } catch (err) {
+        log.error('Error loading performance snapshots:', err);
+        if (mountedRef.current) setHistory([]);
+      }
+    },
+    [profile?.id]
+  );
+
+  const clearOldSnapshots = useCallback(async () => {
+    if (!profile?.id) return;
+
+    try {
+      const cutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+      const { error: err } = await supabase
+        .from('performance_snapshots')
+        .delete()
+        .eq('profile_id', profile.id)
+        .lt('created_at', cutoff);
+
+      if (err) throw err;
+      await loadHistory(168);
+    } catch (err) {
+      log.error('Error clearing old performance snapshots:', err);
+    }
+  }, [loadHistory, profile?.id]);
+
+  return { history, saveSnapshot, loadHistory, clearOldSnapshots };
 }
 
 export function useErrorMonitoringManagement() {

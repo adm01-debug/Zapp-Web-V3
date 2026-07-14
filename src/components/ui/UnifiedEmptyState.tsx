@@ -31,6 +31,8 @@ interface EmptyStateProps {
 
   // Actions
   action?: Action;
+  actionLabel?: string;
+  onAction?: () => void;
   secondaryAction?: {
     label: string;
     onClick: () => void;
@@ -39,6 +41,8 @@ interface EmptyStateProps {
   // Styling
   className?: string;
   compact?: boolean;
+  size?: 'sm' | 'md' | 'lg' | string;
+  illustration?: EmptyStateContext | string;
 
   // Custom icon override
   icon?: LucideIcon;
@@ -93,14 +97,19 @@ export function EmptyState({
   description,
   context = 'generic',
   action,
+  actionLabel,
+  onAction,
   secondaryAction,
   className,
   compact = false,
+  illustration: illustrationOverride,
   icon: iconOverride,
 }: EmptyStateProps) {
   const Icon = iconOverride || contextIcons[context] || Inbox;
-  const illustration = illustrations[context as keyof typeof illustrations];
+  const illustrationKey = (illustrationOverride as EmptyStateContext | undefined) ?? context;
+  const illustration = illustrations[illustrationKey as keyof typeof illustrations];
   const config = contextConfigs[context];
+  const resolvedAction = action ?? (actionLabel && onAction ? { label: actionLabel, onClick: onAction } : undefined);
 
   return (
     <motion.div
@@ -164,20 +173,20 @@ export function EmptyState({
       </motion.p>
 
       {/* Actions */}
-      {(action || secondaryAction) && (
+      {(resolvedAction || secondaryAction) && (
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.6 }}
           className="flex flex-col sm:flex-row items-center gap-3"
         >
-          {action && (
+          {resolvedAction && (
             <Button
-              onClick={action.onClick}
+              onClick={resolvedAction.onClick}
               className="group shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all"
             >
-              {action.icon || <Plus className="w-4 h-4 mr-2" />}
-              {action.label}
+              {resolvedAction.icon || <Plus className="w-4 h-4 mr-2" />}
+              {resolvedAction.label}
               <ArrowRight className="w-4 h-4 ml-2 transition-transform group-hover:translate-x-1" />
             </Button>
           )}

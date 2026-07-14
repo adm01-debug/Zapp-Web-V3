@@ -7,11 +7,12 @@ import { RefreshQrButton } from './RefreshQrButton';
 import { QrAttemptHistory } from './QrAttemptHistory';
 
 export interface QrCodeDialogState {
+  open?: boolean;
   status: 'loading' | 'pending' | 'connected' | 'error';
   connectionName: string;
   qrCode: string | null;
-  errorMessage: string | null;
-  rawPayload: unknown;
+  errorMessage?: string | null;
+  rawPayload?: unknown;
   connectionId: string | null;
   attemptId?: string | null;
 }
