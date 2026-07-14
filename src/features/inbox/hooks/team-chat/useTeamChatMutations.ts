@@ -37,7 +37,7 @@ export function useUpdateTeamMessageStatus() {
     },
     onSuccess: (data) => {
       queryClient.setQueriesData(
-        { queryKey: ['team-messages', vars.conversationId] },
+        { queryKey: ['team-messages', data.conversationId] },
         (oldData: TeamMessageCache | undefined): TeamMessageCache | undefined => {
           if (!oldData?.pages) return oldData;
           const newPages = oldData.pages.map((page) => ({
@@ -140,7 +140,7 @@ export function useDeleteTeamMessage() {
     },
     onSuccess: (_data, vars) => {
       queryClient.setQueriesData(
-        { queryKey: ['team-messages', data.conversationId] },
+        { queryKey: ['team-messages', vars.conversationId] },
         (oldData: TeamMessageCache | undefined): TeamMessageCache | undefined => {
           if (!oldData?.pages) return oldData;
           const newPages = oldData.pages.map((page) => ({
