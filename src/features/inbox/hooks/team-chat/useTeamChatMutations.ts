@@ -84,7 +84,7 @@ export function useSendTeamMessage() {
           media_type: mediaType || null,
         })
         .select()
-        .single();
+        .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
       if (error) throw error;
       const { error: touchErr } = await supabase
         .from('team_conversations')

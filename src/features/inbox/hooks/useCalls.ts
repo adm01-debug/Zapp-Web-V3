@@ -73,7 +73,7 @@ export const useCalls = () => {
             whatsapp_connection_id: params.whatsappConnectionId || null,
           })
           .select()
-          .single();
+          .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
 
         if (error) throw error;
 

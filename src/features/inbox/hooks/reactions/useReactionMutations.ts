@@ -92,7 +92,7 @@ export function useReactionMutations(
           { onConflict: 'message_id,user_id,emoji' }
         )
         .select()
-        .single();
+        .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
 
       if (error) throw error;
 

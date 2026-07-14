@@ -84,7 +84,7 @@ export function TrainingMode(): JSX.Element {
       data: { user },
     } = await supabase.auth.getUser();
     if (!user) return;
-    const { data } = await supabase.from('profiles').select('id').eq('user_id', user.id).single();
+    const { data } = await supabase.from('profiles').select('id').eq('user_id', user.id).maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
     if (data) setProfileId(data.id);
   };
 
@@ -119,7 +119,7 @@ export function TrainingMode(): JSX.Element {
         status: 'in_progress',
       })
       .select('id')
-      .single();
+      .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
     if (data) setActiveSession(data.id);
   };
 

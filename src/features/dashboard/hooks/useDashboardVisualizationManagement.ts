@@ -340,7 +340,7 @@ export function useGoalsDashboardManagement() {
     queryKey: ['my-profile', user?.id],
     queryFn: async () => {
       if (!user?.id) return null;
-      const { data, error } = await supabase.from('profiles').select('id, name').eq('user_id', user.id).single();
+      const { data, error } = await supabase.from('profiles').select('id, name').eq('user_id', user.id).maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
       if (error) throw error;
       return data;
     },

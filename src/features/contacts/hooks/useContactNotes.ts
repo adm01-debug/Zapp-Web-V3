@@ -91,7 +91,7 @@ export function useContactNotes(contactId: string) {
           content,
         })
         .select()
-        .single();
+        .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
 
       if (error) throw error;
       return data;

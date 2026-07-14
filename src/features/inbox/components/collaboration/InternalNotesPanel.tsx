@@ -48,7 +48,7 @@ export function InternalNotesPanel({ contactId }: { contactId: string }) {
         .from('profiles')
         .select('id')
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
       if (!profile) throw new Error('Profile not found');
       const { error } = await supabase.from('contact_notes').insert({
         contact_id: contactId,

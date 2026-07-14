@@ -118,7 +118,7 @@ export function TalkXBlacklist() {
 
   const addMutation = useMutation({
     mutationFn: async () => {
-      const { data: profile } = await supabase.from('profiles').select('id').single();
+      const { data: profile } = await supabase.from('profiles').select('id').maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
       const finalReason = reason === 'Outro' ? customReason || 'Outro' : reason;
       const { error } = await fromTable('talkx_blacklist').insert({
         contact_id: selectedContactId,

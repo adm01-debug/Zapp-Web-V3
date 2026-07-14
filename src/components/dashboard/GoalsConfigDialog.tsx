@@ -89,7 +89,7 @@ export function GoalsConfigDialog({ open, onOpenChange }: GoalsConfigDialogProps
         .from('profiles')
         .select('id, name')
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
       if (error) throw error;
       return data;
     },

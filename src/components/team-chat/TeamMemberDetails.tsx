@@ -39,7 +39,7 @@ export function TeamMemberDetails({ conversation, onClose }: TeamMemberDetailsPr
     queryKey: ['team-member-profile', otherMemberId || conversation.id],
     queryFn: async () => {
       if (conversation.type === 'direct' && otherMemberId) {
-        const { data, error } = await supabase.from('profiles').select('id, name, email, phone, avatar_url, job_title, department, role, is_active, created_at, birthday').eq('id', otherMemberId).single();
+        const { data, error } = await supabase.from('profiles').select('id, name, email, phone, avatar_url, job_title, department, role, is_active, created_at, birthday').eq('id', otherMemberId).maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
         if (error) throw error;
         return data as MemberProfile; // ignore-audit: MemberProfile maps a subset of profiles columns; select explicitly lists them
       }

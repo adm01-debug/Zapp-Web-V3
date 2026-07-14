@@ -143,7 +143,7 @@ export function useQuickReplies() {
           use_count: 0,
         })
         .select()
-        .single();
+        .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
 
       if (error) throw error;
       return data;
@@ -173,7 +173,7 @@ export function useQuickReplies() {
         })
         .eq('id', id)
         .select()
-        .single();
+        .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
 
       if (error) throw error;
       return data;

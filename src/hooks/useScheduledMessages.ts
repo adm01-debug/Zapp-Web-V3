@@ -78,7 +78,7 @@ export function useScheduledMessages(contactId?: string) {
           whatsapp_connection_id: data.connectionId || null,
         })
         .select()
-        .single();
+        .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
 
       if (msgErr) throw msgErr;
       return msg;

@@ -86,7 +86,7 @@ export function useBitrixApiManagement() {
           .from('integrations')
           .select('config')
           .eq('type', 'bitrix24')
-          .single();
+          .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
 
         if (err && err.code !== 'PGRST116') throw err;
         if (data?.config?.webhook_url) {
@@ -116,7 +116,7 @@ export function useTalkXManagement() {
           .from('integrations')
           .select('config')
           .eq('type', 'talkx')
-          .single();
+          .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
 
         if (err && err.code !== 'PGRST116') throw err;
         if (data) {

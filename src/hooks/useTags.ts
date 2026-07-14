@@ -112,7 +112,7 @@ export function useTags() {
         })
         .eq('id', data.id)
         .select()
-        .single();
+        .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
 
       if (tagErr) throw tagErr;
       return tag;

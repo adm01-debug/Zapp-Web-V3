@@ -499,7 +499,7 @@ export function useAutoCloseConversations() {
         .from('auto_close_config')
         .select('*')
         .limit(1)
-        .single();
+        .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
 
       if (error) throw error;
       return data;
@@ -572,7 +572,7 @@ export function useAutomationsManagementCRUD() {
           created_by: automation.created_by,
         } as TablesInsert<'automations'>)
         .select()
-        .single();
+        .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
       if (error) throw error;
       return data;
     },

@@ -63,7 +63,7 @@ export function useDepartmentManagement(
       .from('departments')
       .select('whatsapp_mode, whatsapp_api_key, whatsapp_instance_id')
       .eq('id', initialDepartment.id)
-      .single()
+      .maybeSingle() // ✅ fix: maybeSingle evita PGRST116
       .then(({ data }) => {
         if (data) {
           setWhatsappMode((data.whatsapp_mode as WhatsappMode) || 'none');

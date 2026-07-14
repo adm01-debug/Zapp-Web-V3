@@ -39,7 +39,7 @@ export function TalkXLiveMonitor({ campaignId }: Props) {
         .from('talkx_campaigns')
         .select('*')
         .eq('id', campaignId)
-        .single();
+        .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
       if (error) throw error;
       return data as TalkXCampaign; // ignore-audit: narrows variables_config from Supabase Json to string[]
     },

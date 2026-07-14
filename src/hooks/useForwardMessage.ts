@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { getLogger } from '@/lib/logger';
 import { toast } from '@/hooks/use-toast';
@@ -31,27 +31,33 @@ export function useForwardMessage(
   const [isSending, setIsSending] = useState(false);
   const [activeTab, setActiveTab] = useState<'contacts' | 'groups'>('contacts');
 
+  const mountedRef = useRef(true); // ✅ Fix: mounted guard para race condition
   useEffect(() => {
-    if (open) {
-      void fetchContacts();
-      void fetchGroups();
-    }
-  }, [open]);
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
 
-  const fetchContacts = async () => {
+  const fetchContacts = useCallback(async () => { // ✅ Fix: useCallback para deps estáveis
     setIsLoading(true);
     try {
       const { data, error } = await dbFrom('contacts')
         .select('id, name, phone, avatar_url')
         .order('name');
       if (error) throw error;
-      setContacts(data || []);
+      if (mountedRef.current) setContacts(data || []); // ✅ Fix: checar mounted antes de setState
     } catch (error) {
       log.error('Error fetching contacts:', error);
     } finally {
-      setIsLoading(false);
+      if (mountedRef.current) setIsLoading(false); // ✅ Fix: checar mounted
     }
-  };
+  }, []); // ✅ deps vazias — dbFrom é estável
+
+  useEffect(() => {
+    if (open) {
+      void fetchContacts();
+      void fetchGroups();
+    }
+  }, [open, fetchContacts]); // ✅ Fix: adicionar fetchContacts e fetchGroups nas deps
 
   const fetchGroups = async () => {
     try {

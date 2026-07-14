@@ -85,7 +85,7 @@ export const connectionsRepository = {
       .from('channel_connections')
       .select('*')
       .eq('id', id)
-      .single();
+      .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
 
     return { data, error };
   },
@@ -97,7 +97,7 @@ export const connectionsRepository = {
         .from('whatsapp_connections')
         .select('connection_status, error_message')
         .eq('id', connectionId)
-        .single();
+        .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
 
       if (error) return { data: null, error };
       return { data, error: null };

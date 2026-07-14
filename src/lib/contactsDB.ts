@@ -173,7 +173,7 @@ export const contactsDB = {
       .update({ ...rest, updated_at: new Date().toISOString() })
       .eq('id', contactId)
       .select()
-      .single();
+      .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
     if (error) throw error;
     return data as ExternalContact; // ignore-audit: narrows Supabase query result to local interface
   },

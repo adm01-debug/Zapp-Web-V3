@@ -32,7 +32,7 @@ export function useContactData(contactId: string | undefined): UseContactDataRes
           .from('contacts')
           .select('*')
           .eq('id', contactId)
-          .single();
+          .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
 
         if (cancelled) return;
 

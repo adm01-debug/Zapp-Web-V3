@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { emailMappers } from '@/utils/emailMappers';
@@ -23,6 +23,12 @@ export function useEmailLabels(accountId: string | null) {
   const [labels, setLabels] = useState<EmailLabel[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const mountedRef = useRef(true); // ✅ Fix race condition: mounted guard
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
 
   const loadLabels = useCallback(async () => {
     if (!accountId) return;
@@ -32,6 +38,9 @@ export function useEmailLabels(accountId: string | null) {
     const { data, error: dbErr } = await safeClient.from('email_labels', (q) =>
       q.select('*').eq('account_id', accountId).order('name', { ascending: true })
     );
+
+    // ✅ Fix: não atualizar estado se componente desmontado
+    if (!mountedRef.current) return;
 
     if (dbErr) {
       log.warn('Email labels load error', dbErr.message);

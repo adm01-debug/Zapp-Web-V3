@@ -38,7 +38,7 @@ export async function sendMessageToContact(
     .from('profiles')
     .select('id')
     .eq('user_id', (await supabase.auth.getUser()).data.user?.id ?? '')
-    .single();
+    .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
 
   const { data, error } = await dbFrom('messages')
     .insert({
@@ -52,7 +52,7 @@ export async function sendMessageToContact(
       status: 'sending',
     })
     .select()
-    .single();
+    .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
 
   if (error) {
     log.error('Error saving message to DB:', error);
@@ -77,7 +77,7 @@ export async function sendMessageToContact(
     const { data: contact } = await dbFrom('contacts')
       .select('phone, whatsapp_connection_id')
       .eq('id', contactId)
-      .single();
+      .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
 
     const { resolvedConnectionId, connection } = await resolveConnection(
       contact?.whatsapp_connection_id ?? null

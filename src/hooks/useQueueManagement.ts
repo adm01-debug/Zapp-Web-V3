@@ -170,7 +170,7 @@ export function useQueueAnalyticsManagement(params: { queueId: string; dateRange
         .eq('queue_id', queueId)
         .order('timestamp', { ascending: false })
         .limit(1)
-        .single();
+        .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
 
       if (err && err.code !== 'PGRST116') throw err;
       if (mountedRef.current) setAnalytics(data || null);

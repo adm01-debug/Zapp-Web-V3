@@ -26,7 +26,7 @@ export function RealtimeCollaboration({ contactId, className }: RealtimeCollabor
         .from('profiles')
         .select('id')
         .eq('user_id', userId)
-        .single();
+        .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
       if (profile) {
         await supabase.from('contact_notes').insert({
           contact_id: contactId,

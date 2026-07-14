@@ -90,7 +90,7 @@ export function useContactEnrichedData(contactId: string) {
       const { data, error } = await dbFrom('contacts')
         .select('company, job_title, nickname, surname, contact_type, ai_sentiment, ai_priority, channel_type')
         .eq('id', localId)
-        .single();
+        .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
 
       if (error) {
         log.error('Error fetching enriched contact data:', error);

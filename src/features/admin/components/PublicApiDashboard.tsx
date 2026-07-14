@@ -33,7 +33,7 @@ export function PublicApiDashboard() {
           .from('global_settings')
           .select('value')
           .eq('key', 'api_token')
-          .single();
+          .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
 
         const { data: auditLogs } = await supabase
           .from('audit_logs')

@@ -104,7 +104,7 @@ export const createService = <T = any>(
         .from(tableName)
         .select('*')
         .eq('id', id)
-        .single();
+        .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
 
       if (error && error.code !== 'PGRST116') throw error; // PGRST116 = not found
       return data || null;
@@ -159,7 +159,7 @@ export const createService = <T = any>(
         .update(updates)
         .eq('id', id)
         .select()
-        .single();
+        .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
 
       if (error) throw error;
       return data;
@@ -221,7 +221,7 @@ export const createService = <T = any>(
         .from(tableName)
         .select('id')
         .eq('id', id)
-        .single();
+        .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
 
       if (error && error.code !== 'PGRST116') throw error;
       return !!data;

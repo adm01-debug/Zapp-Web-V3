@@ -47,7 +47,7 @@ export function useContactIntelligenceManagement(contactId?: string) {
         .from('contact_intelligence')
         .select('*')
         .eq('contact_id', contactId)
-        .single();
+        .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
 
       if (err && err.code !== 'PGRST116') throw err;
       if (mountedRef.current) setIntelligence(data || null);
@@ -174,7 +174,7 @@ export function useContactAssignmentManagement(contactId?: string) {
         .from('contact_assignments')
         .select('*')
         .eq('contact_id', contactId)
-        .single();
+        .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
 
       if (err && err.code !== 'PGRST116') throw err;
       if (mountedRef.current) setAssignment(data || null);

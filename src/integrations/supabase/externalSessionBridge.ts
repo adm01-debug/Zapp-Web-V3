@@ -152,7 +152,8 @@ export function registerExternalSessionBridge(): void {
     }
   })();
 
-  supabase.auth.onAuthStateChange(async (event, session) => {
+  // ✅ Fix: guardar subscription para poder cancelar se necessário
+  const { data: { subscription: authSubscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
     try {
       if (event === 'SIGNED_OUT') {
         await mirrorExternalSignOut();
@@ -182,4 +183,10 @@ export function registerExternalSessionBridge(): void {
   });
 
   log.info('external session bridge instalado');
+
+  // ✅ Fix: retornar função de cleanup para evitar memory leak em re-mount
+  return () => {
+    authSubscription.unsubscribe();
+    log.debug('external session bridge desmontado');
+  };
 }

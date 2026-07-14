@@ -46,7 +46,7 @@ export function useUserSettingsManagement(userId?: string) {
         .from('user_settings')
         .select('*')
         .eq('user_id', userId)
-        .single();
+        .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
 
       if (err && err.code !== 'PGRST116') throw err;
       if (mountedRef.current) setSettings(data || null);
@@ -98,7 +98,7 @@ export function useGlobalSettingsManagement() {
           .from('global_settings')
           .select('*')
           .limit(1)
-          .single();
+          .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
 
         if (err && err.code !== 'PGRST116') throw err;
         setSettings(data || null);

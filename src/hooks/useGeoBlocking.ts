@@ -39,7 +39,7 @@ export function useGeoBlocking() {
         .from('geo_blocking_settings')
         .select('*')
         .limit(1)
-        .single();
+        .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
 
       const { data: allowedData } = await supabase
         .from('allowed_countries')

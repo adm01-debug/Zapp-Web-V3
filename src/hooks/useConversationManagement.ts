@@ -31,7 +31,7 @@ export function useConversationActions() {
       data: { user },
     } = await supabase.auth.getUser();
     if (!user || !mountedRef.current) return;
-    const { data } = await supabase.from('profiles').select('id').eq('user_id', user.id).single();
+    const { data } = await supabase.from('profiles').select('id').eq('user_id', user.id).maybeSingle(); // ✅ fix: maybeSingle evita PGRST116
     if (data && mountedRef.current) setProfileId(data.id);
   }, []);
 

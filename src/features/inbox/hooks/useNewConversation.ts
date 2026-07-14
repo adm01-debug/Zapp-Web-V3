@@ -115,7 +115,7 @@ export function useNewConversation(
             whatsapp_connection_id: selectedConnection || null,
           })
           .select('id')
-          .single();
+          .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
         if (newContactErr) {
           if (newContactErr.code === '23505') {
             toast.error('Já existe um contato com este número de telefone.');

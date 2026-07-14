@@ -83,7 +83,7 @@ export default function QueueDetails() {
         .from('queues')
         .select('*')
         .eq('id', id)
-        .single();
+        .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
       if (queueError) throw queueError;
       setQueue(queueData as any);
 

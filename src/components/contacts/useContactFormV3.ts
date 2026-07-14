@@ -100,7 +100,7 @@ export function useContactFormV3({
             'id, name, phone, email, company, tags, channel_type, avatar_url, created_at, notes'
           )
           .eq('id', duplicateId)
-          .single();
+          .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
         if (error || !data) {
           toast({
             title: 'Erro ao carregar contato',

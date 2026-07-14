@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { getLogger } from '@/lib/logger';
@@ -44,6 +44,12 @@ export function useInstanceRetryConfig(
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
+  const mountedRef = useRef(true); // ✅ Fix: mounted guard
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
+
   const load = useCallback(async () => {
     setIsLoading(true);
     try {
@@ -52,6 +58,7 @@ export function useInstanceRetryConfig(
         loadRetryConfig(instanceName === GLOBAL ? undefined : instanceName),
         loadRetryConfig(),
       ]);
+      if (!mountedRef.current) return; // ✅ Fix: abort se desmontado
       setConfig(resolved);
       setGlobalConfig(global);
 
