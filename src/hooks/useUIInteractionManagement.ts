@@ -76,6 +76,7 @@ interface UseAriaAnnouncerReturn {
 // SWIPE GESTURE MANAGEMENT
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════════════
 
+/** Detects and handles swipe gestures with configurable threshold and direction callbacks. */
 export function useSwipeGestureManagement(options: UseSwipeGestureOptions = {}) {
   const { onSwipeLeft, onSwipeRight, threshold = 80, enabled = true } = options;
   const startX = useRef(0);
@@ -148,6 +149,7 @@ export function useSwipeGestureManagement(options: UseSwipeGestureOptions = {}) 
 // EDGE SWIPE NAVIGATION MANAGEMENT
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════════════
 
+/** Enables edge-based swipe navigation for back/forward with visual feedback indicators. */
 export function useSwipeNavigationManagement(options: UseSwipeNavigationOptions = {}) {
   const { onSwipeBack, onSwipeForward, canGoBack = false, canGoForward = false, threshold = 80, edgeWidth = 24, enabled = true } = options;
   const touchStart = useRef<{ x: number; y: number; edge: 'left' | 'right' | null; time: number } | null>(null);
@@ -283,6 +285,7 @@ export function useSwipeNavigationManagement(options: UseSwipeNavigationOptions 
 // DEVICE DETECTION MANAGEMENT
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════════════
 
+/** Detects and manages trusted devices and user sessions for security monitoring. */
 export function useDeviceDetectionManagement() {
   const { user } = useAuth();
   const [devices, setDevices] = useState<UserDevice[]>([]);
@@ -511,6 +514,7 @@ export function useDeviceDetectionManagement() {
 // ARIA ANNOUNCER MANAGEMENT
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════════════
 
+/** Creates and manages ARIA live region for screen reader announcements. */
 export function useAriaAnnouncerManagement(): UseAriaAnnouncerReturn {
   const regionRef = useRef<HTMLDivElement | null>(null);
 
@@ -548,6 +552,7 @@ export function useAriaAnnouncerManagement(): UseAriaAnnouncerReturn {
   return { announce };
 }
 
+/** Component that initializes ARIA announcer for accessibility. */
 export function AriaAnnouncer() {
   useAriaAnnouncerManagement();
   return null;
@@ -557,6 +562,7 @@ export function AriaAnnouncer() {
 // VIEW TRANSITION MANAGEMENT
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════════════
 
+/** Provides API for starting View Transitions with fallback for unsupported browsers. */
 export function useViewTransitionManagement() {
   const startTransition = useCallback((callback: () => void) => {
     const doc = document as Document & {
@@ -594,6 +600,7 @@ const COLLAPSE_STORAGE_KEY = 'zapp-sidebar-collapsed';
 const FAVORITES_STORAGE_KEY = 'sidebar-favorites';
 const MAX_FAVORITES = 6;
 
+/** Manages sidebar collapse state with persistent storage. */
 export function useSidebarCollapseManagement() {
   const [collapsed, setCollapsed] = useState(() => {
     const stored = safeGetItem(COLLAPSE_STORAGE_KEY);
@@ -617,6 +624,7 @@ export function useSidebarCollapseManagement() {
   return { collapsed, toggle };
 }
 
+/** Manages sidebar favorites with limit enforcement and persistent storage. */
 export function useSidebarFavoritesManagement() {
   const [favorites, setFavorites] = useState<string[]>(() => {
     try {
@@ -648,6 +656,7 @@ export function useSidebarFavoritesManagement() {
   return { favorites, toggleFavorite, isFavorite, maxReached: favorites.length >= MAX_FAVORITES };
 }
 
+/** Combines sidebar collapse and favorites state for unified management. */
 export function useSidebarStateManagement(): SidebarState {
   const { collapsed, toggle: toggleCollapsed } = useSidebarCollapseManagement();
   const { favorites, toggleFavorite, isFavorite, maxReached } = useSidebarFavoritesManagement();
