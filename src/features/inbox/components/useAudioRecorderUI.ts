@@ -30,7 +30,7 @@ export function useAudioRecorderUI(
   const [isConfirming, setIsConfirming] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [_voiceChanged, setVoiceChanged] = useState(false);
-  const [isLocked, setIsLocked] = useState(false);
+  const [isLocked] = useState(false);
   const [playbackProgress, setPlaybackProgress] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
   const [showTranscription, setShowTranscription] = useState(false);
