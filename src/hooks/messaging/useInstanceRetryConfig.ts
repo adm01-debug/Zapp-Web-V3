@@ -31,10 +31,7 @@ export interface UseInstanceRetryConfigResult {
   resetToDefault: () => Promise<void>;
 }
 
-/**
- * Lê + grava overrides de retry para uma instância (ou global se '_global'/undefined).
- * Persistência em `global_settings` via upsert/delete por chave.
- */
+/** Hook for managing retry configuration overrides per instance with persistence to global settings. */
 export function useInstanceRetryConfig(
   instanceName: string = GLOBAL
 ): UseInstanceRetryConfigResult {
