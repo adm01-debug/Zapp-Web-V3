@@ -5,7 +5,6 @@ import {
   DEFAULT_PRESET_ID,
   CSS_VARS_TO_APPLY,
   normalizeStoredPresetId,
-  type ThemePreset,
   type ThemeModeColors,
 } from '../presets';
 

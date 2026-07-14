@@ -4,7 +4,6 @@ import { sanitizeText } from '@/lib/sanitize';
 import { validatePhoneDetailed } from '@/lib/phoneUtils';
 import { useContactDuplicateDetector } from './useContactDuplicateDetector';
 import { useRetryOperation } from '@/hooks/useRetryAndErrorPrevention';
-import { PhoneEntry } from './ContactPhoneManager';
 import { ConsentData } from './ContactConsentManager';
 import { ContactForMerge } from './ContactMergeDialog';
 import { ConflictInfo } from './ConflictResolutionDialog';

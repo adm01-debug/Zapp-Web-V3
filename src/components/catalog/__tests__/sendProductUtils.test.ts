@@ -15,7 +15,7 @@ import {
   templateLabels,
   type VariantGroup,
 } from '../sendProductUtils';
-import type { ExternalProduct, ExternalProductVariant } from '@/hooks/useExternalCatalog';
+import type { ExternalProduct, ExternalProductVariant } from '@/hooks/useExternalApiManagement';
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 

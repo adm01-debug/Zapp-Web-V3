@@ -22,8 +22,6 @@ const inputSrc = readSrc('components/team-chat/TeamChatInputArea.tsx');
 const headerSrc = readSrc('components/team-chat/TeamChatHeader.tsx');
 const uploaderSrc = readSrc('components/team-chat/TeamFileUploader.tsx');
 const viewSrc = readSrc('components/team-chat/TeamChatView.tsx');
-const _hookSrc = readSrc('hooks/team-chat/useTeamMessages.ts');
-const _mutationHookSrc = readSrc('hooks/team-chat/useTeamChatMutations.ts');
 const panelHookSrc = readSrc('components/team-chat/useTeamChatPanel.ts');
 
 describe('Team Chat — Exhaustive Audit', () => {

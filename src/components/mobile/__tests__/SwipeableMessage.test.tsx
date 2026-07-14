@@ -6,7 +6,7 @@ import { SwipeableMessage } from '@/components/mobile/SwipeableMessage';
 // Mock framer-motion
 vi.mock('framer-motion', () => ({
   motion: {
-    div: ({ children, className, style, ..._rest }: HTMLAttributes<HTMLDivElement>) => (
+    div: ({ children, className, style }: HTMLAttributes<HTMLDivElement>) => (
       <div className={className} style={style}>
         {children}
       </div>

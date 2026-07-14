@@ -33,12 +33,8 @@ export function MessageContextActions({
 }: MessageContextActionsProps) {
   const {
     deleteMessage,
-    updateMessage: _updateMessage,
     markMessageAsRead,
     markMessageAsUnread,
-    archiveChat,
-    updateBlockStatus,
-    isLoading: _isLoading,
   } = useEvolutionApi();
 
   const isSent = message.sender === 'agent';
@@ -93,31 +89,6 @@ export function MessageContextActions({
       toast.error('Erro ao marcar como não lida');
     }
   }, [instanceName, externalId, contactJid, isSent, markMessageAsUnread]);
-
-  const _handleArchive = useCallback(async () => {
-    try {
-      await archiveChat(instanceName, {}, contactJid, true);
-      toast.success('Chat arquivado');
-    } catch {
-      toast.error('Erro ao arquivar');
-    }
-  }, [instanceName, contactJid, archiveChat]);
-
-  const _handleBlock = useCallback(async () => {
-    try {
-      await updateBlockStatus(instanceName, contactJid, 'block');
-    } catch {
-      toast.error('Erro ao bloquear contato');
-    }
-  }, [instanceName, contactJid, updateBlockStatus]);
-
-  const _handleUnblock = useCallback(async () => {
-    try {
-      await updateBlockStatus(instanceName, contactJid, 'unblock');
-    } catch {
-      toast.error('Erro ao desbloquear contato');
-    }
-  }, [instanceName, contactJid, updateBlockStatus]);
 
   return (
     <DropdownMenu>

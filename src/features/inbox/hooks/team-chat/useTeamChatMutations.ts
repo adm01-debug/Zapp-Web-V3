@@ -138,9 +138,9 @@ export function useDeleteTeamMessage() {
       if (error) throw error;
       return { conversationId };
     },
-    onSuccess: (data, vars) => {
+    onSuccess: (_data, vars) => {
       queryClient.setQueriesData(
-        { queryKey: ['team-messages', data.conversationId] },
+        { queryKey: ['team-messages', vars.conversationId] },
         (oldData: TeamMessageCache | undefined): TeamMessageCache | undefined => {
           if (!oldData?.pages) return oldData;
           const newPages = oldData.pages.map((page) => ({
@@ -177,7 +177,7 @@ export function useEditTeamMessage() {
       if (error) throw error;
       return { conversationId };
     },
-    onSuccess: (data, vars) => {
+    onSuccess: (_data, vars) => {
       queryClient.setQueriesData(
         { queryKey: ['team-messages', vars.conversationId] },
         (oldData: TeamMessageCache | undefined): TeamMessageCache | undefined => {

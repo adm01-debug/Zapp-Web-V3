@@ -38,7 +38,7 @@ export const EasterEggsProvider = forwardRef<HTMLDivElement, EasterEggsProviderP
     const [partyMode, setPartyMode] = useState(false);
     const [matrixMode, setMatrixMode] = useState(false);
     const [shakeCount, setShakeCount] = useState(0);
-    const { celebrate, celebrating: _celebrating } = useCelebration();
+    const { celebrate } = useCelebration();
 
     // Konami Code Detection
     useEffect(() => {
@@ -154,6 +154,7 @@ export const EasterEggsProvider = forwardRef<HTMLDivElement, EasterEggsProviderP
         const timer = setTimeout(() => setShakeCount(0), 2000);
         return () => clearTimeout(timer);
       }
+      return undefined;
     }, [shakeCount]);
 
     const triggerKonamiEasterEgg = useCallback(() => {
@@ -194,7 +195,7 @@ export const EasterEggsProvider = forwardRef<HTMLDivElement, EasterEggsProviderP
     }, [celebrate]);
 
     const triggerSecretCode = useCallback(
-      (name: string, action: string) => {
+      (_name: string, action: string) => {
         switch (action) {
           case 'party':
             setPartyMode(true);

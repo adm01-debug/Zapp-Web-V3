@@ -74,6 +74,7 @@ export function Confetti({
       
       return () => clearTimeout(timer);
     }
+    return undefined;
   }, [isActive, duration, createParticles, onComplete]);
 
   if (!showCelebration) return null;
@@ -160,6 +161,7 @@ export function CelebrationOverlay({
       }, 3500);
       return () => clearTimeout(timer);
     }
+    return undefined;
   }, [isActive, onComplete]);
 
   return (

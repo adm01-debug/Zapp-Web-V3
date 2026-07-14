@@ -234,7 +234,6 @@ class CircuitBreaker {
 export class RetryExecutor {
   private metricsMap = new Map<string, RetryMetrics>();
   private circuitBreakerMap = new Map<string, CircuitBreaker>();
-  private retryBudget: number;
   private retryBudgetRemainingMs: number;
 
   constructor(
@@ -242,7 +241,6 @@ export class RetryExecutor {
     private operationName: string,
     retryBudgetMs: number = 300000 // 5 minutes default
   ) {
-    this.retryBudget = retryBudgetMs;
     this.retryBudgetRemainingMs = retryBudgetMs;
 
     const metrics: RetryMetrics = {

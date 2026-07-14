@@ -31,6 +31,7 @@ export default function ChatPopup() {
         document.title = 'Zapp';
       };
     }
+    return undefined;
   }, [contact]);
 
   useEffect(() => {

@@ -80,6 +80,7 @@ export function BulkReprocessGuidedDialog({
       }, 180);
       return () => clearTimeout(t);
     }
+    return undefined;
   }, [open]);
 
   const total = selectedRows.length;

@@ -1,7 +1,7 @@
 import { useRef, useCallback, useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/features/auth';
-import { log, getLogger } from '@/lib/logger';
+import { getLogger } from '@/lib/logger';
 import { safeGetItem, safeSetItem } from '@/lib/safeStorage';
 
 const viewTransitionLog = getLogger('useViewTransition');

@@ -23,7 +23,7 @@ import { sanitizeText } from '@/lib/sanitize';
 import { ContactPhoneManager, PhoneEntry } from './ContactPhoneManager';
 import { ContactConsentManager, ConsentData } from './ContactConsentManager';
 import { ContactMergeDialog, ContactForMerge } from './ContactMergeDialog';
-import { ConflictResolutionDialog, ConflictInfo } from './ConflictResolutionDialog';
+import { ConflictResolutionDialog } from './ConflictResolutionDialog';
 import { useContactFormV3 } from './useContactFormV3';
 
 // ── Types ──────────────────────────────────────────────────────────────────

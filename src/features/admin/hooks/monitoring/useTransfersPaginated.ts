@@ -42,8 +42,7 @@ export function useTransfersPaginated(filters: TransfersFilters = {}) {
   const { status = null, priority = null, from = null, to = null, page = 0, pageSize = 50 } = filters;
 
   // Cursor-based pagination: track cursor for each page
-  const [pageIndexToCursor, setPageIndexToCursor] = useState<Map<number, string | null>>(new Map([[0, null]]));
-  const _currentPageCursor = pageIndexToCursor.get(page) ?? null;
+  const [, setPageIndexToCursor] = useState<Map<number, string | null>>(new Map([[0, null]]));
 
   const query = useQuery<{ rows: TransferRow[]; total: number; deniedReason: string | null }>({
     queryKey: ['transfers-paginated', { status, priority, from, to, page, pageSize }],

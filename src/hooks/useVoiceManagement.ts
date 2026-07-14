@@ -160,7 +160,7 @@ export function useTextToSpeechManagement(text: string) {
 
 export function useVoiceAgentManagement() {
   const [isActive, setIsActive] = useState(false);
-  const [responses, setResponses] = useState<string[]>([]);
+  const [responses] = useState<string[]>([]);
 
   const activate = useCallback(() => {
     setIsActive(true);

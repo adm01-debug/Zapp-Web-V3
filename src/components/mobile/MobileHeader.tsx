@@ -1,4 +1,4 @@
-import React, { forwardRef } from 'react';
+import { forwardRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Menu, Search, Bell } from 'lucide-react';
 import { Button } from '@/components/ui/button';

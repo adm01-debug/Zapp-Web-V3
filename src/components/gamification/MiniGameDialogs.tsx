@@ -33,6 +33,7 @@ export function SpeedTypingGame({ isOpen, onClose, onComplete }: GameDialogProps
       const timer = setInterval(() => setTimeLeft(t => t - 1), 1000);
       return () => clearInterval(timer);
     } else if (timeLeft === 0) { onComplete(score, Math.floor(score / 2)); }
+    return undefined;
   }, [isActive, timeLeft, score, onComplete]);
 
   const handleInputChange = (value: string) => {

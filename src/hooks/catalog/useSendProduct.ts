@@ -1,6 +1,6 @@
 // Re-export from consolidated useBusinessLogicManagement module (ETAPA 25 consolidation)
 import { useBusinessLogicCatalogManagement } from '@/features/business-logic/hooks/useBusinessLogicManagement';
-import type { ContactResult, UseBusinessLogicCatalogParams, UseBusinessLogicCatalogResult } from '@/features/business-logic/hooks/useBusinessLogicManagement';
+import type { ContactResult } from '@/features/business-logic/hooks/useBusinessLogicManagement';
 
 export type { ContactResult };
 

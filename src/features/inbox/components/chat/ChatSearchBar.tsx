@@ -27,7 +27,7 @@ export function ChatSearchBar({ messages, isOpen, onClose, onNavigateToMessage, 
     navigateUp, navigateDown, datePreset, setDatePreset, customDateFrom, setCustomDateFrom, customDateTo, setCustomDateTo, hasDateFilter,
   } = useChatSearch({ messages, isOpen, onHighlightChange, onNavigateToMessage, onSearchQueryChange });
 
-  useEffect(() => { if (isOpen) { const t = setTimeout(() => inputRef.current?.focus(), 100); return () => clearTimeout(t); } }, [isOpen]);
+  useEffect(() => { if (isOpen) { const t = setTimeout(() => inputRef.current?.focus(), 100); return () => clearTimeout(t); } return undefined; }, [isOpen]);
 
   useEffect(() => {
     if (!previewListRef.current || results.length === 0) return;

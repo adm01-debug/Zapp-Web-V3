@@ -6,9 +6,6 @@ import { Camera, Loader2, Trash2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/features/auth';
 import { useActionFeedback } from '@/hooks/useActionFeedback';
-import { getLogger } from '@/lib/logger';
-
-const _log = getLogger('AvatarUpload');
 
 export function AvatarUpload() {
   const { user, profile, refreshProfile } = useAuth();

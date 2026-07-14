@@ -125,9 +125,9 @@ export const createPaginatedQuery = <TData = any>(
  * Used for infinite scroll / load more patterns
  */
 export const createInfiniteQuery = <TData = any>(
-  queryKey: readonly any[],
-  queryFn: (pageParam: number) => Promise<TData[]>,
-  options?: QueryFactoryOptions<TData[]>
+  _queryKey: readonly any[],
+  _queryFn: (pageParam: number) => Promise<TData[]>,
+  _options?: QueryFactoryOptions<TData[]>
 ) => {
   // This is a placeholder - use useInfiniteQuery hook directly
   // as it requires additional configuration beyond this factory

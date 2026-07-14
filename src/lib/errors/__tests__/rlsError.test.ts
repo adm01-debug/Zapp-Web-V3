@@ -3,7 +3,6 @@ import {
   isRlsDeniedError,
   rlsDeniedMessage,
   formatAdminError,
-  type RlsDeniedShape,
 } from '../rlsError';
 
 // ── isRlsDeniedError — falsy / non-object inputs ──────────────────────────────

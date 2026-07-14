@@ -1,5 +1,3 @@
-import React from 'react';
-
 interface HighlightTextProps {
   text: string;
   highlight?: string;

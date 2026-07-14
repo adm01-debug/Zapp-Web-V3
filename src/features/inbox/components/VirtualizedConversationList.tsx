@@ -12,9 +12,6 @@ import { ConversationItem } from './conversation-list/ConversationItem';
 import type { ConversationItemData } from './conversation-list/conversationItemShared';
 import { useDensity } from '@/hooks/useDensity';
 
-const _ITEM_HEIGHT = 140;
-const _COMPACT_ITEM_HEIGHT = 80;
-
 function toConversationItemData(conversation: Conversation): ConversationItemData {
   return {
     id: conversation.id,

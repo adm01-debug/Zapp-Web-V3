@@ -7,7 +7,6 @@ import {
   SELECTABLE_WHATSAPP_INSTANCES,
   isValidWhatsAppInstance,
   coerceWhatsAppInstance,
-  type WhatsAppInstance,
 } from '../whatsappInstances';
 
 // ── WHATSAPP_INSTANCES ────────────────────────────────────────────────────────

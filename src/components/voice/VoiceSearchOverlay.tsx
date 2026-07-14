@@ -59,6 +59,7 @@ export function VoiceSearchOverlay({
       window.addEventListener('keydown', trapFocus);
       return () => { clearTimeout(timer); window.removeEventListener('keydown', trapFocus); };
     }
+    return undefined;
   }, [isOpen]);
 
   useEffect(() => {
@@ -78,6 +79,7 @@ export function VoiceSearchOverlay({
     if (isOpen && phase === 'idle' && hasAutoStarted.current) { const timer = setTimeout(() => setShowSuggestions(true), 600); return () => clearTimeout(timer); }
     if (phase !== 'idle') setShowSuggestions(false);
     if (!isOpen) { hasAutoStarted.current = false; startingRef.current = false; setShowSuggestions(false); }
+    return undefined;
   }, [isOpen, phase, onStartListening]);
 
   const handleOrbClick = useCallback(() => {
@@ -89,6 +91,7 @@ export function VoiceSearchOverlay({
 
   useEffect(() => {
     if (isOpen) { const prev = document.body.style.overflow; document.body.style.overflow = 'hidden'; return () => { document.body.style.overflow = prev; }; }
+    return undefined;
   }, [isOpen]);
 
   const isActive = phase === 'listening' || phase === 'speaking' || phase === 'processing';

@@ -30,7 +30,6 @@ export const TeamConversationList = forwardRef<HTMLDivElement, Props>(function T
   const [filterType, setFilterType] = useState<'all' | 'direct' | 'group' | 'department'>('all');
   const [mgmtDept, setMgmtDept] = useState<{ id: string; name: string } | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
-  const _listRef = useRef<HTMLDivElement>(null);
 
   const isAdmin = profile?.role === 'admin';
 

@@ -26,9 +26,6 @@ import { useInboxSidebarResize } from './useInboxSidebarResize';
 import { useInboxKeyboardShortcuts } from './useInboxKeyboardShortcuts';
 
 const ChatPanel = lazy(() => import('./ChatPanel').then((m) => ({ default: m.ChatPanel })));
-const _ContactDetails = lazy(() =>
-  import('./ContactDetails').then((m) => ({ default: m.ContactDetails }))
-);
 const ContactDetailsResponsive = lazy(() =>
   import('./ContactDetailsResponsive').then((m) => ({ default: m.ContactDetailsResponsive }))
 );

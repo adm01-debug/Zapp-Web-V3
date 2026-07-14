@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { TrendingUp, Clock } from 'lucide-react';
-import { format, subDays, startOfDay, getDay, getHours } from 'date-fns';
+import { format, subDays, getDay, getHours } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
   Bar,
@@ -55,7 +55,6 @@ export function DemandForecast() {
       const d = new Date(m.created_at);
       const dayOfWeek = getDay(d);
       const hour = getHours(d);
-      const _dayKey = format(startOfDay(d), 'yyyy-MM-dd');
       dayBuckets[dayOfWeek].push(1);
       hourBuckets[hour].push(1);
     });

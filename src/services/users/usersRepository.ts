@@ -7,7 +7,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { createService } from '@/services/api/genericService';
-import type { ListResponse, QueryParams } from '@/services/api/types';
+import type { QueryParams } from '@/services/api/types';
 
 export interface User {
   id: string;

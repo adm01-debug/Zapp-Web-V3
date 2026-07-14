@@ -92,7 +92,6 @@ export default function ConversationHeatmap({
   const { data: realData } = useHeatmapData();
   const data = externalData || realData || [];
   const [selectedMetric, setSelectedMetric] = useState(metric);
-  const [hoveredCell, setHoveredCell] = useState<{ day: number; hour: number } | null>(null);
 
   const config = METRIC_CONFIG[selectedMetric];
 
@@ -205,7 +204,6 @@ export default function ConversationHeatmap({
                 <div className="flex flex-1 gap-0.5">
                   {HOURS.map((hour) => {
                     const cellData = getCellData(dayIndex, hour);
-                    const _isHovered = hoveredCell?.day === dayIndex && hoveredCell?.hour === hour;
                     const isHotspot = hotspots.some((h) => h.day === dayIndex && h.hour === hour);
 
                     return (
@@ -224,8 +222,6 @@ export default function ConversationHeatmap({
                                 ? getColor(cellData.value)
                                 : config.colorScale[0],
                             }}
-                            onMouseEnter={() => setHoveredCell({ day: dayIndex, hour })}
-                            onMouseLeave={() => setHoveredCell(null)}
                           >
                             {isHotspot && (
                               <div className="absolute -right-1 -top-1 h-2 w-2 rounded-full bg-warning" />
