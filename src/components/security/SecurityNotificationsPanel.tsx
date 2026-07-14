@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState } from 'react';
 import { Bell, BellOff, Shield, Smartphone, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';

@@ -1,4 +1,3 @@
-// @ts-nocheck
 /* eslint-disable react-refresh/only-export-components */
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';

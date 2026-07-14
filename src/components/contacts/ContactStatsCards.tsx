@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Users, UserPlus, Building, TrendingUp } from 'lucide-react';

@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { describe, it, expect, vi } from 'vitest';
 
 // sendProductUtils imports from @/hooks/useExternalCatalog (types only), which

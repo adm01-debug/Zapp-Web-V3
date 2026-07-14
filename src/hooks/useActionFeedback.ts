@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useCallback, useRef, useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import type {

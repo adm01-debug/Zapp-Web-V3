@@ -1,4 +1,3 @@
-// @ts-nocheck
 /* eslint-disable react-refresh/only-export-components */
 import { useState, useEffect, useCallback, forwardRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
