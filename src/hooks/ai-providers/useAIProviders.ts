@@ -6,6 +6,7 @@ import { toast } from '@/hooks/use-toast';
 import type { AIProvider, ProviderFormData } from '@/components/settings/ai-providers/types';
 import { EMPTY_FORM } from '@/components/settings/ai-providers/types';
 
+/** Hook for managing AI provider configurations including CRUD operations and connectivity tests. */
 export function useAIProviders() {
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);

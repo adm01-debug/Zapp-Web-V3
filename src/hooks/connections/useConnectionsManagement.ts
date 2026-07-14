@@ -32,6 +32,7 @@ export interface UseBridgeHealthResult {
 // Hub Tab Navigation Management (useHubTabNavigation consolidation)
 // ═══════════════════════════════════════════════════════════
 
+/** Manages active tab state in the connection hub with URL synchronization. */
 export function useHubTabNavigationManagement(
   params: UseHubTabNavigationParams
 ): UseHubTabNavigationResult {
@@ -76,6 +77,7 @@ export function useHubTabNavigationManagement(
 // Bridge Health Management (useBridgeHealth consolidation)
 // ═══════════════════════════════════════════════════════════
 
+/** Monitors connection bridge health status with periodic checks. */
 export function useBridgeHealthManagement(
   _params: UseBridgeHealthParams = {}
 ): UseBridgeHealthResult {

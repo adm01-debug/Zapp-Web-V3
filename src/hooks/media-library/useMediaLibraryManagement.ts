@@ -58,6 +58,7 @@ interface UseMediaCrudResult {
   handlePreview: (item: MediaItem) => void;
 }
 
+/** Manages CRUD operations and filtering for media library items. */
 function useMediaCrudManagement({ type }: UseMediaCrudParams): UseMediaCrudResult {
   const [items, setItems] = useState<MediaItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -257,9 +258,7 @@ function useMediaCrudManagement({ type }: UseMediaCrudParams): UseMediaCrudResul
       .update({ category: newCategory })
       .eq('id', item.id);
     if (error) {
-      setItems((prev) =>
-        prev.map((i) => (i.id === item.id ? { ...i, category: oldCategory } : i))
-      );
+      setItems((prev) => prev.map((i) => (i.id === item.id ? { ...i, category: oldCategory } : i)));
       toast.error('Erro ao alterar categoria');
     }
   };
@@ -277,9 +276,7 @@ function useMediaCrudManagement({ type }: UseMediaCrudParams): UseMediaCrudResul
       .update({ name: trimmed })
       .eq('id', item.id);
     if (error) {
-      setItems((prev) =>
-        prev.map((i) => (i.id === item.id ? { ...i, name: oldName } : i))
-      );
+      setItems((prev) => prev.map((i) => (i.id === item.id ? { ...i, name: oldName } : i)));
       toast.error('Erro ao renomear');
       return;
     }
@@ -380,6 +377,7 @@ interface UseMediaUploadResult {
   handleBulkUpload: (e: React.ChangeEvent<HTMLInputElement>) => Promise<void>;
 }
 
+/** Manages media file uploads with validation, progress tracking, and batch processing. */
 function useMediaUploadManagement({
   type,
   onComplete,

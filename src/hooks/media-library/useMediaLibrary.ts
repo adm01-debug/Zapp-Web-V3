@@ -1,7 +1,11 @@
 // Re-export from consolidated useMediaLibraryManagement module (ETAPA 21 consolidation)
-import { useMediaCrudManagement } from './useMediaLibraryManagement';
-import type { UseMediaCrudParams, UseMediaCrudResult } from './useMediaLibraryManagement';
+import {
+  useMediaCrudManagement,
+  type UseMediaCrudParams,
+  type UseMediaCrudResult,
+} from './useMediaLibraryManagement';
 
+/** Hook for CRUD operations on media library items. */
 export { useMediaCrudManagement as useMediaLibrary };
 export type { UseMediaCrudParams, UseMediaCrudResult };
 
