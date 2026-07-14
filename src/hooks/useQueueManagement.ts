@@ -8,9 +8,12 @@ import { log } from '@/lib/logger';
 interface Queue {
   id: string;
   name: string;
+  color?: string | null;
   description?: string;
   assigned_to?: string;
   status: 'active' | 'inactive';
+  waiting_count?: number | null;
+  max_wait_time_minutes?: number | null;
   created_at: string;
   updated_at: string;
 }
