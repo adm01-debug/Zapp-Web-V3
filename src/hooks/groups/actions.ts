@@ -18,6 +18,7 @@ interface UseGroupActionsParams {
   fetchGroups: () => Promise<void>;
 }
 
+/** Provides group management actions including sync, create, delete, broadcast, and category updates. */
 export function useGroupActions({
   connections,
   groups,

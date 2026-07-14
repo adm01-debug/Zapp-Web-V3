@@ -47,6 +47,7 @@ export const EMOJI_CATEGORIES: Record<string, string> = {
   outros: '📦',
 };
 
+/** Returns category emoji map for the specified media type. */
 export function getCategoriesForType(type: MediaType): Record<string, string> {
   switch (type) {
     case 'stickers':
@@ -58,10 +59,12 @@ export function getCategoriesForType(type: MediaType): Record<string, string> {
   }
 }
 
+/** Returns the appropriate URL field name for the media type. */
 export function getUrlField(type: MediaType): 'image_url' | 'audio_url' {
   return type === 'audio_memes' ? 'audio_url' : 'image_url';
 }
 
+/** Returns the storage bucket name for the media type. */
 export function getBucket(type: MediaType): string {
   switch (type) {
     case 'stickers':
@@ -73,6 +76,7 @@ export function getBucket(type: MediaType): string {
   }
 }
 
+/** Extracts storage bucket and path from Supabase storage URL, returns null if extraction fails. */
 export function extractStoragePath(
   url: string,
   bucket: string

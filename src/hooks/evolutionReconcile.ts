@@ -61,6 +61,7 @@ function resolveAudioType(m: RealtimeMessage): string {
   return isMeme ? 'audio_meme' : isPtt ? 'audio_ptt' : 'audio_recorded';
 }
 
+/** Reconciles optimistic messages with canonical messages, mapping obsolete IDs and preserving status hierarchy. */
 export function reconcileOptimistic(
   prev: RealtimeMessage[],
   incoming: RealtimeMessage[]
@@ -180,10 +181,7 @@ export function reconcileOptimistic(
   return { filteredPrev, additions, remap };
 }
 
-/**
- * Aplica uma reconciliação como transação atômica: migra estado do player e
- * atualiza mensagens em um único setState.
- */
+/** Applies message reconciliation atomically, migrating player state and updating messages in single setState call. */
 export function applyReconciliation(
   setMessages: (updater: (prev: RealtimeMessage[]) => RealtimeMessage[]) => void,
   incoming: RealtimeMessage[],

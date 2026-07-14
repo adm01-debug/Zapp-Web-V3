@@ -19,10 +19,7 @@ export const contactEnrichmentCache = new Map<
   { data: ContactEnrichmentData; timestamp: number }
 >();
 
-/**
- * Enrichment `tags` may arrive as a JSON array string, plain comma-separated
- * string, or malformed data. Never lets a single bad value throw.
- */
+/** Parses enrichment tags from JSON array strings, comma-separated strings, or malformed data safely. */
 export function safeParseTags(raw: string): string[] {
   const trimmed = raw.trim();
   if (!trimmed) return [];
