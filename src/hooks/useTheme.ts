@@ -4,6 +4,7 @@ import { useThemeManagement, ThemeSync, type Theme, type ResolvedTheme, type Use
 export type { Theme, ResolvedTheme };
 export { ThemeSync };
 
+/** Retrieves and manages theme state with real-time synchronization across tabs. */
 export function useTheme(): UseThemeReturn {
   return useThemeManagement();
 }
