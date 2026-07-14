@@ -195,44 +195,71 @@ export function PrivateNotes({ contactId }: PrivateNotesProps) {
         )}
       </AnimatePresence>
 
-      <div className="space-y-2 max-h-48 overflow-y-auto scrollbar-thin">
+      {deleteError && (
+        <div
+          role="alert"
+          className="flex items-start gap-2 p-2 rounded-md border border-destructive/40 bg-destructive/5 text-xs text-destructive"
+        >
+          <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" aria-hidden="true" />
+          <span className="flex-1">{deleteError}</span>
+          <button
+            type="button"
+            onClick={() => setDeleteError(null)}
+            className="hover:opacity-70"
+            aria-label="Fechar mensagem de erro"
+          >
+            <X className="w-3 h-3" />
+          </button>
+        </div>
+      )}
+
+      <div className="space-y-2 max-h-48 overflow-y-auto scrollbar-thin" aria-live="polite">
         <AnimatePresence>
-          {notes.map((note, index) => (
-            <motion.div
-              key={note.id}
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              transition={{ delay: index * 0.05 }}
-              className="group p-3 bg-muted/50 rounded-lg border border-border/50 hover:border-border transition-colors"
-            >
-              <div className="flex items-start justify-between gap-2">
-                <p className="text-sm text-foreground flex-1">{note.content}</p>
-                {note.author_id === currentProfileId && (
-                  <motion.button
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.9 }}
-                    onClick={() => handleDeleteNote(note.id)}
-                    disabled={isDeleting}
-                    className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-destructive/10 rounded disabled:opacity-50"
-                  >
-                    <Trash2 className="w-3 h-3 text-destructive" />
-                  </motion.button>
-                )}
-              </div>
-              <div className="flex items-center gap-2 mt-2">
-                <Avatar className="w-4 h-4">
-                  <AvatarImage src={note.author?.avatar_url || undefined} alt={note.author?.name || ""} />
-                  <AvatarFallback className="text-[8px]">
-                    {note.author?.name?.[0] || '?'}
-                  </AvatarFallback>
-                </Avatar>
-                <span className="text-[10px] text-muted-foreground">
-                  {note.author?.name || 'Desconhecido'} • {format(new Date(note.created_at), "dd/MM 'às' HH:mm", { locale: ptBR })}
-                </span>
-              </div>
-            </motion.div>
-          ))}
+          {notes.map((note, index) => {
+            const isRowDeleting = isDeleting && deletingId === note.id;
+            return (
+              <motion.div
+                key={note.id}
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: isRowDeleting ? 0.6 : 1, y: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ delay: index * 0.05 }}
+                className="group p-3 bg-muted/50 rounded-lg border border-border/50 hover:border-border transition-colors"
+                aria-busy={isRowDeleting}
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <p className="text-sm text-foreground flex-1">{note.content}</p>
+                  {note.author_id === currentProfileId && (
+                    <motion.button
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.9 }}
+                      onClick={() => handleDeleteNote(note.id)}
+                      disabled={isDeleting}
+                      aria-label={isRowDeleting ? 'Removendo nota...' : 'Remover nota'}
+                      className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-destructive/10 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isRowDeleting ? (
+                        <Loader2 className="w-3 h-3 text-destructive animate-spin" aria-hidden="true" />
+                      ) : (
+                        <Trash2 className="w-3 h-3 text-destructive" aria-hidden="true" />
+                      )}
+                    </motion.button>
+                  )}
+                </div>
+                <div className="flex items-center gap-2 mt-2">
+                  <Avatar className="w-4 h-4">
+                    <AvatarImage src={note.author?.avatar_url || undefined} alt={note.author?.name || ""} />
+                    <AvatarFallback className="text-[8px]">
+                      {note.author?.name?.[0] || '?'}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="text-[10px] text-muted-foreground">
+                    {note.author?.name || 'Desconhecido'} • {format(new Date(note.created_at), "dd/MM 'às' HH:mm", { locale: ptBR })}
+                  </span>
+                </div>
+              </motion.div>
+            );
+          })}
         </AnimatePresence>
 
         {notes.length === 0 && !isAddingNote && (
@@ -243,4 +270,5 @@ export function PrivateNotes({ contactId }: PrivateNotesProps) {
       </div>
     </div>
   );
+
 }
