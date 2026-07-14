@@ -302,6 +302,7 @@ async function writeCacheWithRetry(
   return false;
 }
 
+/** Manages offline cache for conversations with automatic sync when connection is restored. */
 export function useOfflineCacheManagement(
   conversations: ConversationWithMessages[],
   loading: boolean
@@ -383,6 +384,7 @@ import {
 
 export type { FeedbackType, FeedbackOptions, WithFeedbackOptions, UndoableOptions };
 
+/** Provides customizable feedback notifications for user actions with support for success, error, warning, info, and loading states. */
 export function useActionFeedbackManagement() {
   const { toast } = useToast();
   const activeToasts = useRef<Map<string, { dismiss: () => void }>>(new Map());
@@ -587,6 +589,7 @@ interface Objection {
   confidence: number;
 }
 
+/** Analyzes customer messages to detect objections and generate contextual counter-arguments using AI. */
 export function useObjectionDetectorManagement(
   contactId: string,
   contactName: string | undefined,
@@ -933,6 +936,7 @@ async function cleanupLegacyServiceWorker(): Promise<boolean> {
   return false;
 }
 
+/** Manages service worker registration with automatic update checks and notification handling. */
 export function useServiceWorkerManagement() {
   const registeredRef = useRef(false);
 
