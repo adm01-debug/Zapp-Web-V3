@@ -20,6 +20,7 @@ interface SearchHistoryEntry {
   result_type: string;
 }
 
+/** Manages global search modal with Ctrl+K keyboard shortcut. */
 export function useGlobalSearchShortcutManagement(onSearch?: (query: string) => void) {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -41,6 +42,7 @@ export function useGlobalSearchShortcutManagement(onSearch?: (query: string) => 
   return { isOpen, setIsOpen, onSearch };
 }
 
+/** Searches knowledge base articles and returns matching results. */
 export function useKnowledgeBaseSearchManagement(query: string) {
   const [results, setResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
@@ -82,6 +84,7 @@ export function useKnowledgeBaseSearchManagement(query: string) {
   return { results, loading };
 }
 
+/** Manages search history with persistence, add, and clear operations. */
 export function useSearchHistoryManagement() {
   const [history, setHistory] = useState<SearchHistoryEntry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -145,6 +148,7 @@ export function useSearchHistoryManagement() {
   return { history, loading, addToHistory, clearHistory, refetch: fetchHistory };
 }
 
+/** Retrieves search insights and trends for specified time window. */
 export function useSearchInsightsManagement(timeWindow: number = 7) {
   const [insights, setInsights] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -171,6 +175,7 @@ export function useSearchInsightsManagement(timeWindow: number = 7) {
   return { insights, loading };
 }
 
+/** Searches messages within a specific chat by ID and query. */
 export function useChatSearchManagement(chatId: string, query: string) {
   const [results, setResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
