@@ -3,7 +3,8 @@ import { useEffect } from "react";
 import { motion } from "framer-motion";
 import { Home, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { log } from "@/lib/logger";
+import { getLogger } from "@/lib/logger";
+const log = getLogger("NotFound");
 
 const NotFound = () => {
   const location = useLocation();

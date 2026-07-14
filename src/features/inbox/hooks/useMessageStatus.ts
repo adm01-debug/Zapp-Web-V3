@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { log } from '@/lib/logger';
+import { getLogger } from '@/lib/logger';
+
+const log = getLogger('useMessageStatus');
 import { logMessagesSubscribe, wrapMessagesHandler } from '@/lib/devRealtimeLogger';
 import { dbFrom, dbTable } from '@/integrations/datasource/db';
 import { subscribeAllSendStatus, getSendStatus, type SendStatusDetail } from '@/features/inbox';

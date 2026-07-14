@@ -1,7 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { log } from '@/lib/logger';
+import { getLogger } from '@/lib/logger';
 import { toast } from '@/hooks/use-toast';
+
+const log = getLogger('useForwardMessage');
 import { dbFrom } from '@/integrations/datasource/db';
 import type { Tables } from '@/integrations/supabase/types';
 

@@ -1,5 +1,7 @@
 import { supabase } from '@/integrations/supabase/client';
-import { log } from '@/lib/logger';
+import { getLogger } from '@/lib/logger';
+
+const log = getLogger('loginAttempts');
 
 interface LockStatus {
   isLocked: boolean;

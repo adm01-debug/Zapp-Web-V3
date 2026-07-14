@@ -1,7 +1,9 @@
 /* eslint-disable react-refresh/only-export-components */
 import { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { log } from '@/lib/logger';
+import { getLogger } from '@/lib/logger';
+
+const log = getLogger('VoiceSelector');
 import {
   DropdownMenu,
   DropdownMenuContent,

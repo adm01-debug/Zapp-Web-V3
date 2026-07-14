@@ -1,5 +1,7 @@
 import { useState, useRef, useCallback } from 'react';
-import { log } from '@/lib/logger';
+import { getLogger } from '@/lib/logger';
+
+const log = getLogger('useFileUploadLogic');
 import { supabase } from '@/integrations/supabase/client';
 import { useEvolutionApi } from '@/hooks/useEvolutionApi';
 import { toast } from 'sonner';

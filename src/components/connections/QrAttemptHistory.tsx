@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 import { CheckCircle2, Clock, XCircle, AlertCircle, History, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { log } from '@/lib/logger';
+import { getLogger } from '@/lib/logger';
+
+const log = getLogger('QrAttemptHistory');
 import { cn } from '@/lib/utils';
 import { formatTimeHMS } from '@/lib/formatters';
 

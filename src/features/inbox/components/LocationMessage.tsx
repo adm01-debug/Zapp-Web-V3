@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Navigation, ExternalLink, Radio } from 'lucide-react';
-import { log } from '@/lib/logger';
+import { getLogger } from '@/lib/logger';
+
+const log = getLogger('LocationMessage');
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { LocationMessage as LocationMessageType } from '@/types/chat';

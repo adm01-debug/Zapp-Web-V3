@@ -1,7 +1,9 @@
 import { useEffect, useState, useCallback } from 'react';
 import { zappSupabase, ZAPPWEB_INSTANCE } from '../supabaseClient';
 import type { EvolutionConversation } from '../types';
-import { log } from '@/lib/logger';
+import { getLogger } from '@/lib/logger';
+
+const log = getLogger('useZappConversations');
 
 interface Options {
   instance?: string;

@@ -1,5 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
-import { log } from '@/lib/logger';
+import { getLogger } from '@/lib/logger';
+
+const log = getLogger('useSentimentData');
 import { supabase } from '@/integrations/supabase/client';
 import { subDays, startOfDay, endOfDay, isWithinInterval, format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';

@@ -10,7 +10,9 @@
  * Cache in-memory com TTL de 60s para evitar query a cada envio.
  */
 import { supabase } from '@/integrations/supabase/client';
-import { log } from '@/lib/logger';
+import { getLogger } from '@/lib/logger';
+
+const log = getLogger('retryConfig');
 
 export interface RetryConfig {
   maxRetries: number;

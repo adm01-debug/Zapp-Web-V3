@@ -1,6 +1,8 @@
 import { useCallback } from 'react';
 import { toast } from 'sonner';
-import { log } from '@/lib/logger';
+import { getLogger } from '@/lib/logger';
+
+const log = getLogger('useContactAssignment');
 import { dbFrom } from '@/integrations/datasource/db';
 
 export function useContactAssignment(contactId: string) {

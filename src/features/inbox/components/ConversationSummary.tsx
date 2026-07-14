@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { log } from '@/lib/logger';
+import { getLogger } from '@/lib/logger';
+
+const log = getLogger('ConversationSummary');
 import { PeriodFilterSelector, usePeriodFilter } from './ai-tools/PeriodFilterSelector';
 import {
   FileText,

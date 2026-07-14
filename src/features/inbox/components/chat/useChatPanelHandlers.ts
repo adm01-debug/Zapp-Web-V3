@@ -1,5 +1,7 @@
 import { useState, useRef, useCallback } from 'react';
-import { log } from '@/lib/logger';
+import { getLogger } from '@/lib/logger';
+
+const log = getLogger('useChatPanelHandlers');
 import { supabase } from '@/integrations/supabase/client';
 import { undoToast } from '@/lib/undoToast';
 import { useAuth } from '@/features/auth';

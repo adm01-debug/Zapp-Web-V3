@@ -1,5 +1,7 @@
 import { useEffect, useRef } from 'react';
-import { log } from '@/lib/logger';
+import { getLogger } from '@/lib/logger';
+
+const log = getLogger('SLAIndicatorForContact');
 import { SLAIndicator } from './SLAIndicator';
 import { useApplicableSLA, ApplicableSLA, SLAMatchedLevel } from '@/features/sla';
 import { Conversation } from '@/types/chat';

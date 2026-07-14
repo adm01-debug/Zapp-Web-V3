@@ -1,5 +1,7 @@
 import { useEffect, useCallback, useRef } from 'react';
-import { log } from '@/lib/logger';
+import { getLogger } from '@/lib/logger';
+
+const log = getLogger('useConnectionsManager');
 import { supabase } from '@/integrations/supabase/client';
 import { externalSupabase, callExtRpc } from '@/integrations/supabase/externalClient';
 import { toast } from '@/hooks/use-toast';
