@@ -36,6 +36,7 @@ interface Invitation {
 type WhatsappMode = 'none' | 'evolution' | 'official';
 type ManageAction = 'add' | 'remove';
 
+/** Hook for managing department members, audit logs, invitations, and WhatsApp configuration. */
 export function useDepartmentManagement(
   initialDepartment: Department,
   open: boolean,
