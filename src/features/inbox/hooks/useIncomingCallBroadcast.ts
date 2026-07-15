@@ -5,6 +5,7 @@ import { useAuth } from '@/features/auth';
 import { getLogger } from '@/lib/logger';
 import type { IncomingCall } from '@/types/incomingCall';
 
+
 const log = getLogger('IncomingCallBroadcast');
 
 const DEFAULT_INSTANCE = 'wpp2';
@@ -59,7 +60,7 @@ export function useIncomingCallBroadcast(instance: string = DEFAULT_INSTANCE) {
         let contactId: string | null = null;
 
         try {
-          const { data, error } = await supabase.rpc('rpc_get_contact', {
+          const { data, error } = await db.rpc('rpc_get_contact', {
             p_remote_jid: p.remote_jid,
             p_instance: instance,
           });

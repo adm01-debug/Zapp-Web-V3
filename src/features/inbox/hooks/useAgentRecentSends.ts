@@ -4,6 +4,7 @@ import { useMemo } from 'react';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { dbFrom } from '@/integrations/datasource/db';
 
+
 export interface RecentSend {
   idem_key: string;
   instance_name: string;

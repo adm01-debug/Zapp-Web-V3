@@ -1,10 +1,13 @@
-// @ts-nocheck
 import { useState, useMemo, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/features/auth';
 import { toast } from 'sonner';
 import { getLogger } from '@/lib/logger';
+
+// Schema escape hatch: zapp tables not yet in generated types (gen-types-zapp.mjs pendente na VPS)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const db = supabase as any;
 
 const log = getLogger('useQuickReplies');
 
@@ -53,7 +56,7 @@ export function useQuickReplies() {
     queryFn: async () => {
       if (!user?.id) return [];
 
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from('message_templates')
         .select('*')
         .or(`user_id.eq.${user.id},is_global.eq.true`)
@@ -132,7 +135,7 @@ export function useQuickReplies() {
     mutationFn: async (input: CreateTemplateInput) => {
       if (!user?.id) throw new Error('User not authenticated');
 
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from('message_templates')
         .insert({
           title: input.title,
@@ -162,7 +165,7 @@ export function useQuickReplies() {
   // Update template mutation
   const updateMutation = useMutation({
     mutationFn: async ({ id, ...input }: { id: string } & Partial<CreateTemplateInput>) => {
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from('message_templates')
         .update({
           title: input.title,
@@ -192,7 +195,7 @@ export function useQuickReplies() {
   // Delete template mutation
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from('message_templates').delete().eq('id', id);
+      const { error } = await db.from('message_templates').delete().eq('id', id);
 
       if (error) throw error;
 
@@ -216,7 +219,7 @@ export function useQuickReplies() {
       const template = templates?.find((t) => t.id === templateId);
       if (!template) return;
 
-      await supabase
+      await db
         .from('message_templates')
         .update({ use_count: (template.use_count || 0) + 1 })
         .eq('id', templateId);

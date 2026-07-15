@@ -1,9 +1,12 @@
-// @ts-nocheck
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/features/auth';
 import { getLogger } from '@/lib/logger';
+
+// Schema escape hatch: zapp tables not yet in generated types (gen-types-zapp.mjs pendente na VPS)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const db = supabase as any;
 
 const log = getLogger('useMessageTemplates');
 
@@ -36,7 +39,7 @@ export function useMessageTemplates() {
     if (!user?.id) return;
     setIsLoading(true);
     try {
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from('message_templates')
         .select('*')
         .order('use_count', { ascending: false });
@@ -61,7 +64,7 @@ export function useMessageTemplates() {
         return false;
       }
       try {
-        const { error } = await supabase.from('message_templates').insert({
+        const { error } = await db.from('message_templates').insert({
           user_id: user.id,
           title: template.title,
           content: template.content,
@@ -87,7 +90,7 @@ export function useMessageTemplates() {
   const updateTemplate = useCallback(
     async (template: Template) => {
       try {
-        const { error } = await supabase
+        const { error } = await db
           .from('message_templates')
           .update({
             title: template.title,
@@ -111,7 +114,7 @@ export function useMessageTemplates() {
   const deleteTemplate = useCallback(
     async (id: string) => {
       try {
-        const { error } = await supabase.from('message_templates').delete().eq('id', id);
+        const { error } = await db.from('message_templates').delete().eq('id', id);
         if (error) throw error;
         toast({ title: 'Template excluído', description: 'O template foi removido.' });
         await fetchTemplates();
@@ -125,7 +128,7 @@ export function useMessageTemplates() {
   );
 
   const incrementUseCount = useCallback(async (template: Template) => {
-    await supabase
+    await db
       .from('message_templates')
       .update({ use_count: template.use_count + 1 })
       .eq('id', template.id);

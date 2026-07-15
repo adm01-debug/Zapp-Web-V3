@@ -1,8 +1,11 @@
-// @ts-nocheck
 import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { isValidUUID } from '@/utils/uuid';
 import type { ConversationWithMessages, ConversationContact } from './realtime/types';
+
+// Schema escape hatch: zapp tables not yet in generated types (gen-types-zapp.mjs pendente na VPS)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const db = supabase as any;
 
 export function useFallbackContact(
   selectedContactId: string | null,
@@ -22,16 +25,16 @@ export function useFallbackContact(
       // FIX B1: the handshake may arrive as a UUID, JID (`num@s.whatsapp.net`)
       // or a bare phone number. Detect which to avoid passing a phone number
       // into the `id` (UUID) column — causes 400 from PostgREST.
-      const raw = String(selectedContactId);
+      const raw: string = String(selectedContactId);
       const isJid = raw.includes('@');
       const isUuid = isValidUUID(raw);
-      const phone = isJid
+      const phone: string | null = isJid
         ? raw.split('@')[0].replace(/\D/g, '')
         : !isUuid
-          ? raw.replace(/\D/g, '')
+          ? (raw as string).replace(/\D/g, '')
           : null;
 
-      let query = supabase.from('contacts').select('*');
+      let query = db.from('contacts').select('*');
       query = phone && !isUuid ? query.eq('phone', phone) : query.eq('id', raw);
 
       const { data, error } = await query.maybeSingle();

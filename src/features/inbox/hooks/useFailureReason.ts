@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Lookup do motivo de falha terminal de uma mensagem outbound.
  *
@@ -13,6 +12,10 @@
  */
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+
+// Schema escape hatch: zapp tables not yet in generated types (gen-types-zapp.mjs pendente na VPS)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const db = supabase as any;
 
 export interface MessageFailureReason {
   /** Último motivo registrado (ex.: 'http_503', 'timeout'). */
@@ -41,13 +44,13 @@ export function useFailureReason(messageId: string | undefined, enabled: boolean
     staleTime: STALE_MS,
     queryFn: async () => {
       if (!messageId) return null;
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from('evolution_retry_metrics')
         .select('attempt_count, final_status, final_http_status, retry_reasons')
         .eq('idempotency_key', `msg:${messageId}`)
         .order('created_at', { ascending: false })
         .limit(1)
-        .maybeSingle<RetryReasonRow>();
+        .maybeSingle();
 
       if (error || !data) return null;
       if (data.final_status === 'success') return null;

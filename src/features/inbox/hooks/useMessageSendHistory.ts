@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Carrega o histórico completo de envio de uma mensagem para o painel
  * de debug: linha do tempo de tentativas (retry_metrics.retry_reasons),
@@ -20,6 +19,10 @@ import {
   normalizeRetryReasons,
   padRetryAttempts,
 } from './messageSendHistory.schemas';
+
+// Schema escape hatch: zapp tables not yet in generated types (gen-types-zapp.mjs pendente na VPS)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const db = supabase as any;
 
 export type { AuditEntry, FinalStatus, RetryAttempt };
 
@@ -71,14 +74,14 @@ export function useMessageSendHistory(messageId: string | undefined, enabled: bo
         .order('created_at', { ascending: false })
         .limit(10);
       const [metricRes, auditRes, outboundAuditRes] = await Promise.all([
-        supabase
+        db
           .from('evolution_retry_metrics')
           .select('*')
           .eq('idempotency_key', idempotencyKey)
           .order('created_at', { ascending: false })
           .limit(1)
           .maybeSingle(),
-        supabase
+        db
           .from('audit_logs')
           .select('id, action, created_at, details')
           .eq('entity_type', 'message')
@@ -88,14 +91,14 @@ export function useMessageSendHistory(messageId: string | undefined, enabled: bo
         outboundQuery,
       ]);
 
-      const auditEntries: AuditEntry[] = (auditRes.data ?? []).map((e) => ({
+      const auditEntries: AuditEntry[] = (auditRes.data ?? []).map((e: any) => ({
         id: e.id,
         action: e.action,
         createdAt: e.created_at ?? new Date(0).toISOString(),
         details: e.details,
       }));
 
-      const outboundEntries: AuditEntry[] = (outboundAuditRes.data ?? []).map((e) => ({
+      const outboundEntries: AuditEntry[] = (outboundAuditRes.data ?? []).map((e: any) => ({
         id: e.id,
         action: `OUTBOUND_${(e.event_type ?? 'send').toUpperCase()}`,
         createdAt: e.created_at,
