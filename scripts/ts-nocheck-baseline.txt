@@ -62,7 +62,6 @@ src/components/team-chat/useTeamChatPanel.ts
 src/components/transcriptions/TranscriptionsHistoryView.tsx
 src/components/transitions/__tests__/transitionVariants.test.ts
 src/components/ui/empty-states/ContextualEmptyState.tsx
-src/components/ui/toaster.tsx
 src/components/voice/VoiceSearchOverlayConnected.tsx
 src/components/whatsapp-flows/WhatsAppFlowsBuilder.tsx
 src/features/admin/components/AdminView.tsx
@@ -191,11 +190,6 @@ src/hooks/__tests__/useTextToSpeech.test.ts
 src/hooks/__tests__/useTranscriptionNotifications.test.ts
 src/hooks/__tests__/useTypingPresence.test.tsx
 src/hooks/__tests__/useViewTransition.test.ts
-src/hooks/admin/useAdminChannels.ts
-src/hooks/admin/useAdminQueues.ts
-src/hooks/admin/useDepartmentsAdmin.ts
-src/hooks/admin/useRolesPageState.ts
-src/hooks/admin/useRoutePermissions.ts
 src/hooks/ai-providers/useAIProviders.ts
 src/hooks/connections/__tests__/useHubTabNavigation.test.tsx
 src/hooks/dashboard/useSentimentData.ts
@@ -216,7 +210,6 @@ src/hooks/useActionFeedback.ts
 src/hooks/useAdvancedFeaturesManagement.ts
 src/hooks/useAnalyticsManagement.ts
 src/hooks/useAnalyticsMonitoringManagement.ts
-src/hooks/useAriaAnnouncer.ts
 src/hooks/useAudioManagement.ts
 src/hooks/useAutomationManagement.ts
 src/hooks/useBusinessHoursManagement.ts
@@ -229,7 +222,6 @@ src/hooks/useContactData.ts
 src/hooks/useConversationManagement.ts
 src/hooks/useDashboardQueries.ts
 src/hooks/useDeliveryStats.ts
-src/hooks/useDeviceDetection.ts
 src/hooks/useEmailActions.test.ts
 src/hooks/useEmailDraft.test.ts
 src/hooks/useEmailManagement.ts
@@ -239,7 +231,6 @@ src/hooks/useEvolutionAutoSync.ts
 src/hooks/useExternalApiManagement.ts
 src/hooks/useForwardMessage.ts
 src/hooks/useGeoBlocking.ts
-src/hooks/useGlobalSearchShortcut.ts
 src/hooks/useGmailLabels.ts
 src/hooks/useGmailOAuthFlow.ts
 src/hooks/useIncomingCallListener.ts
@@ -255,16 +246,11 @@ src/hooks/useOnboarding.ts
 src/hooks/useRealtimeManagement.ts
 src/hooks/useRetryAndErrorPrevention.ts
 src/hooks/useScheduledMessages.ts
-src/hooks/useSearchHistory.ts
-src/hooks/useSearchInsights.ts
 src/hooks/useSearchManagement.ts
 src/hooks/useSearchNavigationManagement.ts
 src/hooks/useSentimentAlerts.ts
 src/hooks/useSettingsManagement.ts
-src/hooks/useSwipeControl.ts
 src/hooks/useTags.ts
-src/hooks/useTeamChatNotifications.ts
-src/hooks/useTextToSpeech.ts
 src/hooks/useUIInteractionManagement.ts
 src/hooks/useWebAuthn.ts
 src/hooks/useWhatsAppTemplates.ts
@@ -282,11 +268,9 @@ src/lib/__tests__/contactHealth.test.ts
 src/lib/__tests__/debug-dompurify-test.ts
 src/lib/__tests__/externalProxy.test.ts
 src/lib/__tests__/instrumentedExternal.test.ts
-src/lib/__tests__/reactRefs.test.ts
 src/lib/__tests__/undoToast.test.ts
 src/lib/__tests__/web-vitals.test.ts
 src/lib/__tests__/webauthnUtils.test.ts
-src/lib/error-handling.ts
 src/lib/evolutionDiagnostics.ts
 src/lib/failedMessagesEnqueue.ts
 src/lib/featureFlags.ts
@@ -297,7 +281,6 @@ src/lib/realtime/__tests__/crossTabDedupe.test.ts
 src/lib/realtime/crossTabDedupe.ts
 src/lib/retryConfig.ts
 src/lib/sendFunctionRouter.ts
-src/lib/structuredErrorLogging.ts
 src/pages/AdminEvolutionApiLogsPage.tsx
 src/pages/AdminRealtimeMonitorPage.tsx
 src/pages/AdminSearchInsightsPage.tsx
