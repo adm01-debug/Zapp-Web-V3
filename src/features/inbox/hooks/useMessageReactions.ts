@@ -50,8 +50,7 @@ export function useMessageReactions(messageId: string, options?: UseMessageReact
     queryKey: ['my-profile-reactions', user?.id],
     queryFn: async () => {
       if (!user?.id) return null;
-      const { data, error } = await supabase
-        .from('profiles')
+      const { data, error } = await db.from('profiles')
         .select('id, name')
         .eq('user_id', user.id)
         .maybeSingle();
@@ -70,8 +69,7 @@ export function useMessageReactions(messageId: string, options?: UseMessageReact
   } = useQuery({
     queryKey: ['message-reactions', messageId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('message_reactions')
+      const { data, error } = await db.from('message_reactions')
         .select('*')
         .eq('message_id', messageId);
       if (error) throw error;
@@ -79,8 +77,7 @@ export function useMessageReactions(messageId: string, options?: UseMessageReact
       const userIds = (data?.filter((r) => r.user_id).map((r) => r.user_id) || []) as string[];
       let usersMap = new Map<string, string>();
       if (userIds.length > 0) {
-        const { data: users } = await supabase
-          .from('profiles')
+        const { data: users } = await db.from('profiles')
           .select('id, name')
           .in('id', userIds);
         usersMap = new Map(users?.map((u) => [u.id, u.name]) || []);

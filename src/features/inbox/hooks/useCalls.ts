@@ -51,8 +51,7 @@ export const useCalls = () => {
   const getProfileId = useCallback(async (): Promise<string | null> => {
     if (!user) return null;
 
-    const { data } = await supabase
-      .from('profiles')
+    const { data } = await db.from('profiles')
       .select('id')
       .eq('user_id', user.id)
       .maybeSingle();
@@ -67,8 +66,7 @@ export const useCalls = () => {
       try {
         const profileId = await getProfileId();
 
-        const { data, error } = await supabase
-          .from('calls')
+        const { data, error } = await db.from('calls')
           .insert({
             contact_id: params.contactId || null,
             agent_id: profileId,
@@ -105,8 +103,7 @@ export const useCalls = () => {
     abortControllerRef.current = controller;
 
     try {
-      const builder = supabase
-        .from('calls')
+      const builder = db.from('calls')
         .update({
           status: 'answered',
           answered_at: new Date().toISOString(),
@@ -136,8 +133,7 @@ export const useCalls = () => {
     abortControllerRef.current = controller;
 
     try {
-      const builder = supabase
-        .from('calls')
+      const builder = db.from('calls')
         .update({
           status: 'ended',
           ended_at: new Date().toISOString(),
@@ -177,8 +173,7 @@ export const useCalls = () => {
     abortControllerRef.current = controller;
 
     try {
-      const builder = supabase
-        .from('calls')
+      const builder = db.from('calls')
         .update({
           status: 'missed',
           ended_at: new Date().toISOString(),
@@ -235,8 +230,7 @@ export const useCalls = () => {
     abortControllerRef.current = controller;
 
     try {
-      const builder = supabase
-        .from('calls')
+      const builder = db.from('calls')
         .select('*')
         .eq('contact_id', contactId)
         .order('started_at', { ascending: false });
