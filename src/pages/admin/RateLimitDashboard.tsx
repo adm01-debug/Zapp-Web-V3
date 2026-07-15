@@ -237,6 +237,12 @@ export default function RateLimitDashboard() {
           </div>
         </TabsContent>
 
+        <TabsContent value="alerts" className="mt-4">
+          <RateLimitAlertsPanel />
+        </TabsContent>
+
+
+
         <TabsContent value="blocked" className="mt-4">
           <BlockedIPsPanel />
         </TabsContent>
