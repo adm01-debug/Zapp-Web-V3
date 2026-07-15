@@ -74,14 +74,14 @@ export function useMessageSendHistory(messageId: string | undefined, enabled: bo
         .order('created_at', { ascending: false })
         .limit(10);
       const [metricRes, auditRes, outboundAuditRes] = await Promise.all([
-        supabase
+        db
           .from('evolution_retry_metrics')
           .select('*')
           .eq('idempotency_key', idempotencyKey)
           .order('created_at', { ascending: false })
           .limit(1)
           .maybeSingle(),
-        supabase
+        db
           .from('audit_logs')
           .select('id, action, created_at, details')
           .eq('entity_type', 'message')

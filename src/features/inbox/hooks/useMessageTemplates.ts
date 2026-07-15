@@ -39,7 +39,7 @@ export function useMessageTemplates() {
     if (!user?.id) return;
     setIsLoading(true);
     try {
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from('message_templates')
         .select('*')
         .order('use_count', { ascending: false });
@@ -90,7 +90,7 @@ export function useMessageTemplates() {
   const updateTemplate = useCallback(
     async (template: Template) => {
       try {
-        const { error } = await supabase
+        const { error } = await db
           .from('message_templates')
           .update({
             title: template.title,
@@ -128,7 +128,7 @@ export function useMessageTemplates() {
   );
 
   const incrementUseCount = useCallback(async (template: Template) => {
-    await supabase
+    await db
       .from('message_templates')
       .update({ use_count: template.use_count + 1 })
       .eq('id', template.id);

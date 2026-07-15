@@ -97,7 +97,7 @@ export function useFailureMetricsBatch(
       // Chunk para evitar queries gigantes
       for (let i = 0; i < keys.length; i += CHUNK_SIZE) {
         const slice = keys.slice(i, i + CHUNK_SIZE);
-        const { data, error } = await supabase
+        const { data, error } = await db
           .from('evolution_retry_metrics')
           .select('idempotency_key, final_http_status, retry_reasons')
           .in('idempotency_key', slice);

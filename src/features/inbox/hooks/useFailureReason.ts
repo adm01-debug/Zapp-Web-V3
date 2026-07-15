@@ -44,7 +44,7 @@ export function useFailureReason(messageId: string | undefined, enabled: boolean
     staleTime: STALE_MS,
     queryFn: async () => {
       if (!messageId) return null;
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from('evolution_retry_metrics')
         .select('attempt_count, final_status, final_http_status, retry_reasons')
         .eq('idempotency_key', `msg:${messageId}`)
