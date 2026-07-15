@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * evolutionReconcile — Optimistic-to-canonical reconciliation utilities.
  * Shared by useExternalConversations and useExternalMessages.
