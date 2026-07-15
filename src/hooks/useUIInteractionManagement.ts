@@ -19,7 +19,7 @@ interface UseSwipeGestureOptions {
   enabled?: boolean;
 }
 
-interface SwipeState {
+export interface SwipeState {
   offsetX: number;
   isSwiping: boolean;
   direction: 'left' | 'right' | null;
@@ -69,7 +69,7 @@ export interface SidebarState {
   maxReached: boolean;
 }
 
-interface UseAriaAnnouncerReturn {
+export interface UseAriaAnnouncerReturn {
   announce: (message: string) => void;
 }
 
