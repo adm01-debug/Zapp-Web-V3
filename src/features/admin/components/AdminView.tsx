@@ -271,6 +271,8 @@ export function AdminView() {
         <div className="flex justify-center py-12"><RefreshCw className="w-8 h-8 animate-spin text-muted-foreground" /></div>
       ) : activeTab === 'inbox-config' ? (
         <InboxScopeConfig />
+      ) : activeTab === 'agent-versions' ? (
+        <AgentVersionsPanel />
       ) : activeTab === 'users' ? (
         <Tabs defaultValue="list" className="w-full">
           <TabsList className="mb-4">
