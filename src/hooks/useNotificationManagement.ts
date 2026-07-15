@@ -1,4 +1,3 @@
-// @ts-nocheck
 // Consolidated Notification & Alerts Management Module (ETAPA 38)
 // Consolidates: usePushNotifications, useNotificationSettings, useTeamChatNotifications, useSecurityPushNotifications, useGoalNotifications, useTranscriptionNotifications
 import { useState, useEffect, useCallback, useRef } from 'react';
