@@ -109,7 +109,7 @@ const realtimeReconnectAfterMs = (tries: number): number =>
   Math.min(1000 * 2 ** Math.max(0, tries - 1), 30000);
 
 // ---------------------------------------------------------------------------
-// ZAPP Web client — schema 'zapp' (all tables migrated from public)
+// ZAPP Web client — schema 'zapp' (schema canônico de todas as tabelas)
 // ---------------------------------------------------------------------------
 export const supabase = createClient<ExtendedDatabase>(supabaseUrl, supabaseAnonKey, {
   db: {

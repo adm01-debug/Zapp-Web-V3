@@ -42,7 +42,7 @@ function jidToPhone(value: string): string | null {
 }
 
 /**
- * Resolves the local `public.contacts.id` (UUID) for a given identifier that may be either:
+ * Resolves the local `zapp.contacts.id` (UUID) for a given identifier that may be either:
  *   - a real UUID (returned as-is)
  *   - a WhatsApp JID coming from FATOR X (looked up by phone)
  * Returns `null` when no local contact exists — callers must skip enriched queries in that case.

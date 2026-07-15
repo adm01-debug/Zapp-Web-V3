@@ -2,13 +2,13 @@
 # check-realtime-dead-channels.sh
 # CI Guard: detecta subscriptions Supabase Realtime que apontam para views públicas mortas.
 #
-# Views em public.*  NUNCA emitem WAL events. Qualquer .on('postgres_changes', { schema: 'public', table: VIEW_TABLE })
+# Views NUNCA emitem WAL events. Qualquer .on('postgres_changes', { schema: 'public', table: VIEW_TABLE })
 # é um canal silenciosamente morto — nunca dispara callbacks.
 #
-# Tabelas SEGURAS em public (são base tables, OK):
+# Tabelas em zapp são base tables — schema: 'zapp' no client:
 #   whatsapp_connections, password_reset_requests, rate_limit_logs, security_alerts, profiles
 #
-# Tabelas PROIBIDAS em public (são views sobre zapp/evo/vendas, MORTAS):
+# Views (não emitem Realtime) — redirecionar para tabela-fonte:
 #   whisper_messages  → zapp.whisper_messages
 #   team_messages     → zapp.team_messages
 #   contacts          → evo.evolution_contacts

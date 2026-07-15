@@ -473,7 +473,7 @@ export interface DeadLetterInput {
 
 /**
  * Roteia um evento com falha de handler para a DLQ `evolution_webhook_dlq`
- * (via camada public.*). Colunas mapeadas 1:1 ao schema evo.evolution_webhook_dlq
+ * (via views no schema zapp). Colunas mapeadas 1:1 ao schema evo.evolution_webhook_dlq
  * (event_type/instance_name/error_message NOT NULL — defaults defensivos).
  * Fail-safe: nunca lança — perda da DLQ não pode derrubar a resposta 200 ao
  * Evolution (evita retry-storm). request_id vai apenas para o log.

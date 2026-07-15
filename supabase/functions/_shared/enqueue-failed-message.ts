@@ -30,7 +30,7 @@ function getServiceClient() {
   const url = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL')) ?? Deno.env.get('VITE_SUPABASE_URL');
   const key = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'));
   if (!url || !key) return null;
-  cached = createClient(url, key, { auth: { persistSession: false } });
+  cached = createClient(url, key, { auth: { persistSession: false }, db: { schema: "zapp" } });
   return cached;
 }
 

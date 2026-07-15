@@ -6,7 +6,7 @@
  *  - Total de mensagens nas janelas de 5min / 1h / 24h.
  *  - Top 10 conversas (remote_jid) por contagem nas últimas 24h, com último evento.
  *  - Logs básicos: últimas falhas (`public.failed_messages`) e últimas auditorias
- *    (`public.audit_logs`) — fontes locais que cobrem retries/erros do envio.
+ *    (`zapp.audit_logs`) — fontes locais que cobrem retries/erros do envio.
  *
  * Fonte FATOR X: lida via `queryExternalProxy` (mesmo caminho do Inbox).
  * Refresh manual + auto-poll (15s) com pausa quando a aba está oculta.

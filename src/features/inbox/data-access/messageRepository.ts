@@ -93,7 +93,7 @@ export const messageRepository = {
       };
 
     // FATOR X v6.1: Realtime deve apontar para a TABELA-FONTE (evo.evolution_messages).
-    // A view compat `public.messages` nao emite eventos postgres_changes.
+    // A view `messages` (zapp) não emite Realtime — usar tabela-fonte evo.evolution_messages.
     const channel = dbChannel('messages', `messages:${contactId}`)
       .on(
         'postgres_changes',

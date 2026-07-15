@@ -73,7 +73,7 @@ export async function logAiUsage(entry: AiUsageEntry): Promise<void> {
     const serviceRoleKey = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'));
     if (!supabaseUrl || !serviceRoleKey) return;
 
-    const supabase = createClient(supabaseUrl, serviceRoleKey);
+    const supabase = createClient(supabaseUrl, serviceRoleKey, { db: { schema: "zapp" } });
 
     // Auto-resolve profile_id if not provided
     const profileId = entry.profileId || await resolveProfileId(supabase, entry.userId);

@@ -42,7 +42,7 @@ export function useWhisperCount(
     };
     void fetchWhisperCount();
 
-    // Wave 2: whisper_messages is a VIEW in public schema — zapp.whisper_messages is the base table.
+    // whisper_messages: tabela base em zapp. Views não emitem WAL events.
     // PostgreSQL views never emit WAL events, so Realtime subscriptions must target the base table.
     const channel = supabase
       .channel(`whisper-count-${selectedContactId}`)

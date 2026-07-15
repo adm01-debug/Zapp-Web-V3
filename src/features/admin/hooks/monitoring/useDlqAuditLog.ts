@@ -6,7 +6,7 @@ import { useUserRole } from '@/features/auth';
 /**
  * Histórico de auditoria das operações da DLQ (Dead-Letter Queue).
  *
- * Lê de `public.audit_logs` (entity_type='failed_messages') via
+ * Lê de `zapp.audit_logs` (entity_type='failed_messages') via
  * `rpc_dlq_list_audit`, que faz JOIN com `profiles` para trazer o nome/email
  * de quem executou. Acesso restrito a admin (RPC valida via `has_role`).
  */

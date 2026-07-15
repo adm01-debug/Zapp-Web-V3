@@ -307,7 +307,7 @@ export const evolutionMessageRowSchema = z
 export type EvolutionMessageRow = z.infer<typeof evolutionMessageRowSchema>;
 
 // ─────────────────────────────────────────────
-// Sentiment alert audit row (public.audit_logs)
+// Sentiment alert audit row (zapp.audit_logs)
 // ─────────────────────────────────────────────
 
 export const sentimentAlertAuditRowSchema = z.object({

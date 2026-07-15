@@ -153,7 +153,7 @@ export async function requireAdminOrSupervisor(req: Request): Promise<AuthedUser
   const admin = createClient(
     requireEnv("SUPABASE_URL"),
     requireEnv("SUPABASE_SERVICE_ROLE_KEY"),
-    { auth: { persistSession: false, autoRefreshToken: false } },
+    { auth: { persistSession: false, autoRefreshToken: false }, db: { schema: "zapp" } },
   );
   const { data: isPriv, error } = await admin.rpc("is_admin_or_supervisor", { _user_id: authed.user.id });
   if (error) return errorResponse("Authorization check failed", 500, req);

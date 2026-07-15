@@ -8,7 +8,7 @@
  * canônico assume a fonte da verdade segundos depois.
  *
  * Diferenças vs `messageSender.ts` (legacy):
- *  - Não grava em `public.messages` / `public.contacts`.
+ *  - Não grava em `messages` / `contacts` (views zapp).
  *  - O `contactId` recebido é o `remote_jid` (ex.: `5511XXXXX@s.whatsapp.net`),
  *    NÃO um UUID — derivamos o telefone via `jidToPhone`.
  *  - Joga o erro pra cima (sem swallow), pra alimentar o `SendErrorBanner`.
