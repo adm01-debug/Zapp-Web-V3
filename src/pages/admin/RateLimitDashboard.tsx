@@ -43,6 +43,7 @@ export default function RateLimitDashboard() {
     logs, stats, total, totalPages, loading, filters, setFilters, resetFilters, refetch,
   } = useRateLimitLogs();
   const [activeTab, setActiveTab] = useState('overview');
+  const [selectedLog, setSelectedLog] = useState<RateLimitLog | null>(null);
 
   // Área técnica — visualização restrita a admin+ (hierarquia inclui dev).
   if (!isAdmin) {
