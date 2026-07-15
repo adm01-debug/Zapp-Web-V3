@@ -84,6 +84,14 @@ jobs:
           fi
           exit 0
 
+      - name: Cluster typecheck ratchet (CRM/Sales, Inbox, Queues, Observability)
+        # Falha se um cluster limpo regredir para @ts-nocheck ou introduzir
+        # novos erros TS. Roda tsgo por cluster e reporta apenas erros dentro
+        # do escopo do cluster. Ver scripts/check-cluster-typecheck.mjs.
+        run: node scripts/check-cluster-typecheck.mjs
+        continue-on-error: true
+
+
       - name: Unit & Integration Tests (blocking)
         # The OOM was a single infinite-loop test (useMessages, now quarantined)
         # plus a flaky waitFor>testTimeout mismatch (fixed). The suite is now
