@@ -67,6 +67,7 @@ export default function AdminAutomationsPage() {
 
   const [editing, setEditing] = useState<Rule | null>(null);
   const [open, setOpen] = useState(false);
+  const [showErrorDetails, setShowErrorDetails] = useState(false);
 
   const [filterChannel, setFilterChannel] = useState<string>('all');
   const [filterDepartment, setFilterDepartment] = useState<string>('all');
