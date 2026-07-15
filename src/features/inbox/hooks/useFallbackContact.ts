@@ -31,7 +31,7 @@ export function useFallbackContact(
       const phone: string | null = isJid
         ? raw.split('@')[0].replace(/\D/g, '')
         : !isUuid
-          ? raw.replace(/\D/g, '')
+          ? (raw as string).replace(/\D/g, '')
           : null;
 
       let query = db.from('contacts').select('*');
