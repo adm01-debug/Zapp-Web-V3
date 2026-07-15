@@ -9,7 +9,7 @@
 import { describe, it, expect } from 'vitest';
 
 // No React runtime import needed — react-refs.ts only imports React types.
-import { asRef } from '../react-refs';
+import { asRef } from '../reactRefs';
 
 describe('asRef', () => {
   it('returns the exact same object reference as input', () => {
