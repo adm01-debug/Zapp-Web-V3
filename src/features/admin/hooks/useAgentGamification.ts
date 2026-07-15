@@ -1,5 +1,5 @@
-// @ts-nocheck
 import { useQuery } from '@tanstack/react-query';
+import { unwrapRow, unwrapRows } from '@/lib/supabase-helpers';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/features/auth';
 import { useGamificationMutations } from './gamification/mutations';
