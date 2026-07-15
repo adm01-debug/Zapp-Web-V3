@@ -10,6 +10,23 @@ export type { AgentStats, Achievement } from './gamification/types';
 export { ACHIEVEMENT_TYPES } from './gamification/types';
 export { calculateLevel, xpForNextLevel, levelProgress } from './gamification/levelUtils';
 
+// Schema drift: profiles/agent_stats/agent_achievements columns nem sempre
+// existem nos tipos gerados do schema zapp. Usamos casts controlados via
+// helpers unwrapRow/unwrapRows para narrar SelectQueryError sem `any` no domínio.
+const db = supabase as unknown as {
+  from: (t: string) => {
+    select: (s: string) => {
+      eq: (c: string, v: unknown) => {
+        maybeSingle: () => Promise<{ data: unknown; error: unknown }>;
+        order: (
+          c: string,
+          o: { ascending: boolean }
+        ) => { limit: (n: number) => Promise<{ data: unknown; error: unknown }> };
+      };
+    };
+  };
+};
+
 export const useAgentGamification = () => {
   const { user } = useAuth();
 
@@ -17,13 +34,13 @@ export const useAgentGamification = () => {
     queryKey: ['user-profile', user?.id],
     queryFn: async () => {
       if (!user?.id) return null;
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from('profiles')
         .select('id')
         .eq('user_id', user.id)
         .maybeSingle();
-      if (error) throw error;
-      return data;
+      if (error) throw error as Error;
+      return unwrapRow<{ id: string }>(data);
     },
     enabled: !!user?.id,
   });
@@ -34,13 +51,13 @@ export const useAgentGamification = () => {
     queryKey: ['agent-stats', profileId],
     queryFn: async () => {
       if (!profileId) return null;
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from('agent_stats')
         .select('*')
         .eq('profile_id', profileId)
         .maybeSingle();
-      if (error) throw error;
-      return data as AgentStats | null; // ignore-audit: narrows Supabase query result to local interface
+      if (error) throw error as Error;
+      return unwrapRow<AgentStats>(data);
     },
     enabled: !!profileId,
     refetchInterval: 30000,
@@ -49,15 +66,15 @@ export const useAgentGamification = () => {
   const achievementsQuery = useQuery({
     queryKey: ['agent-achievements', profileId],
     queryFn: async () => {
-      if (!profileId) return [];
-      const { data, error } = await supabase
+      if (!profileId) return [] as Achievement[];
+      const { data, error } = await db
         .from('agent_achievements')
         .select('*')
         .eq('profile_id', profileId)
         .order('earned_at', { ascending: false })
         .limit(20);
-      if (error) throw error;
-      return data as Achievement[]; // ignore-audit: narrows Supabase query result to local interface
+      if (error) throw error as Error;
+      return unwrapRows<Achievement>(data);
     },
     enabled: !!profileId,
   });
