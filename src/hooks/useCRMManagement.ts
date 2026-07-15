@@ -53,7 +53,7 @@ export function useContactIntelligenceManagement(contactId?: string) {
 
     try {
       setLoading(true);
-      const { data, error: err } = await supabase
+      const { data, error: err } = await db
         .from('contact_intelligence')
         .select('*')
         .eq('contact_id', contactId)
@@ -93,7 +93,7 @@ export function useContactNotesManagement(contactId?: string) {
 
     try {
       setLoading(true);
-      const { data, error: err } = await supabase
+      const { data, error: err } = await db
         .from('contact_notes')
         .select('*')
         .eq('contact_id', contactId)
@@ -180,7 +180,7 @@ export function useContactAssignmentManagement(contactId?: string) {
 
     try {
       setLoading(true);
-      const { data, error: err } = await supabase
+      const { data, error: err } = await db
         .from('contact_assignments')
         .select('*')
         .eq('contact_id', contactId)
@@ -202,7 +202,7 @@ export function useContactAssignmentManagement(contactId?: string) {
       if (!contactId) return;
 
       try {
-        const { error: err } = await supabase
+        const { error: err } = await db
           .from('contact_assignments')
           .upsert({ contact_id: contactId, assigned_to_user_id: userId });
 
@@ -240,7 +240,7 @@ export function useContactCustomFieldsManagement(contactId?: string) {
 
     try {
       setLoading(true);
-      const { data, error: err } = await supabase
+      const { data, error: err } = await db
         .from('contact_custom_fields')
         .select('*')
         .eq('contact_id', contactId);
