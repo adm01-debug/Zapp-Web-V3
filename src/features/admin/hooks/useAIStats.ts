@@ -75,18 +75,20 @@ export function useAIStats(selectedPeriod: PeriodOption) {
       const periodStart = subDays(now, selectedPeriod);
       const previousPeriodStart = subDays(now, selectedPeriod * 2);
 
-      const { data: currentAnalyses, error } = await supabase
+      const { data: currentRaw, error } = await supabase
         .from('conversation_analyses')
         .select('sentiment, sentiment_score, created_at')
         .gte('created_at', periodStart.toISOString())
         .order('created_at', { ascending: true });
       if (error) throw error;
+      const currentAnalyses = unwrapRows<AnalysisRow>(currentRaw);
 
-      const { data: previousAnalyses } = await supabase
+      const { data: previousRaw } = await supabase
         .from('conversation_analyses')
         .select('sentiment, sentiment_score, created_at')
         .gte('created_at', previousPeriodStart.toISOString())
         .lt('created_at', periodStart.toISOString());
+      const previousAnalyses = unwrapRows<AnalysisRow>(previousRaw);
 
       const totalAnalyses = currentAnalyses?.length || 0;
       const avgSentimentScore =
