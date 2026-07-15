@@ -1,4 +1,4 @@
-import type { Tables } from '@/integrations/supabase/types';
+import type { Tables } from '@/integrations/supabase/schema';
 export type Contact = Pick<Tables<'contacts'>, 'id' | 'name' | 'surname' | 'nickname' | 'phone' | 'email' | 'avatar_url' | 'company' | 'job_title' | 'tags' | 'contact_type' | 'created_at'>;
 
 export interface ContactItemProps {

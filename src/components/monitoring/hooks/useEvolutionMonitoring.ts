@@ -82,7 +82,7 @@ export function useEvolutionMonitoring() {
       )
       .on(
         'postgres_changes',
-        { event: 'INSERT', schema: 'evo', table: 'evolution_messages' }, // FATOR X v6.2: view public não emite
+        { event: 'INSERT', schema: 'evo', table: 'evolution_messages' }, // tabela-fonte em schema evo (Realtime exige tabela base)
         wrapMessagesHandler<{ new: Record<string, unknown> }>('useEvolutionMonitoring', () =>
           fetchData()
         )

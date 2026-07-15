@@ -114,7 +114,7 @@ describe('parser de wildcard "*" — hooks (event: "*")', () => {
   });
 
   it('aspas duplas em event: "*" tambem expandem', () => {
-    const body = `event: "*", schema: "public", table: "messages"`;
+    const body = `event: "*", schema: "zapp", table: "messages"`;
     expect(parseHookEventBlock(body)).toEqual(new Set(['INSERT', 'UPDATE', 'DELETE']));
   });
 

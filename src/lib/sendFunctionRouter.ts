@@ -3,16 +3,9 @@
  *  - `evolution-api`        for Evolution / Baileys connections (default)
  *  - `whatsapp-cloud-api`   for WhatsApp Cloud API (Meta) connections
  *
- * A conexão é "official" quando existe uma linha em
- * `whatsapp_official_credentials` apontando para o `connection_id`. Caso
- * contrário, roteamos para Evolution (Baileys). Resultado é cacheado por 60s.
- *
- * Este é o ÚNICO ponto que conhece o split cloud/baileys. Inbox, hooks e
- * senders permanecem agnósticos.
- *
- * Nota: as colunas `instance_name` e `api_type` NÃO existem em
- * `whatsapp_connections`. O lookup é feito por `name` (canônico) com fallback
- * para `instance_id` — ver `columnMap.whatsapp_connections`.
+ * Lê `api_type` da tabela `whatsapp_connections` (coluna adicionada).
+ * Quando api_type === 'official' → whatsapp-cloud-api, caso contrário → evolution-api.
+ * Resultado é cacheado por 60s.
  */
 import { supabase } from '@/integrations/supabase/client';
 
@@ -29,38 +22,33 @@ export async function resolveSendFunction(
   instanceName: string | undefined | null,
 ): Promise<FnName> {
   if (!instanceName) return 'evolution-api';
+
   const cached = cache.get(instanceName);
   if (cached && cached.expiresAt > Date.now()) return cached.fn;
 
   try {
-    // Two sequential exact queries evitam PostgREST filter injection quando
-    // instanceName contém caracteres reservados de `.or()`.
+    // Primeira tentativa: buscar por instance_name
     let { data: conn, error } = await supabase
       .from('whatsapp_connections')
-      .select('id, status')
+      .select('id, api_type, status')
       .eq('name', instanceName)
       .maybeSingle();
 
+    // Fallback: buscar por instance_id
     if (!conn && !error) {
       ({ data: conn, error } = await supabase
         .from('whatsapp_connections')
-        .select('id, status')
+        .select('id, api_type, status')
         .eq('instance_id', instanceName)
         .maybeSingle());
     }
 
     if (error || !conn) {
-      // Não cacheia em erro — próxima chamada tenta novamente.
+      // Não cacheia em erro — próxima chamada tenta novamente
       return 'evolution-api';
     }
 
-    const { data: official } = await supabase
-      .from('whatsapp_official_credentials')
-      .select('id')
-      .eq('connection_id', conn.id)
-      .maybeSingle();
-
-    const fn: FnName = official ? 'whatsapp-cloud-api' : 'evolution-api';
+    const fn: FnName = conn.api_type === 'official' ? 'whatsapp-cloud-api' : 'evolution-api';
     cache.set(instanceName, { fn, expiresAt: Date.now() + TTL_MS });
     return fn;
   } catch {

@@ -226,7 +226,7 @@ export function useRealtimeContacts(options: UseRealtimeContactsOptions = {}) {
         'postgres_changes',
         {
           event: '*',
-          schema: 'evo', // FATOR X v6.2: tabela-fonte (view public não emite)
+          schema: 'evo', // tabela-fonte em schema evo (Realtime exige tabela base, não view)
           table: 'evolution_contacts',
           filter: `instance_name=eq.${instance}`,
         },

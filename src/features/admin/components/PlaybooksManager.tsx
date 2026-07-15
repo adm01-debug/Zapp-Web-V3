@@ -22,7 +22,7 @@ import {
 } from '@/components/ui/select';
 import { BookOpen, Plus, Edit, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { Json } from '@/integrations/supabase/types';
+import { Json } from '@/integrations/supabase/schema';
 
 interface PlaybookStep {
   order: number;

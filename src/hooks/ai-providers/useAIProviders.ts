@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import type { Json } from '@/integrations/supabase/types';
+import type { Json } from '@/integrations/supabase/schema';
 import { toast } from '@/hooks/use-toast';
 import type { AIProvider, ProviderFormData } from '@/components/settings/ai-providers/types';
 import { EMPTY_FORM } from '@/components/settings/ai-providers/types';

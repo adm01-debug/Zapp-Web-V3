@@ -124,11 +124,11 @@ export function useTeamConversations() {
     if (!profile) return;
     const channel = supabase
       .channel('team-chat-updates')
-      // Wave 1: team_messages is a view in public — repoint to zapp base table
+      // team_messages: tabela base em zapp
       .on('postgres_changes', { event: '*', schema: 'zapp', table: 'team_messages' }, () => {
         void queryClient.invalidateQueries({ queryKey: ['team-conversations'] });
       })
-      // Wave 1: team_conversations and team_conversation_members are views in public — zapp is base schema
+      // team_conversations + team_conversation_members: tabelas base em zapp
       .on('postgres_changes', { event: '*', schema: 'zapp', table: 'team_conversations' }, () => {
         void queryClient.invalidateQueries({ queryKey: ['team-conversations'] });
       })

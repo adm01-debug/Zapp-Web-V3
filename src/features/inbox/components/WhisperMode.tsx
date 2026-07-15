@@ -90,7 +90,7 @@ export function WhisperMode({
     if (!contactIsUUID) return;
     const channel = supabase
       .channel(`whisper-${contactId}`)
-      // Wave 1: whisper_messages is a view in public — repoint to zapp base table
+      // whisper_messages: tabela base em zapp
       .on(
         'postgres_changes',
         {

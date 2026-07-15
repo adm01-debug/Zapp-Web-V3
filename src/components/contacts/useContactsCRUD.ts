@@ -4,7 +4,7 @@ import { useActionFeedback } from '@/hooks/useActionFeedback';
 import { useContactsSearch } from '@/hooks/useContactsSearch';
 import { openContactInChat } from '@/lib/openContactInChat';
 import { dbFrom } from '@/integrations/datasource/db';
-import type { Tables } from '@/integrations/supabase/types';
+import type { Tables } from '@/integrations/supabase/schema';
 
 interface ContactFormData {
   name: string;

@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Brain, Plus, X, Save, Lightbulb, AlertCircle, Handshake, Clock } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
-import { Json } from '@/integrations/supabase/types';
+import { Json } from '@/integrations/supabase/schema';
 
 interface MemoryData {
   id?: string;

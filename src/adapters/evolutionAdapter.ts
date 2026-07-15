@@ -57,11 +57,9 @@ export function evolutionToRealtimeMessage(evo: EvolutionMessage): RealtimeMessa
     deleted_at: evo.deleted_at ?? null,
     contactAvatar: null,
     reactions: Array.isArray(evo.reactions)
-      ? evo.reactions.map((r) => ({
-          user_id: r.key?.remoteJid ?? '',
-          emoji: r.text ?? '',
-        }))
+      ? evo.reactions  // pass-through: manter formato original da Evolution
       : [],
+    media_meta: Object.keys(mediaMeta).length > 0 ? mediaMeta : undefined, // exposto para compatibilidade
   };
 }
 

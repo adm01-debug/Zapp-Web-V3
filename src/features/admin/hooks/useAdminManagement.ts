@@ -22,7 +22,7 @@ import { useMountedRef } from '@/hooks/useMountedRef';
 import { log, getLogger } from '@/lib/logger';
 import { invalidateRouteRolesCache } from '@/features/auth';
 import { normalizeProfileRef, type AdminProfileRef } from '@/features/admin/utils/profileMappers';
-import type { Json } from '@/integrations/supabase/types';
+import type { Json } from '@/integrations/supabase/schema';
 import type { AppRole } from '@/features/auth';
 
 // ─── Type Exports ────────────────────────────────────────────────────────────

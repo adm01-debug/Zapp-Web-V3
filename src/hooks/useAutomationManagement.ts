@@ -6,7 +6,7 @@ import { safeClient } from '@/integrations/supabase/safeClient';
 import { getExternalSupabase } from '@/integrations/supabase/externalClient';
 import { toast } from '@/hooks/use-toast';
 import { log } from '@/lib/logger';
-import type { TablesInsert, TablesUpdate } from '@/integrations/supabase/types';
+import type { TablesInsert, TablesUpdate } from '@/integrations/supabase/schema';
 
 const getClient = () => getExternalSupabase();
 
