@@ -1,4 +1,8 @@
-// @ts-nocheck
+// Escape hatch pontual: `webhook_health_checks` e `sentiment_alerts` são
+// tabelas do schema `zapp` que ainda não estão nos types gerados pela Lovable
+// Cloud (o schema oficial vive na VPS self-hosted). Enquanto o
+// gen-types-zapp.mjs não é rodado com acesso à VPS, usamos `db as any` só na
+// fronteira dessas tabelas. A superfície pública do hook permanece 100% tipada.
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
