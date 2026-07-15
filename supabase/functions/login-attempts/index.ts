@@ -83,11 +83,11 @@ Deno.serve(async (req) => {
       return errorResponse("Email inválido", 400, req);
     }
 
-    const admin = createClient(requireEnv("SUPABASE_URL"), requireEnv("SUPABASE_SERVICE_ROLE_KEY"));
+    const admin = createClient(requireEnv("SUPABASE_URL"), requireEnv("SUPABASE_SERVICE_ROLE_KEY", { db: { schema: "zapp" } }));
 
     if (action === "clear") {
       const authHeader = req.headers.get("Authorization") ?? "";
-      const authClient = createClient(requireEnv("SUPABASE_URL"), requireEnv("SUPABASE_ANON_KEY"), {
+      const authClient = createClient(requireEnv("SUPABASE_URL"), requireEnv("SUPABASE_ANON_KEY", { db: { schema: "zapp" } }), {
         global: { headers: { Authorization: authHeader } },
       });
       const { data: authData, error: authError } = await authClient.auth.getUser();

@@ -12,7 +12,7 @@ Deno.serve(async (req) => {
   const log = new Logger("cleanup-storage-orphans");
   const supabaseUrl = requireEnv("SUPABASE_URL");
   const supabaseServiceKey = requireEnv("SUPABASE_SERVICE_ROLE_KEY");
-  const supabase = createClient(supabaseUrl, supabaseServiceKey);
+  const supabase = createClient(supabaseUrl, supabaseServiceKey, { db: { schema: "zapp" } });
 
   try {
     log.info("Iniciando limpeza de arquivos órfãos nos buckets de mídia");

@@ -89,7 +89,7 @@ Deno.serve(async (req) => {
   try {
     const supabaseUrl = requireEnv("SUPABASE_URL");
     const serviceRoleKey = requireEnv("SUPABASE_SERVICE_ROLE_KEY");
-    const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
+    const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, { db: { schema: "zapp" } });
 
     // Auth check
     const authHeader = req.headers.get("Authorization");

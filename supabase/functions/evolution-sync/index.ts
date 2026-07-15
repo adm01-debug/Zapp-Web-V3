@@ -35,7 +35,7 @@ Deno.serve(async (req) => {
     });
   }
 
-  const supabase = createClient(supabaseUrl, supabaseServiceKey);
+  const supabase = createClient(supabaseUrl, supabaseServiceKey, { db: { schema: "zapp" } });
 
   try {
     let rawBody: unknown;

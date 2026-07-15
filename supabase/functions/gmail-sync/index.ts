@@ -61,7 +61,7 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     if (!supabaseUrl || !supabaseKey) return json({ error: 'Server misconfigured' }, 503);
 
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const supabase = createClient(supabaseUrl, supabaseKey, { db: { schema: "zapp" } });
 
     let rawBody: unknown;
     try {

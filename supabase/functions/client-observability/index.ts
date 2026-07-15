@@ -59,8 +59,7 @@ Deno.serve(async (req) => {
     }
 
     const supabase = createClient(
-      requireEnv('SUPABASE_URL'),
-      requireEnv('SUPABASE_SERVICE_ROLE_KEY'),
+      requireEnv('SUPABASE_URL'), requireEnv('SUPABASE_SERVICE_ROLE_KEY', { db: { schema: "zapp" } }),
     );
 
     const { error } = await supabase.from('query_telemetry').insert(rows);

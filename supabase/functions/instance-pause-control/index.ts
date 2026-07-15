@@ -47,6 +47,7 @@ Deno.serve(async (req) => {
 
   const supabase = createClient(supabaseUrl, anonKey, {
     global: { headers: { Authorization: authHeader } },
+    db: { schema: "zapp" },
   });
 
   // Verifica usuário autenticado

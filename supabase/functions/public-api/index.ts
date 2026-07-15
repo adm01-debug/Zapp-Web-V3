@@ -21,7 +21,7 @@ Deno.serve(async (req) => {
   try {
     const supabaseUrl = requireEnv('SUPABASE_URL');
     const supabaseServiceKey = requireEnv('SUPABASE_SERVICE_ROLE_KEY');
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const supabase = createClient(supabaseUrl, supabaseServiceKey, { db: { schema: "zapp" } });
 
     const apiKey = req.headers.get('x-api-key');
     if (!apiKey) return errorResponse('Missing x-api-key header', 401, req);

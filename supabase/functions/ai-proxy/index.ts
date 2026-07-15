@@ -67,7 +67,7 @@ Deno.serve(async (req) => {
     const { messages, model: clientModel, use_for, provider_id, tools, tool_choice, stream } = parsed.data;
     const supabaseUrl = requireEnv("SUPABASE_URL");
     const serviceRoleKey = requireEnv("SUPABASE_SERVICE_ROLE_KEY");
-    const supabase = createClient(supabaseUrl, serviceRoleKey);
+    const supabase = createClient(supabaseUrl, serviceRoleKey, { db: { schema: "zapp" } });
     let provider;
     if (provider_id) {
       const bearerToken = getBearer(req);

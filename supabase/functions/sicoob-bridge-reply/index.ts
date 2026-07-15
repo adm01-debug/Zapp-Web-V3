@@ -12,7 +12,7 @@ Deno.serve(async (req) => {
   try {
     const supabaseUrl = requireEnv("SUPABASE_URL");
     const serviceRoleKey = requireEnv("SUPABASE_SERVICE_ROLE_KEY");
-    const supabase = createClient(supabaseUrl, serviceRoleKey);
+    const supabase = createClient(supabaseUrl, serviceRoleKey, { db: { schema: "zapp" } });
 
     // Dual-mode auth: user JWT (frontend) or service-role (Postgres trigger).
     const bearer = getBearer(req);

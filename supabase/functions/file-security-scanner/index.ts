@@ -32,7 +32,7 @@ Deno.serve(async (req) => {
     const supabaseUrl = requireEnv("SUPABASE_URL");
     const supabaseServiceKey = requireEnv("SUPABASE_SERVICE_ROLE_KEY");
 
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const supabase = createClient(supabaseUrl, supabaseServiceKey, { db: { schema: "zapp" } });
 
     if (req.method !== "POST") {
       return securityErrorResponse(

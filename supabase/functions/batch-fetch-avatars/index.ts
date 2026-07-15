@@ -19,7 +19,7 @@ Deno.serve(async (req) => {
     const ip = getClientIP(req);
     const rl = checkRateLimit(`batch-avatars:${ip}`, 5, 60_000);
     if (!rl.allowed) return errorResponse("Rate limit exceeded", 429, req);
-    const supabase = createClient(requireEnv('SUPABASE_URL'), requireEnv('SUPABASE_SERVICE_ROLE_KEY'));
+    const supabase = createClient(requireEnv('SUPABASE_URL'), requireEnv('SUPABASE_SERVICE_ROLE_KEY', { db: { schema: "zapp" } }));
 
     const { data: contacts, error: contactsError } = await supabase
       .from('contacts')

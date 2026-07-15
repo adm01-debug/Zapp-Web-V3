@@ -259,7 +259,7 @@ Deno.serve(async (req) => {
     });
   }
 
-  const admin = createClient(url, serviceKey, { auth: { persistSession: false } });
+  const admin = createClient(url, serviceKey, { auth: { persistSession: false }, db: { schema: "zapp" }} );
 
   // Buscar rota do canal
   const channelRef = body.channel_connection_id

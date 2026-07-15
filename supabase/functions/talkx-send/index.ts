@@ -172,7 +172,7 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "Evolution API configuration missing" }), { status: 500, headers });
     }
 
-    const supabase = createClient(supabaseUrl, serviceKey);
+    const supabase = createClient(supabaseUrl, serviceKey, { db: { schema: "zapp" } });
     // Contrato talkx-send@v1 (estrito): campaignId UUID + action enum.
     const raw = await req.json().catch(() => null);
     const parsed = parseOrReject('talkx-send', { v1: TalkxSendV1Schema }, req, raw, {

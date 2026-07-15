@@ -185,8 +185,7 @@ Deno.serve(async (req) => {
   const sbUrl = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'))!
   const sbKey = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))!
   const supabase = createClient(sbUrl, sbKey, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  })
+    auth: { persistSession: false, autoRefreshToken: false }, db: { schema: "zapp" }} )
 
   // Fetch up to 5000 most recent samples in the window (enough for solid p95)
   const since = new Date(Date.now() - windowMinutes * 60_000).toISOString()

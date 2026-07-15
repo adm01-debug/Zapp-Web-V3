@@ -76,8 +76,7 @@ Deno.serve(async (req) => {
   const source = typeof body.source === 'string' ? body.source : "panel";
 
   const admin = createClient(url, serviceKey, {
-    auth: { persistSession: false },
-  });
+    auth: { persistSession: false }, db: { schema: "zapp" }} );
 
   // No DB-level LIMIT — priority sorting happens in memory and the final slice
   // is applied after sorting. A pre-fetch cap would exclude high-priority contacts

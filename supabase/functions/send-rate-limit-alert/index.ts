@@ -14,8 +14,7 @@ Deno.serve(async (req) => {
 
   try {
     const supabaseClient = createClient(
-      requireEnv("SUPABASE_URL"),
-      requireEnv("SUPABASE_SERVICE_ROLE_KEY")
+      requireEnv("SUPABASE_URL"), requireEnv("SUPABASE_SERVICE_ROLE_KEY", { db: { schema: "zapp" } })
     );
 
     const parsed = parseBody(RateLimitAlertSchema, await req.json());

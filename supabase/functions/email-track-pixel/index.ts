@@ -93,7 +93,7 @@ serve(async (req) => {
       console.error('[email-track-pixel] Missing Supabase configuration');
       throw new Error('Supabase configuration missing');
     }
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const supabase = createClient(supabaseUrl, supabaseKey, { db: { schema: "zapp" } });
     const ua = req.headers.get('user-agent') ?? '';
     const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
       ?? req.headers.get('x-real-ip')

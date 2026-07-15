@@ -964,7 +964,7 @@ Deno.serve(async (req) => {
     // ━━━ PHASE 3: Supabase Setup ━━━
     const supabaseUrl = requireEnv("SUPABASE_URL");
     const supabaseKey = requireEnv("SUPABASE_SERVICE_ROLE_KEY");
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const supabase = createClient(supabaseUrl, supabaseKey, { db: { schema: "zapp" } });
 
     // ━━━ PHASE 4: Idempotency Check (5-min window) ━━━
     // FIX #9: RequestId State Management & Lifecycle Documentation
@@ -3705,7 +3705,7 @@ async function handleTranscribeAudio(
             const path = pathWithQuery.split("?")[0];
             log.info("Downloading from storage", { bucket, path });
 
-            const sb = createClient(supabaseUrl, serviceKey);
+            const sb = createClient(supabaseUrl, serviceKey, { db: { schema: "zapp" } });
             const { data, error } = await sb.storage.from(bucket).download(path);
             if (error || !data) {
               throw new Error(`Storage download failed: ${error?.message}`);

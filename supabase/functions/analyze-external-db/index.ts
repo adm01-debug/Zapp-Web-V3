@@ -92,7 +92,7 @@ Deno.serve(async (req) => {
     });
   }
 
-  const self = createClient(selfUrl, selfKey, { auth: { persistSession: false } });
+  const self = createClient(selfUrl, selfKey, { auth: { persistSession: false }, db: { schema: "zapp" }} );
   const { data: { user }, error: authErr } = await self.auth.getUser(authHeader.replace('Bearer ', ''));
   if (authErr || !user) {
     return new Response(JSON.stringify({ error: 'Invalid or expired token' }), {
@@ -126,8 +126,7 @@ Deno.serve(async (req) => {
     }
 
     const ext = createClient(url, key, {
-      auth: { persistSession: false, autoRefreshToken: false },
-    });
+      auth: { persistSession: false, autoRefreshToken: false }, db: { schema: "zapp" }} );
 
     // Global timeout to prevent hanging
     const timeoutController = new AbortController();

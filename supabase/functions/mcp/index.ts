@@ -39,7 +39,8 @@ function supabaseForUser(ctx) {
     process.env.SUPABASE_PUBLISHABLE_KEY ?? process.env.SUPABASE_ANON_KEY,
     {
       global: { headers: { Authorization: `Bearer ${ctx.getToken()}` } },
-      auth: { persistSession: false, autoRefreshToken: false }
+      auth: { persistSession: false, autoRefreshToken: false },
+      db: { schema: "zapp" }
     }
   );
 }
@@ -76,7 +77,8 @@ function supabaseForUser2(ctx) {
     process.env.SUPABASE_PUBLISHABLE_KEY ?? process.env.SUPABASE_ANON_KEY,
     {
       global: { headers: { Authorization: `Bearer ${ctx.getToken()}` } },
-      auth: { persistSession: false, autoRefreshToken: false }
+      auth: { persistSession: false, autoRefreshToken: false },
+      db: { schema: "zapp" }
     }
   );
 }

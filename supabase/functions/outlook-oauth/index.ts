@@ -56,7 +56,7 @@ serve(async (req) => {
     return json({ error: 'Server configuration error' }, 503);
   }
 
-  const supabase = createClient(supabaseUrl, supabaseServiceKey);
+  const supabase = createClient(supabaseUrl, supabaseServiceKey, { db: { schema: "zapp" } });
 
   const clientIdRaw = Deno.env.get('MICROSOFT_CLIENT_ID');
   const clientSecretRaw = Deno.env.get('MICROSOFT_CLIENT_SECRET');

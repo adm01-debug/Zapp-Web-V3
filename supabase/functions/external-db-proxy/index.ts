@@ -132,7 +132,7 @@ try {
   if (!EXTERNAL_KEY) {
     throw new Error("SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY/EXTERNAL_SUPABASE_SERVICE_ROLE_KEY ausente ou inválida — configure uma chave service_role válida do self-hosted.");
   }
-  supabase = createClient(TARGET_URL, TARGET_KEY, { auth: { persistSession: false } }) as DynamicSupabaseClient;
+  supabase = createClient(TARGET_URL, TARGET_KEY, { auth: { persistSession: false }, db: { schema: "zapp" }} ) as DynamicSupabaseClient;
 } catch (error) {
   bootError = error instanceof Error ? error.message : "Falha desconhecida ao iniciar o proxy.";
   console.error("[external-db-proxy] boot error:", bootError);

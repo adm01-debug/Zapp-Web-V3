@@ -17,8 +17,7 @@ const BATCH_SIZE = 10;
 const SEND_DELAY_MS = 600;
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-  auth: { persistSession: false },
-});
+  auth: { persistSession: false }, db: { schema: "zapp" }} );
 
 // Cache de config Vault (renovado a cada cold start)
 let _config: { url: string; key: string; instance: string } | null = null;

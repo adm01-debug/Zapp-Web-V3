@@ -82,8 +82,7 @@ Deno.serve(async (req) => {
     }
 
     const admin = createClient(url, serviceKey, {
-      auth: { persistSession: false },
-    });
+      auth: { persistSession: false }, db: { schema: "zapp" }} );
 
     // 1) Resolver agente
     const { data: resolved, error: resolveErr } = await admin.rpc(

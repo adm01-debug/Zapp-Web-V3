@@ -13,7 +13,7 @@ Deno.serve(async (req) => {
   const log = new Logger("send-scheduled-report");
 
   try {
-    const supabase = createClient(requireEnv("SUPABASE_URL"), requireEnv("SUPABASE_SERVICE_ROLE_KEY"));
+    const supabase = createClient(requireEnv("SUPABASE_URL"), requireEnv("SUPABASE_SERVICE_ROLE_KEY", { db: { schema: "zapp" } }));
     const resendApiKey = Deno.env.get("RESEND_API_KEY");
 
     const parsed = parseBody(ScheduledReportSchema, await req.json());

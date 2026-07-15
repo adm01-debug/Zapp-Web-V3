@@ -204,8 +204,7 @@ Deno.serve(async (req) => {
     }
 
     const localClient = createClient(
-      (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'))!,
-      (Deno.env.get('SELFHOSTED_SUPABASE_ANON_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY'))!,
+      (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'))!, (Deno.env.get('SELFHOSTED_SUPABASE_ANON_KEY', { db: { schema: "zapp" } }) ?? Deno.env.get('SUPABASE_ANON_KEY'))!,
       { global: { headers: { Authorization: authHeader } } }
     );
 

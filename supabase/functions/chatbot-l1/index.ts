@@ -26,7 +26,7 @@ Deno.serve(async (req) => {
 
     const { contactId, message, connectionId } = parsed.data;
     const LOVABLE_API_KEY = requireEnv("LOVABLE_API_KEY");
-    const supabase = createClient(requireEnv("SUPABASE_URL"), requireEnv("SUPABASE_SERVICE_ROLE_KEY"));
+    const supabase = createClient(requireEnv("SUPABASE_URL"), requireEnv("SUPABASE_SERVICE_ROLE_KEY", { db: { schema: "zapp" } }));
 
     // Check if chatbot is active for this connection
     const { data: flow } = await supabase

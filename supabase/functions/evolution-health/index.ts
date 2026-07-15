@@ -61,7 +61,7 @@ Deno.serve(async (req) => {
       }), { status: 503, headers });
     }
 
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, { db: { schema: "zapp" } })
     const alerts: string[] = []
 
     // 1. Check Evolution API reachability

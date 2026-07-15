@@ -31,7 +31,7 @@ Deno.serve(async (req) => {
     const eventType = String(body.type || body.event_type || 'unknown').slice(0, 100);
     log.info(`event=${eventType}`);
 
-    const supabase = createClient(requireEnv('SUPABASE_URL'), requireEnv('SUPABASE_SERVICE_ROLE_KEY'));
+    const supabase = createClient(requireEnv('SUPABASE_URL'), requireEnv('SUPABASE_SERVICE_ROLE_KEY', { db: { schema: "zapp" } }));
 
     // Log the webhook event
     await supabase.from('audit_logs').insert({

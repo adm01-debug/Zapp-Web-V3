@@ -79,8 +79,7 @@ function getMetricsClient() {
   const key = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))
   if (!url || !key) return null
   metricsClient = createClient(url, key, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  })
+    auth: { persistSession: false, autoRefreshToken: false }, db: { schema: "zapp" }} )
   return metricsClient
 }
 

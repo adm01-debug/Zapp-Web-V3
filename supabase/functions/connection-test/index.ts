@@ -344,6 +344,7 @@ Deno.serve(async (req) => {
   }
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
     global: { headers: { Authorization: authHeader } },
+    db: { schema: "zapp" },
   });
   const { data: userData, error: userErr } = await supabase.auth.getUser();
   if (userErr || !userData?.user) {

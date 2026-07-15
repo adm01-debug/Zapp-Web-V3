@@ -108,7 +108,7 @@ async function fetchExternalTags(): Promise<ExtTag[]> {
   const key = (Deno.env.get('SELFHOSTED_SUPABASE_ANON_KEY') ?? Deno.env.get('EXTERNAL_SUPABASE_ANON_KEY'));
   if (!url || !key) return [];
   try {
-    const ext = createClient(url, key);
+    const ext = createClient(url, key, { db: { schema: "zapp" } });
     const { data, error } = await ext
       .from("evolution_tags")
       .select("id, name, color, description")
@@ -260,7 +260,7 @@ Deno.serve(async (req) => {
 
     if (!executionId || !ruleId) throw new Error("executionId and ruleId are required");
 
-    const supabase = createClient(SUPABASE_URL, SERVICE_KEY);
+    const supabase = createClient(SUPABASE_URL, SERVICE_KEY, { db: { schema: "zapp" } });
 
     const { data: rule, error: ruleErr } = await supabase
       .from("automation_rules")
