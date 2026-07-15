@@ -1,12 +1,14 @@
-
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Brain, Send, Loader2, MessageSquare, Sparkles } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Brain, Send, Loader2, MessageSquare, Sparkles, ListOrdered } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { dbFrom } from '@/integrations/datasource/db';
+import { logger } from '@/lib/logger';
+import { SupervisorQueueBoard } from './SupervisorQueueBoard';
 
 interface InsightResult {
   question: string;
@@ -22,6 +24,9 @@ const QUICK_QUESTIONS = [
   'Quais são os motivos de encerramento mais comuns?',
 ];
 
+interface QueueRow { id: string; name: string }
+interface AgentRow { id: string; name: string; role: string; is_active: boolean }
+
 export function SupervisorCopilot() {
   const [question, setQuestion] = useState('');
   const [insights, setInsights] = useState<InsightResult[]>([]);
@@ -34,9 +39,6 @@ export function SupervisorCopilot() {
     setQuestion('');
 
     try {
-      // Build context from real data
-      interface QueueRow { id: string; name: string }
-      interface AgentRow { id: string; name: string; role: string; is_active: boolean }
       const [queueData, agentData, messageData] = await Promise.all([
         supabase.from('queues').select('id, name').limit(20),
         (supabase.from('profiles') as unknown as {
@@ -57,7 +59,7 @@ Dados atuais do sistema:
 - ${queues.length} filas configuradas
 - ${agents.length} agentes ativos
 - ${messageData.count || 0} mensagens nas últimas 24h
-Filas: ${queues.map((q) => q.name).join(', ') || 'nenhuma'}
+Filas: ${queues.map((qq) => qq.name).join(', ') || 'nenhuma'}
 Agentes: ${agents.map((a) => `${a.name} (${a.role})`).join(', ') || 'nenhum'}
       `.trim();
 
@@ -80,13 +82,10 @@ Agentes: ${agents.map((a) => `${a.name} (${a.role})`).join(', ') || 'nenhum'}
         'Não foi possível processar sua pergunta.';
 
       setInsights((prev) => [{ question: query, answer, timestamp: new Date() }, ...prev]);
-    } catch {
+    } catch (err) {
+      logger.error('[SupervisorCopilot] askQuestion', err);
       setInsights((prev) => [
-        {
-          question: query,
-          answer: 'Erro ao processar. Tente novamente.',
-          timestamp: new Date(),
-        },
+        { question: query, answer: 'Erro ao processar. Tente novamente.', timestamp: new Date() },
         ...prev,
       ]);
     }
@@ -101,59 +100,80 @@ Agentes: ${agents.map((a) => `${a.name} (${a.role})`).join(', ') || 'nenhum'}
           Copiloto do Supervisor
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
-        {/* Quick questions */}
-        <div className="flex flex-wrap gap-1.5">
-          {QUICK_QUESTIONS.map((q) => (
-            <Button
-              key={q}
-              variant="outline"
-              size="sm"
-              className="h-7 text-[10px]"
-              onClick={() => askQuestion(q)}
-              disabled={loading}
-            >
-              <Sparkles className="mr-1 h-3 w-3" />
-              {q.length > 40 ? q.slice(0, 40) + '...' : q}
-            </Button>
-          ))}
-        </div>
+      <CardContent>
+        <Tabs defaultValue="queue" className="space-y-4">
+          <TabsList className="h-9">
+            <TabsTrigger value="queue" className="gap-1.5 text-xs">
+              <ListOrdered className="h-3.5 w-3.5" />
+              Fila operacional
+            </TabsTrigger>
+            <TabsTrigger value="ai" className="gap-1.5 text-xs">
+              <Sparkles className="h-3.5 w-3.5" />
+              Copiloto IA
+            </TabsTrigger>
+          </TabsList>
 
-        {/* Custom question */}
-        <div className="flex gap-2">
-          <Input
-            value={question}
-            onChange={(e) => setQuestion(e.target.value)}
-            placeholder="Pergunte sobre a operação..."
-            className="text-sm"
-            onKeyDown={(e) => e.key === 'Enter' && askQuestion()}
-          />
-          <Button aria-label="Enviar pergunta" size="icon" onClick={() => askQuestion()} disabled={loading || !question.trim()}>
-            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-          </Button>
-        </div>
+          <TabsContent value="queue" className="mt-0">
+            <SupervisorQueueBoard />
+          </TabsContent>
 
-        {/* Results */}
-        <AnimatePresence mode="popLayout">
-          {insights.map((insight, idx) => (
-            <motion.div
-              key={idx}
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="space-y-2 rounded-xl border border-border/30 bg-muted/20 p-3"
-            >
-              <div className="flex items-start gap-2">
-                <MessageSquare className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                <p className="text-xs font-medium">{insight.question}</p>
-              </div>
-              <div className="pl-6">
-                <p className="whitespace-pre-wrap text-xs text-muted-foreground">
-                  {insight.answer}
-                </p>
-              </div>
-            </motion.div>
-          ))}
-        </AnimatePresence>
+          <TabsContent value="ai" className="mt-0 space-y-4">
+            <div className="flex flex-wrap gap-1.5">
+              {QUICK_QUESTIONS.map((q) => (
+                <Button
+                  key={q}
+                  variant="outline"
+                  size="sm"
+                  className="h-7 text-[10px]"
+                  onClick={() => askQuestion(q)}
+                  disabled={loading}
+                >
+                  <Sparkles className="mr-1 h-3 w-3" />
+                  {q.length > 40 ? q.slice(0, 40) + '...' : q}
+                </Button>
+              ))}
+            </div>
+
+            <div className="flex gap-2">
+              <Input
+                value={question}
+                onChange={(e) => setQuestion(e.target.value)}
+                placeholder="Pergunte sobre a operação..."
+                className="text-sm"
+                onKeyDown={(e) => e.key === 'Enter' && askQuestion()}
+              />
+              <Button
+                aria-label="Enviar pergunta"
+                size="icon"
+                onClick={() => askQuestion()}
+                disabled={loading || !question.trim()}
+              >
+                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              </Button>
+            </div>
+
+            <AnimatePresence mode="popLayout">
+              {insights.map((insight, idx) => (
+                <motion.div
+                  key={idx}
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="space-y-2 rounded-xl border border-border/30 bg-muted/20 p-3"
+                >
+                  <div className="flex items-start gap-2">
+                    <MessageSquare className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                    <p className="text-xs font-medium">{insight.question}</p>
+                  </div>
+                  <div className="pl-6">
+                    <p className="whitespace-pre-wrap text-xs text-muted-foreground">
+                      {insight.answer}
+                    </p>
+                  </div>
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </TabsContent>
+        </Tabs>
       </CardContent>
     </Card>
   );
