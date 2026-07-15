@@ -153,7 +153,7 @@ export function ContactListItem({
 
       {/* Tags */}
       <div className="hidden lg:flex items-center gap-1 min-w-[120px]">
-        {contact.tags?.slice(0, 2).map(tag => (
+        {contact.tags?.slice(0, 2).map((tag: string) => (
           <Badge key={tag} variant="secondary" className="text-[10px] h-5 px-1.5">
             {tag}
           </Badge>

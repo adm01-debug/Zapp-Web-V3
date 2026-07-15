@@ -219,7 +219,7 @@ export function ContactsTable({
                 </td>
                 <td className="p-3">
                   <div className="flex flex-wrap gap-1">
-                    {contact.tags?.slice(0, 2).map(tag => (
+                    {contact.tags?.slice(0, 2).map((tag: string) => (
                       <Badge key={tag} variant="secondary" className="text-[10px] h-5 px-1.5">{tag}</Badge>
                     ))}
                     {(contact.tags?.length || 0) > 2 && (
