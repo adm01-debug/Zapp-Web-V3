@@ -1141,6 +1141,8 @@ export function useAdminManagement(options?: {
     toggleAutomationActive: automations.toggleAutomationActive,
     adjustAutomationPriority: automations.adjustAutomationPriority,
     automationLoading: automations.automationLoading,
+    automationError: automations.automationError,
+
 
 
 
