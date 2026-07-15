@@ -13,7 +13,7 @@ import {
 describe('DEFAULT_EASE', () => {
   it('is an array of 4 numbers', () => {
     expect(Array.isArray(DEFAULT_EASE)).toBe(true);
-    expect((DEFAULT_EASE as number[]).length).toBe(4);
+    expect((DEFAULT_EASE as unknown as number[]).length).toBe(4);
   });
 });
 
