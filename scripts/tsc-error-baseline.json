@@ -297,7 +297,6 @@
     "src/hooks/useTeamChatNotifications.ts": 1,
     "src/hooks/useTextToSpeech.ts": 1,
     "src/hooks/useUIInteractionManagement.ts": 13,
-    "src/hooks/useUserSettings.ts": 122,
     "src/hooks/useWebAuthn.ts": 7,
     "src/hooks/useWhatsAppTemplates.ts": 4,
     "src/integrations/datasource/db.ts": 3,
