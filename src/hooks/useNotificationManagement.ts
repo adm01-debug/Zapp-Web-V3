@@ -141,7 +141,7 @@ const toDbSettings = (settings: Partial<NotificationSettings>): Record<string, u
   return db;
 };
 
-interface Notification {
+export interface Notification {
   id: string;
   type: string;
   title: string;
@@ -149,6 +149,9 @@ interface Notification {
   read: boolean;
   created_at: string;
 }
+
+export type TeamChatNotification = Notification;
+
 
 /** Manages browser push notifications with permission requests and notification sending. */
 export function usePushNotificationsManagement() {
