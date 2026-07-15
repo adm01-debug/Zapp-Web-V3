@@ -1,0 +1,84 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "graphTooltip": 1,
+  "title": "ZAPP Web — Edge Functions & Realtime",
+  "uid": "zapp-edge-metrics",
+  "tags": ["zapp", "edge-functions", "realtime"],
+  "timezone": "America/Sao_Paulo",
+  "schemaVersion": 39,
+  "refresh": "30s",
+  "time": { "from": "now-6h", "to": "now" },
+  "templating": {
+    "list": [
+      { "name": "channel", "type": "query", "label": "Canal", "datasource": "Prometheus",
+        "query": "label_values(zapp_webhook_events_total, channel)", "refresh": 2, "includeAll": true, "multi": true },
+      { "name": "function", "type": "query", "label": "Edge Function", "datasource": "Prometheus",
+        "query": "label_values(zapp_edge_function_duration_ms_bucket, function)", "refresh": 2, "includeAll": true, "multi": true }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1, "type": "stat", "title": "Health check",
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
+      "targets": [{ "expr": "up{job=\"zapp-edge\"}", "legendFormat": "up" }],
+      "fieldConfig": { "defaults": { "thresholds": { "mode": "absolute",
+        "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 1 }] } } }
+    },
+    {
+      "id": 2, "type": "timeseries", "title": "Latência p50 / p95 / p99 (ms) por função",
+      "gridPos": { "h": 8, "w": 18, "x": 6, "y": 0 },
+      "targets": [
+        { "refId": "A", "legendFormat": "p50 {{function}}",
+          "expr": "histogram_quantile(0.50, sum by (le,function) (rate(zapp_edge_function_duration_ms_bucket{function=~\"$function\"}[5m])))" },
+        { "refId": "B", "legendFormat": "p95 {{function}}",
+          "expr": "histogram_quantile(0.95, sum by (le,function) (rate(zapp_edge_function_duration_ms_bucket{function=~\"$function\"}[5m])))" },
+        { "refId": "C", "legendFormat": "p99 {{function}}",
+          "expr": "histogram_quantile(0.99, sum by (le,function) (rate(zapp_edge_function_duration_ms_bucket{function=~\"$function\"}[5m])))" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "ms" } }
+    },
+    {
+      "id": 3, "type": "timeseries", "title": "Webhooks / seg por canal",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "targets": [{
+        "expr": "sum by (channel) (rate(zapp_webhook_events_total{channel=~\"$channel\"}[1m]))",
+        "legendFormat": "{{channel}}"
+      }],
+      "fieldConfig": { "defaults": { "unit": "reqps" } }
+    },
+    {
+      "id": 4, "type": "timeseries", "title": "Taxa de falhas por função (%)",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "targets": [{
+        "expr": "100 * sum by (function) (rate(zapp_edge_function_errors_total{function=~\"$function\"}[5m])) / clamp_min(sum by (function) (rate(zapp_edge_function_requests_total{function=~\"$function\"}[5m])), 1)",
+        "legendFormat": "{{function}}"
+      }],
+      "fieldConfig": { "defaults": { "unit": "percent",
+        "thresholds": { "mode": "absolute",
+          "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 1 }, { "color": "red", "value": 5 }] } } }
+    },
+    {
+      "id": 5, "type": "timeseries", "title": "Realtime — conexões ativas",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+      "targets": [{ "expr": "zapp_realtime_active_connections", "legendFormat": "conexões" }]
+    },
+    {
+      "id": 6, "type": "timeseries", "title": "Realtime — mensagens/s por schema",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
+      "targets": [{
+        "expr": "sum by (schema) (rate(zapp_realtime_messages_total[1m]))",
+        "legendFormat": "{{schema}}"
+      }],
+      "fieldConfig": { "defaults": { "unit": "reqps" } }
+    },
+    {
+      "id": 7, "type": "table", "title": "Top 10 funções por erros (últ. 1h)",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 24 },
+      "targets": [{
+        "expr": "topk(10, sum by (function) (increase(zapp_edge_function_errors_total[1h])))",
+        "format": "table", "instant": true
+      }]
+    }
+  ]
+}

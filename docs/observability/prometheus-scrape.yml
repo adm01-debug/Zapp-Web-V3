@@ -1,0 +1,41 @@
+# Prometheus scrape config para ZAPP Web (Supabase self-hosted).
+# Usa /functions/v1/health como gate antes de scrapear /functions/v1/metrics.
+#
+# Requer prometheus >= 2.35 (relabel action: 'keep' com healthcheck externo
+# via blackbox exporter no host prometheus).
+
+scrape_configs:
+  - job_name: zapp-edge-health
+    metrics_path: /functions/v1/health
+    params:
+      probe: ["1"]
+    scheme: https
+    static_configs:
+      - targets:
+          - supabase.atomicabr.com.br
+        labels:
+          service: zapp-edge
+          environment: production
+    scrape_interval: 30s
+    scrape_timeout: 5s
+    authorization:
+      credentials_file: /etc/prometheus/secrets/zapp_service_role.txt
+
+  - job_name: zapp-edge
+    metrics_path: /functions/v1/metrics
+    scheme: https
+    static_configs:
+      - targets:
+          - supabase.atomicabr.com.br
+        labels:
+          service: zapp-edge
+          environment: production
+    scrape_interval: 30s
+    scrape_timeout: 10s
+    authorization:
+      credentials_file: /etc/prometheus/secrets/zapp_service_role.txt
+    # Skip scrape se health falhou nos últimos 60s (via metric absence)
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: zapp-edge-prod
