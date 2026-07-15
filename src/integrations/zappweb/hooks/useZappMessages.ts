@@ -31,7 +31,7 @@ export function useZappMessages({ remoteJid, instance = ZAPPWEB_INSTANCE, limit 
     try {
       const { data, error: err } = await zappSupabase
         .schema('evo')
-        .schema('evo').from('evolution_messages_wpp2')
+        .from('evolution_messages_wpp2')
         .select(
           `id, message_id, remote_jid, from_me, message_type, content, media_url,
            media_mimetype, media_type, caption, quoted_message_id, status,
