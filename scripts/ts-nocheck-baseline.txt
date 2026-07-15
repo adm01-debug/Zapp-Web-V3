@@ -65,7 +65,6 @@ src/components/ui/empty-states/ContextualEmptyState.tsx
 src/components/ui/toaster.tsx
 src/components/voice/VoiceSearchOverlayConnected.tsx
 src/components/whatsapp-flows/WhatsAppFlowsBuilder.tsx
-src/features/admin/components/AdminUsersTable.tsx
 src/features/admin/components/AdminView.tsx
 src/features/admin/components/CrisisRoom.tsx
 src/features/admin/components/GmailWebhookMonitor.tsx
