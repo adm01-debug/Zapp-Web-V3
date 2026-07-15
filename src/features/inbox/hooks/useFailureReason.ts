@@ -50,7 +50,7 @@ export function useFailureReason(messageId: string | undefined, enabled: boolean
         .eq('idempotency_key', `msg:${messageId}`)
         .order('created_at', { ascending: false })
         .limit(1)
-        .maybeSingle<RetryReasonRow>();
+        .maybeSingle();
 
       if (error || !data) return null;
       if (data.final_status === 'success') return null;
