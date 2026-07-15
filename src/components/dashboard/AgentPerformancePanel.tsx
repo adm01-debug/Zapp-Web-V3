@@ -1,4 +1,3 @@
-
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { motion } from 'framer-motion';
@@ -8,6 +7,25 @@ import { Progress } from '@/components/ui/progress';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Trophy, Flame, Zap, Target, Clock, MessageSquare, Star, Crown, Medal } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { unwrapRows } from '@/lib/supabase-helpers';
+
+interface AgentStatsRow {
+  profile_id: string;
+  xp: number;
+  level: number;
+  current_streak: number;
+  best_streak: number;
+  messages_sent: number;
+  conversations_resolved: number;
+  avg_response_time_seconds: number | null;
+  customer_satisfaction_score: number | string | null;
+}
+
+interface ProfileRow {
+  id: string;
+  name: string | null;
+  avatar_url: string | null;
+}
 
 interface AgentMetric {
   id: string;
