@@ -89,7 +89,6 @@ src/features/admin/hooks/useAIStats.ts
 src/features/admin/hooks/useAIUsageDashboard.ts
 src/features/admin/hooks/useAdminData.ts
 src/features/admin/hooks/useAdminManagement.ts
-src/features/admin/hooks/useAgentGamification.ts
 src/features/admin/hooks/useAgentReassignment.ts
 src/features/admin/hooks/useDiagnosticsData.ts
 src/features/admin/hooks/useRateLimitLogs.ts
