@@ -50,6 +50,8 @@ export default function AdminAutomationsPage() {
     channels,
     departments,
     loading,
+    error,
+    reload,
     save: hookSave,
     remove,
     toggleActive,
@@ -57,6 +59,7 @@ export default function AdminAutomationsPage() {
     channelMap,
     deptMap,
   } = useAdminAutomations();
+
 
   const [editing, setEditing] = useState<Rule | null>(null);
   const [open, setOpen] = useState(false);
