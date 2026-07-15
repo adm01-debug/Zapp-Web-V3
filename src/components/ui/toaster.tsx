@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useToast } from "@/hooks/use-toast";
 import { Toast, ToastClose, ToastDescription, ToastProvider, ToastTitle, ToastViewport } from "@/components/ui/toast";
 
@@ -7,7 +6,7 @@ export function Toaster() {
 
   return (
     <ToastProvider>
-      {toasts.map(function ({ id, title, description, action, ...props }) {
+      {(toasts as Array<{ id: string; title?: React.ReactNode; description?: React.ReactNode; action?: React.ReactNode } & Record<string, unknown>>).map(function ({ id, title, description, action, ...props }) {
         return (
           <Toast key={id} {...props}>
             <div className="grid gap-1">

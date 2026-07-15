@@ -19,7 +19,9 @@ interface SearchHistoryEntry {
   query: string;
   timestamp: string;
   result_type: string;
+  resultCount?: number;
 }
+
 
 /** Manages global search modal with Ctrl+K keyboard shortcut. */
 export function useGlobalSearchShortcutManagement(onSearch?: (query: string) => void) {
@@ -149,9 +151,35 @@ export function useSearchHistoryManagement() {
   return { history, loading, addToHistory, clearHistory, refetch: fetchHistory };
 }
 
+export interface SearchInsightsTopQuery {
+  query: string;
+  count: number;
+}
+
+export interface SearchInsightsZeroResult {
+  query: string;
+  attempts: number;
+}
+
+export interface SearchInsights {
+  top_queries?: SearchInsightsTopQuery[];
+  zero_results?: SearchInsightsZeroResult[];
+  total_searches: number;
+  unique_queries: number;
+  vector_searches: number;
+  vector_share: number;
+  total_clicks: number;
+  click_through_rate: number;
+  zero_result_count: number;
+  zero_result_rate: number;
+  [key: string]: unknown;
+}
+
+
+
 /** Retrieves search insights and trends for specified time window. */
 export function useSearchInsightsManagement(timeWindow: number = 7) {
-  const [insights, setInsights] = useState<any>(null);
+  const [insights, setInsights] = useState<SearchInsights | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -162,7 +190,7 @@ export function useSearchInsightsManagement(timeWindow: number = 7) {
         });
 
         if (err) throw err;
-        setInsights(data);
+        setInsights(data as SearchInsights | null);
       } catch (err) {
         log.error('Error fetching search insights:', err);
       } finally {
@@ -175,6 +203,7 @@ export function useSearchInsightsManagement(timeWindow: number = 7) {
 
   return { insights, loading };
 }
+
 
 /** Searches messages within a specific chat by ID and query. */
 export function useChatSearchManagement(chatId: string, query: string) {

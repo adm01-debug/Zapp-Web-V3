@@ -1,5 +1,5 @@
-// @ts-nocheck
 // Re-export from consolidated useSearchManagement module (ETAPA 29 consolidation)
+import { useEffect } from 'react';
 import { useGlobalSearchShortcutManagement } from '@/hooks/useSearchManagement';
 
 interface UseGlobalSearchShortcutProps {
@@ -7,6 +7,10 @@ interface UseGlobalSearchShortcutProps {
 }
 
 /** Enables global search with Ctrl+K keyboard shortcut. */
-export function useGlobalSearchShortcut(props: UseGlobalSearchShortcutProps) {
-  return useGlobalSearchShortcutManagement(props);
+export function useGlobalSearchShortcut({ onOpen }: UseGlobalSearchShortcutProps) {
+  const shortcut = useGlobalSearchShortcutManagement();
+  useEffect(() => {
+    if (shortcut.isOpen) onOpen();
+  }, [shortcut.isOpen, onOpen]);
+  return shortcut;
 }
