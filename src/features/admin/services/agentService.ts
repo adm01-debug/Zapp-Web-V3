@@ -1,4 +1,4 @@
-// @ts-nocheck
+
 import { agentRepository, AgentProfile } from '../data-access/agentRepository';
 
 export interface AgentWithStats extends AgentProfile {
