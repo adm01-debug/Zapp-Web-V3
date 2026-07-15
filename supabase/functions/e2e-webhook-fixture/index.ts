@@ -53,7 +53,7 @@ async function authorize(req: Request): Promise<{ ok: boolean; reason?: string }
   const serviceKey = envOrThrow("SUPABASE_SERVICE_ROLE_KEY");
   if (token === serviceKey) return { ok: true };
   const url = envOrThrow("SUPABASE_URL");
-  const admin = createClient(url, serviceKey, { auth: { persistSession: false }, db: { schema: "zapp" }} );
+  const admin = createClient(url, serviceKey, { auth: { persistSession: false }, db: { schema: "zapp" } });
   const { data: userData, error: userErr } = await admin.auth.getUser(token);
   if (userErr || !userData?.user) return { ok: false, reason: "invalid-jwt" };
   const { data: roleRow } = await admin

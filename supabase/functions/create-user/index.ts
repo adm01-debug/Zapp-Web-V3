@@ -21,7 +21,7 @@ Deno.serve(async (req) => {
     if (authed instanceof Response) return authed;
 
     const adminClient = createClient(supabaseUrl, serviceRoleKey, {
-      auth: { persistSession: false, autoRefreshToken: false }, db: { schema: "zapp" }} );
+      auth: { persistSession: false, autoRefreshToken: false }, db: { schema: "zapp" } });
 
 
     const bodySchema = z.object({

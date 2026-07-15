@@ -101,7 +101,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const admin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false }, db: { schema: "zapp" }} );
+    const admin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false }, db: { schema: "zapp" } });
     const { data: roleCheck } = await admin.rpc('is_admin_or_supervisor', { _user_id: userData.user.id });
     if (!roleCheck) {
       return new Response(JSON.stringify({ error: 'Forbidden — admin or supervisor only' }), {

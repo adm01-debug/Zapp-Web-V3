@@ -55,7 +55,7 @@ async function authorize(req: Request): Promise<{ ok: boolean; reason?: string }
 
   // Otherwise, validate the JWT and confirm the user has app_role='admin'.
   const url = envOrThrow('SUPABASE_URL');
-  const admin = createClient(url, serviceKey, { auth: { persistSession: false }, db: { schema: "zapp" }} );
+  const admin = createClient(url, serviceKey, { auth: { persistSession: false }, db: { schema: "zapp" } });
   const { data: userData, error: userErr } = await admin.auth.getUser(token);
   if (userErr || !userData || !userData.user) return { ok: false, reason: 'invalid-jwt' };
 
