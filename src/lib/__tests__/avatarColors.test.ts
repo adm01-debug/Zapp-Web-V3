@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { describe, it, expect } from 'vitest';
-import { getAvatarColor, getInitials } from '@/lib/avatar-colors';
+import { getAvatarColor, getInitials } from '@/lib/avatarColors';
 
 describe('getAvatarColor', () => {
   it('returns an object with bg and text properties', () => {
