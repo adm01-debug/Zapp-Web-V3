@@ -1,11 +1,19 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { AlertTriangle, ExternalLink, Settings2, ShieldAlert } from 'lucide-react';
+import { AlertTriangle, Bell, BellOff, ExternalLink, Settings2, ShieldAlert } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import {
   Popover,
   PopoverContent,
@@ -18,6 +26,14 @@ import {
   type AlertSeverity,
   type RateLimitAlertThresholds,
 } from '@/features/admin/hooks/useRateLimitAlerts';
+import {
+  useRateLimitAlertNotifier,
+  loadNotifyPrefs,
+  saveNotifyPrefs,
+  requestBrowserNotificationPermission,
+  type NotifyPreferences,
+} from '@/features/admin/hooks/useRateLimitAlertNotifier';
+import { toast } from 'sonner';
 
 const SEVERITY_STYLES: Record<AlertSeverity, { badge: string; border: string; label: string }> = {
   critical: {
