@@ -60,7 +60,7 @@ export function useZappConversations(opts: Options = {}) {
         {
           event: '*',
           schema: 'evo',
-          table: 'evolution_conversations',
+          table: 'evolution_conversations_wpp2',
           filter: `instance_name=eq.${instance}`,
         },
         () => fetchAll()
@@ -73,7 +73,8 @@ export function useZappConversations(opts: Options = {}) {
 
   const markAsRead = useCallback(async (conversationId: string) => {
     await zappSupabase
-      .from('evolution_conversations')
+      .schema('evo')
+      .from('evolution_conversations_wpp2')
       .update({ unread_count: 0 })
       .eq('id', conversationId);
   }, []);
