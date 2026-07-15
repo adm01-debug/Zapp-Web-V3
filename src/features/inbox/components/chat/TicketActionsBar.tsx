@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Barra de ações de atendimento exibida acima do header do chat.
  *

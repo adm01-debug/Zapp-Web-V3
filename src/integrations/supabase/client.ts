@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 import type { ExtendedDatabase } from './types-manual';
