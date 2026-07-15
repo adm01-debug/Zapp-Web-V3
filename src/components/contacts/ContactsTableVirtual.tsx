@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React, { useRef, useCallback, memo } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -184,7 +183,7 @@ const ContactRow = memo(
 
         {/* Tags */}
         <div className="hidden max-w-[120px] shrink-0 items-center gap-1 xl:flex">
-          {contact.tags?.slice(0, 2).map((tag) => (
+          {contact.tags?.slice(0, 2).map((tag: string) => (
             <Badge key={tag} variant="secondary" className="h-4 truncate px-1 text-[10px]">
               {tag}
             </Badge>
