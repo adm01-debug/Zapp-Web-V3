@@ -28,7 +28,7 @@ export function useFallbackContact(
       const raw = String(selectedContactId);
       const isJid = raw.includes('@');
       const isUuid = isValidUUID(raw);
-      const phone = isJid
+      const phone: string | null = isJid
         ? raw.split('@')[0].replace(/\D/g, '')
         : !isUuid
           ? raw.replace(/\D/g, '')
