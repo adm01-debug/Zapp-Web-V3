@@ -192,7 +192,7 @@ export function useWarRoomAlertsManagement(soundEnabled = true): UseWarRoomAlert
         const newBreachCount = breaches.length;
         const existingAlerts = alertsRef.current.filter((a) => a.source === 'sla-monitor');
         if (existingAlerts.length === 0 || newBreachCount > existingAlerts.length) {
-          const { error: insertErr } = await supabase.from('warroom_alerts').insert({
+          const { error: insertErr } = await db.from('warroom_alerts').insert({
             alert_type: 'critical',
             title: `${newBreachCount} SLA(s) Violado(s)`,
             message: `Existem ${newBreachCount} conversas com SLA violado que precisam de atenção imediata.`,
@@ -269,7 +269,7 @@ export function useSentimentAlertsManagement(): UseSentimentAlertsResult {
           });
 
           if (settings.soundEnabled && !isQuietHours()) {
-            playNotificationSound('sentiment_alert', settings.slaSoundType, settings.soundVolume);
+            playNotificationSound('sla_warning' as const, settings.slaSoundType, settings.soundVolume);
           }
 
           if (settings.browserNotifications) {
@@ -327,7 +327,7 @@ export function useWebhookHealthAlertsManagement(): UseWebhookHealthAlertsResult
   const acknowledgeAlert = useCallback(
     async (alertId: string) => {
       try {
-        await supabase.from('webhook_health_checks').update({ acknowledged: true }).eq('id', alertId);
+        await db.from('webhook_health_checks').update({ acknowledged: true }).eq('id', alertId);
         setAlerts((prev) => prev.map((a) => (a.id === alertId ? { ...a } : a)));
       } catch (error) {
         log.error('Failed to acknowledge webhook health alert:', error);
@@ -371,7 +371,7 @@ export function useRealtimeSentimentAlertsManagement(): UseRealtimeSentimentAler
           const s = settingsRef.current;
           const quiet = isQuietHoursRef.current;
           if (s.soundEnabled && !quiet()) {
-            playNotificationSound('sentiment_alert', s.slaSoundType, s.soundVolume);
+            playNotificationSound('sla_warning' as const, s.slaSoundType, s.soundVolume);
           }
           if (s.browserNotifications) {
             showBrowserNotification(
@@ -394,7 +394,7 @@ export function useRealtimeSentimentAlertsManagement(): UseRealtimeSentimentAler
 
   const acknowledgeAlert = useCallback(async (alertId: string) => {
     try {
-      await supabase.from('sentiment_alerts').update({ acknowledged: true }).eq('id', alertId);
+      await db.from('sentiment_alerts').update({ acknowledged: true }).eq('id', alertId);
       setAlerts((prev) => prev.map((a) => (a.id === alertId ? { ...a, acknowledged: true } : a)));
     } catch (error) {
       log.error('Failed to acknowledge sentiment alert:', error);
@@ -403,7 +403,7 @@ export function useRealtimeSentimentAlertsManagement(): UseRealtimeSentimentAler
 
   const clearAlert = useCallback(async (alertId: string) => {
     try {
-      await supabase.from('sentiment_alerts').delete().eq('id', alertId);
+      await db.from('sentiment_alerts').delete().eq('id', alertId);
       setAlerts((prev) => prev.filter((a) => a.id !== alertId));
     } catch (error) {
       log.error('Failed to clear sentiment alert:', error);
