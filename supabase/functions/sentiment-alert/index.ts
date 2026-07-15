@@ -22,7 +22,7 @@ Deno.serve(async (req) => {
 
     log.info("Sentiment alert triggered", { contactId, sentimentScore, threshold, consecutiveRequired });
 
-    const supabase = createClient(requireEnv("SUPABASE_URL"), requireEnv("SUPABASE_SERVICE_ROLE_KEY"));
+    const supabase = createClient(requireEnv("SUPABASE_URL"), requireEnv("SUPABASE_SERVICE_ROLE_KEY"), { db: { schema: "zapp" }, auth: { persistSession: false } });
 
     const { data: recentAnalyses, error: fetchError } = await supabase
       .from('conversation_analyses')
