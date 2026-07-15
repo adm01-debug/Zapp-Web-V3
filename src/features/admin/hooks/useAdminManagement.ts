@@ -1134,13 +1134,23 @@ export function useAdminManagement(options?: {
     options?.hmacIncludeNegative ?? false
   );
 
-  const isLoading =
-    automations.automationLoading ||
-    channels.channelsLoading ||
-    queues.queuesLoading ||
-    departments.deptLoading ||
-    roles.rolesLoading ||
-    permissions.permLoading;
+  const channelsLoading: boolean = channels.channelsLoading;
+  const queuesLoading: boolean = queues.queuesLoading;
+  const deptLoading: boolean = departments.deptLoading;
+  const deptSaving: boolean = departments.deptSaving;
+  const rolesLoading: boolean = roles.rolesLoading;
+  const rolesUpdating: boolean = roles.rolesUpdating;
+  const permLoading: boolean = permissions.permLoading;
+  const automationLoading: boolean = automations.automationLoading;
+  const securityLoading: boolean = security.securityLoading;
+
+  const isLoading: boolean =
+    automationLoading ||
+    channelsLoading ||
+    queuesLoading ||
+    deptLoading ||
+    rolesLoading ||
+    permLoading;
 
   return {
     // Automations
@@ -1152,17 +1162,15 @@ export function useAdminManagement(options?: {
     removeAutomation: automations.removeAutomation,
     toggleAutomationActive: automations.toggleAutomationActive,
     adjustAutomationPriority: automations.adjustAutomationPriority,
-    automationLoading: automations.automationLoading,
+    automationLoading,
     automationError: automations.automationError,
-
-
-
 
     // Channels
     channels: channels.channels,
     filteredChannels: channels.filteredChannels,
     channelQueues: channels.channelQueues,
     channelWppConns: channels.channelWppConns,
+    channelsLoading,
     loadChannels: channels.loadChannels,
     saveChannel: channels.saveChannel,
     runChannelAction: channels.runChannelAction,
@@ -1176,12 +1184,15 @@ export function useAdminManagement(options?: {
     queueChannels: queues.queueChannels,
     channelQueuesData: queues.channelQueues,
     profiles: queues.profiles,
+    queuesLoading,
     loadQueues: queues.loadQueues,
     saveQueue: queues.saveQueue,
     removeQueue: queues.removeQueue,
 
     // Departments
     departments: departments.departments,
+    deptLoading,
+    deptSaving,
     fetchDepartments: departments.fetchDepartments,
     saveDepartment: departments.saveDepartment,
     removeDepartment: departments.removeDepartment,
@@ -1201,19 +1212,22 @@ export function useAdminManagement(options?: {
     availableRoleUsers: roles.availableRoleUsers,
     userToRemoveRole: roles.userToRemoveRole,
     setUserToRemoveRole: roles.setUserToRemoveRole,
+    rolesLoading,
+    rolesUpdating,
     handleAddRole: roles.handleAddRole,
     handleRemoveRole: roles.handleRemoveRole,
 
     // Permissions
     permissionRows: permissions.permissionRows,
     savingPermPath: permissions.savingPermPath,
+    permLoading,
     loadPermissions: permissions.loadPermissions,
     savePermissionRow: permissions.savePermissionRow,
     deletePermissionRow: permissions.deletePermissionRow,
     createPermissionRow: permissions.createPermissionRow,
 
     // Security
-    securityLoading: security.securityLoading,
+    securityLoading,
     securityResult: security.securityResult,
     lastSecurityRunAt: security.lastSecurityRunAt,
     runSecurityTest: security.runSecurityTest,

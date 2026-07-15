@@ -1,4 +1,3 @@
-// @ts-nocheck
 // Re-export from consolidated useAdminManagement module (ETAPA 19 consolidation)
 import { useAdminManagement } from '@/features/admin/hooks/useAdminManagement';
 
