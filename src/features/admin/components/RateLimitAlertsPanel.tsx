@@ -60,7 +60,9 @@ const SEVERITY_STYLES: Record<AlertSeverity, { badge: string; border: string; la
 
 export function RateLimitAlertsPanel() {
   const [thresholds, setThresholds] = useState<RateLimitAlertThresholds>(() => loadThresholds());
+  const [notifyPrefs, setNotifyPrefs] = useState<NotifyPreferences>(() => loadNotifyPrefs());
   const { alerts, counts, loading } = useRateLimitAlerts(thresholds);
+  useRateLimitAlertNotifier(alerts, notifyPrefs);
 
   const summary = useMemo(
     () =>
@@ -71,9 +73,21 @@ export function RateLimitAlertsPanel() {
     [counts]
   );
 
-  const handleSave = (next: RateLimitAlertThresholds) => {
+  const handleSaveThresholds = (next: RateLimitAlertThresholds) => {
     setThresholds(next);
     saveThresholds(next);
+  };
+
+  const handleSaveNotifyPrefs = async (next: NotifyPreferences) => {
+    if (next.browserNotifications && !notifyPrefs.browserNotifications) {
+      const perm = await requestBrowserNotificationPermission();
+      if (perm !== 'granted') {
+        toast.error('Permissão de notificação negada pelo navegador.');
+        next = { ...next, browserNotifications: false };
+      }
+    }
+    setNotifyPrefs(next);
+    saveNotifyPrefs(next);
   };
 
   return (
@@ -88,7 +102,10 @@ export function RateLimitAlertsPanel() {
             Alertas automáticos quando um IP ou endpoint ultrapassa os thresholds.
           </CardDescription>
         </div>
-        <ThresholdsPopover value={thresholds} onSave={handleSave} />
+        <div className="flex items-center gap-2">
+          <NotifyPrefsPopover value={notifyPrefs} onSave={handleSaveNotifyPrefs} />
+          <ThresholdsPopover value={thresholds} onSave={handleSaveThresholds} />
+        </div>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex flex-wrap gap-2">
