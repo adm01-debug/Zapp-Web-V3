@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Lookup do motivo de falha terminal de uma mensagem outbound.
  *

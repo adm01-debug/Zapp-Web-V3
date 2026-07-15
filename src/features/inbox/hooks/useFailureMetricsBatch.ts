@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Carrega em lote os retry_metrics de todas as mensagens em estado de
  * falha terminal (failed_retries / failed_auth / failed) presentes nas
