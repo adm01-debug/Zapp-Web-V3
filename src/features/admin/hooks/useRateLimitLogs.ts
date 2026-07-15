@@ -1,4 +1,4 @@
-// @ts-nocheck
+
 import { useEffect, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -41,7 +41,7 @@ export function useRateLimitLogs() {
         .select('*')
         .order('created_at', { ascending: false })
         .limit(100);
-      if (!error && data) return data as RateLimitLog[]; // ignore-audit: narrows Supabase query result to local interface
+      if (!error && data) return data as unknown as RateLimitLog[]; // narrow drift-safe
       return [];
     },
   });
