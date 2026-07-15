@@ -88,7 +88,6 @@ src/features/admin/hooks/monitoring/useIdempotencyMissAlerts.ts
 src/features/admin/hooks/useAdminManagement.ts
 src/features/admin/hooks/useDiagnosticsData.ts
 src/features/admin/hooks/useRateLimitLogs.ts
-src/features/admin/hooks/useVersions.ts
 src/features/admin/services/agentService.ts
 src/features/auth/components/AuthProvider.tsx
 src/features/auth/components/ProtectedRoute.tsx
