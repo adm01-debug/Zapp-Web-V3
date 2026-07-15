@@ -84,19 +84,20 @@ jobs:
           fi
           exit 0
 
-      - name: Cluster typecheck ratchet — blocking (crm-sales, queues)
+      - name: Cluster typecheck ratchet — blocking (crm-sales, queues, observability)
         # Bloqueia regressões nos clusters já 100% limpos. Se algum arquivo
         # listado nesses clusters reintroduzir @ts-nocheck ou erro TS, o job
         # falha imediatamente (sem continue-on-error).
         run: |
           node scripts/check-cluster-typecheck.mjs --cluster crm-sales
           node scripts/check-cluster-typecheck.mjs --cluster queues
+          node scripts/check-cluster-typecheck.mjs --cluster observability
 
-      - name: Cluster typecheck ratchet — advisory (inbox-core, observability)
-        # Clusters com dívida remanescente conhecida. Reportamos como warning
-        # até a limpeza completa; assim que ficarem limpos, movemos para o
+      - name: Cluster typecheck ratchet — advisory (inbox-core)
+        # Cluster com dívida remanescente conhecida. Reportamos como warning
+        # até a limpeza completa; assim que ficar limpo, movemos para o
         # bloco blocking acima.
-        run: node scripts/check-cluster-typecheck.mjs
+        run: node scripts/check-cluster-typecheck.mjs --cluster inbox-core
         continue-on-error: true
 
 
