@@ -2,5 +2,5 @@
 import { useTextToSpeechManagement } from '@/hooks/useVoiceManagement';
 
 export function useTextToSpeech(text?: string) {
-  return useTextToSpeechManagement(text);
+  return useTextToSpeechManagement(text ?? '');
 }
