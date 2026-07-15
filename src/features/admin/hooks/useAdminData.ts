@@ -186,8 +186,7 @@ export function useAdminData(activeTab: 'users' | 'audit' | 'crm') {
 
   const handleToggleActive = useCallback(
     async (user: UserWithRole) => {
-      const { error } = await supabase
-        .from('profiles')
+      const { error } = await (supabase.from('profiles') as any)
         .update({ is_active: !user.is_active })
         .eq('id', user.id);
       if (error) {
