@@ -155,7 +155,7 @@ describe('notificationSounds (unified v2.0)', () => {
     });
 
     it('returns false when Notification not in window', async () => {
-      const win = window as Record<string, unknown>;
+      const win = window as unknown as Record<string, unknown>;
       delete win.Notification;
       const result = await requestNotificationPermission();
       expect(result).toBe(false);
