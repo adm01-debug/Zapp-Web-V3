@@ -1,4 +1,4 @@
-// @ts-nocheck
+
 // Consolidated CRM & Customer Management Module (ETAPA 43)
 // Consolidates: useContactIntelligence, useContactNotes, useContactEnrichedData, useContactAssignment, useContactCustomFields
 import { useState, useEffect, useCallback, useRef } from 'react';
