@@ -1,4 +1,4 @@
-// @ts-nocheck
+
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -35,10 +35,13 @@ export function SupervisorCopilot() {
 
     try {
       // Build context from real data
+      interface QueueRow { id: string; name: string }
+      interface AgentRow { id: string; name: string; role: string; is_active: boolean }
       const [queueData, agentData, messageData] = await Promise.all([
         supabase.from('queues').select('id, name').limit(20),
-        supabase
-          .from('profiles')
+        (supabase.from('profiles') as unknown as {
+          select: (cols: string) => { eq: (c: string, v: unknown) => { limit: (n: number) => Promise<{ data: AgentRow[] | null }> } };
+        })
           .select('id, name, role, is_active')
           .eq('is_active', true)
           .limit(50),
@@ -47,13 +50,15 @@ export function SupervisorCopilot() {
           .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()),
       ]);
 
+      const queues = (queueData.data ?? []) as unknown as QueueRow[];
+      const agents = (agentData.data ?? []) as unknown as AgentRow[];
       const context = `
 Dados atuais do sistema:
-- ${queueData.data?.length || 0} filas configuradas
-- ${agentData.data?.length || 0} agentes ativos
+- ${queues.length} filas configuradas
+- ${agents.length} agentes ativos
 - ${messageData.count || 0} mensagens nas últimas 24h
-Filas: ${queueData.data?.map((q) => q.name).join(', ') || 'nenhuma'}
-Agentes: ${agentData.data?.map((a) => `${a.name} (${a.role})`).join(', ') || 'nenhum'}
+Filas: ${queues.map((q) => q.name).join(', ') || 'nenhuma'}
+Agentes: ${agents.map((a) => `${a.name} (${a.role})`).join(', ') || 'nenhum'}
       `.trim();
 
       const response = await supabase.functions.invoke('ai-proxy', {
