@@ -64,10 +64,10 @@ function fireObserver(type: string, entries: Partial<PerformanceEntry>[]) {
 
 // ── Helper: dynamic import of SUT ─────────────────────────────────────────────
 async function loadModule() {
-  const mod = await import('../web-vitals');
+  const mod = await import('../webVitals');
   return mod as {
     initWebVitals: () => void;
-    getWebVitalsReport: () => import('../web-vitals').WebVitalMetric[];
+    getWebVitalsReport: () => import('../webVitals').WebVitalMetric[];
   };
 }
 
@@ -75,6 +75,8 @@ async function loadModule() {
 beforeEach(() => {
   vi.clearAllMocks();
   vi.resetModules();
+  vi.stubEnv('VITE_ENABLE_CLIENT_OBSERVABILITY', 'true');
+  sessionStorage.clear();
   observerRegistry.clear();
   mockIsConfigured.value = true;
   mockInvoke.mockResolvedValue({ data: null, error: null });
@@ -323,15 +325,15 @@ describe('flushMetrics — via scheduleFlush timeout', () => {
     expect(mockInvoke).not.toHaveBeenCalled();
   });
 
-  it('logs warn when invoke throws', async () => {
+  it('logs debug when invoke throws before opening the circuit breaker', async () => {
     vi.useFakeTimers();
     mockInvoke.mockRejectedValue(new Error('network error'));
     const { initWebVitals } = await loadModule();
     initWebVitals();
     fireObserver('largest-contentful-paint', [{ startTime: 5000 } as PerformanceEntry]);
     await vi.runAllTimersAsync();
-    expect(mockWarn).toHaveBeenCalledWith(
-      expect.stringContaining('web-vitals'),
+    expect(mockDebug).toHaveBeenCalledWith(
+      expect.stringContaining('Failed sending web-vitals'),
       expect.any(Error)
     );
   });
