@@ -1,11 +1,19 @@
 import { Card, CardContent } from '@/components/ui/card';
 import { Search, MousePointerClick, AlertCircle, Sparkles } from 'lucide-react';
-import type { SearchInsights } from '@/hooks/useSearchInsights';
+import { normalizeSearchInsights, type SearchInsights } from '@/hooks/useSearchManagement';
 
-interface Props { data: SearchInsights; isLoading: boolean; }
+interface Props {
+  /** Raw or partial RPC payload — normalized internally for type-safety. */
+  data: SearchInsights | Partial<SearchInsights> | Record<string, unknown> | null | undefined;
+  isLoading: boolean;
+}
 
 function fmtPct(v: number) {
   return `${(v * 100).toFixed(1)}%`;
+}
+
+function fmtInt(v: number) {
+  return v.toLocaleString('pt-BR');
 }
 
 interface KpiProps {
@@ -31,32 +39,34 @@ function KpiCard({ icon, label, value, hint }: KpiProps) {
 }
 
 export function SearchInsightsKPICards({ data, isLoading }: Props) {
+  const insights: SearchInsights = normalizeSearchInsights(data);
   const placeholder = isLoading ? '—' : null;
+
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
       <KpiCard
         icon={<Search className="h-3.5 w-3.5" />}
         label="Total de buscas"
-        value={placeholder ?? data.total_searches.toLocaleString('pt-BR')}
-        hint={`${data.unique_queries.toLocaleString('pt-BR')} queries únicas`}
+        value={placeholder ?? fmtInt(insights.total_searches)}
+        hint={`${fmtInt(insights.unique_queries)} queries únicas`}
       />
       <KpiCard
         icon={<Sparkles className="h-3.5 w-3.5" />}
         label="% busca vetorial"
-        value={placeholder ?? fmtPct(data.vector_share)}
-        hint={`${data.vector_searches.toLocaleString('pt-BR')} chamadas`}
+        value={placeholder ?? fmtPct(insights.vector_share)}
+        hint={`${fmtInt(insights.vector_searches)} chamadas`}
       />
       <KpiCard
         icon={<MousePointerClick className="h-3.5 w-3.5" />}
         label="Click-through rate"
-        value={placeholder ?? fmtPct(data.click_through_rate)}
-        hint={`${data.total_clicks.toLocaleString('pt-BR')} cliques`}
+        value={placeholder ?? fmtPct(insights.click_through_rate)}
+        hint={`${fmtInt(insights.total_clicks)} cliques`}
       />
       <KpiCard
         icon={<AlertCircle className="h-3.5 w-3.5" />}
         label="Zero resultados"
-        value={placeholder ?? fmtPct(data.zero_result_rate)}
-        hint={`${data.zero_result_count.toLocaleString('pt-BR')} buscas sem retorno`}
+        value={placeholder ?? fmtPct(insights.zero_result_rate)}
+        hint={`${fmtInt(insights.zero_result_count)} buscas sem retorno`}
       />
     </div>
   );
