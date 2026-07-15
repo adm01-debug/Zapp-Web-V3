@@ -46,22 +46,24 @@ export function AgentPerformancePanel() {
   const { data: agents = [], isLoading } = useQuery({
     queryKey: ['agent-performance-ranking'],
     queryFn: async () => {
-      const { data: stats } = await supabase
+      const { data: statsData } = await supabase
         .from('agent_stats')
         .select(
           'profile_id, xp, level, current_streak, best_streak, messages_sent, conversations_resolved, avg_response_time_seconds, customer_satisfaction_score'
         )
         .order('xp', { ascending: false });
 
-      if (!stats) return [];
+      const stats = unwrapRows<AgentStatsRow>(statsData);
+      if (stats.length === 0) return [];
 
       const profileIds = stats.map((s) => s.profile_id);
-      const { data: profiles } = await supabase
+      const { data: profilesData } = await supabase
         .from('profiles')
         .select('id, name, avatar_url')
         .in('id', profileIds);
 
-      const profileMap = new Map((profiles || []).map((p) => [p.id, p]));
+      const profiles = unwrapRows<ProfileRow>(profilesData);
+      const profileMap = new Map(profiles.map((p) => [p.id, p]));
 
       return stats.map((s, i): AgentMetric => {
         const profile = profileMap.get(s.profile_id);
