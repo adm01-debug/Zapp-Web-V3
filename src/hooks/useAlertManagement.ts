@@ -15,6 +15,14 @@ import { warRoomAlertRowSchema, safeParseEvent } from '@/shared/webhookEventSche
 
 const log = getLogger('useAlertManagement');
 
+// Escape hatch localizado: as tabelas `webhook_health_checks` e
+// `sentiment_alerts` vivem no schema `zapp` da VPS self-hosted, mas ainda não
+// estão nos types gerados pela Lovable Cloud. Também usamos aqui para colunas
+// de `warroom_alerts`/`conversation_sla` que ainda divergem do types.ts local.
+// A superfície pública (interfaces exportadas) permanece 100% tipada.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const db = supabase as any;
+
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════════════
 // TYPE DEFINITIONS
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════════════
