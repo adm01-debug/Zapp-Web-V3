@@ -46,14 +46,15 @@ for (const f of files) {
     violations.public.push(relative('.', f));
   }
 
-  // 2. createClient sem schema (só produção; ignora _shared factories e types)
+  // 2. createClient sem schema (só produção; ignora _shared factories, types e testes)
   if (
     !isTest &&
     HAS_CREATE_CLIENT.test(src) &&
     !SCHEMA_OK_RE.test(src) &&
     !HAS_SCHEMA_METHOD.test(src) &&
     !/createZappAdminClient|createEvoAdminClient/.test(src) &&
-    !/_shared\/db-client\.ts$/.test(f)
+    !/_shared\/db-client\.ts$/.test(f) &&
+    !/integrations\/supabase\/types\.ts$/.test(f)
   ) {
     violations.noSchema.push(relative('.', f));
   }
