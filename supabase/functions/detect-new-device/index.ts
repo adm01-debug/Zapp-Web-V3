@@ -18,7 +18,7 @@ Deno.serve(async (req) => {
       return errorResponse("Unauthorized", 401, req);
     }
 
-    const supabaseUser = createClient(supabaseUrl, requireEnv("SUPABASE_ANON_KEY", { db: { schema: "zapp" } }), {
+    const supabaseUser = createClient(supabaseUrl, requireEnv("SUPABASE_ANON_KEY"), {
       global: { headers: { Authorization: authHeader } },
     });
 

@@ -74,7 +74,7 @@ Deno.serve(async (req) => {
     const phone = phoneRaw.replace(/\D/g, "");
     if (!phone) return errorResponse("Telefone inválido.", 400, req);
 
-    const supabase = createClient(requireEnv("SUPABASE_URL"), requireEnv("SUPABASE_SERVICE_ROLE_KEY", { db: { schema: "zapp" } }));
+    const supabase = createClient(requireEnv("SUPABASE_URL"), requireEnv("SUPABASE_SERVICE_ROLE_KEY"));
     const evolutionUrl = Deno.env.get("EVOLUTION_API_URL");
     const evolutionKey = Deno.env.get("EVOLUTION_API_KEY");
     if (!evolutionUrl || !evolutionKey) {
