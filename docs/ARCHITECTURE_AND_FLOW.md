@@ -7,8 +7,10 @@ Este documento detalha a arquitetura técnica, o fluxo de dados e os padrões de
 A plataforma é construída sobre uma arquitetura moderna e escalável, utilizando o ecossistema Supabase para o backend e React para o frontend.
 
 - **Frontend:** React + TypeScript + Vite + Tailwind CSS + Shadcn UI.
-- **Backend (BaaS):** Supabase (PostgreSQL, Auth, Realtime, Edge Functions, Storage).
+- **Backend (BaaS):** Supabase Self-Hosted (`supabase.atomicabr.com.br`) — PostgreSQL, Auth, Realtime, Edge Functions, Storage.
 - **Integrações Externas:** Evolution API (WhatsApp), External DB Bridge.
+
+> **⚠️ Schema obrigatório**: Todo acesso ao banco usa `schema: 'zapp'` (315 tabelas). Mensagens WhatsApp ficam em `schema: 'evo'` (193 tabelas). O schema `public` tem **zero tabelas** — não usar. Veja [SCHEMA_REFERENCE.md](SCHEMA_REFERENCE.md).
 
 ### Camadas de Responsabilidade
 
@@ -27,14 +29,14 @@ O diagrama abaixo ilustra o ciclo de vida completo de uma mensagem enviada pelo 
 sequenceDiagram
     participant UI as ChatInput (React)
     participant Hook as useSendMessage
-    participant DB as Supabase (messages)
+    participant DB as Supabase (evo.evolution_messages_wpp2)
     participant EF as Edge Function (webhook-out)
     participant API as Evolution API (WhatsApp)
 
     UI->>Hook: onSubmit(message)
     Hook->>Hook: Gerar client_id (Idempotency)
     Hook->>DB: INSERT message (status: 'sending')
-    DB-->>UI: Realtime: Nova linha (Otimista)
+    DB-->>UI: Realtime schema:'evo' — Nova linha (Otimista)
     
     Note over DB,EF: Trigger aciona Edge Function
     
@@ -45,6 +47,8 @@ sequenceDiagram
     EF->>DB: UPDATE message (status: 'sent', remote_id)
     DB-->>UI: Realtime: Status Atualizado (Checkmark)
 ```
+
+> **Nota de schema**: Mensagens WhatsApp ficam em `evo.evolution_messages_wpp2` (tabela real; `evolution_messages` é a tabela-pai particionada). Subscriptions Realtime de mensagens devem usar `schema: 'evo'`. Dados de atendentes, filas e workspaces ficam no schema `zapp`.
 
 ---
 
