@@ -383,7 +383,20 @@ export default function RateLimitDashboard() {
                   </TableHeader>
                   <TableBody>
                     {logs.map((log) => (
-                      <TableRow key={log.id}>
+                      <TableRow
+                        key={log.id}
+                        onClick={() => setSelectedLog(log)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            setSelectedLog(log);
+                          }
+                        }}
+                        tabIndex={0}
+                        role="button"
+                        aria-label={`Ver detalhes do log ${log.ip_address} · ${log.endpoint}`}
+                        className="cursor-pointer hover:bg-muted/50 focus-visible:bg-muted/60 focus-visible:outline-none"
+                      >
                         <TableCell><code className="text-sm">{log.ip_address}</code></TableCell>
                         <TableCell><code className="text-sm">{log.endpoint}</code></TableCell>
                         <TableCell>{log.request_count}</TableCell>
