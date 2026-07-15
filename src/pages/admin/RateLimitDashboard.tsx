@@ -59,9 +59,28 @@ export default function RateLimitDashboard() {
     );
   }
 
-  const blockedPercentage = stats 
-    ? Math.round((stats.blockedRequests / Math.max(logs.length, 1)) * 100) 
+  const blockedPercentage = stats
+    ? Math.round((stats.blockedRequests / Math.max(stats.totalRequests, 1)) * 100)
     : 0;
+
+  const toggleSort = (key: RateLimitSortKey) => {
+    if (filters.sortBy === key) {
+      setFilters({ sortDir: filters.sortDir === 'asc' ? 'desc' : 'asc' });
+    } else {
+      setFilters({ sortBy: key, sortDir: 'desc' });
+    }
+  };
+
+  const sortIcon = (key: RateLimitSortKey) => {
+    if (filters.sortBy !== key) return <ArrowUpDown className="ml-1 inline h-3 w-3 opacity-50" />;
+    return filters.sortDir === 'asc'
+      ? <ArrowUp className="ml-1 inline h-3 w-3" />
+      : <ArrowDown className="ml-1 inline h-3 w-3" />;
+  };
+
+  const hasActiveFilters = Boolean(filters.ip?.trim() || filters.endpoint?.trim() || filters.blockedOnly);
+  const rangeFrom = total === 0 ? 0 : (filters.page - 1) * filters.pageSize + 1;
+  const rangeTo = Math.min(filters.page * filters.pageSize, total);
 
   return (
     <div className="p-6 space-y-6 max-w-7xl mx-auto">
