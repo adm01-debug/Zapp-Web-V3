@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { 
+import {
   Shield, Activity, Ban, Globe, AlertTriangle, Clock, RefreshCw,
-  BarChart3, ShieldAlert
+  BarChart3, ShieldAlert, ArrowUp, ArrowDown, ArrowUpDown, X,
 } from 'lucide-react';
 import { useRateLimitLogs } from '@/features/admin';
+import type { RateLimitSortKey } from '@/features/admin/hooks/useRateLimitLogs';
 import { useUserRole } from '@/features/auth';
 import { BlockedIPsPanel } from '@/components/security/BlockedIPsPanel';
 import { IPWhitelistPanel } from '@/components/security/IPWhitelistPanel';
@@ -12,22 +13,33 @@ import { RateLimitAlertsPanel } from '@/features/admin/components/RateLimitAlert
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
+const SORT_LABEL: Record<RateLimitSortKey, string> = {
+  created_at: 'Quando',
+  ip_address: 'IP',
+  endpoint: 'Endpoint',
+  request_count: 'Requisições',
+  blocked: 'Status',
+};
+
 export default function RateLimitDashboard() {
   const { isAdmin } = useUserRole();
-  const { logs, stats, loading, refetch } = useRateLimitLogs();
+  const {
+    logs, stats, total, totalPages, loading, filters, setFilters, resetFilters, refetch,
+  } = useRateLimitLogs();
   const [activeTab, setActiveTab] = useState('overview');
 
   // Área técnica — visualização restrita a admin+ (hierarquia inclui dev).
