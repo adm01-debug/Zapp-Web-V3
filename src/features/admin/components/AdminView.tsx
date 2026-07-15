@@ -15,7 +15,7 @@ import { PermissionMatrix } from '@/features/auth';
 import AdminQueuesPage from '@/pages/admin/AdminQueuesPage';
 import {
   Shield, Users, Search, Crown, UserCog, User, History, RefreshCw,
-  UserPlus, Building, Eye, Loader2, Brain, QrCode, Code,
+  UserPlus, Building, Eye, Loader2, Brain, QrCode, Code, GitBranch,
 } from 'lucide-react';
 import { useUserRole, AppRole } from '@/features/auth';
 import { AdminCRMDashboard } from './AdminCRMDashboard';
@@ -29,6 +29,7 @@ import { useAdminData, accessLevelConfig, type UserWithRole } from '../hooks/use
 import { AdminUsersTable } from './AdminUsersTable';
 import { AdminAuditTable } from './AdminAuditTable';
 import { InboxScopeConfig } from './InboxScopeConfig';
+import { AgentVersionsPanel } from './AgentVersionsPanel';
 
 const roleIconMap = { dev: Code, admin: Crown, supervisor: UserCog, agent: User } as const;
 const roleLabelMap = { dev: 'Desenvolvedor', admin: 'Administrador', supervisor: 'Supervisor', agent: 'Atendente' } as const;
@@ -36,7 +37,7 @@ const roleColorMap = { dev: 'text-destructive', admin: 'text-warning', superviso
 
 export function AdminView() {
   const { isAdmin, isSupervisor, loading: roleLoading } = useUserRole();
-  const [activeTab, setActiveTab] = useState<'users' | 'audit' | 'crm' | 'playbooks' | 'copilot' | 'training' | 'crisis' | 'qr-history' | 'queues' | 'inbox-config'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'audit' | 'crm' | 'playbooks' | 'copilot' | 'training' | 'crisis' | 'qr-history' | 'queues' | 'inbox-config' | 'agent-versions'>('users');
   const [searchTerm, setSearchTerm] = useState('');
   const [editingUser, setEditingUser] = useState<UserWithRole | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -122,7 +123,7 @@ export function AdminView() {
       </motion.div>
 
       <div className="flex gap-2 flex-wrap">
-        {([['users', Users, `Usuários (${users.length})`], ['queues', Users, 'Filas'], ['inbox-config', Shield, 'Escopo Inbox'], ['audit', History, 'Auditoria'], ['qr-history', QrCode, 'Histórico de QR'], ['crm', Building, 'CRM 360°'], ['playbooks', Shield, 'Playbooks'], ['copilot', Brain, 'Copilot IA'], ['training', Users, 'Treinamento'], ['crisis', Shield, 'Sala de Crise']] as const).map(([tab, Icon, label]) => (
+        {([['users', Users, `Usuários (${users.length})`], ['agent-versions', GitBranch, 'Versões de Agentes'], ['queues', Users, 'Filas'], ['inbox-config', Shield, 'Escopo Inbox'], ['audit', History, 'Auditoria'], ['qr-history', QrCode, 'Histórico de QR'], ['crm', Building, 'CRM 360°'], ['playbooks', Shield, 'Playbooks'], ['copilot', Brain, 'Copilot IA'], ['training', Users, 'Treinamento'], ['crisis', Shield, 'Sala de Crise']] as const).map(([tab, Icon, label]) => (
           <Button key={tab} variant={activeTab === tab ? 'default' : 'outline'} onClick={() => setActiveTab(tab as typeof activeTab)}
             className={activeTab === tab ? 'bg-whatsapp hover:bg-whatsapp-dark' : ''} size="sm">
             <Icon className="w-4 h-4 mr-2" /> {label}
@@ -270,6 +271,8 @@ export function AdminView() {
         <div className="flex justify-center py-12"><RefreshCw className="w-8 h-8 animate-spin text-muted-foreground" /></div>
       ) : activeTab === 'inbox-config' ? (
         <InboxScopeConfig />
+      ) : activeTab === 'agent-versions' ? (
+        <AgentVersionsPanel />
       ) : activeTab === 'users' ? (
         <Tabs defaultValue="list" className="w-full">
           <TabsList className="mb-4">
