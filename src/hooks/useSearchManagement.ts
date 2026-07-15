@@ -19,7 +19,9 @@ interface SearchHistoryEntry {
   query: string;
   timestamp: string;
   result_type: string;
+  resultCount?: number;
 }
+
 
 /** Manages global search modal with Ctrl+K keyboard shortcut. */
 export function useGlobalSearchShortcutManagement(onSearch?: (query: string) => void) {
