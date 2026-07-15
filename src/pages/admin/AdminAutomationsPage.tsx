@@ -18,6 +18,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
   Plus,
   Pencil,
@@ -27,10 +28,13 @@ import {
   Send,
   Clock,
   AlertTriangle,
+  AlertCircle,
+  RefreshCw,
   Building2,
   Radio,
 } from 'lucide-react';
 import { AutomationRuleDialog } from './AutomationRuleDialog';
+
 
 // Ensure escalate_sla always has required properties with proper types
 function normalizeEscalateSla(
