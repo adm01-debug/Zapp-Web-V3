@@ -37,8 +37,8 @@ const CLUSTERS = {
     'src/hooks/useQueueSlaPanel.ts',
   ],
   observability: [
-    'src/hooks/usePerformanceSnapshots.ts',
     'src/hooks/useAlertManagement.ts',
+    'src/hooks/usePerformanceMonitoring.ts',
   ],
 };
 
