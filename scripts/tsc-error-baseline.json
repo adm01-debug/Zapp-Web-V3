@@ -1,4 +1,20 @@
 {
-  "total": 0,
-  "files": {}
+  "total": 30,
+  "files": {
+    "src/components/ui/toaster.tsx": 1,
+    "src/components/voice/VoiceSearchOverlayConnected.tsx": 11,
+    "src/hooks/admin/useAdminChannels.ts": 1,
+    "src/hooks/admin/useAdminQueues.ts": 1,
+    "src/hooks/admin/useDepartmentsAdmin.ts": 2,
+    "src/hooks/admin/useRolesPageState.ts": 2,
+    "src/hooks/admin/useRoutePermissions.ts": 1,
+    "src/hooks/useAriaAnnouncer.ts": 1,
+    "src/hooks/useDeviceDetection.ts": 2,
+    "src/hooks/useGlobalSearchShortcut.ts": 1,
+    "src/hooks/useSearchHistory.ts": 1,
+    "src/hooks/useSearchInsights.ts": 3,
+    "src/hooks/useSwipeControl.ts": 1,
+    "src/hooks/useTeamChatNotifications.ts": 1,
+    "src/hooks/useTextToSpeech.ts": 1
+  }
 }
