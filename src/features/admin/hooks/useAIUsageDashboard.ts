@@ -93,7 +93,7 @@ export function useAIUsageDashboard() {
       const { data } = await supabase
         .from('profiles')
         .select('id, user_id, name, email, avatar_url');
-      return (data || []) as ProfileInfo[];
+      return unwrapRows<ProfileInfo>(data);
     },
     staleTime: 600_000,
   });
