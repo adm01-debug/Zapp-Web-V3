@@ -22,6 +22,7 @@ import {
   Cell,
 } from 'recharts';
 import { useAIUsageDashboard, FUNCTION_COLORS, FUNCTION_LABELS } from '@/features/admin';
+import { formatTokens } from '@/lib/rechartsFormatters';
 import type { TimeFilter } from '@/features/admin';
 import { AIUsageLogsTab } from './AIUsageLogsTab';
 import { AIUsageUsersTab } from './AIUsageUsersTab';
