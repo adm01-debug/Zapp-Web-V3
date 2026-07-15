@@ -108,6 +108,18 @@ jobs:
         # localmente apenas quando o baseline REDUZIR (progresso).
         run: node scripts/check-tsc-ratchet.mjs
 
+      - name: Supabase types freshness (advisory se secrets ausentes)
+        # Bloqueia deploy se src/integrations/supabase/types.ts estiver
+        # defasado em relação ao schema atual da VPS. Skipa com warning
+        # quando ZAPP_META_URL/ZAPP_META_TOKEN não estão configurados
+        # (ex.: PRs de forks).
+        env:
+          ZAPP_META_URL: ${{ secrets.ZAPP_META_URL }}
+          ZAPP_META_TOKEN: ${{ secrets.ZAPP_META_TOKEN }}
+        run: node scripts/check-types-freshness.mjs
+
+
+
 
 
 
