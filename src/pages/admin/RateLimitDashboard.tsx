@@ -10,6 +10,8 @@ import { useUserRole } from '@/features/auth';
 import { BlockedIPsPanel } from '@/components/security/BlockedIPsPanel';
 import { IPWhitelistPanel } from '@/components/security/IPWhitelistPanel';
 import { RateLimitAlertsPanel } from '@/features/admin/components/RateLimitAlertsPanel';
+import { RateLimitLogDetails } from '@/features/admin/components/RateLimitLogDetails';
+import type { RateLimitLog } from '@/features/admin/hooks/useRateLimitLogs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
