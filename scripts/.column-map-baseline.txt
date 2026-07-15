@@ -54,3 +54,19 @@
   src/pages/admin/operations/OpsLogsTab.tsx
   src/pages/failed-messages/FailedMessageDetailsSheet.tsx
   src/types/evolutionExternal.ts
+  src/components/diagnostics/ConnectionHealthPanel.tsx
+  src/components/layout/useConnectionStatusIndicator.ts
+  src/features/admin/hooks/monitoring/failedMessagesAggregates.ts
+  src/features/connections/data-access/whatsappConnectionRepository.ts
+  src/features/inbox/hooks/realtime/messageSenderHelpers.ts
+  src/features/integrations/hooks/useEvolutionApiIntegration.ts
+  src/hooks/evolutionFetchers.ts
+  src/hooks/useAutomationManagement.ts
+  src/pages/admin-webhook-events/WebhookEventsTable.tsx
+  src/pages/admin-webhook-events/useWebhookEvents.ts
+  src/pages/admin-webhook-overview/useWebhookOverview.ts
+  src/pages/admin-webhook-secret-status/WebhookEventsTable.tsx
+  src/pages/admin-webhook-secret-status/WebhookKpiCards.tsx
+  src/pages/admin-webhook-secret-status/useAdminWebhookStatus.ts
+  src/pages/admin/useAdminInboxSync.ts
+  src/services/connections/connectionsService.ts
