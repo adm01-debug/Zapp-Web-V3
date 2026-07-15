@@ -75,6 +75,7 @@ async function loadModule() {
 beforeEach(() => {
   vi.clearAllMocks();
   vi.resetModules();
+  vi.stubEnv('VITE_ENABLE_CLIENT_OBSERVABILITY', 'true');
   observerRegistry.clear();
   mockIsConfigured.value = true;
   mockInvoke.mockResolvedValue({ data: null, error: null });
