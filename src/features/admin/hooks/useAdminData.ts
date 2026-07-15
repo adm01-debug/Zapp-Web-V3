@@ -1,9 +1,47 @@
-// @ts-nocheck
 import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { toast } from 'sonner';
+import { unwrapRows } from '@/lib/supabase-helpers';
 import type { AppRole } from '@/features/auth';
+
+interface ProfileRow {
+  id: string;
+  user_id: string;
+  name: string;
+  email: string | null;
+  avatar_url: string | null;
+  nickname: string | null;
+  signature: string | null;
+  job_title: string | null;
+  department: string | null;
+  phone: string | null;
+  access_level: string | null;
+  max_chats: number | null;
+  can_download: boolean;
+  is_active: boolean | null;
+  created_at: string;
+}
+
+interface UserRoleRow {
+  user_id: string;
+  role: AppRole;
+}
+
+interface AuditLogRow {
+  id: string;
+  user_id: string | null;
+  action: string;
+  entity_type: string | null;
+  details: unknown;
+  created_at: string;
+}
+
+interface ProfileMini {
+  user_id: string;
+  name: string;
+  email: string | null;
+}
 
 export interface UserWithRole {
   id: string;
