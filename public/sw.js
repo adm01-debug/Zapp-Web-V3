@@ -9,9 +9,13 @@ self.addEventListener('install', (event) => {
 self.addEventListener('activate', (event) => {
   console.log('[ServiceWorker] Activate - purging ALL caches');
   event.waitUntil((async () => {
-    const cacheKeys = await caches.keys();
-    await Promise.all(cacheKeys.map((key) => caches.delete(key)));
-    await self.clients.claim();
+    // Claim first, then purge — if the worker was already replaced before
+    // this activate runs, claim() throws InvalidStateError. Guard silently.
+    try { await self.clients.claim(); } catch (_e) { /* stale worker, ignore */ }
+    try {
+      const cacheKeys = await caches.keys();
+      await Promise.all(cacheKeys.map((key) => caches.delete(key)));
+    } catch (_e) { /* Cache Storage unavailable — non-fatal */ }
   })());
 });
 
