@@ -100,12 +100,16 @@ export function useSupervisorConversations() {
 
   useEffect(() => { void load(); }, [load]);
 
+  const updateContact = useCallback(async (contactId: string, patch: Record<string, unknown>) => {
+    const q = supabase.from('contacts') as unknown as {
+      update: (v: Record<string, unknown>) => { eq: (c: string, v: string) => Promise<{ error: unknown }> };
+    };
+    return q.update(patch).eq('id', contactId);
+  }, []);
+
   const reassignAgent = useCallback(async (contactId: string, agentId: string | null) => {
     try {
-      const { error } = await supabase
-        .from('contacts')
-        .update({ assigned_to: agentId })
-        .eq('id', contactId);
+      const { error } = await updateContact(contactId, { assigned_to: agentId });
       if (error) throw error;
       toast.success(agentId ? 'Conversa redirecionada' : 'Conversa desatribuída');
       await load();
@@ -113,14 +117,11 @@ export function useSupervisorConversations() {
       logger.error('[SupervisorCopilot] reassignAgent', err);
       toast.error('Erro ao redirecionar conversa');
     }
-  }, [load]);
+  }, [load, updateContact]);
 
   const moveQueue = useCallback(async (contactId: string, queueId: string | null) => {
     try {
-      const { error } = await supabase
-        .from('contacts')
-        .update({ queue_id: queueId, assigned_to: null })
-        .eq('id', contactId);
+      const { error } = await updateContact(contactId, { queue_id: queueId, assigned_to: null });
       if (error) throw error;
       toast.success('Conversa movida para nova fila');
       await load();
@@ -128,7 +129,7 @@ export function useSupervisorConversations() {
       logger.error('[SupervisorCopilot] moveQueue', err);
       toast.error('Erro ao mover para fila');
     }
-  }, [load]);
+  }, [load, updateContact]);
 
   const summary = useMemo(() => {
     const s = { critical: 0, high: 0, medium: 0, normal: 0 };
