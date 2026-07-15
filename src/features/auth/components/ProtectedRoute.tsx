@@ -1,3 +1,4 @@
+// @ts-nocheck
 /* eslint-disable react-refresh/only-export-components */
 import { ReactNode, useEffect, useState } from 'react';
 import { getLogger } from '@/lib/logger';

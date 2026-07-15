@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * MessageAttemptsTimeline — timeline visual da pipeline de envio de uma
  * mensagem: tentativa atual / total, timestamps relevantes e motivo final

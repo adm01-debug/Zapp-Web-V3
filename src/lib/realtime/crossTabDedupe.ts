@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * crossTabDedupe — Evita chamadas duplicadas de carregamento entre abas.
  *

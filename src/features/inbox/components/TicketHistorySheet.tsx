@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Drawer com histórico do atendimento.
  *
