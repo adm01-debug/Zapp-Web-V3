@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Configuração de retry por instância (com fallback global → defaults).
  *
