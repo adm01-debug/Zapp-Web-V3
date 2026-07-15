@@ -5,6 +5,15 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { log } from '@/lib/logger';
 
+// Escape hatch de tipos: as tabelas contact_intelligence/contact_notes/
+// contact_assignments/contact_custom_fields vivem no schema `zapp` da instância
+// self-hosted, mas os types gerados no ambiente Lovable (Cloud) não as expõem.
+// Enquanto scripts/gen-types-zapp.mjs não rodar contra a VPS, isolamos a
+// tipagem apenas na fronteira do postgrest — a superfície pública do hook
+// permanece 100% tipada.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const db = supabase as unknown as { from: (t: string) => any };
+
 interface ContactIntelligence {
   contact_id: string;
   sentiment: string;
