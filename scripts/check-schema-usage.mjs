@@ -64,12 +64,14 @@ for (const f of files) {
     violations.cloudUrl.push(relative('.', f));
   }
 
-  // 4. .from('evolution_messages'|'evolution_conversations') sem sufixo de partição.
-  // Essas são tabelas-pai particionadas em `evo` — consultar sempre a partição real
-  // (evolution_messages_wpp2, evolution_conversations_wpp2, etc.).
+  // 4. .from('evolution_messages'|'evolution_conversations') no frontend sem sufixo
+  // de partição. Essas são tabelas-pai particionadas em `evo` — o frontend deve
+  // consultar a partição real (evolution_messages_wpp2). Edge Functions rodam com
+  // service_role e o PG roteia para a partição correta, então o guardrail se
+  // aplica apenas a src/.
   const parentPartitionRe =
     /\.from\(\s*['"](evolution_messages|evolution_conversations)['"]\s*\)/g;
-  if (!isTest && parentPartitionRe.test(src)) {
+  if (!isTest && f.startsWith('src/') && parentPartitionRe.test(src)) {
     violations.evoUnprefixed.push(relative('.', f));
   }
 }
