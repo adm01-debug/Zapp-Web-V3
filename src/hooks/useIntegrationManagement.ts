@@ -24,7 +24,8 @@ export function useEvolutionApiManagement() {
     const checkConnection = async () => {
       if (!_mounted) return;
       try {
-        const { data, error: err } = await supabase.from('evolution_instances').select('*');
+        // SCHEMA: evo — tabela pertence ao schema Evolution API
+        const { data, error: err } = await supabase.schema('evo').from('evolution_instances').select('*');
 
         if (err) throw err;
         setInstances(data || []);
