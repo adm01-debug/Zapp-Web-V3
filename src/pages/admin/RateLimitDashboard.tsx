@@ -286,29 +286,103 @@ export default function RateLimitDashboard() {
           <Card>
             <CardHeader>
               <CardTitle>Logs de Rate Limiting</CardTitle>
-              <CardDescription>Últimas 100 requisições monitoradas</CardDescription>
+              <CardDescription>
+                Investigue picos filtrando por IP, endpoint e status. Clique nos cabeçalhos para ordenar.
+              </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-4">
+              {/* Filters */}
+              <div className="grid gap-3 md:grid-cols-[1fr_1fr_auto_auto_auto] md:items-end">
+                <div className="space-y-1">
+                  <Label htmlFor="filter-ip" className="text-xs">Filtrar por IP</Label>
+                  <Input
+                    id="filter-ip"
+                    placeholder="Ex: 192.168 ou 10.0.0.1"
+                    value={filters.ip ?? ''}
+                    onChange={(e) => setFilters({ ip: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="filter-endpoint" className="text-xs">Filtrar por endpoint</Label>
+                  <Input
+                    id="filter-endpoint"
+                    placeholder="Ex: /api/messages"
+                    value={filters.endpoint ?? ''}
+                    onChange={(e) => setFilters({ endpoint: e.target.value })}
+                  />
+                </div>
+                <div className="flex items-center gap-2 pb-2 md:pb-0">
+                  <Switch
+                    id="filter-blocked"
+                    checked={!!filters.blockedOnly}
+                    onCheckedChange={(v) => setFilters({ blockedOnly: v })}
+                  />
+                  <Label htmlFor="filter-blocked" className="text-xs">Somente bloqueados</Label>
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="page-size" className="text-xs">Por página</Label>
+                  <Select
+                    value={String(filters.pageSize)}
+                    onValueChange={(v) => setFilters({ pageSize: Number(v) })}
+                  >
+                    <SelectTrigger id="page-size" className="w-[90px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {[10, 25, 50, 100].map((n) => (
+                        <SelectItem key={n} value={String(n)}>{n}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={resetFilters}
+                  disabled={!hasActiveFilters}
+                  className="h-9"
+                >
+                  <X className="mr-1 h-3.5 w-3.5" /> Limpar
+                </Button>
+              </div>
+
+              {hasActiveFilters && (
+                <div className="flex flex-wrap gap-1.5 text-xs">
+                  {filters.ip?.trim() && (
+                    <Badge variant="outline">IP: {filters.ip}</Badge>
+                  )}
+                  {filters.endpoint?.trim() && (
+                    <Badge variant="outline">Endpoint: {filters.endpoint}</Badge>
+                  )}
+                  {filters.blockedOnly && <Badge variant="outline">Somente bloqueados</Badge>}
+                </div>
+              )}
+
               <div className="rounded-md border">
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>IP</TableHead>
-                      <TableHead>Endpoint</TableHead>
-                      <TableHead>Requisições</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Quando</TableHead>
+                      {(['ip_address', 'endpoint', 'request_count', 'blocked', 'created_at'] as RateLimitSortKey[]).map((key) => (
+                        <TableHead
+                          key={key}
+                          onClick={() => toggleSort(key)}
+                          className="cursor-pointer select-none hover:text-foreground"
+                          aria-sort={
+                            filters.sortBy === key
+                              ? filters.sortDir === 'asc' ? 'ascending' : 'descending'
+                              : 'none'
+                          }
+                        >
+                          {SORT_LABEL[key]}{sortIcon(key)}
+                        </TableHead>
+                      ))}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {logs.slice(0, 20).map((log) => (
+                    {logs.map((log) => (
                       <TableRow key={log.id}>
-                        <TableCell>
-                          <code className=" text-sm">{log.ip_address}</code>
-                        </TableCell>
-                        <TableCell>
-                          <code className=" text-sm">{log.endpoint}</code>
-                        </TableCell>
+                        <TableCell><code className="text-sm">{log.ip_address}</code></TableCell>
+                        <TableCell><code className="text-sm">{log.endpoint}</code></TableCell>
                         <TableCell>{log.request_count}</TableCell>
                         <TableCell>
                           {log.blocked ? (
@@ -318,9 +392,9 @@ export default function RateLimitDashboard() {
                           )}
                         </TableCell>
                         <TableCell className="text-muted-foreground text-sm">
-                          {formatDistanceToNow(new Date(log.created_at), { 
-                            addSuffix: true, 
-                            locale: ptBR 
+                          {formatDistanceToNow(new Date(log.created_at), {
+                            addSuffix: true,
+                            locale: ptBR,
                           })}
                         </TableCell>
                       </TableRow>
@@ -328,12 +402,58 @@ export default function RateLimitDashboard() {
                     {logs.length === 0 && (
                       <TableRow>
                         <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
-                          Nenhum log disponível
+                          {loading ? 'Carregando…' : 'Nenhum log encontrado com esses filtros.'}
                         </TableCell>
                       </TableRow>
                     )}
                   </TableBody>
                 </Table>
+              </div>
+
+              {/* Pagination */}
+              <div className="flex flex-col items-start justify-between gap-2 sm:flex-row sm:items-center">
+                <p className="text-xs text-muted-foreground">
+                  {total === 0
+                    ? 'Sem resultados'
+                    : `Mostrando ${rangeFrom}–${rangeTo} de ${total} registro${total === 1 ? '' : 's'}`}
+                </p>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setFilters({ page: 1 })}
+                    disabled={filters.page <= 1 || loading}
+                  >
+                    Primeira
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setFilters({ page: Math.max(1, filters.page - 1) })}
+                    disabled={filters.page <= 1 || loading}
+                  >
+                    Anterior
+                  </Button>
+                  <span className="text-xs tabular-nums text-muted-foreground">
+                    Página {filters.page} de {totalPages}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setFilters({ page: Math.min(totalPages, filters.page + 1) })}
+                    disabled={filters.page >= totalPages || loading}
+                  >
+                    Próxima
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setFilters({ page: totalPages })}
+                    disabled={filters.page >= totalPages || loading}
+                  >
+                    Última
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>
