@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/features/auth';
@@ -18,7 +17,7 @@ export function useVisibleAgents() {
         _user_id: user.id,
       });
       if (error) throw error;
-      return (data || []) as string[];
+      return ((data as unknown) || []) as string[];
     },
     enabled: !!user,
     staleTime: 60_000,
