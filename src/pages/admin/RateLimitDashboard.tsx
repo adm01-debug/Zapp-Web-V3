@@ -2,12 +2,13 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { 
   Shield, Activity, Ban, Globe, AlertTriangle, Clock, RefreshCw,
-  BarChart3
+  BarChart3, ShieldAlert
 } from 'lucide-react';
 import { useRateLimitLogs } from '@/features/admin';
 import { useUserRole } from '@/features/auth';
 import { BlockedIPsPanel } from '@/components/security/BlockedIPsPanel';
 import { IPWhitelistPanel } from '@/components/security/IPWhitelistPanel';
+import { RateLimitAlertsPanel } from '@/features/admin/components/RateLimitAlertsPanel';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
