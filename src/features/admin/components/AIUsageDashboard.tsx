@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Select,
@@ -23,6 +22,7 @@ import {
   Cell,
 } from 'recharts';
 import { useAIUsageDashboard, FUNCTION_COLORS, FUNCTION_LABELS } from '@/features/admin';
+import { formatTokens } from '@/lib/rechartsFormatters';
 import type { TimeFilter } from '@/features/admin';
 import { AIUsageLogsTab } from './AIUsageLogsTab';
 import { AIUsageUsersTab } from './AIUsageUsersTab';
@@ -198,7 +198,7 @@ export function AIUsageDashboard() {
                           ))}
                         </Pie>
                         <Tooltip
-                          formatter={(v: number | string) => String(v.toLocaleString()) + ' tokens'}
+                          formatter={formatTokens}
                         />
                       </PieChart>
                     </ResponsiveContainer>
