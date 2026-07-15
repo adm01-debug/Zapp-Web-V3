@@ -215,7 +215,7 @@ describe('notificationSounds (unified v2.0)', () => {
       const NotificationSpy = vi.fn(function () { return mockNotification; });
       vi.stubGlobal('Notification', NotificationSpy);
       Object.defineProperty(NotificationSpy, 'permission', { value: 'granted', configurable: true });
-      vi.stubGlobal('window', { focus: vi.fn() });
+      window.focus = vi.fn();
       showBrowserNotification('Test', 'Body', { onClick });
       mockNotification.onclick?.({} as Event);
       expect(onClick).toHaveBeenCalled();
