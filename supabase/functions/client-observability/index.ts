@@ -59,18 +59,23 @@ Deno.serve(async (req) => {
     }
 
     const supabase = createClient(
-      requireEnv('SUPABASE_URL'), requireEnv('SUPABASE_SERVICE_ROLE_KEY', { db: { schema: "zapp" } }),
+      requireEnv('SUPABASE_URL'),
+      requireEnv('SUPABASE_SERVICE_ROLE_KEY'),
+      { db: { schema: 'zapp' } },
     );
 
     const { error } = await supabase.from('query_telemetry').insert(rows);
     if (error) {
+      // Never bubble up as 500 — observability failures must not create
+      // client-side error floods. Log and return 204 (accepted, no content).
       log.error('failed inserting query_telemetry', { error: error.message });
-      return errorResponse('Internal server error', 500, req);
+      return new Response(null, { status: 204 });
     }
 
     return jsonResponse({ ok: true, accepted: rows.length }, 200, req);
   } catch (error: unknown) {
+    // Observability endpoint: swallow errors, return 204 to avoid client flood.
     log.error('Unhandled error', { error: error instanceof Error ? error.message : String(error) });
-    return errorResponse('Internal server error', 500, req);
+    return new Response(null, { status: 204 });
   }
 });

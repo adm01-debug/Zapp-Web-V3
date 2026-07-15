@@ -40,11 +40,23 @@ const lastSentByName = new Map<string, number>();
 let uploadTimer: number | null = null;
 const OBS_FUNCTION = 'client-observability';
 
+// Simple circuit-breaker so a failing observability endpoint can't flood the
+// console with 500s forever. After 3 consecutive failures, silence uploads
+// for BREAKER_COOLDOWN_MS. Any success resets the counter.
+const BREAKER_THRESHOLD = 3;
+const BREAKER_COOLDOWN_MS = 60_000;
+let obsFailures = 0;
+let obsSilencedUntil = 0;
+
 async function flushMetrics() {
   if (!uploadQueue.length) return;
   // Raw env check missed the case where URL exists but the key is a placeholder.
   // Trust the hardened flag instead, and drop the queue so it can't grow forever.
   if (!isSupabaseConfigured) {
+    uploadQueue.length = 0;
+    return;
+  }
+  if (Date.now() < obsSilencedUntil) {
     uploadQueue.length = 0;
     return;
   }
@@ -58,11 +70,22 @@ async function flushMetrics() {
   }));
 
   try {
-    await supabase.functions.invoke(OBS_FUNCTION, {
+    const { error } = await supabase.functions.invoke(OBS_FUNCTION, {
       body: { metrics: batch },
     });
+    if (error) throw error;
+    obsFailures = 0;
   } catch (err) {
-    log.warn('Failed sending web-vitals to backend observability', err);
+    obsFailures += 1;
+    if (obsFailures >= BREAKER_THRESHOLD) {
+      obsSilencedUntil = Date.now() + BREAKER_COOLDOWN_MS;
+      obsFailures = 0;
+      log.warn(
+        `Observability endpoint silenced for ${BREAKER_COOLDOWN_MS / 1000}s after repeated failures`,
+      );
+    } else {
+      log.debug('Failed sending web-vitals to backend observability', err);
+    }
   }
 }
 
