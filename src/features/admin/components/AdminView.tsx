@@ -29,6 +29,7 @@ import { useAdminData, accessLevelConfig, type UserWithRole } from '../hooks/use
 import { AdminUsersTable } from './AdminUsersTable';
 import { AdminAuditTable } from './AdminAuditTable';
 import { InboxScopeConfig } from './InboxScopeConfig';
+import { AgentVersionsPanel } from './AgentVersionsPanel';
 
 const roleIconMap = { dev: Code, admin: Crown, supervisor: UserCog, agent: User } as const;
 const roleLabelMap = { dev: 'Desenvolvedor', admin: 'Administrador', supervisor: 'Supervisor', agent: 'Atendente' } as const;
