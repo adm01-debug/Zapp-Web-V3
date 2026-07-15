@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { describe, it, expect } from 'vitest';
 import { calculateContactHealth, getHealthColor } from '@/lib/contact-health';
 
