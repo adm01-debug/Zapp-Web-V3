@@ -272,10 +272,12 @@ function useAdminAutomationsManagement() {
   const [automationChannels, setAutomationChannels] = useState<AutomationChannel[]>([]);
   const [automationDepartments, setAutomationDepartments] = useState<AutomationDepartment[]>([]);
   const [automationLoading, setAutomationLoading] = useState(false);
+  const [automationError, setAutomationError] = useState<Error | null>(null);
   const mountedRef = useMountedRef();
 
   const loadAutomations = async () => {
     setAutomationLoading(true);
+    setAutomationError(null);
     try {
       const [{ data: rulesData, error }, { data: chs, error: chsError }, { data: deps, error: depsError }] = await Promise.all([
         supabase.from('automations').select('*').order('name', { ascending: true }),
@@ -283,16 +285,10 @@ function useAdminAutomationsManagement() {
         supabase.from('departments').select('id,name').order('name'),
       ]);
       if (!mountedRef.current) return;
-      if (error) {
-        toast.error(error.message);
-        return;
-      }
-      if (chsError) {
-        toast.error('Erro ao carregar canais de automação');
-        return;
-      }
-      if (depsError) {
-        toast.error('Erro ao carregar departamentos de automação');
+      const firstError = error ?? chsError ?? depsError;
+      if (firstError) {
+        setAutomationError(new Error(firstError.message ?? 'Erro ao carregar automações'));
+        toast.error(firstError.message ?? 'Erro ao carregar automações');
         return;
       }
       setRules((rulesData ?? []) as unknown as Rule[]);
@@ -300,11 +296,14 @@ function useAdminAutomationsManagement() {
       setAutomationDepartments((deps ?? []) as AutomationDepartment[]);
     } catch (err) {
       if (!mountedRef.current) return;
-      toast.error('Erro ao carregar automações');
+      const e = err instanceof Error ? err : new Error('Erro ao carregar automações');
+      setAutomationError(e);
+      toast.error(e.message);
     } finally {
       if (mountedRef.current) setAutomationLoading(false);
     }
   };
+
 
   useEffect(() => {
     void loadAutomations();
