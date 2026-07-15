@@ -1,4 +1,4 @@
-// @ts-nocheck
+
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -68,10 +68,10 @@ export function useDispatchErrorLogs(filters: DispatchErrorLogFilters = {}) {
         p_cursor_id: null,
       });
       if (error) throw error;
-      const list = data ?? [];
+      const list = ((data ?? []) as unknown as _RpcRow[]);
       const total = list[0]?.total_count != null ? Number(list[0].total_count) : 0;
       const rows: DispatchErrorLogRow[] = list.map(
-        ({ total_count: _t, ...rest }) => rest as unknown as DispatchErrorLogRow
+        ({ total_count: _t, ...rest }) => rest as DispatchErrorLogRow
       );
       return { rows, total };
     },
