@@ -161,6 +161,9 @@ export const AppShell = forwardRef<HTMLDivElement, AppShellProps>(function AppSh
           isMobile && 'pb-[64px] pt-12'
         )}
       >
+        {/* A11y: single h1 landmark for the app shell (WCAG page-has-heading-one). */}
+        <h1 className="sr-only">ZAPP Web — Central de Atendimento</h1>
+
         {!isMobile && isInboxView && (
           <Tooltip delayDuration={0}>
             <TooltipTrigger asChild>
