@@ -81,7 +81,6 @@ src/features/admin/components/VisibilityGrantsManager.tsx
 src/features/admin/components/alerts/AlertInstanceDetailDialog.tsx
 src/features/admin/hooks/gamification/mutations.ts
 src/features/admin/hooks/monitoring/useDispatchErrorLogs.ts
-src/features/admin/hooks/monitoring/useDlqAuditLog.ts
 src/features/admin/hooks/monitoring/useFailedMessages.ts
 src/features/admin/hooks/monitoring/useIdempotencyMissAlerts.ts
 src/features/admin/hooks/useAdminManagement.ts
