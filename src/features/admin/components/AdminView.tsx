@@ -15,7 +15,7 @@ import { PermissionMatrix } from '@/features/auth';
 import AdminQueuesPage from '@/pages/admin/AdminQueuesPage';
 import {
   Shield, Users, Search, Crown, UserCog, User, History, RefreshCw,
-  UserPlus, Building, Eye, Loader2, Brain, QrCode, Code,
+  UserPlus, Building, Eye, Loader2, Brain, QrCode, Code, GitBranch,
 } from 'lucide-react';
 import { useUserRole, AppRole } from '@/features/auth';
 import { AdminCRMDashboard } from './AdminCRMDashboard';
