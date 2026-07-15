@@ -1139,6 +1139,9 @@ export function useAdminManagement(options?: {
     removeAutomation: automations.removeAutomation,
     toggleAutomationActive: automations.toggleAutomationActive,
     adjustAutomationPriority: automations.adjustAutomationPriority,
+    automationLoading: automations.automationLoading,
+
+
 
     // Channels
     channels: channels.channels,
