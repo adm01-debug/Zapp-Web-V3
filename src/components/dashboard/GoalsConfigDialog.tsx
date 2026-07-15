@@ -1,7 +1,7 @@
-// @ts-nocheck
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { unwrapRow, unwrapRows } from '@/lib/supabase-helpers';
 import {
   Dialog,
   DialogContent,
