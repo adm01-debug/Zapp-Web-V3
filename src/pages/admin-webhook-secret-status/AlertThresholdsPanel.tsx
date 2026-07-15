@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * AlertThresholdsPanel — UI para configurar thresholds de alertas
  * em tempo real do webhook + lista dos últimos 5 alertas disparados.
