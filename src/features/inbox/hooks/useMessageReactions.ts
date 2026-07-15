@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useCallback, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
@@ -6,6 +5,10 @@ import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/features/auth';
 import { useReactionMutations } from './reactions/useReactionMutations';
 import type { MessageReaction, UseMessageReactionsOptions } from './reactions/types';
+
+// Schema escape hatch: zapp tables not yet in generated types (gen-types-zapp.mjs pendente na VPS)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const db = supabase as any;
 
 // Re-export types and batch hook for consumers
 export type { MessageReaction, UseMessageReactionsOptions };

@@ -1,10 +1,13 @@
-// @ts-nocheck
 import { useEffect, useState, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { getLogger } from '@/lib/logger';
 
 const log = getLogger('useBatchReactions');
 import type { MessageReaction } from './types';
+
+// Schema escape hatch: zapp tables not yet in generated types (gen-types-zapp.mjs pendente na VPS)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const db = supabase as any;
 
 /**
  * Hook for batch loading reactions for multiple messages.

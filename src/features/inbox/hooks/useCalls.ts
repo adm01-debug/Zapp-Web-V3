@@ -1,10 +1,13 @@
-// @ts-nocheck
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/features/auth';
 import { toast } from '@/hooks/use-toast';
 import { log } from '@/lib/logger';
 import { useMountedRef } from '@/hooks/useMountedRef';
+
+// Schema escape hatch: zapp tables not yet in generated types (gen-types-zapp.mjs pendente na VPS)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const db = supabase as any;
 
 export interface Call {
   id: string;
@@ -207,7 +210,7 @@ export const useCalls = () => {
     abortControllerRef.current = controller;
 
     try {
-      const builder = supabase.from('calls').update({ notes }).eq('id', callId);
+      const builder = db.from('calls').update({ notes }).eq('id', callId);
 
       // Pass abort signal to Supabase query builder if supported
       const withSignal = (builder as unknown as {
