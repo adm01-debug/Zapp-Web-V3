@@ -71,7 +71,7 @@ export function useTeamMessages(conversationId: string | null, searchQuery: stri
         'postgres_changes',
         {
           event: 'INSERT',
-          schema: 'public', // Wave 1: team_messages is a view in public — zapp is base table
+          schema: 'zapp', // Wave 1: team_messages is a view in public — zapp is base table
           table: 'team_messages',
           filter: `conversation_id=eq.${conversationId}`,
         },

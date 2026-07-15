@@ -176,7 +176,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         'postgres_changes',
         {
           event: '*',
-          schema: 'public',
+          schema: 'zapp',
           table: 'profiles',
           filter: `user_id=eq.${user.id}`,
         },
@@ -197,7 +197,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         'postgres_changes',
         {
           event: '*',
-          schema: 'public',
+          schema: 'zapp',
           table: 'user_roles',
           filter: `user_id=eq.${user.id}`,
         },

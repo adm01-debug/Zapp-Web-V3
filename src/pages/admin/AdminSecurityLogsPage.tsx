@@ -63,7 +63,7 @@ export default function AdminSecurityLogsPage() {
       .channel('security_logs_realtime')
       .on(
         'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'security_audit_logs' },
+        { event: 'INSERT', schema: 'zapp', table: 'security_audit_logs' },
         (payload) => {
           setLogs((prev) => [payload.new as AuditLog, ...prev].slice(0, 50));
         }

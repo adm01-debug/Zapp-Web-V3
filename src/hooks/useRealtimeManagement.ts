@@ -26,7 +26,7 @@ export function useRealtimeDashboardManagement(dashboardId: string) {
 
     channelRef.current = supabase.channel(`dashboard:${dashboardId}`);
     channelRef.current
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'dashboard_data' }, (payload: any) => {
+      .on('postgres_changes', { event: '*', schema: 'zapp', table: 'dashboard_data' }, (payload: any) => {
         setUpdates((prev) => [
           ...prev,
           {
@@ -120,7 +120,7 @@ export function useRealtimeMonitorManagement(tableName: string) {
   useEffect(() => {
     channelRef.current = supabase.channel(`monitor:${tableName}`);
     channelRef.current
-      .on('postgres_changes', { event: '*', schema: 'public', table: tableName }, (payload: any) => {
+      .on('postgres_changes', { event: '*', schema: 'zapp', table: tableName }, (payload: any) => {
         setChanges((prev) => [...prev, payload]);
         if (payload.eventType === 'INSERT') {
           setData((prev) => [...prev, payload.new]);

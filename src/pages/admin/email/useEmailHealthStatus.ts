@@ -108,7 +108,7 @@ export function useEmailHealthStatus() {
       .channel('email-admin-status')
       .on<EmailHealthSummary>(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'email_health_summary' },
+        { event: '*', schema: 'zapp', table: 'email_health_summary' },
         (payload) => {
           if (payload.new) {
             setHealth((prev) =>
@@ -131,7 +131,7 @@ export function useEmailHealthStatus() {
       )
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'email_revalidation_jobs' },
+        { event: '*', schema: 'zapp', table: 'email_revalidation_jobs' },
         (payload) => {
           const job = (payload.new || payload.old) as EmailRevalidationJob;
           if (payload.eventType === 'INSERT') {

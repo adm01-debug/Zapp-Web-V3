@@ -77,7 +77,7 @@ export function useAudioMemes(open: boolean) {
 
       const catalogChannel = supabase
         .channel('audio-memes-catalog')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'audio_memes' }, () => {
+        .on('postgres_changes', { event: '*', schema: 'zapp', table: 'audio_memes' }, () => {
           log.info('Catalog update received');
           fetchMemes();
         })
@@ -94,7 +94,7 @@ export function useAudioMemes(open: boolean) {
         .channel('audio-memes-favorites')
         .on(
           'postgres_changes',
-          { event: '*', schema: 'public', table: 'audio_meme_favorites' },
+          { event: '*', schema: 'zapp', table: 'audio_meme_favorites' },
           () => {
             log.info('Favorites update received');
             fetchMemes();

@@ -118,7 +118,7 @@ export const settingsRepository = {
         'postgres_changes',
         {
           event: '*',
-          schema: 'public',
+          schema: 'zapp',
           table: 'user_settings',
           filter: `user_id=eq.${userId}`,
         },
@@ -134,7 +134,7 @@ export const settingsRepository = {
         'postgres_changes',
         {
           event: '*',
-          schema: 'public',
+          schema: 'zapp',
           table: 'workspace_settings',
           filter: `workspace_id=eq.${workspaceId}`,
         },

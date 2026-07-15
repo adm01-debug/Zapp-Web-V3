@@ -127,7 +127,7 @@ export function useWarRoomAlertsManagement(soundEnabled = true): UseWarRoomAlert
   useEffect(() => {
     const channel = supabase
       .channel('warroom-alerts-realtime')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'warroom_alerts' }, (payload) => {
+      .on('postgres_changes', { event: 'INSERT', schema: 'zapp', table: 'warroom_alerts' }, (payload) => {
         const parsed = safeParseEvent(warRoomAlertRowSchema, payload.new);
         if (!parsed.ok) {
           log.warn('[useWarRoomAlertsManagement] received malformed realtime payload', payload.new);
@@ -340,7 +340,7 @@ export function useRealtimeSentimentAlertsManagement(): UseRealtimeSentimentAler
       .channel('realtime-sentiment-alerts')
       .on(
         'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'sentiment_alerts' },
+        { event: 'INSERT', schema: 'zapp', table: 'sentiment_alerts' },
         (payload) => {
           const newAlert = payload.new as RealtimeSentimentAlert;
           setAlerts((prev) => [newAlert, ...prev.slice(0, 49)]);

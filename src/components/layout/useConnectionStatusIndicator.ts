@@ -140,7 +140,7 @@ export function useConnectionStatusIndicator() {
       .channel('connection-status-indicator')
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'whatsapp_connections' },
+        { event: '*', schema: 'zapp', table: 'whatsapp_connections' },
         () => {
           import('@/lib/whatsappConnectionsCache')
             .then((m) => m.invalidateWhatsappConnectionsCache())

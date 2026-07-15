@@ -8,7 +8,7 @@
  *   const { data } = await dbFrom('messages').select('*').eq('contact_id', id);
  *   const channel = dbChannel('messages', `msgs:${id}`)
  *     .on('postgres_changes',
- *         { event: '*', schema: 'public', table: dbTable('messages'),
+ *         { event: '*', schema: 'zapp', table: dbTable('messages'),
  *           filter: `contact_id=eq.${id}` },
  *         handler)
  *     .subscribe();

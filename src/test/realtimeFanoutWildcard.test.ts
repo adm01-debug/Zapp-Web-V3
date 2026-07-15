@@ -104,12 +104,12 @@ describe('parser de wildcard "*" — arestas do diagrama', () => {
 
 describe('parser de wildcard "*" — hooks (event: "*")', () => {
   it('event: "*" expande para INSERT, UPDATE e DELETE', () => {
-    const body = `event: '*', schema: 'public', table: 'messages'`;
+    const body = `event: '*', schema: 'zapp', table: 'messages'`;
     expect(parseHookEventBlock(body)).toEqual(new Set(['INSERT', 'UPDATE', 'DELETE']));
   });
 
   it('event: "INSERT" so retorna INSERT', () => {
-    const body = `event: 'INSERT', schema: 'public', table: 'messages'`;
+    const body = `event: 'INSERT', schema: 'zapp', table: 'messages'`;
     expect(parseHookEventBlock(body)).toEqual(new Set(['INSERT']));
   });
 
@@ -119,12 +119,12 @@ describe('parser de wildcard "*" — hooks (event: "*")', () => {
   });
 
   it('bloco sem campo event retorna vazio', () => {
-    const body = `schema: 'public', table: 'messages'`;
+    const body = `schema: 'zapp', table: 'messages'`;
     expect(parseHookEventBlock(body)).toEqual(new Set());
   });
 
   it('valor desconhecido (ex: TRUNCATE) e ignorado', () => {
-    const body = `event: 'TRUNCATE', schema: 'public', table: 'messages'`;
+    const body = `event: 'TRUNCATE', schema: 'zapp', table: 'messages'`;
     expect(parseHookEventBlock(body)).toEqual(new Set());
   });
 });

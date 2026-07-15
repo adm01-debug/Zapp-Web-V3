@@ -259,7 +259,7 @@ export const createService = <T = any>(
           'postgres_changes',
           {
             event: '*',
-            schema: 'public',
+            schema: 'zapp',
             table: tableName,
           },
           (payload: any) => {

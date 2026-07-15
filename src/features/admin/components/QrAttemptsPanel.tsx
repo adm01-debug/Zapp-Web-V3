@@ -100,7 +100,7 @@ export function QrAttemptsPanel() {
   useEffect(() => {
     const channel = supabase
       .channel('qr-attempts-admin')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'qr_attempts' }, () => {
+      .on('postgres_changes', { event: '*', schema: 'zapp', table: 'qr_attempts' }, () => {
         void queryClient.invalidateQueries({ queryKey: ['admin', 'qr-attempts'] });
       })
       .subscribe();

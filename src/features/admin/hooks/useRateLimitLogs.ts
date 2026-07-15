@@ -51,7 +51,7 @@ export function useRateLimitLogs() {
       .channel('rate-limit-logs')
       .on<RateLimitLog>(
         'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'rate_limit_logs' },
+        { event: 'INSERT', schema: 'zapp', table: 'rate_limit_logs' },
         (payload) => {
           queryClient.setQueryData<RateLimitLog[]>(QUERY_KEY, (prev) =>
             [payload.new, ...(prev ?? [])].slice(0, 100)

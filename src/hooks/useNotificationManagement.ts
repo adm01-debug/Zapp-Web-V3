@@ -334,7 +334,7 @@ export function useTeamChatNotificationsManagement() {
   useEffect(() => {
     channelRef.current = supabase.channel('notifications:team-chat');
     channelRef.current
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications' }, (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => {
+      .on('postgres_changes', { event: 'INSERT', schema: 'zapp', table: 'notifications' }, (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => {
         setNotifications((prev) => [payload.new, ...prev]);
       })
       .subscribe();
@@ -363,7 +363,7 @@ export function useSecurityPushNotificationsManagement() {
   useEffect(() => {
     const channel = supabase.channel('notifications:security');
     channel
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'security_alerts' }, (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => {
+      .on('postgres_changes', { event: 'INSERT', schema: 'zapp', table: 'security_alerts' }, (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => {
         setSecurityAlerts((prev) => [payload.new, ...prev]);
       })
       .subscribe();
@@ -383,7 +383,7 @@ export function useGoalNotificationsManagement() {
   useEffect(() => {
     const channel = supabase.channel('notifications:goals');
     channel
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'goal_notifications' }, (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => {
+      .on('postgres_changes', { event: 'INSERT', schema: 'zapp', table: 'goal_notifications' }, (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => {
         setGoalNotifications((prev) => [payload.new, ...prev]);
       })
       .subscribe();
@@ -403,7 +403,7 @@ export function useTranscriptionNotificationsManagement() {
   useEffect(() => {
     const channel = supabase.channel('notifications:transcription');
     channel
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'transcription_notifications' }, (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => {
+      .on('postgres_changes', { event: 'INSERT', schema: 'zapp', table: 'transcription_notifications' }, (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => {
         setTranscriptionNotifications((prev) => [payload.new, ...prev]);
       })
       .subscribe();

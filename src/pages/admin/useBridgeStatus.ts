@@ -180,7 +180,7 @@ export function useBridgeStatus() {
       .channel('traffic-changes')
       .on(
         'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'provider_message_log' },
+        { event: 'INSERT', schema: 'zapp', table: 'provider_message_log' },
         () => {
           setRecentTraffic((prev) => ({
             ...prev,
@@ -195,7 +195,7 @@ export function useBridgeStatus() {
       .channel('health-incidents')
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'system_health_incidents' },
+        { event: '*', schema: 'zapp', table: 'system_health_incidents' },
         () => {
           void fetchIncidents();
           void checkHealth();

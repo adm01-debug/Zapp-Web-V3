@@ -418,7 +418,7 @@ export function useAutomationSuggestions(remoteJid: string | null) {
       .channel(`automation-exec-${remoteJid}`)
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'automation_executions' },
+        { event: '*', schema: 'zapp', table: 'automation_executions' },
         (payload) => {
           const row = (payload.new ?? payload.old) as Record<string, unknown>;
           if (row?.remote_jid === remoteJid) void refresh();
