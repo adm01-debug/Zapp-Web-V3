@@ -96,21 +96,23 @@ export function useAdminData(activeTab: 'users' | 'audit' | 'crm') {
     setLoading(true);
 
     if (activeTab === 'users') {
-      const { data: profiles, error: profilesErr } = await supabase
+      const { data: profilesData, error: profilesErr } = await supabase
         .from('profiles')
         .select('*')
         .order('name')
         .limit(1000);
 
-      const { data: roles, error: rolesErr } = await supabase
+      const { data: rolesData, error: rolesErr } = await supabase
         .from('user_roles')
         .select('*')
         .limit(1000);
 
       if (profilesErr) toast.error('Erro ao carregar usuários');
       else if (rolesErr) toast.error('Erro ao carregar permissões');
-      else if (profiles && roles) {
-        const usersWithRoles = profiles.map((profile) => {
+      else {
+        const profiles = unwrapRows<ProfileRow>(profilesData);
+        const roles = unwrapRows<UserRoleRow>(rolesData);
+        const usersWithRoles: UserWithRole[] = profiles.map((profile) => {
           const userRole = roles.find((r) => r.user_id === profile.user_id);
           return {
             ...profile,
@@ -120,7 +122,7 @@ export function useAdminData(activeTab: 'users' | 'audit' | 'crm') {
         setUsers(usersWithRoles);
       }
     } else if (activeTab === 'audit') {
-      const { data: logs, error: logsErr } = await supabase
+      const { data: logsData, error: logsErr } = await supabase
         .from('audit_logs')
         .select('*')
         .order('created_at', { ascending: false })
@@ -128,22 +130,28 @@ export function useAdminData(activeTab: 'users' | 'audit' | 'crm') {
 
       if (logsErr) {
         toast.error('Erro ao carregar logs de auditoria');
-      } else if (logs) {
+      } else {
+        const logs = unwrapRows<AuditLogRow>(logsData);
         const userIds = [
           ...new Set(logs.map((l) => l.user_id).filter((id): id is string => id !== null)),
         ];
-        const { data: profiles } =
+        const { data: profilesData } =
           userIds.length > 0
-            ? await supabase.from('profiles').select('user_id, name, email').in('user_id', userIds)
+            ? await (supabase.from('profiles').select('user_id, name, email') as any).in(
+                'user_id',
+                userIds
+              )
             : { data: [] };
+        const profiles = unwrapRows<ProfileMini>(profilesData);
 
         const logsWithUsers: AuditLog[] = logs.map((log) => ({
           ...log,
-          user: profiles?.find((p) => p.user_id === log.user_id) || null,
+          user: profiles.find((p) => p.user_id === log.user_id) || null,
         }));
         setAuditLogs(logsWithUsers);
       }
     }
+
 
     setLoading(false);
   }, [activeTab]);
