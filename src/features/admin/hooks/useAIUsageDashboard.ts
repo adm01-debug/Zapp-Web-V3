@@ -1,7 +1,7 @@
-// @ts-nocheck
 import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { unwrapRows } from '@/lib/supabase-helpers';
 import { format, subHours, subDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
