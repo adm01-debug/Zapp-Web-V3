@@ -164,3 +164,33 @@ const admin = createClient(url, key, { db: { schema: 'zapp' } });
 | Realtime sem `schema:` no config | canal sobe mas não recebe eventos |
 
 Guardrail: `scripts/check-schema-usage.mjs` (bloqueante no CI) barra todos os itens acima.
+
+## Checklist — Consultando tabelas `evo` no frontend
+
+O cliente principal (`src/integrations/supabase/client.ts`) está fixado em
+`db: { schema: 'zapp' }`. Para tocar em tabelas do schema `evo` (mensagens,
+conversas, contatos da Evolution API):
+
+1. **Use `.schema('evo')` explicitamente** antes de `.from()`.
+2. **Nunca consulte as tabelas-pai particionadas** `evolution_messages` /
+   `evolution_conversations` no frontend. Use sempre a partição real
+   (`evolution_messages_wpp2`, `evolution_conversations_wpp2`). O guardrail
+   `check-schema-usage.mjs` falha o CI se detectar violação em `src/`.
+3. **Realtime**: no `channel.on('postgres_changes', ...)` passe
+   `schema: 'evo'` e o mesmo nome de partição do SELECT.
+4. **Bridges em `zapp`** já existem para: `evolution_health_logs`,
+   `evolution_instance_credentials`, `evolution_retry_metrics`,
+   `evolution_instances`, `evolution_contacts`. Essas podem ser lidas via
+   client `zapp` normal (sem `.schema('evo')`).
+
+Exemplo canônico:
+
+```ts
+const { data } = await supabase
+  .schema('evo')
+  .from('evolution_messages_wpp2')
+  .select('id, remote_jid, content, created_at')
+  .eq('instance_name', 'wpp2')
+  .order('created_at', { ascending: false })
+  .limit(50);
+```

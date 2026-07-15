@@ -30,7 +30,8 @@ export function useZappMessages({ remoteJid, instance = ZAPPWEB_INSTANCE, limit 
     setLoading(true);
     try {
       const { data, error: err } = await zappSupabase
-        .from('evolution_messages')
+        .schema('evo')
+        .from('evolution_messages_wpp2')
         .select(
           `id, message_id, remote_jid, from_me, message_type, content, media_url,
            media_mimetype, media_type, caption, quoted_message_id, status,
@@ -65,7 +66,7 @@ export function useZappMessages({ remoteJid, instance = ZAPPWEB_INSTANCE, limit 
         {
           event: 'INSERT',
           schema: 'evo', // FATOR X v6.2: tabela-fonte
-          table: 'evolution_messages',
+          table: 'evolution_messages_wpp2',
           filter: `instance_name=eq.${instance}`,
         },
         (payload) => {
@@ -84,7 +85,7 @@ export function useZappMessages({ remoteJid, instance = ZAPPWEB_INSTANCE, limit 
         {
           event: 'UPDATE',
           schema: 'evo', // FATOR X v6.2: tabela-fonte
-          table: 'evolution_messages',
+          table: 'evolution_messages_wpp2',
           filter: `instance_name=eq.${instance}`,
         },
         (payload) => {

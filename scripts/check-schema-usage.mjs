@@ -16,7 +16,7 @@ const ROOTS = ['src', 'supabase/functions'];
 const IGNORE_DIR = /node_modules|dist|\.next|\.turbo|coverage/;
 const TEST_RE = /\.test\.(ts|tsx|mts|cts|js|jsx)$|__tests__|test\/|tests\//;
 
-const violations = { public: [], noSchema: [], cloudUrl: [] };
+const violations = { public: [], noSchema: [], cloudUrl: [], evoUnprefixed: [] };
 
 function walk(dir, out = []) {
   let entries;
@@ -63,10 +63,24 @@ for (const f of files) {
   if (!isTest && /https?:\/\/[a-z0-9-]+\.supabase\.co/i.test(src)) {
     violations.cloudUrl.push(relative('.', f));
   }
+
+  // 4. .from('evolution_messages'|'evolution_conversations') no frontend sem sufixo
+  // de partição. Essas são tabelas-pai particionadas em `evo` — o frontend deve
+  // consultar a partição real (evolution_messages_wpp2). Edge Functions rodam com
+  // service_role e o PG roteia para a partição correta, então o guardrail se
+  // aplica apenas a src/.
+  const parentPartitionRe =
+    /\.from\(\s*['"](evolution_messages|evolution_conversations)['"]\s*\)/g;
+  if (!isTest && f.startsWith('src/') && parentPartitionRe.test(src)) {
+    violations.evoUnprefixed.push(relative('.', f));
+  }
 }
 
 const total =
-  violations.public.length + violations.noSchema.length + violations.cloudUrl.length;
+  violations.public.length +
+  violations.noSchema.length +
+  violations.cloudUrl.length +
+  violations.evoUnprefixed.length;
 
 if (total === 0) {
   console.log('✅ check-schema-usage: 0 violações. Schema consolidado em zapp/evo.');
@@ -85,6 +99,13 @@ if (violations.noSchema.length) {
 if (violations.cloudUrl.length) {
   console.error(`\n— URL *.supabase.co em código de produção (${violations.cloudUrl.length}):`);
   violations.cloudUrl.forEach((f) => console.error('   ' + f));
+}
+if (violations.evoUnprefixed.length) {
+  console.error(
+    `\n— .from('evolution_messages'|'evolution_conversations') proibido (${violations.evoUnprefixed.length}):`
+  );
+  console.error("   Use a partição real (ex: 'evolution_messages_wpp2') com .schema('evo').");
+  violations.evoUnprefixed.forEach((f) => console.error('   ' + f));
 }
 console.error('\nSchema canônico: zapp (app) + evo (Evolution). Ver docs/SCHEMA_REFERENCE.md.');
 process.exit(1);
