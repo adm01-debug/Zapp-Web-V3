@@ -163,8 +163,13 @@ export interface SearchInsights {
   top_queries?: SearchInsightsTopQuery[];
   zero_results?: SearchInsightsZeroResult[];
   total_searches?: number;
+  unique_queries?: number;
+  vector_searches?: number;
+  total_clicks?: number;
+  zero_result_count?: number;
   [key: string]: unknown;
 }
+
 
 /** Retrieves search insights and trends for specified time window. */
 export function useSearchInsightsManagement(timeWindow: number = 7) {
