@@ -1,9 +1,22 @@
-// @ts-nocheck
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { format, subDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { dbFrom } from '@/integrations/datasource/db';
+import { unwrapRows } from '@/lib/supabase-helpers';
+
+type AnalysisRow = {
+  sentiment: 'positive' | 'negative' | 'neutral' | string | null;
+  sentiment_score: number | null;
+  created_at: string;
+};
+
+type AuditLogRow = {
+  id: string;
+  entity_id: string | null;
+  created_at: string;
+  details: Record<string, unknown> | null;
+};
 
 export type PeriodOption = 7 | 14 | 30;
 
