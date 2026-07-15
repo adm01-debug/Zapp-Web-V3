@@ -102,3 +102,65 @@ supabase/functions/_shared/
 | 2026-07-15 | `_shared/db-client.ts` factory criada |
 | 2026-07-15 | 17 syntax issues (}} malformado) corrigidos |
 | 2026-07-15 | **Auditoria MCP**: contagem corrigida 294→315 (zapp), 193 confirmados (evo) |
+
+---
+
+## Como escrever queries corretas (2026-07-15)
+
+### Regra de ouro
+- Cliente `supabase` importado de `@/integrations/supabase/client` **já está fixado em `zapp`**.
+- Para tabelas fora de `zapp`, use `.schema('<schema>')` explicitamente.
+
+### Frontend — leituras `zapp.*` (default)
+```ts
+import { supabase } from '@/integrations/supabase/client';
+
+const { data } = await supabase
+  .from('contacts')                // ← zapp.contacts (implícito)
+  .select('id, name, phone')
+  .eq('assigned_to', userId);
+```
+
+### Frontend — leituras `evo.*` (Evolution API)
+```ts
+const { data } = await supabase
+  .schema('evo')                   // ← obrigatório
+  .from('evolution_messages_wpp2')
+  .select('id, remote_jid, content, timestamp')
+  .order('timestamp', { ascending: false });
+```
+
+### Realtime — sempre com `schema` explícito
+```ts
+supabase
+  .channel('inbox-messages')
+  .on('postgres_changes',
+      { event: 'INSERT', schema: 'evo', table: 'evolution_messages_wpp2' },
+      handler)
+  .subscribe();
+```
+
+Realtime **não segue o default** do cliente — o `schema` precisa aparecer no config.
+
+### Edge Functions — factories obrigatórias
+```ts
+// ✅ correto
+import { createZappAdminClient } from '../_shared/db-client.ts';
+const admin = createZappAdminClient();
+
+// ❌ evitar (sem schema explícito)
+const admin = createClient(url, key);
+
+// ✅ alternativa válida (schema inline)
+const admin = createClient(url, key, { db: { schema: 'zapp' } });
+```
+
+### Anti-patterns proibidos
+| Padrão | Motivo |
+|--------|--------|
+| `.schema('public')` | schema `public` tem 0 tabelas |
+| `createClient` sem `db:{schema}` fora de factories | rota para o schema errado |
+| URL `*.supabase.co` em código | projeto usa self-hosted `supabase.atomicabr.com.br` |
+| Realtime sem `schema:` no config | canal sobe mas não recebe eventos |
+
+Guardrail: `scripts/check-schema-usage.mjs` (bloqueante no CI) barra todos os itens acima.
