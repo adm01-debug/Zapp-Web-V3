@@ -28,8 +28,8 @@ interface Analysis {
   timestamp: string;
 }
 
-export type PerformanceSnapshot = Database['public']['Tables']['performance_snapshots']['Row'];
-type PerformanceSnapshotInsert = Database['public']['Tables']['performance_snapshots']['Insert'];
+export type PerformanceSnapshot = Database['zapp']['Tables']['performance_snapshots']['Row'];
+type PerformanceSnapshotInsert = Database['zapp']['Tables']['performance_snapshots']['Insert'];
 export type PerformanceSnapshotInput = Omit<
   PerformanceSnapshotInsert,
   'id' | 'profile_id' | 'created_at' | 'user_agent'
