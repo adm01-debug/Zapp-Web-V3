@@ -278,22 +278,34 @@ function useAdminAutomationsManagement() {
   const loadAutomations = async () => {
     setAutomationLoading(true);
     setAutomationError(null);
+    const { withRetry } = await import('@/lib/retry');
     try {
-      const [{ data: rulesData, error }, { data: chs, error: chsError }, { data: deps, error: depsError }] = await Promise.all([
-        supabase.from('automations').select('*').order('name', { ascending: true }),
-        supabase.from('channel_connections').select('id,name').order('name'),
-        supabase.from('departments').select('id,name').order('name'),
-      ]);
+      const result = await withRetry(
+        async () => {
+          const [rulesRes, chsRes, depsRes] = await Promise.all([
+            supabase.from('automations').select('*').order('name', { ascending: true }),
+            supabase.from('channel_connections').select('id,name').order('name'),
+            supabase.from('departments').select('id,name').order('name'),
+          ]);
+          const firstError = rulesRes.error ?? chsRes.error ?? depsRes.error;
+          if (firstError) throw new Error(firstError.message ?? 'Erro ao carregar automações');
+          return { rulesData: rulesRes.data, chs: chsRes.data, deps: depsRes.data };
+        },
+        {
+          maxRetries: 3,
+          baseDelayMs: 500,
+          maxDelayMs: 4000,
+          shouldRetry: (err) => {
+            const msg = (err instanceof Error ? err.message : String(err)).toLowerCase();
+            // Não retenta erros de permissão/schema (PGRST205, RLS 401/403)
+            return !/pgrst205|permission|unauthori[sz]ed|forbidden|401|403/.test(msg);
+          },
+        }
+      );
       if (!mountedRef.current) return;
-      const firstError = error ?? chsError ?? depsError;
-      if (firstError) {
-        setAutomationError(new Error(firstError.message ?? 'Erro ao carregar automações'));
-        toast.error(firstError.message ?? 'Erro ao carregar automações');
-        return;
-      }
-      setRules((rulesData ?? []) as unknown as Rule[]);
-      setAutomationChannels((chs ?? []) as AutomationChannel[]);
-      setAutomationDepartments((deps ?? []) as AutomationDepartment[]);
+      setRules((result.rulesData ?? []) as unknown as Rule[]);
+      setAutomationChannels((result.chs ?? []) as AutomationChannel[]);
+      setAutomationDepartments((result.deps ?? []) as AutomationDepartment[]);
     } catch (err) {
       if (!mountedRef.current) return;
       const e = err instanceof Error ? err : new Error('Erro ao carregar automações');

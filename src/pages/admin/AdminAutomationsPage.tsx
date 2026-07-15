@@ -67,6 +67,7 @@ export default function AdminAutomationsPage() {
 
   const [editing, setEditing] = useState<Rule | null>(null);
   const [open, setOpen] = useState(false);
+  const [showErrorDetails, setShowErrorDetails] = useState(false);
 
   const [filterChannel, setFilterChannel] = useState<string>('all');
   const [filterDepartment, setFilterDepartment] = useState<string>('all');
@@ -216,6 +217,7 @@ export default function AdminAutomationsPage() {
           <Card
             role="alert"
             aria-live="assertive"
+            data-testid="automations-error"
             className="border-destructive/40 bg-destructive/5 p-6"
           >
             <div className="flex items-start gap-3">
@@ -227,15 +229,45 @@ export default function AdminAutomationsPage() {
                 <p className="text-sm text-muted-foreground">
                   {error.message || 'Ocorreu um erro inesperado ao buscar as regras. Tente novamente em instantes.'}
                 </p>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => { void reload(); }}
-                  disabled={loading}
-                >
-                  <RefreshCw className="mr-2 h-4 w-4" aria-hidden />
-                  Tentar novamente
-                </Button>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => { void reload(); }}
+                    disabled={loading}
+                    data-testid="automations-retry"
+                  >
+                    <RefreshCw className="mr-2 h-4 w-4" aria-hidden />
+                    Tentar novamente
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowErrorDetails((v) => !v)}
+                    data-testid="automations-error-toggle"
+                    aria-expanded={showErrorDetails}
+                  >
+                    {showErrorDetails ? 'Ocultar detalhes' : 'Ver detalhes técnicos'}
+                  </Button>
+                </div>
+                {showErrorDetails && (
+                  <pre
+                    data-testid="automations-error-details"
+                    className="mt-2 max-h-64 overflow-auto rounded bg-muted p-3 text-xs text-muted-foreground"
+                  >
+{JSON.stringify(
+  {
+    name: error.name,
+    message: error.message,
+    stack: error.stack?.split('\n').slice(0, 6),
+    cause: (error as { cause?: unknown }).cause ?? null,
+    timestamp: new Date().toISOString(),
+  },
+  null,
+  2
+)}
+                  </pre>
+                )}
               </div>
             </div>
           </Card>
