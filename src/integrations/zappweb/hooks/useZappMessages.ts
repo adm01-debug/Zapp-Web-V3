@@ -66,7 +66,7 @@ export function useZappMessages({ remoteJid, instance = ZAPPWEB_INSTANCE, limit 
         {
           event: 'INSERT',
           schema: 'evo', // FATOR X v6.2: tabela-fonte
-          table: 'evolution_messages',
+          table: 'evolution_messages_wpp2',
           filter: `instance_name=eq.${instance}`,
         },
         (payload) => {
