@@ -117,7 +117,7 @@ export function useWarRoomAlertsManagement(soundEnabled = true): UseWarRoomAlert
   const { data: alerts = [] } = useQuery({
     queryKey: ['warroom-alerts'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from('warroom_alerts')
         .select('*')
         .eq('is_read', false)
@@ -168,7 +168,7 @@ export function useWarRoomAlertsManagement(soundEnabled = true): UseWarRoomAlert
   }, [queryClient, playAlertSound, pushPermission]);
 
   const dismissAlert = async (alertId: string) => {
-    const { error } = await supabase
+    const { error } = await db
       .from('warroom_alerts')
       .update({ is_read: true })
       .eq('id', alertId);
@@ -178,7 +178,7 @@ export function useWarRoomAlertsManagement(soundEnabled = true): UseWarRoomAlert
 
   useEffect(() => {
     const checkSLABreaches = async () => {
-      const { data: breaches, error: breachesErr } = await supabase
+      const { data: breaches, error: breachesErr } = await db
         .from('conversation_sla')
         .select('id, contact_id, first_response_breached, resolution_breached')
         .or('first_response_breached.eq.true,resolution_breached.eq.true');
@@ -303,7 +303,7 @@ export function useWebhookHealthAlertsManagement(): UseWebhookHealthAlertsResult
   const checkHealth = useCallback(async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from('webhook_health_checks')
         .select('*')
         .order('created_at', { ascending: false })
