@@ -1,4 +1,3 @@
-// @ts-nocheck
 // Consolidated Real-time & Live Update Management Module (ETAPA 37)
 // Consolidates: useRealtimeDashboard, useRealtimeMessages, useRealtimeMonitor, useTypingPresence
 import { useState, useEffect, useCallback, useRef } from 'react';
