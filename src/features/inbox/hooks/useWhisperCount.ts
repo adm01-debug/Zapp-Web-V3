@@ -1,8 +1,11 @@
-// @ts-nocheck
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { getLogger } from '@/lib/logger';
 import { isValidUUID } from '@/utils/uuid';
+
+// Schema escape hatch: zapp tables not yet in generated types (gen-types-zapp.mjs pendente na VPS)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const db = supabase as any;
 
 const log = getLogger('useWhisperCount');
 

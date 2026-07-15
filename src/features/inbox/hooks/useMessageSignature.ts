@@ -1,7 +1,10 @@
-// @ts-nocheck
 import { useState, useEffect, useCallback } from 'react';
 import { useMountedRef } from '@/hooks/useMountedRef';
 import { supabase } from '@/integrations/supabase/client';
+
+// Schema escape hatch: zapp tables not yet in generated types (gen-types-zapp.mjs pendente na VPS)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const db = supabase as any;
 
 const SIGNATURE_ENABLED_KEY = 'chat_signature_enabled';
 

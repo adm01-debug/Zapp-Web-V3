@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Carrega em lote os retry_metrics de todas as mensagens em estado de
  * falha terminal (failed_retries / failed_auth / failed) presentes nas
@@ -13,6 +12,10 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import type { ConversationWithMessages } from '@/features/inbox';
+
+// Schema escape hatch: zapp tables not yet in generated types (gen-types-zapp.mjs pendente na VPS)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const db = supabase as any;
 
 export type FailureCategory = 'auth' | 'http_4xx' | 'http_5xx' | 'network' | 'unknown';
 

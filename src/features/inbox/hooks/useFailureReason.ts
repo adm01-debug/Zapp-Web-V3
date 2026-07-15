@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Lookup do motivo de falha terminal de uma mensagem outbound.
  *
@@ -13,6 +12,10 @@
  */
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+
+// Schema escape hatch: zapp tables not yet in generated types (gen-types-zapp.mjs pendente na VPS)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const db = supabase as any;
 
 export interface MessageFailureReason {
   /** Último motivo registrado (ex.: 'http_503', 'timeout'). */

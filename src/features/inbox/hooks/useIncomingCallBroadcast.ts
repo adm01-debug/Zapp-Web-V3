@@ -1,9 +1,12 @@
-// @ts-nocheck
 import { useState, useEffect, useCallback } from 'react';
 import { externalSupabase, isExternalConfigured } from '@/integrations/supabase/externalClient';
 import { useAuth } from '@/features/auth';
 import { getLogger } from '@/lib/logger';
 import type { IncomingCall } from '@/types/incomingCall';
+
+// Schema escape hatch: zapp tables not yet in generated types (gen-types-zapp.mjs pendente na VPS)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const db = supabase as any;
 
 const log = getLogger('IncomingCallBroadcast');
 
@@ -59,7 +62,7 @@ export function useIncomingCallBroadcast(instance: string = DEFAULT_INSTANCE) {
         let contactId: string | null = null;
 
         try {
-          const { data, error } = await supabase.rpc('rpc_get_contact', {
+          const { data, error } = await db.rpc('rpc_get_contact', {
             p_remote_jid: p.remote_jid,
             p_instance: instance,
           });

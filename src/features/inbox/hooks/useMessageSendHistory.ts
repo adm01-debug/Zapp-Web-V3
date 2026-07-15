@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Carrega o histórico completo de envio de uma mensagem para o painel
  * de debug: linha do tempo de tentativas (retry_metrics.retry_reasons),
@@ -20,6 +19,10 @@ import {
   normalizeRetryReasons,
   padRetryAttempts,
 } from './messageSendHistory.schemas';
+
+// Schema escape hatch: zapp tables not yet in generated types (gen-types-zapp.mjs pendente na VPS)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const db = supabase as any;
 
 export type { AuditEntry, FinalStatus, RetryAttempt };
 
