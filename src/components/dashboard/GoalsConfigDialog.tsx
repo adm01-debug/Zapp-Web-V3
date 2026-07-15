@@ -1,7 +1,7 @@
-// @ts-nocheck
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { unwrapRow, unwrapRows } from '@/lib/supabase-helpers';
 import {
   Dialog,
   DialogContent,
@@ -86,13 +86,13 @@ export function GoalsConfigDialog({ open, onOpenChange }: GoalsConfigDialogProps
     queryKey: ['my-profile', user?.id],
     queryFn: async () => {
       if (!user?.id) return null;
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('profiles')
         .select('id, name')
         .eq('user_id', user.id)
-        .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
+        .maybeSingle();
       if (error) throw error;
-      return data;
+      return unwrapRow<{ id: string; name: string | null }>(data);
     },
     enabled: !!user?.id,
   });
@@ -101,13 +101,13 @@ export function GoalsConfigDialog({ open, onOpenChange }: GoalsConfigDialogProps
   const { data: existingGoals, isLoading } = useQuery({
     queryKey: ['goals-config', profile?.id],
     queryFn: async () => {
-      if (!profile?.id) return [];
-      const { data, error } = await supabase
+      if (!profile?.id) return [] as GoalConfig[];
+      const { data, error } = await (supabase as any)
         .from('goals_configurations')
         .select('*')
         .eq('profile_id', profile.id);
       if (error) throw error;
-      return data || [];
+      return unwrapRows<GoalConfig>(data);
     },
     enabled: !!profile?.id && open,
   });
@@ -140,8 +140,6 @@ export function GoalsConfigDialog({ open, onOpenChange }: GoalsConfigDialogProps
     mutationFn: async (goalsToSave: GoalConfig[]) => {
       if (!profile?.id) throw new Error('Profile not found');
 
-      // Single upsert for all goals — unique constraint (profile_id, goal_type)
-      // means existing rows update and new rows insert in one round-trip.
       const rows = goalsToSave.map((goal) => ({
         ...(goal.id ? { id: goal.id } : {}),
         profile_id: profile.id,
@@ -151,7 +149,7 @@ export function GoalsConfigDialog({ open, onOpenChange }: GoalsConfigDialogProps
         monthly_target: goal.monthly_target,
         is_active: goal.is_active,
       }));
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('goals_configurations')
         .upsert(rows, { onConflict: 'profile_id,goal_type' });
       if (error) throw error;
@@ -162,7 +160,7 @@ export function GoalsConfigDialog({ open, onOpenChange }: GoalsConfigDialogProps
       queryClient.invalidateQueries({ queryKey: ['goals-messages'] });
       onOpenChange(false);
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       toast.error('Erro ao salvar metas: ' + error.message);
     },
   });

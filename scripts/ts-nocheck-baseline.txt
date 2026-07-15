@@ -9,8 +9,6 @@ src/components/connections/InstanceSettingsDialog.tsx
 src/components/connections/NumberReputationMonitor.tsx
 src/components/connections/QrAttemptHistory.tsx
 src/components/contacts/ContactQuickView.tsx
-src/components/dashboard/AgentPerformancePanel.tsx
-src/components/dashboard/GoalsConfigDialog.tsx
 src/components/dashboard/ScheduledReportsManager.tsx
 src/components/dashboard/SentimentHelpers.tsx
 src/components/monitoring/MonitoringEventTimeline.tsx
