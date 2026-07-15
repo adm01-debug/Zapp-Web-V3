@@ -216,8 +216,7 @@ export function useAdminData(activeTab: 'users' | 'audit' | 'crm') {
         avatarUrl = urlData.publicUrl;
       }
 
-      const { error } = await supabase
-        .from('profiles')
+      const { error } = await (supabase.from('profiles') as any)
         .update({
           name: editingUser.name,
           nickname: editingUser.nickname,
