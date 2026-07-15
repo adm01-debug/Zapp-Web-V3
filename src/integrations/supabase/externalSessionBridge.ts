@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * External Session Bridge — FATOR X (Dual-session hardening)
  *

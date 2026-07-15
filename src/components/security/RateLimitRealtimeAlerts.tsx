@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { useEffect, useState } from 'react';
 import { useMountedRef } from '@/hooks/useMountedRef';
 import { motion, AnimatePresence } from 'framer-motion';

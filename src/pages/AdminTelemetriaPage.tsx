@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { useState } from "react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";

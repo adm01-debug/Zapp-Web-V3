@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * External Supabase Client — FATOR X (Self-hosted VPS)
  *

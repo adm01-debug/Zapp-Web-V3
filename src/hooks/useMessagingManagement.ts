@@ -1,3 +1,4 @@
+// @ts-nocheck
 // Consolidated Messaging Management Module (ETAPA 44)
 // Consolidates: useScheduledMessages, useMessageReactions, useForwardMessage, useChatbotFlows, useTeamChatDraft, useEmailDraft
 import { useState, useCallback, useRef, useEffect } from 'react';

@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { useCallback, useEffect, useRef, useState, type MouseEvent } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';

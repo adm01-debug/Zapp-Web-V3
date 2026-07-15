@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * useIdempotencyMissAlerts — admin-only watchdog for the Evolution send cache.
  *

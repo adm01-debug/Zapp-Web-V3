@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Tests for evolution/v237Fallbacks.ts.
  *

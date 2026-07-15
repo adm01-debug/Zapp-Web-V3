@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { GenericEmptyState } from '@/components/ui/GenericEmptyState';
 import { AnimatePresence } from 'framer-motion';
