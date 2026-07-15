@@ -12,7 +12,7 @@ import { log } from '@/lib/logger';
 // tipagem apenas na fronteira do postgrest — a superfície pública do hook
 // permanece 100% tipada.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const db = supabase as unknown as { from: (t: string) => any };
+const db = supabase as any;
 
 interface ContactIntelligence {
   contact_id: string;
