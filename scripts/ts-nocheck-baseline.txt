@@ -94,7 +94,6 @@ src/features/auth/components/ProtectedRoute.tsx
 src/features/auth/hooks/useDepartmentAgents.ts
 src/features/auth/hooks/usePermissions.ts
 src/features/auth/hooks/useRouteRoles.ts
-src/features/auth/services/authService.ts
 src/features/business-logic/hooks/useBusinessLogicManagement.ts
 src/features/connections/data-access/whatsappConnectionRepository.ts
 src/features/connections/hooks/parts/useConnectionsActions.ts
