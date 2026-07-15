@@ -1,4 +1,4 @@
-// @ts-nocheck
+
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
@@ -54,7 +54,7 @@ export function useDlqAuditLog(opts: UseDlqAuditLogOptions = {}) {
         p_cursor_id: cursor,
       });
       if (error) throw error;
-      return (data ?? []) as DlqAuditEntry[];
+      return (data ?? []) as unknown as DlqAuditEntry[];
     },
     staleTime: 15_000,
     refetchInterval: 60_000,
