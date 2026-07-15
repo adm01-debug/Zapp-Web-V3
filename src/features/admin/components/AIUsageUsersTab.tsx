@@ -46,7 +46,7 @@ export function AIUsageUsersTab({ userUsage, profileMap }: AIUsageUsersTabProps)
               className="fill-muted-foreground"
             />
             <Tooltip
-              formatter={(v: number | string) => String(v.toLocaleString()) + ' tokens'}
+              formatter={formatTokens}
               contentStyle={{
                 backgroundColor: 'hsl(var(--popover))',
                 border: '1px solid hsl(var(--border))',
