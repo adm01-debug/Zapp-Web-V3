@@ -115,7 +115,7 @@ export function useContactNotesManagement(contactId?: string) {
       if (!contactId) return;
 
       try {
-        const { error: err } = await supabase.from('contact_notes').insert({
+        const { error: err } = await db.from('contact_notes').insert({
           contact_id: contactId,
           content,
         });
@@ -261,7 +261,7 @@ export function useContactCustomFieldsManagement(contactId?: string) {
       if (!contactId) return;
 
       try {
-        const { error: err } = await supabase.from('contact_custom_fields').upsert({
+        const { error: err } = await db.from('contact_custom_fields').upsert({
           contact_id: contactId,
           field_name: fieldName,
           field_value: fieldValue,
