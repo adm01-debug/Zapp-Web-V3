@@ -17,6 +17,7 @@ export function useZappContactSearch() {
     setLoading(true);
     const safe = term.replace(/[%_]/g, '');
     const { data } = await zappSupabase
+      .schema('evo')
       .from('evolution_contacts')
       .select(
         `id, push_name, full_name, first_name, last_name, phone_number, email,
