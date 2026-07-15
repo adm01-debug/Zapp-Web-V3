@@ -63,6 +63,12 @@ jobs:
         # zapp/evo, ou URLs *.supabase.co em código de produção.
         run: node scripts/check-schema-usage.mjs
 
+      - name: Schema access simulation (~300 cenários)
+        # Simulação estática de acesso a zapp/evo, Realtime e Edge Functions.
+        # Falha o build se detectar chamadas evo.* sem .schema('evo'), Realtime
+        # postgres_changes sem schema, ou createClient sem db:{schema}.
+        run: node scripts/simulate-schema-access.mjs
+
       - name: Type Check (advisory in CI — private registry unavailable)
         # bun.lock pins @supabase/postgrest-js@2.110.0 to Lovable's private
         # Google Artifact Registry (europe-west4-npm.pkg.dev). GitHub Actions CI
