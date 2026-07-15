@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Tests for react-refs.ts — asRef() is a pure runtime identity cast; the
  * type aliases (AnyRef, NullableRefObject) have no runtime representation.

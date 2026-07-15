@@ -35,7 +35,7 @@ interface UseSwipeNavigationOptions {
   enabled?: boolean;
 }
 
-interface UserDevice {
+export interface UserDevice {
   id: string;
   device_fingerprint: string;
   device_name: string | null;
@@ -49,7 +49,7 @@ interface UserDevice {
   last_seen_at: string;
 }
 
-interface UserSession {
+export interface UserSession {
   id: string;
   device_id: string | null;
   ip_address: string | null;
