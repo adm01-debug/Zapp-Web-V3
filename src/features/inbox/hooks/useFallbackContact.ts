@@ -25,7 +25,7 @@ export function useFallbackContact(
       // FIX B1: the handshake may arrive as a UUID, JID (`num@s.whatsapp.net`)
       // or a bare phone number. Detect which to avoid passing a phone number
       // into the `id` (UUID) column — causes 400 from PostgREST.
-      const raw = String(selectedContactId);
+      const raw: string = String(selectedContactId);
       const isJid = raw.includes('@');
       const isUuid = isValidUUID(raw);
       const phone: string | null = isJid
