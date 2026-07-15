@@ -82,7 +82,7 @@ export function useAIUsageDashboard() {
         .order('created_at', { ascending: false })
         .limit(1000);
       if (error) throw error;
-      return (data || []) as UsageLog[];
+      return unwrapRows<UsageLog>(data);
     },
     refetchInterval: 30_000,
   });
