@@ -7,6 +7,7 @@ import { getLogger } from '@/lib/logger';
 import { supabase, isSupabaseConfigured } from '@/integrations/supabase/client';
 
 const log = getLogger('WebVitals');
+const CLIENT_OBSERVABILITY_STORAGE_KEY = 'zapp_client_observability_disabled';
 
 export interface WebVitalMetric {
   name: string;
@@ -40,6 +41,21 @@ const lastSentByName = new Map<string, number>();
 let uploadTimer: number | null = null;
 const OBS_FUNCTION = 'client-observability';
 
+function isClientObservabilityEnabled(): boolean {
+  if (import.meta.env.VITE_ENABLE_CLIENT_OBSERVABILITY !== 'true') return false;
+  if (typeof sessionStorage === 'undefined') return true;
+  return sessionStorage.getItem(CLIENT_OBSERVABILITY_STORAGE_KEY) !== '1';
+}
+
+function disableClientObservabilityForSession(): void {
+  if (typeof sessionStorage === 'undefined') return;
+  try {
+    sessionStorage.setItem(CLIENT_OBSERVABILITY_STORAGE_KEY, '1');
+  } catch (error) {
+    log.debug('Unable to persist client observability circuit state', error);
+  }
+}
+
 // Simple circuit-breaker so a failing observability endpoint can't flood the
 // console with 500s forever. After 3 consecutive failures, silence uploads
 // for BREAKER_COOLDOWN_MS. Any success resets the counter.
@@ -50,6 +66,10 @@ let obsSilencedUntil = 0;
 
 async function flushMetrics() {
   if (!uploadQueue.length) return;
+  if (!isClientObservabilityEnabled()) {
+    uploadQueue.length = 0;
+    return;
+  }
   // Raw env check missed the case where URL exists but the key is a placeholder.
   // Trust the hardened flag instead, and drop the queue so it can't grow forever.
   if (!isSupabaseConfigured) {
@@ -80,6 +100,7 @@ async function flushMetrics() {
     if (obsFailures >= BREAKER_THRESHOLD) {
       obsSilencedUntil = Date.now() + BREAKER_COOLDOWN_MS;
       obsFailures = 0;
+      disableClientObservabilityForSession();
       log.warn(
         `Observability endpoint silenced for ${BREAKER_COOLDOWN_MS / 1000}s after repeated failures`,
       );
