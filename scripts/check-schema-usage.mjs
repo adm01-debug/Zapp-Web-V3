@@ -16,7 +16,7 @@ const ROOTS = ['src', 'supabase/functions'];
 const IGNORE_DIR = /node_modules|dist|\.next|\.turbo|coverage/;
 const TEST_RE = /\.test\.(ts|tsx|mts|cts|js|jsx)$|__tests__|test\/|tests\//;
 
-const violations = { public: [], noSchema: [], cloudUrl: [] };
+const violations = { public: [], noSchema: [], cloudUrl: [], evoUnprefixed: [] };
 
 function walk(dir, out = []) {
   let entries;
