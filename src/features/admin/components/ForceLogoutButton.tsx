@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { LogOut, Loader2 } from 'lucide-react';
@@ -18,8 +17,7 @@ export function ForceLogoutButton({ userId, userName }: ForceLogoutButtonProps) 
 
     setLoading(true);
     try {
-      const { error } = await supabase
-        .from('profiles')
+      const { error } = await (supabase.from('profiles') as any)
         .update({ session_invalidated_at: new Date().toISOString() })
         .eq('user_id', userId);
 
