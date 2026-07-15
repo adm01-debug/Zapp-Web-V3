@@ -475,6 +475,14 @@ export default function RateLimitDashboard() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <RateLimitLogDetails
+        log={selectedLog}
+        open={!!selectedLog}
+        onOpenChange={(o) => { if (!o) setSelectedLog(null); }}
+        onFilterByIp={(ip) => { setActiveTab('logs'); setFilters({ ip, page: 1 }); }}
+        onFilterByEndpoint={(endpoint) => { setActiveTab('logs'); setFilters({ endpoint, page: 1 }); }}
+      />
     </div>
   );
 }
