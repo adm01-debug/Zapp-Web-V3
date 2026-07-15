@@ -48,5 +48,11 @@ export interface TalkXRecipient {
   error_message: string | null;
   created_at: string;
   variables?: Record<string, unknown> | null;
+  personalized_message?: string | null;
+  contacts?: {
+    name?: string | null;
+    nickname?: string | null;
+    avatar_url?: string | null;
+  } | null;
   [key: string]: unknown;
 }
