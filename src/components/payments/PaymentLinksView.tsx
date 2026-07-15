@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useEffect, useCallback, type ComponentType } from 'react';
 import { useMountedRef } from '@/hooks/useMountedRef';
 import { supabase } from '@/integrations/supabase/client';
