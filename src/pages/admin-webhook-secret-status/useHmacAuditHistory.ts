@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { subHours } from 'date-fns';
@@ -51,7 +50,7 @@ export function useHmacAuditHistory(range: RangeKey, instanceFilter: string, lim
       );
       if (error) return [] as string[];
       const set = new Set<string>();
-      (data ?? []).forEach((r: { instance: string | null }) => {
+      ((data ?? []) as Array<{ instance: string | null }>).forEach((r) => {
         if (r.instance) set.add(r.instance);
       });
       return Array.from(set).sort();
