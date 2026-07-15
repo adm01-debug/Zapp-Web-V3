@@ -1,4 +1,3 @@
-// @ts-nocheck
 // Re-export from consolidated useUIInteractionManagement module (ETAPA 32 consolidation)
 import { useDeviceDetectionManagement, type UserDevice, type UserSession } from '@/hooks/useUIInteractionManagement';
 

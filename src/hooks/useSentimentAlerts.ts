@@ -1,4 +1,3 @@
-// @ts-nocheck
 // Re-export from consolidated useAlertManagement module (ETAPA 28 consolidation)
 import { useSentimentAlertsManagement } from '@/hooks/useAlertManagement';
 import { useNotificationSettings } from '@/hooks/useNotificationSettings';

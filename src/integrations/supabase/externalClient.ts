@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * External Supabase Client — SHIM DE COMPATIBILIDADE
  *

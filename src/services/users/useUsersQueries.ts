@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Users Queries Hook
  *

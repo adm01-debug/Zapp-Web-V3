@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Mutation Factory - Standard patterns for creating mutations
  *

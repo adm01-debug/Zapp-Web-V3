@@ -1,4 +1,3 @@
-// @ts-nocheck
 /* eslint-disable react-refresh/only-export-components */
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';

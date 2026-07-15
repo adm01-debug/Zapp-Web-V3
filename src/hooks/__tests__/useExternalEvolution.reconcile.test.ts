@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Tests for the pure reconciliation utilities exported from useExternalEvolution:
  *   reconcileOptimistic — merges optimistic messages with canonical ones

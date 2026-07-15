@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { NPSDashboard } from '@/components/nps/NPSDashboard';
 import { FollowUpSequences } from '@/components/settings/FollowUpSequences';
 import { QuickRepliesManager } from '@/features/inbox';
