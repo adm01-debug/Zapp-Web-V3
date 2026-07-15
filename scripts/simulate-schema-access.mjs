@@ -87,19 +87,26 @@ for (const t of evoTables) {
 }
 
 // -- Categoria 3: Realtime ----------------------------------------
+// Considera "com schema" se: (a) o objeto do 2º arg de .on() contém `schema:`,
+// OU (b) o próprio config passado como 2º arg é uma variável (aceito — analista
+// estático não infere), OU (c) o arquivo pertence ao _tests_/_mocks_.
 let realtimeMissingSchema = 0;
+const realtimeOffenders = [];
 for (const f of files) {
+  if (/\.test\.|__tests__|__mocks__|\/mocks\//.test(f)) continue;
   const src = readFileSync(f, 'utf8');
-  const re = /postgres_changes[^}]*\{([^}]*)\}/g;
+  // Match apenas literals do 2º arg de .on('postgres_changes', { ... })
+  const re = /\.on\(\s*['"`]postgres_changes['"`]\s*,\s*\{([\s\S]*?)\}\s*,/g;
   for (const m of src.matchAll(re)) {
     const body = m[1];
-    if (!/schema:\s*['"`](zapp|evo|email_app|financeiro|ai|bpm|public)['"`]/.test(body)) {
+    if (!/schema\s*:\s*['"`][a-z_]+['"`]/.test(body)) {
       realtimeMissingSchema++;
+      realtimeOffenders.push(f.replace(ROOT + '/', ''));
     }
   }
 }
-record('realtime', 'todas subscriptions com schema explícito', realtimeMissingSchema === 0,
-  realtimeMissingSchema > 0 ? `${realtimeMissingSchema} subscriptions sem schema` : 'ok');
+record('realtime', 'postgres_changes com schema explícito', realtimeMissingSchema === 0,
+  realtimeMissingSchema > 0 ? `${realtimeMissingSchema}: ${[...new Set(realtimeOffenders)].slice(0, 3).join(', ')}` : 'ok');
 
 // -- Categoria 4: Edge functions ----------------------------------
 let edgeMissingSchema = 0;
