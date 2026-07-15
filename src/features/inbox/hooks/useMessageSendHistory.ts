@@ -91,7 +91,7 @@ export function useMessageSendHistory(messageId: string | undefined, enabled: bo
         outboundQuery,
       ]);
 
-      const auditEntries: AuditEntry[] = (auditRes.data ?? []).map((e) => ({
+      const auditEntries: AuditEntry[] = (auditRes.data ?? []).map((e: any) => ({
         id: e.id,
         action: e.action,
         createdAt: e.created_at ?? new Date(0).toISOString(),
