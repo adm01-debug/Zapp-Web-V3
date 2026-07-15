@@ -16,8 +16,8 @@ bun run dev
 
 ## 🏗️ Arquitetura Core
 - **Frontend**: React + Vite + shadcn/ui.
-- **Backend Duplo**:
-  - **Lovable Cloud**: Auth e perfis.
+- **Backend**: Supabase Self-Hosted (`supabase.atomicabr.com.br`), schema `zapp`.
+  - Veja [docs/SCHEMA_REFERENCE.md](SCHEMA_REFERENCE.md) para detalhes.
   - **FATOR X**: Domínio de WhatsApp/CRM (via `externalClient`).
 - **Comunicação**: Sempre prefira RPCs (`SECURITY DEFINER`) para o FATOR X.
 

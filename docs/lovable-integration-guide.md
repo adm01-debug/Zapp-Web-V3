@@ -1,3 +1,5 @@
+> **⚠️ Schema**: O Lovable gera código com schema `public` por padrão. Todo código gerado DEVE ser atualizado para `schema: 'zapp'`. Veja [SCHEMA_REFERENCE.md](SCHEMA_REFERENCE.md).
+
 # 🎯 ZAPP WEB — Guia de Integração Lovable
 ## Contatos Module v3.0 → Deploy Final para 10/10
 

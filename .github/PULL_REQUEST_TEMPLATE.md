@@ -55,3 +55,9 @@
 
 <!-- Pontos que merecem atenção especial -->
 
+
+
+## Schema Checklist
+- [ ] Todos os `createClient()` usam `db: { schema: "zapp" }`
+- [ ] Imports de tipos via `@/integrations/supabase/schema` (não `types`)
+- [ ] Realtime subscriptions usam `schema: "zapp"` ou `schema: "evo"` (nunca `public`)

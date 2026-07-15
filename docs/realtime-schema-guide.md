@@ -1,3 +1,5 @@
+> Veja também: [SCHEMA_REFERENCE.md](SCHEMA_REFERENCE.md)
+
 # Guia: Realtime Subscriptions — Schema Correto
 
 ## ⚠️ Por que isso importa?
@@ -11,9 +13,9 @@ Esse é um silent failure extremamente difícil de depurar.
 
 ## 🗺️ Mapa de Schemas — `public.*` vs Base Tables
 
-### ✅ Tabelas BASE em `public` (subscription funciona)
+### ✅ Tabelas BASE em `zapp` (subscription funciona com schema: 'zapp')
 
-Estas são tabelas reais no schema `public` — WAL funciona:
+Estas são tabelas reais no schema `zapp` — WAL funciona quando `schema: 'zapp'` está no client:
 
 | Tabela | Uso |
 |--------|-----|

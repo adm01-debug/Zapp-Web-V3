@@ -1,3 +1,5 @@
+> **Schema canônico**: [SCHEMA_REFERENCE.md](SCHEMA_REFERENCE.md)
+
 # 📚 Documentação Técnica Completa - Sistema de Atendimento WhatsApp
 
 > **Versão:** 1.0.0  

@@ -15,6 +15,8 @@
 
 ## 📋 Índice
 
+> **⚠️ Schema**: Todo o banco usa schema `zapp` (não `public`). Veja [docs/SCHEMA_REFERENCE.md](docs/SCHEMA_REFERENCE.md).
+
 - [Visão Geral](#visão-geral)
 - [Stack Tecnológico](#stack-tecnológico)
 - [Setup Local](#setup-local)

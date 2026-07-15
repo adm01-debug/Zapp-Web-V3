@@ -15,3 +15,8 @@ Adotamos RLS do PostgreSQL/Supabase como camada primária de autorização com 1
 - ✅ Credenciais sensíveis (channel_connections.credentials) protegidas por role
 - ❌ Políticas complexas impactam levemente performance de queries
 - ❌ Debugging de permissões requer análise das políticas SQL
+
+
+## Atualização 2026-07-15
+
+Todas as tabelas RLS estão no schema `zapp` (não `public`). PostgREST requer header `Accept-Profile: zapp`.
