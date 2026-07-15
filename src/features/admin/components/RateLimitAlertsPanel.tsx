@@ -227,6 +227,68 @@ function ThresholdsPopover({
         <Button size="sm" className="w-full" onClick={() => onSave(draft)}>
           Salvar thresholds
         </Button>
+    </PopoverContent>
+    </Popover>
+  );
+}
+
+function NotifyPrefsPopover({
+  value,
+  onSave,
+}: {
+  value: NotifyPreferences;
+  onSave: (next: NotifyPreferences) => void | Promise<void>;
+}) {
+  const [draft, setDraft] = useState(value);
+
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button variant="outline" size="sm" aria-label="Preferências de notificação">
+          {value.enabled ? <Bell className="w-4 h-4 mr-1" /> : <BellOff className="w-4 h-4 mr-1" />}
+          Notificações
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-80 space-y-3">
+        <div className="flex items-center justify-between">
+          <Label htmlFor="notify-enabled" className="text-sm">Ativar toasts automáticos</Label>
+          <Switch
+            id="notify-enabled"
+            checked={draft.enabled}
+            onCheckedChange={(v) => setDraft({ ...draft, enabled: v })}
+          />
+        </div>
+        <div className="space-y-1">
+          <Label htmlFor="notify-min-sev" className="text-xs">Notificar a partir de</Label>
+          <Select
+            value={draft.minSeverity}
+            onValueChange={(v) => setDraft({ ...draft, minSeverity: v as NotifyPreferences['minSeverity'] })}
+          >
+            <SelectTrigger id="notify-min-sev" className="h-9">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="low">Baixo</SelectItem>
+              <SelectItem value="medium">Médio</SelectItem>
+              <SelectItem value="high">Alto</SelectItem>
+              <SelectItem value="critical">Crítico</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="flex items-center justify-between">
+          <Label htmlFor="notify-browser" className="text-sm">Notificações do navegador</Label>
+          <Switch
+            id="notify-browser"
+            checked={draft.browserNotifications}
+            onCheckedChange={(v) => setDraft({ ...draft, browserNotifications: v })}
+          />
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Toasts aparecem quando um novo IP ou endpoint entra em alerta ou escala de severidade.
+        </p>
+        <Button size="sm" className="w-full" onClick={() => onSave(draft)}>
+          Salvar preferências
+        </Button>
       </PopoverContent>
     </Popover>
   );
