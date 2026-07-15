@@ -162,8 +162,8 @@ export interface SearchInsightsZeroResult {
 }
 
 export interface SearchInsights {
-  top_queries?: SearchInsightsTopQuery[];
-  zero_results?: SearchInsightsZeroResult[];
+  top_queries: SearchInsightsTopQuery[];
+  zero_results: SearchInsightsZeroResult[];
   total_searches: number;
   unique_queries: number;
   vector_searches: number;
@@ -172,10 +172,54 @@ export interface SearchInsights {
   click_through_rate: number;
   zero_result_count: number;
   zero_result_rate: number;
-  [key: string]: unknown;
 }
 
+/** Coerce any value into a finite number, defaulting to 0. */
+function toFiniteNumber(value: unknown, fallback = 0): number {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value === 'string') {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return fallback;
+}
 
+function toStringSafe(value: unknown, fallback = ''): string {
+  return typeof value === 'string' ? value : fallback;
+}
+
+function toTopQueries(value: unknown): SearchInsightsTopQuery[] {
+  if (!Array.isArray(value)) return [];
+  return value.map((row) => {
+    const r = (row ?? {}) as Record<string, unknown>;
+    return { query: toStringSafe(r.query), count: toFiniteNumber(r.count) };
+  });
+}
+
+function toZeroResults(value: unknown): SearchInsightsZeroResult[] {
+  if (!Array.isArray(value)) return [];
+  return value.map((row) => {
+    const r = (row ?? {}) as Record<string, unknown>;
+    return { query: toStringSafe(r.query), attempts: toFiniteNumber(r.attempts) };
+  });
+}
+
+/** Type-safe parser: converts an unknown RPC payload into a fully-populated SearchInsights. */
+export function normalizeSearchInsights(raw: unknown): SearchInsights {
+  const r = (raw ?? {}) as Record<string, unknown>;
+  return {
+    total_searches: toFiniteNumber(r.total_searches),
+    unique_queries: toFiniteNumber(r.unique_queries),
+    vector_searches: toFiniteNumber(r.vector_searches),
+    vector_share: toFiniteNumber(r.vector_share),
+    total_clicks: toFiniteNumber(r.total_clicks),
+    click_through_rate: toFiniteNumber(r.click_through_rate),
+    zero_result_count: toFiniteNumber(r.zero_result_count),
+    zero_result_rate: toFiniteNumber(r.zero_result_rate),
+    top_queries: toTopQueries(r.top_queries),
+    zero_results: toZeroResults(r.zero_results ?? r.zero_result_queries),
+  };
+}
 
 /** Retrieves search insights and trends for specified time window. */
 export function useSearchInsightsManagement(timeWindow: number = 7) {
@@ -190,7 +234,7 @@ export function useSearchInsightsManagement(timeWindow: number = 7) {
         });
 
         if (err) throw err;
-        setInsights(data as SearchInsights | null);
+        setInsights(normalizeSearchInsights(data));
       } catch (err) {
         log.error('Error fetching search insights:', err);
       } finally {
@@ -203,6 +247,7 @@ export function useSearchInsightsManagement(timeWindow: number = 7) {
 
   return { insights, loading };
 }
+
 
 
 /** Searches messages within a specific chat by ID and query. */
