@@ -17,10 +17,13 @@ export function useAdminAutomations() {
     channels: admin.automationChannels,
     departments: admin.automationDepartments,
     loading: admin.automationLoading,
+    error: admin.automationError,
     load: admin.loadAutomations,
+    reload: admin.loadAutomations,
     save: admin.saveAutomation,
     remove: admin.removeAutomation,
     toggleActive: admin.toggleAutomationActive,
     adjustPriority: admin.adjustAutomationPriority,
   };
 }
+
