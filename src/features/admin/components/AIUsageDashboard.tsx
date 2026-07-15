@@ -198,7 +198,7 @@ export function AIUsageDashboard() {
                           ))}
                         </Pie>
                         <Tooltip
-                          formatter={(v: number | string) => String(v.toLocaleString()) + ' tokens'}
+                          formatter={formatTokens}
                         />
                       </PieChart>
                     </ResponsiveContainer>
