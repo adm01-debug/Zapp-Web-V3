@@ -1,4 +1,4 @@
-// @ts-nocheck
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -14,9 +14,9 @@ import { ForceLogoutButton } from './ForceLogoutButton';
 import { accessLevelConfig, type UserWithRole } from '../hooks/useAdminData';
 import type { AppRole } from '@/features/auth';
 
-const roleIconMap = { dev: Code, admin: Crown, supervisor: UserCog, agent: User } as const;
-const roleLabelMap = { dev: 'Desenvolvedor', admin: 'Administrador', supervisor: 'Supervisor', agent: 'Atendente' } as const;
-const roleColorMap = { dev: 'text-destructive', admin: 'text-warning', supervisor: 'text-info', agent: 'text-muted-foreground' } as const;
+const roleIconMap: Record<AppRole, typeof Code> = { dev: Code, admin: Crown, supervisor: UserCog, manager: Briefcase, agent: User };
+const roleLabelMap: Record<AppRole, string> = { dev: 'Desenvolvedor', admin: 'Administrador', supervisor: 'Supervisor', manager: 'Gerente', agent: 'Atendente' };
+const roleColorMap: Record<AppRole, string> = { dev: 'text-destructive', admin: 'text-warning', supervisor: 'text-info', manager: 'text-info', agent: 'text-muted-foreground' };
 
 interface AdminUsersTableProps {
   users: UserWithRole[];
