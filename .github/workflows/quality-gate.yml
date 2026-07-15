@@ -58,6 +58,11 @@ jobs:
           fi
           exit 0
 
+      - name: Schema usage guardrail (zapp/evo)
+        # Falha o build se aparecer .schema('public'), createClient sem schema
+        # zapp/evo, ou URLs *.supabase.co em código de produção.
+        run: node scripts/check-schema-usage.mjs
+
       - name: Type Check (advisory in CI — private registry unavailable)
         # bun.lock pins @supabase/postgrest-js@2.110.0 to Lovable's private
         # Google Artifact Registry (europe-west4-npm.pkg.dev). GitHub Actions CI
