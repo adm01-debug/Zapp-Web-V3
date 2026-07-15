@@ -1,5 +1,8 @@
 # Evolution API ↔ ZAPP Web — Mapeamento Completo
 
+> **Arquitetura atual**: Supabase Self-Hosted (`supabase.atomicabr.com.br`), schema `zapp`. Veja [../SCHEMA_REFERENCE.md](SCHEMA_REFERENCE.md).
+
+
 > **Versão alvo da Evolution:** v2.x (com fallbacks específicos para v2.3.7).
 > **Atualizado em:** 2026-04-25.
 > **Escopo:** mapeamento bidirecional entre **(a)** os 27 eventos do webhook

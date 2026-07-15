@@ -1,3 +1,5 @@
+> **📜 DOCUMENTO HISTÓRICO** — Reflete o estado do sistema na data indicada. A arquitetura atual usa um único Supabase Self-Hosted com schema `zapp`. Veja [SCHEMA_REFERENCE.md](docs/SCHEMA_REFERENCE.md).
+
 # 🔍 Sessão 7 — Auditoria exaustiva Evolution API + bancos (nativo/evo/zapp) + infra — 2026-07-05
 
 > **Nota de reconciliação:** esta auditoria rodou em paralelo (mesma janela de horário,

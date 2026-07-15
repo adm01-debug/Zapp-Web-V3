@@ -1,5 +1,8 @@
 # INFRA.md — Mapa de Infraestrutura EVO API / ZAPP WEB
 
+> **Arquitetura atual**: Supabase Self-Hosted (`supabase.atomicabr.com.br`), schema `zapp`. Veja [docs/SCHEMA_REFERENCE.md](SCHEMA_REFERENCE.md).
+
+
 **Última atualização:** 2026-07-12 R9-R11 — fix AUTHENTICATION_API_KEY + 7 bugs DB + fn_health_preflight
 **Score:** 10/10 — AUTHENTICATION_API_KEY via secret (stack file atualizado R11; deploy VPS ⏳ pendente) · fn_health_preflight 15/15 all_green
 

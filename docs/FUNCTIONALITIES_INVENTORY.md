@@ -1,5 +1,8 @@
 # Inventário Completo de Funcionalidades e Ferramentas
 
+> **Arquitetura atual**: Supabase Self-Hosted (`supabase.atomicabr.com.br`), schema `zapp`. Veja [SCHEMA_REFERENCE.md](SCHEMA_REFERENCE.md).
+
+
 > **Projeto:** WhatsApp CRM  
 > **Última Atualização:** 2025-01-24  
 > **Versão:** 1.0.0

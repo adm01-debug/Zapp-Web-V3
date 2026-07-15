@@ -1,5 +1,8 @@
 # Configuração do Email Chat — Outlook / Office 365
 
+> **Arquitetura atual**: Supabase Self-Hosted (`supabase.atomicabr.com.br`), schema `zapp`. Veja [SCHEMA_REFERENCE.md](SCHEMA_REFERENCE.md).
+
+
 ## Método: Microsoft Graph API (sem IMAP TCP)
 
 O ZAPP WEB integra com Outlook via **Microsoft Graph API OAuth2**, que é 100% HTTP — sem necessidade de IMAP TCP ou proxy externo.

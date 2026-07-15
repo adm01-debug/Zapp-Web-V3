@@ -1,5 +1,8 @@
 # Webhook Security - HMAC Signature Validation
 
+> **Arquitetura atual**: Supabase Self-Hosted (`supabase.atomicabr.com.br`), schema `zapp`. Veja [SCHEMA_REFERENCE.md](SCHEMA_REFERENCE.md).
+
+
 ## Overview
 
 O ZAPP-WEB implementa validação de assinatura HMAC-SHA256 para webhooks recebidos da Evolution API. Isso garante que apenas requisições autênticas (originadas da Evolution API com o secret correto) sejam processadas.

@@ -1,3 +1,5 @@
+> **📜 DOCUMENTO HISTÓRICO** — Reflete o estado do sistema na data indicada. A arquitetura atual usa um único Supabase Self-Hosted com schema `zapp`. Veja [../SCHEMA_REFERENCE.md](docs/SCHEMA_REFERENCE.md).
+
 # DB -> Edge Function references (self-hosted) - cutover audit 2026-06-30
 
 Audit of how the self-hosted Postgres invokes edge functions, to catch

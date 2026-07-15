@@ -1,5 +1,8 @@
 # 🔧 Guia de Troubleshooting - ZAPP-WEB
 
+> **Arquitetura atual**: Supabase Self-Hosted (`supabase.atomicabr.com.br`), schema `zapp`. Veja [SCHEMA_REFERENCE.md](SCHEMA_REFERENCE.md).
+
+
 Este documento contém soluções para problemas comuns do ZAPP-WEB.
 
 ---

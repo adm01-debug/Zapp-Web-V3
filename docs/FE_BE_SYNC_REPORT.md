@@ -1,5 +1,8 @@
 # Relatório de Sincronismo Frontend ↔ Backend (camada de banco)
 
+> **Arquitetura atual**: Supabase Self-Hosted (`supabase.atomicabr.com.br`), schema `zapp`. Veja [SCHEMA_REFERENCE.md](SCHEMA_REFERENCE.md).
+
+
 > Auditoria focada em verificar se **toda chamada do frontend ao Supabase** (`rpc()` e `.from()`) tem uma **definição correspondente** em `supabase/migrations`. Complementa o `check-edge-function-sync.sh` (que cobre apenas Edge Functions).
 
 ## Sumário executivo

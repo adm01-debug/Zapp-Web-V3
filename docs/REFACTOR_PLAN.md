@@ -1,5 +1,8 @@
 # REFACTOR_PLAN.md — Refatoração Estrutural zapp-web-v3
 
+> **Arquitetura atual**: Supabase Self-Hosted (`supabase.atomicabr.com.br`), schema `zapp`. Veja [SCHEMA_REFERENCE.md](SCHEMA_REFERENCE.md).
+
+
 > Wave 1 executada em 2026-07-06 (branch `refactor/structural-wave1-2026-07-06`).
 > Princípio inegociável: **zero mudança de comportamento visível**. Toda onda é
 > validada por `npm run check` completo antes de merge.

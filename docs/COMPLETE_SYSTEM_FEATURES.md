@@ -1,5 +1,8 @@
 # 📋 Levantamento Completo de Funcionalidades do Sistema
 
+> **Arquitetura atual**: Supabase Self-Hosted (`supabase.atomicabr.com.br`), schema `zapp`. Veja [SCHEMA_REFERENCE.md](SCHEMA_REFERENCE.md).
+
+
 > **Projeto:** WhatsApp CRM Omnichannel  
 > **Data:** 2026-03-15  
 > **Versão:** 2.0.0  

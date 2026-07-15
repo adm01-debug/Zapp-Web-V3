@@ -1,5 +1,8 @@
 # 📡 ZAPP-WEB — WEBHOOK EVENTS DOCUMENTATION
 
+> **Arquitetura atual**: Supabase Self-Hosted (`supabase.atomicabr.com.br`), schema `zapp`. Veja [SCHEMA_REFERENCE.md](SCHEMA_REFERENCE.md).
+
+
 > **Versão:** 1.0  
 > **Última atualização:** 2026-04-12  
 > **Evolution API Version:** 1.0.1

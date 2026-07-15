@@ -1,5 +1,8 @@
 # 🚀 Guia de Deploy — Zapp Web v3 em Produção
 
+> **Arquitetura atual**: Supabase Self-Hosted (`supabase.atomicabr.com.br`), schema `zapp`. Veja [docs/SCHEMA_REFERENCE.md](SCHEMA_REFERENCE.md).
+
+
 ## Status Atual do Projeto
 
 | Componente               | Status                                       |

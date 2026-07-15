@@ -1,5 +1,8 @@
 # Runbook de Deploy e Operações
 
+> **Arquitetura atual**: Supabase Self-Hosted (`supabase.atomicabr.com.br`), schema `zapp`. Veja [../SCHEMA_REFERENCE.md](SCHEMA_REFERENCE.md).
+
+
 ## Visão Geral
 Este documento descreve os procedimentos operacionais para deploy, monitoramento e resposta a incidentes da plataforma WhatsApp Omnichannel.
 

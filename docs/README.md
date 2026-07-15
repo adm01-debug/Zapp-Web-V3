@@ -1,5 +1,8 @@
 # 📚 ZAPP-WEB Documentation
 
+> **Arquitetura atual**: Supabase Self-Hosted (`supabase.atomicabr.com.br`), schema `zapp`. Veja [SCHEMA_REFERENCE.md](SCHEMA_REFERENCE.md).
+
+
 > Documentação técnica completa do sistema ZAPP-WEB - Plataforma CRM WhatsApp Multi-Atendimento
 
 ---

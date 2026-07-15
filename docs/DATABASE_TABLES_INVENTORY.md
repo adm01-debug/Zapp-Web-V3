@@ -1,5 +1,8 @@
 # Inventário de Tabelas — Lovable Cloud (schema `public`)
 
+> **Arquitetura atual**: Supabase Self-Hosted (`supabase.atomicabr.com.br`), schema `zapp`. Veja [SCHEMA_REFERENCE.md](SCHEMA_REFERENCE.md).
+
+
 > Gerado por introspecção read-only do banco vivo. Total: **146 tabelas**.
 
 ## Sumário Executivo

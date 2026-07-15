@@ -1,5 +1,8 @@
 # 🔄 HANDOFF — ZAPP-WEB × Evolution API Security Improvements
 
+> **Arquitetura atual**: Supabase Self-Hosted (`supabase.atomicabr.com.br`), schema `zapp`. Veja [SCHEMA_REFERENCE.md](SCHEMA_REFERENCE.md).
+
+
 **Data:** 2026-04-12  
 **Sessão:** Execução sequencial de 10 melhorias rumo a 10/10  
 **Status:** MELHORIA 1/10 — 95% COMPLETA  

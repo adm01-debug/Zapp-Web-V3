@@ -1,5 +1,8 @@
 # 🚨 ZAPP-WEB — Runbook de Incidentes
 
+> **Arquitetura atual**: Supabase Self-Hosted (`supabase.atomicabr.com.br`), schema `zapp`. Veja [SCHEMA_REFERENCE.md](SCHEMA_REFERENCE.md).
+
+
 **Versão:** 1.0  
 **Data:** 2026-04-11  
 **Autor:** Claude AI — SRE Agent  

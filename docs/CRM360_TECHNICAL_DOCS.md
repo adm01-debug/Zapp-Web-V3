@@ -1,5 +1,8 @@
 # ZAPP-WEB × CRM 360° — Documentação Técnica
 
+> **Arquitetura atual**: Supabase Self-Hosted (`supabase.atomicabr.com.br`), schema `zapp`. Veja [SCHEMA_REFERENCE.md](SCHEMA_REFERENCE.md).
+
+
 ## Arquitetura
 
 ```

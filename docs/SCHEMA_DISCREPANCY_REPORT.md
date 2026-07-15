@@ -1,4 +1,7 @@
 # Relatório de Discrepâncias — Schemas Zod × types.ts × Código
+
+> **Arquitetura atual**: Supabase Self-Hosted (`supabase.atomicabr.com.br`), schema `zapp`. Veja [SCHEMA_REFERENCE.md](SCHEMA_REFERENCE.md).
+
 _Gerado em 2026-07-08 · base: banco Lovable Cloud (146 tabelas + 6 views)._
 
 ## Sumário

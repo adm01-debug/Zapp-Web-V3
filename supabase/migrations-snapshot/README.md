@@ -1,5 +1,8 @@
 # Snapshot do Schema — Lovable Cloud (ZAPP Web)
 
+> **Arquitetura atual**: Supabase Self-Hosted (`supabase.atomicabr.com.br`), schema `zapp`. Veja [../SCHEMA_REFERENCE.md](SCHEMA_REFERENCE.md).
+
+
 Snapshot **live** do schema `public` extraído via `pg_dump` do banco de produção.
 
 ## Estatísticas

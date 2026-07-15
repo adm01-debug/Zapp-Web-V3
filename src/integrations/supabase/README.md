@@ -1,5 +1,8 @@
 # Supabase Integration — Convenções
 
+> **Arquitetura atual**: Supabase Self-Hosted (`supabase.atomicabr.com.br`), schema `zapp`. Veja [../../docs/SCHEMA_REFERENCE.md](SCHEMA_REFERENCE.md).
+
+
 ## Regra de ouro
 
 **Toda coluna referenciada em código passa por `columnMap.ts`.**

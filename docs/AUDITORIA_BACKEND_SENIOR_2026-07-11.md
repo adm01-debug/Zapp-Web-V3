@@ -1,3 +1,5 @@
+> **📜 DOCUMENTO HISTÓRICO** — Reflete o estado do sistema na data indicada. A arquitetura atual usa um único Supabase Self-Hosted com schema `zapp`. Veja [SCHEMA_REFERENCE.md](docs/SCHEMA_REFERENCE.md).
+
 # Auditoria Back-End Sênior — ZAPP Web
 **Data:** 2026-07-11 • **Auditor:** Dev Sênior (PhD em BD) • **Baseline objetivo:** 0 erros TS · 2.649 testes verdes · 64 WARN no linter · 690 migrations · 124 Edge Functions
 
