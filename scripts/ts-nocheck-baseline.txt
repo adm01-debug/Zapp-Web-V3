@@ -60,7 +60,6 @@ src/components/team-chat/TeamMemberProfileHeader.tsx
 src/components/team-chat/TransferConversationDialog.tsx
 src/components/team-chat/useTeamChatPanel.ts
 src/components/transcriptions/TranscriptionsHistoryView.tsx
-src/components/transitions/__tests__/transitionVariants.test.ts
 src/components/ui/empty-states/ContextualEmptyState.tsx
 src/components/voice/VoiceSearchOverlayConnected.tsx
 src/components/whatsapp-flows/WhatsAppFlowsBuilder.tsx
@@ -293,7 +292,6 @@ src/pages/admin-webhook-secret-status/AdvancedFiltersPanel.tsx
 src/pages/admin-webhook-secret-status/AlertThresholdsPanel.tsx
 src/pages/admin-webhook-secret-status/HmacAuditHistoryPanel.tsx
 src/pages/admin-webhook-secret-status/HmacSelfTestButton.tsx
-src/pages/admin-webhook-secret-status/useHmacAuditHistory.ts
 src/pages/admin/AdminAutomationLogsPage.tsx
 src/pages/admin/AdminAutomationsPage.tsx
 src/pages/admin/AdminBridgeStatusPage.tsx
