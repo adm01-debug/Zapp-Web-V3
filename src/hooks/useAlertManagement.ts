@@ -336,9 +336,19 @@ export function useRealtimeSentimentAlertsManagement(): UseRealtimeSentimentAler
   const [alerts, setAlerts] = useState<RealtimeSentimentAlert[]>([]);
   const { settings, isQuietHours } = useNotificationSettingsManagement();
 
+  // Refs para evitar re-subscribe a cada render (settings/isQuietHours mudam de referência)
+  const settingsRef = useRef(settings);
+  const isQuietHoursRef = useRef(isQuietHours);
   useEffect(() => {
+    settingsRef.current = settings;
+    isQuietHoursRef.current = isQuietHours;
+  }, [settings, isQuietHours]);
+
+  useEffect(() => {
+    // Canal único por mount para prevenir reuso após subscribe()
+    const channelName = `realtime-sentiment-alerts-${Math.random().toString(36).slice(2, 10)}`;
     const channel = supabase
-      .channel('realtime-sentiment-alerts')
+      .channel(channelName)
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'zapp', table: 'sentiment_alerts' },
@@ -346,17 +356,17 @@ export function useRealtimeSentimentAlertsManagement(): UseRealtimeSentimentAler
           const newAlert = payload.new as RealtimeSentimentAlert;
           setAlerts((prev) => [newAlert, ...prev.slice(0, 49)]);
 
-          if (settings.soundEnabled && !isQuietHours()) {
-            playNotificationSound('sentiment_alert', settings.slaSoundType, settings.soundVolume);
+          const s = settingsRef.current;
+          const quiet = isQuietHoursRef.current;
+          if (s.soundEnabled && !quiet()) {
+            playNotificationSound('sentiment_alert', s.slaSoundType, s.soundVolume);
           }
-
-          if (settings.browserNotifications) {
+          if (s.browserNotifications) {
             showBrowserNotification(
               `Sentiment Alert - Level: ${newAlert.alert_level}`,
               `Contact: ${newAlert.contact_id}`
             );
           }
-
           toast.warning(`Sentiment Alert (${newAlert.alert_level})`, {
             description: `Contact ${newAlert.contact_id} - Score: ${newAlert.sentiment_score.toFixed(2)}`,
           });
@@ -367,7 +377,8 @@ export function useRealtimeSentimentAlertsManagement(): UseRealtimeSentimentAler
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [settings, isQuietHours]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const acknowledgeAlert = useCallback(async (alertId: string) => {
     try {
