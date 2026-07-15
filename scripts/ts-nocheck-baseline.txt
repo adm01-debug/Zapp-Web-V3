@@ -85,7 +85,6 @@ src/features/admin/hooks/monitoring/useDispatchErrorLogs.ts
 src/features/admin/hooks/monitoring/useDlqAuditLog.ts
 src/features/admin/hooks/monitoring/useFailedMessages.ts
 src/features/admin/hooks/monitoring/useIdempotencyMissAlerts.ts
-src/features/admin/hooks/useAIUsageDashboard.ts
 src/features/admin/hooks/useAdminManagement.ts
 src/features/admin/hooks/useAgentReassignment.ts
 src/features/admin/hooks/useDiagnosticsData.ts
