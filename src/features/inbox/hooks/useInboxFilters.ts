@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useMemo, useCallback, useState, useEffect, useRef } from 'react';
 import { parseISO } from 'date-fns';
 import { useUrlFilters } from '@/hooks/useUrlFilters';

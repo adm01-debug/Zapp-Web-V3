@@ -1,10 +1,13 @@
-// @ts-nocheck
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/features/auth';
 import { toast } from '@/hooks/use-toast';
 import { log } from '@/lib/logger';
 import { useMountedRef } from '@/hooks/useMountedRef';
+
+// Schema escape hatch: zapp tables not yet in generated types (gen-types-zapp.mjs pendente na VPS)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const db = supabase as any;
 
 export interface Call {
   id: string;
@@ -48,8 +51,7 @@ export const useCalls = () => {
   const getProfileId = useCallback(async (): Promise<string | null> => {
     if (!user) return null;
 
-    const { data } = await supabase
-      .from('profiles')
+    const { data } = await db.from('profiles')
       .select('id')
       .eq('user_id', user.id)
       .maybeSingle();
@@ -64,8 +66,7 @@ export const useCalls = () => {
       try {
         const profileId = await getProfileId();
 
-        const { data, error } = await supabase
-          .from('calls')
+        const { data, error } = await db.from('calls')
           .insert({
             contact_id: params.contactId || null,
             agent_id: profileId,
@@ -102,8 +103,7 @@ export const useCalls = () => {
     abortControllerRef.current = controller;
 
     try {
-      const builder = supabase
-        .from('calls')
+      const builder = db.from('calls')
         .update({
           status: 'answered',
           answered_at: new Date().toISOString(),
@@ -133,8 +133,7 @@ export const useCalls = () => {
     abortControllerRef.current = controller;
 
     try {
-      const builder = supabase
-        .from('calls')
+      const builder = db.from('calls')
         .update({
           status: 'ended',
           ended_at: new Date().toISOString(),
@@ -174,8 +173,7 @@ export const useCalls = () => {
     abortControllerRef.current = controller;
 
     try {
-      const builder = supabase
-        .from('calls')
+      const builder = db.from('calls')
         .update({
           status: 'missed',
           ended_at: new Date().toISOString(),
@@ -207,7 +205,7 @@ export const useCalls = () => {
     abortControllerRef.current = controller;
 
     try {
-      const builder = supabase.from('calls').update({ notes }).eq('id', callId);
+      const builder = db.from('calls').update({ notes }).eq('id', callId);
 
       // Pass abort signal to Supabase query builder if supported
       const withSignal = (builder as unknown as {
@@ -232,8 +230,7 @@ export const useCalls = () => {
     abortControllerRef.current = controller;
 
     try {
-      const builder = supabase
-        .from('calls')
+      const builder = db.from('calls')
         .select('*')
         .eq('contact_id', contactId)
         .order('started_at', { ascending: false });
