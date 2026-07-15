@@ -259,8 +259,8 @@ describe('buildVariants — override propagation', () => {
   });
 
   it('custom ease propagates to transition', () => {
-    const customEase = [0.1, 0.2, 0.3, 0.4] as number[];
-    const { transition } = buildVariants('fade', { ease: customEase });
+    const customEase = [0.1, 0.2, 0.3, 0.4];
+    const { transition } = buildVariants('fade', { ease: customEase as unknown as never });
     expect(transition.ease).toEqual(customEase);
   });
 
