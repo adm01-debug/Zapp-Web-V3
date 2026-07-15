@@ -1,7 +1,7 @@
-// @ts-nocheck
 import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { unwrapRows } from '@/lib/supabase-helpers';
 import { format, subHours, subDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
@@ -82,7 +82,7 @@ export function useAIUsageDashboard() {
         .order('created_at', { ascending: false })
         .limit(1000);
       if (error) throw error;
-      return (data || []) as UsageLog[];
+      return unwrapRows<UsageLog>(data);
     },
     refetchInterval: 30_000,
   });
@@ -93,7 +93,7 @@ export function useAIUsageDashboard() {
       const { data } = await supabase
         .from('profiles')
         .select('id, user_id, name, email, avatar_url');
-      return (data || []) as ProfileInfo[];
+      return unwrapRows<ProfileInfo>(data);
     },
     staleTime: 600_000,
   });
