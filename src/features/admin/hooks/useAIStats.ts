@@ -147,15 +147,15 @@ export function useAIStats(selectedPeriod: PeriodOption) {
         .lt('created_at', periodStart.toISOString());
 
       const last24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-      const { data: alertData } = await supabase
-        .from('audit_logs')
+      const { data: alertRaw } = await (supabase.from('audit_logs') as any)
         .select('*')
         .eq('action', 'sentiment_alert')
         .gte('created_at', last24h)
         .order('created_at', { ascending: false })
         .limit(5);
+      const alertRows = unwrapRows<AuditLogRow>(alertRaw);
 
-      const activeAlerts: SentimentAlert[] = (alertData || []).map((log) => ({
+      const activeAlerts: SentimentAlert[] = alertRows.map((log) => ({
         id: log.id,
         contactId: log.entity_id,
         createdAt: log.created_at,
