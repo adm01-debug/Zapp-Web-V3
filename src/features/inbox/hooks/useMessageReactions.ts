@@ -74,16 +74,16 @@ export function useMessageReactions(messageId: string, options?: UseMessageReact
         .eq('message_id', messageId);
       if (error) throw error;
 
-      const userIds = (data?.filter((r) => r.user_id).map((r) => r.user_id) || []) as string[];
+      const userIds = (data?.filter((r: any) => r.user_id).map((r: any) => r.user_id) || []) as string[];
       let usersMap = new Map<string, string>();
       if (userIds.length > 0) {
         const { data: users } = await db.from('profiles')
           .select('id, name')
           .in('id', userIds);
-        usersMap = new Map(users?.map((u) => [u.id, u.name]) || []);
+        usersMap = new Map(users?.map((u: any) => [u.id, u.name]) || []);
       }
 
-      return (data || []).map((r) => ({
+      return (data || []).map((r: any) => ({
         ...r,
         user_name: r.user_id ? usersMap.get(r.user_id) || 'Agente' : 'Cliente',
       })) as MessageReaction[];
