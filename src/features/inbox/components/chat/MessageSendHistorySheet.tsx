@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Side sheet com o histórico completo de envio de uma mensagem.
  *

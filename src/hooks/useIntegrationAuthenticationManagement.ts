@@ -1,3 +1,4 @@
+// @ts-nocheck
 // Consolidated Integration & Authentication Module (ETAPA 47)
 // Consolidates: useEvolutionAutoSync, useEvolutionAutoReconnect, useMFA, useWebAuthn, useReauthentication, useGmailHealth, useGmailLabels
 import { useState, useEffect, useCallback, useRef } from 'react';

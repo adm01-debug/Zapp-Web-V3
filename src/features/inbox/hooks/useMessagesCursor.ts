@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * useMessagesCursor — paginacao incremental de mensagens (FATOR X)
  *

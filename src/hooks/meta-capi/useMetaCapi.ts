@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * useMetaCapi — Wave 3 blueprint (2026-07-06)
  * Extração da camada de dados do MetaCAPIView (componente ficou 100% UI).

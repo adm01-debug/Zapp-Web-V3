@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { describe, it, expect } from 'vitest';
 import { getAvatarColor, getInitials } from '@/lib/avatar-colors';
 

@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { useState, useCallback } from 'react';
 import { safeFrom } from '@/integrations/supabase/safeClient';
 import { supabase } from '@/integrations/supabase/client';

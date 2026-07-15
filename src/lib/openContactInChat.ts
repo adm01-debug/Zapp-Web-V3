@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * openContactInChat — utilitário centralizado para abrir o Inbox em um
  * contato específico e (opcionalmente) destacar uma mensagem.

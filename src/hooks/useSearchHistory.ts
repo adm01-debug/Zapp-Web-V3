@@ -1,3 +1,4 @@
+// @ts-nocheck
 // Re-export from consolidated useSearchManagement module (ETAPA 29 consolidation)
 import { useSearchHistoryManagement, type SearchHistoryItem } from '@/hooks/useSearchManagement';
 

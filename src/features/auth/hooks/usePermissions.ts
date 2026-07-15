@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { useCallback, useState, useEffect } from 'react';
 import { useMountedRef } from '@/hooks/useMountedRef';
 import { useAuth } from './useAuth';

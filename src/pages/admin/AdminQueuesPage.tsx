@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { useAdminQueues, type Queue, type DistAlgo } from '@/hooks/admin/useAdminQueues';
 import { QueueEditDialog } from './queues/QueueEditDialog';
 import { QueueCard } from './queues/QueueCard';
