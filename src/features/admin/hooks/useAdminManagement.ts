@@ -379,12 +379,14 @@ function useAdminAutomationsManagement() {
     automationChannels,
     automationDepartments,
     automationLoading,
+    automationError,
     loadAutomations,
     saveAutomation,
     removeAutomation,
     toggleAutomationActive,
     adjustAutomationPriority,
   };
+
 }
 
 // ─── Section 2: Channels ─────────────────────────────────────────────────────
