@@ -10,6 +10,8 @@ import { useUserRole } from '@/features/auth';
 import { BlockedIPsPanel } from '@/components/security/BlockedIPsPanel';
 import { IPWhitelistPanel } from '@/components/security/IPWhitelistPanel';
 import { RateLimitAlertsPanel } from '@/features/admin/components/RateLimitAlertsPanel';
+import { RateLimitLogDetails } from '@/features/admin/components/RateLimitLogDetails';
+import type { RateLimitLog } from '@/features/admin/hooks/useRateLimitLogs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -41,6 +43,7 @@ export default function RateLimitDashboard() {
     logs, stats, total, totalPages, loading, filters, setFilters, resetFilters, refetch,
   } = useRateLimitLogs();
   const [activeTab, setActiveTab] = useState('overview');
+  const [selectedLog, setSelectedLog] = useState<RateLimitLog | null>(null);
 
   // Área técnica — visualização restrita a admin+ (hierarquia inclui dev).
   if (!isAdmin) {
@@ -380,7 +383,20 @@ export default function RateLimitDashboard() {
                   </TableHeader>
                   <TableBody>
                     {logs.map((log) => (
-                      <TableRow key={log.id}>
+                      <TableRow
+                        key={log.id}
+                        onClick={() => setSelectedLog(log)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            setSelectedLog(log);
+                          }
+                        }}
+                        tabIndex={0}
+                        role="button"
+                        aria-label={`Ver detalhes do log ${log.ip_address} · ${log.endpoint}`}
+                        className="cursor-pointer hover:bg-muted/50 focus-visible:bg-muted/60 focus-visible:outline-none"
+                      >
                         <TableCell><code className="text-sm">{log.ip_address}</code></TableCell>
                         <TableCell><code className="text-sm">{log.endpoint}</code></TableCell>
                         <TableCell>{log.request_count}</TableCell>
@@ -459,6 +475,14 @@ export default function RateLimitDashboard() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <RateLimitLogDetails
+        log={selectedLog}
+        open={!!selectedLog}
+        onOpenChange={(o) => { if (!o) setSelectedLog(null); }}
+        onFilterByIp={(ip) => { setActiveTab('logs'); setFilters({ ip, page: 1 }); }}
+        onFilterByEndpoint={(endpoint) => { setActiveTab('logs'); setFilters({ endpoint, page: 1 }); }}
+      />
     </div>
   );
 }
