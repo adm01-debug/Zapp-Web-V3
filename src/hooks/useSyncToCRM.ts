@@ -74,7 +74,7 @@ async function callSyncRpc(input: SyncConversationInput): Promise<SyncConversati
   }
 
   const result = (data && typeof data === 'object' ? data : { synced: false }) as SyncConversationResult;
-  return { synced: !!result.synced, ...result };
+  return { ...result, synced: !!result.synced };
 }
 
 export function useSyncToCRM(): UseSyncToCRMReturn {
