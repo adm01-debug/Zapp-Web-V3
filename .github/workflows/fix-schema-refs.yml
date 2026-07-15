@@ -1,6 +1,8 @@
 name: Fix schema references
 on:
   workflow_dispatch:
+permissions:
+  contents: write
 jobs:
   fix:
     runs-on: ubuntu-latest
