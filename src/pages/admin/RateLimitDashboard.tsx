@@ -160,6 +160,10 @@ export default function RateLimitDashboard() {
             <BarChart3 className="w-4 h-4 mr-2" />
             Visão Geral
           </TabsTrigger>
+          <TabsTrigger value="alerts">
+            <ShieldAlert className="w-4 h-4 mr-2" />
+            Alertas
+          </TabsTrigger>
           <TabsTrigger value="blocked">
             <Ban className="w-4 h-4 mr-2" />
             IPs Bloqueados
