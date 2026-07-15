@@ -123,7 +123,7 @@ export function AdminView() {
       </motion.div>
 
       <div className="flex gap-2 flex-wrap">
-        {([['users', Users, `Usuários (${users.length})`], ['queues', Users, 'Filas'], ['inbox-config', Shield, 'Escopo Inbox'], ['audit', History, 'Auditoria'], ['qr-history', QrCode, 'Histórico de QR'], ['crm', Building, 'CRM 360°'], ['playbooks', Shield, 'Playbooks'], ['copilot', Brain, 'Copilot IA'], ['training', Users, 'Treinamento'], ['crisis', Shield, 'Sala de Crise']] as const).map(([tab, Icon, label]) => (
+        {([['users', Users, `Usuários (${users.length})`], ['agent-versions', GitBranch, 'Versões de Agentes'], ['queues', Users, 'Filas'], ['inbox-config', Shield, 'Escopo Inbox'], ['audit', History, 'Auditoria'], ['qr-history', QrCode, 'Histórico de QR'], ['crm', Building, 'CRM 360°'], ['playbooks', Shield, 'Playbooks'], ['copilot', Brain, 'Copilot IA'], ['training', Users, 'Treinamento'], ['crisis', Shield, 'Sala de Crise']] as const).map(([tab, Icon, label]) => (
           <Button key={tab} variant={activeTab === tab ? 'default' : 'outline'} onClick={() => setActiveTab(tab as typeof activeTab)}
             className={activeTab === tab ? 'bg-whatsapp hover:bg-whatsapp-dark' : ''} size="sm">
             <Icon className="w-4 h-4 mr-2" /> {label}
