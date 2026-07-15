@@ -100,6 +100,16 @@ jobs:
         run: node scripts/check-cluster-typecheck.mjs --cluster inbox-core
         continue-on-error: true
 
+      - name: TypeScript Ratchet (blocking)
+        # Portão real de regressão TS. Compara contra
+        # scripts/tsc-error-baseline.json e falha se aparecerem novos erros ou
+        # se um arquivo hoje limpo voltar a errar. `--update` é MANUAL — nunca
+        # roda em PR/push. Use `node scripts/check-tsc-ratchet.mjs --update`
+        # localmente apenas quando o baseline REDUZIR (progresso).
+        run: node scripts/check-tsc-ratchet.mjs
+
+
+
 
       - name: Unit & Integration Tests (blocking)
         # The OOM was a single infinite-loop test (useMessages, now quarantined)

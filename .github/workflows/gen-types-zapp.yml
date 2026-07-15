@@ -1,0 +1,105 @@
+name: Regenerate Supabase types (zapp + evo)
+
+# Workflow manual — dispara pela aba Actions. Regenera
+# `src/integrations/supabase/types.ts` a partir do postgres-meta da VPS
+# self-hosted, valida com o ratchet TS e abre um PR com o diff.
+#
+# Requer os secrets do repositório:
+#   ZAPP_META_URL   → URL do postgres-meta (ex.: https://supabase-meta.atomicabr.com.br)
+#   ZAPP_META_TOKEN → Bearer token com acesso a /generators/typescript
+#
+# Veja scripts/gen-types-zapp.README.md para o passo-a-passo detalhado.
+
+on:
+  workflow_dispatch:
+    inputs:
+      schemas:
+        description: "Schemas a incluir (separados por vírgula)"
+        required: false
+        default: "public,zapp,evo"
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: gen-types-zapp
+  cancel-in-progress: false
+
+jobs:
+  regenerate:
+    name: Regenerate zapp/evo types
+    runs-on: ubuntu-latest
+    env:
+      META_URL: ${{ secrets.ZAPP_META_URL }}
+      META_TOKEN: ${{ secrets.ZAPP_META_TOKEN }}
+      SCHEMAS: ${{ inputs.schemas }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: true
+          fetch-depth: 0
+
+      - name: Fail fast if secrets are missing
+        run: |
+          if [ -z "$META_URL" ] || [ -z "$META_TOKEN" ]; then
+            echo "::error::Secrets ZAPP_META_URL e/ou ZAPP_META_TOKEN não estão configurados no repositório."
+            exit 1
+          fi
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Regenerate types.ts
+        run: node scripts/gen-types-zapp.mjs
+
+      - name: Detect diff
+        id: diff
+        run: |
+          if git diff --quiet -- src/integrations/supabase/types.ts; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "types.ts inalterado — nada a fazer."
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            git diff --stat -- src/integrations/supabase/types.ts
+          fi
+
+      - name: TypeScript ratchet (blocking)
+        if: steps.diff.outputs.changed == 'true'
+        run: node scripts/check-tsc-ratchet.mjs
+
+      - name: Schema usage guardrail
+        if: steps.diff.outputs.changed == 'true'
+        run: node scripts/check-schema-usage.mjs
+
+      - name: Create Pull Request
+        if: steps.diff.outputs.changed == 'true'
+        uses: peter-evans/create-pull-request@v7
+        with:
+          commit-message: "chore(types): regenerate zapp/evo"
+          title: "chore(types): regenerate zapp/evo"
+          body: |
+            Regeneração automática de `src/integrations/supabase/types.ts`
+            via `scripts/gen-types-zapp.mjs` (schemas: `${{ inputs.schemas }}`).
+
+            **Validações executadas neste workflow:**
+            - ✅ `check-tsc-ratchet.mjs`
+            - ✅ `check-schema-usage.mjs`
+
+            Revise o diff — se tocar a cauda Lovable
+            (`DatabaseWithoutInternals` / helpers), **rejeite** este PR e
+            abra investigação: o script deveria preservar essa parte.
+          branch: chore/regen-zapp-types
+          delete-branch: true
+          add-paths: src/integrations/supabase/types.ts

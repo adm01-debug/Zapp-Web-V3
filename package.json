@@ -10,6 +10,8 @@
     "typecheck": "npm run types:check && tsc --noEmit -p tsconfig.app.json",
     "types:gen": "bash scripts/validate-supabase-types.sh",
     "types:check": "bash scripts/validate-supabase-types.sh --check --summary",
+    "gen:types:zapp": "node scripts/gen-types-zapp.mjs",
+
     "check": "npm run check:fnsync && npm run check:febesync && npm run check:deadcode && npm run check:datalayer && npm run typecheck && npm run lint && npm run build",
     "check:fnsync": "bash scripts/check-edge-function-sync.sh",
     "verify": "npm run check",

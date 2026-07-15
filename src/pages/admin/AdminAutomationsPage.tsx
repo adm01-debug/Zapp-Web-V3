@@ -18,6 +18,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
   Plus,
   Pencil,
@@ -27,10 +28,13 @@ import {
   Send,
   Clock,
   AlertTriangle,
+  AlertCircle,
+  RefreshCw,
   Building2,
   Radio,
 } from 'lucide-react';
 import { AutomationRuleDialog } from './AutomationRuleDialog';
+
 
 // Ensure escalate_sla always has required properties with proper types
 function normalizeEscalateSla(
@@ -50,6 +54,8 @@ export default function AdminAutomationsPage() {
     channels,
     departments,
     loading,
+    error,
+    reload,
     save: hookSave,
     remove,
     toggleActive,
@@ -57,6 +63,7 @@ export default function AdminAutomationsPage() {
     channelMap,
     deptMap,
   } = useAdminAutomations();
+
 
   const [editing, setEditing] = useState<Rule | null>(null);
   const [open, setOpen] = useState(false);
@@ -186,15 +193,59 @@ export default function AdminAutomationsPage() {
 
       <div className="space-y-3">
         {loading && (
-          <p role="status" aria-live="polite" className="text-muted-foreground">
-            Carregando…
-          </p>
+          <div role="status" aria-live="polite" aria-label="Carregando automações">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <Card key={i} className="mb-3 p-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="min-w-0 flex-1 space-y-2">
+                    <Skeleton className="h-5 w-1/3" />
+                    <div className="flex gap-2">
+                      <Skeleton className="h-5 w-16" />
+                      <Skeleton className="h-5 w-24" />
+                      <Skeleton className="h-5 w-20" />
+                    </div>
+                    <Skeleton className="h-4 w-2/3" />
+                  </div>
+                  <Skeleton className="h-9 w-24" />
+                </div>
+              </Card>
+            ))}
+          </div>
         )}
-        {!loading && filtered.length === 0 && (
+        {!loading && error && (
+          <Card
+            role="alert"
+            aria-live="assertive"
+            className="border-destructive/40 bg-destructive/5 p-6"
+          >
+            <div className="flex items-start gap-3">
+              <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-destructive" aria-hidden />
+              <div className="flex-1 space-y-2">
+                <h2 className="font-semibold text-destructive">
+                  Não foi possível carregar as automações
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                  {error.message || 'Ocorreu um erro inesperado ao buscar as regras. Tente novamente em instantes.'}
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => { void reload(); }}
+                  disabled={loading}
+                >
+                  <RefreshCw className="mr-2 h-4 w-4" aria-hidden />
+                  Tentar novamente
+                </Button>
+              </div>
+            </div>
+          </Card>
+        )}
+        {!loading && !error && filtered.length === 0 && (
           <Card className="p-8 text-center text-muted-foreground">
             Nenhuma regra com esses filtros.
           </Card>
         )}
+
         {filtered.map((r) => (
           <Card key={r.id} className="p-4">
             <div className="flex items-start justify-between gap-4">
