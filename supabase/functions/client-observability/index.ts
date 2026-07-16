@@ -1,5 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { handleCors, errorResponse, jsonResponse, requireEnv, Logger, getCorsHeaders } from "../_shared/validation.ts";
+import { handleCors, errorResponse, jsonResponse, requireEnv, Logger, getCorsHeaders, checkRateLimit } from "../_shared/validation.ts";
 import { requireUser } from "../_shared/auth.ts";
 
 type VitalName = 'LCP' | 'FID' | 'CLS' | 'INP' | 'TTFB';
@@ -31,6 +31,9 @@ Deno.serve(async (req) => {
   try {
     const authed = await requireUser(req);
     if (authed instanceof Response) return authed;
+
+    const rl = checkRateLimit(`client-observability:${authed.user.id}`, 60, 60_000);
+    if (!rl.allowed) return acceptedNoContent(req);
 
     if (req.method !== 'POST') {
       return errorResponse('Method not allowed', 405, req);

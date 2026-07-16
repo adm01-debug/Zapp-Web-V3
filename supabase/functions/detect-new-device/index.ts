@@ -1,5 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
-import { handleCors, errorResponse, jsonResponse, requireEnv, Logger, getClientIP } from "../_shared/validation.ts";
+import { handleCors, errorResponse, jsonResponse, requireEnv, Logger, getClientIP, checkRateLimit } from "../_shared/validation.ts";
 import { DetectNewDeviceSchema, parseBody } from "../_shared/schemas.ts";
 
 Deno.serve(async (req) => {
@@ -26,6 +26,9 @@ Deno.serve(async (req) => {
     if (userError || !user) {
       return errorResponse("Unauthorized", 401, req);
     }
+
+    const rl = checkRateLimit(`detect-new-device:${user.id}`, 20, 60_000);
+    if (!rl.allowed) return errorResponse('Rate limit exceeded. Tente novamente em instantes.', 429, req);
 
     log.info("User authenticated", { userId: user.id });
 
