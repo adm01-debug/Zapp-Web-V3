@@ -148,8 +148,10 @@ Deno.serve(async (req) => {
     });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
+    // 500: signal scrape failure to Prometheus alertmanager rules while still
+    // returning a valid text/plain Prometheus body (zapp_metrics_scrape_error gauge).
     return new Response(`# scrape_error ${msg}\nzapp_metrics_scrape_error 1\n`, {
-      status: 200,
+      status: 500,
       headers: { ...corsHeaders, "Content-Type": "text/plain; version=0.0.4; charset=utf-8" },
     });
   }

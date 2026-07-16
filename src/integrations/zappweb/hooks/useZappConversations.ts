@@ -60,7 +60,9 @@ export function useZappConversations(opts: Options = {}) {
         {
           event: '*',
           schema: 'evo',
-          table: 'evolution_conversations_wpp2',
+          // publish_via_partition_root=true: must subscribe to root table.
+          // evolution_conversations_wpp2 (partition) emits zero realtime events.
+          table: 'evolution_conversations',
           filter: `instance_name=eq.${instance}`,
         },
         () => fetchAll()
