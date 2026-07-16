@@ -30,7 +30,7 @@ interface ContactCustomField {
   id: string;
   contact_id: string;
   field_name: string;
-  field_value: any;
+  field_value: unknown;
 }
 
 export function useContactIntelligenceManagement(contactId?: string) {
@@ -253,7 +253,7 @@ export function useContactCustomFieldsManagement(contactId?: string) {
   }, [contactId]);
 
   const updateField = useCallback(
-    async (fieldName: string, fieldValue: any) => {
+    async (fieldName: string, fieldValue: unknown) => {
       if (!contactId) return;
 
       try {

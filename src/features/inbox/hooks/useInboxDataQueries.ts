@@ -42,7 +42,7 @@ export function useInboxDataQueries(conversations: ConversationWithMessages[]) {
           continue;
         }
 
-        (data || []).forEach((ct: any) => {
+        (data || []).forEach((ct) => {
           if (!map[ct.contact_id]) map[ct.contact_id] = [];
           map[ct.contact_id].push(ct.tag_id);
         });

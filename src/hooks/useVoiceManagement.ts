@@ -62,7 +62,7 @@ export function useSpeechToTextManagement(language: string = 'pt-BR'): VoiceStat
         }
       };
 
-      recognitionRef.current.onresult = (event: any) => {
+      recognitionRef.current.onresult = (event: SpeechRecognitionEvent) => {
         let interim = '';
         let final = '';
 
@@ -85,7 +85,7 @@ export function useSpeechToTextManagement(language: string = 'pt-BR'): VoiceStat
         }
       };
 
-      recognitionRef.current.onerror = (event: any) => {
+      recognitionRef.current.onerror = (event: SpeechRecognitionErrorEvent) => {
         if (mountedRef.current) {
           setVoiceState((prev) => ({
             ...prev,

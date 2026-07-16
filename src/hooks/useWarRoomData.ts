@@ -19,7 +19,7 @@ export function useWarRoomData() {
 }
 
 /** Computes aggregated metrics for war room agents and queues. */
-export function useWarRoomMetrics(agents: any[], queues: any[]) {
+export function useWarRoomMetrics(agents: WarRoomAgent[], queues: WarRoomQueue[]) {
   return useMemo(() => {
     const totalWaiting = queues.reduce((acc, q) => acc + q.waiting, 0);
     const totalBreaches = queues.reduce((acc, q) => acc + q.slaBreaches, 0);

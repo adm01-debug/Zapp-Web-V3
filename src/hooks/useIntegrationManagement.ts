@@ -15,7 +15,7 @@ interface Integration {
 /** Manages Evolution API instance connections and configuration. */
 export function useEvolutionApiManagement() {
   const [isConnected, setIsConnected] = useState(false);
-  const [instances, setInstances] = useState<any[]>([]);
+  const [instances, setInstances] = useState<Record<string, unknown>[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -148,7 +148,7 @@ export function useSyncToCRMManagement(entityId?: string) {
   const [lastSyncAt, setLastSyncAt] = useState<string | null>(null);
 
   const syncToCRM = useCallback(
-    async (data: any) => {
+    async (data: Record<string, unknown>) => {
       if (!entityId) return;
 
       setIsSyncing(true);

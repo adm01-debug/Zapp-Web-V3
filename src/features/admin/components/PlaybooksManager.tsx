@@ -247,8 +247,8 @@ export function PlaybooksManager(): JSX.Element {
                 {viewPlaybook.description && (
                   <p className="text-sm text-muted-foreground">{viewPlaybook.description}</p>
                 )}
-                {viewPlaybook.steps.map((step, idx) => (
-                  <div key={idx} className="flex gap-3 rounded-lg bg-muted/20 p-3">
+                {viewPlaybook.steps.map((step) => (
+                  <div key={step.order} className="flex gap-3 rounded-lg bg-muted/20 p-3">
                     <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
                       {step.order}
                     </div>
@@ -305,7 +305,7 @@ export function PlaybooksManager(): JSX.Element {
               <p className="text-sm font-medium">Passos</p>
               {steps.map((step, idx) => (
                 <div
-                  key={idx}
+                  key={step.order}
                   className="space-y-2 rounded-lg border border-border/30 bg-muted/10 p-3"
                 >
                   <div className="flex items-center justify-between">
