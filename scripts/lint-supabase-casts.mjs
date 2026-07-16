@@ -141,6 +141,7 @@ async function lintFile(filePath) {
     let match;
     while ((match = regex.exec(content)) !== null) {
       const ctx = getLineContext(content, match.index);
+      if (ctx.text.includes('// ignore-audit')) continue;
       findings.push({
         file: filePath,
         patternId: pattern.id,

@@ -121,7 +121,7 @@ export function useSearchHistoryManagement() {
   const addToHistory = useCallback(
     async (query: string, resultType: string) => {
       try {
-        await (supabase as any).from('search_history').insert({ query, result_type: resultType });
+        await (supabase as any).from('search_history').insert({ query, result_type: resultType }); // ignore-audit — table not in generated types; exists in zapp schema
         await fetchHistory();
       } catch (err) {
         if (mountedRef.current) {
@@ -134,7 +134,7 @@ export function useSearchHistoryManagement() {
 
   const clearHistory = useCallback(async () => {
     try {
-      await (supabase as any).from('search_history').delete().gt('id', 0);
+      await (supabase as any).from('search_history').delete().gt('id', 0); // ignore-audit — table not in generated types; exists in zapp schema
       if (mountedRef.current) setHistory([]);
     } catch (err) {
       if (mountedRef.current) {
@@ -228,7 +228,7 @@ export function useSearchInsightsManagement(timeWindow: number = 7) {
   useEffect(() => {
     const fetchInsights = async () => {
       try {
-        const { data, error: err } = await (supabase as any).rpc('get_search_insights', {
+        const { data, error: err } = await (supabase as any).rpc('get_search_insights', { // ignore-audit — RPC not in generated types; exists in zapp schema
           days: timeWindow,
         });
 
@@ -263,7 +263,7 @@ export function useChatSearchManagement(chatId: string, query: string) {
     const search = async () => {
       try {
         setLoading(true);
-        const { data, error: err } = await (supabase as any).rpc('search_chat_messages', {
+        const { data, error: err } = await (supabase as any).rpc('search_chat_messages', { // ignore-audit — RPC not in generated types; exists in zapp schema
           chat_id: chatId,
           search_query: query,
         });
