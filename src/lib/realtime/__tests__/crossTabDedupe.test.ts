@@ -29,12 +29,12 @@ const LS_BUS_PREFIX = 'ctd:bus:';
 function writeLock(key: string, expiresAt = Date.now() + 10_000, ownerId = 'other-tab') {
   localStorage.setItem(
     LS_LOCK_PREFIX + key,
-    JSON.stringify({ ownerId, acquiredAt: Date.now(), expiresAt }),
+    JSON.stringify({ version: 1, ownerId, acquiredAt: Date.now(), expiresAt })
   );
 }
 
 function writeCachedResult(key: string, value: unknown, expiresAt = Date.now() + 30_000) {
-  localStorage.setItem(LS_RESULT_PREFIX + key, JSON.stringify({ value, expiresAt }));
+  localStorage.setItem(LS_RESULT_PREFIX + key, JSON.stringify({ version: 1, value, expiresAt }));
 }
 
 function writeBusEntry(key: string, ts: number) {
@@ -350,7 +350,11 @@ describe('dedupedFetch — persisted localStorage cache', () => {
 describe('dedupedFetch — inflight deduplication', () => {
   it('concurrent calls to the same key share a single fetcher invocation', async () => {
     let resolve!: (v: unknown) => void;
-    const fetcher = vi.fn().mockReturnValue(new Promise((r) => { resolve = r; }));
+    const fetcher = vi.fn().mockReturnValue(
+      new Promise((r) => {
+        resolve = r;
+      })
+    );
 
     const p1 = dedupedFetch('inflight-key', fetcher);
     const p2 = dedupedFetch('inflight-key', fetcher);
@@ -364,10 +368,7 @@ describe('dedupedFetch — inflight deduplication', () => {
   it('different keys do not share a fetcher invocation', async () => {
     const fetcherA = vi.fn().mockResolvedValue('a');
     const fetcherB = vi.fn().mockResolvedValue('b');
-    await Promise.all([
-      dedupedFetch('key-a', fetcherA),
-      dedupedFetch('key-b', fetcherB),
-    ]);
+    await Promise.all([dedupedFetch('key-a', fetcherA), dedupedFetch('key-b', fetcherB)]);
     expect(fetcherA).toHaveBeenCalledOnce();
     expect(fetcherB).toHaveBeenCalledOnce();
   });

@@ -53,15 +53,8 @@ import { ensureTransport, broadcast, __getActiveTransport } from './crossTabDedu
 
 const log = getLogger('crossTabDedupe');
 
-const LS_LOCK_PREFIX = 'ctd:lock:';
-const LS_RESULT_PREFIX = 'ctd:result:';
-const LS_BUS_PREFIX = 'ctd:bus:';
 const LS_CLOCK_PREFIX = 'ctd:clock:';
 const BC_NAME = 'cross-tab-dedupe';
-const DEFAULT_LOCK_TTL = 10_000;
-const DEFAULT_RESULT_TTL = 30_000;
-const DEFAULT_WAIT_TIMEOUT = 8_000;
-const GC_INTERVAL = 60_000;
 const BUS_MSG_TTL = 15_000;
 const STORAGE_RETRY_MAX = 3;
 const STORAGE_RETRY_BACKOFF = [10, 20, 40]; // ms
@@ -71,6 +64,9 @@ const CLOCK_MASTER_TIMEOUT = 30_000; // re-elect master if no heartbeat
 
 /** @internal — exposto para testes que precisam do prefixo de lock. */
 export const LS_PREFIX = LS_LOCK_PREFIX;
+
+/** @internal — exposto para testes que precisam do TAB_ID. */
+export const __TAB_ID = TAB_ID;
 
 // MELHORIA #8.1: Versioned Dedup Objects
 interface VersionedPayload {
@@ -103,8 +99,6 @@ interface BroadcastMessage<T = unknown> extends VersionedPayload {
   sequence: number;
   masterClockOffset?: number;
 }
-
-const TAB_ID = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 
 // MELHORIA #8: Versioned state with sequence counters and metrics
 let globalSequence = 0;
@@ -733,39 +727,41 @@ export async function dedupedFetch<T>(
     return pending as Promise<T>; // ignore-audit: inflight map stores Promise<unknown>; cast safe — same key was inserted with Promise<T>
   }
 
-  // 3. Tenta adquirir lock cross-tab (com retry via CAS).
-  const acquired = await writeLock(key, lockTtl);
-  if (!acquired) {
-    getBroadcastChannel();
-    log.debug('Lock detido por outra aba, aguardando broadcast', { key });
-    const waited = await waitForResult<T>(key, waitTimeout);
-    if (waited.ok) {
-      recordDedupeEvent({
-        key,
-        reason: 'broadcast_wait',
-        durationMs: getNormalizedTime() - startedAt,
-      });
-      return waited.data;
-    }
-
-    const lateCache = await readPersistedResult<T>(key);
-    if (lateCache !== null) {
-      resultCache.set(key, { value: lateCache, expiresAt: getNormalizedTime() + resultTtl });
-      recordDedupeEvent({
-        key,
-        reason: 'late_cache',
-        durationMs: getNormalizedTime() - startedAt,
-      });
-      return lateCache;
-    }
-
-    metrics.fallbackActivations++;
-  }
-
   // 4. Líder: executa fetcher, cacheia, hash, broadcasta, libera lock.
-  const isFallback = !acquired;
+  // Create and register the promise BEFORE any async operations (writeLock) to prevent race conditions
+  let isFallback = false;
   const exec = (async () => {
     try {
+      // 3. Tenta adquirir lock cross-tab (com retry via CAS).
+      const acquired = await writeLock(key, lockTtl);
+      isFallback = !acquired;
+      if (!acquired) {
+        getBroadcastChannel();
+        log.debug('Lock detido por outra aba, aguardando broadcast', { key });
+        const waited = await waitForResult<T>(key, waitTimeout);
+        if (waited.ok) {
+          recordDedupeEvent({
+            key,
+            reason: 'broadcast_wait',
+            durationMs: getNormalizedTime() - startedAt,
+          });
+          return waited.data;
+        }
+
+        const lateCache = await readPersistedResult<T>(key);
+        if (lateCache !== null) {
+          resultCache.set(key, { value: lateCache, expiresAt: getNormalizedTime() + resultTtl });
+          recordDedupeEvent({
+            key,
+            reason: 'late_cache',
+            durationMs: getNormalizedTime() - startedAt,
+          });
+          return lateCache;
+        }
+
+        metrics.fallbackActivations++;
+      }
+
       const data = await fetcher();
       const hash = await computePayloadHash(data);
 
