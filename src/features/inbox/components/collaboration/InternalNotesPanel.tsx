@@ -60,6 +60,7 @@ export function InternalNotesPanel({ contactId }: { contactId: string }) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.internalNotes.contact(contactId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.contactDetails.notes(contactId) });
       setNewNote('');
       toast.success('Nota adicionada!');
     },
