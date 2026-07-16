@@ -13,11 +13,6 @@ src/features/inbox/components/chat/hooks/__tests__/useInitialHighlight.test.ts
 src/features/inbox/components/conversation-list/ConversationItem.test.tsx
 src/features/inbox/components/conversation-list/__mocks__/mockConversations.ts
 src/features/inbox/hooks/__tests__/inboxLogic.test.ts
-src/features/sla/components/SLACharts.tsx
-src/features/sla/hooks/useApplicableSLA.ts
-src/features/sla/hooks/useSLAAlerts.ts
-src/features/sla/hooks/useSLAConfigurations.ts
-src/features/sla/hooks/useSLAHistory.ts
 src/features/sla/hooks/useSLANotifications.ts
 src/features/sla/hooks/useSLARules.ts
 src/hooks/__tests__/useAuth.test.tsx
