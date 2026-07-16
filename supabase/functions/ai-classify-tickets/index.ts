@@ -13,7 +13,8 @@ Deno.serve(async (req) => {
     if (!authHeader) return errorResponse("Unauthorized", 401, req);
 
     const body = await req.json();
-    const aiRouterUrl = Deno.env.get("AI_ROUTER_URL") || "http://localhost:54321/functions/v1/ai-router";
+    const aiRouterUrl = Deno.env.get("AI_ROUTER_URL");
+    if (!aiRouterUrl) return errorResponse("AI_ROUTER_URL not configured", 503, req);
     const res = await fetch(aiRouterUrl, {
       method: "POST",
       headers: {
@@ -21,7 +22,8 @@ Deno.serve(async (req) => {
         "content-type": "application/json",
         ...Object.fromEntries([...req.headers.entries()].filter(([k]) => k.toLowerCase().startsWith("x-") || k.toLowerCase() === "idempotency-key")),
       },
-      body: JSON.stringify({ action: "classify_emoji", ...body }),
+      // action is placed last to prevent caller from overriding it via body spread
+      body: JSON.stringify({ ...body, action: "classify_emoji" }),
     });
 
     const responseBody = await res.json();
