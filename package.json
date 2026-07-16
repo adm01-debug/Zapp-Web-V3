@@ -14,6 +14,7 @@
 
     "check": "npm run check:schema && npm run check:fnsync && npm run check:febesync && npm run check:deadcode && npm run check:datalayer && npm run typecheck && npm run lint && npm run build",
     "check:schema": "node scripts/check-schema-usage.mjs",
+    "check:casts": "node scripts/lint-supabase-casts.mjs",
     "check:fnsync": "bash scripts/check-edge-function-sync.sh",
     "verify": "npm run check",
     "prebuild": "npm run types:gen && bun run scripts/generate-component-registry.ts",

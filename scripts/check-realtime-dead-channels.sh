@@ -47,7 +47,7 @@ done
 #   evolution_messages_wpp2, evolution_conversations_wpp2,
 #   evolution_messages_comercial_01, evolution_webhook_events_v2_2026_07, etc.
 # ---------------------------------------------------------------------------
-PARTITION_PATTERN="(evolution_messages_wpp2|evolution_conversations_wpp2|evolution_messages_comercial_[0-9]+|evolution_webhook_events_v2_[0-9]{4}_[0-9]{2})"
+PARTITION_PATTERN="(evolution_messages_wpp[0-9]+|evolution_conversations_wpp[0-9]+|evolution_messages_comercial_[0-9]+|evolution_webhook_events_v2_[0-9]{4}_[0-9]{2})"
 
 while IFS= read -r match; do
   TRIMMED=$(echo "$match" | sed 's/^[[:space:]]*//')
