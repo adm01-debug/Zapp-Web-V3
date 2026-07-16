@@ -1,6 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
-import { handleCors, errorResponse, jsonResponse, requireEnv, Logger } from "../_shared/validation.ts";
-import { requireAdminOrSupervisor } from "../_shared/auth.ts";
+import { handleCors, errorResponse, jsonResponse, requireEnv, Logger, checkRateLimit, getCorsHeaders } from "../_shared/validation.ts";
+import { requireAdminOrSupervisor, timingSafeStringEqual } from "../_shared/auth.ts";
 
 /**
  * 3-layer health check para conexões Evolution.
@@ -138,7 +138,8 @@ function routableInstanceName(conn: { instance_name?: string | null; instance_id
 
 /** Filtro PostgREST nome-OU-uuid para o alvo do "Verificar agora". */
 function instanceOrFilter(instance: string): string {
-  const safe = String(instance).replace(/[",()\\]/g, '');
+  // Allowlist: alphanumeric, hyphen, underscore, dot — covers all valid instance names and UUIDs
+  const safe = String(instance).replace(/[^a-zA-Z0-9._-]/g, '');
   return `instance_name.eq."${safe}",instance_id.eq."${safe}"`;
 }
 
@@ -177,10 +178,12 @@ Deno.serve(async (req) => {
   const cronSecret = Deno.env.get('CRON_SECRET') ?? '';
   const bearer = (req.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '');
   const xCron = req.headers.get('x-cron-secret') ?? '';
-  const isInternalCaller = (serviceKey && bearer === serviceKey) || (cronSecret && xCron === cronSecret);
+  const isInternalCaller = (serviceKey && timingSafeStringEqual(bearer, serviceKey)) || (cronSecret && timingSafeStringEqual(xCron, cronSecret));
   if (!isInternalCaller) {
     const authed = await requireAdminOrSupervisor(req);
     if (authed instanceof Response) return authed;
+    const rl = checkRateLimit(`connection-health-check:${authed.user.id}`, 20, 60_000);
+    if (!rl.allowed) return errorResponse('Rate limit exceeded', 429, req);
   }
 
   try {
@@ -189,7 +192,7 @@ Deno.serve(async (req) => {
     const isPlaceholder = (v: string) => !v || /PLACEHOLDER|REPLACE_ME|YOUR_|CHANGE_ME/i.test(v);
     const isValidUrl = (v: string) => { try { new URL(v); return true; } catch { return false; } };
     if (isPlaceholder(evolutionUrl) || isPlaceholder(evolutionKey) || !isValidUrl(evolutionUrl)) {
-      return new Response(JSON.stringify({ error: 'evolution_api_not_configured', message: 'Configure os secrets EVOLUTION_API_URL (URL válida) e EVOLUTION_API_KEY.' }), { status: 503, headers: { 'Content-Type': 'application/json' } });
+      return new Response(JSON.stringify({ error: 'evolution_api_not_configured', message: 'Configure os secrets EVOLUTION_API_URL (URL válida) e EVOLUTION_API_KEY.' }), { status: 503, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
     }
     const supabase = createClient(requireEnv('SUPABASE_URL'), requireEnv('SUPABASE_SERVICE_ROLE_KEY'), { db: { schema: "zapp" } });
     const baseUrl = evolutionUrl.replace(/\/+$/, '');
