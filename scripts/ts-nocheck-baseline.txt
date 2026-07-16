@@ -216,7 +216,6 @@ src/hooks/useCampaigns.ts
 src/hooks/useChatbotFlows.ts
 src/hooks/useClientWallet.ts
 src/hooks/useConnectionManagement.ts
-src/hooks/useContactData.ts
 src/hooks/useConversationManagement.ts
 src/hooks/useDashboardQueries.ts
 src/hooks/useDeliveryStats.ts
@@ -225,7 +224,6 @@ src/hooks/useEmailDraft.test.ts
 src/hooks/useEmailManagement.ts
 src/hooks/useEvolutionApiManagement.ts
 src/hooks/useEvolutionAutoReconnect.ts
-src/hooks/useEvolutionAutoSync.ts
 src/hooks/useExternalApiManagement.ts
 src/hooks/useForwardMessage.ts
 src/hooks/useGeoBlocking.ts
@@ -235,18 +233,15 @@ src/hooks/useIncomingCallListener.ts
 src/hooks/useIntegrationAuthenticationManagement.ts
 src/hooks/useIntegrationManagement.ts
 src/hooks/useKeyboardManagement.ts
-src/hooks/useKnowledgeBaseSearch.ts
 src/hooks/useMediaManagement.ts
 src/hooks/useMessagingManagement.ts
 src/hooks/useNPSSurveys.ts
 src/hooks/useNotificationManagement.ts
-src/hooks/useOnboarding.ts
 src/hooks/useRealtimeManagement.ts
 src/hooks/useRetryAndErrorPrevention.ts
 src/hooks/useScheduledMessages.ts
 src/hooks/useSearchManagement.ts
 src/hooks/useSearchNavigationManagement.ts
-src/hooks/useSentimentAlerts.ts
 src/hooks/useSettingsManagement.ts
 src/hooks/useTags.ts
 src/hooks/useUIInteractionManagement.ts
