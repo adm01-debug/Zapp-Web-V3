@@ -177,6 +177,7 @@ export function useRateLimitLogs(initial?: Partial<RateLimitLogsFilters>): UseRa
       .subscribe();
     return () => {
       channel.unsubscribe();
+      supabase.removeChannel(channel);
     };
   }, [queryClient]);
 

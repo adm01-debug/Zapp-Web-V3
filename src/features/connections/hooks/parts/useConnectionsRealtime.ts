@@ -93,6 +93,7 @@ export function useConnectionsRealtime(
 
     return () => {
       channel.unsubscribe();
+      supabase.removeChannel(channel);
     };
     // setState do React tem identidade estável — este efeito roda 1x por mount.
   }, [setConnections, setQrCodeDialog]);

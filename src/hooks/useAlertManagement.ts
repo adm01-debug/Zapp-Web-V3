@@ -163,7 +163,8 @@ export function useWarRoomAlertsManagement(soundEnabled = true): UseWarRoomAlert
       .subscribe();
 
     return () => {
-      void channel.unsubscribe();
+      channel.unsubscribe();
+      supabase.removeChannel(channel);
     };
   }, [queryClient, playAlertSound, pushPermission]);
 
@@ -387,6 +388,7 @@ export function useRealtimeSentimentAlertsManagement(): UseRealtimeSentimentAler
       .subscribe();
 
     return () => {
+      channel.unsubscribe();
       supabase.removeChannel(channel);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps

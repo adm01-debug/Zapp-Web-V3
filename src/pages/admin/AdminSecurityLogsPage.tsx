@@ -72,6 +72,7 @@ export default function AdminSecurityLogsPage() {
 
     return () => {
       mounted = false;
+      channel.unsubscribe();
       supabase.removeChannel(channel);
     };
   }, []);
