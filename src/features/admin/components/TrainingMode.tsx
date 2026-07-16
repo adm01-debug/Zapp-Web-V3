@@ -10,6 +10,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Json } from '@/integrations/supabase/schema';
 
 interface SimMessage {
+  id: string;
   role: 'customer' | 'agent';
   content: string;
 }
@@ -105,7 +106,7 @@ export function TrainingMode(): JSX.Element {
     setCustomerStep(0);
     setScore(null);
     setFeedback('');
-    const firstMsg: SimMessage = { role: 'customer', content: s.customerScript[0] };
+    const firstMsg: SimMessage = { id: `msg-${Date.now()}`, role: 'customer', content: s.customerScript[0] };
     setMessages([firstMsg]);
     setCustomerStep(1);
 
@@ -125,13 +126,14 @@ export function TrainingMode(): JSX.Element {
 
   const sendResponse = async () => {
     if (!input.trim() || !scenario || !activeSession) return;
-    const agentMsg: SimMessage = { role: 'agent', content: input.trim() };
+    const agentMsg: SimMessage = { id: `msg-${Date.now()}`, role: 'agent', content: input.trim() };
     const newMessages = [...messages, agentMsg];
     setInput('');
 
     // Customer responds if there are more steps
     if (customerStep < scenario.customerScript.length) {
       const customerMsg: SimMessage = {
+        id: `msg-${Date.now()}-${customerStep}`,
         role: 'customer',
         content: scenario.customerScript[customerStep],
       };
@@ -275,9 +277,9 @@ export function TrainingMode(): JSX.Element {
             {/* Messages */}
             <div className="max-h-80 space-y-2 overflow-y-auto">
               <AnimatePresence>
-                {messages.map((msg, idx) => (
+                {messages.map((msg) => (
                   <motion.div
-                    key={idx}
+                    key={msg.id}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     className={`flex gap-2 ${msg.role === 'agent' ? 'justify-end' : ''}`}

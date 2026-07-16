@@ -113,9 +113,9 @@ export function EventsLiveBlock({ windowHours, autoRefresh, onNavigateTo }: Prop
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {rows.slice(0, 20).map((r, i) => (
+                  {rows.slice(0, 20).map((r) => (
                     <TableRow
-                      key={`${r.created_at}-${i}`}
+                      key={`${r.created_at}-${r.event_type}-${r.instance_name}`}
                       className="cursor-pointer hover:bg-muted/40"
                       tabIndex={0}
                       onClick={() => handleRowClick(r.event_type, r.instance_name)}

@@ -153,9 +153,9 @@ Agentes: ${agents.map((a) => `${a.name} (${a.role})`).join(', ') || 'nenhum'}
             </div>
 
             <AnimatePresence mode="popLayout">
-              {insights.map((insight, idx) => (
+              {insights.map((insight) => (
                 <motion.div
-                  key={idx}
+                  key={insight.question}
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
                   className="space-y-2 rounded-xl border border-border/30 bg-muted/20 p-3"

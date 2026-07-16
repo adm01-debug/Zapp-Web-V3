@@ -427,8 +427,8 @@ export default function AdminEmailStatusPage() {
                 </thead>
                 <tbody className="divide-y">
                   {failuresData.items.length > 0 ? (
-                    failuresData.items.map((failure, idx) => (
-                      <tr key={`${failure.requestId}-${idx}`} className="hover:bg-muted/30">
+                    failuresData.items.map((failure) => (
+                      <tr key={failure.requestId} className="hover:bg-muted/30">
                         <td className="px-4 py-2">
                           <Badge variant="outline" className="">
                             {failure.requestId}

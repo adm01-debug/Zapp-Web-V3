@@ -6,6 +6,7 @@ import { usePeriodFilter } from '@/features/inbox/components/ai-tools/PeriodFilt
 import type { ChatMessage } from '@/features/inbox/types/aiChatMessage';
 
 interface Objection {
+  id: string;
   objection: string;
   counterArgument: string;
   confidence: number;
@@ -122,6 +123,7 @@ Se não houver objeções, retorne []`,
               return typeof obj.objection === 'string' && typeof obj.counterArgument === 'string';
             })
             .map((o: Record<string, unknown>) => ({
+              id: String(o.objection).slice(0, 40).replace(/\s+/g, '_'),
               objection: String(o.objection),
               counterArgument: String(o.counterArgument),
               confidence:
