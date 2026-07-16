@@ -2,8 +2,6 @@ src/__tests__/security-and-performance.test.ts
 src/adapters/evolutionAdapter.ts
 src/components/__tests__/ExportDropdownPermission.test.tsx
 src/components/connections/InstanceSettingsDialog.tsx
-src/components/connections/NumberReputationMonitor.tsx
-src/components/contacts/ContactQuickView.tsx
 src/components/dashboard/ScheduledReportsManager.tsx
 src/components/omnichannel/OmnichannelInbox.tsx
 src/components/payments/PaymentLinksView.tsx
@@ -14,7 +12,6 @@ src/components/settings/SLARulesManager.tsx
 src/components/settings/SLASettings.tsx
 src/components/settings/SettingsView.tsx
 src/components/settings/ai-providers/AIProviderHealthPanel.tsx
-src/components/settings/media-library/AIGenerateDialog.tsx
 src/components/settings/media-library/MediaAdminPanel.tsx
 src/components/settings/sla/ScopeRulesList.tsx
 src/components/talkx/TalkXBlacklist.tsx
@@ -25,8 +22,6 @@ src/components/talkx/__tests__/TalkX.test.tsx
 src/components/talkx/useCampaignEditor.ts
 src/components/team-chat/TeamChatPanel.tsx
 src/components/team-chat/TeamChatView.tsx
-src/components/team-chat/TeamMemberProfileHeader.tsx
-src/components/team-chat/TransferConversationDialog.tsx
 src/components/team-chat/useTeamChatPanel.ts
 src/components/whatsapp-flows/WhatsAppFlowsBuilder.tsx
 src/features/admin/components/AdminView.tsx
