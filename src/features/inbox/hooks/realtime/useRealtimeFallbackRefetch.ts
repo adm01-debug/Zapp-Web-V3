@@ -56,7 +56,6 @@ export function useRealtimeFallbackRefetch({ enabled = true, intervalMs }: Optio
 
     // Console-free: rely on React Query devtools; silent in production.
     void queryClient.invalidateQueries({ queryKey: queryKeys.evolutionConversations.all() });
-    void queryClient.invalidateQueries({ queryKey: queryKeys.contactDetails.contactsList() });
     // Per-contact caches: invalidate the family (no specific jid).
     void queryClient.invalidateQueries({ queryKey: queryKeys.evolutionConversations.contactAll() });
     void queryClient.invalidateQueries({ queryKey: queryKeys.contactDetails.singleContactRoot() });

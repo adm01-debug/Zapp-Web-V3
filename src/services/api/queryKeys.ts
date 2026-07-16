@@ -37,6 +37,7 @@ export const queryKeys = {
     detail: (id: string) =>
       [...queryKeys.connections.details(), id] as const,
     health: () => [...queryKeys.connections.all(), 'health'] as const,
+    search: (query?: string) => [...queryKeys.connections.all(), 'search', query] as const,
   },
 
   // Queues
@@ -51,6 +52,7 @@ export const queryKeys = {
     analytics: (id: string) =>
       [...queryKeys.queues.all(), 'analytics', id] as const,
     forRouting: () => [...queryKeys.queues.all(), 'for-routing'] as const,
+    search: (query?: string) => [...queryKeys.queues.all(), 'search', query] as const,
   },
 
   // Messages
@@ -155,7 +157,9 @@ export const queryKeys = {
 
   // CSAT Surveys
   csat: {
+    surveysRoot: () => ['csat-surveys'] as const,
     surveys: (period?: string) => ['csat-surveys', period] as const,
+    statsRoot: () => ['csat-stats'] as const,
     stats: (period?: string) => ['csat-stats', period] as const,
   },
 
@@ -169,7 +173,9 @@ export const queryKeys = {
   skillRouting: {
     profiles: () => ['skill-routing-profiles'] as const,
     queues: () => ['skill-routing-queues'] as const,
+    agentSkillsRoot: () => ['agent-skills'] as const,
     agentSkills: (profileId?: string) => ['agent-skills', profileId] as const,
+    queueRequirementsRoot: () => ['queue-skill-requirements'] as const,
     queueRequirements: (queueId?: string) => ['queue-skill-requirements', queueId] as const,
   },
 
@@ -378,6 +384,7 @@ export const queryKeys = {
   goals: {
     config: () => ['goals-config'] as const,
     configForProfile: (profileId?: string) => ['goals-config', profileId] as const,
+    messagesRoot: () => ['goals-messages'] as const,
     messages: (period?: string) => ['goals-messages', period] as const,
     contacts: (period?: string) => ['goals-contacts', period] as const,
     contactsFiltered: (period?: string, profileId?: string) => ['goals-contacts', period, profileId] as const,
