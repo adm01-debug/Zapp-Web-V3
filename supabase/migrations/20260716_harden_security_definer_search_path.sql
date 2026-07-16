@@ -59,17 +59,18 @@ ALTER FUNCTION IF EXISTS public.rpc_dlq_log_item_action(uuid, text, text)
 ALTER FUNCTION IF EXISTS public.rpc_dlq_bulk_retry_now(uuid[], text)
   SET search_path = '';
 
--- ─── 2. Revoke DDL/admin functions from authenticated ────────────────────────
+-- ─── 2. Revoke DDL/admin functions from all roles ───────────────────────────
 -- Partition management and archiving are DBA-level operations; no application
 -- user should be able to trigger them via PostgREST.
+-- Revoking from PUBLIC covers both anon and authenticated in one statement.
 REVOKE EXECUTE ON FUNCTION public.create_partitions_if_not_exists()
-  FROM authenticated;
+  FROM PUBLIC;
 
 REVOKE EXECUTE ON FUNCTION public.fn_archive_old_audit_partitions(integer)
-  FROM authenticated;
+  FROM PUBLIC;
 
 REVOKE EXECUTE ON FUNCTION public.fn_migrate_audit_logs_to_partitioned()
-  FROM authenticated;
+  FROM PUBLIC;
 
 -- ─── 3. Revoke authenticated write access to audit/config tables ─────────────
 -- These tables are audit-trail or security-configuration objects.

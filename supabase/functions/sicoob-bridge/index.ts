@@ -1,4 +1,4 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { handleCors, errorResponse, jsonResponse, requireEnv, Logger } from "../_shared/validation.ts";
 import { timingSafeStringEqual } from "../_shared/auth.ts";
 import { SicoobBridgeNewMessageSchema, SicoobBridgeMarkReadSchema, parseBody } from "../_shared/schemas.ts";
@@ -17,10 +17,15 @@ Deno.serve(async (req) => {
       return errorResponse('Unauthorized', 401, req);
     }
 
-    const supabase = createClient(requireEnv('SUPABASE_URL'), requireEnv('SUPABASE_SERVICE_ROLE_KEY'), { db: { schema: "zapp" } });
-    const body = await req.json().catch(() => null);
-    if (!body) return errorResponse('Invalid JSON body', 400, req);
-    const { action } = body;
+    const supabase = createClient(
+      Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? requireEnv('SUPABASE_URL'),
+      Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? requireEnv('SUPABASE_SERVICE_ROLE_KEY'),
+      { db: { schema: "zapp" } },
+    );
+    const rawBody = await req.json().catch(() => null);
+    if (!rawBody || typeof rawBody !== 'object' || Array.isArray(rawBody)) return errorResponse('Invalid JSON body', 400, req);
+    const body = rawBody as Record<string, unknown>;
+    const action = typeof body.action === 'string' ? body.action : '';
 
     if (action === 'new_message') {
       const parsed = parseBody(SicoobBridgeNewMessageSchema, body);
