@@ -585,7 +585,7 @@ function useAdminQueuesManagement() {
       const [qRes, mRes, sRes, dRes, cRes, chqRes, pRes] = await Promise.all([
         supabase.from('queues').select('*'),
         supabase.from('queue_members').select('*'),
-        safeFrom('queue_skills').select('*'),
+        safeFrom('queue_skill_requirements').select('*'),
         supabase.from('departments').select('*'),
         safeFrom('service_channels').select('id,name,channel_type,default_queue_id'),
         safeFrom('channel_queues').select('*'),
