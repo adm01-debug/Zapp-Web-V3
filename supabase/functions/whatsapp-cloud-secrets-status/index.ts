@@ -24,8 +24,8 @@ Deno.serve(async (req) => {
     });
   }
   const supabase = createClient(
-    (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'))!, (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY', { db: { schema: "zapp" } }) ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))!,
-    { global: { headers: { Authorization: authHeader } } },
+    (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'))!, (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))!,
+    { global: { headers: { Authorization: authHeader } }, db: { schema: "zapp" } },
   );
   const { data: u, error: uErr } = await supabase.auth.getUser();
   if (uErr || !u?.user) {
