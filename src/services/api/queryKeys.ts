@@ -37,6 +37,7 @@ export const queryKeys = {
     detail: (id: string) =>
       [...queryKeys.connections.details(), id] as const,
     health: () => [...queryKeys.connections.all(), 'health'] as const,
+    healthFor: (id?: string) => [...queryKeys.connections.all(), 'health', id] as const,
     search: (query?: string) => [...queryKeys.connections.all(), 'search', query] as const,
   },
 
@@ -66,6 +67,12 @@ export const queryKeys = {
       [...queryKeys.messages.details(), id] as const,
     thread: (threadId: string) =>
       [...queryKeys.messages.all(), 'thread', threadId] as const,
+    conversationLists: () => [...queryKeys.messages.all(), 'conversation-list'] as const,
+    conversationList: (filters?: Record<string, unknown>) =>
+      [...queryKeys.messages.conversationLists(), { filters }] as const,
+    conversationDetails: () => [...queryKeys.messages.all(), 'conversation-detail'] as const,
+    conversationDetail: (id: string) =>
+      [...queryKeys.messages.conversationDetails(), id] as const,
   },
 
   // Users/Agents
@@ -433,7 +440,6 @@ export const queryKeys = {
     meById: (userId?: string) => ['my-profile', userId] as const,
     byId: (userId?: string) => ['user-profile', userId] as const,
 
-    visibleAgentIds: () => ['visible-agent-ids'] as const,
     visibleAgentIdsForUser: (userId?: string) => ['visible-agent-ids', userId] as const,
     forPermissions: () => ['profiles-for-permissions'] as const,
     forUsage: () => ['profiles-for-usage'] as const,

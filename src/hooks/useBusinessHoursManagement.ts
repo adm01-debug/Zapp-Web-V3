@@ -127,6 +127,7 @@ export function useBusinessHours(connectionId: string) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.businessHours.connection(connectionId) });
       queryClient.invalidateQueries({ queryKey: queryKeys.awayMessage.connection(connectionId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.businessHours.checkConnection(connectionId) });
       toast({
         title: 'Configurações salvas',
         description: 'Horário comercial atualizado com sucesso.',

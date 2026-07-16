@@ -182,6 +182,7 @@ export function useDepartmentManagement(
       if (error) throw error;
     },
     onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.departmentChat.list() });
       toast({ title: 'Configurações salvas com sucesso' });
     },
     onError: () => {

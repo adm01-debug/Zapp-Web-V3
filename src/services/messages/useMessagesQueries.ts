@@ -39,7 +39,7 @@ export const useConversationMessages = (conversationId?: string, filters?: Parti
 
 export const useConversationsList = (filters?: Partial<Conversation> & QueryParams) => {
   return createListQuery(
-    queryKeys.messages.list(filters),
+    queryKeys.messages.conversationList(filters),
     () => messagesService.listConversations(filters),
     { staleTime: 15_000 }
   );
@@ -47,7 +47,7 @@ export const useConversationsList = (filters?: Partial<Conversation> & QueryPara
 
 export const useConversation = (id?: string) => {
   return createDetailQuery(
-    queryKeys.messages.detail(id || ''),
+    queryKeys.messages.conversationDetail(id || ''),
     () => messagesService.getConversation(id!),
     !!id,
     { staleTime: 30_000 }
