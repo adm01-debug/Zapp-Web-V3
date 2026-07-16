@@ -175,7 +175,7 @@ export function EmailChatReplyBar({
               {toEmails.join(', ')}
             </span>
           </div>
-          <button
+          <button type="button"
             className="flex shrink-0 items-center gap-1 transition-colors hover:text-foreground"
             onClick={() => setShowCcBcc((v) => !v)}
           >
@@ -243,7 +243,7 @@ export function EmailChatReplyBar({
             {attachments.map((file, idx) => (
               <Badge key={idx} variant="secondary" className="gap-1 pr-1 text-[11px]">
                 <span className="max-w-32 truncate">{file.name}</span>
-                <button
+                <button type="button"
                   onClick={() => removeAttachment(idx)}
                   className="ml-1 hover:text-destructive"
                 >

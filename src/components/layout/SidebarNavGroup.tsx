@@ -33,7 +33,7 @@ export function SidebarNavGroup({ label, icon: GroupIcon, items, currentView, on
   }, [hasActiveItem]);
 
   const triggerButton = (
-    <button
+    <button type="button"
       onClick={() => setIsOpen(!isOpen)}
       className={cn(
         'rounded-xl flex items-center transition-all duration-500 group/trigger outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1',

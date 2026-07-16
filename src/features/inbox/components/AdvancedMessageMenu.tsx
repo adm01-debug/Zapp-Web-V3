@@ -166,7 +166,7 @@ export function AdvancedMessageMenu({ instanceName, recipientNumber, onPollSent,
         <PopoverContent className="w-56 p-2 glass-strong border-border/50" align="start">
           <div className="space-y-1">
             {menuItems.map(({ icon: Icon, label, onClick }) => (
-              <button
+              <button type="button"
                 key={label}
                 onClick={onClick}
                 className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-primary/10 text-sm transition-colors"

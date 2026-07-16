@@ -47,7 +47,7 @@ function ThreadListItem({
   const lastActivity = thread.last_message_at ? new Date(thread.last_message_at) : null;
 
   return (
-    <button
+    <button type="button"
       className={cn(
         'group relative w-full border-b border-border/10 px-4 py-4 text-left transition-all duration-200 hover:bg-muted/40',
         selected && 'border-l-[3px] border-l-primary bg-primary/10 shadow-sm',

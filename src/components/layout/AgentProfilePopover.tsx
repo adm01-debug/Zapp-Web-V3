@@ -25,7 +25,7 @@ export function AgentProfilePopover({ agent, collapsed, statusOpen, onStatusOpen
   return (
     <Popover open={statusOpen} onOpenChange={onStatusOpenChange}>
       <PopoverTrigger asChild>
-        <button
+        <button type="button"
           className={cn(
             'relative group flex items-center gap-2.5 rounded-lg transition-colors hover:bg-muted/10 focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:outline-none',
             collapsed ? 'justify-center p-1' : 'w-full px-3 py-1.5'
@@ -66,7 +66,7 @@ export function AgentProfilePopover({ agent, collapsed, statusOpen, onStatusOpen
         </div>
         <div className="space-y-0.5">
           {STATUS_OPTIONS.map((opt) => (
-            <button
+            <button type="button"
               key={opt.status}
               onClick={() => { onStatusChange?.(opt.status); onStatusOpenChange(false); }}
               className={cn(

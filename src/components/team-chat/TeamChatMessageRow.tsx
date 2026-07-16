@@ -229,7 +229,7 @@ export function TeamChatMessageRow({
                         )}
                       >
                         {cleanText && (
-                          <button
+                          <button type="button"
                             onClick={() =>
                               isThisTtsPlaying ? onTtsStop() : onTtsSpeak(msg.content, msg.id)
                             }

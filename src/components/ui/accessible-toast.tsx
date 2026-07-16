@@ -167,7 +167,7 @@ const ToastItem = React.forwardRef<HTMLDivElement, ToastItemProps>(function Toas
             <p className="mt-1 text-sm text-muted-foreground">{toast.description}</p>
           )}
           {toast.action && (
-            <button
+            <button type="button"
               onClick={toast.action.onClick}
               className="mt-2 text-sm font-medium text-primary hover:underline"
             >
@@ -176,7 +176,7 @@ const ToastItem = React.forwardRef<HTMLDivElement, ToastItemProps>(function Toas
           )}
         </div>
         {toast.type !== 'loading' && (
-          <button
+          <button type="button"
             onClick={() => onRemove(toast.id)}
             className="flex-shrink-0 p-1 rounded-lg hover:bg-muted transition-colors"
             aria-label="Fechar notificação"

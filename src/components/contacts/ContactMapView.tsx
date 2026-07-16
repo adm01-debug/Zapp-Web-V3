@@ -157,7 +157,7 @@ export function ContactMapView({ contacts, onContactClick }: ContactMapViewProps
                           {members.slice(0, 20).map(c => {
                             const colors = getAvatarColor(c.name);
                             return (
-                              <button
+                              <button type="button"
                                 key={c.id}
                                 onClick={e => { e.stopPropagation(); onContactClick?.(c.id); }}
                                 className="w-full flex items-center gap-2 p-1.5 rounded-md hover:bg-muted/50 transition-colors text-left"

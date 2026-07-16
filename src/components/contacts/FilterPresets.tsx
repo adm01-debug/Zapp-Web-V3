@@ -102,7 +102,7 @@ export function FilterPresets({ onApplyPreset, currentFilters }: FilterPresetsPr
                   <Filter className="w-3 h-3 mr-1.5 text-primary" />
                   {preset.name}
                 </Button>
-                <button
+                <button type="button"
                   onClick={() => handleDelete(preset.id)}
                   className="p-1 text-muted-foreground hover:text-destructive transition-colors"
                 >

@@ -175,7 +175,7 @@ export function AgentVersionsPanel() {
             ) : (
               <div className="space-y-1">
                 {filtered.map((agent) => (
-                  <button
+                  <button type="button"
                     key={agent.id}
                     onClick={() => setSelectedId(agent.id)}
                     className={`w-full flex items-center gap-3 p-2 rounded-md text-left transition-colors ${

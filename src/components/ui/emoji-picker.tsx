@@ -96,7 +96,7 @@ export function EmojiPicker({
                 className="pl-8 h-8 text-xs bg-muted/50 border-border/50"
               />
               {searchQuery && (
-                <button
+                <button type="button"
                   onClick={() => setSearchQuery('')}
                   aria-label="Limpar busca de emoji"
                   className="absolute right-2 top-1/2 -translate-y-1/2"
@@ -112,7 +112,7 @@ export function EmojiPicker({
             <div className="flex gap-0.5 px-1.5 py-1.5 border-b border-border/50 overflow-x-auto scrollbar-none">
               {/* Recent tab */}
               {recentEmojis.length > 0 && (
-                <button
+                <button type="button"
                   onClick={() => setActiveCategory('recent')}
                   className={cn(
                     'flex-shrink-0 p-1.5 rounded-md transition-colors',
@@ -128,7 +128,7 @@ export function EmojiPicker({
               {Object.entries(emojiDatabase).map(([key, category]) => {
                 const Icon = categoryIcons[key] || Smile;
                 return (
-                  <button
+                  <button type="button"
                     key={key}
                     onClick={() => setActiveCategory(key)}
                     className={cn(

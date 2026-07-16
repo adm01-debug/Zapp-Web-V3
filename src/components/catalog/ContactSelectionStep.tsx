@@ -83,7 +83,7 @@ export function ContactSelectionStep({
         ) : (
           <div className="space-y-1">
             {contactResults.map((contact) => (
-              <button
+              <button type="button"
                 key={contact.id}
                 onClick={() => onSelectContact(contact)}
                 className={cn(

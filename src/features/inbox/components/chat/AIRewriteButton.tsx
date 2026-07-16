@@ -97,7 +97,7 @@ export function AIRewriteButton({ inputValue, onRewrite, contactName }: AIRewrit
             const Icon = tone.icon;
             const isToneLoading = loadingTone === tone.id;
             return (
-              <button
+              <button type="button"
                 key={tone.id}
                 onClick={() => handleRewrite(tone.id)}
                 disabled={isLoading || !hasText}

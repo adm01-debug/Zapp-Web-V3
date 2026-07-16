@@ -99,7 +99,7 @@ export function MentionAutocomplete({
         </div>
         <div className="max-h-48 overflow-y-auto p-1">
           {filtered.map((agent, i) => (
-            <button
+            <button type="button"
               key={agent.id}
               onClick={() => handleSelect(agent)}
               className={cn(

@@ -68,7 +68,7 @@ export function MentionInput({ value, onChange, onSubmit, placeholder, disabled 
             className="absolute bottom-full left-0 right-0 mb-1 bg-popover border rounded-lg shadow-lg overflow-hidden">
             <ScrollArea className="max-h-48">
               {filteredAgents.map((agent) => (
-                <button key={agent.id} className="w-full flex items-center gap-2 p-2 hover:bg-muted text-left"
+                <button type="button" key={agent.id} className="w-full flex items-center gap-2 p-2 hover:bg-muted text-left"
                   onClick={() => handleSelectMention(agent)}>
                   <Avatar className="w-6 h-6">
                     <AvatarImage src={agent.avatar_url || undefined} alt={agent.name} />

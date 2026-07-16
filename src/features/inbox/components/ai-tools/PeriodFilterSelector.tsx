@@ -186,7 +186,7 @@ export function PeriodFilterSelector({
   return (
     <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
       <PopoverTrigger asChild>
-        <button
+        <button type="button"
           className={cn(
             'inline-flex items-center gap-1.5 w-full justify-center whitespace-nowrap text-xs px-3 py-2 rounded-xl font-medium transition-all duration-150 select-none',
             hasFilter
@@ -233,7 +233,7 @@ export function PeriodFilterSelector({
           <div className="w-[160px] border-r border-border bg-muted/30 p-2 flex flex-col gap-0.5">
             <p className="text-[10px] text-muted-foreground font-semibold px-2.5 pt-1 pb-2 uppercase tracking-widest">Atalhos</p>
             {PERIOD_PRESETS.map((p) => (
-              <button
+              <button type="button"
                 key={p.key}
                 className={cn(
                   'w-full text-left text-[13px] px-2.5 py-2 rounded-lg transition-all duration-150 font-medium',
@@ -257,7 +257,7 @@ export function PeriodFilterSelector({
             <div className="flex items-center justify-between mb-3">
               <p className="text-[11px] text-muted-foreground font-semibold uppercase tracking-widest">Período personalizado</p>
               {(customFrom || customTo) && (
-                <button
+                <button type="button"
                   className="text-[10px] text-destructive hover:underline font-medium"
                   onClick={() => {
                     onClearCustom();

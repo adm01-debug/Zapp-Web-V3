@@ -140,7 +140,7 @@ export function WhisperMode({
         className
       )}
     >
-      <button
+      <button type="button"
         onClick={() => setIsExpanded(!isExpanded)}
         className="flex items-center justify-between rounded-t-lg px-3 py-2 text-xs font-medium text-amber-700 transition-colors hover:bg-amber-100 dark:text-amber-300 dark:hover:bg-amber-900/30"
       >

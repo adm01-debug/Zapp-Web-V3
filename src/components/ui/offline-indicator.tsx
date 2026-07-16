@@ -66,7 +66,7 @@ export function OfflineIndicator({ className }: OfflineIndicatorProps) {
           <>
             <WifiOff className="w-4 h-4" />
             <span className="text-sm font-medium">Você está offline</span>
-            <button
+            <button type="button"
               onClick={handleRetry}
               className="ml-2 px-2 py-0.5 bg-destructive-foreground/20 hover:bg-destructive-foreground/30 rounded text-xs transition-colors"
             >

@@ -215,7 +215,7 @@ export function AudioMessagePlayer({
           </div>
         </div>
         <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-          <button
+          <button type="button"
             onClick={cycleSpeed}
             className={cn(
               'h-6 rounded-full px-1.5 text-[10px] font-semibold transition-colors',

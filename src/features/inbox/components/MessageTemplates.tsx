@@ -188,7 +188,7 @@ export function MessageTemplates({ onSelectTemplate }: MessageTemplatesProps) {
                   className="group rounded-lg border border-border p-3 transition-colors hover:bg-muted/30"
                 >
                   <div className="flex items-start justify-between">
-                    <button
+                    <button type="button"
                       onClick={() => handleSelectTemplate(template)}
                       className="flex-1 text-left"
                     >

@@ -57,7 +57,7 @@ export function EmailSearchBar({ accountId, onSelectThread, className }: EmailSe
           )}
 
           {results.map(result => (
-            <button
+            <button type="button"
               key={`${result.thread_id}-${result.source}`}
               className="w-full flex items-start gap-3 px-3 py-2.5 hover:bg-muted/60 text-left transition-colors border-b border-border/40 last:border-0"
               onClick={() => { onSelectThread(result); clearSearch(); }}

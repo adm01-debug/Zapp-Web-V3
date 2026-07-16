@@ -29,7 +29,7 @@ export function StickerCategoryBar({
     <div className="px-2 py-2 border-b border-border/30" role="tablist" aria-label="Filtros de figurinhas">
       <ScrollArea className="w-full">
         <div className="flex gap-1.5 flex-wrap">
-          <button
+          <button type="button"
             role="tab"
             aria-selected={!activeCategory && !showFavorites && !showRecent}
             onClick={() => onCategoryChange(null)}
@@ -43,7 +43,7 @@ export function StickerCategoryBar({
             Todas ({stickers.length})
           </button>
 
-          <button
+          <button type="button"
             role="tab"
             aria-selected={showRecent}
             onClick={onToggleRecent}
@@ -57,7 +57,7 @@ export function StickerCategoryBar({
             <Clock className="w-3 h-3" aria-hidden="true" /> Recentes
           </button>
 
-          <button
+          <button type="button"
             role="tab"
             aria-selected={showFavorites}
             onClick={onToggleFavorites}
@@ -75,7 +75,7 @@ export function StickerCategoryBar({
             const info = CATEGORY_LABELS[cat];
             const count = stickers.filter(s => s.category === cat).length;
             return (
-              <button
+              <button type="button"
                 key={cat}
                 role="tab"
                 aria-selected={activeCategory === cat}

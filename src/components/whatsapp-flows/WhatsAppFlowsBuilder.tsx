@@ -335,7 +335,7 @@ export function WhatsAppFlowsBuilder(): JSX.Element {
       <div className="flex flex-1 gap-4 overflow-hidden px-6 pb-6">
         <div className="w-48 flex-shrink-0 space-y-2 overflow-y-auto">
           {selectedFlow.screens.map((screen, idx) => (
-            <button
+            <button type="button"
               key={screen.id}
               onClick={() => setEditingScreen(idx)}
               className={cn(
@@ -357,7 +357,7 @@ export function WhatsAppFlowsBuilder(): JSX.Element {
                 Componentes
               </p>
               {COMPONENT_TYPES.map(({ type, label, icon: Icon }) => (
-                <button
+                <button type="button"
                   key={type}
                   onClick={() => addComponent(type)}
                   className="flex w-full items-center gap-2 rounded-lg p-2 text-left text-sm text-foreground transition-colors hover:bg-muted/50"

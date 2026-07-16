@@ -115,7 +115,7 @@ export const SidebarRail = React.forwardRef<HTMLButtonElement, React.ComponentPr
   ({ className, ...props }, ref) => {
     const { toggleSidebar } = useSidebar();
     return (
-      <button
+      <button type="button"
         ref={ref}
         data-sidebar="rail"
         aria-label="Alternar barra lateral"

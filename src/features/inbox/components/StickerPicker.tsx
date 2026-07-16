@@ -171,7 +171,7 @@ export function StickerPicker({ onSendSticker, disabled }: StickerPickerProps) {
               aria-label="Buscar figurinhas"
             />
             {search && (
-              <button
+              <button type="button"
                 onClick={() => {
                   setSearch('');
                   searchInputRef.current?.focus();

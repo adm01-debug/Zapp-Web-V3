@@ -113,7 +113,7 @@ export const BuildValidationOverlay: React.FC = () => {
         </div>
       )}
 
-      <button
+      <button type="button"
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
           "w-12 h-12 rounded-full flex items-center justify-center shadow-2xl transition-all hover:scale-110 active:scale-95 border-2",

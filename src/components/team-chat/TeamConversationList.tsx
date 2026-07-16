@@ -158,7 +158,7 @@ export const TeamConversationList = forwardRef<HTMLDivElement, Props>(function T
         ) : (
           <div className="space-y-0.5 p-1">
             {filtered.map((conv, index) => (
-              <button
+              <button type="button"
                 key={conv.id}
                 tabIndex={0}
                 data-testid={`conversation-${conv.id}`}

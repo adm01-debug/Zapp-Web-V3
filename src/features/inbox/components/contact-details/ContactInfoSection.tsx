@@ -74,7 +74,7 @@ function EditableField({ value, icon, onSave, placeholder, label }: EditableFiel
   // Empty state — show as discrete add button
   if (!value) {
     return (
-      <button
+      <button type="button"
         onClick={() => setEditing(true)}
         className="flex items-center gap-2 text-xs text-muted-foreground/60 hover:text-primary hover:bg-primary/5 rounded-lg p-2 w-full transition-all group"
       >

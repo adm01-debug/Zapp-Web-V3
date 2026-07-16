@@ -44,9 +44,9 @@ export function SystemFeaturesView() {
             </p>
           </div>
           <div className="flex gap-2">
-            <button onClick={expandAll} className="text-xs text-primary hover:underline">Expandir tudo</button>
+            <button type="button" onClick={expandAll} className="text-xs text-primary hover:underline">Expandir tudo</button>
             <span className="text-muted-foreground">|</span>
-            <button onClick={collapseAll} className="text-xs text-primary hover:underline">Recolher tudo</button>
+            <button type="button" onClick={collapseAll} className="text-xs text-primary hover:underline">Recolher tudo</button>
           </div>
         </div>
         <div className="relative">

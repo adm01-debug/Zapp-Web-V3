@@ -213,7 +213,7 @@ export default function ZappWebbDemoPage() {
                 const name = c?.full_name || c?.push_name || conv.remote_jid;
                 const isActive = conv.id === activeId;
                 return (
-                  <button
+                  <button type="button"
                     key={conv.id}
                     onClick={() => handleOpen(conv)}
                     className={`w-full border-b px-3 py-2.5 text-left transition-colors hover:bg-muted/50 ${

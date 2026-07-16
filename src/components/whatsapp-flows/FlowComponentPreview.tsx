@@ -17,7 +17,7 @@ export function FlowComponentPreview({ comp, preview, onRemove }: { comp: FlowCo
   return (
     <div className="group relative">
       {!preview && onRemove && (
-        <button
+        <button type="button"
           onClick={onRemove}
           className="absolute -right-1 -top-1 w-5 h-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10"
         >

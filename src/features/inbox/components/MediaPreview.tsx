@@ -93,7 +93,7 @@ export function DocumentPreview({ url: _url, fileName, fileSize, isSent }: Docum
           )}
         </div>
       </div>
-      <button
+      <button type="button"
         onClick={(e) => {
           e.stopPropagation();
           handleDownload();
@@ -246,7 +246,7 @@ export const VideoPreview = forwardRef<HTMLDivElement, VideoPreviewProps>(functi
               </motion.div>
             )}
           </AnimatePresence>
-          <button
+          <button type="button"
             onClick={(e) => {
               e.stopPropagation();
               setShowFullscreen(true);
