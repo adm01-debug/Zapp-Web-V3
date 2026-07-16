@@ -68,11 +68,6 @@ src/lib/__tests__/undoToast.test.ts
 src/lib/__tests__/web-vitals.test.ts
 src/lib/__tests__/webauthnUtils.test.ts
 src/lib/realtime/__tests__/crossTabDedupe.test.ts
-src/pages/AdminEvolutionApiLogsPage.tsx
-src/pages/AdminRealtimeMonitorPage.tsx
-src/pages/AdminSearchInsightsPage.tsx
-src/pages/AdminTelemetriaPage.tsx
-src/pages/AdminWebhookSecretStatusPage.tsx
 src/pages/ForgotPassword.tsx
 src/pages/QueueDetails.tsx
 src/pages/admin-search-insights/SearchInsightsTables.tsx

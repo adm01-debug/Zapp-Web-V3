@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Admin: Evolution API call logs.
  * Reads from `evolution_retry_metrics` (zapp schema view → public table) — captures every
