@@ -16,6 +16,7 @@ import { WebhookKpiCards } from './admin-webhook-secret-status/WebhookKpiCards';
 import { WebhookEventsTable } from './admin-webhook-secret-status/WebhookEventsTable';
 import { WebhookValidationMetaCard } from './admin-webhook-secret-status/WebhookValidationMetaCard';
 import { useAdminWebhookStatus } from './admin-webhook-secret-status/useAdminWebhookStatus';
+import { SectionErrorBoundary } from '@/components/ui/section-error-boundary';
 
 export default function AdminWebhookSecretStatusPage() {
   const {
@@ -139,7 +140,9 @@ export default function AdminWebhookSecretStatusPage() {
         eventsLoading={eventsQuery.isLoading}
       />
 
-      <HmacAuditHistoryPanel instance={selectedInstance} />
+      <SectionErrorBoundary sectionName="Histórico de auditoria HMAC">
+        <HmacAuditHistoryPanel instance={selectedInstance} />
+      </SectionErrorBoundary>
 
       {!selectedInstance && (
         <InstanceBreakdownTable stats={breakdown} onSelectInstance={setInstance} />

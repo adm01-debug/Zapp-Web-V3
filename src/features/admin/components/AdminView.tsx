@@ -24,6 +24,7 @@ import { TrainingMode } from './TrainingMode';
 import { CrisisRoom } from './CrisisRoom';
 import { QrAttemptsPanel } from './QrAttemptsPanel';
 import { VisibilityGrantsManager } from './VisibilityGrantsManager';
+import { SectionErrorBoundary } from '@/components/ui/section-error-boundary';
 import { useAdminData, accessLevelConfig, type UserWithRole } from '../hooks/useAdminData';
 import { AdminUsersTable } from './AdminUsersTable';
 import { AdminAuditTable } from './AdminAuditTable';
@@ -307,17 +308,29 @@ export function AdminView() {
       ) : activeTab === 'audit' ? (
         <AdminAuditTable logs={filteredLogs} />
       ) : activeTab === 'crm' ? (
-        <AdminCRMDashboard />
+        <SectionErrorBoundary sectionName="CRM Admin">
+          <AdminCRMDashboard />
+        </SectionErrorBoundary>
       ) : activeTab === 'playbooks' ? (
-        <PlaybooksManager />
+        <SectionErrorBoundary sectionName="Playbooks">
+          <PlaybooksManager />
+        </SectionErrorBoundary>
       ) : activeTab === 'copilot' ? (
-        <SupervisorCopilot />
+        <SectionErrorBoundary sectionName="Copiloto">
+          <SupervisorCopilot />
+        </SectionErrorBoundary>
       ) : activeTab === 'training' ? (
-        <TrainingMode />
+        <SectionErrorBoundary sectionName="Modo Treinamento">
+          <TrainingMode />
+        </SectionErrorBoundary>
       ) : activeTab === 'crisis' ? (
-        <CrisisRoom />
+        <SectionErrorBoundary sectionName="Sala de Crise">
+          <CrisisRoom />
+        </SectionErrorBoundary>
       ) : activeTab === 'qr-history' ? (
-        <QrAttemptsPanel />
+        <SectionErrorBoundary sectionName="Histórico QR">
+          <QrAttemptsPanel />
+        </SectionErrorBoundary>
       ) : null}
     </div>
   );

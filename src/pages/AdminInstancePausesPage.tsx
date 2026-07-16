@@ -16,6 +16,7 @@ import { toast } from 'sonner';
 import { AuthEventTrendChart } from '@/features/admin/components/instance-pauses/AuthEventTrendChart';
 import { IncidentDetailDialog, type IncidentPause } from '@/features/admin/components/instance-pauses/IncidentDetailDialog';
 import { type WhatsAppInstance } from '@/lib/constants/whatsappInstances';
+import { SectionErrorBoundary } from '@/components/ui/section-error-boundary';
 
 type PauseRow = IncidentPause;
 
@@ -130,7 +131,9 @@ export default function AdminInstancePausesPage() {
         </Alert>
       )}
 
-      <AuthEventTrendChart />
+      <SectionErrorBoundary sectionName="Tendência de eventos de autenticação">
+        <AuthEventTrendChart />
+      </SectionErrorBoundary>
 
       <Card>
         <CardHeader>
