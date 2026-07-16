@@ -18,6 +18,7 @@
  *  - Trocar `remoteJid` reseta estado e dispara nova primeira carga.
  */
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 import { useMountedRef } from '@/hooks/useMountedRef';
 import { externalSupabase } from '@/integrations/supabase/externalClient';
 import type { EvolutionMessage, EvolutionMessageLite } from '@/types/evolutionExternal';
@@ -99,9 +100,7 @@ export function useMessagesCursor({
       // NOTE: usa `externalSupabase.rpc` direto (em vez de `dbList(RPC.listMessagesLite, ...)`)
       // porque precisamos do `.abortSignal()` do PostgrestBuilder — o wrapper `dbRpc`
       // resolve a Promise antes do builder ser exposto. Caso de uso raro e justificado.
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const ext = externalSupabase as any; // ignore-audit — .abortSignal() not in generated external types
-      const builder = ext.rpc('rpc_list_messages_lite', {
+      const builder = externalSupabase.rpc('rpc_list_messages_lite' as never, {
         p_remote_jid: remoteJid,
         p_instance: instanceName,
         p_limit: pageSize,
@@ -215,12 +214,7 @@ export function useMessagesCursor({
   useEffect(() => {
     if (!enabled || !remoteJid || !externalSupabase) return;
 
-    // externalSupabase is loosely typed (no Database generic), so the
-    // postgres_changes overload is not visible. Cast to any for dynamic access.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const client = externalSupabase as any; // ignore-audit — postgres_changes API not in external client types
-
-    const channel = client
+    const channel = externalSupabase
       .channel(`evolution_messages:${remoteJid}`)
       .on(
         'postgres_changes',
@@ -231,11 +225,11 @@ export function useMessagesCursor({
           // v6.2: postgres_changes aceita UM filtro; instance é implícita pelo jid.
           filter: `remote_jid=eq.${remoteJid}`,
         },
-        (payload) => {
-          const raw = (payload as any).new;
-          if (!raw || !(raw as any).id) return;
+        (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => {
+          const raw = payload.new;
+          if (!raw || typeof raw !== 'object' || !('id' in raw)) return;
           // Realtime payloads are full rows; project to lite to keep memory low.
-          const m = toEvolutionMessageLite(raw);
+          const m = toEvolutionMessageLite(raw as Record<string, unknown>);
           setPages((prev) => {
             for (const p of prev) {
               if (p.some((x) => x.id === m.id)) return prev;
@@ -255,10 +249,10 @@ export function useMessagesCursor({
           // v6.2: postgres_changes aceita UM filtro; instance é implícita pelo jid.
           filter: `remote_jid=eq.${remoteJid}`,
         },
-        (payload) => {
-          const raw = (payload as any).new;
-          if (!raw || !(raw as any).id) return;
-          const m = toEvolutionMessageLite(raw);
+        (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => {
+          const raw = payload.new;
+          if (!raw || typeof raw !== 'object' || !('id' in raw)) return;
+          const m = toEvolutionMessageLite(raw as Record<string, unknown>);
           setPages((prev) =>
             prev.map((page) => page.map((x) => (x.id === m.id ? { ...x, ...m } : x)))
           );
@@ -273,8 +267,8 @@ export function useMessagesCursor({
           // v6.2: postgres_changes aceita UM filtro; instance é implícita pelo jid.
           filter: `remote_jid=eq.${remoteJid}`,
         },
-        (payload) => {
-          const id = ((payload as any).old as any)?.id;
+        (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => {
+          const id = (payload.old && typeof payload.old === 'object' ? (payload.old as Record<string, unknown>).id : undefined);
           if (!id) return;
           setPages((prev) => prev.map((page) => page.filter((x) => x.id !== id)));
         }
