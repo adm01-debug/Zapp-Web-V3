@@ -121,7 +121,7 @@ export function SLAAndAITagsSection({
                   <Shield className="w-3.5 h-3.5 text-primary" />
                   <span className="text-muted-foreground">1ª Resposta</span>
                 </div>
-                {slaInfo!.first_response_breached ? (
+                {slaInfo?.first_response_breached ? (
                   <Badge
                     variant="outline"
                     className="text-[10px] bg-destructive/15 text-destructive border-destructive/30 animate-pulse"
@@ -129,7 +129,7 @@ export function SLAAndAITagsSection({
                     <AlertTriangle className="w-3 h-3 mr-1" />
                     Violado
                   </Badge>
-                ) : slaInfo!.first_response_at ? (
+                ) : slaInfo?.first_response_at ? (
                   <Badge
                     variant="outline"
                     className="text-[10px] bg-success/15 text-success border-success/30"
@@ -151,7 +151,7 @@ export function SLAAndAITagsSection({
                   <Shield className="w-3.5 h-3.5 text-primary" />
                   <span className="text-muted-foreground">Resolução</span>
                 </div>
-                {slaInfo!.resolution_breached ? (
+                {slaInfo?.resolution_breached ? (
                   <Badge
                     variant="outline"
                     className="text-[10px] bg-destructive/15 text-destructive border-destructive/30 animate-pulse"
@@ -159,7 +159,7 @@ export function SLAAndAITagsSection({
                     <AlertTriangle className="w-3 h-3 mr-1" />
                     Violado
                   </Badge>
-                ) : slaInfo!.resolved_at ? (
+                ) : slaInfo?.resolved_at ? (
                   <Badge
                     variant="outline"
                     className="text-[10px] bg-success/15 text-success border-success/30"

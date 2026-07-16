@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { createContext, useContext, useState, useCallback } from 'react';
+import { createContext, useContext, useState, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { X, CheckCircle, AlertCircle, Info, AlertTriangle, Loader2 } from 'lucide-react';
@@ -82,8 +82,13 @@ export function AccessibleToastProvider({ children }: AccessibleToastProviderPro
     );
   }, []);
 
+  const contextValue = useMemo(
+    () => ({ toasts, addToast, removeToast, updateToast }),
+    [toasts, addToast, removeToast, updateToast]
+  );
+
   return (
-    <ToastContext.Provider value={{ toasts, addToast, removeToast, updateToast }}>
+    <ToastContext.Provider value={contextValue}>
       {children}
       <ToastContainer toasts={toasts} onRemove={removeToast} />
     </ToastContext.Provider>
