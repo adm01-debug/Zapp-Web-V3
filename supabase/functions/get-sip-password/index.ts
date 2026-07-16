@@ -1,6 +1,6 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { handleCors, errorResponse, jsonResponse, requireEnv, Logger, checkRateLimit, getClientIP } from "../_shared/validation.ts";
 import { requireUser } from "../_shared/auth.ts";
+import { createZappAdminClient } from "../_shared/db-client.ts";
 
 Deno.serve(async (req) => {
   const cors = handleCors(req);
@@ -17,7 +17,7 @@ Deno.serve(async (req) => {
     const authed = await requireUser(req);
     if (authed instanceof Response) return authed;
 
-    const adminClient = createClient(requireEnv('SUPABASE_URL'), requireEnv('SUPABASE_SERVICE_ROLE_KEY'), { db: { schema: "zapp" } });
+    const adminClient = createZappAdminClient();
     const { data: profile, error: profileError } = await adminClient
       .from('profiles').select('id, is_active').eq('user_id', authed.user.id).maybeSingle();
 

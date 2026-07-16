@@ -1,8 +1,8 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.87.1";
 import { handleCors, errorResponse, jsonResponse, requireEnv, Logger, checkRateLimit, getClientIP } from "../_shared/validation.ts";
 import { ChatbotL1Schema, parseBody } from "../_shared/schemas.ts";
 import { callAiWithTracking, extractUserIdFromRequest } from "../_shared/ai-usage.ts";
 import { requireServiceRoleOrCron } from "../_shared/auth.ts";
+import { createZappAdminClient } from "../_shared/db-client.ts";
 
 Deno.serve(async (req) => {
   const cors = handleCors(req);
@@ -26,7 +26,7 @@ Deno.serve(async (req) => {
 
     const { contactId, message, connectionId } = parsed.data;
     const LOVABLE_API_KEY = requireEnv("LOVABLE_API_KEY");
-    const supabase = createClient(requireEnv("SUPABASE_URL"), requireEnv("SUPABASE_SERVICE_ROLE_KEY"), { db: { schema: "zapp" }, auth: { persistSession: false } });
+    const supabase = createZappAdminClient();
 
     // Check if chatbot is active for this connection
     const { data: flow } = await supabase

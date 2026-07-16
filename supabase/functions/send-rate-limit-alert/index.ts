@@ -1,7 +1,7 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
-import { handleCors, errorResponse, jsonResponse, requireEnv, Logger } from "../_shared/validation.ts";
+import { handleCors, errorResponse, jsonResponse, Logger } from "../_shared/validation.ts";
 import { RateLimitAlertSchema, parseBody } from "../_shared/schemas.ts";
 import { requireServiceRoleOrCron } from "../_shared/auth.ts";
+import { createZappAdminClient } from "../_shared/db-client.ts";
 
 Deno.serve(async (req) => {
   const cors = handleCors(req);
@@ -13,7 +13,7 @@ Deno.serve(async (req) => {
   const log = new Logger("send-rate-limit-alert");
 
   try {
-    const supabaseClient = createClient(requireEnv("SUPABASE_URL"), requireEnv("SUPABASE_SERVICE_ROLE_KEY"), { db: { schema: "zapp" }, auth: { persistSession: false } });
+    const supabaseClient = createZappAdminClient();
 
     const parsed = parseBody(RateLimitAlertSchema, await req.json());
     if (!parsed.success) return errorResponse(parsed.error, 400, req);
