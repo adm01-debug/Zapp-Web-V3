@@ -305,16 +305,16 @@ Baseline atual: **390 arquivos** (atualizado após merge do commit `8da07c6` que
 
 ## 10. Documentação — Status por Arquivo
 
-| Arquivo | Status após esta auditoria |
-|---------|---------------------------|
-| `CLAUDE.md` | ✅ CORRIGIDO — 312 tabelas, public schema, partições, bugs, gaps |
-| `docs/SCHEMA_REFERENCE.md` | ⚠️ Ainda diz "315" — pendente atualização |
-| `docs/AUDITORIA_COMPLETA_ZAPP_WEB.md` | ⚠️ Ainda diz "315 + 193" — pendente |
-| `docs/ER_DIAGRAM.md` | ⚠️ Só documenta `wpp2`; 24 outras partições ausentes |
+| Arquivo | Status após auditoria exaustiva |
+|---------|--------------------------------|
+| `CLAUDE.md` | ✅ CORRIGIDO — 312 tabelas, public schema (1 interna + 532 views), partições, todos bugs e gaps |
+| `docs/SCHEMA_REFERENCE.md` | ✅ CORRIGIDO — 312 tabelas; anti-pattern `.schema('public')` com descrição precisa |
+| `docs/AUDITORIA_COMPLETA_ZAPP_WEB.md` | ✅ CORRIGIDO — 312 + 193 e nota explicativa |
+| `docs/ER_DIAGRAM.md` | ⚠️ Documenta apenas `wpp2`; 24 outras partições omitidas (impacto documental, não funcional) |
 | `docs/ARCHITECTURE_AND_FLOW.md` | ✅ Correto (usa `evo.evolution_messages_wpp2`) |
-| `docs/TECHNICAL_DOCUMENTATION.md` | ✅ Banner de deprecação adicionado em PR #390 |
-| `docs/SUPABASE_SCHEMA_AUDIT_2026-07-15.md` | ⚠️ Criado em PR #389; conta correta para evo mas zapp mostra 315 |
-| `docs/AUDITORIA_EXAUSTIVA_2026-07-16.md` | ✅ **Este documento** |
+| `docs/TECHNICAL_DOCUMENTATION.md` | ✅ Banner de deprecação — schema `public` é pré-migração |
+| `docs/SUPABASE_SCHEMA_AUDIT_2026-07-15.md` | ✅ Histórico de auditoria anterior — referência apenas |
+| `docs/AUDITORIA_EXAUSTIVA_2026-07-16.md` | ✅ **Este documento** — validação exaustiva completa |
 
 ---
 

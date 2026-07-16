@@ -162,7 +162,7 @@ const admin = createClient(url, key, { db: { schema: 'zapp' } });
 ### Anti-patterns proibidos
 | Padrão | Motivo |
 |--------|--------|
-| `.schema('public')` | schema `public` tem 0 tabelas |
+| `.schema('public')` | schema `public` tem apenas 1 tabela interna Supabase (`_wal_slot_guard_events`) + 532 views proxy — não é schema de aplicação |
 | `createClient` sem `db:{schema}` fora de factories | rota para o schema errado |
 | URL `*.supabase.co` em código | projeto usa self-hosted `supabase.atomicabr.com.br` |
 | Realtime sem `schema:` no config | canal sobe mas não recebe eventos |
