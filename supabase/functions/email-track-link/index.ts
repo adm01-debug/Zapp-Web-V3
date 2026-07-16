@@ -78,11 +78,20 @@ serve(async (req) => {
       });
     }
 
+    // Validate redirect target to prevent javascript:/data: URI injection via stored URL
+    let safeLocation = 'https://pronto-talk-suite.lovable.app';
+    try {
+      const dest = new URL(data.original_url);
+      if (dest.protocol === 'https:' || dest.protocol === 'http:') {
+        safeLocation = data.original_url;
+      }
+    } catch { /* invalid URL — fall back to default */ }
+
     // Redirecionar 302 para URL original
     return new Response(null, {
       status: 302,
       headers: {
-        Location: data.original_url,
+        Location: safeLocation,
         'Cache-Control': 'no-store, no-cache',
       },
     });
