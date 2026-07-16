@@ -11,13 +11,12 @@
  *  - Logout: propagado.
  *  - Falhas NUNCA bloqueiam o fluxo principal (catch silencioso + log).
  *
- * FIX 2026-07-16: registerExternalSessionBridge tinha return type `void`
- * mas retornava internamente uma função de cleanup (() => void). Em TypeScript,
- * isso significa que o caller nunca conseguia capturar o cleanup — a
- * subscription onAuthStateChange vazava para o lifetime da app. Para um SPA
- * isso é benign (app nunca desmonta), mas em SSR/testes causa memory leak.
- * Tipo corrigido para `() => void` para que callers possam capturar e
- * desmontar se necessário.
+ * FIX 2026-07-16 (a): return type `void` → `() => void` para permitir capturar
+ *   e invocar a função de cleanup da subscription onAuthStateChange.
+ *
+ * FIX 2026-07-16 (b): `socialWarningEmitted` agora é resetado no cleanup.
+ *   Antes o estado module-level não era limpo, causando supressão permanente
+ *   do warning OAuth em cenários de re-registro (principalmente em testes).
  */
 import type { AuthError } from '@supabase/supabase-js';
 import { supabase } from './client';
@@ -53,7 +52,6 @@ function isUserNotFound(err: AuthError | null): boolean {
 export async function mirrorExternalSignIn(email: string, password: string): Promise<void> {
   if (!isExternalConfigured) return;
   try {
-    // Guard: sessão já ativa → nada a fazer.
     const { data: existing } = await externalSupabase.auth.getSession();
     if (existing.session?.user?.email === email) {
       log.debug('mirrorExternalSignIn: sessão já ativa — skip', { email });
@@ -115,18 +113,12 @@ export async function mirrorExternalSignOut(): Promise<void> {
  * Instala listener global no client principal. Idempotente.
  * Deve ser chamado 1x no boot (main.tsx).
  *
- * FIX 2026-07-16: return type corrigido de `void` para `() => void`.
- * A versão anterior tipava o retorno como void, impossibilitando que
- * callers capturassem e invocassem a função de cleanup da subscription
- * `onAuthStateChange`. A subscription vazava para o lifetime da app.
- *
- * Uso no boot:
- *   const cleanupBridge = registerExternalSessionBridge();
- *   // Para desmontar (SSR/testes):
- *   cleanupBridge();
+ * Retorna função de cleanup capturável:
+ *   const cleanup = registerExternalSessionBridge();
+ *   cleanup(); // desinstala subscription (útil em SSR/testes)
  */
 export function registerExternalSessionBridge(): () => void {
-  if (bridgeInstalled) return () => {}; // idempotente: cleanup no-op
+  if (bridgeInstalled) return () => {};
   bridgeInstalled = true;
 
   if (!isExternalConfigured) {
@@ -177,10 +169,10 @@ export function registerExternalSessionBridge(): () => void {
 
   log.info('external session bridge instalado');
 
-  // Retorna função de cleanup capturável pelo caller
   return () => {
     authSubscription.unsubscribe();
-    bridgeInstalled = false; // permite reinstalação após cleanup (util em testes)
+    bridgeInstalled = false;
+    socialWarningEmitted = false; // FIX(b): reset para permitir warning correto em re-registro
     log.debug('external session bridge desmontado');
   };
 }
