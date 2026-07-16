@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FileText, Plus, Search, Trash2, Edit2, X, Save, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -58,11 +58,15 @@ export function MessageTemplates({ onSelectTemplate }: MessageTemplatesProps) {
     if (editingTemplate && (await updateTemplate(editingTemplate))) setEditingTemplate(null);
   };
 
-  const filteredTemplates = templates.filter(
-    (t) =>
-      t.title.toLowerCase().includes(search.toLowerCase()) ||
-      t.content.toLowerCase().includes(search.toLowerCase()) ||
-      t.shortcut?.toLowerCase().includes(search.toLowerCase())
+  const filteredTemplates = useMemo(
+    () =>
+      templates.filter(
+        (t) =>
+          t.title.toLowerCase().includes(search.toLowerCase()) ||
+          t.content.toLowerCase().includes(search.toLowerCase()) ||
+          t.shortcut?.toLowerCase().includes(search.toLowerCase())
+      ),
+    [templates, search]
   );
 
   const formData = editingTemplate || newTemplate;
