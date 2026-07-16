@@ -82,6 +82,7 @@ export function TalkXLiveMonitor({ campaignId }: Props) {
 
     return () => {
       channel.unsubscribe();
+      supabase.removeChannel(channel);
     };
   }, [campaignId]);
 

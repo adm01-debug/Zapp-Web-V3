@@ -104,7 +104,10 @@ export function useZappMessages({ remoteJid, instance = ZAPPWEB_INSTANCE, limit 
       .subscribe();
     channelRef.current = ch;
     return () => {
-      if (channelRef.current) channelRef.current.unsubscribe();
+      if (channelRef.current) {
+        channelRef.current.unsubscribe();
+        zappSupabase.removeChannel(channelRef.current);
+      }
     };
   }, [remoteJid, instance, fetchAll]);
 

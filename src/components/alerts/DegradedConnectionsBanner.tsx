@@ -61,6 +61,7 @@ export function DegradedConnectionsBanner({ onNavigate, recentWindowMs = 10 * 60
     const interval = setInterval(fetchDegraded, 60_000);
     return () => {
       channel.unsubscribe();
+      supabase.removeChannel(channel);
       clearInterval(interval);
     };
   }, [fetchDegraded]);

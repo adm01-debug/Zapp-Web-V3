@@ -94,6 +94,7 @@ export default function TalkXView() {
       .subscribe();
     return () => {
       channel.unsubscribe();
+      supabase.removeChannel(channel);
     };
   }, [refetchCampaigns]);
 

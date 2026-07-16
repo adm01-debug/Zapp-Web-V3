@@ -427,6 +427,7 @@ export function useAutomationSuggestions(remoteJid: string | null) {
       .subscribe();
     return () => {
       ch.unsubscribe();
+      supabase.removeChannel(ch);
     };
   }, [remoteJid, refresh]);
 

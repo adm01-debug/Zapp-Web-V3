@@ -283,6 +283,7 @@ export function useMessagesCursor({
 
     return () => {
       channel.unsubscribe();
+      supabase.removeChannel(channel);
     };
   }, [enabled, remoteJid]);
 
