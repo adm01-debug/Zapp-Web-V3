@@ -215,6 +215,7 @@ export function useDepartmentManagement(
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.departments.profiles(initialDepartment.id) });
       void queryClient.invalidateQueries({ queryKey: queryKeys.departments.audit(initialDepartment.id) });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.departmentChat.agents(initialDepartment.id) });
     },
     onError: () => {
       toast({ title: 'Erro ao gerenciar membro', variant: 'destructive' });
