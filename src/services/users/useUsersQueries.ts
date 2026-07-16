@@ -103,7 +103,7 @@ export const useSearchAgents = (query?: string) => {
  */
 export const useAgentsByStatus = (status: Agent['status'], params?: Partial<QueryParams>) => {
   return useQuery({
-    queryKey: [...queryKeys.users.all(), 'status', status],
+    queryKey: queryKeys.users.byStatus(status),
     queryFn: () => usersService.getAgentsByStatus(status, params),
     staleTime: 15_000,
   });

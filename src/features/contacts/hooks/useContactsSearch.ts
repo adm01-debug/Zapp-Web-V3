@@ -142,8 +142,7 @@ export function useContactsSearch() {
 
   const { field: sortField, direction: sortDirection } = parseSortOption(sortBy);
 
-  const queryKey = [
-    'contacts-search',
+  const queryKey = queryKeys.contacts.searchResults(
     debouncedSearch,
     activeTab,
     filterCompany,
@@ -153,7 +152,7 @@ export function useContactsSearch() {
     sortField,
     sortDirection,
     page,
-  ];
+  );
 
   // Cursor-based pagination: track cursor for each page
   const [pageIndexToCursor, setPageIndexToCursor] = useState<Map<number, string | null>>(
