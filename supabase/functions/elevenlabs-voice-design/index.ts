@@ -1,4 +1,4 @@
-import { handleCors, errorResponse, jsonResponse, requireEnv, Logger } from "../_shared/validation.ts";
+import { handleCors, errorResponse, jsonResponse, requireEnv, Logger, checkRateLimit } from "../_shared/validation.ts";
 import { ElevenLabsVoiceDesignPreviewSchema, ElevenLabsVoiceDesignCreateSchema, parseBody } from "../_shared/schemas.ts";
 import { requireUser } from "../_shared/auth.ts";
 
@@ -11,6 +11,10 @@ Deno.serve(async (req) => {
   try {
     const authed = await requireUser(req);
     if (authed instanceof Response) return authed;
+
+    const rl = checkRateLimit(`elevenlabs-voice-design:${authed.user.id}`, 10, 60_000);
+    if (!rl.allowed) return errorResponse('Rate limit exceeded. Tente novamente em instantes.', 429, req);
+
     const ELEVENLABS_API_KEY = requireEnv('ELEVENLABS_API_KEY');
     const body = await req.json();
     const action = body.action || 'preview';

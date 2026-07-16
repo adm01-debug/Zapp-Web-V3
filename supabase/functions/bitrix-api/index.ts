@@ -1,6 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { z } from "https://esm.sh/zod@3.23.8";
-import { handleCors, errorResponse, jsonResponse, Logger, getCorsHeaders, validateBitrixOrigin } from "../_shared/validation.ts";
+import { handleCors, errorResponse, jsonResponse, Logger, getCorsHeaders, validateBitrixOrigin, checkRateLimit } from "../_shared/validation.ts";
 import { requireUser } from "../_shared/auth.ts";
 
 const BitrixBodySchema = z.object({
@@ -46,6 +46,9 @@ Deno.serve(async (req) => {
   // Require authenticated Supabase user to prevent cross-app CRM data exfiltration
   const authed = await requireUser(req);
   if (authed instanceof Response) return authed;
+
+  const rl = checkRateLimit(`bitrix-api:${authed.user.id}`, 30, 60_000);
+  if (!rl.allowed) return errorResponse('Rate limit exceeded. Tente novamente em instantes.', 429, req);
 
   try {
     const BITRIX_WEBHOOK_URL = Deno.env.get('BITRIX_WEBHOOK_URL');
