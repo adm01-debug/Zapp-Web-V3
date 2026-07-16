@@ -1,8 +1,6 @@
 src/__tests__/security-and-performance.test.ts
 src/adapters/evolutionAdapter.ts
 src/components/__tests__/ExportDropdownPermission.test.tsx
-src/components/dashboard/ScheduledReportsManager.tsx
-src/components/security/AuditLogDashboard.tsx
 src/components/talkx/TalkXBlacklist.tsx
 src/components/talkx/TalkXCampaignEditor.tsx
 src/components/talkx/TalkXLiveMonitor.tsx
@@ -131,7 +129,6 @@ src/hooks/ai-providers/useAIProviders.ts
 src/hooks/connections/__tests__/useHubTabNavigation.test.tsx
 src/hooks/dashboard/useSentimentData.ts
 src/hooks/evolution/__tests__/v237Fallbacks.test.ts
-src/hooks/evolutionReconcile.ts
 src/hooks/groups/actions.ts
 src/hooks/media-library/useMediaLibraryManagement.ts
 src/hooks/messaging/useInstanceRetryConfig.ts
@@ -156,11 +153,9 @@ src/hooks/useDeliveryStats.ts
 src/hooks/useEmailActions.test.ts
 src/hooks/useEmailDraft.test.ts
 src/hooks/useEmailManagement.ts
-src/hooks/useEvolutionApiManagement.ts
 src/hooks/useEvolutionAutoReconnect.ts
 src/hooks/useExternalApiManagement.ts
 src/hooks/useGeoBlocking.ts
-src/hooks/useGmailOAuthFlow.ts
 src/hooks/useIntegrationAuthenticationManagement.ts
 src/hooks/useIntegrationManagement.ts
 src/hooks/useKeyboardManagement.ts
