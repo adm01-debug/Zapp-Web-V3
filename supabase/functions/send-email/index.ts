@@ -1,4 +1,3 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
 import { requireUser } from '../_shared/auth.ts';
 import { checkRateLimit } from '../_shared/validation.ts';
 import { parseOrReject } from '../_shared/contract-kit.ts';
@@ -45,15 +44,8 @@ Deno.serve(async (req) => {
     if (accountId) {
       // Delega para gmail-send usando o token do usuário (não service role),
       // para que gmail-send possa verificar a propriedade da conta Gmail.
-      const supabaseUrlSelfHosted = Deno.env.get('SELFHOSTED_SUPABASE_URL');
-      const supabaseUrlDefault = Deno.env.get('SUPABASE_URL');
-      const supabaseUrl = (typeof supabaseUrlSelfHosted === 'string' && supabaseUrlSelfHosted.length > 0)
-        ? supabaseUrlSelfHosted
-        : (typeof supabaseUrlDefault === 'string' && supabaseUrlDefault.length > 0 ? supabaseUrlDefault : '');
-
-      if (!supabaseUrl) {
-        return json({ error: 'Supabase URL not configured' }, 503);
-      }
+      const supabaseUrl = Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL') ?? '';
+      if (!supabaseUrl) return json({ error: 'Supabase URL not configured' }, 503);
 
       const authHeader = req.headers.get('Authorization');
       if (!authHeader || typeof authHeader !== 'string' || authHeader.length === 0) {

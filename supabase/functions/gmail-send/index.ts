@@ -1,8 +1,7 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
 import { requireUser } from '../_shared/auth.ts';
 import { checkRateLimit } from '../_shared/validation.ts';
-
 import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
+import { createZappAdminClient } from '../_shared/db-client.ts';
 const GMAIL_API = 'https://gmail.googleapis.com/gmail/v1/users/me';
 
 Deno.serve(async (req) => {
@@ -18,23 +17,7 @@ Deno.serve(async (req) => {
     const rl = checkRateLimit(`gmail-send:${authed.user.id}`, 30, 60_000);
     if (!rl.allowed) return json({ error: 'Rate limit exceeded. Tente novamente em instantes.' }, 429);
 
-    const supabaseUrlSelfHosted = Deno.env.get('SELFHOSTED_SUPABASE_URL');
-    const supabaseUrlDefault = Deno.env.get('SUPABASE_URL');
-    const supabaseUrl = (typeof supabaseUrlSelfHosted === 'string' && supabaseUrlSelfHosted.length > 0)
-      ? supabaseUrlSelfHosted
-      : (typeof supabaseUrlDefault === 'string' && supabaseUrlDefault.length > 0 ? supabaseUrlDefault : '');
-
-    const supabaseServiceKeyHosted = Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY');
-    const supabaseServiceKeyDefault = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-    const supabaseServiceKey = (typeof supabaseServiceKeyHosted === 'string' && supabaseServiceKeyHosted.length > 0)
-      ? supabaseServiceKeyHosted
-      : (typeof supabaseServiceKeyDefault === 'string' && supabaseServiceKeyDefault.length > 0 ? supabaseServiceKeyDefault : '');
-
-    if (!supabaseUrl || !supabaseServiceKey) {
-      return json({ error: 'Server configuration error' }, 503);
-    }
-
-    const supabase = createClient(supabaseUrl, supabaseServiceKey, { db: { schema: "zapp" } });
+    const supabase = createZappAdminClient();
 
     let bodyRaw: unknown;
     try {

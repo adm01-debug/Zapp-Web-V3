@@ -37,7 +37,7 @@
  * - record_ai_metrics(p_function_name, p_action, p_duration_ms, p_status, p_user_id, p_error_message, p_metadata)
  */
 
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { createZappAdminClient } from "../_shared/db-client.ts";
 import {
   handleCors, errorResponse, jsonResponse,
   sanitizeString, isValidUUID, checkRateLimit, getClientIP, requireEnv, Logger,
@@ -460,7 +460,7 @@ async function logAiMetrics(params: {
   userId: string | null;
   errorMessage: string | null;
   metadata: Record<string, unknown>;
-}, supabase: ReturnType<typeof createClient>): Promise<void> {
+}, supabase: ReturnType<typeof createZappAdminClient>): Promise<void> {
   try {
     await supabase.rpc('record_ai_metrics', {
       p_function_name: params.functionName,
@@ -601,7 +601,7 @@ async function acquireIdempotencyLock(
   requestId: string,
   action: string,
   userId: string,
-  supabase: ReturnType<typeof createClient>,
+  supabase: ReturnType<typeof createZappAdminClient>,
   timeoutMs: number = 30_000
 ): Promise<{ acquired: boolean; result?: unknown }> {
   try {
@@ -961,9 +961,7 @@ Deno.serve(async (req) => {
     }
 
     // ━━━ PHASE 3: Supabase Setup ━━━
-    const supabaseUrl = requireEnv("SUPABASE_URL");
-    const supabaseKey = requireEnv("SUPABASE_SERVICE_ROLE_KEY");
-    const supabase = createClient(supabaseUrl, supabaseKey, { db: { schema: "zapp" } });
+    const supabase = createZappAdminClient();
 
     // ━━━ PHASE 4: Idempotency Check (5-min window) ━━━
     // FIX #9: RequestId State Management & Lifecycle Documentation
@@ -1173,7 +1171,7 @@ Deno.serve(async (req) => {
 async function handleAutoTag(
   ctx: RequestContext,
   body: Record<string, unknown>,
-  supabase: ReturnType<typeof createClient>,
+  supabase: ReturnType<typeof createZappAdminClient>,
   req: Request
 ): Promise<ActionResult> {
   const log = new Logger("auto-tag");
@@ -1584,7 +1582,7 @@ Responda APENAS em JSON:
 async function handleConversationSummary(
   ctx: RequestContext,
   body: Record<string, unknown>,
-  supabase: ReturnType<typeof createClient>,
+  supabase: ReturnType<typeof createZappAdminClient>,
   req: Request
 ): Promise<ActionResult> {
   const log = new Logger("conversation-summary");
@@ -2021,7 +2019,7 @@ Foque em:
 async function handleEnhanceMessage(
   ctx: RequestContext,
   body: Record<string, unknown>,
-  supabase: ReturnType<typeof createClient>,
+  supabase: ReturnType<typeof createZappAdminClient>,
   req: Request
 ): Promise<ActionResult> {
   const log = new Logger("enhance-message");
@@ -2227,7 +2225,7 @@ Regras importantes:
 async function handleClassifyEmoji(
   ctx: RequestContext,
   body: Record<string, unknown>,
-  supabase: ReturnType<typeof createClient>,
+  supabase: ReturnType<typeof createZappAdminClient>,
   req: Request
 ): Promise<ActionResult> {
   const log = new Logger("classify-emoji");
@@ -2441,7 +2439,7 @@ async function handleClassifyEmoji(
 async function handleClassifySticker(
   ctx: RequestContext,
   body: Record<string, unknown>,
-  supabase: ReturnType<typeof createClient>,
+  supabase: ReturnType<typeof createZappAdminClient>,
   req: Request
 ): Promise<ActionResult> {
   const log = new Logger("classify-sticker");
@@ -2649,7 +2647,7 @@ async function handleClassifySticker(
 async function handleChurnAnalysis(
   ctx: RequestContext,
   body: Record<string, unknown>,
-  supabase: ReturnType<typeof createClient>,
+  supabase: ReturnType<typeof createZappAdminClient>,
   req: Request
 ): Promise<ActionResult> {
   const log = new Logger("churn-analysis");
@@ -2914,7 +2912,7 @@ async function handleChurnAnalysis(
 async function handleConversationAnalysis(
   ctx: RequestContext,
   body: Record<string, unknown>,
-  supabase: ReturnType<typeof createClient>,
+  supabase: ReturnType<typeof createZappAdminClient>,
   req: Request
 ): Promise<ActionResult> {
   const log = new Logger("conversation-analysis");
@@ -3338,7 +3336,7 @@ Analise a conversa de forma profunda e forneça análise técnica das interaçõ
 async function handleSuggestReply(
   ctx: RequestContext,
   body: Record<string, unknown>,
-  supabase: ReturnType<typeof createClient>,
+  supabase: ReturnType<typeof createZappAdminClient>,
   req: Request
 ): Promise<ActionResult> {
   const log = new Logger("suggest-reply");
@@ -3652,7 +3650,7 @@ Responda APENAS em formato JSON com a seguinte estrutura:
 async function handleTranscribeAudio(
   ctx: RequestContext,
   body: Record<string, unknown>,
-  supabase: ReturnType<typeof createClient>,
+  supabase: ReturnType<typeof createZappAdminClient>,
   req: Request
 ): Promise<ActionResult> {
   const log = new Logger("transcribe-audio");
@@ -3690,14 +3688,13 @@ async function handleTranscribeAudio(
 
     activeTranscodeCount++;
     try {
-      const supabaseUrl = requireEnv("SUPABASE_URL");
-      const isOwnStorage = audioUrl.includes(supabaseUrl) && audioUrl.includes("/storage/v1/");
+      const supabaseUrl = Deno.env.get("SELFHOSTED_SUPABASE_URL") ?? Deno.env.get("SUPABASE_URL") ?? "";
+      const isOwnStorage = !!supabaseUrl && audioUrl.includes(supabaseUrl) && audioUrl.includes("/storage/v1/");
 
       let audioBuffer: ArrayBuffer | null = null;
       let contentType = "audio/mpeg";
 
       if (isOwnStorage) {
-        const serviceKey = requireEnv("SUPABASE_SERVICE_ROLE_KEY");
         const buckets = ["whatsapp-media", "audio-messages"];
         for (const bucket of buckets) {
           const marker = `/${bucket}/`;
@@ -3707,7 +3704,7 @@ async function handleTranscribeAudio(
             const path = pathWithQuery.split("?")[0];
             log.info("Downloading from storage", { bucket, path });
 
-            const sb = createClient(supabaseUrl, serviceKey, { db: { schema: "zapp" } });
+            const sb = createZappAdminClient();
             const { data, error } = await sb.storage.from(bucket).download(path);
             if (error || !data) {
               throw new Error(`Storage download failed: ${error?.message}`);
@@ -4022,7 +4019,7 @@ async function handleTranscribeAudio(
 async function handleClassifyTickets(
   ctx: RequestContext,
   body: Record<string, unknown>,
-  supabase: ReturnType<typeof createClient>,
+  supabase: ReturnType<typeof createZappAdminClient>,
   req: Request
 ): Promise<ActionResult> {
   const log = new Logger("classify-tickets");
