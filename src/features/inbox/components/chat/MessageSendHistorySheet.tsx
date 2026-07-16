@@ -242,7 +242,7 @@ export function MessageSendHistorySheet({ message, open, onOpenChange }: Props) 
                   Métricas de retry
                 </h3>
                 {!isLoading && (
-                  <button
+                  <button type="button"
                     onClick={() => refetch()}
                     className="inline-flex items-center gap-1 text-[10px] text-muted-foreground transition-colors hover:text-foreground"
                     aria-label="Atualizar métricas"

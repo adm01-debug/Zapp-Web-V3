@@ -55,13 +55,13 @@ export const Sidebar = React.memo(function Sidebar({ currentView, onViewChange, 
 
       {/* Logo + Toggle */}
       <div className={cn('flex items-center h-[64px] shrink-0 px-4', collapsed ? 'justify-center' : 'justify-between')}>
-        <button onClick={() => onViewChange('inbox')} className="w-[40px] h-[40px] rounded-2xl flex items-center justify-center bg-primary hover:bg-primary/90 transition-all duration-300 shadow-sm hover:shadow-glow-primary shrink-0 focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:outline-none" aria-label="ZAPP — Ir para Inbox">
+        <button type="button" onClick={() => onViewChange('inbox')} className="w-[40px] h-[40px] rounded-2xl flex items-center justify-center bg-primary hover:bg-primary/90 transition-all duration-300 shadow-sm hover:shadow-glow-primary shrink-0 focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:outline-none" aria-label="ZAPP — Ir para Inbox">
           <span className="text-primary-foreground font-bold text-lg tracking-tighter">Z</span>
         </button>
         {!collapsed && <span className="text-sm font-bold text-foreground tracking-tight ml-2 mr-auto">ZAPP</span>}
         {!collapsed && (
           <Tooltip delayDuration={200}><TooltipTrigger asChild>
-            <button onClick={toggle} className="w-[28px] h-[28px] rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/10 transition-colors shrink-0 focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:outline-none" aria-label="Recolher menu">
+            <button type="button" onClick={toggle} className="w-[28px] h-[28px] rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/10 transition-colors shrink-0 focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:outline-none" aria-label="Recolher menu">
               <PanelLeftClose className="w-[15px] h-[15px]" />
             </button>
           </TooltipTrigger><TooltipContent side="right" sideOffset={8} className="text-xs">Recolher <kbd className="ml-1 px-1 py-0.5 rounded bg-muted/20 text-[10px] ">⌘B</kbd></TooltipContent></Tooltip>
@@ -71,7 +71,7 @@ export const Sidebar = React.memo(function Sidebar({ currentView, onViewChange, 
       {collapsed && (
         <div className="flex justify-center my-1">
           <Tooltip delayDuration={200}><TooltipTrigger asChild>
-            <button onClick={toggle} className="w-[38px] h-[38px] rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/10 transition-all border border-border/40 hover:border-border focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:outline-none" aria-label="Expandir menu">
+            <button type="button" onClick={toggle} className="w-[38px] h-[38px] rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/10 transition-all border border-border/40 hover:border-border focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:outline-none" aria-label="Expandir menu">
               <PanelLeftOpen className="w-[16px] h-[16px]" />
             </button>
           </TooltipTrigger><TooltipContent side="right" sideOffset={8} className="text-xs">Expandir <kbd className="ml-1 px-1 py-0.5 rounded bg-muted/20 text-[10px] ">⌘B</kbd></TooltipContent></Tooltip>
@@ -93,7 +93,7 @@ export const Sidebar = React.memo(function Sidebar({ currentView, onViewChange, 
       {/* Search */}
       <div className={cn('flex my-1.5', collapsed ? 'justify-center px-[11px]' : 'px-2')}>
         <Tooltip delayDuration={200}><TooltipTrigger asChild>
-          <button onClick={() => document.dispatchEvent(new CustomEvent('open-global-search'))}
+          <button type="button" onClick={() => document.dispatchEvent(new CustomEvent('open-global-search'))}
             className={cn('rounded-lg flex items-center gap-2 text-muted-foreground hover:text-foreground hover:bg-muted/10 transition-all border border-dashed border-border/60 hover:border-border', collapsed ? 'w-[40px] h-[30px] justify-center' : 'w-full h-[32px] px-3')} aria-label="Buscar módulo (Ctrl+K)">
             <Search className="w-[14px] h-[14px] shrink-0" />
             {!collapsed && <span className="text-xs text-muted-foreground">Buscar...</span>}
@@ -134,7 +134,7 @@ export const Sidebar = React.memo(function Sidebar({ currentView, onViewChange, 
           <SoundMuteToggle className="w-[36px] h-[36px] touch-manipulation" />
           <StatusLabelToggle className="w-[36px] h-[36px] touch-manipulation" />
           <Tooltip delayDuration={200}><TooltipTrigger asChild>
-            <button 
+            <button type="button" 
               onClick={() => setTheme(isDark ? 'light' : 'dark')} 
               className={cn("w-[36px] h-[36px] rounded-lg flex items-center justify-center transition-all duration-300 text-muted-foreground hover:bg-muted/20 hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 focus-visible:outline-none touch-manipulation", isDark && "text-primary bg-primary/5")} 
               aria-label={isDark ? 'Mudar para modo claro' : 'Mudar para modo escuro'}

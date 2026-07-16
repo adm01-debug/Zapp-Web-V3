@@ -59,13 +59,14 @@ export function updateRuntimeExternalConfig(_url?: string, _key?: string): void 
  * Wrapper de RPC para funções cujos nomes não estão na tipagem gerada.
  * Mantido para compat; prefira `supabase.rpc(...)` com tipos gerados.
  */
+type UntypedRpc = (fn: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: { message: string } | null }>;
+
 export function callExtRpc(
   client: SupabaseClient<ExtendedDatabase>,
   fn: string,
   args: Record<string, unknown>
 ): Promise<{ data: unknown; error: { message: string } | null }> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return (client as any).rpc(fn, args);
+  return (client.rpc as unknown as UntypedRpc)(fn, args);
 }
 
 /**
@@ -75,6 +76,10 @@ export function callExtRpc(
  * (ex.: cancelamento via AbortController). Para RPCs sem abortSignal, use
  * `callExtRpc` ou adicione a função às tipagens geradas.
  */
+type UntypedRpcBuilder = (fn: string, args: Record<string, unknown>) => {
+  abortSignal?: (signal: AbortSignal) => Promise<{ data: unknown; error: unknown }>;
+} & Promise<{ data: unknown; error: unknown }>;
+
 export function extRpcBuilder(
   client: SupabaseClient<ExtendedDatabase>,
   fn: string,
@@ -82,6 +87,5 @@ export function extRpcBuilder(
 ): {
   abortSignal?: (signal: AbortSignal) => Promise<{ data: unknown; error: unknown }>;
 } & Promise<{ data: unknown; error: unknown }> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return (client as any).rpc(fn, args);
+  return (client.rpc as unknown as UntypedRpcBuilder)(fn, args);
 }

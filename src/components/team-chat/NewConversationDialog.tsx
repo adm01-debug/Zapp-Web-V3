@@ -184,7 +184,7 @@ export function NewConversationDialog({ open, onOpenChange, onCreated }: Props) 
                   filteredDepts.map((d) => {
                     const isSelected = selectedDeptId === d.id;
                     return (
-                      <button
+                      <button type="button"
                         key={d.id}
                         onClick={() => setSelectedDeptId(d.id)}
                         className={cn(
@@ -224,7 +224,7 @@ export function NewConversationDialog({ open, onOpenChange, onCreated }: Props) 
                 filteredTeammates.map((t) => {
                   const isSelected = selectedIds.includes(t.id);
                   return (
-                    <button
+                    <button type="button"
                       key={t.id}
                       onClick={() => toggleMember(t.id)}
                       className={cn(

@@ -125,7 +125,7 @@ export function AddMembersDialog({ open, onOpenChange, conversation }: Props) {
               filtered.map(t => {
                 const isSelected = selectedIds.includes(t.id);
                 return (
-                  <button
+                  <button type="button"
                     key={t.id}
                     onClick={() => toggleMember(t.id)}
                     className={cn(

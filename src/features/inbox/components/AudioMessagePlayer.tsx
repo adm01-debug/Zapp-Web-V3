@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Play, Pause, Loader2, FileText, RefreshCw, AlertCircle, Wand2 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -23,7 +24,7 @@ interface AudioMessagePlayerProps {
   conversationId?: string;
 }
 
-export function AudioMessagePlayer({
+export const AudioMessagePlayer = memo(function AudioMessagePlayer({
   audioUrl,
   messageId,
   isSent,
@@ -215,7 +216,7 @@ export function AudioMessagePlayer({
           </div>
         </div>
         <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-          <button
+          <button type="button"
             onClick={cycleSpeed}
             className={cn(
               'h-6 rounded-full px-1.5 text-[10px] font-semibold transition-colors',
@@ -338,4 +339,4 @@ export function AudioMessagePlayer({
       </AnimatePresence>
     </div>
   );
-}
+});

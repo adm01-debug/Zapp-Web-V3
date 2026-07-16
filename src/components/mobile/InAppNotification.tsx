@@ -58,7 +58,7 @@ export function InAppNotification({ notification, duration = 4000, onDismiss }: 
               <p className="text-sm font-semibold text-foreground truncate">{notification.title}</p>
               <p className="text-xs text-muted-foreground truncate">{notification.body}</p>
             </div>
-            <button
+            <button type="button"
               onClick={(e) => { e.stopPropagation(); onDismiss(); }}
               className="shrink-0 p-1 rounded-full hover:bg-muted active:scale-95 transition-transform touch-manipulation"
             >

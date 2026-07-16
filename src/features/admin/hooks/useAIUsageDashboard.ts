@@ -31,12 +31,12 @@ interface ProfileInfo {
 }
 
 export const FUNCTION_COLORS: Record<string, string> = {
-  'ai-suggest-reply': '#3b82f6',
-  'ai-enhance-message': '#8b5cf6',
-  'ai-conversation-analysis': '#f59e0b',
-  'ai-conversation-summary': '#10b981',
-  'ai-auto-tag': '#ef4444',
-  'chatbot-l1': '#06b6d4',
+  'ai-suggest-reply': 'hsl(var(--primary))',
+  'ai-enhance-message': 'hsl(var(--accent))',
+  'ai-conversation-analysis': 'hsl(var(--warning))',
+  'ai-conversation-summary': 'hsl(var(--success))',
+  'ai-auto-tag': 'hsl(var(--destructive))',
+  'chatbot-l1': 'hsl(var(--info))',
 };
 
 export const FUNCTION_LABELS: Record<string, string> = {

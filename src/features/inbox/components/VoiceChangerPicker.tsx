@@ -203,7 +203,7 @@ export function VoiceChangerPicker({ onSendAudio, disabled }: VoiceChangerPicker
               <div className="max-h-[180px] overflow-y-auto pr-1">
                 <div className="grid grid-cols-5 gap-1">
                   {VOICE_PRESETS.map(v => (
-                    <button
+                    <button type="button"
                       key={v.id}
                       onClick={() => setSelectedVoice(v.id)}
                       className={cn(

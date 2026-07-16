@@ -164,7 +164,7 @@ export function VoiceSelector({ selectedVoiceId, onVoiceChange, className }: Voi
               >
                 <div className="flex items-center gap-2 flex-1 min-w-0">
                   {/* Preview button */}
-                  <button
+                  <button type="button"
                     onClick={(e) => playPreview(voice, e)}
                     className={cn(
                       "flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center transition-colors",

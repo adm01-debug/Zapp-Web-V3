@@ -146,7 +146,7 @@ export function StickerManager({ onSend, mode: _mode = 'manager' }: StickerManag
               />
             </div>
             <div className="flex items-center rounded-lg border border-border/50 p-0.5">
-              <button
+              <button type="button"
                 onClick={() => setGridSize('sm')}
                 className={cn(
                   'rounded-md p-1.5 transition-colors',
@@ -157,7 +157,7 @@ export function StickerManager({ onSend, mode: _mode = 'manager' }: StickerManag
               >
                 <Grid3X3 className="h-4 w-4" />
               </button>
-              <button
+              <button type="button"
                 onClick={() => setGridSize('md')}
                 className={cn(
                   'rounded-md p-1.5 transition-colors',

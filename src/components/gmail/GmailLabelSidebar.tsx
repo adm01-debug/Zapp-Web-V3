@@ -42,7 +42,7 @@ function LabelItem({
   const icon = LABEL_ICONS[label.email_label_id] ?? <Tag className="h-4 w-4" />;
 
   return (
-    <button
+    <button type="button"
       onClick={onClick}
       className={`flex items-center gap-2.5 w-full px-3 py-1.5 rounded-lg text-sm transition-colors
         ${active
@@ -114,7 +114,7 @@ export function EmailLabelSidebar({
           <>
             <Separator className="my-2 mx-2" />
             <div className="px-2">
-              <button
+              <button type="button"
                 onClick={() => setShowCustom(prev => !prev)}
                 className="flex items-center gap-1.5 w-full px-1 py-1 text-xs font-semibold text-muted-foreground uppercase tracking-wide hover:text-foreground transition-colors"
               >

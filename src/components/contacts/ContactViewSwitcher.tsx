@@ -34,7 +34,7 @@ export function ContactViewSwitcher({
       {/* View mode toggles */}
       <div className="flex items-center bg-muted/50 rounded-lg p-0.5">
         {VIEW_MODES.map(({ value, label, icon: Icon }) => (
-          <button
+          <button type="button"
             key={value}
             onClick={() => onViewModeChange(value)}
             className={cn(

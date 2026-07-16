@@ -73,7 +73,7 @@ export function QueueCard({ queue, alertCount, onAddMember, onRemoveMember, onSe
                         <AvatarImage src={member.profile?.avatar_url || undefined} alt={member.profile?.name || ""} />
                         <AvatarFallback className="text-xs bg-primary/10 text-primary">{member.profile?.name?.[0] || '?'}</AvatarFallback>
                       </Avatar>
-                      <button onClick={() => onRemoveMember(queue.id, member.profile_id ?? member.user_id)} aria-label="Remover atendente da fila" className="absolute -top-1 -right-1 w-4 h-4 bg-destructive text-destructive-foreground rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                      <button type="button" onClick={() => onRemoveMember(queue.id, member.profile_id ?? member.user_id)} aria-label="Remover atendente da fila" className="absolute -top-1 -right-1 w-4 h-4 bg-destructive text-destructive-foreground rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                         <UserMinus className="w-2.5 h-2.5" />
                       </button>
                     </div>

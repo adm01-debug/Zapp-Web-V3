@@ -85,7 +85,7 @@ export function BridgeDiagnosticsDialog({
                         <summary className="cursor-pointer text-[10px] text-primary/70 hover:underline">
                           Ver detalhes técnicos
                         </summary>
-                        <pre className="mt-2 max-h-32 overflow-x-auto rounded bg-black/5 p-2 font-mono text-[10px]">
+                        <pre className="mt-2 max-h-32 overflow-x-auto rounded bg-muted/40 p-2 font-mono text-[10px]">
                           {JSON.stringify(safeClient.maskSensitiveData(res.details), null, 2)}
                         </pre>
                       </details>

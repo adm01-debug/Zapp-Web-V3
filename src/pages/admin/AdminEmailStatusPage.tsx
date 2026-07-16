@@ -24,7 +24,7 @@ const getStatusIcon = (status?: string) => {
     case 'healthy':
       return <CheckCircle2 className="h-5 w-5 text-primary" />;
     case 'degraded':
-      return <AlertTriangle className="h-5 w-5 text-yellow-500" />;
+      return <AlertTriangle className="h-5 w-5 text-warning" />;
     case 'error':
       return <AlertCircle className="h-5 w-5 text-destructive" />;
     default:
@@ -220,7 +220,7 @@ export default function AdminEmailStatusPage() {
       case 'healthy':
         return <CheckCircle2 className="h-5 w-5 text-primary" />;
       case 'degraded':
-        return <AlertTriangle className="h-5 w-5 text-yellow-500" />;
+        return <AlertTriangle className="h-5 w-5 text-warning" />;
       case 'error':
         return <AlertCircle className="h-5 w-5 text-destructive" />;
       default:
@@ -270,7 +270,7 @@ export default function AdminEmailStatusPage() {
         <Alert
           variant={health.status === 'error' ? 'destructive' : 'default'}
           className={
-            health.status === 'degraded' ? 'border-yellow-200 bg-yellow-50 text-yellow-800' : ''
+            health.status === 'degraded' ? 'border-warning/30 bg-warning/10 text-warning' : ''
           }
         >
           {health.status === 'error' ? (

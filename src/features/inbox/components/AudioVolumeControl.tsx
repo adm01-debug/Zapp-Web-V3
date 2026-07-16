@@ -98,7 +98,7 @@ export function AudioVolumeControl({ volume, onChange, isSent = false, size = 'm
                   }}
                 />
               </div>
-              <button
+              <button type="button"
                 onClick={handleToggleMute}
                 className="text-muted-foreground hover:text-foreground transition-colors"
                 title={volume === 0 ? 'Tirar mudo' : 'Silenciar'}

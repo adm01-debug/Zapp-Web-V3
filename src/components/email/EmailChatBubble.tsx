@@ -321,7 +321,7 @@ export function EmailChatBubble({
 
               {/* Mostrar citação */}
               {hasQuote && !showFullHtml && (
-                <button
+                <button type="button"
                   className="mt-3 flex items-center gap-1.5 rounded-full bg-primary/5 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-primary transition-colors hover:text-primary/80"
                   onClick={(e) => {
                     e.stopPropagation();

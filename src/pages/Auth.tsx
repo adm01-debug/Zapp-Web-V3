@@ -261,7 +261,7 @@ export default function Auth() {
                     <div className="flex justify-end">
                       <Link
                         to="/forgot-password"
-                        className="text-xs text-primary dark:text-blue-400 transition-colors hover:opacity-80 hover:underline"
+                        className="text-xs text-primary transition-colors hover:opacity-80 hover:underline"
                       >
                         Esqueci minha senha
                       </Link>

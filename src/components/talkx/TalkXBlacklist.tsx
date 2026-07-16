@@ -188,7 +188,7 @@ export function TalkXBlacklist() {
                     </p>
                   ) : (
                     filteredAvailable.map((c) => (
-                      <button
+                      <button type="button"
                         key={c.id}
                         onClick={() => setSelectedContactId(c.id)}
                         className={`w-full px-3 py-2 text-left text-sm transition-colors ${

@@ -64,19 +64,37 @@ function useHeatmapData() {
 const METRIC_CONFIG = {
   volume: {
     label: 'Volume de Mensagens',
-    colorScale: ['#f0fdf4', '#86efac', '#22c55e', '#15803d', '#14532d'],
+    colorScale: [
+      'hsl(var(--success) / 0.08)',
+      'hsl(var(--success) / 0.25)',
+      'hsl(var(--success) / 0.55)',
+      'hsl(var(--success) / 0.80)',
+      'hsl(var(--success))',
+    ],
     unit: 'msgs',
     description: 'Número total de mensagens por período',
   },
   response_time: {
     label: 'Tempo de Resposta',
-    colorScale: ['#fef9c3', '#fde047', '#facc15', '#eab308', '#ca8a04'],
+    colorScale: [
+      'hsl(var(--warning) / 0.08)',
+      'hsl(var(--warning) / 0.25)',
+      'hsl(var(--warning) / 0.55)',
+      'hsl(var(--warning) / 0.80)',
+      'hsl(var(--warning))',
+    ],
     unit: 'seg',
     description: 'Tempo médio de primeira resposta',
   },
   satisfaction: {
     label: 'Satisfação',
-    colorScale: ['#fef2f2', '#fecaca', '#f87171', '#ef4444', '#dc2626'],
+    colorScale: [
+      'hsl(var(--destructive) / 0.08)',
+      'hsl(var(--destructive) / 0.25)',
+      'hsl(var(--destructive) / 0.55)',
+      'hsl(var(--destructive) / 0.80)',
+      'hsl(var(--destructive))',
+    ],
     unit: '/5',
     description: 'Nota média de satisfação do cliente',
     invert: true,

@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo } from 'react';
+import { safeGetJSON, safeSetJSON } from '@/lib/safeStorage';
 import { Clock } from 'lucide-react';
 import {
   CommandDialog,
@@ -40,15 +41,13 @@ const groups: { label: string; items: readonly NavItemConfig[] }[] = [
 const allItems = groups.flatMap(g => g.items);
 
 function getRecent(): string[] {
-  try {
-    return JSON.parse(localStorage.getItem(RECENT_KEY) || '[]');
-  } catch { return []; }
+  return safeGetJSON<string[]>(RECENT_KEY, []);
 }
 
 function pushRecent(id: string) {
   const list = getRecent().filter(r => r !== id);
   list.unshift(id);
-  localStorage.setItem(RECENT_KEY, JSON.stringify(list.slice(0, MAX_RECENT)));
+  safeSetJSON(RECENT_KEY, list.slice(0, MAX_RECENT));
 }
 
 export function CommandPalette({ onNavigate }: CommandPaletteProps) {

@@ -17,7 +17,7 @@ export function CategorySelector({ value, onChange, size = 'sm' }: CategorySelec
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <button
+        <button type="button"
           className={cn(
             'flex items-center gap-1 rounded-md border border-border/50 transition-colors hover:bg-muted/60',
             size === 'xs' ? 'px-1.5 py-0.5 text-[10px]' : 'px-2 py-1 text-xs'
@@ -46,7 +46,7 @@ export function CategorySelector({ value, onChange, size = 'sm' }: CategorySelec
             const catInfo = CATEGORY_LABELS[cat];
             const isActive = cat === value;
             return (
-              <button
+              <button type="button"
                 key={cat}
                 role="option"
                 aria-selected={isActive}

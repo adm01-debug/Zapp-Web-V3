@@ -79,7 +79,7 @@ export function HandoffDialog({
             <ScrollArea className="h-48 rounded-lg border p-2">
               <div className="space-y-1">
                 {agents?.map((agent) => (
-                  <button
+                  <button type="button"
                     key={agent.id}
                     onClick={() => setSelectedAgent(agent.id)}
                     className={cn(

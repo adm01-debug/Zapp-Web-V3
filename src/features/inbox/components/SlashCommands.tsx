@@ -61,11 +61,15 @@ export function SlashCommands({ inputValue, onSelectCommand, onClose, isOpen }: 
 
   if (!isOpen || (filteredCommands.length === 0 && !selectedCommand)) return null;
 
-  const groupedCommands = filteredCommands.reduce((acc, cmd) => {
-    if (!acc[cmd.category]) acc[cmd.category] = [];
-    acc[cmd.category].push(cmd);
-    return acc;
-  }, {} as Record<string, SlashCommand[]>);
+  const groupedCommands = useMemo(
+    () =>
+      filteredCommands.reduce((acc, cmd) => {
+        if (!acc[cmd.category]) acc[cmd.category] = [];
+        acc[cmd.category].push(cmd);
+        return acc;
+      }, {} as Record<string, SlashCommand[]>),
+    [filteredCommands]
+  );
 
   return (
     <AnimatePresence>

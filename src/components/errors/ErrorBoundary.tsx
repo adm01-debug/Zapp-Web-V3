@@ -266,7 +266,7 @@ export class ErrorBoundary extends Component<Props, State> {
               </div>
 
               {!isChunkErr && (
-                <button
+                <button type="button"
                   onClick={this.handleReload}
                   className="w-full text-sm text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline"
                 >

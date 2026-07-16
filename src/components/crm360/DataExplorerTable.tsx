@@ -72,7 +72,7 @@ export function DataExplorerTable({ tabConfig, onRowClick, onCreateClick }: Data
             className="pl-9 pr-8 h-9"
           />
           {searchInput && (
-            <button onClick={handleClearSearch} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+            <button type="button" onClick={handleClearSearch} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
               <X className="h-3.5 w-3.5" />
             </button>
           )}

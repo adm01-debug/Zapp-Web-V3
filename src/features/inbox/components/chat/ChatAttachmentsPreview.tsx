@@ -50,7 +50,7 @@ export function ChatAttachmentsPreview({ attachments, onRemove }: ChatAttachment
                     </span>
                   </div>
                 )}
-                <button
+                <button type="button"
                   onClick={() => onRemove(att.id)}
                   className="absolute right-1 top-1 rounded-full bg-background/80 p-0.5 text-foreground opacity-0 transition-opacity hover:bg-destructive hover:text-foreground group-hover:opacity-100"
                 >

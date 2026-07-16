@@ -176,7 +176,7 @@ export function ConversationMemoryPanel({ contactId, profileId }: ConversationMe
                 className="group flex items-center gap-1.5 rounded bg-muted/20 px-2 py-1 text-xs"
               >
                 <span className="flex-1">{item}</span>
-                <button
+                <button type="button"
                   onClick={() => removeItem(key, idx)}
                   className="opacity-0 group-hover:opacity-100"
                 >

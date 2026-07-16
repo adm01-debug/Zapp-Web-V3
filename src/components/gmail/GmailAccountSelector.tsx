@@ -66,7 +66,7 @@ export function EmailAccountSelector({
     <div className={cn('flex items-center gap-2 p-1 bg-background/40 rounded-xl border border-border/10 shadow-sm', className)}>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <button className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg hover:bg-muted/80 transition-all duration-200 min-w-0 flex-1 group">
+          <button type="button" className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg hover:bg-muted/80 transition-all duration-200 min-w-0 flex-1 group">
             <div className="relative shrink-0">
               <Avatar className="h-8 w-8 border border-primary/10 group-hover:border-primary/30 transition-colors">
                 <AvatarImage src={activeAccount?.picture_url ?? ''} alt={activeAccount?.display_name ?? ''} />

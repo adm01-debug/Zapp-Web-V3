@@ -28,8 +28,8 @@ export interface PriorityInfo {
 
 export const PRIORITY_META: Record<PriorityLevel, { label: string; badgeClass: string; order: number }> = {
   critical: { label: 'P1 · Crítica', badgeClass: 'bg-destructive text-destructive-foreground', order: 0 },
-  high: { label: 'P2 · Alta', badgeClass: 'bg-orange-500 text-white', order: 1 },
-  medium: { label: 'P3 · Média', badgeClass: 'bg-amber-500 text-white', order: 2 },
+  high: { label: 'P2 · Alta', badgeClass: 'bg-warning text-warning-foreground', order: 1 },
+  medium: { label: 'P3 · Média', badgeClass: 'bg-warning/70 text-warning-foreground', order: 2 },
   normal: { label: 'P4 · Normal', badgeClass: 'bg-muted text-muted-foreground', order: 3 },
 };
 
