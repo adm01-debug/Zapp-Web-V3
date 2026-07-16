@@ -18,6 +18,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { queryKeys } from '@/services/api/queryKeys';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
@@ -43,7 +44,7 @@ export const SLADeliveryHistoryDashboard = () => {
   const [statusFilter, setStatusFilter] = useState('all');
 
   const { data: violations, isLoading } = useQuery({
-    queryKey: ['sla-delivery-violations', statusFilter],
+    queryKey: queryKeys.sla.deliveryViolations(statusFilter),
     queryFn: async () => {
       const { data, error } = await safeClient.from<SlaViolation>(
         'sla_delivery_violations',
@@ -80,7 +81,7 @@ export const SLADeliveryHistoryDashboard = () => {
     },
     onSuccess: () => {
       toast.success('Alerta marcado como resolvido');
-      queryClient.invalidateQueries({ queryKey: ['sla-delivery-violations'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.sla.deliveryViolations() });
     },
     onError: (err: Error) => toast.error(err.message),
   });

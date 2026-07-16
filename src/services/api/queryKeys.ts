@@ -230,11 +230,26 @@ export const queryKeys = {
   // SLA
   sla: {
     timeline: (conversationId?: string) => ['sla-timeline', conversationId] as const,
+    configurations: () => ['sla-configurations'] as const,
+    configurationsDefault: () => ['sla-configurations-default'] as const,
+    rules: () => ['sla-rules'] as const,
+    rulesActive: () => ['sla-rules-active'] as const,
+    rulesCounts: () => ['sla-rules-counts'] as const,
+    alertHistory: () => ['sla-alert-history'] as const,
+    history: (period?: string) => ['sla-history', period] as const,
+    metrics: (period?: string) => ['sla-metrics', period] as const,
+    deliveryConfig: (contactId: string | undefined) =>
+      ['sla-delivery-config', contactId] as const,
+    deliveryViolations: (statusFilter?: string) =>
+      ['sla-delivery-violations', statusFilter] as const,
+    contact: (contactId?: string) => ['contact-sla', contactId] as const,
+    applicable: (params?: unknown) => ['applicable-sla', params] as const,
   },
 
   // Follow-up Sequences
   followupSequences: {
     all: () => ['followup-sequences'] as const,
+    executions: (contactId?: string) => ['followup-executions', contactId] as const,
   },
 
   // Evolution Fallback Stats
@@ -244,8 +259,11 @@ export const queryKeys = {
 
   // Evolution external conversations (sidebar)
   evolutionConversations: {
+    all: () => ['external-evolution', 'conversations'] as const,
     sidebar: (daysBack: number, limit: number, instance: string) =>
       ['external-evolution', 'conversations', daysBack, limit, instance] as const,
+    contact: (remoteJid?: string) => ['external-evolution', 'contact', remoteJid] as const,
+    contactAll: () => ['external-evolution', 'contact'] as const,
   },
 
   // Conversation history / ticket events
@@ -261,6 +279,215 @@ export const queryKeys = {
   // Team profiles (names lookup)
   teamProfiles: {
     names: () => ['team-profiles-names'] as const,
+    active: () => ['team-profiles-active'] as const,
+    forChat: () => ['team-profiles-for-chat'] as const,
+    forAddMembers: () => ['team-profiles-for-add-members'] as const,
+    memberProfile: (profileId?: string) => ['team-member-profile', profileId] as const,
+  },
+
+  // Team Chat (internal team messaging)
+  teamChat: {
+    conversations: () => ['team-conversations'] as const,
+    conversationList: (profileId?: string) => ['team-conversations', profileId] as const,
+    messages: (conversationId?: string, searchQuery?: string) =>
+      ['team-messages', conversationId, searchQuery] as const,
+    reactions: (conversationId?: string) => ['team-reactions', conversationId] as const,
+    files: (conversationId?: string) => ['team-files', conversationId] as const,
+    groupMembers: (conversationId?: string) => ['team-group-members', conversationId] as const,
+  },
+
+  // Message Reactions
+  messageReactions: {
+    message: (messageId?: string) => ['message-reactions', messageId] as const,
+    myProfile: (userId?: string) => ['my-profile-reactions', userId] as const,
+    participantStats: () => ['participant-stats'] as const,
+  },
+
+  // Failed Messages (DLQ / retry)
+  failedMessages: {
+    all: () => ['failed-messages'] as const,
+    stats: () => ['failed-messages-stats'] as const,
+    metricsBatch: (key: string) => ['failure-metrics-batch', key] as const,
+    reason: (messageId?: string) => ['message-failure-reason', messageId] as const,
+  },
+
+  // Agent Gamification
+  agentGamification: {
+    stats: (profileId?: string) => ['agent-stats', profileId] as const,
+    achievements: (profileId?: string) => ['agent-achievements', profileId] as const,
+    pendingCounts: () => ['agent-pending-counts'] as const,
+    recentSends: () => ['agent-recent-sends'] as const,
+    withStats: () => ['agents-with-stats'] as const,
+    ranking: () => ['agent-performance-ranking'] as const,
+  },
+
+  // Stickers
+  stickers: {
+    all: () => ['stickers-manager'] as const,
+  },
+
+  // Quick Replies
+  quickReplies: {
+    all: () => ['quick-replies'] as const,
+    user: (userId?: string) => ['quick-replies', userId] as const,
+  },
+
+  // Whispers
+  whispers: {
+    all: () => ['whispers'] as const,
+  },
+
+  // Internal Notes
+  internalNotes: {
+    contact: (contactId?: string) => ['internal-notes', contactId] as const,
+  },
+
+  // Media Gallery
+  mediaGallery: {
+    contact: (contactId?: string) => ['media-gallery', contactId] as const,
+    preview: (contactId?: string) => ['media-gallery-preview', contactId] as const,
+    count: (contactId?: string) => ['shared-media-count', contactId] as const,
+  },
+
+  // Message Details / History
+  messageDetails: {
+    detail: (messageId?: string) => ['message-details', messageId] as const,
+    sendHistory: (messageId?: string) => ['message-send-history', messageId] as const,
+  },
+
+  // Reports
+  reports: {
+    contacts: (period?: string) => ['reports-contacts', period] as const,
+    contactsPrevious: (period?: string) => ['reports-contacts-previous', period] as const,
+    messages: (period?: string) => ['reports-messages', period] as const,
+    messagesPrevious: (period?: string) => ['reports-messages-previous', period] as const,
+  },
+
+  // Goals / Targets
+  goals: {
+    config: () => ['goals-config'] as const,
+    messages: (period?: string) => ['goals-messages', period] as const,
+    contacts: (period?: string) => ['goals-contacts', period] as const,
+  },
+
+  // TalkX (bulk messaging)
+  talkx: {
+    blacklist: () => ['talkx-blacklist'] as const,
+    campaignLive: () => ['talkx-campaign-live'] as const,
+    recipientsList: () => ['talkx-recipients-list'] as const,
+    contactsForBlacklist: () => ['contacts-for-blacklist'] as const,
+    contactsTalkx: () => ['contacts-talkx'] as const,
+    waConnections: () => ['wa-connections-talkx'] as const,
+  },
+
+  // Scheduled Reports
+  scheduledReports: {
+    configs: () => ['scheduled-report-configs'] as const,
+  },
+
+  // Contacts extended (per-contact sub-queries)
+  contactDetails: {
+    notes: (contactId?: string) => ['contact-notes', contactId] as const,
+    aiTags: (contactId?: string) => ['contact-ai-tags', contactId] as const,
+    enriched: (contactId?: string) => ['contact-enriched', contactId] as const,
+    localId: (contactId?: string) => ['contact-local-id', contactId] as const,
+    intelligence: (contactId?: string) => ['contact-intelligence', contactId] as const,
+    tagsMap: () => ['contact-tags-map'] as const,
+    transfersPaginated: (contactId?: string) => ['transfers-paginated', contactId] as const,
+    singleContact: (remoteJid?: string) => ['contact', remoteJid] as const,
+    contactsList: () => ['contacts-list'] as const,
+    typeCounts: () => ['contacts-type-counts'] as const,
+    inboxScopes: () => ['inbox-custom-scopes'] as const,
+    agentForHandoff: () => ['agents-for-handoff'] as const,
+    agentForMention: () => ['agents-for-mention'] as const,
+  },
+
+  // User Profile (self)
+  userProfile: {
+    me: () => ['my-profile'] as const,
+    byId: (userId?: string) => ['user-profile', userId] as const,
+    profile: (userId?: string) => ['profile', userId] as const,
+    visibleAgentIds: () => ['visible-agent-ids'] as const,
+    forPermissions: () => ['profiles-for-permissions'] as const,
+    forUsage: () => ['profiles-for-usage'] as const,
+    permissionsList: () => ['permissions-list'] as const,
+  },
+
+  // Department extended
+  departmentChat: {
+    list: () => ['departments-list'] as const,
+    agents: (deptId?: string) => ['department-agents', deptId] as const,
+  },
+
+  // Calls History
+  calls: {
+    history: (contactId?: string) => ['calls-history', contactId] as const,
+  },
+
+  // Chatbot Flows extended
+  chatbot: {
+    executions: (contactId?: string) => ['chatbot-executions', contactId] as const,
+    l1Flow: (instanceId?: string) => ['chatbot-l1-flow', instanceId] as const,
+  },
+
+  // AI Features
+  aiFeatures: {
+    tagStats: () => ['ai-tag-stats'] as const,
+    usageLogs: (filters?: unknown) => ['ai-usage-logs', filters] as const,
+    statsWidget: () => ['ai-stats-widget'] as const,
+    providerHealth: () => ['ai-provider-health'] as const,
+  },
+
+  // Admin extended sub-keys
+  adminOps: {
+    stsDashboard: () => [...queryKeys.admin.all(), 'sts-commercial-dashboard'] as const,
+    publicApi: () => [...queryKeys.admin.all(), 'public-api-dashboard'] as const,
+    visibilityGrants: () => [...queryKeys.admin.all(), 'visibility-grants'] as const,
+    qrAttempts: (status?: string, instance?: string) =>
+      [...queryKeys.admin.all(), 'qr-attempts', status, instance] as const,
+    playbooks: () => [...queryKeys.admin.all(), 'playbooks'] as const,
+    crisisRoom: () => [...queryKeys.admin.all(), 'crisis-room'] as const,
+    inboxScopes: () => [...queryKeys.admin.all(), 'inbox-custom-scopes'] as const,
+    sicoobBridge: () => [...queryKeys.admin.all(), 'sicoob-bridge-dashboard'] as const,
+    emailWebhook: () => [...queryKeys.admin.all(), 'email-webhook-monitor'] as const,
+    rateLimitLogs: (page?: string) =>
+      [...queryKeys.admin.all(), 'rate-limit-logs', page] as const,
+    diagnostics: () => [...queryKeys.admin.all(), 'diagnostics'] as const,
+    agentVersions: () => ['admin-agent-versions-list'] as const,
+    alertHistory: (filters?: unknown) => ['admin-alert-history', filters] as const,
+    evolutionApiLogs: (filters?: unknown) => ['admin-evolution-api-logs', filters] as const,
+    webhookOverview: () => ['admin-webhook-overview'] as const,
+    webhookInstances: () => ['webhook-instances-list'] as const,
+    webhookRecentEvents: (instanceId?: string) =>
+      ['webhook-recent-events', instanceId] as const,
+    webhookSecretStatus: () => ['webhook-secret-status'] as const,
+    kbArticleCount: () => ['kb-article-count'] as const,
+    dlqAuditLog: () => ['dlq-audit-log'] as const,
+    userRoles: () => ['user-roles-overview'] as const,
+    realtimeMonitor: () => ['realtime-monitor'] as const,
+    warroom: {
+      agents: () => ['warroom-agents'] as const,
+      queues: () => ['warroom-queues'] as const,
+    },
+    csatAutoConfig: () => ['csat-auto-config'] as const,
+    whatsappConnectionsCsat: () => ['whatsapp-connections-csat'] as const,
+    scheduledReportConfigs: () => ['scheduled-report-configs'] as const,
+    searchInsights: (filters?: unknown) => ['search-insights', filters] as const,
+    activityHeatmap: (filters?: unknown) => ['activity-heatmap', filters] as const,
+    conversationHeatmap: (filters?: unknown) => ['conversation-heatmap', filters] as const,
+    conversationTimeline: (filters?: unknown) => ['conversation-timeline', filters] as const,
+    sentimentTrend: (filters?: unknown) => ['sentiment-trend', filters] as const,
+    authEventSummary: (filters?: unknown) => ['auth-event-summary', filters] as const,
+    authEventTrend: (filters?: unknown) => ['auth-event-trend', filters] as const,
+    hmacAudit: () => ['hmac-selftest-audit'] as const,
+    hmacAuditInstances: () => ['hmac-selftest-audit-instances'] as const,
+    idempotencyMiss: () => ['idempotency-miss'] as const,
+    incidentEvents: () => ['incident-events'] as const,
+    instancePauses: () => ['instance-pauses'] as const,
+    evolutionRetryMetrics: () => ['evolution-retry-metrics'] as const,
+    alertInstanceDetail: (alertId?: string) =>
+      ['alert-instance-detail', alertId] as const,
+    operationsLogs: (filters?: unknown) => ['operations-logs', filters] as const,
   },
 };
 

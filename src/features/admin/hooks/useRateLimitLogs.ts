@@ -1,3 +1,4 @@
+import { queryKeys } from '@/services/api/queryKeys';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -171,7 +172,7 @@ export function useRateLimitLogs(initial?: Partial<RateLimitLogsFilters>): UseRa
           queryClient.setQueryData<RateLimitLog[]>(STATS_KEY, (prev) =>
             [payload.new, ...(prev ?? [])].slice(0, 200),
           );
-          queryClient.invalidateQueries({ queryKey: ['admin', 'rate-limit-logs', 'page'] });
+          queryClient.invalidateQueries({ queryKey: queryKeys.adminOps.rateLimitLogs('page') });
         },
       )
       .subscribe();

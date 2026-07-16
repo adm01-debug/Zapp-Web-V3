@@ -1,3 +1,4 @@
+import { queryKeys } from '@/services/api/queryKeys';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/features/auth';
@@ -36,7 +37,7 @@ export function TeamMemberDetails({ conversation, onClose }: TeamMemberDetailsPr
   const otherMemberId = conversation.type === 'direct' ? conversation.members?.find(m => m.profile_id !== profile?.id)?.profile_id : null;
 
   const { data: memberProfile, isLoading } = useQuery({
-    queryKey: ['team-member-profile', otherMemberId || conversation.id],
+    queryKey: queryKeys.teamProfiles.memberProfile(otherMemberId || conversation.id),
     queryFn: async () => {
       if (conversation.type === 'direct' && otherMemberId) {
         const { data, error } = await supabase.from('profiles').select('id, name, email, phone, avatar_url, job_title, department, role, is_active, created_at, birthday').eq('id', otherMemberId).maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
@@ -50,7 +51,7 @@ export function TeamMemberDetails({ conversation, onClose }: TeamMemberDetailsPr
 
   const memberIds = conversation.members?.map(m => m.profile_id) || [];
   const { data: groupMembers = [] } = useQuery({
-    queryKey: ['team-group-members', conversation.id, conversation.type, conversation.department_id, memberIds.join(',')],
+    queryKey: queryKeys.teamChat.groupMembers(`${conversation.id}-${conversation.type}-${conversation.department_id}-${memberIds.join(',')}`),
     queryFn: async () => {
       if (conversation.type === 'department' && conversation.department_id) {
         const { data, error } = await supabase

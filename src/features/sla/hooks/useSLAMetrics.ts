@@ -1,3 +1,4 @@
+import { queryKeys } from '@/services/api/queryKeys';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
@@ -129,7 +130,7 @@ async function fetchSLAMetrics(period: PeriodFilter): Promise<SLADashboardData> 
 
 export const useSLAMetrics = (period: PeriodFilter = 'today') => {
   const { data = null, isLoading: loading } = useQuery({
-    queryKey: ['sla-metrics', period],
+    queryKey: queryKeys.sla.metrics(period),
     queryFn: () => fetchSLAMetrics(period),
     staleTime: 30_000,
     refetchInterval: 60_000,

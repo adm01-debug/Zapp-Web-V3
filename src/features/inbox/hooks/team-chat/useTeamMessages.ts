@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { useAuth } from '@/features/auth';
 import type { TeamMessage } from './teamChatTypes';
+import { queryKeys } from '@/services/api/queryKeys';
 
 const MESSAGES_PER_PAGE = 50;
 
@@ -14,7 +15,7 @@ export function useTeamMessages(conversationId: string | null, searchQuery: stri
 
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading, isError, error } =
     useInfiniteQuery({
-      queryKey: ['team-messages', conversationId, searchQuery],
+      queryKey: queryKeys.teamChat.messages(conversationId, searchQuery),
       queryFn: async ({ pageParam }) => {
         if (!conversationId) return { messages: [], nextCursor: null };
 
@@ -94,7 +95,7 @@ export function useTeamMessages(conversationId: string | null, searchQuery: stri
             );
           }
 
-          void queryClient.invalidateQueries({ queryKey: ['team-messages', conversationId] });
+          void queryClient.invalidateQueries({ queryKey: queryKeys.teamChat.messages(conversationId) });
         }
       )
       .subscribe();

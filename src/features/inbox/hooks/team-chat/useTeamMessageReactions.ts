@@ -1,3 +1,4 @@
+import { queryKeys } from '@/services/api/queryKeys';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
@@ -25,7 +26,7 @@ export function useTeamMessageReactions(conversationId: string | undefined) {
   const { profile } = useAuth();
 
   const { data: reactions = [] } = useQuery({
-    queryKey: ['team-reactions', conversationId],
+    queryKey: queryKeys.teamChat.reactions(conversationId),
     queryFn: async () => {
       if (!conversationId) return [];
       // Fetch all reactions for messages in this conversation
@@ -53,7 +54,7 @@ export function useTeamMessageReactions(conversationId: string | undefined) {
         'postgres_changes',
         { event: '*', schema: 'zapp', table: 'team_message_reactions' },
         () => {
-          void queryClient.invalidateQueries({ queryKey: ['team-reactions', conversationId] });
+          void queryClient.invalidateQueries({ queryKey: queryKeys.teamChat.reactions(conversationId) });
         }
       )
       .subscribe();
@@ -82,7 +83,7 @@ export function useTeamMessageReactions(conversationId: string | undefined) {
       }
     },
     onMutate: async ({ messageId, emoji }) => {
-      await queryClient.cancelQueries({ queryKey: ['team-reactions', conversationId] });
+      await queryClient.cancelQueries({ queryKey: queryKeys.teamChat.reactions(conversationId) });
       const previousReactions = queryClient.getQueryData<TeamReaction[]>([
         'team-reactions',
         conversationId,
@@ -111,7 +112,7 @@ export function useTeamMessageReactions(conversationId: string | undefined) {
       return { previousReactions };
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['team-reactions', conversationId] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.teamChat.reactions(conversationId) });
     },
     onError: (err: { status?: number; code?: string | number } & Error, _variables, context) => {
       if (context?.previousReactions) {

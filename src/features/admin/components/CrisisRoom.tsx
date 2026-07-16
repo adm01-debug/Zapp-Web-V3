@@ -1,3 +1,4 @@
+import { queryKeys } from '@/services/api/queryKeys';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
@@ -18,7 +19,7 @@ interface CrisisMetric {
 
 export function CrisisRoom() {
   const { data: metrics = [], isFetching, refetch } = useQuery<CrisisMetric[]>({
-    queryKey: ['admin', 'crisis-room'],
+    queryKey: queryKeys.adminOps.crisisRoom(),
     queryFn: async () => {
       const now = new Date();
       const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);

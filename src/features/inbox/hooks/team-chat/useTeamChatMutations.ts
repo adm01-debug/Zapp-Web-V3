@@ -5,6 +5,7 @@ import { useAuth } from '@/features/auth';
 import { toast } from '@/hooks/use-toast';
 import { log } from '@/lib/logger';
 import type { TeamMessage } from './teamChatTypes';
+import { queryKeys } from '@/services/api/queryKeys';
 
 interface TeamMessagePage {
   messages: TeamMessage[];
@@ -37,7 +38,7 @@ export function useUpdateTeamMessageStatus() {
     },
     onSuccess: (data) => {
       queryClient.setQueriesData(
-        { queryKey: ['team-messages', data.conversationId] },
+        { queryKey: queryKeys.teamChat.messages(data.conversationId) },
         (oldData: TeamMessageCache | undefined): TeamMessageCache | undefined => {
           if (!oldData?.pages) return oldData;
           const newPages = oldData.pages.map((page) => ({
@@ -95,7 +96,7 @@ export function useSendTeamMessage() {
     },
     onSuccess: (data, vars) => {
       queryClient.setQueriesData(
-        { queryKey: ['team-messages', vars.conversationId] },
+        { queryKey: queryKeys.teamChat.messages(vars.conversationId) },
         (oldData: TeamMessageCache | undefined): TeamMessageCache | undefined => {
           if (!oldData?.pages) return oldData;
           const newPages = [...oldData.pages];
@@ -116,7 +117,7 @@ export function useSendTeamMessage() {
           return { ...oldData, pages: newPages };
         }
       );
-      queryClient.invalidateQueries({ queryKey: ['team-conversations'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.teamChat.conversations() });
     },
     onError: () => {
       toast({ title: 'Erro ao enviar mensagem', variant: 'destructive' });
@@ -140,7 +141,7 @@ export function useDeleteTeamMessage() {
     },
     onSuccess: (_data, vars) => {
       queryClient.setQueriesData(
-        { queryKey: ['team-messages', vars.conversationId] },
+        { queryKey: queryKeys.teamChat.messages(vars.conversationId) },
         (oldData: TeamMessageCache | undefined): TeamMessageCache | undefined => {
           if (!oldData?.pages) return oldData;
           const newPages = oldData.pages.map((page) => ({
@@ -150,7 +151,7 @@ export function useDeleteTeamMessage() {
           return { ...oldData, pages: newPages };
         }
       );
-      queryClient.invalidateQueries({ queryKey: ['team-conversations'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.teamChat.conversations() });
     },
     onError: () => {
       toast({ title: 'Erro ao excluir mensagem', variant: 'destructive' });
@@ -179,7 +180,7 @@ export function useEditTeamMessage() {
     },
     onSuccess: (_data, vars) => {
       queryClient.setQueriesData(
-        { queryKey: ['team-messages', vars.conversationId] },
+        { queryKey: queryKeys.teamChat.messages(vars.conversationId) },
         (oldData: TeamMessageCache | undefined): TeamMessageCache | undefined => {
           if (!oldData?.pages) return oldData;
           const newPages = oldData.pages.map((page) => ({
@@ -288,7 +289,7 @@ export function useCreateTeamConversation() {
       return conv;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['team-conversations'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.teamChat.conversations() });
     },
     onError: () => {
       toast({ title: 'Erro ao criar conversa', variant: 'destructive' });
@@ -310,7 +311,7 @@ export function useToggleMuteConversation() {
       if (muteError) throw muteError;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['team-conversations'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.teamChat.conversations() });
     },
     onError: () => {
       toast({ title: 'Erro ao alterar silenciar', variant: 'destructive' });
@@ -344,7 +345,7 @@ export function useTransferTeamConversation() {
       return rows?.[0] ?? null;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['team-conversations'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.teamChat.conversations() });
       toast({ title: 'Conversa transferida com sucesso' });
     },
     onError: () => {

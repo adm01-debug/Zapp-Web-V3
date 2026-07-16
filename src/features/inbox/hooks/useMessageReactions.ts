@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/features/auth';
 import { useReactionMutations } from './reactions/useReactionMutations';
 import type { MessageReaction, UseMessageReactionsOptions } from './reactions/types';
+import { queryKeys } from '@/services/api/queryKeys';
 
 // Re-export types and batch hook for consumers
 export type { MessageReaction, UseMessageReactionsOptions };
@@ -30,7 +31,7 @@ export function useMessageReactions(messageId: string, options?: UseMessageReact
           filter: `message_id=eq.${messageId}`,
         },
         () => {
-          void queryClient.invalidateQueries({ queryKey: ['message-reactions', messageId] });
+          void queryClient.invalidateQueries({ queryKey: queryKeys.messageReactions.message(messageId) });
           void queryClient.invalidateQueries({ queryKey: ['operations-logs'] });
         }
       )
@@ -43,7 +44,7 @@ export function useMessageReactions(messageId: string, options?: UseMessageReact
   }, [messageId, options?.disableRealtime, queryClient]);
 
   const { data: profile } = useQuery({
-    queryKey: ['my-profile-reactions', user?.id],
+    queryKey: queryKeys.messageReactions.myProfile(user?.id),
     queryFn: async () => {
       if (!user?.id) return null;
       const { data, error } = await supabase.from('profiles')
@@ -63,7 +64,7 @@ export function useMessageReactions(messageId: string, options?: UseMessageReact
     isLoading,
     refetch,
   } = useQuery({
-    queryKey: ['message-reactions', messageId],
+    queryKey: queryKeys.messageReactions.message(messageId),
     queryFn: async () => {
       const { data, error } = await supabase.from('message_reactions')
         .select('*')

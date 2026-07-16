@@ -11,6 +11,7 @@ import { useAuth } from '@/features/auth';
 import { TeamConversation } from '@/hooks/useTeamChat';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { queryKeys } from '@/services/api/queryKeys';
 
 interface Props {
   open: boolean;
@@ -30,7 +31,7 @@ export function AddMembersDialog({ open, onOpenChange, conversation }: Props) {
   );
 
   const { data: teammates = [], isLoading } = useQuery({
-    queryKey: ['team-profiles-for-add-members', conversation.id],
+    queryKey: queryKeys.teamProfiles.forAddMembers(),
     queryFn: async () => {
       const { data, error } = await supabase
         .from('profiles')
@@ -62,8 +63,8 @@ export function AddMembersDialog({ open, onOpenChange, conversation }: Props) {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['team-conversations'] });
-      queryClient.invalidateQueries({ queryKey: ['team-messages', conversation.id] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.teamChat.conversations() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.teamChat.messages(conversation.id) });
       toast.success(`${selectedIds.length} membro(s) adicionado(s)`);
       setSelectedIds([]);
       setSearch('');

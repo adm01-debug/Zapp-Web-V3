@@ -1,3 +1,4 @@
+import { queryKeys } from '@/services/api/queryKeys';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { toast } from 'sonner';
@@ -82,7 +83,7 @@ export function useSLAAlertHistory() {
   const queryClient = useQueryClient();
 
   const query = useQuery({
-    queryKey: ['sla-alert-history'],
+    queryKey: queryKeys.sla.alertHistory(),
     queryFn: fetchHistory,
     staleTime: 30_000,
   });
@@ -95,7 +96,7 @@ export function useSLAAlertHistory() {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['sla-alert-history'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.sla.alertHistory() });
       toast.success('Alerta resolvido');
     },
     onError: (err: Error) => toast.error(err.message),
