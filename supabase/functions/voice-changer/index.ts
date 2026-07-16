@@ -1,4 +1,4 @@
-import { handleCors, errorResponse, getCorsHeaders, Logger, requireEnv } from "../_shared/validation.ts";
+import { handleCors, errorResponse, getCorsHeaders, Logger, requireEnv, checkRateLimit } from "../_shared/validation.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { requireUser, requireServiceRoleOrCron } from "../_shared/auth.ts";
 
@@ -54,6 +54,8 @@ Deno.serve(async (req) => {
     if (internalCheck !== null) {
       const authed = await requireUser(req);
       if (authed instanceof Response) return authed;
+      const rl = checkRateLimit(`voice-changer:${authed.user.id}`, 5, 60_000);
+      if (!rl.allowed) return errorResponse('Rate limit exceeded', 429, req);
     }
 
     const supabaseClient = createClient(
