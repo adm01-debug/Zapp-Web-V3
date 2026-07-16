@@ -64,7 +64,7 @@ export function AddMembersDialog({ open, onOpenChange, conversation }: Props) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.teamChat.conversations() });
-      queryClient.invalidateQueries({ queryKey: queryKeys.teamChat.messages(conversation.id) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.teamChat.allMessages(conversation.id) });
       toast.success(`${selectedIds.length} membro(s) adicionado(s)`);
       setSelectedIds([]);
       setSearch('');

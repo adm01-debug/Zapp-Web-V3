@@ -24,6 +24,7 @@ export const queryKeys = {
     total: () => [...queryKeys.contacts.all(), 'total'] as const,
     searchResults: (search?: string, tab?: string, company?: string, jobTitle?: string, tag?: string, dateFrom?: string | null, sortField?: string, sortDir?: string, page?: number) =>
       ['contacts-search', search, tab, company, jobTitle, tag, dateFrom, sortField, sortDir, page] as const,
+    searchRoot: () => ['contacts-search'] as const,
   },
 
   // Connections
@@ -528,6 +529,7 @@ export const queryKeys = {
     authEventTrend: (filters?: unknown) => ['auth-event-trend', filters] as const,
     authEventTrendDetailed: (hours?: number, filter?: string) => ['auth-event-trend', hours, filter] as const,
     hmacAudit: () => ['hmac-selftest-audit'] as const,
+    hmacAuditFiltered: (range?: unknown, instanceFilter?: string) => ['hmac-selftest-audit', range, instanceFilter] as const,
     hmacAuditInstances: () => ['hmac-selftest-audit-instances'] as const,
     hmacAuditInstancesRange: (range?: unknown) => ['hmac-selftest-audit-instances', range] as const,
     idempotencyMiss: () => ['idempotency-miss'] as const,

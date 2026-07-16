@@ -144,12 +144,12 @@ const VIEW_QUERY_KEYS = {
   inbox: [queryKeys.contacts.all(), queryKeys.messages.all()],
   contacts: [queryKeys.contacts.all()],
   dashboard: [queryKeys.analytics.dashboardStats(), queryKeys.contacts.all()],
-  campaigns: [['campaigns']],
+  campaigns: [queryKeys.campaigns.all()],
   'knowledge-base': [queryKeys.knowledgeBase.articles()],
-  automations: [['automations']],
+  automations: [queryKeys.automations.all()],
   agents: [queryKeys.users.teamMembers()],
   queues: [queryKeys.queues.all()],
-  tags: [['tags']],
+  tags: [queryKeys.tags.all()],
 } as const;
 
 export function usePrefetchOnHoverManagement() {
