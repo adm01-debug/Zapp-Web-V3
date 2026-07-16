@@ -68,12 +68,7 @@ src/lib/__tests__/undoToast.test.ts
 src/lib/__tests__/web-vitals.test.ts
 src/lib/__tests__/webauthnUtils.test.ts
 src/lib/realtime/__tests__/crossTabDedupe.test.ts
-src/pages/admin-webhook-secret-status/HmacAuditHistoryPanel.tsx
-src/pages/admin-webhook-secret-status/HmacSelfTestButton.tsx
-src/pages/admin/AdminAutomationLogsPage.tsx
-src/pages/admin/AdminAutomationsPage.tsx
 src/pages/admin/AdminBridgeStatusPage.tsx
-src/pages/admin/AdminEmailAuditPage.tsx
 src/pages/admin/AdminEmailStatusPage.tsx
 src/pages/admin/AdminEvoApiHealthPage.tsx
 src/pages/admin/AdminFailedAuthMessagesPage.tsx
