@@ -1,9 +1,4 @@
 src/features/admin/hooks/useAdminManagement.ts
-src/hooks/__tests__/useAutoCloseConversations.test.tsx
-src/hooks/__tests__/useContactCustomFields.test.tsx
-src/hooks/__tests__/useDownloadPermission.test.ts
-src/hooks/__tests__/useExportData.test.tsx
-src/hooks/__tests__/useExternalCatalog.test.ts
 src/hooks/__tests__/useExternalEvolution.reconcile.test.ts
 src/hooks/__tests__/useGoalNotifications.test.ts
 src/hooks/__tests__/useImportData.test.ts
