@@ -1,4 +1,5 @@
 import { createClient, User } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { createZappAdminClient } from "./db-client.ts";
 
 /**
  * Shared validation, security, and logging utilities for Edge Functions.
@@ -535,8 +536,7 @@ export async function authorizeRoles(
   if (authError || !user) throw { message: "Não autorizado", status: 401 };
 
   // Fetch user roles using service role to bypass RLS for checking
-  const serviceRoleKey = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))!;
-  const adminClient = createClient(supabaseUrl, serviceRoleKey, { db: { schema: "zapp" } });
+  const adminClient = createZappAdminClient();
   
   const { data: roleData, error: roleError } = await adminClient
     .from("user_roles")

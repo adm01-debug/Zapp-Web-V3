@@ -93,6 +93,7 @@ Deno.serve(async (req) => {
     }
     const ext = createClient(extUrl, extKey, {
       auth: { persistSession: false, autoRefreshToken: false },
+      db: { schema: 'zapp' },
     });
 
     // 4. Buscar evento
