@@ -8,10 +8,13 @@
  *  3. URLs `*.supabase.co`          fora de arquivos de teste (inclui .lovable/).
  *  4. .from('evolution_messages'|'evolution_conversations') sem sufixo de partição (frontend).
  *  5. .from('evolution_instance_credentials'|'evolution_health_logs') sem .schema('evo') (frontend).
+ *  6. .schema('evo').from('evolution_instances') — a view evolution_instances existe em
+ *     zapp, NÃO em evo; chamar via .schema('evo') resulta em PGRST205 em produção.
  *
  * Baseline (2026-07-15): script foi introduzido junto da consolidação single-DB.
  * Update (2026-07-16): adicionado scan de .lovable/ para URLs cloud; guardrail para
  *   tabelas evo-only (evolution_instance_credentials, evolution_health_logs).
+ * Update (2026-07-16b): adicionada regra SUP-006 para .schema('evo').from('evolution_instances').
  */
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
@@ -20,7 +23,7 @@ const ROOTS = ['src', 'supabase/functions', '.lovable'];
 const IGNORE_DIR = /node_modules|dist|\.next|\.turbo|coverage/;
 const TEST_RE = /\.test\.(ts|tsx|mts|cts|js|jsx)$|__tests__|test\/|tests\//;
 
-const violations = { public: [], noSchema: [], cloudUrl: [], evoUnprefixed: [], evoSchemaRequired: [] };
+const violations = { public: [], noSchema: [], cloudUrl: [], evoUnprefixed: [], evoSchemaRequired: [], evoInstancesBadSchema: [] };
 
 function walk(dir, out = [], allExts = false) {
   let entries;
@@ -97,6 +100,15 @@ for (const f of files) {
   if (!isTest && f.startsWith('src/') && evoOnlyTableRe.test(src) && !hasEvoSchema) {
     violations.evoSchemaRequired.push(relative('.', f));
   }
+
+  // 6. SUP-006: .schema('evo').from('evolution_instances') — PGRST205 em produção.
+  // evolution_instances existe como view em zapp, NÃO como tabela em evo.
+  // Toda chamada via .schema('evo') retorna "Could not find a relationship..." (PGRST205).
+  const sup006Re =
+    /\.schema\s*\(\s*['"]evo['"]\s*\)\s*\.from\s*\(\s*['"]evolution_instances['"]\s*\)/;
+  if (!isTest && sup006Re.test(src)) {
+    violations.evoInstancesBadSchema.push(relative('.', f));
+  }
 }
 
 const total =
@@ -104,10 +116,11 @@ const total =
   violations.noSchema.length +
   violations.cloudUrl.length +
   violations.evoUnprefixed.length +
-  violations.evoSchemaRequired.length;
+  violations.evoSchemaRequired.length +
+  violations.evoInstancesBadSchema.length;
 
 if (total === 0) {
-  console.log('✅ check-schema-usage: 0 violações (5 guardrails). Schema consolidado em zapp/evo.');
+  console.log('✅ check-schema-usage: 0 violações (6 guardrails). Schema consolidado em zapp/evo.');
   process.exit(0);
 }
 
@@ -137,6 +150,14 @@ if (violations.evoSchemaRequired.length) {
   );
   console.error("   Essas tabelas vivem no schema 'evo'. Use supabase.schema('evo').from(...).");
   violations.evoSchemaRequired.forEach((f) => console.error('   ' + f));
+}
+if (violations.evoInstancesBadSchema.length) {
+  console.error(
+    `\n— [SUP-006] .schema('evo').from('evolution_instances') proibido (${violations.evoInstancesBadSchema.length}):`
+  );
+  console.error("   evolution_instances é uma VIEW em zapp, não existe no schema evo.");
+  console.error("   Use: supabase.from('evolution_instances') (schema zapp, padrão).");
+  violations.evoInstancesBadSchema.forEach((f) => console.error('   ' + f));
 }
 console.error('\nSchema canônico: zapp (app) + evo (Evolution). Ver docs/SCHEMA_REFERENCE.md.');
 process.exit(1);
