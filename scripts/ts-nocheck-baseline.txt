@@ -318,4 +318,3 @@ src/services/queues/useQueuesQueries.ts
 src/services/settings/settingsRepository.ts
 src/services/settings/settingsService.ts
 src/services/users/useUsersQueries.ts
-src/utils/emailMappers.ts
