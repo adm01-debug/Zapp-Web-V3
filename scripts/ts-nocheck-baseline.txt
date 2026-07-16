@@ -1,4 +1,5 @@
 src/features/admin/hooks/useAdminManagement.ts
+src/hooks/sla/useSLAScopeOptions.ts
 src/hooks/useGeoBlocking.ts
 src/hooks/useIntegrationAuthenticationManagement.ts
 src/hooks/useNotificationManagement.ts
