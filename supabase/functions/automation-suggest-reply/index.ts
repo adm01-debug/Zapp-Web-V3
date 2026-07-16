@@ -1,8 +1,13 @@
 // Edge function: gera sugestão de resposta para uma execução de automação
 // Usa Lovable AI Gateway (sem API key do usuário) + Knowledge Base + Tag Recommender
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { requireServiceRoleOrCron } from "../_shared/auth.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { isValidUUID } from "../_shared/validation.ts";
+
+const MAX_MESSAGE_CONTENT_LEN = 2_000;
+const MAX_CONTACT_NAME_LEN = 200;
+const MAX_HISTORY_MESSAGES = 8;
 
 interface Body {
   executionId: string;
@@ -259,6 +264,8 @@ Deno.serve(async (req) => {
     const skipAi = bodyObj.skipAi === true;
 
     if (!executionId || !ruleId) throw new Error("executionId and ruleId are required");
+    if (!isValidUUID(executionId)) throw new Error("executionId must be a valid UUID");
+    if (!isValidUUID(ruleId)) throw new Error("ruleId must be a valid UUID");
 
     const supabase = createClient(SUPABASE_URL, SERVICE_KEY, { db: { schema: "zapp" } });
 
@@ -286,11 +293,14 @@ Deno.serve(async (req) => {
       const recent = Array.isArray(recentMessages) ? recentMessages : [];
       const validMessages = recent
         .filter((m): m is Record<string, unknown> => typeof m === 'object' && m !== null && !Array.isArray(m));
+      // Truncate each message to prevent prompt injection via oversized content
       const history = validMessages
-        .slice(-8)
+        .slice(-MAX_HISTORY_MESSAGES)
         .map(m => {
           const isFromMe = m.from_me === true;
-          const content = typeof m.content === 'string' ? m.content : '';
+          const rawContent = typeof m.content === 'string' ? m.content : '';
+          // Truncate and strip control characters to limit injection surface
+          const content = rawContent.slice(0, MAX_MESSAGE_CONTENT_LEN).replace(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g, '');
           return `${isFromMe ? "Atendente" : "Cliente"}: ${content}`;
         })
         .join("\n");
@@ -334,10 +344,17 @@ Deno.serve(async (req) => {
 
       const ruleName = typeof ruleObj.name === 'string' ? ruleObj.name : 'sem-nome';
       const ruleTrigger = typeof ruleObj.trigger_type === 'string' ? ruleObj.trigger_type : 'unknown';
+      // Sanitize contactName — customer-controlled, strip control chars and cap length
+      const safeContactName = (contactName ?? '—')
+        .replace(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g, '')
+        .slice(0, MAX_CONTACT_NAME_LEN);
+      // Wrap untrusted customer content in XML delimiters so the model can distinguish
+      // instructions from data — structural defense against prompt injection.
       const userPrompt = `Regra disparada: ${ruleName} (${ruleTrigger})
-Cliente: ${contactName ?? "—"}
-Histórico recente:
+Cliente: ${safeContactName}
+<historico_conversa>
 ${history || "(sem mensagens)"}
+</historico_conversa>
 
 Gere a melhor próxima resposta do atendente e recomende a tag mais adequada.`;
 
