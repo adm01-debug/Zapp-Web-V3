@@ -18,6 +18,7 @@ import {
   useQueryClient,
 } from '@tanstack/react-query';
 import { toast } from '@/hooks/use-toast';
+import { log } from '@/lib/logger';
 
 interface MutationFactoryOptions<TData, TVariables>
   extends Omit<
@@ -66,7 +67,7 @@ export const createCreateMutation = <TData, TVariables = any>(
     },
 
     onError: (error: any) => {
-      console.error('Mutation error:', error);
+      log.error('Mutation error:', error);
 
       // Show error toast
       if (options?.showToasts !== false) {
@@ -115,7 +116,7 @@ export const createUpdateMutation = <TData, TVariables = any>(
     },
 
     onError: (error: any) => {
-      console.error('Mutation error:', error);
+      log.error('Mutation error:', error);
 
       if (options?.showToasts !== false) {
         toast.error(
@@ -165,7 +166,7 @@ export const createDeleteMutation = <TData = void, TVariables = any>(
     },
 
     onError: (error: any) => {
-      console.error('Mutation error:', error);
+      log.error('Mutation error:', error);
 
       if (options?.showToasts !== false) {
         toast.error(
@@ -216,7 +217,7 @@ export const createBulkMutation = <TData, TVariables = any>(
     },
 
     onError: (error: any) => {
-      console.error('Mutation error:', error);
+      log.error('Mutation error:', error);
 
       if (options?.showToasts !== false) {
         toast.error(
@@ -245,7 +246,7 @@ export const createAsyncMutation = <TData, TVariables = any>(
   return useMutation({
     mutationFn,
     onError: (error: any) => {
-      console.error('Async operation error:', error);
+      log.error('Async operation error:', error);
 
       if (options?.showToasts !== false) {
         toast.error(
@@ -265,7 +266,7 @@ export const createAsyncMutation = <TData, TVariables = any>(
  * Default error handler for mutations
  */
 export const handleMutationError = (error: any, fallbackMessage?: string) => {
-  console.error('Mutation error:', error);
+  log.error('Mutation error:', error);
 
   if (error?.code === 'NETWORK_ERROR') {
     return 'Erro de conexão. Verifique sua internet.';
