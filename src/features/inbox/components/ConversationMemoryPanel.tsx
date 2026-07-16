@@ -168,7 +168,7 @@ export function ConversationMemoryPanel({ contactId, profileId }: ConversationMe
             </Badge>
           </div>
           <div className="space-y-1">
-            {memory[key].map((item: string) => (
+            {memory[key].map((item: string, idx: number) => (
               <motion.div
                 key={item}
                 initial={{ opacity: 0 }}

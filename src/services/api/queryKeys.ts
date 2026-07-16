@@ -43,6 +43,7 @@ export const queryKeys = {
         sortDir,
         page,
       ] as const,
+    searchRoot: () => ['contacts-search'] as const,
   },
 
   // Connections
@@ -567,6 +568,8 @@ export const queryKeys = {
     authEventTrendDetailed: (hours?: number, filter?: string) =>
       ['auth-event-trend', hours, filter] as const,
     hmacAudit: () => ['hmac-selftest-audit'] as const,
+    hmacAuditFiltered: (range?: unknown, instanceFilter?: string) =>
+      ['hmac-selftest-audit', range, instanceFilter] as const,
     hmacAuditInstances: () => ['hmac-selftest-audit-instances'] as const,
     hmacAuditInstancesRange: (range?: unknown) => ['hmac-selftest-audit-instances', range] as const,
     idempotencyMiss: () => ['idempotency-miss'] as const,

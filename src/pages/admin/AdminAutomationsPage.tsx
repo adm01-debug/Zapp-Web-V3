@@ -4,6 +4,7 @@ import {
   TRIGGER_LABEL,
   EMPTY_RULE,
   type Rule,
+  type TriggerType,
 } from '@/hooks/admin/useAdminAutomations';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -18,6 +19,15 @@ import {
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Input } from '@/components/ui/input';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
 import {
   Plus,
   Pencil,
@@ -34,10 +44,17 @@ import {
 } from 'lucide-react';
 import { AutomationRuleDialog } from './AutomationRuleDialog';
 
+const SLA_LEVELS = [
+  { value: 'low', label: 'Baixa' },
+  { value: 'normal', label: 'Normal' },
+  { value: 'high', label: 'Alta' },
+  { value: 'critical', label: 'Crítica' },
+];
+
 // Ensure escalate_sla always has required properties with proper types
 function normalizeEscalateSla(
-  partial: Partial<typeof EMPTY_RULE.actions.escalate_sla> | undefined
-): typeof EMPTY_RULE.actions.escalate_sla {
+  partial: Partial<NonNullable<typeof EMPTY_RULE.actions.escalate_sla>> | undefined
+): { enabled: boolean; level: string; reason: string } {
   return {
     enabled: partial?.enabled ?? false,
     level: (partial?.level as string) ?? 'high',
@@ -698,7 +715,7 @@ export default function AdminAutomationsPage() {
                               actions: {
                                 ...editing.actions,
                                 escalate_sla: {
-                                  ...editing.actions.escalate_sla,
+                                  ...normalizeEscalateSla(editing.actions.escalate_sla),
                                   reason: e.target.value,
                                 },
                               },

@@ -149,12 +149,12 @@ const VIEW_QUERY_KEYS = {
   inbox: [queryKeys.contacts.all(), queryKeys.messages.all()],
   contacts: [queryKeys.contacts.all()],
   dashboard: [queryKeys.analytics.dashboardStats(), queryKeys.contacts.all()],
-  campaigns: [['campaigns']],
+  campaigns: [queryKeys.campaigns.all()],
   'knowledge-base': [queryKeys.knowledgeBase.articles()],
-  automations: [['automations']],
+  automations: [queryKeys.automations.all()],
   agents: [queryKeys.users.teamMembers()],
   queues: [queryKeys.queues.all()],
-  tags: [['tags']],
+  tags: [queryKeys.tags.all()],
 } as const;
 
 /** Provides prefetching of query data when hovering over view navigation elements. */
@@ -163,12 +163,12 @@ export function usePrefetchOnHoverManagement() {
 
   const prefetch = useCallback(
     (viewId: string) => {
-      const keys = VIEW_QUERY_KEYS[viewId];
+      const keys = VIEW_QUERY_KEYS[viewId as keyof typeof VIEW_QUERY_KEYS];
       if (!keys) return;
 
-      keys.forEach((key) => {
+      keys.forEach((key: readonly unknown[]) => {
         queryClient.prefetchQuery({
-          queryKey: key,
+          queryKey: key as unknown[],
           staleTime: 1000 * 60 * 5,
         });
       });

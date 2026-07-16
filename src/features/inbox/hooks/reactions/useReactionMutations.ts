@@ -6,6 +6,8 @@ import { dbFrom } from '@/integrations/datasource/db';
 import { getLogger } from '@/lib/logger';
 import { queryKeys } from '@/services/api/queryKeys';
 
+type ApiError = Error & { code?: string; details?: string; status?: number };
+
 const mutationLog = getLogger('useReactionMutations');
 
 interface ReactionMutationOptions {

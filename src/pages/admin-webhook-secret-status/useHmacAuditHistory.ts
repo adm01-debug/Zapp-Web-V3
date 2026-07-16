@@ -17,7 +17,7 @@ export function useHmacAuditHistory(range: RangeKey, instanceFilter: string, lim
   const since = useMemo(() => subHours(new Date(), rangeCfg.hours).toISOString(), [rangeCfg]);
 
   const queryKey = useMemo(
-    () => ['hmac-selftest-audit', range, instanceFilter],
+    () => queryKeys.adminOps.hmacAuditFiltered(range, instanceFilter),
     [range, instanceFilter]
   );
 
