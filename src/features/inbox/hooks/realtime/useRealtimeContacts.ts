@@ -117,8 +117,6 @@ export function useRealtimeContacts(options: UseRealtimeContactsOptions = {}) {
       const changes = Array.from(pending.values());
       pendingRef.current = new Map();
 
-      // Cache key used by useExternalConversations
-      const conversationsKey = ['external-evolution', 'conversations'];
       let invalidateConversations = false;
 
       for (const change of changes) {
@@ -170,7 +168,7 @@ export function useRealtimeContacts(options: UseRealtimeContactsOptions = {}) {
       }
 
       if (invalidateConversations) {
-        void queryClient.invalidateQueries({ queryKey: conversationsKey });
+        void queryClient.invalidateQueries({ queryKey: queryKeys.evolutionConversations.all() });
         void queryClient.invalidateQueries({ queryKey: queryKeys.contactDetails.contactsList() });
       }
     };
