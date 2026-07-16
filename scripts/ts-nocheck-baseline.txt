@@ -152,7 +152,6 @@ src/features/inbox/hooks/useRealtimeInbox.ts
 src/features/inbox/hooks/useRealtimeMessages.ts
 src/features/inbox/services/messageService.ts
 src/features/inbox/services/whatsappStatusService.ts
-src/features/integrations/hooks/useEvolutionApiIntegration.ts
 src/features/sla/components/SLACharts.tsx
 src/features/sla/hooks/useApplicableSLA.ts
 src/features/sla/hooks/useSLAAlerts.ts
@@ -270,7 +269,6 @@ src/lib/__tests__/instrumentedExternal.test.ts
 src/lib/__tests__/undoToast.test.ts
 src/lib/__tests__/web-vitals.test.ts
 src/lib/__tests__/webauthnUtils.test.ts
-src/lib/evolutionDiagnostics.ts
 src/lib/failedMessagesEnqueue.ts
 src/lib/featureFlags.ts
 src/lib/genericTypeConstraints.ts
