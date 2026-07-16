@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type { SLARuleScope } from '@/features/sla';
@@ -75,7 +74,7 @@ export function useSLAScopeOptions(
 
     if (scope === 'agent') {
       void supabase
-        .from('agents')
+        .from('profiles')
         .select('id, name')
         .order('name')
         .then(({ data }) => {

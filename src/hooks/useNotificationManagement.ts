@@ -1,4 +1,3 @@
-// @ts-nocheck
 // Consolidated Notification & Alerts Management Module (ETAPA 38)
 // Consolidates: usePushNotifications, useNotificationSettings, useTeamChatNotifications, useSecurityPushNotifications, useGoalNotifications, useTranscriptionNotifications
 import { useState, useEffect, useCallback, useRef } from 'react';
@@ -350,8 +349,8 @@ export function useTeamChatNotificationsManagement() {
 
   const markAsRead = useCallback(async (notificationId: string) => {
     try {
-      await supabase.from('notifications').update({ read: true }).eq('id', notificationId);
-      setNotifications((prev) => prev.map((n) => (n.id === notificationId ? { ...n, read: true } : n)));
+      await supabase.from('notifications').update({ is_read: true }).eq('id', notificationId);
+      setNotifications((prev) => prev.map((n) => (n.id === notificationId ? { ...n, is_read: true } : n)));
     } catch (err) {
       log.error('Error marking notification as read:', err);
     }
