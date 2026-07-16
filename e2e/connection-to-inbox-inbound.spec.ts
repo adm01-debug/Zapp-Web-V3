@@ -152,8 +152,8 @@ test.describe("Conexão criada -> Inbox unificado -> webhook inbound mockado", (
     expect(state.targetJid, "RPC de mensagens não foi chamado").toBeTruthy();
 
     // 4) Webhook sintético inbound — interceptado pelo mock (200, hermético).
-    const proj = process.env.E2E_SUPABASE_PROJECT_ID || "tdprnylgyrogbbhgdoik";
-    const webhookUrl = `https://${proj}.supabase.co/functions/v1/evolution-webhook`;
+    const supabaseUrl = process.env.E2E_SUPABASE_URL || "https://supabase.atomicabr.com.br";
+    const webhookUrl = `${supabaseUrl}/functions/v1/evolution-webhook`;
     await page.evaluate(async (url) => {
       try {
         await fetch(url, {
