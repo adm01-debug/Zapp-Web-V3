@@ -68,10 +68,9 @@ export function useFailedMessages(filters: FailedMessagesFilters = {}) {
 
   const currentPageCursor = pageIndexToCursor.get(page) ?? null;
 
-  const queryKey = [
-    'failed-messages',
+  const queryKey = queryKeys.failedMessages.filtered(
     { status, instance, errorCode, rootCause, search, effectiveFrom, effectiveTo, page, pageSize },
-  ];
+  );
 
   const query = useQuery<{ rows: FailedMessageRow[]; total: number; deniedReason: string | null }>({
     queryKey,
