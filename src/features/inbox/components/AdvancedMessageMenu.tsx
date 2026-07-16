@@ -52,7 +52,10 @@ export function AdvancedMessageMenu({ instanceName, recipientNumber, onPollSent,
 
   // Poll state
   const [pollName, setPollName] = useState('');
-  const [pollOptions, setPollOptions] = useState(['', '']);
+  const [pollOptions, setPollOptions] = useState<{ id: string; text: string }[]>(() => [
+    { id: crypto.randomUUID(), text: '' },
+    { id: crypto.randomUUID(), text: '' },
+  ]);
   const [pollSelectableCount, setPollSelectableCount] = useState(1);
 
   // Contact card state
@@ -81,7 +84,7 @@ export function AdvancedMessageMenu({ instanceName, recipientNumber, onPollSent,
   };
 
   const handleSendPoll = async () => {
-    const validOptions = pollOptions.filter(o => o.trim());
+    const validOptions = pollOptions.map(o => o.text).filter(t => t.trim());
     if (!pollName.trim() || validOptions.length < 2) {
       toast.error('Preencha o título e pelo menos 2 opções');
       return;
@@ -97,7 +100,10 @@ export function AdvancedMessageMenu({ instanceName, recipientNumber, onPollSent,
       onPollSent?.({ name: pollName, options: validOptions, selectableCount: pollSelectableCount });
       toast.success('Enquete enviada!');
       setPollName('');
-      setPollOptions(['', '']);
+      setPollOptions([
+        { id: crypto.randomUUID(), text: '' },
+        { id: crypto.randomUUID(), text: '' },
+      ]);
       setPollDialog(false);
     } catch {
       toast.error('Erro ao enviar enquete');
@@ -244,13 +250,13 @@ export function AdvancedMessageMenu({ instanceName, recipientNumber, onPollSent,
             <div className="space-y-2">
               <Label>Opções</Label>
               {pollOptions.map((opt, i) => (
-                <div key={i} className="flex gap-2">
+                <div key={opt.id} className="flex gap-2">
                   <Input
                     aria-label={`Opção ${i + 1} da enquete`}
-                    value={opt}
+                    value={opt.text}
                     onChange={(e) => {
                       const updated = [...pollOptions];
-                      updated[i] = e.target.value;
+                      updated[i] = { ...updated[i], text: e.target.value };
                       setPollOptions(updated);
                     }}
                     placeholder={`Opção ${i + 1}`}
@@ -263,7 +269,7 @@ export function AdvancedMessageMenu({ instanceName, recipientNumber, onPollSent,
                 </div>
               ))}
               {pollOptions.length < 12 && (
-                <Button variant="outline" size="sm" onClick={() => setPollOptions([...pollOptions, ''])}>
+                <Button variant="outline" size="sm" onClick={() => setPollOptions([...pollOptions, { id: crypto.randomUUID(), text: '' }])}>
                   <Plus className="w-4 h-4 mr-1" /> Adicionar opção
                 </Button>
               )}

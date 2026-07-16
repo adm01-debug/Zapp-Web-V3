@@ -198,9 +198,11 @@ export const ChatMessagesArea = memo(
         prevLengthRef.current = messages.length;
       }, [messages.length]);
 
-      const handleMessageDeleted = (id: string) => {
+      const handleMessageDeleted = useCallback((id: string) => {
         log.info('Message deleted:', id);
-      };
+      }, []);
+
+      const noopRegisterRef = useCallback(() => {}, []);
 
       return (
         <div
@@ -283,7 +285,7 @@ export const ChatMessagesArea = memo(
                     activeHighlightId={activeHighlightId}
                     searchQuery={searchQuery}
                     onAudioVoiceChange={onAudioVoiceChange}
-                    registerRef={() => {}}
+                    registerRef={noopRegisterRef}
                     instanceName={instanceName}
                     contactJid={contactJid}
                   />
