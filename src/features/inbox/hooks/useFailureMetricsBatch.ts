@@ -13,7 +13,8 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import type { ConversationWithMessages } from '@/features/inbox';
 
-// Schema escape hatch: zapp tables not yet in generated types (gen-types-zapp.mjs pendente na VPS)
+// evolution_retry_metrics is exposed via zapp.evolution_retry_metrics view
+// (migration 20260716_zapp_evolution_retry_metrics_view.sql)
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const db = supabase as any;
 

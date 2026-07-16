@@ -3,35 +3,43 @@
  * Guardrail: uso correto de schema Supabase.
  *
  * Falha o build quando encontra:
- *  1. `.schema('public')`   em src/ ou supabase/functions/
- *  2. `createClient(...)`   em código de produção sem `db: { schema: '<zapp|evo|...>' }`
- *  3. URLs `*.supabase.co`  fora de arquivos de teste.
+ *  1. `.schema('public')`           em src/ ou supabase/functions/
+ *  2. `createClient(...)`           em código de produção sem `db: { schema: '<zapp|evo|...>' }`
+ *  3. URLs `*.supabase.co`          fora de arquivos de teste (inclui .lovable/).
+ *  4. .from('evolution_messages'|'evolution_conversations') sem sufixo de partição (frontend).
+ *  5. .from('evolution_instance_credentials'|'evolution_health_logs') sem .schema('evo') (frontend).
  *
  * Baseline (2026-07-15): script foi introduzido junto da consolidação single-DB.
+ * Update (2026-07-16): adicionado scan de .lovable/ para URLs cloud; guardrail para
+ *   tabelas evo-only (evolution_instance_credentials, evolution_health_logs).
  */
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
 
-const ROOTS = ['src', 'supabase/functions'];
+const ROOTS = ['src', 'supabase/functions', '.lovable'];
 const IGNORE_DIR = /node_modules|dist|\.next|\.turbo|coverage/;
 const TEST_RE = /\.test\.(ts|tsx|mts|cts|js|jsx)$|__tests__|test\/|tests\//;
 
-const violations = { public: [], noSchema: [], cloudUrl: [], evoUnprefixed: [] };
+const violations = { public: [], noSchema: [], cloudUrl: [], evoUnprefixed: [], evoSchemaRequired: [] };
 
-function walk(dir, out = []) {
+function walk(dir, out = [], allExts = false) {
   let entries;
   try { entries = readdirSync(dir); } catch { return out; }
   for (const name of entries) {
     if (IGNORE_DIR.test(name)) continue;
     const full = join(dir, name);
     const st = statSync(full);
-    if (st.isDirectory()) walk(full, out);
-    else if (/\.(ts|tsx|mts|cts|js|jsx)$/.test(name)) out.push(full);
+    if (st.isDirectory()) walk(full, out, allExts);
+    else if (allExts ? /\.(ts|tsx|mts|cts|js|jsx|json|md|sql|yaml|yml)$/.test(name)
+                     : /\.(ts|tsx|mts|cts|js|jsx)$/.test(name)) out.push(full);
   }
   return out;
 }
 
-const files = ROOTS.flatMap((r) => walk(r));
+// .lovable/ needs allExts=true to scan JSON/yaml config files too
+const files = ROOTS.flatMap((r) =>
+  r === '.lovable' ? walk(r, [], true) : walk(r)
+);
 
 const SCHEMA_OK_RE = /db\s*:\s*\{\s*schema\s*:\s*['"](zapp|evo|email_app|financeiro|vendas|ops|ai|bpm|archive|auth)['"]/;
 const HAS_CREATE_CLIENT = /createClient\s*[<(]/;
@@ -74,16 +82,29 @@ for (const f of files) {
   if (!isTest && f.startsWith('src/') && parentPartitionRe.test(src)) {
     violations.evoUnprefixed.push(relative('.', f));
   }
+
+  // 5. evolution_instance_credentials e evolution_health_logs vivem em `evo` —
+  // o cliente padrão usa schema 'zapp', então qualquer .from() dessas tabelas
+  // no frontend deve ser precedido por .schema('evo') ou pelo client evo.
+  // Detecta: arquivo usa .from('evolution_instance_credentials'|'evolution_health_logs')
+  //          mas NÃO tem .schema('evo') ou supabase.schema('evo') próximo.
+  const evoOnlyTableRe =
+    /\.from\(\s*['"](evolution_instance_credentials|evolution_health_logs)['"]\s*\)/;
+  const hasEvoSchema = /\.schema\(\s*['"]evo['"]\s*\)/.test(src);
+  if (!isTest && f.startsWith('src/') && evoOnlyTableRe.test(src) && !hasEvoSchema) {
+    violations.evoSchemaRequired.push(relative('.', f));
+  }
 }
 
 const total =
   violations.public.length +
   violations.noSchema.length +
   violations.cloudUrl.length +
-  violations.evoUnprefixed.length;
+  violations.evoUnprefixed.length +
+  violations.evoSchemaRequired.length;
 
 if (total === 0) {
-  console.log('✅ check-schema-usage: 0 violações. Schema consolidado em zapp/evo.');
+  console.log('✅ check-schema-usage: 0 violações (5 guardrails). Schema consolidado em zapp/evo.');
   process.exit(0);
 }
 
@@ -106,6 +127,13 @@ if (violations.evoUnprefixed.length) {
   );
   console.error("   Use a partição real (ex: 'evolution_messages_wpp2') com .schema('evo').");
   violations.evoUnprefixed.forEach((f) => console.error('   ' + f));
+}
+if (violations.evoSchemaRequired.length) {
+  console.error(
+    `\n— .from('evolution_instance_credentials'|'evolution_health_logs') sem .schema('evo') (${violations.evoSchemaRequired.length}):`
+  );
+  console.error("   Essas tabelas vivem no schema 'evo'. Use supabase.schema('evo').from(...).");
+  violations.evoSchemaRequired.forEach((f) => console.error('   ' + f));
 }
 console.error('\nSchema canônico: zapp (app) + evo (Evolution). Ver docs/SCHEMA_REFERENCE.md.');
 process.exit(1);
