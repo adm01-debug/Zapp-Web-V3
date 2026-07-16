@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -65,7 +65,7 @@ export const ExternalProductCatalog: React.FC<ExternalProductCatalogProps> = ({
   const [onlyInStock, setOnlyInStock] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [page, setPage] = useState(0);
-  const [searchTimeout, setSearchTimeout] = useState<ReturnType<typeof setTimeout> | null>(null);
+  const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Build category tree for display
   const parentCategories = categories.filter((c) => !c.parent_id);
@@ -98,14 +98,15 @@ export const ExternalProductCatalog: React.FC<ExternalProductCatalogProps> = ({
   // Re-fetch on filter changes (debounced for search)
   useEffect(() => {
     if (!isOpen) return;
-    if (searchTimeout) clearTimeout(searchTimeout);
-    const t = setTimeout(() => {
+    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+    searchTimeoutRef.current = setTimeout(() => {
       setPage(0);
       doFetch({ offset: 0 });
     }, 300);
-    setSearchTimeout(t);
-    return () => clearTimeout(t);
-  }, [search, categoryId, supplierId, onlyInStock]);
+    return () => {
+      if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+    };
+  }, [search, categoryId, supplierId, onlyInStock, isOpen, doFetch]);
 
   // Re-fetch on page change
   useEffect(() => {

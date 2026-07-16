@@ -58,6 +58,7 @@ export function useTeamChatPanel(conversation: TeamConversation) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<ListImperativeAPI>(null); // Reference to react-window List
   const isNearBottomRef = useRef(true);
+  const settingsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastScrollTopRef = useRef(0);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const scrollOffsetRef = useRef<number>(0);
@@ -69,11 +70,13 @@ export function useTeamChatPanel(conversation: TeamConversation) {
   const { settings, updateSettings, saveSettings } = useUserSettings();
   const handleVoiceChange = (v: string) => {
     updateSettings({ tts_voice_id: v });
-    setTimeout(() => saveSettings(), 100);
+    if (settingsTimerRef.current) clearTimeout(settingsTimerRef.current);
+    settingsTimerRef.current = setTimeout(() => saveSettings(), 100);
   };
   const handleSpeedChange = (s: number) => {
     updateSettings({ tts_speed: s });
-    setTimeout(() => saveSettings(), 100);
+    if (settingsTimerRef.current) clearTimeout(settingsTimerRef.current);
+    settingsTimerRef.current = setTimeout(() => saveSettings(), 100);
   };
   const tts = useTextToSpeech({
     initialVoiceId: settings.tts_voice_id,
@@ -287,6 +290,8 @@ export function useTeamChatPanel(conversation: TeamConversation) {
   }, []);
 
   // Instrumentation for render cost and update time
+  useEffect(() => () => { if (settingsTimerRef.current) clearTimeout(settingsTimerRef.current); }, []);
+
   const renderStartTimeRef = useRef<number>(0);
   useEffect(() => {
     renderStartTimeRef.current = performance.now();
