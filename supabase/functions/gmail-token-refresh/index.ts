@@ -1,6 +1,6 @@
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
 import { requireServiceRoleOrCron, requireUser } from '../_shared/auth.ts';
+import { checkRateLimit, isValidUUID } from '../_shared/validation.ts';
 
 import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
 /**
@@ -60,7 +60,7 @@ import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
 const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
 const GMAIL_WATCH_URL  = 'https://gmail.googleapis.com/gmail/v1/users/me/watch';
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: getCorsHeaders(req) });
 
   const json = (data: unknown, status = 200) =>
@@ -92,6 +92,9 @@ serve(async (req) => {
       // Not service-role/cron — fall back to user JWT
       const authed = await requireUser(req);
       if (authed instanceof Response) return authed;
+      // Rate limit user JWT callers to prevent token refresh abuse
+      const rl = checkRateLimit(`gmail-token-refresh:${authed.user.id}`, 10, 60_000);
+      if (!rl.allowed) return json({ error: 'Rate limit exceeded' }, 429);
       // Build caller-scoped client so RLS enforces account ownership
       callerClient = createClient(
         supabaseUrl,
@@ -184,7 +187,8 @@ serve(async (req) => {
     // ── refreshSingle — renova token de uma conta específica ──────────────
     if (action === 'refreshSingle') {
       const { accountId } = body;
-      if (!accountId) return json({ error: 'accountId obrigatório' }, 400);
+      if (!accountId || typeof accountId !== 'string') return json({ error: 'accountId obrigatório' }, 400);
+      if (!isValidUUID(accountId)) return json({ error: 'accountId inválido' }, 400);
       if (!clientId || !clientSecret) return json({ error: 'Credenciais não configuradas' }, 500);
 
       // Use callerClient (RLS-enforced) for user JWT callers so they can only
