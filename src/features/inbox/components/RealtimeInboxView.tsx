@@ -1,4 +1,4 @@
-import { useEffect, useRef, lazy, Suspense } from 'react';
+import { useEffect, useRef, useCallback, lazy, Suspense } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { MiniChatPiP } from '@/components/mobile/MiniChatPiP';
@@ -119,7 +119,11 @@ export function RealtimeInboxView() {
     lastUnreadRef.current = total;
   }, [inboxFilters.filteredConversations, announce]);
 
-  useGlobalSearchShortcut({ onOpen: () => inbox.setGlobalSearchOpen(true) });
+  const openGlobalSearch = useCallback(
+    () => inbox.setGlobalSearchOpen(true),
+    [inbox.setGlobalSearchOpen],
+  );
+  useGlobalSearchShortcut({ onOpen: openGlobalSearch });
 
   useEffect(() => {
     if (!inbox.pendingContactId || inbox.loading) return;
