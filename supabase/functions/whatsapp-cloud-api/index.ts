@@ -4,6 +4,7 @@
 // via rpc_insert_message so the Inbox UI sees them in the unified evolution_messages table.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { createZappAdminClient } from '../_shared/db-client.ts';
 import { authorizeRoles, errorResponse, jsonResponse, checkRateLimit } from "../_shared/validation.ts";
 
 
@@ -120,13 +121,7 @@ Deno.serve(async (req) => {
   if (!action) return jsonResponse({ error: true, message: 'Missing action' }, 400, req);
   if (!instanceName) return jsonResponse({ error: true, message: 'Missing instanceName' }, 400, req);
 
-  const supabaseServiceRoleKey = Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-  if (!supabaseServiceRoleKey) {
-    console.error('[whatsapp-cloud-api] missing service role key for admin operations');
-    return errorResponse('Service role key not configured. Contact administrator.', 500, req);
-  }
-
-  const supabase = createClient(supabaseUrl, supabaseServiceRoleKey, { db: { schema: "zapp" } });
+  const supabase = createZappAdminClient();
   const externalUrl = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('EXTERNAL_SUPABASE_URL'));
   const externalKey = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('EXTERNAL_SUPABASE_SERVICE_ROLE_KEY'))
     ?? (Deno.env.get('SELFHOSTED_SUPABASE_ANON_KEY') ?? Deno.env.get('EXTERNAL_SUPABASE_ANON_KEY'));
