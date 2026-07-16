@@ -3,6 +3,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
 import { requireUser } from '../_shared/auth.ts';
+import { checkRateLimit } from '../_shared/validation.ts';
 /**
  * outlook-oauth — Integração Microsoft Graph API para Outlook / Office 365
  *
@@ -49,12 +50,10 @@ serve(async (req) => {
     : (typeof supabaseServiceKeyDefault === 'string' && supabaseServiceKeyDefault.length > 0 ? supabaseServiceKeyDefault : '');
 
   if (!supabaseUrl || !supabaseServiceKey) {
-    const json = (data: unknown, status = 200) =>
-      new Response(JSON.stringify(data), {
-        status,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    return json({ error: 'Server configuration error' }, 503);
+    return new Response(JSON.stringify({ error: 'Server configuration error' }), {
+      status: 503,
+      headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+    });
   }
 
   const supabase = createClient(supabaseUrl, supabaseServiceKey, { db: { schema: "zapp" } });
@@ -127,6 +126,9 @@ serve(async (req) => {
     const authed = await requireUser(req);
     if (authed instanceof Response) return authed;
     const authenticatedUserId = authed.user.id;
+
+    const rl = checkRateLimit(`outlook-oauth:${authenticatedUserId}`, 20, 60_000);
+    if (!rl.allowed) return json({ error: 'Rate limit exceeded' }, 429);
 
     // ── exchangeCode — troca code por access_token + refresh_token ─────
     if (action === 'exchangeCode') {
