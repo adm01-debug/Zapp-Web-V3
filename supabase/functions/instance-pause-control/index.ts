@@ -10,7 +10,8 @@
 // Auto-pausa (a partir das edge functions evolution-webhook/api) usa SERVICE_ROLE
 // e chama o RPC `auto_pause_instance_on_auth_spike` diretamente — não passa por aqui.
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
+import { requireUser } from '../_shared/auth.ts';
+import { createZappClient } from '../_shared/db-client.ts';
 import { checkRateLimit } from '../_shared/validation.ts';
 import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
 function json(req: Request, data: unknown, status = 200) {
@@ -35,29 +36,14 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return handleCorsPreflight(req);
   if (req.method !== 'POST') return json(req, { error: 'method_not_allowed' }, 405);
 
-  const authHeader = req.headers.get('Authorization');
-  if (!authHeader?.startsWith('Bearer ')) return json(req, { error: 'unauthorized' }, 401);
+  // Server-side JWT verification — getClaims() is client-side decode and forgeable
+  const authed = await requireUser(req);
+  if (authed instanceof Response) return authed;
 
-  const supabaseUrl = Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL');
-  const anonKey = Deno.env.get('SELFHOSTED_SUPABASE_ANON_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY');
-  if (!supabaseUrl || !anonKey) {
-    console.error('[instance-pause-control] Missing Supabase configuration');
-    return json(req, { error: 'Supabase configuration missing' }, 503);
-  }
-
-  const supabase = createClient(supabaseUrl, anonKey, {
-    global: { headers: { Authorization: authHeader } },
-    db: { schema: "zapp" },
-  });
-
-  // Verifica usuário autenticado
-  const token = authHeader.replace('Bearer ', '');
-  const { data: claimsData, error: claimsErr } = await supabase.auth.getClaims(token);
-  if (claimsErr || !claimsData?.claims) return json(req, { error: 'unauthorized' }, 401);
-
-  const userId = String(claimsData.claims.sub ?? '');
-  const rl = checkRateLimit(`instance-pause:${userId}`, 30, 60_000);
+  const rl = checkRateLimit(`instance-pause:${authed.user.id}`, 30, 60_000);
   if (!rl.allowed) return json(req, { error: 'rate_limit_exceeded' }, 429);
+
+  const supabase = createZappClient(req);
 
   let body: Record<string, unknown> = {};
   try { body = await req.json(); } catch { /* ignore */ }
