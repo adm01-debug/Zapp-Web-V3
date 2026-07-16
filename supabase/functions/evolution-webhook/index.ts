@@ -1,4 +1,4 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { createZappAdminClient } from "../_shared/db-client.ts";
 import { getCorsHeaders, handleCors, redactSecrets, contractErrorResponse } from "../_shared/validation.ts";
 import { initSentry, captureException } from "../_shared/sentry.ts";
 import { WebhookPayloadSchema } from "../_shared/webhook-schemas.ts";
@@ -86,7 +86,7 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ error: 'webhook_misconfigured', hint: 'SUPABASE_URL/SERVICE_ROLE ausentes' }),
       { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   }
-  const supabase = createClient(supabaseUrl, supabaseServiceKey, { db: { schema: "zapp" } });
+  const supabase = createZappAdminClient();
 
   // HMAC validation before reading body as JSON so we can verify on raw text.
   let rawBody: string;

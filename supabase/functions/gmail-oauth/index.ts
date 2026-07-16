@@ -1,4 +1,4 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
+import { createZappAdminClient } from '../_shared/db-client.ts';
 import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
 import { requireUser } from '../_shared/auth.ts';
 import { checkRateLimit, isValidUUID } from '../_shared/validation.ts';
@@ -48,7 +48,7 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: getCorsHeaders(req) });
   const jsonHeaders = { ...getCorsHeaders(req), 'Content-Type': 'application/json' };
   const serviceRoleKey = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))!;
-  const supabase = createClient((Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'))!, serviceRoleKey, { db: { schema: "zapp" } });
+  const supabase = createZappAdminClient();
   const clientId = Deno.env.get('GOOGLE_CLIENT_ID')!;
   const clientSecret = Deno.env.get('GOOGLE_CLIENT_SECRET')!;
   const redirectUri = Deno.env.get('GMAIL_REDIRECT_URI') ?? `${(Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'))}/functions/v1/gmail-oauth`;

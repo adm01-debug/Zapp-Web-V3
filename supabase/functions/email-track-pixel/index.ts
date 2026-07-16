@@ -1,4 +1,4 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
+import { createZappAdminClient } from '../_shared/db-client.ts';
 import { getCorsHeaders } from '../_shared/cors.ts';
 
 /**
@@ -84,15 +84,8 @@ Deno.serve(async (req) => {
   }
 
   // Registrar abertura em background (não bloqueia a resposta do pixel)
-  const supabaseUrl = Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL');
-  const supabaseKey = Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-
   try {
-    if (!supabaseUrl || !supabaseKey) {
-      console.error('[email-track-pixel] Missing Supabase configuration');
-      throw new Error('Supabase configuration missing');
-    }
-    const supabase = createClient(supabaseUrl, supabaseKey, { db: { schema: "zapp" } });
+    const supabase = createZappAdminClient();
     const ua = req.headers.get('user-agent') ?? '';
     const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
       ?? req.headers.get('x-real-ip')

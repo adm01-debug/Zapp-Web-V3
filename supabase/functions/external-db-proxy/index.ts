@@ -2,13 +2,13 @@
 // Proxy autorizado para consultas de tabelas operacionais.
 // Evolution/FATOR X usa o Supabase self-hosted atomicabr e o schema `evo`.
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
+import { createZappAdminClient } from "../_shared/db-client.ts";
 import { requireUser } from "../_shared/auth.ts";
 
 import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
-type DynamicSupabaseClient = ReturnType<typeof createClient> & {
+type DynamicSupabaseClient = ReturnType<typeof createZappAdminClient> & {
   schema(schema: string): DynamicSupabaseClient;
-  from(table: string): ReturnType<ReturnType<typeof createClient>["from"]>;
+  from(table: string): ReturnType<ReturnType<typeof createZappAdminClient>["from"]>;
 };
 
 type RequestBody = {
@@ -132,7 +132,7 @@ try {
   if (!EXTERNAL_KEY) {
     throw new Error("SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY/EXTERNAL_SUPABASE_SERVICE_ROLE_KEY ausente ou inválida — configure uma chave service_role válida do self-hosted.");
   }
-  supabase = createClient(TARGET_URL, TARGET_KEY, { auth: { persistSession: false }, db: { schema: "zapp" } }) as DynamicSupabaseClient;
+  supabase = createZappAdminClient() as DynamicSupabaseClient;
 } catch (error) {
   bootError = error instanceof Error ? error.message : "Falha desconhecida ao iniciar o proxy.";
   console.error("[external-db-proxy] boot error:", bootError);

@@ -1,6 +1,7 @@
 // Edge function: gera sugestão de resposta para uma execução de automação
 // Usa Lovable AI Gateway (sem API key do usuário) + Knowledge Base + Tag Recommender
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { createZappAdminClient } from "../_shared/db-client.ts";
 import { requireServiceRoleOrCron } from "../_shared/auth.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { isValidUUID } from "../_shared/validation.ts";
@@ -65,7 +66,7 @@ function buildSearchQuery(messages: Array<{ from_me: boolean; content: string }>
  * Graceful failure: Network errors, empty results, parse errors → returns empty snippet + sources.
  */
 async function fetchKnowledgeContext(
-  supabase: ReturnType<typeof createClient>,
+  supabase: ReturnType<typeof createZappAdminClient>,
   query: string,
 ): Promise<{ snippet: string; sources: string[] }> {
   if (!query) return { snippet: "", sources: [] };
@@ -248,9 +249,7 @@ Deno.serve(async (req) => {
 
   try {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    const SUPABASE_URL = Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL');
-    const SERVICE_KEY = Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-    if (!LOVABLE_API_KEY || !SUPABASE_URL || !SERVICE_KEY) throw new Error("Required environment variables missing");
+    if (!LOVABLE_API_KEY) throw new Error("Required environment variables missing");
 
     const rawBody = await req.json();
     if (typeof rawBody !== 'object' || rawBody === null || Array.isArray(rawBody)) {
@@ -267,7 +266,7 @@ Deno.serve(async (req) => {
     if (!isValidUUID(executionId)) throw new Error("executionId must be a valid UUID");
     if (!isValidUUID(ruleId)) throw new Error("ruleId must be a valid UUID");
 
-    const supabase = createClient(SUPABASE_URL, SERVICE_KEY, { db: { schema: "zapp" } });
+    const supabase = createZappAdminClient();
 
     const { data: rule, error: ruleErr } = await supabase
       .from("automation_rules")

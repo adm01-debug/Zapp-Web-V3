@@ -3,7 +3,6 @@
 //  - credenciais do provedor (Evolution ou Meta Cloud)
 //  - permissões/escopos (instância autenticada / phone number alcançável)
 //  - entrega de webhook (POST sintético assinado contra a URL pública correta)
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { corsHeaders } from "../_shared/validation.ts";
 import { requireAdminOrSupervisor } from "../_shared/auth.ts";
 

@@ -4,7 +4,7 @@
  * F12 security fix: ownership verification for WhatsApp connection.
  * Deploy: supabase functions deploy contacts-import
  */
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
+import { createZappAdminClient, createZappClient } from '../_shared/db-client.ts';
 import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
 import { checkRateLimit } from '../_shared/validation.ts';
 
@@ -35,14 +35,8 @@ Deno.serve(async (req) => {
 
     const JSON_CORS = { ...getCorsHeaders(req), 'Content-Type': 'application/json' };
 
-    const supabase = createClient(
-      (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL')) ?? '', (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')) ?? '',
-      { auth: { autoRefreshToken: false, persistSession: false }, db: { schema: "zapp" } }
-    );
-    const callerClient = createClient(
-      (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL')) ?? '', (Deno.env.get('SELFHOSTED_SUPABASE_ANON_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY')) ?? '',
-      { global: { headers: { authorization: auth } }, auth: { autoRefreshToken: false, persistSession: false }, db: { schema: "zapp" } }
-    );
+    const supabase = createZappAdminClient();
+    const callerClient = createZappClient(req);
 
     const { data: { user }, error: authErr } = await supabase.auth.getUser(auth.replace('Bearer ', ''));
     if (authErr || !user) return new Response(JSON.stringify({ error: 'Invalid token' }), { status: 401, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
