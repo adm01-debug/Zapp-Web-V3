@@ -1,6 +1,6 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
-import { handleCors, errorResponse, jsonResponse, requireEnv, Logger, getClientIP, checkRateLimit } from "../_shared/validation.ts";
+import { handleCors, errorResponse, jsonResponse, Logger, getClientIP, checkRateLimit } from "../_shared/validation.ts";
 import { DetectNewDeviceSchema, parseBody } from "../_shared/schemas.ts";
+import { createZappAdminClient, createZappClient } from "../_shared/db-client.ts";
 
 Deno.serve(async (req) => {
   const cors = handleCors(req);
@@ -9,19 +9,10 @@ Deno.serve(async (req) => {
   const log = new Logger("detect-new-device");
 
   try {
-    const supabaseUrl = requireEnv("SUPABASE_URL");
-    const supabaseServiceKey = requireEnv("SUPABASE_SERVICE_ROLE_KEY");
     const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      return errorResponse("Unauthorized", 401, req);
-    }
-
-    const supabaseUser = createClient(supabaseUrl, requireEnv("SUPABASE_ANON_KEY"), {
-      db: { schema: "zapp" }, auth: { persistSession: false }, global: { headers: { Authorization: authHeader } },
-    });
-
+    // Server-side JWT verification via auth.getUser() — cannot be forged
+    const supabaseUser = createZappClient(req);
     const { data: { user }, error: userError } = await supabaseUser.auth.getUser();
     if (userError || !user) {
       return errorResponse("Unauthorized", 401, req);
@@ -38,7 +29,7 @@ Deno.serve(async (req) => {
     const { device_fingerprint, browser, os, device_name } = parsed.data;
     const clientIp = getClientIP(req);
 
-    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, { db: { schema: "zapp" } });
+    const supabaseAdmin = createZappAdminClient();
 
     // Check if device exists
     const { data: existingDevice, error: deviceError } = await supabaseAdmin

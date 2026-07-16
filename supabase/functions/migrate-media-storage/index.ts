@@ -1,6 +1,7 @@
-import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
-import { handleCors, jsonResponse, errorResponse, Logger, requireEnv } from "../_shared/validation.ts";
+import { type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
+import { handleCors, jsonResponse, errorResponse, Logger } from "../_shared/validation.ts";
 import { requireServiceRoleOrCron } from "../_shared/auth.ts";
+import { createZappAdminClient } from "../_shared/db-client.ts";
 
 /**
  * Edge Function: WhatsApp Media Migration Service
@@ -54,11 +55,9 @@ Deno.serve(async (req) => {
   const log = new Logger("migrate-media-storage");
 
   try {
-    const supabaseUrl = requireEnv('SUPABASE_URL');
-    const supabaseKey = requireEnv('SUPABASE_SERVICE_ROLE_KEY');
     const evolutionUrl = Deno.env.get('EVOLUTION_API_URL');
     const evolutionKey = Deno.env.get('EVOLUTION_API_KEY');
-    const supabase = createClient(supabaseUrl, supabaseKey, { db: { schema: "zapp" } });
+    const supabase = createZappAdminClient();
 
     // Get all active WhatsApp connections with instance IDs
     const { data: connections } = await supabase

@@ -1,6 +1,6 @@
 import { handleCors, jsonResponse, Logger, securityErrorResponse, requireEnv, checkRateLimit } from "../_shared/validation.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { requireUser } from "../_shared/auth.ts";
+import { createZappAdminClient } from "../_shared/db-client.ts";
 
 /**
  * Secure Upload Middleware
@@ -159,9 +159,7 @@ Deno.serve(async (req) => {
     }
 
     // 2. Persist to storage
-    const supabaseUrl = requireEnv("SUPABASE_URL");
-    const supabaseServiceKey = requireEnv("SUPABASE_SERVICE_ROLE_KEY");
-    const supabase = createClient(supabaseUrl, supabaseServiceKey, { db: { schema: "zapp" } });
+    const supabase = createZappAdminClient();
 
     const fileExt = file.name.split(".").pop();
     const fileName =

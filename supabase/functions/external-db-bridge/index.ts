@@ -1,6 +1,6 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
-import { handleCors, errorResponse, jsonResponse, requireEnv, Logger, checkRateLimit } from "../_shared/validation.ts";
+import { handleCors, errorResponse, jsonResponse, Logger, checkRateLimit } from "../_shared/validation.ts";
 import { requireUser } from "../_shared/auth.ts";
+import { createZappAdminClient, createZappClient } from "../_shared/db-client.ts";
 import { ExternalDbBridgeSchema, parseBody } from "../_shared/schemas.ts";
 
 // Allowlist of RPC function names callable via this bridge (user-scoped, RLS applies).
@@ -111,9 +111,7 @@ Deno.serve(async (req) => {
   const log = new Logger("external-db-bridge");
 
   try {
-    const supabaseUrl = requireEnv("SUPABASE_URL");
-    const serviceRoleKey = requireEnv("SUPABASE_SERVICE_ROLE_KEY");
-    const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, { db: { schema: "zapp" } });
+    const supabaseAdmin = createZappAdminClient();
 
     // Auth — server-side JWT verification (getClaims is client-side only, unsafe)
     const authed = await requireUser(req);
@@ -123,12 +121,7 @@ Deno.serve(async (req) => {
     const rl = checkRateLimit(`external-db-bridge:${userId}`, 60, 60_000);
     if (!rl.allowed) return errorResponse('Rate limit exceeded', 429, req);
 
-    const anonKey = requireEnv("SUPABASE_ANON_KEY");
-    const authHeader = req.headers.get("Authorization") ?? '';
-    const supabaseUser = createClient(supabaseUrl, anonKey, {
-      global: { headers: { Authorization: authHeader } },
-      db: { schema: "zapp" },
-    });
+    const supabaseUser = createZappClient(req);
 
     // Parse & validate body
     const parsed = parseBody(ExternalDbBridgeSchema, await req.json());

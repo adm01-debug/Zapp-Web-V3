@@ -1,6 +1,6 @@
-import { handleCors, errorResponse, jsonResponse, requireEnv, Logger, checkRateLimit } from "../_shared/validation.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { handleCors, errorResponse, jsonResponse, Logger, checkRateLimit } from "../_shared/validation.ts";
 import { requireUser } from "../_shared/auth.ts";
+import { createZappAdminClient, createZappClient } from "../_shared/db-client.ts";
 
 Deno.serve(async (req) => {
   const cors = handleCors(req);
@@ -15,15 +15,10 @@ Deno.serve(async (req) => {
     if (!rl.allowed) return errorResponse('Rate limit exceeded', 429, req);
     const { action, params } = await req.json();
     
-    const supabaseUrl = requireEnv('SUPABASE_URL');
-    const supabaseKey = requireEnv('SUPABASE_SERVICE_ROLE_KEY');
-    const supabase = createClient(supabaseUrl, supabaseKey, { db: { schema: "zapp" } });
+    const supabase = createZappAdminClient();
     // Caller-scoped client enforces RLS — used for user-data reads (contacts, analyses)
     // so tenant isolation is guaranteed without relying on a non-existent user_id column.
-    const callerClient = createClient(supabaseUrl, (Deno.env.get('SELFHOSTED_SUPABASE_ANON_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY')) ?? Deno.env.get('SUPABASE_PUBLISHABLE_KEY') ?? requireEnv('SUPABASE_ANON_KEY'), {
-      global: { headers: { authorization: req.headers.get('authorization') || '' } },
-      db: { schema: "zapp" },
-    });
+    const callerClient = createZappClient(req);
 
     if (!action || typeof action !== 'string') {
       return errorResponse('action must be a non-empty string', 400, req);
