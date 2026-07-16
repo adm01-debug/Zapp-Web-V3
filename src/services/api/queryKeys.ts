@@ -151,10 +151,13 @@ export const queryKeys = {
 
   // Dashboard
   dashboard: {
-    agents: (agentId?: string) => ['dashboard-agents', agentId] as const,
+    agents: (agentId?: string | null) => ['dashboard-agents', agentId] as const,
     contacts: (filters?: unknown) => ['dashboard-contacts', filters] as const,
+    contactsFiltered: (dateRange?: unknown, queueId?: string | null, agentId?: string | null) =>
+      ['dashboard-contacts', dateRange, queueId, agentId] as const,
     messages: (filters?: unknown) => ['dashboard-messages', filters] as const,
     queues: () => ['dashboard-queues'] as const,
+    queuesFiltered: (queueId?: string | null) => ['dashboard-queues', queueId] as const,
     contactsPerQueue: () => ['dashboard-contacts-per-queue'] as const,
     sla: () => ['dashboard-sla'] as const,
   },
@@ -259,6 +262,7 @@ export const queryKeys = {
   // Evolution Fallback Stats
   evolutionFallback: {
     stats: () => ['evolution-fallback-stats'] as const,
+    statsWindowed: (windowHours?: number) => ['evolution-fallback-stats', windowHours] as const,
   },
 
   // Evolution external conversations (sidebar)
@@ -381,6 +385,7 @@ export const queryKeys = {
     configForProfile: (profileId?: string) => ['goals-config', profileId] as const,
     messages: (period?: string) => ['goals-messages', period] as const,
     contacts: (period?: string) => ['goals-contacts', period] as const,
+    contactsFiltered: (period?: string, profileId?: string) => ['goals-contacts', period, profileId] as const,
   },
 
   // TalkX (bulk messaging)
@@ -472,9 +477,15 @@ export const queryKeys = {
       [...queryKeys.admin.all(), 'rate-limit-logs', page] as const,
     diagnostics: () => [...queryKeys.admin.all(), 'diagnostics'] as const,
     agentVersions: () => ['admin-agent-versions-list'] as const,
-    alertHistory: (filters?: unknown) => ['admin-alert-history', filters] as const,
-    evolutionApiLogs: (filters?: unknown) => ['admin-evolution-api-logs', filters] as const,
+    alertHistory: () => ['admin-alert-history'] as const,
+    alertHistoryFiltered: (hoursBack?: string | number, statusFilter?: string, typeFilter?: string, instanceFilter?: string) =>
+      ['admin-alert-history', hoursBack, statusFilter, typeFilter, instanceFilter] as const,
+    evolutionApiLogs: () => ['admin-evolution-api-logs'] as const,
+    evolutionApiLogsFiltered: (hoursBack?: string | number, statusFilter?: string, actionSearch?: string, instanceFilter?: string) =>
+      ['admin-evolution-api-logs', hoursBack, statusFilter, actionSearch, instanceFilter] as const,
     webhookOverview: () => ['admin-webhook-overview'] as const,
+    webhookOverviewFiltered: (hours?: string | number, includeUnprocessed?: boolean) =>
+      ['admin-webhook-overview', hours, includeUnprocessed] as const,
     webhookInstances: () => ['webhook-instances-list'] as const,
     webhookRecentEvents: (instanceId?: string) =>
       ['webhook-recent-events', instanceId] as const,
@@ -493,7 +504,7 @@ export const queryKeys = {
     csatAutoConfig: () => ['csat-auto-config'] as const,
     whatsappConnectionsCsat: () => ['whatsapp-connections-csat'] as const,
     scheduledReportConfigs: () => ['scheduled-report-configs'] as const,
-    searchInsights: (filters?: unknown) => ['search-insights', filters] as const,
+    searchInsights: () => ['search-insights'] as const,
     activityHeatmap: (filters?: unknown) => ['activity-heatmap', filters] as const,
     conversationHeatmap: (filters?: unknown) => ['conversation-heatmap', filters] as const,
     conversationTimeline: (filters?: unknown) => ['conversation-timeline', filters] as const,
@@ -522,6 +533,8 @@ export const queryKeys = {
     alertInstanceDetail: (alertId?: string) =>
       ['alert-instance-detail', alertId] as const,
     operationsLogs: (filters?: unknown) => ['operations-logs', filters] as const,
+    telemetry: (severityFilter?: string, timeFilter?: string, dateFrom?: string, dateTo?: string) =>
+      ['query-telemetry', severityFilter, timeFilter, dateFrom, dateTo] as const,
   },
 };
 

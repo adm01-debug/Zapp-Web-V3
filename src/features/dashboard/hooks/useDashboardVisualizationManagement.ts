@@ -147,7 +147,7 @@ export function useDashboardDataManagement(filters?: DashboardFilters) {
   const merged = { dateRange: { from: startOfDay(new Date()), to: endOfDay(new Date()) }, queueId: null, agentId: null, ...filters };
 
   const { data: agentsData, isLoading: loadingAgents } = useQuery({
-    queryKey: ['dashboard-agents', merged.agentId],
+    queryKey: queryKeys.dashboard.agents(merged.agentId),
     queryFn: async () => {
       let query = supabase.from('profiles').select('id, name, avatar_url, is_active');
       if (merged.agentId) {
@@ -160,7 +160,7 @@ export function useDashboardDataManagement(filters?: DashboardFilters) {
   });
 
   const { data: contactsData, isLoading: loadingContacts, error: contactsError } = useQuery({
-    queryKey: ['dashboard-contacts', merged.dateRange, merged.queueId, merged.agentId],
+    queryKey: queryKeys.dashboard.contactsFiltered(merged.dateRange, merged.queueId, merged.agentId),
     queryFn: async () => {
       let query = dbFrom('contacts').select('id, assigned_to, queue_id, updated_at');
       if (merged.queueId) {
@@ -179,7 +179,7 @@ export function useDashboardDataManagement(filters?: DashboardFilters) {
   });
 
   const { data: queuesData, isLoading: loadingQueues, error: queuesError } = useQuery({
-    queryKey: ['dashboard-queues', merged.queueId],
+    queryKey: queryKeys.dashboard.queuesFiltered(merged.queueId),
     queryFn: async () => {
       let query = supabase.from('queues').select('id, name, color, queue_members(is_active, profiles(is_active))');
       if (merged.queueId) {
@@ -363,7 +363,7 @@ export function useGoalsDashboardManagement() {
   });
 
   const { data: contactsData, isLoading: loadingContacts } = useQuery({
-    queryKey: ['goals-contacts', period, profile?.id],
+    queryKey: queryKeys.goals.contactsFiltered(period, profile?.id),
     queryFn: async () => {
       if (!profile?.id) return [];
       const { data, error } = await dbFrom('contacts').select('id, created_at').eq('assigned_to', profile.id).gte('created_at', dateRange.from.toISOString()).lte('created_at', dateRange.to.toISOString());
@@ -532,7 +532,7 @@ export function useLeaderboardManagement() {
 /** Fetches war room data including agents, queues, and real-time metrics. */
 export function useWarRoomDataManagement() {
   const { data: agents = [] } = useQuery({
-    queryKey: ['warroom-agents'],
+    queryKey: queryKeys.adminOps.warroom.agents(),
     queryFn: async () => {
       const { data: profiles, error } = await supabase.from('profiles').select('id, name, avatar_url, is_active, max_chats').eq('is_active', true);
       if (error) throw error;
@@ -562,7 +562,7 @@ export function useWarRoomDataManagement() {
   });
 
   const { data: queues = [] } = useQuery({
-    queryKey: ['warroom-queues'],
+    queryKey: queryKeys.adminOps.warroom.queues(),
     queryFn: async () => {
       const { data: dbQueues, error: dbQueuesErr } = await supabase.from('queues').select('id, name, color, is_active').eq('is_active', true);
       if (dbQueuesErr) throw dbQueuesErr;

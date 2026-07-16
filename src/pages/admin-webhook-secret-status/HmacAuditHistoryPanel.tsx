@@ -54,101 +54,17 @@ export function HmacAuditHistoryPanel({
     setInstanceFilter(initialInstance ?? ALL_INSTANCES);
   }, [initialInstance]);
 
-  const rangeCfg = useMemo(() => RANGES.find((r) => r.value === range) ?? RANGES[0], [range]);
-  const since = useMemo(() => subHours(new Date(), rangeCfg.hours).toISOString(), [rangeCfg]);
-
-  const queryKey = useMemo(
-    () => ['hmac-selftest-audit', range, instanceFilter],
-    [range, instanceFilter]
-  );
-
-  const { data, isLoading, isFetching, refetch } = useQuery({
-    queryKey,
-    queryFn: async () => {
-      const { data, error } = await safeClient.from<AuditRow>('hmac_selftest_audit', (q) => {
-        let query = q
-          .select(
-            'id, instance, ok, duration_ms, error, message, good_accepted, tampered_rejected, created_at'
-          )
-          .gte('created_at', since)
-          .order('created_at', { ascending: false })
-          .limit(2000);
-        if (instanceFilter !== ALL_INSTANCES) query = query.eq('instance', instanceFilter);
-        return query;
-      });
-      // Return empty array when table is not yet provisioned (pending migration)
-      if (error) return [] as AuditRow[];
-      return data ?? [];
-    },
-    retry: false,
-    staleTime: 5_000,
-    refetchInterval: realtimeStatus === 'live' ? 60_000 : 20_000,
-  });
-
-  // Lista de instâncias derivada dos próprios registros da janela atual,
-  // mas usando uma query secundária independente do filtro de instância para
-  // o usuário sempre ver TODAS as instâncias disponíveis no período.
-  const { data: instanceOptions } = useQuery({
-    queryKey: ['hmac-selftest-audit-instances', range],
-    queryFn: async () => {
-      const { data, error } = await safeClient.from('hmac_selftest_audit', (q) =>
-        q.select('instance').gte('created_at', since).not('instance', 'is', null).limit(1000)
-      );
-      // Return empty list when table is not yet provisioned
-      if (error) return [] as string[];
-      const set = new Set<string>();
-      (data ?? []).forEach((r: { instance: string | null }) => {
-        if (r.instance) set.add(r.instance);
-      });
-      return Array.from(set).sort();
-    },
-    retry: false,
-    staleTime: 30_000,
-  });
-
-  // Realtime — atualiza ambas as queries ao receber INSERT.
-  const debounceRef = useRef<number | null>(null);
-  useEffect(() => {
-    const channel = supabase
-      .channel('hmac-selftest-audit-panel')
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'zapp', table: 'hmac_selftest_audit' },
-        () => {
-          if (debounceRef.current) window.clearTimeout(debounceRef.current);
-          debounceRef.current = window.setTimeout(() => {
-            queryClient.invalidateQueries({ queryKey: queryKeys.adminOps.hmacAudit() });
-            queryClient.invalidateQueries({ queryKey: queryKeys.adminOps.hmacAuditInstances() });
-          }, 300);
-        }
-      )
-      .subscribe((status) => {
-        if (status === 'SUBSCRIBED') setRealtimeStatus('live');
-        else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
-          setRealtimeStatus('offline');
-        } else setRealtimeStatus('connecting');
-      });
-    return () => {
-      if (debounceRef.current) window.clearTimeout(debounceRef.current);
-      channel.unsubscribe();
-      supabase.removeChannel(channel);
-    };
-  }, [queryClient]);
-
-  const rows = data ?? [];
-  const visibleRows = rows.slice(0, limit);
-
-  const stats = useMemo(() => {
-    const total = rows.length;
-    const oks = rows.filter((r) => r.ok).length;
-    const fails = total - oks;
-    const successRate = total > 0 ? Math.round((oks / total) * 1000) / 10 : 0;
-    const avgDuration =
-      total > 0 ? Math.round(rows.reduce((s, r) => s + (r.duration_ms ?? 0), 0) / total) : 0;
-    return { total, oks, fails, successRate, avgDuration };
-  }, [rows]);
-
-  const trendData = useMemo(() => bucketize(rows, rangeCfg.bucket), [rows, rangeCfg.bucket]);
+  const {
+    visibleRows,
+    stats,
+    trendData,
+    rangeCfg,
+    instanceOptions,
+    isLoading,
+    isFetching,
+    realtimeStatus,
+    refetch,
+  } = useHmacAuditHistory(range, instanceFilter, limit);
 
   return (
     <Card data-testid="hmac-audit-history-card">

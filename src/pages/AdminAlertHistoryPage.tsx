@@ -5,6 +5,7 @@
  * Admin/supervisor only via existing RLS.
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { queryKeys } from '@/services/api/queryKeys';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { format, subHours } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -59,7 +60,7 @@ export default function AdminAlertHistoryPage() {
   const queryClient = useQueryClient();
 
   const { data, isLoading, refetch, isFetching } = useQuery({
-    queryKey: ['admin-alert-history', hoursBack, statusFilter, typeFilter, instanceFilter],
+    queryKey: queryKeys.adminOps.alertHistoryFiltered(hoursBack, statusFilter, typeFilter, instanceFilter),
     queryFn: async () => {
       const { data, error } = await safeClient.from<AlertRow>('warroom_alerts', (q) => {
         let query = q
@@ -94,7 +95,7 @@ export default function AdminAlertHistoryPage() {
         if (debounceRef.current) window.clearTimeout(debounceRef.current);
         // Debounce 250ms: várias mudanças em sequência viram 1 refetch.
         debounceRef.current = window.setTimeout(() => {
-          void queryClient.invalidateQueries({ queryKey: ['admin-alert-history'] });
+          void queryClient.invalidateQueries({ queryKey: queryKeys.adminOps.alertHistory() });
         }, 250);
       })
       .subscribe((status) => {

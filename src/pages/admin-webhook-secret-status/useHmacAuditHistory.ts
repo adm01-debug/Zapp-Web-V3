@@ -70,8 +70,8 @@ export function useHmacAuditHistory(range: RangeKey, instanceFilter: string, lim
         () => {
           if (debounceRef.current) window.clearTimeout(debounceRef.current);
           debounceRef.current = window.setTimeout(() => {
-            void queryClient.invalidateQueries({ queryKey: ['hmac-selftest-audit'] });
-            void queryClient.invalidateQueries({ queryKey: ['hmac-selftest-audit-instances'] });
+            void queryClient.invalidateQueries({ queryKey: queryKeys.adminOps.hmacAudit() });
+            void queryClient.invalidateQueries({ queryKey: queryKeys.adminOps.hmacAuditInstances() });
           }, 300);
         }
       )

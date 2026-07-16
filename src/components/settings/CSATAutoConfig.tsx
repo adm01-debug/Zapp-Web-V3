@@ -24,7 +24,7 @@ export function CSATAutoConfig() {
   const queryClient = useQueryClient();
 
   const { data: connections = [] } = useQuery({
-    queryKey: ['whatsapp-connections-csat'],
+    queryKey: queryKeys.adminOps.whatsappConnectionsCsat(),
     queryFn: async () => {
       const { data } = await supabase.from('whatsapp_connections').select('id, name, status');
       return data || [];

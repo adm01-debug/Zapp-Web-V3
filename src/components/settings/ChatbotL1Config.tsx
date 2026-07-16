@@ -32,7 +32,7 @@ export function ChatbotL1Config() {
   });
 
   const { data: kbCount = 0 } = useQuery({
-    queryKey: ['kb-article-count'],
+    queryKey: queryKeys.adminOps.kbArticleCount(),
     queryFn: async () => {
       const { count } = await supabase
         .from('knowledge_base_articles')
