@@ -1,0 +1,34 @@
+# ============================================================
+# .lovableignore — Protege arquivos críticos contra sobrescrita
+# pelo bot Lovable (que commita diretamente em main).
+#
+# CONTEXTO: Em 16/07/2026, types.ts foi sobrescrito pelo Lovable
+# com o schema do Cloud (public, 157 entradas), destruindo a
+# tipagem do schema zapp (312 tabelas, 403 views). Cobertura
+# caiu de 100% para 40,7%.
+#
+# REGRA: estes arquivos SÓ são modificados via PR humano.
+# ============================================================
+
+# --- Supabase client e tipos (canônicos) ---
+src/integrations/supabase/client.ts
+src/integrations/supabase/types.ts
+src/integrations/supabase/types-manual.ts
+src/integrations/supabase/schema.ts
+src/integrations/supabase/cookieStorage.ts
+
+# --- Shared DB client das Edge Functions ---
+supabase/functions/_shared/db-client.ts
+supabase/functions/_shared/auth.ts
+supabase/functions/_shared/vault.ts
+
+# --- CI gates e scripts de auditoria ---
+.github/workflows/quality-gate.yml
+.github/workflows/schema-drift.yml
+.github/workflows/gen-types-zapp.yml
+scripts/check-schema-usage.mjs
+scripts/check-schema-drift.sh
+
+# --- Docs canônicos ---
+docs/SCHEMA_REFERENCE.md
+CLAUDE.md
