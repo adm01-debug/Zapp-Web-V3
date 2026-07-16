@@ -141,14 +141,16 @@ export function useEvolutionApiIntegration() {
           total_instances: totalCount,
         });
 
-        // Update credential status
-        await evo
-          .from('evolution_instance_credentials')
-          .update({
-            health_status: isSuccess ? 'healthy' : 'unhealthy',
-            last_health_check: new Date().toISOString(),
-          })
-          .eq('id', creds.id!);
+        // Update credential status (only when an existing credential has an id)
+        if (creds.id) {
+          await evo
+            .from('evolution_instance_credentials')
+            .update({
+              health_status: isSuccess ? 'healthy' : 'unhealthy',
+              last_health_check: new Date().toISOString(),
+            })
+            .eq('id', creds.id);
+        }
 
         fetchData();
       }

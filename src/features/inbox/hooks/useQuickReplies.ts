@@ -52,7 +52,7 @@ export function useQuickReplies() {
     queryFn: async () => {
       if (!user?.id) return [];
 
-      const { data, error } = await db
+      const { data, error } = await supabase
         .from('message_templates')
         .select('*')
         .or(`user_id.eq.${user.id},is_global.eq.true`)
@@ -131,7 +131,7 @@ export function useQuickReplies() {
     mutationFn: async (input: CreateTemplateInput) => {
       if (!user?.id) throw new Error('User not authenticated');
 
-      const { data, error } = await db
+      const { data, error } = await supabase
         .from('message_templates')
         .insert({
           title: input.title,
@@ -161,7 +161,7 @@ export function useQuickReplies() {
   // Update template mutation
   const updateMutation = useMutation({
     mutationFn: async ({ id, ...input }: { id: string } & Partial<CreateTemplateInput>) => {
-      const { data, error } = await db
+      const { data, error } = await supabase
         .from('message_templates')
         .update({
           title: input.title,
@@ -215,7 +215,7 @@ export function useQuickReplies() {
       const template = templates?.find((t) => t.id === templateId);
       if (!template) return;
 
-      await db
+      await supabase
         .from('message_templates')
         .update({ use_count: (template.use_count || 0) + 1 })
         .eq('id', templateId);

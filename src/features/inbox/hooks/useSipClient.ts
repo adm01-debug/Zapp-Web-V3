@@ -56,7 +56,7 @@ export function useSipClient() {
       const safeN = sanitizePostgrestFilter(n);
       // Slice raw n before sanitizing so escape sequences aren't split by the slice
       const safeSuffix = sanitizePostgrestFilter(n.slice(-8));
-      const { data } = await db
+      const { data } = await supabase
         .from('contacts')
         .select('id')
         .or(`phone.eq.${safeN},phone.eq.+${safeN},phone.ilike.%${safeSuffix}%`)
@@ -75,7 +75,7 @@ export function useSipClient() {
         data: { user },
       } = await supabase.auth.getUser();
       if (!user) return null;
-      const { data } = await db
+      const { data } = await supabase
         .from('profiles')
         .select('id')
         .eq('user_id', user.id)

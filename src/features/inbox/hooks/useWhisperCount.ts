@@ -33,7 +33,7 @@ export function useWhisperCount(
 
     let cancelled = false;
     const fetchWhisperCount = async () => {
-      const { count, error } = await db
+      const { count, error } = await supabase
         .from('whisper_messages')
         .select('*', { count: 'exact', head: true })
         .eq('contact_id', selectedContactId)
