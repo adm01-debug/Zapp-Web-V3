@@ -148,7 +148,7 @@ export function useEvolutionApiIntegration() {
             health_status: isSuccess ? 'healthy' : 'unhealthy',
             last_health_check: new Date().toISOString(),
           })
-          .eq('id', creds.id);
+          .eq('id', creds.id!);
 
         fetchData();
       }
