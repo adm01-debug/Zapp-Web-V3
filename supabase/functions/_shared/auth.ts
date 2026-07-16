@@ -57,7 +57,7 @@ function readSupabaseUrl(name: string): string | null {
 
 function readSecret(name: string): string | null {
   const raw = Deno.env.get(name)?.trim();
-  if (!raw || /PLACEHOLDER|REPLACE|CHANGE_ME|YOUR_/i.test(raw)) return null;
+  if (!raw || raw.length < 8 || /PLACEHOLDER|REPLACE|CHANGE_ME|YOUR_/i.test(raw)) return null;
   return raw;
 }
 

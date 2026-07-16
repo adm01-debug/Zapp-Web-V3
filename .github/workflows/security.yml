@@ -1,11 +1,15 @@
 name: Security & Compliance
 
-# Scheduled-only (plus manual dispatch) so this never gates pull requests.
-# The previous file was corrupted (a stray `...` document marker and an orphan
-# env line) and its rls-audit job invoked a script that does not exist.
+# Runs on schedule (weekly deep scan) AND on every PR for fast secret + dep audit.
+# All steps are advisory (continue-on-error: true) on PRs so they never gate merge,
+# but results are surfaced as GitHub Check annotations in the PR UI.
 on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
   schedule:
-    - cron: '0 6 * * 1' # Monday 06:00 UTC
+    - cron: '0 6 * * 1' # Monday 06:00 UTC — full scan
   workflow_dispatch:
 
 jobs:
@@ -24,3 +28,44 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
           GITLEAKS_ENABLE_SUMMARY: "false"
+
+  dependency-audit:
+    name: 📦 Dependency Vulnerability Audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: npm audit (high severity — advisory)
+        # Surfaces high/critical CVEs in npm dependencies. Advisory so it
+        # doesn't block PRs; findings appear as workflow annotations.
+        run: |
+          set +e
+          npm audit --audit-level=high --json 2>/dev/null | \
+            jq -r '.vulnerabilities // {} | to_entries[] | select(.value.severity == "high" or .value.severity == "critical") | "::warning file=package.json::\(.value.severity | ascii_upcase) CVE in \(.key): \(.value.fixAvailable | if type == "boolean" then (if . then "fix available" else "no fix" end) else "fix: \(.name)@\(.version)" end)"' || true
+          npm audit --audit-level=high 2>/dev/null
+          status=$?
+          if [ "$status" -ne 0 ]; then
+            echo "::warning title=Dependency audit::High/critical CVEs found — see audit output above. Run 'npm audit fix' to remediate."
+          fi
+          exit 0
+
+      - name: Check for known-bad lockfile entries (advisory)
+        # Detect obvious supply-chain red flags in bun.lock:
+        # packages not from npm/jsr/GitHub that could indicate tampering.
+        run: |
+          set +e
+          if grep -E 'https?://(?!(registry\.npmjs\.org|jsr\.io|cdn\.sheetjs\.com|esm\.sh|deno\.land|github\.com))[^"]+\.tgz' bun.lock 2>/dev/null; then
+            echo "::warning title=Lockfile::Non-standard package URLs found in bun.lock — review before merging."
+          fi
+          exit 0
