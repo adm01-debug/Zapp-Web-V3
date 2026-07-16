@@ -5,12 +5,7 @@ src/components/dashboard/ScheduledReportsManager.tsx
 src/components/payments/PaymentLinksView.tsx
 src/components/reports/DemandForecast.tsx
 src/components/security/AuditLogDashboard.tsx
-src/components/settings/ChatbotL1Config.tsx
-src/components/settings/SLARulesManager.tsx
 src/components/settings/SLASettings.tsx
-src/components/settings/SettingsView.tsx
-src/components/settings/ai-providers/AIProviderHealthPanel.tsx
-src/components/settings/media-library/MediaAdminPanel.tsx
 src/components/settings/sla/ScopeRulesList.tsx
 src/components/talkx/TalkXBlacklist.tsx
 src/components/talkx/TalkXCampaignEditor.tsx
