@@ -1,4 +1,4 @@
-import { handleCors, errorResponse, jsonResponse, requireEnv, Logger } from "../_shared/validation.ts";
+import { handleCors, errorResponse, jsonResponse, requireEnv, Logger, checkRateLimit } from "../_shared/validation.ts";
 import { requireUser } from "../_shared/auth.ts";
 
 Deno.serve(async (req) => {
@@ -10,6 +10,9 @@ Deno.serve(async (req) => {
   try {
     const authed = await requireUser(req);
     if (authed instanceof Response) return authed;
+
+    const rl = checkRateLimit(`elevenlabs-scribe-token:${authed.user.id}`, 20, 60_000);
+    if (!rl.allowed) return errorResponse("Rate limit exceeded", 429, req);
 
     const ELEVENLABS_API_KEY = requireEnv('ELEVENLABS_API_KEY');
 

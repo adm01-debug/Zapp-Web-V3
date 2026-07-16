@@ -1,4 +1,4 @@
-import { handleCors, errorResponse, requireEnv, Logger, getCorsHeaders } from "../_shared/validation.ts";
+import { handleCors, errorResponse, requireEnv, Logger, getCorsHeaders, checkRateLimit } from "../_shared/validation.ts";
 import { requireUser } from "../_shared/auth.ts";
 
 Deno.serve(async (req) => {
@@ -10,6 +10,10 @@ Deno.serve(async (req) => {
   try {
     const authed = await requireUser(req);
     if (authed instanceof Response) return authed;
+
+    // Speech-to-speech is expensive; enforce strict per-user rate limit
+    const rl = checkRateLimit(`elevenlabs-sts:${authed.user.id}`, 10, 60_000);
+    if (!rl.allowed) return errorResponse("Rate limit exceeded", 429, req);
 
     const ELEVENLABS_API_KEY = requireEnv('ELEVENLABS_API_KEY');
 
