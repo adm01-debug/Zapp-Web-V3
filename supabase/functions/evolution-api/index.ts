@@ -949,7 +949,7 @@ Deno.serve(async (req) => {
       const response = await proxy(endpoint, 'POST', { where });
       const data = await response.json();
       maybeLogFallback({ action: 'find-chats', endpoint, instance: instance ? String(instance) : null, status: response.status, data, primary_ms: Date.now() - t0, supabase });
-      if (data?.error === true) return new Response(JSON.stringify(data), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      if (data?.error === true) return new Response(JSON.stringify(data), { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       return new Response(JSON.stringify(normalizeChatList(data)), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
     if (action === 'find-messages') {
@@ -969,7 +969,7 @@ Deno.serve(async (req) => {
         offset: safeGetAny(jsonBody, 'offset', false) ?? 200,
       });
       const data = await response.json();
-      if (data?.error === true) return new Response(JSON.stringify(data), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      if (data?.error === true) return new Response(JSON.stringify(data), { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       const records = Array.isArray(data?.messages?.records) ? data.messages.records : [];
       return new Response(JSON.stringify(records), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
@@ -982,7 +982,7 @@ Deno.serve(async (req) => {
       const response = await proxy(endpoint, 'POST', { where });
       const data = await response.json();
       maybeLogFallback({ action: 'find-contacts', endpoint, instance: instance ? String(instance) : null, status: response.status, data, primary_ms: Date.now() - t0, supabase });
-      if (data?.error === true) return new Response(JSON.stringify(data), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      if (data?.error === true) return new Response(JSON.stringify(data), { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       return new Response(JSON.stringify(normalizeContactList(data)), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
     if (action === 'check-numbers') {
@@ -1105,7 +1105,7 @@ Deno.serve(async (req) => {
       }
 
       maybeLogFallback({ action: 'fetch-profile', endpoint, instance: instance ? String(instance) : null, status: response.status, data, primary_ms: primaryMs, supabase });
-      if (data?.error === true) return new Response(JSON.stringify(data), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      if (data?.error === true) return new Response(JSON.stringify(data), { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       return new Response(JSON.stringify(normalizeProfile(data)), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
     if (action === 'update-profile-name') {
