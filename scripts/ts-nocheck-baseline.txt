@@ -12,17 +12,12 @@ src/components/omnichannel/OmnichannelInbox.tsx
 src/components/payments/PaymentLinksView.tsx
 src/components/queues/QueuesComparisonDashboard.tsx
 src/components/queues/QueuesView.tsx
-src/components/reports/AbandonmentRate.tsx
-src/components/reports/ConversationHeatmap.tsx
 src/components/reports/DemandForecast.tsx
-src/components/reports/ReportCharts.tsx
 src/components/security/AuditLogDashboard.tsx
 src/components/settings/AIAutoTagsConfig.tsx
 src/components/settings/AutoCloseSettings.tsx
-src/components/settings/AvatarUpload.tsx
 src/components/settings/CSATAutoConfig.tsx
 src/components/settings/ChatbotL1Config.tsx
-src/components/settings/ConnectionAlertPreferences.tsx
 src/components/settings/SLARulesManager.tsx
 src/components/settings/SLASettings.tsx
 src/components/settings/SettingsView.tsx
