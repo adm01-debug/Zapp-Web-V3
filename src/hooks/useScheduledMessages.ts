@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/features/auth';
 import { toast } from '@/hooks/use-toast';
+import { queryKeys } from '@/services/api/queryKeys';
 
 export interface ScheduledMessage {
   id: string;
@@ -25,7 +26,7 @@ export function useScheduledMessages(contactId?: string) {
   const queryClient = useQueryClient();
 
   const { data: messages = [], isLoading } = useQuery({
-    queryKey: ['scheduled-messages', contactId],
+    queryKey: queryKeys.scheduledMessages.contact(contactId),
     enabled: !!contactId,
     staleTime: 30_000,
     queryFn: async () => {
@@ -84,7 +85,7 @@ export function useScheduledMessages(contactId?: string) {
       return msg;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['scheduled-messages'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.scheduledMessages.all() });
       toast({ title: 'Mensagem agendada com sucesso!' });
     },
     onError: (error: Error) => {
@@ -105,7 +106,7 @@ export function useScheduledMessages(contactId?: string) {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['scheduled-messages'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.scheduledMessages.all() });
       toast({ title: 'Agendamento cancelado' });
     },
     onError: (e: Error) =>

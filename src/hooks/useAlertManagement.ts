@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 import { playNotificationSound, showBrowserNotification } from '@/utils/notificationSounds';
 import { getLogger } from '@/lib/logger';
 import { warRoomAlertRowSchema, safeParseEvent } from '@/shared/webhookEventSchemas';
+import { queryKeys } from '@/services/api/queryKeys';
 
 const log = getLogger('useAlertManagement');
 
@@ -112,7 +113,7 @@ export function useWarRoomAlertsManagement(soundEnabled = true): UseWarRoomAlert
   }, [soundEnabled]);
 
   const { data: alerts = [] } = useQuery({
-    queryKey: ['warroom-alerts'],
+    queryKey: queryKeys.alerts.all(),
     queryFn: async () => {
       const { data, error } = await supabase
         .from('warroom_alerts')
@@ -144,7 +145,7 @@ export function useWarRoomAlertsManagement(soundEnabled = true): UseWarRoomAlert
           return;
         }
         const alert = parsed.data as WarRoomAlert;
-        void queryClient.invalidateQueries({ queryKey: ['warroom-alerts'] });
+        void queryClient.invalidateQueries({ queryKey: queryKeys.alerts.all() });
 
         if (alert.alert_type === 'critical') {
           playAlertSound();
@@ -171,7 +172,7 @@ export function useWarRoomAlertsManagement(soundEnabled = true): UseWarRoomAlert
       .update({ is_read: true })
       .eq('id', alertId);
     if (error) log.error('Failed to dismiss warroom alert', error);
-    queryClient.invalidateQueries({ queryKey: ['warroom-alerts'] });
+    queryClient.invalidateQueries({ queryKey: queryKeys.alerts.all() });
   };
 
   useEffect(() => {

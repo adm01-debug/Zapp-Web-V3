@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Badge } from '@/components/ui/badge';
 import { Clock, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { queryKeys } from '@/services/api/queryKeys';
 
 interface QueuePositionNotifierProps {
   contactId: string;
@@ -11,7 +12,7 @@ interface QueuePositionNotifierProps {
 
 export function QueuePositionNotifier({ contactId, className }: QueuePositionNotifierProps) {
   const { data: position } = useQuery({
-    queryKey: ['queue-position', contactId],
+    queryKey: queryKeys.conversationHistory.queuePosition(contactId),
     enabled: !!contactId,
     queryFn: async () => {
       const { data } = await supabase
