@@ -43,11 +43,6 @@ src/hooks/useGeoBlocking.ts
 src/hooks/useIntegrationAuthenticationManagement.ts
 src/hooks/useNotificationManagement.ts
 src/hooks/useSearchManagement.ts
-src/integrations/datasource/db.ts
-src/integrations/supabase/safe-queries.ts
-src/integrations/supabase/safeClient.ts
-src/lib/__tests__/avatarColors.test.ts
-src/lib/__tests__/contactHealth.test.ts
 src/lib/__tests__/debug-dompurify-test.ts
 src/lib/__tests__/externalProxy.test.ts
 src/lib/__tests__/instrumentedExternal.test.ts
