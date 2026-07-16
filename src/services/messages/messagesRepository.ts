@@ -120,7 +120,7 @@ export const messagesRepository = {
           table: 'messages',
           filter: `conversation_id=eq.${conversationId}`,
         },
-        (payload: any) => callback(payload.new || payload.old)
+        (payload: { new: unknown; old: unknown }) => callback((payload.new || payload.old) as Message)
       )
       .subscribe();
   },
