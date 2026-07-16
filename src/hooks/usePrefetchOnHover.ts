@@ -1,22 +1,23 @@
 import { useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '@/services/api/queryKeys';
 
 /**
  * Mapping from view IDs to their primary query keys.
  * When user hovers a nav item, we prefetch the data for that view
  * so the transition feels instant.
  */
-const VIEW_QUERY_KEYS: Record<string, string[][]> = {
-  inbox: [['contacts'], ['messages']],
-  contacts: [['contacts']],
-  dashboard: [['dashboard-stats'], ['contacts']],
+const VIEW_QUERY_KEYS = {
+  inbox: [queryKeys.contacts.all(), queryKeys.messages.all()],
+  contacts: [queryKeys.contacts.all()],
+  dashboard: [queryKeys.analytics.dashboardStats(), queryKeys.contacts.all()],
   campaigns: [['campaigns']],
-  'knowledge-base': [['knowledge-base-articles']],
+  'knowledge-base': [queryKeys.knowledgeBase.articles()],
   automations: [['automations']],
-  agents: [['team-members']],
-  queues: [['queues']],
+  agents: [queryKeys.users.teamMembers()],
+  queues: [queryKeys.queues.all()],
   tags: [['tags']],
-};
+} as const;
 
 /**
  * Returns an onMouseEnter handler that triggers query prefetch

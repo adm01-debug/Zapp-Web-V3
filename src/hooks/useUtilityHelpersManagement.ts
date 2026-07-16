@@ -1,6 +1,7 @@
 // Consolidated Utility & Helper Hooks Management Module (ETAPA 49 consolidation)
 import { useEffect, useRef, useState, useCallback, type RefObject } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '@/services/api/queryKeys';
 import { toast } from 'sonner';
 
 // ===== Debounce Management =====
@@ -139,17 +140,17 @@ export function useInViewportManagement(
 }
 
 // ===== Prefetch On Hover Management =====
-const VIEW_QUERY_KEYS: Record<string, string[][]> = {
-  inbox: [['contacts'], ['messages']],
-  contacts: [['contacts']],
-  dashboard: [['dashboard-stats'], ['contacts']],
+const VIEW_QUERY_KEYS = {
+  inbox: [queryKeys.contacts.all(), queryKeys.messages.all()],
+  contacts: [queryKeys.contacts.all()],
+  dashboard: [queryKeys.analytics.dashboardStats(), queryKeys.contacts.all()],
   campaigns: [['campaigns']],
-  'knowledge-base': [['knowledge-base-articles']],
+  'knowledge-base': [queryKeys.knowledgeBase.articles()],
   automations: [['automations']],
-  agents: [['team-members']],
-  queues: [['queues']],
+  agents: [queryKeys.users.teamMembers()],
+  queues: [queryKeys.queues.all()],
   tags: [['tags']],
-};
+} as const;
 
 export function usePrefetchOnHoverManagement() {
   const queryClient = useQueryClient();

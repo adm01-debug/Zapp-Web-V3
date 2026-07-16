@@ -121,12 +121,21 @@ export const createPaginatedQuery = <TData = any>(
   });
 };
 
+/**
+ * Stub — infinite query nao foi implementado.
+ * Use `useInfiniteQuery` do TanStack diretamente se necessario.
+ *
+ * FIX 2026-07-16: substituido `return null` por throw para evitar
+ * crash silencioso em qualquer consumidor que tente desestruturar o retorno.
+ */
 export const createInfiniteQuery = <TData = any>(
   _queryKey: readonly any[],
   _queryFn: (pageParam: number) => Promise<TData[]>,
   _options?: QueryFactoryOptions<TData[]>
-) => {
-  return null;
+): never => {
+  throw new Error(
+    '[createInfiniteQuery] Nao implementado — use useInfiniteQuery do TanStack diretamente.'
+  );
 };
 
 export const handleQueryError = (error: unknown, fallbackMessage?: string) => {

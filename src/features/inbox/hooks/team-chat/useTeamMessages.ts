@@ -79,7 +79,7 @@ export function useTeamMessages(conversationId: string | null, searchQuery: stri
         (payload) => {
           if (!searchQuery.trim()) {
             queryClient.setQueryData(
-              ['team-messages', conversationId, ''],
+              queryKeys.teamChat.messages(conversationId, ''),
               (oldData: { pages: { messages: TeamMessage[] }[] } | undefined) => {
                 if (!oldData || !oldData.pages) return oldData;
 
@@ -95,7 +95,7 @@ export function useTeamMessages(conversationId: string | null, searchQuery: stri
             );
           }
 
-          void queryClient.invalidateQueries({ queryKey: queryKeys.teamChat.messages(conversationId) });
+          void queryClient.invalidateQueries({ queryKey: queryKeys.teamChat.allMessages(conversationId) });
         }
       )
       .subscribe();

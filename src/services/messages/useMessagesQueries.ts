@@ -56,7 +56,7 @@ export const useConversation = (id?: string) => {
 
 export const useUnreadMessagesCount = (conversationId?: string) => {
   return useQuery({
-    queryKey: [...queryKeys.messages.all(), 'unread', conversationId],
+    queryKey: queryKeys.messages.unread(conversationId),
     queryFn: () => messagesService.getUnreadMessagesCount(conversationId!),
     enabled: !!conversationId,
     staleTime: 5_000,

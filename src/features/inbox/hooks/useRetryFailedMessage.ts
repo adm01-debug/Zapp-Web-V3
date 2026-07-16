@@ -76,7 +76,7 @@ export function useRetryFailedMessage() {
       return data;
     },
     onMutate: async ({ messageId }) => {
-      const queryKey = ['message-send-history', messageId] as const;
+      const queryKey = queryKeys.messageDetails.sendHistory(messageId);
       await queryClient.cancelQueries({ queryKey });
       const previous = queryClient.getQueryData<MessageSendHistory>(queryKey);
 

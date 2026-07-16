@@ -419,8 +419,8 @@ export function useExternalMessages(remoteJid: string | null) {
     (jid: string) => {
       type WithAvatar = { avatar_url?: string | null };
       return (
-        queryClient.getQueryData<WithAvatar>(['contact', jid])?.avatar_url ||
-        queryClient.getQueryData<WithAvatar>(['external-evolution', 'contact', jid])?.avatar_url
+        queryClient.getQueryData<WithAvatar>(queryKeys.contactDetails.singleContact(jid))?.avatar_url ||
+        queryClient.getQueryData<WithAvatar>(queryKeys.evolutionConversations.contact(jid))?.avatar_url
       );
     },
     [queryClient]
