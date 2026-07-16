@@ -15,7 +15,7 @@ interface Integration {
 /** Manages Evolution API instance connections and configuration. */
 export function useEvolutionApiManagement() {
   const [isConnected, setIsConnected] = useState(false);
-  const [instances, setInstances] = useState<any[]>([]);
+  const [instances, setInstances] = useState<Record<string, unknown>[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

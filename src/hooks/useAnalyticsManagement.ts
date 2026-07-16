@@ -185,7 +185,7 @@ export function useLatestAnalysisManagement(timeWindow: number = 24) {
 }
 
 export function useMessageAttemptsManagement(messageId: string) {
-  const [attempts, setAttempts] = useState<any[]>([]);
+  const [attempts, setAttempts] = useState<Record<string, unknown>[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

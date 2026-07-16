@@ -60,7 +60,7 @@ export function useContactsSearchManagement(query?: string) {
 
 export function useDashboardQueriesManagement() {
   const { user } = useAuth();
-  const [queries, setQueries] = useState<any[]>([]);
+  const [queries, setQueries] = useState<Record<string, unknown>[]>([]);
   const [loading, setLoading] = useState(true);
   const mountedRef = useRef(true);
 
@@ -156,7 +156,7 @@ export function useNavigationHistoryManagement() {
 
 export function useIndexNavigationManagement() {
   const [index, setIndex] = useState(0);
-  const [items, setItems] = useState<any[]>([]);
+  const [items, setItems] = useState<unknown[]>([]);
 
   const next = useCallback(() => {
     setIndex((prev) => Math.min(prev + 1, items.length - 1));
@@ -174,7 +174,7 @@ export function useIndexNavigationManagement() {
 }
 
 export function useChatSearchManagement(chatId?: string, query?: string) {
-  const [results, setResults] = useState<any[]>([]);
+  const [results, setResults] = useState<Record<string, unknown>[]>([]);
   const [loading, setLoading] = useState(false);
   const mountedRef = useRef(true);
 
