@@ -1,3 +1,4 @@
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
 import { handleCors, errorResponse, jsonResponse, Logger, checkRateLimit, getCorsHeaders } from "../_shared/validation.ts";
 import { requireAdminOrSupervisor, timingSafeStringEqual } from "../_shared/auth.ts";
 import { createZappAdminClient } from "../_shared/db-client.ts";
@@ -383,7 +384,7 @@ Deno.serve(async (req) => {
 });
 
 async function persistResult(
-  supabase: ReturnType<typeof createClient>,
+  supabase: ReturnType<typeof createZappAdminClient>,
   conn: { id: string; instance_id: string; status: string; health_status: string | null; phone_number: string | null },
   evalResult: EvalResult,
   responseTime: number,

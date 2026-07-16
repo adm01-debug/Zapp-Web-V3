@@ -14,6 +14,7 @@
  *   - evolution_webhook_events        (FATOR X / external)
  */
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.4';
+import { createZappAdminClient } from '../_shared/db-client.ts';
 
 import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
 const E2E_PREFIX = 'e2e-';
@@ -54,8 +55,7 @@ async function authorize(req: Request): Promise<{ ok: boolean; reason?: string }
   if (token === serviceKey) return { ok: true };
 
   // Otherwise, validate the JWT and confirm the user has app_role='admin'.
-  const url = envOrThrow('SUPABASE_URL');
-  const admin = createClient(url, serviceKey, { auth: { persistSession: false }, db: { schema: "zapp" } });
+  const admin = createZappAdminClient();
   const { data: userData, error: userErr } = await admin.auth.getUser(token);
   if (userErr || !userData || !userData.user) return { ok: false, reason: 'invalid-jwt' };
 
@@ -95,10 +95,7 @@ function validateBody(raw: unknown): { ok: true; body: RequestBody } | { ok: fal
 }
 
 function lovableClient() {
-  return createClient(envOrThrow('SUPABASE_URL'), envOrThrow('SUPABASE_SERVICE_ROLE_KEY'), {
-    auth: { persistSession: false },
-    db: { schema: "zapp" },
-  });
+  return createZappAdminClient();
 }
 
 function externalClient() {

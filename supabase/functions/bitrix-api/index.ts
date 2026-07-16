@@ -1,4 +1,4 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { createZappAdminClient } from '../_shared/db-client.ts';
 import { z } from "https://esm.sh/zod@3.23.8";
 import { handleCors, errorResponse, jsonResponse, Logger, getCorsHeaders, validateBitrixOrigin, checkRateLimit } from "../_shared/validation.ts";
 import { requireUser } from "../_shared/auth.ts";
@@ -128,9 +128,7 @@ Deno.serve(async (req) => {
         };
         break;
       case 'sync_contacts': {
-        const supabaseUrl = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'))!;
-        const supabaseKey = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))!;
-        const supabase = createClient(supabaseUrl, supabaseKey, { db: { schema: "zapp" } });
+        const supabase = createZappAdminClient();
 
         const contactsResponse = await fetch(`${BITRIX_WEBHOOK_URL}/crm.contact.list`, {
           method: 'POST',

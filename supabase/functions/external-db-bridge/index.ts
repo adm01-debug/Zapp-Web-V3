@@ -65,7 +65,7 @@ function classifySeverity(durationMs: number, hasError: boolean): string {
  * @param supabaseAdmin - Supabase admin client (service role key)
  * @param payload - Telemetry metrics (operation, duration, severity, etc.)
  */
-async function emitTelemetry(supabaseAdmin: ReturnType<typeof createClient>, payload: TelemetryPayload): Promise<void> {
+async function emitTelemetry(supabaseAdmin: ReturnType<typeof createZappAdminClient>, payload: TelemetryPayload): Promise<void> {
   try {
     await supabaseAdmin.from("query_telemetry").insert({
       operation: payload.operation,
