@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * sendExternalAudio — envia PTT (push-to-talk) no modo FATOR X.
  *

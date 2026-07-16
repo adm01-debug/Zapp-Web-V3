@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useMountedRef } from '@/hooks/useMountedRef';
 import { Link } from 'react-router-dom';

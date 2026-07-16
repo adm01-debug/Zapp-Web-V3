@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { Users, MessageSquare, Clock, Sparkles, Bell, Palette } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 

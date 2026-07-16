@@ -1,4 +1,3 @@
-// @ts-nocheck
 // Consolidated Media & File Management Module (ETAPA 40)
 // Consolidates: usePersonalStickers, useCustomEmojis, useExportData, useImportData, useDownloadPermission
 import { useState, useCallback, useRef, useEffect } from 'react';
