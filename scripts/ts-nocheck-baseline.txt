@@ -201,6 +201,7 @@ src/hooks/meta-capi/useMetaCapi.ts
 src/hooks/monitoring/useMonitoringManagement.ts
 src/hooks/omnichannel/useOmnichannelManagement.ts
 src/hooks/settings/useSkillBasedRouting.ts
+src/hooks/sla/useSLAScopeOptions.ts
 src/hooks/sticker-picker/useStickerPicker.ts
 src/hooks/team-chat/useDepartmentManagement.ts
 src/hooks/useActionFeedback.ts
@@ -210,9 +211,12 @@ src/hooks/useAnalyticsMonitoringManagement.ts
 src/hooks/useAudioManagement.ts
 src/hooks/useAutomationManagement.ts
 src/hooks/useBusinessHoursManagement.ts
+src/hooks/useCSAT.ts
 src/hooks/useCampaigns.ts
+src/hooks/useChatbotFlows.ts
 src/hooks/useClientWallet.ts
 src/hooks/useConnectionManagement.ts
+src/hooks/useContactData.ts
 src/hooks/useConversationManagement.ts
 src/hooks/useDashboardQueries.ts
 src/hooks/useDeliveryStats.ts
@@ -221,6 +225,7 @@ src/hooks/useEmailDraft.test.ts
 src/hooks/useEmailManagement.ts
 src/hooks/useEvolutionApiManagement.ts
 src/hooks/useEvolutionAutoReconnect.ts
+src/hooks/useEvolutionAutoSync.ts
 src/hooks/useExternalApiManagement.ts
 src/hooks/useGeoBlocking.ts
 src/hooks/useGmailOAuthFlow.ts
