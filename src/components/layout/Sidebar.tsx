@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { cn } from '@/lib/utils';
 import { Search, Moon, Sun, PanelLeftClose, PanelLeftOpen, Star } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -32,8 +32,14 @@ export const Sidebar = React.memo(function Sidebar({ currentView, onViewChange, 
   const { favorites, toggleFavorite, isFavorite } = useSidebarFavorites();
   const evoBadge = useEvoApiAlertsBadge();
 
-  const allNavItems = [...communicationNav, ...automationNav, ...salesNav, ...connectionsNav, ...analyticsNav, ...systemNav, ...advancedNav];
-  const favoriteItems = favorites.map(id => allNavItems.find(item => item.id === id)).filter(Boolean) as typeof allNavItems;
+  const allNavItems = useMemo(
+    () => [...communicationNav, ...automationNav, ...salesNav, ...connectionsNav, ...analyticsNav, ...systemNav, ...advancedNav],
+    [],
+  );
+  const favoriteItems = useMemo(
+    () => favorites.map((id) => allNavItems.find((item) => item.id === id)).filter(Boolean) as typeof allNavItems,
+    [favorites, allNavItems],
+  );
 
   // Per-group dynamic badges (currently: Sistema → evo-api-health alerts)
   const groupBadges: Record<string, Record<string, { count: number; variant?: 'destructive' | 'warning' | 'info'; title?: string }>> = {

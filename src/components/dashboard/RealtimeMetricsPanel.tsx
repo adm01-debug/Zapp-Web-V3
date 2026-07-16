@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { motion } from '@/components/ui/motion';
@@ -73,9 +74,10 @@ export function RealtimeMetricsPanel() {
     },
   ];
 
-  // Simple sparkline from last 10 data points
-  const sparkData = metricsHistory.slice(-10).map(m => m.messagesPerMinute);
-  const maxSpark = Math.max(...sparkData, 1);
+  const { sparkData, maxSpark } = useMemo(() => {
+    const data = metricsHistory.slice(-10).map((m) => m.messagesPerMinute);
+    return { sparkData: data, maxSpark: Math.max(...data, 1) };
+  }, [metricsHistory]);
 
   return (
     <Card className="border-primary/20 overflow-hidden bg-card">

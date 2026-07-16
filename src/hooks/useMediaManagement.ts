@@ -3,6 +3,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { log } from '@/lib/logger';
+import { useMountedRef } from '@/hooks/useMountedRef';
 
 interface Sticker {
   id: string;
@@ -60,6 +61,7 @@ export function usePersonalStickersManagement(userId?: string) {
 export function useCustomEmojisManagement() {
   const [emojis, setEmojis] = useState<Emoji[]>([]);
   const [loading, setLoading] = useState(true);
+  const mounted = useMountedRef();
 
   useEffect(() => {
     const fetchEmojis = async () => {
@@ -67,16 +69,16 @@ export function useCustomEmojisManagement() {
         const { data, error: err } = await supabase.from('custom_emojis').select('*');
 
         if (err) throw err;
-        setEmojis(data || []);
+        if (mounted.current) setEmojis(data || []);
       } catch (err) {
         log.error('Error fetching emojis:', err);
       } finally {
-        setLoading(false);
+        if (mounted.current) setLoading(false);
       }
     };
 
     fetchEmojis();
-  }, []);
+  }, [mounted]);
 
   return { emojis, loading };
 }

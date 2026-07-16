@@ -1,6 +1,7 @@
 // Consolidated Search & Discovery Management Module (ETAPA 36)
 // Consolidates: useGlobalSearchShortcut, useKnowledgeBaseSearch, useSearchHistory, useSearchInsights, useChatSearch
 import { useState, useCallback, useRef, useEffect } from 'react';
+import { useMountedRef } from '@/hooks/useMountedRef';
 import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { callExtRpc } from '@/integrations/supabase/externalClient';
@@ -226,6 +227,7 @@ export function normalizeSearchInsights(raw: unknown): SearchInsights {
 export function useSearchInsightsManagement(timeWindow: number = 7) {
   const [insights, setInsights] = useState<SearchInsights | null>(null);
   const [loading, setLoading] = useState(true);
+  const mounted = useMountedRef();
 
   useEffect(() => {
     const fetchInsights = async () => {
@@ -235,16 +237,16 @@ export function useSearchInsightsManagement(timeWindow: number = 7) {
         });
 
         if (err) throw err;
-        setInsights(normalizeSearchInsights(data));
+        if (mounted.current) setInsights(normalizeSearchInsights(data));
       } catch (err) {
         log.error('Error fetching search insights:', err);
       } finally {
-        setLoading(false);
+        if (mounted.current) setLoading(false);
       }
     };
 
     fetchInsights();
-  }, [timeWindow]);
+  }, [timeWindow, mounted]);
 
   return { insights, loading };
 }

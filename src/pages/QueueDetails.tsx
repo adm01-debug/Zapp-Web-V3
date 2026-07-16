@@ -237,7 +237,7 @@ export default function QueueDetails() {
                         className="flex items-center gap-3 rounded-lg p-2 transition-colors hover:bg-muted/20"
                       >
                         <Avatar className="h-10 w-10">
-                          <AvatarImage src={member.profile?.avatar_url || undefined} />
+                          <AvatarImage src={member.profile?.avatar_url || undefined} alt={member.profile?.name || ''} />
                           <AvatarFallback className="bg-primary/10 text-primary">
                             {member.profile?.name?.[0] || '?'}
                           </AvatarFallback>

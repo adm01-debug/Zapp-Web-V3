@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Star, Clock } from 'lucide-react';
@@ -22,8 +23,11 @@ export function StickerCategoryBar({
   onToggleFavorites,
   onToggleRecent,
 }: StickerCategoryBarProps) {
-  const categories = [...new Set(stickers.map(s => s.category).filter(Boolean))].sort();
-  const favCount = stickers.filter(s => s.is_favorite).length;
+  const { categories, favCount, categoryCounts } = useMemo(() => {
+    const cats = [...new Set(stickers.map((s) => s.category).filter(Boolean))].sort();
+    const counts = new Map(cats.map((cat) => [cat, stickers.filter((s) => s.category === cat).length]));
+    return { categories: cats, favCount: stickers.filter((s) => s.is_favorite).length, categoryCounts: counts };
+  }, [stickers]);
 
   return (
     <div className="px-2 py-2 border-b border-border/30" role="tablist" aria-label="Filtros de figurinhas">
@@ -73,7 +77,7 @@ export function StickerCategoryBar({
 
           {categories.map(cat => {
             const info = CATEGORY_LABELS[cat];
-            const count = stickers.filter(s => s.category === cat).length;
+            const count = categoryCounts.get(cat) ?? 0;
             return (
               <button type="button"
                 key={cat}

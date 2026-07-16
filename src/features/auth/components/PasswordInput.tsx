@@ -32,7 +32,7 @@ export function PasswordInput({ id, className, ...props }: PasswordInputProps) {
         aria-pressed={showPassword}
         className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 p-0 hover:bg-transparent"
         onClick={() => setShowPassword(!showPassword)}
-        tabIndex={-1}
+        tabIndex={0}
       >
         {showPassword ? (
           <EyeOff className="w-4 h-4 text-muted-foreground hover:text-foreground transition-colors" />
