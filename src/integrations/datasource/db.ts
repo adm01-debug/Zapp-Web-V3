@@ -26,6 +26,27 @@ import { generateCorrelationId } from '@/lib/correlationId';
 import type { RpcDefinition, DatasourceClient } from './rpcCatalog';
 import { validateEntityAccess, validateRpcAccess } from './sentinel';
 
+function extractPaginationParams(params: Record<string, unknown>): {
+  limit: number | null;
+  offset: number | null;
+} {
+  return {
+    limit: typeof params.p_limit === 'number' ? params.p_limit : null,
+    offset: typeof params.p_offset === 'number' ? params.p_offset : null,
+  };
+}
+
+function extractErrorMessage(err: unknown): string {
+  if (err instanceof Error) return err.message;
+  if (typeof err === 'string') return err;
+  return 'Unknown error';
+}
+
+function isTimeoutError(err: unknown, message: string): boolean {
+  if (err instanceof Error && err.name === 'AbortError') return true;
+  return message.toLowerCase().includes('timeout') || message.toLowerCase().includes('timed out');
+}
+
 /**
  * Fail-fast com mensagem acionável quando uma entidade não está no registry.
  * Sem este guard, `ENTITY_MAP[entity]` retorna undefined e o erro real vira

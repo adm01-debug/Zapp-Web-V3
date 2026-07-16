@@ -30,13 +30,13 @@ export function usePrefetchOnHover() {
 
   const prefetch = useCallback(
     (viewId: string) => {
-      const keys = VIEW_QUERY_KEYS[viewId];
+      const keys = VIEW_QUERY_KEYS[viewId as keyof typeof VIEW_QUERY_KEYS];
       if (!keys) return;
 
-      keys.forEach((key) => {
+      keys.forEach((key: readonly unknown[]) => {
         // Only triggers if data is stale — no wasted requests
         queryClient.prefetchQuery({
-          queryKey: key,
+          queryKey: key as unknown[],
           staleTime: 1000 * 60 * 5, // 5 min
         });
       });
