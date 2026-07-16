@@ -165,7 +165,7 @@ export function useTypingPresenceManagement(userId: string, chatId: string) {
       .on('presence', { event: 'sync' }, () => {
         const state = channelRef.current.presenceState();
         const users = Object.entries(state)
-          .filter(([, presence]: any) => presence?.[0]?.typing)
+          .filter(([, presence]: [string, Array<{ typing?: boolean }>]) => presence?.[0]?.typing)
           .map(([key]) => key);
         setTypingUsers(users);
       })

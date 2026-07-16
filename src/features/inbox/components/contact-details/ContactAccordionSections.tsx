@@ -46,6 +46,7 @@ import { SharedMediaAccordionItem } from './SharedMediaAccordionItem';
 
 import { isExternalConfigured } from '@/integrations/supabase/externalClient';
 import { log } from '@/lib/logger';
+import { SectionErrorBoundary } from '@/components/ui/section-error-boundary';
 import type {
   EnrichedContactData,
   AIConversationTag,
@@ -145,7 +146,9 @@ export function ContactAccordionSections({
         icon={<Clock className="h-3.5 w-3.5 text-primary" />}
         label="Configurações de SLA"
       >
-        <SLADeliveryConfigSection contactId={contact.id} />
+        <SectionErrorBoundary sectionName="Configurações de SLA">
+          <SLADeliveryConfigSection contactId={contact.id} />
+        </SectionErrorBoundary>
       </Section>
 
       {isExternalConfigured && (
@@ -156,7 +159,9 @@ export function ContactAccordionSections({
             icon={<Sparkles className="h-3.5 w-3.5 text-primary" />}
             label="CRM 360°"
           >
-            <ExternalContact360Panel phone={contact.phone} />
+            <SectionErrorBoundary sectionName="CRM 360°">
+              <ExternalContact360Panel phone={contact.phone} />
+            </SectionErrorBoundary>
           </Section>
           <Section
             index={2.5}
@@ -164,7 +169,9 @@ export function ContactAccordionSections({
             icon={<Brain className="h-3.5 w-3.5 text-primary" />}
             label="Inteligência Comercial"
           >
-            <ContactIntelligencePanel phone={contact.phone} />
+            <SectionErrorBoundary sectionName="Inteligência Comercial">
+              <ContactIntelligencePanel phone={contact.phone} />
+            </SectionErrorBoundary>
           </Section>
         </div>
       )}
@@ -198,7 +205,9 @@ export function ContactAccordionSections({
         icon={<ListTodo className="h-3.5 w-3.5 text-primary" />}
         label="Tarefas"
       >
-        <ConversationTasksPanel contactId={contact.id} profileId={profileId} />
+        <SectionErrorBoundary sectionName="Tarefas">
+          <ConversationTasksPanel contactId={contact.id} profileId={profileId} />
+        </SectionErrorBoundary>
       </Section>
 
       <Section
@@ -207,7 +216,9 @@ export function ContactAccordionSections({
         icon={<Bell className="h-3.5 w-3.5 text-primary" />}
         label="Lembretes"
       >
-        <RemindersPanel contactId={contact.id} profileId={profileId} />
+        <SectionErrorBoundary sectionName="Lembretes">
+          <RemindersPanel contactId={contact.id} profileId={profileId} />
+        </SectionErrorBoundary>
       </Section>
 
       <Section
@@ -216,7 +227,9 @@ export function ContactAccordionSections({
         icon={<Brain className="h-3.5 w-3.5 text-primary" />}
         label="Memória Viva"
       >
-        <ConversationMemoryPanel contactId={contact.id} profileId={profileId} />
+        <SectionErrorBoundary sectionName="Memória Viva">
+          <ConversationMemoryPanel contactId={contact.id} profileId={profileId} />
+        </SectionErrorBoundary>
       </Section>
 
       <Section
@@ -225,7 +238,9 @@ export function ContactAccordionSections({
         icon={<TrendingUp className="h-3.5 w-3.5 text-primary" />}
         label="Scoring & LGPD"
       >
-        <LeadRiskScorePanel contactId={contact.id} />
+        <SectionErrorBoundary sectionName="Scoring & LGPD">
+          <LeadRiskScorePanel contactId={contact.id} />
+        </SectionErrorBoundary>
       </Section>
 
       <Section
@@ -234,7 +249,9 @@ export function ContactAccordionSections({
         icon={<ShoppingBag className="h-3.5 w-3.5 text-primary" />}
         label="Compras & Propostas"
       >
-        <ContactPurchasesPanel contactId={contact.id} profileId={profileId} />
+        <SectionErrorBoundary sectionName="Compras & Propostas">
+          <ContactPurchasesPanel contactId={contact.id} profileId={profileId} />
+        </SectionErrorBoundary>
       </Section>
 
       <Section
@@ -243,7 +260,9 @@ export function ContactAccordionSections({
         icon={<FileText className="h-3.5 w-3.5 text-primary" />}
         label="Notas Privadas"
       >
-        <PrivateNotes contactId={contact.id} />
+        <SectionErrorBoundary sectionName="Notas Privadas">
+          <PrivateNotes contactId={contact.id} />
+        </SectionErrorBoundary>
       </Section>
 
       <Section
@@ -252,7 +271,9 @@ export function ContactAccordionSections({
         icon={<GitBranch className="h-3.5 w-3.5 text-primary" />}
         label="Linha do Tempo"
       >
-        <ConversationTimeline contactId={contact.id} />
+        <SectionErrorBoundary sectionName="Linha do Tempo">
+          <ConversationTimeline contactId={contact.id} />
+        </SectionErrorBoundary>
       </Section>
 
       <Section
@@ -261,11 +282,13 @@ export function ContactAccordionSections({
         icon={<Clock className="h-3.5 w-3.5 text-primary" />}
         label="Histórico"
       >
-        <ConversationHistory
-          contactId={contact.id}
-          contactPhone={contact.phone}
-          onSelectConversation={(id) => log.debug('Selected conversation:', id)}
-        />
+        <SectionErrorBoundary sectionName="Histórico">
+          <ConversationHistory
+            contactId={contact.id}
+            contactPhone={contact.phone}
+            onSelectConversation={(id) => log.debug('Selected conversation:', id)}
+          />
+        </SectionErrorBoundary>
       </Section>
 
       <Section
@@ -274,7 +297,9 @@ export function ContactAccordionSections({
         icon={<CheckCheck className="h-3.5 w-3.5 text-primary" />}
         label="Entregas & Leituras"
       >
-        <DeliveryStatsPanel remoteJid={contact.id} />
+        <SectionErrorBoundary sectionName="Entregas & Leituras">
+          <DeliveryStatsPanel remoteJid={contact.id} />
+        </SectionErrorBoundary>
       </Section>
 
       <Section
@@ -283,7 +308,9 @@ export function ContactAccordionSections({
         icon={<Activity className="h-3.5 w-3.5 text-primary" />}
         label="Linha do tempo do atendimento"
       >
-        <SLATimelineSection conversation={conversation} />
+        <SectionErrorBoundary sectionName="Linha do tempo do atendimento">
+          <SLATimelineSection conversation={conversation} />
+        </SectionErrorBoundary>
       </Section>
 
       <motion.div custom={8} initial="hidden" animate="visible" variants={sectionVariants}>

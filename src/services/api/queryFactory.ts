@@ -129,21 +129,22 @@ export const createInfiniteQuery = <TData = any>(
   return null;
 };
 
-export const handleQueryError = (error: any, fallbackMessage?: string) => {
+export const handleQueryError = (error: unknown, fallbackMessage?: string) => {
   log.error('Query error:', error);
-
-  if (error?.code === 'NETWORK_ERROR') return 'Erro de conexao. Verifique sua internet.';
-  if (error?.code === 'UNAUTHORIZED') return 'Sua sessao expirou. Faca login novamente.';
-  if (error?.code === 'FORBIDDEN') return 'Voce nao tem permissao para acessar este recurso.';
-  if (error?.code === 'NOT_FOUND') return 'Recurso nao encontrado.';
-  if (error?.code === 'TIMEOUT') return 'A requisicao demorou muito tempo. Tente novamente.';
+  const e = error as Record<string, unknown> | null;
+  if (e?.code === 'NETWORK_ERROR') return 'Erro de conexao. Verifique sua internet.';
+  if (e?.code === 'UNAUTHORIZED') return 'Sua sessao expirou. Faca login novamente.';
+  if (e?.code === 'FORBIDDEN') return 'Voce nao tem permissao para acessar este recurso.';
+  if (e?.code === 'NOT_FOUND') return 'Recurso nao encontrado.';
+  if (e?.code === 'TIMEOUT') return 'A requisicao demorou muito tempo. Tente novamente.';
 
   return fallbackMessage || 'Ocorreu um erro ao carregar os dados.';
 };
 
 export const retryConfig = {
-  shouldRetry: (error: any, attemptIndex: number) => {
-    if (error?.status >= 400 && error?.status < 500) return false;
+  shouldRetry: (error: unknown, attemptIndex: number) => {
+    const e = error as { status?: number } | null;
+    if (e?.status !== undefined && e.status >= 400 && e.status < 500) return false;
     return attemptIndex < 3;
   },
   getDelay: (attemptIndex: number) => {

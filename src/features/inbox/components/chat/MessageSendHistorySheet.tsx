@@ -286,11 +286,11 @@ export function MessageSendHistorySheet({ message, open, onOpenChange }: Props) 
                   {data.metric.retryReasons.length > 0 && (
                     <div className="overflow-hidden rounded-lg border border-border/50">
                       <ol className="divide-y divide-border/50">
-                        {data.metric.retryReasons.map((r, i) => {
+                        {data.metric.retryReasons.map((r) => {
                           const isOk =
                             typeof r.status === 'number' && r.status >= 200 && r.status < 300;
                           return (
-                            <li key={i} className="flex items-start gap-2.5 p-2.5 text-xs">
+                            <li key={r.attempt} className="flex items-start gap-2.5 p-2.5 text-xs">
                               <span
                                 className={cn(
                                   'mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold',

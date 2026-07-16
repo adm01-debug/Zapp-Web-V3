@@ -7,7 +7,7 @@
  *
  * Backward compatibility maintained through re-exports of all legacy hook names.
  */
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect, type DependencyList } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { getLogger } from '@/lib/logger';
 import {
@@ -124,7 +124,7 @@ export function useSafeAsync<T>(
     operation?: string;
     fallback?: T;
     shouldThrow?: boolean;
-    dependencies?: any[];
+    dependencies?: DependencyList;
   }
 ) {
   const { operation = 'Unknown', fallback, shouldThrow = false, dependencies = [] } = options || {};
@@ -151,7 +151,7 @@ export function useSafeRetry<T>(
     maxAttempts?: number;
     delayMs?: number;
     backoffMultiplier?: number;
-    dependencies?: any[];
+    dependencies?: DependencyList;
   }
 ) {
   const {
@@ -181,7 +181,7 @@ export function useSafeRetry<T>(
  */
 /** Executes promises without waiting for resolution, ideal for analytics and tracking. */
 export function useFireAndForget() {
-  return useCallback((promise: Promise<any>, operation: string = 'Unknown operation') => {
+  return useCallback((promise: Promise<unknown>, operation: string = 'Unknown operation') => {
     fireAndForget(promise, { operation });
   }, []);
 }
@@ -196,7 +196,7 @@ export function useSafeCallback<T extends (...args: any[]) => any>(
     name?: string;
     fallbackReturn?: ReturnType<T>;
     shouldThrow?: boolean;
-    dependencies?: any[];
+    dependencies?: DependencyList;
   }
 ) {
   const {
@@ -226,7 +226,7 @@ export function useSafePromise<T>(
     operation?: string;
     onReject?: (error: Error) => void;
     shouldThrow?: boolean;
-    dependencies?: any[];
+    dependencies?: DependencyList;
   }
 ) {
   const { operation = 'Unknown', onReject, shouldThrow = false, dependencies = [] } = options || {};
@@ -262,7 +262,7 @@ export function useAsyncEffect<T>(
     operation?: string;
     cleanup?: () => void;
     fallback?: () => void;
-    dependencies?: any[];
+    dependencies?: DependencyList;
   }
 ) {
   const abortRef = useRef<AbortController | null>(null);
@@ -335,7 +335,7 @@ export function useRetryableAsync<T>(
     operationName?: string;
     config?: RetryConfig;
     shouldRetry?: RetryPolicy;
-    dependencies?: any[];
+    dependencies?: DependencyList;
   }
 ) {
   const {

@@ -264,7 +264,7 @@ export const createService = <T = any>(
             schema: 'zapp',
             table: tableName,
           },
-          (payload: any) => {
+          (payload: { new: T }) => {
             callback(payload.new);
           }
         )
@@ -286,7 +286,7 @@ export const applyRetry = async <T>(
   maxRetries = 3,
   delay = 1000
 ): Promise<T> => {
-  let lastError: any;
+  let lastError: unknown;
 
   for (let i = 0; i < maxRetries; i++) {
     try {

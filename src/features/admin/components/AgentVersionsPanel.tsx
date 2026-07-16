@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { unwrapRows } from '@/lib/supabase-helpers';
@@ -137,12 +137,17 @@ export function AgentVersionsPanel() {
     selectedId || '',
   );
   const [restoringId, setRestoringId] = useState<string | null>(null);
+  const restoreTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => () => {
+    if (restoreTimerRef.current) clearTimeout(restoreTimerRef.current);
+  }, []);
 
   const handleRestore = (versionId: string) => {
     setRestoringId(versionId);
     restoreVersion(versionId);
-    // clear indicator after a beat (mutation feedback via toast)
-    setTimeout(() => setRestoringId(null), 1500);
+    if (restoreTimerRef.current) clearTimeout(restoreTimerRef.current);
+    restoreTimerRef.current = setTimeout(() => setRestoringId(null), 1500);
   };
 
   return (

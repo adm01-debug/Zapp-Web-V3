@@ -34,7 +34,7 @@ export const SidebarNavGroup = React.memo(function SidebarNavGroup({ label, icon
 
   const triggerButton = (
     <button type="button"
-      onClick={() => setIsOpen(!isOpen)}
+      onClick={() => setIsOpen((prev) => !prev)}
       className={cn(
         'rounded-xl flex items-center transition-all duration-500 group/trigger outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1',
         collapsed ? 'w-full h-[38px] justify-center gap-1' : 'w-full h-[38px] px-3 gap-2 hover:bg-muted/15',

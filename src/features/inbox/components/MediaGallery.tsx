@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback, memo } from 'react';
 import { GenericEmptyState } from '@/components/ui/GenericEmptyState';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
@@ -28,6 +28,22 @@ import { MediaCard } from './media-gallery/MediaCard';
 import { MediaPreviewDialog } from './media-gallery/MediaPreviewDialog';
 import { MediaGalleryListView } from './media-gallery/MediaGalleryListView';
 import { dbFrom } from '@/integrations/datasource/db';
+
+const MediaGridItem = memo(function MediaGridItem({
+  item,
+  isSelected,
+  onToggleSelect,
+  onPreview,
+}: {
+  item: MediaItem;
+  isSelected: boolean;
+  onToggleSelect: (id: string) => void;
+  onPreview: (item: MediaItem) => void;
+}) {
+  const handleSelect = useCallback(() => onToggleSelect(item.id), [onToggleSelect, item.id]);
+  const handlePreview = useCallback(() => onPreview(item), [onPreview, item]);
+  return <MediaCard item={item} isSelected={isSelected} onSelect={handleSelect} onPreview={handlePreview} />;
+});
 
 interface MediaGalleryProps {
   contactId: string;
@@ -114,12 +130,14 @@ export function MediaGallery({ contactId, open, onOpenChange }: MediaGalleryProp
     [mediaItems]
   );
 
-  const toggleSelect = (id: string) => {
-    const newSelected = new Set(selectedItems);
-    if (newSelected.has(id)) newSelected.delete(id);
-    else newSelected.add(id);
-    setSelectedItems(newSelected);
-  };
+  const toggleSelect = useCallback((id: string) => {
+    setSelectedItems((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
 
   const handleDownloadSelected = async () => {
     const { toast } = await import('sonner');
@@ -323,12 +341,12 @@ export function MediaGallery({ contactId, open, onOpenChange }: MediaGalleryProp
             ) : viewMode === 'grid' ? (
               <div className="grid grid-cols-4 gap-2 p-2">
                 {filteredItems.map((item) => (
-                  <MediaCard
+                  <MediaGridItem
                     key={item.id}
                     item={item}
                     isSelected={selectedItems.has(item.id)}
-                    onSelect={() => toggleSelect(item.id)}
-                    onPreview={() => setPreviewItem(item)}
+                    onToggleSelect={toggleSelect}
+                    onPreview={setPreviewItem}
                   />
                 ))}
               </div>

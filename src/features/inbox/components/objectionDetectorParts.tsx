@@ -17,6 +17,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 
 export interface Objection {
+  id: string;
   objection: string;
   counterArgument: string;
   confidence: number;

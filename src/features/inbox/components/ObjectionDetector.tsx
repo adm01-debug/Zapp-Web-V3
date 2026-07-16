@@ -231,7 +231,7 @@ export function ObjectionDetector({
             <AnimatePresence mode="popLayout">
               {detector.objections.map((obj, idx) => (
                 <ObjectionCard
-                  key={`${idx}-${obj.objection.slice(0, 20)}`}
+                  key={obj.id}
                   obj={obj}
                   idx={idx}
                   isRewriting={detector.rewritingIdx === idx}
