@@ -1,4 +1,6 @@
 {
-  "total": 0,
-  "files": {}
+  "total": 62,
+  "files": {
+    "src/utils/emailMappers.ts": 62
+  }
 }
