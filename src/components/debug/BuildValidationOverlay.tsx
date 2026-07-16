@@ -12,8 +12,7 @@ export const BuildValidationOverlay: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
 
-  // Only show in development or if explicitly requested
-  const isDev = import.meta.env.DEV || window.location.search.includes('debug=true');
+  const isDev = import.meta.env.DEV;
 
   if (!isDev) return null;
 
