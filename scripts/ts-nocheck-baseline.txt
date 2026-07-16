@@ -1,12 +1,7 @@
 src/__tests__/security-and-performance.test.ts
 src/components/__tests__/ExportDropdownPermission.test.tsx
-src/components/talkx/TalkXLiveMonitor.tsx
-src/components/talkx/TalkXView.tsx
 src/components/talkx/__tests__/TalkX.test.tsx
-src/components/talkx/useCampaignEditor.ts
-src/features/admin/components/AdminView.tsx
 src/features/admin/hooks/useAdminManagement.ts
-src/features/inbox/components/ChatPanel.tsx
 src/features/inbox/components/chat/hooks/__tests__/useInitialHighlight.test.ts
 src/features/inbox/components/conversation-list/ConversationItem.test.tsx
 src/features/inbox/components/conversation-list/__mocks__/mockConversations.ts
