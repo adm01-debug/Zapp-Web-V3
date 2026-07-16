@@ -8,12 +8,7 @@ src/components/talkx/TalkXView.tsx
 src/components/talkx/__tests__/TalkX.test.tsx
 src/components/talkx/useCampaignEditor.ts
 src/features/admin/components/AdminView.tsx
-src/features/admin/hooks/monitoring/useIdempotencyMissAlerts.ts
 src/features/admin/hooks/useAdminManagement.ts
-src/features/admin/hooks/useDiagnosticsData.ts
-src/features/auth/components/ProtectedRoute.tsx
-src/features/connections/hooks/parts/useConnectionsActions.ts
-src/features/connections/hooks/useConnectionsManager.ts
 src/features/contacts/hooks/useContactEnrichedData.ts
 src/features/contacts/hooks/useContactNotes.ts
 src/features/contacts/hooks/useContactsSearch.ts
