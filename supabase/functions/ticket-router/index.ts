@@ -4,6 +4,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { requireAdminOrSupervisor } from "../_shared/auth.ts";
+import { checkRateLimit } from "../_shared/validation.ts";
 
 import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
 interface RouteRequest {
@@ -44,6 +45,13 @@ Deno.serve(async (req) => {
     const authed = await requireAdminOrSupervisor(req);
     if (authed instanceof Response) return authed;
 
+    const rl = checkRateLimit(`ticket-router:${authed.user.id}`, 60, 60_000);
+    if (!rl.allowed) {
+      return new Response(JSON.stringify({ error: 'rate_limit_exceeded' }), {
+        status: 429, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+      });
+    }
+
     const url = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'));
     const serviceKey = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'));
     if (!url || !serviceKey) return err500("missing_env");
@@ -61,7 +69,7 @@ Deno.serve(async (req) => {
     if (typeof rawBody !== 'object' || rawBody === null || Array.isArray(rawBody)) {
       return new Response(JSON.stringify({ error: "invalid_json" }), {
         status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
       });
     }
 
