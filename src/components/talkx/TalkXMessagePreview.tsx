@@ -3,9 +3,12 @@ import { Eye, ChevronLeft, ChevronRight, Building2, Phone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import type { Tables } from '@/integrations/supabase/schema';
+import type { ContactRow } from '@/integrations/supabase/schema';
 
-type Contact = Pick<Tables<'contacts'>, 'id' | 'name' | 'nickname' | 'phone' | 'company' | 'avatar_url'>;
+type Contact = Pick<
+  NonNullable<ContactRow>,
+  'id' | 'name' | 'nickname' | 'phone' | 'company' | 'avatar_url'
+>;
 
 interface Props {
   messageTemplate: string;
@@ -32,14 +35,16 @@ export function TalkXMessagePreview({ messageTemplate, contacts, mediaUrl, media
 
   const safeContacts = useMemo(() => {
     if (contacts.length === 0) {
-      return [{
-        id: 'sample',
-        name: 'João Silva',
-        nickname: 'Joãozinho',
-        phone: '5511999999999',
-        company: 'Empresa Exemplo',
-        avatar_url: null,
-      }];
+      return [
+        {
+          id: 'sample',
+          name: 'João Silva',
+          nickname: 'Joãozinho',
+          phone: '5511999999999',
+          company: 'Empresa Exemplo',
+          avatar_url: null,
+        },
+      ];
     }
     return contacts;
   }, [contacts]);
@@ -57,8 +62,8 @@ export function TalkXMessagePreview({ messageTemplate, contacts, mediaUrl, media
     <Card className="border-border/50">
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-sm flex items-center gap-2">
-            <Eye className="w-4 h-4 text-primary" />
+          <CardTitle className="flex items-center gap-2 text-sm">
+            <Eye className="h-4 w-4 text-primary" />
             Preview por contato
           </CardTitle>
           <Badge variant="outline" className="text-[10px]">
@@ -68,24 +73,28 @@ export function TalkXMessagePreview({ messageTemplate, contacts, mediaUrl, media
       </CardHeader>
       <CardContent className="space-y-3">
         {/* Contact info bar */}
-        <div className="flex items-center gap-3 bg-muted/40 rounded-xl p-2.5">
-          <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center text-xs font-bold text-muted-foreground shrink-0">
+        <div className="flex items-center gap-3 rounded-xl bg-muted/40 p-2.5">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-bold text-muted-foreground">
             {currentContact.avatar_url ? (
-              <img src={currentContact.avatar_url} alt="" className="w-full h-full rounded-full object-cover" />
+              <img
+                src={currentContact.avatar_url}
+                alt=""
+                className="h-full w-full rounded-full object-cover"
+              />
             ) : (
               (currentContact.name || '?')[0].toUpperCase()
             )}
           </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-foreground truncate">{currentContact.name}</p>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-medium text-foreground">{currentContact.name}</p>
             <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
               <span className="flex items-center gap-0.5">
-                <Phone className="w-2.5 h-2.5" />
+                <Phone className="h-2.5 w-2.5" />
                 {currentContact.phone}
               </span>
               {currentContact.company && (
                 <span className="flex items-center gap-0.5">
-                  <Building2 className="w-2.5 h-2.5" />
+                  <Building2 className="h-2.5 w-2.5" />
                   {currentContact.company}
                 </span>
               )}
@@ -100,7 +109,7 @@ export function TalkXMessagePreview({ messageTemplate, contacts, mediaUrl, media
               disabled={currentIndex === 0}
               aria-label="Contato anterior"
             >
-              <ChevronLeft className="w-4 h-4" />
+              <ChevronLeft className="h-4 w-4" />
             </Button>
             <Button
               size="icon"
@@ -110,19 +119,25 @@ export function TalkXMessagePreview({ messageTemplate, contacts, mediaUrl, media
               disabled={currentIndex >= safeContacts.length - 1}
               aria-label="Próximo contato"
             >
-              <ChevronRight className="w-4 h-4" />
+              <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
         </div>
 
         {/* WhatsApp-style bubble */}
-        <div className="bg-muted/30 rounded-xl p-4 border border-border/30">
+        <div className="rounded-xl border border-border/30 bg-muted/30 p-4">
           <div className="flex flex-col items-end gap-2">
             {mediaUrl && mediaType === 'image' && (
-              <img src={mediaUrl} alt="Pré-visualização da mensagem" className="rounded-lg max-h-32 w-auto" />
+              <img
+                src={mediaUrl}
+                alt="Pré-visualização da mensagem"
+                className="max-h-32 w-auto rounded-lg"
+              />
             )}
-            <div className="bg-primary/10 rounded-xl rounded-tr-sm p-3 text-sm text-foreground max-w-[85%] whitespace-pre-wrap">
-              {preview || <span className="text-muted-foreground italic">Digite uma mensagem...</span>}
+            <div className="max-w-[85%] whitespace-pre-wrap rounded-xl rounded-tr-sm bg-primary/10 p-3 text-sm text-foreground">
+              {preview || (
+                <span className="italic text-muted-foreground">Digite uma mensagem...</span>
+              )}
             </div>
             <span className="text-[10px] text-muted-foreground">
               {new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}

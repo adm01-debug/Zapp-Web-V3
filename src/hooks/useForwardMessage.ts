@@ -5,9 +5,9 @@ import { toast } from '@/hooks/use-toast';
 
 const log = getLogger('useForwardMessage');
 import { dbFrom } from '@/integrations/datasource/db';
-import type { Tables } from '@/integrations/supabase/schema';
+import type { ContactRow } from '@/integrations/supabase/schema';
 
-type Contact = Pick<Tables<'contacts'>, 'id' | 'name' | 'phone' | 'avatar_url'>;
+type Contact = Pick<NonNullable<ContactRow>, 'id' | 'name' | 'phone' | 'avatar_url'>;
 
 interface Group {
   id: string;
@@ -34,10 +34,13 @@ export function useForwardMessage(
   const mountedRef = useRef(true); // ✅ Fix: mounted guard para race condition
   useEffect(() => {
     mountedRef.current = true;
-    return () => { mountedRef.current = false; };
+    return () => {
+      mountedRef.current = false;
+    };
   }, []);
 
-  const fetchContacts = useCallback(async () => { // ✅ Fix: useCallback para deps estáveis
+  const fetchContacts = useCallback(async () => {
+    // ✅ Fix: useCallback para deps estáveis
     setIsLoading(true);
     try {
       const { data, error } = await dbFrom('contacts')
