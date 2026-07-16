@@ -37,8 +37,6 @@ export const queryKeys = {
     detail: (id: string) =>
       [...queryKeys.connections.details(), id] as const,
     health: () => [...queryKeys.connections.all(), 'health'] as const,
-    qr: (connectionId: string) =>
-      [...queryKeys.connections.all(), 'qr', connectionId] as const,
   },
 
   // Queues
@@ -104,22 +102,9 @@ export const queryKeys = {
     autoClose: () => [...queryKeys.automations.all(), 'auto-close-config'] as const,
   },
 
-  // Analytics
-  analytics: {
-    all: () => ['analytics'] as const,
-    dashboard: () => [...queryKeys.analytics.all(), 'dashboard'] as const,
-    metrics: (range?: string) =>
-      [...queryKeys.analytics.all(), 'metrics', range] as const,
-    reports: () => [...queryKeys.analytics.all(), 'reports'] as const,
-  },
-
   // Admin
   admin: {
     all: () => ['admin'] as const,
-    system: () => [...queryKeys.admin.all(), 'system'] as const,
-    logs: (filters?: Record<string, unknown>) =>
-      [...queryKeys.admin.all(), 'logs', { filters }] as const,
-    webhooks: () => [...queryKeys.admin.all(), 'webhooks'] as const,
   },
 
   // Tags
@@ -263,6 +248,7 @@ export const queryKeys = {
   // Follow-up Sequences
   followupSequences: {
     all: () => ['followup-sequences'] as const,
+    executionsRoot: () => ['followup-executions'] as const,
     executions: (contactId?: string) => ['followup-executions', contactId] as const,
   },
 
@@ -423,6 +409,7 @@ export const queryKeys = {
     intelligence: (contactId?: string) => ['contact-intelligence', contactId] as const,
     tagsMap: () => ['contact-tags-map'] as const,
     transfersPaginated: (contactId?: string) => ['transfers-paginated', contactId] as const,
+    singleContactRoot: () => ['contact'] as const,
     singleContact: (remoteJid?: string) => ['contact', remoteJid] as const,
     contactsList: () => ['contacts-list'] as const,
     typeCounts: () => ['contacts-type-counts'] as const,

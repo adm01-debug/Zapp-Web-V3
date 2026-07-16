@@ -13,7 +13,6 @@ const VIEW_QUERY_KEYS = {
   dashboard: [queryKeys.contacts.all()],
   campaigns: [queryKeys.campaigns.all()],
   automations: [queryKeys.automations.all()],
-  agents: [queryKeys.users.teamMembers()],
   queues: [queryKeys.queues.all()],
   tags: [queryKeys.tags.all()],
 } as const;

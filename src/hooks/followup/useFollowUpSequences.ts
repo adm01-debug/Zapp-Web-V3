@@ -59,7 +59,7 @@ export function useFollowUpSequences() {
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.followupSequences.all() });
-      void queryClient.invalidateQueries({ queryKey: queryKeys.followupSequences.executions() });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.followupSequences.executionsRoot() });
       toast({ title: 'Sequência criada' });
     },
     onError: () => {
@@ -77,7 +77,7 @@ export function useFollowUpSequences() {
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.followupSequences.all() });
-      void queryClient.invalidateQueries({ queryKey: queryKeys.followupSequences.executions() });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.followupSequences.executionsRoot() });
     },
     onError: () => {
       toast({ title: 'Erro ao alterar status', variant: 'destructive' });
@@ -91,7 +91,7 @@ export function useFollowUpSequences() {
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.followupSequences.all() });
-      void queryClient.invalidateQueries({ queryKey: queryKeys.followupSequences.executions() });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.followupSequences.executionsRoot() });
       toast({ title: 'Sequência excluída' });
     },
     onError: () => {

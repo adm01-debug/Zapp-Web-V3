@@ -59,7 +59,7 @@ export function useRealtimeFallbackRefetch({ enabled = true, intervalMs }: Optio
     void queryClient.invalidateQueries({ queryKey: queryKeys.contactDetails.contactsList() });
     // Per-contact caches: invalidate the family (no specific jid).
     void queryClient.invalidateQueries({ queryKey: queryKeys.evolutionConversations.contactAll() });
-    void queryClient.invalidateQueries({ queryKey: queryKeys.contactDetails.singleContact() });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.contactDetails.singleContactRoot() });
     // Tag the reason on the window for ad-hoc debugging.
     try {
       (window as unknown as { __lastRealtimeFallback?: string }).__lastRealtimeFallback = // ignore-audit — window debug tag for devtools inspection
