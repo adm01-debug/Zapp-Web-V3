@@ -7,6 +7,7 @@
 // Rate limit via header METRICS_TOKEN opcional (env METRICS_SCRAPE_TOKEN).
 // =====================================================================
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
+import { timingSafeStringEqual } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -136,7 +137,7 @@ Deno.serve(async (req) => {
   }
   if (SCRAPE_TOKEN) {
     const provided = req.headers.get("x-metrics-token") ?? new URL(req.url).searchParams.get("token") ?? "";
-    if (provided !== SCRAPE_TOKEN) {
+    if (!timingSafeStringEqual(provided, SCRAPE_TOKEN)) {
       return new Response("forbidden", { status: 403, headers: corsHeaders });
     }
   }
