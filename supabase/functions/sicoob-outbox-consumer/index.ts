@@ -2,6 +2,7 @@
 // Invocado por pg_cron a cada 1 min. Drena itens pendentes com backoff exponencial.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCorsHeaders, handleCorsPreflight } from "../_shared/cors.ts";
+import { requireServiceRoleOrCron } from "../_shared/auth.ts";
 
 const MAX_BATCH = 25;
 const MAX_ATTEMPTS = 6; // ~1+2+4+8+16+32 min de backoff
@@ -42,6 +43,9 @@ const MAX_ATTEMPTS = 6; // ~1+2+4+8+16+32 min de backoff
  */
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return handleCorsPreflight(req);
+
+  const authErr = requireServiceRoleOrCron(req);
+  if (authErr) return authErr;
 
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;

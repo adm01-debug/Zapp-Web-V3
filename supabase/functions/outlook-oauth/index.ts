@@ -2,6 +2,7 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
+import { requireUser } from '../_shared/auth.ts';
 /**
  * outlook-oauth — Integração Microsoft Graph API para Outlook / Office 365
  *
@@ -109,11 +110,31 @@ serve(async (req) => {
       });
     }
 
+    // ── listProviderSupport — informational, no auth needed ───────────
+    if (action === 'listProviderSupport') {
+      return json({
+        providers: [
+          { id: 'outlook', name: 'Microsoft Outlook / Office 365', method: 'microsoft_graph', note: 'OAuth2 via Microsoft Graph API — sem IMAP TCP' },
+          { id: 'gmail',   name: 'Gmail / Google Workspace',       method: 'google_oauth2',   note: 'OAuth2 via Gmail API — use gmail-oauth function' },
+          { id: 'yahoo',   name: 'Yahoo Mail',                     method: 'imap_password',   note: 'App Password + IMAP (requer worker externo)' },
+          { id: 'custom',  name: 'Servidor SMTP/IMAP customizado', method: 'imap_password',   note: 'App Password + IMAP (requer worker externo)' },
+        ],
+        note: 'Gmail e Outlook têm suporte completo via APIs HTTP. Yahoo e IMAP customizado requerem proxy TCP externo.',
+      });
+    }
+
+    // All remaining actions require a valid Supabase JWT
+    const authed = await requireUser(req);
+    if (authed instanceof Response) return authed;
+    const authenticatedUserId = authed.user.id;
+
     // ── exchangeCode — troca code por access_token + refresh_token ─────
     if (action === 'exchangeCode') {
       const code = typeof body.code === 'string' ? body.code : '';
       const userId = typeof body.userId === 'string' ? body.userId : '';
       if (!code || !userId) return json({ error: 'code e userId obrigatórios' }, 400);
+      // Prevent token hijacking: caller may only bind the OAuth code to their own account
+      if (userId !== authenticatedUserId) return json({ error: 'Forbidden: userId does not match authenticated user' }, 403);
       if (!clientId || !clientSecret) return json({ error: 'Credenciais Microsoft não configuradas' }, 500);
 
       const tokenRes = await fetch(`${AUTH_BASE}/token`, {
@@ -179,7 +200,7 @@ serve(async (req) => {
       const { data, error } = await supabase
         .from('imap_smtp_accounts')
         .upsert({
-          user_id:      userId,
+          user_id:      authenticatedUserId,
           email,
           provider:     'outlook',
           imap_host:    'outlook.office365.com',
@@ -235,6 +256,7 @@ serve(async (req) => {
         .from('imap_smtp_accounts')
         .select('email, password_encrypted')
         .eq('id', accountId)
+        .eq('user_id', authenticatedUserId)
         .single();
 
       if (!accountData || typeof accountData !== 'object' || Array.isArray(accountData)) {
@@ -312,6 +334,7 @@ serve(async (req) => {
         .from('imap_smtp_accounts')
         .select('email, password_encrypted')
         .eq('id', accountId)
+        .eq('user_id', authenticatedUserId)
         .single();
 
       if (!accountData || typeof accountData !== 'object' || Array.isArray(accountData)) {
@@ -403,6 +426,7 @@ serve(async (req) => {
         .from('imap_smtp_accounts')
         .select('password_encrypted')
         .eq('id', accountId)
+        .eq('user_id', authenticatedUserId)
         .single();
 
       if (!accountData || typeof accountData !== 'object' || Array.isArray(accountData)) {
@@ -458,6 +482,7 @@ serve(async (req) => {
         .from('imap_smtp_accounts')
         .select('password_encrypted')
         .eq('id', accountId)
+        .eq('user_id', authenticatedUserId)
         .single();
 
       if (!accountData || typeof accountData !== 'object' || Array.isArray(accountData)) {
@@ -509,19 +534,6 @@ serve(async (req) => {
       }
 
       return json({ message: msgRaw });
-    }
-
-    // ── listProviderSupport ────────────────────────────────────────────
-    if (action === 'listProviderSupport') {
-      return json({
-        providers: [
-          { id: 'outlook', name: 'Microsoft Outlook / Office 365', method: 'microsoft_graph', note: 'OAuth2 via Microsoft Graph API — sem IMAP TCP' },
-          { id: 'gmail',   name: 'Gmail / Google Workspace',       method: 'google_oauth2',   note: 'OAuth2 via Gmail API — use gmail-oauth function' },
-          { id: 'yahoo',   name: 'Yahoo Mail',                     method: 'imap_password',   note: 'App Password + IMAP (requer worker externo)' },
-          { id: 'custom',  name: 'Servidor SMTP/IMAP customizado', method: 'imap_password',   note: 'App Password + IMAP (requer worker externo)' },
-        ],
-        note: 'Gmail e Outlook têm suporte completo via APIs HTTP. Yahoo e IMAP customizado requerem proxy TCP externo.',
-      });
     }
 
     return json({ error: `Ação desconhecida: ${action}` }, 400);
