@@ -52,7 +52,7 @@ export default function SSOCallback() {
           const errorParam = hashParams.get('error_description') || hashParams.get('error');
 
           if (errorParam) {
-            throw new Error(errorParam);
+            throw new Error('Autenticação SSO falhou. Tente novamente.');
           }
 
           const { data: authData } = supabase.auth.onAuthStateChange((event, session) => {

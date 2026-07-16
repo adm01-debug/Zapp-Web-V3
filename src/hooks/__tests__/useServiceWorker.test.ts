@@ -14,6 +14,7 @@ const mockRegistration = {
   update: vi.fn(),
   installing: null,
   addEventListener: vi.fn(),
+  removeEventListener: vi.fn(),
 };
 
 describe('useServiceWorker', () => {
@@ -28,7 +29,7 @@ describe('useServiceWorker', () => {
       writable: true,
       configurable: true,
     });
-    
+
     Object.defineProperty(navigator, 'serviceWorker', {
       value: {
         register: vi.fn().mockResolvedValue(mockRegistration),
@@ -49,10 +50,10 @@ describe('useServiceWorker', () => {
   it('registers service worker on mount', async () => {
     const { useServiceWorker } = await import('@/hooks/useServiceWorker');
     renderHook(() => useServiceWorker());
-    
+
     // Allow async registration
     await vi.advanceTimersByTimeAsync(0);
-    
+
     expect(navigator.serviceWorker.register).toHaveBeenCalledWith('/sw.js', {
       scope: '/',
       updateViaCache: 'none',
@@ -80,7 +81,7 @@ describe('useServiceWorker', () => {
       writable: true,
       configurable: true,
     });
-    
+
     const { useServiceWorker } = await import('@/hooks/useServiceWorker');
     expect(() => renderHook(() => useServiceWorker())).not.toThrow();
   });
