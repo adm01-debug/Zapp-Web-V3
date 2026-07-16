@@ -1,7 +1,5 @@
 src/__tests__/security-and-performance.test.ts
 src/components/__tests__/ExportDropdownPermission.test.tsx
-src/components/talkx/TalkXBlacklist.tsx
-src/components/talkx/TalkXCampaignEditor.tsx
 src/components/talkx/TalkXLiveMonitor.tsx
 src/components/talkx/TalkXView.tsx
 src/components/talkx/__tests__/TalkX.test.tsx
@@ -58,7 +56,6 @@ src/integrations/supabase/externalSessionBridge.ts
 src/integrations/supabase/safe-queries.ts
 src/integrations/supabase/safeClient.ts
 src/integrations/supabase/types-manual.ts
-src/integrations/zappweb/hooks/useZappMessages.ts
 src/lib/__tests__/avatarColors.test.ts
 src/lib/__tests__/contactHealth.test.ts
 src/lib/__tests__/debug-dompurify-test.ts
@@ -70,5 +67,3 @@ src/lib/__tests__/webauthnUtils.test.ts
 src/lib/realtime/__tests__/crossTabDedupe.test.ts
 src/pages/admin/AdminBridgeStatusPage.tsx
 src/services/api/genericService.ts
-src/services/settings/settingsRepository.ts
-src/services/settings/settingsService.ts
