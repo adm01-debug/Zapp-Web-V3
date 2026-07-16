@@ -1,6 +1,4 @@
 src/features/admin/hooks/useAdminManagement.ts
-src/hooks/useEmailActions.test.ts
-src/hooks/useEmailDraft.test.ts
 src/hooks/useGeoBlocking.ts
 src/hooks/useIntegrationAuthenticationManagement.ts
 src/hooks/useNotificationManagement.ts
