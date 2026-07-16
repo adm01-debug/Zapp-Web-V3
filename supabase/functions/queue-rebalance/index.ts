@@ -3,7 +3,7 @@
 // sla_priority e routing_weight da fila. Reusa fn_resolve_agent_for_routing.
 // Requer service-role bearer OU x-cron-secret.
 
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { createZappAdminClient } from '../_shared/db-client.ts';
 import { requireServiceRoleOrCron } from "../_shared/auth.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
 
@@ -49,15 +49,6 @@ Deno.serve(async (req) => {
     });
   }
 
-  const url = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'));
-  const serviceKey = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'));
-  if (!url || !serviceKey) {
-    return new Response(JSON.stringify({ error: "Server misconfigured" }), {
-      status: 500,
-      headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
-    });
-  }
-
   let body: BulkRequest = {};
   try {
     if (req.headers.get("content-length") !== "0") {
@@ -75,8 +66,7 @@ Deno.serve(async (req) => {
   const dryRun = body.dry_run === true;
   const source = typeof body.source === 'string' ? body.source : "panel";
 
-  const admin = createClient(url, serviceKey, {
-    auth: { persistSession: false }, db: { schema: "zapp" } });
+  const admin = createZappAdminClient();
 
   // No DB-level LIMIT — priority sorting happens in memory and the final slice
   // is applied after sorting. A pre-fetch cap would exclude high-priority contacts

@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { createZappClient } from '../_shared/db-client.ts';
 import { z } from "https://esm.sh/zod@3.23.8";
 import { getCorsHeaders, handleCors, Logger } from "../_shared/validation.ts";
 
@@ -203,10 +204,7 @@ Deno.serve(async (req) => {
       return jsonRes({ error: "Unauthorized" }, 401, req);
     }
 
-    const localClient = createClient(
-      (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'))!, (Deno.env.get('SELFHOSTED_SUPABASE_ANON_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY'))!,
-      { global: { headers: { Authorization: authHeader } }, db: { schema: "zapp" } }
-    );
+    const localClient = createZappClient(req);
 
     const { data: userData, error: userErr } = await localClient.auth.getUser();
     if (userErr || !userData?.user) {

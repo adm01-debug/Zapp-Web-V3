@@ -2,7 +2,7 @@
 // Resolve o agente para um contato em um canal usando sticky agent + round-robin com skills.
 // Opcionalmente persiste o sticky e atribui o contato (assigned_to + queue_id).
 
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { createZappAdminClient } from '../_shared/db-client.ts';
 import { requireAdminOrSupervisor } from "../_shared/auth.ts";
 import { checkRateLimit } from "../_shared/validation.ts";
 
@@ -52,10 +52,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    const url = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'));
-    const serviceKey = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'));
-    if (!url || !serviceKey) return err500("missing_env");
-
     let rawBody: unknown;
     try {
       rawBody = await req.json();
@@ -89,8 +85,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    const admin = createClient(url, serviceKey, {
-      auth: { persistSession: false }, db: { schema: "zapp" } });
+    const admin = createZappAdminClient();
 
     // 1) Resolver agente
     const { data: resolved, error: resolveErr } = await admin.rpc(

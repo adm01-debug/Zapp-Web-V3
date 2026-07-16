@@ -9,7 +9,7 @@
 //
 // Ideal para chamar via cron a cada 5 minutos com evaluate=1.
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1'
+import { createZappAdminClient } from '../_shared/db-client.ts'
 import { getCorsHeaders, mergeCsvHeaderValues } from '../_shared/validation.ts'
 
 function getJsonCorsHeaders(req?: Request) {
@@ -182,11 +182,7 @@ Deno.serve(async (req) => {
   const windowMinutes = Math.min(Math.max(Number(url.searchParams.get('window') ?? '15'), 1), 240)
   const evaluate = url.searchParams.get('evaluate') === '1'
 
-  const sbUrl = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'))!
-  const sbKey = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))!
-  const supabase = createClient(sbUrl, sbKey, {
-    auth: { persistSession: false, autoRefreshToken: false }, db: { schema: "zapp" },
-  })
+  const supabase = createZappAdminClient()
 
   // Fetch up to 5000 most recent samples in the window (enough for solid p95)
   const since = new Date(Date.now() - windowMinutes * 60_000).toISOString()

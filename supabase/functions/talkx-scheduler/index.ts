@@ -2,7 +2,7 @@
  * Talk X Scheduler — Checks for scheduled campaigns that are ready to start
  * Called by pg_cron every minute
  */
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { createZappAdminClient } from '../_shared/db-client.ts';
 import { getCorsHeaders, handleCors, Logger } from "../_shared/validation.ts";
 import { requireServiceRoleOrCron } from "../_shared/auth.ts";
 
@@ -18,13 +18,7 @@ Deno.serve(async (req) => {
   const log = new Logger("talkx-scheduler");
 
   try {
-    const supabaseUrl = Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL');
-    const serviceKey = Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-    if (!supabaseUrl || !serviceKey) {
-      log.error('Missing Supabase configuration');
-      return new Response(JSON.stringify({ error: 'Supabase configuration missing' }), { status: 503, headers });
-    }
-    const supabase = createClient(supabaseUrl, serviceKey, { db: { schema: "zapp" } });
+    const supabase = createZappAdminClient();
 
     const now = new Date().toISOString();
     const { data: dueCampaigns, error } = await supabase

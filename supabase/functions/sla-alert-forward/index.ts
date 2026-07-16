@@ -9,7 +9,7 @@
 // `X-Lovable-Signature: sha256=<hex>` header. Set as the edge function secret
 // `SLA_ALERT_WEBHOOK_SECRET` in Lovable Cloud (no code changes needed).
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
+import { createZappAdminClient } from '../_shared/db-client.ts';
 import { z } from 'https://esm.sh/zod@3.23.8';
 import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
 import { requireUser } from '../_shared/auth.ts';
@@ -54,12 +54,6 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return handleCorsPreflight(req);
 
   try {
-    const SUPABASE_URL = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'));
-    const SERVICE_ROLE = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'));
-    if (!SUPABASE_URL || !SERVICE_ROLE) {
-      return jsonResponse(req, { error: 'Missing Supabase environment' }, 500);
-    }
-
     // 1. Auth — server-side JWT verification via requireUser (getClaims is client-side only).
     const authed = await requireUser(req);
     if (authed instanceof Response) return authed;
@@ -78,7 +72,7 @@ Deno.serve(async (req) => {
     };
 
     // 3. Read webhook config (service-role, since global_settings is admin-only).
-    const admin = createClient(SUPABASE_URL, SERVICE_ROLE, { db: { schema: "zapp" } });
+    const admin = createZappAdminClient();
     const { data: settings, error: settingsErr } = await admin
       .from('global_settings')
       .select('key, value')

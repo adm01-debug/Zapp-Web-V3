@@ -1,4 +1,4 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { createZappAdminClient, createZappClient } from '../_shared/db-client.ts';
 
 import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
 interface FailurePayload {
@@ -28,14 +28,7 @@ Deno.serve(async (req) => {
   }
 
   // Require authenticated caller (best effort — protects against anonymous abuse).
-  const authHeader = req.headers.get("Authorization") ?? "";
-  const supabaseUrl = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'))!;
-  const anonKey = (Deno.env.get('SELFHOSTED_SUPABASE_ANON_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY'))!;
-  const serviceKey = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))!;
-
-  const userClient = createClient(supabaseUrl, anonKey, {
-    global: { headers: { Authorization: authHeader } },
-  });
+  const userClient = createZappClient(req);
   const { data: { user }, error: authError } = await userClient.auth.getUser();
   if (authError || !user) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), {
@@ -62,8 +55,7 @@ Deno.serve(async (req) => {
   }
 
   // Service-role insert — bypasses RLS so we can ALWAYS record the failure.
-  const admin = createClient(supabaseUrl, serviceKey, {
-    auth: { persistSession: false, autoRefreshToken: false }, db: { schema: "zapp" } });
+  const admin = createZappAdminClient();
 
   const metadata = {
     failure: true,

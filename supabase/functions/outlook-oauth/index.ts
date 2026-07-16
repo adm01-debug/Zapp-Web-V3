@@ -1,4 +1,4 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
+import { createZappAdminClient } from '../_shared/db-client.ts';
 
 import { getCorsHeaders } from '../_shared/cors.ts';
 import { requireUser } from '../_shared/auth.ts';
@@ -79,26 +79,10 @@ const SCOPES = [
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: getCorsHeaders(req) });
 
-  const supabaseUrlHosted = Deno.env.get('SELFHOSTED_SUPABASE_URL');
-  const supabaseUrlDefault = Deno.env.get('SUPABASE_URL');
-  const supabaseUrl = (typeof supabaseUrlHosted === 'string' && supabaseUrlHosted.length > 0)
-    ? supabaseUrlHosted
-    : (typeof supabaseUrlDefault === 'string' && supabaseUrlDefault.length > 0 ? supabaseUrlDefault : '');
+  const supabaseUrl = Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL') ?? '';
+  const supabaseServiceKey = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))!;
 
-  const supabaseServiceKeyHosted = Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY');
-  const supabaseServiceKeyDefault = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-  const supabaseServiceKey = (typeof supabaseServiceKeyHosted === 'string' && supabaseServiceKeyHosted.length > 0)
-    ? supabaseServiceKeyHosted
-    : (typeof supabaseServiceKeyDefault === 'string' && supabaseServiceKeyDefault.length > 0 ? supabaseServiceKeyDefault : '');
-
-  if (!supabaseUrl || !supabaseServiceKey) {
-    return new Response(JSON.stringify({ error: 'Server configuration error' }), {
-      status: 503,
-      headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-    });
-  }
-
-  const supabase = createClient(supabaseUrl, supabaseServiceKey, { db: { schema: "zapp" } });
+  const supabase = createZappAdminClient();
 
   const json = (data: unknown, status = 200) =>
     new Response(JSON.stringify(data), {

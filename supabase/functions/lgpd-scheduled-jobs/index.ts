@@ -1,4 +1,4 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
+import { createZappAdminClient } from '../_shared/db-client.ts';
 import { requireServiceRoleOrCron } from '../_shared/auth.ts';
 import { getCorsHeaders } from '../_shared/cors.ts';
 import { sha256Hex } from '../_shared/evolution-helpers.ts';
@@ -37,14 +37,7 @@ Deno.serve(async (req) => {
       headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
     });
 
-  const supabaseUrl = Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL');
-  const supabaseKey = Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-  if (!supabaseUrl || !supabaseKey) {
-    console.error('[lgpd-scheduled-jobs] Missing Supabase configuration');
-    return json({ error: 'Supabase configuration missing' }, 503);
-  }
-
-  const supabase = createClient(supabaseUrl, supabaseKey, { db: { schema: "zapp" } });
+  const supabase = createZappAdminClient();
 
   const startTime = Date.now();
   const report: Record<string, unknown> = { started_at: new Date().toISOString() };

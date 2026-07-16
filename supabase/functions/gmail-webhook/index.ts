@@ -1,4 +1,4 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
+import { createZappAdminClient } from '../_shared/db-client.ts';
 import { getSecret } from '../_shared/mod.ts';
 import { requireUser } from '../_shared/auth.ts';
 import { timingSafeEqual } from '../_shared/hmac-validation.ts';
@@ -13,10 +13,7 @@ Deno.serve(async (req) => {
 
   if (req.method === 'OPTIONS') return new Response('ok', { headers: getCorsHeaders(req) });
 
-  const supabase = createClient(
-    (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'))!, (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))!,
-    { db: { schema: "zapp" } },
-  );
+  const supabase = createZappAdminClient();
 
   const json = (data: unknown, status = 200) =>
     new Response(JSON.stringify(data), { status, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });

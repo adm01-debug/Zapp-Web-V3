@@ -1,4 +1,4 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
+import { createZappAdminClient, createZappClient } from '../_shared/db-client.ts';
 import { requireServiceRoleOrCron, requireUser } from '../_shared/auth.ts';
 import { checkRateLimit, isValidUUID } from '../_shared/validation.ts';
 
@@ -74,19 +74,9 @@ Deno.serve(async (req) => {
   try { body = await req.json(); } catch { /* body not required */ }
   const { action = 'refreshAll' } = body as { action?: string };
 
-  // Validate Supabase configuration early
-  const supabaseUrl = Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL');
-  const anonKey = Deno.env.get('SELFHOSTED_SUPABASE_ANON_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY');
-  const serviceRoleKey = Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-
-  if (!supabaseUrl || !anonKey || !serviceRoleKey) {
-    console.error('[gmail-token-refresh] Missing Supabase configuration');
-    return json({ error: 'Supabase configuration missing' }, 503);
-  }
-
   // refreshSingle: accept user JWT (RLS-scoped via callerClient) OR service-role/cron
   // all other actions: service-role/cron only
-  let callerClient: ReturnType<typeof createClient> | null = null;
+  let callerClient: ReturnType<typeof createZappClient> | null = null;
   if (action === 'refreshSingle') {
     if (requireServiceRoleOrCron(req)) {
       // Not service-role/cron — fall back to user JWT
@@ -96,18 +86,14 @@ Deno.serve(async (req) => {
       const rl = checkRateLimit(`gmail-token-refresh:${authed.user.id}`, 10, 60_000);
       if (!rl.allowed) return json({ error: 'Rate limit exceeded' }, 429);
       // Build caller-scoped client so RLS enforces account ownership
-      callerClient = createClient(
-        supabaseUrl,
-        anonKey,
-        { global: { headers: { Authorization: req.headers.get('Authorization') || '' } } }
-      );
+      callerClient = createZappClient(req);
     }
   } else {
     const authDenied = requireServiceRoleOrCron(req);
     if (authDenied) return authDenied;
   }
 
-  const supabase = createClient(supabaseUrl, serviceRoleKey, { db: { schema: "zapp" } });
+  const supabase = createZappAdminClient();
 
   const clientId     = Deno.env.get('GOOGLE_CLIENT_ID');
   const clientSecret = Deno.env.get('GOOGLE_CLIENT_SECRET');
@@ -291,7 +277,7 @@ Deno.serve(async (req) => {
  * Side effects: Updates gmail_accounts table (access_token, token_expiry, possibly is_active=false, watch_expiry, history_id)
  */
 async function refreshOneAccount(
-  supabase: ReturnType<typeof createClient>,
+  supabase: ReturnType<typeof createZappAdminClient>,
   account: { id: string; email: string; refresh_token: string | null; watch_expiry: string | null },
   clientId: string,
   clientSecret: string,
