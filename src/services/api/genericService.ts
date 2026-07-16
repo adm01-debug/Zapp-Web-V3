@@ -10,6 +10,7 @@
  */
 
 import { supabase } from '@/integrations/supabase/client';
+import { isPermanentQueryError } from '@/lib/errors/queryErrors';
 import type { ListResponse, QueryParams } from './types';
 
 interface ServiceOptions {
@@ -279,7 +280,16 @@ export const createService = <T = any>(
 };
 
 /**
- * Retry policy for failed operations
+ * Retry policy for failed operations with semantic error classification.
+ *
+ * FIX 2026-07-16: integrado isPermanentQueryError para nao retentarmos
+ * erros permanentes (42501 permission denied, 401/403 auth, JWT expirado,
+ * schema drift 42P01/42883). Esses erros sao identicos em todas as tentativas
+ * e so geram latencia desnecessaria e ruido no console.
+ *
+ * Comportamento:
+ *  - Erro permanente (auth/permission/schema): lanca imediatamente, 0 retries.
+ *  - Erro transiente (network/timeout/5xx): retenta ate maxRetries com backoff linear.
  */
 export const applyRetry = async <T>(
   fn: () => Promise<T>,
@@ -293,6 +303,8 @@ export const applyRetry = async <T>(
       return await fn();
     } catch (error) {
       lastError = error;
+      // Nao retenta erros permanentes — identicos em todas as tentativas
+      if (isPermanentQueryError(error)) break;
       if (i < maxRetries - 1) {
         await new Promise((resolve) => setTimeout(resolve, delay * (i + 1)));
       }
