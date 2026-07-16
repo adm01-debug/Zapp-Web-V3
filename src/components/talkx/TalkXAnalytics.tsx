@@ -72,8 +72,8 @@ export function TalkXAnalytics({ campaigns }: Props) {
     'hsl(var(--muted-foreground))',
     'hsl(var(--destructive))',
     'hsl(var(--accent-foreground))',
-    '#f59e0b',
-    '#6366f1',
+    'hsl(var(--warning))',
+    'hsl(var(--secondary))',
   ];
 
   if (campaigns.length === 0) {

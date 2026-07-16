@@ -1,8 +1,8 @@
 
 # Design System Audit Report
-Generated on: 7/16/2026, 3:23:58 PM
+Generated on: 7/16/2026, 3:25:35 PM
 
-Total violations found: 143
+Total violations found: 138
 
 | File | Line | Type | Content |
 |------|------|------|---------|
@@ -20,9 +20,6 @@ Total violations found: 143
 | src/components/connections/InstanceSettingsDialog.tsx | 441 | Hardcoded Font Family | `<p className="truncate font-mono text-destructive"...` |
 | src/components/connections/QrCodeDialog.tsx | 189 | Hardcoded Font Family | `<pre className="max-h-40 overflow-x-auto rounded b...` |
 | src/components/connections/bridge/BridgeInfoRow.tsx | 11 | Hardcoded Font Family | `<div className={`text-sm text-foreground break-all...` |
-| src/components/dashboard/ConversationHeatmap.tsx | 67 | Hardcoded Hex Color | `colorScale: ['#f0fdf4', '#86efac', '#22c55e', '#15...` |
-| src/components/dashboard/ConversationHeatmap.tsx | 73 | Hardcoded Hex Color | `colorScale: ['#fef9c3', '#fde047', '#facc15', '#ea...` |
-| src/components/dashboard/ConversationHeatmap.tsx | 79 | Hardcoded Hex Color | `colorScale: ['#fef2f2', '#fecaca', '#f87171', '#ef...` |
 | src/components/debug/BuildValidationOverlay.tsx | 64 | Hardcoded Font Family | `<div className="text-[10px] text-destructive bg-de...` |
 | src/components/debug/ThemeDebugger.tsx | 35 | Hardcoded Font Family | `'--font-sans',` |
 | src/components/docs/FontUsageGuide.tsx | 26 | Hardcoded Font Family | `<p><strong>Herança:</strong> É a fonte padrão do s...` |
@@ -59,8 +56,6 @@ Total violations found: 143
 | src/components/tags/TagsView.tsx | 44 | Hardcoded Hex Color | `'#8b5cf6', // violet` |
 | src/components/tags/TagsView.tsx | 45 | Hardcoded Hex Color | `'#ec4899', // pink` |
 | src/components/tags/TagsView.tsx | 46 | Hardcoded Hex Color | `'#6b7280', // gray` |
-| src/components/talkx/TalkXAnalytics.tsx | 75 | Hardcoded Hex Color | `'#f59e0b',` |
-| src/components/talkx/TalkXAnalytics.tsx | 76 | Hardcoded Hex Color | `'#6366f1',` |
 | src/components/ui/chart.tsx | 52 | Hardcoded Hex Color | `"flex aspect-video justify-center text-xs [&_.rech...` |
 | src/components/ui/micro-interactions/buttons.tsx | 255 | Hardcoded Hex Color | `mask: 'linear-gradient(#fff 0 0) content-box, line...` |
 | src/components/ui/stories/Button.stories.tsx | 64 | Literal Tailwind Color (bg-slate-900) | `<div className="flex flex-wrap gap-4 rounded-xl bg...` |
