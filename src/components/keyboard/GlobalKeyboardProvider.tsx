@@ -1,5 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
-import React, { useEffect, useState, createContext, useContext, useCallback, useRef } from 'react';
+import React, { useEffect, useState, createContext, useContext, useCallback, useRef, useMemo } from 'react';
 import { toast } from 'sonner';
 import { useGlobalKeyboardShortcuts } from '@/hooks/useGlobalKeyboardShortcuts';
 import { audioPlaybackBus } from '@/features/inbox';
@@ -117,12 +117,18 @@ export function GlobalKeyboardProvider({ children, customActions }: GlobalKeyboa
     navigationHandlerRef.current = null;
   }, []);
 
-  const contextValue: GlobalKeyboardContextType = {
-    openCommandPalette: () => setShowCommandPalette(true),
-    closeCommandPalette: () => setShowCommandPalette(false),
-    registerNavigationHandler,
-    unregisterNavigationHandler,
-  };
+  const openCommandPalette = useCallback(() => setShowCommandPalette(true), []);
+  const closeCommandPalette = useCallback(() => setShowCommandPalette(false), []);
+
+  const contextValue = useMemo<GlobalKeyboardContextType>(
+    () => ({
+      openCommandPalette,
+      closeCommandPalette,
+      registerNavigationHandler,
+      unregisterNavigationHandler,
+    }),
+    [openCommandPalette, closeCommandPalette, registerNavigationHandler, unregisterNavigationHandler]
+  );
 
   return (
     <GlobalKeyboardContext.Provider value={contextValue}>
