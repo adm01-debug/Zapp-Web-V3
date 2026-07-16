@@ -90,7 +90,7 @@ function externalClient() {
   return createClient(
     envOrThrow("EXTERNAL_SUPABASE_URL"),
     envOrThrow("EXTERNAL_SUPABASE_SERVICE_ROLE_KEY"),
-    { auth: { persistSession: false } },
+    { auth: { persistSession: false }, db: { schema: "evo" } },
   );
 }
 

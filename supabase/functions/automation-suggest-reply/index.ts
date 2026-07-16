@@ -108,7 +108,7 @@ async function fetchExternalTags(): Promise<ExtTag[]> {
   const key = (Deno.env.get('SELFHOSTED_SUPABASE_ANON_KEY') ?? Deno.env.get('EXTERNAL_SUPABASE_ANON_KEY'));
   if (!url || !key) return [];
   try {
-    const ext = createClient(url, key, { db: { schema: "zapp" } });
+    const ext = createClient(url, key, { db: { schema: "evo" } });
     const { data, error } = await ext
       .from("evolution_tags")
       .select("id, name, color, description")
