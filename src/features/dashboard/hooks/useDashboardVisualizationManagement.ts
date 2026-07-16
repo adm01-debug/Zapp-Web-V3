@@ -512,6 +512,7 @@ export function useLeaderboardManagement() {
       void fetchLeaderboard(timeRange);
     }).subscribe();
     return () => {
+      channel.unsubscribe();
       supabase.removeChannel(channel);
     };
   }, [timeRange, fetchLeaderboard]);

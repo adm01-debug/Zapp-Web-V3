@@ -271,6 +271,7 @@ export const createService = <T = any>(
         .subscribe();
 
       return () => {
+        channel.unsubscribe();
         supabase.removeChannel(channel);
       };
     },

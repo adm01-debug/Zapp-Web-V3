@@ -100,7 +100,8 @@ export function useTeamMessages(conversationId: string | null, searchQuery: stri
       .subscribe();
 
     return () => {
-      void supabase.removeChannel(channel);
+      channel.unsubscribe();
+      supabase.removeChannel(channel);
     };
   }, [conversationId, queryClient, searchQuery]);
 

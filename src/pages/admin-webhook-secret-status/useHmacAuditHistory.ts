@@ -82,6 +82,7 @@ export function useHmacAuditHistory(range: RangeKey, instanceFilter: string, lim
       });
     return () => {
       if (debounceRef.current) window.clearTimeout(debounceRef.current);
+      channel.unsubscribe();
       supabase.removeChannel(channel);
     };
   }, [queryClient]);

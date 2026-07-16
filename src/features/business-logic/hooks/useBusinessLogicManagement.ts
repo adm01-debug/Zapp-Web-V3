@@ -454,6 +454,7 @@ export function useBusinessLogicPipelineManagement(
       )
       .subscribe();
     return () => {
+      channel.unsubscribe();
       supabase.removeChannel(channel);
     };
   }, [fetchData]);
