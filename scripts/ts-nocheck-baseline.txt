@@ -10,11 +10,6 @@ src/components/talkx/useCampaignEditor.ts
 src/features/admin/components/AdminView.tsx
 src/features/admin/hooks/useAdminManagement.ts
 src/features/inbox/components/ChatPanel.tsx
-src/features/inbox/components/ForwardMessageDialog.tsx
-src/features/inbox/components/LeadRiskScorePanel.tsx
-src/features/inbox/components/NextBestActionEngine.tsx
-src/features/inbox/components/QueuePositionNotifier.tsx
-src/features/inbox/components/RealtimeCollaboration.tsx
 src/features/inbox/components/RemindersPanel.tsx
 src/features/inbox/components/TicketHistorySheet.tsx
 src/features/inbox/components/TicketTabsFilters.tsx
