@@ -7,6 +7,7 @@
 // Este endpoint é exclusivo do MODO OFICIAL. O modo NÃO-OFICIAL (Evolution API) é
 // servido por `evolution-webhook` com validação HMAC própria (x-evolution-signature).
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { createZappAdminClient } from '../_shared/db-client.ts';
 import { verifyHmacSignature } from "../_shared/hmac-validation.ts";
 import { contractErrorResponse } from "../_shared/validation.ts";
 import { MetaWebhookPayloadSchema } from "../_shared/webhook-schemas.ts";
@@ -35,16 +36,9 @@ const STRICT_MODE =
   (Deno.env.get("WHATSAPP_CLOUD_WEBHOOK_STRICT") ?? "true").toLowerCase() !== "false";
 const EXTERNAL_URL = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('EXTERNAL_SUPABASE_URL')) ?? "";
 const EXTERNAL_KEY = (Deno.env.get('SELFHOSTED_SUPABASE_ANON_KEY') ?? Deno.env.get('EXTERNAL_SUPABASE_ANON_KEY')) ?? "";
-const SUPABASE_URL = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL')) ?? "";
-const SUPABASE_SERVICE_ROLE_KEY = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')) ?? "";
-
-// FIX B4: NÃO criar clients em module scope com `!` — se qualquer env var faltar,
-// o `createClient` explode no boot e a função retorna 500 BOOT_ERROR em tudo,
-// inclusive no handshake GET do Meta. Lazy + guarded.
 const externalClient =
   EXTERNAL_URL && EXTERNAL_KEY ? createClient(EXTERNAL_URL, EXTERNAL_KEY) : null;
-const localClient =
-  SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY ? createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, { db: { schema: "zapp" } }) : null;
+const localClient = createZappAdminClient();
 
 // Eventos do payload Meta que conhecemos. Qualquer field fora desta lista é
 // ignorado (e logado), em vez de processado às cegas.
@@ -65,7 +59,6 @@ async function recordPing(
   meta: Record<string, unknown> = {},
 ): Promise<void> {
   try {
-    if (!localClient) return;
     await localClient.from("whatsapp_cloud_webhook_pings").insert({ kind, meta });
   } catch (e) {
     console.warn(`[whatsapp-cloud-webhook] ping insert failed: ${(e as Error).message}`);

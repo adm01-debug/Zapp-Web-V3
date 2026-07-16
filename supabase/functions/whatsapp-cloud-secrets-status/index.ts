@@ -1,6 +1,6 @@
 // Reporta presença (não valor!) dos secrets necessários para o modo OFICIAL.
 // Usado pela tela /admin/settings/whatsapp-mode para sinalizar o que falta.
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { createZappClient } from '../_shared/db-client.ts';
 import { corsHeaders } from "../_shared/validation.ts";
 
 const SECRET_KEYS = [
@@ -23,10 +23,7 @@ Deno.serve(async (req) => {
       status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
-  const supabase = createClient(
-    (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'))!, (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))!,
-    { global: { headers: { Authorization: authHeader } }, db: { schema: "zapp" } },
-  );
+  const supabase = createZappClient(req);
   const { data: u, error: uErr } = await supabase.auth.getUser();
   if (uErr || !u?.user) {
     return new Response(JSON.stringify({ error: "unauthorized" }), {
