@@ -10,7 +10,6 @@ export {
   useConversationMessages,
   useConversationsList,
   useConversation,
-  useUnreadMessagesCount,
   useInvalidateMessages,
 } from './useMessagesQueries';
 export {

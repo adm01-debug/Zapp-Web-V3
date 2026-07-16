@@ -59,6 +59,7 @@ export function useFollowUpSequences() {
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.followupSequences.all() });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.followupSequences.executions() });
       toast({ title: 'Sequência criada' });
     },
     onError: () => {
@@ -76,6 +77,7 @@ export function useFollowUpSequences() {
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.followupSequences.all() });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.followupSequences.executions() });
     },
     onError: () => {
       toast({ title: 'Erro ao alterar status', variant: 'destructive' });
@@ -89,6 +91,7 @@ export function useFollowUpSequences() {
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.followupSequences.all() });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.followupSequences.executions() });
       toast({ title: 'Sequência excluída' });
     },
     onError: () => {

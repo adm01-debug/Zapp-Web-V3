@@ -66,8 +66,6 @@ export const queryKeys = {
       [...queryKeys.messages.details(), id] as const,
     thread: (threadId: string) =>
       [...queryKeys.messages.all(), 'thread', threadId] as const,
-    unread: (conversationId?: string) =>
-      [...queryKeys.messages.all(), 'unread', conversationId] as const,
   },
 
   // Users/Agents
@@ -110,7 +108,6 @@ export const queryKeys = {
   analytics: {
     all: () => ['analytics'] as const,
     dashboard: () => [...queryKeys.analytics.all(), 'dashboard'] as const,
-    dashboardStats: () => ['dashboard-stats'] as const,
     metrics: (range?: string) =>
       [...queryKeys.analytics.all(), 'metrics', range] as const,
     reports: () => [...queryKeys.analytics.all(), 'reports'] as const,
@@ -572,10 +569,6 @@ export const queryKeys = {
       ['versions', entityType, entityId] as const,
   },
 
-  // Knowledge Base
-  knowledgeBase: {
-    articles: () => ['knowledge-base-articles'] as const,
-  },
 };
 
 /**
