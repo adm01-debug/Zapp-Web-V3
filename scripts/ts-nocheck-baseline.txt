@@ -8,11 +8,6 @@ src/components/talkx/TalkXView.tsx
 src/components/talkx/__tests__/TalkX.test.tsx
 src/components/talkx/useCampaignEditor.ts
 src/features/admin/components/AdminView.tsx
-src/features/admin/components/TrainingMode.tsx
-src/features/admin/components/VisibilityGrantsManager.tsx
-src/features/admin/components/alerts/AlertInstanceDetailDialog.tsx
-src/features/admin/hooks/gamification/mutations.ts
-src/features/admin/hooks/monitoring/useFailedMessages.ts
 src/features/admin/hooks/monitoring/useIdempotencyMissAlerts.ts
 src/features/admin/hooks/useAdminManagement.ts
 src/features/admin/hooks/useDiagnosticsData.ts
