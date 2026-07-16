@@ -7,7 +7,7 @@
  * Quando api_type === 'official' → whatsapp-cloud-api, caso contrário → evolution-api.
  * Resultado é cacheado por 60s.
  */
-import { supabase } from '@/integrations/supabase/client';
+import { safeFrom } from '@/integrations/supabase/safeClient';
 import { unwrapRow } from '@/lib/supabase-helpers';
 
 type FnName = 'evolution-api' | 'whatsapp-cloud-api';
@@ -25,15 +25,11 @@ interface CacheEntry {
 const cache = new Map<string, CacheEntry>();
 const TTL_MS = 60_000;
 
-// api_type was added to whatsapp_connections after the last type generation.
-// Cast result (not the whole client) to our local interface once the types are regenerated,
-// this cast will dissolve automatically.
 function queryConnections(field: 'name' | 'instance_id', value: string) {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return ((supabase.from('whatsapp_connections') as any)
+  return safeFrom('whatsapp_connections')
     .select('id, api_type, status')
     .eq(field, value)
-    .maybeSingle()) as unknown as Promise<{ data: WhatsappConnectionRow | null; error: unknown }>;
+    .maybeSingle() as unknown as Promise<{ data: WhatsappConnectionRow | null; error: unknown }>;
 }
 
 export async function resolveSendFunction(
