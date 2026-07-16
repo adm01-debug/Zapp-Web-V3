@@ -43,11 +43,6 @@ src/hooks/useGeoBlocking.ts
 src/hooks/useIntegrationAuthenticationManagement.ts
 src/hooks/useNotificationManagement.ts
 src/hooks/useSearchManagement.ts
-src/lib/__tests__/debug-dompurify-test.ts
-src/lib/__tests__/externalProxy.test.ts
-src/lib/__tests__/instrumentedExternal.test.ts
-src/lib/__tests__/undoToast.test.ts
-src/lib/__tests__/web-vitals.test.ts
 src/lib/__tests__/webauthnUtils.test.ts
 src/lib/realtime/__tests__/crossTabDedupe.test.ts
 src/pages/admin/AdminBridgeStatusPage.tsx
