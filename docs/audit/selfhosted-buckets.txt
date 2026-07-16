@@ -1,0 +1,13 @@
+audio-memes
+audio-messages
+avatars
+comprovantes-financeiro
+custom-emojis
+email-attachments
+etiquetas-remessa
+fechamentos
+quarantine
+recibos-entrega
+stickers
+team-chat-files
+whatsapp-media
