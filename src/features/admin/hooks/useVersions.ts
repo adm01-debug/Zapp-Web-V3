@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '@/services/api/queryKeys';
 import { fromTable } from '@/lib/supabaseHelpers';
 import { unwrapRows } from '@/lib/supabase-helpers';
 import { toast } from 'sonner';
@@ -16,7 +17,7 @@ export interface Version {
 
 export function useVersions(entityType: string, entityId: string) {
   const queryClient = useQueryClient();
-  const queryKey = ['versions', entityType, entityId];
+  const queryKey = queryKeys.versions.forEntity(entityType, entityId);
 
   const { data: versions = [], isLoading } = useQuery({
     queryKey,

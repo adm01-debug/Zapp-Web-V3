@@ -45,7 +45,7 @@ export interface SLARuleForm {
 
 export function useSLARules(scope?: SLARuleScope) {
   const queryClient = useQueryClient();
-  const queryKey = ['sla-rules', scope];
+  const queryKey = queryKeys.sla.rulesForScope(scope);
 
   const { data: rules = [], isLoading } = useQuery({
     queryKey,

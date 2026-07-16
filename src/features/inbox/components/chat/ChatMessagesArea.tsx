@@ -132,7 +132,7 @@ export const ChatMessagesArea = memo(
             (payload) => {
               const updatedMsg = payload.new as { id: string };
               if (updatedMsg.id && messagesRef.current.some((m) => m.id === updatedMsg.id)) {
-                void queryClient.invalidateQueries({ queryKey: queryKeys.adminOps.inboxMessages() });
+                void queryClient.invalidateQueries({ queryKey: queryKeys.messages.all() });
               }
             }
           )

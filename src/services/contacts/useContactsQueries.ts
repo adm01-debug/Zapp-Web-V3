@@ -100,7 +100,7 @@ export const useContactExists = (id?: string) => {
  */
 export const useContactsTotal = () => {
   return useQuery({
-    queryKey: [...queryKeys.contacts.all(), 'total'],
+    queryKey: queryKeys.contacts.total(),
     queryFn: () => contactsService.getTotal(),
     staleTime: 60_000,
   });

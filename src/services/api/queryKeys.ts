@@ -21,6 +21,9 @@ export const queryKeys = {
       [...queryKeys.contacts.details(), id] as const,
     search: (query?: string) =>
       [...queryKeys.contacts.all(), 'search', query] as const,
+    total: () => [...queryKeys.contacts.all(), 'total'] as const,
+    searchResults: (search?: string, tab?: string, company?: string, jobTitle?: string, tag?: string, dateFrom?: string | null, sortField?: string, sortDir?: string, page?: number) =>
+      ['contacts-search', search, tab, company, jobTitle, tag, dateFrom, sortField, sortDir, page] as const,
   },
 
   // Connections
@@ -62,6 +65,8 @@ export const queryKeys = {
       [...queryKeys.messages.details(), id] as const,
     thread: (threadId: string) =>
       [...queryKeys.messages.all(), 'thread', threadId] as const,
+    unread: (conversationId?: string) =>
+      [...queryKeys.messages.all(), 'unread', conversationId] as const,
   },
 
   // Users/Agents
@@ -75,6 +80,8 @@ export const queryKeys = {
       [...queryKeys.users.details(), id] as const,
     me: () => [...queryKeys.users.all(), 'me'] as const,
     online: () => [...queryKeys.users.all(), 'online'] as const,
+    byStatus: (status?: string) => [...queryKeys.users.all(), 'status', status] as const,
+    teamMembers: () => ['team-members'] as const,
   },
 
   // Settings
@@ -102,6 +109,7 @@ export const queryKeys = {
   analytics: {
     all: () => ['analytics'] as const,
     dashboard: () => [...queryKeys.analytics.all(), 'dashboard'] as const,
+    dashboardStats: () => ['dashboard-stats'] as const,
     metrics: (range?: string) =>
       [...queryKeys.analytics.all(), 'metrics', range] as const,
     reports: () => [...queryKeys.analytics.all(), 'reports'] as const,
@@ -237,6 +245,7 @@ export const queryKeys = {
     configurations: () => ['sla-configurations'] as const,
     configurationsDefault: () => ['sla-configurations-default'] as const,
     rules: () => ['sla-rules'] as const,
+    rulesForScope: (scope?: string) => ['sla-rules', scope] as const,
     rulesActive: () => ['sla-rules-active'] as const,
     rulesCounts: () => ['sla-rules-counts'] as const,
     alertHistory: () => ['sla-alert-history'] as const,
@@ -299,6 +308,7 @@ export const queryKeys = {
     conversationList: (profileId?: string) => ['team-conversations', profileId] as const,
     messages: (conversationId?: string, searchQuery?: string) =>
       ['team-messages', conversationId, searchQuery] as const,
+    allMessages: (conversationId?: string) => ['team-messages', conversationId] as const,
     reactions: (conversationId?: string) => ['team-reactions', conversationId] as const,
     files: (conversationId?: string) => ['team-files', conversationId] as const,
     groupMembers: (conversationId?: string) => ['team-group-members', conversationId] as const,
@@ -316,6 +326,7 @@ export const queryKeys = {
   // Failed Messages (DLQ / retry)
   failedMessages: {
     all: () => ['failed-messages'] as const,
+    filtered: (filters?: unknown) => ['failed-messages', filters] as const,
     stats: () => ['failed-messages-stats'] as const,
     metricsBatch: (key: string) => ['failure-metrics-batch', key] as const,
     reason: (messageId?: string) => ['message-failure-reason', messageId] as const,
@@ -537,7 +548,6 @@ export const queryKeys = {
     transfersPaginated: (filters?: unknown) => ['transfers-paginated', filters] as const,
     deliveryStats: () => ['delivery-stats'] as const,
     operationsLogsAll: () => ['operations-logs'] as const,
-    inboxMessages: () => ['messages'] as const,
     evolutionRetryMetrics: () => ['evolution-retry-metrics'] as const,
     evolutionRetryMetricsFiltered: (filters?: unknown) => ['evolution-retry-metrics', filters] as const,
     alertInstanceDetail: (alertId?: string) =>
@@ -551,6 +561,18 @@ export const queryKeys = {
   dispatchErrorLogs: {
     all: () => ['dispatch-error-logs'] as const,
     filtered: (filters?: unknown) => ['dispatch-error-logs', filters] as const,
+  },
+
+  // Entity Versions (audit/restore)
+  versions: {
+    all: () => ['versions'] as const,
+    forEntity: (entityType: string, entityId: string) =>
+      ['versions', entityType, entityId] as const,
+  },
+
+  // Knowledge Base
+  knowledgeBase: {
+    articles: () => ['knowledge-base-articles'] as const,
   },
 };
 
