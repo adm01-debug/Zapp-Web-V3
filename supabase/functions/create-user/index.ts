@@ -1,7 +1,7 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { z } from "https://esm.sh/zod@3.23.8";
-import { handleCors, errorResponse, jsonResponse, requireEnv, Logger, sanitizeString, checkRateLimit, getClientIP } from "../_shared/validation.ts";
+import { handleCors, errorResponse, jsonResponse, Logger, sanitizeString, checkRateLimit, getClientIP } from "../_shared/validation.ts";
 import { requireAdminOrSupervisor } from "../_shared/auth.ts";
+import { createZappAdminClient } from "../_shared/db-client.ts";
 
 Deno.serve(async (req) => {
   const cors = handleCors(req);
@@ -14,14 +14,10 @@ Deno.serve(async (req) => {
   if (!rl.allowed) return errorResponse('Rate limit exceeded', 429, req);
 
   try {
-    const supabaseUrl = requireEnv("SUPABASE_URL");
-    const serviceRoleKey = requireEnv("SUPABASE_SERVICE_ROLE_KEY");
-
     const authed = await requireAdminOrSupervisor(req);
     if (authed instanceof Response) return authed;
 
-    const adminClient = createClient(supabaseUrl, serviceRoleKey, {
-      auth: { persistSession: false, autoRefreshToken: false }, db: { schema: "zapp" } });
+    const adminClient = createZappAdminClient();
 
 
     const bodySchema = z.object({

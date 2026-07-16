@@ -59,8 +59,9 @@
  * - Rejection reasons recorded (e.g., "Suspicious activity detected")
  * - Timestamps (reviewed_at) provide audit trail for change tracking
  */
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { handleCors, errorResponse, jsonResponse, requireEnv, Logger, checkRateLimit, getClientIP } from "../_shared/validation.ts";
+import { handleCors, errorResponse, jsonResponse, Logger, checkRateLimit, getClientIP } from "../_shared/validation.ts";
+import { requireAdminOrSupervisor } from "../_shared/auth.ts";
+import { createZappAdminClient } from "../_shared/db-client.ts";
 import { ApprovePasswordResetSchema, parseBody } from "../_shared/schemas.ts";
 
 Deno.serve(async (req) => {
@@ -73,27 +74,16 @@ Deno.serve(async (req) => {
     const ip = getClientIP(req);
     const rl = checkRateLimit(`approve-reset:${ip}`, 10, 60_000);
     if (!rl.allowed) return errorResponse("Rate limit exceeded", 429, req);
-    const supabaseUrl = requireEnv("SUPABASE_URL");
-    const supabaseServiceKey = requireEnv("SUPABASE_SERVICE_ROLE_KEY");
 
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) return errorResponse("Authorization header required", 401, req);
-
-    const supabaseUser = createClient(supabaseUrl, requireEnv("SUPABASE_ANON_KEY"), {
-      db: { schema: "zapp" }, auth: { persistSession: false }, global: { headers: { Authorization: authHeader } },
-    });
-
-    const { data: { user }, error: userError } = await supabaseUser.auth.getUser();
-    if (userError || !user) return errorResponse("Unauthorized", 401, req);
-
-    const { data: isAdmin } = await supabaseUser.rpc("is_admin_or_supervisor", { _user_id: user.id });
-    if (!isAdmin) return errorResponse("Only admins can approve password resets", 403, req);
+    const authed = await requireAdminOrSupervisor(req);
+    if (authed instanceof Response) return authed;
+    const userId = authed.user.id;
 
     const parsed = parseBody(ApprovePasswordResetSchema, await req.json());
     if (!parsed.success) return errorResponse(parsed.error, 400, req);
 
     const { requestId, action, rejectionReason } = parsed.data;
-    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, { db: { schema: "zapp" } });
+    const supabaseAdmin = createZappAdminClient();
 
     log.info(`Processing ${action} for request ${requestId}`);
 
@@ -112,7 +102,7 @@ Deno.serve(async (req) => {
         .from("password_reset_requests")
         .update({
           status: "rejected",
-          reviewed_by: user.id,
+          reviewed_by: userId,
           reviewed_at: new Date().toISOString(),
           rejection_reason: rejectionReason || "Solicitação rejeitada pelo administrador",
           updated_at: new Date().toISOString(),
@@ -139,7 +129,7 @@ Deno.serve(async (req) => {
       .from("password_reset_requests")
       .update({
         status: "approved",
-        reviewed_by: user.id,
+        reviewed_by: userId,
         reviewed_at: new Date().toISOString(),
         token_expires_at: expiresAt,
         updated_at: new Date().toISOString(),
@@ -155,7 +145,7 @@ Deno.serve(async (req) => {
 
     // generateLink runs only after winning the atomic guard above.
     // Use a server-configured URL — never the client-supplied Origin header.
-    const appUrl = Deno.env.get("APP_URL") || supabaseUrl;
+    const appUrl = Deno.env.get("APP_URL") || Deno.env.get("SELFHOSTED_SUPABASE_URL") || Deno.env.get("SUPABASE_URL") || "";
     const { data: resetData, error: resetError } = await supabaseAdmin.auth.admin.generateLink({
       type: "recovery",
       email: resetRequest.email,
