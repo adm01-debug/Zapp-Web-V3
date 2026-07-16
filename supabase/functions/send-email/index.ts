@@ -1,6 +1,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { requireUser } from '../_shared/auth.ts';
+import { checkRateLimit, getClientIP } from '../_shared/validation.ts';
 import { parseOrReject } from '../_shared/contract-kit.ts';
 import { SendEmailV1Schema } from '../_shared/contract-schemas.ts';
 
@@ -21,6 +22,9 @@ serve(async (req) => {
   try {
     const authed = await requireUser(req);
     if (authed instanceof Response) return authed;
+
+    const rl = checkRateLimit(`send-email:${authed.user.id}`, 20, 60_000);
+    if (!rl.allowed) return json({ error: 'Rate limit exceeded. Tente novamente em instantes.' }, 429);
 
     // Contrato send-email@v1: accountId OU (to+subject+html). 422 unificado.
     let raw: unknown;

@@ -4,7 +4,7 @@
 // via rpc_insert_message so the Inbox UI sees them in the unified evolution_messages table.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
-import { authorizeRoles, errorResponse, jsonResponse } from "../_shared/validation.ts";
+import { authorizeRoles, errorResponse, jsonResponse, checkRateLimit } from "../_shared/validation.ts";
 
 
 import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
@@ -106,7 +106,10 @@ Deno.serve(async (req) => {
 
   try {
     // Basic staff authorization for all actions
-    await authorizeRoles(req, supabaseUrl, supabaseAnonKey, ['agent', 'supervisor', 'manager', 'admin', 'dev']);
+    const { user: authUser } = await authorizeRoles(req, supabaseUrl, supabaseAnonKey, ['agent', 'supervisor', 'manager', 'admin', 'dev']);
+
+    const rl = checkRateLimit(`whatsapp-cloud-api:${authUser.id}`, 60, 60_000);
+    if (!rl.allowed) return errorResponse('Rate limit exceeded. Tente novamente em instantes.', 429, req);
 
     let body: Record<string, unknown> = {};
     try { body = await req.json(); } catch { body = {}; }
