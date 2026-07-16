@@ -1,5 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { handleCors, errorResponse, jsonResponse, requireEnv, Logger, getCorsHeaders } from "../_shared/validation.ts";
+import { handleCors, errorResponse, jsonResponse, requireEnv, Logger, getCorsHeaders, checkRateLimit, getClientIP } from "../_shared/validation.ts";
 import { WebAuthnActionSchema, parseBody } from "../_shared/schemas.ts";
 
 /**
@@ -72,6 +72,10 @@ function getRpId(origin: string): string {
 Deno.serve(async (req) => {
   const cors = handleCors(req);
   if (cors) return cors;
+
+  const ip = getClientIP(req);
+  const rl = checkRateLimit(`webauthn:${ip}`, 20, 60_000);
+  if (!rl.allowed) return errorResponse('Rate limit exceeded', 429, req);
 
   const log = new Logger("webauthn");
 
