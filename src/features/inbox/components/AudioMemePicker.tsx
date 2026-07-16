@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -55,16 +55,20 @@ export function AudioMemePicker({ onSendAudioMeme, disabled }: AudioMemePickerPr
     cleanup,
   } = useAudioMemes(open);
 
-  const categories = [...new Set(memes.map((m) => m.category).filter(Boolean))].sort();
-  const filtered = memes.filter((m) => {
-    const matchSearch =
-      !search ||
-      m.name?.toLowerCase().includes(search.toLowerCase()) ||
-      m.category?.toLowerCase().includes(search.toLowerCase());
-    if (showFavorites) return matchSearch && m.is_favorite;
-    if (activeCategory) return matchSearch && m.category === activeCategory;
-    return matchSearch;
-  });
+  const { categories, filtered, categoryCounts } = useMemo(() => {
+    const cats = [...new Set(memes.map((m) => m.category).filter(Boolean))].sort();
+    const counts = new Map(cats.map((cat) => [cat, memes.filter((m) => m.category === cat).length]));
+    const fil = memes.filter((m) => {
+      const matchSearch =
+        !search ||
+        m.name?.toLowerCase().includes(search.toLowerCase()) ||
+        m.category?.toLowerCase().includes(search.toLowerCase());
+      if (showFavorites) return matchSearch && m.is_favorite;
+      if (activeCategory) return matchSearch && m.category === activeCategory;
+      return matchSearch;
+    });
+    return { categories: cats, filtered: fil, categoryCounts: counts };
+  }, [memes, search, activeCategory, showFavorites]);
 
   return (
     <Popover
@@ -193,7 +197,7 @@ export function AudioMemePicker({ onSendAudioMeme, disabled }: AudioMemePickerPr
               </button>
               {categories.map((cat) => {
                 const info = CATEGORY_LABELS[cat];
-                const count = memes.filter((m) => m.category === cat).length;
+                const count = categoryCounts.get(cat) ?? 0;
                 return (
                   <button type="button"
                     key={cat}

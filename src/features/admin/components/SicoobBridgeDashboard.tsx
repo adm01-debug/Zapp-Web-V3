@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getLogger } from '@/lib/logger';
 
@@ -65,9 +66,11 @@ export function SicoobBridgeDashboard() {
   const loading = isFetching;
   const loadData = () => { void refetch(); };
 
-  const inbound = recentMessages.filter(m => m.sender === 'contact').length;
-  const outbound = recentMessages.filter(m => m.sender === 'agent').length;
-  const uniqueSingulars = new Set(mappings.map(m => m.sicoob_singular_id)).size;
+  const { inbound, outbound, uniqueSingulars } = useMemo(() => ({
+    inbound: recentMessages.filter((m) => m.sender === 'contact').length,
+    outbound: recentMessages.filter((m) => m.sender === 'agent').length,
+    uniqueSingulars: new Set(mappings.map((m) => m.sicoob_singular_id)).size,
+  }), [recentMessages, mappings]);
 
   return (
     <div className="space-y-6 p-6">

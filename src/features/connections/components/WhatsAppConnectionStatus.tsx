@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useConnectionsManager } from '@/features/connections';
 import { Badge } from '@/components/ui/badge';
 import { Wifi, AlertCircle, Loader2 } from 'lucide-react';
@@ -15,9 +16,11 @@ export function WhatsAppConnectionStatus() {
     );
   }
 
-  const total = connections.length;
-  const connected = connections.filter(c => c.status === 'connected').length;
-  const issues = total - connected;
+  const { total, connected, issues } = useMemo(() => {
+    const tot = connections.length;
+    const conn = connections.filter((c) => c.status === 'connected').length;
+    return { total: tot, connected: conn, issues: tot - conn };
+  }, [connections]);
 
   if (total === 0) return null;
 

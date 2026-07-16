@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -116,13 +116,17 @@ export function CustomEmojiPicker({ onSendEmoji, disabled }: CustomEmojiPickerPr
     handleSend, toggleFavorite, handleCategoryChange, handleDelete, setPendingUpload,
   } = useCustomEmojis(open);
 
-  const categories = [...new Set(emojis.map(e => e.category).filter(Boolean))].sort();
-  const filtered = emojis.filter(em => {
-    const matchSearch = !search || em.name?.toLowerCase().includes(search.toLowerCase()) || em.category?.toLowerCase().includes(search.toLowerCase());
-    if (showFavorites) return matchSearch && em.is_favorite;
-    if (activeCategory) return matchSearch && em.category === activeCategory;
-    return matchSearch;
-  });
+  const { categories, filtered, categoryCounts } = useMemo(() => {
+    const cats = [...new Set(emojis.map((e) => e.category).filter(Boolean))].sort();
+    const counts = new Map(cats.map((cat) => [cat, emojis.filter((e) => e.category === cat).length]));
+    const fil = emojis.filter((em) => {
+      const matchSearch = !search || em.name?.toLowerCase().includes(search.toLowerCase()) || em.category?.toLowerCase().includes(search.toLowerCase());
+      if (showFavorites) return matchSearch && em.is_favorite;
+      if (activeCategory) return matchSearch && em.category === activeCategory;
+      return matchSearch;
+    });
+    return { categories: cats, filtered: fil, categoryCounts: counts };
+  }, [emojis, search, activeCategory, showFavorites]);
 
   const activeNativeCategory = NATIVE_EMOJI_CATEGORIES.find(c => c.id === nativeCategoryId);
   const filteredNativeEmojis = activeNativeCategory?.emojis || [];
@@ -193,7 +197,7 @@ export function CustomEmojiPicker({ onSendEmoji, disabled }: CustomEmojiPickerPr
                   <div className="flex gap-1.5 flex-wrap">
                     <button type="button" onClick={() => { setActiveCategory(null); setShowFavorites(false); }} className={cn('px-2.5 py-1 rounded-full text-[11px] font-medium transition-colors whitespace-nowrap', !activeCategory && !showFavorites ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80')}>Todos ({emojis.length})</button>
                     <button type="button" onClick={() => { setShowFavorites(!showFavorites); setActiveCategory(null); }} className={cn('px-2.5 py-1 rounded-full text-[11px] font-medium transition-colors whitespace-nowrap flex items-center gap-1', showFavorites ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80')}><Star className="w-3 h-3" /> Favoritos</button>
-                    {categories.map(cat => { const info = CATEGORY_LABELS[cat]; const count = emojis.filter(em => em.category === cat).length; return (
+                    {categories.map(cat => { const info = CATEGORY_LABELS[cat]; const count = categoryCounts.get(cat) ?? 0; return (
                       <button type="button" key={cat} onClick={() => { setActiveCategory(activeCategory === cat ? null : cat); setShowFavorites(false); }} className={cn('px-2.5 py-1 rounded-full text-[11px] font-medium transition-colors whitespace-nowrap', activeCategory === cat ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80')}>{info?.emoji || '📦'} {info?.label || cat} ({count})</button>
                     ); })}
                   </div>
