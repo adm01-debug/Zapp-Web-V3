@@ -34,6 +34,7 @@ Deno.serve(async (req) => {
         ...Object.fromEntries([...req.headers.entries()].filter(([k]) => k.toLowerCase().startsWith("x-") || k.toLowerCase() === "idempotency-key")),
       },
       body: JSON.stringify({ ...body, action: "conversation_analysis" }),
+      signal: AbortSignal.timeout(60_000),
     });
 
     const responseBody = await res.json();

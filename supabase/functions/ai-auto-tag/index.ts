@@ -45,6 +45,7 @@ Deno.serve(async (req) => {
         ),
       },
       body: JSON.stringify({ ...body, action: "auto_tag" }),
+      signal: AbortSignal.timeout(60_000),
     });
 
     const responseBody = await forwardResponse.json();
