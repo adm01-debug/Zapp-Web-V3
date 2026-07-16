@@ -110,7 +110,7 @@ export function HmacAuditHistoryPanel({
   const debounceRef = useRef<number | null>(null);
   useEffect(() => {
     const channel = supabase
-      .channel('hmac-selftest-audit-realtime')
+      .channel('hmac-selftest-audit-panel')
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'zapp', table: 'hmac_selftest_audit' },
@@ -131,6 +131,7 @@ export function HmacAuditHistoryPanel({
     return () => {
       if (debounceRef.current) window.clearTimeout(debounceRef.current);
       channel.unsubscribe();
+      supabase.removeChannel(channel);
     };
   }, [queryClient]);
 

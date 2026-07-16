@@ -144,7 +144,7 @@ export default function AdminAutomationLogsPage() {
   // Realtime: novas execuções aparecem no topo
   useEffect(() => {
     const ch = supabase
-      .channel('automation-executions-audit')
+      .channel('automation-executions-page')
       .on(
         'postgres_changes',
         { event: '*', schema: 'zapp', table: 'automation_executions' },
@@ -155,6 +155,7 @@ export default function AdminAutomationLogsPage() {
       .subscribe();
     return () => {
       ch.unsubscribe();
+      supabase.removeChannel(ch);
     };
   }, [page, load]);
 

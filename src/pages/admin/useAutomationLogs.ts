@@ -81,6 +81,7 @@ export function useAutomationLogs(filters: AutomationLogsFilters) {
       )
       .subscribe();
     return () => {
+      ch.unsubscribe();
       supabase.removeChannel(ch);
     };
   }, [page, load]);

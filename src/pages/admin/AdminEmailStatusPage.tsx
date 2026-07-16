@@ -121,7 +121,7 @@ export default function AdminEmailStatusPage() {
     void loadHealth();
 
     const channel = supabase
-      .channel('email-admin-status')
+      .channel('email-admin-status-page')
       .on<EmailHealthSummary>(
         'postgres_changes',
         { event: '*', schema: 'zapp', table: 'email_health_summary' },
@@ -164,6 +164,7 @@ export default function AdminEmailStatusPage() {
 
     return () => {
       channel.unsubscribe();
+      supabase.removeChannel(channel);
     };
   }, [filters]);
 
