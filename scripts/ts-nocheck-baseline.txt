@@ -1,6 +1,3 @@
-src/__tests__/security-and-performance.test.ts
-src/components/__tests__/ExportDropdownPermission.test.tsx
-src/components/talkx/__tests__/TalkX.test.tsx
 src/features/admin/hooks/useAdminManagement.ts
 src/features/inbox/components/chat/hooks/__tests__/useInitialHighlight.test.ts
 src/features/inbox/components/conversation-list/ConversationItem.test.tsx
@@ -43,7 +40,5 @@ src/hooks/useGeoBlocking.ts
 src/hooks/useIntegrationAuthenticationManagement.ts
 src/hooks/useNotificationManagement.ts
 src/hooks/useSearchManagement.ts
-src/lib/__tests__/webauthnUtils.test.ts
-src/lib/realtime/__tests__/crossTabDedupe.test.ts
 src/pages/admin/AdminBridgeStatusPage.tsx
 src/services/api/genericService.ts
