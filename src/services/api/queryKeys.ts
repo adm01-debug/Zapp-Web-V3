@@ -81,6 +81,8 @@ export const queryKeys = {
     online: () => [...queryKeys.users.all(), 'online'] as const,
     byStatus: (status?: string) => [...queryKeys.users.all(), 'status', status] as const,
     teamMembers: () => ['team-members'] as const,
+    searchUsers: (query?: string) => [...queryKeys.users.all(), 'search-users', query] as const,
+    searchAgents: (query?: string) => [...queryKeys.users.all(), 'search-agents', query] as const,
   },
 
   // Settings
