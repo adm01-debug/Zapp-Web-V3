@@ -343,7 +343,10 @@ export function useTeamChatNotificationsManagement() {
       .subscribe();
 
     return () => {
-      channelRef.current?.unsubscribe();
+      if (channelRef.current) {
+        channelRef.current.unsubscribe();
+        supabase.removeChannel(channelRef.current);
+      }
     };
   }, []);
 
@@ -373,6 +376,7 @@ export function useSecurityPushNotificationsManagement() {
 
     return () => {
       channel.unsubscribe();
+      supabase.removeChannel(channel);
     };
   }, []);
 
@@ -393,6 +397,7 @@ export function useGoalNotificationsManagement() {
 
     return () => {
       channel.unsubscribe();
+      supabase.removeChannel(channel);
     };
   }, []);
 
@@ -413,6 +418,7 @@ export function useTranscriptionNotificationsManagement() {
 
     return () => {
       channel.unsubscribe();
+      supabase.removeChannel(channel);
     };
   }, []);
 

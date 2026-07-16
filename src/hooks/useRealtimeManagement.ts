@@ -43,7 +43,10 @@ export function useRealtimeDashboardManagement(dashboardId: string) {
 
     return () => {
       setIsConnected(false);
-      channelRef.current?.unsubscribe();
+      if (channelRef.current) {
+        channelRef.current.unsubscribe();
+        supabase.removeChannel(channelRef.current);
+      }
     };
   }, [dashboardId]);
 
@@ -105,7 +108,10 @@ export function useRealtimeMessagesManagement(chatId: string) {
       .subscribe();
 
     return () => {
-      channelRef.current?.unsubscribe();
+      if (channelRef.current) {
+        channelRef.current.unsubscribe();
+        supabase.removeChannel(channelRef.current);
+      }
     };
   }, [chatId]);
 
@@ -133,7 +139,10 @@ export function useRealtimeMonitorManagement(tableName: string) {
       .subscribe();
 
     return () => {
-      channelRef.current?.unsubscribe();
+      if (channelRef.current) {
+        channelRef.current.unsubscribe();
+        supabase.removeChannel(channelRef.current);
+      }
     };
   }, [tableName]);
 
@@ -164,7 +173,10 @@ export function useTypingPresenceManagement(userId: string, chatId: string) {
       });
 
     return () => {
-      channelRef.current?.unsubscribe();
+      if (channelRef.current) {
+        channelRef.current.unsubscribe();
+        supabase.removeChannel(channelRef.current);
+      }
     };
   }, [userId, chatId]);
 
