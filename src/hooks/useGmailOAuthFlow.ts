@@ -219,6 +219,7 @@ export function useEmailOAuthFlow(): UseEmailOAuthFlowReturn {
         //   { type: 'gmail-oauth-code',  code }   -> trocar code por tokens (exchangeCode)
         //   { type: 'gmail-oauth-error', error }  -> falha
         const onMessage = async (event: MessageEvent) => {
+          if (event.origin !== window.location.origin) return;
           if (settled) return;
           const msg = event.data;
           if (msg?.type === 'gmail-oauth-error') {

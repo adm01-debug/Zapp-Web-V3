@@ -630,6 +630,7 @@ export function useEmail() {
       };
 
       const handler = async (event: MessageEvent) => {
+        if (event.origin !== window.location.origin) return;
         if (settled) return;
         if (event.data?.type === 'gmail-oauth-error') {
           settled = true;
