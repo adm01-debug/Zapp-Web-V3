@@ -16,11 +16,6 @@ src/features/inbox/components/chat/useChatPanelHandlers.ts
 src/features/inbox/components/conversation-list/ConversationItem.test.tsx
 src/features/inbox/components/conversation-list/__mocks__/mockConversations.ts
 src/features/inbox/hooks/__tests__/inboxLogic.test.ts
-src/features/inbox/hooks/useInboxBulkActions.ts
-src/features/inbox/hooks/useIncomingCallBroadcast.ts
-src/features/inbox/hooks/useMessagesCursor.ts
-src/features/inbox/hooks/useNewConversation.ts
-src/features/inbox/hooks/useRealtimeInbox.ts
 src/features/inbox/hooks/useRealtimeMessages.ts
 src/features/inbox/services/whatsappStatusService.ts
 src/features/sla/components/SLACharts.tsx
