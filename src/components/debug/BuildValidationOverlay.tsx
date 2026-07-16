@@ -32,7 +32,7 @@ export const BuildValidationOverlay: React.FC = () => {
         <div className="w-80 max-h-[500px] bg-background border rounded-lg shadow-xl flex flex-col overflow-hidden animate-in slide-in-from-bottom-2">
           <div className="p-3 border-b bg-muted/50 flex items-center justify-between">
             <div className="flex items-center gap-2 font-semibold text-sm">
-              <Shield className={cn("w-4 h-4", status === 'healthy' ? "text-green-500" : "text-red-500")} />
+              <Shield className={cn("w-4 h-4", status === 'healthy' ? "text-success" : "text-destructive")} />
               Build Validation Checklist
             </div>
             <button onClick={() => setIsOpen(false)} className="text-muted-foreground hover:text-foreground" aria-label="Fechar validação de build">
@@ -47,11 +47,11 @@ export const BuildValidationOverlay: React.FC = () => {
                 <div className="flex flex-col gap-2">
                   <div className="flex items-center gap-2">
                     {status === 'healthy' ? (
-                      <Badge variant="secondary" className="bg-green-500/10 text-green-500 border-green-500/20 gap-1">
+                      <Badge variant="secondary" className="bg-success/10 text-success border-success/20 gap-1">
                         <CheckCircle className="w-3 h-3" /> System Operational
                       </Badge>
                     ) : status === 'warning' ? (
-                      <Badge variant="secondary" className="bg-yellow-500/10 text-yellow-500 border-yellow-500/20 gap-1">
+                      <Badge variant="secondary" className="bg-warning/10 text-warning border-warning/20 gap-1">
                         <Shield className="w-3 h-3" /> Minor Issues
                       </Badge>
                     ) : (
@@ -79,10 +79,10 @@ export const BuildValidationOverlay: React.FC = () => {
                         <div className="flex items-center justify-between">
                           <span className={cn(
                             "font-bold uppercase px-1 rounded",
-                            event.type === 'error' ? "text-red-500 bg-red-500/10" :
-                            event.type === 'network' ? "text-yellow-500 bg-yellow-500/10" :
-                            event.type === 'render' ? "text-green-500 bg-green-500/10" :
-                            "text-blue-500 bg-blue-500/10"
+                            event.type === 'error' ? "text-destructive bg-destructive/10" :
+                            event.type === 'network' ? "text-warning bg-warning/10" :
+                            event.type === 'render' ? "text-success bg-success/10" :
+                            "text-primary bg-primary/10"
                           )}>
                             {event.type}
                           </span>
