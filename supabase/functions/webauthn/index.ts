@@ -1,5 +1,6 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
-import { handleCors, errorResponse, jsonResponse, requireEnv, Logger, getCorsHeaders, checkRateLimit, getClientIP } from "../_shared/validation.ts";
+import { handleCors, errorResponse, jsonResponse, Logger, checkRateLimit, getClientIP } from "../_shared/validation.ts";
+import { requireUser } from "../_shared/auth.ts";
+import { createZappAdminClient } from "../_shared/db-client.ts";
 import { WebAuthnActionSchema, parseBody } from "../_shared/schemas.ts";
 
 /**
@@ -80,10 +81,7 @@ Deno.serve(async (req) => {
   const log = new Logger("webauthn");
 
   try {
-    const supabaseUrl = requireEnv('SUPABASE_URL');
-    const supabaseAnonKey = requireEnv('SUPABASE_ANON_KEY');
-    const supabaseServiceKey = requireEnv('SUPABASE_SERVICE_ROLE_KEY');
-    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, { db: { schema: "zapp" } });
+    const supabaseAdmin = createZappAdminClient();
 
     const rawBody = await req.json();
     const parsed = parseBody(WebAuthnActionSchema, rawBody);
@@ -94,30 +92,15 @@ Deno.serve(async (req) => {
     const rpId = getRpId(origin);
     const rpName = 'ZAPP Web';
 
-    // Verify caller identity for actions that require authentication
-    const authHeader = req.headers.get('Authorization');
-    let authenticatedUserId: string | null = null;
-
-    if (authHeader?.startsWith('Bearer ')) {
-      const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
-        global: { headers: { Authorization: authHeader } },
-      });
-      const token = authHeader.replace('Bearer ', '');
-      const { data: claimsData, error: claimsError } = await supabaseAuth.auth.getClaims(token);
-      if (!claimsError && claimsData && typeof claimsData === 'object' && 'claims' in claimsData) {
-        const claims = claimsData.claims;
-        if (typeof claims === 'object' && claims !== null && 'sub' in claims && typeof claims.sub === 'string') {
-          authenticatedUserId = claims.sub;
-        }
-      }
-    }
-
     log.info("WebAuthn action", { action, rpId });
 
     switch (action) {
       case 'registration-options': {
         if (!userId || !userEmail) return errorResponse('userId and userEmail are required', 400, req);
-        if (!authenticatedUserId || authenticatedUserId !== userId) {
+        // Server-side JWT verification — getClaims() is client-side decode and unsafe
+        const authed = await requireUser(req);
+        if (authed instanceof Response) return authed;
+        if (authed.user.id !== userId) {
           return errorResponse('Unauthorized: you can only register passkeys for your own account', 403, req);
         }
 
@@ -148,7 +131,10 @@ Deno.serve(async (req) => {
 
       case 'verify-registration': {
         if (!userId || !credential) return errorResponse('userId and credential are required', 400, req);
-        if (!authenticatedUserId || authenticatedUserId !== userId) {
+        // Server-side JWT verification — prevents forged JWT from hijacking another user's credential slot
+        const authed = await requireUser(req);
+        if (authed instanceof Response) return authed;
+        if (authed.user.id !== userId) {
           return errorResponse('Unauthorized: you can only verify passkeys for your own account', 403, req);
         }
 
