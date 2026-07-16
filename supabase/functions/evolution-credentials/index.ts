@@ -29,6 +29,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
 import { requireAdminOrSupervisor } from '../_shared/auth.ts';
+import { checkRateLimit } from '../_shared/validation.ts';
 
 const INSTANCE = 'wpp2';
 
@@ -47,6 +48,13 @@ Deno.serve(async (req: Request) => {
   // outro papel recebe 403 ANTES de tocarmos no Vault.
   const authed = await requireAdminOrSupervisor(req);
   if (authed instanceof Response) return authed;
+
+  const rl = checkRateLimit(`evolution-credentials:${authed.user.id}`, 20, 60_000);
+  if (!rl.allowed) {
+    return new Response(JSON.stringify({ error: 'Rate limit exceeded' }), {
+      status: 429, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+    });
+  }
 
   // service_role → RPC SECURITY DEFINER (única ponte segura até o vault)
   const supabaseAdmin = createClient(
