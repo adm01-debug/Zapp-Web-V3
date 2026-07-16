@@ -1,7 +1,6 @@
 src/__tests__/security-and-performance.test.ts
 src/adapters/evolutionAdapter.ts
 src/components/__tests__/ExportDropdownPermission.test.tsx
-src/components/agents/ConfigurePermissionsDialog.tsx
 src/components/calls/VoIPPanel.tsx
 src/components/connections/ConnectionAuditDialog.tsx
 src/components/connections/InstanceSettingsDialog.tsx
@@ -9,10 +8,8 @@ src/components/connections/NumberReputationMonitor.tsx
 src/components/connections/QrAttemptHistory.tsx
 src/components/contacts/ContactQuickView.tsx
 src/components/dashboard/ScheduledReportsManager.tsx
-src/components/dashboard/SentimentHelpers.tsx
 src/components/omnichannel/OmnichannelInbox.tsx
 src/components/payments/PaymentLinksView.tsx
-src/components/queues/AddMemberDialog.tsx
 src/components/queues/QueuesComparisonDashboard.tsx
 src/components/queues/QueuesView.tsx
 src/components/reports/AbandonmentRate.tsx
@@ -23,7 +20,6 @@ src/components/security/AuditLogDashboard.tsx
 src/components/security/BlockedIPDialogs.tsx
 src/components/security/IPWhitelistPanel.tsx
 src/components/security/RateLimitConfigPanel.tsx
-src/components/security/RateLimitRealtimeAlerts.tsx
 src/components/security/SecurityNotificationsPanel.tsx
 src/components/security/SecurityOverview.tsx
 src/components/settings/AIAutoTagsConfig.tsx
@@ -53,7 +49,6 @@ src/components/team-chat/NewConversationDialog.tsx
 src/components/team-chat/ParticipantStatsGraph.tsx
 src/components/team-chat/TeamChatPanel.tsx
 src/components/team-chat/TeamChatView.tsx
-src/components/team-chat/TeamMemberDetails.tsx
 src/components/team-chat/TeamMemberProfileHeader.tsx
 src/components/team-chat/TransferConversationDialog.tsx
 src/components/team-chat/useTeamChatPanel.ts
