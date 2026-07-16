@@ -8,11 +8,6 @@ src/components/talkx/TalkXView.tsx
 src/components/talkx/__tests__/TalkX.test.tsx
 src/components/talkx/useCampaignEditor.ts
 src/features/admin/components/AdminView.tsx
-src/features/admin/components/CrisisRoom.tsx
-src/features/admin/components/PublicApiDashboard.tsx
-src/features/admin/components/QrAttemptsPanel.tsx
-src/features/admin/components/RetryConfigPanel.tsx
-src/features/admin/components/SicoobBridgeDashboard.tsx
 src/features/admin/components/TrainingMode.tsx
 src/features/admin/components/VisibilityGrantsManager.tsx
 src/features/admin/components/alerts/AlertInstanceDetailDialog.tsx
