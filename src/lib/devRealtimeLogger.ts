@@ -87,12 +87,12 @@ export function clearFanoutHistory(): void {
 }
 
 
-const STYLE_REG = 'color:#888;font-weight:600';
-const STYLE_HOOK = 'color:#3b82f6;font-weight:700';
-const STYLE_EVENT_INSERT = 'color:#16a34a;font-weight:600';
-const STYLE_EVENT_UPDATE = 'color:#d97706;font-weight:600';
-const STYLE_EVENT_DELETE = 'color:#dc2626;font-weight:600';
-const STYLE_DIM = 'color:#888';
+const STYLE_REG = 'color:#888;font-weight:600'; // audit-ok: console.log CSS — CSS vars unsupported
+const STYLE_HOOK = 'color:#3b82f6;font-weight:700'; // audit-ok
+const STYLE_EVENT_INSERT = 'color:#16a34a;font-weight:600'; // audit-ok
+const STYLE_EVENT_UPDATE = 'color:#d97706;font-weight:600'; // audit-ok
+const STYLE_EVENT_DELETE = 'color:#dc2626;font-weight:600'; // audit-ok
+const STYLE_DIM = 'color:#888'; // audit-ok
 
 function eventStyle(evt: string | undefined): string {
   switch ((evt ?? '').toUpperCase()) {
