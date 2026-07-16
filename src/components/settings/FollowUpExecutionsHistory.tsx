@@ -19,7 +19,7 @@ const STATUS_MAP: Record<string, { label: string; color: string; icon: React.Com
 
 export function FollowUpExecutionsHistory() {
   const { data: executions = [], isLoading } = useQuery({
-    queryKey: queryKeys.followupSequences.executions(),
+    queryKey: queryKeys.followupSequences.executionsRoot(),
     queryFn: async () => {
       type ExecutionRow = { id: string; status: string; current_step: number; created_at: string; sequence: { name: string } | null; contact: { name: string | null; phone: string | null } | null };
       const { data, error } = await safeClient.from<ExecutionRow>(
