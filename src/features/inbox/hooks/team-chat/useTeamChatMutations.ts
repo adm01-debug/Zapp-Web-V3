@@ -38,7 +38,7 @@ export function useUpdateTeamMessageStatus() {
     },
     onSuccess: (data) => {
       queryClient.setQueriesData(
-        { queryKey: queryKeys.teamChat.messages(data.conversationId) },
+        { queryKey: queryKeys.teamChat.allMessages(data.conversationId) },
         (oldData: TeamMessageCache | undefined): TeamMessageCache | undefined => {
           if (!oldData?.pages) return oldData;
           const newPages = oldData.pages.map((page) => ({
@@ -96,7 +96,7 @@ export function useSendTeamMessage() {
     },
     onSuccess: (data, vars) => {
       queryClient.setQueriesData(
-        { queryKey: queryKeys.teamChat.messages(vars.conversationId) },
+        { queryKey: queryKeys.teamChat.allMessages(vars.conversationId) },
         (oldData: TeamMessageCache | undefined): TeamMessageCache | undefined => {
           if (!oldData?.pages) return oldData;
           const newPages = [...oldData.pages];
@@ -141,7 +141,7 @@ export function useDeleteTeamMessage() {
     },
     onSuccess: (_data, vars) => {
       queryClient.setQueriesData(
-        { queryKey: queryKeys.teamChat.messages(vars.conversationId) },
+        { queryKey: queryKeys.teamChat.allMessages(vars.conversationId) },
         (oldData: TeamMessageCache | undefined): TeamMessageCache | undefined => {
           if (!oldData?.pages) return oldData;
           const newPages = oldData.pages.map((page) => ({
@@ -180,7 +180,7 @@ export function useEditTeamMessage() {
     },
     onSuccess: (_data, vars) => {
       queryClient.setQueriesData(
-        { queryKey: queryKeys.teamChat.messages(vars.conversationId) },
+        { queryKey: queryKeys.teamChat.allMessages(vars.conversationId) },
         (oldData: TeamMessageCache | undefined): TeamMessageCache | undefined => {
           if (!oldData?.pages) return oldData;
           const newPages = oldData.pages.map((page) => ({
