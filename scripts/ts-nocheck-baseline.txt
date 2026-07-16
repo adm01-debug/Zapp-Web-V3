@@ -17,11 +17,6 @@ src/components/reports/ConversationHeatmap.tsx
 src/components/reports/DemandForecast.tsx
 src/components/reports/ReportCharts.tsx
 src/components/security/AuditLogDashboard.tsx
-src/components/security/BlockedIPDialogs.tsx
-src/components/security/IPWhitelistPanel.tsx
-src/components/security/RateLimitConfigPanel.tsx
-src/components/security/SecurityNotificationsPanel.tsx
-src/components/security/SecurityOverview.tsx
 src/components/settings/AIAutoTagsConfig.tsx
 src/components/settings/AutoCloseSettings.tsx
 src/components/settings/AvatarUpload.tsx
