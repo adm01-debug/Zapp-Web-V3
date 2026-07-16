@@ -3,7 +3,6 @@ src/adapters/evolutionAdapter.ts
 src/components/__tests__/ExportDropdownPermission.test.tsx
 src/components/agents/ConfigurePermissionsDialog.tsx
 src/components/calls/VoIPPanel.tsx
-src/components/compliance/useLGPDAuditLogs.ts
 src/components/connections/ConnectionAuditDialog.tsx
 src/components/connections/InstanceSettingsDialog.tsx
 src/components/connections/NumberReputationMonitor.tsx
@@ -82,14 +81,11 @@ src/features/admin/hooks/useAdminManagement.ts
 src/features/admin/hooks/useDiagnosticsData.ts
 src/features/auth/components/AuthProvider.tsx
 src/features/auth/components/ProtectedRoute.tsx
-src/features/auth/hooks/useDepartmentAgents.ts
 src/features/auth/hooks/usePermissions.ts
 src/features/auth/hooks/useRouteRoles.ts
 src/features/business-logic/hooks/useBusinessLogicManagement.ts
-src/features/connections/data-access/whatsappConnectionRepository.ts
 src/features/connections/hooks/parts/useConnectionsActions.ts
 src/features/connections/hooks/useConnectionsManager.ts
-src/features/contacts/hooks/useContactCustomFields.ts
 src/features/contacts/hooks/useContactEnrichedData.ts
 src/features/contacts/hooks/useContactNotes.ts
 src/features/contacts/hooks/useContactsSearch.ts
@@ -131,7 +127,6 @@ src/features/inbox/components/conversation-list/__mocks__/mockConversations.ts
 src/features/inbox/components/stickers/PersonalStickers.tsx
 src/features/inbox/components/stickers/StickerManager.tsx
 src/features/inbox/components/useGlobalSearchData.ts
-src/features/inbox/data-access/whatsappStatusRepository.ts
 src/features/inbox/hooks/__tests__/inboxLogic.test.ts
 src/features/inbox/hooks/reactions/useReactionMutations.ts
 src/features/inbox/hooks/realtime/externalAudioSender.ts
