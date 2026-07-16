@@ -170,7 +170,7 @@ export function ConversationMemoryPanel({ contactId, profileId }: ConversationMe
           <div className="space-y-1">
             {memory[key].map((item: string, idx: number) => (
               <motion.div
-                key={idx}
+                key={`${item}-${idx}`}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 className="group flex items-center gap-1.5 rounded bg-muted/20 px-2 py-1 text-xs"
