@@ -10,6 +10,14 @@
  *  - Login social / magic link: warning one-shot (sem credenciais em memória).
  *  - Logout: propagado.
  *  - Falhas NUNCA bloqueiam o fluxo principal (catch silencioso + log).
+ *
+ * FIX 2026-07-16: registerExternalSessionBridge tinha return type `void`
+ * mas retornava internamente uma função de cleanup (() => void). Em TypeScript,
+ * isso significa que o caller nunca conseguia capturar o cleanup — a
+ * subscription onAuthStateChange vazava para o lifetime da app. Para um SPA
+ * isso é benign (app nunca desmonta), mas em SSR/testes causa memory leak.
+ * Tipo corrigido para `() => void` para que callers possam capturar e
+ * desmontar se necessário.
  */
 import type { AuthError } from '@supabase/supabase-js';
 import { supabase } from './client';
@@ -106,14 +114,24 @@ export async function mirrorExternalSignOut(): Promise<void> {
 /**
  * Instala listener global no client principal. Idempotente.
  * Deve ser chamado 1x no boot (main.tsx).
+ *
+ * FIX 2026-07-16: return type corrigido de `void` para `() => void`.
+ * A versão anterior tipava o retorno como void, impossibilitando que
+ * callers capturassem e invocassem a função de cleanup da subscription
+ * `onAuthStateChange`. A subscription vazava para o lifetime da app.
+ *
+ * Uso no boot:
+ *   const cleanupBridge = registerExternalSessionBridge();
+ *   // Para desmontar (SSR/testes):
+ *   cleanupBridge();
  */
-export function registerExternalSessionBridge(): void {
-  if (bridgeInstalled) return;
+export function registerExternalSessionBridge(): () => void {
+  if (bridgeInstalled) return () => {}; // idempotente: cleanup no-op
   bridgeInstalled = true;
 
   if (!isExternalConfigured) {
     log.debug('external não configurado — bridge no-op');
-    return;
+    return () => {};
   }
 
   void (async () => {
@@ -159,8 +177,10 @@ export function registerExternalSessionBridge(): void {
 
   log.info('external session bridge instalado');
 
+  // Retorna função de cleanup capturável pelo caller
   return () => {
     authSubscription.unsubscribe();
+    bridgeInstalled = false; // permite reinstalação após cleanup (util em testes)
     log.debug('external session bridge desmontado');
   };
 }
