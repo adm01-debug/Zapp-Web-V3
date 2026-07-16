@@ -12,6 +12,7 @@ import { normalizePhone, isSamePhone } from '@/lib/phoneUtils';
 import { emailHealthService } from '@/services/email/emailHealthService';
 import type { EmailHealthInfo } from '@/services/email/types';
 import { emailMappers } from '@/utils/emailMappers';
+import { SYSTEM_LABELS } from '@/hooks/useGmailLabels';
 import { useQueryClient } from '@tanstack/react-query';
 import { eventBus } from '@/lib/eventBus';
 
@@ -39,15 +40,7 @@ const CIRCUIT_THRESHOLD = 3;
 const CIRCUIT_BASE_MS = 2 * 60_000;
 const CIRCUIT_MAX_MS = 10 * 60_000;
 
-export const SYSTEM_LABELS = [
-  { id: 'INBOX', name: 'Inbox', icon: 'inbox', color: '#1a73e8' },
-  { id: 'STARRED', name: 'Favoritos', icon: 'star', color: '#f29900' },
-  { id: 'IMPORTANT', name: 'Importantes', icon: 'flag', color: '#e37400' },
-  { id: 'SENT', name: 'Enviados', icon: 'send', color: '#34a853' },
-  { id: 'DRAFTS', name: 'Rascunhos', icon: 'draft', color: '#9e9e9e' },
-  { id: 'SPAM', name: 'Spam', icon: 'block', color: '#d93025' },
-  { id: 'TRASH', name: 'Lixeira', icon: 'delete', color: '#777777' },
-];
+export { SYSTEM_LABELS };
 
 function extractHttpStatus(err: unknown): number | undefined {
   if (err == null || typeof err !== 'object') return undefined;
