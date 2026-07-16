@@ -1,4 +1,4 @@
-// @ts-nocheck
+
 import { whatsappConnectionRepository } from '@/features/connections/data-access/whatsappConnectionRepository';
 import { isExternalConfigured, getExternalSupabase } from '@/integrations/supabase/externalClient';
 
