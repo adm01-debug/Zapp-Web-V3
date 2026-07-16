@@ -1,4 +1,4 @@
-import { handleCors, errorResponse, jsonResponse, requireEnv, Logger } from "../_shared/validation.ts";
+import { handleCors, errorResponse, jsonResponse, requireEnv, Logger, checkRateLimit } from "../_shared/validation.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { requireUser } from "../_shared/auth.ts";
 
@@ -11,6 +11,8 @@ Deno.serve(async (req) => {
   try {
     const authed = await requireUser(req);
     if (authed instanceof Response) return authed;
+    const rl = checkRateLimit(`voice-copilot-action:${authed.user.id}`, 30, 60_000);
+    if (!rl.allowed) return errorResponse('Rate limit exceeded', 429, req);
     const { action, params } = await req.json();
     
     const supabaseUrl = requireEnv('SUPABASE_URL');
@@ -124,11 +126,16 @@ Deno.serve(async (req) => {
           result = { success: false, message: 'Contato não encontrado.' };
           break;
         }
-        // Find agent by name
+        // Find agent by name — sanitize SQL wildcards to prevent matching all agents
+        const sanitizedAgentName = String(agentName).replace(/[%_\\]/g, '').trim();
+        if (!sanitizedAgentName) {
+          result = { success: false, message: 'agentName inválido.' };
+          break;
+        }
         const { data: agent } = await supabase
           .from('profiles')
           .select('id, name')
-          .ilike('name', `%${agentName}%`)
+          .ilike('name', `%${sanitizedAgentName}%`)
           .eq('is_active', true)
           .limit(1)
           .single();
@@ -157,6 +164,9 @@ Deno.serve(async (req) => {
         }
         if (!content || typeof content !== 'string') {
           return errorResponse('content is required', 400, req);
+        }
+        if (content.length > 10_000) {
+          return errorResponse('content must be 10,000 characters or fewer', 400, req);
         }
         // Verify the caller owns this contact before inserting a note
         const { data: ownedContact, error: ownedContactErr } = await supabase
