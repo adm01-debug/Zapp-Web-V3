@@ -148,7 +148,7 @@ export function useSyncToCRMManagement(entityId?: string) {
   const [lastSyncAt, setLastSyncAt] = useState<string | null>(null);
 
   const syncToCRM = useCallback(
-    async (data: any) => {
+    async (data: Record<string, unknown>) => {
       if (!entityId) return;
 
       setIsSyncing(true);

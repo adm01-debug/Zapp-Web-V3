@@ -43,14 +43,14 @@ interface UserSettings {
   language: string;
   timezone: string;
   notifications_enabled: boolean;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 interface GlobalSettings {
   maintenance_mode: boolean;
   feature_flags: Record<string, boolean>;
   api_rate_limit: number;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 interface OnboardingStep {

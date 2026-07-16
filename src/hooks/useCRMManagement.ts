@@ -253,7 +253,7 @@ export function useContactCustomFieldsManagement(contactId?: string) {
   }, [contactId]);
 
   const updateField = useCallback(
-    async (fieldName: string, fieldValue: any) => {
+    async (fieldName: string, fieldValue: unknown) => {
       if (!contactId) return;
 
       try {
