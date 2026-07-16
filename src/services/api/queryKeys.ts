@@ -418,7 +418,7 @@ export const queryKeys = {
     transfersPaginated: (contactId?: string) => ['transfers-paginated', contactId] as const,
     singleContactRoot: () => ['contact'] as const,
     singleContact: (remoteJid?: string) => ['contact', remoteJid] as const,
-    contactsList: () => ['contacts-list'] as const,
+
     typeCounts: () => ['contacts-type-counts'] as const,
     inboxScopes: () => ['inbox-custom-scopes'] as const,
     agentForHandoff: () => ['agents-for-handoff'] as const,
@@ -430,7 +430,7 @@ export const queryKeys = {
     me: () => ['my-profile'] as const,
     meById: (userId?: string) => ['my-profile', userId] as const,
     byId: (userId?: string) => ['user-profile', userId] as const,
-    profile: (userId?: string) => ['profile', userId] as const,
+
     visibleAgentIds: () => ['visible-agent-ids'] as const,
     visibleAgentIdsForUser: (userId?: string) => ['visible-agent-ids', userId] as const,
     forPermissions: () => ['profiles-for-permissions'] as const,
