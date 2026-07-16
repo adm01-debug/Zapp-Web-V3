@@ -10,10 +10,6 @@ import { log } from '@/lib/logger';
 // self-hosted, mas os types gerados no ambiente Lovable (Cloud) não as expõem.
 // Enquanto scripts/gen-types-zapp.mjs não rodar contra a VPS, isolamos a
 // tipagem apenas na fronteira do postgrest — a superfície pública do hook
-// permanece 100% tipada.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const db = supabase as any;
-
 interface ContactIntelligence {
   contact_id: string;
   sentiment: string;
@@ -115,7 +111,7 @@ export function useContactNotesManagement(contactId?: string) {
       if (!contactId) return;
 
       try {
-        const { error: err } = await db.from('contact_notes').insert({
+        const { error: err } = await supabase.from('contact_notes').insert({
           contact_id: contactId,
           content,
         });
@@ -261,7 +257,7 @@ export function useContactCustomFieldsManagement(contactId?: string) {
       if (!contactId) return;
 
       try {
-        const { error: err } = await db.from('contact_custom_fields').upsert({
+        const { error: err } = await supabase.from('contact_custom_fields').upsert({
           contact_id: contactId,
           field_name: fieldName,
           field_value: fieldValue,

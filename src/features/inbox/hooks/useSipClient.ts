@@ -6,10 +6,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useSipConnection } from './sip/useSipConnection';
 
-// Schema escape hatch: zapp tables not yet in generated types (gen-types-zapp.mjs pendente na VPS)
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const db = supabase as any;
-
 export type { SipStatus } from './sip/useSipConnection';
 export type CallStatus = 'idle' | 'calling' | 'ringing' | 'active' | 'on-hold' | 'ended';
 
@@ -101,7 +97,7 @@ export function useSipClient() {
         const duration = Math.round(
           (new Date(endedAt).getTime() - new Date(startedAt).getTime()) / 1000
         );
-        await db.from('calls').insert({
+        await supabase.from('calls').insert({
           direction: 'outbound',
           status,
           started_at: startedAt,

@@ -19,10 +19,6 @@ const log = getLogger('useAlertManagement');
 // `sentiment_alerts` vivem no schema `zapp` da VPS self-hosted, mas ainda não
 // estão nos types gerados pela Lovable Cloud. Também usamos aqui para colunas
 // de `warroom_alerts`/`conversation_sla` que ainda divergem do types.ts local.
-// A superfície pública (interfaces exportadas) permanece 100% tipada.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const db = supabase as any;
-
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════════════
 // TYPE DEFINITIONS
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════════════
@@ -193,7 +189,7 @@ export function useWarRoomAlertsManagement(soundEnabled = true): UseWarRoomAlert
         const newBreachCount = breaches.length;
         const existingAlerts = alertsRef.current.filter((a) => a.source === 'sla-monitor');
         if (existingAlerts.length === 0 || newBreachCount > existingAlerts.length) {
-          const { error: insertErr } = await db.from('warroom_alerts').insert({
+          const { error: insertErr } = await supabase.from('warroom_alerts').insert({
             alert_type: 'critical',
             title: `${newBreachCount} SLA(s) Violado(s)`,
             message: `Existem ${newBreachCount} conversas com SLA violado que precisam de atenção imediata.`,
@@ -328,7 +324,7 @@ export function useWebhookHealthAlertsManagement(): UseWebhookHealthAlertsResult
   const acknowledgeAlert = useCallback(
     async (alertId: string) => {
       try {
-        await db.from('webhook_health_checks').update({ acknowledged: true }).eq('id', alertId);
+        await supabase.from('webhook_health_checks').update({ acknowledged: true }).eq('id', alertId);
         setAlerts((prev) => prev.map((a) => (a.id === alertId ? { ...a } : a)));
       } catch (error) {
         log.error('Failed to acknowledge webhook health alert:', error);
@@ -396,7 +392,7 @@ export function useRealtimeSentimentAlertsManagement(): UseRealtimeSentimentAler
 
   const acknowledgeAlert = useCallback(async (alertId: string) => {
     try {
-      await db.from('sentiment_alerts').update({ acknowledged: true }).eq('id', alertId);
+      await supabase.from('sentiment_alerts').update({ acknowledged: true }).eq('id', alertId);
       setAlerts((prev) => prev.map((a) => (a.id === alertId ? { ...a, acknowledged: true } : a)));
     } catch (error) {
       log.error('Failed to acknowledge sentiment alert:', error);
@@ -405,7 +401,7 @@ export function useRealtimeSentimentAlertsManagement(): UseRealtimeSentimentAler
 
   const clearAlert = useCallback(async (alertId: string) => {
     try {
-      await db.from('sentiment_alerts').delete().eq('id', alertId);
+      await supabase.from('sentiment_alerts').delete().eq('id', alertId);
       setAlerts((prev) => prev.filter((a) => a.id !== alertId));
     } catch (error) {
       log.error('Failed to clear sentiment alert:', error);

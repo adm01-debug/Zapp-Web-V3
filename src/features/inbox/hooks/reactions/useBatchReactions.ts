@@ -5,10 +5,6 @@ import { getLogger } from '@/lib/logger';
 const log = getLogger('useBatchReactions');
 import type { MessageReaction } from './types';
 
-// Schema escape hatch: zapp tables not yet in generated types (gen-types-zapp.mjs pendente na VPS)
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const db = supabase as any;
-
 /**
  * Hook for batch loading reactions for multiple messages.
  * 
@@ -30,7 +26,7 @@ export function useMessagesReactions(messageIds: string[]) {
     const fetchReactions = async () => {
       setIsLoading(true);
       try {
-        const { data, error } = await db.from('message_reactions')
+        const { data, error } = await supabase.from('message_reactions')
           .select('*')
           .in('message_id', messageIds);
 

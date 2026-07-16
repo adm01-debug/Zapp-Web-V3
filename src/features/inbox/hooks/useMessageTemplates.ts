@@ -4,10 +4,6 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/features/auth';
 import { getLogger } from '@/lib/logger';
 
-// Schema escape hatch: zapp tables not yet in generated types (gen-types-zapp.mjs pendente na VPS)
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const db = supabase as any;
-
 const log = getLogger('useMessageTemplates');
 
 export interface Template {
@@ -64,7 +60,7 @@ export function useMessageTemplates() {
         return false;
       }
       try {
-        const { error } = await db.from('message_templates').insert({
+        const { error } = await supabase.from('message_templates').insert({
           user_id: user.id,
           title: template.title,
           content: template.content,
@@ -114,7 +110,7 @@ export function useMessageTemplates() {
   const deleteTemplate = useCallback(
     async (id: string) => {
       try {
-        const { error } = await db.from('message_templates').delete().eq('id', id);
+        const { error } = await supabase.from('message_templates').delete().eq('id', id);
         if (error) throw error;
         toast({ title: 'Template excluído', description: 'O template foi removido.' });
         await fetchTemplates();

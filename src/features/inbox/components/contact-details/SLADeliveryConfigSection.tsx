@@ -13,6 +13,17 @@ interface SLADeliveryConfigSectionProps {
   contactId: string;
 }
 
+interface SLADeliveryRule {
+  id: string;
+  contact_id: string;
+  name: string;
+  warning_threshold_minutes: number;
+  breach_threshold_minutes: number;
+  custom_message: string | null;
+  is_active: boolean;
+  updated_at: string;
+}
+
 export function SLADeliveryConfigSection({ contactId }: SLADeliveryConfigSectionProps) {
   const queryClient = useQueryClient();
   const [warningThreshold, setWarningThreshold] = useState<number>(30);
@@ -27,16 +38,15 @@ export function SLADeliveryConfigSection({ contactId }: SLADeliveryConfigSection
         q.select('*').eq('contact_id', contactId).limit(1)
       );
       if (error) throw error;
-      return rows?.[0] ?? null;
+      return (rows?.[0] ?? null) as SLADeliveryRule | null;
     },
   });
 
   useEffect(() => {
     if (config) {
-      const cfg = config as any;
-      setWarningThreshold(cfg.warning_threshold_minutes);
-      setBreachThreshold(cfg.breach_threshold_minutes);
-      setCustomMessage(cfg.custom_message || '');
+      setWarningThreshold(config.warning_threshold_minutes);
+      setBreachThreshold(config.breach_threshold_minutes);
+      setCustomMessage(config.custom_message || '');
     }
   }, [config]);
 
@@ -52,9 +62,9 @@ export function SLADeliveryConfigSection({ contactId }: SLADeliveryConfigSection
         updated_at: new Date().toISOString(),
       };
 
-      if ((config as any)?.id) {
+      if (config?.id) {
         const { error } = await safeClient.from('sla_delivery_rules', (q) =>
-          q.update(payload).eq('id', (config as any).id)
+          q.update(payload).eq('id', config.id)
         );
         if (error) throw error;
       } else {
