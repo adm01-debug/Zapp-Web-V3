@@ -125,7 +125,6 @@ src/hooks/__tests__/useTextToSpeech.test.ts
 src/hooks/__tests__/useTranscriptionNotifications.test.ts
 src/hooks/__tests__/useTypingPresence.test.tsx
 src/hooks/__tests__/useViewTransition.test.ts
-src/hooks/ai-providers/useAIProviders.ts
 src/hooks/connections/__tests__/useHubTabNavigation.test.tsx
 src/hooks/dashboard/useSentimentData.ts
 src/hooks/evolution/__tests__/v237Fallbacks.test.ts
@@ -135,7 +134,6 @@ src/hooks/meta-capi/useMetaCapi.ts
 src/hooks/omnichannel/useOmnichannelManagement.ts
 src/hooks/settings/useSkillBasedRouting.ts
 src/hooks/sticker-picker/useStickerPicker.ts
-src/hooks/team-chat/useDepartmentManagement.ts
 src/hooks/useActionFeedback.ts
 src/hooks/useAdvancedFeaturesManagement.ts
 src/hooks/useAnalyticsManagement.ts
@@ -144,7 +142,6 @@ src/hooks/useAudioManagement.ts
 src/hooks/useAutomationManagement.ts
 src/hooks/useBusinessHoursManagement.ts
 src/hooks/useClientWallet.ts
-src/hooks/useConnectionManagement.ts
 src/hooks/useDashboardQueries.ts
 src/hooks/useDeliveryStats.ts
 src/hooks/useEmailActions.test.ts
@@ -154,12 +151,10 @@ src/hooks/useEvolutionAutoReconnect.ts
 src/hooks/useExternalApiManagement.ts
 src/hooks/useGeoBlocking.ts
 src/hooks/useIntegrationAuthenticationManagement.ts
-src/hooks/useIntegrationManagement.ts
 src/hooks/useKeyboardManagement.ts
 src/hooks/useMediaManagement.ts
 src/hooks/useMessagingManagement.ts
 src/hooks/useNotificationManagement.ts
-src/hooks/useRealtimeManagement.ts
 src/hooks/useRetryAndErrorPrevention.ts
 src/hooks/useSearchManagement.ts
 src/hooks/useSettingsManagement.ts
