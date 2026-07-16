@@ -131,15 +131,17 @@ export function logMessagesSubscribe(hookName: string, bind: Bind): void {
   const evt = bind.event ?? '*';
   // eslint-disable-next-line no-console
   console.debug(
-    `%c[realtime:messages]%c subscribe %c${hookName}%c → %c${evt}%c ${bind.table ?? 'messages'}${
-      bind.filter ? ` (${bind.filter})` : ''
-    }`,
+    '%c[realtime:messages]%c subscribe %c%s%c → %c%s%c %s%s',
     STYLE_REG,
     STYLE_DIM,
     STYLE_HOOK,
+    hookName,
     STYLE_DIM,
     eventStyle(evt),
-    STYLE_DIM
+    evt,
+    STYLE_DIM,
+    bind.table ?? 'messages',
+    bind.filter ? ` (${bind.filter})` : ''
   );
 }
 
@@ -170,13 +172,16 @@ export function wrapMessagesHandler<T>(
       if (isDev) {
         // eslint-disable-next-line no-console
         console.debug(
-          `%c[realtime:messages]%c event %c${hookName}%c ← %c${evt}%c id=${rowId ?? '—'}`,
+          '%c[realtime:messages]%c event %c%s%c ← %c%s%c id=%s',
           STYLE_REG,
           STYLE_DIM,
           STYLE_HOOK,
+          hookName,
           STYLE_DIM,
           eventStyle(evt),
-          STYLE_DIM
+          evt,
+          STYLE_DIM,
+          rowId ?? '—'
         );
       }
     } catch {
