@@ -8,7 +8,8 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 
 // evolution_instance_credentials e evolution_health_logs residem no schema 'evo'
-const evo = supabase.schema('evo');
+// (schema não incluído em ExtendedDatabase gerado; cast controlado)
+const evo = (supabase as unknown as { schema: (s: string) => ReturnType<typeof supabase.schema> }).schema('evo');
 
 export interface EvolutionInstanceCredential {
   id: string;
