@@ -119,9 +119,10 @@
 
 | ID | Arquivo | Problema | Impacto |
 |----|---------|----------|---------|
-| BUG-1 | `src/features/admin/hooks/useAdminManagement.ts:588` | `.from('queue_skills')` — tabela não existe; correto é `queue_skill_requirements` | Erro 404 em runtime |
+| BUG-1 | `src/features/admin/hooks/useAdminManagement.ts:588` | `safeFrom('queue_skills')` — tabela não existe; correto é `queue_skill_requirements` | Erro 404 em runtime |
 | ~~BUG-2~~ | ~~`src/features/inbox/components/chat/useAudioVoiceChange.ts:13`~~ | ~~`supabase.storage.from('chat-media')`~~ | **RESOLVIDO** — código já usa `audio-messages` |
-| GAP-1 | `src/hooks/useCampaigns.ts:100` | `rpc('add_contacts_to_campaign')` — função não existe no DB | Runtime error |
+| BUG-3 | `src/features/inbox/hooks/useMessagesCursor.ts:217,280` | Canal criado via `externalSupabase.channel()` mas removido via `supabase.removeChannel(channel)` — clientes diferentes; channel leak provável | Subscription nunca removida corretamente |
+| GAP-1 | `src/hooks/useCampaigns.ts:101` | `rpc('add_contacts_to_campaign')` — função não existe no DB | Runtime error |
 | GAP-2 | `src/hooks/useIntegrationManagement.ts:54,69` | `rpc('initiate_gmail_oauth')`, `rpc('complete_gmail_oauth')` — não existem | OAuth Gmail quebrado |
 | GAP-3 | `src/hooks/useIntegrationManagement.ts:156` | `rpc('sync_to_crm')` — não existe | Sync CRM quebrado |
 | GAP-4 | `src/hooks/useMediaManagement.ts:93,128,156` | `rpc('export_user_data')`, `rpc('import_user_data')`, `rpc('check_download_permission')` — não existem | Export/Import quebrado |
@@ -129,7 +130,7 @@
 | GAP-6 | `src/hooks/useAnalyticsManagement.ts:168` | `rpc('get_latest_analysis')` — não existe | Analytics quebrado |
 | GAP-7 | `src/features/admin/hooks/monitoring/useFailedMessages.ts:78` | `rpc('rpc_list_failed_messages_cursor')` — não existe | Painel de mensagens falhas quebrado |
 | GAP-8 | `src/features/admin/hooks/monitoring/useDispatchErrorLogs.ts:61` | `rpc('rpc_list_dispatch_error_logs_cursor')` — não existe | Painel de erros de despacho quebrado |
-| GAP-9 | `src/features/admin/hooks/monitoring/useDlqAuditLog.ts:51` | `rpc('rpc_dlq_list_audit_cursor')` — não existe | Painel DLQ audit quebrado |
+| GAP-9 | `src/features/admin/hooks/monitoring/useDlqAuditLog.ts:52` | `rpc('rpc_dlq_list_audit_cursor')` — não existe | Painel DLQ audit quebrado |
 
 ---
 

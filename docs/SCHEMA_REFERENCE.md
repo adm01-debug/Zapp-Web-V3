@@ -24,6 +24,7 @@ O ZAPP Web usa **um único Supabase Self-Hosted** (`supabase.atomicabr.com.br`) 
    - Tabelas `zapp.*` → `schema: 'zapp'`
    - Tabelas `evo.*` → `schema: 'evo'`
    - Views **nunca emitem** WAL events — não usar em Realtime.
+   - **CRÍTICO (`publish_via_partition_root=true`)**: para tabelas particionadas no schema `evo` (`evolution_messages`, `evolution_conversations`), o evento CDC é publicado pela **tabela raiz**, NUNCA pela partição. Usar `table: 'evolution_messages'` (raiz), não `table: 'evolution_messages_wpp2'` (partição). Assinar a partição resulta em silêncio total — zero eventos.
 
 3. **Imports de tipos**: sempre via barrel `@/integrations/supabase/schema`, nunca de `types.ts` direto.
 

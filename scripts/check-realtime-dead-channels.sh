@@ -43,11 +43,17 @@ done
 
 # ---------------------------------------------------------------------------
 # CLASSE B: schema:'evo' + tabela que é partição (publish_via_partition_root=true)
-# Padrões de nomes de partições conhecidos:
+# Padrões de nomes de partições conhecidos (auditado 2026-07-16 — 23 partições):
 #   evolution_messages_wpp2, evolution_conversations_wpp2,
-#   evolution_messages_comercial_01, evolution_webhook_events_v2_2026_07, etc.
+#   evolution_messages_artes, evolution_messages_compras,
+#   evolution_messages_comercial_01..15, evolution_messages_default,
+#   evolution_messages_financeiro, evolution_messages_gravacao,
+#   evolution_messages_logistica, evolution_messages_marketing,
+#   (idem para evolution_conversations_*),
+#   evolution_webhook_events_v2_2026_07, etc.
 # ---------------------------------------------------------------------------
-PARTITION_PATTERN="(evolution_messages_wpp[0-9]+|evolution_conversations_wpp[0-9]+|evolution_messages_comercial_[0-9]+|evolution_webhook_events_v2_[0-9]{4}_[0-9]{2})"
+PARTITION_SUFFIX="(wpp[0-9]+|artes|comercial_[0-9]+|compras|default|financeiro|gravacao|logistica|marketing)"
+PARTITION_PATTERN="(evolution_(messages|conversations)_${PARTITION_SUFFIX}|evolution_webhook_events_v2_[0-9]{4}_[0-9]{2})"
 
 while IFS= read -r match; do
   TRIMMED=$(echo "$match" | sed 's/^[[:space:]]*//')
