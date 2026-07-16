@@ -69,11 +69,6 @@ src/lib/__tests__/web-vitals.test.ts
 src/lib/__tests__/webauthnUtils.test.ts
 src/lib/realtime/__tests__/crossTabDedupe.test.ts
 src/pages/admin/AdminBridgeStatusPage.tsx
-src/pages/admin/AdminEmailStatusPage.tsx
-src/pages/admin/AdminEvoApiHealthPage.tsx
-src/pages/admin/AdminFailedAuthMessagesPage.tsx
-src/pages/admin/AdminQueuesPage.tsx
-src/pages/admin/automationRuleDialogParts.tsx
 src/pages/admin/email/useEmailHealthStatus.ts
 src/pages/admin/operations/OpsLogsTab.tsx
 src/pages/admin/useConnections.ts
