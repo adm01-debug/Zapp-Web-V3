@@ -1,9 +1,4 @@
 src/features/admin/hooks/useAdminManagement.ts
-src/features/inbox/components/chat/hooks/__tests__/useInitialHighlight.test.ts
-src/features/inbox/components/conversation-list/ConversationItem.test.tsx
-src/features/inbox/components/conversation-list/__mocks__/mockConversations.ts
-src/features/inbox/hooks/__tests__/inboxLogic.test.ts
-src/hooks/__tests__/useAuth.test.tsx
 src/hooks/__tests__/useAutoCloseConversations.test.tsx
 src/hooks/__tests__/useContactCustomFields.test.tsx
 src/hooks/__tests__/useDownloadPermission.test.ts
