@@ -24,7 +24,7 @@
 ### Schemas e Tabelas (auditado 2026-07-16 — regras verificadas contra DB de produção)
 
 | Schema | Base Tables | Views | RLS | Descrição |
-|--------|-------------|-------|-----|-----------|
+|--------|-------------|-------|-----|----------|
 | **`zapp`** | **312** | **404** | 100% | Todas as tabelas da aplicação |
 | **`evo`** | **193** | — | 100% | Tabelas da Evolution API (WhatsApp) |
 | `auth` | 21 | — | — | Auth GoTrue do Supabase |
