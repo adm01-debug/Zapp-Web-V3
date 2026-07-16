@@ -179,6 +179,7 @@ export function useContactTypingState(
       clearAutoClear();
       clearStopDebounce();
       channel.unsubscribe();
+      supabase.removeChannel(channel);
     };
   }, [remoteJid, enabled, allowGroups]);
 

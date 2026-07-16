@@ -11,6 +11,7 @@
  */
 
 import { UseQueryOptions, useQuery } from '@tanstack/react-query';
+import { log } from '@/lib/logger';
 
 interface QueryFactoryOptions<TData> extends Omit<UseQueryOptions<TData>, 'queryKey' | 'queryFn'> {
   staleTime?: number;
@@ -139,7 +140,7 @@ export const createInfiniteQuery = <TData = any>(
  * Can be customized per application needs
  */
 export const handleQueryError = (error: any, fallbackMessage?: string) => {
-  console.error('Query error:', error);
+  log.error('Query error:', error);
 
   // Handle specific error types
   if (error?.code === 'NETWORK_ERROR') {

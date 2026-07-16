@@ -709,7 +709,7 @@ export function useEmail() {
     if (!activeAccountId || isMockId(activeAccountId)) return;
 
     const channel = supabase
-      .channel(`email-threads-${activeAccountId}`)
+      .channel(`email-threads-email-${activeAccountId}`)
       .on(
         'postgres_changes',
         {
@@ -737,6 +737,7 @@ export function useEmail() {
       .subscribe();
 
     return () => {
+      channel.unsubscribe();
       supabase.removeChannel(channel);
     };
   }, [activeAccountId]);

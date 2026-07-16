@@ -71,7 +71,7 @@ export const connectionsRepository = {
 
   // Channel connections
   async listChannelConnections(filters?: Partial<ChannelConnection> & QueryParams) {
-    const { data, error, count } = await (supabase as any)
+    const { data, error, count } = await supabase
       .from('channel_connections')
       .select('*', { count: 'exact' })
       .limit(filters?.limit || 50)
@@ -81,7 +81,7 @@ export const connectionsRepository = {
   },
 
   async getChannelConnection(id: string) {
-    const { data, error } = await (supabase as any)
+    const { data, error } = await supabase
       .from('channel_connections')
       .select('*')
       .eq('id', id)
@@ -93,7 +93,7 @@ export const connectionsRepository = {
   // Connection health
   async checkConnectionHealth(connectionId: string) {
     try {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from('whatsapp_connections')
         .select('connection_status, error_message')
         .eq('id', connectionId)

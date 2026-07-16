@@ -86,7 +86,7 @@ export function GoalsConfigDialog({ open, onOpenChange }: GoalsConfigDialogProps
     queryKey: ['my-profile', user?.id],
     queryFn: async () => {
       if (!user?.id) return null;
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from('profiles')
         .select('id, name')
         .eq('user_id', user.id)
@@ -102,7 +102,7 @@ export function GoalsConfigDialog({ open, onOpenChange }: GoalsConfigDialogProps
     queryKey: ['goals-config', profile?.id],
     queryFn: async () => {
       if (!profile?.id) return [] as GoalConfig[];
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from('goals_configurations')
         .select('*')
         .eq('profile_id', profile.id);
@@ -149,7 +149,7 @@ export function GoalsConfigDialog({ open, onOpenChange }: GoalsConfigDialogProps
         monthly_target: goal.monthly_target,
         is_active: goal.is_active,
       }));
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from('goals_configurations')
         .upsert(rows, { onConflict: 'profile_id,goal_type' });
       if (error) throw error;

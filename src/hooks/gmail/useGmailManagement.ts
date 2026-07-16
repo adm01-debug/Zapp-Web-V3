@@ -261,7 +261,7 @@ function useEmailRealtimeManagement({ activeAccountId, setThreads }: UseEmailRea
     if (!activeAccountId || isMockId(activeAccountId)) return;
 
     const channel = supabase
-      .channel(`email-threads-${activeAccountId}`)
+      .channel(`email-threads-gmail-${activeAccountId}`)
       .on(
         'postgres_changes',
         {
@@ -289,6 +289,7 @@ function useEmailRealtimeManagement({ activeAccountId, setThreads }: UseEmailRea
       .subscribe();
 
     return () => {
+      channel.unsubscribe();
       supabase.removeChannel(channel);
     };
   }, [activeAccountId, setThreads]);
