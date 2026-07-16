@@ -1,6 +1,5 @@
 // Edge function: gera sugestão de resposta para uma execução de automação
 // Usa Lovable AI Gateway (sem API key do usuário) + Knowledge Base + Tag Recommender
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { createZappAdminClient } from "../_shared/db-client.ts";
 import { requireServiceRoleOrCron } from "../_shared/auth.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
@@ -110,11 +109,8 @@ async function fetchKnowledgeContext(
  * Used by AI to narrow suggested tags to available taxonomy.
  */
 async function fetchExternalTags(): Promise<ExtTag[]> {
-  const url = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('EXTERNAL_SUPABASE_URL'));
-  const key = (Deno.env.get('SELFHOSTED_SUPABASE_ANON_KEY') ?? Deno.env.get('EXTERNAL_SUPABASE_ANON_KEY'));
-  if (!url || !key) return [];
   try {
-    const ext = createClient(url, key, { db: { schema: "zapp" } });
+    const ext = createZappAdminClient();
     const { data, error } = await ext
       .from("evolution_tags")
       .select("id, name, color, description")
