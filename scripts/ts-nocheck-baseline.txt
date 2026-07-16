@@ -1,9 +1,4 @@
 src/features/admin/hooks/useAdminManagement.ts
-src/hooks/__tests__/usePullToRefresh.test.ts
-src/hooks/__tests__/usePushNotifications.test.ts
-src/hooks/__tests__/useQueueManagement.test.tsx
-src/hooks/__tests__/useQueues.test.tsx
-src/hooks/__tests__/useQueuesComparison.test.tsx
 src/hooks/__tests__/useRealtimeMessages.test.tsx
 src/hooks/__tests__/useRetryOperation.test.ts
 src/hooks/__tests__/useScanResponseHandler.test.ts
