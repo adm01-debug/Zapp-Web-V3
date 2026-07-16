@@ -9,6 +9,12 @@ import { log } from '@/lib/logger';
 import type { TablesInsert, TablesUpdate } from '@/integrations/supabase/schema';
 import { queryKeys } from '@/services/api/queryKeys';
 
+interface ExternalMessage {
+  message_timestamp: string;
+  created_at: string;
+  [key: string]: unknown;
+}
+
 const getClient = () => getExternalSupabase();
 
 /* ============ INTERFACES ============ */
@@ -163,7 +169,7 @@ export function useAutomations({
       if (error) throw error;
       if (!msgs || !Array.isArray(msgs) || !isMounted.current) return;
 
-      const sorted = [...(msgs as ExternalMessage[])].sort(
+      const sorted = [...(msgs as unknown as ExternalMessage[])].sort(
         (a, b) => new Date(a.message_timestamp).getTime() - new Date(b.message_timestamp).getTime()
       );
       const last = sorted[sorted.length - 1];
@@ -501,7 +507,7 @@ export function useAutoCloseConversations() {
         .from('auto_close_config')
         .select('*')
         .limit(1)
-        .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
+        .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
 
       if (error) throw error;
       return data;
@@ -574,7 +580,7 @@ export function useAutomationsManagementCRUD() {
           created_by: automation.created_by,
         } as TablesInsert<'automations'>)
         .select()
-        .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
+        .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
       if (error) throw error;
       return data;
     },
