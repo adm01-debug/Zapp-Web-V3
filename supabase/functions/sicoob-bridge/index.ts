@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { handleCors, errorResponse, jsonResponse, requireEnv, Logger } from "../_shared/validation.ts";
+import { timingSafeStringEqual } from "../_shared/auth.ts";
 import { SicoobBridgeNewMessageSchema, SicoobBridgeMarkReadSchema, parseBody } from "../_shared/schemas.ts";
 
 Deno.serve(async (req) => {
@@ -10,14 +11,15 @@ Deno.serve(async (req) => {
 
   try {
     const bridgeSecret = requireEnv('SICOOB_BRIDGE_SECRET');
-    const authHeader = req.headers.get('Authorization');
+    const authHeader = req.headers.get('Authorization') ?? '';
 
-    if (authHeader !== `Bearer ${bridgeSecret}`) {
+    if (!timingSafeStringEqual(authHeader, `Bearer ${bridgeSecret}`)) {
       return errorResponse('Unauthorized', 401, req);
     }
 
     const supabase = createClient(requireEnv('SUPABASE_URL'), requireEnv('SUPABASE_SERVICE_ROLE_KEY'), { db: { schema: "zapp" } });
-    const body = await req.json();
+    const body = await req.json().catch(() => null);
+    if (!body) return errorResponse('Invalid JSON body', 400, req);
     const { action } = body;
 
     if (action === 'new_message') {
