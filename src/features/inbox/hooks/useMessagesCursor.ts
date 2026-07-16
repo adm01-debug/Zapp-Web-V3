@@ -268,7 +268,10 @@ export function useMessagesCursor({
           filter: `remote_jid=eq.${remoteJid}`,
         },
         (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => {
-          const id = (payload.old && typeof payload.old === 'object' ? (payload.old as Record<string, unknown>).id : undefined);
+          const id =
+            payload.old && typeof payload.old === 'object'
+              ? (payload.old as Record<string, unknown>).id
+              : undefined;
           if (!id) return;
           setPages((prev) => prev.map((page) => page.filter((x) => x.id !== id)));
         }
@@ -277,7 +280,7 @@ export function useMessagesCursor({
 
     return () => {
       channel.unsubscribe();
-      supabase.removeChannel(channel);
+      externalSupabase.removeChannel(channel);
     };
   }, [enabled, remoteJid]);
 

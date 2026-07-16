@@ -6,6 +6,8 @@ import { dbFrom } from '@/integrations/datasource/db';
 import { getLogger } from '@/lib/logger';
 import { queryKeys } from '@/services/api/queryKeys';
 
+type ApiError = Error & { code?: string; details?: string; status?: number };
+
 const mutationLog = getLogger('useReactionMutations');
 
 interface ReactionMutationOptions {
@@ -93,7 +95,7 @@ export function useReactionMutations(
           { onConflict: 'message_id,user_id,emoji' }
         )
         .select()
-        .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
+        .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
 
       if (error) throw error;
 

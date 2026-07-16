@@ -116,12 +116,14 @@ export const useInvalidateContacts = () => {
   return {
     invalidateList: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.contacts.lists() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.contacts.searchRoot() });
     },
     invalidateDetail: (id: string) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.contacts.detail(id) });
     },
     invalidateAll: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.contacts.all() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.contacts.searchRoot() });
     },
     invalidateSearch: (query: string) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.contacts.search(query) });

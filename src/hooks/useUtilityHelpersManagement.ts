@@ -12,9 +12,10 @@ interface UseDebounceOptions {
 
 export function useDebounceManagement<T extends (...args: any[]) => any>(
   callback: T,
-  optionsOrDelay: UseDebounceOptions | number = {},
+  optionsOrDelay: UseDebounceOptions | number = {}
 ): T {
-  const options: UseDebounceOptions = typeof optionsOrDelay === 'number' ? { delay: optionsOrDelay } : optionsOrDelay;
+  const options: UseDebounceOptions =
+    typeof optionsOrDelay === 'number' ? { delay: optionsOrDelay } : optionsOrDelay;
   const { delay = 300, leading = false } = options;
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const callbackRef = useRef(callback);
@@ -50,7 +51,7 @@ export function useDebounceManagement<T extends (...args: any[]) => any>(
         hasTrailingRef.current = false;
       }, delay);
     },
-    [delay, leading],
+    [delay, leading]
   ) as T;
 
   return debouncedFn;
@@ -90,7 +91,7 @@ export interface UseInViewportOptions {
 
 export function useInViewportManagement(
   ref: RefObject<Element | null>,
-  options: UseInViewportOptions = {},
+  options: UseInViewportOptions = {}
 ): boolean {
   const { rootMargin = '200px', threshold = 0, keepVisibleMs = 1500, disabled = false } = options;
 
@@ -126,7 +127,7 @@ export function useInViewportManagement(
           }
         }
       },
-      { rootMargin, threshold },
+      { rootMargin, threshold }
     );
 
     observer.observe(el);
@@ -144,12 +145,12 @@ const VIEW_QUERY_KEYS = {
   inbox: [queryKeys.contacts.all(), queryKeys.messages.all()],
   contacts: [queryKeys.contacts.all()],
   dashboard: [queryKeys.analytics.dashboardStats(), queryKeys.contacts.all()],
-  campaigns: [['campaigns']],
+  campaigns: [queryKeys.campaigns.all()],
   'knowledge-base': [queryKeys.knowledgeBase.articles()],
-  automations: [['automations']],
+  automations: [queryKeys.automations.all()],
   agents: [queryKeys.users.teamMembers()],
   queues: [queryKeys.queues.all()],
-  tags: [['tags']],
+  tags: [queryKeys.tags.all()],
 } as const;
 
 export function usePrefetchOnHoverManagement() {
@@ -157,17 +158,17 @@ export function usePrefetchOnHoverManagement() {
 
   const prefetch = useCallback(
     (viewId: string) => {
-      const keys = VIEW_QUERY_KEYS[viewId];
+      const keys = VIEW_QUERY_KEYS[viewId as keyof typeof VIEW_QUERY_KEYS];
       if (!keys) return;
 
-      keys.forEach((key) => {
+      keys.forEach((key: readonly unknown[]) => {
         queryClient.prefetchQuery({
-          queryKey: key,
+          queryKey: key as unknown[],
           staleTime: 1000 * 60 * 5,
         });
       });
     },
-    [queryClient],
+    [queryClient]
   );
 
   return { prefetch };
@@ -176,9 +177,12 @@ export function usePrefetchOnHoverManagement() {
 // ===== Mounted Ref Management =====
 export function useMountedRefManagement() {
   const mountedRef = useRef(true);
-  useEffect(() => () => {
-    mountedRef.current = false;
-  }, []);
+  useEffect(
+    () => () => {
+      mountedRef.current = false;
+    },
+    []
+  );
   return mountedRef;
 }
 
@@ -219,9 +223,15 @@ export function useUndoableActionManagement() {
     };
   }, []);
 
-  const execute = useCallback(async <T,>(options: UndoableActionOptions<T>) => {
-    const { undoDuration = 5000, successMessage, undoMessage = 'Ação desfeita', action, undoAction, onCommit } =
-      options;
+  const execute = useCallback(async <T>(options: UndoableActionOptions<T>) => {
+    const {
+      undoDuration = 5000,
+      successMessage,
+      undoMessage = 'Ação desfeita',
+      action,
+      undoAction,
+      onCommit,
+    } = options;
 
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
     if (intervalRef.current) clearInterval(intervalRef.current);
@@ -329,7 +339,11 @@ interface UsePullToRefreshOptions {
   disabled?: boolean;
 }
 
-export function usePullToRefreshManagement({ onRefresh, threshold = 80, disabled = false }: UsePullToRefreshOptions) {
+export function usePullToRefreshManagement({
+  onRefresh,
+  threshold = 80,
+  disabled = false,
+}: UsePullToRefreshOptions) {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [pullDistance, setPullDistance] = useState(0);
   const startY = useRef(0);
@@ -345,7 +359,7 @@ export function usePullToRefreshManagement({ onRefresh, threshold = 80, disabled
         pulling.current = true;
       }
     },
-    [disabled, isRefreshing],
+    [disabled, isRefreshing]
   );
 
   const handleTouchMove = useCallback(
@@ -356,7 +370,7 @@ export function usePullToRefreshManagement({ onRefresh, threshold = 80, disabled
         setPullDistance(Math.min(delta * 0.5, threshold * 1.5));
       }
     },
-    [disabled, isRefreshing, threshold],
+    [disabled, isRefreshing, threshold]
   );
 
   const handleTouchEnd = useCallback(async () => {

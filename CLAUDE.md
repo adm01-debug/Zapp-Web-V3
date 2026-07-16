@@ -59,7 +59,7 @@
 ### Tabelas Principais do Schema `zapp`
 
 | Tabela | Função |
-|--------|--------|
+|--------|---------|
 | `profiles` | Usuários da plataforma (17 registros) |
 | `workspaces` | Workspaces/tenants |
 | `workspace_members` | Membros por workspace (15) |
@@ -119,9 +119,10 @@
 
 | ID | Arquivo | Problema | Impacto |
 |----|---------|----------|---------|
-| BUG-1 | `src/features/admin/hooks/useAdminManagement.ts:588` | `safeFrom('queue_skills')` — tabela não existe; correto é `queue_skill_requirements` | Erro 404 em runtime |
-| ~~BUG-2~~ | ~~`src/features/inbox/components/chat/useAudioVoiceChange.ts:13`~~ | ~~`supabase.storage.from('chat-media')`~~ | **RESOLVIDO** — código já usa `audio-messages` |
-| BUG-3 | `src/features/inbox/hooks/useMessagesCursor.ts:217,280` | Canal criado via `externalSupabase.channel()` mas removido via `supabase.removeChannel(channel)` — clientes diferentes; channel leak provável | Subscription nunca removida corretamente |
+| ~~BUG-1~~ | `src/features/admin/hooks/useAdminManagement.ts:588` | CORRIGIDO: `safeFrom('queue_skills')` → `safeFrom('queue_skill_requirements')` | Resolvido |
+| ~~BUG-2~~ | ~~`src/features/inbox/components/chat/useAudioVoiceChange.ts:13`~~ | CORRIGIDO: bucket `chat-media` → `audio-messages` | Resolvido |
+| ~~BUG-3~~ | `zapp.fn_messages_view_insert_handler` / `messageSender.ts` | CORRIGIDO: trigger INSTEAD OF INSERT não atribuía `NEW.id` antes de `RETURN NEW`; `data.id` retornava NULL; CORRIGIDO no trigger (DB) e via `crypto.randomUUID()` no cliente | Resolvido |
+| BUG-4 | `src/features/inbox/hooks/useMessagesCursor.ts:217,280` | Canal criado via `externalSupabase.channel()` mas removido via `supabase.removeChannel(channel)` — clientes diferentes; channel leak provável | Subscription nunca removida corretamente |
 | GAP-1 | `src/hooks/useCampaigns.ts:101` | `rpc('add_contacts_to_campaign')` — função não existe no DB | Runtime error |
 | GAP-2 | `src/hooks/useIntegrationManagement.ts:54,69` | `rpc('initiate_gmail_oauth')`, `rpc('complete_gmail_oauth')` — não existem | OAuth Gmail quebrado |
 | GAP-3 | `src/hooks/useIntegrationManagement.ts:156` | `rpc('sync_to_crm')` — não existe | Sync CRM quebrado |

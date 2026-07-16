@@ -168,7 +168,7 @@ export function ConversationMemoryPanel({ contactId, profileId }: ConversationMe
             </Badge>
           </div>
           <div className="space-y-1">
-            {memory[key].map((item: string) => (
+            {memory[key].map((item: string, idx: number) => (
               <motion.div
                 key={item}
                 initial={{ opacity: 0 }}
@@ -176,7 +176,8 @@ export function ConversationMemoryPanel({ contactId, profileId }: ConversationMe
                 className="group flex items-center gap-1.5 rounded bg-muted/20 px-2 py-1 text-xs"
               >
                 <span className="flex-1">{item}</span>
-                <button type="button"
+                <button
+                  type="button"
                   onClick={() => removeItem(key, idx)}
                   className="opacity-0 group-hover:opacity-100"
                 >
@@ -194,7 +195,13 @@ export function ConversationMemoryPanel({ contactId, profileId }: ConversationMe
               className="flex-1 rounded border border-border/30 bg-transparent px-2 py-1 text-xs focus:border-primary/50 focus:outline-none"
               onKeyDown={(e) => e.key === 'Enter' && addItem(key)}
             />
-            <Button aria-label="Adicionar item" variant="ghost" size="icon" className="h-6 w-6" onClick={() => addItem(key)}>
+            <Button
+              aria-label="Adicionar item"
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6"
+              onClick={() => addItem(key)}
+            >
               <Plus className="h-3 w-3" />
             </Button>
           </div>
