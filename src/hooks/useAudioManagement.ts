@@ -745,7 +745,7 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
         streamRef.current = stream;
         chunksRef.current = [];
 
-        const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+        const audioContext = new (window.AudioContext || (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext)();
 
         if (audioContext.state === 'suspended') {
           await audioContext.resume();
