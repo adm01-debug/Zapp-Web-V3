@@ -9,9 +9,9 @@ O ZAPP Web usa **um único Supabase Self-Hosted** (`supabase.atomicabr.com.br`) 
 
 | Schema | Conteúdo | Quem acessa | Exemplos |
 |--------|----------|-------------|----------|
-| **`zapp`** | Todas as tabelas do app (**315**), views, RPCs | Frontend (client.ts), Edge Functions, n8n | `profiles`, `queues`, `contatos`, `whatsapp_connections`, `empresas`, `webhook_audit_log` |
-| **`evo`** | Tabelas-fonte da Evolution API (**193 tabelas**) | Realtime subscriptions, Edge Functions que fazem `.schema('evo')` | `evolution_messages_wpp2`, `evolution_contacts`, `evolution_webhook_events_v2`, `evolution_conversations_wpp2` |
-| **`public`** | **Zero tabelas** — apenas views materializadas e proxies | Não usar diretamente | `mv_conversations_summary` |
+| **`zapp`** | Todas as tabelas do app (**312** base tables + **404** views), RPCs | Frontend (client.ts), Edge Functions, n8n | `profiles`, `queues`, `contatos`, `whatsapp_connections`, `empresas`, `webhook_audit_log` |
+| **`evo`** | Tabelas-fonte da Evolution API (**193 tabelas**); tabelas raiz particionadas (`evolution_messages`, `evolution_conversations`) com **25 partições** cada | Realtime subscriptions, Edge Functions que fazem `.schema('evo')` | `evolution_messages` (raiz), `evolution_contacts`, `evolution_webhook_events_v2` |
+| **`public`** | **1 tabela interna Supabase** (`_wal_slot_guard_events`) + **532 views** proxy para zapp/evo/email_app | Não usar diretamente | views proxy |
 | **`auth`** | Auth do Supabase (GoTrue) | `supabase.auth.*` | `auth.users` |
 
 ### Regras de Ouro
@@ -51,21 +51,24 @@ supabase/functions/_shared/
 └── validation.ts     # requireAuth() com schema: 'zapp'
 ```
 
-## Contagem de Tabelas por Schema (auditado 2026-07-15 via MCP)
+## Contagem de Tabelas por Schema (auditado 2026-07-16 via MCP — valores definitivos)
 
-| Schema | Tabelas reais | RLS ativo |
-|--------|--------------|-----------|
-| `zapp` | **315** | 100% |
-| `evo` | **193** | 100% |
-| `auth` | 21 | — |
-| `bpm` | 41 | — |
-| `email_app` | 33 | — |
-| `ai` | 31 | — |
-| `archive` | 25 | — |
-| `financeiro` | 16 | — |
-| `vendas` | 13 | — |
-| `ops` | 20 | — |
-| `public` | **0** | — |
+| Schema | Base Tables | Views | RLS ativo |
+|--------|-------------|-------|-----------|
+| `zapp` | **312** | **404** | 100% |
+| `evo` | **193** | — | 100% |
+| `auth` | 21 | — | — |
+| `bpm` | 41 | — | — |
+| `email_app` | 33 | — | — |
+| `ai` | 31 | — | — |
+| `archive` | 25 | — | — |
+| `financeiro` | 16 | — | — |
+| `vendas` | 13 | — | — |
+| `ops` | 20 | — | — |
+| `public` | 1¹ | 532² | — |
+
+> ¹ `_wal_slot_guard_events` — tabela interna do Supabase, não é dado de aplicação.
+> ² Views em `public` são proxies que redirecionam para tabelas em `zapp`, `evo`, `email_app`, etc.
 
 ### Tabelas `zapp` com mais dados (>1k linhas)
 | Tabela | Linhas estimadas | Tamanho |
@@ -102,6 +105,7 @@ supabase/functions/_shared/
 | 2026-07-15 | `_shared/db-client.ts` factory criada |
 | 2026-07-15 | 17 syntax issues (}} malformado) corrigidos |
 | 2026-07-15 | **Auditoria MCP**: contagem corrigida 294→315 (zapp), 193 confirmados (evo) |
+| 2026-07-16 | **Auditoria exaustiva**: contagem definitiva 315→312 (zapp), public = 1+532 (não zero), 25 partições documentadas, 12 RPCs ausentes identificados |
 
 ---
 
