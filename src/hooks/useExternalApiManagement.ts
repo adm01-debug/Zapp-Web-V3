@@ -23,6 +23,7 @@ import { RPC } from '@/integrations/datasource/rpcCatalog';
 import { Contact360Data } from '@/types/contact360';
 import { log } from '@/lib/logger';
 import { tanstackRetry } from '@/lib/errors/queryErrors';
+import { queryKeys } from '@/services/api/queryKeys';
 
 function cleanPhone(phone: string): string {
   return phone.replace(/[^0-9]/g, '');
@@ -44,7 +45,7 @@ export function useExternalContact360(phone: string | undefined) {
   const cleanedPhone = phone ? cleanPhone(phone) : '';
 
   return useQuery<Contact360Data | null>({
-    queryKey: ['external-contact-360', cleanedPhone],
+    queryKey: queryKeys.external.contact360(cleanedPhone),
     queryFn: async () => {
       if (!cleanedPhone || cleanedPhone.length < 8) return null;
 
@@ -71,10 +72,10 @@ export function useExternalContact360Batch(phones: string[]) {
   // Deduplicate and clean phones
   const cleanedPhones = [...new Set(phones.map(cleanPhone).filter(p => p.length >= 8))];
   // Create a stable key from sorted phones
-  const queryKey = cleanedPhones.sort().join(',');
+  const batchPhoneKey = cleanedPhones.sort().join(',');
 
   const query = useQuery<Map<string, CRMBatchResult>>({
-    queryKey: ['external-contact-360-batch', queryKey],
+    queryKey: queryKeys.external.contact360Batch(batchPhoneKey),
     queryFn: async () => {
       if (cleanedPhones.length === 0) return new Map();
 
@@ -131,7 +132,7 @@ export function useExternalContact360Batch(phones: string[]) {
 /** Fetches unique job titles from external CRM database with deduplication. */
 export function useExternalCargos() {
   return useQuery<string[]>({
-    queryKey: ['external-cargos'],
+    queryKey: queryKeys.external.cargos(),
     queryFn: async () => {
       const allCargos: string[] = [];
 
@@ -189,7 +190,7 @@ export function useExternalCargos() {
 /** Fetches unique company names from external CRM database with pagination. */
 export function useExternalEmpresas() {
   return useQuery<string[]>({
-    queryKey: ['external-empresas'],
+    queryKey: queryKeys.external.empresas(),
     queryFn: async () => {
       const allNames: string[] = [];
       const pageSize = 200;
@@ -281,13 +282,7 @@ const logMessages = getLogger('useExternalMessages');
 /** Fetches Evolution API conversations with contact enrichment from external database. */
 export function useExternalConversations(enabled = true) {
   const query = useQuery({
-    queryKey: [
-      'external-evolution',
-      'conversations',
-      SIDEBAR_DAYS_BACK,
-      SIDEBAR_LIMIT,
-      DEFAULT_INSTANCE,
-    ],
+    queryKey: queryKeys.evolutionConversations.sidebar(SIDEBAR_DAYS_BACK, SIDEBAR_LIMIT, DEFAULT_INSTANCE),
     queryFn: async () => {
       if (USE_MOCKS) {
         const { MOCK_CONVERSATIONS } =
@@ -752,7 +747,7 @@ export function useExternalCatalog() {
 
   // Products query - auto-fetches when filters change and ready=true
   const productsQuery = useQuery({
-    queryKey: ['external-catalog', 'products', filters],
+    queryKey: queryKeys.external.catalog.products(filters),
     queryFn: async () => {
       logCatalog.debug('Fetching products with filters:', JSON.stringify(filters));
       const result = await invokeAction<unknown>('list_products', filters as Record<string, unknown>);
@@ -774,7 +769,7 @@ export function useExternalCatalog() {
 
   // Categories
   const categoriesQuery = useQuery({
-    queryKey: ['external-catalog', 'categories'],
+    queryKey: queryKeys.external.catalog.categories(),
     queryFn: async () => {
       const result = await invokeAction<unknown>('list_categories');
       return readArray<ExternalCategory>(result, 'data');
@@ -786,7 +781,7 @@ export function useExternalCatalog() {
 
   // Suppliers
   const suppliersQuery = useQuery({
-    queryKey: ['external-catalog', 'suppliers'],
+    queryKey: queryKeys.external.catalog.suppliers(),
     queryFn: async () => {
       const result = await invokeAction<unknown>('list_suppliers');
       return readArray<ExternalSupplier>(result, 'data');
@@ -805,7 +800,7 @@ export function useExternalCatalog() {
   const fetchProduct = useCallback(async (productId: string): Promise<ExternalProduct | null> => {
     try {
       const result = await queryClient.fetchQuery({
-        queryKey: ['external-catalog', 'product', productId],
+        queryKey: queryKeys.external.catalog.product(productId),
         queryFn: async () => {
           const res = await invokeAction<unknown>('get_product', { product_id: productId });
           const product = (res && typeof res === 'object' && 'data' in res
@@ -937,7 +932,7 @@ export function useExternalSelect<T = Record<string, unknown>>(options: UseExter
   } = options;
 
   return useQuery({
-    queryKey: ['external-db', table, { select, filters, order, limit, offset, countMode }],
+    queryKey: queryKeys.external.db(table, { select, filters, order, limit, offset, countMode }),
     queryFn: () =>
       queryExternal<T>({
         table,
@@ -965,7 +960,7 @@ interface UseExternalRPCOptions {
 /** Calls external database RPC functions with access validation and metrics. */
 export function useExternalRPC<T = unknown>(options: UseExternalRPCOptions) {
   return useQuery({
-    queryKey: ['external-db', 'rpc', options.rpc, options.params],
+    queryKey: queryKeys.external.rpc(options.rpc, options.params),
     queryFn: async () => {
       validateRpcAccess(options.rpc, 'external');
       const start = performance.now();
@@ -1097,7 +1092,7 @@ export function useExternalMutation() {
       }
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['external-db', variables.table] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.external.db(variables.table) });
     },
   });
 }
