@@ -1,4 +1,3 @@
-// @ts-nocheck
 /* eslint-disable react-refresh/only-export-components */
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';

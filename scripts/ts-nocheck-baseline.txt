@@ -13,11 +13,6 @@ src/features/inbox/components/ChatPanel.tsx
 src/features/inbox/components/chat/hooks/__tests__/useInitialHighlight.test.ts
 src/features/inbox/components/chat/useChatPanel.ts
 src/features/inbox/components/chat/useChatPanelHandlers.ts
-src/features/inbox/components/collaboration/InternalNotesPanel.tsx
-src/features/inbox/components/collaboration/MentionInput.tsx
-src/features/inbox/components/collaboration/ViewersIndicator.tsx
-src/features/inbox/components/contact-details/AssignmentSection.tsx
-src/features/inbox/components/contact-details/ContactIntelligencePanel.tsx
 src/features/inbox/components/contact-details/ContactTagsContent.tsx
 src/features/inbox/components/contact-details/SLATimelineSection.tsx
 src/features/inbox/components/conversation-list/ConversationItem.test.tsx
