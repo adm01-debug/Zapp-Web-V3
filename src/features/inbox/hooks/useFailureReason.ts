@@ -13,10 +13,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
-// evolution_retry_metrics is exposed via zapp.evolution_retry_metrics view
-// (migration 20260716_zapp_evolution_retry_metrics_view.sql)
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const db = supabase as any;
 
 export interface MessageFailureReason {
   /** Último motivo registrado (ex.: 'http_503', 'timeout'). */
@@ -45,7 +41,7 @@ export function useFailureReason(messageId: string | undefined, enabled: boolean
     staleTime: STALE_MS,
     queryFn: async () => {
       if (!messageId) return null;
-      const { data, error } = await db
+      const { data, error } = await supabase
         .from('evolution_retry_metrics')
         .select('attempt_count, final_status, final_http_status, retry_reasons')
         .eq('idempotency_key', `msg:${messageId}`)
