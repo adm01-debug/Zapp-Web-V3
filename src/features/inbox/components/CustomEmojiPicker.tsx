@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { SmilePlus, Search, Plus, Star, Trash2, Loader2, X, Tag, Check, ChevronDown, Smile, AlertCircle } from 'lucide-react';
 import { CATEGORY_LABELS, ALL_CATEGORIES, NATIVE_EMOJI_CATEGORIES } from './emojiConstants';
-import { useCustomEmojis, type PendingEmojiUpload } from '@/features/emojis/hooks/useCustomEmojis';
+import { useCustomEmojis, type PendingEmojiUpload } from '@/features/emojis';
 
 interface CustomEmojiPickerProps {
   onSendEmoji: (emojiUrl: string) => void;
