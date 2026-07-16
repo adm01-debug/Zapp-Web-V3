@@ -21,7 +21,7 @@
 | **Schema Evolution API** | `evo` |
 | **Schema public** | Zero tabelas (apenas views/proxies) |
 
-### Schemas e Tabelas (auditado 2026-07-15)
+### Schemas e Tabelas (auditado 2026-07-16 — regras verificadas contra DB de produção)
 
 | Schema | Tabelas | RLS | Descrição |
 |--------|---------|-----|-----------|
@@ -41,13 +41,15 @@
 
 1. **SEMPRE usar `schema: 'zapp'`** — o cliente Supabase já está configurado com isso em `src/integrations/supabase/client.ts`. Não trocar para `public`.
 
-2. **Para tabelas `evo.*`**: usar `.schema('evo').from('evolution_contacts')` ou criar cliente separado com `db: { schema: 'evo' }`.
+2. **Para dados Evolution (mensagens/contatos/conversas)**: usar o cliente padrão (`supabase.from('evolution_messages')` etc.) porque as tabelas `evolution_*` existem como **views auto-updatable** no schema `zapp` com `security_invoker=on`. **NÃO usar `.schema('evo').from(...)` para objetos que existem como views em `zapp`** — isso causa `PGRST205` se o objeto não existir no schema `evo`. Use `.schema('evo')` apenas para tabelas que existem SOMENTE no schema `evo` e não têm view correspondente em `zapp`.
 
 3. **PostgREST**: sem o header `Accept-Profile: zapp`, queries falham com `PGRST205`.
 
-4. **Realtime**: usar o schema da tabela base, nunca de views.
-   - Mensagens do WhatsApp → `schema: 'evo'`, tabela `evolution_messages_wpp2`
+4. **Realtime — IMPORTANTE**: a publicação `supabase_realtime` tem `publish_via_partition_root = true`. Isso significa que eventos CDC são publicados pela **tabela raiz particionada**, nunca pela partição. Use a tabela raiz nos listeners:
+   - Mensagens do WhatsApp → `schema: 'evo'`, tabela **`evolution_messages`** (raiz), NÃO `evolution_messages_wpp2`
+   - Conversas → `schema: 'evo'`, tabela **`evolution_conversations`** (raiz), NÃO `evolution_conversations_wpp2`
    - Perfis/notificações → `schema: 'zapp'`
+   - **Subscriptions na partição ficam silenciosas** (zero eventos) com `publish_via_partition_root=true`.
 
 5. **Tipos TypeScript**: importar SEMPRE de `@/integrations/supabase/schema` (barrel canônico), nunca de `types.ts` diretamente.
 
@@ -81,8 +83,11 @@
 | `evolution_conversations_wpp2` | Conversas (12.525) |
 | `evolution_whatsapp_status` | Status WA (14.789, 10 MB) |
 
-> As tabelas `evolution_messages` e `evolution_conversations` são **views/tabelas-pai particionadas**.
-> Os dados reais ficam nas partições por instância: `evolution_messages_wpp2`, `evolution_messages_comercial_01`, etc.
+> `evolution_messages` e `evolution_conversations` são **tabelas raiz particionadas** (não views).
+> Os dados ficam nas partições por instância (`evolution_messages_wpp2`, `evolution_messages_comercial_01`, etc.).
+> Para queries SELECT, tanto a raiz quanto as partições funcionam. Para **Realtime**, sempre use a raiz
+> (regra 4 acima). No schema `zapp`, `evolution_messages` existe como **view auto-updatable** (security_invoker=on)
+> que aponta para a tabela raiz no schema `evo`.
 
 ---
 
@@ -148,7 +153,7 @@ src/
 └── lib/                     # Utilitários
 
 supabase/
-├── functions/               # 110+ Edge Functions (Deno)
+├── functions/               # 123 Edge Functions (Deno)
 │   └── _shared/
 │       └── db-client.ts     # createZappAdminClient()
 └── migrations/              # 800+ migrações SQL

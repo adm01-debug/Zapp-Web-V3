@@ -25,7 +25,7 @@ BEGIN
       v_supabase_url := current_setting('app.settings.supabase_url', true);
       
       IF v_supabase_url IS NULL OR v_supabase_url = '' THEN
-        v_supabase_url := 'https://allrjhkpuscmgbsnmjlv.supabase.co';
+        v_supabase_url := 'https://supabase.atomicabr.com.br';
       END IF;
 
       -- Call the sicoob-bridge-reply edge function via pg_net

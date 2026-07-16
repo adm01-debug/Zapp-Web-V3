@@ -25,9 +25,16 @@ interface CacheEntry {
 const cache = new Map<string, CacheEntry>();
 const TTL_MS = 60_000;
 
-// Cast único para contornar drift de tipos entre types.ts e o schema `zapp`.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const db = supabase as unknown as any;
+// api_type was added to whatsapp_connections after the last type generation.
+// Cast result (not the whole client) to our local interface once the types are regenerated,
+// this cast will dissolve automatically.
+function queryConnections(field: 'name' | 'instance_id', value: string) {
+  return supabase
+    .from('whatsapp_connections')
+    .select('id, api_type, status')
+    .eq(field, value)
+    .maybeSingle() as Promise<{ data: WhatsappConnectionRow | null; error: unknown }>;
+}
 
 export async function resolveSendFunction(
   instanceName: string | undefined | null,
@@ -39,19 +46,11 @@ export async function resolveSendFunction(
 
   try {
     // Primeira tentativa: buscar por name
-    let { data, error } = await db
-      .from('whatsapp_connections')
-      .select('id, api_type, status')
-      .eq('name', instanceName)
-      .maybeSingle();
+    let { data, error } = await queryConnections('name', instanceName);
 
     // Fallback: buscar por instance_id
     if (!data && !error) {
-      ({ data, error } = await db
-        .from('whatsapp_connections')
-        .select('id, api_type, status')
-        .eq('instance_id', instanceName)
-        .maybeSingle());
+      ({ data, error } = await queryConnections('instance_id', instanceName));
     }
 
     const conn = unwrapRow<WhatsappConnectionRow>(data);

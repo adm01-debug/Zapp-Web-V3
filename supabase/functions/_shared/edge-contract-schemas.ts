@@ -199,6 +199,11 @@ export const ContractLifecycles: Record<string, ContractLifecycle> = {
 const specificEdgeFunctionSchemas: Partial<
   Record<(typeof EDGE_FUNCTION_NAMES)[number], ContractVersionMap>
 > = {
+  'ai-router': {
+    v1: z.object({ action: z.string().min(1) }).passthrough(),
+  },
+  'health': { v1: NoBodySchema },
+  'metrics': { v1: NoBodySchema },
   'ai-conversation-summary': {
     v1: z
       .object({

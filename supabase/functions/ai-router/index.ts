@@ -915,9 +915,6 @@ Deno.serve(async (req) => {
 
     if (!allowed) {
       log.warn("Rate limit exceeded", { action, userId, ip });
-      // IMPROVEMENT 5: Add Jittered Retry-After header to 429 responses to prevent thundering herd
-      const corsHeaders = req ? { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type' } : {};
-
       // Apply jitter: 60s base ± 10s (prevents synchronized retries)
       const baseRetryAfter = 60;
       const jitter = Math.floor(Math.random() * 20) - 10; // ±10 seconds
@@ -928,9 +925,9 @@ Deno.serve(async (req) => {
         {
           status: 429,
           headers: {
-            ...corsHeaders,
+            ...getCorsHeaders(req),
             'Content-Type': 'application/json',
-            'Retry-After': String(retryAfter), // Standard HTTP header with jitter
+            'Retry-After': String(retryAfter),
           }
         }
       );
@@ -940,13 +937,12 @@ Deno.serve(async (req) => {
     const { allowed: concurrencyAllowed, currentCount, concurrencyKey } = checkAndIncrementConcurrency(userId, action);
     if (!concurrencyAllowed) {
       log.warn("Per-user concurrency limit exceeded", { action, userId, currentCount, limit: PER_USER_CONCURRENT_LIMIT });
-      const corsHeaders = req ? { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type' } : {};
       return new Response(
         JSON.stringify({ error: `Maximum ${PER_USER_CONCURRENT_LIMIT} concurrent requests per action. Please wait.` }),
         {
           status: 429,
           headers: {
-            ...corsHeaders,
+            ...getCorsHeaders(req),
             'Content-Type': 'application/json',
             'Retry-After': '5', // Retry sooner (5s) for concurrency limit vs rate limit
           }

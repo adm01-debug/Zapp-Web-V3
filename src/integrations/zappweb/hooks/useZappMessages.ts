@@ -64,8 +64,10 @@ export function useZappMessages({ remoteJid, instance = ZAPPWEB_INSTANCE, limit 
         'postgres_changes',
         {
           event: 'INSERT',
-          schema: 'evo', // FATOR X v6.2: tabela-fonte
-          table: 'evolution_messages_wpp2',
+          schema: 'evo',
+          // publish_via_partition_root=true: events are published from the root
+          // table, never from partitions. evolution_messages_wpp2 would be silent.
+          table: 'evolution_messages',
           filter: `instance_name=eq.${instance}`,
         },
         (payload) => {
@@ -83,8 +85,9 @@ export function useZappMessages({ remoteJid, instance = ZAPPWEB_INSTANCE, limit 
         'postgres_changes',
         {
           event: 'UPDATE',
-          schema: 'evo', // FATOR X v6.2: tabela-fonte
-          table: 'evolution_messages_wpp2',
+          schema: 'evo',
+          // publish_via_partition_root=true: use root table for realtime
+          table: 'evolution_messages',
           filter: `instance_name=eq.${instance}`,
         },
         (payload) => {

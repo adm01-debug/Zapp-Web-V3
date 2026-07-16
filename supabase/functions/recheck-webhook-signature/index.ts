@@ -113,6 +113,7 @@ Deno.serve(async (req) => {
       });
     }
     const ext = createClient(extUrl, extKey, {
+      db: { schema: 'evo' },
       auth: { persistSession: false, autoRefreshToken: false },
     });
 

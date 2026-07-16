@@ -10,7 +10,9 @@ test.describe('Conversation & Routing Flows', () => {
     if (page.url().includes('auth')) {
       console.log('Redirected to auth, attempting to mock session...');
       await page.evaluate(() => {
-        localStorage.setItem('sb-uqysyzndkfiwfztbqvsl-auth-token', JSON.stringify({
+        const keys = Object.keys(localStorage).filter(k => k.startsWith('sb-') && k.includes('-auth-token'));
+        const storageKey = keys[0] || 'sb-supabase-auth-token';
+        localStorage.setItem(storageKey, JSON.stringify({
           access_token: 'fake-token',
           refresh_token: 'fake-refresh',
           user: { id: 'test-user-id', email: 'test@example.com' }
