@@ -3,7 +3,6 @@ src/adapters/evolutionAdapter.ts
 src/components/__tests__/ExportDropdownPermission.test.tsx
 src/components/agents/ConfigurePermissionsDialog.tsx
 src/components/calls/VoIPPanel.tsx
-src/components/compliance/useLGPDAuditLogs.ts
 src/components/connections/ConnectionAuditDialog.tsx
 src/components/connections/InstanceSettingsDialog.tsx
 src/components/connections/NumberReputationMonitor.tsx

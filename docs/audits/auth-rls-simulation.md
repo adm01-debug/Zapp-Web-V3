@@ -1,4 +1,4 @@
-# Simulação Auth/RLS — 2026-07-15
+# Simulação Auth/RLS — 2026-07-16
 
 - Cenários: 70
 - Aprovados: 70
