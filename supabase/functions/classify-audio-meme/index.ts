@@ -1,4 +1,4 @@
-import { handleCors, errorResponse, jsonResponse, requireEnv, Logger } from "../_shared/validation.ts";
+import { handleCors, errorResponse, jsonResponse, requireEnv, Logger, checkRateLimit } from "../_shared/validation.ts";
 import { ClassifyAudioMemeSchema, parseBody } from "../_shared/schemas.ts";
 import { requireUser, requireServiceRoleOrCron } from "../_shared/auth.ts";
 
@@ -21,6 +21,8 @@ Deno.serve(async (req) => {
     if (serviceOk !== null) {
       const authed = await requireUser(req);
       if (authed instanceof Response) return authed;
+      const rl = checkRateLimit(`classify-audio-meme:${authed.user.id}`, 30, 60_000);
+      if (!rl.allowed) return errorResponse('Rate limit exceeded. Tente novamente em instantes.', 429, req);
     }
   } catch (err: unknown) {
     log.error("Auth error", { error: err instanceof Error ? err.message : String(err) });

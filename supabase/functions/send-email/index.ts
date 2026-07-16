@@ -1,7 +1,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { requireUser } from '../_shared/auth.ts';
-import { checkRateLimit, getClientIP } from '../_shared/validation.ts';
+import { checkRateLimit } from '../_shared/validation.ts';
 import { parseOrReject } from '../_shared/contract-kit.ts';
 import { SendEmailV1Schema } from '../_shared/contract-schemas.ts';
 

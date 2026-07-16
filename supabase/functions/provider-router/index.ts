@@ -241,7 +241,7 @@ Deno.serve(async (req) => {
     if (typeof parsed !== "object" || parsed === null) {
       console.warn('[provider-router] invalid json: not an object', { type: typeof parsed });
       return new Response(JSON.stringify({ error: "invalid_json" }), {
-        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 400, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
       });
     }
     body = parsed as RouteRequest;
