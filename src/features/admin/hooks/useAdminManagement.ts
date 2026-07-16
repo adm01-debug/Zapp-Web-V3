@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Admin Management Hook — Unified orchestration of all admin panel integrations.
  * Consolidates 7 domain-specific hooks into one comprehensive module.
@@ -563,10 +562,10 @@ function useAdminQueuesManagement() {
       const [qRes, mRes, sRes, dRes, cRes, chqRes, pRes] = await Promise.all([
         supabase.from('queues').select('*'),
         supabase.from('queue_members').select('*'),
-        supabase.from('queue_skills').select('*'),
+        safeFrom('queue_skills').select('*'),
         supabase.from('departments').select('*'),
-        supabase.from('service_channels').select('id,name,channel_type,default_queue_id'),
-        supabase.from('channel_queues').select('*'),
+        safeFrom('service_channels').select('id,name,channel_type,default_queue_id'),
+        safeFrom('channel_queues').select('*'),
         supabase.from('profiles').select('id,name,avatar_url'),
       ]);
 

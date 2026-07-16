@@ -1,4 +1,3 @@
-// @ts-nocheck
 // Consolidated Search & Discovery Management Module (ETAPA 36)
 // Consolidates: useGlobalSearchShortcut, useKnowledgeBaseSearch, useSearchHistory, useSearchInsights, useChatSearch
 import { useState, useCallback, useRef, useEffect } from 'react';
@@ -122,7 +121,7 @@ export function useSearchHistoryManagement() {
   const addToHistory = useCallback(
     async (query: string, resultType: string) => {
       try {
-        await supabase.from('search_history').insert({ query, result_type: resultType });
+        await (supabase as any).from('search_history').insert({ query, result_type: resultType });
         await fetchHistory();
       } catch (err) {
         if (mountedRef.current) {
@@ -135,7 +134,7 @@ export function useSearchHistoryManagement() {
 
   const clearHistory = useCallback(async () => {
     try {
-      await supabase.from('search_history').delete().gt('id', 0);
+      await (supabase as any).from('search_history').delete().gt('id', 0);
       if (mountedRef.current) setHistory([]);
     } catch (err) {
       if (mountedRef.current) {
@@ -229,7 +228,7 @@ export function useSearchInsightsManagement(timeWindow: number = 7) {
   useEffect(() => {
     const fetchInsights = async () => {
       try {
-        const { data, error: err } = await supabase.rpc('get_search_insights', {
+        const { data, error: err } = await (supabase as any).rpc('get_search_insights', {
           days: timeWindow,
         });
 
@@ -264,7 +263,7 @@ export function useChatSearchManagement(chatId: string, query: string) {
     const search = async () => {
       try {
         setLoading(true);
-        const { data, error: err } = await supabase.rpc('search_chat_messages', {
+        const { data, error: err } = await (supabase as any).rpc('search_chat_messages', {
           chat_id: chatId,
           search_query: query,
         });

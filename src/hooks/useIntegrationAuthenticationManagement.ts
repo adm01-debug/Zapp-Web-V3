@@ -1,4 +1,3 @@
-// @ts-nocheck
 // Consolidated Integration & Authentication Module (ETAPA 47)
 // Consolidates: useEvolutionAutoSync, useEvolutionAutoReconnect, useMFA, useWebAuthn, useReauthentication, useGmailHealth, useGmailLabels
 import { useState, useEffect, useCallback, useRef } from 'react';
@@ -100,7 +99,6 @@ export function useEvolutionAutoSyncManagement(onSynced?: () => void) {
 
         await supabase.from('whatsapp_connections').insert({
           instance_id: instanceName,
-          instance_name: instanceName,
           phone_number: phone,
           name,
           status: i.instance?.status || 'unknown',
