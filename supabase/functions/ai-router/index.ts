@@ -20,6 +20,7 @@
  * 7. conversation_analysis — Assessment across dimensions (40s timeout)
  * 8. suggest_reply — KB-integrated suggestions (30s timeout)
  * 9. transcribe_audio — Audio transcription (60s timeout)
+ * 10. classify_tickets — Batch ticket priority/category classification (30s timeout)
  *
  * Security:
  * - Rate limiting: 10-20 req/min per action + IP-based DOS protection
@@ -46,7 +47,7 @@ import {
   AiAutoTagSchema, AiConversationSummarySchema, AiEnhanceMessageSchema,
   ClassifyEmojiSchema, ClassifyStickerSchema, AiChurnAnalysisSchema,
   AiConversationAnalysisSchema, AiSuggestReplySchema, TranscribeAudioSchema,
-  parseBody
+  AiClassifyTicketsSchema, parseBody
 } from "../_shared/schemas.ts";
 import { callAiWithTracking, extractTokenUsage } from "../_shared/ai-usage.ts";
 import { requireUser } from "../_shared/auth.ts";
@@ -62,6 +63,7 @@ const ACTION_TIMEOUTS: Record<string, number> = {
   conversation_analysis: 40_000,
   suggest_reply: 30_000,
   transcribe_audio: 60_000,
+  classify_tickets: 30_000,
 };
 
 // Rate limits per action (req/min)
@@ -75,6 +77,7 @@ const ACTION_RATE_LIMITS: Record<string, number> = {
   conversation_analysis: 10,
   suggest_reply: 20,
   transcribe_audio: 10,
+  classify_tickets: 20,
 };
 
 /**
@@ -1062,6 +1065,9 @@ Deno.serve(async (req) => {
         break;
       case "transcribe_audio":
         result = await handleTranscribeAudio(ctx, body, supabase, req);
+        break;
+      case "classify_tickets":
+        result = await handleClassifyTickets(ctx, body, supabase, req);
         break;
       default:
         return errorResponse("Action routing failed", 500, req);
@@ -4009,6 +4015,184 @@ async function handleTranscribeAudio(
     const clientErrorMsg = sanitizeErrorMessage(errMsg);
 
     log.error("Unhandled error in transcribe-audio handler", { error: errMsg, duration: durationMs });
+    return { success: false, error: clientErrorMsg, duration_ms: durationMs };
+  }
+}
+
+async function handleClassifyTickets(
+  ctx: RequestContext,
+  body: Record<string, unknown>,
+  supabase: ReturnType<typeof createClient>,
+  req: Request
+): Promise<ActionResult> {
+  const log = new Logger("classify-tickets");
+  const startTime = performance.now();
+
+  try {
+    const parsed = parseBody(AiClassifyTicketsSchema, body);
+    if (!parsed.success) {
+      return { success: false, error: parsed.error, duration_ms: 0, isValidationError: true };
+    }
+
+    const { limit } = parsed.data;
+    const LOVABLE_API_KEY = requireEnv("LOVABLE_API_KEY");
+
+    // Fetch contacts without ai_tag classification (unclassified tickets)
+    const { data: contacts, error: contactsError } = await supabase
+      .from("contacts")
+      .select("id, name, phone, ai_sentiment, ai_tag")
+      .is("ai_tag", null)
+      .order("created_at", { ascending: false })
+      .limit(limit);
+
+    if (contactsError) {
+      throw new Error(`Failed to fetch contacts: ${contactsError.message}`);
+    }
+
+    if (!contacts || contacts.length === 0) {
+      return {
+        success: true,
+        data: { classified: 0, results: [], message: "No unclassified tickets found" },
+        duration_ms: performance.now() - startTime,
+      };
+    }
+
+    log.info("Classifying tickets", { count: contacts.length });
+
+    let metricsStatus = 'success';
+    let errorMessage: string | null = null;
+    const metricsMetadata: Record<string, unknown> = { contactCount: contacts.length };
+
+    try {
+      const contactList = contacts
+        .map((c: any) =>
+          `ID: ${c.id} | Nome: ${sanitizeString(String(c.name || ''), 200)} | Sentimento: ${c.ai_sentiment || 'desconhecido'}`
+        )
+        .join('\n');
+
+      const aiBody = {
+        model: "google/gemini-3-flash-preview",
+        messages: [
+          {
+            role: "system",
+            content: `Você é um classificador de tickets de suporte. Analise os contatos e classifique cada um com uma tag de prioridade e categoria.
+Para cada contato, retorne um JSON array com objetos: {"id": "uuid", "ai_tag": "tag", "priority": "low|medium|high|critical"}.
+Tags disponíveis: billing, technical, complaint, inquiry, urgent, feedback, onboarding, churn_risk, general.
+Prioridade: critical (reclamação urgente/churn), high (problema técnico), medium (dúvida), low (informação).
+Retorne APENAS o JSON array, sem markdown.`,
+          },
+          {
+            role: "user",
+            content: `Classifique estes ${contacts.length} contatos:\n\n${contactList}`,
+          },
+        ],
+        temperature: 0.1,
+      };
+
+      const aiResult = await callAiWithTracking({
+        functionName: 'ai-classify-tickets',
+        userId: ctx.userId,
+        apiKey: LOVABLE_API_KEY,
+        body: aiBody,
+      });
+
+      const { inputTokens = 0, outputTokens = 0, model: responseModel } = extractTokenUsage(aiResult.data || {});
+      metricsMetadata.input_tokens = inputTokens;
+      metricsMetadata.output_tokens = outputTokens;
+      metricsMetadata.model = responseModel;
+
+      const rawText = aiResult.data?.choices?.[0]?.message?.content ?? '';
+      let classifications: Array<{ id: string; ai_tag: string; priority: string }> = [];
+
+      try {
+        const jsonMatch = rawText.match(/\[[\s\S]*\]/);
+        if (jsonMatch) {
+          classifications = JSON.parse(jsonMatch[0]);
+        }
+      } catch {
+        log.warn("Failed to parse AI classification response", { rawText: rawText.substring(0, 200) });
+      }
+
+      // Validate and apply classifications — never trust AI-returned IDs blindly
+      const contactIds = new Set(contacts.map((c: any) => c.id));
+      const validTags = new Set(['billing', 'technical', 'complaint', 'inquiry', 'urgent', 'feedback', 'onboarding', 'churn_risk', 'general']);
+      const validPriorities = new Set(['low', 'medium', 'high', 'critical']);
+
+      const updates = classifications.filter((c) =>
+        typeof c.id === 'string' &&
+        contactIds.has(c.id) &&
+        validTags.has(c.ai_tag) &&
+        validPriorities.has(c.priority)
+      );
+
+      const updateResults = await Promise.allSettled(
+        updates.map((u) =>
+          supabase
+            .from("contacts")
+            .update({ ai_tag: u.ai_tag })
+            .eq("id", u.id)
+            .eq("user_id", ctx.userId)
+        )
+      );
+
+      const succeeded = updateResults.filter((r) => r.status === 'fulfilled').length;
+      const failed = updateResults.filter((r) => r.status === 'rejected').length;
+      if (failed > 0) log.warn("Some ticket updates failed", { failed, succeeded });
+
+      metricsMetadata.classified = succeeded;
+
+      const durationMs = performance.now() - startTime;
+
+      await logAiMetrics({
+        functionName: 'ai-classify-tickets',
+        action: 'classify_tickets',
+        durationMs,
+        status: metricsStatus,
+        userId: ctx.userId,
+        errorMessage,
+        metadata: metricsMetadata,
+      }, supabase);
+
+      return {
+        success: true,
+        data: { classified: succeeded, failed, results: updates },
+        duration_ms: durationMs,
+      };
+    } catch (innerErr) {
+      const durationMs = performance.now() - startTime;
+      const errMsg = innerErr instanceof Error ? innerErr.message : String(innerErr);
+      metricsStatus = 'error';
+      errorMessage = errMsg;
+
+      await logAiMetrics({
+        functionName: 'ai-classify-tickets',
+        action: 'classify_tickets',
+        durationMs,
+        status: metricsStatus,
+        userId: ctx.userId,
+        errorMessage,
+        metadata: metricsMetadata,
+      }, supabase);
+
+      const clientErrorMsg = sanitizeErrorMessage(errMsg);
+      return { success: false, error: clientErrorMsg, duration_ms: durationMs };
+    }
+  } catch (err) {
+    const durationMs = performance.now() - startTime;
+    const errMsg = err instanceof Error ? err.message : String(err);
+
+    await logAiMetrics({
+      functionName: 'ai-classify-tickets',
+      action: 'classify_tickets',
+      durationMs,
+      status: 'error',
+      userId: ctx.userId,
+      errorMessage: errMsg,
+      metadata: { requestId: ctx.requestId },
+    }, supabase);
+
+    const clientErrorMsg = sanitizeErrorMessage(errMsg);
+    log.error("Unhandled error in classify-tickets handler", { error: errMsg, duration: durationMs });
     return { success: false, error: clientErrorMsg, duration_ms: durationMs };
   }
 }
