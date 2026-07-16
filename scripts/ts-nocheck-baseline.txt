@@ -131,13 +131,10 @@ src/hooks/evolution/__tests__/v237Fallbacks.test.ts
 src/hooks/groups/actions.ts
 src/hooks/meta-capi/useMetaCapi.ts
 src/hooks/sticker-picker/useStickerPicker.ts
-src/hooks/useActionFeedback.ts
 src/hooks/useAnalyticsManagement.ts
-src/hooks/useAnalyticsMonitoringManagement.ts
 src/hooks/useAudioManagement.ts
 src/hooks/useAutomationManagement.ts
 src/hooks/useBusinessHoursManagement.ts
-src/hooks/useClientWallet.ts
 src/hooks/useEmailActions.test.ts
 src/hooks/useEmailDraft.test.ts
 src/hooks/useEmailManagement.ts
@@ -149,8 +146,6 @@ src/hooks/useNotificationManagement.ts
 src/hooks/useRetryAndErrorPrevention.ts
 src/hooks/useSearchManagement.ts
 src/hooks/useSettingsManagement.ts
-src/hooks/useWebAuthn.ts
-src/hooks/useWhatsAppTemplates.ts
 src/integrations/datasource/db.ts
 src/integrations/supabase/client.ts
 src/integrations/supabase/connectionPool.ts
