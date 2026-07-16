@@ -9,13 +9,13 @@ Deno.serve(async (req) => {
 
   const log = new Logger("elevenlabs-webhook");
 
-  // Validate secret token if configured
+  // Fail-closed token validation: if secret is not configured, reject all requests.
+  // Avoids the fail-open risk where an unconfigured secret lets anyone POST.
   const url = new URL(req.url);
   const token = url.searchParams.get('token');
   const expectedToken = Deno.env.get('ELEVENLABS_WEBHOOK_SECRET');
-  
-  if (expectedToken && token !== expectedToken) {
-    log.warn("Unauthorized webhook call (invalid token)");
+  if (!expectedToken || token !== expectedToken) {
+    log.warn("Unauthorized webhook call (invalid or missing token)");
     return errorResponse('Unauthorized', 401, req);
   }
 

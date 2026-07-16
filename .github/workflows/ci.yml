@@ -41,21 +41,29 @@ jobs:
         # bun.lock is generated inside Lovable's private registry environment,
         # so `bun install --frozen-lockfile` always fails on CI (registry
         # credentials unavailable).  Instead we enforce the invariant with a
-        # git diff: if package.json changed, bun.lock must also have changed.
+        # targeted git diff: only fail when dependency sections change without
+        # a corresponding bun.lock update.  Script/version/author edits do NOT
+        # affect the lockfile and must NOT trigger this check (false positive
+        # fixed 2026-07-16 after a scripts-only package.json edit blocked CI).
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             git fetch --depth=1 origin ${{ github.base_ref }}
             BASE="origin/${{ github.base_ref }}"
-            PKG_DIFF=$(git diff "$BASE"...HEAD --name-only -- package.json)
             LOCK_DIFF=$(git diff "$BASE"...HEAD --name-only -- bun.lock)
+            OLD_PKG=$(git show "$BASE:package.json" 2>/dev/null || echo '{}')
+            NEW_PKG=$(cat package.json)
           else
-            PKG_DIFF=$(git diff HEAD^ HEAD --name-only -- package.json 2>/dev/null || true)
             LOCK_DIFF=$(git diff HEAD^ HEAD --name-only -- bun.lock 2>/dev/null || true)
+            OLD_PKG=$(git show "HEAD^:package.json" 2>/dev/null || echo '{}')
+            NEW_PKG=$(cat package.json)
           fi
-          echo "package.json changed: ${PKG_DIFF:-none}"
-          echo "bun.lock changed:    ${LOCK_DIFF:-none}"
-          if [ -n "$PKG_DIFF" ] && [ -z "$LOCK_DIFF" ]; then
-            echo "::error::package.json was modified without updating bun.lock. Run 'bun install' locally and commit the updated lockfile."
+          # Compare only the dependency fields — scripts/version changes are irrelevant.
+          OLD_DEPS=$(echo "$OLD_PKG" | jq -Sc '{d: (.dependencies // {}), dd: (.devDependencies // {}), pd: (.peerDependencies // {}), od: (.optionalDependencies // {})}')
+          NEW_DEPS=$(echo "$NEW_PKG" | jq -Sc '{d: (.dependencies // {}), dd: (.devDependencies // {}), pd: (.peerDependencies // {}), od: (.optionalDependencies // {})}')
+          echo "Dependency fields changed: $([ "$OLD_DEPS" != "$NEW_DEPS" ] && echo yes || echo no)"
+          echo "bun.lock changed:         ${LOCK_DIFF:-none}"
+          if [ "$OLD_DEPS" != "$NEW_DEPS" ] && [ -z "$LOCK_DIFF" ]; then
+            echo "::error::Dependency fields in package.json changed without updating bun.lock. Run 'bun install' locally and commit the updated lockfile."
             exit 1
           fi
           echo "Lockfile consistency check passed."
