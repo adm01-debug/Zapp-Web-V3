@@ -21,6 +21,7 @@ Deno.test("Contract: AiSuggestReplySchema - payload válido", () => {
     ],
     contactName: "João Silva",
     contactId: "550e8400-e29b-41d4-a716-446655440000",
+    requestId: "test-req-550e8400-e29b-41d4-a716-446655440000",
   };
   const result = parseBody(AiSuggestReplySchema, payload);
   assertEquals(result.success, true, JSON.stringify(result));

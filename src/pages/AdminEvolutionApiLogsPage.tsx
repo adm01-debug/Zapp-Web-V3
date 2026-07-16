@@ -1,7 +1,7 @@
 // @ts-nocheck
 /**
  * Admin: Evolution API call logs.
- * Reads from `evolution_retry_metrics` (Lovable Cloud) — captures every
+ * Reads from `evolution_retry_metrics` (zapp schema view → public table) — captures every
  * outbound call to the Evolution API made by the `evolution-api` edge function:
  * action, method, instance, attempt count, http status, retry reasons, duration.
  *
