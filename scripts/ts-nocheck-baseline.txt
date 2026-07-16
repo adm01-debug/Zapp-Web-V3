@@ -10,14 +10,9 @@ src/components/talkx/useCampaignEditor.ts
 src/features/admin/components/AdminView.tsx
 src/features/admin/hooks/useAdminManagement.ts
 src/features/inbox/components/ChatPanel.tsx
-src/features/inbox/components/TransferDialog.tsx
-src/features/inbox/components/chat/MessageAttemptsTimeline.tsx
-src/features/inbox/components/chat/MessageSendHistorySheet.tsx
-src/features/inbox/components/chat/TicketActionsBar.tsx
 src/features/inbox/components/chat/hooks/__tests__/useInitialHighlight.test.ts
 src/features/inbox/components/chat/useChatPanel.ts
 src/features/inbox/components/chat/useChatPanelHandlers.ts
-src/features/inbox/components/collaboration/HandoffDialog.tsx
 src/features/inbox/components/collaboration/InternalNotesPanel.tsx
 src/features/inbox/components/collaboration/MentionInput.tsx
 src/features/inbox/components/collaboration/ViewersIndicator.tsx
