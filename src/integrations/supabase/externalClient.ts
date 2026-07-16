@@ -67,3 +67,21 @@ export function callExtRpc(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return (client as any).rpc(fn, args);
 }
+
+/**
+ * Retorna o PostgrestBuilder bruto para funções RPC não tipadas,
+ * permitindo encadear `.abortSignal()` antes de aguardar o resultado.
+ * Use somente quando o builder precisar ser configurado antes de ser resolvido
+ * (ex.: cancelamento via AbortController). Para RPCs sem abortSignal, use
+ * `callExtRpc` ou adicione a função às tipagens geradas.
+ */
+export function extRpcBuilder(
+  client: SupabaseClient<ExtendedDatabase>,
+  fn: string,
+  args: Record<string, unknown>
+): {
+  abortSignal?: (signal: AbortSignal) => Promise<{ data: unknown; error: unknown }>;
+} & Promise<{ data: unknown; error: unknown }> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (client as any).rpc(fn, args);
+}

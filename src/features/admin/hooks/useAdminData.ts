@@ -137,7 +137,7 @@ export function useAdminData(activeTab: 'users' | 'audit' | 'crm') {
         ];
         const { data: profilesData } =
           userIds.length > 0
-            ? await (supabase.from('profiles').select('user_id, name, email') as any).in(
+            ? await supabase.from('profiles').select('user_id, name, email').in(
                 'user_id',
                 userIds
               )
@@ -186,7 +186,8 @@ export function useAdminData(activeTab: 'users' | 'audit' | 'crm') {
 
   const handleToggleActive = useCallback(
     async (user: UserWithRole) => {
-      const { error } = await (supabase.from('profiles') as any)
+      const { error } = await supabase
+        .from('profiles')
         .update({ is_active: !user.is_active })
         .eq('id', user.id);
       if (error) {
@@ -216,7 +217,8 @@ export function useAdminData(activeTab: 'users' | 'audit' | 'crm') {
         avatarUrl = urlData.publicUrl;
       }
 
-      const { error } = await (supabase.from('profiles') as any)
+      const { error } = await supabase
+        .from('profiles')
         .update({
           name: editingUser.name,
           nickname: editingUser.nickname,
