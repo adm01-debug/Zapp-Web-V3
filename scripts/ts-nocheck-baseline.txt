@@ -10,7 +10,6 @@ src/components/connections/QrAttemptHistory.tsx
 src/components/contacts/ContactQuickView.tsx
 src/components/dashboard/ScheduledReportsManager.tsx
 src/components/dashboard/SentimentHelpers.tsx
-src/components/monitoring/MonitoringEventTimeline.tsx
 src/components/omnichannel/OmnichannelInbox.tsx
 src/components/payments/PaymentLinksView.tsx
 src/components/queues/AddMemberDialog.tsx
@@ -59,8 +58,6 @@ src/components/team-chat/TeamMemberProfileHeader.tsx
 src/components/team-chat/TransferConversationDialog.tsx
 src/components/team-chat/useTeamChatPanel.ts
 src/components/transcriptions/TranscriptionsHistoryView.tsx
-src/components/ui/empty-states/ContextualEmptyState.tsx
-src/components/voice/VoiceSearchOverlayConnected.tsx
 src/components/whatsapp-flows/WhatsAppFlowsBuilder.tsx
 src/features/admin/components/AdminView.tsx
 src/features/admin/components/CrisisRoom.tsx
@@ -248,9 +245,7 @@ src/lib/__tests__/web-vitals.test.ts
 src/lib/__tests__/webauthnUtils.test.ts
 src/lib/failedMessagesEnqueue.ts
 src/lib/featureFlags.ts
-src/lib/genericTypeConstraints.ts
 src/lib/onboarding/checklistSteps.ts
-src/lib/openContactInChat.ts
 src/lib/realtime/__tests__/crossTabDedupe.test.ts
 src/lib/realtime/crossTabDedupe.ts
 src/pages/AdminEvolutionApiLogsPage.tsx
