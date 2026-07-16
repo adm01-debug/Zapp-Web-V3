@@ -185,7 +185,7 @@ export function WhisperMode({
                       'max-w-[85%] rounded-lg px-2.5 py-1.5 text-xs',
                       w.sender_id === profile?.id
                         ? 'bg-amber-300 text-amber-900 dark:bg-amber-700 dark:text-amber-100'
-                        : 'border border-amber-200 bg-white text-amber-800 dark:border-amber-700 dark:bg-amber-900 dark:text-amber-200'
+                        : 'border border-amber-200 bg-card text-amber-800 dark:border-amber-700 dark:bg-amber-900 dark:text-amber-200'
                     )}
                   >
                     {w.sender && w.sender_id !== profile?.id && (
@@ -215,7 +215,7 @@ export function WhisperMode({
               onChange={(e) => setMessage(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Mensagem interna (visível só para a equipe)..."
-              className="max-h-24 min-h-[36px] flex-1 resize-none border-amber-200 bg-white text-xs focus:ring-amber-300 dark:border-amber-700 dark:bg-amber-900"
+              className="max-h-24 min-h-[36px] flex-1 resize-none border-amber-200 bg-card text-xs focus:ring-amber-300 dark:border-amber-700 dark:bg-amber-900"
               rows={1}
             />
             <div className="flex flex-col gap-1">
@@ -237,7 +237,7 @@ export function WhisperMode({
               />
               <Button
                 size="icon"
-                className="h-8 w-8 shrink-0 bg-amber-500 text-white hover:bg-amber-600"
+                className="h-8 w-8 shrink-0 bg-warning text-warning-foreground hover:bg-warning/90"
                 aria-label="Enviar sussurro"
                 onClick={handleSend}
                 disabled={!message.trim() || sendWhisper.isPending}
