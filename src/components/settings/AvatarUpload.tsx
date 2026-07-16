@@ -6,10 +6,13 @@ import { Camera, Loader2, Trash2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/features/auth';
 import { useActionFeedback } from '@/hooks/useActionFeedback';
+import { useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '@/services/api/queryKeys';
 
 export function AvatarUpload() {
   const { user, profile, refreshProfile } = useAuth();
   const feedback = useActionFeedback();
+  const queryClient = useQueryClient();
   const [uploading, setUploading] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState(profile?.avatar_url || null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -51,6 +54,8 @@ export function AvatarUpload() {
 
         setAvatarUrl(urlWithCache);
         await refreshProfile();
+        void queryClient.invalidateQueries({ queryKey: queryKeys.teamProfiles.all() });
+        void queryClient.invalidateQueries({ queryKey: queryKeys.userProfile.me() });
       },
       {
         loadingMessage: 'Enviando foto...',
@@ -73,6 +78,8 @@ export function AvatarUpload() {
         if (error) throw error;
         setAvatarUrl(null);
         await refreshProfile();
+        void queryClient.invalidateQueries({ queryKey: queryKeys.teamProfiles.all() });
+        void queryClient.invalidateQueries({ queryKey: queryKeys.userProfile.me() });
       },
       {
         successMessage: 'Foto removida!',

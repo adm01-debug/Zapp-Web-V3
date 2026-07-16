@@ -294,11 +294,12 @@ export const queryKeys = {
 
   // Team profiles (names lookup)
   teamProfiles: {
-    names: () => ['team-profiles-names'] as const,
-    active: () => ['team-profiles-active'] as const,
-    forChat: () => ['team-profiles-for-chat'] as const,
-    forAddMembers: () => ['team-profiles-for-add-members'] as const,
-    memberProfile: (profileId?: string) => ['team-member-profile', profileId] as const,
+    all: () => ['team-profiles'] as const,
+    names: () => ['team-profiles', 'names'] as const,
+    active: () => ['team-profiles', 'active'] as const,
+    forChat: () => ['team-profiles', 'for-chat'] as const,
+    forAddMembers: () => ['team-profiles', 'for-add-members'] as const,
+    memberProfile: (profileId?: string) => ['team-profiles', 'member', profileId] as const,
   },
 
   // Team Chat (internal team messaging)
