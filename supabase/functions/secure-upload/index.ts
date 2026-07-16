@@ -1,4 +1,4 @@
-import { handleCors, jsonResponse, Logger, securityErrorResponse, requireEnv } from "../_shared/validation.ts";
+import { handleCors, jsonResponse, Logger, securityErrorResponse, requireEnv, checkRateLimit } from "../_shared/validation.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { requireUser } from "../_shared/auth.ts";
 
@@ -44,6 +44,16 @@ Deno.serve(async (req) => {
         req,
       );
     }
+
+    const rl = checkRateLimit(`secure-upload:${authed.user.id}`, 10, 60_000);
+    if (!rl.allowed) {
+      return securityErrorResponse(
+        { code: "RATE_LIMIT_EXCEEDED", message: "Limite de uploads atingido. Tente novamente em instantes." },
+        429,
+        req,
+      );
+    }
+
     const formData = await req.formData();
     const file = formData.get("file") as File;
 

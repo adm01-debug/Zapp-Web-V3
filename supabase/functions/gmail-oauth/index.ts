@@ -2,6 +2,7 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
 import { requireUser } from '../_shared/auth.ts';
+import { checkRateLimit } from '../_shared/validation.ts';
 
 const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
 const GOOGLE_AUTH_URL  = 'https://accounts.google.com/o/oauth2/v2/auth';
@@ -44,6 +45,9 @@ serve(async (req) => {
     const authed = await requireUser(req);
     if (authed instanceof Response) return authed;
     const authenticatedUserId = authed.user.id;
+
+    const rl = checkRateLimit(`gmail-oauth:${authenticatedUserId}`, 20, 60_000);
+    if (!rl.allowed) return new Response(JSON.stringify({ error: 'Rate limit exceeded' }), { status: 429, headers: jsonHeaders });
 
     if (action === 'exchangeCode') {
       const { code, userId } = body;
