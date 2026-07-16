@@ -1,5 +1,5 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { getCorsHeaders, handleCors, checkRateLimit } from "../_shared/validation.ts";
+import { createZappAdminClient } from "../_shared/db-client.ts";
 import { requireAdminOrSupervisor } from "../_shared/auth.ts";
 import {
   syncContacts, syncMessages, syncAllMessages,
@@ -33,16 +33,15 @@ Deno.serve(async (req) => {
 
   const evolutionApiUrl = (Deno.env.get('EVOLUTION_API_URL') || '').replace(/\/+$/, '');
   const evolutionApiKey = Deno.env.get('EVOLUTION_API_KEY');
-  const supabaseUrl = Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL');
-  const supabaseServiceKey = Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+  const supabaseUrl = Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL') ?? '';
 
-  if (!evolutionApiUrl || !evolutionApiKey || !supabaseUrl || !supabaseServiceKey) {
+  if (!evolutionApiUrl || !evolutionApiKey || !supabaseUrl) {
     return new Response(JSON.stringify({ error: 'Server misconfigured' }), {
       status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
 
-  const supabase = createClient(supabaseUrl, supabaseServiceKey, { db: { schema: "zapp" } });
+  const supabase = createZappAdminClient();
 
   try {
     let rawBody: unknown;
