@@ -31,6 +31,13 @@ interface UseBulkActionsOptions<T> {
   queryKey?: string[];
   actions?: BulkAction<T>[];
   onActionComplete?: () => void;
+  /**
+   * Quando `true`, a ação padrão "Excluir" faz hard delete (irreversível).
+   * Por padrão (`false`) é feito soft delete, preenchendo `softDeleteColumn`.
+   */
+  hardDelete?: boolean;
+  /** Coluna usada para soft delete (default `deleted_at`). */
+  softDeleteColumn?: string;
 }
 
 interface UseBulkActionsResult<T> {
@@ -55,7 +62,14 @@ export function useBulkActionsManagement<T extends { id: string }>(
   items: T[],
   options: UseBulkActionsOptions<T> = {}
 ): UseBulkActionsResult<T> {
-  const { tableName, queryKey, actions = [], onActionComplete } = options;
+  const {
+    tableName,
+    queryKey,
+    actions = [],
+    onActionComplete,
+    hardDelete = false,
+    softDeleteColumn = 'deleted_at',
+  } = options;
   const queryClient = useQueryClient();
 
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -113,9 +127,20 @@ export function useBulkActionsManagement<T extends { id: string }>(
           if (ids.length === 0) {
             throw new Error('Nenhum item selecionado');
           }
-          const { error } = await fromTable(tableName).delete().in('id', ids);
-
-          if (error) throw error;
+          if (hardDelete) {
+            // Exclusão permanente só quando explicitamente habilitada.
+            const { error } = await fromTable(tableName).delete().in('id', ids);
+            if (error) throw error;
+          } else {
+            // Padrão: soft delete recuperável (marca a coluna de exclusão lógica).
+            const { error } = await fromTable(tableName)
+              .update({
+                [softDeleteColumn]: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+              } as Record<string, unknown>)
+              .in('id', ids);
+            if (error) throw error;
+          }
           toast.success(`${ids.length} item(s) excluído(s)`);
         },
       },
@@ -140,7 +165,7 @@ export function useBulkActionsManagement<T extends { id: string }>(
         },
       },
     ];
-  }, [tableName, selectedItems]);
+  }, [tableName, selectedItems, hardDelete, softDeleteColumn]);
 
   const availableActions = useMemo(
     () => [...defaultActions, ...actions],
@@ -164,9 +189,9 @@ export function useBulkActionsManagement<T extends { id: string }>(
         deselectAll();
         onActionComplete?.();
       } catch (error) {
-        toast.error(
-          `Erro ao executar ação: ${error instanceof Error ? error.message : 'Erro desconhecido'}`
-        );
+        // Não expõe error.message bruto (pode revelar tabelas/políticas internas).
+        log.error('Erro ao executar ação em massa:', error);
+        toast.error('Não foi possível concluir a ação. Tente novamente.');
       } finally {
         setIsExecuting(false);
       }
@@ -706,7 +731,7 @@ Se não houver objeções, retorne []`,
           }
 
           const valid = parsed
-            .filter((o: unknown) => {
+            .filter((o: unknown, index: number) => {
               if (typeof o !== 'object' || o === null) return false;
               const obj = o as Record<string, unknown>;
 
@@ -715,9 +740,14 @@ Se não houver objeções, retorne []`,
               const counterArgStr = String(obj.counterArgument || '').trim();
 
               if (!objectionStr || !counterArgStr) {
+                // Loga só metadados — o conteúdo vem da IA e pode conter dados
+                // pessoais (nomes, preços, trechos da conversa).
                 log.warn('Filtered out objection with empty fields', {
-                  objection: objectionStr,
-                  counterArgument: counterArgStr,
+                  index,
+                  missingFields: [
+                    !objectionStr ? 'objection' : null,
+                    !counterArgStr ? 'counterArgument' : null,
+                  ].filter(Boolean),
                 });
                 return false;
               }
@@ -870,52 +900,67 @@ async function cleanupLegacyServiceWorker(): Promise<boolean> {
     log.warn('[ServiceWorker] Failed to get registrations', e);
   }
 
-  // Unregister all service workers with timeout protection
-  const unregisterPromises = registrations.map((registration) =>
+  // Unregister all service workers with timeout protection.
+  // Cada operação resolve para `true` apenas em sucesso real; falha/timeout → `false`.
+  const unregisterPromises: Promise<boolean>[] = registrations.map((registration) =>
     Promise.race([
-      registration.unregister().catch((e) => {
-        log.warn('[ServiceWorker] Failed to unregister', e);
-      }),
-      new Promise<void>((_, reject) =>
-        setTimeout(() => reject(new Error('Unregister timeout')), SW_CLEANUP_TIMEOUT / 2)
+      registration
+        .unregister()
+        .then((ok) => ok === true)
+        .catch((e) => {
+          log.warn('[ServiceWorker] Failed to unregister', e);
+          return false;
+        }),
+      new Promise<boolean>((resolve) =>
+        setTimeout(() => {
+          log.warn('[ServiceWorker] Unregister timeout');
+          resolve(false);
+        }, SW_CLEANUP_TIMEOUT / 2)
       ),
-    ]).catch((e) => {
-      log.warn('[ServiceWorker] Unregister operation timeout or failed', e);
-    })
+    ])
   );
 
-  // Delete all caches with timeout protection
-  const deletePromises = cacheKeys.map((key) =>
+  // Delete all caches with timeout protection.
+  const deletePromises: Promise<boolean>[] = cacheKeys.map((key) =>
     Promise.race([
-      caches.delete(key).catch((e) => {
-        log.warn(`[ServiceWorker] Failed to delete cache '${key}'`, e);
-        return false;
-      }),
-      new Promise<boolean>((_, reject) =>
-        setTimeout(
-          () => reject(new Error(`Cache delete timeout for '${key}'`)),
-          SW_CLEANUP_TIMEOUT / 2
-        )
+      caches
+        .delete(key)
+        .then((ok) => ok === true)
+        .catch((e) => {
+          log.warn(`[ServiceWorker] Failed to delete cache '${key}'`, e);
+          return false;
+        }),
+      new Promise<boolean>((resolve) =>
+        setTimeout(() => {
+          log.warn(`[ServiceWorker] Cache delete timeout for '${key}'`);
+          resolve(false);
+        }, SW_CLEANUP_TIMEOUT / 2)
       ),
-    ]).catch((e) => {
-      log.warn(`[ServiceWorker] Cache delete operation timeout for '${key}'`, e);
-      return false;
-    })
+    ])
   );
 
-  // Wait for all cleanup operations with overall timeout
+  // Wait for all cleanup operations with overall timeout, then compute the real
+  // success ratio. Só consideramos "bem-sucedido" se ao menos 80% completaram.
   let allSucceeded = false;
   try {
-    await Promise.race([
+    const results = await Promise.race([
       Promise.all([...unregisterPromises, ...deletePromises]),
-      new Promise<void>((_, reject) =>
+      new Promise<boolean[]>((_, reject) =>
         setTimeout(() => reject(new Error('Overall cleanup timeout')), SW_CLEANUP_TIMEOUT)
       ),
     ]);
-    allSucceeded = true;
+    const total = results.length;
+    const succeeded = results.filter(Boolean).length;
+    const ratio = total === 0 ? 1 : succeeded / total;
+    allSucceeded = ratio >= 0.8;
+    if (!allSucceeded) {
+      log.warn(
+        `[ServiceWorker] Cleanup completed for ${succeeded}/${total} operations (<80%), skipping reset flag`
+      );
+    }
   } catch (e) {
     log.warn('[ServiceWorker] Cleanup operations did not complete in time', e);
-    // Continue anyway - we've made best effort
+    // Continue anyway - we've made best effort, but do NOT mark as succeeded.
   }
 
   // Only mark as done and reload if cleanup succeeded significantly (80%+ of operations completed)

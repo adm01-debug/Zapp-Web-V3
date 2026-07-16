@@ -1163,12 +1163,16 @@ export function useAdminManagement(options?: {
 
     // Departments
     departments: departments.departments,
+    deptLoading: departments.deptLoading,
+    deptSaving: departments.deptSaving,
     fetchDepartments: departments.fetchDepartments,
     saveDepartment: departments.saveDepartment,
     removeDepartment: departments.removeDepartment,
 
     // Roles
     roleUsers: roles.roleUsers,
+    rolesLoading: roles.rolesLoading,
+    rolesUpdating: roles.rolesUpdating,
     filteredRoleUsers: roles.filteredRoleUsers,
     groupedRoleUsers: roles.groupedRoleUsers,
     rolesSearch: roles.rolesSearch,

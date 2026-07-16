@@ -88,9 +88,23 @@ export function useDemandPrediction(externalData?: PredictionPoint[], currentCap
 
   const insights = useMemo<DemandInsights>(() => {
     const predictions = data.filter((d) => d.isPrediction);
+    const currentActual = data.find((d) => !d.isPrediction && d.actual !== undefined)?.actual || 0;
+
+    // Sem previsões (ex.: externalData vazio): retorna insights neutros e finitos
+    // para evitar -Infinity/NaN e acesso a índice inexistente na renderização inicial.
+    if (predictions.length === 0) {
+      return {
+        maxPredicted: 0,
+        avgPredicted: 0,
+        currentActual,
+        trend: 'down',
+        peakTime: '',
+        capacityRisk: false,
+      };
+    }
+
     const maxPredicted = Math.max(...predictions.map((p) => p.predicted));
     const avgPredicted = predictions.reduce((a, b) => a + b.predicted, 0) / predictions.length;
-    const currentActual = data.find((d) => !d.isPrediction && d.actual !== undefined)?.actual || 0;
     const trend = predictions[predictions.length - 1].predicted > currentActual ? 'up' : 'down';
     const peakTime = predictions.find((p) => p.predicted === maxPredicted)?.time || '';
     const capacityRisk = maxPredicted > currentCapacity;

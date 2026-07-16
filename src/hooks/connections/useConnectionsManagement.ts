@@ -77,7 +77,7 @@ export function useHubTabNavigationManagement(
 // Bridge Health Management (useBridgeHealth consolidation)
 // ═══════════════════════════════════════════════════════════
 
-/** Monitors connection bridge health status with periodic checks. */
+/** Monitors connection bridge health status, running a single check on mount. */
 export function useBridgeHealthManagement(
   _params: UseBridgeHealthParams = {}
 ): UseBridgeHealthResult {

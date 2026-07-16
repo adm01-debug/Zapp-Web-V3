@@ -112,18 +112,25 @@ export function useServiceWorker() {
             });
         }, 300_000);
 
-        // Handle service worker updates
-        registration.addEventListener('updatefound', () => {
+        // Handle service worker updates. Guarda as referências dos handlers para
+        // removê-las no cleanup — remontagens acumulavam listeners com closures antigas.
+        const statechangeCleanups: Array<() => void> = [];
+        const onUpdateFound = () => {
           const newWorker = registration.installing;
           if (newWorker) {
-            newWorker.addEventListener('statechange', () => {
+            const onStateChange = () => {
               if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
                 log.debug('[ServiceWorker] New content available');
                 document.dispatchEvent(new CustomEvent('sw-update-available'));
               }
-            });
+            };
+            newWorker.addEventListener('statechange', onStateChange);
+            statechangeCleanups.push(() =>
+              newWorker.removeEventListener('statechange', onStateChange)
+            );
           }
-        });
+        };
+        registration.addEventListener('updatefound', onUpdateFound);
 
         // Listen for messages from service worker
         const onMessage = (event: MessageEvent) => {
@@ -143,6 +150,8 @@ export function useServiceWorker() {
           clearInterval(intervalId);
           timeoutIds.forEach((id) => clearTimeout(id));
           navigator.serviceWorker.removeEventListener('message', onMessage);
+          registration.removeEventListener('updatefound', onUpdateFound);
+          statechangeCleanups.forEach((fn) => fn());
         };
       } catch (error) {
         log.error('[ServiceWorker] Registration failed:', error);

@@ -90,7 +90,11 @@ export function useEvolutionAutoSyncManagement(onSynced?: () => void) {
         if (!i?.instance?.instanceName) return false;
         if (knownIds.has(i.instance.instanceName)) return false;
         const phone =
-          i.instance?.number || i.instance?.ownerJid?.replace('@s.whatsapp.net', '') || '';
+          i.instance?.number ||
+          (typeof i.instance?.ownerJid === 'string'
+            ? i.instance.ownerJid.replace('@s.whatsapp.net', '')
+            : '') ||
+          '';
         if (phone && knownPhones.some((kp) => isSamePhone(kp, phone))) return false;
         return true;
       });
@@ -102,7 +106,11 @@ export function useEvolutionAutoSyncManagement(onSynced?: () => void) {
         const instanceName = i.instance?.instanceName ?? '';
         const name = i.instance?.profileName || instanceName || 'Auto-synced';
         const phone =
-          i.instance?.number || i.instance?.ownerJid?.replace('@s.whatsapp.net', '') || '';
+          i.instance?.number ||
+          (typeof i.instance?.ownerJid === 'string'
+            ? i.instance.ownerJid.replace('@s.whatsapp.net', '')
+            : '') ||
+          '';
 
         await supabase.from('whatsapp_connections').insert({
           instance_id: instanceName,

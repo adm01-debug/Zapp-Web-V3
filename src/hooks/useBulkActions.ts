@@ -5,7 +5,7 @@
  * @description Gerenciamento de seleção e ações em múltiplos itens
  */
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { fromTable } from '@/lib/supabaseHelpers';
 import { toast } from 'sonner';
@@ -64,6 +64,10 @@ export function useBulkActions<T extends { id: string }>(
 
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isExecuting, setIsExecuting] = useState(false);
+  // Trava síncrona contra reentrância: isExecuting (estado) só atualiza no próximo
+  // render, então duas chamadas rápidas a executeAction poderiam disparar a mesma
+  // ação destrutiva duas vezes. O ref bloqueia imediatamente.
+  const executingRef = useRef(false);
 
   const selectedItems = useMemo(
     () => items.filter((item) => selectedIds.has(item.id)),
@@ -150,6 +154,9 @@ export function useBulkActions<T extends { id: string }>(
       const action = availableActions.find((a) => a.id === actionId);
       if (!action || selectedItems.length === 0) return;
 
+      // Bloqueia reentrância antes de qualquer operação assíncrona.
+      if (executingRef.current) return;
+      executingRef.current = true;
       setIsExecuting(true);
 
       try {
@@ -166,6 +173,7 @@ export function useBulkActions<T extends { id: string }>(
           `Erro ao executar ação: ${error instanceof Error ? error.message : 'Erro desconhecido'}`
         );
       } finally {
+        executingRef.current = false;
         setIsExecuting(false);
       }
     },
