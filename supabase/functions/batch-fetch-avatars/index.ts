@@ -1,4 +1,4 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { handleCors, errorResponse, jsonResponse, requireEnv, Logger, checkRateLimit, getClientIP } from "../_shared/validation.ts";
 import { requireServiceRoleOrCron, requireUser } from "../_shared/auth.ts";
 import { isSafeMediaCdnUrl } from "../_shared/evolution-media.ts";

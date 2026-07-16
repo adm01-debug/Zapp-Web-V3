@@ -58,7 +58,7 @@
  *   summary: { recent_success_count, recent_error_count, avg_response_ms }
  * }
  */
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
 import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
 const VERIFY_TOKEN = Deno.env.get("WHATSAPP_CLOUD_WEBHOOK_VERIFY_TOKEN") ?? "";

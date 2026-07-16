@@ -1,7 +1,7 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { handleCors, errorResponse, jsonResponse, requireEnv, Logger } from "../_shared/validation.ts";
+import { handleCors, errorResponse, jsonResponse, Logger } from "../_shared/validation.ts";
 import { SicoobBridgeReplySchema, parseBody } from "../_shared/schemas.ts";
 import { requireUser, requireServiceRoleOnly, getBearer } from "../_shared/auth.ts";
+import { createZappAdminClient } from "../_shared/db-client.ts";
 
 Deno.serve(async (req) => {
   const cors = handleCors(req);
@@ -10,9 +10,8 @@ Deno.serve(async (req) => {
   const log = new Logger("sicoob-bridge-reply");
 
   try {
-    const supabaseUrl = requireEnv("SUPABASE_URL");
-    const serviceRoleKey = requireEnv("SUPABASE_SERVICE_ROLE_KEY");
-    const supabase = createClient(supabaseUrl, serviceRoleKey, { db: { schema: "zapp" } });
+    const serviceRoleKey = Deno.env.get("SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY") ?? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+    const supabase = createZappAdminClient();
 
     // Dual-mode auth: user JWT (frontend) or service-role (Postgres trigger).
     const bearer = getBearer(req);

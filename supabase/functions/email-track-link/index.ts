@@ -1,5 +1,4 @@
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
 
 /**
  * email-track-link — Rastreio de cliques em links de emails
@@ -33,7 +32,7 @@ function parseUA(ua: string): { device: string; browser: string; os: string } {
   return { device, browser, os };
 }
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method !== 'GET') {
     return new Response('Method not allowed', { status: 405 });
   }

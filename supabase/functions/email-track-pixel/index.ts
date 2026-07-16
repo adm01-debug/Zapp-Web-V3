@@ -1,5 +1,4 @@
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
 import { getCorsHeaders } from '../_shared/cors.ts';
 
 /**
@@ -70,7 +69,7 @@ function parseUserAgent(ua: string): { device: string; browser: string; os: stri
   return { device, browser, os, isBot };
 }
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   // Apenas GET
   if (req.method !== 'GET') {
     return new Response(PIXEL_GIF, { status: 200, headers: pixelHeaders(req) });

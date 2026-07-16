@@ -1,5 +1,4 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { handleCors, jsonResponse, errorResponse, Logger, requireEnv } from "../_shared/validation.ts";
 import { requireServiceRoleOrCron } from "../_shared/auth.ts";
 
@@ -45,7 +44,7 @@ import { requireServiceRoleOrCron } from "../_shared/auth.ts";
  * - Alert on high failure rate (> 20% failures → possible auth revocation)
  * - Tracks storage usage growth (how much data moved to permanent storage)
  */
-serve(async (req) => {
+Deno.serve(async (req) => {
   const corsResponse = handleCors(req);
   if (corsResponse) return corsResponse;
 

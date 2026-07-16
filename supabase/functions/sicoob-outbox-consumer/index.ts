@@ -1,6 +1,6 @@
 // Sprint 2 — Consumidor da outbox Sicoob.
 // Invocado por pg_cron a cada 1 min. Drena itens pendentes com backoff exponencial.
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { getCorsHeaders, handleCorsPreflight } from "../_shared/cors.ts";
 import { requireServiceRoleOrCron } from "../_shared/auth.ts";
 

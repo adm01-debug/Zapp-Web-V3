@@ -37,7 +37,7 @@
  * - record_ai_metrics(p_function_name, p_action, p_duration_ms, p_status, p_user_id, p_error_message, p_metadata)
  */
 
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import {
   handleCors, errorResponse, jsonResponse,
   sanitizeString, isValidUUID, checkRateLimit, getClientIP, requireEnv, Logger,

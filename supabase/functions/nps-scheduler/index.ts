@@ -2,7 +2,7 @@
 // Para cada contato com conversa resolvida há ≥3 dias, sem convite NPS nos últimos 30 dias,
 // envia mensagem WhatsApp com link/instrução para responder e registra em nps_invitations.
 // Requer service-role bearer OU x-cron-secret.
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
 import { requireServiceRoleOrCron } from '../_shared/auth.ts';
 import { getCorsHeaders } from '../_shared/cors.ts';
 

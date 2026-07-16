@@ -1,6 +1,6 @@
 // Reporta presença (não valor!) dos secrets necessários para o modo OFICIAL.
 // Usado pela tela /admin/settings/whatsapp-mode para sinalizar o que falta.
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { corsHeaders } from "../_shared/validation.ts";
 
 const SECRET_KEYS = [

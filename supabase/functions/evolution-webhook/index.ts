@@ -1,5 +1,4 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { getCorsHeaders, handleCors, redactSecrets, contractErrorResponse } from "../_shared/validation.ts";
 import { initSentry, captureException } from "../_shared/sentry.ts";
 import { WebhookPayloadSchema } from "../_shared/webhook-schemas.ts";
@@ -65,7 +64,7 @@ async function isKnownInstance(supabase: any, instance: string): Promise<boolean
   }
 }
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   initSentry('evolution-webhook');
 
   const requestId = generateRequestId();

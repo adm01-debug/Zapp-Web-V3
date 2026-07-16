@@ -1,4 +1,3 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { getCorsHeaders, handleCors } from "../_shared/validation.ts";
 import { requireUser } from "../_shared/auth.ts";
 
@@ -6,7 +5,7 @@ import { requireUser } from "../_shared/auth.ts";
  * MCP Server for Claude / AI Agents
  * Implements the Model Context Protocol over HTTP
  */
-serve(async (req) => {
+Deno.serve(async (req) => {
   const corsResponse = handleCors(req);
   if (corsResponse) return corsResponse;
 

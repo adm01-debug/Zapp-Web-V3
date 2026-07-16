@@ -6,7 +6,7 @@
 // Versão on-demand (1 contato) da lógica de batch-fetch-avatars. Resolve uma
 // instância Evolution conectada, busca a foto de perfil, persiste no Storage
 // ('avatars') para não expirar e devolve a URL pública.
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import {
   handleCors,
   errorResponse,

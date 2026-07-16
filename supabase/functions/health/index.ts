@@ -8,7 +8,7 @@
 //   GET /functions/v1/health?probe=1  → texto curto (OK | FAIL)
 
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
-import { createClient } from 'npm:@supabase/supabase-js@2';
+import { createClient } from 'npm:@supabase/supabase-js@2.49.1';
 
 interface CheckResult {
   name: string;

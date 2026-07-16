@@ -6,7 +6,7 @@
 //
 // Este endpoint é exclusivo do MODO OFICIAL. O modo NÃO-OFICIAL (Evolution API) é
 // servido por `evolution-webhook` com validação HMAC própria (x-evolution-signature).
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { verifyHmacSignature } from "../_shared/hmac-validation.ts";
 import { contractErrorResponse } from "../_shared/validation.ts";
 import { MetaWebhookPayloadSchema } from "../_shared/webhook-schemas.ts";

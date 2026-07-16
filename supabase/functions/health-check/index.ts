@@ -1,8 +1,7 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
 import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return handleCorsPreflight(req);
 
   const startTime = Date.now();

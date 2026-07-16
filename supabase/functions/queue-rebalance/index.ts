@@ -3,7 +3,7 @@
 // sla_priority e routing_weight da fila. Reusa fn_resolve_agent_for_routing.
 // Requer service-role bearer OU x-cron-secret.
 
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { requireServiceRoleOrCron } from "../_shared/auth.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
 

@@ -4,8 +4,7 @@
  * F12 security fix: ownership verification for WhatsApp connection.
  * Deploy: supabase functions deploy contacts-import
  */
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
 import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
 import { checkRateLimit } from '../_shared/validation.ts';
 
@@ -27,7 +26,7 @@ const sanitize = (val: unknown, maxLen = 500): string | null => {
   return s || null;
 };
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return handleCorsPreflight(req);
 
   try {
