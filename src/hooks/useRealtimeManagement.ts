@@ -100,7 +100,7 @@ export function useRealtimeMessagesManagement(chatId: string) {
 
     channelRef.current = supabase.channel(`chat:${chatId}`);
     channelRef.current
-      .on('postgres_changes', { event: 'INSERT', schema: 'evo', table: 'evolution_messages', filter: `chat_id=eq.${chatId}` }, (payload: any) => {
+      .on('postgres_changes', { event: 'INSERT', schema: 'evo', table: 'evolution_messages', filter: `remote_jid=eq.${chatId}` }, (payload: any) => {
         setMessages((prev) => [...prev, payload.new]);
       })
       .subscribe();
