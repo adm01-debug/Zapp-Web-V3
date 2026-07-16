@@ -270,7 +270,6 @@ src/lib/__tests__/instrumentedExternal.test.ts
 src/lib/__tests__/undoToast.test.ts
 src/lib/__tests__/web-vitals.test.ts
 src/lib/__tests__/webauthnUtils.test.ts
-src/lib/evolutionDiagnostics.ts
 src/lib/failedMessagesEnqueue.ts
 src/lib/featureFlags.ts
 src/lib/genericTypeConstraints.ts
