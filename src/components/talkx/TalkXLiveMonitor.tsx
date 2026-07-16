@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
+import { queryKeys } from '@/services/api/queryKeys';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
@@ -33,7 +34,7 @@ export function TalkXLiveMonitor({ campaignId }: Props) {
   const [recipientsKey, setRecipientsKey] = useState(0);
 
   const { data } = useQuery({
-    queryKey: ['talkx-campaign-live', campaignId],
+    queryKey: queryKeys.talkx.campaignLiveById(campaignId),
     queryFn: async () => {
       const { data, error } = await supabase
         .from('talkx_campaigns')

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { queryKeys } from '@/services/api/queryKeys';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import {
@@ -75,7 +76,7 @@ export function IncidentDetailDialog({ pause, onClose }: Props) {
     : 60;
 
   const eventsQuery = useQuery({
-    queryKey: ['incident-events', pause?.id, sinceMin],
+    queryKey: queryKeys.adminOps.incidentEventsDetailed(pause?.id, sinceMin),
     queryFn: () => {
       if (!pause) return Promise.resolve({ items: [] as AuthEvent[] });
       return invoke<{ items: AuthEvent[] }>('recent_events', {
@@ -97,7 +98,7 @@ export function IncidentDetailDialog({ pause, onClose }: Props) {
     },
     onSuccess: () => {
       toast.success('Incidente marcado como investigado');
-      qc.invalidateQueries({ queryKey: ['instance-pauses'] });
+      qc.invalidateQueries({ queryKey: queryKeys.adminOps.instancePauses() });
       setNotes('');
       onClose();
     },

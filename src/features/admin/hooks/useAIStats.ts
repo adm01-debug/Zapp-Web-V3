@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { queryKeys } from '@/services/api/queryKeys';
 import { format, subDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { dbFrom } from '@/integrations/datasource/db';
@@ -69,7 +70,7 @@ export const calculateTrend = (current: number, previous: number): TrendData => 
 
 export function useAIStats(selectedPeriod: PeriodOption) {
   return useQuery({
-    queryKey: ['ai-stats-widget', selectedPeriod],
+    queryKey: queryKeys.aiFeatures.statsWidgetPeriod(String(selectedPeriod)),
     queryFn: async (): Promise<AIStats> => {
       const now = new Date();
       const periodStart = subDays(now, selectedPeriod);

@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { queryKeys } from '@/services/api/queryKeys';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -101,7 +102,7 @@ export function VoIPPanel() {
   };
 
   const { data: calls = [], isLoading } = useQuery({
-    queryKey: ['calls-history'],
+    queryKey: queryKeys.calls.history(),
     queryFn: async () => {
       const { data, error } = await supabase
         .from('calls')

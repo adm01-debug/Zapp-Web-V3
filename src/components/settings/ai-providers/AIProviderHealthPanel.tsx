@@ -1,3 +1,4 @@
+import { queryKeys } from '@/services/api/queryKeys';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -25,7 +26,7 @@ interface UsageLog {
 
 export function AIProviderHealthPanel() {
   const { data: recentLogs = [], isLoading } = useQuery({
-    queryKey: ['ai-provider-health'],
+    queryKey: queryKeys.aiFeatures.providerHealth(),
     queryFn: async () => {
       const { data, error } = await supabase
         .from('ai_usage_logs')

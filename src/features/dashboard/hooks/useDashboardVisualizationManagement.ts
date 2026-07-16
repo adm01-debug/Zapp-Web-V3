@@ -2,6 +2,7 @@
 // Consolidates: useDashboardData, useDashboardWidgets, useGoalsDashboard, useLeaderboard, useWarRoomData
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import type { ElementType } from 'react';
+import { queryKeys } from '@/services/api/queryKeys';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { dbFrom } from '@/integrations/datasource/db';
@@ -340,7 +341,7 @@ export function useGoalsDashboardManagement() {
   const dateRange = useMemo(() => getDateRange(period), [period]);
 
   const { data: profile } = useQuery({
-    queryKey: ['my-profile', user?.id],
+    queryKey: queryKeys.userProfile.meById(user?.id),
     queryFn: async () => {
       if (!user?.id) return null;
       const { data, error } = await supabase.from('profiles').select('id, name').eq('user_id', user.id).maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
@@ -351,7 +352,7 @@ export function useGoalsDashboardManagement() {
   });
 
   const { data: messagesData, isLoading: loadingMessages } = useQuery({
-    queryKey: ['goals-messages', period, profile?.id],
+    queryKey: queryKeys.goals.messages(period),
     queryFn: async () => {
       if (!profile?.id) return [];
       const { data, error } = await dbFrom('messages').select('id, sender, created_at').eq('agent_id', profile.id).gte('created_at', dateRange.from.toISOString()).lte('created_at', dateRange.to.toISOString());
@@ -373,7 +374,7 @@ export function useGoalsDashboardManagement() {
   });
 
   const { data: customGoals = [] } = useQuery({
-    queryKey: ['goals-config', profile?.id],
+    queryKey: queryKeys.goals.configForProfile(profile?.id),
     queryFn: async () => {
       if (!profile?.id) return [];
       const { data, error } = await supabase.from('goals_configurations').select('goal_type, daily_target, weekly_target, monthly_target, is_active').eq('profile_id', profile.id);

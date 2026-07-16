@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { queryKeys } from '@/services/api/queryKeys';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -69,7 +70,7 @@ export function AuthEventTrendChart() {
   const hours = WINDOW_HOURS[window];
 
   const trendQuery = useQuery({
-    queryKey: ['auth-event-trend', hours, filterTrim],
+    queryKey: queryKeys.adminOps.authEventTrendDetailed(hours, filterTrim),
     queryFn: async () => {
       const { data, error } = await supabase.rpc('rpc_instance_auth_event_trend', {
         p_hours: hours,
@@ -82,7 +83,7 @@ export function AuthEventTrendChart() {
   });
 
   const summaryQuery = useQuery({
-    queryKey: ['auth-event-summary', hours, filterTrim],
+    queryKey: queryKeys.adminOps.authEventSummaryDetailed(hours, filterTrim),
     queryFn: async () => {
       const { data, error } = await supabase.rpc('rpc_instance_auth_event_summary', {
         p_instance: filterTrim as string,

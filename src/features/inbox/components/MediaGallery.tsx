@@ -28,6 +28,7 @@ import { MediaCard } from './media-gallery/MediaCard';
 import { MediaPreviewDialog } from './media-gallery/MediaPreviewDialog';
 import { MediaGalleryListView } from './media-gallery/MediaGalleryListView';
 import { dbFrom } from '@/integrations/datasource/db';
+import { queryKeys } from '@/services/api/queryKeys';
 
 const MediaGridItem = memo(function MediaGridItem({
   item,
@@ -68,7 +69,7 @@ export function MediaGallery({ contactId, open, onOpenChange }: MediaGalleryProp
     isFetching,
     refetch,
   } = useQuery({
-    queryKey: ['media-gallery', contactId],
+    queryKey: queryKeys.mediaGallery.contact(contactId),
     queryFn: async () => {
       const { data, error } = await dbFrom('messages')
         .select('id, media_url, message_type, content, created_at')

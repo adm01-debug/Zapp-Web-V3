@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { queryKeys } from '@/services/api/queryKeys';
 import { useMemo } from 'react';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { dbFrom } from '@/integrations/datasource/db';
@@ -31,7 +32,7 @@ const PER_AGENT_LIMIT = 5;
  */
 export function useAgentRecentSends() {
   const query = useQuery({
-    queryKey: ['agent-recent-sends'],
+    queryKey: queryKeys.agentGamification.recentSends(),
     queryFn: async () => {
       const { data: sends, error: sendsErr } = await safeClient.from(
         'evolution_send_idempotency',

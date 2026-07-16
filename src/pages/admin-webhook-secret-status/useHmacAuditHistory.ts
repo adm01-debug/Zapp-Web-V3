@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { queryKeys } from '@/services/api/queryKeys';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { subHours } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
@@ -43,7 +44,7 @@ export function useHmacAuditHistory(range: RangeKey, instanceFilter: string, lim
   });
 
   const { data: instanceOptions } = useQuery({
-    queryKey: ['hmac-selftest-audit-instances', range],
+    queryKey: queryKeys.adminOps.hmacAuditInstancesRange(range),
     queryFn: async () => {
       const { data, error } = await safeClient.from('hmac_selftest_audit', (q) =>
         q.select('instance').gte('created_at', since).not('instance', 'is', null).limit(1000)

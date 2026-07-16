@@ -1,3 +1,4 @@
+import { queryKeys } from '@/services/api/queryKeys';
 import { useState, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Phone, Mail, Calendar, Building, Briefcase, Pencil, Check, X, Plus, Copy } from 'lucide-react';
@@ -110,10 +111,10 @@ export function ContactInfoSection({ contact, enrichedData }: ContactInfoSection
     const { error } = await dbFrom('contacts').update({ [field]: value }).eq('id', contact.id);
     if (error) throw error;
 
-    queryClient.invalidateQueries({ queryKey: ['contact-enriched', contact.id] });
-    queryClient.invalidateQueries({ queryKey: ['contact-ai-tags', contact.id] });
-    queryClient.invalidateQueries({ queryKey: ['contact-sla', contact.id] });
-    queryClient.invalidateQueries({ queryKey: ['contact-local-id', contact.id] });
+    queryClient.invalidateQueries({ queryKey: queryKeys.contactDetails.enriched(contact.id) });
+    queryClient.invalidateQueries({ queryKey: queryKeys.contactDetails.aiTags(contact.id) });
+    queryClient.invalidateQueries({ queryKey: queryKeys.sla.contact(contact.id) });
+    queryClient.invalidateQueries({ queryKey: queryKeys.contactDetails.localId(contact.id) });
   }, [contact.id, queryClient]);
 
   return (

@@ -1,3 +1,4 @@
+import { queryKeys } from '@/services/api/queryKeys';
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { safeClient } from '@/integrations/supabase/safeClient';
@@ -31,7 +32,7 @@ export function SLADeliveryConfigSection({ contactId }: SLADeliveryConfigSection
   const [customMessage, setCustomMessage] = useState<string>('');
 
   const { data: config, isLoading } = useQuery({
-    queryKey: ['sla-delivery-config', contactId],
+    queryKey: queryKeys.sla.deliveryConfig(contactId),
     enabled: !!contactId,
     queryFn: async () => {
       const { data: rows, error } = await safeClient.from('sla_delivery_rules', (q) =>
@@ -74,7 +75,7 @@ export function SLADeliveryConfigSection({ contactId }: SLADeliveryConfigSection
     },
     onSuccess: () => {
       toast.success('Configurações de SLA salvas');
-      queryClient.invalidateQueries({ queryKey: ['sla-delivery-config', contactId] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.sla.deliveryConfig(contactId) });
     },
     onError: (err: Error) => {
       toast.error(`Erro ao salvar: ${err.message}`);
@@ -158,7 +159,7 @@ export function SLADeliveryConfigSection({ contactId }: SLADeliveryConfigSection
             const current = localStorage.getItem('zappweb:sla-simulation') === 'true';
             localStorage.setItem('zappweb:sla-simulation', String(!current));
             toast.info(`Modo Simulação ${!current ? 'ATIVADO' : 'DESATIVADO'}`);
-            void queryClient.invalidateQueries({ queryKey: ['delivery-stats'] });
+            void queryClient.invalidateQueries({ queryKey: queryKeys.adminOps.deliveryStats() });
           }}
         >
           <Beaker className="mr-2 h-3 w-3" />

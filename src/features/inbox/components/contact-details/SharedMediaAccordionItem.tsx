@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Image } from 'lucide-react';
 import { dbFrom } from '@/integrations/datasource/db';
+import { queryKeys } from '@/services/api/queryKeys';
 
 interface SharedMediaAccordionItemProps {
   contactId: string;
@@ -17,7 +18,7 @@ export function SharedMediaAccordionItem({ contactId, onOpen }: SharedMediaAccor
   const prefetchedRef = useRef(false);
 
   const { data: count, isLoading } = useQuery({
-    queryKey: ['shared-media-count', contactId],
+    queryKey: queryKeys.mediaGallery.count(contactId),
     queryFn: async () => {
       const { count, error } = await dbFrom('messages')
         .select('id', { count: 'exact', head: true })
@@ -44,7 +45,7 @@ export function SharedMediaAccordionItem({ contactId, onOpen }: SharedMediaAccor
       if (prefetchedRef.current) return;
       prefetchedRef.current = true;
       queryClient.prefetchQuery({
-        queryKey: ['media-gallery-preview', contactId, PAGE_SIZE],
+        queryKey: queryKeys.mediaGallery.previewPaged(contactId, PAGE_SIZE),
         queryFn: async () => {
           const { data, error } = await dbFrom('messages')
             .select('id, media_url, message_type, content, created_at')

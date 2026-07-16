@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { unwrapRows } from '@/lib/supabase-helpers';
+import { queryKeys } from '@/services/api/queryKeys';
 import { format, subHours, subDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
@@ -72,7 +73,7 @@ export function useAIUsageDashboard() {
     isLoading,
     refetch,
   } = useQuery({
-    queryKey: ['ai-usage-logs', timeFilter],
+    queryKey: queryKeys.aiFeatures.usageLogs(timeFilter),
     queryFn: async () => {
       const since = getTimeRange(timeFilter).toISOString();
       const { data, error } = await supabase
@@ -88,7 +89,7 @@ export function useAIUsageDashboard() {
   });
 
   const { data: profiles = [] } = useQuery({
-    queryKey: ['profiles-for-usage'],
+    queryKey: queryKeys.userProfile.forUsage(),
     queryFn: async () => {
       const { data } = await supabase
         .from('profiles')

@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import type { Tables } from '@/integrations/supabase/schema';
+import { queryKeys } from '@/services/api/queryKeys';
 
 type Contact = Pick<
   Tables<'contacts'>,
@@ -215,7 +216,7 @@ export function useContactsSearch() {
 
   // Fetch counts by type (lightweight separate query)
   const { data: typeCounts } = useQuery({
-    queryKey: ['contacts-type-counts'],
+    queryKey: queryKeys.contactDetails.typeCounts(),
     queryFn: async () => {
       const { data, error } = await supabase.rpc('contacts_count_by_type');
       if (error) throw error;

@@ -9,6 +9,7 @@ import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { isRlsDeniedError, formatAdminError } from '@/lib/errors/rlsError';
+import { queryKeys } from '@/services/api/queryKeys';
 
 export interface TransferRow {
   id: string;
@@ -45,7 +46,7 @@ export function useTransfersPaginated(filters: TransfersFilters = {}) {
   const [, setPageIndexToCursor] = useState<Map<number, string | null>>(new Map([[0, null]]));
 
   const query = useQuery<{ rows: TransferRow[]; total: number; deniedReason: string | null }>({
-    queryKey: ['transfers-paginated', { status, priority, from, to, page, pageSize }],
+    queryKey: queryKeys.adminOps.transfersPaginated({ status, priority, from, to, page, pageSize }),
     queryFn: async () => {
       const { data, error } = await safeClient.rpc<Array<TransferRow & { total_count?: number | string }>>(
         'rpc_list_transfers_paginated',

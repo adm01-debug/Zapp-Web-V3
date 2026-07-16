@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { queryKeys } from '@/services/api/queryKeys';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -18,7 +19,7 @@ export function ChatbotL1Config() {
   const queryClient = useQueryClient();
 
   const { data: flow } = useQuery({
-    queryKey: ['chatbot-l1-flow'],
+    queryKey: queryKeys.chatbot.l1Flow(),
     queryFn: async () => {
       const { data } = await supabase
         .from('chatbot_flows')
@@ -99,7 +100,7 @@ export function ChatbotL1Config() {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['chatbot-l1-flow'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.chatbot.l1Flow() });
       toast({
         title: 'Chatbot IA salvo!',
         description: 'O assistente L1 foi configurado com sucesso.',

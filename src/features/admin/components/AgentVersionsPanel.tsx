@@ -1,4 +1,5 @@
 import { useMemo, useState, useEffect, useRef } from 'react';
+import { queryKeys } from '@/services/api/queryKeys';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { unwrapRows } from '@/lib/supabase-helpers';
@@ -107,7 +108,7 @@ export function AgentVersionsPanel() {
   const [search, setSearch] = useState('');
 
   const { data: agents = [], isLoading: loadingAgents } = useQuery({
-    queryKey: ['admin-agent-versions-list'],
+    queryKey: queryKeys.adminOps.agentVersions(),
     queryFn: async () => {
       const { data, error } = await supabase
         .from('profiles')
