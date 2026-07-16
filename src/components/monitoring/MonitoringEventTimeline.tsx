@@ -56,7 +56,7 @@ export function MonitoringEventTimeline() {
 
       const timeline: TimelineEvent[] = [];
 
-      msgRes.data?.forEach(m => {
+      msgRes.data?.forEach((m) => {
         timeline.push({
           id: m.id,
           type: m.sender === 'contact' ? 'message_in' : 'message_out',
@@ -66,7 +66,7 @@ export function MonitoringEventTimeline() {
         });
       });
 
-      healthRes.data?.forEach(h => {
+      healthRes.data?.forEach((h) => {
         const ok = h.status === 'connected' || h.status === 'healthy';
         timeline.push({
           id: h.id,
@@ -92,23 +92,25 @@ export function MonitoringEventTimeline() {
   return (
     <Card>
       <CardHeader className="pb-3">
-        <CardTitle className="text-base flex items-center gap-2">
-          <Radio className="w-4 h-4 text-primary" />
+        <CardTitle className="flex items-center gap-2 text-base">
+          <Radio className="h-4 w-4 text-primary" />
           Atividade Recente
-          <Badge variant="outline" className="text-[10px] ml-auto">{events.length} eventos</Badge>
+          <Badge variant="outline" className="ml-auto text-[10px]">
+            {events.length} eventos
+          </Badge>
         </CardTitle>
         <CardDescription>Mensagens e health checks da última hora</CardDescription>
       </CardHeader>
       <CardContent>
         <ScrollArea className="h-[360px]">
           {events.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-[300px] text-muted-foreground">
-              <Radio className="w-10 h-10 mb-2 opacity-20" />
+            <div className="flex h-[300px] flex-col items-center justify-center text-muted-foreground">
+              <Radio className="mb-2 h-10 w-10 opacity-20" />
               <p className="text-sm">Nenhuma atividade na última hora</p>
             </div>
           ) : (
             <div className="relative space-y-0">
-              <div className="absolute left-[15px] top-2 bottom-2 w-px bg-border" />
+              <div className="absolute bottom-2 left-[15px] top-2 w-px bg-border" />
 
               <AnimatePresence initial={false}>
                 {events.map((ev) => {
@@ -122,17 +124,22 @@ export function MonitoringEventTimeline() {
                       transition={{ duration: 0.2 }}
                       className="relative flex items-start gap-3 py-2 pl-1"
                     >
-                      <div className="relative z-10 flex items-center justify-center w-[30px] h-[30px] rounded-full bg-background border border-border shrink-0">
-                        <Icon className={`w-3.5 h-3.5 ${colorMap[ev.type]}`} />
+                      <div className="relative z-10 flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-full border border-border bg-background">
+                        <Icon className={`h-3.5 w-3.5 ${colorMap[ev.type]}`} />
                       </div>
                       <div className="min-w-0 flex-1 pt-0.5">
                         <div className="flex items-center gap-2">
                           <span className="text-xs font-medium">{ev.label}</span>
-                          <span className="text-[10px] text-muted-foreground ml-auto shrink-0">
-                            {formatDistanceToNow(new Date(ev.timestamp), { addSuffix: true, locale: ptBR })}
+                          <span className="ml-auto shrink-0 text-[10px] text-muted-foreground">
+                            {formatDistanceToNow(new Date(ev.timestamp), {
+                              addSuffix: true,
+                              locale: ptBR,
+                            })}
                           </span>
                         </div>
-                        <p className="text-[11px] text-muted-foreground truncate mt-0.5">{ev.detail}</p>
+                        <p className="mt-0.5 truncate text-[11px] text-muted-foreground">
+                          {ev.detail}
+                        </p>
                       </div>
                     </motion.div>
                   );

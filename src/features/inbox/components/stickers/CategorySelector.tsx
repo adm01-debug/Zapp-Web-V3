@@ -18,6 +18,7 @@ export function CategorySelector({ value, onChange, size = 'sm' }: CategorySelec
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <button
+          type="button"
           className={cn(
             'flex items-center gap-1 rounded-md border border-border/50 transition-colors hover:bg-muted/60',
             size === 'xs' ? 'px-1.5 py-0.5 text-[10px]' : 'px-2 py-1 text-xs'
@@ -29,11 +30,13 @@ export function CategorySelector({ value, onChange, size = 'sm' }: CategorySelec
         >
           <span aria-hidden="true">{info.emoji}</span>
           <span className="text-muted-foreground">{info.label}</span>
-          <ChevronDown className={cn(size === 'xs' ? 'w-2.5 h-2.5' : 'w-3 h-3', 'text-muted-foreground/60')} />
+          <ChevronDown
+            className={cn(size === 'xs' ? 'h-2.5 w-2.5' : 'h-3 w-3', 'text-muted-foreground/60')}
+          />
         </button>
       </PopoverTrigger>
       <PopoverContent
-        className="w-[200px] p-1.5 max-h-[240px] overflow-y-auto"
+        className="max-h-[240px] w-[200px] overflow-y-auto p-1.5"
         align="start"
         side="bottom"
         sideOffset={4}
@@ -42,11 +45,12 @@ export function CategorySelector({ value, onChange, size = 'sm' }: CategorySelec
         aria-label="Selecionar categoria"
       >
         <div className="space-y-0.5">
-          {ALL_CATEGORIES.map(cat => {
+          {ALL_CATEGORIES.map((cat) => {
             const catInfo = CATEGORY_LABELS[cat];
             const isActive = cat === value;
             return (
               <button
+                type="button"
                 key={cat}
                 role="option"
                 aria-selected={isActive}
@@ -56,13 +60,15 @@ export function CategorySelector({ value, onChange, size = 'sm' }: CategorySelec
                   setOpen(false);
                 }}
                 className={cn(
-                  'w-full flex items-center gap-2 px-2 py-1.5 rounded text-xs transition-colors text-left',
-                  isActive ? 'bg-primary/10 text-primary font-medium' : 'hover:bg-muted text-foreground'
+                  'flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-xs transition-colors',
+                  isActive
+                    ? 'bg-primary/10 font-medium text-primary'
+                    : 'text-foreground hover:bg-muted'
                 )}
               >
                 <span aria-hidden="true">{catInfo.emoji}</span>
                 <span className="flex-1">{catInfo.label}</span>
-                {isActive && <Check className="w-3 h-3 text-primary" />}
+                {isActive && <Check className="h-3 w-3 text-primary" />}
               </button>
             );
           })}

@@ -113,7 +113,6 @@ export function MessageSendHistorySheet({ message, open, onOpenChange }: Props) 
 
   const summaryText = useMemo(() => {
     const lines: string[] = [];
-    const typedData = data as any;
     lines.push(`📨 Histórico de envio — ${message.id}`);
     lines.push(`Status atual: ${statusInfo.label}`);
     lines.push(`Tipo: ${message.type}`);
@@ -127,18 +126,18 @@ export function MessageSendHistorySheet({ message, open, onOpenChange }: Props) 
     if (message.retry_attempt != null && message.retry_total != null) {
       lines.push(`Retry persistido: ${message.retry_attempt}/${message.retry_total}`);
     }
-    if (typedData?.metric) {
+    if (data?.metric) {
       lines.push('');
       lines.push(`— Métricas (evolution_retry_metrics) —`);
       lines.push(
-        `Final: ${typedData.metric.finalStatus}${typedData.metric.finalHttpStatus ? ` (HTTP ${typedData.metric.finalHttpStatus})` : ''}`
+        `Final: ${data.metric.finalStatus}${data.metric.finalHttpStatus ? ` (HTTP ${data.metric.finalHttpStatus})` : ''}`
       );
-      lines.push(`Tentativas: ${typedData.metric.attemptCount}`);
-      lines.push(`Duração total: ${fmtMs(typedData.metric.totalDurationMs)}`);
-      if (typedData.metric.retryReasons.length > 0) {
+      lines.push(`Tentativas: ${data.metric.attemptCount}`);
+      lines.push(`Duração total: ${fmtMs(data.metric.totalDurationMs)}`);
+      if (data.metric.retryReasons.length > 0) {
         lines.push('');
         lines.push(`— Tentativas —`);
-        typedData.metric.retryReasons.forEach((r: any) => {
+        data.metric.retryReasons.forEach((r) => {
           lines.push(
             `#${r.attempt}: ${r.status ? `HTTP ${r.status} ` : ''}${formatFailureReason(r.reason)}`
           );
@@ -244,6 +243,7 @@ export function MessageSendHistorySheet({ message, open, onOpenChange }: Props) 
                 </h3>
                 {!isLoading && (
                   <button
+                    type="button"
                     onClick={() => refetch()}
                     className="inline-flex items-center gap-1 text-[10px] text-muted-foreground transition-colors hover:text-foreground"
                     aria-label="Atualizar métricas"
@@ -261,7 +261,7 @@ export function MessageSendHistorySheet({ message, open, onOpenChange }: Props) 
                 </div>
               ) : isError ? (
                 <p className="text-xs text-destructive">Erro ao carregar métricas.</p>
-              ) : !(data as any)?.metric ? (
+              ) : !data?.metric ? (
                 <p className="text-xs italic text-muted-foreground">
                   Nenhuma métrica registrada — esta mensagem não passou pelo fluxo de retry
                   monitorado.
@@ -269,29 +269,27 @@ export function MessageSendHistorySheet({ message, open, onOpenChange }: Props) 
               ) : (
                 <>
                   <div className="grid grid-cols-3 gap-2">
-                    <Metric label="Tentativas" value={String((data as any).metric.attemptCount)} />
-                    <Metric label="Duração" value={fmtMs((data as any).metric.totalDurationMs)} />
+                    <Metric label="Tentativas" value={String(data.metric.attemptCount)} />
+                    <Metric label="Duração" value={fmtMs(data.metric.totalDurationMs)} />
                     <Metric
                       label="Final"
                       value={
-                        (data as any).metric.finalHttpStatus
-                          ? `HTTP ${(data as any).metric.finalHttpStatus}`
-                          : (data as any).metric.finalStatus
+                        data.metric.finalHttpStatus
+                          ? `HTTP ${data.metric.finalHttpStatus}`
+                          : data.metric.finalStatus
                       }
-                      tone={
-                        (data as any).metric.finalStatus === 'success' ? 'success' : 'destructive'
-                      }
+                      tone={data.metric.finalStatus === 'success' ? 'success' : 'destructive'}
                     />
                   </div>
 
-                  {(data as any).metric.retryReasons.length > 0 && (
+                  {data.metric.retryReasons.length > 0 && (
                     <div className="overflow-hidden rounded-lg border border-border/50">
                       <ol className="divide-y divide-border/50">
-                        {(data as any).metric.retryReasons.map((r, i) => {
+                        {data.metric.retryReasons.map((r) => {
                           const isOk =
                             typeof r.status === 'number' && r.status >= 200 && r.status < 300;
                           return (
-                            <li key={i} className="flex items-start gap-2.5 p-2.5 text-xs">
+                            <li key={r.attempt} className="flex items-start gap-2.5 p-2.5 text-xs">
                               <span
                                 className={cn(
                                   'mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold',
@@ -338,7 +336,7 @@ export function MessageSendHistorySheet({ message, open, onOpenChange }: Props) 
 
                   <p className="text-[10px] tabular-nums text-muted-foreground">
                     Registrado{' '}
-                    {formatDistanceStrict(new Date((data as any).metric.createdAt), new Date(), {
+                    {formatDistanceStrict(new Date(data.metric.createdAt), new Date(), {
                       addSuffix: true,
                       locale: ptBR,
                     })}
@@ -348,13 +346,13 @@ export function MessageSendHistorySheet({ message, open, onOpenChange }: Props) 
             </section>
 
             {/* Audit log */}
-            {(data as any)?.auditEntries && (data as any).auditEntries.length > 0 && (
+            {data?.auditEntries && data.auditEntries.length > 0 && (
               <section className="space-y-2.5">
                 <h3 className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                  Audit log ({(data as any).auditEntries.length})
+                  Audit log ({data.auditEntries.length})
                 </h3>
                 <ul className="space-y-1.5">
-                  {(data as any).auditEntries.map((e) => (
+                  {data.auditEntries.map((e) => (
                     <li
                       key={e.id}
                       className="rounded border border-border/40 bg-muted/10 p-2 text-xs"
@@ -377,7 +375,7 @@ export function MessageSendHistorySheet({ message, open, onOpenChange }: Props) 
             )}
 
             {/* Payload bruto */}
-            {(data as any)?.metric && (
+            {data?.metric && (
               <section>
                 <Collapsible>
                   <CollapsibleTrigger className="flex w-full items-center justify-between py-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground transition-colors hover:text-foreground">
@@ -386,7 +384,7 @@ export function MessageSendHistorySheet({ message, open, onOpenChange }: Props) 
                   </CollapsibleTrigger>
                   <CollapsibleContent>
                     <pre className="mt-2 max-h-64 overflow-auto whitespace-pre-wrap break-all rounded border border-border/50 bg-muted/30 p-2 text-[10px]">
-                      {JSON.stringify((data as any).metric.rawJson, null, 2)}
+                      {JSON.stringify(data.metric.rawJson, null, 2)}
                     </pre>
                   </CollapsibleContent>
                 </Collapsible>

@@ -1,4 +1,4 @@
-import { useRef, useMemo, memo } from 'react';
+import { useRef, useMemo, memo, useCallback } from 'react';
 import { useVirtualizer, type VirtualItem } from '@tanstack/react-virtual';
 
 import { ConversationWithMessages } from '@/features/inbox';
@@ -80,6 +80,10 @@ const VirtualizedItem = memo(
     const isSelected = selectedContactId === contactId;
     const isMultiSelected = selectedIds.has(contactId);
     const isPinned = pinnedIds.has(contactId);
+    const handleSelect = useCallback(
+      () => onSelectConversation(contactId),
+      [onSelectConversation, contactId]
+    );
 
     return (
       <div
@@ -96,7 +100,7 @@ const VirtualizedItem = memo(
         <SharedConversationItem
           conversation={toConversationItemData(conversation)}
           isSelected={isSelected}
-          onSelect={() => onSelectConversation(contactId)}
+          onSelect={handleSelect}
           selectionMode={selectionMode}
           isMultiSelected={isMultiSelected}
           onToggleSelection={onToggleSelection}

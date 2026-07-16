@@ -1,5 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { handleCors, errorResponse, jsonResponse, requireEnv, Logger } from "../_shared/validation.ts";
+import { handleCors, errorResponse, jsonResponse, requireEnv, Logger, getCorsHeaders } from "../_shared/validation.ts";
 import { requireUser } from "../_shared/auth.ts";
 
 type VitalName = 'LCP' | 'FID' | 'CLS' | 'INP' | 'TTFB';
@@ -17,6 +17,10 @@ interface VitalPayload {
 }
 
 const VALID_NAMES = new Set<VitalName>(['LCP', 'FID', 'CLS', 'INP', 'TTFB']);
+
+function acceptedNoContent(req: Request): Response {
+  return new Response(null, { status: 204, headers: getCorsHeaders(req) });
+}
 
 Deno.serve(async (req) => {
   const cors = handleCors(req);
@@ -59,18 +63,23 @@ Deno.serve(async (req) => {
     }
 
     const supabase = createClient(
-      requireEnv('SUPABASE_URL'), requireEnv('SUPABASE_SERVICE_ROLE_KEY', { db: { schema: "zapp" } }),
+      requireEnv('SUPABASE_URL'),
+      requireEnv('SUPABASE_SERVICE_ROLE_KEY'),
+      { db: { schema: 'zapp' } },
     );
 
     const { error } = await supabase.from('query_telemetry').insert(rows);
     if (error) {
+      // Never bubble up as 500 — observability failures must not create
+      // client-side error floods. Log and return 204 (accepted, no content).
       log.error('failed inserting query_telemetry', { error: error.message });
-      return errorResponse('Internal server error', 500, req);
+      return acceptedNoContent(req);
     }
 
     return jsonResponse({ ok: true, accepted: rows.length }, 200, req);
   } catch (error: unknown) {
+    // Observability endpoint: swallow errors, return 204 to avoid client flood.
     log.error('Unhandled error', { error: error instanceof Error ? error.message : String(error) });
-    return errorResponse('Internal server error', 500, req);
+    return acceptedNoContent(req);
   }
 });

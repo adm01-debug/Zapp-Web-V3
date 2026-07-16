@@ -15,7 +15,7 @@ export function BorderRadiusControl({ borderRadius, onChange }: BorderRadiusCont
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <CardTitle className="text-sm">Raio da Borda</CardTitle>
-          <span className="text-xs  text-muted-foreground bg-muted/50 px-2 py-0.5 rounded-md">
+          <span className="rounded-md bg-muted/50 px-2 py-0.5 text-xs text-muted-foreground">
             {borderRadius}px
           </span>
         </div>
@@ -23,7 +23,7 @@ export function BorderRadiusControl({ borderRadius, onChange }: BorderRadiusCont
       <CardContent className="space-y-5">
         {/* Slider */}
         <div className="flex items-center gap-3">
-          <span className="text-[10px] text-muted-foreground/60  w-4">0</span>
+          <span className="w-4 text-[10px] text-muted-foreground/60">0</span>
           <Slider
             value={[borderRadius]}
             onValueChange={onChange}
@@ -32,38 +32,42 @@ export function BorderRadiusControl({ borderRadius, onChange }: BorderRadiusCont
             step={1}
             className="flex-1"
           />
-          <span className="text-[10px] text-muted-foreground/60  w-5">20</span>
+          <span className="w-5 text-[10px] text-muted-foreground/60">20</span>
         </div>
 
         {/* Live preview */}
         <div className="space-y-3">
-          <p className="text-[11px] text-muted-foreground/50 uppercase tracking-wider font-medium">
+          <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground/50">
             Preview em tempo real
           </p>
 
-          <div className="bg-muted/20 border border-border/30 rounded-xl p-4 space-y-3">
+          <div className="space-y-3 rounded-xl border border-border/30 bg-muted/20 p-4">
             {/* Row 1: Buttons */}
             <div className="flex flex-wrap gap-2">
               <button
-                className="bg-primary text-primary-foreground px-4 h-9 text-xs font-medium flex items-center gap-1.5 transition-all"
+                type="button"
+                className="flex h-9 items-center gap-1.5 bg-primary px-4 text-xs font-medium text-primary-foreground transition-all"
                 style={{ borderRadius: r }}
               >
-                <Send className="w-3.5 h-3.5" /> Enviar
+                <Send className="h-3.5 w-3.5" /> Enviar
               </button>
               <button
-                className="bg-secondary text-secondary-foreground px-4 h-9 text-xs font-medium flex items-center gap-1.5 transition-all"
+                type="button"
+                className="flex h-9 items-center gap-1.5 bg-secondary px-4 text-xs font-medium text-secondary-foreground transition-all"
                 style={{ borderRadius: r }}
               >
-                <Heart className="w-3.5 h-3.5" /> Curtir
+                <Heart className="h-3.5 w-3.5" /> Curtir
               </button>
               <button
-                className="border border-border bg-card text-foreground px-4 h-9 text-xs font-medium flex items-center gap-1.5 transition-all"
+                type="button"
+                className="flex h-9 items-center gap-1.5 border border-border bg-card px-4 text-xs font-medium text-foreground transition-all"
                 style={{ borderRadius: r }}
               >
-                <Settings className="w-3.5 h-3.5" /> Config
+                <Settings className="h-3.5 w-3.5" /> Config
               </button>
               <button
-                className="bg-destructive text-destructive-foreground px-3 h-9 text-xs font-medium transition-all"
+                type="button"
+                className="h-9 bg-destructive px-3 text-xs font-medium text-destructive-foreground transition-all"
                 style={{ borderRadius: r }}
               >
                 Excluir
@@ -71,47 +75,47 @@ export function BorderRadiusControl({ borderRadius, onChange }: BorderRadiusCont
             </div>
 
             {/* Row 2: Input + Badge */}
-            <div className="flex gap-2 items-center">
+            <div className="flex items-center gap-2">
               <div
-                className="flex-1 h-9 bg-background border border-border flex items-center px-3 gap-2 transition-all"
+                className="flex h-9 flex-1 items-center gap-2 border border-border bg-background px-3 transition-all"
                 style={{ borderRadius: r }}
               >
-                <Search className="w-3.5 h-3.5 text-muted-foreground/50" />
+                <Search className="h-3.5 w-3.5 text-muted-foreground/50" />
                 <span className="text-xs text-muted-foreground/40">Buscar...</span>
               </div>
               <div
-                className="bg-primary/15 text-primary px-2.5 h-6 text-[10px] font-semibold flex items-center gap-1 transition-all"
+                className="flex h-6 items-center gap-1 bg-primary/15 px-2.5 text-[10px] font-semibold text-primary transition-all"
                 style={{ borderRadius: r }}
               >
-                <Star className="w-3 h-3" /> Novo
+                <Star className="h-3 w-3" /> Novo
               </div>
               <div
-                className="bg-accent text-accent-foreground px-2.5 h-6 text-[10px] font-medium flex items-center gap-1 transition-all"
+                className="flex h-6 items-center gap-1 bg-accent px-2.5 text-[10px] font-medium text-accent-foreground transition-all"
                 style={{ borderRadius: r }}
               >
-                <Bell className="w-3 h-3" /> 3
+                <Bell className="h-3 w-3" /> 3
               </div>
             </div>
 
             {/* Row 3: Mini card */}
             <div
-              className="bg-card border border-border p-3 transition-all"
+              className="border border-border bg-card p-3 transition-all"
               style={{ borderRadius: r }}
             >
               <div className="flex items-center gap-2">
                 <div
-                  className="w-8 h-8 bg-primary/20 flex items-center justify-center text-primary text-xs font-bold transition-all"
+                  className="flex h-8 w-8 items-center justify-center bg-primary/20 text-xs font-bold text-primary transition-all"
                   style={{ borderRadius: r }}
                 >
                   JD
                 </div>
-                <div className="flex-1 min-w-0">
+                <div className="min-w-0 flex-1">
                   <p className="text-xs font-medium text-foreground">João da Silva</p>
-                  <p className="text-[10px] text-muted-foreground truncate">Última mensagem enviada há 5 min</p>
+                  <p className="truncate text-[10px] text-muted-foreground">
+                    Última mensagem enviada há 5 min
+                  </p>
                 </div>
-                <div
-                  className="w-2 h-2 bg-primary rounded-full shrink-0"
-                />
+                <div className="h-2 w-2 shrink-0 rounded-full bg-primary" />
               </div>
             </div>
           </div>

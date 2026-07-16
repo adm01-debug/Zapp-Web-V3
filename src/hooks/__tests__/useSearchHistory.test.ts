@@ -123,9 +123,10 @@ describe('useSearchHistory', () => {
   });
 
   it('loads history from localStorage on mount', () => {
-    localStorage.setItem('global-search-history', JSON.stringify([
-      { query: 'loaded', timestamp: Date.now(), resultCount: 7 },
-    ]));
+    localStorage.setItem(
+      'global-search-history',
+      JSON.stringify([{ query: 'loaded', timestamp: Date.now(), resultCount: 7 }])
+    );
 
     const { result } = renderHook(() => useSearchHistory());
     expect(result.current.history).toHaveLength(1);

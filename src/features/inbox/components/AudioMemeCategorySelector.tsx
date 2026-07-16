@@ -21,6 +21,7 @@ export function AudioMemeCategorySelector({
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <button
+          type="button"
           className={cn(
             'flex items-center gap-1 rounded-md border border-border/50 transition-colors hover:bg-muted/60',
             size === 'xs' ? 'px-1.5 py-0.5 text-[10px]' : 'px-2 py-1 text-xs'
@@ -47,6 +48,7 @@ export function AudioMemeCategorySelector({
             const isActive = cat === value;
             return (
               <button
+                type="button"
                 key={cat}
                 onClick={(e) => {
                   e.stopPropagation();

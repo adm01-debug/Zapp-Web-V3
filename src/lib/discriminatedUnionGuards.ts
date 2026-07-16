@@ -40,7 +40,9 @@ export function createDiscriminator<
 ): (value: unknown) => value is T & { [K in Discriminator]: Value } {
   return (value: unknown): value is T & { [K in Discriminator]: Value } => {
     if (!value || typeof value !== 'object') return false;
-    const discriminatorValue = (value as any)?.[discriminator];
+    const discriminatorValue = (value as Record<PropertyKey, unknown>)[
+      discriminator as PropertyKey
+    ];
     return values.includes(discriminatorValue);
   };
 }
@@ -248,7 +250,7 @@ export function exhaustive<T extends { type: string }, K extends T['type']>(
     log.error('Unhandled discriminated union case:', unhandledType);
     throw new Error(`Unhandled case: ${String(unhandledType)}`);
   }
-  return handler(value as any);
+  return handler(value as unknown as Extract<T, { type: K }>);
 }
 
 /**
@@ -270,7 +272,7 @@ export function unwrap<T extends { kind: string }, Kind extends T['kind']>(
     log.error('Unhandled discriminated union case:', unhandledKind);
     throw new Error(`Unhandled case: ${String(unhandledKind)}`);
   }
-  return handler(value as any);
+  return handler(value as unknown as Extract<T, { kind: Kind }>);
 }
 
 /**
@@ -286,7 +288,7 @@ export function validateDiscriminator<T extends Record<string, any>>(
     return false;
   }
 
-  const actualType = (value as any)[discriminatorKey];
+  const actualType = (value as Record<string, unknown>)[discriminatorKey];
   if (actualType !== expectedType) {
     log.warn(`Discriminator mismatch: expected ${expectedType}, got ${actualType}`);
     return false;
@@ -312,7 +314,7 @@ export function match<
 ): Result {
   const handler = patterns[value[discriminator]];
   if (handler) {
-    return (handler as any)(value);
+    return (handler as unknown as (v: T) => Result)(value);
   }
   return defaultPattern(value);
 }

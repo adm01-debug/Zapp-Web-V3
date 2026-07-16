@@ -59,8 +59,8 @@ Deno.serve(async (req) => {
       });
     }
     const supabase = createClient(
-      (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'))!, (Deno.env.get('SELFHOSTED_SUPABASE_ANON_KEY', { db: { schema: "zapp" } }) ?? Deno.env.get('SUPABASE_ANON_KEY'))!,
-      { global: { headers: { Authorization: authHeader } } },
+      (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'))!, (Deno.env.get('SELFHOSTED_SUPABASE_ANON_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY'))!,
+      { global: { headers: { Authorization: authHeader } }, db: { schema: "zapp" } },
     );
     const token = authHeader.replace('Bearer ', '');
     const { data: claims, error: claimsErr } = await supabase.auth.getClaims(token);
@@ -113,6 +113,7 @@ Deno.serve(async (req) => {
       });
     }
     const ext = createClient(extUrl, extKey, {
+      db: { schema: 'evo' },
       auth: { persistSession: false, autoRefreshToken: false },
     });
 

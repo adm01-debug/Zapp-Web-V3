@@ -172,6 +172,7 @@ export function MessageHoverToolbar({
         <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
           <DropdownMenuTrigger asChild>
             <button
+              type="button"
               className="p-2 text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
               title="Mais opções"
             >
@@ -260,6 +261,7 @@ function ToolbarButton({
 }) {
   return (
     <button
+      type="button"
       onClick={onClick}
       title={title}
       className="p-2 text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"

@@ -94,9 +94,7 @@ describe('usePullToRefresh — disabled', () => {
 describe('usePullToRefresh — touchStart', () => {
   it('does not activate pulling when container.scrollTop > 0', async () => {
     const onRefresh = vi.fn().mockResolvedValue(undefined);
-    const { result } = renderHook(() =>
-      usePullToRefresh({ onRefresh, threshold: 80 })
-    );
+    const { result } = renderHook(() => usePullToRefresh({ onRefresh, threshold: 80 }));
     // Attach container with scrollTop=100 (user has scrolled down)
     result.current.containerRef.current = { scrollTop: 100 } as HTMLDivElement;
 
@@ -183,9 +181,15 @@ describe('usePullToRefresh — touchEnd callbacks', () => {
 
     // Each step runs in its own act so React re-renders between calls,
     // ensuring handleTouchEnd captures the latest pullDistance from its closure.
-    act(() => { result.current.handlers.onTouchStart(touchEvent(0)); });
-    act(() => { result.current.handlers.onTouchMove(touchEvent(200)); }); // distance=100
-    await act(async () => { await result.current.handlers.onTouchEnd(); });
+    act(() => {
+      result.current.handlers.onTouchStart(touchEvent(0));
+    });
+    act(() => {
+      result.current.handlers.onTouchMove(touchEvent(200));
+    }); // distance=100
+    await act(async () => {
+      await result.current.handlers.onTouchEnd();
+    });
 
     expect(onRefresh).toHaveBeenCalledTimes(1);
   });
@@ -194,9 +198,15 @@ describe('usePullToRefresh — touchEnd callbacks', () => {
     const onRefresh = vi.fn().mockResolvedValue(undefined);
     const { result } = mountHookWithContainer({ onRefresh, threshold: 80 });
 
-    act(() => { result.current.handlers.onTouchStart(touchEvent(0)); });
-    act(() => { result.current.handlers.onTouchMove(touchEvent(50)); }); // distance=25
-    await act(async () => { await result.current.handlers.onTouchEnd(); });
+    act(() => {
+      result.current.handlers.onTouchStart(touchEvent(0));
+    });
+    act(() => {
+      result.current.handlers.onTouchMove(touchEvent(50));
+    }); // distance=25
+    await act(async () => {
+      await result.current.handlers.onTouchEnd();
+    });
 
     expect(onRefresh).not.toHaveBeenCalled();
   });
@@ -205,9 +215,15 @@ describe('usePullToRefresh — touchEnd callbacks', () => {
     const onRefresh = vi.fn().mockResolvedValue(undefined);
     const { result } = mountHookWithContainer({ onRefresh, threshold: 80 });
 
-    act(() => { result.current.handlers.onTouchStart(touchEvent(0)); });
-    act(() => { result.current.handlers.onTouchMove(touchEvent(50)); });
-    await act(async () => { await result.current.handlers.onTouchEnd(); });
+    act(() => {
+      result.current.handlers.onTouchStart(touchEvent(0));
+    });
+    act(() => {
+      result.current.handlers.onTouchMove(touchEvent(50));
+    });
+    await act(async () => {
+      await result.current.handlers.onTouchEnd();
+    });
 
     expect(result.current.pullDistance).toBe(0);
     expect(result.current.isRefreshing).toBe(false);
@@ -217,9 +233,15 @@ describe('usePullToRefresh — touchEnd callbacks', () => {
     const onRefresh = vi.fn().mockResolvedValue(undefined);
     const { result } = mountHookWithContainer({ onRefresh, threshold: 80 });
 
-    act(() => { result.current.handlers.onTouchStart(touchEvent(0)); });
-    act(() => { result.current.handlers.onTouchMove(touchEvent(200)); });
-    await act(async () => { await result.current.handlers.onTouchEnd(); });
+    act(() => {
+      result.current.handlers.onTouchStart(touchEvent(0));
+    });
+    act(() => {
+      result.current.handlers.onTouchMove(touchEvent(200));
+    });
+    await act(async () => {
+      await result.current.handlers.onTouchEnd();
+    });
 
     expect(result.current.isRefreshing).toBe(false);
     expect(result.current.pullDistance).toBe(0);

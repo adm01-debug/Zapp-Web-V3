@@ -27,7 +27,7 @@ scrape_configs:
       credentials: ${PROXY_METRICS_TOKEN}
     static_configs:
       - targets:
-          - tdprnylgyrogbbhgdoik.supabase.co
+          - supabase.atomicabr.com.br
         labels:
           service: external-db-proxy
           env: prod

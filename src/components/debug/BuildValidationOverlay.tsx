@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useValidation } from '@/components/providers/ValidationProvider';
 import { validationLogger } from '@/utils/validationLogger';
@@ -12,10 +11,10 @@ export const BuildValidationOverlay: React.FC = () => {
   const { status, lastError, generateEvidence, runProactiveChecks } = useValidation();
   const [isOpen, setIsOpen] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
-  
+
   // Only show in development or if explicitly requested
   const isDev = import.meta.env.DEV || window.location.search.includes('debug=true');
-  
+
   if (!isDev) return null;
 
   const events = validationLogger.getEvents();
@@ -29,39 +28,57 @@ export const BuildValidationOverlay: React.FC = () => {
   return (
     <div className="fixed bottom-4 right-4 z-[9999] flex flex-col items-end gap-2">
       {isOpen && (
-        <div className="w-80 max-h-[500px] bg-background border rounded-lg shadow-xl flex flex-col overflow-hidden animate-in slide-in-from-bottom-2">
-          <div className="p-3 border-b bg-muted/50 flex items-center justify-between">
-            <div className="flex items-center gap-2 font-semibold text-sm">
-              <Shield className={cn("w-4 h-4", status === 'healthy' ? "text-green-500" : "text-red-500")} />
+        <div className="flex max-h-[500px] w-80 flex-col overflow-hidden rounded-lg border bg-background shadow-xl animate-in slide-in-from-bottom-2">
+          <div className="flex items-center justify-between border-b bg-muted/50 p-3">
+            <div className="flex items-center gap-2 text-sm font-semibold">
+              <Shield
+                className={cn(
+                  'h-4 w-4',
+                  status === 'healthy' ? 'text-success' : 'text-destructive'
+                )}
+              />
               Build Validation Checklist
             </div>
-            <button onClick={() => setIsOpen(false)} className="text-muted-foreground hover:text-foreground" aria-label="Fechar validação de build">
-              <X className="w-4 h-4" />
+            <button
+              type="button"
+              onClick={() => setIsOpen(false)}
+              className="text-muted-foreground hover:text-foreground"
+              aria-label="Fechar validação de build"
+            >
+              <X className="h-4 w-4" />
             </button>
           </div>
-          
+
           <ScrollArea className="flex-1 p-3">
             <div className="space-y-4">
               <div className="space-y-2">
-                <div className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Health Status</div>
+                <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                  Health Status
+                </div>
                 <div className="flex flex-col gap-2">
                   <div className="flex items-center gap-2">
                     {status === 'healthy' ? (
-                      <Badge variant="secondary" className="bg-green-500/10 text-green-500 border-green-500/20 gap-1">
-                        <CheckCircle className="w-3 h-3" /> System Operational
+                      <Badge
+                        variant="secondary"
+                        className="gap-1 border-success/20 bg-success/10 text-success"
+                      >
+                        <CheckCircle className="h-3 w-3" /> System Operational
                       </Badge>
                     ) : status === 'warning' ? (
-                      <Badge variant="secondary" className="bg-yellow-500/10 text-yellow-500 border-yellow-500/20 gap-1">
-                        <Shield className="w-3 h-3" /> Minor Issues
+                      <Badge
+                        variant="secondary"
+                        className="gap-1 border-warning/20 bg-warning/10 text-warning"
+                      >
+                        <Shield className="h-3 w-3" /> Minor Issues
                       </Badge>
                     ) : (
                       <Badge variant="destructive" className="gap-1">
-                        <AlertTriangle className="w-3 h-3" /> Critical Failures
+                        <AlertTriangle className="h-3 w-3" /> Critical Failures
                       </Badge>
                     )}
                   </div>
                   {lastError && (
-                    <div className="text-[10px] text-destructive bg-destructive/10 p-2 rounded border border-destructive/20 font-mono break-words">
+                    <div className="break-words rounded border border-destructive/20 bg-destructive/10 p-2 font-mono text-[10px] text-destructive">
                       {lastError}
                     </div>
                   )}
@@ -69,28 +86,40 @@ export const BuildValidationOverlay: React.FC = () => {
               </div>
 
               <div className="space-y-2">
-                <div className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Live Activity Log</div>
+                <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                  Live Activity Log
+                </div>
                 <div className="space-y-1">
                   {events.length === 0 ? (
-                    <div className="text-xs text-muted-foreground italic">No events logged yet.</div>
+                    <div className="text-xs italic text-muted-foreground">
+                      No events logged yet.
+                    </div>
                   ) : (
                     events.slice(0, 15).map((event) => (
-                      <div key={event.timestamp} className="text-[10px] p-1.5 rounded bg-muted/30 flex flex-col gap-0.5 border border-transparent hover:border-border">
+                      <div
+                        key={event.timestamp}
+                        className="flex flex-col gap-0.5 rounded border border-transparent bg-muted/30 p-1.5 text-[10px] hover:border-border"
+                      >
                         <div className="flex items-center justify-between">
-                          <span className={cn(
-                            "font-bold uppercase px-1 rounded",
-                            event.type === 'error' ? "text-red-500 bg-red-500/10" :
-                            event.type === 'network' ? "text-yellow-500 bg-yellow-500/10" :
-                            event.type === 'render' ? "text-green-500 bg-green-500/10" :
-                            "text-blue-500 bg-blue-500/10"
-                          )}>
+                          <span
+                            className={cn(
+                              'rounded px-1 font-bold uppercase',
+                              event.type === 'error'
+                                ? 'bg-destructive/10 text-destructive'
+                                : event.type === 'network'
+                                  ? 'bg-warning/10 text-warning'
+                                  : event.type === 'render'
+                                    ? 'bg-success/10 text-success'
+                                    : 'bg-primary/10 text-primary'
+                            )}
+                          >
                             {event.type}
                           </span>
                           <span className="text-muted-foreground">
                             {new Date(event.timestamp).toLocaleTimeString()}
                           </span>
                         </div>
-                        <div className="truncate text-foreground font-medium" title={event.message}>
+                        <div className="truncate font-medium text-foreground" title={event.message}>
                           {event.message}
                         </div>
                       </div>
@@ -101,32 +130,45 @@ export const BuildValidationOverlay: React.FC = () => {
             </div>
           </ScrollArea>
 
-          <div className="p-3 border-t bg-muted/20 flex flex-col gap-2">
-            <Button size="sm" variant="outline" className="w-full text-xs gap-1.5 h-8" onClick={handleRunChecks} disabled={isVerifying}>
-              <RefreshCw className={cn("w-3 h-3", isVerifying && "animate-spin")} />
+          <div className="flex flex-col gap-2 border-t bg-muted/20 p-3">
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-8 w-full gap-1.5 text-xs"
+              onClick={handleRunChecks}
+              disabled={isVerifying}
+            >
+              <RefreshCw className={cn('h-3 w-3', isVerifying && 'animate-spin')} />
               {isVerifying ? 'Running Tests...' : 'Validate System Now'}
             </Button>
-            <Button size="sm" className="w-full text-xs gap-1.5 h-8" onClick={generateEvidence}>
-              <FileText className="w-3 h-3" /> Download Evidence Report
+            <Button size="sm" className="h-8 w-full gap-1.5 text-xs" onClick={generateEvidence}>
+              <FileText className="h-3 w-3" /> Download Evidence Report
             </Button>
           </div>
         </div>
       )}
 
       <button
+        type="button"
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
-          "w-12 h-12 rounded-full flex items-center justify-center shadow-2xl transition-all hover:scale-110 active:scale-95 border-2",
-          status === 'healthy' ? "bg-green-600 text-white border-green-400" : 
-          status === 'warning' ? "bg-yellow-500 text-white border-yellow-300" :
-          "bg-red-600 text-white border-red-400 animate-pulse"
+          'flex h-12 w-12 items-center justify-center rounded-full border-2 shadow-2xl transition-all hover:scale-110 active:scale-95',
+          status === 'healthy'
+            ? 'border-success bg-success text-success-foreground'
+            : status === 'warning'
+              ? 'border-warning bg-warning text-warning-foreground'
+              : 'animate-pulse border-destructive bg-destructive text-destructive-foreground'
         )}
         title="Post-Build Validation Status"
         aria-label={`Status de validação: ${status === 'healthy' ? 'operacional' : status === 'warning' ? 'alertas' : 'crítico'}`}
       >
-        {status === 'healthy' ? <Shield className="w-6 h-6" /> : 
-         status === 'warning' ? <AlertTriangle className="w-6 h-6" /> :
-         <Shield className="w-6 h-6" />}
+        {status === 'healthy' ? (
+          <Shield className="h-6 w-6" />
+        ) : status === 'warning' ? (
+          <AlertTriangle className="h-6 w-6" />
+        ) : (
+          <Shield className="h-6 w-6" />
+        )}
       </button>
     </div>
   );

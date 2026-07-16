@@ -9,6 +9,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { SectionErrorBoundary } from '@/components/ui/section-error-boundary';
 import { ExportButton } from './ExportButton';
 import { ConversationHeatmap } from './ConversationHeatmap';
 import { PeriodComparison } from './PeriodComparison';
@@ -337,19 +338,27 @@ export function AdvancedReportsView() {
         </TabsContent>
 
         <TabsContent value="heatmap" className="space-y-4">
-          <ConversationHeatmap />
+          <SectionErrorBoundary sectionName="Mapa de calor">
+            <ConversationHeatmap />
+          </SectionErrorBoundary>
         </TabsContent>
 
         <TabsContent value="comparison" className="space-y-4">
-          <PeriodComparison />
+          <SectionErrorBoundary sectionName="Comparação de períodos">
+            <PeriodComparison />
+          </SectionErrorBoundary>
         </TabsContent>
 
         <TabsContent value="forecast" className="space-y-4">
-          <DemandForecast />
+          <SectionErrorBoundary sectionName="Previsão de demanda">
+            <DemandForecast />
+          </SectionErrorBoundary>
         </TabsContent>
 
         <TabsContent value="abandonment" className="space-y-4">
-          <AbandonmentRate />
+          <SectionErrorBoundary sectionName="Taxa de abandono">
+            <AbandonmentRate />
+          </SectionErrorBoundary>
         </TabsContent>
       </Tabs>
     </div>

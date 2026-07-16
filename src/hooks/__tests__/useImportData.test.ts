@@ -106,7 +106,7 @@ describe('useImportData', () => {
       { name: 'Jane', email: 'jane@test.com' },
     ];
 
-    const results = rows.map(r => testSchema.safeParse(r));
+    const results = rows.map((r) => testSchema.safeParse(r));
     expect(results[0].success).toBe(true);
     expect(results[1].success).toBe(false);
     expect(results[2].success).toBe(true);

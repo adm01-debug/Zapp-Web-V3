@@ -29,7 +29,8 @@ export function useZappMessages({ remoteJid, instance = ZAPPWEB_INSTANCE, limit 
     setLoading(true);
     try {
       const { data, error: err } = await zappSupabase
-        .from('evolution_messages')
+        .schema('evo')
+        .from('evolution_messages_wpp2')
         .select(
           `id, message_id, remote_jid, from_me, message_type, content, media_url,
            media_mimetype, media_type, caption, quoted_message_id, status,
@@ -63,7 +64,9 @@ export function useZappMessages({ remoteJid, instance = ZAPPWEB_INSTANCE, limit 
         'postgres_changes',
         {
           event: 'INSERT',
-          schema: 'evo', // FATOR X v6.2: tabela-fonte
+          schema: 'evo',
+          // publish_via_partition_root=true: events are published from the root
+          // table, never from partitions. evolution_messages_wpp2 would be silent.
           table: 'evolution_messages',
           filter: `instance_name=eq.${instance}`,
         },
@@ -82,7 +85,8 @@ export function useZappMessages({ remoteJid, instance = ZAPPWEB_INSTANCE, limit 
         'postgres_changes',
         {
           event: 'UPDATE',
-          schema: 'evo', // FATOR X v6.2: tabela-fonte
+          schema: 'evo',
+          // publish_via_partition_root=true: use root table for realtime
           table: 'evolution_messages',
           filter: `instance_name=eq.${instance}`,
         },
@@ -100,7 +104,10 @@ export function useZappMessages({ remoteJid, instance = ZAPPWEB_INSTANCE, limit 
       .subscribe();
     channelRef.current = ch;
     return () => {
-      if (channelRef.current) channelRef.current.unsubscribe();
+      if (channelRef.current) {
+        channelRef.current.unsubscribe();
+        zappSupabase.removeChannel(channelRef.current);
+      }
     };
   }, [remoteJid, instance, fetchAll]);
 

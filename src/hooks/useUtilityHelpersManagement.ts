@@ -1,6 +1,7 @@
 // Consolidated Utility & Helper Hooks Management Module (ETAPA 49 consolidation)
 import { useEffect, useRef, useState, useCallback, type RefObject } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '@/services/api/queryKeys';
 import { toast } from 'sonner';
 
 // ===== Debounce Management =====
@@ -12,9 +13,10 @@ interface UseDebounceOptions {
 /** Debounces a callback function with optional leading and trailing calls. */
 export function useDebounceManagement<T extends (...args: any[]) => any>(
   callback: T,
-  optionsOrDelay: UseDebounceOptions | number = {},
+  optionsOrDelay: UseDebounceOptions | number = {}
 ): T {
-  const options: UseDebounceOptions = typeof optionsOrDelay === 'number' ? { delay: optionsOrDelay } : optionsOrDelay;
+  const options: UseDebounceOptions =
+    typeof optionsOrDelay === 'number' ? { delay: optionsOrDelay } : optionsOrDelay;
   const { delay = 300, leading = false } = options;
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const callbackRef = useRef(callback);
@@ -50,7 +52,7 @@ export function useDebounceManagement<T extends (...args: any[]) => any>(
         hasTrailingRef.current = false;
       }, delay);
     },
-    [delay, leading],
+    [delay, leading]
   ) as T;
 
   return debouncedFn;
@@ -93,7 +95,7 @@ export interface UseInViewportOptions {
 /** Detects when an element enters the viewport using Intersection Observer API. */
 export function useInViewportManagement(
   ref: RefObject<Element | null>,
-  options: UseInViewportOptions = {},
+  options: UseInViewportOptions = {}
 ): boolean {
   const { rootMargin = '200px', threshold = 0, keepVisibleMs = 1500, disabled = false } = options;
 
@@ -129,7 +131,7 @@ export function useInViewportManagement(
           }
         }
       },
-      { rootMargin, threshold },
+      { rootMargin, threshold }
     );
 
     observer.observe(el);
@@ -143,17 +145,17 @@ export function useInViewportManagement(
 }
 
 // ===== Prefetch On Hover Management =====
-const VIEW_QUERY_KEYS: Record<string, string[][]> = {
-  inbox: [['contacts'], ['messages']],
-  contacts: [['contacts']],
-  dashboard: [['dashboard-stats'], ['contacts']],
+const VIEW_QUERY_KEYS = {
+  inbox: [queryKeys.contacts.all(), queryKeys.messages.all()],
+  contacts: [queryKeys.contacts.all()],
+  dashboard: [queryKeys.analytics.dashboardStats(), queryKeys.contacts.all()],
   campaigns: [['campaigns']],
-  'knowledge-base': [['knowledge-base-articles']],
+  'knowledge-base': [queryKeys.knowledgeBase.articles()],
   automations: [['automations']],
-  agents: [['team-members']],
-  queues: [['queues']],
+  agents: [queryKeys.users.teamMembers()],
+  queues: [queryKeys.queues.all()],
   tags: [['tags']],
-};
+} as const;
 
 /** Provides prefetching of query data when hovering over view navigation elements. */
 export function usePrefetchOnHoverManagement() {
@@ -171,7 +173,7 @@ export function usePrefetchOnHoverManagement() {
         });
       });
     },
-    [queryClient],
+    [queryClient]
   );
 
   return { prefetch };
@@ -181,9 +183,12 @@ export function usePrefetchOnHoverManagement() {
 /** Returns a ref that tracks whether the component is currently mounted. */
 export function useMountedRefManagement() {
   const mountedRef = useRef(true);
-  useEffect(() => () => {
-    mountedRef.current = false;
-  }, []);
+  useEffect(
+    () => () => {
+      mountedRef.current = false;
+    },
+    []
+  );
   return mountedRef;
 }
 
@@ -225,9 +230,15 @@ export function useUndoableActionManagement() {
     };
   }, []);
 
-  const execute = useCallback(async <T,>(options: UndoableActionOptions<T>) => {
-    const { undoDuration = 5000, successMessage, undoMessage = 'Ação desfeita', action, undoAction, onCommit } =
-      options;
+  const execute = useCallback(async <T>(options: UndoableActionOptions<T>) => {
+    const {
+      undoDuration = 5000,
+      successMessage,
+      undoMessage = 'Ação desfeita',
+      action,
+      undoAction,
+      onCommit,
+    } = options;
 
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
     if (intervalRef.current) clearInterval(intervalRef.current);
@@ -336,7 +347,11 @@ interface UsePullToRefreshOptions {
 }
 
 /** Implements pull-to-refresh gesture handling with customizable threshold. */
-export function usePullToRefreshManagement({ onRefresh, threshold = 80, disabled = false }: UsePullToRefreshOptions) {
+export function usePullToRefreshManagement({
+  onRefresh,
+  threshold = 80,
+  disabled = false,
+}: UsePullToRefreshOptions) {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [pullDistance, setPullDistance] = useState(0);
   const startY = useRef(0);
@@ -352,7 +367,7 @@ export function usePullToRefreshManagement({ onRefresh, threshold = 80, disabled
         pulling.current = true;
       }
     },
-    [disabled, isRefreshing],
+    [disabled, isRefreshing]
   );
 
   const handleTouchMove = useCallback(
@@ -363,7 +378,7 @@ export function usePullToRefreshManagement({ onRefresh, threshold = 80, disabled
         setPullDistance(Math.min(delta * 0.5, threshold * 1.5));
       }
     },
-    [disabled, isRefreshing, threshold],
+    [disabled, isRefreshing, threshold]
   );
 
   const handleTouchEnd = useCallback(async () => {

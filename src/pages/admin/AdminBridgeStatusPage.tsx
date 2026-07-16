@@ -191,7 +191,7 @@ export default function BridgeStatusPage() {
 
     // Configura Subscriptions Real-time
     const trafficSub = supabase
-      .channel('traffic-changes')
+      .channel('traffic-changes-bridge-page')
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'zapp', table: 'provider_message_log' },
@@ -206,7 +206,7 @@ export default function BridgeStatusPage() {
       .subscribe();
 
     const alertsSub = supabase
-      .channel('health-incidents')
+      .channel('health-incidents-bridge-page')
       .on(
         'postgres_changes',
         { event: '*', schema: 'zapp', table: 'system_health_incidents' },
@@ -232,7 +232,9 @@ export default function BridgeStatusPage() {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
       trafficSub.unsubscribe();
+      supabase.removeChannel(trafficSub);
       alertsSub.unsubscribe();
+      supabase.removeChannel(alertsSub);
     };
   }, [fetchIncidents, checkHealth, autoRefresh, refreshInterval]);
 

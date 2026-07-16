@@ -1,6 +1,7 @@
 // Consolidated Analytics & Monitoring Management Module (ETAPA 39)
 // Consolidates: usePerformanceMonitoring, useErrorMonitoring, useRealtimeMonitor, useLatestAnalysis, useMessageAttempts
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useMountedRef } from '@/hooks/useMountedRef';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { log } from '@/lib/logger';
@@ -161,6 +162,7 @@ export function useErrorMonitoringManagement() {
 export function useLatestAnalysisManagement(timeWindow: number = 24) {
   const [analysis, setAnalysis] = useState<Analysis | null>(null);
   const [loading, setLoading] = useState(true);
+  const mounted = useMountedRef();
 
   useEffect(() => {
     const fetchAnalysis = async () => {
@@ -170,48 +172,24 @@ export function useLatestAnalysisManagement(timeWindow: number = 24) {
         });
 
         if (err) throw err;
-        setAnalysis(data);
+        if (mounted.current) setAnalysis(data);
       } catch (err) {
         log.error('Error fetching analysis:', err);
       } finally {
-        setLoading(false);
+        if (mounted.current) setLoading(false);
       }
     };
 
     fetchAnalysis();
-  }, [timeWindow]);
+  }, [timeWindow, mounted]);
 
   return { analysis, loading };
 }
 
-/** DTO tipado de uma tentativa de envio de mensagem (tabela `message_attempts`). */
-export interface MessageAttempt {
-  id: string;
-  message_id: string;
-  attempt_number: number | null;
-  status: string | null;
-  error_message: string | null;
-  created_at: string | null;
-}
-
-/** Estreita um registro `unknown` do Supabase para `MessageAttempt` validando os campos. */
-function toMessageAttempt(row: unknown): MessageAttempt | null {
-  if (!row || typeof row !== 'object') return null;
-  const r = row as Record<string, unknown>;
-  if (typeof r.id !== 'string') return null;
-  return {
-    id: r.id,
-    message_id: typeof r.message_id === 'string' ? r.message_id : '',
-    attempt_number: typeof r.attempt_number === 'number' ? r.attempt_number : null,
-    status: typeof r.status === 'string' ? r.status : null,
-    error_message: typeof r.error_message === 'string' ? r.error_message : null,
-    created_at: typeof r.created_at === 'string' ? r.created_at : null,
-  };
-}
-
 export function useMessageAttemptsManagement(messageId: string) {
-  const [attempts, setAttempts] = useState<MessageAttempt[]>([]);
+  const [attempts, setAttempts] = useState<Record<string, unknown>[]>([]);
   const [loading, setLoading] = useState(true);
+  const mounted = useMountedRef();
 
   useEffect(() => {
     if (!messageId) return;
@@ -224,19 +202,16 @@ export function useMessageAttemptsManagement(messageId: string) {
           .eq('message_id', messageId);
 
         if (err) throw err;
-        // Narrowing: valida cada registro antes de expor aos consumidores.
-        setAttempts((Array.isArray(data) ? data : []).map(toMessageAttempt).filter(
-          (a): a is MessageAttempt => a !== null
-        ));
+        if (mounted.current) setAttempts(data || []);
       } catch (err) {
         log.error('Error fetching message attempts:', err);
       } finally {
-        setLoading(false);
+        if (mounted.current) setLoading(false);
       }
     };
 
     fetchAttempts();
-  }, [messageId]);
+  }, [messageId, mounted]);
 
   return { attempts, loading };
 }

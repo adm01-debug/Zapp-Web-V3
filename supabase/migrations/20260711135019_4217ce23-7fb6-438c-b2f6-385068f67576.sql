@@ -60,7 +60,7 @@ DO $cron$
 DECLARE v_url TEXT; v_key TEXT;
 BEGIN
   SELECT current_setting('app.settings.supabase_url', true) INTO v_url;
-  IF v_url IS NULL OR v_url = '' THEN v_url := 'https://uqysyzndkfiwfztbqvsl.supabase.co'; END IF;
+  IF v_url IS NULL OR v_url = '' THEN v_url := 'https://supabase.atomicabr.com.br'; END IF;
 
   PERFORM cron.unschedule('sicoob-outbox-drain') WHERE EXISTS (
     SELECT 1 FROM cron.job WHERE jobname='sicoob-outbox-drain'

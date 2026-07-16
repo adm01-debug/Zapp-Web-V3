@@ -55,6 +55,7 @@ export function TeamChatInputArea({
   onFileSent,
 }: TeamChatInputAreaProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const animTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [showRichToolbar, setShowRichToolbar] = useState(false);
   const [showMarkdownPreview, _setShowMarkdownPreview] = useState(false);
   const [sendAnimation, setSendAnimation] = useState(false);
@@ -68,6 +69,13 @@ export function TeamChatInputArea({
     handleSelect: handleMentionSelect,
     close: closeMention,
   } = useMentions(textareaRef);
+
+  useEffect(
+    () => () => {
+      if (animTimerRef.current) clearTimeout(animTimerRef.current);
+    },
+    []
+  );
 
   // Auto-grow textarea
   useEffect(() => {
@@ -90,7 +98,8 @@ export function TeamChatInputArea({
     draft.clearDraft();
     if (isMobile && navigator.vibrate) navigator.vibrate(50);
     onSend();
-    setTimeout(() => setSendAnimation(false), 400);
+    if (animTimerRef.current) clearTimeout(animTimerRef.current);
+    animTimerRef.current = setTimeout(() => setSendAnimation(false), 400);
   }, [draft.hasText, draft.isOverLimit, isPending, isMobile, onSend, draft.clearDraft]);
 
   const handleVoiceDictation = useCallback(
@@ -193,7 +202,7 @@ export function TeamChatInputArea({
                 size="icon"
                 className={cn(
                   'shrink-0 touch-manipulation text-muted-foreground hover:bg-muted hover:text-foreground',
-                  isMobile ? 'w-10 h-10' : 'w-9 h-9'
+                  isMobile ? 'h-10 w-10' : 'h-9 w-9'
                 )}
                 aria-label="Mais opções"
               >
@@ -271,7 +280,7 @@ export function TeamChatInputArea({
                   size="icon"
                   className={cn(
                     'shrink-0 touch-manipulation rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/25 transition-all hover:bg-primary/90 active:scale-95 disabled:opacity-40',
-                    isMobile ? 'w-11 h-11' : 'w-10 h-10',
+                    isMobile ? 'h-11 w-11' : 'h-10 w-10',
                     sendAnimation && 'motion-safe:animate-pulse'
                   )}
                 >
@@ -292,7 +301,7 @@ export function TeamChatInputArea({
                   size="icon"
                   className={cn(
                     'shrink-0 touch-manipulation rounded-full transition-all active:scale-95',
-                    isMobile ? 'w-11 h-11' : 'w-10 h-10',
+                    isMobile ? 'h-11 w-11' : 'h-10 w-10',
                     isRecordingAudio
                       ? 'bg-destructive text-destructive-foreground shadow-lg shadow-destructive/30'
                       : 'bg-primary text-primary-foreground shadow-lg shadow-primary/30 hover:bg-primary/90'

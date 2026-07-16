@@ -58,6 +58,23 @@ jobs:
           fi
           exit 0
 
+      - name: Schema usage guardrail (zapp/evo)
+        # Falha o build se aparecer .schema('public'), createClient sem schema
+        # zapp/evo, ou URLs *.supabase.co em código de produção.
+        run: node scripts/check-schema-usage.mjs
+
+      - name: Supabase cast safety (SUP-001..006 — blocking on errors)
+        # Falha o build se encontrar (supabase as any) sem // ignore-audit,
+        # (client as any) em Edge Functions, ou outros padrões inseguros de
+        # acesso ao banco. Warnings (SUP-004) são advisory (exit 0).
+        run: node scripts/lint-supabase-casts.mjs
+
+      - name: Schema access simulation (~300 cenários)
+        # Simulação estática de acesso a zapp/evo, Realtime e Edge Functions.
+        # Falha o build se detectar chamadas evo.* sem .schema('evo'), Realtime
+        # postgres_changes sem schema, ou createClient sem db:{schema}.
+        run: node scripts/simulate-schema-access.mjs
+
       - name: Type Check (advisory in CI — private registry unavailable)
         # bun.lock pins @supabase/postgrest-js@2.110.0 to Lovable's private
         # Google Artifact Registry (europe-west4-npm.pkg.dev). GitHub Actions CI
@@ -72,6 +89,45 @@ jobs:
             echo "::warning title=TypeScript (GAR registry mismatch)::TS errors are caused by CI falling back to public npm for @supabase/postgrest-js (Lovable private GAR is unavailable in GitHub Actions). Not a code regression."
           fi
           exit 0
+
+      - name: Cluster typecheck ratchet — blocking (crm-sales, queues, observability)
+        # Bloqueia regressões nos clusters já 100% limpos. Se algum arquivo
+        # listado nesses clusters reintroduzir @ts-nocheck ou erro TS, o job
+        # falha imediatamente (sem continue-on-error).
+        run: |
+          node scripts/check-cluster-typecheck.mjs --cluster crm-sales
+          node scripts/check-cluster-typecheck.mjs --cluster queues
+          node scripts/check-cluster-typecheck.mjs --cluster observability
+
+      - name: Cluster typecheck ratchet — advisory (inbox-core)
+        # Cluster com dívida remanescente conhecida. Reportamos como warning
+        # até a limpeza completa; assim que ficar limpo, movemos para o
+        # bloco blocking acima.
+        run: node scripts/check-cluster-typecheck.mjs --cluster inbox-core
+        continue-on-error: true
+
+      - name: TypeScript Ratchet (blocking)
+        # Portão real de regressão TS. Compara contra
+        # scripts/tsc-error-baseline.json e falha se aparecerem novos erros ou
+        # se um arquivo hoje limpo voltar a errar. `--update` é MANUAL — nunca
+        # roda em PR/push. Use `node scripts/check-tsc-ratchet.mjs --update`
+        # localmente apenas quando o baseline REDUZIR (progresso).
+        run: node scripts/check-tsc-ratchet.mjs
+
+      - name: Supabase types freshness (advisory se secrets ausentes)
+        # Bloqueia deploy se src/integrations/supabase/types.ts estiver
+        # defasado em relação ao schema atual da VPS. Skipa com warning
+        # quando ZAPP_META_URL/ZAPP_META_TOKEN não estão configurados
+        # (ex.: PRs de forks).
+        env:
+          ZAPP_META_URL: ${{ secrets.ZAPP_META_URL }}
+          ZAPP_META_TOKEN: ${{ secrets.ZAPP_META_TOKEN }}
+        run: node scripts/check-types-freshness.mjs
+
+
+
+
+
 
       - name: Unit & Integration Tests (blocking)
         # The OOM was a single infinite-loop test (useMessages, now quarantined)

@@ -102,13 +102,15 @@ async function fetchKnowledgeContext(
  * Supports dual config: SELFHOSTED_SUPABASE_URL takes precedence; falls back to EXTERNAL_SUPABASE_URL.
  * Returns empty array if config missing or fetch fails (graceful degradation for tag recommendations).
  * Used by AI to narrow suggested tags to available taxonomy.
+ *
+ * Uses service role key: evo.evolution_tags RLS allows only `authenticated` and `service_role` —
+ * the anon role has no policy and would always return empty silently.
  */
-async function fetchExternalTags(): Promise<ExtTag[]> {
+async function fetchExternalTags(serviceKey: string): Promise<ExtTag[]> {
   const url = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('EXTERNAL_SUPABASE_URL'));
-  const key = (Deno.env.get('SELFHOSTED_SUPABASE_ANON_KEY') ?? Deno.env.get('EXTERNAL_SUPABASE_ANON_KEY'));
-  if (!url || !key) return [];
+  if (!url || !serviceKey) return [];
   try {
-    const ext = createClient(url, key, { db: { schema: "zapp" } });
+    const ext = createClient(url, serviceKey, { db: { schema: "evo" } });
     const { data, error } = await ext
       .from("evolution_tags")
       .select("id, name, color, description")
@@ -302,7 +304,7 @@ Deno.serve(async (req) => {
       })));
       const [{ snippet: kbSnippet, sources }, tags] = await Promise.all([
         fetchKnowledgeContext(supabase, searchQuery),
-        fetchExternalTags(),
+        fetchExternalTags(SERVICE_KEY),
       ]);
       kbSources = sources;
 

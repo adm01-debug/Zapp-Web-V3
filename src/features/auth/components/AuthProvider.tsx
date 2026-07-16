@@ -211,7 +211,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     return () => {
       profileChannel.unsubscribe();
+      supabase.removeChannel(profileChannel);
       rolesChannel.unsubscribe();
+      supabase.removeChannel(rolesChannel);
     };
   }, [user, profile?.id, fetchRoles, fetchPermissions]);
 

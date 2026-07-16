@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { queryKeys } from '@/services/api/queryKeys';
 import { useQuery } from '@tanstack/react-query';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -19,7 +20,10 @@ interface ConnectionRow {
   updated_at: string | null;
 }
 
-const STATUS_META: Record<string, { label: string; tone: 'success' | 'destructive' | 'warning' | 'info'; icon: typeof CheckCircle2 }> = {
+const STATUS_META: Record<
+  string,
+  { label: string; tone: 'success' | 'destructive' | 'warning' | 'info'; icon: typeof CheckCircle2 }
+> = {
   connected: { label: 'Conectado', tone: 'success', icon: CheckCircle2 },
   open: { label: 'Conectado', tone: 'success', icon: CheckCircle2 },
   active: { label: 'Ativo', tone: 'success', icon: CheckCircle2 },
@@ -32,10 +36,14 @@ const STATUS_META: Record<string, { label: string; tone: 'success' | 'destructiv
 
 function toneClasses(tone: 'success' | 'destructive' | 'warning' | 'info'): string {
   switch (tone) {
-    case 'success': return 'bg-primary/10 text-primary border-primary/30';
-    case 'destructive': return 'bg-destructive/10 text-destructive border-destructive/30';
-    case 'warning': return 'bg-warning/10 text-warning-foreground border-warning/30';
-    default: return 'bg-muted text-muted-foreground border-border';
+    case 'success':
+      return 'bg-primary/10 text-primary border-primary/30';
+    case 'destructive':
+      return 'bg-destructive/10 text-destructive border-destructive/30';
+    case 'warning':
+      return 'bg-warning/10 text-warning-foreground border-warning/30';
+    default:
+      return 'bg-muted text-muted-foreground border-border';
   }
 }
 
@@ -43,7 +51,7 @@ const STALE_DISCONNECT_MS = 5 * 60_000;
 
 export function ConnectionsHealthBlock() {
   const { data, isLoading, error } = useQuery({
-    queryKey: ['realtime-monitor', 'connections'],
+    queryKey: queryKeys.adminOps.realtimeMonitorConnections(),
     queryFn: async (): Promise<ConnectionRow[]> => {
       const { data, error } = await supabase
         .from('channel_connections_safe')
@@ -90,11 +98,15 @@ export function ConnectionsHealthBlock() {
       </CardHeader>
       <CardContent>
         {isLoading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-20 w-full" />)}
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <Skeleton key={i} className="h-20 w-full" />
+            ))}
           </div>
         ) : error ? (
-          <p className="text-sm text-destructive">Erro ao carregar conexões: {(error as Error).message}</p>
+          <p className="text-sm text-destructive">
+            Erro ao carregar conexões: {(error as Error).message}
+          </p>
         ) : (data?.length ?? 0) === 0 ? (
           <GenericEmptyState
             icon={Smartphone}
@@ -102,7 +114,7 @@ export function ConnectionsHealthBlock() {
             description="Adicione canais em Conexões para monitorar status aqui."
           />
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {(data ?? []).map((c) => {
               const meta = STATUS_META[(c.status ?? '').toLowerCase()] ?? {
                 label: c.status ?? 'desconhecido',
@@ -114,18 +126,20 @@ export function ConnectionsHealthBlock() {
                 <div
                   key={c.id}
                   className={cn(
-                    'rounded-lg border p-3 flex flex-col gap-2 transition-colors',
-                    toneClasses(meta.tone),
+                    'flex flex-col gap-2 rounded-lg border p-3 transition-colors',
+                    toneClasses(meta.tone)
                   )}
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <span className="font-medium text-sm truncate" title={c.name ?? ''}>
+                    <span className="truncate text-sm font-medium" title={c.name ?? ''}>
                       {c.name ?? '—'}
                     </span>
                     <Icon className="h-4 w-4 shrink-0" />
                   </div>
                   <div className="flex items-center justify-between text-xs">
-                    <span className="uppercase tracking-wide opacity-70">{c.channel_type ?? 'n/a'}</span>
+                    <span className="uppercase tracking-wide opacity-70">
+                      {c.channel_type ?? 'n/a'}
+                    </span>
                     <span>{meta.label}</span>
                   </div>
                   <span className="text-[10px] opacity-60">

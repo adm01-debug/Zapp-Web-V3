@@ -101,6 +101,7 @@ export function MediaItemRow({
       <div className="h-10 w-12 shrink-0">
         {type === 'audio_memes' ? (
           <button
+            type="button"
             onClick={onPreview}
             className={cn(
               'flex h-10 w-10 items-center justify-center rounded-lg transition-colors',
@@ -178,6 +179,7 @@ export function MediaItemRow({
       </div>
       <div className="hidden w-12 text-center sm:block">
         <button
+          type="button"
           onClick={onToggleFavorite}
           aria-label={item.is_favorite ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}
           className="rounded p-1 transition-colors hover:bg-muted/50"

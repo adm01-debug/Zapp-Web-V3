@@ -63,6 +63,7 @@ export function ProductVariantSelector({
               const groupStock = group.variants.reduce((s, v) => s + v.stock_quantity, 0);
               return (
                 <button
+                  type="button"
                   key={group.colorName}
                   onClick={() => {
                     setSelectedColorGroup(group.colorName);

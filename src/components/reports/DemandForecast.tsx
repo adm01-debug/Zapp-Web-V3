@@ -128,7 +128,11 @@ export function DemandForecast() {
           <ResponsiveContainer width="100%" height="100%">
             <ComposedChart data={historicalData}>
               <CartesianGrid strokeDasharray="3 3" className="stroke-border/20" />
-              <XAxis dataKey="day" tick={{ style: { fontSize: '0.75rem' } }} className="fill-muted-foreground" />
+              <XAxis
+                dataKey="day"
+                tick={{ style: { fontSize: '0.75rem' } }}
+                className="fill-muted-foreground"
+              />
               <YAxis tick={{ style: { fontSize: '0.75rem' } }} className="fill-muted-foreground" />
               <Tooltip contentStyle={{ fontSize: 12 }} />
               <Bar

@@ -9,7 +9,8 @@ import { cn } from '@/lib/utils';
 import { getAvatarColor, getInitials } from '@/lib/avatarColors';
 import type { Tables } from '@/integrations/supabase/schema';
 
-type Contact = Pick<Tables<'contacts'>, 'id' | 'name' | 'company' | 'phone' | 'avatar_url'> & Partial<Pick<Tables<'contacts'>, 'lead_origin'>>;
+type Contact = Pick<Tables<'contacts'>, 'id' | 'name' | 'company' | 'phone' | 'avatar_url'> &
+  Partial<Pick<Tables<'contacts'>, 'lead_origin'>>;
 
 interface ContactMapViewProps {
   contacts: Contact[];
@@ -23,30 +24,73 @@ function getRegionFromPhone(phone: string): string {
   if (clean.startsWith('55')) {
     const ddd = clean.substring(2, 4);
     const regions: Record<string, string> = {
-      '11': 'São Paulo - SP', '12': 'Vale do Paraíba - SP', '13': 'Santos - SP',
-      '14': 'Bauru - SP', '15': 'Sorocaba - SP', '16': 'Ribeirão Preto - SP',
-      '17': 'São José do Rio Preto - SP', '18': 'Presidente Prudente - SP', '19': 'Campinas - SP',
-      '21': 'Rio de Janeiro - RJ', '22': 'Norte Fluminense - RJ', '24': 'Sul Fluminense - RJ',
-      '27': 'Vitória - ES', '28': 'Sul do ES', '31': 'Belo Horizonte - MG',
-      '32': 'Juiz de Fora - MG', '33': 'Governador Valadares - MG', '34': 'Uberlândia - MG',
-      '35': 'Poços de Caldas - MG', '37': 'Divinópolis - MG', '38': 'Montes Claros - MG',
-      '41': 'Curitiba - PR', '42': 'Ponta Grossa - PR', '43': 'Londrina - PR',
-      '44': 'Maringá - PR', '45': 'Foz do Iguaçu - PR', '46': 'Pato Branco - PR',
-      '47': 'Joinville - SC', '48': 'Florianópolis - SC', '49': 'Chapecó - SC',
-      '51': 'Porto Alegre - RS', '53': 'Pelotas - RS', '54': 'Caxias do Sul - RS',
+      '11': 'São Paulo - SP',
+      '12': 'Vale do Paraíba - SP',
+      '13': 'Santos - SP',
+      '14': 'Bauru - SP',
+      '15': 'Sorocaba - SP',
+      '16': 'Ribeirão Preto - SP',
+      '17': 'São José do Rio Preto - SP',
+      '18': 'Presidente Prudente - SP',
+      '19': 'Campinas - SP',
+      '21': 'Rio de Janeiro - RJ',
+      '22': 'Norte Fluminense - RJ',
+      '24': 'Sul Fluminense - RJ',
+      '27': 'Vitória - ES',
+      '28': 'Sul do ES',
+      '31': 'Belo Horizonte - MG',
+      '32': 'Juiz de Fora - MG',
+      '33': 'Governador Valadares - MG',
+      '34': 'Uberlândia - MG',
+      '35': 'Poços de Caldas - MG',
+      '37': 'Divinópolis - MG',
+      '38': 'Montes Claros - MG',
+      '41': 'Curitiba - PR',
+      '42': 'Ponta Grossa - PR',
+      '43': 'Londrina - PR',
+      '44': 'Maringá - PR',
+      '45': 'Foz do Iguaçu - PR',
+      '46': 'Pato Branco - PR',
+      '47': 'Joinville - SC',
+      '48': 'Florianópolis - SC',
+      '49': 'Chapecó - SC',
+      '51': 'Porto Alegre - RS',
+      '53': 'Pelotas - RS',
+      '54': 'Caxias do Sul - RS',
       '55': 'Santa Maria - RS',
-      '61': 'Brasília - DF', '62': 'Goiânia - GO', '63': 'Palmas - TO',
-      '64': 'Rio Verde - GO', '65': 'Cuiabá - MT', '66': 'Rondonópolis - MT',
-      '67': 'Campo Grande - MS', '68': 'Rio Branco - AC', '69': 'Porto Velho - RO',
-      '71': 'Salvador - BA', '73': 'Ilhéus - BA', '74': 'Juazeiro - BA',
-      '75': 'Feira de Santana - BA', '77': 'Vitória da Conquista - BA',
+      '61': 'Brasília - DF',
+      '62': 'Goiânia - GO',
+      '63': 'Palmas - TO',
+      '64': 'Rio Verde - GO',
+      '65': 'Cuiabá - MT',
+      '66': 'Rondonópolis - MT',
+      '67': 'Campo Grande - MS',
+      '68': 'Rio Branco - AC',
+      '69': 'Porto Velho - RO',
+      '71': 'Salvador - BA',
+      '73': 'Ilhéus - BA',
+      '74': 'Juazeiro - BA',
+      '75': 'Feira de Santana - BA',
+      '77': 'Vitória da Conquista - BA',
       '79': 'Aracaju - SE',
-      '81': 'Recife - PE', '82': 'Maceió - AL', '83': 'João Pessoa - PB',
-      '84': 'Natal - RN', '85': 'Fortaleza - CE', '86': 'Teresina - PI',
-      '87': 'Petrolina - PE', '88': 'Juazeiro do Norte - CE', '89': 'Picos - PI',
-      '91': 'Belém - PA', '92': 'Manaus - AM', '93': 'Santarém - PA',
-      '94': 'Marabá - PA', '95': 'Boa Vista - RR', '96': 'Macapá - AP',
-      '97': 'Coari - AM', '98': 'São Luís - MA', '99': 'Imperatriz - MA',
+      '81': 'Recife - PE',
+      '82': 'Maceió - AL',
+      '83': 'João Pessoa - PB',
+      '84': 'Natal - RN',
+      '85': 'Fortaleza - CE',
+      '86': 'Teresina - PI',
+      '87': 'Petrolina - PE',
+      '88': 'Juazeiro do Norte - CE',
+      '89': 'Picos - PI',
+      '91': 'Belém - PA',
+      '92': 'Manaus - AM',
+      '93': 'Santarém - PA',
+      '94': 'Marabá - PA',
+      '95': 'Boa Vista - RR',
+      '96': 'Macapá - AP',
+      '97': 'Coari - AM',
+      '98': 'São Luís - MA',
+      '99': 'Imperatriz - MA',
     };
     return regions[ddd] || `DDD ${ddd}`;
   }
@@ -71,14 +115,13 @@ export function ContactMapView({ contacts, onContactClick }: ContactMapViewProps
 
   const regions = useMemo(() => {
     const map = new Map<string, Contact[]>();
-    contacts.forEach(c => {
+    contacts.forEach((c) => {
       const region = getRegionFromPhone(c.phone);
       const group = map.get(region);
       if (group) group.push(c);
       else map.set(region, [c]);
     });
-    return Array.from(map.entries())
-      .sort((a, b) => b[1].length - a[1].length);
+    return Array.from(map.entries()).sort((a, b) => b[1].length - a[1].length);
   }, [contacts]);
 
   const maxCount = regions[0]?.[1].length || 1;
@@ -86,19 +129,19 @@ export function ContactMapView({ contacts, onContactClick }: ContactMapViewProps
   return (
     <div className="space-y-4">
       {/* Summary Bar */}
-      <div className="flex items-center gap-3 flex-wrap">
+      <div className="flex flex-wrap items-center gap-3">
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Globe className="w-4 h-4" />
+          <Globe className="h-4 w-4" />
           <span className="font-medium text-foreground">{regions.length}</span> regiões
         </div>
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Users className="w-4 h-4" />
+          <Users className="h-4 w-4" />
           <span className="font-medium text-foreground">{contacts.length}</span> contatos mapeados
         </div>
       </div>
 
       {/* Region Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
         {regions.map(([region, members], i) => {
           const isExpanded = expandedRegion === region;
           const percentage = Math.round((members.length / maxCount) * 100);
@@ -117,31 +160,49 @@ export function ContactMapView({ contacts, onContactClick }: ContactMapViewProps
                 aria-expanded={isExpanded}
                 aria-label={region}
                 className={cn(
-                  'cursor-pointer transition-all hover:shadow-md border-border/40',
+                  'cursor-pointer border-border/40 transition-all hover:shadow-md',
                   isExpanded && 'ring-1 ring-primary/30'
                 )}
                 onClick={() => setExpandedRegion(isExpanded ? null : region)}
-                onKeyDown={(e) => e.key === 'Enter' && setExpandedRegion(isExpanded ? null : region)}
+                onKeyDown={(e) =>
+                  e.key === 'Enter' && setExpandedRegion(isExpanded ? null : region)
+                }
               >
-                <CardContent className="p-3 space-y-2">
+                <CardContent className="space-y-2 p-3">
                   <div className="flex items-center gap-2">
-                    <div className={cn('w-8 h-8 rounded-lg flex items-center justify-center shrink-0', colorClass.split(' ')[0])}>
-                      <MapPin className={cn('w-4 h-4', colorClass.split(' ')[1])} />
+                    <div
+                      className={cn(
+                        'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg',
+                        colorClass.split(' ')[0]
+                      )}
+                    >
+                      <MapPin className={cn('h-4 w-4', colorClass.split(' ')[1])} />
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-semibold truncate">{region}</p>
-                      <p className="text-[10px] text-muted-foreground">{members.length} contato{members.length !== 1 ? 's' : ''}</p>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-xs font-semibold">{region}</p>
+                      <p className="text-[10px] text-muted-foreground">
+                        {members.length} contato{members.length !== 1 ? 's' : ''}
+                      </p>
                     </div>
-                    <Badge variant="secondary" className="text-[10px] h-5 shrink-0">{percentage}%</Badge>
+                    <Badge variant="secondary" className="h-5 shrink-0 text-[10px]">
+                      {percentage}%
+                    </Badge>
                   </div>
 
                   {/* Bar */}
-                  <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                  <div className="h-1.5 overflow-hidden rounded-full bg-muted">
                     <motion.div
                       initial={{ width: 0 }}
                       animate={{ width: `${percentage}%` }}
                       transition={{ delay: i * 0.04 + 0.2, duration: 0.5 }}
-                      className={cn('h-full rounded-full', colorClass.split(' ')[0].replace('/15', '/40').replace('/90', '/60').replace('/92', '/60'))}
+                      className={cn(
+                        'h-full rounded-full',
+                        colorClass
+                          .split(' ')[0]
+                          .replace('/15', '/40')
+                          .replace('/90', '/60')
+                          .replace('/92', '/60')
+                      )}
                     />
                   </div>
 
@@ -152,31 +213,39 @@ export function ContactMapView({ contacts, onContactClick }: ContactMapViewProps
                       animate={{ height: 'auto', opacity: 1 }}
                       className="overflow-hidden"
                     >
-                      <ScrollArea className="max-h-36 mt-2">
+                      <ScrollArea className="mt-2 max-h-36">
                         <div className="space-y-1">
-                          {members.slice(0, 20).map(c => {
+                          {members.slice(0, 20).map((c) => {
                             const colors = getAvatarColor(c.name);
                             return (
                               <button
+                                type="button"
                                 key={c.id}
-                                onClick={e => { e.stopPropagation(); onContactClick?.(c.id); }}
-                                className="w-full flex items-center gap-2 p-1.5 rounded-md hover:bg-muted/50 transition-colors text-left"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onContactClick?.(c.id);
+                                }}
+                                className="flex w-full items-center gap-2 rounded-md p-1.5 text-left transition-colors hover:bg-muted/50"
                               >
                                 <Avatar className="h-6 w-6">
                                   <AvatarImage src={c.avatar_url || undefined} alt={c.name} />
-                                  <AvatarFallback className={cn(colors.bg, colors.text, 'text-[8px]')}>
+                                  <AvatarFallback
+                                    className={cn(colors.bg, colors.text, 'text-[8px]')}
+                                  >
                                     {getInitials(c.name)}
                                   </AvatarFallback>
                                 </Avatar>
-                                <span className="text-[11px] truncate flex-1">{c.name}</span>
+                                <span className="flex-1 truncate text-[11px]">{c.name}</span>
                                 {c.company && (
-                                  <span className="text-[10px] text-muted-foreground/60 truncate max-w-[80px]">{c.company}</span>
+                                  <span className="max-w-[80px] truncate text-[10px] text-muted-foreground/60">
+                                    {c.company}
+                                  </span>
                                 )}
                               </button>
                             );
                           })}
                           {members.length > 20 && (
-                            <p className="text-[10px] text-muted-foreground/50 text-center py-1">
+                            <p className="py-1 text-center text-[10px] text-muted-foreground/50">
                               +{members.length - 20} mais
                             </p>
                           )}

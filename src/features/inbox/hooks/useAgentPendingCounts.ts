@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { queryKeys } from '@/services/api/queryKeys';
 import { useMemo } from 'react';
 import { dbFrom } from '@/integrations/datasource/db';
 
@@ -13,7 +14,7 @@ import { dbFrom } from '@/integrations/datasource/db';
  */
 export function useAgentPendingCounts() {
   const query = useQuery({
-    queryKey: ['agent-pending-counts'],
+    queryKey: queryKeys.agentGamification.pendingCounts(),
     queryFn: async () => {
       const { data, error } = await dbFrom('messages')
         .select('agent_id, status, sender')
@@ -22,7 +23,11 @@ export function useAgentPendingCounts() {
         .not('agent_id', 'is', null)
         .limit(2000);
       if (error) throw error;
-      return (data ?? []) as Array<{ agent_id: string | null; status: string | null; sender: string }>;
+      return (data ?? []) as Array<{
+        agent_id: string | null;
+        status: string | null;
+        sender: string;
+      }>;
     },
     staleTime: 15_000,
     refetchInterval: 30_000,

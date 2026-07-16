@@ -46,7 +46,7 @@ export function useIncomingCallListener() {
               .from('contacts')
               .select('name, phone')
               .eq('id', call.contact_id as string)
-              .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
+              .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
 
             if (!mountedRef.current) return;
 
@@ -78,6 +78,7 @@ export function useIncomingCallListener() {
 
     return () => {
       channel.unsubscribe();
+      supabase.removeChannel(channel);
     };
   }, [profile?.id]);
 

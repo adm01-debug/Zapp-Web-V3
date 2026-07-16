@@ -12,8 +12,21 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { GenericEmptyState } from '@/components/ui/GenericEmptyState';
 import { useDispatchErrorLogs } from '@/features/admin';
 
@@ -42,7 +55,7 @@ export default function AdminDispatchErrorsHistoryPage() {
       page,
       pageSize: PAGE_SIZE,
     }),
-    [hours, instance, agent, search, page],
+    [hours, instance, agent, search, page]
   );
 
   const { data, isLoading, isFetching, error, refetch } = useDispatchErrorLogs(filters);
@@ -51,28 +64,42 @@ export default function AdminDispatchErrorsHistoryPage() {
   const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <header className="flex items-start justify-between gap-4 flex-wrap">
+    <div className="container mx-auto space-y-6 p-6">
+      <header className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
+          <h1 className="flex items-center gap-2 text-2xl font-bold">
             <ScrollText className="h-6 w-6 text-primary" />
             Histórico de Erros de Dispatch
-            <Badge variant="outline" className="ml-1">{total} registros</Badge>
+            <Badge variant="outline" className="ml-1">
+              {total} registros
+            </Badge>
           </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Trilha imutável de cada falha de envio. Distinta da DLQ operacional —
-            mantém o evento mesmo após retry, sucesso ou abandono.
+          <p className="mt-1 text-sm text-muted-foreground">
+            Trilha imutável de cada falha de envio. Distinta da DLQ operacional — mantém o evento
+            mesmo após retry, sucesso ou abandono.
           </p>
         </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          <Select value={hours} onValueChange={(v) => { setHours(v); setPage(0); }}>
-            <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
+        <div className="flex flex-wrap items-center gap-2">
+          <Select
+            value={hours}
+            onValueChange={(v) => {
+              setHours(v);
+              setPage(0);
+            }}
+          >
+            <SelectTrigger className="w-[180px]">
+              <SelectValue />
+            </SelectTrigger>
             <SelectContent>
-              {RANGE_OPTIONS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+              {RANGE_OPTIONS.map((o) => (
+                <SelectItem key={o.value} value={o.value}>
+                  {o.label}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
           <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
-            <RefreshCw className={`h-4 w-4 mr-2 ${isFetching ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`mr-2 h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
             Atualizar
           </Button>
         </div>
@@ -82,24 +109,36 @@ export default function AdminDispatchErrorsHistoryPage() {
         <CardHeader>
           <CardTitle className="text-sm">Filtros</CardTitle>
         </CardHeader>
-        <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <CardContent className="grid grid-cols-1 gap-3 md:grid-cols-3">
           <Input
+            aria-label="Instância"
             placeholder="Instância (ex.: wpp2)"
             value={instance}
-            onChange={(e) => { setInstance(e.target.value); setPage(0); }}
+            onChange={(e) => {
+              setInstance(e.target.value);
+              setPage(0);
+            }}
           />
           <Input
+            aria-label="E-mail do agente"
             placeholder="E-mail do agente"
             value={agent}
-            onChange={(e) => { setAgent(e.target.value); setPage(0); }}
+            onChange={(e) => {
+              setAgent(e.target.value);
+              setPage(0);
+            }}
           />
           <div className="relative">
-            <Search className="h-4 w-4 absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
+              aria-label="Busca por remote_jid, código ou mensagem"
               className="pl-8"
               placeholder="Busca em remote_jid, código ou mensagem"
               value={search}
-              onChange={(e) => { setSearch(e.target.value); setPage(0); }}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setPage(0);
+              }}
             />
           </div>
         </CardContent>
@@ -108,8 +147,10 @@ export default function AdminDispatchErrorsHistoryPage() {
       <Card>
         <CardContent className="p-0">
           {isLoading ? (
-            <div className="p-6 space-y-2">
-              {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}
+            <div className="space-y-2 p-6">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <Skeleton key={i} className="h-10 w-full" />
+              ))}
             </div>
           ) : error ? (
             <p className="p-6 text-sm text-destructive">Erro: {(error as Error).message}</p>
@@ -136,22 +177,37 @@ export default function AdminDispatchErrorsHistoryPage() {
               <TableBody>
                 {rows.map((r) => (
                   <TableRow key={r.id}>
-                    <TableCell className="text-xs whitespace-nowrap">
+                    <TableCell className="whitespace-nowrap text-xs">
                       {format(new Date(r.occurred_at), 'dd/MM HH:mm:ss', { locale: ptBR })}
                     </TableCell>
-                    <TableCell className="text-xs ">{r.instance_name}</TableCell>
-                    <TableCell className="text-xs  truncate max-w-[160px]" title={r.agent_email ?? ''}>
+                    <TableCell className="text-xs">{r.instance_name}</TableCell>
+                    <TableCell
+                      className="max-w-[160px] truncate text-xs"
+                      title={r.agent_email ?? ''}
+                    >
                       {r.agent_email ?? '—'}
                     </TableCell>
-                    <TableCell className="text-xs  truncate max-w-[160px]" title={r.remote_jid ?? ''}>
+                    <TableCell
+                      className="max-w-[160px] truncate text-xs"
+                      title={r.remote_jid ?? ''}
+                    >
                       {r.remote_jid ?? '—'}
                     </TableCell>
                     <TableCell className="text-xs">
-                      {r.error_code ? <Badge variant="secondary" className="text-[10px]">{r.error_code}</Badge> : '—'}
+                      {r.error_code ? (
+                        <Badge variant="secondary" className="text-[10px]">
+                          {r.error_code}
+                        </Badge>
+                      ) : (
+                        '—'
+                      )}
                     </TableCell>
                     <TableCell className="text-xs">{r.http_status ?? '—'}</TableCell>
-                    <TableCell className="text-xs text-center">{r.retry_count}</TableCell>
-                    <TableCell className="text-xs truncate max-w-[260px]" title={r.error_message ?? ''}>
+                    <TableCell className="text-center text-xs">{r.retry_count}</TableCell>
+                    <TableCell
+                      className="max-w-[260px] truncate text-xs"
+                      title={r.error_message ?? ''}
+                    >
                       {r.error_message ?? '—'}
                     </TableCell>
                   </TableRow>
@@ -168,10 +224,20 @@ export default function AdminDispatchErrorsHistoryPage() {
             Página {page + 1} de {pageCount}
           </span>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" disabled={page === 0} onClick={() => setPage((p) => p - 1)}>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page === 0}
+              onClick={() => setPage((p) => p - 1)}
+            >
               Anterior
             </Button>
-            <Button variant="outline" size="sm" disabled={page + 1 >= pageCount} onClick={() => setPage((p) => p + 1)}>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page + 1 >= pageCount}
+              onClick={() => setPage((p) => p + 1)}
+            >
               Próxima
             </Button>
           </div>

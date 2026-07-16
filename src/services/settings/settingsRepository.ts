@@ -44,7 +44,7 @@ export const settingsRepository = {
       .from('user_settings')
       .select('*')
       .eq('user_id', userId)
-      .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
+      .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
 
     if (error) return null;
     return data;
@@ -56,7 +56,7 @@ export const settingsRepository = {
       .update(updates)
       .eq('user_id', userId)
       .select()
-      .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
+      .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
 
     return { data, error };
   },
@@ -69,7 +69,7 @@ export const settingsRepository = {
         ...settings,
       })
       .select()
-      .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
+      .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
 
     return { data, error };
   },
@@ -80,7 +80,7 @@ export const settingsRepository = {
       .from('workspace_settings')
       .select('*')
       .eq('workspace_id', workspaceId)
-      .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
+      .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
 
     if (error) return null;
     return data;
@@ -92,7 +92,7 @@ export const settingsRepository = {
       .update(updates)
       .eq('workspace_id', workspaceId)
       .select()
-      .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
+      .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
 
     return { data, error };
   },
@@ -105,7 +105,7 @@ export const settingsRepository = {
         ...settings,
       })
       .select()
-      .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
+      .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
 
     return { data, error };
   },
@@ -122,12 +122,16 @@ export const settingsRepository = {
           table: 'user_settings',
           filter: `user_id=eq.${userId}`,
         },
-        (payload: any) => callback(payload.new || payload.old)
+        (payload: { new: unknown; old: unknown }) =>
+          callback((payload.new || payload.old) as UserSettings)
       )
       .subscribe();
   },
 
-  subscribeToWorkspaceSettings: (workspaceId: string, callback: (settings: WorkspaceSettings) => void) => {
+  subscribeToWorkspaceSettings: (
+    workspaceId: string,
+    callback: (settings: WorkspaceSettings) => void
+  ) => {
     return supabase
       .channel(`workspace_settings:${workspaceId}`)
       .on(
@@ -138,7 +142,8 @@ export const settingsRepository = {
           table: 'workspace_settings',
           filter: `workspace_id=eq.${workspaceId}`,
         },
-        (payload: any) => callback(payload.new || payload.old)
+        (payload: { new: unknown; old: unknown }) =>
+          callback((payload.new || payload.old) as WorkspaceSettings)
       )
       .subscribe();
   },

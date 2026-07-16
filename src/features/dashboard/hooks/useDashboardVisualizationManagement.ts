@@ -2,6 +2,7 @@
 // Consolidates: useDashboardData, useDashboardWidgets, useGoalsDashboard, useLeaderboard, useWarRoomData
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import type { ElementType } from 'react';
+import { queryKeys } from '@/services/api/queryKeys';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { dbFrom } from '@/integrations/datasource/db';
@@ -21,7 +22,15 @@ import type {
 export interface DashboardWidget {
   id: string;
   title: string;
-  type: 'stats' | 'challenges' | 'ai-stats' | 'queues' | 'leaderboard' | 'activity' | 'achievements' | 'mini-games';
+  type:
+    | 'stats'
+    | 'challenges'
+    | 'ai-stats'
+    | 'queues'
+    | 'leaderboard'
+    | 'activity'
+    | 'achievements'
+    | 'mini-games';
   visible: boolean;
   order: number;
   size: 'small' | 'medium' | 'large' | 'full';
@@ -92,14 +101,110 @@ const DEFAULT_GOALS = {
 };
 
 const defaultWidgets: DashboardWidget[] = [
-  { id: 'stats', title: 'Estatísticas', type: 'stats', visible: true, order: 0, size: 'full', column: 0, row: 0, width: 4, height: 1, level: 1 },
-  { id: 'challenges', title: 'Desafios do Dia', type: 'challenges', visible: true, order: 1, size: 'full', column: 0, row: 1, width: 4, height: 1, level: 2 },
-  { id: 'queues', title: 'Status das Filas', type: 'queues', visible: true, order: 2, size: 'medium', column: 0, row: 2, width: 2, height: 1, level: 2 },
-  { id: 'activity', title: 'Atividade Recente', type: 'activity', visible: true, order: 3, size: 'medium', column: 2, row: 2, width: 2, height: 1, level: 2 },
-  { id: 'ai-stats', title: 'IA Stats', type: 'ai-stats', visible: true, order: 4, size: 'medium', column: 0, row: 3, width: 2, height: 1, level: 3 },
-  { id: 'leaderboard', title: 'Ranking', type: 'leaderboard', visible: true, order: 5, size: 'medium', column: 2, row: 3, width: 2, height: 1, level: 3 },
-  { id: 'achievements', title: 'Conquistas', type: 'achievements', visible: true, order: 6, size: 'full', column: 0, row: 4, width: 4, height: 1, level: 3 },
-  { id: 'mini-games', title: 'Mini-games', type: 'mini-games', visible: true, order: 7, size: 'full', column: 0, row: 5, width: 4, height: 1, level: 3 },
+  {
+    id: 'stats',
+    title: 'Estatísticas',
+    type: 'stats',
+    visible: true,
+    order: 0,
+    size: 'full',
+    column: 0,
+    row: 0,
+    width: 4,
+    height: 1,
+    level: 1,
+  },
+  {
+    id: 'challenges',
+    title: 'Desafios do Dia',
+    type: 'challenges',
+    visible: true,
+    order: 1,
+    size: 'full',
+    column: 0,
+    row: 1,
+    width: 4,
+    height: 1,
+    level: 2,
+  },
+  {
+    id: 'queues',
+    title: 'Status das Filas',
+    type: 'queues',
+    visible: true,
+    order: 2,
+    size: 'medium',
+    column: 0,
+    row: 2,
+    width: 2,
+    height: 1,
+    level: 2,
+  },
+  {
+    id: 'activity',
+    title: 'Atividade Recente',
+    type: 'activity',
+    visible: true,
+    order: 3,
+    size: 'medium',
+    column: 2,
+    row: 2,
+    width: 2,
+    height: 1,
+    level: 2,
+  },
+  {
+    id: 'ai-stats',
+    title: 'IA Stats',
+    type: 'ai-stats',
+    visible: true,
+    order: 4,
+    size: 'medium',
+    column: 0,
+    row: 3,
+    width: 2,
+    height: 1,
+    level: 3,
+  },
+  {
+    id: 'leaderboard',
+    title: 'Ranking',
+    type: 'leaderboard',
+    visible: true,
+    order: 5,
+    size: 'medium',
+    column: 2,
+    row: 3,
+    width: 2,
+    height: 1,
+    level: 3,
+  },
+  {
+    id: 'achievements',
+    title: 'Conquistas',
+    type: 'achievements',
+    visible: true,
+    order: 6,
+    size: 'full',
+    column: 0,
+    row: 4,
+    width: 4,
+    height: 1,
+    level: 3,
+  },
+  {
+    id: 'mini-games',
+    title: 'Mini-games',
+    type: 'mini-games',
+    visible: true,
+    order: 7,
+    size: 'full',
+    column: 0,
+    row: 5,
+    width: 4,
+    height: 1,
+    level: 3,
+  },
 ];
 
 const STORAGE_KEY = 'dashboard-widgets-config-v3';
@@ -143,10 +248,15 @@ function getDateRange(period: string) {
 /** Fetches and aggregates dashboard data with filtering by date range, queue, and agent. */
 export function useDashboardDataManagement(filters?: DashboardFilters) {
   const { user } = useAuth();
-  const merged = { dateRange: { from: startOfDay(new Date()), to: endOfDay(new Date()) }, queueId: null, agentId: null, ...filters };
+  const merged = {
+    dateRange: { from: startOfDay(new Date()), to: endOfDay(new Date()) },
+    queueId: null,
+    agentId: null,
+    ...filters,
+  };
 
   const { data: agentsData, isLoading: loadingAgents } = useQuery({
-    queryKey: ['dashboard-agents', merged.agentId],
+    queryKey: queryKeys.dashboard.agents(merged.agentId),
     queryFn: async () => {
       let query = supabase.from('profiles').select('id, name, avatar_url, is_active');
       if (merged.agentId) {
@@ -154,12 +264,23 @@ export function useDashboardDataManagement(filters?: DashboardFilters) {
       }
       const { data, error } = await query;
       if (error) throw error;
-      return { onlineAgents: (data || []).filter(p => p.is_active).length, totalAgents: (data || []).length };
+      return {
+        onlineAgents: (data || []).filter((p) => p.is_active).length,
+        totalAgents: (data || []).length,
+      };
     },
   });
 
-  const { data: contactsData, isLoading: loadingContacts, error: contactsError } = useQuery({
-    queryKey: ['dashboard-contacts', merged.dateRange, merged.queueId, merged.agentId],
+  const {
+    data: contactsData,
+    isLoading: loadingContacts,
+    error: contactsError,
+  } = useQuery({
+    queryKey: queryKeys.dashboard.contactsFiltered(
+      merged.dateRange,
+      merged.queueId,
+      merged.agentId
+    ),
     queryFn: async () => {
       let query = dbFrom('contacts').select('id, assigned_to, queue_id, updated_at');
       if (merged.queueId) {
@@ -177,10 +298,16 @@ export function useDashboardDataManagement(filters?: DashboardFilters) {
     },
   });
 
-  const { data: queuesData, isLoading: loadingQueues, error: queuesError } = useQuery({
-    queryKey: ['dashboard-queues', merged.queueId],
+  const {
+    data: queuesData,
+    isLoading: loadingQueues,
+    error: queuesError,
+  } = useQuery({
+    queryKey: queryKeys.dashboard.queuesFiltered(merged.queueId),
     queryFn: async () => {
-      let query = supabase.from('queues').select('id, name, color, queue_members(is_active, profiles(is_active))');
+      let query = supabase
+        .from('queues')
+        .select('id, name, color, queue_members(is_active, profiles(is_active))');
       if (merged.queueId) {
         query = query.eq('id', merged.queueId);
       }
@@ -195,16 +322,25 @@ export function useDashboardDataManagement(filters?: DashboardFilters) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const openConversations = contactsData.filter(c => c.assigned_to).length;
-    const pendingConversations = contactsData.filter(c => !c.assigned_to && c.queue_id).length;
-    const resolvedToday = contactsData.filter(c => {
+    const openConversations = contactsData.filter((c) => c.assigned_to).length;
+    const pendingConversations = contactsData.filter((c) => !c.assigned_to && c.queue_id).length;
+    const resolvedToday = contactsData.filter((c) => {
       const updatedAt = new Date(c.updated_at);
       return updatedAt >= today && !c.assigned_to;
     }).length;
 
-    const queuesStats: QueueStats[] = (queuesData as any[]).map(queue => {
-      const members = queue.queue_members || [];
-      const onlineMembers = members.filter((m: any) => m.is_active && m.profiles?.is_active).length;
+    const queuesStats: QueueStats[] = queuesData.map((queue) => {
+      const members =
+        (queue.queue_members as
+          | {
+              is_active: boolean | null;
+              profiles: { is_active: boolean | null } | { is_active: boolean | null }[] | null;
+            }[]
+          | null) ?? [];
+      const onlineMembers = members.filter((m) => {
+        const profile = Array.isArray(m.profiles) ? m.profiles[0] : m.profiles;
+        return m.is_active && profile?.is_active;
+      }).length;
       return {
         id: queue.id,
         name: queue.name,
@@ -215,7 +351,7 @@ export function useDashboardDataManagement(filters?: DashboardFilters) {
       };
     });
 
-    const recentActivity: RecentActivity[] = contactsData.slice(0, 10).map(c => ({
+    const recentActivity: RecentActivity[] = contactsData.slice(0, 10).map((c) => ({
       id: c.id,
       contactName: 'Contact',
       contactPhone: '',
@@ -252,7 +388,7 @@ export function useDashboardWidgetsManagement() {
     if (stored) {
       try {
         const parsed = JSON.parse(stored);
-        const mergedWidgets = defaultWidgets.map(defaultWidget => {
+        const mergedWidgets = defaultWidgets.map((defaultWidget) => {
           const storedWidget = parsed.find((w: DashboardWidget) => w.id === defaultWidget.id);
           return storedWidget ? { ...defaultWidget, ...storedWidget } : defaultWidget;
         });
@@ -271,56 +407,99 @@ export function useDashboardWidgetsManagement() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(widgets));
   }, [widgets]);
 
-  const reorderWidgets = useCallback((sourceIndex: number, destinationIndex: number) => {
-    const result = Array.from(widgets);
-    const [removed] = result.splice(sourceIndex, 1);
-    result.splice(destinationIndex, 0, removed);
-    const reordered = result.map((widget, index) => ({ ...widget, order: index }));
-    setWidgets(reordered);
-  }, [widgets]);
+  const reorderWidgets = useCallback(
+    (sourceIndex: number, destinationIndex: number) => {
+      const result = Array.from(widgets);
+      const [removed] = result.splice(sourceIndex, 1);
+      result.splice(destinationIndex, 0, removed);
+      const reordered = result.map((widget, index) => ({ ...widget, order: index }));
+      setWidgets(reordered);
+    },
+    [widgets]
+  );
 
   const toggleWidgetVisibility = useCallback((widgetId: string) => {
-    setWidgets(prev => prev.map(widget => widget.id === widgetId ? { ...widget, visible: !widget.visible } : widget));
+    setWidgets((prev) =>
+      prev.map((widget) =>
+        widget.id === widgetId ? { ...widget, visible: !widget.visible } : widget
+      )
+    );
   }, []);
 
   const updateWidgetSize = useCallback((widgetId: string, newSize: string) => {
-    setWidgets(prev => prev.map(widget => widget.id === widgetId ? { ...widget, size: newSize as any, width: sizeToGrid[newSize]?.width, height: sizeToGrid[newSize]?.height } : widget));
+    setWidgets((prev) =>
+      prev.map((widget) =>
+        widget.id === widgetId
+          ? {
+              ...widget,
+              size: newSize as DashboardWidget['size'],
+              width: sizeToGrid[newSize]?.width,
+              height: sizeToGrid[newSize]?.height,
+            }
+          : widget
+      )
+    );
   }, []);
 
   const updateWidgetPosition = useCallback((widgetId: string, column: number, row: number) => {
-    setWidgets(prev => prev.map(widget => widget.id === widgetId ? { ...widget, column, row } : widget));
+    setWidgets((prev) =>
+      prev.map((widget) => (widget.id === widgetId ? { ...widget, column, row } : widget))
+    );
   }, []);
 
-  const moveWidget = useCallback((widgetId: string, direction: 'up' | 'down' | 'left' | 'right') => {
-    setWidgets(prev => {
-      const widget = prev.find(w => w.id === widgetId);
-      if (!widget) return prev;
-      let newColumn = widget.column ?? 0;
-      let newRow = widget.row ?? 0;
-      switch (direction) {
-        case 'up': newRow = Math.max(0, newRow - 1); break;
-        case 'down': newRow = newRow + 1; break;
-        case 'left': newColumn = Math.max(0, newColumn - 1); break;
-        case 'right': newColumn = Math.min(3, newColumn + 1); break;
-      }
-      return prev.map(w => w.id === widgetId ? { ...w, column: newColumn, row: newRow } : w);
-    });
-  }, []);
+  const moveWidget = useCallback(
+    (widgetId: string, direction: 'up' | 'down' | 'left' | 'right') => {
+      setWidgets((prev) => {
+        const widget = prev.find((w) => w.id === widgetId);
+        if (!widget) return prev;
+        let newColumn = widget.column ?? 0;
+        let newRow = widget.row ?? 0;
+        switch (direction) {
+          case 'up':
+            newRow = Math.max(0, newRow - 1);
+            break;
+          case 'down':
+            newRow = newRow + 1;
+            break;
+          case 'left':
+            newColumn = Math.max(0, newColumn - 1);
+            break;
+          case 'right':
+            newColumn = Math.min(3, newColumn + 1);
+            break;
+        }
+        return prev.map((w) => (w.id === widgetId ? { ...w, column: newColumn, row: newRow } : w));
+      });
+    },
+    []
+  );
 
   const resetToDefaults = useCallback(() => {
     setWidgets(defaultWidgets);
     localStorage.removeItem(STORAGE_KEY);
   }, []);
 
-  const visibleWidgets = widgets.filter(w => w.visible);
-  const level1Widgets = visibleWidgets.filter(w => w.level === 1);
-  const level2Widgets = visibleWidgets.filter(w => w.level === 2);
-  const level3Widgets = visibleWidgets.filter(w => w.level === 3);
+  const visibleWidgets = widgets.filter((w) => w.visible);
+  const level1Widgets = visibleWidgets.filter((w) => w.level === 1);
+  const level2Widgets = visibleWidgets.filter((w) => w.level === 2);
+  const level3Widgets = visibleWidgets.filter((w) => w.level === 3);
 
   return {
-    widgets, visibleWidgets, level1Widgets, level2Widgets, level3Widgets,
-    isEditMode, setIsEditMode, draggedWidget, setDraggedWidget,
-    reorderWidgets, toggleWidgetVisibility, updateWidgetSize, updateWidgetPosition, moveWidget, resetToDefaults,
+    widgets,
+    visibleWidgets,
+    level1Widgets,
+    level2Widgets,
+    level3Widgets,
+    isEditMode,
+    setIsEditMode,
+    draggedWidget,
+    setDraggedWidget,
+    reorderWidgets,
+    toggleWidgetVisibility,
+    updateWidgetSize,
+    updateWidgetPosition,
+    moveWidget,
+    resetToDefaults,
   };
 }
 
@@ -337,10 +516,14 @@ export function useGoalsDashboardManagement() {
   const dateRange = useMemo(() => getDateRange(period), [period]);
 
   const { data: profile } = useQuery({
-    queryKey: ['my-profile', user?.id],
+    queryKey: queryKeys.userProfile.meById(user?.id),
     queryFn: async () => {
       if (!user?.id) return null;
-      const { data, error } = await supabase.from('profiles').select('id, name').eq('user_id', user.id).maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, name')
+        .eq('user_id', user.id)
+        .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
       if (error) throw error;
       return data;
     },
@@ -348,10 +531,14 @@ export function useGoalsDashboardManagement() {
   });
 
   const { data: messagesData, isLoading: loadingMessages } = useQuery({
-    queryKey: ['goals-messages', period, profile?.id],
+    queryKey: queryKeys.goals.messages(period),
     queryFn: async () => {
       if (!profile?.id) return [];
-      const { data, error } = await dbFrom('messages').select('id, sender, created_at').eq('agent_id', profile.id).gte('created_at', dateRange.from.toISOString()).lte('created_at', dateRange.to.toISOString());
+      const { data, error } = await dbFrom('messages')
+        .select('id, sender, created_at')
+        .eq('agent_id', profile.id)
+        .gte('created_at', dateRange.from.toISOString())
+        .lte('created_at', dateRange.to.toISOString());
       if (error) throw error;
       return data || [];
     },
@@ -359,10 +546,14 @@ export function useGoalsDashboardManagement() {
   });
 
   const { data: contactsData, isLoading: loadingContacts } = useQuery({
-    queryKey: ['goals-contacts', period, profile?.id],
+    queryKey: queryKeys.goals.contactsFiltered(period, profile?.id),
     queryFn: async () => {
       if (!profile?.id) return [];
-      const { data, error } = await dbFrom('contacts').select('id, created_at').eq('assigned_to', profile.id).gte('created_at', dateRange.from.toISOString()).lte('created_at', dateRange.to.toISOString());
+      const { data, error } = await dbFrom('contacts')
+        .select('id, created_at')
+        .eq('assigned_to', profile.id)
+        .gte('created_at', dateRange.from.toISOString())
+        .lte('created_at', dateRange.to.toISOString());
       if (error) throw error;
       return data || [];
     },
@@ -370,10 +561,13 @@ export function useGoalsDashboardManagement() {
   });
 
   const { data: customGoals = [] } = useQuery({
-    queryKey: ['goals-config', profile?.id],
+    queryKey: queryKeys.goals.configForProfile(profile?.id),
     queryFn: async () => {
       if (!profile?.id) return [];
-      const { data, error } = await supabase.from('goals_configurations').select('goal_type, daily_target, weekly_target, monthly_target, is_active').eq('profile_id', profile.id);
+      const { data, error } = await supabase
+        .from('goals_configurations')
+        .select('goal_type, daily_target, weekly_target, monthly_target, is_active')
+        .eq('profile_id', profile.id);
       if (error) throw error;
       return data || [];
     },
@@ -381,12 +575,12 @@ export function useGoalsDashboardManagement() {
   });
 
   const goals = useMemo((): Goal[] => {
-    const messagesSent = messagesData?.filter((m: any) => m.sender === 'agent').length || 0;
+    const messagesSent = messagesData?.filter((m) => m.sender === 'agent').length || 0;
     const contactsHandled = contactsData?.length || 0;
 
     const allGoals: Goal[] = [];
 
-    const messageConfig = customGoals.find((g: any) => g.goal_type === 'messages_sent');
+    const messageConfig = customGoals.find((g) => g.goal_type === 'messages_sent');
     const messagesTarget = messageConfig
       ? messageConfig[`${period}_target` as keyof typeof messageConfig]
       : DEFAULT_GOALS.messages_sent[period as keyof typeof DEFAULT_GOALS.messages_sent];
@@ -395,7 +589,9 @@ export function useGoalsDashboardManagement() {
       id: 'messages-sent',
       label: 'Mensagens Enviadas',
       description: 'Total de mensagens enviadas no período',
-      target: messagesTarget || DEFAULT_GOALS.messages_sent[period as keyof typeof DEFAULT_GOALS.messages_sent],
+      target:
+        messagesTarget ||
+        DEFAULT_GOALS.messages_sent[period as keyof typeof DEFAULT_GOALS.messages_sent],
       current: messagesSent,
       unit: 'mensagens',
       icon: MessageSquare,
@@ -403,7 +599,7 @@ export function useGoalsDashboardManagement() {
       priority: 'high',
     });
 
-    const contactConfig = customGoals.find((g: any) => g.goal_type === 'contacts_handled');
+    const contactConfig = customGoals.find((g) => g.goal_type === 'contacts_handled');
     const contactsTarget = contactConfig
       ? contactConfig[`${period}_target` as keyof typeof contactConfig]
       : DEFAULT_GOALS.contacts_handled[period as keyof typeof DEFAULT_GOALS.contacts_handled];
@@ -412,7 +608,9 @@ export function useGoalsDashboardManagement() {
       id: 'contacts-handled',
       label: 'Contatos Atendidos',
       description: 'Novos contatos atribuídos a você',
-      target: contactsTarget || DEFAULT_GOALS.contacts_handled[period as keyof typeof DEFAULT_GOALS.contacts_handled],
+      target:
+        contactsTarget ||
+        DEFAULT_GOALS.contacts_handled[period as keyof typeof DEFAULT_GOALS.contacts_handled],
       current: contactsHandled,
       unit: 'contatos',
       icon: Users,
@@ -424,7 +622,9 @@ export function useGoalsDashboardManagement() {
 
   const overallProgress = useMemo(() => {
     if (goals.length === 0) return 0;
-    return Math.round(goals.reduce((acc, g) => acc + Math.min((g.current / g.target) * 100, 100), 0) / goals.length);
+    return Math.round(
+      goals.reduce((acc, g) => acc + Math.min((g.current / g.target) * 100, 100), 0) / goals.length
+    );
   }, [goals]);
 
   const completedGoals = useMemo(() => goals.filter((g) => g.current >= g.target).length, [goals]);
@@ -434,7 +634,11 @@ export function useGoalsDashboardManagement() {
     if (isLoading || goals.length === 0) return;
     const allGoalsCompleted = overallProgress >= 100;
     if (allGoalsCompleted && !previousOverallComplete.current) {
-      setCelebrationData({ title: 'Todas as Metas Alcançadas! 🏆', subtitle: 'Parabéns! Você completou todas as metas do período!', emoji: '🎉' });
+      setCelebrationData({
+        title: 'Todas as Metas Alcançadas! 🏆',
+        subtitle: 'Parabéns! Você completou todas as metas do período!',
+        emoji: '🎉',
+      });
       setShowCelebration(true);
       previousOverallComplete.current = true;
     } else if (!allGoalsCompleted) {
@@ -443,9 +647,18 @@ export function useGoalsDashboardManagement() {
   }, [goals, overallProgress, isLoading]);
 
   return {
-    period, setPeriod, configDialogOpen, setConfigDialogOpen,
-    showCelebration, setShowCelebration, celebrationData,
-    goals, overallProgress, completedGoals, isLoading, dateRange,
+    period,
+    setPeriod,
+    configDialogOpen,
+    setConfigDialogOpen,
+    showCelebration,
+    setShowCelebration,
+    celebrationData,
+    goals,
+    overallProgress,
+    completedGoals,
+    isLoading,
+    dateRange,
   };
 }
 
@@ -458,60 +671,71 @@ export function useLeaderboardManagement() {
   const fetchTokenRef = useRef(0);
   const mountedRef = useMountedRef();
 
-  const fetchLeaderboard = useCallback(async (range: 'today' | 'week' | 'month') => {
-    const token = ++fetchTokenRef.current;
-    const since = rangeStart(range).toISOString();
-    try {
-      const { data: rawStats, error } = await supabase.from('agent_stats').select('*, profiles:profile_id (id, name, avatar_url, is_active)').order('xp', { ascending: false }).limit(10);
-      if (error) throw error;
-      if (!mountedRef.current) return;
-      if (!rawStats || rawStats.length === 0) {
-        setAgents([]);
-        return;
-      }
+  const fetchLeaderboard = useCallback(
+    async (range: 'today' | 'week' | 'month') => {
+      const token = ++fetchTokenRef.current;
+      const since = rangeStart(range).toISOString();
+      try {
+        const { data: rawStats, error } = await supabase
+          .from('agent_stats')
+          .select('*, profiles:profile_id (id, name, avatar_url, is_active)')
+          .order('xp', { ascending: false })
+          .limit(10);
+        if (error) throw error;
+        if (!mountedRef.current) return;
+        if (!rawStats || rawStats.length === 0) {
+          setAgents([]);
+          return;
+        }
 
-      if (fetchTokenRef.current !== token) return;
-      if (!mountedRef.current) return;
+        if (fetchTokenRef.current !== token) return;
+        if (!mountedRef.current) return;
 
-      setAgents(
-        (rawStats as any[]).map((stat, index) => {
-          const profile = Array.isArray(stat.profiles) ? stat.profiles[0] : stat.profiles;
-          return {
-            id: stat.id,
-            profile_id: stat.profile_id,
-            name: profile?.name || 'Agente',
-            avatar: profile?.avatar_url || undefined,
-            xp: stat.xp,
-            level: stat.level,
-            streak: stat.current_streak,
-            messagesHandled: 0,
-            avgResponseTime: stat.avg_response_time_seconds || 0,
-            satisfaction: Number(stat.customer_satisfaction_score) * 100 || 0,
-            rank: index + 1,
-            previousRank: index + 1,
-            achievements: [],
-            achievementsCount: 0,
-            isOnline: profile?.is_active ?? false,
-          };
-        })
-      );
-    } catch (error) {
-      log.error('Error fetching leaderboard:', error);
-    } finally {
-      if (fetchTokenRef.current === token && mountedRef.current) {
-        setIsLoading(false);
-        setIsRefreshing(false);
+        setAgents(
+          rawStats.map((stat, index) => {
+            const profile = Array.isArray(stat.profiles) ? stat.profiles[0] : stat.profiles;
+            return {
+              id: stat.id,
+              profile_id: stat.profile_id,
+              name: profile?.name || 'Agente',
+              avatar: profile?.avatar_url || undefined,
+              xp: stat.xp,
+              level: stat.level,
+              streak: stat.current_streak,
+              messagesHandled: 0,
+              avgResponseTime: stat.avg_response_time_seconds || 0,
+              satisfaction: Number(stat.customer_satisfaction_score) * 100 || 0,
+              rank: index + 1,
+              previousRank: index + 1,
+              achievements: [],
+              achievementsCount: 0,
+              isOnline: profile?.is_active ?? false,
+            };
+          })
+        );
+      } catch (error) {
+        log.error('Error fetching leaderboard:', error);
+      } finally {
+        if (fetchTokenRef.current === token && mountedRef.current) {
+          setIsLoading(false);
+          setIsRefreshing(false);
+        }
       }
-    }
-  }, [mountedRef]);
+    },
+    [mountedRef]
+  );
 
   useEffect(() => {
     void fetchLeaderboard(timeRange);
-    const channel = supabase.channel('leaderboard-updates').on('postgres_changes', { event: '*', schema: 'zapp', table: 'agent_stats' }, () => {
-      log.debug('Agent stats updated, refreshing leaderboard...');
-      void fetchLeaderboard(timeRange);
-    }).subscribe();
+    const channel = supabase
+      .channel('leaderboard-updates')
+      .on('postgres_changes', { event: '*', schema: 'zapp', table: 'agent_stats' }, () => {
+        log.debug('Agent stats updated, refreshing leaderboard...');
+        void fetchLeaderboard(timeRange);
+      })
+      .subscribe();
     return () => {
+      channel.unsubscribe();
       supabase.removeChannel(channel);
     };
   }, [timeRange, fetchLeaderboard]);
@@ -527,20 +751,23 @@ export function useLeaderboardManagement() {
 /** Fetches war room data including agents, queues, and real-time metrics. */
 export function useWarRoomDataManagement() {
   const { data: agents = [] } = useQuery({
-    queryKey: ['warroom-agents'],
+    queryKey: queryKeys.adminOps.warroom.agents(),
     queryFn: async () => {
-      const { data: profiles, error } = await supabase.from('profiles').select('id, name, avatar_url, is_active, max_chats').eq('is_active', true);
+      const { data: profiles, error } = await supabase
+        .from('profiles')
+        .select('id, name, avatar_url, is_active, max_chats')
+        .eq('is_active', true);
       if (error) throw error;
 
       const { data: contacts, error: contactsErr } = await dbFrom('contacts').select('assigned_to');
       if (contactsErr) log.warn('contacts fetch failed (warroom agents)');
 
-      const contactCounts = (contacts || []).reduce((acc: any, c: any) => {
+      const contactCounts = (contacts || []).reduce<Record<string, number>>((acc, c) => {
         if (c.assigned_to) acc[c.assigned_to] = (acc[c.assigned_to] || 0) + 1;
         return acc;
       }, {});
 
-      return (profiles || []).map((p: any): WarRoomAgent => ({
+      return (profiles || []).map((p): WarRoomAgent => ({
         id: p.id,
         name: p.name,
         avatar: p.avatar_url || undefined,
@@ -557,12 +784,15 @@ export function useWarRoomDataManagement() {
   });
 
   const { data: queues = [] } = useQuery({
-    queryKey: ['warroom-queues'],
+    queryKey: queryKeys.adminOps.warroom.queues(),
     queryFn: async () => {
-      const { data: dbQueues, error: dbQueuesErr } = await supabase.from('queues').select('id, name, color, is_active').eq('is_active', true);
+      const { data: dbQueues, error: dbQueuesErr } = await supabase
+        .from('queues')
+        .select('id, name, color, is_active')
+        .eq('is_active', true);
       if (dbQueuesErr) throw dbQueuesErr;
 
-      return (dbQueues || []).map((q: any): WarRoomQueue => ({
+      return (dbQueues || []).map((q): WarRoomQueue => ({
         id: q.id,
         name: q.name,
         color: q.color,

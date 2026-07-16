@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
+import { useMountedRef } from '@/hooks/useMountedRef';
 
 interface AgentMention {
   id: string;
@@ -31,6 +32,7 @@ export function MentionAutocomplete({
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [_mentionQuery, setMentionQuery] = useState('');
   const [mentionStart, setMentionStart] = useState(-1);
+  const mounted = useMountedRef();
 
   // Fetch agents once
   useEffect(() => {
@@ -39,10 +41,10 @@ export function MentionAutocomplete({
         .from('profiles')
         .select('id, name, email, avatar_url')
         .limit(50);
-      if (data) setAgents(data as AgentMention[]); // ignore-audit: narrows Supabase query result to local interface
+      if (data && mounted.current) setAgents(data as AgentMention[]); // ignore-audit: narrows Supabase query result to local interface
     };
     fetchAgents();
-  }, []);
+  }, [mounted]);
 
   // Detect @ mention
   useEffect(() => {
@@ -100,6 +102,7 @@ export function MentionAutocomplete({
         <div className="max-h-48 overflow-y-auto p-1">
           {filtered.map((agent, i) => (
             <button
+              type="button"
               key={agent.id}
               onClick={() => handleSelect(agent)}
               className={cn(

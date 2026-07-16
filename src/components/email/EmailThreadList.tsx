@@ -48,6 +48,7 @@ function ThreadListItem({
 
   return (
     <button
+      type="button"
       className={cn(
         'group relative w-full border-b border-border/10 px-4 py-4 text-left transition-all duration-200 hover:bg-muted/40',
         selected && 'border-l-[3px] border-l-primary bg-primary/10 shadow-sm',
@@ -182,7 +183,9 @@ export function EmailThreadList({
   });
 
   const unreadTotal = threads.filter((t) => t.unread_count > 0).length;
-  const breachedCount = threads.filter((t) => getStatus(t.thread_id ?? t.email_thread_id) === 'breached').length;
+  const breachedCount = threads.filter(
+    (t) => getStatus(t.thread_id ?? t.email_thread_id) === 'breached'
+  ).length;
 
   return (
     <div className={cn('flex h-full flex-col', className)}>

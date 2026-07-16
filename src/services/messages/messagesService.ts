@@ -9,7 +9,9 @@ import type { ListResponse, QueryParams } from '@/services/api/types';
 
 export const messagesService = {
   // Messages
-  listMessages: async (filters?: Partial<Message> & QueryParams): Promise<ListResponse<Message>> => {
+  listMessages: async (
+    filters?: Partial<Message> & QueryParams
+  ): Promise<ListResponse<Message>> => {
     return messagesRepository.listMessages(filters);
   },
 
@@ -63,7 +65,9 @@ export const messagesService = {
   },
 
   // Conversations
-  listConversations: async (filters?: Partial<Conversation> & QueryParams): Promise<ListResponse<Conversation>> => {
+  listConversations: async (
+    filters?: Partial<Conversation> & QueryParams
+  ): Promise<ListResponse<Conversation>> => {
     return messagesRepository.listConversations(filters);
   },
 
@@ -123,14 +127,5 @@ export const messagesService = {
   markAsRead: async (conversationId: string, userId: string) => {
     if (!conversationId) throw new Error('Conversation ID is required');
     return messagesRepository.markMessagesAsRead(conversationId, userId);
-  },
-
-  // Real-time updates
-  onMessageChange: (conversationId: string, callback: (message: Message) => void) => {
-    return messagesRepository.subscribeToMessages(conversationId, callback);
-  },
-
-  onConversationChange: (callback: (conversation: Conversation) => void) => {
-    return messagesRepository.subscribeToConversations(callback);
   },
 };

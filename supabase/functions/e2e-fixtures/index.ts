@@ -95,8 +95,9 @@ function validateBody(raw: unknown): { ok: true; body: RequestBody } | { ok: fal
 }
 
 function lovableClient() {
-  return createClient(envOrThrow('SUPABASE_URL'), envOrThrow('SUPABASE_SERVICE_ROLE_KEY', { db: { schema: "zapp" } }), {
+  return createClient(envOrThrow('SUPABASE_URL'), envOrThrow('SUPABASE_SERVICE_ROLE_KEY'), {
     auth: { persistSession: false },
+    db: { schema: "zapp" },
   });
 }
 
@@ -104,7 +105,7 @@ function externalClient() {
   return createClient(
     envOrThrow('EXTERNAL_SUPABASE_URL'),
     envOrThrow('EXTERNAL_SUPABASE_SERVICE_ROLE_KEY'),
-    { auth: { persistSession: false } },
+    { auth: { persistSession: false }, db: { schema: 'evo' } },
   );
 }
 

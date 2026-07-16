@@ -72,8 +72,8 @@ export function TalkXAnalytics({ campaigns }: Props) {
     'hsl(var(--muted-foreground))',
     'hsl(var(--destructive))',
     'hsl(var(--accent-foreground))',
-    '#f59e0b',
-    '#6366f1',
+    'hsl(var(--warning))',
+    'hsl(var(--secondary))',
   ];
 
   if (campaigns.length === 0) {
@@ -141,8 +141,15 @@ export function TalkXAnalytics({ campaigns }: Props) {
               <ResponsiveContainer width="100%" height={260}>
                 <BarChart data={barData} margin={{ top: 5, right: 5, left: -15, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border/30" />
-                  <XAxis dataKey="name" tick={{ style: { fontSize: '0.75rem' } }} className="fill-muted-foreground" />
-                  <YAxis tick={{ style: { fontSize: '0.75rem' } }} className="fill-muted-foreground" />
+                  <XAxis
+                    dataKey="name"
+                    tick={{ style: { fontSize: '0.75rem' } }}
+                    className="fill-muted-foreground"
+                  />
+                  <YAxis
+                    tick={{ style: { fontSize: '0.75rem' } }}
+                    className="fill-muted-foreground"
+                  />
                   <ReTooltip
                     contentStyle={{
                       background: 'hsl(var(--popover))',

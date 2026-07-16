@@ -56,9 +56,7 @@ export function useConnectionsRealtime(
           if (payload.eventType === 'UPDATE') {
             const newConn = payload.new;
             const oldConn = payload.old;
-            setConnections((prev) =>
-              prev.map((conn) => (conn.id === newConn.id ? newConn : conn))
-            );
+            setConnections((prev) => prev.map((conn) => (conn.id === newConn.id ? newConn : conn)));
 
             if (newConn.status === 'connected' && oldConn?.status !== 'connected') {
               announceConnectedRef.current({ id: newConn.id, name: newConn.name });
@@ -93,6 +91,7 @@ export function useConnectionsRealtime(
 
     return () => {
       channel.unsubscribe();
+      supabase.removeChannel(channel);
     };
     // setState do React tem identidade estável — este efeito roda 1x por mount.
   }, [setConnections, setQrCodeDialog]);

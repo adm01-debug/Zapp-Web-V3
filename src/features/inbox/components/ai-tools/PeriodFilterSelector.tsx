@@ -9,7 +9,8 @@ import { cn } from '@/lib/utils';
 
 // ── Shared types & constants ──
 
-export type AnalysisPeriod = 'all' | 'last_interaction' | 'today' | '3d' | '7d' | '14d' | '30d' | '90d' | 'custom';
+export type AnalysisPeriod =
+  'all' | 'last_interaction' | 'today' | '3d' | '7d' | '14d' | '30d' | '90d' | 'custom';
 
 export interface PeriodMessage {
   id: string;
@@ -92,10 +93,18 @@ export function filterMessagesByPeriod<T extends PeriodMessage>(
   }
 
   const now = new Date();
-  const dayMap: Record<string, number> = { today: 0, '3d': 3, '7d': 7, '14d': 14, '30d': 30, '90d': 90 };
+  const dayMap: Record<string, number> = {
+    today: 0,
+    '3d': 3,
+    '7d': 7,
+    '14d': 14,
+    '30d': 30,
+    '90d': 90,
+  };
   const days = dayMap[period];
   if (days !== undefined) {
-    const cutoff = days === 0 ? startOfDay(now) : startOfDay(new Date(now.getTime() - days * DAY_MS));
+    const cutoff =
+      days === 0 ? startOfDay(now) : startOfDay(new Date(now.getTime() - days * DAY_MS));
     return messages.filter((m) => new Date(m.created_at) >= cutoff);
   }
 
@@ -103,13 +112,23 @@ export function filterMessagesByPeriod<T extends PeriodMessage>(
 }
 
 export function getPeriodDays(period: AnalysisPeriod): number | null {
-  const map: Record<string, number> = { today: 1, '3d': 3, '7d': 7, '14d': 14, '30d': 30, '90d': 90 };
+  const map: Record<string, number> = {
+    today: 1,
+    '3d': 3,
+    '7d': 7,
+    '14d': 14,
+    '30d': 30,
+    '90d': 90,
+  };
   return map[period] ?? null;
 }
 
 // ── Hook for period filter state ──
 
-export function usePeriodFilter<T extends PeriodMessage>(messages: T[], defaultPeriod: AnalysisPeriod = '7d') {
+export function usePeriodFilter<T extends PeriodMessage>(
+  messages: T[],
+  defaultPeriod: AnalysisPeriod = '7d'
+) {
   const [analysisPeriod, setAnalysisPeriod] = useState<AnalysisPeriod>(defaultPeriod);
   const [customDateFrom, setCustomDateFrom] = useState<Date | undefined>(undefined);
   const [customDateTo, setCustomDateTo] = useState<Date | undefined>(undefined);
@@ -127,9 +146,15 @@ export function usePeriodFilter<T extends PeriodMessage>(messages: T[], defaultP
     }
   }, []);
 
-  const handleCustomFromChange = useCallback((date: Date | undefined) => setCustomDateFrom(date), []);
+  const handleCustomFromChange = useCallback(
+    (date: Date | undefined) => setCustomDateFrom(date),
+    []
+  );
   const handleCustomToChange = useCallback((date: Date | undefined) => setCustomDateTo(date), []);
-  const clearCustomDates = useCallback(() => { setCustomDateFrom(undefined); setCustomDateTo(undefined); }, []);
+  const clearCustomDates = useCallback(() => {
+    setCustomDateFrom(undefined);
+    setCustomDateTo(undefined);
+  }, []);
 
   return {
     analysisPeriod,
@@ -149,7 +174,11 @@ function PeriodLabel({ period, from, to }: { period: AnalysisPeriod; from?: Date
   if (period === 'custom' && from) {
     const fromStr = format(from, 'dd/MM/yy');
     const toStr = to ? format(to, 'dd/MM/yy') : 'agora';
-    return <span>{fromStr} — {toStr}</span>;
+    return (
+      <span>
+        {fromStr} — {toStr}
+      </span>
+    );
   }
   const found = PERIOD_PRESETS.find((p) => p.key === period);
   return <span>{found?.label ?? 'Data'}</span>;
@@ -187,26 +216,30 @@ export function PeriodFilterSelector({
     <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
       <PopoverTrigger asChild>
         <button
+          type="button"
           className={cn(
-            'inline-flex items-center gap-1.5 w-full justify-center whitespace-nowrap text-xs px-3 py-2 rounded-xl font-medium transition-all duration-150 select-none',
+            'inline-flex w-full select-none items-center justify-center gap-1.5 whitespace-nowrap rounded-xl px-3 py-2 text-xs font-medium transition-all duration-150',
             hasFilter
               ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/25'
-              : 'bg-muted/80 text-muted-foreground hover:bg-muted hover:text-foreground border border-border/60'
+              : 'border border-border/60 bg-muted/80 text-muted-foreground hover:bg-muted hover:text-foreground'
           )}
         >
-          <CalendarDays className="w-3.5 h-3.5" />
+          <CalendarDays className="h-3.5 w-3.5" />
           <PeriodLabel period={period} from={customFrom} to={customTo} />
-          <span className={cn(
-            'ml-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold tabular-nums',
-            hasFilter ? 'bg-primary-foreground/20' : 'bg-foreground/10'
-          )}>
-            {filteredCount}{totalCount !== filteredCount ? `/${totalCount}` : ''}
+          <span
+            className={cn(
+              'ml-1 rounded-full px-1.5 py-0.5 text-[10px] font-bold tabular-nums',
+              hasFilter ? 'bg-primary-foreground/20' : 'bg-foreground/10'
+            )}
+          >
+            {filteredCount}
+            {totalCount !== filteredCount ? `/${totalCount}` : ''}
           </span>
           {hasFilter && (
             <span
               role="button"
               tabIndex={0}
-              className="ml-0.5 p-0.5 rounded-full hover:bg-primary-foreground/20"
+              className="ml-0.5 rounded-full p-0.5 hover:bg-primary-foreground/20"
               onClick={(e) => {
                 e.stopPropagation();
                 onPeriodChange('all');
@@ -222,21 +255,29 @@ export function PeriodFilterSelector({
               }}
               aria-label="Remover filtro de data"
             >
-              <X className="w-3 h-3" />
+              <X className="h-3 w-3" />
             </span>
           )}
         </button>
       </PopoverTrigger>
-      <PopoverContent className="w-auto p-0 pointer-events-auto scale-[0.7] origin-top-left" align="start" side="bottom" sideOffset={4}>
+      <PopoverContent
+        className="pointer-events-auto w-auto origin-top-left scale-[0.7] p-0"
+        align="start"
+        side="bottom"
+        sideOffset={4}
+      >
         <div className="flex min-h-[340px]">
           {/* Presets column */}
-          <div className="w-[160px] border-r border-border bg-muted/30 p-2 flex flex-col gap-0.5">
-            <p className="text-[10px] text-muted-foreground font-semibold px-2.5 pt-1 pb-2 uppercase tracking-widest">Atalhos</p>
+          <div className="flex w-[160px] flex-col gap-0.5 border-r border-border bg-muted/30 p-2">
+            <p className="px-2.5 pb-2 pt-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+              Atalhos
+            </p>
             {PERIOD_PRESETS.map((p) => (
               <button
+                type="button"
                 key={p.key}
                 className={cn(
-                  'w-full text-left text-[13px] px-2.5 py-2 rounded-lg transition-all duration-150 font-medium',
+                  'w-full rounded-lg px-2.5 py-2 text-left text-[13px] font-medium transition-all duration-150',
                   period === p.key
                     ? 'bg-primary text-primary-foreground shadow-sm'
                     : 'text-foreground/80 hover:bg-muted hover:text-foreground'
@@ -253,12 +294,15 @@ export function PeriodFilterSelector({
           </div>
 
           {/* Custom calendar area */}
-          <div className="p-4 flex flex-col">
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-[11px] text-muted-foreground font-semibold uppercase tracking-widest">Período personalizado</p>
+          <div className="flex flex-col p-4">
+            <div className="mb-3 flex items-center justify-between">
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+                Período personalizado
+              </p>
               {(customFrom || customTo) && (
                 <button
-                  className="text-[10px] text-destructive hover:underline font-medium"
+                  type="button"
+                  className="text-[10px] font-medium text-destructive hover:underline"
                   onClick={() => {
                     onClearCustom();
                     onPeriodChange('all');
@@ -270,7 +314,9 @@ export function PeriodFilterSelector({
             </div>
             <div className="flex gap-6">
               <div className="space-y-1.5">
-                <span className="text-[11px] text-muted-foreground font-semibold px-0.5 uppercase tracking-wide">De</span>
+                <span className="px-0.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  De
+                </span>
                 <CalendarComponent
                   mode="single"
                   selected={customFrom}
@@ -281,12 +327,14 @@ export function PeriodFilterSelector({
                   }}
                   disabled={(date) => date > new Date()}
                   locale={ptBR}
-                  className="rounded-lg border border-border/60 p-2.5 pointer-events-auto bg-background"
+                  className="pointer-events-auto rounded-lg border border-border/60 bg-background p-2.5"
                   classNames={calendarClassNames}
                 />
               </div>
               <div className="space-y-1.5">
-                <span className="text-[11px] text-muted-foreground font-semibold px-0.5 uppercase tracking-wide">Até</span>
+                <span className="px-0.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  Até
+                </span>
                 <CalendarComponent
                   mode="single"
                   selected={customTo}
@@ -297,7 +345,7 @@ export function PeriodFilterSelector({
                   }}
                   disabled={(date) => date > new Date() || (customFrom ? date < customFrom : false)}
                   locale={ptBR}
-                  className="rounded-lg border border-border/60 p-2.5 pointer-events-auto bg-background"
+                  className="pointer-events-auto rounded-lg border border-border/60 bg-background p-2.5"
                   classNames={calendarClassNames}
                 />
               </div>

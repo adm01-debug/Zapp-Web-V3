@@ -102,13 +102,14 @@ supabase migration list --project-ref allrjhkpuscmgbsnmjlv
 
 ## Configuração do Supabase
 
-### Projeto Principal
-- **ID**: `allrjhkpuscmgbsnmjlv`
-- **URL**: https://allrjhkpuscmgbsnmjlv.supabase.co
-- **Dashboard**: https://supabase.com/dashboard/project/allrjhkpuscmgbsnmjlv
+### Projeto Principal (Self-Hosted)
+- **Tipo**: Self-Hosted (VPS AtomicaBR)
+- **URL**: https://supabase.atomicabr.com.br
+- **Schema principal**: `zapp`
+- **Schema Evolution API**: `evo`
 
 ### Banco de Dados Externo (CRM)
-- **ID**: `pgxfvjmuubtbowutlide`
+- **URL**: https://supabase.atomicabr.com.br (mesmo host, schema `evo`)
 - **Uso**: RPCs de inteligência e enriquecimento de contatos
 
 ### Configurações Obrigatórias
@@ -150,10 +151,10 @@ supabase migration list --project-ref allrjhkpuscmgbsnmjlv
 
 ```bash
 # Via CLI
-supabase secrets set EVOLUTION_API_KEY=xxx --project-ref allrjhkpuscmgbsnmjlv
+supabase secrets set EVOLUTION_API_KEY=xxx
 
 # Listar secrets
-supabase secrets list --project-ref allrjhkpuscmgbsnmjlv
+supabase secrets list
 ```
 
 ---
@@ -164,11 +165,11 @@ supabase secrets list --project-ref allrjhkpuscmgbsnmjlv
 
 ```env
 # .env.local
-VITE_SUPABASE_URL=https://allrjhkpuscmgbsnmjlv.supabase.co
+VITE_SUPABASE_URL=https://supabase.atomicabr.com.br
 VITE_SUPABASE_ANON_KEY=xxx
 
-# Externo
-VITE_EXTERNAL_SUPABASE_URL=https://pgxfvjmuubtbowutlide.supabase.co
+# Externo (mesmo host self-hosted, schema evo)
+VITE_EXTERNAL_SUPABASE_URL=https://supabase.atomicabr.com.br
 VITE_EXTERNAL_SUPABASE_ANON_KEY=xxx
 
 # Sentry

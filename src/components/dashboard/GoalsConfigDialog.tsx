@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
+import { queryKeys } from '@/services/api/queryKeys';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { unwrapRow, unwrapRows } from '@/lib/supabase-helpers';
 import {
   Dialog,
   DialogContent,
@@ -82,31 +84,31 @@ export function GoalsConfigDialog({ open, onOpenChange }: GoalsConfigDialogProps
 
   // Fetch current user's profile
   const { data: profile } = useQuery({
-    queryKey: ['my-profile', user?.id],
+    queryKey: queryKeys.userProfile.meById(user?.id),
     queryFn: async () => {
       if (!user?.id) return null;
       const { data, error } = await supabase
         .from('profiles')
         .select('id, name')
         .eq('user_id', user.id)
-        .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
+        .maybeSingle();
       if (error) throw error;
-      return data;
+      return unwrapRow<{ id: string; name: string | null }>(data);
     },
     enabled: !!user?.id,
   });
 
   // Fetch existing goal configurations
   const { data: existingGoals, isLoading } = useQuery({
-    queryKey: ['goals-config', profile?.id],
+    queryKey: queryKeys.goals.configForProfile(profile?.id),
     queryFn: async () => {
-      if (!profile?.id) return [];
+      if (!profile?.id) return [] as GoalConfig[];
       const { data, error } = await supabase
         .from('goals_configurations')
         .select('*')
         .eq('profile_id', profile.id);
       if (error) throw error;
-      return data || [];
+      return unwrapRows<GoalConfig>(data);
     },
     enabled: !!profile?.id && open,
   });
@@ -139,8 +141,6 @@ export function GoalsConfigDialog({ open, onOpenChange }: GoalsConfigDialogProps
     mutationFn: async (goalsToSave: GoalConfig[]) => {
       if (!profile?.id) throw new Error('Profile not found');
 
-      // Single upsert for all goals — unique constraint (profile_id, goal_type)
-      // means existing rows update and new rows insert in one round-trip.
       const rows = goalsToSave.map((goal) => ({
         ...(goal.id ? { id: goal.id } : {}),
         profile_id: profile.id,
@@ -157,11 +157,11 @@ export function GoalsConfigDialog({ open, onOpenChange }: GoalsConfigDialogProps
     },
     onSuccess: () => {
       toast.success('Metas salvas com sucesso!');
-      queryClient.invalidateQueries({ queryKey: ['goals-config'] });
-      queryClient.invalidateQueries({ queryKey: ['goals-messages'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.goals.config() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.goals.messages() });
       onOpenChange(false);
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       toast.error('Erro ao salvar metas: ' + error.message);
     },
   });

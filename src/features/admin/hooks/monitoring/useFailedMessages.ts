@@ -1,3 +1,4 @@
+import { queryKeys } from '@/services/api/queryKeys';
 import { useState, useEffect, useMemo } from 'react';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -67,10 +68,17 @@ export function useFailedMessages(filters: FailedMessagesFilters = {}) {
 
   const currentPageCursor = pageIndexToCursor.get(page) ?? null;
 
-  const queryKey = [
-    'failed-messages',
-    { status, instance, errorCode, rootCause, search, effectiveFrom, effectiveTo, page, pageSize },
-  ];
+  const queryKey = queryKeys.failedMessages.filtered({
+    status,
+    instance,
+    errorCode,
+    rootCause,
+    search,
+    effectiveFrom,
+    effectiveTo,
+    page,
+    pageSize,
+  });
 
   const query = useQuery<{ rows: FailedMessageRow[]; total: number; deniedReason: string | null }>({
     queryKey,
@@ -140,11 +148,12 @@ export function useFailedMessages(filters: FailedMessagesFilters = {}) {
     const channel = supabase
       .channel('failed_messages_realtime')
       .on('postgres_changes', { event: '*', schema: 'zapp', table: 'failed_messages' }, () => {
-        void queryClient.invalidateQueries({ queryKey: ['failed-messages'] });
+        void queryClient.invalidateQueries({ queryKey: queryKeys.failedMessages.all() });
       })
       .subscribe();
     return () => {
       channel.unsubscribe();
+      supabase.removeChannel(channel);
     };
   }, [queryClient]);
 
@@ -160,7 +169,7 @@ export function useFailedMessages(filters: FailedMessagesFilters = {}) {
         p_ids: ids,
         p_reason: reason,
       });
-      queryClient.invalidateQueries({ queryKey: ['dlq-audit-log'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.adminOps.dlqAuditLog() });
     } catch (logErr) {
       log.warn('Failed to log DLQ item action', {
         action,
@@ -180,7 +189,7 @@ export function useFailedMessages(filters: FailedMessagesFilters = {}) {
     onSuccess: (ok) => {
       if (ok) toast.success('Item marcado para reprocesso imediato.');
       else toast.info('Nenhuma alteração — item já estava em outro estado.');
-      queryClient.invalidateQueries({ queryKey: ['failed-messages'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.failedMessages.all() });
     },
     onError: (e: unknown) => {
       toast.error(`Falha: ${e instanceof Error ? e.message : 'erro'}`);
@@ -200,7 +209,7 @@ export function useFailedMessages(filters: FailedMessagesFilters = {}) {
     onSuccess: (ok) => {
       if (ok) toast.success('Item abandonado.');
       else toast.info('Item já estava abandonado.');
-      queryClient.invalidateQueries({ queryKey: ['failed-messages'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.failedMessages.all() });
     },
     onError: (e: unknown) => {
       toast.error(`Falha: ${e instanceof Error ? e.message : 'erro'}`);
@@ -224,7 +233,7 @@ export function useFailedMessages(filters: FailedMessagesFilters = {}) {
     },
     onSuccess: (n) => {
       toast.success(`${n} item(s) marcado(s) para reprocesso.`);
-      queryClient.invalidateQueries({ queryKey: ['failed-messages'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.failedMessages.all() });
     },
     onError: (e: unknown) => {
       toast.error(`Falha em massa: ${e instanceof Error ? e.message : 'erro'}`);
@@ -248,7 +257,7 @@ export function useFailedMessages(filters: FailedMessagesFilters = {}) {
     },
     onSuccess: (n) => {
       toast.success(`${n} item(s) abandonado(s).`);
-      queryClient.invalidateQueries({ queryKey: ['failed-messages'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.failedMessages.all() });
     },
     onError: (e: unknown) => {
       toast.error(`Falha em massa: ${e instanceof Error ? e.message : 'erro'}`);
@@ -287,7 +296,7 @@ export function useFailedMessages(filters: FailedMessagesFilters = {}) {
           p_message: data?.message ?? null,
           p_source: 'panel',
         });
-        queryClient.invalidateQueries({ queryKey: ['dlq-audit-log'] });
+        queryClient.invalidateQueries({ queryKey: queryKeys.adminOps.dlqAuditLog() });
       } catch (logErr) {
         log.warn('Failed to log reprocess result', {
           error: logErr instanceof Error ? logErr.message : String(logErr),
@@ -298,7 +307,7 @@ export function useFailedMessages(filters: FailedMessagesFilters = {}) {
           ? (data?.message ?? 'Nenhum item pendente.')
           : `Reprocessamento concluído — ${processed} item(s): ✓${data.succeeded ?? 0} ✗${data.failed ?? 0} ⚠${data.abandoned ?? 0}`
       );
-      queryClient.invalidateQueries({ queryKey: ['failed-messages'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.failedMessages.all() });
     },
     onError: (e: unknown) => {
       toast.error(`Falha ao reprocessar: ${e instanceof Error ? e.message : 'erro'}`);
@@ -324,7 +333,7 @@ export function useFailedMessages(filters: FailedMessagesFilters = {}) {
  */
 export function useFailedMessagesStats() {
   return useQuery<DlqStats>({
-    queryKey: ['failed-messages-stats'],
+    queryKey: queryKeys.failedMessages.stats(),
     queryFn: async () => {
       const { data, error } = await _rpc<DlqStats>('rpc_dlq_stats');
       if (error) throw error;

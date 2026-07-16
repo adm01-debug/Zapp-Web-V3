@@ -1,3 +1,4 @@
+import { queryKeys } from '@/services/api/queryKeys';
 /**
  * Tests for React Query hooks in hooks.ts.
  *
@@ -83,16 +84,12 @@ describe('useEvoApiDashboard', () => {
     const { wrapper } = createWrapper();
     // Only testing config — no network needed since query won't run without data
     // We verify the hook instantiates with the param without throwing
-    expect(() =>
-      renderHook(() => useEvoApiDashboard(60_000), { wrapper })
-    ).not.toThrow();
+    expect(() => renderHook(() => useEvoApiDashboard(60_000), { wrapper })).not.toThrow();
   });
 
   it('uses default refetchMs of 30 000', () => {
     const { wrapper } = createWrapper();
-    expect(() =>
-      renderHook(() => useEvoApiDashboard(), { wrapper })
-    ).not.toThrow();
+    expect(() => renderHook(() => useEvoApiDashboard(), { wrapper })).not.toThrow();
   });
 
   it('exposes isLoading while pending', () => {
@@ -177,7 +174,7 @@ describe('useAcknowledgeAlert', () => {
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
     expect(invalidateSpy).toHaveBeenCalledWith(
-      expect.objectContaining({ queryKey: ['evo-api-health'] })
+      expect.objectContaining({ queryKey: queryKeys.adminOps.evoApiHealth() })
     );
   });
 });
@@ -283,7 +280,7 @@ describe('useRunTestSuite', () => {
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
     expect(invalidateSpy).toHaveBeenCalledWith(
-      expect.objectContaining({ queryKey: ['evo-api-health'] })
+      expect.objectContaining({ queryKey: queryKeys.adminOps.evoApiHealth() })
     );
   });
 });

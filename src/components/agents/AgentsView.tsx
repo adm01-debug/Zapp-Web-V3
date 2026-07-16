@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { AgentsEmptyState } from '@/components/ui/contextual-empty-states';
 import { InviteAgentDialog } from '@/components/agents/InviteAgentDialog';
 import { ConfigurePermissionsDialog } from '@/components/agents/ConfigurePermissionsDialog';
@@ -39,31 +39,56 @@ export function AgentsView() {
   const [search, setSearch] = useState('');
   const [inviteOpen, setInviteOpen] = useState(false);
   const [permissionsOpen, setPermissionsOpen] = useState(false);
-  const filteredAgents = agents.filter((agent) =>
-    agent.name.toLowerCase().includes(search.toLowerCase()) ||
-    (agent.email?.toLowerCase().includes(search.toLowerCase()) ?? false)
+  const filteredAgents = useMemo(
+    () =>
+      agents.filter(
+        (agent) =>
+          agent.name.toLowerCase().includes(search.toLowerCase()) ||
+          (agent.email?.toLowerCase().includes(search.toLowerCase()) ?? false)
+      ),
+    [agents, search]
   );
 
   const statsData = [
-    { label: 'Online', value: stats.onlineCount, color: 'bg-status-online', icon: undefined as React.ElementType | undefined },
-    { label: 'Ausente', value: stats.awayCount, color: 'bg-status-away', icon: undefined as React.ElementType | undefined },
-    { label: 'Offline', value: stats.offlineCount, color: 'bg-status-offline', icon: undefined as React.ElementType | undefined },
-    { label: 'Chats Ativos', value: stats.totalActiveChats, color: undefined as string | undefined, icon: MessageSquare as React.ElementType },
+    {
+      label: 'Online',
+      value: stats.onlineCount,
+      color: 'bg-status-online',
+      icon: undefined as React.ElementType | undefined,
+    },
+    {
+      label: 'Ausente',
+      value: stats.awayCount,
+      color: 'bg-status-away',
+      icon: undefined as React.ElementType | undefined,
+    },
+    {
+      label: 'Offline',
+      value: stats.offlineCount,
+      color: 'bg-status-offline',
+      icon: undefined as React.ElementType | undefined,
+    },
+    {
+      label: 'Chats Ativos',
+      value: stats.totalActiveChats,
+      color: undefined as string | undefined,
+      icon: MessageSquare as React.ElementType,
+    },
   ];
 
   if (isLoading) {
     return (
-      <div className="p-6 space-y-6 overflow-y-auto h-full relative bg-background">
+      <div className="relative h-full space-y-6 overflow-y-auto bg-background p-6">
         <AuroraBorealis />
         <FloatingParticles />
         <div className="space-y-4">
           <Skeleton className="h-10 w-64" />
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
             {[1, 2, 3, 4].map((i) => (
               <Skeleton key={i} className="h-24" />
             ))}
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {[1, 2, 3, 4, 5, 6].map((i) => (
               <Skeleton key={i} className="h-48" />
             ))}
@@ -74,25 +99,22 @@ export function AgentsView() {
   }
 
   return (
-    <div className="p-6 space-y-6 overflow-y-auto h-full relative bg-background">
+    <div className="relative h-full space-y-6 overflow-y-auto bg-background p-6">
       <AuroraBorealis />
       <FloatingParticles />
       {/* Header with Breadcrumbs */}
       <PageHeader
         title="Atendentes"
         subtitle={`Gerencie sua equipe de atendimento (${stats.totalAgents} atendentes)`}
-        breadcrumbs={[
-          { label: 'Gestão' },
-          { label: 'Atendentes' },
-        ]}
+        breadcrumbs={[{ label: 'Gestão' }, { label: 'Atendentes' }]}
         actions={
           <div className="flex gap-2">
             <Button variant="outline" onClick={() => refetch()} className="border-secondary/30">
-              <RefreshCw className="w-4 h-4 mr-2" />
+              <RefreshCw className="mr-2 h-4 w-4" />
               Atualizar
             </Button>
             <Button className="bg-primary hover:bg-primary/90" onClick={() => setInviteOpen(true)}>
-              <Plus className="w-4 h-4 mr-2" />
+              <Plus className="mr-2 h-4 w-4" />
               Adicionar Atendente
             </Button>
           </div>
@@ -100,7 +122,7 @@ export function AgentsView() {
       />
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
         {statsData.map((stat, index) => (
           <motion.div
             key={stat.label}
@@ -108,21 +130,24 @@ export function AgentsView() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3, delay: index * 0.1 }}
           >
-            <Card className="border border-secondary/20 bg-card hover:border-secondary/40 hover:-translate-y-0.5 transition-all duration-200 card-glow-purple">
+            <Card className="card-glow-purple border border-secondary/20 bg-card transition-all duration-200 hover:-translate-y-0.5 hover:border-secondary/40">
               <CardContent className="p-4">
                 <div className="flex items-center gap-3">
                   {stat.color ? (
                     <div className="relative">
-                      <div className={cn('w-3.5 h-3.5 rounded-full', stat.color)} />
-                      <div className={cn('absolute inset-0 w-3.5 h-3.5 rounded-full animate-ping opacity-30', stat.color)} />
+                      <div className={cn('h-3.5 w-3.5 rounded-full', stat.color)} />
+                      <div
+                        className={cn(
+                          'absolute inset-0 h-3.5 w-3.5 animate-ping rounded-full opacity-30',
+                          stat.color
+                        )}
+                      />
                     </div>
                   ) : stat.icon ? (
-                    <stat.icon className="w-5 h-5 text-primary" />
+                    <stat.icon className="h-5 w-5 text-primary" />
                   ) : null}
                   <div>
-                    <p className="text-2xl font-bold text-foreground">
-                      {stat.value}
-                    </p>
+                    <p className="text-2xl font-bold text-foreground">{stat.value}</p>
                     <p className="text-xs text-muted-foreground">{stat.label}</p>
                   </div>
                 </div>
@@ -133,24 +158,27 @@ export function AgentsView() {
       </div>
 
       {/* Search and Filter */}
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.3 }}
         className="flex items-center gap-4"
       >
-        <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+        <div className="relative max-w-md flex-1">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             aria-label="Buscar atendentes"
             placeholder="Buscar atendentes..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-9 bg-muted/20 border-border/30 focus:border-primary/50"
+            className="border-border/30 bg-muted/20 pl-9 focus:border-primary/50"
           />
         </div>
-        <Button variant="outline" className="border-secondary/30 hover:border-secondary/50 hover:bg-secondary/10">
-          <Filter className="w-4 h-4 mr-2" />
+        <Button
+          variant="outline"
+          className="border-secondary/30 hover:border-secondary/50 hover:bg-secondary/10"
+        >
+          <Filter className="mr-2 h-4 w-4" />
           Filtrar
         </Button>
       </motion.div>
@@ -162,32 +190,40 @@ export function AgentsView() {
           onConfigurePermissions={() => setPermissionsOpen(true)}
         />
       ) : (
-        <StaggeredList className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        <StaggeredList className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {filteredAgents.map((agent) => {
             const maxChats = agent.max_chats || 5;
             const capacityPercent = (agent.activeChats / maxChats) * 100;
 
             return (
               <StaggeredItem key={agent.id}>
-                <Card className="cursor-pointer border border-secondary/20 bg-card hover:border-secondary/40 transition-all duration-200 hover:shadow-[0_0_20px_hsl(var(--secondary)/0.2)] hover:-translate-y-0.5">
+                <Card className="cursor-pointer border border-secondary/20 bg-card transition-all duration-200 hover:-translate-y-0.5 hover:border-secondary/40 hover:shadow-[0_0_20px_hsl(var(--secondary)/0.2)]">
                   <CardContent className="p-4">
-                    <div className="flex items-start justify-between mb-4">
+                    <div className="mb-4 flex items-start justify-between">
                       <div className="flex items-center gap-3">
                         <div className="relative">
-                          <Avatar className={cn(
-                            "w-12 h-12 ring-2 transition-all duration-200",
-                            agent.status === 'online' && 'ring-status-online/50',
-                            agent.status === 'away' && 'ring-status-away/50',
-                            agent.status === 'offline' && 'ring-border/30'
-                          )}>
+                          <Avatar
+                            className={cn(
+                              'h-12 w-12 ring-2 transition-all duration-200',
+                              agent.status === 'online' && 'ring-status-online/50',
+                              agent.status === 'away' && 'ring-status-away/50',
+                              agent.status === 'offline' && 'ring-border/30'
+                            )}
+                          >
                             <AvatarImage src={agent.avatar_url || undefined} alt={agent.name} />
-                            <AvatarFallback className={cn('font-semibold', getAvatarColor(agent.name).bg, getAvatarColor(agent.name).text)}>
+                            <AvatarFallback
+                              className={cn(
+                                'font-semibold',
+                                getAvatarColor(agent.name).bg,
+                                getAvatarColor(agent.name).text
+                              )}
+                            >
                               {getInitials(agent.name)}
                             </AvatarFallback>
                           </Avatar>
                           <span
                             className={cn(
-                              'absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full border-2 border-card',
+                              'absolute bottom-0 right-0 h-3.5 w-3.5 rounded-full border-2 border-card',
                               agent.status === 'online' && 'bg-status-online',
                               agent.status === 'away' && 'bg-status-away',
                               agent.status === 'offline' && 'bg-status-offline'
@@ -196,29 +232,37 @@ export function AgentsView() {
                         </div>
                         <div>
                           <h3 className="font-semibold text-foreground">{agent.name}</h3>
-                          <p className="text-sm text-muted-foreground capitalize">
-                            {agent.role === 'admin' ? 'Administrador' : 
-                             agent.role === 'supervisor' ? 'Supervisor' : 'Atendente'}
+                          <p className="text-sm capitalize text-muted-foreground">
+                            {agent.role === 'admin'
+                              ? 'Administrador'
+                              : agent.role === 'supervisor'
+                                ? 'Supervisor'
+                                : 'Atendente'}
                           </p>
                         </div>
                       </div>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button aria-label="Opções do agente" variant="ghost" size="icon" className="w-8 h-8 hover:bg-muted/30">
-                            <MoreVertical className="w-4 h-4" />
+                          <Button
+                            aria-label="Opções do agente"
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 hover:bg-muted/30"
+                          >
+                            <MoreVertical className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="bg-card border-border/30">
+                        <DropdownMenuContent align="end" className="border-border/30 bg-card">
                           <DropdownMenuItem className="hover:bg-primary/10">
-                            <Edit className="w-4 h-4 mr-2" />
+                            <Edit className="mr-2 h-4 w-4" />
                             Editar
                           </DropdownMenuItem>
                           <DropdownMenuItem className="hover:bg-primary/10">
-                            <Settings className="w-4 h-4 mr-2" />
+                            <Settings className="mr-2 h-4 w-4" />
                             Configurações
                           </DropdownMenuItem>
                           <DropdownMenuItem className="text-destructive hover:bg-destructive/10">
-                            <UserX className="w-4 h-4 mr-2" />
+                            <UserX className="mr-2 h-4 w-4" />
                             Desativar
                           </DropdownMenuItem>
                         </DropdownMenuContent>
@@ -226,7 +270,7 @@ export function AgentsView() {
                     </div>
 
                     {/* Capacity */}
-                    <div className="space-y-2 mb-4">
+                    <div className="mb-4 space-y-2">
                       <div className="flex items-center justify-between text-sm">
                         <span className="text-muted-foreground">Capacidade</span>
                         <span className="font-medium text-foreground">
@@ -247,7 +291,7 @@ export function AgentsView() {
 
                     {/* Queues */}
                     <div>
-                      <p className="text-xs text-muted-foreground mb-2">Filas</p>
+                      <p className="mb-2 text-xs text-muted-foreground">Filas</p>
                       <div className="flex flex-wrap gap-1">
                         {agent.queues.length > 0 ? (
                           agent.queues.map((queue) => (
@@ -255,17 +299,19 @@ export function AgentsView() {
                               key={queue.id}
                               variant="outline"
                               className="text-xs font-medium"
-                              style={{ 
-                                borderColor: queue.color, 
+                              style={{
+                                borderColor: queue.color,
                                 color: queue.color,
-                                backgroundColor: `${queue.color}15`
+                                backgroundColor: `${queue.color}15`,
                               }}
                             >
                               {queue.name}
                             </Badge>
                           ))
                         ) : (
-                          <span className="text-xs text-muted-foreground">Sem filas atribuídas</span>
+                          <span className="text-xs text-muted-foreground">
+                            Sem filas atribuídas
+                          </span>
                         )}
                       </div>
                     </div>

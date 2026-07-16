@@ -46,10 +46,7 @@ import { reconcileOptimistic, applyReconciliation } from '../useExternalEvolutio
 import type { RealtimeMessage } from '@/features/inbox';
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
-function msg(
-  id: string,
-  overrides: Partial<RealtimeMessage> = {}
-): RealtimeMessage {
+function msg(id: string, overrides: Partial<RealtimeMessage> = {}): RealtimeMessage {
   return {
     id,
     contact_id: null,
@@ -73,10 +70,7 @@ function msg(
   };
 }
 
-function optMsg(
-  id: string,
-  overrides: Partial<RealtimeMessage> = {}
-): RealtimeMessage {
+function optMsg(id: string, overrides: Partial<RealtimeMessage> = {}): RealtimeMessage {
   return msg(`optimistic:${id}`, overrides);
 }
 
@@ -117,10 +111,7 @@ describe('reconcileOptimistic — canonical-only prev', () => {
     const prev = [msg('c1')];
     const incoming = [msg('c1'), msg('c2')];
     const result = reconcileOptimistic(prev, incoming);
-    const allIds = [
-      ...result.filteredPrev.map((m) => m.id),
-      ...result.additions.map((m) => m.id),
-    ];
+    const allIds = [...result.filteredPrev.map((m) => m.id), ...result.additions.map((m) => m.id)];
     const count = allIds.filter((id) => id === 'c1').length;
     expect(count).toBe(1);
   });
@@ -305,11 +296,10 @@ describe('applyReconciliation', () => {
     const setMessages = vi.fn((updater: (prev: RealtimeMessage[]) => RealtimeMessage[]) => {
       updater([opt]);
     });
-    const { remapSize } = applyReconciliation(
-      setMessages,
-      [canonical],
-      (fp, add) => [...fp, ...add]
-    );
+    const { remapSize } = applyReconciliation(setMessages, [canonical], (fp, add) => [
+      ...fp,
+      ...add,
+    ]);
     expect(remapSize).toBe(1);
   });
 

@@ -161,7 +161,11 @@ export interface UseBusinessLogicCatalogResult {
   setSelectedContact: (contact: ContactResult | null) => void;
   resetContactSelection: () => void;
   isSending: boolean;
-  sendProductToContact: (contact: ContactResult, message: string, imageUrls: string[]) => Promise<void>;
+  sendProductToContact: (
+    contact: ContactResult,
+    message: string,
+    imageUrls: string[]
+  ) => Promise<void>;
 }
 
 /** Manages product catalog sending to contacts with image uploads and media handling. */
@@ -185,7 +189,9 @@ export function useBusinessLogicCatalogManagement(
       const { data } = await supabase
         .from('contacts')
         .select('id, name, phone, avatar_url')
-        .or(`name.ilike.%${sanitizePostgrestFilter(contactSearch)}%,phone.ilike.%${sanitizePostgrestFilter(contactSearch)}%`)
+        .or(
+          `name.ilike.%${sanitizePostgrestFilter(contactSearch)}%,phone.ilike.%${sanitizePostgrestFilter(contactSearch)}%`
+        )
         .limit(15);
       setContactResults(data || []);
       setSearchingContacts(false);
@@ -235,10 +241,16 @@ export function useBusinessLogicCatalogManagement(
 
         const connection = connections?.[0];
         const evoName = connection
-          ? evolutionInstanceName({ instance_name: connection.name, instance_id: connection.instance_id })
+          ? evolutionInstanceName({
+              instance_name: connection.name,
+              instance_id: connection.instance_id,
+            })
           : null;
         if (!evoName) {
-          toast({ title: 'Nenhuma conexão WhatsApp ativa com nome de instância válido.', variant: 'destructive' });
+          toast({
+            title: 'Nenhuma conexão WhatsApp ativa com nome de instância válido.',
+            variant: 'destructive',
+          });
           return;
         }
 
@@ -254,7 +266,7 @@ export function useBusinessLogicCatalogManagement(
               whatsapp_connection_id: connection?.id || null,
             })
             .select('id')
-            .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
+            .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
 
           const { data: apiResult } = await supabase.functions.invoke('evolution-api', {
             body: {
@@ -286,7 +298,7 @@ export function useBusinessLogicCatalogManagement(
             whatsapp_connection_id: connection?.id || null,
           })
           .select('id')
-          .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
+          .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
 
         const { data: textApiResult } = await supabase.functions.invoke('evolution-api', {
           body: {
@@ -454,6 +466,7 @@ export function useBusinessLogicPipelineManagement(
       )
       .subscribe();
     return () => {
+      channel.unsubscribe();
       supabase.removeChannel(channel);
     };
   }, [fetchData]);
@@ -526,13 +539,11 @@ export function useBusinessLogicPipelineManagement(
       toast({ title: 'Erro ao mover deal', description: error.message, variant: 'destructive' });
       return;
     }
-    await supabase
-      .from('deal_activities')
-      .insert({
-        deal_id: dealId,
-        activity_type: 'stage_change',
-        description: `Movido para ${stages.find((s) => s.id === newStageId)?.name}`,
-      });
+    await supabase.from('deal_activities').insert({
+      deal_id: dealId,
+      activity_type: 'stage_change',
+      description: `Movido para ${stages.find((s) => s.id === newStageId)?.name}`,
+    });
     fetchData();
   };
 
@@ -552,7 +563,11 @@ export function useBusinessLogicPipelineManagement(
       .update({ status: 'won', won_at: new Date().toISOString() })
       .eq('id', deal.id);
     if (error) {
-      toast({ title: 'Erro ao marcar como ganho', description: error.message, variant: 'destructive' });
+      toast({
+        title: 'Erro ao marcar como ganho',
+        description: error.message,
+        variant: 'destructive',
+      });
       return;
     }
     toast({
@@ -568,7 +583,11 @@ export function useBusinessLogicPipelineManagement(
       .update({ status: 'lost', lost_at: new Date().toISOString() })
       .eq('id', deal.id);
     if (error) {
-      toast({ title: 'Erro ao marcar como perdido', description: error.message, variant: 'destructive' });
+      toast({
+        title: 'Erro ao marcar como perdido',
+        description: error.message,
+        variant: 'destructive',
+      });
       return;
     }
     toast({ title: 'Deal perdido', description: deal.title });

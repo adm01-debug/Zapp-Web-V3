@@ -10,7 +10,7 @@
  */
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
-import { useSidebarCollapse } from '../useSidebarCollapse';
+import { useSidebarCollapse } from '../useSidebarState';
 
 const STORAGE_KEY = 'zapp-sidebar-collapsed';
 

@@ -17,18 +17,23 @@ interface InAppNotificationProps {
   onDismiss: () => void;
 }
 
-export function InAppNotification({ notification, duration = 4000, onDismiss }: InAppNotificationProps) {
+export function InAppNotification({
+  notification,
+  duration = 4000,
+  onDismiss,
+}: InAppNotificationProps) {
   useEffect(() => {
     if (!notification) return;
     const timer = setTimeout(onDismiss, duration);
     return () => clearTimeout(timer);
   }, [notification, duration, onDismiss]);
 
-  const initials = notification?.title
-    ?.split(' ')
-    .map(n => n[0])
-    .join('')
-    .slice(0, 2) || '?';
+  const initials =
+    notification?.title
+      ?.split(' ')
+      .map((n) => n[0])
+      .join('')
+      .slice(0, 2) || '?';
 
   return (
     <AnimatePresence>
@@ -40,29 +45,35 @@ export function InAppNotification({ notification, duration = 4000, onDismiss }: 
           transition={{ type: 'spring', stiffness: 400, damping: 30 }}
           drag="y"
           dragConstraints={{ top: -100, bottom: 0 }}
-          onDragEnd={(_, info) => { if (info.offset.y < -30) onDismiss(); }}
-          className="fixed top-2 left-2 right-2 z-[100] safe-area-top cursor-pointer"
+          onDragEnd={(_, info) => {
+            if (info.offset.y < -30) onDismiss();
+          }}
+          className="safe-area-top fixed left-2 right-2 top-2 z-[100] cursor-pointer"
           onClick={() => {
             notification.onClick?.();
             onDismiss();
           }}
         >
-          <div className="bg-card/95 backdrop-blur-xl border border-border/40 rounded-2xl shadow-2xl p-3 flex items-center gap-3 mx-auto max-w-md">
-            <Avatar className="w-10 h-10 shrink-0">
+          <div className="mx-auto flex max-w-md items-center gap-3 rounded-2xl border border-border/40 bg-card/95 p-3 shadow-2xl backdrop-blur-xl">
+            <Avatar className="h-10 w-10 shrink-0">
               <AvatarImage src={notification.avatar} alt={notification.title} />
-              <AvatarFallback className="bg-primary/15 text-primary text-xs font-bold">
+              <AvatarFallback className="bg-primary/15 text-xs font-bold text-primary">
                 {initials}
               </AvatarFallback>
             </Avatar>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-foreground truncate">{notification.title}</p>
-              <p className="text-xs text-muted-foreground truncate">{notification.body}</p>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-semibold text-foreground">{notification.title}</p>
+              <p className="truncate text-xs text-muted-foreground">{notification.body}</p>
             </div>
             <button
-              onClick={(e) => { e.stopPropagation(); onDismiss(); }}
-              className="shrink-0 p-1 rounded-full hover:bg-muted active:scale-95 transition-transform touch-manipulation"
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onDismiss();
+              }}
+              className="shrink-0 touch-manipulation rounded-full p-1 transition-transform hover:bg-muted active:scale-95"
             >
-              <X className="w-4 h-4 text-muted-foreground" />
+              <X className="h-4 w-4 text-muted-foreground" />
             </button>
           </div>
         </motion.div>

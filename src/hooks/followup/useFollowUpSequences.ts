@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '@/services/api/queryKeys';
 import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { toast } from '@/hooks/use-toast';
@@ -24,14 +25,11 @@ interface FollowUpSequence {
   followup_steps: FollowUpStep[];
 }
 
-const QUERY_KEY = ['followup-sequences'];
-
-/** Hook for managing follow-up sequences with create, toggle, and delete operations. */
 export function useFollowUpSequences() {
   const queryClient = useQueryClient();
 
   const { data: sequences = [], isLoading } = useQuery({
-    queryKey: QUERY_KEY,
+    queryKey: queryKeys.followupSequences.all(),
     queryFn: async () => {
       const { data, error } = await supabase
         .from('followup_sequences')
@@ -60,7 +58,7 @@ export function useFollowUpSequences() {
       }
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: QUERY_KEY });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.followupSequences.all() });
       toast({ title: 'Sequência criada' });
     },
     onError: () => {
@@ -77,7 +75,7 @@ export function useFollowUpSequences() {
       if (error) throw error;
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: QUERY_KEY });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.followupSequences.all() });
     },
     onError: () => {
       toast({ title: 'Erro ao alterar status', variant: 'destructive' });
@@ -90,7 +88,7 @@ export function useFollowUpSequences() {
       if (error) throw error;
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: QUERY_KEY });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.followupSequences.all() });
       toast({ title: 'Sequência excluída' });
     },
     onError: () => {

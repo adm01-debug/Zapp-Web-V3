@@ -68,8 +68,8 @@ describe('useSwipeNavigation — canGoBack guard', () => {
     const { unmount } = renderHook(() =>
       useSwipeNavigation({ onSwipeBack, canGoBack: false, threshold: THRESHOLD, edgeWidth: EDGE })
     );
-    fireTouch('touchstart', 10);        // within left edge
-    fireTouch('touchmove', 10 + 100);   // rightward, large delta
+    fireTouch('touchstart', 10); // within left edge
+    fireTouch('touchmove', 10 + 100); // rightward, large delta
     vi.advanceTimersByTime(100);
     fireTouch('touchend', 10 + 100);
     expect(onSwipeBack).not.toHaveBeenCalled();
@@ -89,7 +89,7 @@ describe('useSwipeNavigation — onSwipeBack', () => {
         edgeWidth: EDGE,
       })
     );
-    fireTouch('touchstart', 10);            // left edge (10 <= 24)
+    fireTouch('touchstart', 10); // left edge (10 <= 24)
     fireTouch('touchmove', 10 + THRESHOLD + 1); // dx > threshold
     // elapsed > 300ms (not a flick) but delta >= threshold → isSwipe
     vi.advanceTimersByTime(400);
@@ -109,8 +109,8 @@ describe('useSwipeNavigation — onSwipeBack', () => {
       })
     );
     fireTouch('touchstart', 10);
-    fireTouch('touchmove', 10 + 50);   // dx=50 > 30px
-    vi.advanceTimersByTime(100);       // elapsed = 100ms < 300ms → flick
+    fireTouch('touchmove', 10 + 50); // dx=50 > 30px
+    vi.advanceTimersByTime(100); // elapsed = 100ms < 300ms → flick
     fireTouch('touchend', 10 + 50);
     expect(onSwipeBack).toHaveBeenCalledTimes(1);
     unmount();
@@ -126,7 +126,7 @@ describe('useSwipeNavigation — onSwipeBack', () => {
         edgeWidth: EDGE,
       })
     );
-    fireTouch('touchstart', 50);            // 50 > edgeWidth=24
+    fireTouch('touchstart', 50); // 50 > edgeWidth=24
     fireTouch('touchmove', 50 + THRESHOLD + 1);
     vi.advanceTimersByTime(400);
     fireTouch('touchend', 50 + THRESHOLD + 1);

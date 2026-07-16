@@ -3,16 +3,17 @@ import {
   useSwipeGestureManagement,
   useSwipeNavigationManagement,
   type SwipeState,
+  type UseSwipeGestureOptions,
+  type UseSwipeNavigationOptions,
 } from '@/hooks/useUIInteractionManagement';
 
-export type { SwipeState };
+export type { SwipeState, UseSwipeGestureOptions, UseSwipeNavigationOptions };
 
-/** Handles swipe gestures for navigation and interactions on touch devices. */
-export function useSwipeGesture(options: any) {
+export function useSwipeGesture(options: UseSwipeGestureOptions) {
   return useSwipeGestureManagement(options);
 }
 
-export function useSwipeNavigation(options: any) {
+export function useSwipeNavigation(options: UseSwipeNavigationOptions) {
   return useSwipeNavigationManagement(options);
 }
 

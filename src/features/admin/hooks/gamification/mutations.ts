@@ -1,3 +1,4 @@
+import { queryKeys } from '@/services/api/queryKeys';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { calculateLevel } from './levelUtils';
@@ -23,7 +24,8 @@ export function useGamificationMutations(
       if (error) throw error;
       return { newXp, newLevel, leveledUp, previousLevel: currentStats?.level || 1 };
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['agent-stats', profileId] }),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: queryKeys.agentGamification.stats(profileId) }),
   });
 
   const grantAchievementMutation = useMutation({
@@ -50,15 +52,13 @@ export function useGamificationMutations(
       const allowDuplicates = ['daily_goal', 'streak', 'message_milestone'];
       if (existing && !allowDuplicates.includes(type)) return { alreadyHad: true };
 
-      const { error: achievementError } = await supabase
-        .from('agent_achievements')
-        .insert({
-          profile_id: profileId,
-          achievement_type: type,
-          achievement_name: name,
-          achievement_description: description,
-          xp_earned: xpReward,
-        });
+      const { error: achievementError } = await supabase.from('agent_achievements').insert({
+        profile_id: profileId,
+        achievement_type: type,
+        achievement_name: name,
+        achievement_description: description,
+        xp_earned: xpReward,
+      });
       if (achievementError) throw achievementError;
 
       const newXp = (currentStats?.xp || 0) + xpReward;
@@ -84,8 +84,10 @@ export function useGamificationMutations(
       };
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['agent-stats', profileId] });
-      queryClient.invalidateQueries({ queryKey: ['agent-achievements', profileId] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.agentGamification.stats(profileId) });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.agentGamification.achievements(profileId),
+      });
     },
   });
 
@@ -113,7 +115,8 @@ export function useGamificationMutations(
       if (error) throw error;
       return { newStreak, newBestStreak };
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['agent-stats', profileId] }),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: queryKeys.agentGamification.stats(profileId) }),
   });
 
   const incrementMessagesMutation = useMutation({
@@ -137,7 +140,8 @@ export function useGamificationMutations(
       if (error) throw error;
       return { newSent, newReceived };
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['agent-stats', profileId] }),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: queryKeys.agentGamification.stats(profileId) }),
   });
 
   const incrementResolutionsMutation = useMutation({
@@ -152,7 +156,8 @@ export function useGamificationMutations(
       if (error) throw error;
       return { newResolutions };
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['agent-stats', profileId] }),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: queryKeys.agentGamification.stats(profileId) }),
   });
 
   return {

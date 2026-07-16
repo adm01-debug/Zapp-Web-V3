@@ -15,14 +15,16 @@ interface Integration {
 /** Manages Evolution API instance connections and configuration. */
 export function useEvolutionApiManagement() {
   const [isConnected, setIsConnected] = useState(false);
-  const [instances, setInstances] = useState<any[]>([]);
+  const [instances, setInstances] = useState<Record<string, unknown>[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    let _mounted = true;
+    const _mounted = true;
     const checkConnection = async () => {
       if (!_mounted) return;
       try {
+        // SCHEMA: zapp — evolution_instances existe como view em zapp (security_invoker=on)
+        // Não usar .schema('evo') — evo.evolution_instances não existe no DB (PGRST205).
         const { data, error: err } = await supabase.from('evolution_instances').select('*');
 
         if (err) throw err;
@@ -82,7 +84,7 @@ export function useBitrixApiManagement() {
   const [webhookUrl, setWebhookUrl] = useState<string | null>(null);
 
   useEffect(() => {
-    let _mounted = true;
+    const _mounted = true;
     const checkBitrixConnection = async () => {
       if (!_mounted) return;
       try {
@@ -90,7 +92,7 @@ export function useBitrixApiManagement() {
           .from('integrations')
           .select('config')
           .eq('type', 'bitrix24')
-          .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
+          .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
 
         if (err && err.code !== 'PGRST116') throw err;
         if (data?.config?.webhook_url) {
@@ -114,7 +116,7 @@ export function useTalkXManagement() {
   const [config, setConfig] = useState<any>(null);
 
   useEffect(() => {
-    let _mounted = true;
+    const _mounted = true;
     const fetchTalkXConfig = async () => {
       if (!_mounted) return;
       try {
@@ -122,7 +124,7 @@ export function useTalkXManagement() {
           .from('integrations')
           .select('config')
           .eq('type', 'talkx')
-          .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
+          .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
 
         if (err && err.code !== 'PGRST116') throw err;
         if (data) {
@@ -146,7 +148,7 @@ export function useSyncToCRMManagement(entityId?: string) {
   const [lastSyncAt, setLastSyncAt] = useState<string | null>(null);
 
   const syncToCRM = useCallback(
-    async (data: any) => {
+    async (data: Record<string, unknown>) => {
       if (!entityId) return;
 
       setIsSyncing(true);

@@ -1,3 +1,4 @@
+import { queryKeys } from '@/services/api/queryKeys';
 import { useQuery } from '@tanstack/react-query';
 import {
   Dialog,
@@ -16,13 +17,14 @@ interface ConfigurePermissionsDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-export function ConfigurePermissionsDialog({ open, onOpenChange }: ConfigurePermissionsDialogProps) {
+export function ConfigurePermissionsDialog({
+  open,
+  onOpenChange,
+}: ConfigurePermissionsDialogProps) {
   const { data: roles = [], isLoading } = useQuery({
-    queryKey: ['user-roles-overview'],
+    queryKey: queryKeys.adminOps.userRoles(),
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('user_roles')
-        .select('id, user_id, role');
+      const { data, error } = await supabase.from('user_roles').select('id, user_id, role');
       if (error) throw error;
       return data || [];
     },
@@ -30,7 +32,7 @@ export function ConfigurePermissionsDialog({ open, onOpenChange }: ConfigurePerm
   });
 
   const { data: permissions = [] } = useQuery({
-    queryKey: ['permissions-list'],
+    queryKey: queryKeys.userProfile.permissionsList(),
     queryFn: async () => {
       const { data, error } = await supabase
         .from('permissions')
@@ -42,7 +44,7 @@ export function ConfigurePermissionsDialog({ open, onOpenChange }: ConfigurePerm
   });
 
   const { data: profiles = [] } = useQuery({
-    queryKey: ['profiles-for-permissions'],
+    queryKey: queryKeys.userProfile.forPermissions(),
     queryFn: async () => {
       const { data, error } = await supabase
         .from('profiles')
@@ -74,10 +76,10 @@ export function ConfigurePermissionsDialog({ open, onOpenChange }: ConfigurePerm
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[80vh]">
+      <DialogContent className="max-h-[80vh] max-w-2xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Shield className="w-5 h-5 text-primary" />
+            <Shield className="h-5 w-5 text-primary" />
             Permissões da Equipe
           </DialogTitle>
           <DialogDescription>
@@ -87,43 +89,39 @@ export function ConfigurePermissionsDialog({ open, onOpenChange }: ConfigurePerm
 
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
-            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
         ) : (
           <ScrollArea className="max-h-[50vh]">
             <div className="space-y-3">
               {profiles.map((profile) => {
-                const userRoles = roles.filter(r => r.user_id === profile.id);
+                const userRoles = roles.filter((r) => r.user_id === profile.id);
                 return (
                   <div
                     key={profile.id}
-                    className="flex items-center justify-between p-3 rounded-lg border border-border/50 hover:bg-muted/30 transition-colors"
+                    className="flex items-center justify-between rounded-lg border border-border/50 p-3 transition-colors hover:bg-muted/30"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                        <Users className="w-4 h-4 text-primary" />
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
+                        <Users className="h-4 w-4 text-primary" />
                       </div>
                       <div>
-                        <p className="font-medium text-sm">{profile.name}</p>
+                        <p className="text-sm font-medium">{profile.name}</p>
                         <p className="text-xs text-muted-foreground">{profile.email}</p>
                       </div>
                     </div>
                     <div className="flex gap-1">
-                      {userRoles.length > 0 ? (
-                        userRoles.map(r => (
-                          <span key={r.id}>{getRoleBadge(r.role)}</span>
-                        ))
-                      ) : (
-                        getRoleBadge(profile.role || 'agent')
-                      )}
+                      {userRoles.length > 0
+                        ? userRoles.map((r) => <span key={r.id}>{getRoleBadge(r.role)}</span>)
+                        : getRoleBadge(profile.role || 'agent')}
                     </div>
                   </div>
                 );
               })}
 
               {profiles.length === 0 && (
-                <div className="text-center py-8 text-muted-foreground">
-                  <Users className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                <div className="py-8 text-center text-muted-foreground">
+                  <Users className="mx-auto mb-3 h-12 w-12 opacity-50" />
                   <p>Nenhum membro encontrado</p>
                 </div>
               )}
@@ -131,13 +129,13 @@ export function ConfigurePermissionsDialog({ open, onOpenChange }: ConfigurePerm
 
             {permissions.length > 0 && (
               <div className="mt-6">
-                <h4 className="font-medium text-sm mb-3">Permissões Disponíveis</h4>
+                <h4 className="mb-3 text-sm font-medium">Permissões Disponíveis</h4>
                 <div className="grid grid-cols-2 gap-2">
                   {permissions.map((perm) => (
-                    <div key={perm.id} className="p-2 rounded border border-border/30 text-xs">
+                    <div key={perm.id} className="rounded border border-border/30 p-2 text-xs">
                       <p className="font-medium">{perm.name}</p>
                       {perm.description && (
-                        <p className="text-muted-foreground mt-0.5">{perm.description}</p>
+                        <p className="mt-0.5 text-muted-foreground">{perm.description}</p>
                       )}
                     </div>
                   ))}

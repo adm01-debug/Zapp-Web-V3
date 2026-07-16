@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { queryKeys } from '@/services/api/queryKeys';
 import { useQueryClient } from '@tanstack/react-query';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -48,7 +49,7 @@ export default function AdminEvoApiHealthPage() {
   );
 
   const handleRefresh = async () => {
-    await qc.invalidateQueries({ queryKey: ['evo-api-health'] });
+    await qc.invalidateQueries({ queryKey: queryKeys.adminOps.evoApiHealth() });
   };
 
   return (

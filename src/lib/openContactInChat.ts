@@ -81,8 +81,12 @@ export async function openContactInChat(opts: OpenContactInChatOptions): Promise
   // Bare numbers bypass useInboxDeepLinks' `!pending.includes('@')` guard and
   // are mistakenly treated as UUIDs, causing markAsRead to warn 15× per click.
   const remoteJid = opts.remoteJid
-    ? (opts.remoteJid.includes('@') ? opts.remoteJid : `${opts.remoteJid}@s.whatsapp.net`)
-    : (phone ? `${phone}@s.whatsapp.net` : undefined);
+    ? opts.remoteJid.includes('@')
+      ? opts.remoteJid
+      : `${opts.remoteJid}@s.whatsapp.net`
+    : phone
+      ? `${phone}@s.whatsapp.net`
+      : undefined;
 
   // handshakeId para os globals legacy — Inbox em modo externo procura o JID
   const handshakeId = remoteJid ?? contactId;

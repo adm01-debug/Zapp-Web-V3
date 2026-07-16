@@ -33,8 +33,16 @@ const PHASE_META: Record<VoiceAgentPhase, { title: string; subtitle: string }> =
 };
 
 export function VoiceSearchOverlay({
-  isOpen, phase, partialTranscript, finalTranscript, agentResponse, error,
-  onClose, onStartListening, onStopListening, onStopSpeaking,
+  isOpen,
+  phase,
+  partialTranscript,
+  finalTranscript,
+  agentResponse,
+  error,
+  onClose,
+  onStartListening,
+  onStopListening,
+  onStopSpeaking,
 }: VoiceSearchOverlayProps) {
   const colors = usePhaseColors(phase);
   const meta = PHASE_META[phase];
@@ -50,20 +58,40 @@ export function VoiceSearchOverlay({
         if (e.key !== 'Tab') return;
         const overlay = document.querySelector('[role="dialog"][aria-modal="true"]');
         if (!overlay) return;
-        const focusable = overlay.querySelectorAll<HTMLElement>('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+        const focusable = overlay.querySelectorAll<HTMLElement>(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        );
         if (focusable.length === 0) return;
-        const first = focusable[0]; const last = focusable[focusable.length - 1];
-        if (e.shiftKey) { if (document.activeElement === first) { e.preventDefault(); last.focus(); } }
-        else { if (document.activeElement === last) { e.preventDefault(); first.focus(); } }
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (e.shiftKey) {
+          if (document.activeElement === first) {
+            e.preventDefault();
+            last.focus();
+          }
+        } else {
+          if (document.activeElement === last) {
+            e.preventDefault();
+            first.focus();
+          }
+        }
       };
       window.addEventListener('keydown', trapFocus);
-      return () => { clearTimeout(timer); window.removeEventListener('keydown', trapFocus); };
+      return () => {
+        clearTimeout(timer);
+        window.removeEventListener('keydown', trapFocus);
+      };
     }
     return undefined;
   }, [isOpen]);
 
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') { e.preventDefault(); onClose(); } };
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        onClose();
+      }
+    };
     if (isOpen) window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
   }, [isOpen, onClose]);
@@ -72,13 +100,29 @@ export function VoiceSearchOverlay({
   const startingRef = useRef(false);
   useEffect(() => {
     if (isOpen && phase === 'idle' && !hasAutoStarted.current && !startingRef.current) {
-      hasAutoStarted.current = true; startingRef.current = true; setShowSuggestions(false);
-      const timer = setTimeout(() => { onStartListening().finally(() => { startingRef.current = false; }); }, 80);
-      return () => { clearTimeout(timer); startingRef.current = false; };
+      hasAutoStarted.current = true;
+      startingRef.current = true;
+      setShowSuggestions(false);
+      const timer = setTimeout(() => {
+        onStartListening().finally(() => {
+          startingRef.current = false;
+        });
+      }, 80);
+      return () => {
+        clearTimeout(timer);
+        startingRef.current = false;
+      };
     }
-    if (isOpen && phase === 'idle' && hasAutoStarted.current) { const timer = setTimeout(() => setShowSuggestions(true), 600); return () => clearTimeout(timer); }
+    if (isOpen && phase === 'idle' && hasAutoStarted.current) {
+      const timer = setTimeout(() => setShowSuggestions(true), 600);
+      return () => clearTimeout(timer);
+    }
     if (phase !== 'idle') setShowSuggestions(false);
-    if (!isOpen) { hasAutoStarted.current = false; startingRef.current = false; setShowSuggestions(false); }
+    if (!isOpen) {
+      hasAutoStarted.current = false;
+      startingRef.current = false;
+      setShowSuggestions(false);
+    }
     return undefined;
   }, [isOpen, phase, onStartListening]);
 
@@ -90,7 +134,13 @@ export function VoiceSearchOverlay({
   }, [phase, onStartListening, onStopListening, onStopSpeaking]);
 
   useEffect(() => {
-    if (isOpen) { const prev = document.body.style.overflow; document.body.style.overflow = 'hidden'; return () => { document.body.style.overflow = prev; }; }
+    if (isOpen) {
+      const prev = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = prev;
+      };
+    }
     return undefined;
   }, [isOpen]);
 
@@ -98,47 +148,145 @@ export function VoiceSearchOverlay({
 
   return createPortal(
     <AnimatePresence mode="wait">
-      {isOpen && <motion.div key="voice-overlay" className="fixed inset-0 z-[9999] flex items-center justify-center" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: prefersReduced ? 0.1 : 0.3 }} role="dialog" aria-modal="true" aria-label="Assistente de voz">
-        <motion.div className="absolute inset-0" style={{ backdropFilter: 'blur(24px) saturate(1.2)', WebkitBackdropFilter: 'blur(24px) saturate(1.2)' }}
-          animate={prefersReduced ? { backgroundColor: 'rgba(var(--background), 0.75)' } : { backgroundColor: ['rgba(var(--background), 0.55)', 'rgba(var(--background), 0.82)', 'rgba(var(--background), 0.55)'] }}
-          transition={prefersReduced ? {} : { duration: 8, repeat: Infinity, ease: 'easeInOut' }} onClick={onClose}
-        />
-        <motion.div className="absolute inset-0 pointer-events-none"
-          animate={{ background: `radial-gradient(ellipse 60% 50% at 50% 45%, ${colors.glow1.replace('hsl(', 'hsla(').replace(')', ', 0.07)')} 0%, transparent 70%)`, opacity: isActive ? [0.3, 0.6, 0.3] : 0.15 }}
-          transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
-        />
-        {!prefersReduced && <FloatingParticles phase={phase} />}
-
-        <motion.div className="relative z-10 flex flex-col items-center gap-5 p-8 rounded-3xl max-w-[340px] w-full mx-4 overflow-visible bg-background/95 border border-border shadow-2xl"
-          initial={prefersReduced ? {} : { scale: 0.9, y: 20 }} animate={prefersReduced ? {} : { scale: 1, y: 0 }} transition={prefersReduced ? {} : { duration: 0.4, ease: 'easeOut' }}
+      {isOpen && (
+        <motion.div
+          key="voice-overlay"
+          className="fixed inset-0 z-[9999] flex items-center justify-center"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: prefersReduced ? 0.1 : 0.3 }}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Assistente de voz"
         >
-          <motion.div className="absolute -inset-6 rounded-[36px] pointer-events-none" style={{ filter: 'blur(28px)', background: `radial-gradient(ellipse at center, ${colors.glow1.replace('hsl(', 'hsla(').replace(')', ', 0.25)')}, ${colors.glow2.replace('hsl(', 'hsla(').replace(')', ', 0.15)')}, transparent 70%)` }}
-            animate={prefersReduced ? {} : { opacity: isActive ? [0.6, 1, 0.6] : [0.4, 0.7, 0.4], scale: isActive ? [1, 1.06, 1] : [1, 1.03, 1] }}
-            transition={prefersReduced ? {} : { duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+          <motion.div
+            className="absolute inset-0"
+            style={{
+              backdropFilter: 'blur(24px) saturate(1.2)',
+              WebkitBackdropFilter: 'blur(24px) saturate(1.2)',
+            }}
+            animate={
+              prefersReduced
+                ? { backgroundColor: 'rgba(var(--background), 0.75)' }
+                : {
+                    backgroundColor: [
+                      'rgba(var(--background), 0.55)',
+                      'rgba(var(--background), 0.82)',
+                      'rgba(var(--background), 0.55)',
+                    ],
+                  }
+            }
+            transition={prefersReduced ? {} : { duration: 8, repeat: Infinity, ease: 'easeInOut' }}
+            onClick={onClose}
           />
-          <div className="absolute -inset-[1px] rounded-3xl pointer-events-none" style={{ border: `1px solid ${colors.glow1.replace('hsl(', 'hsla(').replace(')', ', 0.18)')}`, boxShadow: `0 0 30px 8px ${colors.glow1.replace('hsl(', 'hsla(').replace(')', ', 0.3)')}, 0 0 80px 20px ${colors.glow2.replace('hsl(', 'hsla(').replace(')', ', 0.18)')}, inset 0 0 30px 4px ${colors.glow1.replace('hsl(', 'hsla(').replace(')', ', 0.06)')}` }} />
+          <motion.div
+            className="pointer-events-none absolute inset-0"
+            animate={{
+              background: `radial-gradient(ellipse 60% 50% at 50% 45%, ${colors.glow1.replace('hsl(', 'hsla(').replace(')', ', 0.07)')} 0%, transparent 70%)`,
+              opacity: isActive ? [0.3, 0.6, 0.3] : 0.15,
+            }}
+            transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
+          />
+          {!prefersReduced && <FloatingParticles phase={phase} />}
 
-          <div className="relative z-10 flex flex-col items-center gap-5 w-full">
-            <div className="text-center">
-              <motion.h2 className="text-lg font-bold text-foreground/90" key={meta.title} initial={{ opacity: 0, y: prefersReduced ? 0 : -5 }} animate={{ opacity: 1, y: 0 }}>{meta.title}</motion.h2>
-              <motion.p className="text-xs text-muted-foreground mt-1" key={meta.subtitle} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }}>{meta.subtitle}</motion.p>
-            </div>
-            <button onClick={handleOrbClick} className="cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-full"
-              aria-label={phase === 'listening' ? 'Parar de ouvir' : phase === 'speaking' ? 'Interromper resposta' : 'Começar a ouvir'}>
-              <VoiceOrb phase={phase} size={180} />
-            </button>
-            <AudioFrequencyVisualizer phase={phase} />
-            <VoiceTranscriptArea phase={phase} partialTranscript={partialTranscript} finalTranscript={finalTranscript} agentResponse={agentResponse} error={error} colors={colors} />
-            <VoiceSuggestions visible={showSuggestions && phase === 'idle' && !agentResponse} />
-            <div className="flex items-center justify-between w-full pt-1">
-              <span className="text-[10px] text-muted-foreground/30"><kbd className="px-1 py-0.5 rounded bg-muted/20 border border-border text-[9px] ">ESC</kbd>{' '}para fechar</span>
-              <button ref={closeButtonRef} onClick={onClose} className="w-8 h-8 rounded-full flex items-center justify-center bg-muted/20 hover:bg-muted/30 transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background border border-border" aria-label="Fechar assistente de voz">
-                <X className="w-4 h-4 text-muted-foreground/60" />
+          <motion.div
+            className="relative z-10 mx-4 flex w-full max-w-[340px] flex-col items-center gap-5 overflow-visible rounded-3xl border border-border bg-background/95 p-8 shadow-2xl"
+            initial={prefersReduced ? {} : { scale: 0.9, y: 20 }}
+            animate={prefersReduced ? {} : { scale: 1, y: 0 }}
+            transition={prefersReduced ? {} : { duration: 0.4, ease: 'easeOut' }}
+          >
+            <motion.div
+              className="pointer-events-none absolute -inset-6 rounded-[36px]"
+              style={{
+                filter: 'blur(28px)',
+                background: `radial-gradient(ellipse at center, ${colors.glow1.replace('hsl(', 'hsla(').replace(')', ', 0.25)')}, ${colors.glow2.replace('hsl(', 'hsla(').replace(')', ', 0.15)')}, transparent 70%)`,
+              }}
+              animate={
+                prefersReduced
+                  ? {}
+                  : {
+                      opacity: isActive ? [0.6, 1, 0.6] : [0.4, 0.7, 0.4],
+                      scale: isActive ? [1, 1.06, 1] : [1, 1.03, 1],
+                    }
+              }
+              transition={
+                prefersReduced ? {} : { duration: 4, repeat: Infinity, ease: 'easeInOut' }
+              }
+            />
+            <div
+              className="pointer-events-none absolute -inset-[1px] rounded-3xl"
+              style={{
+                border: `1px solid ${colors.glow1.replace('hsl(', 'hsla(').replace(')', ', 0.18)')}`,
+                boxShadow: `0 0 30px 8px ${colors.glow1.replace('hsl(', 'hsla(').replace(')', ', 0.3)')}, 0 0 80px 20px ${colors.glow2.replace('hsl(', 'hsla(').replace(')', ', 0.18)')}, inset 0 0 30px 4px ${colors.glow1.replace('hsl(', 'hsla(').replace(')', ', 0.06)')}`,
+              }}
+            />
+
+            <div className="relative z-10 flex w-full flex-col items-center gap-5">
+              <div className="text-center">
+                <motion.h2
+                  className="text-lg font-bold text-foreground/90"
+                  key={meta.title}
+                  initial={{ opacity: 0, y: prefersReduced ? 0 : -5 }}
+                  animate={{ opacity: 1, y: 0 }}
+                >
+                  {meta.title}
+                </motion.h2>
+                <motion.p
+                  className="mt-1 text-xs text-muted-foreground"
+                  key={meta.subtitle}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.1 }}
+                >
+                  {meta.subtitle}
+                </motion.p>
+              </div>
+              <button
+                type="button"
+                onClick={handleOrbClick}
+                className="cursor-pointer rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                aria-label={
+                  phase === 'listening'
+                    ? 'Parar de ouvir'
+                    : phase === 'speaking'
+                      ? 'Interromper resposta'
+                      : 'Começar a ouvir'
+                }
+              >
+                <VoiceOrb phase={phase} size={180} />
               </button>
+              <AudioFrequencyVisualizer phase={phase} />
+              <VoiceTranscriptArea
+                phase={phase}
+                partialTranscript={partialTranscript}
+                finalTranscript={finalTranscript}
+                agentResponse={agentResponse}
+                error={error}
+                colors={colors}
+              />
+              <VoiceSuggestions visible={showSuggestions && phase === 'idle' && !agentResponse} />
+              <div className="flex w-full items-center justify-between pt-1">
+                <span className="text-[10px] text-muted-foreground/30">
+                  <kbd className="rounded border border-border bg-muted/20 px-1 py-0.5 text-[9px]">
+                    ESC
+                  </kbd>{' '}
+                  para fechar
+                </span>
+                <button
+                  type="button"
+                  ref={closeButtonRef}
+                  onClick={onClose}
+                  className="flex h-8 w-8 items-center justify-center rounded-full border border-border bg-muted/20 transition-colors hover:bg-muted/30 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background"
+                  aria-label="Fechar assistente de voz"
+                >
+                  <X className="h-4 w-4 text-muted-foreground/60" />
+                </button>
+              </div>
             </div>
-          </div>
+          </motion.div>
         </motion.div>
-      </motion.div>}
+      )}
     </AnimatePresence>,
     document.body
   );

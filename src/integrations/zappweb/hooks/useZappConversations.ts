@@ -27,7 +27,8 @@ export function useZappConversations(opts: Options = {}) {
   const fetchAll = useCallback(async () => {
     try {
       const { data, error: err } = await zappSupabase
-        .from('evolution_conversations')
+        .schema('evo')
+        .from('evolution_conversations_wpp2')
         .select(
           `id, remote_jid, contact_id, status, unread_count, last_message_content,
            last_message_type, last_message_at, last_inbound_at, assigned_to,
@@ -59,6 +60,8 @@ export function useZappConversations(opts: Options = {}) {
         {
           event: '*',
           schema: 'evo',
+          // publish_via_partition_root=true: must subscribe to root table.
+          // evolution_conversations_wpp2 (partition) emits zero realtime events.
           table: 'evolution_conversations',
           filter: `instance_name=eq.${instance}`,
         },
@@ -67,12 +70,14 @@ export function useZappConversations(opts: Options = {}) {
       .subscribe();
     return () => {
       ch.unsubscribe();
+      zappSupabase.removeChannel(ch);
     };
   }, [instance, fetchAll]);
 
   const markAsRead = useCallback(async (conversationId: string) => {
     await zappSupabase
-      .from('evolution_conversations')
+      .schema('evo')
+      .from('evolution_conversations_wpp2')
       .update({ unread_count: 0 })
       .eq('id', conversationId);
   }, []);

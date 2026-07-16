@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo } from 'react';
+import { safeGetJSON, safeSetJSON } from '@/lib/safeStorage';
 import { Clock } from 'lucide-react';
 import {
   CommandDialog,
@@ -37,18 +38,16 @@ const groups: { label: string; items: readonly NavItemConfig[] }[] = [
   { label: 'Sistema', items: systemNav },
 ];
 
-const allItems = groups.flatMap(g => g.items);
+const allItems = groups.flatMap((g) => g.items);
 
 function getRecent(): string[] {
-  try {
-    return JSON.parse(localStorage.getItem(RECENT_KEY) || '[]');
-  } catch { return []; }
+  return safeGetJSON<string[]>(RECENT_KEY, []);
 }
 
 function pushRecent(id: string) {
-  const list = getRecent().filter(r => r !== id);
+  const list = getRecent().filter((r) => r !== id);
   list.unshift(id);
-  localStorage.setItem(RECENT_KEY, JSON.stringify(list.slice(0, MAX_RECENT)));
+  safeSetJSON(RECENT_KEY, list.slice(0, MAX_RECENT));
 }
 
 export function CommandPalette({ onNavigate }: CommandPaletteProps) {
@@ -63,7 +62,7 @@ export function CommandPalette({ onNavigate }: CommandPaletteProps) {
     const down = (e: KeyboardEvent) => {
       if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
         e.preventDefault();
-        setOpen(o => !o);
+        setOpen((o) => !o);
       }
     };
     window.addEventListener('keydown', down);
@@ -76,7 +75,7 @@ export function CommandPalette({ onNavigate }: CommandPaletteProps) {
   }, []);
 
   const recentItems = useMemo(
-    () => recent.map(id => allItems.find(i => i.id === id)).filter(Boolean) as NavItemConfig[],
+    () => recent.map((id) => allItems.find((i) => i.id === id)).filter(Boolean) as NavItemConfig[],
     [recent]
   );
 
@@ -98,9 +97,13 @@ export function CommandPalette({ onNavigate }: CommandPaletteProps) {
               {recentItems.map((item) => {
                 const Icon = item.icon;
                 return (
-                  <CommandItem key={`recent-${item.id}`} onSelect={() => select(item.id)} className="gap-2 cursor-pointer">
-                    <Clock className="w-3.5 h-3.5 text-muted-foreground/50" />
-                    <Icon className="w-4 h-4 text-muted-foreground" />
+                  <CommandItem
+                    key={`recent-${item.id}`}
+                    onSelect={() => select(item.id)}
+                    className="cursor-pointer gap-2"
+                  >
+                    <Clock className="h-3.5 w-3.5 text-muted-foreground/50" />
+                    <Icon className="h-4 w-4 text-muted-foreground" />
                     <span>{item.label}</span>
                   </CommandItem>
                 );
@@ -117,10 +120,14 @@ export function CommandPalette({ onNavigate }: CommandPaletteProps) {
               {group.items.map((item) => {
                 const Icon = item.icon;
                 return (
-                  <CommandItem key={item.id} onSelect={() => select(item.id)} className="gap-2 cursor-pointer">
-                    <Icon className="w-4 h-4 text-muted-foreground" />
+                  <CommandItem
+                    key={item.id}
+                    onSelect={() => select(item.id)}
+                    className="cursor-pointer gap-2"
+                  >
+                    <Icon className="h-4 w-4 text-muted-foreground" />
                     <span>{item.label}</span>
-                    <span className="ml-auto text-[10px] text-muted-foreground/60 ">#{item.id}</span>
+                    <span className="ml-auto text-[10px] text-muted-foreground/60">#{item.id}</span>
                   </CommandItem>
                 );
               })}

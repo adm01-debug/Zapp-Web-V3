@@ -89,7 +89,10 @@ export function useCustomShortcutsManagement() {
     > = {};
     updatedShortcuts.forEach((shortcut) => {
       if (shortcut.customKey) {
-        customBindings[shortcut.id] = { key: shortcut.customKey, modifiers: shortcut.customModifiers || {} };
+        customBindings[shortcut.id] = {
+          key: shortcut.customKey,
+          modifiers: shortcut.customModifiers || {},
+        };
       }
     });
     try {
@@ -107,7 +110,9 @@ export function useCustomShortcutsManagement() {
     ) => {
       setShortcuts((prev) => {
         const updated = prev.map((shortcut) =>
-          shortcut.id === id ? { ...shortcut, customKey: key, customModifiers: modifiers } : shortcut
+          shortcut.id === id
+            ? { ...shortcut, customKey: key, customModifiers: modifiers }
+            : shortcut
         );
         saveShortcuts(updated);
         return updated;
@@ -120,7 +125,9 @@ export function useCustomShortcutsManagement() {
     (id: string) => {
       setShortcuts((prev) => {
         const updated = prev.map((shortcut) =>
-          shortcut.id === id ? { ...shortcut, customKey: undefined, customModifiers: undefined } : shortcut
+          shortcut.id === id
+            ? { ...shortcut, customKey: undefined, customModifiers: undefined }
+            : shortcut
         );
         saveShortcuts(updated);
         return updated;
@@ -134,12 +141,18 @@ export function useCustomShortcutsManagement() {
     localStorage.removeItem(STORAGE_KEY);
   }, []);
 
-  const getActiveBinding = useCallback((shortcut: ShortcutBinding) => ({
-    key: shortcut.customKey || shortcut.defaultKey,
-    modifiers: shortcut.customModifiers || shortcut.defaultModifiers,
-  }), []);
+  const getActiveBinding = useCallback(
+    (shortcut: ShortcutBinding) => ({
+      key: shortcut.customKey || shortcut.defaultKey,
+      modifiers: shortcut.customModifiers || shortcut.defaultModifiers,
+    }),
+    []
+  );
 
-  const getShortcutById = useCallback((id: string) => shortcuts.find((s) => s.id === id), [shortcuts]);
+  const getShortcutById = useCallback(
+    (id: string) => shortcuts.find((s) => s.id === id),
+    [shortcuts]
+  );
 
   const formatShortcut = useCallback(
     (shortcut: ShortcutBinding) => {
@@ -160,7 +173,8 @@ export function useCustomShortcutsManagement() {
   }, []);
 
   const stopRecording = useCallback(() => {
-    if (isRecording && pendingShortcut) updateShortcut(isRecording, pendingShortcut.key, pendingShortcut.modifiers);
+    if (isRecording && pendingShortcut)
+      updateShortcut(isRecording, pendingShortcut.key, pendingShortcut.modifiers);
     setIsRecording(null);
     setPendingShortcut(null);
   }, [isRecording, pendingShortcut, updateShortcut]);
@@ -195,7 +209,11 @@ export function useCustomShortcutsManagement() {
   }, [isRecording, recordKeyPress]);
 
   const checkConflict = useCallback(
-    (id: string, key: string, modifiers: { ctrlKey?: boolean; shiftKey?: boolean; altKey?: boolean }) => {
+    (
+      id: string,
+      key: string,
+      modifiers: { ctrlKey?: boolean; shiftKey?: boolean; altKey?: boolean }
+    ) => {
       return shortcuts.find((s) => {
         if (s.id === id) return false;
         const binding = getActiveBinding(s);
@@ -345,7 +363,8 @@ export function useIndexKeyboardShortcutsManagement(params: UseIndexKeyboardShor
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement;
-      const isInput = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable;
+      const isInput =
+        target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable;
 
       if (e.altKey && e.key === 'ArrowLeft') {
         e.preventDefault();

@@ -3,11 +3,61 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { AuditLogDashboard } from '../AuditLogDashboard';
 
 const mockLogs = [
-  { id: '1', action: 'login', entity_type: 'user', entity_id: 'u1', user_id: 'uid1', details: null, ip_address: '192.168.1.1', user_agent: 'Chrome', created_at: new Date().toISOString() },
-  { id: '2', action: 'delete', entity_type: 'contact', entity_id: 'c1', user_id: 'uid2', details: { reason: 'test' }, ip_address: '10.0.0.1', user_agent: 'Firefox', created_at: new Date().toISOString() },
-  { id: '3', action: 'create', entity_type: 'message', entity_id: 'm1', user_id: 'uid1', details: null, ip_address: null, user_agent: null, created_at: '2025-01-01T10:00:00Z' },
-  { id: '4', action: 'role_change', entity_type: 'user', entity_id: 'u2', user_id: 'uid3', details: { from: 'agent', to: 'admin' }, ip_address: '172.16.0.1', user_agent: null, created_at: new Date().toISOString() },
-  { id: '5', action: 'export', entity_type: 'contact', entity_id: null, user_id: 'uid1', details: null, ip_address: '192.168.1.1', user_agent: 'Chrome', created_at: new Date().toISOString() },
+  {
+    id: '1',
+    action: 'login',
+    entity_type: 'user',
+    entity_id: 'u1',
+    user_id: 'uid1',
+    details: null,
+    ip_address: '192.168.1.1',
+    user_agent: 'Chrome',
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: '2',
+    action: 'delete',
+    entity_type: 'contact',
+    entity_id: 'c1',
+    user_id: 'uid2',
+    details: { reason: 'test' },
+    ip_address: '10.0.0.1',
+    user_agent: 'Firefox',
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: '3',
+    action: 'create',
+    entity_type: 'message',
+    entity_id: 'm1',
+    user_id: 'uid1',
+    details: null,
+    ip_address: null,
+    user_agent: null,
+    created_at: '2025-01-01T10:00:00Z',
+  },
+  {
+    id: '4',
+    action: 'role_change',
+    entity_type: 'user',
+    entity_id: 'u2',
+    user_id: 'uid3',
+    details: { from: 'agent', to: 'admin' },
+    ip_address: '172.16.0.1',
+    user_agent: null,
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: '5',
+    action: 'export',
+    entity_type: 'contact',
+    entity_id: null,
+    user_id: 'uid1',
+    details: null,
+    ip_address: '192.168.1.1',
+    user_agent: 'Chrome',
+    created_at: new Date().toISOString(),
+  },
 ];
 
 vi.mock('@/integrations/supabase/client', () => ({
@@ -77,18 +127,18 @@ describe('AuditLogDashboard', () => {
   describe('Action color mapping', () => {
     it('maps login to green', () => {
       const colorMap: Record<string, string> = {
-        login: 'bg-green-500/10 text-green-500',
+        login: 'bg-success/10 text-success',
         delete: 'bg-destructive/10 text-destructive',
-        create: 'bg-blue-500/10 text-blue-500',
-        update: 'bg-yellow-500/10 text-yellow-500',
-        export: 'bg-purple-500/10 text-purple-500',
-        role_change: 'bg-orange-500/10 text-orange-500',
-        mfa_enabled: 'bg-green-500/10 text-green-500',
+        create: 'bg-info/10 text-info',
+        update: 'bg-warning/10 text-warning',
+        export: 'bg-secondary/10 text-secondary',
+        role_change: 'bg-accent/10 text-accent-foreground',
+        mfa_enabled: 'bg-success/10 text-success',
         mfa_disabled: 'bg-destructive/10 text-destructive',
-        password_change: 'bg-yellow-500/10 text-yellow-500',
+        password_change: 'bg-warning/10 text-warning',
         logout: 'bg-muted text-muted-foreground',
       };
-      Object.keys(colorMap).forEach(action => {
+      Object.keys(colorMap).forEach((action) => {
         expect(colorMap[action]).toBeTruthy();
       });
     });
@@ -113,14 +163,17 @@ describe('AuditLogDashboard', () => {
   // ===== STATS CALCULATION =====
   describe('Stats logic', () => {
     it('counts suspicious actions (delete, role_change, export)', () => {
-      const suspicious = mockLogs.filter(l =>
-        l.action.includes('delete') || l.action.includes('role_change') || l.action.includes('export')
+      const suspicious = mockLogs.filter(
+        (l) =>
+          l.action.includes('delete') ||
+          l.action.includes('role_change') ||
+          l.action.includes('export')
       );
       expect(suspicious.length).toBe(3);
     });
 
     it('counts unique users', () => {
-      const unique = new Set(mockLogs.map(l => l.user_id).filter(Boolean));
+      const unique = new Set(mockLogs.map((l) => l.user_id).filter(Boolean));
       expect(unique.size).toBe(3);
     });
 
@@ -132,8 +185,17 @@ describe('AuditLogDashboard', () => {
   // ===== ACTION ICON MAPPING =====
   describe('Action icons', () => {
     it('maps known actions to icons', () => {
-      const knownActions = ['login', 'logout', 'create', 'update', 'delete', 'mfa_enabled', 'password_change', 'role_change'];
-      knownActions.forEach(action => {
+      const knownActions = [
+        'login',
+        'logout',
+        'create',
+        'update',
+        'delete',
+        'mfa_enabled',
+        'password_change',
+        'role_change',
+      ];
+      knownActions.forEach((action) => {
         expect(action.length).toBeGreaterThan(0);
       });
     });
@@ -142,18 +204,28 @@ describe('AuditLogDashboard', () => {
   // ===== EDGE CASES =====
   describe('Edge cases', () => {
     it('handles null ip_address gracefully', () => {
-      const log = mockLogs.find(l => l.ip_address === null);
+      const log = mockLogs.find((l) => l.ip_address === null);
       expect(log).toBeDefined();
       expect(log?.ip_address).toBeNull();
     });
 
     it('handles null details gracefully', () => {
-      const log = mockLogs.find(l => l.details === null);
+      const log = mockLogs.find((l) => l.details === null);
       expect(log).toBeDefined();
     });
 
     it('handles log with all null optional fields', () => {
-      const log = { id: '99', action: 'test', entity_type: null, entity_id: null, user_id: null, details: null, ip_address: null, user_agent: null, created_at: new Date().toISOString() };
+      const log = {
+        id: '99',
+        action: 'test',
+        entity_type: null,
+        entity_id: null,
+        user_id: null,
+        details: null,
+        ip_address: null,
+        user_agent: null,
+        created_at: new Date().toISOString(),
+      };
       expect(log.action).toBe('test');
     });
   });

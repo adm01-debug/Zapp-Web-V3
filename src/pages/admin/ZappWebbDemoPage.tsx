@@ -95,26 +95,26 @@ function MessageBubble({ msg }: { msg: EvolutionMessage }) {
       >
         {isMedia && msg.media_type === 'image' && (
           <img
-            src={msg.media_url ?? ""}
+            src={msg.media_url ?? ''}
             alt="Imagem da mensagem"
             className="mb-1 max-h-60 rounded-lg object-cover"
           />
         )}
         {isMedia && msg.media_type === 'audio' && (
           <>
-            <audio controls src={msg.media_url ?? ""} className="my-1 w-56" />
+            <audio controls src={msg.media_url ?? ''} className="my-1 w-56" />
             <p className="sr-only">Transcrição de áudio não disponível.</p>
           </>
         )}
         {isMedia && msg.media_type === 'video' && (
           <>
-            <video controls src={msg.media_url ?? ""} className="mb-1 max-h-60 rounded-lg" />
+            <video controls src={msg.media_url ?? ''} className="mb-1 max-h-60 rounded-lg" />
             <p className="sr-only">Legendas não disponíveis para este vídeo.</p>
           </>
         )}
         {isMedia && msg.media_type === 'document' && (
           <a
-            href={msg.media_url ?? ""}
+            href={msg.media_url ?? ''}
             target="_blank"
             rel="noreferrer"
             className="flex items-center gap-2 text-sm underline"
@@ -214,6 +214,7 @@ export default function ZappWebbDemoPage() {
                 const isActive = conv.id === activeId;
                 return (
                   <button
+                    type="button"
                     key={conv.id}
                     onClick={() => handleOpen(conv)}
                     className={`w-full border-b px-3 py-2.5 text-left transition-colors hover:bg-muted/50 ${

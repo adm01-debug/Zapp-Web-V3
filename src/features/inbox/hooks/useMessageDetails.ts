@@ -8,6 +8,7 @@
  * after write.
  */
 import { useQuery } from '@tanstack/react-query';
+import { queryKeys } from '@/services/api/queryKeys';
 import { timedRpc } from '@/lib/instrumentedExternal';
 import type { EvolutionMessage } from '@/types/evolutionExternal';
 
@@ -15,23 +16,19 @@ export interface UseMessageDetailsOptions {
   enabled?: boolean;
 }
 
-export function useMessageDetails(
-  messageId: string | null,
-  opts: UseMessageDetailsOptions = {},
-) {
+export function useMessageDetails(messageId: string | null, opts: UseMessageDetailsOptions = {}) {
   const enabled = !!messageId && opts.enabled !== false;
 
   return useQuery<EvolutionMessage | null, Error>({
-    queryKey: ['message-details', messageId],
+    queryKey: queryKeys.messageDetails.detail(messageId),
     enabled,
     staleTime: 5 * 60_000,
     gcTime: 10 * 60_000,
     queryFn: async () => {
       if (!messageId) return null;
-      const { data, error } = await timedRpc<EvolutionMessage>(
-        'rpc_get_message_details',
-        { p_message_id: messageId },
-      );
+      const { data, error } = await timedRpc<EvolutionMessage>('rpc_get_message_details', {
+        p_message_id: messageId,
+      });
       if (error) {
         const msg = (error as { message?: string })?.message ?? 'Failed to load message details';
         throw new Error(msg);

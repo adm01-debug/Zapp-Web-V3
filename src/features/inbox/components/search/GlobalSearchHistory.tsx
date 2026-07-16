@@ -31,6 +31,7 @@ export function GlobalSearchHistory({
       </div>
       {history.map((item) => (
         <button
+          type="button"
           key={item.timestamp}
           onClick={() => onSelect(item.query)}
           className="group flex w-full items-center justify-between rounded-lg p-2 text-left transition-colors hover:bg-muted/50"

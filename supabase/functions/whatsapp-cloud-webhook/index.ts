@@ -42,7 +42,7 @@ const SUPABASE_SERVICE_ROLE_KEY = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROL
 // o `createClient` explode no boot e a função retorna 500 BOOT_ERROR em tudo,
 // inclusive no handshake GET do Meta. Lazy + guarded.
 const externalClient =
-  EXTERNAL_URL && EXTERNAL_KEY ? createClient(EXTERNAL_URL, EXTERNAL_KEY) : null;
+  EXTERNAL_URL && EXTERNAL_KEY ? createClient(EXTERNAL_URL, EXTERNAL_KEY, { db: { schema: 'evo' } }) : null;
 const localClient =
   SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY ? createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, { db: { schema: "zapp" } }) : null;
 

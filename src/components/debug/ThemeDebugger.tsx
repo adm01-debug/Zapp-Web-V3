@@ -3,6 +3,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { X, Bug, RefreshCw } from 'lucide-react';
 import { useUserRole } from '@/features/auth/hooks/useUserRole';
+import { safeGetJSON } from '@/lib/safeStorage';
 
 export function ThemeDebugger() {
   const { roles, loading: rolesLoading } = useUserRole();
@@ -19,15 +20,8 @@ export function ThemeDebugger() {
   const refreshTokens = () => {
     const root = document.documentElement;
     const computedStyle = getComputedStyle(root);
-    const saved = localStorage.getItem('purpure-chat-theme-v2');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        setActivePreset(parsed.preset || 'default');
-      } catch {
-        setActivePreset('error');
-      }
-    }
+    const saved = safeGetJSON<{ preset?: string }>('purpure-chat-theme-v2', {});
+    setActivePreset(saved.preset ?? 'default');
 
     const relevant = [
       '--primary',
@@ -92,10 +86,22 @@ export function ThemeDebugger() {
           </span>
         </h3>
         <div className="flex gap-1">
-          <Button aria-label="Atualizar tokens" variant="ghost" size="icon" className="h-6 w-6" onClick={refreshTokens}>
+          <Button
+            aria-label="Atualizar tokens"
+            variant="ghost"
+            size="icon"
+            className="h-6 w-6"
+            onClick={refreshTokens}
+          >
             <RefreshCw className="h-3 w-3" />
           </Button>
-          <Button aria-label="Fechar depurador de tema" variant="ghost" size="icon" className="h-6 w-6" onClick={() => setIsOpen(false)}>
+          <Button
+            aria-label="Fechar depurador de tema"
+            variant="ghost"
+            size="icon"
+            className="h-6 w-6"
+            onClick={() => setIsOpen(false)}
+          >
             <X className="h-3 w-3" />
           </Button>
         </div>

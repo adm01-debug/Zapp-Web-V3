@@ -36,6 +36,7 @@ import { DashboardFilters, DashboardFiltersState, getDefaultFilters } from './Da
 import { ParallaxContainer } from '@/components/effects/ParallaxContainer';
 import { DashboardWidgetRenderer } from './DashboardWidgetRenderer';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { SectionErrorBoundary } from '@/components/ui/section-error-boundary';
 
 const MemoizedAuroraBorealis = memo(AuroraBorealis);
 const MemoizedFloatingParticles = memo(FloatingParticles);
@@ -68,7 +69,9 @@ export const DashboardView = memo(function DashboardView(): JSX.Element {
   }, [refetch]);
 
   const renderWidget = useCallback(
-    (widget: DashboardWidget): JSX.Element => <DashboardWidgetRenderer widget={widget} stats={stats} />,
+    (widget: DashboardWidget): JSX.Element => (
+      <DashboardWidgetRenderer widget={widget} stats={stats} />
+    ),
     [stats]
   );
 
@@ -241,44 +244,70 @@ export const DashboardView = memo(function DashboardView(): JSX.Element {
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
-          <RealtimeMetricsPanel />
-          <ProgressiveDisclosureDashboard
-            level1Widgets={level1Widgets}
-            level2Widgets={level2Widgets}
-            level3Widgets={level3Widgets}
-            renderWidget={renderWidget}
-          />
+          <SectionErrorBoundary sectionName="Métricas em tempo real">
+            <RealtimeMetricsPanel />
+          </SectionErrorBoundary>
+          <SectionErrorBoundary sectionName="Widgets do dashboard">
+            <ProgressiveDisclosureDashboard
+              level1Widgets={level1Widgets}
+              level2Widgets={level2Widgets}
+              level3Widgets={level3Widgets}
+              renderWidget={renderWidget}
+            />
+          </SectionErrorBoundary>
         </TabsContent>
 
         <TabsContent value="analytics" className="space-y-6">
-          <DemandPrediction />
+          <SectionErrorBoundary sectionName="Previsão de demanda">
+            <DemandPrediction />
+          </SectionErrorBoundary>
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-            <ConversationHeatmap />
-            <ActivityHeatmap />
+            <SectionErrorBoundary sectionName="Mapa de calor de conversas">
+              <ConversationHeatmap />
+            </SectionErrorBoundary>
+            <SectionErrorBoundary sectionName="Mapa de atividade">
+              <ActivityHeatmap />
+            </SectionErrorBoundary>
           </div>
         </TabsContent>
 
         <TabsContent value="goals" className="space-y-6">
-          <GoalsDashboard />
+          <SectionErrorBoundary sectionName="Metas">
+            <GoalsDashboard />
+          </SectionErrorBoundary>
         </TabsContent>
         <TabsContent value="ai" className="space-y-6">
-          <AIQuickAccess />
-          <CSATDashboard />
+          <SectionErrorBoundary sectionName="Acesso rápido IA">
+            <AIQuickAccess />
+          </SectionErrorBoundary>
+          <SectionErrorBoundary sectionName="CSAT">
+            <CSATDashboard />
+          </SectionErrorBoundary>
         </TabsContent>
         <TabsContent value="sla">
-          <SLAMetricsDashboard />
+          <SectionErrorBoundary sectionName="Métricas de SLA">
+            <SLAMetricsDashboard />
+          </SectionErrorBoundary>
         </TabsContent>
         <TabsContent value="team" className="space-y-6">
-          <AgentPerformancePanel />
+          <SectionErrorBoundary sectionName="Desempenho dos agentes">
+            <AgentPerformancePanel />
+          </SectionErrorBoundary>
         </TabsContent>
         <TabsContent value="satisfaction" className="space-y-6">
-          <SatisfactionMetrics />
+          <SectionErrorBoundary sectionName="Satisfação">
+            <SatisfactionMetrics />
+          </SectionErrorBoundary>
         </TabsContent>
         <TabsContent value="sentiment" className="space-y-6">
-          <SentimentTrendChart />
+          <SectionErrorBoundary sectionName="Análise de sentimento">
+            <SentimentTrendChart />
+          </SectionErrorBoundary>
         </TabsContent>
         <TabsContent value="reports" className="space-y-6">
-          <ScheduledReportsManager />
+          <SectionErrorBoundary sectionName="Relatórios agendados">
+            <ScheduledReportsManager />
+          </SectionErrorBoundary>
         </TabsContent>
       </Tabs>
     </div>

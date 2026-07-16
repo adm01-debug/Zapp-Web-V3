@@ -81,16 +81,14 @@ export function AIGenerateDialog({
       } catch (err) {
         log.error('Unexpected error in AIGenerateDialog:', err);
       }
-      const { error: insertError } = await supabase
-        .from('audio_memes')
-        .insert({
-          name: genPrompt.substring(0, 80),
-          audio_url: urlData.publicUrl,
-          category: aiCategory,
-          is_favorite: false,
-          use_count: 0,
-          uploaded_by: user?.id || null,
-        });
+      const { error: insertError } = await supabase.from('audio_memes').insert({
+        name: genPrompt.substring(0, 80),
+        audio_url: urlData.publicUrl,
+        category: aiCategory,
+        is_favorite: false,
+        use_count: 0,
+        uploaded_by: user?.id || null,
+      });
       if (insertError) throw insertError;
       toast.success(`Áudio salvo como "${aiCategory}"`);
       onOpenChange(false);
@@ -171,6 +169,7 @@ export function AIGenerateDialog({
               max={genMode === 'sfx' ? 22 : 60}
               value={genDuration}
               onChange={(e) => setGenDuration(Number(e.target.value))}
+              aria-label={`Duração: ${genDuration} segundos`}
               className="w-full accent-primary"
             />
             <div className="flex justify-between text-[10px] text-muted-foreground">

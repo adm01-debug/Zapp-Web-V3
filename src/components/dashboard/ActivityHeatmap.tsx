@@ -13,6 +13,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { Calendar, Activity, TrendingUp, Flame } from 'lucide-react';
 import { format, subDays, eachDayOfInterval, getDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { queryKeys } from '@/services/api/queryKeys';
 import { useQuery } from '@tanstack/react-query';
 import { dbFrom } from '@/integrations/datasource/db';
 
@@ -48,7 +49,7 @@ export const ActivityHeatmap = ({
 
   // Fetch real activity data from messages table
   const { data: realData } = useQuery({
-    queryKey: ['activity-heatmap', selectedPeriod, metric],
+    queryKey: queryKeys.adminOps.activityHeatmap({ selectedPeriod, metric }),
     queryFn: async () => {
       const days = selectedPeriod === '3m' ? 90 : selectedPeriod === '6m' ? 180 : 365;
       const startDate = subDays(new Date(), days);
@@ -180,7 +181,14 @@ export const ActivityHeatmap = ({
           </div>
           <Select
             value={selectedPeriod}
-            onValueChange={(v) => setSelectedPeriod(v as '3m' | '6m' | '1y' /* ignore-audit: Select/Tabs value string narrowed to union; developer controls option values */)}
+            onValueChange={(v) =>
+              setSelectedPeriod(
+                v as
+                  | '3m'
+                  | '6m'
+                  | '1y' /* ignore-audit: Select/Tabs value string narrowed to union; developer controls option values */
+              )
+            }
           >
             <SelectTrigger className="w-[100px]">
               <SelectValue />

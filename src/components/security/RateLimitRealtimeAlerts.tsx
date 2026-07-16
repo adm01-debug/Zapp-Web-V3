@@ -88,7 +88,8 @@ export function RateLimitRealtimeAlerts() {
       .subscribe();
 
     return () => {
-      void supabase.removeChannel(channel);
+      channel.unsubscribe();
+      supabase.removeChannel(channel);
     };
   }, []);
 

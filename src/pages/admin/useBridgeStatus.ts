@@ -217,7 +217,9 @@ export function useBridgeStatus() {
 
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
+      trafficSub.unsubscribe();
       supabase.removeChannel(trafficSub);
+      alertsSub.unsubscribe();
       supabase.removeChannel(alertsSub);
     };
   }, [fetchIncidents, checkHealth, autoRefresh]);

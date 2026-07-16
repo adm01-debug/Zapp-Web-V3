@@ -192,11 +192,14 @@ describe('useQueueManagement — hooks consolidados', () => {
       const { result } = renderHook(() => useQueueSlaManagement({ filters }));
       await waitFor(() => expect(result.current.loading).toBe(false));
 
-      expect(mockRpc).toHaveBeenCalledWith('rpc_queue_sla_panel', expect.objectContaining({
-        p_skill_name: null,
-        p_channel_type: null,
-        p_sla_status: null,
-      }));
+      expect(mockRpc).toHaveBeenCalledWith(
+        'rpc_queue_sla_panel',
+        expect.objectContaining({
+          p_skill_name: null,
+          p_channel_type: null,
+          p_sla_status: null,
+        })
+      );
 
       const row = result.current.rows[0];
       expect(row.queue_id).toBe('q1');
@@ -256,7 +259,12 @@ describe('useQueueManagement — hooks consolidados', () => {
               id: 'q2',
               name: 'B',
               queue_analytics: [
-                { total_messages: 10, average_response_time: 2, resolution_rate: 80, customer_satisfaction: 4 },
+                {
+                  total_messages: 10,
+                  average_response_time: 2,
+                  resolution_rate: 80,
+                  customer_satisfaction: 4,
+                },
               ],
             },
           ],

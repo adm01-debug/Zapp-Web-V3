@@ -37,10 +37,7 @@ vi.mock('@/integrations/supabase/client', () => ({
 }));
 
 // ── PerformanceObserver stub ──────────────────────────────────────────────────
-type POCallback = (
-  list: PerformanceObserverList,
-  observer: PerformanceObserver
-) => void;
+type POCallback = (list: PerformanceObserverList, observer: PerformanceObserver) => void;
 
 const observerRegistry = new Map<string, POCallback>();
 
@@ -63,10 +60,10 @@ function fireObserver(type: string, entries: Partial<PerformanceEntry>[]) {
 
 // ── Helper: dynamic import of SUT ─────────────────────────────────────────────
 async function loadModule() {
-  const mod = await import('../web-vitals');
+  const mod = await import('../webVitals');
   return mod as {
     initWebVitals: () => void;
-    getWebVitalsReport: () => import('../web-vitals').WebVitalMetric[];
+    getWebVitalsReport: () => import('../webVitals').WebVitalMetric[];
   };
 }
 
@@ -74,6 +71,8 @@ async function loadModule() {
 beforeEach(() => {
   vi.clearAllMocks();
   vi.resetModules();
+  vi.stubEnv('VITE_ENABLE_CLIENT_OBSERVABILITY', 'true');
+  sessionStorage.clear();
   observerRegistry.clear();
   mockIsConfigured.value = true;
   mockInvoke.mockResolvedValue({ data: null, error: null });
@@ -137,7 +136,7 @@ describe('getRating — CLS thresholds', () => {
     fireObserver('layout-shift', [
       { value: 0.05, hadRecentInput: false } as unknown as PerformanceEntry,
     ]);
-    const metric = getWebVitalsReport().find(m => m.name === 'CLS');
+    const metric = getWebVitalsReport().find((m) => m.name === 'CLS');
     expect(metric?.rating).toBe('good');
   });
 
@@ -147,7 +146,7 @@ describe('getRating — CLS thresholds', () => {
     fireObserver('layout-shift', [
       { value: 0.15, hadRecentInput: false } as unknown as PerformanceEntry,
     ]);
-    const metric = getWebVitalsReport().find(m => m.name === 'CLS');
+    const metric = getWebVitalsReport().find((m) => m.name === 'CLS');
     expect(metric?.rating).toBe('needs-improvement');
   });
 
@@ -157,7 +156,7 @@ describe('getRating — CLS thresholds', () => {
     fireObserver('layout-shift', [
       { value: 0.3, hadRecentInput: false } as unknown as PerformanceEntry,
     ]);
-    const metric = getWebVitalsReport().find(m => m.name === 'CLS');
+    const metric = getWebVitalsReport().find((m) => m.name === 'CLS');
     expect(metric?.rating).toBe('poor');
   });
 });
@@ -196,7 +195,9 @@ describe('CLS — accumulation and hadRecentInput filter', () => {
       { value: 0.04, hadRecentInput: false } as unknown as PerformanceEntry,
       { value: 0.03, hadRecentInput: false } as unknown as PerformanceEntry,
     ]);
-    const last = getWebVitalsReport().filter(m => m.name === 'CLS').pop();
+    const last = getWebVitalsReport()
+      .filter((m) => m.name === 'CLS')
+      .pop();
     expect(last?.value).toBeCloseTo(0.07);
   });
 
@@ -206,7 +207,9 @@ describe('CLS — accumulation and hadRecentInput filter', () => {
     fireObserver('layout-shift', [
       { value: 0.5, hadRecentInput: true } as unknown as PerformanceEntry,
     ]);
-    const last = getWebVitalsReport().filter(m => m.name === 'CLS').pop();
+    const last = getWebVitalsReport()
+      .filter((m) => m.name === 'CLS')
+      .pop();
     expect(last?.value).toBeCloseTo(0);
   });
 });
@@ -253,13 +256,15 @@ describe('initWebVitals — TTFB from navigation timing', () => {
   it('emits TTFB metric when navEntry is available', async () => {
     vi.stubGlobal('performance', {
       now: vi.fn().mockReturnValue(0),
-      getEntriesByType: vi.fn().mockReturnValue([
-        { responseStart: 400, requestStart: 100 } as Partial<PerformanceNavigationTiming>,
-      ]),
+      getEntriesByType: vi
+        .fn()
+        .mockReturnValue([
+          { responseStart: 400, requestStart: 100 } as Partial<PerformanceNavigationTiming>,
+        ]),
     });
     const { initWebVitals, getWebVitalsReport } = await loadModule();
     initWebVitals();
-    const ttfb = getWebVitalsReport().find(m => m.name === 'TTFB');
+    const ttfb = getWebVitalsReport().find((m) => m.name === 'TTFB');
     expect(ttfb).toBeDefined();
     expect(ttfb?.value).toBe(300);
   });
@@ -267,13 +272,15 @@ describe('initWebVitals — TTFB from navigation timing', () => {
   it('TTFB ≤ 800 rates as "good"', async () => {
     vi.stubGlobal('performance', {
       now: vi.fn().mockReturnValue(0),
-      getEntriesByType: vi.fn().mockReturnValue([
-        { responseStart: 500, requestStart: 100 } as Partial<PerformanceNavigationTiming>,
-      ]),
+      getEntriesByType: vi
+        .fn()
+        .mockReturnValue([
+          { responseStart: 500, requestStart: 100 } as Partial<PerformanceNavigationTiming>,
+        ]),
     });
     const { initWebVitals, getWebVitalsReport } = await loadModule();
     initWebVitals();
-    const ttfb = getWebVitalsReport().find(m => m.name === 'TTFB');
+    const ttfb = getWebVitalsReport().find((m) => m.name === 'TTFB');
     expect(ttfb?.rating).toBe('good');
   });
 
@@ -284,7 +291,7 @@ describe('initWebVitals — TTFB from navigation timing', () => {
     });
     const { initWebVitals, getWebVitalsReport } = await loadModule();
     initWebVitals();
-    expect(getWebVitalsReport().find(m => m.name === 'TTFB')).toBeUndefined();
+    expect(getWebVitalsReport().find((m) => m.name === 'TTFB')).toBeUndefined();
   });
 });
 
@@ -296,11 +303,14 @@ describe('flushMetrics — via scheduleFlush timeout', () => {
     initWebVitals();
     fireObserver('largest-contentful-paint', [{ startTime: 5000 } as PerformanceEntry]);
     await vi.runAllTimersAsync();
-    expect(mockInvoke).toHaveBeenCalledWith('client-observability', expect.objectContaining({
-      body: expect.objectContaining({ metrics: expect.arrayContaining([
-        expect.objectContaining({ name: 'LCP' }),
-      ]) }),
-    }));
+    expect(mockInvoke).toHaveBeenCalledWith(
+      'client-observability',
+      expect.objectContaining({
+        body: expect.objectContaining({
+          metrics: expect.arrayContaining([expect.objectContaining({ name: 'LCP' })]),
+        }),
+      })
+    );
   });
 
   it('drops upload queue when isSupabaseConfigured is false', async () => {
@@ -322,15 +332,15 @@ describe('flushMetrics — via scheduleFlush timeout', () => {
     expect(mockInvoke).not.toHaveBeenCalled();
   });
 
-  it('logs warn when invoke throws', async () => {
+  it('logs debug when invoke throws before opening the circuit breaker', async () => {
     vi.useFakeTimers();
     mockInvoke.mockRejectedValue(new Error('network error'));
     const { initWebVitals } = await loadModule();
     initWebVitals();
     fireObserver('largest-contentful-paint', [{ startTime: 5000 } as PerformanceEntry]);
     await vi.runAllTimersAsync();
-    expect(mockWarn).toHaveBeenCalledWith(
-      expect.stringContaining('web-vitals'),
+    expect(mockDebug).toHaveBeenCalledWith(
+      expect.stringContaining('Failed sending web-vitals'),
       expect.any(Error)
     );
   });

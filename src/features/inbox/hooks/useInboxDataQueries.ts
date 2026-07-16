@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { queryKeys } from '@/services/api/queryKeys';
 import { supabase } from '@/integrations/supabase/client';
 import { ConversationWithMessages } from '@/features/inbox';
 import { getLogger } from '@/lib/logger';
@@ -7,7 +8,7 @@ const log = getLogger('useInboxDataQueries');
 
 export function useInboxDataQueries(conversations: ConversationWithMessages[]) {
   const { data: customScopes = [] } = useQuery({
-    queryKey: ['inbox-custom-scopes'],
+    queryKey: queryKeys.contactDetails.inboxScopes(),
     queryFn: async () => {
       const { data, error } = await supabase
         .from('inbox_custom_scopes')
@@ -20,7 +21,7 @@ export function useInboxDataQueries(conversations: ConversationWithMessages[]) {
   });
 
   const { data: contactTagsMap = {} } = useQuery({
-    queryKey: ['contact-tags-map'],
+    queryKey: queryKeys.contactDetails.tagsMap(),
     queryFn: async () => {
       const conversationContactIds = new Set(
         conversations.filter((c) => c?.contact?.id).map((c) => c.contact.id)

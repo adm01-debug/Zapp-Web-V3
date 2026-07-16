@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { getLogger } from '@/lib/logger';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
@@ -55,6 +56,12 @@ export function TicketTabsFilters({
   const canSeeDepartment = hasPermission('inbox.view_department');
   const canSeeAllDepartments = hasPermission('inbox.view_all');
   const canShowAll = canSeeAllDepartments || isSupervisor;
+
+  const departmentAgentIdSet = useMemo(() => new Set(departmentAgentIds), [departmentAgentIds]);
+  const departmentAgents = useMemo(
+    () => (scope === 'department' ? agents.filter((a) => departmentAgentIdSet.has(a.id)) : agents),
+    [agents, scope, departmentAgentIdSet]
+  );
 
   return (
     <>
@@ -199,10 +206,7 @@ export function TicketTabsFilters({
                   <SelectItem value="all" className="text-xs">
                     Todos os Colaboradores
                   </SelectItem>
-                  {(scope === 'department'
-                    ? agents.filter((a) => departmentAgentIds.includes(a.id))
-                    : agents
-                  ).map((agent) => (
+                  {departmentAgents.map((agent) => (
                     <SelectItem key={agent.id} value={agent.id} className="text-xs">
                       <div className="flex items-center gap-1.5">
                         <div

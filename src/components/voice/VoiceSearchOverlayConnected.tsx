@@ -19,7 +19,10 @@ function VoiceSearchOverlayConnected({ isOpen, onClose, onAction, onError }: Pro
       finalTranscript={voice.finalTranscript}
       agentResponse={voice.agentResponse}
       error={voice.error}
-      onClose={() => { onClose(); voice.reset(); }}
+      onClose={() => {
+        onClose();
+        voice.reset();
+      }}
       onStartListening={voice.startListening}
       onStopListening={voice.stopListening}
       onStopSpeaking={voice.stopSpeaking}

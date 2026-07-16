@@ -26,9 +26,7 @@ type MockTransition = {
 
 function makeMockTransition(opts: Partial<{ rejectAll: boolean }> = {}): MockTransition {
   const make = () =>
-    opts.rejectAll
-      ? Promise.reject(new DOMException('AbortError'))
-      : Promise.resolve();
+    opts.rejectAll ? Promise.reject(new DOMException('AbortError')) : Promise.resolve();
   return {
     finished: make(),
     ready: make(),

@@ -13,6 +13,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { fromTable } from '@/lib/supabaseHelpers';
 import { useUserSettings } from '@/hooks/useUserSettings';
+import { queryKeys } from '@/services/api/queryKeys';
 
 interface ParticipantStatsGraphProps {
   conversationId: string;
@@ -22,7 +23,10 @@ export function ParticipantStatsGraph({ conversationId }: ParticipantStatsGraphP
   const { settings } = useUserSettings();
 
   const { data, isLoading } = useQuery({
-    queryKey: ['participant-stats', conversationId, settings.simulation_mode_enabled],
+    queryKey: queryKeys.messageReactions.participantStatsDetailed(
+      conversationId,
+      settings.simulation_mode_enabled
+    ),
     queryFn: async () => {
       if (settings.simulation_mode_enabled) {
         // Generate mock data for simulation

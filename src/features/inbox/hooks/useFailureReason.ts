@@ -11,6 +11,7 @@
  * componente sabe que a mensagem está em estado de falha terminal.
  */
 import { useQuery } from '@tanstack/react-query';
+import { queryKeys } from '@/services/api/queryKeys';
 import { supabase } from '@/integrations/supabase/client';
 
 export interface MessageFailureReason {
@@ -35,7 +36,7 @@ const STALE_MS = 60_000;
 
 export function useFailureReason(messageId: string | undefined, enabled: boolean) {
   return useQuery<MessageFailureReason | null>({
-    queryKey: ['message-failure-reason', messageId],
+    queryKey: queryKeys.failedMessages.reason(messageId),
     enabled: Boolean(messageId) && enabled,
     staleTime: STALE_MS,
     queryFn: async () => {
@@ -46,7 +47,7 @@ export function useFailureReason(messageId: string | undefined, enabled: boolean
         .eq('idempotency_key', `msg:${messageId}`)
         .order('created_at', { ascending: false })
         .limit(1)
-        .maybeSingle<RetryReasonRow>();
+        .maybeSingle();
 
       if (error || !data) return null;
       if (data.final_status === 'success') return null;

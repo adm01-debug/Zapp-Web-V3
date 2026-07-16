@@ -92,6 +92,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
           O erro foi registrado e nossa equipe foi notificada. Você pode tentar de novo:
         </p>
         <button
+          type="button"
           onClick={resetError}
           className="rounded-lg bg-primary px-4 py-2 font-semibold text-primary-foreground transition-opacity hover:opacity-90"
         >

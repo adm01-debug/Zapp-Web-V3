@@ -9,11 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/components/ui/collapsible';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Bell, ChevronDown, ChevronUp, ShieldAlert, Volume2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -61,7 +57,7 @@ export function AlertThresholdsPanel({ config, onChange, recentAlerts, activeCou
         <CardHeader>
           <div className="flex items-center justify-between gap-3">
             <div>
-              <CardTitle className="text-base flex items-center gap-2">
+              <CardTitle className="flex items-center gap-2 text-base">
                 <Bell className="h-4 w-4" />
                 Alertas em tempo real
                 {activeCount > 0 && (
@@ -71,8 +67,8 @@ export function AlertThresholdsPanel({ config, onChange, recentAlerts, activeCou
                 )}
               </CardTitle>
               <CardDescription>
-                Toast + som + notificação do navegador quando a validação HMAC degradar
-                ou o webhook ficar em silêncio.
+                Toast + som + notificação do navegador quando a validação HMAC degradar ou o webhook
+                ficar em silêncio.
               </CardDescription>
             </div>
             <CollapsibleTrigger asChild>
@@ -87,7 +83,7 @@ export function AlertThresholdsPanel({ config, onChange, recentAlerts, activeCou
             {/* Master switch */}
             <div className="flex items-center justify-between rounded-lg border p-3">
               <div>
-                <div className="text-sm font-medium flex items-center gap-2">
+                <div className="flex items-center gap-2 text-sm font-medium">
                   <Volume2 className="h-4 w-4" />
                   Ativar alertas
                 </div>
@@ -102,7 +98,7 @@ export function AlertThresholdsPanel({ config, onChange, recentAlerts, activeCou
             </div>
 
             {/* Thresholds */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
               <div className="space-y-2">
                 <Label htmlFor="invalid-rate">% inválido tolerado</Label>
                 <Input
@@ -179,12 +175,12 @@ export function AlertThresholdsPanel({ config, onChange, recentAlerts, activeCou
 
             {/* Recent fired alerts */}
             <div className="space-y-2">
-              <div className="text-sm font-medium flex items-center gap-2">
+              <div className="flex items-center gap-2 text-sm font-medium">
                 <ShieldAlert className="h-4 w-4" />
                 Últimos alertas disparados
               </div>
               {recentAlerts.length === 0 ? (
-                <p className="text-xs text-muted-foreground py-3">
+                <p className="py-3 text-xs text-muted-foreground">
                   Nenhum alerta disparado nesta sessão.
                 </p>
               ) : (
@@ -200,11 +196,11 @@ export function AlertThresholdsPanel({ config, onChange, recentAlerts, activeCou
                       >
                         {a.type === 'signature_spike' ? 'spike' : 'silêncio'}
                       </Badge>
-                      <div className="flex-1 min-w-0">
+                      <div className="min-w-0 flex-1">
                         <div className="font-medium">{a.instance}</div>
-                        <div className="text-muted-foreground truncate">{a.reason}</div>
+                        <div className="truncate text-muted-foreground">{a.reason}</div>
                       </div>
-                      <span className="text-muted-foreground whitespace-nowrap">
+                      <span className="whitespace-nowrap text-muted-foreground">
                         {formatDistanceToNow(new Date(a.firedAt), {
                           addSuffix: true,
                           locale: ptBR,

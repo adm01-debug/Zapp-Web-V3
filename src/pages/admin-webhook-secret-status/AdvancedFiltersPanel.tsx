@@ -13,11 +13,7 @@ import {
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -39,7 +35,10 @@ import {
 
 interface Props {
   prefs: WebhookViewPreferences;
-  setPref: <K extends keyof WebhookViewPreferences>(key: K, value: WebhookViewPreferences[K]) => void;
+  setPref: <K extends keyof WebhookViewPreferences>(
+    key: K,
+    value: WebhookViewPreferences[K]
+  ) => void;
   setVisibleColumn: (column: keyof WebhookViewColumns, visible: boolean) => void;
   clearFilters: () => void;
   resetPrefs: () => void;
@@ -97,7 +96,7 @@ export function AdvancedFiltersPanel({
 
   const isInstancePinned = useMemo(
     () => Boolean(prefs.pinnedInstance) && prefs.pinnedInstance === currentInstance,
-    [prefs.pinnedInstance, currentInstance],
+    [prefs.pinnedInstance, currentInstance]
   );
 
   const handlePinToggle = (checked: boolean) => {
@@ -209,18 +208,14 @@ export function AdvancedFiltersPanel({
           if (chips.length === 0) return null;
           return (
             <div className="mt-3 flex flex-wrap items-center gap-1.5" aria-live="polite">
-              <span className="text-xs text-muted-foreground mr-1">Filtros ativos:</span>
+              <span className="mr-1 text-xs text-muted-foreground">Filtros ativos:</span>
               {chips.map((c) => (
-                <Badge
-                  key={c.key}
-                  variant="secondary"
-                  className="gap-1 pl-2 pr-1 py-0.5"
-                >
+                <Badge key={c.key} variant="secondary" className="gap-1 py-0.5 pl-2 pr-1">
                   <span className="text-xs">{c.label}</span>
                   <button
                     type="button"
                     onClick={c.onClear}
-                    className="ml-0.5 rounded-sm hover:bg-muted-foreground/20 p-0.5"
+                    className="ml-0.5 rounded-sm p-0.5 hover:bg-muted-foreground/20"
                     aria-label={`Remover filtro ${c.label}`}
                   >
                     <X className="h-3 w-3" />
@@ -232,13 +227,18 @@ export function AdvancedFiltersPanel({
         })()}
 
         {open && (
-          <div className="mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
             {/* Status filter */}
             <div className="space-y-1.5">
               <Label className="text-xs">Status de validação</Label>
               <Select
                 value={prefs.statusFilter}
-                onValueChange={(v) => setPref('statusFilter', v as WebhookStatusFilter /* ignore-audit: Select/Tabs value string narrowed to union; developer controls option values */)}
+                onValueChange={(v) =>
+                  setPref(
+                    'statusFilter',
+                    v as WebhookStatusFilter /* ignore-audit: Select/Tabs value string narrowed to union; developer controls option values */
+                  )
+                }
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -255,7 +255,9 @@ export function AdvancedFiltersPanel({
 
             {/* Reason search */}
             <div className="space-y-1.5">
-              <Label className="text-xs" htmlFor="webhook-reason-search">Motivo contém…</Label>
+              <Label className="text-xs" htmlFor="webhook-reason-search">
+                Motivo contém…
+              </Label>
               <Input
                 id="webhook-reason-search"
                 leftIcon={Search}
@@ -270,9 +272,7 @@ export function AdvancedFiltersPanel({
               <Label className="text-xs">Tipo de evento</Label>
               <Select
                 value={prefs.eventTypeFilter ?? '__all__'}
-                onValueChange={(v) =>
-                  setPref('eventTypeFilter', v === '__all__' ? null : v)
-                }
+                onValueChange={(v) => setPref('eventTypeFilter', v === '__all__' ? null : v)}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Todos os tipos" />
@@ -293,7 +293,12 @@ export function AdvancedFiltersPanel({
               <Label className="text-xs">Densidade da tabela</Label>
               <Select
                 value={prefs.tableDensity}
-                onValueChange={(v) => setPref('tableDensity', v as WebhookTableDensity /* ignore-audit: Select/Tabs value string narrowed to union; developer controls option values */)}
+                onValueChange={(v) =>
+                  setPref(
+                    'tableDensity',
+                    v as WebhookTableDensity /* ignore-audit: Select/Tabs value string narrowed to union; developer controls option values */
+                  )
+                }
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -308,8 +313,8 @@ export function AdvancedFiltersPanel({
             {/* Pin instance */}
             <div className="space-y-1.5">
               <Label className="text-xs">Instância padrão</Label>
-              <div className="flex items-center justify-between rounded-md border bg-background h-10 px-3">
-                <span className="text-sm text-muted-foreground truncate">
+              <div className="flex h-10 items-center justify-between rounded-md border bg-background px-3">
+                <span className="truncate text-sm text-muted-foreground">
                   {prefs.pinnedInstance
                     ? `Fixada: ${prefs.pinnedInstance}`
                     : 'Sem instância fixada'}
@@ -327,7 +332,7 @@ export function AdvancedFiltersPanel({
               <Label className="text-xs">Colunas visíveis</Label>
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button variant="outline" className="w-full justify-between h-10">
+                  <Button variant="outline" className="h-10 w-full justify-between">
                     <span className="flex items-center gap-2 text-sm">
                       <Columns3 className="h-4 w-4" />
                       {Object.values(prefs.visibleColumns).filter(Boolean).length} de{' '}
@@ -339,10 +344,7 @@ export function AdvancedFiltersPanel({
                 <PopoverContent className="w-56" align="end">
                   <div className="space-y-2">
                     {(Object.keys(COLUMN_LABELS) as Array<keyof WebhookViewColumns>).map((col) => (
-                      <label
-                        key={col}
-                        className="flex items-center gap-2 cursor-pointer text-sm"
-                      >
+                      <label key={col} className="flex cursor-pointer items-center gap-2 text-sm">
                         <Checkbox
                           checked={prefs.visibleColumns[col]}
                           onCheckedChange={(c) => setVisibleColumn(col, c === true)}
@@ -364,10 +366,10 @@ export function AdvancedFiltersPanel({
             <AlertDialogTitle>Limpar filtros atuais?</AlertDialogTitle>
             <AlertDialogDescription>
               Os {activeFilterCount} filtro{activeFilterCount > 1 ? 's' : ''} ativo
-              {activeFilterCount > 1 ? 's' : ''} (status, motivo, tipo de evento e
-              instância selecionada) ser{activeFilterCount > 1 ? 'ão' : 'á'} removido
-              {activeFilterCount > 1 ? 's' : ''}. Suas preferências salvas (colunas,
-              densidade e instância fixada) permanecem intactas.
+              {activeFilterCount > 1 ? 's' : ''} (status, motivo, tipo de evento e instância
+              selecionada) ser{activeFilterCount > 1 ? 'ão' : 'á'} removido
+              {activeFilterCount > 1 ? 's' : ''}. Suas preferências salvas (colunas, densidade e
+              instância fixada) permanecem intactas.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

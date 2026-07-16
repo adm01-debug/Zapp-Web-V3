@@ -96,11 +96,7 @@ describe('withV237Fallback', () => {
   beforeEach(() => fallback.mockReset());
 
   it('returns the primary result when primary succeeds', async () => {
-    const result = await withV237Fallback(
-      async () => ({ data: 'primary' }),
-      fallback,
-      'test'
-    );
+    const result = await withV237Fallback(async () => ({ data: 'primary' }), fallback, 'test');
     expect(result).toEqual({ data: 'primary' });
     expect(fallback).not.toHaveBeenCalled();
   });
@@ -109,7 +105,9 @@ describe('withV237Fallback', () => {
     fallback.mockResolvedValue(['fb-data']);
     const err = Object.assign(new Error('not found'), { status: 404 });
     const result = await withV237Fallback(
-      async () => { throw err; },
+      async () => {
+        throw err;
+      },
       fallback,
       'test'
     );
@@ -119,29 +117,27 @@ describe('withV237Fallback', () => {
 
   it('calls fallback when primary returns a payload with error:"not_found"', async () => {
     fallback.mockResolvedValue([]);
-    const result = await withV237Fallback(
-      async () => ({ error: 'not_found' }),
-      fallback,
-      'test'
-    );
+    const result = await withV237Fallback(async () => ({ error: 'not_found' }), fallback, 'test');
     expect(fallback).toHaveBeenCalledTimes(1);
     expect(result).toEqual([]);
   });
 
   it('calls fallback when primary returns a 404-status payload object', async () => {
     fallback.mockResolvedValue([]);
-    await withV237Fallback(
-      async () => ({ status: 404 }),
-      fallback,
-      'test'
-    );
+    await withV237Fallback(async () => ({ status: 404 }), fallback, 'test');
     expect(fallback).toHaveBeenCalledTimes(1);
   });
 
   it('re-throws when primary throws a non-endpoint error', async () => {
     const err = new Error('Internal Server Error');
     await expect(
-      withV237Fallback(async () => { throw err; }, fallback, 'test')
+      withV237Fallback(
+        async () => {
+          throw err;
+        },
+        fallback,
+        'test'
+      )
     ).rejects.toBe(err);
     expect(fallback).not.toHaveBeenCalled();
   });

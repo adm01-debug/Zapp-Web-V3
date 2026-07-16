@@ -42,10 +42,20 @@ export function RippleButton({
   type = 'button',
   'aria-label': ariaLabel,
 }: RippleButtonProps) {
-  const [ripples, setRipples] = React.useState<Array<{ x: number; y: number; id: number; size: number }>>([]);
+  const [ripples, setRipples] = React.useState<
+    Array<{ x: number; y: number; id: number; size: number }>
+  >([]);
   const [isPressed, setIsPressed] = React.useState(false);
   const buttonRef = React.useRef<HTMLButtonElement>(null);
+  const rippleTimers = React.useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
   const controls = useAnimation();
+
+  React.useEffect(
+    () => () => {
+      rippleTimers.current.forEach(clearTimeout);
+    },
+    []
+  );
 
   const rippleColor = rippleConfig.color || rippleVariants[variant];
   const rippleDuration = rippleConfig.duration || 600;
@@ -60,9 +70,16 @@ export function RippleButton({
     if (disabled) return;
     const rect = e.currentTarget.getBoundingClientRect();
     const id = Date.now();
-    setRipples((prev) => [...prev, { x: e.clientX - rect.left, y: e.clientY - rect.top, id, size: rippleSize }]);
+    setRipples((prev) => [
+      ...prev,
+      { x: e.clientX - rect.left, y: e.clientY - rect.top, id, size: rippleSize },
+    ]);
     triggerHaptic();
-    setTimeout(() => setRipples((prev) => prev.filter((r) => r.id !== id)), rippleDuration);
+    const t = setTimeout(() => {
+      setRipples((prev) => prev.filter((r) => r.id !== id));
+      rippleTimers.current.delete(t);
+    }, rippleDuration);
+    rippleTimers.current.add(t);
     onClick?.(e);
   };
 
@@ -77,7 +94,12 @@ export function RippleButton({
       disabled={disabled}
       type={type}
       aria-label={ariaLabel}
-      className={cn('relative overflow-hidden transition-all duration-200', isPressed && 'scale-[0.98]', disabled && 'opacity-50 cursor-not-allowed', className)}
+      className={cn(
+        'relative overflow-hidden transition-all duration-200',
+        isPressed && 'scale-[0.98]',
+        disabled && 'cursor-not-allowed opacity-50',
+        className
+      )}
       whileHover={!disabled ? { scale: 1.02 } : undefined}
       whileTap={!disabled ? { scale: 0.98 } : undefined}
     >
@@ -90,10 +112,14 @@ export function RippleButton({
             animate={{ scale: 2.5, opacity: 0 }}
             exit={{ opacity: 0 }}
             transition={{ duration: rippleDuration / 1000, ease: 'easeOut' }}
-            className="absolute rounded-full pointer-events-none"
+            className="pointer-events-none absolute rounded-full"
             style={{
-              left: ripple.x, top: ripple.y, width: rippleSize, height: rippleSize,
-              backgroundColor: rippleColor, transform: 'translate(-50%, -50%)',
+              left: ripple.x,
+              top: ripple.y,
+              width: rippleSize,
+              height: rippleSize,
+              backgroundColor: rippleColor,
+              transform: 'translate(-50%, -50%)',
               boxShadow: variant === 'neon' ? `0 0 20px ${rippleColor}` : undefined,
             }}
           />
@@ -126,8 +152,14 @@ const iconButtonVariants = {
 const iconButtonSizes = { sm: 'h-8 w-8', md: 'h-10 w-10', lg: 'h-12 w-12' };
 
 export function InteractiveIconButton({
-  children, variant = 'ghost', size = 'md', pulseOnHover = false,
-  className, disabled, onClick, 'aria-label': ariaLabel,
+  children,
+  variant = 'ghost',
+  size = 'md',
+  pulseOnHover = false,
+  className,
+  disabled,
+  onClick,
+  'aria-label': ariaLabel,
 }: InteractiveIconButtonProps) {
   const [isHovered, setIsHovered] = React.useState(false);
 
@@ -141,17 +173,29 @@ export function InteractiveIconButton({
       onClick={onClick}
       aria-label={ariaLabel}
       className={cn(
-        'relative inline-flex items-center justify-center rounded-lg transition-all duration-200 overflow-hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-        iconButtonVariants[variant], iconButtonSizes[size],
-        disabled && 'opacity-50 cursor-not-allowed', className
+        'relative inline-flex items-center justify-center overflow-hidden rounded-lg transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+        iconButtonVariants[variant],
+        iconButtonSizes[size],
+        disabled && 'cursor-not-allowed opacity-50',
+        className
       )}
     >
-      <motion.span animate={isHovered && pulseOnHover ? { scale: [1, 1.1, 1], transition: { repeat: Infinity, duration: 0.8 } } : {}}>
+      <motion.span
+        animate={
+          isHovered && pulseOnHover
+            ? { scale: [1, 1.1, 1], transition: { repeat: Infinity, duration: 0.8 } }
+            : {}
+        }
+      >
         {children}
       </motion.span>
       {isHovered && variant === 'primary' && (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-          className="absolute inset-0 bg-gradient-to-r from-primary/20 via-primary/40 to-primary/20 blur-xl -z-10" />
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="absolute inset-0 -z-10 bg-gradient-to-r from-primary/20 via-primary/40 to-primary/20 blur-xl"
+        />
       )}
     </motion.button>
   );
@@ -168,9 +212,20 @@ interface BounceTapProps {
   type?: 'button' | 'submit' | 'reset';
 }
 
-const bounceValues = { light: { scale: 0.98, y: 1 }, medium: { scale: 0.95, y: 2 }, strong: { scale: 0.92, y: 4 } };
+const bounceValues = {
+  light: { scale: 0.98, y: 1 },
+  medium: { scale: 0.95, y: 2 },
+  strong: { scale: 0.92, y: 4 },
+};
 
-export function BounceTapButton({ children, bounceIntensity = 'medium', className, onClick, disabled, type = 'button' }: BounceTapProps) {
+export function BounceTapButton({
+  children,
+  bounceIntensity = 'medium',
+  className,
+  onClick,
+  disabled,
+  type = 'button',
+}: BounceTapProps) {
   const bounce = bounceValues[bounceIntensity];
   return (
     <motion.button
@@ -178,7 +233,9 @@ export function BounceTapButton({ children, bounceIntensity = 'medium', classNam
       whileTap={{ scale: bounce.scale, y: bounce.y }}
       transition={{ type: 'spring', stiffness: 400, damping: 17 }}
       className={cn('relative overflow-hidden', className)}
-      onClick={onClick} disabled={disabled} type={type}
+      onClick={onClick}
+      disabled={disabled}
+      type={type}
     >
       {children}
     </motion.button>
@@ -195,21 +252,35 @@ interface MagneticButtonProps {
   disabled?: boolean;
 }
 
-export function MagneticButton({ children, intensity = 0.3, className, onClick, disabled }: MagneticButtonProps) {
+export function MagneticButton({
+  children,
+  intensity = 0.3,
+  className,
+  onClick,
+  disabled,
+}: MagneticButtonProps) {
   const buttonRef = React.useRef<HTMLButtonElement>(null);
   const [position, setPosition] = React.useState({ x: 0, y: 0 });
 
   const handleMouseMove = (e: React.MouseEvent<HTMLButtonElement>) => {
     if (!buttonRef.current || disabled) return;
     const rect = buttonRef.current.getBoundingClientRect();
-    setPosition({ x: (e.clientX - rect.left - rect.width / 2) * intensity, y: (e.clientY - rect.top - rect.height / 2) * intensity });
+    setPosition({
+      x: (e.clientX - rect.left - rect.width / 2) * intensity,
+      y: (e.clientY - rect.top - rect.height / 2) * intensity,
+    });
   };
 
   return (
-    <motion.button ref={buttonRef} onMouseMove={handleMouseMove} onMouseLeave={() => setPosition({ x: 0, y: 0 })}
-      onClick={onClick} disabled={disabled} animate={{ x: position.x, y: position.y }}
+    <motion.button
+      ref={buttonRef}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={() => setPosition({ x: 0, y: 0 })}
+      onClick={onClick}
+      disabled={disabled}
+      animate={{ x: position.x, y: position.y }}
       transition={{ type: 'spring', stiffness: 150, damping: 15 }}
-      className={cn('relative', disabled && 'opacity-50 cursor-not-allowed', className)}
+      className={cn('relative', disabled && 'cursor-not-allowed opacity-50', className)}
     >
       {children}
     </motion.button>
@@ -230,7 +301,15 @@ interface GlowButtonProps {
 
 const glowIntensities = { subtle: '0 0 20px', medium: '0 0 40px', intense: '0 0 60px' };
 
-export function GlowButton({ children, glowColor = 'hsl(var(--primary))', glowIntensity = 'medium', className, onClick, disabled, type = 'button' }: GlowButtonProps) {
+export function GlowButton({
+  children,
+  glowColor = 'hsl(var(--primary))',
+  glowIntensity = 'medium',
+  className,
+  onClick,
+  disabled,
+  type = 'button',
+}: GlowButtonProps) {
   const [isHovered, setIsHovered] = React.useState(false);
 
   return (
@@ -239,8 +318,14 @@ export function GlowButton({ children, glowColor = 'hsl(var(--primary))', glowIn
       onHoverEnd={() => setIsHovered(false)}
       whileHover={!disabled ? { scale: 1.02 } : undefined}
       whileTap={!disabled ? { scale: 0.98 } : undefined}
-      onClick={onClick} disabled={disabled} type={type}
-      className={cn('relative overflow-hidden transition-shadow duration-300', disabled && 'opacity-50 cursor-not-allowed', className)}
+      onClick={onClick}
+      disabled={disabled}
+      type={type}
+      className={cn(
+        'relative overflow-hidden transition-shadow duration-300',
+        disabled && 'cursor-not-allowed opacity-50',
+        className
+      )}
       style={{ boxShadow: isHovered ? `${glowIntensities[glowIntensity]} ${glowColor}` : 'none' }}
     >
       {children}
@@ -249,11 +334,13 @@ export function GlowButton({ children, glowColor = 'hsl(var(--primary))', glowIn
           initial={{ opacity: 0, rotate: 0 }}
           animate={{ opacity: 1, rotate: 360 }}
           transition={{ duration: 3, repeat: Infinity, ease: 'linear' }}
-          className="absolute inset-0 rounded-lg pointer-events-none"
+          className="pointer-events-none absolute inset-0 rounded-lg"
           style={{
             background: `conic-gradient(from 0deg, transparent, ${glowColor}, transparent)`,
             mask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
-            maskComposite: 'xor', WebkitMaskComposite: 'xor', padding: '2px',
+            maskComposite: 'xor',
+            WebkitMaskComposite: 'xor',
+            padding: '2px',
           }}
         />
       )}
@@ -276,7 +363,11 @@ export function PressFeedback({ children, onPress, disabled, className }: PressF
       whileHover={!disabled ? { scale: 1.02 } : undefined}
       whileTap={!disabled ? { scale: 0.95 } : undefined}
       onClick={!disabled ? onPress : undefined}
-      className={cn('cursor-pointer select-none', disabled && 'opacity-50 cursor-not-allowed', className)}
+      className={cn(
+        'cursor-pointer select-none',
+        disabled && 'cursor-not-allowed opacity-50',
+        className
+      )}
     >
       {children}
     </motion.div>

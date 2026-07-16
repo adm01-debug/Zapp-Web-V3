@@ -2,18 +2,42 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
 
 const mockQueues = [
-  { id: 'q1', name: 'Suporte', color: '#blue', is_active: true, max_wait_time_minutes: 30, priority: 1, description: null, created_at: '', updated_at: '' },
-  { id: 'q2', name: 'Vendas', color: '#green', is_active: true, max_wait_time_minutes: 15, priority: 2, description: null, created_at: '', updated_at: '' },
+  {
+    id: 'q1',
+    name: 'Suporte',
+    color: '#blue',
+    is_active: true,
+    max_wait_time_minutes: 30,
+    priority: 1,
+    description: null,
+    created_at: '',
+    updated_at: '',
+  },
+  {
+    id: 'q2',
+    name: 'Vendas',
+    color: '#green',
+    is_active: true,
+    max_wait_time_minutes: 15,
+    priority: 2,
+    description: null,
+    created_at: '',
+    updated_at: '',
+  },
 ];
 
 const mockMembers = [
-  { id: 'm1', queue_id: 'q1', profile_id: 'p1', is_active: true, created_at: '', profile: { id: 'p1', name: 'Agent 1', avatar_url: null, is_active: true } },
+  {
+    id: 'm1',
+    queue_id: 'q1',
+    profile_id: 'p1',
+    is_active: true,
+    created_at: '',
+    profile: { id: 'p1', name: 'Agent 1', avatar_url: null, is_active: true },
+  },
 ];
 
-const mockWaiting = [
-  { queue_id: 'q1' },
-  { queue_id: 'q1' },
-];
+const mockWaiting = [{ queue_id: 'q1' }, { queue_id: 'q1' }];
 
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
@@ -92,7 +116,7 @@ describe('useQueues', () => {
       expect(result.current.loading).toBe(false);
     });
 
-    const suporteQueue = result.current.queues.find(q => q.name === 'Suporte');
+    const suporteQueue = result.current.queues.find((q) => q.name === 'Suporte');
     expect(suporteQueue?.members).toHaveLength(1);
     expect(suporteQueue?.members[0].profile?.name).toBe('Agent 1');
   });
@@ -104,10 +128,10 @@ describe('useQueues', () => {
       expect(result.current.loading).toBe(false);
     });
 
-    const suporteQueue = result.current.queues.find(q => q.name === 'Suporte');
+    const suporteQueue = result.current.queues.find((q) => q.name === 'Suporte');
     expect(suporteQueue?.waiting_count).toBe(2);
 
-    const vendasQueue = result.current.queues.find(q => q.name === 'Vendas');
+    const vendasQueue = result.current.queues.find((q) => q.name === 'Vendas');
     expect(vendasQueue?.waiting_count).toBe(0);
   });
 

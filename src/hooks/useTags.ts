@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { useAuth } from '@/features/auth';
 import { toast } from '@/hooks/use-toast';
+import { queryKeys } from '@/services/api/queryKeys';
 
 export interface Tag {
   id: string;
@@ -27,7 +28,7 @@ export function useTags() {
     error,
     refetch,
   } = useQuery({
-    queryKey: ['tags'],
+    queryKey: queryKeys.tags.all(),
     staleTime: Infinity,
     queryFn: async () => {
       const { data: tagsData, error: tagsError } = await supabase
@@ -83,7 +84,7 @@ export function useTags() {
       return null;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tags'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.tags.all() });
       toast({
         title: 'Etiqueta criada',
         description: 'A etiqueta foi criada com sucesso.',
@@ -112,13 +113,13 @@ export function useTags() {
         })
         .eq('id', data.id)
         .select()
-        .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
+        .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
 
       if (tagErr) throw tagErr;
       return tag;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tags'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.tags.all() });
       toast({
         title: 'Etiqueta atualizada',
         description: 'A etiqueta foi atualizada com sucesso.',
@@ -141,7 +142,7 @@ export function useTags() {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tags'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.tags.all() });
       toast({
         title: 'Etiqueta excluída',
         description: 'A etiqueta foi excluída com sucesso.',
@@ -175,7 +176,7 @@ export function useContactTags(contactId: string | undefined) {
   const queryClient = useQueryClient();
 
   const { data: contactTags = [], isLoading } = useQuery({
-    queryKey: ['contact-tags', contactId],
+    queryKey: queryKeys.tags.contact(contactId),
     queryFn: async () => {
       if (!contactId) return [];
 
@@ -201,8 +202,8 @@ export function useContactTags(contactId: string | undefined) {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['contact-tags', contactId] });
-      queryClient.invalidateQueries({ queryKey: ['tags'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.tags.contact(contactId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.tags.all() });
     },
     onError: (error: Error) => {
       toast({
@@ -226,8 +227,8 @@ export function useContactTags(contactId: string | undefined) {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['contact-tags', contactId] });
-      queryClient.invalidateQueries({ queryKey: ['tags'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.tags.contact(contactId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.tags.all() });
     },
     onError: (error: Error) => {
       toast({

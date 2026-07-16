@@ -54,18 +54,21 @@ export const ExternalProductManagement: React.FC = () => {
   const parentCategories = categories.filter((c) => !c.parent_id);
   const getSubcategories = (parentId: string) => categories.filter((c) => c.parent_id === parentId);
 
-  const buildFilters = useCallback((pageOverride?: number): Record<string, unknown> => {
-    const currentPage = pageOverride ?? page;
-    const params: Record<string, unknown> = {
-      limit: PAGE_SIZE,
-      offset: currentPage * PAGE_SIZE,
-      only_in_stock: onlyInStock,
-    };
-    if (search) params.search = search;
-    if (categoryId !== 'all') params.category_id = categoryId;
-    if (supplierId !== 'all') params.supplier_id = supplierId;
-    return params;
-  }, [page, search, categoryId, supplierId, onlyInStock]);
+  const buildFilters = useCallback(
+    (pageOverride?: number): Record<string, unknown> => {
+      const currentPage = pageOverride ?? page;
+      const params: Record<string, unknown> = {
+        limit: PAGE_SIZE,
+        offset: currentPage * PAGE_SIZE,
+        only_in_stock: onlyInStock,
+      };
+      if (search) params.search = search;
+      if (categoryId !== 'all') params.category_id = categoryId;
+      if (supplierId !== 'all') params.supplier_id = supplierId;
+      return params;
+    },
+    [page, search, categoryId, supplierId, onlyInStock]
+  );
 
   // Initial load
   useEffect(() => {
@@ -91,51 +94,52 @@ export const ExternalProductManagement: React.FC = () => {
   const totalPages = Math.ceil(totalProducts / PAGE_SIZE);
   const hasFilters = search || categoryId !== 'all' || supplierId !== 'all' || onlyInStock;
 
-  const clearFilters = () => {
+  const clearFilters = useCallback(() => {
     setSearch('');
     setCategoryId('all');
     setSupplierId('all');
     setOnlyInStock(false);
     setPage(0);
-  };
+  }, []);
 
   const [sendProduct, setSendProduct] = useState<ExternalProduct | null>(null);
 
-  const handleSendProduct = (product: ExternalProduct) => {
+  const handleSendProduct = useCallback((product: ExternalProduct) => {
     setSendProduct(product);
-  };
+  }, []);
 
   return (
-    <div className="space-y-6 p-6 max-w-7xl mx-auto">
+    <div className="mx-auto max-w-7xl space-y-6 p-6">
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Package className="w-6 h-6 text-primary" />
+            <Package className="h-6 w-6 text-primary" />
             <h1 className="text-2xl font-bold">Catálogo de Produtos</h1>
             <Badge variant="secondary">{totalProducts.toLocaleString('pt-BR')} produtos</Badge>
           </div>
           <div className="flex items-center gap-2">
             <Button variant="outline" size="sm" onClick={() => fetchProducts(buildFilters())}>
-              <RefreshCw className="w-4 h-4 mr-1" />
+              <RefreshCw className="mr-1 h-4 w-4" />
               Atualizar
             </Button>
             <Button variant="outline" size="sm" asChild>
               <a href="https://promogifts.com.br" target="_blank" rel="noopener noreferrer">
-                <ExternalLink className="w-4 h-4 mr-1" />
+                <ExternalLink className="mr-1 h-4 w-4" />
                 Gerenciar no PromoGifts
               </a>
             </Button>
           </div>
         </div>
-        <p className="text-sm text-muted-foreground mt-1">
-          Catálogo sincronizado em tempo real com o PromoGifts. Para editar produtos, acesse o sistema de gestão.
+        <p className="mt-1 text-sm text-muted-foreground">
+          Catálogo sincronizado em tempo real com o PromoGifts. Para editar produtos, acesse o
+          sistema de gestão.
         </p>
       </motion.div>
 
       {/* Filters */}
       <div className="flex flex-wrap gap-3">
-        <div className="flex-1 min-w-[250px] relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+        <div className="relative min-w-[250px] flex-1">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Buscar por nome, SKU ou marca..."
             value={search}
@@ -143,8 +147,14 @@ export const ExternalProductManagement: React.FC = () => {
             className="pl-9"
           />
           {search && (
-            <Button aria-label="Limpar busca" variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7" onClick={() => setSearch('')}>
-              <X className="w-4 h-4" />
+            <Button
+              aria-label="Limpar busca"
+              variant="ghost"
+              size="icon"
+              className="absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2"
+              onClick={() => setSearch('')}
+            >
+              <X className="h-4 w-4" />
             </Button>
           )}
         </div>
@@ -159,7 +169,9 @@ export const ExternalProductManagement: React.FC = () => {
               const subs = getSubcategories(cat.id);
               return (
                 <React.Fragment key={cat.id}>
-                  <SelectItem value={cat.id} className="font-semibold">{cat.name}</SelectItem>
+                  <SelectItem value={cat.id} className="font-semibold">
+                    {cat.name}
+                  </SelectItem>
                   {subs.map((sub) => (
                     <SelectItem key={sub.id} value={sub.id} className="pl-6 text-sm">
                       {sub.name}
@@ -178,22 +190,38 @@ export const ExternalProductManagement: React.FC = () => {
           <SelectContent>
             <SelectItem value="all">Todos fornecedores</SelectItem>
             {suppliers.map((s) => (
-              <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+              <SelectItem key={s.id} value={s.id}>
+                {s.name}
+              </SelectItem>
             ))}
           </SelectContent>
         </Select>
 
         <div className="flex items-center gap-2">
           <Switch id="stock-mgmt" checked={onlyInStock} onCheckedChange={setOnlyInStock} />
-          <Label htmlFor="stock-mgmt" className="text-sm cursor-pointer">Em estoque</Label>
+          <Label htmlFor="stock-mgmt" className="cursor-pointer text-sm">
+            Em estoque
+          </Label>
         </div>
 
-        <div className="flex border rounded-md">
-          <Button aria-label="Visualização em grade" variant={viewMode === 'grid' ? 'secondary' : 'ghost'} size="icon" className="rounded-r-none" onClick={() => setViewMode('grid')}>
-            <Grid3X3 className="w-4 h-4" />
+        <div className="flex rounded-md border">
+          <Button
+            aria-label="Visualização em grade"
+            variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
+            size="icon"
+            className="rounded-r-none"
+            onClick={() => setViewMode('grid')}
+          >
+            <Grid3X3 className="h-4 w-4" />
           </Button>
-          <Button aria-label="Visualização em lista" variant={viewMode === 'list' ? 'secondary' : 'ghost'} size="icon" className="rounded-l-none" onClick={() => setViewMode('list')}>
-            <List className="w-4 h-4" />
+          <Button
+            aria-label="Visualização em lista"
+            variant={viewMode === 'list' ? 'secondary' : 'ghost'}
+            size="icon"
+            className="rounded-l-none"
+            onClick={() => setViewMode('list')}
+          >
+            <List className="h-4 w-4" />
           </Button>
         </div>
       </div>
@@ -201,7 +229,9 @@ export const ExternalProductManagement: React.FC = () => {
       {/* Status */}
       <div className="flex items-center justify-between text-sm text-muted-foreground">
         <span>
-          Mostrando {totalProducts > 0 ? Math.min(page * PAGE_SIZE + 1, totalProducts) : 0}-{Math.min((page + 1) * PAGE_SIZE, totalProducts)} de {totalProducts.toLocaleString('pt-BR')}
+          Mostrando {totalProducts > 0 ? Math.min(page * PAGE_SIZE + 1, totalProducts) : 0}-
+          {Math.min((page + 1) * PAGE_SIZE, totalProducts)} de{' '}
+          {totalProducts.toLocaleString('pt-BR')}
         </span>
         {hasFilters && (
           <Button variant="link" size="sm" onClick={clearFilters} className="h-auto p-0">
@@ -211,21 +241,29 @@ export const ExternalProductManagement: React.FC = () => {
       </div>
 
       {error && (
-        <div role="alert" className="bg-destructive/10 text-destructive rounded-lg p-3 text-sm">{error}</div>
+        <div role="alert" className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
+          {error}
+        </div>
       )}
 
       {/* Products */}
       <ScrollArea className="h-[calc(100vh-320px)]">
         {loading ? (
-          <div className={viewMode === 'grid' ? 'grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4' : 'space-y-3'}>
+          <div
+            className={
+              viewMode === 'grid'
+                ? 'grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5'
+                : 'space-y-3'
+            }
+          >
             {[...Array(10)].map((_, i) => (
               <Skeleton key={i} className={viewMode === 'grid' ? 'h-72' : 'h-20'} />
             ))}
           </div>
         ) : products.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
-            <Package className="w-16 h-16 mb-4 opacity-50" />
-            <p className="font-medium text-lg">Nenhum produto encontrado</p>
+            <Package className="mb-4 h-16 w-16 opacity-50" />
+            <p className="text-lg font-medium">Nenhum produto encontrado</p>
             <p className="text-sm">Tente ajustar os filtros de busca.</p>
           </div>
         ) : (
@@ -234,7 +272,7 @@ export const ExternalProductManagement: React.FC = () => {
               layout
               className={
                 viewMode === 'grid'
-                  ? 'grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4'
+                  ? 'grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5'
                   : 'space-y-2'
               }
             >
@@ -261,14 +299,24 @@ export const ExternalProductManagement: React.FC = () => {
       {/* Pagination */}
       {totalPages > 1 && (
         <div className="flex items-center justify-center gap-3 pt-2">
-          <Button variant="outline" size="sm" disabled={page === 0} onClick={() => setPage((p) => p - 1)}>
-            <ChevronLeft className="w-4 h-4 mr-1" /> Anterior
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={page === 0}
+            onClick={() => setPage((p) => p - 1)}
+          >
+            <ChevronLeft className="mr-1 h-4 w-4" /> Anterior
           </Button>
           <span className="text-sm text-muted-foreground">
             Página {page + 1} de {totalPages}
           </span>
-          <Button variant="outline" size="sm" disabled={page >= totalPages - 1} onClick={() => setPage((p) => p + 1)}>
-            Próxima <ChevronRight className="w-4 h-4 ml-1" />
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={page >= totalPages - 1}
+            onClick={() => setPage((p) => p + 1)}
+          >
+            Próxima <ChevronRight className="ml-1 h-4 w-4" />
           </Button>
         </div>
       )}
@@ -278,7 +326,9 @@ export const ExternalProductManagement: React.FC = () => {
         <SendProductDialog
           product={sendProduct}
           open={!!sendProduct}
-          onOpenChange={(open) => { if (!open) setSendProduct(null); }}
+          onOpenChange={(open) => {
+            if (!open) setSendProduct(null);
+          }}
         />
       )}
     </div>

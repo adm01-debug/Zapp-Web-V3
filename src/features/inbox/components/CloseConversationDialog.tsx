@@ -75,16 +75,14 @@ export function CloseConversationDialog({
       return;
     }
     setSaving(true);
-    const { error } = await supabase
-      .from('conversation_closures')
-      .insert({
-        contact_id: contactId,
-        closed_by: profileId,
-        close_reason: reason,
-        outcome: outcome || null,
-        classification: classification || null,
-        notes: notes || null,
-      });
+    const { error } = await supabase.from('conversation_closures').insert({
+      contact_id: contactId,
+      closed_by: profileId,
+      close_reason: reason,
+      outcome: outcome || null,
+      classification: classification || null,
+      notes: notes || null,
+    });
     if (!error) {
       toast.success('Conversa encerrada com registro');
       onOpenChange(false);
@@ -104,56 +102,70 @@ export function CloseConversationDialog({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <CheckCircle2 className="w-5 h-5 text-success" />
+            <CheckCircle2 className="h-5 w-5 text-success" />
             Encerrar Conversa
           </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="close-reason" className="text-sm font-medium">Motivo do encerramento *</Label>
+            <Label htmlFor="close-reason" className="text-sm font-medium">
+              Motivo do encerramento *
+            </Label>
             <Select value={reason} onValueChange={setReason}>
               <SelectTrigger id="close-reason">
                 <SelectValue placeholder="Selecione o motivo" />
               </SelectTrigger>
               <SelectContent>
-                {CLOSE_REASONS.map(r => (
-                  <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
+                {CLOSE_REASONS.map((r) => (
+                  <SelectItem key={r.value} value={r.value}>
+                    {r.label}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="close-outcome" className="text-sm font-medium">Resultado</Label>
+            <Label htmlFor="close-outcome" className="text-sm font-medium">
+              Resultado
+            </Label>
             <Select value={outcome} onValueChange={setOutcome}>
               <SelectTrigger id="close-outcome">
                 <SelectValue placeholder="Resultado do atendimento" />
               </SelectTrigger>
               <SelectContent>
-                {OUTCOMES.map(o => (
-                  <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                {OUTCOMES.map((o) => (
+                  <SelectItem key={o.value} value={o.value}>
+                    {o.label}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="close-classification" className="text-sm font-medium">Classificação</Label>
+            <Label htmlFor="close-classification" className="text-sm font-medium">
+              Classificação
+            </Label>
             <Select value={classification} onValueChange={setClassification}>
               <SelectTrigger id="close-classification">
                 <SelectValue placeholder="Tipo de atendimento" />
               </SelectTrigger>
               <SelectContent>
-                {CLASSIFICATIONS.map(c => (
-                  <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
+                {CLASSIFICATIONS.map((c) => (
+                  <SelectItem key={c.value} value={c.value}>
+                    {c.label}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="close-notes" className="text-sm font-medium">Observações</Label>
+            <Label htmlFor="close-notes" className="text-sm font-medium">
+              Observações
+            </Label>
             <Textarea
               id="close-notes"
               value={notes}
@@ -165,7 +177,9 @@ export function CloseConversationDialog({
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Cancelar
+          </Button>
           <Button onClick={handleClose} disabled={saving || !reason}>
             {saving ? 'Salvando...' : 'Encerrar'}
           </Button>

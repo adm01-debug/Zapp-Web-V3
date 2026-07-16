@@ -11,6 +11,7 @@ import { useAuth } from '@/features/auth';
 import { TeamConversation } from '@/hooks/useTeamChat';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { queryKeys } from '@/services/api/queryKeys';
 
 interface Props {
   open: boolean;
@@ -25,12 +26,12 @@ export function AddMembersDialog({ open, onOpenChange, conversation }: Props) {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
   const existingMemberIds = useMemo(
-    () => new Set(conversation.members?.map(m => m.profile_id) || []),
+    () => new Set(conversation.members?.map((m) => m.profile_id) || []),
     [conversation.members]
   );
 
   const { data: teammates = [], isLoading } = useQuery({
-    queryKey: ['team-profiles-for-add-members', conversation.id],
+    queryKey: queryKeys.teamProfiles.forAddMembers(),
     queryFn: async () => {
       const { data, error } = await supabase
         .from('profiles')
@@ -38,7 +39,7 @@ export function AddMembersDialog({ open, onOpenChange, conversation }: Props) {
         .eq('is_active', true)
         .order('name');
       if (error) throw error;
-      return (data || []).filter(t => !existingMemberIds.has(t.id));
+      return (data || []).filter((t) => !existingMemberIds.has(t.id));
     },
     enabled: open && !!profile,
   });
@@ -46,24 +47,24 @@ export function AddMembersDialog({ open, onOpenChange, conversation }: Props) {
   const filtered = useMemo(() => {
     if (!search.trim()) return teammates;
     const q = search.toLowerCase();
-    return teammates.filter(t =>
-      t.name?.toLowerCase().includes(q) || t.email?.toLowerCase().includes(q)
+    return teammates.filter(
+      (t) => t.name?.toLowerCase().includes(q) || t.email?.toLowerCase().includes(q)
     );
   }, [teammates, search]);
 
   const addMutation = useMutation({
     mutationFn: async (memberIds: string[]) => {
-      const { error } = await supabase
-        .from('team_conversation_members')
-        .insert(memberIds.map(pid => ({
+      const { error } = await supabase.from('team_conversation_members').insert(
+        memberIds.map((pid) => ({
           conversation_id: conversation.id,
           profile_id: pid,
-        })));
+        }))
+      );
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['team-conversations'] });
-      queryClient.invalidateQueries({ queryKey: ['team-messages', conversation.id] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.teamChat.conversations() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.teamChat.messages(conversation.id) });
       toast.success(`${selectedIds.length} membro(s) adicionado(s)`);
       setSelectedIds([]);
       setSearch('');
@@ -75,9 +76,7 @@ export function AddMembersDialog({ open, onOpenChange, conversation }: Props) {
   });
 
   const toggleMember = (id: string) => {
-    setSelectedIds(prev =>
-      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
-    );
+    setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
   };
 
   const handleAdd = () => {
@@ -90,18 +89,18 @@ export function AddMembersDialog({ open, onOpenChange, conversation }: Props) {
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <UserPlus className="w-4 h-4" />
+            <UserPlus className="h-4 w-4" />
             Adicionar Membros
           </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-3">
           <div className="relative">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               placeholder="Buscar colegas..."
               value={search}
-              onChange={e => setSearch(e.target.value)}
+              onChange={(e) => setSearch(e.target.value)}
               className="pl-8"
               aria-label="Buscar colegas para adicionar"
               autoFocus
@@ -109,38 +108,43 @@ export function AddMembersDialog({ open, onOpenChange, conversation }: Props) {
           </div>
 
           {selectedIds.length > 0 && (
-            <p className="text-xs text-muted-foreground">
-              {selectedIds.length} selecionado(s)
-            </p>
+            <p className="text-xs text-muted-foreground">{selectedIds.length} selecionado(s)</p>
           )}
 
-          <div className="max-h-60 overflow-auto space-y-0.5 border rounded-lg p-1" role="listbox" aria-label="Colegas disponíveis">
+          <div
+            className="max-h-60 space-y-0.5 overflow-auto rounded-lg border p-1"
+            role="listbox"
+            aria-label="Colegas disponíveis"
+          >
             {isLoading ? (
-              <div className="text-center py-4 text-muted-foreground text-sm">Carregando...</div>
+              <div className="py-4 text-center text-sm text-muted-foreground">Carregando...</div>
             ) : filtered.length === 0 ? (
-              <div className="text-center py-4 text-muted-foreground text-sm">
+              <div className="py-4 text-center text-sm text-muted-foreground">
                 {search ? 'Nenhum colega encontrado' : 'Todos os colegas já fazem parte do grupo'}
               </div>
             ) : (
-              filtered.map(t => {
+              filtered.map((t) => {
                 const isSelected = selectedIds.includes(t.id);
                 return (
                   <button
+                    type="button"
                     key={t.id}
                     onClick={() => toggleMember(t.id)}
                     className={cn(
-                      "w-full flex items-center gap-3 p-2.5 rounded-md transition-colors",
-                      "hover:bg-accent/50",
-                      isSelected && "bg-primary/10"
+                      'flex w-full items-center gap-3 rounded-md p-2.5 transition-colors',
+                      'hover:bg-accent/50',
+                      isSelected && 'bg-primary/10'
                     )}
                   >
-                    <Avatar className="w-8 h-8 shrink-0">
-                      <AvatarImage src={t.avatar_url || undefined} alt={t.name || ""} />
-                      <AvatarFallback className="text-xs bg-muted">{t.name?.charAt(0)}</AvatarFallback>
+                    <Avatar className="h-8 w-8 shrink-0">
+                      <AvatarImage src={t.avatar_url || undefined} alt={t.name || ''} />
+                      <AvatarFallback className="bg-muted text-xs">
+                        {t.name?.charAt(0)}
+                      </AvatarFallback>
                     </Avatar>
-                    <div className="flex-1 text-left min-w-0">
-                      <p className="text-sm font-medium text-foreground truncate">{t.name}</p>
-                      <p className="text-xs text-muted-foreground truncate">{t.email}</p>
+                    <div className="min-w-0 flex-1 text-left">
+                      <p className="truncate text-sm font-medium text-foreground">{t.name}</p>
+                      <p className="truncate text-xs text-muted-foreground">{t.email}</p>
                     </div>
                     <Checkbox checked={isSelected} className="shrink-0" />
                   </button>
@@ -153,14 +157,17 @@ export function AddMembersDialog({ open, onOpenChange, conversation }: Props) {
         <Button
           onClick={handleAdd}
           disabled={selectedIds.length === 0 || addMutation.isPending}
-          className="w-full mt-2 rounded-xl"
+          className="mt-2 w-full rounded-xl"
         >
           {addMutation.isPending ? (
-            <Loader2 className="w-4 h-4 animate-spin mr-2" />
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
           ) : (
-            <UserPlus className="w-4 h-4 mr-2" />
+            <UserPlus className="mr-2 h-4 w-4" />
           )}
-          Adicionar {selectedIds.length > 0 ? `(${selectedIds.length} membro${selectedIds.length !== 1 ? 's' : ''})` : ''}
+          Adicionar{' '}
+          {selectedIds.length > 0
+            ? `(${selectedIds.length} membro${selectedIds.length !== 1 ? 's' : ''})`
+            : ''}
         </Button>
       </DialogContent>
     </Dialog>

@@ -229,7 +229,9 @@ export const safeClient = {
         }
       } else {
         const { error } = await (
-          supabase.rpc(name as Parameters<typeof supabase.rpc>[0]) as any
+          supabase.rpc(name as Parameters<typeof supabase.rpc>[0]) as unknown as {
+            limit: (n: number) => Promise<{ error: unknown }>;
+          }
         ).limit(0); // ignore-audit — .limit() not on RPC return type in generated types
         if (!error) {
           exists = true;
@@ -267,6 +269,7 @@ export const safeClient = {
       type RpcResult = { data: unknown; error: { message: string } | null };
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { error: rpcErr } = (await (supabase as any).rpc('rpc_update_email_health_state', {
+        // ignore-audit — RPC not in generated types; email_app/zapp schema function
         p_status: status,
         p_failure_count: snap.recentFailures.length,
         p_metadata: {
@@ -333,6 +336,7 @@ export const safeClient = {
       type RpcResult = { data: unknown; error: { message: string } | null };
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { error: rpcErr } = (await (supabase as any).rpc('rpc_log_email_health', {
+        // ignore-audit — RPC not in generated types; email_app/zapp schema function
         p_status: 'error',
         p_operation: operation,
         p_resource: resource,

@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback } from 'react';
+import { queryKeys } from '@/services/api/queryKeys';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { safeWhatsAppConnectionsQuery } from '@/integrations/supabase/safe-queries';
@@ -87,7 +88,7 @@ export function useCampaignEditor(campaign: TalkXCampaign | null, onClose: () =>
   );
 
   const { data: connections } = useQuery({
-    queryKey: ['wa-connections-talkx'],
+    queryKey: queryKeys.talkx.waConnections(),
     queryFn: async () => {
       const safeQueries = safeWhatsAppConnectionsQuery(supabase);
       const { data, error: _error } = await safeQueries.getList({ status: 'connected' });
@@ -97,7 +98,7 @@ export function useCampaignEditor(campaign: TalkXCampaign | null, onClose: () =>
   });
 
   const { data: contacts } = useQuery({
-    queryKey: ['contacts-talkx'],
+    queryKey: queryKeys.talkx.contactsTalkx(),
     queryFn: async () => {
       const { data, error: _error } = await supabase
         .from('contacts')

@@ -5,12 +5,7 @@
  */
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import {
-  createListQuery,
-  createDetailQuery,
-  createSearchQuery,
-  queryKeys,
-} from '@/services/api';
+import { createListQuery, createDetailQuery, createSearchQuery, queryKeys } from '@/services/api';
 import { usersService, type User, type Agent } from './index';
 import type { QueryParams } from '@/services/api/types';
 
@@ -18,14 +13,10 @@ import type { QueryParams } from '@/services/api/types';
  * Hook to list all users
  */
 export const useUsersList = (filters?: Partial<User> & QueryParams) => {
-  return createListQuery(
-    queryKeys.users.list(filters),
-    () => usersService.listUsers(filters),
-    {
-      staleTime: 30_000,
-      enabled: true,
-    }
-  );
+  return createListQuery(queryKeys.users.list(filters), () => usersService.listUsers(filters), {
+    staleTime: 30_000,
+    enabled: true,
+  });
 };
 
 /**
@@ -60,14 +51,10 @@ export const useSearchUsers = (query?: string) => {
  * Hook to list all agents
  */
 export const useAgentsList = (filters?: Partial<Agent> & QueryParams) => {
-  return createListQuery(
-    queryKeys.users.list(filters),
-    () => usersService.listAgents(filters),
-    {
-      staleTime: 30_000,
-      enabled: true,
-    }
-  );
+  return createListQuery(queryKeys.users.list(filters), () => usersService.listAgents(filters), {
+    staleTime: 30_000,
+    enabled: true,
+  });
 };
 
 /**
@@ -103,7 +90,7 @@ export const useSearchAgents = (query?: string) => {
  */
 export const useAgentsByStatus = (status: Agent['status'], params?: Partial<QueryParams>) => {
   return useQuery({
-    queryKey: [...queryKeys.users.all(), 'status', status],
+    queryKey: queryKeys.users.byStatus(status),
     queryFn: () => usersService.getAgentsByStatus(status, params),
     staleTime: 15_000,
   });

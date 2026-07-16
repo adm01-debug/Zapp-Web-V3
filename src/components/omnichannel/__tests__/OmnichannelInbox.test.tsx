@@ -3,13 +3,62 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { OmnichannelInbox } from '../OmnichannelInbox';
 
 const mockContacts = [
-  { id: 'c1', name: 'Maria Silva', phone: '+5511999990001', channel_type: 'whatsapp', updated_at: new Date().toISOString(), assigned_to: null },
-  { id: 'c2', name: 'João Santos', phone: '+5511999990002', channel_type: 'instagram', updated_at: new Date().toISOString(), assigned_to: 'agent1' },
-  { id: 'c3', name: 'Ana Costa', phone: '+5511999990003', channel_type: 'telegram', updated_at: new Date().toISOString(), assigned_to: null },
-  { id: 'c4', name: 'Pedro Lima', phone: '+5511999990004', channel_type: 'messenger', updated_at: new Date().toISOString(), assigned_to: null },
-  { id: 'c5', name: 'Carla Dias', phone: '+5511999990005', channel_type: 'email', updated_at: new Date().toISOString(), assigned_to: null },
-  { id: 'c6', name: 'Lucas Souza', phone: '+5511999990006', channel_type: 'webchat', updated_at: new Date().toISOString(), assigned_to: null },
-  { id: 'c7', name: 'Fernanda Oliveira', phone: '+5511999990007', channel_type: null, updated_at: new Date().toISOString(), assigned_to: null },
+  {
+    id: 'c1',
+    name: 'Maria Silva',
+    phone: '+5511999990001',
+    channel_type: 'whatsapp',
+    updated_at: new Date().toISOString(),
+    assigned_to: null,
+  },
+  {
+    id: 'c2',
+    name: 'João Santos',
+    phone: '+5511999990002',
+    channel_type: 'instagram',
+    updated_at: new Date().toISOString(),
+    assigned_to: 'agent1',
+  },
+  {
+    id: 'c3',
+    name: 'Ana Costa',
+    phone: '+5511999990003',
+    channel_type: 'telegram',
+    updated_at: new Date().toISOString(),
+    assigned_to: null,
+  },
+  {
+    id: 'c4',
+    name: 'Pedro Lima',
+    phone: '+5511999990004',
+    channel_type: 'messenger',
+    updated_at: new Date().toISOString(),
+    assigned_to: null,
+  },
+  {
+    id: 'c5',
+    name: 'Carla Dias',
+    phone: '+5511999990005',
+    channel_type: 'email',
+    updated_at: new Date().toISOString(),
+    assigned_to: null,
+  },
+  {
+    id: 'c6',
+    name: 'Lucas Souza',
+    phone: '+5511999990006',
+    channel_type: 'webchat',
+    updated_at: new Date().toISOString(),
+    assigned_to: null,
+  },
+  {
+    id: 'c7',
+    name: 'Fernanda Oliveira',
+    phone: '+5511999990007',
+    channel_type: null,
+    updated_at: new Date().toISOString(),
+    assigned_to: null,
+  },
 ];
 
 const mockConnections = [
@@ -91,16 +140,16 @@ describe('OmnichannelInbox', () => {
   // ===== CHANNEL CONFIG =====
   describe('Channel configuration', () => {
     const CHANNEL_CONFIG = {
-      whatsapp: { label: 'WhatsApp', color: 'text-green-500' },
-      instagram: { label: 'Instagram', color: 'text-pink-500' },
-      telegram: { label: 'Telegram', color: 'text-blue-400' },
-      messenger: { label: 'Messenger', color: 'text-blue-600' },
-      email: { label: 'Email', color: 'text-yellow-500' },
-      webchat: { label: 'Webchat', color: 'text-purple-500' },
+      whatsapp: { label: 'WhatsApp', color: 'text-success bg-success/10' },
+      instagram: { label: 'Instagram', color: 'text-accent bg-accent/10' },
+      telegram: { label: 'Telegram', color: 'text-info bg-info/10' },
+      messenger: { label: 'Messenger', color: 'text-info bg-info/10' },
+      email: { label: 'Email', color: 'text-warning bg-warning/10' },
+      webchat: { label: 'Webchat', color: 'text-secondary bg-secondary/10' },
     };
 
     it('has 6 channel types', () => expect(Object.keys(CHANNEL_CONFIG).length).toBe(6));
-    
+
     Object.entries(CHANNEL_CONFIG).forEach(([type, config]) => {
       it(`${type} has label ${config.label}`, () => expect(config.label).toBeTruthy());
       it(`${type} has color`, () => expect(config.color).toBeTruthy());
@@ -117,14 +166,18 @@ describe('OmnichannelInbox', () => {
     });
 
     it('filters by name (logic)', () => {
-      const msgs = mockContacts.map(c => ({ contactName: c.name, contactPhone: c.phone, channelType: c.channel_type }));
-      const filtered = msgs.filter(m => m.contactName.toLowerCase().includes('maria'));
+      const msgs = mockContacts.map((c) => ({
+        contactName: c.name,
+        contactPhone: c.phone,
+        channelType: c.channel_type,
+      }));
+      const filtered = msgs.filter((m) => m.contactName.toLowerCase().includes('maria'));
       expect(filtered.length).toBe(1);
     });
 
     it('filters by phone (logic)', () => {
-      const msgs = mockContacts.map(c => ({ contactName: c.name, contactPhone: c.phone }));
-      const filtered = msgs.filter(m => m.contactPhone.includes('0007'));
+      const msgs = mockContacts.map((c) => ({ contactName: c.name, contactPhone: c.phone }));
+      const filtered = msgs.filter((m) => m.contactPhone.includes('0007'));
       expect(filtered.length).toBe(1);
     });
   });
@@ -132,13 +185,13 @@ describe('OmnichannelInbox', () => {
   // ===== CHANNEL FILTER =====
   describe('Channel filtering', () => {
     it('filters by channel type (logic)', () => {
-      const msgs = mockContacts.map(c => ({ channelType: c.channel_type || 'whatsapp' }));
-      const filtered = msgs.filter(m => m.channelType === 'instagram');
+      const msgs = mockContacts.map((c) => ({ channelType: c.channel_type || 'whatsapp' }));
+      const filtered = msgs.filter((m) => m.channelType === 'instagram');
       expect(filtered.length).toBe(1);
     });
 
     it('shows all when filter is "all"', () => {
-      const msgs = mockContacts.map(c => ({ channelType: c.channel_type || 'whatsapp' }));
+      const msgs = mockContacts.map((c) => ({ channelType: c.channel_type || 'whatsapp' }));
       const filtered = msgs.filter(() => true);
       expect(filtered.length).toBe(7);
     });
@@ -159,7 +212,7 @@ describe('OmnichannelInbox', () => {
   describe('Channel stats', () => {
     it('computes channel stats from contacts', () => {
       const stats: Record<string, number> = {};
-      mockContacts.forEach(c => {
+      mockContacts.forEach((c) => {
         const type = c.channel_type || 'whatsapp';
         stats[type] = (stats[type] || 0) + 1;
       });
@@ -198,7 +251,7 @@ describe('OmnichannelInbox', () => {
   // ===== EDGE CASES =====
   describe('Edge cases', () => {
     it('handles null channel_type defaulting to whatsapp', () => {
-      const contact = mockContacts.find(c => c.channel_type === null);
+      const contact = mockContacts.find((c) => c.channel_type === null);
       expect(contact).toBeDefined();
       const type = contact?.channel_type || 'whatsapp';
       expect(type).toBe('whatsapp');

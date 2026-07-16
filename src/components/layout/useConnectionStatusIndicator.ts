@@ -138,18 +138,15 @@ export function useConnectionStatusIndicator() {
     fetchStatus();
     const channel = supabase
       .channel('connection-status-indicator')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'zapp', table: 'whatsapp_connections' },
-        () => {
-          import('@/lib/whatsappConnectionsCache')
-            .then((m) => m.invalidateWhatsappConnectionsCache())
-            .catch(() => {});
-          fetchStatus();
-        }
-      )
+      .on('postgres_changes', { event: '*', schema: 'zapp', table: 'whatsapp_connections' }, () => {
+        import('@/lib/whatsappConnectionsCache')
+          .then((m) => m.invalidateWhatsappConnectionsCache())
+          .catch(() => {});
+        fetchStatus();
+      })
       .subscribe();
     return () => {
+      channel.unsubscribe();
       supabase.removeChannel(channel);
     };
   }, []);

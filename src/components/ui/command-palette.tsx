@@ -178,6 +178,7 @@ export function CommandPalette({
           />
           {query && (
             <button
+              type="button"
               onClick={() => handleQueryChange('')}
               aria-label="Limpar busca"
               className="rounded-md p-1.5 transition-colors hover:bg-muted"
@@ -218,6 +219,7 @@ export function CommandPalette({
                     </span>
                     {onClearRecent && (
                       <button
+                        type="button"
                         onClick={onClearRecent}
                         className="text-xs text-muted-foreground transition-colors hover:text-foreground"
                       >
@@ -228,6 +230,7 @@ export function CommandPalette({
                   <div className="space-y-0.5">
                     {recentSearches.slice(0, 5).map((s) => (
                       <button
+                        type="button"
                         key={s}
                         onClick={() => {
                           onRecentSearchSelect?.(s);
@@ -252,6 +255,7 @@ export function CommandPalette({
                 <div className="space-y-0.5">
                   {defaultNavigationCommands.slice(0, 5).map((cmd, idx) => (
                     <button
+                      type="button"
                       key={cmd.id}
                       onClick={() => executeCommand(cmd)}
                       className={cn(

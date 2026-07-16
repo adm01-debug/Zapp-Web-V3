@@ -42,16 +42,17 @@ export default function AdminSecurityLogsPage() {
     let mounted = true;
     const fetchLogs = async () => {
       const { data, error } = await safeClient.from<AuditLog>('security_audit_logs', (q) =>
-        q.select(`*, profiles:user_id (name, email)`)
-         .order('created_at', { ascending: false })
-         .limit(50)
+        q
+          .select(`*, profiles:user_id (name, email)`)
+          .order('created_at', { ascending: false })
+          .limit(50)
       );
 
       if (!mounted) return;
       if (error) {
         log.error('Error fetching audit logs', error);
       } else {
-        setLogs(((data ?? []) as AuditLog[]));
+        setLogs((data ?? []) as AuditLog[]);
       }
       setLoading(false);
     };
@@ -72,6 +73,7 @@ export default function AdminSecurityLogsPage() {
 
     return () => {
       mounted = false;
+      channel.unsubscribe();
       supabase.removeChannel(channel);
     };
   }, []);

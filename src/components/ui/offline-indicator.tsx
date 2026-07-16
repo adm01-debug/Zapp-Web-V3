@@ -52,23 +52,24 @@ export function OfflineIndicator({ className }: OfflineIndicatorProps) {
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -50 }}
         className={cn(
-          "fixed top-0 left-0 right-0 z-50 flex items-center justify-center gap-3 py-2 px-4",
-          "bg-destructive text-destructive-foreground shadow-lg",
+          'fixed left-0 right-0 top-0 z-50 flex items-center justify-center gap-3 px-4 py-2',
+          'bg-destructive text-destructive-foreground shadow-lg',
           className
         )}
       >
         {showReconnecting ? (
           <>
-            <RefreshCw className="w-4 h-4 animate-spin" />
+            <RefreshCw className="h-4 w-4 animate-spin" />
             <span className="text-sm font-medium">Reconectando...</span>
           </>
         ) : (
           <>
-            <WifiOff className="w-4 h-4" />
+            <WifiOff className="h-4 w-4" />
             <span className="text-sm font-medium">Você está offline</span>
             <button
+              type="button"
               onClick={handleRetry}
-              className="ml-2 px-2 py-0.5 bg-destructive-foreground/20 hover:bg-destructive-foreground/30 rounded text-xs transition-colors"
+              className="ml-2 rounded bg-destructive-foreground/20 px-2 py-0.5 text-xs transition-colors hover:bg-destructive-foreground/30"
             >
               Tentar novamente
             </button>
@@ -122,9 +123,9 @@ export function ConnectionToast() {
           initial={{ opacity: 0, y: 50 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 50 }}
-          className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-4 py-2 bg-success text-success-foreground rounded-full shadow-lg"
+          className="fixed bottom-4 left-1/2 z-50 flex -translate-x-1/2 items-center gap-2 rounded-full bg-success px-4 py-2 text-success-foreground shadow-lg"
         >
-          <Wifi className="w-4 h-4" />
+          <Wifi className="h-4 w-4" />
           <span className="text-sm font-medium">Conexão restaurada</span>
         </motion.div>
       )}

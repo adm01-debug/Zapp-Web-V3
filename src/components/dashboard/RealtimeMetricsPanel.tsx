@@ -1,11 +1,12 @@
+import { useMemo } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { motion } from '@/components/ui/motion';
-import { 
-  Activity, 
-  MessageSquare, 
-  Users, 
-  Mail, 
+import {
+  Activity,
+  MessageSquare,
+  Users,
+  Mail,
   UserPlus,
   Wifi,
   WifiOff,
@@ -30,9 +31,12 @@ export function RealtimeMetricsPanel() {
     isConnected,
   } = useRealtimeDashboard();
 
-  const hourChange = messagesLastHour > 0
-    ? Math.round(((messagesThisHour - messagesLastHour) / messagesLastHour) * 100)
-    : messagesThisHour > 0 ? 100 : 0;
+  const hourChange =
+    messagesLastHour > 0
+      ? Math.round(((messagesThisHour - messagesLastHour) / messagesLastHour) * 100)
+      : messagesThisHour > 0
+        ? 100
+        : 0;
 
   const metrics = [
     {
@@ -73,21 +77,22 @@ export function RealtimeMetricsPanel() {
     },
   ];
 
-  // Simple sparkline from last 10 data points
-  const sparkData = metricsHistory.slice(-10).map(m => m.messagesPerMinute);
-  const maxSpark = Math.max(...sparkData, 1);
+  const { sparkData, maxSpark } = useMemo(() => {
+    const data = metricsHistory.slice(-10).map((m) => m.messagesPerMinute);
+    return { sparkData: data, maxSpark: Math.max(...data, 1) };
+  }, [metricsHistory]);
 
   return (
-    <Card className="border-primary/20 overflow-hidden bg-card">
+    <Card className="overflow-hidden border-primary/20 bg-card">
       <CardHeader className="border-b border-primary/20 bg-primary/5 py-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <motion.div
-              className="w-8 h-8 rounded-lg bg-primary/15 flex items-center justify-center"
+              className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/15"
               animate={{ scale: [1, 1.05, 1] }}
               transition={{ duration: 2, repeat: Infinity }}
             >
-              <Activity className="w-4 h-4 text-primary" />
+              <Activity className="h-4 w-4 text-primary" />
             </motion.div>
             <h2 className="font-display text-base font-semibold text-foreground">
               Métricas em Tempo Real
@@ -102,23 +107,23 @@ export function RealtimeMetricsPanel() {
             <Badge
               variant="outline"
               className={cn(
-                'text-xs gap-1.5 font-semibold',
-                isConnected ? 'border-success/50 text-success' : 'border-destructive/50 text-destructive'
+                'gap-1.5 text-xs font-semibold',
+                isConnected
+                  ? 'border-success/50 text-success'
+                  : 'border-destructive/50 text-destructive'
               )}
             >
               {isConnected ? (
-                <motion.div
-                  className="relative flex items-center justify-center"
-                >
+                <motion.div className="relative flex items-center justify-center">
                   <motion.span
-                    className="absolute w-3 h-3 rounded-full bg-success/40"
+                    className="absolute h-3 w-3 rounded-full bg-success/40"
                     animate={{ scale: [1, 1.8, 1], opacity: [0.6, 0, 0.6] }}
                     transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
                   />
-                  <Wifi className="w-3 h-3 relative z-10" />
+                  <Wifi className="relative z-10 h-3 w-3" />
                 </motion.div>
               ) : (
-                <WifiOff className="w-3 h-3" />
+                <WifiOff className="h-3 w-3" />
               )}
               {isConnected ? 'Ao Vivo' : 'Offline'}
             </Badge>
@@ -126,7 +131,7 @@ export function RealtimeMetricsPanel() {
         </div>
       </CardHeader>
       <CardContent className="p-4">
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
           {metrics.map((metric, i) => (
             <motion.div
               key={metric.label}
@@ -134,10 +139,15 @@ export function RealtimeMetricsPanel() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.05 }}
               whileHover={{ scale: 1.04, y: -2 }}
-              className="flex flex-col items-center p-3 rounded-xl bg-muted/30 border border-border/30 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5 transition-all duration-200 cursor-default"
+              className="flex cursor-default flex-col items-center rounded-xl border border-border/30 bg-muted/30 p-3 transition-all duration-200 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5"
             >
-              <div className={cn('w-8 h-8 rounded-lg flex items-center justify-center mb-2', metric.bg)}>
-                <metric.icon className={cn('w-4 h-4', metric.color)} />
+              <div
+                className={cn(
+                  'mb-2 flex h-8 w-8 items-center justify-center rounded-lg',
+                  metric.bg
+                )}
+              >
+                <metric.icon className={cn('h-4 w-4', metric.color)} />
               </div>
               <motion.span
                 key={metric.value}
@@ -147,13 +157,19 @@ export function RealtimeMetricsPanel() {
               >
                 {metric.value}
               </motion.span>
-              <span className="text-xs text-muted-foreground text-center">{metric.label}</span>
+              <span className="text-center text-xs text-muted-foreground">{metric.label}</span>
               {'change' in metric && metric.change !== undefined && (
-                <div className={cn(
-                  'flex items-center gap-0.5 text-xs mt-1',
-                  metric.change >= 0 ? 'text-success' : 'text-destructive'
-                )}>
-                  {metric.change >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+                <div
+                  className={cn(
+                    'mt-1 flex items-center gap-0.5 text-xs',
+                    metric.change >= 0 ? 'text-success' : 'text-destructive'
+                  )}
+                >
+                  {metric.change >= 0 ? (
+                    <TrendingUp className="h-3 w-3" />
+                  ) : (
+                    <TrendingDown className="h-3 w-3" />
+                  )}
                   {Math.abs(metric.change)}%
                 </div>
               )}
@@ -163,14 +179,14 @@ export function RealtimeMetricsPanel() {
 
         {/* Mini sparkline */}
         {sparkData.length > 1 && (
-          <div className="mt-3 flex items-end gap-1 h-8 px-2">
-            <span className="text-xs text-muted-foreground mr-2 self-center">Fluxo:</span>
+          <div className="mt-3 flex h-8 items-end gap-1 px-2">
+            <span className="mr-2 self-center text-xs text-muted-foreground">Fluxo:</span>
             {sparkData.map((val, i) => (
               <motion.div
                 key={`spark-${i}`}
                 initial={{ height: 0 }}
                 animate={{ height: `${Math.max((val / maxSpark) * 100, 8)}%` }}
-                className="flex-1 rounded-sm bg-primary/60 min-h-[2px]"
+                className="min-h-[2px] flex-1 rounded-sm bg-primary/60"
                 transition={{ delay: i * 0.03 }}
               />
             ))}

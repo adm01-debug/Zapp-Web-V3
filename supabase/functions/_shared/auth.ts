@@ -57,7 +57,7 @@ function readSupabaseUrl(name: string): string | null {
 
 function readSecret(name: string): string | null {
   const raw = Deno.env.get(name)?.trim();
-  if (!raw || /PLACEHOLDER|REPLACE|CHANGE_ME|YOUR_/i.test(raw)) return null;
+  if (!raw || raw.length < 8 || /PLACEHOLDER|REPLACE|CHANGE_ME|YOUR_/i.test(raw)) return null;
   return raw;
 }
 
@@ -151,7 +151,7 @@ export async function requireAdminOrSupervisor(req: Request): Promise<AuthedUser
   if (authed instanceof Response) return authed;
 
   const admin = createClient(
-    requireEnv("SUPABASE_URL"), requireEnv("SUPABASE_SERVICE_ROLE_KEY", { db: { schema: "zapp" } }),
+    requireEnv("SUPABASE_URL"), requireEnv("SUPABASE_SERVICE_ROLE_KEY"),
     { auth: { persistSession: false, autoRefreshToken: false }, db: { schema: "zapp" } },
   );
   const { data: isPriv, error } = await admin.rpc("is_admin_or_supervisor", { _user_id: authed.user.id });

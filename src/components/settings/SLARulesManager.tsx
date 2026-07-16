@@ -1,3 +1,4 @@
+import { queryKeys } from '@/services/api/queryKeys';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,7 +13,7 @@ import { SLARuleScope } from '@/features/sla';
 export function SLARulesManager() {
   // Fetch rule counts per scope in a single query
   const { data: ruleCounts = {} } = useQuery({
-    queryKey: ['sla-rules-counts'],
+    queryKey: queryKeys.sla.rulesCounts(),
     queryFn: async () => {
       const { data, error } = await supabase
         .from('sla_rules')

@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { toast } from '@/hooks/use-toast';
+import { queryKeys } from '@/services/api/queryKeys';
 
 interface Profile {
   id: string;
@@ -31,7 +32,7 @@ export function useSkillBasedRouting(selectedProfile: string, selectedQueue: str
   const queryClient = useQueryClient();
 
   const { data: profiles = [] } = useQuery<Profile[]>({
-    queryKey: ['skill-routing-profiles'],
+    queryKey: queryKeys.skillRouting.profiles(),
     staleTime: 60_000,
     queryFn: async () => {
       const { data, error } = await supabase
@@ -45,7 +46,7 @@ export function useSkillBasedRouting(selectedProfile: string, selectedQueue: str
   });
 
   const { data: queues = [] } = useQuery<Queue[]>({
-    queryKey: ['skill-routing-queues'],
+    queryKey: queryKeys.skillRouting.queues(),
     staleTime: 60_000,
     queryFn: async () => {
       const { data, error } = await safeClient.from<Queue>('queues', (q) =>
@@ -57,7 +58,7 @@ export function useSkillBasedRouting(selectedProfile: string, selectedQueue: str
   });
 
   const { data: agentSkills = [] } = useQuery<AgentSkill[]>({
-    queryKey: ['agent-skills', selectedProfile],
+    queryKey: queryKeys.skillRouting.agentSkills(selectedProfile),
     staleTime: 30_000,
     queryFn: async () => {
       const { data, error } = await supabase
@@ -71,7 +72,7 @@ export function useSkillBasedRouting(selectedProfile: string, selectedQueue: str
   });
 
   const { data: queueSkills = [] } = useQuery<QueueSkillRequirement[]>({
-    queryKey: ['queue-skill-requirements', selectedQueue],
+    queryKey: queryKeys.skillRouting.queueRequirements(selectedQueue),
     staleTime: 30_000,
     queryFn: async () => {
       const { data, error } = await supabase
@@ -106,7 +107,9 @@ export function useSkillBasedRouting(selectedProfile: string, selectedQueue: str
       if (error) throw error;
     },
     onSuccess: (_data, variables) => {
-      void queryClient.invalidateQueries({ queryKey: ['agent-skills', variables.profileId] });
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.skillRouting.agentSkills(variables.profileId),
+      });
     },
     onError: () => {
       toast({ title: 'Erro ao adicionar skill', variant: 'destructive' });
@@ -119,7 +122,7 @@ export function useSkillBasedRouting(selectedProfile: string, selectedQueue: str
       if (error) throw error;
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['agent-skills'] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.skillRouting.agentSkills() });
     },
     onError: () => {
       toast({ title: 'Erro ao remover skill', variant: 'destructive' });
@@ -145,7 +148,7 @@ export function useSkillBasedRouting(selectedProfile: string, selectedQueue: str
     },
     onSuccess: (_data, variables) => {
       void queryClient.invalidateQueries({
-        queryKey: ['queue-skill-requirements', variables.queueId],
+        queryKey: queryKeys.skillRouting.queueRequirements(variables.queueId),
       });
     },
     onError: () => {
@@ -159,7 +162,7 @@ export function useSkillBasedRouting(selectedProfile: string, selectedQueue: str
       if (error) throw error;
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['queue-skill-requirements'] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.skillRouting.queueRequirements() });
     },
     onError: () => {
       toast({ title: 'Erro ao remover requisito', variant: 'destructive' });

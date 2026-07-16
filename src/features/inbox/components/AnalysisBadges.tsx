@@ -15,7 +15,10 @@ const urgencyMap: Record<string, { color: string; label: string }> = {
   baixa: { color: 'bg-success/15 text-success border-success/30', label: 'Baixa' },
   media: { color: 'bg-warning/15 text-warning border-warning/30', label: 'Média' },
   alta: { color: 'bg-destructive/15 text-destructive border-destructive/30', label: 'Alta' },
-  critica: { color: 'bg-destructive/25 text-destructive border-destructive/40 animate-pulse', label: 'Crítica' },
+  critica: {
+    color: 'bg-destructive/25 text-destructive border-destructive/40 animate-pulse',
+    label: 'Crítica',
+  },
 };
 
 interface AnalysisBadgesProps {
@@ -38,20 +41,29 @@ export function AnalysisBadges({ contactId, compact = false, className }: Analys
         {sentCfg && (
           <Tooltip>
             <TooltipTrigger asChild>
-              <span className={cn('w-4 h-4 flex items-center justify-center', sentCfg.color)}>
-                <sentCfg.icon className="w-3 h-3" />
+              <span className={cn('flex h-4 w-4 items-center justify-center', sentCfg.color)}>
+                <sentCfg.icon className="h-3 w-3" />
               </span>
             </TooltipTrigger>
-            <TooltipContent className="text-xs max-w-[200px]">
+            <TooltipContent className="max-w-[200px] text-xs">
               <p className="font-medium">Sentimento: {sentCfg.label}</p>
-              {analysis.summary && <p className="text-muted-foreground mt-0.5 line-clamp-2">{analysis.summary}</p>}
+              {analysis.summary && (
+                <p className="mt-0.5 line-clamp-2 text-muted-foreground">{analysis.summary}</p>
+              )}
             </TooltipContent>
           </Tooltip>
         )}
         {urgCfg && analysis.urgency !== 'baixa' && (
           <Tooltip>
             <TooltipTrigger asChild>
-              <Zap className={cn('w-3 h-3', analysis.urgency === 'alta' || analysis.urgency === 'critica' ? 'text-destructive' : 'text-warning')} />
+              <Zap
+                className={cn(
+                  'h-3 w-3',
+                  analysis.urgency === 'alta' || analysis.urgency === 'critica'
+                    ? 'text-destructive'
+                    : 'text-warning'
+                )}
+              />
             </TooltipTrigger>
             <TooltipContent className="text-xs">Urgência: {urgCfg.label}</TooltipContent>
           </Tooltip>
@@ -61,20 +73,28 @@ export function AnalysisBadges({ contactId, compact = false, className }: Analys
   }
 
   return (
-    <div className={cn('flex items-center gap-1.5 flex-wrap', className)}>
+    <div className={cn('flex flex-wrap items-center gap-1.5', className)}>
       {sentCfg && (
-        <Badge variant="outline" className={cn('text-[10px] border gap-0.5', sentCfg.color === 'text-success' && 'border-success/30 bg-success/10', sentCfg.color === 'text-warning' && 'border-warning/30 bg-warning/10', sentCfg.color === 'text-destructive' && 'border-destructive/30 bg-destructive/10')}>
-          <sentCfg.icon className="w-3 h-3" />
+        <Badge
+          variant="outline"
+          className={cn(
+            'gap-0.5 border text-[10px]',
+            sentCfg.color === 'text-success' && 'border-success/30 bg-success/10',
+            sentCfg.color === 'text-warning' && 'border-warning/30 bg-warning/10',
+            sentCfg.color === 'text-destructive' && 'border-destructive/30 bg-destructive/10'
+          )}
+        >
+          <sentCfg.icon className="h-3 w-3" />
           {sentCfg.label}
         </Badge>
       )}
       {urgCfg && (
-        <Badge variant="outline" className={cn('text-[10px] border', urgCfg.color)}>
+        <Badge variant="outline" className={cn('border text-[10px]', urgCfg.color)}>
           Urg: {urgCfg.label}
         </Badge>
       )}
       {analysis.department && (
-        <Badge variant="outline" className="text-[10px] border border-border/50">
+        <Badge variant="outline" className="border border-border/50 text-[10px]">
           {analysis.department}
         </Badge>
       )}

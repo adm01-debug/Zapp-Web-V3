@@ -29,7 +29,9 @@ const STORAGE_KEY = 'contact-filter-presets';
 function getPresets(): FilterPreset[] {
   try {
     return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-  } catch { return []; }
+  } catch {
+    return [];
+  }
 }
 
 function savePresets(presets: FilterPreset[]) {
@@ -41,7 +43,7 @@ export function FilterPresets({ onApplyPreset, currentFilters }: FilterPresetsPr
   const [saving, setSaving] = useState(false);
   const [newName, setNewName] = useState('');
 
-  const hasActiveFilters = Object.values(currentFilters).some(v => v && v !== 'all');
+  const hasActiveFilters = Object.values(currentFilters).some((v) => v && v !== 'all');
 
   const handleSave = useCallback(() => {
     if (!newName.trim()) return;
@@ -59,7 +61,7 @@ export function FilterPresets({ onApplyPreset, currentFilters }: FilterPresetsPr
   }, [newName, currentFilters, presets]);
 
   const handleDelete = (id: string) => {
-    const updated = presets.filter(p => p.id !== id);
+    const updated = presets.filter((p) => p.id !== id);
     setPresets(updated);
     savePresets(updated);
     toast.success('Filtro removido');
@@ -69,10 +71,12 @@ export function FilterPresets({ onApplyPreset, currentFilters }: FilterPresetsPr
     <Popover>
       <PopoverTrigger asChild>
         <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs">
-          <Bookmark className="w-3.5 h-3.5" />
+          <Bookmark className="h-3.5 w-3.5" />
           Filtros Salvos
           {presets.length > 0 && (
-            <Badge variant="secondary" className="h-4 px-1.5 text-[10px]">{presets.length}</Badge>
+            <Badge variant="secondary" className="h-4 px-1.5 text-[10px]">
+              {presets.length}
+            </Badge>
           )}
         </Button>
       </PopoverTrigger>
@@ -81,11 +85,11 @@ export function FilterPresets({ onApplyPreset, currentFilters }: FilterPresetsPr
           <p className="text-xs font-semibold text-foreground">Filtros Salvos</p>
 
           {presets.length === 0 && !saving && (
-            <p className="text-xs text-muted-foreground py-2 text-center">Nenhum filtro salvo</p>
+            <p className="py-2 text-center text-xs text-muted-foreground">Nenhum filtro salvo</p>
           )}
 
           <AnimatePresence>
-            {presets.map(preset => (
+            {presets.map((preset) => (
               <motion.div
                 key={preset.id}
                 initial={{ opacity: 0, height: 0 }}
@@ -96,17 +100,18 @@ export function FilterPresets({ onApplyPreset, currentFilters }: FilterPresetsPr
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="flex-1 justify-start h-7 text-xs"
+                  className="h-7 flex-1 justify-start text-xs"
                   onClick={() => onApplyPreset(preset)}
                 >
-                  <Filter className="w-3 h-3 mr-1.5 text-primary" />
+                  <Filter className="mr-1.5 h-3 w-3 text-primary" />
                   {preset.name}
                 </Button>
                 <button
+                  type="button"
                   onClick={() => handleDelete(preset.id)}
-                  className="p-1 text-muted-foreground hover:text-destructive transition-colors"
+                  className="p-1 text-muted-foreground transition-colors hover:text-destructive"
                 >
-                  <X className="w-3 h-3" />
+                  <X className="h-3 w-3" />
                 </button>
               </motion.div>
             ))}
@@ -120,28 +125,39 @@ export function FilterPresets({ onApplyPreset, currentFilters }: FilterPresetsPr
             >
               <Input
                 value={newName}
-                onChange={e => setNewName(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter') handleSave(); if (e.key === 'Escape') setSaving(false); }}
+                onChange={(e) => setNewName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleSave();
+                  if (e.key === 'Escape') setSaving(false);
+                }}
                 placeholder="Nome do filtro..."
                 className="h-7 text-xs"
                 autoFocus
               />
-              <button onClick={handleSave} className="p-1 text-primary hover:text-primary/80">
-                <Check className="w-3.5 h-3.5" />
+              <button
+                type="button"
+                onClick={handleSave}
+                className="p-1 text-primary hover:text-primary/80"
+              >
+                <Check className="h-3.5 w-3.5" />
               </button>
-              <button onClick={() => setSaving(false)} className="p-1 text-muted-foreground hover:text-foreground">
-                <X className="w-3.5 h-3.5" />
+              <button
+                type="button"
+                onClick={() => setSaving(false)}
+                className="p-1 text-muted-foreground hover:text-foreground"
+              >
+                <X className="h-3.5 w-3.5" />
               </button>
             </motion.div>
           ) : (
             <Button
               variant="outline"
               size="sm"
-              className="w-full h-7 text-xs gap-1.5"
+              className="h-7 w-full gap-1.5 text-xs"
               onClick={() => setSaving(true)}
               disabled={!hasActiveFilters}
             >
-              <Plus className="w-3 h-3" />
+              <Plus className="h-3 w-3" />
               {hasActiveFilters ? 'Salvar Filtro Atual' : 'Aplique filtros primeiro'}
             </Button>
           )}

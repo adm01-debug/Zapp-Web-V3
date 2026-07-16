@@ -1,6 +1,6 @@
 # Corte duro para Supabase self-hosted
 
-Objetivo: parar de usar o backend Lovable Cloud (`uqysyzndkfiwfztbqvsl.supabase.co`) e apontar 100% do app para o self-hosted (`SELFHOSTED_SUPABASE_URL`). Aceito: relogin obrigatório de todos os usuários, janela de instabilidade durante o cutover, alto risco de regressão em módulos não cobertos por teste.
+Objetivo: parar de usar o backend Lovable Cloud (instância cloud migrada — URL removida) e apontar 100% do app para o self-hosted (`SELFHOSTED_SUPABASE_URL`). Aceito: relogin obrigatório de todos os usuários, janela de instabilidade durante o cutover, alto risco de regressão em módulos não cobertos por teste.
 
 ## Pré-requisitos (você faz manualmente)
 

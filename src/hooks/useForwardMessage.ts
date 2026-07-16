@@ -34,10 +34,13 @@ export function useForwardMessage(
   const mountedRef = useRef(true); // ✅ Fix: mounted guard para race condition
   useEffect(() => {
     mountedRef.current = true;
-    return () => { mountedRef.current = false; };
+    return () => {
+      mountedRef.current = false;
+    };
   }, []);
 
-  const fetchContacts = useCallback(async () => { // ✅ Fix: useCallback para deps estáveis
+  const fetchContacts = useCallback(async () => {
+    // ✅ Fix: useCallback para deps estáveis
     setIsLoading(true);
     try {
       const { data, error } = await dbFrom('contacts')

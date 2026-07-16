@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 
@@ -27,17 +27,26 @@ export function QuickPeek({
   className,
 }: QuickPeekProps) {
   const [show, setShow] = useState(false);
-  const [timer, setTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(
+    () => () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    },
+    []
+  );
 
   const handleEnter = () => {
     if (!enabled) return;
-    const t = setTimeout(() => setShow(true), delay);
-    setTimer(t);
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => setShow(true), delay);
   };
 
   const handleLeave = () => {
-    if (timer) clearTimeout(timer);
-    setTimer(null);
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
     setShow(false);
   };
 
@@ -56,12 +65,12 @@ export function QuickPeek({
             exit={{ opacity: 0, y: 4, scale: 0.97 }}
             transition={{ duration: 0.15 }}
             className={cn(
-              'absolute left-full top-0 ml-2 z-50 w-72 max-h-64 overflow-y-auto',
+              'absolute left-full top-0 z-50 ml-2 max-h-64 w-72 overflow-y-auto',
               'rounded-xl border border-border bg-popover p-3 shadow-xl',
               'pointer-events-none'
             )}
           >
-            <div className="text-xs text-muted-foreground font-medium mb-2 uppercase tracking-wider">
+            <div className="mb-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
               Preview
             </div>
             {preview}

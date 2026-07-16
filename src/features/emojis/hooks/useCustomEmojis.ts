@@ -114,59 +114,61 @@ export function useCustomEmojis(enabled = true) {
     });
   }, []);
 
-  const handleConfirmUpload = useCallback(async (p: PendingEmojiUpload) => {
-    if (!p.name.trim()) {
-      setUploadError('Informe um nome para o emoji');
-      toast.error('Informe um nome para o emoji');
-      return;
-    }
-    setUploading(true);
-    setUploadError(null);
-    setUploadProgress(5);
-    if (progressTimerRef.current) clearInterval(progressTimerRef.current);
-    progressTimerRef.current = setInterval(() => {
-      setUploadProgress((v) => (v < 85 ? v + 7 : v));
-    }, 150);
-    try {
-      const { error: upErr } = await supabase.storage
-        .from(BUCKET)
-        .upload(p.storagePath, p.file, { upsert: false, contentType: p.file.type });
-      if (upErr) throw upErr;
-      if (mountedRef.current) setUploadProgress(90);
-      const { data: pub } = supabase.storage.from(BUCKET).getPublicUrl(p.storagePath);
-      const { data: userData } = await supabase.auth.getUser();
-      const { error: insErr } = await supabase.from('custom_emojis').insert({
-        name: p.name.trim(),
-        image_url: pub.publicUrl,
-        category: p.selectedCategory,
-        uploaded_by: userData.user?.id ?? null,
-      });
-      if (insErr) throw insErr;
-      if (mountedRef.current) setUploadProgress(100);
-      toast.success('Emoji adicionado');
-      URL.revokeObjectURL(p.imageUrl);
-      if (mountedRef.current) {
-        setPendingUpload(null);
-        setUploadError(null);
+  const handleConfirmUpload = useCallback(
+    async (p: PendingEmojiUpload) => {
+      if (!p.name.trim()) {
+        setUploadError('Informe um nome para o emoji');
+        toast.error('Informe um nome para o emoji');
+        return;
       }
-      await fetchEmojis();
-    } catch (err) {
-      log.error('[useCustomEmojis] upload failed', err);
-      const msg = err instanceof Error ? err.message : 'Falha ao salvar emoji';
-      if (mountedRef.current) setUploadError(msg);
-      toast.error(msg);
-    } finally {
-      if (progressTimerRef.current) {
-        clearInterval(progressTimerRef.current);
-        progressTimerRef.current = null;
+      setUploading(true);
+      setUploadError(null);
+      setUploadProgress(5);
+      if (progressTimerRef.current) clearInterval(progressTimerRef.current);
+      progressTimerRef.current = setInterval(() => {
+        setUploadProgress((v) => (v < 85 ? v + 7 : v));
+      }, 150);
+      try {
+        const { error: upErr } = await supabase.storage
+          .from(BUCKET)
+          .upload(p.storagePath, p.file, { upsert: false, contentType: p.file.type });
+        if (upErr) throw upErr;
+        if (mountedRef.current) setUploadProgress(90);
+        const { data: pub } = supabase.storage.from(BUCKET).getPublicUrl(p.storagePath);
+        const { data: userData } = await supabase.auth.getUser();
+        const { error: insErr } = await supabase.from('custom_emojis').insert({
+          name: p.name.trim(),
+          image_url: pub.publicUrl,
+          category: p.selectedCategory,
+          uploaded_by: userData.user?.id ?? null,
+        });
+        if (insErr) throw insErr;
+        if (mountedRef.current) setUploadProgress(100);
+        toast.success('Emoji adicionado');
+        URL.revokeObjectURL(p.imageUrl);
+        if (mountedRef.current) {
+          setPendingUpload(null);
+          setUploadError(null);
+        }
+        await fetchEmojis();
+      } catch (err) {
+        log.error('[useCustomEmojis] upload failed', err);
+        const msg = err instanceof Error ? err.message : 'Falha ao salvar emoji';
+        if (mountedRef.current) setUploadError(msg);
+        toast.error(msg);
+      } finally {
+        if (progressTimerRef.current) {
+          clearInterval(progressTimerRef.current);
+          progressTimerRef.current = null;
+        }
+        if (mountedRef.current) {
+          setUploading(false);
+          setTimeout(() => mountedRef.current && setUploadProgress(0), 400);
+        }
       }
-      if (mountedRef.current) {
-        setUploading(false);
-        setTimeout(() => mountedRef.current && setUploadProgress(0), 400);
-      }
-    }
-  }, [fetchEmojis]);
-
+    },
+    [fetchEmojis]
+  );
 
   const handleSend = useCallback(
     async (emoji: CustomEmoji, onSend: (url: string) => void, close?: () => void) => {
@@ -178,13 +180,13 @@ export function useCustomEmojis(enabled = true) {
           .update({ use_count: (emoji.use_count ?? 0) + 1 })
           .eq('id', emoji.id);
         setEmojis((prev) =>
-          prev.map((e) => (e.id === emoji.id ? { ...e, use_count: (e.use_count ?? 0) + 1 } : e)),
+          prev.map((e) => (e.id === emoji.id ? { ...e, use_count: (e.use_count ?? 0) + 1 } : e))
         );
       } catch (err) {
         log.error('[useCustomEmojis] increment use_count failed', err);
       }
     },
-    [],
+    []
   );
 
   const toggleFavorite = useCallback(async (e: MouseEvent, emoji: CustomEmoji) => {
@@ -199,9 +201,7 @@ export function useCustomEmojis(enabled = true) {
       if (error) throw error;
     } catch (err) {
       log.error('[useCustomEmojis] toggleFavorite failed', err);
-      setEmojis((prev) =>
-        prev.map((x) => (x.id === emoji.id ? { ...x, is_favorite: !next } : x)),
-      );
+      setEmojis((prev) => prev.map((x) => (x.id === emoji.id ? { ...x, is_favorite: !next } : x)));
       toast.error('Falha ao atualizar favorito');
     }
   }, []);
@@ -217,26 +217,29 @@ export function useCustomEmojis(enabled = true) {
     } catch (err) {
       log.error('[useCustomEmojis] category change failed', err);
       setEmojis((prev) =>
-        prev.map((x) => (x.id === emoji.id ? { ...x, category: emoji.category } : x)),
+        prev.map((x) => (x.id === emoji.id ? { ...x, category: emoji.category } : x))
       );
       toast.error('Falha ao atualizar categoria');
     }
   }, []);
 
-  const handleDelete = useCallback(async (e: MouseEvent, emoji: CustomEmoji) => {
-    e.stopPropagation();
-    const prev = emojis;
-    setEmojis((list) => list.filter((x) => x.id !== emoji.id));
-    try {
-      const { error } = await supabase.from('custom_emojis').delete().eq('id', emoji.id);
-      if (error) throw error;
-      toast.success('Emoji removido');
-    } catch (err) {
-      log.error('[useCustomEmojis] delete failed', err);
-      setEmojis(prev);
-      toast.error('Falha ao remover emoji');
-    }
-  }, [emojis]);
+  const handleDelete = useCallback(
+    async (e: MouseEvent, emoji: CustomEmoji) => {
+      e.stopPropagation();
+      const prev = emojis;
+      setEmojis((list) => list.filter((x) => x.id !== emoji.id));
+      try {
+        const { error } = await supabase.from('custom_emojis').delete().eq('id', emoji.id);
+        if (error) throw error;
+        toast.success('Emoji removido');
+      } catch (err) {
+        log.error('[useCustomEmojis] delete failed', err);
+        setEmojis(prev);
+        toast.error('Falha ao remover emoji');
+      }
+    },
+    [emojis]
+  );
 
   return {
     emojis,

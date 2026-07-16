@@ -126,7 +126,10 @@ export function EmailInboxView({ onSelectThread }: EmailInboxViewProps) {
                 tokenStatus={
                   Object.fromEntries(
                     tokenStatus.map((s) => [s.account_id, s.token_status])
-                  ) as Record<string, TokenStatus> /* ignore-audit: fromEntries result narrowed to typed Record */
+                  ) as Record<
+                    string,
+                    TokenStatus
+                  > /* ignore-audit: fromEntries result narrowed to typed Record */
                 }
                 isSyncing={isSyncing}
                 onSelectAccount={setActiveAccountId}
@@ -196,7 +199,10 @@ export function EmailInboxView({ onSelectThread }: EmailInboxViewProps) {
 
           {/* Erro */}
           {error && (
-            <div role="alert" className="shrink-0 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+            <div
+              role="alert"
+              className="shrink-0 bg-destructive/10 px-3 py-2 text-xs text-destructive"
+            >
               {error}
             </div>
           )}
@@ -260,6 +266,7 @@ export function EmailInboxView({ onSelectThread }: EmailInboxViewProps) {
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <button
+                              type="button"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 starThread(thread.id, !thread.is_starred);
@@ -282,6 +289,7 @@ export function EmailInboxView({ onSelectThread }: EmailInboxViewProps) {
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <button
+                              type="button"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 archiveThread(thread.id);

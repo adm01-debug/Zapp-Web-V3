@@ -40,11 +40,7 @@ function makeSuccessOverride(rows: unknown[] = [], count = 0): InvokeOverride {
   return async () => ({ data: { data: rows, count }, error: null });
 }
 
-function makeErrorOverride(
-  name: string,
-  message: string,
-  status?: number,
-): InvokeOverride {
+function makeErrorOverride(name: string, message: string, status?: number): InvokeOverride {
   return async () => ({
     data: null,
     error: status !== undefined ? { name, message, status } : { name, message },
@@ -155,7 +151,7 @@ describe('queryExternalProxy — happy path', () => {
     await queryExternalProxy({ table: 'contacts' });
     expect(recordQueryEvent).toHaveBeenCalledOnce();
     expect(recordQueryEvent).toHaveBeenCalledWith(
-      expect.objectContaining({ source: 'externalProxy', target: 'contacts' }),
+      expect.objectContaining({ source: 'externalProxy', target: 'contacts' })
     );
   });
 
@@ -163,7 +159,7 @@ describe('queryExternalProxy — happy path', () => {
     await queryExternalProxy({ table: 'contacts' });
     expect(recordRetryOutcome).toHaveBeenCalledOnce();
     expect(recordRetryOutcome).toHaveBeenCalledWith(
-      expect.objectContaining({ target: 'contacts', recovered: false }),
+      expect.objectContaining({ target: 'contacts', recovered: false })
     );
   });
 
@@ -193,7 +189,7 @@ describe('queryExternalProxy — data.error field', () => {
     }));
     await expect(queryExternalProxy({ table: 'contacts' })).rejects.toThrow();
     expect(recordQueryEvent).toHaveBeenCalledWith(
-      expect.objectContaining({ errorMessage: 'permission denied for table contacts' }),
+      expect.objectContaining({ errorMessage: 'permission denied for table contacts' })
     );
   });
 });
@@ -205,7 +201,10 @@ describe('queryExternalProxy — non-transient invoke errors', () => {
     let invokeCount = 0;
     __testing!.setInvokeOverride(async () => {
       invokeCount++;
-      return { data: null, error: { name: 'FunctionsHttpError', message: 'Bad Request', status: 400 } };
+      return {
+        data: null,
+        error: { name: 'FunctionsHttpError', message: 'Bad Request', status: 400 },
+      };
     });
     await expect(queryExternalProxy({ table: 'contacts' })).rejects.toThrow();
     expect(invokeCount).toBe(1);
@@ -215,7 +214,10 @@ describe('queryExternalProxy — non-transient invoke errors', () => {
     let invokeCount = 0;
     __testing!.setInvokeOverride(async () => {
       invokeCount++;
-      return { data: null, error: { name: 'FunctionsHttpError', message: 'Not Found', status: 404 } };
+      return {
+        data: null,
+        error: { name: 'FunctionsHttpError', message: 'Not Found', status: 404 },
+      };
     });
     await expect(queryExternalProxy({ table: 'contacts' })).rejects.toThrow();
     expect(invokeCount).toBe(1);
@@ -232,7 +234,7 @@ describe('queryExternalProxy — non-transient invoke errors', () => {
     __testing!.setInvokeOverride(makeErrorOverride('FunctionsHttpError', 'Forbidden', 403));
     await expect(queryExternalProxy({ table: 'contacts' })).rejects.toThrow();
     expect(recordQueryEvent).toHaveBeenCalledWith(
-      expect.objectContaining({ errorMessage: 'Forbidden' }),
+      expect.objectContaining({ errorMessage: 'Forbidden' })
     );
   });
 });
@@ -445,7 +447,7 @@ describe('auth lock', () => {
 describe('config auth lock — session-wide', () => {
   it('trips on 502 with "service_role" in message', async () => {
     __testing!.setInvokeOverride(
-      makeErrorOverride('FunctionsHttpError', 'service_role rejected — JWT_SECRET mismatch', 502),
+      makeErrorOverride('FunctionsHttpError', 'service_role rejected — JWT_SECRET mismatch', 502)
     );
     await expect(queryExternalProxy({ table: 'contacts' })).rejects.toThrow();
 
@@ -455,7 +457,7 @@ describe('config auth lock — session-wide', () => {
 
   it('trips on 502 with "JWT_SECRET" in message', async () => {
     __testing!.setInvokeOverride(
-      makeErrorOverride('FunctionsHttpError', 'JWT_SECRET validation failed', 502),
+      makeErrorOverride('FunctionsHttpError', 'JWT_SECRET validation failed', 502)
     );
     await expect(queryExternalProxy({ table: 'contacts' })).rejects.toThrow();
 
@@ -465,7 +467,7 @@ describe('config auth lock — session-wide', () => {
 
   it('lock error message mentions session-wide scope', async () => {
     __testing!.setInvokeOverride(
-      makeErrorOverride('FunctionsHttpError', 'service_role rejected', 502),
+      makeErrorOverride('FunctionsHttpError', 'service_role rejected', 502)
     );
     await expect(queryExternalProxy({ table: 'contacts' })).rejects.toThrow();
 
@@ -476,7 +478,7 @@ describe('config auth lock — session-wide', () => {
 
   it('resetBreakerAndCoalesce clears the config auth lock', async () => {
     __testing!.setInvokeOverride(
-      makeErrorOverride('FunctionsHttpError', 'service_role rejected', 502),
+      makeErrorOverride('FunctionsHttpError', 'service_role rejected', 502)
     );
     await expect(queryExternalProxy({ table: 'contacts' })).rejects.toThrow();
 

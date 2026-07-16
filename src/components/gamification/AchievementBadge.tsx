@@ -1,7 +1,20 @@
+import { memo } from 'react';
 import { motion } from 'framer-motion';
-import { 
-  Zap, Flame, Target, Star, Crown, Trophy, Rocket, 
-  MessageSquare, Medal, Users, Clock, Award, Sparkles, CheckCircle2
+import {
+  Zap,
+  Flame,
+  Target,
+  Star,
+  Crown,
+  Trophy,
+  Rocket,
+  MessageSquare,
+  Medal,
+  Users,
+  Clock,
+  Award,
+  Sparkles,
+  CheckCircle2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ACHIEVEMENT_TYPES } from '@/features/admin';
@@ -17,12 +30,15 @@ export interface AchievementBadgeProps {
   isNew?: boolean;
 }
 
-const BADGE_CONFIG: Record<string, { 
-  icon: typeof Zap; 
-  gradient: string; 
-  bgGlow: string;
-  rarity: 'common' | 'rare' | 'epic' | 'legendary';
-}> = {
+const BADGE_CONFIG: Record<
+  string,
+  {
+    icon: typeof Zap;
+    gradient: string;
+    bgGlow: string;
+    rarity: 'common' | 'rare' | 'epic' | 'legendary';
+  }
+> = {
   [ACHIEVEMENT_TYPES.FAST_RESPONSE]: {
     icon: Zap,
     gradient: 'from-primary to-info',
@@ -117,7 +133,7 @@ const SIZE_CONFIG = {
   lg: { container: 'w-20 h-20', icon: 'w-9 h-9', text: 'text-base' },
 };
 
-export function AchievementBadge({
+export const AchievementBadge = memo(function AchievementBadge({
   type,
   name,
   description,
@@ -145,10 +161,10 @@ export function AchievementBadge({
       animate={{ opacity: 1, scale: 1 }}
       whileHover={{ scale: 1.02 }}
       className={cn(
-        "relative flex items-center gap-3 p-3 rounded-xl",
-        "bg-card border border-border/50",
-        "hover:border-border transition-all duration-200",
-        showDetails && "pr-4"
+        'relative flex items-center gap-3 rounded-xl p-3',
+        'border border-border/50 bg-card',
+        'transition-all duration-200 hover:border-border',
+        showDetails && 'pr-4'
       )}
     >
       {/* Badge Icon */}
@@ -156,7 +172,7 @@ export function AchievementBadge({
         <motion.div
           className={cn(
             sizeConfig.container,
-            "rounded-xl flex items-center justify-center",
+            'flex items-center justify-center rounded-xl',
             `bg-gradient-to-br ${config.gradient}`,
             `shadow-lg ${config.bgGlow}`,
             RARITY_BORDERS[config.rarity]
@@ -164,17 +180,17 @@ export function AchievementBadge({
           whileHover={{ rotate: [0, -5, 5, 0] }}
           transition={{ duration: 0.3 }}
         >
-          <Icon className={cn(sizeConfig.icon, "text-primary-foreground drop-shadow-md")} />
+          <Icon className={cn(sizeConfig.icon, 'text-primary-foreground drop-shadow-md')} />
         </motion.div>
-        
+
         {/* New indicator */}
         {isNew && (
           <motion.div
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
-            className="absolute -top-1 -right-1 w-4 h-4 bg-destructive rounded-full flex items-center justify-center"
+            className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-destructive"
           >
-            <Sparkles className="w-2.5 h-2.5 text-primary-foreground" />
+            <Sparkles className="h-2.5 w-2.5 text-primary-foreground" />
           </motion.div>
         )}
 
@@ -190,35 +206,34 @@ export function AchievementBadge({
 
       {/* Details */}
       {showDetails && (
-        <div className="flex-1 min-w-0">
+        <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <h4 className={cn(sizeConfig.text, "font-semibold text-foreground truncate")}>
+            <h4 className={cn(sizeConfig.text, 'truncate font-semibold text-foreground')}>
               {name}
             </h4>
-            <span className={cn(
-              "px-1.5 py-0.5 rounded text-[10px] font-medium uppercase tracking-wide",
-              config.rarity === 'common' && "bg-muted/20 text-muted-foreground",
-              config.rarity === 'rare' && "bg-info/20 text-info",
-              config.rarity === 'epic' && "bg-primary/20 text-primary",
-              config.rarity === 'legendary' && "bg-warning/20 text-warning",
-            )}>
+            <span
+              className={cn(
+                'rounded px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide',
+                config.rarity === 'common' && 'bg-muted/20 text-muted-foreground',
+                config.rarity === 'rare' && 'bg-info/20 text-info',
+                config.rarity === 'epic' && 'bg-primary/20 text-primary',
+                config.rarity === 'legendary' && 'bg-warning/20 text-warning'
+              )}
+            >
               {config.rarity}
             </span>
           </div>
-          
+
           {description && (
-            <p className="text-xs text-muted-foreground truncate mt-0.5">
-              {description}
-            </p>
+            <p className="mt-0.5 truncate text-xs text-muted-foreground">{description}</p>
           )}
-          
-          <div className="flex items-center gap-3 mt-1">
-            <span className="flex items-center gap-1 text-xs text-xp font-medium">
-              <Zap className="w-3 h-3" />
-              +{xpEarned} XP
+
+          <div className="mt-1 flex items-center gap-3">
+            <span className="flex items-center gap-1 text-xs font-medium text-xp">
+              <Zap className="h-3 w-3" />+{xpEarned} XP
             </span>
             <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
-              <Clock className="w-3 h-3" />
+              <Clock className="h-3 w-3" />
               {formattedDate}
             </span>
           </div>
@@ -226,15 +241,15 @@ export function AchievementBadge({
       )}
     </motion.div>
   );
-}
+});
 
 // Mini badge for compact displays
-export function AchievementBadgeMini({ 
-  type, 
-  name 
-}: { 
-  type: string; 
-  name: string; 
+export const AchievementBadgeMini = memo(function AchievementBadgeMini({
+  type,
+  name,
+}: {
+  type: string;
+  name: string;
 }) {
   const config = BADGE_CONFIG[type] || DEFAULT_BADGE;
   const Icon = config.icon;
@@ -243,14 +258,14 @@ export function AchievementBadgeMini({
     <motion.div
       whileHover={{ scale: 1.1, rotate: 5 }}
       className={cn(
-        "w-10 h-10 rounded-lg flex items-center justify-center cursor-pointer",
+        'flex h-10 w-10 cursor-pointer items-center justify-center rounded-lg',
         `bg-gradient-to-br ${config.gradient}`,
         `shadow-md ${config.bgGlow}`,
         RARITY_BORDERS[config.rarity]
       )}
       title={name}
     >
-      <Icon className="w-5 h-5 text-primary-foreground drop-shadow-sm" />
+      <Icon className="h-5 w-5 text-primary-foreground drop-shadow-sm" />
     </motion.div>
   );
-}
+});

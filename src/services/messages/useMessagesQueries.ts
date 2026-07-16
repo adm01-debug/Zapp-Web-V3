@@ -3,11 +3,7 @@
  */
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import {
-  createListQuery,
-  createDetailQuery,
-  queryKeys,
-} from '@/services/api';
+import { createListQuery, createDetailQuery, queryKeys } from '@/services/api';
 import { messagesService, type Message, type Conversation } from './index';
 import type { QueryParams } from '@/services/api/types';
 
@@ -28,7 +24,10 @@ export const useMessage = (id?: string) => {
   );
 };
 
-export const useConversationMessages = (conversationId?: string, filters?: Partial<QueryParams>) => {
+export const useConversationMessages = (
+  conversationId?: string,
+  filters?: Partial<QueryParams>
+) => {
   return useQuery({
     queryKey: queryKeys.messages.thread(conversationId || ''),
     queryFn: () => messagesService.listConversationMessages(conversationId!, filters),
@@ -56,7 +55,7 @@ export const useConversation = (id?: string) => {
 
 export const useUnreadMessagesCount = (conversationId?: string) => {
   return useQuery({
-    queryKey: [...queryKeys.messages.all(), 'unread', conversationId],
+    queryKey: queryKeys.messages.unread(conversationId),
     queryFn: () => messagesService.getUnreadMessagesCount(conversationId!),
     enabled: !!conversationId,
     staleTime: 5_000,
@@ -67,8 +66,10 @@ export const useInvalidateMessages = () => {
   const queryClient = useQueryClient();
   return {
     invalidateList: () => queryClient.invalidateQueries({ queryKey: queryKeys.messages.lists() }),
-    invalidateDetail: (id: string) => queryClient.invalidateQueries({ queryKey: queryKeys.messages.detail(id) }),
-    invalidateThread: (threadId: string) => queryClient.invalidateQueries({ queryKey: queryKeys.messages.thread(threadId) }),
+    invalidateDetail: (id: string) =>
+      queryClient.invalidateQueries({ queryKey: queryKeys.messages.detail(id) }),
+    invalidateThread: (threadId: string) =>
+      queryClient.invalidateQueries({ queryKey: queryKeys.messages.thread(threadId) }),
     invalidateAll: () => queryClient.invalidateQueries({ queryKey: queryKeys.messages.all() }),
   };
 };

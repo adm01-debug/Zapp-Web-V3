@@ -278,8 +278,7 @@ function projectFunctionsBase(): string {
   if (supabaseUrl && !supabaseUrl.includes('.supabase.co')) {
     return supabaseUrl.replace(/\/$/, '') + '/functions/v1';
   }
-  const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID ?? '';
-  return `https://${projectId}.supabase.co/functions/v1`;
+  return 'https://supabase.atomicabr.com.br/functions/v1';
 }
 
 /** URL pública do webhook Cloud API (Meta). */

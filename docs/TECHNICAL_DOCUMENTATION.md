@@ -1,9 +1,16 @@
 > **Schema canônico**: [SCHEMA_REFERENCE.md](SCHEMA_REFERENCE.md)
 
+> **⚠️ DOCUMENTO DESATUALIZADO (Dezembro 2024 — pré-migração)**
+> Os exemplos de código e DDL abaixo usam `schema: 'public'` e `CREATE TABLE public.*`,
+> que refletem a arquitetura Lovable Cloud original. No ambiente atual (Supabase Self-Hosted
+> em `supabase.atomicabr.com.br`), **todo o código deve usar `schema: 'zapp'`** e as tabelas
+> `evo.*` para mensagens WhatsApp. Consulte [SCHEMA_REFERENCE.md](SCHEMA_REFERENCE.md) e
+> [ARCHITECTURE_AND_FLOW.md](ARCHITECTURE_AND_FLOW.md) para a arquitetura atual.
+
 # 📚 Documentação Técnica Completa - Sistema de Atendimento WhatsApp
 
 > **Versão:** 1.0.0  
-> **Última atualização:** Dezembro 2024  
+> **Última atualização:** Dezembro 2024 (histórico — pré-migração para self-hosted)
 > **Stack:** React + TypeScript + Supabase + Tailwind CSS
 
 ---

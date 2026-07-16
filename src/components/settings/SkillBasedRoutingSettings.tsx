@@ -93,6 +93,7 @@ export function SkillBasedRoutingSettings() {
                       ))}
                     </span>
                     <button
+                      type="button"
                       onClick={() => removeSkill.mutate(skill.id)}
                       className="ml-1 hover:text-destructive"
                     >
@@ -181,6 +182,7 @@ export function SkillBasedRoutingSettings() {
                   <Badge key={req.id} variant="outline" className="gap-1 px-3 py-1.5">
                     {req.skill_name} (min: {req.min_level})
                     <button
+                      type="button"
                       onClick={() => removeQueueRequirement.mutate(req.id)}
                       className="ml-1 hover:text-destructive"
                     >

@@ -353,9 +353,11 @@ export function RetryMetricsPanel() {
                       <TableRow
                         key={row.id}
                         role="button"
+                        tabIndex={0}
                         aria-expanded={isOpen}
                         className="cursor-pointer"
                         onClick={() => toggle(row.id)}
+                        onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && toggle(row.id)}
                       >
                         <TableCell className="text-xs text-muted-foreground">
                           <span className="inline-flex items-center gap-1">

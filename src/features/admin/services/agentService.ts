@@ -55,15 +55,25 @@ export const agentService = {
         }
       });
 
-      return (profilesResult.data as AgentProfile[] /* ignore-audit: narrows Supabase query result to local interface */).map((profile) => {
-        const agentQueues =
-          (membersResult.data
-            ?.filter((m) => m.profile_id === profile.id)
-            .map((m) => {
-              const queue = queuesResult.data?.find((q) => q.id === m.queue_id);
-              return queue ? { id: queue.id, name: queue.name, color: queue.color } : null;
-            })
-            .filter(Boolean) as Array<{ id: string; name: string; color: string }>) || [];
+      const membersData = (membersResult.data ?? []) as Array<{
+        profile_id: string;
+        queue_id: string;
+      }>;
+      const queuesData = (queuesResult.data ?? []) as Array<{
+        id: string;
+        name: string;
+        color: string;
+      }>;
+      const profilesData = (profilesResult.data ?? []) as unknown as AgentProfile[];
+
+      return profilesData.map((profile) => {
+        const agentQueues = membersData
+          .filter((m) => m.profile_id === profile.id)
+          .map((m) => {
+            const queue = queuesData.find((q) => q.id === m.queue_id);
+            return queue ? { id: queue.id, name: queue.name, color: queue.color } : null;
+          })
+          .filter(Boolean) as Array<{ id: string; name: string; color: string }>;
 
         return {
           ...profile,

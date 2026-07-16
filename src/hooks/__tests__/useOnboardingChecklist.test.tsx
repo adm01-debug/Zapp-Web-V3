@@ -103,16 +103,12 @@ describe('useOnboardingChecklist', () => {
         };
       }
       return {
-        select: vi
-          .fn()
-          .mockReturnValue({
-            eq: vi
-              .fn()
-              .mockReturnValue({
-                maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
-                limit: vi.fn().mockResolvedValue({ data: [], error: null }),
-              }),
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+            limit: vi.fn().mockResolvedValue({ data: [], error: null }),
           }),
+        }),
       };
     });
 

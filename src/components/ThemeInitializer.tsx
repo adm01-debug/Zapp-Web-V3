@@ -8,6 +8,7 @@ import {
 } from '@/components/settings/theme/presets';
 import type { ThemeModeColors } from '@/components/settings/theme/presets';
 import { useTheme } from '@/hooks/useTheme';
+import { safeGetJSON, safeSetJSON } from '@/lib/safeStorage';
 
 import { getLogger } from '@/lib/logger';
 const log = getLogger('ThemeInitializer');
@@ -31,23 +32,12 @@ export function ThemeInitializer() {
   const { resolvedTheme } = useTheme();
 
   useEffect(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    let presetId = DEFAULT_PRESET_ID;
-    let radius = 8;
-    let storedConfig: StoredThemeConfig = {};
+    const storedConfig = safeGetJSON<StoredThemeConfig>(STORAGE_KEY, {});
+    const presetId = normalizeStoredPresetId(storedConfig.preset);
+    const radius = storedConfig.borderRadius ?? 8;
 
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved) as StoredThemeConfig;
-        storedConfig = parsed;
-        presetId = normalizeStoredPresetId(parsed.preset);
-        if (parsed.borderRadius != null) radius = parsed.borderRadius;
-      } catch {
-        storedConfig = {};
-      }
-    }
-
-    const preset = PRESETS.find((p) => p.id === presetId) || PRESETS.find((p) => p.id === DEFAULT_PRESET_ID);
+    const preset =
+      PRESETS.find((p) => p.id === presetId) || PRESETS.find((p) => p.id === DEFAULT_PRESET_ID);
     if (preset) {
       const colors: ThemeModeColors = resolvedTheme === 'dark' ? preset.dark : preset.light;
       const root = document.documentElement;
@@ -59,7 +49,7 @@ export function ThemeInitializer() {
 
       for (const key of CSS_VARS_TO_APPLY) {
         const value = colors[key];
-        
+
         // Only apply inline if it's not the default preset OR if we are in dark mode
         // This allows tokens.css to be the source of truth for the default Light theme.
         if (!isDefaultPreset || resolvedTheme === 'dark') {
@@ -77,27 +67,26 @@ export function ThemeInitializer() {
       root.style.setProperty('--font-display', targetFont);
 
       // Debug registry for the ThemeDebugTooltip
-      (window as unknown as { __THEME_DEBUG__: object }).__THEME_DEBUG__ = { // ignore-audit — window debug registry for ThemeDebugTooltip devtools
+      (window as unknown as { __THEME_DEBUG__: object }).__THEME_DEBUG__ = {
+        // ignore-audit — window debug registry for ThemeDebugTooltip devtools
         presetId: preset.id,
         presetName: preset.name,
         hasPresetFont: !!preset.font,
         fontOrigin: preset.font ? 'Preset Override' : 'CSS tokens.css',
         activeFont: getComputedStyle(root).getPropertyValue('--font-sans').trim(),
         mode: resolvedTheme,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       };
 
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify({
-          ...storedConfig,
-          borderRadius: radius,
-          cacheMode: resolvedTheme,
-          cachePreset: presetId,
-          cssVarsCache,
-          presetFont: preset.font ?? null,
-          preset: presetId,
-        }));
-      } catch (err) { log.error('Unexpected error in ThemeInitializer:', err); }
+      safeSetJSON(STORAGE_KEY, {
+        ...storedConfig,
+        borderRadius: radius,
+        cacheMode: resolvedTheme,
+        cachePreset: presetId,
+        cssVarsCache,
+        presetFont: preset.font ?? null,
+        preset: presetId,
+      });
     }
 
     document.documentElement.style.setProperty('--radius', `${radius / 16}rem`);

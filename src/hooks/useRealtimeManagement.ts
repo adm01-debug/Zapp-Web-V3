@@ -7,7 +7,7 @@ import { log } from '@/lib/logger';
 interface RealtimeUpdate {
   id: string;
   type: string;
-  data: Record<string, any>;
+  data: Record<string, unknown>;
   timestamp: string;
 }
 
@@ -19,31 +19,42 @@ interface RealtimeMetricPoint {
 export function useRealtimeDashboardManagement(dashboardId: string) {
   const [updates, setUpdates] = useState<RealtimeUpdate[]>([]);
   const [isConnected, setIsConnected] = useState(false);
-  const channelRef = useRef<any>(null);
+  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   useEffect(() => {
     if (!dashboardId) return;
 
     channelRef.current = supabase.channel(`dashboard:${dashboardId}`);
     channelRef.current
-      .on('postgres_changes', { event: '*', schema: 'zapp', table: 'dashboard_data' }, (payload: any) => {
-        setUpdates((prev) => [
-          ...prev,
-          {
-            id: payload.new?.id || Date.now().toString(),
-            type: payload.eventType,
-            data: payload.new || payload.old,
-            timestamp: new Date().toISOString(),
-          },
-        ]);
-      })
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'zapp', table: 'dashboard_data' },
+        (payload: {
+          eventType: string;
+          new?: Record<string, unknown>;
+          old?: Record<string, unknown>;
+        }) => {
+          setUpdates((prev) => [
+            ...prev,
+            {
+              id: payload.new?.id || Date.now().toString(),
+              type: payload.eventType,
+              data: payload.new || payload.old,
+              timestamp: new Date().toISOString(),
+            },
+          ]);
+        }
+      )
       .subscribe((status: string) => {
         setIsConnected(status === 'SUBSCRIBED');
       });
 
     return () => {
       setIsConnected(false);
-      channelRef.current?.unsubscribe();
+      if (channelRef.current) {
+        channelRef.current.unsubscribe();
+        supabase.removeChannel(channelRef.current);
+      }
     };
   }, [dashboardId]);
 
@@ -53,8 +64,12 @@ export function useRealtimeDashboardManagement(dashboardId: string) {
   const todayStart = new Date();
   todayStart.setHours(0, 0, 0, 0);
 
-  const messageUpdates = updates.filter((update) => update.type === 'INSERT' || update.data?.type === 'message');
-  const messagesThisHour = messageUpdates.filter((update) => Date.parse(update.timestamp) >= hourAgo).length;
+  const messageUpdates = updates.filter(
+    (update) => update.type === 'INSERT' || update.data?.type === 'message'
+  );
+  const messagesThisHour = messageUpdates.filter(
+    (update) => Date.parse(update.timestamp) >= hourAgo
+  ).length;
   const messagesLastHour = messageUpdates.filter((update) => {
     const t = Date.parse(update.timestamp);
     return t >= twoHoursAgo && t < hourAgo;
@@ -66,14 +81,22 @@ export function useRealtimeDashboardManagement(dashboardId: string) {
       .filter(Boolean)
   );
   const newContactsToday = updates.filter((update) => {
-    const createdAt = typeof update.data?.created_at === 'string' ? update.data.created_at : update.timestamp;
+    const createdAt =
+      typeof update.data?.created_at === 'string' ? update.data.created_at : update.timestamp;
     return update.data?.type === 'contact' && Date.parse(createdAt) >= todayStart.getTime();
   }).length;
-  const unreadMessages = updates.filter((update) => update.data?.is_read === false || update.data?.read === false).length;
-  const lastMessageAt = messageUpdates.at(-1)?.timestamp ? new Date(messageUpdates.at(-1)!.timestamp) : null;
+  const unreadMessages = updates.filter(
+    (update) => update.data?.is_read === false || update.data?.read === false
+  ).length;
+  const lastMessageAt = messageUpdates.at(-1)?.timestamp
+    ? new Date(messageUpdates.at(-1)!.timestamp)
+    : null;
   const metricsHistory: RealtimeMetricPoint[] = updates.slice(-30).map((update, index) => ({
     timestamp: update.timestamp,
-    messagesPerMinute: Math.max(0, index === 0 ? messagesThisHour : Math.round(messagesThisHour / Math.max(1, index))),
+    messagesPerMinute: Math.max(
+      0,
+      index === 0 ? messagesThisHour : Math.round(messagesThisHour / Math.max(1, index))
+    ),
   }));
 
   return {
@@ -90,22 +113,41 @@ export function useRealtimeDashboardManagement(dashboardId: string) {
   };
 }
 
+type RealtimeChannel = ReturnType<typeof supabase.channel>;
+type PgPayload = {
+  eventType: 'INSERT' | 'UPDATE' | 'DELETE';
+  new: Record<string, unknown>;
+  old: Record<string, unknown>;
+};
+
 export function useRealtimeMessagesManagement(chatId: string) {
-  const [messages, setMessages] = useState<any[]>([]);
-  const channelRef = useRef<any>(null);
+  const [messages, setMessages] = useState<Record<string, unknown>[]>([]);
+  const channelRef = useRef<RealtimeChannel | null>(null);
 
   useEffect(() => {
     if (!chatId) return;
 
     channelRef.current = supabase.channel(`chat:${chatId}`);
     channelRef.current
-      .on('postgres_changes', { event: 'INSERT', schema: 'evo', table: 'evolution_messages', filter: `chat_id=eq.${chatId}` }, (payload: any) => {
-        setMessages((prev) => [...prev, payload.new]);
-      })
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'evo',
+          table: 'evolution_messages',
+          filter: `remote_jid=eq.${chatId}`,
+        },
+        (payload: PgPayload) => {
+          setMessages((prev) => [...prev, payload.new]);
+        }
+      )
       .subscribe();
 
     return () => {
-      channelRef.current?.unsubscribe();
+      if (channelRef.current) {
+        channelRef.current.unsubscribe();
+        supabase.removeChannel(channelRef.current);
+      }
     };
   }, [chatId]);
 
@@ -113,27 +155,36 @@ export function useRealtimeMessagesManagement(chatId: string) {
 }
 
 export function useRealtimeMonitorManagement(tableName: string) {
-  const [data, setData] = useState<any[]>([]);
-  const [changes, setChanges] = useState<any[]>([]);
-  const channelRef = useRef<any>(null);
+  const [data, setData] = useState<Record<string, unknown>[]>([]);
+  const [changes, setChanges] = useState<PgPayload[]>([]);
+  const channelRef = useRef<RealtimeChannel | null>(null);
 
   useEffect(() => {
     channelRef.current = supabase.channel(`monitor:${tableName}`);
     channelRef.current
-      .on('postgres_changes', { event: '*', schema: 'zapp', table: tableName }, (payload: any) => {
-        setChanges((prev) => [...prev, payload]);
-        if (payload.eventType === 'INSERT') {
-          setData((prev) => [...prev, payload.new]);
-        } else if (payload.eventType === 'DELETE') {
-          setData((prev) => prev.filter((item) => item.id !== payload.old.id));
-        } else if (payload.eventType === 'UPDATE') {
-          setData((prev) => prev.map((item) => (item.id === payload.new.id ? payload.new : item)));
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'zapp', table: tableName },
+        (payload: PgPayload) => {
+          setChanges((prev) => [...prev, payload]);
+          if (payload.eventType === 'INSERT') {
+            setData((prev) => [...prev, payload.new]);
+          } else if (payload.eventType === 'DELETE') {
+            setData((prev) => prev.filter((item) => item.id !== payload.old.id));
+          } else if (payload.eventType === 'UPDATE') {
+            setData((prev) =>
+              prev.map((item) => (item.id === payload.new.id ? payload.new : item))
+            );
+          }
         }
-      })
+      )
       .subscribe();
 
     return () => {
-      channelRef.current?.unsubscribe();
+      if (channelRef.current) {
+        channelRef.current.unsubscribe();
+        supabase.removeChannel(channelRef.current);
+      }
     };
   }, [tableName]);
 
@@ -153,7 +204,7 @@ export function useTypingPresenceManagement(userId: string, chatId: string) {
       .on('presence', { event: 'sync' }, () => {
         const state = channelRef.current.presenceState();
         const users = Object.entries(state)
-          .filter(([, presence]: any) => presence?.[0]?.typing)
+          .filter(([, presence]: [string, Array<{ typing?: boolean }>]) => presence?.[0]?.typing)
           .map(([key]) => key);
         setTypingUsers(users);
       })
@@ -164,7 +215,10 @@ export function useTypingPresenceManagement(userId: string, chatId: string) {
       });
 
     return () => {
-      channelRef.current?.unsubscribe();
+      if (channelRef.current) {
+        channelRef.current.unsubscribe();
+        supabase.removeChannel(channelRef.current);
+      }
     };
   }, [userId, chatId]);
 

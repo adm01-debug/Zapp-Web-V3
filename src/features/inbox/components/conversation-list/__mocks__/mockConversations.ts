@@ -47,7 +47,18 @@ const createMockMessage = (
 
 type ContactSeed = Pick<
   ConversationContact,
-  'id' | 'name' | 'phone' | 'company' | 'job_title' | 'tags' | 'contact_type' | 'channel_type' | 'avatar_url' | 'ai_sentiment' | 'created_at' | 'updated_at'
+  | 'id'
+  | 'name'
+  | 'phone'
+  | 'company'
+  | 'job_title'
+  | 'tags'
+  | 'contact_type'
+  | 'channel_type'
+  | 'avatar_url'
+  | 'ai_sentiment'
+  | 'created_at'
+  | 'updated_at'
 >;
 
 function buildContact(seed: ContactSeed): ConversationContact {

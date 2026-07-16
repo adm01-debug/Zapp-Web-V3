@@ -37,10 +37,10 @@ export function ForceLogoutButton({ userId, userName }: ForceLogoutButtonProps) 
       size="sm"
       onClick={handleForceLogout}
       disabled={loading}
-      className="text-destructive hover:text-destructive hover:bg-destructive/10"
+      className="text-destructive hover:bg-destructive/10 hover:text-destructive"
       title="Forçar logout"
     >
-      {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <LogOut className="w-4 h-4" />}
+      {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogOut className="h-4 w-4" />}
     </Button>
   );
 }

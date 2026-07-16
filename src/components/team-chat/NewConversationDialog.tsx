@@ -1,3 +1,4 @@
+import { queryKeys } from '@/services/api/queryKeys';
 import { useState, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -33,7 +34,7 @@ export function NewConversationDialog({ open, onOpenChange, onCreated }: Props) 
   const _isAdmin = profile?.role === 'admin';
 
   const { data: teammates = [], isLoading: loadingTeammates } = useQuery({
-    queryKey: ['team-profiles-for-chat'],
+    queryKey: queryKeys.teamProfiles.forChat(),
     queryFn: async () => {
       const { data, error } = await supabase
         .from('profiles')
@@ -48,7 +49,7 @@ export function NewConversationDialog({ open, onOpenChange, onCreated }: Props) 
   });
 
   const { data: departments = [], isLoading: loadingDepts } = useQuery({
-    queryKey: ['departments-list'],
+    queryKey: queryKeys.departmentChat.list(),
     staleTime: Infinity,
     queryFn: async () => {
       const { data, error } = await supabase
@@ -185,6 +186,7 @@ export function NewConversationDialog({ open, onOpenChange, onCreated }: Props) 
                     const isSelected = selectedDeptId === d.id;
                     return (
                       <button
+                        type="button"
                         key={d.id}
                         onClick={() => setSelectedDeptId(d.id)}
                         className={cn(
@@ -225,6 +227,7 @@ export function NewConversationDialog({ open, onOpenChange, onCreated }: Props) 
                   const isSelected = selectedIds.includes(t.id);
                   return (
                     <button
+                      type="button"
                       key={t.id}
                       onClick={() => toggleMember(t.id)}
                       className={cn(

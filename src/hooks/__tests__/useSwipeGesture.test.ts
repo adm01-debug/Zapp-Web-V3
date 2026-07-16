@@ -143,9 +143,7 @@ describe('useSwipeGesture — touchMove', () => {
 describe('useSwipeGesture — touchEnd callbacks', () => {
   it('fires onSwipeRight when deltaX > threshold', () => {
     const onSwipeRight = vi.fn();
-    const { result } = renderHook(() =>
-      useSwipeGesture({ onSwipeRight, threshold: 80 })
-    );
+    const { result } = renderHook(() => useSwipeGesture({ onSwipeRight, threshold: 80 }));
     act(() => {
       result.current.handlers.onTouchStart(touchEvent(0));
       result.current.handlers.onTouchMove(touchEvent(100));
@@ -156,9 +154,7 @@ describe('useSwipeGesture — touchEnd callbacks', () => {
 
   it('fires onSwipeLeft when deltaX < -threshold', () => {
     const onSwipeLeft = vi.fn();
-    const { result } = renderHook(() =>
-      useSwipeGesture({ onSwipeLeft, threshold: 80 })
-    );
+    const { result } = renderHook(() => useSwipeGesture({ onSwipeLeft, threshold: 80 }));
     act(() => {
       result.current.handlers.onTouchStart(touchEvent(200));
       result.current.handlers.onTouchMove(touchEvent(100));
@@ -169,9 +165,7 @@ describe('useSwipeGesture — touchEnd callbacks', () => {
 
   it('does NOT fire onSwipeRight when deltaX equals threshold exactly', () => {
     const onSwipeRight = vi.fn();
-    const { result } = renderHook(() =>
-      useSwipeGesture({ onSwipeRight, threshold: 80 })
-    );
+    const { result } = renderHook(() => useSwipeGesture({ onSwipeRight, threshold: 80 }));
     act(() => {
       result.current.handlers.onTouchStart(touchEvent(0));
       result.current.handlers.onTouchMove(touchEvent(80));
@@ -182,9 +176,7 @@ describe('useSwipeGesture — touchEnd callbacks', () => {
 
   it('does NOT fire onSwipeLeft when deltaX is above -threshold', () => {
     const onSwipeLeft = vi.fn();
-    const { result } = renderHook(() =>
-      useSwipeGesture({ onSwipeLeft, threshold: 80 })
-    );
+    const { result } = renderHook(() => useSwipeGesture({ onSwipeLeft, threshold: 80 }));
     act(() => {
       result.current.handlers.onTouchStart(touchEvent(100));
       result.current.handlers.onTouchMove(touchEvent(30));
@@ -210,9 +202,7 @@ describe('useSwipeGesture — touchEnd callbacks', () => {
   it('touchEnd is no-op if touchStart was never called', () => {
     const onSwipeLeft = vi.fn();
     const onSwipeRight = vi.fn();
-    const { result } = renderHook(() =>
-      useSwipeGesture({ onSwipeLeft, onSwipeRight })
-    );
+    const { result } = renderHook(() => useSwipeGesture({ onSwipeLeft, onSwipeRight }));
     act(() => {
       result.current.handlers.onTouchEnd();
     });

@@ -74,12 +74,14 @@ export function QueueProgressPanel({
                   {item.status === 'failed' && (
                     <div className="flex gap-2">
                       <button
+                        type="button"
                         onClick={() => onRetry?.(item.id)}
                         className="text-primary-accessible rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-black transition-colors hover:text-primary"
                       >
                         Tentar novamente
                       </button>
                       <button
+                        type="button"
                         onClick={() => onRemoveFromQueue?.(item.id)}
                         className="rounded-full bg-destructive/10 px-2 py-0.5 text-[10px] font-black text-destructive transition-colors hover:text-destructive/80"
                       >

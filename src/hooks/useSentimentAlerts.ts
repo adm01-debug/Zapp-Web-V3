@@ -26,12 +26,14 @@ export function useSentimentAlerts() {
 
       if (error) throw error;
 
-      return data?.map(entry => ({
-        id: entry.id,
-        contactId: entry.entity_id,
-        createdAt: entry.created_at,
-        ...((entry.details || {}) as Record<string, unknown>),
-      })) || [];
+      return (
+        data?.map((entry) => ({
+          id: entry.id,
+          contactId: entry.entity_id,
+          createdAt: entry.created_at,
+          ...((entry.details || {}) as Record<string, unknown>),
+        })) || []
+      );
     } catch (err) {
       log.error('Failed to fetch recent alerts:', err);
       return [];

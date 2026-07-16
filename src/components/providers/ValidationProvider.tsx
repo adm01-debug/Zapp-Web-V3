@@ -1,8 +1,20 @@
 /* eslint-disable react-refresh/only-export-components */
 
-import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { validationLogger } from '@/utils/validationLogger';
-import { supabase, isSupabaseConfigured, warnSupabaseUnconfigured } from '@/integrations/supabase/client';
+import {
+  supabase,
+  isSupabaseConfigured,
+  warnSupabaseUnconfigured,
+} from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 interface ValidationContextType {
@@ -38,10 +50,16 @@ export const ValidationProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     // not failed — state. The DOM render check still runs.
     if (!isSupabaseConfigured) {
       warnSupabaseUnconfigured('ValidationProvider');
-      validationLogger.addEvent('network', 'Supabase não configurado — checagens de rede puladas (modo degradado)');
+      validationLogger.addEvent(
+        'network',
+        'Supabase não configurado — checagens de rede puladas (modo degradado)'
+      );
       const rootEl = document.getElementById('root');
       if (!rootEl || rootEl.childElementCount === 0) {
-        validationLogger.addEvent('error', 'Critical: Root element is empty after expected render time');
+        validationLogger.addEvent(
+          'error',
+          'Critical: Root element is empty after expected render time'
+        );
         setStatus('error');
       } else {
         validationLogger.addEvent('render', 'DOM rendering confirmed');
@@ -61,7 +79,10 @@ export const ValidationProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       if (error) throw error;
 
       if (!data.session) {
-        validationLogger.addEvent('network', 'Backend reachable — protected data check skipped without active session');
+        validationLogger.addEvent(
+          'network',
+          'Backend reachable — protected data check skipped without active session'
+        );
       } else {
         validationLogger.addEvent('network', 'Auth session verified');
       }
@@ -82,7 +103,10 @@ export const ValidationProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     // Check 3: Render Verification
     const root = document.getElementById('root');
     if (!root || root.childElementCount === 0) {
-      validationLogger.addEvent('error', 'Critical: Root element is empty after expected render time');
+      validationLogger.addEvent(
+        'error',
+        'Critical: Root element is empty after expected render time'
+      );
     } else {
       validationLogger.addEvent('render', 'DOM rendering confirmed');
     }
@@ -91,7 +115,9 @@ export const ValidationProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     const evidence = getCurrentSessionEvidence();
     if (evidence.errors > 0) {
       setStatus('error');
-      const criticalErr = evidence.events.find(e => e.type === 'error' && e.message.includes('Critical'));
+      const criticalErr = evidence.events.find(
+        (e) => e.type === 'error' && e.message.includes('Critical')
+      );
       if (criticalErr) {
         toast.error('Falha Crítica no Sistema', {
           description: criticalErr.message,
@@ -114,7 +140,7 @@ export const ValidationProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       const evidence = getCurrentSessionEvidence();
       if (evidence.errors > 0) {
         setStatus('error');
-        const lastErr = evidence.events.find(e => e.type === 'error' || e.type === 'network');
+        const lastErr = evidence.events.find((e) => e.type === 'error' || e.type === 'network');
         setLastError(lastErr?.message);
       } else if (evidence.networkFailures > 0) {
         setStatus('warning');
@@ -136,7 +162,7 @@ export const ValidationProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     };
   }, [getCurrentSessionEvidence, runProactiveChecks]);
 
-  const generateEvidence = () => {
+  const generateEvidence = useCallback(() => {
     const evidence = validationLogger.getEvidence();
     const blob = new Blob([JSON.stringify(evidence, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -146,13 +172,14 @@ export const ValidationProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     a.click();
     URL.revokeObjectURL(url);
     toast.success('Relatório de evidências exportado!');
-  };
+  }, []);
 
-  return (
-    <ValidationContext.Provider value={{ status, lastError, generateEvidence, runProactiveChecks }}>
-      {children}
-    </ValidationContext.Provider>
+  const contextValue = useMemo(
+    () => ({ status, lastError, generateEvidence, runProactiveChecks }),
+    [status, lastError, generateEvidence, runProactiveChecks]
   );
+
+  return <ValidationContext.Provider value={contextValue}>{children}</ValidationContext.Provider>;
 };
 
 export const useValidation = () => {

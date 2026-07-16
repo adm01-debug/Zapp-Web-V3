@@ -85,7 +85,9 @@ export async function runEvolutionDiagnostics(): Promise<DiagnosticResult[]> {
           message: extError
             ? `Erro ao acessar o Postgres do FATOR X: ${extError.message}`
             : 'Conexão direta com o banco do seu Supabase externo está OK.',
-          details: extError,
+          details: extError
+            ? { message: extError.message, code: extError.code, hint: extError.hint }
+            : null,
         });
       }
     } catch (err: unknown) {

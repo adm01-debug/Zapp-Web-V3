@@ -181,7 +181,7 @@ export function MessageBubbleBody({
         className={cn(
           '-mb-0.5 mt-1.5 flex items-center justify-end gap-1.5',
           (message.type === 'image' || message.type === 'video') && !message.content
-            ? 'absolute bottom-2 right-2 rounded-full bg-black/40 px-1.5 py-0.5 text-white drop-shadow-md backdrop-blur-sm'
+            ? 'absolute bottom-2 right-2 rounded-full bg-foreground/40 px-1.5 py-0.5 text-background drop-shadow-md backdrop-blur-sm'
             : isSent
               ? 'text-primary-foreground/75'
               : 'text-muted-foreground'

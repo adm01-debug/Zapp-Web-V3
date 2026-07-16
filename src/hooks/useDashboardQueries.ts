@@ -3,11 +3,12 @@ import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import type { DashboardFilters } from './dashboardTypes';
 import { dbFrom } from '@/integrations/datasource/db';
+import { queryKeys } from '@/services/api/queryKeys';
 
 /** Fetches agents list with online and total counts, optionally filtered by agent ID. */
 export const useAgentsQuery = (agentId?: string | null) =>
   useQuery({
-    queryKey: ['dashboard-agents', agentId],
+    queryKey: queryKeys.dashboard.agents(agentId),
     staleTime: 28_000,
     queryFn: async () => {
       let query = supabase
@@ -29,13 +30,12 @@ export const useAgentsQuery = (agentId?: string | null) =>
 /** Fetches contacts with optional queue, agent, and date range filtering. */
 export const useContactsQuery = (filters: DashboardFilters) =>
   useQuery({
-    queryKey: [
-      'dashboard-contacts',
-      filters.queueId,
-      filters.agentId,
-      filters.dateRange?.from?.toISOString(),
-      filters.dateRange?.to?.toISOString(),
-    ],
+    queryKey: queryKeys.dashboard.contacts({
+      queueId: filters.queueId,
+      agentId: filters.agentId,
+      from: filters.dateRange?.from?.toISOString(),
+      to: filters.dateRange?.to?.toISOString(),
+    }),
     staleTime: 13_000,
     queryFn: async () => {
       let query = dbFrom('contacts')
@@ -59,12 +59,11 @@ export const useContactsQuery = (filters: DashboardFilters) =>
 /** Fetches recent messages with contact details and optional filtering by date and agent. */
 export const useMessagesQuery = (filters: DashboardFilters) =>
   useQuery({
-    queryKey: [
-      'dashboard-messages',
-      filters.dateRange?.from?.toISOString(),
-      filters.dateRange?.to?.toISOString(),
-      filters.agentId,
-    ],
+    queryKey: queryKeys.dashboard.messages({
+      from: filters.dateRange?.from?.toISOString(),
+      to: filters.dateRange?.to?.toISOString(),
+      agentId: filters.agentId,
+    }),
     staleTime: 8_000,
     queryFn: async () => {
       let query = dbFrom('messages')
@@ -95,7 +94,7 @@ export const useMessagesQuery = (filters: DashboardFilters) =>
 /** Fetches active queues with member and activity information. */
 export const useQueuesQuery = () =>
   useQuery({
-    queryKey: ['dashboard-queues'],
+    queryKey: queryKeys.dashboard.queues(),
     staleTime: 28_000,
     queryFn: async () => {
       const { data, error } = await safeClient.from<{
@@ -123,7 +122,7 @@ export const useQueuesQuery = () =>
 /** Counts unassigned contacts grouped by queue ID. */
 export const useContactsPerQueueQuery = () =>
   useQuery({
-    queryKey: ['dashboard-contacts-per-queue'],
+    queryKey: queryKeys.dashboard.contactsPerQueue(),
     staleTime: 13_000,
     queryFn: async () => {
       const { data, error } = await dbFrom('contacts').select('id, queue_id, assigned_to', {
@@ -144,7 +143,7 @@ export const useContactsPerQueueQuery = () =>
 /** Calculates average first-response time SLA metrics from recent conversations. */
 export const useSlaQuery = () =>
   useQuery({
-    queryKey: ['dashboard-sla'],
+    queryKey: queryKeys.dashboard.sla(),
     staleTime: 55_000,
     queryFn: async () => {
       const { data, error } = await supabase

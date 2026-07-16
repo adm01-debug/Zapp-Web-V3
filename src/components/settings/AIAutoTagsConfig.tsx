@@ -1,3 +1,4 @@
+import { queryKeys } from '@/services/api/queryKeys';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getLogger } from '@/lib/logger';
 
@@ -15,7 +16,7 @@ export function AIAutoTagsConfig() {
   const queryClient = useQueryClient();
 
   const { data: tagStats = [], isLoading } = useQuery({
-    queryKey: ['ai-tag-stats'],
+    queryKey: queryKeys.aiFeatures.tagStats(),
     queryFn: async () => {
       const { data } = await supabase.from('ai_conversation_tags').select('tag_name, confidence');
 
@@ -62,7 +63,7 @@ export function AIAutoTagsConfig() {
       return processed;
     },
     onSuccess: (count) => {
-      queryClient.invalidateQueries({ queryKey: ['ai-tag-stats'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.aiFeatures.tagStats() });
       toast({
         title: 'Tags atualizadas!',
         description: `${count} conversas classificadas por IA.`,

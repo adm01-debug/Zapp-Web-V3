@@ -31,7 +31,7 @@ export function MiniChatPiP({
   const initials = contactName
     ? contactName
         .split(' ')
-        .map(n => n[0])
+        .map((n) => n[0])
         .filter(Boolean)
         .join('')
         .slice(0, 2)
@@ -46,12 +46,15 @@ export function MiniChatPiP({
     }
   }, [replyText, onQuickReply]);
 
-  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSendReply();
-    }
-  }, [handleSendReply]);
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        handleSendReply();
+      }
+    },
+    [handleSendReply]
+  );
 
   return (
     <AnimatePresence>
@@ -66,7 +69,7 @@ export function MiniChatPiP({
           dragElastic={0.1}
           dragConstraints={{ left: -100, right: 100, top: -200, bottom: 100 }}
           className={cn(
-            'fixed bottom-20 right-3 z-50 rounded-2xl shadow-lg border border-border bg-card overflow-hidden',
+            'fixed bottom-20 right-3 z-50 overflow-hidden rounded-2xl border border-border bg-card shadow-lg',
             isExpanded ? 'w-72' : 'w-auto'
           )}
           style={{ touchAction: 'none' }}
@@ -76,7 +79,7 @@ export function MiniChatPiP({
             tabIndex={0}
             aria-expanded={isExpanded}
             aria-label={isExpanded ? 'Minimizar chat' : 'Expandir chat'}
-            className="flex items-center gap-2.5 px-3 py-2.5 cursor-pointer bg-card hover:bg-muted/50 transition-colors"
+            className="flex cursor-pointer items-center gap-2.5 bg-card px-3 py-2.5 transition-colors hover:bg-muted/50"
             onClick={() => {
               if (!isExpanded) {
                 onExpand();
@@ -86,28 +89,29 @@ export function MiniChatPiP({
             }}
             onKeyDown={(e) => {
               if (e.key === 'Enter' || e.key === ' ') {
-                if (!isExpanded) onExpand(); else setIsExpanded(false);
+                if (!isExpanded) onExpand();
+                else setIsExpanded(false);
               }
             }}
           >
             <div className="relative">
-              <Avatar className="w-8 h-8">
+              <Avatar className="h-8 w-8">
                 <AvatarImage src={contactAvatar} alt={contactName} />
-                <AvatarFallback className="bg-primary/15 text-primary text-[10px] font-semibold">
+                <AvatarFallback className="bg-primary/15 text-[10px] font-semibold text-primary">
                   {initials}
                 </AvatarFallback>
               </Avatar>
-              <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-[hsl(var(--success))] rounded-full border-2 border-card" />
+              <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full border-2 border-card bg-[hsl(var(--success))]" />
             </div>
 
             {isExpanded ? (
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-medium text-foreground truncate">{contactName}</p>
-                <p className="text-[10px] text-muted-foreground truncate">{lastMessage}</p>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-xs font-medium text-foreground">{contactName}</p>
+                <p className="truncate text-[10px] text-muted-foreground">{lastMessage}</p>
               </div>
             ) : (
-              <div className="flex-1 min-w-0 max-w-[140px]">
-                <p className="text-xs font-medium text-foreground truncate">{contactName}</p>
+              <div className="min-w-0 max-w-[140px] flex-1">
+                <p className="truncate text-xs font-medium text-foreground">{contactName}</p>
               </div>
             )}
 
@@ -116,27 +120,27 @@ export function MiniChatPiP({
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="w-6 h-6"
+                  className="h-6 w-6"
                   onClick={(e) => {
                     e.stopPropagation();
                     setIsExpanded(false);
                   }}
                   aria-label="Minimizar chat"
                 >
-                  <Minimize2 className="w-3 h-3" />
+                  <Minimize2 className="h-3 w-3" />
                 </Button>
               )}
               <Button
                 variant="ghost"
                 size="icon"
-                className="w-6 h-6 text-muted-foreground hover:text-foreground"
+                className="h-6 w-6 text-muted-foreground hover:text-foreground"
                 onClick={(e) => {
                   e.stopPropagation();
                   onDismiss();
                 }}
                 aria-label="Fechar chat"
               >
-                <X className="w-3 h-3" />
+                <X className="h-3 w-3" />
               </Button>
             </div>
           </div>
@@ -153,26 +157,26 @@ export function MiniChatPiP({
               >
                 {/* Last message preview */}
                 {lastMessage && (
-                  <div className="px-3 py-2 bg-muted/30 border-t border-border/50">
-                    <p className="text-[11px] text-muted-foreground line-clamp-2">{lastMessage}</p>
+                  <div className="border-t border-border/50 bg-muted/30 px-3 py-2">
+                    <p className="line-clamp-2 text-[11px] text-muted-foreground">{lastMessage}</p>
                   </div>
                 )}
 
                 {/* Quick reply input */}
                 {onQuickReply && (
-                  <div className="flex items-center gap-1.5 p-2 border-t border-border/50">
+                  <div className="flex items-center gap-1.5 border-t border-border/50 p-2">
                     <Input
                       value={replyText}
                       onChange={(e) => setReplyText(e.target.value)}
                       onKeyDown={handleKeyDown}
                       placeholder="Resposta rápida..."
-                      className="h-8 text-xs rounded-full bg-muted/50 border-0 focus-visible:ring-1"
+                      className="h-8 rounded-full border-0 bg-muted/50 text-xs focus-visible:ring-1"
                       onClick={(e) => e.stopPropagation()}
                     />
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="w-8 h-8 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 flex-shrink-0"
+                      className="h-8 w-8 flex-shrink-0 rounded-full bg-primary text-primary-foreground hover:bg-primary/90"
                       onClick={(e) => {
                         e.stopPropagation();
                         handleSendReply();
@@ -180,20 +184,21 @@ export function MiniChatPiP({
                       disabled={!replyText.trim()}
                       aria-label="Enviar resposta rápida"
                     >
-                      <Send className="w-3.5 h-3.5" />
+                      <Send className="h-3.5 w-3.5" />
                     </Button>
                   </div>
                 )}
 
                 {/* Open full chat */}
                 <button
+                  type="button"
                   onClick={(e) => {
                     e.stopPropagation();
                     onExpand();
                   }}
-                  className="w-full flex items-center justify-center gap-1.5 px-3 py-2 text-[11px] text-primary hover:bg-primary/5 transition-colors border-t border-border/50"
+                  className="flex w-full items-center justify-center gap-1.5 border-t border-border/50 px-3 py-2 text-[11px] text-primary transition-colors hover:bg-primary/5"
                 >
-                  <MessageSquare className="w-3 h-3" />
+                  <MessageSquare className="h-3 w-3" />
                   Abrir conversa completa
                 </button>
               </motion.div>
@@ -203,11 +208,12 @@ export function MiniChatPiP({
           {/* Collapsed: tap to expand inline */}
           {!isExpanded && (
             <button
+              type="button"
               onClick={(e) => {
                 e.stopPropagation();
                 setIsExpanded(true);
               }}
-              className="w-full px-3 py-1.5 text-[10px] text-primary hover:bg-primary/5 transition-colors border-t border-border/50"
+              className="w-full border-t border-border/50 px-3 py-1.5 text-[10px] text-primary transition-colors hover:bg-primary/5"
             >
               Toque para responder
             </button>

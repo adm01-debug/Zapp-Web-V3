@@ -5,13 +5,27 @@ const log = getLogger('AIRewriteButton');
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 // Tooltip removido para evitar loop Tooltip+Popover.
-import { Sparkles, Briefcase, MessageCircle, Target, Heart, Scissors, BookOpen, Loader2 } from 'lucide-react';
+import {
+  Sparkles,
+  Briefcase,
+  MessageCircle,
+  Target,
+  Heart,
+  Scissors,
+  BookOpen,
+  Loader2,
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 const tones = [
-  { id: 'professional', label: 'Profissional', icon: Briefcase, description: 'Formal e corporativo' },
+  {
+    id: 'professional',
+    label: 'Profissional',
+    icon: Briefcase,
+    description: 'Formal e corporativo',
+  },
   { id: 'casual', label: 'Casual', icon: MessageCircle, description: 'Amigável e descontraído' },
   { id: 'persuasive', label: 'Persuasivo', icon: Target, description: 'Impactante e convincente' },
   { id: 'empathetic', label: 'Empático', icon: Heart, description: 'Acolhedor e compreensivo' },
@@ -71,26 +85,26 @@ export function AIRewriteButton({ inputValue, onRewrite, contactName }: AIRewrit
           variant="ghost"
           size="icon"
           className={cn(
-            "w-9 h-9 shrink-0 transition-colors",
+            'h-9 w-9 shrink-0 transition-colors',
             hasText
-              ? "text-primary hover:text-primary hover:bg-primary/10"
-              : "text-muted-foreground hover:text-foreground hover:bg-muted"
+              ? 'text-primary hover:bg-primary/10 hover:text-primary'
+              : 'text-muted-foreground hover:bg-muted hover:text-foreground'
           )}
           aria-label="Reescrever com IA"
           title="Reescrever com IA"
           disabled={isLoading}
         >
           {isLoading ? (
-            <Loader2 className="w-[18px] h-[18px] animate-spin" />
+            <Loader2 className="h-[18px] w-[18px] animate-spin" />
           ) : (
-            <Sparkles className="w-[18px] h-[18px]" />
+            <Sparkles className="h-[18px] w-[18px]" />
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-64 p-2 bg-popover border-border" align="end" side="top">
-        <div className="px-2 py-1.5 mb-1">
+      <PopoverContent className="w-64 border-border bg-popover p-2" align="end" side="top">
+        <div className="mb-1 px-2 py-1.5">
           <h4 className="text-sm font-medium text-foreground">✨ Reescrever com IA</h4>
-          <p className="text-xs text-muted-foreground mt-0.5">Escolha o tom da mensagem</p>
+          <p className="mt-0.5 text-xs text-muted-foreground">Escolha o tom da mensagem</p>
         </div>
         <div className="space-y-0.5">
           {tones.map((tone) => {
@@ -98,22 +112,23 @@ export function AIRewriteButton({ inputValue, onRewrite, contactName }: AIRewrit
             const isToneLoading = loadingTone === tone.id;
             return (
               <button
+                type="button"
                 key={tone.id}
                 onClick={() => handleRewrite(tone.id)}
                 disabled={isLoading || !hasText}
                 className={cn(
-                  "w-full flex items-center gap-2.5 px-2.5 py-2 rounded-md text-left transition-colors",
-                  "hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed",
-                  isToneLoading && "bg-primary/10"
+                  'flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-left transition-colors',
+                  'hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40',
+                  isToneLoading && 'bg-primary/10'
                 )}
               >
                 {isToneLoading ? (
-                  <Loader2 className="w-4 h-4 animate-spin text-primary shrink-0" />
+                  <Loader2 className="h-4 w-4 shrink-0 animate-spin text-primary" />
                 ) : (
-                  <Icon className="w-4 h-4 text-muted-foreground shrink-0" />
+                  <Icon className="h-4 w-4 shrink-0 text-muted-foreground" />
                 )}
                 <div className="min-w-0">
-                  <span className="text-sm font-medium text-foreground block">{tone.label}</span>
+                  <span className="block text-sm font-medium text-foreground">{tone.label}</span>
                   <span className="text-[11px] text-muted-foreground">{tone.description}</span>
                 </div>
               </button>
@@ -121,7 +136,7 @@ export function AIRewriteButton({ inputValue, onRewrite, contactName }: AIRewrit
           })}
         </div>
         {!hasText && (
-          <p className="text-[11px] text-warning text-center mt-2 px-2">
+          <p className="mt-2 px-2 text-center text-[11px] text-warning">
             Digite uma mensagem primeiro
           </p>
         )}

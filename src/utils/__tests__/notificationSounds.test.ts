@@ -27,7 +27,10 @@ const mockAudioContext = {
   resume: vi.fn(),
 };
 
-vi.stubGlobal('AudioContext', vi.fn().mockImplementation(() => mockAudioContext));
+vi.stubGlobal(
+  'AudioContext',
+  vi.fn().mockImplementation(() => mockAudioContext)
+);
 vi.mock('@/lib/logger');
 
 import {
@@ -94,15 +97,24 @@ describe('notificationSounds (unified v2.0)', () => {
       });
 
       it('all notification types are playable', () => {
-        const types = ['message', 'mention', 'sla_breach', 'sla_warning', 'achievement', 'goal_achieved', 'record_start', 'record_stop'] as const;
-        types.forEach(type => {
+        const types = [
+          'message',
+          'mention',
+          'sla_breach',
+          'sla_warning',
+          'achievement',
+          'goal_achieved',
+          'record_start',
+          'record_stop',
+        ] as const;
+        types.forEach((type) => {
           expect(() => playNotificationSound(type)).not.toThrow();
         });
       });
 
       it('all sound types work with message', () => {
         const sounds = ['beep', 'chime', 'bell', 'alert', 'soft'] as const;
-        sounds.forEach(sound => {
+        sounds.forEach((sound) => {
           expect(() => playNotificationSound('message', sound)).not.toThrow();
         });
       });
@@ -155,7 +167,7 @@ describe('notificationSounds (unified v2.0)', () => {
     });
 
     it('returns false when Notification not in window', async () => {
-      const win = window as Record<string, unknown>;
+      const win = window as unknown as Record<string, unknown>;
       delete win.Notification;
       const result = await requestNotificationPermission();
       expect(result).toBe(false);
@@ -167,25 +179,43 @@ describe('notificationSounds (unified v2.0)', () => {
       const NotificationSpy = vi.fn();
       vi.stubGlobal('Notification', { permission: 'granted' });
       (global as any).Notification = NotificationSpy;
-      Object.defineProperty(NotificationSpy, 'permission', { value: 'granted', configurable: true });
+      Object.defineProperty(NotificationSpy, 'permission', {
+        value: 'granted',
+        configurable: true,
+      });
       showBrowserNotification('Test', 'Body');
-      expect(NotificationSpy).toHaveBeenCalledWith('Test', expect.objectContaining({ body: 'Body' }));
+      expect(NotificationSpy).toHaveBeenCalledWith(
+        'Test',
+        expect.objectContaining({ body: 'Body' })
+      );
     });
 
     it('accepts legacy icon parameter as string', () => {
       const NotificationSpy = vi.fn();
       vi.stubGlobal('Notification', NotificationSpy);
-      Object.defineProperty(NotificationSpy, 'permission', { value: 'granted', configurable: true });
+      Object.defineProperty(NotificationSpy, 'permission', {
+        value: 'granted',
+        configurable: true,
+      });
       showBrowserNotification('Test', 'Body', '/custom-icon.png');
-      expect(NotificationSpy).toHaveBeenCalledWith('Test', expect.objectContaining({ icon: '/custom-icon.png' }));
+      expect(NotificationSpy).toHaveBeenCalledWith(
+        'Test',
+        expect.objectContaining({ icon: '/custom-icon.png' })
+      );
     });
 
     it('accepts options object', () => {
       const NotificationSpy = vi.fn();
       vi.stubGlobal('Notification', NotificationSpy);
-      Object.defineProperty(NotificationSpy, 'permission', { value: 'granted', configurable: true });
+      Object.defineProperty(NotificationSpy, 'permission', {
+        value: 'granted',
+        configurable: true,
+      });
       showBrowserNotification('Test', 'Body', { icon: '/custom.png', onClick: vi.fn() });
-      expect(NotificationSpy).toHaveBeenCalledWith('Test', expect.objectContaining({ icon: '/custom.png' }));
+      expect(NotificationSpy).toHaveBeenCalledWith(
+        'Test',
+        expect.objectContaining({ icon: '/custom.png' })
+      );
     });
 
     it('does not create notification when denied', () => {
@@ -197,22 +227,36 @@ describe('notificationSounds (unified v2.0)', () => {
     });
 
     it('closes notification after timeout', () => {
+      vi.useFakeTimers();
       const mockNotification = { close: vi.fn(), onclick: undefined };
-      const NotificationSpy = vi.fn().mockReturnValue(mockNotification);
+      const NotificationSpy = vi.fn(function () {
+        return mockNotification;
+      });
       vi.stubGlobal('Notification', NotificationSpy);
-      Object.defineProperty(NotificationSpy, 'permission', { value: 'granted', configurable: true });
+      Object.defineProperty(NotificationSpy, 'permission', {
+        value: 'granted',
+        configurable: true,
+      });
       showBrowserNotification('Test', 'Body');
       vi.advanceTimersByTime(5000);
       expect(mockNotification.close).toHaveBeenCalled();
+      vi.useRealTimers();
     });
 
     it('calls onClick when notification is clicked', () => {
       const onClick = vi.fn();
-      const mockNotification = { close: vi.fn(), onclick: undefined };
-      const NotificationSpy = vi.fn().mockReturnValue(mockNotification);
+      const mockNotification: { close: ReturnType<typeof vi.fn>; onclick?: (e: Event) => void } = {
+        close: vi.fn(),
+      };
+      const NotificationSpy = vi.fn(function () {
+        return mockNotification;
+      });
       vi.stubGlobal('Notification', NotificationSpy);
-      Object.defineProperty(NotificationSpy, 'permission', { value: 'granted', configurable: true });
-      vi.stubGlobal('window', { focus: vi.fn() });
+      Object.defineProperty(NotificationSpy, 'permission', {
+        value: 'granted',
+        configurable: true,
+      });
+      window.focus = vi.fn();
       showBrowserNotification('Test', 'Body', { onClick });
       mockNotification.onclick?.({} as Event);
       expect(onClick).toHaveBeenCalled();

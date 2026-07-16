@@ -59,8 +59,14 @@ export function VoiceChangerPicker({ onSendAudio, disabled }: VoiceChangerPicker
   const streamRef = useRef<MediaStream | null>(null);
 
   const cleanup = useCallback(() => {
-    if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
-    if (streamRef.current) { streamRef.current.getTracks().forEach(t => t.stop()); streamRef.current = null; }
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current = null;
+    }
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((t) => t.stop());
+      streamRef.current = null;
+    }
     if (transformedUrl) URL.revokeObjectURL(transformedUrl);
     setRecordedBlob(null);
     setTransformedUrl(null);
@@ -78,11 +84,13 @@ export function VoiceChangerPicker({ onSendAudio, disabled }: VoiceChangerPicker
       const recorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
       chunksRef.current = [];
 
-      recorder.ondataavailable = (e) => { if (e.data.size > 0) chunksRef.current.push(e.data); };
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) chunksRef.current.push(e.data);
+      };
       recorder.onstop = () => {
         const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
         setRecordedBlob(blob);
-        stream.getTracks().forEach(t => t.stop());
+        stream.getTracks().forEach((t) => t.stop());
         streamRef.current = null;
       };
 
@@ -105,22 +113,27 @@ export function VoiceChangerPicker({ onSendAudio, disabled }: VoiceChangerPicker
   const transformVoice = useCallback(async () => {
     if (!recordedBlob) return;
     setIsTransforming(true);
-    if (transformedUrl) { URL.revokeObjectURL(transformedUrl); setTransformedUrl(null); }
+    if (transformedUrl) {
+      URL.revokeObjectURL(transformedUrl);
+      setTransformedUrl(null);
+    }
 
     try {
       const formData = new FormData();
       formData.append('audio', recordedBlob, 'recording.webm');
       formData.append('voice_preset', selectedVoice);
 
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
 
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/voice-changer`,
         {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-            'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+            Authorization: `Bearer ${session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
           },
           body: formData,
         }
@@ -136,7 +149,9 @@ export function VoiceChangerPicker({ onSendAudio, disabled }: VoiceChangerPicker
       setTransformedUrl(url);
       toast.success('Voz transformada! 🎭');
     } catch (err) {
-      toast.error(`Erro ao transformar voz: ${err instanceof Error ? err.message : 'desconhecido'}`);
+      toast.error(
+        `Erro ao transformar voz: ${err instanceof Error ? err.message : 'desconhecido'}`
+      );
     } finally {
       setIsTransforming(false);
     }
@@ -181,121 +196,198 @@ export function VoiceChangerPicker({ onSendAudio, disabled }: VoiceChangerPicker
   }, [transformedUrl, isSending, onSendAudio, cleanup]);
 
   return (
-    <Popover open={open} onOpenChange={(v) => { setOpen(v); if (!v) cleanup(); }}>
+    <Popover
+      open={open}
+      onOpenChange={(v) => {
+        setOpen(v);
+        if (!v) cleanup();
+      }}
+    >
       <PopoverTrigger asChild>
-        <Button variant="ghost" size="icon" className="w-9 h-9 text-muted-foreground hover:text-foreground hover:bg-muted shrink-0" disabled={disabled} aria-label="Voice Changer" title="Voice Changer">
-          <Wand2 className="w-[18px] h-[18px]" />
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-9 w-9 shrink-0 text-muted-foreground hover:bg-muted hover:text-foreground"
+          disabled={disabled}
+          aria-label="Voice Changer"
+          title="Voice Changer"
+        >
+          <Wand2 className="h-[18px] w-[18px]" />
         </Button>
       </PopoverTrigger>
 
-        <PopoverContent className="w-[320px] p-0 bg-popover border-border" align="end" side="top" sideOffset={8}>
-          {/* Header */}
-          <div className="flex items-center gap-2 px-3 py-2.5 border-b border-border">
-            <Wand2 className="w-4 h-4 text-primary" />
-            <h4 className="text-sm font-semibold text-foreground">Voice Changer</h4>
-            <span className="text-[10px] text-muted-foreground ml-auto">Powered by ElevenLabs</span>
-          </div>
+      <PopoverContent
+        className="w-[320px] border-border bg-popover p-0"
+        align="end"
+        side="top"
+        sideOffset={8}
+      >
+        {/* Header */}
+        <div className="flex items-center gap-2 border-b border-border px-3 py-2.5">
+          <Wand2 className="h-4 w-4 text-primary" />
+          <h4 className="text-sm font-semibold text-foreground">Voice Changer</h4>
+          <span className="ml-auto text-[10px] text-muted-foreground">Powered by ElevenLabs</span>
+        </div>
 
-          <div className="p-3 space-y-3">
-            {/* Voice Selection */}
-             <div>
-              <p className="text-xs text-muted-foreground mb-2">Escolha a voz:</p>
-              <div className="max-h-[180px] overflow-y-auto pr-1">
-                <div className="grid grid-cols-5 gap-1">
-                  {VOICE_PRESETS.map(v => (
-                    <button
-                      key={v.id}
-                      onClick={() => setSelectedVoice(v.id)}
-                      className={cn(
-                        'flex flex-col items-center gap-0.5 p-1.5 rounded-lg text-center transition-colors border',
-                        selectedVoice === v.id
-                          ? 'border-primary bg-primary/10 text-primary'
-                          : 'border-transparent hover:bg-muted text-muted-foreground'
-                      )}
-                    >
-                      <span className="text-base">{v.emoji}</span>
-                      <span className="text-[9px] font-medium leading-tight truncate w-full">{v.label}</span>
-                    </button>
-                  ))}
-                </div>
+        <div className="space-y-3 p-3">
+          {/* Voice Selection */}
+          <div>
+            <p className="mb-2 text-xs text-muted-foreground">Escolha a voz:</p>
+            <div className="max-h-[180px] overflow-y-auto pr-1">
+              <div className="grid grid-cols-5 gap-1">
+                {VOICE_PRESETS.map((v) => (
+                  <button
+                    type="button"
+                    key={v.id}
+                    onClick={() => setSelectedVoice(v.id)}
+                    className={cn(
+                      'flex flex-col items-center gap-0.5 rounded-lg border p-1.5 text-center transition-colors',
+                      selectedVoice === v.id
+                        ? 'border-primary bg-primary/10 text-primary'
+                        : 'border-transparent text-muted-foreground hover:bg-muted'
+                    )}
+                  >
+                    <span className="text-base">{v.emoji}</span>
+                    <span className="w-full truncate text-[9px] font-medium leading-tight">
+                      {v.label}
+                    </span>
+                  </button>
+                ))}
               </div>
             </div>
+          </div>
 
-            {/* Recording Area */}
-            <div className="flex flex-col items-center gap-2 py-2">
-              <AnimatePresence mode="wait">
-                {!recordedBlob && !isRecording && (
-                  <motion.div key="idle" initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}>
+          {/* Recording Area */}
+          <div className="flex flex-col items-center gap-2 py-2">
+            <AnimatePresence mode="wait">
+              {!recordedBlob && !isRecording && (
+                <motion.div
+                  key="idle"
+                  initial={{ scale: 0.9, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 0.9, opacity: 0 }}
+                >
+                  <Button
+                    onClick={startRecording}
+                    size="lg"
+                    className="h-16 w-16 rounded-full bg-primary hover:bg-primary/90"
+                  >
+                    <Mic className="h-7 w-7" />
+                  </Button>
+                  <p className="mt-1.5 text-center text-[11px] text-muted-foreground">
+                    Toque para gravar
+                  </p>
+                </motion.div>
+              )}
+
+              {isRecording && (
+                <motion.div
+                  key="recording"
+                  role="status"
+                  aria-live="polite"
+                  initial={{ scale: 0.9, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 0.9, opacity: 0 }}
+                  className="flex flex-col items-center"
+                >
+                  <motion.div
+                    animate={{ scale: [1, 1.1, 1] }}
+                    transition={{ repeat: Infinity, duration: 1.2 }}
+                  >
                     <Button
-                      onClick={startRecording}
+                      onClick={stopRecording}
                       size="lg"
-                      className="rounded-full w-16 h-16 bg-primary hover:bg-primary/90"
+                      variant="destructive"
+                      className="h-16 w-16 rounded-full"
                     >
-                      <Mic className="w-7 h-7" />
+                      <MicOff className="h-7 w-7" />
                     </Button>
-                    <p className="text-[11px] text-muted-foreground text-center mt-1.5">Toque para gravar</p>
                   </motion.div>
-                )}
+                  <div className="mt-2 flex items-center gap-1.5">
+                    <motion.div
+                      animate={{ opacity: [0.4, 1, 0.4] }}
+                      transition={{ repeat: Infinity, duration: 1 }}
+                      className="h-2 w-2 rounded-full bg-destructive"
+                    />
+                    <span className="text-xs font-medium text-destructive">Gravando...</span>
+                  </div>
+                </motion.div>
+              )}
 
-                {isRecording && (
-                  <motion.div key="recording" initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="flex flex-col items-center">
-                    <motion.div animate={{ scale: [1, 1.1, 1] }} transition={{ repeat: Infinity, duration: 1.2 }}>
-                      <Button
-                        onClick={stopRecording}
-                        size="lg"
-                        variant="destructive"
-                        className="rounded-full w-16 h-16"
-                      >
-                        <MicOff className="w-7 h-7" />
-                      </Button>
-                    </motion.div>
-                    <div className="flex items-center gap-1.5 mt-2">
-                      <motion.div animate={{ opacity: [0.4, 1, 0.4] }} transition={{ repeat: Infinity, duration: 1 }} className="w-2 h-2 rounded-full bg-destructive" />
-                      <span className="text-xs text-destructive font-medium">Gravando...</span>
-                    </div>
-                  </motion.div>
-                )}
+              {recordedBlob && !isRecording && (
+                <motion.div
+                  key="recorded"
+                  initial={{ y: 10, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  className="w-full space-y-2"
+                >
+                  <div className="flex items-center justify-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setRecordedBlob(null);
+                        setTransformedUrl(null);
+                      }}
+                    >
+                      <X className="mr-1 h-3.5 w-3.5" />
+                      Regravar
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={transformVoice}
+                      disabled={isTransforming}
+                      className="bg-primary"
+                    >
+                      {isTransforming ? (
+                        <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <Wand2 className="mr-1 h-3.5 w-3.5" />
+                      )}
+                      {isTransforming ? 'Transformando...' : 'Transformar voz'}
+                    </Button>
+                  </div>
 
-                {recordedBlob && !isRecording && (
-                  <motion.div key="recorded" initial={{ y: 10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="w-full space-y-2">
-                    <div className="flex items-center justify-center gap-2">
-                      <Button variant="outline" size="sm" onClick={() => { setRecordedBlob(null); setTransformedUrl(null); }}>
-                        <X className="w-3.5 h-3.5 mr-1" />Regravar
+                  {transformedUrl && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 5 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="flex items-center justify-center gap-2 pt-1"
+                    >
+                      <Button variant="outline" size="sm" onClick={togglePlay}>
+                        {isPlaying ? (
+                          <Pause className="mr-1 h-3.5 w-3.5" />
+                        ) : (
+                          <Play className="mr-1 h-3.5 w-3.5" />
+                        )}
+                        {isPlaying ? 'Pausar' : 'Ouvir'}
                       </Button>
                       <Button
                         size="sm"
-                        onClick={transformVoice}
-                        disabled={isTransforming}
-                        className="bg-primary"
+                        onClick={handleSend}
+                        disabled={isSending}
+                        className="bg-primary hover:bg-primary/90"
                       >
-                        {isTransforming ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <Wand2 className="w-3.5 h-3.5 mr-1" />}
-                        {isTransforming ? 'Transformando...' : 'Transformar voz'}
+                        {isSending ? (
+                          <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <Send className="mr-1 h-3.5 w-3.5" />
+                        )}
+                        Enviar
                       </Button>
-                    </div>
-
-                    {transformedUrl && (
-                      <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-center gap-2 pt-1">
-                        <Button variant="outline" size="sm" onClick={togglePlay}>
-                          {isPlaying ? <Pause className="w-3.5 h-3.5 mr-1" /> : <Play className="w-3.5 h-3.5 mr-1" />}
-                          {isPlaying ? 'Pausar' : 'Ouvir'}
-                        </Button>
-                        <Button size="sm" onClick={handleSend} disabled={isSending} className="bg-primary hover:bg-primary/90">
-                          {isSending ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <Send className="w-3.5 h-3.5 mr-1" />}
-                          Enviar
-                        </Button>
-                      </motion.div>
-                    )}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
+                    </motion.div>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
+        </div>
 
-          <div className="px-3 py-1.5 border-t border-border/30">
-            <p className="text-[10px] text-muted-foreground text-center">
-              Grave → Escolha a voz → Transforme → Envie 🎭
-            </p>
-          </div>
+        <div className="border-t border-border/30 px-3 py-1.5">
+          <p className="text-center text-[10px] text-muted-foreground">
+            Grave → Escolha a voz → Transforme → Envie 🎭
+          </p>
+        </div>
       </PopoverContent>
     </Popover>
   );

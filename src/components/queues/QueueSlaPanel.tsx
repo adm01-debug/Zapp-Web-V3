@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useMountedRef } from '@/hooks/useMountedRef';
 import type { ReactNode } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -50,6 +51,7 @@ export const QueueSlaPanel = () => {
   const [skills, setSkills] = useState<string[]>([]);
   const [channels, setChannels] = useState<string[]>([]);
   const [rebalancing, setRebalancing] = useState(false);
+  const mounted = useMountedRef();
 
   const { rows, loading, refetch, updateQueueConfig, triggerRebalance } = useQueueSlaPanel(filters);
 
@@ -59,22 +61,27 @@ export const QueueSlaPanel = () => {
         safeFrom('queue_skill_requirements').select('skill_name'),
         safeFrom('channel_connections').select('channel_type'),
       ]);
+      if (!mounted.current) return;
       setSkills(
         Array.from(
           new Set(
-            ((sk ?? []) as Array<{ skill_name: string | null }>).map((s) => s.skill_name).filter(isNonEmptyString)
+            ((sk ?? []) as Array<{ skill_name: string | null }>)
+              .map((s) => s.skill_name)
+              .filter(isNonEmptyString)
           )
         )
       );
       setChannels(
         Array.from(
           new Set(
-            ((ch ?? []) as Array<{ channel_type: string | null }>).map((c) => c.channel_type).filter(isNonEmptyString)
+            ((ch ?? []) as Array<{ channel_type: string | null }>)
+              .map((c) => c.channel_type)
+              .filter(isNonEmptyString)
           )
         )
       );
     })();
-  }, []);
+  }, [mounted]);
 
   const totals = useMemo(
     () => ({
@@ -300,7 +307,9 @@ function QueueRow({
       <td>
         <Select
           value={row.sla_priority}
-          onValueChange={(v) => onUpdate(row.queue_id, { sla_priority: v as QueueSlaRow['sla_priority'] })}
+          onValueChange={(v) =>
+            onUpdate(row.queue_id, { sla_priority: v as QueueSlaRow['sla_priority'] })
+          }
         >
           <SelectTrigger className="h-8 w-[110px]">
             <Badge className={cn('text-[10px]', PRIORITY_COLOR[row.sla_priority])}>

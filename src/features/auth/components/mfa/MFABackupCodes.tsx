@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Shield, Copy, Check, Download, RefreshCw, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -18,23 +18,42 @@ function generateBackupCodes(count: number = 10): string[] {
   for (let i = 0; i < count; i++) {
     const rng = new Uint8Array(8);
     crypto.getRandomValues(rng);
-    const part1 = Array.from(rng.slice(0, 4), b => BACKUP_CODE_CHARS[b % BACKUP_CODE_CHARS.length]).join('');
-    const part2 = Array.from(rng.slice(4, 8), b => BACKUP_CODE_CHARS[b % BACKUP_CODE_CHARS.length]).join('');
+    const part1 = Array.from(
+      rng.slice(0, 4),
+      (b) => BACKUP_CODE_CHARS[b % BACKUP_CODE_CHARS.length]
+    ).join('');
+    const part2 = Array.from(
+      rng.slice(4, 8),
+      (b) => BACKUP_CODE_CHARS[b % BACKUP_CODE_CHARS.length]
+    ).join('');
     codes.push(`${part1}-${part2}`);
   }
   return codes;
 }
 
-export function MFABackupCodes({ codes: initialCodes, onRegenerate, onClose }: MFABackupCodesProps) {
+export function MFABackupCodes({
+  codes: initialCodes,
+  onRegenerate,
+  onClose,
+}: MFABackupCodesProps) {
   const [codes] = useState<string[]>(initialCodes || generateBackupCodes());
   const [copied, setCopied] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
+  const copiedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(
+    () => () => {
+      if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
+    },
+    []
+  );
 
   const handleCopyAll = () => {
     navigator.clipboard.writeText(codes.join('\n'));
     setCopied(true);
     toast.success('Códigos copiados!');
-    setTimeout(() => setCopied(false), 2000);
+    if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
+    copiedTimerRef.current = setTimeout(() => setCopied(false), 2000);
   };
 
   const handleDownload = () => {
@@ -61,10 +80,10 @@ export function MFABackupCodes({ codes: initialCodes, onRegenerate, onClose }: M
   };
 
   return (
-    <Card className="w-full max-w-md mx-auto">
+    <Card className="mx-auto w-full max-w-md">
       <CardHeader className="text-center">
-        <div className="mx-auto mb-4 w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
-          <Shield className="w-6 h-6 text-primary" />
+        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+          <Shield className="h-6 w-6 text-primary" />
         </div>
         <CardTitle>Códigos de Backup</CardTitle>
         <CardDescription>
@@ -76,13 +95,13 @@ export function MFABackupCodes({ codes: initialCodes, onRegenerate, onClose }: M
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="bg-muted/50 rounded-lg p-4"
+          className="rounded-lg bg-muted/50 p-4"
         >
           <div className="grid grid-cols-2 gap-2">
             {codes.map((code) => (
               <div
                 key={code}
-                className=" text-sm px-3 py-1.5 bg-background rounded border text-center"
+                className="rounded border bg-background px-3 py-1.5 text-center text-sm"
               >
                 {code}
               </div>
@@ -90,27 +109,28 @@ export function MFABackupCodes({ codes: initialCodes, onRegenerate, onClose }: M
           </div>
         </motion.div>
 
-        <div className="flex items-start gap-2 p-3 bg-destructive/10 rounded-lg">
-          <AlertTriangle className="w-4 h-4 text-destructive mt-0.5 shrink-0" />
+        <div className="flex items-start gap-2 rounded-lg bg-destructive/10 p-3">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
           <p className="text-xs text-destructive">
-            Se perder o acesso ao app autenticador, estes códigos serão a única forma de recuperar sua conta.
+            Se perder o acesso ao app autenticador, estes códigos serão a única forma de recuperar
+            sua conta.
           </p>
         </div>
 
         <div className="flex gap-2">
           <Button variant="outline" className="flex-1" onClick={handleCopyAll}>
-            {copied ? <Check className="w-4 h-4 mr-2" /> : <Copy className="w-4 h-4 mr-2" />}
+            {copied ? <Check className="mr-2 h-4 w-4" /> : <Copy className="mr-2 h-4 w-4" />}
             Copiar
           </Button>
           <Button variant="outline" className="flex-1" onClick={handleDownload}>
-            <Download className="w-4 h-4 mr-2" />
+            <Download className="mr-2 h-4 w-4" />
             Baixar
           </Button>
         </div>
 
         {onRegenerate && (
           <Button variant="ghost" className="w-full text-muted-foreground" onClick={onRegenerate}>
-            <RefreshCw className="w-4 h-4 mr-2" />
+            <RefreshCw className="mr-2 h-4 w-4" />
             Regenerar Códigos
           </Button>
         )}

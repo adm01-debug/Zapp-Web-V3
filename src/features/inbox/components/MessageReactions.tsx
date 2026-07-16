@@ -108,6 +108,7 @@ export const MessageReactions = memo(function MessageReactions({
           <Tooltip key={reaction.emoji}>
             <TooltipTrigger asChild>
               <button
+                type="button"
                 onClick={() => handleReact(reaction.emoji)}
                 className={cn(
                   'flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-xs transition-all',
@@ -152,6 +153,7 @@ export const MessageReactions = memo(function MessageReactions({
       >
         <PopoverTrigger asChild>
           <button
+            type="button"
             className={cn(
               'rounded-full p-1 transition-all hover:scale-110 active:scale-90',
               'text-muted-foreground hover:bg-muted/80 hover:text-foreground',
@@ -201,6 +203,7 @@ export const MessageReactions = memo(function MessageReactions({
 
               return (
                 <button
+                  type="button"
                   key={emoji}
                   role="gridcell"
                   aria-label={`Reagir com ${emoji}`}
@@ -286,6 +289,7 @@ export const QuickReactionBar = memo(function QuickReactionBar({
       >
         {WHATSAPP_REACTIONS.map((emoji) => (
           <button
+            type="button"
             key={emoji}
             onClick={() => handleReact(emoji)}
             aria-label={`Reagir com ${emoji}`}
@@ -310,6 +314,7 @@ export const QuickReactionBar = memo(function QuickReactionBar({
         >
           <PopoverTrigger asChild>
             <button
+              type="button"
               className="flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground outline-none transition-all hover:bg-muted/80 hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary"
               aria-label="Mais reações"
             >
@@ -347,6 +352,7 @@ export const QuickReactionBar = memo(function QuickReactionBar({
             >
               {EXTENDED_REACTIONS.map((emoji) => (
                 <button
+                  type="button"
                   key={emoji}
                   role="gridcell"
                   aria-label={`Reagir com ${emoji}`}

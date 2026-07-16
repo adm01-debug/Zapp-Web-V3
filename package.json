@@ -10,7 +10,11 @@
     "typecheck": "npm run types:check && tsc --noEmit -p tsconfig.app.json",
     "types:gen": "bash scripts/validate-supabase-types.sh",
     "types:check": "bash scripts/validate-supabase-types.sh --check --summary",
-    "check": "npm run check:fnsync && npm run check:febesync && npm run check:deadcode && npm run check:datalayer && npm run typecheck && npm run lint && npm run build",
+    "gen:types:zapp": "node scripts/gen-types-zapp.mjs",
+
+    "check": "npm run check:schema && npm run check:fnsync && npm run check:febesync && npm run check:deadcode && npm run check:datalayer && npm run typecheck && npm run lint && npm run build",
+    "check:schema": "node scripts/check-schema-usage.mjs",
+    "check:casts": "node scripts/lint-supabase-casts.mjs",
     "check:fnsync": "bash scripts/check-edge-function-sync.sh",
     "verify": "npm run check",
     "prebuild": "npm run types:gen && bun run scripts/generate-component-registry.ts",

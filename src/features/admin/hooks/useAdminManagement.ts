@@ -29,11 +29,30 @@ import type { AppRole } from '@/features/auth';
 
 // Automations
 export type TriggerType =
-  | 'first_response_pending'
-  | 'inactivity'
-  | 'tag_applied'
-  | 'tag_removed'
-  | 'keyword_match';
+  'first_response_pending' | 'inactivity' | 'tag_applied' | 'tag_removed' | 'keyword_match';
+
+export interface TriggerConfig {
+  threshold_seconds?: number;
+  side?: string;
+  keywords?: string[];
+  tags?: string[];
+  tag?: string;
+  [key: string]: unknown;
+}
+
+export interface RuleActions {
+  suggest_reply?: boolean;
+  auto_send?: boolean;
+  apply_tags?: string[];
+  ai_prompt?: string;
+  template?: string;
+  escalate_sla?: {
+    enabled: boolean;
+    level: string;
+    reason: string;
+  };
+  [key: string]: unknown;
+}
 
 export interface Rule {
   id: string;
@@ -41,8 +60,8 @@ export interface Rule {
   description: string | null;
   is_active: boolean;
   trigger_type: TriggerType;
-  trigger_config: Json;
-  actions: Json;
+  trigger_config: TriggerConfig;
+  actions: RuleActions;
   priority: number;
   cooldown_seconds: number;
   channel_id: string | null;
@@ -271,35 +290,45 @@ function useAdminAutomationsManagement() {
   const [automationChannels, setAutomationChannels] = useState<AutomationChannel[]>([]);
   const [automationDepartments, setAutomationDepartments] = useState<AutomationDepartment[]>([]);
   const [automationLoading, setAutomationLoading] = useState(false);
+  const [automationError, setAutomationError] = useState<Error | null>(null);
   const mountedRef = useMountedRef();
 
   const loadAutomations = async () => {
     setAutomationLoading(true);
+    setAutomationError(null);
+    const { withRetry } = await import('@/lib/retry');
     try {
-      const [{ data: rulesData, error }, { data: chs, error: chsError }, { data: deps, error: depsError }] = await Promise.all([
-        supabase.from('automations').select('*').order('name', { ascending: true }),
-        supabase.from('channel_connections').select('id,name').order('name'),
-        supabase.from('departments').select('id,name').order('name'),
-      ]);
+      const result = await withRetry(
+        async () => {
+          const [rulesRes, chsRes, depsRes] = await Promise.all([
+            supabase.from('automations').select('*').order('name', { ascending: true }),
+            supabase.from('channel_connections').select('id,name').order('name'),
+            supabase.from('departments').select('id,name').order('name'),
+          ]);
+          const firstError = rulesRes.error ?? chsRes.error ?? depsRes.error;
+          if (firstError) throw new Error(firstError.message ?? 'Erro ao carregar automações');
+          return { rulesData: rulesRes.data, chs: chsRes.data, deps: depsRes.data };
+        },
+        {
+          maxRetries: 3,
+          baseDelayMs: 500,
+          maxDelayMs: 4000,
+          shouldRetry: (err) => {
+            const msg = (err instanceof Error ? err.message : String(err)).toLowerCase();
+            // Não retenta erros de permissão/schema (PGRST205, RLS 401/403)
+            return !/pgrst205|permission|unauthori[sz]ed|forbidden|401|403/.test(msg);
+          },
+        }
+      );
       if (!mountedRef.current) return;
-      if (error) {
-        toast.error(error.message);
-        return;
-      }
-      if (chsError) {
-        toast.error('Erro ao carregar canais de automação');
-        return;
-      }
-      if (depsError) {
-        toast.error('Erro ao carregar departamentos de automação');
-        return;
-      }
-      setRules((rulesData ?? []) as unknown as Rule[]);
-      setAutomationChannels((chs ?? []) as AutomationChannel[]);
-      setAutomationDepartments((deps ?? []) as AutomationDepartment[]);
+      setRules((result.rulesData ?? []) as unknown as Rule[]);
+      setAutomationChannels((result.chs ?? []) as AutomationChannel[]);
+      setAutomationDepartments((result.deps ?? []) as AutomationDepartment[]);
     } catch (err) {
       if (!mountedRef.current) return;
-      toast.error('Erro ao carregar automações');
+      const e = err instanceof Error ? err : new Error('Erro ao carregar automações');
+      setAutomationError(e);
+      toast.error(e.message);
     } finally {
       if (mountedRef.current) setAutomationLoading(false);
     }
@@ -379,6 +408,7 @@ function useAdminAutomationsManagement() {
     automationChannels,
     automationDepartments,
     automationLoading,
+    automationError,
     loadAutomations,
     saveAutomation,
     removeAutomation,
@@ -549,10 +579,10 @@ function useAdminQueuesManagement() {
       const [qRes, mRes, sRes, dRes, cRes, chqRes, pRes] = await Promise.all([
         supabase.from('queues').select('*'),
         supabase.from('queue_members').select('*'),
-        supabase.from('queue_skills').select('*'),
+        safeFrom('queue_skills').select('*'),
         supabase.from('departments').select('*'),
-        supabase.from('service_channels').select('id,name,channel_type,default_queue_id'),
-        supabase.from('channel_queues').select('*'),
+        safeFrom('service_channels').select('id,name,channel_type,default_queue_id'),
+        safeFrom('channel_queues').select('*'),
         supabase.from('profiles').select('id,name,avatar_url'),
       ]);
 
@@ -775,8 +805,14 @@ function useRolesManagement() {
   };
 
   const fetchAvailableRoleUsers = async () => {
-    const { data, error: profilesErr } = await supabase.from('profiles').select('user_id, name, email').order('name');
-    if (profilesErr) { log.warn('Failed to fetch profiles for role users', profilesErr); return; } // ✅ fix: error check
+    const { data, error: profilesErr } = await supabase
+      .from('profiles')
+      .select('user_id, name, email')
+      .order('name');
+    if (profilesErr) {
+      log.warn('Failed to fetch profiles for role users', profilesErr);
+      return;
+    } // ✅ fix: error check
     if (data) {
       const usersWithRoles = roleUsers.map((u) => u.user_id);
       setAvailableRoleUsers(
@@ -1120,13 +1156,23 @@ export function useAdminManagement(options?: {
     options?.hmacIncludeNegative ?? false
   );
 
-  const isLoading =
-    automations.automationLoading ||
-    channels.channelsLoading ||
-    queues.queuesLoading ||
-    departments.deptLoading ||
-    roles.rolesLoading ||
-    permissions.permLoading;
+  const channelsLoading: boolean = channels.channelsLoading;
+  const queuesLoading: boolean = queues.queuesLoading;
+  const deptLoading: boolean = departments.deptLoading;
+  const deptSaving: boolean = departments.deptSaving;
+  const rolesLoading: boolean = roles.rolesLoading;
+  const rolesUpdating: boolean = roles.rolesUpdating;
+  const permLoading: boolean = permissions.permLoading;
+  const automationLoading: boolean = automations.automationLoading;
+  const securityLoading: boolean = security.securityLoading;
+
+  const isLoading: boolean =
+    automationLoading ||
+    channelsLoading ||
+    queuesLoading ||
+    deptLoading ||
+    rolesLoading ||
+    permLoading;
 
   return {
     // Automations
@@ -1138,12 +1184,15 @@ export function useAdminManagement(options?: {
     removeAutomation: automations.removeAutomation,
     toggleAutomationActive: automations.toggleAutomationActive,
     adjustAutomationPriority: automations.adjustAutomationPriority,
+    automationLoading,
+    automationError: automations.automationError,
 
     // Channels
     channels: channels.channels,
     filteredChannels: channels.filteredChannels,
     channelQueues: channels.channelQueues,
     channelWppConns: channels.channelWppConns,
+    channelsLoading,
     loadChannels: channels.loadChannels,
     saveChannel: channels.saveChannel,
     runChannelAction: channels.runChannelAction,
@@ -1157,22 +1206,21 @@ export function useAdminManagement(options?: {
     queueChannels: queues.queueChannels,
     channelQueuesData: queues.channelQueues,
     profiles: queues.profiles,
+    queuesLoading,
     loadQueues: queues.loadQueues,
     saveQueue: queues.saveQueue,
     removeQueue: queues.removeQueue,
 
     // Departments
     departments: departments.departments,
-    deptLoading: departments.deptLoading,
-    deptSaving: departments.deptSaving,
+    deptLoading,
+    deptSaving,
     fetchDepartments: departments.fetchDepartments,
     saveDepartment: departments.saveDepartment,
     removeDepartment: departments.removeDepartment,
 
     // Roles
     roleUsers: roles.roleUsers,
-    rolesLoading: roles.rolesLoading,
-    rolesUpdating: roles.rolesUpdating,
     filteredRoleUsers: roles.filteredRoleUsers,
     groupedRoleUsers: roles.groupedRoleUsers,
     rolesSearch: roles.rolesSearch,
@@ -1186,19 +1234,22 @@ export function useAdminManagement(options?: {
     availableRoleUsers: roles.availableRoleUsers,
     userToRemoveRole: roles.userToRemoveRole,
     setUserToRemoveRole: roles.setUserToRemoveRole,
+    rolesLoading,
+    rolesUpdating,
     handleAddRole: roles.handleAddRole,
     handleRemoveRole: roles.handleRemoveRole,
 
     // Permissions
     permissionRows: permissions.permissionRows,
     savingPermPath: permissions.savingPermPath,
+    permLoading,
     loadPermissions: permissions.loadPermissions,
     savePermissionRow: permissions.savePermissionRow,
     deletePermissionRow: permissions.deletePermissionRow,
     createPermissionRow: permissions.createPermissionRow,
 
     // Security
-    securityLoading: security.securityLoading,
+    securityLoading,
     securityResult: security.securityResult,
     lastSecurityRunAt: security.lastSecurityRunAt,
     runSecurityTest: security.runSecurityTest,

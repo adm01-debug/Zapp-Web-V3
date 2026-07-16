@@ -5,12 +5,7 @@
  */
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import {
-  createListQuery,
-  createDetailQuery,
-  createSearchQuery,
-  queryKeys,
-} from '@/services/api';
+import { createListQuery, createDetailQuery, createSearchQuery, queryKeys } from '@/services/api';
 import { connectionsService, type WhatsAppConnection } from './index';
 import type { QueryParams } from '@/services/api/types';
 

@@ -1,5 +1,13 @@
 /* eslint-disable react-refresh/only-export-components */
-import React, { useEffect, useState, createContext, useContext, useCallback, useRef } from 'react';
+import React, {
+  useEffect,
+  useState,
+  createContext,
+  useContext,
+  useCallback,
+  useRef,
+  useMemo,
+} from 'react';
 import { toast } from 'sonner';
 import { useGlobalKeyboardShortcuts } from '@/hooks/useGlobalKeyboardShortcuts';
 import { audioPlaybackBus } from '@/features/inbox';
@@ -57,9 +65,12 @@ export function GlobalKeyboardProvider({ children, customActions }: GlobalKeyboa
       action: () => {
         const result = audioPlaybackBus.toggleMuteActive();
         if (!result) return; // sem áudio tocando — usuário nem percebe
-        toast.info(result.muted ? '🔇 Áudio silenciado' : `🔊 ${Math.round(result.volume * 100)}%`, {
-          duration: 1200,
-        });
+        toast.info(
+          result.muted ? '🔇 Áudio silenciado' : `🔊 ${Math.round(result.volume * 100)}%`,
+          {
+            duration: 1200,
+          }
+        );
       },
     },
   ]);
@@ -68,7 +79,7 @@ export function GlobalKeyboardProvider({ children, customActions }: GlobalKeyboa
   useEffect(() => {
     const handleShowHelp = () => setShowHelp(true);
     const handleOpenPalette = () => setShowCommandPalette(true);
-    
+
     document.addEventListener('show-shortcuts-help', handleShowHelp);
     document.addEventListener('open-command-palette', handleOpenPalette);
     return () => {
@@ -81,7 +92,8 @@ export function GlobalKeyboardProvider({ children, customActions }: GlobalKeyboa
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement;
-      const isInput = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable;
+      const isInput =
+        target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable;
 
       // ? for help (only when not in input)
       if (e.key === '?' && e.shiftKey && !isInput) {
@@ -117,12 +129,23 @@ export function GlobalKeyboardProvider({ children, customActions }: GlobalKeyboa
     navigationHandlerRef.current = null;
   }, []);
 
-  const contextValue: GlobalKeyboardContextType = {
-    openCommandPalette: () => setShowCommandPalette(true),
-    closeCommandPalette: () => setShowCommandPalette(false),
-    registerNavigationHandler,
-    unregisterNavigationHandler,
-  };
+  const openCommandPalette = useCallback(() => setShowCommandPalette(true), []);
+  const closeCommandPalette = useCallback(() => setShowCommandPalette(false), []);
+
+  const contextValue = useMemo<GlobalKeyboardContextType>(
+    () => ({
+      openCommandPalette,
+      closeCommandPalette,
+      registerNavigationHandler,
+      unregisterNavigationHandler,
+    }),
+    [
+      openCommandPalette,
+      closeCommandPalette,
+      registerNavigationHandler,
+      unregisterNavigationHandler,
+    ]
+  );
 
   return (
     <GlobalKeyboardContext.Provider value={contextValue}>

@@ -76,7 +76,9 @@ describe('useRetryOperation — fatal error codes', () => {
     const { result } = renderHook(() => useRetryOperation());
     await act(async () => {
       await expect(
-        result.current.withRetry(async () => { throw new Error('PGRST116 not found'); })
+        result.current.withRetry(async () => {
+          throw new Error('PGRST116 not found');
+        })
       ).rejects.toThrow();
     });
     expect(result.current.loading).toBe(false);
@@ -88,7 +90,8 @@ describe('useRetryOperation — fatal error codes', () => {
 describe('useRetryOperation — transient retry', () => {
   it('succeeds on the second attempt after a transient failure', async () => {
     const { result } = renderHook(() => useRetryOperation(3, 100));
-    const fn = vi.fn()
+    const fn = vi
+      .fn()
       .mockRejectedValueOnce(new Error('network timeout'))
       .mockResolvedValue('success');
 
@@ -107,7 +110,9 @@ describe('useRetryOperation — transient retry', () => {
     // With maxAttempts=1 there is no setTimeout delay — the single attempt
     // fails immediately and withRetry throws, no fake-timer wrangling needed.
     const { result } = renderHook(() => useRetryOperation(1, 10));
-    const fn = vi.fn().mockImplementation(async () => { throw new Error('persistent error'); });
+    const fn = vi.fn().mockImplementation(async () => {
+      throw new Error('persistent error');
+    });
 
     let thrown: Error | undefined;
     await act(async () => {
@@ -123,7 +128,9 @@ describe('useRetryOperation — transient retry', () => {
 
   it('sets lastError after a single-attempt failure', async () => {
     const { result } = renderHook(() => useRetryOperation(1, 10));
-    const fn = vi.fn().mockImplementation(async () => { throw new Error('nope'); });
+    const fn = vi.fn().mockImplementation(async () => {
+      throw new Error('nope');
+    });
 
     await act(async () => {
       try {
@@ -143,7 +150,9 @@ describe('useRetryOperation — reset()', () => {
     const { result } = renderHook(() => useRetryOperation(1, 10));
     await act(async () => {
       try {
-        await result.current.withRetry(async () => { throw new Error('PGRST116 err'); });
+        await result.current.withRetry(async () => {
+          throw new Error('PGRST116 err');
+        });
       } catch {
         // expected: fatal error, throws immediately
       }

@@ -4,10 +4,38 @@ import { ChurnPredictionDashboard } from '../ChurnPredictionDashboard';
 import { classifyChurnRisk } from '../classifyChurnRisk';
 
 const mockContacts = [
-  { id: 'c1', name: 'Maria Silva', phone: '+5511999990001', ai_sentiment: 'negative', updated_at: '2025-01-01T00:00:00Z', created_at: '2024-12-01T00:00:00Z' },
-  { id: 'c2', name: 'João Santos', phone: '+5511999990002', ai_sentiment: 'positive', updated_at: new Date().toISOString(), created_at: '2024-06-01T00:00:00Z' },
-  { id: 'c3', name: 'Ana Costa', phone: '+5511999990003', ai_sentiment: 'neutral', updated_at: '2025-11-01T00:00:00Z', created_at: '2025-10-28T00:00:00Z' },
-  { id: 'c4', name: 'Pedro Lima', phone: '+5511999990004', ai_sentiment: null, updated_at: '2025-08-01T00:00:00Z', created_at: '2025-07-01T00:00:00Z' },
+  {
+    id: 'c1',
+    name: 'Maria Silva',
+    phone: '+5511999990001',
+    ai_sentiment: 'negative',
+    updated_at: '2025-01-01T00:00:00Z',
+    created_at: '2024-12-01T00:00:00Z',
+  },
+  {
+    id: 'c2',
+    name: 'João Santos',
+    phone: '+5511999990002',
+    ai_sentiment: 'positive',
+    updated_at: new Date().toISOString(),
+    created_at: '2024-06-01T00:00:00Z',
+  },
+  {
+    id: 'c3',
+    name: 'Ana Costa',
+    phone: '+5511999990003',
+    ai_sentiment: 'neutral',
+    updated_at: '2025-11-01T00:00:00Z',
+    created_at: '2025-10-28T00:00:00Z',
+  },
+  {
+    id: 'c4',
+    name: 'Pedro Lima',
+    phone: '+5511999990004',
+    ai_sentiment: null,
+    updated_at: '2025-08-01T00:00:00Z',
+    created_at: '2025-07-01T00:00:00Z',
+  },
 ];
 
 vi.mock('@/integrations/supabase/client', () => ({
@@ -81,12 +109,12 @@ describe('ChurnPredictionDashboard', () => {
   // ===== RISK SCORE ALGORITHM =====
   describe('Risk score algorithm', () => {
     it('assigns higher score for negative sentiment', () => {
-      const negativeContact = mockContacts.find(c => c.ai_sentiment === 'negative');
+      const negativeContact = mockContacts.find((c) => c.ai_sentiment === 'negative');
       expect(negativeContact).toBeDefined();
     });
 
     it('assigns lower score for positive sentiment', () => {
-      const positiveContact = mockContacts.find(c => c.ai_sentiment === 'positive');
+      const positiveContact = mockContacts.find((c) => c.ai_sentiment === 'positive');
       expect(positiveContact).toBeDefined();
     });
 
@@ -180,18 +208,23 @@ describe('ChurnPredictionDashboard', () => {
   describe('Risk color mapping', () => {
     const getRiskColor = (level: string) => {
       switch (level) {
-        case 'critical': return 'bg-destructive text-destructive-foreground';
-        case 'high': return 'bg-orange-500 text-white';
-        case 'medium': return 'bg-yellow-500 text-white';
-        case 'low': return 'bg-green-500 text-white';
-        default: return 'bg-muted text-muted-foreground';
+        case 'critical':
+          return 'bg-destructive text-destructive-foreground';
+        case 'high':
+          return 'bg-warning text-warning-foreground';
+        case 'medium':
+          return 'bg-accent text-accent-foreground';
+        case 'low':
+          return 'bg-primary text-primary-foreground';
+        default:
+          return 'bg-muted text-muted-foreground';
       }
     };
 
     it('critical is destructive', () => expect(getRiskColor('critical')).toContain('destructive'));
-    it('high is orange', () => expect(getRiskColor('high')).toContain('orange'));
-    it('medium is yellow', () => expect(getRiskColor('medium')).toContain('yellow'));
-    it('low is green', () => expect(getRiskColor('low')).toContain('green'));
+    it('high is warning', () => expect(getRiskColor('high')).toContain('warning'));
+    it('medium is accent', () => expect(getRiskColor('medium')).toContain('accent'));
+    it('low is primary', () => expect(getRiskColor('low')).toContain('primary'));
     it('unknown defaults to muted', () => expect(getRiskColor('unknown')).toContain('muted'));
   });
 
@@ -222,7 +255,7 @@ describe('ChurnPredictionDashboard', () => {
   // ===== EDGE CASES =====
   describe('Edge cases', () => {
     it('handles null sentiment', () => {
-      const contact = mockContacts.find(c => c.ai_sentiment === null);
+      const contact = mockContacts.find((c) => c.ai_sentiment === null);
       expect(contact).toBeDefined();
     });
 
@@ -237,7 +270,7 @@ describe('ChurnPredictionDashboard', () => {
 
     it('filters risks > 20 score for display', () => {
       const risks = [{ riskScore: 10 }, { riskScore: 30 }, { riskScore: 50 }];
-      const filtered = risks.filter(r => r.riskScore > 20);
+      const filtered = risks.filter((r) => r.riskScore > 20);
       expect(filtered.length).toBe(2);
     });
 

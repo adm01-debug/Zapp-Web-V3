@@ -17,32 +17,58 @@ interface MobileFABProps {
   className?: string;
 }
 
-export function MobileFAB({ onNewConversation, onNewContact, onNewCampaign, className }: MobileFABProps) {
+export function MobileFAB({
+  onNewConversation,
+  onNewContact,
+  onNewCampaign,
+  className,
+}: MobileFABProps) {
   const [isOpen, setIsOpen] = useState(false);
 
   const actions: FABAction[] = [
-    ...(onNewConversation ? [{
-      id: 'conversation',
-      icon: <MessageSquarePlus className="w-5 h-5" />,
-      label: 'Nova conversa',
-      onClick: () => { onNewConversation(); setIsOpen(false); },
-    }] : []),
-    ...(onNewContact ? [{
-      id: 'contact',
-      icon: <Users className="w-5 h-5" />,
-      label: 'Novo contato',
-      onClick: () => { onNewContact(); setIsOpen(false); },
-    }] : []),
-    ...(onNewCampaign ? [{
-      id: 'campaign',
-      icon: <Megaphone className="w-5 h-5" />,
-      label: 'Nova campanha',
-      onClick: () => { onNewCampaign(); setIsOpen(false); },
-    }] : []),
+    ...(onNewConversation
+      ? [
+          {
+            id: 'conversation',
+            icon: <MessageSquarePlus className="h-5 w-5" />,
+            label: 'Nova conversa',
+            onClick: () => {
+              onNewConversation();
+              setIsOpen(false);
+            },
+          },
+        ]
+      : []),
+    ...(onNewContact
+      ? [
+          {
+            id: 'contact',
+            icon: <Users className="h-5 w-5" />,
+            label: 'Novo contato',
+            onClick: () => {
+              onNewContact();
+              setIsOpen(false);
+            },
+          },
+        ]
+      : []),
+    ...(onNewCampaign
+      ? [
+          {
+            id: 'campaign',
+            icon: <Megaphone className="h-5 w-5" />,
+            label: 'Nova campanha',
+            onClick: () => {
+              onNewCampaign();
+              setIsOpen(false);
+            },
+          },
+        ]
+      : []),
   ];
 
   return (
-    <div className={cn('fixed right-4 bottom-[76px] z-40', className)}>
+    <div className={cn('fixed bottom-[76px] right-4 z-40', className)}>
       {/* Action items */}
       <AnimatePresence>
         {isOpen && (
@@ -52,11 +78,11 @@ export function MobileFAB({ onNewConversation, onNewContact, onNewCampaign, clas
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-background/60 z-30"
+              className="fixed inset-0 z-30 bg-background/60"
               onClick={() => setIsOpen(false)}
             />
-            
-            <div className="absolute bottom-14 right-0 z-40 flex flex-col-reverse gap-3 items-end mb-2">
+
+            <div className="absolute bottom-14 right-0 z-40 mb-2 flex flex-col-reverse items-end gap-3">
               {actions.map((action, i) => (
                 <motion.div
                   key={action.id}
@@ -66,12 +92,13 @@ export function MobileFAB({ onNewConversation, onNewContact, onNewCampaign, clas
                   transition={{ delay: i * 0.05, type: 'spring', stiffness: 400, damping: 25 }}
                   className="flex items-center gap-2"
                 >
-                  <span className="text-xs font-medium text-foreground bg-card px-3 py-1.5 rounded-lg shadow-md border border-border/40 whitespace-nowrap">
+                  <span className="whitespace-nowrap rounded-lg border border-border/40 bg-card px-3 py-1.5 text-xs font-medium text-foreground shadow-md">
                     {action.label}
                   </span>
                   <button
+                    type="button"
                     onClick={action.onClick}
-                    className="w-11 h-11 rounded-full bg-card shadow-lg border border-border/40 flex items-center justify-center text-foreground hover:bg-accent active:scale-95 transition-transform touch-manipulation"
+                    className="flex h-11 w-11 touch-manipulation items-center justify-center rounded-full border border-border/40 bg-card text-foreground shadow-lg transition-transform hover:bg-accent active:scale-95"
                   >
                     {action.icon}
                   </button>
@@ -89,7 +116,7 @@ export function MobileFAB({ onNewConversation, onNewContact, onNewCampaign, clas
           if (navigator.vibrate) navigator.vibrate(5);
           setIsOpen(!isOpen);
         }}
-        className="relative z-40 h-14 rounded-full shadow-xl flex items-center justify-center text-primary-foreground touch-manipulation gap-2 px-5"
+        className="relative z-40 flex h-14 touch-manipulation items-center justify-center gap-2 rounded-full px-5 text-primary-foreground shadow-xl"
         style={{ background: 'var(--gradient-primary)' }}
         aria-label="Ações rápidas"
       >
@@ -97,7 +124,7 @@ export function MobileFAB({ onNewConversation, onNewContact, onNewCampaign, clas
           animate={{ rotate: isOpen ? 45 : 0 }}
           transition={{ type: 'spring', stiffness: 300, damping: 20 }}
         >
-          {isOpen ? <Plus className="w-6 h-6" /> : <MessageSquarePlus className="w-5 h-5" />}
+          {isOpen ? <Plus className="h-6 w-6" /> : <MessageSquarePlus className="h-5 w-5" />}
         </motion.div>
         <AnimatePresence>
           {!isOpen && (
@@ -105,7 +132,7 @@ export function MobileFAB({ onNewConversation, onNewContact, onNewCampaign, clas
               initial={{ width: 0, opacity: 0 }}
               animate={{ width: 'auto', opacity: 1 }}
               exit={{ width: 0, opacity: 0 }}
-              className="text-sm font-semibold whitespace-nowrap overflow-hidden"
+              className="overflow-hidden whitespace-nowrap text-sm font-semibold"
             >
               Novo
             </motion.span>

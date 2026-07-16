@@ -290,9 +290,7 @@ describe('useInitialHighlight — message not found after 20 attempts', () => {
     });
     renderHook(() => useInitialHighlight(p));
     vi.advanceTimersByTime(250 * 21);
-    expect(toast).toHaveBeenCalledWith(
-      expect.objectContaining({ variant: 'destructive' })
-    );
+    expect(toast).toHaveBeenCalledWith(expect.objectContaining({ variant: 'destructive' }));
   });
 
   it('calls onHighlightConsumed after exhausted attempts', () => {

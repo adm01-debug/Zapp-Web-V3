@@ -55,14 +55,18 @@ describe('useSidebarFavorites — default state', () => {
 describe('useSidebarFavorites — toggleFavorite', () => {
   it('adds an id that is not yet in the list', () => {
     const { result } = renderHook(() => useSidebarFavorites());
-    act(() => { result.current.toggleFavorite('inbox'); });
+    act(() => {
+      result.current.toggleFavorite('inbox');
+    });
     expect(result.current.favorites).toContain('inbox');
   });
 
   it('removes an id that is already in the list', () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(['inbox', 'contacts']));
     const { result } = renderHook(() => useSidebarFavorites());
-    act(() => { result.current.toggleFavorite('inbox'); });
+    act(() => {
+      result.current.toggleFavorite('inbox');
+    });
     expect(result.current.favorites).not.toContain('inbox');
     expect(result.current.favorites).toContain('contacts');
   });
@@ -71,14 +75,18 @@ describe('useSidebarFavorites — toggleFavorite', () => {
     const six = ['a', 'b', 'c', 'd', 'e', 'f'];
     localStorage.setItem(STORAGE_KEY, JSON.stringify(six));
     const { result } = renderHook(() => useSidebarFavorites());
-    act(() => { result.current.toggleFavorite('g'); });
+    act(() => {
+      result.current.toggleFavorite('g');
+    });
     expect(result.current.favorites).toHaveLength(6);
     expect(result.current.favorites).not.toContain('g');
   });
 
   it('persists the new list to localStorage after toggle-add', () => {
     const { result } = renderHook(() => useSidebarFavorites());
-    act(() => { result.current.toggleFavorite('dashboard'); });
+    act(() => {
+      result.current.toggleFavorite('dashboard');
+    });
     const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '[]');
     expect(stored).toContain('dashboard');
   });
@@ -86,7 +94,9 @@ describe('useSidebarFavorites — toggleFavorite', () => {
   it('persists the pruned list to localStorage after toggle-remove', () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(['dashboard']));
     const { result } = renderHook(() => useSidebarFavorites());
-    act(() => { result.current.toggleFavorite('dashboard'); });
+    act(() => {
+      result.current.toggleFavorite('dashboard');
+    });
     const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '["x"]');
     expect(stored).not.toContain('dashboard');
   });

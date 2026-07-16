@@ -47,7 +47,10 @@ function makeSuccess(): ScanResult {
   };
 }
 
-function makeError(code: ScanResult extends { status: 'error'; code: infer C } ? C : never, extra?: Partial<Extract<ScanResult, { status: 'error' }>>): ScanResult {
+function makeError(
+  code: ScanResult extends { status: 'error'; code: infer C } ? C : never,
+  extra?: Partial<Extract<ScanResult, { status: 'error' }>>
+): ScanResult {
   return {
     status: 'error',
     code,

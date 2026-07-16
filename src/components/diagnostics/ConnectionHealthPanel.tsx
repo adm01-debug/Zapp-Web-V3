@@ -79,7 +79,9 @@ export function ConnectionHealthPanel(): JSX.Element {
   };
 
   const fetchData = useCallback(async (): Promise<void> => {
-    const safeQueries = safeWhatsAppConnectionsQuery(supabase as unknown as SupabaseClient<Database>);
+    const safeQueries = safeWhatsAppConnectionsQuery(
+      supabase as unknown as SupabaseClient<Database>
+    );
     const [connResult, { data: logs }] = await Promise.all([
       safeQueries.getList(),
       supabase
@@ -112,6 +114,7 @@ export function ConnectionHealthPanel(): JSX.Element {
       )
       .subscribe();
     return () => {
+      channel.unsubscribe();
       supabase.removeChannel(channel);
     };
   }, [fetchData]);

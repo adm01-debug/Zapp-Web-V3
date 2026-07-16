@@ -13,16 +13,16 @@ describe('ConversationItem', () => {
       contact: {
         ...mockConversation.contact,
         job_title: 'Software Engineer',
-        phone: '5511988887777'
-      }
+        phone: '5511988887777',
+      },
     };
 
     render(
       <TooltipProvider>
-        <ConversationItem 
-          conversation={conversationWithJobTitle} 
-          isSelected={false} 
-          onSelect={() => {}} 
+        <ConversationItem
+          conversation={conversationWithJobTitle}
+          isSelected={false}
+          onSelect={() => {}}
         />
       </TooltipProvider>
     );
@@ -41,16 +41,16 @@ describe('ConversationItem', () => {
         job_title: '',
         jobTitle: '',
         role: '',
-        phone: '5511988887777'
-      }
+        phone: '5511988887777',
+      },
     };
 
     render(
       <TooltipProvider>
-        <ConversationItem 
-          conversation={conversationWithoutJobTitle} 
-          isSelected={false} 
-          onSelect={() => {}} 
+        <ConversationItem
+          conversation={conversationWithoutJobTitle}
+          isSelected={false}
+          onSelect={() => {}}
         />
       </TooltipProvider>
     );
@@ -64,11 +64,7 @@ describe('ConversationItem', () => {
   it('respects font size 15px and tracking-wide for contact name', () => {
     render(
       <TooltipProvider>
-        <ConversationItem 
-          conversation={mockConversation} 
-          isSelected={false} 
-          onSelect={() => {}} 
-        />
+        <ConversationItem conversation={mockConversation} isSelected={false} onSelect={() => {}} />
       </TooltipProvider>
     );
 
@@ -82,16 +78,16 @@ describe('ConversationItem', () => {
       ...mockConversation,
       contact: {
         ...mockConversation.contact,
-        company: 'Acme Corp'
-      }
+        company: 'Acme Corp',
+      },
     };
 
     render(
       <TooltipProvider>
-        <ConversationItem 
-          conversation={conversationWithCompany} 
-          isSelected={false} 
-          onSelect={() => {}} 
+        <ConversationItem
+          conversation={conversationWithCompany}
+          isSelected={false}
+          onSelect={() => {}}
         />
       </TooltipProvider>
     );

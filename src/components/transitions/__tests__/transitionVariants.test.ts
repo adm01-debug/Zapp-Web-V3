@@ -13,7 +13,7 @@ import {
 describe('DEFAULT_EASE', () => {
   it('is an array of 4 numbers', () => {
     expect(Array.isArray(DEFAULT_EASE)).toBe(true);
-    expect((DEFAULT_EASE as number[]).length).toBe(4);
+    expect((DEFAULT_EASE as unknown as number[]).length).toBe(4);
   });
 });
 
@@ -46,7 +46,13 @@ describe('REDUCED_MOTION_VARIANTS', () => {
 // ── buildVariants — return shape ──────────────────────────────────────────────
 
 const ALL_NAMES: TransitionVariantName[] = [
-  'fade', 'slide-x', 'slide-y', 'zoom', 'flip-x', 'flip-y', 'parallax',
+  'fade',
+  'slide-x',
+  'slide-y',
+  'zoom',
+  'flip-x',
+  'flip-y',
+  'parallax',
 ];
 
 describe('buildVariants — return shape', () => {
@@ -259,8 +265,8 @@ describe('buildVariants — override propagation', () => {
   });
 
   it('custom ease propagates to transition', () => {
-    const customEase = [0.1, 0.2, 0.3, 0.4] as number[];
-    const { transition } = buildVariants('fade', { ease: customEase });
+    const customEase = [0.1, 0.2, 0.3, 0.4];
+    const { transition } = buildVariants('fade', { ease: customEase as unknown as never });
     expect(transition.ease).toEqual(customEase);
   });
 

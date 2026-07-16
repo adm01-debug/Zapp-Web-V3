@@ -8,13 +8,13 @@ import { Search, CalendarDays, X } from 'lucide-react';
 import type { SearchFilter, DatePreset } from '@/features/inbox';
 
 const FILTERS: { key: SearchFilter; label: string; icon: React.ReactNode }[] = [
-  { key: 'all', label: 'Todos', icon: <Search className="w-3.5 h-3.5" /> },
-  { key: 'text', label: 'Textos', icon: <Search className="w-3.5 h-3.5" /> },
-  { key: 'image', label: 'Imagens', icon: <Search className="w-3.5 h-3.5" /> },
-  { key: 'video', label: 'Vídeos', icon: <Search className="w-3.5 h-3.5" /> },
-  { key: 'audio', label: 'Áudios', icon: <Search className="w-3.5 h-3.5" /> },
-  { key: 'document', label: 'Documentos', icon: <Search className="w-3.5 h-3.5" /> },
-  { key: 'link', label: 'Links', icon: <Search className="w-3.5 h-3.5" /> },
+  { key: 'all', label: 'Todos', icon: <Search className="h-3.5 w-3.5" /> },
+  { key: 'text', label: 'Textos', icon: <Search className="h-3.5 w-3.5" /> },
+  { key: 'image', label: 'Imagens', icon: <Search className="h-3.5 w-3.5" /> },
+  { key: 'video', label: 'Vídeos', icon: <Search className="h-3.5 w-3.5" /> },
+  { key: 'audio', label: 'Áudios', icon: <Search className="h-3.5 w-3.5" /> },
+  { key: 'document', label: 'Documentos', icon: <Search className="h-3.5 w-3.5" /> },
+  { key: 'link', label: 'Links', icon: <Search className="h-3.5 w-3.5" /> },
 ];
 
 const DATE_PRESETS: { key: DatePreset; label: string }[] = [
@@ -29,9 +29,21 @@ const DATE_PRESETS: { key: DatePreset; label: string }[] = [
   { key: 'custom', label: 'Personalizado' },
 ];
 
-function DatePresetLabel({ preset, from, to }: { preset: DatePreset; from: Date | null; to: Date | null }) {
+function DatePresetLabel({
+  preset,
+  from,
+  to,
+}: {
+  preset: DatePreset;
+  from: Date | null;
+  to: Date | null;
+}) {
   if (preset === 'custom' && from) {
-    return <span>{format(from, 'dd/MM/yy')} — {to ? format(to, 'dd/MM/yy') : 'agora'}</span>;
+    return (
+      <span>
+        {format(from, 'dd/MM/yy')} — {to ? format(to, 'dd/MM/yy') : 'agora'}
+      </span>
+    );
   }
   return <span>{DATE_PRESETS.find((p) => p.key === preset)?.label ?? 'Data'}</span>;
 }
@@ -51,8 +63,17 @@ interface ChatSearchFiltersProps {
 }
 
 export function ChatSearchFilters({
-  filter, setFilter, filterCounts, debouncedQuery, hasDateFilter,
-  datePreset, setDatePreset, customDateFrom, setCustomDateFrom, customDateTo, setCustomDateTo,
+  filter,
+  setFilter,
+  filterCounts,
+  debouncedQuery,
+  hasDateFilter,
+  datePreset,
+  setDatePreset,
+  customDateFrom,
+  setCustomDateFrom,
+  customDateTo,
+  setCustomDateTo,
 }: ChatSearchFiltersProps) {
   const [datePopoverOpen, setDatePopoverOpen] = useState(false);
 
@@ -70,68 +91,160 @@ export function ChatSearchFilters({
   };
 
   return (
-    <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none -mx-1 px-1" role="tablist">
+    <div
+      className="scrollbar-none -mx-1 flex items-center gap-1.5 overflow-x-auto px-1"
+      role="tablist"
+    >
       {FILTERS.map((f) => {
         const isActive = filter === f.key;
         const count = filterCounts[f.key];
         const showCount = (debouncedQuery.trim() || f.key !== 'all' || hasDateFilter) && count > 0;
         return (
-          <button key={f.key} role="tab" aria-selected={isActive} tabIndex={0}
-            className={cn('inline-flex items-center gap-1.5 whitespace-nowrap text-[11px] px-3 py-1.5 rounded-lg font-medium transition-all duration-150 shrink-0 select-none',
-              isActive ? 'bg-primary text-foreground shadow-sm' : 'bg-background/80 dark:bg-card/80 text-muted-foreground hover:bg-muted hover:text-foreground'
+          <button
+            type="button"
+            key={f.key}
+            role="tab"
+            aria-selected={isActive}
+            tabIndex={0}
+            className={cn(
+              'inline-flex shrink-0 select-none items-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-1.5 text-[11px] font-medium transition-all duration-150',
+              isActive
+                ? 'bg-primary text-foreground shadow-sm'
+                : 'bg-background/80 text-muted-foreground hover:bg-muted hover:text-foreground dark:bg-card/80'
             )}
             onClick={() => setFilter(f.key)}
           >
-            {f.icon}<span>{f.label}</span>
+            {f.icon}
+            <span>{f.label}</span>
             {showCount && (
-              <span className={cn("min-w-[18px] h-[18px] flex items-center justify-center rounded-md text-[10px] font-bold leading-none",
-                isActive ? "bg-primary-foreground/20 text-primary-foreground" : "bg-background text-foreground"
-              )}>{count}</span>
+              <span
+                className={cn(
+                  'flex h-[18px] min-w-[18px] items-center justify-center rounded-md text-[10px] font-bold leading-none',
+                  isActive
+                    ? 'bg-primary-foreground/20 text-primary-foreground'
+                    : 'bg-background text-foreground'
+                )}
+              >
+                {count}
+              </span>
             )}
           </button>
         );
       })}
 
-      <div className="w-px h-4 bg-border shrink-0 mx-0.5" />
+      <div className="mx-0.5 h-4 w-px shrink-0 bg-border" />
       <Popover open={datePopoverOpen} onOpenChange={setDatePopoverOpen}>
         <PopoverTrigger asChild>
-          <button className={cn('inline-flex items-center gap-1.5 whitespace-nowrap text-xs px-3 py-1.5 rounded-lg font-medium transition-all duration-150 shrink-0 select-none',
-            hasDateFilter ? 'bg-primary text-foreground shadow-sm' : 'bg-background/80 dark:bg-card/80 text-muted-foreground hover:bg-muted hover:text-foreground'
-          )}>
-            <CalendarDays className="w-3.5 h-3.5" />
+          <button
+            type="button"
+            className={cn(
+              'inline-flex shrink-0 select-none items-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-medium transition-all duration-150',
+              hasDateFilter
+                ? 'bg-primary text-foreground shadow-sm'
+                : 'bg-background/80 text-muted-foreground hover:bg-muted hover:text-foreground dark:bg-card/80'
+            )}
+          >
+            <CalendarDays className="h-3.5 w-3.5" />
             <DatePresetLabel preset={datePreset} from={customDateFrom} to={customDateTo} />
             {hasDateFilter && (
-              <span role="button" tabIndex={0} aria-label="Remover filtro de data" className="ml-0.5 p-0.5 rounded-full hover:bg-primary-foreground/20"
-                onClick={(e) => { e.stopPropagation(); setDatePreset('all'); setCustomDateFrom(null); setCustomDateTo(null); }}
-                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); setDatePreset('all'); setCustomDateFrom(null); setCustomDateTo(null); } }}
-              ><X className="w-3 h-3" /></span>
+              <span
+                role="button"
+                tabIndex={0}
+                aria-label="Remover filtro de data"
+                className="ml-0.5 rounded-full p-0.5 hover:bg-primary-foreground/20"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setDatePreset('all');
+                  setCustomDateFrom(null);
+                  setCustomDateTo(null);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setDatePreset('all');
+                    setCustomDateFrom(null);
+                    setCustomDateTo(null);
+                  }
+                }}
+              >
+                <X className="h-3 w-3" />
+              </span>
             )}
           </button>
         </PopoverTrigger>
-        <PopoverContent className="w-auto p-0 pointer-events-auto" align="start" side="bottom" sideOffset={8}>
+        <PopoverContent
+          className="pointer-events-auto w-auto p-0"
+          align="start"
+          side="bottom"
+          sideOffset={8}
+        >
           <div className="flex min-h-[340px]">
-            <div className="w-[160px] border-r border-border bg-muted/30 p-2 flex flex-col gap-0.5">
-              <p className="text-[10px] text-muted-foreground font-semibold px-2.5 pt-1 pb-2 uppercase tracking-widest">Atalhos</p>
+            <div className="flex w-[160px] flex-col gap-0.5 border-r border-border bg-muted/30 p-2">
+              <p className="px-2.5 pb-2 pt-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                Atalhos
+              </p>
               {DATE_PRESETS.filter((p) => p.key !== 'custom').map((p) => (
-                <button key={p.key} className={cn('w-full text-left text-[13px] px-2.5 py-2 rounded-lg transition-all duration-150 font-medium',
-                  datePreset === p.key ? 'bg-primary text-primary-foreground shadow-sm' : 'text-foreground/80 hover:bg-muted hover:text-foreground'
-                )} onClick={() => { setDatePreset(p.key); setCustomDateFrom(null); setCustomDateTo(null); if (p.key !== 'custom') setDatePopoverOpen(false); }}>
+                <button
+                  type="button"
+                  key={p.key}
+                  className={cn(
+                    'w-full rounded-lg px-2.5 py-2 text-left text-[13px] font-medium transition-all duration-150',
+                    datePreset === p.key
+                      ? 'bg-primary text-primary-foreground shadow-sm'
+                      : 'text-foreground/80 hover:bg-muted hover:text-foreground'
+                  )}
+                  onClick={() => {
+                    setDatePreset(p.key);
+                    setCustomDateFrom(null);
+                    setCustomDateTo(null);
+                    if (p.key !== 'custom') setDatePopoverOpen(false);
+                  }}
+                >
                   {p.label}
                 </button>
               ))}
             </div>
-            <div className="p-4 flex flex-col">
-              <p className="text-[11px] text-muted-foreground font-semibold mb-3 uppercase tracking-widest">Período personalizado</p>
+            <div className="flex flex-col p-4">
+              <p className="mb-3 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+                Período personalizado
+              </p>
               <div className="flex gap-6">
                 <div className="space-y-1.5">
-                  <span className="text-[11px] text-muted-foreground font-semibold uppercase tracking-wide">De</span>
-                  <Calendar mode="single" selected={customDateFrom ?? undefined} onSelect={(day) => { setCustomDateFrom(day ?? null); setDatePreset('custom'); }}
-                    disabled={(date) => date > new Date()} locale={ptBR} className="rounded-lg border border-border/60 p-2.5 pointer-events-auto bg-background" classNames={calendarClassNames} />
+                  <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                    De
+                  </span>
+                  <Calendar
+                    mode="single"
+                    selected={customDateFrom ?? undefined}
+                    onSelect={(day) => {
+                      setCustomDateFrom(day ?? null);
+                      setDatePreset('custom');
+                    }}
+                    disabled={(date) => date > new Date()}
+                    locale={ptBR}
+                    className="pointer-events-auto rounded-lg border border-border/60 bg-background p-2.5"
+                    classNames={calendarClassNames}
+                  />
                 </div>
                 <div className="space-y-1.5">
-                  <span className="text-[11px] text-muted-foreground font-semibold uppercase tracking-wide">Até</span>
-                  <Calendar mode="single" selected={customDateTo ?? undefined} onSelect={(day) => { setCustomDateTo(day ?? null); setDatePreset('custom'); }}
-                    disabled={(date) => date > new Date() || (customDateFrom ? date < customDateFrom : false)} locale={ptBR} className="rounded-lg border border-border/60 p-2.5 pointer-events-auto bg-background" classNames={calendarClassNames} />
+                  <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                    Até
+                  </span>
+                  <Calendar
+                    mode="single"
+                    selected={customDateTo ?? undefined}
+                    onSelect={(day) => {
+                      setCustomDateTo(day ?? null);
+                      setDatePreset('custom');
+                    }}
+                    disabled={(date) =>
+                      date > new Date() || (customDateFrom ? date < customDateFrom : false)
+                    }
+                    locale={ptBR}
+                    className="pointer-events-auto rounded-lg border border-border/60 bg-background p-2.5"
+                    classNames={calendarClassNames}
+                  />
                 </div>
               </div>
             </div>

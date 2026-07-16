@@ -12,48 +12,50 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import {
-  Phone, Plus, Trash2, Star, StarOff, MessageCircle, AlertTriangle,
-} from 'lucide-react';
+import { Phone, Plus, Trash2, Star, StarOff, MessageCircle, AlertTriangle } from 'lucide-react';
 import { sanitizeText } from '@/lib/sanitize';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
 export interface PhoneEntry {
-  number:       string;
-  type:         'mobile' | 'work' | 'home' | 'landline' | 'other';
-  label?:       string;
-  is_whatsapp:  boolean;
-  is_primary:   boolean;
+  number: string;
+  type: 'mobile' | 'work' | 'home' | 'landline' | 'other';
+  label?: string;
+  is_whatsapp: boolean;
+  is_primary: boolean;
 }
 
 const PHONE_TYPE_LABELS: Record<PhoneEntry['type'], string> = {
-  mobile:   '📱 Celular',
-  work:     '💼 Trabalho',
-  home:     '🏠 Casa',
+  mobile: '📱 Celular',
+  work: '💼 Trabalho',
+  home: '🏠 Casa',
   landline: '☎️ Fixo',
-  other:    '📞 Outro',
+  other: '📞 Outro',
 };
 
 const MAX_PHONES = 10;
 
 function formatPhone(num: string): string {
   const d = num.replace(/[^0-9]/g, '');
-  if (d.length === 11) return `(${d.slice(0,2)}) ${d.slice(2,7)}-${d.slice(7)}`;
-  if (d.length === 10) return `(${d.slice(0,2)}) ${d.slice(2,6)}-${d.slice(6)}`;
+  if (d.length === 11) return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
+  if (d.length === 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
   return num;
 }
 
 // ── Main Component ─────────────────────────────────────────────────────────
 
 interface ContactPhoneManagerProps {
-  phones:       PhoneEntry[];
-  onChange:     (phones: PhoneEntry[]) => void;
-  readonly?:    boolean;
-  className?:   string;
+  phones: PhoneEntry[];
+  onChange: (phones: PhoneEntry[]) => void;
+  readonly?: boolean;
+  className?: string;
 }
 
 export const ContactPhoneManager: React.FC<ContactPhoneManagerProps> = ({
@@ -64,7 +66,10 @@ export const ContactPhoneManager: React.FC<ContactPhoneManagerProps> = ({
 }) => {
   const [adding, setAdding] = useState(false);
   const [newPhone, setNewPhone] = useState<PhoneEntry>({
-    number: '', type: 'mobile', is_whatsapp: true, is_primary: false,
+    number: '',
+    type: 'mobile',
+    is_whatsapp: true,
+    is_primary: false,
   });
   const [error, setError] = useState('');
 
@@ -76,7 +81,9 @@ export const ContactPhoneManager: React.FC<ContactPhoneManagerProps> = ({
 
     // If setting as primary, unset others
     if (updates.is_primary) {
-      next.forEach((p, i) => { if (i !== idx) p.is_primary = false; });
+      next.forEach((p, i) => {
+        if (i !== idx) p.is_primary = false;
+      });
     }
 
     onChange(next);
@@ -116,11 +123,13 @@ export const ContactPhoneManager: React.FC<ContactPhoneManagerProps> = ({
 
   return (
     <div className={className}>
-      <Label className="flex items-center gap-1 mb-2 text-sm font-medium">
+      <Label className="mb-2 flex items-center gap-1 text-sm font-medium">
         <Phone className="h-3.5 w-3.5" />
         Telefones
         {phones.length > 0 && (
-          <Badge variant="secondary" className="ml-1 text-xs">{phones.length}</Badge>
+          <Badge variant="secondary" className="ml-1 text-xs">
+            {phones.length}
+          </Badge>
         )}
       </Label>
 
@@ -128,7 +137,7 @@ export const ContactPhoneManager: React.FC<ContactPhoneManagerProps> = ({
       <div className="space-y-2">
         {phones.map((phone, idx) => (
           <div
-            key={idx}
+            key={phone.number || idx}
             className={`flex items-center gap-2 rounded-md border p-2 text-sm ${
               phone.is_primary ? 'border-primary/40 bg-primary/5' : 'bg-muted/30'
             }`}
@@ -141,24 +150,26 @@ export const ContactPhoneManager: React.FC<ContactPhoneManagerProps> = ({
               title={phone.is_primary ? 'Principal' : 'Definir como principal'}
               disabled={readonly}
             >
-              {phone.is_primary
-                ? <Star className="h-3.5 w-3.5 fill-amber-400 text-warning-foreground" />
-                : <StarOff className="h-3.5 w-3.5 text-muted-foreground" />}
+              {phone.is_primary ? (
+                <Star className="h-3.5 w-3.5 fill-amber-400 text-warning-foreground" />
+              ) : (
+                <StarOff className="h-3.5 w-3.5 text-muted-foreground" />
+              )}
             </button>
 
             {/* Number */}
-            <span className="flex-1  text-sm">
-              {formatPhone(sanitizeText(phone.number))}
-            </span>
+            <span className="flex-1 text-sm">{formatPhone(sanitizeText(phone.number))}</span>
 
             {/* Type badge */}
-            <Badge variant="outline" className="text-xs shrink-0">
+            <Badge variant="outline" className="shrink-0 text-xs">
               {PHONE_TYPE_LABELS[phone.type]}
             </Badge>
 
             {/* WhatsApp badge */}
             {phone.is_whatsapp && (
-              <span title="WhatsApp" className="inline-flex"><MessageCircle className="h-3.5 w-3.5 text-primary shrink-0" /></span>
+              <span title="WhatsApp" className="inline-flex">
+                <MessageCircle className="h-3.5 w-3.5 shrink-0 text-primary" />
+              </span>
             )}
 
             {/* Remove */}
@@ -166,7 +177,7 @@ export const ContactPhoneManager: React.FC<ContactPhoneManagerProps> = ({
               <button
                 type="button"
                 onClick={() => removePhone(idx)}
-                className="shrink-0 text-muted-foreground hover:text-destructive transition-colors"
+                className="shrink-0 text-muted-foreground transition-colors hover:text-destructive"
                 title="Remover"
               >
                 <Trash2 className="h-3.5 w-3.5" />
@@ -176,15 +187,13 @@ export const ContactPhoneManager: React.FC<ContactPhoneManagerProps> = ({
         ))}
 
         {phones.length === 0 && !adding && (
-          <p className="text-xs text-muted-foreground italic py-1">
-            Nenhum telefone cadastrado.
-          </p>
+          <p className="py-1 text-xs italic text-muted-foreground">Nenhum telefone cadastrado.</p>
         )}
       </div>
 
       {/* Add new phone form */}
       {adding && (
-        <div className="mt-2 rounded-md border p-3 space-y-3 bg-muted/20">
+        <div className="mt-2 space-y-3 rounded-md border bg-muted/20 p-3">
           <div className="grid grid-cols-2 gap-2">
             <div className="col-span-2">
               <Input
@@ -201,14 +210,21 @@ export const ContactPhoneManager: React.FC<ContactPhoneManagerProps> = ({
 
             <Select
               value={newPhone.type}
-              onValueChange={(v) => setNewPhone((p) => ({ ...p, type: v as PhoneEntry['type']  /* ignore-audit: Select/Tabs value string narrowed to union; developer controls option values */}))}
+              onValueChange={(v) =>
+                setNewPhone((p) => ({
+                  ...p,
+                  type: v as PhoneEntry['type'] /* ignore-audit: Select/Tabs value string narrowed to union; developer controls option values */,
+                }))
+              }
             >
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 {Object.entries(PHONE_TYPE_LABELS).map(([value, label]) => (
-                  <SelectItem key={value} value={value}>{label}</SelectItem>
+                  <SelectItem key={value} value={value}>
+                    {label}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -219,15 +235,15 @@ export const ContactPhoneManager: React.FC<ContactPhoneManagerProps> = ({
                 checked={newPhone.is_whatsapp}
                 onCheckedChange={(v) => setNewPhone((p) => ({ ...p, is_whatsapp: v }))}
               />
-              <Label htmlFor="is_whatsapp" className="text-xs cursor-pointer">
-                <MessageCircle className="h-3 w-3 inline text-primary mr-1" />
+              <Label htmlFor="is_whatsapp" className="cursor-pointer text-xs">
+                <MessageCircle className="mr-1 inline h-3 w-3 text-primary" />
                 WhatsApp
               </Label>
             </div>
           </div>
 
           {error && (
-            <p role="alert" className="text-xs text-destructive flex items-center gap-1">
+            <p role="alert" className="flex items-center gap-1 text-xs text-destructive">
               <AlertTriangle className="h-3 w-3" /> {error}
             </p>
           )}
@@ -236,7 +252,14 @@ export const ContactPhoneManager: React.FC<ContactPhoneManagerProps> = ({
             <Button size="sm" onClick={addPhone} className="flex-1">
               Adicionar
             </Button>
-            <Button size="sm" variant="outline" onClick={() => { setAdding(false); setError(''); }}>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                setAdding(false);
+                setError('');
+              }}
+            >
               Cancelar
             </Button>
           </div>

@@ -62,7 +62,7 @@ export function useContactsSearchManagement(query?: string) {
 /** Fetches and manages user's saved dashboard queries with loading state. */
 export function useDashboardQueriesManagement() {
   const { user } = useAuth();
-  const [queries, setQueries] = useState<any[]>([]);
+  const [queries, setQueries] = useState<Record<string, unknown>[]>([]);
   const [loading, setLoading] = useState(true);
   const mountedRef = useRef(true);
 
@@ -102,9 +102,9 @@ export function useDashboardQueriesManagement() {
 
 /** Manages URL filter state with update and clear operations. */
 export function useUrlFiltersManagement() {
-  const [filters, setFilters] = useState<Record<string, any>>({});
+  const [filters, setFilters] = useState<Record<string, unknown>>({});
 
-  const updateFilter = useCallback((key: string, value: any) => {
+  const updateFilter = useCallback((key: string, value: unknown) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
   }, []);
 
@@ -161,7 +161,7 @@ export function useNavigationHistoryManagement() {
 /** Manages navigation through a list of items with index tracking and movement. */
 export function useIndexNavigationManagement() {
   const [index, setIndex] = useState(0);
-  const [items, setItems] = useState<any[]>([]);
+  const [items, setItems] = useState<unknown[]>([]);
 
   const next = useCallback(() => {
     setIndex((prev) => Math.min(prev + 1, items.length - 1));
@@ -171,16 +171,19 @@ export function useIndexNavigationManagement() {
     setIndex((prev) => Math.max(prev - 1, 0));
   }, []);
 
-  const goTo = useCallback((i: number) => {
-    setIndex(Math.max(0, Math.min(i, items.length - 1)));
-  }, [items.length]);
+  const goTo = useCallback(
+    (i: number) => {
+      setIndex(Math.max(0, Math.min(i, items.length - 1)));
+    },
+    [items.length]
+  );
 
   return { index, items, setItems, next, previous, goTo, currentItem: items[index] };
 }
 
 /** Searches messages within a specific chat by content query. */
 export function useChatSearchManagement(chatId?: string, query?: string) {
-  const [results, setResults] = useState<any[]>([]);
+  const [results, setResults] = useState<Record<string, unknown>[]>([]);
   const [loading, setLoading] = useState(false);
   const mountedRef = useRef(true);
 

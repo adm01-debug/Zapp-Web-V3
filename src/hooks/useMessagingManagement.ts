@@ -56,7 +56,7 @@ export function useScheduledMessagesManagement() {
 
 export function useMessageReactionsManagement(messageId?: string) {
   const { user } = useAuth();
-  const [reactions, setReactions] = useState<any[]>([]);
+  const [reactions, setReactions] = useState<Record<string, unknown>[]>([]);
   const [loading, setLoading] = useState(true);
   const mountedRef = useRef(true);
 
@@ -122,7 +122,7 @@ export function useForwardMessageManagement(messageId?: string) {
 
 export function useChatbotFlowsManagement() {
   const { user } = useAuth();
-  const [flows, setFlows] = useState<any[]>([]);
+  const [flows, setFlows] = useState<Record<string, unknown>[]>([]);
   const [loading, setLoading] = useState(true);
   const mountedRef = useRef(true);
 
@@ -184,9 +184,12 @@ export function useEmailDraftManagement() {
     recipients: [],
   });
 
-  const updateDraft = useCallback((updates: any) => {
-    setDraft((prev) => ({ ...prev, ...updates }));
-  }, []);
+  const updateDraft = useCallback(
+    (updates: Partial<{ subject: string; body: string; recipients: string[] }>) => {
+      setDraft((prev) => ({ ...prev, ...updates }));
+    },
+    []
+  );
 
   const clearDraft = useCallback(() => {
     setDraft({ subject: '', body: '', recipients: [] });

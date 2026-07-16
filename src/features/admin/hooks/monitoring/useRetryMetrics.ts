@@ -2,6 +2,7 @@ import { useEffect, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import type { InstanceMetrics } from '@/lib/retryAlerts';
+import { queryKeys } from '@/services/api/queryKeys';
 
 export interface RetryMetricRow {
   id: string;
@@ -50,7 +51,12 @@ export interface RetryMetricsFilters {
 export function useRetryMetrics(filters: RetryMetricsFilters = {}) {
   const queryClient = useQueryClient();
   const { hours = 24, action = null, instance = null, status = null } = filters;
-  const queryKey = ['evolution-retry-metrics', { hours, action, instance, status }];
+  const queryKey = queryKeys.adminOps.evolutionRetryMetricsFiltered({
+    hours,
+    action,
+    instance,
+    status,
+  });
 
   const query = useQuery<RetryMetricsResponse>({
     queryKey,
@@ -115,13 +121,16 @@ export function useRetryMetrics(filters: RetryMetricsFilters = {}) {
         'postgres_changes',
         { event: 'INSERT', schema: 'evo', table: 'evolution_retry_metrics' },
         () => {
-          void queryClient.invalidateQueries({ queryKey: ['evolution-retry-metrics'] });
+          void queryClient.invalidateQueries({
+            queryKey: queryKeys.adminOps.evolutionRetryMetrics(),
+          });
         }
       )
       .subscribe();
 
     return () => {
       channel.unsubscribe();
+      supabase.removeChannel(channel);
     };
   }, [queryClient]);
 

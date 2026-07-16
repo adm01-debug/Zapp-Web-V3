@@ -1,3 +1,4 @@
+import { queryKeys } from '@/services/api/queryKeys';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { startOfDay, subDays, format, eachDayOfInterval } from 'date-fns';
@@ -39,7 +40,10 @@ interface SLAHistoryData {
 }
 
 const PERIOD_DAYS: Record<HistoryPeriod, number> = {
-  '7d': 7, '14d': 14, '30d': 30, '90d': 90,
+  '7d': 7,
+  '14d': 14,
+  '30d': 30,
+  '90d': 90,
 };
 
 function calcTrend(
@@ -75,7 +79,7 @@ async function fetchSLAHistory(period: HistoryPeriod): Promise<SLAHistoryData> {
   const allDays = eachDayOfInterval({ start: startDate, end: new Date() });
   const dailyMap = new Map<string, DailyViolation>();
 
-  allDays.forEach(day => {
+  allDays.forEach((day) => {
     const dateKey = format(day, 'yyyy-MM-dd');
     dailyMap.set(dateKey, {
       date: dateKey,
@@ -88,19 +92,25 @@ async function fetchSLAHistory(period: HistoryPeriod): Promise<SLAHistoryData> {
     });
   });
 
-  slaRecords?.forEach(record => {
+  slaRecords?.forEach((record) => {
     const dateKey = format(new Date(record.created_at), 'yyyy-MM-dd');
     const dayData = dailyMap.get(dateKey);
     if (dayData) {
       dayData.totalConversations++;
-      if (record.first_response_breached) { dayData.firstResponseBreaches++; dayData.totalBreaches++; }
-      if (record.resolution_breached) { dayData.resolutionBreaches++; dayData.totalBreaches++; }
+      if (record.first_response_breached) {
+        dayData.firstResponseBreaches++;
+        dayData.totalBreaches++;
+      }
+      if (record.resolution_breached) {
+        dayData.resolutionBreaches++;
+        dayData.totalBreaches++;
+      }
     }
   });
 
-  dailyMap.forEach(day => {
+  dailyMap.forEach((day) => {
     if (day.totalConversations > 0) {
-      const successCount = (day.totalConversations * 2) - day.totalBreaches;
+      const successCount = day.totalConversations * 2 - day.totalBreaches;
       day.slaRate = (successCount / (day.totalConversations * 2)) * 100;
     }
   });
@@ -115,24 +125,32 @@ async function fetchSLAHistory(period: HistoryPeriod): Promise<SLAHistoryData> {
       totalConversations: acc.totalConversations + day.totalConversations,
       overallSLARate: 0,
     }),
-    { firstResponseBreaches: 0, resolutionBreaches: 0, totalBreaches: 0, totalConversations: 0, overallSLARate: 0 }
+    {
+      firstResponseBreaches: 0,
+      resolutionBreaches: 0,
+      totalBreaches: 0,
+      totalConversations: 0,
+      overallSLARate: 0,
+    }
   );
 
-  totals.overallSLARate = totals.totalConversations > 0
-    ? ((totals.totalConversations * 2 - totals.totalBreaches) / (totals.totalConversations * 2)) * 100
-    : 100;
+  totals.overallSLARate =
+    totals.totalConversations > 0
+      ? ((totals.totalConversations * 2 - totals.totalBreaches) / (totals.totalConversations * 2)) *
+        100
+      : 100;
 
   const midpoint = Math.floor(dailyData.length / 2);
   const firstHalf = dailyData.slice(0, midpoint);
   const secondHalf = dailyData.slice(midpoint);
 
   const trends = {
-    firstResponse: calcTrend(firstHalf, secondHalf, d => d.firstResponseBreaches),
-    resolution: calcTrend(firstHalf, secondHalf, d => d.resolutionBreaches),
-    overall: calcTrend(firstHalf, secondHalf, d => d.slaRate),
+    firstResponse: calcTrend(firstHalf, secondHalf, (d) => d.firstResponseBreaches),
+    resolution: calcTrend(firstHalf, secondHalf, (d) => d.resolutionBreaches),
+    overall: calcTrend(firstHalf, secondHalf, (d) => d.slaRate),
   };
 
-  const daysWithConversations = dailyData.filter(d => d.totalConversations > 0);
+  const daysWithConversations = dailyData.filter((d) => d.totalConversations > 0);
   const worstDays = [...daysWithConversations].sort((a, b) => a.slaRate - b.slaRate).slice(0, 5);
   const bestDays = [...daysWithConversations].sort((a, b) => b.slaRate - a.slaRate).slice(0, 5);
 
@@ -141,7 +159,7 @@ async function fetchSLAHistory(period: HistoryPeriod): Promise<SLAHistoryData> {
 
 export const useSLAHistory = (period: HistoryPeriod = '30d') => {
   const { data = null, isLoading: loading } = useQuery({
-    queryKey: ['sla-history', period],
+    queryKey: queryKeys.sla.history(period),
     queryFn: () => fetchSLAHistory(period),
     staleTime: 60_000,
     refetchInterval: 120_000,

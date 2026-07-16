@@ -154,10 +154,11 @@ describe('Talk X — Personalization Engine', () => {
   });
 
   it('handles multiple variables in same template', () => {
-    const result = personalize(
-      '{{saudacao}}, {{apelido}}! Aqui é da {{empresa}}.',
-      { name: 'Carlos Souza', nickname: 'Carlão', company: 'TechCorp' }
-    );
+    const result = personalize('{{saudacao}}, {{apelido}}! Aqui é da {{empresa}}.', {
+      name: 'Carlos Souza',
+      nickname: 'Carlão',
+      company: 'TechCorp',
+    });
     expect(result).toBe('Bom dia, Carlão! Aqui é da TechCorp.');
   });
 

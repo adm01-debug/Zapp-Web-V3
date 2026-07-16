@@ -1,3 +1,4 @@
+import { queryKeys } from '@/services/api/queryKeys';
 /**
  * Barra de ações de atendimento exibida acima do header do chat.
  *
@@ -68,7 +69,7 @@ interface TicketActionsBarProps {
 
 function useTeamProfiles() {
   return useQuery<TeamProfile[]>({
-    queryKey: ['team-profiles-active'],
+    queryKey: queryKeys.teamProfiles.active(),
     queryFn: async () => {
       const { data, error } = await supabase.rpc('get_team_profiles');
       if (error) throw error;

@@ -22,6 +22,7 @@ import {
   Cell,
 } from 'recharts';
 import { useAIUsageDashboard, FUNCTION_COLORS, FUNCTION_LABELS } from '@/features/admin';
+import { formatTokens } from '@/lib/rechartsFormatters';
 import type { TimeFilter } from '@/features/admin';
 import { AIUsageLogsTab } from './AIUsageLogsTab';
 import { AIUsageUsersTab } from './AIUsageUsersTab';
@@ -193,12 +194,13 @@ export function AIUsageDashboard() {
                           innerRadius={40}
                         >
                           {functionUsage.map((entry) => (
-                            <Cell key={entry.name} fill={FUNCTION_COLORS[entry.name] || '#666'} />
+                            <Cell
+                              key={entry.name}
+                              fill={FUNCTION_COLORS[entry.name] || 'hsl(var(--muted-foreground))'}
+                            />
                           ))}
                         </Pie>
-                        <Tooltip
-                          formatter={(v: number | string) => String(v.toLocaleString()) + ' tokens'}
-                        />
+                        <Tooltip formatter={formatTokens} />
                       </PieChart>
                     </ResponsiveContainer>
                     <div className="mt-2 space-y-1.5">
@@ -207,7 +209,10 @@ export function AIUsageDashboard() {
                           <div className="flex items-center gap-1.5">
                             <div
                               className="h-2.5 w-2.5 rounded-full"
-                              style={{ backgroundColor: FUNCTION_COLORS[f.name] || '#666' }}
+                              style={{
+                                backgroundColor:
+                                  FUNCTION_COLORS[f.name] || 'hsl(var(--muted-foreground))',
+                              }}
                             />
                             <span className="text-muted-foreground">
                               {FUNCTION_LABELS[f.name] || f.name}

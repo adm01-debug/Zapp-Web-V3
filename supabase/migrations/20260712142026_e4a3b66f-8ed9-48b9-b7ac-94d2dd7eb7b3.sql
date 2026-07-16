@@ -113,9 +113,9 @@ DO $$
 BEGIN
   IF NOT EXISTS (
     SELECT 1 FROM information_schema.columns
-    WHERE table_schema='public' AND table_name='profiles' AND column_name='onboarding_status'
+    WHERE table_schema='zapp' AND table_name='profiles' AND column_name='onboarding_status'
   ) THEN
-    ALTER TABLE public.profiles
+    ALTER TABLE zapp.profiles
       ADD COLUMN onboarding_status text NOT NULL DEFAULT 'active'
       CHECK (onboarding_status IN ('pending','active','suspended'));
   END IF;

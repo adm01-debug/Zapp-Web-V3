@@ -1,10 +1,11 @@
+// CRMAutoSync — tipado sobre o contrato real de useSyncToCRM.
 /**
  * CRMAutoSync
- * 
+ *
  * Invisible component that auto-syncs conversation data to the CRM
  * when a conversation status changes to 'resolved'. Also provides
  * a manual sync button for the contact details panel.
- * 
+ *
  * Enhanced: auto-detect sentiment from messages, build richer summary.
  */
 import { useEffect, useRef, useMemo, useState } from 'react';
@@ -32,13 +33,45 @@ function detectSentiment(messages: Message[] | undefined): string {
   if (!messages || messages.length === 0) return 'neutral';
 
   const lastMessages = messages.slice(-10);
-  const text = lastMessages.map(m => m.content?.toLowerCase() || '').join(' ');
+  const text = lastMessages.map((m) => m.content?.toLowerCase() || '').join(' ');
 
-  const positiveWords = ['obrigad', 'perfeito', 'ótimo', 'excelente', 'maravilh', 'amei', 'adorei', 'top', 'parabéns', 'show', '👍', '😊', '❤', '🙏', 'fechado', 'aprovado'];
-  const negativeWords = ['reclam', 'péssim', 'horrível', 'absurd', 'descaso', 'nunca mais', 'cancelar', 'devolver', 'insatisf', 'raiva', '😡', '😤', 'atraso', 'demora'];
+  const positiveWords = [
+    'obrigad',
+    'perfeito',
+    'ótimo',
+    'excelente',
+    'maravilh',
+    'amei',
+    'adorei',
+    'top',
+    'parabéns',
+    'show',
+    '👍',
+    '😊',
+    '❤',
+    '🙏',
+    'fechado',
+    'aprovado',
+  ];
+  const negativeWords = [
+    'reclam',
+    'péssim',
+    'horrível',
+    'absurd',
+    'descaso',
+    'nunca mais',
+    'cancelar',
+    'devolver',
+    'insatisf',
+    'raiva',
+    '😡',
+    '😤',
+    'atraso',
+    'demora',
+  ];
 
-  const posScore = positiveWords.filter(w => text.includes(w)).length;
-  const negScore = negativeWords.filter(w => text.includes(w)).length;
+  const posScore = positiveWords.filter((w) => text.includes(w)).length;
+  const negScore = negativeWords.filter((w) => text.includes(w)).length;
 
   if (negScore >= 2) return 'negative';
   if (negScore > posScore) return 'negative';
@@ -66,8 +99,8 @@ function buildSummary(conversation: Conversation, messages: Message[] | undefine
 
   // Message count
   if (messages) {
-    const agentMsgs = messages.filter(m => m.sender === 'agent').length;
-    const contactMsgs = messages.filter(m => m.sender === 'contact').length;
+    const agentMsgs = messages.filter((m) => m.sender === 'agent').length;
+    const contactMsgs = messages.filter((m) => m.sender === 'contact').length;
     parts.push(`${contactMsgs} msgs cliente, ${agentMsgs} msgs agente`);
   }
 
@@ -122,7 +155,18 @@ export function CRMAutoSync({ conversation, messageCount, agentName, messages }:
     }
 
     lastSyncedStatus.current = conversation.status;
-  }, [conversation.status, conversation.id, conversation.contact.phone, isConfigured, syncConversation, messageCount, agentName, conversation.contact.name, messages, sentiment]);
+  }, [
+    conversation.status,
+    conversation.id,
+    conversation.contact.phone,
+    isConfigured,
+    syncConversation,
+    messageCount,
+    agentName,
+    conversation.contact.name,
+    messages,
+    sentiment,
+  ]);
 
   return null; // Invisible component
 }
@@ -130,7 +174,13 @@ export function CRMAutoSync({ conversation, messageCount, agentName, messages }:
 /**
  * Manual sync button — drop into ContactDetails or ExternalContact360Panel.
  */
-export function CRMSyncButton({ conversation, messageCount }: { conversation: Conversation; messageCount?: number }) {
+export function CRMSyncButton({
+  conversation,
+  messageCount,
+}: {
+  conversation: Conversation;
+  messageCount?: number;
+}) {
   const { syncConversationAsync, isSyncing, isConfigured, lastResult } = useSyncToCRM();
   const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
   const [contactNotFound, setContactNotFound] = useState(false);
@@ -174,8 +224,14 @@ export function CRMSyncButton({ conversation, messageCount }: { conversation: Co
     return (
       <Tooltip>
         <TooltipTrigger asChild>
-          <Button aria-label="Sincronizar CRM" variant="outline" size="icon" disabled className="w-9 h-9 opacity-50 border-border/30">
-            <RefreshCw className="w-4 h-4 text-muted-foreground" />
+          <Button
+            aria-label="Sincronizar CRM"
+            variant="outline"
+            size="icon"
+            disabled
+            className="h-9 w-9 border-border/30 opacity-50"
+          >
+            <RefreshCw className="h-4 w-4 text-muted-foreground" />
           </Button>
         </TooltipTrigger>
         <TooltipContent side="top">Contato não encontrado no CRM</TooltipContent>
@@ -197,15 +253,15 @@ export function CRMSyncButton({ conversation, messageCount }: { conversation: Co
           size="icon"
           onClick={handleSync}
           disabled={isSyncing}
-          className="w-9 h-9 border-border/30 hover:border-primary/50 hover:bg-primary/10"
+          className="h-9 w-9 border-border/30 hover:border-primary/50 hover:bg-primary/10"
           aria-label={tooltipText}
         >
           {isSyncing ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
+            <Loader2 className="h-4 w-4 animate-spin" />
           ) : lastResult?.synced ? (
-            <CheckCircle2 className="w-4 h-4 text-success" />
+            <CheckCircle2 className="h-4 w-4 text-success" />
           ) : (
-            <RefreshCw className="w-4 h-4" />
+            <RefreshCw className="h-4 w-4" />
           )}
         </Button>
       </TooltipTrigger>

@@ -4,7 +4,11 @@
  * Business logic layer for settings management.
  */
 
-import { settingsRepository, type UserSettings, type WorkspaceSettings } from './settingsRepository';
+import {
+  settingsRepository,
+  type UserSettings,
+  type WorkspaceSettings,
+} from './settingsRepository';
 
 const VALID_THEMES = ['light', 'dark', 'auto'] as const;
 const VALID_LANGUAGES = ['pt-BR', 'en', 'es'] as const;
@@ -16,7 +20,10 @@ export const settingsService = {
     return settingsRepository.getUserSettings(userId);
   },
 
-  updateUserSettings: async (userId: string, updates: Partial<UserSettings>): Promise<UserSettings> => {
+  updateUserSettings: async (
+    userId: string,
+    updates: Partial<UserSettings>
+  ): Promise<UserSettings> => {
     if (!userId) throw new Error('User ID is required');
 
     if (updates.theme && !VALID_THEMES.includes(updates.theme)) {
@@ -32,7 +39,10 @@ export const settingsService = {
     return data;
   },
 
-  upsertUserSettings: async (userId: string, settings: Partial<UserSettings>): Promise<UserSettings> => {
+  upsertUserSettings: async (
+    userId: string,
+    settings: Partial<UserSettings>
+  ): Promise<UserSettings> => {
     if (!userId) throw new Error('User ID is required');
 
     if (settings.theme && !VALID_THEMES.includes(settings.theme)) {
@@ -50,7 +60,10 @@ export const settingsService = {
     return settingsRepository.getWorkspaceSettings(workspaceId);
   },
 
-  updateWorkspaceSettings: async (workspaceId: string, updates: Partial<WorkspaceSettings>): Promise<WorkspaceSettings> => {
+  updateWorkspaceSettings: async (
+    workspaceId: string,
+    updates: Partial<WorkspaceSettings>
+  ): Promise<WorkspaceSettings> => {
     if (!workspaceId) throw new Error('Workspace ID is required');
 
     if (updates.name && updates.name.trim().length === 0) {
@@ -62,7 +75,10 @@ export const settingsService = {
     return data;
   },
 
-  upsertWorkspaceSettings: async (workspaceId: string, settings: Partial<WorkspaceSettings>): Promise<WorkspaceSettings> => {
+  upsertWorkspaceSettings: async (
+    workspaceId: string,
+    settings: Partial<WorkspaceSettings>
+  ): Promise<WorkspaceSettings> => {
     if (!workspaceId) throw new Error('Workspace ID is required');
 
     const { data, error } = await settingsRepository.upsertWorkspaceSettings(workspaceId, settings);
@@ -75,7 +91,10 @@ export const settingsService = {
     return settingsRepository.subscribeToUserSettings(userId, callback);
   },
 
-  onWorkspaceSettingsChange: (workspaceId: string, callback: (settings: WorkspaceSettings) => void) => {
+  onWorkspaceSettingsChange: (
+    workspaceId: string,
+    callback: (settings: WorkspaceSettings) => void
+  ) => {
     return settingsRepository.subscribeToWorkspaceSettings(workspaceId, callback);
   },
 };

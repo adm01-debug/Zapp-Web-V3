@@ -34,11 +34,21 @@ interface SidebarNavItemProps {
   isFavorite?: boolean;
 }
 
-export const SidebarNavItem = React.memo(function SidebarNavItem({ item, currentView, onViewChange, badge, badgeVariant = 'destructive', badgeTitle, collapsed = true, onToggleFavorite, isFavorite }: SidebarNavItemProps) {
+export const SidebarNavItem = React.memo(function SidebarNavItem({
+  item,
+  currentView,
+  onViewChange,
+  badge,
+  badgeVariant = 'destructive',
+  badgeTitle,
+  collapsed = true,
+  onToggleFavorite,
+  isFavorite,
+}: SidebarNavItemProps) {
   const { hasRole } = useUserRole();
   const { prefetch } = usePrefetchOnHover();
-  
-  const hasAccess = !item.requiredRoles || item.requiredRoles.some(role => hasRole(role));
+
+  const hasAccess = !item.requiredRoles || item.requiredRoles.some((role) => hasRole(role));
 
   const Icon = item.icon;
   const isActive = currentView === item.id;
@@ -55,16 +65,19 @@ export const SidebarNavItem = React.memo(function SidebarNavItem({ item, current
 
   const button = (
     <button
+      type="button"
       data-tour={item.id}
       onClick={() => onViewChange(item.id)}
       onMouseEnter={handleMouseEnter}
-      aria-label={badgeCount ? `${item.label} (${badgeTitle ?? `${badgeCount} não lidas`})` : item.label}
+      aria-label={
+        badgeCount ? `${item.label} (${badgeTitle ?? `${badgeCount} não lidas`})` : item.label
+      }
       aria-current={isActive ? 'page' : undefined}
       className={cn(
-        'relative rounded-2xl flex items-center gap-3 transition-all duration-500 ease-out group/item outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1',
-        collapsed ? 'w-[44px] h-[44px] justify-center' : 'w-full h-[44px] px-3.5 rounded-2xl',
+        'group/item relative flex items-center gap-3 rounded-2xl outline-none transition-all duration-500 ease-out focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1',
+        collapsed ? 'h-[44px] w-[44px] justify-center' : 'h-[44px] w-full rounded-2xl px-3.5',
         isActive
-          ? 'text-primary font-black shadow-md shadow-primary/5'
+          ? 'font-black text-primary shadow-md shadow-primary/5'
           : 'text-sidebar-foreground/70 hover:bg-muted/20 hover:text-foreground active:scale-[0.96]'
       )}
     >
@@ -72,29 +85,33 @@ export const SidebarNavItem = React.memo(function SidebarNavItem({ item, current
         <>
           <div
             className={cn(
-            'absolute inset-0 bg-primary/10 transition-all duration-500 ease-out',
-            collapsed ? 'rounded-2xl' : 'rounded-2xl'
-          )}
+              'absolute inset-0 bg-primary/10 transition-all duration-500 ease-out',
+              collapsed ? 'rounded-2xl' : 'rounded-2xl'
+            )}
           />
           {/* Active indicator bar — highly visible in collapsed mode */}
-          <div className={cn(
-            'absolute left-0 top-1/2 -translate-y-1/2 w-[4px] rounded-r-full bg-primary transition-all duration-300',
-            collapsed ? 'h-6 -left-[12px]' : 'h-5 -left-[8px]'
-          )} />
+          <div
+            className={cn(
+              'absolute left-0 top-1/2 w-[4px] -translate-y-1/2 rounded-r-full bg-primary transition-all duration-300',
+              collapsed ? '-left-[12px] h-6' : '-left-[8px] h-5'
+            )}
+          />
         </>
       )}
-      <Icon className={cn(
-        'w-[18px] h-[18px] relative z-10 shrink-0 transition-transform duration-150',
-        !isActive && 'group-hover/item:scale-110'
-      )} />
+      <Icon
+        className={cn(
+          'relative z-10 h-[18px] w-[18px] shrink-0 transition-transform duration-150',
+          !isActive && 'group-hover/item:scale-110'
+        )}
+      />
       {!collapsed && (
-        <span className="relative z-10 text-[13px] font-medium truncate">{item.label}</span>
+        <span className="relative z-10 truncate text-[13px] font-medium">{item.label}</span>
       )}
       {/*
-       * IMPORTANTE: Não usar <button> aqui dentro — HTML proíbe elemento
+       * IMPORTANTE: Não usar <button type="button"> aqui dentro — HTML proíbe elemento
        * interativo dentro de outro elemento interativo (button > button).
        * Isso causava o warning:
-       *   "Warning: <button> cannot appear as a descendant of <button>"
+       *   "Warning: <button type="button"> cannot appear as a descendant of <button type="button">"
        * e quebrava acessibilidade de teclado. Usamos <div role="button">
        * com tabIndex e onKeyDown para manter semântica ARIA válida.
        */}
@@ -102,7 +119,10 @@ export const SidebarNavItem = React.memo(function SidebarNavItem({ item, current
         <div
           role="button"
           tabIndex={0}
-          onClick={(e) => { e.stopPropagation(); onToggleFavorite(item.id); }}
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleFavorite(item.id);
+          }}
           onKeyDown={(e) => {
             if (e.key === 'Enter' || e.key === ' ') {
               e.preventDefault();
@@ -111,23 +131,23 @@ export const SidebarNavItem = React.memo(function SidebarNavItem({ item, current
             }
           }}
           className={cn(
-            'relative z-20 ml-auto w-5 h-5 rounded flex items-center justify-center transition-all opacity-0 group-hover/item:opacity-100 cursor-pointer',
-            isFavorite ? 'opacity-100 text-warning' : 'text-muted-foreground hover:text-warning'
+            'relative z-20 ml-auto flex h-5 w-5 cursor-pointer items-center justify-center rounded opacity-0 transition-all group-hover/item:opacity-100',
+            isFavorite ? 'text-warning opacity-100' : 'text-muted-foreground hover:text-warning'
           )}
           aria-label={isFavorite ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}
         >
-          <Star className={cn('w-3 h-3', isFavorite && 'fill-warning')} />
+          <Star className={cn('h-3 w-3', isFavorite && 'fill-warning')} />
         </div>
       )}
       {badgeCount != null && badgeCount > 0 && (
         <span
           title={badgeTitle}
           className={cn(
-            'z-20 min-w-[16px] h-[16px] px-1 rounded-full text-[9px] font-bold flex items-center justify-center leading-none shadow-none animate-scale-in',
+            'z-20 flex h-[16px] min-w-[16px] animate-scale-in items-center justify-center rounded-full px-1 text-[9px] font-bold leading-none shadow-none',
             badgeVariant === 'warning' && 'bg-warning text-warning-foreground',
             badgeVariant === 'info' && 'bg-info text-info-foreground',
             badgeVariant === 'destructive' && 'bg-destructive text-destructive-foreground',
-            collapsed ? 'absolute -top-0.5 -right-0.5' : 'relative',
+            collapsed ? 'absolute -right-0.5 -top-0.5' : 'relative',
             !collapsed && !onToggleFavorite && 'ml-auto'
           )}
         >
@@ -141,10 +161,14 @@ export const SidebarNavItem = React.memo(function SidebarNavItem({ item, current
     return (
       <Tooltip delayDuration={0}>
         <TooltipTrigger asChild>{button}</TooltipTrigger>
-        <TooltipContent side="right" sideOffset={8} className="bg-popover border-border text-xs font-medium flex items-center gap-2">
+        <TooltipContent
+          side="right"
+          sideOffset={8}
+          className="flex items-center gap-2 border-border bg-popover text-xs font-medium"
+        >
           <span>{item.label}</span>
           {shortcut && (
-            <kbd className="px-1 py-0.5 rounded bg-muted text-[10px]  text-muted-foreground">
+            <kbd className="rounded bg-muted px-1 py-0.5 text-[10px] text-muted-foreground">
               {shortcut}
             </kbd>
           )}

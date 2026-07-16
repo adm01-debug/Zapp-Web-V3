@@ -9,17 +9,14 @@ interface VisuallyHiddenProps extends React.HTMLAttributes<HTMLSpanElement> {
 /**
  * Component that hides content visually but keeps it accessible to screen readers
  */
-export function VisuallyHidden({ 
-  children, 
+export function VisuallyHidden({
+  children,
   as: Component = 'span',
   className,
-  ...props 
+  ...props
 }: VisuallyHiddenProps) {
   return (
-    <Component
-      className={cn('sr-only', className)}
-      {...props}
-    >
+    <Component className={cn('sr-only', className)} {...props}>
       {children}
     </Component>
   );
@@ -30,29 +27,33 @@ export function VisuallyHidden({
  */
 export function useAnnounce() {
   const [announcement, setAnnouncement] = React.useState('');
+  const timerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const announce = React.useCallback((message: string, _politeness: 'polite' | 'assertive' = 'polite') => {
-    // Clear first to ensure re-announcement of same message
-    setAnnouncement('');
-    setTimeout(() => setAnnouncement(message), 100);
-  }, []);
+  React.useEffect(
+    () => () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    },
+    []
+  );
+
+  const announce = React.useCallback(
+    (message: string, _politeness: 'polite' | 'assertive' = 'polite') => {
+      // Clear first to ensure re-announcement of same message
+      setAnnouncement('');
+      if (timerRef.current) clearTimeout(timerRef.current);
+      timerRef.current = setTimeout(() => setAnnouncement(message), 100);
+    },
+    []
+  );
 
   const Announcer = React.useMemo(() => {
     return function AnnouncerComponent() {
       return (
         <>
-          <div
-            aria-live="polite"
-            aria-atomic="true"
-            className="sr-only"
-          >
+          <div aria-live="polite" aria-atomic="true" className="sr-only">
             {announcement}
           </div>
-          <div
-            aria-live="assertive"
-            aria-atomic="true"
-            className="sr-only"
-          />
+          <div aria-live="assertive" aria-atomic="true" className="sr-only" />
         </>
       );
     };
@@ -66,12 +67,6 @@ export function useAnnounce() {
  */
 export function LiveRegion() {
   return (
-    <div
-      id="live-region"
-      role="status"
-      aria-live="polite"
-      aria-atomic="true"
-      className="sr-only"
-    />
+    <div id="live-region" role="status" aria-live="polite" aria-atomic="true" className="sr-only" />
   );
 }

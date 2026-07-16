@@ -1,6 +1,6 @@
 /**
  * useAgentReassignment
- * 
+ *
  * Exposes RPCs for reassigning absent and overloaded agents.
  */
 import { useMutation } from '@tanstack/react-query';
@@ -14,7 +14,7 @@ export function useAgentReassignment() {
         inactive_minutes: inactiveMinutes,
       });
       if (error) throw error;
-      return data as number; // ignore-audit: RPC returns unknown; number is the documented return type
+      return data as unknown as number; // RPC returns bigint mapped to number
     },
     onSuccess: (count) => {
       if (count > 0) {
@@ -30,7 +30,7 @@ export function useAgentReassignment() {
     mutationFn: async () => {
       const { data, error } = await supabase.rpc('reassign_overloaded_agents');
       if (error) throw error;
-      return data as number; // ignore-audit: RPC returns unknown; number is the documented return type
+      return data as unknown as number; // RPC returns bigint mapped to number
     },
     onSuccess: (count) => {
       if (count > 0) {

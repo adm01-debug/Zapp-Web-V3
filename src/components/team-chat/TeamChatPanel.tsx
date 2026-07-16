@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useRef } from 'react';
+import { useEffect, useMemo, useState, useRef, useCallback } from 'react';
 import { format } from 'date-fns';
 import { ErrorBoundary } from 'react-error-boundary';
 import { getLogger } from '@/lib/logger';
@@ -45,7 +45,12 @@ export function TeamChatPanel(props: Props): JSX.Element {
   );
 }
 
-function TeamChatPanelContent({ conversation, onBack, onToggleDetails, showDetails }: Props): JSX.Element {
+function TeamChatPanelContent({
+  conversation,
+  onBack,
+  onToggleDetails,
+  showDetails,
+}: Props): JSX.Element {
   const [showStats, setShowStats] = useState<'participants' | 'performance' | null>(null);
   const s = useTeamChatPanel(conversation);
   const { profile: liveProfile } = useAuth();
@@ -129,6 +134,82 @@ function TeamChatPanelContent({ conversation, onBack, onToggleDetails, showDetai
     });
     return result;
   }, [s.filteredMessages]);
+
+  const rowComponent = useCallback(
+    ({
+      index,
+      style,
+      ariaAttributes,
+    }: {
+      index: number;
+      style: React.CSSProperties;
+      ariaAttributes: Record<string, unknown>;
+    }): JSX.Element => {
+      const msg = s.filteredMessages[index];
+      const isMine = msg.sender_id === s.profile?.id;
+      const repliedMsg = msg.reply_to_id ? s.messages.find((m) => m.id === msg.reply_to_id) : null;
+      const cleanText = msg.content
+        ?.replace(/\[.*?\]/g, '')
+        .replace(/https?:\/\/\S+/g, '')
+        .trim();
+      return (
+        <TeamChatMessageRow
+          index={index}
+          style={style}
+          ariaAttributes={ariaAttributes}
+          onMeasure={(i, h) => {
+            if (!itemHeights.current[i]) {
+              itemHeights.current[i] = h;
+              dynamicRowHeight.setRowHeight(i, h);
+            }
+          }}
+          msg={msg}
+          showDate={dateFirstIndexes.has(index)}
+          isMine={isMine}
+          isEditing={s.editingId === msg.id}
+          repliedMsg={repliedMsg ?? null}
+          isThisTtsPlaying={s.tts.isPlaying && s.tts.currentMessageId === msg.id}
+          isThisTtsLoading={s.tts.isLoading && s.tts.currentMessageId === msg.id}
+          cleanText={cleanText ?? ''}
+          conversationType={conversation.type}
+          editText={s.editText}
+          onEditTextChange={s.setEditText}
+          onSaveEdit={s.handleSaveEdit}
+          onCancelEdit={s.handleCancelEdit}
+          onDelete={s.handleDelete}
+          onCopy={s.handleCopyMessage}
+          onReply={s.setReplyTo}
+          onStartEdit={s.handleStartEdit}
+          onTtsSpeak={s.tts.speak}
+          onTtsStop={s.tts.stop}
+          reactions={aggregate(msg.id)}
+          isToggling={isToggling}
+          onToggleReaction={toggleReaction}
+        />
+      );
+    },
+    [
+      s.filteredMessages,
+      s.messages,
+      s.profile?.id,
+      s.editingId,
+      s.editText,
+      s.setEditText,
+      s.handleSaveEdit,
+      s.handleCancelEdit,
+      s.handleDelete,
+      s.handleCopyMessage,
+      s.setReplyTo,
+      s.handleStartEdit,
+      s.tts,
+      dateFirstIndexes,
+      dynamicRowHeight,
+      conversation.type,
+      aggregate,
+      isToggling,
+      toggleReaction,
+    ]
+  );
 
   return (
     <div className="relative flex h-full w-full flex-col">
@@ -288,52 +369,7 @@ function TeamChatPanelContent({ conversation, onBack, onToggleDetails, showDetai
                   rowProps={{} as Record<string, unknown>}
                   className="scrollbar-none absolute inset-0"
                   overscanCount={10}
-                  rowComponent={({ index, style, ariaAttributes }): JSX.Element => {
-                    const msg = s.filteredMessages[index];
-                    const isMine = msg.sender_id === s.profile?.id;
-                    const repliedMsg = msg.reply_to_id
-                      ? s.messages.find((m) => m.id === msg.reply_to_id)
-                      : null;
-                    const cleanText = msg.content
-                      ?.replace(/\[.*?\]/g, '')
-                      .replace(/https?:\/\/\S+/g, '')
-                      .trim();
-                    return (
-                      <TeamChatMessageRow
-                        index={index}
-                        style={style}
-                        ariaAttributes={ariaAttributes}
-                        onMeasure={(i, h) => {
-                          if (!itemHeights.current[i]) {
-                            itemHeights.current[i] = h;
-                            dynamicRowHeight.setRowHeight(i, h);
-                          }
-                        }}
-                        msg={msg}
-                        showDate={dateFirstIndexes.has(index)}
-                        isMine={isMine}
-                        isEditing={s.editingId === msg.id}
-                        repliedMsg={repliedMsg ?? null}
-                        isThisTtsPlaying={s.tts.isPlaying && s.tts.currentMessageId === msg.id}
-                        isThisTtsLoading={s.tts.isLoading && s.tts.currentMessageId === msg.id}
-                        cleanText={cleanText ?? ''}
-                        conversationType={conversation.type}
-                        editText={s.editText}
-                        onEditTextChange={s.setEditText}
-                        onSaveEdit={s.handleSaveEdit}
-                        onCancelEdit={s.handleCancelEdit}
-                        onDelete={s.handleDelete}
-                        onCopy={s.handleCopyMessage}
-                        onReply={s.setReplyTo}
-                        onStartEdit={s.handleStartEdit}
-                        onTtsSpeak={s.tts.speak}
-                        onTtsStop={s.tts.stop}
-                        reactions={aggregate(msg.id)}
-                        isToggling={isToggling}
-                        onToggleReaction={toggleReaction}
-                      />
-                    );
-                  }}
+                  rowComponent={rowComponent}
                 />
               </div>
             </div>

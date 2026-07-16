@@ -13,7 +13,7 @@ Deno.serve(async (req) => {
   const log = new Logger("cleanup-rate-limit-logs");
 
   try {
-    const supabaseClient = createClient(requireEnv("SUPABASE_URL"), requireEnv("SUPABASE_SERVICE_ROLE_KEY", { db: { schema: "zapp" } }));
+    const supabaseClient = createClient(requireEnv("SUPABASE_URL"), requireEnv("SUPABASE_SERVICE_ROLE_KEY"), { db: { schema: "zapp" }, auth: { persistSession: false } });
 
     log.info("Starting rate limit logs cleanup");
 

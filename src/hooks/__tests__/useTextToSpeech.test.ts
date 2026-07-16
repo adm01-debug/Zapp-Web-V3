@@ -61,39 +61,51 @@ describe('useTextToSpeech', () => {
 
   it('setVoiceId updates voice', () => {
     const { result } = renderHook(() => useTextToSpeech());
-    act(() => { result.current.setVoiceId('new-voice'); });
+    act(() => {
+      result.current.setVoiceId('new-voice');
+    });
     expect(result.current.voiceId).toBe('new-voice');
   });
 
   it('setSpeed clamps to max 2.0', () => {
     const { result } = renderHook(() => useTextToSpeech());
-    act(() => { result.current.setSpeed(5.0); });
+    act(() => {
+      result.current.setSpeed(5.0);
+    });
     expect(result.current.speed).toBe(2.0);
   });
 
   it('setSpeed clamps to min 0.5', () => {
     const { result } = renderHook(() => useTextToSpeech());
-    act(() => { result.current.setSpeed(0.1); });
+    act(() => {
+      result.current.setSpeed(0.1);
+    });
     expect(result.current.speed).toBe(0.5);
   });
 
   it('setSpeed accepts normal value', () => {
     const { result } = renderHook(() => useTextToSpeech());
-    act(() => { result.current.setSpeed(1.25); });
+    act(() => {
+      result.current.setSpeed(1.25);
+    });
     expect(result.current.speed).toBe(1.25);
   });
 
   it('calls onVoiceChange callback', () => {
     const onVoiceChange = vi.fn();
     const { result } = renderHook(() => useTextToSpeech({ onVoiceChange }));
-    act(() => { result.current.setVoiceId('test'); });
+    act(() => {
+      result.current.setVoiceId('test');
+    });
     expect(onVoiceChange).toHaveBeenCalledWith('test');
   });
 
   it('calls onSpeedChange callback', () => {
     const onSpeedChange = vi.fn();
     const { result } = renderHook(() => useTextToSpeech({ onSpeedChange }));
-    act(() => { result.current.setSpeed(1.5); });
+    act(() => {
+      result.current.setSpeed(1.5);
+    });
     expect(onSpeedChange).toHaveBeenCalledWith(1.5);
   });
 });

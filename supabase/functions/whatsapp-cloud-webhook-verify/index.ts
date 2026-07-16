@@ -81,6 +81,7 @@ Deno.serve(async (req) => {
 
   const userClient = createClient(SUPABASE_URL, SERVICE_ROLE, {
     global: { headers: { Authorization: auth } },
+    db: { schema: "zapp" },
   });
   const { data: u } = await userClient.auth.getUser();
   if (!u?.user) return json({ error: "unauthorized" }, 401, req);

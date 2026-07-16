@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { createContext, useContext, useState, useCallback } from 'react';
+import { createContext, useContext, useState, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { X, CheckCircle, AlertCircle, Info, AlertTriangle, Loader2 } from 'lucide-react';
@@ -36,11 +36,11 @@ export function useAccessibleToast() {
 }
 
 const icons: Record<ToastType, React.ReactNode> = {
-  success: <CheckCircle className="w-5 h-5 text-success" />,
-  error: <AlertCircle className="w-5 h-5 text-destructive" />,
-  warning: <AlertTriangle className="w-5 h-5 text-warning" />,
-  info: <Info className="w-5 h-5 text-info" />,
-  loading: <Loader2 className="w-5 h-5 text-primary animate-spin" />,
+  success: <CheckCircle className="h-5 w-5 text-success" />,
+  error: <AlertCircle className="h-5 w-5 text-destructive" />,
+  warning: <AlertTriangle className="h-5 w-5 text-warning" />,
+  info: <Info className="h-5 w-5 text-info" />,
+  loading: <Loader2 className="h-5 w-5 animate-spin text-primary" />,
 };
 
 const backgrounds: Record<ToastType, string> = {
@@ -59,16 +59,20 @@ export function AccessibleToastProvider({ children }: AccessibleToastProviderPro
   const [toasts, setToasts] = useState<Toast[]>([]);
 
   const addToast = useCallback((toast: Omit<Toast, 'id'>) => {
-    const id = crypto.randomUUID?.() ?? Array.from(crypto.getRandomValues(new Uint8Array(6)), b => b.toString(16).padStart(2, '0')).join('');
+    const id =
+      crypto.randomUUID?.() ??
+      Array.from(crypto.getRandomValues(new Uint8Array(6)), (b) =>
+        b.toString(16).padStart(2, '0')
+      ).join('');
     setToasts((prev) => [...prev, { ...toast, id }]);
-    
+
     // Auto remove after duration (except loading)
     if (toast.type !== 'loading' && toast.duration !== 0) {
       setTimeout(() => {
         setToasts((prev) => prev.filter((t) => t.id !== id));
       }, toast.duration || 5000);
     }
-    
+
     return id;
   }, []);
 
@@ -77,13 +81,16 @@ export function AccessibleToastProvider({ children }: AccessibleToastProviderPro
   }, []);
 
   const updateToast = useCallback((id: string, updates: Partial<Omit<Toast, 'id'>>) => {
-    setToasts((prev) =>
-      prev.map((t) => (t.id === id ? { ...t, ...updates } : t))
-    );
+    setToasts((prev) => prev.map((t) => (t.id === id ? { ...t, ...updates } : t)));
   }, []);
 
+  const contextValue = useMemo(
+    () => ({ toasts, addToast, removeToast, updateToast }),
+    [toasts, addToast, removeToast, updateToast]
+  );
+
   return (
-    <ToastContext.Provider value={{ toasts, addToast, removeToast, updateToast }}>
+    <ToastContext.Provider value={contextValue}>
       {children}
       <ToastContainer toasts={toasts} onRemove={removeToast} />
     </ToastContext.Provider>
@@ -101,7 +108,7 @@ function ToastContainer({ toasts, onRemove }: ToastContainerProps) {
       role="region"
       aria-live="polite"
       aria-label="Notificações"
-      className="fixed bottom-4 right-4 z-[9999] flex flex-col gap-2 max-w-md w-full pointer-events-none"
+      className="pointer-events-none fixed bottom-4 right-4 z-[9999] flex w-full max-w-md flex-col gap-2"
     >
       <AnimatePresence mode="popLayout">
         {toasts.map((toast) => (
@@ -129,7 +136,7 @@ const ToastItem = React.forwardRef<HTMLDivElement, ToastItemProps>(function Toas
 
     const interval = setInterval(() => {
       setProgress((prev) => {
-        const next = prev - (100 / (duration / 100));
+        const next = prev - 100 / (duration / 100);
         if (next <= 0) {
           clearInterval(interval);
           return 0;
@@ -152,22 +159,21 @@ const ToastItem = React.forwardRef<HTMLDivElement, ToastItemProps>(function Toas
       role="alert"
       aria-atomic="true"
       className={cn(
-        'relative overflow-hidden rounded-xl border p-4 shadow-none pointer-events-auto',
+        'pointer-events-auto relative overflow-hidden rounded-xl border p-4 shadow-none',
         'bg-background',
         backgrounds[toast.type]
       )}
     >
       <div className="flex items-start gap-3">
-        <div className="flex-shrink-0 mt-0.5">
-          {icons[toast.type]}
-        </div>
-        <div className="flex-1 min-w-0">
+        <div className="mt-0.5 flex-shrink-0">{icons[toast.type]}</div>
+        <div className="min-w-0 flex-1">
           <p className="font-medium text-foreground">{toast.message}</p>
           {toast.description && (
             <p className="mt-1 text-sm text-muted-foreground">{toast.description}</p>
           )}
           {toast.action && (
             <button
+              type="button"
               onClick={toast.action.onClick}
               className="mt-2 text-sm font-medium text-primary hover:underline"
             >
@@ -177,11 +183,12 @@ const ToastItem = React.forwardRef<HTMLDivElement, ToastItemProps>(function Toas
         </div>
         {toast.type !== 'loading' && (
           <button
+            type="button"
             onClick={() => onRemove(toast.id)}
-            className="flex-shrink-0 p-1 rounded-lg hover:bg-muted transition-colors"
+            className="flex-shrink-0 rounded-lg p-1 transition-colors hover:bg-muted"
             aria-label="Fechar notificação"
           >
-            <X className="w-4 h-4 text-muted-foreground" />
+            <X className="h-4 w-4 text-muted-foreground" />
           </button>
         )}
       </div>

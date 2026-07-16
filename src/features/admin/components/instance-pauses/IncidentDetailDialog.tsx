@@ -1,8 +1,14 @@
 import { useState } from 'react';
+import { queryKeys } from '@/services/api/queryKeys';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -75,7 +81,7 @@ export function IncidentDetailDialog({ pause, onClose }: Props) {
     : 60;
 
   const eventsQuery = useQuery({
-    queryKey: ['incident-events', pause?.id, sinceMin],
+    queryKey: queryKeys.adminOps.incidentEventsDetailed(pause?.id, sinceMin),
     queryFn: () => {
       if (!pause) return Promise.resolve({ items: [] as AuthEvent[] });
       return invoke<{ items: AuthEvent[] }>('recent_events', {
@@ -97,7 +103,7 @@ export function IncidentDetailDialog({ pause, onClose }: Props) {
     },
     onSuccess: () => {
       toast.success('Incidente marcado como investigado');
-      qc.invalidateQueries({ queryKey: ['instance-pauses'] });
+      qc.invalidateQueries({ queryKey: queryKeys.adminOps.instancePauses() });
       setNotes('');
       onClose();
     },
@@ -125,7 +131,7 @@ export function IncidentDetailDialog({ pause, onClose }: Props) {
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <AlertTriangle className="h-5 w-5 text-warning" />
-            Incidente de autenticação — <span className=" text-base">{pause.instance_name}</span>
+            Incidente de autenticação — <span className="text-base">{pause.instance_name}</span>
           </DialogTitle>
           <DialogDescription>
             Resumo do incidente, requisições afetadas e marcação de investigação.
@@ -134,67 +140,86 @@ export function IncidentDetailDialog({ pause, onClose }: Props) {
 
         <div className="space-y-4">
           {/* Resumo */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+          <div className="grid grid-cols-2 gap-3 text-sm md:grid-cols-4">
             <div className="rounded-lg border p-3">
               <div className="text-xs text-muted-foreground">Tipo</div>
               <div className="mt-1">
-                {pause.auto_paused
-                  ? <Badge variant="destructive">automática</Badge>
-                  : <Badge variant="subtle">manual</Badge>}
+                {pause.auto_paused ? (
+                  <Badge variant="destructive">automática</Badge>
+                ) : (
+                  <Badge variant="subtle">manual</Badge>
+                )}
               </div>
             </div>
             <div className="rounded-lg border p-3">
               <div className="text-xs text-muted-foreground">Status</div>
               <div className="mt-1">
-                {isActive
-                  ? <Badge variant="warning">ativa</Badge>
-                  : <Badge variant="subtle">expirada</Badge>}
+                {isActive ? (
+                  <Badge variant="warning">ativa</Badge>
+                ) : (
+                  <Badge variant="subtle">expirada</Badge>
+                )}
               </div>
             </div>
             <div className="rounded-lg border p-3">
               <div className="text-xs text-muted-foreground">Gatilhos</div>
-              <div className="mt-1 text-xl font-bold ">{pause.trigger_count}</div>
+              <div className="mt-1 text-xl font-bold">{pause.trigger_count}</div>
             </div>
             <div className="rounded-lg border p-3">
               <div className="text-xs text-muted-foreground">Investigado</div>
               <div className="mt-1">
-                {isInvestigated
-                  ? <Badge variant="success" className="gap-1"><ShieldCheck className="h-3 w-3" />sim</Badge>
-                  : <Badge variant="subtle">não</Badge>}
+                {isInvestigated ? (
+                  <Badge variant="success" className="gap-1">
+                    <ShieldCheck className="h-3 w-3" />
+                    sim
+                  </Badge>
+                ) : (
+                  <Badge variant="subtle">não</Badge>
+                )}
               </div>
             </div>
           </div>
 
           {/* Detalhes da pausa */}
-          <div className="rounded-lg border p-3 space-y-1.5 text-sm">
+          <div className="space-y-1.5 rounded-lg border p-3 text-sm">
             <div className="flex justify-between gap-2">
               <span className="text-muted-foreground">Motivo:</span>
               <code className="text-xs">{pause.reason}</code>
             </div>
             <div className="flex justify-between gap-2">
-              <span className="text-muted-foreground flex items-center gap-1"><Clock className="h-3 w-3" />Início:</span>
+              <span className="flex items-center gap-1 text-muted-foreground">
+                <Clock className="h-3 w-3" />
+                Início:
+              </span>
               <span className="text-xs">
-                {format(new Date(pause.created_at), "dd/MM/yyyy HH:mm:ss", { locale: ptBR })}
-                {' '}({formatDistanceToNow(new Date(pause.created_at), { addSuffix: true, locale: ptBR })})
+                {format(new Date(pause.created_at), 'dd/MM/yyyy HH:mm:ss', { locale: ptBR })} (
+                {formatDistanceToNow(new Date(pause.created_at), { addSuffix: true, locale: ptBR })}
+                )
               </span>
             </div>
             <div className="flex justify-between gap-2">
-              <span className="text-muted-foreground flex items-center gap-1"><Clock className="h-3 w-3" />Termina:</span>
+              <span className="flex items-center gap-1 text-muted-foreground">
+                <Clock className="h-3 w-3" />
+                Termina:
+              </span>
               <span className="text-xs">
-                {format(new Date(pause.paused_until), "dd/MM/yyyy HH:mm:ss", { locale: ptBR })}
+                {format(new Date(pause.paused_until), 'dd/MM/yyyy HH:mm:ss', { locale: ptBR })}
               </span>
             </div>
             {isInvestigated && (
               <>
-                <div className="flex justify-between gap-2 pt-2 border-t">
+                <div className="flex justify-between gap-2 border-t pt-2">
                   <span className="text-muted-foreground">Investigado em:</span>
                   <span className="text-xs">
-                    {format(new Date(pause.investigated_at ?? ''), "dd/MM/yyyy HH:mm", { locale: ptBR })}
+                    {format(new Date(pause.investigated_at ?? ''), 'dd/MM/yyyy HH:mm', {
+                      locale: ptBR,
+                    })}
                   </span>
                 </div>
                 {pause.investigation_notes && (
-                  <div className="text-xs bg-muted/40 rounded p-2 mt-1">
-                    <span className="text-muted-foreground">Notas:</span> {pause.investigation_notes}
+                  <div className="mt-1 rounded bg-muted/40 p-2 text-xs">
+                    <span className="text-muted-foreground">Notas:</span>{' '}
+                    {pause.investigation_notes}
                   </div>
                 )}
               </>
@@ -203,16 +228,18 @@ export function IncidentDetailDialog({ pause, onClose }: Props) {
 
           {/* Distribuição */}
           <div>
-            <h4 className="text-sm font-semibold mb-2">Distribuição (janela do incidente)</h4>
+            <h4 className="mb-2 text-sm font-semibold">Distribuição (janela do incidente)</h4>
             <div className="flex flex-wrap gap-2">
               {Object.entries(reasonCounts).map(([k, v]) => (
                 <Badge key={k} variant="outline" className="text-xs">
-                  {reasonLabel[k as keyof typeof reasonLabel] ?? k}: <span className="ml-1 ">{v}</span>
+                  {reasonLabel[k as keyof typeof reasonLabel] ?? k}:{' '}
+                  <span className="ml-1">{v}</span>
                 </Badge>
               ))}
               {Object.entries(sourceCounts).map(([k, v]) => (
-                <Badge key={k} variant="subtle" className="text-xs gap-1">
-                  <Globe className="h-3 w-3" />{k}: <span className="">{v}</span>
+                <Badge key={k} variant="subtle" className="gap-1 text-xs">
+                  <Globe className="h-3 w-3" />
+                  {k}: <span className="">{v}</span>
                 </Badge>
               ))}
               {events.length === 0 && !eventsQuery.isLoading && (
@@ -223,26 +250,41 @@ export function IncidentDetailDialog({ pause, onClose }: Props) {
 
           {/* Eventos / requisições */}
           <div>
-            <h4 className="text-sm font-semibold mb-2">
-              Requisições afetadas <span className="text-muted-foreground font-normal">({events.length})</span>
+            <h4 className="mb-2 text-sm font-semibold">
+              Requisições afetadas{' '}
+              <span className="font-normal text-muted-foreground">({events.length})</span>
             </h4>
             {eventsQuery.isLoading ? (
-              <div className="space-y-2">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-9 w-full" />)}</div>
+              <div className="space-y-2">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <Skeleton key={i} className="h-9 w-full" />
+                ))}
+              </div>
             ) : events.length === 0 ? (
-              <p className="text-xs text-muted-foreground py-3 text-center border rounded-lg">
+              <p className="rounded-lg border py-3 text-center text-xs text-muted-foreground">
                 Nenhum evento de autenticação registrado nesta janela.
               </p>
             ) : (
-              <div className="rounded-lg border overflow-hidden">
+              <div className="overflow-hidden rounded-lg border">
                 <div className="max-h-64 overflow-y-auto">
                   <table className="w-full text-xs">
-                    <thead className="bg-muted/40 sticky top-0">
+                    <thead className="sticky top-0 bg-muted/40">
                       <tr className="text-left">
-                        <th scope="col" className="px-2 py-1.5 font-medium">Quando</th>
-                        <th scope="col" className="px-2 py-1.5 font-medium">Origem</th>
-                        <th scope="col" className="px-2 py-1.5 font-medium">Motivo</th>
-                        <th scope="col" className="px-2 py-1.5 font-medium">HTTP</th>
-                        <th scope="col" className="px-2 py-1.5 font-medium">Detalhe / Path</th>
+                        <th scope="col" className="px-2 py-1.5 font-medium">
+                          Quando
+                        </th>
+                        <th scope="col" className="px-2 py-1.5 font-medium">
+                          Origem
+                        </th>
+                        <th scope="col" className="px-2 py-1.5 font-medium">
+                          Motivo
+                        </th>
+                        <th scope="col" className="px-2 py-1.5 font-medium">
+                          HTTP
+                        </th>
+                        <th scope="col" className="px-2 py-1.5 font-medium">
+                          Detalhe / Path
+                        </th>
                       </tr>
                     </thead>
                     <tbody>
@@ -250,18 +292,25 @@ export function IncidentDetailDialog({ pause, onClose }: Props) {
                         const Icon = reasonIcon[ev.reason] ?? ShieldCheck;
                         return (
                           <tr key={ev.id} className="border-t hover:bg-muted/30">
-                            <td className="px-2 py-1.5 whitespace-nowrap text-muted-foreground">
+                            <td className="whitespace-nowrap px-2 py-1.5 text-muted-foreground">
                               {format(new Date(ev.created_at), 'HH:mm:ss', { locale: ptBR })}
                             </td>
-                            <td className="px-2 py-1.5"><Badge variant="outline" className="text-[10px]">{ev.source}</Badge></td>
+                            <td className="px-2 py-1.5">
+                              <Badge variant="outline" className="text-[10px]">
+                                {ev.source}
+                              </Badge>
+                            </td>
                             <td className="px-2 py-1.5">
                               <span className="inline-flex items-center gap-1">
                                 <Icon className="h-3 w-3 text-warning" />
                                 {ev.reason}
                               </span>
                             </td>
-                            <td className="px-2 py-1.5 ">{ev.http_status ?? '—'}</td>
-                            <td className="px-2 py-1.5  truncate max-w-[260px]" title={ev.detail ?? ''}>
+                            <td className="px-2 py-1.5">{ev.http_status ?? '—'}</td>
+                            <td
+                              className="max-w-[260px] truncate px-2 py-1.5"
+                              title={ev.detail ?? ''}
+                            >
                               {ev.detail ?? '—'}
                             </td>
                           </tr>
@@ -272,8 +321,9 @@ export function IncidentDetailDialog({ pause, onClose }: Props) {
                 </div>
               </div>
             )}
-            <p className="text-[11px] text-muted-foreground mt-1">
-              Apenas metadados (sem corpo, sem segredo). Headers/path expostos são os úteis para diagnóstico.
+            <p className="mt-1 text-[11px] text-muted-foreground">
+              Apenas metadados (sem corpo, sem segredo). Headers/path expostos são os úteis para
+              diagnóstico.
             </p>
           </div>
 
@@ -294,7 +344,9 @@ export function IncidentDetailDialog({ pause, onClose }: Props) {
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={onClose}>Fechar</Button>
+          <Button variant="outline" onClick={onClose}>
+            Fechar
+          </Button>
           {!isInvestigated && (
             <Button
               onClick={() => markMut.mutate()}
@@ -302,7 +354,7 @@ export function IncidentDetailDialog({ pause, onClose }: Props) {
               loadingText="Marcando…"
               variant="success"
             >
-              <ShieldCheck className="h-4 w-4 mr-1.5" />
+              <ShieldCheck className="mr-1.5 h-4 w-4" />
               Marcar como investigado
             </Button>
           )}

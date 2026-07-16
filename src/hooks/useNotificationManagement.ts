@@ -101,8 +101,14 @@ const normalizeSettings = (row: UserSettingsRow): NotificationSettings => ({
   transcriptionNotificationEnabled:
     row?.transcription_notification_enabled ??
     DEFAULT_NOTIFICATION_SETTINGS.transcriptionNotificationEnabled,
-  messageSoundType: toSoundType(row?.message_sound_type, DEFAULT_NOTIFICATION_SETTINGS.messageSoundType),
-  mentionSoundType: toSoundType(row?.mention_sound_type, DEFAULT_NOTIFICATION_SETTINGS.mentionSoundType),
+  messageSoundType: toSoundType(
+    row?.message_sound_type,
+    DEFAULT_NOTIFICATION_SETTINGS.messageSoundType
+  ),
+  mentionSoundType: toSoundType(
+    row?.mention_sound_type,
+    DEFAULT_NOTIFICATION_SETTINGS.mentionSoundType
+  ),
   slaSoundType: toSoundType(row?.sla_sound_type, DEFAULT_NOTIFICATION_SETTINGS.slaSoundType),
   goalSoundType: toSoundType(row?.goal_sound_type, DEFAULT_NOTIFICATION_SETTINGS.goalSoundType),
   transcriptionSoundType: toSoundType(
@@ -116,7 +122,8 @@ const toDbSettings = (settings: Partial<NotificationSettings>): Record<string, u
   if (settings.soundEnabled !== undefined) db.sound_enabled = settings.soundEnabled;
   if (settings.browserNotifications !== undefined)
     db.browser_notifications_enabled = settings.browserNotifications;
-  if (settings.desktopAlerts !== undefined) db.browser_notifications_enabled = settings.desktopAlerts;
+  if (settings.desktopAlerts !== undefined)
+    db.browser_notifications_enabled = settings.desktopAlerts;
   if (settings.quietHoursEnabled !== undefined) db.quiet_hours_enabled = settings.quietHoursEnabled;
   if (settings.quietHoursStart !== undefined) db.quiet_hours_start = settings.quietHoursStart;
   if (settings.quietHoursEnd !== undefined) db.quiet_hours_end = settings.quietHoursEnd;
@@ -140,7 +147,7 @@ const toDbSettings = (settings: Partial<NotificationSettings>): Record<string, u
   return db;
 };
 
-interface Notification {
+export interface Notification {
   id: string;
   type: string;
   title: string;
@@ -148,6 +155,8 @@ interface Notification {
   read: boolean;
   created_at: string;
 }
+
+export type TeamChatNotification = Notification;
 
 /** Manages browser push notifications with permission requests and notification sending. */
 export function usePushNotificationsManagement() {
@@ -334,20 +343,29 @@ export function useTeamChatNotificationsManagement() {
   useEffect(() => {
     channelRef.current = supabase.channel('notifications:team-chat');
     channelRef.current
-      .on('postgres_changes', { event: 'INSERT', schema: 'zapp', table: 'notifications' }, (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => {
-        setNotifications((prev) => [payload.new, ...prev]);
-      })
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'zapp', table: 'notifications' },
+        (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => {
+          setNotifications((prev) => [payload.new, ...prev]);
+        }
+      )
       .subscribe();
 
     return () => {
-      channelRef.current?.unsubscribe();
+      if (channelRef.current) {
+        channelRef.current.unsubscribe();
+        supabase.removeChannel(channelRef.current);
+      }
     };
   }, []);
 
   const markAsRead = useCallback(async (notificationId: string) => {
     try {
-      await supabase.from('notifications').update({ read: true }).eq('id', notificationId);
-      setNotifications((prev) => prev.map((n) => (n.id === notificationId ? { ...n, read: true } : n)));
+      await supabase.from('notifications').update({ is_read: true }).eq('id', notificationId);
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === notificationId ? { ...n, is_read: true } : n))
+      );
     } catch (err) {
       log.error('Error marking notification as read:', err);
     }
@@ -363,13 +381,18 @@ export function useSecurityPushNotificationsManagement() {
   useEffect(() => {
     const channel = supabase.channel('notifications:security');
     channel
-      .on('postgres_changes', { event: 'INSERT', schema: 'zapp', table: 'security_alerts' }, (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => {
-        setSecurityAlerts((prev) => [payload.new, ...prev]);
-      })
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'zapp', table: 'security_alerts' },
+        (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => {
+          setSecurityAlerts((prev) => [payload.new, ...prev]);
+        }
+      )
       .subscribe();
 
     return () => {
       channel.unsubscribe();
+      supabase.removeChannel(channel);
     };
   }, []);
 
@@ -383,13 +406,18 @@ export function useGoalNotificationsManagement() {
   useEffect(() => {
     const channel = supabase.channel('notifications:goals');
     channel
-      .on('postgres_changes', { event: 'INSERT', schema: 'zapp', table: 'goal_notifications' }, (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => {
-        setGoalNotifications((prev) => [payload.new, ...prev]);
-      })
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'zapp', table: 'goal_notifications' },
+        (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => {
+          setGoalNotifications((prev) => [payload.new, ...prev]);
+        }
+      )
       .subscribe();
 
     return () => {
       channel.unsubscribe();
+      supabase.removeChannel(channel);
     };
   }, []);
 
@@ -403,13 +431,18 @@ export function useTranscriptionNotificationsManagement() {
   useEffect(() => {
     const channel = supabase.channel('notifications:transcription');
     channel
-      .on('postgres_changes', { event: 'INSERT', schema: 'zapp', table: 'transcription_notifications' }, (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => {
-        setTranscriptionNotifications((prev) => [payload.new, ...prev]);
-      })
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'zapp', table: 'transcription_notifications' },
+        (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => {
+          setTranscriptionNotifications((prev) => [payload.new, ...prev]);
+        }
+      )
       .subscribe();
 
     return () => {
       channel.unsubscribe();
+      supabase.removeChannel(channel);
     };
   }, []);
 

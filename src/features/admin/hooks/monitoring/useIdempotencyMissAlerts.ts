@@ -20,6 +20,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { queryExternalProxy } from '@/lib/externalProxy';
 import { useUserRole } from '@/features/auth';
 import { getLogger } from '@/lib/logger';
+import { queryKeys } from '@/services/api/queryKeys';
 
 const log = getLogger('useIdempotencyMissAlerts');
 
@@ -111,7 +112,9 @@ export function useIdempotencyMissAlerts(opts: UseIdempotencyMissAlertsOptions =
   const { isDev, loading: roleLoading } = useUserRole();
   const enabled = (opts.enabled ?? true) && isDev && !roleLoading;
   // Hydrate dedupe map from localStorage so refreshes don't re-fire alerts within the same hour bucket.
-  const [lastAlertedAt, setLastAlertedAt] = useState<Map<string, number>>(() => loadPersistedAlerts());
+  const [lastAlertedAt, setLastAlertedAt] = useState<Map<string, number>>(() =>
+    loadPersistedAlerts()
+  );
   const hydratedRef = useRef(true);
 
   // Persist whenever the dedupe map changes (skip the initial hydration write).
@@ -124,7 +127,7 @@ export function useIdempotencyMissAlerts(opts: UseIdempotencyMissAlertsOptions =
   }, [lastAlertedAt]);
 
   const { data, isFetching, error } = useQuery({
-    queryKey: ['idempotency-miss', 'last-hour'],
+    queryKey: queryKeys.adminOps.idempotencyMissLastHour(),
     enabled,
     refetchInterval: enabled ? POLL_INTERVAL_MS : false,
     staleTime: POLL_INTERVAL_MS / 2,

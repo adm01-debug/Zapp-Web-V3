@@ -93,6 +93,7 @@ export function VoiceListItem({
   const isLoading = isConverting && isSelected;
   return (
     <button
+      type="button"
       key={voice.id}
       data-testid={`voice-btn-${voice.id}`}
       onClick={onClick}

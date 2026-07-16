@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { getLogger } from '@/lib/logger';
+import { queryKeys } from '@/services/api/queryKeys';
 
 const log = getLogger('useDepartmentManagement');
 
@@ -76,7 +77,7 @@ export function useDepartmentManagement(
   }, [open, view, initialDepartment.id]);
 
   const { data: allProfiles = [], isLoading: loadingProfiles } = useQuery<Profile[]>({
-    queryKey: ['dept-profiles', initialDepartment.id],
+    queryKey: queryKeys.departments.profiles(initialDepartment.id),
     staleTime: 30_000,
     queryFn: async () => {
       const { data, error } = await supabase
@@ -90,7 +91,7 @@ export function useDepartmentManagement(
   });
 
   const { data: auditLogs = [], isLoading: loadingAudit } = useQuery<AuditLog[]>({
-    queryKey: ['dept-audit', initialDepartment.id],
+    queryKey: queryKeys.departments.audit(initialDepartment.id),
     staleTime: 30_000,
     queryFn: async () => {
       const { data, error } = await supabase
@@ -112,7 +113,7 @@ export function useDepartmentManagement(
   });
 
   const { data: invitations = [], isLoading: loadingInvites } = useQuery<Invitation[]>({
-    queryKey: ['dept-invites', initialDepartment.id],
+    queryKey: queryKeys.departments.invites(initialDepartment.id),
     staleTime: 30_000,
     queryFn: async () => {
       const { data, error } = await supabase
@@ -147,7 +148,9 @@ export function useDepartmentManagement(
       if (error) throw error;
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['dept-invites', initialDepartment.id] });
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.departments.invites(initialDepartment.id),
+      });
       toast({ title: 'Link de convite criado' });
     },
     onError: () => {
@@ -161,7 +164,9 @@ export function useDepartmentManagement(
       if (error) throw error;
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['dept-invites', initialDepartment.id] });
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.departments.invites(initialDepartment.id),
+      });
       toast({ title: 'Convite removido' });
     },
     onError: () => {
@@ -212,8 +217,12 @@ export function useDepartmentManagement(
         .catch((err: unknown) => log.warn('[audit] department member change log failed', err));
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['dept-profiles', initialDepartment.id] });
-      void queryClient.invalidateQueries({ queryKey: ['dept-audit', initialDepartment.id] });
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.departments.profiles(initialDepartment.id),
+      });
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.departments.audit(initialDepartment.id),
+      });
     },
     onError: () => {
       toast({ title: 'Erro ao gerenciar membro', variant: 'destructive' });

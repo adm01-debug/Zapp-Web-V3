@@ -28,7 +28,10 @@ export const DEFAULT_RETRY_CONFIG: RetryConfig = {
   timeoutMs: 30_000,
 };
 
-export const RETRY_CONFIG_RANGES: Record<keyof RetryConfig, { min: number; max: number; step: number }> = {
+export const RETRY_CONFIG_RANGES: Record<
+  keyof RetryConfig,
+  { min: number; max: number; step: number }
+> = {
   maxRetries: { min: 1, max: 10, step: 1 },
   baseBackoffMs: { min: 100, max: 10_000, step: 100 },
   maxBackoffMs: { min: 1_000, max: 60_000, step: 500 },
@@ -52,18 +55,34 @@ export function clampToRange<K extends keyof RetryConfig>(field: K, raw: number)
   return Math.min(r.max, Math.max(r.min, Math.floor(raw)));
 }
 
-function parseValue<K extends keyof RetryConfig>(field: K, raw: string | null | undefined): number | undefined {
+function parseValue<K extends keyof RetryConfig>(
+  field: K,
+  raw: string | null | undefined
+): number | undefined {
   if (raw == null || raw === '') return undefined;
   const n = Number(raw);
   if (!Number.isFinite(n)) return undefined;
   return clampToRange(field, n);
 }
 
-function buildKeys(instanceName?: string): { globalKeys: Record<keyof RetryConfig, string>; instanceKeys?: Record<keyof RetryConfig, string> } {
-  const fields: (keyof RetryConfig)[] = ['maxRetries', 'baseBackoffMs', 'maxBackoffMs', 'timeoutMs'];
-  const globalKeys = Object.fromEntries(fields.map((f) => [f, `retry.global.${f}`])) as Record<keyof RetryConfig, string>;
+function buildKeys(instanceName?: string): {
+  globalKeys: Record<keyof RetryConfig, string>;
+  instanceKeys?: Record<keyof RetryConfig, string>;
+} {
+  const fields: (keyof RetryConfig)[] = [
+    'maxRetries',
+    'baseBackoffMs',
+    'maxBackoffMs',
+    'timeoutMs',
+  ];
+  const globalKeys = Object.fromEntries(fields.map((f) => [f, `retry.global.${f}`])) as Record<
+    keyof RetryConfig,
+    string
+  >;
   if (!instanceName || instanceName === GLOBAL_CACHE_KEY) return { globalKeys };
-  const instanceKeys = Object.fromEntries(fields.map((f) => [f, `retry.instance.${instanceName}.${f}`])) as Record<keyof RetryConfig, string>;
+  const instanceKeys = Object.fromEntries(
+    fields.map((f) => [f, `retry.instance.${instanceName}.${f}`])
+  ) as Record<keyof RetryConfig, string>;
   return { globalKeys, instanceKeys };
 }
 
@@ -96,7 +115,12 @@ export async function loadRetryConfig(instanceName?: string): Promise<RetryConfi
       const map = new Map<string, string | null>();
       for (const row of data ?? []) map.set(row.key, row.value);
 
-      const fields: (keyof RetryConfig)[] = ['maxRetries', 'baseBackoffMs', 'maxBackoffMs', 'timeoutMs'];
+      const fields: (keyof RetryConfig)[] = [
+        'maxRetries',
+        'baseBackoffMs',
+        'maxBackoffMs',
+        'timeoutMs',
+      ];
       const config = { ...DEFAULT_RETRY_CONFIG };
       for (const f of fields) {
         const fromGlobal = parseValue(f, map.get(globalKeys[f]));

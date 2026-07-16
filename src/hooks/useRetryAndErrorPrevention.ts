@@ -7,7 +7,7 @@
  *
  * Backward compatibility maintained through re-exports of all legacy hook names.
  */
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect, type DependencyList } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { getLogger } from '@/lib/logger';
 import {
@@ -39,15 +39,20 @@ const log = getLogger('useRetryAndErrorPrevention');
 // ──────────────────────────────────────────────────────────────────────────
 
 const FATAL_CODES = [
-  'PGRST116',     // not found
-  '23505',        // unique violation
-  '23514',        // check constraint
+  'PGRST116', // not found
+  '23505', // unique violation
+  '23514', // check constraint
   'CONTACT_NOT_FOUND',
   'CONFLICT',
-  '401', '403',
+  '401',
+  '403',
 ];
 
-interface RetryState { loading: boolean; attempt: number; lastError: string | null; }
+interface RetryState {
+  loading: boolean;
+  attempt: number;
+  lastError: string | null;
+}
 
 /**
  * Simple retry hook for operations with exponential backoff (multiplier 3)
@@ -58,32 +63,47 @@ export function useRetryOperation(maxAttempts = 3, baseDelayMs = 500) {
   const { toast } = useToast();
   const [state, setState] = useState<RetryState>({ loading: false, attempt: 0, lastError: null });
 
-  const withRetry = useCallback(async <T>(fn: () => Promise<T>, label = 'Salvar'): Promise<T> => {
-    let lastErr: Error | null = null;
+  const withRetry = useCallback(
+    async <T>(fn: () => Promise<T>, label = 'Salvar'): Promise<T> => {
+      let lastErr: Error | null = null;
 
-    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-      setState({ loading: true, attempt, lastError: null });
-      try {
-        const result = await fn();
-        setState({ loading: false, attempt: 0, lastError: null });
-        return result;
-      } catch (err: unknown) {
-        const error = err instanceof Error ? err : new Error(String(err));
-        lastErr = error;
-        if (FATAL_CODES.some((c) => error.message.includes(c))) {
-          setState({ loading: false, attempt: 0, lastError: error.message });
-          throw error;
+      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        setState({ loading: true, attempt, lastError: null });
+        try {
+          const result = await fn();
+          setState({ loading: false, attempt: 0, lastError: null });
+          return result;
+        } catch (err: unknown) {
+          const error = err instanceof Error ? err : new Error(String(err));
+          lastErr = error;
+          if (FATAL_CODES.some((c) => error.message.includes(c))) {
+            setState({ loading: false, attempt: 0, lastError: error.message });
+            throw error;
+          }
+          if (attempt === maxAttempts) break;
+          const delay = Math.min(
+            baseDelayMs * Math.pow(3, attempt - 1) * (1 + Math.random() * 0.2),
+            30000
+          );
+          setState({
+            loading: true,
+            attempt,
+            lastError: `Tentando novamente (${attempt}/${maxAttempts})...`,
+          });
+          if (attempt > 1)
+            toast({
+              title: `⏳ ${label}`,
+              description: `Tentativa ${attempt + 1}/${maxAttempts}...`,
+              duration: delay,
+            });
+          await new Promise((r) => setTimeout(r, delay));
         }
-        if (attempt === maxAttempts) break;
-        const delay = Math.min(baseDelayMs * Math.pow(3, attempt - 1) * (1 + Math.random() * 0.2), 30000);
-        setState({ loading: true, attempt, lastError: `Tentando novamente (${attempt}/${maxAttempts})...` });
-        if (attempt > 1) toast({ title: `⏳ ${label}`, description: `Tentativa ${attempt + 1}/${maxAttempts}...`, duration: delay });
-        await new Promise((r) => setTimeout(r, delay));
       }
-    }
-    setState({ loading: false, attempt: 0, lastError: lastErr?.message ?? 'Erro' });
-    throw lastErr;
-  }, [maxAttempts, baseDelayMs, toast]);
+      setState({ loading: false, attempt: 0, lastError: lastErr?.message ?? 'Erro' });
+      throw lastErr;
+    },
+    [maxAttempts, baseDelayMs, toast]
+  );
 
   const reset = useCallback(() => setState({ loading: false, attempt: 0, lastError: null }), []);
 
@@ -124,7 +144,7 @@ export function useSafeAsync<T>(
     operation?: string;
     fallback?: T;
     shouldThrow?: boolean;
-    dependencies?: any[];
+    dependencies?: DependencyList;
   }
 ) {
   const { operation = 'Unknown', fallback, shouldThrow = false, dependencies = [] } = options || {};
@@ -151,7 +171,7 @@ export function useSafeRetry<T>(
     maxAttempts?: number;
     delayMs?: number;
     backoffMultiplier?: number;
-    dependencies?: any[];
+    dependencies?: DependencyList;
   }
 ) {
   const {
@@ -181,7 +201,7 @@ export function useSafeRetry<T>(
  */
 /** Executes promises without waiting for resolution, ideal for analytics and tracking. */
 export function useFireAndForget() {
-  return useCallback((promise: Promise<any>, operation: string = 'Unknown operation') => {
+  return useCallback((promise: Promise<unknown>, operation: string = 'Unknown operation') => {
     fireAndForget(promise, { operation });
   }, []);
 }
@@ -196,7 +216,7 @@ export function useSafeCallback<T extends (...args: any[]) => any>(
     name?: string;
     fallbackReturn?: ReturnType<T>;
     shouldThrow?: boolean;
-    dependencies?: any[];
+    dependencies?: DependencyList;
   }
 ) {
   const {
@@ -226,7 +246,7 @@ export function useSafePromise<T>(
     operation?: string;
     onReject?: (error: Error) => void;
     shouldThrow?: boolean;
-    dependencies?: any[];
+    dependencies?: DependencyList;
   }
 ) {
   const { operation = 'Unknown', onReject, shouldThrow = false, dependencies = [] } = options || {};
@@ -262,7 +282,7 @@ export function useAsyncEffect<T>(
     operation?: string;
     cleanup?: () => void;
     fallback?: () => void;
-    dependencies?: any[];
+    dependencies?: DependencyList;
   }
 ) {
   const abortRef = useRef<AbortController | null>(null);
@@ -335,7 +355,7 @@ export function useRetryableAsync<T>(
     operationName?: string;
     config?: RetryConfig;
     shouldRetry?: RetryPolicy;
-    dependencies?: any[];
+    dependencies?: DependencyList;
   }
 ) {
   const {

@@ -120,7 +120,10 @@ export function ObjectionDetector({
     return (
       <div className="space-y-4">
         {detector.error ? (
-          <div className="bg-destructive/8 flex items-start gap-3 rounded-2xl border border-destructive/15 p-4">
+          <div
+            role="alert"
+            className="bg-destructive/8 flex items-start gap-3 rounded-2xl border border-destructive/15 p-4"
+          >
             <AlertTriangle className="h-5 w-5 shrink-0 text-destructive" />
             <div className="min-w-0">
               <p className="mb-1 text-xs font-semibold text-destructive">Erro na análise</p>
@@ -231,7 +234,7 @@ export function ObjectionDetector({
             <AnimatePresence mode="popLayout">
               {detector.objections.map((obj, idx) => (
                 <ObjectionCard
-                  key={`${idx}-${obj.objection.slice(0, 20)}`}
+                  key={obj.id}
                   obj={obj}
                   idx={idx}
                   isRewriting={detector.rewritingIdx === idx}

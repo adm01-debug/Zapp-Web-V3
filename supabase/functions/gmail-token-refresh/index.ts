@@ -96,7 +96,10 @@ serve(async (req) => {
       callerClient = createClient(
         supabaseUrl,
         anonKey,
-        { global: { headers: { Authorization: req.headers.get('Authorization') || '' } } }
+        {
+          global: { headers: { Authorization: req.headers.get('Authorization') || '' } },
+          db: { schema: "zapp" },
+        }
       );
     }
   } else {

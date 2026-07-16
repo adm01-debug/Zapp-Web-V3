@@ -24,7 +24,7 @@ const getStatusIcon = (status?: string) => {
     case 'healthy':
       return <CheckCircle2 className="h-5 w-5 text-primary" />;
     case 'degraded':
-      return <AlertTriangle className="h-5 w-5 text-yellow-500" />;
+      return <AlertTriangle className="h-5 w-5 text-warning" />;
     case 'error':
       return <AlertCircle className="h-5 w-5 text-destructive" />;
     default:
@@ -121,7 +121,7 @@ export default function AdminEmailStatusPage() {
     void loadHealth();
 
     const channel = supabase
-      .channel('email-admin-status')
+      .channel('email-admin-status-page')
       .on<EmailHealthSummary>(
         'postgres_changes',
         { event: '*', schema: 'zapp', table: 'email_health_summary' },
@@ -164,6 +164,7 @@ export default function AdminEmailStatusPage() {
 
     return () => {
       channel.unsubscribe();
+      supabase.removeChannel(channel);
     };
   }, [filters]);
 
@@ -219,7 +220,7 @@ export default function AdminEmailStatusPage() {
       case 'healthy':
         return <CheckCircle2 className="h-5 w-5 text-primary" />;
       case 'degraded':
-        return <AlertTriangle className="h-5 w-5 text-yellow-500" />;
+        return <AlertTriangle className="h-5 w-5 text-warning" />;
       case 'error':
         return <AlertCircle className="h-5 w-5 text-destructive" />;
       default:
@@ -269,7 +270,7 @@ export default function AdminEmailStatusPage() {
         <Alert
           variant={health.status === 'error' ? 'destructive' : 'default'}
           className={
-            health.status === 'degraded' ? 'border-yellow-200 bg-yellow-50 text-yellow-800' : ''
+            health.status === 'degraded' ? 'border-warning/30 bg-warning/10 text-warning' : ''
           }
         >
           {health.status === 'error' ? (
@@ -426,8 +427,8 @@ export default function AdminEmailStatusPage() {
                 </thead>
                 <tbody className="divide-y">
                   {failuresData.items.length > 0 ? (
-                    failuresData.items.map((failure, idx) => (
-                      <tr key={`${failure.requestId}-${idx}`} className="hover:bg-muted/30">
+                    failuresData.items.map((failure) => (
+                      <tr key={failure.requestId} className="hover:bg-muted/30">
                         <td className="px-4 py-2">
                           <Badge variant="outline" className="">
                             {failure.requestId}

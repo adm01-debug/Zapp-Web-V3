@@ -176,6 +176,7 @@ export function EmailChatReplyBar({
             </span>
           </div>
           <button
+            type="button"
             className="flex shrink-0 items-center gap-1 transition-colors hover:text-foreground"
             onClick={() => setShowCcBcc((v) => !v)}
           >
@@ -241,9 +242,14 @@ export function EmailChatReplyBar({
         {attachments.length > 0 && (
           <div className="flex flex-wrap gap-1.5">
             {attachments.map((file, idx) => (
-              <Badge key={idx} variant="secondary" className="gap-1 pr-1 text-[11px]">
+              <Badge
+                key={`${file.name}-${idx}`}
+                variant="secondary"
+                className="gap-1 pr-1 text-[11px]"
+              >
                 <span className="max-w-32 truncate">{file.name}</span>
                 <button
+                  type="button"
                   onClick={() => removeAttachment(idx)}
                   className="ml-1 hover:text-destructive"
                 >
@@ -259,7 +265,11 @@ export function EmailChatReplyBar({
           <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
             <Clock className="h-3 w-3" />
             <span>Rascunho não salvo</span>
-            <button onClick={saveDraft} className="ml-1 underline hover:text-foreground">
+            <button
+              type="button"
+              onClick={saveDraft}
+              className="ml-1 underline hover:text-foreground"
+            >
               Salvar agora
             </button>
           </div>

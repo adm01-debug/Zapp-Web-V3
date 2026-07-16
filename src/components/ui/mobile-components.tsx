@@ -122,6 +122,7 @@ export function BottomNavigation({ items, activeId, onChange, className }: Botto
           const isActive = item.id === activeId;
           return (
             <button
+              type="button"
               key={item.id}
               onClick={() => {
                 if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(5);

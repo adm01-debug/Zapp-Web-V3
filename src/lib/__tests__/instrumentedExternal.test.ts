@@ -161,9 +161,7 @@ describe('timedRpc — recordQueryEvent on success', () => {
   it('sets recordCount to array length when data is an array', async () => {
     mockRpc.mockResolvedValue(rpcOk([{ a: 1 }, { b: 2 }]));
     await timedRpc('fn');
-    expect(mockRecordQueryEvent).toHaveBeenCalledWith(
-      expect.objectContaining({ recordCount: 2 })
-    );
+    expect(mockRecordQueryEvent).toHaveBeenCalledWith(expect.objectContaining({ recordCount: 2 }));
   });
 
   it('sets recordCount to null when data is not an array', async () => {
@@ -186,9 +184,7 @@ describe('timedRpc — recordQueryEvent on success', () => {
     mockRpc.mockResolvedValue(rpcOk(null));
     const params = { p_foo: 'bar' };
     await timedRpc('fn', params);
-    expect(mockRecordQueryEvent).toHaveBeenCalledWith(
-      expect.objectContaining({ filters: params })
-    );
+    expect(mockRecordQueryEvent).toHaveBeenCalledWith(expect.objectContaining({ filters: params }));
   });
 
   it('sets errorMessage to undefined on clean success', async () => {
@@ -221,17 +217,13 @@ describe('timedRpc — classifySeverity', () => {
   it('calls classifySeverity(duration, false, false) on clean success', async () => {
     mockRpc.mockResolvedValue(rpcOk([1, 2, 3]));
     await timedRpc('fn');
-    expect(mockClassifySeverity).toHaveBeenCalledWith(
-      expect.any(Number), false, false
-    );
+    expect(mockClassifySeverity).toHaveBeenCalledWith(expect.any(Number), false, false);
   });
 
   it('calls classifySeverity(duration, true, false) when rpc returns an error', async () => {
     mockRpc.mockResolvedValue(rpcErr('db error'));
     await timedRpc('fn');
-    expect(mockClassifySeverity).toHaveBeenCalledWith(
-      expect.any(Number), true, false
-    );
+    expect(mockClassifySeverity).toHaveBeenCalledWith(expect.any(Number), true, false);
   });
 
   it('passes classifySeverity return value as severity in the event', async () => {

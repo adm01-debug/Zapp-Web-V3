@@ -51,7 +51,7 @@ export default function AdminSearchInsightsPage() {
       </header>
 
       {error && (
-        <Card>
+        <Card role="alert">
           <CardContent className="p-6">
             <GenericEmptyState
               icon={Search}

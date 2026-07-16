@@ -44,7 +44,9 @@ export function useInstanceRetryConfig(
   const mountedRef = useRef(true); // ✅ Fix: mounted guard
   useEffect(() => {
     mountedRef.current = true;
-    return () => { mountedRef.current = false; };
+    return () => {
+      mountedRef.current = false;
+    };
   }, []);
 
   const load = useCallback(async () => {

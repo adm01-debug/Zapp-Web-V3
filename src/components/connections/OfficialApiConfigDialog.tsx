@@ -128,8 +128,9 @@ export function OfficialApiConfigDialog({
     if (form.access_token) payload.access_token = form.access_token;
     if (form.app_secret) payload.app_secret = form.app_secret;
     // Table not in generated types — use fromTable helper for dynamic table access
-    const { error } = await fromTable('whatsapp_official_credentials')
-      .upsert(payload, { onConflict: 'connection_id' }) as { error: { message: string } | null };
+    const { error } = (await fromTable('whatsapp_official_credentials').upsert(payload, {
+      onConflict: 'connection_id',
+    })) as { error: { message: string } | null };
     setSaving(false);
     if (error) {
       toast({ title: 'Erro ao salvar', description: error.message, variant: 'destructive' });
@@ -167,9 +168,9 @@ export function OfficialApiConfigDialog({
     });
   };
 
-  const projectRef = (import.meta.env.VITE_SUPABASE_PROJECT_ID as string | undefined) ?? '';
-  const webhookUrl = projectRef
-    ? `https://${projectRef}.supabase.co/functions/v1/whatsapp-cloud-webhook`
+  const supabaseUrl = (import.meta.env.VITE_SUPABASE_URL as string | undefined) ?? '';
+  const webhookUrl = supabaseUrl
+    ? `${supabaseUrl}/functions/v1/whatsapp-cloud-webhook`
     : '/functions/v1/whatsapp-cloud-webhook';
 
   return (

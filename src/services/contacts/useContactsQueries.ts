@@ -6,12 +6,7 @@
  */
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import {
-  createListQuery,
-  createDetailQuery,
-  createSearchQuery,
-  queryKeys,
-} from '@/services/api';
+import { createListQuery, createDetailQuery, createSearchQuery, queryKeys } from '@/services/api';
 import { contactsService, type Contact } from './index';
 import type { QueryParams } from '@/services/api/types';
 
@@ -19,14 +14,10 @@ import type { QueryParams } from '@/services/api/types';
  * Hook to list all contacts with filtering and pagination
  */
 export const useContactsList = (filters?: Partial<Contact> & QueryParams) => {
-  return createListQuery(
-    queryKeys.contacts.list(filters),
-    () => contactsService.list(filters),
-    {
-      staleTime: 30_000,
-      enabled: true,
-    }
-  );
+  return createListQuery(queryKeys.contacts.list(filters), () => contactsService.list(filters), {
+    staleTime: 30_000,
+    enabled: true,
+  });
 };
 
 /**
@@ -61,13 +52,9 @@ export const useContactsSearch = (query?: string) => {
  * Hook to get active contacts
  */
 export const useActiveContacts = (params?: Partial<QueryParams>) => {
-  return createListQuery(
-    queryKeys.contacts.list(params),
-    () => contactsService.getActive(params),
-    {
-      staleTime: 30_000,
-    }
-  );
+  return createListQuery(queryKeys.contacts.list(params), () => contactsService.getActive(params), {
+    staleTime: 30_000,
+  });
 };
 
 /**
@@ -100,7 +87,7 @@ export const useContactExists = (id?: string) => {
  */
 export const useContactsTotal = () => {
   return useQuery({
-    queryKey: [...queryKeys.contacts.all(), 'total'],
+    queryKey: queryKeys.contacts.total(),
     queryFn: () => contactsService.getTotal(),
     staleTime: 60_000,
   });

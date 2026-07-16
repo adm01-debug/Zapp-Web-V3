@@ -1,43 +1,39 @@
 #!/usr/bin/env bash
 # check-realtime-dead-channels.sh
-# CI Guard: detecta subscriptions Supabase Realtime que apontam para views públicas mortas.
+# CI Guard: detecta subscriptions Supabase Realtime silenciosas.
 #
-# Views NUNCA emitem WAL events. Qualquer .on('postgres_changes', { schema: 'public', table: VIEW_TABLE })
-# é um canal silenciosamente morto — nunca dispara callbacks.
+# Duas classes de canais mortos:
 #
-# Tabelas em zapp são base tables — schema: 'zapp' no client:
-#   whatsapp_connections, password_reset_requests, rate_limit_logs, security_alerts, profiles
+# CLASSE A — schema:'public' para qualquer tabela (sem tabelas reais em public neste projeto).
 #
-# Views (não emitem Realtime) — redirecionar para tabela-fonte:
-#   whisper_messages  → zapp.whisper_messages
-#   team_messages     → zapp.team_messages
-#   contacts          → evo.evolution_contacts
-#   messages          → evo.evolution_messages
-#   evolution_messages→ evo.evolution_messages
+# CLASSE B — schema:'evo' apontando para partições quando publish_via_partition_root=true.
+#   Com publish_via_partition_root=true, eventos CDC são publicados pela tabela RAIZ,
+#   nunca pelas partições. Subscrições em partições recebem zero eventos.
+#   Padrões de partição evo: *_wpp2, *_comercial_*, *_v2_20[0-9][0-9]_*, *_partition_*
 #
 # Uso:
 #   bash scripts/check-realtime-dead-channels.sh          # exits 1 if violation found
 #   bash scripts/check-realtime-dead-channels.sh --fix    # auto-replace (dry run only, shows diff)
+#
+# Ver: docs/realtime-schema-guide.md
 
 set -euo pipefail
 
 SRC_DIR="${1:-src}"
-DEAD_TABLES=("whisper_messages" "team_messages" "contacts" "messages" "evolution_messages")
-
 VIOLATIONS=()
 
-echo "🔍 Checking for dead public-schema realtime subscriptions in ${SRC_DIR}/..."
+echo "Checking for dead realtime subscriptions in ${SRC_DIR}/..."
 
-for TABLE in "${DEAD_TABLES[@]}"; do
-  # Grep for schema:'public' + table:'TABLE' on same line, excluding comment lines
-  # Uses -P for Perl-compatible regex (handles optional whitespace)
+# ---------------------------------------------------------------------------
+# CLASSE A: schema:'public' (nenhuma tabela real existe em public neste projeto)
+# ---------------------------------------------------------------------------
+DEAD_PUBLIC_TABLES=("whisper_messages" "team_messages" "contacts" "messages" "evolution_messages")
+
+for TABLE in "${DEAD_PUBLIC_TABLES[@]}"; do
   while IFS= read -r match; do
-    # Skip lines that are comments (// or /* at start of trimmed line)
     TRIMMED=$(echo "$match" | sed 's/^[[:space:]]*//')
-    if [[ "$TRIMMED" == //* ]] || [[ "$TRIMMED" == '/*'* ]]; then
-      continue
-    fi
-    VIOLATIONS+=("$match")
+    if [[ "$TRIMMED" == //* ]] || [[ "$TRIMMED" == '/*'* ]]; then continue; fi
+    VIOLATIONS+=("[CLASSE-A public-schema] ${match}")
   done < <(grep -rn --include='*.ts' --include='*.tsx' \
     --exclude='*.test.ts' --exclude='*.test.tsx' \
     --exclude='*.spec.ts' --exclude='*.spec.tsx' \
@@ -45,25 +41,51 @@ for TABLE in "${DEAD_TABLES[@]}"; do
     "${SRC_DIR}" 2>/dev/null || true)
 done
 
+# ---------------------------------------------------------------------------
+# CLASSE B: schema:'evo' + tabela que é partição (publish_via_partition_root=true)
+# Padrões de nomes de partições conhecidos:
+#   evolution_messages_wpp2, evolution_conversations_wpp2,
+#   evolution_messages_comercial_01, evolution_webhook_events_v2_2026_07, etc.
+# ---------------------------------------------------------------------------
+PARTITION_PATTERN="(evolution_messages_wpp[0-9]+|evolution_conversations_wpp[0-9]+|evolution_messages_comercial_[0-9]+|evolution_webhook_events_v2_[0-9]{4}_[0-9]{2})"
+
+while IFS= read -r match; do
+  TRIMMED=$(echo "$match" | sed 's/^[[:space:]]*//')
+  if [[ "$TRIMMED" == //* ]] || [[ "$TRIMMED" == '/*'* ]]; then continue; fi
+  VIOLATIONS+=("[CLASSE-B evo-partition publish_via_partition_root] ${match}")
+done < <(grep -rn --include='*.ts' --include='*.tsx' \
+  --exclude='*.test.ts' --exclude='*.test.tsx' \
+  --exclude='*.spec.ts' --exclude='*.spec.tsx' \
+  -P "table:\s*['\"]${PARTITION_PATTERN}['\"]" \
+  "${SRC_DIR}" 2>/dev/null || true)
+
+# ---------------------------------------------------------------------------
+# Resultado
+# ---------------------------------------------------------------------------
 if [[ ${#VIOLATIONS[@]} -eq 0 ]]; then
-  echo "✅ No dead realtime subscriptions found."
+  echo "OK — no dead realtime subscriptions found."
   exit 0
 fi
 
 echo ""
-echo "❌ DEAD REALTIME SUBSCRIPTIONS DETECTED — these views never emit WAL events:"
+echo "DEAD REALTIME SUBSCRIPTIONS DETECTED:"
 echo ""
 for V in "${VIOLATIONS[@]}"; do
   echo "  ${V}"
 done
 
 echo ""
-echo "Fix: repoint subscriptions to base schema:"
-echo "  zapp.whisper_messages    → schema: 'zapp', table: 'whisper_messages'"
-echo "  zapp.team_messages       → schema: 'zapp', table: 'team_messages'"
-echo "  zapp.contacts (view)     → schema: 'evo',  table: 'evolution_contacts'"
-echo "  zapp.messages (view)     → schema: 'evo',  table: 'evolution_messages'"
-echo "  zapp.evolution_messages  → schema: 'evo',  table: 'evolution_messages'"
+echo "FIXES:"
+echo "  Classe A — schema: 'public' subscriptions:"
+echo "    zapp.whisper_messages    -> schema: 'zapp', table: 'whisper_messages'"
+echo "    zapp.team_messages       -> schema: 'zapp', table: 'team_messages'"
+echo "    zapp.contacts (view)     -> schema: 'evo',  table: 'evolution_contacts'"
+echo "    zapp.evolution_messages  -> schema: 'evo',  table: 'evolution_messages'"
+echo ""
+echo "  Classe B — evo schema partition subscriptions (publish_via_partition_root=true):"
+echo "    evolution_messages_wpp2       -> table: 'evolution_messages'"
+echo "    evolution_conversations_wpp2  -> table: 'evolution_conversations'"
+echo "    evolution_webhook_events_v2_* -> table: 'evolution_webhook_events_v2'"
 echo ""
 echo "See: docs/realtime-schema-guide.md"
 echo ""

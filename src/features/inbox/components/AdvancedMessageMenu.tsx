@@ -1,16 +1,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -40,7 +31,12 @@ interface AdvancedMessageMenuProps {
   onContactSent?: (contactName: string) => void;
 }
 
-export function AdvancedMessageMenu({ instanceName, recipientNumber, onPollSent, onContactSent }: AdvancedMessageMenuProps) {
+export function AdvancedMessageMenu({
+  instanceName,
+  recipientNumber,
+  onPollSent,
+  onContactSent,
+}: AdvancedMessageMenuProps) {
   const [popoverOpen, setPopoverOpen] = useState(false);
   const [stickerDialog, setStickerDialog] = useState(false);
   const [pollDialog, setPollDialog] = useState(false);
@@ -52,7 +48,10 @@ export function AdvancedMessageMenu({ instanceName, recipientNumber, onPollSent,
 
   // Poll state
   const [pollName, setPollName] = useState('');
-  const [pollOptions, setPollOptions] = useState(['', '']);
+  const [pollOptions, setPollOptions] = useState<{ id: string; text: string }[]>(() => [
+    { id: crypto.randomUUID(), text: '' },
+    { id: crypto.randomUUID(), text: '' },
+  ]);
   const [pollSelectableCount, setPollSelectableCount] = useState(1);
 
   // Contact card state
@@ -66,7 +65,8 @@ export function AdvancedMessageMenu({ instanceName, recipientNumber, onPollSent,
   // Status state
   const [statusText, setStatusText] = useState('');
 
-  const { sendStickerMessage, sendPollMessage, sendContactMessage, sendStatusMessage, isLoading } = useEvolutionApi();
+  const { sendStickerMessage, sendPollMessage, sendContactMessage, sendStatusMessage, isLoading } =
+    useEvolutionApi();
 
   const handleSendSticker = async () => {
     if (!stickerUrl.trim()) return;
@@ -81,7 +81,7 @@ export function AdvancedMessageMenu({ instanceName, recipientNumber, onPollSent,
   };
 
   const handleSendPoll = async () => {
-    const validOptions = pollOptions.filter(o => o.trim());
+    const validOptions = pollOptions.map((o) => o.text).filter((t) => t.trim());
     if (!pollName.trim() || validOptions.length < 2) {
       toast.error('Preencha o título e pelo menos 2 opções');
       return;
@@ -97,7 +97,10 @@ export function AdvancedMessageMenu({ instanceName, recipientNumber, onPollSent,
       onPollSent?.({ name: pollName, options: validOptions, selectableCount: pollSelectableCount });
       toast.success('Enquete enviada!');
       setPollName('');
-      setPollOptions(['', '']);
+      setPollOptions([
+        { id: crypto.randomUUID(), text: '' },
+        { id: crypto.randomUUID(), text: '' },
+      ]);
       setPollDialog(false);
     } catch {
       toast.error('Erro ao enviar enquete');
@@ -110,13 +113,15 @@ export function AdvancedMessageMenu({ instanceName, recipientNumber, onPollSent,
       return;
     }
     try {
-      await sendContactMessage(instanceName, recipientNumber, [{
-        fullName: contactCard.fullName,
-        wuid: contactCard.phoneNumber,
-        phoneNumber: contactCard.phoneNumber,
-        organization: contactCard.organization || undefined,
-        email: contactCard.email || undefined,
-      }]);
+      await sendContactMessage(instanceName, recipientNumber, [
+        {
+          fullName: contactCard.fullName,
+          wuid: contactCard.phoneNumber,
+          phoneNumber: contactCard.phoneNumber,
+          organization: contactCard.organization || undefined,
+          email: contactCard.email || undefined,
+        },
+      ]);
       onContactSent?.(contactCard.fullName);
       toast.success('Cartão de contato enviado!');
       setContactCard({ fullName: '', phoneNumber: '', organization: '', email: '' });
@@ -139,10 +144,38 @@ export function AdvancedMessageMenu({ instanceName, recipientNumber, onPollSent,
   };
 
   const menuItems = [
-    { icon: Sticker, label: 'Figurinha', onClick: () => { setPopoverOpen(false); setStickerDialog(true); } },
-    { icon: BarChart3, label: 'Enquete', onClick: () => { setPopoverOpen(false); setPollDialog(true); } },
-    { icon: Contact2, label: 'Cartão de Contato', onClick: () => { setPopoverOpen(false); setContactDialog(true); } },
-    { icon: Radio, label: 'Status/Story', onClick: () => { setPopoverOpen(false); setStatusDialog(true); } },
+    {
+      icon: Sticker,
+      label: 'Figurinha',
+      onClick: () => {
+        setPopoverOpen(false);
+        setStickerDialog(true);
+      },
+    },
+    {
+      icon: BarChart3,
+      label: 'Enquete',
+      onClick: () => {
+        setPopoverOpen(false);
+        setPollDialog(true);
+      },
+    },
+    {
+      icon: Contact2,
+      label: 'Cartão de Contato',
+      onClick: () => {
+        setPopoverOpen(false);
+        setContactDialog(true);
+      },
+    },
+    {
+      icon: Radio,
+      label: 'Status/Story',
+      onClick: () => {
+        setPopoverOpen(false);
+        setStatusDialog(true);
+      },
+    },
   ];
 
   const stickerPreviewSrc = (() => {
@@ -159,19 +192,25 @@ export function AdvancedMessageMenu({ instanceName, recipientNumber, onPollSent,
     <>
       <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
         <PopoverTrigger asChild>
-          <Button aria-label="Mais opções de mensagem" variant="ghost" size="icon" className="text-muted-foreground hover:text-primary hover:bg-primary/10">
-            <MoreHorizontal className="w-5 h-5" />
+          <Button
+            aria-label="Mais opções de mensagem"
+            variant="ghost"
+            size="icon"
+            className="text-muted-foreground hover:bg-primary/10 hover:text-primary"
+          >
+            <MoreHorizontal className="h-5 w-5" />
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-56 p-2 glass-strong border-border/50" align="start">
+        <PopoverContent className="glass-strong w-56 border-border/50 p-2" align="start">
           <div className="space-y-1">
             {menuItems.map(({ icon: Icon, label, onClick }) => (
               <button
+                type="button"
                 key={label}
                 onClick={onClick}
-                className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-primary/10 text-sm transition-colors"
+                className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors hover:bg-primary/10"
               >
-                <Icon className="w-4 h-4 text-muted-foreground" />
+                <Icon className="h-4 w-4 text-muted-foreground" />
                 {label}
               </button>
             ))}
@@ -184,7 +223,7 @@ export function AdvancedMessageMenu({ instanceName, recipientNumber, onPollSent,
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Sticker className="w-5 h-5 text-primary" />
+              <Sticker className="h-5 w-5 text-primary" />
               Enviar Figurinha
             </DialogTitle>
           </DialogHeader>
@@ -199,12 +238,20 @@ export function AdvancedMessageMenu({ instanceName, recipientNumber, onPollSent,
               />
             </div>
             {stickerPreviewSrc && (
-              <div className="flex justify-center p-4 bg-muted/20 rounded-lg">
-                <img src={stickerPreviewSrc} alt="Pré-visualização da figurinha" className="max-w-32 max-h-32 object-contain" />
+              <div className="flex justify-center rounded-lg bg-muted/20 p-4">
+                <img
+                  src={stickerPreviewSrc}
+                  alt="Pré-visualização da figurinha"
+                  className="max-h-32 max-w-32 object-contain"
+                />
               </div>
             )}
-            <Button onClick={handleSendSticker} disabled={isLoading || !stickerUrl.trim()} className="w-full">
-              <Send className="w-4 h-4 mr-2" /> Enviar
+            <Button
+              onClick={handleSendSticker}
+              disabled={isLoading || !stickerUrl.trim()}
+              className="w-full"
+            >
+              <Send className="mr-2 h-4 w-4" /> Enviar
             </Button>
           </div>
         </DialogContent>
@@ -215,7 +262,7 @@ export function AdvancedMessageMenu({ instanceName, recipientNumber, onPollSent,
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <BarChart3 className="w-5 h-5 text-primary" />
+              <BarChart3 className="h-5 w-5 text-primary" />
               Criar Enquete
             </DialogTitle>
           </DialogHeader>
@@ -244,32 +291,43 @@ export function AdvancedMessageMenu({ instanceName, recipientNumber, onPollSent,
             <div className="space-y-2">
               <Label>Opções</Label>
               {pollOptions.map((opt, i) => (
-                <div key={i} className="flex gap-2">
+                <div key={opt.id} className="flex gap-2">
                   <Input
                     aria-label={`Opção ${i + 1} da enquete`}
-                    value={opt}
+                    value={opt.text}
                     onChange={(e) => {
                       const updated = [...pollOptions];
-                      updated[i] = e.target.value;
+                      updated[i] = { ...updated[i], text: e.target.value };
                       setPollOptions(updated);
                     }}
                     placeholder={`Opção ${i + 1}`}
                   />
                   {pollOptions.length > 2 && (
-                    <Button aria-label="Remover opção de enquete" variant="ghost" size="icon" onClick={() => setPollOptions(pollOptions.filter((_, j) => j !== i))}>
-                      <Trash2 className="w-4 h-4 text-destructive" />
+                    <Button
+                      aria-label="Remover opção de enquete"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setPollOptions(pollOptions.filter((_, j) => j !== i))}
+                    >
+                      <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
                   )}
                 </div>
               ))}
               {pollOptions.length < 12 && (
-                <Button variant="outline" size="sm" onClick={() => setPollOptions([...pollOptions, ''])}>
-                  <Plus className="w-4 h-4 mr-1" /> Adicionar opção
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    setPollOptions([...pollOptions, { id: crypto.randomUUID(), text: '' }])
+                  }
+                >
+                  <Plus className="mr-1 h-4 w-4" /> Adicionar opção
                 </Button>
               )}
             </div>
             <Button onClick={handleSendPoll} disabled={isLoading} className="w-full">
-              <Send className="w-4 h-4 mr-2" /> Enviar Enquete
+              <Send className="mr-2 h-4 w-4" /> Enviar Enquete
             </Button>
           </div>
         </DialogContent>
@@ -280,29 +338,49 @@ export function AdvancedMessageMenu({ instanceName, recipientNumber, onPollSent,
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Contact2 className="w-5 h-5 text-primary" />
+              <Contact2 className="h-5 w-5 text-primary" />
               Enviar Cartão de Contato
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
             <div>
               <Label htmlFor="contact-full-name">Nome completo *</Label>
-              <Input id="contact-full-name" value={contactCard.fullName} onChange={(e) => setContactCard({ ...contactCard, fullName: e.target.value })} placeholder="João Silva" />
+              <Input
+                id="contact-full-name"
+                value={contactCard.fullName}
+                onChange={(e) => setContactCard({ ...contactCard, fullName: e.target.value })}
+                placeholder="João Silva"
+              />
             </div>
             <div>
               <Label htmlFor="contact-phone">Telefone *</Label>
-              <Input id="contact-phone" value={contactCard.phoneNumber} onChange={(e) => setContactCard({ ...contactCard, phoneNumber: e.target.value })} placeholder="5511999999999" />
+              <Input
+                id="contact-phone"
+                value={contactCard.phoneNumber}
+                onChange={(e) => setContactCard({ ...contactCard, phoneNumber: e.target.value })}
+                placeholder="5511999999999"
+              />
             </div>
             <div>
               <Label htmlFor="contact-org">Empresa</Label>
-              <Input id="contact-org" value={contactCard.organization} onChange={(e) => setContactCard({ ...contactCard, organization: e.target.value })} placeholder="Empresa XYZ" />
+              <Input
+                id="contact-org"
+                value={contactCard.organization}
+                onChange={(e) => setContactCard({ ...contactCard, organization: e.target.value })}
+                placeholder="Empresa XYZ"
+              />
             </div>
             <div>
               <Label htmlFor="contact-email">E-mail</Label>
-              <Input id="contact-email" value={contactCard.email} onChange={(e) => setContactCard({ ...contactCard, email: e.target.value })} placeholder="joao@empresa.com" />
+              <Input
+                id="contact-email"
+                value={contactCard.email}
+                onChange={(e) => setContactCard({ ...contactCard, email: e.target.value })}
+                placeholder="joao@empresa.com"
+              />
             </div>
             <Button onClick={handleSendContact} disabled={isLoading} className="w-full">
-              <Send className="w-4 h-4 mr-2" /> Enviar Contato
+              <Send className="mr-2 h-4 w-4" /> Enviar Contato
             </Button>
           </div>
         </DialogContent>
@@ -313,7 +391,7 @@ export function AdvancedMessageMenu({ instanceName, recipientNumber, onPollSent,
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Radio className="w-5 h-5 text-primary" />
+              <Radio className="h-5 w-5 text-primary" />
               Publicar Status/Story
             </DialogTitle>
           </DialogHeader>
@@ -328,8 +406,12 @@ export function AdvancedMessageMenu({ instanceName, recipientNumber, onPollSent,
                 rows={4}
               />
             </div>
-            <Button onClick={handleSendStatus} disabled={isLoading || !statusText.trim()} className="w-full">
-              <Send className="w-4 h-4 mr-2" /> Publicar
+            <Button
+              onClick={handleSendStatus}
+              disabled={isLoading || !statusText.trim()}
+              className="w-full"
+            >
+              <Send className="mr-2 h-4 w-4" /> Publicar
             </Button>
           </div>
         </DialogContent>

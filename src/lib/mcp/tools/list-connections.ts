@@ -4,15 +4,13 @@ import { z } from 'zod';
 
 function supabaseForUser(ctx: ToolContext) {
   const supabaseUrl = process.env.SUPABASE_URL as string;
-  const supabaseKey = (process.env.SUPABASE_PUBLISHABLE_KEY ?? process.env.SUPABASE_ANON_KEY) as string;
-  return createClient(
-    supabaseUrl,
-    supabaseKey,
-    {
-      global: { headers: { Authorization: `Bearer ${ctx.getToken()}` } },
-      auth: { persistSession: false, autoRefreshToken: false },
-    }
-  );
+  const supabaseKey = (process.env.SUPABASE_PUBLISHABLE_KEY ??
+    process.env.SUPABASE_ANON_KEY) as string;
+  return createClient(supabaseUrl, supabaseKey, {
+    db: { schema: 'zapp' },
+    global: { headers: { Authorization: `Bearer ${ctx.getToken()}` } },
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
 }
 
 export default defineTool({

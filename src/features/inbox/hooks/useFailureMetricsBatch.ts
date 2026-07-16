@@ -10,6 +10,7 @@
  * React Query. Só roda quando `enabled` (filtro ativado).
  */
 import { useQuery } from '@tanstack/react-query';
+import { queryKeys } from '@/services/api/queryKeys';
 import { supabase } from '@/integrations/supabase/client';
 import type { ConversationWithMessages } from '@/features/inbox';
 
@@ -35,7 +36,7 @@ interface MetricRow {
 export function classifyFailure(
   finalHttpStatus: number | null,
   reasons: MetricRow['retry_reasons'],
-  messageStatus: string | null,
+  messageStatus: string | null
 ): FailureCategory {
   if (messageStatus === 'failed_auth') return 'auth';
 
@@ -71,12 +72,12 @@ const CHUNK_SIZE = 200;
 
 export function useFailureMetricsBatch(
   conversations: ConversationWithMessages[],
-  enabled: boolean,
+  enabled: boolean
 ) {
   const messageIds = enabled ? collectTerminalMessageIds(conversations) : [];
 
   return useQuery<Record<string, FailureCategory>>({
-    queryKey: ['failure-metrics-batch', messageIds.sort().join(',')],
+    queryKey: queryKeys.failedMessages.metricsBatch(messageIds.sort().join(',')),
     enabled: enabled && messageIds.length > 0,
     staleTime: STALE_MS,
     queryFn: async () => {
@@ -104,7 +105,7 @@ export function useFailureMetricsBatch(
           result[id] = classifyFailure(
             row.final_http_status,
             row.retry_reasons,
-            messageStatusById.get(id) ?? null,
+            messageStatusById.get(id) ?? null
           );
         }
       }

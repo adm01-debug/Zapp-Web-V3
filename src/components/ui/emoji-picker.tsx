@@ -1,7 +1,23 @@
 import * as React from 'react';
+import { safeGetJSON, safeSetJSON } from '@/lib/safeStorage';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
-import { Smile, Search, Clock, Heart, X, Cat, UtensilsCrossed, Briefcase, Hash, PartyPopper, Plane, Flag, Users, Hand } from 'lucide-react';
+import {
+  Smile,
+  Search,
+  Clock,
+  Heart,
+  X,
+  Cat,
+  UtensilsCrossed,
+  Briefcase,
+  Hash,
+  PartyPopper,
+  Plane,
+  Flag,
+  Users,
+  Hand,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -45,23 +61,21 @@ export function EmojiPicker({
   const [hoveredEmoji, setHoveredEmoji] = React.useState<string | null>(null);
 
   // Local recent emojis persisted to localStorage
-  const [localRecent, setLocalRecent] = React.useState<string[]>(() => {
-    try {
-      return JSON.parse(localStorage.getItem(RECENT_KEY) || '[]');
-    } catch { return []; }
-  });
+  const [localRecent, setLocalRecent] = React.useState<string[]>(() =>
+    safeGetJSON<string[]>(RECENT_KEY, [])
+  );
 
   const recentEmojis = externalRecent ?? localRecent;
 
   const handleSelect = (emoji: string) => {
     onEmojiSelect(emoji);
-    const updated = [emoji, ...recentEmojis.filter(e => e !== emoji)].slice(0, 16);
+    const updated = [emoji, ...recentEmojis.filter((e) => e !== emoji)].slice(0, 16);
 
     if (onRecentUpdate) {
       onRecentUpdate(updated);
     } else {
       setLocalRecent(updated);
-      localStorage.setItem(RECENT_KEY, JSON.stringify(updated));
+      safeSetJSON(RECENT_KEY, updated);
     }
 
     setIsOpen(false);
@@ -78,25 +92,35 @@ export function EmojiPicker({
     <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger asChild>
         {trigger || (
-          <Button aria-label="Abrir seletor de emoji" variant="ghost" size="icon" className={cn('h-9 w-9', className)}>
+          <Button
+            aria-label="Abrir seletor de emoji"
+            variant="ghost"
+            size="icon"
+            className={cn('h-9 w-9', className)}
+          >
             <Smile className="h-5 w-5" />
           </Button>
         )}
       </PopoverTrigger>
-      <PopoverContent className="w-[340px] p-0 bg-popover border-border" align="start" sideOffset={8}>
-        <div className="flex flex-col h-[360px]">
+      <PopoverContent
+        className="w-[340px] border-border bg-popover p-0"
+        align="start"
+        sideOffset={8}
+      >
+        <div className="flex h-[360px] flex-col">
           {/* Search */}
-          <div className="p-2 border-b border-border">
+          <div className="border-b border-border p-2">
             <div className="relative">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+              <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
               <Input
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Buscar emoji... (ex: coração, feliz, pizza)"
-                className="pl-8 h-8 text-xs bg-muted/50 border-border/50"
+                className="h-8 border-border/50 bg-muted/50 pl-8 text-xs"
               />
               {searchQuery && (
                 <button
+                  type="button"
                   onClick={() => setSearchQuery('')}
                   aria-label="Limpar busca de emoji"
                   className="absolute right-2 top-1/2 -translate-y-1/2"
@@ -109,13 +133,14 @@ export function EmojiPicker({
 
           {/* Category tabs */}
           {!searchQuery && (
-            <div className="flex gap-0.5 px-1.5 py-1.5 border-b border-border/50 overflow-x-auto scrollbar-none">
+            <div className="scrollbar-none flex gap-0.5 overflow-x-auto border-b border-border/50 px-1.5 py-1.5">
               {/* Recent tab */}
               {recentEmojis.length > 0 && (
                 <button
+                  type="button"
                   onClick={() => setActiveCategory('recent')}
                   className={cn(
-                    'flex-shrink-0 p-1.5 rounded-md transition-colors',
+                    'flex-shrink-0 rounded-md p-1.5 transition-colors',
                     activeCategory === 'recent'
                       ? 'bg-primary/10 text-primary'
                       : 'text-muted-foreground hover:bg-muted hover:text-foreground'
@@ -129,10 +154,11 @@ export function EmojiPicker({
                 const Icon = categoryIcons[key] || Smile;
                 return (
                   <button
+                    type="button"
                     key={key}
                     onClick={() => setActiveCategory(key)}
                     className={cn(
-                      'flex-shrink-0 p-1.5 rounded-md transition-colors',
+                      'flex-shrink-0 rounded-md p-1.5 transition-colors',
                       activeCategory === key
                         ? 'bg-primary/10 text-primary'
                         : 'text-muted-foreground hover:bg-muted hover:text-foreground'
@@ -152,7 +178,7 @@ export function EmojiPicker({
               {/* Recent section */}
               {!searchQuery && activeCategory === 'recent' && recentEmojis.length > 0 && (
                 <div className="mb-2">
-                  <h4 className="text-[10px] font-medium text-muted-foreground mb-1.5 px-0.5 uppercase tracking-wider">
+                  <h4 className="mb-1.5 px-0.5 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
                     Recentes
                   </h4>
                   <div className="grid grid-cols-8 gap-0.5">
@@ -173,12 +199,12 @@ export function EmojiPicker({
               {activeCategory !== 'recent' || searchQuery ? (
                 <div>
                   {!searchQuery && (
-                    <h4 className="text-[10px] font-medium text-muted-foreground mb-1.5 px-0.5 uppercase tracking-wider">
+                    <h4 className="mb-1.5 px-0.5 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
                       {emojiDatabase[activeCategory]?.label || 'Resultados'}
                     </h4>
                   )}
                   {searchQuery && (
-                    <h4 className="text-[10px] font-medium text-muted-foreground mb-1.5 px-0.5 uppercase tracking-wider">
+                    <h4 className="mb-1.5 px-0.5 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
                       {searchResults?.length || 0} resultados para "{searchQuery}"
                     </h4>
                   )}
@@ -188,16 +214,20 @@ export function EmojiPicker({
                         key={idx}
                         emoji={typeof entry === 'string' ? entry : entry.emoji}
                         onSelect={handleSelect}
-                        onHover={() => setHoveredEmoji(typeof entry === 'string' ? entry : entry.emoji)}
+                        onHover={() =>
+                          setHoveredEmoji(typeof entry === 'string' ? entry : entry.emoji)
+                        }
                         onLeave={() => setHoveredEmoji(null)}
                       />
                     ))}
                   </div>
                   {searchQuery && currentEntries.length === 0 && (
                     <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
-                      <Smile className="h-8 w-8 mb-2 opacity-50" />
+                      <Smile className="mb-2 h-8 w-8 opacity-50" />
                       <p className="text-sm">Nenhum emoji encontrado</p>
-                      <p className="text-xs mt-1">Tente buscar por "feliz", "coração" ou "comida"</p>
+                      <p className="mt-1 text-xs">
+                        Tente buscar por "feliz", "coração" ou "comida"
+                      </p>
                     </div>
                   )}
                 </div>
@@ -212,7 +242,7 @@ export function EmojiPicker({
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
                 exit={{ opacity: 0, height: 0 }}
-                className="border-t border-border overflow-hidden"
+                className="overflow-hidden border-t border-border"
               >
                 <div className="flex items-center gap-3 px-3 py-1.5">
                   <span className="text-2xl">{hoveredEmoji}</span>
@@ -243,7 +273,7 @@ function EmojiButton({ emoji, onSelect, onHover, onLeave }: EmojiButtonProps) {
       onClick={() => onSelect(emoji)}
       onMouseEnter={onHover}
       onMouseLeave={onLeave}
-      className="w-8 h-8 flex items-center justify-center rounded-md text-xl transition-colors hover:bg-muted"
+      className="flex h-8 w-8 items-center justify-center rounded-md text-xl transition-colors hover:bg-muted"
     >
       {emoji}
     </motion.button>
@@ -270,7 +300,7 @@ export function QuickReactionPicker({
       animate={{ opacity: 1, scale: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.8, y: 10 }}
       className={cn(
-        'flex items-center gap-1 p-1.5 rounded-full bg-popover border border-border shadow-lg',
+        'flex items-center gap-1 rounded-full border border-border bg-popover p-1.5 shadow-lg',
         className
       )}
     >
@@ -281,7 +311,7 @@ export function QuickReactionPicker({
           whileTap={{ scale: 0.9 }}
           onClick={() => onReact(emoji)}
           className={cn(
-            'w-8 h-8 flex items-center justify-center rounded-full text-lg',
+            'flex h-8 w-8 items-center justify-center rounded-full text-lg',
             'transition-colors hover:bg-muted',
             currentReaction === emoji && 'bg-primary/10 ring-2 ring-primary'
           )}
@@ -296,7 +326,7 @@ export function QuickReactionPicker({
           <motion.button
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
-            className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-muted"
+            className="flex h-8 w-8 items-center justify-center rounded-full hover:bg-muted"
           >
             <Smile className="h-4 w-4 text-muted-foreground" />
           </motion.button>
@@ -323,7 +353,7 @@ export function FloatingReaction({ emoji, onComplete }: FloatingReactionProps) {
       }}
       transition={{ duration: 1.5, ease: 'easeOut' }}
       onAnimationComplete={onComplete}
-      className="fixed pointer-events-none text-4xl z-50"
+      className="pointer-events-none fixed z-50 text-4xl"
       style={{ left: '50%', bottom: '50%', transform: 'translateX(-50%)' }}
     >
       {emoji}

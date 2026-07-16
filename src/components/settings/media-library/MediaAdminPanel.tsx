@@ -71,7 +71,7 @@ export function MediaAdminPanel({ type }: { type: MediaType }) {
             <SelectItem value="all">Todas ({lib.items.length})</SelectItem>
             {lib.existingCategories.map((cat) => (
               <SelectItem key={cat} value={cat}>
-                {lib.categories[cat] || '📦'} {cat} (
+                {lib.categories?.[cat] || '📦'} {cat} (
                 {lib.items.filter((i) => i.category === cat).length})
               </SelectItem>
             ))}
@@ -143,7 +143,7 @@ export function MediaAdminPanel({ type }: { type: MediaType }) {
                 <SelectValue placeholder="Mover para..." />
               </SelectTrigger>
               <SelectContent>
-                {Object.entries(lib.categories).map(([cat, emoji]) => (
+                {Object.entries(lib.categories ?? {}).map(([cat, emoji]) => (
                   <SelectItem key={cat} value={cat} className="text-xs">
                     {emoji} {cat}
                   </SelectItem>

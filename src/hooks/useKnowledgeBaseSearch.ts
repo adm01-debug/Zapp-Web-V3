@@ -61,13 +61,16 @@ export function useKnowledgeBaseSearch() {
     }
   }, []);
 
-  const handleSearch = useCallback((value: string) => {
-    setQuery(value);
-    if (timerRef.current) clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(() => {
-      void runSearch(value);
-    }, DEBOUNCE_MS);
-  }, [runSearch]);
+  const handleSearch = useCallback(
+    (value: string) => {
+      setQuery(value);
+      if (timerRef.current) clearTimeout(timerRef.current);
+      timerRef.current = setTimeout(() => {
+        void runSearch(value);
+      }, DEBOUNCE_MS);
+    },
+    [runSearch]
+  );
 
   const clear = useCallback(() => {
     if (timerRef.current) clearTimeout(timerRef.current);

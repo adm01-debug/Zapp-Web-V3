@@ -1,3 +1,4 @@
+import { queryKeys } from '@/services/api/queryKeys';
 import { useState, useCallback, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -32,7 +33,7 @@ export function StickerManager({ onSend, mode: _mode = 'manager' }: StickerManag
   const [pendingUpload, setPendingUpload] = useState<PendingUpload | null>(null);
 
   const { data: stickers = [], isLoading } = useQuery({
-    queryKey: ['stickers-manager'],
+    queryKey: queryKeys.stickers.all(),
     queryFn: async () => {
       const { data, error } = await supabase
         .from('stickers')
@@ -51,7 +52,7 @@ export function StickerManager({ onSend, mode: _mode = 'manager' }: StickerManag
         .eq('id', sticker.id);
       if (error) throw error;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['stickers-manager'] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.stickers.all() }),
   });
 
   const deleteSticker = useMutation({
@@ -60,7 +61,7 @@ export function StickerManager({ onSend, mode: _mode = 'manager' }: StickerManag
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['stickers-manager'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.stickers.all() });
       toast.success('Figurinha removida');
     },
   });
@@ -70,7 +71,7 @@ export function StickerManager({ onSend, mode: _mode = 'manager' }: StickerManag
       const { error } = await supabase.from('stickers').update({ category }).eq('id', id);
       if (error) throw error;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['stickers-manager'] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.stickers.all() }),
   });
 
   const handleSend = useCallback(
@@ -147,6 +148,7 @@ export function StickerManager({ onSend, mode: _mode = 'manager' }: StickerManag
             </div>
             <div className="flex items-center rounded-lg border border-border/50 p-0.5">
               <button
+                type="button"
                 onClick={() => setGridSize('sm')}
                 className={cn(
                   'rounded-md p-1.5 transition-colors',
@@ -158,6 +160,7 @@ export function StickerManager({ onSend, mode: _mode = 'manager' }: StickerManag
                 <Grid3X3 className="h-4 w-4" />
               </button>
               <button
+                type="button"
                 onClick={() => setGridSize('md')}
                 className={cn(
                   'rounded-md p-1.5 transition-colors',
@@ -190,7 +193,7 @@ export function StickerManager({ onSend, mode: _mode = 'manager' }: StickerManag
                 onConfirm={(p) => {
                   toast.success(`Figurinha "${p.name}" salva!`);
                   setPendingUpload(null);
-                  queryClient.invalidateQueries({ queryKey: ['stickers-manager'] });
+                  queryClient.invalidateQueries({ queryKey: queryKeys.stickers.all() });
                 }}
                 onCancel={() => setPendingUpload(null)}
               />

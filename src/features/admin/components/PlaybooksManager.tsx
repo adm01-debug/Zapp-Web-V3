@@ -1,3 +1,4 @@
+import { queryKeys } from '@/services/api/queryKeys';
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -63,7 +64,7 @@ export function PlaybooksManager(): JSX.Element {
   const [steps, setSteps] = useState<PlaybookStep[]>([]);
 
   const { data: playbooks = [], isLoading: loading } = useQuery<Playbook[]>({
-    queryKey: ['admin', 'playbooks'],
+    queryKey: queryKeys.adminOps.playbooks(),
     queryFn: async () => {
       const { data } = await supabase
         .from('playbooks')
@@ -125,7 +126,7 @@ export function PlaybooksManager(): JSX.Element {
     if (!error) {
       toast.success(selectedPlaybook ? 'Playbook atualizado' : 'Playbook criado');
       setDialogOpen(false);
-      void queryClient.invalidateQueries({ queryKey: ['admin', 'playbooks'] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.adminOps.playbooks() });
     } else {
       toast.error('Erro ao salvar');
     }
@@ -134,7 +135,7 @@ export function PlaybooksManager(): JSX.Element {
   const deletePlaybook = async (id: string): Promise<void> => {
     await supabase.from('playbooks').delete().eq('id', id);
     toast.success('Playbook removido');
-    void queryClient.invalidateQueries({ queryKey: ['admin', 'playbooks'] });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.adminOps.playbooks() });
   };
 
   const grouped = playbooks.reduce<Record<string, Playbook[]>>((acc, pb) => {
@@ -247,8 +248,8 @@ export function PlaybooksManager(): JSX.Element {
                 {viewPlaybook.description && (
                   <p className="text-sm text-muted-foreground">{viewPlaybook.description}</p>
                 )}
-                {viewPlaybook.steps.map((step, idx) => (
-                  <div key={idx} className="flex gap-3 rounded-lg bg-muted/20 p-3">
+                {viewPlaybook.steps.map((step) => (
+                  <div key={step.order} className="flex gap-3 rounded-lg bg-muted/20 p-3">
                     <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
                       {step.order}
                     </div>
@@ -305,7 +306,7 @@ export function PlaybooksManager(): JSX.Element {
               <p className="text-sm font-medium">Passos</p>
               {steps.map((step, idx) => (
                 <div
-                  key={idx}
+                  key={step.order}
                   className="space-y-2 rounded-lg border border-border/30 bg-muted/10 p-3"
                 >
                   <div className="flex items-center justify-between">

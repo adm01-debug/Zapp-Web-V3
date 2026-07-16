@@ -1,6 +1,6 @@
 /**
  * ContactIntelligencePanel
- * 
+ *
  * Unified commercial intelligence panel for the contact details sidebar.
  * Sections: Pre-contact Briefing, Mental Triggers, Rapport Suggestions,
  * Best Contact Times, Churn Risk, DISC Communication Tips.
@@ -44,26 +44,26 @@ function BriefingCard({ briefing }: { briefing: ContactBriefing }) {
   return (
     <div className="space-y-2">
       {/* Opening tip */}
-      <div className="bg-primary/5 border border-primary/10 rounded-lg p-2.5">
+      <div className="rounded-lg border border-primary/10 bg-primary/5 p-2.5">
         <div className="flex items-start gap-2">
-          <Lightbulb className="w-3.5 h-3.5 text-primary mt-0.5 shrink-0" />
-          <p className="text-xs text-foreground leading-relaxed">{briefing.opening_tip}</p>
+          <Lightbulb className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
+          <p className="text-xs leading-relaxed text-foreground">{briefing.opening_tip}</p>
         </div>
       </div>
 
       {/* Risk alert */}
       {briefing.risk_alert && (
-        <div className="bg-destructive/5 border border-destructive/10 rounded-lg p-2.5">
+        <div className="rounded-lg border border-destructive/10 bg-destructive/5 p-2.5">
           <div className="flex items-start gap-2">
-            <AlertTriangle className="w-3.5 h-3.5 text-destructive mt-0.5 shrink-0" />
-            <p className="text-xs text-destructive leading-relaxed">{briefing.risk_alert}</p>
+            <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-destructive" />
+            <p className="text-xs leading-relaxed text-destructive">{briefing.risk_alert}</p>
           </div>
         </div>
       )}
 
       {/* Key metrics row */}
       <div className="grid grid-cols-3 gap-1.5">
-        <div className="bg-muted/20 rounded-md p-1.5 text-center">
+        <div className="rounded-md bg-muted/20 p-1.5 text-center">
           <p className="text-[10px] text-muted-foreground">Último contato</p>
           <p className="text-xs font-medium">
             {briefing.days_since_last_contact != null
@@ -73,17 +73,22 @@ function BriefingCard({ briefing }: { briefing: ContactBriefing }) {
               : '—'}
           </p>
         </div>
-        <div className="bg-muted/20 rounded-md p-1.5 text-center">
+        <div className="rounded-md bg-muted/20 p-1.5 text-center">
           <p className="text-[10px] text-muted-foreground">Interações</p>
           <p className="text-xs font-medium">{briefing.total_interactions}</p>
         </div>
-        <div className="bg-muted/20 rounded-md p-1.5 text-center">
+        <div className="rounded-md bg-muted/20 p-1.5 text-center">
           <p className="text-[10px] text-muted-foreground">Score</p>
-          <p className={cn(
-            'text-xs font-medium',
-            (briefing.relationship_score || 0) >= 70 ? 'text-success' :
-            (briefing.relationship_score || 0) >= 40 ? 'text-warning' : 'text-muted-foreground'
-          )}>
+          <p
+            className={cn(
+              'text-xs font-medium',
+              (briefing.relationship_score || 0) >= 70
+                ? 'text-success'
+                : (briefing.relationship_score || 0) >= 40
+                  ? 'text-warning'
+                  : 'text-muted-foreground'
+            )}
+          >
             {briefing.relationship_score || '—'}
           </p>
         </div>
@@ -105,23 +110,31 @@ function TriggersSection({ triggers }: { triggers: MentalTrigger[] }) {
   };
 
   return (
-    <div className="space-y-1.5 max-h-[240px] overflow-y-auto scrollbar-thin">
+    <div className="scrollbar-thin max-h-[240px] space-y-1.5 overflow-y-auto">
       {triggers.slice(0, 4).map((trigger) => (
-        <div key={trigger.trigger_name} className="bg-muted/10 rounded-md p-2 text-xs">
-          <div className="flex items-center justify-between mb-1">
+        <div key={trigger.trigger_name} className="rounded-md bg-muted/10 p-2 text-xs">
+          <div className="mb-1 flex items-center justify-between">
             <span className="font-medium">{trigger.trigger_name}</span>
-            <Badge variant="outline" className={cn('text-[9px] py-0 px-1.5', categoryColors[trigger.category] || 'bg-muted/20')}>
+            <Badge
+              variant="outline"
+              className={cn(
+                'px-1.5 py-0 text-[9px]',
+                categoryColors[trigger.category] || 'bg-muted/20'
+              )}
+            >
               {trigger.category}
             </Badge>
           </div>
-          <p className="text-muted-foreground text-[11px] leading-relaxed">{trigger.description}</p>
+          <p className="text-[11px] leading-relaxed text-muted-foreground">{trigger.description}</p>
           {trigger.examples?.[0] && (
-            <p className="text-[10px] text-primary/70 mt-1 italic">Ex: "{trigger.examples[0]}"</p>
+            <p className="mt-1 text-[10px] italic text-primary/70">Ex: "{trigger.examples[0]}"</p>
           )}
         </div>
       ))}
       {triggers.length > 4 && (
-        <p className="text-[10px] text-muted-foreground text-center py-1">+{triggers.length - 4} gatilhos adicionais</p>
+        <p className="py-1 text-center text-[10px] text-muted-foreground">
+          +{triggers.length - 4} gatilhos adicionais
+        </p>
       )}
     </div>
   );
@@ -133,8 +146,11 @@ function RapportSection({ rapport }: { rapport: RapportData }) {
   return (
     <div className="space-y-1.5">
       {rapport.suggestions.map((suggestion, i) => (
-        <div key={`suggestion-${i}`} className="flex items-start gap-2 bg-success/5 border border-success/10 rounded-md p-2">
-          <Heart className="w-3 h-3 text-success mt-0.5 shrink-0" />
+        <div
+          key={`suggestion-${i}`}
+          className="flex items-start gap-2 rounded-md border border-success/10 bg-success/5 p-2"
+        >
+          <Heart className="mt-0.5 h-3 w-3 shrink-0 text-success" />
           <span className="text-xs text-foreground">{suggestion}</span>
         </div>
       ))}
@@ -147,7 +163,7 @@ function BestTimesSection({ times }: { times: BestTime[] }) {
 
   if (!times.length) {
     return (
-      <div className="bg-muted/10 rounded-md p-2 text-xs text-muted-foreground">
+      <div className="rounded-md bg-muted/10 p-2 text-xs text-muted-foreground">
         <p>Sem dados suficientes. Sugestão: Seg–Sex entre 9h e 11h costuma ter melhor resposta.</p>
       </div>
     );
@@ -156,7 +172,10 @@ function BestTimesSection({ times }: { times: BestTime[] }) {
   return (
     <div className="flex flex-wrap gap-1.5">
       {times.map((t) => (
-        <div key={`${t.day_of_week}-${t.hour}`} className="bg-muted/20 rounded-md px-2 py-1 text-center">
+        <div
+          key={`${t.day_of_week}-${t.hour}`}
+          className="rounded-md bg-muted/20 px-2 py-1 text-center"
+        >
           <p className="text-[10px] text-muted-foreground">{dayNames[t.day_of_week] || '?'}</p>
           <p className="text-xs font-medium">{t.hour}h</p>
           {t.success_rate != null && t.success_rate > 0 && (
@@ -176,18 +195,16 @@ function ChurnAlert({ churn }: { churn: ChurnData }) {
   };
 
   return (
-    <div className={cn('rounded-lg p-2.5 border', levelColors[churn.risk_level] || 'bg-muted/10')}>
-      <div className="flex items-center justify-between mb-1">
+    <div className={cn('rounded-lg border p-2.5', levelColors[churn.risk_level] || 'bg-muted/10')}>
+      <div className="mb-1 flex items-center justify-between">
         <div className="flex items-center gap-1.5">
-          <TrendingDown className="w-3.5 h-3.5" />
+          <TrendingDown className="h-3.5 w-3.5" />
           <span className="text-xs font-medium">Risco de churn</span>
         </div>
         <span className="text-xs font-bold">{Math.round(churn.churn_probability)}%</span>
       </div>
       {churn.recommended_actions && churn.recommended_actions.length > 0 && (
-        <p className="text-[10px] opacity-80 mt-1">
-          {churn.recommended_actions[0]}
-        </p>
+        <p className="mt-1 text-[10px] opacity-80">{churn.recommended_actions[0]}</p>
       )}
     </div>
   );
@@ -211,10 +228,10 @@ function DISCSection({ disc }: { disc: DISCTips }) {
 
       {disc.communication_tips && disc.communication_tips.length > 0 && (
         <div className="space-y-1">
-          <p className="text-[10px] text-muted-foreground font-medium uppercase">Como comunicar:</p>
+          <p className="text-[10px] font-medium uppercase text-muted-foreground">Como comunicar:</p>
           {disc.communication_tips.slice(0, 3).map((tip, i) => (
             <div key={`tip-${i}`} className="flex items-start gap-1.5 text-[11px]">
-              <ThumbsUp className="w-3 h-3 text-success mt-0.5 shrink-0" />
+              <ThumbsUp className="mt-0.5 h-3 w-3 shrink-0 text-success" />
               <span>{tip}</span>
             </div>
           ))}
@@ -223,9 +240,13 @@ function DISCSection({ disc }: { disc: DISCTips }) {
 
       {disc.keywords_to_use && disc.keywords_to_use.length > 0 && (
         <div className="flex flex-wrap gap-1">
-          <span className="text-[10px] text-muted-foreground mr-1">Usar:</span>
+          <span className="mr-1 text-[10px] text-muted-foreground">Usar:</span>
           {disc.keywords_to_use.slice(0, 6).map((kw) => (
-            <Badge key={kw} variant="outline" className="text-[9px] py-0 px-1 bg-success/5 text-success border-success/20">
+            <Badge
+              key={kw}
+              variant="outline"
+              className="border-success/20 bg-success/5 px-1 py-0 text-[9px] text-success"
+            >
               {kw}
             </Badge>
           ))}
@@ -234,9 +255,13 @@ function DISCSection({ disc }: { disc: DISCTips }) {
 
       {disc.keywords_to_avoid && disc.keywords_to_avoid.length > 0 && (
         <div className="flex flex-wrap gap-1">
-          <span className="text-[10px] text-muted-foreground mr-1">Evitar:</span>
+          <span className="mr-1 text-[10px] text-muted-foreground">Evitar:</span>
           {disc.keywords_to_avoid.slice(0, 6).map((kw) => (
-            <Badge key={kw} variant="outline" className="text-[9px] py-0 px-1 bg-destructive/5 text-destructive border-destructive/20">
+            <Badge
+              key={kw}
+              variant="outline"
+              className="border-destructive/20 bg-destructive/5 px-1 py-0 text-[9px] text-destructive"
+            >
               {kw}
             </Badge>
           ))}
@@ -266,15 +291,11 @@ function ContactIntelligencePanelInner({ phone }: ContactIntelligencePanelProps)
   if (!data?.found) return null;
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="space-y-4"
-    >
+    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
       {/* Briefing */}
       <div className="space-y-1.5">
-        <h5 className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
-          <Target className="w-3.5 h-3.5 text-primary" />
+        <h5 className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+          <Target className="h-3.5 w-3.5 text-primary" />
           Briefing pré-contato
         </h5>
         <BriefingCard briefing={data.briefing} />
@@ -283,8 +304,8 @@ function ContactIntelligencePanelInner({ phone }: ContactIntelligencePanelProps)
       {/* DISC Tips */}
       {data.disc_tips && (
         <div className="space-y-1.5">
-          <h5 className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
-            <Brain className="w-3.5 h-3.5 text-primary" />
+          <h5 className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+            <Brain className="h-3.5 w-3.5 text-primary" />
             Perfil DISC — comunicação
           </h5>
           <DISCSection disc={data.disc_tips} />
@@ -294,8 +315,8 @@ function ContactIntelligencePanelInner({ phone }: ContactIntelligencePanelProps)
       {/* Triggers */}
       {data.triggers.length > 0 && (
         <div className="space-y-1.5">
-          <h5 className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
-            <Zap className="w-3.5 h-3.5 text-primary" />
+          <h5 className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+            <Zap className="h-3.5 w-3.5 text-primary" />
             Gatilhos mentais sugeridos
           </h5>
           <TriggersSection triggers={data.triggers} />
@@ -305,8 +326,8 @@ function ContactIntelligencePanelInner({ phone }: ContactIntelligencePanelProps)
       {/* Rapport */}
       {data.rapport.suggestions && data.rapport.suggestions.length > 0 && (
         <div className="space-y-1.5">
-          <h5 className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
-            <Heart className="w-3.5 h-3.5 text-primary" />
+          <h5 className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+            <Heart className="h-3.5 w-3.5 text-primary" />
             Rapport
           </h5>
           <RapportSection rapport={data.rapport} />
@@ -315,8 +336,8 @@ function ContactIntelligencePanelInner({ phone }: ContactIntelligencePanelProps)
 
       {/* Best times */}
       <div className="space-y-1.5">
-        <h5 className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
-          <Clock className="w-3.5 h-3.5 text-primary" />
+        <h5 className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+          <Clock className="h-3.5 w-3.5 text-primary" />
           Melhores horários
         </h5>
         <BestTimesSection times={data.best_times} />
@@ -325,8 +346,8 @@ function ContactIntelligencePanelInner({ phone }: ContactIntelligencePanelProps)
       {/* Churn */}
       {data.churn && (
         <div className="space-y-1.5">
-          <h5 className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
-            <Shield className="w-3.5 h-3.5 text-primary" />
+          <h5 className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+            <Shield className="h-3.5 w-3.5 text-primary" />
             Risco de perda
           </h5>
           <ChurnAlert churn={data.churn} />

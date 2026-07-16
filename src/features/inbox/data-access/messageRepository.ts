@@ -1,4 +1,4 @@
-import { dbFrom, dbChannel, dbList } from '@/integrations/datasource/db';
+import { dbFrom, dbChannel, dbList, dbRemoveChannel } from '@/integrations/datasource/db';
 import { RPC } from '@/integrations/datasource/rpcCatalog';
 import { normalizeMessage } from '@/integrations/supabase/rowNormalizers';
 import { RealtimePostgresChangesPayload, RealtimeChannel } from '@supabase/supabase-js';
@@ -75,16 +75,17 @@ export const messageRepository = {
     // Wrap callbacks para normalizar new/old rows via normalizeMessage antes de
     // entregar ao consumidor — garante shape canônico (agent_id, external_id)
     // mesmo quando a tabela-fonte emite aliases legados (sender_id, external_message_id).
-    const wrap = (
-      cb: (payload: RealtimePostgresChangesPayload<Message>) => void,
-    ) =>
+    const wrap =
+      (cb: (payload: RealtimePostgresChangesPayload<Message>) => void) =>
       (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => {
-        const normNew = payload.new && Object.keys(payload.new).length
-          ? normalizeMessage(payload.new as never)
-          : null;
-        const normOld = payload.old && Object.keys(payload.old).length
-          ? normalizeMessage(payload.old as never)
-          : null;
+        const normNew =
+          payload.new && Object.keys(payload.new).length
+            ? normalizeMessage(payload.new as never)
+            : null;
+        const normOld =
+          payload.old && Object.keys(payload.old).length
+            ? normalizeMessage(payload.old as never)
+            : null;
         cb({
           ...payload,
           new: (normNew ?? payload.new) as Message,
@@ -97,18 +98,33 @@ export const messageRepository = {
     const channel = dbChannel('messages', `messages:${contactId}`)
       .on(
         'postgres_changes',
-        { event: 'INSERT', schema: 'evo', table: 'evolution_messages', filter: `contact_id=eq.${contactId}` },
-        wrap(callbacks.onInsert),
+        {
+          event: 'INSERT',
+          schema: 'evo',
+          table: 'evolution_messages',
+          filter: `contact_id=eq.${contactId}`,
+        },
+        wrap(callbacks.onInsert)
       )
       .on(
         'postgres_changes',
-        { event: 'UPDATE', schema: 'evo', table: 'evolution_messages', filter: `contact_id=eq.${contactId}` },
-        wrap(callbacks.onUpdate),
+        {
+          event: 'UPDATE',
+          schema: 'evo',
+          table: 'evolution_messages',
+          filter: `contact_id=eq.${contactId}`,
+        },
+        wrap(callbacks.onUpdate)
       )
       .on(
         'postgres_changes',
-        { event: 'DELETE', schema: 'evo', table: 'evolution_messages', filter: `contact_id=eq.${contactId}` },
-        wrap(callbacks.onDelete),
+        {
+          event: 'DELETE',
+          schema: 'evo',
+          table: 'evolution_messages',
+          filter: `contact_id=eq.${contactId}`,
+        },
+        wrap(callbacks.onDelete)
       )
       .subscribe();
 
@@ -117,5 +133,6 @@ export const messageRepository = {
 
   unsubscribe(channel: RealtimeChannel) {
     channel.unsubscribe();
+    dbRemoveChannel('messages', channel);
   },
 };

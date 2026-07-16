@@ -1,7 +1,10 @@
 // Consolidated Search & Discovery Management Module (ETAPA 36)
 // Consolidates: useGlobalSearchShortcut, useKnowledgeBaseSearch, useSearchHistory, useSearchInsights, useChatSearch
 import { useState, useCallback, useRef, useEffect } from 'react';
+import { useMountedRef } from '@/hooks/useMountedRef';
 import { supabase } from '@/integrations/supabase/client';
+import { safeClient } from '@/integrations/supabase/safeClient';
+import { callExtRpc } from '@/integrations/supabase/externalClient';
 import { log } from '@/lib/logger';
 
 interface SearchResult {
@@ -18,6 +21,7 @@ interface SearchHistoryEntry {
   query: string;
   timestamp: string;
   result_type: string;
+  resultCount?: number;
 }
 
 /** Manages global search modal with Ctrl+K keyboard shortcut. */
@@ -119,7 +123,9 @@ export function useSearchHistoryManagement() {
   const addToHistory = useCallback(
     async (query: string, resultType: string) => {
       try {
-        await supabase.from('search_history').insert({ query, result_type: resultType });
+        await safeClient.from('search_history', (q) =>
+          q.insert({ query, result_type: resultType })
+        );
         await fetchHistory();
       } catch (err) {
         if (mountedRef.current) {
@@ -132,7 +138,7 @@ export function useSearchHistoryManagement() {
 
   const clearHistory = useCallback(async () => {
     try {
-      await supabase.from('search_history').delete().gt('id', 0);
+      await safeClient.from('search_history', (q) => q.delete().gt('id', 0));
       if (mountedRef.current) setHistory([]);
     } catch (err) {
       if (mountedRef.current) {
@@ -148,29 +154,100 @@ export function useSearchHistoryManagement() {
   return { history, loading, addToHistory, clearHistory, refetch: fetchHistory };
 }
 
+export interface SearchInsightsTopQuery {
+  query: string;
+  count: number;
+}
+
+export interface SearchInsightsZeroResult {
+  query: string;
+  attempts: number;
+}
+
+export interface SearchInsights {
+  top_queries: SearchInsightsTopQuery[];
+  zero_results: SearchInsightsZeroResult[];
+  total_searches: number;
+  unique_queries: number;
+  vector_searches: number;
+  vector_share: number;
+  total_clicks: number;
+  click_through_rate: number;
+  zero_result_count: number;
+  zero_result_rate: number;
+}
+
+/** Coerce any value into a finite number, defaulting to 0. */
+function toFiniteNumber(value: unknown, fallback = 0): number {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value === 'string') {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return fallback;
+}
+
+function toStringSafe(value: unknown, fallback = ''): string {
+  return typeof value === 'string' ? value : fallback;
+}
+
+function toTopQueries(value: unknown): SearchInsightsTopQuery[] {
+  if (!Array.isArray(value)) return [];
+  return value.map((row) => {
+    const r = (row ?? {}) as Record<string, unknown>;
+    return { query: toStringSafe(r.query), count: toFiniteNumber(r.count) };
+  });
+}
+
+function toZeroResults(value: unknown): SearchInsightsZeroResult[] {
+  if (!Array.isArray(value)) return [];
+  return value.map((row) => {
+    const r = (row ?? {}) as Record<string, unknown>;
+    return { query: toStringSafe(r.query), attempts: toFiniteNumber(r.attempts) };
+  });
+}
+
+/** Type-safe parser: converts an unknown RPC payload into a fully-populated SearchInsights. */
+export function normalizeSearchInsights(raw: unknown): SearchInsights {
+  const r = (raw ?? {}) as Record<string, unknown>;
+  return {
+    total_searches: toFiniteNumber(r.total_searches),
+    unique_queries: toFiniteNumber(r.unique_queries),
+    vector_searches: toFiniteNumber(r.vector_searches),
+    vector_share: toFiniteNumber(r.vector_share),
+    total_clicks: toFiniteNumber(r.total_clicks),
+    click_through_rate: toFiniteNumber(r.click_through_rate),
+    zero_result_count: toFiniteNumber(r.zero_result_count),
+    zero_result_rate: toFiniteNumber(r.zero_result_rate),
+    top_queries: toTopQueries(r.top_queries),
+    zero_results: toZeroResults(r.zero_results ?? r.zero_result_queries),
+  };
+}
+
 /** Retrieves search insights and trends for specified time window. */
 export function useSearchInsightsManagement(timeWindow: number = 7) {
-  const [insights, setInsights] = useState<any>(null);
+  const [insights, setInsights] = useState<SearchInsights | null>(null);
   const [loading, setLoading] = useState(true);
+  const mounted = useMountedRef();
 
   useEffect(() => {
     const fetchInsights = async () => {
       try {
-        const { data, error: err } = await supabase.rpc('get_search_insights', {
+        const { data, error: err } = await callExtRpc(supabase, 'get_search_insights', {
           days: timeWindow,
         });
 
         if (err) throw err;
-        setInsights(data);
+        if (mounted.current) setInsights(normalizeSearchInsights(data));
       } catch (err) {
         log.error('Error fetching search insights:', err);
       } finally {
-        setLoading(false);
+        if (mounted.current) setLoading(false);
       }
     };
 
     fetchInsights();
-  }, [timeWindow]);
+  }, [timeWindow, mounted]);
 
   return { insights, loading };
 }
@@ -189,7 +266,7 @@ export function useChatSearchManagement(chatId: string, query: string) {
     const search = async () => {
       try {
         setLoading(true);
-        const { data, error: err } = await supabase.rpc('search_chat_messages', {
+        const { data, error: err } = await callExtRpc(supabase, 'search_chat_messages', {
           chat_id: chatId,
           search_query: query,
         });

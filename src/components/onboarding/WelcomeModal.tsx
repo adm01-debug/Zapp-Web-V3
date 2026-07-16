@@ -39,6 +39,7 @@ export const WelcomeModal = forwardRef<HTMLDivElement, WelcomeModalProps>(functi
 
           {/* Close button */}
           <button
+            type="button"
             onClick={onClose}
             className="absolute right-4 top-4 z-10 rounded-full p-2 transition-colors hover:bg-muted"
           >

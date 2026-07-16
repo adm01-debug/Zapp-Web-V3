@@ -1,3 +1,4 @@
+import { queryKeys } from '@/services/api/queryKeys';
 import { useQuery } from '@tanstack/react-query';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -24,12 +25,13 @@ interface StsReportRow {
 
 export function StsCommercialDashboard() {
   const { data: stats = [], isLoading: loading } = useQuery<StsReportRow[]>({
-    queryKey: ['admin', 'sts-commercial-dashboard'],
+    queryKey: queryKeys.adminOps.stsDashboard(),
     queryFn: async () => {
       try {
         // sts_troubleshooting_report is the view created in the previous turn
-        const { data, error } = await safeClient.from<StsReportRow>('sts_troubleshooting_report', (q) =>
-          q.select('*')
+        const { data, error } = await safeClient.from<StsReportRow>(
+          'sts_troubleshooting_report',
+          (q) => q.select('*')
         );
 
         if (error) throw error;

@@ -51,27 +51,22 @@ export const connectionsRepository = {
   listWhatsAppConnections: (filters?: Partial<WhatsAppConnection> & QueryParams) =>
     whatsappBaseService.list(filters),
 
-  getWhatsAppConnection: (id: string) =>
-    whatsappBaseService.get(id),
+  getWhatsAppConnection: (id: string) => whatsappBaseService.get(id),
 
-  searchWhatsAppConnections: (query: string) =>
-    whatsappBaseService.search(query),
+  searchWhatsAppConnections: (query: string) => whatsappBaseService.search(query),
 
-  createWhatsAppConnection: (data: Partial<WhatsAppConnection>) =>
-    whatsappBaseService.create(data),
+  createWhatsAppConnection: (data: Partial<WhatsAppConnection>) => whatsappBaseService.create(data),
 
   updateWhatsAppConnection: (id: string, updates: Partial<WhatsAppConnection>) =>
     whatsappBaseService.update(id, updates),
 
-  deleteWhatsAppConnection: (id: string) =>
-    whatsappBaseService.delete(id),
+  deleteWhatsAppConnection: (id: string) => whatsappBaseService.delete(id),
 
-  deleteWhatsAppConnectionsBulk: (ids: string[]) =>
-    whatsappBaseService.deleteMany(ids),
+  deleteWhatsAppConnectionsBulk: (ids: string[]) => whatsappBaseService.deleteMany(ids),
 
   // Channel connections
   async listChannelConnections(filters?: Partial<ChannelConnection> & QueryParams) {
-    const { data, error, count } = await (supabase as any)
+    const { data, error, count } = await supabase
       .from('channel_connections')
       .select('*', { count: 'exact' })
       .limit(filters?.limit || 50)
@@ -81,11 +76,11 @@ export const connectionsRepository = {
   },
 
   async getChannelConnection(id: string) {
-    const { data, error } = await (supabase as any)
+    const { data, error } = await supabase
       .from('channel_connections')
       .select('*')
       .eq('id', id)
-      .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
+      .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
 
     return { data, error };
   },
@@ -93,11 +88,11 @@ export const connectionsRepository = {
   // Connection health
   async checkConnectionHealth(connectionId: string) {
     try {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from('whatsapp_connections')
         .select('connection_status, error_message')
         .eq('id', connectionId)
-        .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
+        .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
 
       if (error) return { data: null, error };
       return { data, error: null };

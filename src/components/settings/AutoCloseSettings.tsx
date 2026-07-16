@@ -34,7 +34,7 @@ export function AutoCloseSettings() {
     return (
       <Card>
         <CardContent className="p-6">
-          <div className="animate-pulse h-32 bg-muted rounded" />
+          <div className="h-32 animate-pulse rounded bg-muted" />
         </CardContent>
       </Card>
     );
@@ -44,7 +44,7 @@ export function AutoCloseSettings() {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-lg">
-          <Timer className="w-5 h-5 text-primary" />
+          <Timer className="h-5 w-5 text-primary" />
           Auto-fechamento de Conversas
         </CardTitle>
         <CardDescription>
@@ -56,11 +56,7 @@ export function AutoCloseSettings() {
           <Label htmlFor="auto-close-toggle" className="font-medium">
             Ativar auto-fechamento
           </Label>
-          <Switch
-            id="auto-close-toggle"
-            checked={enabled}
-            onCheckedChange={setEnabled}
-          />
+          <Switch id="auto-close-toggle" checked={enabled} onCheckedChange={setEnabled} />
         </div>
 
         <div className="space-y-2">
@@ -92,7 +88,7 @@ export function AutoCloseSettings() {
         </div>
 
         <Button onClick={handleSave} disabled={updateConfig.isPending} className="gap-2">
-          <Save className="w-4 h-4" />
+          <Save className="h-4 w-4" />
           {updateConfig.isPending ? 'Salvando...' : 'Salvar Configuração'}
         </Button>
       </CardContent>

@@ -68,6 +68,7 @@ export const MessageReactions = memo(function MessageReactions({
     >
       {reactions.map((r) => (
         <button
+          type="button"
           key={r.emoji}
           onClick={() => onToggle(r.emoji)}
           className={cn(
@@ -93,6 +94,7 @@ export const MessageReactions = memo(function MessageReactions({
       <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
         <PopoverTrigger asChild>
           <button
+            type="button"
             className={cn(
               'transition-all focus-visible:opacity-100',
               'rounded-full p-1 outline-none focus-visible:ring-2 focus-visible:ring-primary',
@@ -181,6 +183,7 @@ export const TeamQuickReactionBar = memo(function TeamQuickReactionBar({
       >
         {QUICK_EMOJIS.map((emoji) => (
           <button
+            type="button"
             key={emoji}
             onClick={() => handleReact(emoji)}
             aria-label={`Reagir com ${emoji}`}
@@ -196,6 +199,7 @@ export const TeamQuickReactionBar = memo(function TeamQuickReactionBar({
         <Popover open={showPicker} onOpenChange={setShowPicker}>
           <PopoverTrigger asChild>
             <button
+              type="button"
               className="flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground outline-none transition-all hover:bg-muted/80 hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary"
               aria-label="Mais reações"
             >
@@ -212,6 +216,7 @@ export const TeamQuickReactionBar = memo(function TeamQuickReactionBar({
             <div className="grid grid-cols-6 gap-1 outline-none" role="grid">
               {EXTENDED_EMOJIS.map((emoji) => (
                 <button
+                  type="button"
                   key={emoji}
                   role="gridcell"
                   aria-label={`Reagir com ${emoji}`}

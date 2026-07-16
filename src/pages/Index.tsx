@@ -35,34 +35,41 @@ const Index = forwardRef<HTMLDivElement>(function Index(_props, _ref) {
 
 function LoadingSplash() {
   return (
-    <div
-      className="flex items-center justify-center h-screen bg-background relative overflow-hidden"
-      role="status"
+    <main
+      className="relative flex h-dvh items-center justify-center overflow-hidden bg-background"
+      role="main"
       aria-busy="true"
       aria-label="Carregando aplicação"
     >
-      <div className="absolute inset-0">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/20 rounded-full blur-3xl animate-pulse" />
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-primary-glow/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
-      </div>
-      <div className="text-center relative z-10 animate-fade-in">
+      <h1 className="sr-only">ZAPP Web — Carregando</h1>
+      <div className="absolute inset-0" aria-hidden="true">
+        <div className="absolute left-1/4 top-1/4 h-96 w-96 animate-pulse rounded-full bg-primary/20 blur-3xl" />
         <div
-          className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6 relative animate-pulse"
+          className="absolute bottom-1/4 right-1/4 h-96 w-96 animate-pulse rounded-full bg-primary-glow/10 blur-3xl"
+          style={{ animationDelay: '1s' }}
+        />
+      </div>
+      <div className="relative z-10 animate-fade-in text-center">
+        <div
+          className="relative mx-auto mb-6 flex h-16 w-16 animate-pulse items-center justify-center rounded-2xl"
           style={{ background: 'var(--gradient-primary)' }}
         >
-          <Sparkles className="w-8 h-8 text-primary-foreground" />
+          <Sparkles className="h-8 w-8 text-primary-foreground" />
         </div>
-        <h2 className="font-display text-xl font-semibold text-foreground mb-2">Carregando</h2>
-        <p className="text-muted-foreground text-sm">Preparando sua experiência...</p>
-        <div className="flex gap-1.5 justify-center mt-6" aria-hidden="true">
+        <p className="mb-2 font-display text-xl font-semibold text-foreground">Carregando</p>
+        <p className="text-sm text-muted-foreground">Preparando sua experiência...</p>
+        <div className="mt-6 flex justify-center gap-1.5" aria-hidden="true">
           {[0, 1, 2].map((i) => (
-            <div key={i} className="w-2 h-2 rounded-full bg-primary animate-pulse" style={{ animationDelay: `${i * 150}ms` }} />
+            <div
+              key={i}
+              className="h-2 w-2 animate-pulse rounded-full bg-primary"
+              style={{ animationDelay: `${i * 150}ms` }}
+            />
           ))}
         </div>
       </div>
-    </div>
+    </main>
   );
 }
 
 export default Index;
-

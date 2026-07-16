@@ -16,6 +16,7 @@ export const EDGE_FUNCTION_NAMES = [
   'ai-conversation-summary',
   'ai-enhance-message',
   'ai-proxy',
+  'ai-router',
   'ai-suggest-reply',
   'ai-transcribe-audio',
   'analyze-external-db',
@@ -78,6 +79,7 @@ export const EDGE_FUNCTION_NAMES = [
   'gmail-sync',
   'gmail-token-refresh',
   'gmail-webhook',
+  'health',
   'health-check',
   'hello',
   'instance-pause-control',
@@ -86,6 +88,7 @@ export const EDGE_FUNCTION_NAMES = [
   'main',
   'mcp',
   'mcp-server',
+  'metrics',
   'migrate-media-storage',
   'nps-scheduler',
   'outlook-oauth',
@@ -196,6 +199,11 @@ export const ContractLifecycles: Record<string, ContractLifecycle> = {
 const specificEdgeFunctionSchemas: Partial<
   Record<(typeof EDGE_FUNCTION_NAMES)[number], ContractVersionMap>
 > = {
+  'ai-router': {
+    v1: z.object({ action: z.string().min(1) }).passthrough(),
+  },
+  'health': { v1: NoBodySchema },
+  'metrics': { v1: NoBodySchema },
   'ai-conversation-summary': {
     v1: z
       .object({

@@ -22,15 +22,15 @@ export default function PerformanceDashboard() {
   const getMetricIcon = (name: string) => {
     switch (name) {
       case 'LCP':
-        return <Zap className="h-5 w-5 text-yellow-500" />;
+        return <Zap className="h-5 w-5 text-warning" />;
       case 'FID':
-        return <Timer className="h-5 w-5 text-blue-500" />;
+        return <Timer className="h-5 w-5 text-primary" />;
       case 'CLS':
-        return <Layout className="h-5 w-5 text-purple-500" />;
+        return <Layout className="h-5 w-5 text-secondary" />;
       case 'TTFB':
-        return <Timer className="h-5 w-5 text-green-500" />;
+        return <Timer className="h-5 w-5 text-success" />;
       case 'INP':
-        return <Gauge className="h-5 w-5 text-orange-500" />;
+        return <Gauge className="h-5 w-5 text-warning" />;
       default:
         return <BarChart3 className="h-5 w-5" />;
     }
@@ -60,7 +60,7 @@ export default function PerformanceDashboard() {
               <Badge
                 variant={m.rating === 'good' ? 'default' : 'destructive'}
                 className={
-                  m.rating === 'good' ? 'border-green-500/20 bg-green-500/10 text-green-500' : ''
+                  m.rating === 'good' ? 'border-success/20 bg-success/10 text-success' : ''
                 }
               >
                 {m.rating.toUpperCase()}

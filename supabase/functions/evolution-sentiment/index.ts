@@ -5,7 +5,7 @@ import { requireServiceRoleOrCron } from "../_shared/auth.ts";
 import { getSecret } from "../_shared/vault.ts";
 
 import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
-const supabase = createClient((Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'))!, (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY', { db: { schema: "zapp" } }) ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))!, { auth: { persistSession: false } });
+const supabase = createClient((Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'))!, (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))!, { auth: { persistSession: false }, db: { schema: "zapp" } });
 interface SentimentResult {
   sentiment: string;
   score: number;

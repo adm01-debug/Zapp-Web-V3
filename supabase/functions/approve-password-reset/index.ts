@@ -79,8 +79,8 @@ Deno.serve(async (req) => {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) return errorResponse("Authorization header required", 401, req);
 
-    const supabaseUser = createClient(supabaseUrl, requireEnv("SUPABASE_ANON_KEY", { db: { schema: "zapp" } }), {
-      global: { headers: { Authorization: authHeader } },
+    const supabaseUser = createClient(supabaseUrl, requireEnv("SUPABASE_ANON_KEY"), {
+      db: { schema: "zapp" }, auth: { persistSession: false }, global: { headers: { Authorization: authHeader } },
     });
 
     const { data: { user }, error: userError } = await supabaseUser.auth.getUser();

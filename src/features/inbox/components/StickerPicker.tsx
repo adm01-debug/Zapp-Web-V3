@@ -172,6 +172,7 @@ export function StickerPicker({ onSendSticker, disabled }: StickerPickerProps) {
             />
             {search && (
               <button
+                type="button"
                 onClick={() => {
                   setSearch('');
                   searchInputRef.current?.focus();
