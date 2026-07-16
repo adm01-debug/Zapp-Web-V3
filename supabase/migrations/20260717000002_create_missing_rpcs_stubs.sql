@@ -58,16 +58,12 @@ AS $$
 BEGIN
   -- Stub: log the intent so calls are auditable, but do nothing.
   -- Replace with real CRM integration when implemented.
-  INSERT INTO zapp.audit_logs (
-    entity_type,
-    entity_id,
-    action,
-    details
-  ) VALUES (
-    'crm_sync_stub',
-    entity_id,
+  -- Record the sync attempt for observability (uses only columns present in all
+  -- audit_logs schema variants: action + details).
+  INSERT INTO zapp.audit_logs (action, details)
+  VALUES (
     'sync_to_crm',
-    entity_data
+    jsonb_build_object('entity_id', entity_id, 'entity_data', entity_data)
   );
 END;
 $$;
