@@ -243,8 +243,10 @@ src/hooks/useNotificationManagement.ts
 src/hooks/useOnboarding.ts
 src/hooks/useRealtimeManagement.ts
 src/hooks/useRetryAndErrorPrevention.ts
+src/hooks/useScheduledMessages.ts
 src/hooks/useSearchManagement.ts
 src/hooks/useSearchNavigationManagement.ts
+src/hooks/useSentimentAlerts.ts
 src/hooks/useSettingsManagement.ts
 src/hooks/useTags.ts
 src/hooks/useUIInteractionManagement.ts
@@ -306,7 +308,10 @@ src/services/connections/connectionsRepository.ts
 src/services/connections/useConnectionsQueries.ts
 src/services/contacts/contactsRepository.ts
 src/services/contacts/useContactsQueries.ts
+src/services/email/emailHealthService.ts
 src/services/messages/messagesRepository.ts
+src/services/messages/useMessagesQueries.ts
+src/services/queues/useQueuesQueries.ts
 src/services/settings/settingsRepository.ts
 src/services/settings/settingsService.ts
 src/services/users/useUsersQueries.ts
