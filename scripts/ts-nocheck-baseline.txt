@@ -9,11 +9,6 @@ src/components/talkx/__tests__/TalkX.test.tsx
 src/components/talkx/useCampaignEditor.ts
 src/features/admin/components/AdminView.tsx
 src/features/admin/hooks/useAdminManagement.ts
-src/features/contacts/hooks/useContactEnrichedData.ts
-src/features/contacts/hooks/useContactNotes.ts
-src/features/contacts/hooks/useContactsSearch.ts
-src/features/dashboard/hooks/useDashboardVisualizationManagement.ts
-src/features/emojis/hooks/useCustomEmojis.ts
 src/features/inbox/components/AnalysisBadges.tsx
 src/features/inbox/components/ChatPanel.tsx
 src/features/inbox/components/CloseConversationDialog.tsx
