@@ -1,9 +1,4 @@
 src/features/admin/hooks/useAdminManagement.ts
-src/hooks/__tests__/useExternalEvolution.reconcile.test.ts
-src/hooks/__tests__/useGoalNotifications.test.ts
-src/hooks/__tests__/useImportData.test.ts
-src/hooks/__tests__/useMFA.test.tsx
-src/hooks/__tests__/useOnboardingChecklist.test.tsx
 src/hooks/__tests__/usePullToRefresh.test.ts
 src/hooks/__tests__/usePushNotifications.test.ts
 src/hooks/__tests__/useQueueManagement.test.tsx
