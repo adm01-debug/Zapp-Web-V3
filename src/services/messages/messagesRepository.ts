@@ -108,23 +108,4 @@ export const messagesRepository = {
     return { error };
   },
 
-  // Realtime subscriptions
-  subscribeToMessages: (conversationId: string, callback: (message: Message) => void) => {
-    return supabase
-      .channel(`messages:${conversationId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'zapp',
-          table: 'messages',
-          filter: `conversation_id=eq.${conversationId}`,
-        },
-        (payload: { new: unknown; old: unknown }) => callback((payload.new || payload.old) as Message)
-      )
-      .subscribe();
-  },
-
-  subscribeToConversations: (callback: (conversation: Conversation) => void) =>
-    conversationsBaseService.subscribe(callback),
 };

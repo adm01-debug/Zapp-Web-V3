@@ -135,11 +135,9 @@ flowchart LR
   UTN -.-> MB
 
   %% AUTO:CLICKS:START — gerado por scripts/regen-trilha-mensagens.ts
-  click AMP "src/features/inbox/components/useAudioMessagePlayer.ts"
   click BATCH "src/features/inbox/hooks/realtime/useMessageUpdateBatcher.ts"
   click BUCKET "src/lib/sendIdempotency.ts"
   click CIL "src/features/inbox/components/chat/useChatInputLogic.ts"
-  click CMA "src/features/inbox/components/chat/ChatMessagesArea.tsx"
   click DLQENQ "src/lib/failedMessagesEnqueue.ts"
   click DLQRP "supabase/functions/reprocess-failed-messages/index.ts"
   click EMIT "src/features/inbox/hooks/realtime/sendStatusBus.ts"
@@ -158,15 +156,8 @@ flowchart LR
   click RETRY "src/lib/retry.ts"
   click RUTL "src/features/inbox/hooks/realtime/realtimeUtils.ts"
   click SUBALL "src/features/inbox/hooks/realtime/sendStatusBus.ts"
-  click UEM "src/components/monitoring/hooks/useEvolutionMonitoring.ts"
-  click UM "src/features/inbox/hooks/useMessages.ts"
-  click UMS "src/features/inbox/hooks/useMessageStatus.ts"
   click UMSS "src/features/inbox/hooks/realtime/useMessageSendStatus.ts"
-  click URD "src/hooks/useRealtimeDashboard.ts"
-  click URM "src/features/inbox/hooks/useRealtimeMessages.ts"
   click URN "src/features/inbox/hooks/realtime/useRealtimeNotifications.ts"
-  click URRA "src/features/inbox/hooks/realtime/useRetryResolutionAlerts.ts"
-  click UTN "src/hooks/useTranscriptionNotifications.ts"
   click VML "src/features/inbox/components/VirtualizedMessageList.tsx"
   %% AUTO:CLICKS:END
 
@@ -176,15 +167,6 @@ flowchart LR
 %%   ==>   escrita persistente em DB
 %%   -.->  evento realtime / pub-sub in-memory
 %%   -..-> enqueue assincrona (DLQ)
-%% Fan-out realtime (postgres_changes 'messages'): 9 consumidores diretos
-%%   1. useRealtimeMessages              — feed global do inbox (INSERT/UPDATE/DELETE)
-%%   2. useMessages                      — lista por contato aberto (INSERT/UPDATE/DELETE)
-%%   3. useMessageStatus                 — status sent/delivered/read por mensagem (UPDATE)
-%%   4. useTranscriptionNotifications    — alerta quando transcricao conclui (UPDATE)
-%%   5. useRealtimeDashboard             — KPIs em tempo real (INSERT)
-%%   6. useEvolutionMonitoring           — saude do webhook/instancia (INSERT)
-%%   7. useAudioMessagePlayer             — refresh de media_url assinada (UPDATE)
-%%   8. useRetryResolutionAlerts         — toast quando retrying -> sent/failed (UPDATE)
-%%   9. ChatMessagesArea                 — refetch/scroll no realtime (INSERT/UPDATE)
-%% Gerado por scripts/regen-trilha-mensagens.ts em 2026-05-06T22:21:06.045Z
+%% Fan-out realtime (postgres_changes 'messages'): 0 consumidores diretos
+%% Gerado por scripts/regen-trilha-mensagens.ts em 2026-07-16T18:58:13.683Z
 %% AUTO:LEGEND:END
