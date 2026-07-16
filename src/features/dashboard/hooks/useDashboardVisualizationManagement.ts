@@ -202,9 +202,12 @@ export function useDashboardDataManagement(filters?: DashboardFilters) {
       return updatedAt >= today && !c.assigned_to;
     }).length;
 
-    const queuesStats: QueueStats[] = (queuesData as any[]).map(queue => {
-      const members = queue.queue_members || [];
-      const onlineMembers = members.filter((m: any) => m.is_active && m.profiles?.is_active).length;
+    const queuesStats: QueueStats[] = queuesData.map(queue => {
+      const members = (queue.queue_members as { is_active: boolean | null; profiles: { is_active: boolean | null } | { is_active: boolean | null }[] | null }[] | null) ?? [];
+      const onlineMembers = members.filter((m) => {
+        const profile = Array.isArray(m.profiles) ? m.profiles[0] : m.profiles;
+        return m.is_active && profile?.is_active;
+      }).length;
       return {
         id: queue.id,
         name: queue.name,
@@ -284,7 +287,7 @@ export function useDashboardWidgetsManagement() {
   }, []);
 
   const updateWidgetSize = useCallback((widgetId: string, newSize: string) => {
-    setWidgets(prev => prev.map(widget => widget.id === widgetId ? { ...widget, size: newSize as any, width: sizeToGrid[newSize]?.width, height: sizeToGrid[newSize]?.height } : widget));
+    setWidgets(prev => prev.map(widget => widget.id === widgetId ? { ...widget, size: newSize as DashboardWidget['size'], width: sizeToGrid[newSize]?.width, height: sizeToGrid[newSize]?.height } : widget));
   }, []);
 
   const updateWidgetPosition = useCallback((widgetId: string, column: number, row: number) => {
@@ -474,7 +477,7 @@ export function useLeaderboardManagement() {
       if (!mountedRef.current) return;
 
       setAgents(
-        (rawStats as any[]).map((stat, index) => {
+        rawStats.map((stat, index) => {
           const profile = Array.isArray(stat.profiles) ? stat.profiles[0] : stat.profiles;
           return {
             id: stat.id,

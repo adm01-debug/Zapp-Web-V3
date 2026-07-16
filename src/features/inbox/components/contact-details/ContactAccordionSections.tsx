@@ -102,7 +102,7 @@ export function ContactAccordionSections({
         icon={<Info className="h-3.5 w-3.5 text-primary" />}
         label="Informações"
       >
-        <ContactInfoSection contact={contact as any} enrichedData={enrichedData} />
+        <ContactInfoSection contact={contact} enrichedData={enrichedData} />
       </Section>
 
       <Section

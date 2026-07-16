@@ -167,11 +167,11 @@ export function useMediaUrl(opts: UseMediaUrlOptions): UseMediaUrlResult {
         const { data: cacheRows } = await safeClient.from('media_cache', (q) =>
           q.select('storage_path').eq('file_hash', hash).limit(1)
         );
-        const cacheRow = (cacheRows?.[0] ?? null) as any;
+        const cacheRow = (cacheRows?.[0] ?? null) as { storage_path: string } | null;
 
         if (cacheRow?.storage_path) {
           log.info(`Media cache hit for ${key}`);
-          setUrl((cacheRow as any).storage_path);
+          setUrl(cacheRow.storage_path);
           setError(null);
           setFailed(false);
           return;

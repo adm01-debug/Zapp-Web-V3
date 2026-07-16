@@ -20,7 +20,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 import { useMountedRef } from '@/hooks/useMountedRef';
-import { externalSupabase } from '@/integrations/supabase/externalClient';
+import { externalSupabase, extRpcBuilder } from '@/integrations/supabase/externalClient';
 import type { EvolutionMessage, EvolutionMessageLite } from '@/types/evolutionExternal';
 import { toEvolutionMessageLite } from '@/types/evolutionExternal';
 import { getLogger } from '@/lib/logger';
@@ -97,10 +97,10 @@ export function useMessagesCursor({
       abortRef.current?.abort();
       abortRef.current = controller;
 
-      // NOTE: usa `externalSupabase.rpc` direto (em vez de `dbList(RPC.listMessagesLite, ...)`)
-      // porque precisamos do `.abortSignal()` do PostgrestBuilder — o wrapper `dbRpc`
+      // NOTE: usa `extRpcBuilder` (em vez de `dbList(RPC.listMessagesLite, ...)`)
+      // porque precisamos do `.abortSignal()` do PostgrestBuilder — o wrapper `callExtRpc`
       // resolve a Promise antes do builder ser exposto. Caso de uso raro e justificado.
-      const builder = externalSupabase.rpc('rpc_list_messages_lite' as never, {
+      const builder = extRpcBuilder(externalSupabase, 'rpc_list_messages_lite', {
         p_remote_jid: remoteJid,
         p_instance: instanceName,
         p_limit: pageSize,

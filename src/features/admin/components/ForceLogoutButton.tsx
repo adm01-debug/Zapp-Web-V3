@@ -17,7 +17,7 @@ export function ForceLogoutButton({ userId, userName }: ForceLogoutButtonProps) 
 
     setLoading(true);
     try {
-      const { error } = await (supabase.from('profiles') as any)
+      const { error } = await supabase.from('profiles')
         .update({ session_invalidated_at: new Date().toISOString() })
         .eq('user_id', userId);
 

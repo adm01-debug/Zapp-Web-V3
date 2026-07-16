@@ -100,14 +100,14 @@ export function useSendTeamMessage() {
           if (!oldData?.pages) return oldData;
           const newPages = [...oldData.pages];
           if (newPages.length > 0) {
-            const msgWithSender = {
+            const msgWithSender: TeamMessage = {
               ...data,
               sender: {
-                id: profile?.id,
-                name: profile?.name,
-                avatar_url: profile?.avatar_url,
+                id: profile?.id ?? '',
+                name: profile?.name ?? '',
+                avatar_url: profile?.avatar_url ?? null,
               },
-            } as any;
+            };
             newPages[0] = {
               ...newPages[0],
               messages: [...newPages[0].messages, msgWithSender],
@@ -269,7 +269,7 @@ export function useCreateTeamConversation() {
           })
           .select()
       );
-      const conv = (convRows?.[0] ?? null) as any;
+      const conv = (convRows?.[0] ?? null) as { id: string } | null;
 
       if (convErr) throw convErr;
       if (!conv) throw new Error('Failed to create conversation');
@@ -281,7 +281,7 @@ export function useCreateTeamConversation() {
       const { error: memError } = await supabase
         .from('team_conversation_members')
         .insert(
-          memberProfileIds.map((pid) => ({ conversation_id: (conv as any).id, profile_id: pid }))
+          memberProfileIds.map((pid) => ({ conversation_id: conv.id, profile_id: pid }))
         );
       if (memError) throw memError;
 

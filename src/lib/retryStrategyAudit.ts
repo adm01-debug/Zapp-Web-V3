@@ -113,7 +113,7 @@ export const RETRY_CONFIG_ASYNC: RetryConfig = {
  */
 export function classifyError(error: Error | unknown): RetryableErrorType {
   const msg = (error instanceof Error ? error.message : String(error)).toLowerCase();
-  const code = (error as any)?.code?.toUpperCase() || '';
+  const code = (error as { code?: string })?.code?.toUpperCase() || '';
 
   // Network errors
   if (

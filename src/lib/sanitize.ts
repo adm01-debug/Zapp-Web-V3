@@ -78,7 +78,7 @@ export function sanitizeHtml(html: unknown): string {
       ],
     }).trim();
   } finally {
-    DOMPurify.removeHook(HOOK_NAME as any);
+    DOMPurify.removeHook(HOOK_NAME as never);
   }
   return sanitized;
 }

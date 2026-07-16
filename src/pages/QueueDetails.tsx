@@ -85,7 +85,7 @@ export default function QueueDetails() {
         .eq('id', id)
         .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
       if (queueError) throw queueError;
-      setQueue(queueData as any);
+      setQueue(queueData as QueueDetailsData | null);
 
       const { data: membersData } = await supabase
         .from('queue_members')
