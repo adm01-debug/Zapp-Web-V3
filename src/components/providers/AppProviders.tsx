@@ -8,35 +8,9 @@ import { ValidationProvider } from '@/components/providers/ValidationProvider';
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { getLogger } from '@/lib/logger';
 import { isChunkLoadError, triggerChunkReload } from '@/lib/lazyWithRetry';
+import { tanstackRetry } from '@/lib/errors/queryErrors';
 
 const log = getLogger('AppProviders');
-
-/**
- * Classifica se um erro de query eh permanente (nao adianta retry).
- *
- * Coberturas:
- *  - HTTP 401 / 403 em edge functions ou PostgREST (status no erro)
- *  - PGRST301 - GoTrue "JWT expired"
- *  - 42501 - PostgreSQL permission denied (chega via code, nao via status)
- *  - Mensagem textual contendo permission denied / must be owner
- *
- * Sem esta lista, erros de permissao de banco (code='42501') nao tem
- * campo `status` e escapariam do filtro anterior, gerando retries.
- */
-function isPermanentQueryError(error: unknown): boolean {
-  if (!error || typeof error !== 'object') return false;
-  const e = error as Record<string, unknown>;
-
-  if (e['status'] === 401 || e['status'] === 403) return true;
-  if (e['code'] === 'PGRST301') return true;
-  if (e['code'] === '42501') return true;
-
-  const msg = ((e['message'] as string) ?? '').toLowerCase();
-  if (msg.includes('permission denied') || msg.includes('must be owner')) return true;
-  if (msg.includes('insufficient privilege')) return true;
-
-  return false;
-}
 
 export function AppProviders({ children }: { children: React.ReactNode }) {
   const [errorKey, setErrorKey] = useState(0);
@@ -51,10 +25,10 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
           queries: {
             staleTime: 1000 * 60 * 5,
             gcTime: 1000 * 60 * 60,
-            retry: (failureCount, error) => {
-              if (isPermanentQueryError(error)) return false;
-              return failureCount < 2;
-            },
+            // tanstackRetry e a fonte unica da verdade para retry semantico.
+            // Erros permanentes (401/403/42501/42P01/permission denied) nunca
+            // sao retentados. Erros transientes: max 2 tentativas.
+            retry: tanstackRetry,
           },
         },
       }),
