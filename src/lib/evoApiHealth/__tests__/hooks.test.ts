@@ -1,3 +1,4 @@
+import { queryKeys } from '@/services/api/queryKeys';
 /**
  * Tests for React Query hooks in hooks.ts.
  *
@@ -177,7 +178,7 @@ describe('useAcknowledgeAlert', () => {
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
     expect(invalidateSpy).toHaveBeenCalledWith(
-      expect.objectContaining({ queryKey: ['evo-api-health'] })
+      expect.objectContaining({ queryKey: queryKeys.adminOps.evoApiHealth() })
     );
   });
 });
@@ -283,7 +284,7 @@ describe('useRunTestSuite', () => {
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
     expect(invalidateSpy).toHaveBeenCalledWith(
-      expect.objectContaining({ queryKey: ['evo-api-health'] })
+      expect.objectContaining({ queryKey: queryKeys.adminOps.evoApiHealth() })
     );
   });
 });

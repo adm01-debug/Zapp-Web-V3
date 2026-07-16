@@ -42,7 +42,7 @@ export default function AdminRealtimeMonitorPage() {
   const isLive = autoRefresh && lastEventAt !== null && Date.now() - lastEventAt < 30_000;
 
   const handleManualRefresh = () => {
-    void queryClient.invalidateQueries({ queryKey: ['realtime-monitor'] });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.adminOps.realtimeMonitor() });
     void queryClient.invalidateQueries({ queryKey: queryKeys.failedMessages.all() });
   };
 

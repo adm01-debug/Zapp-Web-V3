@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { queryKeys } from '@/services/api/queryKeys';
 import { useQuery } from '@tanstack/react-query';
 import { dbFrom } from '@/integrations/datasource/db';
 
@@ -30,7 +31,7 @@ const HOURS = Array.from({ length: 24 }, (_, i) => i);
 // Generate heatmap data from real messages
 function useHeatmapData() {
   return useQuery({
-    queryKey: ['conversation-heatmap'],
+    queryKey: queryKeys.adminOps.conversationHeatmap(),
     queryFn: async () => {
       const { data, error } = await dbFrom('messages')
         .select('created_at')

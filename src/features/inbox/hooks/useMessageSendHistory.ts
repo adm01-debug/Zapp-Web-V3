@@ -7,6 +7,7 @@
  * garantir tolerância a linhas legadas e derivação consistente de
  * `finalStatus`.
  */
+import { queryKeys } from '@/services/api/queryKeys';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { fromTable } from '@/lib/supabaseHelpers';
@@ -56,7 +57,7 @@ interface OutboundAuditRow {
 
 export function useMessageSendHistory(messageId: string | undefined, enabled: boolean) {
   return useQuery<MessageSendHistory>({
-    queryKey: ['message-send-history', messageId],
+    queryKey: queryKeys.messageDetails.sendHistory(messageId),
     enabled: Boolean(messageId) && enabled,
     staleTime: STALE_MS,
     queryFn: async (): Promise<MessageSendHistory> => {

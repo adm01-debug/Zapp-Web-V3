@@ -10,6 +10,7 @@
  * React Query. Só roda quando `enabled` (filtro ativado).
  */
 import { useQuery } from '@tanstack/react-query';
+import { queryKeys } from '@/services/api/queryKeys';
 import { supabase } from '@/integrations/supabase/client';
 import type { ConversationWithMessages } from '@/features/inbox';
 
@@ -77,7 +78,7 @@ export function useFailureMetricsBatch(
   const messageIds = enabled ? collectTerminalMessageIds(conversations) : [];
 
   return useQuery<Record<string, FailureCategory>>({
-    queryKey: ['failure-metrics-batch', messageIds.sort().join(',')],
+    queryKey: queryKeys.failedMessages.metricsBatch(messageIds.sort().join(',')),
     enabled: enabled && messageIds.length > 0,
     staleTime: STALE_MS,
     queryFn: async () => {

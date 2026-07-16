@@ -20,6 +20,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { queryExternalProxy } from '@/lib/externalProxy';
 import { useUserRole } from '@/features/auth';
 import { getLogger } from '@/lib/logger';
+import { queryKeys } from '@/services/api/queryKeys';
 
 const log = getLogger('useIdempotencyMissAlerts');
 
@@ -124,7 +125,7 @@ export function useIdempotencyMissAlerts(opts: UseIdempotencyMissAlertsOptions =
   }, [lastAlertedAt]);
 
   const { data, isFetching, error } = useQuery({
-    queryKey: ['idempotency-miss', 'last-hour'],
+    queryKey: queryKeys.adminOps.idempotencyMissLastHour(),
     enabled,
     refetchInterval: enabled ? POLL_INTERVAL_MS : false,
     staleTime: POLL_INTERVAL_MS / 2,

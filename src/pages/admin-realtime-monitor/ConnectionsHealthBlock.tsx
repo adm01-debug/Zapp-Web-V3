@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { queryKeys } from '@/services/api/queryKeys';
 import { useQuery } from '@tanstack/react-query';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -43,7 +44,7 @@ const STALE_DISCONNECT_MS = 5 * 60_000;
 
 export function ConnectionsHealthBlock() {
   const { data, isLoading, error } = useQuery({
-    queryKey: ['realtime-monitor', 'connections'],
+    queryKey: queryKeys.adminOps.realtimeMonitorConnections(),
     queryFn: async (): Promise<ConnectionRow[]> => {
       const { data, error } = await supabase
         .from('channel_connections_safe')

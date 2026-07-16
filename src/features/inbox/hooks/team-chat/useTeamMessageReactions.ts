@@ -84,10 +84,9 @@ export function useTeamMessageReactions(conversationId: string | undefined) {
     },
     onMutate: async ({ messageId, emoji }) => {
       await queryClient.cancelQueries({ queryKey: queryKeys.teamChat.reactions(conversationId) });
-      const previousReactions = queryClient.getQueryData<TeamReaction[]>([
-        'team-reactions',
-        conversationId,
-      ]);
+      const previousReactions = queryClient.getQueryData<TeamReaction[]>(
+        queryKeys.teamChat.reactions(conversationId)
+      );
 
       if (profile && previousReactions) {
         const existingIdx = previousReactions.findIndex(
@@ -106,7 +105,7 @@ export function useTeamMessageReactions(conversationId: string | undefined) {
             created_at: new Date().toISOString(),
           });
         }
-        queryClient.setQueryData(['team-reactions', conversationId], newReactions);
+        queryClient.setQueryData(queryKeys.teamChat.reactions(conversationId), newReactions);
       }
 
       return { previousReactions };
@@ -116,7 +115,7 @@ export function useTeamMessageReactions(conversationId: string | undefined) {
     },
     onError: (err: { status?: number; code?: string | number } & Error, _variables, context) => {
       if (context?.previousReactions) {
-        queryClient.setQueryData(['team-reactions', conversationId], context.previousReactions);
+        queryClient.setQueryData(queryKeys.teamChat.reactions(conversationId), context.previousReactions);
       }
       const e = err as { status?: number; code?: string };
       const status = e?.status || e?.code;

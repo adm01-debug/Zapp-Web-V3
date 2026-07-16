@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { DEFAULT_WHATSAPP_INSTANCE } from '@/lib/constants/whatsappInstances';
+import { queryKeys } from '@/services/api/queryKeys';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -39,13 +40,13 @@ export default function AdminInstancePausesPage() {
   const [selected, setSelected] = useState<PauseRow | null>(null);
 
   const activeQuery = useQuery({
-    queryKey: ['instance-pauses', 'active'],
+    queryKey: queryKeys.adminOps.instancePausesActive(),
     queryFn: () => invoke<{ items: PauseRow[] }>('list'),
     refetchInterval: REFRESH_INTERVAL,
   });
 
   const historyQuery = useQuery({
-    queryKey: ['instance-pauses', 'history'],
+    queryKey: queryKeys.adminOps.instancePausesHistory(),
     queryFn: () => invoke<{ items: PauseRow[] }>('history', { limit: 50 }),
     refetchInterval: REFRESH_INTERVAL * 2,
   });
@@ -55,7 +56,7 @@ export default function AdminInstancePausesPage() {
     onSuccess: () => {
       toast.success(`Instância "${instance}" pausada por ${minutes}min`);
       setReason('');
-      qc.invalidateQueries({ queryKey: ['instance-pauses'] });
+      qc.invalidateQueries({ queryKey: queryKeys.adminOps.instancePauses() });
     },
     onError: (e: Error) => toast.error(`Falha ao pausar: ${e.message}`),
   });
@@ -64,7 +65,7 @@ export default function AdminInstancePausesPage() {
     mutationFn: (inst: string) => invoke<{ cleared: number }>('unpause', { instance: inst }),
     onSuccess: (data, inst) => {
       toast.success(`Instância "${inst}" retomada (${data.cleared} pausas encerradas)`);
-      qc.invalidateQueries({ queryKey: ['instance-pauses'] });
+      qc.invalidateQueries({ queryKey: queryKeys.adminOps.instancePauses() });
     },
     onError: (e: Error) => toast.error(`Falha ao retomar: ${e.message}`),
   });
@@ -88,7 +89,7 @@ export default function AdminInstancePausesPage() {
             quando há picos de <code>invalid_signature</code> ou <code>auth 401/403</code>.
           </p>
         </div>
-        <Button variant="outline" size="sm" onClick={() => qc.invalidateQueries({ queryKey: ['instance-pauses'] })}>
+        <Button variant="outline" size="sm" onClick={() => qc.invalidateQueries({ queryKey: queryKeys.adminOps.instancePauses() })}>
           <RefreshCw className="h-4 w-4 mr-2" />
           Atualizar
         </Button>

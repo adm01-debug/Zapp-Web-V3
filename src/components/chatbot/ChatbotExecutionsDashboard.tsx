@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { safeClient } from '@/integrations/supabase/safeClient';
+import { queryKeys } from '@/services/api/queryKeys';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -42,7 +43,7 @@ export function ChatbotExecutionsDashboard() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
 
   const { data: executions = [], isLoading } = useQuery({
-    queryKey: ['chatbot-executions', statusFilter],
+    queryKey: queryKeys.chatbot.executions(statusFilter),
     queryFn: async () => {
       type ExecRow = {
         id: string;

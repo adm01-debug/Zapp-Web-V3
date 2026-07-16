@@ -17,6 +17,7 @@
  *   refetch fires on the next `visibilitychange` → visible.
  */
 import { useCallback, useEffect, useRef } from 'react';
+import { queryKeys } from '@/services/api/queryKeys';
 import { useQueryClient } from '@tanstack/react-query';
 import { useRealtimeContactsStatus } from './realtimeContactsStatusStore';
 
@@ -54,11 +55,11 @@ export function useRealtimeFallbackRefetch({ enabled = true, intervalMs }: Optio
     lastRefetchAtRef.current = now;
 
     // Console-free: rely on React Query devtools; silent in production.
-    void queryClient.invalidateQueries({ queryKey: ['external-evolution', 'conversations'] });
-    void queryClient.invalidateQueries({ queryKey: ['contacts-list'] });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.evolutionConversations.all() });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.contactDetails.contactsList() });
     // Per-contact caches: invalidate the family (no specific jid).
-    void queryClient.invalidateQueries({ queryKey: ['external-evolution', 'contact'] });
-    void queryClient.invalidateQueries({ queryKey: ['contact'] });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.evolutionConversations.contactAll() });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.contactDetails.singleContact() });
     // Tag the reason on the window for ad-hoc debugging.
     try {
       (window as unknown as { __lastRealtimeFallback?: string }).__lastRealtimeFallback = // ignore-audit — window debug tag for devtools inspection

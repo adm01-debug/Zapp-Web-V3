@@ -1,4 +1,5 @@
 
+import { queryKeys } from '@/services/api/queryKeys';
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
@@ -45,7 +46,7 @@ export function useDlqAuditLog(opts: UseDlqAuditLogOptions = {}) {
   const [cursor, setCursor] = useState<string | null>(null);
 
   const query = useQuery<DlqAuditEntry[]>({
-    queryKey: ['dlq-audit-log', { limit, action, cursor }],
+    queryKey: queryKeys.adminOps.dlqAuditLogFiltered({ limit, action, cursor }),
     enabled: enabled && isDev,
     queryFn: async () => {
       const { data, error } = await supabase.rpc('rpc_dlq_list_audit_cursor', {

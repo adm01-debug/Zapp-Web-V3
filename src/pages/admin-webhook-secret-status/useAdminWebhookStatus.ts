@@ -4,6 +4,7 @@
  * so the page component can focus purely on layout and rendering.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { queryKeys } from '@/services/api/queryKeys';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -52,7 +53,7 @@ export function useAdminWebhookStatus() {
 
   // ── Queries ─────────────────────────────────────────────────────────────
   const secretQuery = useQuery({
-    queryKey: ['webhook-secret-status'],
+    queryKey: queryKeys.adminOps.webhookSecretStatus(),
     queryFn: async (): Promise<SecretStatus> => {
       const { data, error } = await supabase.functions.invoke('webhook-secret-status');
       if (error) throw error;
@@ -62,7 +63,7 @@ export function useAdminWebhookStatus() {
   });
 
   const eventsQuery = useQuery({
-    queryKey: ['webhook-recent-events', selectedInstance],
+    queryKey: queryKeys.adminOps.webhookRecentEvents(selectedInstance ?? undefined),
     queryFn: async () => {
       const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
       const filtersArr = [{ column: 'created_at', operator: 'gte', value: since }];
@@ -85,7 +86,7 @@ export function useAdminWebhookStatus() {
   // Always fetch a small global slice for the instance dropdown so the user
   // can switch even when filtered to an instance with no traffic.
   const instancesQuery = useQuery({
-    queryKey: ['webhook-instances-list'],
+    queryKey: queryKeys.adminOps.webhookInstances(),
     queryFn: async () => {
       const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
       const res = await queryExternalProxy<{ instance_name: string | null }>({

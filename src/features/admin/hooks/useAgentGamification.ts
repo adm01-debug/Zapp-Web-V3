@@ -32,7 +32,7 @@ export const useAgentGamification = () => {
   const { user } = useAuth();
 
   const profileQuery = useQuery({
-    queryKey: ['user-profile', user?.id],
+    queryKey: queryKeys.userProfile.byId(user?.id),
     queryFn: async () => {
       if (!user?.id) return null;
       const { data, error } = await db
@@ -65,7 +65,7 @@ export const useAgentGamification = () => {
   });
 
   const achievementsQuery = useQuery({
-    queryKey: ['agent-achievements', profileId],
+    queryKey: queryKeys.agentGamification.achievements(profileId),
     queryFn: async () => {
       if (!profileId) return [] as Achievement[];
       const { data, error } = await db

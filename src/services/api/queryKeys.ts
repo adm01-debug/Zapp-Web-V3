@@ -151,10 +151,13 @@ export const queryKeys = {
 
   // Dashboard
   dashboard: {
-    agents: (agentId?: string) => ['dashboard-agents', agentId] as const,
+    agents: (agentId?: string | null) => ['dashboard-agents', agentId] as const,
     contacts: (filters?: unknown) => ['dashboard-contacts', filters] as const,
+    contactsFiltered: (dateRange?: unknown, queueId?: string | null, agentId?: string | null) =>
+      ['dashboard-contacts', dateRange, queueId, agentId] as const,
     messages: (filters?: unknown) => ['dashboard-messages', filters] as const,
     queues: () => ['dashboard-queues'] as const,
+    queuesFiltered: (queueId?: string | null) => ['dashboard-queues', queueId] as const,
     contactsPerQueue: () => ['dashboard-contacts-per-queue'] as const,
     sla: () => ['dashboard-sla'] as const,
   },
@@ -230,6 +233,7 @@ export const queryKeys = {
   // SLA
   sla: {
     timeline: (conversationId?: string) => ['sla-timeline', conversationId] as const,
+    timelineDetailed: (remoteJid?: string, contactId?: string) => ['sla-timeline', remoteJid, contactId] as const,
     configurations: () => ['sla-configurations'] as const,
     configurationsDefault: () => ['sla-configurations-default'] as const,
     rules: () => ['sla-rules'] as const,
@@ -244,6 +248,9 @@ export const queryKeys = {
       ['sla-delivery-violations', statusFilter] as const,
     contact: (contactId?: string) => ['contact-sla', contactId] as const,
     applicable: (params?: unknown) => ['applicable-sla', params] as const,
+    contactNames: (contactIds?: unknown) => ['sla-contact-names', contactIds] as const,
+    queueNames: (queueIds?: unknown) => ['sla-queue-names', queueIds] as const,
+    agentNames: (agentIds?: unknown) => ['sla-agent-names', agentIds] as const,
   },
 
   // Follow-up Sequences
@@ -255,6 +262,7 @@ export const queryKeys = {
   // Evolution Fallback Stats
   evolutionFallback: {
     stats: () => ['evolution-fallback-stats'] as const,
+    statsWindowed: (windowHours?: number) => ['evolution-fallback-stats', windowHours] as const,
   },
 
   // Evolution external conversations (sidebar)
@@ -301,6 +309,8 @@ export const queryKeys = {
     message: (messageId?: string) => ['message-reactions', messageId] as const,
     myProfile: (userId?: string) => ['my-profile-reactions', userId] as const,
     participantStats: () => ['participant-stats'] as const,
+    participantStatsDetailed: (conversationId?: string, simMode?: boolean) =>
+      ['participant-stats', conversationId, simMode] as const,
   },
 
   // Failed Messages (DLQ / retry)
@@ -335,6 +345,7 @@ export const queryKeys = {
   // Whispers
   whispers: {
     all: () => ['whispers'] as const,
+    contact: (contactId?: string) => ['whispers', contactId] as const,
   },
 
   // Internal Notes
@@ -346,6 +357,7 @@ export const queryKeys = {
   mediaGallery: {
     contact: (contactId?: string) => ['media-gallery', contactId] as const,
     preview: (contactId?: string) => ['media-gallery-preview', contactId] as const,
+    previewPaged: (contactId?: string, pageSize?: number) => ['media-gallery-preview', contactId, pageSize] as const,
     count: (contactId?: string) => ['shared-media-count', contactId] as const,
   },
 
@@ -358,23 +370,31 @@ export const queryKeys = {
   // Reports
   reports: {
     contacts: (period?: string) => ['reports-contacts', period] as const,
+    contactsFiltered: (period?: string, agent?: string, tag?: string) => ['reports-contacts', period, agent, tag] as const,
     contactsPrevious: (period?: string) => ['reports-contacts-previous', period] as const,
+    contactsPreviousFiltered: (period?: string, agent?: string) => ['reports-contacts-previous', period, agent] as const,
     messages: (period?: string) => ['reports-messages', period] as const,
+    messagesFiltered: (period?: string, agent?: string) => ['reports-messages', period, agent] as const,
     messagesPrevious: (period?: string) => ['reports-messages-previous', period] as const,
+    messagesPreviousFiltered: (period?: string, agent?: string) => ['reports-messages-previous', period, agent] as const,
   },
 
   // Goals / Targets
   goals: {
     config: () => ['goals-config'] as const,
+    configForProfile: (profileId?: string) => ['goals-config', profileId] as const,
     messages: (period?: string) => ['goals-messages', period] as const,
     contacts: (period?: string) => ['goals-contacts', period] as const,
+    contactsFiltered: (period?: string, profileId?: string) => ['goals-contacts', period, profileId] as const,
   },
 
   // TalkX (bulk messaging)
   talkx: {
     blacklist: () => ['talkx-blacklist'] as const,
     campaignLive: () => ['talkx-campaign-live'] as const,
+    campaignLiveById: (campaignId?: string) => ['talkx-campaign-live', campaignId] as const,
     recipientsList: () => ['talkx-recipients-list'] as const,
+    recipientsListForCampaign: (campaignId?: string) => ['talkx-recipients-list', campaignId] as const,
     contactsForBlacklist: () => ['contacts-for-blacklist'] as const,
     contactsTalkx: () => ['contacts-talkx'] as const,
     waConnections: () => ['wa-connections-talkx'] as const,
@@ -405,9 +425,11 @@ export const queryKeys = {
   // User Profile (self)
   userProfile: {
     me: () => ['my-profile'] as const,
+    meById: (userId?: string) => ['my-profile', userId] as const,
     byId: (userId?: string) => ['user-profile', userId] as const,
     profile: (userId?: string) => ['profile', userId] as const,
     visibleAgentIds: () => ['visible-agent-ids'] as const,
+    visibleAgentIdsForUser: (userId?: string) => ['visible-agent-ids', userId] as const,
     forPermissions: () => ['profiles-for-permissions'] as const,
     forUsage: () => ['profiles-for-usage'] as const,
     permissionsList: () => ['permissions-list'] as const,
@@ -435,6 +457,7 @@ export const queryKeys = {
     tagStats: () => ['ai-tag-stats'] as const,
     usageLogs: (filters?: unknown) => ['ai-usage-logs', filters] as const,
     statsWidget: () => ['ai-stats-widget'] as const,
+    statsWidgetPeriod: (period?: string) => ['ai-stats-widget', period] as const,
     providerHealth: () => ['ai-provider-health'] as const,
   },
 
@@ -454,17 +477,29 @@ export const queryKeys = {
       [...queryKeys.admin.all(), 'rate-limit-logs', page] as const,
     diagnostics: () => [...queryKeys.admin.all(), 'diagnostics'] as const,
     agentVersions: () => ['admin-agent-versions-list'] as const,
-    alertHistory: (filters?: unknown) => ['admin-alert-history', filters] as const,
-    evolutionApiLogs: (filters?: unknown) => ['admin-evolution-api-logs', filters] as const,
+    alertHistory: () => ['admin-alert-history'] as const,
+    alertHistoryFiltered: (hoursBack?: string | number, statusFilter?: string, typeFilter?: string, instanceFilter?: string) =>
+      ['admin-alert-history', hoursBack, statusFilter, typeFilter, instanceFilter] as const,
+    evolutionApiLogs: () => ['admin-evolution-api-logs'] as const,
+    evolutionApiLogsFiltered: (hoursBack?: string | number, statusFilter?: string, actionSearch?: string, instanceFilter?: string) =>
+      ['admin-evolution-api-logs', hoursBack, statusFilter, actionSearch, instanceFilter] as const,
     webhookOverview: () => ['admin-webhook-overview'] as const,
+    webhookOverviewFiltered: (hours?: string | number, includeUnprocessed?: boolean) =>
+      ['admin-webhook-overview', hours, includeUnprocessed] as const,
     webhookInstances: () => ['webhook-instances-list'] as const,
     webhookRecentEvents: (instanceId?: string) =>
       ['webhook-recent-events', instanceId] as const,
     webhookSecretStatus: () => ['webhook-secret-status'] as const,
+    webhookEvents: () => ['admin-webhook-events'] as const,
+    webhookEventsFiltered: (hours?: string | number, eventType?: string, instance?: string, messageType?: string, status?: string, remoteJidFilter?: string, pushNameFilter?: string) =>
+      ['admin-webhook-events', hours, eventType, instance, messageType, status, remoteJidFilter, pushNameFilter] as const,
     kbArticleCount: () => ['kb-article-count'] as const,
     dlqAuditLog: () => ['dlq-audit-log'] as const,
+    dlqAuditLogFiltered: (params?: unknown) => ['dlq-audit-log', params] as const,
     userRoles: () => ['user-roles-overview'] as const,
     realtimeMonitor: () => ['realtime-monitor'] as const,
+    realtimeMonitorConnections: () => ['realtime-monitor', 'connections'] as const,
+    realtimeMonitorEvents: (windowHours?: number) => ['realtime-monitor', 'events', windowHours] as const,
     warroom: {
       agents: () => ['warroom-agents'] as const,
       queues: () => ['warroom-queues'] as const,
@@ -472,22 +507,43 @@ export const queryKeys = {
     csatAutoConfig: () => ['csat-auto-config'] as const,
     whatsappConnectionsCsat: () => ['whatsapp-connections-csat'] as const,
     scheduledReportConfigs: () => ['scheduled-report-configs'] as const,
-    searchInsights: (filters?: unknown) => ['search-insights', filters] as const,
+    searchInsights: () => ['search-insights'] as const,
     activityHeatmap: (filters?: unknown) => ['activity-heatmap', filters] as const,
     conversationHeatmap: (filters?: unknown) => ['conversation-heatmap', filters] as const,
     conversationTimeline: (filters?: unknown) => ['conversation-timeline', filters] as const,
     sentimentTrend: (filters?: unknown) => ['sentiment-trend', filters] as const,
     authEventSummary: (filters?: unknown) => ['auth-event-summary', filters] as const,
+    authEventSummaryDetailed: (hours?: number, filter?: string) => ['auth-event-summary', hours, filter] as const,
     authEventTrend: (filters?: unknown) => ['auth-event-trend', filters] as const,
+    authEventTrendDetailed: (hours?: number, filter?: string) => ['auth-event-trend', hours, filter] as const,
     hmacAudit: () => ['hmac-selftest-audit'] as const,
     hmacAuditInstances: () => ['hmac-selftest-audit-instances'] as const,
+    hmacAuditInstancesRange: (range?: unknown) => ['hmac-selftest-audit-instances', range] as const,
     idempotencyMiss: () => ['idempotency-miss'] as const,
     incidentEvents: () => ['incident-events'] as const,
+    incidentEventsDetailed: (pauseId?: string, sinceMin?: number) => ['incident-events', pauseId, sinceMin] as const,
     instancePauses: () => ['instance-pauses'] as const,
+    instancePausesActive: () => ['instance-pauses', 'active'] as const,
+    instancePausesHistory: () => ['instance-pauses', 'history'] as const,
+    evoApiHealth: () => ['evo-api-health'] as const,
+    idempotencyMissLastHour: () => ['idempotency-miss', 'last-hour'] as const,
+    transfersPaginated: (filters?: unknown) => ['transfers-paginated', filters] as const,
+    deliveryStats: () => ['delivery-stats'] as const,
+    operationsLogsAll: () => ['operations-logs'] as const,
+    inboxMessages: () => ['messages'] as const,
     evolutionRetryMetrics: () => ['evolution-retry-metrics'] as const,
+    evolutionRetryMetricsFiltered: (filters?: unknown) => ['evolution-retry-metrics', filters] as const,
     alertInstanceDetail: (alertId?: string) =>
       ['alert-instance-detail', alertId] as const,
     operationsLogs: (filters?: unknown) => ['operations-logs', filters] as const,
+    telemetry: (severityFilter?: string, timeFilter?: string, dateFrom?: string, dateTo?: string) =>
+      ['query-telemetry', severityFilter, timeFilter, dateFrom, dateTo] as const,
+  },
+
+  // Dispatch Error Logs (append-only audit trail)
+  dispatchErrorLogs: {
+    all: () => ['dispatch-error-logs'] as const,
+    filtered: (filters?: unknown) => ['dispatch-error-logs', filters] as const,
   },
 };
 

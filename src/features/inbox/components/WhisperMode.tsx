@@ -5,6 +5,7 @@ import { useAuth } from '@/features/auth';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Eye, Send, Loader2, ChevronDown, ChevronUp } from 'lucide-react';
+import { queryKeys } from '@/services/api/queryKeys';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -47,7 +48,7 @@ export function WhisperMode({
   const contactIsUUID = isValidUUID(contactId ?? '');
 
   const { data: whispers = [], isLoading } = useQuery<WhisperMessage[]>({
-    queryKey: ['whispers', contactId],
+    queryKey: queryKeys.whispers.contact(contactId),
     queryFn: async () => {
       if (!contactIsUUID) return [];
       const { data, error } = await safeClient.from<WhisperMessage>('whisper_messages', (q) =>
@@ -79,7 +80,7 @@ export function WhisperMode({
     },
     onSuccess: () => {
       setMessage('');
-      queryClient.invalidateQueries({ queryKey: ['whispers', contactId] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.whispers.contact(contactId) });
     },
     onError: (err) => {
       toast.error('Erro ao enviar whisper: ' + (err as Error).message);
@@ -100,7 +101,7 @@ export function WhisperMode({
           filter: `contact_id=eq.${contactId}`,
         },
         () => {
-          queryClient.invalidateQueries({ queryKey: ['whispers', contactId] });
+          queryClient.invalidateQueries({ queryKey: queryKeys.whispers.contact(contactId) });
           setIsExpanded(true);
         }
       )

@@ -1,3 +1,4 @@
+import { queryKeys } from '@/services/api/queryKeys';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { motion } from 'framer-motion';
@@ -44,7 +45,7 @@ interface AgentMetric {
 
 export function AgentPerformancePanel() {
   const { data: agents = [], isLoading } = useQuery({
-    queryKey: ['agent-performance-ranking'],
+    queryKey: queryKeys.agentGamification.ranking(),
     queryFn: async () => {
       const { data: statsData } = await supabase
         .from('agent_stats')

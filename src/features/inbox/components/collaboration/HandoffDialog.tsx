@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { queryKeys } from '@/services/api/queryKeys';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -35,7 +36,7 @@ export function HandoffDialog({
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const { data: agents } = useQuery({
-    queryKey: ['agents-for-handoff'],
+    queryKey: queryKeys.contactDetails.agentForHandoff(),
     queryFn: async () => {
       const { data, error } = await supabase
         .from('profiles')

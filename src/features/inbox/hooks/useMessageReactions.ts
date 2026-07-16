@@ -32,7 +32,7 @@ export function useMessageReactions(messageId: string, options?: UseMessageReact
         },
         () => {
           void queryClient.invalidateQueries({ queryKey: queryKeys.messageReactions.message(messageId) });
-          void queryClient.invalidateQueries({ queryKey: ['operations-logs'] });
+          void queryClient.invalidateQueries({ queryKey: queryKeys.adminOps.operationsLogsAll() });
         }
       )
       .subscribe();

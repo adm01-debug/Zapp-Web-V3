@@ -162,7 +162,7 @@ export function useFailedMessages(filters: FailedMessagesFilters = {}) {
         p_ids: ids,
         p_reason: reason,
       });
-      queryClient.invalidateQueries({ queryKey: ['dlq-audit-log'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.adminOps.dlqAuditLog() });
     } catch (logErr) {
       log.warn('Failed to log DLQ item action', {
         action,
@@ -289,7 +289,7 @@ export function useFailedMessages(filters: FailedMessagesFilters = {}) {
           p_message: data?.message ?? null,
           p_source: 'panel',
         });
-        queryClient.invalidateQueries({ queryKey: ['dlq-audit-log'] });
+        queryClient.invalidateQueries({ queryKey: queryKeys.adminOps.dlqAuditLog() });
       } catch (logErr) {
         log.warn('Failed to log reprocess result', {
           error: logErr instanceof Error ? logErr.message : String(logErr),

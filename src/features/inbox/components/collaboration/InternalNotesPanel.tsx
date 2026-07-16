@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { queryKeys } from '@/services/api/queryKeys';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
@@ -27,7 +28,7 @@ export function InternalNotesPanel({ contactId }: { contactId: string }) {
   const { user } = useAuth();
 
   const { data: notes, isLoading } = useQuery<NoteRow[]>({
-    queryKey: ['internal-notes', contactId],
+    queryKey: queryKeys.internalNotes.contact(contactId),
     queryFn: async () => {
       const { data, error } = await safeClient.from<NoteRow>('contact_notes', (q) =>
         q
@@ -58,7 +59,7 @@ export function InternalNotesPanel({ contactId }: { contactId: string }) {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['internal-notes', contactId] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.internalNotes.contact(contactId) });
       setNewNote('');
       toast.success('Nota adicionada!');
     },

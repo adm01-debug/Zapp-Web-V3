@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { queryKeys } from '@/services/api/queryKeys';
 import { useQuery } from '@tanstack/react-query';
 import { subHours, format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -25,7 +26,7 @@ export function EventsLiveBlock({ windowHours, autoRefresh, onNavigateTo }: Prop
   const sinceISO = useMemo(() => subHours(new Date(), windowHours).toISOString(), [windowHours]);
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ['realtime-monitor', 'events', windowHours],
+    queryKey: queryKeys.adminOps.realtimeMonitorEvents(windowHours),
     queryFn: async (): Promise<WebhookEventLite[]> => {
       const res = await queryExternalProxy<WebhookEventLite>({
         table: 'evolution_webhook_events',

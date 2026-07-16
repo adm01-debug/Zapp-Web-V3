@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { queryKeys } from '@/services/api/queryKeys';
 import { useMountedRef } from '@/hooks/useMountedRef';
 import { supabase } from '@/integrations/supabase/client';
 import { externalSupabase, isExternalConfigured } from '@/integrations/supabase/externalClient';
@@ -418,7 +419,7 @@ export function useConversationSLATimeline(remoteJid: string | null, contactId: 
   const enabled = Boolean(remoteJid && isExternalConfigured);
 
   return useQuery({
-    queryKey: ['sla-timeline', remoteJid, contactId],
+    queryKey: queryKeys.sla.timelineDetailed(remoteJid ?? undefined, contactId ?? undefined),
     enabled,
     staleTime: 30_000,
     refetchInterval: (query) => {

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { queryKeys } from '@/services/api/queryKeys';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -21,7 +22,7 @@ export function MentionInput({ value, onChange, onSubmit, placeholder, disabled 
   const [mentionFilter, setMentionFilter] = useState('');
 
   const { data: agents } = useQuery({
-    queryKey: ['agents-for-mention'],
+    queryKey: queryKeys.contactDetails.agentForMention(),
     queryFn: async () => {
       const { data, error } = await supabase.from('profiles').select('id, name, avatar_url').eq('is_active', true).limit(20);
       if (error) throw error;

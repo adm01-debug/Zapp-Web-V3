@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { queryKeys } from '@/services/api/queryKeys';
 import { useQueryClient } from '@tanstack/react-query';
 import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 import { externalSupabase } from '@/integrations/supabase/externalClient';
@@ -126,11 +127,11 @@ export function useRealtimeContacts(options: UseRealtimeContactsOptions = {}) {
 
         // Patch individual contact cache if present (preserves omitted fields)
         queryClient.setQueriesData<EvolutionContact | undefined>(
-          { queryKey: ['contact', remoteJid] },
+          { queryKey: queryKeys.contactDetails.singleContact(remoteJid) },
           (prev) => (prev ? mergeContact(prev, contact) : prev)
         );
         queryClient.setQueriesData<EvolutionContact | undefined>(
-          { queryKey: ['external-evolution', 'contact', remoteJid] },
+          { queryKey: queryKeys.evolutionConversations.contact(remoteJid) },
           (prev) => (prev ? mergeContact(prev, contact) : prev)
         );
 
@@ -140,7 +141,7 @@ export function useRealtimeContacts(options: UseRealtimeContactsOptions = {}) {
         } else {
           // UPDATE: try to patch list entries in place, fallback to invalidate
           let patched = false;
-          queryClient.setQueriesData<unknown>({ queryKey: ['contacts-list'] }, (prev) => {
+          queryClient.setQueriesData<unknown>({ queryKey: queryKeys.contactDetails.contactsList() }, (prev) => {
             if (!Array.isArray(prev)) return prev;
             const idx = prev.findIndex(
               (c) => c && typeof c === 'object' && (c as EvolutionContact).remote_jid === remoteJid
@@ -170,7 +171,7 @@ export function useRealtimeContacts(options: UseRealtimeContactsOptions = {}) {
 
       if (invalidateConversations) {
         void queryClient.invalidateQueries({ queryKey: conversationsKey });
-        void queryClient.invalidateQueries({ queryKey: ['contacts-list'] });
+        void queryClient.invalidateQueries({ queryKey: queryKeys.contactDetails.contactsList() });
       }
     };
 

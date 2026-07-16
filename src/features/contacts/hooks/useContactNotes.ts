@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { queryKeys } from '@/services/api/queryKeys';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/features/auth';
 import { toast } from '@/hooks/use-toast';
@@ -30,7 +31,7 @@ export function useContactNotes(contactId: string) {
 
   // Get current user's profile
   const { data: profile } = useQuery({
-    queryKey: ['my-profile', user?.id],
+    queryKey: queryKeys.userProfile.meById(user?.id),
     queryFn: async () => {
       if (!user?.id) return null;
       const { data, error } = await supabase
@@ -47,7 +48,7 @@ export function useContactNotes(contactId: string) {
 
   // Fetch notes for this contact
   const { data: notes = [], isLoading, error, refetch } = useQuery({
-    queryKey: ['contact-notes', contactId],
+    queryKey: queryKeys.contactDetails.notes(contactId),
     queryFn: async () => {
       const { data, error } = await supabase
         .from('contact_notes')
@@ -102,7 +103,7 @@ export function useContactNotes(contactId: string) {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['contact-notes', contactId] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.contactDetails.notes(contactId) });
       toast({
         title: 'Nota adicionada',
         description: 'A nota foi salva com sucesso.',
@@ -129,7 +130,7 @@ export function useContactNotes(contactId: string) {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['contact-notes', contactId] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.contactDetails.notes(contactId) });
       toast({
         title: 'Nota removida',
         description: 'A nota foi removida com sucesso.',
