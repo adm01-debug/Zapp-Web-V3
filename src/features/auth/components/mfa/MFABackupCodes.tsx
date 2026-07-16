@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Shield, Copy, Check, Download, RefreshCw, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -29,12 +29,18 @@ export function MFABackupCodes({ codes: initialCodes, onRegenerate, onClose }: M
   const [codes] = useState<string[]>(initialCodes || generateBackupCodes());
   const [copied, setCopied] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
+  const copiedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => () => {
+    if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
+  }, []);
 
   const handleCopyAll = () => {
     navigator.clipboard.writeText(codes.join('\n'));
     setCopied(true);
     toast.success('Códigos copiados!');
-    setTimeout(() => setCopied(false), 2000);
+    if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
+    copiedTimerRef.current = setTimeout(() => setCopied(false), 2000);
   };
 
   const handleDownload = () => {
