@@ -1,4 +1,4 @@
-# Simulação Realtime/Hydration — 2026-07-15
+# Simulação Realtime/Hydration — 2026-07-16
 
 - Cenários: 25
 - Aprovados: 25
