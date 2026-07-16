@@ -104,6 +104,7 @@ export function useContactNotes(contactId: string) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.contactDetails.notes(contactId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.internalNotes.contact(contactId) });
       toast({
         title: 'Nota adicionada',
         description: 'A nota foi salva com sucesso.',
@@ -131,6 +132,7 @@ export function useContactNotes(contactId: string) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.contactDetails.notes(contactId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.internalNotes.contact(contactId) });
       toast({
         title: 'Nota removida',
         description: 'A nota foi removida com sucesso.',

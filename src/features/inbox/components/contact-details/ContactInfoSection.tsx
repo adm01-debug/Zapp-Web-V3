@@ -115,6 +115,9 @@ export function ContactInfoSection({ contact, enrichedData }: ContactInfoSection
     queryClient.invalidateQueries({ queryKey: queryKeys.contactDetails.aiTags(contact.id) });
     queryClient.invalidateQueries({ queryKey: queryKeys.sla.contact(contact.id) });
     queryClient.invalidateQueries({ queryKey: queryKeys.contactDetails.localId(contact.id) });
+    queryClient.invalidateQueries({ queryKey: queryKeys.contacts.lists() });
+    queryClient.invalidateQueries({ queryKey: queryKeys.contacts.detail(contact.id) });
+    queryClient.invalidateQueries({ queryKey: queryKeys.contacts.searchRoot() });
   }, [contact.id, queryClient]);
 
   return (

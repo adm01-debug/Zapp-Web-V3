@@ -14,8 +14,10 @@
  */
 
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { safeClient, safeFrom } from '@/integrations/supabase/safeClient';
+import { queryKeys } from '@/services/api/queryKeys';
 import { toast } from 'sonner';
 import { useToast } from '@/hooks/use-toast';
 import { useMountedRef } from '@/hooks/useMountedRef';
@@ -665,6 +667,7 @@ function useDepartmentsManagement() {
   const [deptSaving, setDeptSaving] = useState(false);
   const mountedRef = useMountedRef();
   const deptLogger = getLogger('useDepartmentsAdmin');
+  const queryClient = useQueryClient();
 
   const fetchDepartments = useCallback(async () => {
     setDeptLoading(true);
@@ -735,6 +738,7 @@ function useDepartmentsManagement() {
 
     toast.success(editingId ? 'Departamento atualizado' : 'Departamento criado');
     void fetchDepartments();
+    void queryClient.invalidateQueries({ queryKey: queryKeys.departmentChat.list() });
     return true;
   };
 
@@ -750,6 +754,7 @@ function useDepartmentsManagement() {
 
     toast.success('Departamento removido');
     void fetchDepartments();
+    void queryClient.invalidateQueries({ queryKey: queryKeys.departmentChat.list() });
     return true;
   };
 

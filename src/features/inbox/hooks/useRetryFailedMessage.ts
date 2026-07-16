@@ -107,6 +107,8 @@ export function useRetryFailedMessage() {
     },
     onSuccess: (_data, { messageId }) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.messageDetails.sendHistory(messageId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.failedMessages.all() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.failedMessages.stats() });
       toast({ title: 'Reenvio enfileirado', description: 'A mensagem entrou novamente na fila.' });
     },
   });

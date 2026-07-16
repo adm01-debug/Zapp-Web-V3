@@ -103,8 +103,8 @@ export function useCSAT(period: 'today' | 'week' | 'month' = 'month') {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.csat.surveys() });
-      queryClient.invalidateQueries({ queryKey: queryKeys.csat.stats() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.csat.surveysRoot() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.csat.statsRoot() });
       toast({ title: 'Avaliação enviada!', description: 'Obrigado pelo feedback.' });
     },
     onError: () => {

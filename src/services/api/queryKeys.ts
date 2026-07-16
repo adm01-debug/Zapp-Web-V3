@@ -37,8 +37,8 @@ export const queryKeys = {
     detail: (id: string) =>
       [...queryKeys.connections.details(), id] as const,
     health: () => [...queryKeys.connections.all(), 'health'] as const,
-    qr: (connectionId: string) =>
-      [...queryKeys.connections.all(), 'qr', connectionId] as const,
+    healthFor: (id?: string) => [...queryKeys.connections.all(), 'health', id] as const,
+    search: (query?: string) => [...queryKeys.connections.all(), 'search', query] as const,
   },
 
   // Queues
@@ -53,6 +53,7 @@ export const queryKeys = {
     analytics: (id: string) =>
       [...queryKeys.queues.all(), 'analytics', id] as const,
     forRouting: () => [...queryKeys.queues.all(), 'for-routing'] as const,
+    search: (query?: string) => [...queryKeys.queues.all(), 'search', query] as const,
   },
 
   // Messages
@@ -66,8 +67,12 @@ export const queryKeys = {
       [...queryKeys.messages.details(), id] as const,
     thread: (threadId: string) =>
       [...queryKeys.messages.all(), 'thread', threadId] as const,
-    unread: (conversationId?: string) =>
-      [...queryKeys.messages.all(), 'unread', conversationId] as const,
+    conversationLists: () => [...queryKeys.messages.all(), 'conversation-list'] as const,
+    conversationList: (filters?: Record<string, unknown>) =>
+      [...queryKeys.messages.conversationLists(), { filters }] as const,
+    conversationDetails: () => [...queryKeys.messages.all(), 'conversation-detail'] as const,
+    conversationDetail: (id: string) =>
+      [...queryKeys.messages.conversationDetails(), id] as const,
   },
 
   // Users/Agents
@@ -83,6 +88,8 @@ export const queryKeys = {
     online: () => [...queryKeys.users.all(), 'online'] as const,
     byStatus: (status?: string) => [...queryKeys.users.all(), 'status', status] as const,
     teamMembers: () => ['team-members'] as const,
+    searchUsers: (query?: string) => [...queryKeys.users.all(), 'search-users', query] as const,
+    searchAgents: (query?: string) => [...queryKeys.users.all(), 'search-agents', query] as const,
   },
 
   // Settings
@@ -106,23 +113,9 @@ export const queryKeys = {
     autoClose: () => [...queryKeys.automations.all(), 'auto-close-config'] as const,
   },
 
-  // Analytics
-  analytics: {
-    all: () => ['analytics'] as const,
-    dashboard: () => [...queryKeys.analytics.all(), 'dashboard'] as const,
-    dashboardStats: () => ['dashboard-stats'] as const,
-    metrics: (range?: string) =>
-      [...queryKeys.analytics.all(), 'metrics', range] as const,
-    reports: () => [...queryKeys.analytics.all(), 'reports'] as const,
-  },
-
   // Admin
   admin: {
     all: () => ['admin'] as const,
-    system: () => [...queryKeys.admin.all(), 'system'] as const,
-    logs: (filters?: Record<string, unknown>) =>
-      [...queryKeys.admin.all(), 'logs', { filters }] as const,
-    webhooks: () => [...queryKeys.admin.all(), 'webhooks'] as const,
   },
 
   // Tags
@@ -173,7 +166,9 @@ export const queryKeys = {
 
   // CSAT Surveys
   csat: {
+    surveysRoot: () => ['csat-surveys'] as const,
     surveys: (period?: string) => ['csat-surveys', period] as const,
+    statsRoot: () => ['csat-stats'] as const,
     stats: (period?: string) => ['csat-stats', period] as const,
   },
 
@@ -187,7 +182,9 @@ export const queryKeys = {
   skillRouting: {
     profiles: () => ['skill-routing-profiles'] as const,
     queues: () => ['skill-routing-queues'] as const,
+    agentSkillsRoot: () => ['agent-skills'] as const,
     agentSkills: (profileId?: string) => ['agent-skills', profileId] as const,
+    queueRequirementsRoot: () => ['queue-skill-requirements'] as const,
     queueRequirements: (queueId?: string) => ['queue-skill-requirements', queueId] as const,
   },
 
@@ -266,6 +263,7 @@ export const queryKeys = {
   // Follow-up Sequences
   followupSequences: {
     all: () => ['followup-sequences'] as const,
+    executionsRoot: () => ['followup-executions'] as const,
     executions: (contactId?: string) => ['followup-executions', contactId] as const,
   },
 
@@ -296,11 +294,12 @@ export const queryKeys = {
 
   // Team profiles (names lookup)
   teamProfiles: {
-    names: () => ['team-profiles-names'] as const,
-    active: () => ['team-profiles-active'] as const,
-    forChat: () => ['team-profiles-for-chat'] as const,
-    forAddMembers: () => ['team-profiles-for-add-members'] as const,
-    memberProfile: (profileId?: string) => ['team-member-profile', profileId] as const,
+    all: () => ['team-profiles'] as const,
+    names: () => ['team-profiles', 'names'] as const,
+    active: () => ['team-profiles', 'active'] as const,
+    forChat: () => ['team-profiles', 'for-chat'] as const,
+    forAddMembers: () => ['team-profiles', 'for-add-members'] as const,
+    memberProfile: (profileId?: string) => ['team-profiles', 'member', profileId] as const,
   },
 
   // Team Chat (internal team messaging)
@@ -395,6 +394,7 @@ export const queryKeys = {
   goals: {
     config: () => ['goals-config'] as const,
     configForProfile: (profileId?: string) => ['goals-config', profileId] as const,
+    messagesRoot: () => ['goals-messages'] as const,
     messages: (period?: string) => ['goals-messages', period] as const,
     contacts: (period?: string) => ['goals-contacts', period] as const,
     contactsFiltered: (period?: string, profileId?: string) => ['goals-contacts', period, profileId] as const,
@@ -425,11 +425,11 @@ export const queryKeys = {
     localId: (contactId?: string) => ['contact-local-id', contactId] as const,
     intelligence: (contactId?: string) => ['contact-intelligence', contactId] as const,
     tagsMap: () => ['contact-tags-map'] as const,
-    transfersPaginated: (contactId?: string) => ['transfers-paginated', contactId] as const,
+    singleContactRoot: () => ['contact'] as const,
     singleContact: (remoteJid?: string) => ['contact', remoteJid] as const,
-    contactsList: () => ['contacts-list'] as const,
-    typeCounts: () => ['contacts-type-counts'] as const,
     inboxScopes: () => ['inbox-custom-scopes'] as const,
+
+    typeCounts: () => ['contacts-type-counts'] as const,
     agentForHandoff: () => ['agents-for-handoff'] as const,
     agentForMention: () => ['agents-for-mention'] as const,
   },
@@ -439,8 +439,7 @@ export const queryKeys = {
     me: () => ['my-profile'] as const,
     meById: (userId?: string) => ['my-profile', userId] as const,
     byId: (userId?: string) => ['user-profile', userId] as const,
-    profile: (userId?: string) => ['profile', userId] as const,
-    visibleAgentIds: () => ['visible-agent-ids'] as const,
+
     visibleAgentIdsForUser: (userId?: string) => ['visible-agent-ids', userId] as const,
     forPermissions: () => ['profiles-for-permissions'] as const,
     forUsage: () => ['profiles-for-usage'] as const,
@@ -518,7 +517,6 @@ export const queryKeys = {
     },
     csatAutoConfig: () => ['csat-auto-config'] as const,
     whatsappConnectionsCsat: () => ['whatsapp-connections-csat'] as const,
-    scheduledReportConfigs: () => ['scheduled-report-configs'] as const,
     searchInsights: () => ['search-insights'] as const,
     activityHeatmap: (filters?: unknown) => ['activity-heatmap', filters] as const,
     conversationHeatmap: (filters?: unknown) => ['conversation-heatmap', filters] as const,
@@ -547,7 +545,6 @@ export const queryKeys = {
     evoApiHealthDrHealth: () => ['evo-api-health', 'dr-health'] as const,
     rateLimitLogsStats: () => ['admin', 'rate-limit-logs', 'stats'] as const,
     idempotencyMissLastHour: () => ['idempotency-miss', 'last-hour'] as const,
-    transfersPaginated: (filters?: unknown) => ['transfers-paginated', filters] as const,
     deliveryStats: () => ['delivery-stats'] as const,
     operationsLogsAll: () => ['operations-logs'] as const,
     evolutionRetryMetrics: () => ['evolution-retry-metrics'] as const,
@@ -572,10 +569,6 @@ export const queryKeys = {
       ['versions', entityType, entityId] as const,
   },
 
-  // Knowledge Base
-  knowledgeBase: {
-    articles: () => ['knowledge-base-articles'] as const,
-  },
 };
 
 /**

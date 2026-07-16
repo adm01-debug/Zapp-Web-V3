@@ -101,6 +101,7 @@ export function ChatbotL1Config() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.chatbot.l1Flow() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.chatbotFlows.all() });
       toast({
         title: 'Chatbot IA salvo!',
         description: 'O assistente L1 foi configurado com sucesso.',

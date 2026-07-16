@@ -94,6 +94,7 @@ export function useSLARules(scope?: SLARuleScope) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.sla.rules() });
       queryClient.invalidateQueries({ queryKey: queryKeys.sla.rulesCounts() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.sla.rulesActive() });
       toast.success('Regra de SLA criada');
     },
     onError: (err: Error) => toast.error(err.message),
@@ -120,6 +121,7 @@ export function useSLARules(scope?: SLARuleScope) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.sla.rules() });
       queryClient.invalidateQueries({ queryKey: queryKeys.sla.rulesCounts() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.sla.rulesActive() });
       toast.success('Regra de SLA atualizada');
     },
     onError: (err: Error) => toast.error(err.message),
@@ -145,6 +147,7 @@ export function useSLARules(scope?: SLARuleScope) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.sla.rules() });
       queryClient.invalidateQueries({ queryKey: queryKeys.sla.rulesCounts() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.sla.rulesActive() });
       toast.success('Regra de SLA removida');
     },
   });
@@ -165,7 +168,10 @@ export function useSLARules(scope?: SLARuleScope) {
     onError: (_err, _vars, context) => {
       if (context?.previous) queryClient.setQueryData(queryKey, context.previous);
     },
-    onSettled: () => queryClient.invalidateQueries({ queryKey: queryKeys.sla.rules() }),
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.sla.rules() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.sla.rulesActive() });
+    },
   });
 
   return {
