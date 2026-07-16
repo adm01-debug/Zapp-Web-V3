@@ -1,3 +1,4 @@
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -16,7 +17,7 @@ interface QueueCardProps {
   onDelete: (queue: QueueWithMembers) => void;
 }
 
-export function QueueCard({ queue, alertCount, onAddMember, onRemoveMember, onSetGoals, onDelete }: QueueCardProps) {
+export const QueueCard = React.memo(function QueueCard({ queue, alertCount, onAddMember, onRemoveMember, onSetGoals, onDelete }: QueueCardProps) {
   const navigate = useNavigate();
   const activeMembers = queue.members.filter(m => m.is_active && m.profile?.is_active);
   const queueColor = queue.color ?? 'hsl(var(--primary))';
@@ -92,4 +93,4 @@ export function QueueCard({ queue, alertCount, onAddMember, onRemoveMember, onSe
       </CardContent>
     </Card>
   );
-}
+});

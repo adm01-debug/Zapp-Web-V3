@@ -52,7 +52,7 @@ export function DeliveryStatsPanel({ remoteJid, instance = 'wpp2' }: Props) {
     );
   }
   if (error || !data) {
-    return <div className="text-xs text-destructive py-2">Falha ao carregar estatísticas de entrega.</div>;
+    return <div role="alert" className="text-xs text-destructive py-2">Falha ao carregar estatísticas de entrega.</div>;
   }
   if (data.totalMessages === 0) {
     return <div className="text-xs text-muted-foreground py-2">Sem mensagens para agregar.</div>;

@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { FloatingParticles } from '@/components/dashboard/FloatingParticles';
@@ -47,7 +47,30 @@ export function QueuesView() {
     return allAlerts;
   }, [queues, goals, dismissedAlerts]);
 
-  const getQueueAlertCount = (queueId: string) => alerts.filter(a => a.queueId === queueId).length;
+  const getQueueAlertCount = useCallback(
+    (queueId: string) => alerts.filter((a) => a.queueId === queueId).length,
+    [alerts],
+  );
+
+  const handleAddMember = useCallback((q: QueueWithMembers) => {
+    setSelectedQueue(q);
+    setAddMemberDialogOpen(true);
+  }, []);
+
+  const handleRemoveMember = useCallback(
+    (queueId: string, profileId: string) => removeMember(queueId, profileId),
+    [removeMember],
+  );
+
+  const handleSetGoals = useCallback((q: QueueWithMembers) => {
+    setSelectedQueue(q);
+    setGoalsDialogOpen(true);
+  }, []);
+
+  const handleDeleteQueue = useCallback((q: QueueWithMembers) => {
+    setQueueToDelete(q);
+    setDeleteDialogOpen(true);
+  }, []);
 
   if (loading) {
     return (
@@ -82,10 +105,10 @@ export function QueuesView() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {queues.map((queue) => (
           <QueueCard key={queue.id} queue={queue} alertCount={getQueueAlertCount(queue.id)}
-            onAddMember={(q) => { setSelectedQueue(q); setAddMemberDialogOpen(true); }}
-            onRemoveMember={(queueId, profileId) => removeMember(queueId, profileId)}
-            onSetGoals={(q) => { setSelectedQueue(q); setGoalsDialogOpen(true); }}
-            onDelete={(q) => { setQueueToDelete(q); setDeleteDialogOpen(true); }}
+            onAddMember={handleAddMember}
+            onRemoveMember={handleRemoveMember}
+            onSetGoals={handleSetGoals}
+            onDelete={handleDeleteQueue}
           />
         ))}
         <Card role="button" tabIndex={0} aria-label="Adicionar Nova Fila" className="border border-dashed border-border/40 cursor-pointer hover:border-primary/50 hover:bg-muted/20 transition-colors bg-transparent" onClick={() => setCreateDialogOpen(true)} onKeyDown={(e) => e.key === 'Enter' && setCreateDialogOpen(true)}>

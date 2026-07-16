@@ -88,6 +88,7 @@ export const VirusTotalConfig = () => {
 
         {testResult && (
           <div
+            role="alert"
             className={`flex items-start gap-3 rounded-lg p-4 ${testResult.success ? 'border border-primary/20 bg-primary/10 text-primary' : 'border border-destructive bg-destructive text-destructive-foreground'}`}
           >
             {testResult.success ? (

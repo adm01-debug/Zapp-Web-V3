@@ -238,7 +238,7 @@ export function VoiceChangerPicker({ onSendAudio, disabled }: VoiceChangerPicker
                 )}
 
                 {isRecording && (
-                  <motion.div key="recording" initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="flex flex-col items-center">
+                  <motion.div key="recording" role="status" aria-live="polite" initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="flex flex-col items-center">
                     <motion.div animate={{ scale: [1, 1.1, 1] }} transition={{ repeat: Infinity, duration: 1.2 }}>
                       <Button
                         onClick={stopRecording}
