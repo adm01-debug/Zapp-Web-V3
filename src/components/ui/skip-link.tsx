@@ -1,6 +1,6 @@
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useState, useEffect, forwardRef } from 'react';
+import { useState, useEffect, useRef, forwardRef } from 'react';
 import { ArrowRight, Navigation, Search, MessageSquare, LayoutDashboard } from 'lucide-react';
 
 interface SkipLinkProps {
@@ -70,17 +70,22 @@ const SKIP_TARGETS = [
 export function SkipLinks() {
   const [showIndicator, setShowIndicator] = useState(false);
   const [availableHrefs, setAvailableHrefs] = useState<Set<string>>(() => new Set());
+  const indicatorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Tab' && !e.shiftKey) {
         setShowIndicator(true);
-        setTimeout(() => setShowIndicator(false), 3000);
+        if (indicatorTimerRef.current) clearTimeout(indicatorTimerRef.current);
+        indicatorTimerRef.current = setTimeout(() => setShowIndicator(false), 3000);
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      if (indicatorTimerRef.current) clearTimeout(indicatorTimerRef.current);
+    };
   }, []);
 
   // Poll targets on route/DOM change — cheap query, only during idle mount.

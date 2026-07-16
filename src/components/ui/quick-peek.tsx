@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 
@@ -27,17 +27,18 @@ export function QuickPeek({
   className,
 }: QuickPeekProps) {
   const [show, setShow] = useState(false);
-  const [timer, setTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => () => { if (timerRef.current) clearTimeout(timerRef.current); }, []);
 
   const handleEnter = () => {
     if (!enabled) return;
-    const t = setTimeout(() => setShow(true), delay);
-    setTimer(t);
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => setShow(true), delay);
   };
 
   const handleLeave = () => {
-    if (timer) clearTimeout(timer);
-    setTimer(null);
+    if (timerRef.current) { clearTimeout(timerRef.current); timerRef.current = null; }
     setShow(false);
   };
 
