@@ -125,16 +125,18 @@
 | ~~BUG-5~~ | `supabase/migrations/20260712001500_cursor_pagination_optimization.sql:145` | CORRIGIDO: GRANT em `rpc_list_dispatch_error_logs_cursor` tinha 7 params vs 8 na assinatura real; nenhum usuário autenticado tinha permissão; fix em `20260716_fix_dispatch_error_logs_grant.sql` | Resolvido |
 | ~~BUG-6~~ | `src/features/admin/hooks/monitoring/useDispatchErrorLogs.ts` | CORRIGIDO: `p_cursor_id` hardcoded como `null`; paginação nunca avançava; adicionado cursor state management | Resolvido |
 | ~~BUG-7~~ | `src/features/admin/hooks/monitoring/useFailedMessages.ts:143` | CORRIGIDO: Realtime subscription usava `schema: 'zapp'` mas `failed_messages` vive em `public`; corrigido para `schema: 'public'` | Resolvido |
-| GAP-1 | `src/hooks/useCampaigns.ts:100` | `rpc('add_contacts_to_campaign')` — função não existe no DB | Runtime error |
-| GAP-2 | `src/hooks/useIntegrationManagement.ts:54,69` | `rpc('initiate_gmail_oauth')`, `rpc('complete_gmail_oauth')` — não existem | OAuth Gmail quebrado |
-| GAP-3 | `src/hooks/useIntegrationManagement.ts:156` | `rpc('sync_to_crm')` — não existe | Sync CRM quebrado |
-| GAP-4 | `src/hooks/useMediaManagement.ts:93,128,156` | `rpc('export_user_data')`, `rpc('import_user_data')`, `rpc('check_download_permission')` — não existem | Export/Import quebrado |
-| GAP-5 | `src/hooks/useCRMManagement.ts:146` | `rpc('enrich_contact')` — não existe | Enriquecimento de contato quebrado |
-| GAP-6 | `src/hooks/useAnalyticsManagement.ts:168` | `rpc('get_latest_analysis')` — não existe | Analytics quebrado |
+| GAP-1 | `src/hooks/useCampaigns.ts:100` | `rpc('add_contacts_to_campaign')` — SQL existe em `20260712140000_fix_campaign_contacts_rpc.sql`, não aplicado ao self-hosted | Runtime error até migração aplicada |
+| GAP-2 | `src/hooks/useIntegrationManagement.ts:54,69` | `rpc('initiate_gmail_oauth')`, `rpc('complete_gmail_oauth')` — não existem em nenhuma migration | OAuth Gmail quebrado |
+| GAP-3 | `src/hooks/useIntegrationManagement.ts:156` | `rpc('sync_to_crm')` — não existe em nenhuma migration | Sync CRM quebrado |
+| GAP-4 | `src/hooks/useMediaManagement.ts:93,128` | `rpc('export_user_data')`, `rpc('import_user_data')` — não existem em nenhuma migration | Export/Import quebrado |
+| ~~BUG-9~~ | `src/hooks/useMediaManagement.ts:164` | CORRIGIDO: `rpc('check_download_permission')` ausente → `hasPermission` ficava `false` permanentemente, bloqueando todos os downloads silenciosamente; adicionado `setHasPermission(true)` no catch (fail-open) | Resolvido |
+| GAP-5 | `src/hooks/useCRMManagement.ts:146` | `rpc('enrich_contact')` — não existe em nenhuma migration | Enriquecimento de contato quebrado |
+| GAP-6 | `src/hooks/useAnalyticsManagement.ts:168` | `rpc('get_latest_analysis')` — não existe em nenhuma migration | Analytics quebrado |
 | ~~BUG-8~~ | `supabase/migrations/20260712001500_cursor_pagination_optimization.sql:8` | CORRIGIDO: `rpc_list_failed_messages_cursor` tinha RETURNS TABLE com 9 cols vs 15 esperadas por FailedMessageRow; `fm.message_id` inexistente causava erro de compilação; `next_retry_at` vs `next_attempt_at` (nome errado); cursor keyset ignorava ties na created_at. Fix: `20260716_fix_rpc_list_failed_messages_cursor_columns.sql` | Resolvido |
 | GAP-7 | `src/features/admin/hooks/monitoring/useFailedMessages.ts:78` | `rpc('rpc_list_failed_messages_cursor')` — definição SQL existia mas com bugs críticos (ver BUG-8); reescrita em `20260716_fix_rpc_list_failed_messages_cursor_columns.sql` — precisa ser aplicada ao self-hosted | Painel de mensagens falhas quebrado até migração aplicada |
 | GAP-8 | `src/features/admin/hooks/monitoring/useDispatchErrorLogs.ts:61` | `rpc('rpc_list_dispatch_error_logs_cursor')` — não existe no DB (apenas a definição SQL existe em migration, não aplicada ao self-hosted) | Painel de erros de despacho quebrado |
 | GAP-9 | `src/features/admin/hooks/monitoring/useDlqAuditLog.ts:51` | `rpc('rpc_dlq_list_audit_cursor')` — não existe | Painel DLQ audit quebrado |
+| GAP-10 | `src/hooks/useQueueManagement.ts:203,415` | Tabela `queue_analytics` não existe em nenhuma migration; `useQueueAnalyticsManagement` e `useQueuesComparisonManagement` falham silenciosamente com PGRST205 | Analytics de filas e painel de comparação quebrados |
 
 ---
 

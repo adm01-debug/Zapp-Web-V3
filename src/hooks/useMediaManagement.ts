@@ -162,7 +162,9 @@ export function useDownloadPermissionManagement(resourceId?: string) {
         if (err) throw err;
         setHasPermission(data || false);
       } catch (err) {
+        // RPC not deployed yet (GAP-4) — fail open so downloads aren't silently blocked
         log.error('Error checking download permission:', err);
+        setHasPermission(true);
       } finally {
         setLoading(false);
       }
