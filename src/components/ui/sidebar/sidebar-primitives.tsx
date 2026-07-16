@@ -99,6 +99,7 @@ export const SidebarTrigger = React.forwardRef<React.ElementRef<typeof Button>, 
         data-sidebar="trigger"
         variant="ghost"
         size="icon"
+        aria-label="Alternar barra lateral"
         className={cn("h-7 w-7", className)}
         onClick={(event) => { onClick?.(event); toggleSidebar(); }}
         {...props}

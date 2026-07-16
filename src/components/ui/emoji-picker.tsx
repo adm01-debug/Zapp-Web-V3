@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { safeGetJSON, safeSetJSON } from '@/lib/safeStorage';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { Smile, Search, Clock, Heart, X, Cat, UtensilsCrossed, Briefcase, Hash, PartyPopper, Plane, Flag, Users, Hand } from 'lucide-react';
@@ -45,11 +46,9 @@ export function EmojiPicker({
   const [hoveredEmoji, setHoveredEmoji] = React.useState<string | null>(null);
 
   // Local recent emojis persisted to localStorage
-  const [localRecent, setLocalRecent] = React.useState<string[]>(() => {
-    try {
-      return JSON.parse(localStorage.getItem(RECENT_KEY) || '[]');
-    } catch { return []; }
-  });
+  const [localRecent, setLocalRecent] = React.useState<string[]>(() =>
+    safeGetJSON<string[]>(RECENT_KEY, [])
+  );
 
   const recentEmojis = externalRecent ?? localRecent;
 
@@ -61,7 +60,7 @@ export function EmojiPicker({
       onRecentUpdate(updated);
     } else {
       setLocalRecent(updated);
-      localStorage.setItem(RECENT_KEY, JSON.stringify(updated));
+      safeSetJSON(RECENT_KEY, updated);
     }
 
     setIsOpen(false);
