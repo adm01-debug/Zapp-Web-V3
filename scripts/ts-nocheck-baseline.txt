@@ -279,7 +279,6 @@ src/lib/openContactInChat.ts
 src/lib/realtime/__tests__/crossTabDedupe.test.ts
 src/lib/realtime/crossTabDedupe.ts
 src/lib/retryConfig.ts
-src/lib/sendFunctionRouter.ts
 src/pages/AdminEvolutionApiLogsPage.tsx
 src/pages/AdminRealtimeMonitorPage.tsx
 src/pages/AdminSearchInsightsPage.tsx
