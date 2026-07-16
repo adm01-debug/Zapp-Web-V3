@@ -1,9 +1,7 @@
 src/__tests__/security-and-performance.test.ts
 src/adapters/evolutionAdapter.ts
 src/components/__tests__/ExportDropdownPermission.test.tsx
-src/components/connections/InstanceSettingsDialog.tsx
 src/components/dashboard/ScheduledReportsManager.tsx
-src/components/omnichannel/OmnichannelInbox.tsx
 src/components/payments/PaymentLinksView.tsx
 src/components/reports/DemandForecast.tsx
 src/components/security/AuditLogDashboard.tsx
@@ -20,9 +18,6 @@ src/components/talkx/TalkXLiveMonitor.tsx
 src/components/talkx/TalkXView.tsx
 src/components/talkx/__tests__/TalkX.test.tsx
 src/components/talkx/useCampaignEditor.ts
-src/components/team-chat/TeamChatPanel.tsx
-src/components/team-chat/TeamChatView.tsx
-src/components/team-chat/useTeamChatPanel.ts
 src/components/whatsapp-flows/WhatsAppFlowsBuilder.tsx
 src/features/admin/components/AdminView.tsx
 src/features/admin/components/CrisisRoom.tsx
