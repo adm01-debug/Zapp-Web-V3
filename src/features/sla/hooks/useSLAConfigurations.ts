@@ -97,14 +97,14 @@ export function useSLAConfigurations() {
     },
     onMutate: async ({ id, is_active }) => {
       await queryClient.cancelQueries({ queryKey: queryKeys.sla.configurations() });
-      const previous = queryClient.getQueryData<SLAConfig[]>(['sla-configurations']);
-      queryClient.setQueryData<SLAConfig[]>(['sla-configurations'], (old) =>
+      const previous = queryClient.getQueryData<SLAConfig[]>(queryKeys.sla.configurations());
+      queryClient.setQueryData<SLAConfig[]>(queryKeys.sla.configurations(), (old) =>
         (old || []).map((c) => (c.id === id ? { ...c, is_active } : c))
       );
       return { previous };
     },
     onError: (_err, _vars, context) => {
-      if (context?.previous) queryClient.setQueryData(['sla-configurations'], context.previous);
+      if (context?.previous) queryClient.setQueryData(queryKeys.sla.configurations(), context.previous);
     },
     onSettled: () => queryClient.invalidateQueries({ queryKey: queryKeys.sla.configurations() }),
   });
@@ -116,14 +116,14 @@ export function useSLAConfigurations() {
     },
     onMutate: async (id: string) => {
       await queryClient.cancelQueries({ queryKey: queryKeys.sla.configurations() });
-      const previous = queryClient.getQueryData<SLAConfig[]>(['sla-configurations']);
-      queryClient.setQueryData<SLAConfig[]>(['sla-configurations'], (old) =>
+      const previous = queryClient.getQueryData<SLAConfig[]>(queryKeys.sla.configurations());
+      queryClient.setQueryData<SLAConfig[]>(queryKeys.sla.configurations(), (old) =>
         (old || []).filter((c) => c.id !== id)
       );
       return { previous };
     },
     onError: (err: Error, _id, context) => {
-      if (context?.previous) queryClient.setQueryData(['sla-configurations'], context.previous);
+      if (context?.previous) queryClient.setQueryData(queryKeys.sla.configurations(), context.previous);
       toast.error(err.message);
     },
     onSuccess: () => {

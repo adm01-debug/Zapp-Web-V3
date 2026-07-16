@@ -490,6 +490,9 @@ export const queryKeys = {
     webhookRecentEvents: (instanceId?: string) =>
       ['webhook-recent-events', instanceId] as const,
     webhookSecretStatus: () => ['webhook-secret-status'] as const,
+    webhookEvents: () => ['admin-webhook-events'] as const,
+    webhookEventsFiltered: (hours?: string | number, eventType?: string, instance?: string, messageType?: string, status?: string, remoteJidFilter?: string, pushNameFilter?: string) =>
+      ['admin-webhook-events', hours, eventType, instance, messageType, status, remoteJidFilter, pushNameFilter] as const,
     kbArticleCount: () => ['kb-article-count'] as const,
     dlqAuditLog: () => ['dlq-audit-log'] as const,
     dlqAuditLogFiltered: (params?: unknown) => ['dlq-audit-log', params] as const,
@@ -535,6 +538,12 @@ export const queryKeys = {
     operationsLogs: (filters?: unknown) => ['operations-logs', filters] as const,
     telemetry: (severityFilter?: string, timeFilter?: string, dateFrom?: string, dateTo?: string) =>
       ['query-telemetry', severityFilter, timeFilter, dateFrom, dateTo] as const,
+  },
+
+  // Dispatch Error Logs (append-only audit trail)
+  dispatchErrorLogs: {
+    all: () => ['dispatch-error-logs'] as const,
+    filtered: (filters?: unknown) => ['dispatch-error-logs', filters] as const,
   },
 };
 
