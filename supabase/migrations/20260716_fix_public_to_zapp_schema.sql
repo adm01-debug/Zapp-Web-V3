@@ -1,15 +1,19 @@
--- Corrective migration: move objects from public to zapp schema
--- The 20260712* security/compliance migrations incorrectly created 51 tables
--- and 117 functions in the public schema instead of zapp.
--- This migration moves them to zapp (or drops the public duplicate if zapp already has it).
+-- =============================================================================
+-- Migration: 20260716_fix_public_to_zapp_schema.sql
+-- Description: Move 51 tables and 117 functions from schema `public` to `zapp`.
 --
--- Idempotent: safe to run multiple times.
+-- Context: The 20260712* security/compliance migrations incorrectly created
+-- these objects in the `public` schema. Per project convention, ALL application
+-- objects belong in the `zapp` schema (see CLAUDE.md).
+--
+-- Idempotency: Every statement is wrapped in a DO block with IF EXISTS guards.
+-- If an object already exists in `zapp` (e.g. from a fresh apply on a clean DB),
+-- the `public` duplicate is dropped instead of moved, avoiding conflicts.
+-- =============================================================================
 
-BEGIN;
-
--- ============================================================
--- 1. Move tables from public to zapp
--- ============================================================
+-- ─────────────────────────────────────────────────────────────────────────────
+-- PART 1: TABLES (51)
+-- ─────────────────────────────────────────────────────────────────────────────
 
 DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'account_lockouts') THEN
@@ -521,22 +525,22 @@ DO $$ BEGIN
   END IF;
 END $$;
 
--- ============================================================
--- 2. Move functions from public to zapp
--- ============================================================
 
+-- ─────────────────────────────────────────────────────────────────────────────
+-- PART 2: FUNCTIONS (117)
+-- For each function name, we look up all overloads in pg_proc and either
+-- move them to zapp or drop them if a same-signature version already exists.
+-- ─────────────────────────────────────────────────────────────────────────────
+
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'add_contacts_to_campaign'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'add_contacts_to_campaign'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -550,15 +554,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'create_partitions_if_not_exists'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'create_partitions_if_not_exists'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -572,15 +573,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'fn_acknowledge_alert_incident'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'fn_acknowledge_alert_incident'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -594,15 +592,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'fn_aggressive_cleanup_dedup_table'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'fn_aggressive_cleanup_dedup_table'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -616,15 +611,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'fn_alert_counter_overflow'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'fn_alert_counter_overflow'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -638,15 +630,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'fn_alert_idempotency_failures'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'fn_alert_idempotency_failures'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -660,15 +649,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'fn_alert_rate_limit_timeout'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'fn_alert_rate_limit_timeout'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -682,15 +668,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'fn_apply_dedup_cache_ttl_config'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'fn_apply_dedup_cache_ttl_config'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -704,15 +687,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'fn_apply_query_resource_limits'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'fn_apply_query_resource_limits'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -726,15 +706,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'fn_archive_old_audit_partitions'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'fn_archive_old_audit_partitions'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -748,15 +725,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'fn_audit_log_month_start'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'fn_audit_log_month_start'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -770,15 +744,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'fn_audit_rls_status'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'fn_audit_rls_status'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -792,15 +763,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'fn_calculate_threat_score'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'fn_calculate_threat_score'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -814,15 +782,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'fn_check_and_alert_overdue_rotations'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'fn_check_and_alert_overdue_rotations'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -836,15 +801,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'fn_check_api_version_support'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'fn_check_api_version_support'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -858,15 +820,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'fn_check_circuit_breaker_status'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'fn_check_circuit_breaker_status'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -880,15 +839,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'fn_check_connection_pool_health'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'fn_check_connection_pool_health'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -902,15 +858,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'fn_check_deployment_health'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'fn_check_deployment_health'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -924,15 +877,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'fn_check_endpoint_rate_limit'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'fn_check_endpoint_rate_limit'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -946,15 +896,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'fn_check_failover_status'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'fn_check_failover_status'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -968,15 +915,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'fn_check_mfa_compliance'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'fn_check_mfa_compliance'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -990,15 +934,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'fn_check_recovery_readiness'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'fn_check_recovery_readiness'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -1012,15 +953,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'fn_check_schema_compatibility'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'fn_check_schema_compatibility'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -1034,15 +972,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'fn_check_transaction_isolation'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'fn_check_transaction_isolation'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -1056,15 +991,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'fn_cleanup_dedup_cache_global'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'fn_cleanup_dedup_cache_global'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -1078,15 +1010,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'fn_cleanup_dedup_cache_per_instance'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'fn_cleanup_dedup_cache_per_instance'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -1100,15 +1029,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'fn_cleanup_dlq'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'fn_cleanup_dlq'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -1122,15 +1048,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'fn_cleanup_idempotency_audit'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'fn_cleanup_idempotency_audit'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -1144,15 +1067,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'fn_cleanup_idle_sessions'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'fn_cleanup_idle_sessions'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -1166,15 +1086,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'fn_cleanup_memory_leaks'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'fn_cleanup_memory_leaks'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -1188,15 +1105,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'fn_cleanup_orphaned_records'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'fn_cleanup_orphaned_records'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -1210,15 +1124,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'fn_cleanup_stale_rate_limit_counters'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'fn_cleanup_stale_rate_limit_counters'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -1232,15 +1143,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'fn_cleanup_webhook_dedup_table'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'fn_cleanup_webhook_dedup_table'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -1254,15 +1162,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'fn_complete_deployment'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'fn_complete_deployment'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -1276,15 +1181,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'fn_decode_secret'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'fn_decode_secret'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -1298,15 +1200,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'fn_detect_anomaly'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'fn_detect_anomaly'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -1320,15 +1219,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'fn_detect_orphaned_records'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'fn_detect_orphaned_records'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -1342,15 +1238,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'fn_detect_rollback'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'fn_detect_rollback'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -1364,15 +1257,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'fn_detect_sql_injection_patterns'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'fn_detect_sql_injection_patterns'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -1386,15 +1276,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'fn_detect_unicode_normalization_issues'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'fn_detect_unicode_normalization_issues'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -1408,15 +1295,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'fn_emergency_truncate_audit'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'fn_emergency_truncate_audit'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -1430,15 +1314,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'fn_enable_graceful_degradation'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'fn_enable_graceful_degradation'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -1452,15 +1333,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'fn_encode_secret'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'fn_encode_secret'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -1474,15 +1352,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'fn_execute_all_retention_policies'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'fn_execute_all_retention_policies'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -1496,15 +1371,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'fn_execute_disaster_recovery_runbook'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'fn_execute_disaster_recovery_runbook'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -1518,15 +1390,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'fn_execute_retention_policy'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'fn_execute_retention_policy'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -1540,15 +1409,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'fn_final_production_readiness_check'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'fn_final_production_readiness_check'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -1562,15 +1428,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'fn_generate_production_readiness_report'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'fn_generate_production_readiness_report'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -1584,15 +1447,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'fn_generate_rate_limit_headers'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'fn_generate_rate_limit_headers'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -1606,15 +1466,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'fn_generate_recovery_codes'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'fn_generate_recovery_codes'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -1628,15 +1485,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'fn_generate_retry_after_header'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'fn_generate_retry_after_header'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -1650,15 +1504,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'fn_get_connection_timeouts'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'fn_get_connection_timeouts'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -1672,15 +1523,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'fn_get_user_complexity_class'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'fn_get_user_complexity_class'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -1694,15 +1542,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'fn_insert_idempotency_failure_audit'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'fn_insert_idempotency_failure_audit'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -1716,15 +1561,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'fn_invalidate_expired_cache'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'fn_invalidate_expired_cache'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -1738,15 +1580,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'fn_is_key_rotation_due'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'fn_is_key_rotation_due'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -1760,15 +1599,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'fn_learn_baseline'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'fn_learn_baseline'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -1782,15 +1618,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'fn_log_payload_size_violation'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'fn_log_payload_size_violation'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -1804,15 +1637,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'fn_log_query_violation'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'fn_log_query_violation'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -1826,15 +1656,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'fn_log_request_response'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'fn_log_request_response'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -1848,15 +1675,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'fn_mask_secret'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'fn_mask_secret'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -1870,15 +1694,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'fn_migrate_audit_logs_to_partitioned'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'fn_migrate_audit_logs_to_partitioned'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -1892,15 +1713,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'fn_monitor_connection_health'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'fn_monitor_connection_health'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -1914,15 +1732,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'fn_optimize_connection_pool'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'fn_optimize_connection_pool'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -1936,15 +1751,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'fn_process_retry_queue'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'fn_process_retry_queue'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -1958,15 +1770,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'fn_process_webhook_transaction'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'fn_process_webhook_transaction'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -1980,15 +1789,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'fn_purge_processed_webhook_events'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'fn_purge_processed_webhook_events'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -2002,15 +1808,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'fn_record_migration'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'fn_record_migration'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -2024,15 +1827,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'fn_record_threat_event'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'fn_record_threat_event'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -2046,15 +1846,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'fn_redact_webhook_secrets'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'fn_redact_webhook_secrets'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -2068,15 +1865,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'fn_resolve_alert_incident'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'fn_resolve_alert_incident'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -2090,15 +1884,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'fn_resolve_endpoint_config'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'fn_resolve_endpoint_config'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -2112,15 +1903,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'fn_rollback_deployment'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'fn_rollback_deployment'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -2134,15 +1922,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'fn_rotate_key'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'fn_rotate_key'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -2156,15 +1941,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'fn_route_failed_webhooks_to_dlq_safe'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'fn_route_failed_webhooks_to_dlq_safe'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -2178,15 +1960,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'fn_schedule_orphan_cleanup'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'fn_schedule_orphan_cleanup'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -2200,15 +1979,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'fn_select_load_balanced_backend'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'fn_select_load_balanced_backend'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -2222,15 +1998,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'fn_snapshot_schema_state'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'fn_snapshot_schema_state'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -2244,15 +2017,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'fn_start_deployment'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'fn_start_deployment'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -2266,15 +2036,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'fn_system_health_score'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'fn_system_health_score'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -2288,15 +2055,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'fn_test_backup_restore'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'fn_test_backup_restore'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -2310,15 +2074,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'fn_trigger_security_alert'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'fn_trigger_security_alert'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -2332,15 +2093,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'fn_validate_backup_integrity'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'fn_validate_backup_integrity'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -2354,15 +2112,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'fn_validate_cte_safety'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'fn_validate_cte_safety'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -2376,15 +2131,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'fn_validate_decompression_size'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'fn_validate_decompression_size'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -2398,15 +2150,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'fn_validate_deployment_readiness'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'fn_validate_deployment_readiness'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -2420,15 +2169,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'fn_validate_dlq_redaction'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'fn_validate_dlq_redaction'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -2442,15 +2188,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'fn_validate_instance_id'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'fn_validate_instance_id'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -2464,15 +2207,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'fn_validate_json_depth'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'fn_validate_json_depth'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -2486,15 +2226,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'fn_validate_partition_isolation'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'fn_validate_partition_isolation'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -2508,15 +2245,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'fn_validate_payload_size'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'fn_validate_payload_size'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -2530,15 +2264,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'fn_validate_performance_baselines'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'fn_validate_performance_baselines'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -2552,15 +2283,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'fn_validate_production_excellence'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'fn_validate_production_excellence'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -2574,15 +2302,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'fn_validate_query_plan_cost'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'fn_validate_query_plan_cost'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -2596,15 +2321,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'fn_validate_recovery_code'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'fn_validate_recovery_code'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -2618,15 +2340,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'fn_validate_rls_policies'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'fn_validate_rls_policies'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -2640,15 +2359,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'fn_verify_backup_integrity'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'fn_verify_backup_integrity'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -2662,15 +2378,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'fn_verify_data_integrity'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'fn_verify_data_integrity'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -2684,15 +2397,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'fn_verify_retention_compliance'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'fn_verify_retention_compliance'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -2706,15 +2416,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'fn_verify_schema_requirements'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'fn_verify_schema_requirements'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -2728,15 +2435,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'fn_verify_webhook_signature_enhanced'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'fn_verify_webhook_signature_enhanced'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -2750,15 +2454,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'fn_webhook_health_check'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'fn_webhook_health_check'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -2772,15 +2473,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'increment_webhook_rate_limit'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'increment_webhook_rate_limit'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -2794,15 +2492,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'log_version_conflict'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'log_version_conflict'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -2816,15 +2511,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'reassign_absent_agents'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'reassign_absent_agents'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -2838,15 +2530,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'rpc_dlq_bulk_retry_now'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'rpc_dlq_bulk_retry_now'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -2860,15 +2549,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'rpc_dlq_list_audit_cursor'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'rpc_dlq_list_audit_cursor'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -2882,15 +2568,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'rpc_dlq_log_item_action'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'rpc_dlq_log_item_action'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -2904,15 +2587,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'rpc_list_dispatch_error_logs_cursor'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'rpc_list_dispatch_error_logs_cursor'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -2926,15 +2606,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'rpc_list_failed_messages_cursor'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'rpc_list_failed_messages_cursor'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -2948,15 +2625,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'rpc_list_transfers_paginated_cursor'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'rpc_list_transfers_paginated_cursor'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -2970,15 +2644,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'search_contacts_cursor'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'search_contacts_cursor'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -2992,15 +2663,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'trg_cascade_cleanup_on_instance_delete'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'trg_cascade_cleanup_on_instance_delete'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -3014,15 +2682,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'trg_cascade_cleanup_on_webhook_delete'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'trg_cascade_cleanup_on_webhook_delete'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -3036,15 +2701,12 @@ END $$;
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args
-    FROM pg_proc p
-    JOIN pg_namespace n ON p.pronamespace = n.oid
-    WHERE n.nspname = 'public' AND p.proname = 'upsert_user_settings'
+  FOR r IN SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+           FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+           WHERE n.nspname = 'public' AND p.proname = 'upsert_user_settings'
   LOOP
     IF EXISTS (
-      SELECT 1 FROM pg_proc p2
-      JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
+      SELECT 1 FROM pg_proc p2 JOIN pg_namespace n2 ON p2.pronamespace = n2.oid
       WHERE n2.nspname = 'zapp' AND p2.proname = r.proname
         AND pg_get_function_identity_arguments(p2.oid) = r.args
     ) THEN
@@ -3054,5 +2716,8 @@ BEGIN
     END IF;
   END LOOP;
 END $$;
+
 
-COMMIT;
+-- =============================================================================
+-- END OF MIGRATION
+-- =============================================================================
