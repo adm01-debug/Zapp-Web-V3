@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "vite_react_shadcn_ts",
+      "name": "zapp-web-v3",
       "dependencies": {
         "@axe-core/react": "^4.12.1",
         "@elevenlabs/react": "^0.15.0",
