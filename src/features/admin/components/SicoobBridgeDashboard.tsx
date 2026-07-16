@@ -1,3 +1,4 @@
+import { queryKeys } from '@/services/api/queryKeys';
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getLogger } from '@/lib/logger';
@@ -30,7 +31,7 @@ interface SicoobMessage {
 
 export function SicoobBridgeDashboard() {
   const { data, isFetching, refetch } = useQuery({
-    queryKey: ['admin', 'sicoob-bridge-dashboard'],
+    queryKey: queryKeys.adminOps.sicoobBridge(),
     queryFn: async () => {
       try {
         const { data: mappingData } = await supabase

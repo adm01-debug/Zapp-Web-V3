@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { getLogger } from '@/lib/logger';
+import { queryKeys } from '@/services/api/queryKeys';
 
 const log = getLogger('useConversationReactionsRealtime');
 
@@ -38,7 +39,7 @@ export function useConversationReactionsRealtime(
           const messageId = newRow?.message_id ?? oldRow?.message_id;
           if (!messageId) return;
           if (!idsRef.current.has(messageId)) return;
-          queryClient.invalidateQueries({ queryKey: ['message-reactions', messageId] });
+          queryClient.invalidateQueries({ queryKey: queryKeys.messageReactions.message(messageId) });
         }
       )
       .subscribe((status) => {

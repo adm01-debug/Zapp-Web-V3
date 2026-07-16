@@ -1,3 +1,4 @@
+import { queryKeys } from '@/services/api/queryKeys';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -39,7 +40,7 @@ export function useSLAConfigurations() {
   const [form, setForm] = useState(defaultForm);
 
   const { data: configs = [], isLoading } = useQuery({
-    queryKey: ['sla-configurations'],
+    queryKey: queryKeys.sla.configurations(),
     staleTime: Infinity,
     queryFn: async () => {
       const { data, error } = await supabase
@@ -77,7 +78,7 @@ export function useSLAConfigurations() {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['sla-configurations'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.sla.configurations() });
       setShowDialog(false);
       setEditingId(null);
       setForm(defaultForm);
@@ -95,7 +96,7 @@ export function useSLAConfigurations() {
       if (error) throw error;
     },
     onMutate: async ({ id, is_active }) => {
-      await queryClient.cancelQueries({ queryKey: ['sla-configurations'] });
+      await queryClient.cancelQueries({ queryKey: queryKeys.sla.configurations() });
       const previous = queryClient.getQueryData<SLAConfig[]>(['sla-configurations']);
       queryClient.setQueryData<SLAConfig[]>(['sla-configurations'], (old) =>
         (old || []).map((c) => (c.id === id ? { ...c, is_active } : c))
@@ -105,7 +106,7 @@ export function useSLAConfigurations() {
     onError: (_err, _vars, context) => {
       if (context?.previous) queryClient.setQueryData(['sla-configurations'], context.previous);
     },
-    onSettled: () => queryClient.invalidateQueries({ queryKey: ['sla-configurations'] }),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: queryKeys.sla.configurations() }),
   });
 
   const deleteMutation = useMutation({
@@ -114,7 +115,7 @@ export function useSLAConfigurations() {
       if (error) throw error;
     },
     onMutate: async (id: string) => {
-      await queryClient.cancelQueries({ queryKey: ['sla-configurations'] });
+      await queryClient.cancelQueries({ queryKey: queryKeys.sla.configurations() });
       const previous = queryClient.getQueryData<SLAConfig[]>(['sla-configurations']);
       queryClient.setQueryData<SLAConfig[]>(['sla-configurations'], (old) =>
         (old || []).filter((c) => c.id !== id)
@@ -126,7 +127,7 @@ export function useSLAConfigurations() {
       toast.error(err.message);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['sla-configurations'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.sla.configurations() });
       toast.success('SLA removido');
     },
   });

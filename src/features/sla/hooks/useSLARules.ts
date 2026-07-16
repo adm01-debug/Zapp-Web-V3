@@ -1,3 +1,4 @@
+import { queryKeys } from '@/services/api/queryKeys';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -91,8 +92,8 @@ export function useSLARules(scope?: SLARuleScope) {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['sla-rules'] });
-      queryClient.invalidateQueries({ queryKey: ['sla-rules-counts'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.sla.rules() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.sla.rulesCounts() });
       toast.success('Regra de SLA criada');
     },
     onError: (err: Error) => toast.error(err.message),
@@ -117,8 +118,8 @@ export function useSLARules(scope?: SLARuleScope) {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['sla-rules'] });
-      queryClient.invalidateQueries({ queryKey: ['sla-rules-counts'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.sla.rules() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.sla.rulesCounts() });
       toast.success('Regra de SLA atualizada');
     },
     onError: (err: Error) => toast.error(err.message),
@@ -142,8 +143,8 @@ export function useSLARules(scope?: SLARuleScope) {
       toast.error(err.message);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['sla-rules'] });
-      queryClient.invalidateQueries({ queryKey: ['sla-rules-counts'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.sla.rules() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.sla.rulesCounts() });
       toast.success('Regra de SLA removida');
     },
   });
@@ -164,7 +165,7 @@ export function useSLARules(scope?: SLARuleScope) {
     onError: (_err, _vars, context) => {
       if (context?.previous) queryClient.setQueryData(queryKey, context.previous);
     },
-    onSettled: () => queryClient.invalidateQueries({ queryKey: ['sla-rules'] }),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: queryKeys.sla.rules() }),
   });
 
   return {

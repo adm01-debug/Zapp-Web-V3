@@ -1,3 +1,4 @@
+import { queryKeys } from '@/services/api/queryKeys';
 import { useState, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -33,7 +34,7 @@ export function NewConversationDialog({ open, onOpenChange, onCreated }: Props) 
   const _isAdmin = profile?.role === 'admin';
 
   const { data: teammates = [], isLoading: loadingTeammates } = useQuery({
-    queryKey: ['team-profiles-for-chat'],
+    queryKey: queryKeys.teamProfiles.forChat(),
     queryFn: async () => {
       const { data, error } = await supabase
         .from('profiles')

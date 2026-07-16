@@ -1,3 +1,4 @@
+import { queryKeys } from '@/services/api/queryKeys';
 import { useState, useMemo, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -76,7 +77,7 @@ export function QrAttemptsPanel() {
     isFetching: loading,
     refetch,
   } = useQuery<QrAttempt[]>({
-    queryKey: ['admin', 'qr-attempts', statusFilter, instanceFilter],
+    queryKey: queryKeys.adminOps.qrAttempts(statusFilter, instanceFilter),
     queryFn: async () => {
       let q = supabase
         .from('qr_attempts')
@@ -101,7 +102,7 @@ export function QrAttemptsPanel() {
     const channel = supabase
       .channel('qr-attempts-admin')
       .on('postgres_changes', { event: '*', schema: 'zapp', table: 'qr_attempts' }, () => {
-        void queryClient.invalidateQueries({ queryKey: ['admin', 'qr-attempts'] });
+        void queryClient.invalidateQueries({ queryKey: queryKeys.adminOps.qrAttempts() });
       })
       .subscribe();
     return () => {

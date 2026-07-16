@@ -1,3 +1,4 @@
+import { queryKeys } from '@/services/api/queryKeys';
 /**
  * Admin: Realtime monitoring page.
  * Single consolidated dashboard with connection status, webhook event volume
@@ -42,7 +43,7 @@ export default function AdminRealtimeMonitorPage() {
 
   const handleManualRefresh = () => {
     void queryClient.invalidateQueries({ queryKey: ['realtime-monitor'] });
-    void queryClient.invalidateQueries({ queryKey: ['failed-messages'] });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.failedMessages.all() });
   };
 
   return (

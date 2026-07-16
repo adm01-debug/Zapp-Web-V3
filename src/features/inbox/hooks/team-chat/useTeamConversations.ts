@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { useAuth } from '@/features/auth';
+import { queryKeys } from '@/services/api/queryKeys';
 import type { TeamConversation, TeamMember, TeamMessage } from './teamChatTypes';
 
 export function useTeamConversations() {
@@ -10,7 +11,7 @@ export function useTeamConversations() {
   const queryClient = useQueryClient();
 
   const query = useQuery({
-    queryKey: ['team-conversations', profile?.id],
+    queryKey: queryKeys.teamChat.conversationList(profile?.id),
     queryFn: async () => {
       if (!profile) return [];
 
@@ -126,17 +127,17 @@ export function useTeamConversations() {
       .channel('team-chat-updates')
       // team_messages: tabela base em zapp
       .on('postgres_changes', { event: '*', schema: 'zapp', table: 'team_messages' }, () => {
-        void queryClient.invalidateQueries({ queryKey: ['team-conversations'] });
+        void queryClient.invalidateQueries({ queryKey: queryKeys.teamChat.conversations() });
       })
       // team_conversations + team_conversation_members: tabelas base em zapp
       .on('postgres_changes', { event: '*', schema: 'zapp', table: 'team_conversations' }, () => {
-        void queryClient.invalidateQueries({ queryKey: ['team-conversations'] });
+        void queryClient.invalidateQueries({ queryKey: queryKeys.teamChat.conversations() });
       })
       .on(
         'postgres_changes',
         { event: '*', schema: 'zapp', table: 'team_conversation_members' },
         () => {
-          void queryClient.invalidateQueries({ queryKey: ['team-conversations'] });
+          void queryClient.invalidateQueries({ queryKey: queryKeys.teamChat.conversations() });
         }
       )
       .subscribe();

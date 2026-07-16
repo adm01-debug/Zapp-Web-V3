@@ -1,3 +1,4 @@
+import { queryKeys } from '@/services/api/queryKeys';
 import { memo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -47,7 +48,7 @@ export const TeamFiles = memo(function TeamFiles({ contactId }: TeamFilesProps) 
   const [typeFilter, setTypeFilter] = useState<string>('all');
 
   const { data: files = [], isLoading } = useQuery({
-    queryKey: ['team-files', contactId],
+    queryKey: queryKeys.teamChat.files(contactId),
     enabled: !!contactId,
     queryFn: async () => {
       const { data, error } = await safeClient.from<WhisperFile>('whisper_files', (q) =>
@@ -93,7 +94,7 @@ export const TeamFiles = memo(function TeamFiles({ contactId }: TeamFilesProps) 
       if (dbError) throw dbError;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['team-files', contactId] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.teamChat.files(contactId) });
       toast({
         title: 'Arquivo enviado',
         description: 'O documento interno foi salvo com sucesso.',
@@ -111,7 +112,7 @@ export const TeamFiles = memo(function TeamFiles({ contactId }: TeamFilesProps) 
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['team-files', contactId] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.teamChat.files(contactId) });
       toast({ title: 'Arquivo removido' });
     },
     onError: (error: Error) => {

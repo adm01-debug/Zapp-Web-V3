@@ -1,3 +1,4 @@
+import { queryKeys } from '@/services/api/queryKeys';
 import { useState, useMemo, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -48,7 +49,7 @@ export function useQuickReplies() {
     error,
     refetch,
   } = useQuery({
-    queryKey: ['quick-replies', user?.id],
+    queryKey: queryKeys.quickReplies.user(user?.id),
     queryFn: async () => {
       if (!user?.id) return [];
 
@@ -149,7 +150,7 @@ export function useQuickReplies() {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['quick-replies'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.quickReplies.all() });
       toast.success('Resposta rápida criada!');
     },
     onError: (error) => {
@@ -179,7 +180,7 @@ export function useQuickReplies() {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['quick-replies'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.quickReplies.all() });
       toast.success('Resposta rápida atualizada!');
     },
     onError: (error) => {
@@ -200,7 +201,7 @@ export function useQuickReplies() {
       saveFavorites(newFavorites);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['quick-replies'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.quickReplies.all() });
       toast.success('Resposta rápida excluída!');
     },
     onError: (error) => {
@@ -220,7 +221,7 @@ export function useQuickReplies() {
         .update({ use_count: (template.use_count || 0) + 1 })
         .eq('id', templateId);
 
-      void queryClient.invalidateQueries({ queryKey: ['quick-replies'] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.quickReplies.all() });
     },
     [templates, queryClient]
   );

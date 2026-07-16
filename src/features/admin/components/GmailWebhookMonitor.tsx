@@ -1,3 +1,4 @@
+import { queryKeys } from '@/services/api/queryKeys';
 import { useQuery } from '@tanstack/react-query';
 import { getLogger } from '@/lib/logger';
 const log = getLogger('EmailWebhookMonitor');
@@ -25,7 +26,7 @@ interface ThreadStats {
 
 export function EmailWebhookMonitor() {
   const { data, isFetching, refetch } = useQuery({
-    queryKey: ['admin', 'email-webhook-monitor'],
+    queryKey: queryKeys.adminOps.emailWebhook(),
     queryFn: async () => {
       // Best-effort load: mirrors legacy behavior — failures degrade to empty data
       // (the panel renders an empty state rather than surfacing an error).

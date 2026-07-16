@@ -19,6 +19,7 @@ import { toast } from 'sonner';
 import { useDebouncedValue } from '@/hooks/useDebounce';
 import { usePerformanceMetrics } from '@/hooks/usePerformanceMonitoring';
 import { ListImperativeAPI } from 'react-window';
+import { queryKeys } from '@/services/api/queryKeys';
 
 const log = getLogger('useTeamChatPanel');
 
@@ -93,7 +94,7 @@ export function useTeamChatPanel(conversation: TeamConversation) {
 
       // If clearing search, we might want to pre-populate or clean up
       if (!newQuery.trim()) {
-        void queryClient.invalidateQueries({ queryKey: ['team-messages', conversation.id, ''] });
+        void queryClient.invalidateQueries({ queryKey: queryKeys.teamChat.messages(conversation.id, '') });
       }
 
       const duration = performance.now() - start;
