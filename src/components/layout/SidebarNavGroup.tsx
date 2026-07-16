@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -24,7 +24,7 @@ interface SidebarNavGroupProps {
   badgeMap?: Record<string, BadgeInfo | undefined>;
 }
 
-export function SidebarNavGroup({ label, icon: GroupIcon, items, currentView, onViewChange, defaultOpen = false, collapsed = true, onToggleFavorite, isFavorite, badgeMap }: SidebarNavGroupProps) {
+export const SidebarNavGroup = React.memo(function SidebarNavGroup({ label, icon: GroupIcon, items, currentView, onViewChange, defaultOpen = false, collapsed = true, onToggleFavorite, isFavorite, badgeMap }: SidebarNavGroupProps) {
   const hasActiveItem = items.some(item => item.id === currentView);
   const [isOpen, setIsOpen] = useState(defaultOpen || hasActiveItem);
 
@@ -114,4 +114,4 @@ export function SidebarNavGroup({ label, icon: GroupIcon, items, currentView, on
       </AnimatePresence>
     </div>
   );
-}
+});
