@@ -1,6 +1,30 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
-import { handleCors, errorResponse, jsonResponse, requireEnv, Logger } from "../_shared/validation.ts";
+import { handleCors, errorResponse, jsonResponse, requireEnv, Logger, checkRateLimit } from "../_shared/validation.ts";
+import { requireUser } from "../_shared/auth.ts";
 import { ExternalDbBridgeSchema, parseBody } from "../_shared/schemas.ts";
+
+// Allowlist of RPC function names callable via this bridge (user-scoped, RLS applies).
+// Never include functions that bypass RLS or expose admin-only data.
+const ALLOWED_RPC_FUNCTIONS = new Set([
+  'check_duplicate_request',
+  'record_processed_request',
+  'acquire_idempotency_lock',
+  'get_contact_summary',
+  'get_queue_stats',
+  'search_contacts_fts',
+  'get_conversation_history',
+  'mark_messages_read',
+]);
+
+// Allowlist of PostgREST filter operators — prevents operator injection attacks.
+const ALLOWED_FILTER_OPERATORS = new Set([
+  'eq', 'neq', 'lt', 'lte', 'gt', 'gte',
+  'like', 'ilike', 'is', 'in',
+  'cs', 'cd', 'sl', 'sr', 'nxr', 'nxl', 'adj', 'ov',
+]);
+
+// Allowlist for countMode PostgREST parameter.
+const ALLOWED_COUNT_MODES = new Set(['exact', 'planned', 'estimated']);
 
 // ─── Telemetry helper ─────────────────────────────────────────
 interface TelemetryPayload {
@@ -91,26 +115,20 @@ Deno.serve(async (req) => {
     const serviceRoleKey = requireEnv("SUPABASE_SERVICE_ROLE_KEY");
     const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, { db: { schema: "zapp" } });
 
-    // Auth check
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return errorResponse("Unauthorized", 401, req);
-    }
+    // Auth — server-side JWT verification (getClaims is client-side only, unsafe)
+    const authed = await requireUser(req);
+    if (authed instanceof Response) return authed;
+    const userId = authed.user.id;
+
+    const rl = checkRateLimit(`external-db-bridge:${userId}`, 60, 60_000);
+    if (!rl.allowed) return errorResponse('Rate limit exceeded', 429, req);
 
     const anonKey = requireEnv("SUPABASE_ANON_KEY");
+    const authHeader = req.headers.get("Authorization") ?? '';
     const supabaseUser = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: authHeader } },
+      db: { schema: "zapp" },
     });
-    const { data: userData, error: userError } = await supabaseUser.auth.getUser();
-    if (userError || !userData || typeof userData !== 'object' || !userData.user) {
-      return errorResponse("Unauthorized", 401, req);
-    }
-    const userObj = userData as Record<string, unknown>;
-    const userProp = userObj.user as Record<string, unknown> | null;
-    if (!userProp || typeof userProp.id !== 'string') {
-      return errorResponse("Unauthorized", 401, req);
-    }
-    const userId = userProp.id;
 
     // Parse & validate body
     const parsed = parseBody(ExternalDbBridgeSchema, await req.json());
@@ -128,7 +146,8 @@ Deno.serve(async (req) => {
       : null;
     const limit = typeof parsedData.limit === 'number' ? Math.max(1, parsedData.limit) : null;
     const offset = typeof parsedData.offset === 'number' ? Math.max(0, parsedData.offset) : null;
-    const countMode = typeof parsedData.countMode === 'string' ? parsedData.countMode : '';
+    const rawCountMode = typeof parsedData.countMode === 'string' ? parsedData.countMode : '';
+    const countMode = ALLOWED_COUNT_MODES.has(rawCountMode) ? rawCountMode : '';
 
     const startTime = performance.now();
     let result: unknown = null;
@@ -156,7 +175,8 @@ Deno.serve(async (req) => {
               const fObj = f as Record<string, unknown>;
               const fColumn = typeof fObj.column === 'string' ? fObj.column : '';
               const fOperator = typeof fObj.operator === 'string' ? fObj.operator : '';
-              if (fColumn && fOperator) {
+              // Allowlist operator to prevent PostgREST operator injection
+              if (fColumn && fOperator && ALLOWED_FILTER_OPERATORS.has(fOperator)) {
                 query = query.filter(fColumn, fOperator, fObj.value);
               }
             }
@@ -179,7 +199,12 @@ Deno.serve(async (req) => {
         result = data;
         recordCount = count ?? (Array.isArray(data) ? data.length : null);
       } else if (action === "rpc" && rpc) {
-        const { data, error } = await supabaseAdmin.rpc(rpc, params || {});
+        // Strict whitelist — prevents calling arbitrary DB functions with service-role access.
+        if (!ALLOWED_RPC_FUNCTIONS.has(rpc)) {
+          return errorResponse(`RPC function not permitted: ${rpc}`, 403, req);
+        }
+        // Use user-scoped client so RLS applies (not service-role which bypasses all policies).
+        const { data, error } = await supabaseUser.rpc(rpc, params || {});
         if (error) throw error;
         result = data;
         recordCount = Array.isArray(data) ? data.length : 1;
@@ -272,8 +297,10 @@ Deno.serve(async (req) => {
     }
 
     if (queryError) {
-      log.done(500, { severity, durationMs: Math.round(durationMs) });
-      return jsonResponse({ error: queryError, telemetry: { severity, duration_ms: Math.round(durationMs) } }, 500, req);
+      log.done(500, { severity, durationMs: Math.round(durationMs), rawError: queryError });
+      // Sanitize error before returning — never expose raw DB messages to callers
+      const clientError = queryError.length > 200 ? 'Database operation failed' : queryError.replace(/\b(password|secret|key|token)\b[^,\n]*/gi, '[redacted]');
+      return jsonResponse({ error: clientError, telemetry: { severity, duration_ms: Math.round(durationMs) } }, 500, req);
     }
 
     log.done(200, { severity, durationMs: Math.round(durationMs) });
@@ -284,6 +311,6 @@ Deno.serve(async (req) => {
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     log.error("Fatal error", { error: msg });
-    return errorResponse(msg, 500, req);
+    return errorResponse("Internal server error", 500, req);
   }
 });
