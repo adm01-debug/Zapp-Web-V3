@@ -87,7 +87,7 @@ export function clearFanoutHistory(): void {
 }
 
 
-const STYLE_REG = 'color:#888;font-weight:600'; // audit-ok: console.log CSS — CSS vars unsupported
+const STYLE_REG = 'color:#888;font-weight:600'; // audit-ok: browser console CSS — CSS variables not supported here
 const STYLE_HOOK = 'color:#3b82f6;font-weight:700'; // audit-ok
 const STYLE_EVENT_INSERT = 'color:#16a34a;font-weight:600'; // audit-ok
 const STYLE_EVENT_UPDATE = 'color:#d97706;font-weight:600'; // audit-ok
