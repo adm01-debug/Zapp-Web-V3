@@ -35,7 +35,7 @@ export const BuildValidationOverlay: React.FC = () => {
               <Shield className={cn("w-4 h-4", status === 'healthy' ? "text-success" : "text-destructive")} />
               Build Validation Checklist
             </div>
-            <button onClick={() => setIsOpen(false)} className="text-muted-foreground hover:text-foreground" aria-label="Fechar validação de build">
+            <button type="button" onClick={() => setIsOpen(false)} className="text-muted-foreground hover:text-foreground" aria-label="Fechar validação de build">
               <X className="w-4 h-4" />
             </button>
           </div>

@@ -259,7 +259,7 @@ export function EmailChatReplyBar({
           <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
             <Clock className="h-3 w-3" />
             <span>Rascunho não salvo</span>
-            <button onClick={saveDraft} className="ml-1 underline hover:text-foreground">
+            <button type="button" onClick={saveDraft} className="ml-1 underline hover:text-foreground">
               Salvar agora
             </button>
           </div>

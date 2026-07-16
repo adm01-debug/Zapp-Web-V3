@@ -97,7 +97,7 @@ function renderComponent(comp: FlowComponent) {
       );
     case 'Footer':
       return (
-        <button className="w-full h-10 rounded-lg bg-primary text-primary-foreground text-sm font-medium mt-4">
+        <button type="button" className="w-full h-10 rounded-lg bg-primary text-primary-foreground text-sm font-medium mt-4">
           {comp.label || 'Enviar'}
         </button>
       );
