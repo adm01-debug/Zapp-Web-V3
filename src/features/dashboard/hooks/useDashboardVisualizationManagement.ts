@@ -384,12 +384,12 @@ export function useGoalsDashboardManagement() {
   });
 
   const goals = useMemo((): Goal[] => {
-    const messagesSent = messagesData?.filter((m: any) => m.sender === 'agent').length || 0;
+    const messagesSent = messagesData?.filter((m) => m.sender === 'agent').length || 0;
     const contactsHandled = contactsData?.length || 0;
 
     const allGoals: Goal[] = [];
 
-    const messageConfig = customGoals.find((g: any) => g.goal_type === 'messages_sent');
+    const messageConfig = customGoals.find((g) => g.goal_type === 'messages_sent');
     const messagesTarget = messageConfig
       ? messageConfig[`${period}_target` as keyof typeof messageConfig]
       : DEFAULT_GOALS.messages_sent[period as keyof typeof DEFAULT_GOALS.messages_sent];
@@ -406,7 +406,7 @@ export function useGoalsDashboardManagement() {
       priority: 'high',
     });
 
-    const contactConfig = customGoals.find((g: any) => g.goal_type === 'contacts_handled');
+    const contactConfig = customGoals.find((g) => g.goal_type === 'contacts_handled');
     const contactsTarget = contactConfig
       ? contactConfig[`${period}_target` as keyof typeof contactConfig]
       : DEFAULT_GOALS.contacts_handled[period as keyof typeof DEFAULT_GOALS.contacts_handled];
@@ -539,12 +539,12 @@ export function useWarRoomDataManagement() {
       const { data: contacts, error: contactsErr } = await dbFrom('contacts').select('assigned_to');
       if (contactsErr) log.warn('contacts fetch failed (warroom agents)');
 
-      const contactCounts = (contacts || []).reduce((acc: any, c: any) => {
+      const contactCounts = (contacts || []).reduce<Record<string, number>>((acc, c) => {
         if (c.assigned_to) acc[c.assigned_to] = (acc[c.assigned_to] || 0) + 1;
         return acc;
       }, {});
 
-      return (profiles || []).map((p: any): WarRoomAgent => ({
+      return (profiles || []).map((p): WarRoomAgent => ({
         id: p.id,
         name: p.name,
         avatar: p.avatar_url || undefined,
@@ -566,7 +566,7 @@ export function useWarRoomDataManagement() {
       const { data: dbQueues, error: dbQueuesErr } = await supabase.from('queues').select('id, name, color, is_active').eq('is_active', true);
       if (dbQueuesErr) throw dbQueuesErr;
 
-      return (dbQueues || []).map((q: any): WarRoomQueue => ({
+      return (dbQueues || []).map((q): WarRoomQueue => ({
         id: q.id,
         name: q.name,
         color: q.color,

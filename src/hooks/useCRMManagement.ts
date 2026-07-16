@@ -30,7 +30,7 @@ interface ContactCustomField {
   id: string;
   contact_id: string;
   field_name: string;
-  field_value: any;
+  field_value: unknown;
 }
 
 export function useContactIntelligenceManagement(contactId?: string) {

@@ -99,9 +99,9 @@ export function useDashboardQueriesManagement() {
 }
 
 export function useUrlFiltersManagement() {
-  const [filters, setFilters] = useState<Record<string, any>>({});
+  const [filters, setFilters] = useState<Record<string, unknown>>({});
 
-  const updateFilter = useCallback((key: string, value: any) => {
+  const updateFilter = useCallback((key: string, value: unknown) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
   }, []);
 
