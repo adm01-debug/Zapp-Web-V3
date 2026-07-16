@@ -189,6 +189,7 @@ export const queryKeys = {
   // Scheduled Messages
   scheduledMessages: {
     all: () => ['scheduled-messages'] as const,
+    contact: (contactId?: string) => ['scheduled-messages', contactId] as const,
   },
 
   // Alert Management
@@ -208,19 +209,22 @@ export const queryKeys = {
 
   // Delivery Stats
   deliveryStats: {
-    contact: (remoteJid: string, instance?: string) =>
+    contact: (remoteJid: string | undefined, instance?: string) =>
       ['delivery-stats', remoteJid, instance] as const,
   },
 
   // Business Hours
   businessHours: {
     all: () => ['business-hours'] as const,
+    connection: (connectionId: string) => ['business-hours', connectionId] as const,
     check: () => ['business-hours-check'] as const,
+    checkConnection: (connectionId: string | null | undefined) => ['business-hours-check', connectionId] as const,
   },
 
   // Away Message / Auto-reply
   awayMessage: {
     all: () => ['away-message'] as const,
+    connection: (connectionId: string) => ['away-message', connectionId] as const,
   },
 
   // SLA
@@ -242,6 +246,21 @@ export const queryKeys = {
   evolutionConversations: {
     sidebar: (daysBack: number, limit: number, instance: string) =>
       ['external-evolution', 'conversations', daysBack, limit, instance] as const,
+  },
+
+  // Conversation history / ticket events
+  conversationHistory: {
+    events: (contactId: string | null | undefined) =>
+      ['conversation-events', contactId] as const,
+    auditLogs: (contactId: string | null | undefined) =>
+      ['conversation-audit-logs', contactId] as const,
+    queuePosition: (contactId: string) =>
+      ['queue-position', contactId] as const,
+  },
+
+  // Team profiles (names lookup)
+  teamProfiles: {
+    names: () => ['team-profiles-names'] as const,
   },
 };
 
