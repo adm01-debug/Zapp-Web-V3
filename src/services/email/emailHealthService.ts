@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { EmailHealthInfo, EmailHealthFilters, EmailFailure } from './types';
 import { EmailHealthRepository } from './emailHealthRepository';
 

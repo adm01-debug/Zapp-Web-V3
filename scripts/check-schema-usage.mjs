@@ -67,8 +67,11 @@ for (const f of files) {
     violations.noSchema.push(relative('.', f));
   }
 
-  // 3. supabase.co hardcoded fora de testes
-  if (!isTest && /https?:\/\/[a-z0-9-]+\.supabase\.co/i.test(src)) {
+  // 3. supabase.co hardcoded em código-fonte (src/ e supabase/functions/ apenas).
+  // .lovable/ contém configuração de plataforma — não código-fonte — e pode
+  // referenciar URLs Supabase legitimamente (ex: manifest.json com issuer).
+  const isSourceFile = f.startsWith('src/') || f.startsWith('supabase/functions/');
+  if (!isTest && isSourceFile && /https?:\/\/[a-z0-9-]+\.supabase\.co/i.test(src)) {
     violations.cloudUrl.push(relative('.', f));
   }
 
