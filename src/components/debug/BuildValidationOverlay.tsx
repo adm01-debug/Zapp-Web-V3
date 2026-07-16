@@ -117,9 +117,9 @@ export const BuildValidationOverlay: React.FC = () => {
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
           "w-12 h-12 rounded-full flex items-center justify-center shadow-2xl transition-all hover:scale-110 active:scale-95 border-2",
-          status === 'healthy' ? "bg-green-600 text-white border-green-400" : 
-          status === 'warning' ? "bg-yellow-500 text-white border-yellow-300" :
-          "bg-red-600 text-white border-red-400 animate-pulse"
+          status === 'healthy' ? "bg-success text-success-foreground border-success" :
+          status === 'warning' ? "bg-warning text-warning-foreground border-warning" :
+          "bg-destructive text-destructive-foreground border-destructive animate-pulse"
         )}
         title="Post-Build Validation Status"
         aria-label={`Status de validação: ${status === 'healthy' ? 'operacional' : status === 'warning' ? 'alertas' : 'crítico'}`}
