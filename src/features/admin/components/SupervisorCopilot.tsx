@@ -39,21 +39,21 @@ export function SupervisorCopilot() {
     setQuestion('');
 
     try {
-      const [queueData, agentData, messageData] = await Promise.all([
+      // agentRaw cast: profiles Row doesn't include role/is_active in generated types (schema drift).
+      // Cast result — not the client — to preserve the error field for proper error detection.
+      type AgentQueryResult = { data: AgentRow[] | null; error: { message: string } | null };
+      const [queueData, agentRaw, messageData] = await Promise.all([
         supabase.from('queues').select('id, name').limit(20),
-        (supabase.from('profiles') as unknown as {
-          select: (cols: string) => { eq: (c: string, v: unknown) => { limit: (n: number) => Promise<{ data: AgentRow[] | null }> } };
-        })
-          .select('id, name, role, is_active')
-          .eq('is_active', true)
-          .limit(50),
+        supabase.from('profiles').select('id, name, role, is_active').eq('is_active', true).limit(50) as unknown as Promise<AgentQueryResult>,
         dbFrom('messages')
           .select('id', { count: 'exact', head: true })
           .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()),
       ]);
 
+      if (queueData.error) logger.warn('[SupervisorCopilot] queues fetch error', queueData.error);
+      if (agentRaw.error) logger.warn('[SupervisorCopilot] agents fetch error', agentRaw.error);
       const queues = (queueData.data ?? []) as unknown as QueueRow[];
-      const agents = (agentData.data ?? []) as unknown as AgentRow[];
+      const agents = agentRaw.data ?? [];
       const context = `
 Dados atuais do sistema:
 - ${queues.length} filas configuradas
