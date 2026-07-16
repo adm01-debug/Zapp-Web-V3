@@ -1074,6 +1074,7 @@ export function useServiceWorkerManagement() {
         });
 
         const onMessage = (event: MessageEvent) => {
+          if (event.origin !== window.location.origin) return;
           log.debug('[ServiceWorker] Message received:', event.data);
           if (event.data.type === 'NOTIFICATION_CLICK') {
             document.dispatchEvent(
