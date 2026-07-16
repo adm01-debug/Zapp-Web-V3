@@ -1,6 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { z } from "https://esm.sh/zod@3.23.8";
 import { handleCors, errorResponse, jsonResponse, Logger, getCorsHeaders, validateBitrixOrigin } from "../_shared/validation.ts";
+import { requireUser } from "../_shared/auth.ts";
 
 const BitrixBodySchema = z.object({
   action: z.enum([
@@ -41,6 +42,10 @@ Deno.serve(async (req) => {
     log.warn('rejected: invalid origin', { reason: originCheck.reason, origin: originCheck.origin });
     return errorResponse('invalid origin', 401, req);
   }
+
+  // Require authenticated Supabase user to prevent cross-app CRM data exfiltration
+  const authed = await requireUser(req);
+  if (authed instanceof Response) return authed;
 
   try {
     const BITRIX_WEBHOOK_URL = Deno.env.get('BITRIX_WEBHOOK_URL');
