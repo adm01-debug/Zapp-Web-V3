@@ -27,7 +27,6 @@ src/features/admin/hooks/useDiagnosticsData.ts
 src/features/auth/components/AuthProvider.tsx
 src/features/auth/components/ProtectedRoute.tsx
 src/features/auth/hooks/usePermissions.ts
-src/features/business-logic/hooks/useBusinessLogicManagement.ts
 src/features/connections/hooks/parts/useConnectionsActions.ts
 src/features/connections/hooks/useConnectionsManager.ts
 src/features/contacts/hooks/useContactEnrichedData.ts
@@ -126,19 +125,15 @@ src/hooks/__tests__/useTranscriptionNotifications.test.ts
 src/hooks/__tests__/useTypingPresence.test.tsx
 src/hooks/__tests__/useViewTransition.test.ts
 src/hooks/connections/__tests__/useHubTabNavigation.test.tsx
-src/hooks/dashboard/useSentimentData.ts
 src/hooks/evolution/__tests__/v237Fallbacks.test.ts
 src/hooks/groups/actions.ts
 src/hooks/meta-capi/useMetaCapi.ts
 src/hooks/sticker-picker/useStickerPicker.ts
-src/hooks/useAnalyticsManagement.ts
 src/hooks/useAudioManagement.ts
 src/hooks/useAutomationManagement.ts
 src/hooks/useBusinessHoursManagement.ts
 src/hooks/useEmailActions.test.ts
 src/hooks/useEmailDraft.test.ts
-src/hooks/useEmailManagement.ts
-src/hooks/useExternalApiManagement.ts
 src/hooks/useGeoBlocking.ts
 src/hooks/useIntegrationAuthenticationManagement.ts
 src/hooks/useMessagingManagement.ts
