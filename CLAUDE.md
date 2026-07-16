@@ -33,7 +33,7 @@
 | `ai` | 31 | — | — | IA e embeddings |
 | `archive` | 25 | — | — | Dados arquivados |
 | `financeiro` | 16 | — | — | Módulo financeiro |
-| `vendas` | 13 | — | — | Módulo vendas |
+| `vendas` | 14 | — | — | Módulo vendas |
 | `ops` | 20 | — | — | Operações internas |
 | `public` | 1¹ | 532² | — | NÃO usar diretamente |
 
@@ -79,15 +79,15 @@
 
 | Tabela | Função |
 |--------|--------|
-| `evolution_messages` | Raiz particionada de mensagens (25 partições por instância) |
+| `evolution_messages` | Raiz particionada de mensagens (23 partições por instância) |
 | `evolution_contacts` | Contatos da Evolution API (20.563, 18 MB) |
-| `evolution_conversations` | Raiz particionada de conversas (25 partições) |
+| `evolution_conversations` | Raiz particionada de conversas (23 partições) |
 | `evolution_webhook_events_v2_*` | Webhooks particionados por mês (2026-03 a 2027-06 + default) |
 | `evolution_media` | Mídias (23.366, 10 MB) |
 | `evolution_whatsapp_status` | Status WA (14.789, 10 MB) |
 
-**Partições de `evolution_messages` (25 partições por instância):**
-`wpp2`, `wpp2_archive`, `artes`, `comercial_01`–`comercial_15`, `compras`, `default`, `financeiro`, `gravacao`, `logistica`, `marketing`
+**Partições de `evolution_messages` (23 partições por instância — auditado 2026-07-16):**
+`wpp2`, `artes`, `comercial_01`–`comercial_15`, `compras`, `default`, `financeiro`, `gravacao`, `logistica`, `marketing`
 
 > `evolution_messages` e `evolution_conversations` são **tabelas raiz particionadas** (relkind='p' no evo schema).
 > Os dados ficam nas partições por instância. No schema `zapp`, `evolution_messages` existe como
@@ -113,15 +113,14 @@
 | `team-chat-files` | não | — |
 | `whatsapp-media` | não | — |
 
-> **BUG ATIVO**: `src/features/inbox/components/chat/useAudioVoiceChange.ts` usa o bucket `chat-media`
-> que **não existe**. Uploads de voz irão falhar com 404. Bucket correto: `audio-messages`.
+> ~~**BUG ATIVO**~~: `src/features/inbox/components/chat/useAudioVoiceChange.ts` — **RESOLVIDO** (auditado 2026-07-16): o código já usa `audio-messages` corretamente. Entrada mantida apenas para histórico.
 
 ### Bugs Conhecidos e Gaps de Implementação
 
 | ID | Arquivo | Problema | Impacto |
 |----|---------|----------|---------|
-| BUG-1 | `src/features/admin/hooks/useAdminManagement.ts:552` | `.from('queue_skills')` — tabela não existe; correto é `queue_skill_requirements` | Erro 404 em runtime |
-| BUG-2 | `src/features/inbox/components/chat/useAudioVoiceChange.ts:13` | `supabase.storage.from('chat-media')` — bucket não existe; correto é `audio-messages` | Upload de voz falha |
+| BUG-1 | `src/features/admin/hooks/useAdminManagement.ts:588` | `.from('queue_skills')` — tabela não existe; correto é `queue_skill_requirements` | Erro 404 em runtime |
+| ~~BUG-2~~ | ~~`src/features/inbox/components/chat/useAudioVoiceChange.ts:13`~~ | ~~`supabase.storage.from('chat-media')`~~ | **RESOLVIDO** — código já usa `audio-messages` |
 | GAP-1 | `src/hooks/useCampaigns.ts:100` | `rpc('add_contacts_to_campaign')` — função não existe no DB | Runtime error |
 | GAP-2 | `src/hooks/useIntegrationManagement.ts:54,69` | `rpc('initiate_gmail_oauth')`, `rpc('complete_gmail_oauth')` — não existem | OAuth Gmail quebrado |
 | GAP-3 | `src/hooks/useIntegrationManagement.ts:156` | `rpc('sync_to_crm')` — não existe | Sync CRM quebrado |

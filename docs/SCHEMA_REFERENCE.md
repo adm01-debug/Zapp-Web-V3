@@ -1,7 +1,7 @@
 # 📐 Schema Reference — ZAPP WEB
 
 > **Documento canônico** sobre a arquitetura de schemas do Supabase.
-> Última atualização: 2026-07-15. Auditado e corrigido: 2026-07-15. Qualquer doc que contradiga este está desatualizado.
+> Última atualização: 2026-07-16. Auditado e corrigido: 2026-07-16. Qualquer doc que contradiga este está desatualizado.
 
 ## Arquitetura Atual (pós-consolidação)
 
@@ -10,7 +10,7 @@ O ZAPP Web usa **um único Supabase Self-Hosted** (`supabase.atomicabr.com.br`) 
 | Schema | Conteúdo | Quem acessa | Exemplos |
 |--------|----------|-------------|----------|
 | **`zapp`** | Todas as tabelas do app (**312** base tables + **404** views), RPCs | Frontend (client.ts), Edge Functions, n8n | `profiles`, `queues`, `contatos`, `whatsapp_connections`, `empresas`, `webhook_audit_log` |
-| **`evo`** | Tabelas-fonte da Evolution API (**193 tabelas**); tabelas raiz particionadas (`evolution_messages`, `evolution_conversations`) com **25 partições** cada | Realtime subscriptions, Edge Functions que fazem `.schema('evo')` | `evolution_messages` (raiz), `evolution_contacts`, `evolution_webhook_events_v2` |
+| **`evo`** | Tabelas-fonte da Evolution API (**193 tabelas**); tabelas raiz particionadas (`evolution_messages`, `evolution_conversations`) com **23 partições** cada | Realtime subscriptions, Edge Functions que fazem `.schema('evo')` | `evolution_messages` (raiz), `evolution_contacts`, `evolution_webhook_events_v2` |
 | **`public`** | **1 tabela interna Supabase** (`_wal_slot_guard_events`) + **532 views** proxy para zapp/evo/email_app | Não usar diretamente | views proxy |
 | **`auth`** | Auth do Supabase (GoTrue) | `supabase.auth.*` | `auth.users` |
 
@@ -63,7 +63,7 @@ supabase/functions/_shared/
 | `ai` | 31 | — | — |
 | `archive` | 25 | — | — |
 | `financeiro` | 16 | — | — |
-| `vendas` | 13 | — | — |
+| `vendas` | 14 | — | — |
 | `ops` | 20 | — | — |
 | `public` | 1¹ | 532² | — |
 
@@ -105,7 +105,7 @@ supabase/functions/_shared/
 | 2026-07-15 | `_shared/db-client.ts` factory criada |
 | 2026-07-15 | 17 syntax issues (}} malformado) corrigidos |
 | 2026-07-15 | **Auditoria MCP**: contagem corrigida 294→315 (zapp), 193 confirmados (evo) |
-| 2026-07-16 | **Auditoria exaustiva**: contagem definitiva 315→312 (zapp), public = 1+532 (não zero), 25 partições documentadas, 12 RPCs ausentes identificados |
+| 2026-07-16 | **Auditoria exaustiva**: contagem definitiva 315→312 (zapp), public = 1+532 (não zero), 23 partições confirmadas (não 25), 12 RPCs ausentes identificados, Realtime corrigido para usar raiz particionada |
 
 ---
 
@@ -134,17 +134,22 @@ const { data } = await supabase
   .order('timestamp', { ascending: false });
 ```
 
-### Realtime — sempre com `schema` explícito
+### Realtime — sempre com `schema` explícito e tabela **raiz**
 ```ts
 supabase
   .channel('inbox-messages')
   .on('postgres_changes',
-      { event: 'INSERT', schema: 'evo', table: 'evolution_messages_wpp2' },
+      { event: 'INSERT', schema: 'evo', table: 'evolution_messages' },  // ← raiz, NÃO a partição
       handler)
   .subscribe();
 ```
 
 Realtime **não segue o default** do cliente — o `schema` precisa aparecer no config.
+
+> **ATENÇÃO**: a publicação `supabase_realtime` tem `publish_via_partition_root = true`.
+> Isso significa que o evento CDC é publicado pela **tabela raiz** (`evolution_messages`),
+> **nunca pela partição** (`evolution_messages_wpp2`). Assinar a partição resulta em silêncio
+> total — zero eventos recebidos.
 
 ### Edge Functions — factories obrigatórias
 ```ts
@@ -176,12 +181,15 @@ O cliente principal (`src/integrations/supabase/client.ts`) está fixado em
 conversas, contatos da Evolution API):
 
 1. **Use `.schema('evo')` explicitamente** antes de `.from()`.
-2. **Nunca consulte as tabelas-pai particionadas** `evolution_messages` /
-   `evolution_conversations` no frontend. Use sempre a partição real
-   (`evolution_messages_wpp2`, `evolution_conversations_wpp2`). O guardrail
-   `check-schema-usage.mjs` falha o CI se detectar violação em `src/`.
+2. **Para SELECT**: prefira a partição real (`evolution_messages_wpp2`,
+   `evolution_conversations_wpp2`) para performance. O guardrail
+   `check-schema-usage.mjs` falha o CI se detectar `evolution_messages` sem
+   sufixo de partição em queries `src/`.
 3. **Realtime**: no `channel.on('postgres_changes', ...)` passe
-   `schema: 'evo'` e o mesmo nome de partição do SELECT.
+   `schema: 'evo'` e a **tabela raiz** (`evolution_messages`,
+   `evolution_conversations`) — **NUNCA a partição**. A publicação
+   `supabase_realtime` tem `publish_via_partition_root = true`, então eventos
+   chegam pela raiz; assinar a partição resulta em zero eventos.
 4. **Bridges em `zapp`** já existem para: `evolution_health_logs`,
    `evolution_instance_credentials`, `evolution_retry_metrics`,
    `evolution_instances`, `evolution_contacts`. Essas podem ser lidas via

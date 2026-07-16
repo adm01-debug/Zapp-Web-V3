@@ -2,8 +2,9 @@
  * schema.ts — Fonte ÚNICA e canônica do schema Supabase para a aplicação.
  *
  * Motivação: `types.ts` é auto-gerado e contém os schemas `public` e `zapp`.
- * Todas as tabelas vivem no schema `zapp`; o schema `public` só tem views
- * materializadas. A `ExtendedDatabase` de `types-manual.ts` mescla tabelas
+ * Todas as tabelas vivem no schema `zapp`; o schema `public` tem 1 tabela
+ * interna Supabase + 532 views proxy (não é schema de aplicação).
+ * A `ExtendedDatabase` de `types-manual.ts` mescla tabelas
  * manuais sobre as geradas, criando o tipo canônico.
  *
  * A partir daqui, TODO código de aplicação deve importar tipos de schema
