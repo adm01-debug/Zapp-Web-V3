@@ -1,5 +1,4 @@
 src/__tests__/security-and-performance.test.ts
-src/adapters/evolutionAdapter.ts
 src/components/__tests__/ExportDropdownPermission.test.tsx
 src/components/talkx/TalkXBlacklist.tsx
 src/components/talkx/TalkXCampaignEditor.tsx
@@ -11,13 +10,9 @@ src/features/admin/components/AdminView.tsx
 src/features/admin/hooks/useAdminManagement.ts
 src/features/inbox/components/ChatPanel.tsx
 src/features/inbox/components/chat/hooks/__tests__/useInitialHighlight.test.ts
-src/features/inbox/components/chat/useChatPanel.ts
-src/features/inbox/components/chat/useChatPanelHandlers.ts
 src/features/inbox/components/conversation-list/ConversationItem.test.tsx
 src/features/inbox/components/conversation-list/__mocks__/mockConversations.ts
 src/features/inbox/hooks/__tests__/inboxLogic.test.ts
-src/features/inbox/hooks/useRealtimeMessages.ts
-src/features/inbox/services/whatsappStatusService.ts
 src/features/sla/components/SLACharts.tsx
 src/features/sla/hooks/useApplicableSLA.ts
 src/features/sla/hooks/useSLAAlerts.ts
