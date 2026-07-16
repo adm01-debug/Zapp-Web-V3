@@ -508,7 +508,7 @@ export default function AdminAutomationsPage() {
                     <div>
                       <Label htmlFor="auto-inactivity-side">De quem?</Label>
                       <Select
-                        value={((editing as any).trigger_config?.side as string) ?? 'any'}
+                        value={(editing.trigger_config?.side ?? 'any') as string}
                         onValueChange={(v) =>
                           setEditing({
                             ...editing,
@@ -562,9 +562,9 @@ export default function AdminAutomationsPage() {
                   <Input
                     id="auto-trigger-tags"
                     value={
-                      Array.isArray((editing as any).trigger_config?.tags)
-                        ? ((editing as any).trigger_config.tags as string[]).join(', ')
-                        : (((editing as any).trigger_config?.tag ?? '') as string)
+                      Array.isArray(editing.trigger_config?.tags)
+                        ? (editing.trigger_config.tags as string[]).join(', ')
+                        : ((editing.trigger_config?.tag ?? '') as string)
                     }
                     onChange={(e) =>
                       setEditing({
@@ -646,7 +646,7 @@ export default function AdminAutomationsPage() {
                             escalate_sla: {
                               ...normalizeEscalateSla(editing.actions.escalate_sla),
                               enabled: v,
-                            } as any,
+                            },
                           },
                         })
                       }
@@ -668,7 +668,7 @@ export default function AdminAutomationsPage() {
                                 escalate_sla: {
                                   ...normalizeEscalateSla(editing.actions.escalate_sla),
                                   level: v,
-                                } as any,
+                                },
                               },
                             })
                           }
@@ -700,7 +700,7 @@ export default function AdminAutomationsPage() {
                                 escalate_sla: {
                                   ...editing.actions.escalate_sla,
                                   reason: e.target.value,
-                                } as any,
+                                },
                               },
                             })
                           }
