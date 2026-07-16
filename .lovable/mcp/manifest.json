@@ -4,7 +4,7 @@
   "path": "/mcp",
   "auth": {
     "type": "oauth",
-    "issuer": "https://supabase.atomicabr.com.br/auth/v1",
+    "issuer": "https://uqysyzndkfiwfztbqvsl.supabase.co/auth/v1",
     "accepted_audiences": [
       "authenticated"
     ]
