@@ -4,9 +4,9 @@
 **Projeto:** zapp-web (WhatsApp Multiatendimento)
 **Repositório:** github.com/adm01-debug/zapp-web
 **Data da auditoria:** 03/04/2026 (atualizado: 2026-07-15)
-**Totais:** 431 componentes | 126 hooks | 18 páginas | 48 Edge Functions | **315 tabelas (schema zapp) + 193 tabelas (schema evo)** | 145 migrações | 49 views/rotas
+**Totais:** 431 componentes | 126 hooks | 18 páginas | 48 Edge Functions | **312 base tables + 404 views (schema zapp) + 193 tabelas (schema evo)** | 145 migrações | 49 views/rotas
 
-> **⚠️ Banco correto**: Supabase Self-Hosted em `supabase.atomicabr.com.br`. Schema padrão da aplicação: `zapp` (315 tabelas). Mensagens WhatsApp: schema `evo` (193 tabelas). Schema `public` = zero tabelas. A contagem anterior de "117 tabelas" estava incorreta e foi corrigida em 2026-07-15 via auditoria MCP.
+> **⚠️ Banco correto**: Supabase Self-Hosted em `supabase.atomicabr.com.br`. Schema padrão da aplicação: `zapp` (**312** base tables). Mensagens WhatsApp: schema `evo` (193 tabelas). Schema `public` = 1 tabela interna Supabase + 532 views proxy (não usar diretamente). A contagem de "315" foi corrigida para **312** em 2026-07-16 via auditoria exaustiva MCP. Ver `docs/AUDITORIA_EXAUSTIVA_2026-07-16.md`.
 
 ---
 
