@@ -1,8 +1,10 @@
 import { useState, useCallback } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { toast } from 'sonner';
 import { unwrapRows } from '@/lib/supabase-helpers';
+import { queryKeys } from '@/services/api/queryKeys';
 import type { AppRole } from '@/features/auth';
 
 interface ProfileRow {
@@ -88,6 +90,7 @@ export const accessLevelConfig: Record<string, { label: string; description: str
 };
 
 export function useAdminData(activeTab: 'users' | 'audit' | 'crm') {
+  const queryClient = useQueryClient();
   const [users, setUsers] = useState<UserWithRole[]>([]);
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(true);
@@ -195,9 +198,10 @@ export function useAdminData(activeTab: 'users' | 'audit' | 'crm') {
       } else {
         toast.success(user.is_active ? 'Usuário desativado' : 'Usuário ativado');
         fetchData();
+        void queryClient.invalidateQueries({ queryKey: queryKeys.teamProfiles.all() });
       }
     },
-    [fetchData]
+    [fetchData, queryClient]
   );
 
   const handleSaveUser = useCallback(
@@ -239,9 +243,11 @@ export function useAdminData(activeTab: 'users' | 'audit' | 'crm') {
       }
       toast.success('Usuário atualizado com sucesso');
       fetchData();
+      void queryClient.invalidateQueries({ queryKey: queryKeys.teamProfiles.all() });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.userProfile.me() });
       return true;
     },
-    [fetchData]
+    [fetchData, queryClient]
   );
 
   interface CreateUserPayload {
@@ -319,13 +325,14 @@ export function useAdminData(activeTab: 'users' | 'audit' | 'crm') {
         }
         toast.success('Usuário criado com sucesso!');
         fetchData();
+        void queryClient.invalidateQueries({ queryKey: queryKeys.teamProfiles.all() });
         return true;
       } catch {
         toast.error('Erro ao criar usuário');
         return false;
       }
     },
-    [fetchData]
+    [fetchData, queryClient]
   );
 
   return {
