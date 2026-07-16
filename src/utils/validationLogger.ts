@@ -79,7 +79,7 @@ class ValidationLogger {
 
       try {
         const response = await originalFetch(...args);
-        if (!response.ok && !url.includes('supabase.co')) {
+        if (!response.ok && !url.includes('supabase.co') && !url.includes('supabase.atomicabr.com.br')) {
           // Supabase handled separately
           this.addEvent('network', `Failed to fetch: ${url} (${response.status})`);
         }
