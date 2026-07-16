@@ -316,4 +316,3 @@ src/services/settings/settingsRepository.ts
 src/services/settings/settingsService.ts
 src/services/users/useUsersQueries.ts
 src/utils/emailMappers.ts
-supabase/functions/node_modules/.deno/openai@4.104.0/node_modules/openai/src/_vendor/zod-to-json-schema/parsers/string.ts
