@@ -29,11 +29,11 @@ const TTL_MS = 60_000;
 // Cast result (not the whole client) to our local interface once the types are regenerated,
 // this cast will dissolve automatically.
 function queryConnections(field: 'name' | 'instance_id', value: string) {
-  return supabase
-    .from('whatsapp_connections')
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return ((supabase.from('whatsapp_connections') as any)
     .select('id, api_type, status')
     .eq(field, value)
-    .maybeSingle() as Promise<{ data: WhatsappConnectionRow | null; error: unknown }>;
+    .maybeSingle()) as unknown as Promise<{ data: WhatsappConnectionRow | null; error: unknown }>;
 }
 
 export async function resolveSendFunction(

@@ -44,7 +44,8 @@ export function SupervisorCopilot() {
       type AgentQueryResult = { data: AgentRow[] | null; error: { message: string } | null };
       const [queueData, agentRaw, messageData] = await Promise.all([
         supabase.from('queues').select('id, name').limit(20),
-        supabase.from('profiles').select('id, name, role, is_active').eq('is_active', true).limit(50) as unknown as Promise<AgentQueryResult>,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (supabase.from('profiles') as any).select('id, name, role, is_active').eq('is_active', true).limit(50) as unknown as Promise<AgentQueryResult>,
         dbFrom('messages')
           .select('id', { count: 'exact', head: true })
           .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()),
