@@ -35,7 +35,7 @@ export function useInboxHeartbeat(profileId: string | undefined) {
       lastWrittenStatus = status;
 
       try {
-        await db
+        await supabase
           .from('profiles')
           .update({
             online_status: status as 'online' | 'offline' | 'busy',
@@ -69,7 +69,7 @@ export function useInboxHeartbeat(profileId: string | undefined) {
       window.removeEventListener('offline', handleOffline);
       clearInterval(interval);
       // Best-effort offline write on unmount
-      void db
+      void supabase
         .from('profiles')
         .update({ online_status: 'offline', last_seen: new Date().toISOString() })
         .eq('id', profileId);

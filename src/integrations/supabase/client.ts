@@ -111,7 +111,7 @@ const realtimeReconnectAfterMs = (tries: number): number =>
 // ---------------------------------------------------------------------------
 // ZAPP Web client — schema 'zapp' (schema canônico de todas as tabelas)
 // ---------------------------------------------------------------------------
-export const supabase = createClient<ExtendedDatabase>(supabaseUrl, supabaseAnonKey, {
+export const supabase = createClient<ExtendedDatabase, 'zapp'>(supabaseUrl, supabaseAnonKey, {
   db: {
     schema: 'zapp',
   },
