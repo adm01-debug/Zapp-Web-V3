@@ -131,11 +131,8 @@ src/hooks/evolution/__tests__/v237Fallbacks.test.ts
 src/hooks/groups/actions.ts
 src/hooks/messaging/useInstanceRetryConfig.ts
 src/hooks/meta-capi/useMetaCapi.ts
-src/hooks/omnichannel/useOmnichannelManagement.ts
-src/hooks/settings/useSkillBasedRouting.ts
 src/hooks/sticker-picker/useStickerPicker.ts
 src/hooks/useActionFeedback.ts
-src/hooks/useAdvancedFeaturesManagement.ts
 src/hooks/useAnalyticsManagement.ts
 src/hooks/useAnalyticsMonitoringManagement.ts
 src/hooks/useAudioManagement.ts
@@ -152,13 +149,11 @@ src/hooks/useExternalApiManagement.ts
 src/hooks/useGeoBlocking.ts
 src/hooks/useIntegrationAuthenticationManagement.ts
 src/hooks/useKeyboardManagement.ts
-src/hooks/useMediaManagement.ts
 src/hooks/useMessagingManagement.ts
 src/hooks/useNotificationManagement.ts
 src/hooks/useRetryAndErrorPrevention.ts
 src/hooks/useSearchManagement.ts
 src/hooks/useSettingsManagement.ts
-src/hooks/useTags.ts
 src/hooks/useWebAuthn.ts
 src/hooks/useWhatsAppTemplates.ts
 src/integrations/datasource/db.ts

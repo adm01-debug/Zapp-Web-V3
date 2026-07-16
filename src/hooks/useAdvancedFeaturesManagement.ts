@@ -1,4 +1,3 @@
-// @ts-nocheck
 // Consolidated Advanced Features Management Module (ETAPA 50 consolidation)
 import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
