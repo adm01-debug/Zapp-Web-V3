@@ -130,7 +130,6 @@ src/hooks/connections/__tests__/useHubTabNavigation.test.tsx
 src/hooks/dashboard/useSentimentData.ts
 src/hooks/evolution/__tests__/v237Fallbacks.test.ts
 src/hooks/groups/actions.ts
-src/hooks/media-library/useMediaLibraryManagement.ts
 src/hooks/messaging/useInstanceRetryConfig.ts
 src/hooks/meta-capi/useMetaCapi.ts
 src/hooks/omnichannel/useOmnichannelManagement.ts
@@ -144,10 +143,8 @@ src/hooks/useAnalyticsMonitoringManagement.ts
 src/hooks/useAudioManagement.ts
 src/hooks/useAutomationManagement.ts
 src/hooks/useBusinessHoursManagement.ts
-src/hooks/useCampaigns.ts
 src/hooks/useClientWallet.ts
 src/hooks/useConnectionManagement.ts
-src/hooks/useConversationManagement.ts
 src/hooks/useDashboardQueries.ts
 src/hooks/useDeliveryStats.ts
 src/hooks/useEmailActions.test.ts
@@ -165,10 +162,8 @@ src/hooks/useNotificationManagement.ts
 src/hooks/useRealtimeManagement.ts
 src/hooks/useRetryAndErrorPrevention.ts
 src/hooks/useSearchManagement.ts
-src/hooks/useSearchNavigationManagement.ts
 src/hooks/useSettingsManagement.ts
 src/hooks/useTags.ts
-src/hooks/useUIInteractionManagement.ts
 src/hooks/useWebAuthn.ts
 src/hooks/useWhatsAppTemplates.ts
 src/integrations/datasource/db.ts
