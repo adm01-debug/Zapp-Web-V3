@@ -120,7 +120,6 @@ export const SidebarRail = React.forwardRef<HTMLButtonElement, React.ComponentPr
         ref={ref}
         data-sidebar="rail"
         aria-label="Alternar barra lateral"
-        tabIndex={-1}
         onClick={toggleSidebar}
         title="Alternar barra lateral"
         className={cn(
