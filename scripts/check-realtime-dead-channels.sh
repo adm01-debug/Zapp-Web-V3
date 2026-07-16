@@ -31,7 +31,9 @@ DEAD_PUBLIC_TABLES=("whisper_messages" "team_messages" "contacts" "messages" "ev
 
 for TABLE in "${DEAD_PUBLIC_TABLES[@]}"; do
   while IFS= read -r match; do
-    TRIMMED=$(echo "$match" | sed 's/^[[:space:]]*//')
+    # grep -rn output: "filepath:linenum:content" — strip prefix to get code content
+    CONTENT=$(echo "$match" | sed 's/^[^:]*:[0-9]*://')
+    TRIMMED=$(echo "$CONTENT" | sed 's/^[[:space:]]*//')
     if [[ "$TRIMMED" == //* ]] || [[ "$TRIMMED" == '/*'* ]]; then continue; fi
     VIOLATIONS+=("[CLASSE-A public-schema] ${match}")
   done < <(grep -rn --include='*.ts' --include='*.tsx' \
@@ -62,7 +64,9 @@ PARTITION_PATTERN="(evolution_(messages|conversations)_${PARTITION_SUFFIX}|evolu
 
 while IFS= read -r file; do
   while IFS= read -r match; do
-    TRIMMED=$(echo "$match" | sed 's/^[[:space:]]*//')
+    # grep -nP output: "linenum:content" — strip prefix to get code content
+    CONTENT=$(echo "$match" | sed 's/^[0-9]*://')
+    TRIMMED=$(echo "$CONTENT" | sed 's/^[[:space:]]*//')
     if [[ "$TRIMMED" == //* ]] || [[ "$TRIMMED" == '/*'* ]]; then continue; fi
     VIOLATIONS+=("[CLASSE-B evo-partition publish_via_partition_root] ${file}:${match}")
   done < <(grep -nP "table:\s*['\"]${PARTITION_PATTERN}['\"]" "$file" 2>/dev/null || true)

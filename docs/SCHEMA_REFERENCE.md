@@ -9,9 +9,9 @@ O ZAPP Web usa **um único Supabase Self-Hosted** (`supabase.atomicabr.com.br`) 
 
 | Schema | Conteúdo | Quem acessa | Exemplos |
 |--------|----------|-------------|----------|
-| **`zapp`** | Todas as tabelas do app (**312** base tables + **404** views), RPCs | Frontend (client.ts), Edge Functions, n8n | `profiles`, `queues`, `contatos`, `whatsapp_connections`, `empresas`, `webhook_audit_log` |
+| **`zapp`** | Todas as tabelas do app (**312** base tables + **405** views), RPCs | Frontend (client.ts), Edge Functions, n8n | `profiles`, `queues`, `contatos`, `whatsapp_connections`, `empresas`, `webhook_audit_log` |
 | **`evo`** | Tabelas-fonte da Evolution API (**193 tabelas**); tabelas raiz particionadas (`evolution_messages`, `evolution_conversations`) com **23 partições** cada | Realtime subscriptions, Edge Functions que fazem `.schema('evo')` | `evolution_messages` (raiz), `evolution_contacts`, `evolution_webhook_events_v2` |
-| **`public`** | **1 tabela interna Supabase** (`_wal_slot_guard_events`) + **532 views** proxy para zapp/evo/email_app | Não usar diretamente | views proxy |
+| **`public`** | **1 tabela interna Supabase** (`_wal_slot_guard_events`) + **535 views** proxy para zapp/evo/email_app | Não usar diretamente | views proxy |
 | **`auth`** | Auth do Supabase (GoTrue) | `supabase.auth.*` | `auth.users` |
 
 ### Regras de Ouro
@@ -56,7 +56,7 @@ supabase/functions/_shared/
 
 | Schema | Base Tables | Views | RLS ativo |
 |--------|-------------|-------|-----------|
-| `zapp` | **312** | **404** | 100% |
+| `zapp` | **312** | **405** | 100% |
 | `evo` | **193** | — | 100% |
 | `auth` | 21 | — | — |
 | `bpm` | 41 | — | — |
@@ -66,7 +66,7 @@ supabase/functions/_shared/
 | `financeiro` | 16 | — | — |
 | `vendas` | 14 | — | — |
 | `ops` | 20 | — | — |
-| `public` | 1¹ | 532² | — |
+| `public` | 1¹ | 535² | — |
 
 > ¹ `_wal_slot_guard_events` — tabela interna do Supabase, não é dado de aplicação.
 > ² Views em `public` são proxies que redirecionam para tabelas em `zapp`, `evo`, `email_app`, etc.
@@ -106,7 +106,7 @@ supabase/functions/_shared/
 | 2026-07-15 | `_shared/db-client.ts` factory criada |
 | 2026-07-15 | 17 syntax issues (}} malformado) corrigidos |
 | 2026-07-15 | **Auditoria MCP**: contagem corrigida 294→315 (zapp), 193 confirmados (evo) |
-| 2026-07-16 | **Auditoria exaustiva**: contagem definitiva 315→312 (zapp), public = 1+532 (não zero), 23 partições confirmadas (não 25), 12 RPCs ausentes identificados, Realtime corrigido para usar raiz particionada |
+| 2026-07-16 | **Auditoria exaustiva**: contagem definitiva 315→312 (zapp), public = 1+535 (não zero), 23 partições confirmadas (não 25), 12 RPCs ausentes identificados, Realtime corrigido para usar raiz particionada |
 
 ---
 
@@ -168,7 +168,7 @@ const admin = createClient(url, key, { db: { schema: 'zapp' } });
 ### Anti-patterns proibidos
 | Padrão | Motivo |
 |--------|--------|
-| `.schema('public')` | schema `public` tem apenas 1 tabela interna Supabase (`_wal_slot_guard_events`) + 532 views proxy — não é schema de aplicação |
+| `.schema('public')` | schema `public` tem apenas 1 tabela interna Supabase (`_wal_slot_guard_events`) + 535 views proxy — não é schema de aplicação |
 | `createClient` sem `db:{schema}` fora de factories | rota para o schema errado |
 | URL `*.supabase.co` em código | projeto usa self-hosted `supabase.atomicabr.com.br` |
 | Realtime sem `schema:` no config | canal sobe mas não recebe eventos |

@@ -19,13 +19,13 @@
 | **URL** | `https://supabase.atomicabr.com.br` |
 | **Schema principal** | `zapp` |
 | **Schema Evolution API** | `evo` |
-| **Schema public** | 1 tabela interna Supabase + 532 views proxy |
+| **Schema public** | 1 tabela interna Supabase + 535 views proxy |
 
 ### Schemas e Tabelas (auditado 2026-07-16 — regras verificadas contra DB de produção)
 
 | Schema | Base Tables | Views | RLS | Descrição |
 |--------|-------------|-------|-----|-----------|
-| **`zapp`** | **312** | **404** | 100% | Todas as tabelas da aplicação |
+| **`zapp`** | **312** | **405** | 100% | Todas as tabelas da aplicação |
 | **`evo`** | **193** | — | 100% | Tabelas da Evolution API (WhatsApp) |
 | `auth` | 21 | — | — | Auth GoTrue do Supabase |
 | `bpm` | 41 | — | — | BPM/workflows |
@@ -35,10 +35,10 @@
 | `financeiro` | 16 | — | — | Módulo financeiro |
 | `vendas` | 14 | — | — | Módulo vendas |
 | `ops` | 20 | — | — | Operações internas |
-| `public` | 1¹ | 532² | — | NÃO usar diretamente |
+| `public` | 1¹ | 535² | — | NÃO usar diretamente |
 
 > ¹ `public._wal_slot_guard_events` — tabela interna do Supabase (WAL slot guard), não é tabela de aplicação.
-> ² As 532 views em `public` são proxies/aliases para tabelas em outros schemas (zapp, evo, email_app, etc.).
+> ² As 535 views em `public` são proxies/aliases para tabelas em outros schemas (zapp, evo, email_app, etc.).
 
 ### Regras Críticas de Schema
 
@@ -122,7 +122,7 @@
 | ~~BUG-1~~ | `src/features/admin/hooks/useAdminManagement.ts:588` | CORRIGIDO: `safeFrom('queue_skills')` → `safeFrom('queue_skill_requirements')` | Resolvido |
 | ~~BUG-2~~ | ~~`src/features/inbox/components/chat/useAudioVoiceChange.ts:13`~~ | CORRIGIDO: bucket `chat-media` → `audio-messages` | Resolvido |
 | ~~BUG-3~~ | `zapp.fn_messages_view_insert_handler` / `messageSender.ts` | CORRIGIDO: trigger INSTEAD OF INSERT não atribuía `NEW.id` antes de `RETURN NEW`; `data.id` retornava NULL; CORRIGIDO no trigger (DB) e via `crypto.randomUUID()` no cliente | Resolvido |
-| BUG-4 | `src/features/inbox/hooks/useMessagesCursor.ts:217,280` | Canal criado via `externalSupabase.channel()` mas removido via `supabase.removeChannel(channel)` — clientes diferentes; channel leak provável | Subscription nunca removida corretamente |
+| ~~BUG-4~~ | `src/features/inbox/hooks/useMessagesCursor.ts:217,283` | CORRIGIDO: canal criado via `externalSupabase.channel()` e removido via `externalSupabase.removeChannel(channel)` — mesmo cliente, sem leak | Resolvido |
 | GAP-1 | `src/hooks/useCampaigns.ts:101` | `rpc('add_contacts_to_campaign')` — função não existe no DB | Runtime error |
 | GAP-2 | `src/hooks/useIntegrationManagement.ts:54,69` | `rpc('initiate_gmail_oauth')`, `rpc('complete_gmail_oauth')` — não existem | OAuth Gmail quebrado |
 | GAP-3 | `src/hooks/useIntegrationManagement.ts:156` | `rpc('sync_to_crm')` — não existe | Sync CRM quebrado |
