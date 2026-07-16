@@ -1,4 +1,4 @@
-import { handleCors, errorResponse, jsonResponse, requireEnv, Logger, securityErrorResponse } from "../_shared/validation.ts";
+import { handleCors, errorResponse, jsonResponse, requireEnv, Logger, securityErrorResponse, checkRateLimit } from "../_shared/validation.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { requireUser } from "../_shared/auth.ts";
 
@@ -28,6 +28,12 @@ Deno.serve(async (req) => {
   try {
     const authed = await requireUser(req);
     if (authed instanceof Response) return authed;
+
+    const rl = checkRateLimit(`file-security-scanner:${authed.user.id}`, 5, 60_000);
+    if (!rl.allowed) {
+      return errorResponse('Rate limit exceeded. Tente novamente em instantes.', 429, req);
+    }
+
     const VIRUSTOTAL_API_KEY = requireEnv("VIRUSTOTAL_API_KEY");
     const supabaseUrl = requireEnv("SUPABASE_URL");
     const supabaseServiceKey = requireEnv("SUPABASE_SERVICE_ROLE_KEY");
