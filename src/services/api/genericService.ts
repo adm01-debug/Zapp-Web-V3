@@ -24,7 +24,9 @@ export const createService = <T = any>(tableName: string, options?: ServiceOptio
   const { orderBy = 'created_at', orderDirection = 'desc' } = options || {};
   // Dynamic table accessor — tableName is a runtime string, not a literal from the generated types.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const db = supabase as unknown as { from(t: string): any }; // ignore-audit: tableName is a runtime string, ReturnType<typeof supabase.from> causes TS2589
+  const db = supabase as unknown as {
+    from(t: string): any; /* ignore-audit: TS2589 with ReturnType<supabase.from> */
+  };
 
   return {
     /**
@@ -234,8 +236,7 @@ export const createService = <T = any>(tableName: string, options?: ServiceOptio
             table: tableName,
           },
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          (payload: { new: any }) => {
-            // ignore-audit: postgres_changes payload type varies per table, cast to T below
+          (payload: { new: any /* ignore-audit: runtime payload shape varies per table */ }) => {
             callback(payload.new as T);
           }
         )
