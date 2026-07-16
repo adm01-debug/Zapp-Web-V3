@@ -238,12 +238,19 @@ export interface EmailHistoryEvent {
 
 /** Type guard checking if object is a valid EmailThread. */
 export function isEmailThread(obj: unknown): obj is EmailThread {
-  return typeof obj === 'object' && obj !== null && 'email_thread_id' in obj && 'account_id' in obj;
+  if (typeof obj !== 'object' || obj === null) return false;
+  const o = obj as Record<string, unknown>;
+  // Valida o tipo dos campos identificadores obrigatórios, não apenas a presença
+  // da chave — um payload como { email_thread_id: 123, account_id: [] } deve falhar.
+  return typeof o.email_thread_id === 'string' && typeof o.account_id === 'string';
 }
 
 /** Type guard checking if object is a valid EmailMessage. */
 export function isEmailMessage(obj: unknown): obj is EmailMessage {
-  return typeof obj === 'object' && obj !== null && 'email_msg_id' in obj && 'thread_id' in obj;
+  if (typeof obj !== 'object' || obj === null) return false;
+  const o = obj as Record<string, unknown>;
+  // Valida o tipo dos campos identificadores obrigatórios antes de estreitar `unknown`.
+  return typeof o.email_msg_id === 'string' && typeof o.thread_id === 'string';
 }
 
 /** Checks if email token has expired. */

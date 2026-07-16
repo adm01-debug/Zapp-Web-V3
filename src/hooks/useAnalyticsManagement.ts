@@ -184,8 +184,33 @@ export function useLatestAnalysisManagement(timeWindow: number = 24) {
   return { analysis, loading };
 }
 
+/** DTO tipado de uma tentativa de envio de mensagem (tabela `message_attempts`). */
+export interface MessageAttempt {
+  id: string;
+  message_id: string;
+  attempt_number: number | null;
+  status: string | null;
+  error_message: string | null;
+  created_at: string | null;
+}
+
+/** Estreita um registro `unknown` do Supabase para `MessageAttempt` validando os campos. */
+function toMessageAttempt(row: unknown): MessageAttempt | null {
+  if (!row || typeof row !== 'object') return null;
+  const r = row as Record<string, unknown>;
+  if (typeof r.id !== 'string') return null;
+  return {
+    id: r.id,
+    message_id: typeof r.message_id === 'string' ? r.message_id : '',
+    attempt_number: typeof r.attempt_number === 'number' ? r.attempt_number : null,
+    status: typeof r.status === 'string' ? r.status : null,
+    error_message: typeof r.error_message === 'string' ? r.error_message : null,
+    created_at: typeof r.created_at === 'string' ? r.created_at : null,
+  };
+}
+
 export function useMessageAttemptsManagement(messageId: string) {
-  const [attempts, setAttempts] = useState<any[]>([]);
+  const [attempts, setAttempts] = useState<MessageAttempt[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -199,7 +224,10 @@ export function useMessageAttemptsManagement(messageId: string) {
           .eq('message_id', messageId);
 
         if (err) throw err;
-        setAttempts(data || []);
+        // Narrowing: valida cada registro antes de expor aos consumidores.
+        setAttempts((Array.isArray(data) ? data : []).map(toMessageAttempt).filter(
+          (a): a is MessageAttempt => a !== null
+        ));
       } catch (err) {
         log.error('Error fetching message attempts:', err);
       } finally {
