@@ -1,5 +1,6 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
-import { handleCors, errorResponse, jsonResponse, requireEnv, Logger } from "../_shared/validation.ts";
+import { handleCors, errorResponse, jsonResponse, Logger } from "../_shared/validation.ts";
+import { timingSafeStringEqual } from "../_shared/auth.ts";
+import { createZappAdminClient } from "../_shared/db-client.ts";
 import { parseOrReject } from "../_shared/contract-kit.ts";
 import { ElevenLabsWebhookV1Schema } from "../_shared/contract-schemas.ts";
 
@@ -14,7 +15,7 @@ Deno.serve(async (req) => {
   const token = url.searchParams.get('token');
   const expectedToken = Deno.env.get('ELEVENLABS_WEBHOOK_SECRET');
 
-  if (!expectedToken || token !== expectedToken) {
+  if (!expectedToken || !token || !timingSafeStringEqual(token, expectedToken)) {
     log.warn("Unauthorized webhook call (invalid or missing token)");
     return errorResponse('Unauthorized', 401, req);
   }
@@ -31,7 +32,7 @@ Deno.serve(async (req) => {
     const eventType = String(body.type || body.event_type || 'unknown').slice(0, 100);
     log.info(`event=${eventType}`);
 
-    const supabase = createClient(requireEnv('SUPABASE_URL'), requireEnv('SUPABASE_SERVICE_ROLE_KEY'), { db: { schema: "zapp" } });
+    const supabase = createZappAdminClient();
 
     // Log the webhook event
     await supabase.from('audit_logs').insert({
