@@ -9,9 +9,11 @@
 // `X-Lovable-Signature: sha256=<hex>` header. Set as the edge function secret
 // `SLA_ALERT_WEBHOOK_SECRET` in Lovable Cloud (no code changes needed).
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.95.0';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
 import { z } from 'https://esm.sh/zod@3.23.8';
 import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
+import { requireUser } from '../_shared/auth.ts';
+import { checkRateLimit } from '../_shared/validation.ts';
 
 const PayloadSchema = z.object({
   contact_id: z.string().min(1),
@@ -54,24 +56,15 @@ Deno.serve(async (req) => {
   try {
     const SUPABASE_URL = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'));
     const SERVICE_ROLE = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'));
-    const ANON = (Deno.env.get('SELFHOSTED_SUPABASE_ANON_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY'));
-    if (!SUPABASE_URL || !SERVICE_ROLE || !ANON) {
+    if (!SUPABASE_URL || !SERVICE_ROLE) {
       return jsonResponse(req, { error: 'Missing Supabase environment' }, 500);
     }
 
-    // 1. Auth — caller must be a logged-in user.
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader?.startsWith('Bearer ')) {
-      return jsonResponse(req, { error: 'Unauthorized' }, 401);
-    }
-    const userClient = createClient(SUPABASE_URL, ANON, {
-      global: { headers: { Authorization: authHeader } },
-    });
-    const token = authHeader.replace('Bearer ', '');
-    const { data: claims, error: claimsErr } = await userClient.auth.getClaims(token);
-    if (claimsErr || !claims?.claims) {
-      return jsonResponse(req, { error: 'Unauthorized' }, 401);
-    }
+    // 1. Auth — server-side JWT verification via requireUser (getClaims is client-side only).
+    const authed = await requireUser(req);
+    if (authed instanceof Response) return authed;
+    const rl = checkRateLimit(`sla-alert-forward:${authed.user.id}`, 30, 60_000);
+    if (!rl.allowed) return jsonResponse(req, { error: 'Rate limit exceeded' }, 429);
 
     // 2. Validate payload.
     const json = await req.json().catch(() => null);
@@ -106,6 +99,21 @@ Deno.serve(async (req) => {
     }
     if (!/^https:\/\//i.test(url)) {
       return jsonResponse(req, { forwarded: false, reason: 'webhook_url_must_be_https' }, 422);
+    }
+    // SSRF guard — block private/internal IP ranges and metadata endpoints
+    let parsedWebhookUrl: URL;
+    try { parsedWebhookUrl = new URL(url); } catch {
+      return jsonResponse(req, { forwarded: false, reason: 'webhook_url_invalid' }, 422);
+    }
+    const wh = parsedWebhookUrl.hostname.toLowerCase();
+    const isPrivateHost =
+      wh === 'localhost' || wh.endsWith('.localhost') || wh === '0.0.0.0' ||
+      /^127\./.test(wh) || /^169\.254\./.test(wh) ||
+      /^10\./.test(wh) || /^192\.168\./.test(wh) ||
+      /^172\.(1[6-9]|2\d|3[01])\./.test(wh) ||
+      wh.startsWith('::') || wh === 'metadata.google.internal' || wh === '100.100.100.200';
+    if (isPrivateHost) {
+      return jsonResponse(req, { forwarded: false, reason: 'webhook_url_not_allowed' }, 422);
     }
     if (!['POST', 'PUT'].includes(method)) {
       return jsonResponse(req, { forwarded: false, reason: 'invalid_method' }, 422);
