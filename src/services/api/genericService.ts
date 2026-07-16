@@ -25,7 +25,7 @@ export const createService = <T = any>(tableName: string, options?: ServiceOptio
   // Dynamic table accessor — tableName is a runtime string, not a literal from the generated types.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const db = supabase as unknown as {
-    from(t: string): any; /* ignore-audit: TS2589 with ReturnType<supabase.from> */
+    from(t: string): any; // ignore-audit: TS2589 with ReturnType<supabase.from>
   };
 
   return {
@@ -235,8 +235,7 @@ export const createService = <T = any>(tableName: string, options?: ServiceOptio
             schema: 'zapp',
             table: tableName,
           },
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          (payload: { new: any /* ignore-audit: runtime payload shape varies per table */ }) => {
+          (payload: { new: unknown }) => {
             callback(payload.new as T);
           }
         )
