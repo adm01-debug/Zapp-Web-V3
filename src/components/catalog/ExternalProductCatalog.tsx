@@ -113,21 +113,21 @@ export const ExternalProductCatalog: React.FC<ExternalProductCatalogProps> = ({
     if (isOpen && page > 0) doFetch();
   }, [page]);
 
-  const handleSend = (product: ExternalProduct) => {
+  const handleSend = useCallback((product: ExternalProduct) => {
     onSendProduct(product);
     setIsOpen(false);
     toast({ title: 'Produto enviado!', description: `${product.name} foi enviado para o chat.` });
-  };
+  }, [onSendProduct]);
 
   const totalPages = Math.ceil(totalProducts / PAGE_SIZE);
 
-  const clearFilters = () => {
+  const clearFilters = useCallback(() => {
     setSearch('');
     setCategoryId('all');
     setSupplierId('all');
     setOnlyInStock(false);
     setPage(0);
-  };
+  }, []);
 
   const hasFilters = search || categoryId !== 'all' || supplierId !== 'all' || onlyInStock;
 
