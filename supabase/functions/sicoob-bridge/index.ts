@@ -16,7 +16,7 @@ Deno.serve(async (req) => {
       return errorResponse('Unauthorized', 401, req);
     }
 
-    const supabase = createClient(requireEnv('SUPABASE_URL'), requireEnv('SUPABASE_SERVICE_ROLE_KEY', { db: { schema: "zapp" } }));
+    const supabase = createClient(requireEnv('SUPABASE_URL'), requireEnv('SUPABASE_SERVICE_ROLE_KEY'), { db: { schema: "zapp" } });
     const body = await req.json();
     const { action } = body;
 

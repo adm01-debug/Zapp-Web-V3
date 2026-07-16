@@ -50,7 +50,8 @@ Deno.serve(async (req: Request) => {
 
   // service_role → RPC SECURITY DEFINER (única ponte segura até o vault)
   const supabaseAdmin = createClient(
-    Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY', { db: { schema: "zapp" } })!,
+    Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+    { db: { schema: "zapp" } },
   );
 
   const { data: rpcRows, error: rpcError } = await supabaseAdmin.rpc(

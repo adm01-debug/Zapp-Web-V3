@@ -72,7 +72,7 @@ Deno.serve(async (req) => {
     if (provider_id) {
       const bearerToken = getBearer(req);
       const anonKey = requireEnv("SUPABASE_ANON_KEY");
-      const userSupabase = bearerToken ? createClient(supabaseUrl, anonKey, { global: { headers: { Authorization: `Bearer ${bearerToken}` } } }) : supabase;
+      const userSupabase = bearerToken ? createClient(supabaseUrl, anonKey, { global: { headers: { Authorization: `Bearer ${bearerToken}` } }, db: { schema: "zapp" } }) : supabase;
       provider = (await getProvider(userSupabase, use_for as string, provider_id)) ?? await getProvider(supabase, use_for as string);
     } else { provider = await getProvider(supabase, use_for as string); }
     const providerType = provider?.provider_type || 'lovable_ai';
