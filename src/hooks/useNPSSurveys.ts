@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useMountedRef } from '@/hooks/useMountedRef';
 import { getLogger } from '@/lib/logger';

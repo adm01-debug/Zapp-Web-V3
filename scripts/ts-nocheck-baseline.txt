@@ -199,7 +199,6 @@ src/hooks/messaging/useInstanceRetryConfig.ts
 src/hooks/meta-capi/useMetaCapi.ts
 src/hooks/omnichannel/useOmnichannelManagement.ts
 src/hooks/settings/useSkillBasedRouting.ts
-src/hooks/sla/useSLAScopeOptions.ts
 src/hooks/sticker-picker/useStickerPicker.ts
 src/hooks/team-chat/useDepartmentManagement.ts
 src/hooks/useActionFeedback.ts
@@ -210,7 +209,6 @@ src/hooks/useAudioManagement.ts
 src/hooks/useAutomationManagement.ts
 src/hooks/useBusinessHoursManagement.ts
 src/hooks/useCampaigns.ts
-src/hooks/useChatbotFlows.ts
 src/hooks/useClientWallet.ts
 src/hooks/useConnectionManagement.ts
 src/hooks/useConversationManagement.ts
@@ -222,16 +220,13 @@ src/hooks/useEmailManagement.ts
 src/hooks/useEvolutionApiManagement.ts
 src/hooks/useEvolutionAutoReconnect.ts
 src/hooks/useExternalApiManagement.ts
-src/hooks/useForwardMessage.ts
 src/hooks/useGeoBlocking.ts
-src/hooks/useGmailLabels.ts
 src/hooks/useGmailOAuthFlow.ts
 src/hooks/useIntegrationAuthenticationManagement.ts
 src/hooks/useIntegrationManagement.ts
 src/hooks/useKeyboardManagement.ts
 src/hooks/useMediaManagement.ts
 src/hooks/useMessagingManagement.ts
-src/hooks/useNPSSurveys.ts
 src/hooks/useNotificationManagement.ts
 src/hooks/useRealtimeManagement.ts
 src/hooks/useRetryAndErrorPrevention.ts
