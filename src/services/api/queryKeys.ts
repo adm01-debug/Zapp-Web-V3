@@ -426,6 +426,7 @@ export const queryKeys = {
     tagsMap: () => ['contact-tags-map'] as const,
     singleContactRoot: () => ['contact'] as const,
     singleContact: (remoteJid?: string) => ['contact', remoteJid] as const,
+    inboxScopes: () => ['inbox-custom-scopes'] as const,
 
     typeCounts: () => ['contacts-type-counts'] as const,
     agentForHandoff: () => ['agents-for-handoff'] as const,

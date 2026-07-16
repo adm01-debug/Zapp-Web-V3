@@ -76,6 +76,7 @@ export function InboxScopeConfig() {
       toast.success('Escopo personalizado criado!');
       setNewScope({ label: '', description: '', name: '' });
       void queryClient.invalidateQueries({ queryKey: queryKeys.adminOps.inboxScopes() });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.contactDetails.inboxScopes() });
     } catch {
       toast.error('Erro ao criar escopo');
     } finally {
@@ -89,6 +90,7 @@ export function InboxScopeConfig() {
       if (error) throw error;
       toast.success('Escopo removido');
       void queryClient.invalidateQueries({ queryKey: queryKeys.adminOps.inboxScopes() });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.contactDetails.inboxScopes() });
     } catch {
       toast.error('Erro ao remover escopo');
     }
