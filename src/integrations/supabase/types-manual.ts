@@ -38,7 +38,7 @@ type MergeTables<Base, Extra> = {
       : never;
 };
 
-type GeneratedZappSchema = GeneratedDatabase['zapp'];
+type GeneratedZappSchema = GeneratedDatabase['public'];
 
 export type ExtendedDatabase = {
   public: GeneratedDatabase['public'];
