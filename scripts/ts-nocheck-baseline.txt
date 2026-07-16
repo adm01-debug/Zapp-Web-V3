@@ -1,9 +1,4 @@
 src/features/admin/hooks/useAdminManagement.ts
-src/hooks/__tests__/useSidebarCollapse.test.ts
-src/hooks/__tests__/useSidebarFavorites.test.ts
-src/hooks/__tests__/useSwipeGesture.test.ts
-src/hooks/__tests__/useSwipeNavigation.test.ts
-src/hooks/__tests__/useTextToSpeech.test.ts
 src/hooks/__tests__/useTranscriptionNotifications.test.ts
 src/hooks/__tests__/useTypingPresence.test.tsx
 src/hooks/__tests__/useViewTransition.test.ts
