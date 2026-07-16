@@ -1,7 +1,7 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { z } from "https://esm.sh/zod@3.23.8";
-import { handleCors, errorResponse, jsonResponse, requireEnv, Logger, checkRateLimit, getClientIP, contractErrorResponse } from "../_shared/validation.ts";
+import { handleCors, errorResponse, jsonResponse, Logger, checkRateLimit, getClientIP, contractErrorResponse } from "../_shared/validation.ts";
 import { timingSafeStringEqual } from "../_shared/auth.ts";
+import { createZappAdminClient } from "../_shared/db-client.ts";
 import { extractEvolutionMessageId } from "../_shared/evolution-message-id.ts";
 import { createCriticalPayloadSchemas, mapValidationIssuesToContractError } from "../_shared/criticalPayloadSchemas.ts";
 
@@ -19,9 +19,7 @@ Deno.serve(async (req) => {
   if (!rl.allowed) return errorResponse('Rate limit exceeded', 429, req);
 
   try {
-    const supabaseUrl = requireEnv('SUPABASE_URL');
-    const supabaseServiceKey = requireEnv('SUPABASE_SERVICE_ROLE_KEY');
-    const supabase = createClient(supabaseUrl, supabaseServiceKey, { db: { schema: "zapp" } });
+    const supabase = createZappAdminClient();
 
     const apiKey = req.headers.get('x-api-key');
     if (!apiKey) return errorResponse('Missing x-api-key header', 401, req);
