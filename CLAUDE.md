@@ -19,13 +19,13 @@
 | **URL** | `https://supabase.atomicabr.com.br` |
 | **Schema principal** | `zapp` |
 | **Schema Evolution API** | `evo` |
-| **Schema public** | 1 tabela interna Supabase + 532 views proxy |
+| **Schema public** | 1 tabela interna Supabase + 535 views proxy |
 
 ### Schemas e Tabelas (auditado 2026-07-16 — regras verificadas contra DB de produção)
 
 | Schema | Base Tables | Views | RLS | Descrição |
 |--------|-------------|-------|-----|-----------|
-| **`zapp`** | **312** | **404** | 100% | Todas as tabelas da aplicação |
+| **`zapp`** | **312** | **405** | 100% | Todas as tabelas da aplicação |
 | **`evo`** | **193** | — | 100% | Tabelas da Evolution API (WhatsApp) |
 | `auth` | 21 | — | — | Auth GoTrue do Supabase |
 | `bpm` | 41 | — | — | BPM/workflows |
@@ -33,12 +33,12 @@
 | `ai` | 31 | — | — | IA e embeddings |
 | `archive` | 25 | — | — | Dados arquivados |
 | `financeiro` | 16 | — | — | Módulo financeiro |
-| `vendas` | 13 | — | — | Módulo vendas |
+| `vendas` | 14 | — | — | Módulo vendas |
 | `ops` | 20 | — | — | Operações internas |
-| `public` | 1¹ | 532² | — | NÃO usar diretamente |
+| `public` | 1¹ | 535² | — | NÃO usar diretamente |
 
 > ¹ `public._wal_slot_guard_events` — tabela interna do Supabase (WAL slot guard), não é tabela de aplicação.
-> ² As 532 views em `public` são proxies/aliases para tabelas em outros schemas (zapp, evo, email_app, etc.).
+> ² As 535 views em `public` são proxies/aliases para tabelas em outros schemas (zapp, evo, email_app, etc.).
 
 ### Regras Críticas de Schema
 
@@ -78,16 +78,16 @@
 ### Tabelas Principais do Schema `evo`
 
 | Tabela | Função |
-|--------|---------|
-| `evolution_messages` | Raiz particionada de mensagens (25 partições por instância) |
+|--------|--------|
+| `evolution_messages` | Raiz particionada de mensagens (23 partições por instância) |
 | `evolution_contacts` | Contatos da Evolution API (20.563, 18 MB) |
-| `evolution_conversations` | Raiz particionada de conversas (25 partições) |
+| `evolution_conversations` | Raiz particionada de conversas (23 partições) |
 | `evolution_webhook_events_v2_*` | Webhooks particionados por mês (2026-03 a 2027-06 + default) |
 | `evolution_media` | Mídias (23.366, 10 MB) |
 | `evolution_whatsapp_status` | Status WA (14.789, 10 MB) |
 
-**Partições de `evolution_messages` (25 partições por instância):**
-`wpp2`, `wpp2_archive`, `artes`, `comercial_01`–`comercial_15`, `compras`, `default`, `financeiro`, `gravacao`, `logistica`, `marketing`
+**Partições de `evolution_messages` (23 partições por instância — auditado 2026-07-16):**
+`wpp2`, `artes`, `comercial_01`–`comercial_15`, `compras`, `default`, `financeiro`, `gravacao`, `logistica`, `marketing`
 
 > `evolution_messages` e `evolution_conversations` são **tabelas raiz particionadas** (relkind='p' no evo schema).
 > Os dados ficam nas partições por instância. No schema `zapp`, `evolution_messages` existe como
@@ -113,17 +113,17 @@
 | `team-chat-files` | não | — |
 | `whatsapp-media` | não | — |
 
-> **BUG ATIVO**: `src/features/inbox/components/chat/useAudioVoiceChange.ts` usa o bucket `chat-media`
-> que **não existe**. Uploads de voz irão falhar com 404. Bucket correto: `audio-messages`.
+> ~~**BUG ATIVO**~~: `src/features/inbox/components/chat/useAudioVoiceChange.ts` — **RESOLVIDO** (auditado 2026-07-16): o código já usa `audio-messages` corretamente. Entrada mantida apenas para histórico.
 
 ### Bugs Conhecidos e Gaps de Implementação
 
 | ID | Arquivo | Problema | Impacto |
 |----|---------|----------|---------|
-| ~~BUG-1~~ | `src/features/admin/hooks/useAdminManagement.ts` | CORRIGIDO: `safeFrom('queue_skills')` → `safeFrom('queue_skill_requirements')` | Resolvido |
-| ~~BUG-2~~ | `src/features/inbox/components/chat/useAudioVoiceChange.ts` | CORRIGIDO: bucket `chat-media` → `audio-messages` | Resolvido |
-| BUG-3 | `zapp.fn_messages_view_insert_handler` / `messageSender.ts` | CORRIGIDO: trigger INSTEAD OF INSERT não atribuía `NEW.id` antes de `RETURN NEW`; `data.id` retornava NULL; CORRIGIDO no trigger (DB) e via `crypto.randomUUID()` no cliente | Resolvido |
-| GAP-1 | `src/hooks/useCampaigns.ts:100` | `rpc('add_contacts_to_campaign')` — função não existe no DB | Runtime error |
+| ~~BUG-1~~ | `src/features/admin/hooks/useAdminManagement.ts:588` | CORRIGIDO: `safeFrom('queue_skills')` → `safeFrom('queue_skill_requirements')` | Resolvido |
+| ~~BUG-2~~ | ~~`src/features/inbox/components/chat/useAudioVoiceChange.ts:13`~~ | CORRIGIDO: bucket `chat-media` → `audio-messages` | Resolvido |
+| ~~BUG-3~~ | `zapp.fn_messages_view_insert_handler` / `messageSender.ts` | CORRIGIDO: trigger INSTEAD OF INSERT não atribuía `NEW.id` antes de `RETURN NEW`; `data.id` retornava NULL; CORRIGIDO no trigger (DB) e via `crypto.randomUUID()` no cliente | Resolvido |
+| ~~BUG-4~~ | `src/features/inbox/hooks/useMessagesCursor.ts:217,283` | CORRIGIDO: canal criado via `externalSupabase.channel()` e removido via `externalSupabase.removeChannel(channel)` — mesmo cliente, sem leak | Resolvido |
+| GAP-1 | `src/hooks/useCampaigns.ts:101` | `rpc('add_contacts_to_campaign')` — função não existe no DB | Runtime error |
 | GAP-2 | `src/hooks/useIntegrationManagement.ts:54,69` | `rpc('initiate_gmail_oauth')`, `rpc('complete_gmail_oauth')` — não existem | OAuth Gmail quebrado |
 | GAP-3 | `src/hooks/useIntegrationManagement.ts:156` | `rpc('sync_to_crm')` — não existe | Sync CRM quebrado |
 | GAP-4 | `src/hooks/useMediaManagement.ts:93,128,156` | `rpc('export_user_data')`, `rpc('import_user_data')`, `rpc('check_download_permission')` — não existem | Export/Import quebrado |
@@ -131,7 +131,7 @@
 | GAP-6 | `src/hooks/useAnalyticsManagement.ts:168` | `rpc('get_latest_analysis')` — não existe | Analytics quebrado |
 | GAP-7 | `src/features/admin/hooks/monitoring/useFailedMessages.ts:78` | `rpc('rpc_list_failed_messages_cursor')` — não existe | Painel de mensagens falhas quebrado |
 | GAP-8 | `src/features/admin/hooks/monitoring/useDispatchErrorLogs.ts:61` | `rpc('rpc_list_dispatch_error_logs_cursor')` — não existe | Painel de erros de despacho quebrado |
-| GAP-9 | `src/features/admin/hooks/monitoring/useDlqAuditLog.ts:51` | `rpc('rpc_dlq_list_audit_cursor')` — não existe | Painel DLQ audit quebrado |
+| GAP-9 | `src/features/admin/hooks/monitoring/useDlqAuditLog.ts:52` | `rpc('rpc_dlq_list_audit_cursor')` — não existe | Painel DLQ audit quebrado |
 
 ---
 
