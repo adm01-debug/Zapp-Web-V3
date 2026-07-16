@@ -3,17 +3,13 @@ import { supabase } from '@/integrations/supabase/client';
 import { ConversationWithMessages } from '@/features/inbox';
 import { getLogger } from '@/lib/logger';
 
-// Schema escape hatch: zapp tables not yet in generated types (gen-types-zapp.mjs pendente na VPS)
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const db = supabase as any;
-
 const log = getLogger('useInboxDataQueries');
 
 export function useInboxDataQueries(conversations: ConversationWithMessages[]) {
   const { data: customScopes = [] } = useQuery({
     queryKey: ['inbox-custom-scopes'],
     queryFn: async () => {
-      const { data, error } = await db.from('inbox_custom_scopes')
+      const { data, error } = await supabase.from('inbox_custom_scopes')
         .select('id, name')
         .eq('is_active', true);
       if (error) throw error;
@@ -37,7 +33,7 @@ export function useInboxDataQueries(conversations: ConversationWithMessages[]) {
       const CHUNK_SIZE = 500;
       for (let i = 0; i < contactIds.length; i += CHUNK_SIZE) {
         const chunk = contactIds.slice(i, i + CHUNK_SIZE);
-        const { data, error } = await db.from('contact_tags')
+        const { data, error } = await supabase.from('contact_tags')
           .select('contact_id, tag_id')
           .in('contact_id', chunk);
 

@@ -5,10 +5,6 @@ import { useAuth } from '@/features/auth';
 import { toast } from 'sonner';
 import { getLogger } from '@/lib/logger';
 
-// Schema escape hatch: zapp tables not yet in generated types (gen-types-zapp.mjs pendente na VPS)
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const db = supabase as any;
-
 const log = getLogger('useQuickReplies');
 
 export interface QuickReplyTemplate {
@@ -195,7 +191,7 @@ export function useQuickReplies() {
   // Delete template mutation
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await db.from('message_templates').delete().eq('id', id);
+      const { error } = await supabase.from('message_templates').delete().eq('id', id);
 
       if (error) throw error;
 

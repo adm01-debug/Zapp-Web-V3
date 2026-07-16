@@ -13,10 +13,6 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import type { ConversationWithMessages } from '@/features/inbox';
 
-// evolution_retry_metrics is exposed via zapp.evolution_retry_metrics view
-// (migration 20260716_zapp_evolution_retry_metrics_view.sql)
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const db = supabase as any;
 
 export type FailureCategory = 'auth' | 'http_4xx' | 'http_5xx' | 'network' | 'unknown';
 
@@ -98,7 +94,7 @@ export function useFailureMetricsBatch(
       // Chunk para evitar queries gigantes
       for (let i = 0; i < keys.length; i += CHUNK_SIZE) {
         const slice = keys.slice(i, i + CHUNK_SIZE);
-        const { data, error } = await db
+        const { data, error } = await supabase
           .from('evolution_retry_metrics')
           .select('idempotency_key, final_http_status, retry_reasons')
           .in('idempotency_key', slice);

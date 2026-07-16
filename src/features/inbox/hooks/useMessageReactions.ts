@@ -6,10 +6,6 @@ import { useAuth } from '@/features/auth';
 import { useReactionMutations } from './reactions/useReactionMutations';
 import type { MessageReaction, UseMessageReactionsOptions } from './reactions/types';
 
-// Schema escape hatch: zapp tables not yet in generated types (gen-types-zapp.mjs pendente na VPS)
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const db = supabase as any;
-
 // Re-export types and batch hook for consumers
 export type { MessageReaction, UseMessageReactionsOptions };
 export { useMessagesReactions } from './reactions/useBatchReactions';
@@ -50,7 +46,7 @@ export function useMessageReactions(messageId: string, options?: UseMessageReact
     queryKey: ['my-profile-reactions', user?.id],
     queryFn: async () => {
       if (!user?.id) return null;
-      const { data, error } = await db.from('profiles')
+      const { data, error } = await supabase.from('profiles')
         .select('id, name')
         .eq('user_id', user.id)
         .maybeSingle();
@@ -69,7 +65,7 @@ export function useMessageReactions(messageId: string, options?: UseMessageReact
   } = useQuery({
     queryKey: ['message-reactions', messageId],
     queryFn: async () => {
-      const { data, error } = await db.from('message_reactions')
+      const { data, error } = await supabase.from('message_reactions')
         .select('*')
         .eq('message_id', messageId);
       if (error) throw error;
@@ -77,7 +73,7 @@ export function useMessageReactions(messageId: string, options?: UseMessageReact
       const userIds = (data?.filter((r: any) => r.user_id).map((r: any) => r.user_id) || []) as string[];
       let usersMap = new Map<string, string>();
       if (userIds.length > 0) {
-        const { data: users } = await db.from('profiles')
+        const { data: users } = await supabase.from('profiles')
           .select('id, name')
           .in('id', userIds);
         usersMap = new Map(users?.map((u: any) => [u.id, u.name]) || []);
