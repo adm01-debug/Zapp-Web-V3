@@ -7,6 +7,7 @@ import { getExternalSupabase } from '@/integrations/supabase/externalClient';
 import { toast } from '@/hooks/use-toast';
 import { log } from '@/lib/logger';
 import type { TablesInsert, TablesUpdate } from '@/integrations/supabase/schema';
+import { queryKeys } from '@/services/api/queryKeys';
 
 const getClient = () => getExternalSupabase();
 
@@ -494,7 +495,7 @@ export function useAutoCloseConversations() {
   const queryClient = useQueryClient();
 
   const configQuery = useQuery({
-    queryKey: ['auto-close-config'],
+    queryKey: queryKeys.automations.autoClose(),
     queryFn: async () => {
       const { data, error } = await supabase
         .from('auto_close_config')
@@ -523,7 +524,7 @@ export function useAutoCloseConversations() {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['auto-close-config'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.automations.autoClose() });
       toast({
         title: 'Configuração salva',
         description: 'Auto-fechamento atualizado com sucesso.',
@@ -548,7 +549,7 @@ export function useAutomationsManagementCRUD() {
   const queryClient = useQueryClient();
 
   const { data: automations = [], isLoading } = useQuery({
-    queryKey: ['automations'],
+    queryKey: queryKeys.automations.all(),
     queryFn: async () => {
       const { data, error } = await supabase
         .from('automations')
@@ -578,7 +579,7 @@ export function useAutomationsManagementCRUD() {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['automations'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.automations.all() });
       toast({ title: 'Automação criada!', description: '' });
     },
     onError: () => toast({ title: 'Erro ao criar automação', variant: 'destructive' }),
@@ -593,7 +594,7 @@ export function useAutomationsManagementCRUD() {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['automations'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.automations.all() });
       toast({ title: 'Automação atualizada!', description: '' });
     },
     onError: () => toast({ title: 'Erro ao atualizar automação', variant: 'destructive' }),
@@ -605,7 +606,7 @@ export function useAutomationsManagementCRUD() {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['automations'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.automations.all() });
       toast({ title: 'Automação removida!', description: '' });
     },
     onError: () => toast({ title: 'Erro ao remover automação', variant: 'destructive' }),

@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { Tables, TablesInsert, TablesUpdate } from '@/integrations/supabase/schema';
+import { queryKeys } from '@/services/api/queryKeys';
 
 type CampaignRow = Tables<'campaigns'>;
 type CampaignInsert = TablesInsert<'campaigns'>;
@@ -30,7 +31,7 @@ export function useCampaigns() {
   const queryClient = useQueryClient();
 
   const campaignsQuery = useQuery({
-    queryKey: ['campaigns'],
+    queryKey: queryKeys.campaigns.all(),
     queryFn: async () => {
       const { data, error } = await supabase
         .from('campaigns')
@@ -52,7 +53,7 @@ export function useCampaigns() {
       return data as Campaign;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['campaigns'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.campaigns.all() });
       toast.success('Campanha criada com sucesso!');
     },
     onError: (err: Error) => toast.error(`Erro: ${err.message}`),
@@ -71,7 +72,7 @@ export function useCampaigns() {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['campaigns'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.campaigns.all() });
       toast.success('Campanha atualizada!');
     },
     onError: (err: Error) => toast.error(`Erro: ${err.message}`),
@@ -83,7 +84,7 @@ export function useCampaigns() {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['campaigns'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.campaigns.all() });
       toast.success('Campanha excluída!');
     },
     onError: (err: Error) => toast.error(`Erro: ${err.message}`),
@@ -104,7 +105,7 @@ export function useCampaigns() {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['campaigns'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.campaigns.all() });
       toast.success('Contatos adicionados à campanha!');
     },
     onError: (err: Error) => toast.error(`Erro: ${err.message}`),
