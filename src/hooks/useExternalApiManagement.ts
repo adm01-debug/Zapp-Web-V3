@@ -63,7 +63,7 @@ export function useExternalContact360(phone: string | undefined) {
     enabled: isExternalConfigured && !!cleanedPhone && cleanedPhone.length >= 8,
     staleTime: 1000 * 60 * 10, // 10 min cache
     gcTime: 1000 * 60 * 30,    // 30 min gc
-    retry: 1,
+    retry: tanstackRetry, // fix: era retry:1 numerico que sobrescrevia o QueryClient global
   });
 }
 
