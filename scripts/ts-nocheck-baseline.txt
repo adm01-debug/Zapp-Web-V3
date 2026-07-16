@@ -10,12 +10,7 @@ src/components/talkx/useCampaignEditor.ts
 src/features/admin/components/AdminView.tsx
 src/features/admin/hooks/useAdminManagement.ts
 src/features/inbox/components/ChatPanel.tsx
-src/features/inbox/components/RemindersPanel.tsx
-src/features/inbox/components/TicketHistorySheet.tsx
-src/features/inbox/components/TicketTabsFilters.tsx
 src/features/inbox/components/TransferDialog.tsx
-src/features/inbox/components/chat/ChatHeader.tsx
-src/features/inbox/components/chat/ChatPanelHeader.tsx
 src/features/inbox/components/chat/MessageAttemptsTimeline.tsx
 src/features/inbox/components/chat/MessageSendHistorySheet.tsx
 src/features/inbox/components/chat/TicketActionsBar.tsx
