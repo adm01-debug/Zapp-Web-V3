@@ -66,7 +66,7 @@ export const createCreateMutation = <TData, TVariables = any>(
       options?.onSuccess?.(data, variables, context);
     },
 
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       log.error('Mutation error:', error);
 
       // Show error toast
@@ -115,7 +115,7 @@ export const createUpdateMutation = <TData, TVariables = any>(
       options?.onSuccess?.(data, variables, context);
     },
 
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       log.error('Mutation error:', error);
 
       if (options?.showToasts !== false) {
@@ -165,7 +165,7 @@ export const createDeleteMutation = <TData = void, TVariables = any>(
       options?.onSuccess?.(data, variables, context);
     },
 
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       log.error('Mutation error:', error);
 
       if (options?.showToasts !== false) {
@@ -216,7 +216,7 @@ export const createBulkMutation = <TData, TVariables = any>(
       options?.onSuccess?.(data, variables, context);
     },
 
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       log.error('Mutation error:', error);
 
       if (options?.showToasts !== false) {
@@ -245,7 +245,7 @@ export const createAsyncMutation = <TData, TVariables = any>(
 ) => {
   return useMutation({
     mutationFn,
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       log.error('Async operation error:', error);
 
       if (options?.showToasts !== false) {
