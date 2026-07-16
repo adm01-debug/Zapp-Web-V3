@@ -50,19 +50,26 @@ done
 #   evolution_messages_financeiro, evolution_messages_gravacao,
 #   evolution_messages_logistica, evolution_messages_marketing,
 #   (idem para evolution_conversations_*),
-#   evolution_webhook_events_v2_2026_07, etc.
+#   evolution_webhook_events_v2_2026_07, evolution_webhook_events_v2_default, etc.
+#
+# Estratégia de detecção em dois passos:
+#   1. Restringir a arquivos que declaram schema:'evo' (contexto Realtime).
+#   2. Dentro desses arquivos, procurar table: apontando para partição.
+# Isso evita falsos positivos em queries SELECT que também usam .from('partition').
 # ---------------------------------------------------------------------------
 PARTITION_SUFFIX="(wpp[0-9]+|artes|comercial_[0-9]+|compras|default|financeiro|gravacao|logistica|marketing)"
-PARTITION_PATTERN="(evolution_(messages|conversations)_${PARTITION_SUFFIX}|evolution_webhook_events_v2_[0-9]{4}_[0-9]{2})"
+PARTITION_PATTERN="(evolution_(messages|conversations)_${PARTITION_SUFFIX}|evolution_webhook_events_v2_(default|[0-9]{4}_[0-9]{2}))"
 
-while IFS= read -r match; do
-  TRIMMED=$(echo "$match" | sed 's/^[[:space:]]*//')
-  if [[ "$TRIMMED" == //* ]] || [[ "$TRIMMED" == '/*'* ]]; then continue; fi
-  VIOLATIONS+=("[CLASSE-B evo-partition publish_via_partition_root] ${match}")
-done < <(grep -rn --include='*.ts' --include='*.tsx' \
+while IFS= read -r file; do
+  while IFS= read -r match; do
+    TRIMMED=$(echo "$match" | sed 's/^[[:space:]]*//')
+    if [[ "$TRIMMED" == //* ]] || [[ "$TRIMMED" == '/*'* ]]; then continue; fi
+    VIOLATIONS+=("[CLASSE-B evo-partition publish_via_partition_root] ${file}:${match}")
+  done < <(grep -nP "table:\s*['\"]${PARTITION_PATTERN}['\"]" "$file" 2>/dev/null || true)
+done < <(grep -rlP "schema:\s*['\"]evo['\"]" \
+  --include='*.ts' --include='*.tsx' \
   --exclude='*.test.ts' --exclude='*.test.tsx' \
   --exclude='*.spec.ts' --exclude='*.spec.tsx' \
-  -P "table:\s*['\"]${PARTITION_PATTERN}['\"]" \
   "${SRC_DIR}" 2>/dev/null || true)
 
 # ---------------------------------------------------------------------------
