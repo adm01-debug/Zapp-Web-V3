@@ -281,6 +281,8 @@ Deno.serve(async (req) => {
     let suggestion = template;
     let recommendedTag: string | null = null;
     let kbSources: string[] = [];
+    // Captures a 429/402 error response to return AFTER we persist the partial result.
+    let aiErrorResponse: Response | null = null;
 
     const useAi = !skipAi && (!template || customPrompt);
 
@@ -352,6 +354,7 @@ Gere a melhor próxima resposta do atendente e recomende a tag mais adequada.`;
           // Re-wrap with CORS headers so browsers receive the 429/402 error properly.
           // Parse and re-serialise so stack traces or internal details from the upstream
           // API are never forwarded verbatim to the browser (CodeQL: stack-trace exposure).
+          // Do NOT return here — fall through so the execution record is always updated.
           let safeBody: string;
           try {
             const raw = await e.json();
@@ -365,15 +368,18 @@ Gere a melhor próxima resposta do atendente e recomende a tag mais adequada.`;
           } catch {
             safeBody = JSON.stringify({ error: 'Request failed' });
           }
-          return new Response(safeBody, {
+          aiErrorResponse = new Response(safeBody, {
             status: e.status,
             headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
           });
+        } else {
+          throw e;
         }
-        throw e;
       }
     }
 
+    // Always persist the result (or the template fallback on AI error) so the
+    // execution record is never left in a pending state regardless of outcome.
     await supabase
       .from("automation_executions")
       .update({
@@ -382,6 +388,8 @@ Gere a melhor próxima resposta do atendente e recomende a tag mais adequada.`;
         kb_sources: kbSources,
       })
       .eq("id", executionId);
+
+    if (aiErrorResponse) return aiErrorResponse;
 
     return new Response(
       JSON.stringify({

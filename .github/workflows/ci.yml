@@ -47,7 +47,7 @@ jobs:
         # fixed 2026-07-16 after a scripts-only package.json edit blocked CI).
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ]; then
-            git fetch --depth=1 origin ${{ github.base_ref }}
+            git fetch origin ${{ github.base_ref }}
             BASE="origin/${{ github.base_ref }}"
             LOCK_DIFF=$(git diff "$BASE"...HEAD --name-only -- bun.lock)
             OLD_PKG=$(git show "$BASE:package.json" 2>/dev/null || echo '{}')

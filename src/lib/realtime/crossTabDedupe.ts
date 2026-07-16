@@ -31,26 +31,6 @@
 
 import { recordDedupeEvent } from '@/lib/realtime/dedupeTelemetry';
 import { getLogger } from '@/lib/logger';
-import {
-  DEFAULT_LOCK_TTL,
-  DEFAULT_RESULT_TTL,
-  DEFAULT_WAIT_TIMEOUT,
-  GC_INTERVAL,
-  TAB_ID,
-  LS_LOCK_PREFIX,
-  LS_RESULT_PREFIX,
-  LS_BUS_PREFIX,
-  type BroadcastMessage,
-  type DedupeOptions,
-} from './crossTabDedupeTypes';
-import { readLock, writeLock, releaseLock } from './crossTabDedupeLock';
-import {
-  readPersistedResult,
-  writePersistedResult,
-  gcLocalStorageKeys,
-} from './crossTabDedupeCache';
-import { ensureTransport, broadcast, __getActiveTransport } from './crossTabDedupeTransport';
-
 const log = getLogger('crossTabDedupe');
 
 const LS_LOCK_PREFIX = 'ctd:lock:';
@@ -105,6 +85,9 @@ interface BroadcastMessage<T = unknown> extends VersionedPayload {
 }
 
 const TAB_ID = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+
+/** @internal — exposto para testes de identidade de tab. */
+export const __TAB_ID = TAB_ID;
 
 // MELHORIA #8: Versioned state with sequence counters and metrics
 let globalSequence = 0;
@@ -916,7 +899,7 @@ export function subscribeDedupe<T = unknown>(
       : (k: string) => keyMatcher.test(k);
   const sub: Subscription = { match, handler: handler as SubscriberFn };
   subscribers.add(sub);
-  ensureTransport(onBroadcast);
+  ensureTransport();
   return () => {
     subscribers.delete(sub);
   };

@@ -23,9 +23,7 @@ type ZappTables = Database['zapp']['Tables'];
 type ZappViews = Database['zapp']['Views'];
 type ZappEnums = Database['zapp']['Enums'];
 
-export type Tables<T extends keyof ZappTables> = ZappTables[T] extends { Row: infer R }
-  ? R
-  : never;
+export type Tables<T extends keyof ZappTables> = ZappTables[T] extends { Row: infer R } ? R : never;
 
 export type TablesInsert<T extends keyof ZappTables> = ZappTables[T] extends { Insert: infer I }
   ? I
@@ -35,16 +33,18 @@ export type TablesUpdate<T extends keyof ZappTables> = ZappTables[T] extends { U
   ? U
   : never;
 
-export type Views<T extends keyof ZappViews> = ZappViews[T] extends { Row: infer R }
-  ? R
-  : never;
+export type Views<T extends keyof ZappViews> = ZappViews[T] extends { Row: infer R } ? R : never;
 
 export type Enums<T extends keyof ZappEnums> = ZappEnums[T];
 
 // Helpers para o schema evo (Evolution API)
 type EvoTables = Database['evo']['Tables'];
-export type EvoTable<T extends keyof EvoTables> = EvoTables[T] extends { Row: infer R }
-  ? R
-  : never;
+export type EvoTable<T extends keyof EvoTables> = EvoTables[T] extends { Row: infer R } ? R : never;
+
+/**
+ * ContactRow — canonical row type for the `contacts` view (zapp schema).
+ * Use this instead of Tables<'contacts'> since contacts is a view, not a base table.
+ */
+export type ContactRow = ZappViews['contacts'] extends { Row: infer R } ? R : never;
 
 export type { Json };

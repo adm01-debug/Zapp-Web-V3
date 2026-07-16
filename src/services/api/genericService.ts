@@ -21,22 +21,20 @@ interface ServiceOptions {
 /**
  * Factory function to create a standardized service for any table
  */
-export const createService = <T = any>(
-  tableName: string,
-  options?: ServiceOptions
-) => {
+export const createService = <T = any>(tableName: string, options?: ServiceOptions) => {
   const { orderBy = 'created_at', orderDirection = 'desc' } = options || {};
-  // Dynamic table accessor — tableName is a runtime string, not a literal from the generated types
-  const db = supabase as unknown as { from(t: string): ReturnType<typeof supabase.from> };
+  // Dynamic table accessor — tableName is a runtime string, not a literal from the generated types.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = supabase as unknown as {
+    from(t: string): any; // ignore-audit: TS2589 with ReturnType<supabase.from>
+  };
 
   return {
     /**
      * List all records with optional filtering and pagination
      */
     async list(filters?: Partial<T> & QueryParams): Promise<ListResponse<T>> {
-      let query = db
-        .from(tableName)
-        .select('*', { count: 'exact' });
+      let query = db.from(tableName).select('*', { count: 'exact' });
 
       // Apply filters
       if (filters) {
@@ -53,10 +51,12 @@ export const createService = <T = any>(
           if (value !== undefined && value !== null) {
             if (Array.isArray(value)) {
               query = query.in(key, value);
-            } else if (typeof value === 'object') {
+            } else if (typeof value === 'object' && value !== null) {
               // Handle range filters: { min: 10, max: 100 }
-              if ('min' in value) query = query.gte(key, value.min);
-              if ('max' in value) query = query.lte(key, value.max);
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              const rangeVal = value as Record<string, any>;
+              if ('min' in rangeVal) query = query.gte(key, rangeVal.min);
+              if ('max' in rangeVal) query = query.lte(key, rangeVal.max);
             } else if (value === 'null') {
               query = query.is(key, null);
             } else if (value === 'not_null') {
@@ -103,11 +103,7 @@ export const createService = <T = any>(
      * Get a single record by ID
      */
     async get(id: string): Promise<T | null> {
-      const { data, error } = await db
-        .from(tableName)
-        .select('*')
-        .eq('id', id)
-        .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
+      const { data, error } = await db.from(tableName).select('*').eq('id', id).maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
 
       if (error && error.code !== 'PGRST116') throw error; // PGRST116 = not found
       return data || null;
@@ -117,10 +113,7 @@ export const createService = <T = any>(
      * Search records by a text field
      */
     async search(query: string, searchField: string = 'name'): Promise<T[]> {
-      const { data, error } = await db
-        .from(tableName)
-        .select('*')
-        .ilike(searchField, `%${query}%`);
+      const { data, error } = await db.from(tableName).select('*').ilike(searchField, `%${query}%`);
 
       if (error) throw error;
       return data || [];
@@ -130,11 +123,7 @@ export const createService = <T = any>(
      * Create a new record
      */
     async create(record: Partial<T>): Promise<T> {
-      const { data, error } = await db
-        .from(tableName)
-        .insert([record])
-        .select()
-        .single();
+      const { data, error } = await db.from(tableName).insert([record]).select().single();
 
       if (error) throw error;
       return data;
@@ -144,10 +133,7 @@ export const createService = <T = any>(
      * Create multiple records
      */
     async createBulk(records: Partial<T>[]): Promise<T[]> {
-      const { data, error } = await db
-        .from(tableName)
-        .insert(records)
-        .select();
+      const { data, error } = await db.from(tableName).insert(records).select();
 
       if (error) throw error;
       return data || [];
@@ -162,7 +148,7 @@ export const createService = <T = any>(
         .update(updates)
         .eq('id', id)
         .select()
-        .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
+        .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
 
       if (error) throw error;
       return data;
@@ -171,10 +157,7 @@ export const createService = <T = any>(
     /**
      * Update multiple records matching a condition
      */
-    async updateMany(
-      condition: Partial<T>,
-      updates: Partial<T>
-    ): Promise<T[]> {
+    async updateMany(condition: Partial<T>, updates: Partial<T>): Promise<T[]> {
       let query = db.from(tableName).update(updates);
 
       Object.entries(condition).forEach(([key, value]) => {
@@ -191,10 +174,7 @@ export const createService = <T = any>(
      * Delete a record by ID
      */
     async delete(id: string): Promise<{ id: string }> {
-      const { error } = await db
-        .from(tableName)
-        .delete()
-        .eq('id', id);
+      const { error } = await db.from(tableName).delete().eq('id', id);
 
       if (error) throw error;
       return { id };
@@ -220,11 +200,7 @@ export const createService = <T = any>(
      * Check if a record exists
      */
     async exists(id: string): Promise<boolean> {
-      const { data, error } = await db
-        .from(tableName)
-        .select('id')
-        .eq('id', id)
-        .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
+      const { data, error } = await db.from(tableName).select('id').eq('id', id).maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
 
       if (error && error.code !== 'PGRST116') throw error;
       return !!data;
@@ -234,9 +210,7 @@ export const createService = <T = any>(
      * Count records matching a condition
      */
     async count(condition?: Partial<T>): Promise<number> {
-      let query = db
-        .from(tableName)
-        .select('*', { count: 'exact', head: true });
+      let query = db.from(tableName).select('*', { count: 'exact', head: true });
 
       if (condition) {
         Object.entries(condition).forEach(([key, value]) => {
@@ -252,10 +226,7 @@ export const createService = <T = any>(
     /**
      * Subscribe to realtime updates
      */
-    subscribe(
-      callback: (data: T) => void,
-      filter?: Partial<T>
-    ) {
+    subscribe(callback: (data: T) => void, filter?: Partial<T>) {
       const channel = supabase
         .channel(`${tableName}-changes`)
         .on(
@@ -265,8 +236,8 @@ export const createService = <T = any>(
             schema: 'zapp',
             table: tableName,
           },
-          (payload: { new: T }) => {
-            callback(payload.new);
+          (payload: { new: unknown }) => {
+            callback(payload.new as T);
           }
         )
         .subscribe();
