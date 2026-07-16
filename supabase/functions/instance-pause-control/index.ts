@@ -11,7 +11,7 @@
 // e chama o RPC `auto_pause_instance_on_auth_spike` diretamente — não passa por aqui.
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
-
+import { checkRateLimit } from '../_shared/validation.ts';
 import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
 function json(req: Request, data: unknown, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -42,7 +42,7 @@ Deno.serve(async (req) => {
   const anonKey = Deno.env.get('SELFHOSTED_SUPABASE_ANON_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY');
   if (!supabaseUrl || !anonKey) {
     console.error('[instance-pause-control] Missing Supabase configuration');
-    return json({ error: 'Supabase configuration missing' }, 503);
+    return json(req, { error: 'Supabase configuration missing' }, 503);
   }
 
   const supabase = createClient(supabaseUrl, anonKey, {
@@ -54,6 +54,10 @@ Deno.serve(async (req) => {
   const token = authHeader.replace('Bearer ', '');
   const { data: claimsData, error: claimsErr } = await supabase.auth.getClaims(token);
   if (claimsErr || !claimsData?.claims) return json(req, { error: 'unauthorized' }, 401);
+
+  const userId = String(claimsData.claims.sub ?? '');
+  const rl = checkRateLimit(`instance-pause:${userId}`, 30, 60_000);
+  if (!rl.allowed) return json(req, { error: 'rate_limit_exceeded' }, 429);
 
   let body: Record<string, unknown> = {};
   try { body = await req.json(); } catch { /* ignore */ }

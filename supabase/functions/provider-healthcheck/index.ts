@@ -4,6 +4,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { requireServiceRoleOrCron, requireUser } from "../_shared/auth.ts";
+import { checkRateLimit } from "../_shared/validation.ts";
 
 import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
 async function ping(baseUrl: string, authToken: string | null, providerType: string) {
@@ -37,6 +38,12 @@ Deno.serve(async (req) => {
   if (requireServiceRoleOrCron(req)) {
     const authed = await requireUser(req);
     if (authed instanceof Response) return authed;
+    const rl = checkRateLimit(`provider-healthcheck:${authed.user.id}`, 10, 60_000);
+    if (!rl.allowed) {
+      return new Response(JSON.stringify({ error: "rate_limit_exceeded" }), {
+        status: 429, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
+      });
+    }
   }
 
   const url = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'));
