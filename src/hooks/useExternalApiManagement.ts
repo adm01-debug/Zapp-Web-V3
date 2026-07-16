@@ -12,9 +12,9 @@
  *   5. Generic External DB (useExternalSelect, useExternalRPC, useExternalTableBrowser, useExternalMutation)
  */
 
-// ════════════════════════════════════════════════════════════════════════════════════
+// ╔══════════════════════════════════════════════════════════════════════════════════
 // SECTION 1: Contact 360° Data
-// ════════════════════════════════════════════════════════════════════════════════════
+// ╚══════════════════════════════════════════════════════════════════════════════════
 
 import { useQuery } from '@tanstack/react-query';
 import { isExternalConfigured, getExternalSupabase } from '@/integrations/supabase/externalClient';
@@ -22,6 +22,7 @@ import { dbGet, dbRpc } from '@/integrations/datasource/db';
 import { RPC } from '@/integrations/datasource/rpcCatalog';
 import { Contact360Data } from '@/types/contact360';
 import { log } from '@/lib/logger';
+import { tanstackRetry } from '@/lib/errors/queryErrors';
 
 function cleanPhone(phone: string): string {
   return phone.replace(/[^0-9]/g, '');
@@ -123,9 +124,9 @@ export function useExternalContact360Batch(phones: string[]) {
   };
 }
 
-// ════════════════════════════════════════════════════════════════════════════════════
+// ╔══════════════════════════════════════════════════════════════════════════════════
 // SECTION 2: Contact Metadata (Cargos, Empresas)
-// ════════════════════════════════════════════════════════════════════════════════════
+// ╚══════════════════════════════════════════════════════════════════════════════════
 
 /** Fetches unique job titles from external CRM database with deduplication. */
 export function useExternalCargos() {
@@ -241,9 +242,9 @@ export function useExternalEmpresas() {
   });
 }
 
-// ════════════════════════════════════════════════════════════════════════════════════
+// ╔══════════════════════════════════════════════════════════════════════════════════
 // SECTION 3: Evolution/Conversations & Messages
-// ════════════════════════════════════════════════════════════════════════════════════
+// ╚══════════════════════════════════════════════════════════════════════════════════
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useMountedRef } from '@/hooks/useMountedRef';
@@ -642,9 +643,9 @@ export function useExternalMessages(remoteJid: string | null) {
   };
 }
 
-// ════════════════════════════════════════════════════════════════════════════════════
+// ╔══════════════════════════════════════════════════════════════════════════════════
 // SECTION 4: Catalog & Products
-// ════════════════════════════════════════════════════════════════════════════════════
+// ╚══════════════════════════════════════════════════════════════════════════════════
 
 import { supabase } from '@/integrations/supabase/client';
 import { hasField, readArray, readVariants } from '@/lib/runtimeGuards';
@@ -768,7 +769,7 @@ export function useExternalCatalog() {
     enabled: ready,
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
-    retry: 2,
+    retry: tanstackRetry, // fix: era 'retry: 2' numerico, sobrescrevia o QueryClient global
   });
 
   // Categories
@@ -843,9 +844,9 @@ export function useExternalCatalog() {
   };
 }
 
-// ════════════════════════════════════════════════════════════════════════════════════
+// ╔══════════════════════════════════════════════════════════════════════════════════
 // SECTION 5: Generic External DB Operations
-// ════════════════════════════════════════════════════════════════════════════════════
+// ╚══════════════════════════════════════════════════════════════════════════════════
 
 import { useMutation } from '@tanstack/react-query';
 import type { SupabaseClient } from '@supabase/supabase-js';
@@ -862,7 +863,7 @@ import { validateEntityAccess, validateRpcAccess } from '@/integrations/datasour
 // table name literals that SupabaseClient<Database> enforces.
 const getDynamicClient = () => getExternalSupabase() as unknown as SupabaseClient; // ignore-audit — dynamic table names require untyped client; see comment above
 
-// ─── Direct query helper ──────────────────────────────────────
+// ─── Direct query helper ────────────────────────────────────────────────
 async function queryExternal<T = unknown>(params: {
   table: string;
   select?: string;
@@ -908,7 +909,7 @@ async function queryExternal<T = unknown>(params: {
   };
 }
 
-// ─── Select query hook ────────────────────────────────────────
+// ─── Select query hook ────────────────────────────────────────────
 interface UseExternalSelectOptions {
   table: ExternalTableName | string;
   select?: string;
@@ -985,8 +986,7 @@ export function useExternalRPC<T = unknown>(options: UseExternalRPCOptions) {
   });
 }
 
-// ─── Paginated table browser ──────────────────────────────────
-/** Provides paginated browsing of external database tables with filtering and sorting. */
+// ─── Paginated table browser ────────────────────────────────────────────/** Provides paginated browsing of external database tables with filtering and sorting. */
 export function useExternalTableBrowser<T = Record<string, unknown>>(
   tableName: ExternalTableName | string
 ) {
@@ -1058,7 +1058,7 @@ export function useExternalTableBrowser<T = Record<string, unknown>>(
   };
 }
 
-// ─── Mutation (insert/update/delete via external client) ──────
+// ─── Mutation (insert/update/delete via external client) ────
 /** Performs insert, update, and delete mutations on external database tables. */
 export function useExternalMutation() {
   const queryClient = useQueryClient();
