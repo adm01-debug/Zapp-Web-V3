@@ -1,5 +1,6 @@
 
 import { useQuery } from '@tanstack/react-query';
+import { useState, useEffect } from 'react';
 import { queryKeys } from '@/services/api/queryKeys';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -22,6 +23,7 @@ export interface DispatchErrorLogRow {
 
 export interface DispatchErrorLogFilters {
   hours?: number;
+  to?: string | null;
   instance?: string | null;
   agent?: string | null;
   errorCode?: string | null;
@@ -43,6 +45,7 @@ interface _RpcRow extends DispatchErrorLogRow {
 export function useDispatchErrorLogs(filters: DispatchErrorLogFilters = {}) {
   const {
     hours = 24,
+    to = null,
     instance = null,
     agent = null,
     errorCode = null,
@@ -53,17 +56,31 @@ export function useDispatchErrorLogs(filters: DispatchErrorLogFilters = {}) {
 
   const fromIso = new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
 
-  return useQuery<{ rows: DispatchErrorLogRow[]; total: number }>({
-    queryKey: queryKeys.dispatchErrorLogs.filtered({ hours, instance, agent, errorCode, search, page, pageSize }),
+  // Cursor-based pagination: page 0 always has cursor=null; subsequent pages
+  // use the last row ID returned by the previous page.
+  const [pageIndexToCursor, setPageIndexToCursor] = useState<Map<number, string | null>>(
+    new Map([[0, null]])
+  );
+
+  const currentPageCursor = pageIndexToCursor.get(page) ?? null;
+
+  // Reset cursor map whenever filter dimensions change (new result set, start from page 0)
+  useEffect(() => {
+    setPageIndexToCursor(new Map([[0, null]]));
+  }, [hours, to, instance, agent, errorCode, search]);
+
+  const query = useQuery<{ rows: DispatchErrorLogRow[]; total: number }>({
+    queryKey: queryKeys.dispatchErrorLogs.filtered({ hours, to, instance, agent, errorCode, search, page, pageSize }),
     queryFn: async () => {
       const { data, error } = await supabase.rpc('rpc_list_dispatch_error_logs_cursor', {
         p_from: fromIso,
+        p_to: to,
         p_instance: instance,
         p_agent: agent,
         p_error_code: errorCode,
         p_search: search,
         p_limit: pageSize,
-        p_cursor_id: null,
+        p_cursor_id: currentPageCursor,
       });
       if (error) throw error;
       const list = ((data ?? []) as unknown as _RpcRow[]);
@@ -76,4 +93,18 @@ export function useDispatchErrorLogs(filters: DispatchErrorLogFilters = {}) {
     staleTime: 30_000,
     refetchInterval: 60_000,
   });
+
+  // Advance cursor map when a page loads successfully
+  useEffect(() => {
+    if (query.data?.rows && query.data.rows.length > 0) {
+      const lastRow = query.data.rows[query.data.rows.length - 1];
+      setPageIndexToCursor((prev) => {
+        const updated = new Map(prev);
+        updated.set(page + 1, lastRow.id);
+        return updated;
+      });
+    }
+  }, [query.data?.rows, page]);
+
+  return query;
 }

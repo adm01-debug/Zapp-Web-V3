@@ -111,9 +111,11 @@ export function useContactNotesManagement(contactId?: string) {
       if (!contactId) return;
 
       try {
+        const { data: { user } } = await supabase.auth.getUser();
         const { error: err } = await supabase.from('contact_notes').insert({
           contact_id: contactId,
           content,
+          author_id: user?.id,
         });
 
         if (err) throw err;

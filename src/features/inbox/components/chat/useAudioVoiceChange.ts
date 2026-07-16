@@ -17,7 +17,7 @@ export function useAudioVoiceChange() {
         data: { publicUrl },
       } = supabase.storage.from('audio-messages').getPublicUrl(filePath);
       await dbFrom('messages')
-        .update({ mediaUrl: publicUrl, updated_at: new Date().toISOString() })
+        .update({ media_url: publicUrl, updated_at: new Date().toISOString() })
         .eq('id', messageId);
       toast({ title: 'Sucesso', description: 'Audio atualizado com a nova voz.' });
     } catch (err: unknown) {
