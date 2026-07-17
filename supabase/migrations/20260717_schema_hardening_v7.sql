@@ -1,0 +1,79 @@
+-- Schema Hardening v7: Final status CHECK constraints + data cleanup
+-- Covers the last 13 unconstrained status columns (excluding _audit_sim_results
+-- which is an internal tooling table, and proxy_metrics which stores HTTP codes).
+-- All values verified against app code, migrations, and edge functions.
+
+-- ============================================================
+-- FIX #16: Clean up exploit test data
+-- GAP: email_health_logs contained a test row with invalid status
+-- value 'EXPLOIT_TEST_INVALID_9z9z' from security testing.
+-- ============================================================
+DELETE FROM zapp.email_health_logs WHERE status = 'EXPLOIT_TEST_INVALID_9z9z';
+
+-- ============================================================
+-- FIX #17: CHECK constraints on final 13 status columns
+-- GAP: These tables accepted any string in their status column.
+-- Values verified against TypeScript types, migration comments,
+-- edge function code, and UI components.
+-- ============================================================
+
+-- Sales & CRM
+ALTER TABLE zapp.contact_purchases
+  ADD CONSTRAINT contact_purchases_status_check
+  CHECK (status IN ('pending', 'approved', 'completed', 'cancelled'));
+
+ALTER TABLE zapp.sales_deals
+  ADD CONSTRAINT sales_deals_status_check
+  CHECK (status IN ('open', 'won', 'lost'));
+
+-- Security
+ALTER TABLE zapp.security_audit_logs
+  ADD CONSTRAINT security_audit_logs_status_check
+  CHECK (status IN ('denied', 'allowed', 'flagged'));
+
+-- Provider infrastructure
+ALTER TABLE zapp.provider_configs
+  ADD CONSTRAINT provider_configs_status_check
+  CHECK (status IN ('online', 'degraded', 'offline', 'unknown'));
+
+ALTER TABLE zapp.provider_message_log
+  ADD CONSTRAINT provider_message_log_status_check
+  CHECK (status IS NULL OR status IN ('received', 'persisted', 'routed', 'sent', 'delivered', 'read', 'failed'));
+
+-- Email monitoring
+ALTER TABLE zapp.email_health_logs
+  ADD CONSTRAINT email_health_logs_status_check
+  CHECK (status IN ('healthy', 'degraded', 'error', 'unknown'));
+
+-- Testing infrastructure
+ALTER TABLE zapp.stress_test_runs
+  ADD CONSTRAINT stress_test_runs_status_check
+  CHECK (status IN ('running', 'completed', 'aborted', 'failed'));
+
+-- Sessions & auth
+ALTER TABLE zapp.sessions
+  ADD CONSTRAINT sessions_status_check
+  CHECK (status IN ('active', 'inactive', 'expired', 'revoked'));
+
+ALTER TABLE zapp.webauthn_challenges
+  ADD CONSTRAINT webauthn_challenges_status_check
+  CHECK (status IN ('pending', 'verified', 'expired', 'failed'));
+
+-- Deployment & connections
+ALTER TABLE zapp.deploy_connections
+  ADD CONSTRAINT deploy_connections_status_check
+  CHECK (status IN ('active', 'inactive', 'disconnected', 'failed'));
+
+-- Queue infrastructure
+ALTER TABLE zapp.task_queues
+  ADD CONSTRAINT task_queues_status_check
+  CHECK (status IN ('active', 'paused', 'disabled'));
+
+ALTER TABLE zapp._consumer_dlq
+  ADD CONSTRAINT consumer_dlq_status_check
+  CHECK (status IN ('pending', 'retrying', 'replayed', 'abandoned', 'failed'));
+
+-- Project management
+ALTER TABLE zapp.supabase_projects
+  ADD CONSTRAINT supabase_projects_status_check
+  CHECK (status IN ('active', 'inactive', 'paused', 'deleted'));
