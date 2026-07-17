@@ -13,6 +13,10 @@ export function useAudioVoiceChange() {
         .from('audio-messages')
         .upload(filePath, newBlob);
       if (uploadError) throw uploadError;
+      // Store the Supabase Storage URL (contains /storage/v1/) so the audio player's
+      // resolveAudioUrl hook can extract bucket+path and generate a fresh signed URL
+      // at render time (7-day TTL, regenerated on each play). This is the correct
+      // pattern for private buckets — getPublicUrl() encodes the path, not auth.
       const {
         data: { publicUrl },
       } = supabase.storage.from('audio-messages').getPublicUrl(filePath);

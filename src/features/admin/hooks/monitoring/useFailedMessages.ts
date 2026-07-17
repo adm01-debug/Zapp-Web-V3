@@ -57,7 +57,13 @@ export function useFailedMessages(filters: FailedMessagesFilters = {}) {
     pageSize = 50,
   } = filters;
 
-  const effectiveFrom = from ?? new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
+  // Memoize so the ISO string is stable across renders when `from` is null.
+  // Without this, the string changes every millisecond → queryKey changes every render
+  // → infinite refetch loop (effectiveFrom is in both queryKey and useEffect deps).
+  const effectiveFrom = useMemo(
+    () => from ?? new Date(Date.now() - hours * 60 * 60 * 1000).toISOString(),
+    [from, hours]
+  );
   const effectiveTo = to;
 
   // Cursor-based pagination: track cursor for each page number to enable efficient navigation
