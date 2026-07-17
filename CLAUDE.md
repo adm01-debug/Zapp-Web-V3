@@ -123,15 +123,19 @@
 | ~~BUG-2~~ | ~~`src/features/inbox/components/chat/useAudioVoiceChange.ts:13`~~ | CORRIGIDO: bucket `chat-media` → `audio-messages` | Resolvido |
 | ~~BUG-3~~ | `zapp.fn_messages_view_insert_handler` / `messageSender.ts` | CORRIGIDO: trigger INSTEAD OF INSERT não atribuía `NEW.id` antes de `RETURN NEW`; `data.id` retornava NULL; CORRIGIDO no trigger (DB) e via `crypto.randomUUID()` no cliente | Resolvido |
 | ~~BUG-4~~ | `src/features/inbox/hooks/useMessagesCursor.ts:217,283` | CORRIGIDO: canal criado via `externalSupabase.channel()` e removido via `externalSupabase.removeChannel(channel)` — mesmo cliente, sem leak | Resolvido |
-| GAP-1 | `src/hooks/useCampaigns.ts:101` | `rpc('add_contacts_to_campaign')` — função não existe no DB | Runtime error |
-| GAP-2 | `src/hooks/useIntegrationManagement.ts:54,69` | `rpc('initiate_gmail_oauth')`, `rpc('complete_gmail_oauth')` — não existem | OAuth Gmail quebrado |
-| GAP-3 | `src/hooks/useIntegrationManagement.ts:156` | `rpc('sync_to_crm')` — não existe | Sync CRM quebrado |
-| GAP-4 | `src/hooks/useMediaManagement.ts:93,128,156` | `rpc('export_user_data')`, `rpc('import_user_data')`, `rpc('check_download_permission')` — não existem | Export/Import quebrado |
-| GAP-5 | `src/hooks/useCRMManagement.ts:146` | `rpc('enrich_contact')` — não existe | Enriquecimento de contato quebrado |
-| GAP-6 | `src/hooks/useAnalyticsManagement.ts:168` | `rpc('get_latest_analysis')` — não existe | Analytics quebrado |
-| GAP-7 | `src/features/admin/hooks/monitoring/useFailedMessages.ts:78` | `rpc('rpc_list_failed_messages_cursor')` — não existe | Painel de mensagens falhas quebrado |
-| GAP-8 | `src/features/admin/hooks/monitoring/useDispatchErrorLogs.ts:61` | `rpc('rpc_list_dispatch_error_logs_cursor')` — não existe | Painel de erros de despacho quebrado |
-| GAP-9 | `src/features/admin/hooks/monitoring/useDlqAuditLog.ts:52` | `rpc('rpc_dlq_list_audit_cursor')` — não existe | Painel DLQ audit quebrado |
+| GAP-1 | `src/hooks/useCampaigns.ts:101` | `rpc('add_contacts_to_campaign')` — função não existe no DB (graceful: toast.error) | Runtime error |
+| GAP-2 | `src/hooks/useIntegrationManagement.ts:54,69` | `rpc('initiate_gmail_oauth')`, `rpc('complete_gmail_oauth')` — não existem (graceful: toast.error) | OAuth Gmail quebrado |
+| GAP-3 | `src/hooks/useIntegrationManagement.ts:156` | `rpc('sync_to_crm')` — não existe (graceful: toast.error) | Sync CRM quebrado |
+| GAP-4 | `src/hooks/useMediaManagement.ts:93,128,156` | `rpc('export_user_data')`, `rpc('import_user_data')`, `rpc('check_download_permission')` — não existem (graceful: toast.error) | Export/Import quebrado |
+| GAP-5 | `src/hooks/useCRMManagement.ts:146` | `rpc('enrich_contact')` — não existe (graceful: log.warn) | Enriquecimento de contato quebrado |
+| GAP-6 | `src/hooks/useAnalyticsManagement.ts:168` | `rpc('get_latest_analysis')` — não existe (graceful: log.warn) | Analytics quebrado |
+| ~~GAP-7~~ | `src/features/admin/hooks/monitoring/useFailedMessages.ts` | CORRIGIDO 2026-07-17: migrado de `rpc_list_failed_messages_cursor` → `rpc_list_failed_messages` (existe); migration `20260717_fix_dlq_rpc_schema_drift.sql` também corrigiu o overload text que referenciava colunas inexistentes (`abandoned_at`, `abandon_reason`) | Resolvido |
+| ~~GAP-8~~ | `src/features/admin/hooks/monitoring/useDispatchErrorLogs.ts` | CORRIGIDO 2026-07-17: migrado de `rpc_list_dispatch_error_logs_cursor` → `rpc_list_dispatch_error_logs` (existe) | Resolvido |
+| ~~GAP-9~~ | `src/features/admin/hooks/monitoring/useDlqAuditLog.ts` | CORRIGIDO 2026-07-17: migrado de `rpc_dlq_list_audit_cursor` → `rpc_dlq_list_audit` (existe) | Resolvido |
+| ~~BUG-5~~ | `zapp.rpc_dlq_stats()` no DB | CORRIGIDO 2026-07-17: retornava `{pending,retrying,failed,total}` mas frontend esperava `{total,total_24h,oldest_pending_at,by_status,by_instance}` — KPI cards renderizavam vazios; migration `20260717_fix_dlq_rpc_schema_drift.sql` reescreveu a função | Resolvido |
+| ~~BUG-6~~ | `src/features/admin/hooks/monitoring/failedMessagesTypes.ts` | CORRIGIDO 2026-07-17: `FailedMessageStatus` não incluía `'failed'`; DB CHECK constraint em `failed_messages.status` permite `'failed'`; adicionado `\| 'failed'` ao union type | Resolvido |
+| ~~BUG-7~~ | `src/features/admin/components/FailedMessageStatusBadge.tsx`, `BulkReprocessGuidedDialog.tsx`, `DLQPanel.tsx` | CORRIGIDO 2026-07-17: Record<FailedMessageStatus,…> e switch/STATUS_OPTIONS faltavam a entrada `'failed'`; rows com `status='failed'` renderizavam badge vazio/undefined | Resolvido |
+| ~~BUG-8~~ | `src/hooks/__tests__/useQueueManagement.test.tsx` | CORRIGIDO 2026-07-17: 4 testes de `useQueueSlaManagement` falhavam com "No QueryClient set" porque o hook chama `useQueryClient()` mas os testes não tinham QueryClientProvider; adicionado mock `@tanstack/react-query#useQueryClient` via `vi.mock` | Resolvido |
 
 ---
 
