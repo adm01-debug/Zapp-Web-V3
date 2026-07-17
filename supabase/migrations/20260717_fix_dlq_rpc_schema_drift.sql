@@ -104,7 +104,7 @@ BEGIN
     AND (p_search IS NULL
          OR fm.remote_jid ILIKE '%' || p_search || '%'
          OR fm.error_message ILIKE '%' || p_search || '%'
-         OR fm.message_id ILIKE '%' || p_search || '%')
+         OR fm.error_code ILIKE '%' || p_search || '%')
     AND (p_from IS NULL OR fm.created_at >= p_from)
     AND (p_to   IS NULL OR fm.created_at <= p_to)
   ORDER BY fm.created_at DESC
