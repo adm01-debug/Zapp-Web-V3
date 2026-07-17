@@ -1,6 +1,6 @@
 import type { RootCause, RootCauseMeta } from '@/lib/failureRootCause';
 
-export type FailedMessageStatus = 'pending' | 'retrying' | 'succeeded' | 'abandoned';
+export type FailedMessageStatus = 'pending' | 'retrying' | 'succeeded' | 'abandoned' | 'failed';
 
 export interface FailedMessageRow {
   id: string;
