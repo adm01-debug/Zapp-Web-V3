@@ -1,4 +1,3 @@
-
 import { queryKeys } from '@/services/api/queryKeys';
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
@@ -36,23 +35,23 @@ export interface UseDlqAuditLogOptions {
   limit?: number;
   action?: DlqAuditAction | 'all' | null;
   enabled?: boolean;
+  page?: number;
 }
 
 export function useDlqAuditLog(opts: UseDlqAuditLogOptions = {}) {
-  const { limit = 30, action = null, enabled = true } = opts;
+  const { limit = 30, action = null, enabled = true, page = 0 } = opts;
   const { isDev } = useUserRole();
 
-  // Cursor-based pagination: track cursor for pagination (initially null for first page)
-  const [cursor, setCursor] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(page);
 
   const query = useQuery<DlqAuditEntry[]>({
-    queryKey: queryKeys.adminOps.dlqAuditLogFiltered({ limit, action, cursor }),
+    queryKey: queryKeys.adminOps.dlqAuditLogFiltered({ limit, action, page: currentPage }),
     enabled: enabled && isDev,
     queryFn: async () => {
-      const { data, error } = await supabase.rpc('rpc_dlq_list_audit_cursor', {
+      const { data, error } = await supabase.rpc('rpc_dlq_list_audit', {
         p_limit: limit,
         p_action: action,
-        p_cursor_id: cursor,
+        p_offset: currentPage * limit,
       });
       if (error) throw error;
       return (data ?? []) as unknown as DlqAuditEntry[];
@@ -61,5 +60,5 @@ export function useDlqAuditLog(opts: UseDlqAuditLogOptions = {}) {
     refetchInterval: 60_000,
   });
 
-  return { ...query, setCursor };
+  return { ...query, currentPage, setCurrentPage };
 }

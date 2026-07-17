@@ -1,4 +1,3 @@
-
 import { useQuery } from '@tanstack/react-query';
 import { queryKeys } from '@/services/api/queryKeys';
 import { supabase } from '@/integrations/supabase/client';
@@ -54,19 +53,27 @@ export function useDispatchErrorLogs(filters: DispatchErrorLogFilters = {}) {
   const fromIso = new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
 
   return useQuery<{ rows: DispatchErrorLogRow[]; total: number }>({
-    queryKey: queryKeys.dispatchErrorLogs.filtered({ hours, instance, agent, errorCode, search, page, pageSize }),
+    queryKey: queryKeys.dispatchErrorLogs.filtered({
+      hours,
+      instance,
+      agent,
+      errorCode,
+      search,
+      page,
+      pageSize,
+    }),
     queryFn: async () => {
-      const { data, error } = await supabase.rpc('rpc_list_dispatch_error_logs_cursor', {
+      const { data, error } = await supabase.rpc('rpc_list_dispatch_error_logs', {
         p_from: fromIso,
         p_instance: instance,
         p_agent: agent,
         p_error_code: errorCode,
         p_search: search,
         p_limit: pageSize,
-        p_cursor_id: null,
+        p_offset: page * pageSize,
       });
       if (error) throw error;
-      const list = ((data ?? []) as unknown as _RpcRow[]);
+      const list = (data ?? []) as unknown as _RpcRow[];
       const total = list[0]?.total_count != null ? Number(list[0].total_count) : 0;
       const rows: DispatchErrorLogRow[] = list.map(
         ({ total_count: _t, ...rest }) => rest as DispatchErrorLogRow

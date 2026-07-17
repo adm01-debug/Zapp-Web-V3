@@ -1,5 +1,5 @@
 import { queryKeys } from '@/services/api/queryKeys';
-import { useState, useEffect, useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -60,29 +60,29 @@ export function useFailedMessages(filters: FailedMessagesFilters = {}) {
   const effectiveFrom = from ?? new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
   const effectiveTo = to;
 
-  // Cursor-based pagination: track cursor for each page number to enable efficient navigation
-  // Page 0 always has cursor=null; subsequent pages use last row ID from previous page
-  const [pageIndexToCursor, setPageIndexToCursor] = useState<Map<number, string | null>>(
-    new Map([[0, null]])
-  );
-
-  const currentPageCursor = pageIndexToCursor.get(page) ?? null;
-
-  const queryKey = queryKeys.failedMessages.filtered(
-    { status, instance, errorCode, rootCause, search, effectiveFrom, effectiveTo, page, pageSize },
-  );
+  const queryKey = queryKeys.failedMessages.filtered({
+    status,
+    instance,
+    errorCode,
+    rootCause,
+    search,
+    effectiveFrom,
+    effectiveTo,
+    page,
+    pageSize,
+  });
 
   const query = useQuery<{ rows: FailedMessageRow[]; total: number; deniedReason: string | null }>({
     queryKey,
     queryFn: async () => {
-      const { data, error } = await supabase.rpc('rpc_list_failed_messages_cursor', {
+      const { data, error } = await supabase.rpc('rpc_list_failed_messages', {
         p_status: status ? [status] : null,
         p_instance: instance,
         p_search: search,
         p_from: effectiveFrom,
         p_to: effectiveTo,
         p_limit: pageSize,
-        p_cursor_id: currentPageCursor,
+        p_offset: page * pageSize,
       });
       if (error) {
         if (isRlsDeniedError(error)) {
@@ -112,28 +112,10 @@ export function useFailedMessages(filters: FailedMessagesFilters = {}) {
     retry: (count, err) => !isRlsDeniedError(err) && count < 2,
   });
 
-  // Update page history with cursor for next page when current page loads
-  useEffect(() => {
-    if (query.data?.rows && query.data.rows.length > 0) {
-      const lastRow = query.data.rows[query.data.rows.length - 1];
-      const nextPageCursor = lastRow.id;
-      setPageIndexToCursor((prev) => {
-        const updated = new Map(prev);
-        updated.set(page + 1, nextPageCursor);
-        return updated;
-      });
-    }
-  }, [query.data?.rows, page]);
-
   const aggregates = useMemo(
     () => computeFailedMessagesAggregates(query.data?.rows ?? []),
     [query.data]
   );
-
-  // Reset page history when filters change (start over from page 0)
-  useEffect(() => {
-    setPageIndexToCursor(new Map([[0, null]]));
-  }, [status, instance, errorCode, rootCause, search, effectiveFrom, effectiveTo]);
 
   // Realtime
   useEffect(() => {
@@ -214,12 +196,12 @@ export function useFailedMessages(filters: FailedMessagesFilters = {}) {
       const ids = Array.isArray(input) ? input : input.ids;
       const reason = Array.isArray(input) ? '' : (input.reason ?? '');
       if (ids.length === 0) return 0;
-      const { data, error } = await _rpc<number>('rpc_dlq_bulk_retry_now', {
-        p_ids: ids,
-        p_reason: reason || null,
-      });
-      if (error) throw error;
-      const n = (data as number | null) ?? 0;
+      const results = await Promise.all(
+        ids.map((id) => supabase.rpc('rpc_dlq_retry_now', { p_id: id }))
+      );
+      const firstErr = results.find((r) => r.error);
+      if (firstErr?.error) throw firstErr.error;
+      const n = results.filter((r) => r.data === true).length;
       if (n > 0) await logItemAction('bulk_retry', ids, reason || undefined);
       return n;
     },
