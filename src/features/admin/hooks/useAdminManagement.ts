@@ -298,6 +298,7 @@ function useAdminAutomationsManagement() {
   const [automationLoading, setAutomationLoading] = useState(false);
   const [automationError, setAutomationError] = useState<Error | null>(null);
   const mountedRef = useMountedRef();
+  const queryClient = useQueryClient();
 
   const loadAutomations = async () => {
     setAutomationLoading(true);
@@ -373,6 +374,7 @@ function useAdminAutomationsManagement() {
     }
     toast.success('Regra salva');
     loadAutomations();
+    void queryClient.invalidateQueries({ queryKey: queryKeys.automations.all() });
     return true;
   };
 
@@ -383,6 +385,7 @@ function useAdminAutomationsManagement() {
       return;
     }
     loadAutomations();
+    void queryClient.invalidateQueries({ queryKey: queryKeys.automations.all() });
   };
 
   const toggleAutomationActive = async (r: Rule) => {
@@ -395,6 +398,7 @@ function useAdminAutomationsManagement() {
       return;
     }
     loadAutomations();
+    void queryClient.invalidateQueries({ queryKey: queryKeys.automations.all() });
   };
 
   const adjustAutomationPriority = async (r: Rule, delta: number) => {
@@ -408,6 +412,7 @@ function useAdminAutomationsManagement() {
       return;
     }
     loadAutomations();
+    void queryClient.invalidateQueries({ queryKey: queryKeys.automations.all() });
   };
 
   return {
@@ -580,6 +585,7 @@ function useAdminQueuesManagement() {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [queuesLoading, setQueuesLoading] = useState(true);
   const mountedRef = useMountedRef();
+  const queryClient = useQueryClient();
 
   const loadQueues = async () => {
     setQueuesLoading(true);
@@ -629,6 +635,7 @@ function useAdminQueuesManagement() {
     }
     toast({ title: 'Fila salva' });
     await loadQueues();
+    void queryClient.invalidateQueries({ queryKey: queryKeys.queues.all() });
     return true;
   };
 
@@ -640,6 +647,7 @@ function useAdminQueuesManagement() {
     }
     toast({ title: 'Fila removida' });
     await loadQueues();
+    void queryClient.invalidateQueries({ queryKey: queryKeys.queues.all() });
     return true;
   };
 
