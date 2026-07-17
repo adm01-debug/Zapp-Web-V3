@@ -196,12 +196,12 @@ export function useFailedMessages(filters: FailedMessagesFilters = {}) {
       const ids = Array.isArray(input) ? input : input.ids;
       const reason = Array.isArray(input) ? '' : (input.reason ?? '');
       if (ids.length === 0) return 0;
-      const results = await Promise.all(
-        ids.map((id) => supabase.rpc('rpc_dlq_retry_now', { p_id: id }))
-      );
-      const firstErr = results.find((r) => r.error);
-      if (firstErr?.error) throw firstErr.error;
-      const n = results.filter((r) => r.data === true).length;
+      const { data, error } = await supabase.rpc('rpc_dlq_bulk_retry_now', {
+        p_ids: ids,
+        p_reason: reason || null,
+      });
+      if (error) throw error;
+      const n = (data as number | null) ?? 0;
       if (n > 0) await logItemAction('bulk_retry', ids, reason || undefined);
       return n;
     },
