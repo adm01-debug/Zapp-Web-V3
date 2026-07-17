@@ -77,3 +77,27 @@ ALTER TABLE zapp._consumer_dlq
 ALTER TABLE zapp.supabase_projects
   ADD CONSTRAINT supabase_projects_status_check
   CHECK (status IN ('active', 'inactive', 'paused', 'deleted'));
+
+-- ============================================================
+-- FIX #18: Boolean columns missing DEFAULT values
+-- GAP: These boolean columns had no default, causing potential
+-- NULL insertions or requiring explicit values on every insert.
+-- ============================================================
+UPDATE zapp.whatsapp_connections SET is_plugged = false WHERE is_plugged IS NULL;
+
+ALTER TABLE zapp.cookies_config
+  ALTER COLUMN is_healthy SET DEFAULT true;
+
+ALTER TABLE zapp.whatsapp_connections
+  ALTER COLUMN is_plugged SET DEFAULT false,
+  ALTER COLUMN is_plugged SET NOT NULL;
+
+-- ============================================================
+-- FIX #19: Missing timestamp defaults on _vault_corrupted_quarantine
+-- GAP: created_at, updated_at, quarantined_at had no DEFAULT,
+-- allowing rows without timestamps.
+-- ============================================================
+ALTER TABLE zapp._vault_corrupted_quarantine
+  ALTER COLUMN created_at SET DEFAULT now(),
+  ALTER COLUMN updated_at SET DEFAULT now(),
+  ALTER COLUMN quarantined_at SET DEFAULT now();
