@@ -15,6 +15,7 @@ import { emailMappers } from '@/utils/emailMappers';
 import { SYSTEM_LABELS } from '@/hooks/useGmailLabels';
 import { useQueryClient } from '@tanstack/react-query';
 import { eventBus } from '@/lib/eventBus';
+import { queryKeys } from '@/services/api/queryKeys';
 
 interface PasskeyCredential {
   id: string;
@@ -58,6 +59,7 @@ function extractHttpStatus(err: unknown): number | undefined {
 export function useEvolutionAutoSyncManagement(onSynced?: () => void) {
   const ran = useRef(false);
   const { listInstances } = useEvolutionApi();
+  const queryClient = useQueryClient();
 
   const syncAll = async () => {
     try {
@@ -116,6 +118,7 @@ export function useEvolutionAutoSyncManagement(onSynced?: () => void) {
         });
       }
 
+      void queryClient.invalidateQueries({ queryKey: queryKeys.connections.all() });
       if (onSynced) onSynced();
     } catch (err) {
       log.error('Error syncing Evolution instances:', err);

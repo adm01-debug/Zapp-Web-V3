@@ -294,6 +294,7 @@ function useAdminAutomationsManagement() {
   const [automationLoading, setAutomationLoading] = useState(false);
   const [automationError, setAutomationError] = useState<Error | null>(null);
   const mountedRef = useMountedRef();
+  const queryClient = useQueryClient();
 
   const loadAutomations = async () => {
     setAutomationLoading(true);
@@ -368,6 +369,7 @@ function useAdminAutomationsManagement() {
     }
     toast.success('Regra salva');
     loadAutomations();
+    void queryClient.invalidateQueries({ queryKey: queryKeys.automations.all() });
     return true;
   };
 
@@ -378,6 +380,7 @@ function useAdminAutomationsManagement() {
       return;
     }
     loadAutomations();
+    void queryClient.invalidateQueries({ queryKey: queryKeys.automations.all() });
   };
 
   const toggleAutomationActive = async (r: Rule) => {
@@ -390,6 +393,7 @@ function useAdminAutomationsManagement() {
       return;
     }
     loadAutomations();
+    void queryClient.invalidateQueries({ queryKey: queryKeys.automations.all() });
   };
 
   const adjustAutomationPriority = async (r: Rule, delta: number) => {
@@ -403,6 +407,7 @@ function useAdminAutomationsManagement() {
       return;
     }
     loadAutomations();
+    void queryClient.invalidateQueries({ queryKey: queryKeys.automations.all() });
   };
 
   return {
@@ -574,6 +579,7 @@ function useAdminQueuesManagement() {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [queuesLoading, setQueuesLoading] = useState(true);
   const mountedRef = useMountedRef();
+  const queryClient = useQueryClient();
 
   const loadQueues = async () => {
     setQueuesLoading(true);
@@ -623,6 +629,7 @@ function useAdminQueuesManagement() {
     }
     toast({ title: 'Fila salva' });
     await loadQueues();
+    void queryClient.invalidateQueries({ queryKey: queryKeys.queues.all() });
     return true;
   };
 
@@ -634,6 +641,7 @@ function useAdminQueuesManagement() {
     }
     toast({ title: 'Fila removida' });
     await loadQueues();
+    void queryClient.invalidateQueries({ queryKey: queryKeys.queues.all() });
     return true;
   };
 
@@ -776,6 +784,7 @@ function useRolesManagement() {
   >([]);
   const [userToRemoveRole, setUserToRemoveRole] = useState<UserWithRole | null>(null);
   const [rolesUpdating, setRolesUpdating] = useState(false);
+  const queryClient = useQueryClient();
 
   const fetchRoleUsers = async () => {
     setRolesLoading(true);
@@ -850,6 +859,7 @@ function useRolesManagement() {
       setShowAddRoleDialog(false);
       setSelectedRoleUser('');
       fetchRoleUsers();
+      void queryClient.invalidateQueries({ queryKey: queryKeys.adminOps.userRoles() });
     }
     setRolesUpdating(false);
   };
@@ -863,6 +873,7 @@ function useRolesManagement() {
       toast.success('Role removida com sucesso');
       setUserToRemoveRole(null);
       fetchRoleUsers();
+      void queryClient.invalidateQueries({ queryKey: queryKeys.adminOps.userRoles() });
     }
     setRolesUpdating(false);
   };
@@ -1016,6 +1027,7 @@ function useHmacSecurityManagement(instance: string, includeNegative: boolean) {
   const [securityLoading, setSecurityLoading] = useState(false);
   const [securityResult, setSecurityResult] = useState<SelfTestResult | null>(null);
   const [lastSecurityRunAt, setLastSecurityRunAt] = useState<Date | null>(null);
+  const queryClient = useQueryClient();
 
   const logSecurityAudit = useCallback(
     async (payload: SelfTestResult, fallbackMs: number) => {
@@ -1035,12 +1047,14 @@ function useHmacSecurityManagement(instance: string, includeNegative: boolean) {
         );
         if (insertError) {
           log.warn('audit insert failed', insertError);
+        } else {
+          void queryClient.invalidateQueries({ queryKey: queryKeys.adminOps.hmacAudit() });
         }
       } catch (e) {
         log.warn('audit insert threw', e);
       }
     },
-    [instance]
+    [instance, queryClient]
   );
 
   const syncSecurityAlert = useCallback(
@@ -1093,13 +1107,17 @@ function useHmacSecurityManagement(instance: string, includeNegative: boolean) {
               .eq('source', source)
               .is('resolved_at', null)
           );
-          if (resolveError) log.warn('warroom_alerts resolve failed', resolveError);
+          if (resolveError) {
+            log.warn('warroom_alerts resolve failed', resolveError);
+          } else {
+            void queryClient.invalidateQueries({ queryKey: queryKeys.alerts.all() });
+          }
         }
       } catch (e) {
         log.warn('alert sync threw', e);
       }
     },
-    [instance]
+    [instance, queryClient]
   );
 
   const runSecurityTest = useCallback(async () => {

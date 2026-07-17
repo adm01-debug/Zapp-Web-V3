@@ -601,6 +601,7 @@ export const queryKeys = {
     operationsLogs: (filters?: unknown) => ['operations-logs', filters] as const,
     telemetry: (severityFilter?: string, timeFilter?: string, dateFrom?: string, dateTo?: string) =>
       ['query-telemetry', severityFilter, timeFilter, dateFrom, dateTo] as const,
+    transfersPaginated: (filters?: unknown) => ['admin-transfers-paginated', filters] as const,
   },
 
   // Dispatch Error Logs (append-only audit trail)

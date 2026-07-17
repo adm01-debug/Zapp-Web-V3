@@ -32,7 +32,6 @@ interface ContactCustomField {
   field_value: unknown;
 }
 
-/** Consolidated CRM management hook for contact intelligence, notes, assignments, and custom fields. */
 export function useContactIntelligenceManagement(contactId?: string) {
   const [intelligence, setIntelligence] = useState<ContactIntelligence | null>(null);
   const [loading, setLoading] = useState(true);
@@ -143,12 +142,8 @@ export function useContactEnrichedDataManagement(contactId?: string) {
 
     const fetchEnrichedData = async () => {
       try {
-        const { data, error: err } = await supabase.rpc('enrich_contact', {
-          contact_id: contactId,
-        });
-
-        if (err) throw err;
-        setEnrichedData(data);
+        // GAP-5: enrich_contact RPC not yet deployed to DB
+        log.warn('fetchEnrichedData called but enrich_contact RPC is not deployed', { contactId });
       } catch (err) {
         log.error('Error enriching contact data:', err);
       } finally {

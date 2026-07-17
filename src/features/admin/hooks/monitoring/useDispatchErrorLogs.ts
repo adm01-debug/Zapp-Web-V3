@@ -63,14 +63,14 @@ export function useDispatchErrorLogs(filters: DispatchErrorLogFilters = {}) {
       pageSize,
     }),
     queryFn: async () => {
-      const { data, error } = await supabase.rpc('rpc_list_dispatch_error_logs_cursor', {
+      const { data, error } = await supabase.rpc('rpc_list_dispatch_error_logs', {
         p_from: fromIso,
         p_instance: instance,
         p_agent: agent,
         p_error_code: errorCode,
         p_search: search,
         p_limit: pageSize,
-        p_cursor_id: null,
+        p_offset: page * pageSize,
       });
       if (error) throw error;
       const list = (data ?? []) as unknown as _RpcRow[];

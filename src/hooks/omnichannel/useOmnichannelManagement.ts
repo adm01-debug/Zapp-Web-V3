@@ -97,6 +97,9 @@ export function useOmnichannelChannelsManagement(
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.omnichannel.channels() });
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.adminOps.realtimeMonitorConnections(),
+      });
       toastHook({ title: 'Canal adicionado com sucesso' });
     },
     onError: () => {
@@ -111,6 +114,9 @@ export function useOmnichannelChannelsManagement(
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.omnichannel.channels() });
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.adminOps.realtimeMonitorConnections(),
+      });
       toastHook({ title: 'Canal removido' });
     },
     onError: () => {

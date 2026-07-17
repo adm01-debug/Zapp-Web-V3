@@ -167,12 +167,10 @@ export function useLatestAnalysisManagement(timeWindow: number = 24) {
   useEffect(() => {
     const fetchAnalysis = async () => {
       try {
-        const { data, error: err } = await supabase.rpc('get_latest_analysis', {
-          hours: timeWindow,
+        // GAP-6: get_latest_analysis RPC not yet deployed to DB
+        log.warn('fetchAnalysis called but get_latest_analysis RPC is not deployed', {
+          timeWindow,
         });
-
-        if (err) throw err;
-        if (mounted.current) setAnalysis(data);
       } catch (err) {
         log.error('Error fetching analysis:', err);
       } finally {
