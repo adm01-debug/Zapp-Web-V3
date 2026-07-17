@@ -76,7 +76,7 @@ export function useFailedMessages(filters: FailedMessagesFilters = {}) {
     queryKey,
     queryFn: async () => {
       const { data, error } = await supabase.rpc('rpc_list_failed_messages', {
-        p_status: status ? [status] : null,
+        p_status: status ?? null,
         p_instance: instance,
         p_search: search,
         p_from: effectiveFrom,
