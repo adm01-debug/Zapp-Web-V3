@@ -1,9 +1,11 @@
 // Consolidated Queue Management Module (ETAPA 33)
 // Consolidates: useQueues, useQueueAnalytics, useQueueGoals, useQueueSlaPanel, useQueuesComparison
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { safeFrom } from '@/integrations/supabase/safeClient';
 import { useAuth } from '@/features/auth';
+import { queryKeys } from '@/services/api/queryKeys';
 import { log } from '@/lib/logger';
 
 type DynamicRpcClient = {
@@ -326,6 +328,7 @@ export function useQueueSlaManagement(params: { filters: QueueSlaFilters }) {
   const [slaRows, setSlaRows] = useState<QueueSlaRow[]>([]);
   const [loading, setLoading] = useState(true);
   const mountedRef = useRef(true);
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     return () => {
@@ -370,13 +373,14 @@ export function useQueueSlaManagement(params: { filters: QueueSlaFilters }) {
 
         if (err) throw err;
         await fetchSla();
+        void queryClient.invalidateQueries({ queryKey: queryKeys.queues.all() });
         return true;
       } catch (err) {
         log.error('Error updating queue SLA config:', err);
         return false;
       }
     },
-    [fetchSla]
+    [fetchSla, queryClient]
   );
 
   const triggerRebalance = useCallback(async (limit = 50): Promise<boolean> => {
