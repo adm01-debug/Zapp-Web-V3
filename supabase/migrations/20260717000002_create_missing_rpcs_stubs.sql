@@ -56,15 +56,11 @@ CREATE OR REPLACE FUNCTION zapp.sync_to_crm(
   SET search_path = zapp, public
 AS $$
 BEGIN
-  -- Stub: log the intent so calls are auditable, but do nothing.
-  -- Replace with real CRM integration when implemented.
-  -- Record the sync attempt for observability (uses only columns present in all
-  -- audit_logs schema variants: action + details).
-  INSERT INTO zapp.audit_logs (action, details)
-  VALUES (
-    'sync_to_crm',
-    jsonb_build_object('entity_id', entity_id, 'entity_data', entity_data)
-  );
+  -- Stub: raise an explicit error so callers know this is not yet implemented.
+  -- Replace body with real CRM integration; remove the RAISE when done.
+  RAISE EXCEPTION 'sync_to_crm not yet implemented'
+    USING ERRCODE = 'P0001',
+          DETAIL  = 'CRM sync integration is pending. entity_id=' || entity_id::text;
 END;
 $$;
 
@@ -84,6 +80,12 @@ DECLARE
 BEGIN
   IF v_user_id IS NULL THEN
     RAISE EXCEPTION 'Not authenticated';
+  END IF;
+
+  IF export_format NOT IN ('json') THEN
+    RAISE EXCEPTION 'Unsupported export format: %', export_format
+      USING ERRCODE = 'P0001',
+            DETAIL  = 'Supported formats: json';
   END IF;
 
   SELECT * INTO v_profile
@@ -113,20 +115,25 @@ CREATE OR REPLACE FUNCTION zapp.import_user_data(data jsonb)
   SET search_path = zapp, public
 AS $$
 BEGIN
-  -- Stub: accept the call without side-effects until the real importer is built.
+  -- Stub: raise an explicit error so callers know this is not yet implemented.
   -- Full import should be an Edge Function with transaction safety.
-  RAISE NOTICE 'import_user_data stub called — no data was imported';
+  RAISE EXCEPTION 'import_user_data not yet implemented'
+    USING ERRCODE = 'P0001',
+          DETAIL  = 'Data import requires an Edge Function for transaction safety.';
 END;
 $$;
 
 GRANT EXECUTE ON FUNCTION zapp.import_user_data(jsonb) TO authenticated;
 
 -- ─── GAP-5: Contact enrichment ───────────────────────────────────────────────
+-- SECURITY INVOKER so that RLS on zapp.contacts applies: callers can only
+-- enrich contacts they already have SELECT permission on. No SECURITY DEFINER
+-- needed because this stub doesn't require elevated privileges.
 
 CREATE OR REPLACE FUNCTION zapp.enrich_contact(contact_id uuid)
   RETURNS jsonb
   LANGUAGE plpgsql
-  SECURITY DEFINER
+  SECURITY INVOKER
   SET search_path = zapp, public
 AS $$
 DECLARE
@@ -155,11 +162,13 @@ $$;
 GRANT EXECUTE ON FUNCTION zapp.enrich_contact(uuid) TO authenticated;
 
 -- ─── GAP-6: Latest sentiment analysis ────────────────────────────────────────
+-- SECURITY INVOKER so that RLS on zapp.contact_intelligence applies: each
+-- caller only sees intelligence rows they are authorised to read.
 
 CREATE OR REPLACE FUNCTION zapp.get_latest_analysis(hours integer DEFAULT 24)
   RETURNS jsonb
   LANGUAGE plpgsql
-  SECURITY DEFINER
+  SECURITY INVOKER
   SET search_path = zapp, public
 AS $$
 DECLARE

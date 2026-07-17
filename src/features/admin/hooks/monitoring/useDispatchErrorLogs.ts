@@ -1,4 +1,3 @@
-
 import { useQuery } from '@tanstack/react-query';
 import { useState, useEffect } from 'react';
 import { queryKeys } from '@/services/api/queryKeys';
@@ -38,7 +37,7 @@ interface _RpcRow extends DispatchErrorLogRow {
 
 /**
  * Reads from the append-only `dispatch_error_logs` audit trail via
- * `rpc_list_dispatch_error_logs`. Distinct from `useFailedMessages`, which
+ * `rpc_list_dispatch_error_logs_cursor`. Distinct from `useFailedMessages`, which
  * reflects the live DLQ state — this hook surfaces the immutable history
  * (including failures already retried/abandoned) for forensic analysis.
  */
@@ -70,7 +69,17 @@ export function useDispatchErrorLogs(filters: DispatchErrorLogFilters = {}) {
   }, [hours, to, instance, agent, errorCode, search]);
 
   const query = useQuery<{ rows: DispatchErrorLogRow[]; total: number }>({
-    queryKey: queryKeys.dispatchErrorLogs.filtered({ hours, to, instance, agent, errorCode, search, page, pageSize }),
+    queryKey: queryKeys.dispatchErrorLogs.filtered({
+      hours,
+      to,
+      instance,
+      agent,
+      errorCode,
+      search,
+      page,
+      pageSize,
+      currentPageCursor,
+    }),
     queryFn: async () => {
       const { data, error } = await supabase.rpc('rpc_list_dispatch_error_logs_cursor', {
         p_from: fromIso,
@@ -83,7 +92,7 @@ export function useDispatchErrorLogs(filters: DispatchErrorLogFilters = {}) {
         p_cursor_id: currentPageCursor,
       });
       if (error) throw error;
-      const list = ((data ?? []) as unknown as _RpcRow[]);
+      const list = (data ?? []) as unknown as _RpcRow[];
       const total = list[0]?.total_count != null ? Number(list[0].total_count) : 0;
       const rows: DispatchErrorLogRow[] = list.map(
         ({ total_count: _t, ...rest }) => rest as DispatchErrorLogRow

@@ -14,8 +14,7 @@
 ### Instância Supabase
 
 | Atributo | Valor |
-|----------|
--------|
+|----------|-------|
 | **Tipo** | Self-Hosted (VPS AtomicaBR) |
 | **URL** | `https://supabase.atomicabr.com.br` |
 | **Schema principal** | `zapp` |
@@ -53,7 +52,7 @@
    - Mensagens do WhatsApp → `schema: 'evo'`, tabela **`evolution_messages`** (raiz), NÃO `evolution_messages_wpp2`
    - Conversas → `schema: 'evo'`, tabela **`evolution_conversations`** (raiz), NÃO `evolution_conversations_wpp2`
    - Perfis/notificações → `schema: 'zapp'`
-   - **`failed_messages`** → `schema: 'zapp'` (tabela física; `public.failed_messages` é VIEW, não está na publication `supabase_realtime` — subscription com `schema: 'public'` é no-op silencioso)
+   - **`failed_messages`** → `schema: 'zapp'` (tabela física; `public.failed_messages` é VIEW, não entra na publication — subscription com `schema: 'public'` é no-op silencioso)
    - **`dispatch_error_logs`** → **NÃO está em nenhuma publication** — qualquer subscription Realtime é no-op; adicionar `ALTER PUBLICATION supabase_realtime ADD TABLE zapp.dispatch_error_logs;` antes de usar
    - **Subscriptions na partição ficam silenciosas** (zero eventos) com `publish_via_partition_root=true`.
    - **Regra geral**: Realtime usa o WAL físico — apenas relations físicas na publication emitem eventos. Views nunca emitem, independentemente do schema.
@@ -82,7 +81,7 @@
 ### Tabelas Principais do Schema `evo`
 
 | Tabela | Função |
-|--------|---------|
+|--------|--------|
 | `evolution_messages` | Raiz particionada de mensagens (25 partições por instância) |
 | `evolution_contacts` | Contatos da Evolution API (20.563, 18 MB) |
 | `evolution_conversations` | Raiz particionada de conversas (25 partições) |
@@ -131,9 +130,9 @@
 | ~~BUG-7~~ | `src/features/admin/hooks/monitoring/useFailedMessages.ts:142` | REVERTIDO: mudança anterior de `schema: 'zapp'` → `schema: 'public'` era regressão — `public.failed_messages` é VIEW, não está na publication `supabase_realtime`; subscription era no-op silencioso; mantido `schema: 'zapp'` (tabela física, publicada) | Resolvido |
 | GAP-1 | `src/hooks/useCampaigns.ts:100` | `rpc('add_contacts_to_campaign')` — SQL existe em `20260712140000_fix_campaign_contacts_rpc.sql`, não aplicado ao self-hosted | Runtime error até migração aplicada |
 | ~~GAP-2~~ | `src/hooks/useIntegrationManagement.ts:54,69` | STUB CRIADO: `rpc('initiate_gmail_oauth')`, `rpc('complete_gmail_oauth')` — stubs em `20260717000002_create_missing_rpcs_stubs.sql`; retornam erro descritivo em vez de 42883 | UI degrada com mensagem; OAuth real pendente |
-| ~~GAP-3~~ | `src/hooks/useIntegrationManagement.ts:156` | STUB CRIADO: `rpc('sync_to_crm')` — stub em `20260717000002`; registra tentativa em audit_logs | Sync real pendente |
-| ~~GAP-4~~ | `src/hooks/useMediaManagement.ts:93,128` | STUB CRIADO: `rpc('export_user_data')`, `rpc('import_user_data')` — stubs em `20260717000002`; export retorna dados de perfil; import é no-op | Export/Import parcial; full data export deve ser Edge Function |
-| ~~BUG-9~~ | `src/hooks/useMediaManagement.ts:164` | CORRIGIDO: `rpc('check_download_permission')` ausente → `hasPermission` ficava `false` permanentemente, bloqueando todos os downloads silenciosamente; adicionado `setHasPermission(true)` no catch (fail-open) | Resolvido |
+| ~~GAP-3~~ | `src/hooks/useIntegrationManagement.ts:156` | STUB CRIADO: `rpc('sync_to_crm')` — stub em `20260717000002`; levanta RAISE EXCEPTION explícita (P0001) em vez de retornar void | Sync real pendente |
+| ~~GAP-4~~ | `src/hooks/useMediaManagement.ts:93,128` | STUB CRIADO: `rpc('export_user_data')`, `rpc('import_user_data')` — stubs em `20260717000002`; export retorna dados de perfil (formatos != 'json' rejeitados com RAISE); import levanta RAISE EXCEPTION | Export/Import parcial; full data export deve ser Edge Function |
+| ~~BUG-9~~ | `src/hooks/useMediaManagement.ts:164` | CORRIGIDO: `rpc('check_download_permission')` ausente → `hasPermission` ficava `false` permanentemente, bloqueando todos os downloads silenciosamente; fail-open restrito a SQLSTATE 42883 (função não existe) — outros erros mantêm permissão negada | Resolvido |
 | ~~GAP-5~~ | `src/hooks/useCRMManagement.ts:146` | STUB CRIADO: `rpc('enrich_contact')` — stub em `20260717000002`; retorna dados básicos do contato com `enriched: false` | Integração com API de enriquecimento pendente |
 | ~~GAP-6~~ | `src/hooks/useAnalyticsManagement.ts:168` | STUB CRIADO: `rpc('get_latest_analysis')` — stub em `20260717000002`; retorna média de `contact_intelligence.engagement_score` | Analytics completo pendente |
 | ~~BUG-8~~ | `supabase/migrations/20260712001500_cursor_pagination_optimization.sql:8` | CORRIGIDO: `rpc_list_failed_messages_cursor` tinha RETURNS TABLE com 9 cols vs 15 esperadas por FailedMessageRow; `fm.message_id` inexistente causava erro de compilação; `next_retry_at` vs `next_attempt_at` (nome errado); cursor keyset ignorava ties na created_at. Fix: `20260716_fix_rpc_list_failed_messages_cursor_columns.sql` | Resolvido |
@@ -182,7 +181,7 @@ curl -s "http://supabase_meta:8080/generators/typescript\
 ## Documentação de Referência
 
 | Doc | Conteúdo |
-|-----|---------|
+|-----|----------|
 | `docs/SCHEMA_REFERENCE.md` | **Documento canônico** de schemas e tabelas |
 | `docs/ER_DIAGRAM.md` | Diagrama de entidade-relacionamento |
 | `docs/ARCHITECTURE_AND_FLOW.md` | Arquitetura e fluxo de dados |

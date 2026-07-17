@@ -68,9 +68,18 @@ export function useFailedMessages(filters: FailedMessagesFilters = {}) {
 
   const currentPageCursor = pageIndexToCursor.get(page) ?? null;
 
-  const queryKey = queryKeys.failedMessages.filtered(
-    { status, instance, errorCode, rootCause, search, effectiveFrom, effectiveTo, page, pageSize },
-  );
+  const queryKey = queryKeys.failedMessages.filtered({
+    status,
+    instance,
+    errorCode,
+    rootCause,
+    search,
+    effectiveFrom,
+    effectiveTo,
+    page,
+    pageSize,
+    currentPageCursor,
+  });
 
   const query = useQuery<{ rows: FailedMessageRow[]; total: number; deniedReason: string | null }>({
     queryKey,
@@ -83,6 +92,7 @@ export function useFailedMessages(filters: FailedMessagesFilters = {}) {
         p_to: effectiveTo,
         p_limit: pageSize,
         p_cursor_id: currentPageCursor,
+        p_error_code: errorCode ?? null,
       });
       if (error) {
         if (isRlsDeniedError(error)) {
@@ -91,11 +101,9 @@ export function useFailedMessages(filters: FailedMessagesFilters = {}) {
         throw error;
       }
       const list = data ?? [];
+      // errorCode is now filtered server-side via p_error_code.
+      // rootCause classification is a multi-field heuristic — filtered client-side.
       const filtered = list.filter((r: Record<string, unknown>) => {
-        if (errorCode) {
-          const code = r.error_code ?? (r.http_status ? `http_${r.http_status}` : 'unknown');
-          if (code !== errorCode) return false;
-        }
         if (rootCause) {
           if (classifyRootCause(r) !== rootCause) return false;
         }
@@ -135,9 +143,7 @@ export function useFailedMessages(filters: FailedMessagesFilters = {}) {
     setPageIndexToCursor(new Map([[0, null]]));
   }, [status, instance, errorCode, rootCause, search, effectiveFrom, effectiveTo]);
 
-  // Realtime — subscribe to the physical table in zapp schema.
-  // public.failed_messages is a VIEW and is NOT in supabase_realtime publication;
-  // subscribing to it would be a silent no-op (WAL only emits for physical relations).
+  // Realtime
   useEffect(() => {
     const channel = supabase
       .channel('failed_messages_realtime')

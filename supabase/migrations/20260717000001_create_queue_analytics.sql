@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS zapp.queue_analytics (
   total_messages          integer     NOT NULL DEFAULT 0,
   average_response_time   numeric(10, 2) NOT NULL DEFAULT 0,
   first_response_time     numeric(10, 2),
-  resolution_rate         numeric(5, 4)  NOT NULL DEFAULT 0 CHECK (resolution_rate BETWEEN 0 AND 1),
+  resolution_rate         numeric(5, 2)  NOT NULL DEFAULT 0 CHECK (resolution_rate BETWEEN 0 AND 100),
   customer_satisfaction   numeric(4, 2)  NOT NULL DEFAULT 0 CHECK (customer_satisfaction BETWEEN 0 AND 5),
   timestamp               timestamptz    NOT NULL DEFAULT now(),
   created_at              timestamptz    NOT NULL DEFAULT now()
