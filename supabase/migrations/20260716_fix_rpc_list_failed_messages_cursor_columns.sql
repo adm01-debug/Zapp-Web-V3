@@ -29,11 +29,17 @@
 --    p_error_code parameter for server-side filtering. The synthesised codes
 --    (http_NNN, unknown) used by the JS client are mirrored in SQL.
 --    rootCause classification (multi-field heuristic) remains client-side.
+--
+-- 8) Function was in `public` schema but supabase.rpc() sends Content-Profile: zapp
+--    (db.schema='zapp'). PostgREST resolves RPCs in the Content-Profile schema only,
+--    so a function in `public` is invisible to the JS client — PGRST202 (Function not
+--    found in schema: zapp). Fixed by creating the function in the `zapp` schema.
 
--- Drop old 7-parameter signature if it was applied to any environment before this fix.
+-- Drop any stale copies from public schema (old 7-param and 8-param).
 DROP FUNCTION IF EXISTS public.rpc_list_failed_messages_cursor(text[], text, text, timestamptz, timestamptz, integer, uuid);
+DROP FUNCTION IF EXISTS public.rpc_list_failed_messages_cursor(text[], text, text, timestamptz, timestamptz, integer, uuid, text);
 
-CREATE OR REPLACE FUNCTION public.rpc_list_failed_messages_cursor(
+CREATE OR REPLACE FUNCTION zapp.rpc_list_failed_messages_cursor(
   p_status     text[],
   p_instance   text,
   p_search     text,
@@ -144,5 +150,5 @@ BEGIN
 END;
 $$;
 
-REVOKE EXECUTE ON FUNCTION public.rpc_list_failed_messages_cursor(text[], text, text, timestamptz, timestamptz, integer, uuid, text) FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.rpc_list_failed_messages_cursor(text[], text, text, timestamptz, timestamptz, integer, uuid, text) TO authenticated;
+REVOKE EXECUTE ON FUNCTION zapp.rpc_list_failed_messages_cursor(text[], text, text, timestamptz, timestamptz, integer, uuid, text) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION zapp.rpc_list_failed_messages_cursor(text[], text, text, timestamptz, timestamptz, integer, uuid, text) TO authenticated;
