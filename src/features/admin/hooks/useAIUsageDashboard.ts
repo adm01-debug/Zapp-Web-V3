@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { unwrapRows } from '@/lib/supabase-helpers';
+import { queryKeys } from '@/services/api/queryKeys';
 import { format, subHours, subDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
@@ -31,12 +32,12 @@ interface ProfileInfo {
 }
 
 export const FUNCTION_COLORS: Record<string, string> = {
-  'ai-suggest-reply': '#3b82f6',
-  'ai-enhance-message': '#8b5cf6',
-  'ai-conversation-analysis': '#f59e0b',
-  'ai-conversation-summary': '#10b981',
-  'ai-auto-tag': '#ef4444',
-  'chatbot-l1': '#06b6d4',
+  'ai-suggest-reply': 'hsl(var(--primary))',
+  'ai-enhance-message': 'hsl(var(--accent))',
+  'ai-conversation-analysis': 'hsl(var(--warning))',
+  'ai-conversation-summary': 'hsl(var(--success))',
+  'ai-auto-tag': 'hsl(var(--destructive))',
+  'chatbot-l1': 'hsl(var(--info))',
 };
 
 export const FUNCTION_LABELS: Record<string, string> = {
@@ -72,7 +73,7 @@ export function useAIUsageDashboard() {
     isLoading,
     refetch,
   } = useQuery({
-    queryKey: ['ai-usage-logs', timeFilter],
+    queryKey: queryKeys.aiFeatures.usageLogs(timeFilter),
     queryFn: async () => {
       const since = getTimeRange(timeFilter).toISOString();
       const { data, error } = await supabase
@@ -88,7 +89,7 @@ export function useAIUsageDashboard() {
   });
 
   const { data: profiles = [] } = useQuery({
-    queryKey: ['profiles-for-usage'],
+    queryKey: queryKeys.userProfile.forUsage(),
     queryFn: async () => {
       const { data } = await supabase
         .from('profiles')

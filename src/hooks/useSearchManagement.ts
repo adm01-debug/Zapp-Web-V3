@@ -1,7 +1,10 @@
 // Consolidated Search & Discovery Management Module (ETAPA 36)
 // Consolidates: useGlobalSearchShortcut, useKnowledgeBaseSearch, useSearchHistory, useSearchInsights, useChatSearch
 import { useState, useCallback, useRef, useEffect } from 'react';
+import { useMountedRef } from '@/hooks/useMountedRef';
 import { supabase } from '@/integrations/supabase/client';
+import { safeClient } from '@/integrations/supabase/safeClient';
+import { callExtRpc } from '@/integrations/supabase/externalClient';
 import { log } from '@/lib/logger';
 
 interface SearchResult {
@@ -121,7 +124,7 @@ export function useSearchHistoryManagement() {
   const addToHistory = useCallback(
     async (query: string, resultType: string) => {
       try {
-        await (supabase as any).from('search_history').insert({ query, result_type: resultType }); // ignore-audit — table not in generated types; exists in zapp schema
+        await safeClient.from('search_history', (q) => q.insert({ query, result_type: resultType }));
         await fetchHistory();
       } catch (err) {
         if (mountedRef.current) {
@@ -134,7 +137,7 @@ export function useSearchHistoryManagement() {
 
   const clearHistory = useCallback(async () => {
     try {
-      await (supabase as any).from('search_history').delete().gt('id', 0); // ignore-audit — table not in generated types; exists in zapp schema
+      await safeClient.from('search_history', (q) => q.delete().gt('id', 0));
       if (mountedRef.current) setHistory([]);
     } catch (err) {
       if (mountedRef.current) {
@@ -224,25 +227,26 @@ export function normalizeSearchInsights(raw: unknown): SearchInsights {
 export function useSearchInsightsManagement(timeWindow: number = 7) {
   const [insights, setInsights] = useState<SearchInsights | null>(null);
   const [loading, setLoading] = useState(true);
+  const mounted = useMountedRef();
 
   useEffect(() => {
     const fetchInsights = async () => {
       try {
-        const { data, error: err } = await (supabase as any).rpc('get_search_insights', { // ignore-audit — RPC not in generated types; exists in zapp schema
+        const { data, error: err } = await callExtRpc(supabase, 'get_search_insights', {
           days: timeWindow,
         });
 
         if (err) throw err;
-        setInsights(normalizeSearchInsights(data));
+        if (mounted.current) setInsights(normalizeSearchInsights(data));
       } catch (err) {
         log.error('Error fetching search insights:', err);
       } finally {
-        setLoading(false);
+        if (mounted.current) setLoading(false);
       }
     };
 
     fetchInsights();
-  }, [timeWindow]);
+  }, [timeWindow, mounted]);
 
   return { insights, loading };
 }
@@ -263,7 +267,7 @@ export function useChatSearchManagement(chatId: string, query: string) {
     const search = async () => {
       try {
         setLoading(true);
-        const { data, error: err } = await (supabase as any).rpc('search_chat_messages', { // ignore-audit — RPC not in generated types; exists in zapp schema
+        const { data, error: err } = await callExtRpc(supabase, 'search_chat_messages', {
           chat_id: chatId,
           search_query: query,
         });

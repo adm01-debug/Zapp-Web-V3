@@ -10,6 +10,7 @@ import {
   useLayoutEffect,
 } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '@/services/api/queryKeys';
 import { Loader2, Lock, ChevronDown, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getLogger } from '@/lib/logger';
@@ -131,7 +132,7 @@ export const ChatMessagesArea = memo(
             (payload) => {
               const updatedMsg = payload.new as { id: string };
               if (updatedMsg.id && messagesRef.current.some((m) => m.id === updatedMsg.id)) {
-                void queryClient.invalidateQueries({ queryKey: ['messages'] });
+                void queryClient.invalidateQueries({ queryKey: queryKeys.messages.all() });
               }
             }
           )
@@ -198,9 +199,11 @@ export const ChatMessagesArea = memo(
         prevLengthRef.current = messages.length;
       }, [messages.length]);
 
-      const handleMessageDeleted = (id: string) => {
+      const handleMessageDeleted = useCallback((id: string) => {
         log.info('Message deleted:', id);
-      };
+      }, []);
+
+      const noopRegisterRef = useCallback(() => {}, []);
 
       return (
         <div
@@ -283,7 +286,7 @@ export const ChatMessagesArea = memo(
                     activeHighlightId={activeHighlightId}
                     searchQuery={searchQuery}
                     onAudioVoiceChange={onAudioVoiceChange}
-                    registerRef={() => {}}
+                    registerRef={noopRegisterRef}
                     instanceName={instanceName}
                     contactJid={contactJid}
                   />

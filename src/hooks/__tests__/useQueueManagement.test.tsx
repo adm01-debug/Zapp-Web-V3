@@ -1,9 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import React from 'react';
 
 const mockFrom = vi.hoisted(() => vi.fn());
 const mockRpc = vi.hoisted(() => vi.fn());
 const mockUseAuth = vi.hoisted(() => vi.fn(() => ({ user: { id: 'u1' } })));
+const mockInvalidateQueries = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
 
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
@@ -24,6 +27,14 @@ vi.mock('@/lib/logger', () => ({
   log: { error: vi.fn(), warn: vi.fn(), info: vi.fn(), debug: vi.fn() },
   getLogger: () => ({ error: vi.fn(), warn: vi.fn(), info: vi.fn(), debug: vi.fn() }),
 }));
+
+vi.mock('@tanstack/react-query', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@tanstack/react-query')>();
+  return {
+    ...actual,
+    useQueryClient: () => ({ invalidateQueries: mockInvalidateQueries }),
+  };
+});
 
 import {
   useQueuesCrudManagement,
@@ -176,6 +187,11 @@ describe('useQueueManagement — hooks consolidados', () => {
 
   describe('useQueueSlaManagement', () => {
     const filters = { skill_name: null, channel_type: null, sla_status: null };
+    const createWrapper = () => {
+      const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+      return ({ children }: { children: React.ReactNode }) =>
+        React.createElement(QueryClientProvider, { client: qc }, children);
+    };
 
     it('normaliza linhas do RPC com defaults seguros', async () => {
       mockRpc.mockResolvedValue({
@@ -189,7 +205,7 @@ describe('useQueueManagement — hooks consolidados', () => {
         error: null,
       });
 
-      const { result } = renderHook(() => useQueueSlaManagement({ filters }));
+      const { result } = renderHook(() => useQueueSlaManagement({ filters }), { wrapper: createWrapper() });
       await waitFor(() => expect(result.current.loading).toBe(false));
 
       expect(mockRpc).toHaveBeenCalledWith('rpc_queue_sla_panel', expect.objectContaining({
@@ -210,7 +226,7 @@ describe('useQueueManagement — hooks consolidados', () => {
 
     it('rows e slaRows apontam para o mesmo dataset', async () => {
       mockRpc.mockResolvedValue({ data: [], error: null });
-      const { result } = renderHook(() => useQueueSlaManagement({ filters }));
+      const { result } = renderHook(() => useQueueSlaManagement({ filters }), { wrapper: createWrapper() });
       await waitFor(() => expect(result.current.loading).toBe(false));
       expect(result.current.rows).toBe(result.current.slaRows);
     });
@@ -223,7 +239,7 @@ describe('useQueueManagement — hooks consolidados', () => {
         }),
       });
 
-      const { result } = renderHook(() => useQueueSlaManagement({ filters }));
+      const { result } = renderHook(() => useQueueSlaManagement({ filters }), { wrapper: createWrapper() });
       await waitFor(() => expect(result.current.loading).toBe(false));
 
       let ok = true;
@@ -235,7 +251,7 @@ describe('useQueueManagement — hooks consolidados', () => {
 
     it('triggerRebalance chama RPC correta', async () => {
       mockRpc.mockResolvedValue({ data: [], error: null });
-      const { result } = renderHook(() => useQueueSlaManagement({ filters }));
+      const { result } = renderHook(() => useQueueSlaManagement({ filters }), { wrapper: createWrapper() });
       await waitFor(() => expect(result.current.loading).toBe(false));
 
       await act(async () => {

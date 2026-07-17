@@ -2,10 +2,6 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { getLogger } from '@/lib/logger';
 
-// Schema escape hatch: zapp tables not yet in generated types (gen-types-zapp.mjs pendente na VPS)
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const db = supabase as any;
-
 const log = getLogger('useInboxHeartbeat');
 
 const THROTTLE_MS = 120_000; // 2 min between writes (except going offline)
@@ -39,7 +35,7 @@ export function useInboxHeartbeat(profileId: string | undefined) {
       lastWrittenStatus = status;
 
       try {
-        await db
+        await supabase
           .from('profiles')
           .update({
             online_status: status as 'online' | 'offline' | 'busy',
@@ -73,7 +69,7 @@ export function useInboxHeartbeat(profileId: string | undefined) {
       window.removeEventListener('offline', handleOffline);
       clearInterval(interval);
       // Best-effort offline write on unmount
-      void db
+      void supabase
         .from('profiles')
         .update({ online_status: 'offline', last_seen: new Date().toISOString() })
         .eq('id', profileId);

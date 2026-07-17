@@ -144,7 +144,7 @@ export const TicketTabs = memo(function TicketTabs({
           const Icon = tab.icon;
           const isActive = mainTab === tab.id;
           return (
-            <button
+            <button type="button"
               key={tab.id}
               onClick={() => onMainTabChange(tab.id)}
               className={cn(
@@ -201,7 +201,7 @@ export const TicketTabs = memo(function TicketTabs({
             const Icon = tab.icon;
             const isActive = subTab === tab.id;
             return (
-              <button
+              <button type="button"
                 key={tab.id}
                 onClick={() => onSubTabChange(tab.id)}
                 className={cn(

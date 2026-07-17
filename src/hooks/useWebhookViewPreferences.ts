@@ -3,7 +3,10 @@ import { useState, useCallback } from 'react';
 
 const STORAGE_KEY = 'zappweb:webhook-view-prefs:v1';
 
-interface VisibleColumns {
+export type WebhookStatusFilter = 'all' | 'success' | 'failed' | 'pending';
+export type WebhookTableDensity = 'compact' | 'normal' | 'comfortable';
+
+export interface WebhookViewColumns {
   when: boolean;
   event: boolean;
   instance: boolean;
@@ -14,12 +17,12 @@ interface VisibleColumns {
 }
 
 interface WebhookViewPrefs {
-  statusFilter: string;
+  statusFilter: WebhookStatusFilter | string;
   reasonSearch: string;
   eventTypeFilter: string;
-  tableDensity: 'compact' | 'normal' | 'comfortable';
+  tableDensity: WebhookTableDensity;
   pinnedInstance: string | null;
-  visibleColumns: VisibleColumns;
+  visibleColumns: WebhookViewColumns;
   [key: string]: unknown;
 }
 
@@ -60,7 +63,9 @@ function loadPrefs(): WebhookViewPrefs {
 function savePrefs(prefs: WebhookViewPrefs): void {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(prefs));
-  } catch { /* storage full — silently ignore */ }
+  } catch {
+    /* storage full — silently ignore */
+  }
 }
 
 function computeActiveFilterCount(prefs: WebhookViewPrefs): number {
@@ -79,16 +84,19 @@ export function useWebhookViewPreferences(_userId?: string) {
     savePrefs(next);
   }, []);
 
-  const setPref = useCallback(<K extends keyof WebhookViewPrefs>(key: K, value: WebhookViewPrefs[K]) => {
-    setPrefsState(prev => {
-      const next = { ...prev, [key]: value };
-      savePrefs(next);
-      return next;
-    });
-  }, []);
+  const setPref = useCallback(
+    <K extends keyof WebhookViewPrefs>(key: K, value: WebhookViewPrefs[K]) => {
+      setPrefsState((prev) => {
+        const next = { ...prev, [key]: value };
+        savePrefs(next);
+        return next;
+      });
+    },
+    []
+  );
 
   const setVisibleColumn = useCallback((column: string, visible: boolean) => {
-    setPrefsState(prev => {
+    setPrefsState((prev) => {
       const next = {
         ...prev,
         visibleColumns: { ...prev.visibleColumns, [column]: visible },
@@ -104,7 +112,7 @@ export function useWebhookViewPreferences(_userId?: string) {
   }, [updatePrefs]);
 
   const clearFilters = useCallback(() => {
-    setPrefsState(prev => {
+    setPrefsState((prev) => {
       const next = {
         ...prev,
         statusFilter: DEFAULT_WEBHOOK_VIEW_PREFS.statusFilter,

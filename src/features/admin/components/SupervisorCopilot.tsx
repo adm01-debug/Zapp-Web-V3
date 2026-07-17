@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { safeClient } from '@/integrations/supabase/safeClient';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -39,12 +40,11 @@ export function SupervisorCopilot() {
     setQuestion('');
 
     try {
-      // agentRaw cast: profiles Row doesn't include role/is_active in generated types (schema drift).
-      // Cast result — not the client — to preserve the error field for proper error detection.
-      type AgentQueryResult = { data: AgentRow[] | null; error: { message: string } | null };
       const [queueData, agentRaw, messageData] = await Promise.all([
         supabase.from('queues').select('id, name').limit(20),
-        supabase.from('profiles').select('id, name, role, is_active').eq('is_active', true).limit(50) as unknown as Promise<AgentQueryResult>,
+        safeClient.from<AgentRow>('profiles', (q) =>
+          q.select('id, name, role, is_active').eq('is_active', true).limit(50)
+        ),
         dbFrom('messages')
           .select('id', { count: 'exact', head: true })
           .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()),
@@ -153,9 +153,9 @@ Agentes: ${agents.map((a) => `${a.name} (${a.role})`).join(', ') || 'nenhum'}
             </div>
 
             <AnimatePresence mode="popLayout">
-              {insights.map((insight, idx) => (
+              {insights.map((insight) => (
                 <motion.div
-                  key={idx}
+                  key={insight.question}
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
                   className="space-y-2 rounded-xl border border-border/30 bg-muted/20 p-3"

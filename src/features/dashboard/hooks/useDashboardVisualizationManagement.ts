@@ -2,6 +2,7 @@
 // Consolidates: useDashboardData, useDashboardWidgets, useGoalsDashboard, useLeaderboard, useWarRoomData
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import type { ElementType } from 'react';
+import { queryKeys } from '@/services/api/queryKeys';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { dbFrom } from '@/integrations/datasource/db';
@@ -146,7 +147,7 @@ export function useDashboardDataManagement(filters?: DashboardFilters) {
   const merged = { dateRange: { from: startOfDay(new Date()), to: endOfDay(new Date()) }, queueId: null, agentId: null, ...filters };
 
   const { data: agentsData, isLoading: loadingAgents } = useQuery({
-    queryKey: ['dashboard-agents', merged.agentId],
+    queryKey: queryKeys.dashboard.agents(merged.agentId),
     queryFn: async () => {
       let query = supabase.from('profiles').select('id, name, avatar_url, is_active');
       if (merged.agentId) {
@@ -159,7 +160,7 @@ export function useDashboardDataManagement(filters?: DashboardFilters) {
   });
 
   const { data: contactsData, isLoading: loadingContacts, error: contactsError } = useQuery({
-    queryKey: ['dashboard-contacts', merged.dateRange, merged.queueId, merged.agentId],
+    queryKey: queryKeys.dashboard.contactsFiltered(merged.dateRange, merged.queueId, merged.agentId),
     queryFn: async () => {
       let query = dbFrom('contacts').select('id, assigned_to, queue_id, updated_at');
       if (merged.queueId) {
@@ -178,7 +179,7 @@ export function useDashboardDataManagement(filters?: DashboardFilters) {
   });
 
   const { data: queuesData, isLoading: loadingQueues, error: queuesError } = useQuery({
-    queryKey: ['dashboard-queues', merged.queueId],
+    queryKey: queryKeys.dashboard.queuesFiltered(merged.queueId),
     queryFn: async () => {
       let query = supabase.from('queues').select('id, name, color, queue_members(is_active, profiles(is_active))');
       if (merged.queueId) {
@@ -202,9 +203,12 @@ export function useDashboardDataManagement(filters?: DashboardFilters) {
       return updatedAt >= today && !c.assigned_to;
     }).length;
 
-    const queuesStats: QueueStats[] = (queuesData as any[]).map(queue => {
-      const members = queue.queue_members || [];
-      const onlineMembers = members.filter((m: any) => m.is_active && m.profiles?.is_active).length;
+    const queuesStats: QueueStats[] = queuesData.map(queue => {
+      const members = (queue.queue_members as { is_active: boolean | null; profiles: { is_active: boolean | null } | { is_active: boolean | null }[] | null }[] | null) ?? [];
+      const onlineMembers = members.filter((m) => {
+        const profile = Array.isArray(m.profiles) ? m.profiles[0] : m.profiles;
+        return m.is_active && profile?.is_active;
+      }).length;
       return {
         id: queue.id,
         name: queue.name,
@@ -284,7 +288,7 @@ export function useDashboardWidgetsManagement() {
   }, []);
 
   const updateWidgetSize = useCallback((widgetId: string, newSize: string) => {
-    setWidgets(prev => prev.map(widget => widget.id === widgetId ? { ...widget, size: newSize as any, width: sizeToGrid[newSize]?.width, height: sizeToGrid[newSize]?.height } : widget));
+    setWidgets(prev => prev.map(widget => widget.id === widgetId ? { ...widget, size: newSize as DashboardWidget['size'], width: sizeToGrid[newSize]?.width, height: sizeToGrid[newSize]?.height } : widget));
   }, []);
 
   const updateWidgetPosition = useCallback((widgetId: string, column: number, row: number) => {
@@ -337,7 +341,7 @@ export function useGoalsDashboardManagement() {
   const dateRange = useMemo(() => getDateRange(period), [period]);
 
   const { data: profile } = useQuery({
-    queryKey: ['my-profile', user?.id],
+    queryKey: queryKeys.userProfile.meById(user?.id),
     queryFn: async () => {
       if (!user?.id) return null;
       const { data, error } = await supabase.from('profiles').select('id, name').eq('user_id', user.id).maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
@@ -348,7 +352,7 @@ export function useGoalsDashboardManagement() {
   });
 
   const { data: messagesData, isLoading: loadingMessages } = useQuery({
-    queryKey: ['goals-messages', period, profile?.id],
+    queryKey: queryKeys.goals.messages(period),
     queryFn: async () => {
       if (!profile?.id) return [];
       const { data, error } = await dbFrom('messages').select('id, sender, created_at').eq('agent_id', profile.id).gte('created_at', dateRange.from.toISOString()).lte('created_at', dateRange.to.toISOString());
@@ -359,7 +363,7 @@ export function useGoalsDashboardManagement() {
   });
 
   const { data: contactsData, isLoading: loadingContacts } = useQuery({
-    queryKey: ['goals-contacts', period, profile?.id],
+    queryKey: queryKeys.goals.contactsFiltered(period, profile?.id),
     queryFn: async () => {
       if (!profile?.id) return [];
       const { data, error } = await dbFrom('contacts').select('id, created_at').eq('assigned_to', profile.id).gte('created_at', dateRange.from.toISOString()).lte('created_at', dateRange.to.toISOString());
@@ -370,7 +374,7 @@ export function useGoalsDashboardManagement() {
   });
 
   const { data: customGoals = [] } = useQuery({
-    queryKey: ['goals-config', profile?.id],
+    queryKey: queryKeys.goals.configForProfile(profile?.id),
     queryFn: async () => {
       if (!profile?.id) return [];
       const { data, error } = await supabase.from('goals_configurations').select('goal_type, daily_target, weekly_target, monthly_target, is_active').eq('profile_id', profile.id);
@@ -381,12 +385,12 @@ export function useGoalsDashboardManagement() {
   });
 
   const goals = useMemo((): Goal[] => {
-    const messagesSent = messagesData?.filter((m: any) => m.sender === 'agent').length || 0;
+    const messagesSent = messagesData?.filter((m) => m.sender === 'agent').length || 0;
     const contactsHandled = contactsData?.length || 0;
 
     const allGoals: Goal[] = [];
 
-    const messageConfig = customGoals.find((g: any) => g.goal_type === 'messages_sent');
+    const messageConfig = customGoals.find((g) => g.goal_type === 'messages_sent');
     const messagesTarget = messageConfig
       ? messageConfig[`${period}_target` as keyof typeof messageConfig]
       : DEFAULT_GOALS.messages_sent[period as keyof typeof DEFAULT_GOALS.messages_sent];
@@ -403,7 +407,7 @@ export function useGoalsDashboardManagement() {
       priority: 'high',
     });
 
-    const contactConfig = customGoals.find((g: any) => g.goal_type === 'contacts_handled');
+    const contactConfig = customGoals.find((g) => g.goal_type === 'contacts_handled');
     const contactsTarget = contactConfig
       ? contactConfig[`${period}_target` as keyof typeof contactConfig]
       : DEFAULT_GOALS.contacts_handled[period as keyof typeof DEFAULT_GOALS.contacts_handled];
@@ -474,7 +478,7 @@ export function useLeaderboardManagement() {
       if (!mountedRef.current) return;
 
       setAgents(
-        (rawStats as any[]).map((stat, index) => {
+        rawStats.map((stat, index) => {
           const profile = Array.isArray(stat.profiles) ? stat.profiles[0] : stat.profiles;
           return {
             id: stat.id,
@@ -528,7 +532,7 @@ export function useLeaderboardManagement() {
 /** Fetches war room data including agents, queues, and real-time metrics. */
 export function useWarRoomDataManagement() {
   const { data: agents = [] } = useQuery({
-    queryKey: ['warroom-agents'],
+    queryKey: queryKeys.adminOps.warroom.agents(),
     queryFn: async () => {
       const { data: profiles, error } = await supabase.from('profiles').select('id, name, avatar_url, is_active, max_chats').eq('is_active', true);
       if (error) throw error;
@@ -536,12 +540,12 @@ export function useWarRoomDataManagement() {
       const { data: contacts, error: contactsErr } = await dbFrom('contacts').select('assigned_to');
       if (contactsErr) log.warn('contacts fetch failed (warroom agents)');
 
-      const contactCounts = (contacts || []).reduce((acc: any, c: any) => {
+      const contactCounts = (contacts || []).reduce<Record<string, number>>((acc, c) => {
         if (c.assigned_to) acc[c.assigned_to] = (acc[c.assigned_to] || 0) + 1;
         return acc;
       }, {});
 
-      return (profiles || []).map((p: any): WarRoomAgent => ({
+      return (profiles || []).map((p): WarRoomAgent => ({
         id: p.id,
         name: p.name,
         avatar: p.avatar_url || undefined,
@@ -558,12 +562,12 @@ export function useWarRoomDataManagement() {
   });
 
   const { data: queues = [] } = useQuery({
-    queryKey: ['warroom-queues'],
+    queryKey: queryKeys.adminOps.warroom.queues(),
     queryFn: async () => {
       const { data: dbQueues, error: dbQueuesErr } = await supabase.from('queues').select('id, name, color, is_active').eq('is_active', true);
       if (dbQueuesErr) throw dbQueuesErr;
 
-      return (dbQueues || []).map((q: any): WarRoomQueue => ({
+      return (dbQueues || []).map((q): WarRoomQueue => ({
         id: q.id,
         name: q.name,
         color: q.color,

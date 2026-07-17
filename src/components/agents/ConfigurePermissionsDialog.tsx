@@ -1,3 +1,4 @@
+import { queryKeys } from '@/services/api/queryKeys';
 import { useQuery } from '@tanstack/react-query';
 import {
   Dialog,
@@ -18,7 +19,7 @@ interface ConfigurePermissionsDialogProps {
 
 export function ConfigurePermissionsDialog({ open, onOpenChange }: ConfigurePermissionsDialogProps) {
   const { data: roles = [], isLoading } = useQuery({
-    queryKey: ['user-roles-overview'],
+    queryKey: queryKeys.adminOps.userRoles(),
     queryFn: async () => {
       const { data, error } = await supabase
         .from('user_roles')
@@ -30,7 +31,7 @@ export function ConfigurePermissionsDialog({ open, onOpenChange }: ConfigurePerm
   });
 
   const { data: permissions = [] } = useQuery({
-    queryKey: ['permissions-list'],
+    queryKey: queryKeys.userProfile.permissionsList(),
     queryFn: async () => {
       const { data, error } = await supabase
         .from('permissions')
@@ -42,7 +43,7 @@ export function ConfigurePermissionsDialog({ open, onOpenChange }: ConfigurePerm
   });
 
   const { data: profiles = [] } = useQuery({
-    queryKey: ['profiles-for-permissions'],
+    queryKey: queryKeys.userProfile.forPermissions(),
     queryFn: async () => {
       const { data, error } = await supabase
         .from('profiles')

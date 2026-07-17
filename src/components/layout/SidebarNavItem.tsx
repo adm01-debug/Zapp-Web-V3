@@ -54,7 +54,7 @@ export const SidebarNavItem = React.memo(function SidebarNavItem({ item, current
   }
 
   const button = (
-    <button
+    <button type="button"
       data-tour={item.id}
       onClick={() => onViewChange(item.id)}
       onMouseEnter={handleMouseEnter}
@@ -91,10 +91,10 @@ export const SidebarNavItem = React.memo(function SidebarNavItem({ item, current
         <span className="relative z-10 text-[13px] font-medium truncate">{item.label}</span>
       )}
       {/*
-       * IMPORTANTE: Não usar <button> aqui dentro — HTML proíbe elemento
+       * IMPORTANTE: Não usar <button type="button"> aqui dentro — HTML proíbe elemento
        * interativo dentro de outro elemento interativo (button > button).
        * Isso causava o warning:
-       *   "Warning: <button> cannot appear as a descendant of <button>"
+       *   "Warning: <button type="button"> cannot appear as a descendant of <button type="button">"
        * e quebrava acessibilidade de teclado. Usamos <div role="button">
        * com tabIndex e onKeyDown para manter semântica ARIA válida.
        */}

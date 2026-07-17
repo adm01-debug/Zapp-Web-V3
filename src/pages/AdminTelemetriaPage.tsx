@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { queryKeys } from "@/services/api/queryKeys";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -41,7 +42,7 @@ export default function AdminTelemetriaPage() {
   };
 
   const { data: rows = [], isLoading, refetch, isRefetching } = useQuery<TelemetryRow[]>({
-    queryKey: ["query-telemetry", severityFilter, timeFilter, customDateFrom?.toISOString(), customDateTo?.toISOString()],
+    queryKey: queryKeys.adminOps.telemetry(severityFilter, timeFilter, customDateFrom?.toISOString(), customDateTo?.toISOString()),
     queryFn: async () => {
       const { from, to } = getTimeThreshold();
       let query = supabase

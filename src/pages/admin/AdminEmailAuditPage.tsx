@@ -92,7 +92,7 @@ export default function AdminEmailAuditPage() {
         return <Badge variant="secondary">Pendente</Badge>;
       case 'processing':
         return (
-          <Badge variant="secondary" className="bg-blue-500 text-white hover:bg-blue-600">
+          <Badge variant="secondary" className="bg-primary text-primary-foreground hover:bg-primary/90">
             Processando
           </Badge>
         );

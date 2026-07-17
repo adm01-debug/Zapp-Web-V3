@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { queryKeys } from '@/services/api/queryKeys';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -56,7 +57,7 @@ export function ScheduledReportsManager() {
   const [formRecipients, setFormRecipients] = useState('');
 
   const { data: configs = [], isLoading } = useQuery({
-    queryKey: ['scheduled-report-configs'],
+    queryKey: queryKeys.scheduledReports.configs(),
     queryFn: async () => {
       const { data, error } = await supabase
         .from('scheduled_report_configs')
@@ -85,7 +86,7 @@ export function ScheduledReportsManager() {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['scheduled-report-configs'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.scheduledReports.configs() });
       toast.success('Relatório agendado criado!');
       setShowCreate(false);
       resetForm();
@@ -102,7 +103,7 @@ export function ScheduledReportsManager() {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['scheduled-report-configs'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.scheduledReports.configs() });
       toast.success('Status atualizado');
     },
     onError: () => toast.error('Erro ao atualizar status'),
@@ -114,7 +115,7 @@ export function ScheduledReportsManager() {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['scheduled-report-configs'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.scheduledReports.configs() });
       toast.success('Relatório removido');
     },
     onError: () => toast.error('Erro ao remover relatório'),

@@ -102,7 +102,7 @@ export function FilterPresets({ onApplyPreset, currentFilters }: FilterPresetsPr
                   <Filter className="w-3 h-3 mr-1.5 text-primary" />
                   {preset.name}
                 </Button>
-                <button
+                <button type="button"
                   onClick={() => handleDelete(preset.id)}
                   className="p-1 text-muted-foreground hover:text-destructive transition-colors"
                 >
@@ -126,10 +126,10 @@ export function FilterPresets({ onApplyPreset, currentFilters }: FilterPresetsPr
                 className="h-7 text-xs"
                 autoFocus
               />
-              <button onClick={handleSave} className="p-1 text-primary hover:text-primary/80">
+              <button type="button" onClick={handleSave} className="p-1 text-primary hover:text-primary/80">
                 <Check className="w-3.5 h-3.5" />
               </button>
-              <button onClick={() => setSaving(false)} className="p-1 text-muted-foreground hover:text-foreground">
+              <button type="button" onClick={() => setSaving(false)} className="p-1 text-muted-foreground hover:text-foreground">
                 <X className="w-3.5 h-3.5" />
               </button>
             </motion.div>

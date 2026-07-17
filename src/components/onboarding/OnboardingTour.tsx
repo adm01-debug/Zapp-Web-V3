@@ -1,5 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
-import { useState, useCallback, ReactNode } from 'react';
+import { useState, useCallback, useMemo, ReactNode } from 'react';
 import { TourOverlay } from './TourOverlay';
 import { TourContextProvider } from './tourContext';
 import type { TourStep } from './tourContext';
@@ -52,9 +52,14 @@ export function TourProvider({ children, onComplete }: TourProviderProps) {
     [steps.length]
   );
 
+  const contextValue = useMemo(
+    () => ({ isActive, currentStep, steps, startTour, endTour, nextStep, prevStep, goToStep }),
+    [isActive, currentStep, steps, startTour, endTour, nextStep, prevStep, goToStep],
+  );
+
   return (
     <TourContextProvider
-      value={{ isActive, currentStep, steps, startTour, endTour, nextStep, prevStep, goToStep }}
+      value={contextValue}
     >
       {children}
       <TourOverlay />

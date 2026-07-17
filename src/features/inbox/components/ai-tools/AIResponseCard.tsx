@@ -1,4 +1,4 @@
-import { memo, useState, useMemo } from 'react';
+import { memo, useState, useMemo, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Sparkles, Copy, Check, RefreshCw, Loader2, Send } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -18,6 +18,11 @@ export const AIResponseCard = memo(function AIResponseCard({
   isRegenerating,
 }: AIResponseCardProps) {
   const [copied, setCopied] = useState(false);
+  const copiedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => () => {
+    if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
+  }, []);
 
   const wordCount = useMemo(() => response.trim().split(/\s+/).filter(Boolean).length, [response]);
 
@@ -25,7 +30,8 @@ export const AIResponseCard = memo(function AIResponseCard({
     navigator.clipboard.writeText(response);
     setCopied(true);
     toast.success('Copiado!');
-    setTimeout(() => setCopied(false), 2000);
+    if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
+    copiedTimerRef.current = setTimeout(() => setCopied(false), 2000);
   };
 
   const handleUse = () => {

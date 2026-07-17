@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { dbFrom } from '@/integrations/datasource/db';
+import { queryKeys } from '@/services/api/queryKeys';
 
 export interface PredictionPoint {
   time: string;
@@ -51,7 +52,7 @@ function generatePredictionFromHistory(messageHistory: { hour: number; count: nu
 
 export function useDemandPrediction(externalData?: PredictionPoint[], currentCapacity = 35) {
   const { data: messageHistory = [] } = useQuery({
-    queryKey: ['demand-prediction-history'],
+    queryKey: queryKeys.demandPrediction.history(),
     queryFn: async () => {
       const { data, error } = await dbFrom('messages')
         .select('created_at')

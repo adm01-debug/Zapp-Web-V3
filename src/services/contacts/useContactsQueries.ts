@@ -88,7 +88,7 @@ export const useArchivedContacts = (params?: Partial<QueryParams>) => {
  */
 export const useContactExists = (id?: string) => {
   return useQuery({
-    queryKey: queryKeys.contacts.detail(id || ''),
+    queryKey: [...queryKeys.contacts.detail(id || ''), 'exists'] as const,
     queryFn: () => contactsService.exists(id!),
     enabled: !!id,
     staleTime: Infinity, // Doesn't change often
@@ -100,7 +100,7 @@ export const useContactExists = (id?: string) => {
  */
 export const useContactsTotal = () => {
   return useQuery({
-    queryKey: [...queryKeys.contacts.all(), 'total'],
+    queryKey: queryKeys.contacts.total(),
     queryFn: () => contactsService.getTotal(),
     staleTime: 60_000,
   });
@@ -116,12 +116,14 @@ export const useInvalidateContacts = () => {
   return {
     invalidateList: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.contacts.lists() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.contacts.searchRoot() });
     },
     invalidateDetail: (id: string) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.contacts.detail(id) });
     },
     invalidateAll: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.contacts.all() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.contacts.searchRoot() });
     },
     invalidateSearch: (query: string) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.contacts.search(query) });

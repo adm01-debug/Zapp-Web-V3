@@ -259,7 +259,7 @@ export function EmailInboxView({ onSelectThread }: EmailInboxViewProps) {
                       <div className="absolute right-2 top-1/2 hidden -translate-y-1/2 items-center gap-1 rounded bg-background/90 px-1 py-0.5 shadow-sm group-hover:flex">
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <button
+                            <button type="button"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 starThread(thread.id, !thread.is_starred);
@@ -281,7 +281,7 @@ export function EmailInboxView({ onSelectThread }: EmailInboxViewProps) {
                         </Tooltip>
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <button
+                            <button type="button"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 archiveThread(thread.id);

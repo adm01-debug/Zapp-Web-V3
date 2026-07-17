@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { SmilePlus, Search, Plus, Star, Trash2, Loader2, X, Tag, Check, ChevronDown, Smile, AlertCircle } from 'lucide-react';
 import { CATEGORY_LABELS, ALL_CATEGORIES, NATIVE_EMOJI_CATEGORIES } from './emojiConstants';
-import { useCustomEmojis, type PendingEmojiUpload } from '@/features/emojis/hooks/useCustomEmojis';
+import { useCustomEmojis, type PendingEmojiUpload } from '@/features/emojis';
 
 interface CustomEmojiPickerProps {
   onSendEmoji: (emojiUrl: string) => void;
@@ -21,7 +21,7 @@ function CategorySelector({ value, onChange, size = 'sm' }: { value: string; onC
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <button className={cn('flex items-center gap-1 rounded-md border border-border/50 transition-colors hover:bg-muted/60', size === 'xs' ? 'px-1.5 py-0.5 text-[10px]' : 'px-2 py-1 text-xs')} onClick={(e) => e.stopPropagation()}>
+        <button type="button" className={cn('flex items-center gap-1 rounded-md border border-border/50 transition-colors hover:bg-muted/60', size === 'xs' ? 'px-1.5 py-0.5 text-[10px]' : 'px-2 py-1 text-xs')} onClick={(e) => e.stopPropagation()}>
           <span>{info.emoji}</span><span className="text-muted-foreground">{info.label}</span>
           <ChevronDown className={cn(size === 'xs' ? 'w-2.5 h-2.5' : 'w-3 h-3', 'text-muted-foreground/60')} />
         </button>
@@ -32,7 +32,7 @@ function CategorySelector({ value, onChange, size = 'sm' }: { value: string; onC
             const catInfo = CATEGORY_LABELS[cat];
             const isActive = cat === value;
             return (
-              <button key={cat} onClick={(e) => { e.stopPropagation(); onChange(cat); setOpen(false); }}
+              <button type="button" key={cat} onClick={(e) => { e.stopPropagation(); onChange(cat); setOpen(false); }}
                 className={cn('w-full flex items-center gap-2 px-2 py-1.5 rounded text-xs transition-colors text-left', isActive ? 'bg-primary/10 text-primary font-medium' : 'hover:bg-muted text-foreground')}>
                 <span>{catInfo.emoji}</span><span className="flex-1">{catInfo.label}</span>
                 {isActive && <Check className="w-3 h-3 text-primary" />}
@@ -67,7 +67,7 @@ function UploadPreview({ pending, onConfirm, onCancel, uploading, progress, erro
         <Tag className="w-3 h-3 text-muted-foreground shrink-0" /><span className="text-[10px] text-muted-foreground shrink-0">Categoria:</span>
         <CategorySelector value={category} onChange={setCategory} size="sm" />
         {pending.aiCategory !== 'outros' && category !== pending.aiCategory && (
-          <button onClick={() => setCategory(pending.aiCategory)} disabled={uploading} className="text-[9px] text-primary hover:underline shrink-0 disabled:opacity-50">IA sugere: {CATEGORY_LABELS[pending.aiCategory]?.label}</button>
+          <button type="button" onClick={() => setCategory(pending.aiCategory)} disabled={uploading} className="text-[9px] text-primary hover:underline shrink-0 disabled:opacity-50">IA sugere: {CATEGORY_LABELS[pending.aiCategory]?.label}</button>
         )}
       </div>
       {uploading && (
@@ -85,7 +85,7 @@ function UploadPreview({ pending, onConfirm, onCancel, uploading, progress, erro
             <p className="font-medium">Falha ao enviar</p>
             <p className="text-destructive/80">{error}</p>
           </div>
-          <button onClick={onDismissError} aria-label="Fechar erro" className="shrink-0 text-destructive/70 hover:text-destructive">
+          <button type="button" onClick={onDismissError} aria-label="Fechar erro" className="shrink-0 text-destructive/70 hover:text-destructive">
             <X className="w-3 h-3" />
           </button>
         </div>
@@ -116,13 +116,17 @@ export function CustomEmojiPicker({ onSendEmoji, disabled }: CustomEmojiPickerPr
     handleSend, toggleFavorite, handleCategoryChange, handleDelete, setPendingUpload,
   } = useCustomEmojis(open);
 
-  const categories = [...new Set(emojis.map(e => e.category).filter(Boolean))].sort();
-  const filtered = emojis.filter(em => {
-    const matchSearch = !search || em.name?.toLowerCase().includes(search.toLowerCase()) || em.category?.toLowerCase().includes(search.toLowerCase());
-    if (showFavorites) return matchSearch && em.is_favorite;
-    if (activeCategory) return matchSearch && em.category === activeCategory;
-    return matchSearch;
-  });
+  const { categories, filtered, categoryCounts } = useMemo(() => {
+    const cats = [...new Set(emojis.map((e) => e.category).filter(Boolean))].sort();
+    const counts = new Map(cats.map((cat) => [cat, emojis.filter((e) => e.category === cat).length]));
+    const fil = emojis.filter((em) => {
+      const matchSearch = !search || em.name?.toLowerCase().includes(search.toLowerCase()) || em.category?.toLowerCase().includes(search.toLowerCase());
+      if (showFavorites) return matchSearch && em.is_favorite;
+      if (activeCategory) return matchSearch && em.category === activeCategory;
+      return matchSearch;
+    });
+    return { categories: cats, filtered: fil, categoryCounts: counts };
+  }, [emojis, search, activeCategory, showFavorites]);
 
   const activeNativeCategory = NATIVE_EMOJI_CATEGORIES.find(c => c.id === nativeCategoryId);
   const filteredNativeEmojis = activeNativeCategory?.emojis || [];
@@ -137,10 +141,10 @@ export function CustomEmojiPicker({ onSendEmoji, disabled }: CustomEmojiPickerPr
         <PopoverContent className="w-[360px] p-0 bg-popover border-border" align="end" side="top" sideOffset={8}>
           <div className="flex items-center justify-between px-3 py-2 border-b border-border">
             <div className="flex items-center gap-1 bg-muted/50 rounded-lg p-0.5">
-              <button onClick={() => setActiveTab('native')} className={cn('flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all', activeTab === 'native' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground')}>
+              <button type="button" onClick={() => setActiveTab('native')} className={cn('flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all', activeTab === 'native' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground')}>
                 <Smile className="w-3.5 h-3.5" />Tradicionais
               </button>
-              <button onClick={() => setActiveTab('custom')} className={cn('flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all', activeTab === 'custom' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground')}>
+              <button type="button" onClick={() => setActiveTab('custom')} className={cn('flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all', activeTab === 'custom' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground')}>
                 <SmilePlus className="w-3.5 h-3.5" />Customizados
               </button>
             </div>
@@ -160,7 +164,7 @@ export function CustomEmojiPicker({ onSendEmoji, disabled }: CustomEmojiPickerPr
                 <ScrollArea className="w-full">
                   <div className="flex gap-0.5">
                     {NATIVE_EMOJI_CATEGORIES.map(cat => (
-                      <button key={cat.id} onClick={() => setNativeCategoryId(cat.id)} className={cn('flex items-center justify-center w-8 h-8 rounded-md text-lg transition-all shrink-0', nativeCategoryId === cat.id ? 'bg-primary/15 scale-110' : 'hover:bg-muted/60')} title={cat.label}>{cat.icon}</button>
+                      <button type="button" key={cat.id} onClick={() => setNativeCategoryId(cat.id)} className={cn('flex items-center justify-center w-8 h-8 rounded-md text-lg transition-all shrink-0', nativeCategoryId === cat.id ? 'bg-primary/15 scale-110' : 'hover:bg-muted/60')} title={cat.label}>{cat.icon}</button>
                     ))}
                   </div>
                 </ScrollArea>
@@ -185,16 +189,16 @@ export function CustomEmojiPicker({ onSendEmoji, disabled }: CustomEmojiPickerPr
                 <div className="relative">
                   <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
                   <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar emojis..." className="h-8 pl-8 text-xs bg-muted/50 border-border/50" />
-                  {search && <button onClick={() => setSearch('')} className="absolute right-2 top-1/2 -translate-y-1/2"><X className="w-3 h-3 text-muted-foreground" /></button>}
+                  {search && <button type="button" onClick={() => setSearch('')} className="absolute right-2 top-1/2 -translate-y-1/2"><X className="w-3 h-3 text-muted-foreground" /></button>}
                 </div>
               </div>
               <div className="px-2 py-2 border-b border-border/30">
                 <ScrollArea className="w-full">
                   <div className="flex gap-1.5 flex-wrap">
-                    <button onClick={() => { setActiveCategory(null); setShowFavorites(false); }} className={cn('px-2.5 py-1 rounded-full text-[11px] font-medium transition-colors whitespace-nowrap', !activeCategory && !showFavorites ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80')}>Todos ({emojis.length})</button>
-                    <button onClick={() => { setShowFavorites(!showFavorites); setActiveCategory(null); }} className={cn('px-2.5 py-1 rounded-full text-[11px] font-medium transition-colors whitespace-nowrap flex items-center gap-1', showFavorites ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80')}><Star className="w-3 h-3" /> Favoritos</button>
-                    {categories.map(cat => { const info = CATEGORY_LABELS[cat]; const count = emojis.filter(em => em.category === cat).length; return (
-                      <button key={cat} onClick={() => { setActiveCategory(activeCategory === cat ? null : cat); setShowFavorites(false); }} className={cn('px-2.5 py-1 rounded-full text-[11px] font-medium transition-colors whitespace-nowrap', activeCategory === cat ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80')}>{info?.emoji || '📦'} {info?.label || cat} ({count})</button>
+                    <button type="button" onClick={() => { setActiveCategory(null); setShowFavorites(false); }} className={cn('px-2.5 py-1 rounded-full text-[11px] font-medium transition-colors whitespace-nowrap', !activeCategory && !showFavorites ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80')}>Todos ({emojis.length})</button>
+                    <button type="button" onClick={() => { setShowFavorites(!showFavorites); setActiveCategory(null); }} className={cn('px-2.5 py-1 rounded-full text-[11px] font-medium transition-colors whitespace-nowrap flex items-center gap-1', showFavorites ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80')}><Star className="w-3 h-3" /> Favoritos</button>
+                    {categories.map(cat => { const info = CATEGORY_LABELS[cat]; const count = categoryCounts.get(cat) ?? 0; return (
+                      <button type="button" key={cat} onClick={() => { setActiveCategory(activeCategory === cat ? null : cat); setShowFavorites(false); }} className={cn('px-2.5 py-1 rounded-full text-[11px] font-medium transition-colors whitespace-nowrap', activeCategory === cat ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80')}>{info?.emoji || '📦'} {info?.label || cat} ({count})</button>
                     ); })}
                   </div>
                 </ScrollArea>
@@ -220,8 +224,8 @@ export function CustomEmojiPicker({ onSendEmoji, disabled }: CustomEmojiPickerPr
                             <img src={emoji.image_url} alt={emoji.name} className="w-full h-full object-contain p-1" loading="lazy" />
                             <div className="absolute inset-0 bg-background/70 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-between p-0.5">
                               <div className="flex items-center justify-between w-full">
-                                <button onClick={(e) => toggleFavorite(e, emoji)} className="p-0.5"><Star className={cn('w-3 h-3 transition-colors', emoji.is_favorite ? 'fill-primary text-primary' : 'text-muted-foreground')} /></button>
-                                <button onClick={(e) => handleDelete(e, emoji)} className="p-0.5"><Trash2 className="w-3 h-3 text-destructive" /></button>
+                                <button type="button" onClick={(e) => toggleFavorite(e, emoji)} className="p-0.5"><Star className={cn('w-3 h-3 transition-colors', emoji.is_favorite ? 'fill-primary text-primary' : 'text-muted-foreground')} /></button>
+                                <button type="button" onClick={(e) => handleDelete(e, emoji)} className="p-0.5"><Trash2 className="w-3 h-3 text-destructive" /></button>
                               </div>
                               <div onClick={(e) => e.stopPropagation()}><CategorySelector value={emoji.category} onChange={(cat) => handleCategoryChange(emoji, cat)} size="xs" /></div>
                             </div>

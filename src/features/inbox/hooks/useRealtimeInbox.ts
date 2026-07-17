@@ -1,6 +1,10 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useOfflineCache } from '@/hooks/useOfflineCache';
-import type { ConversationWithMessages, RealtimeMessage } from './realtime/types';
+import type {
+  ConversationWithMessages,
+  RealtimeMessage,
+  ConversationContact,
+} from './realtime/types';
 import { seedAvatarCache } from './realtime/avatarBatchStore';
 import { useAuth } from '@/features/auth';
 import { supabase } from '@/integrations/supabase/client';

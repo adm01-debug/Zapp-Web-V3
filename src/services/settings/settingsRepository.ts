@@ -122,7 +122,7 @@ export const settingsRepository = {
           table: 'user_settings',
           filter: `user_id=eq.${userId}`,
         },
-        (payload: any) => callback(payload.new || payload.old)
+        (payload: { new: unknown; old: unknown }) => callback((payload.new || payload.old) as UserSettings)
       )
       .subscribe();
   },
@@ -138,7 +138,7 @@ export const settingsRepository = {
           table: 'workspace_settings',
           filter: `workspace_id=eq.${workspaceId}`,
         },
-        (payload: any) => callback(payload.new || payload.old)
+        (payload: { new: unknown; old: unknown }) => callback((payload.new || payload.old) as WorkspaceSettings)
       )
       .subscribe();
   },

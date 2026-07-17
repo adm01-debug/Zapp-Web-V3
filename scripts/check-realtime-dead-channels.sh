@@ -31,7 +31,9 @@ DEAD_PUBLIC_TABLES=("whisper_messages" "team_messages" "contacts" "messages" "ev
 
 for TABLE in "${DEAD_PUBLIC_TABLES[@]}"; do
   while IFS= read -r match; do
-    TRIMMED=$(echo "$match" | sed 's/^[[:space:]]*//')
+    # grep -rn output: "filepath:linenum:content" — strip prefix to get code content
+    CONTENT=$(echo "$match" | sed 's/^[^:]*:[0-9]*://')
+    TRIMMED=$(echo "$CONTENT" | sed 's/^[[:space:]]*//')
     if [[ "$TRIMMED" == //* ]] || [[ "$TRIMMED" == '/*'* ]]; then continue; fi
     VIOLATIONS+=("[CLASSE-A public-schema] ${match}")
   done < <(grep -rn --include='*.ts' --include='*.tsx' \
@@ -43,20 +45,35 @@ done
 
 # ---------------------------------------------------------------------------
 # CLASSE B: schema:'evo' + tabela que é partição (publish_via_partition_root=true)
-# Padrões de nomes de partições conhecidos:
+# Padrões de nomes de partições conhecidos (auditado 2026-07-16 — 23 partições):
 #   evolution_messages_wpp2, evolution_conversations_wpp2,
-#   evolution_messages_comercial_01, evolution_webhook_events_v2_2026_07, etc.
+#   evolution_messages_artes, evolution_messages_compras,
+#   evolution_messages_comercial_01..15, evolution_messages_default,
+#   evolution_messages_financeiro, evolution_messages_gravacao,
+#   evolution_messages_logistica, evolution_messages_marketing,
+#   (idem para evolution_conversations_*),
+#   evolution_webhook_events_v2_2026_07, evolution_webhook_events_v2_default, etc.
+#
+# Estratégia de detecção em dois passos:
+#   1. Restringir a arquivos que declaram schema:'evo' (contexto Realtime).
+#   2. Dentro desses arquivos, procurar table: apontando para partição.
+# Isso evita falsos positivos em queries SELECT que também usam .from('partition').
 # ---------------------------------------------------------------------------
-PARTITION_PATTERN="(evolution_messages_wpp[0-9]+|evolution_conversations_wpp[0-9]+|evolution_messages_comercial_[0-9]+|evolution_webhook_events_v2_[0-9]{4}_[0-9]{2})"
+PARTITION_SUFFIX="(wpp[0-9]+|artes|comercial_[0-9]+|compras|default|financeiro|gravacao|logistica|marketing)"
+PARTITION_PATTERN="(evolution_(messages|conversations)_${PARTITION_SUFFIX}|evolution_webhook_events_v2_(default|[0-9]{4}_[0-9]{2}))"
 
-while IFS= read -r match; do
-  TRIMMED=$(echo "$match" | sed 's/^[[:space:]]*//')
-  if [[ "$TRIMMED" == //* ]] || [[ "$TRIMMED" == '/*'* ]]; then continue; fi
-  VIOLATIONS+=("[CLASSE-B evo-partition publish_via_partition_root] ${match}")
-done < <(grep -rn --include='*.ts' --include='*.tsx' \
+while IFS= read -r file; do
+  while IFS= read -r match; do
+    # grep -nP output: "linenum:content" — strip prefix to get code content
+    CONTENT=$(echo "$match" | sed 's/^[0-9]*://')
+    TRIMMED=$(echo "$CONTENT" | sed 's/^[[:space:]]*//')
+    if [[ "$TRIMMED" == //* ]] || [[ "$TRIMMED" == '/*'* ]]; then continue; fi
+    VIOLATIONS+=("[CLASSE-B evo-partition publish_via_partition_root] ${file}:${match}")
+  done < <(grep -nP "table:\s*['\"]${PARTITION_PATTERN}['\"]" "$file" 2>/dev/null || true)
+done < <(grep -rlP "schema:\s*['\"]evo['\"]" \
+  --include='*.ts' --include='*.tsx' \
   --exclude='*.test.ts' --exclude='*.test.tsx' \
   --exclude='*.spec.ts' --exclude='*.spec.tsx' \
-  -P "table:\s*['\"]${PARTITION_PATTERN}['\"]" \
   "${SRC_DIR}" 2>/dev/null || true)
 
 # ---------------------------------------------------------------------------

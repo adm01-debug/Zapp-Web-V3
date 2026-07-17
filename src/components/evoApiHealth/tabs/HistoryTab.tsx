@@ -30,7 +30,7 @@ export const HistoryTab = React.memo(({ history }: HistoryTabProps) => {
             </thead>
             <tbody>
               {history?.map((h, idx) => (
-                <tr key={idx} className="border-b border-border/50">
+                <tr key={h.bucket} className="border-b border-border/50">
                   <td className="py-1.5 pr-3 whitespace-nowrap">
                     {new Date(h.bucket).toLocaleString('pt-BR')}
                   </td>

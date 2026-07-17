@@ -21,19 +21,21 @@ export interface AuthedUser {
   user: { id: string; email: string | null };
 }
 
-/** Constant-time string comparison to prevent timing-based secret enumeration. */
+/**
+ * Constant-time string comparison to prevent timing-based secret enumeration.
+ * Always iterates exactly bb.byteLength (the secret's length) times, so the
+ * loop duration is determined by the secret, not by the attacker-supplied value.
+ * Length mismatch is folded into `diff` without branching the loop.
+ */
 export function timingSafeStringEqual(a: string, b: string): boolean {
   const enc = new TextEncoder();
   const ab = enc.encode(a);
   const bb = enc.encode(b);
-  if (ab.byteLength !== bb.byteLength) {
-    // Consume comparable time even on length mismatch
-    let _x = 0;
-    for (let i = 0; i < ab.byteLength; i++) _x |= ab[i] ^ (bb[i % (bb.byteLength || 1)] ?? 0);
-    return false;
+  // Start diff at 1 if lengths differ; the loop alone cannot flip it back to 0.
+  let diff = ab.byteLength === bb.byteLength ? 0 : 1;
+  for (let i = 0; i < bb.byteLength; i++) {
+    diff |= (ab[i] ?? 0) ^ bb[i];
   }
-  let diff = 0;
-  for (let i = 0; i < ab.byteLength; i++) diff |= ab[i] ^ bb[i];
   return diff === 0;
 }
 
@@ -57,7 +59,7 @@ function readSupabaseUrl(name: string): string | null {
 
 function readSecret(name: string): string | null {
   const raw = Deno.env.get(name)?.trim();
-  if (!raw || /PLACEHOLDER|REPLACE|CHANGE_ME|YOUR_/i.test(raw)) return null;
+  if (!raw || raw.length < 8 || /PLACEHOLDER|REPLACE|CHANGE_ME|YOUR_/i.test(raw)) return null;
   return raw;
 }
 

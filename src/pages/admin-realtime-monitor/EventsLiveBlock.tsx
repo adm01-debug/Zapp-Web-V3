@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { queryKeys } from '@/services/api/queryKeys';
 import { useQuery } from '@tanstack/react-query';
 import { subHours, format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -25,7 +26,7 @@ export function EventsLiveBlock({ windowHours, autoRefresh, onNavigateTo }: Prop
   const sinceISO = useMemo(() => subHours(new Date(), windowHours).toISOString(), [windowHours]);
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ['realtime-monitor', 'events', windowHours],
+    queryKey: queryKeys.adminOps.realtimeMonitorEvents(windowHours),
     queryFn: async (): Promise<WebhookEventLite[]> => {
       const res = await queryExternalProxy<WebhookEventLite>({
         table: 'evolution_webhook_events',
@@ -113,9 +114,9 @@ export function EventsLiveBlock({ windowHours, autoRefresh, onNavigateTo }: Prop
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {rows.slice(0, 20).map((r, i) => (
+                  {rows.slice(0, 20).map((r) => (
                     <TableRow
-                      key={`${r.created_at}-${i}`}
+                      key={`${r.created_at}-${r.event_type}-${r.instance_name}`}
                       className="cursor-pointer hover:bg-muted/40"
                       tabIndex={0}
                       onClick={() => handleRowClick(r.event_type, r.instance_name)}

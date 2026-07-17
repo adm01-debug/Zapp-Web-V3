@@ -3,6 +3,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { log } from '@/lib/logger';
+import { toast } from 'sonner';
 
 interface Integration {
   id: string;
@@ -15,7 +16,7 @@ interface Integration {
 /** Manages Evolution API instance connections and configuration. */
 export function useEvolutionApiManagement() {
   const [isConnected, setIsConnected] = useState(false);
-  const [instances, setInstances] = useState<any[]>([]);
+  const [instances, setInstances] = useState<Record<string, unknown>[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -49,30 +50,15 @@ export function useGmailOAuthFlowManagement() {
   const [loading, setLoading] = useState(false);
 
   const initiateOAuth = useCallback(async () => {
-    setLoading(true);
-    try {
-      const { data, error: err } = await supabase.rpc('initiate_gmail_oauth');
-
-      if (err) throw err;
-      if (data?.auth_url) {
-        window.location.href = data.auth_url;
-      }
-    } catch (err) {
-      log.error('Error initiating Gmail OAuth:', err);
-    } finally {
-      setLoading(false);
-    }
+    // GAP-2: initiate_gmail_oauth RPC not yet deployed to DB
+    toast.error('Integração Gmail não disponível no momento. Entre em contato com o suporte.');
+    log.warn('initiateOAuth called but initiate_gmail_oauth RPC is not deployed');
   }, []);
 
-  const handleCallback = useCallback(async (code: string) => {
-    try {
-      const { error: err } = await supabase.rpc('complete_gmail_oauth', { auth_code: code });
-
-      if (err) throw err;
-      setIsAuthenticated(true);
-    } catch (err) {
-      log.error('Error completing Gmail OAuth:', err);
-    }
+  const handleCallback = useCallback(async (_code: string) => {
+    // GAP-2: complete_gmail_oauth RPC not yet deployed to DB
+    toast.error('Integração Gmail não disponível no momento. Entre em contato com o suporte.');
+    log.warn('handleCallback called but complete_gmail_oauth RPC is not deployed');
   }, []);
 
   return { isAuthenticated, loading, initiateOAuth, handleCallback };
@@ -92,7 +78,7 @@ export function useBitrixApiManagement() {
           .from('integrations')
           .select('config')
           .eq('type', 'bitrix24')
-          .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
+          .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
 
         if (err && err.code !== 'PGRST116') throw err;
         if (data?.config?.webhook_url) {
@@ -124,7 +110,7 @@ export function useTalkXManagement() {
           .from('integrations')
           .select('config')
           .eq('type', 'talkx')
-          .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
+          .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
 
         if (err && err.code !== 'PGRST116') throw err;
         if (data) {
@@ -144,27 +130,15 @@ export function useTalkXManagement() {
 
 /** Synchronizes entity data to external CRM systems. */
 export function useSyncToCRMManagement(entityId?: string) {
-  const [isSyncing, setIsSyncing] = useState(false);
-  const [lastSyncAt, setLastSyncAt] = useState<string | null>(null);
+  const [isSyncing] = useState(false);
+  const [lastSyncAt] = useState<string | null>(null);
 
   const syncToCRM = useCallback(
-    async (data: any) => {
+    async (_data: Record<string, unknown>) => {
       if (!entityId) return;
-
-      setIsSyncing(true);
-      try {
-        const { error: err } = await supabase.rpc('sync_to_crm', {
-          entity_id: entityId,
-          entity_data: data,
-        });
-
-        if (err) throw err;
-        setLastSyncAt(new Date().toISOString());
-      } catch (err) {
-        log.error('Error syncing to CRM:', err);
-      } finally {
-        setIsSyncing(false);
-      }
+      // GAP-3: sync_to_crm RPC not yet deployed to DB
+      toast.error('Sincronização com CRM não disponível no momento.');
+      log.warn('syncToCRM called but sync_to_crm RPC is not deployed', { entityId });
     },
     [entityId]
   );

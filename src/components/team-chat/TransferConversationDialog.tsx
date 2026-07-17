@@ -15,6 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { queryKeys } from '@/services/api/queryKeys';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useTransferTeamConversation } from '@/hooks/useTeamChat';
@@ -32,7 +33,7 @@ export function TransferConversationDialog({ open, onOpenChange, conversation }:
   const transferMutation = useTransferTeamConversation();
 
   const { data: departments = [] } = useQuery({
-    queryKey: ['departments-list'],
+    queryKey: queryKeys.departmentChat.list(),
     staleTime: Infinity,
     queryFn: async () => {
       const { data, error } = await supabase

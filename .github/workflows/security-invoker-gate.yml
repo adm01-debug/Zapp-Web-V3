@@ -1,0 +1,66 @@
+name: Guard — Security Invoker
+
+on:
+  pull_request:
+    paths:
+      - 'supabase/migrations/**'
+      - 'src/integrations/supabase/**'
+  schedule:
+    - cron: '0 8 * * 1'  # Monday 8am UTC
+
+permissions:
+  contents: read
+
+jobs:
+  check-security-invoker:
+    name: Verify security_invoker on all views
+    runs-on: ubuntu-latest
+    env:
+      META_URL: ${{ secrets.ZAPP_META_URL }}
+      META_TOKEN: ${{ secrets.ZAPP_META_TOKEN }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Check security_invoker via postgres-meta
+        run: |
+          if [ -z "$META_URL" ] || [ -z "$META_TOKEN" ]; then
+            echo "⚠ Secrets not configured — skipping live check"
+            exit 0
+          fi
+
+          echo "→ Querying views without security_invoker..."
+          RESULT=$(curl -sS "$META_URL/query" \
+            -H "apikey: $META_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d '{"query":"SELECT n.nspname, c.relname FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname IN ('"'"'public'"'"','"'"'zapp'"'"','"'"'evo'"'"') AND c.relkind='"'"'v'"'"' AND NOT (c.reloptions IS NOT NULL AND array_to_string(c.reloptions,'"'"','"'"') ILIKE '"'"'%security_invoker%'"'"')"}' \
+            --max-time 30 2>/dev/null)
+
+          COUNT=$(echo "$RESULT" | python3 -c "import json,sys; d=json.load(sys.stdin); print(len(d))" 2>/dev/null || echo "0")
+          
+          if [ "$COUNT" != "0" ] && [ "$COUNT" != "" ]; then
+            echo "::error::$COUNT views without security_invoker found!"
+            echo "$RESULT" | python3 -m json.tool 2>/dev/null
+            exit 1
+          fi
+
+          echo "✅ All views have security_invoker=true"
+
+      - name: Check no anon-executable functions
+        run: |
+          if [ -z "$META_URL" ]; then exit 0; fi
+
+          RESULT=$(curl -sS "$META_URL/query" \
+            -H "apikey: $META_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d '{"query":"SELECT count(*) AS c FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname IN ('"'"'zapp'"'"','"'"'evo'"'"') AND has_function_privilege('"'"'anon'"'"', p.oid, '"'"'EXECUTE'"'"')"}' \
+            --max-time 15 2>/dev/null)
+
+          COUNT=$(echo "$RESULT" | python3 -c "import json,sys; d=json.load(sys.stdin); print(d[0]['c'])" 2>/dev/null || echo "0")
+
+          if [ "$COUNT" != "0" ]; then
+            echo "::error::$COUNT functions executable by anon!"
+            exit 1
+          fi
+
+          echo "✅ No functions executable by anon"

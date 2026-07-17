@@ -1,6 +1,7 @@
 // Consolidated Settings & Preferences Management Module (ETAPA 41)
 // Consolidates: useUserSettings, useGlobalSettings, useWebhookViewPreferences, useOnboardingChecklist
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useMountedRef } from '@/hooks/useMountedRef';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { log } from '@/lib/logger';
@@ -43,14 +44,14 @@ interface UserSettings {
   language: string;
   timezone: string;
   notifications_enabled: boolean;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 interface GlobalSettings {
   maintenance_mode: boolean;
   feature_flags: Record<string, boolean>;
   api_rate_limit: number;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 interface OnboardingStep {
@@ -140,6 +141,7 @@ export function useGlobalSettingsManagement() {
   const [settingsRows, setSettingsRows] = useState<GlobalSettingRow[]>([]);
   const [settings, setSettings] = useState<GlobalSettings | null>(null);
   const [loading, setLoading] = useState(true);
+  const mounted = useMountedRef();
 
   useEffect(() => {
     const fetchSettings = async () => {
@@ -150,17 +152,19 @@ export function useGlobalSettingsManagement() {
           .order('key', { ascending: true });
 
         if (err && err.code !== 'PGRST116') throw err;
-        setSettingsRows(data || []);
-        setSettings(data?.[0] || null);
+        if (mounted.current) {
+          setSettingsRows(data || []);
+          setSettings(data?.[0] || null);
+        }
       } catch (err) {
         log.error('Error fetching global settings:', err);
       } finally {
-        setLoading(false);
+        if (mounted.current) setLoading(false);
       }
     };
 
     fetchSettings();
-  }, []);
+  }, [mounted]);
 
   // Helper: buscar valor de um setting por key
   const getSetting = (key: string): string | null => {

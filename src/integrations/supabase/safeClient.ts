@@ -229,7 +229,7 @@ export const safeClient = {
         }
       } else {
         const { error } = await (
-          supabase.rpc(name as Parameters<typeof supabase.rpc>[0]) as any
+          supabase.rpc(name as Parameters<typeof supabase.rpc>[0]) as unknown as { limit: (n: number) => Promise<{ error: unknown }> }
         ).limit(0); // ignore-audit — .limit() not on RPC return type in generated types
         if (!error) {
           exists = true;

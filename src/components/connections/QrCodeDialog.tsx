@@ -186,7 +186,7 @@ export function QrCodeDialog({
                     <p className="text-[10px] font-bold uppercase text-muted-foreground">
                       Payload Evolution API (Mascarado)
                     </p>
-                    <pre className="max-h-40 overflow-x-auto rounded bg-black/5 p-2 font-mono text-[9px]">
+                    <pre className="max-h-40 overflow-x-auto rounded bg-muted/40 p-2 font-mono text-[9px]">
                       {JSON.stringify(maskSensitiveData(rawPayload), null, 2)}
                     </pre>
                     <p className="text-[8px] italic text-muted-foreground">

@@ -1,3 +1,4 @@
+import { queryKeys } from '@/services/api/queryKeys';
 import { useQuery } from '@tanstack/react-query';
 import { getLogger } from '@/lib/logger';
 const log = getLogger('EmailWebhookMonitor');
@@ -5,7 +6,7 @@ import { Mail, RefreshCw, CheckCircle, AlertCircle, Clock, Wifi, WifiOff } from 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { safeClient } from '@/integrations/supabase/safeClient';
+import { safeClient, safeFrom } from '@/integrations/supabase/safeClient';
 
 interface EmailAccount {
   id: string;
@@ -25,7 +26,7 @@ interface ThreadStats {
 
 export function EmailWebhookMonitor() {
   const { data, isFetching, refetch } = useQuery({
-    queryKey: ['admin', 'email-webhook-monitor'],
+    queryKey: queryKeys.adminOps.emailWebhook(),
     queryFn: async () => {
       // Best-effort load: mirrors legacy behavior — failures degrade to empty data
       // (the panel renders an empty state rather than surfacing an error).
@@ -36,12 +37,12 @@ export function EmailWebhookMonitor() {
           history_id: null,
         })) as EmailAccount[];
 
-        const { count: totalThreads } = await dynSupabase
-          .from('email_threads')
-          .select('*', { count: 'exact', head: true });
+        const { count: totalThreads } = await safeFrom('email_threads').select('*', {
+          count: 'exact',
+          head: true,
+        });
 
-        const { count: unreadThreads } = await dynSupabase
-          .from('email_threads')
+        const { count: unreadThreads } = await safeFrom('email_threads')
           .select('*', { count: 'exact', head: true })
           .eq('is_unread', true);
 

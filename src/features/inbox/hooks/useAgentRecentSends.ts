@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { queryKeys } from '@/services/api/queryKeys';
 import { useMemo } from 'react';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { dbFrom } from '@/integrations/datasource/db';
@@ -31,7 +32,7 @@ const PER_AGENT_LIMIT = 5;
  */
 export function useAgentRecentSends() {
   const query = useQuery({
-    queryKey: ['agent-recent-sends'],
+    queryKey: queryKeys.agentGamification.recentSends(),
     queryFn: async () => {
       const { data: sends, error: sendsErr } = await safeClient.from(
         'evolution_send_idempotency',
@@ -48,7 +49,15 @@ export function useAgentRecentSends() {
           const record = s as Record<string, unknown>;
           const idemKey = record.idem_key as string;
           const match = idemKey.match(IDEM_PREFIX_RE);
-          return match ? { ...(record as any), message_id: match[1] } : null;
+          return match ? {
+            idem_key: idemKey,
+            instance_name: record.instance_name as string,
+            http_status: record.http_status as number,
+            external_message_id: (record.external_message_id as string | null) ?? null,
+            created_at: record.created_at as string,
+            path: record.path as string,
+            message_id: match[1],
+          } satisfies RecentSend : null;
         })
         .filter((x): x is NonNullable<typeof x> => x !== null);
 

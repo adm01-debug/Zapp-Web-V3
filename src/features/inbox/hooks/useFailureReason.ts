@@ -11,12 +11,9 @@
  * componente sabe que a mensagem está em estado de falha terminal.
  */
 import { useQuery } from '@tanstack/react-query';
+import { queryKeys } from '@/services/api/queryKeys';
 import { supabase } from '@/integrations/supabase/client';
 
-// evolution_retry_metrics is exposed via zapp.evolution_retry_metrics view
-// (migration 20260716_zapp_evolution_retry_metrics_view.sql)
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const db = supabase as any;
 
 export interface MessageFailureReason {
   /** Último motivo registrado (ex.: 'http_503', 'timeout'). */
@@ -40,12 +37,12 @@ const STALE_MS = 60_000;
 
 export function useFailureReason(messageId: string | undefined, enabled: boolean) {
   return useQuery<MessageFailureReason | null>({
-    queryKey: ['message-failure-reason', messageId],
+    queryKey: queryKeys.failedMessages.reason(messageId),
     enabled: Boolean(messageId) && enabled,
     staleTime: STALE_MS,
     queryFn: async () => {
       if (!messageId) return null;
-      const { data, error } = await db
+      const { data, error } = await supabase
         .from('evolution_retry_metrics')
         .select('attempt_count, final_status, final_http_status, retry_reasons')
         .eq('idempotency_key', `msg:${messageId}`)

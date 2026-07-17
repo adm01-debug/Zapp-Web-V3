@@ -1,8 +1,10 @@
 import { useState, useCallback } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { toast } from 'sonner';
 import { unwrapRows } from '@/lib/supabase-helpers';
+import { queryKeys } from '@/services/api/queryKeys';
 import type { AppRole } from '@/features/auth';
 
 interface ProfileRow {
@@ -88,6 +90,7 @@ export const accessLevelConfig: Record<string, { label: string; description: str
 };
 
 export function useAdminData(activeTab: 'users' | 'audit' | 'crm') {
+  const queryClient = useQueryClient();
   const [users, setUsers] = useState<UserWithRole[]>([]);
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(true);
@@ -137,7 +140,7 @@ export function useAdminData(activeTab: 'users' | 'audit' | 'crm') {
         ];
         const { data: profilesData } =
           userIds.length > 0
-            ? await (supabase.from('profiles').select('user_id, name, email') as any).in(
+            ? await supabase.from('profiles').select('user_id, name, email').in(
                 'user_id',
                 userIds
               )
@@ -186,7 +189,8 @@ export function useAdminData(activeTab: 'users' | 'audit' | 'crm') {
 
   const handleToggleActive = useCallback(
     async (user: UserWithRole) => {
-      const { error } = await (supabase.from('profiles') as any)
+      const { error } = await supabase
+        .from('profiles')
         .update({ is_active: !user.is_active })
         .eq('id', user.id);
       if (error) {
@@ -194,9 +198,10 @@ export function useAdminData(activeTab: 'users' | 'audit' | 'crm') {
       } else {
         toast.success(user.is_active ? 'Usuário desativado' : 'Usuário ativado');
         fetchData();
+        void queryClient.invalidateQueries({ queryKey: queryKeys.teamProfiles.all() });
       }
     },
-    [fetchData]
+    [fetchData, queryClient]
   );
 
   const handleSaveUser = useCallback(
@@ -216,7 +221,8 @@ export function useAdminData(activeTab: 'users' | 'audit' | 'crm') {
         avatarUrl = urlData.publicUrl;
       }
 
-      const { error } = await (supabase.from('profiles') as any)
+      const { error } = await supabase
+        .from('profiles')
         .update({
           name: editingUser.name,
           nickname: editingUser.nickname,
@@ -237,9 +243,11 @@ export function useAdminData(activeTab: 'users' | 'audit' | 'crm') {
       }
       toast.success('Usuário atualizado com sucesso');
       fetchData();
+      void queryClient.invalidateQueries({ queryKey: queryKeys.teamProfiles.all() });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.userProfile.me() });
       return true;
     },
-    [fetchData]
+    [fetchData, queryClient]
   );
 
   interface CreateUserPayload {
@@ -317,13 +325,14 @@ export function useAdminData(activeTab: 'users' | 'audit' | 'crm') {
         }
         toast.success('Usuário criado com sucesso!');
         fetchData();
+        void queryClient.invalidateQueries({ queryKey: queryKeys.teamProfiles.all() });
         return true;
       } catch {
         toast.error('Erro ao criar usuário');
         return false;
       }
     },
-    [fetchData]
+    [fetchData, queryClient]
   );
 
   return {

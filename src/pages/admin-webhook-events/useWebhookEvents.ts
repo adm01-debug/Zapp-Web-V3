@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { subHours } from 'date-fns';
+import { queryKeys } from '@/services/api/queryKeys';
 import { queryExternalProxy } from '@/lib/externalProxy';
 import { consumePendingWebhookEventsFilters } from '@/lib/webhookEventsDeepLink';
 import type { EvolutionWebhookEvent } from '@/types/evolutionExternal';
@@ -83,16 +84,15 @@ export function useWebhookEvents() {
   const sinceISO = useMemo(() => subHours(new Date(), Number(hours)).toISOString(), [hours]);
 
   const { data, isLoading, isRefetching, refetch, error } = useQuery({
-    queryKey: [
-      'admin-webhook-events',
+    queryKey: queryKeys.adminOps.webhookEventsFiltered(
       hours,
       eventType,
       instance,
       messageType,
       status,
       remoteJidFilter.trim().toLowerCase(),
-      pushNameFilter.trim().toLowerCase(),
-    ],
+      pushNameFilter.trim().toLowerCase()
+    ),
     queryFn: async () => {
       const filters: { column: string; operator: string; value: unknown }[] = [
         { column: 'created_at', operator: 'gte', value: sinceISO },

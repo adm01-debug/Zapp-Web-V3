@@ -23,7 +23,7 @@ Deno.serve(async (req) => {
         ...Object.fromEntries([...req.headers.entries()].filter(([k]) => k.toLowerCase().startsWith("x-") || k.toLowerCase() === "idempotency-key")),
       },
       // action is placed last to prevent caller from overriding it via body spread
-      body: JSON.stringify({ ...body, action: "classify_tickets" }),
+      body: JSON.stringify({ ...body, action: "classify_emoji" }),
     });
 
     const responseBody = await res.json();

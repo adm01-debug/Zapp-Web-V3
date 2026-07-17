@@ -12,8 +12,10 @@ import { normalizePhone, isSamePhone } from '@/lib/phoneUtils';
 import { emailHealthService } from '@/services/email/emailHealthService';
 import type { EmailHealthInfo } from '@/services/email/types';
 import { emailMappers } from '@/utils/emailMappers';
+import { SYSTEM_LABELS } from '@/hooks/useGmailLabels';
 import { useQueryClient } from '@tanstack/react-query';
 import { eventBus } from '@/lib/eventBus';
+import { queryKeys } from '@/services/api/queryKeys';
 
 interface PasskeyCredential {
   id: string;
@@ -39,15 +41,7 @@ const CIRCUIT_THRESHOLD = 3;
 const CIRCUIT_BASE_MS = 2 * 60_000;
 const CIRCUIT_MAX_MS = 10 * 60_000;
 
-export const SYSTEM_LABELS = [
-  { id: 'INBOX', name: 'Inbox', icon: 'inbox', color: '#1a73e8' },
-  { id: 'STARRED', name: 'Favoritos', icon: 'star', color: '#f29900' },
-  { id: 'IMPORTANT', name: 'Importantes', icon: 'flag', color: '#e37400' },
-  { id: 'SENT', name: 'Enviados', icon: 'send', color: '#34a853' },
-  { id: 'DRAFTS', name: 'Rascunhos', icon: 'draft', color: '#9e9e9e' },
-  { id: 'SPAM', name: 'Spam', icon: 'block', color: '#d93025' },
-  { id: 'TRASH', name: 'Lixeira', icon: 'delete', color: '#777777' },
-];
+export { SYSTEM_LABELS };
 
 function extractHttpStatus(err: unknown): number | undefined {
   if (err == null || typeof err !== 'object') return undefined;
@@ -65,6 +59,7 @@ function extractHttpStatus(err: unknown): number | undefined {
 export function useEvolutionAutoSyncManagement(onSynced?: () => void) {
   const ran = useRef(false);
   const { listInstances } = useEvolutionApi();
+  const queryClient = useQueryClient();
 
   const syncAll = async () => {
     try {
@@ -74,17 +69,26 @@ export function useEvolutionAutoSyncManagement(onSynced?: () => void) {
       const knownPhones = (existing ?? []).map((c) => normalizePhone(c.phone_number ?? '')).filter(Boolean);
 
       const evoResult = await listInstances();
+      const evoResultObj = evoResult as Record<string, unknown>;
       const instances: unknown[] = Array.isArray(evoResult)
         ? evoResult
-        : ((evoResult as any)?.data ?? (evoResult as any)?.instances ?? []);
+        : ((evoResultObj?.data as unknown[] | undefined) ?? (evoResultObj?.instances as unknown[] | undefined) ?? []);
 
       if (!instances.length) return;
 
-      const missing = instances.filter((inst) => {
-        const i = inst as any;
-        if (!i?.instance?.instanceName) return false;
-        if (knownIds.has(i.instance.instanceName)) return false;
-        const phone = i.instance?.number || i.instance?.ownerJid?.replace('@s.whatsapp.net', '') || '';
+      interface EvoInstance {
+        instance?: {
+          instanceName?: string;
+          profileName?: string;
+          number?: string;
+          ownerJid?: string;
+          status?: string;
+        };
+      }
+      const missing = (instances as EvoInstance[]).filter((inst) => {
+        if (!inst?.instance?.instanceName) return false;
+        if (knownIds.has(inst.instance.instanceName)) return false;
+        const phone = inst.instance?.number || inst.instance?.ownerJid?.replace('@s.whatsapp.net', '') || '';
         if (phone && knownPhones.some((kp) => isSamePhone(kp, phone))) return false;
         return true;
       });
@@ -92,21 +96,21 @@ export function useEvolutionAutoSyncManagement(onSynced?: () => void) {
       if (!missing.length) return;
 
       for (const inst of missing) {
-        const i = inst as any;
-        const instanceName = i.instance?.instanceName ?? '';
-        const name = i.instance?.profileName || instanceName || 'Auto-synced';
-        const phone = i.instance?.number || i.instance?.ownerJid?.replace('@s.whatsapp.net', '') || '';
+        const instanceName = inst.instance?.instanceName ?? '';
+        const name = inst.instance?.profileName || instanceName || 'Auto-synced';
+        const phone = inst.instance?.number || inst.instance?.ownerJid?.replace('@s.whatsapp.net', '') || '';
 
         await supabase.from('whatsapp_connections').insert({
           instance_id: instanceName,
           phone_number: phone,
           name,
-          status: i.instance?.status || 'unknown',
+          status: inst.instance?.status || 'unknown',
           health_reason: null,
           auto_reconnect_enabled: false,
         });
       }
 
+      void queryClient.invalidateQueries({ queryKey: queryKeys.connections.all() });
       if (onSynced) onSynced();
     } catch (err) {
       log.error('Error syncing Evolution instances:', err);
@@ -257,7 +261,7 @@ export function useGmailLabelsManagement(accountId: string | null) {
     );
 
     if (dbErr) {
-      log.warn('Email labels load error', (dbErr as any).message);
+      log.warn('Email labels load error', (dbErr as Error).message);
       setError(`Não foi possível carregar as pastas do Email.`);
     } else {
       setLabels(emailMappers.labels(Array.isArray(data) ? data : []));
@@ -271,7 +275,7 @@ export function useGmailLabelsManagement(accountId: string | null) {
       const { data, error: fnErr } = await supabase.functions.invoke('gmail-sync', {
         body: { action: 'syncLabels', accountId },
       });
-      if (!fnErr && (data as any)?.success) {
+      if (!fnErr && (data as Record<string, unknown>)?.success) {
         await loadLabels();
       }
     } catch {

@@ -125,12 +125,4 @@ export const messagesService = {
     return messagesRepository.markMessagesAsRead(conversationId, userId);
   },
 
-  // Real-time updates
-  onMessageChange: (conversationId: string, callback: (message: Message) => void) => {
-    return messagesRepository.subscribeToMessages(conversationId, callback);
-  },
-
-  onConversationChange: (callback: (conversation: Conversation) => void) => {
-    return messagesRepository.subscribeToConversations(callback);
-  },
 };

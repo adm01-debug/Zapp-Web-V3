@@ -4,6 +4,9 @@ import { toast } from 'sonner';
 import { useEvolutionApi } from '@/hooks/useEvolutionApi';
 import { dbFrom } from '@/integrations/datasource/db';
 import { getLogger } from '@/lib/logger';
+import { queryKeys } from '@/services/api/queryKeys';
+
+type ApiError = Error & { code?: string; details?: string; status?: number };
 
 const mutationLog = getLogger('useReactionMutations');
 
@@ -92,7 +95,7 @@ export function useReactionMutations(
           { onConflict: 'message_id,user_id,emoji' }
         )
         .select()
-        .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
+        .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
 
       if (error) throw error;
 
@@ -115,12 +118,12 @@ export function useReactionMutations(
       return data;
     },
     onMutate: async (emoji) => {
-      await queryClient.cancelQueries({ queryKey: ['message-reactions', messageId] });
-      const previous = queryClient.getQueryData(['message-reactions', messageId]);
+      await queryClient.cancelQueries({ queryKey: queryKeys.messageReactions.message(messageId) });
+      const previous = queryClient.getQueryData(queryKeys.messageReactions.message(messageId));
 
       if (profileId) {
         queryClient.setQueryData(
-          ['message-reactions', messageId],
+          queryKeys.messageReactions.message(messageId),
           (old: Record<string, unknown>[] | undefined) => [
             ...(old || []),
             {
@@ -137,13 +140,13 @@ export function useReactionMutations(
       return { previous };
     },
     onSuccess: (data, emoji) => {
-      queryClient.invalidateQueries({ queryKey: ['message-reactions', messageId] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.messageReactions.message(messageId) });
       toast.dismiss(`reaction-error-${messageId}`);
       trackReactionEvent('add', { messageId, emoji, status: 'success' });
     },
     onError: (error: ApiError, emoji, context) => {
       if (context?.previous) {
-        queryClient.setQueryData(['message-reactions', messageId], context.previous);
+        queryClient.setQueryData(queryKeys.messageReactions.message(messageId), context.previous);
       }
       mutationLog.error('Failed to add reaction', error);
 
@@ -197,12 +200,12 @@ export function useReactionMutations(
       }
     },
     onMutate: async (emoji) => {
-      await queryClient.cancelQueries({ queryKey: ['message-reactions', messageId] });
-      const previous = queryClient.getQueryData(['message-reactions', messageId]);
+      await queryClient.cancelQueries({ queryKey: queryKeys.messageReactions.message(messageId) });
+      const previous = queryClient.getQueryData(queryKeys.messageReactions.message(messageId));
 
       if (profileId) {
         queryClient.setQueryData(
-          ['message-reactions', messageId],
+          queryKeys.messageReactions.message(messageId),
           (old: Array<{ user_id: string; emoji: string }> | undefined) =>
             (old || []).filter((r) => !(r.user_id === profileId && r.emoji === emoji))
         );
@@ -210,13 +213,13 @@ export function useReactionMutations(
       return { previous };
     },
     onSuccess: (data, emoji) => {
-      queryClient.invalidateQueries({ queryKey: ['message-reactions', messageId] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.messageReactions.message(messageId) });
       toast.dismiss(`reaction-error-${messageId}`);
       trackReactionEvent('remove', { messageId, emoji, status: 'success' });
     },
     onError: (error: ApiError, emoji, context) => {
       if (context?.previous) {
-        queryClient.setQueryData(['message-reactions', messageId], context.previous);
+        queryClient.setQueryData(queryKeys.messageReactions.message(messageId), context.previous);
       }
       toast.error('Não foi possível remover sua reação. Verifique sua conexão.', {
         id: `reaction-error-${messageId}`, // Same ID to replace add errors

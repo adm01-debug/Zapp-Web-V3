@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import React, { useRef } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -61,7 +61,7 @@ export interface TeamChatMessageRowProps {
   onToggleReaction: (params: { messageId: string; emoji: string }) => void;
 }
 
-export function TeamChatMessageRow({
+export const TeamChatMessageRow = React.memo(function TeamChatMessageRow({
   index,
   style,
   ariaAttributes,
@@ -229,7 +229,7 @@ export function TeamChatMessageRow({
                         )}
                       >
                         {cleanText && (
-                          <button
+                          <button type="button"
                             onClick={() =>
                               isThisTtsPlaying ? onTtsStop() : onTtsSpeak(msg.content, msg.id)
                             }
@@ -328,4 +328,4 @@ export function TeamChatMessageRow({
       </ContextMenu>
     </div>
   );
-}
+});

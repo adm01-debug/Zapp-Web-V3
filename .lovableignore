@@ -1,0 +1,41 @@
+# ============================================================
+# .lovableignore — Protege arquivos críticos contra sobrescrita
+# pelo bot Lovable (que commita diretamente em main).
+#
+# HISTÓRICO:
+#   16/07/2026 — types.ts foi sobrescrito pelo Lovable com o schema
+#     do Cloud (public, 157 entradas). Cobertura caiu para 40,7%.
+#   17/07/2026 — REGENERADO e VALIDADO contra pg_catalog:
+#       zapp    312/312 tabelas · 409/410 views · 394 functions
+#       evo     193/193 tabelas ·   20/20 views
+#       public    1/1 tabela    · 532/535 views
+#     types-manual.ts e schema.ts referenciam GeneratedDatabase['zapp'];
+#     o remapeamento ['public']→zapp foi ELIMINADO.
+#
+# BANCO CANÔNICO: https://supabase.atomicabr.com.br — schema zapp
+#
+# REGRA: estes arquivos SÓ são modificados via PR humano.
+# ============================================================
+
+# --- Supabase client e tipos (canônicos) ---
+src/integrations/supabase/client.ts
+src/integrations/supabase/types.ts
+src/integrations/supabase/types-manual.ts
+src/integrations/supabase/schema.ts
+src/integrations/supabase/cookieStorage.ts
+
+# --- Shared DB client das Edge Functions ---
+supabase/functions/_shared/db-client.ts
+supabase/functions/_shared/auth.ts
+supabase/functions/_shared/vault.ts
+
+# --- CI gates e scripts de auditoria ---
+.github/workflows/quality-gate.yml
+.github/workflows/schema-drift.yml
+.github/workflows/gen-types-zapp.yml
+scripts/check-schema-usage.mjs
+scripts/check-schema-drift.sh
+
+# --- Docs canônicos ---
+docs/SCHEMA_REFERENCE.md
+CLAUDE.md

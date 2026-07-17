@@ -194,7 +194,7 @@ export function AIUsageDashboard() {
                           innerRadius={40}
                         >
                           {functionUsage.map((entry) => (
-                            <Cell key={entry.name} fill={FUNCTION_COLORS[entry.name] || '#666'} />
+                            <Cell key={entry.name} fill={FUNCTION_COLORS[entry.name] || 'hsl(var(--muted-foreground))'} />
                           ))}
                         </Pie>
                         <Tooltip
@@ -208,7 +208,7 @@ export function AIUsageDashboard() {
                           <div className="flex items-center gap-1.5">
                             <div
                               className="h-2.5 w-2.5 rounded-full"
-                              style={{ backgroundColor: FUNCTION_COLORS[f.name] || '#666' }}
+                              style={{ backgroundColor: FUNCTION_COLORS[f.name] || 'hsl(var(--muted-foreground))' }}
                             />
                             <span className="text-muted-foreground">
                               {FUNCTION_LABELS[f.name] || f.name}

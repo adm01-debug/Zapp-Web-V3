@@ -1,3 +1,4 @@
+import { queryKeys } from '@/services/api/queryKeys';
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -279,7 +280,7 @@ async function fetchErrorLogs(): Promise<ErrorLog[]> {
 
 export function useDiagnosticsData() {
   const query = useQuery({
-    queryKey: ['admin', 'diagnostics'],
+    queryKey: queryKeys.adminOps.diagnostics(),
     queryFn: async () => {
       const [connections, messageDiag, health, errorLogs] = await Promise.all([
         fetchConnections(),

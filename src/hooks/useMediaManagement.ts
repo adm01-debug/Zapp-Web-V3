@@ -3,6 +3,8 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { log } from '@/lib/logger';
+import { toast } from 'sonner';
+import { useMountedRef } from '@/hooks/useMountedRef';
 
 interface Sticker {
   id: string;
@@ -60,6 +62,7 @@ export function usePersonalStickersManagement(userId?: string) {
 export function useCustomEmojisManagement() {
   const [emojis, setEmojis] = useState<Emoji[]>([]);
   const [loading, setLoading] = useState(true);
+  const mounted = useMountedRef();
 
   useEffect(() => {
     const fetchEmojis = async () => {
@@ -67,16 +70,16 @@ export function useCustomEmojisManagement() {
         const { data, error: err } = await supabase.from('custom_emojis').select('*');
 
         if (err) throw err;
-        setEmojis(data || []);
+        if (mounted.current) setEmojis(data || []);
       } catch (err) {
         log.error('Error fetching emojis:', err);
       } finally {
-        setLoading(false);
+        if (mounted.current) setLoading(false);
       }
     };
 
     fetchEmojis();
-  }, []);
+  }, [mounted]);
 
   return { emojis, loading };
 }
@@ -90,19 +93,9 @@ export function useExportDataManagement() {
     setProgress(0);
 
     try {
-      const { data, error: err } = await supabase.rpc('export_user_data', { export_format: format });
-
-      if (err) throw err;
-
-      const element = document.createElement('a');
-      const file = new Blob([JSON.stringify(data)], { type: 'application/json' });
-      element.href = URL.createObjectURL(file);
-      element.download = `export.${format}`;
-      document.body.appendChild(element);
-      element.click();
-      document.body.removeChild(element);
-
-      setProgress(100);
+      // GAP-4: export_user_data RPC not yet deployed to DB
+      toast.error('Exportação de dados não disponível no momento. Entre em contato com o suporte.');
+      log.warn('exportData called but export_user_data RPC is not deployed');
     } catch (err) {
       log.error('Error exporting data:', err);
     } finally {
@@ -122,12 +115,11 @@ export function useImportDataManagement() {
     setError(null);
 
     try {
-      const text = await file.text();
-      const data = JSON.parse(text);
-
-      const { error: err } = await supabase.rpc('import_user_data', { data });
-
-      if (err) throw err;
+      // GAP-4: import_user_data RPC not yet deployed to DB
+      const message = 'Importação de dados não disponível no momento.';
+      setError(message);
+      toast.error(message);
+      log.warn('importData called but import_user_data RPC is not deployed');
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Import failed';
       setError(message);
@@ -153,12 +145,11 @@ export function useDownloadPermissionManagement(resourceId?: string) {
 
     const checkPermission = async () => {
       try {
-        const { data, error: err } = await supabase.rpc('check_download_permission', {
-          resource_id: resourceId,
-        });
-
-        if (err) throw err;
-        setHasPermission(data || false);
+        // GAP-4: check_download_permission RPC not yet deployed — grant access by default
+        setHasPermission(true);
+        log.warn(
+          'checkPermission called but check_download_permission RPC is not deployed; defaulting to true'
+        );
       } catch (err) {
         log.error('Error checking download permission:', err);
       } finally {

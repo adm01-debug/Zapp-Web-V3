@@ -19,23 +19,26 @@
 | **URL** | `https://supabase.atomicabr.com.br` |
 | **Schema principal** | `zapp` |
 | **Schema Evolution API** | `evo` |
-| **Schema public** | Zero tabelas (apenas views/proxies) |
+| **Schema public** | 1 tabela interna Supabase + 535 views proxy |
 
 ### Schemas e Tabelas (auditado 2026-07-16 — regras verificadas contra DB de produção)
 
-| Schema | Tabelas | RLS | Descrição |
-|--------|---------|-----|-----------|
-| **`zapp`** | **315** | 100% | Todas as tabelas da aplicação |
-| **`evo`** | **193** | 100% | Tabelas da Evolution API (WhatsApp) |
-| `auth` | 21 | — | Auth GoTrue do Supabase |
-| `bpm` | 41 | — | BPM/workflows |
-| `email_app` | 33 | — | Integração Gmail |
-| `ai` | 31 | — | IA e embeddings |
-| `archive` | 25 | — | Dados arquivados |
-| `financeiro` | 16 | — | Módulo financeiro |
-| `vendas` | 13 | — | Módulo vendas |
-| `ops` | 20 | — | Operações internas |
-| `public` | **0** | — | NÃO usar diretamente |
+| Schema | Base Tables | Views | RLS | Descrição |
+|--------|-------------|-------|-----|-----------|
+| **`zapp`** | **312** | **405** | 100% | Todas as tabelas da aplicação |
+| **`evo`** | **193** | — | 100% | Tabelas da Evolution API (WhatsApp) |
+| `auth` | 21 | — | — | Auth GoTrue do Supabase |
+| `bpm` | 41 | — | — | BPM/workflows |
+| `email_app` | 33 | — | — | Integração Gmail |
+| `ai` | 31 | — | — | IA e embeddings |
+| `archive` | 25 | — | — | Dados arquivados |
+| `financeiro` | 16 | — | — | Módulo financeiro |
+| `vendas` | 14 | — | — | Módulo vendas |
+| `ops` | 20 | — | — | Operações internas |
+| `public` | 1¹ | 535² | — | NÃO usar diretamente |
+
+> ¹ `public._wal_slot_guard_events` — tabela interna do Supabase (WAL slot guard), não é tabela de aplicação.
+> ² As 535 views em `public` são proxies/aliases para tabelas em outros schemas (zapp, evo, email_app, etc.).
 
 ### Regras Críticas de Schema
 
@@ -56,7 +59,7 @@
 ### Tabelas Principais do Schema `zapp`
 
 | Tabela | Função |
-|--------|--------|
+|--------|---------|
 | `profiles` | Usuários da plataforma (17 registros) |
 | `workspaces` | Workspaces/tenants |
 | `workspace_members` | Membros por workspace (15) |
@@ -76,18 +79,63 @@
 
 | Tabela | Função |
 |--------|--------|
-| `evolution_messages_wpp2` | Mensagens WhatsApp principal (41.045, 51 MB) |
+| `evolution_messages` | Raiz particionada de mensagens (23 partições por instância) |
 | `evolution_contacts` | Contatos da Evolution API (20.563, 18 MB) |
-| `evolution_webhook_events_v2_*` | Webhooks particionados por mês |
+| `evolution_conversations` | Raiz particionada de conversas (23 partições) |
+| `evolution_webhook_events_v2_*` | Webhooks particionados por mês (2026-03 a 2027-06 + default) |
 | `evolution_media` | Mídias (23.366, 10 MB) |
-| `evolution_conversations_wpp2` | Conversas (12.525) |
 | `evolution_whatsapp_status` | Status WA (14.789, 10 MB) |
 
-> `evolution_messages` e `evolution_conversations` são **tabelas raiz particionadas** (não views).
-> Os dados ficam nas partições por instância (`evolution_messages_wpp2`, `evolution_messages_comercial_01`, etc.).
-> Para queries SELECT, tanto a raiz quanto as partições funcionam. Para **Realtime**, sempre use a raiz
-> (regra 4 acima). No schema `zapp`, `evolution_messages` existe como **view auto-updatable** (security_invoker=on)
-> que aponta para a tabela raiz no schema `evo`.
+**Partições de `evolution_messages` (23 partições por instância — auditado 2026-07-16):**
+`wpp2`, `artes`, `comercial_01`–`comercial_15`, `compras`, `default`, `financeiro`, `gravacao`, `logistica`, `marketing`
+
+> `evolution_messages` e `evolution_conversations` são **tabelas raiz particionadas** (relkind='p' no evo schema).
+> Os dados ficam nas partições por instância. No schema `zapp`, `evolution_messages` existe como
+> **view auto-updatable** (security_invoker=on) que aponta para a raiz no schema `evo`.
+> Para queries SELECT, tanto a raiz quanto as partições funcionam.
+> Para **Realtime**, sempre use a raiz (regra 4 acima).
+
+### Storage Buckets (13 buckets em produção)
+
+| Bucket | Público | Limite |
+|--------|---------|--------|
+| `audio-memes` | não | 5 MB |
+| `audio-messages` | não | — |
+| `avatars` | sim | 5 MB |
+| `comprovantes-financeiro` | não | 20 MB |
+| `custom-emojis` | sim | 512 KB |
+| `email-attachments` | não | — |
+| `etiquetas-remessa` | não | 10 MB |
+| `fechamentos` | não | 20 MB |
+| `quarantine` | não | — |
+| `recibos-entrega` | sim | 10 MB |
+| `stickers` | sim | 512 KB |
+| `team-chat-files` | não | — |
+| `whatsapp-media` | não | — |
+
+> ~~**BUG ATIVO**~~: `src/features/inbox/components/chat/useAudioVoiceChange.ts` — **RESOLVIDO** (auditado 2026-07-16): o código já usa `audio-messages` corretamente. Entrada mantida apenas para histórico.
+
+### Bugs Conhecidos e Gaps de Implementação
+
+| ID | Arquivo | Problema | Impacto |
+|----|---------|----------|---------|
+| ~~BUG-1~~ | `src/features/admin/hooks/useAdminManagement.ts:588` | CORRIGIDO: `safeFrom('queue_skills')` → `safeFrom('queue_skill_requirements')` | Resolvido |
+| ~~BUG-2~~ | ~~`src/features/inbox/components/chat/useAudioVoiceChange.ts:13`~~ | CORRIGIDO: bucket `chat-media` → `audio-messages` | Resolvido |
+| ~~BUG-3~~ | `zapp.fn_messages_view_insert_handler` / `messageSender.ts` | CORRIGIDO: trigger INSTEAD OF INSERT não atribuía `NEW.id` antes de `RETURN NEW`; `data.id` retornava NULL; CORRIGIDO no trigger (DB) e via `crypto.randomUUID()` no cliente | Resolvido |
+| ~~BUG-4~~ | `src/features/inbox/hooks/useMessagesCursor.ts:217,283` | CORRIGIDO: canal criado via `externalSupabase.channel()` e removido via `externalSupabase.removeChannel(channel)` — mesmo cliente, sem leak | Resolvido |
+| GAP-1 | `src/hooks/useCampaigns.ts:101` | `rpc('add_contacts_to_campaign')` — função não existe no DB (graceful: toast.error) | Runtime error |
+| GAP-2 | `src/hooks/useIntegrationManagement.ts:54,69` | `rpc('initiate_gmail_oauth')`, `rpc('complete_gmail_oauth')` — não existem (graceful: toast.error) | OAuth Gmail quebrado |
+| GAP-3 | `src/hooks/useIntegrationManagement.ts:156` | `rpc('sync_to_crm')` — não existe (graceful: toast.error) | Sync CRM quebrado |
+| GAP-4 | `src/hooks/useMediaManagement.ts:93,128,156` | `rpc('export_user_data')`, `rpc('import_user_data')`, `rpc('check_download_permission')` — não existem (graceful: toast.error) | Export/Import quebrado |
+| GAP-5 | `src/hooks/useCRMManagement.ts:146` | `rpc('enrich_contact')` — não existe (graceful: log.warn) | Enriquecimento de contato quebrado |
+| GAP-6 | `src/hooks/useAnalyticsManagement.ts:168` | `rpc('get_latest_analysis')` — não existe (graceful: log.warn) | Analytics quebrado |
+| ~~GAP-7~~ | `src/features/admin/hooks/monitoring/useFailedMessages.ts` | CORRIGIDO 2026-07-17: migrado de `rpc_list_failed_messages_cursor` → `rpc_list_failed_messages` (existe); migration `20260717_fix_dlq_rpc_schema_drift.sql` também corrigiu o overload text que referenciava colunas inexistentes (`abandoned_at`, `abandon_reason`) | Resolvido |
+| ~~GAP-8~~ | `src/features/admin/hooks/monitoring/useDispatchErrorLogs.ts` | CORRIGIDO 2026-07-17: migrado de `rpc_list_dispatch_error_logs_cursor` → `rpc_list_dispatch_error_logs` (existe) | Resolvido |
+| ~~GAP-9~~ | `src/features/admin/hooks/monitoring/useDlqAuditLog.ts` | CORRIGIDO 2026-07-17: migrado de `rpc_dlq_list_audit_cursor` → `rpc_dlq_list_audit` (existe) | Resolvido |
+| ~~BUG-5~~ | `zapp.rpc_dlq_stats()` no DB | CORRIGIDO 2026-07-17: retornava `{pending,retrying,failed,total}` mas frontend esperava `{total,total_24h,oldest_pending_at,by_status,by_instance}` — KPI cards renderizavam vazios; migration `20260717_fix_dlq_rpc_schema_drift.sql` reescreveu a função | Resolvido |
+| ~~BUG-6~~ | `src/features/admin/hooks/monitoring/failedMessagesTypes.ts` | CORRIGIDO 2026-07-17: `FailedMessageStatus` não incluía `'failed'`; DB CHECK constraint em `failed_messages.status` permite `'failed'`; adicionado `\| 'failed'` ao union type | Resolvido |
+| ~~BUG-7~~ | `src/features/admin/components/FailedMessageStatusBadge.tsx`, `BulkReprocessGuidedDialog.tsx`, `DLQPanel.tsx` | CORRIGIDO 2026-07-17: Record<FailedMessageStatus,…> e switch/STATUS_OPTIONS faltavam a entrada `'failed'`; rows com `status='failed'` renderizavam badge vazio/undefined | Resolvido |
+| ~~BUG-8~~ | `src/hooks/__tests__/useQueueManagement.test.tsx` | CORRIGIDO 2026-07-17: 4 testes de `useQueueSlaManagement` falhavam com "No QueryClient set" porque o hook chama `useQueryClient()` mas os testes não tinham QueryClientProvider; adicionado mock `@tanstack/react-query#useQueryClient` via `vi.mock` | Resolvido |
 
 ---
 

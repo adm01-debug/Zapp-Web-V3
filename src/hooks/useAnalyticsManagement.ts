@@ -1,6 +1,7 @@
 // Consolidated Analytics & Monitoring Management Module (ETAPA 39)
 // Consolidates: usePerformanceMonitoring, useErrorMonitoring, useRealtimeMonitor, useLatestAnalysis, useMessageAttempts
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useMountedRef } from '@/hooks/useMountedRef';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { log } from '@/lib/logger';
@@ -161,32 +162,32 @@ export function useErrorMonitoringManagement() {
 export function useLatestAnalysisManagement(timeWindow: number = 24) {
   const [analysis, setAnalysis] = useState<Analysis | null>(null);
   const [loading, setLoading] = useState(true);
+  const mounted = useMountedRef();
 
   useEffect(() => {
     const fetchAnalysis = async () => {
       try {
-        const { data, error: err } = await supabase.rpc('get_latest_analysis', {
-          hours: timeWindow,
+        // GAP-6: get_latest_analysis RPC not yet deployed to DB
+        log.warn('fetchAnalysis called but get_latest_analysis RPC is not deployed', {
+          timeWindow,
         });
-
-        if (err) throw err;
-        setAnalysis(data);
       } catch (err) {
         log.error('Error fetching analysis:', err);
       } finally {
-        setLoading(false);
+        if (mounted.current) setLoading(false);
       }
     };
 
     fetchAnalysis();
-  }, [timeWindow]);
+  }, [timeWindow, mounted]);
 
   return { analysis, loading };
 }
 
 export function useMessageAttemptsManagement(messageId: string) {
-  const [attempts, setAttempts] = useState<any[]>([]);
+  const [attempts, setAttempts] = useState<Record<string, unknown>[]>([]);
   const [loading, setLoading] = useState(true);
+  const mounted = useMountedRef();
 
   useEffect(() => {
     if (!messageId) return;
@@ -199,16 +200,16 @@ export function useMessageAttemptsManagement(messageId: string) {
           .eq('message_id', messageId);
 
         if (err) throw err;
-        setAttempts(data || []);
+        if (mounted.current) setAttempts(data || []);
       } catch (err) {
         log.error('Error fetching message attempts:', err);
       } finally {
-        setLoading(false);
+        if (mounted.current) setLoading(false);
       }
     };
 
     fetchAttempts();
-  }, [messageId]);
+  }, [messageId, mounted]);
 
   return { attempts, loading };
 }

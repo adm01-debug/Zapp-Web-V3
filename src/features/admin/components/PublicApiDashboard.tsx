@@ -1,3 +1,4 @@
+import { queryKeys } from '@/services/api/queryKeys';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getLogger } from '@/lib/logger';
@@ -26,7 +27,7 @@ export function PublicApiDashboard() {
   const [saving, setSaving] = useState(false);
 
   const { data, isFetching, refetch } = useQuery({
-    queryKey: ['admin', 'public-api-dashboard'],
+    queryKey: queryKeys.adminOps.publicApi(),
     queryFn: async () => {
       try {
         const { data: setting } = await supabase

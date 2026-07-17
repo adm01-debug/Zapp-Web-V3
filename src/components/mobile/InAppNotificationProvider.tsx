@@ -1,5 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
-import { useState, useCallback, createContext, useContext, ReactNode } from 'react';
+import { useState, useCallback, useMemo, createContext, useContext, ReactNode } from 'react';
 import { InAppNotification, InAppNotificationData } from './InAppNotification';
 
 interface InAppNotificationContextType {
@@ -23,8 +23,10 @@ export function InAppNotificationProvider({ children }: { children: ReactNode })
 
   const handleDismiss = useCallback(() => setNotification(null), []);
 
+  const contextValue = useMemo(() => ({ showNotification }), [showNotification]);
+
   return (
-    <InAppNotificationContext.Provider value={{ showNotification }}>
+    <InAppNotificationContext.Provider value={contextValue}>
       {children}
       <InAppNotification notification={notification} onDismiss={handleDismiss} />
     </InAppNotificationContext.Provider>

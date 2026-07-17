@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { queryKeys } from '@/services/api/queryKeys';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useSLARules, SLARule, SLARuleScope } from '@/features/sla';
@@ -25,7 +26,7 @@ export function ScopeRulesList({ scope }: ScopeRulesListProps) {
   const agentIds = rules.flatMap((r) => r.agent_id ? [r.agent_id] : []);
 
   const { data: contactNames = {} } = useQuery({
-    queryKey: ['sla-contact-names', contactIds],
+    queryKey: queryKeys.sla.contactNames(contactIds),
     queryFn: async () => {
       if (contactIds.length === 0) return {};
       const { data } = await supabase
@@ -42,7 +43,7 @@ export function ScopeRulesList({ scope }: ScopeRulesListProps) {
   });
 
   const { data: queueNames = {} } = useQuery({
-    queryKey: ['sla-queue-names', queueIds],
+    queryKey: queryKeys.sla.queueNames(queueIds),
     queryFn: async () => {
       if (queueIds.length === 0) return {};
       const { data } = await supabase.from('queues').select('id, name').in('id', queueIds);
@@ -56,7 +57,7 @@ export function ScopeRulesList({ scope }: ScopeRulesListProps) {
   });
 
   const { data: agentNames = {} } = useQuery({
-    queryKey: ['sla-agent-names', agentIds],
+    queryKey: queryKeys.sla.agentNames(agentIds),
     queryFn: async () => {
       if (agentIds.length === 0) return {};
       const { data } = await supabase.from('profiles').select('id, name').in('id', agentIds);

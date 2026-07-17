@@ -371,7 +371,7 @@ export function useEmail() {
         log.error('Email messages load error', dbErr);
       }
     } else {
-      setMessages(Array.isArray(data) ? (data as any) : []);
+      setMessages(Array.isArray(data) ? (data as EmailMessage[]) : []);
     }
     setIsLoadingMessages(false);
   }, []);

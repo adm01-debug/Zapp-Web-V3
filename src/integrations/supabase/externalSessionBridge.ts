@@ -1,45 +1,36 @@
 /**
  * External Session Bridge — FATOR X (Dual-session hardening)
  *
- * Mantém a sessão do `externalSupabase` (self-hosted) espelhada com a sessão
- * do client principal (Lovable Cloud). Estratégia:
+ * Pós-consolidação (2026-07-15): `externalSupabase === supabase` — o app usa
+ * apenas um Supabase (self-hosted AtomicaBR, schema `zapp`). Este bridge é
+ * mantido para compatibilidade mas foi endurecido:
  *
- *  - Login email/senha: `mirrorExternalSignIn` é chamado pelo `authService`
- *    (a senha só existe nesse momento). Se o usuário não existe no external,
- *    faz auto-provisionamento via `signUp` e depois `signIn`.
- *  - Login social / magic link: `onAuthStateChange` capta `SIGNED_IN` sem
- *    credenciais — apenas registra warning (dual-session não é possível sem
- *    senha; leituras dependerão do fallback anon do external).
- *  - Logout: propagado nos dois lados.
- *  - Refresh: cada client mantém o próprio (`autoRefreshToken: true`).
- *  - Falhas do external NUNCA bloqueiam o principal (catch silencioso + log).
+ *  - `mirrorExternalSignIn`: early-return se sessão ativa detectada, evitando
+ *    double signIn que invalida o token corrente no GoTrue single-DB.
+ *  - Login social / magic link: warning one-shot (sem credenciais em memória).
+ *  - Logout: propagado.
+ *  - Falhas NUNCA bloqueiam o fluxo principal (catch silencioso + log).
+ *
+ * FIX 2026-07-16 (a): return type `void` → `() => void` para permitir capturar
+ *   e invocar a função de cleanup da subscription onAuthStateChange.
+ *
+ * FIX 2026-07-16 (b): `socialWarningEmitted` agora é resetado no cleanup.
+ *   Antes o estado module-level não era limpo, causando supressão permanente
+ *   do warning OAuth em cenários de re-registro (principalmente em testes).
  */
 import type { AuthError } from '@supabase/supabase-js';
-import { toast } from 'sonner';
 import { supabase } from './client';
 import { externalSupabase, isExternalConfigured } from './externalClient';
 import { createLogger } from '@/lib/logger';
 
 const log = createLogger('externalSessionBridge');
 
-// Auto-provisioning creates an account on the external Supabase instance the
-// first time a user logs in.  Disabled by default: requires explicit opt-in via
-// VITE_EXTERNAL_SESSION_BRIDGE_AUTO_PROVISION=true in the deploy environment.
 const AUTO_PROVISION_ENABLED =
   import.meta.env.VITE_EXTERNAL_SESSION_BRIDGE_AUTO_PROVISION === 'true';
 
 let bridgeInstalled = false;
 let socialWarningEmitted = false;
 
-/**
- * Returns true when an AuthError strongly suggests the user does not exist
- * in the external GoTrue instance, making auto-signup a reasonable recovery.
- *
- * Parentheses on the third condition make operator precedence explicit:
- * (!msg.includes('email not confirmed') && msg.includes('not found'))
- * reads unambiguously as: "message contains 'not found' but is NOT a
- * 'confirmation pending' error".
- */
 function isUserNotFound(err: AuthError | null): boolean {
   if (!err) return false;
   const msg = err.message?.toLowerCase() ?? '';
@@ -52,12 +43,21 @@ function isUserNotFound(err: AuthError | null): boolean {
 
 /**
  * Faz login no external com as mesmas credenciais do principal.
- * Se o usuário não existir no external, faz auto-provisionamento (signUp + signIn).
- * Silencioso em erro — não deve derrubar o fluxo principal.
+ *
+ * ✅ Guard pós-consolidação single-DB:
+ * externalSupabase === supabase. Um 2º signInWithPassword no mesmo GoTrue
+ * cria uma nova sessão e invalida o token corrente. O early-return abaixo
+ * previne esse double-login quando o usuário já está autenticado.
  */
 export async function mirrorExternalSignIn(email: string, password: string): Promise<void> {
   if (!isExternalConfigured) return;
   try {
+    const { data: existing } = await externalSupabase.auth.getSession();
+    if (existing.session?.user?.email === email) {
+      log.debug('mirrorExternalSignIn: sessão já ativa — skip', { email });
+      return;
+    }
+
     const { error } = await externalSupabase.auth.signInWithPassword({ email, password });
     if (!error) {
       log.debug('external mirror sign-in ok', { email });
@@ -71,9 +71,6 @@ export async function mirrorExternalSignIn(email: string, password: string): Pro
           '(habilite VITE_EXTERNAL_SESSION_BRIDGE_AUTO_PROVISION=true)',
           { email },
         );
-        toast.warning('Sessão dual indisponível', {
-          description: 'Usuário não encontrado no servidor externo. Contate o administrador.',
-        });
         return;
       }
 
@@ -85,17 +82,11 @@ export async function mirrorExternalSignIn(email: string, password: string): Pro
       });
       if (signUpErr) {
         log.warn('external auto-signup falhou', { message: signUpErr.message });
-        toast.error('Falha ao provisionar sessão externa', {
-          description: signUpErr.message,
-        });
         return;
       }
       const { error: retryErr } = await externalSupabase.auth.signInWithPassword({ email, password });
       if (retryErr) {
         log.warn('external sign-in após provisionamento falhou', { message: retryErr.message });
-        toast.warning('Sessão externa indisponível', {
-          description: retryErr.message,
-        });
       } else {
         log.info('external provisionado e autenticado', { email });
       }
@@ -103,9 +94,6 @@ export async function mirrorExternalSignIn(email: string, password: string): Pro
     }
 
     log.warn('external mirror sign-in falhou', { message: error.message });
-    toast.warning('Sessão externa indisponível', {
-      description: 'Falha ao sincronizar com o servidor externo. Funcionalidades offline podem ser afetadas.',
-    });
   } catch (e) {
     log.warn('external mirror sign-in exception', { err: (e as Error).message });
   }
@@ -124,18 +112,20 @@ export async function mirrorExternalSignOut(): Promise<void> {
 /**
  * Instala listener global no client principal. Idempotente.
  * Deve ser chamado 1x no boot (main.tsx).
+ *
+ * Retorna função de cleanup capturável:
+ *   const cleanup = registerExternalSessionBridge();
+ *   cleanup(); // desinstala subscription (útil em SSR/testes)
  */
-export function registerExternalSessionBridge(): void {
-  if (bridgeInstalled) return;
+export function registerExternalSessionBridge(): () => void {
+  if (bridgeInstalled) return () => {};
   bridgeInstalled = true;
 
   if (!isExternalConfigured) {
     log.debug('external não configurado — bridge no-op');
-    return;
+    return () => {};
   }
 
-  // Hidratação inicial: se principal está logado mas external não, avisa
-  // (não temos senha em memória — só um novo signIn ou login social resolve).
   void (async () => {
     try {
       const [{ data: mainSess }, { data: extSess }] = await Promise.all([
@@ -152,7 +142,6 @@ export function registerExternalSessionBridge(): void {
     }
   })();
 
-  // ✅ Fix: guardar subscription para poder cancelar se necessário
   const { data: { subscription: authSubscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
     try {
       if (event === 'SIGNED_OUT') {
@@ -162,11 +151,9 @@ export function registerExternalSessionBridge(): void {
       }
 
       if (event === 'SIGNED_IN' && session) {
-        // Se o external já tem sessão válida, nada a fazer (foi feito via authService).
         const { data } = await externalSupabase.auth.getSession();
         if (data.session?.user?.email === session.user.email) return;
 
-        // Sem senha em mãos (login social / magic link / recovery).
         if (!socialWarningEmitted) {
           socialWarningEmitted = true;
           log.warn(
@@ -175,8 +162,6 @@ export function registerExternalSessionBridge(): void {
           );
         }
       }
-
-      // TOKEN_REFRESHED / USER_UPDATED: cada client gerencia o próprio refresh.
     } catch (e) {
       log.debug('onAuthStateChange handler exception', { err: (e as Error).message });
     }
@@ -184,9 +169,10 @@ export function registerExternalSessionBridge(): void {
 
   log.info('external session bridge instalado');
 
-  // ✅ Fix: retornar função de cleanup para evitar memory leak em re-mount
   return () => {
     authSubscription.unsubscribe();
+    bridgeInstalled = false;
+    socialWarningEmitted = false; // FIX(b): reset para permitir warning correto em re-registro
     log.debug('external session bridge desmontado');
   };
 }

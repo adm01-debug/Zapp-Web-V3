@@ -52,7 +52,7 @@ export function ChatSearchBar({ messages, isOpen, onClose, onNavigateToMessage, 
                 <Search className="w-4 h-4 text-muted-foreground shrink-0" />
                 <Input ref={inputRef} value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={handleKeyDown} placeholder="Buscar na conversa..."
                   className="h-full text-[13px] border-none bg-transparent shadow-none focus-visible:ring-0 px-0 min-w-0 text-[hsl(var(--foreground))] placeholder:text-[hsl(var(--muted-foreground))]" />
-                {query && <button onClick={() => setQuery('')} className="p-1 rounded-full hover:bg-accent shrink-0"><X className="w-3.5 h-3.5 text-[hsl(var(--muted-foreground))]" /></button>}
+                {query && <button type="button" onClick={() => setQuery('')} className="p-1 rounded-full hover:bg-accent shrink-0"><X className="w-3.5 h-3.5 text-[hsl(var(--muted-foreground))]" /></button>}
                 {(debouncedQuery.trim() || filter !== 'all' || hasDateFilter) && (
                   <span className="text-[11px] text-muted-foreground whitespace-nowrap shrink-0 tabular-nums font-medium" aria-live="polite">
                     {results.length > 0 ? `${activeIndex + 1}/${results.length}` : '0'}

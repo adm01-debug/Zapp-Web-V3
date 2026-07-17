@@ -102,13 +102,15 @@ async function fetchKnowledgeContext(
  * Supports dual config: SELFHOSTED_SUPABASE_URL takes precedence; falls back to EXTERNAL_SUPABASE_URL.
  * Returns empty array if config missing or fetch fails (graceful degradation for tag recommendations).
  * Used by AI to narrow suggested tags to available taxonomy.
+ *
+ * Uses service role key: evo.evolution_tags RLS allows only `authenticated` and `service_role` —
+ * the anon role has no policy and would always return empty silently.
  */
-async function fetchExternalTags(): Promise<ExtTag[]> {
+async function fetchExternalTags(serviceKey: string): Promise<ExtTag[]> {
   const url = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('EXTERNAL_SUPABASE_URL'));
-  const key = (Deno.env.get('SELFHOSTED_SUPABASE_ANON_KEY') ?? Deno.env.get('EXTERNAL_SUPABASE_ANON_KEY'));
-  if (!url || !key) return [];
+  if (!url || !serviceKey) return [];
   try {
-    const ext = createClient(url, key, { db: { schema: "evo" } });
+    const ext = createClient(url, serviceKey, { db: { schema: "evo" } });
     const { data, error } = await ext
       .from("evolution_tags")
       .select("id, name, color, description")
@@ -279,6 +281,8 @@ Deno.serve(async (req) => {
     let suggestion = template;
     let recommendedTag: string | null = null;
     let kbSources: string[] = [];
+    // Captures a 429/402 error response to return AFTER we persist the partial result.
+    let aiErrorResponse: Response | null = null;
 
     const useAi = !skipAi && (!template || customPrompt);
 
@@ -302,7 +306,7 @@ Deno.serve(async (req) => {
       })));
       const [{ snippet: kbSnippet, sources }, tags] = await Promise.all([
         fetchKnowledgeContext(supabase, searchQuery),
-        fetchExternalTags(),
+        fetchExternalTags(SERVICE_KEY),
       ]);
       kbSources = sources;
 
@@ -350,6 +354,7 @@ Gere a melhor próxima resposta do atendente e recomende a tag mais adequada.`;
           // Re-wrap with CORS headers so browsers receive the 429/402 error properly.
           // Parse and re-serialise so stack traces or internal details from the upstream
           // API are never forwarded verbatim to the browser (CodeQL: stack-trace exposure).
+          // Do NOT return here — fall through so the execution record is always updated.
           let safeBody: string;
           try {
             const raw = await e.json();
@@ -363,15 +368,18 @@ Gere a melhor próxima resposta do atendente e recomende a tag mais adequada.`;
           } catch {
             safeBody = JSON.stringify({ error: 'Request failed' });
           }
-          return new Response(safeBody, {
+          aiErrorResponse = new Response(safeBody, {
             status: e.status,
             headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
           });
+        } else {
+          throw e;
         }
-        throw e;
       }
     }
 
+    // Always persist the result (or the template fallback on AI error) so the
+    // execution record is never left in a pending state regardless of outcome.
     await supabase
       .from("automation_executions")
       .update({
@@ -380,6 +388,8 @@ Gere a melhor próxima resposta do atendente e recomende a tag mais adequada.`;
         kb_sources: kbSources,
       })
       .eq("id", executionId);
+
+    if (aiErrorResponse) return aiErrorResponse;
 
     return new Response(
       JSON.stringify({

@@ -1,3 +1,4 @@
+import { queryKeys } from '@/services/api/queryKeys';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { log } from '@/lib/logger';
@@ -76,7 +77,7 @@ export function useContactEnrichedData(contactId: string) {
   // Step 1 — resolve the FATOR X identifier into a local Lovable Cloud UUID.
   // Without this, JIDs were being passed straight into UUID columns, triggering 22P02 errors.
   const { data: localId } = useQuery({
-    queryKey: ['contact-local-id', contactId],
+    queryKey: queryKeys.contactDetails.localId(contactId),
     queryFn: () => resolveLocalContactId(contactId),
     enabled: !!contactId,
     staleTime: 5 * 60 * 1000, // 5min — phone→uuid mapping is essentially immutable
@@ -84,7 +85,7 @@ export function useContactEnrichedData(contactId: string) {
 
   // Fetch enriched contact fields from DB
   const enrichedQuery = useQuery({
-    queryKey: ['contact-enriched', localId],
+    queryKey: queryKeys.contactDetails.enriched(localId),
     queryFn: async () => {
       if (!localId) return null;
       const { data, error } = await dbFrom('contacts')
@@ -115,7 +116,7 @@ export function useContactEnrichedData(contactId: string) {
 
   // Fetch AI conversation tags
   const aiTagsQuery = useQuery({
-    queryKey: ['contact-ai-tags', localId],
+    queryKey: queryKeys.contactDetails.aiTags(localId),
     queryFn: async () => {
       if (!localId) return [] as AIConversationTag[];
       const { data, error } = await supabase
@@ -145,7 +146,7 @@ export function useContactEnrichedData(contactId: string) {
 
   // Fetch SLA info
   const slaQuery = useQuery({
-    queryKey: ['contact-sla', localId],
+    queryKey: queryKeys.sla.contact(localId),
     queryFn: async () => {
       if (!localId) return null;
       const { data, error } = await supabase

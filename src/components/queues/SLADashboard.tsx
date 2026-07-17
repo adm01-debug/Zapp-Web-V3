@@ -18,6 +18,7 @@ import { ReportData } from '@/utils/exportReport';
 import { cn } from '@/lib/utils';
 import { SLAMetricCards } from './SLAMetricCards';
 import { SLAAgentTable } from './SLAAgentTable';
+import { SectionErrorBoundary } from '@/components/ui/section-error-boundary';
 
 const getRateColor = (rate: number) => {
   if (rate >= 90) return 'text-success';
@@ -281,13 +282,19 @@ export const SLADashboard = () => {
           <TabsTrigger value="granular">Regras Granulares</TabsTrigger>
         </TabsList>
         <TabsContent value="queues" className="pt-4">
-          <QueueSlaPanel />
+          <SectionErrorBoundary sectionName="Filas & Roteamento">
+            <QueueSlaPanel />
+          </SectionErrorBoundary>
         </TabsContent>
         <TabsContent value="global">
-          <SLAConfigurationManager />
+          <SectionErrorBoundary sectionName="Configuração Global de SLA">
+            <SLAConfigurationManager />
+          </SectionErrorBoundary>
         </TabsContent>
         <TabsContent value="granular">
-          <SLARulesManager />
+          <SectionErrorBoundary sectionName="Regras Granulares de SLA">
+            <SLARulesManager />
+          </SectionErrorBoundary>
         </TabsContent>
       </Tabs>
     </div>

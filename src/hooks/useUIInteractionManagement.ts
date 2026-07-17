@@ -11,7 +11,7 @@ const deviceDetectionLog = getLogger('DeviceDetection');
 // TYPE DEFINITIONS
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════════════
 
-interface UseSwipeGestureOptions {
+export interface UseSwipeGestureOptions {
   onSwipeLeft?: () => void;
   onSwipeRight?: () => void;
   threshold?: number;
@@ -24,7 +24,7 @@ export interface SwipeState {
   direction: 'left' | 'right' | null;
 }
 
-interface UseSwipeNavigationOptions {
+export interface UseSwipeNavigationOptions {
   onSwipeBack?: () => void;
   onSwipeForward?: () => void;
   canGoBack?: boolean;

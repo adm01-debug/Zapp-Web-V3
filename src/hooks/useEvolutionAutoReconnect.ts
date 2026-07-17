@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { useEvolutionApi } from '@/hooks/useEvolutionApi';
 import { getLogger } from '@/lib/logger';
+import { queryKeys } from '@/services/api/queryKeys';
 import { useQueryClient } from '@tanstack/react-query';
 import { eventBus } from '@/lib/eventBus';
 import { evolutionInstanceName } from '@/lib/evolutionInstance';
@@ -271,7 +272,7 @@ export function useEvolutionAutoReconnect(instanceName?: string) {
         backoffRef.current = INITIAL_BACKOFF_MS;
         reconnectAttemptCountRef.current = 0; // reset on success
         setIsReconnecting(false);
-        queryClient.invalidateQueries({ queryKey: ['external-evolution'] });
+        queryClient.invalidateQueries({ queryKey: queryKeys.evolutionConversations.all() });
         eventBus.emit('connection:recovered', { instanceName });
       } else {
         scheduleNextAttempt();

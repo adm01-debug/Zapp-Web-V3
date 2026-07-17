@@ -8,6 +8,7 @@
  *     `42501` (sem permissão) e `PGRST116` (item ausente da DLQ).
  */
 import { useCallback, useRef } from 'react';
+import { queryKeys } from '@/services/api/queryKeys';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -75,7 +76,7 @@ export function useRetryFailedMessage() {
       return data;
     },
     onMutate: async ({ messageId }) => {
-      const queryKey = ['message-send-history', messageId] as const;
+      const queryKey = queryKeys.messageDetails.sendHistory(messageId);
       await queryClient.cancelQueries({ queryKey });
       const previous = queryClient.getQueryData<MessageSendHistory>(queryKey);
 
@@ -105,7 +106,9 @@ export function useRetryFailedMessage() {
       });
     },
     onSuccess: (_data, { messageId }) => {
-      queryClient.invalidateQueries({ queryKey: ['message-send-history', messageId] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.messageDetails.sendHistory(messageId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.failedMessages.all() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.failedMessages.stats() });
       toast({ title: 'Reenvio enfileirado', description: 'A mensagem entrou novamente na fila.' });
     },
   });

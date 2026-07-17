@@ -1,5 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
 import { supabase } from '@/integrations/supabase/client';
+import { queryKeys } from '@/services/api/queryKeys';
 import { useQuery } from '@tanstack/react-query';
 import {
   TrendingUp, TrendingDown, Minus, Smile, Meh, Frown, AlertTriangle,
@@ -20,7 +21,7 @@ export interface SentimentData {
 
 export function useRealSentimentData(days: number): SentimentData[] | null {
   const { data } = useQuery({
-    queryKey: ['sentiment-trend', days],
+    queryKey: queryKeys.adminOps.sentimentTrend(days),
     queryFn: async () => {
       const startDate = subDays(new Date(), days);
       const { data: analyses, error } = await supabase

@@ -47,7 +47,7 @@ export const useUser = (id?: string) => {
  */
 export const useSearchUsers = (query?: string) => {
   return createSearchQuery(
-    queryKeys.users.all(),
+    queryKeys.users.searchUsers(query),
     () => usersService.searchUsers(query || ''),
     !!query && query.length >= 2,
     {
@@ -89,7 +89,7 @@ export const useAgent = (id?: string) => {
  */
 export const useSearchAgents = (query?: string) => {
   return createSearchQuery(
-    queryKeys.users.all(),
+    queryKeys.users.searchAgents(query),
     () => usersService.searchAgents(query || ''),
     !!query && query.length >= 2,
     {
@@ -103,7 +103,7 @@ export const useSearchAgents = (query?: string) => {
  */
 export const useAgentsByStatus = (status: Agent['status'], params?: Partial<QueryParams>) => {
   return useQuery({
-    queryKey: [...queryKeys.users.all(), 'status', status],
+    queryKey: queryKeys.users.byStatus(status),
     queryFn: () => usersService.getAgentsByStatus(status, params),
     staleTime: 15_000,
   });

@@ -3,10 +3,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { isValidUUID } from '@/utils/uuid';
 import type { ConversationWithMessages, ConversationContact } from './realtime/types';
 
-// Schema escape hatch: zapp tables not yet in generated types (gen-types-zapp.mjs pendente na VPS)
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const db = supabase as any;
-
 export function useFallbackContact(
   selectedContactId: string | null,
   selectedConversation: ConversationWithMessages | null
@@ -34,7 +30,7 @@ export function useFallbackContact(
           ? (raw as string).replace(/\D/g, '')
           : null;
 
-      let query = db.from('contacts').select('*');
+      let query = supabase.from('contacts').select('*');
       query = phone && !isUuid ? query.eq('phone', phone) : query.eq('id', raw);
 
       const { data, error } = await query.maybeSingle();

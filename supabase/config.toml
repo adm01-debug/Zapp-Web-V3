@@ -1,4 +1,4 @@
-# BANCO CANÔNICO: supabase.atomicabr.com.br (self-hosted VPS)
+# BANCO CANONICO: supabase.atomicabr.com.br (self-hosted VPS)
 # O projeto Lovable Cloud allrjhkpuscmgbsnmjlv foi DESCONTINUADO em 30/06/2026.
 # Refs: docs/cutover/2026-06-30_RUNBOOK.md
 project_id = "default"
@@ -101,3 +101,10 @@ verify_jwt = true
 
 [functions.elevenlabs-voice]
 verify_jwt = true
+
+# login-attempts: verify_jwt=false porque check/record_failed sao chamados
+# ANTES do login (sem JWT). A funcao verifica auth internamente para 'clear'
+# via authClient.auth.getUser() + comparacao de email. Rate-limiting por IP
+# (60 req/60s) protege contra abuso sem necessitar de JWT.
+[functions.login-attempts]
+verify_jwt = false

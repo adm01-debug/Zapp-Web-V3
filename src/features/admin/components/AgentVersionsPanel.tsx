@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect, useRef } from 'react';
+import { queryKeys } from '@/services/api/queryKeys';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { unwrapRows } from '@/lib/supabase-helpers';
@@ -107,7 +108,7 @@ export function AgentVersionsPanel() {
   const [search, setSearch] = useState('');
 
   const { data: agents = [], isLoading: loadingAgents } = useQuery({
-    queryKey: ['admin-agent-versions-list'],
+    queryKey: queryKeys.adminOps.agentVersions(),
     queryFn: async () => {
       const { data, error } = await supabase
         .from('profiles')
@@ -137,12 +138,17 @@ export function AgentVersionsPanel() {
     selectedId || '',
   );
   const [restoringId, setRestoringId] = useState<string | null>(null);
+  const restoreTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => () => {
+    if (restoreTimerRef.current) clearTimeout(restoreTimerRef.current);
+  }, []);
 
   const handleRestore = (versionId: string) => {
     setRestoringId(versionId);
     restoreVersion(versionId);
-    // clear indicator after a beat (mutation feedback via toast)
-    setTimeout(() => setRestoringId(null), 1500);
+    if (restoreTimerRef.current) clearTimeout(restoreTimerRef.current);
+    restoreTimerRef.current = setTimeout(() => setRestoringId(null), 1500);
   };
 
   return (
@@ -175,7 +181,7 @@ export function AgentVersionsPanel() {
             ) : (
               <div className="space-y-1">
                 {filtered.map((agent) => (
-                  <button
+                  <button type="button"
                     key={agent.id}
                     onClick={() => setSelectedId(agent.id)}
                     className={`w-full flex items-center gap-3 p-2 rounded-md text-left transition-colors ${

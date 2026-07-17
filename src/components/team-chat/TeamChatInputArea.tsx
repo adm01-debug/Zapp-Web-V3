@@ -55,6 +55,7 @@ export function TeamChatInputArea({
   onFileSent,
 }: TeamChatInputAreaProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const animTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [showRichToolbar, setShowRichToolbar] = useState(false);
   const [showMarkdownPreview, _setShowMarkdownPreview] = useState(false);
   const [sendAnimation, setSendAnimation] = useState(false);
@@ -68,6 +69,8 @@ export function TeamChatInputArea({
     handleSelect: handleMentionSelect,
     close: closeMention,
   } = useMentions(textareaRef);
+
+  useEffect(() => () => { if (animTimerRef.current) clearTimeout(animTimerRef.current); }, []);
 
   // Auto-grow textarea
   useEffect(() => {
@@ -90,7 +93,8 @@ export function TeamChatInputArea({
     draft.clearDraft();
     if (isMobile && navigator.vibrate) navigator.vibrate(50);
     onSend();
-    setTimeout(() => setSendAnimation(false), 400);
+    if (animTimerRef.current) clearTimeout(animTimerRef.current);
+    animTimerRef.current = setTimeout(() => setSendAnimation(false), 400);
   }, [draft.hasText, draft.isOverLimit, isPending, isMobile, onSend, draft.clearDraft]);
 
   const handleVoiceDictation = useCallback(

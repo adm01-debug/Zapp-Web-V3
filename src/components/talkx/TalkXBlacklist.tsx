@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { queryKeys } from '@/services/api/queryKeys';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { fromTable } from '@/lib/supabaseHelpers';
@@ -68,7 +69,7 @@ export function TalkXBlacklist() {
   const [contactSearch, setContactSearch] = useState('');
 
   const { data: blacklist = [], isLoading } = useQuery({
-    queryKey: ['talkx-blacklist'],
+    queryKey: queryKeys.talkx.blacklist(),
     queryFn: async () => {
       const { data, error } = await fromTable('talkx_blacklist')
         .select('*, contacts:contact_id(name, phone, company, avatar_url)')
@@ -81,7 +82,7 @@ export function TalkXBlacklist() {
   });
 
   const { data: availableContacts = [] } = useQuery({
-    queryKey: ['contacts-for-blacklist'],
+    queryKey: queryKeys.talkx.contactsForBlacklist(),
     queryFn: async () => {
       const { data } = await supabase
         .from('contacts')
@@ -128,7 +129,7 @@ export function TalkXBlacklist() {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['talkx-blacklist'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.talkx.blacklist() });
       toast.success('Contato adicionado à lista negra');
       setShowAddDialog(false);
       setSelectedContactId('');
@@ -144,7 +145,7 @@ export function TalkXBlacklist() {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['talkx-blacklist'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.talkx.blacklist() });
       toast.success('Contato removido da lista negra');
     },
     onError: (e: Error) => toast.error(e.message),
@@ -188,7 +189,7 @@ export function TalkXBlacklist() {
                     </p>
                   ) : (
                     filteredAvailable.map((c) => (
-                      <button
+                      <button type="button"
                         key={c.id}
                         onClick={() => setSelectedContactId(c.id)}
                         className={`w-full px-3 py-2 text-left text-sm transition-colors ${

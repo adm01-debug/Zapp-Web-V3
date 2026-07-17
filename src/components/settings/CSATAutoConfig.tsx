@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { queryKeys } from '@/services/api/queryKeys';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -23,7 +24,7 @@ export function CSATAutoConfig() {
   const queryClient = useQueryClient();
 
   const { data: connections = [] } = useQuery({
-    queryKey: ['whatsapp-connections-csat'],
+    queryKey: queryKeys.adminOps.whatsappConnectionsCsat(),
     queryFn: async () => {
       const { data } = await supabase.from('whatsapp_connections').select('id, name, status');
       return data || [];
@@ -31,7 +32,7 @@ export function CSATAutoConfig() {
   });
 
   const { data: config } = useQuery({
-    queryKey: ['csat-auto-config'],
+    queryKey: queryKeys.adminOps.csatAutoConfig(),
     queryFn: async () => {
       const { data } = await supabase.from('csat_auto_config').select('*').limit(1).maybeSingle();
       return data;
@@ -79,7 +80,7 @@ export function CSATAutoConfig() {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['csat-auto-config'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.adminOps.csatAutoConfig() });
       toast({
         title: 'Configuração CSAT salva!',
         description: 'As pesquisas de satisfação serão enviadas automaticamente.',

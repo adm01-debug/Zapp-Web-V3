@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Users } from 'lucide-react';
@@ -7,6 +8,7 @@ import { ViewersIndicator } from './collaboration/ViewersIndicator';
 import { InternalNotesPanel } from './collaboration/InternalNotesPanel';
 import { HandoffDialog } from './collaboration/HandoffDialog';
 import { dbFrom } from '@/integrations/datasource/db';
+import { queryKeys } from '@/services/api/queryKeys';
 
 interface RealtimeCollaborationProps {
   contactId: string;
@@ -15,6 +17,7 @@ interface RealtimeCollaborationProps {
 
 export function RealtimeCollaboration({ contactId, className }: RealtimeCollaborationProps) {
   const [handoffOpen, setHandoffOpen] = useState(false);
+  const queryClient = useQueryClient();
 
   const handleHandoff = async (agentId: string, comment: string) => {
     await dbFrom('contacts').update({ assigned_to: agentId }).eq('id', contactId);
@@ -33,6 +36,8 @@ export function RealtimeCollaboration({ contactId, className }: RealtimeCollabor
           author_id: profile.id,
           content: `Transferido: ${comment}`,
         });
+        void queryClient.invalidateQueries({ queryKey: queryKeys.internalNotes.contact(contactId) });
+        void queryClient.invalidateQueries({ queryKey: queryKeys.contactDetails.notes(contactId) });
       }
     }
   };

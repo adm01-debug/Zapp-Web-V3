@@ -1,3 +1,4 @@
+import { queryKeys } from '@/services/api/queryKeys';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -53,7 +54,6 @@ const LOGS_COLUMNS = sel(
   'id, ip_address, endpoint, user_id, request_count, blocked, user_agent, country, city, created_at',
 );
 
-const STATS_KEY = ['admin', 'rate-limit-logs', 'stats'] as const;
 
 function stableFilterKey(f: RateLimitLogsFilters) {
   return [
@@ -146,7 +146,7 @@ export function useRateLimitLogs(initial?: Partial<RateLimitLogsFilters>): UseRa
     isFetching: statsLoading,
     refetch: refetchStats,
   } = useQuery<RateLimitLog[]>({
-    queryKey: STATS_KEY,
+    queryKey: queryKeys.adminOps.rateLimitLogsStats(),
     queryFn: async () => {
       const { data: rows, error } = await supabase
         .from('rate_limit_logs')
@@ -168,10 +168,10 @@ export function useRateLimitLogs(initial?: Partial<RateLimitLogsFilters>): UseRa
         'postgres_changes',
         { event: 'INSERT', schema: 'zapp', table: 'rate_limit_logs' },
         (payload) => {
-          queryClient.setQueryData<RateLimitLog[]>(STATS_KEY, (prev) =>
+          queryClient.setQueryData<RateLimitLog[]>(queryKeys.adminOps.rateLimitLogsStats(), (prev) =>
             [payload.new, ...(prev ?? [])].slice(0, 200),
           );
-          queryClient.invalidateQueries({ queryKey: ['admin', 'rate-limit-logs', 'page'] });
+          queryClient.invalidateQueries({ queryKey: queryKeys.adminOps.rateLimitLogs('page') });
         },
       )
       .subscribe();

@@ -1,4 +1,3 @@
-
 // Consolidated CRM & Customer Management Module (ETAPA 43)
 // Consolidates: useContactIntelligence, useContactNotes, useContactEnrichedData, useContactAssignment, useContactCustomFields
 import { useState, useEffect, useCallback, useRef } from 'react';
@@ -10,10 +9,6 @@ import { log } from '@/lib/logger';
 // self-hosted, mas os types gerados no ambiente Lovable (Cloud) não as expõem.
 // Enquanto scripts/gen-types-zapp.mjs não rodar contra a VPS, isolamos a
 // tipagem apenas na fronteira do postgrest — a superfície pública do hook
-// permanece 100% tipada.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const db = supabase as any;
-
 interface ContactIntelligence {
   contact_id: string;
   sentiment: string;
@@ -34,7 +29,7 @@ interface ContactCustomField {
   id: string;
   contact_id: string;
   field_name: string;
-  field_value: any;
+  field_value: unknown;
 }
 
 export function useContactIntelligenceManagement(contactId?: string) {
@@ -53,11 +48,11 @@ export function useContactIntelligenceManagement(contactId?: string) {
 
     try {
       setLoading(true);
-      const { data, error: err } = await db
+      const { data, error: err } = await supabase
         .from('contact_intelligence')
         .select('*')
         .eq('contact_id', contactId)
-        .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
+        .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
 
       if (err && err.code !== 'PGRST116') throw err;
       if (mountedRef.current) setIntelligence(data || null);
@@ -93,7 +88,7 @@ export function useContactNotesManagement(contactId?: string) {
 
     try {
       setLoading(true);
-      const { data, error: err } = await db
+      const { data, error: err } = await supabase
         .from('contact_notes')
         .select('*')
         .eq('contact_id', contactId)
@@ -115,7 +110,7 @@ export function useContactNotesManagement(contactId?: string) {
       if (!contactId) return;
 
       try {
-        const { error: err } = await db.from('contact_notes').insert({
+        const { error: err } = await supabase.from('contact_notes').insert({
           contact_id: contactId,
           content,
         });
@@ -147,10 +142,8 @@ export function useContactEnrichedDataManagement(contactId?: string) {
 
     const fetchEnrichedData = async () => {
       try {
-        const { data, error: err } = await supabase.rpc('enrich_contact', { contact_id: contactId });
-
-        if (err) throw err;
-        setEnrichedData(data);
+        // GAP-5: enrich_contact RPC not yet deployed to DB
+        log.warn('fetchEnrichedData called but enrich_contact RPC is not deployed', { contactId });
       } catch (err) {
         log.error('Error enriching contact data:', err);
       } finally {
@@ -180,11 +173,11 @@ export function useContactAssignmentManagement(contactId?: string) {
 
     try {
       setLoading(true);
-      const { data, error: err } = await db
+      const { data, error: err } = await supabase
         .from('contact_assignments')
         .select('*')
         .eq('contact_id', contactId)
-        .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
+        .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
 
       if (err && err.code !== 'PGRST116') throw err;
       if (mountedRef.current) setAssignment(data || null);
@@ -202,7 +195,7 @@ export function useContactAssignmentManagement(contactId?: string) {
       if (!contactId) return;
 
       try {
-        const { error: err } = await db
+        const { error: err } = await supabase
           .from('contact_assignments')
           .upsert({ contact_id: contactId, assigned_to_user_id: userId });
 
@@ -240,7 +233,7 @@ export function useContactCustomFieldsManagement(contactId?: string) {
 
     try {
       setLoading(true);
-      const { data, error: err } = await db
+      const { data, error: err } = await supabase
         .from('contact_custom_fields')
         .select('*')
         .eq('contact_id', contactId);
@@ -257,11 +250,11 @@ export function useContactCustomFieldsManagement(contactId?: string) {
   }, [contactId]);
 
   const updateField = useCallback(
-    async (fieldName: string, fieldValue: any) => {
+    async (fieldName: string, fieldValue: unknown) => {
       if (!contactId) return;
 
       try {
-        const { error: err } = await db.from('contact_custom_fields').upsert({
+        const { error: err } = await supabase.from('contact_custom_fields').upsert({
           contact_id: contactId,
           field_name: fieldName,
           field_value: fieldValue,

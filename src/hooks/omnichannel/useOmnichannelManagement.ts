@@ -4,6 +4,7 @@ import { safeClient } from '@/integrations/supabase/safeClient';
 import type { Database } from '@/integrations/supabase/schema';
 import { toast as toastSonner } from 'sonner';
 import { toast as toastHook } from '@/hooks/use-toast';
+import { queryKeys } from '@/services/api/queryKeys';
 
 // ═══════════════════════════════════════════════════════════
 // Types
@@ -69,10 +70,9 @@ export function useOmnichannelChannelsManagement(
   _params: UseOmnichannelChannelsParams = {}
 ): UseOmnichannelChannelsResult {
   const queryClient = useQueryClient();
-  const QUERY_KEY = ['omnichannel-channels'];
 
   const { data: channels = [], isLoading } = useQuery({
-    queryKey: QUERY_KEY,
+    queryKey: queryKeys.omnichannel.channels(),
     queryFn: async () => {
       const { data, error } = await supabase
         .from('channel_connections')
@@ -95,7 +95,8 @@ export function useOmnichannelChannelsManagement(
       if (error) throw error;
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: QUERY_KEY });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.omnichannel.channels() });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.adminOps.realtimeMonitorConnections() });
       toastHook({ title: 'Canal adicionado com sucesso' });
     },
     onError: () => {
@@ -109,7 +110,8 @@ export function useOmnichannelChannelsManagement(
       if (error) throw error;
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: QUERY_KEY });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.omnichannel.channels() });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.adminOps.realtimeMonitorConnections() });
       toastHook({ title: 'Canal removido' });
     },
     onError: () => {
@@ -130,7 +132,7 @@ export function useChannelRoutingRulesManagement(
   const queryClient = useQueryClient();
 
   const { data: rules = [], isLoading } = useQuery({
-    queryKey: ['channel-routing-rules'],
+    queryKey: queryKeys.omnichannel.routingRules(),
     queryFn: async () => {
       const { data, error } = await safeClient.from('channel_routing_rules', (q) =>
         q
@@ -144,7 +146,7 @@ export function useChannelRoutingRulesManagement(
   });
 
   const { data: queues = [] } = useQuery({
-    queryKey: ['queues-for-routing'],
+    queryKey: queryKeys.queues.forRouting(),
     queryFn: async () => {
       const { data, error } = await supabase
         .from('queues')
@@ -166,7 +168,7 @@ export function useChannelRoutingRulesManagement(
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['channel-routing-rules'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.omnichannel.routingRules() });
     },
     onError: (err: Error) => toastSonner.error(err.message),
   });
@@ -177,7 +179,7 @@ export function useChannelRoutingRulesManagement(
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['channel-routing-rules'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.omnichannel.routingRules() });
       toastSonner.success('Regra removida');
     },
     onError: (err: Error) => toastSonner.error(err.message),
@@ -194,7 +196,7 @@ export function useChannelRoutingRulesManagement(
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['channel-routing-rules'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.omnichannel.routingRules() });
       toastSonner.success('Regra criada');
     },
     onError: (err: Error) => toastSonner.error(err.message),

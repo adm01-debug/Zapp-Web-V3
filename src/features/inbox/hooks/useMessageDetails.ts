@@ -8,6 +8,7 @@
  * after write.
  */
 import { useQuery } from '@tanstack/react-query';
+import { queryKeys } from '@/services/api/queryKeys';
 import { timedRpc } from '@/lib/instrumentedExternal';
 import type { EvolutionMessage } from '@/types/evolutionExternal';
 
@@ -22,7 +23,7 @@ export function useMessageDetails(
   const enabled = !!messageId && opts.enabled !== false;
 
   return useQuery<EvolutionMessage | null, Error>({
-    queryKey: ['message-details', messageId],
+    queryKey: queryKeys.messageDetails.detail(messageId),
     enabled,
     staleTime: 5 * 60_000,
     gcTime: 10 * 60_000,

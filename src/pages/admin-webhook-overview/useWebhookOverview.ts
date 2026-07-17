@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { queryKeys } from '@/services/api/queryKeys';
 import { useQuery } from '@tanstack/react-query';
 import { subHours } from 'date-fns';
 import { safeGetItem, safeSetItem } from '@/lib/safeStorage';
@@ -31,7 +32,7 @@ export function useWebhookOverview() {
   const sinceISO = useMemo(() => subHours(new Date(), Number(hours)).toISOString(), [hours]);
 
   const { data, isLoading, isRefetching, refetch, error } = useQuery({
-    queryKey: ['admin-webhook-overview', hours, includeUnprocessed],
+    queryKey: queryKeys.adminOps.webhookOverviewFiltered(hours, includeUnprocessed),
     queryFn: async () => {
       const filters: { column: string; operator: string; value: unknown }[] = [
         { column: 'created_at', operator: 'gte', value: sinceISO },

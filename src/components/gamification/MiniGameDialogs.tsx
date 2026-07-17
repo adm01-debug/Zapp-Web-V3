@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -77,6 +77,9 @@ export function QuizGame({ isOpen, onClose, onComplete }: GameDialogProps) {
   const [score, setScore] = useState(0);
   const [answered, setAnswered] = useState<number | null>(null);
   const [showResult, setShowResult] = useState(false);
+  const answerTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => () => { if (answerTimerRef.current) clearTimeout(answerTimerRef.current); }, []);
 
   useEffect(() => {
     if (isOpen) { setCurrentQuestion(0); setScore(0); setAnswered(null); setShowResult(false); }
@@ -88,7 +91,8 @@ export function QuizGame({ isOpen, onClose, onComplete }: GameDialogProps) {
     if (answered !== null) return;
     setAnswered(index);
     if (index === question.correct) setScore(s => s + 20);
-    setTimeout(() => {
+    if (answerTimerRef.current) clearTimeout(answerTimerRef.current);
+    answerTimerRef.current = setTimeout(() => {
       if (currentQuestion < QUIZ_QUESTIONS.length - 1) { setCurrentQuestion(c => c + 1); setAnswered(null); }
       else { setShowResult(true); onComplete(score + (index === question.correct ? 20 : 0), Math.floor((score + (index === question.correct ? 20 : 0)) / 3)); }
     }, 1000);

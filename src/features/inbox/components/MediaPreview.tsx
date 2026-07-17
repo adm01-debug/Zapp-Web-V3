@@ -22,13 +22,13 @@ import { useMediaRefresh } from '@/features/inbox';
 
 function getFileIcon(fileName: string, _mimeType?: string) {
   const extension = getFileExtension(fileName).toLowerCase();
-  if (['pdf'].includes(extension)) return <FileText className="h-8 w-8 text-[#f1592a]" />;
-  if (['doc', 'docx'].includes(extension)) return <FileText className="h-8 w-8 text-[#2b72c4]" />;
+  if (['pdf'].includes(extension)) return <FileText className="h-8 w-8 text-destructive" />;
+  if (['doc', 'docx'].includes(extension)) return <FileText className="h-8 w-8 text-primary" />;
   if (['xls', 'xlsx'].includes(extension))
-    return <FileSpreadsheet className="h-8 w-8 text-[#1d6f42]" />;
-  if (['ppt', 'pptx'].includes(extension)) return <FileText className="h-8 w-8 text-[#d24726]" />;
+    return <FileSpreadsheet className="h-8 w-8 text-success" />;
+  if (['ppt', 'pptx'].includes(extension)) return <FileText className="h-8 w-8 text-warning" />;
   if (['zip', 'rar', '7z'].includes(extension))
-    return <FileArchive className="h-8 w-8 text-[#f8bc34]" />;
+    return <FileArchive className="h-8 w-8 text-warning" />;
   if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(extension))
     return <FileImage className="h-8 w-8 text-[hsl(var(--muted-foreground))]" />;
   return <File className="h-8 w-8 text-[hsl(var(--muted-foreground))]" />;
@@ -93,7 +93,7 @@ export function DocumentPreview({ url: _url, fileName, fileSize, isSent }: Docum
           )}
         </div>
       </div>
-      <button
+      <button type="button"
         onClick={(e) => {
           e.stopPropagation();
           handleDownload();
@@ -246,7 +246,7 @@ export const VideoPreview = forwardRef<HTMLDivElement, VideoPreviewProps>(functi
               </motion.div>
             )}
           </AnimatePresence>
-          <button
+          <button type="button"
             onClick={(e) => {
               e.stopPropagation();
               setShowFullscreen(true);

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -24,7 +24,7 @@ interface SidebarNavGroupProps {
   badgeMap?: Record<string, BadgeInfo | undefined>;
 }
 
-export function SidebarNavGroup({ label, icon: GroupIcon, items, currentView, onViewChange, defaultOpen = false, collapsed = true, onToggleFavorite, isFavorite, badgeMap }: SidebarNavGroupProps) {
+export const SidebarNavGroup = React.memo(function SidebarNavGroup({ label, icon: GroupIcon, items, currentView, onViewChange, defaultOpen = false, collapsed = true, onToggleFavorite, isFavorite, badgeMap }: SidebarNavGroupProps) {
   const hasActiveItem = items.some(item => item.id === currentView);
   const [isOpen, setIsOpen] = useState(defaultOpen || hasActiveItem);
 
@@ -33,8 +33,8 @@ export function SidebarNavGroup({ label, icon: GroupIcon, items, currentView, on
   }, [hasActiveItem]);
 
   const triggerButton = (
-    <button
-      onClick={() => setIsOpen(!isOpen)}
+    <button type="button"
+      onClick={() => setIsOpen((prev) => !prev)}
       className={cn(
         'rounded-xl flex items-center transition-all duration-500 group/trigger outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1',
         collapsed ? 'w-full h-[38px] justify-center gap-1' : 'w-full h-[38px] px-3 gap-2 hover:bg-muted/15',
@@ -114,4 +114,4 @@ export function SidebarNavGroup({ label, icon: GroupIcon, items, currentView, on
       </AnimatePresence>
     </div>
   );
-}
+});
