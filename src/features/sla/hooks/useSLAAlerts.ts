@@ -314,8 +314,13 @@ export function useSLAAlerts(params: SLAAlertParams) {
     params.resolutionStatus,
     params.awaitingMs,
     params.resolutionDurationMs,
+    params.deliveryDelayStatus,
+    params.deliveryDelayMs,
     params.ruleName,
     params.contactName,
+    params.customMessage,
+    params.onOpenConversation,
     preferences,
+    queryClient,
   ]);
 }
