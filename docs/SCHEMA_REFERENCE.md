@@ -1,7 +1,8 @@
 # 📐 Schema Reference — ZAPP WEB
 
 > **Documento canônico** sobre a arquitetura de schemas do Supabase.
-> Última atualização: 2026-07-16. Auditado e corrigido: 2026-07-16. Qualquer doc que contradiga este está desatualizado.
+> Última atualização: **2026-07-17**. Auditado via `pg_catalog` + teste de penetração HTTP real.
+> Qualquer doc que contradiga este está desatualizado.
 
 ## Arquitetura Atual (pós-consolidação)
 
@@ -207,3 +208,63 @@ const { data } = await supabase
   .order('created_at', { ascending: false })
   .limit(50);
 ```
+
+
+---
+
+## ⚠️ Governança de migrations — LEIA ANTES DE RODAR QUALQUER COISA
+
+**Auditoria 2026-07-17.** Este banco **não usa o ledger padrão do Supabase CLI**.
+
+| Fato | Medição |
+|---|---|
+| `supabase_migrations.schema_migrations` | **NÃO EXISTE** |
+| Ledger real em uso | `zapp.schema_migrations` — **39 registros** (2021-07-06 → 2026-07-12) |
+| Arquivos em `supabase/migrations/` | **828** |
+| Workflows/scripts que rodam `db push`/`db reset` | **0** (verificado) |
+
+### O que isso significa
+
+O schema canônico foi construído por **execução direta de SQL** (via MCP/psql), não por
+`supabase db push`. A pasta `supabase/migrations/` é **registro histórico**, não fonte da
+verdade aplicada. Os 789 arquivos fora do ledger **não são drift** — nunca foram destinados
+ao CLI.
+
+### Regras
+
+1. **NUNCA** rodar `supabase db push`, `db reset` ou `supabase link` contra
+   `supabase.atomicabr.com.br`. Sem ledger, o CLI tentaria aplicar as 828 do zero.
+2. Mudança de schema = SQL direto + `gen-types-zapp.yml` no **mesmo PR**.
+3. A fonte da verdade de schema é **`pg_catalog`** — nunca o OpenAPI do PostgREST
+   (não enxerga trigger, policy, cron, nem distingue view de tabela: foi exatamente
+   o erro que produziu o GAP REPORT de 16/07 com 6 dos 8 números errados).
+4. Migration com `DO $$ IF NOT EXISTS` no repo **não implica** coluna no banco.
+   Caso concreto: `onboarding_status` (Sprint 2) existe no arquivo e **não** no banco.
+
+---
+
+## 🔐 Postura de `anon` — baseline 2026-07-17
+
+Após a contenção de 16/07 (`security_invoker=true` em 535/535 views) e o REVOKE de 17/07:
+
+| Superfície | Antes (16/07) | Depois (17/07) |
+|---|---:|---:|
+| GRANTs de `anon` em `public` | 329 (INSERT/UPDATE/DELETE) | **0** |
+| GRANTs de `anon` em `zapp` | 0 | **0** |
+| GRANTs de `anon` em `evo` | 0 | **0** |
+| Funções executáveis por `anon` | 0 | **0** |
+| Views `public` sem `security_invoker` | 0 | **0** |
+
+`authenticated` (717 zapp / 203 evo / 536 public) e `service_role` permanecem intactos.
+Schema `evo` **não é exposto** pelo PostgREST (PGRST106) — só `public` e `zapp`.
+
+**Teste autoritativo de vazamento** (o único que vale):
+
+```bash
+curl "$BASE/rest/v1/<obj>?select=*&limit=1" -H "apikey: $ANON" -H "Accept-Profile: public"
+# resposta iniciando com [{  → VAZAMENTO REAL
+# 42501 permission denied    → contido
+```
+
+`SET LOCAL ROLE anon` em bloco `DO` **não vale** — não persiste no `EXECUTE` dinâmico e
+produz falso negativo.

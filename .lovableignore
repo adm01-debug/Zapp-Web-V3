@@ -2,10 +2,17 @@
 # .lovableignore — Protege arquivos críticos contra sobrescrita
 # pelo bot Lovable (que commita diretamente em main).
 #
-# CONTEXTO: Em 16/07/2026, types.ts foi sobrescrito pelo Lovable
-# com o schema do Cloud (public, 157 entradas), destruindo a
-# tipagem do schema zapp (312 tabelas, 403 views). Cobertura
-# caiu de 100% para 40,7%.
+# HISTÓRICO:
+#   16/07/2026 — types.ts foi sobrescrito pelo Lovable com o schema
+#     do Cloud (public, 157 entradas). Cobertura caiu para 40,7%.
+#   17/07/2026 — REGENERADO e VALIDADO contra pg_catalog:
+#       zapp    312/312 tabelas · 409/410 views · 394 functions
+#       evo     193/193 tabelas ·   20/20 views
+#       public    1/1 tabela    · 532/535 views
+#     types-manual.ts e schema.ts referenciam GeneratedDatabase['zapp'];
+#     o remapeamento ['public']→zapp foi ELIMINADO.
+#
+# BANCO CANÔNICO: https://supabase.atomicabr.com.br — schema zapp
 #
 # REGRA: estes arquivos SÓ são modificados via PR humano.
 # ============================================================
