@@ -1,8 +1,10 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { getLogger } from '@/lib/logger';
 import { sanitizePostgrestFilter } from '@/lib/sanitize';
 import { UserAgent, Inviter, SessionState, Web } from 'sip.js';
 import { supabase } from '@/integrations/supabase/client';
+import { queryKeys } from '@/services/api/queryKeys';
 import { toast } from 'sonner';
 import { useSipConnection } from './sip/useSipConnection';
 
@@ -13,6 +15,7 @@ const log = getLogger('SipClient');
 
 export function useSipClient() {
   const { sipStatus, uaRef, connect, disconnect } = useSipConnection();
+  const queryClient = useQueryClient();
   const [callStatus, setCallStatus] = useState<CallStatus>('idle');
   const callStatusRef = useRef<CallStatus>('idle');
   const [callDuration, setCallDuration] = useState(0);
@@ -108,11 +111,12 @@ export function useSipClient() {
           notes: `Chamada para ${number}`,
         });
         callStartTimeRef.current = null;
+        void queryClient.invalidateQueries({ queryKey: queryKeys.calls.history() });
       } catch (err) {
         log.error('Error logging call:', err);
       }
     },
-    [getProfileId, findContactByPhone]
+    [getProfileId, findContactByPhone, queryClient]
   );
 
   const makeCall = useCallback(
