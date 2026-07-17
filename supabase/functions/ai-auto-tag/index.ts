@@ -33,7 +33,8 @@ Deno.serve(async (req) => {
     }
 
     // Forward request to unified ai-router
-    const aiRouterUrl = Deno.env.get("AI_ROUTER_URL") || "http://localhost:54321/functions/v1/ai-router";
+    const aiRouterUrl = Deno.env.get("AI_ROUTER_URL");
+    if (!aiRouterUrl) return errorResponse("AI_ROUTER_URL not configured", 503, req);
     const forwardResponse = await fetch(aiRouterUrl, {
       method: "POST",
       headers: {
@@ -44,10 +45,8 @@ Deno.serve(async (req) => {
             .filter(([k]) => k.toLowerCase().startsWith("x-") || k.toLowerCase() === "idempotency-key")
         ),
       },
-      body: JSON.stringify({
-        action: "auto_tag",
-        ...body,
-      }),
+      // action is placed last to prevent caller from overriding it via body spread
+      body: JSON.stringify({ ...body, action: "auto_tag" }),
     });
 
     const responseBody = await forwardResponse.json();
