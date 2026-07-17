@@ -1,4 +1,3 @@
-
 // Consolidated CRM & Customer Management Module (ETAPA 43)
 // Consolidates: useContactIntelligence, useContactNotes, useContactEnrichedData, useContactAssignment, useContactCustomFields
 import { useState, useEffect, useCallback, useRef } from 'react';
@@ -53,7 +52,7 @@ export function useContactIntelligenceManagement(contactId?: string) {
         .from('contact_intelligence')
         .select('*')
         .eq('contact_id', contactId)
-        .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
+        .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
 
       if (err && err.code !== 'PGRST116') throw err;
       if (mountedRef.current) setIntelligence(data || null);
@@ -143,10 +142,8 @@ export function useContactEnrichedDataManagement(contactId?: string) {
 
     const fetchEnrichedData = async () => {
       try {
-        const { data, error: err } = await supabase.rpc('enrich_contact', { contact_id: contactId });
-
-        if (err) throw err;
-        setEnrichedData(data);
+        // GAP-5: enrich_contact RPC not yet deployed to DB
+        log.warn('fetchEnrichedData called but enrich_contact RPC is not deployed', { contactId });
       } catch (err) {
         log.error('Error enriching contact data:', err);
       } finally {
@@ -180,7 +177,7 @@ export function useContactAssignmentManagement(contactId?: string) {
         .from('contact_assignments')
         .select('*')
         .eq('contact_id', contactId)
-        .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
+        .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
 
       if (err && err.code !== 'PGRST116') throw err;
       if (mountedRef.current) setAssignment(data || null);

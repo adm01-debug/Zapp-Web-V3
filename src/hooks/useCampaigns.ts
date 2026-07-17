@@ -59,7 +59,6 @@ export function useCampaigns() {
     onError: (err: Error) => toast.error(`Erro: ${err.message}`),
   });
 
-
   const updateCampaign = useMutation({
     mutationFn: async ({ id, ...updates }: Partial<Campaign> & { id: string }) => {
       const { data, error } = await supabase
@@ -67,7 +66,7 @@ export function useCampaigns() {
         .update(updates as CampaignUpdate)
         .eq('id', id)
         .select()
-        .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
+        .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
       if (error) throw error;
       return data;
     },
@@ -98,11 +97,8 @@ export function useCampaigns() {
       campaignId: string;
       contactIds: string[];
     }) => {
-      const { error } = await supabase.rpc('add_contacts_to_campaign', {
-        p_campaign_id: campaignId,
-        p_contact_ids: contactIds,
-      });
-      if (error) throw error;
+      // GAP-1: add_contacts_to_campaign RPC not yet deployed to DB
+      throw new Error('Adicionar contatos a campanhas não está disponível no momento.');
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.campaigns.all() });
