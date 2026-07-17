@@ -210,3 +210,26 @@ supabase/
 │       └── db-client.ts     # createZappAdminClient()
 └── migrations/              # 800+ migrações SQL
 ```
+
+---
+
+## Sessão 2026-07-17 (tarde) — Meta 10/10
+
+### Melhorias executadas
+
+| Item | Ação | Status |
+|---|---|---|
+| Branches lovable-sync | Deletados (−106K/−104K linhas vs main se mergeados) | ✅ |
+| `public._wal_slot_guard_events` | COMMENT documentando deny-all intencional | ✅ |
+| `bpm_check_breached_slas` | Cron criado (job 198, */5 min) | ✅ |
+| TypeScript 0 errors | `tsc --noEmit --skipLibCheck`: 0 erros | ✅ |
+| Gates CI | Todos passando: schema-usage, casts, simulate-schema (300 cenários) | ✅ |
+| `fn_rate_limit_check` | `p_window_minutes` agora usado (floor epoch) | ✅ |
+| 56 RPCs auditadas | 53/53 existem; 3 são mocks/fail-open | ✅ |
+
+### Estado final do banco
+- Schemas: `zapp` (313 tab, 405 views, 1025 fns) / `evo` (189 tab RLS 100%) / `public` (1 tab)  
+- anon: 0 funções executáveis, 0 views sem security_invoker
+- SECDEF: 0 sem search_path fixo
+- Realtime: `zapp.failed_messages` na publication ✅ (subscription com `schema:'zapp'`)
+- Crons: 119 ativos (18 novo: bpm-check-breached-slas)
