@@ -4,6 +4,7 @@ import { renderHook, waitFor, act } from '@testing-library/react';
 const mockFrom = vi.hoisted(() => vi.fn());
 const mockRpc = vi.hoisted(() => vi.fn());
 const mockUseAuth = vi.hoisted(() => vi.fn(() => ({ user: { id: 'u1' } })));
+const mockInvalidateQueries = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
 
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
@@ -24,6 +25,14 @@ vi.mock('@/lib/logger', () => ({
   log: { error: vi.fn(), warn: vi.fn(), info: vi.fn(), debug: vi.fn() },
   getLogger: () => ({ error: vi.fn(), warn: vi.fn(), info: vi.fn(), debug: vi.fn() }),
 }));
+
+vi.mock('@tanstack/react-query', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@tanstack/react-query')>();
+  return {
+    ...actual,
+    useQueryClient: () => ({ invalidateQueries: mockInvalidateQueries }),
+  };
+});
 
 import {
   useQueuesCrudManagement,
