@@ -21,6 +21,7 @@ const STATUS_OPTIONS: Array<{ value: FailedMessageStatus | 'all'; label: string 
   { value: 'retrying', label: 'Em retry' },
   { value: 'succeeded', label: 'Sucesso' },
   { value: 'abandoned', label: 'Abandonadas' },
+  { value: 'failed', label: 'Falhou' },
 ];
 
 function statusBadge(status: FailedMessageStatus) {
@@ -29,6 +30,7 @@ function statusBadge(status: FailedMessageStatus) {
     case 'retrying': return <Badge variant="outline" className="text-[10px] border-primary/40 text-primary">retrying</Badge>;
     case 'succeeded': return <Badge variant="outline" className="text-[10px] border-primary/40 text-primary">succeeded</Badge>;
     case 'abandoned': return <Badge variant="destructive" className="text-[10px]">abandoned</Badge>;
+    case 'failed': return <Badge variant="destructive" className="text-[10px]">failed</Badge>;
   }
 }
 
