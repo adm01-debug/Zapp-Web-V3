@@ -1,6 +1,8 @@
 import { useEffect, useRef } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { queryKeys } from '@/services/api/queryKeys';
 import { useSLAAlertPreferences } from './useSLAAlertPreferences';
 
 type SLAStatus = 'ok' | 'warning' | 'breached' | 'na';
@@ -144,6 +146,7 @@ export function useSLAAlerts(params: SLAAlertParams) {
   const firedRef = useRef<Map<string, number>>(new Map());
   const inflightRef = useRef<Set<string>>(new Set());
   const { preferences } = useSLAAlertPreferences();
+  const queryClient = useQueryClient();
   // Removed redundant assignment using direct params access
 
   useEffect(() => {
@@ -245,7 +248,12 @@ export function useSLAAlerts(params: SLAAlertParams) {
           })
           .then(
             ({ error: insertError }) => {
-              if (!insertError) return;
+              if (!insertError) {
+                void queryClient.invalidateQueries({
+                  queryKey: queryKeys.conversationHistory.events(contactId),
+                });
+                return;
+              }
               // Don't disrupt the user — just record the failure for ops debugging.
               void supabase.functions
                 .invoke('sla-alert-log-failure', {
@@ -306,8 +314,13 @@ export function useSLAAlerts(params: SLAAlertParams) {
     params.resolutionStatus,
     params.awaitingMs,
     params.resolutionDurationMs,
+    params.deliveryDelayStatus,
+    params.deliveryDelayMs,
     params.ruleName,
     params.contactName,
+    params.customMessage,
+    params.onOpenConversation,
     preferences,
+    queryClient,
   ]);
 }

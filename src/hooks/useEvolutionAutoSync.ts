@@ -1,7 +1,9 @@
 import { useEffect, useRef } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { useEvolutionApi } from '@/hooks/useEvolutionApi';
+import { queryKeys } from '@/services/api/queryKeys';
 import { getLogger } from '@/lib/logger';
 import { normalizePhone, isSamePhone } from '@/lib/phoneUtils';
 
@@ -11,6 +13,7 @@ const log = getLogger('useEvolutionAutoSync');
 export function useEvolutionAutoSync(onSynced?: () => void) {
   const ran = useRef(false);
   const { listInstances } = useEvolutionApi();
+  const queryClient = useQueryClient();
 
   const syncAll = async () => {
     try {
@@ -87,7 +90,10 @@ export function useEvolutionAutoSync(onSynced?: () => void) {
         }
       }
 
-      // 5. Refresh connections list
+      // 5. Refresh connections list and invalidate React Query caches
+      void queryClient.invalidateQueries({ queryKey: queryKeys.adminOps.whatsappConnectionsCsat() });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.talkx.waConnections() });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.connections.all() });
       onSynced?.();
     } catch (err) {
       log.warn('Auto-sync failed', { error: err instanceof Error ? err.message : String(err) });

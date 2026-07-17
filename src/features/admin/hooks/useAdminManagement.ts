@@ -1094,7 +1094,11 @@ function useHmacSecurityManagement(instance: string, includeNegative: boolean) {
             message: `${phasePrefix}${detail}${reqSuffix}`.slice(0, 500),
             source,
           });
-          if (insertAlertError) log.warn('warroom_alerts insert failed', insertAlertError);
+          if (insertAlertError) {
+            log.warn('warroom_alerts insert failed', insertAlertError);
+          } else {
+            void queryClient.invalidateQueries({ queryKey: queryKeys.alerts.all() });
+          }
         } else if (payload.ok && activeId) {
           const { error: resolveError } = await safeClient.from('warroom_alerts', (q) =>
             q
