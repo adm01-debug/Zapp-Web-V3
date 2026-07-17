@@ -1,4 +1,3 @@
-
 // Consolidated CRM & Customer Management Module (ETAPA 43)
 // Consolidates: useContactIntelligence, useContactNotes, useContactEnrichedData, useContactAssignment, useContactCustomFields
 import { useState, useEffect, useCallback, useRef } from 'react';
@@ -53,7 +52,7 @@ export function useContactIntelligenceManagement(contactId?: string) {
         .from('contact_intelligence')
         .select('*')
         .eq('contact_id', contactId)
-        .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
+        .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
 
       if (err && err.code !== 'PGRST116') throw err;
       if (mountedRef.current) setIntelligence(data || null);
@@ -111,11 +110,16 @@ export function useContactNotesManagement(contactId?: string) {
       if (!contactId) return;
 
       try {
-        const { data: { user } } = await supabase.auth.getUser();
+        const {
+          data: { user },
+          error: authError,
+        } = await supabase.auth.getUser();
+        if (authError) throw authError;
+        if (!user) throw new Error('Usuário não autenticado');
         const { error: err } = await supabase.from('contact_notes').insert({
           contact_id: contactId,
           content,
-          author_id: user?.id,
+          author_id: user.id,
         });
 
         if (err) throw err;
@@ -145,7 +149,9 @@ export function useContactEnrichedDataManagement(contactId?: string) {
 
     const fetchEnrichedData = async () => {
       try {
-        const { data, error: err } = await supabase.rpc('enrich_contact', { contact_id: contactId });
+        const { data, error: err } = await supabase.rpc('enrich_contact', {
+          contact_id: contactId,
+        });
 
         if (err) throw err;
         setEnrichedData(data);
@@ -182,7 +188,7 @@ export function useContactAssignmentManagement(contactId?: string) {
         .from('contact_assignments')
         .select('*')
         .eq('contact_id', contactId)
-        .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
+        .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
 
       if (err && err.code !== 'PGRST116') throw err;
       if (mountedRef.current) setAssignment(data || null);

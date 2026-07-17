@@ -29,11 +29,7 @@ import type { AppRole } from '@/features/auth';
 
 // Automations
 export type TriggerType =
-  | 'first_response_pending'
-  | 'inactivity'
-  | 'tag_applied'
-  | 'tag_removed'
-  | 'keyword_match';
+  'first_response_pending' | 'inactivity' | 'tag_applied' | 'tag_removed' | 'keyword_match';
 
 export interface TriggerConfig {
   threshold_seconds?: number;
@@ -338,7 +334,6 @@ function useAdminAutomationsManagement() {
     }
   };
 
-
   useEffect(() => {
     void loadAutomations();
   }, []);
@@ -420,7 +415,6 @@ function useAdminAutomationsManagement() {
     toggleAutomationActive,
     adjustAutomationPriority,
   };
-
 }
 
 // ─── Section 2: Channels ─────────────────────────────────────────────────────
@@ -596,7 +590,12 @@ function useAdminQueuesManagement() {
 
       setQueues((qRes.data ?? []) as Queue[]);
       setQueueMembers((mRes.data ?? []) as QueueMember[]);
-      setQueueSkills((sRes.data ?? []) as QueueSkill[]);
+      setQueueSkills(
+        (sRes.data ?? []).map((r) => ({
+          ...r,
+          min_level: (r as { min_level?: number | null }).min_level ?? 1,
+        })) as QueueSkill[]
+      );
       setQueueDepartments((dRes.data ?? []) as QueueDepartment[]);
       setQueueChannels((cRes.data ?? []) as QueueServiceChannel[]);
       setChannelQueues((chqRes.data ?? []) as ChannelQueue[]);
@@ -811,8 +810,14 @@ function useRolesManagement() {
   };
 
   const fetchAvailableRoleUsers = async () => {
-    const { data, error: profilesErr } = await supabase.from('profiles').select('user_id, name, email').order('name');
-    if (profilesErr) { log.warn('Failed to fetch profiles for role users', profilesErr); return; } // ✅ fix: error check
+    const { data, error: profilesErr } = await supabase
+      .from('profiles')
+      .select('user_id, name, email')
+      .order('name');
+    if (profilesErr) {
+      log.warn('Failed to fetch profiles for role users', profilesErr);
+      return;
+    } // ✅ fix: error check
     if (data) {
       const usersWithRoles = roleUsers.map((u) => u.user_id);
       setAvailableRoleUsers(

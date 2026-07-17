@@ -78,6 +78,7 @@ export function useFailedMessages(filters: FailedMessagesFilters = {}) {
     effectiveTo,
     page,
     pageSize,
+    currentPageCursor,
   });
 
   const query = useQuery<{ rows: FailedMessageRow[]; total: number; deniedReason: string | null }>({
@@ -91,6 +92,7 @@ export function useFailedMessages(filters: FailedMessagesFilters = {}) {
         p_to: effectiveTo,
         p_limit: pageSize,
         p_cursor_id: currentPageCursor,
+        p_error_code: errorCode ?? null,
       });
       if (error) {
         if (isRlsDeniedError(error)) {
@@ -99,11 +101,9 @@ export function useFailedMessages(filters: FailedMessagesFilters = {}) {
         throw error;
       }
       const list = data ?? [];
+      // errorCode is now filtered server-side via p_error_code.
+      // rootCause classification is a multi-field heuristic — filtered client-side.
       const filtered = list.filter((r: Record<string, unknown>) => {
-        if (errorCode) {
-          const code = r.error_code ?? (r.http_status ? `http_${r.http_status}` : 'unknown');
-          if (code !== errorCode) return false;
-        }
         if (rootCause) {
           if (classifyRootCause(r) !== rootCause) return false;
         }

@@ -1,4 +1,4 @@
--- Fix: rpc_list_failed_messages_cursor had 3 critical bugs:
+-- Fix: rpc_list_failed_messages_cursor had several critical bugs:
 --
 -- 1) RETURNS TABLE only listed 9 columns, but FailedMessageRow (client) expects 15.
 --    Missing: remote_jid, payload, error_code, http_status, max_retries,
@@ -16,18 +16,32 @@
 --    same created_at as the cursor row. Fixed to use proper row-value comparison:
 --    ROW(created_at, id) < ROW(cursor_created_at, cursor_id).
 --
--- Impact: All client-side errorCode/rootCause filters were silent no-ops (fields
--- always undefined). computeFailedMessagesAggregates() always showed 'unknown' for
--- all error codes. Pagination potentially skipped rows at timestamp boundaries.
+-- 5) Used public.failed_messages (a VIEW) instead of the physical table
+--    zapp.failed_messages, routing the query through PostgREST's public schema
+--    context rather than the physical table's RLS policies.
+--
+-- 6) COUNT(*) OVER() ran after the cursor predicate, so total_count decreased
+--    as pages advanced. Fixed via a CTE that counts the full result set before
+--    the cursor filter is applied.
+--
+-- 7) errorCode filtering was done client-side after LIMIT, producing spuriously
+--    empty pages when matching rows fell beyond the page boundary. Added
+--    p_error_code parameter for server-side filtering. The synthesised codes
+--    (http_NNN, unknown) used by the JS client are mirrored in SQL.
+--    rootCause classification (multi-field heuristic) remains client-side.
+
+-- Drop old 7-parameter signature if it was applied to any environment before this fix.
+DROP FUNCTION IF EXISTS public.rpc_list_failed_messages_cursor(text[], text, text, timestamptz, timestamptz, integer, uuid);
 
 CREATE OR REPLACE FUNCTION public.rpc_list_failed_messages_cursor(
-  p_status text[],
-  p_instance text,
-  p_search text,
-  p_from timestamptz,
-  p_to timestamptz,
-  p_limit integer,
-  p_cursor_id uuid DEFAULT NULL
+  p_status     text[],
+  p_instance   text,
+  p_search     text,
+  p_from       timestamptz,
+  p_to         timestamptz,
+  p_limit      integer,
+  p_cursor_id  uuid    DEFAULT NULL,
+  p_error_code text    DEFAULT NULL
 )
 RETURNS TABLE(
   id uuid,
@@ -49,7 +63,7 @@ RETURNS TABLE(
 )
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path TO 'public'
+SET search_path TO 'zapp', 'public'
 AS $$
 BEGIN
   IF NOT (public.has_role(auth.uid(), 'admin') OR public.has_role(auth.uid(), 'supervisor')) THEN
@@ -60,42 +74,75 @@ BEGIN
   END IF;
 
   RETURN QUERY
+  WITH base AS (
+    -- Filter without cursor so we can count the full result set.
+    SELECT
+      fm.id,
+      fm.instance_name,
+      fm.remote_jid,
+      fm.payload,
+      fm.error_code,
+      fm.error_message,
+      fm.http_status,
+      fm.retry_count,
+      fm.max_retries,
+      fm.status,
+      fm.last_attempt_at,
+      fm.next_attempt_at,
+      fm.succeeded_at,
+      fm.created_at,
+      fm.updated_at
+    FROM zapp.failed_messages fm
+    WHERE (p_status IS NULL OR fm.status = ANY(p_status))
+      AND (p_instance IS NULL OR fm.instance_name = p_instance)
+      AND (p_search IS NULL
+           OR fm.error_message ILIKE '%' || p_search || '%'
+           OR fm.error_code    ILIKE '%' || p_search || '%'
+           OR fm.remote_jid    ILIKE '%' || p_search || '%')
+      AND (p_from IS NULL OR fm.created_at >= p_from)
+      AND (p_to   IS NULL OR fm.created_at <= p_to)
+      -- Server-side error_code filter, mirroring JS synthesised codes:
+      --   error_code column value (direct match)
+      --   NULL error_code + http_status  → 'http_NNN'
+      --   NULL error_code + NULL status  → 'unknown'
+      AND (p_error_code IS NULL
+           OR fm.error_code = p_error_code
+           OR (fm.error_code IS NULL AND fm.http_status IS NOT NULL
+               AND 'http_' || fm.http_status::text = p_error_code)
+           OR (fm.error_code IS NULL AND fm.http_status IS NULL
+               AND p_error_code = 'unknown'))
+  ),
+  total AS (
+    SELECT COUNT(*)::bigint AS cnt FROM base
+  )
   SELECT
-    fm.id,
-    fm.instance_name,
-    fm.remote_jid,
-    fm.payload,
-    fm.error_code,
-    fm.error_message,
-    fm.http_status,
-    fm.retry_count,
-    fm.max_retries,
-    fm.status,
-    fm.last_attempt_at,
-    fm.next_attempt_at,
-    fm.succeeded_at,
-    fm.created_at,
-    fm.updated_at,
-    COUNT(*) OVER()::bigint AS total_count
-  FROM public.failed_messages fm
-  WHERE (p_status IS NULL OR fm.status = ANY(p_status))
-    AND (p_instance IS NULL OR fm.instance_name = p_instance)
-    AND (p_search IS NULL
-         OR fm.error_message ILIKE '%' || p_search || '%'
-         OR fm.error_code ILIKE '%' || p_search || '%'
-         OR fm.remote_jid ILIKE '%' || p_search || '%')
-    AND (p_from IS NULL OR fm.created_at >= p_from)
-    AND (p_to IS NULL OR fm.created_at <= p_to)
-    AND (p_cursor_id IS NULL OR
-         ROW(fm.created_at, fm.id) < (
+    b.id,
+    b.instance_name,
+    b.remote_jid,
+    b.payload,
+    b.error_code,
+    b.error_message,
+    b.http_status,
+    b.retry_count,
+    b.max_retries,
+    b.status,
+    b.last_attempt_at,
+    b.next_attempt_at,
+    b.succeeded_at,
+    b.created_at,
+    b.updated_at,
+    t.cnt AS total_count
+  FROM base b, total t
+  WHERE (p_cursor_id IS NULL OR
+         ROW(b.created_at, b.id) < (
            SELECT ROW(c.created_at, c.id)
-           FROM public.failed_messages c
+           FROM zapp.failed_messages c
            WHERE c.id = p_cursor_id
          ))
-  ORDER BY fm.created_at DESC, fm.id DESC
+  ORDER BY b.created_at DESC, b.id DESC
   LIMIT COALESCE(p_limit, 50);
 END;
 $$;
 
-REVOKE EXECUTE ON FUNCTION public.rpc_list_failed_messages_cursor(text[], text, text, timestamptz, timestamptz, integer, uuid) FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.rpc_list_failed_messages_cursor(text[], text, text, timestamptz, timestamptz, integer, uuid) TO authenticated;
+REVOKE EXECUTE ON FUNCTION public.rpc_list_failed_messages_cursor(text[], text, text, timestamptz, timestamptz, integer, uuid, text) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.rpc_list_failed_messages_cursor(text[], text, text, timestamptz, timestamptz, integer, uuid, text) TO authenticated;
