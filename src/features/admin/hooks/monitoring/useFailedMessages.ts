@@ -68,9 +68,17 @@ export function useFailedMessages(filters: FailedMessagesFilters = {}) {
 
   const currentPageCursor = pageIndexToCursor.get(page) ?? null;
 
-  const queryKey = queryKeys.failedMessages.filtered(
-    { status, instance, errorCode, rootCause, search, effectiveFrom, effectiveTo, page, pageSize },
-  );
+  const queryKey = queryKeys.failedMessages.filtered({
+    status,
+    instance,
+    errorCode,
+    rootCause,
+    search,
+    effectiveFrom,
+    effectiveTo,
+    page,
+    pageSize,
+  });
 
   const query = useQuery<{ rows: FailedMessageRow[]; total: number; deniedReason: string | null }>({
     queryKey,
@@ -139,7 +147,7 @@ export function useFailedMessages(filters: FailedMessagesFilters = {}) {
   useEffect(() => {
     const channel = supabase
       .channel('failed_messages_realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'failed_messages' }, () => {
+      .on('postgres_changes', { event: '*', schema: 'zapp', table: 'failed_messages' }, () => {
         void queryClient.invalidateQueries({ queryKey: queryKeys.failedMessages.all() });
       })
       .subscribe();

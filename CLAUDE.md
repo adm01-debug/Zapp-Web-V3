@@ -52,7 +52,10 @@
    - Mensagens do WhatsApp → `schema: 'evo'`, tabela **`evolution_messages`** (raiz), NÃO `evolution_messages_wpp2`
    - Conversas → `schema: 'evo'`, tabela **`evolution_conversations`** (raiz), NÃO `evolution_conversations_wpp2`
    - Perfis/notificações → `schema: 'zapp'`
+   - **`failed_messages`** → `schema: 'zapp'` (tabela física; `public.failed_messages` é VIEW, não entra na publication — subscription com `schema: 'public'` é no-op silencioso)
+   - **`dispatch_error_logs`** → **NÃO está em nenhuma publication** — qualquer subscription Realtime é no-op; adicionar `ALTER PUBLICATION supabase_realtime ADD TABLE zapp.dispatch_error_logs;` antes de usar
    - **Subscriptions na partição ficam silenciosas** (zero eventos) com `publish_via_partition_root=true`.
+   - **Regra geral**: Realtime usa o WAL físico — apenas relations físicas na publication emitem eventos. Views nunca emitem, independentemente do schema.
 
 5. **Tipos TypeScript**: importar SEMPRE de `@/integrations/supabase/schema` (barrel canônico), nunca de `types.ts` diretamente.
 
@@ -124,7 +127,7 @@
 | ~~BUG-4~~ | `src/hooks/useCRMManagement.ts` | CORRIGIDO: `contact_notes` INSERT omitia FK não-nula `author_id`; adicionado `supabase.auth.getUser()` | Resolvido |
 | ~~BUG-5~~ | `supabase/migrations/20260712001500_cursor_pagination_optimization.sql:145` | CORRIGIDO: GRANT em `rpc_list_dispatch_error_logs_cursor` tinha 7 params vs 8 na assinatura real; nenhum usuário autenticado tinha permissão; fix em `20260716_fix_dispatch_error_logs_grant.sql` | Resolvido |
 | ~~BUG-6~~ | `src/features/admin/hooks/monitoring/useDispatchErrorLogs.ts` | CORRIGIDO: `p_cursor_id` hardcoded como `null`; paginação nunca avançava; adicionado cursor state management | Resolvido |
-| ~~BUG-7~~ | `src/features/admin/hooks/monitoring/useFailedMessages.ts:143` | CORRIGIDO: Realtime subscription usava `schema: 'zapp'` mas `failed_messages` vive em `public`; corrigido para `schema: 'public'` | Resolvido |
+| ~~BUG-7~~ | `src/features/admin/hooks/monitoring/useFailedMessages.ts:142` | REVERTIDO: mudança anterior de `schema: 'zapp'` → `schema: 'public'` era regressão — `public.failed_messages` é VIEW, não está na publication `supabase_realtime`; subscription era no-op silencioso; mantido `schema: 'zapp'` (tabela física, publicada) | Resolvido |
 | GAP-1 | `src/hooks/useCampaigns.ts:100` | `rpc('add_contacts_to_campaign')` — SQL existe em `20260712140000_fix_campaign_contacts_rpc.sql`, não aplicado ao self-hosted | Runtime error até migração aplicada |
 | ~~GAP-2~~ | `src/hooks/useIntegrationManagement.ts:54,69` | STUB CRIADO: `rpc('initiate_gmail_oauth')`, `rpc('complete_gmail_oauth')` — stubs em `20260717000002_create_missing_rpcs_stubs.sql`; retornam erro descritivo em vez de 42883 | UI degrada com mensagem; OAuth real pendente |
 | ~~GAP-3~~ | `src/hooks/useIntegrationManagement.ts:156` | STUB CRIADO: `rpc('sync_to_crm')` — stub em `20260717000002`; registra tentativa em audit_logs | Sync real pendente |
