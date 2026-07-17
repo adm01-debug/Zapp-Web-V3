@@ -79,6 +79,7 @@ export function useSLAConfigurations() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.sla.configurations() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.sla.configurationsDefault() });
       setShowDialog(false);
       setEditingId(null);
       setForm(defaultForm);
@@ -107,7 +108,10 @@ export function useSLAConfigurations() {
       if (context?.previous)
         queryClient.setQueryData(queryKeys.sla.configurations(), context.previous);
     },
-    onSettled: () => queryClient.invalidateQueries({ queryKey: queryKeys.sla.configurations() }),
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.sla.configurations() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.sla.configurationsDefault() });
+    },
   });
 
   const deleteMutation = useMutation({
@@ -130,6 +134,7 @@ export function useSLAConfigurations() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.sla.configurations() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.sla.configurationsDefault() });
       toast.success('SLA removido');
     },
   });

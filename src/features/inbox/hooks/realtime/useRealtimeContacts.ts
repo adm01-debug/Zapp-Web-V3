@@ -173,7 +173,6 @@ export function useRealtimeContacts(options: UseRealtimeContactsOptions = {}) {
 
       if (invalidateConversations) {
         void queryClient.invalidateQueries({ queryKey: queryKeys.evolutionConversations.all() });
-        void queryClient.invalidateQueries({ queryKey: queryKeys.contactDetails.contactsList() });
       }
     };
 

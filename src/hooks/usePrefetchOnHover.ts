@@ -10,11 +10,9 @@ import { queryKeys } from '@/services/api/queryKeys';
 const VIEW_QUERY_KEYS = {
   inbox: [queryKeys.contacts.all(), queryKeys.messages.all()],
   contacts: [queryKeys.contacts.all()],
-  dashboard: [queryKeys.analytics.dashboardStats(), queryKeys.contacts.all()],
+  dashboard: [queryKeys.contacts.all()],
   campaigns: [queryKeys.campaigns.all()],
-  'knowledge-base': [queryKeys.knowledgeBase.articles()],
   automations: [queryKeys.automations.all()],
-  agents: [queryKeys.users.teamMembers()],
   queues: [queryKeys.queues.all()],
   tags: [queryKeys.tags.all()],
 } as const;

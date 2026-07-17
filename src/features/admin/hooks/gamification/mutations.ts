@@ -10,6 +10,12 @@ export function useGamificationMutations(
 ) {
   const queryClient = useQueryClient();
 
+  const invalidateGamificationCaches = () => {
+    queryClient.invalidateQueries({ queryKey: queryKeys.agentGamification.stats(profileId) });
+    queryClient.invalidateQueries({ queryKey: queryKeys.agentGamification.withStats() });
+    queryClient.invalidateQueries({ queryKey: queryKeys.agentGamification.ranking() });
+  };
+
   const addXpMutation = useMutation({
     mutationFn: async ({ xp }: { xp: number; reason: string }) => {
       if (!profileId) throw new Error('No profile ID');

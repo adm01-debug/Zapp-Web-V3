@@ -56,7 +56,7 @@ export const useSearchWhatsAppConnections = (query?: string) => {
  */
 export const useConnectionHealth = (connectionId?: string) => {
   return useQuery({
-    queryKey: queryKeys.connections.health(),
+    queryKey: queryKeys.connections.healthFor(connectionId),
     queryFn: () => connectionsService.checkConnectionHealth(connectionId!),
     enabled: !!connectionId,
     staleTime: 5_000, // Health status is checked frequently

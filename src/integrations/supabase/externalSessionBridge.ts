@@ -10,6 +10,13 @@
  *  - Login social / magic link: warning one-shot (sem credenciais em memória).
  *  - Logout: propagado.
  *  - Falhas NUNCA bloqueiam o fluxo principal (catch silencioso + log).
+ *
+ * FIX 2026-07-16 (a): return type `void` → `() => void` para permitir capturar
+ *   e invocar a função de cleanup da subscription onAuthStateChange.
+ *
+ * FIX 2026-07-16 (b): `socialWarningEmitted` agora é resetado no cleanup.
+ *   Antes o estado module-level não era limpo, causando supressão permanente
+ *   do warning OAuth em cenários de re-registro (principalmente em testes).
  */
 import type { AuthError } from '@supabase/supabase-js';
 import { supabase } from './client';
@@ -45,7 +52,6 @@ function isUserNotFound(err: AuthError | null): boolean {
 export async function mirrorExternalSignIn(email: string, password: string): Promise<void> {
   if (!isExternalConfigured) return;
   try {
-    // Guard: sessão já ativa → nada a fazer.
     const { data: existing } = await externalSupabase.auth.getSession();
     if (existing.session?.user?.email === email) {
       log.debug('mirrorExternalSignIn: sessão já ativa — skip', { email });
@@ -109,14 +115,18 @@ export async function mirrorExternalSignOut(): Promise<void> {
 /**
  * Instala listener global no client principal. Idempotente.
  * Deve ser chamado 1x no boot (main.tsx).
+ *
+ * Retorna função de cleanup capturável:
+ *   const cleanup = registerExternalSessionBridge();
+ *   cleanup(); // desinstala subscription (útil em SSR/testes)
  */
-export function registerExternalSessionBridge(): void {
-  if (bridgeInstalled) return;
+export function registerExternalSessionBridge(): () => void {
+  if (bridgeInstalled) return () => {};
   bridgeInstalled = true;
 
   if (!isExternalConfigured) {
     log.debug('external não configurado — bridge no-op');
-    return;
+    return () => {};
   }
 
   void (async () => {
@@ -166,6 +176,8 @@ export function registerExternalSessionBridge(): void {
 
   return () => {
     authSubscription.unsubscribe();
+    bridgeInstalled = false;
+    socialWarningEmitted = false; // FIX(b): reset para permitir warning correto em re-registro
     log.debug('external session bridge desmontado');
   };
 }

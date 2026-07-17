@@ -11,7 +11,7 @@
 
 import { UseQueryOptions, useQuery } from '@tanstack/react-query';
 import { log } from '@/lib/logger';
-import { tanstackRetry } from '@/lib/errors/queryErrors';
+import { isPermanentQueryError, tanstackRetry } from '@/lib/errors/queryErrors';
 
 interface QueryFactoryOptions<TData> extends Omit<UseQueryOptions<TData>, 'queryKey' | 'queryFn'> {
   staleTime?: number;
@@ -97,8 +97,6 @@ export const createRealtimeQuery = <TData = any>(
     staleTime: 0,
     gcTime: options?.gcTime ?? 5 * 60_000,
     retry: options?.retry ?? tanstackRetry,
-    // refetchInterval removido do padrao: must be explicit
-    // refetchInterval: options?.refetchInterval ?? 5_000, // REMOVIDO
     ...options,
   });
 };
@@ -150,13 +148,26 @@ export const handleQueryError = (error: unknown, fallbackMessage?: string) => {
   return fallbackMessage || 'Ocorreu um erro ao carregar os dados.';
 };
 
+/**
+ * Retry config alinhado com tanstackRetry/isPermanentQueryError.
+ *
+ * FIX 2026-07-16: versao anterior usava apenas `status >= 400 && < 500`
+ * o que:
+ *   - Bloqueava 404 (deveria ser retentavel)
+ *   - Nao capturava 42501 (sem campo status, passsava pelo check)
+ *
+ * Agora usa isPermanentQueryError (a fonte de verdade centralizada).
+ *
+ * NOTA: este objeto NAO e integrado ao TanStack Query automaticamente.
+ * Para hooks, use `retry: tanstackRetry` diretamente no useQuery.
+ * retryConfig e para chamadas manuais fora do TanStack.
+ */
 export const retryConfig = {
-  shouldRetry: (error: unknown, attemptIndex: number) => {
-    const e = error as { status?: number } | null;
-    if (e?.status !== undefined && e.status >= 400 && e.status < 500) return false;
-    return attemptIndex < 3;
+  shouldRetry: (error: unknown, attemptIndex: number, maxAttempts = 3): boolean => {
+    if (isPermanentQueryError(error)) return false;
+    return attemptIndex < maxAttempts;
   },
-  getDelay: (attemptIndex: number) => {
+  getDelay: (attemptIndex: number): number => {
     return Math.min(1000 * 2 ** attemptIndex, 30_000);
   },
 };

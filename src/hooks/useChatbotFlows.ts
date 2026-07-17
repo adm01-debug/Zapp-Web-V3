@@ -92,6 +92,7 @@ export function useChatbotFlows() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.chatbotFlows.all() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.chatbot.l1Flow() });
       toast.success('Fluxo de chatbot criado!');
     },
     onError: (err: Error) => toast.error(`Erro: ${err.message}`),
@@ -115,6 +116,7 @@ export function useChatbotFlows() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.chatbotFlows.all() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.chatbot.l1Flow() });
       toast.success('Fluxo atualizado!');
     },
     onError: (err: Error) => toast.error(`Erro: ${err.message}`),
@@ -127,6 +129,7 @@ export function useChatbotFlows() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.chatbotFlows.all() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.chatbot.l1Flow() });
       toast.success('Fluxo excluído!');
     },
     onError: (err: Error) => toast.error(`Erro: ${err.message}`),
@@ -139,6 +142,7 @@ export function useChatbotFlows() {
     },
     onSuccess: (_, { is_active }) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.chatbotFlows.all() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.chatbot.l1Flow() });
       toast.success(is_active ? 'Fluxo ativado!' : 'Fluxo desativado!');
     },
     onError: (err: Error) => toast.error(`Erro: ${err.message}`),

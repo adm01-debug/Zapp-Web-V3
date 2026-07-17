@@ -158,7 +158,7 @@ export function GoalsConfigDialog({ open, onOpenChange }: GoalsConfigDialogProps
     onSuccess: () => {
       toast.success('Metas salvas com sucesso!');
       queryClient.invalidateQueries({ queryKey: queryKeys.goals.config() });
-      queryClient.invalidateQueries({ queryKey: queryKeys.goals.messages() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.goals.messagesRoot() });
       onOpenChange(false);
     },
     onError: (error: Error) => {

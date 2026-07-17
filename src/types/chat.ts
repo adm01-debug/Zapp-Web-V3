@@ -1,10 +1,10 @@
 // W4 (2026-07-06): núcleo derivado do schema gerado; 'avatar' e 'createdAt' são
-import type { Tables } from '@/integrations/supabase/schema';
+import type { ContactRow } from '@/integrations/supabase/schema';
 // aliases camelCase client-side (mapeados de avatar_url/created_at nos adapters).
-export type Contact = Pick<Tables<'contacts'>, 'id' | 'name' | 'phone' | 'tags'> &
+export type Contact = Pick<NonNullable<ContactRow>, 'id' | 'name' | 'phone' | 'tags'> &
   Partial<
     Pick<
-      Tables<'contacts'>,
+      NonNullable<ContactRow>,
       | 'nickname'
       | 'surname'
       | 'job_title'

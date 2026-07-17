@@ -2,11 +2,11 @@ import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import type { Tables } from '@/integrations/supabase/schema';
+import type { ContactRow } from '@/integrations/supabase/schema';
 import { queryKeys } from '@/services/api/queryKeys';
 
 type Contact = Pick<
-  Tables<'contacts'>,
+  NonNullable<ContactRow>,
   | 'id'
   | 'name'
   | 'nickname'

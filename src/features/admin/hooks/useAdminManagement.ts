@@ -14,8 +14,10 @@
  */
 
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { safeClient, safeFrom } from '@/integrations/supabase/safeClient';
+import { queryKeys } from '@/services/api/queryKeys';
 import { toast } from 'sonner';
 import { useToast } from '@/hooks/use-toast';
 import { useMountedRef } from '@/hooks/useMountedRef';
@@ -579,7 +581,7 @@ function useAdminQueuesManagement() {
       const [qRes, mRes, sRes, dRes, cRes, chqRes, pRes] = await Promise.all([
         supabase.from('queues').select('*'),
         supabase.from('queue_members').select('*'),
-        safeFrom('queue_skills').select('*'),
+        safeFrom('queue_skill_requirements').select('*'),
         supabase.from('departments').select('*'),
         safeFrom('service_channels').select('id,name,channel_type,default_queue_id'),
         safeFrom('channel_queues').select('*'),
@@ -659,6 +661,7 @@ function useDepartmentsManagement() {
   const [deptSaving, setDeptSaving] = useState(false);
   const mountedRef = useMountedRef();
   const deptLogger = getLogger('useDepartmentsAdmin');
+  const queryClient = useQueryClient();
 
   const fetchDepartments = useCallback(async () => {
     setDeptLoading(true);
@@ -729,6 +732,7 @@ function useDepartmentsManagement() {
 
     toast.success(editingId ? 'Departamento atualizado' : 'Departamento criado');
     void fetchDepartments();
+    void queryClient.invalidateQueries({ queryKey: queryKeys.departmentChat.list() });
     return true;
   };
 
@@ -744,6 +748,7 @@ function useDepartmentsManagement() {
 
     toast.success('Departamento removido');
     void fetchDepartments();
+    void queryClient.invalidateQueries({ queryKey: queryKeys.departmentChat.list() });
     return true;
   };
 

@@ -30,7 +30,7 @@ const STATUS_MAP: Record<
 
 export function FollowUpExecutionsHistory() {
   const { data: executions = [], isLoading } = useQuery({
-    queryKey: queryKeys.followupSequences.executions(),
+    queryKey: queryKeys.followupSequences.executionsRoot(),
     queryFn: async () => {
       type ExecutionRow = {
         id: string;

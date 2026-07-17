@@ -122,7 +122,7 @@ export function useSkillBasedRouting(selectedProfile: string, selectedQueue: str
       if (error) throw error;
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: queryKeys.skillRouting.agentSkills() });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.skillRouting.agentSkillsRoot() });
     },
     onError: () => {
       toast({ title: 'Erro ao remover skill', variant: 'destructive' });
@@ -162,7 +162,9 @@ export function useSkillBasedRouting(selectedProfile: string, selectedQueue: str
       if (error) throw error;
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: queryKeys.skillRouting.queueRequirements() });
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.skillRouting.queueRequirementsRoot(),
+      });
     },
     onError: () => {
       toast({ title: 'Erro ao remover requisito', variant: 'destructive' });

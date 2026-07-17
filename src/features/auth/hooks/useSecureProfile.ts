@@ -33,7 +33,7 @@ export function useSecureProfileUpdate() {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.userProfile.profile() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.userProfile.me() });
       toast.success('Perfil atualizado com sucesso');
     },
     onError: (err) => {
