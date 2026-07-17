@@ -135,11 +135,13 @@ export function useFailedMessages(filters: FailedMessagesFilters = {}) {
     setPageIndexToCursor(new Map([[0, null]]));
   }, [status, instance, errorCode, rootCause, search, effectiveFrom, effectiveTo]);
 
-  // Realtime
+  // Realtime — subscribe to the physical table in zapp schema.
+  // public.failed_messages is a VIEW and is NOT in supabase_realtime publication;
+  // subscribing to it would be a silent no-op (WAL only emits for physical relations).
   useEffect(() => {
     const channel = supabase
       .channel('failed_messages_realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'failed_messages' }, () => {
+      .on('postgres_changes', { event: '*', schema: 'zapp', table: 'failed_messages' }, () => {
         void queryClient.invalidateQueries({ queryKey: queryKeys.failedMessages.all() });
       })
       .subscribe();
