@@ -15,6 +15,7 @@ export function useAgentReassignment() {
     queryClient.invalidateQueries({ queryKey: queryKeys.contacts.lists() });
     queryClient.invalidateQueries({ queryKey: queryKeys.evolutionConversations.all() });
     queryClient.invalidateQueries({ queryKey: queryKeys.adminOps.warroom.queues() });
+    queryClient.invalidateQueries({ queryKey: queryKeys.adminOps.warroom.agents() });
   };
 
   const reassignAbsent = useMutation({
