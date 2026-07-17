@@ -1,6 +1,7 @@
 -- Schema Hardening v7: Final status CHECK constraints + data cleanup
--- Covers the last 13 unconstrained status columns (excluding _audit_sim_results
--- which is an internal tooling table, and proxy_metrics which stores HTTP codes).
+-- Covers the last 12 unconstrained status columns (excluding _audit_sim_results
+-- which is an internal tooling table, proxy_metrics which stores HTTP codes,
+-- and email_health_logs whose RPC intentionally stores raw status values).
 -- All values verified against app code, migrations, and edge functions.
 -- Note: Supabase migration runner wraps each file in a transaction automatically.
 
@@ -12,12 +13,17 @@
 DELETE FROM zapp.email_health_logs WHERE status = 'EXPLOIT_TEST_INVALID_9z9z';
 
 -- ============================================================
--- FIX #17: CHECK constraints on final 13 status columns
+-- FIX #17: CHECK constraints on final 12 status columns
 -- GAP: These tables accepted any string in their status column.
 -- Values verified against TypeScript types, migration comments,
 -- edge function code, and UI components.
 -- Using NOT VALID to avoid blocking writes during table scan,
 -- followed by VALIDATE CONSTRAINT to verify existing data.
+--
+-- NOTE: email_health_logs is intentionally excluded — the
+-- rpc_log_email_health function stores raw p_status values
+-- (e.g. 'ok') for diagnostic purposes. See migration
+-- 20260702_email_rpc_hardening.sql line 90.
 -- ============================================================
 
 -- Sales & CRM
@@ -43,10 +49,9 @@ ALTER TABLE zapp.provider_message_log
   ADD CONSTRAINT provider_message_log_status_check
   CHECK (status IS NULL OR status IN ('received', 'persisted', 'routed', 'sent', 'delivered', 'read', 'failed')) NOT VALID;
 
--- Email monitoring
-ALTER TABLE zapp.email_health_logs
-  ADD CONSTRAINT email_health_logs_status_check
-  CHECK (status IN ('healthy', 'degraded', 'error', 'unknown')) NOT VALID;
+ALTER TABLE zapp.provider_message_log
+  ADD CONSTRAINT provider_message_log_delivery_status_check
+  CHECK (delivery_status IN ('received', 'persisted', 'routed', 'sent', 'delivered', 'read', 'failed')) NOT VALID;
 
 -- Testing infrastructure
 ALTER TABLE zapp.stress_test_runs
@@ -87,7 +92,7 @@ ALTER TABLE zapp.sales_deals VALIDATE CONSTRAINT sales_deals_status_check;
 ALTER TABLE zapp.security_audit_logs VALIDATE CONSTRAINT security_audit_logs_status_check;
 ALTER TABLE zapp.provider_configs VALIDATE CONSTRAINT provider_configs_status_check;
 ALTER TABLE zapp.provider_message_log VALIDATE CONSTRAINT provider_message_log_status_check;
-ALTER TABLE zapp.email_health_logs VALIDATE CONSTRAINT email_health_logs_status_check;
+ALTER TABLE zapp.provider_message_log VALIDATE CONSTRAINT provider_message_log_delivery_status_check;
 ALTER TABLE zapp.stress_test_runs VALIDATE CONSTRAINT stress_test_runs_status_check;
 ALTER TABLE zapp.sessions VALIDATE CONSTRAINT sessions_status_check;
 ALTER TABLE zapp.webauthn_challenges VALIDATE CONSTRAINT webauthn_challenges_status_check;
@@ -111,11 +116,17 @@ ALTER TABLE zapp.whatsapp_connections
   ALTER COLUMN is_plugged SET NOT NULL;
 
 -- ============================================================
--- FIX #19: Missing timestamp defaults on _vault_corrupted_quarantine
--- GAP: created_at, updated_at, quarantined_at had no DEFAULT,
--- allowing rows without timestamps.
+-- FIX #19: Missing timestamp defaults + NOT NULL on
+-- _vault_corrupted_quarantine
+-- GAP: created_at, updated_at, quarantined_at had no DEFAULT
+-- and allowed NULLs, risking rows without timestamps.
 -- ============================================================
 ALTER TABLE zapp._vault_corrupted_quarantine
   ALTER COLUMN created_at SET DEFAULT now(),
   ALTER COLUMN updated_at SET DEFAULT now(),
   ALTER COLUMN quarantined_at SET DEFAULT now();
+
+ALTER TABLE zapp._vault_corrupted_quarantine
+  ALTER COLUMN created_at SET NOT NULL,
+  ALTER COLUMN updated_at SET NOT NULL,
+  ALTER COLUMN quarantined_at SET NOT NULL;
