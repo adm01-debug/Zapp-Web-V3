@@ -23,7 +23,7 @@ interface Queue {
   color?: string | null;
   description?: string | null;
   assigned_to?: string | null;
-  status: 'active' | 'inactive';
+  status: 'active' | 'paused' | 'archived' | 'inactive';
   waiting_count?: number | null;
   max_wait_time_minutes?: number | null;
   created_at: string;
@@ -156,9 +156,7 @@ export function useQueuesCrudManagement() {
 
     try {
       setLoading(true);
-      const { data, error: err } = await safeFrom('queues')
-        .select('*')
-        .order('name');
+      const { data, error: err } = await safeFrom('queues').select('*').order('name');
 
       if (err) throw err;
       if (mountedRef.current) setQueues((data || []) as Queue[]);
@@ -207,7 +205,7 @@ export function useQueueAnalyticsManagement(params: { queueId: string; dateRange
         .eq('queue_id', queueId)
         .order('timestamp', { ascending: false })
         .limit(1)
-        .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
+        .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
 
       if (err && err.code !== 'PGRST116') throw err;
       if (mountedRef.current) setAnalytics((data as QueueAnalytics | null) || null);
@@ -266,9 +264,7 @@ export function useQueueGoalsManagement(queueId?: string) {
   const updateGoalStatus = useCallback(
     async (goalId: string, status: 'on_track' | 'at_risk' | 'missed') => {
       try {
-        const { error: err } = await safeFrom('queue_goals')
-          .update({ status })
-          .eq('id', goalId);
+        const { error: err } = await safeFrom('queue_goals').update({ status }).eq('id', goalId);
 
         if (err) throw err;
         await fetchGoals();
@@ -367,9 +363,7 @@ export function useQueueSlaManagement(params: { filters: QueueSlaFilters }) {
   const updateQueueConfig = useCallback(
     async (queueId: string, patch: QueueSlaPatch): Promise<boolean> => {
       try {
-        const { error: err } = await safeFrom('queues')
-          .update(patch)
-          .eq('id', queueId);
+        const { error: err } = await safeFrom('queues').update(patch).eq('id', queueId);
 
         if (err) throw err;
         await fetchSla();
@@ -383,19 +377,31 @@ export function useQueueSlaManagement(params: { filters: QueueSlaFilters }) {
     [fetchSla, queryClient]
   );
 
-  const triggerRebalance = useCallback(async (limit = 50): Promise<boolean> => {
-    try {
-      const { error: err } = await rpcClient.rpc('rpc_queue_rebalance_candidates', { p_limit: limit });
-      if (err) throw err;
-      await fetchSla();
-      return true;
-    } catch (err) {
-      log.error('Error triggering queue rebalance:', err);
-      return false;
-    }
-  }, [fetchSla]);
+  const triggerRebalance = useCallback(
+    async (limit = 50): Promise<boolean> => {
+      try {
+        const { error: err } = await rpcClient.rpc('rpc_queue_rebalance_candidates', {
+          p_limit: limit,
+        });
+        if (err) throw err;
+        await fetchSla();
+        return true;
+      } catch (err) {
+        log.error('Error triggering queue rebalance:', err);
+        return false;
+      }
+    },
+    [fetchSla]
+  );
 
-  return { rows: slaRows, slaRows, loading, refetch: fetchSla, updateQueueConfig, triggerRebalance };
+  return {
+    rows: slaRows,
+    slaRows,
+    loading,
+    refetch: fetchSla,
+    updateQueueConfig,
+    triggerRebalance,
+  };
 }
 
 /** Compares queue performance metrics across time periods. */
@@ -416,8 +422,7 @@ export function useQueuesComparisonManagement(_params: { dateRange: DateRange })
 
     try {
       setLoading(true);
-      const { data, error: err } = await safeFrom('queues')
-        .select(`
+      const { data, error: err } = await safeFrom('queues').select(`
           id,
           name,
           queue_analytics(
@@ -463,4 +468,17 @@ export function useQueuesComparisonManagement(_params: { dateRange: DateRange })
   return { comparison, loading, refetch: fetchComparison };
 }
 
-export type { Queue, QueueMember, QueueWithMembers, QueueAnalytics, QueueGoal, QueueSLA, QueueSlaRow, QueueSlaPatch, QueueSlaFilters, SlaStatusFilter, QueueComparison, DateRange };
+export type {
+  Queue,
+  QueueMember,
+  QueueWithMembers,
+  QueueAnalytics,
+  QueueGoal,
+  QueueSLA,
+  QueueSlaRow,
+  QueueSlaPatch,
+  QueueSlaFilters,
+  SlaStatusFilter,
+  QueueComparison,
+  DateRange,
+};

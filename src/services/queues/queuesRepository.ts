@@ -10,7 +10,7 @@ export interface Queue {
   name: string;
   description?: string;
   account_id: string;
-  status: 'active' | 'inactive';
+  status: 'active' | 'paused' | 'archived' | 'inactive';
   color?: string;
   icon?: string;
   position?: number;
@@ -21,24 +21,17 @@ export interface Queue {
 const queuesBaseService = createService<Queue>('queues');
 
 export const queuesRepository = {
-  list: (filters?: Partial<Queue> & QueryParams) =>
-    queuesBaseService.list(filters),
+  list: (filters?: Partial<Queue> & QueryParams) => queuesBaseService.list(filters),
 
-  get: (id: string) =>
-    queuesBaseService.get(id),
+  get: (id: string) => queuesBaseService.get(id),
 
-  search: (query: string) =>
-    queuesBaseService.search(query),
+  search: (query: string) => queuesBaseService.search(query),
 
-  create: (data: Partial<Queue>) =>
-    queuesBaseService.create(data),
+  create: (data: Partial<Queue>) => queuesBaseService.create(data),
 
-  update: (id: string, updates: Partial<Queue>) =>
-    queuesBaseService.update(id, updates),
+  update: (id: string, updates: Partial<Queue>) => queuesBaseService.update(id, updates),
 
-  delete: (id: string) =>
-    queuesBaseService.delete(id),
+  delete: (id: string) => queuesBaseService.delete(id),
 
-  subscribe: (callback: (queue: Queue) => void) =>
-    queuesBaseService.subscribe(callback),
+  subscribe: (callback: (queue: Queue) => void) => queuesBaseService.subscribe(callback),
 };
