@@ -96,6 +96,18 @@ BEGIN
   )
   ON CONFLICT (message_id, instance_name) DO NOTHING;
 
+  -- When the insert was skipped due to a conflict, FOUND is false.
+  -- Re-fetch the existing row's id so RETURN NEW carries the correct UUID
+  -- back to PostgREST — otherwise callers receive the transient NEW.id they
+  -- provided, which may differ from the persisted row's id.
+  IF NOT FOUND THEN
+    SELECT em.id INTO NEW.id
+    FROM zapp.evolution_messages em
+    WHERE em.message_id = COALESCE(NEW.whatsapp_message_id, NEW.external_id)
+      AND em.instance_name = v_instance
+    LIMIT 1;
+  END IF;
+
   RETURN NEW;
 END;
 $function$;

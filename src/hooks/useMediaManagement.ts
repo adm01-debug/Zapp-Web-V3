@@ -3,7 +3,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { log } from '@/lib/logger';
-import { toast } from 'sonner';
 import { useMountedRef } from '@/hooks/useMountedRef';
 
 interface Sticker {
@@ -93,9 +92,21 @@ export function useExportDataManagement() {
     setProgress(0);
 
     try {
-      // GAP-4: export_user_data RPC not yet deployed to DB
-      toast.error('Exportação de dados não disponível no momento. Entre em contato com o suporte.');
-      log.warn('exportData called but export_user_data RPC is not deployed');
+      const { data, error: err } = await supabase.rpc('export_user_data', {
+        export_format: format,
+      });
+
+      if (err) throw err;
+
+      const element = document.createElement('a');
+      const file = new Blob([JSON.stringify(data)], { type: 'application/json' });
+      element.href = URL.createObjectURL(file);
+      element.download = `export.${format}`;
+      document.body.appendChild(element);
+      element.click();
+      document.body.removeChild(element);
+
+      setProgress(100);
     } catch (err) {
       log.error('Error exporting data:', err);
     } finally {
@@ -115,11 +126,12 @@ export function useImportDataManagement() {
     setError(null);
 
     try {
-      // GAP-4: import_user_data RPC not yet deployed to DB
-      const message = 'Importação de dados não disponível no momento.';
-      setError(message);
-      toast.error(message);
-      log.warn('importData called but import_user_data RPC is not deployed');
+      const text = await file.text();
+      const data = JSON.parse(text);
+
+      const { error: err } = await supabase.rpc('import_user_data', { data });
+
+      if (err) throw err;
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Import failed';
       setError(message);
@@ -145,13 +157,18 @@ export function useDownloadPermissionManagement(resourceId?: string) {
 
     const checkPermission = async () => {
       try {
-        // GAP-4: check_download_permission RPC not yet deployed — grant access by default
-        setHasPermission(true);
-        log.warn(
-          'checkPermission called but check_download_permission RPC is not deployed; defaulting to true'
-        );
+        const { data, error: err } = await supabase.rpc('check_download_permission', {
+          resource_id: resourceId,
+        });
+
+        if (err) throw err;
+        setHasPermission(data || false);
       } catch (err) {
         log.error('Error checking download permission:', err);
+        // Fail open only when the RPC doesn't exist yet (SQLSTATE 42883 = undefined_function).
+        // Any other error (network, auth, RLS) keeps permission denied.
+        const code = (err as { code?: string })?.code;
+        setHasPermission(code === '42883');
       } finally {
         setLoading(false);
       }

@@ -19,13 +19,13 @@
 | **URL** | `https://supabase.atomicabr.com.br` |
 | **Schema principal** | `zapp` |
 | **Schema Evolution API** | `evo` |
-| **Schema public** | 1 tabela interna Supabase + 535 views proxy |
+| **Schema public** | 1 tabela interna Supabase + 532 views proxy |
 
 ### Schemas e Tabelas (auditado 2026-07-16 — regras verificadas contra DB de produção)
 
 | Schema | Base Tables | Views | RLS | Descrição |
 |--------|-------------|-------|-----|-----------|
-| **`zapp`** | **312** | **405** | 100% | Todas as tabelas da aplicação |
+| **`zapp`** | **312** | **404** | 100% | Todas as tabelas da aplicação |
 | **`evo`** | **193** | — | 100% | Tabelas da Evolution API (WhatsApp) |
 | `auth` | 21 | — | — | Auth GoTrue do Supabase |
 | `bpm` | 41 | — | — | BPM/workflows |
@@ -33,12 +33,12 @@
 | `ai` | 31 | — | — | IA e embeddings |
 | `archive` | 25 | — | — | Dados arquivados |
 | `financeiro` | 16 | — | — | Módulo financeiro |
-| `vendas` | 14 | — | — | Módulo vendas |
+| `vendas` | 13 | — | — | Módulo vendas |
 | `ops` | 20 | — | — | Operações internas |
-| `public` | 1¹ | 535² | — | NÃO usar diretamente |
+| `public` | 1¹ | 532² | — | NÃO usar diretamente |
 
 > ¹ `public._wal_slot_guard_events` — tabela interna do Supabase (WAL slot guard), não é tabela de aplicação.
-> ² As 535 views em `public` são proxies/aliases para tabelas em outros schemas (zapp, evo, email_app, etc.).
+> ² As 532 views em `public` são proxies/aliases para tabelas em outros schemas (zapp, evo, email_app, etc.).
 
 ### Regras Críticas de Schema
 
@@ -52,14 +52,17 @@
    - Mensagens do WhatsApp → `schema: 'evo'`, tabela **`evolution_messages`** (raiz), NÃO `evolution_messages_wpp2`
    - Conversas → `schema: 'evo'`, tabela **`evolution_conversations`** (raiz), NÃO `evolution_conversations_wpp2`
    - Perfis/notificações → `schema: 'zapp'`
+   - **`failed_messages`** → `schema: 'zapp'` (tabela física; `public.failed_messages` é VIEW, não entra na publication — subscription com `schema: 'public'` é no-op silencioso)
+   - **`dispatch_error_logs`** → **NÃO está em nenhuma publication** — qualquer subscription Realtime é no-op; adicionar `ALTER PUBLICATION supabase_realtime ADD TABLE zapp.dispatch_error_logs;` antes de usar
    - **Subscriptions na partição ficam silenciosas** (zero eventos) com `publish_via_partition_root=true`.
+   - **Regra geral**: Realtime usa o WAL físico — apenas relations físicas na publication emitem eventos. Views nunca emitem, independentemente do schema.
 
 5. **Tipos TypeScript**: importar SEMPRE de `@/integrations/supabase/schema` (barrel canônico), nunca de `types.ts` diretamente.
 
 ### Tabelas Principais do Schema `zapp`
 
 | Tabela | Função |
-|--------|---------|
+|--------|--------|
 | `profiles` | Usuários da plataforma (17 registros) |
 | `workspaces` | Workspaces/tenants |
 | `workspace_members` | Membros por workspace (15) |
@@ -79,15 +82,15 @@
 
 | Tabela | Função |
 |--------|--------|
-| `evolution_messages` | Raiz particionada de mensagens (23 partições por instância) |
+| `evolution_messages` | Raiz particionada de mensagens (25 partições por instância) |
 | `evolution_contacts` | Contatos da Evolution API (20.563, 18 MB) |
-| `evolution_conversations` | Raiz particionada de conversas (23 partições) |
+| `evolution_conversations` | Raiz particionada de conversas (25 partições) |
 | `evolution_webhook_events_v2_*` | Webhooks particionados por mês (2026-03 a 2027-06 + default) |
 | `evolution_media` | Mídias (23.366, 10 MB) |
 | `evolution_whatsapp_status` | Status WA (14.789, 10 MB) |
 
-**Partições de `evolution_messages` (23 partições por instância — auditado 2026-07-16):**
-`wpp2`, `artes`, `comercial_01`–`comercial_15`, `compras`, `default`, `financeiro`, `gravacao`, `logistica`, `marketing`
+**Partições de `evolution_messages` (25 partições por instância):**
+`wpp2`, `wpp2_archive`, `artes`, `comercial_01`–`comercial_15`, `compras`, `default`, `financeiro`, `gravacao`, `logistica`, `marketing`
 
 > `evolution_messages` e `evolution_conversations` são **tabelas raiz particionadas** (relkind='p' no evo schema).
 > Os dados ficam nas partições por instância. No schema `zapp`, `evolution_messages` existe como
@@ -113,29 +116,30 @@
 | `team-chat-files` | não | — |
 | `whatsapp-media` | não | — |
 
-> ~~**BUG ATIVO**~~: `src/features/inbox/components/chat/useAudioVoiceChange.ts` — **RESOLVIDO** (auditado 2026-07-16): o código já usa `audio-messages` corretamente. Entrada mantida apenas para histórico.
 
 ### Bugs Conhecidos e Gaps de Implementação
 
 | ID | Arquivo | Problema | Impacto |
 |----|---------|----------|---------|
-| ~~BUG-1~~ | `src/features/admin/hooks/useAdminManagement.ts:588` | CORRIGIDO: `safeFrom('queue_skills')` → `safeFrom('queue_skill_requirements')` | Resolvido |
-| ~~BUG-2~~ | ~~`src/features/inbox/components/chat/useAudioVoiceChange.ts:13`~~ | CORRIGIDO: bucket `chat-media` → `audio-messages` | Resolvido |
+| ~~BUG-1~~ | `src/features/admin/hooks/useAdminManagement.ts` | CORRIGIDO: `safeFrom('queue_skills')` → `safeFrom('queue_skill_requirements')` | Resolvido |
+| ~~BUG-2~~ | `src/features/inbox/components/chat/useAudioVoiceChange.ts` | CORRIGIDO: bucket `chat-media` → `audio-messages`; coluna `mediaUrl` → `media_url` (PostgREST snake_case) | Resolvido |
 | ~~BUG-3~~ | `zapp.fn_messages_view_insert_handler` / `messageSender.ts` | CORRIGIDO: trigger INSTEAD OF INSERT não atribuía `NEW.id` antes de `RETURN NEW`; `data.id` retornava NULL; CORRIGIDO no trigger (DB) e via `crypto.randomUUID()` no cliente | Resolvido |
-| ~~BUG-4~~ | `src/features/inbox/hooks/useMessagesCursor.ts:217,283` | CORRIGIDO: canal criado via `externalSupabase.channel()` e removido via `externalSupabase.removeChannel(channel)` — mesmo cliente, sem leak | Resolvido |
-| GAP-1 | `src/hooks/useCampaigns.ts:101` | `rpc('add_contacts_to_campaign')` — função não existe no DB (graceful: toast.error) | Runtime error |
-| GAP-2 | `src/hooks/useIntegrationManagement.ts:54,69` | `rpc('initiate_gmail_oauth')`, `rpc('complete_gmail_oauth')` — não existem (graceful: toast.error) | OAuth Gmail quebrado |
-| GAP-3 | `src/hooks/useIntegrationManagement.ts:156` | `rpc('sync_to_crm')` — não existe (graceful: toast.error) | Sync CRM quebrado |
-| GAP-4 | `src/hooks/useMediaManagement.ts:93,128,156` | `rpc('export_user_data')`, `rpc('import_user_data')`, `rpc('check_download_permission')` — não existem (graceful: toast.error) | Export/Import quebrado |
-| GAP-5 | `src/hooks/useCRMManagement.ts:146` | `rpc('enrich_contact')` — não existe (graceful: log.warn) | Enriquecimento de contato quebrado |
-| GAP-6 | `src/hooks/useAnalyticsManagement.ts:168` | `rpc('get_latest_analysis')` — não existe (graceful: log.warn) | Analytics quebrado |
-| ~~GAP-7~~ | `src/features/admin/hooks/monitoring/useFailedMessages.ts` | CORRIGIDO 2026-07-17: migrado de `rpc_list_failed_messages_cursor` → `rpc_list_failed_messages` (existe); migration `20260717_fix_dlq_rpc_schema_drift.sql` também corrigiu o overload text que referenciava colunas inexistentes (`abandoned_at`, `abandon_reason`) | Resolvido |
-| ~~GAP-8~~ | `src/features/admin/hooks/monitoring/useDispatchErrorLogs.ts` | CORRIGIDO 2026-07-17: migrado de `rpc_list_dispatch_error_logs_cursor` → `rpc_list_dispatch_error_logs`; migration `20260717_fix_dlq_read_rpcs_zapp_schema.sql` criou `zapp.rpc_list_dispatch_error_logs` (a função só existia em `public`) | Resolvido |
-| ~~GAP-9~~ | `src/features/admin/hooks/monitoring/useDlqAuditLog.ts` | CORRIGIDO 2026-07-17: migrado de `rpc_dlq_list_audit_cursor` → `rpc_dlq_list_audit`; migration `20260717_fix_dlq_read_rpcs_zapp_schema.sql` criou `zapp.rpc_dlq_list_audit` (a função só existia em `public`) | Resolvido |
-| ~~BUG-5~~ | `zapp.rpc_dlq_stats()` no DB | CORRIGIDO 2026-07-17: retornava `{pending,retrying,failed,total}` mas frontend esperava `{total,total_24h,oldest_pending_at,by_status,by_instance}` — KPI cards renderizavam vazios; migration `20260717_fix_dlq_rpc_schema_drift.sql` reescreveu a função | Resolvido |
-| ~~BUG-6~~ | `src/features/admin/hooks/monitoring/failedMessagesTypes.ts` | CORRIGIDO 2026-07-17: `FailedMessageStatus` não incluía `'failed'`; DB CHECK constraint em `failed_messages.status` permite `'failed'`; adicionado `\| 'failed'` ao union type | Resolvido |
-| ~~BUG-7~~ | `src/features/admin/components/FailedMessageStatusBadge.tsx`, `BulkReprocessGuidedDialog.tsx`, `DLQPanel.tsx` | CORRIGIDO 2026-07-17: Record<FailedMessageStatus,…> e switch/STATUS_OPTIONS faltavam a entrada `'failed'`; rows com `status='failed'` renderizavam badge vazio/undefined | Resolvido |
-| ~~BUG-8~~ | `src/hooks/__tests__/useQueueManagement.test.tsx` | CORRIGIDO 2026-07-17: 4 testes de `useQueueSlaManagement` falhavam com "No QueryClient set" porque o hook chama `useQueryClient()` mas os testes não tinham QueryClientProvider; adicionado mock `@tanstack/react-query#useQueryClient` via `vi.mock` | Resolvido |
+| ~~BUG-4~~ | `src/hooks/useCRMManagement.ts` | CORRIGIDO: `contact_notes` INSERT omitia FK não-nula `author_id`; adicionado `supabase.auth.getUser()` | Resolvido |
+| ~~BUG-5~~ | `supabase/migrations/20260712001500_cursor_pagination_optimization.sql:145` | CORRIGIDO: GRANT em `rpc_list_dispatch_error_logs_cursor` tinha 7 params vs 8 na assinatura real; nenhum usuário autenticado tinha permissão; fix em `20260716_fix_dispatch_error_logs_grant.sql` | Resolvido |
+| ~~BUG-6~~ | `src/features/admin/hooks/monitoring/useDispatchErrorLogs.ts` | CORRIGIDO: `p_cursor_id` hardcoded como `null`; paginação nunca avançava; adicionado cursor state management | Resolvido |
+| ~~BUG-7~~ | `src/features/admin/hooks/monitoring/useFailedMessages.ts:142` | REVERTIDO: mudança anterior de `schema: 'zapp'` → `schema: 'public'` era regressão — `public.failed_messages` é VIEW, não está na publication `supabase_realtime`; subscription era no-op silencioso; mantido `schema: 'zapp'` (tabela física, publicada) | Resolvido |
+| GAP-1 | `src/hooks/useCampaigns.ts:100` | `rpc('add_contacts_to_campaign')` — SQL existe em `20260712140000_fix_campaign_contacts_rpc.sql`, não aplicado ao self-hosted | Runtime error até migração aplicada |
+| ~~GAP-2~~ | `src/hooks/useIntegrationManagement.ts:54,69` | STUB CRIADO: `rpc('initiate_gmail_oauth')`, `rpc('complete_gmail_oauth')` — stubs em `20260717000002_create_missing_rpcs_stubs.sql`; retornam erro descritivo em vez de 42883 | UI degrada com mensagem; OAuth real pendente |
+| ~~GAP-3~~ | `src/hooks/useIntegrationManagement.ts:156` | STUB CRIADO: `rpc('sync_to_crm')` — stub em `20260717000002`; levanta RAISE EXCEPTION explícita (P0001) em vez de retornar void | Sync real pendente |
+| ~~GAP-4~~ | `src/hooks/useMediaManagement.ts:93,128` | STUB CRIADO: `rpc('export_user_data')`, `rpc('import_user_data')` — stubs em `20260717000002`; export retorna dados de perfil (formatos != 'json' rejeitados com RAISE); import levanta RAISE EXCEPTION | Export/Import parcial; full data export deve ser Edge Function |
+| ~~BUG-9~~ | `src/hooks/useMediaManagement.ts:164` | CORRIGIDO: `rpc('check_download_permission')` ausente → `hasPermission` ficava `false` permanentemente, bloqueando todos os downloads silenciosamente; fail-open restrito a SQLSTATE 42883 (função não existe) — outros erros mantêm permissão negada | Resolvido |
+| ~~GAP-5~~ | `src/hooks/useCRMManagement.ts:146` | STUB CRIADO: `rpc('enrich_contact')` — stub em `20260717000002`; retorna dados básicos do contato com `enriched: false` | Integração com API de enriquecimento pendente |
+| ~~GAP-6~~ | `src/hooks/useAnalyticsManagement.ts:168` | STUB CRIADO: `rpc('get_latest_analysis')` — stub em `20260717000002`; retorna média de `contact_intelligence.engagement_score` | Analytics completo pendente |
+| ~~BUG-8~~ | `supabase/migrations/20260712001500_cursor_pagination_optimization.sql:8` | CORRIGIDO: `rpc_list_failed_messages_cursor` tinha RETURNS TABLE com 9 cols vs 15 esperadas por FailedMessageRow; `fm.message_id` inexistente causava erro de compilação; `next_retry_at` vs `next_attempt_at` (nome errado); cursor keyset ignorava ties na created_at. Fix: `20260716_fix_rpc_list_failed_messages_cursor_columns.sql` | Resolvido |
+| GAP-7 | `src/features/admin/hooks/monitoring/useFailedMessages.ts:78` | `rpc('rpc_list_failed_messages_cursor')` — definição SQL existia mas com bugs críticos (ver BUG-8); reescrita em `20260716_fix_rpc_list_failed_messages_cursor_columns.sql` — precisa ser aplicada ao self-hosted | Painel de mensagens falhas quebrado até migração aplicada |
+| GAP-8 | `src/features/admin/hooks/monitoring/useDispatchErrorLogs.ts:61` | `rpc('rpc_list_dispatch_error_logs_cursor')` — não existe no DB (apenas a definição SQL existe em migration, não aplicada ao self-hosted) | Painel de erros de despacho quebrado |
+| GAP-9 | `src/features/admin/hooks/monitoring/useDlqAuditLog.ts:51` | `rpc('rpc_dlq_list_audit_cursor')` — não existe | Painel DLQ audit quebrado |
+| ~~GAP-10~~ | `src/hooks/useQueueManagement.ts:203,415` | TABELA CRIADA: `zapp.queue_analytics` em `20260717000001_create_queue_analytics.sql`; FK para `queues`, RLS habilitado, índice em `(queue_id, timestamp DESC)` | Resolvido — necessário aplicar migração ao self-hosted |
 
 ---
 

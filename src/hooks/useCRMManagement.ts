@@ -110,9 +110,16 @@ export function useContactNotesManagement(contactId?: string) {
       if (!contactId) return;
 
       try {
+        const {
+          data: { user },
+          error: authError,
+        } = await supabase.auth.getUser();
+        if (authError) throw authError;
+        if (!user) throw new Error('Usuário não autenticado');
         const { error: err } = await supabase.from('contact_notes').insert({
           contact_id: contactId,
           content,
+          author_id: user.id,
         });
 
         if (err) throw err;
@@ -142,8 +149,12 @@ export function useContactEnrichedDataManagement(contactId?: string) {
 
     const fetchEnrichedData = async () => {
       try {
-        // GAP-5: enrich_contact RPC not yet deployed to DB
-        log.warn('fetchEnrichedData called but enrich_contact RPC is not deployed', { contactId });
+        const { data, error: err } = await supabase.rpc('enrich_contact', {
+          contact_id: contactId,
+        });
+
+        if (err) throw err;
+        setEnrichedData(data);
       } catch (err) {
         log.error('Error enriching contact data:', err);
       } finally {
