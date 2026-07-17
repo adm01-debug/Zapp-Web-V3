@@ -34,6 +34,10 @@ import { getLogger } from '@/lib/logger';
 const log = getLogger('crossTabDedupe');
 
 const LS_CLOCK_PREFIX = 'ctd:clock:';
+const LS_LOCK_PREFIX = 'ctd:lock:';
+const LS_RESULT_PREFIX = 'ctd:result:';
+const LS_BUS_PREFIX = 'ctd:bus:';
+const TAB_ID = crypto.randomUUID();
 const BC_NAME = 'cross-tab-dedupe';
 const BUS_MSG_TTL = 15_000;
 const STORAGE_RETRY_MAX = 3;
@@ -41,6 +45,10 @@ const STORAGE_RETRY_BACKOFF = [10, 20, 40]; // ms
 const DEDUP_RING_SIZE = 100;
 const EVENT_PROCESSING_BUFFER = 50; // ms for out-of-order events
 const CLOCK_MASTER_TIMEOUT = 30_000; // re-elect master if no heartbeat
+const DEFAULT_LOCK_TTL = 10_000; // 10s
+const DEFAULT_RESULT_TTL = 30_000; // 30s
+const DEFAULT_WAIT_TIMEOUT = 8_000; // 8s
+const GC_INTERVAL = 60_000; // 1min
 
 /** @internal — exposto para testes que precisam do prefixo de lock. */
 export const LS_PREFIX = LS_LOCK_PREFIX;
