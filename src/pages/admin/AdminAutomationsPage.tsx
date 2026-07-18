@@ -42,17 +42,6 @@ function normalizeEscalateSla(
   };
 }
 
-// Ensure escalate_sla always has required properties with proper types
-function normalizeEscalateSla(
-  partial: Partial<typeof EMPTY_RULE.actions.escalate_sla> | undefined
-): typeof EMPTY_RULE.actions.escalate_sla {
-  return {
-    enabled: partial?.enabled ?? false,
-    level: (partial?.level as string) ?? 'high',
-    reason: partial?.reason ?? '',
-  };
-}
-
 export default function AdminAutomationsPage() {
   const {
     rules,
