@@ -96,6 +96,8 @@ export interface ConversationContact {
   channel_type: string | null;
   channel_connection_id: string | null;
   routing_status?: string | null;
+  remote_jid?: string | null;
+  instance_name?: string | null;
 }
 
 export interface ConversationWithMessages {
