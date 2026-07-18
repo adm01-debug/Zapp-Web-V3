@@ -28,7 +28,7 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const animationFrameRef = useRef<number | null>(null);
-  const recognitionRef = useRef<any>(null);
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
   const lastBlobRef = useRef<Blob | null>(null);
   const lastTranscriptionRef = useRef<string>('');
 
@@ -127,15 +127,18 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
         }
 
         // Enhanced Transcription with Backend Fallback Support
-        const SpeechRecognition =
-          (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-        if (SpeechRecognition) {
-          const recognition = new SpeechRecognition();
+        const w = window as Window & {
+          SpeechRecognition?: typeof SpeechRecognition;
+          webkitSpeechRecognition?: typeof SpeechRecognition;
+        };
+        const SpeechRecognitionCtor = w.SpeechRecognition || w.webkitSpeechRecognition;
+        if (SpeechRecognitionCtor) {
+          const recognition = new SpeechRecognitionCtor();
           recognition.lang = 'pt-BR';
           recognition.continuous = true;
           recognition.interimResults = true;
 
-          recognition.onresult = (event: any) => {
+          recognition.onresult = (event: SpeechRecognitionEvent) => {
             for (let i = event.resultIndex; i < event.results.length; i++) {
               if (event.results[i].isFinal) {
                 setTranscription((prev) => (prev + ' ' + event.results[i][0].transcript).trim());
@@ -143,7 +146,7 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
             }
           };
 
-          recognition.onerror = async (event: any) => {
+          recognition.onerror = async (event: SpeechRecognitionErrorEvent) => {
             log.warn('Speech recognition error:', event.error);
             if (event.error === 'no-speech') return;
 

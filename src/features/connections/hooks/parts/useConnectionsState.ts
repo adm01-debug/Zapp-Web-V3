@@ -48,14 +48,20 @@ export function useConnectionsState() {
       errorMessage: persisted.errorMessage,
       expiresAt: persisted.expiresAt,
       attemptId: persisted.attemptId,
-      ttlSeconds: persisted.expiresAt ? Math.round((persisted.expiresAt - Date.now()) / 1000) : null,
+      ttlSeconds: persisted.expiresAt
+        ? Math.round((persisted.expiresAt - Date.now()) / 1000)
+        : null,
       ttlSource: persisted.expiresAt ? 'detected' : null,
     };
   });
-  const [newConnection, setNewConnection] = useState({ name: '', phone_number: '', api_type: 'evolution' as any });
+  const [newConnection, setNewConnection] = useState<{
+    name: string;
+    phone_number: string;
+    api_type: string;
+  }>({ name: '', phone_number: '', api_type: 'evolution' });
   const [isCreating, setIsCreating] = useState(false);
   const [syncingHistory, setSyncingHistory] = useState<string | null>(null);
-  
+
   const dialogGenRef = useRef(0);
   const refreshInFlightRef = useRef(false);
   const toastedConnectedRef = useRef<Set<string>>(new Set());
@@ -70,17 +76,24 @@ export function useConnectionsState() {
   }, []);
 
   return {
-    connections, setConnections,
-    loading, setLoading,
-    isAddDialogOpen, setIsAddDialogOpen,
-    qrCodeDialog, setQrCodeDialog,
-    newConnection, setNewConnection,
-    isCreating, setIsCreating,
-    syncingHistory, setSyncingHistory,
+    connections,
+    setConnections,
+    loading,
+    setLoading,
+    isAddDialogOpen,
+    setIsAddDialogOpen,
+    qrCodeDialog,
+    setQrCodeDialog,
+    newConnection,
+    setNewConnection,
+    isCreating,
+    setIsCreating,
+    syncingHistory,
+    setSyncingHistory,
     dialogGenRef,
     refreshInFlightRef,
     announceConnected,
     INITIAL_QR_STATE,
-    QR_STORAGE_KEY
+    QR_STORAGE_KEY,
   };
 }

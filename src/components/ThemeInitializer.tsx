@@ -12,6 +12,16 @@ import { useTheme } from '@/hooks/useTheme';
 import { getLogger } from '@/lib/logger';
 const log = getLogger('ThemeInitializer');
 
+type ThemeDebugInfo = {
+  presetId: string;
+  presetName: string;
+  hasPresetFont: boolean;
+  fontOrigin: string;
+  activeFont: string;
+  mode: string;
+  timestamp: string;
+};
+
 type StoredThemeConfig = {
   borderRadius?: number;
   cacheMode?: 'light' | 'dark';
@@ -47,7 +57,8 @@ export function ThemeInitializer() {
       }
     }
 
-    const preset = PRESETS.find((p) => p.id === presetId) || PRESETS.find((p) => p.id === DEFAULT_PRESET_ID);
+    const preset =
+      PRESETS.find((p) => p.id === presetId) || PRESETS.find((p) => p.id === DEFAULT_PRESET_ID);
     if (preset) {
       const colors: ThemeModeColors = resolvedTheme === 'dark' ? preset.dark : preset.light;
       const root = document.documentElement;
@@ -59,7 +70,7 @@ export function ThemeInitializer() {
 
       for (const key of CSS_VARS_TO_APPLY) {
         const value = colors[key];
-        
+
         // Only apply inline if it's not the default preset OR if we are in dark mode
         // This allows tokens.css to be the source of truth for the default Light theme.
         if (!isDefaultPreset || resolvedTheme === 'dark') {
@@ -77,27 +88,32 @@ export function ThemeInitializer() {
       root.style.setProperty('--font-display', targetFont);
 
       // Debug registry for the ThemeDebugTooltip
-      (window as any).__THEME_DEBUG__ = {
+      (window as Window & { __THEME_DEBUG__?: ThemeDebugInfo }).__THEME_DEBUG__ = {
         presetId: preset.id,
         presetName: preset.name,
         hasPresetFont: !!preset.font,
         fontOrigin: preset.font ? 'Preset Override' : 'CSS tokens.css',
         activeFont: getComputedStyle(root).getPropertyValue('--font-sans').trim(),
         mode: resolvedTheme,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       };
 
       try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify({
-          ...storedConfig,
-          borderRadius: radius,
-          cacheMode: resolvedTheme,
-          cachePreset: presetId,
-          cssVarsCache,
-          presetFont: preset.font ?? null,
-          preset: presetId,
-        }));
-      } catch (err) { log.error('Unexpected error in ThemeInitializer:', err); }
+        localStorage.setItem(
+          STORAGE_KEY,
+          JSON.stringify({
+            ...storedConfig,
+            borderRadius: radius,
+            cacheMode: resolvedTheme,
+            cachePreset: presetId,
+            cssVarsCache,
+            presetFont: preset.font ?? null,
+            preset: presetId,
+          })
+        );
+      } catch (err) {
+        log.error('Unexpected error in ThemeInitializer:', err);
+      }
     }
 
     document.documentElement.style.setProperty('--radius', `${radius / 16}rem`);
