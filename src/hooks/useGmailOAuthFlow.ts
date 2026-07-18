@@ -99,8 +99,8 @@ export function useEmailOAuthFlow(): UseEmailOAuthFlowReturn {
     try {
       const result = await emailRefreshToken(accountId);
 
-      // Atualiza token_expiry local
-      const newExpiry = result.data?.expiresAt ?? null;
+      // Atualiza token_expiry local (edge fn retorna `newExpiry`, não `expiresAt`)
+      const newExpiry = result.data?.newExpiry ?? null;
       setAccounts((prev) =>
         prev.map((a) => (a.id === accountId ? { ...a, token_expiry: newExpiry } : a))
       );
@@ -149,7 +149,8 @@ export function useEmailOAuthFlow(): UseEmailOAuthFlowReturn {
       if (!acc.watch_expiry || watchExpiry - Date.now() < renewThreshold) {
         try {
           const result = await emailRegisterWatch(accountId);
-          const newWatchExpiry = result.data?.watchExpiry ?? null;
+          // edge fn gmail-webhook retorna `expiresAt`, não `watchExpiry`
+          const newWatchExpiry = result.data?.expiresAt ?? null;
           setAccounts((prev) =>
             prev.map((a) => (a.id === accountId ? { ...a, watch_expiry: newWatchExpiry } : a))
           );
