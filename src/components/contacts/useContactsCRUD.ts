@@ -17,8 +17,14 @@ interface ContactFormData {
 }
 
 const EMPTY_CONTACT: ContactFormData = {
-  name: '', nickname: '', surname: '', job_title: '',
-  company: '', phone: '', email: '', contact_type: 'cliente',
+  name: '',
+  nickname: '',
+  surname: '',
+  job_title: '',
+  company: '',
+  phone: '',
+  email: '',
+  contact_type: 'cliente',
 };
 
 export interface Contact {
@@ -31,6 +37,7 @@ export interface Contact {
   phone: string;
   email: string | null;
   contact_type: string | null;
+  tags?: string[] | null;
 }
 
 export function useContactsCRUD() {
@@ -55,19 +62,22 @@ export function useContactsCRUD() {
   // o Inbox identifica conversas pelo `remote_jid` — não pelo UUID local.
   // Por isso passamos o `phone` (resolvido na lista carregada) para o helper
   // central `openContactInChat`, que monta o JID e cuida do handshake.
-  const openContactChat = useCallback((contactId: string) => {
-    const found = searchHook.contacts.find((c) => c.id === contactId);
-    const phone = found?.phone?.replace(/\D/g, '') || undefined;
-    void openContactInChat({
-      contactId,
-      phone,
-      remoteJid: phone ? `${phone}@s.whatsapp.net` : undefined,
-    });
-  }, [searchHook.contacts]);
+  const openContactChat = useCallback(
+    (contactId: string) => {
+      const found = searchHook.contacts.find((c) => c.id === contactId);
+      const phone = found?.phone?.replace(/\D/g, '') || undefined;
+      void openContactInChat({
+        contactId,
+        phone,
+        remoteJid: phone ? `${phone}@s.whatsapp.net` : undefined,
+      });
+    },
+    [searchHook.contacts]
+  );
 
   const generateProtocol = useCallback(() => {
     const now = new Date();
-    return `CT-${now.getFullYear()}${(now.getMonth()+1).toString().padStart(2,'0')}${now.getDate().toString().padStart(2,'0')}-${Math.random().toString(36).slice(2,8).toUpperCase()}`;
+    return `CT-${now.getFullYear()}${(now.getMonth() + 1).toString().padStart(2, '0')}${now.getDate().toString().padStart(2, '0')}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
   }, []);
 
   const handleAddContact = async () => {
@@ -180,26 +190,42 @@ export function useContactsCRUD() {
   }, []);
 
   const handleNewContactChange = useCallback((field: string, value: string) => {
-    setNewContact(prev => ({ ...prev, [field]: value }));
+    setNewContact((prev) => ({ ...prev, [field]: value }));
   }, []);
 
   const handleEditContactChange = useCallback((field: string, value: string) => {
-    setEditingContact(prev => prev ? { ...prev, [field]: value } as Contact : null);
+    setEditingContact((prev) => (prev ? ({ ...prev, [field]: value } as Contact) : null));
   }, []);
 
   return {
     ...searchHook,
-    profile, feedback, scrollContainerRef,
-    isSubmitting, deleteTarget, setDeleteTarget,
-    showSuccess, setShowSuccess,
-    isAddDialogOpen, setIsAddDialogOpen,
-    isEditDialogOpen, setIsEditDialogOpen,
-    editingContact, showFilters, setShowFilters,
-    isCRMSearchOpen, setIsCRMSearchOpen,
-    selectedIds, setSelectedIds,
-    newContact, openContactChat,
-    handleAddContact, handleEditContact, handleDeleteContact,
-    openEditDialog, handleCancelForm,
-    handleNewContactChange, handleEditContactChange,
+    profile,
+    feedback,
+    scrollContainerRef,
+    isSubmitting,
+    deleteTarget,
+    setDeleteTarget,
+    showSuccess,
+    setShowSuccess,
+    isAddDialogOpen,
+    setIsAddDialogOpen,
+    isEditDialogOpen,
+    setIsEditDialogOpen,
+    editingContact,
+    showFilters,
+    setShowFilters,
+    isCRMSearchOpen,
+    setIsCRMSearchOpen,
+    selectedIds,
+    setSelectedIds,
+    newContact,
+    openContactChat,
+    handleAddContact,
+    handleEditContact,
+    handleDeleteContact,
+    openEditDialog,
+    handleCancelForm,
+    handleNewContactChange,
+    handleEditContactChange,
   };
 }

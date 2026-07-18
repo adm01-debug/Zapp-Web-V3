@@ -64,8 +64,8 @@ export function useSLAAlertPreferences() {
         if (error) {
           // Codigos que indicam tabela inexistente (ambiente sem migration)
           // ou linha não encontrada: tratar como defaults silenciosamente.
-          const code = (error as any)?.code ?? '';
-          const msg = (error as any)?.message ?? '';
+          const code = (error as { code?: string })?.code ?? '';
+          const msg = error?.message ?? '';
           const isTableMissing =
             code === 'PGRST116' ||
             code === 'PGRST204' ||
