@@ -165,7 +165,12 @@ export const SLADeliveryHistoryDashboard = () => {
                           Resolvido
                         </div>
                         <span className="text-[10px] text-muted-foreground">
-                          por {(v as any).resolved_by_profile?.display_name || 'Agente'}
+                          por{' '}
+                          {(
+                            v as typeof v & {
+                              resolved_by_profile?: { display_name?: string } | null;
+                            }
+                          ).resolved_by_profile?.display_name || 'Agente'}
                         </span>
                       </div>
                     ) : (

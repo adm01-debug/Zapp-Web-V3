@@ -52,6 +52,13 @@ export interface UserSettings {
   global_sla_warning_minutes: number;
   global_sla_critical_minutes: number;
   global_sla_notification_message: string;
+
+  // Sound customization per category
+  message_sound_type?: string;
+  mention_sound_type?: string;
+  sla_sound_type?: string;
+  goal_sound_type?: string;
+  transcription_sound_type?: string;
 }
 
 const DEFAULT_SETTINGS: UserSettings = {
@@ -87,6 +94,12 @@ const DEFAULT_SETTINGS: UserSettings = {
   global_sla_warning_minutes: 30,
   global_sla_critical_minutes: 60,
   global_sla_notification_message: 'Alerta SLA: Tempo limite excedido para resposta.',
+
+  message_sound_type: 'default',
+  mention_sound_type: 'default',
+  sla_sound_type: 'default',
+  goal_sound_type: 'default',
+  transcription_sound_type: 'default',
 };
 
 export function useUserSettings() {
@@ -155,6 +168,12 @@ export function useUserSettings() {
             global_sla_notification_message:
               data.global_sla_notification_message ??
               DEFAULT_SETTINGS.global_sla_notification_message,
+            message_sound_type: data.message_sound_type ?? DEFAULT_SETTINGS.message_sound_type,
+            mention_sound_type: data.mention_sound_type ?? DEFAULT_SETTINGS.mention_sound_type,
+            sla_sound_type: data.sla_sound_type ?? DEFAULT_SETTINGS.sla_sound_type,
+            goal_sound_type: data.goal_sound_type ?? DEFAULT_SETTINGS.goal_sound_type,
+            transcription_sound_type:
+              data.transcription_sound_type ?? DEFAULT_SETTINGS.transcription_sound_type,
           });
         }
       } catch (err) {
@@ -212,6 +231,11 @@ export function useUserSettings() {
         global_sla_warning_minutes: settings.global_sla_warning_minutes,
         global_sla_critical_minutes: settings.global_sla_critical_minutes,
         global_sla_notification_message: settings.global_sla_notification_message,
+        message_sound_type: settings.message_sound_type,
+        mention_sound_type: settings.mention_sound_type,
+        sla_sound_type: settings.sla_sound_type,
+        goal_sound_type: settings.goal_sound_type,
+        transcription_sound_type: settings.transcription_sound_type,
       };
 
       const { error } = await safeClient.from('user_settings', (q) =>
