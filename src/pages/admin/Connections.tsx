@@ -142,8 +142,8 @@ export default function AdminConnectionsPage() {
     );
 
     if (!error && data) {
-      setConnections(data as any[]);
-      const fatorX: any = (data as any[]).find(
+      setConnections(data);
+      const fatorX = data.find(
         (c: any) => c.provider === 'supabase_external' || c.name === 'FATOR X'
       );
       if (fatorX?.config?.url && fatorX?.config?.anon_key) {
