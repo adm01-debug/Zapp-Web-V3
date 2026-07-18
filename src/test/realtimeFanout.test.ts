@@ -31,6 +31,7 @@ const EXPECTED_REALTIME_CONSUMERS: string[] = [
   'src/services/messages/messagesRepository.ts',
   'src/hooks/useTranscriptionNotifications.ts',
   'src/hooks/useRealtimeDashboard.ts',
+  'src/hooks/useRealtimeMessages.ts',
 ];
 
 const UPDATE_HINT =

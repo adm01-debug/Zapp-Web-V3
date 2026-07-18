@@ -40,6 +40,7 @@ flowchart LR
   subgraph RT["5. Realtime e Batching"]
     BATCH["useMessageUpdateBatcher"]
     URM["useRealtimeMessages"]
+    URMG["useRealtimeMessages<br/>(global hook)"]
     RUTL["realtimeUtils"]
     URN["useRealtimeNotifications"]
     UTN["useTranscriptionNotifications"]
@@ -110,6 +111,7 @@ flowchart LR
   %% FAN-OUT REALTIME — quem escuta postgres_changes na tabela 'messages'
   %% =====================================================================
   DB -.->|INSERT/UPDATE/DELETE| URM
+  DB -.->|INSERT/UPDATE/DELETE| URMG
   DB -.->|INSERT/UPDATE/DELETE| UM
   DB -.->|UPDATE status| UMS
   DB -.->|UPDATE transcription| UTN
@@ -164,6 +166,7 @@ flowchart LR
   click UMSS "src/features/inbox/hooks/realtime/useMessageSendStatus.ts"
   click URD "src/hooks/useRealtimeDashboard.ts"
   click URM "src/features/inbox/hooks/useRealtimeMessages.ts"
+  click URMG "src/hooks/useRealtimeMessages.ts"
   click URN "src/features/inbox/hooks/realtime/useRealtimeNotifications.ts"
   click URRA "src/features/inbox/hooks/realtime/useRetryResolutionAlerts.ts"
   click UTN "src/hooks/useTranscriptionNotifications.ts"
@@ -176,15 +179,16 @@ flowchart LR
 %%   ==>   escrita persistente em DB
 %%   -.->  evento realtime / pub-sub in-memory
 %%   -..-> enqueue assincrona (DLQ)
-%% Fan-out realtime (postgres_changes 'messages'): 9 consumidores diretos
-%%   1. useRealtimeMessages              — feed global do inbox (INSERT/UPDATE/DELETE)
-%%   2. useMessages                      — lista por contato aberto (INSERT/UPDATE/DELETE)
-%%   3. useMessageStatus                 — status sent/delivered/read por mensagem (UPDATE)
-%%   4. useTranscriptionNotifications    — alerta quando transcricao conclui (UPDATE)
-%%   5. useRealtimeDashboard             — KPIs em tempo real (INSERT)
-%%   6. useEvolutionMonitoring           — saude do webhook/instancia (INSERT)
-%%   7. useAudioMessagePlayer             — refresh de media_url assinada (UPDATE)
-%%   8. useRetryResolutionAlerts         — toast quando retrying -> sent/failed (UPDATE)
-%%   9. ChatMessagesArea                 — refetch/scroll no realtime (INSERT/UPDATE)
+%% Fan-out realtime (postgres_changes 'messages'): 10 consumidores diretos
+%%   1. useRealtimeMessages (features)   — feed global do inbox (INSERT/UPDATE/DELETE)
+%%   2. useRealtimeMessages (hooks)      — hook global de conversas (INSERT/UPDATE/DELETE)
+%%   3. useMessages                      — lista por contato aberto (INSERT/UPDATE/DELETE)
+%%   4. useMessageStatus                 — status sent/delivered/read por mensagem (UPDATE)
+%%   5. useTranscriptionNotifications    — alerta quando transcricao conclui (UPDATE)
+%%   6. useRealtimeDashboard             — KPIs em tempo real (INSERT)
+%%   7. useEvolutionMonitoring           — saude do webhook/instancia (INSERT)
+%%   8. useAudioMessagePlayer            — refresh de media_url assinada (UPDATE)
+%%   9. useRetryResolutionAlerts         — toast quando retrying -> sent/failed (UPDATE)
+%%  10. ChatMessagesArea                 — refetch/scroll no realtime (INSERT/UPDATE)
 %% Gerado por scripts/regen-trilha-mensagens.ts em 2026-05-06T22:21:06.045Z
 %% AUTO:LEGEND:END
