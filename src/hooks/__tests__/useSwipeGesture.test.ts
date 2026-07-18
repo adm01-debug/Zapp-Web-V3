@@ -20,7 +20,7 @@
  */
 import { describe, it, expect, vi } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
-import { useSwipeGesture } from '../useSwipeGesture';
+import { useSwipeGesture } from '../useSwipeControl';
 
 function touchEvent(clientX: number, clientY = 0): React.TouchEvent {
   return {

@@ -1,305 +1,112 @@
-// Re-export from consolidated useSettingsManagement module (ETAPA 41 consolidation)
-import { useUserSettingsManagement } from '@/hooks/useSettingsManagement';
+import { useState, useEffect, useCallback } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 
-export function useUserSettings(userId?: string) {
-  return useUserSettingsManagement(userId);
+interface UserSettings {
+  id?: string;
+  user_id?: string;
+  business_hours_enabled: boolean;
+  business_hours_start: string;
+  business_hours_end: string;
+  work_days: number[];
+  welcome_message: string;
+  away_message: string;
+  closing_message: string;
+  auto_assignment_enabled: boolean;
+  auto_assignment_method: string;
+  inactivity_timeout: number;
+  auto_transcription_enabled: boolean;
+  sound_enabled: boolean;
+  browser_notifications_enabled: boolean;
+  quiet_hours_enabled: boolean;
+  quiet_hours_start: string;
+  quiet_hours_end: string;
+  theme: string;
+  language: string;
+  compact_mode: boolean;
+  tts_voice_id: string;
+  tts_speed: number;
+  simulation_mode_enabled?: boolean;
+  global_sla_warning_minutes?: number;
+  global_sla_critical_minutes?: number;
+  global_sla_notification_message?: string;
+}
 
-  // Fetch settings from DB with cleanup on unmount
+const DEFAULT_SETTINGS: UserSettings = {
+  business_hours_enabled: false,
+  business_hours_start: '09:00',
+  business_hours_end: '18:00',
+  work_days: [1, 2, 3, 4, 5],
+  welcome_message: '',
+  away_message: '',
+  closing_message: '',
+  auto_assignment_enabled: true,
+  auto_assignment_method: 'roundrobin',
+  inactivity_timeout: 30,
+  auto_transcription_enabled: false,
+  sound_enabled: true,
+  browser_notifications_enabled: true,
+  quiet_hours_enabled: false,
+  quiet_hours_start: '22:00',
+  quiet_hours_end: '07:00',
+  theme: 'light',
+  language: 'pt-BR',
+  compact_mode: false,
+  tts_voice_id: 'EXAVITQu4vr4xnSDxMaL',
+  tts_speed: 1.0,
+};
+
+export function useUserSettings() {
+  const { user } = useAuth();
+  const [isLoading, setIsLoading] = useState(true);
+  const [settings, setSettings] = useState<UserSettings>(DEFAULT_SETTINGS);
+
   useEffect(() => {
     if (!user?.id) {
       setIsLoading(false);
       return;
     }
 
-    let isMounted = true;
-    const abortController = new AbortController();
+    let cancelled = false;
 
-    const fetchSettings = async () => {
+    async function fetchSettings() {
       setIsLoading(true);
       try {
-        if (!isMounted || abortController.signal.aborted) return;
+        const { data, error } = await supabase
+          .from('user_settings')
+          .select('*')
+          .eq('user_id', user!.id)
+          .limit(1);
 
-        if (!safeClient) {
-          log.error('Error in fetchSettings: safeClient is not initialized');
-          if (isMounted) setIsLoading(false);
-          return;
+        if (cancelled) return;
+
+        if (error) {
+          setSettings(DEFAULT_SETTINGS);
+        } else {
+          const row = Array.isArray(data) ? data[0] : data;
+          if (row) {
+            setSettings({
+              ...DEFAULT_SETTINGS,
+              ...row,
+            });
+          } else {
+            setSettings(DEFAULT_SETTINGS);
+          }
         }
-
-        const { data: rows, error } = await safeClient.from<UserSettings>('user_settings', (q) =>
-          q.select('*').eq('user_id', user.id).limit(1)
-        );
-
-        if (!isMounted || abortController.signal.aborted) return;
-
-        const data = rows?.[0] ?? null;
-
-        if (abortController.signal.aborted) return;
-
-        if (error && error.code !== 'PGRST116') {
-          log.error('Error fetching settings', {
-            userId: user.id,
-            error: error.message,
-            code: error.code,
-          });
-          return;
-        }
-
-        if (data && isMounted && !abortController.signal.aborted) {
-          setSettings({
-            id: data.id,
-            user_id: data.user_id,
-            business_hours_enabled:
-              data.business_hours_enabled ?? DEFAULT_SETTINGS.business_hours_enabled,
-            business_hours_start:
-              data.business_hours_start ?? DEFAULT_SETTINGS.business_hours_start,
-            business_hours_end: data.business_hours_end ?? DEFAULT_SETTINGS.business_hours_end,
-            work_days: data.work_days ?? DEFAULT_SETTINGS.work_days,
-            welcome_message: data.welcome_message ?? DEFAULT_SETTINGS.welcome_message,
-            away_message: data.away_message ?? DEFAULT_SETTINGS.away_message,
-            closing_message: data.closing_message ?? DEFAULT_SETTINGS.closing_message,
-            auto_assignment_enabled:
-              data.auto_assignment_enabled ?? DEFAULT_SETTINGS.auto_assignment_enabled,
-            auto_assignment_method:
-              data.auto_assignment_method ?? DEFAULT_SETTINGS.auto_assignment_method,
-            inactivity_timeout: data.inactivity_timeout ?? DEFAULT_SETTINGS.inactivity_timeout,
-            auto_transcription_enabled:
-              data.auto_transcription_enabled ?? DEFAULT_SETTINGS.auto_transcription_enabled,
-            sound_enabled: data.sound_enabled ?? DEFAULT_SETTINGS.sound_enabled,
-            browser_notifications_enabled:
-              data.browser_notifications_enabled ?? DEFAULT_SETTINGS.browser_notifications_enabled,
-            quiet_hours_enabled: data.quiet_hours_enabled ?? DEFAULT_SETTINGS.quiet_hours_enabled,
-            quiet_hours_start: data.quiet_hours_start ?? DEFAULT_SETTINGS.quiet_hours_start,
-            quiet_hours_end: data.quiet_hours_end ?? DEFAULT_SETTINGS.quiet_hours_end,
-            theme: data.theme ?? DEFAULT_SETTINGS.theme,
-            language: data.language ?? DEFAULT_SETTINGS.language,
-            compact_mode: data.compact_mode ?? DEFAULT_SETTINGS.compact_mode,
-            tts_voice_id: data.tts_voice_id ?? DEFAULT_SETTINGS.tts_voice_id,
-            tts_speed: data.tts_speed ?? DEFAULT_SETTINGS.tts_speed,
-            simulation_mode_enabled:
-              data.simulation_mode_enabled ?? DEFAULT_SETTINGS.simulation_mode_enabled,
-            global_sla_warning_minutes:
-              data.global_sla_warning_minutes ?? DEFAULT_SETTINGS.global_sla_warning_minutes,
-            global_sla_critical_minutes:
-              data.global_sla_critical_minutes ?? DEFAULT_SETTINGS.global_sla_critical_minutes,
-            global_sla_notification_message:
-              data.global_sla_notification_message ??
-              DEFAULT_SETTINGS.global_sla_notification_message,
-          });
-        }
-      } catch (err) {
-        if (!isMounted || abortController.signal.aborted) return;
-        log.error('Error in fetchSettings:', err);
+      } catch {
+        if (!cancelled) setSettings(DEFAULT_SETTINGS);
       } finally {
-        if (isMounted && !abortController.signal.aborted) {
-          setIsLoading(false);
-        }
+        if (!cancelled) setIsLoading(false);
       }
-    };
+    }
 
-    void fetchSettings();
-
-    return () => {
-      isMounted = false;
-      abortController.abort();
-    };
+    fetchSettings();
+    return () => { cancelled = true; };
   }, [user?.id]);
 
   const updateSettings = useCallback((updates: Partial<UserSettings>) => {
-    setSettings((prev) => ({ ...prev, ...updates }));
+    setSettings(prev => ({ ...prev, ...updates }));
   }, []);
 
-  const saveSettings = useCallback(async () => {
-    if (!user?.id) {
-      toast({
-        title: 'Erro',
-        description: 'Você precisa estar logado para salvar configurações.',
-        variant: 'destructive',
-      });
-      return false;
-    }
-
-    if (!safeClient) {
-      log.error('Error in saveSettings: safeClient is not initialized');
-      toast({
-        title: 'Erro ao salvar',
-        description: 'Serviço indisponível. Tente novamente.',
-        variant: 'destructive',
-      });
-      return false;
-    }
-
-    setIsSaving(true);
-    let timeoutId: NodeJS.Timeout | null = null;
-    try {
-      const settingsData = {
-        user_id: user.id,
-        business_hours_enabled: settings.business_hours_enabled,
-        business_hours_start: settings.business_hours_start,
-        business_hours_end: settings.business_hours_end,
-        work_days: settings.work_days,
-        welcome_message: settings.welcome_message,
-        away_message: settings.away_message,
-        closing_message: settings.closing_message,
-        auto_assignment_enabled: settings.auto_assignment_enabled,
-        auto_assignment_method: settings.auto_assignment_method,
-        inactivity_timeout: settings.inactivity_timeout,
-        auto_transcription_enabled: settings.auto_transcription_enabled,
-        sound_enabled: settings.sound_enabled,
-        browser_notifications_enabled: settings.browser_notifications_enabled,
-        quiet_hours_enabled: settings.quiet_hours_enabled,
-        quiet_hours_start: settings.quiet_hours_start,
-        quiet_hours_end: settings.quiet_hours_end,
-        theme: settings.theme,
-        language: settings.language,
-        compact_mode: settings.compact_mode,
-        tts_voice_id: settings.tts_voice_id,
-        tts_speed: settings.tts_speed,
-        simulation_mode_enabled: settings.simulation_mode_enabled,
-        global_sla_warning_minutes: settings.global_sla_warning_minutes,
-        global_sla_critical_minutes: settings.global_sla_critical_minutes,
-        global_sla_notification_message: settings.global_sla_notification_message,
-      };
-
-      const savePromise = safeClient.from('user_settings', (q) =>
-        q.upsert(settingsData, { onConflict: 'user_id' })
-      );
-
-      const timeoutPromise = new Promise((_, reject) => {
-        timeoutId = setTimeout(() => {
-          reject(new Error('Save operation timed out after 30 seconds'));
-        }, 30000);
-      });
-
-      const { error } = (await Promise.race([savePromise, timeoutPromise])) as Awaited<
-        typeof savePromise
-      >;
-
-      if (timeoutId) clearTimeout(timeoutId);
-
-      if (error) {
-        log.error('Error saving settings:', error);
-        toast({
-          title: 'Erro de validação',
-          description: error.message,
-          variant: 'destructive',
-        });
-        return false;
-      }
-
-      // Check for race conditions: if we already saved this ID, skip
-      if (lastSaveId === pendingSaveId) {
-        log.info('Ignoring duplicate save - already processed', { userId: user.id });
-        return true;
-      }
-
-      // Implement optimistic locking with retry logic
-      const attemptSave = async () => {
-        const { data, error: rpcError } = await safeClient!.single<{
-          success: boolean;
-          version: number;
-          error_code: string | null;
-        }>('user_settings', (q) =>
-          q.rpc('upsert_user_settings', {
-            _user_id: user.id,
-            _data: settingsData,
-            _expected_version: settings.version ?? 1,
-          })
-        );
-
-        if (rpcError) {
-          log.error('RPC error in upsert_user_settings', {
-            userId: user.id,
-            error: rpcError.message,
-          });
-          throw rpcError;
-        }
-
-        if (!data) {
-          throw new Error('No response from upsert_user_settings');
-        }
-
-        if (!data.success && data.error_code === 'CONFLICT') {
-          const conflictError = Object.assign(
-            new Error('Version conflict: settings were modified. Reloading and retrying...'),
-            { code: 'CONFLICT' }
-          );
-          throw conflictError;
-        }
-
-        if (!data.success) {
-          throw new Error(`Save failed: ${data.error_code || 'unknown error'}`);
-        }
-
-        return data;
-      };
-
-      let saveResult: { success: boolean; version: number; error_code: string | null };
-      try {
-        saveResult = await retryWithBackoff(attemptSave, 3, 100);
-      } catch (err) {
-        log.error('Settings save failed after retries', {
-          userId: user.id,
-          error: err instanceof Error ? err.message : String(err),
-        });
-        toast({
-          title: 'Erro ao salvar',
-          description:
-            err instanceof Error && err.message.includes('Version conflict')
-              ? 'Suas configurações foram modificadas. Recarregando...'
-              : 'Não foi possível salvar as configurações.',
-          variant: 'destructive',
-        });
-        return false;
-      }
-
-      setSettings((prev) => ({ ...prev, version: saveResult.version }));
-      setLastSaveId(pendingSaveId);
-
-      log.info('Settings saved successfully', { userId: user.id });
-
-      toast({
-        title: 'Configurações salvas',
-        description: 'Suas configurações foram salvas com sucesso.',
-      });
-      return true;
-    } catch (err) {
-      if (timeoutId) clearTimeout(timeoutId);
-      log.error('Error in saveSettings:', err);
-      toast({
-        title: 'Erro ao salvar',
-        description:
-          err instanceof Error && err.message.includes('timed out')
-            ? 'A operação demorou muito tempo. Verifique sua conexão.'
-            : 'Ocorreu um erro inesperado.',
-        variant: 'destructive',
-      });
-      return false;
-    } finally {
-      setPendingSaveId(null);
-      setIsSaving(false);
-    }
-  }, [user?.id, settings, lastSaveId, pendingSaveId]);
-
-  const resetSettings = useCallback(() => {
-    setSettings(DEFAULT_SETTINGS);
-  }, []);
-
-  const toggleWorkDay = useCallback((day: number) => {
-    setSettings((prev) => {
-      const workDays = prev.work_days.includes(day)
-        ? prev.work_days.filter((d) => d !== day)
-        : [...prev.work_days, day].sort();
-      return { ...prev, work_days: workDays };
-    });
-  }, []);
-
-  return {
-    settings,
-    isLoading,
-    isSaving,
-    updateSettings,
-    saveSettings,
-    resetSettings,
-    toggleWorkDay,
-  };
+  return { isLoading, settings, updateSettings };
 }

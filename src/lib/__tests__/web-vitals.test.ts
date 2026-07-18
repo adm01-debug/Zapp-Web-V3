@@ -63,10 +63,10 @@ function fireObserver(type: string, entries: Partial<PerformanceEntry>[]) {
 
 // ── Helper: dynamic import of SUT ─────────────────────────────────────────────
 async function loadModule() {
-  const mod = await import('../web-vitals');
+  const mod = await import('../webVitals');
   return mod as {
     initWebVitals: () => void;
-    getWebVitalsReport: () => import('../web-vitals').WebVitalMetric[];
+    getWebVitalsReport: () => import('../webVitals').WebVitalMetric[];
   };
 }
 

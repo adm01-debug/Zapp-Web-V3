@@ -29,6 +29,8 @@ const EXPECTED_REALTIME_CONSUMERS: string[] = [
   'src/features/inbox/hooks/realtime/useRetryResolutionAlerts.ts',
   'src/features/inbox/components/chat/ChatMessagesArea.tsx',
   'src/services/messages/messagesRepository.ts',
+  'src/hooks/useTranscriptionNotifications.ts',
+  'src/hooks/useRealtimeDashboard.ts',
 ];
 
 const UPDATE_HINT =

@@ -17,7 +17,7 @@
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook } from '@testing-library/react';
-import { useSwipeNavigation } from '../useSwipeNavigation';
+import { useSwipeNavigation } from '../useSwipeControl';
 
 const SCREEN_W = 375;
 const EDGE = 24;

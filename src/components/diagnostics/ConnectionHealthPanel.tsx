@@ -107,7 +107,7 @@ export function ConnectionHealthPanel(): JSX.Element {
       )
       .subscribe();
     return () => {
-      supabase.removeChannel(channel);
+      channel.unsubscribe();
     };
   }, [fetchData]);
 

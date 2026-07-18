@@ -105,6 +105,8 @@ interface BroadcastMessage<T = unknown> extends VersionedPayload {
 }
 
 const TAB_ID = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+/** @internal — exposed for tests. */
+export const __TAB_ID = TAB_ID;
 
 // MELHORIA #8: Versioned state with sequence counters and metrics
 let globalSequence = 0;
@@ -509,8 +511,6 @@ async function readPersistedResult<T>(key: string): Promise<T | null> {
     const raw = localStorage.getItem(LS_RESULT_PREFIX + key);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as ResultPayload<T>;
-    // Validate version
-    if (!parsed.version || parsed.version !== 1) return null;
     if (parsed.expiresAt < getNormalizedTime()) {
       localStorage.removeItem(LS_RESULT_PREFIX + key);
       return null;
@@ -586,13 +586,8 @@ export function gcExpiredKeys(): { locksSwept: number; resultsSwept: number } {
             continue;
           }
 
-          // Locks and results: check version and expiresAt
-          const parsed = JSON.parse(raw) as VersionedPayload & { expiresAt?: number };
-          if (!parsed.version || parsed.version !== 1) {
-            toRemove.push(k);
-            continue;
-          }
-
+          // Locks and results: check expiresAt only (no version requirement for backwards compat)
+          const parsed = JSON.parse(raw) as { expiresAt?: number };
           if (typeof parsed.expiresAt === 'number' && parsed.expiresAt < now) {
             toRemove.push(k);
           }
@@ -694,7 +689,7 @@ export interface DedupeOptions {
   waitTimeout?: number;
 }
 
-export async function dedupedFetch<T>(
+export function dedupedFetch<T>(
   key: string,
   fetcher: () => Promise<T>,
   opts: DedupeOptions = {}
@@ -705,123 +700,128 @@ export async function dedupedFetch<T>(
 
   startGcIfNeeded();
   electClockMaster();
-  const startedAt = getNormalizedTime();
-  const seq = getSequenceNumber();
 
-  // 1. Cache em memória.
+  // 1. Cache em memória (sync — check before any await).
   const cached = resultCache.get(key);
   if (cached && cached.expiresAt > getNormalizedTime()) {
     recordDedupeEvent({ key, reason: 'memory_cache' });
-    return cached.value as T;
+    return Promise.resolve(cached.value as T);
   }
-  if (cached && cached.expiresAt <= getNormalizedTime()) {
-    resultCache.delete(key);
-  }
+  if (cached) resultCache.delete(key);
 
-  // 1b. Cache persistente (localStorage + IndexedDB).
-  const persisted = await readPersistedResult<T>(key);
-  if (persisted !== null) {
-    resultCache.set(key, { value: persisted, expiresAt: getNormalizedTime() + resultTtl });
-    recordDedupeEvent({ key, reason: 'persisted_cache' });
-    return persisted;
-  }
-
-  // 2. Inflight na mesma aba.
+  // 2. Inflight na mesma aba (sync — must be checked before registering new work).
   const pending = inflight.get(key);
   if (pending) {
     recordDedupeEvent({ key, reason: 'inflight_local' });
-    return pending as Promise<T>; // ignore-audit: inflight map stores Promise<unknown>; cast safe — same key was inserted with Promise<T>
+    return pending as Promise<T>;
   }
 
-  // 3. Tenta adquirir lock cross-tab (com retry via CAS).
-  const acquired = await writeLock(key, lockTtl);
-  if (!acquired) {
-    getBroadcastChannel();
-    log.debug('Lock detido por outra aba, aguardando broadcast', { key });
-    const waited = await waitForResult<T>(key, waitTimeout);
-    if (waited.ok) {
-      recordDedupeEvent({
-        key,
-        reason: 'broadcast_wait',
-        durationMs: getNormalizedTime() - startedAt,
-      });
-      return waited.data;
-    }
-
-    const lateCache = await readPersistedResult<T>(key);
-    if (lateCache !== null) {
-      resultCache.set(key, { value: lateCache, expiresAt: getNormalizedTime() + resultTtl });
-      recordDedupeEvent({
-        key,
-        reason: 'late_cache',
-        durationMs: getNormalizedTime() - startedAt,
-      });
-      return lateCache;
-    }
-
-    metrics.fallbackActivations++;
-  }
-
-  // 4. Líder: executa fetcher, cacheia, hash, broadcasta, libera lock.
-  const isFallback = !acquired;
+  // 3. All async work runs inside a single IIFE so we can register it in inflight
+  //    synchronously before the first yield, preventing concurrent duplicate calls.
+  const startedAt = getNormalizedTime();
+  const seq = getSequenceNumber();
   const exec = (async () => {
     try {
-      const data = await fetcher();
-      const hash = await computePayloadHash(data);
+      // 3a. Cache persistente (localStorage + IndexedDB).
+      const persisted = await readPersistedResult<T>(key);
+      if (persisted !== null) {
+        resultCache.set(key, { value: persisted, expiresAt: getNormalizedTime() + resultTtl });
+        recordDedupeEvent({ key, reason: 'persisted_cache' });
+        return persisted;
+      }
 
-      resultCache.set(key, { value: data, expiresAt: getNormalizedTime() + resultTtl });
-      await writePersistedResult(key, data, resultTtl, hash);
+      // 3b. Tenta adquirir lock cross-tab (com retry via CAS).
+      const acquired = await writeLock(key, lockTtl);
+      if (!acquired) {
+        getBroadcastChannel();
+        log.debug('Lock detido por outra aba, aguardando broadcast', { key });
+        const waited = await waitForResult<T>(key, waitTimeout);
+        if (waited.ok) {
+          recordDedupeEvent({
+            key,
+            reason: 'broadcast_wait',
+            durationMs: getNormalizedTime() - startedAt,
+          });
+          return waited.data;
+        }
 
-      broadcast<T>({
-        version: 1,
-        type: 'result',
-        key,
-        ownerId: TAB_ID,
-        data,
-        ts: getNormalizedTime(),
-        resultTtl,
-        payloadHash: hash,
-        sequence: seq,
-      });
+        const lateCache = await readPersistedResult<T>(key);
+        if (lateCache !== null) {
+          resultCache.set(key, { value: lateCache, expiresAt: getNormalizedTime() + resultTtl });
+          recordDedupeEvent({
+            key,
+            reason: 'late_cache',
+            durationMs: getNormalizedTime() - startedAt,
+          });
+          return lateCache;
+        }
 
-      notifySubscribers(key, data, 'local');
-      recordDedupeEvent({
-        key,
-        reason: isFallback ? 'fallback_after_wait' : 'lock_acquired_lead',
-        durationMs: getNormalizedTime() - startedAt,
-      });
-      return data;
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      broadcast({
-        version: 1,
-        type: 'error',
-        key,
-        ownerId: TAB_ID,
-        error: message,
-        ts: getNormalizedTime(),
-        sequence: seq,
-      });
-      recordDedupeEvent({
-        key,
-        reason: isFallback ? 'fallback_after_wait' : 'lock_acquired_lead',
-        durationMs: getNormalizedTime() - startedAt,
-        errorMessage: message,
-      });
-      throw err;
+        metrics.fallbackActivations++;
+      }
+
+      // 3c. Líder: executa fetcher, cacheia, hash, broadcasta, libera lock.
+      const isFallback = !acquired;
+      try {
+        const data = await fetcher();
+        const hash = await computePayloadHash(data);
+
+        resultCache.set(key, { value: data, expiresAt: getNormalizedTime() + resultTtl });
+        await writePersistedResult(key, data, resultTtl, hash);
+
+        broadcast<T>({
+          version: 1,
+          type: 'result',
+          key,
+          ownerId: TAB_ID,
+          data,
+          ts: getNormalizedTime(),
+          resultTtl,
+          payloadHash: hash,
+          sequence: seq,
+        });
+
+        notifySubscribers(key, data, 'local');
+        recordDedupeEvent({
+          key,
+          reason: isFallback ? 'fallback_after_wait' : 'lock_acquired_lead',
+          durationMs: getNormalizedTime() - startedAt,
+        });
+        return data;
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        broadcast({
+          version: 1,
+          type: 'error',
+          key,
+          ownerId: TAB_ID,
+          error: message,
+          ts: getNormalizedTime(),
+          sequence: seq,
+        });
+        recordDedupeEvent({
+          key,
+          reason: isFallback ? 'fallback_after_wait' : 'lock_acquired_lead',
+          durationMs: getNormalizedTime() - startedAt,
+          errorMessage: message,
+        });
+        throw err;
+      } finally {
+        releaseLock(key);
+        broadcast({
+          version: 1,
+          type: 'release',
+          key,
+          ownerId: TAB_ID,
+          ts: getNormalizedTime(),
+          sequence: seq,
+        });
+      }
     } finally {
-      releaseLock(key);
-      broadcast({
-        version: 1,
-        type: 'release',
-        key,
-        ownerId: TAB_ID,
-        ts: getNormalizedTime(),
-        sequence: seq,
-      });
       inflight.delete(key);
     }
   })();
+
+  // Register before any microtask runs so concurrent calls see the in-flight promise.
   inflight.set(key, exec);
   return exec;
 }

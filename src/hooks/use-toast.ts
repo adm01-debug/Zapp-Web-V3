@@ -1,3 +1,44 @@
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type Toast = { id: string; open: boolean; [key: string]: any };
+type ToastState = { toasts: Toast[] };
+
+type ToastAction =
+  | { type: 'ADD_TOAST'; toast: Toast }
+  | { type: 'UPDATE_TOAST'; toast: Partial<Toast> & { id: string } }
+  | { type: 'DISMISS_TOAST'; toastId?: string }
+  | { type: 'REMOVE_TOAST'; toastId?: string };
+
+const TOAST_LIMIT = 1;
+
+export function reducer(state: ToastState, action: ToastAction): ToastState {
+  switch (action.type) {
+    case 'ADD_TOAST':
+      return { ...state, toasts: [action.toast, ...state.toasts].slice(0, TOAST_LIMIT) };
+    case 'UPDATE_TOAST':
+      return {
+        ...state,
+        toasts: state.toasts.map((t) =>
+          t.id === action.toast.id ? { ...t, ...action.toast } : t
+        ),
+      };
+    case 'DISMISS_TOAST':
+      return {
+        ...state,
+        toasts: state.toasts.map((t) =>
+          action.toastId === undefined || t.id === action.toastId ? { ...t, open: false } : t
+        ),
+      };
+    case 'REMOVE_TOAST':
+      return {
+        ...state,
+        toasts:
+          action.toastId === undefined ? [] : state.toasts.filter((t) => t.id !== action.toastId),
+      };
+    default:
+      return state;
+  }
+}
+
 import { toast as sonnerToast } from 'sonner';
 import type { ExternalToast } from 'sonner';
 import type { ReactNode } from 'react';

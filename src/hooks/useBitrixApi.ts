@@ -1,30 +1,87 @@
-// Re-export from consolidated useIntegrationManagement module (ETAPA 42 consolidation)
-import { useBitrixApiManagement } from '@/hooks/useIntegrationManagement';
+import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useState } from 'react';
 import { getLogger } from '@/lib/logger';
 
 const log = getLogger('useBitrixApi');
 
-export function useBitrixApi() {
-  const base = useBitrixApiManagement();
-  const [loading, setLoading] = useState(false);
+type BitrixBody = Record<string, unknown>;
 
-  const syncContactsFromBitrix = async (): Promise<boolean> => {
+export function useBitrixApi() {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const invoke = useCallback(async <T = unknown>(body: BitrixBody): Promise<T | null> => {
     setLoading(true);
+    setError(null);
     try {
-      const { data, error } = await supabase.functions.invoke('bitrix-api', {
-        body: { action: 'syncContacts' },
-      });
-      if (error || data?.error) return false;
-      return true;
+      const { data, error: invokeError } = await supabase.functions.invoke('bitrix-api', { body });
+      if (invokeError) {
+        const msg = invokeError.message ?? String(invokeError);
+        setError(msg);
+        log.error('Bitrix API error', invokeError);
+        return null;
+      }
+      if (data?.error) {
+        setError(data.error);
+        return null;
+      }
+      return data as T;
     } catch (err) {
-      log.error('Bitrix contacts sync failed', err);
-      return false;
+      const msg = err instanceof Error ? err.message : String(err);
+      setError(msg);
+      log.error('Bitrix API exception', err);
+      return null;
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  return { ...base, loading, syncContactsFromBitrix };
+  // Lead operations
+  const listLeads = useCallback(() => invoke({ action: 'list', entityType: 'lead' }), [invoke]);
+  const getLead = useCallback((id: number) => invoke({ action: 'get', entityType: 'lead', id }), [invoke]);
+  const createLead = useCallback((fields: BitrixBody) => invoke({ action: 'create', entityType: 'lead', fields }), [invoke]);
+  const updateLead = useCallback((id: number, fields: BitrixBody) => invoke({ action: 'update', entityType: 'lead', id, fields }), [invoke]);
+  const deleteLead = useCallback((id: number) => invoke({ action: 'delete', entityType: 'lead', id }), [invoke]);
+
+  // Contact operations
+  const listContacts = useCallback(() => invoke({ action: 'list', entityType: 'contact' }), [invoke]);
+  const getContact = useCallback((id: number) => invoke({ action: 'get', entityType: 'contact', id }), [invoke]);
+  const createContact = useCallback((fields: BitrixBody) => invoke({ action: 'create', entityType: 'contact', fields }), [invoke]);
+
+  // Deal operations
+  const listDeals = useCallback(() => invoke({ action: 'list', entityType: 'deal' }), [invoke]);
+  const getDeal = useCallback((id: number) => invoke({ action: 'get', entityType: 'deal', id }), [invoke]);
+  const createDeal = useCallback((fields: BitrixBody) => invoke({ action: 'create', entityType: 'deal', fields }), [invoke]);
+
+  // Telephony
+  const registerCall = useCallback((params: BitrixBody) => invoke({ action: 'registerCall', ...params }), [invoke]);
+  const finishCall = useCallback((callId: string, params?: BitrixBody) => invoke({ action: 'finishCall', callId, ...params }), [invoke]);
+  const attachCallRecord = useCallback((callId: string, record: BitrixBody) => invoke({ action: 'attachCallRecord', callId, ...record }), [invoke]);
+
+  // Sync
+  const syncContactsFromBitrix = useCallback(() => invoke({ action: 'syncContacts' }), [invoke]);
+  const pushContactToBitrix = useCallback((contactId: string) => invoke({ action: 'pushContact', contactId }), [invoke]);
+  const createLeadFromConversation = useCallback((conversationId: string, params?: BitrixBody) => invoke({ action: 'createLeadFromConversation', conversationId, ...params }), [invoke]);
+
+  return {
+    loading,
+    error,
+    listLeads,
+    getLead,
+    createLead,
+    updateLead,
+    deleteLead,
+    listContacts,
+    getContact,
+    createContact,
+    listDeals,
+    getDeal,
+    createDeal,
+    registerCall,
+    finishCall,
+    attachCallRecord,
+    syncContactsFromBitrix,
+    pushContactToBitrix,
+    createLeadFromConversation,
+  };
 }
