@@ -211,8 +211,8 @@ export function ChatPanel({
     applySignature,
     handleTypingStart,
     handleTypingStop,
-    openDialog: openDialog as any,
-    closeDialog: closeDialog as any,
+    openDialog,
+    closeDialog,
     handleSetActiveTool,
   });
 
@@ -247,7 +247,7 @@ export function ChatPanel({
     onNextConversation: () => {}, // Handled in Sidebar
     onPrevConversation: () => {}, // Handled in Sidebar
     onArchive: () => {}, // Handled in Sidebar
-    onTransfer: () => handlers.handleSlashCommand({ id: 'transfer' } as any),
+    onTransfer: () => handlers.handleSlashCommand({ id: 'transfer' }),
     onRefresh: () => {}, // Handled in Sidebar
     onSearchFocusChat: () => handleSetActiveTool('chatSearch'),
   });
