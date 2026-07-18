@@ -25,6 +25,17 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 
+interface WhisperFile {
+  id: string;
+  contact_id: string;
+  file_name: string;
+  file_url: string;
+  file_size: number;
+  file_type: string;
+  sender_id?: string | null;
+  created_at?: string | null;
+}
+
 interface TeamFilesProps {
   contactId: string;
 }
@@ -38,7 +49,7 @@ export const TeamFiles = memo(function TeamFiles({ contactId }: TeamFilesProps) 
   const { data: files = [], isLoading } = useQuery({
     queryKey: ['team-files', contactId],
     queryFn: async () => {
-      const { data, error } = await safeClient.from('whisper_files', (q) =>
+      const { data, error } = await safeClient.from<WhisperFile>('whisper_files', (q) =>
         q.select('*').eq('contact_id', contactId).order('created_at', { ascending: false })
       );
 
@@ -118,8 +129,8 @@ export const TeamFiles = memo(function TeamFiles({ contactId }: TeamFilesProps) 
   };
 
   const filteredFiles = files.filter((file) => {
-    const fileName = (file as any).file_name || '';
-    const fileType = (file as any).file_type || '';
+    const fileName = file.file_name || '';
+    const fileType = file.file_type || '';
     const matchesSearch = fileName.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesType =
       typeFilter === 'all' ||
@@ -194,7 +205,7 @@ export const TeamFiles = memo(function TeamFiles({ contactId }: TeamFilesProps) 
           <div className="flex items-center justify-center py-10">
             <Loader2 className="h-6 w-6 animate-spin text-warning-foreground" />
           </div>
-        ) : (filteredFiles as any[]).length === 0 ? (
+        ) : filteredFiles.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-10 text-center opacity-40 grayscale">
             <File className="mb-2 h-8 w-8" />
             <p className="text-[10px]">
