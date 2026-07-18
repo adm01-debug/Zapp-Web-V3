@@ -39,7 +39,7 @@ function requireMapping(entity: LogicalEntity): EntityMapping {
     throw new Error(
       `[datasource] Entidade lógica "${String(entity)}" não está registrada em ` +
         `ENTITY_MAP (src/integrations/datasource/registry.ts). ` +
-        `Adicione-a ao LogicalEntity + ENTITY_MAP antes de usar dbFrom/dbChannel/dbTable.`,
+        `Adicione-a ao LogicalEntity + ENTITY_MAP antes de usar dbFrom/dbChannel/dbTable.`
     );
   }
   return mapping;
@@ -50,7 +50,7 @@ export function dbClient(entity: LogicalEntity): SupabaseClient {
   const target = (mapping.client as string) === 'external' ? externalSupabase : supabase;
   if (!target) {
     throw new Error(
-      `[datasource] Cliente "${mapping.client}" para entidade "${entity}" não está configurado.`,
+      `[datasource] Cliente "${mapping.client}" para entidade "${entity}" não está configurado.`
     );
   }
   return target as SupabaseClient;
@@ -64,7 +64,7 @@ export function dbTable(entity: LogicalEntity): string {
 export function dbFrom(entity: LogicalEntity): any {
   const mapping = requireMapping(entity);
   validateEntityAccess(mapping.table, mapping.client);
-  return (dbClient(entity) as any).from(mapping.table);
+  return dbClient(entity).from(mapping.table as any);
 }
 
 export function dbChannel(entity: LogicalEntity, name: string): RealtimeChannel {
@@ -105,7 +105,7 @@ function rpcClient(client: DatasourceClient): SupabaseClient {
 
 export async function dbRpc<P extends object, R>(
   def: RpcDefinition<P, R>,
-  params: P,
+  params: P
 ): Promise<DbRpcResult<R>> {
   validateRpcAccess(def.name, def.client);
   const client = rpcClient(def.client);
@@ -116,17 +116,17 @@ export async function dbRpc<P extends object, R>(
 
   try {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data, error } = await (client as any).rpc(def.name, merged as any);
+    const { data, error } = await client.rpc(def.name as any, merged as Record<string, unknown>);
     const durationMs = Math.round(performance.now() - startedAt);
-    const errorMessage = error ? error.message ?? 'rpc error' : undefined;
+    const errorMessage = error ? (error.message ?? 'rpc error') : undefined;
 
     recordQueryEvent({
       operation: 'rpc',
       source,
       target: def.name,
       durationMs,
-      limit: (merged as any).p_limit ?? null,
-      offset: (merged as any).p_offset ?? null,
+      limit: (merged as Record<string, unknown>).p_limit ?? null,
+      offset: (merged as Record<string, unknown>).p_offset ?? null,
       filters: merged as Record<string, unknown>,
       recordCount: Array.isArray(data) ? data.length : null,
       errorMessage,
@@ -146,8 +146,8 @@ export async function dbRpc<P extends object, R>(
       source,
       target: def.name,
       durationMs,
-      limit: (merged as any).p_limit ?? null,
-      offset: (merged as any).p_offset ?? null,
+      limit: (merged as Record<string, unknown>).p_limit ?? null,
+      offset: (merged as Record<string, unknown>).p_offset ?? null,
       filters: merged as Record<string, unknown>,
       recordCount: null,
       errorMessage: message,
@@ -162,17 +162,17 @@ export async function dbRpc<P extends object, R>(
 /** Lista (RPC que retorna array). Alias semântico de `dbRpc`. */
 export const dbList = <P extends object, R>(
   def: RpcDefinition<P, R[]>,
-  params: P,
+  params: P
 ): Promise<DbRpcResult<R[]>> => dbRpc<P, R[]>(def, params);
 
 /** Busca individual (RPC que retorna single row). Alias semântico de `dbRpc`. */
 export const dbGet = <P extends object, R>(
   def: RpcDefinition<P, R>,
-  params: P,
+  params: P
 ): Promise<DbRpcResult<R>> => dbRpc<P, R>(def, params);
 
 /** Inserção/escrita (RPC mutation). Alias semântico de `dbRpc`. */
 export const dbInsert = <P extends object, R>(
   def: RpcDefinition<P, R>,
-  params: P,
+  params: P
 ): Promise<DbRpcResult<R>> => dbRpc<P, R>(def, params);
