@@ -220,16 +220,16 @@ export function useExternalMutation() {
       validateEntityAccess(params.table, 'external');
       if (params.action === 'insert') {
         const { data, error } = await getExternalSupabase()
-          .from(params.table)
-          .insert(params.data as any)
+          .from(params.table as any)
+          .insert(params.data)
           .select();
         if (error) throw new Error(error.message);
         return data;
       }
       if (params.action === 'update') {
         let q = getExternalSupabase()
-          .from(params.table)
-          .update(params.data as any);
+          .from(params.table as any)
+          .update(params.data);
         if (params.match) {
           for (const [k, v] of Object.entries(params.match)) q = q.eq(k, v as string);
         }
