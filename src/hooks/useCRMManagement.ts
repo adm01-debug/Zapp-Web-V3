@@ -116,10 +116,19 @@ export function useContactNotesManagement(contactId?: string) {
         } = await supabase.auth.getUser();
         if (authError) throw authError;
         if (!user) throw new Error('Usuário não autenticado');
+        // contact_notes.author_id is a FK to profiles.id (not profiles.user_id / auth.uid()).
+        // Must look up the profile row first.
+        const { data: profile, error: profileErr } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('user_id', user.id)
+          .maybeSingle();
+        if (profileErr) throw profileErr;
+        if (!profile) throw new Error('Perfil não encontrado');
         const { error: err } = await supabase.from('contact_notes').insert({
           contact_id: contactId,
           content,
-          author_id: user.id,
+          author_id: profile.id,
         });
 
         if (err) throw err;

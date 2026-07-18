@@ -165,10 +165,12 @@ export function useDownloadPermissionManagement(resourceId?: string) {
         setHasPermission(data || false);
       } catch (err) {
         log.error('Error checking download permission:', err);
-        // Fail open only when the RPC doesn't exist yet (SQLSTATE 42883 = undefined_function).
+        // Fail open only when the RPC doesn't exist yet:
+        //   PGRST202 = PostgREST cannot find the function in its schema cache
+        //   42883    = PostgreSQL undefined_function (function exists in cache but throws)
         // Any other error (network, auth, RLS) keeps permission denied.
         const code = (err as { code?: string })?.code;
-        setHasPermission(code === '42883');
+        setHasPermission(code === '42883' || code === 'PGRST202');
       } finally {
         setLoading(false);
       }
