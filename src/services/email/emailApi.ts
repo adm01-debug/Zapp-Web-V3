@@ -22,10 +22,7 @@ export const emailApi = {
     to: number,
     filters?: { status?: string; dateFrom?: string; dateTo?: string }
   ) => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let query = supabase
-      .from('email_revalidation_jobs' as any)
-      .select('*', { count: 'exact' } as any);
+    let query = supabase.from('email_revalidation_jobs' as any).select('*', { count: 'exact' });
 
     if (filters?.status && filters.status !== 'all') {
       query = query.eq('status', filters.status);
