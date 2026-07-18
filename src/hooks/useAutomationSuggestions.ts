@@ -89,7 +89,7 @@ export function useAutomationSuggestions(remoteJid: string | null) {
         'postgres_changes',
         { event: '*', schema: 'public', table: 'automation_executions' },
         (payload) => {
-          const row = (payload.new ?? payload.old) as any;
+          const row = (payload.new ?? payload.old) as Record<string, unknown>;
           if (row?.remote_jid === remoteJid) void refresh();
         }
       )
@@ -129,11 +129,14 @@ export function useAutomationSuggestions(remoteJid: string | null) {
       const sugg = suggestions.find((s) => s.id === id);
       if (!sugg?.recommended_tag) return false;
       try {
-        await (getClient()?.rpc as any)('rpc_upsert_contact', {
-          p_remote_jid: sugg.remote_jid,
-          p_instance: sugg.instance_name,
-          p_tags: [sugg.recommended_tag],
-        });
+        const externalClient = getClient();
+        if (externalClient) {
+          await externalClient.rpc('rpc_upsert_contact' as any, {
+            p_remote_jid: sugg.remote_jid,
+            p_instance: sugg.instance_name,
+            p_tags: [sugg.recommended_tag],
+          });
+        }
         await safeClient.from('automation_executions', (q) =>
           q.update({ applied_tags: [sugg.recommended_tag] }).eq('id', id)
         );
