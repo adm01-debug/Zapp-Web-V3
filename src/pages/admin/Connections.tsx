@@ -265,18 +265,19 @@ export default function AdminConnectionsPage() {
       // Pequeno delay para garantir que o banco processou a transação (útil em setups com latência)
       await new Promise((resolve) => setTimeout(resolve, 800));
 
-      const { data: verify, error: verifyError } = await safeClient.from<any>(
+      const { data: verifyRows, error: verifyError } = await safeClient.from<any>(
         'system_connections',
         (q) =>
           q
             .select('id, updated_at')
             .eq('provider', 'supabase_external')
             .eq('name', 'FATOR X')
-            .maybeSingle()
+            .limit(1)
       );
+      const verify = verifyRows?.[0] ?? null;
 
       if (verifyError || !verify) {
-        const msg = `A requisição retornou status ${status}, mas o SELECT de validação falhou: ${verifyError?.message ?? 'Registro não encontrado'}. Tente recarregar a página.`;
+        const msg = `O SELECT de validação falhou: ${verifyError?.message ?? 'Registro não encontrado'}. Tente recarregar a página.`;
         setSaveError(msg);
         toast({ title: 'Confirmação falhou', description: msg, variant: 'destructive' });
         return;
