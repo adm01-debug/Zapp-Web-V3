@@ -11,6 +11,7 @@ import {
 import { UserX, MessageSquare } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 
+/** Abandonment Rate component for the reports section. */
 export function AbandonmentRate() {
   const [data, setData] = useState({ total: 0, abandoned: 0, responded: 0 });
   const [period, setPeriod] = useState('7');

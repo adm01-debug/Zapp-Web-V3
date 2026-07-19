@@ -62,6 +62,7 @@ function normalizeEscalateSla(
   };
 }
 
+/** Admin Automations Page. */
 export default function AdminAutomationsPage() {
   const {
     rules,

@@ -81,4 +81,5 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
 );
 Input.displayName = "Input";
 
+/** input component for the ui section. */
 export { Input, inputVariants };

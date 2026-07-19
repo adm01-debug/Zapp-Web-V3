@@ -24,6 +24,7 @@ interface ThreadStats {
   unread: number;
 }
 
+/** Email Webhook Monitor component. */
 export function EmailWebhookMonitor() {
   const { data, isFetching, refetch } = useQuery({
     queryKey: queryKeys.adminOps.emailWebhook(),

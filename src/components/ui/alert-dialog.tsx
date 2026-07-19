@@ -89,6 +89,7 @@ const AlertDialogCancel = React.forwardRef<
 ));
 AlertDialogCancel.displayName = AlertDialogPrimitive.Cancel.displayName;
 
+/** alert-dialog component for the ui section. */
 export {
   AlertDialog,
   AlertDialogPortal,

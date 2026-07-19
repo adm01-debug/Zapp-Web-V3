@@ -24,4 +24,5 @@ const Switch = React.forwardRef<
 ));
 Switch.displayName = SwitchPrimitives.Root.displayName;
 
+/** switch component for the ui section. */
 export { Switch };

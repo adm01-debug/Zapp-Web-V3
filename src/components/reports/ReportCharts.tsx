@@ -33,6 +33,7 @@ export {
 } from './reportChartsCommon';
 
 // ─── Daily Messages Chart (non-comparison) ───
+/** Daily Messages Chart component for the reports section. */
 export function DailyMessagesChart({ data, isLoading }: { data: ChartData; isLoading: boolean }) {
   return (
     <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
@@ -116,6 +117,7 @@ export function DailyMessagesChart({ data, isLoading }: { data: ChartData; isLoa
 }
 
 // ─── Contacts Charts ───
+/** Contacts Charts component for the reports section. */
 export function ContactsCharts({
   data,
   isLoading,

@@ -1,3 +1,4 @@
+/** Phase. */
 export type Phase =
   | 'config'
   | 'parse-body'
@@ -10,6 +11,7 @@ export type Phase =
   | 'temporal'
   | 'response';
 
+/** Scenario Report. */
 export interface ScenarioReport {
   name: string;
   description: string;
@@ -24,6 +26,7 @@ export interface ScenarioReport {
   nonce: string;
 }
 
+/** Self Test Result. */
 export interface SelfTestResult {
   ok: boolean;
   configured: boolean;

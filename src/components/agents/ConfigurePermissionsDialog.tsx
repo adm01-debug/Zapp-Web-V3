@@ -17,6 +17,7 @@ interface ConfigurePermissionsDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
+/** Configure Permissions Dialog component for the agents section. */
 export function ConfigurePermissionsDialog({ open, onOpenChange }: ConfigurePermissionsDialogProps) {
   const { data: roles = [], isLoading } = useQuery({
     queryKey: queryKeys.adminOps.userRoles(),

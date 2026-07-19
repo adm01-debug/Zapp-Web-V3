@@ -55,10 +55,12 @@ function validateTableName(table: string): void {
   }
 }
 
+/** safe From. */
 export function safeFrom(table: string): SafeQueryBuilder {
   return (supabase as unknown as DynamicSupabaseClient).from(table);
 }
 
+/** safe Client. */
 export const safeClient = {
   async from<T = unknown>(
     table: string,

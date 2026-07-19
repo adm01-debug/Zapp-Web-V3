@@ -40,6 +40,7 @@ function StatusHeader({ result }: { result: RecheckResult }) {
   );
 }
 
+/** Recheck Result Dialog. */
 export function RecheckResultDialog({
   open,
   onOpenChange,

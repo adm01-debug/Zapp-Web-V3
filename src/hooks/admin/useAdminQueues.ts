@@ -14,6 +14,7 @@ export {
   type ChannelQueue,
 } from '@/features/admin/hooks/useAdminManagement';
 
+/** Hook: use Admin Queues. */
 export function useAdminQueues() {
   const admin = useAdminManagement();
   return {

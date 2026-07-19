@@ -136,6 +136,7 @@ function CategorySection({
   );
 }
 
+/** Keyboard Shortcuts Dialog component for the keyboard section. */
 export function KeyboardShortcutsDialog({ open, onOpenChange }: KeyboardShortcutsDialogProps) {
   const { shortcuts } = useCustomShortcuts();
 

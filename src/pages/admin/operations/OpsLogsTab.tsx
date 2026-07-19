@@ -64,6 +64,7 @@ type PmlRow = {
   received_at: string;
 };
 
+/** Ops Logs Tab. */
 export function OpsLogsTab() {
   return (
     <Tabs defaultValue="audit" className="w-full">

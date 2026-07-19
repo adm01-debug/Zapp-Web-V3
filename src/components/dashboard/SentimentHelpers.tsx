@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils';
 import { format, subDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
+/** Sentiment Data component for the dashboard section. */
 export interface SentimentData {
   date: string;
   positive: number;
@@ -19,6 +20,7 @@ export interface SentimentData {
   alerts_count: number;
 }
 
+/** use Real Sentiment Data component for the dashboard section. */
 export function useRealSentimentData(days: number): SentimentData[] | null {
   const { data } = useQuery({
     queryKey: queryKeys.adminOps.sentimentTrend(days),
@@ -60,12 +62,14 @@ export function useRealSentimentData(days: number): SentimentData[] | null {
   return data ?? null;
 }
 
+/** Sentiment Icon component for the dashboard section. */
 export function SentimentIcon({ score }: { score: number }) {
   if (score >= 0.3) return <Smile className="w-5 h-5 text-success" />;
   if (score >= -0.3) return <Meh className="w-5 h-5 text-warning" />;
   return <Frown className="w-5 h-5 text-destructive" />;
 }
 
+/** Trend Indicator component for the dashboard section. */
 export function TrendIndicator({ current, previous }: { current: number; previous: number }) {
   const diff = current - previous;
   const percentage = previous !== 0 ? Math.abs((diff / previous) * 100).toFixed(1) : '0';
@@ -96,6 +100,7 @@ export function TrendIndicator({ current, previous }: { current: number; previou
   );
 }
 
+/** Sentiment Stats Cards component for the dashboard section. */
 export function SentimentStatsCards({ stats }: { stats: { avgScore: number; totalAlerts: number; avgPositive: number; avgNegative: number; recentAvg: number; previousAvg: number } }) {
   return (
     <div className="grid grid-cols-4 gap-3">
@@ -146,12 +151,14 @@ interface TooltipPayloadItem {
   payload: SentimentDataPoint;
 }
 
+/** Custom Tooltip Props component for the dashboard section. */
 export interface CustomTooltipProps {
   active?: boolean;
   payload?: TooltipPayloadItem[];
   label?: string;
 }
 
+/** Sentiment Custom Tooltip component for the dashboard section. */
 export const SentimentCustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
   if (!active || !payload || !payload.length || !label) return null;
   

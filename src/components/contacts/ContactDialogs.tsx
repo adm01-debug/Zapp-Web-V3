@@ -31,6 +31,7 @@ interface ContactDialogsProps {
   handleDeleteContact: (id: string) => void;
 }
 
+/** Contact Dialogs component for the contacts section. */
 export function ContactDialogs({
   workspaceId,
   isAddDialogOpen, setIsAddDialogOpen, onContactSaved,

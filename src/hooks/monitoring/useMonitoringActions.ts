@@ -2,6 +2,7 @@
 import { useMonitoringActionsManagement } from './useMonitoringManagement';
 import type { UseMonitoringActionsParams, UseMonitoringActionsResult } from './useMonitoringManagement';
 
+/** Hook: use Monitoring Actions. */
 export function useMonitoringActions(
   paramsOrFetchData: UseMonitoringActionsParams | UseMonitoringActionsParams['fetchData']
 ): UseMonitoringActionsResult {

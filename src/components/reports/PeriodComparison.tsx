@@ -13,6 +13,7 @@ interface PeriodData {
   avgResponseTime: number;
 }
 
+/** Period Comparison component for the reports section. */
 export function PeriodComparison() {
   const [comparison, setComparison] = useState<{ current: PeriodData; previous: PeriodData } | null>(null);
   const [period, setPeriod] = useState('week');

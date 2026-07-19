@@ -58,6 +58,7 @@ const SEVERITY_STYLES: Record<AlertSeverity, { badge: string; border: string; la
   },
 };
 
+/** Rate Limit Alerts Panel component. */
 export function RateLimitAlertsPanel() {
   const [thresholds, setThresholds] = useState<RateLimitAlertThresholds>(() => loadThresholds());
   const [notifyPrefs, setNotifyPrefs] = useState<NotifyPreferences>(() => loadNotifyPrefs());

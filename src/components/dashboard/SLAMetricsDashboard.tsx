@@ -33,6 +33,7 @@ const PERIOD_LABELS: Record<PeriodFilter, string> = {
   today: 'Hoje', week: 'Esta Semana', month: 'Este Mês', all: 'Todo Período',
 };
 
+/** SLAMetrics Dashboard component for the dashboard section. */
 export function SLAMetricsDashboard() {
   const [periodFilter, setPeriodFilter] = useState<PeriodFilter>('week');
   const { data, loading } = useSLAMetrics(periodFilter);

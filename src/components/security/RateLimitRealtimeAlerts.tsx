@@ -39,6 +39,7 @@ const SEVERITY_COLORS: Record<string, string> = {
   critical: 'border-l-red-500',
 };
 
+/** Rate Limit Realtime Alerts component for the security section. */
 export function RateLimitRealtimeAlerts() {
   const [alerts, setAlerts] = useState<SecurityAlert[]>([]);
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());

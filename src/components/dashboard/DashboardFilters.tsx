@@ -36,6 +36,7 @@ import { cn } from '@/lib/utils';
 import { useQueues } from '@/hooks/useQueues';
 import { useAgents } from '@/features/admin';
 
+/** Dashboard Filters State component for the dashboard section. */
 export interface DashboardFiltersState {
   dateRange: {
     from: Date;
@@ -61,6 +62,7 @@ const PERIOD_OPTIONS = [
   { value: 'custom', label: 'Personalizado' },
 ] as const;
 
+/** get Default Filters component for the dashboard section. */
 export const getDefaultFilters = (): DashboardFiltersState => ({
   dateRange: {
     from: startOfDay(new Date()),
@@ -71,6 +73,7 @@ export const getDefaultFilters = (): DashboardFiltersState => ({
   agentId: null,
 });
 
+/** Dashboard Filters component for the dashboard section. */
 export function DashboardFilters({
   filters,
   onFiltersChange,

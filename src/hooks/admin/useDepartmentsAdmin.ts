@@ -5,6 +5,7 @@ export type {
   Department,
 } from '@/features/admin/hooks/useAdminManagement';
 
+/** Hook: use Departments Admin. */
 export function useDepartmentsAdmin() {
   const admin = useAdminManagement();
   return {

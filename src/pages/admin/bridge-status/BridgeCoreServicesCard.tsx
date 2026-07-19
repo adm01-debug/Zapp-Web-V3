@@ -13,6 +13,7 @@ interface BridgeCoreServicesCardProps {
   recentTraffic: { count: number };
 }
 
+/** Bridge Core Services Card. */
 export function BridgeCoreServicesCard({
   lovableDb,
   externalDb,

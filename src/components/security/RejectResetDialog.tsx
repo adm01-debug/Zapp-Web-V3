@@ -13,6 +13,7 @@ interface RejectResetDialogProps {
   onReject: (reason: string) => void;
 }
 
+/** Reject Reset Dialog component for the security section. */
 export function RejectResetDialog({ open, email, processing, onClose, onReject }: RejectResetDialogProps) {
   const [reason, setReason] = useState('');
 

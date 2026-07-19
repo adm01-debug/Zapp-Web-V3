@@ -15,6 +15,7 @@ import {
   type RetryAlertDedupeMode,
 } from '@/lib/retryAlerts';
 
+/** use Retry Metrics Panel State component for the monitoring section. */
 export function useRetryMetricsPanelState() {
   const [hours, setHours] = useState<number>(24);
   const [actionFilter, setActionFilter] = useState<string>('all');

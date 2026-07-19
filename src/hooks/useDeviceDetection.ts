@@ -3,6 +3,7 @@ import { useDeviceDetectionManagement, type UserDevice, type UserSession } from 
 
 export type { UserDevice, UserSession };
 
+/** Hook: use Device Detection. */
 export function useDeviceDetection() {
   return useDeviceDetectionManagement();
 }

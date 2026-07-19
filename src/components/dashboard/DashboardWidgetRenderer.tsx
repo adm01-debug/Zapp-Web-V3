@@ -47,6 +47,7 @@ interface DashboardStats {
   }>;
 }
 
+/** build Stats Cards component for the dashboard section. */
 export function buildStatsCards(stats: DashboardStats) {
   const openRate = stats.totalConversations > 0
     ? Math.round((stats.openConversations / stats.totalConversations) * 100)
@@ -101,6 +102,7 @@ export function buildStatsCards(stats: DashboardStats) {
   ];
 }
 
+/** Dashboard Widget Renderer component for the dashboard section. */
 export function DashboardWidgetRenderer({ widget, stats }: { widget: DashboardWidget; stats: DashboardStats | null }) {
   if (!stats) return null;
   const statsCards = buildStatsCards(stats);

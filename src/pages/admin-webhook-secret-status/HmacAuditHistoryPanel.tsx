@@ -33,6 +33,7 @@ import { RANGES, ALL_INSTANCES, tooltipStyle, fmtDate } from './hmacAuditHistory
 import type { HmacAuditHistoryPanelProps, RangeKey } from './hmacAuditHistoryHelpers';
 import { useHmacAuditHistory } from './useHmacAuditHistory';
 
+/** Hmac Audit History Panel. */
 export function HmacAuditHistoryPanel({
   instance: initialInstance = null,
   limit = 25,

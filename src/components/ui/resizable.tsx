@@ -69,4 +69,5 @@ const ResizableHandle = ({
   </RP.PanelResizeHandle>
 );
 
+/** resizable component for the ui section. */
 export { ResizablePanelGroup, ResizablePanel, ResizableHandle };

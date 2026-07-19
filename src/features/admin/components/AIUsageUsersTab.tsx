@@ -13,6 +13,7 @@ interface AIUsageUsersTabProps {
   profileMap: Map<string, { name?: string | null; email?: string | null }>;
 }
 
+/** AIUsage Users Tab component. */
 export function AIUsageUsersTab({ userUsage, profileMap }: AIUsageUsersTabProps) {
   if (userUsage.length === 0) {
     return (

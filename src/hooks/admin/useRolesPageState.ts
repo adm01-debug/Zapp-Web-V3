@@ -5,6 +5,7 @@ export type {
   UserWithRole,
 } from '@/features/admin/hooks/useAdminManagement';
 
+/** Hook: use Roles Page State. */
 export function useRolesPageState() {
   const admin = useAdminManagement();
   return {

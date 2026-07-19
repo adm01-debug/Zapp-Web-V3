@@ -54,6 +54,7 @@ const sizeConfig = {
   lg: { container: 'px-4 py-2 gap-2.5', icon: 'w-5 h-5', text: 'text-base' },
 };
 
+/** Animated Badge component for the dashboard section. */
 export const AnimatedBadge = React.forwardRef<HTMLDivElement, AnimatedBadgeProps>(
   function AnimatedBadge(
     { value, label, variant = 'xp', size = 'md', showAnimation = true, className },
@@ -131,6 +132,7 @@ interface StatCardProps {
   index: number;
 }
 
+/** Stat Card With Gamification component for the dashboard section. */
 export function StatCardWithGamification({
   title,
   value,
@@ -277,6 +279,7 @@ interface LevelProgressProps {
   className?: string;
 }
 
+/** Level Progress component for the dashboard section. */
 export function LevelProgress({ currentXP, requiredXP, level, className }: LevelProgressProps) {
   const progress = (currentXP / requiredXP) * 100;
 

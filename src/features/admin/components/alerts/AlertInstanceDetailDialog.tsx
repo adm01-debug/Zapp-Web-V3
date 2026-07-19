@@ -52,6 +52,7 @@ function formatHour(iso: string) {
   return new Date(iso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 }
 
+/** Alert Instance Detail Dialog component for the alerts section. */
 export function AlertInstanceDetailDialog({ open, onOpenChange, instance }: Props) {
   const enabled = open && !!instance;
 

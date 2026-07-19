@@ -70,6 +70,7 @@ const DEFAULT_RULES: Omit<RateLimitRule, 'id'>[] = [
   },
 ];
 
+/** Rate Limit Config Panel component for the security section. */
 export function RateLimitConfigPanel() {
   const [rules, setRules] = useState<RateLimitRule[]>([]);
   const [loading, setLoading] = useState(true);

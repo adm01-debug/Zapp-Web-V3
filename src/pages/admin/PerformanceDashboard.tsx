@@ -5,6 +5,7 @@ import type { WebVitalMetric } from '@/lib/webVitals';
 import { Gauge, Zap, Layout, Timer, BarChart3, ShieldCheck } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
+/** Performance Dashboard. */
 export default function PerformanceDashboard() {
   const [metrics, setMetrics] = useState<WebVitalMetric[]>([]);
   const [lastUpdate, setLastLastUpdate] = useState(new Date());

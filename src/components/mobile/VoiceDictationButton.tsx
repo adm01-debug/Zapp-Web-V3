@@ -11,6 +11,7 @@ interface VoiceDictationButtonProps {
   disabled?: boolean;
 }
 
+/** Voice Dictation Button component for the mobile section. */
 export function VoiceDictationButton({
   onTranscript,
   className,

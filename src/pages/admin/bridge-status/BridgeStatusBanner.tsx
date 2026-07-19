@@ -14,6 +14,7 @@ interface BridgeStatusBannerProps {
   statusConfig: StatusConfig;
 }
 
+/** Bridge Status Banner. */
 export function BridgeStatusBanner({ status, statusConfig }: BridgeStatusBannerProps) {
   return (
     <motion.div

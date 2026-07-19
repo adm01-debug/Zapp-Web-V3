@@ -27,6 +27,7 @@ const triggerEvents = [
   { value: 'campaign.completed', label: 'Campanha Concluída' },
 ];
 
+/** N8n Integration View component for the integrations section. */
 export function N8nIntegrationView() {
   const [webhookBaseUrl, setWebhookBaseUrl] = useState('');
   const [isConnected, setIsConnected] = useState(false);

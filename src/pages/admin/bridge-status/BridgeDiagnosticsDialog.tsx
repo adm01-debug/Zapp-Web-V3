@@ -18,6 +18,7 @@ interface BridgeDiagnosticsDialogProps {
   runDiagnostics: () => void;
 }
 
+/** Bridge Diagnostics Dialog. */
 export function BridgeDiagnosticsDialog({
   diagRunning,
   diagResults,

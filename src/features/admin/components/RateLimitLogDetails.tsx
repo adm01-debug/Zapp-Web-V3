@@ -88,6 +88,7 @@ function Field({
   );
 }
 
+/** Rate Limit Log Details component. */
 export function RateLimitLogDetails({ log, open, onOpenChange, onFilterByIp, onFilterByEndpoint }: Props) {
   const ua = useMemo(() => parseUA(log?.user_agent ?? null), [log?.user_agent]);
 

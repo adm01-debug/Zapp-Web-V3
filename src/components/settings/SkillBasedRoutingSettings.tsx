@@ -26,6 +26,7 @@ const SKILL_SUGGESTIONS = [
   'Reclamações',
 ];
 
+/** Skill Based Routing Settings component for the settings section. */
 export function SkillBasedRoutingSettings() {
   const [newSkill, setNewSkill] = useState('');
   const [selectedProfile, setSelectedProfile] = useState<string>('');

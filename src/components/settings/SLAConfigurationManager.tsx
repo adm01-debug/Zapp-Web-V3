@@ -17,6 +17,7 @@ import { motion } from 'framer-motion';
 import { formatSLAMinutes } from './sla/sla-utils';
 import { useSLAConfigurations, PRIORITY_CONFIG } from '@/features/sla';
 
+/** SLAConfiguration Manager component for the settings section. */
 export function SLAConfigurationManager() {
   const {
     configs, isLoading, form, setForm, showDialog, setShowDialog, editingId,

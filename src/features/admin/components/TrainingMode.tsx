@@ -61,6 +61,7 @@ const SCENARIOS = [
   },
 ];
 
+/** Training Mode component. */
 export function TrainingMode(): JSX.Element {
   const [activeSession, setActiveSession] = useState<string | null>(null);
   const [scenario, setScenario] = useState<(typeof SCENARIOS)[0] | null>(null);

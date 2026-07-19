@@ -1,6 +1,9 @@
+/** Sound Type. */
 export type SoundType = 'beep' | 'chime' | 'bell' | 'alert' | 'soft';
+/** Notification Type. */
 export type NotificationType = 'message' | 'mention' | 'sla_breach' | 'sla_warning' | 'achievement' | 'goal_achieved' | 'record_start' | 'record_stop';
 
+/** Sound Config. */
 export interface SoundConfig {
   frequencies: number[];
   durations: number[];
@@ -13,6 +16,7 @@ const base = (f: number[], d: number[], w: OscillatorType, g: number[], dl: numb
   frequencies: f, durations: d, waveform: w, gains: g, delays: dl,
 });
 
+/** SOUND_CONFIGS. */
 export const SOUND_CONFIGS: Record<SoundType, Record<NotificationType, SoundConfig>> = {
   beep: {
     message: base([880, 1100], [0.1, 0.1], 'sine', [0.3, 0.2], [0, 0.1]),

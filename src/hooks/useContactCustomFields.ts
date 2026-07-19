@@ -4,6 +4,7 @@ import { getLogger } from '@/lib/logger';
 
 const log = getLogger('useContactCustomFields');
 
+/** Hook: Contact Custom Field. */
 export interface ContactCustomField {
   id?: string;
   contact_id: string;
@@ -12,6 +13,7 @@ export interface ContactCustomField {
   field_type?: string;
 }
 
+/** Hook: use Contact Custom Fields. */
 export function useContactCustomFields(contactId: string | undefined) {
   const [fields, setFields] = useState<ContactCustomField[]>([]);
   const [isLoading, setIsLoading] = useState(false);

@@ -9,6 +9,7 @@ interface QueueMetrics {
   resolvedToday: number;
 }
 
+/** Queue Metrics Cards. */
 export function QueueMetricsCards({ metrics }: { metrics: QueueMetrics }) {
   const cards = [
     { icon: Users, label: 'Total de Contatos', value: metrics.totalContacts, color: 'bg-primary/10 text-primary' },

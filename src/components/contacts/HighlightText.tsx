@@ -4,6 +4,7 @@ interface HighlightTextProps {
   className?: string;
 }
 
+/** Highlight Text component for the contacts section. */
 export function HighlightText({ text, highlight, className }: HighlightTextProps) {
   if (!highlight || highlight.length < 2) {
     return <span className={className}>{text}</span>;

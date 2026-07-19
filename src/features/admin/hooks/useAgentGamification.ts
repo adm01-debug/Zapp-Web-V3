@@ -28,6 +28,7 @@ const db = supabase as unknown as {
   };
 };
 
+/** Hook: use Agent Gamification. */
 export const useAgentGamification = () => {
   const { user } = useAuth();
 

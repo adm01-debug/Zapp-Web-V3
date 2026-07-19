@@ -98,6 +98,7 @@ function HistoryRow({ entry, onResolve, isResolving }: { entry: SLAAlertHistoryE
   );
 }
 
+/** SLAAlert History. */
 export default function SLAAlertHistory() {
   const { data, isLoading, refetch, isFetching, resolveAlert, isResolving } = useSLAAlertHistory();
   const [search, setSearch] = useState('');

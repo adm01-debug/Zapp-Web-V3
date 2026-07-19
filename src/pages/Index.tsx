@@ -7,6 +7,7 @@ import { TourProvider } from '@/components/onboarding/OnboardingTour';
 import { IndexContentConnected } from '@/components/layout/IndexContentConnected';
 import { useLoginAudit } from '@/features/auth';
 
+/** Root page component that bootstraps auth state and redirects to the correct initial view. */
 const Index = forwardRef<HTMLDivElement>(function Index(_props, _ref) {
   const navigate = useNavigate();
   const { user, loading } = useAuth();

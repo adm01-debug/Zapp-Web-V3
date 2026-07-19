@@ -14,6 +14,7 @@ interface ProductImageGridProps {
   toggleImage: (url: string) => void;
 }
 
+/** Product Image Grid component for the catalog section. */
 export function ProductImageGrid({
   visibleImages,
   selectedImages,

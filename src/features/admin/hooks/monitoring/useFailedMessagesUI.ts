@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { useFailedMessages, FailedMessageRow, FailedMessageStatus } from '@/features/admin';
 import { RootCause } from '@/lib/failureRootCause';
 
+/** Hook: use Failed Messages UI. */
 export function useFailedMessagesUI() {
   const [hours, setHours] = useState(24);
   const [statusFilter, setStatusFilter] = useState<FailedMessageStatus | 'all'>('all');

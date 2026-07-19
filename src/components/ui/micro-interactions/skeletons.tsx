@@ -10,6 +10,7 @@ interface SkeletonPulseProps {
 
 const roundedClasses = { sm: 'rounded-sm', md: 'rounded-md', lg: 'rounded-lg', xl: 'rounded-xl', full: 'rounded-full' };
 
+/** Skeleton Pulse component for the ui section. */
 export function SkeletonPulse({ className, rounded = 'md' }: SkeletonPulseProps) {
   return (
     <div className={cn('relative overflow-hidden bg-muted', roundedClasses[rounded], className)}>
@@ -25,6 +26,7 @@ interface ContentSkeletonProps {
   count?: number;
 }
 
+/** Content Skeleton component for the ui section. */
 export function ContentSkeleton({ type, count = 1 }: ContentSkeletonProps) {
   const items = Array.from({ length: count }, (_, i) => i);
 

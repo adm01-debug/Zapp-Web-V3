@@ -3,6 +3,7 @@ import { externalSupabase, isExternalConfigured } from '@/integrations/supabase/
 
 const logV237 = getLogger('EvolutionV237');
 
+/** Hook: is Endpoint Unavailable. */
 export function isEndpointUnavailable(err: unknown): boolean {
   if (!err) return false;
   const status = (err as { status?: number }).status;
@@ -11,6 +12,7 @@ export function isEndpointUnavailable(err: unknown): boolean {
   return /not\s*found|not\s*implemented|method\s+not\s+allowed|404|405|501/i.test(msg);
 }
 
+/** Hook: with V237 Fallback. */
 export async function withV237Fallback<T>(
   primary: () => Promise<T>,
   fallback: () => Promise<T>,
@@ -50,6 +52,7 @@ function callExternalRpc(
   return (client as unknown as { rpc: typeof client.rpc }).rpc(fn, args);
 }
 
+/** Hook: fallback Find Chats. */
 export async function fallbackFindChats(instanceName: string, limit = 200): Promise<unknown[]> {
   const client = ensureExternal();
   const { data, error } = await callExternalRpc(client, 'rpc_list_conversations', {
@@ -62,6 +65,7 @@ export async function fallbackFindChats(instanceName: string, limit = 200): Prom
   return Array.isArray(data) ? data : [];
 }
 
+/** Hook: fallback Find Contacts. */
 export async function fallbackFindContacts(instanceName: string, limit = 500): Promise<unknown[]> {
   const client = ensureExternal();
   const { data, error } = await callExternalRpc(client, 'rpc_list_contacts', {
@@ -76,6 +80,7 @@ export async function fallbackFindContacts(instanceName: string, limit = 500): P
   return Array.isArray(data) ? data : [];
 }
 
+/** Hook: fallback Fetch Profile. */
 export async function fallbackFetchProfile(
   remoteJid: string,
   instanceName: string

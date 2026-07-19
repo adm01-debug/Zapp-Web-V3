@@ -14,6 +14,7 @@ interface InstanceStatusCardsProps {
   isLoading?: boolean;
 }
 
+/** Instance Status Cards. */
 export function InstanceStatusCards({
   instance,
   status,

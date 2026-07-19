@@ -4,6 +4,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
 
+/** Integration Form component for the connections section. */
 export function IntegrationForm({
   title,
   icon: Icon,

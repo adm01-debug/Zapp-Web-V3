@@ -15,6 +15,7 @@ interface ContactsSkeletonProps {
   gridColumns: number;
 }
 
+/** Contacts Skeleton component for the contacts section. */
 export function ContactsSkeleton({ viewMode, gridColumns }: ContactsSkeletonProps) {
   if (viewMode === 'kanban') {
     return (

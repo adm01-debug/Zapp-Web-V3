@@ -21,6 +21,7 @@ interface FailedMessagesFiltersProps {
   stats: DlqStats | undefined;
 }
 
+/** Failed Messages Filters. */
 export function FailedMessagesFilters({ ui, stats }: FailedMessagesFiltersProps) {
   const { api } = ui;
 

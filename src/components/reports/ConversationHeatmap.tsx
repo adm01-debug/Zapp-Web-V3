@@ -19,6 +19,7 @@ interface HeatmapCell {
 const DAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
 
+/** Conversation Heatmap component for the reports section. */
 export function ConversationHeatmap() {
   const [data, setData] = useState<HeatmapCell[]>([]);
   const [period, setPeriod] = useState('30');

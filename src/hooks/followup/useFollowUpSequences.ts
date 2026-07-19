@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { toast } from '@/hooks/use-toast';
 
+/** Hook: Step. */
 export interface Step {
   step_order: number;
   delay_hours: number;
@@ -25,6 +26,7 @@ interface FollowUpSequence {
   followup_steps: FollowUpStep[];
 }
 
+/** Hook: use Follow Up Sequences. */
 export function useFollowUpSequences() {
   const queryClient = useQueryClient();
 

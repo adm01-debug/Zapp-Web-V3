@@ -58,6 +58,7 @@ const statusConfig: Record<
   paused: { label: 'Pausada', color: 'bg-warning/20 text-warning', icon: Pause },
 };
 
+/** Campaigns View component for the campaigns section. */
 export function CampaignsView() {
   const { campaigns, isLoading, createCampaign, updateCampaign, deleteCampaign } = useCampaigns();
   const [showCreate, setShowCreate] = useState(false);

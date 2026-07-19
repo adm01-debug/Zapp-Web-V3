@@ -7,6 +7,7 @@ import { safeClient } from '@/integrations/supabase/safeClient';
 import { RANGES, ALL_INSTANCES, bucketize } from './hmacAuditHistoryHelpers';
 import type { AuditRow, RangeKey } from './hmacAuditHistoryHelpers';
 
+/** use Hmac Audit History. */
 export function useHmacAuditHistory(range: RangeKey, instanceFilter: string, limit: number) {
   const queryClient = useQueryClient();
   const [realtimeStatus, setRealtimeStatus] = useState<'connecting' | 'live' | 'offline'>(

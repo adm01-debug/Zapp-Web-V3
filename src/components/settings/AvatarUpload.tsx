@@ -9,6 +9,7 @@ import { useActionFeedback } from '@/hooks/useActionFeedback';
 import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/services/api/queryKeys';
 
+/** Avatar Upload component for the settings section. */
 export function AvatarUpload() {
   const { user, profile, refreshProfile } = useAuth();
   const feedback = useActionFeedback();

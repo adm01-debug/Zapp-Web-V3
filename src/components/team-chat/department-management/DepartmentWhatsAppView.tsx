@@ -73,6 +73,7 @@ function ModeCard({ mode, current, onClick, icon, label, description, dimmed }: 
   );
 }
 
+/** Department Whats App View component for the team chat section. */
 export function DepartmentWhatsAppView({
   whatsappMode,
   setWhatsappMode,

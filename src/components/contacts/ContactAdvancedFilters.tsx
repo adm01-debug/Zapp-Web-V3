@@ -47,6 +47,7 @@ interface ContactAdvancedFiltersProps {
   activeFiltersCount: number;
 }
 
+/** Contact Advanced Filters component for the contacts section. */
 export function ContactAdvancedFilters({
   filterCompany, setFilterCompany,
   filterJobTitle, setFilterJobTitle,

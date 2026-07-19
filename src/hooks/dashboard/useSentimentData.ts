@@ -6,6 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { subDays, startOfDay, endOfDay, isWithinInterval, format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
+/** Hook: Sentiment Alert. */
 export interface SentimentAlert {
   id: string;
   contactId: string | null;
@@ -19,6 +20,7 @@ export interface SentimentAlert {
   email_sent?: boolean;
 }
 
+/** Hook: Conversation Analysis. */
 export interface ConversationAnalysis {
   id: string;
   contact_id: string;
@@ -29,12 +31,14 @@ export interface ConversationAnalysis {
   contacts?: { name: string; phone: string };
 }
 
+/** Hook: Agent Profile. */
 export interface AgentProfile {
   id: string;
   name: string;
   avatar_url: string | null;
 }
 
+/** Hook: Agent Sentiment Data. */
 export interface AgentSentimentData {
   agent: AgentProfile;
   totalAnalyses: number;
@@ -45,6 +49,7 @@ export interface AgentSentimentData {
   trend: number;
 }
 
+/** Hook: use Sentiment Data. */
 export function useSentimentData(period: string) {
   const [alerts, setAlerts] = useState<SentimentAlert[]>([]);
   const [analyses, setAnalyses] = useState<ConversationAnalysis[]>([]);
@@ -175,18 +180,21 @@ export function useSentimentData(period: string) {
   return { alerts, analyses, agents, loading, stats, dailyData, agentData, fetchData };
 }
 
+/** Hook: get Sentiment Color. */
 export function getSentimentColor(score: number) {
   if (score < 30) return 'text-destructive';
   if (score < 70) return 'text-warning';
   return 'text-success';
 }
 
+/** Hook: get Sentiment Bg. */
 export function getSentimentBg(score: number) {
   if (score < 30) return 'bg-destructive';
   if (score < 70) return 'bg-warning';
   return 'bg-success';
 }
 
+/** Hook: get Sentiment Label. */
 export function getSentimentLabel(sentiment: string) {
   switch (sentiment) {
     case 'positivo': return 'Positivo';

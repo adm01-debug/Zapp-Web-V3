@@ -2,6 +2,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { dbFrom } from '@/integrations/datasource/db';
 
+/** Agent Profile. */
 export interface AgentProfile {
   id: string;
   user_id: string;
@@ -18,6 +19,7 @@ export interface AgentProfile {
   updated_at: string | null;
 }
 
+/** agent Repository. */
 export const agentRepository = {
   async fetchProfiles() {
     return supabase

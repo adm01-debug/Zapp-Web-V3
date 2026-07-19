@@ -18,6 +18,7 @@ interface UseGroupActionsParams {
   fetchGroups: () => Promise<void>;
 }
 
+/** Hook: use Group Actions. */
 export function useGroupActions({
   connections,
   groups,

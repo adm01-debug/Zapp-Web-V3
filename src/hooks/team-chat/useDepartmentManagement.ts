@@ -37,6 +37,7 @@ interface Invitation {
 type WhatsappMode = 'none' | 'evolution' | 'official';
 type ManageAction = 'add' | 'remove';
 
+/** Hook: use Department Management. */
 export function useDepartmentManagement(
   initialDepartment: Department,
   open: boolean,

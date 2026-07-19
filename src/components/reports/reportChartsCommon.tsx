@@ -21,6 +21,7 @@ import { motion } from 'framer-motion';
 import { COLORS, TOOLTIP_STYLE } from './reportChartsHelpers';
 
 // ─── Comparison Summary ───
+/** Comparison Summary Chart component for the reports section. */
 export function ComparisonSummaryChart({
   data,
   isLoading,
@@ -80,6 +81,7 @@ export function ComparisonSummaryChart({
 }
 
 // ─── Period Area Chart ───
+/** Period Area Chart component for the reports section. */
 export function PeriodAreaChart({
   data,
   label,
@@ -152,6 +154,7 @@ export function PeriodAreaChart({
 }
 
 // ─── Distribution Pie Chart ───
+/** Distribution Pie Chart component for the reports section. */
 export function DistributionPieChart({
   data,
   label,
@@ -201,6 +204,7 @@ export function DistributionPieChart({
 }
 
 // ─── Agents Chart ───
+/** Agents Chart component for the reports section. */
 export function AgentsChart({
   data,
   isLoading,

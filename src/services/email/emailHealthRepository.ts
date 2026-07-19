@@ -4,6 +4,7 @@ import { getLogger } from '@/lib/logger';
 
 const log = getLogger('EmailHealthRepository');
 
+/** Email Health Repository. */
 export class EmailHealthRepository {
   async getRemoteSummary() {
     try {
@@ -32,4 +33,5 @@ export class EmailHealthRepository {
   }
 }
 
+/** email Health Repository. */
 export const emailHealthRepository = new EmailHealthRepository();

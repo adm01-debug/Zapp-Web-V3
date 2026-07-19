@@ -28,6 +28,7 @@ interface SLARuleRowProps {
   onToggle: (active: boolean) => void;
 }
 
+/** SLARule Row component for the settings section. */
 export function SLARuleRow({ rule, scope, scopeLabel, index, onEdit, onDelete, onToggle }: SLARuleRowProps) {
   const fallbackLabel = scope === 'contact' ? rule.contact_id?.slice(0, 8) + '…'
     : scope === 'company' ? rule.company

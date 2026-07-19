@@ -1,8 +1,10 @@
 // Re-export from consolidated useAnalyticsManagement module (ETAPA 39 consolidation)
 import { useMessageAttemptsManagement } from '@/hooks/useAnalyticsManagement';
 
+/** Hook: Attempt Status. */
 export type AttemptStatus = 'pending' | 'retrying' | 'succeeded' | 'failed' | 'abandoned';
 
+/** Hook: Message Attempt Row. */
 export interface MessageAttemptRow extends Record<string, unknown> {
   id?: string;
   message_id?: string;
@@ -17,6 +19,7 @@ export interface MessageAttemptRow extends Record<string, unknown> {
   created_at?: string;
 }
 
+/** Hook: use Message Attempts. */
 export function useMessageAttempts(messageId: string | null, options?: { enabled?: boolean }) {
   const enabled = options?.enabled ?? true;
   const result = useMessageAttemptsManagement(enabled && messageId ? messageId : '');

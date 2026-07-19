@@ -15,6 +15,7 @@ interface AgentCardProps {
   onClick: () => void;
 }
 
+/** War Room Agent Card component for the dashboard section. */
 export function WarRoomAgentCard({ agent, onClick }: AgentCardProps) {
   const isOverloaded = agent.activeChats >= agent.maxChats;
   const utilizationPercent = (agent.activeChats / agent.maxChats) * 100;

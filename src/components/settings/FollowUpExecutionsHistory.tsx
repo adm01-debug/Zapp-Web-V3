@@ -17,6 +17,7 @@ const STATUS_MAP: Record<string, { label: string; color: string; icon: React.Com
   paused: { label: 'Pausado', color: 'bg-warning/20 text-warning border-warning/30', icon: Clock },
 };
 
+/** Follow Up Executions History component for the settings section. */
 export function FollowUpExecutionsHistory() {
   const { data: executions = [], isLoading } = useQuery({
     queryKey: queryKeys.followupSequences.executionsRoot(),

@@ -14,6 +14,7 @@ const ENTITY_QUERY_KEYS: Record<string, readonly unknown[]> = {
   contacts: queryKeys.contacts.all(),
 };
 
+/** Hook: Version. */
 export interface Version {
   id: string;
   entity_type: string;
@@ -25,6 +26,7 @@ export interface Version {
   change_summary: string | null;
 }
 
+/** Hook: use Versions. */
 export function useVersions(entityType: string, entityId: string) {
   const queryClient = useQueryClient();
   const queryKey = queryKeys.versions.forEntity(entityType, entityId);

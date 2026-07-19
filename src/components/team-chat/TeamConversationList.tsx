@@ -21,6 +21,7 @@ interface Props {
   onNewConversation: () => void;
 }
 
+/** Team Conversation List component for the team chat section. */
 export const TeamConversationList = React.memo(forwardRef<HTMLDivElement, Props>(function TeamConversationList(
   { conversations, isLoading, selectedId, onSelect, onNewConversation },
   _ref

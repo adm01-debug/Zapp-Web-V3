@@ -12,6 +12,7 @@ interface UseTypingPresenceParams {
   currentUserName?: string;
 }
 
+/** Hook: use Typing Presence. */
 export function useTypingPresence({
   conversationId,
   currentUserId = '',

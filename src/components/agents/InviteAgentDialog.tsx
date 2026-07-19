@@ -26,6 +26,7 @@ interface InviteAgentDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
+/** Invite Agent Dialog component for the agents section. */
 export function InviteAgentDialog({ open, onOpenChange }: InviteAgentDialogProps) {
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');

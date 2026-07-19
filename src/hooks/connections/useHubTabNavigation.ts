@@ -4,6 +4,7 @@ import type { HubTab } from '@/components/connections/types';
 
 export type { HubTab };
 
+/** Hook: use Hub Tab Navigation. */
 export function useHubTabNavigation(isDev: boolean) {
   const [searchParams, setSearchParams] = useSearchParams();
 

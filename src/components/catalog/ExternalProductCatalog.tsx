@@ -35,6 +35,7 @@ interface ExternalProductCatalogProps {
 
 const PAGE_SIZE = 24;
 
+/** External Product Catalog component for the catalog section. */
 export const ExternalProductCatalog: React.FC<ExternalProductCatalogProps> = ({
   onSendProduct,
   trigger,

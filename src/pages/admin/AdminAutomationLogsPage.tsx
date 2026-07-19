@@ -27,6 +27,7 @@ import type { AutomationLogsFilters } from './useAutomationLogs';
 import { PAGE_SIZE, STATUS_META, statusBadge, Section, KV, Pre } from './automationLogsHelpers';
 import type { ExecutionRow } from './automationLogsHelpers';
 
+/** Admin Automation Logs Page. */
 export default function AdminAutomationLogsPage() {
   const [filterRule, setFilterRule] = useState<string>('all');
   const [filterStatus, setFilterStatus] = useState<string>('all');

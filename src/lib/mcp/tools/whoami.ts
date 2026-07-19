@@ -1,5 +1,6 @@
 import { defineTool, type ToolContext } from '@lovable.dev/mcp-js';
 
+/** MCP tool: whoami. */
 export default defineTool({
   name: 'whoami',
   title: 'Quem sou eu',

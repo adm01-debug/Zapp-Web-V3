@@ -10,6 +10,7 @@ import { BorderRadiusControl } from './theme/BorderRadiusControl';
 import { ThemeDebugTooltip } from './theme/ThemeDebugTooltip';
 import { toast } from 'sonner';
 
+/** Theme Customizer component for the settings section. */
 export function ThemeCustomizer() {
   const { theme, setTheme } = useTheme();
   const { activePreset, borderRadius, applyPreset, handleBorderRadiusChange, resetTheme } =

@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Timer, Save } from 'lucide-react';
 import { useAutoCloseConversations } from '@/hooks/useAutomationManagement';
 
+/** Auto Close Settings component for the settings section. */
 export function AutoCloseSettings() {
   const { config, isLoading, updateConfig } = useAutoCloseConversations();
   const [enabled, setEnabled] = useState(false);

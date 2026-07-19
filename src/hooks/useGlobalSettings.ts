@@ -11,6 +11,7 @@ interface GlobalSetting {
   description?: string;
 }
 
+/** Hook: use Global Settings. */
 export function useGlobalSettings() {
   const [settings, setSettings] = useState<GlobalSetting[]>([]);
   const [isLoading, setIsLoading] = useState(true);

@@ -27,6 +27,7 @@ interface HighContrastContextType {
 
 const HighContrastContext = createContext<HighContrastContextType | null>(null);
 
+/** High Contrast Provider component for the theme section. */
 export function HighContrastProvider({ children }: { children: React.ReactNode }) {
   const [isHighContrast, setIsHighContrast] = useState(
     () => localStorage.getItem('highContrast') === 'true'
@@ -98,6 +99,7 @@ export function HighContrastProvider({ children }: { children: React.ReactNode }
   );
 }
 
+/** use High Contrast component for the theme section. */
 export function useHighContrast() {
   const context = useContext(HighContrastContext);
   if (!context) {
@@ -106,6 +108,7 @@ export function useHighContrast() {
   return context;
 }
 
+/** High Contrast Toggle component for the theme section. */
 export function HighContrastToggle() {
   const { isHighContrast, toggleHighContrast } = useHighContrast();
 
@@ -121,6 +124,7 @@ export function HighContrastToggle() {
   );
 }
 
+/** Accessibility Settings component for the theme section. */
 export const AccessibilitySettings = forwardRef<HTMLDivElement>((_, _ref) => {
   const {
     isHighContrast,

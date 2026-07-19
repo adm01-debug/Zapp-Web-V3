@@ -26,6 +26,7 @@ interface Props {
   manageMemberMutation: ManageMutation;
 }
 
+/** Department Members View component for the team chat section. */
 export function DepartmentMembersView({
   departmentId,
   allProfiles,

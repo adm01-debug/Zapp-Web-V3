@@ -7,19 +7,23 @@ import type { HubTab, HealthRow, BridgeStatus } from '@/components/connections/t
 // Types
 // ═══════════════════════════════════════════════════════════
 
+/** Hook: Use Hub Tab Navigation Params. */
 export interface UseHubTabNavigationParams {
   isDev: boolean;
 }
 
+/** Hook: Use Hub Tab Navigation Result. */
 export interface UseHubTabNavigationResult {
   tab: HubTab;
   setTab: (tab: HubTab) => void;
 }
 
+/** Hook: Use Bridge Health Params. */
 export interface UseBridgeHealthParams {
   // no params needed
 }
 
+/** Hook: Use Bridge Health Result. */
 export interface UseBridgeHealthResult {
   status: BridgeStatus;
   health: HealthRow | null;
@@ -32,6 +36,7 @@ export interface UseBridgeHealthResult {
 // Hub Tab Navigation Management (useHubTabNavigation consolidation)
 // ═══════════════════════════════════════════════════════════
 
+/** Hook: use Hub Tab Navigation Management. */
 export function useHubTabNavigationManagement(
   params: UseHubTabNavigationParams
 ): UseHubTabNavigationResult {
@@ -76,6 +81,7 @@ export function useHubTabNavigationManagement(
 // Bridge Health Management (useBridgeHealth consolidation)
 // ═══════════════════════════════════════════════════════════
 
+/** Hook: use Bridge Health Management. */
 export function useBridgeHealthManagement(
   _params: UseBridgeHealthParams = {}
 ): UseBridgeHealthResult {

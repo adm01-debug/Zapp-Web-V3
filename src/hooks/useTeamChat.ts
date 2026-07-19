@@ -2,6 +2,7 @@
 export type { TeamConversation, TeamMember, TeamMessage } from '@/features/inbox/hooks/team-chat/teamChatTypes';
 export { useTeamConversations } from '@/features/inbox/hooks/team-chat/useTeamConversations';
 export { useTeamMessages } from '@/features/inbox/hooks/team-chat/useTeamMessages';
+/** Hook: use Team Chat. */
 export {
   useSendTeamMessage,
   useDeleteTeamMessage,

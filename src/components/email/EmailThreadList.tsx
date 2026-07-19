@@ -143,6 +143,7 @@ function ThreadListItem({
   );
 }
 
+/** Email Thread List component for the email section. */
 export function EmailThreadList({
   threads,
   selectedThreadId,

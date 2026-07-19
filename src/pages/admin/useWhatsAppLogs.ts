@@ -9,6 +9,7 @@ import {
   UNOFFICIAL_CHANNELS,
 } from './whatsappLogsHelpers';
 
+/** use Whats App Logs. */
 export function useWhatsAppLogs(mode: ModeFilter, search: string) {
   const [sends, setSends] = useState<SendLogRow[]>([]);
   const [pings, setPings] = useState<WebhookPingRow[]>([]);

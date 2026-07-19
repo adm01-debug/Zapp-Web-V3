@@ -1,6 +1,7 @@
 import { EmailHealthInfo, EmailHealthFilters, EmailFailure } from './types';
 import { EmailHealthRepository } from './emailHealthRepository';
 
+/** Email Health Service. */
 export class EmailHealthService {
   private repository: EmailHealthRepository;
 
@@ -76,4 +77,5 @@ export class EmailHealthService {
 }
 
 // Singleton instance for convenience, matching original export pattern
+/** email Health Service. */
 export const emailHealthService = new EmailHealthService(new EmailHealthRepository());

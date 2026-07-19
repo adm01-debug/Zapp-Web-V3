@@ -7,6 +7,7 @@ import type { AIProvider, ProviderFormData } from '@/components/settings/ai-prov
 import { EMPTY_FORM } from '@/components/settings/ai-providers/types';
 import { queryKeys } from '@/services/api/queryKeys';
 
+/** Hook: use AIProviders. */
 export function useAIProviders() {
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);

@@ -25,6 +25,7 @@ interface Props {
   deleteInviteMutation: DeleteMutation;
 }
 
+/** Department Invites View component for the team chat section. */
 export function DepartmentInvitesView({
   invitations,
   createInviteMutation,

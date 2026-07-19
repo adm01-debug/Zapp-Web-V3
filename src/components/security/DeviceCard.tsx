@@ -33,6 +33,7 @@ interface SessionCardProps {
   onEndSession: (id: string) => void;
 }
 
+/** Session Card component for the security section. */
 export function SessionCard({
   session,
   device,
@@ -106,6 +107,7 @@ interface DeviceCardProps {
   onRemove: (id: string) => void;
 }
 
+/** Device Card component for the security section. */
 export function DeviceCard({
   device,
   isCurrentDevice,

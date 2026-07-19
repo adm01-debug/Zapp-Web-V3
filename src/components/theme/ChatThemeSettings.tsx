@@ -7,6 +7,7 @@ import { Slider } from '@/components/ui/slider';
 import { Palette, Zap, Type } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
+/** Chat Theme Settings component for the theme section. */
 export const ChatThemeSettings = () => {
   const { theme, setTheme } = useTheme();
   const [neonIntensity, setNeonIntensity] = useState(70);

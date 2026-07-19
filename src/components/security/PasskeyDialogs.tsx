@@ -24,6 +24,7 @@ interface PasskeyDialogsProps {
   onDelete: () => void;
 }
 
+/** Passkey Dialogs component for the security section. */
 export function PasskeyDialogs({
   showRegisterDialog, setShowRegisterDialog,
   showRenameDialog, setShowRenameDialog,

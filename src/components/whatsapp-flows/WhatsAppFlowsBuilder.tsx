@@ -63,6 +63,7 @@ const COMPONENT_TYPES = [
   { type: 'Footer', label: 'Botão de Ação', icon: Send },
 ] as const;
 
+/** Whats App Flows Builder component for the whatsapp flows section. */
 export function WhatsAppFlowsBuilder(): JSX.Element {
   const [flows, setFlows] = useState<WhatsAppFlow[]>([]);
   const [loading, setLoading] = useState(true);

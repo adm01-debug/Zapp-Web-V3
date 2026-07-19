@@ -32,6 +32,7 @@ function loadPersistedQr() {
   }
 }
 
+/** Hook: use Connections State. */
 export function useConnectionsState() {
   const [connections, setConnections] = useState<WhatsAppConnection[]>([]);
   const [loading, setLoading] = useState(true);

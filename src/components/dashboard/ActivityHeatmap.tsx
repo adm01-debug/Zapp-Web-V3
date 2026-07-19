@@ -39,6 +39,7 @@ const getLevelColor = (level: number, isDark: boolean = false) => {
   return colors[level] || colors[0];
 };
 
+/** Activity Heatmap component for the dashboard section. */
 export const ActivityHeatmap = ({
   title = 'Atividade',
   data: propData,

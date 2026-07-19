@@ -30,6 +30,7 @@ interface DataExplorerTableProps {
   onCreateClick?: () => void;
 }
 
+/** Data Explorer Table component for the crm360 section. */
 export function DataExplorerTable({ tabConfig, onRowClick, onCreateClick }: DataExplorerTableProps) {
   const browser = useExternalTableBrowser(tabConfig.id as ExternalTableName);
   const [searchInput, setSearchInput] = useState('');

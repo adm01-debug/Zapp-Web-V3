@@ -40,6 +40,7 @@ const KANBAN_COLUMNS = [
   { type: 'prestador_servico', label: 'Prestadores', color: 'hsl(340, 65%, 55%)', icon: Wrench },
 ];
 
+/** Contact Kanban View component for the contacts section. */
 export function ContactKanbanView({ contacts, onContactClick }: ContactKanbanViewProps) {
   const [localContacts, setLocalContacts] = useState<KanbanContact[]>(contacts);
 

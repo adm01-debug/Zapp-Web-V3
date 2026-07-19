@@ -48,6 +48,7 @@ interface ConnectionCardMenuProps {
   onDelete: () => void;
 }
 
+/** Connection Card Menu component for the connections section. */
 export function ConnectionCardMenu({
   connection,
   recheckingHealth,

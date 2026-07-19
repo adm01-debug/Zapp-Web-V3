@@ -9,10 +9,12 @@ import {
 
 export type { SwipeState, UseSwipeGestureOptions, UseSwipeNavigationOptions };
 
+/** Hook: use Swipe Gesture. */
 export function useSwipeGesture(options: UseSwipeGestureOptions) {
   return useSwipeGestureManagement(options);
 }
 
+/** Hook: use Swipe Navigation. */
 export function useSwipeNavigation(options: UseSwipeNavigationOptions) {
   return useSwipeNavigationManagement(options);
 }

@@ -64,6 +64,7 @@ const ACTION_ICONS: Record<string, typeof Shield> = {
   role_change: Shield,
 };
 
+/** Audit Log Dashboard component for the security section. */
 export function AuditLogDashboard() {
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(true);

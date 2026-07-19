@@ -30,6 +30,7 @@ function personalize(template: string, contact: Contact): string {
     .replace(/\{\{saudacao\}\}/gi, greeting);
 }
 
+/** Talk XMessage Preview component for the talkx section. */
 export function TalkXMessagePreview({ messageTemplate, contacts, mediaUrl, mediaType }: Props) {
   const [currentIndex, setCurrentIndex] = useState(0);
 

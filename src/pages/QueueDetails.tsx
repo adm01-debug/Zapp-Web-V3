@@ -52,6 +52,7 @@ interface QueueMetrics {
   resolvedToday: number;
 }
 
+/** Queue Details. */
 export default function QueueDetails() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();

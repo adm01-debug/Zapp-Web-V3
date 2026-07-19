@@ -19,6 +19,7 @@ interface SLABreachPayload {
   resolved_at: string | null;
 }
 
+/** Hook: use SLANotifications. */
 export const useSLANotifications = () => {
   const { user } = useAuth();
   const { settings, isQuietHours } = useNotificationSettings();

@@ -23,6 +23,7 @@ export type {
   ListThreadsParams,
 } from './gmailApiTypes';
 
+/** Hook: fetch Message Body. */
 export async function fetchMessageBody(
   accountId: string,
   emailMessageId: string
@@ -38,6 +39,7 @@ export async function fetchMessageBody(
   return { data, error: null };
 }
 
+/** Hook: download Attachment. */
 export async function downloadAttachment(
   accountId: string,
   messageId: string,
@@ -52,6 +54,7 @@ export async function downloadAttachment(
   return { data, error: null };
 }
 
+/** Hook: create Email Label. */
 export async function createEmailLabel(
   accountId: string,
   name: string,
@@ -66,6 +69,7 @@ export async function createEmailLabel(
   return { data, error: null };
 }
 
+/** Hook: move Thread To Trash. */
 export async function moveThreadToTrash(
   accountId: string,
   emailThreadId: string
@@ -79,6 +83,7 @@ export async function moveThreadToTrash(
   return { data, error: null };
 }
 
+/** Hook: modify Thread Labels. */
 export async function modifyThreadLabels(
   accountId: string,
   emailThreadId: string,
@@ -100,6 +105,7 @@ export async function modifyThreadLabels(
   return { data, error: null };
 }
 
+/** Hook: renew Email Watch. */
 export async function renewEmailWatch(
   accountId: string
 ): Promise<EmailApiResponse<{ watchExpiry: string; historyId: string }>> {
@@ -112,6 +118,7 @@ export async function renewEmailWatch(
   return { data, error: null };
 }
 
+/** Hook: list Email Labels. */
 export async function listEmailLabels(
   accountId: string
 ): Promise<
@@ -126,6 +133,7 @@ export async function listEmailLabels(
   return { data, error: null };
 }
 
+/** Hook: create Draft. */
 export async function createDraft(
   accountId: string,
   params: {
@@ -145,6 +153,7 @@ export async function createDraft(
   return { data, error: null };
 }
 
+/** Hook: update Draft. */
 export async function updateDraft(
   accountId: string,
   draftId: string,
@@ -164,6 +173,7 @@ export async function updateDraft(
   return { data, error: null };
 }
 
+/** Hook: send Draft. */
 export async function sendDraft(
   accountId: string,
   draftId: string
@@ -177,6 +187,7 @@ export async function sendDraft(
   return { data, error: null };
 }
 
+/** Hook: email Refresh Token. */
 export async function emailRefreshToken(
   accountId: string
 ): Promise<EmailApiResponse<{ accessToken: string; expiresAt: string }>> {
@@ -189,6 +200,7 @@ export async function emailRefreshToken(
   return { data, error: null };
 }
 
+/** Hook: email Revoke Account. */
 export async function emailRevokeAccount(
   accountId: string
 ): Promise<EmailApiResponse<{ success: boolean }>> {
@@ -201,17 +213,20 @@ export async function emailRevokeAccount(
   return { data, error: null };
 }
 
+/** Hook: email Register Watch. */
 export async function emailRegisterWatch(
   accountId: string
 ): Promise<EmailApiResponse<{ watchExpiry: string; historyId: string }>> {
   return renewEmailWatch(accountId);
 }
 
+/** Hook: is Auth Error. */
 export function isAuthError(error: EmailApiError | null): boolean {
   if (!error) return false;
   return error.code === 401 || error.status === 'UNAUTHENTICATED';
 }
 
+/** Hook: build Mime Message. */
 export function buildMimeMessage(params: {
   from: string;
   to: string[];
@@ -240,6 +255,7 @@ export function buildMimeMessage(params: {
     .replace(/=+$/, '');
 }
 
+/** Hook: email Mark Read. */
 export async function emailMarkRead(params: MarkReadParams): Promise<EmailApiResponse<void>> {
   const { data, error } = await supabase.functions.invoke('gmail-send', {
     body: { action: 'markRead', ...params },
@@ -249,6 +265,7 @@ export async function emailMarkRead(params: MarkReadParams): Promise<EmailApiRes
   return { data: data ?? null, error: null };
 }
 
+/** Hook: email Modify Labels. */
 export async function emailModifyLabels(
   params: ModifyLabelsParams
 ): Promise<EmailApiResponse<void>> {
@@ -260,6 +277,7 @@ export async function emailModifyLabels(
   return { data: data ?? null, error: null };
 }
 
+/** Hook: email Send Message. */
 export async function emailSendMessage(
   params: SendMessageParams
 ): Promise<EmailApiResponse<{ id: string; threadId: string }>> {
@@ -271,6 +289,7 @@ export async function emailSendMessage(
   return { data, error: null };
 }
 
+/** Hook: email Trash Message. */
 export async function emailTrashMessage(
   params: TrashMessageParams
 ): Promise<EmailApiResponse<void>> {
@@ -282,6 +301,7 @@ export async function emailTrashMessage(
   return { data: data ?? null, error: null };
 }
 
+/** Hook: email Save Draft. */
 export async function emailSaveDraft(
   params: SaveDraftParams
 ): Promise<EmailApiResponse<{ draftId: string }>> {
@@ -296,6 +316,7 @@ export async function emailSaveDraft(
   }
 }
 
+/** Hook: email Delete Draft. */
 export async function emailDeleteDraft(
   accountId: string,
   draftId: string
@@ -308,6 +329,7 @@ export async function emailDeleteDraft(
   return { data: data ?? null, error: null };
 }
 
+/** Hook: email List Threads. */
 export async function emailListThreads(params: ListThreadsParams): Promise<
   EmailApiResponse<{
     threads: Array<{ id: string; snippet: string; historyId: string }>;

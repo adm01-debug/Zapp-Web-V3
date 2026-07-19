@@ -8,6 +8,7 @@ interface KpiCardProps {
   tone: 'info' | 'success' | 'destructive' | 'warning';
 }
 
+/** Kpi Card. */
 export function KpiCard({ icon: Icon, label, value, tone }: KpiCardProps) {
   const toneClass = {
     info: 'text-primary',

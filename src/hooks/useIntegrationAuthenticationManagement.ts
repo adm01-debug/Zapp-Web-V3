@@ -26,6 +26,7 @@ interface PasskeyCredential {
   last_used_at: string | null;
 }
 
+/** Hook: Email Label. */
 export interface EmailLabel {
   id: string;
   account_id: string;
@@ -56,6 +57,7 @@ function extractHttpStatus(err: unknown): number | undefined {
   return undefined;
 }
 
+/** Hook: use Evolution Auto Sync Management. */
 export function useEvolutionAutoSyncManagement(onSynced?: () => void) {
   const ran = useRef(false);
   const { listInstances } = useEvolutionApi();
@@ -126,6 +128,7 @@ export function useEvolutionAutoSyncManagement(onSynced?: () => void) {
   return { syncAll };
 }
 
+/** Hook: use Evolution Auto Reconnect Management. */
 export function useEvolutionAutoReconnectManagement(instanceName?: string) {
   const { restartInstance, getInstanceStatus, connectInstance } = useEvolutionApi();
   const queryClient = useQueryClient();
@@ -175,6 +178,7 @@ export function useEvolutionAutoReconnectManagement(instanceName?: string) {
   return { status, isReconnecting, performReconnect, scheduleReconnect };
 }
 
+/** Hook: use Web Authn Management. */
 export function useWebAuthnManagement() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
@@ -202,6 +206,7 @@ export function useWebAuthnManagement() {
   return { passkeys, loading, fetchPasskeys };
 }
 
+/** Hook: use Email Health Management. */
 export function useEmailHealthManagement() {
   const [health, setHealth] = useState<EmailHealthInfo | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -246,6 +251,7 @@ export function useEmailHealthManagement() {
   return { health, isLoading, refresh: loadHealth, forceRevalidation };
 }
 
+/** Hook: use Gmail Labels Management. */
 export function useGmailLabelsManagement(accountId: string | null) {
   const [labels, setLabels] = useState<EmailLabel[]>([]);
   const [isLoading, setIsLoading] = useState(false);

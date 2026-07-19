@@ -1,10 +1,12 @@
 import { Badge } from '@/components/ui/badge';
 
+/** format Duration. */
 export function formatDuration(ms: number) {
   if (ms >= 1000) return `${(ms / 1000).toFixed(1)}s`;
   return `${ms}ms`;
 }
 
+/** format Time. */
 export function formatTime(iso: string) {
   return new Date(iso).toLocaleString("pt-BR", {
     hour: "2-digit", minute: "2-digit", second: "2-digit",
@@ -12,6 +14,7 @@ export function formatTime(iso: string) {
   });
 }
 
+/** get Severity Badge. */
 export function getSeverityBadge(severity: string) {
   switch (severity) {
     case "very_slow":
@@ -25,6 +28,7 @@ export function getSeverityBadge(severity: string) {
   }
 }
 
+/** compute Top Offenders. */
 export function computeTopOffenders(rows: { rpc_name: string | null; table_name: string | null; duration_ms: number }[]) {
   const tableStats = new Map<string, { count: number; totalMs: number; maxMs: number }>();
   for (const r of rows) {

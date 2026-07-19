@@ -5,6 +5,7 @@ import { getLogger } from '@/lib/logger';
 
 const log = getLogger('whatsappConnectionService');
 
+/** whatsapp Connection Service. */
 export const whatsappConnectionService = {
   generateInstanceName(name: string) {
     return name.toLowerCase().replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_').slice(0, 30) +

@@ -28,6 +28,7 @@ interface Props {
   conversation: TeamConversation;
 }
 
+/** Transfer Conversation Dialog component for the team chat section. */
 export function TransferConversationDialog({ open, onOpenChange, conversation }: Props) {
   const [selectedDeptId, setSelectedDeptId] = useState<string>('');
   const transferMutation = useTransferTeamConversation();

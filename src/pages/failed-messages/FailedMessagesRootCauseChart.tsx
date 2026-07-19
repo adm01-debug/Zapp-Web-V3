@@ -11,6 +11,7 @@ const ROOT_CAUSE_TONE_CLASS: Record<'warning' | 'destructive' | 'info' | 'muted'
   muted: 'bg-muted text-muted-foreground border-border',
 };
 
+/** Failed Messages Root Cause Chart. */
 export function FailedMessagesRootCauseChart({ stats, filter, onFilterChange }: { stats: RootCauseAggregate[]; filter: string; onFilterChange: (v: string) => void }) {
   if (stats.length === 0) return null;
   const maxRootCauseCount = stats[0]?.count ?? 1;

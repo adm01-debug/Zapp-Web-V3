@@ -40,4 +40,5 @@ const AlertDescription = React.forwardRef<HTMLParagraphElement, React.HTMLAttrib
 );
 AlertDescription.displayName = "AlertDescription";
 
+/** alert component for the ui section. */
 export { Alert, AlertTitle, AlertDescription };

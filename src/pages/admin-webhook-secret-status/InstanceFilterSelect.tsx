@@ -17,6 +17,7 @@ interface InstanceFilterSelectProps {
 
 const ALL_VALUE = '__all__';
 
+/** Instance Filter Select. */
 export function InstanceFilterSelect({
   instances,
   value,

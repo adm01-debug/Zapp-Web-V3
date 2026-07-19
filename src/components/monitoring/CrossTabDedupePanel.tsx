@@ -38,6 +38,7 @@ function shortKey(k: string): string {
   return `${k.slice(0, 24)}…${k.slice(-10)}`;
 }
 
+/** Cross Tab Dedupe Panel component for the monitoring section. */
 export function CrossTabDedupePanel() {
   // useSyncExternalStore keeps the panel reactive to the in-memory event bus.
   const snapshot = useSyncExternalStore(

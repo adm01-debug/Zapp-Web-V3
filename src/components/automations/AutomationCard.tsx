@@ -16,6 +16,7 @@ interface AutomationCardProps {
   onDuplicate: () => void;
 }
 
+/** Automation Card component for the automations section. */
 export function AutomationCard({ automation, onToggle, onEdit, onDelete, onDuplicate }: AutomationCardProps) {
   const triggerInfo = TRIGGER_TYPES.find(t => t.type === automation.trigger_type);
   const TriggerIcon = triggerInfo?.icon || Zap;

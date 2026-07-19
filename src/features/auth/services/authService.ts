@@ -7,6 +7,7 @@ import {
 import { Session } from '@supabase/supabase-js';
 import type { PostgrestError } from '@supabase/supabase-js';
 
+/** Profile. */
 export interface Profile {
   id: string;
   user_id: string;
@@ -19,6 +20,7 @@ export interface Profile {
   department: string | null;
 }
 
+/** auth Service. */
 export const authService = {
   async getSession() {
     return await supabase.auth.getSession();

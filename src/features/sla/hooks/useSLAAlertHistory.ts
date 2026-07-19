@@ -3,8 +3,10 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { toast } from 'sonner';
 
+/** Hook: SLAAlert Severity. */
 export type SLAAlertSeverity = 'risk' | 'violated';
 
+/** Hook: SLAAlert History Entry. */
 export interface SLAAlertHistoryEntry {
   id: string;
   threadId: string;
@@ -79,6 +81,7 @@ async function fetchHistory(): Promise<SLAAlertHistoryEntry[]> {
   });
 }
 
+/** Hook: use SLAAlert History. */
 export function useSLAAlertHistory() {
   const queryClient = useQueryClient();
 

@@ -11,6 +11,7 @@ import { ConnectionsIntegrationsTab } from './connections/ConnectionsIntegration
 import { ConnectionsWebhooksTab } from './connections/ConnectionsWebhooksTab';
 import { ConnectionsMcpTab } from './connections/ConnectionsMcpTab';
 
+/** Admin Connections Page. */
 export default function AdminConnectionsPage() {
   const {
     activeTab,

@@ -23,6 +23,7 @@ import { queryKeys } from '@/services/api/queryKeys';
 
 const log = getLogger('useTeamChatPanel');
 
+/** use Team Chat Panel component for the team chat section. */
 export function useTeamChatPanel(conversation: TeamConversation) {
   const { profile } = useAuth();
   const queryClient = useQueryClient();

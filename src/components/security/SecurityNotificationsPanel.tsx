@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { useSecurityPushNotifications } from '@/hooks/useSecurityPushNotifications';
 
+/** Security Notifications Panel component for the security section. */
 export function SecurityNotificationsPanel() {
   const {
     isSupported,

@@ -3,9 +3,12 @@ import { useState, useCallback } from 'react';
 
 const STORAGE_KEY = 'zappweb:webhook-view-prefs:v1';
 
+/** Hook: Webhook Status Filter. */
 export type WebhookStatusFilter = 'all' | 'success' | 'failed' | 'pending';
+/** Hook: Webhook Table Density. */
 export type WebhookTableDensity = 'compact' | 'normal' | 'comfortable';
 
+/** Hook: Webhook View Columns. */
 export interface WebhookViewColumns {
   when: boolean;
   event: boolean;
@@ -26,6 +29,7 @@ interface WebhookViewPrefs {
   [key: string]: unknown;
 }
 
+/** Hook: DEFAULT_WEBHOOK_VIEW_PREFS. */
 export const DEFAULT_WEBHOOK_VIEW_PREFS: WebhookViewPrefs = {
   statusFilter: 'all',
   reasonSearch: '',
@@ -76,6 +80,7 @@ function computeActiveFilterCount(prefs: WebhookViewPrefs): number {
   return count;
 }
 
+/** Hook: use Webhook View Preferences. */
 export function useWebhookViewPreferences(_userId?: string) {
   const [prefs, setPrefsState] = useState<WebhookViewPrefs>(loadPrefs);
 

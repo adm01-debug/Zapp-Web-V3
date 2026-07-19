@@ -17,6 +17,7 @@ export type { WhatsAppApiType, WhatsAppConnection, QrCodeDialogState, QrTtlSourc
 
 const QR_STORAGE_KEY = 'zapp:qrDialog:v1';
 
+/** Hook: use Connections Manager. */
 export function useConnectionsManager() {
   const state = useConnectionsState();
   const {

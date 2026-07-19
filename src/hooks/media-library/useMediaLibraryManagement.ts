@@ -494,5 +494,6 @@ function useMediaUploadManagement({
 // Orchestration Section (Re-exports individual management functions)
 // ============================================================================
 
+/** Hook: use Media Library Management. */
 export { useMediaCrudManagement, useMediaUploadManagement };
 export type { UseMediaCrudParams, UseMediaCrudResult, UseMediaUploadParams, UseMediaUploadResult };

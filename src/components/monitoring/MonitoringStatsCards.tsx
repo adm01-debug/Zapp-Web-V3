@@ -58,6 +58,7 @@ function MiniSparkline({ data, color = 'text-primary' }: { data: number[]; color
   );
 }
 
+/** Monitoring Stats Cards component for the monitoring section. */
 export function MonitoringStatsCards({ connections, messageStats, uptime, sparklines }: Props) {
   const activeCount = connections.filter(c => c.status === 'connected').length;
   const connWithLatency = connections.filter(c => c.health_response_ms);

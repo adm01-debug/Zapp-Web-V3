@@ -27,6 +27,7 @@ const VIEWS: { key: View; label: string }[] = [
   { key: 'audit', label: 'Auditoria' },
 ];
 
+/** Department Management Dialog component for the team chat section. */
 export function DepartmentManagementDialog({
   department: initialDepartment,
   open,

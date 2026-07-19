@@ -12,6 +12,7 @@ import { tanstackRetry } from '@/lib/errors/queryErrors';
 
 const log = getLogger('AppProviders');
 
+/** App Providers component for the providers section. */
 export function AppProviders({ children }: { children: React.ReactNode }) {
   const [errorKey, setErrorKey] = useState(0);
   const retryCountRef = useRef(0);

@@ -15,6 +15,7 @@ type ThemeDebugInfo = {
   mode: string;
 };
 
+/** Theme Debug Tooltip component for the settings section. */
 export function ThemeDebugTooltip() {
   const debug = (window as Window & { __THEME_DEBUG__?: ThemeDebugInfo }).__THEME_DEBUG__;
   

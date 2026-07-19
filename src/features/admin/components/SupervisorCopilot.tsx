@@ -28,6 +28,7 @@ const QUICK_QUESTIONS = [
 interface QueueRow { id: string; name: string }
 interface AgentRow { id: string; name: string; role: string; is_active: boolean }
 
+/** Supervisor Copilot component. */
 export function SupervisorCopilot() {
   const [question, setQuestion] = useState('');
   const [insights, setInsights] = useState<InsightResult[]>([]);

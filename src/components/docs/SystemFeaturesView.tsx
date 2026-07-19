@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Search, ChevronDown, ChevronRight, CheckCircle2 } from 'lucide-react';
 import { sections, totalFeatures } from './featuresSectionsData';
 
+/** System Features View component for the docs section. */
 export function SystemFeaturesView() {
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedSections, setExpandedSections] = useState<Set<number>>(new Set());

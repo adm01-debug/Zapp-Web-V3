@@ -32,6 +32,7 @@ interface ConfettiProps {
   onComplete?: () => void;
 }
 
+/** Confetti component for the effects section. */
 export function Confetti({ 
   isActive, 
   duration = 3000, 
@@ -143,6 +144,7 @@ interface CelebrationOverlayProps {
   onComplete?: () => void;
 }
 
+/** Celebration Overlay component for the effects section. */
 export function CelebrationOverlay({
   isActive,
   title = "Meta Alcançada!",
@@ -268,6 +270,7 @@ export function CelebrationOverlay({
 }
 
 // Hook for triggering celebrations
+/** use Celebration component for the effects section. */
 export function useCelebration() {
   const [celebrating, setCelebrating] = useState(false);
   const [celebrationData, setCelebrationData] = useState<{

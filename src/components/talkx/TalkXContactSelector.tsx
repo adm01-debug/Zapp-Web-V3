@@ -37,6 +37,7 @@ interface Props {
   clearFilters: () => void;
 }
 
+/** Talk XContact Selector component for the talkx section. */
 export const TalkXContactSelector: React.FC<Props> = ({
   campaign, contacts, filteredContacts, selectedContacts,
   contactSearch, setContactSearch, companyFilter, setCompanyFilter,

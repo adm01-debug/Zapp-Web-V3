@@ -7,6 +7,7 @@ import { format, subDays, startOfDay, endOfDay, eachDayOfInterval, parseISO } fr
 import { ptBR } from 'date-fns/locale';
 import { dbFrom } from '@/integrations/datasource/db';
 
+/** use Reports Data component for the reports section. */
 export function useReportsData() {
   const [period, setPeriod] = useState('30');
   const [selectedAgent, setSelectedAgent] = useState<string>('all');

@@ -13,6 +13,7 @@ interface FlowComponent {
 
 export type { FlowComponent };
 
+/** Flow Component Preview component for the whatsapp flows section. */
 export function FlowComponentPreview({ comp, preview, onRemove }: { comp: FlowComponent; preview: boolean; onRemove?: () => void }) {
   return (
     <div className="group relative">

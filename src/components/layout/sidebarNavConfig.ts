@@ -58,6 +58,7 @@ import {
 import type { NavItemConfig } from './SidebarNavItem';
 
 // ── Primary (always visible, ≤8 items) ────────────────────
+/** primary Nav component for the layout section. */
 export const primaryNav: readonly NavItemConfig[] = [
   { id: 'inbox', icon: MessageSquare, label: 'Chat' },
   { id: 'team-chat', icon: UsersRound, label: 'Teams' },
@@ -70,6 +71,7 @@ export const primaryNav: readonly NavItemConfig[] = [
 ] as const;
 
 // ── Sales & CRM ───────────────────────────────────────────
+/** sales Nav component for the layout section. */
 export const salesNav: readonly NavItemConfig[] = [
   { id: 'crm360', icon: Building2, label: 'CRM 360°' },
   { id: 'wallet', icon: Wallet, label: 'Carteira' },
@@ -82,6 +84,7 @@ export const salesNav: readonly NavItemConfig[] = [
 ] as const;
 
 // ── Automation & AI ───────────────────────────────────────
+/** automation Nav component for the layout section. */
 export const automationNav: readonly NavItemConfig[] = [
   { id: 'chatbot', icon: Bot, label: 'Chatbot' },
   { id: 'automations', icon: RefreshCw, label: 'Automações' },
@@ -94,6 +97,7 @@ export const automationNav: readonly NavItemConfig[] = [
 ] as const;
 
 // ── Analytics (consolidated — was 12 items, now single group) ──
+/** analytics Nav component for the layout section. */
 export const analyticsNav: readonly NavItemConfig[] = [
   { id: 'reports', icon: FileBarChart, label: 'Relatórios' },
   { id: 'warroom', icon: AlertTriangle, label: 'War Room' },
@@ -104,6 +108,7 @@ export const analyticsNav: readonly NavItemConfig[] = [
 ] as const;
 
 // ── Connections & Integrations ────────────────────────────
+/** connections Nav component for the layout section. */
 export const connectionsNav: readonly NavItemConfig[] = [
   { id: 'connections', icon: Plug, label: 'Conexões & Integrações' },
   { id: 'omni-inbox', icon: Inbox, label: 'Omnichannel' },
@@ -113,6 +118,7 @@ export const connectionsNav: readonly NavItemConfig[] = [
 ] as const;
 
 // ── System & Admin ────────────────────────────────────────
+/** system Nav component for the layout section. */
 export const systemNav: readonly NavItemConfig[] = [
   { id: 'agents-system', icon: Phone, label: 'TEAMS' },
   { id: 'agents-ops', icon: UsersRound, label: 'Atendentes Online', requiredRoles: ['supervisor'] },
@@ -125,6 +131,7 @@ export const systemNav: readonly NavItemConfig[] = [
 ] as const;
 
 // ── Advanced / Admin-only (accessible via Admin view or ⌘K search) ──
+/** advanced Nav component for the layout section. */
 export const advancedNav: readonly NavItemConfig[] = [
   { id: 'audit-logs', icon: ScrollText, label: 'Auditoria' },
   { id: 'auto-export', icon: ClipboardList, label: 'Export Auto' },
@@ -157,9 +164,11 @@ export const advancedNav: readonly NavItemConfig[] = [
 ] as const;
 
 // ── Backward-compat re-exports ────────────────────────────
+/** communication Nav component for the layout section. */
 export const communicationNav = automationNav;
 
 // ── Group definitions for collapsible sidebar (≤5 groups) ──
+/** sidebar Groups component for the layout section. */
 export const sidebarGroups = [
   { label: 'Vendas & CRM', icon: Kanban, items: salesNav },
   { label: 'Robôs & IA', icon: Bot, items: automationNav },

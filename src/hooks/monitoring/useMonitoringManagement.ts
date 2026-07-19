@@ -24,10 +24,12 @@ import { isUuidLike } from '@/lib/evolutionInstance';
 // Types
 // ═══════════════════════════════════════════════════════════
 
+/** Hook: Use Monitoring Data Params. */
 export interface UseMonitoringDataParams {
   onConnectionsUpdate?: (conns: ConnectionInfo[]) => void;
 }
 
+/** Hook: Use Monitoring Data Result. */
 export interface UseMonitoringDataResult {
   connections: ConnectionInfo[];
   healthLogs: HealthLog[];
@@ -39,10 +41,12 @@ export interface UseMonitoringDataResult {
   fetchData: (period: TimePeriod) => Promise<void>;
 }
 
+/** Hook: Use Monitoring Actions Params. */
 export interface UseMonitoringActionsParams {
   fetchData: () => Promise<void>;
 }
 
+/** Hook: Use Monitoring Actions Result. */
 export interface UseMonitoringActionsResult {
   refreshing: boolean;
   webhookTest: WebhookTestResult;
@@ -145,6 +149,7 @@ function computeSparklines(
 // Monitoring Data Management (useMonitoringData consolidation)
 // ═══════════════════════════════════════════════════════════
 
+/** Hook: use Monitoring Data Management. */
 export function useMonitoringDataManagement(
   params: UseMonitoringDataParams = {}
 ): UseMonitoringDataResult {
@@ -271,6 +276,7 @@ export function useMonitoringDataManagement(
 // Monitoring Actions Management (useMonitoringActions consolidation)
 // ═══════════════════════════════════════════════════════════
 
+/** Hook: use Monitoring Actions Management. */
 export function useMonitoringActionsManagement(
   params: UseMonitoringActionsParams
 ): UseMonitoringActionsResult {

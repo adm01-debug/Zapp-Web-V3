@@ -13,6 +13,7 @@ const log = getLogger('useConnectionsActions');
 
 type NewConnectionForm = { name: string; phone_number: string; api_type: WhatsAppApiType };
 
+/** Hook: use Connections Actions. */
 export function useConnectionsActions(
   connections: WhatsAppConnection[],
   setConnections: Dispatch<SetStateAction<WhatsAppConnection[]>>,

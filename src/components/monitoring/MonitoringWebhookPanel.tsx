@@ -30,6 +30,7 @@ import {
   EVENT_CATEGORIES,
 } from './MonitoringWebhookPanelTypes';
 
+/** Monitoring Webhook Panel component for the monitoring section. */
 export function MonitoringWebhookPanel({
   connections,
   webhookTest,

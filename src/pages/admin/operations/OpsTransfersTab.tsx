@@ -10,6 +10,7 @@ import { useTransfersPaginated } from "@/features/admin/hooks/monitoring/useTran
 
 const PAGE_SIZE = 25;
 
+/** Ops Transfers Tab. */
 export function OpsTransfersTab() {
   const [page, setPage] = useState(0);
   const [status, setStatus] = useState<string | null>(null);

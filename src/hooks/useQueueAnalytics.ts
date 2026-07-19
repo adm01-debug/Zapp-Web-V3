@@ -6,6 +6,7 @@ interface DateRange {
   to: Date;
 }
 
+/** Hook: use Queue Analytics. */
 export function useQueueAnalytics(queueId: string, dateRange: DateRange | LegacyDateRange) {
   const normalizedRange: DateRange = 'startDate' in dateRange
     ? dateRange

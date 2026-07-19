@@ -69,6 +69,7 @@ function LabelItem({
   );
 }
 
+/** Email Label Sidebar component for the gmail section. */
 export function EmailLabelSidebar({
   accountId,
   activeLabel,

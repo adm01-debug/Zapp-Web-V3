@@ -6,6 +6,7 @@ export {
   type RoutePermission,
 } from '@/features/admin/hooks/useAdminManagement';
 
+/** Hook: use Route Permissions. */
 export function useRoutePermissions() {
   const admin = useAdminManagement();
   return {

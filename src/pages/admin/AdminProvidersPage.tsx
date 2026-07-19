@@ -37,6 +37,7 @@ const TYPE_LABEL: Record<ProviderType, string> = {
   custom: 'Custom HTTP',
 };
 
+/** Admin Providers Page. */
 export const AdminProvidersPage = () => {
   const {
     rows, logs, loading, selectedProviderId, setSelectedProviderId,

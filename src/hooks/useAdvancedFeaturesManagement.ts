@@ -14,6 +14,7 @@ import type { ChatMessage } from '@/features/inbox/types/aiChatMessage';
 const log = getLogger('useAdvancedFeaturesManagement');
 
 // ===== Bulk Actions Management =====
+/** Hook: Bulk Action. */
 export interface BulkAction<T> {
   id: string;
   label: string;
@@ -50,6 +51,7 @@ interface UseBulkActionsResult<T> {
   selectionCount: number;
 }
 
+/** Hook: use Bulk Actions Management. */
 export function useBulkActionsManagement<T extends { id: string }>(
   items: T[],
   options: UseBulkActionsOptions<T> = {},
@@ -299,6 +301,7 @@ async function writeCacheWithRetry(
   return false;
 }
 
+/** Hook: use Offline Cache Management. */
 export function useOfflineCacheManagement(conversations: ConversationWithMessages[], loading: boolean) {
   const [cachedData, setCachedData] = useState<ConversationWithMessages[] | null>(null);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
@@ -377,6 +380,7 @@ import {
 
 export type { FeedbackType, FeedbackOptions, WithFeedbackOptions, UndoableOptions };
 
+/** Hook: use Action Feedback Management. */
 export function useActionFeedbackManagement() {
   const { toast } = useToast();
   const activeToasts = useRef<Map<string, { dismiss: () => void }>>(new Map());
@@ -575,6 +579,7 @@ interface Objection {
   confidence: number;
 }
 
+/** Hook: use Objection Detector Management. */
 export function useObjectionDetectorManagement(
   contactId: string,
   contactName: string | undefined,
@@ -939,6 +944,7 @@ async function cleanupLegacyServiceWorker(): Promise<boolean> {
   return false;
 }
 
+/** Hook: use Service Worker Management. */
 export function useServiceWorkerManagement() {
   const registeredRef = useRef(false);
 

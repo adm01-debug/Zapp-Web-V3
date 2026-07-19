@@ -52,6 +52,7 @@ const sizeClasses = {
   },
 };
 
+/** Empty State component for the ui section. */
 export function EmptyState({
   icon: Icon,
   title,

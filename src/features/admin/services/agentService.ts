@@ -1,6 +1,7 @@
 
 import { agentRepository, AgentProfile } from '../data-access/agentRepository';
 
+/** Agent With Stats. */
 export interface AgentWithStats extends AgentProfile {
   activeChats: number;
   status: 'online' | 'away' | 'offline';
@@ -11,6 +12,7 @@ import { getLogger } from '@/lib/logger';
 
 const log = getLogger('agentService');
 
+/** agent Service. */
 export const agentService = {
   getAgentStatus(lastActivity?: string): 'online' | 'away' | 'offline' {
     if (!lastActivity) return 'offline';

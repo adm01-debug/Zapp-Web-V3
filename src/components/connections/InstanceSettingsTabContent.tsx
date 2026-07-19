@@ -20,6 +20,7 @@ interface SettingsTabProps {
   isLoading: boolean;
 }
 
+/** Settings Tab Content component for the connections section. */
 export function SettingsTabContent({ settingsData, settingsItems, onChange, onSave, isLoading }: SettingsTabProps) {
   return (
     <div className="space-y-4 mt-4">
@@ -56,6 +57,7 @@ interface PrivacyTabProps {
   isLoading: boolean;
 }
 
+/** Privacy Tab Content component for the connections section. */
 export function PrivacyTabContent({ privacy, privacyItems, privacyOptions, onChange, onSave, isLoading }: PrivacyTabProps) {
   return (
     <div className="space-y-4 mt-4">
@@ -81,6 +83,7 @@ interface LabelsTabProps {
   loading: boolean;
 }
 
+/** Labels Tab Content component for the connections section. */
 export function LabelsTabContent({ labels, loading }: LabelsTabProps) {
   if (loading) return <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>;
   if (labels.length === 0) return <div className="text-center py-8 text-muted-foreground text-sm">Nenhuma etiqueta encontrada. Etiquetas são criadas no WhatsApp Business.</div>;

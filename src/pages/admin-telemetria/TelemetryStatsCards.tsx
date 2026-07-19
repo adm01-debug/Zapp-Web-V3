@@ -8,6 +8,7 @@ interface TelemetryStatsCardsProps {
   avgDuration: string;
 }
 
+/** Telemetry Stats Cards. */
 export function TelemetryStatsCards({ verySlow, slow, errors, avgDuration }: TelemetryStatsCardsProps) {
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

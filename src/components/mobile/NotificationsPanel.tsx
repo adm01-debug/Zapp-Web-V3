@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
+/** Notification component for the mobile section. */
 export interface Notification {
   id: string;
   type: 'message' | 'assignment' | 'sla_warning' | 'resolved' | 'system';
@@ -33,6 +34,7 @@ const typeConfig: Record<Notification['type'], { icon: React.ComponentType<{ cla
   system: { icon: Clock, color: 'text-muted-foreground bg-muted' },
 };
 
+/** Notifications Panel component for the mobile section. */
 export function NotificationsPanel({
   isOpen,
   onClose,

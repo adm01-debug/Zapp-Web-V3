@@ -4,6 +4,7 @@ import type { QueueSlaFilters, QueueSlaPatch, QueueSlaRow, SlaStatusFilter } fro
 
 export type { QueueSlaFilters, QueueSlaPatch, QueueSlaRow, SlaStatusFilter };
 
+/** Hook: use Queue Sla Panel. */
 export function useQueueSlaPanel(filters: QueueSlaFilters) {
   return useQueueSlaManagement({ filters });
 }

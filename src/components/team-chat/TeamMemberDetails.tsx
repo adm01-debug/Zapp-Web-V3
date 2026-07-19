@@ -29,6 +29,7 @@ function SectionHeader({ icon: Icon, label, open, onToggle }: { icon: React.Elem
 
 interface TeamMemberDetailsProps { conversation: TeamConversation; onClose: () => void; }
 
+/** Team Member Details component for the team chat section. */
 export function TeamMemberDetails({ conversation, onClose }: TeamMemberDetailsProps) {
   const { profile } = useAuth();
   const [sections, setSections] = useState({ info: true, team: false, activity: false });

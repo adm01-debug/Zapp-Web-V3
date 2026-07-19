@@ -35,6 +35,7 @@ const DAYS_OF_WEEK = [
   { value: 6, label: 'Sábado', short: 'Sáb' },
 ];
 
+/** Business Hours Dialog component for the connections section. */
 export function BusinessHoursDialog({
   open,
   onOpenChange,

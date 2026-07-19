@@ -21,6 +21,7 @@ const SEVERITY_VARIANT: Record<string, 'destructive' | 'warning' | 'info' | 'sec
   info: 'info',
 };
 
+/** Alerts Tab component for the evoApiHealth section. */
 export const AlertsTab = React.memo(({ alerts, onAcknowledge, isAcknowledging }: AlertsTabProps) => {
   if (alerts?.length === 0) {
     return (

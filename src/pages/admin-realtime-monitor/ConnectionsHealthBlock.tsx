@@ -42,6 +42,7 @@ function toneClasses(tone: 'success' | 'destructive' | 'warning' | 'info'): stri
 
 const STALE_DISCONNECT_MS = 5 * 60_000;
 
+/** Connections Health Block. */
 export function ConnectionsHealthBlock() {
   const { data, isLoading, error } = useQuery({
     queryKey: queryKeys.adminOps.realtimeMonitorConnections(),

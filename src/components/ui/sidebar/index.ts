@@ -1,4 +1,5 @@
 export { SidebarProvider, useSidebar } from "./sidebar-context";
+/** sidebar component for the ui section. */
 export {
   Sidebar,
   SidebarTrigger,
@@ -14,6 +15,7 @@ export {
   SidebarGroupAction,
   SidebarGroupContent,
 } from "./sidebar-primitives";
+/** sidebar component for the ui section. */
 export {
   SidebarMenu,
   SidebarMenuItem,

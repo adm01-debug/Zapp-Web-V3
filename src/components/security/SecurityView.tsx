@@ -20,6 +20,7 @@ import { VirusTotalConfig } from './VirusTotalConfig';
 import { useUserRole } from '@/features/auth';
 import { useSecurityPushNotifications } from '@/hooks/useSecurityPushNotifications';
 
+/** Security View component for the security section. */
 export function SecurityView() {
   const { hasRole } = useUserRole();
   const isAdmin = hasRole('admin');

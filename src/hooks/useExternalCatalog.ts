@@ -1,3 +1,4 @@
+/** Hook: use External Catalog. */
 export {
   useExternalCatalog,
   type ExternalProduct,

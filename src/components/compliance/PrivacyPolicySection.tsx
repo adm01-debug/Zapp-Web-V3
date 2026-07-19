@@ -57,6 +57,7 @@ const sections = [
   },
 ];
 
+/** Privacy Policy Section component for the compliance section. */
 export function PrivacyPolicySection() {
   return (
     <Card className="border-secondary/30">

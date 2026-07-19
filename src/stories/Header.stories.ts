@@ -23,6 +23,7 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
+/** Logged In. */
 export const LoggedIn: Story = {
   args: {
     user: {
@@ -31,4 +32,5 @@ export const LoggedIn: Story = {
   },
 };
 
+/** Logged Out. */
 export const LoggedOut: Story = {};

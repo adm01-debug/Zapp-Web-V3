@@ -29,6 +29,7 @@ interface UseContactFormV3Options {
   onCancel?: () => void;
 }
 
+/** use Contact Form V3 component for the contacts section. */
 export function useContactFormV3({
   workspaceId,
   initial,

@@ -11,6 +11,7 @@ interface TourProviderProps {
   onComplete?: () => void;
 }
 
+/** Tour Provider component for the onboarding section. */
 export function TourProvider({ children, onComplete }: TourProviderProps) {
   const [isActive, setIsActive] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);

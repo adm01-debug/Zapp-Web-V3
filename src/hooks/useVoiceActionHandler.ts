@@ -2,6 +2,7 @@ import { useCallback } from 'react';
 import { toast } from 'sonner';
 import type { VoiceAgentAction } from '@/features/inbox/hooks/voice/types';
 
+/** Hook: use Voice Action Handler. */
 export function useVoiceActionHandler(onViewChange?: (viewId: string) => void) {
   return useCallback(
     (action: VoiceAgentAction) => {

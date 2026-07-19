@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { calculateLevel } from './levelUtils';
 import type { AgentStats } from './types';
 
+/** Hook: use Gamification Mutations. */
 export function useGamificationMutations(
   profileId: string | undefined,
   currentStats: AgentStats | null | undefined

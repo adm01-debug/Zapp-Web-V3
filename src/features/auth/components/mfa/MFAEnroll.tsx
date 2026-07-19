@@ -13,6 +13,7 @@ interface MFAEnrollProps {
   onCancel?: () => void;
 }
 
+/** MFAEnroll component for the mfa section. */
 export function MFAEnroll({ onSuccess, onCancel }: MFAEnrollProps) {
   const { enrollTOTP, verifyTOTP, loading, enrollmentData } = useMFA();
   const [step, setStep] = useState<'intro' | 'qr' | 'verify'>('intro');

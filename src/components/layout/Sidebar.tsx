@@ -24,6 +24,7 @@ interface SidebarProps {
   onStatusChange?: (status: 'online' | 'away' | 'offline') => void;
 }
 
+/** Sidebar component for the layout section. */
 export const Sidebar = React.memo(function Sidebar({ currentView, onViewChange, currentAgent, onLogout, inboxBadge, onStatusChange }: SidebarProps) {
   const { resolvedTheme, setTheme } = useTheme();
   const isDark = resolvedTheme === 'dark';

@@ -5,6 +5,7 @@ import { safeClient } from '@/integrations/supabase/safeClient';
 // Tables that exist in the DB but not in the generated types use this untyped client.
 const dynSupabase = supabase as unknown as SupabaseClient;
 
+/** Email Revalidation Job. */
 export interface EmailRevalidationJob {
   id: string;
   status: string;
@@ -13,6 +14,7 @@ export interface EmailRevalidationJob {
   result: Record<string, unknown> | null;
 }
 
+/** Email Health Summary. */
 export interface EmailHealthSummary {
   id: string;
   status: string | null;
@@ -20,6 +22,7 @@ export interface EmailHealthSummary {
   failure_count_60m: number | null;
 }
 
+/** email Api. */
 export const emailApi = {
   getAuditLogs: async (
     from: number,

@@ -15,12 +15,14 @@ const meta: Meta<typeof Textarea> = {
 export default meta;
 type Story = StoryObj<typeof Textarea>;
 
+/** Default component for the ui section. */
 export const Default: Story = {
   args: {
     placeholder: 'Type your message here...',
   },
 };
 
+/** Disabled component for the ui section. */
 export const Disabled: Story = {
   args: {
     placeholder: 'Disabled textarea',
@@ -28,6 +30,7 @@ export const Disabled: Story = {
   },
 };
 
+/** With Label component for the ui section. */
 export const WithLabel: Story = {
   render: (args) => (
     <div className="grid w-full gap-1.5">

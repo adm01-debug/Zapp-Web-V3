@@ -2,6 +2,7 @@
 import { useMonitoringDataManagement } from './useMonitoringManagement';
 import type { UseMonitoringDataParams, UseMonitoringDataResult } from './useMonitoringManagement';
 
+/** Hook: use Monitoring Data. */
 export function useMonitoringData(
   paramsOrCallback?: UseMonitoringDataParams | UseMonitoringDataParams['onConnectionsUpdate']
 ): UseMonitoringDataResult {

@@ -16,6 +16,7 @@ interface MiniChatPiPProps {
   onQuickReply?: (text: string) => void;
 }
 
+/** Mini Chat Pi P component for the mobile section. */
 export function MiniChatPiP({
   contactName,
   contactAvatar,

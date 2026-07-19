@@ -8,6 +8,7 @@ import { getLogger } from '@/lib/logger';
 
 const log = getLogger('messageService');
 
+/** message Service. */
 export const messageService = {
   mapMessage(
     m: Partial<RealtimeMessage> & {

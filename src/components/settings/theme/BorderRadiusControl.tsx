@@ -7,6 +7,7 @@ interface BorderRadiusControlProps {
   onChange: (value: number[]) => void;
 }
 
+/** Border Radius Control component for the settings section. */
 export function BorderRadiusControl({ borderRadius, onChange }: BorderRadiusControlProps) {
   const r = `${borderRadius}px`;
 

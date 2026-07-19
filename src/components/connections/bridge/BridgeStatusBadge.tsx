@@ -7,6 +7,7 @@ interface BridgeStatusBadgeProps {
   isConfigured: boolean;
 }
 
+/** Bridge Status Badge component for the connections section. */
 export function BridgeStatusBadge({ status, isConfigured }: BridgeStatusBadgeProps) {
   if (!isConfigured) {
     return (

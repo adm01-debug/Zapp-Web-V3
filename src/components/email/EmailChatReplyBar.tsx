@@ -32,6 +32,7 @@ interface EmailChatReplyBarProps {
   className?: string;
 }
 
+/** Email Chat Reply Bar component for the email section. */
 export function EmailChatReplyBar({
   accountId,
   threadId,

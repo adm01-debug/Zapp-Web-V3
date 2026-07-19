@@ -29,13 +29,16 @@ interface Analysis {
   timestamp: string;
 }
 
+/** Hook: Performance Snapshot. */
 export type PerformanceSnapshot = Database['zapp']['Tables']['performance_snapshots']['Row'];
 type PerformanceSnapshotInsert = Database['zapp']['Tables']['performance_snapshots']['Insert'];
+/** Hook: Performance Snapshot Input. */
 export type PerformanceSnapshotInput = Omit<
   PerformanceSnapshotInsert,
   'id' | 'profile_id' | 'created_at' | 'user_agent'
 >;
 
+/** Hook: use Performance Monitoring Management. */
 export function usePerformanceMonitoringManagement() {
   const [metrics, setMetrics] = useState<PerformanceMetric[]>([]);
   const metricsRef = useRef<PerformanceMetric[]>([]);
@@ -53,6 +56,7 @@ export function usePerformanceMonitoringManagement() {
   return { metrics, recordMetric };
 }
 
+/** Hook: use Performance Snapshots. */
 export function usePerformanceSnapshots() {
   const { profile } = useAuth();
   const [history, setHistory] = useState<PerformanceSnapshot[]>([]);
@@ -133,6 +137,7 @@ export function usePerformanceSnapshots() {
   return { history, saveSnapshot, loadHistory, clearOldSnapshots };
 }
 
+/** Hook: use Error Monitoring Management. */
 export function useErrorMonitoringManagement() {
   const [errors, setErrors] = useState<ErrorLog[]>([]);
 
@@ -159,6 +164,7 @@ export function useErrorMonitoringManagement() {
   return { errors, clearErrors };
 }
 
+/** Hook: use Latest Analysis Management. */
 export function useLatestAnalysisManagement(timeWindow: number = 24) {
   const [analysis, setAnalysis] = useState<Analysis | null>(null);
   const [loading, setLoading] = useState(true);
@@ -184,6 +190,7 @@ export function useLatestAnalysisManagement(timeWindow: number = 24) {
   return { analysis, loading };
 }
 
+/** Hook: use Message Attempts Management. */
 export function useMessageAttemptsManagement(messageId: string) {
   const [attempts, setAttempts] = useState<Record<string, unknown>[]>([]);
   const [loading, setLoading] = useState(true);

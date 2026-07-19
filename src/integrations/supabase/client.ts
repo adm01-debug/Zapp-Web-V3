@@ -70,10 +70,12 @@ const SUPABASE_ANON_KEY =
       ? envKey
       : SELF_HOSTED_ANON_KEY;
 
+/** is Supabase Configured. */
 export const isSupabaseConfigured =
   isValidSupabaseUrl(SUPABASE_URL) && isValidSupabaseKey(SUPABASE_ANON_KEY);
 
 let warnedUnconfigured = false;
+/** warn Supabase Unconfigured. */
 export function warnSupabaseUnconfigured(context?: string): void {
   if (warnedUnconfigured) return;
   warnedUnconfigured = true;
@@ -111,6 +113,7 @@ const realtimeReconnectAfterMs = (tries: number): number =>
 // ---------------------------------------------------------------------------
 // ZAPP Web client — schema 'zapp' (schema canônico de todas as tabelas)
 // ---------------------------------------------------------------------------
+/** supabase. */
 export const supabase = createClient<ExtendedDatabase, 'zapp'>(supabaseUrl, supabaseAnonKey, {
   db: {
     schema: 'zapp',
@@ -137,5 +140,7 @@ if (!isSupabaseConfigured) {
   }) as typeof supabase.channel;
 }
 
+/** SUPABASE_RESOLVED_URL. */
 export const SUPABASE_RESOLVED_URL = supabaseUrl;
+/** SUPABASE_RESOLVED_ANON_KEY. */
 export const SUPABASE_RESOLVED_ANON_KEY = supabaseAnonKey;

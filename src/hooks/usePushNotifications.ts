@@ -4,6 +4,7 @@ import type { PushNotificationState, NotificationPayload } from '@/hooks/useNoti
 
 export type { PushNotificationState, NotificationPayload };
 
+/** Hook: use Push Notifications. */
 export function usePushNotifications() {
   const mgmt = usePushNotificationsManagement();
 

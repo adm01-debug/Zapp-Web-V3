@@ -16,6 +16,7 @@ import { toast } from 'sonner';
 
 const emailSchema = z.string().email('Email inválido');
 
+/** Forgot Password. */
 export default function ForgotPassword() {
   const [email, setEmail] = useState('');
   const [reason, setReason] = useState('');

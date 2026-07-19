@@ -1,7 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 
+/** Hook: SLAStatus. */
 export type SLAStatus = 'ok' | 'warning' | 'breached';
 
+/** Hook: SLATimer State. */
 export interface SLATimerState {
   firstResponse: {
     status: SLAStatus;
@@ -83,6 +85,7 @@ function compute(params: UseSLACalculationParams): SLATimerState {
   return { firstResponse, resolution, worstStatus };
 }
 
+/** Hook: format Time Remaining. */
 export function formatTimeRemaining(ms: number): string {
   const absMs = Math.abs(ms);
   const totalSeconds = Math.floor(absMs / 1000);
@@ -96,6 +99,7 @@ export function formatTimeRemaining(ms: number): string {
   return `${seconds}s`;
 }
 
+/** Hook: use SLACalculation. */
 export function useSLACalculation(params: UseSLACalculationParams): SLATimerState {
   const [state, setState] = useState<SLATimerState>(() => compute(params));
 

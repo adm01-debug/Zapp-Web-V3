@@ -68,6 +68,7 @@ const listItemVariants = {
   }),
 };
 
+/** Mobile Drawer Menu component for the mobile section. */
 export function MobileDrawerMenu({
   isOpen,
   onClose,

@@ -189,6 +189,7 @@ function AvatarGroup({ avatars, max = 4, size = 'default', className }: AvatarGr
   );
 }
 
+/** avatar component for the ui section. */
 export { 
   Avatar, 
   AvatarImage, 

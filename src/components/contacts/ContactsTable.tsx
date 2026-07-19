@@ -72,6 +72,7 @@ function SortableHeader({ label, field, sortField, sortDir, onSort }: {
   );
 }
 
+/** Contacts Table component for the contacts section. */
 export function ContactsTable({
   contacts, selectedIds, onSelectIds, onOpenChat, onEdit, onDelete, getCRMData, searchQuery,
 }: ContactsTableProps) {

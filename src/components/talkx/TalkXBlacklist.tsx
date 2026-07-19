@@ -59,6 +59,7 @@ const OPT_OUT_REASONS = [
   'Outro',
 ];
 
+/** Talk XBlacklist component for the talkx section. */
 export function TalkXBlacklist() {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');

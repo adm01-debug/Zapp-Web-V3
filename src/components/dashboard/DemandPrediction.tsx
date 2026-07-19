@@ -32,6 +32,7 @@ interface DemandPredictionProps {
   className?: string;
 }
 
+/** Demand Prediction component for the dashboard section. */
 export function DemandPrediction({
   data: externalData,
   currentCapacity = 35,

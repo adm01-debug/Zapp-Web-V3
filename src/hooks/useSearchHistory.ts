@@ -3,6 +3,7 @@ import { useState, useCallback } from 'react';
 const STORAGE_KEY = 'global-search-history';
 const MAX_HISTORY = 10;
 
+/** Hook: Search History Item. */
 export interface SearchHistoryItem {
   query: string;
   timestamp: number;
@@ -27,6 +28,7 @@ function saveHistory(items: SearchHistoryItem[]): void {
   }
 }
 
+/** Hook: use Search History. */
 export function useSearchHistory() {
   const [history, setHistory] = useState<SearchHistoryItem[]>(loadHistory);
 

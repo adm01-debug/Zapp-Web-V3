@@ -17,6 +17,7 @@ import { useDeviceDetection } from '@/hooks/useDeviceDetection';
 import { toast } from 'sonner';
 import { SessionCard, DeviceCard } from './DeviceCard';
 
+/** Devices Panel component for the security section. */
 export function DevicesPanel() {
   const {
     devices,

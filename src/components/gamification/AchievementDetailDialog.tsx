@@ -33,6 +33,7 @@ interface AchievementDetailDialogProps {
   onClaim: (achievement: Achievement) => void;
 }
 
+/** Achievement Detail Dialog component for the gamification section. */
 export function AchievementDetailDialog({ achievement, onClose, onClaim }: AchievementDetailDialogProps) {
   if (!achievement) return null;
 

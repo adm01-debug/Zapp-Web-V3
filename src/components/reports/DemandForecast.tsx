@@ -18,6 +18,7 @@ import {
 
 const DAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
+/** Demand Forecast component for the reports section. */
 export function DemandForecast() {
   const [historicalData, setHistoricalData] = useState<
     { day: string; actual: number; predicted: number }[]

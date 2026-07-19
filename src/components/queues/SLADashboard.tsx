@@ -26,6 +26,7 @@ const getRateColor = (rate: number) => {
   return 'text-destructive';
 };
 
+/** SLADashboard component for the queues section. */
 export const SLADashboard = () => {
   const navigate = useNavigate();
   const [period, setPeriod] = useState<PeriodFilter>('today');

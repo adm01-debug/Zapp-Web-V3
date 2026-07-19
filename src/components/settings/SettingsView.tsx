@@ -33,6 +33,7 @@ import { useUserSettings } from '@/hooks/useUserSettings';
 import { useOnboarding } from '@/hooks/useOnboarding';
 import { toast } from 'sonner';
 
+/** Settings View component for the settings section. */
 export function SettingsView() {
   const { settings, isLoading, isSaving, updateSettings, saveSettings, toggleWorkDay } = useUserSettings();
   const { resetOnboarding } = useOnboarding();

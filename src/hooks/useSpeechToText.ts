@@ -15,6 +15,7 @@ const getSpeechRecognition = () => {
   );
 };
 
+/** Hook: use Speech To Text. */
 export function useSpeechToText(options: SpeechToTextOptions = {}) {
   const { language = 'pt-BR', continuous = false, onResult } = options;
 

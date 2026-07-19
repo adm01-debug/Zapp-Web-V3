@@ -27,6 +27,7 @@ interface ContactQuickViewProps {
   onOpenChat: (phone: string, name: string) => void;
 }
 
+/** Contact Quick View component for the contacts section. */
 export const ContactQuickView: React.FC<ContactQuickViewProps> = ({
   contact, isOpen, onClose, onEdit, onDelete, onOpenChat
 }) => {

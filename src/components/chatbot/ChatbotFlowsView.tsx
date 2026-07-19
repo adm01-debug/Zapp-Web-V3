@@ -36,6 +36,7 @@ const triggerLabels: Record<string, { label: string; icon: React.ComponentType<{
   schedule: { label: 'Agendado', icon: Clock },
 };
 
+/** Chatbot Flows View component for the chatbot section. */
 export function ChatbotFlowsView() {
   const { flows, isLoading, createFlow, updateFlow, deleteFlow, toggleFlow } = useChatbotFlows();
   const [showCreate, setShowCreate] = useState(false);

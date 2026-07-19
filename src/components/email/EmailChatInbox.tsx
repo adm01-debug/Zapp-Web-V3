@@ -13,6 +13,7 @@ interface EmailChatInboxProps {
   className?: string;
 }
 
+/** Email Chat Inbox component for the email section. */
 export function EmailChatInbox({ className }: EmailChatInboxProps) {
   const {
     threads,

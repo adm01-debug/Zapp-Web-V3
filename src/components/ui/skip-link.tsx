@@ -10,6 +10,7 @@ interface SkipLinkProps {
   className?: string;
 }
 
+/** Skip Link component for the ui section. */
 export const SkipLink = forwardRef<HTMLAnchorElement, SkipLinkProps>(function SkipLink(
   { href, children, icon, className },
   ref
@@ -67,6 +68,7 @@ const SKIP_TARGETS = [
   { href: '#search-input', label: 'Pular para busca', Icon: Search },
 ] as const;
 
+/** Skip Links component for the ui section. */
 export function SkipLinks() {
   const [showIndicator, setShowIndicator] = useState(false);
   const [availableHrefs, setAvailableHrefs] = useState<Set<string>>(() => new Set());

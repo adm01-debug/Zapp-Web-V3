@@ -26,6 +26,7 @@ interface Props {
   contactCountByType: Record<string, number>;
 }
 
+/** Contacts Rich Tabs component for the contacts section. */
 export function ContactsRichTabs({
   activeTab,
   setActiveTab,

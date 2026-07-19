@@ -77,6 +77,7 @@ const GOAL_LABELS: Record<string, { label: string; icon: React.ElementType; desc
     },
   };
 
+/** Goals Config Dialog component for the dashboard section. */
 export function GoalsConfigDialog({ open, onOpenChange }: GoalsConfigDialogProps) {
   const { user } = useAuth();
   const queryClient = useQueryClient();

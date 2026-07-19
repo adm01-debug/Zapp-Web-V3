@@ -6,6 +6,7 @@ import { AuroraBorealis } from '@/components/effects/AuroraBorealis';
 import { Tabs, TabsContent, TabsTrigger, TabsList } from '@/components/ui/tabs';
 import { SectionErrorBoundary } from '@/components/ui/section-error-boundary';
 
+/** Page displaying SLA history metrics and compliance trends for all conversations. */
 const SLAHistory = () => {
   const [currentView, setCurrentView] = useState('sla-history');
 

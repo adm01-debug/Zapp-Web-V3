@@ -19,6 +19,7 @@ const SENSITIVE_KEYS = new Set([
 const PARTIAL_KEYS = new Set(['email', 'e-mail', 'e_mail']);
 const LONG_TOKEN_PATTERN = /^[A-Za-z0-9+/=._-]{40,}$/;
 
+/** apply Masking. */
 export function applyMasking(str: string): string {
   if (str.length > 30 && (str.includes('.') || /^[a-zA-Z0-9_-]+$/.test(str))) {
     return str.substring(0, 5) + '...' + str.substring(str.length - 5);
@@ -26,6 +27,7 @@ export function applyMasking(str: string): string {
   return str;
 }
 
+/** mask Email. */
 export function maskEmail(email: string): string {
   const [local, domain] = email.split('@');
   if (!domain) return '***@' + (local || '');
@@ -54,6 +56,7 @@ function maskAny(
   );
 }
 
+/** mask Sensitive Data. */
 export function maskSensitiveData(
   data: Record<string, unknown> | unknown[]
 ): Record<string, unknown> | unknown[] {

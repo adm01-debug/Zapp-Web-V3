@@ -25,6 +25,7 @@ function getCellColor(ratio: number, total: number): string {
   return 'bg-destructive';
 }
 
+/** Monitoring Availability Heatmap component for the monitoring section. */
 export function MonitoringAvailabilityHeatmap({ healthLogs }: Props) {
   const { grid, overallUptime, dayLabels } = useMemo(() => {
     const now = new Date();

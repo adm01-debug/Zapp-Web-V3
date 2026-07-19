@@ -19,6 +19,7 @@ interface OnboardingChecklistProps {
   compact?: boolean;
 }
 
+/** Onboarding Checklist component for the onboarding section. */
 export function OnboardingChecklist({ onNavigate, onDismiss, compact = false }: OnboardingChecklistProps) {
   const { user } = useAuth();
   const [completedSteps, setCompletedSteps] = useState<string[]>([]);

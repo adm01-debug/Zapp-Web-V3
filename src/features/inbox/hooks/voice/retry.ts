@@ -1,3 +1,4 @@
+/** Hook: is Retryable Error. */
 export function isRetryableError(error: unknown): boolean {
   if (error instanceof Error) {
     const msg = error.message.toLowerCase();
@@ -14,6 +15,7 @@ export function isRetryableError(error: unknown): boolean {
   return false;
 }
 
+/** Hook: with Retry. */
 export async function withRetry<T>(
   fn: () => Promise<T>,
   maxRetries = 2,
@@ -35,6 +37,7 @@ export async function withRetry<T>(
   throw lastError;
 }
 
+/** Hook: friendly Error Message. */
 export function friendlyErrorMessage(error: unknown): string {
   if (error instanceof Error) {
     const msg = error.message.toLowerCase();

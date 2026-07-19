@@ -19,6 +19,7 @@ interface Emoji {
   url: string;
 }
 
+/** Hook: use Personal Stickers Management. */
 export function usePersonalStickersManagement(userId?: string) {
   const [stickers, setStickers] = useState<Sticker[]>([]);
   const [loading, setLoading] = useState(true);
@@ -58,6 +59,7 @@ export function usePersonalStickersManagement(userId?: string) {
   return { stickers, loading, refetch: fetchStickers };
 }
 
+/** Hook: use Custom Emojis Management. */
 export function useCustomEmojisManagement() {
   const [emojis, setEmojis] = useState<Emoji[]>([]);
   const [loading, setLoading] = useState(true);
@@ -83,6 +85,7 @@ export function useCustomEmojisManagement() {
   return { emojis, loading };
 }
 
+/** Hook: use Export Data Management. */
 export function useExportDataManagement() {
   const [isExporting, setIsExporting] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -117,6 +120,7 @@ export function useExportDataManagement() {
   return { isExporting, progress, exportData };
 }
 
+/** Hook: use Import Data Management. */
 export function useImportDataManagement() {
   const [isImporting, setIsImporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -144,6 +148,7 @@ export function useImportDataManagement() {
   return { isImporting, error, importData };
 }
 
+/** Hook: use Download Permission Management. */
 export function useDownloadPermissionManagement(resourceId?: string) {
   const [hasPermission, setHasPermission] = useState(!resourceId);
   const [loading, setLoading] = useState(Boolean(resourceId));

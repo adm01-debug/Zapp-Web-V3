@@ -20,6 +20,7 @@ const ROLE_CONFIG = {
   agent: { label: 'Atendente', icon: Headphones, color: 'bg-success/10 text-success dark:bg-success/20/30 dark:text-success', description: 'Atendimento ao cliente — apenas o próprio escopo' },
 };
 
+/** Roles Page. */
 export default function RolesPage() {
   const { isAdmin } = useUserRole();
   const {

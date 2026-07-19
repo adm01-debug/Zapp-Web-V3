@@ -14,6 +14,7 @@ const WINDOWS: Array<{ days: number; label: string }> = [
   { days: 30, label: '30 dias' },
 ];
 
+/** Admin Search Insights Page. */
 export default function AdminSearchInsightsPage() {
   const [days, setDays] = useState(7);
   const { data, isLoading, isFetching, refetch, error } = useSearchInsights(days);

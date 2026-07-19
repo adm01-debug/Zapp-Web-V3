@@ -411,6 +411,7 @@ function useEmailThreadActionsManagement({
 // Orchestration Section (Re-exports individual management functions)
 // ============================================================================
 
+/** Hook: use Gmail Management. */
 export {
   useEmailOAuthManagement,
   useEmailSyncManagement,

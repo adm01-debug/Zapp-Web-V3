@@ -47,6 +47,7 @@ const REPORT_TYPE_LABELS: Record<string, string> = {
   full: 'Completo',
 };
 
+/** Scheduled Reports Manager component for the dashboard section. */
 export function ScheduledReportsManager() {
   const queryClient = useQueryClient();
   const { profile } = useAuth();

@@ -10,6 +10,7 @@ import { useTeamChatNotifications } from '@/hooks/useTeamChatNotifications';
 import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
 
+/** Team Chat View component for the team chat section. */
 export function TeamChatView() {
   const { data: conversations = [], isLoading } = useTeamConversations();
   const [selectedId, setSelectedId] = useState<string | null>(null);

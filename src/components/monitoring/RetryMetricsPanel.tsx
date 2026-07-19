@@ -98,6 +98,7 @@ function statusIcon(status: string): JSX.Element | null {
   }
 }
 
+/** Retry Metrics Panel component for the monitoring section. */
 export function RetryMetricsPanel() {
   const [hours, setHours] = useState<number>(24);
   const [actionFilter, setActionFilter] = useState<string>('all');

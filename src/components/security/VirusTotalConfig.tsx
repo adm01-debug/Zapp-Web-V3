@@ -9,6 +9,7 @@ import { ShieldCheck, ShieldAlert, Loader2, Key } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
+/** Virus Total Config component for the security section. */
 export const VirusTotalConfig = () => {
   const [apiKey, setApiKey] = useState('');
   const [isLoading, setIsLoading] = useState(false);

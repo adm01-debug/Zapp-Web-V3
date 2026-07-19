@@ -22,6 +22,7 @@ interface Props {
 
 const HARD_LIMIT = 200;
 
+/** Events Live Block. */
 export function EventsLiveBlock({ windowHours, autoRefresh, onNavigateTo }: Props) {
   const sinceISO = useMemo(() => subHours(new Date(), windowHours).toISOString(), [windowHours]);
 

@@ -27,6 +27,7 @@ import { toast } from 'sonner';
 import { Textarea } from '@/components/ui/textarea';
 import { useGroupsManager, GROUP_CATEGORIES } from '@/hooks/useGroupsManager';
 
+/** Groups View component for the groups section. */
 export function GroupsView() {
   const {
     groups, connections, search, setSearch, categoryFilter, setCategoryFilter,

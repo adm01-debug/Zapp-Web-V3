@@ -143,6 +143,7 @@ class ValidationLogger {
   }
 }
 
+/** validation Logger. */
 export const validationLogger = new ValidationLogger();
 
 if (typeof window !== 'undefined') {

@@ -34,12 +34,16 @@ const getInitialConfig = () => {
 };
 
 const initialConfig = getInitialConfig();
+/** DEFAULT_EXTERNAL_URL. */
 export const DEFAULT_EXTERNAL_URL = initialConfig.url;
+/** DEFAULT_EXTERNAL_KEY. */
 export const DEFAULT_EXTERNAL_KEY = initialConfig.key;
 
 // MCP server endpoint (self-hosted canônico — migrado de cloud em 30/06/2026)
+/** MCP_SERVER_URL. */
 export const MCP_SERVER_URL = 'https://supabase.atomicabr.com.br/functions/v1/mcp-server';
 
+/** System Connection Payload. */
 export interface SystemConnectionPayload {
   name: string;
   provider: string;
@@ -47,6 +51,7 @@ export interface SystemConnectionPayload {
   is_active: boolean;
 }
 
+/** System Connection. */
 export interface SystemConnection {
   id: string;
   name: string;
@@ -58,6 +63,7 @@ export interface SystemConnection {
   updated_at?: string | null;
 }
 
+/** use Connections. */
 export function useConnections() {
   const [activeTab, setActiveTab] = useState('external-db');
   const [connections, setConnections] = useState<SystemConnection[]>([]);

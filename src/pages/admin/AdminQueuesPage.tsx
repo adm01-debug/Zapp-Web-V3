@@ -3,6 +3,7 @@ import { QueueEditDialog } from './queues/QueueEditDialog';
 import { QueueCard } from './queues/QueueCard';
 import { QueueMembersDialog } from './queues/QueueMembersDialog';
 
+/** Admin Queues Page. */
 export default function AdminQueuesPage() {
   const {
     queues,

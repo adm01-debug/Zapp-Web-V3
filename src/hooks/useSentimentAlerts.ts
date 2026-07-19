@@ -2,6 +2,7 @@ import { useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useNotificationSettings } from '@/hooks/useNotificationSettings';
 
+/** Hook: use Sentiment Alerts. */
 export function useSentimentAlerts() {
   const { settings } = useNotificationSettings();
 

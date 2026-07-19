@@ -15,6 +15,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Wallet, Plus, Trash2, Users, Phone, ArrowUpDown, UserCheck } from 'lucide-react';
 import { useClientWallet } from '@/hooks/useClientWallet';
 
+/** Client Wallet View component for the wallet section. */
 export function ClientWalletView() {
   const w = useClientWallet();
 

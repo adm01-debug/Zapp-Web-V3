@@ -7,6 +7,7 @@ import { tanstackRetry } from '@/lib/errors/queryErrors';
 
 export type { AgentProfile, AgentWithStats };
 
+/** Hook: use Agents. */
 export function useAgents() {
   const {
     data: agents = [],

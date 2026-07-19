@@ -29,6 +29,7 @@ function oauth(): OAuthNs {
   return (supabase.auth as unknown as { oauth: OAuthNs }).oauth; // ignore-audit — supabase.auth.oauth is beta, not in generated TS types
 }
 
+/** OAuth Consent. */
 export default function OAuthConsent() {
   const [params] = useSearchParams();
   const navigate = useNavigate();

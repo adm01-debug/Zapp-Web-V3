@@ -15,6 +15,7 @@ interface OnboardingStatus {
   [key: string]: boolean;
 }
 
+/** Hook: use Onboarding Checklist. */
 export function useOnboardingChecklist() {
   const { user } = useAuth();
   const [status, setStatus] = useState<OnboardingStatus>({

@@ -58,6 +58,7 @@ function emptyChannel(): Partial<ServiceChannel> {
   };
 }
 
+/** Admin Channels Page. */
 export default function AdminChannelsPage() {
   const [editing, setEditing] = useState<Partial<ServiceChannel> | null>(null);
   const [search, setSearch] = useState("");

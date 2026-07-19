@@ -14,6 +14,7 @@ interface Props {
   onRefreshSecrets: () => void;
 }
 
+/** Admin Whats App Secrets Card. */
 export function AdminWhatsAppSecretsCard({
   secrets,
   secretsLoading,

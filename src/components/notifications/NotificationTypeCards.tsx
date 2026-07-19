@@ -34,6 +34,7 @@ interface SoundSelectorProps {
   soundVolume: number;
 }
 
+/** Sound Selector component for the notifications section. */
 export function SoundSelector({
   value,
   onChange,
@@ -82,6 +83,7 @@ interface NotificationTypeSectionProps {
   updateSettings: (partial: Partial<NotificationSettings>) => void;
 }
 
+/** Notification Type Section component for the notifications section. */
 export function NotificationTypeSection({
   settings,
   updateSettings,

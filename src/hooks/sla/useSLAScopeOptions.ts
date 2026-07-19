@@ -26,6 +26,7 @@ interface SLAScopeOptions {
   contacts: ContactOption[];
 }
 
+/** Hook: use SLAScope Options. */
 export function useSLAScopeOptions(
   open: boolean,
   scope: SLARuleScope,

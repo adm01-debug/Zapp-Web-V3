@@ -11,6 +11,7 @@ import { useAutomationsManagementCRUD as useAutomations, type AutomationRow } fr
 import { AutomationCard } from './AutomationCard';
 import { AutomationEditorDialog } from './AutomationEditorDialog';
 
+/** Automations Manager component for the automations section. */
 export function AutomationsManager() {
   const { user } = useAuth();
   const { automations, isLoading, createMutation, updateMutation, deleteMutation } = useAutomations();

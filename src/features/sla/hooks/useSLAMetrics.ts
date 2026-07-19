@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { startOfDay, subDays, startOfWeek, startOfMonth } from 'date-fns';
 
+/** Hook: Period Filter. */
 export type PeriodFilter = 'today' | 'week' | 'month' | 'all';
 
 interface SLAMetric {
@@ -22,6 +23,7 @@ interface AgentSLAMetric {
   overallRate: number;
 }
 
+/** Hook: SLADashboard Data. */
 export interface SLADashboardData {
   overall: {
     firstResponse: SLAMetric;
@@ -128,6 +130,7 @@ async function fetchSLAMetrics(period: PeriodFilter): Promise<SLADashboardData> 
   return { overall, byAgent };
 }
 
+/** Hook: use SLAMetrics. */
 export const useSLAMetrics = (period: PeriodFilter = 'today') => {
   const { data = null, isLoading: loading } = useQuery({
     queryKey: queryKeys.sla.metrics(period),

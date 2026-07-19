@@ -16,9 +16,11 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
+/** Logged Out. */
 export const LoggedOut: Story = {};
 
 // More on component testing: https://storybook.js.org/docs/writing-tests/interaction-testing
+/** Logged In. */
 export const LoggedIn: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);

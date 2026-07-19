@@ -278,6 +278,7 @@ TableHeader.displayName = 'TableHeader';
 
 // ── Main Component ─────────────────────────────────────────────────────────
 
+/** Contacts Table Virtual component for the contacts section. */
 export const ContactsTableVirtual: React.FC<ContactsTableVirtualProps> = ({
   contacts,
   selectedIds,

@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
+/** Feature Section component for the docs section. */
 export interface FeatureSection {
   id: number;
   title: string;
@@ -15,6 +16,7 @@ export interface FeatureSection {
   items: string[];
 }
 
+/** sections component for the docs section. */
 export const sections: FeatureSection[] = [
   {
     id: 1, title: "Autenticação e Segurança", icon: Shield, color: "text-destructive",
@@ -371,4 +373,5 @@ export const sections: FeatureSection[] = [
   }
 ];
 
+/** total Features component for the docs section. */
 export const totalFeatures = sections.reduce((sum, s) => sum + s.items.length, 0);

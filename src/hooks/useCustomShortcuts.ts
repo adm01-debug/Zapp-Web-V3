@@ -3,6 +3,7 @@ import { useCustomShortcutsManagement, type ShortcutBinding } from '@/hooks/useK
 
 export type { ShortcutBinding };
 
+/** Hook: use Custom Shortcuts. */
 export function useCustomShortcuts() {
   return useCustomShortcutsManagement();
 }

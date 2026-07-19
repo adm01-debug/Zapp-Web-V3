@@ -15,6 +15,7 @@ interface ScopeRulesListProps {
   scope: SLARuleScope;
 }
 
+/** Scope Rules List component for the settings section. */
 export function ScopeRulesList({ scope }: ScopeRulesListProps) {
   const { rules, isLoading, deleteRule, toggleRule } = useSLARules(scope);
   const [showDialog, setShowDialog] = useState(false);

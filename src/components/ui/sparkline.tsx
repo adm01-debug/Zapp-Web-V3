@@ -8,6 +8,7 @@ interface SparklineProps {
   className?: string;
 }
 
+/** Sparkline component for the ui section. */
 export function Sparkline({ data, color = 'currentColor', width = 80, height = 24, className }: SparklineProps) {
   if (data.length < 2) return null;
 

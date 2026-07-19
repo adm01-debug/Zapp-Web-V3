@@ -28,6 +28,7 @@ interface FailedAuthRow {
   created_at: string;
 }
 
+/** Admin Failed Auth Messages Page. */
 export default function AdminFailedAuthMessagesPage() {
   const { toast } = useToast();
   const [rows, setRows] = useState<FailedAuthRow[]>([]);

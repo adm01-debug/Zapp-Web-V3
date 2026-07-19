@@ -55,6 +55,7 @@ const MOCK_ACHIEVEMENTS: Achievement[] = [
 
 interface AchievementsSystemProps { userId?: string; showCompact?: boolean; }
 
+/** Achievements System component for the gamification section. */
 export const AchievementsSystem = ({ userId, showCompact = false }: AchievementsSystemProps) => {
   const [achievements, setAchievements] = useState<Achievement[]>([]);
   const [selectedAchievement, setSelectedAchievement] = useState<Achievement | null>(null);

@@ -43,6 +43,7 @@ interface AppShellProps {
   loading: boolean;
 }
 
+/** App Shell component for the layout section. */
 export const AppShell = forwardRef<HTMLDivElement, AppShellProps>(function AppShell(
   {
     currentView,

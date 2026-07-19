@@ -19,6 +19,7 @@ interface CampaignABTestingProps {
   campaignId: string;
 }
 
+/** Campaign ABTesting component for the campaigns section. */
 export function CampaignABTesting({ campaignId }: CampaignABTestingProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [newName, setNewName] = useState('');

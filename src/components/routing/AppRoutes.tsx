@@ -54,6 +54,7 @@ function RouteLoadingFallback() {
   );
 }
 
+/** App Routes component for the routing section. */
 export function AppRoutes() {
   return (
     <Suspense fallback={<RouteLoadingFallback />}>

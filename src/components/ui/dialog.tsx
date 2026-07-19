@@ -104,6 +104,7 @@ const DialogDescription = React.forwardRef<
 ));
 DialogDescription.displayName = DialogPrimitive.Description.displayName;
 
+/** dialog component for the ui section. */
 export {
   Dialog,
   DialogPortal,

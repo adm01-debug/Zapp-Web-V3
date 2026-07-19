@@ -26,6 +26,7 @@ import { emailApi, type EmailRevalidationJob } from '@/services/email/emailApi';
 
 const log = getLogger('AdminEmailAuditPage');
 
+/** Admin Email Audit Page. */
 export default function AdminEmailAuditPage() {
   const [logs, setLogs] = useState<EmailRevalidationJob[]>([]);
   const [loading, setLoading] = useState(true);

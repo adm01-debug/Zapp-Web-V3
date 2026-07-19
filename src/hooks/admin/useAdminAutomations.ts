@@ -11,6 +11,7 @@ export {
   type AutomationDepartment,
 } from '@/features/admin/hooks/useAdminManagement';
 
+/** Hook: use Admin Automations. */
 export function useAdminAutomations() {
   const admin = useAdminManagement();
 

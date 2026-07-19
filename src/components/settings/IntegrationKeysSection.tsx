@@ -57,6 +57,7 @@ const INTEGRATION_KEYS: KeyField[] = [
   },
 ];
 
+/** Integration Keys Section component for the settings section. */
 export function IntegrationKeysSection(): JSX.Element {
   const { isLoading, getSetting, addSetting } = useGlobalSettings();
   const { listInstances } = useEvolutionApi();

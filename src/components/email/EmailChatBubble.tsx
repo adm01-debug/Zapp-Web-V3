@@ -79,6 +79,7 @@ function getAvatarColor(email: string | null): string {
   return colors[code % colors.length];
 }
 
+/** Email Chat Bubble component for the email section. */
 export function EmailChatBubble({
   message,
   accountId,
