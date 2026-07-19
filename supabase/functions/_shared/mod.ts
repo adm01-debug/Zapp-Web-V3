@@ -2,5 +2,6 @@
 // não-legacy. Novos consumidores devem importar diretamente dos módulos-fonte
 // (auth.ts, validation.ts, vault.ts) — este arquivo existe só para manter
 // retrocompatibilidade dos poucos edge functions que ainda o consomem.
+/** mod utilities and exports. */
 export { getCorsHeaders, handleCorsPreflight, jsonResponse, errorResponse } from "./cors.ts";
 export { getSecret } from "./vault.ts";

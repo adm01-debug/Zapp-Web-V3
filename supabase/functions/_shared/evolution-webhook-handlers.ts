@@ -7,6 +7,7 @@ import {
   getConnectionByInstance, getContactByPhone, persistProfilePicture, generatePhoneVariants,
 } from "./evolution-helpers.ts";
 
+/** evolution-webhook-handlers utilities and exports. */
 export async function handleLogoutInstance(supabase: SupabaseClient, instance: string, data: unknown) {
   const payload = isRecord(data) ? data : {};
   const reasonCode = (payload.disconnectionReasonCode as number | undefined)

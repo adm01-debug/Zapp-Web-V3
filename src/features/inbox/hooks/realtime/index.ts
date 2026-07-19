@@ -1,3 +1,4 @@
+/** Public barrel exports for the realtime module. */
 export * from './audioPlaybackBus';
 export * from './avatarBatchStore';
 export * from './externalMessageSender';

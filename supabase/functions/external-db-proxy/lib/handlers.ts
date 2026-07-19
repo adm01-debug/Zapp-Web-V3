@@ -12,6 +12,7 @@ import {
 
 const HARD_TIMEOUT_MS = 14000
 
+/** handlers utilities and exports. */
 export async function withTimeout<T>(p: PromiseLike<T>): Promise<{ data: T | null; timeoutFired: boolean }> {
   let timer: number | undefined
   let timeoutFired = false

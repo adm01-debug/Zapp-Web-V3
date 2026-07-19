@@ -1,3 +1,4 @@
+/** types utilities and exports. */
 export interface ProxyFilter {
   column: string
   operator: string

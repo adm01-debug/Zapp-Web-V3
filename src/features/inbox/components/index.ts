@@ -1,3 +1,4 @@
+/** Public barrel exports for the components module. */
 export * from './AIConversationAssistant';
 export * from './AISuggestions';
 export * from './AIToolsPopover';

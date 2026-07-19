@@ -1,6 +1,7 @@
 // Mirror of src/shared/criticalPayloadSchemas.ts — duplicated here because
 // edge functions cannot import from outside supabase/functions/ at bundle time.
 
+/** critical Payload Schemas utilities and exports. */
 export const ContractErrorCode = {
   INVALID_PAYLOAD: 'INVALID_PAYLOAD',
   INVALID_PHONE_NUMBER: 'INVALID_PHONE_NUMBER',

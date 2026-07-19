@@ -3,6 +3,7 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 
+/** log-retry-metric utilities and exports. */
 export interface RetryReason {
   attempt: number;
   status?: number;

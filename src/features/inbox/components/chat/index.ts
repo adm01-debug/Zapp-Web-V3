@@ -1,3 +1,4 @@
+/** Public barrel exports for the chat module. */
 export * from './AIEnhanceButton';
 export * from './AIRewriteButton';
 export * from './AutomationSuggestionsBar';

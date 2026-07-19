@@ -8,6 +8,7 @@ import {
 } from "./evolution-helpers.ts";
 import { persistMediaToStorage, persistMediaViaApi, parseMessageContent, isSafeMediaCdnUrl } from "./evolution-media.ts";
 
+/** evolution-webhook-messages utilities and exports. */
 export async function handleOutgoingWhatsAppMessage(
   supabase: SupabaseClient, instance: string, data: Record<string, unknown>,
   key: { remoteJid?: string; remoteJidAlt?: string; participant?: string; participantAlt?: string; fromMe: boolean; id: string },

@@ -1,3 +1,4 @@
+/** Public barrel exports for the components module. */
 export * from './AuthProvider';
 export * from './HeroBenefits';
 export * from './NotAuthorizedView';

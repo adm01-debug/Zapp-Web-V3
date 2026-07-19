@@ -6,6 +6,7 @@ import {
   getConnectionByInstance, getContactByPhone,
 } from "./evolution-helpers.ts";
 
+/** evolution-webhook-msg-handlers utilities and exports. */
 export async function handleSendMessage(supabase: SupabaseClient, instance: string, data: unknown, baseData: Record<string, unknown>) {
   const connection = await getConnectionByInstance(supabase, instance);
   if (!connection) return;

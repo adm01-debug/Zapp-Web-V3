@@ -14,6 +14,7 @@ type EvolutionRawMsg = {
   reactionMessage?: unknown;
   [key: string]: unknown;
 };
+/** evolution-sync-actions utilities and exports. */
 export async function syncContacts(
   supabase: SupabaseClient, evolutionApiUrl: string, evolutionApiKey: string,
   instanceName: string, corsHeaders: Record<string, string>, page: number, offset: number

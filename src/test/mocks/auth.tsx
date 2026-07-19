@@ -3,6 +3,7 @@ import { vi } from 'vitest';
 import type { User, Session } from '@supabase/supabase-js';
 import type { Profile } from '@/features/auth/services/authService';
 
+/** React component: auth. */
 export const mockUser = {
   id: 'test-user-id',
   email: 'test@example.com',

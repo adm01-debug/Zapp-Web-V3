@@ -1,3 +1,4 @@
+/** Public barrel exports for the components module. */
 export * from './AIUsageDashboard';
 export * from './AIUsageLogsTab';
 export * from './AIUsageUsersTab';

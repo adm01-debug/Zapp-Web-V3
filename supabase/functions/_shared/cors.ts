@@ -24,6 +24,7 @@ const ALLOWED_HEADERS = [
 ].join(', ');
 const ALLOWED_METHODS = 'GET, POST, PUT, PATCH, DELETE, OPTIONS';
 
+/** cors utilities and exports. */
 export function getCorsHeaders(req: Request): Record<string, string> {
   const requestOrigin = req.headers.get('Origin') ?? '';
   // Use value from static array (not user input) to avoid reflected-origin taint path.

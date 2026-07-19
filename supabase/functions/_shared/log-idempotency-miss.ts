@@ -30,6 +30,7 @@ function getExternalServiceClient() {
   return cached === false ? null : cached;
 }
 
+/** log-idempotency-miss utilities and exports. */
 export interface IdempotencyMissInput {
   idem_key: string;
   instance_name: string | null;
