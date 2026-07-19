@@ -20,12 +20,15 @@ export type InvokeOverrideFn =
   | null;
 
 let _invokeOverride: InvokeOverrideFn = null;
+/** Installs a test-only override for the Edge Function invoker, bypassing real HTTP calls. */
 export const setInvokeOverride = (fn: InvokeOverrideFn): void => {
   _invokeOverride = fn;
 };
+/** Removes any active test-only invoker override, restoring normal HTTP fetch behaviour. */
 export const clearInvokeOverride = (): void => {
   _invokeOverride = null;
 };
+/** Returns the currently active test-only invoker override, or null if none is installed. */
 export const getInvokeOverride = (): InvokeOverrideFn => _invokeOverride;
 
 // ─── Direct-fetch invoker ────────────────────────────────────────────────────
@@ -33,6 +36,7 @@ export const getInvokeOverride = (): InvokeOverrideFn => _invokeOverride;
 // supabase.functions.invoke(), surfacing as FunctionsFetchError with status:
 // undefined. Calling the function URL directly with fetch bypasses that
 // transport. We keep the SDK-style return shape so callers are unaffected.
+/** Invokes a Supabase Edge Function directly via fetch, bypassing the SDK transport that can drop POST bodies in Lovable preview. Returns the same SDK-style `{data, error}` shape. */
 export async function invokeViaFetch<T>(
   fnName: string,
   opts: { body: unknown; signal?: AbortSignal; headers?: Record<string, string> }
@@ -110,6 +114,7 @@ export async function invokeViaFetch<T>(
 }
 
 // ─── Request body helpers ────────────────────────────────────────────────────
+/** Infers and injects an `action` field into a proxy request body if none is set, defaulting to "select" for table queries and "rpc" for RPC calls. */
 export function normalizeProxyBody(body: Record<string, unknown>): Record<string, unknown> {
   const action = typeof body.action === 'string' ? body.action : undefined;
   const hasTable = typeof body.table === 'string' && body.table.length > 0;
@@ -119,6 +124,7 @@ export function normalizeProxyBody(body: Record<string, unknown>): Record<string
   return { ...body, action: 'select' };
 }
 
+/** Extracts telemetry metadata (operation type, target table/RPC, limit, offset, filters) from a proxy request body for clientTelemetry instrumentation. */
 export function deriveTelemetryMeta(body: Record<string, unknown>): {
   operation: QueryOperation;
   target: string;
@@ -155,6 +161,7 @@ export type NormalizedError = {
   status?: number;
 };
 
+/** Normalises an unknown error thrown by invokeViaFetch into a NormalizedError with name, message, code, and status fields. */
 export function normalizeInvokeError(err: unknown): NormalizedError {
   if (!err || typeof err !== 'object') {
     return { message: typeof err === 'string' ? err : String(err) };
@@ -169,6 +176,7 @@ export function normalizeInvokeError(err: unknown): NormalizedError {
   return { name: e.name, message: e.message, code: e.code, status: e.status ?? e.context?.status };
 }
 
+/** Returns true when the error indicates a persistent 502 config/auth rejection (e.g. invalid JWT_SECRET or self-hosted service_role rejection). These errors will not resolve on retry. */
 export function isPersistentConfigAuthError(err: unknown): boolean {
   const { status, message = '' } = normalizeInvokeError(err);
   return (
@@ -177,6 +185,7 @@ export function isPersistentConfigAuthError(err: unknown): boolean {
   );
 }
 
+/** Returns true when the error is a transient Edge Runtime or gateway failure (5xx, SUPABASE_EDGE_RUNTIME_ERROR) that is safe to retry. Persistent config/auth errors are excluded. */
 export function isTransientRuntimeError(err: unknown): boolean {
   if (isPersistentConfigAuthError(err)) return false;
   const { message = '', code = '', status } = normalizeInvokeError(err);
