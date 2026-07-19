@@ -46,6 +46,7 @@ export const DEFAULT_WEBHOOK_VIEW_PREFS: WebhookViewPrefs = {
   },
 };
 
+/** Reads webhook view preferences from localStorage, merging with defaults on partial or missing data. Returns defaults on parse error. */
 function loadPrefs(): WebhookViewPrefs {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -64,6 +65,7 @@ function loadPrefs(): WebhookViewPrefs {
   }
 }
 
+/** Persists the given webhook view preferences to localStorage, silently ignoring quota errors. */
 function savePrefs(prefs: WebhookViewPrefs): void {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(prefs));
@@ -72,6 +74,7 @@ function savePrefs(prefs: WebhookViewPrefs): void {
   }
 }
 
+/** Returns the number of filter fields that differ from their default values (statusFilter, reasonSearch, eventTypeFilter). */
 function computeActiveFilterCount(prefs: WebhookViewPrefs): number {
   let count = 0;
   if (prefs.statusFilter !== DEFAULT_WEBHOOK_VIEW_PREFS.statusFilter) count++;

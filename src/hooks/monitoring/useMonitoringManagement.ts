@@ -68,6 +68,7 @@ export interface UseMonitoringActionsResult {
 const log = getLogger('useMonitoringManagement');
 const HEALTHY_STATUSES = ['connected', 'healthy'];
 
+/** Computes overall uptime statistics for the last 24 hours from the provided health logs relative to `now`. */
 function computeUptime(logs: HealthLog[], now: Date): UptimeInfo {
   const dayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
   const recent = logs.filter((l) => new Date(l.checked_at) >= dayAgo);
@@ -81,6 +82,7 @@ function computeUptime(logs: HealthLog[], now: Date): UptimeInfo {
   };
 }
 
+/** Groups health logs by instance and computes per-instance uptime percentage, check counts, average latency, and last error for the 24-hour window ending at `now`. */
 function computeInstanceUptimes(logs: HealthLog[], now: Date): InstanceUptime[] {
   const dayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
   const recent = logs.filter((l) => new Date(l.checked_at) >= dayAgo);
@@ -109,6 +111,7 @@ function computeInstanceUptimes(logs: HealthLog[], now: Date): InstanceUptime[] 
   });
 }
 
+/** Builds 8-hour sparkline arrays (messages-per-hour, avg-latency-per-hour, uptime-pct-per-hour) for the 8-hour window ending at `now`. */
 function computeSparklines(
   logs: HealthLog[],
   messages: { sender: string; created_at: string }[],

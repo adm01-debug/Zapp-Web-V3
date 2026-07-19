@@ -23,11 +23,16 @@ const STATUS_RANK: Record<string, number> = {
   played: 5,
 };
 
+/** Returns the numeric rank of a delivery status, or -1 when the status is absent or unrecognised. */
 function rankOf(status: string | null | undefined): number {
   if (!status) return -1;
   return STATUS_RANK[status] ?? -1;
 }
 
+/**
+ * Returns the higher-ranked status between the optimistic and canonical messages, along with the
+ * corresponding `status_updated_at` timestamp. Reconciliation never regresses delivery state.
+ */
 function promoteStatus(
   optimistic: RealtimeMessage,
   canonical: RealtimeMessage
@@ -54,6 +59,7 @@ export interface ReconcileResult {
   remap: Map<string, string>;
 }
 
+/** Resolves the effective audio sub-type of a message: `audio_meme`, `audio_ptt`, or `audio_recorded`. Non-audio messages return their original `message_type` unchanged. */
 function resolveAudioType(m: RealtimeMessage): string {
   if (m.message_type !== 'audio') return m.message_type;
   const mExt = m as Record<string, unknown>;
