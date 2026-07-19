@@ -12,6 +12,7 @@ interface MessagePreviewProps {
   sections: InteractiveListSection[];
 }
 
+/** Message Preview component for the interactive builder section. */
 export function MessagePreview({ body, headerText, footer, messageType, buttons, listButtonText, sections }: MessagePreviewProps) {
   if (!body && buttons.length === 0 && sections.length === 0) return null;
 

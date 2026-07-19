@@ -45,6 +45,7 @@ const TAB_ITEMS = [
   { value: 'historico', icon: History, label: 'Histórico' },
 ] as const;
 
+/** Analysis Tabs component for the ai tools section. */
 export function AnalysisTabs({
   analysis, activeTab, setActiveTab, sentimentScore, currentSentiment,
   analyses, historyLoading, isTtsPlaying, isTtsLoading,

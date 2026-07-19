@@ -41,6 +41,7 @@ interface GlobalSearchProps {
   onSelectResult: (result: SearchResult) => void;
 }
 
+/** Global Search component. */
 export function GlobalSearch({ open, onOpenChange, onSelectResult }: GlobalSearchProps) {
   const {
     search,

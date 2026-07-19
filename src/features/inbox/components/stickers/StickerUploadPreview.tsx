@@ -12,6 +12,7 @@ interface UploadPreviewProps {
   onCancel: () => void;
 }
 
+/** Sticker Upload Preview component for the stickers section. */
 export function StickerUploadPreview({ pending, onConfirm, onCancel }: UploadPreviewProps) {
   const [category, setCategory] = useState(pending.selectedCategory);
   const [name, setName] = useState(pending.name);

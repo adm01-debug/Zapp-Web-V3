@@ -25,6 +25,7 @@ interface TransferDialogProps {
   onTransfer: (type: 'agent' | 'queue' | 'connection', targetId: string, message?: string) => void;
 }
 
+/** Transfer Dialog component. */
 export function TransferDialog({ open, onOpenChange, onTransfer }: TransferDialogProps) {
   const [transferType, setTransferType] = useState<'agent' | 'queue' | 'connection'>('agent');
   const [selectedTarget, setSelectedTarget] = useState<string>('');

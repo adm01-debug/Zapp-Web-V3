@@ -101,6 +101,7 @@ function UploadPreview({ pending, onConfirm, onCancel, uploading, progress, erro
 }
 
 
+/** Custom Emoji Picker component. */
 export function CustomEmojiPicker({ onSendEmoji, disabled }: CustomEmojiPickerProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');

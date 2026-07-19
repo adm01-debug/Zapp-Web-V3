@@ -68,6 +68,7 @@ interface ContactAccordionSectionsProps {
   onRetrySLA?: () => void;
 }
 
+/** Contact Accordion Sections component for the contact details section. */
 export function ContactAccordionSections({
   contact,
   conversation,

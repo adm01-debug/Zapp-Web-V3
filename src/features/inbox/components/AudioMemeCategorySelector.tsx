@@ -10,6 +10,7 @@ interface AudioMemeCategorySelectorProps {
   size?: 'sm' | 'xs';
 }
 
+/** Audio Meme Category Selector component. */
 export function AudioMemeCategorySelector({
   value,
   onChange,

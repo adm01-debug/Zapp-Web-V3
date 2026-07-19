@@ -41,6 +41,7 @@ interface MessageBubbleProps {
   contactAvatar?: string;
 }
 
+/** Message Bubble component. */
 export const MessageBubble = memo(({
   message, onReply, onForward, onCopy, onInteractiveButtonClick,
   ttsLoading, ttsPlaying, ttsMessageId, onSpeak, onStopSpeak, scrollToMessage,

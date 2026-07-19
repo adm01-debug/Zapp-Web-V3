@@ -9,6 +9,7 @@ interface TranscriptionStatusBadgeProps {
   onRetry: () => void;
 }
 
+/** Transcription Status Badge component. */
 export function TranscriptionStatusBadge({
   transcriptionStatus,
   isSent,

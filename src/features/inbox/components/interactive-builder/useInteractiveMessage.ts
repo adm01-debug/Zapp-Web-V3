@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { InteractiveMessage, InteractiveButton, InteractiveListSection } from '@/types/chat';
 import { toast } from '@/hooks/use-toast';
 
+/** use Interactive Message component for the interactive builder section. */
 export function useInteractiveMessage() {
   const [messageType, setMessageType] = useState<'buttons' | 'list'>('buttons');
   const [body, setBody] = useState('');

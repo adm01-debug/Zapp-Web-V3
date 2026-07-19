@@ -29,6 +29,7 @@ const LEAD_ORIGINS = [
   { value: 'other', label: 'Outro' },
 ];
 
+/** Lead Risk Score Panel component. */
 export function LeadRiskScorePanel({ contactId }: LeadRiskScorePanelProps) {
   const [leadScore, setLeadScore] = useState(0);
   const [riskScore, setRiskScore] = useState(0);

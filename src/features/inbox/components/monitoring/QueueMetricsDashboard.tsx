@@ -37,6 +37,7 @@ interface StsMetricRow {
 
 const log = getLogger('QueueMetricsDashboard');
 
+/** Queue Metrics Dashboard component for the monitoring section. */
 export const QueueMetricsDashboard: React.FC<QueueMetricsDashboardProps> = React.memo(
   ({ metrics }) => {
     const [stsMetrics, setStsMetrics] = useState<StsMetricRow[]>([]);

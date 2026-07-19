@@ -20,6 +20,7 @@ interface ChatQuickRepliesPopoverProps {
   selectedIndex?: number;
 }
 
+/** Chat Quick Replies Popover component for the chat section. */
 export function ChatQuickRepliesPopover({ show, replies, onSelect, onClose, selectedIndex = 0 }: ChatQuickRepliesPopoverProps) {
   return (
     <AnimatePresence>

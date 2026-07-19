@@ -111,6 +111,7 @@ const VirtualizedItem = memo(
   }
 );
 
+/** Virtualized Realtime List component. */
 export function VirtualizedRealtimeList({
   conversations,
   selectedContactId,

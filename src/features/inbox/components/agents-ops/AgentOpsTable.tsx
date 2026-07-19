@@ -34,6 +34,7 @@ function initials(name: string): string {
     .join('');
 }
 
+/** Agent Ops Table component for the agents ops section. */
 export function AgentOpsTable({ agents, pendingCounts, recentSendsByAgent }: Props) {
   return (
     <div className="rounded-xl border border-border/60 bg-card overflow-hidden">

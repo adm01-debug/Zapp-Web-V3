@@ -44,6 +44,7 @@ function MiniSparkline({ data, color }: { data: number[]; color: string }) {
   );
 }
 
+/** Contact Stats Section component for the contact details section. */
 export function ContactStatsSection({ contactId: _contactId }: ContactStatsSectionProps) {
   const result = useContactStats();
   const { isLoading } = result;

@@ -25,6 +25,7 @@ function isRetryBadgeMessage(
   return !!message && !!message.id && !!message.sender && !!message.status;
 }
 
+/** Conversation Item Compact component for the conversation list section. */
 export const ConversationItemCompact = memo(function ConversationItemCompact({
   conversation,
   isSelected,

@@ -16,6 +16,7 @@ interface LocationMessageDisplayProps {
   isSent: boolean;
 }
 
+/** Location Message Display component. */
 export function LocationMessageDisplay({ location, isSent }: LocationMessageDisplayProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);

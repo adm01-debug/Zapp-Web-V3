@@ -29,6 +29,7 @@ interface NextBestActionProps {
   contactName: string;
 }
 
+/** Next Best Action Engine component. */
 export function NextBestActionEngine({ contactId, contactName }: NextBestActionProps) {
   const [actions, setActions] = useState<NextAction[]>([]);
   const [loading, setLoading] = useState(true);

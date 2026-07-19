@@ -14,6 +14,7 @@ interface TextToSpeechButtonProps {
   className?: string;
 }
 
+/** Text To Speech Button component. */
 export function TextToSpeechButton({
   messageId,
   text,

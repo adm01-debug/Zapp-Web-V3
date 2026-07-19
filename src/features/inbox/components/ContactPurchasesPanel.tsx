@@ -47,6 +47,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
   cancelled: { label: 'Cancelado', color: 'bg-destructive/10 text-destructive' },
 };
 
+/** Contact Purchases Panel component. */
 export function ContactPurchasesPanel({ contactId, profileId }: ContactPurchasesPanelProps) {
   const [purchases, setPurchases] = useState<Purchase[]>([]);
   const [loading, setLoading] = useState(true);

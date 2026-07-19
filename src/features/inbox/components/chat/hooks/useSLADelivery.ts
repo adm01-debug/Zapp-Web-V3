@@ -7,6 +7,7 @@ interface UseSLADeliveryProps {
   messages: Message[];
 }
 
+/** Hook: use SLADelivery. */
 export function useSLADelivery({ contactId, messages }: UseSLADeliveryProps) {
   useEffect(() => {
     if (!contactId || !messages.length) return;

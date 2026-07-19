@@ -23,6 +23,7 @@ interface SwipeableListItemProps {
   disabled?: boolean;
 }
 
+/** Swipeable List Item component. */
 export function SwipeableListItem({
   children,
   leftAction = DEFAULT_LEFT_ACTION,

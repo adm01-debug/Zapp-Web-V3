@@ -30,6 +30,7 @@ interface AISuggestionsProps {
   onSelectSuggestion: (text: string) => void;
 }
 
+/** AISuggestions component. */
 export function AISuggestions({ messages, contactName, contactId, onSelectSuggestion }: AISuggestionsProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);

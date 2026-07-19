@@ -15,6 +15,7 @@ interface NewMessageIndicatorProps {
   onDismiss: () => void;
 }
 
+/** New Message Indicator component. */
 export function NewMessageIndicator({
   show,
   contactId,

@@ -13,6 +13,7 @@ export {
   type ConversationItemProps,
 } from './conversationItemShared';
 
+/** Conversation Item component for the conversation list section. */
 export const ConversationItem = memo(function ConversationItem(props: SharedProps) {
   const { density } = useDensity();
   const isCompactMode = density === 'compact' || density === 'dense' || props.compact;

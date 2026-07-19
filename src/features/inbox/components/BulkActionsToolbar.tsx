@@ -17,6 +17,7 @@ interface BulkActionsToolbarProps {
   isLoading?: boolean;
 }
 
+/** Bulk Actions Toolbar component. */
 export function BulkActionsToolbar({
   selectedCount,
   onMarkAsRead,

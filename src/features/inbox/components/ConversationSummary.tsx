@@ -75,6 +75,7 @@ const sentimentConfig = {
   negativo: { icon: ThumbsDown, className: 'text-destructive' },
 };
 
+/** Conversation Summary component. */
 export function ConversationSummary({
   messages,
   contactName,

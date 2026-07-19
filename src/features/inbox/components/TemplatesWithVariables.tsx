@@ -47,6 +47,7 @@ interface TemplateWithVariablesProps {
   contactData?: { name?: string; company?: string; job_title?: string };
 }
 
+/** Templates With Variables component. */
 export function TemplatesWithVariables({ onUseTemplate, contactData }: TemplateWithVariablesProps) {
   const { templates, fetchTemplates, addTemplate, updateTemplate } = useMessageTemplates();
   const [search, setSearch] = useState('');

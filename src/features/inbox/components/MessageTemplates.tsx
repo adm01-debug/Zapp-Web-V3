@@ -15,6 +15,7 @@ interface MessageTemplatesProps {
 
 const categories = ['general', 'saudacao', 'despedida', 'suporte', 'vendas'];
 
+/** Message Templates component. */
 export function MessageTemplates({ onSelectTemplate }: MessageTemplatesProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState('');

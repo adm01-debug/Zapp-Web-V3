@@ -50,6 +50,7 @@ interface ChatSearchFiltersProps {
   setCustomDateTo: (d: Date | null) => void;
 }
 
+/** Chat Search Filters component for the chat section. */
 export function ChatSearchFilters({
   filter, setFilter, filterCounts, debouncedQuery, hasDateFilter,
   datePreset, setDatePreset, customDateFrom, setCustomDateFrom, customDateTo, setCustomDateTo,

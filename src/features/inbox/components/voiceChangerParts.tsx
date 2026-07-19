@@ -5,6 +5,7 @@ import { Loader2, Play, Square, Check, Volume2, ShieldAlert, Wand2 } from 'lucid
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { type ElevenLabsVoice } from './VoiceSelector';
 
+/** Voice Changer Header component. */
 export function VoiceChangerHeader({
   isConverting,
   conversionProgress,
@@ -26,6 +27,7 @@ export function VoiceChangerHeader({
   );
 }
 
+/** Clone Warning Panel component. */
 export function CloneWarningPanel({
   show,
   onCancel,
@@ -77,6 +79,7 @@ export function CloneWarningPanel({
   );
 }
 
+/** Voice List Item component. */
 export function VoiceListItem({
   voice,
   isSelected,
@@ -141,6 +144,7 @@ export function VoiceListItem({
   );
 }
 
+/** Voice Changer Footer component. */
 export function VoiceChangerFooter({
   show,
   selectedVoiceName,

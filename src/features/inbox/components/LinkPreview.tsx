@@ -20,6 +20,7 @@ interface LinkPreviewProps {
   onRemove?: () => void;
 }
 
+/** Link Preview component. */
 export function LinkPreview({ url, className, compact = false, showRemove, onRemove }: LinkPreviewProps) {
   const [metadata, setMetadata] = useState<LinkMetadata | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -109,6 +110,7 @@ export function LinkPreview({ url, className, compact = false, showRemove, onRem
 
 interface TextWithLinksProps { text: string; className?: string; showPreviews?: boolean; maxPreviews?: number; }
 
+/** Text With Links component. */
 export function TextWithLinks({ text, className, showPreviews = true, maxPreviews = 3 }: TextWithLinksProps) {
   const links = useMemo(() => extractLinks(text), [text]);
   const displayLinks = links.slice(0, maxPreviews);

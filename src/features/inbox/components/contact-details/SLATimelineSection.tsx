@@ -43,6 +43,7 @@ interface MilestoneEntry {
   render: (index: number) => JSX.Element;
 }
 
+/** SLATimeline Section component for the contact details section. */
 export function SLATimelineSection({ conversation }: SLATimelineSectionProps) {
   const { contact, queue, assignedTo } = conversation;
   const remoteJid = useMemo(

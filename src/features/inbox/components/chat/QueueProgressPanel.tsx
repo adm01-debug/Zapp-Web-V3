@@ -16,6 +16,7 @@ function getQueueErrorMessage(error: unknown): string {
   return 'Erro desconhecido no envio.';
 }
 
+/** Queue Progress Panel component for the chat section. */
 export function QueueProgressPanel({
   queue,
   isSending,

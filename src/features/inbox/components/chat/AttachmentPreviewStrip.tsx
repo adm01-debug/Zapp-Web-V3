@@ -2,6 +2,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { X, Image as ImageIcon, FileText, FileVideo, FileAudio } from 'lucide-react';
 import { formatFileSize } from '@/utils/whatsappFileTypes';
 
+/** Attachment component for the chat section. */
 export interface Attachment {
   id: string;
   file: File;
@@ -14,6 +15,7 @@ interface AttachmentPreviewStripProps {
   onRemove: (id: string) => void;
 }
 
+/** Attachment Preview Strip component for the chat section. */
 export function AttachmentPreviewStrip({ attachments, onRemove }: AttachmentPreviewStripProps) {
   return (
     <AnimatePresence>

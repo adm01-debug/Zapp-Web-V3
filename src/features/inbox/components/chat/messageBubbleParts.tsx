@@ -21,6 +21,7 @@ const LocationMessageDisplay = lazy(() =>
   }))
 );
 
+/** Media Refresh Key component for the chat section. */
 export interface MediaRefreshKey {
   instanceName: string;
   remoteJid: string;
@@ -43,6 +44,7 @@ interface MessageBubbleBodyProps {
   onAudioVoiceChange?: (messageId: string, newBlob: Blob) => void;
 }
 
+/** Message Bubble Body component for the chat section. */
 export function MessageBubbleBody({
   message,
   isSent,
@@ -210,6 +212,7 @@ export function MessageBubbleBody({
   );
 }
 
+/** Whisper Badge component for the chat section. */
 export function WhisperBadge() {
   return (
     <div className="mb-1 ml-1 flex w-fit items-center gap-1.5 rounded-full border border-warning/20 bg-warning/10 px-2 py-0.5 shadow-xs dark:bg-warning/20">

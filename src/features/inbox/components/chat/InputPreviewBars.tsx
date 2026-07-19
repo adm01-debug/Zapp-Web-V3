@@ -11,6 +11,7 @@ interface InputPreviewBarsProps {
   onCancelEdit?: () => void;
 }
 
+/** Input Preview Bars component for the chat section. */
 export function InputPreviewBars({
   replyToMessage,
   editingMessage,

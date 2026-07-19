@@ -58,6 +58,7 @@ interface ResolvedMedia {
   mimetype: string | null;
 }
 
+/** Story Viewer component for the contact details section. */
 export function StoryViewer({ messages, initialIndex, open, onClose, pushName }: StoryViewerProps) {
   const { getMediaBase64 } = useEvolutionApi();
   const [index, setIndex] = useState(initialIndex);

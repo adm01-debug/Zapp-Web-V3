@@ -20,6 +20,7 @@ function loadVolume(): number {
   }
 }
 
+/** use Audio Recorder UI component. */
 export function useAudioRecorderUI(
   audioRef: RefObject<HTMLAudioElement>,
   onSend?: (audioBlob: Blob) => void,

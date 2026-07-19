@@ -40,6 +40,7 @@ function toConversationItemData(conversation: Conversation): ConversationItemDat
   };
 }
 
+/** Conversation List component. */
 export function ConversationList({
   conversations,
   selectedId,

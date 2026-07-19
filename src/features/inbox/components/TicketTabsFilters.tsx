@@ -34,6 +34,7 @@ interface TicketTabsFiltersProps {
   departmentAgentIds: string[];
 }
 
+/** Ticket Tabs Filters component. */
 export function TicketTabsFilters({
   mainTab,
   subTab,

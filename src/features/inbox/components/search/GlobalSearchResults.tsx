@@ -96,6 +96,7 @@ interface GlobalSearchResultsProps {
   onSelect: (result: SearchResult) => void;
 }
 
+/** Global Search Results component for the search section. */
 export function GlobalSearchResults({
   results,
   isLoading,

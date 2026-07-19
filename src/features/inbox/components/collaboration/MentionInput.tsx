@@ -17,6 +17,7 @@ interface MentionInputProps {
   disabled?: boolean;
 }
 
+/** Mention Input component for the collaboration section. */
 export function MentionInput({ value, onChange, onSubmit, placeholder, disabled }: MentionInputProps) {
   const [showMentions, setShowMentions] = useState(false);
   const [mentionFilter, setMentionFilter] = useState('');

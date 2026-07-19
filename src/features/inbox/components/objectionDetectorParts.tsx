@@ -16,6 +16,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 
+/** Objection component. */
 export interface Objection {
   id: string;
   objection: string;

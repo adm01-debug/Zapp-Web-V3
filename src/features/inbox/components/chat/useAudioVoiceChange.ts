@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { dbFrom } from '@/integrations/datasource/db';
 
+/** use Audio Voice Change component for the chat section. */
 export function useAudioVoiceChange() {
   const handleAudioVoiceChange = useCallback(async (messageId: string, newBlob: Blob) => {
     try {

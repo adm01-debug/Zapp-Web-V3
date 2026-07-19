@@ -29,6 +29,7 @@ if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
   });
 }
 
+/** Chat Panel component. */
 export function ChatPanel(props: ChatPanelProps) {
   const {
     conversation,

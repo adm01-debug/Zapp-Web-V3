@@ -10,6 +10,7 @@ interface CategorySelectorProps {
   size?: 'sm' | 'xs';
 }
 
+/** Category Selector component for the stickers section. */
 export function CategorySelector({ value, onChange, size = 'sm' }: CategorySelectorProps) {
   const [open, setOpen] = useState(false);
   const info = CATEGORY_LABELS[value] || { emoji: '📦', label: value };

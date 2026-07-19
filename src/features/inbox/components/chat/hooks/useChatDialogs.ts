@@ -1,10 +1,12 @@
 import { useReducer, useCallback } from 'react';
 
+/** Hook: Dialog Key. */
 export type DialogKey = 'quickReplies' | 'slashCommands' | 'transferDialog' | 'scheduleDialog' | 
   'callDialog' | 'globalSearch' | 'chatSearch' | 'interactiveBuilder' | 'forwardDialog' | 
   'locationPicker' | 'aiAssistant' | 'catalogDirect' | 'whisper' | 'templatesWithVars' | 
   'realtimeTranscription' | 'closeDialog' | 'visualValidation';
 
+/** Hook: Dialog State. */
 export type DialogState = Record<DialogKey, boolean>;
 
 type DialogAction = 
@@ -36,6 +38,7 @@ function dialogReducer(state: DialogState, action: DialogAction): DialogState {
   }
 }
 
+/** Hook: use Chat Dialogs. */
 export function useChatDialogs() {
   const [state, dispatch] = useReducer(dialogReducer, initialDialogState);
 

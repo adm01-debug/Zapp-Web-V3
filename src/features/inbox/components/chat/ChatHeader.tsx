@@ -58,6 +58,7 @@ interface ChatHeaderProps {
   onOpenValidation?: () => void;
 }
 
+/** Chat Header component for the chat section. */
 export const ChatHeader = memo(function ChatHeader({
   conversation,
   messages: _messages,

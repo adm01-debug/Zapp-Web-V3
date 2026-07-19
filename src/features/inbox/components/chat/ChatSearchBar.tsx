@@ -18,6 +18,7 @@ interface ChatSearchBarProps {
   onSearchQueryChange?: (query: string) => void;
 }
 
+/** Chat Search Bar component for the chat section. */
 export function ChatSearchBar({ messages, isOpen, onClose, onNavigateToMessage, onHighlightChange, onSearchQueryChange }: ChatSearchBarProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const previewListRef = useRef<HTMLDivElement>(null);

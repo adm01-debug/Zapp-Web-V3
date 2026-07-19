@@ -73,6 +73,7 @@ function formatMessageTime(date: Date): string {
   return format(date, 'HH:mm');
 }
 
+/** Chat Message Bubble component for the chat section. */
 export function ChatMessageBubble({
   message,
   reactions: _reactions,

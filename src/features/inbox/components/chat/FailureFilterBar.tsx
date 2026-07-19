@@ -15,6 +15,7 @@ interface FailureFilterBarProps {
   setFailuresOnly: (value: boolean) => void;
 }
 
+/** Failure Filter Bar component for the chat section. */
 export function FailureFilterBar({
   failuresOnly,
   failureCategory,

@@ -12,6 +12,7 @@ interface MediaGalleryListViewProps {
   onPreview: (item: MediaItem) => void;
 }
 
+/** Media Gallery List View component for the media gallery section. */
 export function MediaGalleryListView({
   items,
   selectedItems,

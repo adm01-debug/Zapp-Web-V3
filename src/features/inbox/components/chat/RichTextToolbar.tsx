@@ -38,6 +38,7 @@ const FORMAT_MAP: Record<
   },
 };
 
+/** Rich Text Toolbar component for the chat section. */
 export function RichTextToolbar({
   inputRef,
   inputValue,
@@ -126,6 +127,7 @@ export function RichTextToolbar({
 }
 
 // Toolbar toggle button for use in input area
+/** Rich Text Toggle component for the chat section. */
 export function RichTextToggle({ active, onToggle }: { active: boolean; onToggle: () => void }) {
   return (
     <Tooltip>

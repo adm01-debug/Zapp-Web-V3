@@ -37,6 +37,7 @@ interface GlobalSearchFiltersProps {
   onClearFilters: () => void;
 }
 
+/** Global Search Filters component for the search section. */
 export function GlobalSearchFilters({
   show,
   activeTypes,

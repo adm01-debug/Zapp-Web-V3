@@ -14,6 +14,7 @@ interface AudioRecorderProps {
   onAudioReady?: (audioBlob: Blob) => void;
 }
 
+/** Audio Recorder component. */
 export function AudioRecorder({ onSend, onCancel, onAudioReady }: AudioRecorderProps) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
 

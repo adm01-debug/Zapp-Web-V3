@@ -43,6 +43,7 @@ interface VoiceChangerPickerProps {
   disabled?: boolean;
 }
 
+/** Voice Changer Picker component. */
 export function VoiceChangerPicker({ onSendAudio, disabled }: VoiceChangerPickerProps) {
   const [open, setOpen] = useState(false);
   const [isRecording, setIsRecording] = useState(false);

@@ -28,6 +28,7 @@ function buildFileMessageData(result: unknown, mediaUrl: string, messageType?: s
   };
 }
 
+/** use File Upload Logic component. */
 export function useFileUploadLogic(opts: {
   instanceName?: string;
   recipientNumber?: string;

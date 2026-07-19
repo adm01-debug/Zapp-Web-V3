@@ -15,6 +15,7 @@ const statusVisual = (status: string) => {
   return { icon: WifiOff, tone: 'destructive' as const, label: 'Desconectado' };
 };
 
+/** Agents Connections Header component for the agents ops section. */
 export function AgentsConnectionsHeader({ connections }: Props) {
   if (!connections || connections.length === 0) return null;
 

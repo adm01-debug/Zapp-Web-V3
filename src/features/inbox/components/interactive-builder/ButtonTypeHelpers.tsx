@@ -1,6 +1,7 @@
 import { MessageSquare, ExternalLink, Phone } from 'lucide-react';
 import { InteractiveButton } from '@/types/chat';
 
+/** get Button Type Icon component for the interactive builder section. */
 export function getButtonTypeIcon(type: InteractiveButton['type']) {
   switch (type) {
     case 'reply':
@@ -12,6 +13,7 @@ export function getButtonTypeIcon(type: InteractiveButton['type']) {
   }
 }
 
+/** get Button Type Label component for the interactive builder section. */
 export function getButtonTypeLabel(type: InteractiveButton['type']) {
   switch (type) {
     case 'reply':

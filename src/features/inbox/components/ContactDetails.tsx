@@ -50,6 +50,7 @@ interface ContactDetailsProps {
   onClose: () => void;
 }
 
+/** Contact Details component. */
 export function ContactDetails({ conversation, onClose }: ContactDetailsProps) {
   const contact = conversation.contact;
   // Hook call before any conditionals

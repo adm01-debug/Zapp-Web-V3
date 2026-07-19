@@ -31,6 +31,7 @@ import { useInboxShortcuts } from '../../hooks/useInboxShortcuts';
 import { dbFrom } from '@/integrations/datasource/db';
 import { useUserRole } from '@/features/auth';
 
+/** Chat Panel Props component for the chat section. */
 export interface ChatPanelProps extends LoadOlderProps {
   conversation: Conversation;
   messages: Message[];
@@ -47,6 +48,7 @@ export interface ChatPanelProps extends LoadOlderProps {
   messageQueue?: MessageQueueController;
 }
 
+/** use Chat Panel component for the chat section. */
 export function useChatPanel({
   conversation,
   messages,

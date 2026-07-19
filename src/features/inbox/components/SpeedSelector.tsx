@@ -26,6 +26,7 @@ interface SpeedSelectorProps {
   className?: string;
 }
 
+/** Speed Selector component. */
 export function SpeedSelector({ speed, onSpeedChange, className }: SpeedSelectorProps) {
   const currentOption = SPEED_OPTIONS.find(o => o.value === speed) || SPEED_OPTIONS[2];
 

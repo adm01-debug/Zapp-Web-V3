@@ -11,6 +11,7 @@ interface AIResponseCardProps {
   isRegenerating?: boolean;
 }
 
+/** AIResponse Card component for the ai tools section. */
 export const AIResponseCard = memo(function AIResponseCard({
   response,
   onUse,

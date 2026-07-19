@@ -69,6 +69,7 @@ interface ChatPanelHeaderProps {
   onOpenValidation?: () => void;
 }
 
+/** Chat Panel Header component for the chat section. */
 export function ChatPanelHeader({
   conversation,
   isContactTyping,

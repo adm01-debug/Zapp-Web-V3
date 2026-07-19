@@ -1,3 +1,4 @@
+/** CATEGORY_LABELS component. */
 export const CATEGORY_LABELS: Record<string, { emoji: string; label: string }> = {
   risada: { emoji: '😂', label: 'Risada' },
   aplausos: { emoji: '👏', label: 'Aplausos' },
@@ -22,4 +23,5 @@ export const CATEGORY_LABELS: Record<string, { emoji: string; label: string }> =
   outros: { emoji: '📦', label: 'Outros' },
 };
 
+/** ALL_CATEGORIES component. */
 export const ALL_CATEGORIES = Object.keys(CATEGORY_LABELS);

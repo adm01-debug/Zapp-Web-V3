@@ -11,6 +11,7 @@ interface AutomationSuggestionsBarProps {
   onSendNow?: (text: string) => Promise<void> | void;
 }
 
+/** Automation Suggestions Bar component for the chat section. */
 export function AutomationSuggestionsBar({
   remoteJid,
   onUseSuggestion,

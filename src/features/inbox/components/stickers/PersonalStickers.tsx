@@ -14,6 +14,7 @@ import type { StickerItem } from './StickerTypes';
 
 interface PersonalStickersProps { onSend?: (stickerUrl: string) => void; }
 
+/** Personal Stickers component for the stickers section. */
 export function PersonalStickers({ onSend }: PersonalStickersProps) {
   const { profile, stickers, isLoading, uploading, fileInputRef, handleUpload, toggleFavorite, deleteSticker, incrementUseCount } = usePersonalStickers();
   const [search, setSearch] = useState('');

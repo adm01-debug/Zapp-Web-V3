@@ -10,6 +10,7 @@ interface GlobalSearchHistoryProps {
   onClear: () => void;
 }
 
+/** Global Search History component for the search section. */
 export function GlobalSearchHistory({
   show,
   history,

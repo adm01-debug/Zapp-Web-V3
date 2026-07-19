@@ -2,9 +2,12 @@ import { useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Message } from '@/types/chat';
 
+/** Hook: FAILURE_CATEGORIES. */
 export const FAILURE_CATEGORIES = ['failed', 'failed_auth', 'failed_retries'] as const;
+/** Hook: Failure Category. */
 export type FailureCategory = typeof FAILURE_CATEGORIES[number];
 
+/** Hook: use Chat Filters. */
 export function useChatFilters(messages: Message[]) {
   const [searchParams, setSearchParams] = useSearchParams();
   const failuresOnly = searchParams.get('failuresOnly') === '1';

@@ -16,6 +16,7 @@ import { Volume2, Check, Play, Square, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
+/** Eleven Labs Voice component. */
 export interface ElevenLabsVoice {
   id: string;
   name: string;
@@ -26,6 +27,7 @@ export interface ElevenLabsVoice {
 }
 
 // Top ElevenLabs voices with sample texts
+/** ELEVENLABS_VOICES component. */
 export const ELEVENLABS_VOICES: ElevenLabsVoice[] = [
   { id: 'grave', name: 'Grave', description: 'Voz grave', gender: 'male', accent: 'Português' },
   { id: 'Sarah', name: 'Sarah', description: 'Suave e natural', gender: 'female', accent: 'Americano' },
@@ -50,6 +52,7 @@ interface VoiceSelectorProps {
   className?: string;
 }
 
+/** Voice Selector component. */
 export function VoiceSelector({ selectedVoiceId, onVoiceChange, className }: VoiceSelectorProps) {
   const selectedVoice = ELEVENLABS_VOICES.find(v => v.id === selectedVoiceId) || ELEVENLABS_VOICES[0];
   const [previewingVoiceId, setPreviewingVoiceId] = useState<string | null>(null);

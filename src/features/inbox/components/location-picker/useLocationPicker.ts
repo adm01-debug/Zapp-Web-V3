@@ -14,6 +14,7 @@ interface SelectedLocation {
   address?: string;
 }
 
+/** use Location Picker component for the location picker section. */
 export function useLocationPicker(open: boolean, activeTab: 'map' | 'current') {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);

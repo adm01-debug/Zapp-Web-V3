@@ -28,6 +28,7 @@ interface RemindersPanelProps {
   profileId?: string | null;
 }
 
+/** Reminders Panel component. */
 export function RemindersPanel({ contactId, profileId }: RemindersPanelProps) {
   const [reminders, setReminders] = useState<Reminder[]>([]);
   const [newTitle, setNewTitle] = useState('');

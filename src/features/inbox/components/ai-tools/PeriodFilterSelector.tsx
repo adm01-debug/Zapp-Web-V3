@@ -9,8 +9,10 @@ import { cn } from '@/lib/utils';
 
 // ── Shared types & constants ──
 
+/** Analysis Period component for the ai tools section. */
 export type AnalysisPeriod = 'all' | 'last_interaction' | 'today' | '3d' | '7d' | '14d' | '30d' | '90d' | 'custom';
 
+/** Period Message component for the ai tools section. */
 export interface PeriodMessage {
   id: string;
   created_at: string;
@@ -49,6 +51,7 @@ function startOfDay(date: Date): Date {
   return fnsStartOfDay(date);
 }
 
+/** get Last Conversation Start component for the ai tools section. */
 export function getLastConversationStart<T extends PeriodMessage>(messages: T[]): Date | null {
   if (messages.length === 0) return null;
   const sorted = [...messages].sort(
@@ -64,6 +67,7 @@ export function getLastConversationStart<T extends PeriodMessage>(messages: T[])
   return sessionStart;
 }
 
+/** filter Messages By Period component for the ai tools section. */
 export function filterMessagesByPeriod<T extends PeriodMessage>(
   messages: T[],
   period: AnalysisPeriod,
@@ -102,6 +106,7 @@ export function filterMessagesByPeriod<T extends PeriodMessage>(
   return messages;
 }
 
+/** get Period Days component for the ai tools section. */
 export function getPeriodDays(period: AnalysisPeriod): number | null {
   const map: Record<string, number> = { today: 1, '3d': 3, '7d': 7, '14d': 14, '30d': 30, '90d': 90 };
   return map[period] ?? null;
@@ -109,6 +114,7 @@ export function getPeriodDays(period: AnalysisPeriod): number | null {
 
 // ── Hook for period filter state ──
 
+/** use Period Filter component for the ai tools section. */
 export function usePeriodFilter<T extends PeriodMessage>(messages: T[], defaultPeriod: AnalysisPeriod = '7d') {
   const [analysisPeriod, setAnalysisPeriod] = useState<AnalysisPeriod>(defaultPeriod);
   const [customDateFrom, setCustomDateFrom] = useState<Date | undefined>(undefined);
@@ -169,6 +175,7 @@ interface PeriodFilterSelectorProps {
   totalCount: number;
 }
 
+/** Period Filter Selector component for the ai tools section. */
 export function PeriodFilterSelector({
   period,
   onPeriodChange,

@@ -5,6 +5,7 @@ interface ChatDragOverlayProps {
   isDraggingOver: boolean;
 }
 
+/** Chat Drag Overlay component for the chat section. */
 export function ChatDragOverlay({ isDraggingOver }: ChatDragOverlayProps) {
   return (
     <AnimatePresence>

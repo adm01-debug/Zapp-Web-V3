@@ -14,6 +14,7 @@ interface MediaCardProps {
   onPreview: () => void;
 }
 
+/** Media Card component for the media gallery section. */
 export const MediaCard = memo(function MediaCard({ item, isSelected, onSelect, onPreview }: MediaCardProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);

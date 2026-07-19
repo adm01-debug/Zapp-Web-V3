@@ -23,6 +23,7 @@ interface QuickReplyCardListProps {
   onShowCreate: () => void;
 }
 
+/** Quick Reply Card List component for the quick replies section. */
 export function QuickReplyCardList({
   templates, groupedByCategory, isLoading, activeTab, searchQuery,
   isFavorite, onSelect, onToggleFavorite, onCopy, onEdit, onDelete, onShowCreate,

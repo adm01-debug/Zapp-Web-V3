@@ -24,6 +24,7 @@ const DEFAULT_ITEMS: ValidationItem[] = [
   { id: 'style-selected', category: 'style', label: 'Estado Selecionado', description: 'Fundo sutil e borda lateral no item ativo.', isApproved: false },
 ];
 
+/** Visual Validation Checklist component. */
 export function VisualValidationChecklist({ onClose }: { onClose: () => void }) {
   const audit = useThemeAudit();
   const [items, setItems] = useState<ValidationItem[]>(() => {
