@@ -239,4 +239,5 @@ export const ContactConsentManager: React.FC<ContactConsentManagerProps> = ({
   );
 };
 
+/** Default export. */
 export default ContactConsentManager;

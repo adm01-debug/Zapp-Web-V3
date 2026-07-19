@@ -40,12 +40,14 @@ export function classifySeverity(breach: WebhookAlertBreach, config: WebhookAler
   return 'medium';
 }
 
+/** load Alert History function. */
 export function loadAlertHistory(): AlertHistoryEntry[] {
   const raw = safeGetJSON<AlertHistoryEntry[] | null>(STORAGE_KEY, null);
   if (!Array.isArray(raw)) return [];
   return raw.filter((e) => e && typeof e.firedAt === 'number' && typeof e.instance === 'string');
 }
 
+/** append Alert History function. */
 export function appendAlertHistory(entries: AlertHistoryEntry[]): AlertHistoryEntry[] {
   if (entries.length === 0) return loadAlertHistory();
   const current = loadAlertHistory();
@@ -54,10 +56,12 @@ export function appendAlertHistory(entries: AlertHistoryEntry[]): AlertHistoryEn
   return merged;
 }
 
+/** clear Alert History function. */
 export function clearAlertHistory(): void {
   safeSetJSON(STORAGE_KEY, []);
 }
 
+/** build History Entry function. */
 export function buildHistoryEntry(
   breach: WebhookAlertBreach,
   config: WebhookAlertConfig,

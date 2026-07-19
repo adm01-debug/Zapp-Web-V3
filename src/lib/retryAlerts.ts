@@ -23,8 +23,10 @@ export interface InstanceMetrics {
   failureRatePct: number;
 }
 
+/** Breach Reason Kind type alias. */
 export type BreachReasonKind = 'p95' | 'failure_rate';
 
+/** Breach Reason interface definition. */
 export interface BreachReason {
   kind: BreachReasonKind;
   /** Texto pronto pra exibir (ex.: "p95=4 ≥ 3"). */
@@ -74,8 +76,11 @@ export function shouldFireRetryAlert(
   return true;
 }
 
+/** R E T R Y_ T H R E S H O L D S_ S T O R A G E_ K E Y constant. */
 export const RETRY_THRESHOLDS_STORAGE_KEY = 'zappweb:retry-alert-thresholds';
+/** R E T R Y_ P E R_ I N S T A N C E_ S T O R A G E_ K E Y constant. */
 export const RETRY_PER_INSTANCE_STORAGE_KEY = 'zappweb:retry-alert-thresholds:per-instance';
+/** R E T R Y_ D E D U P E_ M O D E_ S T O R A G E_ K E Y constant. */
 export const RETRY_DEDUPE_MODE_STORAGE_KEY = 'zappweb:retry-alert-dedupe-mode';
 
 /**
@@ -92,6 +97,7 @@ export function loadRetryAlertDedupeMode(): RetryAlertDedupeMode {
   return raw === 'instance' || raw === 'instance+kind' ? raw : DEFAULT_RETRY_DEDUPE_MODE;
 }
 
+/** save Retry Alert Dedupe Mode function. */
 export function saveRetryAlertDedupeMode(mode: RetryAlertDedupeMode): boolean {
   return safeSetJSON(RETRY_DEDUPE_MODE_STORAGE_KEY, mode);
 }
@@ -150,6 +156,7 @@ export function subscribeRetryAlertsStorage(
 }
 
 
+/** load Thresholds function. */
 export function loadThresholds(): RetryThresholds {
   const raw = safeGetJSON<Partial<RetryThresholds> | null>(STORAGE_KEY, null);
   if (!raw || typeof raw !== 'object') return { ...DEFAULT_THRESHOLDS };
@@ -160,6 +167,7 @@ export function loadThresholds(): RetryThresholds {
   };
 }
 
+/** save Thresholds function. */
 export function saveThresholds(t: RetryThresholds): boolean {
   return safeSetJSON(STORAGE_KEY, t);
 }
@@ -189,6 +197,7 @@ export function loadPerInstanceThresholds(): PerInstanceThresholds {
   return out;
 }
 
+/** save Per Instance Thresholds function. */
 export function savePerInstanceThresholds(map: PerInstanceThresholds): boolean {
   return safeSetJSON(PER_INSTANCE_STORAGE_KEY, map);
 }

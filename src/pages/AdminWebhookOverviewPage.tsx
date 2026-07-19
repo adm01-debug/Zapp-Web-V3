@@ -40,6 +40,7 @@ const RANGE_OPTIONS = [
   { value: '168', label: 'Últimos 7 dias' },
 ] as const;
 
+/** Default export. */
 export default function AdminWebhookOverviewPage() {
   const {
     hours,

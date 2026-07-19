@@ -20,6 +20,7 @@ const meta = {
   },
 } satisfies Meta<typeof Header>;
 
+/** Default export. */
 export default meta;
 type Story = StoryObj<typeof meta>;
 

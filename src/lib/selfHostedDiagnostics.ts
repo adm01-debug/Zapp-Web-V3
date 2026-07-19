@@ -19,8 +19,10 @@ const SELF_HOSTED_ANON_KEY =
 const MCP_URL = 'https://supabase-mcp.atomicabr.com.br/mcp';
 const PROBE_TIMEOUT_MS = 8000;
 
+/** Diagnostic Status type alias. */
 export type DiagnosticStatus = 'ok' | 'fail' | 'warn';
 
+/** Diagnostic Result interface definition. */
 export interface DiagnosticResult {
   step: string;
   status: DiagnosticStatus;
@@ -210,6 +212,7 @@ async function pingMcpToolsList(): Promise<DiagnosticResult> {
   );
 }
 
+/** run Self Hosted Diagnostics function. */
 export async function runSelfHostedDiagnostics(): Promise<DiagnosticResult[]> {
   const results = await Promise.all([
     pingAuth(),

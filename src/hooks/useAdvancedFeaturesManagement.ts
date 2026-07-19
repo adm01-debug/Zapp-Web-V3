@@ -378,6 +378,7 @@ import {
   FEEDBACK_DURATIONS,
 } from './feedback/feedbackTypes';
 
+/** Re-exported module members. */
 export type { FeedbackType, FeedbackOptions, WithFeedbackOptions, UndoableOptions };
 
 /** Hook: use Action Feedback Management. */

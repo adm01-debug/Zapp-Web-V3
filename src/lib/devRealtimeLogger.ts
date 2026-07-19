@@ -36,12 +36,14 @@ type AnyPayload = {
 // only stores the *last* event per consumer, plus the last 50 globally.
 // ---------------------------------------------------------------------------
 
+/** Fanout Subscription Record interface definition. */
 export interface FanoutSubscriptionRecord {
   hookName: string;
   bind: Bind;
   registeredAt: number;
 }
 
+/** Fanout Event Record interface definition. */
 export interface FanoutEventRecord {
   hookName: string;
   eventType: string;
@@ -68,18 +70,22 @@ export function subscribeFanoutBus(listener: Listener): () => void {
   return () => { listeners.delete(listener); };
 }
 
+/** get Fanout Subscriptions function. */
 export function getFanoutSubscriptions(): FanoutSubscriptionRecord[] {
   return Array.from(subscriptions.values());
 }
 
+/** get Fanout Last Events function. */
 export function getFanoutLastEvents(): Map<string, FanoutEventRecord> {
   return new Map(lastEventByHook);
 }
 
+/** get Fanout Recent Events function. */
 export function getFanoutRecentEvents(): FanoutEventRecord[] {
   return [...recentEvents];
 }
 
+/** clear Fanout History function. */
 export function clearFanoutHistory(): void {
   lastEventByHook.clear();
   recentEvents.length = 0;
@@ -138,6 +144,7 @@ export function logMessagesSubscribe(hookName: string, bind: Bind): void {
   );
 }
 
+/** wrap Messages Handler function. */
 export function wrapMessagesHandler<T>(
   hookName: string,
   handler: (payload: T) => void,

@@ -5,6 +5,7 @@ import { emailMappers } from '@/utils/emailMappers';
 import { EmailLabelInfo as EmailLabel } from '@/types/gmail';
 import { getLogger } from '@/lib/logger';
 
+/** Re-exported module members. */
 export type { EmailLabel };
 
 const log = getLogger('useEmailLabels');

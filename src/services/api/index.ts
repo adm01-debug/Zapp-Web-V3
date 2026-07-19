@@ -17,6 +17,7 @@ export {
   retryConfig,
 } from './queryFactory';
 
+/** Re-exported module members. */
 export {
   createCreateMutation,
   createUpdateMutation,
@@ -26,4 +27,5 @@ export {
   handleMutationError,
 } from './mutationFactory';
 
+/** Re-exported module members. */
 export type { SupabaseError } from './types';

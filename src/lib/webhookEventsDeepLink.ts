@@ -24,6 +24,7 @@ export function setPendingWebhookEventsFilters(filters: WebhookEventsDeepLinkFil
   }
 }
 
+/** consume Pending Webhook Events Filters function. */
 export function consumePendingWebhookEventsFilters(): WebhookEventsDeepLinkFilters | null {
   try {
     const raw = sessionStorage.getItem(STORAGE_KEY);

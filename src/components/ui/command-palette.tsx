@@ -394,4 +394,5 @@ export function useCommandPalette() {
 }
 
 // Re-export types for consumers
+/** Re-exported module members. */
 export type { CommandItem, CommandGroup, CommandCategory };

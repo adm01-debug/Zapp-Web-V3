@@ -1,5 +1,6 @@
 import './button.css';
 
+/** Button Props interface definition. */
 export interface ButtonProps {
   /** Is this the principal call to action on the page? */
   primary?: boolean;

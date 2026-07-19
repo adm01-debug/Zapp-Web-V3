@@ -33,6 +33,7 @@ export function escapeCsvCell(value: unknown): string {
 
 // ── CSV Builder ────────────────────────────────────────────────────────────
 
+/** Csv Column interface definition. */
 export interface CsvColumn<T = Record<string, unknown>> {
   key: keyof T | string;
   label: string;

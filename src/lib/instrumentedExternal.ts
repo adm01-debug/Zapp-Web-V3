@@ -21,6 +21,7 @@ interface TimedRpcResult<T> {
   correlationId: string;
 }
 
+/** timed Rpc function. */
 export async function timedRpc<T = unknown>(
   rpcName: string,
   params: Record<string, unknown> = {},

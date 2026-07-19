@@ -11,5 +11,7 @@ export function useCampaignABTesting(
   );
 }
 
+/** Re-exported module members. */
 export { useBusinessLogicCampaignsManagement };
+/** Re-exported module members. */
 export type { ABVariant, UseBusinessLogicCampaignsParams, UseBusinessLogicCampaignsResult };

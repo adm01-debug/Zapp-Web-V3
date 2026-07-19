@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
+/** Rate Limit Log interface definition. */
 export interface RateLimitLog {
   id: string;
   ip_address: string;
@@ -24,9 +25,12 @@ interface RateLimitStats {
   topIPs: { ip: string; count: number; blocked: boolean }[];
 }
 
+/** Rate Limit Sort Key type alias. */
 export type RateLimitSortKey = 'created_at' | 'ip_address' | 'endpoint' | 'request_count' | 'blocked';
+/** Rate Limit Sort Dir type alias. */
 export type RateLimitSortDir = 'asc' | 'desc';
 
+/** Rate Limit Logs Filters interface definition. */
 export interface RateLimitLogsFilters {
   ip?: string;
   endpoint?: string;
@@ -37,6 +41,7 @@ export interface RateLimitLogsFilters {
   sortDir: RateLimitSortDir;
 }
 
+/** D E F A U L T_ F I L T E R S constant. */
 export const DEFAULT_FILTERS: RateLimitLogsFilters = {
   ip: '',
   endpoint: '',

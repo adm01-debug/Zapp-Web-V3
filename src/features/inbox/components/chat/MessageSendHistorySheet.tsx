@@ -102,6 +102,7 @@ function fmtMs(ms: number | null | undefined): string {
   return `${(ms / 1000).toFixed(2)} s`;
 }
 
+/** Message Send History Sheet function. */
 export function MessageSendHistorySheet({ message, open, onOpenChange }: Props) {
   const { toast } = useToast();
   const { data, isLoading, isError, refetch } = useMessageSendHistory(message.id, open);

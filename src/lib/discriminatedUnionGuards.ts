@@ -317,6 +317,7 @@ export function match<
   return defaultPattern(value);
 }
 
+/** Default export. */
 export default {
   createDiscriminator,
   ok,

@@ -32,6 +32,7 @@ export interface ConnectionMetrics {
   lastCleanup: Date | null;
 }
 
+/** Connection Entry interface definition. */
 export interface ConnectionEntry {
   id: string;
   createdAt: number;
@@ -360,6 +361,7 @@ class ConnectionPoolManager {
 // Singleton instance
 let poolInstance: ConnectionPoolManager | null = null;
 
+/** initialize Connection Pool function. */
 export function initializeConnectionPool(
   options?: Parameters<typeof ConnectionPoolManager>[0]
 ): ConnectionPoolManager {
@@ -371,6 +373,7 @@ export function initializeConnectionPool(
   return poolInstance;
 }
 
+/** get Connection Pool function. */
 export function getConnectionPool(): ConnectionPoolManager {
   if (!poolInstance) {
     poolInstance = new ConnectionPoolManager();
@@ -378,6 +381,7 @@ export function getConnectionPool(): ConnectionPoolManager {
   return poolInstance;
 }
 
+/** shutdown Connection Pool function. */
 export function shutdownConnectionPool(): void {
   if (poolInstance) {
     poolInstance.shutdown();
@@ -395,4 +399,5 @@ if (typeof window !== 'undefined') {
   });
 }
 
+/** Default export. */
 export default pool;

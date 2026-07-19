@@ -151,4 +151,5 @@ const Install = () => {
   );
 };
 
+/** Default export. */
 export default Install;

@@ -15,6 +15,7 @@ export const useUserSettings = (userId?: string) => {
   });
 };
 
+/** use Workspace Settings constant. */
 export const useWorkspaceSettings = (workspaceId?: string) => {
   return useQuery({
     queryKey: queryKeys.settings.workspace(),

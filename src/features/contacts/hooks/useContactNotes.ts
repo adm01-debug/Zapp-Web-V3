@@ -8,12 +8,14 @@ import { getLogger } from '@/lib/logger';
 
 const log = getLogger('useContactNotes');
 
+/** Contact Note Author interface definition. */
 export interface ContactNoteAuthor {
   id: string;
   name: string | null;
   avatar_url: string | null;
 }
 
+/** Contact Note interface definition. */
 export interface ContactNote {
   id: string;
   contact_id: string;

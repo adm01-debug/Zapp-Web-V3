@@ -20,6 +20,7 @@ export interface Queue {
 
 const queuesBaseService = createService<Queue>('queues');
 
+/** queues Repository constant. */
 export const queuesRepository = {
   list: (filters?: Partial<Queue> & QueryParams) => queuesBaseService.list(filters),
 

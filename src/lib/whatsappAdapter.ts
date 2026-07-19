@@ -40,7 +40,9 @@ import {
   invalidateTransportCache,
 } from './whatsappAdapterTransport';
 
+/** Re-exported module members. */
 export type { WhatsAppMode, WhatsAppTransport, ResolvedTransport } from './whatsappAdapterTypes';
+/** Re-exported module members. */
 export type {
   SendTextParams,
   SendMediaParams,
@@ -54,6 +56,7 @@ export type {
   PresenceParams,
   MarkAsReadParams,
 } from './whatsappAdapterTypes';
+/** Re-exported module members. */
 export {
   getWhatsAppMode,
   resolveTransport,
@@ -86,6 +89,7 @@ async function invokeEvolution(action: string, body: Record<string, unknown>) {
 
 // ----- Envios ---------------------------------------------------------------
 
+/** send Text function. */
 export async function sendText(params: SendTextParams) {
   const { transport } = await resolveTransport();
   if (transport === 'cloud') {
@@ -104,6 +108,7 @@ export async function sendText(params: SendTextParams) {
   });
 }
 
+/** send Media function. */
 export async function sendMedia(params: SendMediaParams) {
   const { transport } = await resolveTransport();
   if (transport === 'cloud') {
@@ -126,6 +131,7 @@ export async function sendMedia(params: SendMediaParams) {
   });
 }
 
+/** send Audio function. */
 export async function sendAudio(params: SendAudioParams) {
   const { transport } = await resolveTransport();
   if (transport === 'cloud') {
@@ -143,6 +149,7 @@ export async function sendAudio(params: SendAudioParams) {
   });
 }
 
+/** send Sticker function. */
 export async function sendSticker(params: SendStickerParams) {
   const { transport } = await resolveTransport();
   if (transport === 'cloud') {
@@ -159,6 +166,7 @@ export async function sendSticker(params: SendStickerParams) {
   });
 }
 
+/** send Reaction function. */
 export async function sendReaction(params: SendReactionParams) {
   const { transport } = await resolveTransport();
   if (transport === 'cloud') {
@@ -180,6 +188,7 @@ export async function sendReaction(params: SendReactionParams) {
   });
 }
 
+/** send Location function. */
 export async function sendLocation(params: SendLocationParams) {
   const { transport } = await resolveTransport();
   if (transport === 'cloud') {
@@ -202,6 +211,7 @@ export async function sendLocation(params: SendLocationParams) {
   });
 }
 
+/** send Contact function. */
 export async function sendContact(params: SendContactParams) {
   const { transport } = await resolveTransport();
   if (transport === 'cloud') {
@@ -218,6 +228,7 @@ export async function sendContact(params: SendContactParams) {
   });
 }
 
+/** send Template function. */
 export async function sendTemplate(params: SendTemplateParams) {
   const { transport, degraded, reason } = await resolveTransport();
   if (transport !== 'cloud') {
@@ -240,6 +251,7 @@ export async function sendTemplate(params: SendTemplateParams) {
 
 // ----- Sinais (presença / leitura) ------------------------------------------
 
+/** send Presence function. */
 export async function sendPresence(params: PresenceParams) {
   const { transport } = await resolveTransport();
   if (transport === 'cloud') {
@@ -252,6 +264,7 @@ export async function sendPresence(params: PresenceParams) {
   });
 }
 
+/** mark As Read function. */
 export async function markAsRead(params: MarkAsReadParams) {
   const { transport } = await resolveTransport();
   if (transport === 'cloud') {

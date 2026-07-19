@@ -20,6 +20,7 @@ interface RetrySchedulePreviewProps {
 
 const GLOBAL_VALUE = '__global__';
 
+/** Retry Schedule Preview function. */
 export function RetrySchedulePreview({ instances }: RetrySchedulePreviewProps) {
   const [selected, setSelected] = useState<string>(GLOBAL_VALUE);
   const [config, setConfig] = useState<RetryConfig>(DEFAULT_RETRY_CONFIG);

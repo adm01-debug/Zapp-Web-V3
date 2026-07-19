@@ -28,6 +28,7 @@ export interface ExtCompany {
   updated_at: string;
 }
 
+/** Ext Contact interface definition. */
 export interface ExtContact {
   id: string;
   first_name: string | null;
@@ -53,6 +54,7 @@ export interface ExtContact {
   updated_at: string;
 }
 
+/** Ext Customer interface definition. */
 export interface ExtCustomer {
   id: string;
   company_id: string;
@@ -91,6 +93,7 @@ export interface ExtCustomer {
   updated_at: string;
 }
 
+/** Ext Interaction interface definition. */
 export interface ExtInteraction {
   id: string;
   contact_id: string | null;
@@ -107,6 +110,7 @@ export interface ExtInteraction {
 
 // ─── Contact Details ──────────────────────────────────────────
 
+/** Ext Contact Phone interface definition. */
 export interface ExtContactPhone {
   id: string;
   contact_id: string;
@@ -125,6 +129,7 @@ export interface ExtContactPhone {
   updated_at: string;
 }
 
+/** Ext Contact Email interface definition. */
 export interface ExtContactEmail {
   id: string;
   contact_id: string;
@@ -140,6 +145,7 @@ export interface ExtContactEmail {
   updated_at: string;
 }
 
+/** Ext Contact Social Media interface definition. */
 export interface ExtContactSocialMedia {
   id: string;
   contact_id: string;
@@ -158,6 +164,7 @@ export interface ExtContactSocialMedia {
   updated_at: string;
 }
 
+/** Ext Contact Address interface definition. */
 export interface ExtContactAddress {
   id: string;
   contact_id: string;
@@ -183,6 +190,7 @@ export interface ExtContactAddress {
 
 // ─── Company Details ──────────────────────────────────────────
 
+/** Ext Company Phone interface definition. */
 export interface ExtCompanyPhone {
   id: string;
   company_id: string;
@@ -195,6 +203,7 @@ export interface ExtCompanyPhone {
   created_at: string;
 }
 
+/** Ext Company Email interface definition. */
 export interface ExtCompanyEmail {
   id: string;
   company_id: string;
@@ -205,6 +214,7 @@ export interface ExtCompanyEmail {
   created_at: string;
 }
 
+/** Ext Company Social Media interface definition. */
 export interface ExtCompanySocialMedia {
   id: string;
   company_id: string;
@@ -221,6 +231,7 @@ export interface ExtCompanySocialMedia {
   updated_at: string;
 }
 
+/** Ext Company Address interface definition. */
 export interface ExtCompanyAddress {
   id: string;
   company_id: string;
@@ -246,6 +257,7 @@ export interface ExtCompanyAddress {
   updated_at: string;
 }
 
+/** Ext Company R F M Score interface definition. */
 export interface ExtCompanyRFMScore {
   id: string;
   user_id: string;
@@ -269,6 +281,7 @@ export interface ExtCompanyRFMScore {
 
 // ─── Sales & Pipeline ─────────────────────────────────────────
 
+/** Ext Salesperson interface definition. */
 export interface ExtSalesperson {
   id: string;
   name: string;
@@ -282,6 +295,7 @@ export interface ExtSalesperson {
   updated_at: string;
 }
 
+/** Ext Sale interface definition. */
 export interface ExtSale {
   id: string;
   client_name: string;
@@ -296,6 +310,7 @@ export interface ExtSale {
   updated_at: string;
 }
 
+/** Ext Sales Activity interface definition. */
 export interface ExtSalesActivity {
   id: string;
   sale_id: string;
@@ -311,6 +326,7 @@ export interface ExtSalesActivity {
 
 // ─── Suppliers & Carriers ─────────────────────────────────────
 
+/** Ext Supplier interface definition. */
 export interface ExtSupplier {
   id: string;
   company_id: string;
@@ -336,6 +352,7 @@ export interface ExtSupplier {
   updated_at: string;
 }
 
+/** Ext Carrier interface definition. */
 export interface ExtCarrier {
   id: string;
   company_id: string;
@@ -357,6 +374,7 @@ export interface ExtCarrier {
 
 // ─── Gamification ─────────────────────────────────────────────
 
+/** Ext Achievement interface definition. */
 export interface ExtAchievement {
   id: string;
   salesperson_id: string;
@@ -366,6 +384,7 @@ export interface ExtAchievement {
   created_at: string;
 }
 
+/** Ext Daily Challenge interface definition. */
 export interface ExtDailyChallenge {
   id: string;
   title: string;
@@ -379,6 +398,7 @@ export interface ExtDailyChallenge {
   updated_at: string;
 }
 
+/** Ext Weekly Challenge interface definition. */
 export interface ExtWeeklyChallenge {
   id: string;
   title: string;
@@ -395,17 +415,20 @@ export interface ExtWeeklyChallenge {
 
 // ─── Generic query types ──────────────────────────────────────
 
+/** External D B Filter interface definition. */
 export interface ExternalDBFilter {
   column: string;
   operator: 'eq' | 'neq' | 'gt' | 'gte' | 'lt' | 'lte' | 'like' | 'ilike' | 'in' | 'is';
   value: unknown;
 }
 
+/** External D B Order interface definition. */
 export interface ExternalDBOrder {
   column: string;
   ascending?: boolean;
 }
 
+/** External D B Query Params interface definition. */
 export interface ExternalDBQueryParams {
   table: string;
   select?: string;
@@ -416,6 +439,7 @@ export interface ExternalDBQueryParams {
   countMode?: 'exact' | 'planned' | 'estimated';
 }
 
+/** External D B Query Result interface definition. */
 export interface ExternalDBQueryResult<T = unknown> {
   data: T[];
   meta: {
@@ -425,6 +449,7 @@ export interface ExternalDBQueryResult<T = unknown> {
   };
 }
 
+/** External D B R P C Params interface definition. */
 export interface ExternalDBRPCParams {
   rpc: string;
   params?: Record<string, unknown>;
@@ -432,6 +457,7 @@ export interface ExternalDBRPCParams {
 
 // ─── Table registry (for UI rendering) ────────────────────────
 
+/** External Table Name type alias. */
 export type ExternalTableName =
   | 'companies'
   | 'contacts'
@@ -474,6 +500,7 @@ export type ExternalTableName =
   | 'regions'
   | 'segments';
 
+/** E X T E R N A L_ T A B L E_ L A B E L S constant. */
 export const EXTERNAL_TABLE_LABELS: Record<ExternalTableName, string> = {
   companies: 'Empresas',
   contacts: 'Contatos',

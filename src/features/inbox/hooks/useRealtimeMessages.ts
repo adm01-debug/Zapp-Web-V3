@@ -24,13 +24,16 @@ import type {
   ConversationWithMessages,
 } from './realtime/types';
 
+/** Re-exported module members. */
 export type {
   NewMessageNotification,
   RealtimeMessage,
   ConversationContact,
   ConversationWithMessages,
 } from './realtime/types';
+/** Re-exported module members. */
 export type { MessageBatcherStatus } from './realtime/useMessageUpdateBatcher';
+/** Re-exported module members. */
 export type { ConversationSendState } from './realtime/useConversationSendState';
 
 const log = getLogger('RealtimeMessages');

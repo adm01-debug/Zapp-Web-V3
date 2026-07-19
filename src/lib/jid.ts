@@ -273,11 +273,17 @@ export const JID_SUFFIXES = {
 // ────────────────────────────────────────────────────────────────────────────
 
 declare const __jidBrand: unique symbol;
+/** Phone type alias. */
 export type Phone = string & { readonly [__jidBrand]: 'Phone' };
+/** Jid type alias. */
 export type Jid = string & { readonly [__jidBrand]: 'Jid' };
+/** Individual Jid type alias. */
 export type IndividualJid = Jid & { readonly [__jidBrand]: 'IndividualJid' };
+/** Group Jid type alias. */
 export type GroupJid = Jid & { readonly [__jidBrand]: 'GroupJid' };
+/** Broadcast Jid type alias. */
 export type BroadcastJid = Jid & { readonly [__jidBrand]: 'BroadcastJid' };
+/** Newsletter Jid type alias. */
 export type NewsletterJid = Jid & { readonly [__jidBrand]: 'NewsletterJid' };
 
 const PHONE_RE = /^\d{8,15}$/;

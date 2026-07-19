@@ -23,6 +23,7 @@ export interface CallTimelineEntry {
   raw: EvolutionWebhookEvent;
 }
 
+/** Call Timeline Group interface definition. */
 export interface CallTimelineGroup {
   callId: string;
   instance: string;
@@ -167,6 +168,7 @@ export function groupEventsByCall(events: EvolutionWebhookEvent[]): CallTimeline
   return groups;
 }
 
+/** format Duration function. */
 export function formatDuration(ms: number): string {
   if (ms <= 0) return '—';
   const s = Math.round(ms / 1000);

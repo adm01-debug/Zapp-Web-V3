@@ -30,6 +30,7 @@ export interface TransferRow {
   completed_at: string | null;
 }
 
+/** Transfers Filters interface definition. */
 export interface TransfersFilters {
   status?: string | null;
   priority?: number | null;
@@ -39,6 +40,7 @@ export interface TransfersFilters {
   pageSize?: number;
 }
 
+/** use Transfers Paginated function. */
 export function useTransfersPaginated(filters: TransfersFilters = {}) {
   const { status = null, priority = null, from = null, to = null, page = 0, pageSize = 50 } = filters;
 

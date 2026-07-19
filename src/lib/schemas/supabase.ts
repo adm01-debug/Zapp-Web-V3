@@ -55,6 +55,7 @@ export const contactSchema = z.object({
   created_at: strDefault(''),
   updated_at: strDefault(''),
 });
+/** Contact type alias. */
 export type Contact = z.infer<typeof contactSchema>;
 
 /* -------------------------------------------------------------------------- */
@@ -78,6 +79,7 @@ export const messageSchema = z.object({
   created_at: strDefault(''),
   updated_at: nullish(z.string()),
 });
+/** Message type alias. */
 export type Message = z.infer<typeof messageSchema>;
 
 /* -------------------------------------------------------------------------- */
@@ -97,6 +99,7 @@ export const conversationSchema = z.object({
   queue_id: nullish(z.string().uuid()),
   assigned_to: nullish(z.string().uuid()),
 });
+/** Conversation type alias. */
 export type Conversation = z.infer<typeof conversationSchema>;
 
 /* -------------------------------------------------------------------------- */

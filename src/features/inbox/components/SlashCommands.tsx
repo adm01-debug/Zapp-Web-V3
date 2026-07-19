@@ -152,5 +152,7 @@ export function SlashCommands({ inputValue, onSelectCommand, onClose, isOpen }: 
   );
 }
 
+/** Re-exported module members. */
 export { SLASH_COMMANDS };
+/** Re-exported module members. */
 export type { SlashCommand };

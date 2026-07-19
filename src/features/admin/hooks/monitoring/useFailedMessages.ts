@@ -10,6 +10,7 @@ import { isRlsDeniedError, formatAdminError } from '@/lib/errors/rlsError';
 import { classifyRootCause } from '@/lib/failureRootCause';
 import { computeFailedMessagesAggregates } from './failedMessagesAggregates';
 
+/** Re-exported module members. */
 export type {
   FailedMessageStatus,
   FailedMessageRow,

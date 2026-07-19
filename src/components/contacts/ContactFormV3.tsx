@@ -28,6 +28,7 @@ import { useContactFormV3 } from './useContactFormV3';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
+/** Contact V3 Form Data interface definition. */
 export interface ContactV3FormData {
   id?: string;
   name: string;
@@ -51,6 +52,7 @@ interface ContactFormV3Props {
 
 // ── Component ──────────────────────────────────────────────────────────────
 
+/** Contact Form V3 constant. */
 export const ContactFormV3: React.FC<ContactFormV3Props> = ({
   workspaceId,
   initial,
@@ -355,4 +357,5 @@ export const ContactFormV3: React.FC<ContactFormV3Props> = ({
   );
 };
 
+/** Default export. */
 export default ContactFormV3;

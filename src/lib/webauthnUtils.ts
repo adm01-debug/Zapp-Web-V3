@@ -13,6 +13,7 @@ export function base64URLToBuffer(base64url: string): ArrayBuffer {
   return bytes.buffer;
 }
 
+/** buffer To Base64 U R L function. */
 export function bufferToBase64URL(buffer: ArrayBuffer): string {
   const bytes = new Uint8Array(buffer);
   let str = '';
@@ -22,6 +23,7 @@ export function bufferToBase64URL(buffer: ArrayBuffer): string {
   return btoa(str).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
 }
 
+/** get Device Name function. */
 export function getDeviceName(): string {
   const ua = navigator.userAgent;
   if (/iPhone/.test(ua)) return 'iPhone';
@@ -33,11 +35,13 @@ export function getDeviceName(): string {
   return 'Dispositivo';
 }
 
+/** is Web Authn Supported function. */
 export function isWebAuthnSupported(): boolean {
   return window.PublicKeyCredential !== undefined &&
     typeof window.PublicKeyCredential === 'function';
 }
 
+/** is Platform Authenticator Available function. */
 export async function isPlatformAuthenticatorAvailable(): Promise<boolean> {
   if (!isWebAuthnSupported()) return false;
   try {

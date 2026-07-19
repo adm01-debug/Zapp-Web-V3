@@ -22,6 +22,7 @@ import {
 } from './messageSendHistory.schemas';
 
 
+/** Re-exported module members. */
 export type { AuditEntry, FinalStatus, RetryAttempt };
 
 /** Aggregated send-history for a single message: retry metrics row plus deduplicated outbound_delivery_audit entries. */

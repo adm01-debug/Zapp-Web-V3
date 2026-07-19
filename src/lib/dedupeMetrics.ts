@@ -134,6 +134,7 @@ export function subscribeDedupeEvents(listener: Listener): () => void {
   return () => listeners.delete(listener);
 }
 
+/** get Dedupe Snapshot function. */
 export function getDedupeSnapshot(): { events: DedupeEvent[]; counters: DedupeCounters } {
   return {
     events: events.slice(),

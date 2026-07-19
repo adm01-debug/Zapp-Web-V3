@@ -26,4 +26,5 @@ export function generateCorrelationId(): string {
   return Math.floor(Math.random() * 0xffffffff).toString(16).padStart(8, '0');
 }
 
+/** C O R R E L A T I O N_ H E A D E R constant. */
 export const CORRELATION_HEADER = 'x-correlation-id';

@@ -420,6 +420,9 @@ export {
 };
 
 export type { UseEmailOAuthParams, UseEmailOAuthResult };
+/** Re-exported module members. */
 export type { UseEmailSyncParams, UseEmailSyncResult };
+/** Re-exported module members. */
 export type { UseEmailRealtimeParams };
+/** Re-exported module members. */
 export type { UseEmailThreadActionsParams, UseEmailThreadActionsResult };

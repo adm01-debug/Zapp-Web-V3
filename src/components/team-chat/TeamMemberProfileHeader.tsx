@@ -21,6 +21,7 @@ interface MemberProfile {
   birthday: string | null;
 }
 
+/** Re-exported module members. */
 export type { MemberProfile };
 
 /** get Birthday Info component for the team chat section. */

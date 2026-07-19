@@ -24,6 +24,7 @@ import {
 } from "./webhook-schemas.ts";
 import type { SchemaMap } from "./contract-kit.ts";
 
+/** Re-exported module members. */
 export { z, EvolutionWebhookV1Schema, EvolutionWebhookV2Schema, MetaWebhookPayloadSchema };
 
 // ─── Webhooks externos (permissivos) ─────────────────────────────────────────
@@ -154,6 +155,7 @@ export const EvolutionSyncV1Schema = z.object({
 
 // ─── Registro central: contrato → { versão → schema } ───────────────────────
 
+/** C O N T R A C T_ S C H E M A S constant. */
 export const CONTRACT_SCHEMAS: Record<string, SchemaMap> = {
   // Webhooks externos
   "evolution-webhook":       { v1: EvolutionWebhookV1Schema, v2: EvolutionWebhookV2Schema },
@@ -180,6 +182,7 @@ export const CONTRACT_SCHEMAS: Record<string, SchemaMap> = {
 //   import { CONTRACT_SCHEMAS, EdgeFunctionContractSchemas, getContractSchema } from '…/contract-schemas.ts';
 //
 // Não há risco de ciclo: edge-contract-schemas.ts NÃO importa deste arquivo.
+/** Re-exported module members. */
 export {
   EdgeFunctionContractSchemas,
   getContractSchema,
@@ -190,6 +193,7 @@ export {
   WebhookContractSchemas,
   ContractLifecycles,
 } from './edge-contract-schemas.ts';
+/** Re-exported module members. */
 export type {
   ContractParseOptions,
   ContractParseResult,

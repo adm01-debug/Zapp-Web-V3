@@ -2,6 +2,7 @@ import { useCallback } from 'react';
 import { usePushNotificationsManagement } from '@/hooks/useNotificationManagement';
 import type { PushNotificationState, NotificationPayload } from '@/hooks/useNotificationManagement';
 
+/** Re-exported module members. */
 export type { PushNotificationState, NotificationPayload };
 
 /** Hook: use Push Notifications. */

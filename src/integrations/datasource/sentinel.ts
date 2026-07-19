@@ -27,6 +27,7 @@ export function validateEntityAccess(entity: string, clientName: 'lovable' | 'ex
   }
 }
 
+/** validate Rpc Access function. */
 export function validateRpcAccess(name: string, clientName: 'lovable' | 'external'): void {
   if (!import.meta.env.DEV) return;
   // v6.1: RPCs do domínio no client principal autenticado = caminho oficial.

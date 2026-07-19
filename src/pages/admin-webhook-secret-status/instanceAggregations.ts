@@ -14,6 +14,7 @@ export interface SecretStatusEvent {
   created_at: string;
 }
 
+/** Instance Validation Stats interface definition. */
 export interface InstanceValidationStats {
   instance: string;
   total: number;
@@ -25,6 +26,7 @@ export interface InstanceValidationStats {
   lastEventAt: string | null;
 }
 
+/** Instance Live Status interface definition. */
 export interface InstanceLiveStatus {
   lastEvent: { type: string; createdAt: string } | null;
   recentTotal: number; // last 5 minutes

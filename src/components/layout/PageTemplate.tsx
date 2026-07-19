@@ -47,6 +47,7 @@ const childVariants = {
   },
 };
 
+/** Page Template function. */
 export function PageTemplate({
   title,
   subtitle,

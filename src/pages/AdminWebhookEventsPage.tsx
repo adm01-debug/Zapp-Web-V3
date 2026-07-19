@@ -53,6 +53,7 @@ function KpiCard({
   );
 }
 
+/** Default export. */
 export default function AdminWebhookEventsPage() {
   const {
     hours,

@@ -75,6 +75,7 @@ interface ProxyResponse<T = unknown> {
 }
 
 // ─── Public entry point ──────────────────────────────────────────────────────
+/** query External Proxy function. */
 export async function queryExternalProxy<T = unknown>(
   params: ProxyParams
 ): Promise<ProxyResponse<T>> {

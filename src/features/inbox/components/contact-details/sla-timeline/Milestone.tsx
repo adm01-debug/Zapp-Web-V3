@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { formatTs, STATUS_STYLES, type SLAStatus } from './types';
 
+/** Milestone Props interface definition. */
 export interface MilestoneProps {
   index: number;
   icon: typeof MessageCircle;

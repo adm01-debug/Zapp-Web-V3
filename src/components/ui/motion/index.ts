@@ -17,6 +17,7 @@ export {
 } from './variants';
 
 // Animated React components
+/** Re-exported module members. */
 export {
   PageTransition, NeonPageReveal, MotionCard, MotionButton,
   StaggeredList, StaggeredItem, MotionFadeIn, MotionSlideUp,
@@ -24,11 +25,13 @@ export {
 } from './components';
 
 // Advanced animation effects
+/** Re-exported module members. */
 export {
   AnimatedCounter, AnimatedProgress, Presence, StaggerContainerEnhanced,
   SlideTransition, HoverScale, AnimatedList, AnimatedListItem, Typewriter,
 } from './effects';
 
 // Passthrough from framer-motion for convenience
+/** Re-exported module members. */
 export { AnimatePresence, motion } from 'framer-motion';
 

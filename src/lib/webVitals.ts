@@ -165,6 +165,7 @@ function onMetric(metric: WebVitalMetric) {
 }
 
 let __initialized = false;
+/** init Web Vitals function. */
 export function initWebVitals() {
   if (typeof window === 'undefined') return;
   if (__initialized) return;
@@ -278,6 +279,7 @@ export function initWebVitals() {
   }
 }
 
+/** get Web Vitals Report function. */
 export function getWebVitalsReport(): WebVitalMetric[] {
   return [...metricsBuffer];
 }

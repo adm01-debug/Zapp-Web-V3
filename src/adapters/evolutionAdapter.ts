@@ -83,6 +83,7 @@ function mapStatus(evoStatus: string): 'sent' | 'delivered' | 'read' | 'failed' 
   return Object.prototype.hasOwnProperty.call(mapping, evoStatus) ? mapping[evoStatus] : 'sent';
 }
 
+/** derive Contacts From Messages function. */
 export function deriveContactsFromMessages(messages: EvolutionMessage[]): DerivedContact[] {
   const contactMap = new Map<string, DerivedContact>();
   for (const msg of messages) {
@@ -140,6 +141,7 @@ export function deriveContactsFromMessages(messages: EvolutionMessage[]): Derive
   );
 }
 
+/** derived To Conversation Contact function. */
 export function derivedToConversationContact(dc: DerivedContact): ConversationContact {
   return {
     id: dc.remoteJid,
@@ -165,6 +167,7 @@ export function derivedToConversationContact(dc: DerivedContact): ConversationCo
   };
 }
 
+/** build External Conversations function. */
 export function buildExternalConversations(
   messages: EvolutionMessage[]
 ): ConversationWithMessages[] {

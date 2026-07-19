@@ -185,4 +185,5 @@ export function useDownloadPermissionManagement(resourceId?: string) {
   return { hasPermission, canDownload: hasPermission, loading };
 }
 
+/** Re-exported module members. */
 export type { Sticker, Emoji };

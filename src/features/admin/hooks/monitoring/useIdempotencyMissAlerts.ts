@@ -94,6 +94,7 @@ interface AuditLogRow {
   created_at: string;
 }
 
+/** Instance Miss Count interface definition. */
 export interface InstanceMissCount {
   instance: string;
   count: number;

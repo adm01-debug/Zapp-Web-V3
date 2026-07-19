@@ -34,6 +34,7 @@ interface QueueWithMembers extends Queue {
   waiting_count: number;
 }
 
+/** Re-exported module members. */
 export type { Queue, QueueMember, QueueWithMembers };
 
 /** Fetches queues with members and positions, subscribing to realtime changes on queues, queue_members, and queue_positions tables for live updates. */

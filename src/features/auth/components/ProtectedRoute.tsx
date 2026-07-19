@@ -162,6 +162,7 @@ export function ProtectedRoute({
 }
 
 // Higher-order component for permission-based rendering
+/** with Permission function. */
 export function withPermission<P extends object>(
   WrappedComponent: React.ComponentType<P>,
   permission: string

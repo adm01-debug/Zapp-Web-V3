@@ -53,6 +53,7 @@ interface ChatMessagesAreaProps extends LoadOlderProps {
   isLoading?: boolean;
 }
 
+/** Chat Messages Area Ref interface definition. */
 export interface ChatMessagesAreaRef {
   scrollToBottom: () => void;
   registerMessageRef: (messageId: string, el: HTMLDivElement | null) => void;

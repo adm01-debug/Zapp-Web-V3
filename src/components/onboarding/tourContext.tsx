@@ -1,5 +1,6 @@
 import { createContext, useContext } from 'react';
 
+/** Tour Step interface definition. */
 export interface TourStep {
   id: string;
   target: string;
@@ -9,6 +10,7 @@ export interface TourStep {
   spotlightPadding?: number;
 }
 
+/** Tour Context Type interface definition. */
 export interface TourContextType {
   isActive: boolean;
   currentStep: number;

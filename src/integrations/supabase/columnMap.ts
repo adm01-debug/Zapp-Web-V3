@@ -70,6 +70,7 @@ function makeSelect<T extends Record<string, unknown>>(
 // whatsapp_connections
 // -----------------------------------------------------------------------------
 
+/** Whats App Connection Canonical interface definition. */
 export interface WhatsAppConnectionCanonical extends Record<string, unknown> {
   id: string;
   name: string;
@@ -81,6 +82,7 @@ export interface WhatsAppConnectionCanonical extends Record<string, unknown> {
   updated_at: string | null;
 }
 
+/** whatsapp Connections Map constant. */
 export const whatsappConnectionsMap: EntityColumnMap<WhatsAppConnectionCanonical> = {
   table: 'whatsapp_connections',
   columns: {
@@ -104,6 +106,7 @@ whatsappConnectionsMap.select = makeSelect(whatsappConnectionsMap.columns);
 // contacts
 // -----------------------------------------------------------------------------
 
+/** Contact Canonical interface definition. */
 export interface ContactCanonical extends Record<string, unknown> {
   id: string;
   name: string;
@@ -136,6 +139,7 @@ contactsMap.select = makeSelect(contactsMap.columns);
 // profiles
 // -----------------------------------------------------------------------------
 
+/** Profile Canonical interface definition. */
 export interface ProfileCanonical extends Record<string, unknown> {
   id: string;
   user_id: string | null;
@@ -147,6 +151,7 @@ export interface ProfileCanonical extends Record<string, unknown> {
   max_chats: number;
 }
 
+/** profiles Map constant. */
 export const profilesMap: EntityColumnMap<ProfileCanonical> = {
   table: 'profiles',
   columns: {
@@ -167,6 +172,7 @@ profilesMap.select = makeSelect(profilesMap.columns);
 // messages
 // -----------------------------------------------------------------------------
 
+/** Message Canonical interface definition. */
 export interface MessageCanonical extends Record<string, unknown> {
   id: string;
   contact_id: string | null;
@@ -196,6 +202,7 @@ export interface MessageCanonical extends Record<string, unknown> {
   deleted_at: string | null;
 }
 
+/** messages Map constant. */
 export const messagesMap: EntityColumnMap<MessageCanonical> = {
   table: 'messages',
   columns: {
@@ -239,6 +246,7 @@ messagesMap.select = makeSelect(messagesMap.columns, messagesMap.embeds);
 // failed_messages (DLQ)
 // -----------------------------------------------------------------------------
 
+/** Failed Message Canonical interface definition. */
 export interface FailedMessageCanonical extends Record<string, unknown> {
   id: string;
   instance_name: string | null;
@@ -250,6 +258,7 @@ export interface FailedMessageCanonical extends Record<string, unknown> {
   created_at: string | null;
 }
 
+/** failed Messages Map constant. */
 export const failedMessagesMap: EntityColumnMap<FailedMessageCanonical> = {
   table: 'failed_messages',
   columns: {
@@ -272,12 +281,14 @@ failedMessagesMap.select = makeSelect(failedMessagesMap.columns);
 // queue_members
 // -----------------------------------------------------------------------------
 
+/** Queue Member Canonical interface definition. */
 export interface QueueMemberCanonical extends Record<string, unknown> {
   queue_id: string;
   profile_id: string;
   is_active: boolean;
 }
 
+/** queue Members Map constant. */
 export const queueMembersMap: EntityColumnMap<QueueMemberCanonical> = {
   table: 'queue_members',
   columns: {
@@ -293,6 +304,7 @@ queueMembersMap.select = makeSelect(queueMembersMap.columns);
 // Index agregado
 // -----------------------------------------------------------------------------
 
+/** column Map constant. */
 export const columnMap = {
   whatsapp_connections: whatsappConnectionsMap,
   contacts:             contactsMap,
@@ -302,6 +314,7 @@ export const columnMap = {
   queue_members:        queueMembersMap,
 } as const;
 
+/** Column Map Entity type alias. */
 export type ColumnMapEntity = keyof typeof columnMap;
 
 /**

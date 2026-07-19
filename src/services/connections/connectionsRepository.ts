@@ -23,6 +23,7 @@ export interface WhatsAppConnection {
   updated_at: string;
 }
 
+/** Channel Connection interface definition. */
 export interface ChannelConnection {
   id: string;
   channel_type: string;
@@ -33,6 +34,7 @@ export interface ChannelConnection {
   updated_at: string;
 }
 
+/** Connection interface definition. */
 export interface Connection {
   id: string;
   name?: string;
@@ -46,6 +48,7 @@ export interface Connection {
 // WhatsApp connections base service
 const whatsappBaseService = createService<WhatsAppConnection>('whatsapp_connections');
 
+/** connections Repository constant. */
 export const connectionsRepository = {
   // WhatsApp Connections
   listWhatsAppConnections: (filters?: Partial<WhatsAppConnection> & QueryParams) =>

@@ -88,4 +88,5 @@ export function DealCard({ deal, isDragging, onDragStart, onDragEnd, onEdit, onM
   );
 }
 
+/** Re-exported module members. */
 export type { Deal };

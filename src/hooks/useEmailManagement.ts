@@ -34,12 +34,17 @@ const log = getLogger('EmailManagement');
 // TYPES AND INTERFACES
 // ──────────────────────────────────────────────────────────────────────────
 
+/** Re-exported module members. */
 export type { EmailAccount, EmailTokenInfo, EmailThread, EmailSendParams, EmailLabel, SLAStatus };
 
+/** Email Token Status type alias. */
 export type EmailTokenStatus = 'valid' | 'expiring_soon' | 'expired' | 'no_token';
+/** Email Watch Status type alias. */
 export type EmailWatchStatus = 'active' | 'expiring_soon' | 'expired' | 'no_watch';
+/** Token Status type alias. */
 export type TokenStatus = EmailTokenStatus;
 
+/** Draft State interface definition. */
 export interface DraftState {
   id?: string;
   email_draft_id?: string;
@@ -51,6 +56,7 @@ export interface DraftState {
   lastSaved?: Date;
 }
 
+/** Email Search Result interface definition. */
 export interface EmailSearchResult {
   id: string;
   thread_id: string;
@@ -63,6 +69,7 @@ export interface EmailSearchResult {
   source: 'local' | 'remote';
 }
 
+/** Email S L A Record interface definition. */
 export interface EmailSLARecord {
   thread_id: string;
   account_id: string;
@@ -74,6 +81,7 @@ export interface EmailSLARecord {
   warning_threshold_pct: number;
 }
 
+/** Email Signature interface definition. */
 export interface EmailSignature {
   id: string;
   account_id: string;
@@ -1328,6 +1336,7 @@ export function useEmailSignature(accountId: string | null) {
 // BACKWARD COMPATIBILITY
 // ──────────────────────────────────────────────────────────────────────────
 
+/** Default export. */
 export default {
   useEmail,
   useEmailDraft,

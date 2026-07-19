@@ -27,8 +27,10 @@ export type ScanCode =
   | 'NETWORK_ERROR'
   | 'UNKNOWN';
 
+/** Scan Verdict type alias. */
 export type ScanVerdict = 'clean' | 'malicious' | 'suspicious' | 'unknown';
 
+/** Scan Success interface definition. */
 export interface ScanSuccess {
   status: 'success';
   verdict: 'clean';
@@ -37,6 +39,7 @@ export interface ScanSuccess {
   payload: Record<string, unknown>;
 }
 
+/** Scan Error interface definition. */
 export interface ScanError {
   status: 'error';
   code: ScanCode;
@@ -46,6 +49,7 @@ export interface ScanError {
   details?: Record<string, unknown>;
 }
 
+/** Scan Result type alias. */
 export type ScanResult = ScanSuccess | ScanError;
 
 /** Block the upload entirely — file must not be retried as-is. */

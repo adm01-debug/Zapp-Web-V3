@@ -7,6 +7,7 @@ import {
   type UseSwipeNavigationOptions,
 } from '@/hooks/useUIInteractionManagement';
 
+/** Re-exported module members. */
 export type { SwipeState, UseSwipeGestureOptions, UseSwipeNavigationOptions };
 
 /** Hook: use Swipe Gesture. */

@@ -15,6 +15,7 @@ export type Severity = 'ok' | 'slow' | 'very_slow' | 'timeout' | 'error';
 export type QuerySource = 'externalProxy' | 'externalSupabase' | 'lovableCloud';
 export type QueryOperation = 'select' | 'rpc' | 'insert' | 'update' | 'delete';
 
+/** Query Event interface definition. */
 export interface QueryEvent {
   operation: QueryOperation;
   source: QuerySource;
@@ -42,6 +43,7 @@ export interface TelemetrySnapshot {
   retry: RetryStats;
 }
 
+/** Retry Stats interface definition. */
 export interface RetryStats {
   totalRetries: number;
   recoveredAfterRetry: number;
@@ -86,6 +88,7 @@ const state: State = {
   retry: initialRetry(),
 };
 
+/** classify Severity function. */
 export function classifySeverity(
   durationMs: number,
   hasError: boolean,
@@ -159,6 +162,7 @@ function logEvent(ev: QueryEvent) {
   }
 }
 
+/** record Query Event function. */
 export function recordQueryEvent(
   ev: Omit<QueryEvent, 'severity'> & { severity?: Severity },
 ): QueryEvent {
@@ -190,10 +194,12 @@ export function recordQueryEvent(
   return fullEvent;
 }
 
+/** get Telemetry Snapshot function. */
 export function getTelemetrySnapshot(): TelemetrySnapshot {
   return snapshot();
 }
 
+/** reset Telemetry function. */
 export function resetTelemetry(): void {
   state.total = 0;
   state.bySeverity = initialBySeverity();
@@ -205,6 +211,7 @@ export function resetTelemetry(): void {
   publishToWindow();
 }
 
+/** Retry Outcome interface definition. */
 export interface RetryOutcome {
   target: string;
   attempts: number;
@@ -214,6 +221,7 @@ export interface RetryOutcome {
   correlationId?: string;
 }
 
+/** record Retry Outcome function. */
 export function recordRetryOutcome(outcome: RetryOutcome): void {
   const extraAttempts = Math.max(0, outcome.attempts - 1);
   state.retry.totalRetries += extraAttempts;
@@ -226,4 +234,5 @@ export function recordRetryOutcome(outcome: RetryOutcome): void {
   publishToWindow();
 }
 
+/** T E L E M E T R Y_ T H R E S H O L D S constant. */
 export const TELEMETRY_THRESHOLDS = { SLOW_MS, VERY_SLOW_MS };

@@ -23,6 +23,7 @@ export const WHATSAPP_INSTANCES = [
   'default',
 ] as const;
 
+/** Whats App Instance type alias. */
 export type WhatsAppInstance = (typeof WHATSAPP_INSTANCES)[number];
 
 /**

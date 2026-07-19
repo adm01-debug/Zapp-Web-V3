@@ -4,6 +4,7 @@ import { getLogger } from '@/lib/logger';
 
 const log = getLogger('useLGPDAuditLogs');
 
+/** L G P D Audit Entry interface definition. */
 export interface LGPDAuditEntry {
   id: string;
   action: string;

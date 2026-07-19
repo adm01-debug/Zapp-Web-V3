@@ -180,6 +180,7 @@ function awaitBroadcast<T>(
   });
 }
 
+/** Cross Tab Dedupe Options interface definition. */
 export interface CrossTabDedupeOptions {
   /** Lifetime of the leader claim. Followers wait at most this long. Default 60s. */
   ttlMs?: number;

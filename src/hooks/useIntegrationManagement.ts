@@ -146,4 +146,5 @@ export function useSyncToCRMManagement(entityId?: string) {
   return { isSyncing, lastSyncAt, syncToCRM };
 }
 
+/** Re-exported module members. */
 export type { Integration };

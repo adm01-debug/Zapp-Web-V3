@@ -66,5 +66,6 @@ function LoadingSplash() {
   );
 }
 
+/** Default export. */
 export default Index;
 

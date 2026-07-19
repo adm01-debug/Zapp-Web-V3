@@ -8,11 +8,14 @@ const log = getLogger('useThemeAudit');
 // TYPE DEFINITIONS
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════════════
 
+/** Theme type alias. */
 export type Theme = 'light' | 'dark' | 'system';
+/** Resolved Theme type alias. */
 export type ResolvedTheme = 'light' | 'dark';
 
 type Sentiment = 'positive' | 'neutral' | 'negative' | string | null | undefined;
 
+/** Use Theme Return interface definition. */
 export interface UseThemeReturn {
   theme: Theme;
   resolvedTheme: ResolvedTheme;
@@ -24,12 +27,14 @@ export interface UseThemeReturn {
   isSystem: boolean;
 }
 
+/** Ambient Colors interface definition. */
 export interface AmbientColors {
   bgTint: string;
   borderAccent: string;
   className: string;
 }
 
+/** Audit Result interface definition. */
 export interface AuditResult {
   oledPass: boolean;
   fontPass: boolean;

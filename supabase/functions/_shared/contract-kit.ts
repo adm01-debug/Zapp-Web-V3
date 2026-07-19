@@ -29,16 +29,19 @@ export { z };
 
 // ─── Tipos do envelope ───────────────────────────────────────────────────────
 
+/** Contract Error Code type alias. */
 export type ContractErrorCode =
   | "invalid_json"
   | "contract_violation"
   | "unsupported_contract_version";
 
+/** Contract Error Detail interface definition. */
 export interface ContractErrorDetail {
   path: string;
   message: string;
 }
 
+/** Contract Error Body interface definition. */
 export interface ContractErrorBody {
   error: true;
   code: ContractErrorCode;
@@ -111,6 +114,7 @@ function zodIssuesToDetails(error: z.ZodError): ContractErrorDetail[] {
   }));
 }
 
+/** build Contract Error Body function. */
 export function buildContractErrorBody(
   contractName: string,
   version: string | undefined,

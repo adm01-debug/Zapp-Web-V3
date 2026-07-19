@@ -139,6 +139,7 @@ function MessageBubble({ msg }: { msg: EvolutionMessage }) {
   );
 }
 
+/** Default export. */
 export default function ZappWebbDemoPage() {
   const { conversations, loading, markAsRead } = useZappConversations();
   const [activeId, setActiveId] = useState<string | null>(null);

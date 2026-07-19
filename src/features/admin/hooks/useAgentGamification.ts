@@ -7,8 +7,11 @@ import { useGamificationMutations } from './gamification/mutations';
 import type { AgentStats, Achievement } from './gamification/types';
 
 // Re-export types and utilities for external consumers
+/** Re-exported module members. */
 export type { AgentStats, Achievement } from './gamification/types';
+/** Re-exported module members. */
 export { ACHIEVEMENT_TYPES } from './gamification/types';
+/** Re-exported module members. */
 export { calculateLevel, xpForNextLevel, levelProgress } from './gamification/levelUtils';
 
 // Schema drift: profiles/agent_stats/agent_achievements columns nem sempre

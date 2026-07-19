@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { log } from '@/lib/logger';
 
+/** Custom Emoji interface definition. */
 export interface CustomEmoji {
   id: string;
   name: string;
@@ -13,6 +14,7 @@ export interface CustomEmoji {
   uploaded_by?: string | null;
 }
 
+/** Pending Emoji Upload interface definition. */
 export interface PendingEmojiUpload {
   file: File;
   imageUrl: string;

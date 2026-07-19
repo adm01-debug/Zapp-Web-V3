@@ -35,6 +35,7 @@ function calculateDimensions(
   };
 }
 
+/** compress Image function. */
 export async function compressImage(
   file: File,
   options: CompressionOptions = {}
@@ -166,11 +167,13 @@ function canvasToBlob(canvas: HTMLCanvasElement, type: string, quality: number):
   });
 }
 
+/** create Image Preview function. */
 export function createImagePreview(file: File): string | null {
   if (!file.type.startsWith('image/')) return null;
   return URL.createObjectURL(file);
 }
 
+/** format Compression Info function. */
 export function formatCompressionInfo(originalSize: number, compressedSize: number): string {
   const savedPercent = Math.round(((originalSize - compressedSize) / originalSize) * 100);
   const fmt = (b: number) => b < 1024 ? `${b}B` : b < 1048576 ? `${(b / 1024).toFixed(1)}KB` : `${(b / 1048576).toFixed(1)}MB`;

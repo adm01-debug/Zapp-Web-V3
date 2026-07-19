@@ -242,4 +242,5 @@ export function TemplateEditorDialog({
   );
 }
 
+/** Re-exported module members. */
 export { VariableInserter, TemplatePreview };

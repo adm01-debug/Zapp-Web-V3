@@ -44,6 +44,7 @@ const STAGE_OPTIONS = ['lead', 'prospect', 'qualificado', 'cliente', 'parceiro',
 const SENTIMENT_OPTIONS = ['positivo', 'neutro', 'negativo'];
 const SEXO_OPTIONS = ['M', 'F', 'Outro'];
 
+/** Contact Form Dialog function. */
 export function ContactFormDialog({ open, onOpenChange, contact, onSuccess }: ContactFormDialogProps) {
   const isEdit = !!contact;
   const mutation = useExternalMutation();

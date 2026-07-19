@@ -8,6 +8,7 @@ type CampaignRow = Tables<'campaigns'>;
 type CampaignInsert = TablesInsert<'campaigns'>;
 type CampaignUpdate = TablesUpdate<'campaigns'>;
 
+/** Campaign type alias. */
 export type Campaign = CampaignRow & {
   target_filter: Record<string, unknown> | null;
 };

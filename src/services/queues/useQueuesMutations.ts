@@ -10,6 +10,7 @@ import {
 } from '@/services/api';
 import { queuesService, type Queue } from './index';
 
+/** use Create Queue constant. */
 export const useCreateQueue = () => {
   return createCreateMutation(
     (data: Partial<Queue>) => queuesService.create(data),
@@ -22,6 +23,7 @@ export const useCreateQueue = () => {
   );
 };
 
+/** use Update Queue constant. */
 export const useUpdateQueue = () => {
   return createUpdateMutation(
     ({ id, ...updates }: Partial<Queue> & { id: string }) =>
@@ -35,6 +37,7 @@ export const useUpdateQueue = () => {
   );
 };
 
+/** use Delete Queue constant. */
 export const useDeleteQueue = () => {
   return createDeleteMutation(
     (id: string) => queuesService.delete(id),

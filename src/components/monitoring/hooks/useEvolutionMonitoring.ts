@@ -7,6 +7,7 @@ import { useMonitoringNotifications } from './useMonitoringNotifications';
 import type { TimePeriod } from './types';
 
 // Re-export all types for consumers
+/** Re-exported module members. */
 export type {
   TimePeriod,
   DiagnosticResult,

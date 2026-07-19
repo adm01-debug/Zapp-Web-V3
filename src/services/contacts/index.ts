@@ -12,6 +12,7 @@ export { contactsRepository, type Contact } from './contactsRepository';
 export { contactsService } from './contactsService';
 
 // Query Hooks
+/** Re-exported module members. */
 export {
   useContactsList,
   useContact,
@@ -24,6 +25,7 @@ export {
 } from './useContactsQueries';
 
 // Mutation Hooks
+/** Re-exported module members. */
 export {
   useCreateContact,
   useCreateContactsBulk,

@@ -26,6 +26,7 @@ export const ADMIN_RESOURCES = {
 
 export type AdminResource = keyof typeof ADMIN_RESOURCES;
 
+/** can Access Admin Resource function. */
 export function canAccessAdminResource(role: CanonicalRole | null | undefined, resource: AdminResource): boolean {
   if (!role) return false;
   const required = ROLE_RANK[ADMIN_RESOURCES[resource].minRole];

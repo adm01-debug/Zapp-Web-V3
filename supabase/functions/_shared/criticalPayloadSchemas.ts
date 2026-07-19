@@ -19,6 +19,7 @@ type ValidationIssue = {
   message?: string;
 };
 
+/** create Critical Payload Schemas function. */
 export function createCriticalPayloadSchemas(z: ZodLike) {
   const normalizedPhoneSchema = z
     .string()
@@ -56,6 +57,7 @@ export function createCriticalPayloadSchemas(z: ZodLike) {
   };
 }
 
+/** map Validation Issues To Contract Error function. */
 export function mapValidationIssuesToContractError(issues: ValidationIssue[] = []) {
   const issueByPath = (field: string) => issues.find((issue) => (issue.path || []).includes(field));
 

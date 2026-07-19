@@ -68,6 +68,7 @@ async function resolveContactId(opts: OpenContactInChatOptions): Promise<string 
   return data?.id ?? null;
 }
 
+/** open Contact In Chat function. */
 export async function openContactInChat(opts: OpenContactInChatOptions): Promise<boolean> {
   if (typeof window === 'undefined') return false;
 

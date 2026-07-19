@@ -293,4 +293,5 @@ function Stat({ label, value, tone = 'default' }: { label: string; value: number
   );
 }
 
+/** Default export. */
 export default AdminProvidersPage;

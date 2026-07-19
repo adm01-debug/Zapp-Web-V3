@@ -8,7 +8,9 @@ import type { MessageReaction, UseMessageReactionsOptions } from './reactions/ty
 import { queryKeys } from '@/services/api/queryKeys';
 
 // Re-export types and batch hook for consumers
+/** Re-exported module members. */
 export type { MessageReaction, UseMessageReactionsOptions };
+/** Re-exported module members. */
 export { useMessagesReactions } from './reactions/useBatchReactions';
 
 /** Manages emoji reactions for a single message — fetching, adding, removing, and optionally subscribing to realtime updates. */

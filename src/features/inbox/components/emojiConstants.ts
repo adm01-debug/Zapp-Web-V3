@@ -31,8 +31,10 @@ export const CATEGORY_LABELS: Record<string, { emoji: string; label: string }> =
   'outros': { emoji: '📦', label: 'Outros' },
 };
 
+/** A L L_ C A T E G O R I E S constant. */
 export const ALL_CATEGORIES = Object.keys(CATEGORY_LABELS);
 
+/** N A T I V E_ E M O J I_ C A T E G O R I E S constant. */
 export const NATIVE_EMOJI_CATEGORIES: { id: string; icon: string; label: string; emojis: string[] }[] = [
   {
     id: 'smileys', icon: '😀', label: 'Carinhas',

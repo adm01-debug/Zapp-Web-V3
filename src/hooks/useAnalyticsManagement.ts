@@ -221,4 +221,5 @@ export function useMessageAttemptsManagement(messageId: string) {
   return { attempts, loading };
 }
 
+/** Re-exported module members. */
 export type { PerformanceMetric, ErrorLog, Analysis };

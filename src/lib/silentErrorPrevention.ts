@@ -290,6 +290,7 @@ export function initializeSilentErrorPrevention(): void {
   log.info('Silent error prevention initialized');
 }
 
+/** Default export. */
 export default {
   suppressError,
   safeAsync,

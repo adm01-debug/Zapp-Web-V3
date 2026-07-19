@@ -18,6 +18,7 @@ interface Viewer {
   last_seen: Date;
 }
 
+/** use Conversation Viewers function. */
 export function useConversationViewers(contactId: string) {
   const { user } = useAuth();
   const [viewers, setViewers] = useState<Viewer[]>([]);

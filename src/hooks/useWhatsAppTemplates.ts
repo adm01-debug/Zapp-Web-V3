@@ -6,6 +6,7 @@ import { getLogger } from '@/lib/logger';
 
 const log = getLogger('useWhatsAppTemplates');
 
+/** Whats App Template interface definition. */
 export interface WhatsAppTemplate {
   [key: string]: unknown;
   id: string;
@@ -24,18 +25,21 @@ export interface WhatsAppTemplate {
   updated_at: string;
 }
 
+/** T E M P L A T E_ C A T E G O R I E S constant. */
 export const TEMPLATE_CATEGORIES = [
   { value: 'marketing', label: 'Marketing', color: 'bg-info/20 text-info' },
   { value: 'utility', label: 'Utilidade', color: 'bg-success/20 text-success' },
   { value: 'authentication', label: 'Autenticação', color: 'bg-primary/20 text-primary' },
 ];
 
+/** T E M P L A T E_ L A N G U A G E S constant. */
 export const TEMPLATE_LANGUAGES = [
   { value: 'pt_BR', label: 'Português (BR)' },
   { value: 'en_US', label: 'English (US)' },
   { value: 'es', label: 'Español' },
 ];
 
+/** S T A T U S_ B A D G E S constant. */
 export const STATUS_BADGES: Record<string, { label: string; className: string; iconName: string }> =
   {
     approved: {
@@ -52,6 +56,7 @@ export const STATUS_BADGES: Record<string, { label: string; className: string; i
     draft: { label: 'Rascunho', className: 'bg-muted text-muted-foreground', iconName: 'FileText' },
   };
 
+/** E M P T Y_ T E M P L A T E constant. */
 export const EMPTY_TEMPLATE: Partial<WhatsAppTemplate> = {
   name: '',
   category: 'utility',

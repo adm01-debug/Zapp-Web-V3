@@ -35,13 +35,17 @@ if (
   );
 }
 
+/** external Supabase constant. */
 export const externalSupabase: SupabaseClient<ExtendedDatabase> = supabase;
+/** is External Configured constant. */
 export const isExternalConfigured = true;
 
+/** get Is External Configured function. */
 export function getIsExternalConfigured(): boolean {
   return true;
 }
 
+/** get External Supabase function. */
 export function getExternalSupabase(): SupabaseClient<ExtendedDatabase> {
   return supabase;
 }

@@ -17,6 +17,7 @@ interface QueuePerformance {
   assignmentRate: number;
 }
 
+/** Re-exported module members. */
 export type { DateRange };
 
 /** Compares active queues by contacts, assignment rate, agent count, and message volume within the given date range. */

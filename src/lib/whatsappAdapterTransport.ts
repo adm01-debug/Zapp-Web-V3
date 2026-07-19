@@ -8,6 +8,7 @@ const log = getLogger('whatsappAdapter');
 let cachedMode: WhatsAppMode | null = null;
 let cacheExpiresAt = 0;
 
+/** get Whats App Mode function. */
 export async function getWhatsAppMode(force = false): Promise<WhatsAppMode> {
   const now = Date.now();
   if (!force && cachedMode && now < cacheExpiresAt) return cachedMode;
@@ -95,12 +96,14 @@ export async function resolveTransport(force = false): Promise<ResolvedTransport
   return resolved;
 }
 
+/** invalidate Transport Cache function. */
 export function invalidateTransportCache() {
   cachedTransport = null;
   transportExpiresAt = 0;
   cloudCredsCache = null;
 }
 
+/** invalidate Whats App Mode Cache function. */
 export function invalidateWhatsAppModeCache() {
   cachedMode = null;
   cacheExpiresAt = 0;

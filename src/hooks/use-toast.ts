@@ -1,4 +1,5 @@
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
+/** Toast type alias. */
 export type Toast = { id: string; open: boolean; [key: string]: any }; // ignore-audit
 type ToastState = { toasts: Toast[] };
 
@@ -10,6 +11,7 @@ type ToastAction =
 
 const TOAST_LIMIT = 1;
 
+/** reducer function. */
 export function reducer(state: ToastState, action: ToastAction): ToastState {
   switch (action.type) {
     case 'ADD_TOAST':
@@ -45,6 +47,7 @@ import type { ReactNode } from 'react';
 
 type LegacyToastVariant = 'default' | 'destructive';
 
+/** Legacy Toast Input type alias. */
 export type LegacyToastInput = ExternalToast & {
   title?: ReactNode;
   description?: ReactNode;
@@ -103,4 +106,5 @@ const useToast = () => {
   };
 };
 
+/** Re-exported module members. */
 export { useToast, toastCompat as toast };

@@ -2,6 +2,7 @@
 import { useBusinessLogicCatalogManagement } from '@/features/business-logic/hooks/useBusinessLogicManagement';
 import type { ContactResult } from '@/features/business-logic/hooks/useBusinessLogicManagement';
 
+/** Re-exported module members. */
 export type { ContactResult };
 
 /** Hook: use Contact Search. */

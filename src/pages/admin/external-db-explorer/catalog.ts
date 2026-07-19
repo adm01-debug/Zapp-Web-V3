@@ -62,6 +62,7 @@ export const TABLES: readonly CatalogTable[] = [
   { name: 'evolution_notification_config',  category: 'Config', description: 'Config de notificações' },
 ] as const;
 
+/** R P C S constant. */
 export const RPCS: readonly CatalogRpc[] = [
   // SELECT
   { name: 'rpc_list_contacts', kind: 'select', description: 'Lista contatos com filtros',
@@ -94,4 +95,5 @@ export const RPCS: readonly CatalogRpc[] = [
     exampleParams: { p_query: 'teste', p_instance: 'wpp2', p_limit: 20 } },
 ] as const;
 
+/** T A B L E_ C A T E G O R I E S constant. */
 export const TABLE_CATEGORIES = ['Operacional', 'Pipeline', 'Automação', 'Webhook', 'Config', 'Integrações'] as const;

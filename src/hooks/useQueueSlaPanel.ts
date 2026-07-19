@@ -2,6 +2,7 @@
 import { useQueueSlaManagement } from '@/hooks/useQueueManagement';
 import type { QueueSlaFilters, QueueSlaPatch, QueueSlaRow, SlaStatusFilter } from '@/hooks/useQueueManagement';
 
+/** Re-exported module members. */
 export type { QueueSlaFilters, QueueSlaPatch, QueueSlaRow, SlaStatusFilter };
 
 /** Hook: use Queue Sla Panel. */

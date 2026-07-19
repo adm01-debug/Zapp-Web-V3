@@ -36,6 +36,7 @@ interface MarkdownPreviewProps {
   className?: string;
 }
 
+/** Markdown Preview function. */
 export function MarkdownPreview({ text, className }: MarkdownPreviewProps) {
   const html = useMemo(
     () =>

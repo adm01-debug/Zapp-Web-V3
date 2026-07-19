@@ -42,6 +42,7 @@ interface DocumentPreviewProps {
   isSent: boolean;
 }
 
+/** Document Preview function. */
 export function DocumentPreview({ url: _url, fileName, fileSize, isSent }: DocumentPreviewProps) {
   const [isDownloading, _setIsDownloading] = useState(false);
   const extension = getFileExtension(fileName).toUpperCase();
@@ -278,6 +279,7 @@ interface StickerPreviewProps {
   isSent: boolean;
 }
 
+/** Sticker Preview function. */
 export function StickerPreview({ url, isSent: _isSent }: StickerPreviewProps) {
   const [isLoaded, setIsLoaded] = useState(false);
   return (
@@ -310,6 +312,7 @@ interface MediaMessageProps {
   refreshKey?: import('@/types/mediaRefresh').MediaRefreshKey;
 }
 
+/** Media Message function. */
 export function MediaMessage({
   type,
   url,

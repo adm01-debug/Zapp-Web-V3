@@ -120,6 +120,7 @@ function evaluateHealth(a: EvalArgs): EvalResult {
 }
 
 // Exposto para testes
+/** Re-exported module members. */
 export { evaluateHealth };
 
 // ── Roteamento por NOME de instância (incidente wpp2 2026-07-04) ──────────────

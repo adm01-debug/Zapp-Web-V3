@@ -219,4 +219,5 @@ export function useChatSearchManagement(chatId?: string, query?: string) {
   return { results, loading, search };
 }
 
+/** Re-exported module members. */
 export type { SearchResult, NavigationState };

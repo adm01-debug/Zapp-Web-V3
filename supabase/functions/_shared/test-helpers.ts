@@ -26,6 +26,7 @@ export async function readSourceFrom(
   return text;
 }
 
+/** Extract Block Options interface definition. */
 export interface ExtractBlockOptions {
   /** Stop the block when this pattern is found after the marker (exclusive). */
   until?: string | RegExp;

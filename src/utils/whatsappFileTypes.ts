@@ -1,6 +1,7 @@
 // WhatsApp supported file types and size limits
 // Based on official WhatsApp Business API documentation
 
+/** File Type Config interface definition. */
 export interface FileTypeConfig {
   extensions: string[];
   mimeTypes: string[];
@@ -9,6 +10,7 @@ export interface FileTypeConfig {
   label: string;
 }
 
+/** W H A T S A P P_ F I L E_ T Y P E S constant. */
 export const WHATSAPP_FILE_TYPES: Record<string, FileTypeConfig> = {
   image: {
     extensions: ['.jpg', '.jpeg', '.png', '.webp'],
@@ -187,6 +189,7 @@ export const getFileNameFromUrl = (url: string): string => {
 };
 
 // Contact types for categorization
+/** C O N T A C T_ T Y P E S constant. */
 export const CONTACT_TYPES = [
   { value: 'cliente', label: 'Cliente', color: 'bg-primary' },
   { value: 'fornecedor', label: 'Fornecedor', color: 'bg-secondary' },

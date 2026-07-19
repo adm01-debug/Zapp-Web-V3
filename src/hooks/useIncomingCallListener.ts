@@ -7,6 +7,7 @@ import { getLogger } from '@/lib/logger';
 const log = getLogger('useIncomingCallListener');
 import type { IncomingCall } from '@/types/incomingCall';
 
+/** Re-exported module members. */
 export type { IncomingCall } from '@/types/incomingCall';
 
 /** Listens for incoming calls via Supabase realtime and fetches contact information. */

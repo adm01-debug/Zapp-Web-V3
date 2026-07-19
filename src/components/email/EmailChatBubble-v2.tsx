@@ -111,4 +111,5 @@ export const EmailChatBubbleV2: React.FC<EmailChatBubbleProps> = ({ email, class
   );
 };
 
+/** Default export. */
 export default EmailChatBubble;

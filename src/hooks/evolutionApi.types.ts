@@ -60,6 +60,7 @@ export interface GroupParams {
   inviteCode?: string;
 }
 
+/** Contact Card interface definition. */
 export interface ContactCard {
   fullName: string;
   wuid: string;
@@ -69,6 +70,7 @@ export interface ContactCard {
   url?: string;
 }
 
+/** Poll Params interface definition. */
 export interface PollParams {
   instanceName: string;
   number: string;
@@ -77,17 +79,20 @@ export interface PollParams {
   values: string[];
 }
 
+/** List Section interface definition. */
 export interface ListSection {
   title: string;
   rows: { title: string; description?: string; rowId: string }[];
 }
 
+/** Button Item interface definition. */
 export interface ButtonItem {
   type: 'reply';
   displayText: string;
   id: string;
 }
 
+/** Webhook Config interface definition. */
 export interface WebhookConfig {
   instanceName: string;
   enabled?: boolean;
@@ -97,6 +102,7 @@ export interface WebhookConfig {
   events?: string[];
 }
 
+/** Settings Config interface definition. */
 export interface SettingsConfig {
   instanceName: string;
   rejectCall?: boolean;
@@ -108,6 +114,7 @@ export interface SettingsConfig {
   syncFullHistory?: boolean;
 }
 
+/** Privacy Settings interface definition. */
 export interface PrivacySettings {
   instanceName: string;
   readreceipts?: string;
@@ -118,6 +125,7 @@ export interface PrivacySettings {
   groupadd?: string;
 }
 
+/** Typebot Config interface definition. */
 export interface TypebotConfig {
   instanceName: string;
   enabled?: boolean;
@@ -136,6 +144,7 @@ export interface TypebotConfig {
   triggerValue?: string;
 }
 
+/** Open A I Config interface definition. */
 export interface OpenAIConfig {
   instanceName: string;
   enabled?: boolean;
@@ -158,6 +167,7 @@ export interface OpenAIConfig {
   functionUrl?: string;
 }
 
+/** Dify Config interface definition. */
 export interface DifyConfig {
   instanceName: string;
   enabled?: boolean;
@@ -172,6 +182,7 @@ export interface DifyConfig {
   speechToText?: boolean;
 }
 
+/** Flowise Config interface definition. */
 export interface FlowiseConfig {
   instanceName: string;
   enabled?: boolean;
@@ -183,6 +194,7 @@ export interface FlowiseConfig {
   triggerValue?: string;
 }
 
+/** Evolution Bot Config interface definition. */
 export interface EvolutionBotConfig {
   instanceName: string;
   enabled?: boolean;
@@ -199,6 +211,7 @@ export interface EvolutionBotConfig {
   apiKey?: string;
 }
 
+/** Chatwoot Config interface definition. */
 export interface ChatwootConfig {
   instanceName: string;
   enabled?: boolean;
@@ -217,6 +230,7 @@ export interface ChatwootConfig {
   autoCreate?: boolean;
 }
 
+/** Create Instance Params interface definition. */
 export interface CreateInstanceParams {
   instanceName: string;
   qrcode?: boolean;

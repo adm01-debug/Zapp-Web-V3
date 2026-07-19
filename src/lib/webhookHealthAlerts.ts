@@ -51,6 +51,7 @@ export const DEFAULT_ALERT_CONFIG: WebhookAlertConfig = {
 
 const STORAGE_KEY = 'zappweb:webhook-health-alerts';
 
+/** load Alert Config function. */
 export function loadAlertConfig(): WebhookAlertConfig {
   const raw = safeGetJSON<Partial<WebhookAlertConfig> | null>(STORAGE_KEY, null);
   if (!raw || typeof raw !== 'object') return { ...DEFAULT_ALERT_CONFIG };
@@ -62,6 +63,7 @@ export function loadAlertConfig(): WebhookAlertConfig {
   };
 }
 
+/** save Alert Config function. */
 export function saveAlertConfig(c: WebhookAlertConfig): boolean {
   return safeSetJSON(STORAGE_KEY, c);
 }
@@ -145,4 +147,5 @@ export function shouldFireAlert(
   return true;
 }
 
+/** A L E R T_ C O O L D O W N_ M S constant. */
 export const ALERT_COOLDOWN_MS = 5 * 60 * 1000; // 5 min

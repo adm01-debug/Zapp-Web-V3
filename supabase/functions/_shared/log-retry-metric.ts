@@ -33,6 +33,7 @@ function getServiceClient() {
   return cached;
 }
 
+/** log Retry Metric function. */
 export function logRetryMetric(input: RetryMetricInput): void {
   // Filtro de volume: só registra se houve retry OU falhou.
   const shouldRecord = input.attempt_count > 1 || input.final_status !== 'success';

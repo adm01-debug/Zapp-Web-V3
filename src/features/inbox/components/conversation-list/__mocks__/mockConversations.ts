@@ -99,6 +99,7 @@ function buildConversation(seed: MockSeed): ConversationWithMessages {
   };
 }
 
+/** M O C K_ C O N V E R S A T I O N S constant. */
 export const MOCK_CONVERSATIONS: ConversationWithMessages[] = [
   {
     unreadCount: 7,

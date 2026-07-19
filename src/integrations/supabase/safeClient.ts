@@ -15,7 +15,9 @@ import {
   applyMasking as _applyMasking,
 } from './safeClientMasking';
 
+/** Re-exported module members. */
 export type { SafeResponse, OperationFailure, ClientTelemetry, CacheInfo };
+/** Re-exported module members. */
 export { maskEmail, maskSensitiveData } from './safeClientMasking';
 
 const supabase = _supabase;

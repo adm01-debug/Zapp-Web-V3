@@ -21,6 +21,7 @@ export function hasField<K extends string>(
 
 // ─── Success-shaped responses ─────────────────────────────────────────
 
+/** Success Envelope interface definition. */
 export interface SuccessEnvelope<T = unknown> {
   success: boolean;
   [key: string]: unknown;

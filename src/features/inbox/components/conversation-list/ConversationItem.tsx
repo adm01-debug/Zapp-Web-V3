@@ -5,6 +5,7 @@ import { ConversationItemComfortable } from './ConversationItemComfortable';
 import type { ConversationItemProps as SharedProps } from './conversationItemShared';
 
 // Re-export shared symbols so existing importers don't need to change.
+/** Re-exported module members. */
 export {
   ChannelBadge,
   statusIcons,

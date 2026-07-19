@@ -17,6 +17,7 @@ export function createTestQueryClient() {
   });
 }
 
+/** Test Query Wrapper function. */
 export function TestQueryWrapper({ children }: { children: React.ReactNode }) {
   const queryClient = createTestQueryClient();
   return (

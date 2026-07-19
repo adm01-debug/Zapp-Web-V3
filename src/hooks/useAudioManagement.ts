@@ -25,6 +25,7 @@ export interface AudioMemeItem {
   use_count: number;
 }
 
+/** Pending Upload interface definition. */
 export interface PendingUpload {
   file: File;
   audioUrl: string;
@@ -335,6 +336,7 @@ export function useAudioMemes(open: boolean) {
   };
 }
 
+/** format Duration constant. */
 export const formatDuration = (seconds: number | null) => {
   if (!seconds) return '--';
   const s = Math.round(seconds);

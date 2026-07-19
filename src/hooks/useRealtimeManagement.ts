@@ -201,4 +201,5 @@ export function useTypingPresenceManagement(userId: string, chatId: string) {
   return { typingUsers, startTyping };
 }
 
+/** Re-exported module members. */
 export type { RealtimeUpdate };

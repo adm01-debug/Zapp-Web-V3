@@ -18,6 +18,7 @@ export const useUpdateUserSettings = () => {
   });
 };
 
+/** use Upsert User Settings constant. */
 export const useUpsertUserSettings = () => {
   const queryClient = useQueryClient();
 
@@ -30,6 +31,7 @@ export const useUpsertUserSettings = () => {
   });
 };
 
+/** use Update Workspace Settings constant. */
 export const useUpdateWorkspaceSettings = () => {
   const queryClient = useQueryClient();
 
@@ -42,6 +44,7 @@ export const useUpdateWorkspaceSettings = () => {
   });
 };
 
+/** use Upsert Workspace Settings constant. */
 export const useUpsertWorkspaceSettings = () => {
   const queryClient = useQueryClient();
 

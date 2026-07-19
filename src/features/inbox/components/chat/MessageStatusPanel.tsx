@@ -112,6 +112,7 @@ function TimelineRow({
   );
 }
 
+/** Message Status Panel constant. */
 export const MessageStatusPanel = memo(function MessageStatusPanel({
   children,
   message,

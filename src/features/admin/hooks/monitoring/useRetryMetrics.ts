@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import type { InstanceMetrics } from '@/lib/retryAlerts';
 import { queryKeys } from '@/services/api/queryKeys';
 
+/** Retry Metric Row interface definition. */
 export interface RetryMetricRow {
   id: string;
   action: string;
@@ -18,6 +19,7 @@ export interface RetryMetricRow {
   created_at: string;
 }
 
+/** Retry Aggregates interface definition. */
 export interface RetryAggregates {
   total: number;
   successAfterRetry: number;
@@ -31,6 +33,7 @@ export interface RetryAggregates {
   topReasons: Array<{ reason: string; count: number }>;
 }
 
+/** Retry Metrics Response interface definition. */
 export interface RetryMetricsResponse {
   rows: RetryMetricRow[];
   aggregates: RetryAggregates;

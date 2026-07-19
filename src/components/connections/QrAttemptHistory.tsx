@@ -7,6 +7,7 @@ import { formatTimeHMS } from '@/lib/formatters';
 
 const log = getLogger('QrAttemptHistory');
 
+/** Qr Attempt Row interface definition. */
 export interface QrAttemptRow {
   id: string;
   status: 'pending' | 'connected' | 'expired' | 'error';
@@ -33,6 +34,7 @@ const STATUS_META: Record<
   error: { label: 'Erro', icon: XCircle, tone: 'text-destructive' },
 };
 
+/** Qr Attempt History function. */
 export function QrAttemptHistory({ connectionId, refreshKey, limit = 5 }: Props) {
   const [rows, setRows] = useState<QrAttemptRow[]>([]);
   const [loading, setLoading] = useState(true);

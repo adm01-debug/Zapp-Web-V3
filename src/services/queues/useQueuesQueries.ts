@@ -12,6 +12,7 @@ import {
 import { queuesService, type Queue } from './index';
 import type { QueryParams } from '@/services/api/types';
 
+/** use Queues List constant. */
 export const useQueuesList = (filters?: Partial<Queue> & QueryParams) => {
   return createListQuery(
     queryKeys.queues.list(filters),
@@ -20,6 +21,7 @@ export const useQueuesList = (filters?: Partial<Queue> & QueryParams) => {
   );
 };
 
+/** use Queue constant. */
 export const useQueue = (id?: string) => {
   return createDetailQuery(
     queryKeys.queues.detail(id || ''),
@@ -29,6 +31,7 @@ export const useQueue = (id?: string) => {
   );
 };
 
+/** use Search Queues constant. */
 export const useSearchQueues = (query?: string) => {
   return createSearchQuery(
     queryKeys.queues.search(query),
@@ -38,6 +41,7 @@ export const useSearchQueues = (query?: string) => {
   );
 };
 
+/** use Invalidate Queues constant. */
 export const useInvalidateQueues = () => {
   const queryClient = useQueryClient();
   return {

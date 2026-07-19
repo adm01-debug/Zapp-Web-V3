@@ -1,3 +1,4 @@
+/** Re-exported module members. */
 export { SidebarProvider, useSidebar } from "./sidebar-context";
 /** sidebar component for the ui section. */
 export {

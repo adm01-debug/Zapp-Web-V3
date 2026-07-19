@@ -66,6 +66,7 @@ function isSendPath(path: string): boolean {
   return path.startsWith('/message/') || path.includes('/message/');
 }
 
+/** enqueue Client Failed Message function. */
 export function enqueueClientFailedMessage(input: EnqueueClientFailedMessageInput): void {
   const method = input.method ?? 'POST';
   if (method !== 'POST') return;
@@ -110,4 +111,5 @@ export function enqueueClientFailedMessage(input: EnqueueClientFailedMessageInpu
 }
 
 // Helpers exportados para testes
+/** __test__ constant. */
 export const __test__ = { isTransientFailure, isSendPath };

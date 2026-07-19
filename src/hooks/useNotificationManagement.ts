@@ -8,6 +8,7 @@ import { useAuth } from '@/features/auth';
 import { log } from '@/lib/logger';
 import type { SoundType } from '@/utils/notificationSounds';
 
+/** Sound Type Option type alias. */
 export type SoundTypeOption = SoundType;
 
 interface NotificationSettings {
@@ -34,6 +35,7 @@ interface NotificationSettings {
   transcriptionSoundType: SoundTypeOption;
 }
 
+/** Notification Payload interface definition. */
 export interface NotificationPayload {
   title: string;
   body?: string;
@@ -41,6 +43,7 @@ export interface NotificationPayload {
   icon?: string;
 }
 
+/** Push Notification State interface definition. */
 export interface PushNotificationState {
   permission: NotificationPermission;
   isSupported: boolean;
@@ -157,6 +160,7 @@ const toDbSettings = (settings: Partial<NotificationSettings>): Record<string, u
   return db;
 };
 
+/** App Notification interface definition. */
 export interface AppNotification {
   id: string;
   type: string;
@@ -166,6 +170,7 @@ export interface AppNotification {
   created_at: string;
 }
 
+/** Team Chat Notification type alias. */
 export type TeamChatNotification = AppNotification;
 
 /** Manages browser push notifications with permission requests and notification sending. */
@@ -457,4 +462,5 @@ export function useTranscriptionNotificationsManagement() {
   return { transcriptionNotifications };
 }
 
+/** Re-exported module members. */
 export type { NotificationSettings, AppNotification as Notification };

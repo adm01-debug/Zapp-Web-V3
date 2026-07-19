@@ -11,6 +11,7 @@ const deviceDetectionLog = getLogger('DeviceDetection');
 // TYPE DEFINITIONS
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════════════
 
+/** Use Swipe Gesture Options interface definition. */
 export interface UseSwipeGestureOptions {
   onSwipeLeft?: () => void;
   onSwipeRight?: () => void;
@@ -18,12 +19,14 @@ export interface UseSwipeGestureOptions {
   enabled?: boolean;
 }
 
+/** Swipe State interface definition. */
 export interface SwipeState {
   offsetX: number;
   isSwiping: boolean;
   direction: 'left' | 'right' | null;
 }
 
+/** Use Swipe Navigation Options interface definition. */
 export interface UseSwipeNavigationOptions {
   onSwipeBack?: () => void;
   onSwipeForward?: () => void;
@@ -34,6 +37,7 @@ export interface UseSwipeNavigationOptions {
   enabled?: boolean;
 }
 
+/** User Device interface definition. */
 export interface UserDevice {
   id: string;
   device_fingerprint: string;
@@ -48,6 +52,7 @@ export interface UserDevice {
   last_seen_at: string;
 }
 
+/** User Session interface definition. */
 export interface UserSession {
   id: string;
   device_id: string | null;
@@ -59,6 +64,7 @@ export interface UserSession {
   expires_at: string;
 }
 
+/** Sidebar State interface definition. */
 export interface SidebarState {
   collapsed: boolean;
   toggleCollapsed: () => void;
@@ -68,6 +74,7 @@ export interface SidebarState {
   maxReached: boolean;
 }
 
+/** Use Aria Announcer Return interface definition. */
 export interface UseAriaAnnouncerReturn {
   announce: (message: string) => void;
 }

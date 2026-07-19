@@ -39,4 +39,5 @@ const SLAHistory = () => {
   );
 };
 
+/** Default export. */
 export default SLAHistory;

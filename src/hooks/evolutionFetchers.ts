@@ -9,6 +9,7 @@ export const POLL_INTERVAL = 5000;
 export const DEFAULT_INSTANCE = DEFAULT_WHATSAPP_INSTANCE;
 export const SIDEBAR_DAYS_BACK = 7;
 export const SIDEBAR_LIMIT = 200;
+/** C O N V E R S A T I O N_ P A G E_ S I Z E constant. */
 export const CONVERSATION_PAGE_SIZE = 100;
 
 // Slim select — drops `payload` and `raw_data` (each can be 10KB+).
@@ -48,11 +49,13 @@ const SLIM_MESSAGE_COLUMNS = [
 ].join(',');
 
 // Mocks are strictly opt-in AND only in DEV.
+/** U S E_ M O C K S constant. */
 export const USE_MOCKS =
   import.meta.env.DEV &&
   typeof window !== 'undefined' &&
   window.localStorage?.getItem('mockConversations') === '1';
 
+/** fetch Recent Messages Window function. */
 export async function fetchRecentMessagesWindow(
   daysBack = SIDEBAR_DAYS_BACK,
   limit = SIDEBAR_LIMIT
@@ -71,6 +74,7 @@ export async function fetchRecentMessagesWindow(
   return result.data;
 }
 
+/** fetch Messages By Jid function. */
 export async function fetchMessagesByJid(
   remoteJid: string,
   limit = CONVERSATION_PAGE_SIZE,
@@ -95,6 +99,7 @@ export async function fetchMessagesByJid(
   return result.data.slice().reverse();
 }
 
+/** fetch Messages After function. */
 export async function fetchMessagesAfter(
   remoteJid: string,
   afterDate: string,

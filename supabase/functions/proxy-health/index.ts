@@ -57,6 +57,7 @@ export function quantile(sorted: number[], q: number): number {
   return sorted[base]
 }
 
+/** Computed Metrics interface definition. */
 export interface ComputedMetrics {
   window_minutes: number
   sample_size: number
@@ -76,6 +77,7 @@ export interface ComputedMetrics {
   by_target: Array<{ target: string; count: number; error_rate: number; p95_ms: number }>
 }
 
+/** compute Metrics function. */
 export function computeMetrics(rows: MetricRow[], windowMinutes: number): ComputedMetrics {
   const total = rows.length
   if (total === 0) {
@@ -141,6 +143,7 @@ export function computeMetrics(rows: MetricRow[], windowMinutes: number): Comput
   }
 }
 
+/** Alert Candidate interface definition. */
 export interface AlertCandidate {
   kind: 'error_rate' | 'timeout_rate' | 'latency_p95'
   severity: 'warning' | 'critical'
@@ -148,6 +151,7 @@ export interface AlertCandidate {
   threshold: number
 }
 
+/** evaluate Alerts function. */
 export function evaluateAlerts(m: ComputedMetrics): AlertCandidate[] {
   const out: AlertCandidate[] = []
   if (m.sample_size < THRESHOLDS.min_sample_size) return out

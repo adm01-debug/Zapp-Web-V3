@@ -22,6 +22,7 @@ function resolveAutoClearMs(): number {
   return Math.min(MAX_AUTO_CLEAR_MS, Math.max(MIN_AUTO_CLEAR_MS, Math.round(n)));
 }
 
+/** T Y P I N G_ A U T O_ C L E A R_ M S constant. */
 export const TYPING_AUTO_CLEAR_MS = resolveAutoClearMs();
 
 /**
@@ -43,6 +44,7 @@ function resolveStopDebounceMs(): number {
   return Math.min(MAX_STOP_DEBOUNCE_MS, Math.max(MIN_STOP_DEBOUNCE_MS, Math.round(n)));
 }
 
+/** T Y P I N G_ S T O P_ D E B O U N C E_ M S constant. */
 export const TYPING_STOP_DEBOUNCE_MS = resolveStopDebounceMs();
 
 /**

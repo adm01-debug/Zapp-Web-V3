@@ -11,4 +11,5 @@ export function useMonitoringData(
     : paramsOrCallback;
   return useMonitoringDataManagement(params);
 }
+/** Re-exported module members. */
 export type { UseMonitoringDataParams, UseMonitoringDataResult };

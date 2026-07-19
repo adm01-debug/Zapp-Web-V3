@@ -16,6 +16,7 @@ export const boolOrFalse = (v: boolean | null | undefined): boolean => v ?? fals
 export const numOrZero = (v: number | null | undefined): number => v ?? 0;
 
 // ---------- Payment Links ----------
+/** Normalized Payment Link interface definition. */
 export interface NormalizedPaymentLink {
   id: string;
   title: string;
@@ -31,6 +32,7 @@ export interface NormalizedPaymentLink {
   created_at: string;
 }
 
+/** normalize Payment Link function. */
 export function normalizePaymentLink(row: Record<string, unknown>): NormalizedPaymentLink {
   return {
     id: String(row.id ?? ''),
@@ -49,6 +51,7 @@ export function normalizePaymentLink(row: Record<string, unknown>): NormalizedPa
 }
 
 // ---------- Blocked IPs ----------
+/** Normalized Blocked I P interface definition. */
 export interface NormalizedBlockedIP {
   id: string;
   ip_address: string;
@@ -60,6 +63,7 @@ export interface NormalizedBlockedIP {
   last_attempt_at: string | null;
 }
 
+/** normalize Blocked I P function. */
 export function normalizeBlockedIP(row: Record<string, unknown>): NormalizedBlockedIP {
   return {
     id: String(row.id ?? ''),
@@ -74,6 +78,7 @@ export function normalizeBlockedIP(row: Record<string, unknown>): NormalizedBloc
 }
 
 // ---------- Security Alerts ----------
+/** Normalized Security Alert interface definition. */
 export interface NormalizedSecurityAlert {
   id: string;
   alert_type: string;
@@ -85,6 +90,7 @@ export interface NormalizedSecurityAlert {
   is_resolved: boolean;
 }
 
+/** normalize Security Alert function. */
 export function normalizeSecurityAlert(row: Record<string, unknown>): NormalizedSecurityAlert {
   return {
     id: String(row.id ?? ''),
@@ -99,6 +105,7 @@ export function normalizeSecurityAlert(row: Record<string, unknown>): Normalized
 }
 
 // ---------- Devices / Sessions ----------
+/** Normalized User Device interface definition. */
 export interface NormalizedUserDevice {
   id: string;
   device_name: string;
@@ -109,6 +116,7 @@ export interface NormalizedUserDevice {
   last_seen_at: string;
 }
 
+/** normalize User Device function. */
 export function normalizeUserDevice(row: Record<string, unknown>): NormalizedUserDevice {
   return {
     id: String(row.id ?? ''),
@@ -121,6 +129,7 @@ export function normalizeUserDevice(row: Record<string, unknown>): NormalizedUse
   };
 }
 
+/** Normalized User Session interface definition. */
 export interface NormalizedUserSession {
   id: string;
   device_id: string;
@@ -128,6 +137,7 @@ export interface NormalizedUserSession {
   started_at: string;
 }
 
+/** normalize User Session function. */
 export function normalizeUserSession(row: Record<string, unknown>): NormalizedUserSession {
   return {
     id: String(row.id ?? ''),

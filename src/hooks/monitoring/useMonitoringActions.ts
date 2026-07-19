@@ -11,4 +11,5 @@ export function useMonitoringActions(
     : paramsOrFetchData;
   return useMonitoringActionsManagement(params);
 }
+/** Re-exported module members. */
 export type { UseMonitoringActionsParams, UseMonitoringActionsResult };

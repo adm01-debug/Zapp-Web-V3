@@ -12,6 +12,7 @@ export const GMAIL_API  = 'https://gmail.googleapis.com/gmail/v1/users/me';
 
 // ── Supabase client (service role) ────────────────────────────────────
 
+/** get Supabase Admin function. */
 export function getSupabaseAdmin(): SupabaseClient {
   return createClient(
     (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'))!,
@@ -22,11 +23,13 @@ export function getSupabaseAdmin(): SupabaseClient {
 
 // ── CORS ──────────────────────────────────────────────────────────────
 
+/** cors Headers constant. */
 export const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+/** json Response function. */
 export function jsonResponse(data: unknown, status = 200): Response {
   return new Response(JSON.stringify(data), {
     status,
@@ -36,6 +39,7 @@ export function jsonResponse(data: unknown, status = 200): Response {
 
 // ── Token Management ───────────────────────────────────────────────────
 
+/** Gmail Account Row interface definition. */
 export interface GmailAccountRow {
   id: string;
   email: string;
@@ -127,6 +131,7 @@ export async function refreshAccessToken(
 
 // ── Header parsing ─────────────────────────────────────────────────────
 
+/** parse Headers function. */
 export function parseHeaders(
   headers: Array<{ name: string; value: string }>
 ): Record<string, string> {
@@ -137,6 +142,7 @@ export function parseHeaders(
   return out;
 }
 
+/** parse From Header function. */
 export function parseFromHeader(from: string): { name: string; email: string } {
   const m = from.match(/^(.*?)\s*<(.+?)>$/) ?? [];
   return {
@@ -145,18 +151,21 @@ export function parseFromHeader(from: string): { name: string; email: string } {
   };
 }
 
+/** parse Email List function. */
 export function parseEmailList(raw: string): string[] {
   return (raw ?? '').split(',').map(s => s.trim()).filter(Boolean);
 }
 
 // ── MIME / Body extraction ─────────────────────────────────────────────
 
+/** Email Body interface definition. */
 export interface EmailBody {
   plain: string;
   html:  string;
   hasAttachments: boolean;
 }
 
+/** extract Body function. */
 export function extractBody(payload: Record<string, unknown>): EmailBody {
   let plain = '';
   let html  = '';
@@ -283,6 +292,7 @@ export async function persistGmailMessage(
 
 // ── Gmail API fetch helpers ────────────────────────────────────────────
 
+/** fetch Gmail Message function. */
 export async function fetchGmailMessage(
   token: string,
   messageId: string
@@ -301,6 +311,7 @@ export async function fetchGmailMessage(
   return await res.json().catch(() => ({ error: { code: res.status, message: 'invalid JSON' } }));
 }
 
+/** fetch Gmail History function. */
 export async function fetchGmailHistory(
   token: string,
   startHistoryId: string

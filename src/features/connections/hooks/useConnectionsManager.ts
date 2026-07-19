@@ -13,6 +13,7 @@ import { useConnectionsRealtime } from './parts/useConnectionsRealtime';
 import { useConnectionsActions } from './parts/useConnectionsActions';
 import { evolutionInstanceName } from '@/lib/evolutionInstance';
 import type { WhatsAppApiType, WhatsAppConnection, QrTtlSource } from './types';
+/** Re-exported module members. */
 export type { WhatsAppApiType, WhatsAppConnection, QrCodeDialogState, QrTtlSource } from './types';
 
 const QR_STORAGE_KEY = 'zapp:qrDialog:v1';

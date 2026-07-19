@@ -10,6 +10,7 @@ export function formatMessageTime(date: Date): string {
   return format(date, 'HH:mm');
 }
 
+/** format Date Separator function. */
 export function formatDateSeparator(date: Date): string {
   if (isToday(date)) return 'Hoje';
   if (isYesterday(date)) return 'Ontem';

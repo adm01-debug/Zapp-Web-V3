@@ -13,6 +13,7 @@ export function safeGetItem(key: string): string | null {
   }
 }
 
+/** safe Set Item function. */
 export function safeSetItem(key: string, value: string): boolean {
   try {
     localStorage.setItem(key, value);
@@ -23,6 +24,7 @@ export function safeSetItem(key: string, value: string): boolean {
   }
 }
 
+/** safe Remove Item function. */
 export function safeRemoveItem(key: string): boolean {
   try {
     localStorage.removeItem(key);

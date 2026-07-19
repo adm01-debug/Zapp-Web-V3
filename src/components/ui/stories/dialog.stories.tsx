@@ -16,6 +16,7 @@ const meta: Meta<typeof Dialog> = {
   tags: ['autodocs'],
 };
 
+/** Default export. */
 export default meta;
 type Story = StoryObj<typeof Dialog>;
 

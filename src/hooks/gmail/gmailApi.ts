@@ -11,6 +11,7 @@ import {
   type ListThreadsParams,
 } from './gmailApiTypes';
 
+/** Re-exported module members. */
 export type {
   EmailApiError,
   EmailApiResponse,

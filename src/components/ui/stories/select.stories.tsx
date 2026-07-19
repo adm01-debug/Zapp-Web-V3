@@ -7,6 +7,7 @@ const meta: Meta<typeof Select> = {
   tags: ['autodocs'],
 };
 
+/** Default export. */
 export default meta;
 type Story = StoryObj<typeof Select>;
 

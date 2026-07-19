@@ -64,6 +64,7 @@ function fmt(ts?: string | null): string {
   }
 }
 
+/** Message Status Timeline constant. */
 export const MessageStatusTimeline = memo(function MessageStatusTimeline({
   messageId,
   status,

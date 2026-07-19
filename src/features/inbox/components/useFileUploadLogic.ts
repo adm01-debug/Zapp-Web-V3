@@ -18,6 +18,7 @@ import {
   categoryOrder,
   MAX_FILES,
 } from './useFileUploadLogicTypes';
+/** Re-exported module members. */
 export type { FileMessageData, FilePreview, QueuedFile } from './useFileUploadLogicTypes';
 
 function buildFileMessageData(result: unknown, mediaUrl: string, messageType?: string): FileMessageData {

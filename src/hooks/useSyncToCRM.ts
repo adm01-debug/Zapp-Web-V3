@@ -28,6 +28,7 @@ export interface SyncConversationInput {
   zappConversationId?: string;
 }
 
+/** Sync Conversation Result interface definition. */
 export interface SyncConversationResult {
   synced: boolean;
   reason?: 'duplicate' | 'contact_not_found' | 'not_configured' | 'error';
@@ -35,6 +36,7 @@ export interface SyncConversationResult {
   [key: string]: unknown;
 }
 
+/** Use Sync To C R M Return interface definition. */
 export interface UseSyncToCRMReturn {
   isSyncing: boolean;
   isConfigured: boolean;
@@ -77,6 +79,7 @@ async function callSyncRpc(input: SyncConversationInput): Promise<SyncConversati
   return { ...result, synced: !!result.synced };
 }
 
+/** use Sync To C R M function. */
 export function useSyncToCRM(): UseSyncToCRMReturn {
   const [isSyncing, setIsSyncing] = useState(false);
   const [isConfigured, setIsConfigured] = useState(true); // otimista até a 1ª chamada dizer o contrário

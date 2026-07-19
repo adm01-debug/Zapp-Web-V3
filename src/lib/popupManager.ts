@@ -14,6 +14,7 @@ function cleanClosedPopups() {
   }
 }
 
+/** open Chat Popup function. */
 export function openChatPopup(contactId: string, contactName: string): Window | null {
   cleanClosedPopups();
 
@@ -54,6 +55,7 @@ export function isPopupOpen(contactId: string): boolean {
   return !!win && !win.closed;
 }
 
+/** close Popup function. */
 export function closePopup(contactId: string) {
   const win = openPopups.get(contactId);
   if (win && !win.closed) {
@@ -62,6 +64,7 @@ export function closePopup(contactId: string) {
   openPopups.delete(contactId);
 }
 
+/** close All Popups function. */
 export function closeAllPopups() {
   for (const [id, win] of openPopups.entries()) {
     if (!win.closed) win.close();

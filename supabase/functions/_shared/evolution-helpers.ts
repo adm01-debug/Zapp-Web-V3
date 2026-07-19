@@ -2,6 +2,7 @@
 declare const Deno: { env: { get(key: string): string | undefined } };
 
 
+/** Webhook Payload interface definition. */
 export interface WebhookPayload {
   event: string;
   instance: string;
@@ -13,16 +14,19 @@ export interface WebhookPayload {
   apikey?: string;
 }
 
+/** is Record function. */
 export function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
+/** normalize Event Name function. */
 export function normalizeEventName(event?: string): string {
   return (event || '').trim().toLowerCase().replace(/_/g, '.');
 }
 
 // Redacts phone/JID for logs: keeps country+area code, masks the rest.
 // "5511998765432@s.whatsapp.net" -> "551199***"
+/** redact Jid function. */
 export function redactJid(jid?: string | null): string {
   if (!jid) return '';
   const raw = String(jid).split('@')[0].replace(/:\d+$/, '');
@@ -30,11 +34,13 @@ export function redactJid(jid?: string | null): string {
   return `${raw.slice(0, 6)}***`;
 }
 
+/** generate Request Id function. */
 export function generateRequestId(): string {
   try { return crypto.randomUUID(); } catch { return `req_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`; }
 }
 
 // SHA-256 hex of a string. Used to produce stable deduplication keys from raw webhook bodies.
+/** sha256 Hex function. */
 export async function sha256Hex(input: string): Promise<string> {
   const bytes = new TextEncoder().encode(input);
   const digest = await crypto.subtle.digest('SHA-256', bytes);
@@ -45,6 +51,7 @@ export async function sha256Hex(input: string): Promise<string> {
 // false if a prior row already exists (caller should treat as duplicate). Non-unique errors are
 // treated as "new" so the handler is never blocked by audit-infra failure.
 // deno-lint-ignore no-explicit-any
+/** mark Event Processed function. */
 export async function markEventProcessed(supabase: any, eventId: string, instance: string, eventType: string): Promise<boolean> {
   const { error } = await supabase.from('webhook_events_processed').insert({
     event_id: eventId, instance, event_type: eventType,
@@ -63,6 +70,7 @@ export async function markEventProcessed(supabase: any, eventId: string, instanc
 // never throws; a failed rollback is logged but does not change the 429 response.
 // CRITICAL: failed rollback writes to DLQ to ensure audit trail (G1 fix 2026-07-12).
 // deno-lint-ignore no-explicit-any
+/** unmark Event Processed function. */
 export async function unmarkEventProcessed(supabase: any, eventId: string, instance?: string, eventType?: string): Promise<boolean> {
   try {
     const { error } = await supabase.from('webhook_events_processed').delete().eq('event_id', eventId);
@@ -156,6 +164,7 @@ function isSecretKey(key: string): boolean {
   return false;
 }
 
+/** scrub Webhook Secrets function. */
 export function scrubWebhookSecrets(value: unknown, depth = 0): unknown {
   if (depth > 12 || value === null || typeof value !== 'object') return value;
   if (Array.isArray(value)) return value.map((v) => scrubWebhookSecrets(v, depth + 1));
@@ -167,6 +176,7 @@ export function scrubWebhookSecrets(value: unknown, depth = 0): unknown {
   return out;
 }
 
+/** Webhook Audit Row interface definition. */
 export interface WebhookAuditRow {
   request_id: string;
   instance?: string | null;
@@ -178,12 +188,14 @@ export interface WebhookAuditRow {
 }
 
 // deno-lint-ignore no-explicit-any
+/** audit Webhook Event function. */
 export async function auditWebhookEvent(supabase: any, row: WebhookAuditRow): Promise<void> {
   try { await supabase.from('webhook_audit_log').insert(row); } catch (e) {
     console.warn('[audit] insert failed:', (e as Error).message ?? String(e));
   }
 }
 
+/** to Event Records function. */
 export function toEventRecords(data: unknown, collectionKeys: string[] = []): Record<string, unknown>[] {
   if (Array.isArray(data)) return data.filter(isRecord);
   if (!isRecord(data)) return [];
@@ -194,6 +206,7 @@ export function toEventRecords(data: unknown, collectionKeys: string[] = []): Re
   return [data];
 }
 
+/** normalize Phone function. */
 export function normalizePhone(rawJid?: string): string | null {
   if (!rawJid) return null;
   const sanitized = rawJid
@@ -209,6 +222,7 @@ export function normalizePhone(rawJid?: string): string | null {
   return digitsOnly || sanitized || null;
 }
 
+/** resolve Best Jid function. */
 export function resolveBestJid(...candidates: Array<string | null | undefined>): string | null {
   const valid = candidates
     .map((candidate) => candidate?.trim())
@@ -224,6 +238,7 @@ export function resolveBestJid(...candidates: Array<string | null | undefined>):
     ?? null;
 }
 
+/** resolve Event Jid function. */
 export function resolveEventJid(...sources: unknown[]): string | null {
   const candidates: string[] = [];
   const seen = new Set<string>();
@@ -283,11 +298,13 @@ export function resolveEventJid(...sources: unknown[]): string | null {
   return resolveBestJid(...candidates);
 }
 
+/** S T A T U S_ P R I O R I T Y constant. */
 export const STATUS_PRIORITY: Record<string, number> = {
   'sending': 0, 'sent': 1, 'delivered': 2, 'read': 3, 'played': 4,
   'failed': -1, 'deleted': 99, 'received': 1,
 };
 
+/** should Update Status function. */
 export function shouldUpdateStatus(currentStatus: string | null, newStatus: string): boolean {
   if (!currentStatus) return true;
   const currentPriority = STATUS_PRIORITY[currentStatus] ?? 0;
@@ -300,6 +317,7 @@ export function shouldUpdateStatus(currentStatus: string | null, newStatus: stri
 }
 
 // deno-lint-ignore no-explicit-any
+/** get Connection By Instance function. */
 export async function getConnectionByInstance(supabase: any, instance: string): Promise<{ id: string } | null> {
   // [PATCH 2026-07-05 conn-resolver] Evolution envia payload.instance = NOME da instancia,
   // mas fluxos de criacao gravam UUID em whatsapp_connections.instance_id. Resolve por
@@ -321,6 +339,7 @@ export async function getConnectionByInstance(supabase: any, instance: string): 
   return null;
 }
 // deno-lint-ignore no-explicit-any
+/** get Contact By Phone function. */
 export async function getContactByPhone(
   supabase: any,
   phone: string,
@@ -371,6 +390,7 @@ export function generatePhoneVariants(phone: string): string[] {
   return [...variants];
 }
 
+/** fetch Profile Pic From Api function. */
 export async function fetchProfilePicFromApi(instance: string, phone: string): Promise<string | null> {
   try {
     const evolutionUrl = Deno.env.get('EVOLUTION_API_URL');
@@ -390,6 +410,7 @@ export async function fetchProfilePicFromApi(instance: string, phone: string): P
 }
 
 // deno-lint-ignore no-explicit-any
+/** persist Profile Picture function. */
 export async function persistProfilePicture(supabase: any, phone: string, profilePicUrl: string): Promise<string | null> {
   try {
     const response = await fetch(profilePicUrl, { signal: AbortSignal.timeout(5000) });
@@ -417,6 +438,7 @@ export async function persistProfilePicture(supabase: any, phone: string, profil
 }
 
 // deno-lint-ignore no-explicit-any
+/** handle Reaction Event function. */
 export async function handleReactionEvent(supabase: any, instance: string, reactionMessage: Record<string, unknown>, actorFromMe: boolean) {
   const emoji = (reactionMessage.text as string) || '';
   const reactKey = reactionMessage.key as Record<string, unknown> | undefined;

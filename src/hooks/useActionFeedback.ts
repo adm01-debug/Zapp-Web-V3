@@ -13,6 +13,7 @@ import {
   FEEDBACK_DURATIONS,
 } from './feedback/feedbackTypes';
 
+/** Re-exported module members. */
 export type { FeedbackType, FeedbackOptions, WithFeedbackOptions, UndoableOptions };
 
 /** Provides feedback notifications for user actions with customizable types and durations. */

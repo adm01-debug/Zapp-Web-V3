@@ -69,4 +69,5 @@ export function TourProvider({ children, onComplete }: TourProviderProps) {
 }
 
 // Re-export for backward compatibility
+/** Re-exported module members. */
 export { DEFAULT_ONBOARDING_STEPS } from './defaultTourSteps';

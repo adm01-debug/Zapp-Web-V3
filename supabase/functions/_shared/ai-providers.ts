@@ -31,6 +31,7 @@ export async function callLovableAI(params: {
   });
 }
 
+/** call Open A I Compatible function. */
 export async function callOpenAICompatible(params: {
   endpoint: string;
   apiKey: string;
@@ -62,6 +63,7 @@ export async function callOpenAICompatible(params: {
   });
 }
 
+/** call Custom Webhook function. */
 export async function callCustomWebhook(params: {
   endpoint: string;
   apiKey?: string;

@@ -37,6 +37,7 @@ const meta: Meta<typeof Card> = {
   },
 };
 
+/** Default export. */
 export default meta;
 type Story = StoryObj<typeof Card>;
 

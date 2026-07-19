@@ -63,4 +63,5 @@ export function RealtimeCollaboration({ contactId, className }: RealtimeCollabor
   );
 }
 
+/** Re-exported module members. */
 export { ViewersIndicator, InternalNotesPanel, HandoffDialog };

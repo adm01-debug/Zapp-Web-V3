@@ -21,6 +21,7 @@ export interface RetryConfig {
   timeoutMs: number;
 }
 
+/** D E F A U L T_ R E T R Y_ C O N F I G constant. */
 export const DEFAULT_RETRY_CONFIG: RetryConfig = {
   maxRetries: 3,
   baseBackoffMs: 800,
@@ -28,6 +29,7 @@ export const DEFAULT_RETRY_CONFIG: RetryConfig = {
   timeoutMs: 30_000,
 };
 
+/** R E T R Y_ C O N F I G_ R A N G E S constant. */
 export const RETRY_CONFIG_RANGES: Record<keyof RetryConfig, { min: number; max: number; step: number }> = {
   maxRetries: { min: 1, max: 10, step: 1 },
   baseBackoffMs: { min: 100, max: 10_000, step: 100 },
@@ -46,6 +48,7 @@ interface CacheEntry {
 const cache = new Map<string, CacheEntry>();
 const inflight = new Map<string, Promise<RetryConfig>>();
 
+/** clamp To Range function. */
 export function clampToRange<K extends keyof RetryConfig>(field: K, raw: number): number {
   const r = RETRY_CONFIG_RANGES[field];
   if (!Number.isFinite(raw)) return DEFAULT_RETRY_CONFIG[field];
@@ -134,6 +137,7 @@ export function getRetryConfigSync(instanceName?: string): RetryConfig {
   return { ...DEFAULT_RETRY_CONFIG };
 }
 
+/** invalidate Retry Config Cache function. */
 export function invalidateRetryConfigCache(instanceName?: string): void {
   if (instanceName) {
     cache.delete(instanceName);
@@ -154,6 +158,7 @@ export function settingKeyFor(field: keyof RetryConfig, instanceName?: string): 
   return `retry.instance.${instanceName}.${field}`;
 }
 
+/** R E T R Y_ C O N F I G_ F I E L D S constant. */
 export const RETRY_CONFIG_FIELDS: (keyof RetryConfig)[] = [
   'maxRetries',
   'baseBackoffMs',
@@ -161,6 +166,7 @@ export const RETRY_CONFIG_FIELDS: (keyof RetryConfig)[] = [
   'timeoutMs',
 ];
 
+/** Retry Config Errors type alias. */
 export type RetryConfigErrors = Partial<Record<keyof RetryConfig, string>> & { _form?: string };
 
 /**
@@ -194,10 +200,12 @@ export function validateRetryConfig(c: RetryConfig): RetryConfigErrors {
   return errors;
 }
 
+/** has Retry Config Errors function. */
 export function hasRetryConfigErrors(errors: RetryConfigErrors): boolean {
   return Object.keys(errors).length > 0;
 }
 
+/** Retry Config Validation Error class implementation. */
 export class RetryConfigValidationError extends Error {
   errors: RetryConfigErrors;
   constructor(errors: RetryConfigErrors) {

@@ -11,6 +11,7 @@ export function shortRid(): string {
   }
 }
 
+/** log Event function. */
 export function logEvent(base: LogPayload, extra: LogPayload = {}) {
   try {
     console.log(JSON.stringify({ fn: 'external-db-proxy', ts: new Date().toISOString(), ...base, ...extra }))
@@ -19,6 +20,7 @@ export function logEvent(base: LogPayload, extra: LogPayload = {}) {
   }
 }
 
+/** build Query Log function. */
 export function buildQueryLog(ctx: QueryLogContext, outcome: QueryOutcome): LogPayload {
   return {
     phase: 'query',
@@ -38,6 +40,7 @@ export function buildQueryLog(ctx: QueryLogContext, outcome: QueryOutcome): LogP
   }
 }
 
+/** is Schema Cache Error function. */
 export function isSchemaCacheError(err: { message?: string; code?: string } | null | undefined): boolean {
   if (!err) return false
   if (err.code === 'PGRST002') return true
@@ -45,18 +48,21 @@ export function isSchemaCacheError(err: { message?: string; code?: string } | nu
   return /schema cache/i.test(msg) && /PGRST002|could not query the database/i.test(msg)
 }
 
+/** is Statement Timeout function. */
 export function isStatementTimeout(err: { message?: string; code?: string } | null | undefined): boolean {
   if (!err) return false
   if (err.code === '57014') return true
   return /statement timeout|canceling statement/i.test(err.message || '')
 }
 
+/** is Schema Not Exposed function. */
 export function isSchemaNotExposed(err: { message?: string; code?: string } | null | undefined): boolean {
   if (!err) return false
   if (err.code === 'PGRST106') return true
   return /Invalid schema:/i.test(err.message || '')
 }
 
+/** classify Upstream Error function. */
 export function classifyUpstreamError(
   message: string | undefined,
   timeoutFired: boolean,
@@ -84,6 +90,7 @@ function getMetricsClient() {
   return metricsClient
 }
 
+/** record Metric function. */
 export function recordMetric(sample: MetricSample) {
   const client = getMetricsClient()
   if (!client) return
@@ -102,6 +109,7 @@ export function recordMetric(sample: MetricSample) {
   })
 }
 
+/** error Body function. */
 export function errorBody(
   cid: string,
   rid: string,

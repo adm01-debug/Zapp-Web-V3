@@ -43,6 +43,7 @@ function isWhatsAppConnection(c: DegradedConnection | WhatsAppConnection): c is 
   );
 }
 
+/** Connections View function. */
 export function ConnectionsView(): JSX.Element {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');

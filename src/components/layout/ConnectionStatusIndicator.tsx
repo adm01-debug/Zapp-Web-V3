@@ -17,6 +17,7 @@ interface Props {
   collapsed?: boolean;
 }
 
+/** Connection Status Indicator function. */
 export function ConnectionStatusIndicator({ collapsed = false }: Props) {
   const {
     connections,

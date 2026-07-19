@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { queryKeys } from '@/services/api/queryKeys';
 
+/** C S A T Survey interface definition. */
 export interface CSATSurvey {
   id: string;
   contact_id: string;
@@ -13,6 +14,7 @@ export interface CSATSurvey {
   created_at: string;
 }
 
+/** C S A T Stats interface definition. */
 export interface CSATStats {
   average: number;
   total: number;

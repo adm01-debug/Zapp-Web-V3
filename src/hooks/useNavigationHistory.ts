@@ -1,5 +1,6 @@
 import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 
+/** Navigation Entry interface definition. */
 export interface NavigationEntry {
   viewId: string;
   timestamp: number;

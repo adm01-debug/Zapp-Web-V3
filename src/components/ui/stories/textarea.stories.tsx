@@ -12,6 +12,7 @@ const meta: Meta<typeof Textarea> = {
   },
 };
 
+/** Default export. */
 export default meta;
 type Story = StoryObj<typeof Textarea>;
 

@@ -139,6 +139,7 @@ const SPECIAL_VIEWS: Record<string, (props: ViewRouterProps) => React.ReactNode>
   ),
 };
 
+/** View Router function. */
 export function ViewRouter({
   currentView,
   userId,

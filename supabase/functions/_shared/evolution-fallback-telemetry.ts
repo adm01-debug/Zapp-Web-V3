@@ -43,8 +43,10 @@ export type EvolutionFallbackReason =
   | 'empty_payload'
   | 'upstream_error';
 
+/** Evolution Fallback Mode type alias. */
 export type EvolutionFallbackMode = 'detected' | 'triggered';
 
+/** Evolution Fallback Event interface definition. */
 export interface EvolutionFallbackEvent {
   tag: 'evolution-fallback';
   ts: string;

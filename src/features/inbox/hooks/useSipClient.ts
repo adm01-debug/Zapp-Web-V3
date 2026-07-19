@@ -8,6 +8,7 @@ import { queryKeys } from '@/services/api/queryKeys';
 import { toast } from 'sonner';
 import { useSipConnection } from './sip/useSipConnection';
 
+/** Re-exported module members. */
 export type { SipStatus } from './sip/useSipConnection';
 /** Lifecycle state of the active SIP call session. */
 export type CallStatus = 'idle' | 'calling' | 'ringing' | 'active' | 'on-hold' | 'ended';

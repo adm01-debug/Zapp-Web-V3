@@ -334,6 +334,7 @@ function domSanitize(html: string, opts?: { addNoopener?: boolean }): string {
   return doc.body.innerHTML;
 }
 
+/** Sanitize Result interface definition. */
 export interface SanitizeResult {
   success: boolean;
   html: string;
@@ -341,6 +342,7 @@ export interface SanitizeResult {
   error?: string;
 }
 
+/** sanitize Html Strict function. */
 export function sanitizeHtmlStrict(html: unknown, _options?: Record<string, unknown>): SanitizeResult {
   try {
     if (html === null || html === undefined) {
@@ -379,6 +381,7 @@ export function sanitizeHtmlStrict(html: unknown, _options?: Record<string, unkn
   }
 }
 
+/** sanitize Html With Hooks function. */
 export function sanitizeHtmlWithHooks(html: string): string {
   if (!html || typeof html !== 'string') {
     return '';
@@ -386,6 +389,7 @@ export function sanitizeHtmlWithHooks(html: string): string {
   return domSanitize(html, { addNoopener: true });
 }
 
+/** sanitize Html With Hook Cleanup function. */
 export function sanitizeHtmlWithHookCleanup(html: string): string {
   if (!html || typeof html !== 'string') {
     return '';

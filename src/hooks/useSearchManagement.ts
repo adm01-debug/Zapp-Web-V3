@@ -153,16 +153,19 @@ export function useSearchHistoryManagement() {
   return { history, loading, addToHistory, clearHistory, refetch: fetchHistory };
 }
 
+/** Search Insights Top Query interface definition. */
 export interface SearchInsightsTopQuery {
   query: string;
   count: number;
 }
 
+/** Search Insights Zero Result interface definition. */
 export interface SearchInsightsZeroResult {
   query: string;
   attempts: number;
 }
 
+/** Search Insights interface definition. */
 export interface SearchInsights {
   top_queries: SearchInsightsTopQuery[];
   zero_results: SearchInsightsZeroResult[];
@@ -287,4 +290,5 @@ export function useChatSearchManagement(chatId: string, query: string) {
   return { results, loading };
 }
 
+/** Re-exported module members. */
 export type { SearchResult, SearchHistoryEntry };

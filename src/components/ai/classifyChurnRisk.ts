@@ -1,3 +1,4 @@
+/** Churn Risk interface definition. */
 export interface ChurnRisk {
   contactId: string;
   contactName: string;

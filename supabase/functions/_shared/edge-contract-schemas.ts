@@ -6,8 +6,10 @@ import {
 } from './webhook-schemas.ts';
 import { contractErrorResponse } from './validation.ts';
 
+/** Re-exported module members. */
 export { z };
 
+/** E D G E_ F U N C T I O N_ N A M E S constant. */
 export const EDGE_FUNCTION_NAMES = [
   'ai-auto-tag',
   'ai-churn-analysis',
@@ -151,6 +153,7 @@ const NonEmptyObjectSchema = JsonObjectSchema.refine((value) => Object.keys(valu
 });
 const NoBodySchema = z.undefined().optional();
 
+/** Webhook Contract Schemas constant. */
 export const WebhookContractSchemas = {
   'evolution-webhook': {
     v1: EvolutionWebhookV1Schema,
@@ -171,14 +174,17 @@ export const WebhookContractSchemas = {
   'webhook-hmac-selftest': { v1: NonEmptyObjectSchema },
 } as const;
 
+/** Contract Version Map type alias. */
 export type ContractVersionMap = Record<string, z.ZodTypeAny>;
 
+/** Contract Lifecycle interface definition. */
 export interface ContractLifecycle {
   current: string;
   supported: string[];
   deprecated?: Record<string, { sunset: string; replacement: string }>;
 }
 
+/** Contract Lifecycles constant. */
 export const ContractLifecycles: Record<string, ContractLifecycle> = {
   'evolution-webhook': {
     current: 'v2',
@@ -245,6 +251,7 @@ const specificEdgeFunctionSchemas: Partial<
   ...WebhookContractSchemas,
 };
 
+/** Edge Function Contract Schemas constant. */
 export const EdgeFunctionContractSchemas: Record<string, ContractVersionMap> = Object.fromEntries(
   EDGE_FUNCTION_NAMES.map((name) => [
     name,
@@ -252,10 +259,12 @@ export const EdgeFunctionContractSchemas: Record<string, ContractVersionMap> = O
   ])
 );
 
+/** get Contract Schema function. */
 export function getContractSchema(name: string, version = 'v1'): z.ZodTypeAny | undefined {
   return EdgeFunctionContractSchemas[name]?.[version];
 }
 
+/** get Contract Lifecycle function. */
 export function getContractLifecycle(name: string): ContractLifecycle {
   const versions = Object.keys(EdgeFunctionContractSchemas[name] ?? {});
   return (
@@ -266,6 +275,7 @@ export function getContractLifecycle(name: string): ContractLifecycle {
   );
 }
 
+/** validate Contract Payload function. */
 export function validateContractPayload(name: string, version: string, payload: unknown) {
   const schema = getContractSchema(name, version);
   if (!schema) {
@@ -279,11 +289,13 @@ export function validateContractPayload(name: string, version: string, payload: 
   return schema.safeParse(payload);
 }
 
+/** Contract Parse Options interface definition. */
 export interface ContractParseOptions {
   version?: string;
   requestId?: string;
 }
 
+/** Contract Parse Result type alias. */
 export type ContractParseResult<T = unknown> =
   | { success: true; data: T; version: string; lifecycle: ContractLifecycle }
   | { success: false; response: Response; version: string; lifecycle: ContractLifecycle };

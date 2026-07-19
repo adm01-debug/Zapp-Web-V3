@@ -52,6 +52,7 @@ import {
   StatusBadge,
 } from './AdminEvolutionApiLogsPageParts';
 
+/** Default export. */
 export default function AdminEvolutionApiLogsPage() {
   const [hoursBack, setHoursBack] = useState<string>('6');
   const [statusFilter, setStatusFilter] = useState<string>('all');

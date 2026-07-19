@@ -35,18 +35,21 @@ export interface AutomationRule {
   priority: number;
 }
 
+/** Msg Row interface definition. */
 export interface MsgRow {
   created_at: string;
   from_me: boolean;
   content: string;
 }
 
+/** Use Automations Args interface definition. */
 export interface UseAutomationsArgs {
   remoteJid: string | null;
   instanceName?: string;
   assignedTo?: string | null;
 }
 
+/** Auto Close Config interface definition. */
 export interface AutoCloseConfig {
   id: string;
   inactivity_hours: number;
@@ -57,6 +60,7 @@ export interface AutoCloseConfig {
   updated_at: string;
 }
 
+/** Automation Suggestion interface definition. */
 export interface AutomationSuggestion {
   id: string;
   rule_id: string;
@@ -70,6 +74,7 @@ export interface AutomationSuggestion {
   remote_jid: string;
 }
 
+/** Automation Row interface definition. */
 export interface AutomationRow {
   id: string;
   name: string;
@@ -85,6 +90,7 @@ export interface AutomationRow {
   updated_at: string;
 }
 
+/** _ Raw Exec Row interface definition. */
 export interface _RawExecRow {
   id: string;
   rule_id: string;

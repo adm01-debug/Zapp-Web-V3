@@ -33,6 +33,7 @@ const meta: Meta<typeof Button> = {
   },
 };
 
+/** Default export. */
 export default meta;
 type Story = StoryObj<typeof Button>;
 

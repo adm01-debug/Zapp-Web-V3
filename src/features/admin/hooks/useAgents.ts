@@ -5,6 +5,7 @@ import { agentService, AgentWithStats } from '../services/agentService';
 import type { AgentProfile } from '../data-access/agentRepository';
 import { tanstackRetry } from '@/lib/errors/queryErrors';
 
+/** Re-exported module members. */
 export type { AgentProfile, AgentWithStats };
 
 /** Hook: use Agents. */

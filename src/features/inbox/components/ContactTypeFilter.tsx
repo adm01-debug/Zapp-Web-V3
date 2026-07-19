@@ -11,6 +11,7 @@ import { isGroup as isGroupJid } from '@/lib/jid';
 
 // ---------- types & config ----------
 
+/** Filter Option interface definition. */
 export interface FilterOption {
   value: string;
   label: string;
@@ -27,6 +28,7 @@ const isGroup = (phone: string | null | undefined): boolean => {
   return /^\d+-\d+$/.test(phone.replace(/\D/g, ''));
 };
 
+/** F I L T E R_ O P T I O N S constant. */
 export const FILTER_OPTIONS: FilterOption[] = [
   { value: 'all', label: 'Todos os tipos', icon: Users, iconColor: 'text-muted-foreground', match: () => true },
   { value: 'individual', label: 'Chats Individuais', icon: MessageSquare, iconColor: 'text-primary',
@@ -197,6 +199,7 @@ export function ContactTypeFilter({ value, onChange, conversations }: ContactTyp
 
 // ---------- helper for filtering ----------
 
+/** filter By Contact Type function. */
 export function filterByContactType(
   conversations: ConversationWithMessages[],
   contactType: string | null,

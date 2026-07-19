@@ -51,7 +51,9 @@ import type {
 } from '@/hooks/evolutionApi.types';
 
 // ─── Type Exports ─────────────────────────────────────────────────────────
+/** Re-exported module members. */
 export type { HttpMethod, CallApiOptions } from './useEvolutionApiManagement';
+/** Re-exported module members. */
 export type {
   SendMessageParams,
   ContactCard,
@@ -75,8 +77,10 @@ export type {
 // SECTION 1: CORE API — Low-level HTTP, retry logic, idempotency
 // ═══════════════════════════════════════════════════════════════════════════
 
+/** Http Method type alias. */
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
+/** Call Api Options interface definition. */
 export interface CallApiOptions {
   method?: HttpMethod;
   retries?: number;

@@ -4,6 +4,7 @@ import { useAuth } from './useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
 
+/** Permission interface definition. */
 export interface Permission {
   id: string;
   name: string;
@@ -11,6 +12,7 @@ export interface Permission {
   category: string;
 }
 
+/** Role Permission interface definition. */
 export interface RolePermission {
   role: 'dev' | 'admin' | 'supervisor' | 'agent';
   permission_id: string;
@@ -65,6 +67,7 @@ function invalidatePermissionsCache() {
   cache = null;
 }
 
+/** use Permissions function. */
 export function usePermissions() {
   const {
     user,

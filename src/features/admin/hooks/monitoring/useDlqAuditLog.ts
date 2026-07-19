@@ -20,6 +20,7 @@ export type DlqAuditAction =
   | 'dlq_bulk_retry'
   | 'dlq_bulk_abandon';
 
+/** Dlq Audit Entry interface definition. */
 export interface DlqAuditEntry {
   id: string;
   action: DlqAuditAction | string;
@@ -31,6 +32,7 @@ export interface DlqAuditEntry {
   user_email: string | null;
 }
 
+/** Use Dlq Audit Log Options interface definition. */
 export interface UseDlqAuditLogOptions {
   limit?: number;
   action?: DlqAuditAction | 'all' | null;
@@ -38,6 +40,7 @@ export interface UseDlqAuditLogOptions {
   page?: number;
 }
 
+/** use Dlq Audit Log function. */
 export function useDlqAuditLog(opts: UseDlqAuditLogOptions = {}) {
   const { limit = 30, action = null, enabled = true, page = 0 } = opts;
   const { isDev } = useUserRole();

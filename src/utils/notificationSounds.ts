@@ -58,10 +58,12 @@ export const playNotificationSound = (
   }
 };
 
+/** preview Sound constant. */
 export const previewSound = (soundType: SoundType, volume: number = 70) => {
   playNotificationSound('message', soundType, volume);
 };
 
+/** request Notification Permission constant. */
 export const requestNotificationPermission = async (): Promise<boolean> => {
   if (typeof Notification === 'undefined') {
     log.warn('Notifications not supported');
@@ -72,6 +74,7 @@ export const requestNotificationPermission = async (): Promise<boolean> => {
   return (await Notification.requestPermission()) === 'granted';
 };
 
+/** show Browser Notification constant. */
 export const showBrowserNotification = (
   title: string,
   body: string,

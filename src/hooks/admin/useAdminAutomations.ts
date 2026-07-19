@@ -2,6 +2,7 @@
 import { useMemo } from 'react';
 import { useAdminManagement } from '@/features/admin/hooks/useAdminManagement';
 
+/** Re-exported module members. */
 export {
   TRIGGER_LABEL,
   EMPTY_RULE,

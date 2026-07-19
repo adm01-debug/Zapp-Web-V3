@@ -23,22 +23,28 @@ type ZappTables = Database['zapp']['Tables'];
 type ZappViews = Database['zapp']['Views'];
 type ZappEnums = Database['zapp']['Enums'];
 
+/** Tables type alias. */
 export type Tables<T extends keyof ZappTables> = ZappTables[T] extends { Row: infer R } ? R : never;
 
+/** Tables Insert type alias. */
 export type TablesInsert<T extends keyof ZappTables> = ZappTables[T] extends { Insert: infer I }
   ? I
   : never;
 
+/** Tables Update type alias. */
 export type TablesUpdate<T extends keyof ZappTables> = ZappTables[T] extends { Update: infer U }
   ? U
   : never;
 
+/** Views type alias. */
 export type Views<T extends keyof ZappViews> = ZappViews[T] extends { Row: infer R } ? R : never;
 
+/** Enums type alias. */
 export type Enums<T extends keyof ZappEnums> = ZappEnums[T];
 
 // Helpers para o schema evo (Evolution API)
 type EvoTables = Database['evo']['Tables'];
+/** Evo Table type alias. */
 export type EvoTable<T extends keyof EvoTables> = EvoTables[T] extends { Row: infer R } ? R : never;
 
 /**

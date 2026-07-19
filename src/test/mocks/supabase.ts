@@ -73,4 +73,5 @@ export function createMockSupabase(overrides: Overrides = {}) {
   };
 }
 
+/** mock Supabase constant. */
 export const mockSupabase = createMockSupabase();

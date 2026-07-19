@@ -11,6 +11,7 @@ interface FlowComponent {
   src?: string;
 }
 
+/** Re-exported module members. */
 export type { FlowComponent };
 
 /** Flow Component Preview component for the whatsapp flows section. */

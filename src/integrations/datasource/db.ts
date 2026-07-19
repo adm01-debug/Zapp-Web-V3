@@ -66,6 +66,7 @@ function requireMapping(entity: LogicalEntity): EntityMapping {
   return mapping;
 }
 
+/** db Client function. */
 export function dbClient(entity: LogicalEntity): SupabaseClient {
   const mapping = requireMapping(entity);
   const isExternal = mapping.client === 'external';
@@ -78,20 +79,24 @@ export function dbClient(entity: LogicalEntity): SupabaseClient {
   return target as SupabaseClient; // ignore-audit: null check threw above; target is confirmed non-null SupabaseClient
 }
 
+/** db Table function. */
 export function dbTable(entity: LogicalEntity): string {
   return requireMapping(entity).table;
 }
 
+/** db From function. */
 export function dbFrom(entity: LogicalEntity): ReturnType<SupabaseClient['from']> {
   const mapping = requireMapping(entity);
   validateEntityAccess(mapping.table, mapping.client);
   return dbClient(entity).from(mapping.table as unknown as Parameters<SupabaseClient['from']>[0]); // ignore-audit — LogicalEntity table name is dynamic; SupabaseClient<Database>['from'] enforces literal union
 }
 
+/** db Channel function. */
 export function dbChannel(entity: LogicalEntity, name: string): RealtimeChannel {
   return dbClient(entity).channel(`${name}:${dbTable(entity)}`);
 }
 
+/** db Remove Channel function. */
 export function dbRemoveChannel(entity: LogicalEntity, channel: RealtimeChannel): void {
   dbClient(entity).removeChannel(channel);
 }
@@ -110,6 +115,7 @@ export function dbRemoveChannel(entity: LogicalEntity, channel: RealtimeChannel)
 // Servem para deixar a intenção legível no call site.
 // ─────────────────────────────────────────────────────────────────────────────
 
+/** Db Rpc Result interface definition. */
 export interface DbRpcResult<R> {
   data: R | null;
   error: unknown;
@@ -124,6 +130,7 @@ function rpcClient(client: DatasourceClient): SupabaseClient {
   return target as SupabaseClient; // ignore-audit: null check threw above; target is confirmed non-null SupabaseClient
 }
 
+/** db Rpc function. */
 export async function dbRpc<P extends object, R>(
   def: RpcDefinition<P, R>,
   params: P

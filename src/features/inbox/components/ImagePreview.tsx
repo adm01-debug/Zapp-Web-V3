@@ -12,6 +12,7 @@ interface ImagePreviewProps {
   onClose?: () => void;
 }
 
+/** Image Preview constant. */
 export const ImagePreview = forwardRef<HTMLDivElement, ImagePreviewProps>(function ImagePreview(
   { src, alt = 'Image', onClose }: ImagePreviewProps,
   ref,

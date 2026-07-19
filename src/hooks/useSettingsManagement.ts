@@ -306,4 +306,5 @@ export function useOnboardingChecklistManagement(userId?: string) {
   return { steps, loading, completeStep, refetch: fetchSteps };
 }
 
+/** Re-exported module members. */
 export type { UserSettings, GlobalSettings, OnboardingStep };

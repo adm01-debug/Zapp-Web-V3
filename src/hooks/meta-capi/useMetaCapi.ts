@@ -21,6 +21,7 @@ export interface CAPIEvent {
   created_at: string | null;
 }
 
+/** use Meta Capi function. */
 export function useMetaCapi() {
   const [events, setEvents] = useState<CAPIEvent[]>([]);
   const [loading, setLoading] = useState(true);

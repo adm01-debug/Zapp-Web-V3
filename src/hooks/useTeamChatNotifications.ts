@@ -2,6 +2,7 @@
 import { useTeamChatNotificationsManagement } from '@/hooks/useNotificationManagement';
 import type { TeamChatNotification } from '@/hooks/useNotificationManagement';
 
+/** Re-exported module members. */
 export type { TeamChatNotification };
 
 /** Subscribes to real-time team chat notifications with read status tracking. */

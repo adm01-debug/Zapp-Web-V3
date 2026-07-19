@@ -23,6 +23,7 @@ export interface User {
   updated_at: string;
 }
 
+/** Agent interface definition. */
 export interface Agent {
   id: string;
   user_id: string;
@@ -43,6 +44,7 @@ export interface Agent {
 const usersBaseService = createService<User>('users');
 const agentsBaseService = createService<Agent>('agents');
 
+/** users Repository constant. */
 export const usersRepository = {
   // Users
   listUsers: (filters?: Partial<User> & QueryParams) =>

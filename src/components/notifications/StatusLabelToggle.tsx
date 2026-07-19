@@ -14,6 +14,7 @@ import {
 import { cn } from '@/lib/utils';
 import { useInboxStatusPref } from '@/features/inbox';
 
+/** Status Label Toggle function. */
 export function StatusLabelToggle({ className }: { className?: string }) {
   const { showLabel, toggle } = useInboxStatusPref();
 

@@ -46,6 +46,7 @@ function promoteStatus(
   };
 }
 
+/** Reconcile Result interface definition. */
 export interface ReconcileResult {
   filteredPrev: RealtimeMessage[];
   additions: RealtimeMessage[];
@@ -61,6 +62,7 @@ function resolveAudioType(m: RealtimeMessage): string {
   return isMeme ? 'audio_meme' : isPtt ? 'audio_ptt' : 'audio_recorded';
 }
 
+/** reconcile Optimistic function. */
 export function reconcileOptimistic(
   prev: RealtimeMessage[],
   incoming: RealtimeMessage[]

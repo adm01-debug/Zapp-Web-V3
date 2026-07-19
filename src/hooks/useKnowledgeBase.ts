@@ -4,6 +4,7 @@ import { safeFrom } from '@/integrations/supabase/safeClient';
 import { toast } from '@/hooks/use-toast';
 import { useMountedRef } from '@/hooks/useMountedRef';
 
+/** Article interface definition. */
 export interface Article {
   id: string;
   title: string;
@@ -16,6 +17,7 @@ export interface Article {
   updated_at: string;
 }
 
+/** K B File interface definition. */
 export interface KBFile {
   id: string;
   article_id: string | null;
@@ -27,6 +29,7 @@ export interface KBFile {
   created_at: string;
 }
 
+/** C A T E G O R I E S constant. */
 export const CATEGORIES = [
   'general',
   'product',
@@ -37,6 +40,7 @@ export const CATEGORIES = [
   'faq',
 ];
 
+/** C A T E G O R Y_ L A B E L S constant. */
 export const CATEGORY_LABELS: Record<string, string> = {
   general: 'Geral',
   product: 'Produto',

@@ -39,6 +39,7 @@ export function timingSafeStringEqual(a: string, b: string): boolean {
   return diff === 0;
 }
 
+/** get Bearer function. */
 export function getBearer(req: Request): string | null {
   const raw = req.headers.get("Authorization") || req.headers.get("authorization");
   if (!raw) return null;
@@ -63,6 +64,7 @@ function readSecret(name: string): string | null {
   return raw;
 }
 
+/** require User function. */
 export async function requireUser(req: Request): Promise<AuthedUser | Response> {
   const token = getBearer(req);
   if (!token) return errorResponse("Unauthorized: missing bearer token", 401, req);
@@ -147,6 +149,7 @@ export async function requireUser(req: Request): Promise<AuthedUser | Response> 
   return errorResponse(`Unauthorized: invalid token (${lastErr ?? "unknown"})`, 401, req);
 }
 
+/** require Admin Or Supervisor function. */
 export async function requireAdminOrSupervisor(req: Request): Promise<AuthedUser | Response> {
   // requireUser already validates token expiry, so no need to check again here
   const authed = await requireUser(req);

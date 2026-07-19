@@ -94,6 +94,7 @@ export async function handleOutgoingWhatsAppMessage(
   await supabase.from('contacts').update({ updated_at: new Date().toISOString() }).eq('id', contact.id);
 }
 
+/** handle Incoming Message function. */
 export async function handleIncomingMessage(
   supabase: SupabaseClient, instance: string, data: Record<string, unknown>,
   key: { remoteJid?: string; remoteJidAlt?: string; participant?: string; participantAlt?: string; fromMe: boolean; id: string },
@@ -217,6 +218,7 @@ export async function handleIncomingMessage(
   if (messageType === 'audio' && mediaUrl) await handleAudioTranscription(supabase, contact.id, insertedMessage.id, mediaUrl, supabaseUrl, supabaseServiceKey);
 }
 
+/** handle Sticker Media function. */
 export async function handleStickerMedia(
   supabase: SupabaseClient, instance: string, data: Record<string, unknown>,
   message: Record<string, unknown> | undefined, key: { id: string }

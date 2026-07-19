@@ -7,6 +7,7 @@ import { getLogger } from '@/lib/logger';
 
 const log = getLogger('useDeliveryStats');
 
+/** Participant Stats interface definition. */
 export interface ParticipantStats {
   participantJid: string;
   displayName: string;
@@ -19,6 +20,7 @@ export interface ParticipantStats {
   timeline: DeliveryTimelinePoint[];
 }
 
+/** Delivery Timeline Point interface definition. */
 export interface DeliveryTimelinePoint {
   time: string;
   sent: number;
@@ -26,6 +28,7 @@ export interface DeliveryTimelinePoint {
   read: number;
 }
 
+/** Delivery Stats Result interface definition. */
 export interface DeliveryStatsResult {
   isGroup: boolean;
   totals: {

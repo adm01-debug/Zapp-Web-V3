@@ -1,6 +1,9 @@
+/** Whats App Mode type alias. */
 export type WhatsAppMode = 'official' | 'unofficial';
+/** Whats App Transport type alias. */
 export type WhatsAppTransport = 'cloud' | 'evolution';
 
+/** Resolved Transport interface definition. */
 export interface ResolvedTransport {
   transport: WhatsAppTransport;
   requestedMode: WhatsAppMode;
@@ -18,6 +21,7 @@ export interface SendTextParams {
   mentions?: string[];
 }
 
+/** Send Media Params interface definition. */
 export interface SendMediaParams {
   remoteJid: string;
   mediaUrl: string;
@@ -28,6 +32,7 @@ export interface SendMediaParams {
   instance?: string;
 }
 
+/** Send Audio Params interface definition. */
 export interface SendAudioParams {
   remoteJid: string;
   audioUrl: string;
@@ -35,12 +40,14 @@ export interface SendAudioParams {
   ptt?: boolean;
 }
 
+/** Send Sticker Params interface definition. */
 export interface SendStickerParams {
   remoteJid: string;
   stickerUrl: string;
   instance?: string;
 }
 
+/** Send Reaction Params interface definition. */
 export interface SendReactionParams {
   remoteJid: string;
   messageId: string;
@@ -49,6 +56,7 @@ export interface SendReactionParams {
   instance?: string;
 }
 
+/** Send Location Params interface definition. */
 export interface SendLocationParams {
   remoteJid: string;
   latitude: number;
@@ -58,6 +66,7 @@ export interface SendLocationParams {
   instance?: string;
 }
 
+/** Send Contact Params interface definition. */
 export interface SendContactParams {
   remoteJid: string;
   fullName: string;
@@ -65,6 +74,7 @@ export interface SendContactParams {
   instance?: string;
 }
 
+/** Template Component interface definition. */
 export interface TemplateComponent {
   type: 'header' | 'body' | 'button' | string;
   sub_type?: string;
@@ -72,6 +82,7 @@ export interface TemplateComponent {
   parameters?: Array<{ type: string; text?: string; payload?: string; [key: string]: unknown }>;
 }
 
+/** Send Template Params interface definition. */
 export interface SendTemplateParams {
   remoteJid: string;
   name: string;
@@ -79,12 +90,14 @@ export interface SendTemplateParams {
   components?: Array<Record<string, unknown>>;
 }
 
+/** Presence Params interface definition. */
 export interface PresenceParams {
   remoteJid: string;
   presence: 'composing' | 'paused' | 'recording' | 'available' | 'unavailable';
   instance?: string;
 }
 
+/** Mark As Read Params interface definition. */
 export interface MarkAsReadParams {
   remoteJid: string;
   messageIds: string[];

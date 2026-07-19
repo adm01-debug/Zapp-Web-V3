@@ -203,4 +203,5 @@ export function useVoiceActionHandlerManagement() {
   return { lastAction, isProcessing, handleVoiceAction };
 }
 
+/** Re-exported module members. */
 export type { VoiceState };

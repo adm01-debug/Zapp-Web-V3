@@ -24,7 +24,9 @@ import {
   type ContactsChartData,
 } from './reportChartsHelpers';
 
+/** Re-exported module members. */
 export type { ChartData, ContactsChartData };
+/** Re-exported module members. */
 export {
   ComparisonSummaryChart,
   PeriodAreaChart,

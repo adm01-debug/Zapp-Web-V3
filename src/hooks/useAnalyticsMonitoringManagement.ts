@@ -13,6 +13,7 @@ import { queryKeys } from '@/services/api/queryKeys';
 const log = getLogger('useAnalyticsMonitoringManagement');
 
 // ===== CSAT Types & Management =====
+/** C S A T Survey interface definition. */
 export interface CSATSurvey {
   id: string;
   contact_id: string;
@@ -23,6 +24,7 @@ export interface CSATSurvey {
   created_at: string;
 }
 
+/** C S A T Stats interface definition. */
 export interface CSATStats {
   average: number;
   total: number;
@@ -131,6 +133,7 @@ export function useCSATManagement(period: 'today' | 'week' | 'month' = 'month') 
 }
 
 // ===== Demand Prediction Types & Management =====
+/** Prediction Point interface definition. */
 export interface PredictionPoint {
   time: string;
   actual?: number;
@@ -140,6 +143,7 @@ export interface PredictionPoint {
   isPrediction?: boolean;
 }
 
+/** Demand Insights interface definition. */
 export interface DemandInsights {
   maxPredicted: number;
   avgPredicted: number;
@@ -228,6 +232,7 @@ export function useDemandPredictionManagement(externalData?: PredictionPoint[], 
 }
 
 // ===== Delivery Stats Types & Management =====
+/** Participant Stats interface definition. */
 export interface ParticipantStats {
   participantJid: string;
   displayName: string;
@@ -240,6 +245,7 @@ export interface ParticipantStats {
   timeline: DeliveryTimelinePoint[];
 }
 
+/** Delivery Timeline Point interface definition. */
 export interface DeliveryTimelinePoint {
   time: string;
   sent: number;
@@ -247,6 +253,7 @@ export interface DeliveryTimelinePoint {
   read: number;
 }
 
+/** Delivery Stats Result interface definition. */
 export interface DeliveryStatsResult {
   isGroup: boolean;
   totals: {
@@ -494,6 +501,7 @@ export function useDeliveryStatsManagement(remoteJid: string | undefined, instan
 }
 
 // ===== NPS Surveys Types & Management =====
+/** N P S Survey interface definition. */
 export interface NPSSurvey {
   id: string;
   contact_id: string;

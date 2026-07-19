@@ -19,6 +19,7 @@ export type RootCause =
   | 'server_error'
   | 'unknown';
 
+/** Root Cause Meta interface definition. */
 export interface RootCauseMeta {
   /** Categoria canônica. */
   cause: RootCause;
@@ -42,10 +43,12 @@ const META: Record<RootCause, RootCauseMeta> = {
   unknown:         { cause: 'unknown',         label: 'Desconhecido',        tone: 'muted',       hint: 'Sem contexto suficiente para classificar.' },
 };
 
+/** get Root Cause Meta function. */
 export function getRootCauseMeta(cause: RootCause): RootCauseMeta {
   return META[cause] ?? META.unknown;
 }
 
+/** A L L_ R O O T_ C A U S E S constant. */
 export const ALL_ROOT_CAUSES: RootCause[] = [
   'rate_limit', 'unavailable', 'timeout', 'auth',
   'network', 'invalid_payload', 'not_found', 'server_error', 'unknown',

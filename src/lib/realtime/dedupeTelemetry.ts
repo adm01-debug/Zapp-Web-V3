@@ -36,14 +36,18 @@ export type DedupeHitReason =
   | 'broadcast_wait'
   | 'late_cache';
 
+/** Dedupe Miss Reason type alias. */
 export type DedupeMissReason =
   | 'lock_acquired_lead'
   | 'fallback_after_wait';
 
+/** Dedupe Reason type alias. */
 export type DedupeReason = DedupeHitReason | DedupeMissReason;
 
+/** Dedupe Key Kind type alias. */
 export type DedupeKeyKind = 'idempotency' | 'hash' | 'unknown';
 
+/** Dedupe Event interface definition. */
 export interface DedupeEvent {
   key: string;
   outcome: DedupeOutcome;
@@ -138,11 +142,13 @@ export function inferKeyKind(key: string): DedupeKeyKind {
   return 'unknown';
 }
 
+/** extract Namespace function. */
 export function extractNamespace(key: string): string {
   const idx = key.indexOf(':');
   return idx === -1 ? key : key.slice(0, idx);
 }
 
+/** record Dedupe Event function. */
 export function recordDedupeEvent(
   partial: Omit<DedupeEvent, 'outcome' | 'keyKind' | 'namespace' | 'ts'> & {
     keyKind?: DedupeKeyKind;

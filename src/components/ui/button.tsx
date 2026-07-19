@@ -113,4 +113,5 @@ const MotionButton = React.forwardRef<HTMLButtonElement, MotionButtonProps>(
 );
 MotionButton.displayName = "MotionButton";
 
+/** Re-exported module members. */
 export { Button, MotionButton, buttonVariants };

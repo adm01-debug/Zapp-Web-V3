@@ -365,4 +365,5 @@ export const ContactsTableVirtual: React.FC<ContactsTableVirtualProps> = ({
   );
 };
 
+/** Default export. */
 export default ContactsTableVirtual;

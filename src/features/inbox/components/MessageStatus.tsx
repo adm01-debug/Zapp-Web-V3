@@ -87,6 +87,7 @@ function buildLabel(status: MessageStatusValue, detail?: MessageStatusProps['det
   return base;
 }
 
+/** Message Status constant. */
 export const MessageStatus: React.FC<MessageStatusProps> = ({
   status,
   className,

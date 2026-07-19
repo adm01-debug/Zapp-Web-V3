@@ -212,6 +212,7 @@ export function TemplatesWithVariables({ onUseTemplate, contactData }: TemplateW
   );
 }
 
+/** Re-exported module members. */
 export {
   VariableHighlighter,
   TemplatePreview,

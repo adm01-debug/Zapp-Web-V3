@@ -11,6 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 // (schema não incluído em ExtendedDatabase gerado; cast controlado)
 const evo = (supabase as unknown as { schema: (s: string) => ReturnType<typeof supabase.schema> }).schema('evo');
 
+/** Evolution Instance Credential interface definition. */
 export interface EvolutionInstanceCredential {
   id: string;
   instance_name: string;
@@ -22,6 +23,7 @@ export interface EvolutionInstanceCredential {
   created_at: string;
 }
 
+/** Health Log interface definition. */
 export interface HealthLog {
   id: string;
   instance_name: string;
@@ -33,6 +35,7 @@ export interface HealthLog {
   performed_at: string;
 }
 
+/** D E F A U L T_ U R L constant. */
 export const DEFAULT_URL = 'https://evolution.atomicabr.com.br';
 
 /** Manages Evolution API instance credentials, health checks, and connection testing with timeout protection. */

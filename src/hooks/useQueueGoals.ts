@@ -14,6 +14,7 @@ const DEFAULT_GOAL = {
   alerts_enabled: true,
 };
 
+/** Re-exported module members. */
 export type { QueueGoal };
 
 /** Reads queue goals for an optional queue and exposes a saveGoal upsert that cannot be derailed by a caller-supplied queue_id in the Partial payload. */

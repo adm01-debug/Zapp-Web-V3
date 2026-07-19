@@ -22,6 +22,7 @@ const meta = {
   args: { onClick: fn() },
 } satisfies Meta<typeof Button>;
 
+/** Default export. */
 export default meta;
 type Story = StoryObj<typeof meta>;
 

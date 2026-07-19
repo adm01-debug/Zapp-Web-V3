@@ -19,6 +19,7 @@ import {
 
 const GLOBAL = '_global';
 
+/** Use Instance Retry Config Result interface definition. */
 export interface UseInstanceRetryConfigResult {
   config: RetryConfig;
   globalConfig: RetryConfig;

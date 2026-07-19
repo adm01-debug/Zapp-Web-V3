@@ -52,6 +52,7 @@ export interface LastReceivedInfo {
   content: string;
 }
 
+/** set Last Received constant. */
 export const setLastReceived = (remoteJid: string, info: LastReceivedInfo) => {
   try {
     const data = JSON.parse(localStorage.getItem(LAST_RECEIVED_KEY) || '{}');
@@ -62,6 +63,7 @@ export const setLastReceived = (remoteJid: string, info: LastReceivedInfo) => {
   }
 };
 
+/** get Last Received constant. */
 export const getLastReceived = (remoteJid: string): LastReceivedInfo | null => {
   try {
     const data = JSON.parse(localStorage.getItem(LAST_RECEIVED_KEY) || '{}');

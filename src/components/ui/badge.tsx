@@ -35,4 +35,5 @@ const Badge = React.forwardRef<HTMLDivElement, BadgeProps>(({ className, variant
 
 Badge.displayName = "Badge";
 
+/** Re-exported module members. */
 export { Badge, badgeVariants };

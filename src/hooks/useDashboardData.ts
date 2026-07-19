@@ -154,4 +154,5 @@ export const formatResponseTime = (seconds: number | null): string => {
   return `${hours}h ${remainingMinutes}min`;
 };
 
+/** Re-exported module members. */
 export type { DashboardFilters, DashboardStats, QueueStats, RecentActivity };

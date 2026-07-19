@@ -303,4 +303,5 @@ export function useContactCustomFieldsManagement(contactId?: string) {
   return { fields, loading, updateField, refetch: fetchFields };
 }
 
+/** Re-exported module members. */
 export type { ContactIntelligence, ContactNote, ContactCustomField };

@@ -21,6 +21,7 @@ const meta: Meta<typeof Input> = {
   },
 };
 
+/** Default export. */
 export default meta;
 type Story = StoryObj<typeof Input>;
 

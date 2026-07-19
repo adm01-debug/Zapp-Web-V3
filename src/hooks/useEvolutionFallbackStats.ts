@@ -21,6 +21,7 @@ export interface FallbackStatsRecent {
   primary_ms: number | null;
 }
 
+/** Fallback Stats interface definition. */
 export interface FallbackStats {
   window_hours: number;
   total: number;

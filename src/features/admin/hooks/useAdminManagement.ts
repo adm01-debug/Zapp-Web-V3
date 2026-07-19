@@ -30,9 +30,11 @@ import type { AppRole } from '@/features/auth';
 // ─── Type Exports ────────────────────────────────────────────────────────────
 
 // Automations
+/** Trigger Type type alias. */
 export type TriggerType =
   'first_response_pending' | 'inactivity' | 'tag_applied' | 'tag_removed' | 'keyword_match';
 
+/** Trigger Config interface definition. */
 export interface TriggerConfig {
   threshold_seconds?: number;
   side?: string;
@@ -42,6 +44,7 @@ export interface TriggerConfig {
   [key: string]: unknown;
 }
 
+/** Rule Actions interface definition. */
 export interface RuleActions {
   suggest_reply?: boolean;
   auto_send?: boolean;
@@ -56,6 +59,7 @@ export interface RuleActions {
   [key: string]: unknown;
 }
 
+/** Rule interface definition. */
 export interface Rule {
   id: string;
   name: string;
@@ -70,16 +74,19 @@ export interface Rule {
   department_id: string | null;
 }
 
+/** Automation Channel interface definition. */
 export interface AutomationChannel {
   id: string;
   name: string;
 }
 
+/** Automation Department interface definition. */
 export interface AutomationDepartment {
   id: string;
   name: string;
 }
 
+/** T R I G G E R_ L A B E L constant. */
 export const TRIGGER_LABEL: Record<TriggerType, string> = {
   first_response_pending: 'Primeira resposta pendente',
   inactivity: 'Ausência / inatividade',
@@ -88,6 +95,7 @@ export const TRIGGER_LABEL: Record<TriggerType, string> = {
   keyword_match: 'Palavra-chave',
 };
 
+/** E M P T Y_ R U L E constant. */
 export const EMPTY_RULE: Omit<Rule, 'id'> = {
   name: '',
   description: '',
@@ -109,8 +117,10 @@ export const EMPTY_RULE: Omit<Rule, 'id'> = {
 };
 
 // Channels
+/** Channel Status type alias. */
 export type ChannelStatus = 'active' | 'paused' | 'disabled';
 
+/** Service Channel interface definition. */
 export interface ServiceChannel {
   id: string;
   name: string;
@@ -131,12 +141,14 @@ export interface ServiceChannel {
   disabled_reason: string | null;
 }
 
+/** Queue Option interface definition. */
 export interface QueueOption {
   id: string;
   name: string;
   color: string;
 }
 
+/** Wpp Conn Option interface definition. */
 export interface WppConnOption {
   id: string;
   name: string;
@@ -144,9 +156,12 @@ export interface WppConnOption {
 }
 
 // Queues
+/** Queue Status type alias. */
 export type QueueStatus = 'active' | 'paused' | 'archived';
+/** Dist Algo type alias. */
 export type DistAlgo = 'round_robin' | 'least_busy' | 'longest_idle' | 'manual_pull';
 
+/** Queue interface definition. */
 export interface Queue {
   id: string;
   name: string;
@@ -165,12 +180,14 @@ export interface Queue {
   paused_reason: string | null;
 }
 
+/** Profile interface definition. */
 export interface Profile {
   id: string;
   name: string;
   avatar_url: string | null;
 }
 
+/** Queue Member interface definition. */
 export interface QueueMember {
   id: string;
   queue_id: string;
@@ -178,6 +195,7 @@ export interface QueueMember {
   profile?: Profile;
 }
 
+/** Queue Skill interface definition. */
 export interface QueueSkill {
   id: string;
   queue_id: string;
@@ -185,11 +203,13 @@ export interface QueueSkill {
   min_level: number;
 }
 
+/** Queue Department interface definition. */
 export interface QueueDepartment {
   id: string;
   name: string;
 }
 
+/** Queue Service Channel interface definition. */
 export interface QueueServiceChannel {
   id: string;
   name: string;
@@ -197,6 +217,7 @@ export interface QueueServiceChannel {
   default_queue_id: string | null;
 }
 
+/** Channel Queue interface definition. */
 export interface ChannelQueue {
   id: string;
   channel_id: string;
@@ -205,6 +226,7 @@ export interface ChannelQueue {
   is_active: boolean;
 }
 
+/** A L G O_ L A B E L constant. */
 export const ALGO_LABEL: Record<DistAlgo, string> = {
   round_robin: 'Round-robin',
   least_busy: 'Menos ocupado',
@@ -213,6 +235,7 @@ export const ALGO_LABEL: Record<DistAlgo, string> = {
 };
 
 // Departments
+/** Department interface definition. */
 export interface Department {
   id: string;
   name: string;
@@ -227,6 +250,7 @@ export interface Department {
 // Roles
 type RoleType = 'dev' | 'admin' | 'manager' | 'supervisor' | 'agent';
 
+/** User With Role interface definition. */
 export interface UserWithRole {
   id: string;
   user_id: string;
@@ -235,6 +259,7 @@ export interface UserWithRole {
 }
 
 // Permissions
+/** Route Permission type alias. */
 export type RoutePermission = {
   path: string;
   allowed_roles: AppRole[];
@@ -243,9 +268,11 @@ export type RoutePermission = {
   updated_at: string;
 };
 
+/** A L L_ R O L E S constant. */
 export const ALL_ROLES: AppRole[] = ['dev', 'admin', 'manager', 'supervisor', 'agent'];
 
 // Security
+/** Phase type alias. */
 export type Phase =
   | 'config'
   | 'parse-body'
@@ -258,6 +285,7 @@ export type Phase =
   | 'temporal'
   | 'response';
 
+/** Scenario Report interface definition. */
 export interface ScenarioReport {
   name: string;
   description: string;
@@ -271,6 +299,7 @@ export interface ScenarioReport {
   nonce: string;
 }
 
+/** Self Test Result interface definition. */
 export interface SelfTestResult {
   ok: boolean;
   configured: boolean;

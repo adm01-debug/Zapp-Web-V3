@@ -311,4 +311,5 @@ export function EmailInboxView({ onSelectThread }: EmailInboxViewProps) {
   );
 }
 
+/** Default export. */
 export default EmailInboxView;

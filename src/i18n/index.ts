@@ -306,6 +306,7 @@ i18n
     },
   });
 
+/** Default export. */
 export default i18n;
 
 // Helper hook for language switching

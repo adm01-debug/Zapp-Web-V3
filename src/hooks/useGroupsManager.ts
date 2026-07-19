@@ -7,7 +7,9 @@ import { useMountedRef } from '@/hooks/useMountedRef';
 import type { WhatsAppGroup, WhatsAppConnection } from './groups/types';
 
 // Re-export for external consumers
+/** Re-exported module members. */
 export type { WhatsAppGroup, WhatsAppConnection } from './groups/types';
+/** Re-exported module members. */
 export { GROUP_CATEGORIES } from './groups/types';
 
 /** Manages WhatsApp groups with filtering, selection, and bulk action capabilities. */

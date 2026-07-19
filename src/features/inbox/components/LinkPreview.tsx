@@ -10,6 +10,7 @@ import {
   type LinkMetadata,
 } from './linkPreviewUtils';
 
+/** Re-exported module members. */
 export { extractLinks };
 
 interface LinkPreviewProps {

@@ -5,7 +5,9 @@ import { DEFAULT_LEFT_ACTION, DEFAULT_RIGHT_ACTION } from './swipeActions';
 import type { SwipeAction } from './swipeActions';
 
 // Re-export for consumers
+/** Re-exported module members. */
 export type { SwipeAction } from './swipeActions';
+/** Re-exported module members. */
 export { SWIPE_ACTIONS } from './swipeActions';
 
 interface SwipeableListItemProps {

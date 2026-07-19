@@ -197,4 +197,5 @@ export function useEmailDraftManagement() {
   return { draft, updateDraft, clearDraft };
 }
 
+/** Re-exported module members. */
 export type { ScheduledMessage };

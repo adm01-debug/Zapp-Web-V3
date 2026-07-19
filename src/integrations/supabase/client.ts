@@ -7,6 +7,7 @@ import { cookieStorage } from './cookieStorage';
 const log = getLogger('supabase-client');
 
 // Re-export so callers that need the specific type can use it
+/** Re-exported module members. */
 export type { Database, ExtendedDatabase };
 
 // ---------------------------------------------------------------------------

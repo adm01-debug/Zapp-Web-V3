@@ -33,16 +33,19 @@ interface AuthCounter {
 }
 const _authCounters = new Map<string, AuthCounter>();
 
+/** Pause Config interface definition. */
 export interface PauseConfig {
   windowSec: number;
   threshold: number;
   pauseMinutes: number;
 }
 
+/** get Pause Config function. */
 export function getPauseConfig(): PauseConfig {
   return { windowSec: WINDOW_SEC, threshold: THRESHOLD, pauseMinutes: PAUSE_MIN };
 }
 
+/** is Instance Paused function. */
 export async function isInstancePaused(supabase: SupabaseClient, instance: string | null | undefined): Promise<boolean> {
   if (!instance) return false;
   const cached = _pauseCache.get(instance);

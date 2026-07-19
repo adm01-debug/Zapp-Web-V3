@@ -129,6 +129,7 @@ export interface PhoneValidationDetailed {
   type?:       PhoneType;
 }
 
+/** validate Phone Detailed function. */
 export function validatePhoneDetailed(phone: unknown): PhoneValidationDetailed {
   if (phone === null || phone === undefined || String(phone).trim() === '') {
     return { valid: false, error: 'Telefone vazio.' };
@@ -256,8 +257,10 @@ export function phoneVariants(phone: unknown): string[] {
   return [...new Set(variants)];
 }
 
+/** format B R Phone constant. */
 export const formatBRPhone = formatPhoneForDisplay;
 
+/** is Whats App J I D function. */
 export function isWhatsAppJID(value: unknown): boolean {
   if (!value) return false;
   return /^\d+@(c\.us|s\.whatsapp\.net|g\.us)$/.test(String(value));

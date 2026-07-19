@@ -280,4 +280,5 @@ export const ContactsRichView: React.FC<ContactsRichViewProps> = ({ onOpenChat }
   );
 };
 
+/** Default export. */
 export default ContactsRichView;

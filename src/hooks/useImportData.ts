@@ -17,8 +17,10 @@ export interface ImportError {
   value?: unknown;
 }
 
+/** Import Status type alias. */
 export type ImportStatus = 'idle' | 'parsing' | 'validating' | 'importing' | 'complete' | 'error';
 
+/** Import Result interface definition. */
 export interface ImportResult<T> {
   success: T[];
   errors: ImportError[];
@@ -235,4 +237,5 @@ export function useImportDataTyped<T>(options: UseImportDataOptions<T>) {
   };
 }
 
+/** Default export. */
 export default useImportData;

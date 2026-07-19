@@ -164,4 +164,5 @@ export function EmailLabelSidebar({
   );
 }
 
+/** Default export. */
 export default EmailLabelSidebar;

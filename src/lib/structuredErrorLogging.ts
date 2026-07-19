@@ -34,6 +34,7 @@ export enum ErrorCategory {
   UNKNOWN = 'unknown',
 }
 
+/** Error Severity enumeration. */
 export enum ErrorSeverity {
   LOW = 'low',
   MEDIUM = 'medium',
@@ -41,6 +42,7 @@ export enum ErrorSeverity {
   CRITICAL = 'critical',
 }
 
+/** Error Context interface definition. */
 export interface ErrorContext {
   correlationId: string;
   userId?: string;
@@ -55,6 +57,7 @@ export interface ErrorContext {
   timestamp: number;
 }
 
+/** Structured Error interface definition. */
 export interface StructuredError {
   id: string;
   category: ErrorCategory;
@@ -457,6 +460,7 @@ class StructuredErrorLogger {
 // Singleton instance
 const structuredErrorLogger = new StructuredErrorLogger();
 
+/** log Structured Error function. */
 export function logStructuredError(
   error: Error | unknown,
   options?: Parameters<typeof structuredErrorLogger.logError>[1]
@@ -464,12 +468,15 @@ export function logStructuredError(
   return structuredErrorLogger.logError(error, options);
 }
 
+/** get Error Rate Stats function. */
 export function getErrorRateStats() {
   return structuredErrorLogger.getErrorRateStats();
 }
 
+/** clear Error History function. */
 export function clearErrorHistory() {
   structuredErrorLogger.clearHistory();
 }
 
+/** Default export. */
 export default structuredErrorLogger;

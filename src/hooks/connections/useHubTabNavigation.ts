@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import type { HubTab } from '@/components/connections/types';
 
+/** Re-exported module members. */
 export type { HubTab };
 
 /** Hook: use Hub Tab Navigation. */

@@ -42,6 +42,7 @@ const CIRCUIT_THRESHOLD = 3;
 const CIRCUIT_BASE_MS = 2 * 60_000;
 const CIRCUIT_MAX_MS = 10 * 60_000;
 
+/** Re-exported module members. */
 export { SYSTEM_LABELS };
 
 function extractHttpStatus(err: unknown): number | undefined {

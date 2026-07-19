@@ -7,6 +7,7 @@ export const TOOLTIP_STYLE = {
   color: 'hsl(var(--foreground))',
 } as const;
 
+/** A X I S_ P R O P S constant. */
 export const AXIS_PROPS = {
   stroke: 'hsl(var(--muted-foreground))',
   fontSize: 12,
@@ -14,6 +15,7 @@ export const AXIS_PROPS = {
   axisLine: false,
 } as const;
 
+/** G R I D_ P R O P S constant. */
 export const GRID_PROPS = {
   strokeDasharray: '3 3',
   stroke: 'hsl(var(--border))',

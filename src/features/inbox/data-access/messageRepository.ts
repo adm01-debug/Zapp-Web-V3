@@ -3,6 +3,7 @@ import { RPC } from '@/integrations/datasource/rpcCatalog';
 import { normalizeMessage } from '@/integrations/supabase/rowNormalizers';
 import { RealtimePostgresChangesPayload, RealtimeChannel } from '@supabase/supabase-js';
 
+/** Message interface definition. */
 export interface Message {
   id: string;
   contact_id: string | null;

@@ -11,6 +11,7 @@ import {
 import { messagesService, type Message, type Conversation } from './index';
 import type { QueryParams } from '@/services/api/types';
 
+/** use Messages List constant. */
 export const useMessagesList = (filters?: Partial<Message> & QueryParams) => {
   return createListQuery(
     queryKeys.messages.list(filters),
@@ -19,6 +20,7 @@ export const useMessagesList = (filters?: Partial<Message> & QueryParams) => {
   );
 };
 
+/** use Message constant. */
 export const useMessage = (id?: string) => {
   return createDetailQuery(
     queryKeys.messages.detail(id || ''),
@@ -28,6 +30,7 @@ export const useMessage = (id?: string) => {
   );
 };
 
+/** use Conversation Messages constant. */
 export const useConversationMessages = (conversationId?: string, filters?: Partial<QueryParams>) => {
   return useQuery({
     queryKey: queryKeys.messages.thread(conversationId || ''),
@@ -37,6 +40,7 @@ export const useConversationMessages = (conversationId?: string, filters?: Parti
   });
 };
 
+/** use Conversations List constant. */
 export const useConversationsList = (filters?: Partial<Conversation> & QueryParams) => {
   return createListQuery(
     queryKeys.messages.conversationList(filters),
@@ -45,6 +49,7 @@ export const useConversationsList = (filters?: Partial<Conversation> & QueryPara
   );
 };
 
+/** use Conversation constant. */
 export const useConversation = (id?: string) => {
   return createDetailQuery(
     queryKeys.messages.conversationDetail(id || ''),
@@ -54,6 +59,7 @@ export const useConversation = (id?: string) => {
   );
 };
 
+/** use Invalidate Messages constant. */
 export const useInvalidateMessages = () => {
   const queryClient = useQueryClient();
   return {

@@ -38,6 +38,7 @@ async function fetchFromDb(): Promise<WhatsappConnectionRow[]> {
   return ((data ?? []) as unknown) as WhatsappConnectionRow[];
 }
 
+/** get Whatsapp Connections function. */
 export async function getWhatsappConnections(force = false): Promise<WhatsappConnectionRow[]> {
   const now = Date.now();
   if (!force && cache && cache.expiresAt > now) return cache.rows;
@@ -56,10 +57,12 @@ export async function getWhatsappConnections(force = false): Promise<WhatsappCon
   return inflight;
 }
 
+/** invalidate Whatsapp Connections Cache function. */
 export function invalidateWhatsappConnectionsCache(): void {
   cache = null;
 }
 
+/** get Whatsapp Connection By Id function. */
 export async function getWhatsappConnectionById(
   id: string,
   force = false,
@@ -68,6 +71,7 @@ export async function getWhatsappConnectionById(
   return rows.find((r) => r.id === id) ?? null;
 }
 
+/** get First Connected Whatsapp function. */
 export async function getFirstConnectedWhatsapp(
   force = false,
 ): Promise<WhatsappConnectionRow | null> {

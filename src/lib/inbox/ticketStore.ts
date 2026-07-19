@@ -34,6 +34,7 @@ export interface TicketEvent {
   note?: string | null;
 }
 
+/** Ticket State interface definition. */
 export interface TicketState {
   status: TicketStatus;
   assignedTo: string | null; // profile_id
@@ -93,6 +94,7 @@ function cryptoId(): string {
   return Math.random().toString(36).slice(2) + Date.now().toString(36);
 }
 
+/** ticket Store constant. */
 export const ticketStore = {
   /** Snapshot completo (somente leitura) — referência ESTÁVEL entre renders. */
   snapshot(): Overlay {

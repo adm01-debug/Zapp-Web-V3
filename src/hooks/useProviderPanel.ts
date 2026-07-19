@@ -3,8 +3,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { useToast } from '@/hooks/use-toast';
 
+/** Provider Type type alias. */
 export type ProviderType = 'evolution' | 'wppconnect' | 'baileys' | 'custom';
 
+/** Provider Row interface definition. */
 export interface ProviderRow {
   provider_id: string;
   name: string;
@@ -24,6 +26,7 @@ export interface ProviderRow {
   routes_active: number;
 }
 
+/** Provider Log interface definition. */
 export interface ProviderLog {
   log_id: string;
   session_id: string | null;

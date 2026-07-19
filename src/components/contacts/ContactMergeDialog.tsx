@@ -341,4 +341,5 @@ export const ContactMergeDialog: React.FC<ContactMergeDialogProps> = ({
   );
 };
 
+/** Default export. */
 export default ContactMergeDialog;

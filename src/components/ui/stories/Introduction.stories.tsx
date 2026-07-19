@@ -1,5 +1,6 @@
 import type { Meta } from '@storybook/react-vite';
 const meta: Meta = { title: 'Design System/Introduction' };
+/** Default export. */
 export default meta;
 /** Tokens component for the ui section. */
 export const Tokens = {

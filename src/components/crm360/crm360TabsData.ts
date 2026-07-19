@@ -32,6 +32,7 @@ import {
 } from 'lucide-react';
 import type { ExternalTableName } from '@/types/externalDB';
 
+/** Tab Config interface definition. */
 export interface TabConfig {
   id: ExternalTableName | string;
   label: string;
@@ -42,6 +43,7 @@ export interface TabConfig {
   columns: { key: string; label: string; format?: 'date' | 'currency' | 'boolean' | 'number' }[];
 }
 
+/** C O R E_ T A B S constant. */
 export const CORE_TABS: TabConfig[] = [
   {
     id: 'companies',
@@ -118,6 +120,7 @@ export const CORE_TABS: TabConfig[] = [
   },
 ];
 
+/** C O M M U N I C A T I O N_ T A B S constant. */
 export const COMMUNICATION_TABS: TabConfig[] = [
   {
     id: 'interactions',
@@ -258,6 +261,7 @@ export const COMMUNICATION_TABS: TabConfig[] = [
   },
 ];
 
+/** S A L E S_ T A B S constant. */
 export const SALES_TABS: TabConfig[] = [
   {
     id: 'salespeople',
@@ -383,6 +387,7 @@ export const SALES_TABS: TabConfig[] = [
   },
 ];
 
+/** C R M_ P I P E L I N E_ T A B S constant. */
 export const CRM_PIPELINE_TABS: TabConfig[] = [
   {
     id: 'leads',
@@ -460,6 +465,7 @@ export const CRM_PIPELINE_TABS: TabConfig[] = [
   },
 ];
 
+/** G A M I F I C A T I O N_ T A B S constant. */
 export const GAMIFICATION_TABS: TabConfig[] = [
   {
     id: 'achievements',
@@ -507,6 +513,7 @@ export const GAMIFICATION_TABS: TabConfig[] = [
   },
 ];
 
+/** M E T A D A T A_ T A B S constant. */
 export const METADATA_TABS: TabConfig[] = [
   {
     id: 'tags',

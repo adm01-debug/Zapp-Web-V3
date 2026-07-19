@@ -19,6 +19,7 @@ import { ChatPanelOverlays } from './chat/ChatPanelOverlays';
 import { useChatPanel } from './chat/useChatPanel';
 import type { ChatPanelProps } from './chat/useChatPanel';
 
+/** Re-exported module members. */
 export type { ChatPanelProps };
 
 if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {

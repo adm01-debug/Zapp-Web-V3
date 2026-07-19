@@ -160,6 +160,7 @@ export function pipe<A, B, C, D, E>(
   h: (c: C) => D,
   i: (d: D) => E
 ): E;
+/** pipe function. */
 export function pipe(value: any, ...fns: Array<(arg: any) => any>): any {
   return fns.reduce((acc, fn) => fn(acc), value);
 }

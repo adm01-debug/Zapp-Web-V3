@@ -23,6 +23,7 @@ export function isRlsDeniedError(err: unknown): boolean {
   return msg.includes('forbidden') || msg.includes('row-level security') || msg.includes('permission denied');
 }
 
+/** rls Denied Message function. */
 export function rlsDeniedMessage(resource: string): string {
   return `Acesso negado a ${resource}. Apenas administradores ou supervisores podem visualizar este recurso.`;
 }

@@ -15,7 +15,9 @@ import { NotificationSettings, SoundTypeOption } from '@/hooks/useNotificationSe
 import { playNotificationSound, SoundType, NotificationType } from '@/utils/notificationSounds';
 import { cn } from '@/lib/utils';
 
+/** Re-exported module members. */
 export { SentimentAlertCard } from './NotificationSentimentCard';
+/** Re-exported module members. */
 export { QuietHoursCard } from './NotificationQuietHoursCard';
 
 const SOUND_TYPES: { value: SoundTypeOption; label: string; description: string }[] = [

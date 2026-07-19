@@ -33,6 +33,7 @@ const CONTACT_TYPE_ICONS: Record<string, React.ReactNode> = {
   outros: <MoreHorizontal className="w-4 h-4" />,
 };
 
+/** Re-exported module members. */
 export { CONTACT_TYPE_ICONS };
 
 type SortField = 'name' | 'type' | 'phone' | 'email' | 'company' | 'job_title' | 'created_at';

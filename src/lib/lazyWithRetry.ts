@@ -1,5 +1,6 @@
 import { lazy } from 'react';
 
+/** C H U N K_ R E L O A D_ S E S S I O N_ K E Y constant. */
 export const CHUNK_RELOAD_SESSION_KEY = '__zapp_chunk_reload_at';
 const CHUNK_RELOAD_COOLDOWN_MS = 30_000;
 

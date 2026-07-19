@@ -16,6 +16,7 @@ export interface AgentDispatchAggregate {
   lastErrorAt: string | null;
 }
 
+/** Channel Dispatch Aggregate interface definition. */
 export interface ChannelDispatchAggregate {
   instance: string;
   total: number;
@@ -70,6 +71,7 @@ function topN<T extends string>(counts: Map<T, number>, n: number): Array<{ reas
     .map(([reason, count]) => ({ reason, count }));
 }
 
+/** aggregate By Agent function. */
 export function aggregateByAgent(rows: FailedMessageRow[]): AgentDispatchAggregate[] {
   const total = rows.length;
   const grouped = new Map<string, FailedMessageRow[]>();
@@ -100,6 +102,7 @@ export function aggregateByAgent(rows: FailedMessageRow[]): AgentDispatchAggrega
     .sort((a, b) => b.total - a.total);
 }
 
+/** aggregate By Channel function. */
 export function aggregateByChannel(rows: FailedMessageRow[]): ChannelDispatchAggregate[] {
   const total = rows.length;
   const grouped = new Map<string, FailedMessageRow[]>();
