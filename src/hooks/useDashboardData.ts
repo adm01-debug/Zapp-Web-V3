@@ -3,6 +3,11 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import type { DashboardFilters, DashboardStats, QueueStats, RecentActivity } from './dashboardTypes';
 
+interface ProfileRow { id: string; name: string | null; is_active: boolean | null; role: string | null; }
+interface ContactRow { id: string; assigned_to: string | null; queue_id: string | null; updated_at: string; }
+interface QueueMemberRow { queue_id: string; profile_id: string; profile: { is_active: boolean | null } | null; }
+interface QueueRow { id: string; name: string; color: string | null; queue_members: QueueMemberRow[]; }
+
 export function useDashboardData(filters?: DashboardFilters) {
   const queryClient = useQueryClient();
   const now = new Date();
@@ -25,7 +30,7 @@ export function useDashboardData(filters?: DashboardFilters) {
       const { data, error } = await query;
       if (error) throw error;
       return {
-        onlineAgents: (data || []).filter((p: any) => p.is_active).length,
+        onlineAgents: (data as ProfileRow[] || []).filter((p) => p.is_active).length,
         totalAgents: (data || []).length,
       };
     },
@@ -71,22 +76,25 @@ export function useDashboardData(filters?: DashboardFilters) {
   const stats = useMemo((): DashboardStats | null => {
     if (!contactsData || !agentsData || !queuesData) return null;
 
-    const openConversations = (contactsData as any[]).filter((c: any) => c.assigned_to).length;
-    const pendingConversations = (contactsData as any[]).filter(
-      (c: any) => !c.assigned_to && c.queue_id
+    const contacts = contactsData as ContactRow[];
+    const queues = queuesData as QueueRow[];
+
+    const openConversations = contacts.filter((c) => c.assigned_to).length;
+    const pendingConversations = contacts.filter(
+      (c) => !c.assigned_to && c.queue_id
     ).length;
-    const resolvedToday = (contactsData as any[]).filter((c: any) => {
+    const resolvedToday = contacts.filter((c) => {
       const updatedAt = new Date(c.updated_at);
       return updatedAt >= startOfToday && !c.assigned_to;
     }).length;
 
-    const queuesStats: QueueStats[] = (queuesData as any[]).map((queue: any) => {
+    const queuesStats: QueueStats[] = queues.map((queue) => {
       const members = queue.queue_members || [];
       const onlineMembers = members.filter(
-        (m: any) => m.profile?.is_active
+        (m) => m.profile?.is_active
       ).length;
-      const queuePending = (contactsData as any[]).filter(
-        (c: any) => !c.assigned_to && c.queue_id === queue.id
+      const queuePending = contacts.filter(
+        (c) => !c.assigned_to && c.queue_id === queue.id
       ).length;
       return {
         id: queue.id,
@@ -98,7 +106,7 @@ export function useDashboardData(filters?: DashboardFilters) {
       };
     });
 
-    const recentActivity: RecentActivity[] = (contactsData as any[]).slice(0, 10).map((c: any) => ({
+    const recentActivity: RecentActivity[] = contacts.slice(0, 10).map((c) => ({
       id: c.id,
       contactName: 'Contact',
       contactPhone: '',
@@ -113,7 +121,7 @@ export function useDashboardData(filters?: DashboardFilters) {
       openConversations,
       pendingConversations,
       resolvedToday,
-      totalConversations: (contactsData as any[]).length,
+      totalConversations: contacts.length,
       onlineAgents: agentsData.onlineAgents,
       totalAgents: agentsData.totalAgents,
       avgResponseTime: null,

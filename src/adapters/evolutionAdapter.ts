@@ -56,11 +56,8 @@ export function evolutionToRealtimeMessage(evo: EvolutionMessage): RealtimeMessa
     is_deleted: evo.deleted_at != null,
     deleted_at: evo.deleted_at ?? null,
     contactAvatar: null,
-    media_meta: mediaMeta,
-    reactions: Array.isArray(evo.reactions)
-      ? evo.reactions  // pass-through: manter formato original da Evolution
-      : [],
-    media_meta: Object.keys(mediaMeta).length > 0 ? mediaMeta : undefined, // exposto para compatibilidade
+    media_meta: Object.keys(mediaMeta).length > 0 ? mediaMeta : undefined,
+    reactions: Array.isArray(evo.reactions) ? evo.reactions : [],
   };
 }
 

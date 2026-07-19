@@ -1,4 +1,5 @@
 // useBitrixApi — Bitrix24 CRM integration hook
+import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { getLogger } from '@/lib/logger';
 
@@ -33,7 +34,7 @@ export function useBitrixApi() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  };
 
   // Leads
   const listLeads = wrap(() => callBitrix('list', { entityType: 'lead' }));
