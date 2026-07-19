@@ -1,8 +1,7 @@
-// Re-export from consolidated useSearchManagement module (ETAPA 29 consolidation)
-import { useSearchHistoryManagement, type SearchHistoryEntry } from '@/hooks/useSearchManagement';
+import { useState, useCallback } from 'react';
 
-export type SearchHistoryItem = SearchHistoryEntry;
-export type { SearchHistoryEntry };
+const STORAGE_KEY = 'global-search-history';
+const MAX_HISTORY = 10;
 
 export interface SearchHistoryItem {
   query: string;
