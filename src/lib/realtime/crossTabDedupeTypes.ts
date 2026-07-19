@@ -20,10 +20,13 @@ export const BUS_MSG_TTL = 15_000; // mensagens de bus expiram rápido (storage 
 /** @internal — exposto para testes que precisam do prefixo de lock. */
 export const LS_PREFIX = LS_LOCK_PREFIX;
 
+/** Unique identifier for this browser tab, used to track lock ownership across tabs. */
 export const TAB_ID = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 
+/** Inter-tab communication transport in use (BroadcastChannel, storage event, or none). */
 export type Transport = 'broadcast-channel' | 'storage-event' | 'none';
 
+/** Stored lock entry recording owner, acquisition, and expiry timestamps. */
 export interface LockPayload {
   ownerId: string;
   acquiredAt: number;
@@ -42,6 +45,7 @@ export interface BroadcastMessage<T = unknown> {
   resultTtl?: number;
 }
 
+/** Options for tuning cross-tab deduplication TTLs and wait timeouts. */
 export interface DedupeOptions {
   /** TTL do lock no localStorage (ms). Default 10s. */
   lockTtl?: number;
@@ -51,6 +55,7 @@ export interface DedupeOptions {
   waitTimeout?: number;
 }
 
+/** Cached deduplication result stored in localStorage with an expiry timestamp. */
 export interface ResultPayload<T = unknown> {
   value: T;
   expiresAt: number;

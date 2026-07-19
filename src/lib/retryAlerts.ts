@@ -4,6 +4,7 @@
  */
 import { safeGetJSON, safeSetJSON } from '@/lib/safeStorage';
 
+/** Alert threshold configuration for retry rate and failure percentage monitoring. */
 export interface RetryThresholds {
   /** p95 de tentativas máximo tolerado antes de alertar. */
   p95Attempts: number;
@@ -13,6 +14,7 @@ export interface RetryThresholds {
   minSampleSize: number;
 }
 
+/** Per-instance retry execution metrics for a rolling window. */
 export interface InstanceMetrics {
   instance: string;
   total: number;
@@ -37,6 +39,7 @@ export interface BreachReason {
   threshold: number;
 }
 
+/** Details of a threshold violation for a specific instance. */
 export interface InstanceBreach {
   instance: string;
   /** Strings legadas (compat). */
@@ -50,6 +53,7 @@ export interface InstanceBreach {
   hasOverride: boolean;
 }
 
+/** Default retry alert threshold values used as global baseline. */
 export const DEFAULT_THRESHOLDS: RetryThresholds = {
   p95Attempts: 3,
   failureRatePct: 20,
@@ -90,6 +94,7 @@ export const RETRY_DEDUPE_MODE_STORAGE_KEY = 'zappweb:retry-alert-dedupe-mode';
  * - `instance+kind`: 1 toast por (instância × tipo de violação) — padrão.
  */
 export type RetryAlertDedupeMode = 'instance' | 'instance+kind';
+/** Default deduplication mode for retry alert toasts. */
 export const DEFAULT_RETRY_DEDUPE_MODE: RetryAlertDedupeMode = 'instance+kind';
 
 /** Loads the currently saved retry-alert dedupe mode from localStorage, falling back to the default. */

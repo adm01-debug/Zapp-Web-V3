@@ -11,8 +11,11 @@ import { getLogger } from '@/lib/logger';
 
 const log = getLogger('clientTelemetry');
 
+/** Query latency classification severity. */
 export type Severity = 'ok' | 'slow' | 'very_slow' | 'timeout' | 'error';
+/** Source system for a tracked query. */
 export type QuerySource = 'externalProxy' | 'externalSupabase' | 'lovableCloud';
+/** SQL operation type for a tracked query. */
 export type QueryOperation = 'select' | 'rpc' | 'insert' | 'update' | 'delete';
 
 /** Query Event interface definition. */
@@ -32,6 +35,7 @@ export interface QueryEvent {
   correlationId?: string;
 }
 
+/** Immutable point-in-time snapshot of accumulated client-side query telemetry. */
 export interface TelemetrySnapshot {
   total: number;
   bySeverity: Record<Severity, number>;

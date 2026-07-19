@@ -16,6 +16,7 @@
 // Tipos
 // -----------------------------------------------------------------------------
 
+/** Describes a single database column with its physical name, aliases, and UI defaults. */
 export interface ColumnDescriptor {
   /** Nome físico da coluna no banco. */
   physical: string;
@@ -26,12 +27,14 @@ export interface ColumnDescriptor {
   default?: unknown;
 }
 
+/** Describes a Supabase foreign-key embed with its kind and select() string. */
 export interface EmbedDescriptor {
   kind: 'one' | 'many';
   /** String de select() no formato Supabase, ex: 'profiles:profile_id (id,name)'. */
   select: string;
 }
 
+/** Typed column map for a Supabase table, with a generated select() helper. */
 export interface EntityColumnMap<TCanonical extends Record<string, unknown>> {
   table: string;
   columns: { [K in keyof TCanonical]: ColumnDescriptor };
@@ -119,6 +122,7 @@ export interface ContactCanonical extends Record<string, unknown> {
   updated_at: string | null;
 }
 
+/** Column map for the contacts table. */
 export const contactsMap: EntityColumnMap<ContactCanonical> = {
   table: 'contacts',
   columns: {

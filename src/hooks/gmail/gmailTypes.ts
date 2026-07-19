@@ -7,6 +7,7 @@
 
 // ── Conta Email ────────────────────────────────────────────────────────────
 
+/** Represents a connected Gmail/email account with token and watch state. */
 export interface EmailAccount {
   id:           string;
   user_id:      string;
@@ -21,10 +22,14 @@ export interface EmailAccount {
   picture_url?: string | null;
 }
 
+/** OAuth token validity state for a Gmail/email account. */
 export type EmailTokenStatus  = 'valid' | 'expiring_soon' | 'expired' | 'no_token';
+/** Gmail push-notification watch subscription state. */
 export type EmailWatchStatus  = 'active' | 'expiring_soon' | 'expired' | 'no_watch';
+/** SLA compliance status for an email thread. */
 export type EmailSLAStatus    = 'ok' | 'warning' | 'breached' | 'met' | null;
 
+/** Email token authentication/refresh status details for an account. */
 export interface EmailTokenInfo {
   account_id:           string;
   email:                string;
@@ -68,6 +73,7 @@ export interface EmailThread {
   contact?:         { id?: string; name?: string | null; phone?: string | null } | null;
 }
 
+/** Filter options for querying email threads. */
 export interface EmailThreadFilters {
   accountId?:   string;
   label?:       EmailLabelId;
@@ -115,6 +121,7 @@ export interface EmailMessage {
 
 // ── Anexo ─────────────────────────────────────────────────────────────────
 
+/** Metadata for a file attachment on an email message. */
 export interface EmailAttachment {
   id:             string;
   message_id:     string;
@@ -130,6 +137,7 @@ export interface EmailAttachment {
 
 // ── Rascunho ──────────────────────────────────────────────────────────────
 
+/** An auto-saved or user-created email draft. */
 export interface EmailDraft {
   id:          string;
   account_id:  string;
@@ -203,6 +211,7 @@ export interface EmailSendAttachment {
   size?:       number;
 }
 
+/** Result returned after attempting to send an email. */
 export interface EmailSendResult {
   success:    boolean;
   messageId?: string;

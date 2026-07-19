@@ -3,12 +3,18 @@
  * email.ts — Tipagens compartilhadas para o domínio de Email e Email unificado.
  */
 
+/** Supported email provider identifiers. */
 export type EmailProvider = 'email' | 'outlook' | 'yahoo' | 'custom';
+/** OAuth token validity state for an email account. */
 export type EmailTokenStatus = 'valid' | 'expiring_soon' | 'expired' | 'no_token';
+/** Gmail push-notification watch subscription state. */
 export type EmailWatchStatus = 'active' | 'expiring_soon' | 'expired' | 'no_watch';
+/** SLA compliance status for an email thread. */
 export type SLAStatus = 'ok' | 'warning' | 'breached' | 'met';
+/** Gmail label identifier string. */
 export type EmailLabel = 'INBOX' | 'SENT' | 'DRAFTS' | 'STARRED' | 'IMPORTANT' | 'TRASH' | 'SPAM' | string;
 
+/** Represents a connected email account with auth and watch metadata. */
 export interface EmailAccount {
   id:            string;
   user_id:       string;
