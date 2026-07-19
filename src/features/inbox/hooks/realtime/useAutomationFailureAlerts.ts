@@ -122,7 +122,7 @@ export function useAutomationFailureAlerts(enabled = true): void {
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(channel).catch(() => {});
     };
   }, [enabled]);
 }

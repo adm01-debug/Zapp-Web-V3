@@ -47,7 +47,7 @@ export function useDashboardData(filters?: DashboardFilters) {
     queryFn: async () => {
       let query = supabase
         .from('contacts')
-        .select('id, assigned_to, queue_id, updated_at')
+        .select('id, name, phone, assigned_to, queue_id, updated_at')
         .gte('updated_at', merged.dateRange.from.toISOString())
         .lte('updated_at', merged.dateRange.to.toISOString());
       if (merged.queueId) query = query.eq('queue_id', merged.queueId);
@@ -108,8 +108,8 @@ export function useDashboardData(filters?: DashboardFilters) {
 
     const recentActivity: RecentActivity[] = contacts.slice(0, 10).map((c) => ({
       id: c.id,
-      contactName: 'Contact',
-      contactPhone: '',
+      contactName: (c as { name?: string }).name ?? 'Contact',
+      contactPhone: (c as { phone?: string }).phone ?? '',
       contactAvatar: null,
       lastMessage: '',
       timestamp: c.updated_at,

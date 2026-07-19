@@ -89,7 +89,7 @@ export function useFailedMessageAlerts(enabled = true): void {
       });
 
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(channel).catch(() => {});
     };
   }, [enabled]);
 }

@@ -21,8 +21,9 @@ export function useQueueGoals(queueId?: string) {
 
   const saveGoal = useCallback(
     async (targetQueueId: string, goal: Partial<QueueGoal>) => {
+      const { queue_id: _ignored, ...rest } = goal;
       const { error } = await safeFrom('queue_goals').upsert(
-        { queue_id: targetQueueId, ...goal },
+        { queue_id: targetQueueId, ...rest },
         { onConflict: 'queue_id' }
       );
       if (error) {

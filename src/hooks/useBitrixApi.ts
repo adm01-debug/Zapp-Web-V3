@@ -1,5 +1,5 @@
 // useBitrixApi — Bitrix24 CRM integration hook
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { getLogger } from '@/lib/logger';
 
@@ -19,49 +19,60 @@ async function callBitrix<T = unknown>(action: string, payload: Record<string, u
 export function useBitrixApi() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const activeRef = useRef(0);
 
-  const wrap = <T = unknown>(fn: () => Promise<BitrixResult<T>>) => async (): Promise<BitrixResult<T> | null> => {
-    setLoading(true);
-    setError(null);
-    try {
-      const result = await fn();
-      return result;
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      setError(msg);
-      log.error('Bitrix API error', err);
-      return null;
-    } finally {
-      setLoading(false);
-    }
-  };
+  const wrap = <T = unknown, Args extends unknown[] = []>(
+    fn: (...args: Args) => Promise<BitrixResult<T>>
+  ) =>
+    async (...args: Args): Promise<BitrixResult<T> | null> => {
+      activeRef.current += 1;
+      setLoading(true);
+      setError(null);
+      try {
+        return await fn(...args);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        setError(msg);
+        log.error('Bitrix API error', err);
+        return null;
+      } finally {
+        activeRef.current -= 1;
+        if (activeRef.current === 0) setLoading(false);
+      }
+    };
 
   // Leads
   const listLeads = wrap(() => callBitrix('list', { entityType: 'lead' }));
-  const getLead = wrap<unknown>(() => callBitrix('getLead'));
-  const createLead = wrap(() => callBitrix('createLead'));
-  const updateLead = wrap(() => callBitrix('updateLead'));
-  const deleteLead = wrap(() => callBitrix('deleteLead'));
+  const getLead = wrap((id: string) => callBitrix('getLead', { id }));
+  const createLead = wrap((data: Record<string, unknown>) => callBitrix('createLead', data));
+  const updateLead = wrap((id: string, data: Record<string, unknown>) => callBitrix('updateLead', { id, ...data }));
+  const deleteLead = wrap((id: string) => callBitrix('deleteLead', { id }));
 
   // Contacts
   const listContacts = wrap(() => callBitrix('listContacts'));
-  const getContact = wrap(() => callBitrix('getContact'));
-  const createContact = wrap(() => callBitrix('createContact'));
+  const getContact = wrap((id: string) => callBitrix('getContact', { id }));
+  const createContact = wrap((data: Record<string, unknown>) => callBitrix('createContact', data));
 
   // Deals
   const listDeals = wrap(() => callBitrix('listDeals'));
-  const getDeal = wrap(() => callBitrix('getDeal'));
-  const createDeal = wrap(() => callBitrix('createDeal'));
+  const getDeal = wrap((id: string) => callBitrix('getDeal', { id }));
+  const createDeal = wrap((data: Record<string, unknown>) => callBitrix('createDeal', data));
 
   // Calls
-  const registerCall = wrap(() => callBitrix('registerCall'));
-  const finishCall = wrap(() => callBitrix('finishCall'));
-  const attachCallRecord = wrap(() => callBitrix('attachCallRecord'));
+  const registerCall = wrap((data: Record<string, unknown>) => callBitrix('registerCall', data));
+  const finishCall = wrap((callId: string, data?: Record<string, unknown>) =>
+    callBitrix('finishCall', { callId, ...(data ?? {}) })
+  );
+  const attachCallRecord = wrap((callId: string, recordUrl: string) =>
+    callBitrix('attachCallRecord', { callId, recordUrl })
+  );
 
   // Sync
   const syncContactsFromBitrix = wrap(() => callBitrix('syncContacts'));
-  const pushContactToBitrix = wrap(() => callBitrix('pushContact'));
-  const createLeadFromConversation = wrap(() => callBitrix('createLeadFromConversation'));
+  const pushContactToBitrix = wrap((contactId: string) => callBitrix('pushContact', { contactId }));
+  const createLeadFromConversation = wrap((conversationId: string) =>
+    callBitrix('createLeadFromConversation', { conversationId })
+  );
 
   return {
     loading,

@@ -180,7 +180,7 @@ export function useRetryResolutionAlerts(enabled = true): void {
 
     return () => {
       unsubBus();
-      supabase.removeChannel(channel);
+      supabase.removeChannel(channel).catch(() => {});
     };
   }, [enabled, navigate]);
 }

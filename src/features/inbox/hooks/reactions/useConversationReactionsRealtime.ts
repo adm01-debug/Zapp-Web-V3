@@ -48,7 +48,7 @@ export function useConversationReactionsRealtime(
       });
 
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(channel).catch(() => {});
     };
   }, [conversationId, queryClient]);
 }

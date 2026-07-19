@@ -33,14 +33,14 @@ export function useRealtimeSentimentAlerts() {
           }
 
           if (settings?.browserNotifications) {
-            showBrowserNotification({ title: 'Alerta de Sentimento', body: message });
+            showBrowserNotification('Alerta de Sentimento', message);
           }
         }
       )
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(channel).catch(() => {});
     };
   }, [settings, isQuietHours]);
 

@@ -60,15 +60,21 @@ export function useRealtimeMessages() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [error, setError] = useState<Error | null>(null);
   const isMountedRef = useRef(true);
+  const channelId = useRef(`realtime-messages-${Math.random().toString(36).slice(2)}`);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const [{ data: contacts }, { data: messages }] = await Promise.all([
+      const [
+        { data: contacts, error: contactsError },
+        { data: messages, error: messagesError },
+      ] = await Promise.all([
         supabase.from('contacts').select('*').order('updated_at', { ascending: false }).limit(500),
         supabase.from('messages').select('*').order('created_at', { ascending: false }).limit(100),
       ]);
+      if (contactsError) throw contactsError;
+      if (messagesError) throw messagesError;
 
       const contactList: Contact[] = contacts ?? [];
       const messageList: Message[] = messages ?? [];
@@ -132,7 +138,7 @@ export function useRealtimeMessages() {
 
   useEffect(() => {
     const channel = supabase
-      .channel('realtime-messages')
+      .channel(channelId.current)
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'evo', table: 'evolution_messages' },
@@ -180,7 +186,7 @@ export function useRealtimeMessages() {
     channel.subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(channel).catch(() => {});
     };
   }, [fetchData]);
 
