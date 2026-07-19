@@ -1,5 +1,8 @@
 # Pacote de Migração — Lovable Cloud → Self-Hosted VPS
 
+> **Arquitetura atual**: Supabase Self-Hosted (`supabase.atomicabr.com.br`), schema `zapp`. Veja [../SCHEMA_REFERENCE.md](SCHEMA_REFERENCE.md).
+
+
 **Gerado em:** 2026-05-02
 **Origem:** allrjhkpuscmgbsnmjlv.supabase.co (Lovable Cloud — 346 migrations)
 **Destino:** supabase.atomicabr.com.br (VPS Atomica BR)

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { queryKeys } from '@/services/api/queryKeys';
 import { useMountedRef } from '@/hooks/useMountedRef';
 import { supabase } from '@/integrations/supabase/client';
 import { externalSupabase, isExternalConfigured } from '@/integrations/supabase/externalClient';
@@ -31,7 +32,7 @@ export function useConversationActions() {
       data: { user },
     } = await supabase.auth.getUser();
     if (!user || !mountedRef.current) return;
-    const { data } = await supabase.from('profiles').select('id').eq('user_id', user.id).single();
+    const { data } = await supabase.from('profiles').select('id').eq('user_id', user.id).maybeSingle(); // ✅ fix: maybeSingle evita PGRST116
     if (data && mountedRef.current) setProfileId(data.id);
   }, []);
 
@@ -418,7 +419,7 @@ export function useConversationSLATimeline(remoteJid: string | null, contactId: 
   const enabled = Boolean(remoteJid && isExternalConfigured);
 
   return useQuery({
-    queryKey: ['sla-timeline', remoteJid, contactId],
+    queryKey: queryKeys.sla.timelineDetailed(remoteJid ?? undefined, contactId ?? undefined),
     enabled,
     staleTime: 30_000,
     refetchInterval: (query) => {

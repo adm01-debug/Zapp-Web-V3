@@ -1,5 +1,8 @@
 # Análise Profunda do Backend — ZAPP-WEB v3
 
+> **Arquitetura atual**: Supabase Self-Hosted (`supabase.atomicabr.com.br`), schema `zapp`. Veja [SCHEMA_REFERENCE.md](SCHEMA_REFERENCE.md).
+
+
 > **Autor:** Análise sênior de Back-End
 > **Data:** 2026-05-20
 > **Escopo:** Backend Supabase (PostgreSQL + 465 migrations, 107 Edge Functions Deno/TS), camada de acesso a dados do frontend, operação, segurança, performance e custos.

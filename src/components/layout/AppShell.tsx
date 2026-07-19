@@ -161,10 +161,13 @@ export const AppShell = forwardRef<HTMLDivElement, AppShellProps>(function AppSh
           isMobile && 'pb-[64px] pt-12'
         )}
       >
+        {/* A11y: single h1 landmark for the app shell (WCAG page-has-heading-one). */}
+        <h1 className="sr-only">ZAPP Web — Central de Atendimento</h1>
+
         {!isMobile && isInboxView && (
           <Tooltip delayDuration={0}>
             <TooltipTrigger asChild>
-              <button
+              <button type="button"
                 onClick={toggleZen}
                 className={cn(
                   'absolute right-3 top-3 z-30 flex h-9 items-center gap-2 rounded-full transition-all duration-500',
@@ -210,7 +213,7 @@ export const AppShell = forwardRef<HTMLDivElement, AppShellProps>(function AppSh
       {!isMobile && (
         <Tooltip delayDuration={0}>
           <TooltipTrigger asChild>
-            <button
+            <button type="button"
               onClick={() => setVoiceOpen(true)}
               className="fixed bottom-6 right-6 z-50 flex h-[54px] w-[54px] items-center justify-center rounded-full border border-primary/20 bg-gradient-to-br from-primary via-primary to-secondary text-primary-foreground shadow-xl shadow-primary/20 transition-all duration-500 hover:shadow-2xl hover:shadow-primary/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-95"
               aria-label="Assistente de voz inteligente"

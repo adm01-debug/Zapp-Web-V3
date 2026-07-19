@@ -89,7 +89,7 @@ Deno.serve(async (req) => {
   try {
     const supabaseUrl = requireEnv("SUPABASE_URL");
     const serviceRoleKey = requireEnv("SUPABASE_SERVICE_ROLE_KEY");
-    const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
+    const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, { db: { schema: "zapp" } });
 
     // Auth check
     const authHeader = req.headers.get("Authorization");
@@ -100,6 +100,7 @@ Deno.serve(async (req) => {
     const anonKey = requireEnv("SUPABASE_ANON_KEY");
     const supabaseUser = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: authHeader } },
+      db: { schema: "zapp" },
     });
     const { data: userData, error: userError } = await supabaseUser.auth.getUser();
     if (userError || !userData || typeof userData !== 'object' || !userData.user) {

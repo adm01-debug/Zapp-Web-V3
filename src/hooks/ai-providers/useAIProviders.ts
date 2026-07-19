@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import type { Json } from '@/integrations/supabase/types';
+import type { Json } from '@/integrations/supabase/schema';
 import { toast } from '@/hooks/use-toast';
 import type { AIProvider, ProviderFormData } from '@/components/settings/ai-providers/types';
 import { EMPTY_FORM } from '@/components/settings/ai-providers/types';
+import { queryKeys } from '@/services/api/queryKeys';
 
 export function useAIProviders() {
   const queryClient = useQueryClient();
@@ -14,7 +15,7 @@ export function useAIProviders() {
   const [testing, setTesting] = useState<string | null>(null);
 
   const { data: providers = [], isLoading } = useQuery({
-    queryKey: ['ai-providers'],
+    queryKey: queryKeys.aiProviders.all(),
     queryFn: async () => {
       const { data, error } = await supabase
         .from('ai_providers')
@@ -52,7 +53,7 @@ export function useAIProviders() {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['ai-providers'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.aiProviders.all() });
       toast({ title: editingId ? 'Provedor atualizado!' : 'Provedor criado!' });
       closeDialog();
     },
@@ -65,7 +66,7 @@ export function useAIProviders() {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['ai-providers'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.aiProviders.all() });
       toast({ title: 'Provedor removido.' });
     },
     onError: (e: Error) => toast({ title: 'Erro', description: e.message, variant: 'destructive' }),

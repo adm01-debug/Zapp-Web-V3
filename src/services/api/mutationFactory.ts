@@ -18,6 +18,7 @@ import {
   useQueryClient,
 } from '@tanstack/react-query';
 import { toast } from '@/hooks/use-toast';
+import { log } from '@/lib/logger';
 
 interface MutationFactoryOptions<TData, TVariables>
   extends Omit<
@@ -65,8 +66,8 @@ export const createCreateMutation = <TData, TVariables = any>(
       options?.onSuccess?.(data, variables, context);
     },
 
-    onError: (error: any) => {
-      console.error('Mutation error:', error);
+    onError: (error: unknown) => {
+      log.error('Mutation error:', error);
 
       // Show error toast
       if (options?.showToasts !== false) {
@@ -114,8 +115,8 @@ export const createUpdateMutation = <TData, TVariables = any>(
       options?.onSuccess?.(data, variables, context);
     },
 
-    onError: (error: any) => {
-      console.error('Mutation error:', error);
+    onError: (error: unknown) => {
+      log.error('Mutation error:', error);
 
       if (options?.showToasts !== false) {
         toast.error(
@@ -164,8 +165,8 @@ export const createDeleteMutation = <TData = void, TVariables = any>(
       options?.onSuccess?.(data, variables, context);
     },
 
-    onError: (error: any) => {
-      console.error('Mutation error:', error);
+    onError: (error: unknown) => {
+      log.error('Mutation error:', error);
 
       if (options?.showToasts !== false) {
         toast.error(
@@ -215,8 +216,8 @@ export const createBulkMutation = <TData, TVariables = any>(
       options?.onSuccess?.(data, variables, context);
     },
 
-    onError: (error: any) => {
-      console.error('Mutation error:', error);
+    onError: (error: unknown) => {
+      log.error('Mutation error:', error);
 
       if (options?.showToasts !== false) {
         toast.error(
@@ -244,8 +245,8 @@ export const createAsyncMutation = <TData, TVariables = any>(
 ) => {
   return useMutation({
     mutationFn,
-    onError: (error: any) => {
-      console.error('Async operation error:', error);
+    onError: (error: unknown) => {
+      log.error('Async operation error:', error);
 
       if (options?.showToasts !== false) {
         toast.error(
@@ -264,26 +265,27 @@ export const createAsyncMutation = <TData, TVariables = any>(
 /**
  * Default error handler for mutations
  */
-export const handleMutationError = (error: any, fallbackMessage?: string) => {
-  console.error('Mutation error:', error);
+export const handleMutationError = (error: unknown, fallbackMessage?: string) => {
+  log.error('Mutation error:', error);
+  const e = error as Record<string, unknown> | null;
 
-  if (error?.code === 'NETWORK_ERROR') {
+  if (e?.code === 'NETWORK_ERROR') {
     return 'Erro de conexão. Verifique sua internet.';
   }
 
-  if (error?.code === 'UNAUTHORIZED') {
+  if (e?.code === 'UNAUTHORIZED') {
     return 'Sua sessão expirou. Faça login novamente.';
   }
 
-  if (error?.code === 'FORBIDDEN') {
+  if (e?.code === 'FORBIDDEN') {
     return 'Você não tem permissão para fazer esta ação.';
   }
 
-  if (error?.code === 'VALIDATION_ERROR') {
-    return error.message || 'Dados inválidos. Verifique seus inputs.';
+  if (e?.code === 'VALIDATION_ERROR') {
+    return String(e.message || '') || 'Dados inválidos. Verifique seus inputs.';
   }
 
-  if (error?.code === 'DUPLICATE') {
+  if (e?.code === 'DUPLICATE') {
     return 'Este item já existe.';
   }
 

@@ -1,5 +1,8 @@
 # RLS Ownership Models - Complete Reference
 
+> **Arquitetura atual**: Supabase Self-Hosted (`supabase.atomicabr.com.br`), schema `zapp`. Veja [../SCHEMA_REFERENCE.md](SCHEMA_REFERENCE.md).
+
+
 This document details the ownership/access model for every table fixed by the `20260710_fix_rls_vulnerabilities.sql` migration.
 
 ## Ownership Model Categories

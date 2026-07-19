@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { queryKeys } from '@/services/api/queryKeys';
 import { useQuery } from '@tanstack/react-query';
 import { dbFrom } from '@/integrations/datasource/db';
 
@@ -30,7 +31,7 @@ const HOURS = Array.from({ length: 24 }, (_, i) => i);
 // Generate heatmap data from real messages
 function useHeatmapData() {
   return useQuery({
-    queryKey: ['conversation-heatmap'],
+    queryKey: queryKeys.adminOps.conversationHeatmap(),
     queryFn: async () => {
       const { data, error } = await dbFrom('messages')
         .select('created_at')
@@ -64,19 +65,37 @@ function useHeatmapData() {
 const METRIC_CONFIG = {
   volume: {
     label: 'Volume de Mensagens',
-    colorScale: ['#f0fdf4', '#86efac', '#22c55e', '#15803d', '#14532d'],
+    colorScale: [
+      'hsl(var(--success) / 0.08)',
+      'hsl(var(--success) / 0.25)',
+      'hsl(var(--success) / 0.55)',
+      'hsl(var(--success) / 0.80)',
+      'hsl(var(--success))',
+    ],
     unit: 'msgs',
     description: 'Número total de mensagens por período',
   },
   response_time: {
     label: 'Tempo de Resposta',
-    colorScale: ['#fef9c3', '#fde047', '#facc15', '#eab308', '#ca8a04'],
+    colorScale: [
+      'hsl(var(--warning) / 0.08)',
+      'hsl(var(--warning) / 0.25)',
+      'hsl(var(--warning) / 0.55)',
+      'hsl(var(--warning) / 0.80)',
+      'hsl(var(--warning))',
+    ],
     unit: 'seg',
     description: 'Tempo médio de primeira resposta',
   },
   satisfaction: {
     label: 'Satisfação',
-    colorScale: ['#fef2f2', '#fecaca', '#f87171', '#ef4444', '#dc2626'],
+    colorScale: [
+      'hsl(var(--destructive) / 0.08)',
+      'hsl(var(--destructive) / 0.25)',
+      'hsl(var(--destructive) / 0.55)',
+      'hsl(var(--destructive) / 0.80)',
+      'hsl(var(--destructive))',
+    ],
     unit: '/5',
     description: 'Nota média de satisfação do cliente',
     invert: true,
@@ -92,7 +111,6 @@ export default function ConversationHeatmap({
   const { data: realData } = useHeatmapData();
   const data = externalData || realData || [];
   const [selectedMetric, setSelectedMetric] = useState(metric);
-  const [hoveredCell, setHoveredCell] = useState<{ day: number; hour: number } | null>(null);
 
   const config = METRIC_CONFIG[selectedMetric];
 
@@ -205,7 +223,6 @@ export default function ConversationHeatmap({
                 <div className="flex flex-1 gap-0.5">
                   {HOURS.map((hour) => {
                     const cellData = getCellData(dayIndex, hour);
-                    const _isHovered = hoveredCell?.day === dayIndex && hoveredCell?.hour === hour;
                     const isHotspot = hotspots.some((h) => h.day === dayIndex && h.hour === hour);
 
                     return (
@@ -224,8 +241,6 @@ export default function ConversationHeatmap({
                                 ? getColor(cellData.value)
                                 : config.colorScale[0],
                             }}
-                            onMouseEnter={() => setHoveredCell({ day: dayIndex, hour })}
-                            onMouseLeave={() => setHoveredCell(null)}
                           >
                             {isHotspot && (
                               <div className="absolute -right-1 -top-1 h-2 w-2 rounded-full bg-warning" />

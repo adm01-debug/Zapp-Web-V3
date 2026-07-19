@@ -1,3 +1,5 @@
+> **📜 DOCUMENTO HISTÓRICO** — Reflete o estado do sistema na data indicada. A arquitetura atual usa um único Supabase Self-Hosted com schema `zapp`. Veja [SCHEMA_REFERENCE.md](docs/SCHEMA_REFERENCE.md).
+
 # Execução das Melhorias de Paridade — 2026-07-04 (meta 10/10)
 
 **Contexto:** plano de ação da auditoria `docs/AUDITORIA_PARIDADE_LOVABLE_VS_SELFHOSTED_2026-07-04.md` (PR #159).

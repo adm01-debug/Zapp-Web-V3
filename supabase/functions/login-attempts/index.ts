@@ -83,13 +83,23 @@ Deno.serve(async (req) => {
       return errorResponse("Email inválido", 400, req);
     }
 
-    const admin = createClient(requireEnv("SUPABASE_URL"), requireEnv("SUPABASE_SERVICE_ROLE_KEY"));
+    const admin = createClient(
+      requireEnv("SUPABASE_URL"),
+      requireEnv("SUPABASE_SERVICE_ROLE_KEY"),
+      { db: { schema: "zapp" }, auth: { persistSession: false } },
+    );
 
     if (action === "clear") {
       const authHeader = req.headers.get("Authorization") ?? "";
-      const authClient = createClient(requireEnv("SUPABASE_URL"), requireEnv("SUPABASE_ANON_KEY"), {
-        global: { headers: { Authorization: authHeader } },
-      });
+      const authClient = createClient(
+        requireEnv("SUPABASE_URL"),
+        requireEnv("SUPABASE_ANON_KEY"),
+        {
+          db: { schema: "zapp" },
+          auth: { persistSession: false },
+          global: { headers: { Authorization: authHeader } },
+        },
+      );
       const { data: authData, error: authError } = await authClient.auth.getUser();
       const userEmail = authData.user?.email?.toLowerCase();
       if (authError || !userEmail || userEmail !== email) {
@@ -115,8 +125,13 @@ Deno.serve(async (req) => {
       return jsonResponse(toStatus(existing), 200, req);
     }
 
-    const previousLockExpired = existing?.locked_until ? Date.parse(existing.locked_until) <= Date.now() : false;
-    const attempts = existing && !previousLockExpired ? existing.attempt_count + 1 : 1;
+    // FIX 2026-07-16: NAO resetar attempt_count quando o lock expira.
+    // Bug anterior: `previousLockExpired=true` resetava para 1, quebrando
+    // a escalacao exponencial. O lock sempre durava 1 minuto.
+    // Fix: incrementar sempre se o row existir; reset so via action='clear'
+    // (chamada apos login bem-sucedido que deleta o row).
+    // Resultado: Ciclo1->1min, Ciclo2->32min, Ciclo3->1024min (~17h).
+    const attempts = existing ? existing.attempt_count + 1 : 1;
     const lockedUntil = nextLockUntil(attempts);
     const userAgent = sanitizeString(body.userAgent, 500);
 

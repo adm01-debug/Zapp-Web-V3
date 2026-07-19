@@ -31,6 +31,11 @@ evolution_messages
 evolution_conversations
 evolution_contacts
 evolution_stage_mapping
+# Partições concretas da instância wpp2 — acessadas via zappSupabase (zappweb client),
+# NÃO via supabase (schema zapp). Confirmado em:
+# src/integrations/zappweb/hooks/useZappMessages.ts + useZappConversations.ts
+evolution_messages_wpp2
+evolution_conversations_wpp2
 
 # --- Funções RPC do banco EXTERNO (FATOR X) — chamadas via externalSupabase ---
 rpc_get_contact
@@ -75,3 +80,50 @@ fn_guard_qa_instances
 match_kb_chunks
 search_knowledge_base_rag
 rpc_record_search_click
+
+# ---------------------------------------------------------------------------
+# Funções ALTER-sem-CREATE: existem em produção (confirmado pelo ALTER condicional
+# em 20260712170700_r16_search_path_sweep_r14_r15.sql), mas o CREATE original
+# não está no fluxo de migrations deste repo. A migration R16 usa IF EXISTS para
+# não quebrar supabase db reset. Stub-migrations para cada função estão listadas
+# como melhoria futura (R17+).
+# ---------------------------------------------------------------------------
+fn_check_contact_id_reuse
+fn_create_message_audit_entry
+fn_get_current_snapshot_version
+fn_get_lgpd_consent_status
+fn_record_lgpd_consent
+# Falso positivo: o grep extrai 'public' da string de formato
+# format('ALTER FUNCTION public.%I(%s) SET search_path = ...')
+# em 20260712170700_r16_search_path_sweep_r14_r15.sql linha 85.
+# O regex backtracks ao bater em '%' e para em 'public'. Não é uma função.
+public
+
+# ---------------------------------------------------------------------------
+# RPCs de produção chamadas via supabase.rpc() mas cujas CREATE FUNCTION foram
+# feitas fora do fluxo de migrations (criadas manualmente na instância).
+# Stub-migrations serão adicionadas incrementalmente (R17+).
+# ---------------------------------------------------------------------------
+# Gmail OAuth integration (src/hooks/useIntegrationManagement.ts):
+initiate_gmail_oauth
+complete_gmail_oauth
+get_own_email_accounts
+# CRM / enriquecimento (src/hooks/useCRMManagement.ts, useIntegrationManagement.ts):
+sync_to_crm
+enrich_contact
+# Export/import/download (src/hooks/useMediaManagement.ts):
+export_user_data
+import_user_data
+check_download_permission
+# Analytics / search (src/hooks/useSearchManagement.ts, useAnalyticsManagement.ts):
+get_search_insights
+search_chat_messages
+get_latest_analysis
+
+# ---------------------------------------------------------------------------
+# RPCs que aparecem SOMENTE em arquivos __tests__ (não são chamadas de produção).
+# Detectadas pelo sync check porque ele varre src/ sem excluir __tests__.
+# ---------------------------------------------------------------------------
+# src/lib/evoApiHealth/__tests__/proxy.test.ts
+my_function
+no_params_fn

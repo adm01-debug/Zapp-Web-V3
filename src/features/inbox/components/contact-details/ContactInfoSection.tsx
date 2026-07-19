@@ -1,3 +1,4 @@
+import { queryKeys } from '@/services/api/queryKeys';
 import { useState, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Phone, Mail, Calendar, Building, Briefcase, Pencil, Check, X, Plus, Copy } from 'lucide-react';
@@ -74,7 +75,7 @@ function EditableField({ value, icon, onSave, placeholder, label }: EditableFiel
   // Empty state — show as discrete add button
   if (!value) {
     return (
-      <button
+      <button type="button"
         onClick={() => setEditing(true)}
         className="flex items-center gap-2 text-xs text-muted-foreground/60 hover:text-primary hover:bg-primary/5 rounded-lg p-2 w-full transition-all group"
       >
@@ -110,10 +111,13 @@ export function ContactInfoSection({ contact, enrichedData }: ContactInfoSection
     const { error } = await dbFrom('contacts').update({ [field]: value }).eq('id', contact.id);
     if (error) throw error;
 
-    queryClient.invalidateQueries({ queryKey: ['contact-enriched', contact.id] });
-    queryClient.invalidateQueries({ queryKey: ['contact-ai-tags', contact.id] });
-    queryClient.invalidateQueries({ queryKey: ['contact-sla', contact.id] });
-    queryClient.invalidateQueries({ queryKey: ['contact-local-id', contact.id] });
+    queryClient.invalidateQueries({ queryKey: queryKeys.contactDetails.enriched(contact.id) });
+    queryClient.invalidateQueries({ queryKey: queryKeys.contactDetails.aiTags(contact.id) });
+    queryClient.invalidateQueries({ queryKey: queryKeys.sla.contact(contact.id) });
+    queryClient.invalidateQueries({ queryKey: queryKeys.contactDetails.localId(contact.id) });
+    queryClient.invalidateQueries({ queryKey: queryKeys.contacts.lists() });
+    queryClient.invalidateQueries({ queryKey: queryKeys.contacts.detail(contact.id) });
+    queryClient.invalidateQueries({ queryKey: queryKeys.contacts.searchRoot() });
   }, [contact.id, queryClient]);
 
   return (

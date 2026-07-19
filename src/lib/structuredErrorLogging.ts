@@ -321,8 +321,8 @@ class StructuredErrorLogger {
     // Report to Sentry for critical errors
     if (severity === ErrorSeverity.CRITICAL && !isDuplicate && import.meta.env.PROD) {
       Sentry.captureException(error instanceof Error ? error : new Error(message), {
-        extra: structuredError.context,
-        tags: { category, severity },
+        extra: structuredError.context as unknown as Record<string, unknown>,
+        tags: { category, severity } as unknown as Record<string, string>,
       });
     }
 

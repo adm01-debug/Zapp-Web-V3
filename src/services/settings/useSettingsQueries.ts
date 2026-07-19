@@ -4,7 +4,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { queryKeys } from '@/services/api';
-import { settingsService, type UserSettings, type WorkspaceSettings } from './index';
+import { settingsService } from './index';
 
 export const useUserSettings = (userId?: string) => {
   return useQuery({

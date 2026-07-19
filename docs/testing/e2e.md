@@ -1,5 +1,8 @@
 # 🎭 Testes E2E com Playwright
 
+> **Arquitetura atual**: Supabase Self-Hosted (`supabase.atomicabr.com.br`), schema `zapp`. Veja [../SCHEMA_REFERENCE.md](SCHEMA_REFERENCE.md).
+
+
 ## Visão geral
 
 Cobrimos os fluxos críticos do ZAPP Web com Playwright:

@@ -1,4 +1,7 @@
 # Runtime RLS Validation — Migration #3 Comprehensive Testing
+
+> **Arquitetura atual**: Supabase Self-Hosted (`supabase.atomicabr.com.br`), schema `zapp`. Veja [docs/SCHEMA_REFERENCE.md](SCHEMA_REFERENCE.md).
+
 **Date:** 2026-07-12  
 **Database:** supabase.atomicabr.com.br (Staging)  
 **Status:** ✅ ALL RLS POLICIES ENFORCED — ZERO UNAUTHORIZED ACCESS

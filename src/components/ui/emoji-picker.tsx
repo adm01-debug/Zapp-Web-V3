@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { safeGetJSON, safeSetJSON } from '@/lib/safeStorage';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { Smile, Search, Clock, Heart, X, Cat, UtensilsCrossed, Briefcase, Hash, PartyPopper, Plane, Flag, Users, Hand } from 'lucide-react';
@@ -45,11 +46,9 @@ export function EmojiPicker({
   const [hoveredEmoji, setHoveredEmoji] = React.useState<string | null>(null);
 
   // Local recent emojis persisted to localStorage
-  const [localRecent, setLocalRecent] = React.useState<string[]>(() => {
-    try {
-      return JSON.parse(localStorage.getItem(RECENT_KEY) || '[]');
-    } catch { return []; }
-  });
+  const [localRecent, setLocalRecent] = React.useState<string[]>(() =>
+    safeGetJSON<string[]>(RECENT_KEY, [])
+  );
 
   const recentEmojis = externalRecent ?? localRecent;
 
@@ -61,7 +60,7 @@ export function EmojiPicker({
       onRecentUpdate(updated);
     } else {
       setLocalRecent(updated);
-      localStorage.setItem(RECENT_KEY, JSON.stringify(updated));
+      safeSetJSON(RECENT_KEY, updated);
     }
 
     setIsOpen(false);
@@ -96,7 +95,7 @@ export function EmojiPicker({
                 className="pl-8 h-8 text-xs bg-muted/50 border-border/50"
               />
               {searchQuery && (
-                <button
+                <button type="button"
                   onClick={() => setSearchQuery('')}
                   aria-label="Limpar busca de emoji"
                   className="absolute right-2 top-1/2 -translate-y-1/2"
@@ -112,7 +111,7 @@ export function EmojiPicker({
             <div className="flex gap-0.5 px-1.5 py-1.5 border-b border-border/50 overflow-x-auto scrollbar-none">
               {/* Recent tab */}
               {recentEmojis.length > 0 && (
-                <button
+                <button type="button"
                   onClick={() => setActiveCategory('recent')}
                   className={cn(
                     'flex-shrink-0 p-1.5 rounded-md transition-colors',
@@ -128,7 +127,7 @@ export function EmojiPicker({
               {Object.entries(emojiDatabase).map(([key, category]) => {
                 const Icon = categoryIcons[key] || Smile;
                 return (
-                  <button
+                  <button type="button"
                     key={key}
                     onClick={() => setActiveCategory(key)}
                     className={cn(

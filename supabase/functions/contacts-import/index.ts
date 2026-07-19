@@ -34,15 +34,12 @@ serve(async (req) => {
     if (!auth) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } });
 
     const supabase = createClient(
-      (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL')) ?? '',
-      (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')) ?? '',
-      { auth: { autoRefreshToken: false, persistSession: false } }
+      (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL')) ?? '', (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')) ?? '',
+      { auth: { autoRefreshToken: false, persistSession: false }, db: { schema: "zapp" } }
     );
-    // Caller-scoped client — RLS enforces tenant isolation for connection ownership
     const callerClient = createClient(
-      (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL')) ?? '',
-      (Deno.env.get('SELFHOSTED_SUPABASE_ANON_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY')) ?? '',
-      { global: { headers: { authorization: auth } }, auth: { autoRefreshToken: false, persistSession: false } }
+      (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL')) ?? '', (Deno.env.get('SELFHOSTED_SUPABASE_ANON_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY')) ?? '',
+      { global: { headers: { authorization: auth } }, auth: { autoRefreshToken: false, persistSession: false }, db: { schema: "zapp" } }
     );
 
     const { data: { user }, error: authErr } = await supabase.auth.getUser(auth.replace('Bearer ', ''));

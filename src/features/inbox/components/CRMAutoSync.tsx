@@ -1,3 +1,4 @@
+// CRMAutoSync — tipado sobre o contrato real de useSyncToCRM.
 /**
  * CRMAutoSync
  * 

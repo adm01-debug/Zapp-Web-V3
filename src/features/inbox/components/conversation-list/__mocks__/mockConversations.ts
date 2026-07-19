@@ -1,14 +1,18 @@
-import type { ConversationWithMessages, RealtimeMessage } from '../../../hooks/useRealtimeMessages';
+import type {
+  ConversationContact,
+  ConversationWithMessages,
+  RealtimeMessage,
+} from '../../../hooks/realtime/types';
 
-// Extensão do tipo para compatibilidade com useRealtimeMessages e o componente ConversationItem legado
-export interface MockConversationWithMessages extends ConversationWithMessages {
-  contact: Partial<ConversationWithMessages['contact']> & Pick<ConversationWithMessages['contact'], 'id' | 'name' | 'phone' | 'created_at' | 'updated_at'>;
-  id: string;
-  status: 'open' | 'pending' | 'resolved' | 'waiting';
-  priority: 'high' | 'medium' | 'low';
-  updatedAt: Date; // Usado pelo formatDistanceToNow
-  tags: string[];
-}
+/**
+ * Mock fixtures used exclusively for local UI showcase / storybook-like previews
+ * of the realtime inbox. They are only rendered when the developer opts-in via
+ * `localStorage.setItem('mockConversations', '1')` in DEV mode.
+ *
+ * The fixtures MUST satisfy the real `ConversationWithMessages` contract — no
+ * extended/partial mock type — so the virtualized lists don't need any special
+ * casing to accept them.
+ */
 
 const now = Date.now();
 const minutesAgo = (m: number) => new Date(now - m * 60_000);
@@ -41,13 +45,63 @@ const createMockMessage = (
   is_deleted: false,
 });
 
-export const MOCK_CONVERSATIONS: MockConversationWithMessages[] = [
+type ContactSeed = Pick<
+  ConversationContact,
+  'id' | 'name' | 'phone' | 'company' | 'job_title' | 'tags' | 'contact_type' | 'channel_type' | 'avatar_url' | 'ai_sentiment' | 'created_at' | 'updated_at'
+>;
+
+function buildContact(seed: ContactSeed): ConversationContact {
+  return {
+    id: seed.id,
+    name: seed.name,
+    surname: null,
+    nickname: null,
+    phone: seed.phone,
+    email: null,
+    avatar_url: seed.avatar_url,
+    tags: seed.tags,
+    company: seed.company,
+    job_title: seed.job_title,
+    assigned_to: null,
+    queue_id: null,
+    created_at: seed.created_at,
+    updated_at: seed.updated_at,
+    whatsapp_connection_id: null,
+    contact_type: seed.contact_type,
+    group_category: null,
+    ai_sentiment: seed.ai_sentiment,
+    channel_type: seed.channel_type,
+    channel_connection_id: null,
+  };
+}
+
+interface MockSeed {
+  unreadCount: number;
+  updatedAt: Date;
+  contact: ContactSeed;
+  message: { id: string; content: string; sender: 'contact' | 'agent' };
+}
+
+function buildConversation(seed: MockSeed): ConversationWithMessages {
+  const contact = buildContact(seed.contact);
+  const lastMessage = createMockMessage(
+    seed.message.id,
+    contact.id,
+    seed.message.content,
+    seed.message.sender,
+    seed.updatedAt
+  );
+  return {
+    contact,
+    unreadCount: seed.unreadCount,
+    lastMessage,
+    messages: [lastMessage],
+  };
+}
+
+export const MOCK_CONVERSATIONS: ConversationWithMessages[] = [
   {
-    id: 'mock-1',
-    status: 'open',
-    priority: 'high',
     unreadCount: 7,
-    tags: ['vip', 'enterprise'],
     updatedAt: minutesAgo(2),
     contact: {
       id: 'mock-contact-1',
@@ -63,21 +117,14 @@ export const MOCK_CONVERSATIONS: MockConversationWithMessages[] = [
       avatar_url: 'https://i.pravatar.cc/150?img=47',
       ai_sentiment: 'positive',
     },
-    lastMessage: createMockMessage(
-      'm1',
-      'mock-contact-1',
-      'Bom dia! Recebi a proposta atualizada e gostaria de agendar uma call.',
-      'contact',
-      minutesAgo(2)
-    ),
-    messages: [],
+    message: {
+      id: 'm1',
+      content: 'Bom dia! Recebi a proposta atualizada e gostaria de agendar uma call.',
+      sender: 'contact',
+    },
   },
   {
-    id: 'mock-2',
-    status: 'pending',
-    priority: 'medium',
     unreadCount: 2,
-    tags: ['lead'],
     updatedAt: minutesAgo(15),
     contact: {
       id: 'mock-contact-2',
@@ -93,21 +140,10 @@ export const MOCK_CONVERSATIONS: MockConversationWithMessages[] = [
       avatar_url: 'https://i.pravatar.cc/150?img=11',
       ai_sentiment: 'neutral',
     },
-    lastMessage: createMockMessage(
-      'm2',
-      'mock-contact-2',
-      'Perfeito, obrigado!',
-      'contact',
-      minutesAgo(15)
-    ),
-    messages: [],
+    message: { id: 'm2', content: 'Perfeito, obrigado!', sender: 'contact' },
   },
   {
-    id: 'mock-3',
-    status: 'open',
-    priority: 'low',
     unreadCount: 3,
-    tags: ['suporte'],
     updatedAt: minutesAgo(45),
     contact: {
       id: 'mock-contact-3',
@@ -123,21 +159,10 @@ export const MOCK_CONVERSATIONS: MockConversationWithMessages[] = [
       avatar_url: 'https://i.pravatar.cc/150?img=20',
       ai_sentiment: 'negative',
     },
-    lastMessage: createMockMessage(
-      'm3',
-      'mock-contact-3',
-      'Continua sem funcionar 😡',
-      'contact',
-      minutesAgo(45)
-    ),
-    messages: [],
+    message: { id: 'm3', content: 'Continua sem funcionar 😡', sender: 'contact' },
   },
   {
-    id: 'mock-4',
-    status: 'waiting',
-    priority: 'medium',
     unreadCount: 1,
-    tags: ['brindes'],
     updatedAt: hoursAgo(2),
     contact: {
       id: 'mock-contact-4',
@@ -153,21 +178,14 @@ export const MOCK_CONVERSATIONS: MockConversationWithMessages[] = [
       avatar_url: 'https://i.pravatar.cc/150?img=52',
       ai_sentiment: 'neutral',
     },
-    lastMessage: createMockMessage(
-      'm4',
-      'mock-contact-4',
-      'Segue em anexo o briefing para os brindes corporativos.',
-      'contact',
-      hoursAgo(2)
-    ),
-    messages: [],
+    message: {
+      id: 'm4',
+      content: 'Segue em anexo o briefing para os brindes corporativos.',
+      sender: 'contact',
+    },
   },
   {
-    id: 'mock-5',
-    status: 'open',
-    priority: 'high',
     unreadCount: 12,
-    tags: ['urgente'],
     updatedAt: minutesAgo(1),
     contact: {
       id: 'mock-contact-5',
@@ -183,21 +201,14 @@ export const MOCK_CONVERSATIONS: MockConversationWithMessages[] = [
       avatar_url: 'https://i.pravatar.cc/150?img=33',
       ai_sentiment: 'negative',
     },
-    lastMessage: createMockMessage(
-      'm5',
-      'mock-contact-5',
-      'Preciso de uma resposta URGENTE sobre o cancelamento do contrato.',
-      'contact',
-      minutesAgo(1)
-    ),
-    messages: [],
+    message: {
+      id: 'm5',
+      content: 'Preciso de uma resposta URGENTE sobre o cancelamento do contrato.',
+      sender: 'contact',
+    },
   },
   {
-    id: 'mock-6',
-    status: 'resolved',
-    priority: 'low',
     unreadCount: 1,
-    tags: ['parceiro'],
     updatedAt: hoursAgo(8),
     contact: {
       id: 'mock-contact-6',
@@ -213,21 +224,10 @@ export const MOCK_CONVERSATIONS: MockConversationWithMessages[] = [
       avatar_url: 'https://i.pravatar.cc/150?img=23',
       ai_sentiment: 'positive',
     },
-    lastMessage: createMockMessage(
-      'm6',
-      'mock-contact-6',
-      'Ok, resolvido! Valeu pelo suporte 🙏',
-      'contact',
-      hoursAgo(8)
-    ),
-    messages: [],
+    message: { id: 'm6', content: 'Ok, resolvido! Valeu pelo suporte 🙏', sender: 'contact' },
   },
   {
-    id: 'mock-7',
-    status: 'pending',
-    priority: 'medium',
     unreadCount: 1,
-    tags: ['demo'],
     updatedAt: hoursAgo(3),
     contact: {
       id: 'mock-contact-7',
@@ -243,21 +243,10 @@ export const MOCK_CONVERSATIONS: MockConversationWithMessages[] = [
       avatar_url: 'https://i.pravatar.cc/150?img=45',
       ai_sentiment: 'neutral',
     },
-    lastMessage: createMockMessage(
-      'm7',
-      'mock-contact-7',
-      'Pode me ligar amanhã às 10h?',
-      'agent',
-      hoursAgo(3)
-    ),
-    messages: [],
+    message: { id: 'm7', content: 'Pode me ligar amanhã às 10h?', sender: 'agent' },
   },
   {
-    id: 'mock-8',
-    status: 'open',
-    priority: 'low',
     unreadCount: 1,
-    tags: ['cliente'],
     updatedAt: daysAgo(1),
     contact: {
       id: 'mock-contact-8',
@@ -273,21 +262,10 @@ export const MOCK_CONVERSATIONS: MockConversationWithMessages[] = [
       avatar_url: 'https://i.pravatar.cc/150?img=14',
       ai_sentiment: 'positive',
     },
-    lastMessage: createMockMessage(
-      'm8',
-      'mock-contact-8',
-      '👍 Tudo certo por aqui, valeu!',
-      'contact',
-      daysAgo(1)
-    ),
-    messages: [],
+    message: { id: 'm8', content: '👍 Tudo certo por aqui, valeu!', sender: 'contact' },
   },
   {
-    id: 'mock-9',
-    status: 'open',
-    priority: 'high',
     unreadCount: 4,
-    tags: ['vip'],
     updatedAt: minutesAgo(8),
     contact: {
       id: 'mock-contact-9',
@@ -303,21 +281,14 @@ export const MOCK_CONVERSATIONS: MockConversationWithMessages[] = [
       avatar_url: 'https://i.pravatar.cc/150?img=49',
       ai_sentiment: 'positive',
     },
-    lastMessage: createMockMessage(
-      'm9',
-      'mock-contact-9',
-      'Adorei a coleção nova! Quando chegam as peças tamanho M?',
-      'contact',
-      minutesAgo(8)
-    ),
-    messages: [],
+    message: {
+      id: 'm9',
+      content: 'Adorei a coleção nova! Quando chegam as peças tamanho M?',
+      sender: 'contact',
+    },
   },
   {
-    id: 'mock-10',
-    status: 'open',
-    priority: 'medium',
     unreadCount: 2,
-    tags: ['suporte', 'webchat'],
     updatedAt: minutesAgo(22),
     contact: {
       id: 'mock-contact-10',
@@ -333,21 +304,14 @@ export const MOCK_CONVERSATIONS: MockConversationWithMessages[] = [
       avatar_url: 'https://i.pravatar.cc/150?img=12',
       ai_sentiment: 'neutral',
     },
-    lastMessage: createMockMessage(
-      'm10',
-      'mock-contact-10',
-      'Olá, vim pelo site. Vocês têm plano para times pequenos?',
-      'contact',
-      minutesAgo(22)
-    ),
-    messages: [],
+    message: {
+      id: 'm10',
+      content: 'Olá, vim pelo site. Vocês têm plano para times pequenos?',
+      sender: 'contact',
+    },
   },
   {
-    id: 'mock-11',
-    status: 'open',
-    priority: 'low',
     unreadCount: 1,
-    tags: ['fornecedor'],
     updatedAt: hoursAgo(1),
     contact: {
       id: 'mock-contact-11',
@@ -363,21 +327,14 @@ export const MOCK_CONVERSATIONS: MockConversationWithMessages[] = [
       avatar_url: 'https://i.pravatar.cc/150?img=68',
       ai_sentiment: 'neutral',
     },
-    lastMessage: createMockMessage(
-      'm11',
-      'mock-contact-11',
-      'Cotação enviada por e-mail, conforme combinado.',
-      'agent',
-      hoursAgo(1)
-    ),
-    messages: [],
+    message: {
+      id: 'm11',
+      content: 'Cotação enviada por e-mail, conforme combinado.',
+      sender: 'agent',
+    },
   },
   {
-    id: 'mock-12',
-    status: 'resolved',
-    priority: 'medium',
     unreadCount: 1,
-    tags: ['cliente-final'],
     updatedAt: daysAgo(2),
     contact: {
       id: 'mock-contact-12',
@@ -393,21 +350,14 @@ export const MOCK_CONVERSATIONS: MockConversationWithMessages[] = [
       avatar_url: 'https://i.pravatar.cc/150?img=44',
       ai_sentiment: 'positive',
     },
-    lastMessage: createMockMessage(
-      'm12',
-      'mock-contact-12',
-      'Tudo certo! Obrigada pelo atendimento ⭐⭐⭐⭐⭐',
-      'contact',
-      daysAgo(2)
-    ),
-    messages: [],
+    message: {
+      id: 'm12',
+      content: 'Tudo certo! Obrigada pelo atendimento ⭐⭐⭐⭐⭐',
+      sender: 'contact',
+    },
   },
   {
-    id: 'mock-13',
-    status: 'pending',
-    priority: 'high',
     unreadCount: 5,
-    tags: ['churn-risk'],
     updatedAt: minutesAgo(35),
     contact: {
       id: 'mock-contact-13',
@@ -423,21 +373,14 @@ export const MOCK_CONVERSATIONS: MockConversationWithMessages[] = [
       avatar_url: 'https://i.pravatar.cc/150?img=15',
       ai_sentiment: 'negative',
     },
-    lastMessage: createMockMessage(
-      'm13',
-      'mock-contact-13',
-      'Preciso urgentemente revisar os valores do contrato antes de renovar.',
-      'contact',
-      minutesAgo(35)
-    ),
-    messages: [],
+    message: {
+      id: 'm13',
+      content: 'Preciso urgentemente revisar os valores do contrato antes de renovar.',
+      sender: 'contact',
+    },
   },
   {
-    id: 'mock-14',
-    status: 'open',
-    priority: 'low',
     unreadCount: 1,
-    tags: ['novo-lead'],
     updatedAt: hoursAgo(5),
     contact: {
       id: 'mock-contact-14',
@@ -453,21 +396,14 @@ export const MOCK_CONVERSATIONS: MockConversationWithMessages[] = [
       avatar_url: 'https://i.pravatar.cc/150?img=25',
       ai_sentiment: 'positive',
     },
-    lastMessage: createMockMessage(
-      'm14',
-      'mock-contact-14',
-      'Vi vocês no Insta, queria saber mais sobre como funciona!',
-      'contact',
-      hoursAgo(5)
-    ),
-    messages: [],
+    message: {
+      id: 'm14',
+      content: 'Vi vocês no Insta, queria saber mais sobre como funciona!',
+      sender: 'contact',
+    },
   },
   {
-    id: 'mock-15',
-    status: 'open',
-    priority: 'medium',
     unreadCount: 2,
-    tags: ['parceiro'],
     updatedAt: minutesAgo(50),
     contact: {
       id: 'mock-contact-15',
@@ -483,13 +419,10 @@ export const MOCK_CONVERSATIONS: MockConversationWithMessages[] = [
       avatar_url: 'https://i.pravatar.cc/150?img=58',
       ai_sentiment: 'positive',
     },
-    lastMessage: createMockMessage(
-      'm15',
-      'mock-contact-15',
-      'Bora alinhar a campanha conjunta semana que vem?',
-      'agent',
-      minutesAgo(50)
-    ),
-    messages: [],
+    message: {
+      id: 'm15',
+      content: 'Bora alinhar a campanha conjunta semana que vem?',
+      sender: 'agent',
+    },
   },
-];
+].map(buildConversation);

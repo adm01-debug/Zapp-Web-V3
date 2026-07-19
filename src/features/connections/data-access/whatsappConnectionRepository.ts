@@ -4,7 +4,7 @@ import {
   getWhatsappConnections,
   invalidateWhatsappConnectionsCache,
 } from '@/lib/whatsappConnectionsCache';
-import type { TablesInsert, TablesUpdate } from '@/integrations/supabase/types';
+import type { TablesInsert, TablesUpdate } from '@/integrations/supabase/schema';
 import { columnMap } from '@/integrations/supabase/columnMap';
 import { normalizeConnection } from '@/integrations/supabase/rowNormalizers';
 import type { WhatsAppConnectionCanonical } from '@/integrations/supabase/columnMap';
@@ -63,9 +63,14 @@ export const whatsappConnectionRepository = {
     const res = await safeFrom(TABLE)
       .insert(data)
       .select(CANONICAL_SELECT)
-      .single();
+      .single(); // POST-INSERT: .single() correto — insert deve retornar exatamente 1 linha
 
     invalidateWhatsappConnectionsCache();
+
+    // ✅ Fix: checar null antes de normalizar (INSERT pode falhar)
+    if (res.error || !res.data) {
+      return { ...res, normalized: null };
+    }
     const normalized = normalizeConnection(
       res.data as Parameters<typeof normalizeConnection>[0],
     );
@@ -73,6 +78,8 @@ export const whatsappConnectionRepository = {
   },
 
   async logQrAttempt(data: TablesInsert<'qr_attempts'>) {
+    // ✅ POST-INSERT: .single() correto — insert retorna exatamente 1 linha
+    // Erros retornados via { error } pelo Supabase client, não lançam exceção
     return supabase.from('qr_attempts').insert(data).select('id').single();
   },
 

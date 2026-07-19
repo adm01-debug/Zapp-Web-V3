@@ -9,6 +9,7 @@ function supabaseForUser(ctx: ToolContext) {
     supabaseUrl,
     supabaseKey,
     {
+      db: { schema: 'zapp' },
       global: { headers: { Authorization: `Bearer ${ctx.getToken()}` } },
       auth: { persistSession: false, autoRefreshToken: false },
     }

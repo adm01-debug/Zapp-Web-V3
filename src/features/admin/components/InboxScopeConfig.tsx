@@ -1,3 +1,4 @@
+import { queryKeys } from '@/services/api/queryKeys';
 import { useState, useMemo } from 'react';
 import { getLogger } from '@/lib/logger';
 const log = getLogger('InboxScopeConfig');
@@ -42,7 +43,7 @@ export function InboxScopeConfig() {
   const [isAddingScope, setIsAddingScope] = useState(false);
 
   const { data: customScopes = [], isLoading: loadingScopes } = useQuery({
-    queryKey: ['admin', 'inbox-custom-scopes'],
+    queryKey: queryKeys.adminOps.inboxScopes(),
     queryFn: async () => {
       const { data, error } = await supabase
         .from('inbox_custom_scopes')
@@ -74,7 +75,8 @@ export function InboxScopeConfig() {
 
       toast.success('Escopo personalizado criado!');
       setNewScope({ label: '', description: '', name: '' });
-      void queryClient.invalidateQueries({ queryKey: ['admin', 'inbox-custom-scopes'] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.adminOps.inboxScopes() });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.contactDetails.inboxScopes() });
     } catch {
       toast.error('Erro ao criar escopo');
     } finally {
@@ -87,7 +89,8 @@ export function InboxScopeConfig() {
       const { error } = await supabase.from('inbox_custom_scopes').delete().eq('id', id);
       if (error) throw error;
       toast.success('Escopo removido');
-      void queryClient.invalidateQueries({ queryKey: ['admin', 'inbox-custom-scopes'] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.adminOps.inboxScopes() });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.contactDetails.inboxScopes() });
     } catch {
       toast.error('Erro ao remover escopo');
     }

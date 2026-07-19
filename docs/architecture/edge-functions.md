@@ -1,5 +1,8 @@
 # Documentação de Edge Functions
 
+> **Arquitetura atual**: Supabase Self-Hosted (`supabase.atomicabr.com.br`), schema `zapp`. Veja [../SCHEMA_REFERENCE.md](SCHEMA_REFERENCE.md).
+
+
 ## Visão Geral
 O projeto possui 40+ Edge Functions deployadas automaticamente pelo Lovable Cloud.
 

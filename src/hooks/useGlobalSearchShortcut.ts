@@ -1,22 +1,16 @@
-import { useEffect, useCallback } from 'react';
+// Re-export from consolidated useSearchManagement module (ETAPA 29 consolidation)
+import { useEffect } from 'react';
+import { useGlobalSearchShortcutManagement } from '@/hooks/useSearchManagement';
 
 interface UseGlobalSearchShortcutProps {
   onOpen: () => void;
 }
 
+/** Enables global search with Ctrl+K keyboard shortcut. */
 export function useGlobalSearchShortcut({ onOpen }: UseGlobalSearchShortcutProps) {
-  const handleKeyDown = useCallback(
-    (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
-        e.preventDefault();
-        onOpen();
-      }
-    },
-    [onOpen]
-  );
-
+  const shortcut = useGlobalSearchShortcutManagement();
   useEffect(() => {
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [handleKeyDown]);
+    if (shortcut.isOpen) onOpen();
+  }, [shortcut.isOpen, onOpen]);
+  return shortcut;
 }

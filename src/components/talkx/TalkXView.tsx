@@ -33,6 +33,7 @@ import { TalkXCampaignCard } from './TalkXCampaignCard';
 import { toast } from 'sonner';
 import { TalkXBlacklist } from './TalkXBlacklist';
 import { TalkXAnalytics } from './TalkXAnalytics';
+import { SectionErrorBoundary } from '@/components/ui/section-error-boundary';
 
 export default function TalkXView() {
   const {
@@ -335,7 +336,9 @@ export default function TalkXView() {
 
         <TabsContent value="monitor" className="mt-4 flex-1 overflow-auto">
           {selectedCampaignId ? (
-            <TalkXLiveMonitor campaignId={selectedCampaignId} />
+            <SectionErrorBoundary sectionName="Monitor ao vivo">
+              <TalkXLiveMonitor campaignId={selectedCampaignId} />
+            </SectionErrorBoundary>
           ) : (
             <div className="flex items-center justify-center py-20 text-muted-foreground">
               Selecione uma campanha para monitorar
@@ -348,7 +351,9 @@ export default function TalkXView() {
         </TabsContent>
 
         <TabsContent value="analytics" className="mt-4 flex-1 overflow-auto">
-          <TalkXAnalytics campaigns={campaigns} />
+          <SectionErrorBoundary sectionName="Analytics de campanhas">
+            <TalkXAnalytics campaigns={campaigns} />
+          </SectionErrorBoundary>
         </TabsContent>
       </Tabs>
     </div>

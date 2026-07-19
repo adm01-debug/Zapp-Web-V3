@@ -96,7 +96,10 @@ serve(async (req) => {
       callerClient = createClient(
         supabaseUrl,
         anonKey,
-        { global: { headers: { Authorization: req.headers.get('Authorization') || '' } } }
+        {
+          global: { headers: { Authorization: req.headers.get('Authorization') || '' } },
+          db: { schema: "zapp" },
+        }
       );
     }
   } else {
@@ -104,7 +107,7 @@ serve(async (req) => {
     if (authDenied) return authDenied;
   }
 
-  const supabase = createClient(supabaseUrl, serviceRoleKey);
+  const supabase = createClient(supabaseUrl, serviceRoleKey, { db: { schema: "zapp" } });
 
   const clientId     = Deno.env.get('GOOGLE_CLIENT_ID');
   const clientSecret = Deno.env.get('GOOGLE_CLIENT_SECRET');

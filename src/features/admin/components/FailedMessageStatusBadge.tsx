@@ -6,6 +6,7 @@ const STATUS_LABEL: Record<FailedMessageStatus, string> = {
   retrying: 'Reprocessando',
   succeeded: 'Sucesso',
   abandoned: 'Abandonado',
+  failed: 'Falhou',
 };
 
 const STATUS_VARIANT: Record<FailedMessageStatus, 'default' | 'secondary' | 'destructive' | 'outline'> = {
@@ -13,6 +14,7 @@ const STATUS_VARIANT: Record<FailedMessageStatus, 'default' | 'secondary' | 'des
   retrying: 'default',
   succeeded: 'outline',
   abandoned: 'destructive',
+  failed: 'destructive',
 };
 
 interface Props {

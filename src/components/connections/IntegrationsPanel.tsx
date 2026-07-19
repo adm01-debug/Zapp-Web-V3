@@ -54,6 +54,7 @@ export function IntegrationsPanel({
         cancelled = true;
       };
     }
+    return undefined;
   }, [open, instanceName]);
 
   const loadAll = async (isCancelled: () => boolean = () => false) => {
@@ -74,12 +75,12 @@ export function IntegrationsPanel({
     };
     try {
       await Promise.allSettled([
-        load(api.getTypebot as any, setTypebot),
-        load(api.getOpenAI as any, setOpenai),
-        load(api.getDify as any, setDify),
-        load(api.getFlowise as any, setFlowise),
-        load(api.getChatwoot as any, setChatwoot),
-        load(api.getEvolutionBot as any, setEvolutionBot),
+        load(api.getTypebot, setTypebot),
+        load(api.getOpenAI, setOpenai),
+        load(api.getDify, setDify),
+        load(api.getFlowise, setFlowise),
+        load(api.getChatwoot, setChatwoot),
+        load(api.getEvolutionBot, setEvolutionBot),
       ]);
     } finally {
       if (isCancelled()) abortController.abort();

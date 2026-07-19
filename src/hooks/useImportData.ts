@@ -1,7 +1,14 @@
+// Re-export from consolidated useMediaManagement module (ETAPA 40 consolidation)
+import { useImportDataManagement } from '@/hooks/useMediaManagement';
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import * as XLSX from 'xlsx';
+
+/** Imports user data from JSON file with validation and error handling. */
+export function useImportData() {
+  return useImportDataManagement();
+}
 
 export interface ImportError {
   row: number;
@@ -12,7 +19,7 @@ export interface ImportError {
 
 export type ImportStatus = 'idle' | 'parsing' | 'validating' | 'importing' | 'complete' | 'error';
 
-interface ImportResult<T> {
+export interface ImportResult<T> {
   success: T[];
   errors: ImportError[];
   total: number;
@@ -27,7 +34,7 @@ interface UseImportDataOptions<T> {
 }
 
 /** Imports and validates data from CSV/Excel files with Zod schema validation. */
-export function useImportData<T>(options: UseImportDataOptions<T>) {
+export function useImportDataTyped<T>(options: UseImportDataOptions<T>) {
   const { schema, onImport, maxRows = 10000, skipFirstRow = false } = options;
 
   const [status, setStatus] = useState<ImportStatus>('idle');

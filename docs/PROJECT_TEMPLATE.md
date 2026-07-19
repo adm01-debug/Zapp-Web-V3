@@ -1,5 +1,8 @@
 # 🏗️ Template de Projeto Base - WhatsApp CRM
 
+> **Arquitetura atual**: Supabase Self-Hosted (`supabase.atomicabr.com.br`), schema `zapp`. Veja [SCHEMA_REFERENCE.md](SCHEMA_REFERENCE.md).
+
+
 Este documento serve como guia completo para criar novos projetos seguindo a mesma arquitetura e padrões deste sistema.
 
 ---

@@ -85,7 +85,7 @@ Deno.serve(async (req) => {
     };
 
     // 3. Read webhook config (service-role, since global_settings is admin-only).
-    const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
+    const admin = createClient(SUPABASE_URL, SERVICE_ROLE, { db: { schema: "zapp" } });
     const { data: settings, error: settingsErr } = await admin
       .from('global_settings')
       .select('key, value')

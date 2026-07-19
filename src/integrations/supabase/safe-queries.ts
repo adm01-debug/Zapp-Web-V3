@@ -8,7 +8,7 @@
  */
 
 import { SupabaseClient } from '@supabase/supabase-js';
-import { Database } from './types';
+import { Database } from './schema';
 
 /**
  * Safe WhatsApp Connections Query
@@ -46,7 +46,7 @@ export const safeWhatsAppConnectionsQuery = (supabase: SupabaseClient<Database>)
         'id, name, phone_number, status, is_default, health_status, health_response_ms, last_health_check, auto_reconnect_enabled, reconnect_interval_seconds, max_reconnect_attempts, loop_protection_active, updated_at'
       )
       .eq('id', id)
-      .single();
+      .maybeSingle(); // ✅ .maybeSingle() — evita PGRST116 quando não encontrado
   },
 
   /**
@@ -111,7 +111,7 @@ export const safeWhatsAppConnectionsQuery = (supabase: SupabaseClient<Database>)
         'postgres_changes',
         {
           event: options?.event || '*',
-          schema: 'public',
+          schema: 'zapp',
           table: 'whatsapp_connections',
           filter: options?.filter,
         },
@@ -155,7 +155,7 @@ export const safeChannelConnectionsQuery = (supabase: SupabaseClient<Database>) 
       .from('channel_connections')
       .select('id, channel_type, name, status, updated_at')
       .eq('id', id)
-      .single();
+      .maybeSingle(); // ✅ .maybeSingle() — evita PGRST116 quando não encontrado
   },
 
   /**
@@ -169,7 +169,7 @@ export const safeChannelConnectionsQuery = (supabase: SupabaseClient<Database>) 
         'postgres_changes',
         {
           event: '*',
-          schema: 'public',
+          schema: 'zapp',
           table: 'channel_connections',
         },
         callback
@@ -222,7 +222,7 @@ export const serviceRoleOnlyQueries = {
       .from('whatsapp_connections')
       .select('*') // All fields including sensitive ones
       .eq('id', id)
-      .single();
+      .maybeSingle(); // ✅ .maybeSingle() — evita PGRST116 quando não encontrado
   },
 
   /**
@@ -234,6 +234,6 @@ export const serviceRoleOnlyQueries = {
       .from('channel_connections')
       .select('*') // All fields including sensitive ones
       .eq('id', id)
-      .single();
+      .maybeSingle(); // ✅ .maybeSingle() — evita PGRST116 quando não encontrado
   },
 };

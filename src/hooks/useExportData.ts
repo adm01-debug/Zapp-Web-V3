@@ -1,6 +1,13 @@
+// Re-export from consolidated useMediaManagement module (ETAPA 40 consolidation)
+import { useExportDataManagement } from '@/hooks/useMediaManagement';
 import { useState, useCallback } from 'react';
 import { toast } from 'sonner';
 import { useDownloadPermission } from '@/hooks/useDownloadPermission';
+
+export interface UseExportDataOptions<T> {
+  fileName: string;
+  columns: Array<{ key: keyof T; header: string; format?: (value: unknown) => string }>;
+}
 
 export interface ExportColumn<T extends Record<string, unknown>> {
   key: keyof T & string;
@@ -16,7 +23,7 @@ export interface UseExportDataOptions<T extends Record<string, unknown>> {
 const BLOCKED_MSG = 'Exportação bloqueada por política de segurança';
 
 /** Exports typed data to CSV/PDF/Excel formats with column mapping and formatting. */
-export function useExportData<T extends Record<string, unknown>>(
+export function useExportDataTyped<T extends Record<string, unknown>>(
   options: UseExportDataOptions<T>
 ) {
   const { canDownload } = useDownloadPermission();

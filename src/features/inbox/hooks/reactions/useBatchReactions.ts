@@ -26,8 +26,7 @@ export function useMessagesReactions(messageIds: string[]) {
     const fetchReactions = async () => {
       setIsLoading(true);
       try {
-        const { data, error } = await supabase
-          .from('message_reactions')
+        const { data, error } = await supabase.from('message_reactions')
           .select('*')
           .in('message_id', messageIds);
 

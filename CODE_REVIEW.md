@@ -1,5 +1,8 @@
 # Code Review - Zapp Web v3
 
+> **Arquitetura atual**: Supabase Self-Hosted (`supabase.atomicabr.com.br`), schema `zapp`. Veja [docs/SCHEMA_REFERENCE.md](SCHEMA_REFERENCE.md).
+
+
 Data: 2026-05-28
 Modelo: DeepSeek v4-pro via Cline + Claude Code (AI-Bridge MCP)
 

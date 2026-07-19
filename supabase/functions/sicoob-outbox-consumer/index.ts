@@ -52,7 +52,7 @@ Deno.serve(async (req) => {
       return json(req, { error: "SICOOB_GIFTS_URL/SECRET not configured" }, 500);
     }
 
-    const supabase = createClient(supabaseUrl, serviceRoleKey);
+    const supabase = createClient(supabaseUrl, serviceRoleKey, { db: { schema: "zapp" } });
 
     // Claim batch atomicamente (evita processamento concorrente)
     const { data: claimed, error: claimErr } = await supabase.rpc("sicoob_outbox_claim", {

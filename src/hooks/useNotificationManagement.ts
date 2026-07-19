@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 // useRef is kept for mountedRef usage in useNotificationSettingsManagement
 import { supabase } from '@/integrations/supabase/client';
+import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 import { useAuth } from '@/features/auth';
 import { log } from '@/lib/logger';
 import type { SoundType } from '@/utils/notificationSounds';
@@ -82,29 +83,42 @@ type UserSettingsRow = Record<string, unknown> | null;
 
 const normalizeSettings = (row: UserSettingsRow): NotificationSettings => ({
   ...DEFAULT_NOTIFICATION_SETTINGS,
-  soundEnabled: row?.sound_enabled ?? DEFAULT_NOTIFICATION_SETTINGS.soundEnabled,
-  soundType: toSoundType(row?.sound_type, DEFAULT_NOTIFICATION_SETTINGS.soundType),
-  browserNotifications:
-    row?.browser_notifications_enabled ?? DEFAULT_NOTIFICATION_SETTINGS.browserNotifications,
-  desktopAlerts: row?.desktop_alerts_enabled ?? DEFAULT_NOTIFICATION_SETTINGS.desktopAlerts,
-  quietHoursEnabled: row?.quiet_hours_enabled ?? DEFAULT_NOTIFICATION_SETTINGS.quietHoursEnabled,
+  soundEnabled: Boolean(row?.sound_enabled ?? DEFAULT_NOTIFICATION_SETTINGS.soundEnabled),
+  browserNotifications: Boolean(
+    row?.browser_notifications_enabled ?? DEFAULT_NOTIFICATION_SETTINGS.browserNotifications
+  ),
+  desktopAlerts: Boolean(
+    row?.browser_notifications_enabled ?? DEFAULT_NOTIFICATION_SETTINGS.desktopAlerts
+  ),
+  quietHoursEnabled: Boolean(
+    row?.quiet_hours_enabled ?? DEFAULT_NOTIFICATION_SETTINGS.quietHoursEnabled
+  ),
   quietHoursStart: String(row?.quiet_hours_start ?? DEFAULT_NOTIFICATION_SETTINGS.quietHoursStart),
   quietHoursEnd: String(row?.quiet_hours_end ?? DEFAULT_NOTIFICATION_SETTINGS.quietHoursEnd),
-  sentimentAlertEnabled:
-    row?.sentiment_alert_enabled ?? DEFAULT_NOTIFICATION_SETTINGS.sentimentAlertEnabled,
+  sentimentAlertEnabled: Boolean(
+    row?.sentiment_alert_enabled ?? DEFAULT_NOTIFICATION_SETTINGS.sentimentAlertEnabled
+  ),
   sentimentAlertThreshold: Number(
     row?.sentiment_alert_threshold ?? DEFAULT_NOTIFICATION_SETTINGS.sentimentAlertThreshold
   ),
   sentimentConsecutiveCount: Number(
     row?.sentiment_consecutive_count ?? DEFAULT_NOTIFICATION_SETTINGS.sentimentConsecutiveCount
   ),
-  autoTranscriptionEnabled:
-    row?.auto_transcription_enabled ?? DEFAULT_NOTIFICATION_SETTINGS.autoTranscriptionEnabled,
-  transcriptionNotificationEnabled:
+  autoTranscriptionEnabled: Boolean(
+    row?.auto_transcription_enabled ?? DEFAULT_NOTIFICATION_SETTINGS.autoTranscriptionEnabled
+  ),
+  transcriptionNotificationEnabled: Boolean(
     row?.transcription_notification_enabled ??
-    DEFAULT_NOTIFICATION_SETTINGS.transcriptionNotificationEnabled,
-  messageSoundType: toSoundType(row?.message_sound_type, DEFAULT_NOTIFICATION_SETTINGS.messageSoundType),
-  mentionSoundType: toSoundType(row?.mention_sound_type, DEFAULT_NOTIFICATION_SETTINGS.mentionSoundType),
+    DEFAULT_NOTIFICATION_SETTINGS.transcriptionNotificationEnabled
+  ),
+  messageSoundType: toSoundType(
+    row?.message_sound_type,
+    DEFAULT_NOTIFICATION_SETTINGS.messageSoundType
+  ),
+  mentionSoundType: toSoundType(
+    row?.mention_sound_type,
+    DEFAULT_NOTIFICATION_SETTINGS.mentionSoundType
+  ),
   slaSoundType: toSoundType(row?.sla_sound_type, DEFAULT_NOTIFICATION_SETTINGS.slaSoundType),
   goalSoundType: toSoundType(row?.goal_sound_type, DEFAULT_NOTIFICATION_SETTINGS.goalSoundType),
   transcriptionSoundType: toSoundType(
@@ -118,7 +132,8 @@ const toDbSettings = (settings: Partial<NotificationSettings>): Record<string, u
   if (settings.soundEnabled !== undefined) db.sound_enabled = settings.soundEnabled;
   if (settings.browserNotifications !== undefined)
     db.browser_notifications_enabled = settings.browserNotifications;
-  if (settings.desktopAlerts !== undefined) db.desktop_alerts_enabled = settings.desktopAlerts;
+  if (settings.desktopAlerts !== undefined)
+    db.browser_notifications_enabled = settings.desktopAlerts;
   if (settings.quietHoursEnabled !== undefined) db.quiet_hours_enabled = settings.quietHoursEnabled;
   if (settings.quietHoursStart !== undefined) db.quiet_hours_start = settings.quietHoursStart;
   if (settings.quietHoursEnd !== undefined) db.quiet_hours_end = settings.quietHoursEnd;
@@ -142,7 +157,7 @@ const toDbSettings = (settings: Partial<NotificationSettings>): Record<string, u
   return db;
 };
 
-interface Notification {
+export interface AppNotification {
   id: string;
   type: string;
   title: string;
@@ -150,6 +165,8 @@ interface Notification {
   read: boolean;
   created_at: string;
 }
+
+export type TeamChatNotification = AppNotification;
 
 /** Manages browser push notifications with permission requests and notification sending. */
 export function usePushNotificationsManagement() {
@@ -330,37 +347,35 @@ export function useNotificationSettingsManagement(userId?: string) {
 
 /** Subscribes to real-time team chat notifications with read status tracking. */
 export function useTeamChatNotificationsManagement() {
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const { user } = useAuth();
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
+  const channelRef = useRef<any>(null);
 
   useEffect(() => {
-    if (!user?.id) return;
-
-    const channel = supabase
-      .channel(`notifications:team-chat:${user.id}`)
+    channelRef.current = supabase.channel('notifications:team-chat');
+    channelRef.current
       .on(
         'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'notifications',
-          filter: `user_id=eq.${user.id}`,
-        },
-        (payload: any) => {
-          setNotifications((prev) => [payload.new, ...prev]);
+        { event: 'INSERT', schema: 'zapp', table: 'notifications' },
+        (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => {
+          setNotifications((prev) => [payload.new as AppNotification, ...prev]);
         }
       )
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      if (channelRef.current) {
+        channelRef.current.unsubscribe();
+        supabase.removeChannel(channelRef.current);
+      }
     };
   }, [user?.id]);
 
   const markAsRead = useCallback(async (notificationId: string) => {
     try {
-      await supabase.from('notifications').update({ read: true }).eq('id', notificationId);
-      setNotifications((prev) => prev.map((n) => (n.id === notificationId ? { ...n, read: true } : n)));
+      await supabase.from('notifications').update({ is_read: true }).eq('id', notificationId);
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === notificationId ? { ...n, is_read: true } : n))
+      );
     } catch (err) {
       log.error('Error marking notification as read:', err);
     }
@@ -371,17 +386,22 @@ export function useTeamChatNotificationsManagement() {
 
 /** Subscribes to real-time security alerts and suspicious activity notifications. */
 export function useSecurityPushNotificationsManagement() {
-  const [securityAlerts, setSecurityAlerts] = useState<Notification[]>([]);
+  const [securityAlerts, setSecurityAlerts] = useState<AppNotification[]>([]);
 
   useEffect(() => {
-    const channel = supabase
-      .channel('notifications:security')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'audit_logs', filter: 'action=eq.security_alert' }, (payload: any) => {
-        setSecurityAlerts((prev) => [payload.new, ...prev]);
-      })
+    const channel = supabase.channel('notifications:security');
+    channel
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'zapp', table: 'security_alerts' },
+        (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => {
+          setSecurityAlerts((prev) => [payload.new as AppNotification, ...prev]);
+        }
+      )
       .subscribe();
 
     return () => {
+      channel.unsubscribe();
       supabase.removeChannel(channel);
     };
   }, []);
@@ -391,17 +411,22 @@ export function useSecurityPushNotificationsManagement() {
 
 /** Subscribes to real-time goal achievement and progress notifications. */
 export function useGoalNotificationsManagement() {
-  const [goalNotifications, setGoalNotifications] = useState<Notification[]>([]);
+  const [goalNotifications, setGoalNotifications] = useState<AppNotification[]>([]);
 
   useEffect(() => {
-    const channel = supabase
-      .channel('notifications:goals')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'queue_goals' }, (payload: any) => {
-        setGoalNotifications((prev) => [payload.new, ...prev]);
-      })
+    const channel = supabase.channel('notifications:goals');
+    channel
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'zapp', table: 'goal_notifications' },
+        (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => {
+          setGoalNotifications((prev) => [payload.new as AppNotification, ...prev]);
+        }
+      )
       .subscribe();
 
     return () => {
+      channel.unsubscribe();
       supabase.removeChannel(channel);
     };
   }, []);
@@ -411,17 +436,24 @@ export function useGoalNotificationsManagement() {
 
 /** Subscribes to real-time transcription completion and processing status notifications. */
 export function useTranscriptionNotificationsManagement() {
-  const [transcriptionNotifications, setTranscriptionNotifications] = useState<Notification[]>([]);
+  const [transcriptionNotifications, setTranscriptionNotifications] = useState<AppNotification[]>(
+    []
+  );
 
   useEffect(() => {
-    const channel = supabase
-      .channel('notifications:transcription')
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'messages', filter: 'transcription_status=eq.completed' }, (payload: any) => {
-        setTranscriptionNotifications((prev) => [payload.new, ...prev]);
-      })
+    const channel = supabase.channel('notifications:transcription');
+    channel
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'zapp', table: 'transcription_notifications' },
+        (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => {
+          setTranscriptionNotifications((prev) => [payload.new as AppNotification, ...prev]);
+        }
+      )
       .subscribe();
 
     return () => {
+      channel.unsubscribe();
       supabase.removeChannel(channel);
     };
   }, []);
@@ -429,4 +461,4 @@ export function useTranscriptionNotificationsManagement() {
   return { transcriptionNotifications };
 }
 
-export type { NotificationSettings, Notification };
+export type { NotificationSettings, AppNotification as Notification };

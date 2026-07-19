@@ -1,5 +1,8 @@
 # DECISION.md — Registro de Decisões de Arquitetura (ADR)
 
+> **Arquitetura atual**: Supabase Self-Hosted (`supabase.atomicabr.com.br`), schema `zapp`. Veja [SCHEMA_REFERENCE.md](SCHEMA_REFERENCE.md).
+
+
 > **Última atualização:** 2026-07-05  
 > **Status:** 🟢 ATIVO — aplica-se a todos os projetos do monorepo
 

@@ -3,16 +3,20 @@
  *  - `evolution-api`        for Evolution / Baileys connections (default)
  *  - `whatsapp-cloud-api`   for WhatsApp Cloud API (Meta) connections
  *
- * Routing is based on the `api_type` column of `whatsapp_connections`.
- * First lookup is by `name` (canonical), with fallback to `instance_id`.
- * Result is cached for 60 seconds.
- *
- * This is the ONLY place that knows about the cloud/baileys split.
- * Inbox, hooks, and senders remain agnostic.
+ * Lê `api_type` da tabela `whatsapp_connections` (coluna adicionada).
+ * Quando api_type === 'official' → whatsapp-cloud-api, caso contrário → evolution-api.
+ * Resultado é cacheado por 60s.
  */
-import { supabase } from '@/integrations/supabase/client';
+import { safeFrom } from '@/integrations/supabase/safeClient';
+import { unwrapRow } from '@/lib/supabase-helpers';
 
 type FnName = 'evolution-api' | 'whatsapp-cloud-api';
+
+interface WhatsappConnectionRow {
+  id: string | null;
+  api_type: string | null;
+  status: string | null;
+}
 
 interface CacheEntry {
   fn: FnName;
@@ -21,8 +25,11 @@ interface CacheEntry {
 const cache = new Map<string, CacheEntry>();
 const TTL_MS = 60_000;
 
-function toFnName(apiType: string | null | undefined): FnName {
-  return apiType === 'official' ? 'whatsapp-cloud-api' : 'evolution-api';
+function queryConnections(field: 'name' | 'instance_id', value: string) {
+  return safeFrom('whatsapp_connections')
+    .select('id, api_type, status')
+    .eq(field, value)
+    .maybeSingle() as unknown as Promise<{ data: WhatsappConnectionRow | null; error: unknown }>;
 }
 
 export async function resolveSendFunction(
@@ -34,25 +41,20 @@ export async function resolveSendFunction(
   if (cached && cached.expiresAt > Date.now()) return cached.fn;
 
   try {
-    let { data: conn, error } = await supabase
-      .from('whatsapp_connections')
-      .select('api_type, status')
-      .eq('name', instanceName)
-      .maybeSingle();
+    // Primeira tentativa: buscar por name
+    let { data, error } = await queryConnections('name', instanceName);
 
-    if (!conn && !error) {
-      ({ data: conn, error } = await supabase
-        .from('whatsapp_connections')
-        .select('api_type, status')
-        .eq('instance_id', instanceName)
-        .maybeSingle());
+    // Fallback: buscar por instance_id
+    if (!data && !error) {
+      ({ data, error } = await queryConnections('instance_id', instanceName));
     }
 
+    const conn = unwrapRow<WhatsappConnectionRow>(data);
     if (error || !conn) {
       return 'evolution-api';
     }
 
-    const fn = toFnName((conn as { api_type?: string | null }).api_type);
+    const fn: FnName = conn.api_type === 'official' ? 'whatsapp-cloud-api' : 'evolution-api';
     cache.set(instanceName, { fn, expiresAt: Date.now() + TTL_MS });
     return fn;
   } catch {

@@ -1,3 +1,4 @@
+import { queryKeys } from '@/services/api/queryKeys';
 /**
  * Tests for React Query hooks in hooks.ts.
  *
@@ -139,8 +140,7 @@ describe('useAcknowledgeAlert', () => {
   it('calls evoApi.update on alert_log with acknowledged=true', async () => {
     mockUpdate.mockResolvedValue({ data: null });
 
-    const { wrapper, queryClient } = createWrapper();
-    const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
+    const { wrapper } = createWrapper();
 
     const { result } = renderHook(() => useAcknowledgeAlert(), { wrapper });
 
@@ -178,7 +178,7 @@ describe('useAcknowledgeAlert', () => {
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
     expect(invalidateSpy).toHaveBeenCalledWith(
-      expect.objectContaining({ queryKey: ['evo-api-health'] })
+      expect.objectContaining({ queryKey: queryKeys.adminOps.evoApiHealth() })
     );
   });
 });
@@ -284,7 +284,7 @@ describe('useRunTestSuite', () => {
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
     expect(invalidateSpy).toHaveBeenCalledWith(
-      expect.objectContaining({ queryKey: ['evo-api-health'] })
+      expect.objectContaining({ queryKey: queryKeys.adminOps.evoApiHealth() })
     );
   });
 });

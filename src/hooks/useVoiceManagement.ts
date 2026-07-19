@@ -35,7 +35,8 @@ export function useSpeechToTextManagement(language: string = 'pt-BR'): VoiceStat
 
   const startListening = useCallback(() => {
     if (!recognitionRef.current) {
-      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      const SpeechRecognition = (window as Window & { SpeechRecognition?: typeof globalThis.SpeechRecognition; webkitSpeechRecognition?: typeof globalThis.SpeechRecognition }).SpeechRecognition
+        || (window as Window & { webkitSpeechRecognition?: typeof globalThis.SpeechRecognition }).webkitSpeechRecognition;
       if (!SpeechRecognition) {
         if (mountedRef.current) {
           setVoiceState((prev) => ({
@@ -61,7 +62,7 @@ export function useSpeechToTextManagement(language: string = 'pt-BR'): VoiceStat
         }
       };
 
-      recognitionRef.current.onresult = (event: any) => {
+      recognitionRef.current.onresult = (event: SpeechRecognitionEvent) => {
         let interim = '';
         let final = '';
 
@@ -84,7 +85,7 @@ export function useSpeechToTextManagement(language: string = 'pt-BR'): VoiceStat
         }
       };
 
-      recognitionRef.current.onerror = (event: any) => {
+      recognitionRef.current.onerror = (event: SpeechRecognitionErrorEvent) => {
         if (mountedRef.current) {
           setVoiceState((prev) => ({
             ...prev,
@@ -160,7 +161,7 @@ export function useTextToSpeechManagement(text: string) {
 
 export function useVoiceAgentManagement() {
   const [isActive, setIsActive] = useState(false);
-  const [responses, setResponses] = useState<string[]>([]);
+  const [responses] = useState<string[]>([]);
 
   const activate = useCallback(() => {
     setIsActive(true);

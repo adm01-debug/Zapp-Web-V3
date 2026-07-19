@@ -1,8 +1,23 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { queryKeys } from '@/services/api/queryKeys';
 import { format, subDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { dbFrom } from '@/integrations/datasource/db';
+import { unwrapRows } from '@/lib/supabase-helpers';
+
+type AnalysisRow = {
+  sentiment: 'positive' | 'negative' | 'neutral' | string | null;
+  sentiment_score: number | null;
+  created_at: string;
+};
+
+type AuditLogRow = {
+  id: string;
+  entity_id: string | null;
+  created_at: string;
+  details: Record<string, unknown> | null;
+};
 
 export type PeriodOption = 7 | 14 | 30;
 
@@ -55,24 +70,26 @@ export const calculateTrend = (current: number, previous: number): TrendData => 
 
 export function useAIStats(selectedPeriod: PeriodOption) {
   return useQuery({
-    queryKey: ['ai-stats-widget', selectedPeriod],
+    queryKey: queryKeys.aiFeatures.statsWidgetPeriod(String(selectedPeriod)),
     queryFn: async (): Promise<AIStats> => {
       const now = new Date();
       const periodStart = subDays(now, selectedPeriod);
       const previousPeriodStart = subDays(now, selectedPeriod * 2);
 
-      const { data: currentAnalyses, error } = await supabase
+      const { data: currentRaw, error } = await supabase
         .from('conversation_analyses')
         .select('sentiment, sentiment_score, created_at')
         .gte('created_at', periodStart.toISOString())
         .order('created_at', { ascending: true });
       if (error) throw error;
+      const currentAnalyses = unwrapRows<AnalysisRow>(currentRaw);
 
-      const { data: previousAnalyses } = await supabase
+      const { data: previousRaw } = await supabase
         .from('conversation_analyses')
         .select('sentiment, sentiment_score, created_at')
         .gte('created_at', previousPeriodStart.toISOString())
         .lt('created_at', periodStart.toISOString());
+      const previousAnalyses = unwrapRows<AnalysisRow>(previousRaw);
 
       const totalAnalyses = currentAnalyses?.length || 0;
       const avgSentimentScore =
@@ -131,15 +148,15 @@ export function useAIStats(selectedPeriod: PeriodOption) {
         .lt('created_at', periodStart.toISOString());
 
       const last24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-      const { data: alertData } = await supabase
-        .from('audit_logs')
+      const { data: alertRaw } = await supabase.from('audit_logs')
         .select('*')
         .eq('action', 'sentiment_alert')
         .gte('created_at', last24h)
         .order('created_at', { ascending: false })
         .limit(5);
+      const alertRows = unwrapRows<AuditLogRow>(alertRaw);
 
-      const activeAlerts: SentimentAlert[] = (alertData || []).map((log) => ({
+      const activeAlerts: SentimentAlert[] = alertRows.map((log) => ({
         id: log.id,
         contactId: log.entity_id,
         createdAt: log.created_at,

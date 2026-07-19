@@ -171,6 +171,7 @@ export function AIGenerateDialog({
               max={genMode === 'sfx' ? 22 : 60}
               value={genDuration}
               onChange={(e) => setGenDuration(Number(e.target.value))}
+              aria-label={`Duração: ${genDuration} segundos`}
               className="w-full accent-primary"
             />
             <div className="flex justify-between text-[10px] text-muted-foreground">

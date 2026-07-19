@@ -59,6 +59,7 @@ export function VoiceSearchOverlay({
       window.addEventListener('keydown', trapFocus);
       return () => { clearTimeout(timer); window.removeEventListener('keydown', trapFocus); };
     }
+    return undefined;
   }, [isOpen]);
 
   useEffect(() => {
@@ -78,6 +79,7 @@ export function VoiceSearchOverlay({
     if (isOpen && phase === 'idle' && hasAutoStarted.current) { const timer = setTimeout(() => setShowSuggestions(true), 600); return () => clearTimeout(timer); }
     if (phase !== 'idle') setShowSuggestions(false);
     if (!isOpen) { hasAutoStarted.current = false; startingRef.current = false; setShowSuggestions(false); }
+    return undefined;
   }, [isOpen, phase, onStartListening]);
 
   const handleOrbClick = useCallback(() => {
@@ -89,6 +91,7 @@ export function VoiceSearchOverlay({
 
   useEffect(() => {
     if (isOpen) { const prev = document.body.style.overflow; document.body.style.overflow = 'hidden'; return () => { document.body.style.overflow = prev; }; }
+    return undefined;
   }, [isOpen]);
 
   const isActive = phase === 'listening' || phase === 'speaking' || phase === 'processing';
@@ -120,7 +123,7 @@ export function VoiceSearchOverlay({
               <motion.h2 className="text-lg font-bold text-foreground/90" key={meta.title} initial={{ opacity: 0, y: prefersReduced ? 0 : -5 }} animate={{ opacity: 1, y: 0 }}>{meta.title}</motion.h2>
               <motion.p className="text-xs text-muted-foreground mt-1" key={meta.subtitle} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }}>{meta.subtitle}</motion.p>
             </div>
-            <button onClick={handleOrbClick} className="cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-full"
+            <button type="button" onClick={handleOrbClick} className="cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-full"
               aria-label={phase === 'listening' ? 'Parar de ouvir' : phase === 'speaking' ? 'Interromper resposta' : 'Começar a ouvir'}>
               <VoiceOrb phase={phase} size={180} />
             </button>
@@ -129,7 +132,7 @@ export function VoiceSearchOverlay({
             <VoiceSuggestions visible={showSuggestions && phase === 'idle' && !agentResponse} />
             <div className="flex items-center justify-between w-full pt-1">
               <span className="text-[10px] text-muted-foreground/30"><kbd className="px-1 py-0.5 rounded bg-muted/20 border border-border text-[9px] ">ESC</kbd>{' '}para fechar</span>
-              <button ref={closeButtonRef} onClick={onClose} className="w-8 h-8 rounded-full flex items-center justify-center bg-muted/20 hover:bg-muted/30 transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background border border-border" aria-label="Fechar assistente de voz">
+              <button type="button" ref={closeButtonRef} onClick={onClose} className="w-8 h-8 rounded-full flex items-center justify-center bg-muted/20 hover:bg-muted/30 transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background border border-border" aria-label="Fechar assistente de voz">
                 <X className="w-4 h-4 text-muted-foreground/60" />
               </button>
             </div>

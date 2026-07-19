@@ -20,9 +20,6 @@ import { useContactAvatar } from '@/features/inbox';
 import { formatMessageTime } from './messageUtils';
 import { MessageBubbleBody, WhisperBadge } from './messageBubbleParts';
 
-import { getLogger } from '@/lib/logger';
-const _log = getLogger('MessageBubble');
-
 interface MessageBubbleProps {
   message: Message;
   isFirstInGroup: boolean;

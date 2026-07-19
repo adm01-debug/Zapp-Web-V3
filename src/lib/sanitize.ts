@@ -78,7 +78,7 @@ export function sanitizeHtml(html: unknown): string {
       ],
     }).trim();
   } finally {
-    DOMPurify.removeHook(HOOK_NAME as any);
+    DOMPurify.removeHook(HOOK_NAME as never);
   }
   return sanitized;
 }
@@ -348,7 +348,7 @@ export function sanitizeHtmlStrict(html: unknown, _options?: Record<string, unkn
       throw new TypeError('sanitizeHtmlStrict() requires non-null string input');
     }
     if (typeof html !== 'string') {
-      console.error(`[sanitizeHtmlStrict] Received non-string: ${typeof html}`);
+      log.error(`[sanitizeHtmlStrict] Received non-string: ${typeof html}`);
       throw new TypeError(`sanitizeHtmlStrict() expects string, received ${typeof html}`);
     }
     if (html.length === 0) {

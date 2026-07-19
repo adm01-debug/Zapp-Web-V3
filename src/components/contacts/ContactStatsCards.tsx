@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Users, UserPlus, Building, TrendingUp } from 'lucide-react';
 import { cn } from '@/lib/utils';

@@ -7,6 +7,10 @@ import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 
+// evolution_instance_credentials e evolution_health_logs residem no schema 'evo'
+// (schema não incluído em ExtendedDatabase gerado; cast controlado)
+const evo = (supabase as unknown as { schema: (s: string) => ReturnType<typeof supabase.schema> }).schema('evo');
+
 export interface EvolutionInstanceCredential {
   id: string;
   instance_name: string;
@@ -51,8 +55,8 @@ export function useEvolutionApiIntegration() {
     setLoading(true);
     try {
       const [credsRes, logsRes] = await Promise.all([
-        supabase.from('evolution_instance_credentials').select('*').order('instance_name'),
-        supabase
+        evo.from('evolution_instance_credentials').select('*').order('instance_name'),
+        evo
           .from('evolution_health_logs')
           .select('*')
           .order('performed_at', { ascending: false })
@@ -128,7 +132,7 @@ export function useEvolutionApiIntegration() {
 
       // Log the health check in the database
       if (creds.instance_name) {
-        await supabase.from('evolution_health_logs').insert({
+        await evo.from('evolution_health_logs').insert({
           instance_name: creds.instance_name,
           status: isSuccess ? 'success' : 'failure',
           error_message: errorMsg,
@@ -137,14 +141,16 @@ export function useEvolutionApiIntegration() {
           total_instances: totalCount,
         });
 
-        // Update credential status
-        await supabase
-          .from('evolution_instance_credentials')
-          .update({
-            health_status: isSuccess ? 'healthy' : 'unhealthy',
-            last_health_check: new Date().toISOString(),
-          })
-          .eq('id', creds.id);
+        // Update credential status (only when an existing credential has an id)
+        if (creds.id) {
+          await evo
+            .from('evolution_instance_credentials')
+            .update({
+              health_status: isSuccess ? 'healthy' : 'unhealthy',
+              last_health_check: new Date().toISOString(),
+            })
+            .eq('id', creds.id);
+        }
 
         fetchData();
       }
@@ -156,7 +162,7 @@ export function useEvolutionApiIntegration() {
       toast.error(`Erro de conexão: ${errorMsg}`);
 
       if (creds.instance_name) {
-        await supabase.from('evolution_health_logs').insert({
+        await evo.from('evolution_health_logs').insert({
           instance_name: creds.instance_name,
           status: 'failure',
           error_message: errorMsg,
@@ -199,14 +205,14 @@ export function useEvolutionApiIntegration() {
 
     try {
       if (formData.is_editing) {
-        const { error } = await supabase
+        const { error } = await evo
           .from('evolution_instance_credentials')
           .update(payload)
           .eq('id', formData.is_editing);
         if (error) throw error;
         toast.success('Configurações atualizadas');
       } else {
-        const { error } = await supabase.from('evolution_instance_credentials').insert(payload);
+        const { error } = await evo.from('evolution_instance_credentials').insert(payload);
         if (error) throw error;
         toast.success('Novas credenciais salvas');
       }
@@ -229,7 +235,7 @@ export function useEvolutionApiIntegration() {
       return;
 
     try {
-      const { error } = await supabase.from('evolution_instance_credentials').delete().eq('id', id);
+      const { error } = await evo.from('evolution_instance_credentials').delete().eq('id', id);
       if (error) throw error;
       toast.success('Credenciais excluídas');
       fetchData();

@@ -1,3 +1,5 @@
+> **📜 DOCUMENTO HISTÓRICO** — Reflete o estado do sistema na data indicada. A arquitetura atual usa um único Supabase Self-Hosted com schema `zapp`. Veja [../SCHEMA_REFERENCE.md](docs/SCHEMA_REFERENCE.md).
+
 # DB old-reference sweep (self-hosted) - cutover readiness 2026-06-30
 
 Full scan of DB code objects for references to the OLD Lovable project

@@ -8,6 +8,7 @@ import {
 } from '@/components/settings/theme/presets';
 import type { ThemeModeColors } from '@/components/settings/theme/presets';
 import { useTheme } from '@/hooks/useTheme';
+import { safeGetJSON, safeSetJSON } from '@/lib/safeStorage';
 
 import { getLogger } from '@/lib/logger';
 const log = getLogger('ThemeInitializer');
@@ -31,21 +32,9 @@ export function ThemeInitializer() {
   const { resolvedTheme } = useTheme();
 
   useEffect(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    let presetId = DEFAULT_PRESET_ID;
-    let radius = 8;
-    let storedConfig: StoredThemeConfig = {};
-
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved) as StoredThemeConfig;
-        storedConfig = parsed;
-        presetId = normalizeStoredPresetId(parsed.preset);
-        if (parsed.borderRadius != null) radius = parsed.borderRadius;
-      } catch {
-        storedConfig = {};
-      }
-    }
+    const storedConfig = safeGetJSON<StoredThemeConfig>(STORAGE_KEY, {});
+    let presetId = normalizeStoredPresetId(storedConfig.preset);
+    let radius = storedConfig.borderRadius ?? 8;
 
     const preset = PRESETS.find((p) => p.id === presetId) || PRESETS.find((p) => p.id === DEFAULT_PRESET_ID);
     if (preset) {
@@ -87,17 +76,15 @@ export function ThemeInitializer() {
         timestamp: new Date().toISOString()
       };
 
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify({
-          ...storedConfig,
-          borderRadius: radius,
-          cacheMode: resolvedTheme,
-          cachePreset: presetId,
-          cssVarsCache,
-          presetFont: preset.font ?? null,
-          preset: presetId,
-        }));
-      } catch (err) { log.error('Unexpected error in ThemeInitializer:', err); }
+      safeSetJSON(STORAGE_KEY, {
+        ...storedConfig,
+        borderRadius: radius,
+        cacheMode: resolvedTheme,
+        cachePreset: presetId,
+        cssVarsCache,
+        presetFont: preset.font ?? null,
+        preset: presetId,
+      });
     }
 
     document.documentElement.style.setProperty('--radius', `${radius / 16}rem`);

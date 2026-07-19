@@ -16,7 +16,7 @@ serve(async (req) => {
   try {
     const supabaseUrl = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'))!;
     const supabaseKey = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const supabase = createClient(supabaseUrl, supabaseKey, { db: { schema: "zapp" } });
 
     // 1. Check Database
     const { error: dbError } = await supabase.from('profiles').select('count', { count: 'exact', head: true }).limit(1);

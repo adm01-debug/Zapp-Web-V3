@@ -199,6 +199,7 @@ export class Logger {
 }
 
 const EXACT_ALLOWED_ORIGINS = new Set([
+  'https://zapp.atomicabr.com.br',
   'https://pronto-talk-suite.lovable.app',
   'https://whats-your-line.lovable.app',
   'https://id-preview--22c0b518-7895-4f4f-9ea0-978457a2c37a.lovable.app',
@@ -536,7 +537,7 @@ export async function authorizeRoles(
 
   // Fetch user roles using service role to bypass RLS for checking
   const serviceRoleKey = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))!;
-  const adminClient = createClient(supabaseUrl, serviceRoleKey);
+  const adminClient = createClient(supabaseUrl, serviceRoleKey, { db: { schema: "zapp" } });
   
   const { data: roleData, error: roleError } = await adminClient
     .from("user_roles")

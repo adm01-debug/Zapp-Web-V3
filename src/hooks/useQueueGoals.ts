@@ -1,5 +1,8 @@
-import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+// Re-export from consolidated useQueueManagement module (ETAPA 26 consolidation)
+import { useCallback } from 'react';
+import { useQueueGoalsManagement } from '@/hooks/useQueueManagement';
+import type { QueueGoal } from '@/hooks/useQueueManagement';
+import { safeFrom } from '@/integrations/supabase/safeClient';
 import { getLogger } from '@/lib/logger';
 
 const log = getLogger('useQueueGoals');
@@ -22,14 +25,31 @@ const DEFAULT_GOAL = {
   alerts_enabled: true,
 };
 
-export function useQueueGoals() {
-  const [loading, setLoading] = useState(true);
-  const [goals, setGoals] = useState<Record<string, QueueGoal>>({});
+export function useQueueGoals(queueId?: string) {
+  const base = useQueueGoalsManagement(queueId);
+  const goals = base.goals.reduce<Record<string, QueueGoalRecord>>((acc, goal) => {
+    acc[goal.queue_id] = { ...DEFAULT_GOAL, ...goal } as QueueGoalRecord;
+    return acc;
+  }, {});
 
-  const fetchGoals = useCallback(async () => {
-    setLoading(true);
+  const getDefaultGoal = useCallback((): QueueGoalForm => ({ ...DEFAULT_GOAL }), []);
+
+  const saveGoal = async (targetQueueId: string, formData: QueueGoalForm): Promise<void> => {
     try {
-      const { data, error } = await supabase.from('queue_goals').select('*');
+      const existing = goals[targetQueueId];
+      const payload = {
+        queue_id: targetQueueId,
+        metric: 'queue_health',
+        target_value: formData.max_waiting_contacts,
+        current_value: 0,
+        period: 'daily' as const,
+        status: 'on_track' as const,
+        ...formData,
+      };
+      const query = existing
+        ? safeFrom('queue_goals').update(payload).eq('id', existing.id)
+        : safeFrom('queue_goals').insert(payload);
+      const { error } = await query;
       if (error) throw error;
       const map: Record<string, QueueGoal> = {};
       (data as QueueGoal[]).forEach((g) => { map[g.queue_id] = g; });

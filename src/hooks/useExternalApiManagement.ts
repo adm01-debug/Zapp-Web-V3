@@ -12,9 +12,9 @@
  *   5. Generic External DB (useExternalSelect, useExternalRPC, useExternalTableBrowser, useExternalMutation)
  */
 
-// ════════════════════════════════════════════════════════════════════════════════════
+// ╔══════════════════════════════════════════════════════════════════════════════════
 // SECTION 1: Contact 360° Data
-// ════════════════════════════════════════════════════════════════════════════════════
+// ╚══════════════════════════════════════════════════════════════════════════════════
 
 import { useQuery } from '@tanstack/react-query';
 import { isExternalConfigured, getExternalSupabase } from '@/integrations/supabase/externalClient';
@@ -22,6 +22,8 @@ import { dbGet, dbRpc } from '@/integrations/datasource/db';
 import { RPC } from '@/integrations/datasource/rpcCatalog';
 import { Contact360Data } from '@/types/contact360';
 import { log } from '@/lib/logger';
+import { tanstackRetry } from '@/lib/errors/queryErrors';
+import { queryKeys } from '@/services/api/queryKeys';
 
 function cleanPhone(phone: string): string {
   return phone.replace(/[^0-9]/g, '');
@@ -43,7 +45,7 @@ export function useExternalContact360(phone: string | undefined) {
   const cleanedPhone = phone ? cleanPhone(phone) : '';
 
   return useQuery<Contact360Data | null>({
-    queryKey: ['external-contact-360', cleanedPhone],
+    queryKey: queryKeys.external.contact360(cleanedPhone),
     queryFn: async () => {
       if (!cleanedPhone || cleanedPhone.length < 8) return null;
 
@@ -61,7 +63,7 @@ export function useExternalContact360(phone: string | undefined) {
     enabled: isExternalConfigured && !!cleanedPhone && cleanedPhone.length >= 8,
     staleTime: 1000 * 60 * 10, // 10 min cache
     gcTime: 1000 * 60 * 30,    // 30 min gc
-    retry: 1,
+    retry: tanstackRetry, // fix: era retry:1 numerico que sobrescrevia o QueryClient global
   });
 }
 
@@ -70,10 +72,10 @@ export function useExternalContact360Batch(phones: string[]) {
   // Deduplicate and clean phones
   const cleanedPhones = [...new Set(phones.map(cleanPhone).filter(p => p.length >= 8))];
   // Create a stable key from sorted phones
-  const queryKey = cleanedPhones.sort().join(',');
+  const batchPhoneKey = cleanedPhones.sort().join(',');
 
   const query = useQuery<Map<string, CRMBatchResult>>({
-    queryKey: ['external-contact-360-batch', queryKey],
+    queryKey: queryKeys.external.contact360Batch(batchPhoneKey),
     queryFn: async () => {
       if (cleanedPhones.length === 0) return new Map();
 
@@ -123,14 +125,14 @@ export function useExternalContact360Batch(phones: string[]) {
   };
 }
 
-// ════════════════════════════════════════════════════════════════════════════════════
+// ╔══════════════════════════════════════════════════════════════════════════════════
 // SECTION 2: Contact Metadata (Cargos, Empresas)
-// ════════════════════════════════════════════════════════════════════════════════════
+// ╚══════════════════════════════════════════════════════════════════════════════════
 
 /** Fetches unique job titles from external CRM database with deduplication. */
 export function useExternalCargos() {
   return useQuery<string[]>({
-    queryKey: ['external-cargos'],
+    queryKey: queryKeys.external.cargos(),
     queryFn: async () => {
       const allCargos: string[] = [];
 
@@ -188,7 +190,7 @@ export function useExternalCargos() {
 /** Fetches unique company names from external CRM database with pagination. */
 export function useExternalEmpresas() {
   return useQuery<string[]>({
-    queryKey: ['external-empresas'],
+    queryKey: queryKeys.external.empresas(),
     queryFn: async () => {
       const allNames: string[] = [];
       const pageSize = 200;
@@ -241,9 +243,9 @@ export function useExternalEmpresas() {
   });
 }
 
-// ════════════════════════════════════════════════════════════════════════════════════
+// ╔══════════════════════════════════════════════════════════════════════════════════
 // SECTION 3: Evolution/Conversations & Messages
-// ════════════════════════════════════════════════════════════════════════════════════
+// ╚══════════════════════════════════════════════════════════════════════════════════
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useMountedRef } from '@/hooks/useMountedRef';
@@ -280,13 +282,7 @@ const logMessages = getLogger('useExternalMessages');
 /** Fetches Evolution API conversations with contact enrichment from external database. */
 export function useExternalConversations(enabled = true) {
   const query = useQuery({
-    queryKey: [
-      'external-evolution',
-      'conversations',
-      SIDEBAR_DAYS_BACK,
-      SIDEBAR_LIMIT,
-      DEFAULT_INSTANCE,
-    ],
+    queryKey: queryKeys.evolutionConversations.sidebar(SIDEBAR_DAYS_BACK, SIDEBAR_LIMIT, DEFAULT_INSTANCE),
     queryFn: async () => {
       if (USE_MOCKS) {
         const { MOCK_CONVERSATIONS } =
@@ -423,8 +419,8 @@ export function useExternalMessages(remoteJid: string | null) {
     (jid: string) => {
       type WithAvatar = { avatar_url?: string | null };
       return (
-        queryClient.getQueryData<WithAvatar>(['contact', jid])?.avatar_url ||
-        queryClient.getQueryData<WithAvatar>(['external-evolution', 'contact', jid])?.avatar_url
+        queryClient.getQueryData<WithAvatar>(queryKeys.contactDetails.singleContact(jid))?.avatar_url ||
+        queryClient.getQueryData<WithAvatar>(queryKeys.evolutionConversations.contact(jid))?.avatar_url
       );
     },
     [queryClient]
@@ -642,9 +638,9 @@ export function useExternalMessages(remoteJid: string | null) {
   };
 }
 
-// ════════════════════════════════════════════════════════════════════════════════════
+// ╔══════════════════════════════════════════════════════════════════════════════════
 // SECTION 4: Catalog & Products
-// ════════════════════════════════════════════════════════════════════════════════════
+// ╚══════════════════════════════════════════════════════════════════════════════════
 
 import { supabase } from '@/integrations/supabase/client';
 import { hasField, readArray, readVariants } from '@/lib/runtimeGuards';
@@ -751,7 +747,7 @@ export function useExternalCatalog() {
 
   // Products query - auto-fetches when filters change and ready=true
   const productsQuery = useQuery({
-    queryKey: ['external-catalog', 'products', filters],
+    queryKey: queryKeys.external.catalog.products(filters),
     queryFn: async () => {
       logCatalog.debug('Fetching products with filters:', JSON.stringify(filters));
       const result = await invokeAction<unknown>('list_products', filters as Record<string, unknown>);
@@ -768,12 +764,12 @@ export function useExternalCatalog() {
     enabled: ready,
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
-    retry: 2,
+    retry: tanstackRetry, // fix: era 'retry: 2' numerico, sobrescrevia o QueryClient global
   });
 
   // Categories
   const categoriesQuery = useQuery({
-    queryKey: ['external-catalog', 'categories'],
+    queryKey: queryKeys.external.catalog.categories(),
     queryFn: async () => {
       const result = await invokeAction<unknown>('list_categories');
       return readArray<ExternalCategory>(result, 'data');
@@ -785,7 +781,7 @@ export function useExternalCatalog() {
 
   // Suppliers
   const suppliersQuery = useQuery({
-    queryKey: ['external-catalog', 'suppliers'],
+    queryKey: queryKeys.external.catalog.suppliers(),
     queryFn: async () => {
       const result = await invokeAction<unknown>('list_suppliers');
       return readArray<ExternalSupplier>(result, 'data');
@@ -804,7 +800,7 @@ export function useExternalCatalog() {
   const fetchProduct = useCallback(async (productId: string): Promise<ExternalProduct | null> => {
     try {
       const result = await queryClient.fetchQuery({
-        queryKey: ['external-catalog', 'product', productId],
+        queryKey: queryKeys.external.catalog.product(productId),
         queryFn: async () => {
           const res = await invokeAction<unknown>('get_product', { product_id: productId });
           const product = (res && typeof res === 'object' && 'data' in res
@@ -843,9 +839,9 @@ export function useExternalCatalog() {
   };
 }
 
-// ════════════════════════════════════════════════════════════════════════════════════
+// ╔══════════════════════════════════════════════════════════════════════════════════
 // SECTION 5: Generic External DB Operations
-// ════════════════════════════════════════════════════════════════════════════════════
+// ╚══════════════════════════════════════════════════════════════════════════════════
 
 import { useMutation } from '@tanstack/react-query';
 import type { SupabaseClient } from '@supabase/supabase-js';
@@ -862,7 +858,7 @@ import { validateEntityAccess, validateRpcAccess } from '@/integrations/datasour
 // table name literals that SupabaseClient<Database> enforces.
 const getDynamicClient = () => getExternalSupabase() as unknown as SupabaseClient; // ignore-audit — dynamic table names require untyped client; see comment above
 
-// ─── Direct query helper ──────────────────────────────────────
+// ─── Direct query helper ────────────────────────────────────────────────
 async function queryExternal<T = unknown>(params: {
   table: string;
   select?: string;
@@ -908,7 +904,7 @@ async function queryExternal<T = unknown>(params: {
   };
 }
 
-// ─── Select query hook ────────────────────────────────────────
+// ─── Select query hook ────────────────────────────────────────────
 interface UseExternalSelectOptions {
   table: ExternalTableName | string;
   select?: string;
@@ -936,7 +932,7 @@ export function useExternalSelect<T = Record<string, unknown>>(options: UseExter
   } = options;
 
   return useQuery({
-    queryKey: ['external-db', table, { select, filters, order, limit, offset, countMode }],
+    queryKey: queryKeys.external.db(table, { select, filters, order, limit, offset, countMode }),
     queryFn: () =>
       queryExternal<T>({
         table,
@@ -964,7 +960,7 @@ interface UseExternalRPCOptions {
 /** Calls external database RPC functions with access validation and metrics. */
 export function useExternalRPC<T = unknown>(options: UseExternalRPCOptions) {
   return useQuery({
-    queryKey: ['external-db', 'rpc', options.rpc, options.params],
+    queryKey: queryKeys.external.rpc(options.rpc, options.params),
     queryFn: async () => {
       validateRpcAccess(options.rpc, 'external');
       const start = performance.now();
@@ -985,8 +981,7 @@ export function useExternalRPC<T = unknown>(options: UseExternalRPCOptions) {
   });
 }
 
-// ─── Paginated table browser ──────────────────────────────────
-/** Provides paginated browsing of external database tables with filtering and sorting. */
+// ─── Paginated table browser ────────────────────────────────────────────/** Provides paginated browsing of external database tables with filtering and sorting. */
 export function useExternalTableBrowser<T = Record<string, unknown>>(
   tableName: ExternalTableName | string
 ) {
@@ -1058,7 +1053,7 @@ export function useExternalTableBrowser<T = Record<string, unknown>>(
   };
 }
 
-// ─── Mutation (insert/update/delete via external client) ──────
+// ─── Mutation (insert/update/delete via external client) ────
 /** Performs insert, update, and delete mutations on external database tables. */
 export function useExternalMutation() {
   const queryClient = useQueryClient();
@@ -1097,7 +1092,7 @@ export function useExternalMutation() {
       }
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['external-db', variables.table] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.external.db(variables.table) });
     },
   });
 }

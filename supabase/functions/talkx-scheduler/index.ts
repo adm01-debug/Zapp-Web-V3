@@ -24,7 +24,7 @@ Deno.serve(async (req) => {
       log.error('Missing Supabase configuration');
       return new Response(JSON.stringify({ error: 'Supabase configuration missing' }), { status: 503, headers });
     }
-    const supabase = createClient(supabaseUrl, serviceKey);
+    const supabase = createClient(supabaseUrl, serviceKey, { db: { schema: "zapp" } });
 
     const now = new Date().toISOString();
     const { data: dueCampaigns, error } = await supabase

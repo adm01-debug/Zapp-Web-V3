@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
-import { useQueueGoals, QueueGoal } from '@/hooks/useQueueGoals';
+import { useQueueGoals, type QueueGoalForm } from '@/hooks/useQueueGoals';
 import { Target, Bell, Users, Clock, MessageSquare, TrendingUp } from 'lucide-react';
 
 interface QueueGoalsDialogProps {
@@ -29,8 +29,8 @@ export function QueueGoalsDialog({
   queueName,
   queueColor,
 }: QueueGoalsDialogProps) {
-  const { goals, saveGoal, getDefaultGoal } = useQueueGoals();
-  const [formData, setFormData] = useState<Omit<QueueGoal, 'id' | 'queue_id'>>(getDefaultGoal());
+  const { goals, saveGoal, getDefaultGoal } = useQueueGoals(queueId);
+  const [formData, setFormData] = useState<QueueGoalForm>(getDefaultGoal());
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -38,17 +38,17 @@ export function QueueGoalsDialog({
       const existingGoal = goals[queueId];
       if (existingGoal) {
         setFormData({
-          max_waiting_contacts: existingGoal.max_waiting_contacts,
-          max_avg_wait_minutes: existingGoal.max_avg_wait_minutes,
-          min_assignment_rate: existingGoal.min_assignment_rate,
-          max_messages_pending: existingGoal.max_messages_pending,
-          alerts_enabled: existingGoal.alerts_enabled,
+          max_waiting_contacts: existingGoal.max_waiting_contacts ?? 10,
+          max_avg_wait_minutes: existingGoal.max_avg_wait_minutes ?? 15,
+          min_assignment_rate: existingGoal.min_assignment_rate ?? 80,
+          max_messages_pending: existingGoal.max_messages_pending ?? 30,
+          alerts_enabled: existingGoal.alerts_enabled ?? true,
         });
       } else {
         setFormData(getDefaultGoal());
       }
     }
-  }, [open, queueId, goals]);
+  }, [open, queueId, goals, getDefaultGoal]);
 
   const handleSave = async () => {
     setSaving(true);

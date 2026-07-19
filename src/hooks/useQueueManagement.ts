@@ -1,17 +1,29 @@
 // Consolidated Queue Management Module (ETAPA 33)
 // Consolidates: useQueues, useQueueAnalytics, useQueueGoals, useQueueSlaPanel, useQueuesComparison
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { safeFrom } from '@/integrations/supabase/safeClient';
 import { useAuth } from '@/features/auth';
+import { queryKeys } from '@/services/api/queryKeys';
 import { log } from '@/lib/logger';
+
+type DynamicRpcClient = {
+  rpc: (
+    functionName: string,
+    args?: Record<string, unknown>
+  ) => Promise<{ data: unknown; error: { code?: string; message?: string } | null }>;
+};
+
+const rpcClient = supabase as unknown as DynamicRpcClient;
 
 interface Queue {
   id: string;
   name: string;
   color?: string | null;
-  description?: string;
-  assigned_to?: string;
-  status: 'active' | 'inactive';
+  description?: string | null;
+  assigned_to?: string | null;
+  status: 'active' | 'paused' | 'archived' | 'inactive';
   waiting_count?: number | null;
   max_wait_time_minutes?: number | null;
   created_at: string;
@@ -75,12 +87,36 @@ interface QueueSLA {
   timestamp: string;
 }
 
-interface QueueSlaRow {
-  id: string;
-  queue_id: string;
+type SlaStatusFilter = 'on_track' | 'at_risk' | 'breached';
+type QueueSlaPriority = 'low' | 'medium' | 'high' | 'critical';
+type QueueSlaPatch = Partial<
+  Pick<QueueSlaRow, 'sla_priority' | 'routing_weight' | 'auto_rebalance_enabled'>
+>;
+
+interface QueueSlaFilters {
   skill_name: string | null;
   channel_type: string | null;
-  sla_status: 'on_track' | 'at_risk' | 'breached';
+  sla_status: SlaStatusFilter | null;
+}
+
+interface QueueSlaRow {
+  queue_id: string;
+  queue_name: string;
+  color: string;
+  sla_priority: QueueSlaPriority;
+  routing_weight: number;
+  auto_rebalance_enabled: boolean;
+  max_wait_time_minutes: number;
+  active_agents: number;
+  waiting_count: number;
+  in_progress_count: number;
+  breached_count: number;
+  at_risk_count: number;
+  oldest_wait_minutes: number;
+  last_routed_at: string | null;
+  skill_name: string | null;
+  channel_type: string | null;
+  sla_status: SlaStatusFilter;
   response_time: number;
   resolution_time: number;
 }
@@ -120,13 +156,10 @@ export function useQueuesCrudManagement() {
 
     try {
       setLoading(true);
-      const { data, error: err } = await supabase
-        .from('queues')
-        .select('*')
-        .order('name');
+      const { data, error: err } = await safeFrom('queues').select('*').order('name');
 
       if (err) throw err;
-      if (mountedRef.current) setQueues(data || []);
+      if (mountedRef.current) setQueues((data || []) as Queue[]);
     } catch (err) {
       if (mountedRef.current) {
         const message = err instanceof Error ? err.message : 'Failed to fetch queues';
@@ -160,20 +193,22 @@ export function useQueueAnalyticsManagement(params: { queueId: string; dateRange
   }, []);
 
   const fetchAnalytics = useCallback(async () => {
-    if (!user || !queueId) return;
+    if (!user) {
+      if (mountedRef.current) setLoading(false);
+      return;
+    }
 
     try {
       setLoading(true);
-      const { data, error: err } = await supabase
-        .from('queue_analytics')
+      const { data, error: err } = await safeFrom('queue_analytics')
         .select('*')
         .eq('queue_id', queueId)
         .order('timestamp', { ascending: false })
         .limit(1)
-        .single();
+        .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
 
       if (err && err.code !== 'PGRST116') throw err;
-      if (mountedRef.current) setAnalytics(data || null);
+      if (mountedRef.current) setAnalytics((data as QueueAnalytics | null) || null);
     } catch (err) {
       if (mountedRef.current) {
         log.error('Error fetching queue analytics:', err);
@@ -204,17 +239,19 @@ export function useQueueGoalsManagement(queueId?: string) {
   }, []);
 
   const fetchGoals = useCallback(async () => {
-    if (!user || !queueId) return;
+    if (!user) {
+      if (mountedRef.current) setLoading(false);
+      return;
+    }
 
     try {
       setLoading(true);
-      const { data, error: err } = await supabase
-        .from('queue_goals')
-        .select('*')
-        .eq('queue_id', queueId);
+      let query = safeFrom('queue_goals').select('*');
+      if (queueId) query = query.eq('queue_id', queueId);
+      const { data, error: err } = await query;
 
       if (err) throw err;
-      if (mountedRef.current) setGoals(data || []);
+      if (mountedRef.current) setGoals((data || []) as QueueGoal[]);
     } catch (err) {
       if (mountedRef.current) {
         log.error('Error fetching queue goals:', err);
@@ -227,10 +264,7 @@ export function useQueueGoalsManagement(queueId?: string) {
   const updateGoalStatus = useCallback(
     async (goalId: string, status: 'on_track' | 'at_risk' | 'missed') => {
       try {
-        const { error: err } = await supabase
-          .from('queue_goals')
-          .update({ status })
-          .eq('id', goalId);
+        const { error: err } = await safeFrom('queue_goals').update({ status }).eq('id', goalId);
 
         if (err) throw err;
         await fetchGoals();
@@ -244,19 +278,53 @@ export function useQueueGoalsManagement(queueId?: string) {
   );
 
   useEffect(() => {
-    if (user && queueId) fetchGoals();
-  }, [user, queueId, fetchGoals]);
+    if (user) fetchGoals();
+    else setLoading(false);
+  }, [user, fetchGoals]);
 
   return { goals, loading, updateGoalStatus, refetch: fetchGoals };
 }
 
 /** Monitors SLA compliance across queues with filterable metrics. */
-export function useQueueSlaManagement(params: { filters: { skill_name: string | null; channel_type: string | null; sla_status: 'on_track' | 'at_risk' | 'breached' | null } }) {
+function isQueueSlaPriority(value: unknown): value is QueueSlaPriority {
+  return value === 'low' || value === 'medium' || value === 'high' || value === 'critical';
+}
+
+function isSlaStatusFilter(value: unknown): value is SlaStatusFilter {
+  return value === 'on_track' || value === 'at_risk' || value === 'breached';
+}
+
+function normalizeQueueSlaRow(row: Record<string, unknown>): QueueSlaRow {
+  return {
+    queue_id: String(row.queue_id ?? ''),
+    queue_name: String(row.queue_name ?? 'Fila sem nome'),
+    color: typeof row.color === 'string' && row.color ? row.color : 'hsl(var(--primary))',
+    sla_priority: isQueueSlaPriority(row.sla_priority) ? row.sla_priority : 'medium',
+    routing_weight: Number(row.routing_weight ?? 1),
+    auto_rebalance_enabled: row.auto_rebalance_enabled !== false,
+    max_wait_time_minutes: Number(row.max_wait_time_minutes ?? 0),
+    active_agents: Number(row.active_agents ?? 0),
+    waiting_count: Number(row.waiting_count ?? 0),
+    in_progress_count: Number(row.in_progress_count ?? 0),
+    breached_count: Number(row.breached_count ?? 0),
+    at_risk_count: Number(row.at_risk_count ?? 0),
+    oldest_wait_minutes: Number(row.oldest_wait_minutes ?? 0),
+    last_routed_at: typeof row.last_routed_at === 'string' ? row.last_routed_at : null,
+    skill_name: typeof row.skill_name === 'string' ? row.skill_name : null,
+    channel_type: typeof row.channel_type === 'string' ? row.channel_type : null,
+    sla_status: isSlaStatusFilter(row.sla_status) ? row.sla_status : 'on_track',
+    response_time: Number(row.response_time ?? 0),
+    resolution_time: Number(row.resolution_time ?? 0),
+  };
+}
+
+export function useQueueSlaManagement(params: { filters: QueueSlaFilters }) {
   const { user } = useAuth();
   const { filters } = params;
   const [slaRows, setSlaRows] = useState<QueueSlaRow[]>([]);
   const [loading, setLoading] = useState(true);
   const mountedRef = useRef(true);
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     return () => {
@@ -269,22 +337,16 @@ export function useQueueSlaManagement(params: { filters: { skill_name: string | 
 
     try {
       setLoading(true);
-      let query = supabase.from('queue_sla_rows').select('*');
-
-      if (filters.skill_name) {
-        query = query.eq('skill_name', filters.skill_name);
-      }
-      if (filters.channel_type) {
-        query = query.eq('channel_type', filters.channel_type);
-      }
-      if (filters.sla_status) {
-        query = query.eq('sla_status', filters.sla_status);
-      }
-
-      const { data, error: err } = await query;
+      const { data, error: err } = await rpcClient.rpc('rpc_queue_sla_panel', {
+        p_skill_name: filters.skill_name,
+        p_channel_type: filters.channel_type,
+        p_sla_status: filters.sla_status,
+      });
 
       if (err) throw err;
-      if (mountedRef.current) setSlaRows(data || []);
+      if (mountedRef.current) {
+        setSlaRows(((data ?? []) as Record<string, unknown>[]).map(normalizeQueueSlaRow));
+      }
     } catch (err) {
       if (mountedRef.current) {
         log.error('Error fetching SLA data:', err);
@@ -298,11 +360,52 @@ export function useQueueSlaManagement(params: { filters: { skill_name: string | 
     if (user) fetchSla();
   }, [user, fetchSla]);
 
-  return { slaRows, loading, refetch: fetchSla };
+  const updateQueueConfig = useCallback(
+    async (queueId: string, patch: QueueSlaPatch): Promise<boolean> => {
+      try {
+        const { error: err } = await safeFrom('queues').update(patch).eq('id', queueId);
+
+        if (err) throw err;
+        await fetchSla();
+        void queryClient.invalidateQueries({ queryKey: queryKeys.queues.all() });
+        return true;
+      } catch (err) {
+        log.error('Error updating queue SLA config:', err);
+        return false;
+      }
+    },
+    [fetchSla, queryClient]
+  );
+
+  const triggerRebalance = useCallback(
+    async (limit = 50): Promise<boolean> => {
+      try {
+        const { error: err } = await rpcClient.rpc('rpc_queue_rebalance_candidates', {
+          p_limit: limit,
+        });
+        if (err) throw err;
+        await fetchSla();
+        return true;
+      } catch (err) {
+        log.error('Error triggering queue rebalance:', err);
+        return false;
+      }
+    },
+    [fetchSla]
+  );
+
+  return {
+    rows: slaRows,
+    slaRows,
+    loading,
+    refetch: fetchSla,
+    updateQueueConfig,
+    triggerRebalance,
+  };
 }
 
 /** Compares queue performance metrics across time periods. */
-export function useQueuesComparisonManagement(params: { dateRange: DateRange }) {
+export function useQueuesComparisonManagement(_params: { dateRange: DateRange }) {
   const { user } = useAuth();
   const [comparison, setComparison] = useState<QueueComparison[]>([]);
   const [loading, setLoading] = useState(true);
@@ -319,9 +422,7 @@ export function useQueuesComparisonManagement(params: { dateRange: DateRange }) 
 
     try {
       setLoading(true);
-      const { data, error: err } = await supabase
-        .from('queues')
-        .select(`
+      const { data, error: err } = await safeFrom('queues').select(`
           id,
           name,
           queue_analytics(
@@ -334,7 +435,12 @@ export function useQueuesComparisonManagement(params: { dateRange: DateRange }) 
 
       if (err) throw err;
 
-      const formatted = (data || []).map((q: any) => ({
+      type QueueComparisonSource = {
+        id: string;
+        name: string;
+        queue_analytics?: Array<Partial<QueueAnalytics>> | null;
+      };
+      const formatted = ((data || []) as QueueComparisonSource[]).map((q) => ({
         queue_id: q.id,
         queue_name: q.name,
         metrics: {
@@ -362,4 +468,17 @@ export function useQueuesComparisonManagement(params: { dateRange: DateRange }) 
   return { comparison, loading, refetch: fetchComparison };
 }
 
-export type { Queue, QueueMember, QueueWithMembers, QueueAnalytics, QueueGoal, QueueSLA, QueueSlaRow, QueueComparison, DateRange };
+export type {
+  Queue,
+  QueueMember,
+  QueueWithMembers,
+  QueueAnalytics,
+  QueueGoal,
+  QueueSLA,
+  QueueSlaRow,
+  QueueSlaPatch,
+  QueueSlaFilters,
+  SlaStatusFilter,
+  QueueComparison,
+  DateRange,
+};

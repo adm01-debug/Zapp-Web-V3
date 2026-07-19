@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo, useRef, memo, useCallback } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { cn } from '@/lib/utils';
 import { EmptyState } from '@/components/ui/empty-states';
@@ -11,9 +11,6 @@ import { Search, Filter } from 'lucide-react';
 import { ConversationItem } from './conversation-list/ConversationItem';
 import type { ConversationItemData } from './conversation-list/conversationItemShared';
 import { useDensity } from '@/hooks/useDensity';
-
-const _ITEM_HEIGHT = 140;
-const _COMPACT_ITEM_HEIGHT = 80;
 
 function toConversationItemData(conversation: Conversation): ConversationItemData {
   return {
@@ -43,6 +40,28 @@ function toConversationItemData(conversation: Conversation): ConversationItemDat
     priority: conversation.priority,
   };
 }
+
+const VirtualRow = memo(function VirtualRow({
+  conversation,
+  selectedId,
+  onSelect,
+  isCompactMode,
+}: {
+  conversation: Conversation;
+  selectedId: string | undefined;
+  onSelect: (conversation: Conversation) => void;
+  isCompactMode: boolean;
+}) {
+  const handleSelect = useCallback(() => onSelect(conversation), [onSelect, conversation]);
+  return (
+    <ConversationItem
+      conversation={toConversationItemData(conversation)}
+      isSelected={selectedId === conversation.id}
+      onSelect={handleSelect}
+      compact={isCompactMode}
+    />
+  );
+});
 
 interface VirtualizedConversationListProps {
   conversations: Conversation[];
@@ -211,11 +230,11 @@ export function VirtualizedConversationList({
                     transform: `translateY(${virtualRow.start}px)`,
                   }}
                 >
-                  <ConversationItem
-                    conversation={toConversationItemData(conversation)}
-                    isSelected={selectedId === conversation.id}
-                    onSelect={() => onSelect(conversation)}
-                    compact={isCompactMode}
+                  <VirtualRow
+                    conversation={conversation}
+                    selectedId={selectedId}
+                    onSelect={onSelect}
+                    isCompactMode={isCompactMode}
                   />
                 </div>
               );

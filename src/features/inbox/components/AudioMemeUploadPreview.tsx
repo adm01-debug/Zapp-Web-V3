@@ -42,7 +42,7 @@ export function AudioMemeUploadPreview({
         <span className="shrink-0 text-[10px] text-muted-foreground">Categoria:</span>
         <AudioMemeCategorySelector value={category} onChange={setCategory} size="sm" />
         {pending.aiCategory !== 'outros' && category !== pending.aiCategory && (
-          <button
+          <button type="button"
             onClick={() => setCategory(pending.aiCategory)}
             className="shrink-0 text-[9px] text-primary hover:underline"
           >

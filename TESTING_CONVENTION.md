@@ -48,3 +48,8 @@ include: [
 | `playwright` | E2E, a11y, react testing |
 | `@testing-library/react` | Render de componentes em vitest |
 | `happy-dom` | DOM simulator para vitest |
+
+
+## Schema do Banco
+
+Todos os testes que mocam Supabase devem usar `schema: 'zapp'`. Veja [docs/SCHEMA_REFERENCE.md](docs/SCHEMA_REFERENCE.md).

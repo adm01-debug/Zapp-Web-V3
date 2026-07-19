@@ -14,26 +14,47 @@
  */
 
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { safeClient, safeFrom } from '@/integrations/supabase/safeClient';
+import { queryKeys } from '@/services/api/queryKeys';
 import { toast } from 'sonner';
 import { useToast } from '@/hooks/use-toast';
 import { useMountedRef } from '@/hooks/useMountedRef';
 import { log, getLogger } from '@/lib/logger';
 import { invalidateRouteRolesCache } from '@/features/auth';
 import { normalizeProfileRef, type AdminProfileRef } from '@/features/admin/utils/profileMappers';
-import type { Json } from '@/integrations/supabase/types';
+import type { Json } from '@/integrations/supabase/schema';
 import type { AppRole } from '@/features/auth';
 
 // ─── Type Exports ────────────────────────────────────────────────────────────
 
 // Automations
 export type TriggerType =
-  | 'first_response_pending'
-  | 'inactivity'
-  | 'tag_applied'
-  | 'tag_removed'
-  | 'keyword_match';
+  'first_response_pending' | 'inactivity' | 'tag_applied' | 'tag_removed' | 'keyword_match';
+
+export interface TriggerConfig {
+  threshold_seconds?: number;
+  side?: string;
+  keywords?: string[];
+  tags?: string[];
+  tag?: string;
+  [key: string]: unknown;
+}
+
+export interface RuleActions {
+  suggest_reply?: boolean;
+  auto_send?: boolean;
+  apply_tags?: string[];
+  ai_prompt?: string;
+  template?: string;
+  escalate_sla?: {
+    enabled: boolean;
+    level: string;
+    reason: string;
+  };
+  [key: string]: unknown;
+}
 
 export interface Rule {
   id: string;
@@ -41,8 +62,8 @@ export interface Rule {
   description: string | null;
   is_active: boolean;
   trigger_type: TriggerType;
-  trigger_config: Json;
-  actions: Json;
+  trigger_config: TriggerConfig;
+  actions: RuleActions;
   priority: number;
   cooldown_seconds: number;
   channel_id: string | null;
@@ -271,35 +292,46 @@ function useAdminAutomationsManagement() {
   const [automationChannels, setAutomationChannels] = useState<AutomationChannel[]>([]);
   const [automationDepartments, setAutomationDepartments] = useState<AutomationDepartment[]>([]);
   const [automationLoading, setAutomationLoading] = useState(false);
+  const [automationError, setAutomationError] = useState<Error | null>(null);
   const mountedRef = useMountedRef();
+  const queryClient = useQueryClient();
 
   const loadAutomations = async () => {
     setAutomationLoading(true);
+    setAutomationError(null);
+    const { withRetry } = await import('@/lib/retry');
     try {
-      const [{ data: rulesData, error }, { data: chs, error: chsError }, { data: deps, error: depsError }] = await Promise.all([
-        supabase.from('automations').select('*').order('name', { ascending: true }),
-        supabase.from('channel_connections').select('id,name').order('name'),
-        supabase.from('departments').select('id,name').order('name'),
-      ]);
+      const result = await withRetry(
+        async () => {
+          const [rulesRes, chsRes, depsRes] = await Promise.all([
+            supabase.from('automations').select('*').order('name', { ascending: true }),
+            supabase.from('channel_connections').select('id,name').order('name'),
+            supabase.from('departments').select('id,name').order('name'),
+          ]);
+          const firstError = rulesRes.error ?? chsRes.error ?? depsRes.error;
+          if (firstError) throw new Error(firstError.message ?? 'Erro ao carregar automações');
+          return { rulesData: rulesRes.data, chs: chsRes.data, deps: depsRes.data };
+        },
+        {
+          maxRetries: 3,
+          baseDelayMs: 500,
+          maxDelayMs: 4000,
+          shouldRetry: (err) => {
+            const msg = (err instanceof Error ? err.message : String(err)).toLowerCase();
+            // Não retenta erros de permissão/schema (PGRST205, RLS 401/403)
+            return !/pgrst205|permission|unauthori[sz]ed|forbidden|401|403/.test(msg);
+          },
+        }
+      );
       if (!mountedRef.current) return;
-      if (error) {
-        toast.error(error.message);
-        return;
-      }
-      if (chsError) {
-        toast.error('Erro ao carregar canais de automação');
-        return;
-      }
-      if (depsError) {
-        toast.error('Erro ao carregar departamentos de automação');
-        return;
-      }
-      setRules((rulesData ?? []) as unknown as Rule[]);
-      setAutomationChannels((chs ?? []) as AutomationChannel[]);
-      setAutomationDepartments((deps ?? []) as AutomationDepartment[]);
+      setRules((result.rulesData ?? []) as unknown as Rule[]);
+      setAutomationChannels((result.chs ?? []) as AutomationChannel[]);
+      setAutomationDepartments((result.deps ?? []) as AutomationDepartment[]);
     } catch (err) {
       if (!mountedRef.current) return;
-      toast.error('Erro ao carregar automações');
+      const e = err instanceof Error ? err : new Error('Erro ao carregar automações');
+      setAutomationError(e);
+      toast.error(e.message);
     } finally {
       if (mountedRef.current) setAutomationLoading(false);
     }
@@ -337,6 +369,7 @@ function useAdminAutomationsManagement() {
     }
     toast.success('Regra salva');
     loadAutomations();
+    void queryClient.invalidateQueries({ queryKey: queryKeys.automations.all() });
     return true;
   };
 
@@ -347,6 +380,7 @@ function useAdminAutomationsManagement() {
       return;
     }
     loadAutomations();
+    void queryClient.invalidateQueries({ queryKey: queryKeys.automations.all() });
   };
 
   const toggleAutomationActive = async (r: Rule) => {
@@ -359,6 +393,7 @@ function useAdminAutomationsManagement() {
       return;
     }
     loadAutomations();
+    void queryClient.invalidateQueries({ queryKey: queryKeys.automations.all() });
   };
 
   const adjustAutomationPriority = async (r: Rule, delta: number) => {
@@ -372,6 +407,7 @@ function useAdminAutomationsManagement() {
       return;
     }
     loadAutomations();
+    void queryClient.invalidateQueries({ queryKey: queryKeys.automations.all() });
   };
 
   return {
@@ -379,6 +415,7 @@ function useAdminAutomationsManagement() {
     automationChannels,
     automationDepartments,
     automationLoading,
+    automationError,
     loadAutomations,
     saveAutomation,
     removeAutomation,
@@ -542,6 +579,7 @@ function useAdminQueuesManagement() {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [queuesLoading, setQueuesLoading] = useState(true);
   const mountedRef = useMountedRef();
+  const queryClient = useQueryClient();
 
   const loadQueues = async () => {
     setQueuesLoading(true);
@@ -549,10 +587,10 @@ function useAdminQueuesManagement() {
       const [qRes, mRes, sRes, dRes, cRes, chqRes, pRes] = await Promise.all([
         supabase.from('queues').select('*'),
         supabase.from('queue_members').select('*'),
-        supabase.from('queue_skills').select('*'),
+        safeFrom('queue_skill_requirements').select('*'),
         supabase.from('departments').select('*'),
-        supabase.from('service_channels').select('id,name,channel_type,default_queue_id'),
-        supabase.from('channel_queues').select('*'),
+        safeFrom('service_channels').select('id,name,channel_type,default_queue_id'),
+        safeFrom('channel_queues').select('*'),
         supabase.from('profiles').select('id,name,avatar_url'),
       ]);
 
@@ -560,7 +598,12 @@ function useAdminQueuesManagement() {
 
       setQueues((qRes.data ?? []) as Queue[]);
       setQueueMembers((mRes.data ?? []) as QueueMember[]);
-      setQueueSkills((sRes.data ?? []) as QueueSkill[]);
+      setQueueSkills(
+        (sRes.data ?? []).map((r) => ({
+          ...r,
+          min_level: (r as { min_level?: number | null }).min_level ?? 1,
+        })) as QueueSkill[]
+      );
       setQueueDepartments((dRes.data ?? []) as QueueDepartment[]);
       setQueueChannels((cRes.data ?? []) as QueueServiceChannel[]);
       setChannelQueues((chqRes.data ?? []) as ChannelQueue[]);
@@ -591,6 +634,7 @@ function useAdminQueuesManagement() {
     }
     toast({ title: 'Fila salva' });
     await loadQueues();
+    void queryClient.invalidateQueries({ queryKey: queryKeys.queues.all() });
     return true;
   };
 
@@ -602,6 +646,7 @@ function useAdminQueuesManagement() {
     }
     toast({ title: 'Fila removida' });
     await loadQueues();
+    void queryClient.invalidateQueries({ queryKey: queryKeys.queues.all() });
     return true;
   };
 
@@ -629,6 +674,7 @@ function useDepartmentsManagement() {
   const [deptSaving, setDeptSaving] = useState(false);
   const mountedRef = useMountedRef();
   const deptLogger = getLogger('useDepartmentsAdmin');
+  const queryClient = useQueryClient();
 
   const fetchDepartments = useCallback(async () => {
     setDeptLoading(true);
@@ -699,6 +745,7 @@ function useDepartmentsManagement() {
 
     toast.success(editingId ? 'Departamento atualizado' : 'Departamento criado');
     void fetchDepartments();
+    void queryClient.invalidateQueries({ queryKey: queryKeys.departmentChat.list() });
     return true;
   };
 
@@ -714,6 +761,7 @@ function useDepartmentsManagement() {
 
     toast.success('Departamento removido');
     void fetchDepartments();
+    void queryClient.invalidateQueries({ queryKey: queryKeys.departmentChat.list() });
     return true;
   };
 
@@ -741,6 +789,7 @@ function useRolesManagement() {
   >([]);
   const [userToRemoveRole, setUserToRemoveRole] = useState<UserWithRole | null>(null);
   const [rolesUpdating, setRolesUpdating] = useState(false);
+  const queryClient = useQueryClient();
 
   const fetchRoleUsers = async () => {
     setRolesLoading(true);
@@ -775,7 +824,14 @@ function useRolesManagement() {
   };
 
   const fetchAvailableRoleUsers = async () => {
-    const { data } = await supabase.from('profiles').select('user_id, name, email').order('name');
+    const { data, error: profilesErr } = await supabase
+      .from('profiles')
+      .select('user_id, name, email')
+      .order('name');
+    if (profilesErr) {
+      log.warn('Failed to fetch profiles for role users', profilesErr);
+      return;
+    } // ✅ fix: error check
     if (data) {
       const usersWithRoles = roleUsers.map((u) => u.user_id);
       setAvailableRoleUsers(
@@ -808,6 +864,7 @@ function useRolesManagement() {
       setShowAddRoleDialog(false);
       setSelectedRoleUser('');
       fetchRoleUsers();
+      void queryClient.invalidateQueries({ queryKey: queryKeys.adminOps.userRoles() });
     }
     setRolesUpdating(false);
   };
@@ -821,6 +878,7 @@ function useRolesManagement() {
       toast.success('Role removida com sucesso');
       setUserToRemoveRole(null);
       fetchRoleUsers();
+      void queryClient.invalidateQueries({ queryKey: queryKeys.adminOps.userRoles() });
     }
     setRolesUpdating(false);
   };
@@ -974,6 +1032,7 @@ function useHmacSecurityManagement(instance: string, includeNegative: boolean) {
   const [securityLoading, setSecurityLoading] = useState(false);
   const [securityResult, setSecurityResult] = useState<SelfTestResult | null>(null);
   const [lastSecurityRunAt, setLastSecurityRunAt] = useState<Date | null>(null);
+  const queryClient = useQueryClient();
 
   const logSecurityAudit = useCallback(
     async (payload: SelfTestResult, fallbackMs: number) => {
@@ -993,12 +1052,14 @@ function useHmacSecurityManagement(instance: string, includeNegative: boolean) {
         );
         if (insertError) {
           log.warn('audit insert failed', insertError);
+        } else {
+          void queryClient.invalidateQueries({ queryKey: queryKeys.adminOps.hmacAudit() });
         }
       } catch (e) {
         log.warn('audit insert threw', e);
       }
     },
-    [instance]
+    [instance, queryClient]
   );
 
   const syncSecurityAlert = useCallback(
@@ -1038,7 +1099,11 @@ function useHmacSecurityManagement(instance: string, includeNegative: boolean) {
             message: `${phasePrefix}${detail}${reqSuffix}`.slice(0, 500),
             source,
           });
-          if (insertAlertError) log.warn('warroom_alerts insert failed', insertAlertError);
+          if (insertAlertError) {
+            log.warn('warroom_alerts insert failed', insertAlertError);
+          } else {
+            void queryClient.invalidateQueries({ queryKey: queryKeys.alerts.all() });
+          }
         } else if (payload.ok && activeId) {
           const { error: resolveError } = await safeClient.from('warroom_alerts', (q) =>
             q
@@ -1051,13 +1116,17 @@ function useHmacSecurityManagement(instance: string, includeNegative: boolean) {
               .eq('source', source)
               .is('resolved_at', null)
           );
-          if (resolveError) log.warn('warroom_alerts resolve failed', resolveError);
+          if (resolveError) {
+            log.warn('warroom_alerts resolve failed', resolveError);
+          } else {
+            void queryClient.invalidateQueries({ queryKey: queryKeys.alerts.all() });
+          }
         }
       } catch (e) {
         log.warn('alert sync threw', e);
       }
     },
-    [instance]
+    [instance, queryClient]
   );
 
   const runSecurityTest = useCallback(async () => {
@@ -1119,13 +1188,23 @@ export function useAdminManagement(options?: {
     options?.hmacIncludeNegative ?? false
   );
 
-  const isLoading =
-    automations.automationLoading ||
-    channels.channelsLoading ||
-    queues.queuesLoading ||
-    departments.deptLoading ||
-    roles.rolesLoading ||
-    permissions.permLoading;
+  const channelsLoading: boolean = channels.channelsLoading;
+  const queuesLoading: boolean = queues.queuesLoading;
+  const deptLoading: boolean = departments.deptLoading;
+  const deptSaving: boolean = departments.deptSaving;
+  const rolesLoading: boolean = roles.rolesLoading;
+  const rolesUpdating: boolean = roles.rolesUpdating;
+  const permLoading: boolean = permissions.permLoading;
+  const automationLoading: boolean = automations.automationLoading;
+  const securityLoading: boolean = security.securityLoading;
+
+  const isLoading: boolean =
+    automationLoading ||
+    channelsLoading ||
+    queuesLoading ||
+    deptLoading ||
+    rolesLoading ||
+    permLoading;
 
   return {
     // Automations
@@ -1137,12 +1216,15 @@ export function useAdminManagement(options?: {
     removeAutomation: automations.removeAutomation,
     toggleAutomationActive: automations.toggleAutomationActive,
     adjustAutomationPriority: automations.adjustAutomationPriority,
+    automationLoading,
+    automationError: automations.automationError,
 
     // Channels
     channels: channels.channels,
     filteredChannels: channels.filteredChannels,
     channelQueues: channels.channelQueues,
     channelWppConns: channels.channelWppConns,
+    channelsLoading,
     loadChannels: channels.loadChannels,
     saveChannel: channels.saveChannel,
     runChannelAction: channels.runChannelAction,
@@ -1156,12 +1238,15 @@ export function useAdminManagement(options?: {
     queueChannels: queues.queueChannels,
     channelQueuesData: queues.channelQueues,
     profiles: queues.profiles,
+    queuesLoading,
     loadQueues: queues.loadQueues,
     saveQueue: queues.saveQueue,
     removeQueue: queues.removeQueue,
 
     // Departments
     departments: departments.departments,
+    deptLoading,
+    deptSaving,
     fetchDepartments: departments.fetchDepartments,
     saveDepartment: departments.saveDepartment,
     removeDepartment: departments.removeDepartment,
@@ -1181,19 +1266,22 @@ export function useAdminManagement(options?: {
     availableRoleUsers: roles.availableRoleUsers,
     userToRemoveRole: roles.userToRemoveRole,
     setUserToRemoveRole: roles.setUserToRemoveRole,
+    rolesLoading,
+    rolesUpdating,
     handleAddRole: roles.handleAddRole,
     handleRemoveRole: roles.handleRemoveRole,
 
     // Permissions
     permissionRows: permissions.permissionRows,
     savingPermPath: permissions.savingPermPath,
+    permLoading,
     loadPermissions: permissions.loadPermissions,
     savePermissionRow: permissions.savePermissionRow,
     deletePermissionRow: permissions.deletePermissionRow,
     createPermissionRow: permissions.createPermissionRow,
 
     // Security
-    securityLoading: security.securityLoading,
+    securityLoading,
     securityResult: security.securityResult,
     lastSecurityRunAt: security.lastSecurityRunAt,
     runSecurityTest: security.runSecurityTest,

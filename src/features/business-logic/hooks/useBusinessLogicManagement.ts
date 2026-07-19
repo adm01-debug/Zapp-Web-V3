@@ -254,7 +254,7 @@ export function useBusinessLogicCatalogManagement(
               whatsapp_connection_id: connection?.id || null,
             })
             .select('id')
-            .single();
+            .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
 
           const { data: apiResult } = await supabase.functions.invoke('evolution-api', {
             body: {
@@ -286,7 +286,7 @@ export function useBusinessLogicCatalogManagement(
             whatsapp_connection_id: connection?.id || null,
           })
           .select('id')
-          .single();
+          .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
 
         const { data: textApiResult } = await supabase.functions.invoke('evolution-api', {
           body: {
@@ -454,6 +454,7 @@ export function useBusinessLogicPipelineManagement(
       )
       .subscribe();
     return () => {
+      channel.unsubscribe();
       supabase.removeChannel(channel);
     };
   }, [fetchData]);

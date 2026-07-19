@@ -5,6 +5,7 @@ import { useAuth } from '@/features/auth';
 import { toast } from '@/hooks/use-toast';
 import { log } from '@/lib/logger';
 import type { TeamMessage } from './teamChatTypes';
+import { queryKeys } from '@/services/api/queryKeys';
 
 interface TeamMessagePage {
   messages: TeamMessage[];
@@ -37,7 +38,7 @@ export function useUpdateTeamMessageStatus() {
     },
     onSuccess: (data) => {
       queryClient.setQueriesData(
-        { queryKey: ['team-messages', data.conversationId] },
+        { queryKey: queryKeys.teamChat.allMessages(data.conversationId) },
         (oldData: TeamMessageCache | undefined): TeamMessageCache | undefined => {
           if (!oldData?.pages) return oldData;
           const newPages = oldData.pages.map((page) => ({
@@ -84,7 +85,7 @@ export function useSendTeamMessage() {
           media_type: mediaType || null,
         })
         .select()
-        .single();
+        .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
       if (error) throw error;
       const { error: touchErr } = await supabase
         .from('team_conversations')
@@ -95,19 +96,19 @@ export function useSendTeamMessage() {
     },
     onSuccess: (data, vars) => {
       queryClient.setQueriesData(
-        { queryKey: ['team-messages', vars.conversationId] },
+        { queryKey: queryKeys.teamChat.allMessages(vars.conversationId) },
         (oldData: TeamMessageCache | undefined): TeamMessageCache | undefined => {
           if (!oldData?.pages) return oldData;
           const newPages = [...oldData.pages];
           if (newPages.length > 0) {
-            const msgWithSender = {
+            const msgWithSender: TeamMessage = {
               ...data,
               sender: {
-                id: profile?.id,
-                name: profile?.name,
-                avatar_url: profile?.avatar_url,
+                id: profile?.id ?? '',
+                name: profile?.name ?? '',
+                avatar_url: profile?.avatar_url ?? null,
               },
-            } as any;
+            };
             newPages[0] = {
               ...newPages[0],
               messages: [...newPages[0].messages, msgWithSender],
@@ -116,7 +117,7 @@ export function useSendTeamMessage() {
           return { ...oldData, pages: newPages };
         }
       );
-      queryClient.invalidateQueries({ queryKey: ['team-conversations'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.teamChat.conversations() });
     },
     onError: () => {
       toast({ title: 'Erro ao enviar mensagem', variant: 'destructive' });
@@ -138,9 +139,9 @@ export function useDeleteTeamMessage() {
       if (error) throw error;
       return { conversationId };
     },
-    onSuccess: (data, vars) => {
+    onSuccess: (_data, vars) => {
       queryClient.setQueriesData(
-        { queryKey: ['team-messages', data.conversationId] },
+        { queryKey: queryKeys.teamChat.allMessages(vars.conversationId) },
         (oldData: TeamMessageCache | undefined): TeamMessageCache | undefined => {
           if (!oldData?.pages) return oldData;
           const newPages = oldData.pages.map((page) => ({
@@ -150,7 +151,7 @@ export function useDeleteTeamMessage() {
           return { ...oldData, pages: newPages };
         }
       );
-      queryClient.invalidateQueries({ queryKey: ['team-conversations'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.teamChat.conversations() });
     },
     onError: () => {
       toast({ title: 'Erro ao excluir mensagem', variant: 'destructive' });
@@ -177,9 +178,9 @@ export function useEditTeamMessage() {
       if (error) throw error;
       return { conversationId };
     },
-    onSuccess: (data, vars) => {
+    onSuccess: (_data, vars) => {
       queryClient.setQueriesData(
-        { queryKey: ['team-messages', vars.conversationId] },
+        { queryKey: queryKeys.teamChat.allMessages(vars.conversationId) },
         (oldData: TeamMessageCache | undefined): TeamMessageCache | undefined => {
           if (!oldData?.pages) return oldData;
           const newPages = oldData.pages.map((page) => ({
@@ -269,7 +270,7 @@ export function useCreateTeamConversation() {
           })
           .select()
       );
-      const conv = (convRows?.[0] ?? null) as any;
+      const conv = (convRows?.[0] ?? null) as { id: string } | null;
 
       if (convErr) throw convErr;
       if (!conv) throw new Error('Failed to create conversation');
@@ -281,14 +282,14 @@ export function useCreateTeamConversation() {
       const { error: memError } = await supabase
         .from('team_conversation_members')
         .insert(
-          memberProfileIds.map((pid) => ({ conversation_id: (conv as any).id, profile_id: pid }))
+          memberProfileIds.map((pid) => ({ conversation_id: conv.id, profile_id: pid }))
         );
       if (memError) throw memError;
 
       return conv;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['team-conversations'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.teamChat.conversations() });
     },
     onError: () => {
       toast({ title: 'Erro ao criar conversa', variant: 'destructive' });
@@ -310,7 +311,7 @@ export function useToggleMuteConversation() {
       if (muteError) throw muteError;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['team-conversations'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.teamChat.conversations() });
     },
     onError: () => {
       toast({ title: 'Erro ao alterar silenciar', variant: 'destructive' });
@@ -344,7 +345,7 @@ export function useTransferTeamConversation() {
       return rows?.[0] ?? null;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['team-conversations'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.teamChat.conversations() });
       toast({ title: 'Conversa transferida com sucesso' });
     },
     onError: () => {

@@ -2,7 +2,6 @@ import { useCallback, useRef, useMemo, type RefObject } from 'react';
 import { motion } from 'framer-motion';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useDensity } from '@/hooks/useDensity';
-import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { MobilePullToRefreshIndicator } from '@/components/mobile/MobilePullToRefresh';
 import { VirtualizedRealtimeList } from './VirtualizedRealtimeList';
 import { ErrorBoundary } from '@/components/errors/ErrorBoundary';
@@ -90,27 +89,35 @@ export function ConversationListSidebar({
     }
   }, [inbox, sortedFilteredIds]);
 
+  const handleAgentChange = useCallback(
+    (agentId: string | null) => inboxFilters.setFilters({ ...inboxFilters.filters, agentId }),
+    [inboxFilters],
+  );
+
+  const onSearchFocus = useCallback(() => contactSearchRef.current?.focus(), []);
+  const onArchive = useCallback(() => {
+    if (inbox.selectedContactId) {
+      toast.info('Arquivando conversa...');
+    }
+  }, [inbox.selectedContactId]);
+  const onTransfer = useCallback(() => {
+    if (inbox.selectedContactId) {
+      window.dispatchEvent(
+        new CustomEvent('open-transfer-dialog', {
+          detail: { contactId: inbox.selectedContactId },
+        })
+      );
+    }
+  }, [inbox.selectedContactId]);
+  const onRefresh = useCallback(() => inbox.refetch(), [inbox.refetch]);
+
   useInboxShortcuts({
-    onSearchFocus: () => contactSearchRef.current?.focus(),
+    onSearchFocus,
     onNextConversation: handleNextConversation,
     onPrevConversation: handlePrevConversation,
-    onArchive: () => {
-      if (inbox.selectedContactId) {
-        toast.info('Arquivando conversa...');
-        // Hook internal handles real logic via context menu or bulk actions
-      }
-    },
-    onTransfer: () => {
-      if (inbox.selectedContactId) {
-        // Dispatch event for UI to open transfer dialog
-        window.dispatchEvent(
-          new CustomEvent('open-transfer-dialog', {
-            detail: { contactId: inbox.selectedContactId },
-          })
-        );
-      }
-    },
-    onRefresh: () => inbox.refetch(),
+    onArchive,
+    onTransfer,
+    onRefresh,
   });
 
   return (
@@ -219,9 +226,7 @@ export function ConversationListSidebar({
               contactType={inboxFilters.selectedContactType}
               onContactTypeChange={inboxFilters.handleContactTypeChange}
               selectedAgentId={inboxFilters.filters.agentId ?? undefined}
-              onAgentChange={(agentId) =>
-                inboxFilters.setFilters({ ...inboxFilters.filters, agentId })
-              }
+              onAgentChange={handleAgentChange}
               departmentAgentIds={inboxFilters.departmentAgentIds}
             />
           </div>

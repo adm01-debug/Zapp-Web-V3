@@ -46,7 +46,7 @@ export function LeadRiskScorePanel({ contactId }: LeadRiskScorePanelProps) {
       .from('contacts')
       .select('lead_score, risk_score, lead_origin, consent_status')
       .eq('id', contactId)
-      .single();
+      .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
     if (data) {
       setLeadScore(data.lead_score ?? 0);
       setRiskScore(data.risk_score ?? 0);

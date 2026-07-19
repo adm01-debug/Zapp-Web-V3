@@ -6,8 +6,9 @@
  */
 
 import { supabase } from '@/integrations/supabase/client';
+import { safeFrom } from '@/integrations/supabase/safeClient';
 import { createService } from '@/services/api/genericService';
-import type { ListResponse, QueryParams } from '@/services/api/types';
+import type { QueryParams } from '@/services/api/types';
 
 export interface User {
   id: string;
@@ -90,8 +91,7 @@ export const usersRepository = {
 
   // Agent status
   async getAgentsByStatus(status: Agent['status'], filters?: Partial<QueryParams>) {
-    const { data, error, count } = await (supabase as any)
-      .from('agents')
+    const { data, error, count } = await safeFrom('agents')
       .select('*', { count: 'exact' })
       .eq('status', status)
       .limit(filters?.limit || 50)

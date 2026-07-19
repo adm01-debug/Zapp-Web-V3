@@ -1,6 +1,9 @@
-// Re-export from consolidated useCRMManagement module (ETAPA 43 consolidation)
-import { useContactEnrichedDataManagement } from '@/hooks/useCRMManagement';
-
-export function useContactEnrichedData(contactId: string) {
-  return useContactEnrichedDataManagement(contactId);
-}
+// Re-export canonical implementation from features/contacts.
+// The previous consolidated version only returned { enrichedData, loading }
+// which broke consumers expecting aiTags and slaInfo (Inbox ContactDetails).
+export {
+  useContactEnrichedData,
+  type EnrichedContactData,
+  type AIConversationTag,
+  type SLAInfo,
+} from '@/features/contacts/hooks/useContactEnrichedData';

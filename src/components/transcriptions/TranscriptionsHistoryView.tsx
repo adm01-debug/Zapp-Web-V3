@@ -1,8 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getLogger } from '@/lib/logger';
-
-const log = getLogger('TranscriptionsHistoryView');
 import { FloatingParticles } from '@/components/dashboard/FloatingParticles';
 import { AuroraBorealis } from '@/components/effects/AuroraBorealis';
 import { EmptyState } from '@/components/ui/empty-states';
@@ -21,6 +19,8 @@ import { Mic, Search, Calendar, X, RefreshCw } from 'lucide-react';
 import { isToday, isThisWeek, isThisMonth } from 'date-fns';
 import { TranscriptionContactGroup } from './TranscriptionContactGroup';
 import { dbFrom } from '@/integrations/datasource/db';
+
+const log = getLogger('TranscriptionsHistoryView');
 
 interface TranscriptionRecord {
   id: string;

@@ -1,3 +1,5 @@
+> **📜 DOCUMENTO HISTÓRICO** — Reflete o estado do sistema na data indicada. A arquitetura atual usa um único Supabase Self-Hosted com schema `zapp`. Veja [SCHEMA_REFERENCE.md](docs/SCHEMA_REFERENCE.md).
+
 # ⚡ Sessão 5 (trilha INFRA/DB) — Execução das melhorias (FMEA + 11 workstreams) — 2026-07-04
 
 > **Nota:** esta é a trilha **infraestrutura/banco** da sessão 5 (GlitchTip, retenção do

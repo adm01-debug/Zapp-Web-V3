@@ -63,8 +63,7 @@ Deno.serve(async (req) => {
 
   // Service-role insert — bypasses RLS so we can ALWAYS record the failure.
   const admin = createClient(supabaseUrl, serviceKey, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
+    auth: { persistSession: false, autoRefreshToken: false }, db: { schema: "zapp" } });
 
   const metadata = {
     failure: true,

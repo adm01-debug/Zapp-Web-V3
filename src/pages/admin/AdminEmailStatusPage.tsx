@@ -24,7 +24,7 @@ const getStatusIcon = (status?: string) => {
     case 'healthy':
       return <CheckCircle2 className="h-5 w-5 text-primary" />;
     case 'degraded':
-      return <AlertTriangle className="h-5 w-5 text-yellow-500" />;
+      return <AlertTriangle className="h-5 w-5 text-warning" />;
     case 'error':
       return <AlertCircle className="h-5 w-5 text-destructive" />;
     default:
@@ -46,8 +46,16 @@ const getStatusLabel = (status?: string) => {
 };
 
 export default function AdminEmailStatusPage() {
-  const { accounts, health, filters, setFilters, failuresData, isRetrying, handleRevalidate, handleAction } =
-    useEmailHealthStatus();
+  const {
+    accounts,
+    health,
+    filters,
+    setFilters,
+    failuresData,
+    isRetrying,
+    handleRevalidate,
+    handleAction,
+  } = useEmailHealthStatus();
 
   return (
     <div className="animate-fade-in space-y-6">
@@ -78,7 +86,7 @@ export default function AdminEmailStatusPage() {
         <Alert
           variant={health.status === 'error' ? 'destructive' : 'default'}
           className={
-            health.status === 'degraded' ? 'border-yellow-200 bg-yellow-50 text-yellow-800' : ''
+            health.status === 'degraded' ? 'border-warning/30 bg-warning/10 text-warning' : ''
           }
         >
           {health.status === 'error' ? (
@@ -102,11 +110,7 @@ export default function AdminEmailStatusPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{getStatusLabel(health?.status)}</div>
-            <p className="mt-1 text-xs text-muted-foreground">
-              {health && (health as { source?: string }).source === 'edge_shared_storage'
-                ? 'Telemetria persistida via Cloud Edge.'
-                : 'Telemetria em tempo real (client-side).'}
-            </p>
+            <p className="mt-1 text-xs text-muted-foreground">Telemetria em tempo real.</p>
           </CardContent>
         </Card>
 
@@ -169,9 +173,7 @@ export default function AdminEmailStatusPage() {
             Histórico de Falhas Operacionais
           </CardTitle>
           <div className="flex items-center gap-2">
-            <Badge variant="outline" className="">
-              Total: {failuresData.total}
-            </Badge>
+            <Badge variant="outline">Total: {failuresData.total}</Badge>
           </div>
         </CardHeader>
         <CardContent>
@@ -235,12 +237,10 @@ export default function AdminEmailStatusPage() {
                 </thead>
                 <tbody className="divide-y">
                   {failuresData.items.length > 0 ? (
-                    failuresData.items.map((failure, idx) => (
-                      <tr key={`${failure.requestId}-${idx}`} className="hover:bg-muted/30">
+                    failuresData.items.map((failure) => (
+                      <tr key={failure.requestId} className="hover:bg-muted/30">
                         <td className="px-4 py-2">
-                          <Badge variant="outline" className="">
-                            {failure.requestId}
-                          </Badge>
+                          <Badge variant="outline">{failure.requestId}</Badge>
                         </td>
                         <td className="px-4 py-2">
                           <div className="flex flex-col">

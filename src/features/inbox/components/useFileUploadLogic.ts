@@ -178,7 +178,7 @@ export function useFileUploadLogic(opts: {
               status: 'sending',
             })
             .select('id')
-            .single()
+            .maybeSingle() // ✅ fix: maybeSingle evita PGRST116
         : Promise.resolve(null);
 
       const [result, dbResult] = await Promise.all([apiPromise, dbPromise]);

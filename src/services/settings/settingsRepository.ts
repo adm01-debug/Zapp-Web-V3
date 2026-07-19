@@ -44,7 +44,7 @@ export const settingsRepository = {
       .from('user_settings')
       .select('*')
       .eq('user_id', userId)
-      .single();
+      .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
 
     if (error) return null;
     return data;
@@ -56,7 +56,7 @@ export const settingsRepository = {
       .update(updates)
       .eq('user_id', userId)
       .select()
-      .single();
+      .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
 
     return { data, error };
   },
@@ -69,7 +69,7 @@ export const settingsRepository = {
         ...settings,
       })
       .select()
-      .single();
+      .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
 
     return { data, error };
   },
@@ -80,7 +80,7 @@ export const settingsRepository = {
       .from('workspace_settings')
       .select('*')
       .eq('workspace_id', workspaceId)
-      .single();
+      .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
 
     if (error) return null;
     return data;
@@ -92,7 +92,7 @@ export const settingsRepository = {
       .update(updates)
       .eq('workspace_id', workspaceId)
       .select()
-      .single();
+      .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
 
     return { data, error };
   },
@@ -105,7 +105,7 @@ export const settingsRepository = {
         ...settings,
       })
       .select()
-      .single();
+      .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
 
     return { data, error };
   },
@@ -118,11 +118,11 @@ export const settingsRepository = {
         'postgres_changes',
         {
           event: '*',
-          schema: 'public',
+          schema: 'zapp',
           table: 'user_settings',
           filter: `user_id=eq.${userId}`,
         },
-        (payload: any) => callback(payload.new || payload.old)
+        (payload: { new: unknown; old: unknown }) => callback((payload.new || payload.old) as UserSettings)
       )
       .subscribe();
   },
@@ -134,11 +134,11 @@ export const settingsRepository = {
         'postgres_changes',
         {
           event: '*',
-          schema: 'public',
+          schema: 'zapp',
           table: 'workspace_settings',
           filter: `workspace_id=eq.${workspaceId}`,
         },
-        (payload: any) => callback(payload.new || payload.old)
+        (payload: { new: unknown; old: unknown }) => callback((payload.new || payload.old) as WorkspaceSettings)
       )
       .subscribe();
   },

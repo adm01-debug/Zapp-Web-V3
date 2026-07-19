@@ -39,7 +39,8 @@ function supabaseForUser(ctx) {
     process.env.SUPABASE_PUBLISHABLE_KEY ?? process.env.SUPABASE_ANON_KEY,
     {
       global: { headers: { Authorization: `Bearer ${ctx.getToken()}` } },
-      auth: { persistSession: false, autoRefreshToken: false }
+      auth: { persistSession: false, autoRefreshToken: false },
+      db: { schema: "zapp" }
     }
   );
 }
@@ -76,7 +77,8 @@ function supabaseForUser2(ctx) {
     process.env.SUPABASE_PUBLISHABLE_KEY ?? process.env.SUPABASE_ANON_KEY,
     {
       global: { headers: { Authorization: `Bearer ${ctx.getToken()}` } },
-      auth: { persistSession: false, autoRefreshToken: false }
+      auth: { persistSession: false, autoRefreshToken: false },
+      db: { schema: "zapp" }
     }
   );
 }
@@ -106,14 +108,14 @@ var list_contacts_default = defineTool3({
 });
 
 // src/lib/mcp/index.ts
-var projectRef = "uqysyzndkfiwfztbqvsl";
+var supabaseUrl = Deno.env.get("SELFHOSTED_SUPABASE_URL") ?? Deno.env.get("SUPABASE_URL") ?? "https://supabase.atomicabr.com.br";
 var mcp_default = defineMcp({
   name: "zapp-web-mcp",
   title: "ZAPP Web MCP",
   version: "0.1.0",
   instructions: "Ferramentas para o ZAPP Web: identifica\xE7\xE3o do usu\xE1rio autenticado, listagem de conex\xF5es WhatsApp e busca de contatos. Todas as chamadas respeitam RLS do usu\xE1rio.",
   auth: auth.oauth.issuer({
-    issuer: `https://${projectRef}.supabase.co/auth/v1`,
+    issuer: `${supabaseUrl}/auth/v1`,
     acceptedAudiences: "authenticated"
   }),
   tools: [whoami_default, list_connections_default, list_contacts_default]

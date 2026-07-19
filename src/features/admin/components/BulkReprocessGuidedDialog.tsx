@@ -58,6 +58,7 @@ const STATUS_LABEL: Record<FailedMessageStatus, string> = {
   retrying: 'Reprocessando',
   succeeded: 'Já em sucesso',
   abandoned: 'Abandonadas',
+  failed: 'Falhou',
 };
 
 export function BulkReprocessGuidedDialog({
@@ -80,6 +81,7 @@ export function BulkReprocessGuidedDialog({
       }, 180);
       return () => clearTimeout(t);
     }
+    return undefined;
   }, [open]);
 
   const total = selectedRows.length;

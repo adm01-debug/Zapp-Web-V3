@@ -1,4 +1,3 @@
-import React from 'react';
 import { motion } from 'framer-motion';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -203,7 +202,7 @@ export function ContactCard({
         {/* Tags */}
         {contact.tags && contact.tags.length > 0 && (
           <div className="flex flex-wrap gap-1">
-            {contact.tags.slice(0, 3).map(tag => (
+            {contact.tags.slice(0, 3).map((tag: string) => (
               <Badge key={tag} variant="secondary" className="text-[10px] h-5 px-1.5 rounded-md">
                 {tag}
               </Badge>

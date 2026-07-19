@@ -3,6 +3,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { log } from '@/lib/logger';
+import { useMountedRef } from '@/hooks/useMountedRef';
 
 interface Sticker {
   id: string;
@@ -60,6 +61,7 @@ export function usePersonalStickersManagement(userId?: string) {
 export function useCustomEmojisManagement() {
   const [emojis, setEmojis] = useState<Emoji[]>([]);
   const [loading, setLoading] = useState(true);
+  const mounted = useMountedRef();
 
   useEffect(() => {
     const fetchEmojis = async () => {
@@ -67,16 +69,16 @@ export function useCustomEmojisManagement() {
         const { data, error: err } = await supabase.from('custom_emojis').select('*');
 
         if (err) throw err;
-        setEmojis(data || []);
+        if (mounted.current) setEmojis(data || []);
       } catch (err) {
         log.error('Error fetching emojis:', err);
       } finally {
-        setLoading(false);
+        if (mounted.current) setLoading(false);
       }
     };
 
     fetchEmojis();
-  }, []);
+  }, [mounted]);
 
   return { emojis, loading };
 }
@@ -90,7 +92,9 @@ export function useExportDataManagement() {
     setProgress(0);
 
     try {
-      const { data, error: err } = await supabase.rpc('export_user_data', { export_format: format });
+      const { data, error: err } = await supabase.rpc('export_user_data', {
+        export_format: format,
+      });
 
       if (err) throw err;
 
@@ -161,6 +165,10 @@ export function useDownloadPermissionManagement(resourceId?: string) {
         setHasPermission(data || false);
       } catch (err) {
         log.error('Error checking download permission:', err);
+        // Fail open only when the RPC doesn't exist yet (SQLSTATE 42883 = undefined_function).
+        // Any other error (network, auth, RLS) keeps permission denied.
+        const code = (err as { code?: string })?.code;
+        setHasPermission(code === '42883');
       } finally {
         setLoading(false);
       }

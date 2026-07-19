@@ -1,9 +1,11 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/features/auth';
 import { toast } from '@/hooks/use-toast';
 import { log } from '@/lib/logger';
 import { useMountedRef } from '@/hooks/useMountedRef';
+
 
 export interface Call {
   id: string;
@@ -35,6 +37,7 @@ export const useCalls = () => {
   const [isLoading, setIsLoading] = useState(false);
   const mountedRef = useMountedRef();
   const abortControllerRef = useRef<AbortController | null>(null);
+  const queryClient = useQueryClient();
 
   // Cleanup: abort all pending operations on unmount
   useEffect(() => {
@@ -47,8 +50,7 @@ export const useCalls = () => {
   const getProfileId = useCallback(async (): Promise<string | null> => {
     if (!user) return null;
 
-    const { data } = await supabase
-      .from('profiles')
+    const { data } = await supabase.from('profiles')
       .select('id')
       .eq('user_id', user.id)
       .maybeSingle();
@@ -63,8 +65,7 @@ export const useCalls = () => {
       try {
         const profileId = await getProfileId();
 
-        const { data, error } = await supabase
-          .from('calls')
+        const { data, error } = await supabase.from('calls')
           .insert({
             contact_id: params.contactId || null,
             agent_id: profileId,
@@ -73,11 +74,13 @@ export const useCalls = () => {
             whatsapp_connection_id: params.whatsappConnectionId || null,
           })
           .select()
-          .single();
+          .single(); // POST-INSERT: insert retorna exatamente 1 linha
 
         if (error) throw error;
+        if (!data) throw new Error('Call insert retornou null — inesperado'); // guard extra
 
         setCurrentCallId(data.id);
+        void queryClient.invalidateQueries({ queryKey: ['calls-history'] });
         return data.id;
       } catch (error) {
         log.error('Error starting call:', error);
@@ -91,7 +94,7 @@ export const useCalls = () => {
         setIsLoading(false);
       }
     },
-    [getProfileId]
+    [getProfileId, queryClient]
   );
 
   // Answer the call with abort signal support
@@ -100,8 +103,7 @@ export const useCalls = () => {
     abortControllerRef.current = controller;
 
     try {
-      const builder = supabase
-        .from('calls')
+      const builder = supabase.from('calls')
         .update({
           status: 'answered',
           answered_at: new Date().toISOString(),
@@ -117,13 +119,14 @@ export const useCalls = () => {
 
       if (controller.signal.aborted) return false;
       if (error) throw error;
+      void queryClient.invalidateQueries({ queryKey: ['calls-history'] });
       return true;
     } catch (error) {
       if (controller.signal.aborted) return false;
       log.error('Error answering call:', error);
       return false;
     }
-  }, []);
+  }, [queryClient]);
 
   // End the call with abort signal support
   const endCall = useCallback(async (callId: string, durationSeconds: number): Promise<boolean> => {
@@ -131,8 +134,7 @@ export const useCalls = () => {
     abortControllerRef.current = controller;
 
     try {
-      const builder = supabase
-        .from('calls')
+      const builder = supabase.from('calls')
         .update({
           status: 'ended',
           ended_at: new Date().toISOString(),
@@ -151,6 +153,7 @@ export const useCalls = () => {
       if (error) throw error;
 
       setCurrentCallId(null);
+      void queryClient.invalidateQueries({ queryKey: ['calls-history'] });
       return true;
     } catch (error) {
       if (controller.signal.aborted) return false;
@@ -164,7 +167,7 @@ export const useCalls = () => {
       }
       return false;
     }
-  }, [mountedRef]);
+  }, [mountedRef, queryClient]);
 
   // Mark call as missed with abort signal support
   const missCall = useCallback(async (callId: string): Promise<boolean> => {
@@ -172,8 +175,7 @@ export const useCalls = () => {
     abortControllerRef.current = controller;
 
     try {
-      const builder = supabase
-        .from('calls')
+      const builder = supabase.from('calls')
         .update({
           status: 'missed',
           ended_at: new Date().toISOString(),
@@ -191,13 +193,14 @@ export const useCalls = () => {
       if (error) throw error;
 
       setCurrentCallId(null);
+      void queryClient.invalidateQueries({ queryKey: ['calls-history'] });
       return true;
     } catch (error) {
       if (controller.signal.aborted) return false;
       log.error('Error marking call as missed:', error);
       return false;
     }
-  }, [mountedRef]);
+  }, [mountedRef, queryClient]);
 
   // Add notes to a call with abort signal support
   const addCallNotes = useCallback(async (callId: string, notes: string): Promise<boolean> => {
@@ -216,13 +219,14 @@ export const useCalls = () => {
 
       if (controller.signal.aborted) return false;
       if (error) throw error;
+      void queryClient.invalidateQueries({ queryKey: ['calls-history'] });
       return true;
     } catch (error) {
       if (controller.signal.aborted) return false;
       log.error('Error adding call notes:', error);
       return false;
     }
-  }, []);
+  }, [queryClient]);
 
   // Get call history for a contact with abort signal support
   const getContactCalls = useCallback(async (contactId: string): Promise<Call[]> => {
@@ -230,8 +234,7 @@ export const useCalls = () => {
     abortControllerRef.current = controller;
 
     try {
-      const builder = supabase
-        .from('calls')
+      const builder = supabase.from('calls')
         .select('*')
         .eq('contact_id', contactId)
         .order('started_at', { ascending: false });

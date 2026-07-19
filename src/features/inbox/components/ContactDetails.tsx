@@ -53,7 +53,17 @@ interface ContactDetailsProps {
 export function ContactDetails({ conversation, onClose }: ContactDetailsProps) {
   const contact = conversation.contact;
   // Hook call before any conditionals
-  const { enrichedData, aiTags, slaInfo } = useContactEnrichedData(contact.id);
+  const {
+    enrichedData,
+    aiTags,
+    slaInfo,
+    isLoadingAITags,
+    isLoadingSLA,
+    aiTagsError,
+    slaError,
+    refetchAITags,
+    refetchSLA,
+  } = useContactEnrichedData(contact.id);
   const { profileId } = useConversationActions();
   const panelRef = useRef<HTMLDivElement>(null);
   const [accordionValue, setAccordionValue] = useState<string[]>(getStoredAccordionState);
@@ -186,6 +196,12 @@ export function ContactDetails({ conversation, onClose }: ContactDetailsProps) {
             aiTags={aiTags}
             slaInfo={slaInfo ?? null}
             profileId={profileId}
+            isLoadingAITags={isLoadingAITags}
+            isLoadingSLA={isLoadingSLA}
+            aiTagsError={aiTagsError}
+            slaError={slaError}
+            onRetryAITags={() => { void refetchAITags(); }}
+            onRetrySLA={() => { void refetchSLA(); }}
           />
         </Accordion>
 

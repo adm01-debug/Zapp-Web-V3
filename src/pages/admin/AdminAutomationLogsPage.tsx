@@ -36,13 +36,83 @@ export default function AdminAutomationLogsPage() {
   const [page, setPage] = useState(0);
   const [detail, setDetail] = useState<ExecutionRow | null>(null);
 
-  const filters: AutomationLogsFilters = {
-    filterRule,
-    filterStatus,
-    filterJid,
-    filterFrom,
-    filterTo,
-    page,
+  const mountedRef = useMountedRef();
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    const { data, error } = await safeClient.from<ExecutionRow>('automation_executions', (q) => {
+      let query = q
+        .select('*')
+        .order('created_at', { ascending: false })
+        .range(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE - 1);
+      if (filterRule !== 'all') query = query.eq('rule_id', filterRule);
+      if (filterStatus !== 'all') query = query.eq('status', filterStatus as AutomationStatus);
+      if (filterJid.trim()) query = query.ilike('remote_jid', `%${filterJid.trim()}%`);
+      if (filterFrom) query = query.gte('created_at', new Date(filterFrom).toISOString());
+      if (filterTo) {
+        const to = new Date(filterTo);
+        to.setHours(23, 59, 59, 999);
+        query = query.lte('created_at', to.toISOString());
+      }
+      return query;
+    });
+    if (!mountedRef.current) return;
+    if (error) {
+      // Silently show empty state when table doesn't exist yet (pending migration)
+      const isMissing =
+        error.message?.includes('does not exist') || (error as { code?: string }).code === '42P01';
+      if (!isMissing) {
+        toast({ title: 'Erro', description: error.message, variant: 'destructive' });
+      }
+      setRows([]);
+    } else {
+      setRows((data ?? []) as ExecutionRow[]);
+    }
+    setLoading(false);
+  }, [page, filterRule, filterStatus, filterJid, filterFrom, filterTo, toast]);
+
+  useEffect(() => {
+    supabase
+      .from('automations')
+      .select('id,name')
+      .order('name')
+      .then(({ data }) => {
+        if (mountedRef.current) setRules((data ?? []) as RuleLite[]);
+      });
+  }, []);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  // Realtime: novas execuções aparecem no topo
+  useEffect(() => {
+    const ch = supabase
+      .channel('automation-executions-page')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'zapp', table: 'automation_executions' },
+        () => {
+          if (page === 0) void load();
+        }
+      )
+      .subscribe();
+    return () => {
+      ch.unsubscribe();
+      supabase.removeChannel(ch);
+    };
+  }, [page, load]);
+
+  const ruleNameById = useMemo(() => Object.fromEntries(rules.map((r) => [r.id, r.name])), [rules]);
+
+  const statusBadge = (s: string) => {
+    const meta = STATUS_META[s] ?? { label: s, icon: ScrollText, variant: 'outline' };
+    const Icon = meta.icon;
+    return (
+      <Badge variant={meta.variant} className="gap-1">
+        <Icon className="h-3 w-3" /> {meta.label}
+      </Badge>
+    );
   };
   const { rows, rules, ruleNameById, loading, load } = useAutomationLogs(filters);
 
@@ -317,6 +387,37 @@ export default function AdminAutomationLogsPage() {
           )}
         </SheetContent>
       </Sheet>
+    </div>
+  );
+}
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="space-y-2 rounded-md border p-3">
+      <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        {title}
+      </h3>
+      {children}
+    </div>
+  );
+}
+
+function KV({ k, v, mono = false }: { k: string; v: string; mono?: boolean }) {
+  return (
+    <div className="flex justify-between gap-3 text-xs">
+      <span className="text-muted-foreground">{k}</span>
+      <span className={mono ? 'max-w-[280px] truncate' : 'max-w-[280px] truncate'}>{v}</span>
+    </div>
+  );
+}
+
+function Pre({ title, data }: { title: string; data: unknown }) {
+  return (
+    <div>
+      <Label className="text-xs">{title}</Label>
+      <pre className="mt-1 max-h-[200px] overflow-x-auto rounded-md border bg-muted/30 p-2 text-[11px]">
+        {JSON.stringify(data, null, 2)}
+      </pre>
     </div>
   );
 }

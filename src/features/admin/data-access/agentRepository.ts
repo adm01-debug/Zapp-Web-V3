@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { dbFrom } from '@/integrations/datasource/db';
 
@@ -26,9 +27,24 @@ export const agentRepository = {
   },
 
   async fetchQueuesAndMembers() {
+    // Schema drift: `is_active` existe fisicamente em queues/queue_members mas
+    // não aparece nos tipos gerados. Cast controlado para preservar o filtro.
+    const db = supabase as unknown as {
+      from: (t: string) => {
+        select: (s: string) => {
+          eq: (c: string, v: unknown) => Promise<{ data: unknown; error: unknown }>;
+        };
+      };
+    };
     return Promise.all([
-      supabase.from('queues').select('id, name, color').eq('is_active', true),
-      supabase.from('queue_members').select('queue_id, profile_id').eq('is_active', true),
+      db.from('queues').select('id, name, color').eq('is_active', true) as Promise<{
+        data: Array<{ id: string; name: string; color: string }> | null;
+        error: { message: string } | null;
+      }>,
+      db.from('queue_members').select('queue_id, profile_id').eq('is_active', true) as Promise<{
+        data: Array<{ queue_id: string; profile_id: string }> | null;
+        error: { message: string } | null;
+      }>,
     ]);
   },
 

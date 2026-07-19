@@ -43,7 +43,7 @@ export function ProductImageGrid({
       </div>
       <div className="flex flex-wrap gap-2">
         {visibleImages.map((img) => (
-          <button
+          <button type="button"
             key={img.url}
             onClick={() => toggleImage(img.url)}
             className={cn(

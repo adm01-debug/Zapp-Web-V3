@@ -1,3 +1,5 @@
+> **📜 DOCUMENTO HISTÓRICO** — Reflete o estado do sistema na data indicada. A arquitetura atual usa um único Supabase Self-Hosted com schema `zapp`. Veja [SCHEMA_REFERENCE.md](docs/SCHEMA_REFERENCE.md).
+
 # PROMPT PARA LOVABLE — Integração completa CRM 360° no zapp-web
 
 ## CONTEXTO GERAL

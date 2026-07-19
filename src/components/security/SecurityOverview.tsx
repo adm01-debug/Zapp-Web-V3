@@ -17,7 +17,6 @@ import { Progress } from '@/components/ui/progress';
 import { useAuth } from '@/features/auth';
 import { useMFA } from '@/features/auth';
 import { useDeviceDetection } from '@/hooks/useDeviceDetection';
-import { useUserRole } from '@/features/auth';
 import { supabase } from '@/integrations/supabase/client';
 import { SecurityAlertsPanel, SecurityDevicesPanel } from './SecurityPanels';
 import { normalizeUserDevice } from '@/lib/normalizers';
@@ -44,8 +43,6 @@ export function SecurityOverview() {
   const { user } = useAuth();
   const { isMFAEnabled, factors } = useMFA();
   const { devices, sessions, loading: devicesLoading } = useDeviceDetection();
-  const { hasRole } = useUserRole();
-  const _isAdmin = hasRole('admin');
 
   const [securityAlerts, setSecurityAlerts] = useState<SecurityAlert[]>([]);
   const [loadingAlerts, setLoadingAlerts] = useState(true);
@@ -99,24 +96,6 @@ export function SecurityOverview() {
     if (total >= 80) return 'text-success';
     if (total >= 60) return 'text-warning';
     return 'text-destructive';
-  };
-
-  const _getScoreBg = (total: number) => {
-    if (total >= 80) return 'bg-success';
-    if (total >= 60) return 'bg-warning';
-    return 'bg-destructive';
-  };
-
-  const _getSeverityColor = (severity: string) => {
-    switch (severity) {
-      case 'high':
-      case 'critical':
-        return 'bg-destructive/10 text-destructive border-destructive/20';
-      case 'medium':
-        return 'bg-warning/10 text-warning border-warning/20';
-      default:
-        return 'bg-info/10 text-info border-info/20';
-    }
   };
 
   const securityItems = [

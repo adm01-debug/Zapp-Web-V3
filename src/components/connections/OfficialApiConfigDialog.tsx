@@ -167,9 +167,9 @@ export function OfficialApiConfigDialog({
     });
   };
 
-  const projectRef = (import.meta.env.VITE_SUPABASE_PROJECT_ID as string | undefined) ?? '';
-  const webhookUrl = projectRef
-    ? `https://${projectRef}.supabase.co/functions/v1/whatsapp-cloud-webhook`
+  const supabaseUrl = (import.meta.env.VITE_SUPABASE_URL as string | undefined) ?? '';
+  const webhookUrl = supabaseUrl
+    ? `${supabaseUrl}/functions/v1/whatsapp-cloud-webhook`
     : '/functions/v1/whatsapp-cloud-webhook';
 
   return (

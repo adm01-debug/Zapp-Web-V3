@@ -1,8 +1,42 @@
 // Consolidated Settings & Preferences Management Module (ETAPA 41)
 // Consolidates: useUserSettings, useGlobalSettings, useWebhookViewPreferences, useOnboardingChecklist
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useMountedRef } from '@/hooks/useMountedRef';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 import { log } from '@/lib/logger';
+
+
+// Default settings values (usados quando não há dados no banco)
+const DEFAULT_USER_SETTINGS = {
+  theme: 'system' as const,
+  language: 'pt-BR',
+  timezone: 'America/Sao_Paulo',
+  notifications_enabled: true,
+  business_hours_enabled: false,
+  business_hours_start: '09:00',
+  business_hours_end: '18:00',
+  work_days: [1, 2, 3, 4, 5],
+  welcome_message: '',
+  away_message: '',
+  closing_message: '',
+  auto_assignment_enabled: true,
+  auto_assignment_method: 'roundrobin',
+  inactivity_timeout: 30,
+  auto_transcription_enabled: false,
+  sound_enabled: true,
+  browser_notifications_enabled: true,
+  quiet_hours_enabled: false,
+  quiet_hours_start: '22:00',
+  quiet_hours_end: '07:00',
+  compact_mode: false,
+  tts_voice_id: 'EXAVITQu4vr4xnSDxMaL',
+  tts_speed: 1.0,
+  simulation_mode_enabled: false,
+  global_sla_warning_minutes: 30,
+  global_sla_critical_minutes: 60,
+  global_sla_notification_message: '',
+} as const;
 
 interface UserSettings {
   user_id: string;
@@ -10,14 +44,14 @@ interface UserSettings {
   language: string;
   timezone: string;
   notifications_enabled: boolean;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 interface GlobalSettings {
   maintenance_mode: boolean;
   feature_flags: Record<string, boolean>;
   api_rate_limit: number;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 interface OnboardingStep {
@@ -26,16 +60,23 @@ interface OnboardingStep {
   timestamp?: string;
 }
 
-export function useUserSettingsManagement(userId?: string) {
+export function useUserSettingsManagement(userIdParam?: string) {
+  // Fix: usar useAuth se userId não fornecido
+  const authCtx = useAuth();
+  const userId = userIdParam ?? authCtx?.user?.id;
+
   const [settings, setSettings] = useState<UserSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const mountedRef = useRef(true);
 
   useEffect(() => {
-    return () => {
-      mountedRef.current = false;
-    };
+    return () => { mountedRef.current = false; };
   }, []);
+
+  // Fix: setar loading=false quando não há userId
+  useEffect(() => {
+    if (!userId && mountedRef.current) setLoading(false);
+  }, [userId]);
 
   const fetchSettings = useCallback(async () => {
     if (!userId) return;
@@ -46,7 +87,7 @@ export function useUserSettingsManagement(userId?: string) {
         .from('user_settings')
         .select('*')
         .eq('user_id', userId)
-        .single();
+        .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
 
       if (err && err.code !== 'PGRST116') throw err;
       if (mountedRef.current) setSettings(data || null);
@@ -84,12 +125,23 @@ export function useUserSettingsManagement(userId?: string) {
     if (userId) fetchSettings();
   }, [userId, fetchSettings]);
 
-  return { settings, loading, updateSettings, refetch: fetchSettings };
+  // Fix: defaults + isLoading alias
+  const effectiveSettings = settings ?? { ...DEFAULT_USER_SETTINGS, user_id: userId ?? '' };
+  return { settings: effectiveSettings, loading, isLoading: loading, updateSettings, refetch: fetchSettings };
+}
+
+interface GlobalSettingRow {
+  id: string;
+  key: string;
+  value: string;
+  description?: string;
 }
 
 export function useGlobalSettingsManagement() {
+  const [settingsRows, setSettingsRows] = useState<GlobalSettingRow[]>([]);
   const [settings, setSettings] = useState<GlobalSettings | null>(null);
   const [loading, setLoading] = useState(true);
+  const mounted = useMountedRef();
 
   useEffect(() => {
     const fetchSettings = async () => {
@@ -97,22 +149,59 @@ export function useGlobalSettingsManagement() {
         const { data, error: err } = await supabase
           .from('global_settings')
           .select('*')
-          .limit(1)
-          .single();
+          .order('key', { ascending: true });
 
         if (err && err.code !== 'PGRST116') throw err;
-        setSettings(data || null);
+        if (mounted.current) {
+          setSettingsRows(data || []);
+          setSettings(data?.[0] || null);
+        }
       } catch (err) {
         log.error('Error fetching global settings:', err);
       } finally {
-        setLoading(false);
+        if (mounted.current) setLoading(false);
       }
     };
 
     fetchSettings();
-  }, []);
+  }, [mounted]);
 
-  return { settings, loading };
+  // Helper: buscar valor de um setting por key
+  const getSetting = (key: string): string | null => {
+    const row = settingsRows.find(r => r.key === key);
+    return row?.value ?? null;
+  };
+
+  // Helper: atualizar um setting existente
+  const updateSetting = async (key: string, value: string): Promise<void> => {
+    try {
+      const { error } = await supabase
+        .from('global_settings')
+        .update({ value })
+        .eq('key', key);
+      if (error) throw error;
+      setSettingsRows(prev => prev.map(r => r.key === key ? { ...r, value } : r));
+    } catch (err) {
+      log.error('Error updating global setting:', err);
+    }
+  };
+
+  // Helper: adicionar novo setting
+  const addSetting = async (key: string, value: string, description?: string): Promise<void> => {
+    try {
+      const { data, error } = await supabase
+        .from('global_settings')
+        .insert({ key, value, description })
+        .select()
+        .single();
+      if (error) throw error;
+      if (data) setSettingsRows(prev => [...prev, data as GlobalSettingRow]);
+    } catch (err) {
+      log.error('Error adding global setting:', err);
+    }
+  };
+
+  return { settings, settingsRows, loading, isLoading: loading, getSetting, updateSetting, addSetting };
 }
 
 export function useWebhookViewPreferencesManagement(userId?: string) {

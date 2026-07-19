@@ -1,139 +1,91 @@
 /**
- * External Supabase Client — FATOR X (Self-hosted VPS)
+ * External Supabase Client — SHIM DE COMPATIBILIDADE
  *
- * HISTÓRICO: este client apontava para um Supabase "externo" separado.
- * Após a consolidação single-database (v6.x), o domínio `evolution_*`
- * vive no MESMO Supabase self-hosted do client principal
- * (`@/integrations/supabase/client` → https://supabase.atomicabr.com.br).
+ * ⚠️ CONSOLIDAÇÃO (2026-07-15): a arquitetura "dois Supabase" (Lovable Cloud +
+ * CRM externo) foi eliminada. Todo o app usa **uma única instância**:
+ *   https://supabase.atomicabr.com.br  (self-hosted VPS AtomicaBR)
+ *   Schema principal: `zapp` — configurado em `client.ts` (db: { schema: 'zapp' })
+ *   Schema secundário: `evo` — usado via `.schema('evo')` quando necessário.
  *
- * COMPORTAMENTO (FATOR X v6.1):
- *  - Se `VITE_EXTERNAL_SUPABASE_URL/ANON_KEY` estiverem definidas, cria um
- *    client dedicado (compat com ambientes que ainda separam os bancos).
- *  - Se NÃO estiverem (caso do deploy Vercel), reutiliza o client principal
- *    AUTENTICADO — as RPCs do domínio são SECURITY DEFINER com EXECUTE
- *    exclusivo para `authenticated`/`service_role` (anon foi revogado).
+ * Este arquivo é mantido como shim para os ~37 arquivos consumidores existentes.
+ * Novos módulos devem importar diretamente de `@/integrations/supabase/client`.
  *
- * Isso elimina a classe de erros "[datasource] cliente external indisponível"
- * causada por env vars ausentes no build.
- *
- * ES MODULE LIVE BINDINGS
- * -----------------------
- * `isExternalConfigured` and `externalSupabase` are exported as `let` so
- * `updateRuntimeExternalConfig` can mutate them. ES module import bindings
- * are LIVE — importers automatically see the updated value without re-importing.
- * This is correct by design; it is NOT the same as a mutable global object in CJS.
- * Prefer the getter functions (getExternalSupabase, getIsExternalConfigured) in
- * new code for cleaner dependency inversion and easier testing.
+ * Comportamento:
+ *  - `externalSupabase`, `getExternalSupabase()`  → sempre retornam o `supabase` principal.
+ *  - `isExternalConfigured`                        → sempre `true`.
+ *  - `updateRuntimeExternalConfig()`               → no-op com deprecation warning.
+ *  - `callExtRpc(client, fn, args)`                → wrapper de RPC sem tipagem.
  */
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import type { ExtendedDatabase } from './types-manual';
 import { supabase } from './client';
 import { createLogger } from '@/lib/logger';
 
 const log = createLogger('externalClient');
 
-const APP_ENV = (import.meta.env.VITE_APP_ENV || 'production') as
-  'development' | 'staging' | 'production';
-
-const getEnvConfig = () => {
-  switch (APP_ENV) {
-    case 'development':
-      return {
-        url:
-          import.meta.env.VITE_DEV_EXTERNAL_SUPABASE_URL ||
-          import.meta.env.VITE_EXTERNAL_SUPABASE_URL,
-        key:
-          import.meta.env.VITE_DEV_EXTERNAL_SUPABASE_ANON_KEY ||
-          import.meta.env.VITE_EXTERNAL_SUPABASE_ANON_KEY,
-      };
-    case 'staging':
-      return {
-        url:
-          import.meta.env.VITE_STAGING_EXTERNAL_SUPABASE_URL ||
-          import.meta.env.VITE_EXTERNAL_SUPABASE_URL,
-        key:
-          import.meta.env.VITE_STAGING_EXTERNAL_SUPABASE_ANON_KEY ||
-          import.meta.env.VITE_EXTERNAL_SUPABASE_ANON_KEY,
-      };
-    default:
-      return {
-        url: import.meta.env.VITE_EXTERNAL_SUPABASE_URL,
-        key: import.meta.env.VITE_EXTERNAL_SUPABASE_ANON_KEY,
-      };
-  }
-};
-
-const config = getEnvConfig();
-let EXTERNAL_URL = config.url;
-let EXTERNAL_ANON_KEY = config.key;
-
-export let isExternalConfigured = Boolean(EXTERNAL_URL && EXTERNAL_ANON_KEY);
-
-export function getIsExternalConfigured(): boolean {
-  return isExternalConfigured;
-}
-
-export let externalSupabase: SupabaseClient<ExtendedDatabase> = isExternalConfigured
-  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-  ? createClient<ExtendedDatabase>(EXTERNAL_URL!, EXTERNAL_ANON_KEY!, {
-      auth: {
-        persistSession: true,
-        autoRefreshToken: true,
-        detectSessionInUrl: false,
-        storageKey: 'sb-external-auth-token',
-      },
-      global: {
-        headers: {
-          'x-client-info': 'zapp-web-external-client',
-        },
-      },
-    })
-  : supabase;
-
-if (!isExternalConfigured) {
-  log.debug(
-    'VITE_EXTERNAL_* ausentes — usando o client principal autenticado (single-database FATOR X).'
+// Aviso único caso o dev ainda esteja setando as envs legadas.
+if (
+  typeof import.meta !== 'undefined' &&
+  import.meta.env?.DEV &&
+  (import.meta.env?.VITE_EXTERNAL_SUPABASE_URL ||
+    import.meta.env?.VITE_EXTERNAL_SUPABASE_ANON_KEY)
+) {
+  log.warn(
+    'VITE_EXTERNAL_SUPABASE_* estão definidas mas são ignoradas — o app usa apenas o Supabase self-hosted (schema zapp). Remova essas variáveis.'
   );
 }
 
-export function updateRuntimeExternalConfig(url: string, key: string) {
-  if (!url || !key) return;
+export const externalSupabase: SupabaseClient<ExtendedDatabase> = supabase;
+export const isExternalConfigured = true;
 
-  EXTERNAL_URL = url;
-  EXTERNAL_ANON_KEY = key;
-  isExternalConfigured = true;
-
-  externalSupabase = createClient<ExtendedDatabase>(url, key, {
-    auth: {
-      persistSession: true,
-      autoRefreshToken: true,
-      detectSessionInUrl: false,
-      storageKey: 'sb-external-auth-token',
-    },
-    global: {
-      headers: {
-        'x-client-info': 'zapp-web-external-client-runtime',
-      },
-    },
-  });
-
-  log.info('Runtime config updated successfully');
+export function getIsExternalConfigured(): boolean {
+  return true;
 }
 
 export function getExternalSupabase(): SupabaseClient<ExtendedDatabase> {
-  return externalSupabase;
+  return supabase;
 }
 
 /**
- * Call an RPC function that exists only in the external (FATOR X) DB schema and
- * therefore is not present in the generated ExtendedDatabase.Functions types.
- * Centralises the type narrowing so callers stay cast-free.
+ * @deprecated Single-database desde 2026-07-15. Chamada é ignorada.
  */
+export function updateRuntimeExternalConfig(_url?: string, _key?: string): void {
+  log.warn(
+    'updateRuntimeExternalConfig() é no-op — arquitetura consolidada em um único Supabase self-hosted (schema zapp).'
+  );
+}
+
+/**
+ * Wrapper de RPC para funções cujos nomes não estão na tipagem gerada.
+ * Mantido para compat; prefira `supabase.rpc(...)` com tipos gerados.
+ */
+type UntypedRpc = (fn: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: { message: string } | null }>;
+
 export function callExtRpc(
   client: SupabaseClient<ExtendedDatabase>,
   fn: string,
   args: Record<string, unknown>
 ): Promise<{ data: unknown; error: { message: string } | null }> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return (client as any).rpc(fn, args); // ignore-audit — external DB schema RPCs not in generated types
+  return (client.rpc as unknown as UntypedRpc)(fn, args);
+}
+
+/**
+ * Retorna o PostgrestBuilder bruto para funções RPC não tipadas,
+ * permitindo encadear `.abortSignal()` antes de aguardar o resultado.
+ * Use somente quando o builder precisar ser configurado antes de ser resolvido
+ * (ex.: cancelamento via AbortController). Para RPCs sem abortSignal, use
+ * `callExtRpc` ou adicione a função às tipagens geradas.
+ */
+type UntypedRpcBuilder = (fn: string, args: Record<string, unknown>) => {
+  abortSignal?: (signal: AbortSignal) => Promise<{ data: unknown; error: unknown }>;
+} & Promise<{ data: unknown; error: unknown }>;
+
+export function extRpcBuilder(
+  client: SupabaseClient<ExtendedDatabase>,
+  fn: string,
+  args: Record<string, unknown>
+): {
+  abortSignal?: (signal: AbortSignal) => Promise<{ data: unknown; error: unknown }>;
+} & Promise<{ data: unknown; error: unknown }> {
+  return (client.rpc as unknown as UntypedRpcBuilder)(fn, args);
 }

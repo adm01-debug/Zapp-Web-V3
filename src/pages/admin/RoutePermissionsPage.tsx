@@ -131,8 +131,8 @@ export default function RoutePermissionsPage() {
               <DialogDescription>Informe o path exato (ex: /admin/nova-tela). Use :param para segmentos dinâmicos.</DialogDescription>
             </DialogHeader>
             <div className="space-y-3">
-              <Input placeholder="/admin/exemplo" value={newPath} onChange={e => setNewPath(e.target.value)} />
-              <Input placeholder="Descrição (opcional)" value={newDesc} onChange={e => setNewDesc(e.target.value)} />
+              <Input aria-label="Caminho da rota" placeholder="/admin/exemplo" value={newPath} onChange={e => setNewPath(e.target.value)} />
+              <Input aria-label="Descrição da rota" placeholder="Descrição (opcional)" value={newDesc} onChange={e => setNewDesc(e.target.value)} />
               <div className="flex flex-wrap gap-3">
                 {ALL_ROLES.map(r => (
                   <label key={r} className="flex items-center gap-2 text-sm cursor-pointer">
@@ -161,7 +161,7 @@ export default function RoutePermissionsPage() {
           <CardDescription>Mudanças entram em vigor imediatamente para novas navegações.</CardDescription>
           <div className="relative mt-2">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <Input className="pl-9" placeholder="Filtrar por path ou descrição…" value={filter} onChange={e => setFilter(e.target.value)} />
+            <Input aria-label="Filtrar rotas" className="pl-9" placeholder="Filtrar por path ou descrição…" value={filter} onChange={e => setFilter(e.target.value)} />
           </div>
         </CardHeader>
         <CardContent>

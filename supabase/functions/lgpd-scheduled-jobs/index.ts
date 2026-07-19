@@ -44,7 +44,7 @@ Deno.serve(async (req) => {
     return json({ error: 'Supabase configuration missing' }, 503);
   }
 
-  const supabase = createClient(supabaseUrl, supabaseKey);
+  const supabase = createClient(supabaseUrl, supabaseKey, { db: { schema: "zapp" } });
 
   const startTime = Date.now();
   const report: Record<string, unknown> = { started_at: new Date().toISOString() };

@@ -1,3 +1,4 @@
+import { queryKeys } from '@/services/api/queryKeys';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { log } from '@/lib/logger';
@@ -42,7 +43,7 @@ function jidToPhone(value: string): string | null {
 }
 
 /**
- * Resolves the local `public.contacts.id` (UUID) for a given identifier that may be either:
+ * Resolves the local `zapp.contacts.id` (UUID) for a given identifier that may be either:
  *   - a real UUID (returned as-is)
  *   - a WhatsApp JID coming from FATOR X (looked up by phone)
  * Returns `null` when no local contact exists — callers must skip enriched queries in that case.
@@ -76,37 +77,48 @@ export function useContactEnrichedData(contactId: string) {
   // Step 1 — resolve the FATOR X identifier into a local Lovable Cloud UUID.
   // Without this, JIDs were being passed straight into UUID columns, triggering 22P02 errors.
   const { data: localId } = useQuery({
-    queryKey: ['contact-local-id', contactId],
+    queryKey: queryKeys.contactDetails.localId(contactId),
     queryFn: () => resolveLocalContactId(contactId),
     enabled: !!contactId,
     staleTime: 5 * 60 * 1000, // 5min — phone→uuid mapping is essentially immutable
   });
 
   // Fetch enriched contact fields from DB
-  const { data: enrichedData } = useQuery({
-    queryKey: ['contact-enriched', localId],
+  const enrichedQuery = useQuery({
+    queryKey: queryKeys.contactDetails.enriched(localId),
     queryFn: async () => {
       if (!localId) return null;
       const { data, error } = await dbFrom('contacts')
         .select('company, job_title, nickname, surname, contact_type, ai_sentiment, ai_priority, channel_type')
         .eq('id', localId)
-        .single();
+        .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
 
       if (error) {
         log.error('Error fetching enriched contact data:', error);
-        return null;
+        throw error;
       }
-      return data as EnrichedContactData; // ignore-audit: narrows Supabase query result to local interface
+      if (!data) return null;
+      const normalized: EnrichedContactData = {
+        company: data.company ?? null,
+        job_title: data.job_title ?? null,
+        nickname: data.nickname ?? null,
+        surname: data.surname ?? null,
+        contact_type: data.contact_type ?? null,
+        ai_sentiment: data.ai_sentiment ?? null,
+        ai_priority: data.ai_priority ?? null,
+        channel_type: data.channel_type ?? null,
+      };
+      return normalized;
     },
     enabled: !!localId,
-    staleTime: 3 * 60 * 1000, // 3min — coordinate with mutation invalidation
+    staleTime: 3 * 60 * 1000,
   });
 
   // Fetch AI conversation tags
-  const { data: aiTags = [] } = useQuery({
-    queryKey: ['contact-ai-tags', localId],
+  const aiTagsQuery = useQuery({
+    queryKey: queryKeys.contactDetails.aiTags(localId),
     queryFn: async () => {
-      if (!localId) return [];
+      if (!localId) return [] as AIConversationTag[];
       const { data, error } = await supabase
         .from('ai_conversation_tags')
         .select('id, tag_name, confidence, source')
@@ -115,17 +127,26 @@ export function useContactEnrichedData(contactId: string) {
 
       if (error) {
         log.error('Error fetching AI tags:', error);
-        return [];
+        throw error;
       }
-      return data as AIConversationTag[]; // ignore-audit: narrows Supabase query result to local interface
+      // Normaliza cada tag — nenhum campo pode chegar como `undefined` aos consumidores.
+      const rows = (data ?? []) as Array<Partial<AIConversationTag>>;
+      return rows
+        .filter((r) => typeof r?.id === 'string' && typeof r?.tag_name === 'string')
+        .map<AIConversationTag>((r) => ({
+          id: r.id as string,
+          tag_name: r.tag_name as string,
+          confidence: typeof r.confidence === 'number' ? r.confidence : null,
+          source: typeof r.source === 'string' ? r.source : null,
+        }));
     },
     enabled: !!localId,
-    staleTime: 5 * 60 * 1000, // 5min — matches parent query staleTime
+    staleTime: 5 * 60 * 1000,
   });
 
   // Fetch SLA info
-  const { data: slaInfo } = useQuery({
-    queryKey: ['contact-sla', localId],
+  const slaQuery = useQuery({
+    queryKey: queryKeys.sla.contact(localId),
     queryFn: async () => {
       if (!localId) return null;
       const { data, error } = await supabase
@@ -138,13 +159,43 @@ export function useContactEnrichedData(contactId: string) {
 
       if (error) {
         log.error('Error fetching SLA info:', error);
-        return null;
+        throw error;
       }
-      return data as SLAInfo | null; // ignore-audit: narrows Supabase query result to local interface
+      if (!data) return null;
+      // Normaliza — booleans/datas nunca vêm como `undefined`.
+      const normalized: SLAInfo = {
+        first_response_breached:
+          typeof data.first_response_breached === 'boolean' ? data.first_response_breached : null,
+        resolution_breached:
+          typeof data.resolution_breached === 'boolean' ? data.resolution_breached : null,
+        first_response_at:
+          typeof data.first_response_at === 'string' ? data.first_response_at : null,
+        resolved_at: typeof data.resolved_at === 'string' ? data.resolved_at : null,
+      };
+      return normalized;
     },
     enabled: !!localId,
-    staleTime: 2 * 60 * 1000, // 2min — SLA is more volatile, refresh more frequently
+    staleTime: 2 * 60 * 1000,
   });
 
-  return { enrichedData, aiTags, slaInfo };
+  // aiTags é SEMPRE um array (nunca undefined) — contrato garantido para consumidores da Inbox.
+  const aiTags: AIConversationTag[] = aiTagsQuery.data ?? [];
+  const slaInfo: SLAInfo | null = slaQuery.data ?? null;
+
+  return {
+    enrichedData: enrichedQuery.data ?? null,
+    aiTags,
+    slaInfo,
+    // Estados de carregamento — expostos para placeholders/skeletons na Inbox.
+    isLoadingEnriched: enrichedQuery.isLoading,
+    isLoadingAITags: aiTagsQuery.isLoading,
+    isLoadingSLA: slaQuery.isLoading,
+    // Erros — expostos para banners de erro discretos.
+    enrichedError: enrichedQuery.error as Error | null,
+    aiTagsError: aiTagsQuery.error as Error | null,
+    slaError: slaQuery.error as Error | null,
+    // Retry helpers para o botão "Tentar novamente".
+    refetchAITags: aiTagsQuery.refetch,
+    refetchSLA: slaQuery.refetch,
+  };
 }

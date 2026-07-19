@@ -1,3 +1,4 @@
+import { queryKeys } from '@/services/api/queryKeys';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import React from 'react';
 import { renderHook, act, waitFor } from '@testing-library/react';
@@ -47,7 +48,7 @@ describe('useRetryFailedMessage', () => {
     });
 
     expect(mockRpc).toHaveBeenCalledWith('rpc_dlq_retry_now', { p_id: 'fm-1' });
-    expect(spy).toHaveBeenCalledWith({ queryKey: ['message-send-history', 'm-1'] });
+    expect(spy).toHaveBeenCalledWith({ queryKey: queryKeys.messageDetails.sendHistory('m-1') });
     expect(mockToast).toHaveBeenCalledWith(
       expect.objectContaining({ title: 'Reenvio enfileirado' })
     );

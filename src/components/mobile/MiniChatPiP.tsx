@@ -186,7 +186,7 @@ export function MiniChatPiP({
                 )}
 
                 {/* Open full chat */}
-                <button
+                <button type="button"
                   onClick={(e) => {
                     e.stopPropagation();
                     onExpand();
@@ -202,7 +202,7 @@ export function MiniChatPiP({
 
           {/* Collapsed: tap to expand inline */}
           {!isExpanded && (
-            <button
+            <button type="button"
               onClick={(e) => {
                 e.stopPropagation();
                 setIsExpanded(true);

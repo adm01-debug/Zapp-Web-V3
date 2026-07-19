@@ -189,7 +189,7 @@ export function maybeLogFallback(params: {
   mode?: EvolutionFallbackMode;
   /**
    * Cliente Supabase com service_role para persistir o evento em
-   * `public.evolution_fallback_events`. Quando ausente, o evento sai apenas
+   * `zapp.evolution_fallback_events`. Quando ausente, o evento sai apenas
    * via console.log (modo legado).
    *
    * A persistência é fire-and-forget: nunca bloqueia a request principal e

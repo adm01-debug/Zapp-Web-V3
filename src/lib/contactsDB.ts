@@ -173,7 +173,7 @@ export const contactsDB = {
       .update({ ...rest, updated_at: new Date().toISOString() })
       .eq('id', contactId)
       .select()
-      .single();
+      .single(); // POST-UPDATE: .single() correto — update retorna exatamente 1 linha
     if (error) throw error;
     return data as ExternalContact; // ignore-audit: narrows Supabase query result to local interface
   },

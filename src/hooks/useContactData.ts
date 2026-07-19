@@ -1,9 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { log } from '@/lib/logger';
-import type { Tables } from '@/integrations/supabase/types';
-
-type ContactRow = Tables<'contacts'>;
+import type { ContactRow } from '@/integrations/supabase/schema';
 
 interface UseContactDataResult {
   contact: ContactRow | null;
@@ -32,7 +30,7 @@ export function useContactData(contactId: string | undefined): UseContactDataRes
           .from('contacts')
           .select('*')
           .eq('id', contactId)
-          .single();
+          .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
 
         if (cancelled) return;
 

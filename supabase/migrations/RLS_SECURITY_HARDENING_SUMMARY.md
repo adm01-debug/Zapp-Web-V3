@@ -1,3 +1,5 @@
+> **📜 DOCUMENTO HISTÓRICO** — Reflete o estado do sistema na data indicada. A arquitetura atual usa um único Supabase Self-Hosted com schema `zapp`. Veja [../SCHEMA_REFERENCE.md](docs/SCHEMA_REFERENCE.md).
+
 # RLS Security Hardening Migration Summary
 
 **Migration ID:** `20260710_fix_rls_vulnerabilities.sql`

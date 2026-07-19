@@ -87,7 +87,7 @@ serve(async (req) => {
     return new Response(JSON.stringify({ error: 'webhook_misconfigured', hint: 'SUPABASE_URL/SERVICE_ROLE ausentes' }),
       { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   }
-  const supabase = createClient(supabaseUrl, supabaseServiceKey);
+  const supabase = createClient(supabaseUrl, supabaseServiceKey, { db: { schema: "zapp" } });
 
   // HMAC validation before reading body as JSON so we can verify on raw text.
   let rawBody: string;

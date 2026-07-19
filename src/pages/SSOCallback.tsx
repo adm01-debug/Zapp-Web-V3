@@ -131,7 +131,7 @@ export default function SSOCallback() {
         )}
 
         {status === 'error' && (
-          <Card>
+          <Card role="alert">
             <CardHeader className="text-center">
               <motion.div
                 initial={{ scale: 0 }}

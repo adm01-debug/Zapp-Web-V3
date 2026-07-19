@@ -60,7 +60,7 @@ async function fetchOwnerJid(baseUrl: string, key: string, instanceName: string,
 
 async function fetchLastActivityAt(externalUrl: string, externalKey: string, instanceName: string, log: Logger): Promise<Date | null> {
   try {
-    const ext = createClient(externalUrl, externalKey);
+    const ext = createClient(externalUrl, externalKey, { db: { schema: 'evo' } });
     const TIMEOUT_MS = 8000;
     const queryPromise = ext
       .from('evolution_messages')
@@ -191,7 +191,7 @@ Deno.serve(async (req) => {
     if (isPlaceholder(evolutionUrl) || isPlaceholder(evolutionKey) || !isValidUrl(evolutionUrl)) {
       return new Response(JSON.stringify({ error: 'evolution_api_not_configured', message: 'Configure os secrets EVOLUTION_API_URL (URL válida) e EVOLUTION_API_KEY.' }), { status: 503, headers: { 'Content-Type': 'application/json' } });
     }
-    const supabase = createClient(requireEnv('SUPABASE_URL'), requireEnv('SUPABASE_SERVICE_ROLE_KEY'));
+    const supabase = createClient(requireEnv('SUPABASE_URL'), requireEnv('SUPABASE_SERVICE_ROLE_KEY'), { db: { schema: "zapp" } });
     const baseUrl = evolutionUrl.replace(/\/+$/, '');
 
     // FATOR X (opcional — se faltar, layer 3 é skipped graciosamente)

@@ -1,3 +1,4 @@
+import { queryKeys } from '@/services/api/queryKeys';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { startOfDay, subDays, format, eachDayOfInterval } from 'date-fns';
@@ -141,7 +142,7 @@ async function fetchSLAHistory(period: HistoryPeriod): Promise<SLAHistoryData> {
 
 export const useSLAHistory = (period: HistoryPeriod = '30d') => {
   const { data = null, isLoading: loading } = useQuery({
-    queryKey: ['sla-history', period],
+    queryKey: queryKeys.sla.history(period),
     queryFn: () => fetchSLAHistory(period),
     staleTime: 60_000,
     refetchInterval: 120_000,

@@ -51,7 +51,7 @@ export function StickerUploadPreview({ pending, onConfirm, onCancel }: UploadPre
         <span className="text-[10px] text-muted-foreground shrink-0">Categoria:</span>
         <CategorySelector value={category} onChange={setCategory} size="sm" />
         {pending.aiCategory !== 'outros' && pending.aiCategory !== 'enviadas' && category !== pending.aiCategory && (
-          <button
+          <button type="button"
             onClick={() => setCategory(pending.aiCategory)}
             className="text-[9px] text-primary hover:underline shrink-0"
             aria-label={`Usar sugestão da IA: ${CATEGORY_LABELS[pending.aiCategory]?.label}`}

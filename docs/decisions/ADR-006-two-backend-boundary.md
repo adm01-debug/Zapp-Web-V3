@@ -1,5 +1,8 @@
 # ADR-006: Two-Backend Boundary & Communication
 
+> **Arquitetura atual**: Supabase Self-Hosted (`supabase.atomicabr.com.br`), schema `zapp`. Veja [../SCHEMA_REFERENCE.md](SCHEMA_REFERENCE.md).
+
+
 ## Status
 Implementado
 

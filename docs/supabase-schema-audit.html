@@ -1,0 +1,721 @@
+<title>Auditoria Schema Zapp — Supabase</title>
+<style>
+  @font-face {
+    font-family: 'SystemUI';
+    src: local('Segoe UI'), local('-apple-system'), local('system-ui'), local('Helvetica Neue'), local('sans-serif');
+  }
+
+  :root {
+    --bg: #fafbfc;
+    --surface: #ffffff;
+    --surface-alt: #f3f5f7;
+    --border: #dde1e6;
+    --text: #1a1d21;
+    --text-muted: #5a6270;
+    --accent: #2563eb;
+    --accent-light: #dbeafe;
+    --danger: #dc2626;
+    --danger-light: #fee2e2;
+    --danger-surface: #fef2f2;
+    --success: #16a34a;
+    --success-light: #dcfce7;
+    --warn: #d97706;
+    --warn-light: #fef3c7;
+    --warn-surface: #fffbeb;
+    --mono: 'SF Mono', 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+    --body: 'SystemUI', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d25;
+      --surface-alt: #22262f;
+      --border: #2e3340;
+      --text: #e1e4e8;
+      --text-muted: #8b929e;
+      --accent: #5b9cf6;
+      --accent-light: #1e3a5f;
+      --danger: #f87171;
+      --danger-light: #3b1a1a;
+      --danger-surface: #2a1515;
+      --success: #4ade80;
+      --success-light: #14301e;
+      --warn: #fbbf24;
+      --warn-light: #3b2e10;
+      --warn-surface: #2a2010;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0f1117;
+    --surface: #1a1d25;
+    --surface-alt: #22262f;
+    --border: #2e3340;
+    --text: #e1e4e8;
+    --text-muted: #8b929e;
+    --accent: #5b9cf6;
+    --accent-light: #1e3a5f;
+    --danger: #f87171;
+    --danger-light: #3b1a1a;
+    --danger-surface: #2a1515;
+    --success: #4ade80;
+    --success-light: #14301e;
+    --warn: #fbbf24;
+    --warn-light: #3b2e10;
+    --warn-surface: #2a2010;
+  }
+  :root[data-theme="light"] {
+    --bg: #fafbfc;
+    --surface: #ffffff;
+    --surface-alt: #f3f5f7;
+    --border: #dde1e6;
+    --text: #1a1d21;
+    --text-muted: #5a6270;
+    --accent: #2563eb;
+    --accent-light: #dbeafe;
+    --danger: #dc2626;
+    --danger-light: #fee2e2;
+    --danger-surface: #fef2f2;
+    --success: #16a34a;
+    --success-light: #dcfce7;
+    --warn: #d97706;
+    --warn-light: #fef3c7;
+    --warn-surface: #fffbeb;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: var(--body);
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .page {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 2.5rem 1.5rem 4rem;
+  }
+
+  .header {
+    margin-bottom: 2.5rem;
+  }
+
+  .header h1 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+    margin-bottom: 0.25rem;
+  }
+
+  .header .meta {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+  }
+
+  /* Stat tiles */
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 0.75rem;
+    margin-bottom: 2rem;
+  }
+  .stat {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1rem 1.25rem;
+  }
+  .stat .label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    margin-bottom: 0.25rem;
+  }
+  .stat .value {
+    font-size: 1.75rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.2;
+  }
+  .stat .value.danger { color: var(--danger); }
+  .stat .value.success { color: var(--success); }
+  .stat .value.warn { color: var(--warn); }
+  .stat .value.accent { color: var(--accent); }
+
+  /* Sections */
+  .section {
+    margin-bottom: 2.5rem;
+  }
+  .section h2 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .section p {
+    color: var(--text-muted);
+    font-size: 0.88rem;
+    margin-bottom: 1rem;
+    max-width: 68ch;
+  }
+
+  /* Severity pills */
+  .pill {
+    display: inline-block;
+    font-size: 0.68rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 0.15em 0.55em;
+    border-radius: 4px;
+    vertical-align: middle;
+  }
+  .pill.critical { background: var(--danger-light); color: var(--danger); }
+  .pill.warning { background: var(--warn-light); color: var(--warn); }
+  .pill.ok { background: var(--success-light); color: var(--success); }
+  .pill.info { background: var(--accent-light); color: var(--accent); }
+
+  /* Table */
+  .table-wrap {
+    overflow-x: auto;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface);
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.82rem;
+  }
+  thead th {
+    text-align: left;
+    font-weight: 600;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+    padding: 0.7rem 0.9rem;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface-alt);
+    position: sticky;
+    top: 0;
+    white-space: nowrap;
+  }
+  tbody td {
+    padding: 0.6rem 0.9rem;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: var(--surface-alt); }
+
+  code {
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    background: var(--surface-alt);
+    padding: 0.1em 0.35em;
+    border-radius: 3px;
+  }
+
+  .file-list {
+    list-style: none;
+    padding: 0;
+  }
+  .file-list li {
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    line-height: 1.7;
+  }
+
+  /* Alert banner */
+  .alert-banner {
+    padding: 1rem 1.25rem;
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+    font-size: 0.88rem;
+  }
+  .alert-banner.danger {
+    background: var(--danger-surface);
+    border: 1px solid var(--danger);
+    border-left-width: 4px;
+  }
+  .alert-banner.warn {
+    background: var(--warn-surface);
+    border: 1px solid var(--warn);
+    border-left-width: 4px;
+  }
+  .alert-banner strong {
+    display: block;
+    margin-bottom: 0.25rem;
+  }
+
+  .summary-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+    margin-top: 1rem;
+  }
+  @media (max-width: 600px) {
+    .summary-grid { grid-template-columns: 1fr; }
+    .stats { grid-template-columns: 1fr 1fr; }
+  }
+
+  .severity-stripe {
+    width: 3px;
+    border-radius: 2px;
+    display: inline-block;
+    height: 1em;
+    vertical-align: middle;
+    margin-right: 0.4em;
+  }
+  .severity-stripe.critical { background: var(--danger); }
+  .severity-stripe.warn { background: var(--warn); }
+</style>
+
+<div class="page">
+  <div class="header">
+    <h1>Auditoria de Schema: Zapp vs. Codigo</h1>
+    <div class="meta">Schema <code>zapp</code> &middot; Supabase Self-Hosted &middot; 15 Jul 2026</div>
+  </div>
+
+  <div class="stats">
+    <div class="stat">
+      <div class="label">Tabelas no Schema</div>
+      <div class="value accent">294</div>
+    </div>
+    <div class="stat">
+      <div class="label">Views no Schema</div>
+      <div class="value accent">230+</div>
+    </div>
+    <div class="stat">
+      <div class="label">Refs no Codigo</div>
+      <div class="value">235</div>
+    </div>
+    <div class="stat">
+      <div class="label">Ausentes no Schema</div>
+      <div class="value danger">23</div>
+    </div>
+  </div>
+
+  <div class="alert-banner danger">
+    <strong>23 tabelas/views referenciadas no codigo nao existem no schema <code>zapp</code></strong>
+    Queries <code>.from()</code> direcionadas a esses nomes retornarao erro 404 (relation not found) em runtime. Cada uma precisa ser criada como tabela, view bridge, ou ter a referencia corrigida.
+  </div>
+
+  <!-- CRITICAL: Missing tables -->
+  <div class="section">
+    <h2><span class="severity-stripe critical"></span> Tabelas Ausentes no Schema Zapp</h2>
+    <p>Todas as entradas abaixo possuem chamadas <code>.from('nome')</code> confirmadas no codigo-fonte, mas nao existem como tabela nem view no schema <code>zapp</code>.</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Tabela</th>
+            <th>Severidade</th>
+            <th>Arquivos que Referenciam</th>
+            <th>Nota</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>1</td>
+            <td><code>channel_connections_safe</code></td>
+            <td><span class="pill critical">critico</span></td>
+            <td>
+              <ul class="file-list">
+                <li>src/pages/admin-realtime-monitor/ConnectionsHealthBlock.tsx</li>
+                <li>src/components/omnichannel/OmnichannelInbox.tsx</li>
+              </ul>
+            </td>
+            <td>View de seguranca ausente. <code>whatsapp_connections_safe</code> existe, mas nao a versao omnichannel.</td>
+          </tr>
+          <tr>
+            <td>2</td>
+            <td><code>contact_assignments</code></td>
+            <td><span class="pill critical">critico</span></td>
+            <td>
+              <ul class="file-list">
+                <li>src/hooks/useCRMManagement.ts</li>
+              </ul>
+            </td>
+            <td>CRM: associacao contato-agente. Funcionalidade de carteira de clientes nao funciona.</td>
+          </tr>
+          <tr>
+            <td>3</td>
+            <td><code>contact_intelligence</code></td>
+            <td><span class="pill critical">critico</span></td>
+            <td>
+              <ul class="file-list">
+                <li>src/hooks/useCRMManagement.ts</li>
+              </ul>
+            </td>
+            <td>Dados de enriquecimento AI de contatos.</td>
+          </tr>
+          <tr>
+            <td>4</td>
+            <td><code>dashboard_queries</code></td>
+            <td><span class="pill warning">medio</span></td>
+            <td>
+              <ul class="file-list">
+                <li>src/hooks/useSearchNavigationManagement.ts</li>
+              </ul>
+            </td>
+            <td>Consultas salvas do dashboard.</td>
+          </tr>
+          <tr>
+            <td>5</td>
+            <td><code>email_watch_history</code></td>
+            <td><span class="pill critical">critico</span></td>
+            <td>
+              <ul class="file-list">
+                <li>supabase/functions/gmail-webhook/index.ts</li>
+              </ul>
+            </td>
+            <td>Historico de push notifications do Gmail. Sem ela, sync incremental falha.</td>
+          </tr>
+          <tr>
+            <td>6</td>
+            <td><code>evolution_instances</code></td>
+            <td><span class="pill critical">critico</span></td>
+            <td>
+              <ul class="file-list">
+                <li>src/hooks/useIntegrationManagement.ts</li>
+              </ul>
+            </td>
+            <td>Codigo usa <code>evolution_instances</code>, mas so existe <code>evolution_instances_public</code> (view). Nome divergente.</td>
+          </tr>
+          <tr>
+            <td>7</td>
+            <td><code>forwarded_messages</code></td>
+            <td><span class="pill warning">medio</span></td>
+            <td>
+              <ul class="file-list">
+                <li>src/hooks/useMessagingManagement.ts</li>
+              </ul>
+            </td>
+            <td>Tracking de mensagens encaminhadas.</td>
+          </tr>
+          <tr>
+            <td>8</td>
+            <td><code>integrations</code></td>
+            <td><span class="pill critical">critico</span></td>
+            <td>
+              <ul class="file-list">
+                <li>src/hooks/useIntegrationManagement.ts</li>
+              </ul>
+            </td>
+            <td>Configuracao de integracoes de terceiros. Pagina de integracoes nao funciona.</td>
+          </tr>
+          <tr>
+            <td>9</td>
+            <td><code>message_attempts</code></td>
+            <td><span class="pill warning">medio</span></td>
+            <td>
+              <ul class="file-list">
+                <li>src/hooks/useAnalyticsManagement.ts</li>
+              </ul>
+            </td>
+            <td>Tracking de tentativas de envio de mensagem.</td>
+          </tr>
+          <tr>
+            <td>10</td>
+            <td><code>migration_audit</code></td>
+            <td><span class="pill warning">medio</span></td>
+            <td>
+              <ul class="file-list">
+                <li>supabase/functions/lgpd-scheduled-jobs/index.ts</li>
+              </ul>
+            </td>
+            <td>Existe no schema <code>archive</code>, mas codigo usa <code>.from()</code> sem schema prefix (busca em <code>zapp</code>).</td>
+          </tr>
+          <tr>
+            <td>11</td>
+            <td><code>onboarding_steps</code></td>
+            <td><span class="pill warning">medio</span></td>
+            <td>
+              <ul class="file-list">
+                <li>src/hooks/useSettingsManagement.ts</li>
+              </ul>
+            </td>
+            <td>Tracking de etapas de onboarding do usuario.</td>
+          </tr>
+          <tr>
+            <td>12</td>
+            <td><code>personal_stickers</code></td>
+            <td><span class="pill warning">medio</span></td>
+            <td>
+              <ul class="file-list">
+                <li>src/hooks/useMediaManagement.ts</li>
+              </ul>
+            </td>
+            <td>Biblioteca pessoal de stickers do usuario.</td>
+          </tr>
+          <tr>
+            <td>13</td>
+            <td><code>search_history</code></td>
+            <td><span class="pill warning">medio</span></td>
+            <td>
+              <ul class="file-list">
+                <li>src/hooks/useSearchManagement.ts</li>
+              </ul>
+            </td>
+            <td>Historico de busca do usuario.</td>
+          </tr>
+          <tr>
+            <td>14</td>
+            <td><code>search_insights</code></td>
+            <td><span class="pill warning">medio</span></td>
+            <td>
+              <ul class="file-list">
+                <li>src/pages/admin-search-insights/SearchInsightsTables.tsx</li>
+              </ul>
+            </td>
+            <td>Analytics/insights de busca.</td>
+          </tr>
+          <tr>
+            <td>15</td>
+            <td><code>sentiment_alerts</code></td>
+            <td><span class="pill critical">critico</span></td>
+            <td>
+              <ul class="file-list">
+                <li>src/hooks/useAlertManagement.ts</li>
+              </ul>
+            </td>
+            <td>Alertas de sentimento. Existe <code>evolution_sentiment_alerts</code> (view), mas nao <code>sentiment_alerts</code>.</td>
+          </tr>
+          <tr>
+            <td>16</td>
+            <td><code>sicoob_reply_outbox</code></td>
+            <td><span class="pill critical">critico</span></td>
+            <td>
+              <ul class="file-list">
+                <li>supabase/functions/sicoob-outbox-consumer/index.ts</li>
+              </ul>
+            </td>
+            <td>Fila de respostas para integracao Sicoob. Edge function falha sem ela.</td>
+          </tr>
+          <tr>
+            <td>17</td>
+            <td><code>storage_cleanup_logs</code></td>
+            <td><span class="pill warning">medio</span></td>
+            <td>
+              <ul class="file-list">
+                <li>supabase/functions/cleanup-storage-orphans/index.ts</li>
+              </ul>
+            </td>
+            <td>Log de limpeza de storage.</td>
+          </tr>
+          <tr>
+            <td>18</td>
+            <td><code>sts_telemetry</code></td>
+            <td><span class="pill warning">medio</span></td>
+            <td>
+              <ul class="file-list">
+                <li>supabase/functions/voice-changer/index.ts</li>
+              </ul>
+            </td>
+            <td>Telemetria de speech-to-speech. Existe <code>sts_performance_metrics</code> (tabela), nome divergente.</td>
+          </tr>
+          <tr>
+            <td>19</td>
+            <td><code>webhook_health_checks</code></td>
+            <td><span class="pill critical">critico</span></td>
+            <td>
+              <ul class="file-list">
+                <li>src/hooks/useAlertManagement.ts</li>
+              </ul>
+            </td>
+            <td>Health checks de webhooks. Existe <code>webhook_health_alerts</code> (tabela), nome divergente.</td>
+          </tr>
+          <tr>
+            <td>20</td>
+            <td><code>webhook_idempotency</code></td>
+            <td><span class="pill critical">critico</span></td>
+            <td>
+              <ul class="file-list">
+                <li>supabase/functions/_shared/webhook-idempotency.ts</li>
+              </ul>
+            </td>
+            <td>Idempotencia de webhooks. Existe <code>webhook_event_dedup</code> (tabela), nome divergente.</td>
+          </tr>
+          <tr>
+            <td>21</td>
+            <td><code>webhook_preferences</code></td>
+            <td><span class="pill warning">medio</span></td>
+            <td>
+              <ul class="file-list">
+                <li>src/hooks/useSettingsManagement.ts</li>
+              </ul>
+            </td>
+            <td>Preferencias de notificacao webhook do usuario.</td>
+          </tr>
+          <tr>
+            <td>22</td>
+            <td><code>webhook_reprocess_queue</code></td>
+            <td><span class="pill critical">critico</span></td>
+            <td>
+              <ul class="file-list">
+                <li>supabase/functions/evolution-api/index.ts</li>
+              </ul>
+            </td>
+            <td>Fila de reprocessamento de webhooks. Edge function falha sem ela.</td>
+          </tr>
+          <tr>
+            <td>23</td>
+            <td><code>workspace_settings</code></td>
+            <td><span class="pill critical">critico</span></td>
+            <td>
+              <ul class="file-list">
+                <li>src/services/settings/settingsRepository.ts</li>
+              </ul>
+            </td>
+            <td>Config de workspace. Existem <code>workspaces</code>, <code>workspace_members</code>, <code>workspace_secrets</code>, mas nao <code>workspace_settings</code>.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Names that almost match -->
+  <div class="section">
+    <h2><span class="severity-stripe warn"></span> Possiveis Nomes Divergentes (Codigo vs Schema)</h2>
+    <p>Casos onde o codigo referencia um nome, mas existe uma tabela/view com nome semelhante no schema. Pode ser uma renomeacao nao propagada.</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Nome no Codigo</th>
+            <th>Nome no Schema Zapp</th>
+            <th>Tipo</th>
+            <th>Acao Sugerida</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>evolution_instances</code></td>
+            <td><code>evolution_instances_public</code></td>
+            <td>VIEW</td>
+            <td>Criar alias view <code>evolution_instances</code> ou atualizar codigo</td>
+          </tr>
+          <tr>
+            <td><code>sentiment_alerts</code></td>
+            <td><code>evolution_sentiment_alerts</code></td>
+            <td>VIEW</td>
+            <td>Criar alias view <code>sentiment_alerts</code> ou atualizar codigo</td>
+          </tr>
+          <tr>
+            <td><code>sts_telemetry</code></td>
+            <td><code>sts_performance_metrics</code></td>
+            <td>TABLE</td>
+            <td>Criar alias view <code>sts_telemetry</code> ou atualizar codigo</td>
+          </tr>
+          <tr>
+            <td><code>webhook_health_checks</code></td>
+            <td><code>webhook_health_alerts</code></td>
+            <td>TABLE</td>
+            <td>Criar alias view <code>webhook_health_checks</code> ou atualizar codigo</td>
+          </tr>
+          <tr>
+            <td><code>webhook_idempotency</code></td>
+            <td><code>webhook_event_dedup</code></td>
+            <td>TABLE</td>
+            <td>Criar alias view <code>webhook_idempotency</code> ou atualizar codigo</td>
+          </tr>
+          <tr>
+            <td><code>migration_audit</code></td>
+            <td><code>archive.migration_audit</code></td>
+            <td>TABLE (outro schema)</td>
+            <td>Criar view bridge em <code>zapp</code> ou usar <code>.schema('archive')</code></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Summary breakdown -->
+  <div class="section">
+    <h2>Resumo por Severidade</h2>
+
+    <div class="summary-grid">
+      <div class="stat">
+        <div class="label">Criticos (frontend/edge function quebra)</div>
+        <div class="value danger">13</div>
+      </div>
+      <div class="stat">
+        <div class="label">Medios (funcionalidade secundaria)</div>
+        <div class="value warn">10</div>
+      </div>
+    </div>
+
+    <p style="margin-top: 1rem;">
+      <strong>Criticos</strong> sao tabelas usadas em fluxos core (inbox, integracoes, webhooks, edge functions) que causam erro 404 visivel ao usuario ou falha silenciosa em edge functions. <strong>Medios</strong> afetam funcionalidades secundarias (search history, onboarding, stickers pessoais) que provavelmente falham silenciosamente com try/catch.
+    </p>
+  </div>
+
+  <!-- What exists and is OK -->
+  <div class="section">
+    <h2><span class="pill ok">OK</span> Tabelas Verificadas (existem no schema)</h2>
+    <p>Todas as demais 212 tabelas/views referenciadas no codigo foram encontradas no schema <code>zapp</code> como tabela nativa ou view bridge (muitas views apontam para tabelas nos schemas <code>evo</code>, <code>email_app</code>, <code>ai</code>, etc). Destaques:</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Padrao</th>
+            <th>Exemplos</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Core tables</td>
+            <td><code>profiles</code>, <code>user_roles</code>, <code>whatsapp_connections</code>, <code>audit_logs</code></td>
+            <td><span class="pill ok">ok</span> Tabelas nativas em zapp</td>
+          </tr>
+          <tr>
+            <td>Bridge views (evo)</td>
+            <td><code>contacts</code>, <code>messages</code>, <code>evolution_messages</code>, <code>evolution_contacts</code></td>
+            <td><span class="pill ok">ok</span> Views em zapp apontando para evo.*</td>
+          </tr>
+          <tr>
+            <td>Bridge views (email_app)</td>
+            <td><code>email_accounts</code>, <code>email_threads</code>, <code>gmail_accounts</code>, <code>gmail_messages</code></td>
+            <td><span class="pill ok">ok</span> Views em zapp apontando para email_app.*</td>
+          </tr>
+          <tr>
+            <td>Bridge views (ai)</td>
+            <td><code>ai_providers</code>, <code>ai_usage_logs</code>, <code>knowledge_base_articles</code></td>
+            <td><span class="pill ok">ok</span> Views em zapp apontando para ai.*</td>
+          </tr>
+          <tr>
+            <td>Safe views (security)</td>
+            <td><code>whatsapp_connections_safe</code>, <code>departments_safe</code>, <code>profiles_public</code></td>
+            <td><span class="pill ok">ok</span> Views com security invoker</td>
+          </tr>
+          <tr>
+            <td>BPM views</td>
+            <td><code>bpm_cards</code>, <code>bpm_flows</code>, <code>bpm_automations</code> (41 views)</td>
+            <td><span class="pill ok">ok</span> Views em zapp apontando para bpm.*</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Recomendacao</h2>
+    <p>
+      Criar uma migration que adicione as 23 tabelas/views ausentes. Para os 6 casos de nomes divergentes, a abordagem mais segura e criar uma <code>VIEW</code> alias (ex: <code>CREATE VIEW zapp.evolution_instances AS SELECT * FROM zapp.evolution_instances_public</code>) para evitar alterar o codigo existente e preservar compatibilidade. As 17 tabelas restantes precisam ser criadas como <code>BASE TABLE</code> com as colunas inferidas do uso no codigo.
+    </p>
+  </div>
+</div>

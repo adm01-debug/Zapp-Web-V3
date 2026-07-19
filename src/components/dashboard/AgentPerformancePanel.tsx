@@ -1,3 +1,4 @@
+import { queryKeys } from '@/services/api/queryKeys';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { motion } from 'framer-motion';
@@ -7,6 +8,25 @@ import { Progress } from '@/components/ui/progress';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Trophy, Flame, Zap, Target, Clock, MessageSquare, Star, Crown, Medal } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { unwrapRows } from '@/lib/supabase-helpers';
+
+interface AgentStatsRow {
+  profile_id: string;
+  xp: number;
+  level: number;
+  current_streak: number;
+  best_streak: number;
+  messages_sent: number;
+  conversations_resolved: number;
+  avg_response_time_seconds: number | null;
+  customer_satisfaction_score: number | string | null;
+}
+
+interface ProfileRow {
+  id: string;
+  name: string | null;
+  avatar_url: string | null;
+}
 
 interface AgentMetric {
   id: string;
@@ -25,24 +45,26 @@ interface AgentMetric {
 
 export function AgentPerformancePanel() {
   const { data: agents = [], isLoading } = useQuery({
-    queryKey: ['agent-performance-ranking'],
+    queryKey: queryKeys.agentGamification.ranking(),
     queryFn: async () => {
-      const { data: stats } = await supabase
+      const { data: statsData } = await supabase
         .from('agent_stats')
         .select(
           'profile_id, xp, level, current_streak, best_streak, messages_sent, conversations_resolved, avg_response_time_seconds, customer_satisfaction_score'
         )
         .order('xp', { ascending: false });
 
-      if (!stats) return [];
+      const stats = unwrapRows<AgentStatsRow>(statsData);
+      if (stats.length === 0) return [];
 
       const profileIds = stats.map((s) => s.profile_id);
-      const { data: profiles } = await supabase
+      const { data: profilesData } = await supabase
         .from('profiles')
         .select('id, name, avatar_url')
-        .in('id', profileIds);
+        .in('id', profileIds as never);
 
-      const profileMap = new Map((profiles || []).map((p) => [p.id, p]));
+      const profiles = unwrapRows<ProfileRow>(profilesData);
+      const profileMap = new Map(profiles.map((p) => [p.id, p]));
 
       return stats.map((s, i): AgentMetric => {
         const profile = profileMap.get(s.profile_id);

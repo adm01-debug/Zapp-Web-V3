@@ -1,5 +1,6 @@
 // Consolidated Analytics & Monitoring Management Module (ETAPA 48 consolidation)
-import { useQuery, useMutation, useQueryClient, useCallback, useMemo, useState, useEffect } from '@tanstack/react-query';
+import { useCallback, useMemo, useState, useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { dbList, dbFrom } from '@/integrations/datasource/db';
 import { RPC } from '@/integrations/datasource/rpcCatalog';
@@ -7,6 +8,7 @@ import { useMountedRef } from '@/hooks/useMountedRef';
 import { toast } from 'sonner';
 import { getLogger } from '@/lib/logger';
 import { startOfHour, format, parseISO, subHours } from 'date-fns';
+import { queryKeys } from '@/services/api/queryKeys';
 
 const log = getLogger('useAnalyticsMonitoringManagement');
 
@@ -51,7 +53,7 @@ export function useCSATManagement(period: 'today' | 'week' | 'month' = 'month') 
   };
 
   const surveysQuery = useQuery({
-    queryKey: ['csat-surveys', period],
+    queryKey: queryKeys.csat.surveys(period),
     queryFn: async () => {
       const { data, error } = await supabase
         .from('csat_surveys')
@@ -65,7 +67,7 @@ export function useCSATManagement(period: 'today' | 'week' | 'month' = 'month') 
   });
 
   const statsQuery = useQuery({
-    queryKey: ['csat-stats', period],
+    queryKey: queryKeys.csat.stats(period),
     queryFn: async () => {
       const surveys = surveysQuery.data || [];
       if (surveys.length === 0) {
@@ -111,8 +113,8 @@ export function useCSATManagement(period: 'today' | 'week' | 'month' = 'month') 
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['csat-surveys'] });
-      queryClient.invalidateQueries({ queryKey: ['csat-stats'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.csat.surveysRoot() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.csat.statsRoot() });
       toast.success('Avaliação enviada! Obrigado pelo feedback.');
     },
     onError: () => {
@@ -186,7 +188,7 @@ function generatePredictionFromHistory(messageHistory: { hour: number; count: nu
 /** Predicts queue demand with capacity forecasting and staffing recommendations. */
 export function useDemandPredictionManagement(externalData?: PredictionPoint[], currentCapacity = 35) {
   const { data: messageHistory = [] } = useQuery({
-    queryKey: ['demand-prediction-history'],
+    queryKey: queryKeys.demandPrediction.history(),
     queryFn: async () => {
       const { data, error } = await dbFrom('messages')
         .select('created_at')
@@ -360,7 +362,7 @@ function generateMockDeliveryData(remoteJid: string): DeliveryStatsResult {
 /** Retrieves message delivery statistics and success rates. */
 export function useDeliveryStatsManagement(remoteJid: string | undefined, instance = 'wpp2') {
   return useQuery<DeliveryStatsResult>({
-    queryKey: ['delivery-stats', remoteJid, instance],
+    queryKey: queryKeys.deliveryStats.contact(remoteJid, instance),
     enabled: !!remoteJid,
     staleTime: 30_000,
     queryFn: async () => {
@@ -552,7 +554,7 @@ export function useNPSSurveysManagement() {
           .from('profiles')
           .select('id')
           .eq('user_id', (await supabase.auth.getUser()).data.user?.id || '')
-          .single();
+          .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
 
         const { error } = await supabase.from('nps_surveys').insert({
           contact_id: data.contact_id,

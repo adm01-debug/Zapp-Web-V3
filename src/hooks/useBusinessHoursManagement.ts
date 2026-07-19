@@ -4,6 +4,7 @@ import { safeClient } from '@/integrations/supabase/safeClient';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from '@/hooks/use-toast';
 import { getLogger } from '@/lib/logger';
+import { queryKeys } from '@/services/api/queryKeys';
 
 const log = getLogger('useBusinessHours');
 
@@ -54,7 +55,7 @@ export function useBusinessHours(connectionId: string) {
     isLoading: loadingHours,
     refetch: refetchHours,
   } = useQuery({
-    queryKey: ['business-hours', connectionId],
+    queryKey: queryKeys.businessHours.connection(connectionId),
     staleTime: Infinity,
     queryFn: async () => {
       const { data, error } = await safeClient.from<BusinessHour>('business_hours', (q) =>
@@ -77,7 +78,7 @@ export function useBusinessHours(connectionId: string) {
     isLoading: loadingAway,
     refetch: refetchAway,
   } = useQuery({
-    queryKey: ['away-message', connectionId],
+    queryKey: queryKeys.awayMessage.connection(connectionId),
     queryFn: async () => {
       const { data, error } = await supabase
         .from('away_messages')
@@ -124,8 +125,9 @@ export function useBusinessHours(connectionId: string) {
       if (awayError) throw awayError;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['business-hours', connectionId] });
-      queryClient.invalidateQueries({ queryKey: ['away-message', connectionId] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.businessHours.connection(connectionId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.awayMessage.connection(connectionId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.businessHours.checkConnection(connectionId) });
       toast({
         title: 'Configurações salvas',
         description: 'Horário comercial atualizado com sucesso.',
@@ -172,7 +174,7 @@ export function useBusinessHours(connectionId: string) {
 /** Checks whether a connection is currently within business hours using Supabase RPC. */
 export function useBusinessHoursCheck(connectionId: string | null | undefined) {
   return useQuery({
-    queryKey: ['business-hours-check', connectionId],
+    queryKey: queryKeys.businessHours.checkConnection(connectionId),
     queryFn: async () => {
       if (!connectionId) return null;
       const { data, error } = await supabase.rpc('is_within_business_hours', {

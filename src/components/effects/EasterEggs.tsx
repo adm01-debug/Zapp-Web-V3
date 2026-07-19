@@ -1,5 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
-import { useState, useEffect, useCallback, forwardRef } from 'react';
+import { useState, useEffect, useCallback, useRef, forwardRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Confetti, useCelebration } from './Confetti';
 import { toast } from '@/hooks/use-toast';
@@ -38,7 +38,10 @@ export const EasterEggsProvider = forwardRef<HTMLDivElement, EasterEggsProviderP
     const [partyMode, setPartyMode] = useState(false);
     const [matrixMode, setMatrixMode] = useState(false);
     const [shakeCount, setShakeCount] = useState(0);
-    const { celebrate, celebrating: _celebrating } = useCelebration();
+    const effectTimers = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
+    const { celebrate } = useCelebration();
+
+    useEffect(() => () => { effectTimers.current.forEach(clearTimeout); }, []);
 
     // Konami Code Detection
     useEffect(() => {
@@ -154,6 +157,7 @@ export const EasterEggsProvider = forwardRef<HTMLDivElement, EasterEggsProviderP
         const timer = setTimeout(() => setShakeCount(0), 2000);
         return () => clearTimeout(timer);
       }
+      return undefined;
     }, [shakeCount]);
 
     const triggerKonamiEasterEgg = useCallback(() => {
@@ -170,9 +174,8 @@ export const EasterEggsProvider = forwardRef<HTMLDivElement, EasterEggsProviderP
 
       // Add rainbow effect to body
       document.body.classList.add('rainbow-mode');
-      setTimeout(() => {
-        document.body.classList.remove('rainbow-mode');
-      }, 5000);
+      const rt = setTimeout(() => { document.body.classList.remove('rainbow-mode'); effectTimers.current.delete(rt); }, 5000);
+      effectTimers.current.add(rt);
     }, [celebrate]);
 
     const triggerShakeEasterEgg = useCallback(() => {
@@ -194,7 +197,7 @@ export const EasterEggsProvider = forwardRef<HTMLDivElement, EasterEggsProviderP
     }, [celebrate]);
 
     const triggerSecretCode = useCallback(
-      (name: string, action: string) => {
+      (_name: string, action: string) => {
         switch (action) {
           case 'party':
             setPartyMode(true);
@@ -203,7 +206,7 @@ export const EasterEggsProvider = forwardRef<HTMLDivElement, EasterEggsProviderP
               subtitle: 'Vamos celebrar!',
               emoji: '🥳',
             });
-            setTimeout(() => setPartyMode(false), 10000);
+            { const t = setTimeout(() => { setPartyMode(false); effectTimers.current.delete(t); }, 10000); effectTimers.current.add(t); }
             break;
 
           case 'matrix':
@@ -212,7 +215,7 @@ export const EasterEggsProvider = forwardRef<HTMLDivElement, EasterEggsProviderP
               title: '💊 Matrix Mode',
               description: 'Você escolheu a pílula vermelha...',
             });
-            setTimeout(() => setMatrixMode(false), 8000);
+            { const t = setTimeout(() => { setMatrixMode(false); effectTimers.current.delete(t); }, 8000); effectTimers.current.add(t); }
             break;
 
           case 'disco':
@@ -221,9 +224,7 @@ export const EasterEggsProvider = forwardRef<HTMLDivElement, EasterEggsProviderP
               title: '🪩 Disco Mode!',
               description: 'Brilhe como nos anos 70!',
             });
-            setTimeout(() => {
-              document.body.classList.remove('disco-mode');
-            }, 8000);
+            { const t = setTimeout(() => { document.body.classList.remove('disco-mode'); effectTimers.current.delete(t); }, 8000); effectTimers.current.add(t); }
             break;
 
           case 'lovable':

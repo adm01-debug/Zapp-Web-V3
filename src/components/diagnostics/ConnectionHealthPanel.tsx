@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useMountedRef } from '@/hooks/useMountedRef';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import type { Database } from '@/integrations/supabase/types';
+import type { Database } from '@/integrations/supabase/schema';
 import { getLogger } from '@/lib/logger';
 
 const log = getLogger('ConnectionHealthPanel');
@@ -70,7 +70,12 @@ export function ConnectionHealthPanel(): JSX.Element {
   );
 
   const handleCopyQrLink = async (conn: ConnectionHealth): Promise<void> => {
-    toast.error('Funcionalidade de QR link requer acesso seguro — use o painel de configurações.');
+    const instance = conn.instance_name ?? conn.name;
+    await navigator.clipboard.writeText(instance);
+    setCopiedId(conn.id);
+    if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
+    copiedTimerRef.current = setTimeout(() => setCopiedId(null), 2000);
+    toast.success('Identificador da instância copiado.');
   };
 
   const fetchData = useCallback(async (): Promise<void> => {
@@ -107,6 +112,7 @@ export function ConnectionHealthPanel(): JSX.Element {
       )
       .subscribe();
     return () => {
+      channel.unsubscribe();
       supabase.removeChannel(channel);
     };
   }, [fetchData]);

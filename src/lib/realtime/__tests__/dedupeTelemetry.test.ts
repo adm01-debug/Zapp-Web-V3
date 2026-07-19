@@ -5,7 +5,6 @@ import {
   recordDedupeEvent,
   getDedupeTelemetrySnapshot,
   resetDedupeTelemetry,
-  type DedupeKeyKind,
   type DedupeHitReason,
   type DedupeMissReason,
 } from '../dedupeTelemetry';

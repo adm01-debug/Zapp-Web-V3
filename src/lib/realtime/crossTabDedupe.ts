@@ -31,7 +31,6 @@
 
 import { recordDedupeEvent } from '@/lib/realtime/dedupeTelemetry';
 import { getLogger } from '@/lib/logger';
-
 const log = getLogger('crossTabDedupe');
 
 const LS_LOCK_PREFIX = 'ctd:lock:';
@@ -87,6 +86,9 @@ interface BroadcastMessage<T = unknown> extends VersionedPayload {
 
 const TAB_ID = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 /** @internal — exposed for tests. */
+export const __TAB_ID = TAB_ID;
+
+/** @internal — exposto para testes de identidade de tab. */
 export const __TAB_ID = TAB_ID;
 
 // MELHORIA #8: Versioned state with sequence counters and metrics

@@ -1,67 +1,66 @@
-import { useState, useCallback } from 'react';
+// useBitrixApi — Bitrix24 CRM integration hook
 import { supabase } from '@/integrations/supabase/client';
 import { getLogger } from '@/lib/logger';
 
 const log = getLogger('useBitrixApi');
 
-type BitrixBody = Record<string, unknown>;
+type BitrixResult<T = unknown> = { data: T | null; success: boolean; error?: string };
+
+async function callBitrix<T = unknown>(action: string, payload: Record<string, unknown> = {}): Promise<BitrixResult<T>> {
+  const { data, error } = await supabase.functions.invoke('bitrix-api', {
+    body: { action, ...payload },
+  });
+  if (error) throw new Error(error.message ?? String(error));
+  if (data?.error) throw new Error(data.error);
+  return { data: data?.data ?? data ?? null, success: true };
+}
 
 export function useBitrixApi() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const invoke = useCallback(async <T = unknown>(body: BitrixBody): Promise<T | null> => {
+  const wrap = <T = unknown>(fn: () => Promise<BitrixResult<T>>) => async (): Promise<BitrixResult<T> | null> => {
     setLoading(true);
     setError(null);
     try {
-      const { data, error: invokeError } = await supabase.functions.invoke('bitrix-api', { body });
-      if (invokeError) {
-        const msg = invokeError.message ?? String(invokeError);
-        setError(msg);
-        log.error('Bitrix API error', invokeError);
-        return null;
-      }
-      if (data?.error) {
-        setError(data.error);
-        return null;
-      }
-      return data as T;
+      const result = await fn();
+      return result;
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       setError(msg);
-      log.error('Bitrix API exception', err);
+      log.error('Bitrix API error', err);
       return null;
     } finally {
       setLoading(false);
     }
   }, []);
 
-  // Lead operations
-  const listLeads = useCallback(() => invoke({ action: 'list', entityType: 'lead' }), [invoke]);
-  const getLead = useCallback((id: number) => invoke({ action: 'get', entityType: 'lead', entityId: String(id) }), [invoke]);
-  const createLead = useCallback((fields: BitrixBody) => invoke({ action: 'create', entityType: 'lead', data: fields }), [invoke]);
-  const updateLead = useCallback((id: number, fields: BitrixBody) => invoke({ action: 'update', entityType: 'lead', entityId: String(id), data: fields }), [invoke]);
-  const deleteLead = useCallback((id: number) => invoke({ action: 'delete', entityType: 'lead', entityId: String(id) }), [invoke]);
+  // Leads
+  const listLeads = wrap(() => callBitrix('list', { entityType: 'lead' }));
+  const getLead = wrap<unknown>(() => callBitrix('getLead'));
+  const createLead = wrap(() => callBitrix('createLead'));
+  const updateLead = wrap(() => callBitrix('updateLead'));
+  const deleteLead = wrap(() => callBitrix('deleteLead'));
 
-  // Contact operations
-  const listContacts = useCallback(() => invoke({ action: 'list', entityType: 'contact' }), [invoke]);
-  const getContact = useCallback((id: number) => invoke({ action: 'get', entityType: 'contact', entityId: String(id) }), [invoke]);
-  const createContact = useCallback((fields: BitrixBody) => invoke({ action: 'create', entityType: 'contact', data: fields }), [invoke]);
+  // Contacts
+  const listContacts = wrap(() => callBitrix('listContacts'));
+  const getContact = wrap(() => callBitrix('getContact'));
+  const createContact = wrap(() => callBitrix('createContact'));
 
-  // Deal operations
-  const listDeals = useCallback(() => invoke({ action: 'list', entityType: 'deal' }), [invoke]);
-  const getDeal = useCallback((id: number) => invoke({ action: 'get', entityType: 'deal', entityId: String(id) }), [invoke]);
-  const createDeal = useCallback((fields: BitrixBody) => invoke({ action: 'create', entityType: 'deal', data: fields }), [invoke]);
+  // Deals
+  const listDeals = wrap(() => callBitrix('listDeals'));
+  const getDeal = wrap(() => callBitrix('getDeal'));
+  const createDeal = wrap(() => callBitrix('createDeal'));
 
-  // Telephony
-  const registerCall = useCallback((params: BitrixBody) => invoke({ action: 'register_call', entityType: 'call', data: params }), [invoke]);
-  const finishCall = useCallback((callId: string, params?: BitrixBody) => invoke({ action: 'finish_call', entityType: 'call', entityId: callId, data: params }), [invoke]);
-  const attachCallRecord = useCallback((callId: string, record: BitrixBody) => invoke({ action: 'attach_record', entityType: 'call', entityId: callId, data: record }), [invoke]);
+  // Calls
+  const registerCall = wrap(() => callBitrix('registerCall'));
+  const finishCall = wrap(() => callBitrix('finishCall'));
+  const attachCallRecord = wrap(() => callBitrix('attachCallRecord'));
 
   // Sync
-  const syncContactsFromBitrix = useCallback(() => invoke({ action: 'sync_contacts' }), [invoke]);
-  const pushContactToBitrix = useCallback((contactId: string) => invoke({ action: 'push_contact', entityId: contactId }), [invoke]);
-  const createLeadFromConversation = useCallback((conversationId: string, params?: BitrixBody) => invoke({ action: 'create_lead_from_conversation', entityId: conversationId, data: params }), [invoke]);
+  const syncContactsFromBitrix = wrap(() => callBitrix('syncContacts'));
+  const pushContactToBitrix = wrap(() => callBitrix('pushContact'));
+  const createLeadFromConversation = wrap(() => callBitrix('createLeadFromConversation'));
 
   return {
     loading,

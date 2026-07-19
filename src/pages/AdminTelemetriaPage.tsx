@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { queryKeys } from "@/services/api/queryKeys";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -41,7 +42,7 @@ export default function AdminTelemetriaPage() {
   };
 
   const { data: rows = [], isLoading, refetch, isRefetching } = useQuery<TelemetryRow[]>({
-    queryKey: ["query-telemetry", severityFilter, timeFilter, customDateFrom?.toISOString(), customDateTo?.toISOString()],
+    queryKey: queryKeys.adminOps.telemetry(severityFilter, timeFilter, customDateFrom?.toISOString(), customDateTo?.toISOString()),
     queryFn: async () => {
       const { from, to } = getTimeThreshold();
       let query = supabase
@@ -72,7 +73,10 @@ export default function AdminTelemetriaPage() {
   };
 
   const handleExportCSV = () => {
-    if (rows.length === 0) return toast.error("Nenhum dado para exportar");
+    if (rows.length === 0) {
+      toast.error("Nenhum dado para exportar");
+      return;
+    }
     const headers = ["Data/Hora", "Operação", "Tabela/RPC", "Duração (ms)", "Severidade", "Registros", "Limit", "Offset", "Count Mode", "Erro"];
     const csvRows = rows.map(r => [
       new Date(r.created_at).toLocaleString("pt-BR"), r.operation,
@@ -90,7 +94,10 @@ export default function AdminTelemetriaPage() {
   };
 
   const handleExportPDF = async () => {
-    if (rows.length === 0) return toast.error("Nenhum dado para exportar");
+    if (rows.length === 0) {
+      toast.error("Nenhum dado para exportar");
+      return;
+    }
     try {
       const { default: jsPDF } = await import("jspdf");
       const { default: autoTable } = await import("jspdf-autotable");

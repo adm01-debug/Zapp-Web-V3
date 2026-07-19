@@ -7,6 +7,7 @@
  * garantir tolerância a linhas legadas e derivação consistente de
  * `finalStatus`.
  */
+import { queryKeys } from '@/services/api/queryKeys';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { fromTable } from '@/lib/supabaseHelpers';
@@ -19,6 +20,7 @@ import {
   normalizeRetryReasons,
   padRetryAttempts,
 } from './messageSendHistory.schemas';
+
 
 export type { AuditEntry, FinalStatus, RetryAttempt };
 
@@ -55,7 +57,7 @@ interface OutboundAuditRow {
 
 export function useMessageSendHistory(messageId: string | undefined, enabled: boolean) {
   return useQuery<MessageSendHistory>({
-    queryKey: ['message-send-history', messageId],
+    queryKey: queryKeys.messageDetails.sendHistory(messageId),
     enabled: Boolean(messageId) && enabled,
     staleTime: STALE_MS,
     queryFn: async (): Promise<MessageSendHistory> => {
@@ -113,20 +115,26 @@ export function useMessageSendHistory(messageId: string | undefined, enabled: bo
         )
       );
 
-      const row = metricRes.data as any;
+      const row = metricRes.data;
       if (!row) return { metric: null, auditEntries: combinedAudit };
+
+      // These columns exist on the view but aren't in the generated types yet
+      type RowExtra = typeof row & {
+        external_message_id?: string | null;
+        max_retries?: number | null;
+        next_retry_at?: string | null;
+      };
+      const rowEx = row as RowExtra;
 
       const attempts = padRetryAttempts(
         normalizeRetryReasons(row.retry_reasons),
         row.attempt_count ?? 0
       );
       const finalStatus = deriveFinalStatus({
-        externalMessageId:
-          (row as unknown as { external_message_id?: string | null }).external_message_id ?? null,
+        externalMessageId: rowEx.external_message_id ?? null,
         retryCount: row.attempt_count ?? 0,
-        maxRetries:
-          (row as unknown as { max_retries?: number | null }).max_retries ?? attempts.length,
-        nextRetryAt: (row as unknown as { next_retry_at?: string | null }).next_retry_at ?? null,
+        maxRetries: rowEx.max_retries ?? attempts.length,
+        nextRetryAt: rowEx.next_retry_at ?? null,
         storedFinalStatus: row.final_status,
       });
 

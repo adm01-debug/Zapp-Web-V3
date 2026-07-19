@@ -1,3 +1,5 @@
+> **Schema**: O banco usa schema `zapp`. Veja [docs/SCHEMA_REFERENCE.md](docs/SCHEMA_REFERENCE.md).
+
 # Production Excellence Implementation - Deployment Guide
 **Branch:** `claude/evo-api-audit-q6qvjg`  
 **Date:** 2026-07-12  

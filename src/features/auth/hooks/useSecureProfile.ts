@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { queryKeys } from '@/services/api/queryKeys';
 
 interface UpdateProfileParams {
   display_name?: string;
@@ -32,7 +33,7 @@ export function useSecureProfileUpdate() {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['profile'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.userProfile.me() });
       toast.success('Perfil atualizado com sucesso');
     },
     onError: (err) => {

@@ -1,0 +1,25 @@
+name: Fix schema references
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Replace all schema public refs with zapp
+        run: |
+          find src/ -type f \( -name '*.ts' -o -name '*.tsx' \) \
+            -exec grep -l "schema: 'public'" {} \; | \
+            xargs -r sed -i "s/schema: 'public'/schema: 'zapp'/g"
+          echo "Files changed:"
+          git diff --stat
+      - name: Commit and push
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git diff --cached --quiet && echo 'No changes' && exit 0
+          git commit -m 'fix: migrate ALL realtime subscriptions from schema public to zapp'
+          git push

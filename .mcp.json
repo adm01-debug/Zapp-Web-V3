@@ -8,16 +8,13 @@
       "type": "http",
       "url": "https://evolution-mcp.adm01.workers.dev/mcp"
     },
-    "supabase": {
-      "type": "http",
-      "url": "https://mcp.supabase.com/mcp?project_ref=tdprnylgyrogbbhgdoik"
-    },
     "supabase-selfhosted": {
       "type": "http",
-      "url": "https://supabase-mcp.atomicabr.com.br/mcp",
-      "headers": {
-        "Authorization": "Bearer ${SELFHOSTED_SUPABASE_MCP_TOKEN}"
-      }
+      "url": "https://supabase-mcp.atomicabr.com.br/s-a50174164e4b03ef181a29db65d2db80/mcp"
+    },
+    "github": {
+      "type": "http",
+      "url": "https://github-mcp-server.adm01.workers.dev/mcp"
     }
   }
 }

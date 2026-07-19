@@ -1,11 +1,9 @@
 /**
  * schema.ts — Fonte ÚNICA e canônica do schema Supabase para a aplicação.
  *
- * Motivação: `types.ts` é auto-gerado e não inclui todas as tabelas que
- * realmente existem em produção (ver `types-manual.ts`). Historicamente o app
- * misturava imports de `types.ts` (Database gerado) com `ExtendedDatabase`
- * (types-manual), gerando incompatibilidades (`never`) e forçando
- * @ts-nocheck em dezenas de arquivos.
+ * ATUALIZADO 2026-07-16: types.ts agora contém blocos nativos para
+ * `public`, `zapp` e `evo` (80.411 linhas). O remapeamento
+ * GeneratedDatabase['public'] → zapp foi eliminado.
  *
  * A partir daqui, TODO código de aplicação deve importar tipos de schema
  * exclusivamente deste barrel:
@@ -21,21 +19,32 @@ import type { Json } from './types';
 
 export type Database = ExtendedDatabase;
 
-type PublicTables = Database['public']['Tables'];
-type PublicEnums = Database['public']['Enums'];
+type ZappTables = Database['zapp']['Tables'];
+type ZappViews = Database['zapp']['Views'];
+type ZappEnums = Database['zapp']['Enums'];
 
-export type Tables<T extends keyof PublicTables> = PublicTables[T] extends { Row: infer R }
-  ? R
-  : never;
+export type Tables<T extends keyof ZappTables> = ZappTables[T] extends { Row: infer R } ? R : never;
 
-export type TablesInsert<T extends keyof PublicTables> = PublicTables[T] extends { Insert: infer I }
+export type TablesInsert<T extends keyof ZappTables> = ZappTables[T] extends { Insert: infer I }
   ? I
   : never;
 
-export type TablesUpdate<T extends keyof PublicTables> = PublicTables[T] extends { Update: infer U }
+export type TablesUpdate<T extends keyof ZappTables> = ZappTables[T] extends { Update: infer U }
   ? U
   : never;
 
-export type Enums<T extends keyof PublicEnums> = PublicEnums[T];
+export type Views<T extends keyof ZappViews> = ZappViews[T] extends { Row: infer R } ? R : never;
+
+export type Enums<T extends keyof ZappEnums> = ZappEnums[T];
+
+// Helpers para o schema evo (Evolution API)
+type EvoTables = Database['evo']['Tables'];
+export type EvoTable<T extends keyof EvoTables> = EvoTables[T] extends { Row: infer R } ? R : never;
+
+/**
+ * ContactRow — canonical row type for the `contacts` view (zapp schema).
+ * Use this instead of Tables<'contacts'> since contacts is a view, not a base table.
+ */
+export type ContactRow = ZappViews['contacts'] extends { Row: infer R } ? R : never;
 
 export type { Json };

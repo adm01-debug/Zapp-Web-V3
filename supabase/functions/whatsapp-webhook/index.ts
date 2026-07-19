@@ -77,7 +77,7 @@ serve(async (req) => {
     try {
       const supabaseUrl = requireEnv('SUPABASE_URL');
       const supabaseServiceKey = requireEnv('SUPABASE_SERVICE_ROLE_KEY');
-      const supabase = createClient(supabaseUrl, supabaseServiceKey);
+      const supabase = createClient(supabaseUrl, supabaseServiceKey, { db: { schema: "zapp" } });
 
       // [A-3 FIX 2026-07-12] Validate Meta's X-Hub-Signature-256 (HMAC-SHA256 of the
       // RAW body, keyed by the App Secret) BEFORE trusting any status/message update.

@@ -1,5 +1,8 @@
 # 🚨 ZAPP-WEB — Runbook de Incidentes
 
+> **Arquitetura atual**: Supabase Self-Hosted (`supabase.atomicabr.com.br`), schema `zapp`. Veja [SCHEMA_REFERENCE.md](SCHEMA_REFERENCE.md).
+
+
 **Versão:** 1.0  
 **Data:** 2026-04-11  
 **Autor:** Claude AI — SRE Agent  
@@ -48,16 +51,16 @@ Este runbook define procedimentos padronizados para resposta a incidentes no sis
 ### Diagnóstico (5 min)
 
 ```bash
-# 1. Verificar Supabase Dashboard
-https://supabase.com/dashboard/project/allrjhkpuscmgbsnmjlv
+# 1. Verificar Supabase Self-Hosted
+https://supabase.atomicabr.com.br
 
-# 2. Verificar status público
-https://status.supabase.com/
-https://status.lovable.dev/
+# 2. Verificar status do servidor
+# VPS AtomicaBR — verificar via Portainer ou SSH
 
 # 3. Testar conectividade DB
-curl -X POST "https://allrjhkpuscmgbsnmjlv.supabase.co/rest/v1/" \
+curl -X POST "https://supabase.atomicabr.com.br/rest/v1/" \
   -H "apikey: <anon_key>" \
+  -H "Accept-Profile: zapp" \
   -H "Content-Type: application/json"
 ```
 
@@ -278,9 +281,8 @@ LIMIT 10;
 ## 📚 Recursos Úteis
 
 ### Dashboards
-- [Supabase Dashboard](https://supabase.com/dashboard/project/allrjhkpuscmgbsnmjlv)
-- [Lovable Dashboard](https://lovable.dev/projects)
-- [ZAPP-WEB Produção](https://pronto-talk-suite.lovable.app)
+- [Supabase Self-Hosted](https://supabase.atomicabr.com.br)
+- [ZAPP-WEB Produção](https://zapp.atomicabr.com.br)
 
 ### Documentação
 - [Backup & Recovery](./BACKUP-RECOVERY-STRATEGY.md)

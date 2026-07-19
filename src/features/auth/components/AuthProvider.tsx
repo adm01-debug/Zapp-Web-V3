@@ -151,7 +151,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         'postgres_changes',
         {
           event: '*',
-          schema: 'public',
+          schema: 'zapp',
           table: 'profiles',
           filter: `user_id=eq.${user.id}`,
         },
@@ -172,7 +172,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         'postgres_changes',
         {
           event: '*',
-          schema: 'public',
+          schema: 'zapp',
           table: 'user_roles',
           filter: `user_id=eq.${user.id}`,
         },
@@ -186,7 +186,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     return () => {
       profileChannel.unsubscribe();
+      supabase.removeChannel(profileChannel);
       rolesChannel.unsubscribe();
+      supabase.removeChannel(rolesChannel);
     };
   }, [user, profile?.id, fetchRoles, fetchPermissions]);
 

@@ -155,7 +155,7 @@ describe('notificationSounds (unified v2.0)', () => {
     });
 
     it('returns false when Notification not in window', async () => {
-      const win = window as Record<string, unknown>;
+      const win = window as unknown as Record<string, unknown>;
       delete win.Notification;
       const result = await requestNotificationPermission();
       expect(result).toBe(false);
@@ -197,22 +197,24 @@ describe('notificationSounds (unified v2.0)', () => {
     });
 
     it('closes notification after timeout', () => {
+      vi.useFakeTimers();
       const mockNotification = { close: vi.fn(), onclick: undefined };
-      const NotificationSpy = vi.fn().mockReturnValue(mockNotification);
+      const NotificationSpy = vi.fn(function () { return mockNotification; });
       vi.stubGlobal('Notification', NotificationSpy);
       Object.defineProperty(NotificationSpy, 'permission', { value: 'granted', configurable: true });
       showBrowserNotification('Test', 'Body');
       vi.advanceTimersByTime(5000);
       expect(mockNotification.close).toHaveBeenCalled();
+      vi.useRealTimers();
     });
 
     it('calls onClick when notification is clicked', () => {
       const onClick = vi.fn();
-      const mockNotification = { close: vi.fn(), onclick: undefined };
-      const NotificationSpy = vi.fn().mockReturnValue(mockNotification);
+      const mockNotification: { close: ReturnType<typeof vi.fn>; onclick?: (e: Event) => void } = { close: vi.fn() };
+      const NotificationSpy = vi.fn(function () { return mockNotification; });
       vi.stubGlobal('Notification', NotificationSpy);
       Object.defineProperty(NotificationSpy, 'permission', { value: 'granted', configurable: true });
-      vi.stubGlobal('window', { focus: vi.fn() });
+      window.focus = vi.fn();
       showBrowserNotification('Test', 'Body', { onClick });
       mockNotification.onclick?.({} as Event);
       expect(onClick).toHaveBeenCalled();

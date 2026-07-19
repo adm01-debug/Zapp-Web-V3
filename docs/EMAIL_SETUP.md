@@ -1,5 +1,8 @@
 # Email Chat — Guia de Configuração
 
+> **Arquitetura atual**: Supabase Self-Hosted (`supabase.atomicabr.com.br`), schema `zapp`. Veja [SCHEMA_REFERENCE.md](SCHEMA_REFERENCE.md).
+
+
 Este documento descreve como configurar o módulo de Email Chat do ZAPP WEB,
 que usa a Email API via OAuth2 e Google Pub/Sub para recebimento em tempo real.
 

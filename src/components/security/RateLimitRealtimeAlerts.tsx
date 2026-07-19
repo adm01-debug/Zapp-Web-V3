@@ -72,7 +72,7 @@ export function RateLimitRealtimeAlerts() {
       .channel('security-alerts')
       .on<SecurityAlert>(
         'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'security_alerts' },
+        { event: 'INSERT', schema: 'zapp', table: 'security_alerts' },
         (payload) => {
           const newAlert = normalizeSecurityAlert(
             payload.new as unknown as Record<string, unknown>
@@ -88,7 +88,8 @@ export function RateLimitRealtimeAlerts() {
       .subscribe();
 
     return () => {
-      void supabase.removeChannel(channel);
+      channel.unsubscribe();
+      supabase.removeChannel(channel);
     };
   }, []);
 

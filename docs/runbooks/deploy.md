@@ -1,5 +1,8 @@
 # Runbook de Deploy e Operações
 
+> **Arquitetura atual**: Supabase Self-Hosted (`supabase.atomicabr.com.br`), schema `zapp`. Veja [../SCHEMA_REFERENCE.md](SCHEMA_REFERENCE.md).
+
+
 ## Visão Geral
 Este documento descreve os procedimentos operacionais para deploy, monitoramento e resposta a incidentes da plataforma WhatsApp Omnichannel.
 
@@ -22,11 +25,11 @@ O deploy é automático via Lovable. Basta clicar em **Publish** no painel Lovab
 - [ ] Variáveis de ambiente/secrets configurados
 
 ### 1.3 Edge Functions
-As Edge Functions são deployadas **automaticamente** pelo Lovable Cloud. Não é necessário deploy manual.
+Edge Functions rodam no Supabase self-hosted (VPS AtomicaBR).
 
 Para testar uma Edge Function:
 ```bash
-curl -X POST https://allrjhkpuscmgbsnmjlv.supabase.co/functions/v1/<function-name> \
+curl -X POST https://supabase.atomicabr.com.br/functions/v1/<function-name> \
   -H "Authorization: Bearer <anon-key>" \
   -H "Content-Type: application/json" \
   -d '{"key": "value"}'

@@ -9,13 +9,13 @@ Deno.serve(async (req) => {
 
   const log = new Logger("elevenlabs-webhook");
 
-  // Validate secret token if configured
+  // Fail-closed token validation: if secret is not configured, reject all requests.
+  // Avoids the fail-open risk where an unconfigured secret lets anyone POST.
   const url = new URL(req.url);
   const token = url.searchParams.get('token');
   const expectedToken = Deno.env.get('ELEVENLABS_WEBHOOK_SECRET');
-  
-  if (expectedToken && token !== expectedToken) {
-    log.warn("Unauthorized webhook call (invalid token)");
+  if (!expectedToken || token !== expectedToken) {
+    log.warn("Unauthorized webhook call (invalid or missing token)");
     return errorResponse('Unauthorized', 401, req);
   }
 
@@ -31,7 +31,7 @@ Deno.serve(async (req) => {
     const eventType = String(body.type || body.event_type || 'unknown').slice(0, 100);
     log.info(`event=${eventType}`);
 
-    const supabase = createClient(requireEnv('SUPABASE_URL'), requireEnv('SUPABASE_SERVICE_ROLE_KEY'));
+    const supabase = createClient(requireEnv('SUPABASE_URL'), requireEnv('SUPABASE_SERVICE_ROLE_KEY'), { db: { schema: "zapp" } });
 
     // Log the webhook event
     await supabase.from('audit_logs').insert({

@@ -3,13 +3,10 @@ import { useMediaCrudManagement } from './useMediaLibraryManagement';
 import type { UseMediaCrudResult } from './useMediaLibraryManagement';
 import type { MediaType } from './useMediaLibraryTypes';
 
-export function useMediaLibrary(type: MediaType): UseMediaCrudResult {
-  return useMediaCrudManagement({ type });
-}
+export { useMediaCrudManagement as useMediaLibrary };
+export type { UseMediaCrudParams, UseMediaCrudResult };
 
-export type { UseMediaCrudResult };
-
-// Re-export utility functions and constants so consumers can import from this barrel file
+// Re-export utilitários puros para testabilidade
 export {
   getCategoriesForType,
   getUrlField,
@@ -18,7 +15,9 @@ export {
   STICKER_CATEGORIES,
   AUDIO_CATEGORIES,
   EMOJI_CATEGORIES,
-  MAX_UPLOAD_SIZE_MB,
-  MAX_UPLOAD_SIZE_BYTES,
 } from './useMediaLibraryTypes';
+
 export type { MediaItem, MediaType } from './useMediaLibraryTypes';
+
+export const MAX_UPLOAD_SIZE_MB = 10;
+export const MAX_UPLOAD_SIZE_BYTES = MAX_UPLOAD_SIZE_MB * 1024 * 1024;

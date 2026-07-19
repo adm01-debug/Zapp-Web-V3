@@ -151,7 +151,7 @@ Deno.serve(async (req) => {
     // 2. Persist to storage
     const supabaseUrl = requireEnv("SUPABASE_URL");
     const supabaseServiceKey = requireEnv("SUPABASE_SERVICE_ROLE_KEY");
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const supabase = createClient(supabaseUrl, supabaseServiceKey, { db: { schema: "zapp" } });
 
     const fileExt = file.name.split(".").pop();
     const fileName =

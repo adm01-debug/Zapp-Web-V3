@@ -218,7 +218,6 @@ describe('getSLAStatus — warning', () => {
 
 describe('getSLAStatus — ok', () => {
   it('returns "ok" when duration is at exactly 70% of limit', () => {
-    const limit = 100 * 60_000;
     expect(getSLAStatus(70 * 60_000, 100)).toBe('ok');
   });
 

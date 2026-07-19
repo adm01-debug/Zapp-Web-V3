@@ -1,5 +1,8 @@
 # RLS Security Hardening Migration - Complete File Guide
 
+> **Arquitetura atual**: Supabase Self-Hosted (`supabase.atomicabr.com.br`), schema `zapp`. Veja [../SCHEMA_REFERENCE.md](SCHEMA_REFERENCE.md).
+
+
 This directory contains a comprehensive production-ready migration to fix 238+ instances of overly permissive RLS policies.
 
 ## File Overview

@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { queryKeys } from '@/services/api/queryKeys';
 import { useQuery } from '@tanstack/react-query';
 import {
   Dialog,
@@ -55,7 +56,7 @@ export function AlertInstanceDetailDialog({ open, onOpenChange, instance }: Prop
   const enabled = open && !!instance;
 
   const { data: rows, isLoading } = useQuery({
-    queryKey: ['alert-instance-detail', instance],
+    queryKey: queryKeys.adminOps.alertInstanceDetail(instance),
     queryFn: async () => {
       const { data, error } = await supabase.rpc('rpc_instance_auth_event_trend', {
         p_hours: 24,

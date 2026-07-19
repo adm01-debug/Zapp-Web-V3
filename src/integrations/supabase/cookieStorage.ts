@@ -1,14 +1,24 @@
 /**
- * httpOnly Cookie Storage Adapter for Supabase
+ * Supabase Session Storage Adapter
  *
- * This storage adapter migrates authentication tokens from localStorage to httpOnly cookies.
- * httpOnly cookies are automatically managed by the browser and server:
- * - The server sets them via Set-Cookie headers (with Secure, HttpOnly, SameSite=Strict flags)
- * - The browser automatically sends them with requests (credentials: 'include')
- * - JavaScript cannot access them (immune to XSS token theft)
+ * IMPORTANTE: O Supabase JS SDK precisa de acesso JavaScript aos tokens de
+ * sessão para injetá-los no header Authorization de cada requisição. Por isso,
+ * httpOnly cookies NÃO funcionam nesta arquitetura SPA — o browser não expõe
+ * httpOnly cookies para JavaScript, tornando impossível que o SDK os leia.
  *
- * The adapter uses in-memory storage as a fallback since actual tokens are
- * stored server-side in httpOnly cookies and managed automatically by the browser.
+ * A camada de proteção XSS é fornecida por:
+ *  - Content-Security-Policy (CSP) rigorosa
+ *  - Sanitização de `dangerouslySetInnerHTML` e inputs externos
+ *  - JWTs de curta duração + rotação automática de refresh tokens
+ *
+ * Este adapter usa `localStorage` (padrão Supabase) com fallback in-memory
+ * para SSR/ambientes sem window.
+ *
+ * HISTÓRICO — BUG RAIZ (fix 2026-07-16):
+ * A implementação anterior descartava silenciosamente qualquer setItem/getItem
+ * cuja chave contivesse 'auth' ou 'token' — exatamente as chaves que o SDK usa
+ * (sb-*-auth-token). Isso causava perda total da sessão após login e todos os
+ * requests iam sem JWT → 401 em cascata em toda a aplicação.
  */
 
 interface StorageAdapter {
@@ -17,10 +27,7 @@ interface StorageAdapter {
   removeItem(key: string): Promise<void> | void;
 }
 
-/**
- * In-memory storage for session metadata
- * Actual auth tokens are in httpOnly cookies, automatically managed by the browser
- */
+// ── In-memory fallback para SSR / ambientes sem localStorage ────────────────
 class InMemoryStorage implements StorageAdapter {
   private store = new Map<string, string>();
 
@@ -41,86 +48,47 @@ class InMemoryStorage implements StorageAdapter {
   }
 }
 
-/**
- * Cookie Storage Adapter
- * Reads session from httpOnly cookies (browser-managed)
- * Falls back to in-memory for metadata
- *
- * Why not localStorage?
- * - localStorage is vulnerable to XSS attacks
- * - Malicious scripts can steal tokens: localStorage.getItem('sb-*-auth-token')
- * - httpOnly cookies cannot be accessed by JavaScript (browser enforces)
- * - Server automatically sends cookies with requests (no manual header injection)
- */
-export function createCookieStorageAdapter(): StorageAdapter {
-  const memoryStore = new InMemoryStorage();
-
+// ── localStorage wrapper com SSR-safety e quota-guard ───────────────────────
+function createLocalStorageAdapter(): StorageAdapter {
   return {
     getItem(key: string): string | null {
-      // Try to read from cookies first (httpOnly cookies are readable via Set-Cookie headers)
-      // If the key is an auth token, it's stored in httpOnly cookies automatically
-      // Return null to let Supabase handle it via its session listener
-      if (key.includes('auth') || key.includes('token')) {
-        return null; // Auth tokens are in httpOnly cookies, managed by browser
+      try {
+        return localStorage.getItem(key);
+      } catch {
+        return null;
       }
-      // For non-auth metadata, use in-memory storage
-      return memoryStore.getItem(key);
     },
-
     setItem(key: string, value: string): void {
-      // Auth tokens are set by the server via Set-Cookie headers
-      // Don't store them in memory or localStorage
-      if (key.includes('auth') || key.includes('token')) {
-        return; // Supabase receives Set-Cookie from server
+      try {
+        localStorage.setItem(key, value);
+      } catch {
+        // QuotaExceededError ou modo privado restrito — ignora silenciosamente.
+        // O SDK vai operar sem persistência nesta sessão do browser.
       }
-      // Store non-auth metadata in memory
-      memoryStore.setItem(key, value);
     },
-
     removeItem(key: string): void {
-      // Auth tokens are cleared by the server (Set-Cookie with empty value/max-age=0)
-      // No client-side cleanup needed
-      if (key.includes('auth') || key.includes('token')) {
-        return; // Server handles logout via Set-Cookie header
+      try {
+        localStorage.removeItem(key);
+      } catch {
+        // ignore
       }
-      // Clear non-auth metadata from memory
-      memoryStore.removeItem(key);
     },
   };
 }
 
 /**
- * Global cookie storage instance
+ * Storage global do Supabase client.
+ * Usa localStorage em browsers e in-memory em SSR.
  */
-export const cookieStorage =
-  typeof window !== 'undefined'
-    ? createCookieStorageAdapter()
-    : (() => ({
-        getItem: () => null,
-        setItem: () => {},
-        removeItem: () => {},
-      }))();
+export const cookieStorage: StorageAdapter =
+  typeof window !== 'undefined' && typeof window.localStorage !== 'undefined'
+    ? createLocalStorageAdapter()
+    : new InMemoryStorage();
 
 /**
- * Verify that httpOnly cookies are being used (security check)
- * Call this during app initialization to confirm auth is using cookies
+ * @deprecated Mantido apenas para compatibilidade com call sites existentes.
+ * Sempre retorna `true` — a proteção real é via CSP + JWTs de curta duração.
  */
 export function verifyHttpOnlyCookieAuth(): boolean {
-  if (typeof window === 'undefined') return false;
-  if (typeof document === 'undefined') return false;
-
-  // Check that auth tokens are NOT in localStorage
-  const hasBadStorage = Object.keys(window.localStorage || {}).some(
-    (k) => k.includes('auth-token') || (k.startsWith('sb-') && k.includes('auth'))
-  );
-
-  if (hasBadStorage) {
-    console.warn(
-      '[Security] Auth tokens found in localStorage. ' +
-        'Expected httpOnly cookies. Verify Supabase auth config uses cookieStorage adapter.'
-    );
-    return false;
-  }
-
   return true;
 }

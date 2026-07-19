@@ -121,7 +121,7 @@ describe('logMessagesSubscribe', () => {
 
   it('records the bind details', () => {
     const h = nextHook('sub');
-    const bind = { event: 'DELETE', schema: 'public', table: 'messages', filter: 'id=eq.1' };
+    const bind = { event: 'DELETE', schema: 'zapp', table: 'messages', filter: 'id=eq.1' };
     logMessagesSubscribe(h, bind);
     const found = getFanoutSubscriptions().find((s) => s.hookName === h);
     expect(found?.bind).toEqual(bind);

@@ -17,7 +17,7 @@ import {
 describe('realtimeEnvelopeSchema', () => {
   it('aceita INSERT com row completa', () => {
     const r = realtimeEnvelopeSchema.safeParse({
-      schema: 'public',
+      schema: 'zapp',
       table: 'messages',
       eventType: 'INSERT',
       new: { id: 'x', content: 'oi' },
@@ -28,7 +28,7 @@ describe('realtimeEnvelopeSchema', () => {
 
   it('aceita DELETE com new=null', () => {
     const r = realtimeEnvelopeSchema.safeParse({
-      schema: 'public',
+      schema: 'zapp',
       table: 'messages',
       eventType: 'DELETE',
       new: null,
@@ -39,7 +39,7 @@ describe('realtimeEnvelopeSchema', () => {
 
   it('rejeita eventType desconhecido', () => {
     const r = realtimeEnvelopeSchema.safeParse({
-      schema: 'public',
+      schema: 'zapp',
       table: 'messages',
       eventType: 'MERGE',
     });
@@ -48,7 +48,7 @@ describe('realtimeEnvelopeSchema', () => {
 
   it('rejeita quando table está ausente', () => {
     const r = realtimeEnvelopeSchema.safeParse({
-      schema: 'public',
+      schema: 'zapp',
       eventType: 'INSERT',
     });
     expect(r.success).toBe(false);
@@ -298,7 +298,7 @@ describe('realtimeEnvelopeFor(messageRowSchema)', () => {
 
   it('valida envelope + row juntos', () => {
     const r = envelope.safeParse({
-      schema: 'public',
+      schema: 'zapp',
       table: 'messages',
       eventType: 'INSERT',
       new: {
@@ -321,7 +321,7 @@ describe('realtimeEnvelopeFor(messageRowSchema)', () => {
 
   it('rejeita quando new.id não é uuid', () => {
     const r = envelope.safeParse({
-      schema: 'public',
+      schema: 'zapp',
       table: 'messages',
       eventType: 'INSERT',
       new: { id: 'nope' },
@@ -530,7 +530,7 @@ describe('teamMessageRowSchema', () => {
   it('safeParseEvent envelopa e devolve error estruturado', () => {
     const envelope = realtimeEnvelopeFor(teamMessageRowSchema);
     const result = safeParseEvent(envelope, {
-      schema: 'public',
+      schema: 'zapp',
       table: 'team_messages',
       eventType: 'INSERT',
       new: { ...base, status: 'lolwut' },

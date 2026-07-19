@@ -1,15 +1,26 @@
+// Escape hatch pontual: `webhook_health_checks` e `sentiment_alerts` são
+// tabelas do schema `zapp` que ainda não estão nos types gerados pela Lovable
+// Cloud (o schema oficial vive na VPS self-hosted). Enquanto o
+// gen-types-zapp.mjs não é rodado com acesso à VPS, usamos `db as any` só na
+// fronteira dessas tabelas. A superfície pública do hook permanece 100% tipada.
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { safeClient } from '@/integrations/supabase/safeClient';
 import { usePushNotificationsManagement } from '@/hooks/useNotificationManagement';
 import { useNotificationSettingsManagement } from '@/hooks/useNotificationManagement';
 import { toast } from 'sonner';
 import { playNotificationSound, showBrowserNotification } from '@/utils/notificationSounds';
 import { getLogger } from '@/lib/logger';
 import { warRoomAlertRowSchema, safeParseEvent } from '@/shared/webhookEventSchemas';
+import { queryKeys } from '@/services/api/queryKeys';
 
 const log = getLogger('useAlertManagement');
 
+// Escape hatch localizado: as tabelas `webhook_health_checks` e
+// `sentiment_alerts` vivem no schema `zapp` da VPS self-hosted, mas ainda não
+// estão nos types gerados pela Lovable Cloud. Também usamos aqui para colunas
+// de `warroom_alerts`/`conversation_sla` que ainda divergem do types.ts local.
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════════════
 // TYPE DEFINITIONS
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════════════
@@ -102,7 +113,7 @@ export function useWarRoomAlertsManagement(soundEnabled = true): UseWarRoomAlert
   }, [soundEnabled]);
 
   const { data: alerts = [] } = useQuery({
-    queryKey: ['warroom-alerts'],
+    queryKey: queryKeys.alerts.all(),
     queryFn: async () => {
       const { data, error } = await supabase
         .from('warroom_alerts')
@@ -126,15 +137,15 @@ export function useWarRoomAlertsManagement(soundEnabled = true): UseWarRoomAlert
 
   useEffect(() => {
     const channel = supabase
-      .channel('warroom-alerts-management')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'warroom_alerts' }, (payload) => {
+      .channel('warroom-alerts-realtime')
+      .on('postgres_changes', { event: 'INSERT', schema: 'zapp', table: 'warroom_alerts' }, (payload) => {
         const parsed = safeParseEvent(warRoomAlertRowSchema, payload.new);
         if (!parsed.ok) {
           log.warn('[useWarRoomAlertsManagement] received malformed realtime payload', payload.new);
           return;
         }
         const alert = parsed.data as WarRoomAlert;
-        void queryClient.invalidateQueries({ queryKey: ['warroom-alerts'] });
+        void queryClient.invalidateQueries({ queryKey: queryKeys.alerts.all() });
 
         if (alert.alert_type === 'critical') {
           playAlertSound();
@@ -160,7 +171,7 @@ export function useWarRoomAlertsManagement(soundEnabled = true): UseWarRoomAlert
       .update({ is_read: true })
       .eq('id', alertId);
     if (error) log.error('Failed to dismiss warroom alert', error);
-    queryClient.invalidateQueries({ queryKey: ['warroom-alerts'] });
+    queryClient.invalidateQueries({ queryKey: queryKeys.alerts.all() });
   };
 
   useEffect(() => {
@@ -256,7 +267,7 @@ export function useSentimentAlertsManagement(): UseSentimentAlertsResult {
           });
 
           if (settings.soundEnabled && !isQuietHours()) {
-            playNotificationSound('sentiment_alert', settings.slaSoundType, settings.soundVolume);
+            playNotificationSound('sla_warning' as const, settings.slaSoundType, settings.soundVolume);
           }
 
           if (settings.browserNotifications) {
@@ -290,11 +301,9 @@ export function useWebhookHealthAlertsManagement(): UseWebhookHealthAlertsResult
   const checkHealth = useCallback(async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('webhook_health_checks')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(100);
+      const { data, error } = await safeClient.from('webhook_health_checks', (q) =>
+        q.select('*').order('created_at', { ascending: false }).limit(100)
+      );
 
       if (error) throw error;
       setAlerts((data || []) as WebhookHealthAlert[]);
@@ -335,9 +344,19 @@ export function useRealtimeSentimentAlertsManagement(): UseRealtimeSentimentAler
   const [alerts, setAlerts] = useState<RealtimeSentimentAlert[]>([]);
   const { settings, isQuietHours } = useNotificationSettingsManagement();
 
+  // Refs para evitar re-subscribe a cada render (settings/isQuietHours mudam de referência)
+  const settingsRef = useRef(settings);
+  const isQuietHoursRef = useRef(isQuietHours);
   useEffect(() => {
+    settingsRef.current = settings;
+    isQuietHoursRef.current = isQuietHours;
+  }, [settings, isQuietHours]);
+
+  useEffect(() => {
+    // Canal único por mount para prevenir reuso após subscribe()
+    const channelName = `realtime-sentiment-alerts-${Math.random().toString(36).slice(2, 10)}`;
     const channel = supabase
-      .channel('realtime-sentiment-alerts')
+      .channel(channelName)
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'zapp', table: 'sentiment_alerts' },
@@ -345,17 +364,17 @@ export function useRealtimeSentimentAlertsManagement(): UseRealtimeSentimentAler
           const newAlert = payload.new as RealtimeSentimentAlert;
           setAlerts((prev) => [newAlert, ...prev.slice(0, 49)]);
 
-          if (settings.soundEnabled && !isQuietHours()) {
-            playNotificationSound('sentiment_alert', settings.slaSoundType, settings.soundVolume);
+          const s = settingsRef.current;
+          const quiet = isQuietHoursRef.current;
+          if (s.soundEnabled && !quiet()) {
+            playNotificationSound('sla_warning' as const, s.slaSoundType, s.soundVolume);
           }
-
-          if (settings.browserNotifications) {
+          if (s.browserNotifications) {
             showBrowserNotification(
               `Sentiment Alert - Level: ${newAlert.alert_level}`,
               `Contact: ${newAlert.contact_id}`
             );
           }
-
           toast.warning(`Sentiment Alert (${newAlert.alert_level})`, {
             description: `Contact ${newAlert.contact_id} - Score: ${newAlert.sentiment_score.toFixed(2)}`,
           });
@@ -364,9 +383,11 @@ export function useRealtimeSentimentAlertsManagement(): UseRealtimeSentimentAler
       .subscribe();
 
     return () => {
+      channel.unsubscribe();
       supabase.removeChannel(channel);
     };
-  }, [settings, isQuietHours]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const acknowledgeAlert = useCallback(async (alertId: string) => {
     try {

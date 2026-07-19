@@ -1,3 +1,4 @@
+import { queryKeys } from '@/services/api/queryKeys';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getLogger } from '@/lib/logger';
@@ -26,14 +27,14 @@ export function PublicApiDashboard() {
   const [saving, setSaving] = useState(false);
 
   const { data, isFetching, refetch } = useQuery({
-    queryKey: ['admin', 'public-api-dashboard'],
+    queryKey: queryKeys.adminOps.publicApi(),
     queryFn: async () => {
       try {
         const { data: setting } = await supabase
           .from('global_settings')
           .select('value')
           .eq('key', 'api_token')
-          .single();
+          .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
 
         const { data: auditLogs } = await supabase
           .from('audit_logs')

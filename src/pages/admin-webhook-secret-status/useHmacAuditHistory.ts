@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { queryKeys } from '@/services/api/queryKeys';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { subHours } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
@@ -16,7 +17,7 @@ export function useHmacAuditHistory(range: RangeKey, instanceFilter: string, lim
   const since = useMemo(() => subHours(new Date(), rangeCfg.hours).toISOString(), [rangeCfg]);
 
   const queryKey = useMemo(
-    () => ['hmac-selftest-audit', range, instanceFilter],
+    () => queryKeys.adminOps.hmacAuditFiltered(range, instanceFilter),
     [range, instanceFilter]
   );
 
@@ -43,14 +44,14 @@ export function useHmacAuditHistory(range: RangeKey, instanceFilter: string, lim
   });
 
   const { data: instanceOptions } = useQuery({
-    queryKey: ['hmac-selftest-audit-instances', range],
+    queryKey: queryKeys.adminOps.hmacAuditInstancesRange(range),
     queryFn: async () => {
       const { data, error } = await safeClient.from('hmac_selftest_audit', (q) =>
         q.select('instance').gte('created_at', since).not('instance', 'is', null).limit(1000)
       );
       if (error) return [] as string[];
       const set = new Set<string>();
-      (data ?? []).forEach((r: { instance: string | null }) => {
+      ((data ?? []) as Array<{ instance: string | null }>).forEach((r) => {
         if (r.instance) set.add(r.instance);
       });
       return Array.from(set).sort();
@@ -65,12 +66,12 @@ export function useHmacAuditHistory(range: RangeKey, instanceFilter: string, lim
       .channel('hmac-selftest-audit-realtime')
       .on(
         'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'hmac_selftest_audit' },
+        { event: 'INSERT', schema: 'zapp', table: 'hmac_selftest_audit' },
         () => {
           if (debounceRef.current) window.clearTimeout(debounceRef.current);
           debounceRef.current = window.setTimeout(() => {
-            void queryClient.invalidateQueries({ queryKey: ['hmac-selftest-audit'] });
-            void queryClient.invalidateQueries({ queryKey: ['hmac-selftest-audit-instances'] });
+            void queryClient.invalidateQueries({ queryKey: queryKeys.adminOps.hmacAudit() });
+            void queryClient.invalidateQueries({ queryKey: queryKeys.adminOps.hmacAuditInstances() });
           }, 300);
         }
       )
@@ -82,6 +83,7 @@ export function useHmacAuditHistory(range: RangeKey, instanceFilter: string, lim
       });
     return () => {
       if (debounceRef.current) window.clearTimeout(debounceRef.current);
+      channel.unsubscribe();
       supabase.removeChannel(channel);
     };
   }, [queryClient]);

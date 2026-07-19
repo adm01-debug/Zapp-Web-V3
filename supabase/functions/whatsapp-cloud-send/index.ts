@@ -101,6 +101,7 @@ Deno.serve(async (req) => {
   }
   try {
     const supa = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      db: { schema: "zapp" },
       global: { headers: { Authorization: auth } },
     });
     const { data: userData, error: userErr } = await supa.auth.getUser();

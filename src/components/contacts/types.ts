@@ -1,5 +1,20 @@
-import type { Tables } from '@/integrations/supabase/types';
-export type Contact = Pick<Tables<'contacts'>, 'id' | 'name' | 'surname' | 'nickname' | 'phone' | 'email' | 'avatar_url' | 'company' | 'job_title' | 'tags' | 'contact_type' | 'created_at'>;
+import type { ContactRow } from '@/integrations/supabase/schema';
+
+export type Contact = Pick<
+  NonNullable<ContactRow>,
+  | 'id'
+  | 'name'
+  | 'surname'
+  | 'nickname'
+  | 'phone'
+  | 'email'
+  | 'avatar_url'
+  | 'company'
+  | 'job_title'
+  | 'tags'
+  | 'contact_type'
+  | 'created_at'
+>;
 
 export interface ContactItemProps {
   contact: Contact;

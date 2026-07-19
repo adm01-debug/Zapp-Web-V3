@@ -46,7 +46,7 @@ export function useIncomingCallListener() {
               .from('contacts')
               .select('name, phone')
               .eq('id', call.contact_id as string)
-              .single();
+              .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
 
             if (!mountedRef.current) return;
 

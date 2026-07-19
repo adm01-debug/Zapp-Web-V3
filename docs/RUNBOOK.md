@@ -1,5 +1,8 @@
 # Zapp Web v3 — Operational Runbook
 
+> **Arquitetura atual**: Supabase Self-Hosted (`supabase.atomicabr.com.br`), schema `zapp`. Veja [SCHEMA_REFERENCE.md](SCHEMA_REFERENCE.md).
+
+
 Complete guide for troubleshooting, debugging, and operating Zapp Web v3 in production.
 
 ---

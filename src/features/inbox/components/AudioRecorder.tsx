@@ -42,7 +42,6 @@ export function AudioRecorder({ onSend, onCancel, onAudioReady }: AudioRecorderP
     pauseRecording,
     resumeRecording,
     formatDuration,
-    swipeX,
     cancelOpacity,
     handlePlayPause,
     handleSend,

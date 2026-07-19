@@ -6,7 +6,7 @@
  */
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
-import { useDensity, type DensityMode } from '../useDensity';
+import { useDensity } from '../useDensity';
 
 const STORAGE_KEY = 'ui-density';
 

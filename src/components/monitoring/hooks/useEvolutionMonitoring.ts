@@ -77,12 +77,12 @@ export function useEvolutionMonitoring() {
     logMessagesSubscribe('useEvolutionMonitoring', { event: 'INSERT', table: 'messages' });
     const channel = supabase
       .channel('monitoring-connections')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'whatsapp_connections' }, () =>
+      .on('postgres_changes', { event: '*', schema: 'zapp', table: 'whatsapp_connections' }, () =>
         fetchData()
       )
       .on(
         'postgres_changes',
-        { event: 'INSERT', schema: 'evo', table: 'evolution_messages' }, // FATOR X v6.2: view public não emite
+        { event: 'INSERT', schema: 'evo', table: 'evolution_messages' }, // tabela-fonte em schema evo (Realtime exige tabela base)
         wrapMessagesHandler<{ new: Record<string, unknown> }>('useEvolutionMonitoring', () =>
           fetchData()
         )

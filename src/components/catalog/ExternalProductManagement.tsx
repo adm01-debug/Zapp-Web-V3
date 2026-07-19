@@ -91,19 +91,19 @@ export const ExternalProductManagement: React.FC = () => {
   const totalPages = Math.ceil(totalProducts / PAGE_SIZE);
   const hasFilters = search || categoryId !== 'all' || supplierId !== 'all' || onlyInStock;
 
-  const clearFilters = () => {
+  const clearFilters = useCallback(() => {
     setSearch('');
     setCategoryId('all');
     setSupplierId('all');
     setOnlyInStock(false);
     setPage(0);
-  };
+  }, []);
 
   const [sendProduct, setSendProduct] = useState<ExternalProduct | null>(null);
 
-  const handleSendProduct = (product: ExternalProduct) => {
+  const handleSendProduct = useCallback((product: ExternalProduct) => {
     setSendProduct(product);
-  };
+  }, []);
 
   return (
     <div className="space-y-6 p-6 max-w-7xl mx-auto">

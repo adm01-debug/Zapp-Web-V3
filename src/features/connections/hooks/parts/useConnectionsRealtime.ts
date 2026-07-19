@@ -22,8 +22,8 @@ import type { WhatsAppConnection, QrCodeDialogState } from '../types';
  * Mantido da v1: inscrever UMA única vez por mount e ler o estado volátil
  * (dialog de QR code, callback de anúncio) via refs dentro do handler.
  *
- * Nota DB: `public.whatsapp_connections` é TABELA (não view do repoint layer)
- * e está na publicação `supabase_realtime` — schema 'public' aqui está correto.
+ * Nota DB: `zapp.whatsapp_connections` é TABELA (não view)
+ * e está na publicação `supabase_realtime` — schema 'zapp' configurado no client.
  */
 export function useConnectionsRealtime(
   setConnections: React.Dispatch<React.SetStateAction<WhatsAppConnection[]>>,
@@ -50,7 +50,7 @@ export function useConnectionsRealtime(
       .channel(channelName)
       .on<WhatsAppConnection>(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'whatsapp_connections' },
+        { event: '*', schema: 'zapp', table: 'whatsapp_connections' },
         (payload) => {
           log.debug('Connection update:', payload);
           if (payload.eventType === 'UPDATE') {

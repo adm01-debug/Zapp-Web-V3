@@ -100,6 +100,7 @@ export function useAuthForm() {
       }, 1000);
       return () => clearInterval(timer);
     }
+    return undefined;
   }, [lockStatus.remainingTime]);
 
   useEffect(() => {

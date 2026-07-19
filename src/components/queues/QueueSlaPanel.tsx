@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useMountedRef } from '@/hooks/useMountedRef';
+import type { ReactNode } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -16,11 +18,15 @@ import { AlertTriangle, Clock, RefreshCw, Users, Zap, Filter } from 'lucide-reac
 import {
   useQueueSlaPanel,
   QueueSlaFilters,
+  QueueSlaPatch,
   QueueSlaRow,
   SlaStatusFilter,
 } from '@/hooks/useQueueSlaPanel';
-import { supabase } from '@/integrations/supabase/client';
+import { safeFrom } from '@/integrations/supabase/safeClient';
 import { cn } from '@/lib/utils';
+
+const isNonEmptyString = (value: unknown): value is string =>
+  typeof value === 'string' && value.length > 0;
 
 const PRIORITY_LABEL: Record<QueueSlaRow['sla_priority'], string> = {
   critical: 'Crítica',
@@ -45,19 +51,33 @@ export const QueueSlaPanel = () => {
   const [skills, setSkills] = useState<string[]>([]);
   const [channels, setChannels] = useState<string[]>([]);
   const [rebalancing, setRebalancing] = useState(false);
+  const mounted = useMountedRef();
 
   const { rows, loading, refetch, updateQueueConfig, triggerRebalance } = useQueueSlaPanel(filters);
 
   useEffect(() => {
     (async () => {
       const [{ data: sk }, { data: ch }] = await Promise.all([
-        supabase.from('queue_skill_requirements').select('skill_name'),
-        supabase.from('channel_connections').select('channel_type'),
+        safeFrom('queue_skill_requirements').select('skill_name'),
+        safeFrom('channel_connections').select('channel_type'),
       ]);
-      setSkills(Array.from(new Set((sk ?? []).map((s: { skill_name: string | null }) => s.skill_name).filter(Boolean) as string[]))); // ignore-audit: filter(Boolean) removes nulls; cast safely narrows (string|null)[] to string[]
-      setChannels(Array.from(new Set((ch ?? []).map((c: { channel_type: string | null }) => c.channel_type).filter(Boolean) as string[]))); // ignore-audit: filter(Boolean) removes nulls; cast safely narrows (string|null)[] to string[]
+      if (!mounted.current) return;
+      setSkills(
+        Array.from(
+          new Set(
+            ((sk ?? []) as Array<{ skill_name: string | null }>).map((s) => s.skill_name).filter(isNonEmptyString)
+          )
+        )
+      );
+      setChannels(
+        Array.from(
+          new Set(
+            ((ch ?? []) as Array<{ channel_type: string | null }>).map((c) => c.channel_type).filter(isNonEmptyString)
+          )
+        )
+      );
     })();
-  }, []);
+  }, [mounted]);
 
   const totals = useMemo(
     () => ({
@@ -237,7 +257,7 @@ function KpiCard({
 }: {
   label: string;
   value: number;
-  icon: React.ReactNode;
+  icon: ReactNode;
   tone?: 'default' | 'warning' | 'destructive';
 }) {
   return (
@@ -267,7 +287,7 @@ function QueueRow({
   onUpdate,
 }: {
   row: QueueSlaRow;
-  onUpdate: (id: string, patch: Partial<QueueSlaRow>) => Promise<boolean>;
+  onUpdate: (id: string, patch: QueueSlaPatch) => Promise<boolean>;
 }) {
   const [weight, setWeight] = useState(String(row.routing_weight));
   useEffect(() => setWeight(String(row.routing_weight)), [row.routing_weight]);
@@ -283,7 +303,7 @@ function QueueRow({
       <td>
         <Select
           value={row.sla_priority}
-          onValueChange={(v) => onUpdate(row.queue_id, { sla_priority: v as QueueSlaRow['sla_priority']  /* ignore-audit: Select/Tabs value string narrowed to union; developer controls option values */})}
+          onValueChange={(v) => onUpdate(row.queue_id, { sla_priority: v as QueueSlaRow['sla_priority'] })}
         >
           <SelectTrigger className="h-8 w-[110px]">
             <Badge className={cn('text-[10px]', PRIORITY_COLOR[row.sla_priority])}>

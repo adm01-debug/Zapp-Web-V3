@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseEdgeEvents, ALL_EVENTS, type Evt } from '../edgeEvents';
+import { parseEdgeEvents, ALL_EVENTS } from '../edgeEvents';
 
 // ── ALL_EVENTS ─────────────────────────────────────────────────────────────────
 

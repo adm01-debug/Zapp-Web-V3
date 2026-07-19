@@ -84,7 +84,7 @@ export const useMessageStatus = (contactId?: string) => {
         'postgres_changes',
         {
           event: 'UPDATE',
-          schema: 'evo', // FATOR X v6.2: tabela-fonte (view public não emite)
+          schema: 'evo', // tabela-fonte em schema evo (Realtime exige tabela base, não view)
           table: 'evolution_messages',
           filter: `contact_id=eq.${contactId}`,
         },

@@ -19,7 +19,7 @@ Deno.serve(async (req) => {
     }
 
     const supabaseUser = createClient(supabaseUrl, requireEnv("SUPABASE_ANON_KEY"), {
-      global: { headers: { Authorization: authHeader } },
+      db: { schema: "zapp" }, auth: { persistSession: false }, global: { headers: { Authorization: authHeader } },
     });
 
     const { data: { user }, error: userError } = await supabaseUser.auth.getUser();
@@ -35,7 +35,7 @@ Deno.serve(async (req) => {
     const { device_fingerprint, browser, os, device_name } = parsed.data;
     const clientIp = getClientIP(req);
 
-    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, { db: { schema: "zapp" } });
 
     // Check if device exists
     const { data: existingDevice, error: deviceError } = await supabaseAdmin

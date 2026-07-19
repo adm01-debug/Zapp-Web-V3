@@ -1,5 +1,8 @@
 # Grafana — External DB Proxy Observability
 
+> **Arquitetura atual**: Supabase Self-Hosted (`supabase.atomicabr.com.br`), schema `zapp`. Veja [../SCHEMA_REFERENCE.md](SCHEMA_REFERENCE.md).
+
+
 Dashboard pronto para importar: [`grafana-proxy-metrics-dashboard.json`](./grafana-proxy-metrics-dashboard.json).
 
 ## 1. Pré-requisitos
@@ -24,7 +27,7 @@ scrape_configs:
       credentials: ${PROXY_METRICS_TOKEN}
     static_configs:
       - targets:
-          - tdprnylgyrogbbhgdoik.supabase.co
+          - supabase.atomicabr.com.br
         labels:
           service: external-db-proxy
           env: prod

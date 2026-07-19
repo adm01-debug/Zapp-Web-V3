@@ -1,6 +1,6 @@
 /**
  * Admin: Evolution API call logs.
- * Reads from `evolution_retry_metrics` (Lovable Cloud) — captures every
+ * Reads from `evolution_retry_metrics` (zapp schema view → public table) — captures every
  * outbound call to the Evolution API made by the `evolution-api` edge function:
  * action, method, instance, attempt count, http status, retry reasons, duration.
  *
@@ -10,6 +10,7 @@
  */
 import { useMemo, useState } from 'react';
 import { DEFAULT_WHATSAPP_INSTANCE } from '@/lib/constants/whatsappInstances';
+import { queryKeys } from '@/services/api/queryKeys';
 import { useQuery } from '@tanstack/react-query';
 import { subHours } from 'date-fns';
 import { Activity, RefreshCw, Clock, Filter, Eye } from 'lucide-react';
@@ -61,7 +62,7 @@ export default function AdminEvolutionApiLogsPage() {
   const since = useMemo(() => subHours(new Date(), Number(hoursBack)).toISOString(), [hoursBack]);
 
   const { data, isLoading, refetch, isFetching } = useQuery({
-    queryKey: ['admin-evolution-api-logs', hoursBack, statusFilter, actionSearch, instanceFilter],
+    queryKey: queryKeys.adminOps.evolutionApiLogsFiltered(hoursBack, statusFilter, actionSearch, instanceFilter),
     queryFn: async () => {
       let q = supabase
         .from('evolution_retry_metrics')

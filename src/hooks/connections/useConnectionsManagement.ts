@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { BridgeService } from '@/services/connections/BridgeService';
 import type { HubTab, HealthRow, BridgeStatus } from '@/components/connections/types';
@@ -83,12 +83,21 @@ export function useBridgeHealthManagement(
   const [health, setHealth] = useState<HealthRow | null>(null);
   const [checkedAt, setCheckedAt] = useState<Date | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const mountedRef = useRef(true); // ✅ Fix: mounted guard para race condition
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
 
   const runCheck = useCallback(async () => {
     setStatus('checking');
     setError(null);
 
     const result = await BridgeService.checkHealth();
+
+    // ✅ Fix: não atualizar estado se componente desmontado durante await
+    if (!mountedRef.current) return;
 
     setHealth(result.health);
     setError(result.error);

@@ -38,10 +38,15 @@ export async function sendMessageToContact(
     .from('profiles')
     .select('id')
     .eq('user_id', (await supabase.auth.getUser()).data.user?.id ?? '')
-    .single();
+    .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
+
+  // Generate id client-side so the RETURNING clause always carries a non-null id
+  // even if the INSTEAD OF trigger on zapp.messages does not assign NEW.id before RETURN NEW.
+  const messageId = crypto.randomUUID();
 
   const { data, error } = await dbFrom('messages')
     .insert({
+      id: messageId,
       contact_id: contactId,
       agent_id: profile?.id,
       content,
@@ -52,7 +57,7 @@ export async function sendMessageToContact(
       status: 'sending',
     })
     .select()
-    .single();
+    .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
 
   if (error) {
     log.error('Error saving message to DB:', error);
@@ -77,7 +82,7 @@ export async function sendMessageToContact(
     const { data: contact } = await dbFrom('contacts')
       .select('phone, whatsapp_connection_id')
       .eq('id', contactId)
-      .single();
+      .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
 
     const { resolvedConnectionId, connection } = await resolveConnection(
       contact?.whatsapp_connection_id ?? null

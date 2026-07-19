@@ -1,3 +1,5 @@
+> **📜 DOCUMENTO HISTÓRICO** — Reflete o estado do sistema na data indicada. A arquitetura atual usa um único Supabase Self-Hosted com schema `zapp`. Veja [SCHEMA_REFERENCE.md](docs/SCHEMA_REFERENCE.md).
+
 # Auditoria de Paridade — Lovable Cloud → Supabase Self-Hosted (schema `zapp` e correlatos)
 
 **Data:** 2026-07-04

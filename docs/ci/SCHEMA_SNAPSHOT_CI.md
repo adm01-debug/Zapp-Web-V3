@@ -1,5 +1,8 @@
 # CI: Schema Snapshot & Diff
 
+> **Arquitetura atual**: Supabase Self-Hosted (`supabase.atomicabr.com.br`), schema `zapp`. Veja [../SCHEMA_REFERENCE.md](SCHEMA_REFERENCE.md).
+
+
 Fluxo de CI que reconstrói o snapshot do schema `public` por introspecção e compara com `supabase/migrations-snapshot/schema_public_full.sql`. Falha o build em qualquer divergência.
 
 ## 1. Pré-requisito: Supabase self-hosted

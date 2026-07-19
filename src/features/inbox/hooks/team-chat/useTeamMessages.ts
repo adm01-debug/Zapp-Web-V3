@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { useAuth } from '@/features/auth';
 import type { TeamMessage } from './teamChatTypes';
+import { queryKeys } from '@/services/api/queryKeys';
 
 const MESSAGES_PER_PAGE = 50;
 
@@ -14,7 +15,7 @@ export function useTeamMessages(conversationId: string | null, searchQuery: stri
 
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading, isError, error } =
     useInfiniteQuery({
-      queryKey: ['team-messages', conversationId, searchQuery],
+      queryKey: queryKeys.teamChat.messages(conversationId, searchQuery),
       queryFn: async ({ pageParam }) => {
         if (!conversationId) return { messages: [], nextCursor: null };
 
@@ -71,14 +72,14 @@ export function useTeamMessages(conversationId: string | null, searchQuery: stri
         'postgres_changes',
         {
           event: 'INSERT',
-          schema: 'zapp', // Wave 1: team_messages is a view in public — zapp is base table
+          schema: 'zapp', // team_messages: tabela base em zapp
           table: 'team_messages',
           filter: `conversation_id=eq.${conversationId}`,
         },
         (payload) => {
           if (!searchQuery.trim()) {
             queryClient.setQueryData(
-              ['team-messages', conversationId, ''],
+              queryKeys.teamChat.messages(conversationId, ''),
               (oldData: { pages: { messages: TeamMessage[] }[] } | undefined) => {
                 if (!oldData || !oldData.pages) return oldData;
 
@@ -94,13 +95,14 @@ export function useTeamMessages(conversationId: string | null, searchQuery: stri
             );
           }
 
-          void queryClient.invalidateQueries({ queryKey: ['team-messages', conversationId] });
+          void queryClient.invalidateQueries({ queryKey: queryKeys.teamChat.allMessages(conversationId) });
         }
       )
       .subscribe();
 
     return () => {
-      void supabase.removeChannel(channel);
+      channel.unsubscribe();
+      supabase.removeChannel(channel);
     };
   }, [conversationId, queryClient, searchQuery]);
 

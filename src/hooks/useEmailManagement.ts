@@ -371,7 +371,7 @@ export function useEmail() {
         log.error('Email messages load error', dbErr);
       }
     } else {
-      setMessages(Array.isArray(data) ? (data as any) : []);
+      setMessages(Array.isArray(data) ? (data as EmailMessage[]) : []);
     }
     setIsLoadingMessages(false);
   }, []);
@@ -709,7 +709,7 @@ export function useEmail() {
     if (!activeAccountId || isMockId(activeAccountId)) return;
 
     const channel = supabase
-      .channel(`email-threads-${activeAccountId}`)
+      .channel(`email-threads-email-${activeAccountId}`)
       .on(
         'postgres_changes',
         {
@@ -720,10 +720,10 @@ export function useEmail() {
         },
         (payload) => {
           if (payload.eventType === 'INSERT') {
-            const nt = mapBaseThreadRow(payload.new as any);
+            const nt = mapBaseThreadRow(payload.new as Record<string, unknown>);
             setThreads((prev) => [nt, ...prev]);
           } else if (payload.eventType === 'UPDATE') {
-            const ut = mapBaseThreadRow(payload.new as any);
+            const ut = mapBaseThreadRow(payload.new as Record<string, unknown>);
             setThreads((prev) =>
               prev.map((t) => (t.id === ut.id ? { ...t, ...definedOnly(ut) } : t))
             );
@@ -737,6 +737,7 @@ export function useEmail() {
       .subscribe();
 
     return () => {
+      channel.unsubscribe();
       supabase.removeChannel(channel);
     };
   }, [activeAccountId]);

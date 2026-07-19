@@ -108,7 +108,7 @@ export function useBridgeStatus() {
 
       // 4. Recent Message Traffic — count uses count:'exact'+head:true (no row transfer)
       const fiveMinsAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
-      // provider_message_log is in the 'zapp' schema, absent from public-schema generated types
+      // provider_message_log is in the 'zapp' schema, now present in zapp-schema generated types
       const { count: msgCount, data: lastMsgRaw } = await (
         supabase as unknown as { from(t: string): ReturnType<typeof supabase.from> }
       )
@@ -195,7 +195,7 @@ export function useBridgeStatus() {
       .channel('health-incidents')
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'system_health_incidents' },
+        { event: '*', schema: 'zapp', table: 'system_health_incidents' },
         () => {
           void fetchIncidents();
           void checkHealth();
@@ -217,7 +217,9 @@ export function useBridgeStatus() {
 
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
+      trafficSub.unsubscribe();
       supabase.removeChannel(trafficSub);
+      alertsSub.unsubscribe();
       supabase.removeChannel(alertsSub);
     };
   }, [fetchIncidents, checkHealth, autoRefresh]);

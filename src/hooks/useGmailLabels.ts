@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { emailMappers } from '@/utils/emailMappers';
@@ -10,19 +10,25 @@ export type { EmailLabel };
 const log = getLogger('useEmailLabels');
 
 export const SYSTEM_LABELS: Array<{ id: string; name: string; icon: string; color: string }> = [
-  { id: 'INBOX', name: 'Inbox', icon: 'inbox', color: '#1a73e8' },
-  { id: 'STARRED', name: 'Favoritos', icon: 'star', color: '#f29900' },
-  { id: 'IMPORTANT', name: 'Importantes', icon: 'flag', color: '#e37400' },
-  { id: 'SENT', name: 'Enviados', icon: 'send', color: '#34a853' },
-  { id: 'DRAFTS', name: 'Rascunhos', icon: 'draft', color: '#9e9e9e' },
-  { id: 'SPAM', name: 'Spam', icon: 'block', color: '#d93025' },
-  { id: 'TRASH', name: 'Lixeira', icon: 'delete', color: '#777777' },
+  { id: 'INBOX', name: 'Inbox', icon: 'inbox', color: 'hsl(var(--primary))' },
+  { id: 'STARRED', name: 'Favoritos', icon: 'star', color: 'hsl(var(--warning))' },
+  { id: 'IMPORTANT', name: 'Importantes', icon: 'flag', color: 'hsl(var(--warning))' },
+  { id: 'SENT', name: 'Enviados', icon: 'send', color: 'hsl(var(--success))' },
+  { id: 'DRAFTS', name: 'Rascunhos', icon: 'draft', color: 'hsl(var(--muted-foreground))' },
+  { id: 'SPAM', name: 'Spam', icon: 'block', color: 'hsl(var(--destructive))' },
+  { id: 'TRASH', name: 'Lixeira', icon: 'delete', color: 'hsl(var(--muted-foreground))' },
 ];
 
 export function useEmailLabels(accountId: string | null) {
   const [labels, setLabels] = useState<EmailLabel[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const mountedRef = useRef(true); // ✅ Fix race condition: mounted guard
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
 
   const loadLabels = useCallback(async () => {
     if (!accountId) return;
@@ -32,6 +38,9 @@ export function useEmailLabels(accountId: string | null) {
     const { data, error: dbErr } = await safeClient.from('email_labels', (q) =>
       q.select('*').eq('account_id', accountId).order('name', { ascending: true })
     );
+
+    // ✅ Fix: não atualizar estado se componente desmontado
+    if (!mountedRef.current) return;
 
     if (dbErr) {
       log.warn('Email labels load error', dbErr.message);

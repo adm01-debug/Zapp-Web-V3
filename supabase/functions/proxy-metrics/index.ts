@@ -226,8 +226,7 @@ Deno.serve(async (req) => {
   const since = new Date(Date.now() - WINDOW_SECONDS[windowKey] * 1000).toISOString()
 
   const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  })
+    auth: { persistSession: false, autoRefreshToken: false }, db: { schema: "zapp" } })
 
   // Page through proxy_metrics rows in the window (cap 5000 to bound memory).
   const PAGE = 1000

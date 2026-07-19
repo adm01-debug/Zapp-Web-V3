@@ -183,7 +183,7 @@ const ContactRow = memo(
 
         {/* Tags */}
         <div className="hidden max-w-[120px] shrink-0 items-center gap-1 xl:flex">
-          {contact.tags?.slice(0, 2).map((tag) => (
+          {contact.tags?.slice(0, 2).map((tag: string) => (
             <Badge key={tag} variant="secondary" className="h-4 truncate px-1 text-[10px]">
               {tag}
             </Badge>
@@ -252,8 +252,6 @@ const TableHeader = memo(
     onSelectIds: (ids: string[]) => void;
   }) => {
     const allSelected = selectedIds.length === contacts.length && contacts.length > 0;
-    const _someSelected = selectedIds.length > 0 && selectedIds.length < contacts.length;
-
     return (
       <div
         className="flex items-center gap-3 border-b bg-muted/30 px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground"

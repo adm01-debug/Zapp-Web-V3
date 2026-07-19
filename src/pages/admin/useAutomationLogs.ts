@@ -74,13 +74,14 @@ export function useAutomationLogs(filters: AutomationLogsFilters) {
       .channel('automation-executions-audit')
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'automation_executions' },
+        { event: '*', schema: 'zapp', table: 'automation_executions' },
         () => {
           if (page === 0) void load();
         }
       )
       .subscribe();
     return () => {
+      ch.unsubscribe();
       supabase.removeChannel(ch);
     };
   }, [page, load]);

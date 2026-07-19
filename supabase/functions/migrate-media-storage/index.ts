@@ -59,7 +59,7 @@ serve(async (req) => {
     const supabaseKey = requireEnv('SUPABASE_SERVICE_ROLE_KEY');
     const evolutionUrl = Deno.env.get('EVOLUTION_API_URL');
     const evolutionKey = Deno.env.get('EVOLUTION_API_KEY');
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const supabase = createClient(supabaseUrl, supabaseKey, { db: { schema: "zapp" } });
 
     // Get all active WhatsApp connections with instance IDs
     const { data: connections } = await supabase

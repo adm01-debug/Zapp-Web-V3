@@ -1,3 +1,5 @@
+> **📜 DOCUMENTO HISTÓRICO** — Reflete o estado do sistema na data indicada. A arquitetura atual usa um único Supabase Self-Hosted com schema `zapp`. Veja [SCHEMA_REFERENCE.md](docs/SCHEMA_REFERENCE.md).
+
 # Finalização da migração Lovable Cloud → banco canônico (schema `zapp`)
 
 **Data:** 2026-07-01 · **Padrão adotado:** (A) storage real em `zapp`/`public` + views de compatibilidade.

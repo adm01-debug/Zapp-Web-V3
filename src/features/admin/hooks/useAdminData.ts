@@ -1,8 +1,49 @@
 import { useState, useCallback } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { toast } from 'sonner';
+import { unwrapRows } from '@/lib/supabase-helpers';
+import { queryKeys } from '@/services/api/queryKeys';
 import type { AppRole } from '@/features/auth';
+
+interface ProfileRow {
+  id: string;
+  user_id: string;
+  name: string;
+  email: string | null;
+  avatar_url: string | null;
+  nickname: string | null;
+  signature: string | null;
+  job_title: string | null;
+  department: string | null;
+  phone: string | null;
+  access_level: string | null;
+  max_chats: number | null;
+  can_download: boolean;
+  is_active: boolean | null;
+  created_at: string;
+}
+
+interface UserRoleRow {
+  user_id: string;
+  role: AppRole;
+}
+
+interface AuditLogRow {
+  id: string;
+  user_id: string | null;
+  action: string;
+  entity_type: string | null;
+  details: unknown;
+  created_at: string;
+}
+
+interface ProfileMini {
+  user_id: string;
+  name: string;
+  email: string | null;
+}
 
 export interface UserWithRole {
   id: string;
@@ -49,6 +90,7 @@ export const accessLevelConfig: Record<string, { label: string; description: str
 };
 
 export function useAdminData(activeTab: 'users' | 'audit' | 'crm') {
+  const queryClient = useQueryClient();
   const [users, setUsers] = useState<UserWithRole[]>([]);
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(true);
@@ -57,21 +99,23 @@ export function useAdminData(activeTab: 'users' | 'audit' | 'crm') {
     setLoading(true);
 
     if (activeTab === 'users') {
-      const { data: profiles, error: profilesErr } = await supabase
+      const { data: profilesData, error: profilesErr } = await supabase
         .from('profiles')
         .select('*')
         .order('name')
         .limit(1000);
 
-      const { data: roles, error: rolesErr } = await supabase
+      const { data: rolesData, error: rolesErr } = await supabase
         .from('user_roles')
         .select('*')
         .limit(1000);
 
       if (profilesErr) toast.error('Erro ao carregar usuários');
       else if (rolesErr) toast.error('Erro ao carregar permissões');
-      else if (profiles && roles) {
-        const usersWithRoles = profiles.map((profile) => {
+      else {
+        const profiles = unwrapRows<ProfileRow>(profilesData);
+        const roles = unwrapRows<UserRoleRow>(rolesData);
+        const usersWithRoles: UserWithRole[] = profiles.map((profile) => {
           const userRole = roles.find((r) => r.user_id === profile.user_id);
           return {
             ...profile,
@@ -81,7 +125,7 @@ export function useAdminData(activeTab: 'users' | 'audit' | 'crm') {
         setUsers(usersWithRoles);
       }
     } else if (activeTab === 'audit') {
-      const { data: logs, error: logsErr } = await supabase
+      const { data: logsData, error: logsErr } = await supabase
         .from('audit_logs')
         .select('*')
         .order('created_at', { ascending: false })
@@ -89,22 +133,28 @@ export function useAdminData(activeTab: 'users' | 'audit' | 'crm') {
 
       if (logsErr) {
         toast.error('Erro ao carregar logs de auditoria');
-      } else if (logs) {
+      } else {
+        const logs = unwrapRows<AuditLogRow>(logsData);
         const userIds = [
           ...new Set(logs.map((l) => l.user_id).filter((id): id is string => id !== null)),
         ];
-        const { data: profiles } =
+        const { data: profilesData } =
           userIds.length > 0
-            ? await supabase.from('profiles').select('user_id, name, email').in('user_id', userIds)
+            ? await supabase.from('profiles').select('user_id, name, email').in(
+                'user_id',
+                userIds
+              )
             : { data: [] };
+        const profiles = unwrapRows<ProfileMini>(profilesData);
 
         const logsWithUsers: AuditLog[] = logs.map((log) => ({
           ...log,
-          user: profiles?.find((p) => p.user_id === log.user_id) || null,
+          user: profiles.find((p) => p.user_id === log.user_id) || null,
         }));
         setAuditLogs(logsWithUsers);
       }
     }
+
 
     setLoading(false);
   }, [activeTab]);
@@ -148,9 +198,10 @@ export function useAdminData(activeTab: 'users' | 'audit' | 'crm') {
       } else {
         toast.success(user.is_active ? 'Usuário desativado' : 'Usuário ativado');
         fetchData();
+        void queryClient.invalidateQueries({ queryKey: queryKeys.teamProfiles.all() });
       }
     },
-    [fetchData]
+    [fetchData, queryClient]
   );
 
   const handleSaveUser = useCallback(
@@ -192,9 +243,11 @@ export function useAdminData(activeTab: 'users' | 'audit' | 'crm') {
       }
       toast.success('Usuário atualizado com sucesso');
       fetchData();
+      void queryClient.invalidateQueries({ queryKey: queryKeys.teamProfiles.all() });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.userProfile.me() });
       return true;
     },
-    [fetchData]
+    [fetchData, queryClient]
   );
 
   interface CreateUserPayload {
@@ -272,13 +325,14 @@ export function useAdminData(activeTab: 'users' | 'audit' | 'crm') {
         }
         toast.success('Usuário criado com sucesso!');
         fetchData();
+        void queryClient.invalidateQueries({ queryKey: queryKeys.teamProfiles.all() });
         return true;
       } catch {
         toast.error('Erro ao criar usuário');
         return false;
       }
     },
-    [fetchData]
+    [fetchData, queryClient]
   );
 
   return {

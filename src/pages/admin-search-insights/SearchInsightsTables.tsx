@@ -8,6 +8,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { queryKeys } from '@/services/api/queryKeys';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -20,7 +21,7 @@ interface SearchInsight {
 
 export function SearchInsightsTables() {
   const { data: insights = [], isLoading } = useQuery({
-    queryKey: ['search-insights'],
+    queryKey: queryKeys.adminOps.searchInsights(),
     queryFn: async () => {
       const { data, error } = await supabase
         .from('search_insights')

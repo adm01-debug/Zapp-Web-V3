@@ -57,8 +57,7 @@ Deno.serve(async (req) => {
     }
 
     const supabaseClient = createClient(
-      requireEnv('SUPABASE_URL'),
-      requireEnv('SUPABASE_SERVICE_ROLE_KEY')
+      requireEnv('SUPABASE_URL'), requireEnv('SUPABASE_SERVICE_ROLE_KEY'), { db: { schema: "zapp" } }
     );
 
     let audioData: Blob | null = null;

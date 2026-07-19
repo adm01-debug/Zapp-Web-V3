@@ -9,6 +9,8 @@ vi.mock('@/integrations/supabase/client', () => {
       order: vi.fn().mockResolvedValue({ data: [], error: null }),
       eq: vi.fn().mockReturnValue({
         order: vi.fn().mockResolvedValue({ data: [], error: null }),
+        single: vi.fn().mockResolvedValue({ data: { id: 'p1' }, error: null }),
+        maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }), // fix: maybeSingle adicionado
       }),
       single: vi.fn().mockResolvedValue({ data: { id: 'p1' }, error: null }),
     }),

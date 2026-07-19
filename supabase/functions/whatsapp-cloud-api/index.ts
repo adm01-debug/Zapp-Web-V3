@@ -123,12 +123,12 @@ Deno.serve(async (req) => {
     return errorResponse('Service role key not configured. Contact administrator.', 500, req);
   }
 
-  const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
+  const supabase = createClient(supabaseUrl, supabaseServiceRoleKey, { db: { schema: "zapp" } });
   const externalUrl = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('EXTERNAL_SUPABASE_URL'));
   const externalKey = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('EXTERNAL_SUPABASE_SERVICE_ROLE_KEY'))
     ?? (Deno.env.get('SELFHOSTED_SUPABASE_ANON_KEY') ?? Deno.env.get('EXTERNAL_SUPABASE_ANON_KEY'));
   const externalClient = externalUrl && externalKey
-    ? createClient(externalUrl, externalKey)
+    ? createClient(externalUrl, externalKey, { db: { schema: 'evo' } })
     : null;
 
   const creds = await loadCredentials(supabase, instanceName);

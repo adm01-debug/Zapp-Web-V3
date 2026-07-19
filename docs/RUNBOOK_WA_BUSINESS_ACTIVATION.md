@@ -1,5 +1,8 @@
 # RUNBOOK — Ativação WhatsApp Cloud API Oficial (instância `wppmkt`)
 
+> **Arquitetura atual**: Supabase Self-Hosted (`supabase.atomicabr.com.br`), schema `zapp`. Veja [SCHEMA_REFERENCE.md](SCHEMA_REFERENCE.md).
+
+
 > Preparado em 2026-07-06 · Auditoria **wa-business-prep** · Score **10/10**
 > Validação: 252 cenários adversariais (budget guard) + 6 asserts RLS multi-role + 5 probes E2E de infra — todos PASS.
 

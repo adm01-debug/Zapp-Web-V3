@@ -1,7 +1,7 @@
 import { useRef, useCallback, useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/features/auth';
-import { log, getLogger } from '@/lib/logger';
+import { getLogger } from '@/lib/logger';
 import { safeGetItem, safeSetItem } from '@/lib/safeStorage';
 
 const viewTransitionLog = getLogger('useViewTransition');
@@ -11,20 +11,20 @@ const deviceDetectionLog = getLogger('DeviceDetection');
 // TYPE DEFINITIONS
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════════════
 
-interface UseSwipeGestureOptions {
+export interface UseSwipeGestureOptions {
   onSwipeLeft?: () => void;
   onSwipeRight?: () => void;
   threshold?: number;
   enabled?: boolean;
 }
 
-interface SwipeState {
+export interface SwipeState {
   offsetX: number;
   isSwiping: boolean;
   direction: 'left' | 'right' | null;
 }
 
-interface UseSwipeNavigationOptions {
+export interface UseSwipeNavigationOptions {
   onSwipeBack?: () => void;
   onSwipeForward?: () => void;
   canGoBack?: boolean;
@@ -34,7 +34,7 @@ interface UseSwipeNavigationOptions {
   enabled?: boolean;
 }
 
-interface UserDevice {
+export interface UserDevice {
   id: string;
   device_fingerprint: string;
   device_name: string | null;
@@ -48,7 +48,7 @@ interface UserDevice {
   last_seen_at: string;
 }
 
-interface UserSession {
+export interface UserSession {
   id: string;
   device_id: string | null;
   ip_address: string | null;
@@ -68,7 +68,7 @@ export interface SidebarState {
   maxReached: boolean;
 }
 
-interface UseAriaAnnouncerReturn {
+export interface UseAriaAnnouncerReturn {
   announce: (message: string) => void;
 }
 

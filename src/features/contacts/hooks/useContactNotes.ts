@@ -1,11 +1,18 @@
 import { useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { queryKeys } from '@/services/api/queryKeys';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/features/auth';
 import { toast } from '@/hooks/use-toast';
 import { getLogger } from '@/lib/logger';
 
 const log = getLogger('useContactNotes');
+
+export interface ContactNoteAuthor {
+  id: string;
+  name: string | null;
+  avatar_url: string | null;
+}
 
 export interface ContactNote {
   id: string;
@@ -14,11 +21,8 @@ export interface ContactNote {
   content: string;
   created_at: string;
   updated_at: string;
-  author?: {
-    id: string;
-    name: string;
-    avatar_url: string | null;
-  };
+  /** Sempre presente. Quando o autor não é encontrado, retorna um autor placeholder com id === author_id. */
+  author: ContactNoteAuthor;
 }
 
 export function useContactNotes(contactId: string) {
@@ -27,7 +31,7 @@ export function useContactNotes(contactId: string) {
 
   // Get current user's profile
   const { data: profile } = useQuery({
-    queryKey: ['my-profile', user?.id],
+    queryKey: queryKeys.userProfile.meById(user?.id),
     queryFn: async () => {
       if (!user?.id) return null;
       const { data, error } = await supabase
@@ -44,7 +48,7 @@ export function useContactNotes(contactId: string) {
 
   // Fetch notes for this contact
   const { data: notes = [], isLoading, error, refetch } = useQuery({
-    queryKey: ['contact-notes', contactId],
+    queryKey: queryKeys.contactDetails.notes(contactId),
     queryFn: async () => {
       const { data, error } = await supabase
         .from('contact_notes')
@@ -68,12 +72,14 @@ export function useContactNotes(contactId: string) {
         .select('id, name, avatar_url')
         .in('id', authorIds);
 
-      const authorsMap = new Map(authors?.map(a => [a.id, a]) || []);
+      const authorsMap = new Map<string, ContactNoteAuthor>(
+        (authors ?? []).map((a) => [a.id, { id: a.id, name: a.name ?? null, avatar_url: a.avatar_url ?? null }])
+      );
 
-      return (data || []).map(note => ({
+      return (data || []).map<ContactNote>((note) => ({
         ...note,
-        author: authorsMap.get(note.author_id),
-      })) as ContactNote[];
+        author: authorsMap.get(note.author_id) ?? { id: note.author_id, name: null, avatar_url: null },
+      }));
     },
     enabled: !!contactId,
   });
@@ -91,13 +97,14 @@ export function useContactNotes(contactId: string) {
           content,
         })
         .select()
-        .single();
+        .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
 
       if (error) throw error;
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['contact-notes', contactId] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.contactDetails.notes(contactId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.internalNotes.contact(contactId) });
       toast({
         title: 'Nota adicionada',
         description: 'A nota foi salva com sucesso.',
@@ -124,7 +131,8 @@ export function useContactNotes(contactId: string) {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['contact-notes', contactId] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.contactDetails.notes(contactId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.internalNotes.contact(contactId) });
       toast({
         title: 'Nota removida',
         description: 'A nota foi removida com sucesso.',
@@ -157,6 +165,6 @@ export function useContactNotes(contactId: string) {
     deleteNote,
     isAdding: addNoteMutation.isPending,
     isDeleting: deleteNoteMutation.isPending,
-    currentProfileId: profile?.id,
+    currentProfileId: (profile?.id ?? null) as string | null,
   };
 }

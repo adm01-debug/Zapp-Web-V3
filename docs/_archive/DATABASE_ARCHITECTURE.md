@@ -1,3 +1,5 @@
+> **⚠️ ATENÇÃO**: Este documento está parcialmente desatualizado. A arquitetura foi consolidada para um único Supabase Self-Hosted com schema `zapp`. Veja [SCHEMA_REFERENCE.md](SCHEMA_REFERENCE.md) para a versão canônica.
+
 # 🏧 Arquitetura de Bancos de Dados — ZAPP WEB
 
 ## Visão Geral

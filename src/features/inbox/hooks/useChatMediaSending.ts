@@ -152,7 +152,7 @@ export function useChatMediaSending(contactId: string, contactPhone: string | un
             status: 'sending',
           })
           .select('id')
-          .single();
+          .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
 
         if (dbDataErr) {
           log.error('[Sticker] DB insert failed:', dbDataErr);
@@ -271,7 +271,7 @@ export function useChatMediaSending(contactId: string, contactPhone: string | un
             request_id: trace.requestId,
           })
           .select('id')
-          .single();
+          .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
 
         const results = await Promise.allSettled([apiPromise, dbPromise]);
         const apiResult =
@@ -362,7 +362,7 @@ export function useChatMediaSending(contactId: string, contactPhone: string | un
             ...(memeId ? { audio_meme_id: memeId } : {}),
           })
           .select('id')
-          .single();
+          .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
 
         const results = await Promise.allSettled([apiPromise, dbPromise]);
         const apiResult =

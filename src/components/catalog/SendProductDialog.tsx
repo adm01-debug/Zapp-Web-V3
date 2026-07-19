@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
-import { Send, ChevronDown, Copy, Download, Check, Pencil, User } from 'lucide-react';
+import { Send, ChevronDown, Copy, Download, Pencil, User } from 'lucide-react';
 import { ExternalProduct, useExternalCatalog } from '@/hooks/useExternalApiManagement';
 import { toast } from '@/hooks/use-toast';
 import {

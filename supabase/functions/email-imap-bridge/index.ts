@@ -89,7 +89,7 @@ serve(async (req) => {
       return json({ error: 'Server configuration error' }, 503);
     }
 
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const supabase = createClient(supabaseUrl, supabaseServiceKey, { db: { schema: "zapp" } });
 
     let bodyRaw: unknown;
     try {

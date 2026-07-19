@@ -1,10 +1,10 @@
+import React, { useState, useMemo, forwardRef, useEffect, useRef } from 'react';
 import { TeamConversation } from '@/hooks/useTeamChat';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Plus, Search, Users, User, Building2, Settings2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useState, useMemo, forwardRef, useEffect, useRef } from 'react';
 import { useDebouncedValue } from '@/hooks/useDebounce';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -21,7 +21,7 @@ interface Props {
   onNewConversation: () => void;
 }
 
-export const TeamConversationList = forwardRef<HTMLDivElement, Props>(function TeamConversationList(
+export const TeamConversationList = React.memo(forwardRef<HTMLDivElement, Props>(function TeamConversationList(
   { conversations, isLoading, selectedId, onSelect, onNewConversation },
   _ref
 ) {
@@ -30,7 +30,6 @@ export const TeamConversationList = forwardRef<HTMLDivElement, Props>(function T
   const [filterType, setFilterType] = useState<'all' | 'direct' | 'group' | 'department'>('all');
   const [mgmtDept, setMgmtDept] = useState<{ id: string; name: string } | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
-  const _listRef = useRef<HTMLDivElement>(null);
 
   const isAdmin = profile?.role === 'admin';
 
@@ -159,7 +158,7 @@ export const TeamConversationList = forwardRef<HTMLDivElement, Props>(function T
         ) : (
           <div className="space-y-0.5 p-1">
             {filtered.map((conv, index) => (
-              <button
+              <button type="button"
                 key={conv.id}
                 tabIndex={0}
                 data-testid={`conversation-${conv.id}`}
@@ -254,4 +253,4 @@ export const TeamConversationList = forwardRef<HTMLDivElement, Props>(function T
       )}
     </>
   );
-});
+}));

@@ -107,15 +107,26 @@ GRANT EXECUTE ON FUNCTION public.decrypt_gmail_token(bytea) TO service_role;
 
 -- ============================================================
 -- Sprint 2 · LOW-1 · Novos usuários entram como 'pending' (opt-in)
+--
+-- /!\ AUDITORIA 2026-07-17 — ESTE BLOCO NUNCA FOI APLICADO NO BANCO CANONICO.
+--     Verificado via information_schema.columns em supabase.atomicabr.com.br:
+--     zapp.profiles tem 25 colunas e NENHUMA onboarding_*.
+--     Grep em src/ + supabase/: 0 usos de onboarding_status. types.ts: 0 refs.
+--     O GAP REPORT do Lovable classificou isso como "coluna faltando (P0)" e a
+--     auditoria de 16/07 classificou como "fantasma do Cloud". As DUAS estao
+--     erradas: e uma migration deliberada do Sprint 2 que nunca foi executada.
+--     NAO aplicar isoladamente — criaria coluna sem consumidor e o gate
+--     schema-drift acusaria divergencia. Aplicar SOMENTE junto com a UI do
+--     Sprint 2, regenerando types.ts no mesmo PR.
 --   Adiciona coluna status idempotente; não altera fluxo até UI adotar
 -- ============================================================
 DO $$
 BEGIN
   IF NOT EXISTS (
     SELECT 1 FROM information_schema.columns
-    WHERE table_schema='public' AND table_name='profiles' AND column_name='onboarding_status'
+    WHERE table_schema='zapp' AND table_name='profiles' AND column_name='onboarding_status'
   ) THEN
-    ALTER TABLE public.profiles
+    ALTER TABLE zapp.profiles
       ADD COLUMN onboarding_status text NOT NULL DEFAULT 'active'
       CHECK (onboarding_status IN ('pending','active','suspended'));
   END IF;

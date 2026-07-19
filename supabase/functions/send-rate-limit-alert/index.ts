@@ -13,10 +13,7 @@ Deno.serve(async (req) => {
   const log = new Logger("send-rate-limit-alert");
 
   try {
-    const supabaseClient = createClient(
-      requireEnv("SUPABASE_URL"),
-      requireEnv("SUPABASE_SERVICE_ROLE_KEY")
-    );
+    const supabaseClient = createClient(requireEnv("SUPABASE_URL"), requireEnv("SUPABASE_SERVICE_ROLE_KEY"), { db: { schema: "zapp" }, auth: { persistSession: false } });
 
     const parsed = parseBody(RateLimitAlertSchema, await req.json());
     if (!parsed.success) return errorResponse(parsed.error, 400, req);

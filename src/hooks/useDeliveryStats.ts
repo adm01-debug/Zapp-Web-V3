@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { dbList } from '@/integrations/datasource/db';
 import { RPC } from '@/integrations/datasource/rpcCatalog';
+import { queryKeys } from '@/services/api/queryKeys';
 import { startOfHour, format, parseISO, subHours } from 'date-fns';
 import { getLogger } from '@/lib/logger';
 
@@ -143,7 +144,7 @@ function generateMockData(remoteJid: string): DeliveryStatsResult {
 /** Retrieves message delivery statistics and success rates. */
 export function useDeliveryStats(remoteJid: string | undefined, instance = 'wpp2') {
   return useQuery<DeliveryStatsResult>({
-    queryKey: ['delivery-stats', remoteJid, instance],
+    queryKey: queryKeys.deliveryStats.contact(remoteJid, instance),
     enabled: !!remoteJid,
     staleTime: 30_000,
     queryFn: async () => {

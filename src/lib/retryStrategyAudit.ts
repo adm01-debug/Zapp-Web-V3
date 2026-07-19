@@ -113,7 +113,7 @@ export const RETRY_CONFIG_ASYNC: RetryConfig = {
  */
 export function classifyError(error: Error | unknown): RetryableErrorType {
   const msg = (error instanceof Error ? error.message : String(error)).toLowerCase();
-  const code = (error as any)?.code?.toUpperCase() || '';
+  const code = (error as { code?: string })?.code?.toUpperCase() || '';
 
   // Network errors
   if (
@@ -234,7 +234,6 @@ class CircuitBreaker {
 export class RetryExecutor {
   private metricsMap = new Map<string, RetryMetrics>();
   private circuitBreakerMap = new Map<string, CircuitBreaker>();
-  private retryBudget: number;
   private retryBudgetRemainingMs: number;
 
   constructor(
@@ -242,7 +241,6 @@ export class RetryExecutor {
     private operationName: string,
     retryBudgetMs: number = 300000 // 5 minutes default
   ) {
-    this.retryBudget = retryBudgetMs;
     this.retryBudgetRemainingMs = retryBudgetMs;
 
     const metrics: RetryMetrics = {

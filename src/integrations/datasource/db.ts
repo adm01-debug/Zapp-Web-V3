@@ -8,7 +8,7 @@
  *   const { data } = await dbFrom('messages').select('*').eq('contact_id', id);
  *   const channel = dbChannel('messages', `msgs:${id}`)
  *     .on('postgres_changes',
- *         { event: '*', schema: 'public', table: dbTable('messages'),
+ *         { event: '*', schema: 'zapp', table: dbTable('messages'),
  *           filter: `contact_id=eq.${id}` },
  *         handler)
  *     .subscribe();
@@ -25,6 +25,27 @@ import { recordQueryEvent, classifySeverity } from '@/lib/clientTelemetry';
 import { generateCorrelationId } from '@/lib/correlationId';
 import type { RpcDefinition, DatasourceClient } from './rpcCatalog';
 import { validateEntityAccess, validateRpcAccess } from './sentinel';
+
+function extractPaginationParams(params: Record<string, unknown>): {
+  limit: number | null;
+  offset: number | null;
+} {
+  return {
+    limit: typeof params.p_limit === 'number' ? params.p_limit : null,
+    offset: typeof params.p_offset === 'number' ? params.p_offset : null,
+  };
+}
+
+function extractErrorMessage(err: unknown): string {
+  if (err instanceof Error) return err.message;
+  if (typeof err === 'string') return err;
+  return 'Unknown error';
+}
+
+function isTimeoutError(err: unknown, message: string): boolean {
+  if (err instanceof Error && err.name === 'AbortError') return true;
+  return message.toLowerCase().includes('timeout') || message.toLowerCase().includes('timed out');
+}
 
 /**
  * Fail-fast com mensagem acionável quando uma entidade não está no registry.

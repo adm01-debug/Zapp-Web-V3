@@ -7,9 +7,12 @@
 
 ---
 
+> **Atualização 2026-07-15**: O projeto foi consolidado para um ÚNICO Supabase Self-Hosted.
+> Schema principal: `zapp`. Veja [../SCHEMA_REFERENCE.md](../SCHEMA_REFERENCE.md).
+
 ## 1. Arquitetura de Dados
 
-O ZAPP Web usa **dois bancos de dados Supabase**:
+O ZAPP Web usa **um único Supabase Self-Hosted** com múltiplos schemas:
 
 | Banco | Tipo | URL | Função |
 |-------|------|-----|--------|

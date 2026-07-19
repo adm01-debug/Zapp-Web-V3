@@ -1,5 +1,8 @@
 # Playbook: Acessando Banco de Dados Supabase de Projetos Lovable
 
+> **Arquitetura atual**: Supabase Self-Hosted (`supabase.atomicabr.com.br`), schema `zapp`. Veja [../SCHEMA_REFERENCE.md](SCHEMA_REFERENCE.md).
+
+
 > **Autor**: Claude (sessão 29-30/04/2026 com Joaquim / Promo Brindes)
 > **Versão**: 1.0 — 01/05/2026
 > **Uso**: Documentação interna para Claude. Consultar sempre que precisar acessar, diagnosticar ou migrar o Supabase de qualquer projeto Lovable.

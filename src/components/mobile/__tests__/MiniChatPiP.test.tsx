@@ -6,7 +6,7 @@ import { MiniChatPiP } from '@/components/mobile/MiniChatPiP';
 // Mock framer-motion
 vi.mock('framer-motion', () => ({
   motion: {
-    div: ({ children, className, style, onClick, ..._rest }: HTMLAttributes<HTMLDivElement>) => (
+    div: ({ children, className, style, onClick }: HTMLAttributes<HTMLDivElement>) => (
       <div className={className} style={style} onClick={onClick} data-testid="pip-container">
         {children}
       </div>

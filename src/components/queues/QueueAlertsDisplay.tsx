@@ -1,5 +1,6 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Users, Clock, TrendingDown, MessageSquare } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { QueueAlert } from '@/hooks/useQueueGoals';
 
@@ -9,7 +10,7 @@ interface QueueAlertsDisplayProps {
   onNavigate?: (queueId: string) => void;
 }
 
-const alertIcons = {
+const alertIcons: Record<QueueAlert['type'], LucideIcon> = {
   waiting_contacts: Users,
   wait_time: Clock,
   assignment_rate: TrendingDown,
@@ -42,7 +43,7 @@ export function QueueAlertsDisplay({ alerts, onDismiss, onNavigate }: QueueAlert
             >
               <div 
                 className="w-1 h-8 rounded-full" 
-                style={{ backgroundColor: alert.queueColor }}
+                style={{ backgroundColor: alert.queueColor ?? 'hsl(var(--primary))' }}
               />
               
               <div className={`

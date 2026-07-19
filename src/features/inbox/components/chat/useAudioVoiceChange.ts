@@ -10,15 +10,16 @@ export function useAudioVoiceChange() {
       toast({ title: 'Voz alterada!', description: 'Enviando nova versao do audio...' });
       const filePath = `audios/${Date.now()}.mp3`;
       const { error: uploadError } = await supabase.storage
-        .from('chat-media')
+        .from('audio-messages')
         .upload(filePath, newBlob);
       if (uploadError) throw uploadError;
       const {
         data: { publicUrl },
-      } = supabase.storage.from('chat-media').getPublicUrl(filePath);
-      await dbFrom('messages')
-        .update({ mediaUrl: publicUrl, updated_at: new Date().toISOString() })
+      } = supabase.storage.from('audio-messages').getPublicUrl(filePath);
+      const { error: updateError } = await dbFrom('messages')
+        .update({ media_url: publicUrl, updated_at: new Date().toISOString() })
         .eq('id', messageId);
+      if (updateError) throw updateError;
       toast({ title: 'Sucesso', description: 'Audio atualizado com a nova voz.' });
     } catch (err: unknown) {
       // ignore-audit

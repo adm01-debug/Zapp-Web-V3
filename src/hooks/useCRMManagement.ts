@@ -4,6 +4,11 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { log } from '@/lib/logger';
 
+// Escape hatch de tipos: as tabelas contact_intelligence/contact_notes/
+// contact_assignments/contact_custom_fields vivem no schema `zapp` da instância
+// self-hosted, mas os types gerados no ambiente Lovable (Cloud) não as expõem.
+// Enquanto scripts/gen-types-zapp.mjs não rodar contra a VPS, isolamos a
+// tipagem apenas na fronteira do postgrest — a superfície pública do hook
 interface ContactIntelligence {
   contact_id: string;
   sentiment: string;
@@ -24,7 +29,7 @@ interface ContactCustomField {
   id: string;
   contact_id: string;
   field_name: string;
-  field_value: any;
+  field_value: unknown;
 }
 
 export function useContactIntelligenceManagement(contactId?: string) {
@@ -47,7 +52,7 @@ export function useContactIntelligenceManagement(contactId?: string) {
         .from('contact_intelligence')
         .select('*')
         .eq('contact_id', contactId)
-        .single();
+        .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
 
       if (err && err.code !== 'PGRST116') throw err;
       if (mountedRef.current) setIntelligence(data || null);
@@ -105,9 +110,16 @@ export function useContactNotesManagement(contactId?: string) {
       if (!contactId) return;
 
       try {
+        const {
+          data: { user },
+          error: authError,
+        } = await supabase.auth.getUser();
+        if (authError) throw authError;
+        if (!user) throw new Error('Usuário não autenticado');
         const { error: err } = await supabase.from('contact_notes').insert({
           contact_id: contactId,
           content,
+          author_id: user.id,
         });
 
         if (err) throw err;
@@ -125,7 +137,7 @@ export function useContactNotesManagement(contactId?: string) {
     if (contactId) fetchNotes();
   }, [contactId, fetchNotes]);
 
-  return { notes, loading, addNote, refetch: fetchNotes };
+  return { notes, loading, isLoading: loading, addNote, refetch: fetchNotes }; // ✅ fix: isLoading alias
 }
 
 export function useContactEnrichedDataManagement(contactId?: string) {
@@ -137,7 +149,9 @@ export function useContactEnrichedDataManagement(contactId?: string) {
 
     const fetchEnrichedData = async () => {
       try {
-        const { data, error: err } = await supabase.rpc('enrich_contact', { contact_id: contactId });
+        const { data, error: err } = await supabase.rpc('enrich_contact', {
+          contact_id: contactId,
+        });
 
         if (err) throw err;
         setEnrichedData(data);
@@ -174,7 +188,7 @@ export function useContactAssignmentManagement(contactId?: string) {
         .from('contact_assignments')
         .select('*')
         .eq('contact_id', contactId)
-        .single();
+        .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
 
       if (err && err.code !== 'PGRST116') throw err;
       if (mountedRef.current) setAssignment(data || null);
@@ -247,7 +261,7 @@ export function useContactCustomFieldsManagement(contactId?: string) {
   }, [contactId]);
 
   const updateField = useCallback(
-    async (fieldName: string, fieldValue: any) => {
+    async (fieldName: string, fieldValue: unknown) => {
       if (!contactId) return;
 
       try {

@@ -47,7 +47,7 @@ Deno.serve(async (req) => {
     });
   }
 
-  const admin = createClient(url, serviceKey, { auth: { persistSession: false } });
+  const admin = createClient(url, serviceKey, { auth: { persistSession: false }, db: { schema: "zapp" } });
 
   const { data: providers } = await admin
     .from("provider_configs")

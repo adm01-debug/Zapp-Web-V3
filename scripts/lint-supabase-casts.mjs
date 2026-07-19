@@ -86,6 +86,17 @@ const FORBIDDEN_PATTERNS = [
     fix: 'Usar string literal; se dinâmico, validar contra allowlist em runtime',
     docRef: 'docs/API_CONTRACT.md#4.1',
   },
+  {
+    id: 'SUP-006',
+    severity: 'error',
+    // Detect .schema('evo').from('evolution_instances') — evolution_instances
+    // does NOT exist in the evo schema; only zapp.evolution_instances (view) exists.
+    // Using .schema('evo') causes PGRST205 at runtime.
+    regex: /\.schema\s*\(\s*['"]evo['"]\s*\)\s*\.from\s*\(\s*['"]evolution_instances['"]\s*\)/g,
+    description: '.schema("evo").from("evolution_instances") → PGRST205 at runtime. evolution_instances only exists as a view in zapp schema.',
+    fix: 'Remove .schema("evo") — default zapp client accesses the view correctly: supabase.from("evolution_instances")',
+    docRef: 'CLAUDE.md#regras-críticas-de-schema',
+  },
 ];
 
 // ── Utilitários ───────────────────────────────────────────────────────────────
@@ -130,6 +141,7 @@ async function lintFile(filePath) {
     let match;
     while ((match = regex.exec(content)) !== null) {
       const ctx = getLineContext(content, match.index);
+      if (ctx.text.includes('// ignore-audit')) continue;
       findings.push({
         file: filePath,
         patternId: pattern.id,

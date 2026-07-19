@@ -4,6 +4,7 @@ import {
   TRIGGER_LABEL,
   EMPTY_RULE,
   type Rule,
+  type TriggerType,
 } from '@/hooks/admin/useAdminAutomations';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -17,6 +18,16 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Input } from '@/components/ui/input';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
 import {
   Plus,
   Pencil,
@@ -26,15 +37,24 @@ import {
   Send,
   Clock,
   AlertTriangle,
+  AlertCircle,
+  RefreshCw,
   Building2,
   Radio,
 } from 'lucide-react';
 import { AutomationRuleDialog } from './AutomationRuleDialog';
 
+const SLA_LEVELS = [
+  { value: 'low', label: 'Baixa' },
+  { value: 'normal', label: 'Normal' },
+  { value: 'high', label: 'Alta' },
+  { value: 'critical', label: 'Crítica' },
+];
+
 // Ensure escalate_sla always has required properties with proper types
 function normalizeEscalateSla(
-  partial: Partial<typeof EMPTY_RULE.actions.escalate_sla> | undefined
-): typeof EMPTY_RULE.actions.escalate_sla {
+  partial: Partial<NonNullable<typeof EMPTY_RULE.actions.escalate_sla>> | undefined
+): { enabled: boolean; level: string; reason: string } {
   return {
     enabled: partial?.enabled ?? false,
     level: (partial?.level as string) ?? 'high',
@@ -48,6 +68,8 @@ export default function AdminAutomationsPage() {
     channels,
     departments,
     loading,
+    error,
+    reload,
     save: hookSave,
     remove,
     toggleActive,
@@ -58,6 +80,7 @@ export default function AdminAutomationsPage() {
 
   const [editing, setEditing] = useState<Rule | null>(null);
   const [open, setOpen] = useState(false);
+  const [showErrorDetails, setShowErrorDetails] = useState(false);
 
   const [filterChannel, setFilterChannel] = useState<string>('all');
   const [filterDepartment, setFilterDepartment] = useState<string>('all');
@@ -184,15 +207,93 @@ export default function AdminAutomationsPage() {
 
       <div className="space-y-3">
         {loading && (
-          <p role="status" aria-live="polite" className="text-muted-foreground">
-            Carregando…
-          </p>
+          <div role="status" aria-live="polite" aria-label="Carregando automações">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <Card key={i} className="mb-3 p-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="min-w-0 flex-1 space-y-2">
+                    <Skeleton className="h-5 w-1/3" />
+                    <div className="flex gap-2">
+                      <Skeleton className="h-5 w-16" />
+                      <Skeleton className="h-5 w-24" />
+                      <Skeleton className="h-5 w-20" />
+                    </div>
+                    <Skeleton className="h-4 w-2/3" />
+                  </div>
+                  <Skeleton className="h-9 w-24" />
+                </div>
+              </Card>
+            ))}
+          </div>
         )}
-        {!loading && filtered.length === 0 && (
+        {!loading && error && (
+          <Card
+            role="alert"
+            aria-live="assertive"
+            data-testid="automations-error"
+            className="border-destructive/40 bg-destructive/5 p-6"
+          >
+            <div className="flex items-start gap-3">
+              <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-destructive" aria-hidden />
+              <div className="flex-1 space-y-2">
+                <h2 className="font-semibold text-destructive">
+                  Não foi possível carregar as automações
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                  {error.message ||
+                    'Ocorreu um erro inesperado ao buscar as regras. Tente novamente em instantes.'}
+                </p>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      void reload();
+                    }}
+                    disabled={loading}
+                    data-testid="automations-retry"
+                  >
+                    <RefreshCw className="mr-2 h-4 w-4" aria-hidden />
+                    Tentar novamente
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowErrorDetails((v) => !v)}
+                    data-testid="automations-error-toggle"
+                    aria-expanded={showErrorDetails}
+                  >
+                    {showErrorDetails ? 'Ocultar detalhes' : 'Ver detalhes técnicos'}
+                  </Button>
+                </div>
+                {showErrorDetails && (
+                  <pre
+                    data-testid="automations-error-details"
+                    className="mt-2 max-h-64 overflow-auto rounded bg-muted p-3 text-xs text-muted-foreground"
+                  >
+                    {JSON.stringify(
+                      {
+                        name: error.name,
+                        message: error.message,
+                        stack: error.stack?.split('\n').slice(0, 6),
+                        cause: (error as { cause?: unknown }).cause ?? null,
+                        timestamp: new Date().toISOString(),
+                      },
+                      null,
+                      2
+                    )}
+                  </pre>
+                )}
+              </div>
+            </div>
+          </Card>
+        )}
+        {!loading && !error && filtered.length === 0 && (
           <Card className="p-8 text-center text-muted-foreground">
             Nenhuma regra com esses filtros.
           </Card>
         )}
+
         {filtered.map((r) => (
           <Card key={r.id} className="p-4">
             <div className="flex items-start justify-between gap-4">
@@ -424,7 +525,7 @@ export default function AdminAutomationsPage() {
                     <div>
                       <Label htmlFor="auto-inactivity-side">De quem?</Label>
                       <Select
-                        value={((editing as any).trigger_config?.side as string) ?? 'any'}
+                        value={(editing.trigger_config?.side ?? 'any') as string}
                         onValueChange={(v) =>
                           setEditing({
                             ...editing,
@@ -478,9 +579,9 @@ export default function AdminAutomationsPage() {
                   <Input
                     id="auto-trigger-tags"
                     value={
-                      Array.isArray((editing as any).trigger_config?.tags)
-                        ? ((editing as any).trigger_config.tags as string[]).join(', ')
-                        : (((editing as any).trigger_config?.tag ?? '') as string)
+                      Array.isArray(editing.trigger_config?.tags)
+                        ? (editing.trigger_config.tags as string[]).join(', ')
+                        : ((editing.trigger_config?.tag ?? '') as string)
                     }
                     onChange={(e) =>
                       setEditing({
@@ -562,7 +663,7 @@ export default function AdminAutomationsPage() {
                             escalate_sla: {
                               ...normalizeEscalateSla(editing.actions.escalate_sla),
                               enabled: v,
-                            } as any,
+                            },
                           },
                         })
                       }
@@ -584,7 +685,7 @@ export default function AdminAutomationsPage() {
                                 escalate_sla: {
                                   ...normalizeEscalateSla(editing.actions.escalate_sla),
                                   level: v,
-                                } as any,
+                                },
                               },
                             })
                           }
@@ -614,9 +715,9 @@ export default function AdminAutomationsPage() {
                               actions: {
                                 ...editing.actions,
                                 escalate_sla: {
-                                  ...editing.actions.escalate_sla,
+                                  ...normalizeEscalateSla(editing.actions.escalate_sla),
                                   reason: e.target.value,
-                                } as any,
+                                },
                               },
                             })
                           }

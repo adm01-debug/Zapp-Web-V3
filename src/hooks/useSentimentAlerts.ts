@@ -2,14 +2,6 @@ import { useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useNotificationSettings } from '@/hooks/useNotificationSettings';
 
-interface SentimentAlertData {
-  contactId: string;
-  contactName: string;
-  sentimentScore: number;
-  previousScore?: number;
-  analysisId: string;
-}
-
 export function useSentimentAlerts() {
   const { settings } = useNotificationSettings();
 

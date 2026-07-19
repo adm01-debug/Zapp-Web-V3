@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, forwardRef } from 'react';
+import { useState, useEffect, useCallback, forwardRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Phone, PhoneOff, Video } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -12,27 +12,32 @@ import { cn } from '@/lib/utils';
 import { getLogger } from '@/lib/logger';
 const log = getLogger('IncomingCallAlert');
 
-export const IncomingCallAlert = forwardRef<HTMLDivElement>(
-  function IncomingCallAlert(_props, _ref) {
+type BrowserAudioWindow = Window & typeof globalThis & {
+  webkitAudioContext?: typeof AudioContext;
+};
+
+export const IncomingCallAlert = forwardRef<HTMLDivElement, Record<string, never>>(
+  function IncomingCallAlert(_props, ref) {
     const { incomingCall: legacyCall, dismissCall: dismissLegacy } = useIncomingCallListener();
     const { incomingCall: broadcastCall, dismissCall: dismissBroadcast } =
       useIncomingCallBroadcast();
     // Broadcast wins (arrives first); legacy is fallback
     const incomingCall = broadcastCall ?? legacyCall;
-    const dismissCall = () => {
+    const dismissCall = useCallback(() => {
       dismissBroadcast();
       dismissLegacy();
-    };
+    }, [dismissBroadcast, dismissLegacy]);
     const { settings: notifSettings, isQuietHours } = useNotificationSettings();
     const [showDialog, setShowDialog] = useState(false);
-    const _audioRef = useRef<HTMLAudioElement | null>(null);
-
     // Play ringtone only if sound is enabled and not in quiet hours
     useEffect(() => {
       const soundAllowed = notifSettings.soundEnabled && !isQuietHours();
       if (incomingCall && !showDialog && soundAllowed) {
         try {
-          const ctx = new AudioContext();
+          const AudioContextCtor =
+            window.AudioContext ?? (window as BrowserAudioWindow).webkitAudioContext;
+          if (!AudioContextCtor) return undefined;
+          const ctx = new AudioContextCtor();
           const osc = ctx.createOscillator();
           const gain = ctx.createGain();
           osc.type = 'sine';
@@ -50,12 +55,13 @@ export const IncomingCallAlert = forwardRef<HTMLDivElement>(
           return () => {
             clearInterval(interval);
             osc.stop();
-            ctx.close();
+            void ctx.close();
           };
         } catch (err) {
           log.error('Unexpected error in IncomingCallAlert:', err);
         }
       }
+      return undefined;
     }, [
       incomingCall,
       showDialog,
@@ -66,7 +72,7 @@ export const IncomingCallAlert = forwardRef<HTMLDivElement>(
 
     // Auto-dismiss after 30s
     useEffect(() => {
-      if (!incomingCall) return;
+      if (!incomingCall) return undefined;
       const timeout = setTimeout(dismissCall, 30000);
       return () => clearTimeout(timeout);
     }, [incomingCall, dismissCall]);
@@ -118,6 +124,7 @@ export const IncomingCallAlert = forwardRef<HTMLDivElement>(
     return (
       <AnimatePresence>
         <motion.div
+          ref={ref}
           initial={{ y: -100, opacity: 0, scale: 0.9 }}
           animate={{ y: 0, opacity: 1, scale: 1 }}
           exit={{ y: -100, opacity: 0, scale: 0.9 }}

@@ -1,3 +1,5 @@
+> **Schema**: O banco usa schema `zapp` (não `public`). Veja [SCHEMA_REFERENCE.md](SCHEMA_REFERENCE.md).
+
 # Configuração de variáveis de ambiente
 
 Guia rápido para rodar o ZAPP Web em desenvolvimento e CI. O arquivo de

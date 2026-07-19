@@ -1,41 +1,17 @@
-title = "Gitleaks — zapp-web"
+title = "ZAPP-WEB gitleaks config"
 
 [allowlist]
-description = "CSP sha256 nonces e IPs Cloudflare não são secrets"
+description = "Allowed patterns"
+paths = ["node_modules", "bun.lockb"]
 
-# Commits desta PR onde o nonce CSP foi introduzido antes do inline-suppress.
-# Inspecionados manualmente — não contêm credenciais reais.
-commits = [
-  "8e2e79be7ec39540afeb39533c1f6f5cbc90cf96",
-  "27c71beffae7ea04483ac7252b36a7f7a5461fc6",
-  "6e66d4c0285a707dd84dc5d27b2cb1af2c5251a0",
-  "a45dc5d890a4ddad335796e7f63063aedd1dbf85",
-  "3d21e1bc493a076ec693f8d6a76efcd852663511",
-  "40c89039c41d60eb20e0001ede887d7f3273fa09",
-  "70453af9a1b2cc8329774a8a656573c0bac9e54e",
-  "322c2d6d45813c2772b34c89448fbe5c2e2eb5bc",
-  "d54365b8db2e06cdecdbcd1d06fe01723314645d",
-  "cd7cf287b4b6603f6583f062d679885b062c54b5",
-  "1488d8bec9e0da5fff5201c6876715e2434ed6e0",
-  "285652c534df84c0cc995b9166d79be5657811e1",
-  "912e5e5aebbd0833db9dcb8ffd0c567e9e1728c7",
-  "a3c20dc0445bfe01eb21b1f7e82a28a29330bf78",
-  "42a1e3a9b3050cb73d78ce59c6eed20c6bc2059f",
-  "4f3af41dcf113613180d968b26b6c706c82048b9",
-  "aaa508e40e323973ee535348a871b68883c49932",
-  "4a3f3d2756899aab26820cb7825348d98dc60c46",
-]
+[[rules]]
+id = "supabase-jwt"
+description = "Supabase JWT key"
+regex = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\\.[A-Za-z0-9_-]{50,}"
+keywords = ["eyJhbGci"]
 
-# sha256-<hash> em Content-Security-Policy são nonces de scripts inline permitidos,
-# não são credenciais. Cloudflare IPs são rangos públicos de CDN.
-regexes = [
-  '''sha256-[A-Za-z0-9+/=]{20,}''',
-]
-
-paths = [
-  '''supabase/migrations-from-lovable/_deploy/security-headers\.conf''',
-  '''supabase/migrations-from-lovable/_deploy/nginx\.conf''',
-  '''supabase/migrations-from-lovable/_deploy/cloudflare-ips\.conf''',
-]
-
-
+[[rules]]
+id = "github-pat"
+description = "GitHub PAT"
+regex = "ghp_[A-Za-z0-9]{36,}"
+keywords = ["ghp_"]

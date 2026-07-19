@@ -8,7 +8,7 @@ import { getSecret } from "../_shared/vault.ts";
 import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
 const SUPABASE_URL = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'))!;
 const SUPABASE_SERVICE_ROLE_KEY = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))!;
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
+const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false }, db: { schema: "zapp" } });
 
 interface ChatMessage { role: "user" | "assistant" | "system"; content: string; }
 const BASE_SYSTEM_PROMPT = `Você é a assistente virtual da Promo Brindes, especializada em brindes personalizados. Personalidade amigável, profissional, prestativa. Pode: orçamentos, info produtos (canetas, chaveiros, camisetas, bonés, canecas), prazos (10-15 dias úteis), pagamento (PIX, boleto, cartão 3x), personalização (silk, bordado, transfer, laser). Transfere humano: reclamações, financeiro complexo, dúvida. Português BR. Mensagens curtas (WhatsApp).`;

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { playerStateStore, type PlayerState } from '../playerStateStore';
+import { playerStateStore } from '../playerStateStore';
 
 beforeEach(() => {
   playerStateStore._clear();

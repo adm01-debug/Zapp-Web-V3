@@ -39,7 +39,7 @@ export function useGeoBlocking() {
         .from('geo_blocking_settings')
         .select('*')
         .limit(1)
-        .single();
+        .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
 
       const { data: allowedData } = await supabase
         .from('allowed_countries')
@@ -128,8 +128,9 @@ export function useGeoBlocking() {
   const handleRemoveCountry = async () => {
     if (!countryToRemove) return;
     try {
-      const table = activeTab === 'whitelist' ? 'allowed_countries' : 'blocked_countries';
-      const { error } = await supabase.from(table).delete().eq('id', countryToRemove.id);
+      const { error } = activeTab === 'whitelist'
+        ? await supabase.from('allowed_countries').delete().eq('id', countryToRemove.id)
+        : await supabase.from('blocked_countries').delete().eq('id', countryToRemove.id);
       if (error) throw error;
       toast.success(`${countryToRemove.country_name} removido`);
       setCountryToRemove(null);
