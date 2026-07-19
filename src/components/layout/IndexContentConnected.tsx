@@ -8,7 +8,7 @@ import { useWebhookHealthAlerts } from '@/hooks/useWebhookHealthAlerts';
 import { useUserRole } from '@/features/auth';
 import { useTour, DEFAULT_ONBOARDING_STEPS } from '@/components/onboarding/OnboardingTour';
 import { useIndexNavigation } from '@/hooks/useIndexNavigation';
-import { useEmailOAuthFlow } from '@/hooks/useGmailOAuthFlow';
+import { useGmailOAuthFlow } from '@/hooks/useGmailOAuthFlow';
 import { useIndexKeyboardShortcuts } from '@/hooks/useIndexKeyboardShortcuts';
 
 import { AppShell } from '@/components/layout/AppShell';
@@ -36,7 +36,7 @@ export const IndexContentConnected = forwardRef<HTMLDivElement>(function IndexCo
     navDirectionRef
   } = useIndexNavigation(user, loading);
 
-  useEmailOAuthFlow();
+  useGmailOAuthFlow();
   useIndexKeyboardShortcuts({ goBack, goForward, canGoBack, setCurrentView });
 
   // Notifications & Alerts
