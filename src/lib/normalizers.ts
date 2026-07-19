@@ -11,8 +11,11 @@
 export const nn = <T>(value: T | null | undefined, fallback: T): T =>
   value === null || value === undefined ? fallback : value;
 
+/** Coerces a nullable string to a non-null string, returning `''` when the value is null or undefined. */
 export const strOrEmpty = (v: string | null | undefined): string => v ?? '';
+/** Coerces a nullable boolean to a non-null boolean, returning `false` when the value is null or undefined. */
 export const boolOrFalse = (v: boolean | null | undefined): boolean => v ?? false;
+/** Coerces a nullable number to a non-null number, returning `0` when the value is null or undefined. */
 export const numOrZero = (v: number | null | undefined): number => v ?? 0;
 
 // ---------- Payment Links ----------

@@ -54,6 +54,7 @@ export type ScanResult = ScanSuccess | ScanError;
 
 /** Block the upload entirely — file must not be retried as-is. */
 export type BlockingScanError = ScanError & { code: 'MALWARE_DETECTED' | 'SUSPICIOUS_FILE' };
+/** Returns true when the scan result is a blocking error (malware or suspicious) that must not be retried as-is. */
 export function isBlocking(r: ScanResult): r is BlockingScanError {
   return r.status === 'error' && (r.code === 'MALWARE_DETECTED' || r.code === 'SUSPICIOUS_FILE');
 }
@@ -62,6 +63,7 @@ export function isBlocking(r: ScanResult): r is BlockingScanError {
 export type RetryableScanError = ScanError & {
   code: 'SCAN_TIMEOUT' | 'SCAN_UNAVAILABLE' | 'NETWORK_ERROR';
 };
+/** Returns true when the scan result is a transient error that the caller may safely retry without changing the request. */
 export function isRetryable(r: ScanResult): r is RetryableScanError {
   return (
     r.status === 'error' &&
@@ -71,6 +73,7 @@ export function isRetryable(r: ScanResult): r is RetryableScanError {
 
 /** Bad input — caller should change the request, not retry as-is. */
 export type InputScanError = ScanError & { code: 'INVALID_INPUT' | 'METHOD_NOT_ALLOWED' };
+/** Returns true when the scan error was caused by bad input; the caller should fix the request rather than retry as-is. */
 export function isInputError(r: ScanResult): r is InputScanError {
   return r.status === 'error' && (r.code === 'INVALID_INPUT' || r.code === 'METHOD_NOT_ALLOWED');
 }

@@ -44,7 +44,7 @@ function fmt(samples: Sample[]): string {
   }
   const out: string[] = [];
   for (const [name, list] of grouped) {
-    out.push(`# HELP ${name} ${list[0].help}`);
+    out.push(`# HELP ${name} ${escapePromLabel(list[0].help)}`);
     out.push(`# TYPE ${name} ${list[0].type}`);
     for (const s of list) {
       const lbl = s.labels

@@ -188,6 +188,7 @@ export function isGroup(jid: string | null | undefined): boolean {
   return !!jid && jid.endsWith(GROUP_SUFFIX);
 }
 
+/** Returns true when `jid` ends with `@broadcast`, matching any broadcast list including the WhatsApp status channel. */
 export function isBroadcast(jid: string | null | undefined): boolean {
   return !!jid && jid.endsWith(BROADCAST_SUFFIX);
 }
@@ -244,10 +245,12 @@ export function isStatus(jid: string | null | undefined): boolean {
 export const toNumber = toPhone;
 export const isStatusBroadcast = isStatus;
 
+/** Returns true when `jid` is a canonical individual-contact JID (`<digits>@s.whatsapp.net`). */
 export function isIndividual(jid: string | null | undefined): boolean {
   return !!jid && jid.endsWith(INDIVIDUAL_SUFFIX);
 }
 
+/** Returns true when `jid` ends with `@newsletter`, indicating a WhatsApp channel or newsletter. */
 export function isNewsletter(jid: string | null | undefined): boolean {
   return !!jid && jid.endsWith(NEWSLETTER_SUFFIX);
 }

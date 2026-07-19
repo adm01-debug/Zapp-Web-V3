@@ -26,10 +26,13 @@ import { argv } from "node:process";
 const args = new Map();
 for (let i = 2; i < argv.length; i += 2) args.set(argv[i], argv[i + 1]);
 const rawPattern = args.get("--pattern") ?? "src/**/*.{ts,tsx}";
-// Allowlist: only safe glob characters — prevents indirect command injection via --pattern
+// Allowlist: safe glob chars AND no path-traversal segments — prevents indirect file-write injection.
 const SAFE_GLOB = /^[a-zA-Z0-9_/.*{}[\],\-]+$/;
-const safePattern = SAFE_GLOB.test(rawPattern) ? rawPattern : "src/**/*.{ts,tsx}";
-const limit = Number(args.get("--limit") ?? 25);
+const hasTraversal = rawPattern.split('/').some(seg => seg === '..');
+const safePattern = SAFE_GLOB.test(rawPattern) && !hasTraversal ? rawPattern : "src/**/*.{ts,tsx}";
+// Clamp to a safe integer range — user-controlled input must never reach subprocesses unchecked.
+const rawLimit = Number(args.get("--limit") ?? 25);
+const limit = Number.isFinite(rawLimit) && rawLimit > 0 ? Math.min(Math.floor(rawLimit), 500) : 25;
 
 // rg searches src/ with NO user-supplied args — eliminates indirect injection taint path.
 // User-supplied pattern is applied in JavaScript via native glob (no subprocess involvement).
