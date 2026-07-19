@@ -93,11 +93,11 @@ reviews:
     languagetool:
       enabled: false
 
-finishing_touches:
+pre_merge_checks:
   docstrings:
-    # Disabled: pre-merge coverage check is broken for PRs > 300 files.
-    # Local measurement (auto_jsdoc.py pass, 2026-07-19): 1241/1245 exports = 99.7%.
-    enabled: false
+    # Coverage check disabled: broken for PRs > 300 files (CodeRabbit skips the scan
+    # and reports a stale metric). Local measurement 2026-07-19: 1241/1245 = 99.7%.
+    mode: "off"
 
 chat:
   auto_reply: true

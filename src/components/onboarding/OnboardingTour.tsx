@@ -3,7 +3,9 @@ import { useState, useCallback, useMemo, ReactNode } from 'react';
 import { TourOverlay } from './TourOverlay';
 import { TourContextProvider } from './tourContext';
 import type { TourStep } from './tourContext';
+/** Re-export of the TourStep type from tourContext for consumer convenience. */
 export type { TourStep } from './tourContext';
+/** Re-export of the useTour hook from tourContext for consumer convenience. */
 export { useTour } from './tourContext';
 
 interface TourProviderProps {
