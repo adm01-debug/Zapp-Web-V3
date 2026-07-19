@@ -364,11 +364,10 @@ export function useTeamChatNotificationsManagement() {
 
     return () => {
       if (channelRef.current) {
-        channelRef.current.unsubscribe();
         supabase.removeChannel(channelRef.current);
       }
     };
-  }, [user?.id]);
+  }, []);
 
   const markAsRead = useCallback(async (notificationId: string) => {
     try {
@@ -401,7 +400,6 @@ export function useSecurityPushNotificationsManagement() {
       .subscribe();
 
     return () => {
-      channel.unsubscribe();
       supabase.removeChannel(channel);
     };
   }, []);
@@ -426,7 +424,6 @@ export function useGoalNotificationsManagement() {
       .subscribe();
 
     return () => {
-      channel.unsubscribe();
       supabase.removeChannel(channel);
     };
   }, []);
@@ -453,7 +450,6 @@ export function useTranscriptionNotificationsManagement() {
       .subscribe();
 
     return () => {
-      channel.unsubscribe();
       supabase.removeChannel(channel);
     };
   }, []);

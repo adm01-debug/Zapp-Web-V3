@@ -135,7 +135,7 @@ export function useRealtimeMessages() {
       .channel('realtime-messages')
       .on(
         'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'messages' },
+        { event: 'INSERT', schema: 'evo', table: 'evolution_messages' },
         (payload) => {
           if (!isMountedRef.current) return;
           const newMsg = payload.new as Message;
@@ -159,7 +159,7 @@ export function useRealtimeMessages() {
       )
       .on(
         'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'messages' },
+        { event: 'UPDATE', schema: 'evo', table: 'evolution_messages' },
         (payload) => {
           if (!isMountedRef.current) return;
           const updMsg = payload.new as Message;

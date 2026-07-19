@@ -60,7 +60,6 @@ export function useTeamMessageReactions(conversationId: string | undefined) {
       .subscribe();
     return () => {
       supabase.removeChannel(channel);
-      supabase.removeChannel(channel);
     };
   }, [conversationId, queryClient]);
 

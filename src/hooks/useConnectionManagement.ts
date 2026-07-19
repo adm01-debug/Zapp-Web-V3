@@ -72,7 +72,6 @@ export function useConnectionAlertsPush() {
       cancelled = true;
       if (channel) {
         supabase.removeChannel(channel);
-        supabase.removeChannel(channel);
       }
     };
   }, []);

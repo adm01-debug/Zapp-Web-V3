@@ -39,7 +39,6 @@ export function useMessageReactions(messageId: string, options?: UseMessageReact
 
     return () => {
       supabase.removeChannel(channel);
-      void supabase.removeChannel(channel);
     };
   }, [messageId, options?.disableRealtime, queryClient]);
 

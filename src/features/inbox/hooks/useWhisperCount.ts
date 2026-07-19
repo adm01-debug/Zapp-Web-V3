@@ -62,7 +62,6 @@ export function useWhisperCount(
     return () => {
       cancelled = true;
       supabase.removeChannel(channel);
-      supabase.removeChannel(channel);
     };
   }, [selectedContactId, profileId]);
 

@@ -67,7 +67,6 @@ export function useConversationViewers(contactId: string) {
 
     return () => {
       supabase.removeChannel(channel);
-      supabase.removeChannel(channel);
     };
   }, [contactId, user?.id]);
 
