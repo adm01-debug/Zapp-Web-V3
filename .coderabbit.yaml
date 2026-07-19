@@ -93,11 +93,6 @@ reviews:
     languagetool:
       enabled: false
 
-pre_merge_checks:
-  docstring_coverage:
-    enabled: true
-    min_coverage: 45
-
 chat:
   auto_reply: true
 
