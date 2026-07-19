@@ -65,6 +65,7 @@ function notify(): void {
   });
 }
 
+/** Subscribes to the realtime fan-out event bus; returns an unsubscribe function. */
 export function subscribeFanoutBus(listener: Listener): () => void {
   listeners.add(listener);
   return () => { listeners.delete(listener); };

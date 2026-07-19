@@ -92,6 +92,7 @@ export const RETRY_DEDUPE_MODE_STORAGE_KEY = 'zappweb:retry-alert-dedupe-mode';
 export type RetryAlertDedupeMode = 'instance' | 'instance+kind';
 export const DEFAULT_RETRY_DEDUPE_MODE: RetryAlertDedupeMode = 'instance+kind';
 
+/** Loads the currently saved retry-alert dedupe mode from localStorage, falling back to the default. */
 export function loadRetryAlertDedupeMode(): RetryAlertDedupeMode {
   const raw = safeGetJSON<unknown>(RETRY_DEDUPE_MODE_STORAGE_KEY, null);
   return raw === 'instance' || raw === 'instance+kind' ? raw : DEFAULT_RETRY_DEDUPE_MODE;
@@ -175,6 +176,7 @@ export function saveThresholds(t: RetryThresholds): boolean {
 /** Map of instance name → custom thresholds (partial override of globals). */
 export type PerInstanceThresholds = Record<string, Partial<RetryThresholds>>;
 
+/** Loads the per-instance threshold overrides from localStorage, validating each entry. */
 export function loadPerInstanceThresholds(): PerInstanceThresholds {
   const raw = safeGetJSON<unknown>(PER_INSTANCE_STORAGE_KEY, null);
   if (!raw || typeof raw !== 'object') return {};

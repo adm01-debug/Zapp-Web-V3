@@ -19,6 +19,7 @@ export interface RequestTrace {
   headers: { 'x-request-id': string };
 }
 
+/** Generates a short UUID-based request trace with headers ready for supabase.functions.invoke. */
 export function newRequestId(prefix?: string): RequestTrace {
   const raw = (typeof crypto !== 'undefined' && crypto.randomUUID)
     ? crypto.randomUUID().slice(0, 8)

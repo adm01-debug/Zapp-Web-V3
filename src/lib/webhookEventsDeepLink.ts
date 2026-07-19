@@ -16,6 +16,7 @@ export interface WebhookEventsDeepLinkFilters {
   instance?: string;
 }
 
+/** Stores drill-down filter state in sessionStorage for a one-shot transfer to the webhook events page. */
 export function setPendingWebhookEventsFilters(filters: WebhookEventsDeepLinkFilters): void {
   try {
     sessionStorage.setItem(STORAGE_KEY, JSON.stringify(filters));

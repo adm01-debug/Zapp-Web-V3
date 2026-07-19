@@ -113,6 +113,7 @@ export function triggerChunkReload(): boolean {
  *   chunk errors always escalate to a page reload, never to a visible error
  *   boundary (unless the 30-second cooldown is active).
  */
+/** Wraps React.lazy with automatic retry on chunk-load errors, escalating to a page reload when needed. */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function lazyWithRetry<T extends React.ComponentType<any>>(
   factory: () => Promise<{ default: T }>,

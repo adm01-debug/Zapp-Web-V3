@@ -15,6 +15,7 @@
 import { isValidUUID } from '@/utils/uuid';
 import { evolutionInstanceName as _evolutionInstanceName } from '@/integrations/supabase/rowNormalizers';
 
+/** Returns true if value is a valid UUID string, used to detect instance_id vs instance_name confusion. */
 export function isUuidLike(value: string | null | undefined): boolean {
   return !!value && isValidUUID(value.trim());
 }

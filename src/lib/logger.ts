@@ -34,6 +34,7 @@ export function generateRequestTag(prefix = 'req'): string {
  */
 export const generateCorrelationId = generateRequestTag;
 
+/** Returns the session-scoped correlation ID generated at page load. */
 export function getSessionId(): string {
   return sessionId;
 }

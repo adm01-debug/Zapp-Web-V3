@@ -8,10 +8,12 @@
 
 // ─── Primitive helpers ────────────────────────────────────────────────
 
+/** Returns true if value is a plain (non-null, non-array) object. */
 export function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
+/** Returns true if value is a record that contains the given key. */
 export function hasField<K extends string>(
   value: unknown,
   key: K,

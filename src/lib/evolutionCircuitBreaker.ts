@@ -157,6 +157,7 @@ export type CanCallResult = {
   retryAfterMs?: number;
 };
 
+/** Checks whether a call to the given Evolution API instance is permitted by the circuit breaker. */
 export function canCall(
   instance: string,
   _cfg: CircuitBreakerConfig = DEFAULT_BREAKER_CONFIG

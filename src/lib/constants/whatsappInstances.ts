@@ -50,6 +50,7 @@ export const SELECTABLE_WHATSAPP_INSTANCES = WHATSAPP_INSTANCES.filter(
   (i) => i !== 'default',
 ) as readonly WhatsAppInstance[];
 
+/** Returns true if value is one of the registered WhatsApp instance identifiers. */
 export function isValidWhatsAppInstance(value: unknown): value is WhatsAppInstance {
   return typeof value === 'string' && (WHATSAPP_INSTANCES as readonly string[]).includes(value);
 }

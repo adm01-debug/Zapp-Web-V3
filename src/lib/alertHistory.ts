@@ -26,6 +26,7 @@ export interface AlertHistoryEntry {
 const STORAGE_KEY = 'zappweb:webhook-alert-history';
 const MAX_HISTORY = 200;
 
+/** Classifies alert severity based on breach type and how far the observed value exceeds the configured threshold. */
 export function classifySeverity(breach: WebhookAlertBreach, config: WebhookAlertConfig): AlertSeverity {
   if (breach.type === 'signature_spike') {
     const ratio = config.invalidRatePct > 0 ? breach.value / config.invalidRatePct : 1;

@@ -196,6 +196,7 @@ export function recordDedupeEvent(
   log.debug('dedupe event', { key: evt.key, outcome, reason: evt.reason, keyKind: evt.keyKind });
 }
 
+/** Returns a snapshot of all current dedupe telemetry counters and recent events. */
 export function getDedupeTelemetrySnapshot(): DedupeTelemetrySnapshot {
   return {
     total: state.total,

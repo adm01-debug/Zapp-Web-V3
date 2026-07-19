@@ -49,6 +49,7 @@ export function openChatPopup(contactId: string, contactName: string): Window | 
   return popup;
 }
 
+/** Returns true if there is an open, non-closed popup window for the given contact ID. */
 export function isPopupOpen(contactId: string): boolean {
   cleanClosedPopups();
   const win = openPopups.get(contactId);

@@ -35,6 +35,7 @@ export interface RetrySchedule {
   bestCaseTotalMs: number;
 }
 
+/** Deterministically simulates the retry attempt schedule for a given retry configuration. */
 export function simulateRetrySchedule(config: RetryConfig): RetrySchedule {
   const { maxRetries, baseBackoffMs, maxBackoffMs, timeoutMs } = config;
   const totalAttempts = Math.max(1, maxRetries + 1);

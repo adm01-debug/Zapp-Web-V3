@@ -5,6 +5,7 @@ import { getLogger } from '@/lib/logger';
 
 const log = getLogger('SafeStorage');
 
+/** Safely reads a localStorage value, returning null on any access failure. */
 export function safeGetItem(key: string): string | null {
   try {
     return localStorage.getItem(key);

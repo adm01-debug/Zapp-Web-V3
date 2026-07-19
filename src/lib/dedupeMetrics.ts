@@ -129,6 +129,7 @@ export function recordDedupeEvent(input: {
   return ev;
 }
 
+/** Subscribes to cross-tab dedupe event notifications; returns an unsubscribe function. */
 export function subscribeDedupeEvents(listener: Listener): () => void {
   listeners.add(listener);
   return () => listeners.delete(listener);

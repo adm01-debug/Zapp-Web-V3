@@ -6,6 +6,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/services/api';
 import { settingsService, type UserSettings, type WorkspaceSettings } from './index';
 
+/** Mutation hook for updating user-specific settings; invalidates the user settings query cache on success. */
 export const useUpdateUserSettings = () => {
   const queryClient = useQueryClient();
 

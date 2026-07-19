@@ -14,6 +14,7 @@ export interface RlsDeniedShape {
   message?: string;
 }
 
+/** Returns true if the error is a Postgres RLS denial (code 42501) or HTTP 403. */
 export function isRlsDeniedError(err: unknown): boolean {
   if (!err || typeof err !== 'object') return false;
   const e = err as RlsDeniedShape;
