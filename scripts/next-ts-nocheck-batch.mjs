@@ -25,11 +25,14 @@ import { argv } from "node:process";
 
 const args = new Map();
 for (let i = 2; i < argv.length; i += 2) args.set(argv[i], argv[i + 1]);
-const pattern = args.get("--pattern") ?? "src/**/*.{ts,tsx}";
+const rawPattern = args.get("--pattern") ?? "src/**/*.{ts,tsx}";
+// Allowlist: only safe glob characters — prevents indirect command injection via --pattern
+const SAFE_GLOB = /^[a-zA-Z0-9_/.*{}[\],\-]+$/;
+const pattern = SAFE_GLOB.test(rawPattern) ? rawPattern : "src/**/*.{ts,tsx}";
 const limit = Number(args.get("--limit") ?? 25);
 
 // Listagem via ripgrep (mais rápido que globbing puro)
-// Use spawnSync with array args to avoid shell injection from user-supplied --pattern
+// Use spawnSync with array args (no shell) + allowlist-validated pattern
 const rgResult = spawnSync("rg", ["-l", "--no-messages", "^// @ts-nocheck", "-g", pattern, "src"], { encoding: "utf8" });
 const listing = (rgResult.stdout ?? "").split("\n").filter(Boolean).slice(0, limit);
 
