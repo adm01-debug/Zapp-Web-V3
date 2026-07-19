@@ -22,6 +22,7 @@
  */
 import { supabase } from '@/integrations/supabase/client';
 
+/** Options for opening the inbox on a specific contact, identified by UUID, JID, or phone number. */
 export interface OpenContactInChatOptions {
   /** UUID interno (`contacts.id`). Quando presente, evita o lookup. */
   contactId?: string;
@@ -33,6 +34,7 @@ export interface OpenContactInChatOptions {
   messageId?: string;
 }
 
+/** Resolved contact target stored on window while the inbox navigates to the contact. */
 export interface PendingChatTarget {
   contactId?: string;
   remoteJid?: string;

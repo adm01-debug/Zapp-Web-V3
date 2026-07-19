@@ -13,6 +13,7 @@
 
 // ── Valid Brazilian DDDs (area codes) ─────────────────────────────────────
 
+/** Set of all valid Brazilian DDD area codes accepted by the phone normaliser. */
 export const VALID_DDDS = new Set<number>([
   // São Paulo + ABCD
   11, 12, 13, 14, 15, 16, 17, 18, 19,
@@ -121,6 +122,7 @@ export function validatePhone(phone: unknown): PhoneValidationDetailed {
  * Returns normalized digits, formatted display, and inferred type.
  */
 export type PhoneType = 'mobile' | 'landline' | 'international';
+/** Rich phone validation result containing normalised digits, display format, and inferred type. */
 export interface PhoneValidationDetailed {
   valid:       boolean;
   error?:      string;

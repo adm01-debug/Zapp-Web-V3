@@ -12,6 +12,7 @@
  */
 import type { RetryConfig } from '@/lib/retryConfig';
 
+/** Details of a single attempt in a simulated retry schedule. */
 export interface RetryAttempt {
   /** Número da tentativa (1-indexed). */
   attempt: number;
@@ -25,6 +26,7 @@ export interface RetryAttempt {
   isFinal: boolean;
 }
 
+/** Full simulated retry schedule for a given retry configuration. */
 export interface RetrySchedule {
   attempts: RetryAttempt[];
   /** Soma de todos os delays entre tentativas. */

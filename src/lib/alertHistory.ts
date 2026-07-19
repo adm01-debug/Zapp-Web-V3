@@ -8,8 +8,10 @@
 import { safeGetJSON, safeSetJSON } from '@/lib/safeStorage';
 import type { WebhookAlertBreach, WebhookAlertConfig } from '@/lib/webhookHealthAlerts';
 
+/** Severity classification for a triggered alert based on observed vs threshold ratio. */
 export type AlertSeverity = 'critical' | 'high' | 'medium';
 
+/** Single historical entry recorded when a webhook alert threshold is breached. */
 export interface AlertHistoryEntry {
   id: string;
   firedAt: number;

@@ -19,12 +19,14 @@ const getClient = () => getExternalSupabase();
 
 /* ============ INTERFACES ============ */
 
+/** SLA escalation configuration attached to an automation trigger. */
 export interface SlaEscalate {
   enabled?: boolean;
   level?: string;
   reason?: string | null;
 }
 
+/** A single automation rule row from the database. */
 export interface AutomationRule {
   id: string;
   name: string;

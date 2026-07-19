@@ -9,6 +9,7 @@ import { supabase, isSupabaseConfigured } from '@/integrations/supabase/client';
 const log = getLogger('WebVitals');
 const CLIENT_OBSERVABILITY_STORAGE_KEY = 'zapp_client_observability_disabled';
 
+/** A single Core Web Vitals measurement captured for reporting. */
 export interface WebVitalMetric {
   name: string;
   value: number;

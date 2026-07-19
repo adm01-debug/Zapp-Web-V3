@@ -243,6 +243,7 @@ export function isStatus(jid: string | null | undefined): boolean {
  *   if (isStatusBroadcast(remoteJid)) return;           // descarta status
  */
 export const toNumber = toPhone;
+/** Re-export of isStatus — returns true when `jid` is the WhatsApp status-broadcast address. */
 export const isStatusBroadcast = isStatus;
 
 /** Returns true when `jid` is a canonical individual-contact JID (`<digits>@s.whatsapp.net`). */
@@ -263,6 +264,7 @@ export function ensureBrazilDDI(phone: string): string {
   return `55${digits}`;
 }
 
+/** Map of JID type names to their canonical suffix strings for easy reference. */
 export const JID_SUFFIXES = {
   individual: INDIVIDUAL_SUFFIX,
   group: GROUP_SUFFIX,

@@ -13,6 +13,7 @@ export interface ResolvedTransport {
   missingSecrets?: string[];
 }
 
+/** Parameters for sending a plain-text WhatsApp message via the adapter. */
 export interface SendTextParams {
   remoteJid: string;
   text: string;

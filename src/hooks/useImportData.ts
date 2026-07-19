@@ -10,6 +10,7 @@ export function useImportData() {
   return useImportDataManagement();
 }
 
+/** Validation error for a single row field during a bulk data import. */
 export interface ImportError {
   row: number;
   field: string;

@@ -17,6 +17,7 @@
 import type { ExtendedDatabase } from './types-manual';
 import type { Json } from './types';
 
+/** Canonical application database type alias re-exported from ExtendedDatabase. */
 export type Database = ExtendedDatabase;
 
 type ZappTables = Database['zapp']['Tables'];

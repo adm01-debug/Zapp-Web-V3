@@ -4,6 +4,7 @@
  */
 import { supabase } from '@/integrations/supabase/client';
 
+/** Diagnostic result returned by the `recheck-webhook-signature` edge function. */
 export interface RecheckResult {
   event_id: string;
   instance_name: string | null;

@@ -93,6 +93,7 @@ export function _resetSensitiveCacheForTests(): void {
 
 // ─── Bitrix Origin Validation (Bug 2 fix — defense in depth) ────────────────
 
+/** Result of a Bitrix24 origin header validation check. */
 export interface OriginValidationResult {
   ok: boolean;
   reason?: string;

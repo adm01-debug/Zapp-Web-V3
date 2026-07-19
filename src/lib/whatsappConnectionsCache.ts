@@ -10,6 +10,7 @@
  */
 import { supabase } from '@/integrations/supabase/client';
 
+/** Minimal row shape for a `whatsapp_connections` record used by the module-level cache. */
 export interface WhatsappConnectionRow {
   id: string;
   instance_id: string | null;

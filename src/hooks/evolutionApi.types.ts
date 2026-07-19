@@ -48,6 +48,7 @@ export interface SendTextOptions {
   idempotencyKey?: string;
 }
 
+/** Parameters for group management operations via the Evolution API. */
 export interface GroupParams {
   instanceName: string;
   groupJid: string;

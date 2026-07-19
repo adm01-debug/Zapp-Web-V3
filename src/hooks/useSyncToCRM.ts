@@ -16,6 +16,7 @@ import { getLogger } from '@/lib/logger';
 
 const log = getLogger('useSyncToCRM');
 
+/** Input payload for syncing a conversation to the CRM via the sync_conversation_to_crm RPC. */
 export interface SyncConversationInput {
   phone: string;
   channel: 'whatsapp' | 'email' | 'sms' | string;

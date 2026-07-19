@@ -19,8 +19,10 @@
 const STORAGE_KEY = 'inbox.tickets.overlay.v1';
 const EVENT_NAME = 'ticket-overlay-changed';
 
+/** Possible statuses for a conversation ticket in the inbox overlay. */
 export type TicketStatus = 'open' | 'in_progress' | 'resolved';
 
+/** A single timestamped event recorded in a ticket's history. */
 export interface TicketEvent {
   id: string;
   /** Tipo do evento — alinhado com `conversation_events.event_type`. */
