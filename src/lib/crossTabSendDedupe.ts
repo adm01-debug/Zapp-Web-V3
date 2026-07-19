@@ -57,6 +57,7 @@ const TAB_ID =
     : `t_${Math.random().toString(36).slice(2)}_${Date.now().toString(36)}`);
 
 let cachedChannel: BroadcastChannel | null | undefined;
+/** Returns the cached BroadcastChannel singleton for cross-tab messaging, or null if the API is unavailable. */
 function getChannel(): BroadcastChannel | null {
   if (cachedChannel !== undefined) return cachedChannel;
   try {
@@ -69,6 +70,7 @@ function getChannel(): BroadcastChannel | null {
   return cachedChannel;
 }
 
+/** Returns localStorage after a liveness probe, or null when unavailable (SSR, quota exceeded, or security policy). */
 function getStorage(): Storage | null {
   try {
     if (typeof localStorage === 'undefined') return null;
@@ -118,6 +120,7 @@ function claimLeadership(key: string, ttlMs: number, tabId: string = TAB_ID): bo
   }
 }
 
+/** Removes the leadership claim for key from localStorage if this tab still owns it. */
 function releaseLeadership(key: string, tabId: string = TAB_ID) {
   const storage = getStorage();
   if (!storage) return;
@@ -132,6 +135,7 @@ function releaseLeadership(key: string, tabId: string = TAB_ID) {
   }
 }
 
+/** Posts a BroadcastDone message to all other tabs via the given channel, suppressing any serialisation errors. */
 function broadcastDone(payload: BroadcastDone, channel?: BroadcastChannel | null) {
   const ch = channel ?? getChannel();
   if (!ch) return;
@@ -142,6 +146,7 @@ function broadcastDone(payload: BroadcastDone, channel?: BroadcastChannel | null
   }
 }
 
+/** Waits for a BroadcastDone message for the given key, resolving with the parsed value or an error after ttlMs + grace period. */
 function awaitBroadcast<T>(
   key: string,
   ttlMs: number,

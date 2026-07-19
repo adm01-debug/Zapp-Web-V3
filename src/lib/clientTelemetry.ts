@@ -67,10 +67,12 @@ interface State {
   retry: RetryStats;
 }
 
+/** Returns a zeroed severity counter map for state initialisation or reset. */
 const initialBySeverity = (): Record<Severity, number> => ({
   ok: 0, slow: 0, very_slow: 0, timeout: 0, error: 0,
 });
 
+/** Returns a zeroed RetryStats object for state initialisation or reset. */
 const initialRetry = (): RetryStats => ({
   totalRetries: 0,
   recoveredAfterRetry: 0,
@@ -101,6 +103,7 @@ export function classifySeverity(
   return 'ok';
 }
 
+/** Computes the 95th-percentile value from an array of numbers; returns 0 for an empty array. */
 function p95(values: number[]): number {
   if (values.length === 0) return 0;
   const sorted = [...values].sort((a, b) => a - b);
@@ -108,6 +111,7 @@ function p95(values: number[]): number {
   return sorted[idx];
 }
 
+/** Builds an immutable snapshot of the current telemetry state including averages, p95, and per-category counts. */
 function snapshot(): TelemetrySnapshot {
   const avgDurationMs = state.total > 0 ? Math.round(state.totalDurationMs / state.total) : 0;
   const p95DurationMs = Math.round(p95(state.recentEvents.map((e) => e.durationMs)));
@@ -128,11 +132,13 @@ function snapshot(): TelemetrySnapshot {
   };
 }
 
+/** Publishes the current telemetry snapshot to window.__queryTelemetry for DevTools inspection. */
 function publishToWindow() {
   if (typeof window === 'undefined') return;
   (window as unknown as { __queryTelemetry?: TelemetrySnapshot }).__queryTelemetry = snapshot(); // ignore-audit — window debug property not in standard lib
 }
 
+/** Emits a structured log entry for a query event at the appropriate severity level (debug/info/warn). */
 function logEvent(ev: QueryEvent) {
   const meta = {
     cid: ev.correlationId,

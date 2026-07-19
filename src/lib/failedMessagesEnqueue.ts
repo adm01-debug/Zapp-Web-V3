@@ -52,6 +52,7 @@ export interface EnqueueClientFailedMessageInput {
 const PERMANENT_STATUSES = new Set([400, 401, 403, 404, 422]);
 const MAX_RETRIES = 5;
 
+/** Returns true when the failure is transient (5xx, 429, timeout, or network error) and should be retried via the DLQ. */
 function isTransientFailure(input: EnqueueClientFailedMessageInput): boolean {
   if (input.http_status == null) {
     return input.error_code === 'timeout' || input.error_code === 'network_error';
@@ -62,6 +63,7 @@ function isTransientFailure(input: EnqueueClientFailedMessageInput): boolean {
   return false;
 }
 
+/** Returns true when the given API path targets a message-send endpoint that belongs in the DLQ on failure. */
 function isSendPath(path: string): boolean {
   return path.startsWith('/message/') || path.includes('/message/');
 }

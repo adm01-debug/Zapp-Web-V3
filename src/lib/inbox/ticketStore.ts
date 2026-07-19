@@ -54,6 +54,7 @@ type Overlay = Record<string, TicketState>;
 // React entra em loop infinito ("Maximum update depth exceeded").
 let cachedOverlay: Overlay | null = null;
 
+/** Reads the full ticket overlay from localStorage, returning and caching the parsed result; returns an empty overlay on error. */
 function readAll(): Overlay {
   if (typeof window === 'undefined') return EMPTY_OVERLAY;
   if (cachedOverlay !== null) return cachedOverlay;
@@ -72,6 +73,7 @@ function readAll(): Overlay {
   }
 }
 
+/** Persists the overlay to localStorage, updates the in-memory cache, and dispatches the change event to intra-tab subscribers. */
 function writeAll(overlay: Overlay) {
   cachedOverlay = overlay; // mutação local — atualiza a referência cacheada
   if (typeof window === 'undefined') return;
@@ -83,12 +85,14 @@ function writeAll(overlay: Overlay) {
   }
 }
 
+/** Clears the in-memory overlay cache so the next readAll() reloads from localStorage. */
 function invalidateCache() {
   cachedOverlay = null;
 }
 
 const EMPTY_OVERLAY: Overlay = Object.freeze({}) as Overlay;
 
+/** Generates a collision-resistant unique ID using crypto.randomUUID when available, falling back to Math.random + timestamp. */
 function cryptoId(): string {
   if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) return crypto.randomUUID();
   return Math.random().toString(36).slice(2) + Date.now().toString(36);

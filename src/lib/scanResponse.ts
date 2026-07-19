@@ -100,21 +100,25 @@ const BACKEND_CODES = new Set<ScanCode>([
   'INTERNAL_ERROR',
 ]);
 
+/** Casts an unknown value to a known ScanCode if it is in the backend allowlist, or returns 'UNKNOWN'. */
 function asScanCode(v: unknown): ScanCode {
   if (typeof v === 'string' && BACKEND_CODES.has(v as ScanCode)) return v as ScanCode; // ignore-audit: BACKEND_CODES.has() guard confirms v is a valid ScanCode member
   return 'UNKNOWN';
 }
 
+/** Coerces an unknown value to a ScanVerdict, returning 'unknown' for any unrecognised string. */
 function asVerdict(v: unknown): ScanVerdict {
   return v === 'clean' || v === 'malicious' || v === 'suspicious' || v === 'unknown'
     ? v
     : 'unknown';
 }
 
+/** Returns v as a non-empty scan ID string, or null if the value is missing or empty. */
 function asScanId(v: unknown): string | null {
   return typeof v === 'string' && v.length > 0 ? v : null;
 }
 
+/** Parses a raw response body object into a ScanResult, returning null when the body lacks both success and error markers. */
 function fromBody(body: Record<string, unknown> | null | undefined): ScanResult | null {
   if (!body || typeof body !== 'object') return null;
 

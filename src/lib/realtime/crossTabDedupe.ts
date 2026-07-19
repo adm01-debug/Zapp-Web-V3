@@ -103,6 +103,7 @@ const dedupRing: DedupRingEntry[] = [];
 let masterTabId: string | null = null;
 let masterClockOffset = 0;
 let lastClockHeartbeat = Date.now();
+/** Returns current time adjusted by the master-tab clock offset to compensate for cross-tab clock skew. */
 function getNormalizedTime(): number {
   return Date.now() + masterClockOffset;
 }
@@ -143,6 +144,7 @@ interface Subscription {
 }
 const subscribers = new Set<Subscription>();
 
+/** Invokes all matching subscriber handlers for a completed dedup result, swallowing handler errors. */
 function notifySubscribers(key: string, data: unknown, source: 'remote' | 'local') {
   subscribers.forEach((sub) => {
     if (!sub.match(key)) return;
@@ -155,6 +157,7 @@ function notifySubscribers(key: string, data: unknown, source: 'remote' | 'local
 }
 
 // MELHORIA #8.9: Payload Integrity Check via SHA256 hash
+/** Computes a SHA-256 hex digest of the JSON-serialised payload; returns empty string on failure. */
 async function computePayloadHash(data: unknown): Promise<string> {
   try {
     const json = JSON.stringify(data);
@@ -170,6 +173,7 @@ async function computePayloadHash(data: unknown): Promise<string> {
 }
 
 // MELHORIA #8: Dedup Ring — evita reprocessar mesmos eventos
+/** Appends an entry to the circular dedup ring, evicting the oldest entry when the ring is full. */
 function addToDedupRing(tabId: string, key: string): void {
   dedupRing.push({ tabId, key, ts: getNormalizedTime() });
   if (dedupRing.length > DEDUP_RING_SIZE) {
@@ -177,12 +181,14 @@ function addToDedupRing(tabId: string, key: string): void {
   }
 }
 
+/** Returns true if the (tabId, key) pair appears in the dedup ring within the last 500 ms. */
 function isInDedupRing(tabId: string, key: string): boolean {
   const recentWindow = getNormalizedTime() - 500; // últimos 500ms
   return dedupRing.some((e) => e.tabId === tabId && e.key === key && e.ts > recentWindow);
 }
 
 // MELHORIA #8.5: Clock Master election
+/** Elects this tab as clock master if none exists or the current master's heartbeat has timed out. */
 function electClockMaster(): void {
   if (!masterTabId || getNormalizedTime() - lastClockHeartbeat > CLOCK_MASTER_TIMEOUT) {
     masterTabId = TAB_ID;
@@ -191,11 +197,13 @@ function electClockMaster(): void {
   }
 }
 
+/** Returns the next monotonically increasing sequence number for ordering cross-tab messages. */
 function getSequenceNumber(): number {
   return ++globalSequence;
 }
 
 // MELHORIA #8.2: CAS-based storage with retry
+/** Writes a versioned payload to localStorage with read-back CAS verification and exponential-backoff retry. */
 async function writeWithRetry<T extends VersionedPayload>(
   key: string,
   value: T,
@@ -239,6 +247,7 @@ async function writeWithRetry<T extends VersionedPayload>(
 let idbReady = false;
 let idb: IDBDatabase | null = null;
 
+/** Opens (or reuses) the crossTabDedupe IndexedDB database, creating the results object store on first run. */
 async function initIndexedDB(): Promise<boolean> {
   if (idbReady) return !!idb;
   if (typeof indexedDB === 'undefined') return false;
@@ -267,6 +276,7 @@ async function initIndexedDB(): Promise<boolean> {
   }
 }
 
+/** Persists an arbitrary value to the IndexedDB results store; returns false if IDB is unavailable or the write fails. */
 async function writeToIndexedDB(key: string, value: unknown): Promise<boolean> {
   if (!(await initIndexedDB()) || !idb) return false;
 
@@ -302,6 +312,7 @@ let transportKind: Transport | null = null;
 let bc: BroadcastChannel | null = null;
 let storageListenerInstalled = false;
 
+/** Registers the window storage event listener for the localStorage-fallback transport; idempotent. */
 function installStorageListener(): boolean {
   if (storageListenerInstalled) return true;
   if (typeof window === 'undefined' || typeof window.addEventListener !== 'function') return false;
@@ -325,6 +336,7 @@ function installStorageListener(): boolean {
   }
 }
 
+/** Initialises the cross-tab transport (BroadcastChannel preferred, storage-event fallback) and returns the active kind. */
 function ensureTransport(): Transport {
   if (transportKind && transportKind !== 'none') return transportKind;
   // Tentativa 1 — BroadcastChannel.
@@ -365,6 +377,7 @@ export function __getActiveTransport(): Transport {
   return transportKind ?? 'none';
 }
 
+/** Processes an incoming broadcast message from another tab, updating caches and resolving waiters. */
 function onBroadcast(msg: BroadcastMessage) {
   if (!msg || msg.ownerId === TAB_ID) return;
   // Validate version
@@ -430,6 +443,7 @@ function onBroadcast(msg: BroadcastMessage) {
   }
 }
 
+/** Reads the current lock payload for the given key from localStorage; returns null if absent or expired. */
 function readLock(key: string): LockPayload | null {
   if (typeof localStorage === 'undefined') return null;
   try {
@@ -448,6 +462,7 @@ function readLock(key: string): LockPayload | null {
   }
 }
 
+/** Attempts to acquire a cross-tab lock for the given key with the specified TTL; returns false if another tab holds it. */
 async function writeLock(key: string, ttl: number): Promise<boolean> {
   if (typeof localStorage === 'undefined') return false;
 
@@ -474,6 +489,7 @@ async function writeLock(key: string, ttl: number): Promise<boolean> {
   return success;
 }
 
+/** Removes the lock entry for the given key from localStorage, only if this tab owns it. */
 function releaseLock(key: string) {
   if (typeof localStorage === 'undefined') return;
   const lock = readLock(key);
@@ -486,6 +502,7 @@ function releaseLock(key: string) {
 }
 
 // MELHORIA #8.3: Dual-backend result persistence
+/** Reads a persisted result from localStorage, returning null if absent, expired, or structurally invalid. */
 async function readPersistedResult<T>(key: string): Promise<T | null> {
   if (typeof localStorage === 'undefined') return null;
   try {
@@ -513,6 +530,7 @@ async function readPersistedResult<T>(key: string): Promise<T | null> {
   }
 }
 
+/** Writes a versioned result payload to localStorage (primary) and IndexedDB (backup) with hash and TTL metadata. */
 async function writePersistedResult<T>(
   key: string,
   value: T,
@@ -613,6 +631,7 @@ export function gcExpiredKeys(): { locksSwept: number; resultsSwept: number } {
 }
 
 let gcTimer: ReturnType<typeof setInterval> | null = null;
+/** Starts the periodic GC interval if it has not been started yet; safe to call multiple times. */
 function startGcIfNeeded() {
   if (gcTimer || typeof setInterval === 'undefined') return;
   gcTimer = setInterval(gcExpiredKeys, GC_INTERVAL);
@@ -621,6 +640,7 @@ function startGcIfNeeded() {
   }
 }
 
+/** Sends a broadcast message to all other open tabs via BroadcastChannel or localStorage storage-event fallback. */
 function broadcast<T>(msg: BroadcastMessage<T>) {
   // Broadcast clock heartbeat periodically (master tab)
   if (TAB_ID === masterTabId && msg.type === 'result') {
@@ -824,6 +844,7 @@ export function dedupedFetch<T>(
   return exec;
 }
 
+/** Waits for a broadcast result or error for the given key, resolving with {ok:false} after the timeout. */
 function waitForResult<T>(
   key: string,
   timeoutMs: number

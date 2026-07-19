@@ -31,10 +31,12 @@ export interface DiagnosticResult {
   details?: unknown;
 }
 
+/** Truncates a string to at most n characters, appending an ellipsis when the original is longer. */
 function truncate(s: string, n = 200): string {
   return s.length > n ? s.slice(0, n) + '…' : s;
 }
 
+/** Executes a promise factory with an AbortSignal that fires after PROBE_TIMEOUT_MS milliseconds. */
 async function withTimeout<T>(promise: (signal: AbortSignal) => Promise<T>): Promise<T> {
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), PROBE_TIMEOUT_MS);
@@ -45,6 +47,7 @@ async function withTimeout<T>(promise: (signal: AbortSignal) => Promise<T>): Pro
   }
 }
 
+/** Wraps a diagnostic step function, measuring its wall-clock latency and surfacing any thrown error as a 'fail' result. */
 async function timed(
   step: string,
   fn: () => Promise<Omit<DiagnosticResult, 'step' | 'latencyMs'>>
@@ -63,6 +66,7 @@ async function timed(
   }
 }
 
+/** Probes GoTrue /auth/v1/settings with the anon key to verify the Auth service is reachable and accepts the key. */
 async function pingAuth(): Promise<DiagnosticResult> {
   return timed('Auth /settings (GoTrue)', () =>
     withTimeout(async (signal) => {
@@ -90,6 +94,7 @@ async function pingAuth(): Promise<DiagnosticResult> {
   );
 }
 
+/** Probes PostgREST /rest/v1/ root with the anon key to verify the REST API is reachable and authenticated. */
 async function pingRest(): Promise<DiagnosticResult> {
   return timed('REST / (PostgREST)', () =>
     withTimeout(async (signal) => {
@@ -118,6 +123,7 @@ async function pingRest(): Promise<DiagnosticResult> {
   );
 }
 
+/** Performs a live Supabase client SELECT on global_settings to verify RLS, JWT validation, and PostgREST routing. */
 async function pingRlsRead(): Promise<DiagnosticResult> {
   return timed('Leitura RLS (cliente Supabase)', async () => {
     // global_settings tem RLS pública/leve; se falhar, é sinal claro de problema na stack.
@@ -137,6 +143,7 @@ async function pingRlsRead(): Promise<DiagnosticResult> {
   });
 }
 
+/** Sends a JSON-RPC 2.0 request to the MCP endpoint and returns the parsed response object. */
 async function jsonRpc(
   signal: AbortSignal,
   id: number,
@@ -162,6 +169,7 @@ async function jsonRpc(
   }
 }
 
+/** Sends an MCP initialize JSON-RPC request to verify the self-hosted MCP server handshake and reports server info. */
 async function pingMcpHandshake(): Promise<DiagnosticResult> {
   return timed('MCP initialize (self-hosted)', () =>
     withTimeout(async (signal) => {
@@ -188,6 +196,7 @@ async function pingMcpHandshake(): Promise<DiagnosticResult> {
   );
 }
 
+/** Calls MCP tools/list to enumerate available tools and returns a summary of count and names. */
 async function pingMcpToolsList(): Promise<DiagnosticResult> {
   return timed('MCP tools/list', () =>
     withTimeout(async (signal) => {

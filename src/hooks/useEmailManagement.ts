@@ -101,6 +101,7 @@ const AUTO_SAVE_DELAY_MS = 30_000;
 const DEBOUNCE_MS = 350;
 const MIN_QUERY_LEN = 2;
 
+/** Returns true when the given ID is a mock identifier (prefixed with 'mock-'), used to short-circuit real API calls. */
 const isMockId = (id?: string | null): boolean => !!id && id.startsWith('mock-');
 
 interface BaseThreadRow {
@@ -112,6 +113,7 @@ interface BaseThreadRow {
   [key: string]: unknown;
 }
 
+/** Maps a raw Supabase email_threads row to a typed EmailThread, normalising field aliases and computing unread_count. */
 const mapBaseThreadRow = (row: Record<string, unknown>): EmailThread =>
   emailMappers.thread({
     ...row,
@@ -121,6 +123,7 @@ const mapBaseThreadRow = (row: Record<string, unknown>): EmailThread =>
     unread_count: row['is_unread'] ? Math.max(Number(row['message_count'] ?? 1), 1) : 0,
   });
 
+/** Returns a shallow copy of o with all undefined values removed, used when merging partial realtime updates. */
 const definedOnly = <T extends object>(o: T): Partial<T> =>
   Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined)) as Partial<T>;
 
@@ -140,6 +143,7 @@ const DEFAULT_SLA: SLAConfig = {
   business_end_hour: 18,
 };
 
+/** Computes the number of elapsed business minutes between two dates, optionally restricting to configured business hours and weekdays. */
 function elapsedBusinessMinutes(from: Date, to: Date = new Date(), config?: SLAConfig): number {
   if (!config?.business_hours_only) {
     return Math.floor((to.getTime() - from.getTime()) / 60_000);
@@ -197,6 +201,7 @@ function elapsedBusinessMinutes(from: Date, to: Date = new Date(), config?: SLAC
   return elapsed;
 }
 
+/** Maps elapsed business minutes against SLA thresholds to an SLAStatus of 'ok', 'warning', or 'breached'. */
 function computeStatus(elapsed: number, config: SLAConfig): SLAStatus {
   if (elapsed >= config.threshold_minutes) return 'breached';
   if (elapsed >= config.threshold_minutes * (config.warning_threshold_pct / 100)) return 'warning';

@@ -189,10 +189,12 @@ function toFiniteNumber(value: unknown, fallback = 0): number {
   return fallback;
 }
 
+/** Returns value as a string if it already is one, or fallback when the value is any other type. */
 function toStringSafe(value: unknown, fallback = ''): string {
   return typeof value === 'string' ? value : fallback;
 }
 
+/** Coerces an unknown array of RPC rows into a typed SearchInsightsTopQuery array, defaulting missing fields. */
 function toTopQueries(value: unknown): SearchInsightsTopQuery[] {
   if (!Array.isArray(value)) return [];
   return value.map((row) => {
@@ -201,6 +203,7 @@ function toTopQueries(value: unknown): SearchInsightsTopQuery[] {
   });
 }
 
+/** Coerces an unknown array of RPC rows into a typed SearchInsightsZeroResult array, defaulting missing fields. */
 function toZeroResults(value: unknown): SearchInsightsZeroResult[] {
   if (!Array.isArray(value)) return [];
   return value.map((row) => {

@@ -60,17 +60,20 @@ type ThemeSnapshot = {
 const THEME_STORAGE_KEY = 'theme';
 const MEDIA_QUERY = '(prefers-color-scheme: dark)';
 
+/** Reads the persisted theme preference from localStorage, defaulting to 'system' when absent or invalid. */
 const getStoredTheme = (): Theme => {
   if (typeof window === 'undefined') return 'system';
   const stored = localStorage.getItem(THEME_STORAGE_KEY);
   return stored === 'light' || stored === 'dark' || stored === 'system' ? stored : 'system';
 };
 
+/** Returns the OS-level colour scheme preference as 'dark' or 'light', defaulting to 'dark' in non-browser environments. */
 const getSystemTheme = (): ResolvedTheme => {
   if (typeof window === 'undefined') return 'dark';
   return window.matchMedia(MEDIA_QUERY).matches ? 'dark' : 'light';
 };
 
+/** Resolves a Theme value to a concrete ResolvedTheme by substituting the current OS preference when the theme is 'system'. */
 const resolveTheme = (theme: Theme): ResolvedTheme => {
   return theme === 'system' ? getSystemTheme() : theme;
 };
@@ -84,10 +87,12 @@ const listeners = new Set<(snapshot: ThemeSnapshot) => void>();
 let transitionTimeout: number | null = null;
 let systemListenerAttached = false;
 
+/** Broadcasts the current themeState snapshot to all registered listeners. */
 const notify = () => {
   listeners.forEach((listener) => listener(themeState));
 };
 
+/** Applies the resolved theme class and color-scheme to the document root, optionally animating the transition. */
 const applyThemeToDocument = (resolvedTheme: ResolvedTheme, animate = true) => {
   if (typeof window === 'undefined') return;
   const root = window.document.documentElement;
@@ -114,6 +119,7 @@ const applyThemeToDocument = (resolvedTheme: ResolvedTheme, animate = true) => {
   }
 };
 
+/** Persists the new theme, updates the shared themeState, applies DOM changes, and notifies all listeners. */
 const updateThemeState = (nextTheme: Theme, animate = true) => {
   themeState = {
     theme: nextTheme,
@@ -128,6 +134,7 @@ const updateThemeState = (nextTheme: Theme, animate = true) => {
   notify();
 };
 
+/** Reacts to OS colour-scheme changes by re-resolving the theme when the user preference is 'system'. */
 const handleSystemThemeChange = () => {
   if (themeState.theme !== 'system') return;
   themeState = {
@@ -138,12 +145,14 @@ const handleSystemThemeChange = () => {
   notify();
 };
 
+/** Attaches the matchMedia change listener exactly once, idempotently. */
 const ensureSystemListener = () => {
   if (typeof window === 'undefined' || systemListenerAttached) return;
   window.matchMedia(MEDIA_QUERY).addEventListener('change', handleSystemThemeChange);
   systemListenerAttached = true;
 };
 
+/** Bootstraps the theme system: attaches the system listener, reads the stored preference, and applies it to the document. */
 const initializeTheme = () => {
   if (typeof window === 'undefined') return;
   ensureSystemListener();
@@ -299,6 +308,7 @@ export function useAmbientColorManagement(sentiment: Sentiment): AmbientColors {
 // THEME AUDIT MANAGEMENT
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════════════
 
+/** Builds a CSS-selector-style path string from the given element up to document.body, used in audit violation messages. */
 function getElementPath(el: Element): string {
   const path: string[] = [];
   let current: Element | null = el;

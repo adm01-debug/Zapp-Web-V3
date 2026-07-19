@@ -223,6 +223,7 @@ const DANGEROUS_PROTOCOL_RE = /^(javascript|data|vbscript):/i;
 const EVENT_ATTR_RE = /^on/i;
 const normalizationCache = new Map<string, string>();
 
+/** Normalises a string to Unicode NFKC form using an LRU-capped cache to avoid repeated normalisations of the same value. */
 function normalizeUnicodeNFKC(text: string): string {
   if (!text) return text;
   if (normalizationCache.has(text)) {
@@ -242,6 +243,7 @@ function normalizeUnicodeNFKC(text: string): string {
   }
 }
 
+/** Expands named and numeric HTML entities in a string to their Unicode characters using a hardcoded entity map. */
 function decodeHtmlEntities(html: string): string {
   if (!html) return html;
   let decoded = html;
@@ -275,12 +277,14 @@ function decodeHtmlEntities(html: string): string {
   return decoded;
 }
 
+/** Throws if the string contains ASCII control characters (0x00–0x1F or 0x7F), which are illegal in sanitised HTML output. */
 function validateNoControlCharacters(text: string): void {
   if (/[\x00-\x1F\x7F]/.test(text)) {
     throw new Error('Input contains invalid control characters');
   }
 }
 
+/** Recursively removes comment nodes, dangerous element types, and disallowed attributes from a DOM subtree in place. */
 function sanitizeNode(node: Node): void {
   const children = Array.from(node.childNodes);
   for (const child of children) {
@@ -322,6 +326,7 @@ function sanitizeNode(node: Node): void {
   }
 }
 
+/** Parses html into an isolated document, sanitizes the DOM subtree, and returns the resulting innerHTML. */
 function domSanitize(html: string, opts?: { addNoopener?: boolean }): string {
   const doc = document.implementation.createHTMLDocument('');
   doc.body.innerHTML = html;

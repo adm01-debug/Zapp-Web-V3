@@ -153,6 +153,7 @@ export interface DemandInsights {
   capacityRisk: boolean;
 }
 
+/** Builds a prediction timeline from historical hourly message counts, merging 4 hours of actuals with 4 forecast points. */
 function generatePredictionFromHistory(messageHistory: { hour: number; count: number }[]): PredictionPoint[] {
   const now = new Date();
   const data: PredictionPoint[] = [];
@@ -277,16 +278,19 @@ const STATUS_RANK: Record<string, number> = {
   played: 3,
 };
 
+/** Returns the later of two nullable ISO date strings, or the non-null one when only one is present. */
 function maxDate(a: string | null, b: string | null): string | null {
   if (!a) return b;
   if (!b) return a;
   return new Date(a) > new Date(b) ? a : b;
 }
 
+/** Returns true when the given WhatsApp JID belongs to a group (ends with '@g.us'). */
 function isGroupJid(jid: string): boolean {
   return jid?.endsWith('@g.us');
 }
 
+/** Derives the participant JID and display name from a raw message row, handling both group and direct-chat payloads. */
 function extractParticipant(msg: Record<string, unknown>): { jid: string; name: string } {
   const fromMe = !!msg.from_me;
   const remoteJid = String(msg.remote_jid ?? '');
@@ -308,6 +312,7 @@ function extractParticipant(msg: Record<string, unknown>): { jid: string; name: 
   return { jid: remoteJid, name: pushName || remoteJid.split('@')[0] };
 }
 
+/** Generates synthetic delivery statistics for a given remoteJid, used when SLA simulation mode is active. */
 function generateMockDeliveryData(remoteJid: string): DeliveryStatsResult {
   const isGroup = isGroupJid(remoteJid);
   const now = new Date();

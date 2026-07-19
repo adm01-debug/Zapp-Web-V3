@@ -200,6 +200,7 @@ interface CacheEntry {
   version: number;
 }
 
+/** Reads the offline conversation cache from localStorage, evicting entries that are expired, malformed, or from an older schema version. */
 function readCache(): ConversationWithMessages[] | null {
   try {
     const raw = localStorage.getItem(CACHE_KEY);
@@ -229,6 +230,7 @@ function readCache(): ConversationWithMessages[] | null {
   }
 }
 
+/** Synchronously writes up to 50 conversations (last 20 messages each) to the offline localStorage cache, skipping the write when the serialised payload would exceed 80% of the 5 MB quota. */
 function writeCacheSync(data: ConversationWithMessages[]): boolean {
   try {
     const trimmed = data.slice(0, 50).map((c) => ({
@@ -260,6 +262,7 @@ function writeCacheSync(data: ConversationWithMessages[]): boolean {
   }
 }
 
+/** Writes the offline conversation cache with exponential-backoff retries: attempts a synchronous write first, then clears the existing entry and retries up to maxRetries times for quota-exceeded errors. */
 async function writeCacheWithRetry(
   data: ConversationWithMessages[],
   maxRetries = 3,
@@ -825,6 +828,7 @@ Se não houver objeções, retorne []`,
 const CACHE_RESET_FLAG = 'sw-cache-reset-done';
 const SW_CLEANUP_TIMEOUT = 5000; // 5 second timeout for cleanup operations
 
+/** Unregisters all active service workers and purges legacy browser caches that may restore stale UI bundles, with a hard 5-second timeout to prevent indefinite hangs. */
 async function cleanupLegacyServiceWorker(): Promise<boolean> {
   if (!('serviceWorker' in navigator) || typeof caches === 'undefined') return false;
 
