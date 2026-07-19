@@ -6,16 +6,19 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useSidebar } from "./sidebar-context";
 
+/** Unordered list that holds SidebarMenuItem elements; provides the base flex column layout for nav items. */
 export const SidebarMenu = React.forwardRef<HTMLUListElement, React.ComponentProps<"ul">>(({ className, ...props }, ref) => (
   <ul ref={ref} data-sidebar="menu" className={cn("flex w-full min-w-0 flex-col gap-1", className)} {...props} />
 ));
 SidebarMenu.displayName = "SidebarMenu";
 
+/** List item wrapper for a single sidebar navigation entry; adds group/hover scope for nested action visibility. */
 export const SidebarMenuItem = React.forwardRef<HTMLLIElement, React.ComponentProps<"li">>(({ className, ...props }, ref) => (
   <li ref={ref} data-sidebar="menu-item" className={cn("group/menu-item relative", className)} {...props} />
 ));
 SidebarMenuItem.displayName = "SidebarMenuItem";
 
+/** CVA variant factory for the sidebar menu button; exposes `variant` (default/outline) and `size` (sm/default/lg). */
 export const sidebarMenuButtonVariants = cva(
   "peer/menu-button flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left text-sm outline-none ring-sidebar-ring transition-[width,height,padding] hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:bg-sidebar-accent data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:!size-8 group-data-[collapsible=icon]:!p-2 [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0",
   {
@@ -38,6 +41,7 @@ export const sidebarMenuButtonVariants = cva(
   },
 );
 
+/** Primary nav button inside a SidebarMenuItem; wraps in a Tooltip when collapsed and tooltip prop is provided. */
 export const SidebarMenuButton = React.forwardRef<
   HTMLButtonElement,
   React.ComponentProps<"button"> & {
@@ -75,6 +79,7 @@ export const SidebarMenuButton = React.forwardRef<
 });
 SidebarMenuButton.displayName = "SidebarMenuButton";
 
+/** Absolute-positioned action button (e.g. ellipsis, kebab) overlaid on a SidebarMenuButton; hidden when sidebar is icon-only. */
 export const SidebarMenuAction = React.forwardRef<
   HTMLButtonElement,
   React.ComponentProps<"button"> & { asChild?: boolean; showOnHover?: boolean }
@@ -101,6 +106,7 @@ export const SidebarMenuAction = React.forwardRef<
 });
 SidebarMenuAction.displayName = "SidebarMenuAction";
 
+/** Badge overlaid on a SidebarMenuButton to show counts (e.g. unread messages); hidden in icon-only mode. */
 export const SidebarMenuBadge = React.forwardRef<HTMLDivElement, React.ComponentProps<"div">>(
   ({ className, ...props }, ref) => (
     <div
@@ -121,6 +127,7 @@ export const SidebarMenuBadge = React.forwardRef<HTMLDivElement, React.Component
 );
 SidebarMenuBadge.displayName = "SidebarMenuBadge";
 
+/** Loading skeleton that mimics a SidebarMenuButton shape; optionally renders an icon placeholder. */
 export const SidebarMenuSkeleton = React.forwardRef<
   HTMLDivElement,
   React.ComponentProps<"div"> & { showIcon?: boolean }
@@ -144,6 +151,7 @@ export const SidebarMenuSkeleton = React.forwardRef<
 });
 SidebarMenuSkeleton.displayName = "SidebarMenuSkeleton";
 
+/** Indented sub-menu list rendered below a parent SidebarMenuButton; hidden when sidebar is in icon-only mode. */
 export const SidebarMenuSub = React.forwardRef<HTMLUListElement, React.ComponentProps<"ul">>(
   ({ className, ...props }, ref) => (
     <ul
@@ -160,11 +168,13 @@ export const SidebarMenuSub = React.forwardRef<HTMLUListElement, React.Component
 );
 SidebarMenuSub.displayName = "SidebarMenuSub";
 
+/** List item wrapper for an entry inside a SidebarMenuSub nested navigation list. */
 export const SidebarMenuSubItem = React.forwardRef<HTMLLIElement, React.ComponentProps<"li">>(({ ...props }, ref) => (
   <li ref={ref} {...props} />
 ));
 SidebarMenuSubItem.displayName = "SidebarMenuSubItem";
 
+/** Anchor/link element for navigating sub-menu items; sized sm/md and hidden when sidebar is icon-only. */
 export const SidebarMenuSubButton = React.forwardRef<
   HTMLAnchorElement,
   React.ComponentProps<"a"> & { asChild?: boolean; size?: "sm" | "md"; isActive?: boolean }
