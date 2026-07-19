@@ -98,6 +98,7 @@ interface EvolutionApiError extends Error {
   retryAfterMs?: number;
 }
 
+/** Returns true for HTTP status codes that warrant a retry (5xx, 408, 425, 429, or unknown), and false for terminal auth failures (401, 403). */
 function isRetriableStatus(status?: number): boolean {
   if (status == null) return true;
   if (status === 401 || status === 403) return false;
@@ -106,6 +107,7 @@ function isRetriableStatus(status?: number): boolean {
   return false;
 }
 
+/** Parses a Retry-After header value (seconds as a number/string or an HTTP-date string) into milliseconds, returning undefined when the value is absent or unparseable. */
 function parseRetryAfter(raw: unknown): number | undefined {
   if (typeof raw !== 'string' && typeof raw !== 'number') return undefined;
   const n = Number(raw);
@@ -115,6 +117,7 @@ function parseRetryAfter(raw: unknown): number | undefined {
   return undefined;
 }
 
+/** Resolves after ms milliseconds, or rejects with an AbortError immediately if the provided AbortSignal is already aborted or fires during the wait. */
 async function sleep(ms: number, signal?: AbortSignal): Promise<void> {
   return new Promise((resolve, reject) => {
     const timer = setTimeout(resolve, ms);
@@ -268,6 +271,7 @@ export function useEvolutionApiCore() {
 // SECTION 2: INSTANCE MANAGEMENT — Create, connect, disconnect, lifecycle
 // ═══════════════════════════════════════════════════════════════════════════
 
+/** Provides instance lifecycle operations: create, connect, reconnect, logout, restart, delete, and QR/pairing-code retrieval against the Evolution API. */
 function useEvolutionInstance(
   callApi: (action: string, body?: object, method?: HttpMethod) => Promise<unknown>,
   withToast: (action: string, body: object | undefined, successMsg: string, errorMsg: string, method?: HttpMethod) => Promise<unknown>
@@ -379,6 +383,7 @@ function useEvolutionInstance(
 // SECTION 3: MESSAGING — Send messages, mark read, manage chat state
 // ═══════════════════════════════════════════════════════════════════════════
 
+/** Provides all outbound messaging operations: text, media, audio, sticker, location, contact, reaction, poll, list, button, and template sends; plus read-marking, chat archiving, muting, and message editing/deletion. */
 function useEvolutionMessaging(
   callApi: (action: string, body?: object, methodOrOptions?: HttpMethod | CallApiOptions) => Promise<unknown>,
   withToast: (action: string, body: object | undefined, successMsg: string, errorMsg: string, methodOrOptions?: HttpMethod | CallApiOptions) => Promise<unknown>
@@ -696,6 +701,7 @@ function useEvolutionMessaging(
 // SECTION 4: GROUPS — Group creation, member management, settings
 // ═══════════════════════════════════════════════════════════════════════════
 
+/** Provides group lifecycle operations: create, list, fetch group info, manage participants (add/remove/promote/demote), update subject/description/picture, toggle ephemeral mode, and manage invite codes. */
 function useEvolutionGroups(
   callApi: (action: string, body?: object, method?: HttpMethod) => Promise<unknown>,
   withToast: (action: string, body: object | undefined, successMsg: string, errorMsg: string, method?: HttpMethod) => Promise<unknown>
@@ -867,6 +873,7 @@ function useEvolutionGroups(
 // SECTION 5: PROFILE — Fetch/update profile, privacy, labels
 // ═══════════════════════════════════════════════════════════════════════════
 
+/** Provides profile management: fetch local and remote profiles, update name/status/picture, remove profile picture, fetch business profile, update privacy settings, and manage WhatsApp labels. */
 function useEvolutionProfile(
   callApi: (action: string, body?: object, method?: HttpMethod) => Promise<unknown>,
   withToast: (
@@ -989,6 +996,7 @@ function useEvolutionProfile(
 // SECTION 6: CHATS — Find chats/messages/contacts, media retrieval
 // ═══════════════════════════════════════════════════════════════════════════
 
+/** Provides read-only access to conversation data: list chats (with v237 fallback), find messages, fetch status messages, search contacts (with v237 fallback), bulk-check WhatsApp numbers, and download media as Base64. */
 function useEvolutionChats(
   callApi: (action: string, body?: object, method?: HttpMethod) => Promise<unknown>
 ) {
@@ -1060,6 +1068,7 @@ function useEvolutionChats(
 // SECTION 7: BOTS — Bot integrations (Chatwoot, Typebot, OpenAI, etc)
 // ═══════════════════════════════════════════════════════════════════════════
 
+/** Provides CRUD and session management for all bot integrations: Chatwoot, Typebot (including session start), OpenAI, Dify, Flowise, and EvolutionBot — each with configure, retrieve, and delete operations. */
 function useEvolutionBots(
   callApi: (action: string, body?: object, method?: HttpMethod) => Promise<unknown>,
   withToast: (
@@ -1239,6 +1248,7 @@ function useEvolutionBots(
 // SECTION 8: AI AGENTS — AI agent settings (EvoAI, N8N)
 // ═══════════════════════════════════════════════════════════════════════════
 
+/** Provides configure/retrieve/delete operations for AI agent integrations: EvoAI (custom AI agent endpoint) and N8N (workflow automation), each with a set/get/delete triple. */
 function useEvolutionAiAgents(
   callApi: (action: string, body?: object, method?: HttpMethod) => Promise<unknown>,
   withToast: (
@@ -1339,6 +1349,7 @@ function useEvolutionAiAgents(
 // SECTION 9: STREAMING — Event streaming backends (RabbitMQ, SQS, etc)
 // ═══════════════════════════════════════════════════════════════════════════
 
+/** Provides set/get operations for all event-streaming backends: RabbitMQ, SQS, Kafka, NATS, and Pusher — each enabling event routing from WhatsApp to external message queues. */
 function useEvolutionStreaming(
   callApi: (action: string, body?: object, method?: HttpMethod) => Promise<unknown>
 ) {
@@ -1419,6 +1430,7 @@ function useEvolutionStreaming(
 // SECTION 10: MISCELLANEOUS — Templates, blocking, catalog, proxy
 // ═══════════════════════════════════════════════════════════════════════════
 
+/** Provides miscellaneous Evolution API operations: WhatsApp message templates (create/list/delete), contact blocking/unblocking, business catalog retrieval, and HTTP proxy configuration. */
 function useEvolutionMisc(
   callApi: (action: string, body?: object, method?: HttpMethod) => Promise<unknown>,
   withToast: (

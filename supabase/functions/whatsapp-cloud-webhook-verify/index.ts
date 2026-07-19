@@ -120,8 +120,8 @@ Deno.serve(async (req) => {
         echoMatches: text === challenge,
         durationMs: Math.round(performance.now() - t0),
       };
-    } catch (e) {
-      console.error("[webhook-verify] handshake error:", e);
+    } catch {
+      console.error("[webhook-verify] handshake error — see server logs");
       handshake = {
         status: "fail",
         durationMs: Math.round(performance.now() - t0),

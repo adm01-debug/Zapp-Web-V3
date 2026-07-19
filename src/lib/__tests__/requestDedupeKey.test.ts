@@ -123,7 +123,7 @@ describe('normalizeEndpoint — relative paths', () => {
 describe('normalizeEndpoint — absolute URLs', () => {
   it('lowercases the host', () => {
     const result = normalizeEndpoint('https://API.EXAMPLE.COM/v1');
-    expect(result).toMatch(/^https:\/\/api\.example\.com(?:\/|$)/);
+    expect(result).toMatch(/^https:\/\/api\.example\.com\//);
   });
 
   it('lowercases the protocol', () => {
