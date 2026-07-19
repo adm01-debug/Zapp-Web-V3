@@ -14,6 +14,7 @@
  * UI layer should consume only the normalized `ScanResult`.
  */
 
+/** Scan Code type alias. */
 export type ScanCode =
   | 'MALWARE_DETECTED'
   | 'SUSPICIOUS_FILE'

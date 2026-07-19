@@ -71,6 +71,7 @@ export const TalkxSendV1Schema = z.object({
  *  b) { to, subject, html } → fallback Resend. `to` aceita e-mail ou lista (≤50).
  */
 const EmailAddr = z.string().trim().email({ message: "e-mail inválido" }).max(320);
+/** Send Email V1 Schema constant. */
 export const SendEmailV1Schema = z.object({
   accountId: z.string().min(1).max(200).optional(),
   action: z.string().max(50).optional(),

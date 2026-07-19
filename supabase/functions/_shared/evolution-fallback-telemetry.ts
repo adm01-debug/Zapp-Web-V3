@@ -28,11 +28,13 @@
  *   }
  */
 
+/** Evolution Fallback Action type alias. */
 export type EvolutionFallbackAction =
   | 'find-chats'
   | 'find-contacts'
   | 'fetch-profile';
 
+/** Evolution Fallback Reason type alias. */
 export type EvolutionFallbackReason =
   | 'http_404'
   | 'http_405'

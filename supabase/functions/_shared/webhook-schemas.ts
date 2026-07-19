@@ -31,6 +31,7 @@ export const EvolutionWebhookV2Schema = EvolutionWebhookV1Schema.extend({
   environment: z.enum(['production', 'development', 'staging']).optional(),
 });
 
+/** Webhook Payload Schema constant. */
 export const WebhookPayloadSchema = z.union([EvolutionWebhookV1Schema, EvolutionWebhookV2Schema]);
 
 /**

@@ -4,12 +4,14 @@
  * Shared types used across all API services.
  */
 
+/** Supabase Error interface. */
 export interface SupabaseError {
   code: string;
   message: string;
   status?: number;
 }
 
+/** List Response interface. */
 export interface ListResponse<T> {
   data: T[];
   total: number;

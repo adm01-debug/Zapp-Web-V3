@@ -484,6 +484,7 @@ export function instanceOrFilter(instance: string): string {
   return `instance_name.eq."${safe}",instance_id.eq."${safe}"`;
 }
 
+/** Dead Letter Input interface. */
 export interface DeadLetterInput {
   event_type: string;
   instance?: string | null;
@@ -501,6 +502,7 @@ export interface DeadLetterInput {
  * Evolution (evita retry-storm). request_id vai apenas para o log.
  */
 // deno-lint-ignore no-explicit-any
+/** route To Dead Letter function. */
 export async function routeToDeadLetter(supabase: any, input: DeadLetterInput): Promise<void> {
   try {
     const { error } = await supabase.from('evolution_webhook_dlq').insert({

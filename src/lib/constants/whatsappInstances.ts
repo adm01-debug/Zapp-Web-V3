@@ -14,6 +14,7 @@
  *  3. Configure o webhook na Evolution API.
  */
 
+/** Whatsapp Instances constant. */
 export const WHATSAPP_INSTANCES = [
   // Instância legada — dados históricos até Maio 2026
   'wpp2',

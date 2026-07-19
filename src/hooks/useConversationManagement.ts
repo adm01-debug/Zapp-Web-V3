@@ -222,6 +222,7 @@ export function useConversationActions() {
    SECTION 2: useConversationAnalyses - Conversation analysis & sentiment
    ============================================================================ */
 
+/** Conversation Analysis interface. */
 export interface ConversationAnalysis {
   id: string;
   contact_id: string;
@@ -348,6 +349,7 @@ export function useConversationAnalyses(contactId: string | null) {
    SECTION 3: useConversationSLATimeline - SLA milestones & attribution
    ============================================================================ */
 
+/** SLA Attribution interface. */
 export interface SLAAttribution {
   agentId: string | null;
   agentName: string | null;

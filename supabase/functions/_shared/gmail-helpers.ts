@@ -8,6 +8,7 @@
 import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
+/** Gmail Api constant. */
 export const GMAIL_API  = 'https://gmail.googleapis.com/gmail/v1/users/me';
 
 // ── Supabase client (service role) ────────────────────────────────────

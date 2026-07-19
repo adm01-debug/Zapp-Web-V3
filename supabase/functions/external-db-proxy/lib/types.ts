@@ -5,6 +5,7 @@ export interface ProxyFilter {
   value: unknown
 }
 
+/** Query Log Context interface. */
 export interface QueryLogContext {
   cid: string
   rid: string

@@ -290,6 +290,7 @@ export function errorResponse(message: string, status = 400, req?: Request) {
  */
 export type SecurityVerdict = 'clean' | 'malicious' | 'suspicious' | 'unknown';
 
+/** Security Error Payload interface. */
 export interface SecurityErrorPayload {
   code: string;
   message: string;

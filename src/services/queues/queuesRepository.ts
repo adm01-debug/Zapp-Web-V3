@@ -5,6 +5,7 @@
 import { createService } from '@/services/api/genericService';
 import type { QueryParams } from '@/services/api/types';
 
+/** Queue interface. */
 export interface Queue {
   id: string;
   name: string;

@@ -56,6 +56,7 @@ export interface ContactTypingState {
   participant: string | null;
 }
 
+/** Use Contact Typing Options interface. */
 export interface UseContactTypingOptions {
   /** Habilita/desabilita o subscribe (gating por viewport). Default true. */
   enabled?: boolean;

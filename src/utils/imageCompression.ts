@@ -3,6 +3,7 @@
  * Optimized for fast WhatsApp uploads
  */
 
+/** Compression Options interface. */
 export interface CompressionOptions {
   maxWidth?: number;
   maxHeight?: number;

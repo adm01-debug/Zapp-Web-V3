@@ -9,6 +9,7 @@
 
 const STORAGE_KEY = 'webhook-events:pending-filters';
 
+/** Webhook Events Deep Link Filters interface. */
 export interface WebhookEventsDeepLinkFilters {
   /** Tipo de evento (ex.: 'PRESENCE_UPDATE'). 'all' equivale a sem filtro. */
   eventType?: string;

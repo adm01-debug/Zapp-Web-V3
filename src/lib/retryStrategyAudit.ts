@@ -19,6 +19,7 @@ const log = getLogger('retryStrategyAudit');
  * - Adaptive retry strategies based on error types
  */
 
+/** Retryable Error Type enum. */
 export enum RetryableErrorType {
   NETWORK = 'network',
   TIMEOUT = 'timeout',

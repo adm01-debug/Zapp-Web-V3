@@ -17,6 +17,7 @@ const log = getLogger('connectionPool');
  * - Provide pool metrics for monitoring dashboards
  */
 
+/** Connection Metrics interface. */
 export interface ConnectionMetrics {
   activeConnections: number;
   totalCreated: number;

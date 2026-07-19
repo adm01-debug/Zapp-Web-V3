@@ -3,6 +3,7 @@
  * Extracted from CustomEmojiPicker for maintainability.
  */
 
+/** Category Labels constant. */
 export const CATEGORY_LABELS: Record<string, { emoji: string; label: string }> = {
   'sorriso': { emoji: '😊', label: 'Sorriso' },
   'riso': { emoji: '😂', label: 'Riso' },

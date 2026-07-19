@@ -38,6 +38,7 @@ export interface FailedMessagesFilters {
   pageSize?: number;
 }
 
+/** Error Code Aggregate interface. */
 export interface ErrorCodeAggregate {
   code: string;
   count: number;
@@ -70,6 +71,7 @@ export interface FailedMessagesAggregates {
   topInstance: InstanceAggregate | null;
 }
 
+/** Dlq Stats interface. */
 export interface DlqStats {
   total: number;
   total_24h: number;

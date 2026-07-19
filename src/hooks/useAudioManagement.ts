@@ -15,6 +15,7 @@ const log = getLogger('useAudioManagement');
    SECTION 1: useAudioMemes - Audio meme catalog management
    ============================================================================ */
 
+/** Audio Meme Item interface. */
 export interface AudioMemeItem {
   id: string;
   name: string;

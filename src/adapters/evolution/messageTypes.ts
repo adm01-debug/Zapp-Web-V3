@@ -5,6 +5,7 @@ export type InternalMessageType =
   | 'text' | 'image' | 'audio' | 'video' | 'document'
   | 'sticker' | 'location' | 'interactive' | 'unsupported';
 
+/** Message Category type alias. */
 export type MessageCategory =
   | 'text' | 'media' | 'interactive' | 'location'
   | 'contact' | 'poll' | 'reaction' | 'system' | 'unknown';

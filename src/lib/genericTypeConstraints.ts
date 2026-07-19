@@ -151,8 +151,11 @@ export function compose<A, B, C>(f: (a: A) => B, g: (b: B) => C): (a: A) => C {
  * Generic pipe function (left-to-right composition) with type safety
  */
 export function pipe<A, B>(a: A, f: (a: A) => B): B;
+/** pipe function. */
 export function pipe<A, B, C>(a: A, f: (a: A) => B, g: (b: B) => C): C;
+/** pipe function. */
 export function pipe<A, B, C, D>(a: A, f: (a: A) => B, g: (b: B) => C, h: (c: C) => D): D;
+/** pipe function. */
 export function pipe<A, B, C, D, E>(
   a: A,
   f: (a: A) => B,

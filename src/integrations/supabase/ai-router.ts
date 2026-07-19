@@ -17,6 +17,7 @@
 
 import { supabase } from './client';
 
+/** Ai Action type alias. */
 export type AiAction =
   | 'auto_tag'
   | 'conversation_summary'

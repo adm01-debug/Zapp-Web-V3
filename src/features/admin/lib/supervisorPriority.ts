@@ -5,8 +5,10 @@
  * A pontuação numérica é usada para ordenar a fila de forma estável.
  */
 
+/** Priority Level type alias. */
 export type PriorityLevel = 'critical' | 'high' | 'medium' | 'normal';
 
+/** Supervisor Conversation Input interface. */
 export interface SupervisorConversationInput {
   id: string;
   name: string;

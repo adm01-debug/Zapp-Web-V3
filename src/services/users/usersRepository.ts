@@ -10,6 +10,7 @@ import { safeFrom } from '@/integrations/supabase/safeClient';
 import { createService } from '@/services/api/genericService';
 import type { QueryParams } from '@/services/api/types';
 
+/** User interface. */
 export interface User {
   id: string;
   email: string;

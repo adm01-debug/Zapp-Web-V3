@@ -202,6 +202,7 @@ export function downloadCsv(filename: string, csvContent: string): void {
   downloadCsvFile(csvContent, filename);
 }
 
+/** build Csv String constant. */
 export const buildCsvString = buildCsv;
 
 /**

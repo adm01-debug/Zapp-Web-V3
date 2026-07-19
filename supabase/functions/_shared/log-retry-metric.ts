@@ -10,6 +10,7 @@ export interface RetryReason {
   reason: string; // ex.: 'http_503', 'timeout', 'network_error'
 }
 
+/** Retry Metric Input interface. */
 export interface RetryMetricInput {
   action: string;
   method: string;

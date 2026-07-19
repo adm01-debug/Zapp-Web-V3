@@ -22,8 +22,10 @@ export interface HmacAuditHistoryPanelProps {
   limit?: number;
 }
 
+/** Range Key type alias. */
 export type RangeKey = '24h' | '7d' | '30d';
 
+/** RANGES constant. */
 export const RANGES: { value: RangeKey; label: string; hours: number; bucket: 'hour' | 'day' }[] = [
   { value: '24h', label: 'Últimas 24h', hours: 24, bucket: 'hour' },
   { value: '7d', label: 'Últimos 7 dias', hours: 24 * 7, bucket: 'day' },

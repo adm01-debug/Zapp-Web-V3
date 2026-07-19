@@ -38,6 +38,7 @@ function computeBackoffMs(attempt: number): number {
   return Math.max(1_000, Math.round(capped + jitter));
 }
 
+/** Enqueue Client Failed Message Input interface. */
 export interface EnqueueClientFailedMessageInput {
   instance_name: string;
   remote_jid?: string | null;

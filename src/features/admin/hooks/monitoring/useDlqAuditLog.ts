@@ -12,6 +12,7 @@ import { useUserRole } from '@/features/auth';
  * de quem executou. Acesso restrito a admin (RPC valida via `has_role`).
  */
 
+/** Dlq Audit Action type alias. */
 export type DlqAuditAction =
   | 'dlq_reprocess_trigger'
   | 'dlq_reprocess_result'

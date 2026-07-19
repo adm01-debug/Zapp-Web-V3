@@ -7,6 +7,7 @@
  * queries via `ZAPPWEB_INSTANCE`.
  */
 
+/** Whats App Message Type type alias. */
 export type WhatsAppMessageType =
   | 'conversation'
   | 'extendedTextMessage'

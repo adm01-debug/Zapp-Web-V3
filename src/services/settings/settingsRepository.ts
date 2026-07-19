@@ -8,6 +8,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import type { QueryParams } from '@/services/api/types';
 
+/** User Settings interface. */
 export interface UserSettings {
   id: string;
   user_id: string;

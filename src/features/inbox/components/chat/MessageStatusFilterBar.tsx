@@ -21,6 +21,7 @@ import { cn } from '@/lib/utils';
 import type { Message } from '@/types/chat';
 import { STAGE_LABEL_UNIFIED } from './messageStatusLanguage';
 
+/** Message Status Filter type alias. */
 export type MessageStatusFilter = 'sent' | 'delivered' | 'read';
 
 interface Props {

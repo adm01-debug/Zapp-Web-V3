@@ -9,6 +9,7 @@ export interface CatalogTable {
   description: string;
 }
 
+/** Catalog Rpc interface. */
 export interface CatalogRpc {
   name: string;
   kind: 'select' | 'mutation' | 'analytics';
@@ -17,6 +18,7 @@ export interface CatalogRpc {
   exampleParams: Record<string, unknown>;
 }
 
+/** TABLES constant. */
 export const TABLES: readonly CatalogTable[] = [
   // Operacional
   { name: 'evolution_messages',         category: 'Operacional', description: 'Todas as mensagens recebidas/enviadas' },

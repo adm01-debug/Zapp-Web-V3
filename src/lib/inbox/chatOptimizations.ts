@@ -7,6 +7,7 @@ const log = getLogger('chatOptimizations');
  * Includes incremental loading logic and windowing helpers.
  */
 
+/** Batch Size constant. */
 export const BATCH_SIZE = 50;
 
 /**
@@ -46,6 +47,7 @@ export const deduplicateMessages = <T extends WithId>(existing: T[], incoming: T
  */
 const LAST_RECEIVED_KEY = 'chat_last_received_v1';
 
+/** Last Received Info interface. */
 export interface LastReceivedInfo {
   message_id: string;
   timestamp: string;

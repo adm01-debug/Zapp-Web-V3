@@ -9,6 +9,7 @@ export const ContractErrorCode = {
   INVALID_INSTANCE: 'INVALID_INSTANCE',
 } as const;
 
+/** Contract Error Code type alias. */
 export type ContractErrorCode = typeof ContractErrorCode[keyof typeof ContractErrorCode];
 
 // deno-lint-ignore no-explicit-any

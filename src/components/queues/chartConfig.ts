@@ -1,5 +1,6 @@
 /** Shared chart styling constants for Queue analytics */
 
+/** Tooltip Style constant. */
 export const TOOLTIP_STYLE = {
   backgroundColor: 'hsl(var(--card))',
   border: '1px solid hsl(var(--border))',

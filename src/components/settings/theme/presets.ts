@@ -4,6 +4,7 @@
  * ensuring the entire UI transforms when a skin is selected.
  */
 
+/** Theme Mode Colors interface. */
 export interface ThemeModeColors {
   // Core surfaces
   background: string;

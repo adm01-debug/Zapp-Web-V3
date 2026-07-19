@@ -5,6 +5,7 @@
 
 // ─── Core Entities ────────────────────────────────────────────
 
+/** Ext Company interface. */
 export interface ExtCompany {
   id: string;
   nome_crm: string | null;

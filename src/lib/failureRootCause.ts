@@ -8,6 +8,7 @@
  * Pure module — sem efeitos colaterais. Coberto por testes unitários.
  */
 
+/** Root Cause type alias. */
 export type RootCause =
   | 'rate_limit'
   | 'unavailable'

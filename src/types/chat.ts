@@ -154,6 +154,7 @@ export interface Message {
   media_meta?: (Record<string, unknown> & { ptt?: boolean; isPtv?: boolean }) | null;
 }
 
+/** Conversation interface. */
 export interface Conversation {
   id: string;
   contact: Contact;

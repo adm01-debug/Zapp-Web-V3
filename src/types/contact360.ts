@@ -3,6 +3,7 @@
  * from the external CRM database (bancodadosclientes)
  */
 
+/** Contact360 Phone interface. */
 export interface Contact360Phone {
   numero: string;
   numero_e164: string | null;

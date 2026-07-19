@@ -3,6 +3,7 @@
  * Kept separate from the page so they can be unit-tested.
  */
 
+/** Webhook Event Lite interface. */
 export interface WebhookEventLite {
   event_type: string;
   instance_name: string;

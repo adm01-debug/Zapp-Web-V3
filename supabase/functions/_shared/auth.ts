@@ -17,6 +17,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { errorResponse, requireEnv, validateEnvironment } from "./validation.ts";
 
+/** Authed User interface. */
 export interface AuthedUser {
   user: { id: string; email: string | null };
 }

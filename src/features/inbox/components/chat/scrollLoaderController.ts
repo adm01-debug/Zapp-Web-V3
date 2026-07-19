@@ -10,6 +10,7 @@
  * Stateful but framework-agnostic — easy to unit test without a DOM.
  */
 
+/** Scroll Loader Options interface. */
 export interface ScrollLoaderOptions {
   triggerThrottleMs?: number;
   reverseCancelPx?: number;
@@ -22,6 +23,7 @@ export interface ScrollLoaderOptions {
   now?: () => number;
 }
 
+/** Scroll Loader Controller interface. */
 export interface ScrollLoaderController {
   /** Call on every scroll event with the current scrollTop. */
   onScroll(currentTop: number, preloadPx: number): void;

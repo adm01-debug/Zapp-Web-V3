@@ -17,6 +17,7 @@ const log = getLogger('silentErrorPrevention');
  * - Error recovery patterns for common failure scenarios
  */
 
+/** Error Suppression type alias. */
 export type ErrorSuppression = 'intentional' | 'expected' | 'recoverable' | 'logged';
 
 /**

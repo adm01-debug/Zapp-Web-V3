@@ -14,6 +14,7 @@ import { getLogger } from '@/lib/logger';
 
 const log = getLogger('retryConfig');
 
+/** Retry Config interface. */
 export interface RetryConfig {
   maxRetries: number;
   baseBackoffMs: number;

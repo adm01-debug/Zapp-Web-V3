@@ -11,6 +11,7 @@
  * build-time (import inexistente) e simplifica refactors futuros.
  */
 
+/** Whatsapp Connections constant. */
 export const WHATSAPP_CONNECTIONS = {
   table: 'whatsapp_connections',
   columns: {

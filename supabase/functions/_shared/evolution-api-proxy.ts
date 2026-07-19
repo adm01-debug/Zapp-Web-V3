@@ -31,6 +31,7 @@ const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
  */
 export const EVOLUTION_ENVELOPE_VERSION = 1 as const;
 
+/** Evolution Error Envelope interface. */
 export interface EvolutionErrorEnvelope {
   version?: number;
   error: true;

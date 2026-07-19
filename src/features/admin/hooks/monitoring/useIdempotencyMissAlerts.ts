@@ -244,6 +244,7 @@ export function useIdempotencyMissAlerts(opts: UseIdempotencyMissAlertsOptions =
 }
 
 // Test-only helpers (tree-shaken in prod builds because they're unused).
+/** __test__ constant. */
 export const __test__ = {
   ALERT_DEDUPE_STORAGE_KEY,
   ONE_HOUR_MS,

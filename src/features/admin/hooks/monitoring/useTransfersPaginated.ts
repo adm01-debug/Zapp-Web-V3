@@ -11,6 +11,7 @@ import { safeClient } from '@/integrations/supabase/safeClient';
 import { isRlsDeniedError, formatAdminError } from '@/lib/errors/rlsError';
 import { queryKeys } from '@/services/api/queryKeys';
 
+/** Transfer Row interface. */
 export interface TransferRow {
   id: string;
   source_instance: string | null;

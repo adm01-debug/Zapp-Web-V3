@@ -44,6 +44,7 @@ export interface RetryMetricsResponse {
   windowHours: number;
 }
 
+/** Retry Metrics Filters interface. */
 export interface RetryMetricsFilters {
   hours?: number;
   action?: string | null;

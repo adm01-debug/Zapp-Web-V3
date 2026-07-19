@@ -26,6 +26,7 @@
  *        a única forma correta é via RPC SECURITY DEFINER.
  */
 
+/** Logical Entity type alias. */
 export type LogicalEntity =
   | 'messages'
   | 'contacts'

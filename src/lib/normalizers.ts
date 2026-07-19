@@ -8,6 +8,7 @@
  *  - normalizers dedicados para entidades usadas em múltiplos componentes.
  */
 
+/** nn constant. */
 export const nn = <T>(value: T | null | undefined, fallback: T): T =>
   value === null || value === undefined ? fallback : value;
 

@@ -122,6 +122,7 @@ interface VideoPreviewProps {
   isPtv?: boolean;
 }
 
+/** Video Preview constant. */
 export const VideoPreview = forwardRef<HTMLDivElement, VideoPreviewProps>(function VideoPreview(
   { url, caption, isSent, refreshKey, isPtv },
   ref

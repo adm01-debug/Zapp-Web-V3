@@ -12,6 +12,7 @@ import { getLogger } from '@/lib/logger';
 
 const log = getLogger('loadOlderMetrics');
 
+/** Load Older Snapshot interface. */
 export interface LoadOlderSnapshot {
   started: number;
   cancelled: number;

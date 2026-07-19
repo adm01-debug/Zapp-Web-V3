@@ -19,6 +19,7 @@ const log = getLogger('structuredErrorLogging');
  * - Structured fields for log aggregation
  */
 
+/** Error Category enum. */
 export enum ErrorCategory {
   NETWORK = 'network',
   AUTH = 'auth',

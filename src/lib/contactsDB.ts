@@ -20,6 +20,7 @@ import { getExternalSupabase, isExternalConfigured } from '@/integrations/supaba
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 // ─── Types ─────────────────────────────────────────────────────
+/** External Contact interface. */
 export interface ExternalContact {
   id: string;
   user_id: string;

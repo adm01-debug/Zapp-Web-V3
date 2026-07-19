@@ -62,6 +62,7 @@ export interface ChatMessagesAreaRef {
   getScrollContainer: () => HTMLElement | null;
 }
 
+/** Chat Messages Area constant. */
 export const ChatMessagesArea = memo(
   forwardRef<ChatMessagesAreaRef, ChatMessagesAreaProps>(
     (

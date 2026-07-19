@@ -13,6 +13,7 @@
  */
 import type { EvolutionWebhookEvent } from '@/types/evolutionExternal';
 
+/** Call Timeline Entry interface. */
 export interface CallTimelineEntry {
   id: string;
   eventType: string;

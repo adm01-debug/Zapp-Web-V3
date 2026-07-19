@@ -8,6 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { createService } from '@/services/api/genericService';
 import type { ListResponse, QueryParams } from '@/services/api/types';
 
+/** Message interface. */
 export interface Message {
   id: string;
   conversation_id: string;

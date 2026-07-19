@@ -2,11 +2,13 @@
  * Comprehensive emoji database with Portuguese keywords for search
  */
 
+/** Emoji Entry interface. */
 export interface EmojiEntry {
   emoji: string;
   keywords: string[];
 }
 
+/** Emoji Category Data interface. */
 export interface EmojiCategoryData {
   label: string;
   icon: string;

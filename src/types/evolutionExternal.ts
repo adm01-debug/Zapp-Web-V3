@@ -3,6 +3,7 @@
  */
 
 // ─── evolution_messages ───────────────────────────────────────
+/** Evolution Message interface. */
 export interface EvolutionMessage {
   id: string;
   message_id: string;

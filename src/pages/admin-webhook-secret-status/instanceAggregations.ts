@@ -3,6 +3,7 @@
  * All functions are deterministic and unit-testable.
  */
 
+/** Secret Status Event interface. */
 export interface SecretStatusEvent {
   id?: string;
   event_type: string;
@@ -36,6 +37,7 @@ export interface InstanceLiveStatus {
   sparkline: number[];
 }
 
+/** Latency Stats interface. */
 export interface LatencyStats {
   /** Average latency in milliseconds (last hour) — null if no samples. */
   avgMs: number | null;

@@ -3,6 +3,7 @@
  * Extracted from useEvolutionApi.ts for maintainability.
  */
 
+/** Send Message Params interface. */
 export interface SendMessageParams {
   instanceName: string;
   number: string;

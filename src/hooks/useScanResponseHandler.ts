@@ -20,6 +20,7 @@ export interface HandleScanOptions {
   onRetry?: () => void;
 }
 
+/** Scan Outcome type alias. */
 export type ScanOutcome = 'success' | 'blocked' | 'retry' | 'input' | 'error';
 
 /**

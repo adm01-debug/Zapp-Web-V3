@@ -8,6 +8,7 @@
 
 import type { FailedMessageRow } from '@/features/admin';
 
+/** Agent Dispatch Aggregate interface. */
 export interface AgentDispatchAggregate {
   agent: string;
   total: number;

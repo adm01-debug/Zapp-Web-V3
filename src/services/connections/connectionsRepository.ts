@@ -9,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { createService } from '@/services/api/genericService';
 import type { ListResponse, QueryParams } from '@/services/api/types';
 
+/** Whats App Connection interface. */
 export interface WhatsAppConnection {
   id: string;
   instance_name: string;

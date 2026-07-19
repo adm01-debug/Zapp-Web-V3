@@ -8,6 +8,7 @@
  *   }
  */
 
+/** Rls Denied Shape interface. */
 export interface RlsDeniedShape {
   code?: string;
   status?: number;

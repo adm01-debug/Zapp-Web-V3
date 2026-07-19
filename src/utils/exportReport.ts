@@ -6,6 +6,7 @@ import { getLogger } from '@/lib/logger';
 
 const log = getLogger('ExportReport');
 
+/** Report Data interface. */
 export interface ReportData {
   title: string;
   subtitle?: string;
