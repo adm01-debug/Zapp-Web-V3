@@ -27,8 +27,10 @@ import { getLogger } from '@/lib/logger';
 
 const log = getLogger('dedupeTelemetry');
 
+/** Overall outcome of a cross-tab dedupe cache lookup. */
 export type DedupeOutcome = 'hit' | 'miss';
 
+/** Specific reason why a dedupe lookup was a cache hit. */
 export type DedupeHitReason =
   | 'memory_cache'
   | 'persisted_cache'
@@ -62,6 +64,7 @@ export interface DedupeEvent {
   ts: number;
 }
 
+/** Point-in-time snapshot of all dedupe telemetry counters and recent events. */
 export interface DedupeTelemetrySnapshot {
   total: number;
   hits: number;

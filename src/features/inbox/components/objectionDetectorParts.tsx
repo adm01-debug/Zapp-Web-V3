@@ -25,6 +25,7 @@ export interface Objection {
 }
 
 /* ─── Confidence Badge ─── */
+/** Displays a percentage confidence badge for a detected objection. */
 export const ConfidenceBadge = memo(function ConfidenceBadge({
   confidence,
 }: {
@@ -40,6 +41,7 @@ export const ConfidenceBadge = memo(function ConfidenceBadge({
 });
 
 /* ─── Action Bar ─── */
+/** Toolbar with copy, rewrite, and use-response actions for a counter-argument. */
 export const ActionBar = memo(function ActionBar({
   text,
   idx,
@@ -115,6 +117,7 @@ export const ActionBar = memo(function ActionBar({
 });
 
 /* ─── Objection Card ─── */
+/** Expandable card displaying a detected objection and its AI-generated counter-argument. */
 export const ObjectionCard = memo(
   forwardRef<
     HTMLDivElement,
@@ -210,6 +213,7 @@ export const ObjectionCard = memo(
 );
 
 /* ─── Shimmer ─── */
+/** Animated shimmer placeholder shown while objection data is loading. */
 export function ShimmerBlock({ className }: { className?: string }) {
   return (
     <div className={cn('relative overflow-hidden rounded-lg bg-muted/20', className)}>

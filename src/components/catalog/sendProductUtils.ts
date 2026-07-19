@@ -3,9 +3,12 @@
  */
 import { ExternalProduct, ExternalProductVariant } from '@/hooks/useExternalApiManagement';
 
+/** Message tone template for product send messages. */
 export type MessageTemplate = 'formal' | 'informal' | 'promo';
+/** Controls whether a product or a specific variant is sent. */
 export type SendMode = 'product' | 'variant';
 
+/** Product variants grouped by color for selection and preview. */
 export interface VariantGroup {
   colorName: string;
   colorHex: string | null;

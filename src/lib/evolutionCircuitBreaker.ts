@@ -28,8 +28,10 @@ import { getLogger } from '@/lib/logger';
 
 const log = getLogger('EvolutionCircuitBreaker');
 
+/** Per-instance circuit breaker state machine states. */
 export type CircuitState = 'CLOSED' | 'OPEN' | 'HALF_OPEN';
 
+/** Configuration parameters for a per-instance Evolution API circuit breaker. */
 export interface CircuitBreakerConfig {
   /** Consecutive failures to OPEN the circuit. Default 5. */
   failureThreshold: number;
@@ -37,6 +39,7 @@ export interface CircuitBreakerConfig {
   cooldownMs: number;
 }
 
+/** Default circuit breaker configuration used when no override is provided. */
 export const DEFAULT_BREAKER_CONFIG: CircuitBreakerConfig = {
   failureThreshold: 5,
   cooldownMs: 30_000,
