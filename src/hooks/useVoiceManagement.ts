@@ -131,6 +131,14 @@ export function useTextToSpeechManagement(text: string) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+      speechSynthesis.cancel();
+    };
+  }, []);
 
   const speak = useCallback((textToSpeak?: string) => {
     const textContent = textToSpeak || text;
@@ -138,9 +146,9 @@ export function useTextToSpeechManagement(text: string) {
 
     try {
       const utterance = new SpeechSynthesisUtterance(textContent);
-      utterance.onstart = () => setIsPlaying(true);
-      utterance.onend = () => setIsPlaying(false);
-      utterance.onerror = (event) => setError(event.error);
+      utterance.onstart = () => { if (mountedRef.current) setIsPlaying(true); };
+      utterance.onend = () => { if (mountedRef.current) setIsPlaying(false); };
+      utterance.onerror = (event) => { if (mountedRef.current) setError(event.error); };
 
       utteranceRef.current = utterance;
       speechSynthesis.speak(utterance);

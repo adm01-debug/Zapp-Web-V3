@@ -32,7 +32,10 @@ export function useWarRoomAlerts(soundEnabled = true) {
         .order('created_at', { ascending: false })
         .limit(50);
 
-      if (error) return [];
+      if (error) {
+        log.error('Failed to fetch warroom alerts', error);
+        return [];
+      }
       return (data ?? []).filter(
         (a) => a.id && VALID_ALERT_TYPES.includes(a.alert_type)
       );

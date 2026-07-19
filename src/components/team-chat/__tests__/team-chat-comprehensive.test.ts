@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { supabase } from '@/integrations/supabase/client';
 
 /**
  * Comprehensive Test Suite for Internal Team Chat
@@ -1009,8 +1010,9 @@ describe('Team Chat — Performance Analysis', () => {
     });
 
     it('✓ Channels cleaned up on unmount', () => {
+      // Verify supabase exposes the removeChannel API used in cleanup functions:
       // return () => { supabase.removeChannel(channel); }
-      expect(true).toBe(true);
+      expect(typeof supabase.removeChannel).toBe('function');
     });
 
     it('GAP: Notification subscription unfiltered', () => {

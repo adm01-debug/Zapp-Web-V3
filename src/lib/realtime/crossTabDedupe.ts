@@ -491,6 +491,17 @@ async function readPersistedResult<T>(key: string): Promise<T | null> {
     const raw = localStorage.getItem(LS_RESULT_PREFIX + key);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as ResultPayload<T>;
+    if (
+      typeof parsed !== 'object' ||
+      parsed === null ||
+      typeof parsed.expiresAt !== 'number' ||
+      typeof parsed.payloadHash !== 'string' ||
+      typeof parsed.sequence !== 'number' ||
+      !('value' in parsed)
+    ) {
+      localStorage.removeItem(LS_RESULT_PREFIX + key);
+      return null;
+    }
     if (parsed.expiresAt < getNormalizedTime()) {
       localStorage.removeItem(LS_RESULT_PREFIX + key);
       return null;

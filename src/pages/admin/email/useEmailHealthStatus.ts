@@ -65,6 +65,7 @@ export function useEmailHealthStatus() {
       if (!mountedRef.current) return;
       setHealth({
         status: castStatus(dataFull.status),
+        source: typeof dataFull.source === 'string' ? dataFull.source : undefined,
         lastValidation: dataFull.last_validation ? new Date(dataFull.last_validation) : null,
         cacheExpiration: null,
         recentFailures: dataFull.failuresResult?.items || [],
