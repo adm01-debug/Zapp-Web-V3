@@ -45,7 +45,8 @@ export default function SSOCallback() {
           const errorParam = hashParams.get('error_description') || hashParams.get('error');
 
           if (errorParam) {
-            throw new Error(errorParam);
+            const safeError = String(errorParam).slice(0, 200).replace(/[<>"'&]/g, '');
+            throw new Error(safeError);
           }
 
           const { data: authData } = supabase.auth.onAuthStateChange((event, session) => {

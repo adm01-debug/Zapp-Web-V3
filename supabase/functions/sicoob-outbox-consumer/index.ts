@@ -73,7 +73,8 @@ Deno.serve(async (req) => {
 
     return await processBatch(req, claimed ?? [], supabase, sicoobGiftsUrl, bridgeSecret);
   } catch (e) {
-    return json(req, { error: e instanceof Error ? e.message : String(e) }, 500);
+    console.error("[sicoob-outbox] fatal error:", e);
+    return json(req, { error: "Internal server error" }, 500);
   }
 });
 

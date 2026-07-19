@@ -157,7 +157,7 @@ export async function handleIncomingMessage(
     } else {
       contact = newContact;
     }
-  } else if (!contact.avatar_url || contact.avatar_url.includes('pps.whatsapp.net')) {
+  } else if (!contact.avatar_url || (() => { try { return new URL(contact.avatar_url).hostname.endsWith('.whatsapp.net'); } catch { return false; } })()) {
     const picUrl = await fetchProfilePicFromApi(instance, phone);
     if (picUrl) {
       const avatarUrl = await persistProfilePicture(supabase, phone, picUrl);
