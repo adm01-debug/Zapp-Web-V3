@@ -21,6 +21,7 @@ export interface AggregatedReaction {
   profileIds: string[];
 }
 
+/** Manages emoji reactions on team-chat messages: fetch, add, remove, and realtime subscription per conversation. */
 export function useTeamMessageReactions(conversationId: string | undefined) {
   const queryClient = useQueryClient();
   const { profile } = useAuth();

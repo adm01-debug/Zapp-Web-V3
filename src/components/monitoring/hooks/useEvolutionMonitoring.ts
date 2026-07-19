@@ -20,6 +20,7 @@ export type {
   InstanceUptime,
 } from './types';
 
+/** Composes monitoring data, actions, and notifications for Evolution API connections into a single hook. */
 export function useEvolutionMonitoring() {
   const [period, setPeriod] = useState<TimePeriod>('12h');
   const [autoRefresh, setAutoRefresh] = useState(true);

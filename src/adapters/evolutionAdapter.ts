@@ -11,10 +11,12 @@ import { extractMessageType } from './evolution/messageTypes';
 
 export * from './evolution/messageTypes';
 
+/** Extracts the phone number from a WhatsApp JID by stripping the server suffix (e.g. `@s.whatsapp.net`). */
 export function jidToPhone(jid: string): string {
   return jid.replace(/@.*$/, '');
 }
 
+/** Maps an Evolution API `EvolutionMessage` to the internal `RealtimeMessage` shape used by the inbox. */
 export function evolutionToRealtimeMessage(evo: EvolutionMessage): RealtimeMessage {
   const msgType = extractMessageType(evo.message_type);
   let content = evo.content || evo.caption || '';

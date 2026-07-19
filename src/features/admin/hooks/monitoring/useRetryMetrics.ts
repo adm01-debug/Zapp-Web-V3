@@ -48,6 +48,7 @@ export interface RetryMetricsFilters {
   status?: 'success' | 'failed' | 'exhausted' | null;
 }
 
+/** Fetches aggregated retry metrics (success rate, durations, top actions/reasons) with delta vs. the prior window. */
 export function useRetryMetrics(filters: RetryMetricsFilters = {}) {
   const queryClient = useQueryClient();
   const { hours = 24, action = null, instance = null, status = null } = filters;

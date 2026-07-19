@@ -82,6 +82,7 @@ interface UseRateLimitLogsResult {
   refetch: () => void;
 }
 
+/** Paginates and filters rate-limit log entries, computing aggregate stats (blocked count, top IPs/endpoints). */
 export function useRateLimitLogs(initial?: Partial<RateLimitLogsFilters>): UseRateLimitLogsResult {
   const queryClient = useQueryClient();
   const [filters, setFiltersState] = useState<RateLimitLogsFilters>({

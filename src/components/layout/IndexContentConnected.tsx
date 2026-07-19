@@ -18,6 +18,7 @@ import { UnifiedNotificationProviders } from '@/components/notifications/Unified
 import { OfflineIndicator, ConnectionToast } from '@/components/ui/offline-indicator';
 import { DegradedConnectionsBanner } from '@/components/alerts/DegradedConnectionsBanner';
 
+/** Root connected component that wires auth, onboarding, notifications, keyboard shortcuts, and nav into the AppShell. */
 export const IndexContentConnected = forwardRef<HTMLDivElement>(function IndexContentConnected(_props, _ref) {
   const { user, profile, loading, signOut } = useAuth();
   const { hasCompletedOnboarding, loading: loadingOnboarding, completeOnboarding } = useOnboarding();

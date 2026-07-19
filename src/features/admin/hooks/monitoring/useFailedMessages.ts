@@ -41,6 +41,7 @@ interface _RpcRow extends FailedMessageRow {
   total_count: number | string;
 }
 
+/** Queries failed Evolution API messages with DLQ stats, retry mutations, and realtime invalidation. */
 export function useFailedMessages(filters: FailedMessagesFilters = {}) {
   const queryClient = useQueryClient();
   const { isDev } = useUserRole();

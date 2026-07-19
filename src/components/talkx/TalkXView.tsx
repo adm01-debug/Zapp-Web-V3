@@ -35,6 +35,7 @@ import { TalkXBlacklist } from './TalkXBlacklist';
 import { TalkXAnalytics } from './TalkXAnalytics';
 import { SectionErrorBoundary } from '@/components/ui/section-error-boundary';
 
+/** Full-page TalkX view for creating, monitoring, and managing mass-message campaigns and the contact blacklist. */
 export default function TalkXView() {
   const {
     campaigns,

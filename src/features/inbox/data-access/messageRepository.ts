@@ -25,6 +25,7 @@ export interface Message {
   contactAvatar: string | null;
 }
 
+/** Data-access object for inbox messages: fetch by contact, realtime subscribe, send, delete, and status update. */
 export const messageRepository = {
   /**
    * Fetch messages with agent profile enrichment (N+1 prevention).

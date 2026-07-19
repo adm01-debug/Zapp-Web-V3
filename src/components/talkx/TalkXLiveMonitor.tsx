@@ -29,6 +29,7 @@ interface RecipientExportRow {
   } | null;
 }
 
+/** Live monitor for a TalkX campaign: tracks send progress, recipient statuses, and CSV export. */
 export function TalkXLiveMonitor({ campaignId }: Props) {
   const [campaign, setCampaign] = useState<TalkXCampaign | null>(null);
   const [recipientsKey, setRecipientsKey] = useState(0);
