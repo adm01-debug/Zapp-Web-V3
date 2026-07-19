@@ -55,6 +55,12 @@ function sortByRecency(convs: Conversation[]): Conversation[] {
   });
 }
 
+/**
+ * Loads and subscribes to contacts and messages in realtime.
+ * Initial fetch propagates errors from both Supabase queries.
+ * Realtime channel uses a per-mount unique name to avoid collision on StrictMode remounts.
+ * New messages for unknown contacts trigger a full refetch rather than silently dropping them.
+ */
 export function useRealtimeMessages() {
   const [loading, setLoading] = useState(true);
   const [conversations, setConversations] = useState<Conversation[]>([]);

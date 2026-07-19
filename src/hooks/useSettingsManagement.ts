@@ -60,6 +60,7 @@ interface OnboardingStep {
   timestamp?: string;
 }
 
+/** Fetches and updates per-user settings (TTS, UI preferences). Re-throws errors from update so callers can handle them. */
 export function useUserSettingsManagement(userIdParam?: string) {
   // Fix: usar useAuth se userId não fornecido
   const authCtx = useAuth();
@@ -138,6 +139,7 @@ interface GlobalSettingRow {
   description?: string;
 }
 
+/** Reads, writes, and adds workspace-level global settings stored in the global_settings table. Re-throws errors from updateSetting. */
 export function useGlobalSettingsManagement() {
   const [settingsRows, setSettingsRows] = useState<GlobalSettingRow[]>([]);
   const [settings, setSettings] = useState<GlobalSettings | null>(null);
@@ -207,6 +209,7 @@ export function useGlobalSettingsManagement() {
   return { settings, settingsRows, loading, isLoading: loading, getSetting, updateSetting, addSetting };
 }
 
+/** Loads and persists webhook-view display preferences (column visibility, sort order) per user. */
 export function useWebhookViewPreferencesManagement(userId?: string) {
   const [preferences, setPreferences] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -246,6 +249,7 @@ export function useWebhookViewPreferencesManagement(userId?: string) {
   return { preferences, loading, refetch: fetchPreferences };
 }
 
+/** Manages the onboarding checklist steps for a user, including marking steps complete and calculating overall progress. */
 export function useOnboardingChecklistManagement(userId?: string) {
   const [steps, setSteps] = useState<OnboardingStep[]>([]);
   const [loading, setLoading] = useState(true);

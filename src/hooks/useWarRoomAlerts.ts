@@ -18,6 +18,7 @@ interface WarRoomAlert {
 
 const VALID_ALERT_TYPES = ['critical', 'warning', 'info', 'sla_breach'];
 
+/** Subscribes to warroom_alerts in realtime and fires browser notifications and sounds for critical/warning/SLA-breach events. Logs errors before returning an empty array on fetch failure. */
 export function useWarRoomAlerts(soundEnabled = true) {
   const { showNotification } = usePushNotifications();
   const queryClient = useQueryClient();

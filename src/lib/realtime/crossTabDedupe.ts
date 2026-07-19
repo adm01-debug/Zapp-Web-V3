@@ -283,6 +283,7 @@ async function writeToIndexedDB(key: string, value: unknown): Promise<boolean> {
   }
 }
 
+/** Returns a snapshot of cross-tab deduplication metrics (collisions, race resolutions, fallbacks). */
 export function getDeduplicationMetrics(): DeduplicationMetrics {
   return { ...metrics };
 }
@@ -538,7 +539,7 @@ async function writePersistedResult<T>(
   }
 }
 
-// MELHORIA #8.7: Garbage Collector with configurable TTL
+/** Scans localStorage for expired lock and result keys and removes them. Returns the count of swept entries per category. */
 export function gcExpiredKeys(): { locksSwept: number; resultsSwept: number } {
   let locksSwept = 0;
   let resultsSwept = 0;
@@ -671,6 +672,7 @@ function broadcast<T>(msg: BroadcastMessage<T>) {
   }
 }
 
+/** Options controlling TTL and wait behaviour for {@link dedupedFetch}. */
 export interface DedupeOptions {
   /** TTL do lock no localStorage (ms). Default 10s. */
   lockTtl?: number;
@@ -680,6 +682,11 @@ export interface DedupeOptions {
   waitTimeout?: number;
 }
 
+/**
+ * Fetches `key` exactly once across all open tabs using a cross-tab lock.
+ * Subsequent callers in the same or other tabs receive the cached/broadcast result.
+ * Falls back to IndexedDB when localStorage is unavailable.
+ */
 export function dedupedFetch<T>(
   key: string,
   fetcher: () => Promise<T>,

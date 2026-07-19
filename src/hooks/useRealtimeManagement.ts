@@ -16,6 +16,7 @@ interface RealtimeMetricPoint {
   messagesPerMinute: number;
 }
 
+/** Subscribes to dashboard_data changes for a given dashboardId and computes derived metrics (messages per hour, active conversations, unread count). */
 export function useRealtimeDashboardManagement(dashboardId: string) {
   const [updates, setUpdates] = useState<RealtimeUpdate[]>([]);
   const [isConnected, setIsConnected] = useState(false);
@@ -96,6 +97,7 @@ export function useRealtimeDashboardManagement(dashboardId: string) {
 type RealtimeChannel = ReturnType<typeof supabase.channel>;
 type PgPayload = { eventType: 'INSERT' | 'UPDATE' | 'DELETE'; new: Record<string, unknown>; old: Record<string, unknown> };
 
+/** Subscribes to new evolution_messages for a specific chat JID and accumulates them in local state. */
 export function useRealtimeMessagesManagement(chatId: string) {
   const [messages, setMessages] = useState<Record<string, unknown>[]>([]);
   const channelRef = useRef<RealtimeChannel | null>(null);
@@ -121,6 +123,7 @@ export function useRealtimeMessagesManagement(chatId: string) {
   return { messages };
 }
 
+/** Generic realtime monitor for any zapp-schema table; accumulates INSERT/UPDATE/DELETE payloads for debugging or admin panels. */
 export function useRealtimeMonitorManagement(tableName: string) {
   const [data, setData] = useState<Record<string, unknown>[]>([]);
   const [changes, setChanges] = useState<PgPayload[]>([]);
@@ -152,6 +155,7 @@ export function useRealtimeMonitorManagement(tableName: string) {
   return { data, changes };
 }
 
+/** Tracks typing presence for a chat room using Supabase Presence. Broadcasts the current user's typing state and returns the list of other users currently typing. */
 export function useTypingPresenceManagement(userId: string, chatId: string) {
   const [typingUsers, setTypingUsers] = useState<string[]>([]);
   const channelRef = useRef<any>(null);

@@ -11,6 +11,7 @@ import { queryKeys } from '@/services/api/queryKeys';
 export type { MessageReaction, UseMessageReactionsOptions };
 export { useMessagesReactions } from './reactions/useBatchReactions';
 
+/** Manages emoji reactions for a single message — fetching, adding, removing, and optionally subscribing to realtime updates. */
 export function useMessageReactions(messageId: string, options?: UseMessageReactionsOptions) {
   const queryClient = useQueryClient();
   const { user } = useAuth();

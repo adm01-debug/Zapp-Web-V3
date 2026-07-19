@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useNotificationSettings } from '@/hooks/useNotificationSettings';
 import { playNotificationSound, showBrowserNotification } from '@/utils/notificationSound';
 
+/** Subscribes to realtime sentiment alerts from audit_logs and shows a toast (plus optional browser notification and sound) when a sentiment_alert event is inserted. */
 export function useRealtimeSentimentAlerts() {
   const { settings, isQuietHours } = useNotificationSettings();
 

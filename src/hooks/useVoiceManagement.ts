@@ -11,6 +11,7 @@ interface VoiceState {
   error: string | null;
 }
 
+/** Wraps the Web Speech API (SpeechRecognition) to provide continuous, interim-result transcription in the given language. */
 export function useSpeechToTextManagement(language: string = 'pt-BR'): VoiceState & {
   startListening: () => void;
   stopListening: () => void;
@@ -127,6 +128,7 @@ export function useSpeechToTextManagement(language: string = 'pt-BR'): VoiceStat
   };
 }
 
+/** Uses the browser's SpeechSynthesis API to speak text aloud, exposing `speak` and `stop` controls. */
 export function useTextToSpeechManagement(text: string) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -167,6 +169,7 @@ export function useTextToSpeechManagement(text: string) {
   return { isPlaying, error, speak, stop };
 }
 
+/** Manages the active/inactive state and response history of a voice agent session. */
 export function useVoiceAgentManagement() {
   const [isActive, setIsActive] = useState(false);
   const [responses] = useState<string[]>([]);
@@ -182,6 +185,7 @@ export function useVoiceAgentManagement() {
   return { isActive, responses, activate, deactivate };
 }
 
+/** Queues and processes voice commands, tracking the last recognised action and a processing flag. */
 export function useVoiceActionHandlerManagement() {
   const [lastAction, setLastAction] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);

@@ -32,6 +32,7 @@ interface WhisperModeProps {
   defaultExpanded?: boolean;
 }
 
+/** Collapsible compose panel for sending private whisper messages to a specific agent within a conversation. */
 export function WhisperMode({
   contactId,
   targetAgentId,

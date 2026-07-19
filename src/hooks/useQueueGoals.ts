@@ -16,6 +16,7 @@ const DEFAULT_GOAL = {
 
 export type { QueueGoal };
 
+/** Reads queue goals for an optional queue and exposes a saveGoal upsert that cannot be derailed by a caller-supplied queue_id in the Partial payload. */
 export function useQueueGoals(queueId?: string) {
   const { goals, loading, refetch } = useQueueGoalsManagement(queueId);
 

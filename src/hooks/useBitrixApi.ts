@@ -7,6 +7,7 @@ const log = getLogger('useBitrixApi');
 
 type BitrixResult<T = unknown> = { data: T | null; success: boolean; error?: string };
 
+/** Invokes the Bitrix24 edge function with a given action and payload. Throws on HTTP or API-level errors. */
 async function callBitrix<T = unknown>(action: string, payload: Record<string, unknown> = {}): Promise<BitrixResult<T>> {
   const { data, error } = await supabase.functions.invoke('bitrix-api', {
     body: { action, ...payload },
@@ -16,6 +17,7 @@ async function callBitrix<T = unknown>(action: string, payload: Record<string, u
   return { data: data?.data ?? data ?? null, success: true };
 }
 
+/** Hook exposing typed Bitrix24 CRM operations (leads, contacts, deals, calls, sync). Loading is shared across concurrent requests — clears only when all finish. */
 export function useBitrixApi() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);

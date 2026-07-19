@@ -32,6 +32,7 @@ interface ContactCustomField {
   field_value: unknown;
 }
 
+/** Fetches AI-derived sentiment, engagement score, and risk level for a contact from contact_intelligence. */
 export function useContactIntelligenceManagement(contactId?: string) {
   const [intelligence, setIntelligence] = useState<ContactIntelligence | null>(null);
   const [loading, setLoading] = useState(true);
@@ -72,6 +73,7 @@ export function useContactIntelligenceManagement(contactId?: string) {
   return { intelligence, loading };
 }
 
+/** Loads and creates timestamped notes for a contact, resolving the author profile from the current session. */
 export function useContactNotesManagement(contactId?: string) {
   const [notes, setNotes] = useState<ContactNote[]>([]);
   const [loading, setLoading] = useState(true);
@@ -149,6 +151,7 @@ export function useContactNotesManagement(contactId?: string) {
   return { notes, loading, isLoading: loading, addNote, refetch: fetchNotes }; // ✅ fix: isLoading alias
 }
 
+/** Calls the `enrich_contact` RPC to retrieve third-party enriched data (LinkedIn, company info, etc.) for a contact. */
 export function useContactEnrichedDataManagement(contactId?: string) {
   const [enrichedData, setEnrichedData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -177,6 +180,7 @@ export function useContactEnrichedDataManagement(contactId?: string) {
   return { enrichedData, loading };
 }
 
+/** Manages the agent assignment record for a contact, exposing `assignToUser` to upsert an assignment. */
 export function useContactAssignmentManagement(contactId?: string) {
   const [assignment, setAssignment] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -237,6 +241,7 @@ export function useContactAssignmentManagement(contactId?: string) {
   return { assignment, loading, assignToUser, refetch: fetchAssignment };
 }
 
+/** Fetches and upserts arbitrary key-value custom fields for a contact from contact_custom_fields. */
 export function useContactCustomFieldsManagement(contactId?: string) {
   const [fields, setFields] = useState<ContactCustomField[]>([]);
   const [loading, setLoading] = useState(true);

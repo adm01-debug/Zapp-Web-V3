@@ -8,6 +8,7 @@ interface ContactRow { id: string; assigned_to: string | null; queue_id: string 
 interface QueueMemberRow { queue_id: string; profile_id: string; profile: { is_active: boolean | null } | null; }
 interface QueueRow { id: string; name: string; color: string | null; queue_members: QueueMemberRow[]; }
 
+/** Fetches agents, contacts (with name/phone), and queues for the dashboard, computing stats and recent activity. Exposes a refetch callback that invalidates all three query keys. */
 export function useDashboardData(filters?: DashboardFilters) {
   const queryClient = useQueryClient();
   const now = new Date();
@@ -139,6 +140,7 @@ export function useDashboardData(filters?: DashboardFilters) {
   return { stats, isLoading, refetch };
 }
 
+/** Converts a nullable seconds value to a human-readable string (e.g. "2min 30s", "1h 5min"). Returns "N/A" when null. */
 export const formatResponseTime = (seconds: number | null): string => {
   if (seconds === null) return 'N/A';
   if (seconds < 60) return `${seconds}s`;

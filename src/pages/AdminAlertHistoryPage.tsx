@@ -45,6 +45,7 @@ import { AlertInstanceDetailDialog } from '@/features/admin';
 import { formatDateTimeCompact } from '@/lib/formatters';
 import { type AlertRow, RANGES, STATUS, TypeBadge } from './AdminAlertHistoryPageParts';
 
+/** Full-page admin view for browsing, filtering, and bulk-dismissing war-room alert history. */
 export default function AdminAlertHistoryPage() {
   const [hoursBack, setHoursBack] = useState<string>('24');
   const [statusFilter, setStatusFilter] = useState<string>('all');

@@ -43,6 +43,7 @@ function describeError(code: string | null): string {
   return code;
 }
 
+/** Listens for DLQ messages transitioning to `abandoned` via Postgres Realtime and fires a toast alert. Deduplicates by record id to handle realtime re-deliveries. */
 export function useFailedMessageAlerts(enabled = true): void {
   const seenRef = useRef<Set<string>>(new Set());
 

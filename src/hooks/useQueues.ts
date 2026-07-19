@@ -36,6 +36,7 @@ interface QueueWithMembers extends Queue {
 
 export type { Queue, QueueMember, QueueWithMembers };
 
+/** Fetches queues with members and positions, subscribing to realtime changes on queues, queue_members, and queue_positions tables for live updates. */
 export function useQueues() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);

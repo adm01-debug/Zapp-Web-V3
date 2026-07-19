@@ -55,6 +55,7 @@ function pruneIfNeeded(set: Set<string>) {
   }
 }
 
+/** Alerts the agent when a retrying message resolves (success or terminal failure). Uses two redundant sources — the in-memory send-status bus and Postgres Realtime — deduplicated by messageId. Only fires for messages previously observed in `retrying` state. */
 export function useRetryResolutionAlerts(enabled = true): void {
   const navigate = useNavigate();
   const seenRef = useRef<Set<string>>(new Set());

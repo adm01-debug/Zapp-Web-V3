@@ -73,6 +73,7 @@ export function useConversationViewers(contactId: string) {
   return viewers;
 }
 
+/** Displays avatars of agents currently viewing a conversation, updated via realtime presence. */
 export function ViewersIndicator({ contactId }: { contactId: string }) {
   const viewers = useConversationViewers(contactId);
   const [isOpen, setIsOpen] = useState(false);

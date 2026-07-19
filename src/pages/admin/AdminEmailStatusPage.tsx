@@ -45,6 +45,7 @@ const getStatusLabel = (status?: string) => {
   }
 };
 
+/** Admin dashboard page for monitoring email infrastructure health, failure logs, and triggering manual revalidation jobs. */
 export default function AdminEmailStatusPage() {
   const {
     accounts,

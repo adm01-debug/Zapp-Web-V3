@@ -16,6 +16,12 @@ interface GoalRow {
   current_value: number;
 }
 
+/**
+ * Polls queue goals every 5 minutes and fires a toast the first time each goal
+ * crosses a 50/75/100 % threshold. Transitions are deduplicated in-memory via
+ * a per-goal ref so the same threshold never alerts twice per session.
+ * Does not depend on useAuth — resolves the session via supabase.auth.getUser().
+ */
 export function useGoalNotifications() {
   // Track the last threshold notified per goal to avoid repeat toasts on the same band.
   const lastNotifiedRef = useRef<Map<string, number>>(new Map());

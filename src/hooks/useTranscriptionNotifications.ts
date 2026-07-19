@@ -18,6 +18,7 @@ interface TranscriptionNotificationsOptions {
   showBrowserNotification?: boolean;
 }
 
+/** Subscribes to messages transcription_status changes and notifies the user when transcription completes or fails. First-completion guard prevents duplicate toasts on re-subscription. */
 export function useTranscriptionNotifications(options: TranscriptionNotificationsOptions = {}) {
   const {
     enabled = true,
