@@ -27,6 +27,7 @@ const log = getLogger('useRealtimeInbox');
 // !USE_EXTERNAL_DB no compilador TypeScript quando o modo local for reativado.
 const USE_EXTERNAL_DB: boolean = true;
 
+/** Top-level inbox orchestrator: wires together data source, heartbeat, deep links, offline cache, message queue, legacy mappers, and all conversation/send handlers. */
 export function useRealtimeInbox() {
   const { profile } = useAuth();
   const [selectedContactId, setSelectedContactId] = useState<string | null>(null);

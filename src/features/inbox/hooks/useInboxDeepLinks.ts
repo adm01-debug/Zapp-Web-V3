@@ -10,6 +10,7 @@ interface DeepLinkHandlers {
   useExternalDb: boolean;
 }
 
+/** Reads deep-link `?contact=` / `?message=` URL params, legacy window globals, and the `open-contact-chat` custom event to set the pending contact/message on mount. */
 export function useInboxDeepLinks({ setPendingContactId, setPendingMessageId, useExternalDb }: DeepLinkHandlers) {
   const [searchParams] = useSearchParams();
 

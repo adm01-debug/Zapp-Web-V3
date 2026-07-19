@@ -6,6 +6,7 @@ import { getLogger } from '@/lib/logger';
 
 const log = getLogger('useInboxDataQueries');
 
+/** Loads auxiliary inbox data (custom scopes and a contact→tags map) via React Query; tags are chunked in batches of 500 to stay within PostgREST limits. */
 export function useInboxDataQueries(conversations: ConversationWithMessages[]) {
   const { data: customScopes = [] } = useQuery({
     queryKey: queryKeys.contactDetails.inboxScopes(),

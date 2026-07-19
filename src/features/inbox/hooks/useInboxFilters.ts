@@ -22,6 +22,7 @@ interface UseInboxFiltersProps {
   statusFilter?: 'all' | 'open' | 'closed' | 'unread';
 }
 
+/** Computes and manages the full inbox filter state — tabs, scope, URL params, failure categories, contact type — and returns the deduplicated filtered conversation list. */
 export function useInboxFilters({
   conversations,
   profileId,

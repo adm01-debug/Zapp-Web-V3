@@ -16,6 +16,7 @@ interface UseMessagesOptions {
   enabled?: boolean;
 }
 
+/** Fetches and subscribes to the message list for a given contact; supports optimistic add/update/remove operations and Realtime INSERT/UPDATE/DELETE events. */
 export function useMessages({ contactId, enabled = true }: UseMessagesOptions) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);

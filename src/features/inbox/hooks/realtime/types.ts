@@ -1,3 +1,4 @@
+/** Transient in-app notification payload shown when a new inbound message arrives in the background. */
 export interface NewMessageNotification {
   id: string;
   contactId: string;
@@ -7,6 +8,7 @@ export interface NewMessageNotification {
   timestamp: Date;
 }
 
+/** Full message row as returned by Supabase Realtime subscriptions on `public.messages`, augmented with client-only fields (`contactAvatar`, `reactions`, `media_meta`). */
 export interface RealtimeMessage {
   id: string;
   contact_id: string | null;
@@ -48,12 +50,14 @@ export interface RealtimeMessage {
   audio_meme_id?: string | null;
 }
 
+/** Emoji reaction placed on a message by a specific user. */
 export interface MessageReaction {
   user_id: string;
   emoji: string;
   created_at?: string;
 }
 
+/** Contact row shape used in the inbox conversation list; merges `public.contacts` columns with WhatsApp-specific metadata. */
 export interface ConversationContact {
   id: string;
   name: string;
@@ -77,6 +81,7 @@ export interface ConversationContact {
   channel_connection_id: string | null;
 }
 
+/** Aggregated view of a contact together with their sorted, deduplicated message list, unread count, and last message reference. */
 export interface ConversationWithMessages {
   contact: ConversationContact;
   messages: RealtimeMessage[];
