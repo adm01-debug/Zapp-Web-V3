@@ -312,7 +312,9 @@ export function useOfflineCacheManagement(conversations: ConversationWithMessage
   const pendingWriteRef = useRef<Promise<boolean> | null>(null);
 
   useEffect(() => {
+    /** Clears offline mode when the browser regains network connectivity. */
     const goOnline = () => setIsOffline(false);
+    /** Sets offline mode when the browser loses network connectivity. */
     const goOffline = () => setIsOffline(true);
     window.addEventListener('online', goOnline);
     window.addEventListener('offline', goOffline);
@@ -963,6 +965,7 @@ export function useServiceWorkerManagement() {
     let disposed = false;
     const timeoutIds: NodeJS.Timeout[] = [];
 
+    /** Registers `/sw.js`, sets up a 300-second update-poll interval, dispatches `sw-update-available` on new installs, and wires the `onMessage` handler; retries up to 3 times on 404. */
     const registerServiceWorker = async (retryCount = 0) => {
       const wasDisposed = disposed;
       if (wasDisposed) return;
@@ -1032,6 +1035,7 @@ export function useServiceWorkerManagement() {
           }
         });
 
+        /** Listens for `NOTIFICATION_CLICK` messages from the service worker and re-dispatches them as a `notification-click` DOM `CustomEvent`. */
         const onMessage = (event: MessageEvent) => {
           log.debug('[ServiceWorker] Message received:', event.data);
           if (event.data.type === 'NOTIFICATION_CLICK') {

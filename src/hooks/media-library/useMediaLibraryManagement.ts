@@ -58,6 +58,7 @@ interface UseMediaCrudResult {
   handlePreview: (item: MediaItem) => void;
 }
 
+/** Manages media-library item CRUD operations (fetch, filter, select, rename, delete, favorite, category, preview) for a given media type. */
 function useMediaCrudManagement({ type }: UseMediaCrudParams): UseMediaCrudResult {
   const [items, setItems] = useState<MediaItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -119,6 +120,7 @@ function useMediaCrudManagement({ type }: UseMediaCrudParams): UseMediaCrudResul
     return matchSearch && matchCategory;
   });
 
+  /** Toggles selection state for a single item by id. */
   const toggleSelect = (id: string) => {
     setSelected((prev) => {
       const next = new Set(prev);
@@ -131,6 +133,7 @@ function useMediaCrudManagement({ type }: UseMediaCrudParams): UseMediaCrudResul
     });
   };
 
+  /** Selects all filtered items when none are fully selected, or clears the selection when all filtered items are already selected. */
   const toggleSelectAll = () => {
     if (selected.size === filtered.length) {
       setSelected(new Set());
@@ -139,6 +142,7 @@ function useMediaCrudManagement({ type }: UseMediaCrudParams): UseMediaCrudResul
     }
   };
 
+  /** Optimistically toggles `is_favorite` on `item` and reverts the local state if the Supabase update fails. */
   const handleToggleFavorite = async (item: MediaItem) => {
     const newValue = !item.is_favorite;
     setItems((prev) => prev.map((i) => (i.id === item.id ? { ...i, is_favorite: newValue } : i)));
@@ -154,12 +158,14 @@ function useMediaCrudManagement({ type }: UseMediaCrudParams): UseMediaCrudResul
     }
   };
 
+  /** Removes the storage object backing the given public URL from the appropriate Supabase bucket; no-ops when the URL is absent or unrecognized. */
   const deleteStorageFile = async (url: string | undefined) => {
     if (!url) return;
     const info = extractStoragePath(url, bucket);
     if (info) await supabase.storage.from(info.bucket).remove([info.path]);
   };
 
+  /** Deletes all currently selected items from the database and their backing storage files in a single batch operation. */
   const handleBulkDelete = async () => {
     const toDelete = items.filter((i) => selected.has(i.id));
     if (toDelete.length === 0) return;
@@ -180,6 +186,7 @@ function useMediaCrudManagement({ type }: UseMediaCrudParams): UseMediaCrudResul
     toast.success(`${ids.length} itens excluídos`);
   };
 
+  /** Optimistically moves all selected items to `newCategory` and reverts on Supabase error. */
   const handleBulkCategoryChange = async (newCategory: string) => {
     const ids = [...selected];
     if (ids.length === 0) return;
@@ -204,6 +211,7 @@ function useMediaCrudManagement({ type }: UseMediaCrudParams): UseMediaCrudResul
     toast.success(`${ids.length} itens movidos para "${newCategory}"`);
   };
 
+  /** Sends each selected item to the AI classification edge function and updates its category when the returned label differs from the current one. */
   const handleBulkReclassify = async () => {
     const toReclassify = items.filter((i) => selected.has(i.id));
     if (toReclassify.length === 0) return;
@@ -249,6 +257,7 @@ function useMediaCrudManagement({ type }: UseMediaCrudParams): UseMediaCrudResul
     }
   };
 
+  /** Optimistically updates the category of a single item and reverts local state if the database write fails. */
   const handleSingleCategoryChange = async (item: MediaItem, newCategory: string) => {
     const oldCategory = item.category;
     setItems((prev) => prev.map((i) => (i.id === item.id ? { ...i, category: newCategory } : i)));
@@ -264,6 +273,7 @@ function useMediaCrudManagement({ type }: UseMediaCrudParams): UseMediaCrudResul
     }
   };
 
+  /** Persists the trimmed `editName` as the item's new name and reverts optimistic local state on failure. */
   const handleRename = async (item: MediaItem) => {
     const trimmed = editName.trim();
     if (!trimmed) {
@@ -287,6 +297,7 @@ function useMediaCrudManagement({ type }: UseMediaCrudParams): UseMediaCrudResul
     toast.success('Nome atualizado');
   };
 
+  /** Deletes `item` from the database and its backing storage file, then removes it from local state. */
   const handleDelete = async (item: MediaItem) => {
     const { error } = await supabase
       .from(type as 'stickers')
@@ -301,6 +312,7 @@ function useMediaCrudManagement({ type }: UseMediaCrudParams): UseMediaCrudResul
     toast.success('Item excluído');
   };
 
+  /** Toggles audio playback for `item`: pauses the current audio when the same item is clicked again, or starts a new Audio instance for a different item. */
   const handlePreview = (item: MediaItem) => {
     if (type !== 'audio_memes') return;
     if (playingId === item.id) {
@@ -380,6 +392,7 @@ interface UseMediaUploadResult {
   handleBulkUpload: (e: React.ChangeEvent<HTMLInputElement>) => Promise<void>;
 }
 
+/** Handles bulk file uploads for a media type: validates size/type, uploads to Supabase Storage, triggers AI classification, and inserts a database row for each successful upload. */
 function useMediaUploadManagement({
   type,
   onComplete,
