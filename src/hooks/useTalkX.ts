@@ -61,9 +61,12 @@ export function useTalkX() {
 
   const createCampaign = useMutation({
     mutationFn: async (campaign: Omit<TalkXCampaign, 'id' | 'created_at'>) => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       const { data, error } = await supabase
         .from('talkx_campaigns')
-        .insert(campaign as never)
+        .insert({ ...campaign, created_by: user?.id ?? null } as never)
         .select()
         .single();
       if (error) throw error;
@@ -170,9 +173,7 @@ export function useTalkX() {
     }
   }, [queryClient]);
 
-  const refetchCampaigns = useCallback(() => {
-    return campaignsQuery.refetch();
-  }, [campaignsQuery]);
+  const { refetch: refetchCampaigns } = campaignsQuery;
 
   return {
     campaigns: campaignsQuery.data ?? [],

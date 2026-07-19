@@ -43,8 +43,11 @@ export function useTranscriptionNotifications(options: TranscriptionNotification
         'postgres_changes',
         { event: 'UPDATE', schema: 'evo', table: 'evolution_messages' },
         wrapMessagesHandler('useTranscriptionNotifications', (payload: unknown) => {
-          const row = (payload as { new?: Record<string, unknown> })?.new;
+          const p = payload as { new?: Record<string, unknown>; old?: Record<string, unknown> };
+          const row = p?.new;
           if (!row?.transcription) return;
+          // Only fire on first completion — skip if transcription already existed before this UPDATE
+          if (p?.old?.transcription) return;
 
           log.info('Transcription notification received');
 

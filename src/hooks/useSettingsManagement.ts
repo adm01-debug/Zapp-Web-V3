@@ -116,6 +116,7 @@ export function useUserSettingsManagement(userIdParam?: string) {
         if (mountedRef.current) {
           log.error('Error updating user settings:', err);
         }
+        throw err;
       }
     },
     [userId, fetchSettings, mountedRef]
@@ -183,6 +184,7 @@ export function useGlobalSettingsManagement() {
       setSettingsRows(prev => prev.map(r => r.key === key ? { ...r, value } : r));
     } catch (err) {
       log.error('Error updating global setting:', err);
+      throw err;
     }
   };
 
@@ -198,6 +200,7 @@ export function useGlobalSettingsManagement() {
       if (data) setSettingsRows(prev => [...prev, data as GlobalSettingRow]);
     } catch (err) {
       log.error('Error adding global setting:', err);
+      throw err;
     }
   };
 

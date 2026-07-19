@@ -46,11 +46,16 @@ export function useQueuesComparison(dateRange: DateRange) {
           return;
         }
 
+        const fromIso = dateRange.from.toISOString();
+        const toIso = dateRange.to.toISOString();
+
         const [contactsRes, membersRes] = await Promise.all([
           supabase
             .from('contacts')
             .select('id, queue_id, assigned_to')
-            .not('queue_id', 'is', null),
+            .not('queue_id', 'is', null)
+            .gte('created_at', fromIso)
+            .lte('created_at', toIso),
           supabase
             .from('queue_members')
             .select('queue_id, profile_id')
@@ -71,7 +76,9 @@ export function useQueuesComparison(dateRange: DateRange) {
           const { data: msgs, error: msgsErr } = await supabase
             .from('messages')
             .select('id, contact_id')
-            .in('contact_id', contactIds);
+            .in('contact_id', contactIds)
+            .gte('created_at', fromIso)
+            .lte('created_at', toIso);
           if (msgsErr) throw msgsErr;
           messageList = msgs || [];
         }
