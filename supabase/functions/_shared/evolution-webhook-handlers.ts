@@ -209,7 +209,8 @@ export async function handleContactsUpsert(supabase: SupabaseClient, instance: s
 
     if (pushName) {
       let permanentAvatarUrl: string | null = null;
-      const isWhatsAppCdn = (url: string) => { try { return new URL(url).hostname.endsWith('.whatsapp.net'); } catch { return false; } };
+      const WHATSAPP_CDN_RE = /^[\w-]+\.whatsapp\.net$/;
+      const isWhatsAppCdn = (url: string) => { try { return WHATSAPP_CDN_RE.test(new URL(url).hostname); } catch { return false; } };
       if (profilePicUrl && isWhatsAppCdn(profilePicUrl)) {
         permanentAvatarUrl = await persistProfilePicture(supabase, phone, profilePicUrl);
       } else if (profilePicUrl) {

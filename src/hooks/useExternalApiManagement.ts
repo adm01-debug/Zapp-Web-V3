@@ -25,6 +25,7 @@ import { log } from '@/lib/logger';
 import { tanstackRetry } from '@/lib/errors/queryErrors';
 import { queryKeys } from '@/services/api/queryKeys';
 
+/** Strips all non-numeric characters from a phone string so it can be used as a consistent lookup key. */
 function cleanPhone(phone: string): string {
   return phone.replace(/[^0-9]/g, '');
 }

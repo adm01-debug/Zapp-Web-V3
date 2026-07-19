@@ -53,6 +53,7 @@ export interface PushNotificationState {
 
 const SOUND_TYPES: SoundTypeOption[] = ['beep', 'chime', 'bell', 'alert', 'soft'];
 
+/** Coerces an unknown value to a valid SoundTypeOption, returning the fallback when the value is absent, non-string, or not in the allowed set. */
 const toSoundType = (value: unknown, fallback: SoundTypeOption = 'chime'): SoundTypeOption =>
   typeof value === 'string' && SOUND_TYPES.includes(value as SoundTypeOption)
     ? (value as SoundTypeOption)
@@ -84,6 +85,7 @@ const DEFAULT_NOTIFICATION_SETTINGS: NotificationSettings = {
 
 type UserSettingsRow = Record<string, unknown> | null;
 
+/** Maps a raw user_settings database row (keyed by snake_case column names) to a typed NotificationSettings object, applying DEFAULT_NOTIFICATION_SETTINGS for any missing or null fields. */
 const normalizeSettings = (row: UserSettingsRow): NotificationSettings => ({
   ...DEFAULT_NOTIFICATION_SETTINGS,
   soundEnabled: Boolean(row?.sound_enabled ?? DEFAULT_NOTIFICATION_SETTINGS.soundEnabled),
@@ -130,6 +132,7 @@ const normalizeSettings = (row: UserSettingsRow): NotificationSettings => ({
   ),
 });
 
+/** Converts a partial NotificationSettings object to a flat snake_case record suitable for upserting into the user_settings table, omitting keys whose values are undefined. */
 const toDbSettings = (settings: Partial<NotificationSettings>): Record<string, unknown> => {
   const db: Record<string, unknown> = {};
   if (settings.soundEnabled !== undefined) db.sound_enabled = settings.soundEnabled;

@@ -42,10 +42,11 @@ export default function SSOCallback() {
           addTimer(setTimeout(() => { navigate('/'); }, 1500));
         } else {
           const hashParams = new URLSearchParams(window.location.hash.substring(1));
-          const errorParam = hashParams.get('error_description') || hashParams.get('error');
+          const rawErrorCode = hashParams.get('error') ?? '';
+          const rawErrorDesc = hashParams.get('error_description') ?? '';
+          const safeError = (rawErrorDesc || rawErrorCode).slice(0, 200).replace(/[<>"'&]/g, '');
 
-          if (errorParam) {
-            const safeError = String(errorParam).slice(0, 200).replace(/[<>"'&]/g, '');
+          if (safeError) {
             throw new Error(safeError);
           }
 

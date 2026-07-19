@@ -82,6 +82,7 @@ self.addEventListener('notificationclose', (event) => {
 
 self.addEventListener('message', (event) => {
   if (!event.source) return;
+  if (event.origin !== self.location.origin) return;
   if (!event.data || typeof event.data.type !== 'string') return;
   if (event.data.type === 'SKIP_WAITING') self.skipWaiting();
   if (event.data.type === 'SHOW_NOTIFICATION') {
