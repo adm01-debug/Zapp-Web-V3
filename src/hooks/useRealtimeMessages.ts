@@ -47,13 +47,23 @@ interface Conversation {
   lastMessage: Message | null;
 }
 
+function sortByRecency(convs: Conversation[]): Conversation[] {
+  return [...convs].sort((a, b) => {
+    const aTime = a.lastMessage?.created_at ?? a.contact.updated_at;
+    const bTime = b.lastMessage?.created_at ?? b.contact.updated_at;
+    return bTime.localeCompare(aTime);
+  });
+}
+
 export function useRealtimeMessages() {
   const [loading, setLoading] = useState(true);
   const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [error, setError] = useState<Error | null>(null);
   const isMountedRef = useRef(true);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
       const [{ data: contacts }, { data: messages }] = await Promise.all([
         supabase.from('contacts').select('*').order('updated_at', { ascending: false }).limit(500),
@@ -101,17 +111,14 @@ export function useRealtimeMessages() {
         }
       });
 
-      const result = Array.from(convMap.values()).sort((a, b) => {
-        const aTime = a.lastMessage?.created_at ?? a.contact.updated_at;
-        const bTime = b.lastMessage?.created_at ?? b.contact.updated_at;
-        return bTime.localeCompare(aTime);
-      });
-
       if (isMountedRef.current) {
-        setConversations(result);
+        setConversations(sortByRecency(Array.from(convMap.values())));
       }
-    } catch {
-      if (isMountedRef.current) setConversations([]);
+    } catch (err) {
+      if (isMountedRef.current) {
+        setError(err instanceof Error ? err : new Error('Failed to load messages'));
+        setConversations([]);
+      }
     } finally {
       if (isMountedRef.current) setLoading(false);
     }
@@ -126,38 +133,80 @@ export function useRealtimeMessages() {
   useEffect(() => {
     const channel = supabase
       .channel('realtime-messages')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, () => {
-        fetchData();
-      })
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'messages' }, () => {
-        fetchData();
-      });
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'messages' },
+        (payload) => {
+          if (!isMountedRef.current) return;
+          const newMsg = payload.new as Message;
+          setConversations((prev) => {
+            const idx = prev.findIndex((c) => c.contact.id === newMsg.contact_id);
+            if (idx === -1) {
+              // Contact not yet loaded — fall back to full refresh
+              void fetchData();
+              return prev;
+            }
+            const conv = prev[idx];
+            const lastMessage =
+              !conv.lastMessage || newMsg.created_at > conv.lastMessage.created_at
+                ? newMsg
+                : conv.lastMessage;
+            const updated = [...prev];
+            updated[idx] = { ...conv, messages: [...conv.messages, newMsg], lastMessage };
+            return sortByRecency(updated);
+          });
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'messages' },
+        (payload) => {
+          if (!isMountedRef.current) return;
+          const updMsg = payload.new as Message;
+          setConversations((prev) =>
+            prev.map((conv) => {
+              if (conv.contact.id !== updMsg.contact_id) return conv;
+              const messages = conv.messages.map((m) => (m.id === updMsg.id ? updMsg : m));
+              const lastMessage = messages.reduce<Message | null>(
+                (latest, m) => (!latest || m.created_at > latest.created_at ? m : latest),
+                null
+              );
+              return { ...conv, messages, lastMessage };
+            })
+          );
+        }
+      );
 
     channel.subscribe();
 
     return () => {
-      channel.unsubscribe();
+      supabase.removeChannel(channel);
     };
   }, [fetchData]);
 
   const sendMessage = useCallback(
     async (contactId: string, content: string, agentId?: string) => {
-      await supabase.from('messages').insert({
-        contact_id: contactId,
-        content,
-        agent_id: agentId ?? null,
-        sender: 'agent',
-        message_type: 'text',
-        is_read: true,
-        status: 'sent',
-        external_id: `local-${Date.now()}`,
-      });
-      await fetchData();
+      try {
+        const { error: insertError } = await supabase.from('messages').insert({
+          contact_id: contactId,
+          content,
+          agent_id: agentId ?? null,
+          sender: 'agent',
+          message_type: 'text',
+          is_read: true,
+          status: 'sent',
+          external_id: `local-${Date.now()}`,
+        });
+        if (insertError) throw insertError;
+      } catch (err) {
+        setError(err instanceof Error ? err : new Error('Failed to send message'));
+        throw err;
+      }
     },
-    [fetchData]
+    []
   );
 
   const refetch = useCallback(() => fetchData(), [fetchData]);
 
-  return { loading, conversations, sendMessage, refetch };
+  return { loading, conversations, error, sendMessage, refetch };
 }
