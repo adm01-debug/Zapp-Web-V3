@@ -27,6 +27,7 @@ export interface ContactNote {
   author: ContactNoteAuthor;
 }
 
+/** Provides CRUD operations and real-time state for private notes attached to a contact. */
 export function useContactNotes(contactId: string) {
   const { user } = useAuth();
   const queryClient = useQueryClient();

@@ -27,6 +27,7 @@ const TourContext = createContext<TourContextType | null>(null);
 /** Internal bridge for TourProvider — do not use TourContext directly outside this module. */
 export const TourContextProvider = TourContext.Provider;
 
+/** Returns the TourContext value; must be called inside a TourProvider or it throws. */
 export function useTour(): TourContextType {
   const context = useContext(TourContext);
   if (!context) {

@@ -6,6 +6,7 @@ import { playerStateStore } from '@/features/inbox';
 import { recordMatch } from '@/features/inbox';
 import type { RealtimeMessage } from '@/features/inbox';
 
+/** Prefix applied to optimistic message IDs before canonical IDs are assigned by the server. */
 export const OPTIMISTIC_PREFIX = 'optimistic:';
 const OPTIMISTIC_FALLBACK_WINDOW_MS = 120_000;
 const MEDIA_TYPES = new Set(['audio', 'image', 'video', 'document', 'sticker']);

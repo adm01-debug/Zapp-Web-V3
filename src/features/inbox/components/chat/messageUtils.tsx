@@ -6,6 +6,7 @@ import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { Message } from '@/types/chat';
 
+/** Formats a Date as a short HH:mm time string for display in chat message bubbles. */
 export function formatMessageTime(date: Date): string {
   return format(date, 'HH:mm');
 }

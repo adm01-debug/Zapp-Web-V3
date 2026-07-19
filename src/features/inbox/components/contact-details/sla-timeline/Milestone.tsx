@@ -25,6 +25,7 @@ export interface MilestoneProps {
   onOpenConversation?: () => void;
 }
 
+/** Renders a single SLA timeline milestone with icon, label, timestamp, agent/queue chips, and an optional "open conversation" CTA. */
 export function Milestone({
   index,
   icon: Icon,

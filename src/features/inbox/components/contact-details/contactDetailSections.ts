@@ -45,6 +45,7 @@ export function getStoredAccordionState(): string[] {
   return DEFAULT_OPEN_SECTIONS;
 }
 
+/** Persists the current accordion open-section list to localStorage. */
 export function saveAccordionState(value: string[]) {
   try {
     localStorage.setItem(ACCORDION_STORAGE_KEY, JSON.stringify(value));

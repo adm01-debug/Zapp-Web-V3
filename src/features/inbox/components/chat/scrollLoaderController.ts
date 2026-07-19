@@ -44,6 +44,7 @@ export interface ScrollLoaderController {
   reset(): void;
 }
 
+/** Creates a stateful, framework-agnostic controller that throttles and guards scroll-triggered older-message loading. */
 export function createScrollLoaderController(opts: ScrollLoaderOptions): ScrollLoaderController {
   const triggerThrottleMs = opts.triggerThrottleMs ?? 250;
   const reverseCancelPx = opts.reverseCancelPx ?? 50;

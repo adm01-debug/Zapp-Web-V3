@@ -20,6 +20,7 @@ interface ProtectedRouteProps {
   routePath?: string;
 }
 
+/** Route guard that redirects unauthenticated users and enforces role/permission requirements before rendering children. */
 export function ProtectedRoute({
   children,
   requiredRoles,

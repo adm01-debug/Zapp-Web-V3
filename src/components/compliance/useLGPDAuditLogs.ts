@@ -20,6 +20,7 @@ export interface LGPDAuditEntry {
  */
 const LGPD_ACTION_PREFIXES = ['gdpr_', 'lgpd_', 'consent_', 'data_export', 'data_deletion', 'privacy_'];
 
+/** Fetches LGPD/privacy-related audit log entries for the given user, filtered to known action prefixes. */
 export function useLGPDAuditLogs(userId: string | undefined, limit = 50) {
   const [logs, setLogs] = useState<LGPDAuditEntry[]>([]);
   const [loading, setLoading] = useState(false);

@@ -108,6 +108,7 @@ interface UseIdempotencyMissAlertsOptions {
   enabled?: boolean;
 }
 
+/** Polls the Evolution audit log for idempotency-miss events and raises war-room alerts when any instance exceeds the threshold. */
 export function useIdempotencyMissAlerts(opts: UseIdempotencyMissAlertsOptions = {}) {
   const { threshold = DEFAULT_MISS_THRESHOLD } = opts;
   const { isDev, loading: roleLoading } = useUserRole();

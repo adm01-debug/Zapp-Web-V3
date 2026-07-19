@@ -5,9 +5,13 @@ import { queryExternalProxy } from '@/lib/externalProxy';
 import type { EvolutionMessage } from '@/types/evolutionExternal';
 import { DEFAULT_WHATSAPP_INSTANCE } from '@/lib/constants/whatsappInstances';
 
+/** Polling interval in milliseconds for evolution_messages real-time updates. */
 export const POLL_INTERVAL = 5000;
+/** Default WhatsApp instance identifier used when none is specified. */
 export const DEFAULT_INSTANCE = DEFAULT_WHATSAPP_INSTANCE;
+/** Number of days back to fetch sidebar conversations. */
 export const SIDEBAR_DAYS_BACK = 7;
+/** Maximum number of conversations loaded in the sidebar. */
 export const SIDEBAR_LIMIT = 200;
 /** C O N V E R S A T I O N_ P A G E_ S I Z E constant. */
 export const CONVERSATION_PAGE_SIZE = 100;

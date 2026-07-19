@@ -11,6 +11,7 @@ interface ScrollToTopButtonProps {
   className?: string;
 }
 
+/** Floating button that appears when the monitored container is scrolled past the threshold and scrolls it back to the top on click. */
 export function ScrollToTopButton({ scrollRef, threshold = 400, className }: ScrollToTopButtonProps) {
   const [visible, setVisible] = useState(false);
 
