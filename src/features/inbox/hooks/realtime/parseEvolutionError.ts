@@ -25,6 +25,7 @@ const HUMANIZED: Array<{ test: RegExp; reason: string }> = [
   { test: /5\d{2}/i, reason: 'O servidor da Evolution está instável agora.' },
 ];
 
+/** Normalises an unknown Evolution API error into a typed EvolutionErrorInfo with a human-readable pt-BR message and an HTTP status category. */
 export function parseEvolutionError(input: unknown): EvolutionErrorInfo {
   // Normaliza para objeto manipulável.
   const env = (typeof input === 'object' && input ? input : {}) as Record<string, unknown>;

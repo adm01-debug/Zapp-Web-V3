@@ -9,6 +9,7 @@ import type {
 
 export type { WhatsAppStatusMessage, WhatsAppPresenceInfo };
 
+/** Aggregate return value from useWhatsAppStatus containing story messages, presence info, loading/error state, and a manual refresh trigger. */
 export interface WhatsAppStatusData {
   statusMessages: WhatsAppStatusMessage[];
   presence: WhatsAppPresenceInfo;

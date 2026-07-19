@@ -15,8 +15,10 @@ import { supabase } from '@/integrations/supabase/client';
 import type { ConversationWithMessages } from '@/features/inbox';
 
 
+/** Visual failure category derived from evolution_retry_metrics; used to power the inbox failure-filter dropdown. */
 export type FailureCategory = 'auth' | 'http_4xx' | 'http_5xx' | 'network' | 'unknown';
 
+/** Human-readable Portuguese label for each FailureCategory, used in the failure-filter UI chips. */
 export const FAILURE_CATEGORY_LABEL: Record<FailureCategory, string> = {
   auth: 'Falha de autenticação',
   http_4xx: 'HTTP 4xx (cliente)',
@@ -71,6 +73,7 @@ function collectTerminalMessageIds(conversations: ConversationWithMessages[]): s
 const STALE_MS = 30_000;
 const CHUNK_SIZE = 200;
 
+/** Batch-fetches evolution_retry_metrics for all terminal-failure messages in the inbox conversations and returns a map of messageId → FailureCategory. */
 export function useFailureMetricsBatch(
   conversations: ConversationWithMessages[],
   enabled: boolean,

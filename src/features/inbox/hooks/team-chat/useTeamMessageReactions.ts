@@ -6,6 +6,7 @@ import { safeClient } from '@/integrations/supabase/safeClient';
 import { useAuth } from '@/features/auth';
 import { toast } from '@/hooks/use-toast';
 
+/** Raw reaction row from the team_message_reactions table, linking a profile's emoji choice to a specific team message. */
 export interface TeamReaction {
   id: string;
   message_id: string;
@@ -14,6 +15,7 @@ export interface TeamReaction {
   created_at: string;
 }
 
+/** Derived reaction summary for a single emoji: total count, whether the current agent reacted, and the list of profile IDs who reacted. */
 export interface AggregatedReaction {
   emoji: string;
   count: number;

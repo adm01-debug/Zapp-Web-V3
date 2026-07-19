@@ -1,3 +1,4 @@
+/** Retry and timing configuration for the outbound message queue (max attempts, back-off parameters, jitter). */
 export interface QueueConfig {
   maxRetries: number;
   baseDelay: number;
@@ -5,6 +6,7 @@ export interface QueueConfig {
   jitter: boolean;
 }
 
+/** Production defaults: 3 retries, 1s base delay, 30s max, with jitter. */
 export const DEFAULT_QUEUE_CONFIG: QueueConfig = {
   maxRetries: 3,
   baseDelay: 1000,
@@ -12,6 +14,7 @@ export const DEFAULT_QUEUE_CONFIG: QueueConfig = {
   jitter: true,
 };
 
+/** Single item in the outbound message queue, tracking lifecycle status, retry attempts, progress, and timing. */
 export interface QueueItem {
   id: string;
   contactId: string;
@@ -34,6 +37,7 @@ export interface QueueItem {
   }>;
 }
 
+/** Aggregate send metrics for the message queue: totals by type and conversation with latency arrays for P50/P95 computation. */
 export interface QueueMetrics {
   totalSent: number;
   totalFailed: number;

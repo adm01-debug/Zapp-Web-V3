@@ -38,6 +38,7 @@ const SEEDED_CONTACT_LIMIT = 500;
 const RECENT_MESSAGES_LIMIT = 1000;
 const CONTACT_FETCH_CHUNK_SIZE = 200;
 
+/** Primary data hook for the inbox: seeds conversations from Supabase, subscribes to evo.evolution_messages realtime events, and composes send-state, filter, and notification sub-hooks. */
 export function useRealtimeMessages() {
   const [conversations, setConversations] = useState<ConversationWithMessages[]>([]);
   const [loading, setLoading] = useState(true);

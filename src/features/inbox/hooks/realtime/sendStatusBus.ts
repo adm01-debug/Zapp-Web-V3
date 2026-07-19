@@ -2,6 +2,7 @@
  * In-memory pub/sub for transient send statuses (sending/retrying).
  * Terminal statuses (sent/failed/failed_auth/failed_retries) persist in DB.
  */
+/** Union of all possible send-UI statuses; transient ones (sending/retrying) live only in the bus, terminal ones persist in the DB. */
 export type SendUIStatus =
   | 'sending'
   | 'retrying'
@@ -10,6 +11,7 @@ export type SendUIStatus =
   | 'failed_auth'
   | 'failed_retries';
 
+/** Rich send-status snapshot for a single message, including retry counters and upstream error info. */
 export interface SendStatusDetail {
   status: SendUIStatus;
   attempt?: number;
@@ -46,11 +48,13 @@ const history = new Map<string, SendStatusHistoryEntry[]>();
 let historyOrder: string[] = []; // FIFO of messageIds for total cap eviction
 const historyListeners = new Set<(messageId: string, entry: SendStatusHistoryEntry) => void>();
 
+/** Optional context attached to a status emission so history entries can be grouped by conversation and labelled by call-site. */
 export interface EmitContext {
   contactId?: string | null;
   source?: string | null;
 }
 
+/** Publishes a send-status event for a message, updating the in-memory store and notifying all per-message and global listeners. */
 export function emitSendStatus(
   messageId: string,
   detail: Omit<SendStatusDetail, 'updatedAt'>,
@@ -93,6 +97,7 @@ export function emitSendStatus(
   });
 }
 
+/** Returns the current in-memory send status for a message, or undefined if none has been emitted. */
 export function getSendStatus(messageId: string): SendStatusDetail | undefined {
   return store.get(messageId);
 }
@@ -129,6 +134,7 @@ export function clearSendStatusHistory() {
   historyOrder = [];
 }
 
+/** Subscribes to send-status changes for a specific message; returns an unsubscribe function. */
 export function subscribeSendStatus(messageId: string, cb: Listener): () => void {
   const existing = listeners.get(messageId);
   const set = existing ?? new Set<Listener>();
@@ -140,6 +146,7 @@ export function subscribeSendStatus(messageId: string, cb: Listener): () => void
   };
 }
 
+/** Subscribes to every send-status change across all messages; returns an unsubscribe function. */
 export function subscribeAllSendStatus(
   cb: (messageId: string, detail: SendStatusDetail) => void
 ): () => void {
@@ -147,6 +154,7 @@ export function subscribeAllSendStatus(
   return () => { globalListeners.delete(cb); };
 }
 
+/** Removes the in-memory status and all per-message listeners for a message (called after a conversation is unmounted). */
 export function clearSendStatus(messageId: string) {
   store.delete(messageId);
   listeners.delete(messageId);

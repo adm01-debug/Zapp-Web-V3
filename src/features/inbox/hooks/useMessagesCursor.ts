@@ -31,6 +31,7 @@ const log = getLogger('useMessagesCursor');
 const DEFAULT_PAGE_SIZE = 50;
 const DEFAULT_INSTANCE = DEFAULT_WHATSAPP_INSTANCE;
 
+/** Options for cursor-based message pagination: target JID, Evolution instance, page size cap, and enabled flag. */
 export interface UseMessagesCursorOptions {
   remoteJid: string | null;
   instanceName?: string;
@@ -38,6 +39,7 @@ export interface UseMessagesCursorOptions {
   enabled?: boolean;
 }
 
+/** Return value of useMessagesCursor: paginated message list, loading states, and imperative controls for older-page loading and realtime message mutations. */
 export interface UseMessagesCursorReturn {
   messages: EvolutionMessageLite[];
   loading: boolean;
@@ -60,6 +62,7 @@ function dedupeAndSort(rows: EvolutionMessageLite[]): EvolutionMessageLite[] {
   );
 }
 
+/** Cursor-based incremental message loader for a WhatsApp JID; fetches the most-recent page on mount, exposes `loadOlder()` for backwards pagination, and patches state via Realtime INSERT/UPDATE/DELETE events. */
 export function useMessagesCursor({
   remoteJid,
   instanceName = DEFAULT_INSTANCE,

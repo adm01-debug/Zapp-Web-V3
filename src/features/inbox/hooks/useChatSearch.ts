@@ -1,8 +1,10 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Message } from '@/types/chat';
 
+/** Filter dimension for in-chat search; restricts results to a specific message type or link patterns. */
 export type SearchFilter = 'all' | 'text' | 'image' | 'video' | 'audio' | 'document' | 'link';
 
+/** Date range preset for the in-chat search panel; 'last_interaction' derives the cutoff from message gaps, 'custom' uses explicit from/to dates. */
 export type DatePreset = 'all' | 'last_interaction' | 'today' | '3d' | '7d' | '14d' | '30d' | '90d' | 'custom';
 
 const URL_REGEX = /https?:\/\/\S+/i;
@@ -46,6 +48,7 @@ interface UseChatSearchOptions {
   onSearchQueryChange?: (query: string) => void;
 }
 
+/** Full-text, type-filtered, and date-range search over a conversation's message list; debounces input, tracks navigation index, and reports highlight sets to the caller. */
 export function useChatSearch({
   messages,
   isOpen,

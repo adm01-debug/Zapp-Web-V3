@@ -59,6 +59,7 @@ const trackReactionEvent = (
   })();
 };
 
+/** Add/remove emoji reaction mutations for a single message: writes to Supabase, mirrors the reaction to WhatsApp via Evolution API when an externalId is provided, and invalidates the reactions query cache on success. */
 export function useReactionMutations(
   messageId: string,
   profileId: string | undefined,

@@ -29,7 +29,9 @@ import {
 } from './externalSenderTypes';
 
 // Re-export types and audio sender so consumers importing from this module continue to work.
+/** @see externalSenderTypes for shared types used across external sender modules. */
 export * from './externalSenderTypes';
+/** @see externalAudioSender for audio PTT/voice-note sending to the Evolution external DB. */
 export * from './externalAudioSender';
 
 const log = getLogger('externalMessageSender');
@@ -38,6 +40,7 @@ const log = getLogger('externalMessageSender');
 const logAudit = (def, params) =>
   dbInsert(def, params).catch((err) => log.warn('[audit] log failed', err));
 
+/** Sends a text message directly to the Evolution external database, writes an optimistic message row, and logs an outbound audit entry; returns the new message ID and external WhatsApp key on success. */
 export async function sendExternalText(
   remoteJid: string,
   content: string,

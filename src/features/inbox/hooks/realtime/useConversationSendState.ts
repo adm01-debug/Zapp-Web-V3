@@ -2,8 +2,10 @@ import { useState, useEffect } from 'react';
 import { subscribeAllSendStatus, getSendStatus } from './sendStatusBus';
 import type { ConversationWithMessages } from './types';
 
+/** Aggregate send state for a conversation: idle when no outbound is in-flight, retrying if any message is being retried, failed if the last outbound hit a terminal error. */
 export type ConversationSendState = 'idle' | 'retrying' | 'failed';
 
+/** Subscribes to the send-status bus and derives a per-conversation send state map (idle/retrying/failed) from outbound message statuses. */
 export function useConversationSendState(conversations: ConversationWithMessages[]) {
   const [sendStateTick, setSendStateTick] = useState(0);
 
