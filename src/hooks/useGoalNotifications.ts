@@ -27,10 +27,9 @@ export function useGoalNotifications() {
   const lastNotifiedRef = useRef<Map<string, number>>(new Map());
 
   const checkGoalProgress = useCallback(async () => {
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) return;
-
     try {
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      if (authError || !user) return;
       const { data: goals, error: goalsError } = await supabase
         .from('queue_goals')
         .select('id, queue_id, metric, target_value, current_value');

@@ -39,7 +39,7 @@ export function useMessageReactions(messageId: string, options?: UseMessageReact
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel).catch(() => {});
+      void Promise.resolve(supabase.removeChannel(channel)).catch(() => {});
     };
   }, [messageId, options?.disableRealtime, queryClient]);
 

@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import type { DashboardFilters, DashboardStats, QueueStats, RecentActivity } from './dashboardTypes';
 
 interface ProfileRow { id: string; name: string | null; is_active: boolean | null; role: string | null; }
-interface ContactRow { id: string; assigned_to: string | null; queue_id: string | null; updated_at: string; }
+interface ContactRow { id: string; assigned_to: string | null; queue_id: string | null; updated_at: string; status: string | null; }
 interface QueueMemberRow { queue_id: string; profile_id: string; profile: { is_active: boolean | null } | null; }
 interface QueueRow { id: string; name: string; color: string | null; queue_members: QueueMemberRow[]; }
 
@@ -48,7 +48,7 @@ export function useDashboardData(filters?: DashboardFilters) {
     queryFn: async () => {
       let query = supabase
         .from('contacts')
-        .select('id, name, phone, assigned_to, queue_id, updated_at')
+        .select('id, name, phone, assigned_to, queue_id, updated_at, status')
         .gte('updated_at', merged.dateRange.from.toISOString())
         .lte('updated_at', merged.dateRange.to.toISOString());
       if (merged.queueId) query = query.eq('queue_id', merged.queueId);
@@ -86,7 +86,7 @@ export function useDashboardData(filters?: DashboardFilters) {
     ).length;
     const resolvedToday = contacts.filter((c) => {
       const updatedAt = new Date(c.updated_at);
-      return updatedAt >= startOfToday && !c.assigned_to;
+      return updatedAt >= startOfToday && c.status === 'closed';
     }).length;
 
     const queuesStats: QueueStats[] = queues.map((queue) => {
@@ -132,9 +132,11 @@ export function useDashboardData(filters?: DashboardFilters) {
   }, [contactsData, agentsData, queuesData]);
 
   const refetch = useCallback(() => {
-    queryClient.invalidateQueries({ queryKey: ['dashboard-agents'] });
-    queryClient.invalidateQueries({ queryKey: ['dashboard-contacts'] });
-    queryClient.invalidateQueries({ queryKey: ['dashboard-queues'] });
+    return Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['dashboard-agents'] }),
+      queryClient.invalidateQueries({ queryKey: ['dashboard-contacts'] }),
+      queryClient.invalidateQueries({ queryKey: ['dashboard-queues'] }),
+    ]);
   }, [queryClient]);
 
   return { stats, isLoading, refetch };

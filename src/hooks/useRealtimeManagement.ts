@@ -45,8 +45,8 @@ export function useRealtimeDashboardManagement(dashboardId: string) {
     return () => {
       setIsConnected(false);
       if (channelRef.current) {
-        channelRef.current.unsubscribe();
-        supabase.removeChannel(channelRef.current).catch(() => {});
+        void Promise.resolve(supabase.removeChannel(channelRef.current)).catch(() => {});
+        channelRef.current = null;
       }
     };
   }, [dashboardId]);
@@ -114,8 +114,8 @@ export function useRealtimeMessagesManagement(chatId: string) {
 
     return () => {
       if (channelRef.current) {
-        channelRef.current.unsubscribe();
-        supabase.removeChannel(channelRef.current).catch(() => {});
+        void Promise.resolve(supabase.removeChannel(channelRef.current)).catch(() => {});
+        channelRef.current = null;
       }
     };
   }, [chatId]);
@@ -146,8 +146,8 @@ export function useRealtimeMonitorManagement(tableName: string) {
 
     return () => {
       if (channelRef.current) {
-        channelRef.current.unsubscribe();
-        supabase.removeChannel(channelRef.current).catch(() => {});
+        void Promise.resolve(supabase.removeChannel(channelRef.current)).catch(() => {});
+        channelRef.current = null;
       }
     };
   }, [tableName]);
@@ -180,9 +180,13 @@ export function useTypingPresenceManagement(userId: string, chatId: string) {
       });
 
     return () => {
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+        typingTimeoutRef.current = undefined;
+      }
       if (channelRef.current) {
-        channelRef.current.unsubscribe();
-        supabase.removeChannel(channelRef.current).catch(() => {});
+        void Promise.resolve(supabase.removeChannel(channelRef.current)).catch(() => {});
+        channelRef.current = null;
       }
     };
   }, [userId, chatId]);
