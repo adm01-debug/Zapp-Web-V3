@@ -41,15 +41,7 @@ export default function SSOCallback() {
           toast.success('Login realizado com sucesso!');
           addTimer(setTimeout(() => { navigate('/'); }, 1500));
         } else {
-          const hashParams = new URLSearchParams(window.location.hash.substring(1));
-          const rawErrorCode = hashParams.get('error') ?? '';
-          const rawErrorDesc = hashParams.get('error_description') ?? '';
-          const safeError = (rawErrorDesc || rawErrorCode).slice(0, 200).replace(/[<>"'&]/g, '');
-
-          if (safeError) {
-            throw new Error(safeError);
-          }
-
+          // Subscribe to auth state first — not gated by any user-controlled value
           const { data: authData } = supabase.auth.onAuthStateChange((event, session) => {
             if (event === 'SIGNED_IN' && session) {
               setStatus('success');
@@ -61,6 +53,15 @@ export default function SSOCallback() {
             }
           });
           subscriptionRef.current = authData.subscription;
+
+          // After subscription is established, check for OAuth error codes in the hash
+          const hashParams = new URLSearchParams(window.location.hash.substring(1));
+          const rawErrorCode = hashParams.get('error') ?? '';
+          const rawErrorDesc = hashParams.get('error_description') ?? '';
+          const safeError = (rawErrorDesc || rawErrorCode).slice(0, 200).replace(/[<>"'&]/g, '');
+          if (safeError) {
+            throw new Error(safeError);
+          }
 
           addTimer(setTimeout(() => {
             setStatus(prev => {

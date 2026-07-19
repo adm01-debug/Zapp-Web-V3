@@ -169,13 +169,13 @@ export function useGlobalSettingsManagement() {
     fetchSettings();
   }, [mounted]);
 
-  // Helper: buscar valor de um setting por key
+  /** Finds a settings row by key and returns its string value, or null when not found. */
   const getSetting = (key: string): string | null => {
     const row = settingsRows.find(r => r.key === key);
     return row?.value ?? null;
   };
 
-  // Helper: atualizar um setting existente
+  /** Updates a `global_settings` row by key in Supabase and mirrors the change in local state; re-throws on error. */
   const updateSetting = async (key: string, value: string): Promise<void> => {
     try {
       const { error } = await supabase
@@ -190,7 +190,7 @@ export function useGlobalSettingsManagement() {
     }
   };
 
-  // Helper: adicionar novo setting
+  /** Inserts a new `global_settings` row and appends it to local state; re-throws on error. */
   const addSetting = async (key: string, value: string, description?: string): Promise<void> => {
     try {
       const { data, error } = await supabase

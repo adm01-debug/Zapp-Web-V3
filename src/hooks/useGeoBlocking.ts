@@ -33,6 +33,7 @@ export function useGeoBlocking() {
   const [activeTab, setActiveTab] = useState<'whitelist' | 'blacklist'>('whitelist');
   const mountedRef = useMountedRef();
 
+  /** Loads geo-blocking settings and both allowed/blocked country lists from Supabase; no-ops after component unmount. */
   const fetchData = async () => {
     try {
       const { data: settingsData } = await supabase
@@ -67,6 +68,7 @@ export function useGeoBlocking() {
     void fetchData();
   }, []);
 
+  /** Updates the geo-blocking mode column and reflects the change in local settings state. */
   const handleModeChange = async (mode: 'disabled' | 'whitelist' | 'blacklist') => {
     if (!settings) return;
     try {
@@ -91,6 +93,7 @@ export function useGeoBlocking() {
     }
   };
 
+  /** Inserts a country record into the allowed or blocked list based on the active tab; shows a friendly toast on duplicate (code 23505) and refreshes the lists on success. */
   const handleAddCountry = async (countryCode: string, countryName: string) => {
     try {
       const {
@@ -125,6 +128,7 @@ export function useGeoBlocking() {
     }
   };
 
+  /** Deletes `countryToRemove` from the appropriate allowed/blocked table and refreshes the country lists. */
   const handleRemoveCountry = async () => {
     if (!countryToRemove) return;
     try {
