@@ -25,6 +25,16 @@ const admin = createClient(SUPABASE_URL, SERVICE_ROLE, {
 
 type Sample = { name: string; help: string; type: "counter" | "gauge" | "histogram"; labels?: Record<string, string>; value: number };
 
+/** Escapes a Prometheus label value in a single pass, handling all special characters. */
+function escapePromLabel(raw: string): string {
+  return String(raw).replace(/[\\"\n\r]/g, (c) => {
+    if (c === "\\") return "\\\\";
+    if (c === '"') return '\\"';
+    if (c === "\n") return "\\n";
+    return "\\r";
+  });
+}
+
 function fmt(samples: Sample[]): string {
   const grouped = new Map<string, Sample[]>();
   for (const s of samples) {
@@ -38,7 +48,7 @@ function fmt(samples: Sample[]): string {
     out.push(`# TYPE ${name} ${list[0].type}`);
     for (const s of list) {
       const lbl = s.labels
-        ? "{" + Object.entries(s.labels).map(([k, v]) => `${k}="${String(v).replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/\n/g, "\\n").replace(/\r/g, "\\r")}"`).join(",") + "}"
+        ? "{" + Object.entries(s.labels).map(([k, v]) => `${k}="${escapePromLabel(v)}"`).join(",") + "}"
         : "";
       out.push(`${name}${lbl} ${Number.isFinite(s.value) ? s.value : 0}`);
     }
