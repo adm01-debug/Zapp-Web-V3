@@ -44,7 +44,7 @@ export function useWarRoomAlerts(soundEnabled = true) {
       .channel('warroom-alerts-realtime')
       .on(
         'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'warroom_alerts' },
+        { event: 'INSERT', schema: 'zapp', table: 'warroom_alerts' },
         (payload: { new: WarRoomAlert }) => {
           const alert = payload.new;
           if (!alert?.id || !VALID_ALERT_TYPES.includes(alert.alert_type)) return;
@@ -60,7 +60,7 @@ export function useWarRoomAlerts(soundEnabled = true) {
       )
       .on(
         'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'warroom_alerts' },
+        { event: 'UPDATE', schema: 'zapp', table: 'warroom_alerts' },
         () => {
           queryClient.invalidateQueries({ queryKey: ['warroom_alerts'] });
         }

@@ -87,7 +87,7 @@ export function useQueues() {
 
     const channel = supabase
       .channel('queues-realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'queues' }, fetchQueues)
+      .on('postgres_changes', { event: '*', schema: 'zapp', table: 'queues' }, fetchQueues)
       .subscribe();
 
     return () => {
