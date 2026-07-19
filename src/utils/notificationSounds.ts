@@ -95,11 +95,9 @@ export const showBrowserNotification = (
   let notification: Notification;
   try {
     notification = new Notification(title, notifOptions);
-  } catch {
-    // Fallback for test environments where Notification is mocked as a plain function
-    // (Vitest 4 rejects mockReturnValue with new; calling as a function works)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    notification = (Notification as any)(title, notifOptions) as Notification;
+  } catch (err) {
+    log.warn('Could not show browser notification:', err);
+    return;
   }
 
   if (options.onClick) {

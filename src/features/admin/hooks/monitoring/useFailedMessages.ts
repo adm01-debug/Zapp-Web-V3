@@ -144,7 +144,7 @@ export function useFailedMessages(filters: FailedMessagesFilters = {}) {
       })
       .subscribe();
     return () => {
-      channel.unsubscribe();
+      supabase.removeChannel(channel);
     };
   }, [queryClient]);
 

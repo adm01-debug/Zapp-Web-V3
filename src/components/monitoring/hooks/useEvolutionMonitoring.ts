@@ -89,7 +89,7 @@ export function useEvolutionMonitoring() {
       )
       .subscribe();
     return () => {
-      channel.unsubscribe();
+      supabase.removeChannel(channel);
     };
   }, [fetchData]);
 

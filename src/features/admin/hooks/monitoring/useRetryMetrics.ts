@@ -121,7 +121,7 @@ export function useRetryMetrics(filters: RetryMetricsFilters = {}) {
       .subscribe();
 
     return () => {
-      channel.unsubscribe();
+      supabase.removeChannel(channel);
     };
   }, [queryClient]);
 

@@ -57,6 +57,9 @@ export function useQueuesComparison(dateRange: DateRange) {
             .eq('is_active', true),
         ]);
 
+        if (contactsRes.error) throw contactsRes.error;
+        if (membersRes.error) throw membersRes.error;
+
         const contactList: Array<{ id: string; queue_id: string; assigned_to: string | null }> =
           contactsRes.data || [];
         const memberList: Array<{ queue_id: string; profile_id: string }> = membersRes.data || [];
@@ -65,10 +68,11 @@ export function useQueuesComparison(dateRange: DateRange) {
 
         let messageList: Array<{ id: string; contact_id: string }> = [];
         if (contactIds.length > 0) {
-          const { data: msgs } = await supabase
+          const { data: msgs, error: msgsErr } = await supabase
             .from('messages')
             .select('id, contact_id')
             .in('contact_id', contactIds);
+          if (msgsErr) throw msgsErr;
           messageList = msgs || [];
         }
 

@@ -67,7 +67,8 @@ export async function runConnectionDiagnostics(): Promise<DiagResult> {
     const externalKey = currentConfigs?.config?.anon_key;
 
     if (!externalUrl || !externalKey) {
-      throw new Error('URL ou Anon Key ausentes na configuração do banco.');
+      record('Config Validation', 'fail', 'URL ou Anon Key ausentes na configuração do banco.');
+      return diagnostics;
     }
     record('Config Validation', 'pass', { url: externalUrl, key_length: externalKey.length });
 

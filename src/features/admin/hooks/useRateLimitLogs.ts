@@ -60,7 +60,7 @@ export function useRateLimitLogs() {
       )
       .subscribe();
     return () => {
-      channel.unsubscribe();
+      supabase.removeChannel(channel);
     };
   }, [queryClient]);
 

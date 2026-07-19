@@ -75,7 +75,7 @@ export function useAudioMessagePlayer({
       )
       .subscribe();
     return () => {
-      void channel.unsubscribe();
+      supabase.removeChannel(channel);
       supabase.removeChannel(channel);
     };
   }, [messageId]);
@@ -129,7 +129,7 @@ export function useAudioMessagePlayer({
     fetchStatus();
 
     return () => {
-      void channel.unsubscribe();
+      supabase.removeChannel(channel);
       supabase.removeChannel(channel);
     };
   }, [messageId, onVoiceChange]);

@@ -20,7 +20,11 @@ function loadHistory(): SearchHistoryItem[] {
 }
 
 function saveHistory(items: SearchHistoryItem[]): void {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+  } catch {
+    // quota exceeded or private browsing — silently ignore
+  }
 }
 
 export function useSearchHistory() {

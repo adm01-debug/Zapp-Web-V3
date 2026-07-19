@@ -42,7 +42,12 @@ export function useTypingPresence({
       .subscribe();
 
     return () => {
-      channel.unsubscribe();
+      if (stopTimerRef.current) {
+        clearTimeout(stopTimerRef.current);
+        stopTimerRef.current = null;
+      }
+      channelRef.current = null;
+      supabase.removeChannel(channel);
     };
   }, [conversationId, currentUserId]);
 

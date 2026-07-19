@@ -19,6 +19,10 @@ export function useSentimentAlerts() {
 
   const checkAndTriggerAlert = useCallback(
     async (data: SentimentAlertData) => {
+      if (!alertsEnabled) {
+        return { triggered: false, reason: 'Alerts disabled' };
+      }
+
       if (data.sentimentScore >= threshold) {
         return { triggered: false, reason: 'Sentiment above threshold' };
       }
@@ -48,7 +52,7 @@ export function useSentimentAlerts() {
         return { triggered: false, error: err };
       }
     },
-    [threshold, consecutiveRequired]
+    [threshold, consecutiveRequired, alertsEnabled]
   );
 
   const getRecentAlerts = useCallback(async (limit = 10) => {

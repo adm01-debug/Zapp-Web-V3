@@ -31,25 +31,6 @@
 
 import { recordDedupeEvent } from '@/lib/realtime/dedupeTelemetry';
 import { getLogger } from '@/lib/logger';
-import {
-  DEFAULT_LOCK_TTL,
-  DEFAULT_RESULT_TTL,
-  DEFAULT_WAIT_TIMEOUT,
-  GC_INTERVAL,
-  TAB_ID,
-  LS_LOCK_PREFIX,
-  LS_RESULT_PREFIX,
-  LS_BUS_PREFIX,
-  type BroadcastMessage,
-  type DedupeOptions,
-} from './crossTabDedupeTypes';
-import { readLock, writeLock, releaseLock } from './crossTabDedupeLock';
-import {
-  readPersistedResult,
-  writePersistedResult,
-  gcLocalStorageKeys,
-} from './crossTabDedupeCache';
-import { ensureTransport, broadcast, __getActiveTransport } from './crossTabDedupeTransport';
 
 const log = getLogger('crossTabDedupe');
 
@@ -916,7 +897,7 @@ export function subscribeDedupe<T = unknown>(
       : (k: string) => keyMatcher.test(k);
   const sub: Subscription = { match, handler: handler as SubscriberFn };
   subscribers.add(sub);
-  ensureTransport(onBroadcast);
+  ensureTransport();
   return () => {
     subscribers.delete(sub);
   };

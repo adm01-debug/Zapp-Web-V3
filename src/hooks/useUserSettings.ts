@@ -104,9 +104,16 @@ export function useUserSettings() {
     return () => { cancelled = true; };
   }, [user?.id]);
 
-  const updateSettings = useCallback((updates: Partial<UserSettings>) => {
+  const updateSettings = useCallback(async (updates: Partial<UserSettings>) => {
+    if (!user?.id) return;
     setSettings(prev => ({ ...prev, ...updates }));
-  }, []);
+    const { error } = await supabase
+      .from('user_settings')
+      .upsert({ ...updates, user_id: user.id }, { onConflict: 'user_id' });
+    if (error) {
+      setSettings(prev => ({ ...prev }));
+    }
+  }, [user?.id]);
 
   return { isLoading, settings, updateSettings };
 }

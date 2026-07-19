@@ -7,7 +7,7 @@ interface UseGlobalSearchShortcutProps {
 export function useGlobalSearchShortcut({ onOpen }: UseGlobalSearchShortcutProps) {
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault();
         onOpen();
       }

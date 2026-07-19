@@ -1009,7 +1009,7 @@ describe('Team Chat — Performance Analysis', () => {
     });
 
     it('✓ Channels cleaned up on unmount', () => {
-      // return () => { channel.unsubscribe(); }
+      // return () => { supabase.removeChannel(channel); }
       expect(true).toBe(true);
     });
 

@@ -36,5 +36,7 @@ export function useHubTabNavigation(isDev: boolean) {
     }
   }, [searchParams, isDev, tab]);
 
-  return { tab, setTab };
+  const setValidatedTab = (t: string) => setTab(validateTab(t));
+
+  return { tab, setTab, setValidatedTab };
 }

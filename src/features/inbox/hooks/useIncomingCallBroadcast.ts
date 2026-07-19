@@ -102,9 +102,7 @@ export function useIncomingCallBroadcast(instance: string = DEFAULT_INSTANCE) {
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
-      void channel.unsubscribe();
-      externalSupabase?.removeChannel(channel);
+      externalSupabase.removeChannel(channel);
     };
   }, [profile?.id, instance]);
 

@@ -54,6 +54,10 @@ export function useQueues() {
           supabase.from('queue_positions').select('queue_id'),
         ]);
 
+        if (queuesRes.error) throw queuesRes.error;
+        if (membersRes.error) throw membersRes.error;
+        if (positionsRes.error) throw positionsRes.error;
+
         if (!cancelled) {
           const queueList: Queue[] = queuesRes.data || [];
           const memberList: QueueMember[] = membersRes.data || [];
@@ -81,14 +85,14 @@ export function useQueues() {
 
     fetchQueues();
 
-    const subscription = supabase
+    const channel = supabase
       .channel('queues-realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'queues' }, fetchQueues)
       .subscribe();
 
     return () => {
       cancelled = true;
-      subscription.unsubscribe();
+      supabase.removeChannel(channel);
     };
   }, []);
 

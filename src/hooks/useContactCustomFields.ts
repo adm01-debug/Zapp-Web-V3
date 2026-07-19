@@ -47,16 +47,20 @@ export function useContactCustomFields(contactId: string | undefined) {
     async (fieldName: string, fieldValue: string, fieldType = 'text') => {
       if (!contactId) return;
 
+      const requestedId = contactId;
       try {
-        const { error } = await supabase.from('contact_custom_fields').upsert({
-          contact_id: contactId,
-          field_name: fieldName,
-          field_value: fieldValue,
-          field_type: fieldType,
-        });
+        const { error } = await supabase.from('contact_custom_fields').upsert(
+          {
+            contact_id: requestedId,
+            field_name: fieldName,
+            field_value: fieldValue,
+            field_type: fieldType,
+          },
+          { onConflict: 'contact_id,field_name' }
+        );
 
         if (error) throw error;
-        await fetchFields();
+        if (mountedRef.current && contactId === requestedId) await fetchFields();
       } catch (err) {
         log.error('Error adding custom field:', err);
       }

@@ -36,7 +36,7 @@ export function useContactNotes(contactId: string | undefined) {
 
   const addNote = useMutation({
     mutationFn: async (content: string) => {
-      if (!contactId || !user) return null;
+      if (!contactId || !user) throw new Error('Missing contactId or user');
       const { data, error } = await supabase
         .from('contact_notes')
         .insert({ contact_id: contactId, author_id: user.id, content })
