@@ -51,6 +51,7 @@ export type EvolutionEnvelope<T = unknown> =
   | EvolutionSuccessEnvelope<T>
   | EvolutionErrorEnvelope;
 
+/** Proxies a request to the Evolution API with retry, timeout, idempotency dedup, and DLQ fallback. */
 export async function proxyToEvolution(
   evolutionApiUrl: string,
   evolutionApiKey: string,

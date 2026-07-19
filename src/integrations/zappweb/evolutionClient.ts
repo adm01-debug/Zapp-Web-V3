@@ -200,6 +200,7 @@ interface EvolutionInstancePublicRow {
   is_active: boolean;
 }
 
+/** Resolves the Evolution API URL and key for a given instance, with a short-lived URL cache. */
 export async function getEvolutionCredentials(
   instance: string = DEFAULT_INSTANCE
 ): Promise<EvolutionCredentials> {

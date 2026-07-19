@@ -22,6 +22,7 @@
  * Sendo pure function, e tree-shakeable e testavel isoladamente.
  */
 
+/** Returns true for errors that will never succeed on retry (auth errors, missing schema, invalid SQL). */
 export function isPermanentQueryError(error: unknown): boolean {
   if (!error || typeof error !== 'object') return false;
   const e = error as Record<string, unknown>;

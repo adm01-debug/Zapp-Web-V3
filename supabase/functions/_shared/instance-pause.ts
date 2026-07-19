@@ -62,6 +62,7 @@ export async function isInstancePaused(supabase: SupabaseClient, instance: strin
   return value;
 }
 
+/** Clears the in-memory pause cache for a specific instance or all instances. */
 export function invalidateInstancePauseCache(instance?: string) {
   if (instance) _pauseCache.delete(instance);
   else _pauseCache.clear();

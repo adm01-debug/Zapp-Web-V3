@@ -65,6 +65,7 @@ export function updateRuntimeExternalConfig(_url?: string, _key?: string): void 
  */
 type UntypedRpc = (fn: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: { message: string } | null }>;
 
+/** Calls an untyped Supabase RPC function, forwarding args and returning raw data/error. */
 export function callExtRpc(
   client: SupabaseClient<ExtendedDatabase>,
   fn: string,
@@ -84,6 +85,7 @@ type UntypedRpcBuilder = (fn: string, args: Record<string, unknown>) => {
   abortSignal?: (signal: AbortSignal) => Promise<{ data: unknown; error: unknown }>;
 } & Promise<{ data: unknown; error: unknown }>;
 
+/** Returns the raw PostgrestBuilder for an untyped RPC so callers can chain .abortSignal() before awaiting. */
 export function extRpcBuilder(
   client: SupabaseClient<ExtendedDatabase>,
   fn: string,

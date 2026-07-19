@@ -303,6 +303,7 @@ export async function handleStickerMedia(
   return mediaUrl;
 }
 
+/** Transcribes an audio message via the configured AI provider and persists the result to the message record. */
 export async function handleAudioTranscription(supabase: SupabaseClient, _contactId: string, messageId: string, mediaUrl: string, supabaseUrl: string, supabaseServiceKey: string) {
   const { data: globalSetting } = await supabase.from('global_settings')
     .select('value').eq('key', 'auto_transcription_enabled').maybeSingle();

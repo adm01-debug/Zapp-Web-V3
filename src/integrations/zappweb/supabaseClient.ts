@@ -17,6 +17,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 
+/** Default Evolution/WhatsApp instance name, overridable via VITE_ZAPPWEB_INSTANCE env var. */
 export const ZAPPWEB_INSTANCE = (import.meta.env.VITE_ZAPPWEB_INSTANCE ||
   'wpp2') as string;
 

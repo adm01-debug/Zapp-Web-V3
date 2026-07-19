@@ -2,6 +2,7 @@
  * WebAuthn utility functions for buffer/base64url conversions and device detection.
  */
 
+/** Converts a Base64URL-encoded string to an ArrayBuffer for use in WebAuthn credential operations. */
 export function base64URLToBuffer(base64url: string): ArrayBuffer {
   const base64 = base64url.replace(/-/g, '+').replace(/_/g, '/');
   const padding = '='.repeat((4 - base64.length % 4) % 4);

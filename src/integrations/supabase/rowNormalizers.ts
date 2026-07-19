@@ -32,6 +32,7 @@ type ConnRow = Partial<WhatsAppConnectionCanonical> & {
   instance_name?: string | null;
 };
 
+/** Normalizes a raw whatsapp_connections row into a canonical shape, handling legacy column aliases. */
 export function normalizeConnection(row: ConnRow | null | undefined): WhatsAppConnectionCanonical | null {
   if (!row || typeof row !== 'object' || typeof row.id !== 'string') return null;
   const nameDefault = columnMap.whatsapp_connections.columns.name.default as string;

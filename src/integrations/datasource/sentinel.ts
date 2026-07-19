@@ -16,6 +16,7 @@ import { getLogger } from '@/lib/logger';
 
 const log = getLogger('datasource-sentinel');
 
+/** Logs a dev-only warning when an evolution_* table is accessed directly via .from() instead of an RPC. */
 export function validateEntityAccess(entity: string, clientName: 'lovable' | 'external'): void {
   if (!import.meta.env.DEV) return;
   const mapping = Object.values(ENTITY_MAP).find((m) => m.table === entity);

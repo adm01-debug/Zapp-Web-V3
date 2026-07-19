@@ -38,6 +38,7 @@ export interface IdempotencyMissInput {
   reason?: 'cache_miss' | 'cache_unavailable';
 }
 
+/** Records an idempotency cache miss into evolution_audit_log; best-effort, never throws. */
 export async function logIdempotencyMiss(input: IdempotencyMissInput): Promise<void> {
   const client = getExternalServiceClient();
   if (!client) return;

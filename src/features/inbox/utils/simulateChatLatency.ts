@@ -5,6 +5,7 @@
  * - 'debug_chat_failure_rate': 0.0 to 1.0 (e.g. 0.5 = 50% failure rate)
  */
 
+/** Simulates configurable network latency and failure injection for debug testing via localStorage flags. */
 export const simulateLatency = async () => {
   const latency = localStorage.getItem('debug_chat_latency');
   if (latency) {

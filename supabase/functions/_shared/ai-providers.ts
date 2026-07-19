@@ -2,6 +2,7 @@
  * AI Provider call handlers — modular dispatchers for each provider type.
  */
 
+/** Dispatches a chat completion request to the Lovable AI provider and returns the raw Response. */
 export async function callLovableAI(params: {
   messages: Array<{ role: string; content: string }>;
   apiKey: string;

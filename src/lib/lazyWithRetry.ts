@@ -114,8 +114,7 @@ export function triggerChunkReload(): boolean {
  *   boundary (unless the 30-second cooldown is active).
  */
 /** Wraps React.lazy with automatic retry on chunk-load errors, escalating to a page reload when needed. */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function lazyWithRetry<T extends React.ComponentType<any>>(
+export function lazyWithRetry<T extends React.ComponentType<any>>( // eslint-disable-line @typescript-eslint/no-explicit-any
   factory: () => Promise<{ default: T }>,
   maxAttempts = 3
 ): React.LazyExoticComponent<T> {

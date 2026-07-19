@@ -13,6 +13,7 @@
  * for in-memory dedup over a session.
  */
 
+/** Generates a short 8-char hex correlation ID for tracing client → edge → DB calls. */
 export function generateCorrelationId(): string {
   // Prefer crypto.randomUUID when available, take first segment.
   try {
