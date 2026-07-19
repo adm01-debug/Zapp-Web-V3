@@ -19,7 +19,7 @@
  * Não faz commits. Não trava o build. Sempre encerra com exit 0.
  */
 import { readFile, writeFile } from "node:fs/promises";
-import { execSync } from "node:child_process";
+import { execSync, spawnSync } from "node:child_process";
 import { glob } from "node:fs/promises";
 import { argv } from "node:process";
 
@@ -29,10 +29,9 @@ const pattern = args.get("--pattern") ?? "src/**/*.{ts,tsx}";
 const limit = Number(args.get("--limit") ?? 25);
 
 // Listagem via ripgrep (mais rápido que globbing puro)
-const listing = execSync(
-  `rg -l --no-messages "^// @ts-nocheck" -g "${pattern}" src`,
-  { encoding: "utf8" },
-).split("\n").filter(Boolean).slice(0, limit);
+// Use spawnSync with array args to avoid shell injection from user-supplied --pattern
+const rgResult = spawnSync("rg", ["-l", "--no-messages", "^// @ts-nocheck", "-g", pattern, "src"], { encoding: "utf8" });
+const listing = (rgResult.stdout ?? "").split("\n").filter(Boolean).slice(0, limit);
 
 console.log(`> ${listing.length} arquivos candidatos`);
 

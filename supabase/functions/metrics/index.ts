@@ -38,7 +38,7 @@ function fmt(samples: Sample[]): string {
     out.push(`# TYPE ${name} ${list[0].type}`);
     for (const s of list) {
       const lbl = s.labels
-        ? "{" + Object.entries(s.labels).map(([k, v]) => `${k}="${String(v).replace(/"/g, '\\"')}"`).join(",") + "}"
+        ? "{" + Object.entries(s.labels).map(([k, v]) => `${k}="${String(v).replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`).join(",") + "}"
         : "";
       out.push(`${name}${lbl} ${Number.isFinite(s.value) ? s.value : 0}`);
     }
