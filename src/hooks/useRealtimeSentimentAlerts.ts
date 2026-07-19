@@ -1,7 +1,12 @@
 import { useEffect } from 'react';
+import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { useNotificationSettings } from '@/hooks/useNotificationSettings';
+import { playNotificationSound, showBrowserNotification } from '@/utils/notificationSound';
 
 export function useRealtimeSentimentAlerts() {
+  const { settings, isQuietHours } = useNotificationSettings();
+
   useEffect(() => {
     const channel = supabase
       .channel('sentiment-alerts-realtime')
@@ -13,14 +18,31 @@ export function useRealtimeSentimentAlerts() {
           table: 'audit_logs',
           filter: 'action=eq.sentiment_alert',
         },
-        () => {}
+        (payload) => {
+          const record = payload.new as Record<string, unknown>;
+          const title = (record?.details as Record<string, unknown>)?.contact_name as string | undefined;
+          const sentiment = (record?.details as Record<string, unknown>)?.sentiment as string | undefined;
+          const message = sentiment
+            ? `Sentimento ${sentiment} detectado${title ? ` para ${title}` : ''}`
+            : 'Alerta de sentimento detectado';
+
+          toast.warning(message);
+
+          if (settings?.soundEnabled && !isQuietHours()) {
+            playNotificationSound();
+          }
+
+          if (settings?.browserNotifications) {
+            showBrowserNotification({ title: 'Alerta de Sentimento', body: message });
+          }
+        }
       )
       .subscribe();
 
     return () => {
-      channel.unsubscribe();
+      supabase.removeChannel(channel);
     };
-  }, []);
+  }, [settings, isQuietHours]);
 
   return null;
 }

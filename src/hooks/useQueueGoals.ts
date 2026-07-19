@@ -1,5 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { getLogger } from '@/lib/logger';
+
+const log = getLogger('useQueueGoals');
 
 interface QueueGoal {
   id: string;
@@ -27,13 +30,12 @@ export function useQueueGoals() {
     setLoading(true);
     try {
       const { data, error } = await supabase.from('queue_goals').select('*');
-      if (!error && data) {
-        const map: Record<string, QueueGoal> = {};
-        (data as QueueGoal[]).forEach((g) => { map[g.queue_id] = g; });
-        setGoals(map);
-      }
-    } catch {
-      // ignore
+      if (error) throw error;
+      const map: Record<string, QueueGoal> = {};
+      (data as QueueGoal[]).forEach((g) => { map[g.queue_id] = g; });
+      setGoals(map);
+    } catch (err) {
+      log.error('Failed to fetch queue goals', err);
     } finally {
       setLoading(false);
     }
@@ -42,7 +44,7 @@ export function useQueueGoals() {
   useEffect(() => {
     fetchGoals();
 
-    const subscription = supabase
+    const channel = supabase
       .channel('queue-goals-realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'queue_goals' }, () => {
         fetchGoals();
@@ -50,12 +52,18 @@ export function useQueueGoals() {
       .subscribe();
 
     return () => {
-      subscription.unsubscribe();
+      supabase.removeChannel(channel);
     };
   }, [fetchGoals]);
 
   const saveGoal = useCallback(async (queueId: string, goal: Partial<QueueGoal>) => {
-    await supabase.from('queue_goals').upsert({ queue_id: queueId, ...goal });
+    const { error } = await supabase
+      .from('queue_goals')
+      .upsert({ queue_id: queueId, ...goal }, { onConflict: 'queue_id' });
+    if (error) {
+      log.error('Failed to save queue goal', queueId, error);
+      throw error;
+    }
   }, []);
 
   const getDefaultGoal = useCallback(() => ({ ...DEFAULT_GOAL }), []);

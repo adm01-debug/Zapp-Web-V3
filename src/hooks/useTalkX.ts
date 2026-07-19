@@ -36,7 +36,7 @@ export function useTalkX() {
     queryKey: ['talkx-campaigns'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('campaigns')
+        .from('talkx_campaigns')
         .select('*')
         .order('created_at', { ascending: false });
       if (error) throw error;
@@ -49,9 +49,9 @@ export function useTalkX() {
     queryFn: async () => {
       if (!selectedCampaignId) return [];
       const { data, error } = await supabase
-        .from('campaigns')
+        .from('talkx_recipients')
         .select('*')
-        .eq('id', selectedCampaignId)
+        .eq('campaign_id', selectedCampaignId)
         .order('created_at', { ascending: false });
       if (error) throw error;
       return (data ?? []) as TalkXRecipient[];
@@ -62,7 +62,7 @@ export function useTalkX() {
   const createCampaign = useMutation({
     mutationFn: async (campaign: Omit<TalkXCampaign, 'id' | 'created_at'>) => {
       const { data, error } = await supabase
-        .from('campaigns')
+        .from('talkx_campaigns')
         .insert(campaign as never)
         .select()
         .single();
@@ -79,7 +79,7 @@ export function useTalkX() {
   const updateCampaign = useMutation({
     mutationFn: async ({ id, ...updates }: Partial<TalkXCampaign> & { id: string }) => {
       const { data, error } = await supabase
-        .from('campaigns')
+        .from('talkx_campaigns')
         .update(updates as never)
         .eq('id', id)
         .select()
@@ -96,7 +96,7 @@ export function useTalkX() {
 
   const deleteCampaign = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from('campaigns').delete().eq('id', id);
+      const { error } = await supabase.from('talkx_campaigns').delete().eq('id', id);
       if (error) throw error;
     },
     onSuccess: () => {

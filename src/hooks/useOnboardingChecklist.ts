@@ -4,7 +4,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { getLogger } from '@/lib/logger';
 
 const log = getLogger('useOnboardingChecklist');
-const DISMISSED_KEY = 'onboarding_dismissed';
+const dismissedKey = (userId: string | undefined) =>
+  userId ? `onboarding_dismissed_${userId}` : 'onboarding_dismissed';
 
 interface OnboardingStatus {
   profile: boolean;
@@ -23,13 +24,15 @@ export function useOnboardingChecklist() {
     templates: false,
   });
   const [isLoading, setIsLoading] = useState(true);
-  const [isDismissed, setIsDismissed] = useState(() => {
+  const [isDismissed, setIsDismissed] = useState(false);
+
+  useEffect(() => {
     try {
-      return localStorage.getItem(DISMISSED_KEY) === 'true';
+      setIsDismissed(localStorage.getItem(dismissedKey(user?.id)) === 'true');
     } catch {
-      return false;
+      // ignore
     }
-  });
+  }, [user?.id]);
 
   const checkStatus = useCallback(async () => {
     if (!user) {
@@ -81,12 +84,12 @@ export function useOnboardingChecklist() {
 
   const dismiss = useCallback(() => {
     try {
-      localStorage.setItem(DISMISSED_KEY, 'true');
+      localStorage.setItem(dismissedKey(user?.id), 'true');
     } catch {
       // ignore
     }
     setIsDismissed(true);
-  }, []);
+  }, [user?.id]);
 
   const completedCount = Object.values(status).filter(Boolean).length;
   const totalCount = Object.keys(status).length;

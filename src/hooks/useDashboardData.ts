@@ -1,9 +1,10 @@
-import { useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useMemo, useCallback } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import type { DashboardFilters, DashboardStats, QueueStats, RecentActivity } from './dashboardTypes';
 
 export function useDashboardData(filters?: DashboardFilters) {
+  const queryClient = useQueryClient();
   const now = new Date();
   const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const endOfToday = new Date(startOfToday);
@@ -31,9 +32,19 @@ export function useDashboardData(filters?: DashboardFilters) {
   });
 
   const { data: contactsData, isLoading: loadingContacts } = useQuery({
-    queryKey: ['dashboard-contacts', merged.agentId, merged.queueId],
+    queryKey: [
+      'dashboard-contacts',
+      merged.agentId,
+      merged.queueId,
+      merged.dateRange.from.toISOString(),
+      merged.dateRange.to.toISOString(),
+    ],
     queryFn: async () => {
-      let query = supabase.from('contacts').select('id, assigned_to, queue_id, updated_at');
+      let query = supabase
+        .from('contacts')
+        .select('id, assigned_to, queue_id, updated_at')
+        .gte('updated_at', merged.dateRange.from.toISOString())
+        .lte('updated_at', merged.dateRange.to.toISOString());
       if (merged.queueId) query = query.eq('queue_id', merged.queueId);
       if (merged.agentId) query = query.eq('assigned_to', merged.agentId);
       const { data, error } = await query;
@@ -74,11 +85,14 @@ export function useDashboardData(filters?: DashboardFilters) {
       const onlineMembers = members.filter(
         (m: any) => m.profile?.is_active
       ).length;
+      const queuePending = (contactsData as any[]).filter(
+        (c: any) => !c.assigned_to && c.queue_id === queue.id
+      ).length;
       return {
         id: queue.id,
         name: queue.name,
         color: queue.color,
-        waitingCount: pendingConversations,
+        waitingCount: queuePending,
         onlineAgents: onlineMembers,
         totalAgents: members.length,
       };
@@ -108,7 +122,11 @@ export function useDashboardData(filters?: DashboardFilters) {
     };
   }, [contactsData, agentsData, queuesData]);
 
-  const refetch = () => {};
+  const refetch = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ['dashboard-agents'] });
+    queryClient.invalidateQueries({ queryKey: ['dashboard-contacts'] });
+    queryClient.invalidateQueries({ queryKey: ['dashboard-queues'] });
+  }, [queryClient]);
 
   return { stats, isLoading, refetch };
 }

@@ -5,7 +5,7 @@ const STORAGE_KEY = 'zappweb:webhook-view-prefs:v1';
 export interface WebhookViewPrefs {
   statusFilter: string;
   reasonSearch: string;
-  eventTypeFilter: string;
+  eventTypeFilter: string | null;
   tableDensity: 'comfortable' | 'compact' | 'standard';
   pinnedInstance: string | null;
   visibleColumns: {
@@ -21,7 +21,7 @@ export interface WebhookViewPrefs {
 export const DEFAULT_WEBHOOK_VIEW_PREFS: WebhookViewPrefs = {
   statusFilter: 'all',
   reasonSearch: '',
-  eventTypeFilter: 'all',
+  eventTypeFilter: null,
   tableDensity: 'comfortable',
   pinnedInstance: null,
   visibleColumns: {

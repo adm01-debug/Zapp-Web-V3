@@ -7,14 +7,15 @@ interface DateRange {
 }
 
 interface DailyData {
-  date: string;
-  messages: number;
-  contacts: number;
+  day: string;
+  mensagens: number;
+  resolvidos: number;
+  novos: number;
 }
 
 interface HourlyData {
-  hour: string;
-  messages: number;
+  hora: string;
+  atendimentos: number;
 }
 
 interface StatusData {
@@ -37,7 +38,7 @@ function buildDayPlaceholders(from: Date, to: Date): DailyData[] {
   const end = new Date(to);
   end.setHours(23, 59, 59, 999);
   while (cursor <= end) {
-    days.push({ date: cursor.toISOString().split('T')[0], messages: 0, contacts: 0 });
+    days.push({ day: cursor.toISOString().split('T')[0], mensagens: 0, resolvidos: 0, novos: 0 });
     cursor.setDate(cursor.getDate() + 1);
   }
   return days;
@@ -68,9 +69,12 @@ export function useQueueAnalytics(queueId: string, dateRange: DateRange) {
         const contactIds = contactList.map((c) => c.id);
 
         contactList.forEach((c) => {
-          const day = c.created_at?.split('T')[0];
-          const entry = days.find((d) => d.date === day);
-          if (entry) entry.contacts++;
+          const dayKey = c.created_at?.split('T')[0];
+          const entry = days.find((d) => d.day === dayKey);
+          if (entry) {
+            entry.novos++;
+            if (c.assigned_to !== null) entry.resolvidos++;
+          }
         });
 
         let messages: Array<{ id: string; contact_id: string; sender: string; created_at: string }> = [];
@@ -85,9 +89,9 @@ export function useQueueAnalytics(queueId: string, dateRange: DateRange) {
         }
 
         messages.forEach((m) => {
-          const day = m.created_at?.split('T')[0];
-          const entry = days.find((d) => d.date === day);
-          if (entry) entry.messages++;
+          const dayKey = m.created_at?.split('T')[0];
+          const entry = days.find((d) => d.day === dayKey);
+          if (entry) entry.mensagens++;
         });
 
         const hourlyMap: Record<number, number> = {};
@@ -96,8 +100,8 @@ export function useQueueAnalytics(queueId: string, dateRange: DateRange) {
           hourlyMap[h] = (hourlyMap[h] || 0) + 1;
         });
         const hourly: HourlyData[] = Array.from({ length: 24 }, (_, h) => ({
-          hour: `${String(h).padStart(2, '0')}:00`,
-          messages: hourlyMap[h] || 0,
+          hora: `${String(h).padStart(2, '0')}:00`,
+          atendimentos: hourlyMap[h] || 0,
         }));
 
         const agentIds = [

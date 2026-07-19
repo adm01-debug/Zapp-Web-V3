@@ -1,6 +1,7 @@
 // Consolidated Notification & Alerts Management Module (ETAPA 38)
 // Consolidates: usePushNotifications, useNotificationSettings, useTeamChatNotifications, useSecurityPushNotifications, useGoalNotifications, useTranscriptionNotifications
 import { useState, useEffect, useCallback, useRef } from 'react';
+// useRef is kept for mountedRef usage in useNotificationSettingsManagement
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/features/auth';
 import { log } from '@/lib/logger';
@@ -82,9 +83,10 @@ type UserSettingsRow = Record<string, unknown> | null;
 const normalizeSettings = (row: UserSettingsRow): NotificationSettings => ({
   ...DEFAULT_NOTIFICATION_SETTINGS,
   soundEnabled: row?.sound_enabled ?? DEFAULT_NOTIFICATION_SETTINGS.soundEnabled,
+  soundType: toSoundType(row?.sound_type, DEFAULT_NOTIFICATION_SETTINGS.soundType),
   browserNotifications:
     row?.browser_notifications_enabled ?? DEFAULT_NOTIFICATION_SETTINGS.browserNotifications,
-  desktopAlerts: row?.browser_notifications_enabled ?? DEFAULT_NOTIFICATION_SETTINGS.desktopAlerts,
+  desktopAlerts: row?.desktop_alerts_enabled ?? DEFAULT_NOTIFICATION_SETTINGS.desktopAlerts,
   quietHoursEnabled: row?.quiet_hours_enabled ?? DEFAULT_NOTIFICATION_SETTINGS.quietHoursEnabled,
   quietHoursStart: String(row?.quiet_hours_start ?? DEFAULT_NOTIFICATION_SETTINGS.quietHoursStart),
   quietHoursEnd: String(row?.quiet_hours_end ?? DEFAULT_NOTIFICATION_SETTINGS.quietHoursEnd),
@@ -116,7 +118,7 @@ const toDbSettings = (settings: Partial<NotificationSettings>): Record<string, u
   if (settings.soundEnabled !== undefined) db.sound_enabled = settings.soundEnabled;
   if (settings.browserNotifications !== undefined)
     db.browser_notifications_enabled = settings.browserNotifications;
-  if (settings.desktopAlerts !== undefined) db.browser_notifications_enabled = settings.desktopAlerts;
+  if (settings.desktopAlerts !== undefined) db.desktop_alerts_enabled = settings.desktopAlerts;
   if (settings.quietHoursEnabled !== undefined) db.quiet_hours_enabled = settings.quietHoursEnabled;
   if (settings.quietHoursStart !== undefined) db.quiet_hours_start = settings.quietHoursStart;
   if (settings.quietHoursEnd !== undefined) db.quiet_hours_end = settings.quietHoursEnd;
@@ -130,7 +132,7 @@ const toDbSettings = (settings: Partial<NotificationSettings>): Record<string, u
     db.auto_transcription_enabled = settings.autoTranscriptionEnabled;
   if (settings.transcriptionNotificationEnabled !== undefined)
     db.transcription_notification_enabled = settings.transcriptionNotificationEnabled;
-  if (settings.soundType !== undefined) db.message_sound_type = settings.soundType;
+  if (settings.soundType !== undefined) db.sound_type = settings.soundType;
   if (settings.messageSoundType !== undefined) db.message_sound_type = settings.messageSoundType;
   if (settings.mentionSoundType !== undefined) db.mention_sound_type = settings.mentionSoundType;
   if (settings.slaSoundType !== undefined) db.sla_sound_type = settings.slaSoundType;
@@ -329,20 +331,31 @@ export function useNotificationSettingsManagement(userId?: string) {
 /** Subscribes to real-time team chat notifications with read status tracking. */
 export function useTeamChatNotificationsManagement() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const channelRef = useRef<any>(null);
+  const { user } = useAuth();
 
   useEffect(() => {
-    channelRef.current = supabase.channel('notifications:team-chat');
-    channelRef.current
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications' }, (payload: any) => {
-        setNotifications((prev) => [payload.new, ...prev]);
-      })
+    if (!user?.id) return;
+
+    const channel = supabase
+      .channel(`notifications:team-chat:${user.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${user.id}`,
+        },
+        (payload: any) => {
+          setNotifications((prev) => [payload.new, ...prev]);
+        }
+      )
       .subscribe();
 
     return () => {
-      channelRef.current?.unsubscribe();
+      supabase.removeChannel(channel);
     };
-  }, []);
+  }, [user?.id]);
 
   const markAsRead = useCallback(async (notificationId: string) => {
     try {
@@ -361,15 +374,15 @@ export function useSecurityPushNotificationsManagement() {
   const [securityAlerts, setSecurityAlerts] = useState<Notification[]>([]);
 
   useEffect(() => {
-    const channel = supabase.channel('notifications:security');
-    channel
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'security_alerts' }, (payload: any) => {
+    const channel = supabase
+      .channel('notifications:security')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'audit_logs', filter: 'action=eq.security_alert' }, (payload: any) => {
         setSecurityAlerts((prev) => [payload.new, ...prev]);
       })
       .subscribe();
 
     return () => {
-      channel.unsubscribe();
+      supabase.removeChannel(channel);
     };
   }, []);
 
@@ -381,15 +394,15 @@ export function useGoalNotificationsManagement() {
   const [goalNotifications, setGoalNotifications] = useState<Notification[]>([]);
 
   useEffect(() => {
-    const channel = supabase.channel('notifications:goals');
-    channel
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'goal_notifications' }, (payload: any) => {
+    const channel = supabase
+      .channel('notifications:goals')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'queue_goals' }, (payload: any) => {
         setGoalNotifications((prev) => [payload.new, ...prev]);
       })
       .subscribe();
 
     return () => {
-      channel.unsubscribe();
+      supabase.removeChannel(channel);
     };
   }, []);
 
@@ -401,15 +414,15 @@ export function useTranscriptionNotificationsManagement() {
   const [transcriptionNotifications, setTranscriptionNotifications] = useState<Notification[]>([]);
 
   useEffect(() => {
-    const channel = supabase.channel('notifications:transcription');
-    channel
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'transcription_notifications' }, (payload: any) => {
+    const channel = supabase
+      .channel('notifications:transcription')
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'messages', filter: 'transcription_status=eq.completed' }, (payload: any) => {
         setTranscriptionNotifications((prev) => [payload.new, ...prev]);
       })
       .subscribe();
 
     return () => {
-      channel.unsubscribe();
+      supabase.removeChannel(channel);
     };
   }, []);
 

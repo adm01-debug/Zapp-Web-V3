@@ -2,6 +2,9 @@ import { useState, useEffect, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
+import { getLogger } from '@/lib/logger';
+
+const log = getLogger('useWarRoomAlerts');
 
 interface WarRoomAlert {
   id: string;
@@ -37,7 +40,7 @@ export function useWarRoomAlerts(soundEnabled = true) {
   });
 
   useEffect(() => {
-    const subscription = supabase
+    const channel = supabase
       .channel('warroom-alerts-realtime')
       .on(
         'postgres_changes',
@@ -48,25 +51,34 @@ export function useWarRoomAlerts(soundEnabled = true) {
 
           queryClient.invalidateQueries({ queryKey: ['warroom_alerts'] });
 
-          if (soundEnabled) {
-            showNotification({
-              title: alert.title || 'Alerta',
-              body: alert.message,
-              requireInteraction: alert.alert_type === 'critical',
-            });
-          }
+          showNotification({
+            title: alert.title || 'Alerta',
+            body: alert.message,
+            requireInteraction: alert.alert_type === 'critical',
+          });
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'warroom_alerts' },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['warroom_alerts'] });
         }
       )
       .subscribe();
 
-    return () => { subscription.unsubscribe(); };
-  }, [soundEnabled, showNotification, queryClient]);
+    return () => { supabase.removeChannel(channel); };
+  }, [showNotification, queryClient]);
 
   const dismissAlert = useCallback(async (alertId: string) => {
-    await supabase
+    const { error } = await supabase
       .from('warroom_alerts')
       .update({ is_read: true })
       .eq('id', alertId);
+    if (error) {
+      log.error('Failed to dismiss alert', alertId, error);
+      return;
+    }
     queryClient.invalidateQueries({ queryKey: ['warroom_alerts'] });
   }, [queryClient]);
 

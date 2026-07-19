@@ -28,12 +28,21 @@ export function useTextToSpeech(options: UseTextToSpeechOptions = {}) {
 
   const speak = useCallback(
     async (text: string, messageId?: string) => {
-      if (!text) return;
+      if (!text || typeof speechSynthesis === 'undefined') return;
+      speechSynthesis.cancel();
       setIsLoading(true);
       setCurrentMessageId(messageId ?? null);
       try {
-        setIsPlaying(true);
-      } finally {
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.rate = speed;
+        const voices = speechSynthesis.getVoices();
+        const matched = voices.find((v) => v.voiceURI === voiceId || v.name === voiceId);
+        if (matched) utterance.voice = matched;
+        utterance.onstart = () => { setIsPlaying(true); setIsLoading(false); };
+        utterance.onend = () => { setIsPlaying(false); setCurrentMessageId(null); };
+        utterance.onerror = () => { setIsPlaying(false); setIsLoading(false); setCurrentMessageId(null); };
+        speechSynthesis.speak(utterance);
+      } catch {
         setIsLoading(false);
       }
     },
@@ -41,6 +50,7 @@ export function useTextToSpeech(options: UseTextToSpeechOptions = {}) {
   );
 
   const stop = useCallback(() => {
+    if (typeof speechSynthesis !== 'undefined') speechSynthesis.cancel();
     setIsPlaying(false);
     setCurrentMessageId(null);
   }, []);
