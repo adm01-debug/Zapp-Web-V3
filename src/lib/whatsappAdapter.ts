@@ -68,6 +68,7 @@ const DEFAULT_INSTANCE = 'wpp2';
 
 // ----- Helpers --------------------------------------------------------------
 
+/** Calls the `whatsapp-cloud-send` edge function with `body` and throws on HTTP or API-level errors. */
 async function invokeCloud(body: Record<string, unknown>) {
   const { data, error } = await supabase.functions.invoke('whatsapp-cloud-send', { body });
   if (error) throw error;
@@ -79,6 +80,7 @@ async function invokeCloud(body: Record<string, unknown>) {
   return data;
 }
 
+/** Calls the `evolution-api` edge function for the given `action`, merging it with `body`, and throws on error. */
 async function invokeEvolution(action: string, body: Record<string, unknown>) {
   const { data, error } = await supabase.functions.invoke('evolution-api', {
     body: { action, ...body },
@@ -286,6 +288,7 @@ export async function markAsRead(params: MarkAsReadParams) {
 
 // ----- Webhooks de entrada --------------------------------------------------
 
+/** Returns the Supabase Functions base URL, preferring the self-hosted instance when VITE_SUPABASE_URL is not a managed `.supabase.co` host. */
 function projectFunctionsBase(): string {
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL ?? '';
   if (supabaseUrl && !supabaseUrl.includes('.supabase.co')) {

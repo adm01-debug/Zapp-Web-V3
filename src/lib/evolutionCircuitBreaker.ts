@@ -97,6 +97,7 @@ export function subscribeBreakerEvents(fn: Subscriber): () => void {
   };
 }
 
+/** Logs and broadcasts a state-change event to all registered subscribers; swallows subscriber errors to keep the breaker stable. */
 function emitTransition(
   instance: string,
   from: CircuitState,
@@ -133,6 +134,7 @@ export function getAllBreakerStates(): Array<{ instance: string } & BreakerEntry
   return Array.from(breakers.entries()).map(([instance, entry]) => ({ instance, ...entry }));
 }
 
+/** Returns the existing BreakerEntry for `instance`, creating a default CLOSED entry if none exists yet. */
 function getEntry(instance: string): BreakerEntry {
   let e = breakers.get(instance);
   if (!e) {

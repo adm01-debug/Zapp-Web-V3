@@ -55,6 +55,7 @@ export function clampToRange<K extends keyof RetryConfig>(field: K, raw: number)
   return Math.min(r.max, Math.max(r.min, Math.floor(raw)));
 }
 
+/** Parses a raw string setting value for `field`, clamping it to the valid range; returns undefined for missing or non-finite values. */
 function parseValue<K extends keyof RetryConfig>(field: K, raw: string | null | undefined): number | undefined {
   if (raw == null || raw === '') return undefined;
   const n = Number(raw);
@@ -62,6 +63,7 @@ function parseValue<K extends keyof RetryConfig>(field: K, raw: string | null | 
   return clampToRange(field, n);
 }
 
+/** Builds Supabase setting key maps for global and (optionally) instance-scoped retry configuration fields. */
 function buildKeys(instanceName?: string): { globalKeys: Record<keyof RetryConfig, string>; instanceKeys?: Record<keyof RetryConfig, string> } {
   const fields: (keyof RetryConfig)[] = ['maxRetries', 'baseBackoffMs', 'maxBackoffMs', 'timeoutMs'];
   const globalKeys = Object.fromEntries(fields.map((f) => [f, `retry.global.${f}`])) as Record<keyof RetryConfig, string>;
@@ -153,6 +155,7 @@ export function __resetRetryConfigCache(): void {
   inflight.clear();
 }
 
+/** Returns the Supabase `global_settings` key for `field`, scoped to the given instance name or to the global namespace when omitted. */
 export function settingKeyFor(field: keyof RetryConfig, instanceName?: string): string {
   if (!instanceName || instanceName === GLOBAL_CACHE_KEY) return `retry.global.${field}`;
   return `retry.instance.${instanceName}.${field}`;

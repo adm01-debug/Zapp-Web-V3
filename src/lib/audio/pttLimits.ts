@@ -21,6 +21,7 @@ export interface PttValidationResult {
   durationSec?: number;
 }
 
+/** Formats a duration in seconds as a human-readable string in the form `Xm Ys` or `Ys`. */
 function formatSeconds(seconds: number): string {
   const m = Math.floor(seconds / 60);
   const s = Math.round(seconds % 60);
@@ -37,17 +38,20 @@ export function probeAudioDuration(blob: Blob): Promise<number | undefined> {
     const audio = document.createElement('audio');
     audio.preload = 'metadata';
 
+    /** Removes event listeners and revokes the object URL to prevent memory leaks. */
     const cleanup = () => {
       audio.removeEventListener('loadedmetadata', onLoaded);
       audio.removeEventListener('error', onError);
       URL.revokeObjectURL(url);
     };
 
+    /** Resolves with the detected audio duration when metadata is available, or undefined if the value is invalid. */
     const onLoaded = () => {
       const d = audio.duration;
       cleanup();
       resolve(isFinite(d) && !isNaN(d) && d > 0 ? d : undefined);
     };
+    /** Resolves with undefined when the browser fails to decode the audio element. */
     const onError = () => {
       cleanup();
       resolve(undefined);

@@ -19,6 +19,7 @@ const DEFAULT_OPTIONS: CompressionOptions = {
   outputType: 'image/webp',
 };
 
+/** Returns scaled dimensions that fit within maxWidth×maxHeight while preserving the original aspect ratio. */
 function calculateDimensions(
   width: number,
   height: number,
@@ -148,6 +149,7 @@ export async function compressImage(
   };
 }
 
+/** Loads a File into an HTMLImageElement via a temporary object URL; used as fallback when createImageBitmap is unavailable. */
 function loadImageFallback(file: File): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const img = new Image();
@@ -158,6 +160,7 @@ function loadImageFallback(file: File): Promise<HTMLImageElement> {
   });
 }
 
+/** Wraps canvas.toBlob in a Promise, resolving with the resulting Blob or rejecting if the canvas produces null. */
 function canvasToBlob(canvas: HTMLCanvasElement, type: string, quality: number): Promise<Blob> {
   return new Promise((resolve, reject) => {
     canvas.toBlob(
