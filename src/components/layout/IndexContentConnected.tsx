@@ -14,8 +14,10 @@ import { useIndexKeyboardShortcuts } from '@/hooks/useIndexKeyboardShortcuts';
 import { AppShell } from '@/components/layout/AppShell';
 import { CommandPalette } from '@/components/CommandPalette';
 import { WelcomeModal } from '@/components/onboarding/WelcomeModal';
-import { SLANotificationProvider } from '@/components/notifications/SLANotificationProvider';
-import { GoalNotificationProvider } from '@/components/notifications/GoalNotificationProvider';
+import {
+  SLANotificationProvider,
+  GoalNotificationProvider,
+} from '@/components/notifications/UnifiedNotificationProviders';
 import { OfflineIndicator, ConnectionToast } from '@/components/ui/offline-indicator';
 import { DegradedConnectionsBanner } from '@/components/alerts/DegradedConnectionsBanner';
 
