@@ -110,12 +110,12 @@ export default function AdminConnectionsPage() {
       } else {
         setIsAdmin(false);
       }
-    } catch (e: any) {
+    } catch (e: unknown) {
       log.error('Error checking roles or connection', e);
       setIsAdmin(false);
       toast({
         title: 'Erro de Conexão ou Acesso',
-        description: `Não foi possível validar seu nível de acesso: ${e?.message ?? 'Banco indisponível'}.`,
+        description: `Não foi possível validar seu nível de acesso: ${e instanceof Error ? e.message : 'Banco indisponível'}.`,
         variant: 'destructive',
       });
     }
@@ -196,10 +196,10 @@ export default function AdminConnectionsPage() {
         variant: 'destructive',
       });
       return false;
-    } catch (e: any) {
+    } catch (e: unknown) {
       toast({
         title: 'Erro de rede',
-        description: e?.message ?? 'falha desconhecida',
+        description: e instanceof Error ? e.message : 'falha desconhecida',
         variant: 'destructive',
       });
       return false;
@@ -310,8 +310,8 @@ export default function AdminConnectionsPage() {
       }, 1500);
 
       await fetchConnections();
-    } catch (e: any) {
-      const msg = `[Exceção] ${e?.message ?? 'Falha desconhecida ao processar a requisição.'}`;
+    } catch (e: unknown) {
+      const msg = `[Exceção] ${e instanceof Error ? e.message : 'Falha desconhecida ao processar a requisição.'}`;
       setSaveError(msg);
       toast({ title: 'Erro inesperado', description: msg, variant: 'destructive' });
     } finally {

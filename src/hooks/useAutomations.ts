@@ -237,11 +237,11 @@ export function useAutomations({
                 })
                 .eq('id', execId)
             );
-          } catch (e: any) {
+          } catch (e: unknown) {
             log.warn('[automation] apply_tags/escalate failed', e);
             await safeClient.rpc('rpc_record_automation_error', {
               p_execution_id: execId,
-              p_error: String(e?.message ?? e),
+              p_error: e instanceof Error ? e.message : String(e),
               p_context: { stage: 'apply_tags_or_escalate', tags: allTags },
             });
           }
@@ -283,11 +283,11 @@ export function useAutomations({
                 );
               }
             }
-          } catch (e: any) {
+          } catch (e: unknown) {
             log.warn('[automation] suggest_reply failed', e);
             await safeClient.rpc('rpc_record_automation_error', {
               p_execution_id: execId,
-              p_error: String(e?.message ?? e),
+              p_error: e instanceof Error ? e.message : String(e),
               p_context: { stage: 'suggest_reply_or_autosend' },
             });
           }
