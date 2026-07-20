@@ -15,6 +15,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.4";
 import { createZappAdminClient } from '../_shared/db-client.ts';
 
 import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
+import { timingSafeStringEqual } from '../_shared/auth.ts';
 const E2E_PREFIX = "e2e-";
 
 type Action =
@@ -52,7 +53,7 @@ async function authorize(req: Request): Promise<{ ok: boolean; reason?: string }
   const token = authHeader.replace(/^Bearer\s+/i, "").trim();
   if (!token) return { ok: false, reason: "missing-bearer" };
   const serviceKey = envOrThrow("SUPABASE_SERVICE_ROLE_KEY");
-  if (token === serviceKey) return { ok: true };
+  if (timingSafeStringEqual(token, serviceKey)) return { ok: true };
   const admin = createZappAdminClient();
   const { data: userData, error: userErr } = await admin.auth.getUser(token);
   if (userErr || !userData?.user) return { ok: false, reason: "invalid-jwt" };

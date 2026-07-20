@@ -16,7 +16,8 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.4';
 import { createZappAdminClient } from '../_shared/db-client.ts';
 
-import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
+import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts'
+import { timingSafeStringEqual } from '../_shared/auth.ts';
 const E2E_PREFIX = 'e2e-';
 
 type SeedTarget = 'failed_messages' | 'webhook_events';
@@ -52,7 +53,7 @@ async function authorize(req: Request): Promise<{ ok: boolean; reason?: string }
   if (!token) return { ok: false, reason: 'missing-bearer' };
 
   const serviceKey = envOrThrow('SUPABASE_SERVICE_ROLE_KEY');
-  if (token === serviceKey) return { ok: true };
+  if (timingSafeStringEqual(token, serviceKey)) return { ok: true };
 
   // Otherwise, validate the JWT and confirm the user has app_role='admin'.
   const admin = createZappAdminClient();

@@ -11,6 +11,9 @@
 
 import { createZappAdminClient } from '../_shared/db-client.ts'
 import { getCorsHeaders, mergeCsvHeaderValues } from '../_shared/validation.ts'
+import { timingSafeStringEqual } from '../_shared/auth.ts'
+
+const HEALTH_TOKEN = Deno.env.get('PROXY_HEALTH_TOKEN') ?? ''
 
 function getJsonCorsHeaders(req?: Request) {
   const shared = getCorsHeaders(req)
@@ -176,6 +179,17 @@ export function evaluateAlerts(m: ComputedMetrics): AlertCandidate[] {
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: getJsonCorsHeaders(req) })
+  }
+
+  if (HEALTH_TOKEN) {
+    const auth = req.headers.get('Authorization') ?? ''
+    const provided = auth.startsWith('Bearer ') ? auth.slice(7) : (new URL(req.url).searchParams.get('token') ?? '')
+    if (!timingSafeStringEqual(provided, HEALTH_TOKEN)) {
+      return new Response(JSON.stringify({ error: 'unauthorized' }), {
+        status: 401,
+        headers: { ...getJsonCorsHeaders(req), 'Content-Type': 'application/json' },
+      })
+    }
   }
 
   const url = new URL(req.url)
