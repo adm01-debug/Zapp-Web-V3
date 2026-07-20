@@ -8,14 +8,17 @@ export function isAtBottom(
   scrollHeight: number,
   scrollTop: number,
   clientHeight: number,
-  threshold = 100
+  threshold = 100,
 ): boolean {
   return scrollHeight - scrollTop <= clientHeight + threshold;
 }
 
-type WithId = { id?: string; message_id?: string };
-
-export function deduplicateMessages<T extends WithId>(existing: T[], incoming: T[]): T[] {
-  const existingIds = new Set(existing.map((m) => m.message_id ?? m.id));
-  return incoming.filter((m) => !existingIds.has(m.message_id ?? m.id));
+export function deduplicateMessages<T extends { id?: string; message_id?: string }>(
+  existing: T[],
+  incoming: T[],
+): T[] {
+  const existingIds = new Set(existing.map((item) => item.message_id ?? item.id));
+  return incoming.filter(
+    (item) => !existingIds.has(item.message_id) && !existingIds.has(item.id),
+  );
 }
