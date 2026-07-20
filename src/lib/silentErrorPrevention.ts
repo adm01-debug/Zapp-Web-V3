@@ -260,28 +260,14 @@ export function detectSilentErrors(): void {
 /**
  * Initialize global silent error prevention.
  * Should be called once on application startup.
+ *
+ * NOTE: Global `unhandledrejection` and `error` listeners are registered in
+ * main.tsx (which also handles suppression of known-benign browser errors).
+ * This function only initialises dev-mode static analysis to avoid duplicate
+ * global handlers that would log every error twice.
  */
 export function initializeSilentErrorPrevention(): void {
   if (typeof window === 'undefined') return;
-
-  // Track unhandled promise rejections
-  window.addEventListener('unhandledrejection', (event) => {
-    const error = event.reason instanceof Error ? event.reason : new Error(String(event.reason));
-    log.error('Unhandled promise rejection detected:', error);
-    logStructuredError(error, {
-      url: window.location.href,
-    });
-  });
-
-  // Track uncaught errors
-  window.addEventListener('error', (event) => {
-    if (event.error) {
-      log.error('Uncaught error detected:', event.error);
-      logStructuredError(event.error, {
-        url: window.location.href,
-      });
-    }
-  });
 
   // Initialize silent error detection in development
   if (import.meta.env.DEV) {

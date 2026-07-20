@@ -80,6 +80,7 @@ export function useConnections() {
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
 
   const isMountedRef = useRef(true);
+  const redirectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const checkAdminStatus = useCallback(async () => {
     try {
@@ -155,6 +156,10 @@ export function useConnections() {
     return () => {
       isMountedRef.current = false;
       window.removeEventListener('focus', handleFocus);
+      if (redirectTimerRef.current !== null) {
+        clearTimeout(redirectTimerRef.current);
+        redirectTimerRef.current = null;
+      }
     };
   }, [fetchConnections, checkAdminStatus]);
 
@@ -299,7 +304,9 @@ export function useConnections() {
         description: `Configuração atualizada via runtime. Redirecionando para Status da Ponte...`,
       });
 
-      setTimeout(() => {
+      if (redirectTimerRef.current !== null) clearTimeout(redirectTimerRef.current);
+      redirectTimerRef.current = setTimeout(() => {
+        redirectTimerRef.current = null;
         window.location.href = '/admin/bridge-status';
       }, 1500);
 

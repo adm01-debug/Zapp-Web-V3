@@ -115,6 +115,7 @@ export function ConnectionsView() {
     handleSetDefault,
     handleSetApiType,
     handleDelete,
+    handleAddConnection,
     closeQrDialog,
     handleAddConnection,
   } = useConnectionsManager();
