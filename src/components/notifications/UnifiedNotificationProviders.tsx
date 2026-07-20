@@ -16,6 +16,21 @@ interface UnifiedNotificationProvidersProps {
   enableSentimentAlerts?: boolean;
 }
 
+function SentimentAlertsLayer() {
+  useRealtimeSentimentAlerts();
+  return null;
+}
+
+function SLANotificationsLayer() {
+  useSLANotifications();
+  return null;
+}
+
+function GoalNotificationsLayer() {
+  useGoalNotifications();
+  return null;
+}
+
 /**
  * Unified provider for all notification types.
  * Supports selective enabling of individual notification systems.
@@ -24,51 +39,36 @@ interface UnifiedNotificationProvidersProps {
 export const UnifiedNotificationProviders = forwardRef<
   HTMLDivElement,
   UnifiedNotificationProvidersProps
->(
-  function UnifiedNotificationProviders(
-    {
-      children,
-      enableSLA = true,
-      enableGoals = true,
-      enableSentimentAlerts = true,
-    },
-    _ref
-  ) {
-    // Initialize selected notification hooks
-    if (enableSentimentAlerts) {
-      useRealtimeSentimentAlerts();
-    }
-    if (enableSLA) {
-      useSLANotifications();
-    }
-    if (enableGoals) {
-      useGoalNotifications();
-    }
-
-    return <>{children}</>;
-  }
-);
+>(function UnifiedNotificationProviders(
+  { children, enableSLA = true, enableGoals = true, enableSentimentAlerts = true },
+  _ref
+) {
+  return (
+    <>
+      {enableSentimentAlerts && <SentimentAlertsLayer />}
+      {enableSLA && <SLANotificationsLayer />}
+      {enableGoals && <GoalNotificationsLayer />}
+      {children}
+    </>
+  );
+});
 
 /**
  * SLA Notification Provider (legacy — use UnifiedNotificationProviders)
  * Re-exported for backward compatibility.
  */
-export const SLANotificationProvider = forwardRef<
-  HTMLDivElement,
-  { children: React.ReactNode }
->(function SLANotificationProvider({ children }, _ref) {
-  useSLANotifications();
-  return <>{children}</>;
-});
+export const SLANotificationProvider = forwardRef<HTMLDivElement, { children: React.ReactNode }>(
+  function SLANotificationProvider({ children }, _ref) {
+    useSLANotifications();
+    return <>{children}</>;
+  }
+);
 
 /**
  * Goal Notification Provider (legacy — use UnifiedNotificationProviders)
  * Re-exported for backward compatibility.
  */
-export const GoalNotificationProvider = forwardRef<
-  HTMLDivElement,
-  { children: React.ReactNode }
->(
+export const GoalNotificationProvider = forwardRef<HTMLDivElement, { children: React.ReactNode }>(
   function GoalNotificationProvider({ children }, _ref) {
     useGoalNotifications();
     return <>{children}</>;
