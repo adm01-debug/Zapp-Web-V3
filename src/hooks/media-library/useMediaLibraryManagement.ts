@@ -1,11 +1,11 @@
 // Unified media library management module consolidating media library hooks (ETAPA 21 consolidation)
 // Replaces: useMediaLibrary, useMediaUpload
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getLogger } from '@/lib/logger';
 import { supabase } from '@/integrations/supabase/client';
 import { fromTable } from '@/lib/supabaseHelpers';
 import { toast } from 'sonner';
-import { useMountedRef } from '@/hooks/useMountedRef';
 import {
   type MediaItem,
   type MediaType,
@@ -17,6 +17,8 @@ import {
 } from './useMediaLibraryTypes';
 
 const log = getLogger('useMediaLibraryManagement');
+
+const MEDIA_LIBRARY_KEY = (mediaType: MediaType) => ['media-library', mediaType] as const;
 
 // ============================================================================
 // CRUD Management Section
@@ -60,8 +62,7 @@ interface UseMediaCrudResult {
 
 /** Manages media-library item CRUD operations (fetch, filter, select, rename, delete, favorite, category, preview) for a given media type. */
 function useMediaCrudManagement({ type }: UseMediaCrudParams): UseMediaCrudResult {
-  const [items, setItems] = useState<MediaItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [filterCategory, setFilterCategory] = useState<string>('all');
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -73,39 +74,37 @@ function useMediaCrudManagement({ type }: UseMediaCrudParams): UseMediaCrudResul
 
   const categories = getCategoriesForType(type);
   const bucket = getBucket(type);
-  const mountedRef = useMountedRef();
 
-  const fetchItems = useCallback(async () => {
-    setLoading(true);
-    try {
+  const { data: items = [], isLoading: loading, refetch: refetchQuery } = useQuery({
+    queryKey: MEDIA_LIBRARY_KEY(type),
+    queryFn: async () => {
       const { data, error } = await supabase
         .from(type as 'stickers')
         .select('*')
         .order('created_at', { ascending: false })
         .limit(1000);
-      if (!mountedRef.current) return;
       if (error) {
         log.error(`Error fetching ${type}:`, error);
         toast.error(
           `Erro ao carregar ${type === 'stickers' ? 'figurinhas' : type === 'audio_memes' ? 'áudios' : 'emojis'}`
         );
+        return [] as MediaItem[];
       }
-      setItems((data as MediaItem[]) || []);
-    } catch (err) {
-      log.error(`Unexpected error fetching ${type}:`, err);
-      if (mountedRef.current) setItems([]);
-    } finally {
-      if (mountedRef.current) setLoading(false);
-    }
-  }, [type, mountedRef]);
+      return (data as MediaItem[]) || [];
+    },
+    staleTime: 30_000,
+  });
+
+  const fetchItems = useCallback(async () => {
+    await refetchQuery();
+  }, [refetchQuery]);
 
   useEffect(() => {
-    fetchItems();
     return () => {
       audioRef.current?.pause();
       audioRef.current = null;
     };
-  }, [fetchItems]);
+  }, []);
 
   useEffect(() => {
     setSelected(new Set());
@@ -145,14 +144,16 @@ function useMediaCrudManagement({ type }: UseMediaCrudParams): UseMediaCrudResul
   /** Optimistically toggles `is_favorite` on `item` and reverts the local state if the Supabase update fails. */
   const handleToggleFavorite = async (item: MediaItem) => {
     const newValue = !item.is_favorite;
-    setItems((prev) => prev.map((i) => (i.id === item.id ? { ...i, is_favorite: newValue } : i)));
+    queryClient.setQueryData(MEDIA_LIBRARY_KEY(type), (prev: MediaItem[] | undefined) =>
+      (prev || []).map((i) => (i.id === item.id ? { ...i, is_favorite: newValue } : i))
+    );
     const { error } = await supabase
       .from(type as 'stickers')
       .update({ is_favorite: newValue })
       .eq('id', item.id);
     if (error) {
-      setItems((prev) =>
-        prev.map((i) => (i.id === item.id ? { ...i, is_favorite: !newValue } : i))
+      queryClient.setQueryData(MEDIA_LIBRARY_KEY(type), (prev: MediaItem[] | undefined) =>
+        (prev || []).map((i) => (i.id === item.id ? { ...i, is_favorite: !newValue } : i))
       );
       toast.error('Erro ao atualizar favorito');
     }
@@ -181,7 +182,9 @@ function useMediaCrudManagement({ type }: UseMediaCrudParams): UseMediaCrudResul
     for (const item of toDelete) {
       await deleteStorageFile(type === 'audio_memes' ? item.audio_url : item.image_url);
     }
-    setItems((prev) => prev.filter((i) => !selected.has(i.id)));
+    queryClient.setQueryData(MEDIA_LIBRARY_KEY(type), (prev: MediaItem[] | undefined) =>
+      (prev || []).filter((i) => !selected.has(i.id))
+    );
     setSelected(new Set());
     toast.success(`${ids.length} itens excluídos`);
   };
@@ -193,14 +196,16 @@ function useMediaCrudManagement({ type }: UseMediaCrudParams): UseMediaCrudResul
     const oldItems = items
       .filter((i) => selected.has(i.id))
       .map((i) => ({ id: i.id, category: i.category }));
-    setItems((prev) => prev.map((i) => (selected.has(i.id) ? { ...i, category: newCategory } : i)));
+    queryClient.setQueryData(MEDIA_LIBRARY_KEY(type), (prev: MediaItem[] | undefined) =>
+      (prev || []).map((i) => (selected.has(i.id) ? { ...i, category: newCategory } : i))
+    );
     const { error } = await supabase
       .from(type as 'stickers')
       .update({ category: newCategory })
       .in('id', ids);
     if (error) {
-      setItems((prev) =>
-        prev.map((i) => {
+      queryClient.setQueryData(MEDIA_LIBRARY_KEY(type), (prev: MediaItem[] | undefined) =>
+        (prev || []).map((i) => {
           const old = oldItems.find((o) => o.id === i.id);
           return old ? { ...i, category: old.category } : i;
         })
@@ -237,8 +242,8 @@ function useMediaCrudManagement({ type }: UseMediaCrudParams): UseMediaCrudResul
             .update({ category: data.category })
             .eq('id', item.id);
           if (!error) {
-            setItems((prev) =>
-              prev.map((i) => (i.id === item.id ? { ...i, category: data.category } : i))
+            queryClient.setQueryData(MEDIA_LIBRARY_KEY(type), (prev: MediaItem[] | undefined) =>
+              (prev || []).map((i) => (i.id === item.id ? { ...i, category: data.category } : i))
             );
             updated++;
           } else errors++;
@@ -260,14 +265,16 @@ function useMediaCrudManagement({ type }: UseMediaCrudParams): UseMediaCrudResul
   /** Optimistically updates the category of a single item and reverts local state if the database write fails. */
   const handleSingleCategoryChange = async (item: MediaItem, newCategory: string) => {
     const oldCategory = item.category;
-    setItems((prev) => prev.map((i) => (i.id === item.id ? { ...i, category: newCategory } : i)));
+    queryClient.setQueryData(MEDIA_LIBRARY_KEY(type), (prev: MediaItem[] | undefined) =>
+      (prev || []).map((i) => (i.id === item.id ? { ...i, category: newCategory } : i))
+    );
     const { error } = await supabase
       .from(type as 'stickers')
       .update({ category: newCategory })
       .eq('id', item.id);
     if (error) {
-      setItems((prev) =>
-        prev.map((i) => (i.id === item.id ? { ...i, category: oldCategory } : i))
+      queryClient.setQueryData(MEDIA_LIBRARY_KEY(type), (prev: MediaItem[] | undefined) =>
+        (prev || []).map((i) => (i.id === item.id ? { ...i, category: oldCategory } : i))
       );
       toast.error('Erro ao alterar categoria');
     }
@@ -281,14 +288,16 @@ function useMediaCrudManagement({ type }: UseMediaCrudParams): UseMediaCrudResul
       return;
     }
     const oldName = item.name;
-    setItems((prev) => prev.map((i) => (i.id === item.id ? { ...i, name: trimmed } : i)));
+    queryClient.setQueryData(MEDIA_LIBRARY_KEY(type), (prev: MediaItem[] | undefined) =>
+      (prev || []).map((i) => (i.id === item.id ? { ...i, name: trimmed } : i))
+    );
     const { error } = await supabase
       .from(type as 'stickers')
       .update({ name: trimmed })
       .eq('id', item.id);
     if (error) {
-      setItems((prev) =>
-        prev.map((i) => (i.id === item.id ? { ...i, name: oldName } : i))
+      queryClient.setQueryData(MEDIA_LIBRARY_KEY(type), (prev: MediaItem[] | undefined) =>
+        (prev || []).map((i) => (i.id === item.id ? { ...i, name: oldName } : i))
       );
       toast.error('Erro ao renomear');
       return;
@@ -308,7 +317,9 @@ function useMediaCrudManagement({ type }: UseMediaCrudParams): UseMediaCrudResul
       return;
     }
     await deleteStorageFile(type === 'audio_memes' ? item.audio_url : item.image_url);
-    setItems((prev) => prev.filter((i) => i.id !== item.id));
+    queryClient.setQueryData(MEDIA_LIBRARY_KEY(type), (prev: MediaItem[] | undefined) =>
+      (prev || []).filter((i) => i.id !== item.id)
+    );
     toast.success('Item excluído');
   };
 
