@@ -10,11 +10,8 @@
  */
 import { useMemo, useState } from 'react';
 import { DEFAULT_WHATSAPP_INSTANCE } from '@/lib/constants/whatsappInstances';
-import { queryKeys } from '@/services/api/queryKeys';
-import { useQuery } from '@tanstack/react-query';
-import { subHours } from 'date-fns';
+import { useEvolutionApiLogs, type RetryMetric } from '@/hooks/useEvolutionApiLogs';
 import { Activity, RefreshCw, Clock, Filter, Eye } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -44,7 +41,6 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import {
-  type RetryMetric,
   RANGE_OPTIONS,
   STATUS_OPTIONS,
   formatDate,
@@ -60,28 +56,11 @@ export default function AdminEvolutionApiLogsPage() {
   const [instanceFilter, setInstanceFilter] = useState('');
   const [selected, setSelected] = useState<RetryMetric | null>(null);
 
-  const since = useMemo(() => subHours(new Date(), Number(hoursBack)).toISOString(), [hoursBack]);
-
-  const { data, isLoading, refetch, isFetching } = useQuery({
-    queryKey: queryKeys.adminOps.evolutionApiLogsFiltered(hoursBack, statusFilter, actionSearch, instanceFilter),
-    queryFn: async () => {
-      let q = supabase
-        .from('evolution_retry_metrics')
-        .select('*')
-        .gte('created_at', since)
-        .order('created_at', { ascending: false })
-        .limit(500);
-
-      if (statusFilter !== 'all') q = q.eq('final_status', statusFilter);
-      if (actionSearch.trim()) q = q.ilike('action', `%${actionSearch.trim()}%`);
-      if (instanceFilter.trim()) q = q.eq('instance_name', instanceFilter.trim());
-
-      const { data, error } = await q;
-      if (error) throw error;
-      return (data as RetryMetric[]) ?? []; // ignore-audit: narrows Supabase query result to local interface
-    },
-    refetchInterval: 15_000,
-    staleTime: 10_000,
+  const { data, isLoading, refetch, isFetching } = useEvolutionApiLogs({
+    hoursBack,
+    statusFilter,
+    actionSearch,
+    instanceFilter,
   });
 
   const summary = useMemo(() => {
