@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -26,7 +26,8 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { updateRuntimeExternalConfig } from '@/integrations/supabase/externalClient';
-import { safeClient } from '@/integrations/supabase/safeClient';
+import { MCP_SERVER_URL } from '@/pages/admin/useConnections';
+import { safeClient, safeFrom } from '@/integrations/supabase/safeClient';
 import { toast } from '@/hooks/use-toast';
 import { runConnectionDiagnostics } from '@/lib/diagnostics';
 import { getLogger } from '@/lib/logger';
@@ -83,6 +84,7 @@ export default function AdminConnectionsPage() {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
+  const redirectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const checkAdminStatus = async () => {
     try {
@@ -95,8 +97,7 @@ export default function AdminConnectionsPage() {
 
       setCurrentUserId(user?.id ?? null);
       if (user?.id) {
-        const { data: roles, error: rolesError } = await supabase
-          .from('user_roles')
+        const { data: roles, error: rolesError } = await safeFrom('user_roles')
           .select('role')
           .eq('user_id', user.id);
 
@@ -131,7 +132,13 @@ export default function AdminConnectionsPage() {
     // Revalida ao focar na aba do navegador para garantir que o acesso ainda é válido
     const handleFocus = () => checkAdminStatus();
     window.addEventListener('focus', handleFocus);
-    return () => window.removeEventListener('focus', handleFocus);
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      if (redirectTimerRef.current !== null) {
+        clearTimeout(redirectTimerRef.current);
+        redirectTimerRef.current = null;
+      }
+    };
   }, []);
 
   const handleTabChange = (value: string) => {
@@ -308,7 +315,9 @@ export default function AdminConnectionsPage() {
         description: `Configuração atualizada via runtime. Redirecionando para Status da Ponte...`,
       });
 
-      setTimeout(() => {
+      if (redirectTimerRef.current !== null) clearTimeout(redirectTimerRef.current);
+      redirectTimerRef.current = setTimeout(() => {
+        redirectTimerRef.current = null;
         window.location.href = '/admin/bridge-status';
       }, 1500);
 
@@ -719,11 +728,7 @@ export default function AdminConnectionsPage() {
                       da Anthropic.
                     </p>
                     <div className="flex items-center gap-2">
-                      <Input
-                        readOnly
-                        value={`${import.meta.env.VITE_SUPABASE_URL ?? ''}/functions/v1/mcp-server`}
-                        className="font-mono text-[10px]"
-                      />
+                      <Input readOnly value={MCP_SERVER_URL} className="font-mono text-[10px]" />
                       <Button size="icon" variant="ghost">
                         <ExternalLink className="h-4 w-4" />
                       </Button>

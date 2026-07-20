@@ -50,6 +50,10 @@ declare global {
      *  compare their captured snapshot against this value and bail out when
      *  superseded — prevents multiple 15-attempt loops from stacking up. */
     __pendingOpenLoopId?: symbol;
+    /** Cancels the current in-flight dispatch retry loop. Called by the inbox
+     *  listener once it has successfully handled the open-contact-chat event,
+     *  stopping the remaining up-to-15-attempt chain early. */
+    __cancelPendingOpenLoop?: () => void;
   }
 }
 
@@ -84,8 +88,12 @@ export async function openContactInChat(opts: OpenContactInChatOptions): Promise
   // Bare numbers bypass useInboxDeepLinks' `!pending.includes('@')` guard and
   // are mistakenly treated as UUIDs, causing markAsRead to warn 15× per click.
   const remoteJid = opts.remoteJid
-    ? (opts.remoteJid.includes('@') ? opts.remoteJid : `${opts.remoteJid}@s.whatsapp.net`)
-    : (phone ? `${phone}@s.whatsapp.net` : undefined);
+    ? opts.remoteJid.includes('@')
+      ? opts.remoteJid
+      : `${opts.remoteJid}@s.whatsapp.net`
+    : phone
+      ? `${phone}@s.whatsapp.net`
+      : undefined;
 
   // handshakeId para os globals legacy — Inbox em modo externo procura o JID
   const handshakeId = remoteJid ?? contactId;
@@ -129,19 +137,33 @@ export async function openContactInChat(opts: OpenContactInChatOptions): Promise
   }
 
   let attempts = 0;
+  let retryTimer: ReturnType<typeof setTimeout> | null = null;
+
+  const cancel = () => {
+    if (retryTimer !== null) {
+      clearTimeout(retryTimer);
+      retryTimer = null;
+    }
+  };
+
+  // Expose cancel so the inbox listener can stop the loop early on first success.
+  window.__cancelPendingOpenLoop = cancel;
+
   const tryDispatch = () => {
-    // Bail out if a newer openContactInChat() call superseded this one
+    // Bail out if a newer openContactInChat() call superseded this one,
+    // or if cancel() was called externally (e.g. by the inbox on success).
     if (window.__pendingOpenLoopId !== loopId) return;
 
+    retryTimer = null;
     attempts++;
     window.dispatchEvent(
       new CustomEvent('open-contact-chat', {
         detail: { contactId: handshakeId, messageId: target.messageId },
       })
     );
-    if (attempts < 15) setTimeout(tryDispatch, 200);
+    if (attempts < 15) retryTimer = setTimeout(tryDispatch, 200);
   };
-  setTimeout(tryDispatch, 150);
+  retryTimer = setTimeout(tryDispatch, 150);
 
   return true;
 }

@@ -8,6 +8,7 @@ import { initSentry, SentryErrorBoundary } from './lib/sentry';
 import { initWebVitals } from './lib/webVitals';
 import { registerExternalSessionBridge } from './integrations/supabase/externalSessionBridge';
 import { initializeSilentErrorPrevention } from './lib/silentErrorPrevention';
+import { logStructuredError } from './lib/structuredErrorLogging';
 
 // Instala bridge dual-session (FATOR X external)
 registerExternalSessionBridge();
@@ -29,13 +30,12 @@ if (sentryEnabled) log.info('Sentry SDK ativo');
 log.info('Initialized at', new Date().toISOString());
 
 /**
- * Consolidated unhandledrejection handler.
+ * Consolidated unhandledrejection + error handlers (single authoritative set).
  *
- * Handles both logging and suppression in a single listener to avoid the
- * double-handler problem (previously main.tsx logged everything, then
- * App.tsx registered a second handler to suppress some errors — but
- * main.tsx fired first, logging errors that the second handler would
- * have silenced).
+ * These are the ONLY global `unhandledrejection` / `error` listeners in the
+ * application. silentErrorPrevention.ts previously registered its own
+ * duplicate set, causing every error to be logged twice. That duplication has
+ * been removed; structured logging now happens here.
  *
  * Suppresses:
  * - TimeoutError: expected browser timeout from storage/IDB operations
@@ -51,11 +51,18 @@ window.addEventListener('unhandledrejection', (event: PromiseRejectionEvent) => 
       return;
     }
   }
-  log.error('Unhandled promise rejection:', event.reason);
+  const error = reason instanceof Error ? reason : new Error(String(reason));
+  log.error('Unhandled promise rejection:', error);
+  logStructuredError(error, { url: window.location.href });
 });
 
 window.addEventListener('error', (event) => {
-  log.error('Unhandled error:', event.error || event.message);
+  if (event.error) {
+    log.error('Unhandled error:', event.error);
+    logStructuredError(event.error as Error, { url: window.location.href });
+  } else {
+    log.error('Unhandled error:', event.message);
+  }
 });
 
 // Initialize Web Vitals monitoring
@@ -91,7 +98,8 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
         <p className="mb-4 text-muted-foreground">
           O erro foi registrado e nossa equipe foi notificada. Você pode tentar de novo:
         </p>
-        <button type="button"
+        <button
+          type="button"
           onClick={resetError}
           className="rounded-lg bg-primary px-4 py-2 font-semibold text-primary-foreground transition-opacity hover:opacity-90"
         >

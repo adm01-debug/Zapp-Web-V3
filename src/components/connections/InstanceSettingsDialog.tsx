@@ -14,6 +14,7 @@ import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useEvolutionApi } from '@/hooks/useEvolutionApi';
 import { supabase } from '@/integrations/supabase/client';
+import { safeFrom } from '@/integrations/supabase/safeClient';
 import { toast } from 'sonner';
 import { Loader2, Settings, Shield, User, Tag, History, RotateCcw } from 'lucide-react';
 import { getLogger } from '@/lib/logger';
@@ -135,8 +136,7 @@ export function InstanceSettingsDialog({
   const loadReconnectConfig = async () => {
     if (!connectionId) return;
     try {
-      const { data, error } = await supabase
-        .from('whatsapp_connections')
+      const { data, error } = await safeFrom('whatsapp_connections')
         .select(
           'auto_reconnect_enabled, reconnect_interval_seconds, max_reconnect_attempts, loop_protection_active'
         )
@@ -159,8 +159,7 @@ export function InstanceSettingsDialog({
   const saveReconnectConfig = async () => {
     if (!connectionId) return;
     try {
-      const { error } = await supabase
-        .from('whatsapp_connections')
+      const { error } = await safeFrom('whatsapp_connections')
         .update({
           auto_reconnect_enabled: reconnectConfig.enabled,
           reconnect_interval_seconds: reconnectConfig.interval,
@@ -181,8 +180,7 @@ export function InstanceSettingsDialog({
     if (!connectionId) return;
     setLoadingTab('audit');
     try {
-      const { data, error } = await supabase
-        .from('reconnection_logs')
+      const { data, error } = await safeFrom('reconnection_logs')
         .select('*')
         .eq('connection_id', connectionId)
         .order('created_at', { ascending: false })

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -125,13 +125,28 @@ export function SoundCustomizationPanel() {
   const { settings, updateSettings } = useUserSettings();
   const [playingSound, setPlayingSound] = useState<string | null>(null);
   const [masterVolume, setMasterVolume] = useState(80);
+  const playingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (playingTimerRef.current !== null) clearTimeout(playingTimerRef.current);
+    };
+  }, []);
+
+  const schedulePlayingReset = () => {
+    if (playingTimerRef.current !== null) clearTimeout(playingTimerRef.current);
+    playingTimerRef.current = setTimeout(() => {
+      playingTimerRef.current = null;
+      setPlayingSound(null);
+    }, 500);
+  };
 
   const handleSoundChange = (category: string, soundId: string) => {
     updateSettings({ [`${category}_sound_type` as `${SoundCategoryId}_sound_type`]: soundId });
     if (soundId !== 'none') {
       playSoundPreview(soundId);
       setPlayingSound(`${category}-${soundId}`);
-      setTimeout(() => setPlayingSound(null), 500);
+      schedulePlayingReset();
     }
   };
 
@@ -139,7 +154,7 @@ export function SoundCustomizationPanel() {
     if (soundId === 'none') return;
     playSoundPreview(soundId);
     setPlayingSound(`${category}-${soundId}`);
-    setTimeout(() => setPlayingSound(null), 500);
+    schedulePlayingReset();
   };
 
   const getSoundValue = (category: string): string =>
