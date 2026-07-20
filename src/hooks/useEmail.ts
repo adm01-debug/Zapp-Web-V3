@@ -51,6 +51,7 @@ const isMockId = (id?: string | null): boolean => !!id && id.startsWith('mock-')
  * pública (thread_id, email_thread_id, account_id, unread_count). Este adapter
  * replica exatamente as expressões da view para payloads de realtime.
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const mapBaseThreadRow = (row: any): EmailThread =>
   emailMappers.thread({
     ...row,

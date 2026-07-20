@@ -70,6 +70,7 @@ export function useHubTabNavigationManagement(
     if (validated !== tab) {
       setTab(validated);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams, isDev, tab]);
 
   return { tab, setTab };

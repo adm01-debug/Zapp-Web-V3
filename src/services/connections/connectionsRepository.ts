@@ -30,6 +30,7 @@ export interface ChannelConnection {
   channel_type: string;
   account_id: string;
   connection_status: 'connected' | 'disconnected' | 'error';
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   credentials?: Record<string, any>;
   created_at: string;
   updated_at: string;

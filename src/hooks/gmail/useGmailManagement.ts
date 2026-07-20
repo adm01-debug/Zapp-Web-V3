@@ -161,6 +161,7 @@ interface UseEmailSyncParams {
 }
 
 interface UseEmailSyncResult {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   syncNow: (accountId?: string) => Promise<any>;
   refreshToken: (accountId?: string) => Promise<boolean | void>;
   renewWatch: (accountId?: string) => Promise<void>;

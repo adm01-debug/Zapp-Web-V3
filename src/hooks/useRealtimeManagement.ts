@@ -195,6 +195,7 @@ export function useRealtimeMonitorManagement(tableName: string) {
 /** Tracks typing presence for a chat room using Supabase Presence. Broadcasts the current user's typing state and returns the list of other users currently typing. */
 export function useTypingPresenceManagement(userId: string, chatId: string) {
   const [typingUsers, setTypingUsers] = useState<string[]>([]);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const channelRef = useRef<any>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout>();
 

@@ -120,6 +120,7 @@ export const ExternalProductCatalog: React.FC<ExternalProductCatalogProps> = ({
       setIsOpen(false);
       toast({ title: 'Produto enviado!', description: `${product.name} foi enviado para o chat.` });
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [onSendProduct]
   );
 

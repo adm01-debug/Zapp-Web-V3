@@ -28,15 +28,19 @@ export function useTypingPresence({
 
     channel
       .on('presence', { event: 'sync' }, () => {
-        const state = (channel as unknown as { presenceState: () => Record<string, unknown[]> }).presenceState?.();
+        const state = (
+          channel as unknown as { presenceState: () => Record<string, unknown[]> }
+        ).presenceState?.();
         if (!state) return;
         const users: TypingUser[] = [];
         Object.values(state).forEach((presences) => {
-          (presences as Array<{ userId?: string; userName?: string; isTyping?: boolean }>).forEach((p) => {
-            if (p.isTyping && p.userId && p.userId !== currentUserId) {
-              users.push({ userId: p.userId, userName: p.userName || '' });
+          (presences as Array<{ userId?: string; userName?: string; isTyping?: boolean }>).forEach(
+            (p) => {
+              if (p.isTyping && p.userId && p.userId !== currentUserId) {
+                users.push({ userId: p.userId, userName: p.userName || '' });
+              }
             }
-          });
+          );
         });
         setTypingUsers(users);
       })
@@ -59,6 +63,7 @@ export function useTypingPresence({
     stopTimerRef.current = setTimeout(() => {
       handleTypingStop();
     }, 3000);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUserId, currentUserName]);
 
   const handleTypingStop = useCallback(() => {

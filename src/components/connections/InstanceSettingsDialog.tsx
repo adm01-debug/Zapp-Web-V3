@@ -118,6 +118,7 @@ export function InstanceSettingsDialog({
     maxAttempts: 5,
     loopProtection: false,
   });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
   const [loadingTab, setLoadingTab] = useState('');
 

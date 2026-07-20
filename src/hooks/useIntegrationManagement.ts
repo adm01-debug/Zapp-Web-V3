@@ -10,6 +10,7 @@ interface Integration {
   type: string;
   name: string;
   is_active: boolean;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   config: Record<string, any>;
 }
 
@@ -99,6 +100,7 @@ export function useBitrixApiManagement() {
 /** Fetches and manages TalkX integration configuration settings. */
 export function useTalkXManagement() {
   const [isEnabled, setIsEnabled] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [config, setConfig] = useState<any>(null);
 
   useEffect(() => {

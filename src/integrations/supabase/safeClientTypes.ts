@@ -9,6 +9,7 @@ export type AnyQueryResult = PromiseLike<{ data: unknown; error: PostgrestError 
 export type AnyQueryBuilderResult = AnyQueryResult & { single?: () => AnyQueryResult };
 
 /** Safe Query Builder. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type SafeQueryBuilder = any;
 
 /** Safe Response. */

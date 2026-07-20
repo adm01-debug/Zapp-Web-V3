@@ -155,6 +155,7 @@ export function CRMAutoSync({ conversation, messageCount, agentName, messages }:
     }
 
     lastSyncedStatus.current = conversation.status;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     conversation.status,
     conversation.id,
@@ -166,7 +167,7 @@ export function CRMAutoSync({ conversation, messageCount, agentName, messages }:
     conversation.contact.name,
     messages,
     sentiment,
-  ]); // eslint-disable-line react-hooks/exhaustive-deps
+  ]);
 
   return null; // Invisible component
 }

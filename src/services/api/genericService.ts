@@ -21,11 +21,13 @@ interface ServiceOptions {
 /**
  * Factory function to create a standardized service for any table
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const createService = <T = any>(tableName: string, options?: ServiceOptions) => {
   const { orderBy = 'created_at', orderDirection = 'desc' } = options || {};
   // Dynamic table accessor — tableName is a runtime string, not a literal from the generated types.
 
   const db = supabase as unknown as {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     from(t: string): any; // ignore-audit: TS2589 with ReturnType<supabase.from>
   };
 

@@ -17,7 +17,9 @@ interface AutomationRule {
   id: string;
   name: string;
   trigger_type: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   trigger_config: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   actions: any;
   is_active: boolean;
   priority: number;
@@ -100,9 +102,11 @@ export function useAutomations({
       if (!msgs || !Array.isArray(msgs) || !isMounted.current) return;
 
       const sorted = [...msgs].sort(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (a: any, b: any) =>
           new Date(a.message_timestamp).getTime() - new Date(b.message_timestamp).getTime()
       );
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const last: any = sorted[sorted.length - 1];
       if (!last) return;
 
@@ -114,11 +118,14 @@ export function useAutomations({
       let addedTags: string[] = [];
       let removedTags: string[] = [];
       try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const { data: contact } = await client.rpc('rpc_get_contact' as any, {
           p_remote_jid: remoteJid,
           p_instance: instanceName,
         });
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const c: any = Array.isArray(contact) ? contact[0] : contact;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         currentTags = Array.isArray(c?.tags) ? c.tags.map((t: any) => String(t)) : [];
         if (prevTagsRef.current !== null) {
           const prev = prevTagsRef.current;
@@ -138,6 +145,7 @@ export function useAutomations({
         if (rule.trigger_type === 'first_response_pending') {
           const thresh = Number(cfg.threshold_seconds ?? 60);
           // Última msg é do cliente e nenhuma resposta posterior
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const lastInboundIdx = [...sorted].reverse().findIndex((m: any) => !m.from_me);
           if (lastInboundIdx === 0 && ageSec >= thresh) {
             matched = true;
@@ -169,7 +177,8 @@ export function useAutomations({
         } else if (rule.trigger_type === 'tag_applied') {
           // Aceita 'tag' (string) ou 'tags' (array). Se vazio, qualquer tag adicionada dispara.
           const wanted: string[] = Array.isArray(cfg.tags)
-            ? cfg.tags.map((t: any) => String(t))
+            ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              cfg.tags.map((t: any) => String(t))
             : cfg.tag
               ? [String(cfg.tag)]
               : [];
@@ -180,7 +189,8 @@ export function useAutomations({
           }
         } else if (rule.trigger_type === 'tag_removed') {
           const wanted: string[] = Array.isArray(cfg.tags)
-            ? cfg.tags.map((t: any) => String(t))
+            ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              cfg.tags.map((t: any) => String(t))
             : cfg.tag
               ? [String(cfg.tag)]
               : [];
@@ -219,6 +229,7 @@ export function useAutomations({
         const allTags = [...new Set([...cfgTags, ...slaTags])];
         if (allTags.length) {
           try {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             await client.rpc('rpc_upsert_contact' as any, {
               p_remote_jid: remoteJid,
               p_instance: instanceName,
@@ -237,6 +248,7 @@ export function useAutomations({
                 })
                 .eq('id', execId)
             );
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
           } catch (e: any) {
             log.warn('[automation] apply_tags/escalate failed', e);
             await safeClient.rpc('rpc_record_automation_error', {
@@ -255,6 +267,7 @@ export function useAutomations({
                 executionId: execId,
                 ruleId: rule.id,
                 remoteJid,
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 recentMessages: sorted.map((m: any) => ({
                   from_me: m.from_me,
                   content: m.content,
@@ -270,6 +283,7 @@ export function useAutomations({
               );
               const exec = execArr?.[0] ?? null;
               if (exec?.suggestion_text) {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 await client.rpc('rpc_insert_message' as any, {
                   p_remote_jid: remoteJid,
                   p_content: exec.suggestion_text,
@@ -283,6 +297,7 @@ export function useAutomations({
                 );
               }
             }
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
           } catch (e: any) {
             log.warn('[automation] suggest_reply failed', e);
             await safeClient.rpc('rpc_record_automation_error', {

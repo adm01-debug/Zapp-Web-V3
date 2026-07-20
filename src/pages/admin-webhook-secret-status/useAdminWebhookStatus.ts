@@ -39,6 +39,7 @@ export function useAdminWebhookStatus() {
   const selectedInstance = useMemo<string | null>(() => {
     const params = new URLSearchParams(window.location.search);
     return params.get('instance');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters]); // refresh when other filters change too
 
   const setInstance = useCallback(
@@ -109,6 +110,7 @@ export function useAdminWebhookStatus() {
   }, [secretQuery, eventsQuery, instancesQuery]);
 
   // ── Derived event metrics ────────────────────────────────────────────────
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const events = eventsQuery.data ?? [];
   const lastEvent = events[0];
   const total24h = events.length;

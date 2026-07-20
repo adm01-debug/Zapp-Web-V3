@@ -40,7 +40,9 @@ export function createDiscriminator<
 ): (value: unknown) => value is T & { [K in Discriminator]: Value } {
   return (value: unknown): value is T & { [K in Discriminator]: Value } => {
     if (!value || typeof value !== 'object') return false;
-    const discriminatorValue = (value as Record<PropertyKey, unknown>)[discriminator as PropertyKey];
+    const discriminatorValue = (value as Record<PropertyKey, unknown>)[
+      discriminator as PropertyKey
+    ];
     return values.includes(discriminatorValue);
   };
 }
@@ -246,7 +248,9 @@ export async function runEffect<T, E = Error>(effect: Effect<T, E>): Promise<Res
  */
 export function exhaustive<T extends { type: string }, K extends T['type']>(
   value: T,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   handlers: { [P in K]: (v: Extract<T, { type: P }>) => any }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): any {
   const handler = handlers[value.type as K];
   if (!handler) {
@@ -268,7 +272,9 @@ export function exhaustive<T extends { type: string }, K extends T['type']>(
  */
 export function unwrap<T extends { kind: string }, Kind extends T['kind']>(
   value: T,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   handlers: { [P in Kind]: (v: Extract<T, { kind: P }>) => any }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): any {
   const handler = handlers[value.kind as Kind];
   if (!handler) {
@@ -282,6 +288,7 @@ export function unwrap<T extends { kind: string }, Kind extends T['kind']>(
 /**
  * Runtime validation: ensure object matches expected discriminator
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function validateDiscriminator<T extends Record<string, any>>(
   value: unknown,
   expectedType: string,

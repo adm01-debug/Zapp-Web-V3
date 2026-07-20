@@ -54,7 +54,9 @@ function calculateStatus(
 
 function compute(params: UseSLACalculationParams): SLATimerState {
   const now = new Date();
-  const frDeadline = new Date(params.firstMessageAt.getTime() + params.firstResponseMinutes * 60_000);
+  const frDeadline = new Date(
+    params.firstMessageAt.getTime() + params.firstResponseMinutes * 60_000
+  );
   const resDeadline = new Date(params.firstMessageAt.getTime() + params.resolutionMinutes * 60_000);
 
   const firstResponse = calculateStatus(
@@ -103,13 +105,17 @@ export function formatTimeRemaining(ms: number): string {
 export function useSLACalculation(params: UseSLACalculationParams): SLATimerState {
   const [state, setState] = useState<SLATimerState>(() => compute(params));
 
-  const recompute = useCallback(() => setState(compute(params)), [
-    params.firstMessageAt,
-    params.firstResponseAt,
-    params.resolvedAt,
-    params.firstResponseMinutes,
-    params.resolutionMinutes,
-  ]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const recompute = useCallback(
+    () => setState(compute(params)),
+    [
+      params.firstMessageAt,
+      params.firstResponseAt,
+      params.resolvedAt,
+      params.firstResponseMinutes,
+      params.resolutionMinutes,
+    ]
+  );
 
   useEffect(() => {
     recompute();

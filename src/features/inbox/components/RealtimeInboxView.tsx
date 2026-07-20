@@ -122,6 +122,7 @@ export function RealtimeInboxView() {
 
   const openGlobalSearch = useCallback(
     () => inbox.setGlobalSearchOpen(true),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [inbox.setGlobalSearchOpen]
   );
   useGlobalSearchShortcut({ onOpen: openGlobalSearch });

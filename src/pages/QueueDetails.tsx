@@ -74,6 +74,7 @@ export default function QueueDetails() {
         cancelled = true;
       };
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, user]);
 
   const fetchQueueData = async (isCancelled: () => boolean = () => false) => {
@@ -84,7 +85,7 @@ export default function QueueDetails() {
         .from('queues')
         .select('*')
         .eq('id', id)
-        .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
+        .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
       if (queueError) throw queueError;
       setQueue(queueData as QueueDetailsData | null);
 
@@ -238,7 +239,10 @@ export default function QueueDetails() {
                         className="flex items-center gap-3 rounded-lg p-2 transition-colors hover:bg-muted/20"
                       >
                         <Avatar className="h-10 w-10">
-                          <AvatarImage src={member.profile?.avatar_url || undefined} alt={member.profile?.name || ''} />
+                          <AvatarImage
+                            src={member.profile?.avatar_url || undefined}
+                            alt={member.profile?.name || ''}
+                          />
                           <AvatarFallback className="bg-primary/10 text-primary">
                             {member.profile?.name?.[0] || '?'}
                           </AvatarFallback>

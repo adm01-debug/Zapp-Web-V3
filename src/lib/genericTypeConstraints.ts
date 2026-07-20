@@ -37,6 +37,7 @@ export type NonNullable<T> = T extends null | undefined ? never : T;
 /**
  * Ensures T is a function type
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type FunctionConstraint<T> = T extends (...args: any[]) => any ? T : never;
 
 /**
@@ -61,11 +62,13 @@ export type PrimitiveConstraint<T> = T extends
 /**
  * Ensures T has numeric index signature
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type NumericIndexConstraint<T> = T extends { [index: number]: any } ? T : never;
 
 /**
  * Ensures T has string index signature
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type StringIndexConstraint<T> = T extends { [key: string]: any } ? T : never;
 
 /**
@@ -81,11 +84,13 @@ export type ElementOf<T> = T extends (infer E)[] ? E : T extends readonly (infer
 /**
  * Extracts return type from a function while constraining T to be a function
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type ReturnTypeOf<T extends (...args: any[]) => any> = ReturnType<T>;
 
 /**
  * Extracts parameter types from a function while constraining T to be a function
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type ParametersOf<T extends (...args: any[]) => any> = Parameters<T>;
 
 /**
@@ -170,6 +175,7 @@ export function pipe<A, B, C, D, E>(
   i: (d: D) => E
 ): E;
 /** pipe function. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function pipe(value: any, ...fns: Array<(arg: any) => any>): any {
   return fns.reduce((acc, fn) => fn(acc), value);
 }
@@ -177,6 +183,7 @@ export function pipe(value: any, ...fns: Array<(arg: any) => any>): any {
 /**
  * Generic partial application with constraint
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function partial<T extends (...args: any[]) => any>(
   fn: T,
   ...args: ParametersOf<T>
@@ -218,17 +225,20 @@ export function* objectEntries<T extends object>(obj: T): Generator<[keyof T, T[
  */
 export type FixedLengthArray<T, L extends number> = {
   readonly length: L;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   readonly [K in Exclude<keyof any[], string>]: any;
 } & readonly T[];
 
 /**
  * Ensures generic parameter is a class (constructor) type
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type Constructor<T = Record<string, unknown>> = new (...args: any[]) => T;
 
 /**
  * Type-safe class instantiation with constraint
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function instantiate<T>(constructor: Constructor<T>, ...args: any[]): T {
   return new constructor(...args);
 }
@@ -236,6 +246,7 @@ export function instantiate<T>(constructor: Constructor<T>, ...args: any[]): T {
 /**
  * Deeply read-only constraint
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type DeepReadonly<T> = T extends (...args: any[]) => any
   ? T
   : T extends object
@@ -247,6 +258,7 @@ export type DeepReadonly<T> = T extends (...args: any[]) => any
 /**
  * Make all properties optional recursively
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type DeepPartial<T> = T extends (...args: any[]) => any
   ? T
   : T extends object
@@ -258,6 +270,7 @@ export type DeepPartial<T> = T extends (...args: any[]) => any
 /**
  * Make all properties required recursively
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type DeepRequired<T> = T extends (...args: any[]) => any
   ? T
   : T extends object

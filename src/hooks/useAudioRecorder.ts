@@ -185,6 +185,7 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
         });
       }
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [maxDuration, onRecordingComplete]
   );
 

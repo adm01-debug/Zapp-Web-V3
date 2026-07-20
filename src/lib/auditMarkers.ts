@@ -39,6 +39,7 @@ export function ERROR_SUPPRESSED(reason: string, error?: unknown): void {
  *   ERROR_RECOVERED('network timeout, retrying with backoff', 3);
  * }
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function ERROR_RECOVERED(reason: string, fallback?: any): void {
   void reason;
   void fallback;

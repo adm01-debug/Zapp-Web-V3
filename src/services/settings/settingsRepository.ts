@@ -17,6 +17,7 @@ export interface UserSettings {
   email_notifications: boolean;
   desktop_notifications: boolean;
   timezone?: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   preferences?: Record<string, any>;
   created_at: string;
   updated_at: string;
@@ -33,6 +34,7 @@ export interface WorkspaceSettings {
   working_hours_start?: string;
   working_hours_end?: string;
   timezone?: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   settings?: Record<string, any>;
   created_at: string;
   updated_at: string;

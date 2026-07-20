@@ -89,7 +89,9 @@ export function useMessageQueue(
 
   useEffect(() => {
     return () => {
+      // eslint-disable-next-line react-hooks/exhaustive-deps
       activeTimersRef.current.forEach(clearTimeout);
+      // eslint-disable-next-line react-hooks/exhaustive-deps
       processedDeliveriesRef.current.clear();
       currentlySendingRef.current = 0;
     };

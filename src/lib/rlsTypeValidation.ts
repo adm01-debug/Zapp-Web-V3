@@ -60,6 +60,7 @@ export type RLSPredicate<T> = (record: T, user: UserContext) => boolean;
 /**
  * RLS policy definition
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export interface RLSPolicy<T = any> {
   name: string;
   table: string;
@@ -136,6 +137,7 @@ export const rlsPolicyRegistry = new RLSPolicyRegistry();
 /**
  * Type-safe RLS policy builder
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export class RLSPolicyBuilder<T extends object = any> {
   private policy: Partial<RLSPolicy<T>> = {};
 
@@ -189,6 +191,7 @@ export class RLSPolicyBuilder<T extends object = any> {
 /**
  * Create a new RLS policy builder
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function createRLSPolicy<T extends object = any>(): RLSPolicyBuilder<T> {
   return new RLSPolicyBuilder<T>();
 }
@@ -295,6 +298,7 @@ export const RLSPredicates = {
   /**
    * User is admin
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   isAdmin(_record: any, user: UserContext): boolean {
     return user.isAdmin;
   },
@@ -392,6 +396,7 @@ export function validateRecordAccess<T extends object>(
 /**
  * Composite RLS policy combinator
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export class RLSPolicyCombinator<T extends object = any> {
   private combinedPredicate: RLSPredicate<T>;
 

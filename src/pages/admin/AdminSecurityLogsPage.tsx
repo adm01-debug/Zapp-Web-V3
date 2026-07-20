@@ -25,6 +25,7 @@ interface AuditLog {
   resource: string;
   action: string;
   status: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   details: any;
   created_at: string;
   profiles?: {

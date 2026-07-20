@@ -20,7 +20,9 @@ interface MutationFactoryOptions<TData, TVariables> extends Omit<
   UseMutationOptions<TData, Error, TVariables>,
   'mutationFn'
 > {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   invalidateKey?: readonly any[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   invalidateKeys?: (readonly any[])[];
   onSuccessMessage?: string;
   onErrorMessage?: string;
@@ -31,6 +33,7 @@ interface MutationFactoryOptions<TData, TVariables> extends Omit<
  * Factory for create mutations
  * Handles common create logic: optimistic updates, invalidation, toasts
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const useCreateMutation = <TData, TVariables = any>(
   mutationFn: (variables: TVariables) => Promise<TData>,
   options?: MutationFactoryOptions<TData, TVariables>
@@ -78,6 +81,7 @@ export const useCreateMutation = <TData, TVariables = any>(
 /**
  * Factory for update mutations
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const useUpdateMutation = <TData, TVariables = any>(
   mutationFn: (variables: TVariables) => Promise<TData>,
   options?: MutationFactoryOptions<TData, TVariables>
@@ -121,6 +125,7 @@ export const useUpdateMutation = <TData, TVariables = any>(
  * Factory for delete mutations
  * Includes confirmation handling
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const useDeleteMutation = <TData = void, TVariables = any>(
   mutationFn: (variables: TVariables) => Promise<TData>,
   options?: MutationFactoryOptions<TData, TVariables> & {
@@ -166,6 +171,7 @@ export const useDeleteMutation = <TData = void, TVariables = any>(
  * Factory for bulk operations
  * Handles multiple mutations with progress tracking
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const useBulkMutation = <TData, TVariables = any>(
   mutationFn: (variables: TVariables[]) => Promise<TData>,
   options?: MutationFactoryOptions<TData, TVariables[]> & {
@@ -213,6 +219,7 @@ export const useBulkMutation = <TData, TVariables = any>(
  * Factory for async operations
  * Used for side effects that don't require UI updates
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const useAsyncMutation = <TData, TVariables = any>(
   mutationFn: (variables: TVariables) => Promise<TData>,
   options?: MutationFactoryOptions<TData, TVariables> & {

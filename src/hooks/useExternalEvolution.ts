@@ -395,6 +395,7 @@ const USE_MOCKS =
   window.localStorage?.getItem('mockConversations') === '1';
 
 // ─── Global Enrichment Cache to avoid redundant RPC calls ──────────
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const contactEnrichmentCache = new Map<string, { data: any; timestamp: number }>();
 const CACHE_TTL = 300_000; // 5 minutes
 
@@ -445,6 +446,7 @@ export function useExternalConversations(enabled = true) {
           // We limit concurrent fetches to avoid overloading the proxy.
           const enrichments = await Promise.all(
             jidsToFetch.map((jid) =>
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               queryExternalProxy<any>({
                 action: 'rpc',
                 rpc: 'rpc_get_contact',

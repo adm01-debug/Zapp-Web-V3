@@ -215,6 +215,7 @@ export function useChatMediaSending(contactId: string, contactPhone: string | un
         toast.error('Erro ao enviar figurinha');
       }
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [
       ensureInstance,
       contactId,
@@ -304,6 +305,7 @@ export function useChatMediaSending(contactId: string, contactPhone: string | un
         toast.error('Erro ao enviar emoji');
       }
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [
       ensureInstance,
       contactId,
@@ -397,6 +399,7 @@ export function useChatMediaSending(contactId: string, contactPhone: string | un
         toast.error('Erro ao enviar áudio meme');
       }
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [
       ensureInstance,
       contactId,

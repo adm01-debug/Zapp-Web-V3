@@ -59,8 +59,9 @@ export const SLADashboard = () => {
         navigate('/sla/history');
       }
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [navigate]
-  ); // eslint-disable-line react-hooks/exhaustive-deps
+  );
 
   useEffect(() => {
     window.addEventListener('keydown', handleKeyDown);

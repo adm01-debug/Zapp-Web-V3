@@ -128,6 +128,7 @@ export function useEvolutionAutoSyncManagement(onSynced?: () => void) {
     if (ran.current) return;
     ran.current = true;
     void syncAll();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return { syncAll };

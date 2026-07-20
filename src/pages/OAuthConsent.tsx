@@ -9,8 +9,11 @@ import { Loader2 } from 'lucide-react';
 type OAuthNs = {
   getAuthorizationDetails: (
     id: string
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   ) => Promise<{ data: any; error: { message: string } | null }>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   approveAuthorization: (id: string) => Promise<{ data: any; error: { message: string } | null }>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   denyAuthorization: (id: string) => Promise<{ data: any; error: { message: string } | null }>;
 };
 

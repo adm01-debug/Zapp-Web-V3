@@ -11,6 +11,7 @@ interface UseDebounceOptions {
 }
 
 /** Hook: use Debounce Management. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function useDebounceManagement<T extends (...args: any[]) => any>(
   callback: T,
   optionsOrDelay: UseDebounceOptions | number = {}

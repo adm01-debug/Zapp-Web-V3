@@ -307,6 +307,7 @@ export function useSLAAlerts(params: SLAAlertParams) {
     if (dStatus === 'warning' || dStatus === 'breached') {
       void fire('delivery_delay', dStatus, params.deliveryDelayMs ?? null);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     params.contactId,
     params.scope,

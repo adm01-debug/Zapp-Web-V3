@@ -33,16 +33,19 @@ export function EmailWebhookMonitor() {
       // (the panel renders an empty state rather than surfacing an error).
       try {
         const { data: emailAccounts } = await safeClient.rpc('get_own_email_accounts');
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const accounts = (emailAccounts || []).map((a: any) => ({
           ...a,
           history_id: null,
         })) as EmailAccount[];
 
         const { count: totalThreads } = await supabase
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           .from('email_threads' as any)
           .select('*', { count: 'exact', head: true });
 
         const { count: unreadThreads } = await supabase
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           .from('email_threads' as any)
           .select('*', { count: 'exact', head: true })
           .eq('is_unread', true);

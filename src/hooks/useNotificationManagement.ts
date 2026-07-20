@@ -356,6 +356,7 @@ export function useNotificationSettingsManagement(userId?: string) {
 /** Subscribes to real-time team chat notifications with read status tracking. */
 export function useTeamChatNotificationsManagement() {
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const channelRef = useRef<any>(null);
 
   useEffect(() => {

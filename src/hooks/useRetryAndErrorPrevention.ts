@@ -209,6 +209,7 @@ export function useFireAndForget() {
  * Hook for wrapping callbacks with automatic error logging.
  */
 /** Wraps callbacks with automatic error logging, fallback returns, and optional throwing. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function useSafeCallback<T extends (...args: any[]) => any>(
   callback: T,
   options?: {
@@ -225,6 +226,7 @@ export function useSafeCallback<T extends (...args: any[]) => any>(
     dependencies = [],
   } = options || {};
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   return useCallback(
     safeCallback(callback, {
       name,

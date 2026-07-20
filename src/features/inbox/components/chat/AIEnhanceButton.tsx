@@ -80,8 +80,9 @@ export function AIEnhanceButton({ inputValue, onInputChange, contactName }: AIEn
         setIsLoading(false);
       }
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [inputValue, onInputChange]
-  ); // eslint-disable-line react-hooks/exhaustive-deps
+  );
 
   const handleUndo = useCallback(() => {
     if (originalMessage !== null) {

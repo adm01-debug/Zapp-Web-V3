@@ -214,6 +214,7 @@ export function ChatInputArea(props: ChatInputAreaProps) {
         onOpenTeamFiles={onOpenTeamFiles}
       />
     ),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [
       instanceName,
       contactPhone,

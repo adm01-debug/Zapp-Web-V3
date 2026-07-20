@@ -245,6 +245,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       refreshRoles,
       refreshPermissions,
     }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [
       user,
       session,

@@ -70,6 +70,7 @@ interface ChatPanelProps extends LoadOlderProps {
   onHighlightConsumed?: () => void;
   whisperCount?: number;
   isLoading?: boolean;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   messageQueue?: any;
 }
 

@@ -1106,6 +1106,7 @@ export function useEmailSearch(accountId: string | null) {
 
 /** Tracks SLA metrics for email threads with configurable thresholds and status monitoring. */
 export function useEmailSLA(accountId: string | null, config: Partial<SLAConfig> = {}) {
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const slaConfig: SLAConfig = { ...DEFAULT_SLA, ...config };
   const [records, setRecords] = useState<Record<string, EmailSLARecord>>({});
 

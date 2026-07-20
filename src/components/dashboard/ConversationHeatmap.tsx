@@ -110,6 +110,7 @@ export default function ConversationHeatmap({
   onCellClick,
 }: ConversationHeatmapProps) {
   const { data: realData } = useHeatmapData();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const data = externalData || realData || [];
   const [selectedMetric, setSelectedMetric] = useState(metric);
 

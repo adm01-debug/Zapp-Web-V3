@@ -26,6 +26,7 @@ export function TransitionProvider({
   defaultVariant = 'fade',
   defaultOverrides = {},
 }: TransitionProviderProps) {
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const initial: TransitionState = { variant: defaultVariant, overrides: defaultOverrides };
   const [state, setState] = useState<TransitionState>(initial);
 

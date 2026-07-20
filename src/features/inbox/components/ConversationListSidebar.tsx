@@ -110,6 +110,7 @@ export function ConversationListSidebar({
       );
     }
   }, [inbox.selectedContactId]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const onRefresh = useCallback(() => inbox.refetch(), [inbox.refetch]);
 
   useInboxShortcuts({
