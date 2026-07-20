@@ -707,7 +707,7 @@ export default function AdminConnectionsPage() {
                     <div className="flex items-center gap-2">
                       <Input
                         readOnly
-                        value="https://allrjhkpuscmgbsnmjlv.supabase.co/functions/v1/mcp-server"
+                        value={`${import.meta.env.VITE_SUPABASE_URL ?? ''}/functions/v1/mcp-server`}
                         className="font-mono text-[10px]"
                       />
                       <Button size="icon" variant="ghost">
