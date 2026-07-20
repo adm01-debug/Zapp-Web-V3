@@ -366,14 +366,6 @@ export function useRealtimeSentimentAlertsManagement(): UseRealtimeSentimentAler
   const [alerts, setAlerts] = useState<RealtimeSentimentAlert[]>([]);
   const { settings, isQuietHours } = useNotificationSettingsManagement();
 
-  const mountedRef = useRef(false);
-  useEffect(() => {
-    mountedRef.current = true;
-    return () => {
-      mountedRef.current = false;
-    };
-  }, []);
-
   // Refs para evitar re-subscribe a cada render (settings/isQuietHours mudam de referência)
   const settingsRef = useRef(settings);
   const isQuietHoursRef = useRef(isQuietHours);
@@ -428,9 +420,7 @@ export function useRealtimeSentimentAlertsManagement(): UseRealtimeSentimentAler
         log.error('Failed to acknowledge sentiment alert:', error.message);
         return;
       }
-      if (mountedRef.current) {
-        setAlerts((prev) => prev.map((a) => (a.id === alertId ? { ...a, acknowledged: true } : a)));
-      }
+      setAlerts((prev) => prev.map((a) => (a.id === alertId ? { ...a, acknowledged: true } : a)));
     } catch (error) {
       log.error('Failed to acknowledge sentiment alert:', error);
     }
@@ -446,9 +436,7 @@ export function useRealtimeSentimentAlertsManagement(): UseRealtimeSentimentAler
         log.error('Failed to clear sentiment alert:', error.message);
         return;
       }
-      if (mountedRef.current) {
-        setAlerts((prev) => prev.filter((a) => a.id !== alertId));
-      }
+      setAlerts((prev) => prev.filter((a) => a.id !== alertId));
     } catch (error) {
       log.error('Failed to clear sentiment alert:', error);
     }
