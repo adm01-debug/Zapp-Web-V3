@@ -3,6 +3,12 @@ import { renderHook, waitFor, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
 
+function makeWrapper() {
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return ({ children }: { children: React.ReactNode }) =>
+    React.createElement(QueryClientProvider, { client: qc }, children);
+}
+
 const mockFrom = vi.hoisted(() => vi.fn());
 const mockRpc = vi.hoisted(() => vi.fn());
 const mockUseAuth = vi.hoisted(() => vi.fn(() => ({ user: { id: 'u1' } })));
@@ -63,7 +69,7 @@ describe('useQueueManagement — hooks consolidados', () => {
         }),
       });
 
-      const { result } = renderHook(() => useQueuesCrudManagement());
+      const { result } = renderHook(() => useQueuesCrudManagement(), { wrapper: makeWrapper() });
       await waitFor(() => expect(result.current.loading).toBe(false));
 
       expect(Array.isArray(result.current.queues)).toBe(true);
@@ -79,7 +85,7 @@ describe('useQueueManagement — hooks consolidados', () => {
         }),
       });
 
-      const { result } = renderHook(() => useQueuesCrudManagement());
+      const { result } = renderHook(() => useQueuesCrudManagement(), { wrapper: makeWrapper() });
       await waitFor(() => expect(result.current.loading).toBe(false));
       expect(result.current.error).toBe('boom');
       expect(result.current.queues).toEqual([]);
@@ -87,7 +93,7 @@ describe('useQueueManagement — hooks consolidados', () => {
 
     it('não busca sem usuário autenticado', async () => {
       mockUseAuth.mockReturnValue({ user: null });
-      const { result } = renderHook(() => useQueuesCrudManagement());
+      const { result } = renderHook(() => useQueuesCrudManagement(), { wrapper: makeWrapper() });
       expect(result.current.loading).toBe(true);
       expect(mockFrom).not.toHaveBeenCalled();
     });
@@ -112,7 +118,8 @@ describe('useQueueManagement — hooks consolidados', () => {
       });
 
       const { result } = renderHook(() =>
-        useQueueAnalyticsManagement({ queueId: 'q1', dateRange })
+        useQueueAnalyticsManagement({ queueId: 'q1', dateRange }),
+        { wrapper: makeWrapper() }
       );
       await waitFor(() => expect(result.current.loading).toBe(false));
       expect(result.current.analytics).toBeNull();
@@ -145,7 +152,8 @@ describe('useQueueManagement — hooks consolidados', () => {
       });
 
       const { result } = renderHook(() =>
-        useQueueAnalyticsManagement({ queueId: 'q1', dateRange })
+        useQueueAnalyticsManagement({ queueId: 'q1', dateRange }),
+        { wrapper: makeWrapper() }
       );
       await waitFor(() => expect(result.current.loading).toBe(false));
       expect(result.current.analytics?.total_messages).toBe(42);
@@ -163,7 +171,7 @@ describe('useQueueManagement — hooks consolidados', () => {
         select: vi.fn().mockReturnValue({ eq }),
       });
 
-      const { result } = renderHook(() => useQueueGoalsManagement('q1'));
+      const { result } = renderHook(() => useQueueGoalsManagement('q1'), { wrapper: makeWrapper() });
       await waitFor(() => expect(result.current.loading).toBe(false));
 
       expect(eq).toHaveBeenCalledWith('queue_id', 'q1');
@@ -181,7 +189,7 @@ describe('useQueueManagement — hooks consolidados', () => {
         update,
       }));
 
-      const { result } = renderHook(() => useQueueGoalsManagement());
+      const { result } = renderHook(() => useQueueGoalsManagement(), { wrapper: makeWrapper() });
       await waitFor(() => expect(result.current.loading).toBe(false));
 
       await act(async () => {
@@ -304,7 +312,7 @@ describe('useQueueManagement — hooks consolidados', () => {
         }),
       });
 
-      const { result } = renderHook(() => useQueuesComparisonManagement({ dateRange }));
+      const { result } = renderHook(() => useQueuesComparisonManagement({ dateRange }), { wrapper: makeWrapper() });
       await waitFor(() => expect(result.current.loading).toBe(false));
 
       expect(result.current.comparison).toHaveLength(2);
