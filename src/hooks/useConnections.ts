@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { updateRuntimeExternalConfig } from '@/integrations/supabase/externalClient';
@@ -63,10 +64,12 @@ export interface SystemConnection {
   updated_at?: string | null;
 }
 
+const CONNECTIONS_KEY = ['system-connections'] as const;
+
 /** use Connections. */
 export function useConnections() {
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('external-db');
-  const [connections, setConnections] = useState<SystemConnection[]>([]);
 
   const [externalUrl, setExternalUrl] = useState(DEFAULT_EXTERNAL_URL);
   const [externalKey, setExternalKey] = useState(DEFAULT_EXTERNAL_KEY);
@@ -79,8 +82,36 @@ export function useConnections() {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
 
-  const isMountedRef = useRef(true);
   const redirectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const fatorXInitializedRef = useRef(false);
+
+  const { data: connections = [], refetch: refetchConnections } = useQuery({
+    queryKey: CONNECTIONS_KEY,
+    queryFn: async () => {
+      const { data, error } = await safeClient.from<SystemConnection>('system_connections', (q) =>
+        q.select('*').order('created_at', { ascending: false })
+      );
+      if (error) return [] as SystemConnection[];
+      return (data ?? []) as SystemConnection[];
+    },
+    staleTime: 30_000,
+  });
+
+  // Apply fatorX config once on initial load
+  useEffect(() => {
+    if (fatorXInitializedRef.current || connections.length === 0) return;
+    const fatorX = connections.find(
+      (c) => c.provider === 'supabase_external' || c.name === 'FATOR X'
+    );
+    if (fatorX?.config?.url && fatorX?.config?.anon_key) {
+      fatorXInitializedRef.current = true;
+      setExternalUrl(fatorX.config.url);
+      setDraftUrl(fatorX.config.url);
+      setExternalKey(fatorX.config.anon_key);
+      setDraftKey(fatorX.config.anon_key);
+      updateRuntimeExternalConfig(fatorX.config.url, fatorX.config.anon_key);
+    }
+  }, [connections]);
 
   const checkAdminStatus = useCallback(async () => {
     try {
@@ -90,7 +121,6 @@ export function useConnections() {
       } = await supabase.auth.getUser();
 
       if (authError) throw authError;
-      if (!isMountedRef.current) return;
 
       setCurrentUserId(user?.id ?? null);
       if (user?.id) {
@@ -100,7 +130,6 @@ export function useConnections() {
           .eq('user_id', user.id);
 
         if (rolesError) throw rolesError;
-        if (!isMountedRef.current) return;
 
         const hasAccess = !!roles?.some(
           (r: { role: string | null }) => r.role === 'admin' || r.role === 'dev'
@@ -115,7 +144,6 @@ export function useConnections() {
       }
     } catch (e: unknown) {
       log.error('Error checking roles or connection', e);
-      if (!isMountedRef.current) return;
       setIsAdmin(false);
       const msg = e instanceof Error ? e.message : 'Banco indisponível';
       toast({
@@ -126,50 +154,27 @@ export function useConnections() {
     }
   }, []);
 
-  const fetchConnections = useCallback(async () => {
-    const { data, error } = await safeClient.from<SystemConnection>('system_connections', (q) =>
-      q.select('*').order('created_at', { ascending: false })
-    );
-
-    if (!isMountedRef.current) return;
-    if (!error && data) {
-      setConnections(data as SystemConnection[]); // ignore-audit: narrows Supabase query result to local interface
-      const fatorX = (data as SystemConnection[]).find(
-        (c) => c.provider === 'supabase_external' || c.name === 'FATOR X'
-      );
-      if (fatorX?.config?.url && fatorX?.config?.anon_key) {
-        setExternalUrl(fatorX.config.url);
-        setDraftUrl(fatorX.config.url);
-        setExternalKey(fatorX.config.anon_key);
-        setDraftKey(fatorX.config.anon_key);
-        updateRuntimeExternalConfig(fatorX.config.url, fatorX.config.anon_key);
-      }
-    }
-  }, []);
-
   useEffect(() => {
-    void fetchConnections();
     void checkAdminStatus();
 
     const handleFocus = () => void checkAdminStatus();
     window.addEventListener('focus', handleFocus);
     return () => {
-      isMountedRef.current = false;
       window.removeEventListener('focus', handleFocus);
       if (redirectTimerRef.current !== null) {
         clearTimeout(redirectTimerRef.current);
         redirectTimerRef.current = null;
       }
     };
-  }, [fetchConnections, checkAdminStatus]);
+  }, [checkAdminStatus]);
 
   const handleTabChange = useCallback(
     (value: string) => {
       setActiveTab(value);
       void checkAdminStatus();
-      void fetchConnections();
+      void refetchConnections();
     },
-    [checkAdminStatus, fetchConnections]
+    [checkAdminStatus, refetchConnections]
   );
 
   const openEditor = useCallback(() => {
@@ -310,7 +315,7 @@ export function useConnections() {
         window.location.href = '/admin/bridge-status';
       }, 1500);
 
-      await fetchConnections();
+      void queryClient.invalidateQueries({ queryKey: CONNECTIONS_KEY });
     } catch (e: unknown) {
       const msg = `[Exceção] ${e instanceof Error ? e.message : 'Falha desconhecida ao processar a requisição.'}`;
       setSaveError(msg);
@@ -318,7 +323,7 @@ export function useConnections() {
     } finally {
       setSaving(false);
     }
-  }, [draftUrl, draftKey, isAdmin, connections, currentUserId, fetchConnections]);
+  }, [draftUrl, draftKey, isAdmin, connections, currentUserId, queryClient]);
 
   return {
     activeTab,
