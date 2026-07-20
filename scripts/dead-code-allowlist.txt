@@ -56,3 +56,10 @@ src/hooks/useAdvancedFeaturesManagement.ts  # management module consolidado em E
 src/hooks/useAnalyticsMonitoringManagement.ts  # management module consolidado em ETAPA 48; re-exportado por wrapper ou potencialmente consumido dinamicamente; candidato para remoção futura
 src/hooks/useIntegrationAuthenticationManagement.ts  # management module consolidado em ETAPA 47; re-exportado por wrapper ou potencialmente consumido dinamicamente; candidato para remoção futura
 src/hooks/useUtilityHelpersManagement.ts  # management module consolidado em ETAPA 49; re-exportado por wrapper ou potencialmente consumido dinamicamente; candidato para remoção futura
+
+# Connections page tab sub-components (2026-07-20) — implementação inline em Connections.tsx preferida;
+# estes arquivos representam uma refatoração parcial não completada. Integração futura planejada.
+src/pages/admin/connections/ConnectionsExternalDbTab.tsx  # tab component da refatoração pendente de Connections.tsx; lógica real mas não importada ainda
+src/pages/admin/connections/ConnectionsIntegrationsTab.tsx  # tab component da refatoração pendente de Connections.tsx; lógica real mas não importada ainda
+src/pages/admin/connections/ConnectionsMcpTab.tsx  # tab component da refatoração pendente de Connections.tsx; lógica real mas não importada ainda
+src/pages/admin/connections/ConnectionsWebhooksTab.tsx  # tab component da refatoração pendente de Connections.tsx; lógica real mas não importada ainda
