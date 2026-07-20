@@ -9,8 +9,7 @@
  * `onClick={onGenerateSummary}` novamente, o teste falha.
  */
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
-import { userEvent } from '@testing-library/user-event';
+import { render, screen, fireEvent } from '@testing-library/react';
 
 // Reproduz o padrão exato do ChatHeader.tsx:
 //   <button onClick={() => onGenerateSummary?.()}>Gerar Resumo</button>
@@ -29,12 +28,11 @@ function Harness({ onGenerateSummary }: { onGenerateSummary?: (tool?: string) =>
 }
 
 describe('ChatHeader onGenerateSummary wrapping pattern', () => {
-  it('chama onGenerateSummary sem argumentos (não vaza MouseEvent)', async () => {
-    const user = userEvent.setup();
+  it('chama onGenerateSummary sem argumentos (não vaza MouseEvent)', () => {
     const onGenerateSummary = vi.fn();
     render(<Harness onGenerateSummary={onGenerateSummary} />);
 
-    await user.click(screen.getByText('Gerar Resumo'));
+    fireEvent.click(screen.getByText('Gerar Resumo'));
 
     expect(onGenerateSummary).toHaveBeenCalledTimes(1);
     // Crítico: nenhum argumento — o MouseEvent não pode vazar como `tool`.
@@ -43,19 +41,17 @@ describe('ChatHeader onGenerateSummary wrapping pattern', () => {
     expect(firstCallArgs).toHaveLength(0);
   });
 
-  it('propaga a string `tool` quando explicitamente fornecida', async () => {
-    const user = userEvent.setup();
+  it('propaga a string `tool` quando explicitamente fornecida', () => {
     const onGenerateSummary = vi.fn();
     render(<Harness onGenerateSummary={onGenerateSummary} />);
 
-    await user.click(screen.getByText('Team Files'));
+    fireEvent.click(screen.getByText('Team Files'));
 
     expect(onGenerateSummary).toHaveBeenCalledWith('teamFiles');
   });
 
-  it('não explode quando onGenerateSummary é undefined', async () => {
-    const user = userEvent.setup();
+  it('não explode quando onGenerateSummary é undefined', () => {
     render(<Harness onGenerateSummary={undefined} />);
-    await expect(user.click(screen.getByText('Gerar Resumo'))).resolves.not.toThrow();
+    expect(() => fireEvent.click(screen.getByText('Gerar Resumo'))).not.toThrow();
   });
 });

@@ -12,7 +12,7 @@ import { useUserSettings } from '@/hooks/useUserSettings';
 
 import { useScheduledMessages } from '@/hooks/useScheduledMessages';
 import { useMessageSignature } from '@/features/inbox';
-import { useChatMediaSending } from './useChatMediaSending';
+import { useChatMediaSending } from '../hooks/useChatMediaSending';
 import { CRMAutoSync } from './CRMAutoSync';
 import { useAmbientColor } from '@/hooks/useAmbientColor';
 import { ChatToolPanels } from './chat/ChatToolPanels';
