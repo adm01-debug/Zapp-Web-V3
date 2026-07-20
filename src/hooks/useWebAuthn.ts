@@ -1,4 +1,5 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/features/auth';
 import { toast } from 'sonner';
@@ -28,35 +29,34 @@ interface PasskeyCredential {
   last_used_at: string | null;
 }
 
+const PASSKEYS_KEY = (userId: string | undefined) => ['passkeys', userId] as const;
+
 /** Hook: use Web Authn. */
 export function useWebAuthn() {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [loading, setLoading] = useState(false);
-  const [passkeys, setPasskeys] = useState<PasskeyCredential[]>([]);
-  const mountedRef = useRef(true);
 
-  useEffect(() => {
-    return () => {
-      mountedRef.current = false;
-    };
-  }, []);
+  const { data: passkeys = [], refetch: refetchPasskeys } = useQuery({
+    queryKey: PASSKEYS_KEY(user?.id),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('passkey_credentials')
+        .select('id, credential_id, friendly_name, device_type, created_at, last_used_at')
+        .eq('user_id', user!.id)
+        .order('created_at', { ascending: false });
+      if (error) {
+        log.error('Failed to fetch passkeys:', error);
+        return [] as PasskeyCredential[];
+      }
+      return (data || []) as PasskeyCredential[];
+    },
+    enabled: !!user,
+    staleTime: 30_000,
+  });
 
   const isSupported = useCallback(() => isWebAuthnSupported(), []);
   const isPlatformAuthenticatorAvailable = useCallback(() => checkPlatformAuth(), []);
-
-  const fetchPasskeys = useCallback(async () => {
-    if (!user) return;
-    const { data, error } = await supabase
-      .from('passkey_credentials')
-      .select('id, credential_id, friendly_name, device_type, created_at, last_used_at')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false });
-    if (error) {
-      log.error('Failed to fetch passkeys:', error);
-      return;
-    }
-    setPasskeys(data || []);
-  }, [user]);
 
   const registerPasskey = useCallback(
     async (friendlyName?: string) => {
@@ -133,26 +133,22 @@ export function useWebAuthn() {
         if (verifyError || !verifyData?.success)
           throw new Error(verifyError?.message || 'Falha ao verificar registro');
 
-        if (mountedRef.current) {
-          toast.success('Passkey registrada com sucesso!');
-          await fetchPasskeys();
-        }
+        toast.success('Passkey registrada com sucesso!');
+        void queryClient.invalidateQueries({ queryKey: PASSKEYS_KEY(user.id) });
         return { success: true };
       } catch (error) {
-        if (mountedRef.current) {
-          log.error('Passkey registration error:', error);
-          const err = error as Error & { name?: string };
-          if (err.name === 'NotAllowedError') toast.error('Registro cancelado pelo usuário');
-          else if (err.name === 'SecurityError')
-            toast.error('Erro de segurança. Verifique se está usando HTTPS.');
-          else toast.error(err.message || 'Falha ao registrar passkey');
-        }
+        log.error('Passkey registration error:', error);
+        const err = error as Error & { name?: string };
+        if (err.name === 'NotAllowedError') toast.error('Registro cancelado pelo usuário');
+        else if (err.name === 'SecurityError')
+          toast.error('Erro de segurança. Verifique se está usando HTTPS.');
+        else toast.error(err.message || 'Falha ao registrar passkey');
         return { success: false };
       } finally {
-        if (mountedRef.current) setLoading(false);
+        setLoading(false);
       }
     },
-    [user, isSupported, fetchPasskeys, mountedRef]
+    [user, isSupported, queryClient]
   );
 
   const authenticateWithPasskey = useCallback(
@@ -214,32 +210,27 @@ export function useWebAuthn() {
         if (verifyError || !verifyData?.success)
           throw new Error(verifyError?.message || 'Falha ao verificar autenticação');
 
-        if (mountedRef.current) {
-          toast.success('Autenticado com passkey!');
-        }
+        toast.success('Autenticado com passkey!');
         return { success: true, userId: verifyData.userId, userEmail: verifyData.userEmail };
       } catch (error) {
-        if (mountedRef.current) {
-          log.error('Passkey authentication error:', error);
-          if (error instanceof Error && error.name === 'NotAllowedError')
-            toast.error('Autenticação cancelada pelo usuário');
-          else
-            toast.error(
-              error instanceof Error ? error.message : 'Falha na autenticação com passkey'
-            );
-        }
+        log.error('Passkey authentication error:', error);
+        if (error instanceof Error && error.name === 'NotAllowedError')
+          toast.error('Autenticação cancelada pelo usuário');
+        else
+          toast.error(
+            error instanceof Error ? error.message : 'Falha na autenticação com passkey'
+          );
         return { success: false };
       } finally {
-        if (mountedRef.current) setLoading(false);
+        setLoading(false);
       }
     },
-    [isSupported, mountedRef]
+    [isSupported]
   );
 
   const deletePasskey = useCallback(
     async (passkeyId: string) => {
       if (!user) return { success: false };
-      if (!mountedRef.current) return { success: false };
       setLoading(true);
       try {
         const { error } = await supabase
@@ -248,22 +239,18 @@ export function useWebAuthn() {
           .eq('id', passkeyId)
           .eq('user_id', user.id);
         if (error) throw error;
-        if (mountedRef.current) {
-          toast.success('Passkey removida com sucesso');
-          await fetchPasskeys();
-        }
+        toast.success('Passkey removida com sucesso');
+        void queryClient.invalidateQueries({ queryKey: PASSKEYS_KEY(user.id) });
         return { success: true };
       } catch (error) {
-        if (mountedRef.current) {
-          log.error('Failed to delete passkey:', error);
-          toast.error('Falha ao remover passkey');
-        }
+        log.error('Failed to delete passkey:', error);
+        toast.error('Falha ao remover passkey');
         return { success: false };
       } finally {
-        if (mountedRef.current) setLoading(false);
+        setLoading(false);
       }
     },
-    [user, fetchPasskeys, mountedRef]
+    [user, queryClient]
   );
 
   const renamePasskey = useCallback(
@@ -276,21 +263,22 @@ export function useWebAuthn() {
           .eq('id', passkeyId)
           .eq('user_id', user.id);
         if (error) throw error;
-        if (mountedRef.current) {
-          toast.success('Passkey renomeada');
-          await fetchPasskeys();
-        }
+        toast.success('Passkey renomeada');
+        void queryClient.invalidateQueries({ queryKey: PASSKEYS_KEY(user.id) });
         return { success: true };
       } catch (error) {
-        if (mountedRef.current) {
-          log.error('Failed to rename passkey:', error);
-          toast.error('Falha ao renomear passkey');
-        }
+        log.error('Failed to rename passkey:', error);
+        toast.error('Falha ao renomear passkey');
         return { success: false };
       }
     },
-    [user, fetchPasskeys, mountedRef]
+    [user, queryClient]
   );
+
+  const fetchPasskeys = useCallback(async () => {
+    if (!user) return;
+    await refetchPasskeys();
+  }, [user, refetchPasskeys]);
 
   return {
     loading,

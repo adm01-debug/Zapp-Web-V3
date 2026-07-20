@@ -1,5 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import type { ReactNode } from 'react';
+
+function createWrapper() {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+  return ({ children }: { children: ReactNode }) => (
+    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+  );
+}
 
 const mockFrom = vi.hoisted(() => vi.fn());
 vi.mock('@/integrations/supabase/client', () => ({
@@ -31,18 +42,18 @@ describe('useConnectionQueues', () => {
   });
 
   it('fetches queues for a connection', async () => {
-    const { result } = renderHook(() => useConnectionQueues('conn1'));
+    const { result } = renderHook(() => useConnectionQueues('conn1'), { wrapper: createWrapper() });
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(mockFrom).toHaveBeenCalledWith('whatsapp_connection_queues');
   });
 
   it('does not fetch without connectionId', () => {
-    const { result } = renderHook(() => useConnectionQueues());
+    const { result } = renderHook(() => useConnectionQueues(), { wrapper: createWrapper() });
     expect(result.current.connectionQueues).toEqual([]);
   });
 
   it('exposes addQueue and removeQueue', () => {
-    const { result } = renderHook(() => useConnectionQueues('conn1'));
+    const { result } = renderHook(() => useConnectionQueues('conn1'), { wrapper: createWrapper() });
     expect(typeof result.current.addQueue).toBe('function');
     expect(typeof result.current.removeQueue).toBe('function');
   });

@@ -1,4 +1,5 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useCallback } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { getLogger } from '@/lib/logger';
 
@@ -15,82 +16,65 @@ export interface ContactCustomField {
 
 /** Hook: use Contact Custom Fields. */
 export function useContactCustomFields(contactId: string | undefined) {
-  const [fields, setFields] = useState<ContactCustomField[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const mountedRef = useRef(true);
+  const queryClient = useQueryClient();
+  const FIELDS_KEY = ['contact-custom-fields', contactId] as const;
 
-  useEffect(() => {
-    return () => {
-      mountedRef.current = false;
-    };
-  }, []);
-
-  const fetchFields = useCallback(async () => {
-    if (!contactId) return;
-
-    setIsLoading(true);
-    try {
+  const { data: fields = [], isLoading, refetch } = useQuery({
+    queryKey: FIELDS_KEY,
+    queryFn: async () => {
       const { data, error } = await supabase
         .from('contact_custom_fields')
         .select('*')
-        .eq('contact_id', contactId)
+        .eq('contact_id', contactId!)
         .order('field_name', { ascending: true });
 
-      if (error) throw error;
-      if (mountedRef.current) setFields(data || []);
-    } catch (err) {
-      log.error('Error fetching custom fields:', err);
-    } finally {
-      if (mountedRef.current) setIsLoading(false);
-    }
-  }, [contactId]);
+      if (error) {
+        log.error('Error fetching custom fields:', error);
+        throw error;
+      }
+      return (data || []) as ContactCustomField[];
+    },
+    enabled: !!contactId,
+    staleTime: 30_000,
+  });
 
   const addField = useCallback(
     async (fieldName: string, fieldValue: string, fieldType = 'text') => {
       if (!contactId) return;
-
-      const requestedId = contactId;
       try {
         const { error } = await supabase.from('contact_custom_fields').upsert(
           {
-            contact_id: requestedId,
+            contact_id: contactId,
             field_name: fieldName,
             field_value: fieldValue,
             field_type: fieldType,
           },
           { onConflict: 'contact_id,field_name' }
         );
-
         if (error) throw error;
-        if (mountedRef.current && contactId === requestedId) await fetchFields();
+        void queryClient.invalidateQueries({ queryKey: FIELDS_KEY });
       } catch (err) {
         log.error('Error adding custom field:', err);
       }
     },
-    [contactId, fetchFields]
+    [contactId, queryClient, FIELDS_KEY]
   );
 
-  const removeField = useCallback(async (fieldId: string) => {
-    try {
-      const { error } = await supabase
-        .from('contact_custom_fields')
-        .delete()
-        .eq('id', fieldId);
+  const removeField = useCallback(
+    async (fieldId: string) => {
+      try {
+        const { error } = await supabase
+          .from('contact_custom_fields')
+          .delete()
+          .eq('id', fieldId);
+        if (error) throw error;
+        void queryClient.invalidateQueries({ queryKey: FIELDS_KEY });
+      } catch (err) {
+        log.error('Error removing custom field:', err);
+      }
+    },
+    [queryClient, FIELDS_KEY]
+  );
 
-      if (error) throw error;
-      if (mountedRef.current) setFields((prev) => prev.filter((f) => f.id !== fieldId));
-    } catch (err) {
-      log.error('Error removing custom field:', err);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (contactId) fetchFields();
-    else {
-      setFields([]);
-      setIsLoading(false);
-    }
-  }, [contactId, fetchFields]);
-
-  return { fields, isLoading, addField, removeField, refetch: fetchFields };
+  return { fields, isLoading, addField, removeField, refetch };
 }

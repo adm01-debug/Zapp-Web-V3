@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useCallback } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { getExternalSupabase } from '@/integrations/supabase/externalClient';
@@ -35,36 +36,24 @@ export interface AutomationSuggestion {
 }
 
 export function useAutomationSuggestions(remoteJid: string | null) {
-  const [suggestions, setSuggestions] = useState<AutomationSuggestion[]>([]);
-  const [loading, setLoading] = useState(false);
-  const mountedRef = useRef(true);
-  useEffect(() => {
-    mountedRef.current = true;
-    return () => {
-      mountedRef.current = false;
-    };
-  }, []);
+  const queryClient = useQueryClient();
+  const SUGGESTIONS_KEY = ['automation-suggestions', remoteJid] as const;
 
-  const refresh = useCallback(async () => {
-    if (!remoteJid) {
-      setSuggestions([]);
-      return;
-    }
-    setLoading(true);
-    const { data } = await safeClient.from<_RawExecRow>('automation_executions', (q) =>
-      q
-        .select(
-          'id, rule_id, suggestion_text, recommended_tag, kb_sources, status, created_at, instance_name, remote_jid, automations(name)'
-        )
-        .eq('remote_jid', remoteJid)
-        .eq('status', 'pending')
-        .not('suggestion_text', 'is', null)
-        .order('created_at', { ascending: false })
-        .limit(5)
-    );
-    if (!mountedRef.current) return;
-    setSuggestions(
-      (data ?? []).map((r) => ({
+  const { data: suggestions = [], isLoading: loading, refetch } = useQuery({
+    queryKey: SUGGESTIONS_KEY,
+    queryFn: async () => {
+      const { data } = await safeClient.from<_RawExecRow>('automation_executions', (q) =>
+        q
+          .select(
+            'id, rule_id, suggestion_text, recommended_tag, kb_sources, status, created_at, instance_name, remote_jid, automations(name)'
+          )
+          .eq('remote_jid', remoteJid!)
+          .eq('status', 'pending')
+          .not('suggestion_text', 'is', null)
+          .order('created_at', { ascending: false })
+          .limit(5)
+      );
+      return (data ?? []).map((r) => ({
         id: r.id,
         rule_id: r.rule_id,
         rule_name: r.automations?.name,
@@ -75,38 +64,38 @@ export function useAutomationSuggestions(remoteJid: string | null) {
         created_at: r.created_at,
         instance_name: r.instance_name,
         remote_jid: r.remote_jid,
-      }))
-    );
-    setLoading(false);
-  }, [remoteJid]);
+      })) as AutomationSuggestion[];
+    },
+    enabled: !!remoteJid,
+    staleTime: 10_000,
+  });
 
   useEffect(() => {
-    void refresh();
     if (!remoteJid) return;
     const ch = supabase
       .channel(`automation-exec-${remoteJid}`)
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'automation_executions' },
+        { event: '*', schema: 'zapp', table: 'automation_executions' },
         (payload) => {
           const row = (payload.new ?? payload.old) as Record<string, unknown>;
-          if (row?.remote_jid === remoteJid) void refresh();
+          if (row?.remote_jid === remoteJid) void queryClient.invalidateQueries({ queryKey: SUGGESTIONS_KEY });
         }
       )
       .subscribe();
     return () => {
       supabase.removeChannel(ch);
     };
-  }, [remoteJid, refresh]);
+  }, [remoteJid, queryClient, SUGGESTIONS_KEY]);
 
   const accept = useCallback(
     async (id: string) => {
       await safeClient.from('automation_executions', (q) =>
         q.update({ status: 'accepted', acted_at: new Date().toISOString() }).eq('id', id)
       );
-      void refresh();
+      void queryClient.invalidateQueries({ queryKey: SUGGESTIONS_KEY });
     },
-    [refresh]
+    [queryClient, SUGGESTIONS_KEY]
   );
 
   const dismiss = useCallback(
@@ -114,9 +103,9 @@ export function useAutomationSuggestions(remoteJid: string | null) {
       await safeClient.from('automation_executions', (q) =>
         q.update({ status: 'dismissed', acted_at: new Date().toISOString() }).eq('id', id)
       );
-      void refresh();
+      void queryClient.invalidateQueries({ queryKey: SUGGESTIONS_KEY });
     },
-    [refresh]
+    [queryClient, SUGGESTIONS_KEY]
   );
 
   /**
@@ -145,7 +134,7 @@ export function useAutomationSuggestions(remoteJid: string | null) {
           title: 'Tag aplicada',
           description: `"${sugg.recommended_tag}" foi adicionada ao contato.`,
         });
-        refresh();
+        void queryClient.invalidateQueries({ queryKey: SUGGESTIONS_KEY });
         return true;
       } catch (e) {
         toast({
@@ -156,8 +145,8 @@ export function useAutomationSuggestions(remoteJid: string | null) {
         return false;
       }
     },
-    [suggestions, refresh]
+    [suggestions, queryClient, SUGGESTIONS_KEY]
   );
 
-  return { suggestions, loading, refresh, accept, dismiss, applyRecommendedTag };
+  return { suggestions, loading, refresh: refetch, accept, dismiss, applyRecommendedTag };
 }

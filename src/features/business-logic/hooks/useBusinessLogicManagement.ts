@@ -1,13 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { toast } from '@/hooks/use-toast';
-import { useMountedRef } from '@/hooks/useMountedRef';
 import { sanitizePostgrestFilter } from '@/lib/sanitize';
 import { getLogger } from '@/lib/logger';
 import { extractEvolutionMessageId } from '@/lib/evolutionMessageId';
 import { dbFrom } from '@/integrations/datasource/db';
 import { evolutionInstanceName } from '@/lib/evolutionInstance';
+import { useDebouncedValue } from '@/hooks/useDebounce';
 import type { Deal } from '@/components/pipeline/DealCard';
 
 const log = getLogger('useBusinessLogicManagement');
@@ -67,42 +68,34 @@ export function useBusinessLogicCampaignsManagement(
   params: UseBusinessLogicCampaignsParams
 ): UseBusinessLogicCampaignsResult {
   const { campaignId } = params;
-  const [variants, setVariants] = useState<ABVariant[]>([]);
-  const [loading, setLoading] = useState(true);
-  const mountedRef = useMountedRef();
+  const queryClient = useQueryClient();
 
-  const fetchVariants = useCallback(async () => {
-    if (!campaignId) {
-      if (mountedRef.current) setLoading(false);
-      return;
-    }
-    setLoading(true);
-    const { data, error } = await supabase
-      .from('campaign_ab_variants')
-      .select('*')
-      .eq('campaign_id', campaignId)
-      .order('created_at');
-    if (!mountedRef.current) return;
-    if (!error && data) {
-      setVariants(
-        data.map((v) => ({
-          id: v.id,
-          variant_name: v.variant_name,
-          message_content: v.message_content,
-          send_count: v.send_count ?? 0,
-          delivered_count: v.delivered_count ?? 0,
-          read_count: v.read_count ?? 0,
-          response_count: v.response_count ?? 0,
-          is_winner: v.is_winner ?? false,
-        }))
-      );
-    }
-    setLoading(false);
-  }, [campaignId, mountedRef]);
+  const VARIANTS_KEY = ['campaign-ab-variants', campaignId] as const;
 
-  useEffect(() => {
-    void fetchVariants();
-  }, [fetchVariants]);
+  const { data: variants = [], isLoading: loading } = useQuery({
+    queryKey: VARIANTS_KEY,
+    queryFn: async () => {
+      if (!campaignId) return [] as ABVariant[];
+      const { data, error } = await supabase
+        .from('campaign_ab_variants')
+        .select('*')
+        .eq('campaign_id', campaignId)
+        .order('created_at');
+      if (error) throw new Error(error.message);
+      return (data ?? []).map((v) => ({
+        id: v.id,
+        variant_name: v.variant_name,
+        message_content: v.message_content,
+        send_count: v.send_count ?? 0,
+        delivered_count: v.delivered_count ?? 0,
+        read_count: v.read_count ?? 0,
+        response_count: v.response_count ?? 0,
+        is_winner: v.is_winner ?? false,
+      })) as ABVariant[];
+    },
+    enabled: !!campaignId,
+    staleTime: 30_000,
+  });
 
   const addVariant = async (name: string, content: string): Promise<boolean> => {
     const { error } = await supabase.from('campaign_ab_variants').insert({
@@ -114,7 +107,7 @@ export function useBusinessLogicCampaignsManagement(
       toast({ title: 'Erro ao criar variante', variant: 'destructive' });
       return false;
     }
-    await fetchVariants();
+    void queryClient.invalidateQueries({ queryKey: VARIANTS_KEY });
     return true;
   };
 
@@ -124,7 +117,7 @@ export function useBusinessLogicCampaignsManagement(
       toast({ title: 'Erro ao excluir variante', variant: 'destructive' });
       return;
     }
-    setVariants((prev) => prev.filter((v) => v.id !== id));
+    void queryClient.invalidateQueries({ queryKey: VARIANTS_KEY });
   };
 
   const declareWinner = async (id: string): Promise<void> => {
@@ -144,7 +137,7 @@ export function useBusinessLogicCampaignsManagement(
       toast({ title: 'Erro ao declarar vencedor', variant: 'destructive' });
       return;
     }
-    setVariants((prev) => prev.map((v) => ({ ...v, is_winner: v.id === id })));
+    void queryClient.invalidateQueries({ queryKey: VARIANTS_KEY });
   };
 
   return { variants, loading, addVariant, deleteVariant, declareWinner };
@@ -183,58 +176,34 @@ export function useBusinessLogicCatalogManagement(
 ): UseBusinessLogicCatalogResult {
   const { step, onSuccess } = params;
   const [contactSearch, setContactSearch] = useState('');
-  const [contactResults, setContactResults] = useState<ContactResult[]>([]);
-  const [searchingContacts, setSearchingContacts] = useState(false);
   const [selectedContact, setSelectedContact] = useState<ContactResult | null>(null);
   const [isSending, setIsSending] = useState(false);
 
-  useEffect(() => {
-    if (step !== 'selectContact' || !contactSearch.trim()) {
-      setContactResults([]);
-      return;
-    }
-    let cancelled = false;
-    const timeout = setTimeout(async () => {
-      if (cancelled) return;
-      setSearchingContacts(true);
-      const { data, error } = await supabase
-        .from('contacts')
-        .select('id, name, phone, avatar_url')
-        .or(
-          `name.ilike.%${sanitizePostgrestFilter(contactSearch)}%,phone.ilike.%${sanitizePostgrestFilter(contactSearch)}%`
-        )
-        .limit(15);
-      if (cancelled) return;
-      if (error) log.error('Failed to search contacts:', error);
-      setContactResults(data || []);
-      setSearchingContacts(false);
-    }, 300);
-    return () => {
-      cancelled = true;
-      clearTimeout(timeout);
-    };
-  }, [contactSearch, step]);
+  const debouncedSearch = useDebouncedValue(contactSearch, 300);
 
-  useEffect(() => {
-    if (step !== 'selectContact') return;
-    setSearchingContacts(true);
-    let isMounted = true;
-    dbFrom('contacts')
-      .select('id, name, phone, avatar_url')
-      .order('updated_at', { ascending: false })
-      .limit(15)
-      .then(({ data }) => {
-        if (!isMounted) return;
-        if (!contactSearch.trim()) setContactResults(data || []);
-        setSearchingContacts(false);
-      })
-      .catch(() => {
-        if (isMounted) setSearchingContacts(false);
-      });
-    return () => {
-      isMounted = false;
-    };
-  }, [step, contactSearch]);
+  const { data: contactResults = [], isFetching: searchingContacts } = useQuery({
+    queryKey: ['catalog-contacts', step, debouncedSearch] as const,
+    queryFn: async () => {
+      if (debouncedSearch.trim()) {
+        const { data, error } = await supabase
+          .from('contacts')
+          .select('id, name, phone, avatar_url')
+          .or(
+            `name.ilike.%${sanitizePostgrestFilter(debouncedSearch)}%,phone.ilike.%${sanitizePostgrestFilter(debouncedSearch)}%`
+          )
+          .limit(15);
+        if (error) log.error('Failed to search contacts:', error);
+        return (data || []) as ContactResult[];
+      }
+      const { data } = await dbFrom('contacts')
+        .select('id, name, phone, avatar_url')
+        .order('updated_at', { ascending: false })
+        .limit(15);
+      return (data || []) as ContactResult[];
+    },
+    enabled: step === 'selectContact',
+    staleTime: 5_000,
+  });
 
   const resetContactSelection = useCallback(() => {
     setSelectedContact(null);
@@ -282,7 +251,7 @@ export function useBusinessLogicCatalogManagement(
               whatsapp_connection_id: connection?.id || null,
             })
             .select('id')
-            .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
+            .maybeSingle();
 
           if (dbError || !dbResult?.id)
             throw new Error(dbError?.message ?? 'Image DB insert failed');
@@ -317,7 +286,7 @@ export function useBusinessLogicCatalogManagement(
             whatsapp_connection_id: connection?.id || null,
           })
           .select('id')
-          .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
+          .maybeSingle();
 
         if (textDbError || !textDbResult?.id)
           throw new Error(textDbError?.message ?? 'Text DB insert failed');
@@ -406,18 +375,21 @@ export interface UseBusinessLogicPipelineResult {
   markAsLost: (deal: Deal) => Promise<void>;
 }
 
+const PIPELINE_KEY = ['sales-pipeline'] as const;
+
+type PipelineDealRow = Deal & {
+  contacts: { name: string; phone: string } | null;
+  profiles: { name: string } | null;
+  tags?: string[];
+};
+
 /** Manages sales pipeline stages, deals, activities, and deal lifecycle (won/lost). */
 export function useBusinessLogicPipelineManagement(
   _params: UseBusinessLogicPipelineParams = {}
 ): UseBusinessLogicPipelineResult {
-  const mountedRef = useMountedRef();
-  const [stages, setStages] = useState<PipelineStage[]>([]);
-  const [deals, setDeals] = useState<Deal[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [showDealDialog, setShowDealDialog] = useState(false);
   const [editingDeal, setEditingDeal] = useState<Deal | null>(null);
-  const [contacts, setContacts] = useState<{ id: string; name: string; phone: string }[]>([]);
-  const [agents, setAgents] = useState<{ id: string; name: string }[]>([]);
 
   const [formTitle, setFormTitle] = useState('');
   const [formValue, setFormValue] = useState('');
@@ -428,9 +400,9 @@ export function useBusinessLogicPipelineManagement(
   const [formCloseDate, setFormCloseDate] = useState('');
   const [formNotes, setFormNotes] = useState('');
 
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    try {
+  const { data: pipelineData, isLoading: loading, refetch } = useQuery({
+    queryKey: PIPELINE_KEY,
+    queryFn: async () => {
       const [stagesRes, dealsRes, contactsRes, agentsRes] = await Promise.all([
         supabase.from('sales_pipeline_stages').select('*').order('position'),
         safeClient.from('sales_deals', (q) =>
@@ -441,57 +413,51 @@ export function useBusinessLogicPipelineManagement(
         dbFrom('contacts').select('id, name, phone').limit(200),
         supabase.from('profiles').select('id, name').eq('is_active', true),
       ]);
-      if (!mountedRef.current) return;
 
       if (stagesRes.error) throw stagesRes.error;
       if (dealsRes.error) throw dealsRes.error;
       if (contactsRes.error) throw contactsRes.error;
       if (agentsRes.error) throw agentsRes.error;
 
-      if (stagesRes.data) setStages(stagesRes.data);
-      if (dealsRes.data) {
-        const dealsRows = dealsRes.data as Array<
-          Deal & {
-            contacts: { name: string; phone: string } | null;
-            profiles: { name: string } | null;
-            tags?: string[];
-          }
-        >;
-        setDeals(
-          dealsRows.map((d) => ({
-            ...d,
-            tags: d.tags || [],
-            contact: d.contacts,
-            assignee: d.profiles,
-          }))
-        );
-      }
-      if (contactsRes.data) setContacts(contactsRes.data);
-      if (agentsRes.data) setAgents(agentsRes.data);
-    } catch (err) {
-      if (!mountedRef.current) return;
-      log.error('Error fetching pipeline data:', err);
-    } finally {
-      if (mountedRef.current) setLoading(false);
-    }
-  }, [mountedRef]);
+      const dealsRows = (dealsRes.data ?? []) as PipelineDealRow[];
 
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+      return {
+        stages: (stagesRes.data ?? []) as PipelineStage[],
+        deals: dealsRows.map((d) => ({
+          ...d,
+          tags: d.tags || [],
+          contact: d.contacts,
+          assignee: d.profiles,
+        })) as Deal[],
+        contacts: (contactsRes.data ?? []) as { id: string; name: string; phone: string }[],
+        agents: (agentsRes.data ?? []) as { id: string; name: string }[],
+      };
+    },
+    staleTime: 30_000,
+  });
 
+  const stages = pipelineData?.stages ?? [];
+  const deals = pipelineData?.deals ?? [];
+  const contacts = pipelineData?.contacts ?? [];
+  const agents = pipelineData?.agents ?? [];
+
+  const fetchData = useCallback(async () => {
+    await refetch();
+  }, [refetch]);
+
+  // Realtime subscription — invalidate instead of calling fetchData directly
   useEffect(() => {
     const channel = supabase
       .channel('deals-changes')
-      .on('postgres_changes', { event: '*', schema: 'zapp', table: 'sales_deals' }, () =>
-        fetchData()
-      )
+      .on('postgres_changes', { event: '*', schema: 'zapp', table: 'sales_deals' }, () => {
+        void queryClient.invalidateQueries({ queryKey: PIPELINE_KEY });
+      })
       .subscribe();
     return () => {
       channel.unsubscribe();
       supabase.removeChannel(channel);
     };
-  }, [fetchData]);
+  }, [queryClient]);
 
   const openNewDeal = (stageId?: string) => {
     setEditingDeal(null);
@@ -547,7 +513,7 @@ export function useBusinessLogicPipelineManagement(
       toast({ title: 'Deal criado!' });
     }
     setShowDealDialog(false);
-    fetchData();
+    void queryClient.invalidateQueries({ queryKey: PIPELINE_KEY });
   };
 
   const moveDeal = async (dealId: string, newStageId: string) => {
@@ -566,7 +532,7 @@ export function useBusinessLogicPipelineManagement(
       activity_type: 'stage_change',
       description: `Movido para ${stages.find((s) => s.id === newStageId)?.name}`,
     });
-    fetchData();
+    void queryClient.invalidateQueries({ queryKey: PIPELINE_KEY });
   };
 
   const deleteDeal = async (id: string) => {
@@ -576,7 +542,7 @@ export function useBusinessLogicPipelineManagement(
       return;
     }
     toast({ title: 'Deal removido' });
-    fetchData();
+    void queryClient.invalidateQueries({ queryKey: PIPELINE_KEY });
   };
 
   const markAsWon = async (deal: Deal) => {
@@ -596,7 +562,7 @@ export function useBusinessLogicPipelineManagement(
       title: '🎉 Deal ganho!',
       description: `${deal.title} - R$ ${(deal.value ?? 0).toLocaleString('pt-BR')}`,
     });
-    fetchData();
+    void queryClient.invalidateQueries({ queryKey: PIPELINE_KEY });
   };
 
   const markAsLost = async (deal: Deal) => {
@@ -613,7 +579,7 @@ export function useBusinessLogicPipelineManagement(
       return;
     }
     toast({ title: 'Deal perdido', description: deal.title });
-    fetchData();
+    void queryClient.invalidateQueries({ queryKey: PIPELINE_KEY });
   };
 
   return {

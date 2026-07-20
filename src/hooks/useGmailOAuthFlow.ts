@@ -10,6 +10,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { emailMappers } from '@/utils/emailMappers';
@@ -37,10 +38,11 @@ interface UseEmailOAuthFlowReturn {
   ensureWatch: (accountId: string) => Promise<void>;
 }
 
+const GMAIL_ACCOUNTS_KEY = ['gmail-accounts'] as const;
+
 export function useEmailOAuthFlow(): UseEmailOAuthFlowReturn {
-  const [accounts, setAccounts] = useState<EmailAccount[]>([]);
+  const queryClient = useQueryClient();
   const [tokenStatus, setTokenStatus] = useState<Record<string, TokenStatus>>({});
-  const [isLoading, setIsLoading] = useState(true);
   const refreshingRef = useRef<Set<string>>(new Set());
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const oauthInFlightRef = useRef(false);
@@ -48,24 +50,27 @@ export function useEmailOAuthFlow(): UseEmailOAuthFlowReturn {
 
   // ── Carrega contas ──────────────────────────────────────────────────
 
-  const loadAccounts = useCallback(async () => {
-    const { data, error } = await safeClient.from<Record<string, unknown>>('email_accounts', (q) =>
-      q
-        .select(
-          'id, user_id, email:email_address, display_name, picture_url, token_expiry:token_expires_at, is_active, created_at'
-        )
-        .eq('is_active', true)
-        .order('created_at')
-    );
+  const { data: accounts = [], isLoading } = useQuery({
+    queryKey: GMAIL_ACCOUNTS_KEY,
+    queryFn: async () => {
+      const { data, error } = await safeClient.from<Record<string, unknown>>('email_accounts', (q) =>
+        q
+          .select(
+            'id, user_id, email:email_address, display_name, picture_url, token_expiry:token_expires_at, is_active, created_at'
+          )
+          .eq('is_active', true)
+          .order('created_at')
+      );
 
-    if (error) {
-      log.error('Erro ao carregar contas Email', error);
-      return;
-    }
+      if (error) {
+        log.error('Erro ao carregar contas Email', error);
+        return [] as EmailAccount[];
+      }
 
-    setAccounts(emailMappers.accounts(data ?? []));
-    setIsLoading(false);
-  }, []);
+      return emailMappers.accounts(data ?? []) as EmailAccount[];
+    },
+    staleTime: 30_000,
+  });
 
   // ── Calcula status do token ─────────────────────────────────────────
 
@@ -99,14 +104,10 @@ export function useEmailOAuthFlow(): UseEmailOAuthFlowReturn {
     try {
       const result = await emailRefreshToken(accountId);
 
-      // Atualiza token_expiry local (edge fn retorna `newExpiry`, não `expiresAt`)
       const newExpiry = result.data?.newExpiry ?? null;
-      setAccounts((prev) =>
-        prev.map((a) => (a.id === accountId ? { ...a, token_expiry: newExpiry } : a))
-      );
-      setTokenStatus((prev) => ({ ...prev, [accountId]: 'valid' }));
-
       log.info(`Token refreshed for account ${accountId}, expires at ${newExpiry}`);
+      setTokenStatus((prev) => ({ ...prev, [accountId]: 'valid' }));
+      void queryClient.invalidateQueries({ queryKey: GMAIL_ACCOUNTS_KEY });
     } catch (err) {
       log.error(`Falha ao refreshar token para conta ${accountId}`, err);
       setTokenStatus((prev) => ({ ...prev, [accountId]: 'expired' }));
@@ -117,7 +118,7 @@ export function useEmailOAuthFlow(): UseEmailOAuthFlowReturn {
     } finally {
       refreshingRef.current.delete(accountId);
     }
-  }, []);
+  }, [queryClient]);
 
   // ── Auto-refresh loop ───────────────────────────────────────────────
 
@@ -149,18 +150,15 @@ export function useEmailOAuthFlow(): UseEmailOAuthFlowReturn {
       if (!acc.watch_expiry || watchExpiry - Date.now() < renewThreshold) {
         try {
           const result = await emailRegisterWatch(accountId);
-          // edge fn gmail-webhook retorna `expiresAt`, não `watchExpiry`
           const newWatchExpiry = result.data?.expiresAt ?? null;
-          setAccounts((prev) =>
-            prev.map((a) => (a.id === accountId ? { ...a, watch_expiry: newWatchExpiry } : a))
-          );
           log.info(`Pub/Sub watch renovado para ${accountId}, expira em ${newWatchExpiry}`);
+          void queryClient.invalidateQueries({ queryKey: GMAIL_ACCOUNTS_KEY });
         } catch (err) {
           log.warn(`Não foi possível renovar watch para ${accountId}`, err);
         }
       }
     },
-    [accounts]
+    [accounts, queryClient]
   );
 
   // ── OAuth initiate ──────────────────────────────────────────────────
@@ -189,10 +187,6 @@ export function useEmailOAuthFlow(): UseEmailOAuthFlowReturn {
           return;
         }
 
-        // `settled` evita cleanup duplo entre o poll de popup.closed e o
-        // handler de mensagem (ex.: a mensagem já fechou o popup via
-        // popup?.close() — sem essa flag, o próximo tick do poll veria
-        // popup.closed===true e tentaria limpar de novo).
         let settled = false;
         let closeCheckInterval: ReturnType<typeof setInterval> | null = null;
 
@@ -203,10 +197,6 @@ export function useEmailOAuthFlow(): UseEmailOAuthFlowReturn {
         };
         oauthCleanupRef.current = cleanupListeners;
 
-        // Listener para message do popup.
-        // Protocolo real do backend gmail-oauth (callback GET):
-        //   { type: 'gmail-oauth-code',  code }   -> trocar code por tokens (exchangeCode)
-        //   { type: 'gmail-oauth-error', error }  -> falha
         const onMessage = async (event: MessageEvent) => {
           if (settled) return;
           const msg = event.data;
@@ -218,7 +208,7 @@ export function useEmailOAuthFlow(): UseEmailOAuthFlowReturn {
             oauthInFlightRef.current = false;
             return;
           }
-          if (msg?.type !== 'gmail-oauth-code') return; // mensagem de outra origem/tipo: ignora, sem remover o listener
+          if (msg?.type !== 'gmail-oauth-code') return;
           settled = true;
           cleanupListeners();
           popup?.close();
@@ -235,7 +225,6 @@ export function useEmailOAuthFlow(): UseEmailOAuthFlowReturn {
               toast.error('Sessão expirada. Faça login novamente.');
               return;
             }
-            // exchangeCode exige { code, userId } (ver supabase/functions/gmail-oauth)
             const { data: result, error: exErr } = await supabase.functions.invoke('gmail-oauth', {
               body: { action: 'exchangeCode', code: msg.code, userId: user.id },
             });
@@ -245,7 +234,7 @@ export function useEmailOAuthFlow(): UseEmailOAuthFlowReturn {
               });
               return;
             }
-            await loadAccounts();
+            void queryClient.invalidateQueries({ queryKey: GMAIL_ACCOUNTS_KEY });
             toast.success(`Conta Email conectada${result?.email ? `: ${result.email}` : ''}`);
           } catch (err) {
             log.error('Erro ao concluir OAuth Email', err);
@@ -256,13 +245,6 @@ export function useEmailOAuthFlow(): UseEmailOAuthFlowReturn {
         };
         window.addEventListener('message', onMessage);
 
-        // Detecta o usuário fechando o popup MANUALMENTE (sem completar o
-        // fluxo) — sem isto, a guarda de concorrência acima travaria o botão
-        // "Conectar" para sempre, já que nenhuma mensagem chegaria para
-        // resetar oauthInFlightRef. Em try/catch porque navegadores com
-        // Cross-Origin-Opener-Policy estrita podem bloquear o acesso a
-        // popup.closed; nesse caso simplesmente tentamos de novo no próximo
-        // tick em vez de derrubar a sessão.
         closeCheckInterval = setInterval(() => {
           if (settled) {
             if (closeCheckInterval !== null) clearInterval(closeCheckInterval);
@@ -281,46 +263,41 @@ export function useEmailOAuthFlow(): UseEmailOAuthFlowReturn {
           }
         }, 500);
       });
-  }, [loadAccounts]);
+  }, [queryClient]);
 
   // ── Disconnect ───────────────────────────────────────────────────
 
   const disconnect = useCallback(async (accountId: string) => {
     try {
       await emailRevokeAccount(accountId);
-      setAccounts((prev) => prev.filter((a) => a.id !== accountId));
       setTokenStatus((prev) => {
         const next = { ...prev };
         delete next[accountId];
         return next;
       });
+      void queryClient.invalidateQueries({ queryKey: GMAIL_ACCOUNTS_KEY });
       toast.success('Conta Email desconectada');
     } catch (err) {
       log.error('Erro ao desconectar conta Email', err);
       toast.error('Não foi possível desconectar a conta Email');
     }
-  }, []);
+  }, [queryClient]);
 
   // ── Effects ───────────────────────────────────────────────────
-
-  // Carga inicial
-  useEffect(() => {
-    void loadAccounts();
-  }, [loadAccounts]);
 
   // Realtime: recarregar quando conta muda
   useEffect(() => {
     const channel = supabase
       .channel('email_accounts_changes')
       .on('postgres_changes', { event: '*', schema: 'email_app', table: 'email_accounts' }, () =>
-        loadAccounts()
+        void queryClient.invalidateQueries({ queryKey: GMAIL_ACCOUNTS_KEY })
       )
       .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [loadAccounts]);
+  }, [queryClient]);
 
   // Auto-refresh timer
   useEffect(() => {

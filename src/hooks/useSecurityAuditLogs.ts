@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { getLogger } from '@/lib/logger';
 
@@ -19,13 +20,14 @@ export interface AuditLog {
   };
 }
 
-export function useSecurityAuditLogs() {
-  const [logs, setLogs] = useState<AuditLog[]>([]);
-  const [loading, setLoading] = useState(true);
+const SECURITY_LOGS_KEY = ['security-audit-logs'] as const;
 
-  useEffect(() => {
-    let mounted = true;
-    const fetchLogs = async () => {
+export function useSecurityAuditLogs() {
+  const queryClient = useQueryClient();
+
+  const { data: logs = [], isLoading: loading } = useQuery({
+    queryKey: SECURITY_LOGS_KEY,
+    queryFn: async () => {
       const { data, error } = await supabase
         .from('security_audit_logs')
         .select(
@@ -40,33 +42,31 @@ export function useSecurityAuditLogs() {
         .order('created_at', { ascending: false })
         .limit(50);
 
-      if (!mounted) return;
       if (error) {
         log.error('Error fetching audit logs', error);
-      } else {
-        setLogs(data as AuditLog[]);
+        return [] as AuditLog[];
       }
-      setLoading(false);
-    };
+      return data as AuditLog[];
+    },
+    staleTime: 30_000,
+  });
 
-    fetchLogs();
-
+  useEffect(() => {
     const channel = supabase
       .channel('security_logs_realtime')
       .on(
         'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'security_audit_logs' },
-        (payload) => {
-          setLogs((prev) => [payload.new as AuditLog, ...prev].slice(0, 50));
+        { event: 'INSERT', schema: 'zapp', table: 'security_audit_logs' },
+        () => {
+          void queryClient.invalidateQueries({ queryKey: SECURITY_LOGS_KEY });
         }
       )
       .subscribe();
 
     return () => {
-      mounted = false;
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [queryClient]);
 
   return { logs, loading };
 }
