@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
@@ -28,11 +28,14 @@ const SOUND_TYPES: { value: string; label: string; description: string }[] = [
 export function NotificationSettingsPanel() {
   const { settings, updateSettings, resetSettings, isQuietHours } = useNotificationSettings();
   const [isTestingSound, setIsTestingSound] = useState(false);
+  const testingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => { if (testingTimerRef.current !== null) clearTimeout(testingTimerRef.current); }, []);
 
   const handleTestSound = async () => {
     setIsTestingSound(true);
     previewSound(settings.soundType, settings.soundVolume);
-    setTimeout(() => setIsTestingSound(false), 1000);
+    if (testingTimerRef.current !== null) clearTimeout(testingTimerRef.current);
+    testingTimerRef.current = setTimeout(() => setIsTestingSound(false), 1000);
   };
 
   const handleRequestPermission = async () => {

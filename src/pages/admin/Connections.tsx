@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -81,6 +81,7 @@ export default function AdminConnectionsPage() {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
+  const redirectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const checkAdminStatus = async () => {
     try {
@@ -127,7 +128,13 @@ export default function AdminConnectionsPage() {
     // Revalida ao focar na aba do navegador para garantir que o acesso ainda é válido
     const handleFocus = () => checkAdminStatus();
     window.addEventListener('focus', handleFocus);
-    return () => window.removeEventListener('focus', handleFocus);
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      if (redirectTimerRef.current !== null) {
+        clearTimeout(redirectTimerRef.current);
+        redirectTimerRef.current = null;
+      }
+    };
   }, []);
 
   const handleTabChange = (value: string) => {
@@ -296,7 +303,9 @@ export default function AdminConnectionsPage() {
         description: `Configuração atualizada via runtime. Redirecionando para Status da Ponte...`,
       });
 
-      setTimeout(() => {
+      if (redirectTimerRef.current !== null) clearTimeout(redirectTimerRef.current);
+      redirectTimerRef.current = setTimeout(() => {
+        redirectTimerRef.current = null;
         window.location.href = '/admin/bridge-status';
       }, 1500);
 

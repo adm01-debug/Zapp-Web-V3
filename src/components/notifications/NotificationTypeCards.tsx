@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
@@ -45,11 +45,14 @@ export function SoundSelector({
   soundVolume,
 }: SoundSelectorProps) {
   const [isTesting, setIsTesting] = useState(false);
+  const testingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => { if (testingTimerRef.current !== null) clearTimeout(testingTimerRef.current); }, []);
 
   const handleTest = () => {
     setIsTesting(true);
     playNotificationSound(notificationType, value as SoundType, soundVolume);
-    setTimeout(() => setIsTesting(false), 1000);
+    if (testingTimerRef.current !== null) clearTimeout(testingTimerRef.current);
+    testingTimerRef.current = setTimeout(() => setIsTesting(false), 1000);
   };
 
   return (
