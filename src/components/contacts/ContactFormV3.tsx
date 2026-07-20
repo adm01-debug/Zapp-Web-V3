@@ -23,7 +23,7 @@ import { useToast } from '@/hooks/use-toast';
 import { sanitizeText } from '@/lib/sanitize';
 import { validatePhoneDetailed } from '@/lib/phoneUtils';
 import { useContactDuplicateDetector } from './useContactDuplicateDetector';
-import { useRetryOperation } from '@/hooks/useRetryOperation';
+import { useRetryOperation } from '@/hooks/useRetryAndErrorPrevention';
 import { ContactPhoneManager, PhoneEntry } from './ContactPhoneManager';
 import { ContactConsentManager, ConsentData } from './ContactConsentManager';
 import { ContactMergeDialog, ContactForMerge } from './ContactMergeDialog';

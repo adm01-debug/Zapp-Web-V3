@@ -19,7 +19,7 @@ import {
   QueueSlaRow,
   SlaStatusFilter,
 } from '@/hooks/useQueueSlaPanel';
-import { supabase } from '@/integrations/supabase/client';
+import { safeFrom } from '@/integrations/supabase/safeClient';
 import { cn } from '@/lib/utils';
 
 const PRIORITY_LABEL: Record<QueueSlaRow['sla_priority'], string> = {
@@ -51,8 +51,8 @@ export const QueueSlaPanel = () => {
   useEffect(() => {
     (async () => {
       const [{ data: sk }, { data: ch }] = await Promise.all([
-        supabase.from('queue_skill_requirements').select('skill_name'),
-        supabase.from('channel_connections').select('channel_type'),
+        safeFrom('queue_skill_requirements').select('skill_name'),
+        safeFrom('channel_connections').select('channel_type'),
       ]);
       setSkills(Array.from(new Set((sk ?? []).map((s) => s.skill_name).filter(Boolean))));
       setChannels(Array.from(new Set((ch ?? []).map((c) => c.channel_type).filter(Boolean))));

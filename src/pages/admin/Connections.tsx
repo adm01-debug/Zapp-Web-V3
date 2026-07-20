@@ -27,7 +27,7 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { updateRuntimeExternalConfig } from '@/integrations/supabase/externalClient';
 import { MCP_SERVER_URL } from '@/pages/admin/useConnections';
-import { safeClient } from '@/integrations/supabase/safeClient';
+import { safeClient, safeFrom } from '@/integrations/supabase/safeClient';
 import { toast } from '@/hooks/use-toast';
 import { runConnectionDiagnostics } from '@/lib/diagnostics';
 import { getLogger } from '@/lib/logger';
@@ -94,8 +94,7 @@ export default function AdminConnectionsPage() {
 
       setCurrentUserId(user?.id ?? null);
       if (user?.id) {
-        const { data: roles, error: rolesError } = await supabase
-          .from('user_roles')
+        const { data: roles, error: rolesError } = await safeFrom('user_roles')
           .select('role')
           .eq('user_id', user.id);
 
