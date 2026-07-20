@@ -35,11 +35,12 @@ export const useSLANotifications = () => {
       contactId: string
     ) => {
       // Fetch contact info
-      const { data: contact } = await supabase
+      const { data: contact, error: contactErr } = await supabase
         .from('contacts')
         .select('name, phone')
         .eq('id', contactId)
         .maybeSingle();
+      if (contactErr) log.error('Failed to fetch contact for SLA notification:', contactErr);
 
       const title =
         type === 'first_response'

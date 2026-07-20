@@ -191,19 +191,26 @@ export function useBusinessLogicCatalogManagement(
       setContactResults([]);
       return;
     }
+    let cancelled = false;
     const timeout = setTimeout(async () => {
+      if (cancelled) return;
       setSearchingContacts(true);
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('contacts')
         .select('id, name, phone, avatar_url')
         .or(
           `name.ilike.%${sanitizePostgrestFilter(contactSearch)}%,phone.ilike.%${sanitizePostgrestFilter(contactSearch)}%`
         )
         .limit(15);
+      if (cancelled) return;
+      if (error) log.error('Failed to search contacts:', error);
       setContactResults(data || []);
       setSearchingContacts(false);
     }, 300);
-    return () => clearTimeout(timeout);
+    return () => {
+      cancelled = true;
+      clearTimeout(timeout);
+    };
   }, [contactSearch, step]);
 
   useEffect(() => {
