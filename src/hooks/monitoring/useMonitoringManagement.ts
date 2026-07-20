@@ -1,7 +1,7 @@
-import { useState, useCallback } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { safeFrom } from '@/integrations/supabase/safeClient';
 import { supabase } from '@/integrations/supabase/client';
-import { useMountedRef } from '@/hooks/useMountedRef';
 import { toast } from 'sonner';
 import type {
   ConnectionInfo,
@@ -152,125 +152,132 @@ function computeSparklines(
 // Monitoring Data Management (useMonitoringData consolidation)
 // ═══════════════════════════════════════════════════════════
 
+interface MonitoringSnapshot {
+  connections: ConnectionInfo[];
+  healthLogs: HealthLog[];
+  messageStats: MessageStats;
+  uptime: UptimeInfo;
+  sparklines: SparklineData;
+  instanceUptimes: InstanceUptime[];
+}
+
+const DEFAULT_SNAPSHOT: MonitoringSnapshot = {
+  connections: [],
+  healthLogs: [],
+  messageStats: { incoming: 0, outgoing: 0, total: 0, hourlyData: [] },
+  uptime: { percentage: 0, totalChecks: 0, healthyChecks: 0, lastDowntime: null },
+  sparklines: { messages: [], latency: [], uptime: [] },
+  instanceUptimes: [],
+};
+
 /** Hook: use Monitoring Data Management. */
 export function useMonitoringDataManagement(
   params: UseMonitoringDataParams = {}
 ): UseMonitoringDataResult {
   const { onConnectionsUpdate } = params;
-  const [connections, setConnections] = useState<ConnectionInfo[]>([]);
-  const [healthLogs, setHealthLogs] = useState<HealthLog[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [messageStats, setMessageStats] = useState<MessageStats>({
-    incoming: 0,
-    outgoing: 0,
-    total: 0,
-    hourlyData: [],
+  const [period, setPeriod] = useState<TimePeriod>('12h');
+  const queryClient = useQueryClient();
+
+  // Stable ref so fetchData doesn't change when period changes
+  const periodRef = useRef<TimePeriod>(period);
+  periodRef.current = period;
+
+  // Stable ref for callback to avoid useEffect dep churn
+  const onConnectionsUpdateRef = useRef(onConnectionsUpdate);
+  useEffect(() => { onConnectionsUpdateRef.current = onConnectionsUpdate; }, [onConnectionsUpdate]);
+
+  const { data = DEFAULT_SNAPSHOT, isLoading: loading } = useQuery({
+    queryKey: ['monitoring-data', period] as const,
+    queryFn: async (): Promise<MonitoringSnapshot> => {
+      const now = new Date();
+      const since = new Date(now.getTime() - periodMs[period]);
+
+      const [connRes, logsRes, msgRes] = await Promise.all([
+        safeFrom('whatsapp_connections').select(
+          'id, instance_id, instance_name, phone_number, status, health_status, health_response_ms, last_health_check, updated_at'
+        ),
+        safeFrom('connection_health_logs')
+          .select('*')
+          .order('checked_at', { ascending: false })
+          .limit(500),
+        dbFrom('messages')
+          .select('sender, created_at')
+          .gte('created_at', since.toISOString())
+          .order('created_at', { ascending: true }),
+      ]);
+
+      const connections = (connRes.data ?? []) as ConnectionInfo[];
+      const healthLogs = (logsRes.data ?? []) as HealthLog[];
+      const msgs = (msgRes.data ?? []) as { sender: string; created_at: string }[];
+
+      const incoming = msgs.filter((m) => m.sender === 'contact').length;
+      const outgoing = msgs.filter((m) => m.sender === 'agent').length;
+
+      const bucketCount = periodBuckets[period];
+      const bucketSize = periodMs[period] / bucketCount;
+      const buckets: Record<string, { incoming: number; outgoing: number }> = {};
+      for (let i = bucketCount - 1; i >= 0; i--) {
+        const bTime = new Date(now.getTime() - i * bucketSize);
+        const key =
+          period === '7d'
+            ? `${bTime.getDate().toString().padStart(2, '0')}/${(bTime.getMonth() + 1).toString().padStart(2, '0')}`
+            : `${bTime.getHours().toString().padStart(2, '0')}:00`;
+        buckets[key] = { incoming: 0, outgoing: 0 };
+      }
+      msgs.forEach((m) => {
+        const mTime = new Date(m.created_at);
+        const key =
+          period === '7d'
+            ? `${mTime.getDate().toString().padStart(2, '0')}/${(mTime.getMonth() + 1).toString().padStart(2, '0')}`
+            : `${mTime.getHours().toString().padStart(2, '0')}:00`;
+        if (buckets[key]) {
+          if (m.sender === 'contact') buckets[key].incoming++;
+          else buckets[key].outgoing++;
+        }
+      });
+
+      return {
+        connections,
+        healthLogs,
+        messageStats: {
+          incoming,
+          outgoing,
+          total: msgs.length,
+          hourlyData: Object.entries(buckets).map(([hour, d]) => ({ hour, ...d })),
+        },
+        uptime: computeUptime(healthLogs, now),
+        sparklines: computeSparklines(healthLogs, msgs, now),
+        instanceUptimes: computeInstanceUptimes(healthLogs, now),
+      };
+    },
+    staleTime: 30_000,
   });
-  const [uptime, setUptime] = useState<UptimeInfo>({
-    percentage: 0,
-    totalChecks: 0,
-    healthyChecks: 0,
-    lastDowntime: null,
-  });
-  const [sparklines, setSparklines] = useState<SparklineData>({
-    messages: [],
-    latency: [],
-    uptime: [],
-  });
-  const [instanceUptimes, setInstanceUptimes] = useState<InstanceUptime[]>([]);
-  const mountedRef = useMountedRef();
+
+  // Side effect: notify parent when connections change
+  useEffect(() => {
+    if (data.connections.length > 0) onConnectionsUpdateRef.current?.(data.connections);
+  }, [data.connections]);
 
   const fetchData = useCallback(
-    async (period: TimePeriod = '12h') => {
-      try {
-        const now = new Date();
-        const since = new Date(now.getTime() - periodMs[period]);
-
-        const [connRes, logsRes, msgRes] = await Promise.all([
-          safeFrom('whatsapp_connections').select(
-            'id, instance_id, instance_name, phone_number, status, health_status, health_response_ms, last_health_check, updated_at'
-          ),
-          safeFrom('connection_health_logs')
-            .select('*')
-            .order('checked_at', { ascending: false })
-            .limit(500),
-          dbFrom('messages')
-            .select('sender, created_at')
-            .gte('created_at', since.toISOString())
-            .order('created_at', { ascending: true }),
-        ]);
-
-        if (!mountedRef.current) return;
-
-        if (connRes.data) {
-          setConnections(connRes.data);
-          onConnectionsUpdate?.(connRes.data);
-        }
-
-        if (logsRes.data) {
-          setHealthLogs(logsRes.data);
-          setUptime(computeUptime(logsRes.data, now));
-          setInstanceUptimes(computeInstanceUptimes(logsRes.data, now));
-        }
-
-        if (msgRes.data) {
-          const incoming = msgRes.data.filter((m) => m.sender === 'contact').length;
-          const outgoing = msgRes.data.filter((m) => m.sender === 'agent').length;
-
-          const bucketCount = periodBuckets[period];
-          const bucketSize = periodMs[period] / bucketCount;
-          const buckets: Record<string, { incoming: number; outgoing: number }> = {};
-
-          for (let i = bucketCount - 1; i >= 0; i--) {
-            const bTime = new Date(now.getTime() - i * bucketSize);
-            const key =
-              period === '7d'
-                ? `${bTime.getDate().toString().padStart(2, '0')}/${(bTime.getMonth() + 1).toString().padStart(2, '0')}`
-                : `${bTime.getHours().toString().padStart(2, '0')}:00`;
-            buckets[key] = { incoming: 0, outgoing: 0 };
-          }
-
-          msgRes.data.forEach((m) => {
-            const mTime = new Date(m.created_at);
-            const key =
-              period === '7d'
-                ? `${mTime.getDate().toString().padStart(2, '0')}/${(mTime.getMonth() + 1).toString().padStart(2, '0')}`
-                : `${mTime.getHours().toString().padStart(2, '0')}:00`;
-            if (buckets[key]) {
-              if (m.sender === 'contact') buckets[key].incoming++;
-              else buckets[key].outgoing++;
-            }
-          });
-
-          setMessageStats({
-            incoming,
-            outgoing,
-            total: msgRes.data.length,
-            hourlyData: Object.entries(buckets).map(([hour, d]) => ({ hour, ...d })),
-          });
-        }
-
-        // Sparklines
-        if (logsRes.data && msgRes.data) {
-          setSparklines(computeSparklines(logsRes.data, msgRes.data, now));
-        }
-      } catch (err) {
-        log.error('Monitoring data fetch error', err);
-      } finally {
-        if (mountedRef.current) setLoading(false);
+    async (p?: TimePeriod): Promise<void> => {
+      const target = p ?? periodRef.current;
+      if (target !== periodRef.current) {
+        setPeriod(target);
+      } else {
+        await queryClient.refetchQueries({ queryKey: ['monitoring-data', target] });
       }
     },
-    [onConnectionsUpdate] // eslint-disable-line react-hooks/exhaustive-deps
+    [queryClient]
   );
 
   return {
-    connections,
-    healthLogs,
+    connections: data.connections,
+    healthLogs: data.healthLogs,
     loading,
-    messageStats,
-    uptime,
-    sparklines,
-    instanceUptimes,
+    messageStats: data.messageStats,
+    uptime: data.uptime,
+    sparklines: data.sparklines,
+    instanceUptimes: data.instanceUptimes,
     fetchData,
   };
 }
