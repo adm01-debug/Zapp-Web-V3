@@ -153,6 +153,7 @@
 | ~~BUG-20~~ | `zapp.rpc_list_dispatch_error_logs` | CORRIGIDO (A2): `FROM public.dispatch_error_logs` dentro de função com `SET search_path = zapp` resolvia para a VIEW proxy em vez da tabela física. Fix: `FROM dispatch_error_logs` sem qualificador | Resolvido — `20260720000004` |
 | ~~BUG-21~~ | `src/hooks/useAlertManagement.ts:363` | CORRIGIDO: `zapp.sentiment_alerts` estava em `logflare_pub` mas NÃO em `supabase_realtime`; subscription era no-op silencioso. Fix: `ALTER PUBLICATION supabase_realtime ADD TABLE zapp.sentiment_alerts` | Resolvido — `20260720000005` |
 | ~~BUG-22~~ | `src/hooks/useNotificationManagement.ts:420,447` | CORRIGIDO: subscriptions para tabelas fantasma `goal_notifications` / `transcription_notifications` (não existem em nenhuma migração). Fix: redirecionado para `zapp.app_notifications` (publicada) com filtro client-side por `type` | Resolvido |
+| ~~BUG-23~~ | `src/services/settings/settingsRepository.ts:114,130` | CORRIGIDO: `zapp.user_settings` e `zapp.workspace_settings` são tabelas físicas subscritas via Realtime para sincronização de configurações cross-tab, mas NÃO estavam em `supabase_realtime`; callbacks nunca disparavam. Fix: `ALTER PUBLICATION supabase_realtime ADD TABLE` para ambas | Resolvido — `20260720000006` |
 
 ---
 
@@ -275,5 +276,8 @@ supabase/
 - `zapp.failed_messages` ✅ (física, publicada)
 - `zapp.sentiment_alerts` ✅ (adicionada em `20260720000005`)
 - `zapp.app_notifications` ✅ (publicada, usada por dashboard + goal + transcription hooks)
+- `zapp.user_settings` ✅ (adicionada em `20260720000006` — sync de configurações cross-tab)
+- `zapp.workspace_settings` ✅ (adicionada em `20260720000006` — sync de configurações cross-tab)
 - `zapp.goal_notifications` / `zapp.transcription_notifications` — tabelas fantasma, subscriptions redirecionadas
 - `zapp.dispatch_error_logs` — NÃO está em supabase_realtime (sem subscription ativa, ok)
+- Auditoria completa de 36 tabelas e 49 RPCs: todos presentes ou cobertos por stubs/migrations
