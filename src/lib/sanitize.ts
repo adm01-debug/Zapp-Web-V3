@@ -227,7 +227,7 @@ const normalizationCache = new Map<string, string>();
 function normalizeUnicodeNFKC(text: string): string {
   if (!text) return text;
   if (normalizationCache.has(text)) {
-    return normalizationCache.get(text)!;
+    return normalizationCache.get(text) as string;
   }
   try {
     const normalized = text.normalize('NFKC');

@@ -14,7 +14,10 @@ export function useHmacAuditHistory(range: RangeKey, instanceFilter: string, lim
     'connecting'
   );
 
-  const rangeCfg = useMemo(() => RANGES.find((r) => r.value === range)!, [range]);
+  const rangeCfg = useMemo(
+    () => RANGES.find((r) => r.value === range) as (typeof RANGES)[number],
+    [range]
+  );
   const since = useMemo(() => subHours(new Date(), rangeCfg.hours).toISOString(), [rangeCfg]);
 
   const queryKey = useMemo(
@@ -72,7 +75,9 @@ export function useHmacAuditHistory(range: RangeKey, instanceFilter: string, lim
           if (debounceRef.current) window.clearTimeout(debounceRef.current);
           debounceRef.current = window.setTimeout(() => {
             void queryClient.invalidateQueries({ queryKey: queryKeys.adminOps.hmacAudit() });
-            void queryClient.invalidateQueries({ queryKey: queryKeys.adminOps.hmacAuditInstances() });
+            void queryClient.invalidateQueries({
+              queryKey: queryKeys.adminOps.hmacAuditInstances(),
+            });
           }, 300);
         }
       )

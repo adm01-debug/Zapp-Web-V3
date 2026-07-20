@@ -48,7 +48,13 @@ export type ArrayConstraint<T> = T extends readonly unknown[] ? T : never;
  * Ensures T is a primitive type
  */
 export type PrimitiveConstraint<T> = T extends
-  string | number | boolean | bigint | symbol | null | undefined
+  | string
+  | number
+  | boolean
+  | bigint
+  | symbol
+  | null
+  | undefined
   ? T
   : never;
 
@@ -380,7 +386,7 @@ export class TypeCache<K, V> {
   /** Returns the cached value for `key`, computing and storing it via `compute` on a cache miss. */
   get(key: K, compute: (key: K) => V): V {
     if (this.cache.has(key)) {
-      return this.cache.get(key)!;
+      return this.cache.get(key) as V;
     }
     const value = compute(key);
     this.cache.set(key, value);

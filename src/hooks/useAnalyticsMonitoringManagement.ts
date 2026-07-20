@@ -154,7 +154,9 @@ export interface DemandInsights {
 }
 
 /** Builds a prediction timeline from historical hourly message counts, merging 4 hours of actuals with 4 forecast points. */
-function generatePredictionFromHistory(messageHistory: { hour: number; count: number }[]): PredictionPoint[] {
+function generatePredictionFromHistory(
+  messageHistory: { hour: number; count: number }[]
+): PredictionPoint[] {
   const now = new Date();
   const data: PredictionPoint[] = [];
 
@@ -191,7 +193,10 @@ function generatePredictionFromHistory(messageHistory: { hour: number; count: nu
 }
 
 /** Predicts queue demand with capacity forecasting and staffing recommendations. */
-export function useDemandPredictionManagement(externalData?: PredictionPoint[], currentCapacity = 35) {
+export function useDemandPredictionManagement(
+  externalData?: PredictionPoint[],
+  currentCapacity = 35
+) {
   const { data: messageHistory = [] } = useQuery({
     queryKey: queryKeys.demandPrediction.history(),
     queryFn: async () => {
@@ -384,7 +389,7 @@ export function useDeliveryStatsManagement(remoteJid: string | undefined, instan
       }
 
       const { data, error } = await dbList(RPC.listMessages, {
-        p_remote_jid: remoteJid!,
+        p_remote_jid: remoteJid ?? '',
         p_instance: instance,
         p_limit: 500,
       });
@@ -392,7 +397,7 @@ export function useDeliveryStatsManagement(remoteJid: string | undefined, instan
       if (error) {
         log.error('Delivery stats query error', error);
         return {
-          isGroup: isGroupJid(remoteJid!),
+          isGroup: isGroupJid(remoteJid ?? ''),
           totals: {
             sent: 0,
             delivered: 0,
@@ -408,7 +413,7 @@ export function useDeliveryStatsManagement(remoteJid: string | undefined, instan
       }
 
       const messages = (data && Array.isArray(data) ? data : []) as Record<string, unknown>[];
-      const isGroup = isGroupJid(remoteJid!);
+      const isGroup = isGroupJid(remoteJid ?? '');
 
       const totals = {
         sent: 0,
@@ -434,7 +439,7 @@ export function useDeliveryStatsManagement(remoteJid: string | undefined, instan
           if (!timelineMap.has(hourKey)) {
             timelineMap.set(hourKey, { time: hourKey, sent: 0, delivered: 0, read: 0 });
           }
-          const point = timelineMap.get(hourKey)!;
+          const point = timelineMap.get(hourKey) as DeliveryTimelinePoint;
           if (rank >= 1) point.sent++;
           if (rank >= 2) point.delivered++;
           if (rank >= 3) point.read++;
@@ -453,7 +458,7 @@ export function useDeliveryStatsManagement(remoteJid: string | undefined, instan
             timeline: [],
           });
         }
-        const p = byParticipant.get(jid)!;
+        const p = byParticipant.get(jid) as ParticipantStats;
         if (name && name.length > p.displayName.length) p.displayName = name;
 
         if (tsString) {
@@ -567,7 +572,7 @@ export function useNPSSurveysManagement() {
           .from('profiles')
           .select('id')
           .eq('user_id', (await supabase.auth.getUser()).data.user?.id || '')
-          .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
+          .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
 
         const { error } = await supabase.from('nps_surveys').insert({
           contact_id: data.contact_id,

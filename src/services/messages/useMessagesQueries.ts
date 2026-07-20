@@ -20,7 +20,7 @@ export const useMessagesList = (filters?: Partial<Message> & QueryParams) => {
 export const useMessage = (id?: string) => {
   return useDetailQuery(
     queryKeys.messages.detail(id || ''),
-    () => messagesService.getMessage(id!),
+    () => messagesService.getMessage(id ?? ''),
     !!id,
     { staleTime: 30_000 }
   );
@@ -33,7 +33,7 @@ export const useConversationMessages = (
 ) => {
   return useQuery({
     queryKey: queryKeys.messages.thread(conversationId || ''),
-    queryFn: () => messagesService.listConversationMessages(conversationId!, filters),
+    queryFn: () => messagesService.listConversationMessages(conversationId ?? '', filters),
     enabled: !!conversationId,
     staleTime: 5_000,
   });
@@ -52,7 +52,7 @@ export const useConversationsList = (filters?: Partial<Conversation> & QueryPara
 export const useConversation = (id?: string) => {
   return useDetailQuery(
     queryKeys.messages.conversationDetail(id || ''),
-    () => messagesService.getConversation(id!),
+    () => messagesService.getConversation(id ?? ''),
     !!id,
     { staleTime: 30_000 }
   );

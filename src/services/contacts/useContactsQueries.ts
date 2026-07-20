@@ -26,7 +26,7 @@ export const useContactsList = (filters?: Partial<Contact> & QueryParams) => {
 export const useContact = (id?: string) => {
   return useDetailQuery(
     queryKeys.contacts.detail(id || ''),
-    () => contactsService.getById(id!),
+    () => contactsService.getById(id ?? ''),
     !!id,
     {
       staleTime: 60_000,
@@ -72,7 +72,7 @@ export const useArchivedContacts = (params?: Partial<QueryParams>) => {
 export const useContactExists = (id?: string) => {
   return useQuery({
     queryKey: [...queryKeys.contacts.detail(id || ''), 'exists'] as const,
-    queryFn: () => contactsService.exists(id!),
+    queryFn: () => contactsService.exists(id ?? ''),
     enabled: !!id,
     staleTime: Infinity, // Doesn't change often
   });

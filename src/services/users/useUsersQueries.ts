@@ -23,9 +23,14 @@ export const useUsersList = (filters?: Partial<User> & QueryParams) => {
  * Hook to get a single user by ID
  */
 export const useUser = (id?: string) => {
-  return useDetailQuery(queryKeys.users.detail(id || ''), () => usersService.getUser(id!), !!id, {
-    staleTime: 60_000,
-  });
+  return useDetailQuery(
+    queryKeys.users.detail(id || ''),
+    () => usersService.getUser(id ?? ''),
+    !!id,
+    {
+      staleTime: 60_000,
+    }
+  );
 };
 
 /**
@@ -56,9 +61,14 @@ export const useAgentsList = (filters?: Partial<Agent> & QueryParams) => {
  * Hook to get a single agent by ID
  */
 export const useAgent = (id?: string) => {
-  return useDetailQuery(queryKeys.users.detail(id || ''), () => usersService.getAgent(id!), !!id, {
-    staleTime: 60_000,
-  });
+  return useDetailQuery(
+    queryKeys.users.detail(id || ''),
+    () => usersService.getAgent(id ?? ''),
+    !!id,
+    {
+      staleTime: 60_000,
+    }
+  );
 };
 
 /**

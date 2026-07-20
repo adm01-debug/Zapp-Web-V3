@@ -16,9 +16,14 @@ export const useQueuesList = (filters?: Partial<Queue> & QueryParams) => {
 
 /** use Queue constant. */
 export const useQueue = (id?: string) => {
-  return useDetailQuery(queryKeys.queues.detail(id || ''), () => queuesService.get(id!), !!id, {
-    staleTime: 60_000,
-  });
+  return useDetailQuery(
+    queryKeys.queues.detail(id || ''),
+    () => queuesService.get(id ?? ''),
+    !!id,
+    {
+      staleTime: 60_000,
+    }
+  );
 };
 
 /** use Search Queues constant. */

@@ -1274,7 +1274,7 @@ export function useEmailSignature(accountId: string | null) {
               html_content: sig.html_content,
               is_default: sig.is_default ?? false,
             })
-            .eq('id', sig.id!)
+            .eq('id', sig.id ?? '')
         );
         if (error) {
           log.error('Email signature save error', error);
@@ -1316,7 +1316,7 @@ export function useEmailSignature(accountId: string | null) {
     async (id: string) => {
       if (!accountId) return;
       await safeClient.from('email_signatures', (q) =>
-        q.update({ is_default: false }).eq('account_id', accountId!)
+        q.update({ is_default: false }).eq('account_id', accountId ?? '')
       );
       await safeClient.from('email_signatures', (q) => q.update({ is_default: true }).eq('id', id));
       await load();

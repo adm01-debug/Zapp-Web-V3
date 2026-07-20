@@ -29,7 +29,7 @@ export const useWhatsAppConnectionsList = (filters?: Partial<WhatsAppConnection>
 export const useWhatsAppConnection = (id?: string) => {
   return useDetailQuery(
     queryKeys.connections.detail(id || ''),
-    () => connectionsService.getWhatsAppConnection(id!),
+    () => connectionsService.getWhatsAppConnection(id ?? ''),
     !!id,
     {
       staleTime: 60_000,
@@ -57,7 +57,7 @@ export const useSearchWhatsAppConnections = (query?: string) => {
 export const useConnectionHealth = (connectionId?: string) => {
   return useQuery({
     queryKey: queryKeys.connections.healthFor(connectionId),
-    queryFn: () => connectionsService.checkConnectionHealth(connectionId!),
+    queryFn: () => connectionsService.checkConnectionHealth(connectionId ?? ''),
     enabled: !!connectionId,
     staleTime: 5_000, // Health status is checked frequently
   });
@@ -69,7 +69,7 @@ export const useConnectionHealth = (connectionId?: string) => {
 export const useConnectionStatus = (connectionId?: string) => {
   return useQuery({
     queryKey: queryKeys.connections.detail(connectionId || ''),
-    queryFn: () => connectionsService.getConnectionStatus(connectionId!),
+    queryFn: () => connectionsService.getConnectionStatus(connectionId ?? ''),
     enabled: !!connectionId,
     staleTime: 10_000,
   });

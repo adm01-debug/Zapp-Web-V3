@@ -80,7 +80,7 @@ const MediaContent = memo(function MediaContent({ msg }: { msg: TeamMessage }) {
             'max-h-48 cursor-pointer rounded-lg object-contain',
             msg.media_type === 'sticker' || msg.media_type === 'emoji' ? 'h-24 w-24' : 'max-w-full'
           )}
-          onClick={() => window.open(msg.media_url!, '_blank')}
+          onClick={() => window.open(msg.media_url ?? '', '_blank')}
         />
       );
     case 'video':

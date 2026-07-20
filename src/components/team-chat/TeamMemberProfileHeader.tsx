@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';

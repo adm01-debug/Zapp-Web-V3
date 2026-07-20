@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { memo } from 'react';
 import { FileText, ImageIcon, Lock, Music, Shield, Link2, Video } from 'lucide-react';
 import { format, isToday, isYesterday } from 'date-fns';
@@ -26,7 +27,7 @@ export const MediaContent = memo(function MediaContent({ msg }: { msg: TeamMessa
     case 'sticker':
     case 'emoji':
       return (
-        <a href={msg.media_url!} target="_blank" rel="noopener noreferrer">
+        <a href={msg.media_url} target="_blank" rel="noopener noreferrer">
           <img
             src={msg.media_url}
             alt={

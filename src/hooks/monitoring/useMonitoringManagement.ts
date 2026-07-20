@@ -95,7 +95,7 @@ function computeInstanceUptimes(logs: HealthLog[], now: Date): InstanceUptime[] 
     const h = instLogs.filter((l) => HEALTHY_STATUSES.includes(l.status));
     const latencies = instLogs
       .filter((l) => l.response_time_ms != null)
-      .map((l) => l.response_time_ms!);
+      .map((l) => l.response_time_ms as number);
     const lastErr = instLogs.find((l) => !HEALTHY_STATUSES.includes(l.status));
     return {
       instanceId,

@@ -48,8 +48,9 @@ export async function invokeViaFetch<T>(
   data: T | null;
   error: { name?: string; message?: string; code?: string; status?: number } | null;
 }> {
-  if (getInvokeOverride()) {
-    return getInvokeOverride()!(fnName, opts) as Promise<{
+  const _invokeOverride = getInvokeOverride();
+  if (_invokeOverride) {
+    return _invokeOverride(fnName, opts) as Promise<{
       data: T | null;
       error: { name?: string; message?: string; code?: string; status?: number } | null;
     }>;

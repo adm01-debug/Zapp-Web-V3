@@ -162,7 +162,7 @@ export function useDeliveryStats(remoteJid: string | undefined, instance = 'wpp2
       }
 
       const { data, error } = await dbList(RPC.listMessages, {
-        p_remote_jid: remoteJid!,
+        p_remote_jid: remoteJid ?? '',
         p_instance: instance,
         p_limit: 500,
       });
@@ -171,7 +171,7 @@ export function useDeliveryStats(remoteJid: string | undefined, instance = 'wpp2
       if (error) {
         log.error('Delivery stats query error', error);
         return {
-          isGroup: isGroupJid(remoteJid!),
+          isGroup: isGroupJid(remoteJid ?? ''),
           totals: {
             sent: 0,
             delivered: 0,
@@ -187,7 +187,7 @@ export function useDeliveryStats(remoteJid: string | undefined, instance = 'wpp2
       }
 
       const messages = (data && Array.isArray(data) ? data : []) as Record<string, unknown>[];
-      const isGroup = isGroupJid(remoteJid!);
+      const isGroup = isGroupJid(remoteJid ?? '');
 
       const totals = {
         sent: 0,
@@ -215,7 +215,7 @@ export function useDeliveryStats(remoteJid: string | undefined, instance = 'wpp2
           if (!timelineMap.has(hourKey)) {
             timelineMap.set(hourKey, { time: hourKey, sent: 0, delivered: 0, read: 0 });
           }
-          const point = timelineMap.get(hourKey)!;
+          const point = timelineMap.get(hourKey) as DeliveryTimelinePoint;
           if (rank >= 1) point.sent++;
           if (rank >= 2) point.delivered++;
           if (rank >= 3) point.read++;
@@ -234,7 +234,7 @@ export function useDeliveryStats(remoteJid: string | undefined, instance = 'wpp2
             timeline: [], // Initial state for participant timeline
           });
         }
-        const p = byParticipant.get(jid)!;
+        const p = byParticipant.get(jid) as ParticipantStats;
         if (name && name.length > p.displayName.length) p.displayName = name;
 
         // Participant timeline aggregation
