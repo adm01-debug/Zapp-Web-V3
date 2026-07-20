@@ -104,15 +104,6 @@ const MIN_QUERY_LEN = 2;
 /** Returns true when the given ID is a mock identifier (prefixed with 'mock-'), used to short-circuit real API calls. */
 const isMockId = (id?: string | null): boolean => !!id && id.startsWith('mock-');
 
-interface BaseThreadRow {
-  id: string;
-  gmail_thread_id?: string | null;
-  gmail_account_id: string;
-  is_unread?: boolean;
-  message_count?: number;
-  [key: string]: unknown;
-}
-
 /** Maps a raw Supabase email_threads row to a typed EmailThread, normalising field aliases and computing unread_count. */
 const mapBaseThreadRow = (row: Record<string, unknown>): EmailThread =>
   emailMappers.thread({

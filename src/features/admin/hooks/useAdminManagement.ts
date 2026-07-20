@@ -24,7 +24,6 @@ import { useMountedRef } from '@/hooks/useMountedRef';
 import { log, getLogger } from '@/lib/logger';
 import { invalidateRouteRolesCache } from '@/features/auth';
 import { normalizeProfileRef, type AdminProfileRef } from '../utils/profileMappers';
-import type { Json } from '@/integrations/supabase/schema';
 import type { AppRole } from '@/features/auth';
 
 // ─── Type Exports ────────────────────────────────────────────────────────────
@@ -485,7 +484,7 @@ function useAdminChannelsManagement(statusFilter: string, search: string) {
       setChannels((chRes.data ?? []) as ServiceChannel[]);
       setChannelQueues((qRes.data ?? []) as QueueOption[]);
       setChannelWppConns((wRes.data ?? []) as WppConnOption[]);
-    } catch (e) {
+    } catch {
       if (myId !== loadIdRef.current) return;
       log.error('Load service channels failed', e);
       toast.error('Erro ao carregar canais');
@@ -532,7 +531,7 @@ function useAdminChannelsManagement(statusFilter: string, search: string) {
       toast.success(editing.id ? 'Canal atualizado' : 'Canal criado');
       loadChannels();
       return true;
-    } catch (e) {
+    } catch {
       toast.error('Erro ao salvar');
       return false;
     }
@@ -566,7 +565,7 @@ function useAdminChannelsManagement(statusFilter: string, search: string) {
       );
       loadChannels();
       return true;
-    } catch (e) {
+    } catch {
       toast.error('Erro');
       return false;
     }
@@ -580,7 +579,7 @@ function useAdminChannelsManagement(statusFilter: string, search: string) {
       if (error) throw new Error(error.message);
       toast.success('Canal reativado');
       loadChannels();
-    } catch (e) {
+    } catch {
       toast.error('Erro');
     }
   };
@@ -641,7 +640,7 @@ function useAdminQueuesManagement() {
       setQueueChannels((cRes.data ?? []) as QueueServiceChannel[]);
       setChannelQueues((chqRes.data ?? []) as ChannelQueue[]);
       setProfiles((pRes.data ?? []) as Profile[]);
-    } catch (e) {
+    } catch {
       toast({ title: 'Erro ao carregar filas', variant: 'destructive' });
     } finally {
       if (mountedRef.current) setQueuesLoading(false);
@@ -1088,7 +1087,7 @@ function useHmacSecurityManagement(instance: string, includeNegative: boolean) {
         } else {
           void queryClient.invalidateQueries({ queryKey: queryKeys.adminOps.hmacAudit() });
         }
-      } catch (e) {
+      } catch {
         log.warn('audit insert threw', e);
       }
     },
@@ -1155,7 +1154,7 @@ function useHmacSecurityManagement(instance: string, includeNegative: boolean) {
             void queryClient.invalidateQueries({ queryKey: queryKeys.alerts.all() });
           }
         }
-      } catch (e) {
+      } catch {
         log.warn('alert sync threw', e);
       }
     },
@@ -1178,7 +1177,7 @@ function useHmacSecurityManagement(instance: string, includeNegative: boolean) {
       else toast.error(r.error ?? 'Falha no auto-teste HMAC');
       await logSecurityAudit(r, Math.round(performance.now() - t0));
       await syncSecurityAlert(r);
-    } catch (e) {
+    } catch {
       const msg = e instanceof Error ? e.message : 'Erro inesperado';
       const failure: SelfTestResult = { ok: false, configured: false, error: msg };
       setSecurityResult(failure);

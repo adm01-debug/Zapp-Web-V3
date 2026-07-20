@@ -153,7 +153,7 @@ export function useChatMediaSending(contactId: string, contactPhone: string | un
             status: 'sending',
           })
           .select('id')
-          .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
+          .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
 
         if (dbDataErr) {
           log.error('[Sticker] DB insert failed:', dbDataErr);
@@ -184,7 +184,7 @@ export function useChatMediaSending(contactId: string, contactPhone: string | un
 
         // FALHA 6 FIX: Auto-save with error handling
         try {
-          const { data: existing, error: existingErr } = await supabase
+          const { data: existing, error: _existingErr } = await supabase
             .from('stickers')
             .select('id')
             .eq('image_url', stickerUrl)
@@ -272,7 +272,7 @@ export function useChatMediaSending(contactId: string, contactPhone: string | un
             request_id: trace.requestId,
           })
           .select('id')
-          .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
+          .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
 
         const results = await Promise.allSettled([apiPromise, dbPromise]);
         const apiResult =
@@ -363,7 +363,7 @@ export function useChatMediaSending(contactId: string, contactPhone: string | un
             ...(memeId ? { audio_meme_id: memeId } : {}),
           })
           .select('id')
-          .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
+          .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
 
         const results = await Promise.allSettled([apiPromise, dbPromise]);
         const apiResult =

@@ -226,7 +226,7 @@ export const createService = <T = any>(tableName: string, options?: ServiceOptio
     /**
      * Subscribe to realtime updates
      */
-    subscribe(callback: (data: T) => void, filter?: Partial<T>) {
+    subscribe(callback: (data: T) => void, _filter?: Partial<T>) {
       const channel = supabase
         .channel(`${tableName}-changes`)
         .on(

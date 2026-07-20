@@ -279,6 +279,7 @@ function decodeHtmlEntities(html: string): string {
 
 /** Throws if the string contains ASCII control characters (0x00–0x1F or 0x7F), which are illegal in sanitised HTML output. */
 function validateNoControlCharacters(text: string): void {
+  // eslint-disable-next-line no-control-regex
   if (/[\x00-\x1F\x7F]/.test(text)) {
     throw new Error('Input contains invalid control characters');
   }
@@ -348,7 +349,10 @@ export interface SanitizeResult {
 }
 
 /** sanitize Html Strict function. */
-export function sanitizeHtmlStrict(html: unknown, _options?: Record<string, unknown>): SanitizeResult {
+export function sanitizeHtmlStrict(
+  html: unknown,
+  _options?: Record<string, unknown>
+): SanitizeResult {
   try {
     if (html === null || html === undefined) {
       log.error('[sanitizeHtmlStrict] Received null/undefined input');

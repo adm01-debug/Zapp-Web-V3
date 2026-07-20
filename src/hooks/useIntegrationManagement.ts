@@ -1,6 +1,6 @@
 // Consolidated Integration Management Module (ETAPA 42)
 // Consolidates: useEvolutionApi, useGmailOAuthFlow, useBitrixApi, useTalkX, useSyncToCRM, useOnboarding
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { log } from '@/lib/logger';
 import { toast } from 'sonner';
@@ -46,8 +46,8 @@ export function useEvolutionApiManagement() {
 
 /** Handles Gmail OAuth authentication flow and token management. */
 export function useGmailOAuthFlowManagement() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [isAuthenticated, _setIsAuthenticated] = useState(false);
+  const [loading, _setLoading] = useState(false);
 
   const initiateOAuth = useCallback(async () => {
     // GAP-2: initiate_gmail_oauth RPC not yet deployed to DB

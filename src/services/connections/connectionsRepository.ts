@@ -7,7 +7,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { createService } from '@/services/api/genericService';
-import type { ListResponse, QueryParams } from '@/services/api/types';
+import type { QueryParams } from '@/services/api/types';
 
 /** Whats App Connection interface. */
 export interface WhatsAppConnection {
@@ -55,23 +55,18 @@ export const connectionsRepository = {
   listWhatsAppConnections: (filters?: Partial<WhatsAppConnection> & QueryParams) =>
     whatsappBaseService.list(filters),
 
-  getWhatsAppConnection: (id: string) =>
-    whatsappBaseService.get(id),
+  getWhatsAppConnection: (id: string) => whatsappBaseService.get(id),
 
-  searchWhatsAppConnections: (query: string) =>
-    whatsappBaseService.search(query),
+  searchWhatsAppConnections: (query: string) => whatsappBaseService.search(query),
 
-  createWhatsAppConnection: (data: Partial<WhatsAppConnection>) =>
-    whatsappBaseService.create(data),
+  createWhatsAppConnection: (data: Partial<WhatsAppConnection>) => whatsappBaseService.create(data),
 
   updateWhatsAppConnection: (id: string, updates: Partial<WhatsAppConnection>) =>
     whatsappBaseService.update(id, updates),
 
-  deleteWhatsAppConnection: (id: string) =>
-    whatsappBaseService.delete(id),
+  deleteWhatsAppConnection: (id: string) => whatsappBaseService.delete(id),
 
-  deleteWhatsAppConnectionsBulk: (ids: string[]) =>
-    whatsappBaseService.deleteMany(ids),
+  deleteWhatsAppConnectionsBulk: (ids: string[]) => whatsappBaseService.deleteMany(ids),
 
   // Channel connections
   async listChannelConnections(filters?: Partial<ChannelConnection> & QueryParams) {
@@ -89,7 +84,7 @@ export const connectionsRepository = {
       .from('channel_connections')
       .select('*')
       .eq('id', id)
-      .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
+      .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
 
     return { data, error };
   },
@@ -101,7 +96,7 @@ export const connectionsRepository = {
         .from('whatsapp_connections')
         .select('connection_status, error_message')
         .eq('id', connectionId)
-        .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
+        .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
 
       if (error) return { data: null, error };
       return { data, error: null };

@@ -25,16 +25,11 @@ describe('Debug DOMPurify behavior', () => {
     const input = '<b>bold</b>';
     const output = DOMPurify.sanitize(input, config);
 
-    console.log('Input:', input);
-    console.log('Output:', output);
-    console.log('Config:', config);
-
     expect(output).toBe('<b>bold</b>');
   });
 
   test('Debug: Compare with sanitizeHtml function', () => {
     const result = sanitizeHtml('<b>bold</b>');
-    console.log('sanitizeHtml result:', result);
     expect(result.success).toBe(true);
     expect(result.html).toBe('<b>bold</b>');
   });

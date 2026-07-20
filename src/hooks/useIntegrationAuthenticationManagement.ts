@@ -36,16 +36,12 @@ export interface EmailLabel {
 }
 
 const INITIAL_BACKOFF_MS = 2_000;
-const MAX_BACKOFF_MS = 60_000;
 const MAX_CONSECUTIVE_RECONNECT_ATTEMPTS = 20;
-const CIRCUIT_THRESHOLD = 3;
-const CIRCUIT_BASE_MS = 2 * 60_000;
-const CIRCUIT_MAX_MS = 10 * 60_000;
 
 /** Re-exported module members. */
 export { SYSTEM_LABELS };
 
-function extractHttpStatus(err: unknown): number | undefined {
+function _extractHttpStatus(err: unknown): number | undefined {
   if (err == null || typeof err !== 'object') return undefined;
   const e = err as Record<string, unknown>;
   if (typeof e['apiStatus'] === 'number') return e['apiStatus'];
@@ -66,16 +62,22 @@ export function useEvolutionAutoSyncManagement(onSynced?: () => void) {
 
   const syncAll = async () => {
     try {
-      const { data: existing, error } = await supabase.from('whatsapp_connections').select('instance_id, phone_number');
+      const { data: existing, error } = await supabase
+        .from('whatsapp_connections')
+        .select('instance_id, phone_number');
       if (error) throw error;
       const knownIds = new Set((existing ?? []).map((c) => c.instance_id));
-      const knownPhones = (existing ?? []).map((c) => normalizePhone(c.phone_number ?? '')).filter(Boolean);
+      const knownPhones = (existing ?? [])
+        .map((c) => normalizePhone(c.phone_number ?? ''))
+        .filter(Boolean);
 
       const evoResult = await listInstances();
       const evoResultObj = evoResult as Record<string, unknown>;
       const instances: unknown[] = Array.isArray(evoResult)
         ? evoResult
-        : ((evoResultObj?.data as unknown[] | undefined) ?? (evoResultObj?.instances as unknown[] | undefined) ?? []);
+        : ((evoResultObj?.data as unknown[] | undefined) ??
+          (evoResultObj?.instances as unknown[] | undefined) ??
+          []);
 
       if (!instances.length) return;
 
@@ -91,7 +93,8 @@ export function useEvolutionAutoSyncManagement(onSynced?: () => void) {
       const missing = (instances as EvoInstance[]).filter((inst) => {
         if (!inst?.instance?.instanceName) return false;
         if (knownIds.has(inst.instance.instanceName)) return false;
-        const phone = inst.instance?.number || inst.instance?.ownerJid?.replace('@s.whatsapp.net', '') || '';
+        const phone =
+          inst.instance?.number || inst.instance?.ownerJid?.replace('@s.whatsapp.net', '') || '';
         if (phone && knownPhones.some((kp) => isSamePhone(kp, phone))) return false;
         return true;
       });
@@ -101,7 +104,8 @@ export function useEvolutionAutoSyncManagement(onSynced?: () => void) {
       for (const inst of missing) {
         const instanceName = inst.instance?.instanceName ?? '';
         const name = inst.instance?.profileName || instanceName || 'Auto-synced';
-        const phone = inst.instance?.number || inst.instance?.ownerJid?.replace('@s.whatsapp.net', '') || '';
+        const phone =
+          inst.instance?.number || inst.instance?.ownerJid?.replace('@s.whatsapp.net', '') || '';
 
         await supabase.from('whatsapp_connections').insert({
           instance_id: instanceName,
@@ -131,10 +135,8 @@ export function useEvolutionAutoSyncManagement(onSynced?: () => void) {
 
 /** Hook: use Evolution Auto Reconnect Management. */
 export function useEvolutionAutoReconnectManagement(instanceName?: string) {
-  const { restartInstance, getInstanceStatus, connectInstance } = useEvolutionApi();
-  const queryClient = useQueryClient();
+  const { connectInstance } = useEvolutionApi();
   const attemptMap = useRef<Record<string, number>>({});
-  const lastAttemptTime = useRef<Record<string, number>>({});
   const [status, setStatus] = useState<string>('unknown');
   const [isReconnecting, _setIsReconnecting] = useState(false);
   const isReconnectingRef = useRef(false);
@@ -163,12 +165,15 @@ export function useEvolutionAutoReconnectManagement(instanceName?: string) {
     }
   }, [instanceName, connectInstance]);
 
-  const scheduleReconnect = useCallback((delayMs: number) => {
-    if (timerRef.current) clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(() => {
-      void performReconnect();
-    }, delayMs);
-  }, [performReconnect]);
+  const scheduleReconnect = useCallback(
+    (delayMs: number) => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+      timerRef.current = setTimeout(() => {
+        void performReconnect();
+      }, delayMs);
+    },
+    [performReconnect]
+  );
 
   useEffect(() => {
     return () => {
@@ -182,7 +187,7 @@ export function useEvolutionAutoReconnectManagement(instanceName?: string) {
 /** Hook: use Web Authn Management. */
 export function useWebAuthnManagement() {
   const { user } = useAuth();
-  const [loading, setLoading] = useState(false);
+  const [loading, _setLoading] = useState(false);
   const [passkeys, setPasskeys] = useState<PasskeyCredential[]>([]);
   const mountedRef = useMountedRef();
 

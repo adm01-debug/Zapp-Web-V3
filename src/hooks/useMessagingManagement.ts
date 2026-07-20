@@ -99,22 +99,25 @@ export function useMessageReactionsManagement(messageId?: string) {
 export function useForwardMessageManagement(messageId?: string) {
   const [forwarding, setForwarding] = useState(false);
 
-  const forwardMessage = useCallback(async (targetId: string) => {
-    if (!messageId) return;
+  const forwardMessage = useCallback(
+    async (targetId: string) => {
+      if (!messageId) return;
 
-    try {
-      setForwarding(true);
-      const { error } = await supabase
-        .from('forwarded_messages')
-        .insert({ source_message_id: messageId, target_id: targetId });
+      try {
+        setForwarding(true);
+        const { error } = await supabase
+          .from('forwarded_messages')
+          .insert({ source_message_id: messageId, target_id: targetId });
 
-      if (error) throw error;
-    } catch (err) {
-      log.error('Error forwarding message:', err);
-    } finally {
-      setForwarding(false);
-    }
-  }, [messageId]);
+        if (error) throw error;
+      } catch (err) {
+        log.error('Error forwarding message:', err);
+      } finally {
+        setForwarding(false);
+      }
+    },
+    [messageId]
+  );
 
   return { forwardMessage, forwarding };
 }
@@ -161,7 +164,7 @@ export function useChatbotFlowsManagement() {
 }
 
 /** Hook: use Team Chat Draft Management. */
-export function useTeamChatDraftManagement(chatId?: string) {
+export function useTeamChatDraftManagement(_chatId?: string) {
   const [draft, setDraft] = useState('');
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
 
@@ -186,9 +189,12 @@ export function useEmailDraftManagement() {
     recipients: [],
   });
 
-  const updateDraft = useCallback((updates: Partial<{ subject: string; body: string; recipients: string[] }>) => {
-    setDraft((prev) => ({ ...prev, ...updates }));
-  }, []);
+  const updateDraft = useCallback(
+    (updates: Partial<{ subject: string; body: string; recipients: string[] }>) => {
+      setDraft((prev) => ({ ...prev, ...updates }));
+    },
+    []
+  );
 
   const clearDraft = useCallback(() => {
     setDraft({ subject: '', body: '', recipients: [] });
