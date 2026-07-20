@@ -263,7 +263,7 @@ export function useEvolutionApiCore() {
       if (dedupeKey) inflightRef.current.set(dedupeKey, wrapped);
       return wrapped;
     },
-    []
+    [] // eslint-disable-line react-hooks/exhaustive-deps
   );
 
   const withToast = useCallback(

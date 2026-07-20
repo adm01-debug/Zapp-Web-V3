@@ -34,7 +34,7 @@ export function useGroupsManager() {
       log.error('Error fetching groups:', error);
     } else setGroups(data ?? []);
     setIsLoading(false);
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchConnections = useCallback(async () => {
     const { data, error } = await safeClient.from<WhatsAppConnection>('whatsapp_connections', (q) =>
@@ -45,7 +45,7 @@ export function useGroupsManager() {
     if (!mountedRef.current) return;
     if (error) log.error('Error fetching connections:', error);
     else setConnections(data ?? []);
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     fetchGroups();

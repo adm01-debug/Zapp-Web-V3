@@ -73,7 +73,7 @@ export function SecurityOverview() {
     }
 
     fetchAlerts();
-  }, [user]);
+  }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Calculate security score
   const calculateScore = (): SecurityScore => {

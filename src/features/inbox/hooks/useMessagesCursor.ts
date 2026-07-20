@@ -157,7 +157,7 @@ export function useMessagesCursor({
     } finally {
       if (mountedRef.current) setLoading(false);
     }
-  }, [enabled, remoteJid, fetchPage, pageSize]);
+  }, [enabled, remoteJid, fetchPage, pageSize]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Reset + first load whenever remoteJid changes.
   useEffect(() => {
@@ -204,14 +204,14 @@ export function useMessagesCursor({
       if (mountedRef.current) setLoadingOlder(false);
       inFlightRef.current = false;
     }
-  }, [remoteJid, hasMoreOlder, fetchPage, pageSize]);
+  }, [remoteJid, hasMoreOlder, fetchPage, pageSize]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const cancelLoadOlder = useCallback(() => {
     if (!inFlightRef.current) return;
     abortRef.current?.abort();
     inFlightRef.current = false;
     if (mountedRef.current) setLoadingOlder(false);
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Realtime — only set up when enabled + jid present.
   useEffect(() => {

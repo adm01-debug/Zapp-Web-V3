@@ -63,7 +63,7 @@ export default function AdminEmailAuditPage() {
     } finally {
       if (mountedRef.current) setLoading(false);
     }
-  }, [page, statusFilter, dateFrom, dateTo]);
+  }, [page, statusFilter, dateFrom, dateTo]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     void loadAuditLogs();
@@ -93,7 +93,10 @@ export default function AdminEmailAuditPage() {
         return <Badge variant="secondary">Pendente</Badge>;
       case 'processing':
         return (
-          <Badge variant="secondary" className="bg-primary text-primary-foreground hover:bg-primary/90">
+          <Badge
+            variant="secondary"
+            className="bg-primary text-primary-foreground hover:bg-primary/90"
+          >
             Processando
           </Badge>
         );

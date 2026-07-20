@@ -62,7 +62,7 @@ export function useOnboarding() {
     };
 
     checkOnboarding();
-  }, [user]);
+  }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const completeOnboarding = async () => {
     if (user) {

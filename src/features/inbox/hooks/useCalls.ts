@@ -6,7 +6,6 @@ import { toast } from '@/hooks/use-toast';
 import { log } from '@/lib/logger';
 import { useMountedRef } from '@/hooks/useMountedRef';
 
-
 /** Database row shape for a voice call record (start/end timestamps, direction, status, recording URL). */
 export interface Call {
   id: string;
@@ -53,7 +52,8 @@ export const useCalls = () => {
   const getProfileId = useCallback(async (): Promise<string | null> => {
     if (!user) return null;
 
-    const { data } = await supabase.from('profiles')
+    const { data } = await supabase
+      .from('profiles')
       .select('id')
       .eq('user_id', user.id)
       .maybeSingle();
@@ -68,7 +68,8 @@ export const useCalls = () => {
       try {
         const profileId = await getProfileId();
 
-        const { data, error } = await supabase.from('calls')
+        const { data, error } = await supabase
+          .from('calls')
           .insert({
             contact_id: params.contactId || null,
             agent_id: profileId,
@@ -101,135 +102,162 @@ export const useCalls = () => {
   );
 
   // Answer the call with abort signal support
-  const answerCall = useCallback(async (callId: string): Promise<boolean> => {
-    const controller = new AbortController();
-    abortControllerRef.current = controller;
+  const answerCall = useCallback(
+    async (callId: string): Promise<boolean> => {
+      const controller = new AbortController();
+      abortControllerRef.current = controller;
 
-    try {
-      const builder = supabase.from('calls')
-        .update({
-          status: 'answered',
-          answered_at: new Date().toISOString(),
-        })
-        .eq('id', callId);
+      try {
+        const builder = supabase
+          .from('calls')
+          .update({
+            status: 'answered',
+            answered_at: new Date().toISOString(),
+          })
+          .eq('id', callId);
 
-      // Pass abort signal to Supabase query builder if supported
-      const withSignal = (builder as unknown as {
-        abortSignal?: (s: AbortSignal) => typeof builder;
-      }).abortSignal?.(controller.signal) ?? builder;
+        // Pass abort signal to Supabase query builder if supported
+        const withSignal =
+          (
+            builder as unknown as {
+              abortSignal?: (s: AbortSignal) => typeof builder;
+            }
+          ).abortSignal?.(controller.signal) ?? builder;
 
-      const { error } = await (withSignal as typeof builder);
+        const { error } = await (withSignal as typeof builder);
 
-      if (controller.signal.aborted) return false;
-      if (error) throw error;
-      void queryClient.invalidateQueries({ queryKey: ['calls-history'] });
-      return true;
-    } catch (error) {
-      if (controller.signal.aborted) return false;
-      log.error('Error answering call:', error);
-      return false;
-    }
-  }, [queryClient]);
+        if (controller.signal.aborted) return false;
+        if (error) throw error;
+        void queryClient.invalidateQueries({ queryKey: ['calls-history'] });
+        return true;
+      } catch (error) {
+        if (controller.signal.aborted) return false;
+        log.error('Error answering call:', error);
+        return false;
+      }
+    },
+    [queryClient]
+  );
 
   // End the call with abort signal support
-  const endCall = useCallback(async (callId: string, durationSeconds: number): Promise<boolean> => {
-    const controller = new AbortController();
-    abortControllerRef.current = controller;
+  const endCall = useCallback(
+    async (callId: string, durationSeconds: number): Promise<boolean> => {
+      const controller = new AbortController();
+      abortControllerRef.current = controller;
 
-    try {
-      const builder = supabase.from('calls')
-        .update({
-          status: 'ended',
-          ended_at: new Date().toISOString(),
-          duration_seconds: durationSeconds,
-        })
-        .eq('id', callId);
+      try {
+        const builder = supabase
+          .from('calls')
+          .update({
+            status: 'ended',
+            ended_at: new Date().toISOString(),
+            duration_seconds: durationSeconds,
+          })
+          .eq('id', callId);
 
-      // Pass abort signal to Supabase query builder if supported
-      const withSignal = (builder as unknown as {
-        abortSignal?: (s: AbortSignal) => typeof builder;
-      }).abortSignal?.(controller.signal) ?? builder;
+        // Pass abort signal to Supabase query builder if supported
+        const withSignal =
+          (
+            builder as unknown as {
+              abortSignal?: (s: AbortSignal) => typeof builder;
+            }
+          ).abortSignal?.(controller.signal) ?? builder;
 
-      const { error } = await (withSignal as typeof builder);
+        const { error } = await (withSignal as typeof builder);
 
-      if (controller.signal.aborted) return false;
-      if (error) throw error;
+        if (controller.signal.aborted) return false;
+        if (error) throw error;
 
-      setCurrentCallId(null);
-      void queryClient.invalidateQueries({ queryKey: ['calls-history'] });
-      return true;
-    } catch (error) {
-      if (controller.signal.aborted) return false;
-      log.error('Error ending call:', error);
-      if (mountedRef.current) {
-        toast({
-          title: 'Erro',
-          description: 'Não foi possível finalizar a chamada',
-          variant: 'destructive',
-        });
+        setCurrentCallId(null);
+        void queryClient.invalidateQueries({ queryKey: ['calls-history'] });
+        return true;
+      } catch (error) {
+        if (controller.signal.aborted) return false;
+        log.error('Error ending call:', error);
+        if (mountedRef.current) {
+          toast({
+            title: 'Erro',
+            description: 'Não foi possível finalizar a chamada',
+            variant: 'destructive',
+          });
+        }
+        return false;
       }
-      return false;
-    }
-  }, [mountedRef, queryClient]);
+    },
+    [mountedRef, queryClient]
+  );
 
   // Mark call as missed with abort signal support
-  const missCall = useCallback(async (callId: string): Promise<boolean> => {
-    const controller = new AbortController();
-    abortControllerRef.current = controller;
+  const missCall = useCallback(
+    async (callId: string): Promise<boolean> => {
+      const controller = new AbortController();
+      abortControllerRef.current = controller;
 
-    try {
-      const builder = supabase.from('calls')
-        .update({
-          status: 'missed',
-          ended_at: new Date().toISOString(),
-        })
-        .eq('id', callId);
+      try {
+        const builder = supabase
+          .from('calls')
+          .update({
+            status: 'missed',
+            ended_at: new Date().toISOString(),
+          })
+          .eq('id', callId);
 
-      // Pass abort signal to Supabase query builder if supported
-      const withSignal = (builder as unknown as {
-        abortSignal?: (s: AbortSignal) => typeof builder;
-      }).abortSignal?.(controller.signal) ?? builder;
+        // Pass abort signal to Supabase query builder if supported
+        const withSignal =
+          (
+            builder as unknown as {
+              abortSignal?: (s: AbortSignal) => typeof builder;
+            }
+          ).abortSignal?.(controller.signal) ?? builder;
 
-      const { error } = await (withSignal as typeof builder);
+        const { error } = await (withSignal as typeof builder);
 
-      if (controller.signal.aborted) return false;
-      if (error) throw error;
+        if (controller.signal.aborted) return false;
+        if (error) throw error;
 
-      setCurrentCallId(null);
-      void queryClient.invalidateQueries({ queryKey: ['calls-history'] });
-      return true;
-    } catch (error) {
-      if (controller.signal.aborted) return false;
-      log.error('Error marking call as missed:', error);
-      return false;
-    }
-  }, [mountedRef, queryClient]);
+        setCurrentCallId(null);
+        void queryClient.invalidateQueries({ queryKey: ['calls-history'] });
+        return true;
+      } catch (error) {
+        if (controller.signal.aborted) return false;
+        log.error('Error marking call as missed:', error);
+        return false;
+      }
+    },
+    [queryClient]
+  );
 
   // Add notes to a call with abort signal support
-  const addCallNotes = useCallback(async (callId: string, notes: string): Promise<boolean> => {
-    const controller = new AbortController();
-    abortControllerRef.current = controller;
+  const addCallNotes = useCallback(
+    async (callId: string, notes: string): Promise<boolean> => {
+      const controller = new AbortController();
+      abortControllerRef.current = controller;
 
-    try {
-      const builder = supabase.from('calls').update({ notes }).eq('id', callId);
+      try {
+        const builder = supabase.from('calls').update({ notes }).eq('id', callId);
 
-      // Pass abort signal to Supabase query builder if supported
-      const withSignal = (builder as unknown as {
-        abortSignal?: (s: AbortSignal) => typeof builder;
-      }).abortSignal?.(controller.signal) ?? builder;
+        // Pass abort signal to Supabase query builder if supported
+        const withSignal =
+          (
+            builder as unknown as {
+              abortSignal?: (s: AbortSignal) => typeof builder;
+            }
+          ).abortSignal?.(controller.signal) ?? builder;
 
-      const { error } = await (withSignal as typeof builder);
+        const { error } = await (withSignal as typeof builder);
 
-      if (controller.signal.aborted) return false;
-      if (error) throw error;
-      void queryClient.invalidateQueries({ queryKey: ['calls-history'] });
-      return true;
-    } catch (error) {
-      if (controller.signal.aborted) return false;
-      log.error('Error adding call notes:', error);
-      return false;
-    }
-  }, [queryClient]);
+        if (controller.signal.aborted) return false;
+        if (error) throw error;
+        void queryClient.invalidateQueries({ queryKey: ['calls-history'] });
+        return true;
+      } catch (error) {
+        if (controller.signal.aborted) return false;
+        log.error('Error adding call notes:', error);
+        return false;
+      }
+    },
+    [queryClient]
+  );
 
   // Get call history for a contact with abort signal support
   const getContactCalls = useCallback(async (contactId: string): Promise<Call[]> => {
@@ -237,15 +265,19 @@ export const useCalls = () => {
     abortControllerRef.current = controller;
 
     try {
-      const builder = supabase.from('calls')
+      const builder = supabase
+        .from('calls')
         .select('*')
         .eq('contact_id', contactId)
         .order('started_at', { ascending: false });
 
       // Pass abort signal to Supabase query builder if supported
-      const withSignal = (builder as unknown as {
-        abortSignal?: (s: AbortSignal) => typeof builder;
-      }).abortSignal?.(controller.signal) ?? builder;
+      const withSignal =
+        (
+          builder as unknown as {
+            abortSignal?: (s: AbortSignal) => typeof builder;
+          }
+        ).abortSignal?.(controller.signal) ?? builder;
 
       const { data, error } = await (withSignal as typeof builder);
 

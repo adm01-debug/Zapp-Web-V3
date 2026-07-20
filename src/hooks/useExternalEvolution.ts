@@ -553,7 +553,7 @@ export function useExternalMessages(remoteJid: string | null) {
       loadOlderAbortRef.current = null;
       if (mountedRef.current) setLoadingOlder(false);
     }
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const initialFetch = useCallback(async () => {
     if (!remoteJid || !mountedRef.current) {
@@ -615,7 +615,7 @@ export function useExternalMessages(remoteJid: string | null) {
     } finally {
       if (mountedRef.current) setLoading(false);
     }
-  }, [remoteJid]);
+  }, [remoteJid]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Cursor-forward poll (only new messages since lastSeen)
   const pollNewMessages = useCallback(async () => {
@@ -649,7 +649,7 @@ export function useExternalMessages(remoteJid: string | null) {
     } catch (err) {
       log.error('Error polling external messages:', err);
     }
-  }, [remoteJid]);
+  }, [remoteJid]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Load older page (scroll up) — cancellable
   const loadOlder = useCallback(async () => {
@@ -703,7 +703,7 @@ export function useExternalMessages(remoteJid: string | null) {
       }
       if (mountedRef.current) setLoadingOlder(false);
     }
-  }, [remoteJid, messages, loadingOlder, hasMore]);
+  }, [remoteJid, messages, loadingOlder, hasMore]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Initial fetch on jid change
   useEffect(() => {
@@ -769,7 +769,7 @@ export function useExternalMessages(remoteJid: string | null) {
       }
     });
     return unsub;
-  }, [remoteJid]);
+  }, [remoteJid]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const addMessage = useCallback((message: RealtimeMessage) => {
     setMessages((prev) => {

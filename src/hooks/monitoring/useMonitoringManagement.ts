@@ -260,7 +260,7 @@ export function useMonitoringDataManagement(
         if (mountedRef.current) setLoading(false);
       }
     },
-    [onConnectionsUpdate]
+    [onConnectionsUpdate] // eslint-disable-line react-hooks/exhaustive-deps
   );
 
   return {

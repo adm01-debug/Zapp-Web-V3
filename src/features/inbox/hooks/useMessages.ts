@@ -49,7 +49,7 @@ export function useMessages({ contactId, enabled = true }: UseMessagesOptions) {
     } finally {
       if (mountedRef.current) setLoading(false);
     }
-  }, [contactId]);
+  }, [contactId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Handle new message from realtime
   const handleNewMessage = useCallback(

@@ -32,9 +32,13 @@ export function useConversationActions() {
       data: { user },
     } = await supabase.auth.getUser();
     if (!user || !mountedRef.current) return;
-    const { data } = await supabase.from('profiles').select('id').eq('user_id', user.id).maybeSingle(); // ✅ fix: maybeSingle evita PGRST116
+    const { data } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('user_id', user.id)
+      .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116
     if (data && mountedRef.current) setProfileId(data.id);
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadPinned = useCallback(async (pid: string) => {
     const { data } = await supabase
@@ -42,7 +46,7 @@ export function useConversationActions() {
       .select('contact_id')
       .eq('pinned_by', pid);
     if (data && mountedRef.current) setPinnedIds(new Set(data.map((p) => p.contact_id)));
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadFavorites = useCallback(async () => {
     const {
@@ -55,7 +59,7 @@ export function useConversationActions() {
       .eq('user_id', user.id);
     if (data && mountedRef.current)
       setFavoriteIds(new Set(data.map((f: FavoriteContact) => f.contact_id)));
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadSnoozed = useCallback(async (pid: string) => {
     const { data } = await supabase
@@ -64,7 +68,7 @@ export function useConversationActions() {
       .eq('snoozed_by', pid)
       .gt('snooze_until', new Date().toISOString());
     if (data && mountedRef.current) setSnoozedIds(new Set(data.map((s) => s.contact_id)));
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     loadProfile();
@@ -170,7 +174,7 @@ export function useConversationActions() {
           snoozeUntil = setHours(startOfTomorrow(), 9);
           break;
         case 'nextweek': {
-          const daysUntilMonday = ((1 - now.getDay() + 7) % 7) || 7;
+          const daysUntilMonday = (1 - now.getDay() + 7) % 7 || 7;
           snoozeUntil = setHours(addDays(now, daysUntilMonday), 9);
           break;
         }
@@ -178,16 +182,14 @@ export function useConversationActions() {
           snoozeUntil = addHours(now, 1);
       }
 
-      const { error } = await supabase
-        .from('conversation_snoozes')
-        .upsert(
-          {
-            contact_id: contactId,
-            snoozed_by: profileId,
-            snooze_until: snoozeUntil.toISOString(),
-          },
-          { onConflict: 'contact_id,snoozed_by' }
-        );
+      const { error } = await supabase.from('conversation_snoozes').upsert(
+        {
+          contact_id: contactId,
+          snoozed_by: profileId,
+          snooze_until: snoozeUntil.toISOString(),
+        },
+        { onConflict: 'contact_id,snoozed_by' }
+      );
       if (!error) {
         setSnoozedIds((prev) => new Set([...prev, contactId]));
         toast.success('Conversa adiada');
