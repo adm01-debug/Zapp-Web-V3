@@ -30,6 +30,10 @@ export function usePersonalStickersManagement(userId?: string) {
     };
   }, []);
 
+  useEffect(() => {
+    if (!userId && mountedRef.current) setLoading(false);
+  }, [userId]);
+
   const fetchStickers = useCallback(async () => {
     if (!userId) return;
 
