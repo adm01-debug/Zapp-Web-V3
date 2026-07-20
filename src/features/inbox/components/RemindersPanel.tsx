@@ -39,7 +39,10 @@ export function RemindersPanel({ contactId, profileId }: RemindersPanelProps) {
   }, [contactId, profileId]);
 
   const loadReminders = async () => {
-    if (!profileId) return;
+    if (!profileId) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     const { data } = await supabase
       .from('reminders')
