@@ -21,25 +21,28 @@ export function useEvolutionApiManagement() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const _mounted = true;
+    let cancelled = false;
     const checkConnection = async () => {
-      if (!_mounted) return;
       try {
         // SCHEMA: zapp — evolution_instances existe como view em zapp (security_invoker=on)
         // Não usar .schema('evo') — evo.evolution_instances não existe no DB (PGRST205).
         const { data, error: err } = await supabase.from('evolution_instances').select('*');
 
+        if (cancelled) return;
         if (err) throw err;
         setInstances(data || []);
         setIsConnected((data || []).length > 0);
       } catch (err) {
         log.error('Error checking Evolution API connection:', err);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
 
     checkConnection();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   return { isConnected, instances, loading };
@@ -71,9 +74,8 @@ export function useBitrixApiManagement() {
   const [webhookUrl, setWebhookUrl] = useState<string | null>(null);
 
   useEffect(() => {
-    const _mounted = true;
+    let cancelled = false;
     const checkBitrixConnection = async () => {
-      if (!_mounted) return;
       try {
         const { data, error: err } = await supabase
           .from('integrations')
@@ -81,6 +83,7 @@ export function useBitrixApiManagement() {
           .eq('type', 'bitrix24')
           .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
 
+        if (cancelled) return;
         if (err && err.code !== 'PGRST116') throw err;
         if (data?.config?.webhook_url) {
           setIsConnected(true);
@@ -92,6 +95,9 @@ export function useBitrixApiManagement() {
     };
 
     checkBitrixConnection();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   return { isConnected, webhookUrl };
@@ -104,9 +110,8 @@ export function useTalkXManagement() {
   const [config, setConfig] = useState<any>(null);
 
   useEffect(() => {
-    const _mounted = true;
+    let cancelled = false;
     const fetchTalkXConfig = async () => {
-      if (!_mounted) return;
       try {
         const { data, error: err } = await supabase
           .from('integrations')
@@ -114,6 +119,7 @@ export function useTalkXManagement() {
           .eq('type', 'talkx')
           .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
 
+        if (cancelled) return;
         if (err && err.code !== 'PGRST116') throw err;
         if (data) {
           setIsEnabled(true);
@@ -125,6 +131,9 @@ export function useTalkXManagement() {
     };
 
     fetchTalkXConfig();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   return { isEnabled, config };

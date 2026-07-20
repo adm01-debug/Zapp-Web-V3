@@ -247,6 +247,7 @@ export function useConversationAnalyses(contactId: string | null) {
   const [analyses, setAnalyses] = useState<ConversationAnalysis[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const mountedRef = useMountedRef();
 
   const fetchAnalyses = useCallback(async () => {
     if (!contactId) return;
@@ -260,16 +261,17 @@ export function useConversationAnalyses(contactId: string | null) {
         .order('created_at', { ascending: false })
         .limit(20);
 
+      if (!mountedRef.current) return;
       if (error) throw error;
 
       setAnalyses((data || []) as ConversationAnalysis[]);
     } catch (err) {
       log.error('Error fetching analyses:', err);
-      setError(err instanceof Error ? err.message : 'Unknown error');
+      if (mountedRef.current) setError(err instanceof Error ? err.message : 'Unknown error');
     } finally {
-      setLoading(false);
+      if (mountedRef.current) setLoading(false);
     }
-  }, [contactId]);
+  }, [contactId, mountedRef]);
 
   useEffect(() => {
     void fetchAnalyses();

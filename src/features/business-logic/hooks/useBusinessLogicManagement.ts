@@ -69,10 +69,11 @@ export function useBusinessLogicCampaignsManagement(
   const { campaignId } = params;
   const [variants, setVariants] = useState<ABVariant[]>([]);
   const [loading, setLoading] = useState(true);
+  const mountedRef = useMountedRef();
 
   const fetchVariants = useCallback(async () => {
     if (!campaignId) {
-      setLoading(false);
+      if (mountedRef.current) setLoading(false);
       return;
     }
     setLoading(true);
@@ -81,6 +82,7 @@ export function useBusinessLogicCampaignsManagement(
       .select('*')
       .eq('campaign_id', campaignId)
       .order('created_at');
+    if (!mountedRef.current) return;
     if (!error && data) {
       setVariants(
         data.map((v) => ({
@@ -96,7 +98,7 @@ export function useBusinessLogicCampaignsManagement(
       );
     }
     setLoading(false);
-  }, [campaignId]);
+  }, [campaignId, mountedRef]);
 
   useEffect(() => {
     void fetchVariants();
