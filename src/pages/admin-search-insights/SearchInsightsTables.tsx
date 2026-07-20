@@ -8,31 +8,11 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { queryKeys } from '@/services/api/queryKeys';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-
-interface SearchInsight {
-  id: string;
-  search_term: string;
-  search_count: number;
-  click_count: number;
-}
+import { useSearchInsightRows } from '@/hooks/useSearchInsightRows';
 
 /** Search Insights Tables. */
 export function SearchInsightsTables() {
-  const { data: insights = [], isLoading } = useQuery({
-    queryKey: queryKeys.adminOps.searchInsights(),
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('search_insights')
-        .select('*')
-        .order('search_count', { ascending: false })
-        .limit(50);
-      if (error) throw error;
-      return (data ?? []) as SearchInsight[];
-    },
-  });
+  const { insights, isLoading } = useSearchInsightRows();
 
   if (isLoading) {
     return <div className="p-4">Carregando...</div>;
