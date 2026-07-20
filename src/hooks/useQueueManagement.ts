@@ -173,6 +173,7 @@ export function useQueuesCrudManagement() {
 
   useEffect(() => {
     if (user) fetchQueues();
+    else if (mountedRef.current) setLoading(false);
   }, [user, fetchQueues]);
 
   return { queues, loading, error, refetch: fetchQueues };
@@ -220,6 +221,7 @@ export function useQueueAnalyticsManagement(params: { queueId: string; dateRange
 
   useEffect(() => {
     if (user && queueId) fetchAnalytics();
+    else if (mountedRef.current) setLoading(false);
   }, [user, queueId, fetchAnalytics]);
 
   return { analytics, loading, refetch: fetchAnalytics };
@@ -358,6 +360,7 @@ export function useQueueSlaManagement(params: { filters: QueueSlaFilters }) {
 
   useEffect(() => {
     if (user) fetchSla();
+    else if (mountedRef.current) setLoading(false);
   }, [user, fetchSla]);
 
   const updateQueueConfig = useCallback(
@@ -463,6 +466,7 @@ export function useQueuesComparisonManagement(_params: { dateRange: DateRange })
 
   useEffect(() => {
     if (user) fetchComparison();
+    else if (mountedRef.current) setLoading(false);
   }, [user, fetchComparison]);
 
   return { comparison, loading, refetch: fetchComparison };
