@@ -25,10 +25,12 @@ import { log } from '@/lib/logger';
 import { tanstackRetry } from '@/lib/errors/queryErrors';
 import { queryKeys } from '@/services/api/queryKeys';
 
+/** Strips all non-numeric characters from a phone string so it can be used as a consistent lookup key. */
 function cleanPhone(phone: string): string {
   return phone.replace(/[^0-9]/g, '');
 }
 
+/** C R M Batch Result interface definition. */
 export interface CRMBatchResult {
   company_name: string | null;
   logo_url: string | null;
@@ -645,6 +647,7 @@ export function useExternalMessages(remoteJid: string | null) {
 import { supabase } from '@/integrations/supabase/client';
 import { hasField, readArray, readVariants } from '@/lib/runtimeGuards';
 
+/** External Category interface definition. */
 export interface ExternalCategory {
   id: string;
   name: string;
@@ -652,11 +655,13 @@ export interface ExternalCategory {
   parent_id: string | null;
 }
 
+/** External Supplier interface definition. */
 export interface ExternalSupplier {
   id: string;
   name: string;
 }
 
+/** External Product Variant interface definition. */
 export interface ExternalProductVariant {
   id: string;
   product_id: string;
@@ -672,6 +677,7 @@ export interface ExternalProductVariant {
   is_active: boolean;
 }
 
+/** External Product interface definition. */
 export interface ExternalProduct {
   id: string;
   name: string;
@@ -706,6 +712,7 @@ export interface ExternalProduct {
   variants?: ExternalProductVariant[];
 }
 
+/** Catalog Filters interface definition. */
 export interface CatalogFilters {
   search?: string;
   category_id?: string;
@@ -729,6 +736,7 @@ async function invokeAction<T = unknown>(action: string, params: Record<string, 
   return data as T; // ignore-audit: narrows Supabase query result to local interface
 }
 
+/** with Safe Variants function. */
 export function withSafeVariants(product: ExternalProduct | null | undefined): ExternalProduct | null {
   if (!product) return null;
   return {

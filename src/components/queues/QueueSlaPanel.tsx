@@ -42,6 +42,7 @@ const PRIORITY_COLOR: Record<QueueSlaRow['sla_priority'], string> = {
   low: 'bg-muted text-muted-foreground',
 };
 
+/** Queue Sla Panel component for the queues section. */
 export const QueueSlaPanel = () => {
   const [filters, setFilters] = useState<QueueSlaFilters>({
     skill_name: null,

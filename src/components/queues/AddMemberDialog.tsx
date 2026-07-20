@@ -22,6 +22,7 @@ interface AddMemberDialogProps {
   onAddMember: (profileId: string) => Promise<void>;
 }
 
+/** Add Member Dialog component for the queues section. */
 export function AddMemberDialog({
   open,
   onOpenChange,

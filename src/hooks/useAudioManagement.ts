@@ -15,6 +15,7 @@ const log = getLogger('useAudioManagement');
    SECTION 1: useAudioMemes - Audio meme catalog management
    ============================================================================ */
 
+/** Audio Meme Item interface. */
 export interface AudioMemeItem {
   id: string;
   name: string;
@@ -25,6 +26,7 @@ export interface AudioMemeItem {
   use_count: number;
 }
 
+/** Pending Upload interface definition. */
 export interface PendingUpload {
   file: File;
   audioUrl: string;
@@ -335,6 +337,7 @@ export function useAudioMemes(open: boolean) {
   };
 }
 
+/** format Duration constant. */
 export const formatDuration = (seconds: number | null) => {
   if (!seconds) return '--';
   const s = Math.round(seconds);
@@ -509,29 +512,35 @@ export function useAudioPlayer({ audioUrl, messageId, refreshKey }: UseAudioPlay
     const audio = audioRef.current;
     if (!audio) return;
 
+    /** Sets the track duration once audio metadata is available and clears loading/error states. */
     const handleLoadedMetadata = () => {
       const d = audio.duration;
       setDuration(isFinite(d) && !isNaN(d) ? d : 0);
       setIsLoading(false);
       setHasError(false);
     };
+    /** Synchronizes `currentTime` and `progress` percentage as the audio position advances. */
     const handleTimeUpdate = () => {
       setCurrentTime(audio.currentTime);
       if (audio.duration && isFinite(audio.duration))
         setProgress((audio.currentTime / audio.duration) * 100);
     };
+    /** Resets playback state when the audio track reaches the end. */
     const handleEnded = () => {
       setIsPlaying(false);
       setProgress(0);
       setCurrentTime(0);
     };
+    /** Stops playback and marks the element as errored when the browser cannot load or decode the audio. */
     const handleError = () => {
       logLib.error('Audio error:', messageId);
       setIsPlaying(false);
       setIsLoading(false);
       setHasError(true);
     };
+    /** Sets loading state while the browser is buffering audio data. */
     const handleWaiting = () => setIsLoading(true);
+    /** Clears loading state once the browser has buffered enough to begin playback. */
     const handleCanPlay = () => setIsLoading(false);
 
     audio.addEventListener('loadedmetadata', handleLoadedMetadata);
@@ -655,6 +664,7 @@ export function useAudioPlayer({ audioUrl, messageId, refreshKey }: UseAudioPlay
     if (audioRef.current) audioRef.current.playbackRate = newRate;
   }, [playbackRate]);
 
+  /** Formats a seconds value as `m:ss`; returns `'0:00'` for non-finite inputs. */
   const formatTime = (seconds: number) => {
     if (!isFinite(seconds) || isNaN(seconds) || seconds < 0) return '0:00';
     return `${Math.floor(seconds / 60)}:${Math.floor(seconds % 60)
@@ -762,6 +772,7 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
         const bufferLength = analyser.frequencyBinCount;
         const dataArray = new Uint8Array(bufferLength);
 
+        /** Reads the frequency analyser data each animation frame and updates the normalized audio level (0–1). */
         const updateLevel = () => {
           if (!analyserRef.current) return;
           analyserRef.current.getByteFrequencyData(dataArray);
@@ -1062,6 +1073,7 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
   };
 }
 
+/** Converts a Blob to a Base64-encoded string (without the data-URL prefix) via FileReader. */
 async function blobToBase64(blob: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();

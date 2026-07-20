@@ -20,6 +20,7 @@ interface ProtectedRouteProps {
   routePath?: string;
 }
 
+/** Route guard that redirects unauthenticated users and enforces role/permission requirements before rendering children. */
 export function ProtectedRoute({
   children,
   requiredRoles,
@@ -162,6 +163,7 @@ export function ProtectedRoute({
 }
 
 // Higher-order component for permission-based rendering
+/** with Permission function. */
 export function withPermission<P extends object>(
   WrappedComponent: React.ComponentType<P>,
   permission: string

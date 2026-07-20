@@ -46,6 +46,7 @@ interface MessageContextMenuProps {
 
 const REACTION_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🙏'];
 
+/** Message Context Menu component. */
 export function MessageContextMenu({
   children,
   message,

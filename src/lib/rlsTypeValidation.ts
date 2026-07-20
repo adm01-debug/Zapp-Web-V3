@@ -130,6 +130,7 @@ class RLSPolicyRegistry {
   }
 }
 
+/** rls Policy Registry constant. */
 export const rlsPolicyRegistry = new RLSPolicyRegistry();
 
 /**
@@ -459,6 +460,7 @@ export function getRLSEvaluationLog(): Array<{
   return rlsPolicyRegistry.getEvaluationLog();
 }
 
+/** Default export. */
 export default {
   createRLSPolicy,
   evaluateRLSPolicy,

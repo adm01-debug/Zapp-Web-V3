@@ -25,6 +25,7 @@ interface SLADeliveryRule {
   updated_at: string;
 }
 
+/** SLADelivery Config Section component for the contact details section. */
 export function SLADeliveryConfigSection({ contactId }: SLADeliveryConfigSectionProps) {
   const queryClient = useQueryClient();
   const [warningThreshold, setWarningThreshold] = useState<number>(30);

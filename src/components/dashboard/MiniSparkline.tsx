@@ -6,6 +6,7 @@ interface MiniSparklineProps {
   delay?: number;
 }
 
+/** Mini Sparkline component for the dashboard section. */
 export function MiniSparkline({ data, isPositive, delay = 0 }: MiniSparklineProps) {
   const width = 50;
   const height = 20;

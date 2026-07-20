@@ -13,6 +13,7 @@ interface AudioMemeUploadPreviewProps {
   onCancel: () => void;
 }
 
+/** Audio Meme Upload Preview component. */
 export function AudioMemeUploadPreview({
   pending,
   onConfirm,

@@ -30,6 +30,7 @@ interface ResetRequest {
   created_at: string;
 }
 
+/** Admin panel for reviewing, approving, and rejecting password reset requests with realtime subscription. */
 export function PasswordResetRequestsPanel() {
   const [requests, setRequests] = useState<ResetRequest[]>([]);
   const [loading, setLoading] = useState(true);
@@ -53,7 +54,6 @@ export function PasswordResetRequestsPanel() {
       )
       .subscribe();
     return () => {
-      channel.unsubscribe();
       supabase.removeChannel(channel);
     };
   }, []);

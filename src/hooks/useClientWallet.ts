@@ -140,4 +140,5 @@ export function useClientWallet() {
   };
 }
 
+/** Re-exported module members. */
 export type { WalletRule, Profile, Connection };

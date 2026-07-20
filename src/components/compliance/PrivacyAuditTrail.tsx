@@ -23,6 +23,7 @@ function describeAction(action: string): string {
   return ACTION_LABELS[action] ?? action;
 }
 
+/** Privacy Audit Trail component for the compliance section. */
 export function PrivacyAuditTrail() {
   const { user } = useAuth();
   const { logs, loading, error, refetch } = useLGPDAuditLogs(user?.id, 50);

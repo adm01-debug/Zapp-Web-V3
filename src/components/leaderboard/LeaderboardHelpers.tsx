@@ -9,6 +9,7 @@ import {
   Sparkles, Zap, Target, Award, ChevronRight,
 } from 'lucide-react';
 
+/** achievement Icons component for the leaderboard section. */
 export const achievementIcons: Record<string, { icon: typeof Trophy; color: string; label: string }> = {
   'fast_response': { icon: Zap, color: 'text-primary', label: 'Resposta Rápida' },
   'streak': { icon: Flame, color: 'text-warning', label: 'Streak Master' },
@@ -27,6 +28,7 @@ export const achievementIcons: Record<string, { icon: typeof Trophy; color: stri
   'consistent': { icon: Medal, color: 'text-success', label: 'Consistent' },
 };
 
+/** Rank Badge component for the leaderboard section. */
 export function RankBadge({ rank, previousRank }: { rank: number; previousRank: number }) {
   const rankChange = previousRank - rank;
   const getRankStyle = () => {
@@ -58,6 +60,7 @@ export function RankBadge({ rank, previousRank }: { rank: number; previousRank: 
   );
 }
 
+/** Achievement Badge component for the leaderboard section. */
 export function AchievementBadge({ achievementKey }: { achievementKey: string }) {
   const achievement = achievementIcons[achievementKey] || achievementIcons['daily_goal'];
   const Icon = achievement.icon;
@@ -68,6 +71,7 @@ export function AchievementBadge({ achievementKey }: { achievementKey: string })
   );
 }
 
+/** Celebration Particles component for the leaderboard section. */
 export function CelebrationParticles({ isVisible }: { isVisible: boolean }) {
   const particles = Array.from({ length: 20 }, (_, i) => ({
     id: i, x: Math.random() * 100 - 50, y: Math.random() * -100 - 20,
@@ -97,6 +101,7 @@ export function CelebrationParticles({ isVisible }: { isVisible: boolean }) {
   );
 }
 
+/** Leaderboard Row component for the leaderboard section. */
 export function LeaderboardRow({ agent, index }: { agent: LeaderboardAgent; index: number }) {
   const [showCelebration, setShowCelebration] = useState(false);
   useEffect(() => {

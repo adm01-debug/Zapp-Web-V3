@@ -1,6 +1,7 @@
 // Re-export from consolidated useUIInteractionManagement module (ETAPA 32 consolidation)
 import { useSidebarCollapseManagement, useSidebarFavoritesManagement, useSidebarStateManagement, type SidebarState } from '@/hooks/useUIInteractionManagement';
 
+/** Re-exported module members. */
 export type { SidebarState };
 
 /** Manages sidebar collapse state with persistent storage. */

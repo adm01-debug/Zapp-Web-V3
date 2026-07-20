@@ -43,6 +43,7 @@ function isValidUrl(url: string | null): boolean {
   }
 }
 
+/** AIProvider Form Dialog component for the settings section. */
 export function AIProviderFormDialog({
   open, onOpenChange, form, setForm, editingId, isPending, onSave, toggleUseFor,
 }: AIProviderFormDialogProps) {

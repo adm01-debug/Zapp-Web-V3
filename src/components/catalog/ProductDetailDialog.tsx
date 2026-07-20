@@ -61,6 +61,7 @@ interface ProductDetailDialogProps {
   onSend?: (product: ExternalProduct) => void;
 }
 
+/** Product Detail Dialog component for the catalog section. */
 export function ProductDetailDialog({
   product,
   open,

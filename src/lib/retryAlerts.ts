@@ -4,6 +4,7 @@
  */
 import { safeGetJSON, safeSetJSON } from '@/lib/safeStorage';
 
+/** Alert threshold configuration for retry rate and failure percentage monitoring. */
 export interface RetryThresholds {
   /** p95 de tentativas máximo tolerado antes de alertar. */
   p95Attempts: number;
@@ -13,6 +14,7 @@ export interface RetryThresholds {
   minSampleSize: number;
 }
 
+/** Per-instance retry execution metrics for a rolling window. */
 export interface InstanceMetrics {
   instance: string;
   total: number;
@@ -23,8 +25,10 @@ export interface InstanceMetrics {
   failureRatePct: number;
 }
 
+/** Breach Reason Kind type alias. */
 export type BreachReasonKind = 'p95' | 'failure_rate';
 
+/** Breach Reason interface definition. */
 export interface BreachReason {
   kind: BreachReasonKind;
   /** Texto pronto pra exibir (ex.: "p95=4 ≥ 3"). */
@@ -35,6 +39,7 @@ export interface BreachReason {
   threshold: number;
 }
 
+/** Details of a threshold violation for a specific instance. */
 export interface InstanceBreach {
   instance: string;
   /** Strings legadas (compat). */
@@ -48,6 +53,7 @@ export interface InstanceBreach {
   hasOverride: boolean;
 }
 
+/** Default retry alert threshold values used as global baseline. */
 export const DEFAULT_THRESHOLDS: RetryThresholds = {
   p95Attempts: 3,
   failureRatePct: 20,
@@ -74,8 +80,11 @@ export function shouldFireRetryAlert(
   return true;
 }
 
+/** R E T R Y_ T H R E S H O L D S_ S T O R A G E_ K E Y constant. */
 export const RETRY_THRESHOLDS_STORAGE_KEY = 'zappweb:retry-alert-thresholds';
+/** R E T R Y_ P E R_ I N S T A N C E_ S T O R A G E_ K E Y constant. */
 export const RETRY_PER_INSTANCE_STORAGE_KEY = 'zappweb:retry-alert-thresholds:per-instance';
+/** R E T R Y_ D E D U P E_ M O D E_ S T O R A G E_ K E Y constant. */
 export const RETRY_DEDUPE_MODE_STORAGE_KEY = 'zappweb:retry-alert-dedupe-mode';
 
 /**
@@ -85,13 +94,16 @@ export const RETRY_DEDUPE_MODE_STORAGE_KEY = 'zappweb:retry-alert-dedupe-mode';
  * - `instance+kind`: 1 toast por (instância × tipo de violação) — padrão.
  */
 export type RetryAlertDedupeMode = 'instance' | 'instance+kind';
+/** Default deduplication mode for retry alert toasts. */
 export const DEFAULT_RETRY_DEDUPE_MODE: RetryAlertDedupeMode = 'instance+kind';
 
+/** Loads the currently saved retry-alert dedupe mode from localStorage, falling back to the default. */
 export function loadRetryAlertDedupeMode(): RetryAlertDedupeMode {
   const raw = safeGetJSON<unknown>(RETRY_DEDUPE_MODE_STORAGE_KEY, null);
   return raw === 'instance' || raw === 'instance+kind' ? raw : DEFAULT_RETRY_DEDUPE_MODE;
 }
 
+/** save Retry Alert Dedupe Mode function. */
 export function saveRetryAlertDedupeMode(mode: RetryAlertDedupeMode): boolean {
   return safeSetJSON(RETRY_DEDUPE_MODE_STORAGE_KEY, mode);
 }
@@ -150,6 +162,7 @@ export function subscribeRetryAlertsStorage(
 }
 
 
+/** load Thresholds function. */
 export function loadThresholds(): RetryThresholds {
   const raw = safeGetJSON<Partial<RetryThresholds> | null>(STORAGE_KEY, null);
   if (!raw || typeof raw !== 'object') return { ...DEFAULT_THRESHOLDS };
@@ -160,6 +173,7 @@ export function loadThresholds(): RetryThresholds {
   };
 }
 
+/** save Thresholds function. */
 export function saveThresholds(t: RetryThresholds): boolean {
   return safeSetJSON(STORAGE_KEY, t);
 }
@@ -167,6 +181,7 @@ export function saveThresholds(t: RetryThresholds): boolean {
 /** Map of instance name → custom thresholds (partial override of globals). */
 export type PerInstanceThresholds = Record<string, Partial<RetryThresholds>>;
 
+/** Loads the per-instance threshold overrides from localStorage, validating each entry. */
 export function loadPerInstanceThresholds(): PerInstanceThresholds {
   const raw = safeGetJSON<unknown>(PER_INSTANCE_STORAGE_KEY, null);
   if (!raw || typeof raw !== 'object') return {};
@@ -189,6 +204,7 @@ export function loadPerInstanceThresholds(): PerInstanceThresholds {
   return out;
 }
 
+/** save Per Instance Thresholds function. */
 export function savePerInstanceThresholds(map: PerInstanceThresholds): boolean {
   return safeSetJSON(PER_INSTANCE_STORAGE_KEY, map);
 }

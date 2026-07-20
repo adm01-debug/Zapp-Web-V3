@@ -25,6 +25,7 @@ function generateBackupCodes(count: number = 10): string[] {
   return codes;
 }
 
+/** MFABackup Codes component for the mfa section. */
 export function MFABackupCodes({ codes: initialCodes, onRegenerate, onClose }: MFABackupCodesProps) {
   const [codes] = useState<string[]>(initialCodes || generateBackupCodes());
   const [copied, setCopied] = useState(false);

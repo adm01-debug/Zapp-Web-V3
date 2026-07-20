@@ -34,6 +34,7 @@ const mockErrors: MockError[] = [
   { id: '4', title: 'RangeError: Maximum call stack exceeded', level: 'error', count: 2, lastSeen: '3h atrás', isResolved: true },
 ];
 
+/** Sentry Integration View component for the integrations section. */
 export function SentryIntegrationView() {
   const [isConnected, setIsConnected] = useState(false);
   const [config, setConfig] = useState<SentryConfig>({

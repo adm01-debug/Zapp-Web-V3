@@ -32,6 +32,7 @@ interface _SLAChartsProps {
   bestDays: DailyData[];
 }
 
+/** SLARate Chart component. */
 export function SLARateChart({ dailyData }: { dailyData: DailyData[] }) {
   return (
     <Card>
@@ -95,6 +96,7 @@ export function SLARateChart({ dailyData }: { dailyData: DailyData[] }) {
   );
 }
 
+/** SLAViolations Chart component. */
 export function SLAViolationsChart({ dailyData }: { dailyData: DailyData[] }) {
   return (
     <Card>
@@ -143,6 +145,7 @@ export function SLAViolationsChart({ dailyData }: { dailyData: DailyData[] }) {
   );
 }
 
+/** SLABest Worst Days component. */
 export function SLABestWorstDays({
   worstDays,
   bestDays,

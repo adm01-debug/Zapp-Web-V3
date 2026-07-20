@@ -34,4 +34,5 @@ const Toggle = React.forwardRef<
 
 Toggle.displayName = TogglePrimitive.Root.displayName;
 
+/** toggle component for the ui section. */
 export { Toggle, toggleVariants };

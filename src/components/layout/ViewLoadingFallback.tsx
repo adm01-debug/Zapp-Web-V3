@@ -1,5 +1,6 @@
 import { Skeleton, SkeletonCard, SkeletonText } from '@/components/ui/skeleton';
 
+/** View Loading Fallback component for the layout section. */
 export function ViewLoadingFallback() {
   return (
     <div

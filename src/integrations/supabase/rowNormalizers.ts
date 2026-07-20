@@ -15,6 +15,7 @@ import {
 
 // Re-exporta os normalizadores de profile já consolidados em features/admin,
 // documentando que aquele arquivo é o "caso especial" do columnMap.
+/** Re-exported module members. */
 export {
   normalizeProfileRef,
   normalizeAgentProfile,
@@ -31,6 +32,7 @@ type ConnRow = Partial<WhatsAppConnectionCanonical> & {
   instance_name?: string | null;
 };
 
+/** Normalizes a raw whatsapp_connections row into a canonical shape, handling legacy column aliases. */
 export function normalizeConnection(row: ConnRow | null | undefined): WhatsAppConnectionCanonical | null {
   if (!row || typeof row !== 'object' || typeof row.id !== 'string') return null;
   const nameDefault = columnMap.whatsapp_connections.columns.name.default as string;
@@ -72,6 +74,7 @@ type ContactRow = Partial<ContactCanonical> & {
   push_name?: string | null;
 };
 
+/** normalize Contact function. */
 export function normalizeContact(row: ContactRow | null | undefined): ContactCanonical | null {
   if (!row || typeof row !== 'object' || typeof row.id !== 'string') return null;
   const nameDefault = columnMap.contacts.columns.name.default as string;
@@ -97,6 +100,7 @@ type MessageRow = Partial<MessageCanonical> & {
   external_message_id?: string | null; // alias legado (schema antigo)
 };
 
+/** normalize Message function. */
 export function normalizeMessage(row: MessageRow | null | undefined): MessageCanonical | null {
   if (!row || typeof row !== 'object' || typeof row.id !== 'string') return null;
   const cols = columnMap.messages.columns;

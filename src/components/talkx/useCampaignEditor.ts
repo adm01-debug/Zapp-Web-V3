@@ -8,6 +8,7 @@ import { useTalkX, TalkXCampaign } from '@/hooks/useTalkX';
 // Format an ISO/UTC timestamp into the "YYYY-MM-DDTHH:mm" a <input type="datetime-local">
 // expects, in the browser's LOCAL time. Using toISOString() here would show UTC and
 // shift the displayed time (e.g. +3h in UTC-3), corrupting the value on re-save.
+/** to Local Date Time Input component for the talkx section. */
 export function toLocalDateTimeInput(value: string): string {
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return '';
@@ -15,6 +16,7 @@ export function toLocalDateTimeInput(value: string): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
+/** VARIABLES component for the talkx section. */
 export const VARIABLES = [
   { key: '{{nome}}', label: 'Primeiro Nome', desc: 'Insere o primeiro nome do contato' },
   { key: '{{nome_completo}}', label: 'Nome Completo', desc: 'Insere o nome completo do contato' },
@@ -23,6 +25,7 @@ export const VARIABLES = [
   { key: '{{saudacao}}', label: 'Saudação', desc: 'Automático: Bom dia / Boa tarde / Boa noite' },
 ];
 
+/** MESSAGE_TEMPLATES component for the talkx section. */
 export const MESSAGE_TEMPLATES = [
   { name: 'Saudação simples', template: '{{saudacao}}, {{nome}}! Tudo bem? 😊' },
   {
@@ -52,6 +55,7 @@ export const MESSAGE_TEMPLATES = [
   },
 ];
 
+/** MEDIA_TYPES component for the talkx section. */
 export const MEDIA_TYPES = [
   { value: 'image', label: 'Imagem', icon: 'Image' as const },
   { value: 'video', label: 'Vídeo', icon: 'Video' as const },
@@ -59,6 +63,7 @@ export const MEDIA_TYPES = [
   { value: 'audio', label: 'Áudio', icon: 'Music' as const },
 ];
 
+/** use Campaign Editor component for the talkx section. */
 export function useCampaignEditor(campaign: TalkXCampaign | null, onClose: () => void) {
   const { createCampaign, updateCampaign, addRecipients } = useTalkX();
 

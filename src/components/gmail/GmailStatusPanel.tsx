@@ -18,6 +18,7 @@ import { ptBR } from 'date-fns/locale';
 import { useEmailHealth } from '@/hooks/useGmailHealth';
 import { cn } from '@/lib/utils';
 
+/** Email Status Panel component for the gmail section. */
 export function EmailStatusPanel() {
   const { health, isLoading, refresh, forceRevalidation } = useEmailHealth();
 

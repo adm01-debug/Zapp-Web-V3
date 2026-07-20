@@ -25,6 +25,7 @@ const PHASE_CONFIG: Record<string, { count: number; speed: number; hueRange: [nu
   error: { count: 25, speed: 0.4, hueRange: [0, 30] },
 };
 
+/** Floating Particles component for the voice section. */
 export function FloatingParticles({ phase }: FloatingParticlesProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const particlesRef = useRef<Particle[]>([]);

@@ -10,6 +10,7 @@ interface UseDebounceOptions {
   leading?: boolean;
 }
 
+/** Hook: use Debounce Management. */
 export function useDebounceManagement<T extends (...args: any[]) => any>(
   callback: T,
   optionsOrDelay: UseDebounceOptions | number = {}
@@ -57,6 +58,7 @@ export function useDebounceManagement<T extends (...args: any[]) => any>(
   return debouncedFn;
 }
 
+/** Hook: use Debounced Value Management. */
 export function useDebouncedValueManagement<T>(value: T, delay = 300): T {
   const [debouncedValue, setDebouncedValue] = useState(value);
 
@@ -71,6 +73,7 @@ export function useDebouncedValueManagement<T>(value: T, delay = 300): T {
 // ===== Document Title Management =====
 const BASE_TITLE = 'WhatsApp Omnichannel';
 
+/** Hook: use Document Title Management. */
 export function useDocumentTitleManagement(title?: string) {
   useEffect(() => {
     const prev = document.title;
@@ -82,6 +85,7 @@ export function useDocumentTitleManagement(title?: string) {
 }
 
 // ===== In-Viewport Management =====
+/** Hook: Use In Viewport Options. */
 export interface UseInViewportOptions {
   rootMargin?: string;
   threshold?: number | number[];
@@ -89,6 +93,7 @@ export interface UseInViewportOptions {
   disabled?: boolean;
 }
 
+/** Hook: use In Viewport Management. */
 export function useInViewportManagement(
   ref: RefObject<Element | null>,
   options: UseInViewportOptions = {}
@@ -151,6 +156,7 @@ const VIEW_QUERY_KEYS = {
   tags: [queryKeys.tags.all()],
 } as const;
 
+/** Hook: use Prefetch On Hover Management. */
 export function usePrefetchOnHoverManagement() {
   const queryClient = useQueryClient();
 
@@ -173,6 +179,7 @@ export function usePrefetchOnHoverManagement() {
 }
 
 // ===== Mounted Ref Management =====
+/** Hook: use Mounted Ref Management. */
 export function useMountedRefManagement() {
   const mountedRef = useRef(true);
   useEffect(
@@ -200,6 +207,7 @@ interface UndoableActionState {
   timeRemaining: number;
 }
 
+/** Hook: use Undoable Action Management. */
 export function useUndoableActionManagement() {
   const [state, setState] = useState<UndoableActionState>({
     isPending: false,
@@ -337,6 +345,7 @@ interface UsePullToRefreshOptions {
   disabled?: boolean;
 }
 
+/** Hook: use Pull To Refresh Management. */
 export function usePullToRefreshManagement({
   onRefresh,
   threshold = 80,

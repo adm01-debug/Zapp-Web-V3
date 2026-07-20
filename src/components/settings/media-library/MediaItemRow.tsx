@@ -51,6 +51,7 @@ function InlineCategorySelect({
   );
 }
 
+/** Media Item Row Props component for the settings section. */
 export interface MediaItemRowProps {
   item: MediaItem;
   type: MediaType;
@@ -70,6 +71,7 @@ export interface MediaItemRowProps {
   onDelete: () => void;
 }
 
+/** Media Item Row component for the settings section. */
 export function MediaItemRow({
   item,
   type,

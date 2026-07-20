@@ -22,6 +22,7 @@ interface NoteRow {
   author?: { id?: string; name?: string; avatar_url?: string } | null;
 }
 
+/** Internal Notes Panel component for the collaboration section. */
 export function InternalNotesPanel({ contactId }: { contactId: string }) {
   const [newNote, setNewNote] = useState('');
   const queryClient = useQueryClient();

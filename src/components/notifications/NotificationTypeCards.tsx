@@ -15,7 +15,9 @@ import { NotificationSettings, SoundTypeOption } from '@/hooks/useNotificationSe
 import { playNotificationSound, SoundType, NotificationType } from '@/utils/notificationSounds';
 import { cn } from '@/lib/utils';
 
+/** Re-exported module members. */
 export { SentimentAlertCard } from './NotificationSentimentCard';
+/** Re-exported module members. */
 export { QuietHoursCard } from './NotificationQuietHoursCard';
 
 const SOUND_TYPES: { value: SoundTypeOption; label: string; description: string }[] = [
@@ -34,6 +36,7 @@ interface SoundSelectorProps {
   soundVolume: number;
 }
 
+/** Sound Selector component for the notifications section. */
 export function SoundSelector({
   value,
   onChange,
@@ -82,6 +85,7 @@ interface NotificationTypeSectionProps {
   updateSettings: (partial: Partial<NotificationSettings>) => void;
 }
 
+/** Notification Type Section component for the notifications section. */
 export function NotificationTypeSection({
   settings,
   updateSettings,

@@ -38,6 +38,7 @@ interface TeamChatInputAreaProps {
   onFileSent: (mediaUrl: string, mediaType: string, fileName: string) => void;
 }
 
+/** Team Chat Input Area component for the team chat section. */
 export function TeamChatInputArea({
   conversationId,
   text,

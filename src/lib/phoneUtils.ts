@@ -13,6 +13,7 @@
 
 // ── Valid Brazilian DDDs (area codes) ─────────────────────────────────────
 
+/** Set of all valid Brazilian DDD area codes accepted by the phone normaliser. */
 export const VALID_DDDS = new Set<number>([
   // São Paulo + ABCD
   11, 12, 13, 14, 15, 16, 17, 18, 19,
@@ -121,6 +122,7 @@ export function validatePhone(phone: unknown): PhoneValidationDetailed {
  * Returns normalized digits, formatted display, and inferred type.
  */
 export type PhoneType = 'mobile' | 'landline' | 'international';
+/** Rich phone validation result containing normalised digits, display format, and inferred type. */
 export interface PhoneValidationDetailed {
   valid:       boolean;
   error?:      string;
@@ -129,6 +131,7 @@ export interface PhoneValidationDetailed {
   type?:       PhoneType;
 }
 
+/** validate Phone Detailed function. */
 export function validatePhoneDetailed(phone: unknown): PhoneValidationDetailed {
   if (phone === null || phone === undefined || String(phone).trim() === '') {
     return { valid: false, error: 'Telefone vazio.' };
@@ -256,8 +259,10 @@ export function phoneVariants(phone: unknown): string[] {
   return [...new Set(variants)];
 }
 
+/** format B R Phone constant. */
 export const formatBRPhone = formatPhoneForDisplay;
 
+/** is Whats App J I D function. */
 export function isWhatsAppJID(value: unknown): boolean {
   if (!value) return false;
   return /^\d+@(c\.us|s\.whatsapp\.net|g\.us)$/.test(String(value));

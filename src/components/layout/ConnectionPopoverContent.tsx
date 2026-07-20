@@ -28,6 +28,7 @@ interface Props {
   itemRefs: React.MutableRefObject<Map<string, HTMLLIElement>>;
 }
 
+/** Connection Popover Content component for the layout section. */
 export function ConnectionPopoverContent({
   connections,
   filter,

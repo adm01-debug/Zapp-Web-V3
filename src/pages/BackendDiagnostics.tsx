@@ -26,6 +26,7 @@ function detectBackendType(url: string | undefined): { label: string; tone: "def
   return { label: "Supabase Self-hosted / Externo", tone: "secondary" };
 }
 
+/** Backend Diagnostics. */
 export default function BackendDiagnostics() {
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
   const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined;

@@ -8,6 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { createService } from '@/services/api/genericService';
 import type { ListResponse, QueryParams } from '@/services/api/types';
 
+/** Message interface. */
 export interface Message {
   id: string;
   conversation_id: string;
@@ -24,6 +25,7 @@ export interface Message {
   updated_at: string;
 }
 
+/** Conversation interface definition. */
 export interface Conversation {
   id: string;
   contact_id: string;
@@ -40,6 +42,7 @@ export interface Conversation {
 const messagesBaseService = createService<Message>('messages');
 const conversationsBaseService = createService<Conversation>('conversations');
 
+/** messages Repository constant. */
 export const messagesRepository = {
   // Messages
   listMessages: (filters?: Partial<Message> & QueryParams) =>

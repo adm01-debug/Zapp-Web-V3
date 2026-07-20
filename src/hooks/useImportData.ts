@@ -10,6 +10,7 @@ export function useImportData() {
   return useImportDataManagement();
 }
 
+/** Validation error for a single row field during a bulk data import. */
 export interface ImportError {
   row: number;
   field: string;
@@ -17,8 +18,10 @@ export interface ImportError {
   value?: unknown;
 }
 
+/** Import Status type alias. */
 export type ImportStatus = 'idle' | 'parsing' | 'validating' | 'importing' | 'complete' | 'error';
 
+/** Import Result interface definition. */
 export interface ImportResult<T> {
   success: T[];
   errors: ImportError[];
@@ -32,10 +35,6 @@ interface UseImportDataOptions<T> {
   maxRows?: number;
   skipFirstRow?: boolean;
 }
-
-// ============================================
-// HOOK
-// ============================================
 
 /** Imports and validates data from CSV/Excel files with Zod schema validation. */
 export function useImportDataTyped<T>(options: UseImportDataOptions<T>) {
@@ -52,11 +51,10 @@ export function useImportDataTyped<T>(options: UseImportDataOptions<T>) {
     };
   }, []);
 
-  // Parsear CSV usando xlsx
   const parseCSV = useCallback(async (file: File): Promise<unknown[]> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
-      
+
       reader.onload = (e) => {
         try {
           const text = e.target?.result as string;
@@ -66,8 +64,7 @@ export function useImportDataTyped<T>(options: UseImportDataOptions<T>) {
             defval: '',
             raw: false,
           });
-          
-          // Normalizar headers
+
           const normalized = (jsonData as Record<string, unknown>[]).map((row: Record<string, unknown>) => {
             const newRow: Record<string, unknown> = {};
             Object.keys(row).forEach(key => {
@@ -76,38 +73,36 @@ export function useImportDataTyped<T>(options: UseImportDataOptions<T>) {
             });
             return newRow;
           });
-          
+
           if (skipFirstRow && normalized.length > 0) {
             normalized.shift();
           }
-          
+
           resolve(normalized);
         } catch (error) {
           reject(error);
         }
       };
-      
+
       reader.onerror = () => reject(new Error('Erro ao ler arquivo'));
       reader.readAsText(file);
     });
   }, [skipFirstRow]);
 
-  // Parsear Excel
   const parseExcel = useCallback(async (file: File): Promise<unknown[]> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
-      
+
       reader.onload = (e) => {
         try {
-          const data = new Uint8Array(e.target?.result as ArrayBuffer); // ignore-audit: narrows Supabase query result to local interface
+          const data = new Uint8Array(e.target?.result as ArrayBuffer);
           const workbook = XLSX.read(data, { type: 'array' });
           const sheet = workbook.Sheets[workbook.SheetNames[0]];
           const jsonData = XLSX.utils.sheet_to_json(sheet, {
             defval: '',
             raw: false,
           });
-          
-          // Normalizar headers
+
           const normalized = (jsonData as Record<string, unknown>[]).map((row: Record<string, unknown>) => {
             const newRow: Record<string, unknown> = {};
             Object.keys(row).forEach(key => {
@@ -116,23 +111,22 @@ export function useImportDataTyped<T>(options: UseImportDataOptions<T>) {
             });
             return newRow;
           });
-          
+
           if (skipFirstRow && normalized.length > 0) {
             normalized.shift();
           }
-          
+
           resolve(normalized);
         } catch (error) {
           reject(error);
         }
       };
-      
+
       reader.onerror = () => reject(new Error('Erro ao ler arquivo'));
       reader.readAsArrayBuffer(file);
     });
   }, [skipFirstRow]);
 
-  // Validar dados com Zod
   const validateData = useCallback((data: unknown[]): ImportResult<T> => {
     const success: T[] = [];
     const errors: ImportError[] = [];
@@ -145,7 +139,7 @@ export function useImportDataTyped<T>(options: UseImportDataOptions<T>) {
         if (error instanceof z.ZodError) {
           error.issues.forEach((err) => {
             errors.push({
-              row: index + 2, // +2 porque linha 1 é header
+              row: index + 2,
               field: err.path.join('.'),
               message: err.message,
               value: (row as Record<string, unknown>)[err.path[0] as string],
@@ -163,9 +157,8 @@ export function useImportDataTyped<T>(options: UseImportDataOptions<T>) {
     };
   }, [schema, maxRows]);
 
-  const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB
+  const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
 
-  // Processar arquivo
   const processFile = useCallback(async (file: File) => {
     setStatus('parsing');
     setProgress(10);
@@ -202,7 +195,6 @@ export function useImportDataTyped<T>(options: UseImportDataOptions<T>) {
     }
   }, [parseCSV, parseExcel, validateData]);
 
-  // Confirmar importação
   const confirmImport = useCallback(async () => {
     if (!result || result.success.length === 0) {
       toast.error('Nenhum dado válido para importar');
@@ -216,7 +208,7 @@ export function useImportDataTyped<T>(options: UseImportDataOptions<T>) {
       await onImport(result.success);
       setProgress(100);
       toast.success(`${result.success.length} registros importados com sucesso!`);
-      
+
       // Reset após 2 segundos — timer tracked so unmount can clear it
       resetTimerRef.current = setTimeout(() => {
         setStatus('idle');
@@ -229,7 +221,6 @@ export function useImportDataTyped<T>(options: UseImportDataOptions<T>) {
     }
   }, [result, onImport]);
 
-  // Reset
   const reset = useCallback(() => {
     setStatus('idle');
     setProgress(0);
@@ -247,4 +238,5 @@ export function useImportDataTyped<T>(options: UseImportDataOptions<T>) {
   };
 }
 
+/** Default export. */
 export default useImportData;

@@ -19,6 +19,7 @@ interface ObjectionDetectorProps {
 }
 
 /* ─── Main Component ─── */
+/** Detects sales objections in recent chat messages using AI analysis, shows matched objection cards with suggested counter-responses, and supports tone/period filtering. */
 export function ObjectionDetector({
   contactId,
   contactName,

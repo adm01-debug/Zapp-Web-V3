@@ -29,6 +29,7 @@ interface AudioMemePickerProps {
   disabled?: boolean;
 }
 
+/** Audio Meme Picker component. */
 export function AudioMemePicker({ onSendAudioMeme, disabled }: AudioMemePickerProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');

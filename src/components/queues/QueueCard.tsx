@@ -17,6 +17,7 @@ interface QueueCardProps {
   onDelete: (queue: QueueWithMembers) => void;
 }
 
+/** Queue Card component for the queues section. */
 export const QueueCard = React.memo(function QueueCard({ queue, alertCount, onAddMember, onRemoveMember, onSetGoals, onDelete }: QueueCardProps) {
   const navigate = useNavigate();
   const activeMembers = queue.members.filter(m => m.is_active && m.profile?.is_active);

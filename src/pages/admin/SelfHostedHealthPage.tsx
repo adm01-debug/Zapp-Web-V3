@@ -37,6 +37,7 @@ function statusBadge(status: DiagnosticResult['status']) {
   );
 }
 
+/** Default export. */
 export default function SelfHostedHealthPage() {
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<DiagnosticResult[]>([]);

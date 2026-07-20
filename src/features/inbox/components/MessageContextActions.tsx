@@ -24,6 +24,7 @@ interface MessageContextActionsProps {
   onMessageDeleted?: (messageId: string) => void;
 }
 
+/** Message Context Actions component. */
 export function MessageContextActions({
   message,
   instanceName,

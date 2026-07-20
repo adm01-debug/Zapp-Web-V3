@@ -16,6 +16,7 @@ interface BlockIPDialogProps {
   onSuccess: () => void;
 }
 
+/** Block IPDialog component for the security section. */
 export function BlockIPDialog({ open, onClose, onSuccess }: BlockIPDialogProps) {
   const { user } = useAuth();
   const [newIP, setNewIP] = useState('');
@@ -67,6 +68,7 @@ interface UnblockIPDialogProps {
   onSuccess: () => void;
 }
 
+/** Unblock IPDialog component for the security section. */
 export function UnblockIPDialog({ ip, onClose, onSuccess }: UnblockIPDialogProps) {
   const [updating, setUpdating] = useState(false);
 

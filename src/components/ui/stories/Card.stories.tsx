@@ -37,9 +37,11 @@ const meta: Meta<typeof Card> = {
   },
 };
 
+/** Default export. */
 export default meta;
 type Story = StoryObj<typeof Card>;
 
+/** Default component for the ui section. */
 export const Default: Story = {
   render: (args) => (
     <Card {...args} className="w-[350px]">
@@ -62,6 +64,7 @@ export const Default: Story = {
   ),
 };
 
+/** Variant Gallery component for the ui section. */
 export const VariantGallery: Story = {
   render: () => (
     <div className="grid grid-cols-1 gap-6 p-4 md:grid-cols-2">
@@ -103,6 +106,7 @@ export const VariantGallery: Story = {
   ),
 };
 
+/** Profile Card component for the ui section. */
 export const ProfileCard: Story = {
   render: () => (
     <Card className="w-[300px] overflow-hidden">
@@ -124,6 +128,7 @@ export const ProfileCard: Story = {
   ),
 };
 
+/** Motion Card component for the ui section. */
 export const MotionCard: Story = {
   render: () => (
     <div className="grid grid-cols-1 gap-6 p-4 md:grid-cols-3">

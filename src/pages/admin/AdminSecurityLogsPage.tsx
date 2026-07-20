@@ -34,6 +34,7 @@ interface AuditLog {
   };
 }
 
+/** Admin Security Logs Page. */
 export default function AdminSecurityLogsPage() {
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(true);

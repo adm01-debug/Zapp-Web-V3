@@ -68,6 +68,7 @@ function loadSipSettings(): SipSettings {
   };
 }
 
+/** Vo IPPanel component for the calls section. */
 export function VoIPPanel() {
   const [activeTab, setActiveTab] = useState('dialer');
   const defaults = loadSipSettings();

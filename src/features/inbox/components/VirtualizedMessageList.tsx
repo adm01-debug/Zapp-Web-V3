@@ -26,6 +26,7 @@ interface VirtualizedMessageListProps {
   contactAvatar?: string;
 }
 
+/** Virtualized Message List Ref interface definition. */
 export interface VirtualizedMessageListRef {
   scrollToBottom: () => void;
   /**
@@ -47,6 +48,7 @@ type ListItem =
   | { type: 'date-separator'; date: Date; key: string }
   | { type: 'message'; message: Message; key: string };
 
+/** Virtualized Message List constant. */
 export const VirtualizedMessageList = forwardRef<VirtualizedMessageListRef, VirtualizedMessageListProps>(({
   messages, onReply, onForward, onCopy, onInteractiveButtonClick,
   ttsLoading, ttsPlaying, ttsMessageId, onSpeak, onStopSpeak, isContactTyping = false,

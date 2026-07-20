@@ -4,11 +4,13 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { Json } from '@/integrations/supabase/schema';
 
+/** Hook: SLARule Metadata. */
 export interface SLARuleMetadata {
   notify_on_warning?: boolean;
   escalation_notes?: string;
 }
 
+/** Hook: SLARule. */
 export interface SLARule {
   id: string;
   name: string;
@@ -27,8 +29,10 @@ export interface SLARule {
   updated_at: string;
 }
 
+/** Hook: SLARule Scope. */
 export type SLARuleScope = 'contact' | 'company' | 'job_title' | 'contact_type' | 'queue' | 'agent';
 
+/** Hook: SLARule Form. */
 export interface SLARuleForm {
   name: string;
   first_response_minutes: number;
@@ -43,6 +47,7 @@ export interface SLARuleForm {
   metadata?: SLARuleMetadata;
 }
 
+/** Hook: use SLARules. */
 export function useSLARules(scope?: SLARuleScope) {
   const queryClient = useQueryClient();
   const queryKey = queryKeys.sla.rulesForScope(scope);

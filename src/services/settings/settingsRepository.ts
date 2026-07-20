@@ -8,6 +8,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import type { QueryParams } from '@/services/api/types';
 
+/** User Settings interface. */
 export interface UserSettings {
   id: string;
   user_id: string;
@@ -22,6 +23,7 @@ export interface UserSettings {
   updated_at: string;
 }
 
+/** Workspace Settings interface definition. */
 export interface WorkspaceSettings {
   id: string;
   workspace_id: string;
@@ -37,6 +39,7 @@ export interface WorkspaceSettings {
   updated_at: string;
 }
 
+/** settings Repository constant. */
 export const settingsRepository = {
   // User Settings
   async getUserSettings(userId: string): Promise<UserSettings | null> {

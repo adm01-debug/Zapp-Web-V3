@@ -17,6 +17,7 @@ interface AssignmentSectionProps {
   conversation: Conversation;
 }
 
+/** Assignment Section component for the contact details section. */
 export function AssignmentSection({ conversation }: AssignmentSectionProps) {
   const { agents } = useAgents();
   const { queues } = useQueues();

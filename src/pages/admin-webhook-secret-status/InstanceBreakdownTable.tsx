@@ -14,6 +14,7 @@ interface InstanceBreakdownTableProps {
 
 type SortKey = 'instance' | 'total' | 'validationRate' | 'lastEventAt';
 
+/** Instance Breakdown Table. */
 export function InstanceBreakdownTable({ stats, onSelectInstance }: InstanceBreakdownTableProps) {
   const [sortKey, setSortKey] = useState<SortKey>('total');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');

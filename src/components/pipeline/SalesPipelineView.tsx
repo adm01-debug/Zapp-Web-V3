@@ -14,6 +14,7 @@ import { DealCard } from './DealCard';
 import { PipelineKPICards } from './PipelineKPICards';
 import { useSalesPipeline } from '@/hooks/pipeline/useSalesPipeline';
 
+/** Sales Pipeline View component for the pipeline section. */
 export function SalesPipelineView() {
   const [draggedDeal, setDraggedDeal] = useState<string | null>(null);
   const [dragOverStage, setDragOverStage] = useState<string | null>(null);

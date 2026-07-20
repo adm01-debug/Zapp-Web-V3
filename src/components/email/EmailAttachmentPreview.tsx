@@ -40,6 +40,7 @@ function getFileColor(mimeType: string | null): string {
   return 'text-muted-foreground';
 }
 
+/** Email Attachment Preview component for the email section. */
 export function EmailAttachmentPreview({ attachments, className }: EmailAttachmentPreviewProps) {
   const [preview, setPreview] = useState<EmailAttachment | null>(null);
   const [downloading, setDownloading] = useState<Set<string>>(new Set());

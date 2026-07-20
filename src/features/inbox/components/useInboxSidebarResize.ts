@@ -7,6 +7,7 @@ function buildStorageKey(profileId?: string, departmentId?: string | null): stri
   return profileId ? `zapp:sidebarWidth:${profileId}${workspacePart}` : 'zapp:sidebarWidth';
 }
 
+/** use Inbox Sidebar Resize component. */
 export function useInboxSidebarResize() {
   const isMobile = useIsMobile();
   const { profile } = useAuth();

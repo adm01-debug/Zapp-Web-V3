@@ -57,6 +57,7 @@ function StatCardItem({ stat }: { stat: StatCard }) {
   );
 }
 
+/** C R M360 Stats Cards constant. */
 export const CRM360StatsCards = memo(function CRM360StatsCards() {
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">

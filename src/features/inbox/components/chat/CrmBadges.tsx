@@ -29,6 +29,7 @@ const rfmSegmentColors: Record<string, string> = {
 const formatCurrency = (v: number | null) =>
   v != null ? `R$ ${v.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : '—';
 
+/** Crm Badges component for the chat section. */
 export function CrmBadges({ crmCompany, crmCustomer, crmRfm }: CrmBadgesProps) {
   return (
     <>

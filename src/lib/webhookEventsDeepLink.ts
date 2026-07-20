@@ -9,6 +9,7 @@
 
 const STORAGE_KEY = 'webhook-events:pending-filters';
 
+/** Webhook Events Deep Link Filters interface. */
 export interface WebhookEventsDeepLinkFilters {
   /** Tipo de evento (ex.: 'PRESENCE_UPDATE'). 'all' equivale a sem filtro. */
   eventType?: string;
@@ -16,6 +17,7 @@ export interface WebhookEventsDeepLinkFilters {
   instance?: string;
 }
 
+/** Stores drill-down filter state in sessionStorage for a one-shot transfer to the webhook events page. */
 export function setPendingWebhookEventsFilters(filters: WebhookEventsDeepLinkFilters): void {
   try {
     sessionStorage.setItem(STORAGE_KEY, JSON.stringify(filters));
@@ -24,6 +26,7 @@ export function setPendingWebhookEventsFilters(filters: WebhookEventsDeepLinkFil
   }
 }
 
+/** consume Pending Webhook Events Filters function. */
 export function consumePendingWebhookEventsFilters(): WebhookEventsDeepLinkFilters | null {
   try {
     const raw = sessionStorage.getItem(STORAGE_KEY);

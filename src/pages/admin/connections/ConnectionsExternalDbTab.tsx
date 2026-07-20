@@ -24,6 +24,7 @@ interface ConnectionsExternalDbTabProps {
   externalKey: string;
 }
 
+/** Connections External Db Tab. */
 export function ConnectionsExternalDbTab({
   editOpen,
   draftUrl,

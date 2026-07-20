@@ -8,6 +8,7 @@ interface PipelineKPICardsProps {
   conversionRate: number;
 }
 
+/** Pipeline KPICards component for the pipeline section. */
 export function PipelineKPICards({ totalPipeline, activeDeals, totalWon, conversionRate }: PipelineKPICardsProps) {
   const cards = [
     { icon: Target, label: 'Pipeline Total', value: `R$ ${totalPipeline.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, color: '' },

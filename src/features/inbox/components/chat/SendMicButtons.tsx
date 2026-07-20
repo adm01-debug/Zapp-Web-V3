@@ -14,6 +14,7 @@ interface SendMicButtonsProps {
   onRecordToggle: () => void;
 }
 
+/** Send Mic Buttons component for the chat section. */
 export function SendMicButtons({
   isSending,
   canSend,

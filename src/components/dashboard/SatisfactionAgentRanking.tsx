@@ -23,6 +23,7 @@ const getCSATColor = (value: number) => {
   return 'text-destructive';
 };
 
+/** Satisfaction Agent Ranking component for the dashboard section. */
 export function SatisfactionAgentRanking({ open, onOpenChange, agents }: SatisfactionAgentRankingProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

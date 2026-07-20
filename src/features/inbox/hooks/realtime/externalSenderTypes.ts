@@ -1,3 +1,4 @@
+/** Default WhatsApp instance name used when no specific instance is configured on the contact. */
 export const DEFAULT_INSTANCE = 'wpp2';
 
 /**
@@ -16,12 +17,14 @@ export class SendError extends Error {
   }
 }
 
+/** Optional overrides for the external message sender (instance, avatar, upload progress). */
 export interface SendExternalOptions {
   instanceName?: string;
   contactAvatar?: string | null;
   onProgress?: (progress: number) => void;
 }
 
+/** Locally-generated message bubble displayed immediately while the external send is in flight; prefixed with `optimistic:` so reconciliation can replace it. */
 export interface OptimisticMessage {
   id: string;
   contact_id: string;
@@ -44,11 +47,13 @@ export interface OptimisticMessage {
   media_meta: unknown;
 }
 
+/** Return value of the external send path: the optimistic bubble to display and the canonical external ID returned by the Evolution API. */
 export interface SendExternalResult {
   optimistic: OptimisticMessage;
   externalId: string | null;
 }
 
+/** Constructs an OptimisticMessage with a locally-unique `optimistic:…` id and the given content/type/media fields, ready to be inserted into the conversation before the API confirms. */
 export function makeOptimisticBubble(
   remoteJid: string,
   content: string,

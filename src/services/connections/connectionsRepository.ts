@@ -9,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { createService } from '@/services/api/genericService';
 import type { ListResponse, QueryParams } from '@/services/api/types';
 
+/** Whats App Connection interface. */
 export interface WhatsAppConnection {
   id: string;
   instance_name: string;
@@ -23,6 +24,7 @@ export interface WhatsAppConnection {
   updated_at: string;
 }
 
+/** Channel Connection interface definition. */
 export interface ChannelConnection {
   id: string;
   channel_type: string;
@@ -33,6 +35,7 @@ export interface ChannelConnection {
   updated_at: string;
 }
 
+/** Connection interface definition. */
 export interface Connection {
   id: string;
   name?: string;
@@ -46,6 +49,7 @@ export interface Connection {
 // WhatsApp connections base service
 const whatsappBaseService = createService<WhatsAppConnection>('whatsapp_connections');
 
+/** connections Repository constant. */
 export const connectionsRepository = {
   // WhatsApp Connections
   listWhatsAppConnections: (filters?: Partial<WhatsAppConnection> & QueryParams) =>

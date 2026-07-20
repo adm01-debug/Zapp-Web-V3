@@ -66,6 +66,7 @@ interface EditContactDialogProps {
 
 // ── Component ──────────────────────────────────────────────────────────────
 
+/** Edit Contact Dialog constant. */
 export const EditContactDialog: React.FC<EditContactDialogProps> = ({
   open,
   onOpenChange,
@@ -329,4 +330,5 @@ export const EditContactDialog: React.FC<EditContactDialogProps> = ({
   );
 };
 
+/** Default export. */
 export default EditContactDialog;

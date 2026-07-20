@@ -25,6 +25,7 @@ import { ptBR } from 'date-fns/locale';
 import { useAgents } from '@/features/admin';
 import { useTags } from '@/hooks/useTags';
 
+/** Inbox Filters State component. */
 export interface InboxFiltersState {
   status: string[];
   tags: string[];
@@ -54,6 +55,7 @@ const DATE_PRESETS = [
   { label: 'Mês', getValue: () => ({ from: startOfDay(new Date(new Date().getFullYear(), new Date().getMonth(), 1)), to: endOfDay(new Date()) }) },
 ];
 
+/** Inbox Filters component. */
 export function InboxFilters({ filters, onFiltersChange }: InboxFiltersProps) {
   const [isOpen, setIsOpen] = useState(false);
   const { profile } = useAuth();

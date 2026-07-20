@@ -3,6 +3,7 @@ import { vi } from 'vitest';
 import type { User, Session } from '@supabase/supabase-js';
 import type { Profile } from '@/features/auth/services/authService';
 
+/** React component: auth. */
 export const mockUser = {
   id: 'test-user-id',
   email: 'test@example.com',
@@ -13,6 +14,7 @@ export const mockUser = {
   created_at: '2024-01-01T00:00:00Z',
 };
 
+/** mock Profile constant. */
 export const mockProfile = {
   id: 'test-profile-id',
   user_id: 'test-user-id',
@@ -23,6 +25,7 @@ export const mockProfile = {
   max_chats: 5,
 };
 
+/** mock Session constant. */
 export const mockSession = {
   access_token: 'test-token',
   refresh_token: 'test-refresh',
@@ -30,6 +33,7 @@ export const mockSession = {
   expires_at: Date.now() + 3600,
 };
 
+/** mock Auth Context constant. */
 export const mockAuthContext = {
   user: mockUser as unknown as User,
   session: mockSession as unknown as Session,
@@ -40,6 +44,7 @@ export const mockAuthContext = {
   signOut: vi.fn().mockResolvedValue(undefined),
 };
 
+/** mock Auth Context Logged Out constant. */
 export const mockAuthContextLoggedOut = {
   user: null,
   session: null,
@@ -51,6 +56,7 @@ export const mockAuthContextLoggedOut = {
 };
 
 // Mock AuthProvider that provides test auth context
+/** Mock Auth Provider function. */
 export function MockAuthProvider({
   children,
   value: _value = mockAuthContext,

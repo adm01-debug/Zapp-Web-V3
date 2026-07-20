@@ -39,4 +39,5 @@ function SkeletonText({ lines = 3, className }: { lines?: number; className?: st
   );
 }
 
+/** skeleton component for the ui section. */
 export { Skeleton, SkeletonCard, SkeletonText };

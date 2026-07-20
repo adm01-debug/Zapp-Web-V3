@@ -79,6 +79,7 @@ function useTeamProfiles() {
   });
 }
 
+/** Ticket Actions Bar function. */
 export function TicketActionsBar({ contactId, onOpenHistory }: TicketActionsBarProps) {
   const { profile } = useAuth();
   const { status, assignedTo, setStatus, assumir, transferir, devolverFila, atribuirAuto } =

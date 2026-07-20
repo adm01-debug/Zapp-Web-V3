@@ -151,8 +151,11 @@ export function compose<A, B, C>(f: (a: A) => B, g: (b: B) => C): (a: A) => C {
  * Generic pipe function (left-to-right composition) with type safety
  */
 export function pipe<A, B>(a: A, f: (a: A) => B): B;
+/** pipe function. */
 export function pipe<A, B, C>(a: A, f: (a: A) => B, g: (b: B) => C): C;
+/** pipe function. */
 export function pipe<A, B, C, D>(a: A, f: (a: A) => B, g: (b: B) => C, h: (c: C) => D): D;
+/** pipe function. */
 export function pipe<A, B, C, D, E>(
   a: A,
   f: (a: A) => B,
@@ -160,6 +163,7 @@ export function pipe<A, B, C, D, E>(
   h: (c: C) => D,
   i: (d: D) => E
 ): E;
+/** pipe function. */
 export function pipe(value: any, ...fns: Array<(arg: any) => any>): any {
   return fns.reduce((acc, fn) => fn(acc), value);
 }
@@ -319,11 +323,13 @@ export function* iterate<T extends Iterable<U>, U>(iterable: T): Generator<U> {
 export class ConstraintValidator<T> {
   private constraints: Array<(value: unknown) => boolean> = [];
 
+  /** Registers an additional runtime constraint predicate; returns `this` for chaining. */
   addConstraint(constraint: (value: unknown) => boolean): this {
     this.constraints.push(constraint);
     return this;
   }
 
+  /** Returns true when `value` satisfies all registered constraints; logs a warning and returns false on the first failure. */
   validate(value: unknown): value is T {
     for (const constraint of this.constraints) {
       if (!constraint(value)) {
@@ -344,18 +350,22 @@ export class ConstraintValidator<T> {
 export class TypedValue<T> {
   constructor(private readonly value: T) {}
 
+  /** Returns the wrapped value. */
   get(): T {
     return this.value;
   }
 
+  /** Applies `fn` to the wrapped value and returns a new `TypedValue` containing the result. */
   map<U>(fn: (value: T) => U): TypedValue<U> {
     return new TypedValue(fn(this.value));
   }
 
+  /** Applies `fn` to the wrapped value and returns the resulting `TypedValue` directly (monadic bind). */
   flatMap<U>(fn: (value: T) => TypedValue<U>): TypedValue<U> {
     return fn(this.value);
   }
 
+  /** Returns a `TypedValue` containing the original value when `predicate` passes, or `null` when it fails. */
   filter(predicate: (value: T) => boolean): TypedValue<T | null> {
     return new TypedValue(predicate(this.value) ? this.value : null);
   }
@@ -367,6 +377,7 @@ export class TypedValue<T> {
 export class TypeCache<K, V> {
   private cache = new Map<K, V>();
 
+  /** Returns the cached value for `key`, computing and storing it via `compute` on a cache miss. */
   get(key: K, compute: (key: K) => V): V {
     if (this.cache.has(key)) {
       return this.cache.get(key)!;
@@ -376,10 +387,12 @@ export class TypeCache<K, V> {
     return value;
   }
 
+  /** Evicts all entries from the cache. */
   clear(): void {
     this.cache.clear();
   }
 
+  /** Returns the number of entries currently in the cache. */
   size(): number {
     return this.cache.size;
   }

@@ -7,6 +7,7 @@ interface HistoryTabProps {
   history?: HealthHistoryRow[];
 }
 
+/** History Tab component for the evoApiHealth section. */
 export const HistoryTab = React.memo(({ history }: HistoryTabProps) => {
   return (
     <Card>

@@ -28,6 +28,7 @@ const statusIcon = (status: string | null) => {
   }
 };
 
+/** Monitoring Connections List component for the monitoring section. */
 export function MonitoringConnectionsList({ connections, webhookTest, onCheckWebhook, onTestWebhook }: Props) {
   const [qrCodes, setQrCodes] = useState<Record<string, string>>({});
   const [loadingQr, setLoadingQr] = useState<Record<string, boolean>>({});

@@ -13,10 +13,12 @@ interface AchievementsStatsProps {
   stats: { level: number; xp: number } | null;
 }
 
+/** is New Achievement component for the gamification section. */
 export function isNewAchievement(earnedAt: string): boolean {
   return new Date(earnedAt) > new Date(Date.now() - 60 * 60 * 1000);
 }
 
+/** Achievements Stats Header component for the gamification section. */
 export function AchievementsStatsHeader({ achievements, stats }: AchievementsStatsProps) {
   const totalXp = useMemo(() => achievements.reduce((sum, a) => sum + a.xp_earned, 0), [achievements]);
   const uniqueTypes = useMemo(() => Array.from(new Set(achievements.map(a => a.achievement_type))), [achievements]);
@@ -71,6 +73,7 @@ export function AchievementsStatsHeader({ achievements, stats }: AchievementsSta
   );
 }
 
+/** Achievements Header Badges component for the gamification section. */
 export function AchievementsHeaderBadges({ stats }: { stats: { level: number; xp: number } | null }) {
   if (!stats) return null;
   return (

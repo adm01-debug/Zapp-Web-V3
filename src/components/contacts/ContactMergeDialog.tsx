@@ -21,6 +21,7 @@ const log = getLogger('ContactMergeDialog');
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
+/** Contact For Merge component for the contacts section. */
 export interface ContactForMerge {
   id: string;
   name: string;
@@ -140,6 +141,7 @@ function FieldSelector({ fieldKey, label, primaryValue, secondaryValue, value, o
 
 // ── Main ───────────────────────────────────────────────────────────────────
 
+/** Contact Merge Dialog component for the contacts section. */
 export const ContactMergeDialog: React.FC<ContactMergeDialogProps> = ({
   open, onOpenChange, primaryContact, secondaryContact, onMergeComplete,
 }) => {
@@ -339,4 +341,5 @@ export const ContactMergeDialog: React.FC<ContactMergeDialogProps> = ({
   );
 };
 
+/** Default export. */
 export default ContactMergeDialog;

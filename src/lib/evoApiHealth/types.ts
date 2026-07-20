@@ -1,5 +1,7 @@
+/** Severity. */
 export type Severity = 'info' | 'warning' | 'critical';
 
+/** Pipeline Health. */
 export interface PipelineHealth {
   instances_open: number;
   instances_connecting: number;
@@ -16,6 +18,7 @@ export interface PipelineHealth {
   unread_total: number | null;
 }
 
+/** Pipeline Readiness. */
 export interface PipelineReadiness {
   tables_count: number; tables_status: string;
   enums_count: number;  enums_status: string;
@@ -27,6 +30,7 @@ export interface PipelineReadiness {
   overall: string;
 }
 
+/** Dashboard Response. */
 export interface DashboardResponse {
   health: PipelineHealth;
   readiness: PipelineReadiness;
@@ -42,6 +46,7 @@ export interface DashboardResponse {
   computed_at: string;
 }
 
+/** Active Alert. */
 export interface ActiveAlert {
   id: number;
   alert_type: string;
@@ -52,6 +57,7 @@ export interface ActiveAlert {
   age_seconds: number;
 }
 
+/** Alert Channel. */
 export interface AlertChannel {
   id: number;
   name: string;
@@ -62,6 +68,7 @@ export interface AlertChannel {
   success_rate_pct: number | null;
 }
 
+/** Health History Row. */
 export interface HealthHistoryRow {
   bucket: string;
   avg_instances_open: number;
@@ -71,6 +78,7 @@ export interface HealthHistoryRow {
   all_ok: boolean;
 }
 
+/** Dr Runbook Step. */
 export interface DrRunbookStep {
   step_number: number;
   category: string;
@@ -82,6 +90,7 @@ export interface DrRunbookStep {
   rpo_minutes: number | null;
 }
 
+/** Test Suite Result. */
 export interface TestSuiteResult {
   run_id: string;
   total_tests: number;

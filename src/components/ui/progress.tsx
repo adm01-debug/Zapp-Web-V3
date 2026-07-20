@@ -20,4 +20,5 @@ const Progress = React.forwardRef<
 ));
 Progress.displayName = ProgressPrimitive.Root.displayName;
 
+/** progress component for the ui section. */
 export { Progress };

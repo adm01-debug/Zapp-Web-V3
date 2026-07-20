@@ -12,6 +12,7 @@ interface MicroFeedbackProps {
 const feedbackColors = { success: 'bg-success', error: 'bg-destructive', loading: 'bg-primary', warning: 'bg-warning' };
 const feedbackSizes = { sm: 'w-2 h-2', md: 'w-3 h-3', lg: 'w-4 h-4' };
 
+/** Micro Feedback component for the ui section. */
 export function MicroFeedback({ type, show, size = 'md' }: MicroFeedbackProps) {
   return (
     <AnimatePresence>
@@ -30,6 +31,7 @@ export function MicroFeedback({ type, show, size = 'md' }: MicroFeedbackProps) {
 
 // ============= LOADING INDICATORS =============
 
+/** Loading Dots component for the ui section. */
 export function LoadingDots({ className }: { className?: string }) {
   return (
     <div className={cn('flex items-center gap-1', className)}>
@@ -43,6 +45,7 @@ export function LoadingDots({ className }: { className?: string }) {
   );
 }
 
+/** Spinner Glow component for the ui section. */
 export function SpinnerGlow({ size = 'md', className }: { size?: 'sm' | 'md' | 'lg'; className?: string }) {
   const sizes = { sm: 'w-4 h-4 border-2', md: 'w-8 h-8 border-2', lg: 'w-12 h-12 border-3' };
   return (
@@ -60,6 +63,7 @@ interface FeedbackAnimationProps {
   size?: number;
 }
 
+/** Feedback Animation component for the ui section. */
 export function FeedbackAnimation({ type, show, size = 48 }: FeedbackAnimationProps) {
   const path = type === 'success' ? 'M7 13l3 3 7-7' : 'M18 6L6 18M6 6l12 12';
   return (

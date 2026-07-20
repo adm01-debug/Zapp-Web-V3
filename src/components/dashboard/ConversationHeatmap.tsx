@@ -102,6 +102,7 @@ const METRIC_CONFIG = {
   },
 };
 
+/** Conversation Heatmap component for the dashboard section. */
 export default function ConversationHeatmap({
   data: externalData,
   metric = 'volume',

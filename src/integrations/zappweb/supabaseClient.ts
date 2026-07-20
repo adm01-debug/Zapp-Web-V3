@@ -17,12 +17,14 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 
+/** Default Evolution/WhatsApp instance name, overridable via VITE_ZAPPWEB_INSTANCE env var. */
 export const ZAPPWEB_INSTANCE = (import.meta.env.VITE_ZAPPWEB_INSTANCE ||
   'wpp2') as string;
 
 /** Client autenticado compartilhado (sessão do usuário logado). */
 export const zappSupabase: SupabaseClient = supabase as unknown as SupabaseClient; // ignore-audit — SupabaseClient<Database> ≠ SupabaseClient<unknown> structurally; same runtime object
 
+/** Zappweb Config constant. */
 export const ZAPPWEB_CONFIG = {
   url: import.meta.env.VITE_SUPABASE_URL as string,
   /** @deprecated anon key nao e mais usada (client autenticado compartilhado). */

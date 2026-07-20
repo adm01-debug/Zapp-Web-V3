@@ -15,6 +15,7 @@ interface EmojiPickerProps {
   onSelect: (emoji: string) => void;
 }
 
+/** Emoji Picker component. */
 export function EmojiPicker({ onSelect }: EmojiPickerProps) {
   const [isOpen, setIsOpen] = useState(false);
 

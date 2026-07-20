@@ -50,11 +50,13 @@ export function createDiscriminator<
  */
 export type Result<T, E = Error> = Success<T> | Failure<E>;
 
+/** Represents a successful Result carrying a typed value. */
 export interface Success<T> {
   readonly kind: 'success';
   readonly value: T;
 }
 
+/** Represents a failed Result carrying a typed error. */
 export interface Failure<E> {
   readonly kind: 'failure';
   readonly error: E;
@@ -117,11 +119,13 @@ export function resultGetOrElse<T, E>(result: Result<T, E>, defaultValue: T): T 
  */
 export type Option<T> = Some<T> | None;
 
+/** Option variant carrying a typed value. */
 export interface Some<T> {
   readonly kind: 'some';
   readonly value: T;
 }
 
+/** Option variant representing an absent value. */
 export interface None {
   readonly kind: 'none';
 }
@@ -178,11 +182,13 @@ export function optionGetOrElse<T>(option: Option<T>, defaultValue: T): T {
  */
 export type Effect<T, E = Error> = Pure<T> | Impure<T, E>;
 
+/** Effect variant for a pure (no side effects) computation. */
 export interface Pure<T> {
   readonly kind: 'pure';
   readonly value: T;
 }
 
+/** Effect variant for an impure (side-effecting) async computation. */
 export interface Impure<T, E> {
   readonly kind: 'impure';
   readonly effect: () => Promise<Result<T, E>>;
@@ -317,6 +323,7 @@ export function match<
   return defaultPattern(value);
 }
 
+/** Default export. */
 export default {
   createDiscriminator,
   ok,

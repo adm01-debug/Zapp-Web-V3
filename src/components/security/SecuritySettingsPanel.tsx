@@ -24,6 +24,7 @@ interface SecuritySettingsPanelProps {
   onSwitchTab?: (tab: string) => void;
 }
 
+/** Security Settings Panel component for the security section. */
 export function SecuritySettingsPanel({ onSwitchTab }: SecuritySettingsPanelProps) {
   const { user } = useAuth();
   const { isMFAEnabled, factors } = useMFA();

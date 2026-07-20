@@ -24,6 +24,7 @@ const ALLOWED_HEADERS = [
 ].join(', ');
 const ALLOWED_METHODS = 'GET, POST, PUT, PATCH, DELETE, OPTIONS';
 
+/** cors utilities and exports. */
 export function getCorsHeaders(req: Request): Record<string, string> {
   const requestOrigin = req.headers.get('Origin') ?? '';
   // Use value from static array (not user input) to avoid reflected-origin taint path.
@@ -46,10 +47,12 @@ export function getCorsHeaders(req: Request): Record<string, string> {
   return headers;
 }
 
+/** handle Cors Preflight function. */
 export function handleCorsPreflight(req: Request): Response {
   return new Response(null, { status: 204, headers: getCorsHeaders(req) });
 }
 
+/** json Response function. */
 export function jsonResponse(req: Request, data: unknown, status = 200): Response {
   return new Response(JSON.stringify(data), {
     status,
@@ -57,6 +60,7 @@ export function jsonResponse(req: Request, data: unknown, status = 200): Respons
   });
 }
 
+/** error Response function. */
 export function errorResponse(
   req: Request,
   msg: string,

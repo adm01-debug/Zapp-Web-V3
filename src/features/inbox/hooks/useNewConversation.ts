@@ -19,6 +19,7 @@ interface ContactResult {
   avatar_url: string | null;
 }
 
+/** Manages the new-conversation dialog state: contact search, new-contact creation, message composition, and sending via the Evolution API edge function. */
 export function useNewConversation(
   open: boolean,
   onConversationStarted?: (contactId: string) => void,

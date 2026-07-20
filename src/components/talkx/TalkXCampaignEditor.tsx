@@ -27,6 +27,7 @@ interface Props {
   onClose: () => void;
 }
 
+/** Talk XCampaign Editor component for the talkx section. */
 export function TalkXCampaignEditor({ campaign, onClose }: Props) {
   const ed = useCampaignEditor(campaign, onClose);
 

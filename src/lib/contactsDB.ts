@@ -20,6 +20,7 @@ import { getExternalSupabase, isExternalConfigured } from '@/integrations/supaba
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 // ─── Types ─────────────────────────────────────────────────────
+/** External Contact interface. */
 export interface ExternalContact {
   id: string;
   user_id: string;
@@ -68,6 +69,7 @@ export interface ExternalContact {
   updated_at: string;
 }
 
+/** Contact Note interface definition. */
 export interface ContactNote {
   id: string;
   contact_id: string;
@@ -79,6 +81,7 @@ export interface ContactNote {
   updated_at: string;
 }
 
+/** Contact Phone interface definition. */
 export interface ContactPhone {
   id: string;
   contact_id: string;
@@ -89,6 +92,7 @@ export interface ContactPhone {
   created_at: string;
 }
 
+/** Contact Email interface definition. */
 export interface ContactEmail {
   id: string;
   contact_id: string;
@@ -112,6 +116,7 @@ function getClient(): SupabaseClient {
 }
 
 // ─── Contact CRUD ─────────────────────────────────────────────
+/** contacts D B constant. */
 export const contactsDB = {
   /** Check if external DB is configured */
   get isConfigured() {
@@ -329,4 +334,5 @@ export const contactsDB = {
   },
 };
 
+/** Default export. */
 export default contactsDB;

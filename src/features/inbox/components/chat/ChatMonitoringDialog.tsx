@@ -17,6 +17,7 @@ const EMPTY_METRICS: QueueMetrics = {
   byConversation: {},
 };
 
+/** Chat Monitoring Dialog component for the chat section. */
 export function ChatMonitoringDialog({ open, onOpenChange, metrics }: Props) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

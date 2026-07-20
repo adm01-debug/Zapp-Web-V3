@@ -7,6 +7,7 @@ import { getLogger } from '@/lib/logger';
 
 const log = getLogger('useDeliveryStats');
 
+/** Participant Stats interface definition. */
 export interface ParticipantStats {
   participantJid: string;
   displayName: string;
@@ -19,6 +20,7 @@ export interface ParticipantStats {
   timeline: DeliveryTimelinePoint[];
 }
 
+/** Delivery Timeline Point interface definition. */
 export interface DeliveryTimelinePoint {
   time: string;
   sent: number;
@@ -26,6 +28,7 @@ export interface DeliveryTimelinePoint {
   read: number;
 }
 
+/** Delivery Stats Result interface definition. */
 export interface DeliveryStatsResult {
   isGroup: boolean;
   totals: {
@@ -49,16 +52,19 @@ const STATUS_RANK: Record<string, number> = {
   played: 3,
 };
 
+/** Returns the later of two nullable ISO timestamp strings; returns the non-null side when one argument is null. */
 function maxDate(a: string | null, b: string | null): string | null {
   if (!a) return b;
   if (!b) return a;
   return new Date(a) > new Date(b) ? a : b;
 }
 
+/** Returns true when the JID string belongs to a WhatsApp group (ends with `@g.us`). */
 function isGroupJid(jid: string): boolean {
   return jid?.endsWith('@g.us');
 }
 
+/** Extracts participant JID and display name from a raw message row, handling group participant nesting inside `payload.key.participant`. Returns `{ jid: 'me', name: 'Atendente' }` for outbound messages. */
 function extractParticipant(msg: Record<string, unknown>): { jid: string; name: string } {
   const fromMe = !!msg.from_me;
   const remoteJid = String(msg.remote_jid ?? '');
@@ -83,6 +89,7 @@ function extractParticipant(msg: Record<string, unknown>): { jid: string; name: 
 }
 
 // SIMULATION DATA GENERATOR
+/** Generates synthetic 24-hour delivery timeline and fake participant stats for the given JID; used in development and demo environments. */
 function generateMockData(remoteJid: string): DeliveryStatsResult {
   const isGroup = isGroupJid(remoteJid);
   const now = new Date();

@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils';
 // Format: { THEME_NAME: CSS_SELECTOR }
 const THEMES = { light: '', dark: '.dark' } as const;
 
+/** Chart Config component for the ui section. */
 export type ChartConfig = {
   [k in string]: {
     label?: React.ReactNode;
@@ -349,6 +350,7 @@ function getPayloadConfigFromPayload(config: ChartConfig, payload: unknown, key:
   return configLabelKey in config ? config[configLabelKey] : config[key as keyof typeof config];
 }
 
+/** Re-exported module members. */
 export {
   ChartContainer,
   ChartTooltip,

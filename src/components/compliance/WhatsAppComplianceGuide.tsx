@@ -28,6 +28,7 @@ const donts = [
   'Não retenha dados além do prazo necessário para a finalidade.',
 ];
 
+/** Whats App Compliance Guide component for the compliance section. */
 export function WhatsAppComplianceGuide() {
   return (
     <Card className="border-secondary/30">

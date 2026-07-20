@@ -30,6 +30,7 @@ function safeStringify(value: unknown): string {
   }
 }
 
+/** Message Details Dialog function. */
 export function MessageDetailsDialog({ messageId, open, onOpenChange }: MessageDetailsDialogProps) {
   const { profile } = useAuth();
   const role = profile?.role ?? 'agent';

@@ -12,10 +12,12 @@ import {
   type WebhookEventLite,
 } from './aggregations';
 
+/** HARD_LIMIT. */
 export const HARD_LIMIT = 200;
 const AUTO_REFRESH_STORAGE_KEY = 'zappweb:webhook-overview:auto-refresh';
 const AUTO_REFRESH_INTERVAL_MS = 60_000;
 
+/** use Webhook Overview. */
 export function useWebhookOverview() {
   const [hours, setHours] = useState<string>('24');
   const [instance, setInstance] = useState<string>('all');

@@ -60,6 +60,7 @@ const NOOP_CONTEXT: GamificationContextType = {
 
 const GamificationContext = createContext<GamificationContextType>(NOOP_CONTEXT);
 
+/** Gamification Provider function. */
 export function GamificationProvider({ children }: { children: ReactNode }) {
   const [currentAchievement, setCurrentAchievement] = useState<Achievement | null>(null);
   const [queue, setQueue] = useState<Achievement[]>([]);

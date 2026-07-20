@@ -41,6 +41,7 @@ interface WhisperFile {
   created_at: string;
 }
 
+/** Team Files component. */
 export const TeamFiles = memo(function TeamFiles({ contactId }: TeamFilesProps) {
   const queryClient = useQueryClient();
   const [isUploading, setIsUploading] = useState(false);

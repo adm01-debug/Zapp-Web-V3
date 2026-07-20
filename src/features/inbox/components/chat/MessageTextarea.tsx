@@ -29,6 +29,7 @@ interface MessageTextareaProps {
   isMobile: boolean;
 }
 
+/** Message Textarea component for the chat section. */
 export function MessageTextarea({
   inputRef,
   inputValue,

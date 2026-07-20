@@ -13,6 +13,7 @@ import { renderHook, act } from '@testing-library/react';
 
 vi.mock('@/lib/logger', () => ({
   getLogger: () => ({ debug: vi.fn(), warn: vi.fn(), error: vi.fn(), info: vi.fn() }),
+  createLogger: () => ({ debug: vi.fn(), warn: vi.fn(), error: vi.fn(), info: vi.fn() }),
 }));
 
 import { useViewTransition } from '../useViewTransition';

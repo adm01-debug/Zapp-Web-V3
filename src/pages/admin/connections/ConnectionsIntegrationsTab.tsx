@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Globe, Link, Save } from 'lucide-react';
 import { motion } from 'framer-motion';
 
+/** Connections Integrations Tab. */
 export function ConnectionsIntegrationsTab() {
   return (
     <motion.div

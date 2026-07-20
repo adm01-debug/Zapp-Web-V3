@@ -22,6 +22,7 @@ interface QueueGoalsDialogProps {
   queueColor: string;
 }
 
+/** Queue Goals Dialog component for the queues section. */
 export function QueueGoalsDialog({
   open,
   onOpenChange,

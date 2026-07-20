@@ -181,6 +181,7 @@ function describeAudit(e: AuditLogRow): UnifiedEvent {
   };
 }
 
+/** Ticket History Sheet function. */
 export function TicketHistorySheet({ contactId, open, onOpenChange }: TicketHistorySheetProps) {
   const { events: localEvents } = useTicketStatus(contactId);
 

@@ -9,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Loader2, RefreshCw, Users, Briefcase, Phone } from 'lucide-react';
 import { useBitrixApi } from '@/hooks/useBitrixApi';
 
+/** Bitrix Integration View component for the integrations section. */
 export function BitrixIntegrationView() {
   const [webhookUrl, setWebhookUrl] = useState('');
   const [domain, setDomain] = useState('');

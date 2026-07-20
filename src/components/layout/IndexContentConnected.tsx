@@ -8,7 +8,7 @@ import { useWebhookHealthAlerts } from '@/hooks/useWebhookHealthAlerts';
 import { useUserRole } from '@/features/auth';
 import { useTour, DEFAULT_ONBOARDING_STEPS } from '@/components/onboarding/OnboardingTour';
 import { useIndexNavigation } from '@/hooks/useIndexNavigation';
-import { useEmailOAuthFlow } from '@/hooks/useGmailOAuthFlow';
+import { useGmailOAuthFlow } from '@/hooks/useGmailOAuthFlow';
 import { useIndexKeyboardShortcuts } from '@/hooks/useIndexKeyboardShortcuts';
 
 import { AppShell } from '@/components/layout/AppShell';
@@ -18,6 +18,7 @@ import { UnifiedNotificationProviders } from '@/components/notifications/Unified
 import { OfflineIndicator, ConnectionToast } from '@/components/ui/offline-indicator';
 import { DegradedConnectionsBanner } from '@/components/alerts/DegradedConnectionsBanner';
 
+/** Root connected component that wires auth, onboarding, notifications, keyboard shortcuts, and nav into the AppShell. */
 export const IndexContentConnected = forwardRef<HTMLDivElement>(function IndexContentConnected(_props, _ref) {
   const { user, profile, loading, signOut } = useAuth();
   const { hasCompletedOnboarding, loading: loadingOnboarding, completeOnboarding } = useOnboarding();
@@ -36,7 +37,7 @@ export const IndexContentConnected = forwardRef<HTMLDivElement>(function IndexCo
     navDirectionRef
   } = useIndexNavigation(user, loading);
 
-  useEmailOAuthFlow();
+  useGmailOAuthFlow();
   useIndexKeyboardShortcuts({ goBack, goForward, canGoBack, setCurrentView });
 
   // Notifications & Alerts

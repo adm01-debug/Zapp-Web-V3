@@ -14,6 +14,7 @@ interface MFAVerifyProps {
   description?: string;
 }
 
+/** MFAVerify component for the mfa section. */
 export function MFAVerify({
   onSuccess,
   onCancel,

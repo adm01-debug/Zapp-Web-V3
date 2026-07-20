@@ -43,6 +43,7 @@ function SLAGauge({ value, target }: { value: number; target: number }) {
   );
 }
 
+/** Monitoring SLAPanel component for the monitoring section. */
 export function MonitoringSLAPanel({ uptime, instanceUptimes }: Props) {
   return (
     <div className="space-y-4">

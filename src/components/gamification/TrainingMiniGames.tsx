@@ -12,6 +12,7 @@ interface TrainingMiniGamesProps {
   onXPEarned?: (xp: number) => void;
 }
 
+/** Training Mini Games component for the gamification section. */
 export function TrainingMiniGames({ onXPEarned }: TrainingMiniGamesProps) {
   const [selectedGame, setSelectedGame] = useState<GameType | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);

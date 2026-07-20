@@ -24,6 +24,7 @@ interface UsageLog {
   metadata: Record<string, unknown> | null;
 }
 
+/** AIProvider Health Panel component for the settings section. */
 export function AIProviderHealthPanel() {
   const { data: recentLogs = [], isLoading } = useQuery({
     queryKey: queryKeys.aiFeatures.providerHealth(),

@@ -15,8 +15,10 @@ const REFRESH_AHEAD_MS = 5 * 60 * 1000;
 // Intervalo de verificação do token
 const CHECK_INTERVAL_MS = 60 * 1000;
 
+/** Hook: Token Status. */
 export type TokenStatus = 'loading' | 'valid' | 'expiring' | 'expired' | 'disconnected';
 
+/** Hook: Email Account. */
 export interface EmailAccount {
   id: string;
   user_id: string;
@@ -39,10 +41,12 @@ interface UseEmailOAuthFlowReturn {
   ensureWatch: (accountId: string) => Promise<void>;
 }
 
+/** Hook: use Gmail OAuth Flow. */
 export function useGmailOAuthFlow() {
   return useGmailOAuthFlowManagement();
 }
 
+/** Hook: use Email OAuth Flow. */
 export function useEmailOAuthFlow(): UseEmailOAuthFlowReturn {
   const [accounts, setAccounts] = useState<EmailAccount[]>([]);
   const [tokenStatus, setTokenStatus] = useState<Record<string, TokenStatus>>({});
@@ -219,6 +223,7 @@ export function useEmailOAuthFlow(): UseEmailOAuthFlowReturn {
         //   { type: 'gmail-oauth-code',  code }   -> trocar code por tokens (exchangeCode)
         //   { type: 'gmail-oauth-error', error }  -> falha
         const onMessage = async (event: MessageEvent) => {
+          if (event.origin !== window.location.origin) return;
           if (settled) return;
           const msg = event.data;
           if (msg?.type === 'gmail-oauth-error') {

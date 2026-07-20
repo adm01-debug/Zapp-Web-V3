@@ -12,6 +12,7 @@ interface ProductVariantSelectorProps {
   setIsEditing: (editing: boolean) => void;
 }
 
+/** Product Variant Selector component for the catalog section. */
 export function ProductVariantSelector({
   variantGroups,
   sendMode,

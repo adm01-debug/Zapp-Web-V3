@@ -40,6 +40,7 @@ const PRIORITY_MAP: Record<string, { label: string; color: string }> = {
   low: { label: 'Baixa', color: 'bg-success text-success-foreground' },
 };
 
+/** Auto Ticket Classifier component for the ai section. */
 export function AutoTicketClassifier() {
   const [autoClassify, setAutoClassify] = useState(true);
   const [tickets, setTickets] = useState<ClassifiedTicket[]>([]);

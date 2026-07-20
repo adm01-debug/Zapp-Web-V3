@@ -1,9 +1,12 @@
 import { useMemo } from 'react';
 import { useRateLimitLogs } from './useRateLimitLogs';
 
+/** Hook: Alert Severity. */
 export type AlertSeverity = 'low' | 'medium' | 'high' | 'critical';
+/** Hook: Alert Scope. */
 export type AlertScope = 'ip' | 'endpoint';
 
+/** Hook: Rate Limit Alert. */
 export interface RateLimitAlert {
   id: string;
   scope: AlertScope;
@@ -16,6 +19,7 @@ export interface RateLimitAlert {
   detailsHref: string;
 }
 
+/** Hook: Rate Limit Alert Thresholds. */
 export interface RateLimitAlertThresholds {
   ip: { low: number; medium: number; high: number };
   endpoint: { low: number; medium: number; high: number };
@@ -30,6 +34,7 @@ const DEFAULT_THRESHOLDS: RateLimitAlertThresholds = {
 
 const STORAGE_KEY = 'zapp:admin:rate-limit-thresholds:v1';
 
+/** Hook: load Thresholds. */
 export function loadThresholds(): RateLimitAlertThresholds {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -40,6 +45,7 @@ export function loadThresholds(): RateLimitAlertThresholds {
   }
 }
 
+/** Hook: save Thresholds. */
 export function saveThresholds(next: RateLimitAlertThresholds) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
@@ -61,6 +67,7 @@ function classify(
   return null;
 }
 
+/** Hook: use Rate Limit Alerts. */
 export function useRateLimitAlerts(thresholds: RateLimitAlertThresholds = DEFAULT_THRESHOLDS) {
   const { logs, loading, refetch } = useRateLimitLogs();
 

@@ -20,6 +20,7 @@ interface EmailChatThreadProps {
   className?: string;
 }
 
+/** Email Chat Thread component for the email section. */
 export function EmailChatThread({
   thread,
   messages,

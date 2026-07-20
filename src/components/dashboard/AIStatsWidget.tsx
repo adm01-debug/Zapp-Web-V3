@@ -59,6 +59,7 @@ const chartConfig = {
   negative: { label: 'Negativo', color: 'hsl(var(--destructive))' },
 };
 
+/** AIStats Widget component for the dashboard section. */
 export function AIStatsWidget() {
   const [selectedPeriod, setSelectedPeriod] = useState<PeriodOption>(7);
   const [visibleSentiments, setVisibleSentiments] = useState<Set<SentimentType>>(new Set(['positive', 'negative', 'neutral']));

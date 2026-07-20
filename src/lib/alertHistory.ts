@@ -8,8 +8,10 @@
 import { safeGetJSON, safeSetJSON } from '@/lib/safeStorage';
 import type { WebhookAlertBreach, WebhookAlertConfig } from '@/lib/webhookHealthAlerts';
 
+/** Severity classification for a triggered alert based on observed vs threshold ratio. */
 export type AlertSeverity = 'critical' | 'high' | 'medium';
 
+/** Single historical entry recorded when a webhook alert threshold is breached. */
 export interface AlertHistoryEntry {
   id: string;
   firedAt: number;
@@ -26,6 +28,7 @@ export interface AlertHistoryEntry {
 const STORAGE_KEY = 'zappweb:webhook-alert-history';
 const MAX_HISTORY = 200;
 
+/** Classifies alert severity based on breach type and how far the observed value exceeds the configured threshold. */
 export function classifySeverity(breach: WebhookAlertBreach, config: WebhookAlertConfig): AlertSeverity {
   if (breach.type === 'signature_spike') {
     const ratio = config.invalidRatePct > 0 ? breach.value / config.invalidRatePct : 1;
@@ -40,12 +43,14 @@ export function classifySeverity(breach: WebhookAlertBreach, config: WebhookAler
   return 'medium';
 }
 
+/** load Alert History function. */
 export function loadAlertHistory(): AlertHistoryEntry[] {
   const raw = safeGetJSON<AlertHistoryEntry[] | null>(STORAGE_KEY, null);
   if (!Array.isArray(raw)) return [];
   return raw.filter((e) => e && typeof e.firedAt === 'number' && typeof e.instance === 'string');
 }
 
+/** append Alert History function. */
 export function appendAlertHistory(entries: AlertHistoryEntry[]): AlertHistoryEntry[] {
   if (entries.length === 0) return loadAlertHistory();
   const current = loadAlertHistory();
@@ -54,10 +59,12 @@ export function appendAlertHistory(entries: AlertHistoryEntry[]): AlertHistoryEn
   return merged;
 }
 
+/** clear Alert History function. */
 export function clearAlertHistory(): void {
   safeSetJSON(STORAGE_KEY, []);
 }
 
+/** build History Entry function. */
 export function buildHistoryEntry(
   breach: WebhookAlertBreach,
   config: WebhookAlertConfig,

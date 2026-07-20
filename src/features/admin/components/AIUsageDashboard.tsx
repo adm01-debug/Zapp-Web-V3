@@ -27,6 +27,7 @@ import type { TimeFilter } from '@/features/admin';
 import { AIUsageLogsTab } from './AIUsageLogsTab';
 import { AIUsageUsersTab } from './AIUsageUsersTab';
 
+/** AIUsage Dashboard component. */
 export function AIUsageDashboard() {
   const {
     logs,

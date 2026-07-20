@@ -12,6 +12,7 @@ interface VoiceCommandLogParams {
   success?: boolean;
 }
 
+/** log Voice Command utilities and exports. */
 export function logVoiceCommand(params: VoiceCommandLogParams) {
   // Fire-and-forget — never block UI
   void (async () => {

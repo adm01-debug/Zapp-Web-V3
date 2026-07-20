@@ -12,6 +12,7 @@ interface MobileDrawerProps {
   className?: string;
 }
 
+/** Mobile Drawer component for the ui section. */
 export const MobileDrawer = React.forwardRef<HTMLDivElement, MobileDrawerProps>(
   ({ isOpen, onClose, children, side = 'left', className }, _ref) => {
     const dragX = useMotionValue(0);
@@ -105,6 +106,7 @@ interface BottomNavigationProps {
   className?: string;
 }
 
+/** Bottom Navigation component for the ui section. */
 export function BottomNavigation({ items, activeId, onChange, className }: BottomNavigationProps) {
   return (
     <nav
@@ -178,6 +180,7 @@ interface PullToRefreshProps {
   children: React.ReactNode;
 }
 
+/** Pull To Refresh component for the ui section. */
 export function PullToRefresh({ onRefresh, children }: PullToRefreshProps) {
   const [isPulling, setIsPulling] = React.useState(false);
   const [isRefreshing, setIsRefreshing] = React.useState(false);
@@ -238,6 +241,7 @@ interface TouchFeedbackProps {
   onPress?: () => void;
 }
 
+/** Touch Feedback component for the ui section. */
 export function TouchFeedback({ children, className, onPress }: TouchFeedbackProps) {
   return (
     <motion.div

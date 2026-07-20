@@ -10,8 +10,10 @@ import { queryKeys } from '@/services/api/queryKeys';
 // Types
 // ═══════════════════════════════════════════════════════════
 
+/** Hook: Channel Type. */
 export type ChannelType = 'whatsapp' | 'instagram' | 'telegram' | 'messenger' | 'webchat' | 'email';
 
+/** Hook: Omnichannel Channel. */
 export interface OmnichannelChannel {
   id: string;
   name: string;
@@ -19,12 +21,14 @@ export interface OmnichannelChannel {
   status: string;
 }
 
+/** Hook: New Routing Rule. */
 export interface NewRoutingRule {
   channel_type: string;
   queue_id: string;
   priority: number;
 }
 
+/** Hook: Routing Rule. */
 export interface RoutingRule {
   id: string;
   channel_type: string;
@@ -38,10 +42,12 @@ export interface RoutingRule {
   channel_connection?: { name: string } | null;
 }
 
+/** Hook: Use Omnichannel Channels Params. */
 export interface UseOmnichannelChannelsParams {
   // no params needed
 }
 
+/** Hook: Use Omnichannel Channels Result. */
 export interface UseOmnichannelChannelsResult {
   channels: OmnichannelChannel[];
   isLoading: boolean;
@@ -49,10 +55,12 @@ export interface UseOmnichannelChannelsResult {
   deleteChannel: ReturnType<typeof useMutation>;
 }
 
+/** Hook: Use Channel Routing Rules Params. */
 export interface UseChannelRoutingRulesParams {
   // no params needed
 }
 
+/** Hook: Use Channel Routing Rules Result. */
 export interface UseChannelRoutingRulesResult {
   rules: RoutingRule[];
   isLoading: boolean;
@@ -66,6 +74,7 @@ export interface UseChannelRoutingRulesResult {
 // Channels Management (useOmnichannelChannels consolidation)
 // ═══════════════════════════════════════════════════════════
 
+/** Hook: use Omnichannel Channels Management. */
 export function useOmnichannelChannelsManagement(
   _params: UseOmnichannelChannelsParams = {}
 ): UseOmnichannelChannelsResult {
@@ -126,6 +135,7 @@ export function useOmnichannelChannelsManagement(
 // Routing Rules Management (useChannelRoutingRules consolidation)
 // ═══════════════════════════════════════════════════════════
 
+/** Hook: use Channel Routing Rules Management. */
 export function useChannelRoutingRulesManagement(
   _params: UseChannelRoutingRulesParams = {}
 ): UseChannelRoutingRulesResult {

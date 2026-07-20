@@ -52,6 +52,7 @@ interface TeamChatHeaderProps {
   showStats?: boolean;
 }
 
+/** Team Chat Header component for the team chat section. */
 export function TeamChatHeader({
   conversation,
   showDetails,

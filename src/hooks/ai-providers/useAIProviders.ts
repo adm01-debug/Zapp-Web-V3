@@ -7,6 +7,7 @@ import type { AIProvider, ProviderFormData } from '@/components/settings/ai-prov
 import { EMPTY_FORM } from '@/components/settings/ai-providers/types';
 import { queryKeys } from '@/services/api/queryKeys';
 
+/** Hook: use AIProviders. */
 export function useAIProviders() {
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -72,6 +73,7 @@ export function useAIProviders() {
     onError: (e: Error) => toast({ title: 'Erro', description: e.message, variant: 'destructive' }),
   });
 
+  /** Tests the AI provider connection via the ai-proxy edge function and shows a success or error toast with the response. */
   const handleTest = async (provider: AIProvider) => {
     setTesting(provider.id);
     try {
@@ -96,6 +98,7 @@ export function useAIProviders() {
     }
   };
 
+  /** Populates the form with the given provider's data and opens the dialog in edit mode. */
   const openEdit = (p: AIProvider) => {
     setEditingId(p.id);
     setForm({
@@ -114,18 +117,21 @@ export function useAIProviders() {
     setDialogOpen(true);
   };
 
+  /** Resets editingId and form to empty state then opens the dialog for creating a new provider. */
   const openNew = () => {
     setEditingId(null);
     setForm(EMPTY_FORM);
     setDialogOpen(true);
   };
 
+  /** Closes the dialog and resets editingId and form to empty state. */
   const closeDialog = () => {
     setDialogOpen(false);
     setEditingId(null);
     setForm(EMPTY_FORM);
   };
 
+  /** Toggles `val` in the form's use_for array: removes it if present, appends it if absent. */
   const toggleUseFor = (val: string) => {
     setForm((prev) => ({
       ...prev,

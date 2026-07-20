@@ -14,6 +14,7 @@ import {
 
 const log = getLogger('AdminEmailStatusPage');
 
+/** Narrows an arbitrary status string to the `EmailHealthInfo['status']` union, defaulting to `'error'` for unknown values. */
 export const castStatus = (status: string | null): EmailHealthInfo['status'] => {
   if (status && ['healthy', 'degraded', 'error'].includes(status)) {
     return status as EmailHealthInfo['status']; // ignore-audit: includes guard above confirms status is a valid union member
@@ -28,6 +29,7 @@ interface Filters {
   page: number;
 }
 
+/** Fetches email infrastructure health from the `email-health` edge function, subscribes to realtime changes, and exposes revalidation and action handlers. */
 export function useEmailHealthStatus() {
   const { accounts } = useEmail();
   const [health, setHealth] = useState<EmailHealthInfo | null>(null);
@@ -65,6 +67,7 @@ export function useEmailHealthStatus() {
       if (!mountedRef.current) return;
       setHealth({
         status: castStatus(dataFull.status),
+        source: typeof dataFull.source === 'string' ? dataFull.source : undefined,
         lastValidation: dataFull.last_validation ? new Date(dataFull.last_validation) : null,
         cacheExpiration: null,
         recentFailures: dataFull.failuresResult?.items || [],

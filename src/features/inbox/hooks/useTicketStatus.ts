@@ -86,7 +86,7 @@ export function useTicketStatus(contactId: string | null | undefined) {
   }), [state, setStatus, assumir, transferir, devolverFila, atribuirAuto]);
 }
 
-/** Hook agregado para KPIs e filtros na lista. */
+/** Returns a snapshot of all active ticket states keyed by ticket ID; used for KPI dashboards and inbox list filters without per-ticket subscriptions. */
 export function useAllTicketStates(): Record<string, TicketState> {
   const subscribe = useCallback((cb: () => void) => ticketStore.subscribe(cb), []);
   const snapshot = useCallback(() => ticketStore.snapshot(), []);

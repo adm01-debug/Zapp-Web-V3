@@ -43,6 +43,7 @@ function formatTime(seconds: number) {
   return h > 0 ? `${h}:${m}:${s}` : `${m}:${s}`;
 }
 
+/** Dial Pad component for the calls section. */
 export function DialPad({
   sipStatus, callStatus, callDuration, isMuted, currentNumber,
   onConnect, onDisconnect, onCall, onHangUp, onToggleMute, onDTMF,

@@ -35,6 +35,7 @@ const roleIconMap = { dev: Code, admin: Crown, supervisor: UserCog, agent: User 
 const roleLabelMap = { dev: 'Desenvolvedor', admin: 'Administrador', supervisor: 'Supervisor', agent: 'Atendente' } as const;
 const roleColorMap = { dev: 'text-destructive', admin: 'text-warning', supervisor: 'text-info', agent: 'text-muted-foreground' } as const;
 
+/** Admin View component. */
 export function AdminView() {
   const { isAdmin, isSupervisor, loading: roleLoading } = useUserRole();
   const [activeTab, setActiveTab] = useState<'users' | 'audit' | 'crm' | 'playbooks' | 'copilot' | 'training' | 'crisis' | 'qr-history' | 'queues' | 'inbox-config' | 'agent-versions'>('users');

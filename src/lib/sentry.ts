@@ -27,6 +27,7 @@ const RELEASE = (import.meta.env.VITE_GIT_SHA ||
 
 let initialized = false;
 
+/** init Sentry function. */
 export function initSentry(): boolean {
   if (initialized) return true;
   if (!DSN || DSN.trim() === '' || DSN === 'PLACEHOLDER') {
@@ -91,5 +92,7 @@ export function initSentry(): boolean {
   }
 }
 
+/** Sentry Error Boundary constant. */
 export const SentryErrorBoundary = ErrorBoundary;
+/** Re-exported module members. */
 export { Sentry };

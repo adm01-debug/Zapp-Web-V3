@@ -19,6 +19,7 @@ interface SearchInsight {
   click_count: number;
 }
 
+/** Search Insights Tables. */
 export function SearchInsightsTables() {
   const { data: insights = [], isLoading } = useQuery({
     queryKey: queryKeys.adminOps.searchInsights(),

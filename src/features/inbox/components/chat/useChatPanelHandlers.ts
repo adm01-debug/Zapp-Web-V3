@@ -34,6 +34,7 @@ interface UseChatPanelHandlersOptions {
   handleSetActiveTool: (tool: ActiveTool) => void;
 }
 
+/** use Chat Panel Handlers component for the chat section. */
 export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
   const {
     contactPhone,

@@ -8,6 +8,7 @@ import { getLogger } from '@/lib/logger';
 
 const log = getLogger('useQuickReplies');
 
+/** Database row from the `message_templates` table; used for quick-reply lookup, search, and CRUD operations. */
 export interface QuickReplyTemplate {
   id: string;
   title: string;
@@ -21,12 +22,14 @@ export interface QuickReplyTemplate {
   updated_at: string;
 }
 
+/** LocalStorage entry tracking which quick-reply templates the agent has pinned as favourites. */
 export interface QuickReplyFavorite {
   id: string;
   templateId: string;
   order: number;
 }
 
+/** Fields required to create or update a quick-reply template. */
 export interface CreateTemplateInput {
   title: string;
   content: string;
@@ -37,6 +40,7 @@ export interface CreateTemplateInput {
 
 const FAVORITES_STORAGE_KEY = 'quick-reply-favorites';
 
+/** Manages quick-reply templates: fetches from Supabase, provides fuzzy search, CRUD mutations, per-agent favourites (localStorage), and use-count tracking. */
 export function useQuickReplies() {
   const { user } = useAuth();
   const queryClient = useQueryClient();

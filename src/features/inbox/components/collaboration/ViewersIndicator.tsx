@@ -18,6 +18,7 @@ interface Viewer {
   last_seen: Date;
 }
 
+/** use Conversation Viewers function. */
 export function useConversationViewers(contactId: string) {
   const { user } = useAuth();
   const [viewers, setViewers] = useState<Viewer[]>([]);
@@ -66,14 +67,14 @@ export function useConversationViewers(contactId: string) {
       });
 
     return () => {
-      void channel.unsubscribe();
-      supabase.removeChannel(channel);
+      supabase.removeChannel(channel).catch(() => {});
     };
   }, [contactId, user?.id]);
 
   return viewers;
 }
 
+/** Displays avatars of agents currently viewing a conversation, updated via realtime presence. */
 export function ViewersIndicator({ contactId }: { contactId: string }) {
   const viewers = useConversationViewers(contactId);
   const [isOpen, setIsOpen] = useState(false);

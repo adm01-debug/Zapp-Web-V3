@@ -23,6 +23,7 @@ interface VoiceChangerProps {
   initialTaskId?: string | null;
 }
 
+/** Voice Changer component. */
 export const VoiceChanger = memo(function VoiceChanger({
   audioBlob,
   audioUrl,

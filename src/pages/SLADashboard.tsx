@@ -18,4 +18,5 @@ const SLADashboardPage = () => {
   );
 };
 
+/** React component: S L A Dashboard. */
 export default SLADashboardPage;

@@ -37,6 +37,7 @@ async function cleanupLegacyServiceWorker(): Promise<boolean> {
   return false;
 }
 
+/** use Service Worker function. */
 export function useServiceWorker() {
   const registeredRef = useRef(false);
 

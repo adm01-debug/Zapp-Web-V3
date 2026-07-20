@@ -12,8 +12,10 @@ export interface ContactEnrichmentData {
   [key: string]: unknown;
 }
 
+/** C A C H E_ T T L constant. */
 export const CACHE_TTL = 300_000; // 5 minutes
 
+/** contact Enrichment Cache constant. */
 export const contactEnrichmentCache = new Map<
   string,
   { data: ContactEnrichmentData; timestamp: number }

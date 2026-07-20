@@ -35,6 +35,7 @@ const boolDefault = (fallback = false) =>
 /* Contacts                                                                   */
 /* -------------------------------------------------------------------------- */
 
+/** Zod schema for validating and normalising a Supabase contacts row. */
 export const contactSchema = z.object({
   id: z.string().uuid(),
   name: strDefault(''),
@@ -55,12 +56,14 @@ export const contactSchema = z.object({
   created_at: strDefault(''),
   updated_at: strDefault(''),
 });
+/** Contact type alias. */
 export type Contact = z.infer<typeof contactSchema>;
 
 /* -------------------------------------------------------------------------- */
 /* Messages                                                                   */
 /* -------------------------------------------------------------------------- */
 
+/** Zod schema for validating and normalising a Supabase messages row. */
 export const messageSchema = z.object({
   id: z.string().uuid(),
   contact_id: z.string().uuid(),
@@ -78,12 +81,14 @@ export const messageSchema = z.object({
   created_at: strDefault(''),
   updated_at: nullish(z.string()),
 });
+/** Message type alias. */
 export type Message = z.infer<typeof messageSchema>;
 
 /* -------------------------------------------------------------------------- */
 /* Conversations (contacts que atuam como agregador de conversa)              */
 /* -------------------------------------------------------------------------- */
 
+/** Zod schema for validating and normalising a Supabase conversations/contacts row. */
 export const conversationSchema = z.object({
   id: z.string().uuid(),
   contact_id: nullish(z.string().uuid()),
@@ -97,6 +102,7 @@ export const conversationSchema = z.object({
   queue_id: nullish(z.string().uuid()),
   assigned_to: nullish(z.string().uuid()),
 });
+/** Conversation type alias. */
 export type Conversation = z.infer<typeof conversationSchema>;
 
 /* -------------------------------------------------------------------------- */

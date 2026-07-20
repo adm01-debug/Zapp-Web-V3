@@ -11,6 +11,7 @@ interface ContactSLAParams {
   agentId?: string | null;
 }
 
+/** S L A Matched Level type alias. */
 export type SLAMatchedLevel =
   | 'contact'
   | 'company'
@@ -21,6 +22,7 @@ export type SLAMatchedLevel =
   | 'global_default'
   | 'system_default';
 
+/** Applicable S L A interface definition. */
 export interface ApplicableSLA {
   firstResponseMinutes: number;
   resolutionMinutes: number;
@@ -58,6 +60,7 @@ const SYSTEM_DEFAULT: ApplicableSLA = {
 
 // Shared hook — fetches ALL active SLA rules once; React Query deduplicates
 // across every useApplicableSLA caller in the same render tree.
+/** use Active S L A Rules function. */
 export function useActiveSLARules() {
   return useQuery<ActiveSLARule[]>({
     queryKey: queryKeys.sla.rulesActive(),
@@ -77,6 +80,7 @@ export function useActiveSLARules() {
 }
 
 // Shared hook — fetches the single global-default SLA config once.
+/** use S L A Default Config function. */
 export function useSLADefaultConfig() {
   return useQuery<SLAConfig | null>({
     queryKey: queryKeys.sla.configurationsDefault(),

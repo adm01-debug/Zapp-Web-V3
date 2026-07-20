@@ -7,6 +7,7 @@ import { FileUploaderRef } from '../FileUploader';
 const DRAFT_KEY_PREFIX = 'chat_draft_';
 const CHAR_LIMIT = 4096;
 
+/** Chat Input Attachment interface definition. */
 export interface ChatInputAttachment {
   id: string;
   file: File;
@@ -25,6 +26,7 @@ interface UseChatInputLogicParams {
   isRecordingAudio?: boolean;
 }
 
+/** use Chat Input Logic function. */
 export function useChatInputLogic({
   inputValue,
   contactId,

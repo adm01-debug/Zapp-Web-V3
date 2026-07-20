@@ -31,6 +31,7 @@ const colorMap = {
   health_fail: 'text-destructive',
 };
 
+/** Monitoring Event Timeline component for the monitoring section. */
 export function MonitoringEventTimeline() {
   const [events, setEvents] = useState<TimelineEvent[]>([]);
 

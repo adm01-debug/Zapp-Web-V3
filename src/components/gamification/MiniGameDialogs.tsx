@@ -14,6 +14,7 @@ interface GameDialogProps {
   onComplete: (score: number, xp: number) => void;
 }
 
+/** Speed Typing Game component for the gamification section. */
 export function SpeedTypingGame({ isOpen, onClose, onComplete }: GameDialogProps) {
   const [currentPhrase, setCurrentPhrase] = useState('');
   const [userInput, setUserInput] = useState('');
@@ -72,6 +73,7 @@ export function SpeedTypingGame({ isOpen, onClose, onComplete }: GameDialogProps
   );
 }
 
+/** Quiz Game component for the gamification section. */
 export function QuizGame({ isOpen, onClose, onComplete }: GameDialogProps) {
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [score, setScore] = useState(0);
@@ -130,6 +132,7 @@ export function QuizGame({ isOpen, onClose, onComplete }: GameDialogProps) {
   );
 }
 
+/** Emoji Decode Game component for the gamification section. */
 export function EmojiDecodeGame({ isOpen, onClose, onComplete }: GameDialogProps) {
   const [currentChallenge, setCurrentChallenge] = useState(0);
   const [score, setScore] = useState(0);

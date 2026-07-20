@@ -151,4 +151,5 @@ class ExternalDbProxyClient {
 }
 
 // Export a singleton instance
+/** evo Api constant. */
 export const evoApi = new ExternalDbProxyClient();

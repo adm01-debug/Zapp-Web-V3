@@ -18,6 +18,7 @@ interface Props {
   conversationId: string;
 }
 
+/** Team Performance Panel component for the team chat section. */
 export function TeamPerformancePanel({ conversationId }: Props) {
   const [metrics, setMetrics] = useState<{ lcp: Metric[], inp: Metric[], renderTime: Metric[] }>({
     lcp: [],

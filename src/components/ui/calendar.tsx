@@ -5,6 +5,7 @@ import { DayPicker } from "react-day-picker";
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
 
+/** Calendar Props type alias. */
 export type CalendarProps = React.ComponentProps<typeof DayPicker> & {
   /**
    * Backward-compat: react-day-picker v9 renamed `initialFocus` to `autoFocus`.
@@ -75,4 +76,5 @@ function Calendar({
 }
 Calendar.displayName = "Calendar";
 
+/** Re-exported module members. */
 export { Calendar };

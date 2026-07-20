@@ -36,6 +36,7 @@ interface Props {
   onSave: () => void;
 }
 
+/** Queue Edit Dialog. */
 export function QueueEditDialog({
   open,
   editing,

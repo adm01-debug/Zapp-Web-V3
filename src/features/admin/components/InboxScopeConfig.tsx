@@ -34,6 +34,7 @@ import {
   NewScopeForm,
 } from './InboxScopeConfigParts';
 
+/** Inbox Scope Config component. */
 export function InboxScopeConfig() {
   const { permissions, rolePermissions, addPermissionToRole, removePermissionFromRole, loading } =
     usePermissions();

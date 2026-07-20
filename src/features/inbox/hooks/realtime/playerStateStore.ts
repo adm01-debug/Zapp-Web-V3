@@ -12,6 +12,7 @@
  *     regredir.
  */
 
+/** Playback position and rate for a single audio message, keyed by message id and stored outside React state to survive bubble remounts during reconciliation. */
 export interface PlayerState {
   currentTime: number;
   paused: boolean;
@@ -35,6 +36,7 @@ function gc(): void {
   }
 }
 
+/** Module-level store for audio player state; persists currentTime/paused/rate across optimistic→canonical reconciliation via the `migrate` method. */
 export const playerStateStore = {
   get(id: string): PlayerState | undefined {
     return store.get(id);

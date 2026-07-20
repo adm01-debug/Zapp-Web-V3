@@ -5,6 +5,7 @@
  */
 import { useSyncExternalStore } from 'react';
 
+/** Connection state of the evolution_contacts Supabase Realtime subscription, exposed as a lightweight external store. */
 export type RealtimeContactsStatus =
   | 'idle'
   | 'connecting'
@@ -15,6 +16,7 @@ export type RealtimeContactsStatus =
 let current: RealtimeContactsStatus = 'idle';
 const listeners = new Set<() => void>();
 
+/** Updates the global realtime contacts status and notifies all useSyncExternalStore subscribers. */
 export function setRealtimeContactsStatus(next: RealtimeContactsStatus) {
   if (next === current) return;
   current = next;
@@ -30,6 +32,7 @@ function getSnapshot(): RealtimeContactsStatus {
   return current;
 }
 
+/** React hook that reads the current evolution_contacts realtime status from the external store, compatible with concurrent mode (useSyncExternalStore). */
 export function useRealtimeContactsStatus(): RealtimeContactsStatus {
   return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 }

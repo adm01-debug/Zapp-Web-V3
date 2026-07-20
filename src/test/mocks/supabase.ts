@@ -37,6 +37,7 @@ function createQueryBuilder(resolvedData: unknown = [], resolvedError: unknown =
 type TableOverride = { data?: unknown; error?: unknown };
 type Overrides = { auth?: Record<string, unknown>; tables?: Record<string, TableOverride> };
 
+/** supabase utilities and exports. */
 export function createMockSupabase(overrides: Overrides = {}) {
   const mockAuth = {
     getSession: vi.fn().mockResolvedValue({ data: { session: null }, error: null }),
@@ -72,4 +73,5 @@ export function createMockSupabase(overrides: Overrides = {}) {
   };
 }
 
+/** mock Supabase constant. */
 export const mockSupabase = createMockSupabase();

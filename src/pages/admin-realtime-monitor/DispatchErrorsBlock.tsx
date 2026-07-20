@@ -14,6 +14,7 @@ interface Props {
   windowHours: number;
 }
 
+/** Dispatch Errors Block. */
 export function DispatchErrorsBlock({ windowHours }: Props) {
   const { data, isLoading, error } = useFailedMessages({ hours: windowHours, pageSize: 500 });
 

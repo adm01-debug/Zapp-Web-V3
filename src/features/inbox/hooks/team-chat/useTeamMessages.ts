@@ -8,6 +8,7 @@ import { queryKeys } from '@/services/api/queryKeys';
 
 const MESSAGES_PER_PAGE = 50;
 
+/** Fetches paginated messages for a team conversation with optional full-text search filtering, subscribes to Realtime inserts, and marks the conversation as read on mount. */
 export function useTeamMessages(conversationId: string | null, searchQuery: string = '') {
   const { profile } = useAuth();
   const queryClient = useQueryClient();

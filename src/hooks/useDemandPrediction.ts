@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { dbFrom } from '@/integrations/datasource/db';
 import { queryKeys } from '@/services/api/queryKeys';
 
+/** Hook: Prediction Point. */
 export interface PredictionPoint {
   time: string;
   actual?: number;
@@ -12,6 +13,7 @@ export interface PredictionPoint {
   isPrediction?: boolean;
 }
 
+/** Hook: Demand Insights. */
 export interface DemandInsights {
   maxPredicted: number;
   avgPredicted: number;
@@ -50,6 +52,7 @@ function generatePredictionFromHistory(messageHistory: { hour: number; count: nu
   return data;
 }
 
+/** Hook: use Demand Prediction. */
 export function useDemandPrediction(externalData?: PredictionPoint[], currentCapacity = 35) {
   const { data: messageHistory = [] } = useQuery({
     queryKey: queryKeys.demandPrediction.history(),

@@ -17,6 +17,7 @@ interface MobileFABProps {
   className?: string;
 }
 
+/** Mobile FAB component for the mobile section. */
 export function MobileFAB({ onNewConversation, onNewContact, onNewCampaign, className }: MobileFABProps) {
   const [isOpen, setIsOpen] = useState(false);
 

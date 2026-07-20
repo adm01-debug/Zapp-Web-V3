@@ -1,14 +1,12 @@
-// Re-export from consolidated useQueueManagement module (ETAPA 26 consolidation)
-import { useQueueAnalyticsManagement } from '@/hooks/useQueueManagement';
-import type { DateRange } from '@/hooks/useQueueManagement';
+import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 
-export type { DateRange };
-
-interface LegacyDateRange {
+interface DateRange {
   from: Date;
   to: Date;
 }
 
+/** Hook: use Queue Analytics. */
 export function useQueueAnalytics(queueId: string, dateRange: DateRange | LegacyDateRange) {
   const normalizedRange: DateRange = 'startDate' in dateRange
     ? dateRange

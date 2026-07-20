@@ -16,6 +16,7 @@ const TONE_CLASSES = {
   success: 'text-success bg-success/10',
 };
 
+/** Failed Message Kpi Card component. */
 export function FailedMessageKpiCard({ icon: Icon, label, value, tone }: Props) {
   return (
     <Card>

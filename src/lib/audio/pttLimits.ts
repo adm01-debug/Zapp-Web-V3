@@ -9,10 +9,14 @@ import { formatBytesCompact } from '@/lib/formatters';
  *     blob exceda tamanho/duração antes de subir para o bucket.
  */
 
+/** Maximum PTT duration in seconds enforced by WhatsApp/Evolution API. */
 export const MAX_PTT_DURATION_SEC = 16 * 60; // 16 min — limite WhatsApp
+/** Maximum PTT audio file size in bytes enforced by WhatsApp/Evolution API. */
 export const MAX_PTT_SIZE_BYTES = 16 * 1024 * 1024; // 16 MB
+/** Minimum PTT duration in seconds — below this, audio is treated as accidental tap. */
 export const MIN_PTT_DURATION_SEC = 0.5; // < 0.5 s = áudio "vazio" (toque acidental)
 
+/** Result of a PTT blob validation check before upload. */
 export interface PttValidationResult {
   ok: boolean;
   /** Mensagem amigável pronta para `toast.error(...)`. Sempre presente quando `ok=false`. */
@@ -21,6 +25,7 @@ export interface PttValidationResult {
   durationSec?: number;
 }
 
+/** Formats a duration in seconds as a human-readable string in the form `Xm Ys` or `Ys`. */
 function formatSeconds(seconds: number): string {
   const m = Math.floor(seconds / 60);
   const s = Math.round(seconds % 60);
@@ -37,17 +42,20 @@ export function probeAudioDuration(blob: Blob): Promise<number | undefined> {
     const audio = document.createElement('audio');
     audio.preload = 'metadata';
 
+    /** Removes event listeners and revokes the object URL to prevent memory leaks. */
     const cleanup = () => {
       audio.removeEventListener('loadedmetadata', onLoaded);
       audio.removeEventListener('error', onError);
       URL.revokeObjectURL(url);
     };
 
+    /** Resolves with the detected audio duration when metadata is available, or undefined if the value is invalid. */
     const onLoaded = () => {
       const d = audio.duration;
       cleanup();
       resolve(isFinite(d) && !isNaN(d) && d > 0 ? d : undefined);
     };
+    /** Resolves with undefined when the browser fails to decode the audio element. */
     const onError = () => {
       cleanup();
       resolve(undefined);

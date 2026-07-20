@@ -33,6 +33,7 @@ function resolveIntervalMs(): number {
   return Math.min(MAX_INTERVAL_MS, Math.max(MIN_INTERVAL_MS, Math.round(n)));
 }
 
+/** Resolved periodic fallback refetch interval in milliseconds, derived from VITE_REALTIME_FALLBACK_INTERVAL_MS env var with 5-minute default. */
 export const REALTIME_FALLBACK_REFETCH_MS = resolveIntervalMs();
 
 interface Options {
@@ -41,6 +42,7 @@ interface Options {
   intervalMs?: number;
 }
 
+/** Periodically invalidates all conversation/message queries as a fallback when the Supabase Realtime channel is disconnected or degraded, preventing stale inboxes. */
 export function useRealtimeFallbackRefetch({ enabled = true, intervalMs }: Options = {}) {
   const queryClient = useQueryClient();
   const status = useRealtimeContactsStatus();

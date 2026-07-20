@@ -12,6 +12,7 @@ interface ScheduledMessage {
   status: 'pending' | 'sent' | 'failed';
 }
 
+/** Hook: use Scheduled Messages Management. */
 export function useScheduledMessagesManagement() {
   const { user } = useAuth();
   const [messages, setMessages] = useState<ScheduledMessage[]>([]);
@@ -53,6 +54,7 @@ export function useScheduledMessagesManagement() {
   return { messages, loading, refetch: fetchScheduledMessages };
 }
 
+/** Hook: use Message Reactions Management. */
 export function useMessageReactionsManagement(messageId?: string) {
   const { user } = useAuth();
   const [reactions, setReactions] = useState<Record<string, unknown>[]>([]);
@@ -93,6 +95,7 @@ export function useMessageReactionsManagement(messageId?: string) {
   return { reactions, loading, refetch: fetchReactions };
 }
 
+/** Hook: use Forward Message Management. */
 export function useForwardMessageManagement(messageId?: string) {
   const [forwarding, setForwarding] = useState(false);
 
@@ -116,6 +119,7 @@ export function useForwardMessageManagement(messageId?: string) {
   return { forwardMessage, forwarding };
 }
 
+/** Hook: use Chatbot Flows Management. */
 export function useChatbotFlowsManagement() {
   const { user } = useAuth();
   const [flows, setFlows] = useState<Record<string, unknown>[]>([]);
@@ -156,6 +160,7 @@ export function useChatbotFlowsManagement() {
   return { flows, loading, refetch: fetchFlows };
 }
 
+/** Hook: use Team Chat Draft Management. */
 export function useTeamChatDraftManagement(chatId?: string) {
   const [draft, setDraft] = useState('');
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
@@ -173,6 +178,7 @@ export function useTeamChatDraftManagement(chatId?: string) {
   return { draft, lastSaved, saveDraft, clearDraft };
 }
 
+/** Hook: use Email Draft Management. */
 export function useEmailDraftManagement() {
   const [draft, setDraft] = useState<{ subject: string; body: string; recipients: string[] }>({
     subject: '',
@@ -191,4 +197,5 @@ export function useEmailDraftManagement() {
   return { draft, updateDraft, clearDraft };
 }
 
+/** Re-exported module members. */
 export type { ScheduledMessage };

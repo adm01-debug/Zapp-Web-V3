@@ -18,6 +18,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
+/** Period Option component for the queues section. */
 export type PeriodOption = '7d' | '14d' | '30d' | 'custom';
 
 interface DateRange {
@@ -38,6 +39,7 @@ const periodLabels: Record<PeriodOption, string> = {
   'custom': 'Personalizado',
 };
 
+/** Period Selector component for the queues section. */
 export function PeriodSelector({ value, dateRange, onChange }: PeriodSelectorProps) {
   const [isCustomOpen, setIsCustomOpen] = useState(false);
   const [tempRange, setTempRange] = useState<{ from?: Date; to?: Date }>({

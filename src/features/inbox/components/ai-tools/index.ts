@@ -1,3 +1,4 @@
+/** Public barrel exports for the ai-tools module. */
 export * from './AIResponseCard';
 export * from './AnalysisTabs';
 export * from './HistoryTab';

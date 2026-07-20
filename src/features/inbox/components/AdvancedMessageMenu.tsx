@@ -40,6 +40,7 @@ interface AdvancedMessageMenuProps {
   onContactSent?: (contactName: string) => void;
 }
 
+/** Advanced Message Menu component. */
 export function AdvancedMessageMenu({ instanceName, recipientNumber, onPollSent, onContactSent }: AdvancedMessageMenuProps) {
   const [popoverOpen, setPopoverOpen] = useState(false);
   const [stickerDialog, setStickerDialog] = useState(false);

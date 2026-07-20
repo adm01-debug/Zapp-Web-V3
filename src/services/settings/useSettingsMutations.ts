@@ -6,6 +6,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/services/api';
 import { settingsService, type UserSettings, type WorkspaceSettings } from './index';
 
+/** Mutation hook for updating user-specific settings; invalidates the user settings query cache on success. */
 export const useUpdateUserSettings = () => {
   const queryClient = useQueryClient();
 
@@ -18,6 +19,7 @@ export const useUpdateUserSettings = () => {
   });
 };
 
+/** use Upsert User Settings constant. */
 export const useUpsertUserSettings = () => {
   const queryClient = useQueryClient();
 
@@ -30,6 +32,7 @@ export const useUpsertUserSettings = () => {
   });
 };
 
+/** use Update Workspace Settings constant. */
 export const useUpdateWorkspaceSettings = () => {
   const queryClient = useQueryClient();
 
@@ -42,6 +45,7 @@ export const useUpdateWorkspaceSettings = () => {
   });
 };
 
+/** use Upsert Workspace Settings constant. */
 export const useUpsertWorkspaceSettings = () => {
   const queryClient = useQueryClient();
 

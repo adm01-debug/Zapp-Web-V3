@@ -37,6 +37,7 @@ interface AIEnhanceButtonProps {
   contactName?: string;
 }
 
+/** AIEnhance Button component for the chat section. */
 export function AIEnhanceButton({ inputValue, onInputChange, contactName }: AIEnhanceButtonProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);

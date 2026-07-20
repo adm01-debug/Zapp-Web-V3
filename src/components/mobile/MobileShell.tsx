@@ -24,6 +24,7 @@ const mobileNavItems = [
   { id: 'more', icon: <Menu className="h-5 w-5" />, label: 'Mais' },
 ];
 
+/** Mobile Shell component for the mobile section. */
 export function MobileShell({
   currentView,
   setCurrentView,

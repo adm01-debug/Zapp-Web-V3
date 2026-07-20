@@ -7,7 +7,9 @@ import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
 import type { AggregatedReaction } from '@/features/inbox/hooks/team-chat/useTeamMessageReactions';
 
+/** QUICK_EMOJIS component for the team chat section. */
 export const QUICK_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🙏'];
+/** EXTENDED_EMOJIS component for the team chat section. */
 export const EXTENDED_EMOJIS = [
   ...QUICK_EMOJIS,
   '🔥',
@@ -38,6 +40,7 @@ interface Props {
   onToggle: (emoji: string) => void;
 }
 
+/** Message Reactions component for the team chat section. */
 export const MessageReactions = memo(function MessageReactions({
   messageId,
   reactions,
@@ -135,6 +138,7 @@ export const MessageReactions = memo(function MessageReactions({
   );
 });
 
+/** Team Quick Reaction Bar component for the team chat section. */
 export const TeamQuickReactionBar = memo(function TeamQuickReactionBar({
   messageId: _messageId,
   isMine,

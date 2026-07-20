@@ -50,6 +50,7 @@ const CHANNEL_CONFIG: Record<
   webchat: { icon: Globe, label: 'Webchat', color: 'text-secondary bg-secondary/10' },
 };
 
+/** Omnichannel Inbox component for the omnichannel section. */
 export function OmnichannelInbox() {
   const [activeMainTab, setActiveMainTab] = useState<'channels' | 'email'>('channels');
   const [messages, setMessages] = useState<UnifiedMessage[]>([]);

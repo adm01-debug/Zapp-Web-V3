@@ -32,6 +32,7 @@ interface Props {
   activeCount: number;
 }
 
+/** Alert Thresholds Panel function. */
 export function AlertThresholdsPanel({ config, onChange, recentAlerts, activeCount }: Props) {
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState<WebhookAlertConfig>(config);

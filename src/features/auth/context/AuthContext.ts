@@ -2,6 +2,7 @@ import { createContext } from 'react';
 import { User, Session, AuthError } from '@supabase/supabase-js';
 import { Profile } from '../services/authService';
 
+/** Auth Context Type. */
 export interface AuthContextType {
   user: User | null;
   session: Session | null;
@@ -17,4 +18,5 @@ export interface AuthContextType {
   refreshPermissions: () => Promise<void>;
 }
 
+/** Auth Context. */
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);

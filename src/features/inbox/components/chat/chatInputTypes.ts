@@ -4,6 +4,7 @@ import type { QueueItem } from '../../hooks/useMessageQueue';
 import type { FileUploaderRef } from '../FileUploader';
 import type { SlashCommand } from '../SlashCommands';
 
+/** Quick Reply Item component for the chat section. */
 export interface QuickReplyItem {
   id: string;
   title: string;
@@ -12,6 +13,7 @@ export interface QuickReplyItem {
   category: string;
 }
 
+/** Chat Input Area Props component for the chat section. */
 export interface ChatInputAreaProps {
   inputValue: string;
   replyToMessage: Message | null;

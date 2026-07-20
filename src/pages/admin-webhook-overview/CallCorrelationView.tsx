@@ -37,6 +37,7 @@ function statusTone(status: string | null): string {
   return 'text-primary';
 }
 
+/** Call Correlation View function. */
 export function CallCorrelationView({ events }: Props) {
   const groupsByInstance = useMemo(() => {
     const all = groupEventsByCall(events);

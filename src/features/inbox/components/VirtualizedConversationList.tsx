@@ -72,6 +72,7 @@ interface VirtualizedConversationListProps {
   onMarkRead?: (conversation: Conversation) => void;
 }
 
+/** Virtualized Conversation List component. */
 export function VirtualizedConversationList({
   conversations,
   selectedId,

@@ -2,5 +2,6 @@
 import { useEmailRealtimeManagement } from './useGmailManagement';
 import type { UseEmailRealtimeParams } from './useGmailManagement';
 
+/** Hook: use Email Realtime. */
 export { useEmailRealtimeManagement as useEmailRealtime };
 export type { UseEmailRealtimeParams };

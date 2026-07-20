@@ -5,6 +5,7 @@ import { isValidUUID } from '@/utils/uuid';
 
 const log = getLogger('useWhisperCount');
 
+/** Returns the live count of unread whisper messages for the given contact and agent profile, updating via realtime subscription. */
 export function useWhisperCount(
   selectedContactId: string | null,
   profileId: string | undefined
@@ -61,8 +62,7 @@ export function useWhisperCount(
       .subscribe();
     return () => {
       cancelled = true;
-      void channel.unsubscribe();
-      supabase.removeChannel(channel);
+      supabase.removeChannel(channel).catch(() => {});
     };
   }, [selectedContactId, profileId]);
 

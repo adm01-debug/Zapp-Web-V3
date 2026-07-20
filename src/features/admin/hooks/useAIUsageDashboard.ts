@@ -7,8 +7,10 @@ import { format, subHours, subDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 
+/** Hook: Time Filter. */
 export type TimeFilter = '1h' | '6h' | '24h' | '7d' | '30d';
 
+/** Hook: Usage Log. */
 export interface UsageLog {
   id: string;
   user_id: string | null;
@@ -31,6 +33,7 @@ interface ProfileInfo {
   avatar_url: string | null;
 }
 
+/** Hook: FUNCTION_COLORS. */
 export const FUNCTION_COLORS: Record<string, string> = {
   'ai-suggest-reply': 'hsl(var(--primary))',
   'ai-enhance-message': 'hsl(var(--accent))',
@@ -40,6 +43,7 @@ export const FUNCTION_COLORS: Record<string, string> = {
   'chatbot-l1': 'hsl(var(--info))',
 };
 
+/** Hook: FUNCTION_LABELS. */
 export const FUNCTION_LABELS: Record<string, string> = {
   'ai-suggest-reply': 'Sugestão de Resposta',
   'ai-enhance-message': 'Reescrita de Mensagem',
@@ -64,6 +68,7 @@ function getTimeRange(filter: TimeFilter): Date {
   }
 }
 
+/** Hook: use AIUsage Dashboard. */
 export function useAIUsageDashboard() {
   const [logsPage, setLogsPage] = useState(0);
   const [timeFilter, setTimeFilter] = useState<TimeFilter>('24h');

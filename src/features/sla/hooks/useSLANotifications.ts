@@ -19,6 +19,7 @@ interface SLABreachPayload {
   resolved_at: string | null;
 }
 
+/** Hook: use SLANotifications. */
 export const useSLANotifications = () => {
   const { user } = useAuth();
   const { settings, isQuietHours } = useNotificationSettings();
@@ -161,7 +162,6 @@ export const useSLANotifications = () => {
 
     return () => {
       log.debug('Cleaning up subscription');
-      channel.unsubscribe();
       supabase.removeChannel(channel);
     };
   }, [user, settings, isQuietHours]);

@@ -47,6 +47,7 @@ interface MessageBubbleProps {
   onAudioVoiceChange?: (messageId: string, newBlob: Blob) => void;
 }
 
+/** Message Bubble component for the chat section. */
 export const MessageBubble = memo(function MessageBubble({
   message,
   isFirstInGroup,

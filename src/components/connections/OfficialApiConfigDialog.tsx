@@ -50,6 +50,7 @@ const EMPTY: CredentialsForm = {
   graph_api_version: 'v21.0',
 };
 
+/** Official Api Config Dialog component for the connections section. */
 export function OfficialApiConfigDialog({
   open,
   onOpenChange,

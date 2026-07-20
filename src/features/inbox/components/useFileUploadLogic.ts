@@ -18,6 +18,7 @@ import {
   categoryOrder,
   MAX_FILES,
 } from './useFileUploadLogicTypes';
+/** Re-exported module members. */
 export type { FileMessageData, FilePreview, QueuedFile } from './useFileUploadLogicTypes';
 
 function buildFileMessageData(result: unknown, mediaUrl: string, messageType?: string): FileMessageData {
@@ -28,6 +29,7 @@ function buildFileMessageData(result: unknown, mediaUrl: string, messageType?: s
   };
 }
 
+/** use File Upload Logic component. */
 export function useFileUploadLogic(opts: {
   instanceName?: string;
   recipientNumber?: string;

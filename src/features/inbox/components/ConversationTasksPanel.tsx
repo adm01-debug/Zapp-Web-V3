@@ -41,6 +41,7 @@ const priorityConfig: Record<string, { label: string; color: string; icon: typeo
     low: { label: 'Baixa', color: 'bg-success/10 text-success', icon: CheckCircle2 },
   };
 
+/** Conversation Tasks Panel component. */
 export function ConversationTasksPanel({ contactId, profileId }: ConversationTasksPanelProps) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [newTitle, setNewTitle] = useState('');

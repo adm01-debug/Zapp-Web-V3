@@ -12,6 +12,7 @@ const reasonMeta: Record<BreachReasonKind, { icon: typeof TrendingUp; label: str
   failure_rate: { icon: XOctagon, label: '% falha alta' },
 };
 
+/** Retry Alerts Banner component for the monitoring section. */
 export function RetryAlertsBanner({ breaches }: RetryAlertsBannerProps) {
   if (breaches.length === 0) return null;
 

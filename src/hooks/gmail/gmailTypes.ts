@@ -7,6 +7,7 @@
 
 // ── Conta Email ────────────────────────────────────────────────────────────
 
+/** Represents a connected Gmail/email account with token and watch state. */
 export interface EmailAccount {
   id:           string;
   user_id:      string;
@@ -21,10 +22,14 @@ export interface EmailAccount {
   picture_url?: string | null;
 }
 
+/** OAuth token validity state for a Gmail/email account. */
 export type EmailTokenStatus  = 'valid' | 'expiring_soon' | 'expired' | 'no_token';
+/** Gmail push-notification watch subscription state. */
 export type EmailWatchStatus  = 'active' | 'expiring_soon' | 'expired' | 'no_watch';
+/** SLA compliance status for an email thread. */
 export type EmailSLAStatus    = 'ok' | 'warning' | 'breached' | 'met' | null;
 
+/** Email token authentication/refresh status details for an account. */
 export interface EmailTokenInfo {
   account_id:           string;
   email:                string;
@@ -38,6 +43,7 @@ export interface EmailTokenInfo {
 
 // ── Thread ─────────────────────────────────────────────────────────────────
 
+/** Email Thread interface definition. */
 export interface EmailThread {
   id:               string;
   account_id:       string;
@@ -67,6 +73,7 @@ export interface EmailThread {
   contact?:         { id?: string; name?: string | null; phone?: string | null } | null;
 }
 
+/** Filter options for querying email threads. */
 export interface EmailThreadFilters {
   accountId?:   string;
   label?:       EmailLabelId;
@@ -81,6 +88,7 @@ export interface EmailThreadFilters {
 
 // ── Mensagem ───────────────────────────────────────────────────────────────
 
+/** Email Message interface definition. */
 export interface EmailMessage {
   id:              string;
   thread_id:       string;
@@ -113,6 +121,7 @@ export interface EmailMessage {
 
 // ── Anexo ─────────────────────────────────────────────────────────────────
 
+/** Metadata for a file attachment on an email message. */
 export interface EmailAttachment {
   id:             string;
   message_id:     string;
@@ -128,6 +137,7 @@ export interface EmailAttachment {
 
 // ── Rascunho ──────────────────────────────────────────────────────────────
 
+/** An auto-saved or user-created email draft. */
 export interface EmailDraft {
   id:          string;
   account_id:  string;
@@ -144,8 +154,10 @@ export interface EmailDraft {
 
 // ── Label ─────────────────────────────────────────────────────────────────
 
+/** Email Label Id type alias. */
 export type EmailLabelId = 'INBOX' | 'SENT' | 'DRAFTS' | 'STARRED' | 'IMPORTANT' | 'TRASH' | 'SPAM' | string;
 
+/** Email Label interface definition. */
 export interface EmailLabel {
   id:             string;
   account_id:     string;
@@ -160,6 +172,7 @@ export interface EmailLabel {
 
 // ── Assinatura ────────────────────────────────────────────────────────────
 
+/** Email Signature interface definition. */
 export interface EmailSignature {
   id:           string;
   account_id:   string;
@@ -172,6 +185,7 @@ export interface EmailSignature {
 
 // ── Envio ─────────────────────────────────────────────────────────────────
 
+/** Email Send Params interface definition. */
 export interface EmailSendParams {
   to:          string | string[];
   cc?:         string | string[];
@@ -185,6 +199,7 @@ export interface EmailSendParams {
   signature?:  boolean;
 }
 
+/** Email Send Attachment interface definition. */
 export interface EmailSendAttachment {
   name:        string;
   /** @deprecated Alias legado para `name`. */
@@ -196,6 +211,7 @@ export interface EmailSendAttachment {
   size?:       number;
 }
 
+/** Result returned after attempting to send an email. */
 export interface EmailSendResult {
   success:    boolean;
   messageId?: string;
@@ -205,6 +221,7 @@ export interface EmailSendResult {
 
 // ── Métricas diárias ─────────────────────────────────────────────────────
 
+/** Email Daily Metrics interface definition. */
 export interface EmailDailyMetrics {
   id:                      string;
   account_id:              string;
@@ -220,11 +237,13 @@ export interface EmailDailyMetrics {
 
 // ── Pub/Sub webhook payload ───────────────────────────────────────────────
 
+/** Email Pub Sub Message interface definition. */
 export interface EmailPubSubMessage {
   emailAddress:  string;
   historyId:     string;
 }
 
+/** Email History Event interface definition. */
 export interface EmailHistoryEvent {
   id:              string;
   messages?:       Array<{ id: string; threadId: string }>;
@@ -235,6 +254,7 @@ export interface EmailHistoryEvent {
 
 // ── Type guards ──────────────────────────────────────────────────────────
 
+/** is Email Thread function. */
 export function isEmailThread(obj: unknown): obj is EmailThread {
   return (
     typeof obj === 'object' &&
@@ -244,6 +264,7 @@ export function isEmailThread(obj: unknown): obj is EmailThread {
   );
 }
 
+/** is Email Message function. */
 export function isEmailMessage(obj: unknown): obj is EmailMessage {
   return (
     typeof obj === 'object' &&
@@ -253,10 +274,12 @@ export function isEmailMessage(obj: unknown): obj is EmailMessage {
   );
 }
 
+/** is Email Token Expired function. */
 export function isEmailTokenExpired(tokenInfo: EmailTokenInfo): boolean {
   return tokenInfo.token_status === 'expired';
 }
 
+/** is Email Watch Expired function. */
 export function isEmailWatchExpired(tokenInfo: EmailTokenInfo): boolean {
   return tokenInfo.watch_status === 'expired';
 }

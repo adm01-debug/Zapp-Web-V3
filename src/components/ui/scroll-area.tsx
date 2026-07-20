@@ -35,4 +35,5 @@ const ScrollBar = React.forwardRef<
 ));
 ScrollBar.displayName = ScrollAreaPrimitive.ScrollAreaScrollbar.displayName;
 
+/** scroll-area component for the ui section. */
 export { ScrollArea, ScrollBar };

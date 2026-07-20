@@ -36,6 +36,7 @@ interface TranscriptionRecord {
 
 type DateFilter = 'all' | 'today' | 'week' | 'month';
 
+/** Transcriptions History View component for the transcriptions section. */
 export function TranscriptionsHistoryView() {
   const [transcriptions, setTranscriptions] = useState<TranscriptionRecord[]>([]);
   const [loading, setLoading] = useState(true);

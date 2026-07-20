@@ -22,8 +22,10 @@ import {
 } from './messageSendHistory.schemas';
 
 
+/** Re-exported module members. */
 export type { AuditEntry, FinalStatus, RetryAttempt };
 
+/** Aggregated send-history for a single message: retry metrics row plus deduplicated outbound_delivery_audit entries. */
 export interface MessageSendHistory {
   metric: {
     id: string;
@@ -55,6 +57,7 @@ interface OutboundAuditRow {
   metadata: Record<string, unknown> | null;
 }
 
+/** Fetches the full send-history audit trail for a message (retry metrics + outbound audit log), normalises shapes via Zod, and dedupes entries for the debug sheet. */
 export function useMessageSendHistory(messageId: string | undefined, enabled: boolean) {
   return useQuery<MessageSendHistory>({
     queryKey: queryKeys.messageDetails.sendHistory(messageId),

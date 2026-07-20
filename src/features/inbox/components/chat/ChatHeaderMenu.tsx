@@ -30,6 +30,7 @@ interface ChatHeaderMenuProps {
   onCloseConversation?: () => void;
 }
 
+/** Chat Header Menu component for the chat section. */
 export function ChatHeaderMenu({
   onOpenTransfer,
   onOpenSchedule,

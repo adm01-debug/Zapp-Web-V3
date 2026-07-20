@@ -20,6 +20,7 @@ interface TransitionProviderProps {
   defaultOverrides?: TransitionOverrides;
 }
 
+/** Transition Provider function. */
 export function TransitionProvider({
   children,
   defaultVariant = 'fade',

@@ -19,6 +19,7 @@ import { evolutionInstanceName } from '@/lib/evolutionInstance';
  *   Resolução de instância agora usa exclusivamente `contacts.whatsapp_connection_id`
  *   + fallback para primeira conexão ativa.
  */
+/** Encapsulates WhatsApp instance resolution and media-message sending (stickers, custom emojis, audio memes) for a given contact. */
 export function useChatMediaSending(contactId: string, contactPhone: string | undefined) {
   const [instanceName, setInstanceName] = useState('');
   const [whatsappConnectionId, setWhatsappConnectionId] = useState<string | null>(null);

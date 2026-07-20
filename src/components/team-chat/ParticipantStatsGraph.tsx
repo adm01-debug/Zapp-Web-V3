@@ -19,6 +19,7 @@ interface ParticipantStatsGraphProps {
   conversationId: string;
 }
 
+/** Participant Stats Graph component for the team chat section. */
 export function ParticipantStatsGraph({ conversationId }: ParticipantStatsGraphProps) {
   const { settings } = useUserSettings();
 

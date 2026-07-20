@@ -20,7 +20,7 @@ import {
   ExternalSupplier,
   ExternalProductVariant,
   CatalogFilters,
-} from '@/hooks/useExternalCatalog';
+} from '@/hooks/useExternalApiManagement';
 
 // ─── QueryClient Wrapper ──────────────────────────────────────
 function createWrapper() {

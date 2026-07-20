@@ -31,6 +31,7 @@ import { SendProductDialog } from './SendProductDialog';
 
 const PAGE_SIZE = 24;
 
+/** External Product Management component for the catalog section. */
 export const ExternalProductManagement: React.FC = () => {
   const {
     products,

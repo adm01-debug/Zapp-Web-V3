@@ -12,6 +12,7 @@
 import { z } from 'zod';
 
 // ─── Final status ──────────────────────────────────────────────────────────
+/** Zod schema for the final send status; maps legacy values to a canonical enum (success/failed/exhausted/retrying/unknown). */
 export const FinalStatusSchema = z.enum([
   'success',
   'failed',
@@ -19,8 +20,10 @@ export const FinalStatusSchema = z.enum([
   'retrying',
   'unknown',
 ]);
+/** Canonical final status string derived from the FinalStatusSchema enum. */
 export type FinalStatus = z.infer<typeof FinalStatusSchema>;
 
+/** Parses an unknown value against FinalStatusSchema, falling back to 'unknown' for any unrecognised or null input. */
 export function normalizeFinalStatus(raw: unknown): FinalStatus {
   const parsed = FinalStatusSchema.safeParse(raw);
   return parsed.success ? parsed.data : 'unknown';
@@ -32,6 +35,7 @@ export function normalizeFinalStatus(raw: unknown): FinalStatus {
  * inválidos em runtime para não descartar a tentativa inteira quando só o
  * campo de tempo está corrompido.
  */
+/** Zod schema for a single retry attempt entry; validates attempt index, HTTP status code, reason string, ISO timestamp, and duration. */
 export const RetryAttemptSchema = z.object({
   attempt: z.number().int().nonnegative(),
   status: z.number().int().min(0).max(599).optional(),
@@ -39,6 +43,7 @@ export const RetryAttemptSchema = z.object({
   at: z.string().optional(),
   duration_ms: z.number().finite().nonnegative().optional(),
 });
+/** Single retry attempt entry from the evolution_retry_metrics.retry_reasons JSONB array. */
 export type RetryAttempt = z.infer<typeof RetryAttemptSchema>;
 
 /**
@@ -49,6 +54,7 @@ export type RetryAttempt = z.infer<typeof RetryAttemptSchema>;
  *   - objeto único (bug de escrita antigo)
  * Este normalizador aceita todos e devolve sempre `RetryAttempt[]` ordenado.
  */
+/** Normalises the raw `retry_reasons` JSONB column into a sorted RetryAttempt array, handling null, JSON strings, single objects, and arrays. */
 export function normalizeRetryReasons(raw: unknown): RetryAttempt[] {
   if (raw == null) return [];
   let arr: unknown[];
@@ -101,6 +107,7 @@ export function normalizeRetryReasons(raw: unknown): RetryAttempt[] {
  * edge function falhou antes de gravar a razão), preenche com placeholders
  * `{ reason: 'unknown' }` para a UI renderizar coerente.
  */
+/** Pads a RetryAttempt array to at least `expected` entries, filling gaps with placeholder objects so the UI renders a consistent attempt list. */
 export function padRetryAttempts(
   attempts: RetryAttempt[],
   expected: number,
@@ -123,15 +130,18 @@ export function padRetryAttempts(
  * Shape exposto ao UI. Mantém `action` + `createdAt` para preservar contrato
  * com `MessageSendHistorySheet` (não introduzir breaking change).
  */
+/** Zod schema for a send-history audit log entry; preserves the `action`/`createdAt` contract consumed by MessageSendHistorySheet. */
 export const AuditEntrySchema = z.object({
   id: z.string().min(1),
   action: z.string().min(1),
   createdAt: z.string(),
   details: z.unknown(),
 });
+/** Audit log entry shape inferred from AuditEntrySchema, used by useMessageSendHistory and MessageSendHistorySheet. */
 export type AuditEntry = z.infer<typeof AuditEntrySchema>;
 
 /** Deduplica entradas por (action, createdAt, external_id no details). */
+/** Removes duplicate audit entries by keying on (action, createdAt, external_id), preserving the first occurrence of each unique combination. */
 export function dedupeAuditEntries(entries: AuditEntry[]): AuditEntry[] {
   const seen = new Set<string>();
   const out: AuditEntry[] = [];
@@ -149,6 +159,7 @@ export function dedupeAuditEntries(entries: AuditEntry[]): AuditEntry[] {
 }
 
 // ─── Derivação de finalStatus ──────────────────────────────────────────────
+/** All DB columns and runtime values needed to compute the canonical final send status for a message row. */
 export interface FinalStatusInputs {
   externalMessageId?: string | null;
   retryCount?: number | null;
@@ -166,6 +177,7 @@ export interface FinalStatusInputs {
  *   4. `failed` → status legado 'failed' ou tentativas > 0 sem sucesso
  *   5. `unknown` → cai aqui quando nada acima aplica
  */
+/** Derives the canonical FinalStatus from DB fields; priority order: success (external_message_id present) → exhausted → retrying → failed → unknown. */
 export function deriveFinalStatus(inputs: FinalStatusInputs): FinalStatus {
   const {
     externalMessageId,

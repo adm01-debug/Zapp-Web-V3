@@ -1,6 +1,7 @@
 // Re-export canonical implementation from features/contacts.
 // The previous consolidated version only returned { enrichedData, loading }
 // which broke consumers expecting aiTags and slaInfo (Inbox ContactDetails).
+/** Hook: use Contact Enriched Data. */
 export {
   useContactEnrichedData,
   type EnrichedContactData,

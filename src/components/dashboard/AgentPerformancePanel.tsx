@@ -43,6 +43,7 @@ interface AgentMetric {
   rank: number;
 }
 
+/** Agent Performance Panel component for the dashboard section. */
 export function AgentPerformancePanel() {
   const { data: agents = [], isLoading } = useQuery({
     queryKey: queryKeys.agentGamification.ranking(),

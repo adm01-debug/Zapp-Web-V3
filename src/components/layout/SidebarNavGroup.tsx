@@ -24,6 +24,7 @@ interface SidebarNavGroupProps {
   badgeMap?: Record<string, BadgeInfo | undefined>;
 }
 
+/** Sidebar Nav Group component for the layout section. */
 export const SidebarNavGroup = React.memo(function SidebarNavGroup({ label, icon: GroupIcon, items, currentView, onViewChange, defaultOpen = false, collapsed = true, onToggleFavorite, isFavorite, badgeMap }: SidebarNavGroupProps) {
   const hasActiveItem = items.some(item => item.id === currentView);
   const [isOpen, setIsOpen] = useState(defaultOpen || hasActiveItem);

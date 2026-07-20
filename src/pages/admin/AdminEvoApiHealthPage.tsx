@@ -24,6 +24,7 @@ import { ChannelsTab } from '@/components/evoApiHealth/tabs/ChannelsTab';
 import { HistoryTab } from '@/components/evoApiHealth/tabs/HistoryTab';
 import { DrTab } from '@/components/evoApiHealth/tabs/DrTab';
 
+/** Admin Evo Api Health Page. */
 export default function AdminEvoApiHealthPage() {
   const qc = useQueryClient();
   const dash = useEvoApiDashboard();

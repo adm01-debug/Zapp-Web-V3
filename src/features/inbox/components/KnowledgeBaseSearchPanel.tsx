@@ -14,6 +14,7 @@ interface KnowledgeBaseSearchPanelProps {
   className?: string;
 }
 
+/** Knowledge Base Search Panel component. */
 export function KnowledgeBaseSearchPanel({ onInsertText, className }: KnowledgeBaseSearchPanelProps) {
   const { query, handleSearch, clear, articles, isLoading, hasResults } = useKnowledgeBaseSearch();
   const [expandedId, setExpandedId] = useState<string | null>(null);

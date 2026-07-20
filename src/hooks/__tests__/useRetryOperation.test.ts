@@ -23,7 +23,7 @@ vi.mock('@/hooks/use-toast', () => ({
 }));
 
 // ── Import SUT AFTER mocks ─────────────────────────────────────────────────────
-import { useRetryOperation } from '../useRetryOperation';
+import { useRetryOperation } from '../useRetryAndErrorPrevention';
 
 // ── Setup ──────────────────────────────────────────────────────────────────────
 beforeEach(() => {

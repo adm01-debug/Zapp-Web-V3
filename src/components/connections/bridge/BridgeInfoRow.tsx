@@ -4,6 +4,7 @@ interface BridgeInfoRowProps {
   mono?: boolean;
 }
 
+/** Bridge Info Row component for the connections section. */
 export function BridgeInfoRow({ label, value, mono }: BridgeInfoRowProps) {
   return (
     <div className="rounded-md border border-border/40 bg-muted/30 px-3 py-2">

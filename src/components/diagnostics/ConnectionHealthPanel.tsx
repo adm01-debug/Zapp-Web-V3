@@ -53,6 +53,7 @@ interface HealthLog {
   checked_at: string;
 }
 
+/** Connection Health Panel component for the diagnostics section. */
 export function ConnectionHealthPanel(): JSX.Element {
   const [connections, setConnections] = useState<ConnectionHealth[]>([]);
   const [recentLogs, setRecentLogs] = useState<HealthLog[]>([]);

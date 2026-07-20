@@ -22,6 +22,7 @@ interface ReauthDialogProps {
   isLoading?: boolean;
 }
 
+/** Reauth Dialog component. */
 export function ReauthDialog({
   open,
   onOpenChange,

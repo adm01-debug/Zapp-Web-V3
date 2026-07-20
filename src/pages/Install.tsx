@@ -9,6 +9,7 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 }
 
+/** PWA install prompt page that captures the beforeinstallprompt event and guides the user through installation. */
 const Install = () => {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isInstalled, setIsInstalled] = useState(false);
@@ -150,4 +151,5 @@ const Install = () => {
   );
 };
 
+/** Default export. */
 export default Install;

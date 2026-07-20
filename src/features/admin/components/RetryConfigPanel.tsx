@@ -62,6 +62,7 @@ function buildPreview(c: RetryConfig): string {
   return steps.join(' → ');
 }
 
+/** Retry Config Panel component. */
 export function RetryConfigPanel() {
   const [instances, setInstances] = useState<string[]>([]);
   const [selected, setSelected] = useState<string>(GLOBAL);

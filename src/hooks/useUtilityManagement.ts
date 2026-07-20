@@ -220,4 +220,5 @@ export function useSafeStorageManagement<T>(
   return [storedValue, setValue];
 }
 
+/** Re-exported module members. */
 export type { UseInViewportOptions, PrefetchOptions, UndoableAction };

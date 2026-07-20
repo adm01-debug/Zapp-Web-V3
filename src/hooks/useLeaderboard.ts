@@ -1,5 +1,6 @@
 // Re-export from consolidated useDashboardVisualizationManagement module (ETAPA 46 consolidation)
 import { useLeaderboardManagement } from '@/features/dashboard/hooks/useDashboardVisualizationManagement';
+/** Re-exported module members. */
 export type { LeaderboardAgent } from '@/features/dashboard/hooks/useDashboardVisualizationManagement';
 
 /** Retrieves leaderboard rankings and agent performance metrics. */

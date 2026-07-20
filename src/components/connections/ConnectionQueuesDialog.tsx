@@ -15,6 +15,7 @@ interface ConnectionQueuesDialogProps {
   connectionName: string;
 }
 
+/** Connection Queues Dialog component for the connections section. */
 export function ConnectionQueuesDialog({
   open,
   onOpenChange,

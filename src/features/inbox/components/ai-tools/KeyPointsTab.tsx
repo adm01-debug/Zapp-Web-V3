@@ -12,6 +12,7 @@ interface KeyPointsTabProps {
   onPlayText: (text: string) => void;
 }
 
+/** Key Points Tab component for the ai tools section. */
 export function KeyPointsTab({ analysis, ttsButtonClass, isTtsLoading, isTtsPlaying, onPlayText }: KeyPointsTabProps) {
   return (
     <div className="space-y-4">

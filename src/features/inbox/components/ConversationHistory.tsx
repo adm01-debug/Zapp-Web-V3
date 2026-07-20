@@ -67,6 +67,7 @@ const statusConfig = {
   },
 };
 
+/** Conversation History component. */
 export function ConversationHistory({
   contactId,
   contactPhone,

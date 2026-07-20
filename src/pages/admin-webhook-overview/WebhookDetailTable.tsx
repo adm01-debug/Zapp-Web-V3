@@ -16,6 +16,7 @@ interface WebhookDetailTableProps {
   byType: TypeAggregate[];
 }
 
+/** Webhook Detail Table. */
 export function WebhookDetailTable({ byType }: WebhookDetailTableProps) {
   return (
     <Card>

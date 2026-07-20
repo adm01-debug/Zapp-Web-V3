@@ -14,6 +14,7 @@ import type { ChatMessage } from '@/features/inbox/types/aiChatMessage';
 const log = getLogger('useAdvancedFeaturesManagement');
 
 // ===== Bulk Actions Management =====
+/** Hook: Bulk Action. */
 export interface BulkAction<T> {
   id: string;
   label: string;
@@ -50,6 +51,7 @@ interface UseBulkActionsResult<T> {
   selectionCount: number;
 }
 
+/** Hook: use Bulk Actions Management. */
 export function useBulkActionsManagement<T extends { id: string }>(
   items: T[],
   options: UseBulkActionsOptions<T> = {},
@@ -198,6 +200,7 @@ interface CacheEntry {
   version: number;
 }
 
+/** Reads the offline conversation cache from localStorage, evicting entries that are expired, malformed, or from an older schema version. */
 function readCache(): ConversationWithMessages[] | null {
   try {
     const raw = localStorage.getItem(CACHE_KEY);
@@ -227,6 +230,7 @@ function readCache(): ConversationWithMessages[] | null {
   }
 }
 
+/** Synchronously writes up to 50 conversations (last 20 messages each) to the offline localStorage cache, skipping the write when the serialised payload would exceed 80% of the 5 MB quota. */
 function writeCacheSync(data: ConversationWithMessages[]): boolean {
   try {
     const trimmed = data.slice(0, 50).map((c) => ({
@@ -258,6 +262,7 @@ function writeCacheSync(data: ConversationWithMessages[]): boolean {
   }
 }
 
+/** Writes the offline conversation cache with exponential-backoff retries: attempts a synchronous write first, then clears the existing entry and retries up to maxRetries times for quota-exceeded errors. */
 async function writeCacheWithRetry(
   data: ConversationWithMessages[],
   maxRetries = 3,
@@ -299,6 +304,7 @@ async function writeCacheWithRetry(
   return false;
 }
 
+/** Hook: use Offline Cache Management. */
 export function useOfflineCacheManagement(conversations: ConversationWithMessages[], loading: boolean) {
   const [cachedData, setCachedData] = useState<ConversationWithMessages[] | null>(null);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
@@ -306,7 +312,9 @@ export function useOfflineCacheManagement(conversations: ConversationWithMessage
   const pendingWriteRef = useRef<Promise<boolean> | null>(null);
 
   useEffect(() => {
+    /** Clears offline mode when the browser regains network connectivity. */
     const goOnline = () => setIsOffline(false);
+    /** Sets offline mode when the browser loses network connectivity. */
     const goOffline = () => setIsOffline(true);
     window.addEventListener('online', goOnline);
     window.addEventListener('offline', goOffline);
@@ -375,8 +383,10 @@ import {
   FEEDBACK_DURATIONS,
 } from './feedback/feedbackTypes';
 
+/** Re-exported module members. */
 export type { FeedbackType, FeedbackOptions, WithFeedbackOptions, UndoableOptions };
 
+/** Hook: use Action Feedback Management. */
 export function useActionFeedbackManagement() {
   const { toast } = useToast();
   const activeToasts = useRef<Map<string, { dismiss: () => void }>>(new Map());
@@ -575,6 +585,7 @@ interface Objection {
   confidence: number;
 }
 
+/** Hook: use Objection Detector Management. */
 export function useObjectionDetectorManagement(
   contactId: string,
   contactName: string | undefined,
@@ -819,6 +830,7 @@ Se não houver objeções, retorne []`,
 const CACHE_RESET_FLAG = 'sw-cache-reset-done';
 const SW_CLEANUP_TIMEOUT = 5000; // 5 second timeout for cleanup operations
 
+/** Unregisters all active service workers and purges legacy browser caches that may restore stale UI bundles, with a hard 5-second timeout to prevent indefinite hangs. */
 async function cleanupLegacyServiceWorker(): Promise<boolean> {
   if (!('serviceWorker' in navigator) || typeof caches === 'undefined') return false;
 
@@ -939,6 +951,7 @@ async function cleanupLegacyServiceWorker(): Promise<boolean> {
   return false;
 }
 
+/** Hook: use Service Worker Management. */
 export function useServiceWorkerManagement() {
   const registeredRef = useRef(false);
 
@@ -952,6 +965,7 @@ export function useServiceWorkerManagement() {
     let disposed = false;
     const timeoutIds: NodeJS.Timeout[] = [];
 
+    /** Registers `/sw.js`, sets up a 300-second update-poll interval, dispatches `sw-update-available` on new installs, and wires the `onMessage` handler; retries up to 3 times on 404. */
     const registerServiceWorker = async (retryCount = 0) => {
       const wasDisposed = disposed;
       if (wasDisposed) return;
@@ -1021,6 +1035,7 @@ export function useServiceWorkerManagement() {
           }
         });
 
+        /** Listens for `NOTIFICATION_CLICK` messages from the service worker and re-dispatches them as a `notification-click` DOM `CustomEvent`. */
         const onMessage = (event: MessageEvent) => {
           log.debug('[ServiceWorker] Message received:', event.data);
           if (event.data.type === 'NOTIFICATION_CLICK') {

@@ -1,5 +1,6 @@
 import { Skeleton } from '@/components/ui/skeleton';
 
+/** Loading Skeleton. */
 export function LoadingSkeleton() {
   return (
     <div className="space-y-4">

@@ -15,6 +15,7 @@ interface SummaryTabProps {
   onPlaySummary: () => void;
 }
 
+/** Summary Tab component for the ai tools section. */
 export function SummaryTab({ analysis, ttsButtonClass, isTtsLoading, isTtsPlaying, onPlaySummary }: SummaryTabProps) {
   return (
     <div className="space-y-4">

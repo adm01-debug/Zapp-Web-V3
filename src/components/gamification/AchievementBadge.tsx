@@ -7,6 +7,7 @@ import {
 import { cn } from '@/lib/utils';
 import { ACHIEVEMENT_TYPES } from '@/features/admin';
 
+/** Achievement Badge Props component for the gamification section. */
 export interface AchievementBadgeProps {
   type: string;
   name: string;
@@ -118,6 +119,7 @@ const SIZE_CONFIG = {
   lg: { container: 'w-20 h-20', icon: 'w-9 h-9', text: 'text-base' },
 };
 
+/** Achievement Badge component for the gamification section. */
 export const AchievementBadge = memo(function AchievementBadge({
   type,
   name,
@@ -230,6 +232,7 @@ export const AchievementBadge = memo(function AchievementBadge({
 });
 
 // Mini badge for compact displays
+/** Achievement Badge Mini component for the gamification section. */
 export const AchievementBadgeMini = memo(function AchievementBadgeMini({
   type,
   name

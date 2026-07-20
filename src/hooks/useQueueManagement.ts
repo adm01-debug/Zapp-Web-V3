@@ -318,6 +318,7 @@ function normalizeQueueSlaRow(row: Record<string, unknown>): QueueSlaRow {
   };
 }
 
+/** use Queue Sla Management function. */
 export function useQueueSlaManagement(params: { filters: QueueSlaFilters }) {
   const { user } = useAuth();
   const { filters } = params;
@@ -468,6 +469,7 @@ export function useQueuesComparisonManagement(_params: { dateRange: DateRange })
   return { comparison, loading, refetch: fetchComparison };
 }
 
+/** Re-exported module members. */
 export type {
   Queue,
   QueueMember,

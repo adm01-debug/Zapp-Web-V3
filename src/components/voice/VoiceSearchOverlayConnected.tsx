@@ -27,4 +27,5 @@ function VoiceSearchOverlayConnected({ isOpen, onClose, onAction, onError }: Pro
   );
 }
 
+/** React component: Voice Search Overlay Connected. */
 export default VoiceSearchOverlayConnected;

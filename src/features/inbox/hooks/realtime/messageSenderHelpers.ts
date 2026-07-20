@@ -6,6 +6,7 @@ import {
 
 const log = getLogger('MessageSender');
 
+/** Minimal shape of a persisted message row returned after a successful send (id, contact_id, content, plus any extra API fields). */
 export interface SendMessageResult {
   id: string;
   contact_id: string | null;
@@ -13,6 +14,7 @@ export interface SendMessageResult {
   [key: string]: unknown;
 }
 
+/** Inspects an upstream error and returns whether it is an authentication failure (401/403 or known auth keyword), plus the status code and reason string. */
 export function classifyAuthError(err: unknown): {
   isAuth: boolean;
   code?: number;
@@ -35,6 +37,7 @@ export function classifyAuthError(err: unknown): {
   return { isAuth: false };
 }
 
+/** Resolves the WhatsApp connection to use for a send: tries the contact's assigned connection first, falls back to the first globally connected instance. */
 export async function resolveConnection(contactConnectionId: string | null) {
   let resolvedConnectionId = contactConnectionId;
   let connection: {
@@ -68,6 +71,7 @@ export async function resolveConnection(contactConnectionId: string | null) {
   return { resolvedConnectionId, connection };
 }
 
+/** Builds the Evolution API action + body payload for any message type (text, image, audio, video, document, location). */
 export function buildEvolutionPayload(
   instanceName: string,
   phone: string,

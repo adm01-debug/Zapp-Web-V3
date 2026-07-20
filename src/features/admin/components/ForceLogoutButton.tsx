@@ -9,6 +9,7 @@ interface ForceLogoutButtonProps {
   userName: string;
 }
 
+/** Force Logout Button component. */
 export function ForceLogoutButton({ userId, userName }: ForceLogoutButtonProps) {
   const [loading, setLoading] = useState(false);
 

@@ -56,6 +56,7 @@ interface SearchResult {
   crmPhone?: string;
 }
 
+/** Realtime Inbox View component. */
 export function RealtimeInboxView() {
   const isMobile = useIsMobile();
   const inbox = useRealtimeInbox();

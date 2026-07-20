@@ -1,5 +1,6 @@
 import { useEffect, useState, type RefObject } from 'react';
 
+/** Use In Viewport Options interface definition. */
 export interface UseInViewportOptions {
   /** Margem ao redor do root para antecipar a entrada/saída. Default '200px'. */
   rootMargin?: string;

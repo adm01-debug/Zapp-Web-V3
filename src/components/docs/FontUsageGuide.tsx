@@ -2,6 +2,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
+/** Font Usage Guide component for the docs section. */
 export function FontUsageGuide() {
   return (
     <div className="p-8 space-y-10 max-w-5xl mx-auto">

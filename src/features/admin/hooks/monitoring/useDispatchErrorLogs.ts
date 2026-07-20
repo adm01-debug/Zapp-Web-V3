@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { queryKeys } from '@/services/api/queryKeys';
 import { supabase } from '@/integrations/supabase/client';
 
+/** Dispatch Error Log Row interface definition. */
 export interface DispatchErrorLogRow {
   id: string;
   failed_message_id: string | null;
@@ -20,6 +21,7 @@ export interface DispatchErrorLogRow {
   occurred_at: string;
 }
 
+/** Dispatch Error Log Filters interface definition. */
 export interface DispatchErrorLogFilters {
   hours?: number;
   to?: string | null;

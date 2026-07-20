@@ -51,6 +51,7 @@ const CATEGORIES = [
   { value: 'general', label: 'Geral' },
 ];
 
+/** Playbooks Manager component. */
 export function PlaybooksManager(): JSX.Element {
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);

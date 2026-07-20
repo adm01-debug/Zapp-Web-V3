@@ -51,6 +51,7 @@ const channelConfig: Record<
   },
 };
 
+/** Omnichannel Manager component for the omnichannel section. */
 export function OmnichannelManager() {
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [newChannel, setNewChannel] = useState({

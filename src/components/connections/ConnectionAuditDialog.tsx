@@ -25,6 +25,7 @@ interface ConnectionAuditDialogProps {
   connectionName: string;
 }
 
+/** Connection Audit Dialog component for the connections section. */
 export function ConnectionAuditDialog({
   open,
   onOpenChange,

@@ -26,6 +26,7 @@
  *        a única forma correta é via RPC SECURITY DEFINER.
  */
 
+/** Logical Entity type alias. */
 export type LogicalEntity =
   | 'messages'
   | 'contacts'
@@ -46,13 +47,16 @@ export type LogicalEntity =
   | 'automation_executions'
   | 'whisper_messages';
 
+/** Datasource Client type alias. */
 export type DatasourceClient = 'lovable' | 'external';
 
+/** Entity Mapping interface definition. */
 export interface EntityMapping {
   client: DatasourceClient;
   table: string;
 }
 
+/** E N T I T Y_ M A P constant. */
 export const ENTITY_MAP = {
   // ── Tudo unificado no Self-Hosted (supabase.atomicabr.com.br) ───────────
   // Após consolidação, todas as entidades usam o client principal (lovable)
@@ -78,6 +82,7 @@ export const ENTITY_MAP = {
   whisper_messages:        { client: 'lovable', table: 'whisper_messages' },
 } as const satisfies Record<LogicalEntity, EntityMapping>;
 
+/** get Entity Mapping function. */
 export function getEntityMapping(entity: LogicalEntity): EntityMapping {
   return ENTITY_MAP[entity];
 }

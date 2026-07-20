@@ -1,12 +1,14 @@
 // Consolidated Notification & Alerts Management Module (ETAPA 38)
 // Consolidates: usePushNotifications, useNotificationSettings, useTeamChatNotifications, useSecurityPushNotifications, useGoalNotifications, useTranscriptionNotifications
 import { useState, useEffect, useCallback, useRef } from 'react';
+// useRef is kept for mountedRef usage in useNotificationSettingsManagement
 import { supabase } from '@/integrations/supabase/client';
 import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 import { useAuth } from '@/features/auth';
 import { log } from '@/lib/logger';
 import type { SoundType } from '@/utils/notificationSounds';
 
+/** Sound Type Option type alias. */
 export type SoundTypeOption = SoundType;
 
 interface NotificationSettings {
@@ -33,6 +35,7 @@ interface NotificationSettings {
   transcriptionSoundType: SoundTypeOption;
 }
 
+/** Notification Payload interface definition. */
 export interface NotificationPayload {
   title: string;
   body?: string;
@@ -40,6 +43,7 @@ export interface NotificationPayload {
   icon?: string;
 }
 
+/** Push Notification State interface definition. */
 export interface PushNotificationState {
   permission: NotificationPermission;
   isSupported: boolean;
@@ -49,6 +53,7 @@ export interface PushNotificationState {
 
 const SOUND_TYPES: SoundTypeOption[] = ['beep', 'chime', 'bell', 'alert', 'soft'];
 
+/** Coerces an unknown value to a valid SoundTypeOption, returning the fallback when the value is absent, non-string, or not in the allowed set. */
 const toSoundType = (value: unknown, fallback: SoundTypeOption = 'chime'): SoundTypeOption =>
   typeof value === 'string' && SOUND_TYPES.includes(value as SoundTypeOption)
     ? (value as SoundTypeOption)
@@ -80,6 +85,7 @@ const DEFAULT_NOTIFICATION_SETTINGS: NotificationSettings = {
 
 type UserSettingsRow = Record<string, unknown> | null;
 
+/** Maps a raw user_settings database row (keyed by snake_case column names) to a typed NotificationSettings object, applying DEFAULT_NOTIFICATION_SETTINGS for any missing or null fields. */
 const normalizeSettings = (row: UserSettingsRow): NotificationSettings => ({
   ...DEFAULT_NOTIFICATION_SETTINGS,
   soundEnabled: Boolean(row?.sound_enabled ?? DEFAULT_NOTIFICATION_SETTINGS.soundEnabled),
@@ -126,6 +132,7 @@ const normalizeSettings = (row: UserSettingsRow): NotificationSettings => ({
   ),
 });
 
+/** Converts a partial NotificationSettings object to a flat snake_case record suitable for upserting into the user_settings table, omitting keys whose values are undefined. */
 const toDbSettings = (settings: Partial<NotificationSettings>): Record<string, unknown> => {
   const db: Record<string, unknown> = {};
   if (settings.soundEnabled !== undefined) db.sound_enabled = settings.soundEnabled;
@@ -146,7 +153,7 @@ const toDbSettings = (settings: Partial<NotificationSettings>): Record<string, u
     db.auto_transcription_enabled = settings.autoTranscriptionEnabled;
   if (settings.transcriptionNotificationEnabled !== undefined)
     db.transcription_notification_enabled = settings.transcriptionNotificationEnabled;
-  if (settings.soundType !== undefined) db.message_sound_type = settings.soundType;
+  if (settings.soundType !== undefined) db.sound_type = settings.soundType;
   if (settings.messageSoundType !== undefined) db.message_sound_type = settings.messageSoundType;
   if (settings.mentionSoundType !== undefined) db.mention_sound_type = settings.mentionSoundType;
   if (settings.slaSoundType !== undefined) db.sla_sound_type = settings.slaSoundType;
@@ -156,6 +163,7 @@ const toDbSettings = (settings: Partial<NotificationSettings>): Record<string, u
   return db;
 };
 
+/** App Notification interface definition. */
 export interface AppNotification {
   id: string;
   type: string;
@@ -165,6 +173,7 @@ export interface AppNotification {
   created_at: string;
 }
 
+/** Team Chat Notification type alias. */
 export type TeamChatNotification = AppNotification;
 
 /** Manages browser push notifications with permission requests and notification sending. */
@@ -363,8 +372,7 @@ export function useTeamChatNotificationsManagement() {
 
     return () => {
       if (channelRef.current) {
-        channelRef.current.unsubscribe();
-        supabase.removeChannel(channelRef.current);
+        supabase.removeChannel(channelRef.current).catch(() => {});
       }
     };
   }, []);
@@ -400,8 +408,7 @@ export function useSecurityPushNotificationsManagement() {
       .subscribe();
 
     return () => {
-      channel.unsubscribe();
-      supabase.removeChannel(channel);
+      supabase.removeChannel(channel).catch(() => {});
     };
   }, []);
 
@@ -425,8 +432,7 @@ export function useGoalNotificationsManagement() {
       .subscribe();
 
     return () => {
-      channel.unsubscribe();
-      supabase.removeChannel(channel);
+      supabase.removeChannel(channel).catch(() => {});
     };
   }, []);
 
@@ -452,12 +458,12 @@ export function useTranscriptionNotificationsManagement() {
       .subscribe();
 
     return () => {
-      channel.unsubscribe();
-      supabase.removeChannel(channel);
+      supabase.removeChannel(channel).catch(() => {});
     };
   }, []);
 
   return { transcriptionNotifications };
 }
 
+/** Re-exported module members. */
 export type { NotificationSettings, AppNotification as Notification };

@@ -1,7 +1,9 @@
 import { Keyboard, Brain, MessageSquare, Target, Gamepad2 } from 'lucide-react';
 
+/** Game Type component for the gamification section. */
 export type GameType = 'speed-typing' | 'quiz' | 'response-match' | 'emoji-decode';
 
+/** Game component for the gamification section. */
 export interface Game {
   id: GameType;
   name: string;
@@ -11,6 +13,7 @@ export interface Game {
   xpReward: number;
 }
 
+/** GAMES component for the gamification section. */
 export const GAMES: Game[] = [
   { id: 'speed-typing', name: 'Speed Typing', description: 'Digite respostas rápidas para clientes', icon: Keyboard, difficulty: 'medium', xpReward: 50 },
   { id: 'quiz', name: 'Quiz do Atendimento', description: 'Teste seus conhecimentos', icon: Brain, difficulty: 'easy', xpReward: 30 },
@@ -18,6 +21,7 @@ export const GAMES: Game[] = [
   { id: 'emoji-decode', name: 'Emoji Decode', description: 'Descubra o sentimento do cliente', icon: Target, difficulty: 'easy', xpReward: 25 },
 ];
 
+/** TYPING_PHRASES component for the gamification section. */
 export const TYPING_PHRASES = [
   "Olá! Como posso ajudar você hoje?",
   "Entendo sua situação. Vou resolver isso agora.",
@@ -29,6 +33,7 @@ export const TYPING_PHRASES = [
   "Tenha um ótimo dia!",
 ];
 
+/** QUIZ_QUESTIONS component for the gamification section. */
 export const QUIZ_QUESTIONS = [
   { question: "Qual a primeira coisa a fazer ao receber uma reclamação?", options: ["Transferir para outro setor", "Ouvir atentamente o cliente", "Pedir para aguardar", "Encerrar a conversa"], correct: 1 },
   { question: "O que significa SLA?", options: ["Service Level Agreement", "Sales Lead Analysis", "Support Line Agent", "System Log Alert"], correct: 0 },
@@ -37,6 +42,7 @@ export const QUIZ_QUESTIONS = [
   { question: "O que é CSAT?", options: ["Customer Satisfaction Score", "Company Sales Analysis Tool", "Customer Service Agent Team", "Contact Support And Track"], correct: 0 },
 ];
 
+/** EMOJI_CHALLENGES component for the gamification section. */
 export const EMOJI_CHALLENGES = [
   { emojis: "😊👍✨", sentiment: "positive", answer: "Satisfeito" },
   { emojis: "😤😠💢", sentiment: "negative", answer: "Irritado" },

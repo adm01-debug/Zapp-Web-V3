@@ -19,6 +19,7 @@ interface Props {
   conversation: TeamConversation;
 }
 
+/** Add Members Dialog component for the team chat section. */
 export function AddMembersDialog({ open, onOpenChange, conversation }: Props) {
   const { profile } = useAuth();
   const queryClient = useQueryClient();

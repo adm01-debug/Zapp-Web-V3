@@ -25,6 +25,7 @@ interface AIRewriteButtonProps {
   contactName?: string;
 }
 
+/** AIRewrite Button component for the chat section. */
 export function AIRewriteButton({ inputValue, onRewrite, contactName }: AIRewriteButtonProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [loadingTone, setLoadingTone] = useState<string | null>(null);

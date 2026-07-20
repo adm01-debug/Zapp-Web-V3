@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { safeClient } from '@/integrations/supabase/safeClient';
 
+/** Hook: Contact Stats Data. */
 export interface ContactStatsData {
   total: number;
   with_email: number;
@@ -22,6 +23,7 @@ interface UseContactStatsReturn {
   refresh: () => Promise<void>;
 }
 
+/** Hook: use Contact Stats. */
 export function useContactStats(): UseContactStatsReturn {
   const [stats, setStats] = useState<ContactStatsData | null>(null);
   const [isLoading, setIsLoading] = useState(true);

@@ -19,6 +19,7 @@ interface ConnectionDisconnectDialogProps {
   onDisconnect: (c: WhatsAppConnection) => Promise<void>;
 }
 
+/** Connection Disconnect Dialog component for the connections section. */
 export function ConnectionDisconnectDialog({
   open,
   onOpenChange,

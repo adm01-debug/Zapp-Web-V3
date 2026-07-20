@@ -10,6 +10,7 @@ import { safeFrom } from '@/integrations/supabase/safeClient';
 import { createService } from '@/services/api/genericService';
 import type { QueryParams } from '@/services/api/types';
 
+/** User interface. */
 export interface User {
   id: string;
   email: string;
@@ -23,6 +24,7 @@ export interface User {
   updated_at: string;
 }
 
+/** Agent interface definition. */
 export interface Agent {
   id: string;
   user_id: string;
@@ -43,6 +45,7 @@ export interface Agent {
 const usersBaseService = createService<User>('users');
 const agentsBaseService = createService<Agent>('agents');
 
+/** users Repository constant. */
 export const usersRepository = {
   // Users
   listUsers: (filters?: Partial<User> & QueryParams) =>

@@ -19,6 +19,7 @@ import { TruncatedTooltip } from './TruncatedTooltip';
 import { useConversationDisplay } from './useConversationDisplay';
 import { AlertCircle } from 'lucide-react';
 
+/** Conversation Item Comfortable component for the conversation list section. */
 export const ConversationItemComfortable = memo(function ConversationItemComfortable({
   conversation,
   isSelected,

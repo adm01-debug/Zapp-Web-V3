@@ -1,13 +1,3 @@
-/**
- * HmacAuditHistoryPanel
- *
- * Histórico das execuções do botão "Testar HMAC" com:
- *  - Filtros: janela de tempo (24h / 7d / 30d) + instância.
- *  - KPIs da janela: total, OK, falhas, taxa de sucesso, duração média.
- *  - Gráfico de tendência (área empilhada OK vs FALHA).
- *  - Tabela das últimas execuções (cap configurável).
- *  - Atualização em tempo real via Realtime + debounce (300ms).
- */
 import { useEffect, useState } from 'react';
 import { History, RefreshCw, Radio, TrendingUp } from 'lucide-react';
 import {
@@ -43,6 +33,7 @@ import { RANGES, ALL_INSTANCES, tooltipStyle, fmtDate } from './hmacAuditHistory
 import type { HmacAuditHistoryPanelProps, RangeKey } from './hmacAuditHistoryHelpers';
 import { useHmacAuditHistory } from './useHmacAuditHistory';
 
+/** Hmac Audit History Panel. */
 export function HmacAuditHistoryPanel({
   instance: initialInstance = null,
   limit = 25,

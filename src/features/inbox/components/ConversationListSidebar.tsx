@@ -52,6 +52,7 @@ interface ConversationListSidebarProps {
   width?: number;
 }
 
+/** Conversation List Sidebar component. */
 export function ConversationListSidebar({
   inbox,
   inboxFilters,

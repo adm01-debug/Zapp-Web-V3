@@ -49,6 +49,7 @@ function SLABadge({ status }: { status: string | null }) {
   );
 }
 
+/** Email Inbox View component for the gmail section. */
 export function EmailInboxView({ onSelectThread }: EmailInboxViewProps) {
   const {
     accounts,
@@ -310,4 +311,5 @@ export function EmailInboxView({ onSelectThread }: EmailInboxViewProps) {
   );
 }
 
+/** Default export. */
 export default EmailInboxView;

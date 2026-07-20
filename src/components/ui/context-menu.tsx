@@ -159,6 +159,7 @@ const ContextMenuShortcut = ({ className, ...props }: React.HTMLAttributes<HTMLS
 };
 ContextMenuShortcut.displayName = "ContextMenuShortcut";
 
+/** context-menu component for the ui section. */
 export {
   ContextMenu,
   ContextMenuTrigger,

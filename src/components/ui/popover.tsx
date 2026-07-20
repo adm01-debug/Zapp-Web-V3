@@ -26,4 +26,5 @@ const PopoverContent = React.forwardRef<
 ));
 PopoverContent.displayName = PopoverPrimitive.Content.displayName;
 
+/** popover component for the ui section. */
 export { Popover, PopoverTrigger, PopoverContent };

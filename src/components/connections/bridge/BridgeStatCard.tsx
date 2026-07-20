@@ -4,6 +4,7 @@ interface BridgeStatCardProps {
   tone?: 'success' | 'error';
 }
 
+/** Bridge Stat Card component for the connections section. */
 export function BridgeStatCard({ label, value, tone }: BridgeStatCardProps) {
   const toneClass =
     tone === 'success'

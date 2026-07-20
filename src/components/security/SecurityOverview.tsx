@@ -39,6 +39,7 @@ interface SecurityAlert {
   is_resolved: boolean | null;
 }
 
+/** Security Overview component for the security section. */
 export function SecurityOverview() {
   const { user } = useAuth();
   const { isMFAEnabled, factors } = useMFA();

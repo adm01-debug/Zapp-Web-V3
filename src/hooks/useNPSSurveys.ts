@@ -6,6 +6,7 @@ const log = getLogger('NPSSurveys');
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
+/** N P S Survey interface definition. */
 export interface NPSSurvey {
   id: string;
   contact_id: string;

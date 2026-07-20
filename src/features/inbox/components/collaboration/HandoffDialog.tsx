@@ -25,6 +25,7 @@ interface HandoffDialogProps {
   onHandoff: (agentId: string, comment: string) => Promise<void>;
 }
 
+/** Handoff Dialog component for the collaboration section. */
 export function HandoffDialog({
   open,
   onOpenChange,

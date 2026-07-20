@@ -26,6 +26,7 @@ const ROLE_LABELS: Record<AppRole, string> = {
   agent: "Agente",
 };
 
+/** Route Permissions Page. */
 export default function RoutePermissionsPage() {
   const { toast: _toast } = useToast();
   const [filter, setFilter] = useState("");

@@ -58,6 +58,7 @@ function shortError(msg: string | null | undefined, max = 120): string {
   return clean.length > max ? `${clean.slice(0, max - 1)}…` : clean;
 }
 
+/** Listens for automation_executions rows that transition to `failed` and fires an actionable toast with stage context. Covers both INSERT (born-failed) and UPDATE transitions. */
 export function useAutomationFailureAlerts(enabled = true): void {
   const seenRef = useRef<Set<string>>(new Set());
 
@@ -122,8 +123,7 @@ export function useAutomationFailureAlerts(enabled = true): void {
       .subscribe();
 
     return () => {
-      void channel.unsubscribe();
-      supabase.removeChannel(channel);
+      supabase.removeChannel(channel).catch(() => {});
     };
   }, [enabled]);
 }

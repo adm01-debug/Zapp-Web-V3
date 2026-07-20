@@ -1,6 +1,7 @@
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
+/** Audit Row interface definition. */
 export interface AuditRow {
   id: string;
   instance: string | null;
@@ -13,6 +14,7 @@ export interface AuditRow {
   created_at: string;
 }
 
+/** Hmac Audit History Panel Props interface definition. */
 export interface HmacAuditHistoryPanelProps {
   /** Quando definido, pré-seleciona a instância no filtro. */
   instance?: string | null;
@@ -20,16 +22,20 @@ export interface HmacAuditHistoryPanelProps {
   limit?: number;
 }
 
+/** Range Key type alias. */
 export type RangeKey = '24h' | '7d' | '30d';
 
+/** RANGES constant. */
 export const RANGES: { value: RangeKey; label: string; hours: number; bucket: 'hour' | 'day' }[] = [
   { value: '24h', label: 'Últimas 24h', hours: 24, bucket: 'hour' },
   { value: '7d', label: 'Últimos 7 dias', hours: 24 * 7, bucket: 'day' },
   { value: '30d', label: 'Últimos 30 dias', hours: 24 * 30, bucket: 'day' },
 ];
 
+/** A L L_ I N S T A N C E S constant. */
 export const ALL_INSTANCES = '__all__';
 
+/** tooltip Style constant. */
 export const tooltipStyle = {
   background: 'hsl(var(--card))',
   border: '1px solid hsl(var(--border))',
@@ -37,6 +43,7 @@ export const tooltipStyle = {
   fontSize: 12,
 } as const;
 
+/** fmt Date function. */
 export function fmtDate(iso: string) {
   try {
     return format(new Date(iso), 'dd/MM HH:mm:ss', { locale: ptBR });
@@ -45,6 +52,7 @@ export function fmtDate(iso: string) {
   }
 }
 
+/** bucketize function. */
 export function bucketize(rows: AuditRow[], bucket: 'hour' | 'day') {
   const map = new Map<string, { time: string; ok: number; fail: number; iso: string }>();
   for (const r of rows) {

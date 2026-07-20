@@ -67,6 +67,7 @@ const COLUMN_LABELS: Record<keyof WebhookViewColumns, string> = {
   action: 'Ação',
 };
 
+/** Advanced Filters Panel function. */
 export function AdvancedFiltersPanel({
   prefs,
   setPref,

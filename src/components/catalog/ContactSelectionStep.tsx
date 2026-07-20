@@ -26,6 +26,7 @@ interface ContactSelectionStepProps {
   onSend: () => void;
 }
 
+/** Contact Selection Step component for the catalog section. */
 export function ContactSelectionStep({
   productName, productImageUrl, selectedImagesCount,
   template, variantLabel, templateLabels,

@@ -21,8 +21,10 @@ interface MemberProfile {
   birthday: string | null;
 }
 
+/** Re-exported module members. */
 export type { MemberProfile };
 
+/** get Birthday Info component for the team chat section. */
 export function getBirthdayInfo(birthday: string | null) {
   if (!birthday) return null;
   const date = new Date(birthday);
@@ -36,6 +38,7 @@ export function getBirthdayInfo(birthday: string | null) {
   return { date, age, isToday, daysUntil };
 }
 
+/** get Role Badge component for the team chat section. */
 export function getRoleBadge(role: string | null) {
   const map: Record<string, { label: string; className: string }> = {
     admin: {
@@ -50,6 +53,7 @@ export function getRoleBadge(role: string | null) {
   );
 }
 
+/** Info Row component for the team chat section. */
 export function InfoRow({
   icon: Icon,
   label,
@@ -76,6 +80,7 @@ interface DirectProfileHeaderProps {
   isLoading: boolean;
 }
 
+/** Direct Profile Header component for the team chat section. */
 export function DirectProfileHeader({ memberProfile, isLoading }: DirectProfileHeaderProps) {
   if (isLoading) {
     return (
@@ -157,6 +162,7 @@ export function DirectProfileHeader({ memberProfile, isLoading }: DirectProfileH
   );
 }
 
+/** Group Profile Header component for the team chat section. */
 export function GroupProfileHeader({ conversation }: { conversation: TeamConversation }) {
   return (
     <div className="flex flex-col items-center px-4 py-6">

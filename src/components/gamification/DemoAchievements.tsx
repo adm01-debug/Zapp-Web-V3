@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import { AchievementsPanel } from './AchievementsPanel';
 import { useState } from 'react';
 
+/** Demo Achievements component for the gamification section. */
 export function DemoAchievements() {
   const [showAchievementsPanel, setShowAchievementsPanel] = useState(false);
   const {

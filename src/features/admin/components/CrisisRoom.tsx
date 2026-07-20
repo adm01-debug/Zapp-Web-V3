@@ -17,6 +17,7 @@ interface CrisisMetric {
   icon: typeof AlertTriangle;
 }
 
+/** Crisis Room component. */
 export function CrisisRoom() {
   const { data: metrics = [], isFetching, refetch } = useQuery<CrisisMetric[]>({
     queryKey: queryKeys.adminOps.crisisRoom(),

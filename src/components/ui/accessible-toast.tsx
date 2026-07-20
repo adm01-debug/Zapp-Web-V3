@@ -27,6 +27,7 @@ interface ToastContextValue {
 
 const ToastContext = createContext<ToastContextValue | null>(null);
 
+/** use Accessible Toast component for the ui section. */
 export function useAccessibleToast() {
   const context = useContext(ToastContext);
   if (!context) {
@@ -55,6 +56,7 @@ interface AccessibleToastProviderProps {
   children: React.ReactNode;
 }
 
+/** Accessible Toast Provider component for the ui section. */
 export function AccessibleToastProvider({ children }: AccessibleToastProviderProps) {
   const [toasts, setToasts] = useState<Toast[]>([]);
 

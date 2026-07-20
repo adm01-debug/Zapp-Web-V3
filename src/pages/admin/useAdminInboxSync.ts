@@ -21,6 +21,7 @@ import {
 
 const log = getLogger('AdminInboxSyncStatusPage');
 
+/** Admin Inbox Sync State. */
 export interface AdminInboxSyncState {
   loading: boolean;
   refreshing: boolean;
@@ -37,6 +38,7 @@ export interface AdminInboxSyncState {
   handleThresholdChange: (raw: string) => void;
 }
 
+/** use Admin Inbox Sync. */
 export function useAdminInboxSync(): AdminInboxSyncState {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);

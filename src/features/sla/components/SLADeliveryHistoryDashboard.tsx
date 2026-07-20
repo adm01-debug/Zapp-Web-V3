@@ -38,6 +38,7 @@ interface SlaViolation {
   resolved_by_profile?: { display_name: string | null } | null;
 }
 
+/** SLADelivery History Dashboard component. */
 export const SLADeliveryHistoryDashboard = () => {
   const queryClient = useQueryClient();
   const [searchTerm, setSearchQuery] = useState('');

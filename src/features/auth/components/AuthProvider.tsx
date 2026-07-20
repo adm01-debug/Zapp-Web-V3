@@ -109,16 +109,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   useEffect(() => {
+    let mounted = true;
+
     // Verify that auth tokens are stored in httpOnly cookies (XSS-resistant)
     if (!verifyHttpOnlyCookieAuth()) {
       log.error('[Auth] Security check failed: httpOnly cookies not properly configured');
     }
 
+    // onAuthStateChange fires INITIAL_SESSION immediately with the current session,
+    // so explicit getUser()/getSession() calls are not needed and introduce race conditions
+    // (double refreshAll, stale setState after unmount). Token cleanup is server-side.
     const subscription = authService.onAuthStateChange((event, session) => {
+      if (!mounted) return;
       log.info(`[Auth] Event: ${event}`);
-
-      // Token cleanup is now handled server-side via httpOnly cookie management.
-      // No client-side localStorage manipulation needed.
 
       setSession(session);
       setUser(session?.user ?? null);
@@ -133,38 +136,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     });
 
-    authService
-      .getUser()
-      .then(({ data: { user } }) => {
-        setUser(user);
-        if (user) {
-          refreshAll(user.id);
-        } else {
-          setLoading(false);
-        }
-      })
-      .catch((err) => {
-        log.warn('[Auth] getUser failed, clearing local session', err);
-        try {
-          Object.keys(localStorage)
-            .filter((k) => k.startsWith('sb-') && k.includes('-auth-token'))
-            .forEach((k) => localStorage.removeItem(k));
-        } catch {
-          /* noop */
-        }
-        setLoading(false);
-      });
-
-    authService
-      .getSession()
-      .then(({ data: { session } }) => {
-        setSession(session);
-      })
-      .catch(() => {
-        // getSession error is already handled by getUser catch
-      });
-
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, [refreshAll]);
 
   useEffect(() => {

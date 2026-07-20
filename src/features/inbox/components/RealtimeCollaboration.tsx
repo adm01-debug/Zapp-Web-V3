@@ -15,6 +15,7 @@ interface RealtimeCollaborationProps {
   className?: string;
 }
 
+/** Realtime Collaboration component. */
 export function RealtimeCollaboration({ contactId, className }: RealtimeCollaborationProps) {
   const [handoffOpen, setHandoffOpen] = useState(false);
   const queryClient = useQueryClient();
@@ -62,4 +63,5 @@ export function RealtimeCollaboration({ contactId, className }: RealtimeCollabor
   );
 }
 
+/** Re-exported module members. */
 export { ViewersIndicator, InternalNotesPanel, HandoffDialog };

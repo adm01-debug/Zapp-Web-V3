@@ -41,6 +41,7 @@ import { SectionErrorBoundary } from '@/components/ui/section-error-boundary';
 const MemoizedAuroraBorealis = memo(AuroraBorealis);
 const MemoizedFloatingParticles = memo(FloatingParticles);
 
+/** Dashboard View component for the dashboard section. */
 export const DashboardView = memo(function DashboardView(): JSX.Element {
   const [filters, setFilters] = useState<DashboardFiltersState>(getDefaultFilters());
   const [isRefreshing, setIsRefreshing] = useState(false);

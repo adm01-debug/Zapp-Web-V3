@@ -2,6 +2,7 @@ import { useRef, useState, useEffect, useCallback, ReactNode } from 'react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 
+/** Truncated Tooltip component for the conversation list section. */
 export function TruncatedTooltip({
   fullText,
   children,

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
-import { useEmail } from './useEmail';
+import { useEmail } from './useEmailManagement';
 import { safeClient } from '@/integrations/supabase/safeClient';
 
 vi.mock('@/integrations/supabase/client', () => ({

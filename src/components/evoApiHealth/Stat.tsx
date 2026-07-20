@@ -4,6 +4,7 @@ interface StatProps {
   status?: string;
 }
 
+/** Stat component for the evoApiHealth section. */
 export function Stat({ label, value, status }: StatProps) {
   return (
     <div>

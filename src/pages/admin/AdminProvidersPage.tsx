@@ -37,6 +37,7 @@ const TYPE_LABEL: Record<ProviderType, string> = {
   custom: 'Custom HTTP',
 };
 
+/** Admin Providers Page. */
 export const AdminProvidersPage = () => {
   const {
     rows, logs, loading, selectedProviderId, setSelectedProviderId,
@@ -292,4 +293,5 @@ function Stat({ label, value, tone = 'default' }: { label: string; value: number
   );
 }
 
+/** Default export. */
 export default AdminProvidersPage;

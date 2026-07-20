@@ -28,6 +28,7 @@ import { Plus, Link2, Copy, Trash2, CheckCircle, Clock, XCircle, CreditCard } fr
 import { cn } from '@/lib/utils';
 import { normalizePaymentLink, type NormalizedPaymentLink as PaymentLink } from '@/lib/normalizers';
 
+/** Lists all payment links for the workspace, allowing agents to copy, share, or deactivate each link inline. */
 export function PaymentLinksView() {
   const mountedRef = useMountedRef();
   const [links, setLinks] = useState<PaymentLink[]>([]);
@@ -67,8 +68,7 @@ export function PaymentLinksView() {
       )
       .subscribe();
     return () => {
-      channel.unsubscribe();
-      supabase.removeChannel(channel);
+      supabase.removeChannel(channel).catch(() => {});
     };
   }, [fetchData]);
 

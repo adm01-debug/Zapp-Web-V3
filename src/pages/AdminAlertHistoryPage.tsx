@@ -45,6 +45,7 @@ import { AlertInstanceDetailDialog } from '@/features/admin';
 import { formatDateTimeCompact } from '@/lib/formatters';
 import { type AlertRow, RANGES, STATUS, TypeBadge } from './AdminAlertHistoryPageParts';
 
+/** Full-page admin view for browsing, filtering, and bulk-dismissing war-room alert history. */
 export default function AdminAlertHistoryPage() {
   const [hoursBack, setHoursBack] = useState<string>('24');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -87,9 +88,10 @@ export default function AdminAlertHistoryPage() {
   // Subscription Realtime — invalida a query (com debounce) sempre que
   // warroom_alerts é alterado. Reduz tempo de detecção de ~20s para <1s.
   const debounceRef = useRef<number | null>(null);
+  const channelId = useRef(`admin-alert-history-${Math.random().toString(36).slice(2)}`);
   useEffect(() => {
     const channel = supabase
-      .channel('admin-alert-history-realtime')
+      .channel(channelId.current)
       .on('postgres_changes', { event: '*', schema: 'zapp', table: 'warroom_alerts' }, () => {
         setLastEventAt(new Date());
         if (debounceRef.current) window.clearTimeout(debounceRef.current);
@@ -109,7 +111,6 @@ export default function AdminAlertHistoryPage() {
 
     return () => {
       if (debounceRef.current) window.clearTimeout(debounceRef.current);
-      channel.unsubscribe();
       supabase.removeChannel(channel);
     };
   }, [queryClient]);

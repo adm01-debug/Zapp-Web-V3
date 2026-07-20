@@ -31,6 +31,7 @@ const SECRET_CODES: Record<string, { name: string; action: string }> = {
   lovable: { name: 'Lovable Easter Egg', action: 'lovable' },
 };
 
+/** Easter Eggs Provider component for the effects section. */
 export const EasterEggsProvider = forwardRef<HTMLDivElement, EasterEggsProviderProps>(
   function EasterEggsProvider({ children }, _ref) {
     const [konamiProgress, setKonamiProgress] = useState<string[]>([]);
@@ -335,6 +336,7 @@ export const EasterEggsProvider = forwardRef<HTMLDivElement, EasterEggsProviderP
 );
 
 // Hook to trigger easter eggs programmatically
+/** use Easter Eggs component for the effects section. */
 export function useEasterEggs() {
   const { celebrate } = useCelebration();
 

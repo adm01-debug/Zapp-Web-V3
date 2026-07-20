@@ -6,6 +6,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 
+/** Contact View Mode component for the contacts section. */
 export type ContactViewMode = 'grid' | 'list' | 'table' | 'map' | 'kanban' | 'analytics';
 
 interface ContactViewSwitcherProps {
@@ -26,6 +27,7 @@ const VIEW_MODES = [
 
 const GRID_COLUMN_OPTIONS = [3, 4, 5, 6];
 
+/** Contact View Switcher component for the contacts section. */
 export function ContactViewSwitcher({
   viewMode, onViewModeChange, gridColumns, onGridColumnsChange,
 }: ContactViewSwitcherProps) {

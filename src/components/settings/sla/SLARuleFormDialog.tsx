@@ -33,6 +33,7 @@ interface SLARuleFormDialogProps {
   editingRule: SLARule | null;
 }
 
+/** SLARule Form Dialog component for the settings section. */
 export function SLARuleFormDialog({
   open,
   onOpenChange,

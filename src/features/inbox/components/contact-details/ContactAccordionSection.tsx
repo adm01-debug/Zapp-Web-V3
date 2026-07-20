@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import { AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
+/** section Variants component for the contact details section. */
 export const sectionVariants = {
   hidden: { opacity: 0, y: 12 },
   visible: (i: number) => ({
@@ -19,6 +20,7 @@ interface SectionProps {
   children: React.ReactNode;
 }
 
+/** Section component for the contact details section. */
 export function Section({ index, value, icon, label, badge, children }: SectionProps) {
   return (
     <motion.div custom={index} initial="hidden" animate="visible" variants={sectionVariants}>

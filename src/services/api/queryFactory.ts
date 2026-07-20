@@ -136,6 +136,7 @@ export const createInfiniteQuery = <TData = any>(
   );
 };
 
+/** handle Query Error constant. */
 export const handleQueryError = (error: unknown, fallbackMessage?: string) => {
   log.error('Query error:', error);
   const e = error as Record<string, unknown> | null;

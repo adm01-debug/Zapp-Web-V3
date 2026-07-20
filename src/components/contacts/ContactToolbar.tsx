@@ -57,6 +57,7 @@ interface ContactToolbarProps {
   totalCount: number;
 }
 
+/** Contact Toolbar component for the contacts section. */
 export function ContactToolbar({
   searchInput, onSearchChange, sortBy, setSortBy,
   showFilters, setShowFilters, activeFiltersCount, clearFilters,

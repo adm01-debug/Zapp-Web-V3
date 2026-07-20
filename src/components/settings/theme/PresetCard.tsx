@@ -9,6 +9,7 @@ interface PresetCardProps {
   onSelect: (id: string) => void;
 }
 
+/** Preset Card component for the settings section. */
 export function PresetCard({ preset, isActive, onSelect }: PresetCardProps) {
   return (
     <motion.div

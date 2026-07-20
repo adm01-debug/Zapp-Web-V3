@@ -20,6 +20,7 @@ interface AIUsageLogsTabProps {
   profileMap: Map<string, { name?: string | null; email?: string | null }>;
 }
 
+/** AIUsage Logs Tab component. */
 export function AIUsageLogsTab({ logs, logsPage, setLogsPage, profileMap }: AIUsageLogsTabProps) {
   return (
     <Card>

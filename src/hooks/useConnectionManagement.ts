@@ -71,7 +71,6 @@ export function useConnectionAlertsPush() {
     return () => {
       cancelled = true;
       if (channel) {
-        void channel.unsubscribe();
         supabase.removeChannel(channel);
       }
     };
@@ -82,6 +81,7 @@ export function useConnectionAlertsPush() {
 // CONNECTION QUEUES
 // ──────────────────────────────────────────────────────────────────────────
 
+/** Connection Queue interface definition. */
 export interface ConnectionQueue {
   id: string;
   whatsapp_connection_id: string;
@@ -307,6 +307,7 @@ export function useConnectionPoolExhaustionDetector(threshold: number = 0.85) {
 // BACKWARD COMPATIBILITY
 // ──────────────────────────────────────────────────────────────────────────
 
+/** Default export. */
 export default {
   useConnectionAlertsPush,
   useConnectionQueues,

@@ -31,12 +31,14 @@ const signupSchema = z.object({
   password: passwordSchema,
 });
 
+/** Hook: Lock Status. */
 export interface LockStatus {
   isLocked: boolean;
   remainingTime: number;
   attempts: number;
 }
 
+/** Hook: use Auth Form. */
 export function useAuthForm() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();

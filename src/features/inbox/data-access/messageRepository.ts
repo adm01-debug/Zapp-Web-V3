@@ -3,6 +3,7 @@ import { RPC } from '@/integrations/datasource/rpcCatalog';
 import { normalizeMessage } from '@/integrations/supabase/rowNormalizers';
 import { RealtimePostgresChangesPayload, RealtimeChannel } from '@supabase/supabase-js';
 
+/** Message interface definition. */
 export interface Message {
   id: string;
   contact_id: string | null;
@@ -25,6 +26,7 @@ export interface Message {
   contactAvatar: string | null;
 }
 
+/** Data-access object for inbox messages: fetch by contact, realtime subscribe, send, delete, and status update. */
 export const messageRepository = {
   /**
    * Fetch messages with agent profile enrichment (N+1 prevention).
@@ -116,7 +118,6 @@ export const messageRepository = {
   },
 
   unsubscribe(channel: RealtimeChannel) {
-    channel.unsubscribe();
     dbRemoveChannel('messages', channel);
   },
 };

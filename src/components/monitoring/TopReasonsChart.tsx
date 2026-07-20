@@ -22,6 +22,7 @@ function deltaTone(
   return { tone: 'flat', pct };
 }
 
+/** Top Reasons Chart component for the monitoring section. */
 export function TopReasonsChart({
   reasons,
   previousReasons = [],

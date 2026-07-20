@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { X } from 'lucide-react';
 
+/** In App Notification Data component for the mobile section. */
 export interface InAppNotificationData {
   id: string;
   title: string;
@@ -17,6 +18,7 @@ interface InAppNotificationProps {
   onDismiss: () => void;
 }
 
+/** In App Notification component for the mobile section. */
 export function InAppNotification({ notification, duration = 4000, onDismiss }: InAppNotificationProps) {
   useEffect(() => {
     if (!notification) return;

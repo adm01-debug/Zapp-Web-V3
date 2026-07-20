@@ -14,10 +14,12 @@ import type {
 
 // Re-export the shared contract so existing call sites
 // (`import { MessageStatusDetail } from '@/features/inbox'`) keep working.
+/** Re-exported module members. */
 export type { MessageStatusDbRow, MessageStatusDetail, MessageUIStatus };
 
 const TRANSIENT: MessageUIStatus[] = ['sending', 'retrying'];
 
+/** Subscribes to realtime delivery-status updates for a contact's messages and exposes a unified `getStatus` helper. */
 export const useMessageStatus = (contactId?: string) => {
   const [statusUpdates, setStatusUpdates] = useState<Map<string, MessageStatusDbRow>>(new Map());
   const [busTick, setBusTick] = useState(0);
@@ -119,8 +121,7 @@ export const useMessageStatus = (contactId?: string) => {
       .subscribe();
 
     return () => {
-      void channel.unsubscribe();
-      supabase.removeChannel(channel);
+      supabase.removeChannel(channel).catch(() => {});
     };
   }, [contactId]);
 

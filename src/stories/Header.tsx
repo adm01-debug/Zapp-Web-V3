@@ -5,6 +5,7 @@ type User = {
   name: string;
 };
 
+/** Header Props. */
 export interface HeaderProps {
   user?: User;
   onLogin?: () => void;
@@ -12,6 +13,7 @@ export interface HeaderProps {
   onCreateAccount?: () => void;
 }
 
+/** Header. */
 export const Header = ({ user, onLogin, onLogout, onCreateAccount }: HeaderProps) => (
   <header>
     <div className="storybook-header">

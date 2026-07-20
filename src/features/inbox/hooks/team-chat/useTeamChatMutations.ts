@@ -18,6 +18,7 @@ interface TeamMessageCache {
   [key: string]: unknown;
 }
 
+/** Mutation to update the delivery/read status of a team message and invalidate the messages cache. */
 export function useUpdateTeamMessageStatus() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -55,6 +56,7 @@ export function useUpdateTeamMessageStatus() {
   });
 }
 
+/** Mutation to send a new message in a team conversation, with optional media URL, reply threading, and optimistic cache update. */
 export function useSendTeamMessage() {
   const { profile } = useAuth();
   const queryClient = useQueryClient();
@@ -125,6 +127,7 @@ export function useSendTeamMessage() {
   });
 }
 
+/** Mutation to soft-delete a team message and invalidate the conversation's messages cache. */
 export function useDeleteTeamMessage() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -159,6 +162,7 @@ export function useDeleteTeamMessage() {
   });
 }
 
+/** Mutation to update a team message's content, mark it as edited, and invalidate the messages cache. */
 export function useEditTeamMessage() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -199,6 +203,7 @@ export function useEditTeamMessage() {
   });
 }
 
+/** Mutation to create a new team conversation (direct, group, or department), add initial members, and refresh the conversations list. */
 export function useCreateTeamConversation() {
   const { profile } = useAuth();
   const queryClient = useQueryClient();
@@ -297,6 +302,7 @@ export function useCreateTeamConversation() {
   });
 }
 
+/** Mutation to toggle the mute flag for the current agent's membership in a team conversation. */
 export function useToggleMuteConversation() {
   const { profile } = useAuth();
   const queryClient = useQueryClient();
@@ -319,6 +325,7 @@ export function useToggleMuteConversation() {
   });
 }
 
+/** Mutation to transfer a team conversation to a different department or assign it to a specific agent. */
 export function useTransferTeamConversation() {
   const queryClient = useQueryClient();
   return useMutation({

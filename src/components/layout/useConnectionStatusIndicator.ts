@@ -22,6 +22,7 @@ import {
 
 const log = getLogger('ConnectionStatusIndicator');
 
+/** use Connection Status Indicator component for the layout section. */
 export function useConnectionStatusIndicator() {
   const [connections, setConnections] = useState<ConnectionRow[]>([]);
   const [loading, setLoading] = useState(true);

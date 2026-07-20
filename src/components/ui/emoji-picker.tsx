@@ -33,6 +33,7 @@ interface EmojiPickerProps {
 
 const RECENT_KEY = 'emoji-recent';
 
+/** Emoji Picker component for the ui section. */
 export function EmojiPicker({
   onEmojiSelect,
   trigger,
@@ -256,6 +257,7 @@ interface QuickReactionPickerProps {
   className?: string;
 }
 
+/** Quick Reaction Picker component for the ui section. */
 export function QuickReactionPicker({
   onReact,
   currentReaction,
@@ -311,6 +313,7 @@ interface FloatingReactionProps {
   onComplete: () => void;
 }
 
+/** Floating Reaction component for the ui section. */
 export function FloatingReaction({ emoji, onComplete }: FloatingReactionProps) {
   return (
     <motion.div

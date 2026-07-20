@@ -10,6 +10,7 @@ import { SCOPE_TABS } from './sla/sla-utils';
 import { ScopeRulesList } from './sla/ScopeRulesList';
 import { SLARuleScope } from '@/features/sla';
 
+/** SLARules Manager component for the settings section. */
 export function SLARulesManager() {
   // Fetch rule counts per scope in a single query
   const { data: ruleCounts = {} } = useQuery({

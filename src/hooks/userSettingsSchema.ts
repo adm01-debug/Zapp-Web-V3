@@ -1,10 +1,13 @@
 import { z } from 'zod';
 
+/** Hook: DEFAULT_TTS_VOICE_ID. */
 export const DEFAULT_TTS_VOICE_ID = 'TY3h8ANhQUsJaa0Bga5F';
+/** Hook: DEFAULT_TTS_SPEED. */
 export const DEFAULT_TTS_SPEED = 1.0;
 
 const TimeFormatRegex = /^([0-1][0-9]|2[0-3]):([0-5][0-9])$/;
 
+/** Hook: User Settings Schema. */
 export const UserSettingsSchema = z
   .object({
     user_id: z.string().uuid(),
@@ -54,6 +57,7 @@ export const UserSettingsSchema = z
     { message: 'Quiet hours: start and end times must be different', path: ['quiet_hours_end'] }
   );
 
+/** Hook: retry With Backoff. */
 export async function retryWithBackoff<T>(
   fn: () => Promise<T>,
   maxRetries = 3,
@@ -79,6 +83,7 @@ export async function retryWithBackoff<T>(
   throw lastError || new Error('Retry failed');
 }
 
+/** Hook: User Settings. */
 export interface UserSettings {
   id?: string;
   user_id?: string;
@@ -118,6 +123,7 @@ export interface UserSettings {
   global_sla_notification_message: string;
 }
 
+/** Hook: DEFAULT_SETTINGS. */
 export const DEFAULT_SETTINGS: UserSettings = {
   version: 1,
   business_hours_enabled: true,

@@ -53,6 +53,7 @@ interface ChatMessagesAreaProps extends LoadOlderProps {
   isLoading?: boolean;
 }
 
+/** Chat Messages Area Ref interface definition. */
 export interface ChatMessagesAreaRef {
   scrollToBottom: () => void;
   registerMessageRef: (messageId: string, el: HTMLDivElement | null) => void;
@@ -61,6 +62,7 @@ export interface ChatMessagesAreaRef {
   getScrollContainer: () => HTMLElement | null;
 }
 
+/** Chat Messages Area constant. */
 export const ChatMessagesArea = memo(
   forwardRef<ChatMessagesAreaRef, ChatMessagesAreaProps>(
     (
@@ -138,7 +140,6 @@ export const ChatMessagesArea = memo(
           )
           .subscribe();
         return () => {
-          channel.unsubscribe();
           supabase.removeChannel(channel);
         };
       }, [conversationId, queryClient]);

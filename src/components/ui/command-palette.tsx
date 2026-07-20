@@ -31,6 +31,7 @@ interface CommandPaletteProps {
   customCommands?: CommandItem[];
 }
 
+/** Command Palette component for the ui section. */
 export function CommandPalette({
   open,
   onOpenChange,
@@ -376,6 +377,7 @@ export function CommandPalette({
   );
 }
 
+/** use Command Palette component for the ui section. */
 export function useCommandPalette() {
   const [isOpen, setIsOpen] = React.useState(false);
   React.useEffect(() => {
@@ -392,4 +394,5 @@ export function useCommandPalette() {
 }
 
 // Re-export types for consumers
+/** Re-exported module members. */
 export type { CommandItem, CommandGroup, CommandCategory };

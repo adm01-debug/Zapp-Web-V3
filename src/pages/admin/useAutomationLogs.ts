@@ -6,6 +6,7 @@ import { useToast } from '@/hooks/use-toast';
 import type { ExecutionRow, RuleLite, AutomationStatus } from './automationLogsHelpers';
 import { PAGE_SIZE } from './automationLogsHelpers';
 
+/** Automation Logs Filters. */
 export interface AutomationLogsFilters {
   filterRule: string;
   filterStatus: string;
@@ -15,6 +16,7 @@ export interface AutomationLogsFilters {
   page: number;
 }
 
+/** use Automation Logs. */
 export function useAutomationLogs(filters: AutomationLogsFilters) {
   const { filterRule, filterStatus, filterJid, filterFrom, filterTo, page } = filters;
   const { toast } = useToast();
@@ -81,7 +83,6 @@ export function useAutomationLogs(filters: AutomationLogsFilters) {
       )
       .subscribe();
     return () => {
-      ch.unsubscribe();
       supabase.removeChannel(ch);
     };
   }, [page, load]);

@@ -38,6 +38,7 @@ interface WhitelistedIP {
   created_at: string;
 }
 
+/** IPWhitelist Panel component for the security section. */
 export function IPWhitelistPanel() {
   const { user } = useAuth();
   const [whitelistedIPs, setWhitelistedIPs] = useState<WhitelistedIP[]>([]);

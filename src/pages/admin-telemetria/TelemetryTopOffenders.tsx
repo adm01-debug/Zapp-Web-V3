@@ -12,6 +12,7 @@ interface TelemetryTopOffendersProps {
   topOffenders: [string, OffenderStats][];
 }
 
+/** Telemetry Top Offenders. */
 export function TelemetryTopOffenders({ topOffenders }: TelemetryTopOffendersProps) {
   if (topOffenders.length === 0) return null;
 

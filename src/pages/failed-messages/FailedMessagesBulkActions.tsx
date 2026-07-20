@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 
+/** Failed Messages Bulk Actions. */
 export function FailedMessagesBulkActions({
   canEdit,
   selectedCount,

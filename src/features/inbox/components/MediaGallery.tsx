@@ -52,6 +52,7 @@ interface MediaGalleryProps {
   onOpenChange: (open: boolean) => void;
 }
 
+/** Media Gallery component. */
 export function MediaGallery({ contactId, open, onOpenChange }: MediaGalleryProps) {
   const [filter, setFilter] = useState<'all' | 'image' | 'video' | 'audio' | 'document'>('all');
   const [search, setSearch] = useState('');

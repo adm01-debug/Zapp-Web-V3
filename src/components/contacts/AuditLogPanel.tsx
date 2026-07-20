@@ -58,6 +58,7 @@ const FIELD_LABELS: Record<string, string> = {
   merged_into: 'Mesclado em',
 };
 
+/** Audit Log Panel constant. */
 export const AuditLogPanel: React.FC<{ contactId: string; maxEntries?: number }> = ({
   contactId,
   maxEntries = 20,
@@ -178,4 +179,5 @@ export const AuditLogPanel: React.FC<{ contactId: string; maxEntries?: number }>
   );
 };
 
+/** Default export. */
 export default AuditLogPanel;

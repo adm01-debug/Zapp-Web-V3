@@ -1,3 +1,4 @@
+/** Public barrel exports for the admin module. */
 export * from './components';
 export * from './hooks';
 export * from './services';

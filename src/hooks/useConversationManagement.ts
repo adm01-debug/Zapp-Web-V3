@@ -222,6 +222,7 @@ export function useConversationActions() {
    SECTION 2: useConversationAnalyses - Conversation analysis & sentiment
    ============================================================================ */
 
+/** Conversation Analysis interface. */
 export interface ConversationAnalysis {
   id: string;
   contact_id: string;
@@ -348,6 +349,7 @@ export function useConversationAnalyses(contactId: string | null) {
    SECTION 3: useConversationSLATimeline - SLA milestones & attribution
    ============================================================================ */
 
+/** SLA Attribution interface. */
 export interface SLAAttribution {
   agentId: string | null;
   agentName: string | null;
@@ -355,12 +357,14 @@ export interface SLAAttribution {
   queueName: string | null;
 }
 
+/** First Response Attribution Source type alias. */
 export type FirstResponseAttributionSource =
   | 'assign-event'
   | 'pre-contact-assign'
   | 'insufficient-events'
   | 'not-applicable';
 
+/** S L A Timeline Data interface definition. */
 export interface SLATimelineData {
   firstContactAt: Date | null;
   firstResponseAt: Date | null;

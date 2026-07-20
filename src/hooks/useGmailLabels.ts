@@ -5,10 +5,12 @@ import { emailMappers } from '@/utils/emailMappers';
 import { EmailLabelInfo as EmailLabel } from '@/types/gmail';
 import { getLogger } from '@/lib/logger';
 
+/** Re-exported module members. */
 export type { EmailLabel };
 
 const log = getLogger('useEmailLabels');
 
+/** Hook: SYSTEM_LABELS. */
 export const SYSTEM_LABELS: Array<{ id: string; name: string; icon: string; color: string }> = [
   { id: 'INBOX', name: 'Inbox', icon: 'inbox', color: 'hsl(var(--primary))' },
   { id: 'STARRED', name: 'Favoritos', icon: 'star', color: 'hsl(var(--warning))' },
@@ -19,6 +21,7 @@ export const SYSTEM_LABELS: Array<{ id: string; name: string; icon: string; colo
   { id: 'TRASH', name: 'Lixeira', icon: 'delete', color: 'hsl(var(--muted-foreground))' },
 ];
 
+/** Hook: use Email Labels. */
 export function useEmailLabels(accountId: string | null) {
   const [labels, setLabels] = useState<EmailLabel[]>([]);
   const [isLoading, setIsLoading] = useState(false);

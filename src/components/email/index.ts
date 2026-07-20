@@ -19,12 +19,15 @@ export { EmailChatReplyBar } from './EmailChatReplyBar';
 export { EmailChatThread } from './EmailChatThread';
 export { EmailSLABadge, SLADot, SLAProgressBar } from './EmailSLABadge';
 export { EmailSearchBar } from './EmailSearchBar';
+/** Re-exported module members. */
 export { EmailThreadList } from './EmailThreadList';
 
 // v2 variant — uses DOM-native sanitization instead of DOMPurify.
 // Re-exported with a descriptive alias to make the intent explicit at call sites.
+/** Re-exported module members. */
 export {
   EmailChatBubble as EmailChatBubbleDOMSafe,
   EmailChatBubbleV2,
 } from './EmailChatBubble-v2';
+/** Re-exported module members. */
 export type { EmailChatBubbleProps } from './EmailChatBubble-v2';

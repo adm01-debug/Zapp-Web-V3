@@ -36,6 +36,7 @@ function EmptyIllustration({ context }: { context: string }) {
   );
 }
 
+/** Contextual Empty State component for the ui section. */
 export function ContextualEmptyState({
   context, title, description, onPrimaryAction, onSecondaryAction, onTertiaryAction, searchQuery, compact = false, showHelp = true, className,
 }: ContextualEmptyStateProps) {

@@ -7,6 +7,7 @@ interface UseProductHandlersOptions {
   onSendMessage: (content: string) => void;
 }
 
+/** use Product Handlers component for the chat section. */
 export function useProductHandlers({ onSendMessage }: UseProductHandlersOptions) {
   const handleSendProduct = useCallback(
     (product: ExternalProduct) => {

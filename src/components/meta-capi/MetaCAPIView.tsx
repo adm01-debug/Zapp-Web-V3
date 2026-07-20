@@ -39,6 +39,7 @@ const EVENT_TYPES = [
   { name: 'Contact', label: 'Contato', icon: MousePointer, color: 'text-info' },
 ];
 
+/** Meta CAPIView component for the meta capi section. */
 export function MetaCAPIView() {
   const {
     events,

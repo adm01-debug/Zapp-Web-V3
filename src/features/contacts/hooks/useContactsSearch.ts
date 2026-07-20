@@ -40,6 +40,7 @@ function parseSortOption(sortBy: string): { field: string; direction: string } {
   }
 }
 
+/** Hook: use Contacts Search. */
 export function useContactsSearch() {
   const [searchParams, setSearchParams] = useSearchParams();
 

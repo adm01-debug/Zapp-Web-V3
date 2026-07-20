@@ -24,10 +24,12 @@ import { isUuidLike } from '@/lib/evolutionInstance';
 // Types
 // ═══════════════════════════════════════════════════════════
 
+/** Hook: Use Monitoring Data Params. */
 export interface UseMonitoringDataParams {
   onConnectionsUpdate?: (conns: ConnectionInfo[]) => void;
 }
 
+/** Hook: Use Monitoring Data Result. */
 export interface UseMonitoringDataResult {
   connections: ConnectionInfo[];
   healthLogs: HealthLog[];
@@ -39,10 +41,12 @@ export interface UseMonitoringDataResult {
   fetchData: (period: TimePeriod) => Promise<void>;
 }
 
+/** Hook: Use Monitoring Actions Params. */
 export interface UseMonitoringActionsParams {
   fetchData: () => Promise<void>;
 }
 
+/** Hook: Use Monitoring Actions Result. */
 export interface UseMonitoringActionsResult {
   refreshing: boolean;
   webhookTest: WebhookTestResult;
@@ -64,6 +68,7 @@ export interface UseMonitoringActionsResult {
 const log = getLogger('useMonitoringManagement');
 const HEALTHY_STATUSES = ['connected', 'healthy'];
 
+/** Computes overall uptime statistics for the last 24 hours from the provided health logs relative to `now`. */
 function computeUptime(logs: HealthLog[], now: Date): UptimeInfo {
   const dayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
   const recent = logs.filter((l) => new Date(l.checked_at) >= dayAgo);
@@ -77,6 +82,7 @@ function computeUptime(logs: HealthLog[], now: Date): UptimeInfo {
   };
 }
 
+/** Groups health logs by instance and computes per-instance uptime percentage, check counts, average latency, and last error for the 24-hour window ending at `now`. */
 function computeInstanceUptimes(logs: HealthLog[], now: Date): InstanceUptime[] {
   const dayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
   const recent = logs.filter((l) => new Date(l.checked_at) >= dayAgo);
@@ -105,6 +111,7 @@ function computeInstanceUptimes(logs: HealthLog[], now: Date): InstanceUptime[] 
   });
 }
 
+/** Builds 8-hour sparkline arrays (messages-per-hour, avg-latency-per-hour, uptime-pct-per-hour) for the 8-hour window ending at `now`. */
 function computeSparklines(
   logs: HealthLog[],
   messages: { sender: string; created_at: string }[],
@@ -145,6 +152,7 @@ function computeSparklines(
 // Monitoring Data Management (useMonitoringData consolidation)
 // ═══════════════════════════════════════════════════════════
 
+/** Hook: use Monitoring Data Management. */
 export function useMonitoringDataManagement(
   params: UseMonitoringDataParams = {}
 ): UseMonitoringDataResult {
@@ -271,6 +279,7 @@ export function useMonitoringDataManagement(
 // Monitoring Actions Management (useMonitoringActions consolidation)
 // ═══════════════════════════════════════════════════════════
 
+/** Hook: use Monitoring Actions Management. */
 export function useMonitoringActionsManagement(
   params: UseMonitoringActionsParams
 ): UseMonitoringActionsResult {

@@ -18,6 +18,7 @@ interface ContactGroupedListProps {
   searchQuery?: string;
 }
 
+/** Contact Grouped List component for the contacts section. */
 export function ContactGroupedList({
   contacts,
   selectedIds,

@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 
 const log = getLogger('SipConnection');
 
+/** Connection lifecycle state of the SIP.js UserAgent. */
 export type SipStatus = 'disconnected' | 'connecting' | 'registered' | 'error';
 
 interface SipConfig {
@@ -15,6 +16,7 @@ interface SipConfig {
   wsPort?: number;
 }
 
+/** Manages a SIP.js UserAgent connection lifecycle: registers with the server, handles exponential back-off reconnection, and exposes connect/disconnect callbacks with mounted-ref safety. */
 export function useSipConnection() {
   const [sipStatus, setSipStatus] = useState<SipStatus>('disconnected');
   const uaRef = useRef<UserAgent | null>(null);

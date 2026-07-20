@@ -3,12 +3,14 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 
+/** log-retry-metric utilities and exports. */
 export interface RetryReason {
   attempt: number;
   status?: number;
   reason: string; // ex.: 'http_503', 'timeout', 'network_error'
 }
 
+/** Retry Metric Input interface. */
 export interface RetryMetricInput {
   action: string;
   method: string;
@@ -32,6 +34,7 @@ function getServiceClient() {
   return cached;
 }
 
+/** log Retry Metric function. */
 export function logRetryMetric(input: RetryMetricInput): void {
   // Filtro de volume: só registra se houve retry OU falhou.
   const shouldRecord = input.attempt_count > 1 || input.final_status !== 'success';

@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { useActiveAlerts } from './hooks';
 import type { ActiveAlert } from './types';
 
+/** Evo Api Alerts Badge interface definition. */
 export interface EvoApiAlertsBadge {
   critical: number;
   warning: number;

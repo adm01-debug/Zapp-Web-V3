@@ -18,6 +18,7 @@ interface NavigationState {
   forward: string[];
 }
 
+/** Hook: use Contacts Search Management. */
 export function useContactsSearchManagement(query?: string) {
   const { user } = useAuth();
   const [results, setResults] = useState<SearchResult[]>([]);
@@ -58,6 +59,7 @@ export function useContactsSearchManagement(query?: string) {
   return { results, loading, search };
 }
 
+/** Hook: use Dashboard Queries Management. */
 export function useDashboardQueriesManagement() {
   const { user } = useAuth();
   const [queries, setQueries] = useState<Record<string, unknown>[]>([]);
@@ -98,6 +100,7 @@ export function useDashboardQueriesManagement() {
   return { queries, loading, refetch: fetchQueries };
 }
 
+/** Hook: use Url Filters Management. */
 export function useUrlFiltersManagement() {
   const [filters, setFilters] = useState<Record<string, unknown>>({});
 
@@ -112,6 +115,7 @@ export function useUrlFiltersManagement() {
   return { filters, updateFilter, clearFilters };
 }
 
+/** Hook: use Navigation History Management. */
 export function useNavigationHistoryManagement() {
   const [state, setState] = useState<NavigationState>({
     current: '',
@@ -154,6 +158,7 @@ export function useNavigationHistoryManagement() {
   return { ...state, navigate, goBack, goForward };
 }
 
+/** Hook: use Index Navigation Management. */
 export function useIndexNavigationManagement() {
   const [index, setIndex] = useState(0);
   const [items, setItems] = useState<unknown[]>([]);
@@ -173,6 +178,7 @@ export function useIndexNavigationManagement() {
   return { index, items, setItems, next, previous, goTo, currentItem: items[index] };
 }
 
+/** Hook: use Chat Search Management. */
 export function useChatSearchManagement(chatId?: string, query?: string) {
   const [results, setResults] = useState<Record<string, unknown>[]>([]);
   const [loading, setLoading] = useState(false);
@@ -213,4 +219,5 @@ export function useChatSearchManagement(chatId?: string, query?: string) {
   return { results, loading, search };
 }
 
+/** Re-exported module members. */
 export type { SearchResult, NavigationState };

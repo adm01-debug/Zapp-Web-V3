@@ -40,6 +40,7 @@ const SECTIONS = [
   { key: 'pending_items' as const, label: 'Pendências', icon: Clock, color: 'text-destructive' },
 ];
 
+/** Conversation Memory Panel component. */
 export function ConversationMemoryPanel({ contactId, profileId }: ConversationMemoryPanelProps) {
   const [memory, setMemory] = useState<MemoryData>({
     facts: [],

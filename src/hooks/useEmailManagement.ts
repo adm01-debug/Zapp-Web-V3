@@ -34,12 +34,17 @@ const log = getLogger('EmailManagement');
 // TYPES AND INTERFACES
 // ──────────────────────────────────────────────────────────────────────────
 
+/** Re-exported module members. */
 export type { EmailAccount, EmailTokenInfo, EmailThread, EmailSendParams, EmailLabel, SLAStatus };
 
+/** Email Token Status type alias. */
 export type EmailTokenStatus = 'valid' | 'expiring_soon' | 'expired' | 'no_token';
+/** Email Watch Status type alias. */
 export type EmailWatchStatus = 'active' | 'expiring_soon' | 'expired' | 'no_watch';
+/** Token Status type alias. */
 export type TokenStatus = EmailTokenStatus;
 
+/** Draft State interface definition. */
 export interface DraftState {
   id?: string;
   email_draft_id?: string;
@@ -51,6 +56,7 @@ export interface DraftState {
   lastSaved?: Date;
 }
 
+/** Email Search Result interface definition. */
 export interface EmailSearchResult {
   id: string;
   thread_id: string;
@@ -63,6 +69,7 @@ export interface EmailSearchResult {
   source: 'local' | 'remote';
 }
 
+/** Email S L A Record interface definition. */
 export interface EmailSLARecord {
   thread_id: string;
   account_id: string;
@@ -74,6 +81,7 @@ export interface EmailSLARecord {
   warning_threshold_pct: number;
 }
 
+/** Email Signature interface definition. */
 export interface EmailSignature {
   id: string;
   account_id: string;
@@ -93,6 +101,7 @@ const AUTO_SAVE_DELAY_MS = 30_000;
 const DEBOUNCE_MS = 350;
 const MIN_QUERY_LEN = 2;
 
+/** Returns true when the given ID is a mock identifier (prefixed with 'mock-'), used to short-circuit real API calls. */
 const isMockId = (id?: string | null): boolean => !!id && id.startsWith('mock-');
 
 interface BaseThreadRow {
@@ -104,6 +113,7 @@ interface BaseThreadRow {
   [key: string]: unknown;
 }
 
+/** Maps a raw Supabase email_threads row to a typed EmailThread, normalising field aliases and computing unread_count. */
 const mapBaseThreadRow = (row: Record<string, unknown>): EmailThread =>
   emailMappers.thread({
     ...row,
@@ -113,6 +123,7 @@ const mapBaseThreadRow = (row: Record<string, unknown>): EmailThread =>
     unread_count: row['is_unread'] ? Math.max(Number(row['message_count'] ?? 1), 1) : 0,
   });
 
+/** Returns a shallow copy of o with all undefined values removed, used when merging partial realtime updates. */
 const definedOnly = <T extends object>(o: T): Partial<T> =>
   Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined)) as Partial<T>;
 
@@ -132,6 +143,7 @@ const DEFAULT_SLA: SLAConfig = {
   business_end_hour: 18,
 };
 
+/** Computes the number of elapsed business minutes between two dates, optionally restricting to configured business hours and weekdays. */
 function elapsedBusinessMinutes(from: Date, to: Date = new Date(), config?: SLAConfig): number {
   if (!config?.business_hours_only) {
     return Math.floor((to.getTime() - from.getTime()) / 60_000);
@@ -189,6 +201,7 @@ function elapsedBusinessMinutes(from: Date, to: Date = new Date(), config?: SLAC
   return elapsed;
 }
 
+/** Maps elapsed business minutes against SLA thresholds to an SLAStatus of 'ok', 'warning', or 'breached'. */
 function computeStatus(elapsed: number, config: SLAConfig): SLAStatus {
   if (elapsed >= config.threshold_minutes) return 'breached';
   if (elapsed >= config.threshold_minutes * (config.warning_threshold_pct / 100)) return 'warning';
@@ -630,6 +643,7 @@ export function useEmail() {
       };
 
       const handler = async (event: MessageEvent) => {
+        if (event.origin !== window.location.origin) return;
         if (settled) return;
         if (event.data?.type === 'gmail-oauth-error') {
           settled = true;
@@ -1328,6 +1342,7 @@ export function useEmailSignature(accountId: string | null) {
 // BACKWARD COMPATIBILITY
 // ──────────────────────────────────────────────────────────────────────────
 
+/** Default export. */
 export default {
   useEmail,
   useEmailDraft,

@@ -7,6 +7,7 @@ interface BusinessHoursIndicatorProps {
   className?: string;
 }
 
+/** Business Hours Indicator component for the connections section. */
 export function BusinessHoursIndicator({ connectionId, className }: BusinessHoursIndicatorProps) {
   const { businessHours, isLoading } = useBusinessHours(connectionId);
 

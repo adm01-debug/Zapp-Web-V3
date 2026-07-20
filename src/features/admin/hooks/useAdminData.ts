@@ -45,6 +45,7 @@ interface ProfileMini {
   email: string | null;
 }
 
+/** Hook: User With Role. */
 export interface UserWithRole {
   id: string;
   user_id: string;
@@ -64,6 +65,7 @@ export interface UserWithRole {
   created_at: string;
 }
 
+/** Hook: Audit Log. */
 export interface AuditLog {
   id: string;
   user_id: string | null;
@@ -74,6 +76,7 @@ export interface AuditLog {
   user?: { name: string; email: string | null } | null;
 }
 
+/** Hook: role Config. */
 export const roleConfig: Record<AppRole, { label: string; icon: string; color: string }> = {
   dev: { label: 'Desenvolvedor', icon: 'Code', color: 'text-destructive' },
   admin: { label: 'Administrador', icon: 'Crown', color: 'text-warning' },
@@ -82,6 +85,7 @@ export const roleConfig: Record<AppRole, { label: string; icon: string; color: s
   agent: { label: 'Atendente', icon: 'User', color: 'text-muted-foreground' },
 };
 
+/** Hook: access Level Config. */
 export const accessLevelConfig: Record<string, { label: string; description: string }> = {
   basic: { label: 'Básico', description: 'Acesso apenas aos próprios atendimentos' },
   standard: { label: 'Padrão', description: 'Acesso a atendimentos e contatos atribuídos' },
@@ -89,6 +93,7 @@ export const accessLevelConfig: Record<string, { label: string; description: str
   full: { label: 'Completo', description: 'Acesso total ao sistema' },
 };
 
+/** Hook: use Admin Data. */
 export function useAdminData(activeTab: 'users' | 'audit' | 'crm') {
   const queryClient = useQueryClient();
   const [users, setUsers] = useState<UserWithRole[]>([]);

@@ -90,15 +90,9 @@ describe('ConnectionHealthPanel', () => {
     expect(mockChannel).toHaveBeenCalledWith('health-updates');
   });
 
-  it('unsubscribes on unmount', () => {
-    const unsubscribeMock = vi.fn();
-    mockChannel.mockReturnValue({
-      on: vi.fn().mockReturnThis(),
-      subscribe: vi.fn().mockReturnThis(),
-      unsubscribe: unsubscribeMock,
-    });
+  it('unsubscribes on unmount via removeChannel', () => {
     const { unmount } = render(<ConnectionHealthPanel />);
     unmount();
-    expect(unsubscribeMock).toHaveBeenCalled();
+    expect(mockRemoveChannel).toHaveBeenCalled();
   });
 });

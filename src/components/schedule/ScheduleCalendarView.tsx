@@ -46,6 +46,7 @@ interface ScheduleCalendarViewProps {
   onSelectMessage?: (message: ScheduledMessage) => void;
 }
 
+/** Schedule Calendar View component for the schedule section. */
 export function ScheduleCalendarView({
   onSelectMessage: _onSelectMessage,
 }: ScheduleCalendarViewProps) {

@@ -27,6 +27,7 @@ interface UseEmailOAuthResult {
   startOAuth: () => Promise<void>;
 }
 
+/** Manages the Gmail OAuth popup flow: obtains an auth URL, opens a popup, validates the CSRF state token, exchanges the code for tokens, and reloads accounts on success. */
 function useEmailOAuthManagement({
   mountedRef,
   setError,
@@ -165,6 +166,7 @@ interface UseEmailSyncResult {
   renewWatch: (accountId?: string) => Promise<void>;
 }
 
+/** Manages Gmail inbox synchronisation: exposes syncNow to trigger a full fetch, refreshToken to silently renew OAuth credentials, and renewWatch to extend the Pub/Sub watch subscription. */
 function useEmailSyncManagement({
   activeAccountId,
   activeLabel,
@@ -256,6 +258,7 @@ interface UseEmailRealtimeParams {
   setThreads: React.Dispatch<React.SetStateAction<EmailThread[]>>;
 }
 
+/** Subscribes to Supabase Realtime postgres_changes on email_threads for the active Gmail account, updating thread list state on INSERT, UPDATE, and DELETE events. */
 function useEmailRealtimeManagement({ activeAccountId, setThreads }: UseEmailRealtimeParams) {
   useEffect(() => {
     if (!activeAccountId || isMockId(activeAccountId)) return;
@@ -310,6 +313,7 @@ interface UseEmailThreadActionsResult {
   assignThread: (threadId: string, agentId: string | null) => Promise<void>;
 }
 
+/** Implements thread-level email actions (mark-as-read, star, archive, assign) with optimistic local state updates followed by RPC persistence, short-circuiting to in-memory-only changes for mock thread IDs. */
 function useEmailThreadActionsManagement({
   setThreads,
 }: UseEmailThreadActionsParams): UseEmailThreadActionsResult {
@@ -411,6 +415,7 @@ function useEmailThreadActionsManagement({
 // Orchestration Section (Re-exports individual management functions)
 // ============================================================================
 
+/** Hook: use Gmail Management. */
 export {
   useEmailOAuthManagement,
   useEmailSyncManagement,
@@ -419,6 +424,9 @@ export {
 };
 
 export type { UseEmailOAuthParams, UseEmailOAuthResult };
+/** Re-exported module members. */
 export type { UseEmailSyncParams, UseEmailSyncResult };
+/** Re-exported module members. */
 export type { UseEmailRealtimeParams };
+/** Re-exported module members. */
 export type { UseEmailThreadActionsParams, UseEmailThreadActionsResult };

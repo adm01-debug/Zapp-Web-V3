@@ -4,14 +4,23 @@ import { useState, useCallback } from 'react';
 import { toast } from 'sonner';
 import { useDownloadPermission } from '@/hooks/useDownloadPermission';
 
+/** Use Export Data Options interface definition. */
 export interface UseExportDataOptions<T> {
   fileName: string;
   columns: Array<{ key: keyof T; header: string; format?: (value: unknown) => string }>;
 }
 
-/** Exports user data in JSON or CSV format with permission checks. */
-export function useExportData() {
-  return useExportDataManagement();
+/** Export Column interface definition. */
+export interface ExportColumn<T extends Record<string, unknown>> {
+  key: keyof T & string;
+  header: string;
+  format?: (value: unknown) => string;
+}
+
+/** Use Export Data Options interface definition. */
+export interface UseExportDataOptions<T extends Record<string, unknown>> {
+  columns: ExportColumn<T>[];
+  fileName: string;
 }
 
 const BLOCKED_MSG = 'Exportação bloqueada por política de segurança';
@@ -43,7 +52,7 @@ export function useExportDataTyped<T extends Record<string, unknown>>(
         }).join(',')
       );
       const csv = [headers.join(','), ...rows].join('\n');
-      const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+      const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -74,4 +83,5 @@ export function useExportDataTyped<T extends Record<string, unknown>>(
   };
 }
 
+/** Default export. */
 export default useExportData;

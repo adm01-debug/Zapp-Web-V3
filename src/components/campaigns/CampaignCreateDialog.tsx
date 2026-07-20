@@ -48,6 +48,7 @@ interface CampaignCreateDialogProps {
   createCampaign: UseMutationResult<unknown, Error, CampaignInput, unknown>;
 }
 
+/** Campaign Create Dialog component for the campaigns section. */
 export function CampaignCreateDialog({
   open,
   onOpenChange,

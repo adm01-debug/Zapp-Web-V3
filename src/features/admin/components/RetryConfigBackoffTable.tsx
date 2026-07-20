@@ -77,6 +77,7 @@ function fmtMs(ms: number): string {
   return `${Math.round(ms / 1000)}s`;
 }
 
+/** Retry Config Backoff Table component. */
 export function RetryConfigBackoffTable() {
   return (
     <div className="space-y-2 rounded-md border bg-muted/20 p-3 text-xs">

@@ -187,6 +187,7 @@ const MenubarShortcut = ({ className, ...props }: React.HTMLAttributes<HTMLSpanE
 };
 MenubarShortcut.displayname = "MenubarShortcut";
 
+/** menubar component for the ui section. */
 export {
   Menubar,
   MenubarMenu,

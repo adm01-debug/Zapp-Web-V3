@@ -9,6 +9,7 @@ interface HealthTabProps {
   data?: DashboardResponse;
 }
 
+/** Health Tab component for the evoApiHealth section. */
 export const HealthTab = React.memo(({ data }: HealthTabProps) => {
   const health = data?.health;
   const readiness = data?.readiness;

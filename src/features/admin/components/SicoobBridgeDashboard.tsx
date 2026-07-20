@@ -29,6 +29,7 @@ interface SicoobMessage {
   status: string;
 }
 
+/** Sicoob Bridge Dashboard component. */
 export function SicoobBridgeDashboard() {
   const { data, isFetching, refetch } = useQuery({
     queryKey: queryKeys.adminOps.sicoobBridge(),

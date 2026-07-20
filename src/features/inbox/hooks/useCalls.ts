@@ -7,6 +7,7 @@ import { log } from '@/lib/logger';
 import { useMountedRef } from '@/hooks/useMountedRef';
 
 
+/** Database row shape for a voice call record (start/end timestamps, direction, status, recording URL). */
 export interface Call {
   id: string;
   contact_id: string | null;
@@ -23,6 +24,7 @@ export interface Call {
   created_at: string;
 }
 
+/** Parameters required to initiate a new call record in the `calls` table. */
 export interface StartCallParams {
   contactId?: string;
   contactPhone: string;
@@ -31,6 +33,7 @@ export interface StartCallParams {
   whatsappConnectionId?: string;
 }
 
+/** Provides start/answer/end/miss/notes/history actions for voice calls, writing through to the Supabase `calls` table with abort-signal support. */
 export const useCalls = () => {
   const { user } = useAuth();
   const [currentCallId, setCurrentCallId] = useState<string | null>(null);

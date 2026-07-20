@@ -41,6 +41,7 @@ const benefits = [
   },
 ];
 
+/** Hero Benefits component. */
 export function HeroBenefits() {
   return (
     <motion.div

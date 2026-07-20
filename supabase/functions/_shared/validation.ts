@@ -93,6 +93,7 @@ export function _resetSensitiveCacheForTests(): void {
 
 // ─── Bitrix Origin Validation (Bug 2 fix — defense in depth) ────────────────
 
+/** Result of a Bitrix24 origin header validation check. */
 export interface OriginValidationResult {
   ok: boolean;
   reason?: string;
@@ -289,6 +290,7 @@ export function errorResponse(message: string, status = 400, req?: Request) {
  */
 export type SecurityVerdict = 'clean' | 'malicious' | 'suspicious' | 'unknown';
 
+/** Security Error Payload interface. */
 export interface SecurityErrorPayload {
   code: string;
   message: string;
@@ -297,6 +299,7 @@ export interface SecurityErrorPayload {
   details?: Record<string, unknown>;
 }
 
+/** security Error Response function. */
 export function securityErrorResponse(
   payload: SecurityErrorPayload,
   status: number,
@@ -388,6 +391,7 @@ function cleanupRateLimitMap() {
   }
 }
 
+/** check Rate Limit function. */
 export function checkRateLimit(
   key: string,
   maxRequests = 30,
@@ -568,11 +572,15 @@ export async function authorizeRoles(
 // ─── parseBody + CommonSchemas + z (migrado de validation-legacy.ts em v2.2) ─
 // Antes vivia só no arquivo -legacy; movido para cá para permitir a remoção
 // definitiva do legacy e destravar novos consumidores sem duplicar helpers.
+/** Re-exported module members. */
 export { z } from './schemas.ts';
 import { z as _z } from './schemas.ts';
 
+/** Parse Success interface definition. */
 export interface ParseSuccess<T> { data: T; error: null; }
+/** Parse Failure interface definition. */
 export interface ParseFailure { data: null; error: Response; }
+/** Parse Result type alias. */
 export type ParseResult<T> = ParseSuccess<T> | ParseFailure;
 
 /** Parse JSON body and validate via Zod schema. Returns { data, error } discriminated union. */
@@ -597,6 +605,7 @@ export async function parseBody<T>(req: Request, schema: _z.ZodSchema<T>): Promi
   return { data: result.data, error: null };
 }
 
+/** Common Schemas constant. */
 export const CommonSchemas = {
   uuid: _z.string().uuid(),
   nonEmpty: _z.string().min(1).trim(),

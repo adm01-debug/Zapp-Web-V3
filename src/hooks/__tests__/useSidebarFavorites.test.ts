@@ -18,7 +18,7 @@
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
-import { useSidebarFavorites } from '../useSidebarFavorites';
+import { useSidebarFavorites } from '../useSidebarState';
 
 const STORAGE_KEY = 'sidebar-favorites';
 

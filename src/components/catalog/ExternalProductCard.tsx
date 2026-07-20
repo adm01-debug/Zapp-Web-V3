@@ -35,6 +35,7 @@ const ProductImage: React.FC<{ src: string | null; alt: string; iconSize?: strin
   </>
 );
 
+/** External Product Card component for the catalog section. */
 export const ExternalProductCard: React.FC<ExternalProductCardProps> = React.memo(({ product, onSend, compact = false }) => {
   const [showDetails, setShowDetails] = useState(false);
 

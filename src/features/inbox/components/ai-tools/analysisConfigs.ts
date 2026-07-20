@@ -14,6 +14,7 @@ import {
   BookOpen,
 } from 'lucide-react';
 
+/** Agent Performance component for the ai tools section. */
 export interface AgentPerformance {
   empathy: number;
   clarity: number;
@@ -21,6 +22,7 @@ export interface AgentPerformance {
   knowledge: number;
 }
 
+/** Analysis Data component for the ai tools section. */
 export interface AnalysisData {
   analysisId?: string | null;
   department?: string;
@@ -39,6 +41,7 @@ export interface AnalysisData {
   salesOpportunity?: string | null;
 }
 
+/** Analysis Message component for the ai tools section. */
 export interface AnalysisMessage {
   id: string;
   sender: 'agent' | 'contact';
@@ -48,6 +51,7 @@ export interface AnalysisMessage {
   created_at: string;
 }
 
+/** status Config component for the ai tools section. */
 export const statusConfig: Record<string, { label: string; icon: React.ElementType; className: string }> = {
   resolvido: { label: 'Resolvido', icon: CheckCircle2, className: 'bg-success/20 text-success border-success/30' },
   pendente: { label: 'Pendente', icon: Clock, className: 'bg-warning/20 text-warning border-warning/30' },
@@ -56,6 +60,7 @@ export const statusConfig: Record<string, { label: string; icon: React.ElementTy
   escalado: { label: 'Escalado', icon: AlertTriangle, className: 'bg-destructive/20 text-destructive border-destructive/30' },
 };
 
+/** sentiment Config component for the ai tools section. */
 export const sentimentConfig: Record<string, { label: string; icon: React.ElementType; color: string; bg: string }> = {
   positivo: { label: 'Positivo', icon: ThumbsUp, color: 'text-success', bg: 'bg-success' },
   neutro: { label: 'Neutro', icon: Minus, color: 'text-muted-foreground', bg: 'bg-muted' },
@@ -63,6 +68,7 @@ export const sentimentConfig: Record<string, { label: string; icon: React.Elemen
   critico: { label: 'Crítico', icon: AlertTriangle, color: 'text-destructive', bg: 'bg-destructive' },
 };
 
+/** urgency Config component for the ai tools section. */
 export const urgencyConfig: Record<string, { label: string; className: string }> = {
   baixa: { label: 'Baixa', className: 'bg-success/20 text-success' },
   media: { label: 'Média', className: 'bg-warning/20 text-warning' },
@@ -70,6 +76,7 @@ export const urgencyConfig: Record<string, { label: string; className: string }>
   critica: { label: 'Crítica', className: 'bg-destructive/30 text-destructive animate-pulse' },
 };
 
+/** department Config component for the ai tools section. */
 export const departmentConfig: Record<string, { label: string; emoji: string; color: string }> = {
   vendas: { label: 'Vendas', emoji: '🛒', color: 'bg-primary/20 text-primary border-primary/30' },
   compras: { label: 'Compras', emoji: '📦', color: 'bg-warning/20 text-warning border-warning/30' },
@@ -80,12 +87,14 @@ export const departmentConfig: Record<string, { label: string; emoji: string; co
   outros: { label: 'Outros', emoji: '📋', color: 'bg-muted/40 text-muted-foreground border-border' },
 };
 
+/** churn Config component for the ai tools section. */
 export const churnConfig: Record<string, { label: string; color: string; icon: React.ElementType }> = {
   low: { label: 'Baixo', color: 'text-success', icon: CheckCircle2 },
   medium: { label: 'Médio', color: 'text-warning', icon: AlertCircle },
   high: { label: 'Alto', color: 'text-destructive', icon: ShieldAlert },
 };
 
+/** performance Labels component for the ai tools section. */
 export const performanceLabels: Record<string, { label: string; icon: React.ElementType }> = {
   empathy: { label: 'Empatia', icon: Heart },
   clarity: { label: 'Clareza', icon: Eye },

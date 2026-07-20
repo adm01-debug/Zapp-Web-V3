@@ -28,6 +28,7 @@ interface PasskeyCredential {
   last_used_at: string | null;
 }
 
+/** Hook: use Web Authn. */
 export function useWebAuthn() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);

@@ -17,8 +17,10 @@ import { getLogger } from '@/lib/logger';
 
 const log = getLogger('CrossTabDedupeMetrics');
 
+/** Outcome classification for a single cross-tab dedupe operation. */
 export type DedupeOutcome = 'leader' | 'follower-replay' | 'follower-fallback';
 
+/** A single recorded cross-tab dedupe outcome event. */
 export interface DedupeEvent {
   id: string;
   key: string;
@@ -29,6 +31,7 @@ export interface DedupeEvent {
   at: string;
 }
 
+/** Running totals of cross-tab dedupe outcomes accumulated since the tab loaded. */
 export interface DedupeCounters {
   leader: number;
   followerReplay: number;
@@ -129,11 +132,13 @@ export function recordDedupeEvent(input: {
   return ev;
 }
 
+/** Subscribes to cross-tab dedupe event notifications; returns an unsubscribe function. */
 export function subscribeDedupeEvents(listener: Listener): () => void {
   listeners.add(listener);
   return () => listeners.delete(listener);
 }
 
+/** get Dedupe Snapshot function. */
 export function getDedupeSnapshot(): { events: DedupeEvent[]; counters: DedupeCounters } {
   return {
     events: events.slice(),

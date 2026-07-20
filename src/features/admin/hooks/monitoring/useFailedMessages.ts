@@ -10,6 +10,7 @@ import { isRlsDeniedError, formatAdminError } from '@/lib/errors/rlsError';
 import { classifyRootCause } from '@/lib/failureRootCause';
 import { computeFailedMessagesAggregates } from './failedMessagesAggregates';
 
+/** Re-exported module members. */
 export type {
   FailedMessageStatus,
   FailedMessageRow,
@@ -41,6 +42,7 @@ interface _RpcRow extends FailedMessageRow {
   total_count: number | string;
 }
 
+/** Queries failed Evolution API messages with DLQ stats, retry mutations, and realtime invalidation. */
 export function useFailedMessages(filters: FailedMessagesFilters = {}) {
   const queryClient = useQueryClient();
   const { isDev } = useUserRole();
@@ -152,7 +154,6 @@ export function useFailedMessages(filters: FailedMessagesFilters = {}) {
       })
       .subscribe();
     return () => {
-      channel.unsubscribe();
       supabase.removeChannel(channel);
     };
   }, [queryClient]);

@@ -29,6 +29,7 @@ function severityBadge(sev: Severity) {
   }
 }
 
+/** Client Telemetry Panel. */
 export function ClientTelemetryPanel() {
   const [snap, setSnap] = useState<TelemetrySnapshot>(() => getTelemetrySnapshot());
 

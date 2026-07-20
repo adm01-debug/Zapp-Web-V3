@@ -12,6 +12,7 @@ import { ptBR } from 'date-fns/locale';
 import { BlockIPDialog, UnblockIPDialog } from './BlockedIPDialogs';
 import { normalizeBlockedIP, type NormalizedBlockedIP as BlockedIP } from '@/lib/normalizers';
 
+/** Blocked IPs Panel component for the security section. */
 export function BlockedIPsPanel() {
   const [blockedIPs, setBlockedIPs] = useState<BlockedIP[]>([]);
   const [loading, setLoading] = useState(true);

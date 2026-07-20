@@ -14,6 +14,7 @@ import { toast } from '@/hooks/use-toast';
 import { Bot, Brain, Shield, Zap, BookOpen, ArrowRightLeft } from 'lucide-react';
 import { useAuth } from '@/features/auth';
 
+/** Chatbot L1 Config component for the settings section. */
 export function ChatbotL1Config() {
   const { profile } = useAuth();
   const queryClient = useQueryClient();

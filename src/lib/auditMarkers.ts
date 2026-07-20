@@ -113,6 +113,7 @@ export const AUDIT_CONFIG = {
   ],
 };
 
+/** Default export. */
 export default {
   ERROR_SUPPRESSED,
   ERROR_RECOVERED,

@@ -19,6 +19,7 @@ import { toast } from '@/hooks/use-toast';
 import { MessageSquareHeart, Clock, Send, Zap } from 'lucide-react';
 import { useAuth } from '@/features/auth';
 
+/** CSATAuto Config component for the settings section. */
 export function CSATAutoConfig() {
   const { profile } = useAuth();
   const queryClient = useQueryClient();

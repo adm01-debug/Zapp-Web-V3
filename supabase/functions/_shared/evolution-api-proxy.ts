@@ -31,6 +31,7 @@ const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
  */
 export const EVOLUTION_ENVELOPE_VERSION = 1 as const;
 
+/** Evolution Error Envelope interface. */
 export interface EvolutionErrorEnvelope {
   version?: number;
   error: true;
@@ -40,6 +41,7 @@ export interface EvolutionErrorEnvelope {
   retries?: number;
 }
 
+/** Evolution Success Envelope interface definition. */
 export interface EvolutionSuccessEnvelope<T = unknown> {
   version?: number;
   data: T;
@@ -50,6 +52,7 @@ export type EvolutionEnvelope<T = unknown> =
   | EvolutionSuccessEnvelope<T>
   | EvolutionErrorEnvelope;
 
+/** Proxies a request to the Evolution API with retry, timeout, idempotency dedup, and DLQ fallback. */
 export async function proxyToEvolution(
   evolutionApiUrl: string,
   evolutionApiKey: string,
@@ -285,6 +288,7 @@ export async function proxyToEvolution(
 }
 
 // Helper to generate signed URLs for private storage buckets
+/** resolve Private Bucket Url function. */
 export async function resolvePrivateBucketUrl(supabase: SupabaseClient, url: string, buckets: string[] = ['whatsapp-media', 'audio-messages']): Promise<string> {
   if (typeof url !== 'string') return url;
   for (const bucket of buckets) {

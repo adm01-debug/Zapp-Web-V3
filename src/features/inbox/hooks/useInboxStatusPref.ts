@@ -20,6 +20,7 @@ function read(): boolean {
   }
 }
 
+/** Persists and synchronises the agent's preference to always show message-status labels; stored in localStorage and broadcast via a custom DOM event. */
 export function useInboxStatusPref() {
   const [showLabel, setShowLabel] = useState<boolean>(read);
 

@@ -46,6 +46,7 @@ const integrations = [
   },
 ];
 
+/** Integrations Hub component for the integrations section. */
 export function IntegrationsHub() {
   const [currentView, setCurrentView] = useState<IntegrationView>('hub');
 

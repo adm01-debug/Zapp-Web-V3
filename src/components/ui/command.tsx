@@ -130,6 +130,7 @@ const CommandShortcut = ({ className, ...props }: React.HTMLAttributes<HTMLSpanE
 };
 CommandShortcut.displayName = 'CommandShortcut';
 
+/** React component: command. */
 export {
   Command,
   CommandDialog,

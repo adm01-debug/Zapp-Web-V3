@@ -188,6 +188,7 @@ export function isGroup(jid: string | null | undefined): boolean {
   return !!jid && jid.endsWith(GROUP_SUFFIX);
 }
 
+/** Returns true when `jid` ends with `@broadcast`, matching any broadcast list including the WhatsApp status channel. */
 export function isBroadcast(jid: string | null | undefined): boolean {
   return !!jid && jid.endsWith(BROADCAST_SUFFIX);
 }
@@ -242,12 +243,15 @@ export function isStatus(jid: string | null | undefined): boolean {
  *   if (isStatusBroadcast(remoteJid)) return;           // descarta status
  */
 export const toNumber = toPhone;
+/** Re-export of isStatus — returns true when `jid` is the WhatsApp status-broadcast address. */
 export const isStatusBroadcast = isStatus;
 
+/** Returns true when `jid` is a canonical individual-contact JID (`<digits>@s.whatsapp.net`). */
 export function isIndividual(jid: string | null | undefined): boolean {
   return !!jid && jid.endsWith(INDIVIDUAL_SUFFIX);
 }
 
+/** Returns true when `jid` ends with `@newsletter`, indicating a WhatsApp channel or newsletter. */
 export function isNewsletter(jid: string | null | undefined): boolean {
   return !!jid && jid.endsWith(NEWSLETTER_SUFFIX);
 }
@@ -260,6 +264,7 @@ export function ensureBrazilDDI(phone: string): string {
   return `55${digits}`;
 }
 
+/** Map of JID type names to their canonical suffix strings for easy reference. */
 export const JID_SUFFIXES = {
   individual: INDIVIDUAL_SUFFIX,
   group: GROUP_SUFFIX,
@@ -273,11 +278,17 @@ export const JID_SUFFIXES = {
 // ────────────────────────────────────────────────────────────────────────────
 
 declare const __jidBrand: unique symbol;
+/** Phone type alias. */
 export type Phone = string & { readonly [__jidBrand]: 'Phone' };
+/** Jid type alias. */
 export type Jid = string & { readonly [__jidBrand]: 'Jid' };
+/** Individual Jid type alias. */
 export type IndividualJid = Jid & { readonly [__jidBrand]: 'IndividualJid' };
+/** Group Jid type alias. */
 export type GroupJid = Jid & { readonly [__jidBrand]: 'GroupJid' };
+/** Broadcast Jid type alias. */
 export type BroadcastJid = Jid & { readonly [__jidBrand]: 'BroadcastJid' };
+/** Newsletter Jid type alias. */
 export type NewsletterJid = Jid & { readonly [__jidBrand]: 'NewsletterJid' };
 
 const PHONE_RE = /^\d{8,15}$/;

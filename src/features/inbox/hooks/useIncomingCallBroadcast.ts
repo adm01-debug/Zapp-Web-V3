@@ -18,6 +18,7 @@ interface BroadcastPayload {
   wa_call_id?: string | null;
 }
 
+/** Subscribes to incoming WhatsApp call broadcasts on the external Supabase channel for a given Evolution instance. */
 export function useIncomingCallBroadcast(instance: string = DEFAULT_INSTANCE) {
   const { profile } = useAuth();
   const [incomingCall, setIncomingCall] = useState<IncomingCall | null>(null);
@@ -103,8 +104,7 @@ export function useIncomingCallBroadcast(instance: string = DEFAULT_INSTANCE) {
       .subscribe();
 
     return () => {
-      channel.unsubscribe();
-      supabase.removeChannel(channel);
+      externalSupabase.removeChannel(channel);
     };
   }, [profile?.id, instance]);
 

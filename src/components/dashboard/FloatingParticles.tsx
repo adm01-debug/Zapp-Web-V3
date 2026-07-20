@@ -12,6 +12,7 @@ interface Particle {
   color: 'primary' | 'secondary' | 'accent';
 }
 
+/** Floating Particles component for the dashboard section. */
 export const FloatingParticles = forwardRef<HTMLDivElement>((_, _ref) => {
   const prefersReducedMotion = useReducedMotion();
 

@@ -18,6 +18,7 @@ import { WebhookValidationMetaCard } from './admin-webhook-secret-status/Webhook
 import { useAdminWebhookStatus } from './admin-webhook-secret-status/useAdminWebhookStatus';
 import { SectionErrorBoundary } from '@/components/ui/section-error-boundary';
 
+/** Admin Webhook Secret Status Page. */
 export default function AdminWebhookSecretStatusPage() {
   const {
     selectedInstance,

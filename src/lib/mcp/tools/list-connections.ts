@@ -16,6 +16,7 @@ function supabaseForUser(ctx: ToolContext) {
   );
 }
 
+/** MCP tool: list-connections. */
 export default defineTool({
   name: 'list_whatsapp_connections',
   title: 'Listar conexões WhatsApp',

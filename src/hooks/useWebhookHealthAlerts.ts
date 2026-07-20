@@ -1,6 +1,7 @@
 // Re-export from consolidated useAlertManagement module (ETAPA 28 consolidation)
 import { useWebhookHealthAlertsManagement } from '@/hooks/useAlertManagement';
 
+/** Hook: Recent Alert Entry. */
 export interface RecentAlertEntry {
   instance: string;
   type: 'signature_spike' | 'silence' | string;
@@ -13,6 +14,7 @@ interface UseWebhookHealthAlertsOptions {
   config?: unknown;
 }
 
+/** Hook: use Webhook Health Alerts. */
 export function useWebhookHealthAlerts(options: UseWebhookHealthAlertsOptions = {}) {
   const { alerts, loading, acknowledgeAlert, checkHealth } = useWebhookHealthAlertsManagement();
 

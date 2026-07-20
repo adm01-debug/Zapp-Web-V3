@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import type { ConversationWithMessages, ConversationContact } from './types';
 
+/** Provides client-side search, status-filter, and sort controls over a conversation list; returns the filtered/sorted result and the setter callbacks. */
 export function useConversationsFilter(conversations: ConversationWithMessages[]) {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'open' | 'closed' | 'unread'>('all');

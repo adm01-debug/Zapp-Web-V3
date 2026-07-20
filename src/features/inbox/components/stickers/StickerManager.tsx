@@ -23,6 +23,7 @@ interface StickerManagerProps {
   mode?: 'picker' | 'manager';
 }
 
+/** Sticker Manager component for the stickers section. */
 export function StickerManager({ onSend, mode: _mode = 'manager' }: StickerManagerProps) {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');

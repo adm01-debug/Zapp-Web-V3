@@ -39,6 +39,7 @@ interface Props {
   onMergeComplete?: () => void;
 }
 
+/** Duplicate Contacts Panel constant. */
 export const DuplicateContactsPanel: React.FC<Props> = ({
   workspaceId: instanceName,
   onMergeComplete,
@@ -298,4 +299,5 @@ export const DuplicateContactsPanel: React.FC<Props> = ({
   );
 };
 
+/** Default export. */
 export default DuplicateContactsPanel;

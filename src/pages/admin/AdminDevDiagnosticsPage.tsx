@@ -25,6 +25,7 @@ type DiagnosticLog = {
   created_at: string;
 };
 
+/** Admin Dev Diagnostics Page. */
 export default function AdminDevDiagnosticsPage() {
   const { toast } = useToast();
   const { roles } = useUserRole();

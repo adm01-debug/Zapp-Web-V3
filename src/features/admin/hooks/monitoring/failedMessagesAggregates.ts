@@ -6,6 +6,7 @@ import type {
   InstanceAggregate,
 } from './failedMessagesTypes';
 
+/** Hook: compute Failed Messages Aggregates. */
 export function computeFailedMessagesAggregates(
   rows: FailedMessageRow[]
 ): FailedMessagesAggregates {

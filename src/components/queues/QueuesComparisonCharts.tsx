@@ -21,6 +21,7 @@ interface QueuesComparisonChartsProps {
   queuesPerformance: QueuePerf[];
 }
 
+/** Queues Comparison Charts component for the queues section. */
 export function QueuesComparisonCharts({ queuesPerformance }: QueuesComparisonChartsProps) {
   const barChartData = queuesPerformance.map(q => ({
     name: q.name.length > 12 ? q.name.substring(0, 12) + '...' : q.name,

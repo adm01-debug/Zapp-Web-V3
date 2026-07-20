@@ -53,6 +53,7 @@ function validateStickerRow(row: unknown): row is StickerItem {
   return typeof r.id === 'string' && typeof r.image_url === 'string';
 }
 
+/** Manages sticker picker state: browsing, uploading, deleting stickers, and triggering sends. */
 export function useStickerPicker(onSendSticker: (url: string) => void) {
   const [open, setOpen] = useState(false);
   const [stickers, setStickers] = useState<StickerItem[]>([]);

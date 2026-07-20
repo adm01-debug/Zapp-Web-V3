@@ -15,6 +15,7 @@ const log = getLogger('useContactDuplicateDetector');
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
+/** Potential Duplicate interface definition. */
 export interface PotentialDuplicate {
   id: string;
   name: string;
@@ -49,6 +50,7 @@ function normalizePhone(phone: string): string {
 
 // ── Hook ───────────────────────────────────────────────────────────────────
 
+/** use Contact Duplicate Detector function. */
 export function useContactDuplicateDetector({
   workspaceId,
   excludeId,

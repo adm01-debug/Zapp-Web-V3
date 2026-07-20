@@ -40,6 +40,7 @@ interface WarRoomDashboardProps {
   className?: string;
 }
 
+/** War Room Dashboard component for the dashboard section. */
 export function WarRoomDashboard({
   agents: propsAgents,
   queues: propsQueues,

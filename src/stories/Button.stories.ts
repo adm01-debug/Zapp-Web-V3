@@ -22,10 +22,12 @@ const meta = {
   args: { onClick: fn() },
 } satisfies Meta<typeof Button>;
 
+/** Default export. */
 export default meta;
 type Story = StoryObj<typeof meta>;
 
 // More on writing stories with args: https://storybook.js.org/docs/writing-stories/args
+/** Primary. */
 export const Primary: Story = {
   args: {
     primary: true,
@@ -33,12 +35,14 @@ export const Primary: Story = {
   },
 };
 
+/** Secondary. */
 export const Secondary: Story = {
   args: {
     label: 'Button',
   },
 };
 
+/** Large. */
 export const Large: Story = {
   args: {
     size: 'large',
@@ -46,6 +50,7 @@ export const Large: Story = {
   },
 };
 
+/** Small. */
 export const Small: Story = {
   args: {
     size: 'small',

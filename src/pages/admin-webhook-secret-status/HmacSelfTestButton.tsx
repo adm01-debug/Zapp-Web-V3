@@ -31,6 +31,7 @@ import { HmacSelfTestResultPanel } from './HmacSelfTestResultPanel';
 
 const log = getLogger('HmacSelfTest');
 
+/** Hmac Self Test Button function. */
 export function HmacSelfTestButton({ instance }: { instance: string | null }) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);

@@ -20,6 +20,7 @@ import { TelemetryTopOffenders } from "./admin-telemetria/TelemetryTopOffenders"
 import { TelemetryTable } from "./admin-telemetria/TelemetryTable";
 import { ClientTelemetryPanel } from "./admin-telemetria/ClientTelemetryPanel";
 
+/** Admin Telemetria Page. */
 export default function AdminTelemetriaPage() {
   const [severityFilter, setSeverityFilter] = useState<SeverityFilter>("all");
   const [timeFilter, setTimeFilter] = useState<TimeFilter>("24h");

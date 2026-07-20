@@ -27,8 +27,10 @@ import { getLogger } from '@/lib/logger';
 
 const log = getLogger('dedupeTelemetry');
 
+/** Overall outcome of a cross-tab dedupe cache lookup. */
 export type DedupeOutcome = 'hit' | 'miss';
 
+/** Specific reason why a dedupe lookup was a cache hit. */
 export type DedupeHitReason =
   | 'memory_cache'
   | 'persisted_cache'
@@ -36,14 +38,18 @@ export type DedupeHitReason =
   | 'broadcast_wait'
   | 'late_cache';
 
+/** Dedupe Miss Reason type alias. */
 export type DedupeMissReason =
   | 'lock_acquired_lead'
   | 'fallback_after_wait';
 
+/** Dedupe Reason type alias. */
 export type DedupeReason = DedupeHitReason | DedupeMissReason;
 
+/** Dedupe Key Kind type alias. */
 export type DedupeKeyKind = 'idempotency' | 'hash' | 'unknown';
 
+/** Dedupe Event interface definition. */
 export interface DedupeEvent {
   key: string;
   outcome: DedupeOutcome;
@@ -58,6 +64,7 @@ export interface DedupeEvent {
   ts: number;
 }
 
+/** Point-in-time snapshot of all dedupe telemetry counters and recent events. */
 export interface DedupeTelemetrySnapshot {
   total: number;
   hits: number;
@@ -138,11 +145,13 @@ export function inferKeyKind(key: string): DedupeKeyKind {
   return 'unknown';
 }
 
+/** extract Namespace function. */
 export function extractNamespace(key: string): string {
   const idx = key.indexOf(':');
   return idx === -1 ? key : key.slice(0, idx);
 }
 
+/** record Dedupe Event function. */
 export function recordDedupeEvent(
   partial: Omit<DedupeEvent, 'outcome' | 'keyKind' | 'namespace' | 'ts'> & {
     keyKind?: DedupeKeyKind;
@@ -190,6 +199,7 @@ export function recordDedupeEvent(
   log.debug('dedupe event', { key: evt.key, outcome, reason: evt.reason, keyKind: evt.keyKind });
 }
 
+/** Returns a snapshot of all current dedupe telemetry counters and recent events. */
 export function getDedupeTelemetrySnapshot(): DedupeTelemetrySnapshot {
   return {
     total: state.total,

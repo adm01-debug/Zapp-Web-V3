@@ -1,5 +1,6 @@
 import type { Variants, Transition } from 'framer-motion';
 
+/** Transition Variant Name component for the transitions section. */
 export type TransitionVariantName =
   | 'fade'
   | 'slide-x'
@@ -9,8 +10,10 @@ export type TransitionVariantName =
   | 'flip-y'
   | 'parallax';
 
+/** Transition Direction component for the transitions section. */
 export type TransitionDirection = 'left' | 'right' | 'up' | 'down';
 
+/** Transition Overrides component for the transitions section. */
 export interface TransitionOverrides {
   duration?: number;
   ease?: Transition['ease'];
@@ -19,7 +22,9 @@ export interface TransitionOverrides {
   direction?: TransitionDirection;
 }
 
+/** DEFAULT_EASE component for the transitions section. */
 export const DEFAULT_EASE: Transition['ease'] = [0.4, 0, 0.2, 1];
+/** DEFAULT_DURATION component for the transitions section. */
 export const DEFAULT_DURATION = 0.3;
 
 function signX(direction: TransitionDirection = 'right'): number {
@@ -29,6 +34,7 @@ function signY(direction: TransitionDirection = 'up'): number {
   return direction === 'down' ? 1 : -1;
 }
 
+/** build Variants component for the transitions section. */
 export function buildVariants(
   name: TransitionVariantName,
   overrides: TransitionOverrides = {},
@@ -114,7 +120,9 @@ export function buildVariants(
   }
 }
 
+/** REDUCED_MOTION_TRANSITION component for the transitions section. */
 export const REDUCED_MOTION_TRANSITION: Transition = { duration: 0.01 };
+/** REDUCED_MOTION_VARIANTS component for the transitions section. */
 export const REDUCED_MOTION_VARIANTS: Variants = {
   initial: { opacity: 0 },
   animate: { opacity: 1 },

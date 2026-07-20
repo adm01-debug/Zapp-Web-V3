@@ -14,6 +14,7 @@ import { formatDistanceToNow, format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 
+/** Incident Pause component for the instance pauses section. */
 export interface IncidentPause {
   id: string;
   instance_name: string;
@@ -65,6 +66,7 @@ const reasonLabel = {
   auth_403: 'Proibido (403)',
 } as const;
 
+/** Incident Detail Dialog component for the instance pauses section. */
 export function IncidentDetailDialog({ pause, onClose }: Props) {
   const qc = useQueryClient();
   const [notes, setNotes] = useState('');

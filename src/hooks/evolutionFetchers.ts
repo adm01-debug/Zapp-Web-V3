@@ -5,10 +5,15 @@ import { queryExternalProxy } from '@/lib/externalProxy';
 import type { EvolutionMessage } from '@/types/evolutionExternal';
 import { DEFAULT_WHATSAPP_INSTANCE } from '@/lib/constants/whatsappInstances';
 
+/** Polling interval in milliseconds for evolution_messages real-time updates. */
 export const POLL_INTERVAL = 5000;
+/** Default WhatsApp instance identifier used when none is specified. */
 export const DEFAULT_INSTANCE = DEFAULT_WHATSAPP_INSTANCE;
+/** Number of days back to fetch sidebar conversations. */
 export const SIDEBAR_DAYS_BACK = 7;
+/** Maximum number of conversations loaded in the sidebar. */
 export const SIDEBAR_LIMIT = 200;
+/** C O N V E R S A T I O N_ P A G E_ S I Z E constant. */
 export const CONVERSATION_PAGE_SIZE = 100;
 
 // Slim select — drops `payload` and `raw_data` (each can be 10KB+).
@@ -48,11 +53,13 @@ const SLIM_MESSAGE_COLUMNS = [
 ].join(',');
 
 // Mocks are strictly opt-in AND only in DEV.
+/** U S E_ M O C K S constant. */
 export const USE_MOCKS =
   import.meta.env.DEV &&
   typeof window !== 'undefined' &&
   window.localStorage?.getItem('mockConversations') === '1';
 
+/** fetch Recent Messages Window function. */
 export async function fetchRecentMessagesWindow(
   daysBack = SIDEBAR_DAYS_BACK,
   limit = SIDEBAR_LIMIT
@@ -71,6 +78,7 @@ export async function fetchRecentMessagesWindow(
   return result.data;
 }
 
+/** fetch Messages By Jid function. */
 export async function fetchMessagesByJid(
   remoteJid: string,
   limit = CONVERSATION_PAGE_SIZE,
@@ -95,6 +103,7 @@ export async function fetchMessagesByJid(
   return result.data.slice().reverse();
 }
 
+/** fetch Messages After function. */
 export async function fetchMessagesAfter(
   remoteJid: string,
   afterDate: string,

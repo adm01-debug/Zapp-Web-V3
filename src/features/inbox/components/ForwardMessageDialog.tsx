@@ -40,6 +40,7 @@ function truncateMessage(content: string, maxLength = 100) {
   return content.length <= maxLength ? content : content.slice(0, maxLength) + '...';
 }
 
+/** Forward Message Dialog component. */
 export function ForwardMessageDialog({
   open,
   onOpenChange,

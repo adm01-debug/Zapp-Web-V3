@@ -30,6 +30,7 @@ const log = getLogger('externalAudioSender');
 const logAudit = (def, params) =>
   dbInsert(def, params).catch((err) => log.warn('[audit] log failed', err));
 
+/** Encodes a Blob as base64, inserts a PTT/voice-note row into the Evolution external DB, writes an optimistic messages row, and logs an outbound audit entry; returns the new message ID on success. */
 export async function sendExternalAudio(
   remoteJid: string,
   blob: Blob,

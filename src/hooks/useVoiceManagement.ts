@@ -11,6 +11,7 @@ interface VoiceState {
   error: string | null;
 }
 
+/** Wraps the Web Speech API (SpeechRecognition) to provide continuous, interim-result transcription in the given language. */
 export function useSpeechToTextManagement(language: string = 'pt-BR'): VoiceState & {
   startListening: () => void;
   stopListening: () => void;
@@ -127,10 +128,19 @@ export function useSpeechToTextManagement(language: string = 'pt-BR'): VoiceStat
   };
 }
 
+/** Uses the browser's SpeechSynthesis API to speak text aloud, exposing `speak` and `stop` controls. */
 export function useTextToSpeechManagement(text: string) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+      speechSynthesis.cancel();
+    };
+  }, []);
 
   const speak = useCallback((textToSpeak?: string) => {
     const textContent = textToSpeak || text;
@@ -138,9 +148,9 @@ export function useTextToSpeechManagement(text: string) {
 
     try {
       const utterance = new SpeechSynthesisUtterance(textContent);
-      utterance.onstart = () => setIsPlaying(true);
-      utterance.onend = () => setIsPlaying(false);
-      utterance.onerror = (event) => setError(event.error);
+      utterance.onstart = () => { if (mountedRef.current) setIsPlaying(true); };
+      utterance.onend = () => { if (mountedRef.current) setIsPlaying(false); };
+      utterance.onerror = (event) => { if (mountedRef.current) setError(event.error); };
 
       utteranceRef.current = utterance;
       speechSynthesis.speak(utterance);
@@ -159,6 +169,7 @@ export function useTextToSpeechManagement(text: string) {
   return { isPlaying, error, speak, stop };
 }
 
+/** Manages the active/inactive state and response history of a voice agent session. */
 export function useVoiceAgentManagement() {
   const [isActive, setIsActive] = useState(false);
   const [responses] = useState<string[]>([]);
@@ -174,6 +185,7 @@ export function useVoiceAgentManagement() {
   return { isActive, responses, activate, deactivate };
 }
 
+/** Queues and processes voice commands, tracking the last recognised action and a processing flag. */
 export function useVoiceActionHandlerManagement() {
   const [lastAction, setLastAction] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -191,4 +203,5 @@ export function useVoiceActionHandlerManagement() {
   return { lastAction, isProcessing, handleVoiceAction };
 }
 
+/** Re-exported module members. */
 export type { VoiceState };

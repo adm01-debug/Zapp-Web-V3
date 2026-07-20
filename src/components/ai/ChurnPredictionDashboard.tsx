@@ -25,6 +25,7 @@ import { getLogger } from '@/lib/logger';
 
 const log = getLogger('ChurnPredictionDashboard');
 
+/** Churn Prediction Dashboard component for the ai section. */
 export function ChurnPredictionDashboard() {
   const [risks, setRisks] = useState<ChurnRisk[]>([]);
   const [loading, setLoading] = useState(true);

@@ -21,6 +21,7 @@ import { BridgeStatusBanner } from './bridge-status/BridgeStatusBanner';
 import { BridgeCoreServicesCard } from './bridge-status/BridgeCoreServicesCard';
 import { BridgeSidebarPanel } from './bridge-status/BridgeSidebarPanel';
 
+/** Bridge Status Page. */
 export default function BridgeStatusPage() {
   const {
     loading,

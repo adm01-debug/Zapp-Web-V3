@@ -8,12 +8,14 @@ import { getLogger } from '@/lib/logger';
 
 const log = getLogger('useContactNotes');
 
+/** Contact Note Author interface definition. */
 export interface ContactNoteAuthor {
   id: string;
   name: string | null;
   avatar_url: string | null;
 }
 
+/** Contact Note interface definition. */
 export interface ContactNote {
   id: string;
   contact_id: string;
@@ -25,6 +27,7 @@ export interface ContactNote {
   author: ContactNoteAuthor;
 }
 
+/** Provides CRUD operations and real-time state for private notes attached to a contact. */
 export function useContactNotes(contactId: string) {
   const { user } = useAuth();
   const queryClient = useQueryClient();

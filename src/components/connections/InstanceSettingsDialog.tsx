@@ -143,6 +143,7 @@ const PRIVACY_OPTIONS = [
   { value: 'none', label: 'Ninguém' },
 ];
 
+/** Instance Settings Dialog component for the connections section. */
 export function InstanceSettingsDialog({
   open,
   onOpenChange,

@@ -22,6 +22,7 @@ const DEFAULTS: Prefs = {
   alert_on_disconnected: true,
 };
 
+/** Connection Alert Preferences component for the settings section. */
 export function ConnectionAlertPreferences() {
   const [prefs, setPrefs] = useState<Prefs>(DEFAULTS);
   const [loading, setLoading] = useState(true);

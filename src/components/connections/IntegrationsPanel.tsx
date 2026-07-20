@@ -31,6 +31,7 @@ interface IntegrationsPanelProps {
   connectionName: string;
 }
 
+/** Integrations Panel component for the connections section. */
 export function IntegrationsPanel({
   open,
   onOpenChange,

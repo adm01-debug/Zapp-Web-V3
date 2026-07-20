@@ -3,6 +3,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 
+/** INBOX_PERMISSIONS component. */
 export const INBOX_PERMISSIONS = [
   {
     id: 'inbox.view_mine',
@@ -21,12 +22,14 @@ export const INBOX_PERMISSIONS = [
   },
 ];
 
+/** CHANNEL_PERMISSIONS component. */
 export const CHANNEL_PERMISSIONS = [
   { id: 'inbox.view_whatsapp', label: 'WhatsApp', icon: 'MessageSquare' },
   { id: 'inbox.view_instagram', label: 'Instagram', icon: 'Instagram' },
   { id: 'inbox.view_chat', label: 'Web Chat', icon: 'Globe' },
 ];
 
+/** ROLES component. */
 export const ROLES = [
   { id: 'admin', label: 'Administrador', color: 'text-destructive' },
   { id: 'manager', label: 'Gerente', color: 'text-warning' },
@@ -34,6 +37,7 @@ export const ROLES = [
   { id: 'agent', label: 'Agente', color: 'text-whatsapp' },
 ];
 
+/** New Scope Form Props component. */
 export interface NewScopeFormProps {
   newScope: { label: string; description: string; name: string };
   isSubmitting: boolean;
@@ -42,6 +46,7 @@ export interface NewScopeFormProps {
   onSubmit: () => void;
 }
 
+/** New Scope Form component. */
 export function NewScopeForm({
   newScope,
   isSubmitting,

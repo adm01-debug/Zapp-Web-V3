@@ -19,6 +19,7 @@ export {
   stripJid,
 } from './evolutionClient';
 
+/** Re-exported module members. */
 export type {
   EvolutionContact,
   EvolutionConversation,
@@ -30,6 +31,9 @@ export type {
   LeadStatus,
 } from './types';
 
+/** Re-exported module members. */
 export { useZappConversations } from './hooks/useZappConversations';
+/** Re-exported module members. */
 export { useZappMessages } from './hooks/useZappMessages';
+/** Re-exported module members. */
 export { useZappContactSearch } from './hooks/useZappContactSearch';

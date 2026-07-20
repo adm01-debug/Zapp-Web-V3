@@ -16,6 +16,7 @@ type BrowserAudioWindow = Window & typeof globalThis & {
   webkitAudioContext?: typeof AudioContext;
 };
 
+/** Incoming Call Alert component for the calls section. */
 export const IncomingCallAlert = forwardRef<HTMLDivElement, Record<string, never>>(
   function IncomingCallAlert(_props, ref) {
     const { incomingCall: legacyCall, dismissCall: dismissLegacy } = useIncomingCallListener();

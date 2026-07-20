@@ -18,6 +18,7 @@ interface SentimentTabProps {
   }>;
 }
 
+/** Sentiment Tab component for the ai tools section. */
 export function SentimentTab({ analysis, sentimentScore, currentSentiment, analyses }: SentimentTabProps) {
   const SentimentIcon = sentimentConfig[currentSentiment]?.icon || BarChart3;
 

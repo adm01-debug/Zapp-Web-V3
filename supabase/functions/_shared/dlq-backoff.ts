@@ -71,6 +71,7 @@ export async function buildIdempotencyKey(
 // Espelha src/lib/failureRootCause.ts (mesmo enum + lógica equivalente).
 // ============================================================================
 
+/** Retry Reason type alias. */
 export type RetryReason =
   | 'rate_limit'
   | 'unavailable'

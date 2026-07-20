@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Wifi, AlertCircle, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
+/** Whats App Connection Status component. */
 export function WhatsAppConnectionStatus() {
   const { connections, loading } = useConnectionsManager();
 

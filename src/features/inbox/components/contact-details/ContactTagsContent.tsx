@@ -9,6 +9,7 @@ interface ContactTagsContentProps {
   conversation: Conversation;
 }
 
+/** Contact Tags Content component for the contact details section. */
 export function ContactTagsContent({ contact, conversation }: ContactTagsContentProps) {
   const contactTags = contact.tags ?? [];
 

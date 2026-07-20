@@ -336,4 +336,5 @@ function ContactIntelligencePanelInner({ phone }: ContactIntelligencePanelProps)
   );
 }
 
+/** Contact Intelligence Panel constant. */
 export const ContactIntelligencePanel = memo(ContactIntelligencePanelInner);

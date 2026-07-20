@@ -104,6 +104,7 @@ interface ChatInputAreaProps {
   onRemoveFromQueue?: (id: string) => void;
 }
 
+/** Chat Input Area component for the chat section. */
 export function ChatInputArea(props: ChatInputAreaProps) {
   const {
     inputValue,

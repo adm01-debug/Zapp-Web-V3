@@ -30,6 +30,7 @@ interface Props {
 
 const log = getLogger('TeamChatPanel');
 
+/** Team Chat Panel component for the team chat section. */
 export function TeamChatPanel(props: Props): JSX.Element {
   return (
     <ErrorBoundary

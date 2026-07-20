@@ -9,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import type { Json } from '@/integrations/supabase/schema';
 import { toast } from '@/hooks/use-toast';
 
+/** A Meta Conversions API event row from the database. */
 export interface CAPIEvent {
   id: string;
   event_name: string;
@@ -21,6 +22,7 @@ export interface CAPIEvent {
   created_at: string | null;
 }
 
+/** use Meta Capi function. */
 export function useMetaCapi() {
   const [events, setEvents] = useState<CAPIEvent[]>([]);
   const [loading, setLoading] = useState(true);

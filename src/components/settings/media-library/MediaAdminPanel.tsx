@@ -43,6 +43,7 @@ import { StatsCards } from './StatsCards';
 import { AIGenerateDialog } from './AIGenerateDialog';
 import { MediaItemRow } from './MediaItemRow';
 
+/** Media Admin Panel component for the settings section. */
 export function MediaAdminPanel({ type }: { type: MediaType }) {
   const lib = useMediaLibrary(type);
   const upload = useMediaUpload(type, lib.fetchItems);

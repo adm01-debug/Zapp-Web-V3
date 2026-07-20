@@ -1,3 +1,4 @@
+/** Json. */
 export type Json =
   | string
   | number
@@ -6,6 +7,7 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[]
 
+/** Database. */
 export type Database = {
   evo: {
     Tables: {
@@ -80002,6 +80004,7 @@ type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
 
 type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
 
+/** Tables. */
 export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
@@ -80031,6 +80034,7 @@ export type Tables<
       : never
     : never
 
+/** Tables Insert. */
 export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
@@ -80056,6 +80060,7 @@ export type TablesInsert<
       : never
     : never
 
+/** Tables Update. */
 export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
@@ -80081,6 +80086,7 @@ export type TablesUpdate<
       : never
     : never
 
+/** Enums. */
 export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
@@ -80098,6 +80104,7 @@ export type Enums<
     ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
     : never
 
+/** Composite Types. */
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
@@ -80115,6 +80122,7 @@ export type CompositeTypes<
     ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
     : never
 
+/** Constants. */
 export const Constants = {
   evo: {
     Enums: {},

@@ -20,6 +20,7 @@ interface LocationPickerProps {
   onSend: (location: LocationMessage) => void;
 }
 
+/** Location Picker component. */
 export function LocationPicker({ open, onOpenChange, onSend }: LocationPickerProps) {
   const [isLive, setIsLive] = useState(false);
   const [liveDuration, setLiveDuration] = useState('15');

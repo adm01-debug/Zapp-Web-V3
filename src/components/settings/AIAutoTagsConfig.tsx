@@ -12,6 +12,7 @@ import { toast } from '@/hooks/use-toast';
 import { Tags, Brain, RefreshCw, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
+/** AIAuto Tags Config component for the settings section. */
 export function AIAutoTagsConfig() {
   const queryClient = useQueryClient();
 

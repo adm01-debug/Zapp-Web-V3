@@ -12,10 +12,12 @@ import { queryKeys } from '@/services/api/queryKeys';
 import { timedRpc } from '@/lib/instrumentedExternal';
 import type { EvolutionMessage } from '@/types/evolutionExternal';
 
+/** Options bag for `useMessageDetails`. */
 export interface UseMessageDetailsOptions {
   enabled?: boolean;
 }
 
+/** Fetches the full `EvolutionMessage` row (including payload/raw_data) on demand from `rpc_get_message_details`; cached for 5 minutes since payloads are immutable after write. */
 export function useMessageDetails(
   messageId: string | null,
   opts: UseMessageDetailsOptions = {},

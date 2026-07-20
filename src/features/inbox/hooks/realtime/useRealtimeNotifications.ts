@@ -7,6 +7,7 @@ import {
 import { useNotificationSettings } from '@/hooks/useNotificationSettings';
 import type { ConversationContact, RealtimeMessage, NewMessageNotification } from './types';
 
+/** Manages in-app and browser notifications for incoming WhatsApp messages, respecting quiet-hours and per-user sound/notification settings. */
 export function useRealtimeNotifications() {
   const [newMessageNotification, setNewMessageNotification] =
     useState<NewMessageNotification | null>(null);

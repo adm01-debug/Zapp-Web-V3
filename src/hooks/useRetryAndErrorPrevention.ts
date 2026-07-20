@@ -465,6 +465,7 @@ export function useAsyncRetryStrategy(config?: Partial<RetryConfig>) {
 // BACKWARD COMPATIBILITY RE-EXPORTS
 // ──────────────────────────────────────────────────────────────────────────
 
+/** Default export. */
 export default {
   useRetryOperation,
   useSafeEventHandler,

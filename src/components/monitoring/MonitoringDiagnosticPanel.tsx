@@ -90,6 +90,7 @@ function exportDiagnostic(diagnostic: DiagnosticResult) {
   URL.revokeObjectURL(url);
 }
 
+/** Monitoring Diagnostic Panel component for the monitoring section. */
 export function MonitoringDiagnosticPanel({ diagnostic, diagnosing, onRunDiagnostic, onReconfigureWebhook, reconfiguring }: Props) {
   const buildChecklist = (): CheckItem[] => {
     if (!diagnostic) return [];

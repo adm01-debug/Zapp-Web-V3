@@ -53,6 +53,7 @@ const PERIOD_OPTIONS = [
   { value: '90', label: 'Últimos 90 dias' },
 ];
 
+/** Advanced Reports View component for the reports section. */
 export function AdvancedReportsView() {
   const {
     period,

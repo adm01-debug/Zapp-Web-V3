@@ -9,6 +9,7 @@ interface UseInboxKeyboardShortcutsOptions {
   bulkMarkAsRead: () => void;
 }
 
+/** use Inbox Keyboard Shortcuts component. */
 export function useInboxKeyboardShortcuts({
   selectAll,
   selectionMode,

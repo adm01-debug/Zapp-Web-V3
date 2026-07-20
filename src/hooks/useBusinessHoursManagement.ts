@@ -10,6 +10,7 @@ const log = getLogger('useBusinessHours');
 
 /* ============ INTERFACES ============ */
 
+/** Business Hour interface. */
 export interface BusinessHour {
   id?: string;
   whatsapp_connection_id: string;
@@ -20,6 +21,7 @@ export interface BusinessHour {
   end_time: string;
 }
 
+/** Away Message interface definition. */
 export interface AwayMessage {
   id?: string;
   whatsapp_connection_id: string;

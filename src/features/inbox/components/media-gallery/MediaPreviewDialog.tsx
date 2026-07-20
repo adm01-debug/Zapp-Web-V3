@@ -9,6 +9,7 @@ interface MediaPreviewDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
+/** Media Preview Dialog component for the media gallery section. */
 export function MediaPreviewDialog({ item, open, onOpenChange }: MediaPreviewDialogProps) {
   if (!item) return null;
 

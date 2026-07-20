@@ -12,6 +12,7 @@ interface ImagePreviewProps {
   onClose?: () => void;
 }
 
+/** Image Preview constant. */
 export const ImagePreview = forwardRef<HTMLDivElement, ImagePreviewProps>(function ImagePreview(
   { src, alt = 'Image', onClose }: ImagePreviewProps,
   ref,
@@ -107,6 +108,7 @@ interface MessageImageProps {
   refreshKey?: import('@/types/mediaRefresh').MediaRefreshKey;
 }
 
+/** Inline image component with lightbox preview support and automatic URL refresh on expiry. */
 export function MessageImage({ src, alt = 'Image', refreshKey }: MessageImageProps) {
   const [showPreview, setShowPreview] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);

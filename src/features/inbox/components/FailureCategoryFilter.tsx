@@ -33,6 +33,7 @@ interface Props {
   counts: Record<FailureCategory | 'all', number>;
 }
 
+/** Failure Category Filter constant. */
 export const FailureCategoryFilter = memo(function FailureCategoryFilter({ value, onChange, counts }: Props) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);

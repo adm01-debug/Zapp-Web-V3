@@ -32,10 +32,12 @@ interface QueryResult {
   error?: string;
 }
 
+/** Query Explorer Handle. */
 export interface QueryExplorerHandle {
   setTable: (table: string) => void;
 }
 
+/** Query Explorer Block. */
 export const QueryExplorerBlock = forwardRef<QueryExplorerHandle>(function QueryExplorerBlock(_props, ref) {
   const [mode, setMode] = useState<'select' | 'rpc'>('select');
 

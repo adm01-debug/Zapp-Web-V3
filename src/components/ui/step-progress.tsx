@@ -2,6 +2,7 @@ import { cn } from '@/lib/utils';
 import { Check } from 'lucide-react';
 import { motion } from 'framer-motion';
 
+/** Step component for the ui section. */
 export interface Step {
   label: string;
   description?: string;
@@ -13,6 +14,7 @@ interface StepProgressProps {
   className?: string;
 }
 
+/** Step Progress component for the ui section. */
 export function StepProgress({ steps, currentStep, className }: StepProgressProps) {
   return (
     <nav aria-label="Progresso" className={cn('flex items-center gap-1', className)}>

@@ -13,6 +13,7 @@ interface ChannelsTabProps {
   testResult?: unknown;
 }
 
+/** Channels Tab component for the evoApiHealth section. */
 export const ChannelsTab = React.memo(
   ({ channels, onTest, isTesting, testResult }: ChannelsTabProps) => {
     return (

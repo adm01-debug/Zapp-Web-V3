@@ -12,6 +12,7 @@ import { GoalsConfigDialog } from './GoalsConfigDialog';
 import { CelebrationOverlay } from '@/components/effects/Confetti';
 import { useGoalsDashboard, getProgressColor, getProgressBgColor, PERIOD_OPTIONS } from '@/hooks/useGoalsDashboard';
 
+/** Goals Dashboard component for the dashboard section. */
 export function GoalsDashboard() {
   const {
     period, setPeriod, configDialogOpen, setConfigDialogOpen,

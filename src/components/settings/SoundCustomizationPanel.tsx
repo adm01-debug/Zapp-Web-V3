@@ -33,6 +33,7 @@ const playSoundPreview = (soundId: string) => {
   osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.5);
 };
 
+/** Sound Customization Panel component for the settings section. */
 export function SoundCustomizationPanel() {
   const { settings, updateSettings } = useUserSettings();
   const [playingSound, setPlayingSound] = useState<string | null>(null);

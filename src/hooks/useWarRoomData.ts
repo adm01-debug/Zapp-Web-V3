@@ -5,11 +5,13 @@ import type {
   WarRoomAgent,
   WarRoomQueue,
 } from '@/features/dashboard/hooks/useDashboardVisualizationManagement';
+/** Re-exported module members. */
 export type {
   WarRoomAgent,
   WarRoomQueue,
 } from '@/features/dashboard/hooks/useDashboardVisualizationManagement';
 
+/** War Room Alert interface definition. */
 export interface WarRoomAlert {
   id: string;
   type: 'critical' | 'warning' | 'info';

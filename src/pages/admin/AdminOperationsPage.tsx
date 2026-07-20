@@ -9,6 +9,7 @@ import { OpsTransfersTab } from "./operations/OpsTransfersTab";
 const AdminChannelsPage = lazy(() => import("./AdminChannelsPage"));
 const AdminQueuesPage = lazy(() => import("./AdminQueuesPage"));
 
+/** Admin Operations Page. */
 export default function AdminOperationsPage() {
   return (
     <div className="container max-w-7xl mx-auto py-8 px-4 md:px-6 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">

@@ -31,6 +31,7 @@ const FILTERS: Array<{ id: 'all' | PriorityLevel; label: string }> = [
 
 const UNASSIGNED_VALUE = '__none__';
 
+/** Supervisor Queue Board function. */
 export function SupervisorQueueBoard() {
   const { rows, agents, queues, loading, refreshedAt, summary, reload, reassignAgent, moveQueue } =
     useSupervisorConversations();

@@ -6,6 +6,7 @@ import { queryExternalProxy } from '@/lib/externalProxy';
 import { consumePendingWebhookEventsFilters } from '@/lib/webhookEventsDeepLink';
 import type { EvolutionWebhookEvent } from '@/types/evolutionExternal';
 
+/** EVENT_TYPES. */
 export const EVENT_TYPES = [
   'all',
   'PRESENCE_UPDATE',
@@ -20,8 +21,10 @@ export const EVENT_TYPES = [
   'QRCODE_UPDATED',
 ] as const;
 
+/** Event Type Filter. */
 export type EventTypeFilter = (typeof EVENT_TYPES)[number];
 
+/** MESSAGE_TYPES. */
 export const MESSAGE_TYPES = [
   'all',
   'conversation',
@@ -37,16 +40,20 @@ export const MESSAGE_TYPES = [
   'pollCreationMessage',
   'protocolMessage',
 ] as const;
+/** Message Type Filter. */
 export type MessageTypeFilter = (typeof MESSAGE_TYPES)[number];
 
+/** STATUS_OPTIONS. */
 export const STATUS_OPTIONS = [
   { value: 'all', label: 'Todos' },
   { value: 'processed', label: 'Processados' },
   { value: 'pending', label: 'Pendentes' },
   { value: 'error', label: 'Com erro' },
 ] as const;
+/** Status Filter. */
 export type StatusFilter = (typeof STATUS_OPTIONS)[number]['value'];
 
+/** RANGE_OPTIONS. */
 export const RANGE_OPTIONS = [
   { value: '1', label: 'Última hora' },
   { value: '6', label: 'Últimas 6h' },
@@ -56,6 +63,7 @@ export const RANGE_OPTIONS = [
   { value: '720', label: 'Últimos 30 dias' },
 ] as const;
 
+/** use Webhook Events. */
 export function useWebhookEvents() {
   // Drill-down from AdminWebhookOverviewPage: applies initial filters (once)
   // from sessionStorage. Validated against known types to prevent injection.

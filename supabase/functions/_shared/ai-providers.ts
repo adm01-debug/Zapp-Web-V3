@@ -2,6 +2,7 @@
  * AI Provider call handlers — modular dispatchers for each provider type.
  */
 
+/** Dispatches a chat completion request to the Lovable AI provider and returns the raw Response. */
 export async function callLovableAI(params: {
   messages: Array<{ role: string; content: string }>;
   apiKey: string;
@@ -31,6 +32,7 @@ export async function callLovableAI(params: {
   });
 }
 
+/** call Open A I Compatible function. */
 export async function callOpenAICompatible(params: {
   endpoint: string;
   apiKey: string;
@@ -62,6 +64,7 @@ export async function callOpenAICompatible(params: {
   });
 }
 
+/** call Custom Webhook function. */
 export async function callCustomWebhook(params: {
   endpoint: string;
   apiKey?: string;

@@ -14,6 +14,7 @@ interface ContactEmptyStateProps {
   onImport?: () => void;
 }
 
+/** Contact Empty State component for the contacts section. */
 export function ContactEmptyState({
   type, searchQuery, activeFilters = 0,
   onAddContact, onClearSearch, onClearFilters, onImport,

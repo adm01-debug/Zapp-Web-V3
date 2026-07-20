@@ -5,6 +5,7 @@ import { safeClient } from '@/integrations/supabase/safeClient';
 import { dbFrom } from '@/integrations/datasource/db';
 
 
+/** Single send record from evolution_send_idempotency joined to the owning message's agent_id. */
 export interface RecentSend {
   idem_key: string;
   instance_name: string;

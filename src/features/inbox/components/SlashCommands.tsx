@@ -14,6 +14,7 @@ interface SlashCommandsProps {
   isOpen: boolean;
 }
 
+/** Slash Commands component. */
 export function SlashCommands({ inputValue, onSelectCommand, onClose, isOpen }: SlashCommandsProps) {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [selectedCommand, setSelectedCommand] = useState<SlashCommand | null>(null);
@@ -151,5 +152,7 @@ export function SlashCommands({ inputValue, onSelectCommand, onClose, isOpen }: 
   );
 }
 
+/** Re-exported module members. */
 export { SLASH_COMMANDS };
+/** Re-exported module members. */
 export type { SlashCommand };

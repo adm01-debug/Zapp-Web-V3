@@ -1,3 +1,4 @@
+/** Performance Metric Status type alias. */
 export type PerformanceMetricStatus = 'good' | 'warning' | 'critical';
 
 /**

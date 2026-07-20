@@ -7,6 +7,7 @@ const log = getLogger('useInboxHeartbeat');
 const THROTTLE_MS = 120_000; // 2 min between writes (except going offline)
 const HEARTBEAT_MS = 180_000; // 3 min ping while tab visible
 
+/** Tracks agent online presence by writing `online_status` + `last_seen` to the profiles table on visibility/network changes, throttled to 2-minute intervals. */
 export function useInboxHeartbeat(profileId: string | undefined) {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [onlineStatus, setOnlineStatus] = useState<string>('offline');

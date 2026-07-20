@@ -32,6 +32,7 @@ interface SecretStatus {
 
 const REFRESH_INTERVAL = 30_000;
 
+/** use Admin Webhook Status function. */
 export function useAdminWebhookStatus() {
   const { filters, setFilters } = useUrlFilters();
 

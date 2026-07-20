@@ -25,6 +25,7 @@ const log = getLogger('useAlertManagement');
 // TYPE DEFINITIONS
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════════════
 
+/** War Room Alert interface definition. */
 export interface WarRoomAlert {
   id: string;
   alert_type: string;
@@ -35,6 +36,7 @@ export interface WarRoomAlert {
   created_at: string | null;
 }
 
+/** Sentiment Alert Data interface definition. */
 export interface SentimentAlertData {
   contactId: string;
   contactName: string;
@@ -43,6 +45,7 @@ export interface SentimentAlertData {
   analysisId: string;
 }
 
+/** Webhook Health Alert interface definition. */
 export interface WebhookHealthAlert {
   id: string;
   webhook_id: string;
@@ -52,6 +55,7 @@ export interface WebhookHealthAlert {
   created_at: string;
 }
 
+/** Realtime Sentiment Alert interface definition. */
 export interface RealtimeSentimentAlert {
   id: string;
   contact_id: string;
@@ -62,17 +66,20 @@ export interface RealtimeSentimentAlert {
   created_at: string;
 }
 
+/** Use War Room Alerts Result interface definition. */
 export interface UseWarRoomAlertsResult {
   alerts: WarRoomAlert[];
   dismissAlert: (alertId: string) => Promise<void>;
 }
 
+/** Use Sentiment Alerts Result interface definition. */
 export interface UseSentimentAlertsResult {
   checkAndTriggerAlert: (
     data: SentimentAlertData
   ) => Promise<{ triggered: boolean; reason: string }>;
 }
 
+/** Use Webhook Health Alerts Result interface definition. */
 export interface UseWebhookHealthAlertsResult {
   alerts: WebhookHealthAlert[];
   loading: boolean;
@@ -80,6 +87,7 @@ export interface UseWebhookHealthAlertsResult {
   checkHealth: () => Promise<void>;
 }
 
+/** Use Realtime Sentiment Alerts Result interface definition. */
 export interface UseRealtimeSentimentAlertsResult {
   alerts: RealtimeSentimentAlert[];
   acknowledgeAlert: (alertId: string) => Promise<void>;
@@ -161,7 +169,6 @@ export function useWarRoomAlertsManagement(soundEnabled = true): UseWarRoomAlert
       .subscribe();
 
     return () => {
-      channel.unsubscribe();
       supabase.removeChannel(channel);
     };
   }, [queryClient, playAlertSound, pushPermission]);

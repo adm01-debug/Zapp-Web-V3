@@ -37,6 +37,7 @@ function TtsButton({ text, label, isTtsPlaying, isTtsLoading, lastTtsText, onPla
   );
 }
 
+/** Summary Result component for the summary section. */
 export function SummaryResult({ summary, isTtsPlaying, isTtsLoading, lastTtsText, onPlayTts, buildFullNarrationText }: SummaryResultProps) {
   return (
     <AnimatePresence>

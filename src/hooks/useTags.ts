@@ -5,6 +5,7 @@ import { useAuth } from '@/features/auth';
 import { toast } from '@/hooks/use-toast';
 import { queryKeys } from '@/services/api/queryKeys';
 
+/** Tag interface definition. */
 export interface Tag {
   id: string;
   name: string;

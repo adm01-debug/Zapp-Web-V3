@@ -5,6 +5,7 @@
 import { createService } from '@/services/api/genericService';
 import type { QueryParams } from '@/services/api/types';
 
+/** Queue interface. */
 export interface Queue {
   id: string;
   name: string;
@@ -20,6 +21,7 @@ export interface Queue {
 
 const queuesBaseService = createService<Queue>('queues');
 
+/** queues Repository constant. */
 export const queuesRepository = {
   list: (filters?: Partial<Queue> & QueryParams) => queuesBaseService.list(filters),
 

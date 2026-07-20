@@ -1,9 +1,11 @@
+/** types utilities and exports. */
 export interface ProxyFilter {
   column: string
   operator: string
   value: unknown
 }
 
+/** Query Log Context interface. */
 export interface QueryLogContext {
   cid: string
   rid: string
@@ -12,6 +14,7 @@ export interface QueryLogContext {
   startedAt: number
 }
 
+/** Query Outcome interface definition. */
 export interface QueryOutcome {
   ok: boolean
   ms: number
@@ -24,6 +27,7 @@ export interface QueryOutcome {
   schemaRetries?: number
 }
 
+/** Metric Sample interface definition. */
 export interface MetricSample {
   cid: string
   rid: string
@@ -38,4 +42,5 @@ export interface MetricSample {
   err_msg?: string | null
 }
 
+/** Log Payload type alias. */
 export type LogPayload = Record<string, unknown>

@@ -11,6 +11,7 @@ interface DrTabProps {
   runbook?: DrRunbookStep[];
 }
 
+/** Dr Tab component for the evoApiHealth section. */
 export const DrTab = React.memo(({ drHealth, runbook }: DrTabProps) => {
   return (
     <div className="space-y-4">

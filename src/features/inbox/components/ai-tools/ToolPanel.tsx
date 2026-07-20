@@ -16,6 +16,7 @@ interface ToolPanelProps {
   headerRight?: ReactNode;
 }
 
+/** Tool Panel component for the ai tools section. */
 export function ToolPanel({ isOpen, onClose, icon, title, subtitle, children, className, headerRight }: ToolPanelProps) {
   return (
     <AnimatePresence>

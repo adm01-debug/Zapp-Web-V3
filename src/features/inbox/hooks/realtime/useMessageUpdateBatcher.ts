@@ -7,6 +7,7 @@ function hasRealtimeMessageId(value: unknown): value is RealtimeMessage {
   return typeof value === 'object' && value !== null && 'id' in value;
 }
 
+/** Observable state exposed by useMessageUpdateBatcher so the UI can show pending-update indicators. */
 export interface MessageBatcherStatus {
   /** True while there are pending updates waiting for the debounce window to flush. */
   isBatching: boolean;

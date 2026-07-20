@@ -22,6 +22,7 @@ interface Props {
   onCreated: (conversationId: string) => void;
 }
 
+/** New Conversation Dialog component for the team chat section. */
 export function NewConversationDialog({ open, onOpenChange, onCreated }: Props) {
   const { profile } = useAuth();
   const [tab, setTab] = useState<'direct' | 'group' | 'department'>('direct');

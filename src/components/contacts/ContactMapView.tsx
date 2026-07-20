@@ -114,6 +114,7 @@ const REGION_COLORS = [
   'bg-[hsl(280_60%_92%)] text-[hsl(280_60%_40%)]',
 ];
 
+/** Contact Map View component for the contacts section. */
 export function ContactMapView({ contacts, onContactClick }: ContactMapViewProps) {
   const [expandedRegion, setExpandedRegion] = useState<string | null>(null);
 

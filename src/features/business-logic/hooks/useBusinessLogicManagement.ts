@@ -16,6 +16,7 @@ const log = getLogger('useBusinessLogicManagement');
 // Types
 // ═══════════════════════════════════════════════════════════
 
+/** A B Variant interface definition. */
 export interface ABVariant {
   id: string;
   variant_name: string;
@@ -27,6 +28,7 @@ export interface ABVariant {
   is_winner: boolean;
 }
 
+/** Contact Result interface definition. */
 export interface ContactResult {
   id: string;
   name: string;
@@ -34,6 +36,7 @@ export interface ContactResult {
   avatar_url: string | null;
 }
 
+/** Pipeline Stage interface definition. */
 export interface PipelineStage {
   id: string;
   name: string;
@@ -45,10 +48,12 @@ export interface PipelineStage {
 // Campaign AB Testing Management
 // ═══════════════════════════════════════════════════════════
 
+/** Use Business Logic Campaigns Params interface definition. */
 export interface UseBusinessLogicCampaignsParams {
   campaignId: string;
 }
 
+/** Use Business Logic Campaigns Result interface definition. */
 export interface UseBusinessLogicCampaignsResult {
   variants: ABVariant[];
   loading: boolean;
@@ -147,11 +152,13 @@ export function useBusinessLogicCampaignsManagement(
 // Catalog Send Product Management
 // ═══════════════════════════════════════════════════════════
 
+/** Use Business Logic Catalog Params interface definition. */
 export interface UseBusinessLogicCatalogParams {
   step: 'configure' | 'selectContact';
   onSuccess: () => void;
 }
 
+/** Use Business Logic Catalog Result interface definition. */
 export interface UseBusinessLogicCatalogResult {
   contactSearch: string;
   setContactSearch: (value: string) => void;
@@ -333,10 +340,12 @@ export function useBusinessLogicCatalogManagement(
 // Sales Pipeline Management
 // ═══════════════════════════════════════════════════════════
 
+/** Use Business Logic Pipeline Params interface definition. */
 export interface UseBusinessLogicPipelineParams {
   // no params needed
 }
 
+/** Use Business Logic Pipeline Result interface definition. */
 export interface UseBusinessLogicPipelineResult {
   stages: PipelineStage[];
   deals: Deal[];

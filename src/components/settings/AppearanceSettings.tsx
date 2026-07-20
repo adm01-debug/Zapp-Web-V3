@@ -39,6 +39,7 @@ function DensitySelector() {
   );
 }
 
+/** Appearance Settings component for the settings section. */
 export function AppearanceSettings({ settings, updateSettings, onResetOnboarding }: AppearanceSettingsProps) {
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>

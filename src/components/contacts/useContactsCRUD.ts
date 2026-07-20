@@ -28,6 +28,7 @@ const EMPTY_CONTACT: ContactFormData = {
   contact_type: 'cliente',
 };
 
+/** Contact component for the contacts section. */
 export type Contact = Pick<
   NonNullable<ContactRow>,
   | 'id'
@@ -42,6 +43,7 @@ export type Contact = Pick<
   | 'tags'
 >;
 
+/** use Contacts CRUD component for the contacts section. */
 export function useContactsCRUD() {
   const { profile } = useAuth();
   const feedback = useActionFeedback();

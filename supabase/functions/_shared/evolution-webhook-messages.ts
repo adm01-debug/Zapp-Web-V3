@@ -8,6 +8,7 @@ import {
 } from "./evolution-helpers.ts";
 import { persistMediaToStorage, persistMediaViaApi, parseMessageContent, isSafeMediaCdnUrl } from "./evolution-media.ts";
 
+/** evolution-webhook-messages utilities and exports. */
 export async function handleOutgoingWhatsAppMessage(
   supabase: SupabaseClient, instance: string, data: Record<string, unknown>,
   key: { remoteJid?: string; remoteJidAlt?: string; participant?: string; participantAlt?: string; fromMe: boolean; id: string },
@@ -93,6 +94,7 @@ export async function handleOutgoingWhatsAppMessage(
   await supabase.from('contacts').update({ updated_at: new Date().toISOString() }).eq('id', contact.id);
 }
 
+/** handle Incoming Message function. */
 export async function handleIncomingMessage(
   supabase: SupabaseClient, instance: string, data: Record<string, unknown>,
   key: { remoteJid?: string; remoteJidAlt?: string; participant?: string; participantAlt?: string; fromMe: boolean; id: string },
@@ -155,7 +157,7 @@ export async function handleIncomingMessage(
     } else {
       contact = newContact;
     }
-  } else if (!contact.avatar_url || contact.avatar_url.includes('pps.whatsapp.net')) {
+  } else if (!contact.avatar_url || (() => { try { return new URL(contact.avatar_url).hostname.endsWith('.whatsapp.net'); } catch { return false; } })()) {
     const picUrl = await fetchProfilePicFromApi(instance, phone);
     if (picUrl) {
       const avatarUrl = await persistProfilePicture(supabase, phone, picUrl);
@@ -216,6 +218,7 @@ export async function handleIncomingMessage(
   if (messageType === 'audio' && mediaUrl) await handleAudioTranscription(supabase, contact.id, insertedMessage.id, mediaUrl, supabaseUrl, supabaseServiceKey);
 }
 
+/** handle Sticker Media function. */
 export async function handleStickerMedia(
   supabase: SupabaseClient, instance: string, data: Record<string, unknown>,
   message: Record<string, unknown> | undefined, key: { id: string }
@@ -300,6 +303,7 @@ export async function handleStickerMedia(
   return mediaUrl;
 }
 
+/** Transcribes an audio message via the configured AI provider and persists the result to the message record. */
 export async function handleAudioTranscription(supabase: SupabaseClient, _contactId: string, messageId: string, mediaUrl: string, supabaseUrl: string, supabaseServiceKey: string) {
   const { data: globalSetting } = await supabase.from('global_settings')
     .select('value').eq('key', 'auto_transcription_enabled').maybeSingle();

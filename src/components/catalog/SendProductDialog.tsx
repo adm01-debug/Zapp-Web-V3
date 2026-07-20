@@ -38,6 +38,7 @@ const TEMPLATE_LABELS: Record<MessageTemplate, string> = {
   promo: 'Promoção',
 };
 
+/** Send Product Dialog component for the catalog section. */
 export const SendProductDialog: React.FC<SendProductDialogProps> = ({
   product,
   open,

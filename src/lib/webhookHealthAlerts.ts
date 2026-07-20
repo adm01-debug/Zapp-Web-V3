@@ -9,6 +9,7 @@
  */
 import { safeGetJSON, safeSetJSON } from '@/lib/safeStorage';
 
+/** Configuration parameters controlling webhook health alert thresholds and enable state. */
 export interface WebhookAlertConfig {
   /** % de assinaturas inválidas tolerado antes de alertar (0-100). */
   invalidRatePct: number;
@@ -20,8 +21,10 @@ export interface WebhookAlertConfig {
   enabled: boolean;
 }
 
+/** Discriminator for the two supported webhook alert categories. */
 export type WebhookAlertType = 'signature_spike' | 'webhook_silence';
 
+/** Per-instance event counters used to evaluate webhook health. */
 export interface InstanceHealthStats {
   instance: string;
   /** Total de eventos na janela curta avaliada (ex.: 15 min). */
@@ -34,6 +37,7 @@ export interface InstanceHealthStats {
   lastEventAt: string | null;
 }
 
+/** Describes an active health-alert violation for a specific instance. */
 export interface WebhookAlertBreach {
   type: WebhookAlertType;
   instance: string;
@@ -42,6 +46,7 @@ export interface WebhookAlertBreach {
   value: number;
 }
 
+/** Default webhook health-alert configuration values. */
 export const DEFAULT_ALERT_CONFIG: WebhookAlertConfig = {
   invalidRatePct: 5,
   minSampleSize: 20,
@@ -51,6 +56,7 @@ export const DEFAULT_ALERT_CONFIG: WebhookAlertConfig = {
 
 const STORAGE_KEY = 'zappweb:webhook-health-alerts';
 
+/** load Alert Config function. */
 export function loadAlertConfig(): WebhookAlertConfig {
   const raw = safeGetJSON<Partial<WebhookAlertConfig> | null>(STORAGE_KEY, null);
   if (!raw || typeof raw !== 'object') return { ...DEFAULT_ALERT_CONFIG };
@@ -62,6 +68,7 @@ export function loadAlertConfig(): WebhookAlertConfig {
   };
 }
 
+/** save Alert Config function. */
 export function saveAlertConfig(c: WebhookAlertConfig): boolean {
   return safeSetJSON(STORAGE_KEY, c);
 }
@@ -145,4 +152,5 @@ export function shouldFireAlert(
   return true;
 }
 
+/** A L E R T_ C O O L D O W N_ M S constant. */
 export const ALERT_COOLDOWN_MS = 5 * 60 * 1000; // 5 min

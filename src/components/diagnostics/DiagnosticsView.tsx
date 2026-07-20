@@ -79,6 +79,7 @@ const HEALTH_ITEMS: Array<{ key: keyof Pick<SystemHealth, 'database' | 'storage'
 ];
 
 // ─── Main ───
+/** Diagnostics View component for the diagnostics section. */
 export function DiagnosticsView() {
   const [activeTab, setActiveTab] = useState('connections');
   const {

@@ -32,6 +32,7 @@ interface QueryData {
   grants: Grant[];
 }
 
+/** Visibility Grants Manager component. */
 export function VisibilityGrantsManager() {
   const queryClient = useQueryClient();
   const [saving, setSaving] = useState(false);

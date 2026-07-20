@@ -21,6 +21,7 @@ import { cn } from '@/lib/utils';
 import type { Message } from '@/types/chat';
 import { STAGE_LABEL_UNIFIED } from './messageStatusLanguage';
 
+/** Message Status Filter type alias. */
 export type MessageStatusFilter = 'sent' | 'delivered' | 'read';
 
 interface Props {
@@ -35,6 +36,7 @@ const SENT_LIKE = new Set(['sent', 'delivered', 'read', 'played']);
 const DELIVERED_LIKE = new Set(['delivered', 'read', 'played']);
 const READ_LIKE = new Set(['read', 'played']);
 
+/** matches Status Filter function. */
 export function matchesStatusFilter(
   status: string | undefined | null,
   active: Set<MessageStatusFilter>,
@@ -47,6 +49,7 @@ export function matchesStatusFilter(
   return false;
 }
 
+/** filter Messages By Status function. */
 export function filterMessagesByStatus(
   messages: Message[],
   active: Set<MessageStatusFilter>,
@@ -61,6 +64,7 @@ const CHIP_META: Record<MessageStatusFilter, { icon: React.ComponentType<{ class
   read:      { icon: Eye,        label: STAGE_LABEL_UNIFIED.read,      tone: 'text-info border-info/40 data-[on=true]:bg-info/15 data-[on=true]:text-info' },
 };
 
+/** Message Status Filter Bar constant. */
 export const MessageStatusFilterBar = memo(function MessageStatusFilterBar({
   active, onChange, visibleCount, totalCount, className,
 }: Props) {

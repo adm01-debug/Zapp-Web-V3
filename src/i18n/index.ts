@@ -306,9 +306,11 @@ i18n
     },
   });
 
+/** Default export. */
 export default i18n;
 
 // Helper hook for language switching
+/** use Language. */
 export const useLanguage = () => {
   const changeLanguage = (lang: string) => {
     i18n.changeLanguage(lang);

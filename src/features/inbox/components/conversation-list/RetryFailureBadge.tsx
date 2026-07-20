@@ -29,6 +29,7 @@ interface RetryFailureBadgeProps {
   compact?: boolean;
 }
 
+/** Displays a compact retry-progress or terminal-failure badge on an outbound conversation list item. */
 export function RetryFailureBadge({ message, compact = false }: RetryFailureBadgeProps) {
   const isOutbound = message.sender === 'agent';
   const isRetrying = message.status === 'retrying';

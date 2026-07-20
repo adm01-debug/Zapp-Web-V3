@@ -1,5 +1,6 @@
 import type { TourStep } from './tourContext';
 
+/** DEFAULT_ONBOARDING_STEPS component for the onboarding section. */
 export const DEFAULT_ONBOARDING_STEPS: TourStep[] = [
   {
     id: 'inbox',

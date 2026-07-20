@@ -24,6 +24,7 @@ const SOUND_TYPES: { value: string; label: string; description: string }[] = [
   { value: 'soft', label: 'Suave', description: 'Notificação discreta' },
 ];
 
+/** Notification Settings Panel component for the notifications section. */
 export function NotificationSettingsPanel() {
   const { settings, updateSettings, resetSettings, isQuietHours } = useNotificationSettings();
   const [isTestingSound, setIsTestingSound] = useState(false);

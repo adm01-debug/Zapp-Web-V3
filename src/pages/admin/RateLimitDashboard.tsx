@@ -37,6 +37,7 @@ const SORT_LABEL: Record<RateLimitSortKey, string> = {
   blocked: 'Status',
 };
 
+/** Rate Limit Dashboard. */
 export default function RateLimitDashboard() {
   const { isAdmin } = useUserRole();
   const {

@@ -12,8 +12,10 @@ const meta: Meta = {
   tags: ['autodocs'],
 };
 
+/** Storybook meta configuration for the UI/Links story. */
 export default meta;
 
+/** Gallery showcasing all link variants, styles, and interactive states. */
 export const LinkGallery: StoryObj = {
   render: () => (
     <div className="flex flex-col gap-8 p-4">

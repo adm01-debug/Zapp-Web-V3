@@ -42,6 +42,7 @@ interface WebhookEventsTableProps {
   clearAllFiltersAndUrl: () => void;
 }
 
+/** Webhook Events Table. */
 export function WebhookEventsTable({
   scopeLabel,
   events,

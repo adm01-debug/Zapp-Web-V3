@@ -19,6 +19,7 @@ import type {
   RecentActivity,
 } from './dashboardTypes';
 
+/** Dashboard Widget interface definition. */
 export interface DashboardWidget {
   id: string;
   title: string;
@@ -33,6 +34,7 @@ export interface DashboardWidget {
   level: 1 | 2 | 3;
 }
 
+/** Goal interface definition. */
 export interface Goal {
   id: string;
   label: string;
@@ -45,6 +47,7 @@ export interface Goal {
   priority: 'high' | 'medium' | 'low';
 }
 
+/** Leaderboard Agent interface definition. */
 export interface LeaderboardAgent {
   id: string;
   profile_id: string;
@@ -63,6 +66,7 @@ export interface LeaderboardAgent {
   isOnline: boolean;
 }
 
+/** War Room Agent interface definition. */
 export interface WarRoomAgent {
   id: string;
   name: string;
@@ -75,6 +79,7 @@ export interface WarRoomAgent {
   satisfaction: number;
 }
 
+/** War Room Queue interface definition. */
 export interface WarRoomQueue {
   id: string;
   name: string;
@@ -585,6 +590,7 @@ export function useWarRoomDataManagement() {
   return { agents, queues };
 }
 
+/** Re-exported module members. */
 export type {
   DashboardFilters,
   DashboardStats,

@@ -190,6 +190,7 @@ function ShortcutCategory({ category, shortcuts }: { category: keyof typeof cate
   );
 }
 
+/** Keyboard Shortcuts Settings component for the settings section. */
 export function KeyboardShortcutsSettings() {
   const { shortcuts, resetAllShortcuts } = useCustomShortcuts();
   const [showResetConfirm, setShowResetConfirm] = useState(false);

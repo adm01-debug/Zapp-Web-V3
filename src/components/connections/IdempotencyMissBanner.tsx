@@ -32,6 +32,7 @@ function formatBucketTime(ts: number): string {
   }
 }
 
+/** Idempotency Miss Banner function. */
 export function IdempotencyMissBanner() {
   const {
     counts,

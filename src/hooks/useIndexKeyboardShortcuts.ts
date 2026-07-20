@@ -8,6 +8,7 @@ interface UseIndexKeyboardShortcutsProps {
   setCurrentView: (viewId: string) => void;
 }
 
+/** Hook: use Index Keyboard Shortcuts. */
 export function useIndexKeyboardShortcuts(params: UseIndexKeyboardShortcutsProps) {
   return useIndexKeyboardShortcutsManagement(params);
 }

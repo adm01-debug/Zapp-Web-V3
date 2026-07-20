@@ -62,6 +62,7 @@ export function useForwardMessage(
     }
   }, [open, fetchContacts]); // ✅ Fix: adicionar fetchContacts e fetchGroups nas deps
 
+  /** Fetches all WhatsApp groups ordered by name and populates local state; silently logs errors. */
   const fetchGroups = async () => {
     try {
       const { data, error } = await supabase
@@ -83,12 +84,14 @@ export function useForwardMessage(
     g.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  /** Adds `id` to the selected contacts set if absent, or removes it when already present. */
   const toggleContact = (id: string) => {
     setSelectedContacts((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
     );
   };
 
+  /** Adds `id` to the selected groups set if absent, or removes it when already present. */
   const toggleGroup = (id: string) => {
     setSelectedGroups((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
   };
@@ -99,6 +102,7 @@ export function useForwardMessage(
     setSearchQuery('');
   }, []);
 
+  /** Validates that at least one recipient is selected, invokes `onForward` for contacts and groups, shows a success toast, and closes the dialog. */
   const handleForward = async () => {
     if (selectedContacts.length === 0 && selectedGroups.length === 0) {
       toast({
@@ -132,6 +136,7 @@ export function useForwardMessage(
     }
   };
 
+  /** Resets selection and search state then closes the forward dialog. */
   const handleClose = () => {
     reset();
     onOpenChange(false);
@@ -158,4 +163,5 @@ export function useForwardMessage(
   };
 }
 
+/** Re-exported module members. */
 export type { Contact, Group };

@@ -10,6 +10,7 @@ interface AudioTranscriptionPanelProps {
   onRetry: () => void;
 }
 
+/** Audio Transcription Panel component. */
 export function AudioTranscriptionPanel({
   isProcessing,
   transcription,

@@ -48,6 +48,7 @@ interface ContactContentAreaProps {
   onRefresh?: () => void;
 }
 
+/** Contact Content Area component for the contacts section. */
 export function ContactContentArea({
   loading,
   contacts,

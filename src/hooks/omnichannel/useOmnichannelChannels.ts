@@ -7,5 +7,6 @@ import type {
   OmnichannelChannel,
 } from './useOmnichannelManagement';
 
+/** Hook: use Omnichannel Channels. */
 export { useOmnichannelChannelsManagement as useOmnichannelChannels };
 export type { UseOmnichannelChannelsParams, UseOmnichannelChannelsResult, ChannelType, OmnichannelChannel };

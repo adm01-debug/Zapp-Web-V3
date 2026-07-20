@@ -46,6 +46,7 @@ function getDaysLabel(days: number) {
   return { text: `${days} dias`, variant: 'outline' as const };
 }
 
+/** Contact Birthday Panel component for the contacts section. */
 export function ContactBirthdayPanel({ contacts, onContactClick }: ContactBirthdayPanelProps) {
   const upcoming = useMemo(() => getUpcomingBirthdays(contacts), [contacts]);
 

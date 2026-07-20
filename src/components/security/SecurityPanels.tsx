@@ -38,6 +38,7 @@ interface SecurityAlertsPanelProps {
   loading: boolean;
 }
 
+/** Security Alerts Panel component for the security section. */
 export function SecurityAlertsPanel({ alerts, loading }: SecurityAlertsPanelProps) {
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }}>
@@ -84,6 +85,7 @@ interface SecurityDevicesPanelProps {
   loading: boolean;
 }
 
+/** Security Devices Panel component for the security section. */
 export function SecurityDevicesPanel({ devices, loading }: SecurityDevicesPanelProps) {
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.7 }}>

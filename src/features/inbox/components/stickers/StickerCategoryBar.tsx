@@ -14,6 +14,7 @@ interface StickerCategoryBarProps {
   onToggleRecent: () => void;
 }
 
+/** Sticker Category Bar component for the stickers section. */
 export function StickerCategoryBar({
   stickers,
   activeCategory,
