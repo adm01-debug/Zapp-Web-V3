@@ -116,6 +116,7 @@ export function ConnectionsView() {
     handleSetApiType,
     handleDelete,
     closeQrDialog,
+    handleAddConnection,
   } = useConnectionsManager();
 
   // Auto-sync Evolution instances not yet in whatsapp_connections
@@ -275,7 +276,7 @@ export function ConnectionsView() {
                     Cancelar
                   </Button>
                   <Button
-                    onClick={(useConnectionsManager() as any).handleAddConnection}
+                    onClick={handleAddConnection}
                     className="bg-whatsapp hover:bg-whatsapp-dark"
                     disabled={isCreating}
                   >
