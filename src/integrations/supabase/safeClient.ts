@@ -23,6 +23,10 @@ export { maskEmail, maskSensitiveData } from './safeClientMasking';
 const supabase = _supabase;
 const _log = getLogger('safeClient');
 
+// Escape hatch for email_app schema RPCs absent from the generated TypeScript types.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const _emailRpc = supabase.rpc as any;
+
 // Dynamic table accessor — bypasses the overloaded `from()` signature that
 // requires a string-literal table name from the generated types.
 type DynamicSupabaseClient = { from(t: string): ReturnType<typeof supabase.from> };
@@ -271,9 +275,7 @@ export const safeClient = {
       else if (snap.recentFailures.length > 0) status = 'degraded';
 
       type RpcResult = { data: unknown; error: { message: string } | null };
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { error: rpcErr } = (await (supabase as any).rpc('rpc_update_email_health_state', {
-        // ignore-audit — RPC not in generated types
+      const { error: rpcErr } = (await _emailRpc('rpc_update_email_health_state', {
         p_status: status,
         p_failure_count: snap.recentFailures.length,
         p_metadata: {
@@ -338,9 +340,7 @@ export const safeClient = {
     _healthLogInProgress = true;
     try {
       type RpcResult = { data: unknown; error: { message: string } | null };
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { error: rpcErr } = (await (supabase as any).rpc('rpc_log_email_health', {
-        // ignore-audit — RPC not in generated types
+      const { error: rpcErr } = (await _emailRpc('rpc_log_email_health', {
         p_status: 'error',
         p_operation: operation,
         p_resource: resource,

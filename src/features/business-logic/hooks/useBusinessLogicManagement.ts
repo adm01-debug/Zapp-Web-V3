@@ -262,7 +262,7 @@ export function useBusinessLogicCatalogManagement(
         }
 
         for (const imgUrl of imageUrls) {
-          const { data: dbResult } = await supabase
+          const { data: dbResult, error: dbError } = await supabase
             .from('messages')
             .insert({
               contact_id: contact.id,
@@ -274,6 +274,9 @@ export function useBusinessLogicCatalogManagement(
             })
             .select('id')
             .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
+
+          if (dbError || !dbResult?.id)
+            throw new Error(dbError?.message ?? 'Image DB insert failed');
 
           const { data: apiResult } = await supabase.functions.invoke('evolution-api', {
             body: {
@@ -294,7 +297,7 @@ export function useBusinessLogicCatalogManagement(
           }
         }
 
-        const { data: textDbResult } = await supabase
+        const { data: textDbResult, error: textDbError } = await supabase
           .from('messages')
           .insert({
             contact_id: contact.id,
@@ -306,6 +309,9 @@ export function useBusinessLogicCatalogManagement(
           })
           .select('id')
           .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
+
+        if (textDbError || !textDbResult?.id)
+          throw new Error(textDbError?.message ?? 'Text DB insert failed');
 
         const { data: textApiResult } = await supabase.functions.invoke('evolution-api', {
           body: {
