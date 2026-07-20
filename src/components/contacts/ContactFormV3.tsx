@@ -10,7 +10,7 @@
  * - Retry on network failure
  * - Conflict resolution on concurrent edit
  */
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -96,6 +96,11 @@ export const ContactFormV3: React.FC<ContactFormV3Props> = ({
     debounceMs: 600,
   });
 
+  const phoneValidation = useMemo(
+    () => (form.phone ? validatePhoneDetailed(form.phone) : null),
+    [form.phone]
+  );
+
   // Check duplicates when phone or email changes
   useEffect(() => {
     if (form.phone || form.email) {
@@ -140,12 +145,9 @@ export const ContactFormV3: React.FC<ContactFormV3Props> = ({
       }
 
       // Phone validation
-      if (form.phone) {
-        const phoneResult = validatePhoneDetailed(form.phone);
-        if (!phoneResult.valid) {
-          toast({ title: `Telefone inválido: ${phoneResult.error}`, variant: 'destructive' });
-          return;
-        }
+      if (form.phone && phoneValidation && !phoneValidation.valid) {
+        toast({ title: `Telefone inválido: ${phoneValidation.error}`, variant: 'destructive' });
+        return;
       }
 
       await withRetry(async () => {
@@ -212,10 +214,9 @@ export const ContactFormV3: React.FC<ContactFormV3Props> = ({
   // ── Phone normalization on blur ───────────────────────────────────────
 
   const handlePhoneBlur = () => {
-    if (!form.phone) return;
-    const result = validatePhoneDetailed(form.phone);
-    if (result.valid && result.normalized) {
-      update('phone', result.normalized);
+    if (!phoneValidation) return;
+    if (phoneValidation.valid && phoneValidation.normalized) {
+      update('phone', phoneValidation.normalized);
     }
   };
 
@@ -287,15 +288,15 @@ export const ContactFormV3: React.FC<ContactFormV3Props> = ({
             </div>
           )}
         </div>
-        {form.phone && !validatePhoneDetailed(form.phone).valid && (
-          <p className="text-xs text-muted-foreground">{validatePhoneDetailed(form.phone).error}</p>
+        {phoneValidation && !phoneValidation.valid && (
+          <p className="text-xs text-muted-foreground">{phoneValidation.error}</p>
         )}
-        {form.phone && validatePhoneDetailed(form.phone).valid && (
+        {phoneValidation?.valid && (
           <p className="text-xs text-primary">
-            ✓ {validatePhoneDetailed(form.phone).formatted} (
-            {validatePhoneDetailed(form.phone).type === 'mobile'
+            ✓ {phoneValidation.formatted} (
+            {phoneValidation.type === 'mobile'
               ? 'Celular'
-              : validatePhoneDetailed(form.phone).type === 'landline'
+              : phoneValidation.type === 'landline'
                 ? 'Fixo'
                 : 'Internacional'}
             )
