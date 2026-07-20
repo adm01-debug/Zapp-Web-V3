@@ -1,6 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
+
+function createWrapper() {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+  return ({ children }: { children: ReactNode }) => (
+    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+  );
+}
 
 const mockFrom = vi.hoisted(() => vi.fn());
 
@@ -77,7 +87,7 @@ describe('useUserSettings', () => {
   });
 
   it('loads settings from database', async () => {
-    const { result } = renderHook(() => useUserSettings());
+    const { result } = renderHook(() => useUserSettings(), { wrapper: createWrapper() });
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(result.current.settings.business_hours_enabled).toBe(true);
     expect(result.current.settings.theme).toBe('dark');
@@ -85,7 +95,7 @@ describe('useUserSettings', () => {
 
   it('uses default settings when no user', async () => {
     mockUseAuth.mockReturnValue({ user: null });
-    const { result } = renderHook(() => useUserSettings());
+    const { result } = renderHook(() => useUserSettings(), { wrapper: createWrapper() });
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(result.current.settings.language).toBe('pt-BR');
   });
@@ -101,27 +111,27 @@ describe('useUserSettings', () => {
       }),
     });
 
-    const { result } = renderHook(() => useUserSettings());
+    const { result } = renderHook(() => useUserSettings(), { wrapper: createWrapper() });
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(result.current.settings.auto_assignment_enabled).toBe(true);
   });
 
   it('exposes updateSettings function', async () => {
-    const { result } = renderHook(() => useUserSettings());
+    const { result } = renderHook(() => useUserSettings(), { wrapper: createWrapper() });
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(typeof result.current.updateSettings).toBe('function');
   });
 
   it('default work_days is Monday-Friday', async () => {
     mockUseAuth.mockReturnValue({ user: null });
-    const { result } = renderHook(() => useUserSettings());
+    const { result } = renderHook(() => useUserSettings(), { wrapper: createWrapper() });
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(result.current.settings.work_days).toEqual([1, 2, 3, 4, 5]);
   });
 
   it('default quiet_hours are 22:00-07:00', async () => {
     mockUseAuth.mockReturnValue({ user: null });
-    const { result } = renderHook(() => useUserSettings());
+    const { result } = renderHook(() => useUserSettings(), { wrapper: createWrapper() });
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(result.current.settings.quiet_hours_start).toBe('22:00');
     expect(result.current.settings.quiet_hours_end).toBe('07:00');
@@ -129,14 +139,14 @@ describe('useUserSettings', () => {
 
   it('default TTS speed is 1.0', async () => {
     mockUseAuth.mockReturnValue({ user: null });
-    const { result } = renderHook(() => useUserSettings());
+    const { result } = renderHook(() => useUserSettings(), { wrapper: createWrapper() });
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(result.current.settings.tts_speed).toBe(1.0);
   });
 
   it('default assignment method is roundrobin', async () => {
     mockUseAuth.mockReturnValue({ user: null });
-    const { result } = renderHook(() => useUserSettings());
+    const { result } = renderHook(() => useUserSettings(), { wrapper: createWrapper() });
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(result.current.settings.auto_assignment_method).toBe('roundrobin');
   });

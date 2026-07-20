@@ -8,6 +8,7 @@
  * Backward compatibility maintained through re-exports of legacy hook names.
  */
 import { useState, useEffect, useCallback } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import type { ConnectionMetrics } from '@/integrations/supabase/connectionPool';
@@ -89,34 +90,28 @@ export interface ConnectionQueue {
   created_at: string;
 }
 
+const CONN_QUEUES_KEY = (id: string | undefined) => ['connection-queues', id] as const;
+
 /**
  * Hook for managing queues associated with a WhatsApp connection.
  * Provides CRUD operations for connection queue relationships.
  */
 export function useConnectionQueues(connectionId?: string) {
-  const [connectionQueues, setConnectionQueues] = useState<ConnectionQueue[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const queryClient = useQueryClient();
 
-  const fetchQueues = useCallback(async () => {
-    if (!connectionId) return;
-    setIsLoading(true);
-    try {
+  const { data: connectionQueues = [], isLoading, refetch } = useQuery({
+    queryKey: CONN_QUEUES_KEY(connectionId),
+    queryFn: async () => {
       const { data, error } = await supabase
         .from('whatsapp_connection_queues')
         .select('*')
-        .eq('whatsapp_connection_id', connectionId);
+        .eq('whatsapp_connection_id', connectionId!);
       if (error) throw error;
-      setConnectionQueues(data || []);
-    } catch (err) {
-      log.error('Error fetching connection queues:', err);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [connectionId]);
-
-  useEffect(() => {
-    void fetchQueues();
-  }, [fetchQueues]);
+      return (data || []) as ConnectionQueue[];
+    },
+    enabled: !!connectionId,
+    staleTime: 30_000,
+  });
 
   const addQueue = useCallback(async (queueId: string) => {
     if (!connectionId) return;
@@ -125,12 +120,12 @@ export function useConnectionQueues(connectionId?: string) {
         .from('whatsapp_connection_queues')
         .insert({ whatsapp_connection_id: connectionId, queue_id: queueId });
       if (error) throw error;
-      await fetchQueues();
+      void queryClient.invalidateQueries({ queryKey: CONN_QUEUES_KEY(connectionId) });
     } catch (err) {
       log.error('Error adding queue to connection:', err);
       throw err;
     }
-  }, [connectionId, fetchQueues]);
+  }, [connectionId, queryClient]);
 
   const removeQueue = useCallback(async (queueId: string) => {
     if (!connectionId) return;
@@ -141,14 +136,14 @@ export function useConnectionQueues(connectionId?: string) {
         .eq('whatsapp_connection_id', connectionId)
         .eq('queue_id', queueId);
       if (error) throw error;
-      setConnectionQueues(prev => prev.filter(cq => cq.queue_id !== queueId));
+      void queryClient.invalidateQueries({ queryKey: CONN_QUEUES_KEY(connectionId) });
     } catch (err) {
       log.error('Error removing queue from connection:', err);
       throw err;
     }
-  }, [connectionId]);
+  }, [connectionId, queryClient]);
 
-  return { connectionQueues, isLoading, addQueue, removeQueue, refetch: fetchQueues };
+  return { connectionQueues, isLoading, addQueue, removeQueue, refetch };
 }
 
 // ──────────────────────────────────────────────────────────────────────────
