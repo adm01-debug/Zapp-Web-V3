@@ -880,6 +880,11 @@ export function clearCrossTabDedupe(): void {
   masterTabId = null;
   masterClockOffset = 0;
 
+  if (gcTimer !== null) {
+    clearInterval(gcTimer);
+    gcTimer = null;
+  }
+
   if (typeof localStorage !== 'undefined') {
     try {
       const keys: string[] = [];
