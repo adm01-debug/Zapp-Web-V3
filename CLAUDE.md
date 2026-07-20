@@ -142,6 +142,17 @@
 | ~~GAP-10~~ | `src/hooks/useQueueManagement.ts:203,415` | TABELA CRIADA: `zapp.queue_analytics` em `20260717000001_create_queue_analytics.sql`; FK para `queues`, RLS habilitado, índice em `(queue_id, timestamp DESC)` | Resolvido — necessário aplicar migração ao self-hosted |
 | ~~BUG-10~~ | `src/features/admin/hooks/monitoring/useFailedMessages.ts:60` | CORRIGIDO: `effectiveFrom` calculado a cada render com `Date.now()` e colocado em `queryKey` + `useEffect` deps → loop infinito de refetch + setState. Fix: `useMemo([from, hours])` para estabilizar o valor | Resolvido |
 | ~~BUG-11~~ | `supabase/migrations/20260717000002_create_missing_rpcs_stubs.sql` | CORRIGIDO: stubs `initiate_gmail_oauth` / `complete_gmail_oauth` retornavam JSON `{success:false}` sem RAISE; chamador em `useIntegrationManagement.ts:72` faz `setIsAuthenticated(true)` incondicionalmente após a RPC não retornar erro → falso estado autenticado. Fix: ambos os stubs agora fazem RAISE EXCEPTION com ERRCODE P0001 | Resolvido |
+| ~~BUG-12~~ | `src/components/contacts/AuditLogPanel.tsx` | CORRIGIDO: colunas `field_name`, `old_value`, `new_value`, `metadata` não existem em `contact_audit_log`; colunas reais são `old_values jsonb`, `new_values jsonb`, `reason text`. Painel retornava 400 e ficava em branco | Resolvido |
+| ~~BUG-13~~ | `src/features/admin/hooks/monitoring/useDispatchErrorLogs.ts` | CORRIGIDO: `fromIso` calculado a cada render sem `useMemo`; valor ficava obsoleto nos ciclos de `refetchInterval`. Fix: `useMemo([hours])` | Resolvido |
+| ~~BUG-14~~ | `src/features/admin/hooks/monitoring/useDlqAuditLog.ts` | CORRIGIDO: `currentPage` não resetava ao mudar filtros (`action`, `limit`); paginação mantinha página errada. Fix: `useEffect([action, limit])` → `setCurrentPage(0)` | Resolvido |
+| ~~BUG-15~~ | `supabase/migrations/` + `zapp.search_contacts_cursor` | CORRIGIDO (H1): `sort_direction` injetado diretamente no ORDER BY dinâmico sem whitelist → SQL injection. Fix: `IF v_dir NOT IN ('ASC','DESC') THEN RAISE EXCEPTION` | Resolvido — `20260720000003` |
+| ~~BUG-16~~ | `zapp.search_contacts_cursor` | CORRIGIDO (H2): `COUNT(*) OVER()` calculado após predicate do cursor; `total_count` decrescia a cada página. Fix: CTE `total` antes do cursor filter | Resolvido — `20260720000003` |
+| ~~BUG-17~~ | `zapp.search_contacts_cursor` | CORRIGIDO (H3): cursor sempre comparava só `c.id > $7`; ties em `created_at`/`updated_at` pulavam linhas. Fix: keyset composto `ROW(sort_col, id)` com pivot pré-buscado via SQL estático + `format('%L')` | Resolvido — `20260720000003` |
+| ~~BUG-18~~ | `zapp.search_contacts_cursor` | CORRIGIDO (C2): migration `20260717220000` omitiu o REVOKE/GRANT; autenticados sem permissão de EXECUTE. Fix: `REVOKE FROM PUBLIC, anon; GRANT TO authenticated` | Resolvido — `20260720000003` |
+| ~~BUG-19~~ | `zapp.rpc_list_dispatch_error_logs_cursor` | CORRIGIDO (C3): `d.created_at AS occurred_at` aliasava coluna errada; cursor comparava `ROW(b.occurred_at, b.id)` vs `ROW(c.created_at, c.id)` — lados misturados. Fix: `d.occurred_at` direto + cursor alinhado | Resolvido — `20260720000004` |
+| ~~BUG-20~~ | `zapp.rpc_list_dispatch_error_logs` | CORRIGIDO (A2): `FROM public.dispatch_error_logs` dentro de função com `SET search_path = zapp` resolvia para a VIEW proxy em vez da tabela física. Fix: `FROM dispatch_error_logs` sem qualificador | Resolvido — `20260720000004` |
+| ~~BUG-21~~ | `src/hooks/useAlertManagement.ts:363` | CORRIGIDO: `zapp.sentiment_alerts` estava em `logflare_pub` mas NÃO em `supabase_realtime`; subscription era no-op silencioso. Fix: `ALTER PUBLICATION supabase_realtime ADD TABLE zapp.sentiment_alerts` | Resolvido — `20260720000005` |
+| ~~BUG-22~~ | `src/hooks/useNotificationManagement.ts:420,447` | CORRIGIDO: subscriptions para tabelas fantasma `goal_notifications` / `transcription_notifications` (não existem em nenhuma migração). Fix: redirecionado para `zapp.app_notifications` (publicada) com filtro client-side por `type` | Resolvido |
 
 ---
 
@@ -235,3 +246,34 @@ supabase/
 - SECDEF: 0 sem search_path fixo
 - Realtime: `zapp.failed_messages` na publication ✅ (subscription com `schema:'zapp'`)
 - Crons: 119 ativos (18 novo: bpm-check-breached-slas)
+
+---
+
+## Sessão 2026-07-20 — Auditoria de Schema e Correção de Bugs
+
+### Melhorias executadas
+
+| Item | Arquivo / Migração | Ação | Status |
+|---|---|---|---|
+| BUG-12 — AuditLogPanel colunas erradas | `src/components/contacts/AuditLogPanel.tsx` | Interface e SELECT corrigidos: `old_values jsonb`, `new_values jsonb`, `reason text` (em vez de `field_name`, `old_value`, `new_value`, `metadata`) | ✅ |
+| BUG-13 — fromIso stale closure | `useDispatchErrorLogs.ts` | `useMemo([hours])` para estabilizar `fromIso` entre ciclos de refetch | ✅ |
+| BUG-14 — currentPage não reseta | `useDlqAuditLog.ts` | `useEffect([action, limit])` → `setCurrentPage(0)` | ✅ |
+| BUG-15 — SQL injection `sort_direction` | `20260720000003` | Whitelist + `RAISE EXCEPTION P0001` para valores inválidos em `search_contacts_cursor` | ✅ |
+| BUG-16 — COUNT decresce por página | `20260720000003` | CTE `total` calculada antes do cursor predicate em `search_contacts_cursor` | ✅ |
+| BUG-17 — Cursor keyset incompleto | `20260720000003` | `ROW(sort_col, id)` composto com pivot pré-buscado via SQL estático | ✅ |
+| BUG-18 — GRANT ausente `search_contacts_cursor` | `20260720000003` | `REVOKE FROM PUBLIC, anon; GRANT TO authenticated` restaurado | ✅ |
+| BUG-19 — occurred_at/created_at mismatch | `20260720000004` | `rpc_list_dispatch_error_logs_cursor`: `d.occurred_at` direto + cursor alinhado em ambos os lados | ✅ |
+| BUG-20 — `public.` view reference em SECDEF | `20260720000004` | `rpc_list_dispatch_error_logs`: `FROM public.dispatch_error_logs` → `FROM dispatch_error_logs` | ✅ |
+| BUG-21 — `sentiment_alerts` fora da publication | `20260720000005` | `ALTER PUBLICATION supabase_realtime ADD TABLE zapp.sentiment_alerts` | ✅ |
+| BUG-22 — Subscriptions em tabelas fantasma | `useNotificationManagement.ts` | `goal_notifications` / `transcription_notifications` → `app_notifications` com filtro client-side por `type` | ✅ |
+| Security hardening — funções internas | `20260720000002` | REVOKE EXECUTE FROM PUBLIC/anon em funções de scoring, rate-limit, trigger e analytics ops | ✅ |
+| Stub `check_download_permission` | `20260720000001` | Fail-open com SQLSTATE 42883 para `rpc('check_download_permission')` ausente | ✅ |
+| `useRealtimeDashboardManagement` | `useRealtimeManagement.ts` | Subscription de `zapp.dashboard_data` (inexistente) → `zapp.app_notifications` (publicada) | ✅ |
+| TypeScript 0 erros | — | `tsc --noEmit --skipLibCheck`: 0 erros após todas as correções | ✅ |
+
+### Estado do Realtime após sessão 2026-07-20
+- `zapp.failed_messages` ✅ (física, publicada)
+- `zapp.sentiment_alerts` ✅ (adicionada em `20260720000005`)
+- `zapp.app_notifications` ✅ (publicada, usada por dashboard + goal + transcription hooks)
+- `zapp.goal_notifications` / `zapp.transcription_notifications` — tabelas fantasma, subscriptions redirecionadas
+- `zapp.dispatch_error_logs` — NÃO está em supabase_realtime (sem subscription ativa, ok)
