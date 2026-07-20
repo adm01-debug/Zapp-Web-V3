@@ -111,7 +111,7 @@ export const contactsRepository = {
    * Delete multiple contacts
    */
   deleteMany: async (ids: string[]): Promise<number> => {
-    return baseContactsService.deleteMany({ id: ids as unknown as string });
+    return baseContactsService.deleteMany({ id: ids });
   },
 
   /**
@@ -141,11 +141,8 @@ export const contactsRepository = {
   /**
    * Bulk update status
    */
-  updateStatusBulk: async (
-    ids: string[],
-    status: 'active' | 'archived'
-  ): Promise<Contact[]> => {
-    return baseContactsService.updateMany({ id: ids as unknown as string }, { status });
+  updateStatusBulk: async (ids: string[], status: 'active' | 'archived'): Promise<Contact[]> => {
+    return baseContactsService.updateMany({ id: ids }, { status });
   },
 
   /**
