@@ -6,8 +6,7 @@ import { Mail, RefreshCw, CheckCircle, AlertCircle, Clock, Wifi, WifiOff } from 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { supabase } from '@/integrations/supabase/client';
-import { safeClient } from '@/integrations/supabase/safeClient';
+import { safeClient, safeFrom } from '@/integrations/supabase/safeClient';
 
 interface EmailAccount {
   id: string;
@@ -38,12 +37,10 @@ export function EmailWebhookMonitor() {
           history_id: null,
         })) as EmailAccount[];
 
-        const { count: totalThreads } = await supabase
-          .from('email_threads' as any)
+        const { count: totalThreads } = await safeFrom('email_threads')
           .select('*', { count: 'exact', head: true });
 
-        const { count: unreadThreads } = await supabase
-          .from('email_threads' as any)
+        const { count: unreadThreads } = await safeFrom('email_threads')
           .select('*', { count: 'exact', head: true })
           .eq('is_unread', true);
 
