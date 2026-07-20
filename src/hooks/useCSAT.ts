@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -19,6 +20,13 @@ export interface CSATStats {
   distribution: Record<number, number>;
   trend: number; // percentage change vs previous period
 }
+
+const EMPTY_STATS: CSATStats = {
+  average: 0,
+  total: 0,
+  distribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
+  trend: 0,
+};
 
 /** Manages CSAT surveys with period-based filtering, statistics calculation, and submission. */
 export function useCSAT(period: 'today' | 'week' | 'month' = 'month') {
@@ -56,35 +64,26 @@ export function useCSAT(period: 'today' | 'week' | 'month' = 'month') {
     },
   });
 
-  const statsQuery = useQuery({
-    queryKey: queryKeys.csat.stats(period),
-    queryFn: async () => {
-      const surveys = surveysQuery.data || [];
-      if (surveys.length === 0) {
-        return {
-          average: 0,
-          total: 0,
-          distribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
-          trend: 0,
-        } as CSATStats;
-      }
+  // Derived stats — computed synchronously from survey data to avoid stale-data
+  // race conditions that occur when a separate useQuery reads sibling query data.
+  const stats: CSATStats = useMemo(() => {
+    const surveys = surveysQuery.data;
+    if (!surveys || surveys.length === 0) return EMPTY_STATS;
 
-      const distribution: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
-      let sum = 0;
-      surveys.forEach((s) => {
-        distribution[s.rating] = (distribution[s.rating] || 0) + 1;
-        sum += s.rating;
-      });
+    const distribution: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+    let sum = 0;
+    surveys.forEach((s) => {
+      distribution[s.rating] = (distribution[s.rating] || 0) + 1;
+      sum += s.rating;
+    });
 
-      return {
-        average: sum / surveys.length,
-        total: surveys.length,
-        distribution,
-        trend: 0,
-      } as CSATStats;
-    },
-    enabled: !!surveysQuery.data,
-  });
+    return {
+      average: sum / surveys.length,
+      total: surveys.length,
+      distribution,
+      trend: 0,
+    };
+  }, [surveysQuery.data]);
 
   const submitSurvey = useMutation({
     mutationFn: async (data: {
@@ -104,7 +103,6 @@ export function useCSAT(period: 'today' | 'week' | 'month' = 'month') {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.csat.surveysRoot() });
-      queryClient.invalidateQueries({ queryKey: queryKeys.csat.statsRoot() });
       toast({ title: 'Avaliação enviada!', description: 'Obrigado pelo feedback.' });
     },
     onError: () => {
@@ -114,7 +112,7 @@ export function useCSAT(period: 'today' | 'week' | 'month' = 'month') {
 
   return {
     surveys: surveysQuery.data || [],
-    stats: statsQuery.data,
+    stats,
     isLoading: surveysQuery.isLoading,
     submitSurvey,
   };

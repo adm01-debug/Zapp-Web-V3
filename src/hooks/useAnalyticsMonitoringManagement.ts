@@ -66,35 +66,20 @@ export function useCSATManagement(period: 'today' | 'week' | 'month' = 'month') 
     },
   });
 
-  const statsQuery = useQuery({
-    queryKey: queryKeys.csat.stats(period),
-    queryFn: async () => {
-      const surveys = surveysQuery.data || [];
-      if (surveys.length === 0) {
-        return {
-          average: 0,
-          total: 0,
-          distribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
-          trend: 0,
-        } as CSATStats;
-      }
-
-      const distribution: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
-      let sum = 0;
-      surveys.forEach((s) => {
-        distribution[s.rating] = (distribution[s.rating] || 0) + 1;
-        sum += s.rating;
-      });
-
-      return {
-        average: sum / surveys.length,
-        total: surveys.length,
-        distribution,
-        trend: 0,
-      } as CSATStats;
-    },
-    enabled: !!surveysQuery.data,
-  });
+  // Derived stats — computed synchronously to avoid stale-data race conditions
+  // from a secondary useQuery reading sibling query data.
+  const statsData: CSATStats = useMemo(() => {
+    const surveys = surveysQuery.data;
+    if (!surveys || surveys.length === 0)
+      return { average: 0, total: 0, distribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 }, trend: 0 };
+    const distribution: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+    let sum = 0;
+    surveys.forEach((s) => {
+      distribution[s.rating] = (distribution[s.rating] || 0) + 1;
+      sum += s.rating;
+    });
+    return { average: sum / surveys.length, total: surveys.length, distribution, trend: 0 };
+  }, [surveysQuery.data]);
 
   const submitSurvey = useMutation({
     mutationFn: async (data: {
@@ -114,7 +99,6 @@ export function useCSATManagement(period: 'today' | 'week' | 'month' = 'month') 
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.csat.surveysRoot() });
-      queryClient.invalidateQueries({ queryKey: queryKeys.csat.statsRoot() });
       toast.success('Avaliação enviada! Obrigado pelo feedback.');
     },
     onError: () => {
@@ -124,7 +108,7 @@ export function useCSATManagement(period: 'today' | 'week' | 'month' = 'month') 
 
   return {
     surveys: surveysQuery.data || [],
-    stats: statsQuery.data,
+    stats: statsData,
     isLoading: surveysQuery.isLoading,
     submitSurvey,
   };
@@ -149,7 +133,9 @@ export interface DemandInsights {
   capacityRisk: boolean;
 }
 
-function generatePredictionFromHistory(messageHistory: { hour: number; count: number }[]): PredictionPoint[] {
+function generatePredictionFromHistory(
+  messageHistory: { hour: number; count: number }[]
+): PredictionPoint[] {
   const now = new Date();
   const data: PredictionPoint[] = [];
 
@@ -186,7 +172,10 @@ function generatePredictionFromHistory(messageHistory: { hour: number; count: nu
 }
 
 /** Predicts queue demand with capacity forecasting and staffing recommendations. */
-export function useDemandPredictionManagement(externalData?: PredictionPoint[], currentCapacity = 35) {
+export function useDemandPredictionManagement(
+  externalData?: PredictionPoint[],
+  currentCapacity = 35
+) {
   const { data: messageHistory = [] } = useQuery({
     queryKey: queryKeys.demandPrediction.history(),
     queryFn: async () => {
@@ -554,7 +543,7 @@ export function useNPSSurveysManagement() {
           .from('profiles')
           .select('id')
           .eq('user_id', (await supabase.auth.getUser()).data.user?.id || '')
-          .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
+          .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
 
         const { error } = await supabase.from('nps_surveys').insert({
           contact_id: data.contact_id,
