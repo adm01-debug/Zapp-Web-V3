@@ -75,17 +75,17 @@ describe('useInboxFilters Business Rules', () => {
       contact: { id: 'c1', assigned_to: 'agent-1', contact_type: 'cliente' },
       messages: [],
       unreadCount: 0,
-    } as any,
+    },
     {
       contact: { id: 'c2', assigned_to: 'agent-2', contact_type: 'colaborador' },
       messages: [],
       unreadCount: 0,
-    } as any,
+    },
     {
       contact: { id: 'c3', assigned_to: null, contact_type: 'cliente' },
       messages: [],
       unreadCount: 0,
-    } as any,
+    },
   ];
 
   beforeEach(() => {

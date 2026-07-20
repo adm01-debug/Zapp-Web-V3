@@ -92,8 +92,7 @@ beforeEach(() => {
   mockFetch.mockReset();
   mockGetSession.mockReset();
   // Reset the cached session between tests by accessing internal state
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (evoApi as any).cachedSession = null;
+  (evoApi as unknown as { cachedSession: null }).cachedSession = null;
 });
 
 afterEach(() => {
@@ -201,8 +200,11 @@ describe('call() — transient schema errors retry', () => {
     mockFetch.mockReturnValueOnce(errorFetch('PGRST106', 503));
 
     await expect(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (evoApi as any).call({ action: 'rpc' }, 5)
+      (
+        evoApi as unknown as {
+          call(body: Record<string, unknown>, retryCount: number): Promise<unknown>;
+        }
+      ).call({ action: 'rpc' }, 5)
     ).rejects.toThrow('PGRST106');
 
     expect(mockFetch).toHaveBeenCalledTimes(1);
