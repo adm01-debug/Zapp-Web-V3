@@ -17,10 +17,12 @@ CREATE OR REPLACE FUNCTION zapp.initiate_gmail_oauth()
   SET search_path = zapp, public
 AS $$
 BEGIN
-  RETURN jsonb_build_object(
-    'auth_url', null,
-    'error', 'Gmail OAuth not yet implemented'
-  );
+  -- Stub: RAISE so callers receive a proper error instead of a null auth_url.
+  -- The calling code checks `if (err) throw err`, so only a RAISE propagates.
+  -- Replace with real Google OAuth initiation when credentials are configured.
+  RAISE EXCEPTION 'Gmail OAuth not yet implemented'
+    USING ERRCODE = 'P0001',
+          DETAIL  = 'Configure Google OAuth credentials and implement initiate_gmail_oauth.';
 END;
 $$;
 
@@ -35,10 +37,12 @@ CREATE OR REPLACE FUNCTION zapp.complete_gmail_oauth(auth_code text, p_state tex
   SET search_path = zapp, public
 AS $$
 BEGIN
-  RETURN jsonb_build_object(
-    'success', false,
-    'error', 'Gmail OAuth not yet implemented'
-  );
+  -- Stub: RAISE so the caller does NOT reach setIsAuthenticated(true) on line 72
+  -- of useIntegrationManagement.ts. Returning {success:false} would be silently
+  -- ignored because the caller does `if (err) throw err; setIsAuthenticated(true)`.
+  RAISE EXCEPTION 'Gmail OAuth not yet implemented'
+    USING ERRCODE = 'P0001',
+          DETAIL  = 'Configure Google OAuth credentials and implement complete_gmail_oauth.';
 END;
 $$;
 
