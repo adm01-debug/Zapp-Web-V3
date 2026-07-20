@@ -1,7 +1,7 @@
 // Consolidated Analytics & Monitoring Management Module (ETAPA 39)
 // Consolidates: usePerformanceMonitoring, useErrorMonitoring, useRealtimeMonitor, useLatestAnalysis, useMessageAttempts
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useMountedRef } from '@/hooks/useMountedRef';
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { log } from '@/lib/logger';
@@ -166,57 +166,34 @@ export function useErrorMonitoringManagement() {
 
 /** Hook: use Latest Analysis Management. */
 export function useLatestAnalysisManagement(timeWindow: number = 24) {
-  const [analysis, _setAnalysis] = useState<Analysis | null>(null);
-  const [loading, setLoading] = useState(true);
-  const mounted = useMountedRef();
-
-  useEffect(() => {
-    const fetchAnalysis = async () => {
-      try {
-        // GAP-6: get_latest_analysis RPC not yet deployed to DB
-        log.warn('fetchAnalysis called but get_latest_analysis RPC is not deployed', {
-          timeWindow,
-        });
-      } catch (err) {
-        log.error('Error fetching analysis:', err);
-      } finally {
-        if (mounted.current) setLoading(false);
-      }
-    };
-
-    fetchAnalysis();
-  }, [timeWindow, mounted]);
+  const { data: analysis = null, isLoading: loading } = useQuery({
+    queryKey: ['latest-analysis', timeWindow] as const,
+    queryFn: async () => {
+      // GAP-6: get_latest_analysis RPC not yet deployed to DB
+      log.warn('fetchAnalysis called but get_latest_analysis RPC is not deployed', { timeWindow });
+      return null as Analysis | null;
+    },
+    staleTime: 60_000,
+  });
 
   return { analysis, loading };
 }
 
 /** Hook: use Message Attempts Management. */
 export function useMessageAttemptsManagement(messageId: string) {
-  const [attempts, setAttempts] = useState<Record<string, unknown>[]>([]);
-  const [loading, setLoading] = useState(true);
-  const mounted = useMountedRef();
-
-  useEffect(() => {
-    if (!messageId) return;
-
-    const fetchAttempts = async () => {
-      try {
-        const { data, error: err } = await supabase
-          .from('message_attempts')
-          .select('*')
-          .eq('message_id', messageId);
-
-        if (err) throw err;
-        if (mounted.current) setAttempts(data || []);
-      } catch (err) {
-        log.error('Error fetching message attempts:', err);
-      } finally {
-        if (mounted.current) setLoading(false);
-      }
-    };
-
-    fetchAttempts();
-  }, [messageId, mounted]);
+  const { data: attempts = [], isLoading: loading } = useQuery({
+    queryKey: ['message-attempts', messageId] as const,
+    queryFn: async () => {
+      const { data, error: err } = await supabase
+        .from('message_attempts')
+        .select('*')
+        .eq('message_id', messageId);
+      if (err) throw err;
+      return (data || []) as Record<string, unknown>[];
+    },
+    enabled: !!messageId,
+    staleTime: 30_000,
+  });
 
   return { attempts, loading };
 }
