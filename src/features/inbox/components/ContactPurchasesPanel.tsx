@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { fetchContactPurchases, createContactPurchase } from '../hooks/useContactPurchasesData';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -62,23 +62,19 @@ export function ContactPurchasesPanel({ contactId, profileId }: ContactPurchases
 
   const loadPurchases = async () => {
     setLoading(true);
-    const { data } = await supabase
-      .from('contact_purchases')
-      .select('*')
-      .eq('contact_id', contactId)
-      .order('created_at', { ascending: false });
-    if (data) setPurchases(data);
+    const data = await fetchContactPurchases(contactId);
+    setPurchases(data);
     setLoading(false);
   };
 
   const addPurchase = async () => {
     if (!title.trim()) return;
-    const { error } = await supabase.from('contact_purchases').insert({
+    const { error } = await createContactPurchase({
       contact_id: contactId,
       title: title.trim(),
-      amount: amount ? parseFloat(amount) : null,
+      amount: amount ? parseFloat(amount) : 0,
       purchase_type: type,
-      created_by: profileId,
+      created_by: profileId as string,
     });
     if (!error) {
       toast.success('Registro adicionado');

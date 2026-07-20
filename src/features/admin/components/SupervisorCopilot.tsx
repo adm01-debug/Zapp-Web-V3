@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { fetchSupervisorQueues } from '../hooks/useSupervisorQueuesData';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -41,8 +42,8 @@ export function SupervisorCopilot() {
     setQuestion('');
 
     try {
-      const [queueData, agentRaw, messageData] = await Promise.all([
-        supabase.from('queues').select('id, name').limit(20),
+      const [queuesRaw, agentRaw, messageData] = await Promise.all([
+        fetchSupervisorQueues(),
         safeClient.from<AgentRow>('profiles', (q) =>
           q.select('id, name, role, is_active').eq('is_active', true).limit(50)
         ),
@@ -51,9 +52,8 @@ export function SupervisorCopilot() {
           .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()),
       ]);
 
-      if (queueData.error) logger.warn('[SupervisorCopilot] queues fetch error', queueData.error);
       if (agentRaw.error) logger.warn('[SupervisorCopilot] agents fetch error', agentRaw.error);
-      const queues = (queueData.data ?? []) as unknown as QueueRow[];
+      const queues = queuesRaw as unknown as QueueRow[];
       const agents = agentRaw.data ?? [];
       const context = `
 Dados atuais do sistema:

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { fetchConversationTasks, createConversationTask, updateConversationTaskStatus, deleteConversationTask } from '../hooks/useConversationTasksData';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -55,24 +55,20 @@ export function ConversationTasksPanel({ contactId, profileId }: ConversationTas
 
   const loadTasks = async () => {
     setLoading(true);
-    const { data } = await supabase
-      .from('conversation_tasks')
-      .select('*')
-      .eq('contact_id', contactId)
-      .order('created_at', { ascending: false });
-    if (data) setTasks(data);
+    const data = await fetchConversationTasks(contactId);
+    setTasks(data);
     setLoading(false);
   };
 
   const addTask = async () => {
     if (!newTitle.trim()) return;
     setAdding(true);
-    const { error } = await supabase.from('conversation_tasks').insert({
+    const { error } = await createConversationTask({
       contact_id: contactId,
       title: newTitle.trim(),
       priority: newPriority,
-      created_by: profileId,
-      assigned_to: profileId,
+      created_by: profileId as string,
+      assigned_to: profileId as string,
     });
     if (!error) {
       setNewTitle('');
@@ -86,18 +82,12 @@ export function ConversationTasksPanel({ contactId, profileId }: ConversationTas
 
   const toggleTask = async (task: Task) => {
     const newStatus = task.status === 'completed' ? 'pending' : 'completed';
-    await supabase
-      .from('conversation_tasks')
-      .update({
-        status: newStatus,
-        completed_at: newStatus === 'completed' ? new Date().toISOString() : null,
-      })
-      .eq('id', task.id);
+    await updateConversationTaskStatus(task.id, newStatus, newStatus === 'completed' ? new Date().toISOString() : null);
     loadTasks();
   };
 
   const deleteTask = async (taskId: string) => {
-    await supabase.from('conversation_tasks').delete().eq('id', taskId);
+    await deleteConversationTask(taskId);
     toast.success('Tarefa removida');
     loadTasks();
   };

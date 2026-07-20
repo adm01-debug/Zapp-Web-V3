@@ -19,7 +19,8 @@ import {
   Sparkles,
   X,
 } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { fetchInboxCustomScopes, createInboxCustomScope, deleteInboxCustomScopeById } from '../hooks/useInboxCustomScopesData';
+import type { Json } from '@/integrations/supabase/schema';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
@@ -45,14 +46,7 @@ export function InboxScopeConfig() {
 
   const { data: customScopes = [], isLoading: loadingScopes } = useQuery({
     queryKey: queryKeys.adminOps.inboxScopes(),
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('inbox_custom_scopes')
-        .select('*')
-        .order('created_at', { ascending: true });
-      if (error) throw error;
-      return data || [];
-    },
+    queryFn: fetchInboxCustomScopes,
   });
 
   const handleAddScope = async () => {
@@ -63,14 +57,12 @@ export function InboxScopeConfig() {
 
     setIsAddingScope(true);
     try {
-      const { error } = await supabase.from('inbox_custom_scopes').insert([
-        {
-          label: newScope.label,
-          name: newScope.name.toLowerCase().replace(/\s+/g, '_'),
-          description: newScope.description,
-          filter_criteria: {},
-        },
-      ]);
+      const { error } = await createInboxCustomScope({
+        label: newScope.label,
+        name: newScope.name.toLowerCase().replace(/\s+/g, '_'),
+        description: newScope.description,
+        filter_criteria: {} as Json,
+      });
 
       if (error) throw error;
 
@@ -87,7 +79,7 @@ export function InboxScopeConfig() {
 
   const handleDeleteScope = async (id: string) => {
     try {
-      const { error } = await supabase.from('inbox_custom_scopes').delete().eq('id', id);
+      const { error } = await deleteInboxCustomScopeById(id);
       if (error) throw error;
       toast.success('Escopo removido');
       void queryClient.invalidateQueries({ queryKey: queryKeys.adminOps.inboxScopes() });

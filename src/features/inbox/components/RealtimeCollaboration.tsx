@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { fetchProfileIdByUserId, insertContactNote } from '../hooks/useContactNotesMutations';
 import { Button } from '@/components/ui/button';
 import { Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -26,13 +27,9 @@ export function RealtimeCollaboration({ contactId, className }: RealtimeCollabor
       const { data: userRes } = await supabase.auth.getUser();
       const userId = userRes.user?.id;
       if (!userId) return;
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('user_id', userId)
-        .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
+      const profile = await fetchProfileIdByUserId(userId);
       if (profile) {
-        await supabase.from('contact_notes').insert({
+        await insertContactNote({
           contact_id: contactId,
           author_id: profile.id,
           content: `Transferido: ${comment}`,
