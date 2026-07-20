@@ -1316,10 +1316,19 @@ export function useEmailSignature(accountId: string | null) {
   const setDefault = useCallback(
     async (id: string) => {
       if (!accountId) return;
-      await safeClient.from('email_signatures', (q) =>
-        q.update({ is_default: false }).eq('account_id', accountId ?? '')
+      // Set the new default first so there is always at least one default signature.
+      // Clear others second: if this fails, two rows have is_default=true (harmless)
+      // rather than zero rows (which would break the UI).
+      const { error: setErr } = await safeClient.from('email_signatures', (q) =>
+        q.update({ is_default: true }).eq('id', id)
       );
-      await safeClient.from('email_signatures', (q) => q.update({ is_default: true }).eq('id', id));
+      if (setErr) return;
+      await safeClient.from('email_signatures', (q) =>
+        q
+          .update({ is_default: false })
+          .eq('account_id', accountId ?? '')
+          .neq('id', id)
+      );
       await load();
     },
     [accountId, load]

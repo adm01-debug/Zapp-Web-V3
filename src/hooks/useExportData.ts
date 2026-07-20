@@ -55,7 +55,9 @@ export function useExportDataTyped<T extends Record<string, unknown>>(
             .map((col) => {
               const val = row[col.key];
               const formatted = col.format ? col.format(val) : String(val ?? '');
-              return `"${formatted.replace(/"/g, '""')}"`;
+              const escaped = formatted.replace(/"/g, '""');
+              const safe = /^[=+\-@\t\r]/.test(escaped) ? `\t${escaped}` : escaped;
+              return `"${safe}"`;
             })
             .join(',')
         );

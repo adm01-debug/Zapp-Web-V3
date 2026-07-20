@@ -344,8 +344,12 @@ export function useWebhookHealthAlertsManagement(): UseWebhookHealthAlertsResult
 
   const acknowledgeAlert = useCallback(async (alertId: string) => {
     try {
-      await supabase.from('webhook_health_checks').update({ acknowledged: true }).eq('id', alertId);
-      setAlerts((prev) => prev.map((a) => (a.id === alertId ? { ...a } : a)));
+      const { error: updateError } = await supabase
+        .from('webhook_health_checks')
+        .update({ acknowledged: true })
+        .eq('id', alertId);
+      if (updateError) throw updateError;
+      setAlerts((prev) => prev.map((a) => (a.id === alertId ? { ...a, acknowledged: true } : a)));
     } catch (error) {
       log.error('Failed to acknowledge webhook health alert:', error);
     }

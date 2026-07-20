@@ -679,6 +679,7 @@ export function useLeaderboardManagement() {
         const { data: rawStats, error } = await supabase
           .from('agent_stats')
           .select('*, profiles:profile_id (id, name, avatar_url, is_active)')
+          .gte('updated_at', _since)
           .order('xp', { ascending: false })
           .limit(10);
         if (error) throw error;

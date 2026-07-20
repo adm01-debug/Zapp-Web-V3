@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { log } from '@/lib/logger';
 import { supabase } from '@/integrations/supabase/client';
 import { normalizeMediaUrl } from '@/utils/normalizeMediaUrl';
@@ -24,6 +24,12 @@ export function useChatMediaSending(contactId: string, contactPhone: string | un
   const [instanceName, setInstanceName] = useState('');
   const [whatsappConnectionId, setWhatsappConnectionId] = useState<string | null>(null);
   const resolvedRef = useRef(false);
+
+  useEffect(() => {
+    resolvedRef.current = false;
+    setInstanceName('');
+    setWhatsappConnectionId(null);
+  }, [contactId]);
 
   const { sendStickerMessage } = useEvolutionApi();
 
