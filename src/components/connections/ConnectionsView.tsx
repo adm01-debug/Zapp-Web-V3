@@ -117,7 +117,6 @@ export function ConnectionsView() {
     handleDelete,
     handleAddConnection,
     closeQrDialog,
-    handleAddConnection,
   } = useConnectionsManager();
 
   // Auto-sync Evolution instances not yet in whatsapp_connections
