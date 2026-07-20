@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useCallback } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/features/auth';
 import { toast } from 'sonner';
@@ -69,11 +70,12 @@ export const EMPTY_TEMPLATE: Partial<WhatsAppTemplate> = {
   status: 'draft',
 };
 
+const TEMPLATES_KEY = ['whatsapp-templates'] as const;
+
 /** Manages WhatsApp message templates with CRUD operations, preview, and variable substitution. */
 export function useWhatsAppTemplates() {
   const { user } = useAuth();
-  const [templates, setTemplates] = useState<WhatsAppTemplate[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [filterCategory, setFilterCategory] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
@@ -83,38 +85,23 @@ export function useWhatsAppTemplates() {
   const [previewTemplate, setPreviewTemplate] = useState<WhatsAppTemplate | null>(null);
   const [previewVariables, setPreviewVariables] = useState<Record<string, string>>({});
   const [isSaving, setIsSaving] = useState(false);
-  const mountedRef = useRef(true);
 
-  useEffect(() => {
-    return () => {
-      mountedRef.current = false;
-    };
-  }, []);
-
-  const fetchTemplates = useCallback(async () => {
-    try {
-      setLoading(true);
+  const { data: templates = [], isLoading: loading } = useQuery({
+    queryKey: TEMPLATES_KEY,
+    queryFn: async () => {
       const { data, error } = await supabase
         .from('whatsapp_templates')
         .select('*')
         .order('updated_at', { ascending: false });
-      if (error) throw error;
-      if (mountedRef.current) {
-        setTemplates((data || []) as unknown as WhatsAppTemplate[]);
-      }
-    } catch (err) {
-      if (mountedRef.current) {
-        log.error('Error fetching templates:', err);
+      if (error) {
+        log.error('Error fetching templates:', error);
         toast.error('Erro ao carregar templates');
+        return [] as WhatsAppTemplate[];
       }
-    } finally {
-      if (mountedRef.current) setLoading(false);
-    }
-  }, [mountedRef]);
-
-  useEffect(() => {
-    fetchTemplates();
-  }, [fetchTemplates]);
+      return (data || []) as unknown as WhatsAppTemplate[];
+    },
+    staleTime: 30_000,
+  });
 
   const extractVariables = (text: string): string[] => {
     const matches = text.match(/\{\{(\d+)\}\}/g);
@@ -156,20 +143,16 @@ export function useWhatsAppTemplates() {
         if (error) throw error;
         toast.success('Template criado!');
       }
-      if (mountedRef.current) {
-        setIsDialogOpen(false);
-        setEditingTemplate(EMPTY_TEMPLATE);
-        fetchTemplates();
-      }
+      setIsDialogOpen(false);
+      setEditingTemplate(EMPTY_TEMPLATE);
+      void queryClient.invalidateQueries({ queryKey: TEMPLATES_KEY });
     } catch (err) {
-      if (mountedRef.current) {
-        log.error('Error saving template:', err);
-        toast.error('Erro ao salvar template');
-      }
+      log.error('Error saving template:', err);
+      toast.error('Erro ao salvar template');
     } finally {
-      if (mountedRef.current) setIsSaving(false);
+      setIsSaving(false);
     }
-  }, [editingTemplate, user, fetchTemplates, mountedRef]);
+  }, [editingTemplate, user, queryClient]);
 
   const handleDelete = useCallback(
     async (id: string) => {
@@ -177,13 +160,13 @@ export function useWhatsAppTemplates() {
         const { error } = await supabase.from('whatsapp_templates').delete().eq('id', id);
         if (error) throw error;
         toast.success('Template removido!');
-        fetchTemplates();
+        void queryClient.invalidateQueries({ queryKey: TEMPLATES_KEY });
       } catch (err) {
         log.error('Error deleting:', err);
         toast.error('Erro ao remover template');
       }
     },
-    [fetchTemplates]
+    [queryClient]
   );
 
   const handleDuplicate = useCallback((template: WhatsAppTemplate) => {
