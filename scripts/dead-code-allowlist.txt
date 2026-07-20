@@ -53,6 +53,42 @@ src/lib/webauthnUtils.ts  # utilidades WebAuthn legadas não referenciadas; cand
 src/pages/admin/useAutomationLogs.ts  # hook legado de automação não referenciado; candidato para remoção futura
 src/types/system-connections.ts  # tipos legados de conexão não referenciados; candidato para remoção futura
 src/hooks/useAdvancedFeaturesManagement.ts  # management module consolidado em ETAPA 50; re-exportado por wrapper ou potencialmente consumido dinamicamente; candidato para remoção futura
+
+# Connections page tab sub-components (2026-07-20) — implementação inline em Connections.tsx preferida;
+# estes arquivos representam uma refatoração parcial não completada. Integração futura planejada.
+src/pages/admin/connections/ConnectionsExternalDbTab.tsx  # tab component da refatoração pendente de Connections.tsx; lógica real mas não importada ainda
+src/pages/admin/connections/ConnectionsIntegrationsTab.tsx  # tab component da refatoração pendente de Connections.tsx; lógica real mas não importada ainda
+src/pages/admin/connections/ConnectionsMcpTab.tsx  # tab component da refatoração pendente de Connections.tsx; lógica real mas não importada ainda
+src/pages/admin/connections/ConnectionsWebhooksTab.tsx  # tab component da refatoração pendente de Connections.tsx; lógica real mas não importada ainda
 src/hooks/useAnalyticsMonitoringManagement.ts  # management module consolidado em ETAPA 48; re-exportado por wrapper ou potencialmente consumido dinamicamente; candidato para remoção futura
 src/hooks/useIntegrationAuthenticationManagement.ts  # management module consolidado em ETAPA 47; re-exportado por wrapper ou potencialmente consumido dinamicamente; candidato para remoção futura
 src/hooks/useUtilityHelpersManagement.ts  # management module consolidado em ETAPA 49; re-exportado por wrapper ou potencialmente consumido dinamicamente; candidato para remoção futura
+
+# Wave 3 dead-code triage (2026-07-20) — auditoria completa por agente especializado
+# Arquivos com código real e distinto mas sem importador ativo; preservados intencionalmente.
+src/components/connections/AddConnectionDialog.tsx  # UI real de criação de conexões; página de conexões refatorada não renderiza mais; lógica de formulário preservada para reintegração futura
+src/components/connections/ConnectionsStats.tsx  # widget de 3 cards de estatísticas de conexões; planejado para adição ao dashboard
+src/components/connections/QrCodeDialog.tsx  # modal real de QR code; tipo QrCodeDialogState duplicado em features/connections impede wiring
+src/components/contacts/useContactFormV3.ts  # hook v3 com conflict-detection e merge flow; ContactFormV3.tsx gerencia estado próprio e não importa este hook
+src/components/team-chat/TeamChatMessageRow.tsx  # row de mensagens com reactions, TTS e context-menu; referenciado apenas em teste de auditoria, nunca renderizado
+src/features/inbox/components/chat/useChatPanel.ts  # orquestra estado do chat-panel (agendamento, quick-replies, TTS, drag-drop, atalhos); ChatPanel.tsx migrou para importar useChatPanelHandlers diretamente
+src/features/inbox/components/conversation-list/ConversationItemComfortable.tsx  # variante de densidade "confortável"; ConversationItem.tsx é self-contained e não delega
+src/features/inbox/components/conversation-list/ConversationItemCompact.tsx  # variante de densidade "compacta"; planejado mas não roteado por ConversationItem.tsx
+src/features/inbox/hooks/inboxFilterPipeline.ts  # pipeline puro sem hook (applyInboxFilters); cobre tabs, escopos, busca, agente, fila, tags, data — pronto para substituir filtragem inline
+src/features/inbox/hooks/realtime/useConversationActions.ts  # hook de send+markAsRead no subdomínio realtime; coexiste com outro useConversationActions (pin/snooze) por nome
+src/features/inbox/hooks/realtime/useConversationSendState.ts  # deriva estado idle/retrying/failed por conversa do bus de send-status; feature real não consumida pela UI
+src/features/inbox/hooks/realtime/useConversationsFilter.ts  # hook de busca/status/sort client-side; provavelmente superado por inboxFilterPipeline mas mantém API stateful única
+src/features/inbox/hooks/useFallbackContact.ts  # resolve contato por UUID, JID ou telefone via DB fallback; não integrado ao fluxo realtime do inbox ainda
+src/features/inbox/hooks/useInboxDataQueries.ts  # React Query hook para custom scopes e chunked contact-tags map (necessário pelo inboxFilterPipeline); não consumido ainda
+src/features/inbox/hooks/useWhisperCount.ts  # contagem realtime de whispers não lidos com subscription Supabase; feature real não conectada à UI do inbox
+src/hooks/gmail/gmailApiTypes.ts  # interfaces TypeScript da Gmail API; não importado — planejado para integração Gmail ou superado por tipos do módulo de gerenciamento
+src/hooks/useAudioRecorder.ts  # gravador de áudio autônomo com MediaRecorder, PTT e transcrição Supabase; superado pela cópia inline em useAudioManagement.ts
+src/hooks/useAutomationSuggestions.ts  # hook autônomo de sugestões lendo de DB externo CRM; AutomationSuggestionsBar.tsx importa de useAutomationManagement
+src/hooks/useEmailDraft.ts  # hook de rascunho de email com auto-save 30s; superado pela reimplementação inline em useEmailManagement.ts
+src/hooks/useExternalDB.ts  # hook genérico de query em DB externo com filtros, paginação e mutações; feature planejada sem consumidor ainda
+src/hooks/useExternalEvolution.ts  # hook de conversas Evolution externas com paginação, polling e cursor; importa crossTabDedupe — tem teste de reconciliação mas não integrado ao inbox
+src/hooks/useIntegrationManagement.ts  # módulo consolidado ETAPA 42 exportando useEvolutionApiManagement, useGmailOAuthFlowManagement etc.; exports renomeados vs expectativas dos consumidores
+src/hooks/useSettingsManagement.ts  # módulo consolidado ETAPA 41 exportando useUserSettingsManagement etc.; mesmo padrão — nada importa deste caminho
+src/lib/realtime/crossTabDedupeCache.ts  # utilitários de read/write/GC do cache localStorage para dedupe; crossTabDedupe.ts foi reimplementado inline e nunca chama estes módulos
+src/lib/realtime/crossTabDedupeLock.ts  # primitivos CAS lock para o sistema de dedupe; mesmo status — órfão pela reimplementação monolítica de crossTabDedupe.ts
+src/lib/realtime/crossTabDedupeTransport.ts  # camada BroadcastChannel/storage-event para o sistema de dedupe; crossTabDedupe.ts contém código de transporte inline e nunca importa este módulo
