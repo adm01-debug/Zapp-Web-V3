@@ -15,6 +15,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { supabase as _supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { emailMappers } from '@/utils/emailMappers';
@@ -74,7 +75,6 @@ const definedOnly = <T extends object>(o: T): Partial<T> =>
 
 export function useEmail() {
   const [accounts, setAccounts] = useState<EmailAccount[]>([]);
-  const [tokenStatus, setTokenStatus] = useState<EmailTokenInfo[]>([]);
   const [threads, setThreads] = useState<EmailThread[]>([]);
   const [selectedThread, setSelectedThread] = useState<EmailThread | null>(null);
   const [messages, setMessages] = useState<EmailMessage[]>([]);
@@ -101,8 +101,6 @@ export function useEmail() {
       mountedRef.current = false;
     };
   }, []);
-
-  const tokenCheckInterval = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // ── Carregar contas Email ───────────────────────────────────────────
   const loadAccounts = useCallback(async () => {
@@ -145,22 +143,26 @@ export function useEmail() {
     setIsLoading(false);
   }, [activeAccountId]);
 
-  // ── Verificar status dos tokens ────────────────────────────────────
-  const checkTokenStatus = useCallback(async () => {
-    const { data, error: rpcErr } = await safeClient.rpc('rpc_email_token_status');
-    if (!mountedRef.current) return;
-    if (rpcErr && (rpcErr.message.includes('disponível') || rpcErr.message.includes('not found'))) {
-      setTokenStatus(GMAIL_MOCKS.tokenStatus);
-    } else if (!rpcErr && data) {
-      const tokenInfos = emailMappers.tokenInfos(Array.isArray(data) ? data : []);
-      setTokenStatus(tokenInfos);
+  // ── Status dos tokens (auto-refresh a cada 5 minutos) ──────────────
+  const { data: tokenStatus = [], refetch: refetchTokenStatus } = useQuery({
+    queryKey: ['email-token-status'],
+    queryFn: async () => {
+      const { data, error: rpcErr } = await safeClient.rpc('rpc_email_token_status');
+      if (rpcErr && (rpcErr.message.includes('disponível') || rpcErr.message.includes('not found'))) {
+        return GMAIL_MOCKS.tokenStatus;
+      }
+      if (!rpcErr && data) {
+        return emailMappers.tokenInfos(Array.isArray(data) ? data : []);
+      }
+      return [] as EmailTokenInfo[];
+    },
+    refetchInterval: 5 * 60 * 1000,
+    staleTime: 60_000,
+  });
 
-      const statusMap: Record<string, string> = {};
-      tokenInfos.forEach((s) => {
-        statusMap[s.account_id] = s.token_status;
-      });
-    }
-  }, []);
+  const checkTokenStatus = useCallback(async () => {
+    await refetchTokenStatus();
+  }, [refetchTokenStatus]);
 
   // ── Carregar threads ──────────────────────────────────────────────
   const loadThreads = useCallback(
@@ -621,22 +623,6 @@ export function useEmail() {
       supabase.removeChannel(channel);
     };
   }, [activeAccountId]);
-
-  // ── Token check automático (a cada 5 minutos) ──────────────────────────
-  useEffect(() => {
-    void checkTokenStatus();
-
-    tokenCheckInterval.current = setInterval(
-      () => {
-        void checkTokenStatus();
-      },
-      5 * 60 * 1000
-    ); // 5 minutos
-
-    return () => {
-      if (tokenCheckInterval.current) clearInterval(tokenCheckInterval.current);
-    };
-  }, [checkTokenStatus]);
 
   // ── Carregar ao montar ──────────────────────────────────────────
   useEffect(() => {

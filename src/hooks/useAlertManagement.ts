@@ -317,30 +317,29 @@ export function useSentimentAlertsManagement(): UseSentimentAlertsResult {
 
 /** Monitors webhook endpoint health with failure detection and alert management. */
 export function useWebhookHealthAlertsManagement(): UseWebhookHealthAlertsResult {
-  const [alerts, setAlerts] = useState<WebhookHealthAlert[]>([]);
-  const [loading, setLoading] = useState(false);
+  const queryClient = useQueryClient();
+  const key = ['webhook-health-checks'] as const;
 
-  const checkHealth = useCallback(async () => {
-    setLoading(true);
-    try {
+  const { data: alerts = [], isLoading: loading } = useQuery({
+    queryKey: key,
+    queryFn: async () => {
       const { data, error } = await safeClient.from('webhook_health_checks', (q) =>
         q.select('*').order('created_at', { ascending: false }).limit(100)
       );
+      if (error) {
+        log.error('Failed to check webhook health:', error);
+        return [] as WebhookHealthAlert[];
+      }
+      return (data || []) as WebhookHealthAlert[];
+    },
+    staleTime: 30_000,
+    refetchInterval: 60_000,
+  });
 
-      if (error) throw error;
-      setAlerts((data || []) as WebhookHealthAlert[]);
-    } catch (error) {
-      log.error('Failed to check webhook health:', error);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    void checkHealth();
-    const interval = setInterval(checkHealth, 60000);
-    return () => clearInterval(interval);
-  }, [checkHealth]);
+  const checkHealth = useCallback(
+    () => queryClient.invalidateQueries({ queryKey: key }),
+    [queryClient]
+  );
 
   const acknowledgeAlert = useCallback(async (alertId: string) => {
     try {
@@ -349,11 +348,11 @@ export function useWebhookHealthAlertsManagement(): UseWebhookHealthAlertsResult
         .update({ acknowledged: true })
         .eq('id', alertId);
       if (updateError) throw updateError;
-      setAlerts((prev) => prev.map((a) => (a.id === alertId ? { ...a, acknowledged: true } : a)));
+      await queryClient.invalidateQueries({ queryKey: key });
     } catch (error) {
       log.error('Failed to acknowledge webhook health alert:', error);
     }
-  }, []);
+  }, [queryClient]);
 
   return { alerts, loading, acknowledgeAlert, checkHealth };
 }
@@ -366,14 +365,6 @@ export function useWebhookHealthAlertsManagement(): UseWebhookHealthAlertsResult
 export function useRealtimeSentimentAlertsManagement(): UseRealtimeSentimentAlertsResult {
   const [alerts, setAlerts] = useState<RealtimeSentimentAlert[]>([]);
   const { settings, isQuietHours } = useNotificationSettingsManagement();
-
-  const mountedRef = useRef(false);
-  useEffect(() => {
-    mountedRef.current = true;
-    return () => {
-      mountedRef.current = false;
-    };
-  }, []);
 
   // Refs para evitar re-subscribe a cada render (settings/isQuietHours mudam de referência)
   const settingsRef = useRef(settings);
@@ -429,9 +420,7 @@ export function useRealtimeSentimentAlertsManagement(): UseRealtimeSentimentAler
         log.error('Failed to acknowledge sentiment alert:', error.message);
         return;
       }
-      if (mountedRef.current) {
-        setAlerts((prev) => prev.map((a) => (a.id === alertId ? { ...a, acknowledged: true } : a)));
-      }
+      setAlerts((prev) => prev.map((a) => (a.id === alertId ? { ...a, acknowledged: true } : a)));
     } catch (error) {
       log.error('Failed to acknowledge sentiment alert:', error);
     }
@@ -447,9 +436,7 @@ export function useRealtimeSentimentAlertsManagement(): UseRealtimeSentimentAler
         log.error('Failed to clear sentiment alert:', error.message);
         return;
       }
-      if (mountedRef.current) {
-        setAlerts((prev) => prev.filter((a) => a.id !== alertId));
-      }
+      setAlerts((prev) => prev.filter((a) => a.id !== alertId));
     } catch (error) {
       log.error('Failed to clear sentiment alert:', error);
     }

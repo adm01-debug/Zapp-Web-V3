@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { queryExternalProxy } from '@/lib/externalProxy';
 import { supabase } from '@/integrations/supabase/client';
 import { getLogger } from '@/lib/logger';
@@ -21,6 +22,8 @@ import {
 
 const log = getLogger('AdminInboxSyncStatusPage');
 
+const INBOX_SYNC_KEY = ['admin-inbox-sync'] as const;
+
 /** Admin Inbox Sync State. */
 export interface AdminInboxSyncState {
   loading: boolean;
@@ -40,30 +43,19 @@ export interface AdminInboxSyncState {
 
 /** use Admin Inbox Sync. */
 export function useAdminInboxSync(): AdminInboxSyncState {
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
   const [alertThresholdMin, setAlertThresholdMin] = useState<number>(() => readStoredThreshold());
   const alertedForInboundRef = useRef<string | null>(null);
+  const prevErrorRef = useRef<unknown>(null);
 
-  const [buckets, setBuckets] = useState<SyncBucket[]>(() =>
-    BUCKET_CONFIGS.map((c) => ({ ...c, count: null }))
-  );
-  const [lastEvents, setLastEvents] = useState<InboundOutboundLast>({
-    inboundAt: null,
-    outboundAt: null,
-  });
-  const [topConversations, setTopConversations] = useState<ConversationCount[]>([]);
-  const [failed, setFailed] = useState<FailedRow[]>([]);
-  const [audit, setAudit] = useState<AuditRow[]>([]);
-
-  const fetchAll = useCallback(async (silent = false) => {
-    if (!silent) setLoading(true);
-    setRefreshing(true);
-    setError(null);
-
-    try {
+  const {
+    data,
+    isLoading: loading,
+    isFetching: refreshing,
+    error: queryError,
+    refetch,
+  } = useQuery({
+    queryKey: INBOX_SYNC_KEY,
+    queryFn: async () => {
       const bucketResults = await Promise.all(
         BUCKET_CONFIGS.map((b) =>
           queryExternalProxy({
@@ -140,7 +132,7 @@ export function useAdminInboxSync(): AdminInboxSyncState {
           });
         }
       }
-      const topConv = Array.from(grouped.values())
+      const topConversations = Array.from(grouped.values())
         .sort((a, b) => b.count - a.count)
         .slice(0, 10);
 
@@ -157,42 +149,61 @@ export function useAdminInboxSync(): AdminInboxSyncState {
           .limit(15),
       ]);
 
-      setBuckets((prev) =>
-        prev.map((b, i) => ({
-          ...b,
-          count: bucketResults[i].count ?? bucketResults[i].data.length,
-        }))
-      );
-      setLastEvents({
-        inboundAt: lastInbound.data[0]?.created_at ?? null,
-        outboundAt: lastOutbound.data[0]?.created_at ?? null,
-      });
-      setTopConversations(topConv);
-      setFailed((failedRes.data ?? []) as FailedRow[]);
-      setAudit((auditRes.data ?? []) as AuditRow[]);
-      setLastRefresh(new Date());
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Falha ao consultar o status.';
-      log.error('fetchAll failed', err);
-      setError(msg);
-      if (!silent) toast.error(msg);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
+      const buckets: SyncBucket[] = BUCKET_CONFIGS.map((b, i) => ({
+        ...b,
+        count: bucketResults[i].count ?? bucketResults[i].data.length,
+      }));
+
+      return {
+        buckets,
+        lastEvents: {
+          inboundAt: lastInbound.data[0]?.created_at ?? null,
+          outboundAt: lastOutbound.data[0]?.created_at ?? null,
+        } as InboundOutboundLast,
+        topConversations,
+        failed: (failedRes.data ?? []) as FailedRow[],
+        audit: (auditRes.data ?? []) as AuditRow[],
+        lastRefresh: new Date(),
+      };
+    },
+    staleTime: POLL_MS,
+    refetchInterval: POLL_MS,
+    refetchIntervalInBackground: false,
+    retry: 1,
+  });
+
+  useEffect(() => {
+    if (queryError && queryError !== prevErrorRef.current) {
+      prevErrorRef.current = queryError;
+      const msg = queryError instanceof Error ? queryError.message : 'Falha ao consultar o status.';
+      log.error('fetchAll failed', queryError);
+      toast.error(msg);
     }
-  }, []);
+  }, [queryError]);
 
-  useEffect(() => {
-    void fetchAll();
-  }, [fetchAll]);
+  const error = queryError
+    ? queryError instanceof Error
+      ? queryError.message
+      : 'Falha ao consultar o status.'
+    : null;
 
-  useEffect(() => {
-    const tick = () => {
-      if (document.visibilityState === 'visible') void fetchAll(true);
-    };
-    const id = window.setInterval(tick, POLL_MS);
-    return () => window.clearInterval(id);
-  }, [fetchAll]);
+  const buckets: SyncBucket[] = data?.buckets ?? BUCKET_CONFIGS.map((c) => ({ ...c, count: null }));
+  const lastEvents: InboundOutboundLast = data?.lastEvents ?? { inboundAt: null, outboundAt: null };
+  const topConversations: ConversationCount[] = data?.topConversations ?? [];
+  const failed: FailedRow[] = data?.failed ?? [];
+  const audit: AuditRow[] = data?.audit ?? [];
+  const lastRefresh: Date | null = data?.lastRefresh ?? null;
+
+  const fetchAll = useCallback(
+    async (silent = false) => {
+      if (silent) {
+        void refetch();
+      } else {
+        await refetch();
+      }
+    },
+    [refetch]
+  );
 
   const health = useMemo(
     () => classifyHealth(lastEvents.inboundAt, alertThresholdMin),

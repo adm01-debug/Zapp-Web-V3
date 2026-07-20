@@ -1,8 +1,11 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useCallback } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { getLogger } from '@/lib/logger';
 
 const log = getLogger('useGlobalSettings');
+
+const GLOBAL_SETTINGS_KEY = ['global-settings'] as const;
 
 interface GlobalSetting {
   id: string;
@@ -13,28 +16,20 @@ interface GlobalSetting {
 
 /** Hook: use Global Settings. */
 export function useGlobalSettings() {
-  const [settings, setSettings] = useState<GlobalSetting[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const queryClient = useQueryClient();
 
-  const fetchSettings = useCallback(async () => {
-    setIsLoading(true);
-    try {
+  const { data: settings = [], isLoading } = useQuery({
+    queryKey: GLOBAL_SETTINGS_KEY,
+    queryFn: async () => {
       const { data, error } = await supabase
         .from('global_settings')
         .select('*')
         .order('key', { ascending: true });
       if (error) throw error;
-      setSettings(data || []);
-    } catch (err) {
-      log.error('Error fetching global settings:', err);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchSettings();
-  }, [fetchSettings]);
+      return (data as GlobalSetting[]) ?? [];
+    },
+    staleTime: 60_000,
+  });
 
   const getSetting = useCallback(
     (key: string): string | null => {
@@ -44,32 +39,46 @@ export function useGlobalSettings() {
     [settings]
   );
 
-  const updateSetting = useCallback(async (key: string, value: string) => {
-    try {
-      const { error } = await supabase
-        .from('global_settings')
-        .update({ value })
-        .eq('key', key);
-      if (error) throw error;
-      setSettings((prev) => prev.map((s) => (s.key === key ? { ...s, value } : s)));
-    } catch (err) {
-      log.error('Error updating global setting:', err);
-    }
-  }, []);
+  const updateSetting = useCallback(
+    async (key: string, value: string) => {
+      try {
+        const { error } = await supabase
+          .from('global_settings')
+          .update({ value })
+          .eq('key', key);
+        if (error) throw error;
+        queryClient.setQueryData(GLOBAL_SETTINGS_KEY, (prev: GlobalSetting[] | undefined) =>
+          (prev ?? []).map((s) => (s.key === key ? { ...s, value } : s))
+        );
+      } catch (err) {
+        log.error('Error updating global setting:', err);
+        await queryClient.invalidateQueries({ queryKey: GLOBAL_SETTINGS_KEY });
+      }
+    },
+    [queryClient]
+  );
 
-  const addSetting = useCallback(async (key: string, value: string, description?: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('global_settings')
-        .insert({ key, value, description })
-        .select()
-        .single();
-      if (error) throw error;
-      if (data) setSettings((prev) => [...prev, data as GlobalSetting]);
-    } catch (err) {
-      log.error('Error adding global setting:', err);
-    }
-  }, []);
+  const addSetting = useCallback(
+    async (key: string, value: string, description?: string) => {
+      try {
+        const { error } = await supabase
+          .from('global_settings')
+          .insert({ key, value, description });
+        if (error) throw error;
+        await queryClient.invalidateQueries({ queryKey: GLOBAL_SETTINGS_KEY });
+      } catch (err) {
+        log.error('Error adding global setting:', err);
+      }
+    },
+    [queryClient]
+  );
 
-  return { settings, isLoading, getSetting, updateSetting, addSetting, refetch: fetchSettings };
+  return {
+    settings,
+    isLoading,
+    getSetting,
+    updateSetting,
+    addSetting,
+    refetch: () => queryClient.invalidateQueries({ queryKey: GLOBAL_SETTINGS_KEY }),
+  };
 }

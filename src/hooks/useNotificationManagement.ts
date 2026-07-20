@@ -1,7 +1,7 @@
 // Consolidated Notification & Alerts Management Module (ETAPA 38)
 // Consolidates: usePushNotifications, useNotificationSettings, useTeamChatNotifications, useSecurityPushNotifications, useGoalNotifications, useTranscriptionNotifications
 import { useState, useEffect, useCallback, useRef } from 'react';
-// useRef is kept for mountedRef usage in useNotificationSettingsManagement
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 import { useAuth } from '@/features/auth';
@@ -250,52 +250,45 @@ export function usePushNotificationsManagement() {
   };
 }
 
+const NOTIFICATION_SETTINGS_KEY = (userId: string | undefined) =>
+  ['notification-settings', userId] as const;
+
 /** Fetches and updates notification preferences including email, push, and SMS settings. */
 export function useNotificationSettingsManagement(userId?: string) {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const resolvedUserId = userId ?? user?.id;
-  const [settings, setSettings] = useState<NotificationSettings>(DEFAULT_NOTIFICATION_SETTINGS);
-  const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const mountedRef = useRef(true);
 
-  useEffect(() => {
-    return () => {
-      mountedRef.current = false;
-    };
-  }, []);
-
-  const fetchSettings = useCallback(async () => {
-    if (!resolvedUserId) {
-      setSettings(DEFAULT_NOTIFICATION_SETTINGS);
-      setLoading(false);
-      return;
-    }
-
-    try {
-      setLoading(true);
+  const {
+    data: settings = DEFAULT_NOTIFICATION_SETTINGS,
+    isLoading: loading,
+    refetch: refetchSettings,
+  } = useQuery({
+    queryKey: NOTIFICATION_SETTINGS_KEY(resolvedUserId),
+    queryFn: async () => {
       const { data, error: err } = await supabase
         .from('user_settings')
         .select('*')
-        .eq('user_id', resolvedUserId)
+        .eq('user_id', resolvedUserId!)
         .maybeSingle();
-
       if (err && err.code !== 'PGRST116') throw err;
-      if (mountedRef.current) setSettings(normalizeSettings(data as UserSettingsRow));
-    } catch (err) {
-      if (mountedRef.current) {
-        log.error('Error fetching notification settings:', err);
-      }
-    } finally {
-      if (mountedRef.current) setLoading(false);
-    }
-  }, [resolvedUserId]);
+      return normalizeSettings(data as UserSettingsRow);
+    },
+    enabled: !!resolvedUserId,
+    staleTime: 60_000,
+  });
 
   const updateSettings = useCallback(
     async (updates: Partial<NotificationSettings>) => {
-      setSettings((prev) => ({ ...prev, ...updates }));
       if (!resolvedUserId) return;
-
+      queryClient.setQueryData(
+        NOTIFICATION_SETTINGS_KEY(resolvedUserId),
+        (old: NotificationSettings | undefined) => ({
+          ...(old ?? DEFAULT_NOTIFICATION_SETTINGS),
+          ...updates,
+        })
+      );
       try {
         setIsSaving(true);
         const { error: err } = await supabase.from('user_settings').upsert(
@@ -306,23 +299,21 @@ export function useNotificationSettingsManagement(userId?: string) {
           },
           { onConflict: 'user_id' }
         );
-
         if (err) throw err;
-        await fetchSettings();
+        await queryClient.invalidateQueries({
+          queryKey: NOTIFICATION_SETTINGS_KEY(resolvedUserId),
+        });
       } catch (err) {
-        if (mountedRef.current) {
-          log.error('Error updating notification settings:', err);
-        }
+        log.error('Error updating notification settings:', err);
+        await queryClient.invalidateQueries({
+          queryKey: NOTIFICATION_SETTINGS_KEY(resolvedUserId),
+        });
       } finally {
-        if (mountedRef.current) setIsSaving(false);
+        setIsSaving(false);
       }
     },
-    [resolvedUserId, fetchSettings, mountedRef]
+    [resolvedUserId, queryClient]
   );
-
-  useEffect(() => {
-    void fetchSettings();
-  }, [fetchSettings]);
 
   const resetSettings = useCallback(() => {
     void updateSettings(DEFAULT_NOTIFICATION_SETTINGS);
@@ -349,7 +340,7 @@ export function useNotificationSettingsManagement(userId?: string) {
     updateSettings,
     resetSettings,
     isQuietHours,
-    refetch: fetchSettings,
+    refetch: refetchSettings,
   };
 }
 

@@ -11,6 +11,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase as _supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { emailMappers } from '@/utils/emailMappers';
@@ -18,7 +19,6 @@ import { type EmailMessage } from './gmail/gmailTypes';
 import { GMAIL_MOCKS } from './gmail/gmailMocks';
 import { emailSaveDraft, emailDeleteDraft, emailListThreads } from './gmail/gmailApi';
 import { getLogger } from '@/lib/logger';
-import { useMountedRef } from '@/hooks/useMountedRef';
 import {
   EmailAccount,
   EmailTokenInfo,
@@ -98,6 +98,10 @@ export interface EmailSignature {
 
 const supabase = _supabase;
 const AUTO_SAVE_DELAY_MS = 30_000;
+
+const EMAIL_TOKEN_STATUS_KEY = ['email-token-status'] as const;
+const EMAIL_SIGNATURES_KEY = (accountId: string | null) =>
+  ['email-signatures', accountId] as const;
 const DEBOUNCE_MS = 350;
 const MIN_QUERY_LEN = 2;
 
@@ -211,8 +215,8 @@ interface EmailThreadRow {
 
 /** Manages email accounts, threads, messages, and token lifecycle with Gmail integration. */
 export function useEmail() {
+  const queryClient = useQueryClient();
   const [accounts, setAccounts] = useState<EmailAccount[]>([]);
-  const [tokenStatus, setTokenStatus] = useState<EmailTokenInfo[]>([]);
   const [threads, setThreads] = useState<EmailThread[]>([]);
   const [selectedThread, setSelectedThread] = useState<EmailThread | null>(null);
   const [messages, setMessages] = useState<EmailMessage[]>([]);
@@ -241,7 +245,22 @@ export function useEmail() {
     };
   }, []);
 
-  const tokenCheckInterval = useRef<ReturnType<typeof setInterval> | null>(null);
+  const { data: tokenStatus = [], refetch: refetchTokenStatus } = useQuery({
+    queryKey: EMAIL_TOKEN_STATUS_KEY,
+    queryFn: async () => {
+      const { data, error: rpcErr } = await safeClient.rpc('rpc_email_token_status');
+      if (rpcErr && (rpcErr.message.includes('disponível') || rpcErr.message.includes('not found'))) {
+        return GMAIL_MOCKS.tokenStatus;
+      }
+      if (!rpcErr && data) {
+        return emailMappers.tokenInfos(Array.isArray(data) ? data : []);
+      }
+      return [] as EmailTokenInfo[];
+    },
+    enabled: isAuthenticated,
+    refetchInterval: 5 * 60 * 1000,
+    staleTime: 60_000,
+  });
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -301,20 +320,8 @@ export function useEmail() {
   }, []);
 
   const checkTokenStatus = useCallback(async () => {
-    const { data, error: rpcErr } = await safeClient.rpc('rpc_email_token_status');
-    if (!mountedRef.current) return;
-    if (rpcErr && (rpcErr.message.includes('disponível') || rpcErr.message.includes('not found'))) {
-      setTokenStatus(GMAIL_MOCKS.tokenStatus);
-    } else if (!rpcErr && data) {
-      const tokenInfos = emailMappers.tokenInfos(Array.isArray(data) ? data : []);
-      setTokenStatus(tokenInfos);
-
-      const statusMap: Record<string, string> = {};
-      tokenInfos.forEach((s) => {
-        statusMap[s.account_id] = s.token_status;
-      });
-    }
-  }, []);
+    await refetchTokenStatus();
+  }, [refetchTokenStatus]);
 
   const loadThreads = useCallback(
     async (accountId?: string, label: EmailLabel = 'INBOX', pageOffset = 0) => {
@@ -746,22 +753,6 @@ export function useEmail() {
       supabase.removeChannel(channel);
     };
   }, [activeAccountId]);
-
-  useEffect(() => {
-    if (!isAuthenticated) return;
-    void checkTokenStatus();
-
-    tokenCheckInterval.current = setInterval(
-      () => {
-        void checkTokenStatus();
-      },
-      5 * 60 * 1000
-    );
-
-    return () => {
-      if (tokenCheckInterval.current) clearInterval(tokenCheckInterval.current);
-    };
-  }, [checkTokenStatus, isAuthenticated]);
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -1240,28 +1231,21 @@ export function useEmailSLA(accountId: string | null, config: Partial<SLAConfig>
 
 /** Manages email signatures per account with create, update, delete, and default selection capabilities. */
 export function useEmailSignature(accountId: string | null) {
-  const [signatures, setSignatures] = useState<EmailSignature[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const mountedRef = useMountedRef();
+  const queryClient = useQueryClient();
 
-  const load = useCallback(async () => {
-    if (!accountId) {
-      setSignatures([]);
-      return;
-    }
-    setIsLoading(true);
-    const { data, error } = await safeClient.from<EmailSignature>('email_signatures', (q) =>
-      q.select('*').eq('account_id', accountId).order('is_default', { ascending: false })
-    );
-
-    if (!mountedRef.current) return;
-    if (!error) setSignatures(data ?? []);
-    setIsLoading(false);
-  }, [accountId, mountedRef]);
-
-  useEffect(() => {
-    load();
-  }, [load]);
+  const { data: signatures = [], isLoading } = useQuery({
+    queryKey: EMAIL_SIGNATURES_KEY(accountId),
+    queryFn: async () => {
+      if (!accountId) return [] as EmailSignature[];
+      const { data, error } = await safeClient.from<EmailSignature>('email_signatures', (q) =>
+        q.select('*').eq('account_id', accountId).order('is_default', { ascending: false })
+      );
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: !!accountId,
+    staleTime: 30_000,
+  });
 
   const save = useCallback(
     async (sig: Partial<EmailSignature> & { html_content: string; name: string }) => {
@@ -1296,9 +1280,9 @@ export function useEmailSignature(accountId: string | null) {
         }
       }
 
-      await load();
+      await queryClient.invalidateQueries({ queryKey: EMAIL_SIGNATURES_KEY(accountId) });
     },
-    [accountId, load]
+    [accountId, queryClient]
   );
 
   const remove = useCallback(
@@ -1308,9 +1292,9 @@ export function useEmailSignature(accountId: string | null) {
         log.error('Email signature delete error', error);
         return;
       }
-      await load();
+      await queryClient.invalidateQueries({ queryKey: EMAIL_SIGNATURES_KEY(accountId) });
     },
-    [load]
+    [accountId, queryClient]
   );
 
   const setDefault = useCallback(
@@ -1329,9 +1313,9 @@ export function useEmailSignature(accountId: string | null) {
           .eq('account_id', accountId ?? '')
           .neq('id', id)
       );
-      await load();
+      await queryClient.invalidateQueries({ queryKey: EMAIL_SIGNATURES_KEY(accountId) });
     },
-    [accountId, load]
+    [accountId, queryClient]
   );
 
   const defaultSignature = signatures.find((s) => s.is_default) ?? null;

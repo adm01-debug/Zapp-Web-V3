@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useCallback } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { getLogger } from '@/lib/logger';
 
@@ -17,36 +18,26 @@ export interface CustomField {
 
 /** Hook: use Contact Custom Fields. */
 export function useContactCustomFields(contactId: string | undefined) {
-  const [fields, setFields] = useState<CustomField[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const mountedRef = useRef(true);
-  useEffect(() => {
-    mountedRef.current = true;
-    return () => { mountedRef.current = false; };
-  }, []);
+  const queryClient = useQueryClient();
+  const queryKey = ['contact-custom-fields', contactId] as const;
 
-  const fetchFields = useCallback(async () => {
-    if (!contactId) return;
-    setIsLoading(true);
-    try {
+  const { data: fields = [], isLoading } = useQuery({
+    queryKey,
+    queryFn: async (): Promise<CustomField[]> => {
       const { data, error } = await supabase
         .from('contact_custom_fields')
         .select('*')
-        .eq('contact_id', contactId)
+        .eq('contact_id', contactId!)
         .order('field_name');
-      if (!mountedRef.current) return;
-      if (error) throw error;
-      setFields((data || []) as CustomField[]);
-    } catch (err) {
-      log.error('Error fetching custom fields:', err);
-    } finally {
-      if (mountedRef.current) setIsLoading(false);
-    }
-  }, [contactId]);
-
-  useEffect(() => {
-    void fetchFields();
-  }, [fetchFields]);
+      if (error) {
+        log.error('Error fetching custom fields:', error);
+        throw error;
+      }
+      return (data || []) as CustomField[];
+    },
+    enabled: !!contactId,
+    staleTime: 30_000,
+  });
 
   const addField = useCallback(async (fieldName: string, fieldValue: string, fieldType = 'text') => {
     if (!contactId) return;
@@ -60,12 +51,12 @@ export function useContactCustomFields(contactId: string | undefined) {
           field_type: fieldType,
         });
       if (error) throw error;
-      await fetchFields();
+      void queryClient.invalidateQueries({ queryKey });
     } catch (err) {
       log.error('Error adding custom field:', err);
       throw err;
     }
-  }, [contactId, fetchFields]);
+  }, [contactId, queryClient, queryKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const removeField = useCallback(async (fieldId: string) => {
     try {
@@ -74,12 +65,17 @@ export function useContactCustomFields(contactId: string | undefined) {
         .delete()
         .eq('id', fieldId);
       if (error) throw error;
-      setFields(prev => prev.filter(f => f.id !== fieldId));
+      queryClient.setQueryData<CustomField[]>(queryKey, prev => (prev ?? []).filter(f => f.id !== fieldId));
     } catch (err) {
       log.error('Error removing custom field:', err);
       throw err;
     }
-  }, []);
+  }, [queryClient, queryKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  return { fields, isLoading, addField, removeField, refetch: fetchFields };
+  const refetch = useCallback(
+    () => queryClient.invalidateQueries({ queryKey }),
+    [queryClient, queryKey] // eslint-disable-line react-hooks/exhaustive-deps
+  );
+
+  return { fields, isLoading, addField, removeField, refetch };
 }

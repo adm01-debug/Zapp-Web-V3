@@ -381,36 +381,25 @@ export function useAutomations({
 
 /** Generates AI-powered automation suggestions based on conversation patterns and history. */
 export function useAutomationSuggestions(remoteJid: string | null) {
-  const [suggestions, setSuggestions] = useState<AutomationSuggestion[]>([]);
-  const [loading, setLoading] = useState(false);
-  const mountedRef = useRef(true);
-  useEffect(() => {
-    mountedRef.current = true;
-    return () => {
-      mountedRef.current = false;
-    };
-  }, []);
+  const queryClient = useQueryClient();
+  const key = ['automation-suggestions', remoteJid] as const;
 
-  const refresh = useCallback(async () => {
-    if (!remoteJid) {
-      setSuggestions([]);
-      return;
-    }
-    setLoading(true);
-    const { data } = await safeClient.from<_RawExecRow>('automation_executions', (q) =>
-      q
-        .select(
-          'id, rule_id, suggestion_text, recommended_tag, kb_sources, status, created_at, instance_name, remote_jid, automations(name)'
-        )
-        .eq('remote_jid', remoteJid)
-        .eq('status', 'pending')
-        .not('suggestion_text', 'is', null)
-        .order('created_at', { ascending: false })
-        .limit(5)
-    );
-    if (!mountedRef.current) return;
-    setSuggestions(
-      (data ?? []).map((r) => ({
+  const { data: suggestions = [], isLoading: loading } = useQuery({
+    queryKey: key,
+    queryFn: async () => {
+      if (!remoteJid) return [] as AutomationSuggestion[];
+      const { data } = await safeClient.from<_RawExecRow>('automation_executions', (q) =>
+        q
+          .select(
+            'id, rule_id, suggestion_text, recommended_tag, kb_sources, status, created_at, instance_name, remote_jid, automations(name)'
+          )
+          .eq('remote_jid', remoteJid)
+          .eq('status', 'pending')
+          .not('suggestion_text', 'is', null)
+          .order('created_at', { ascending: false })
+          .limit(5)
+      );
+      return (data ?? []).map((r) => ({
         id: r.id,
         rule_id: r.rule_id,
         rule_name: r.automations?.name,
@@ -421,13 +410,18 @@ export function useAutomationSuggestions(remoteJid: string | null) {
         created_at: r.created_at,
         instance_name: r.instance_name,
         remote_jid: r.remote_jid,
-      }))
-    );
-    setLoading(false);
-  }, [remoteJid]);
+      }));
+    },
+    enabled: !!remoteJid,
+    staleTime: 30_000,
+  });
+
+  const refresh = useCallback(
+    () => queryClient.invalidateQueries({ queryKey: key }),
+    [queryClient, remoteJid]
+  );
 
   useEffect(() => {
-    void refresh();
     if (!remoteJid) return;
     const ch = supabase
       .channel(`automation-exec-${remoteJid}`)
@@ -436,7 +430,8 @@ export function useAutomationSuggestions(remoteJid: string | null) {
         { event: '*', schema: 'zapp', table: 'automation_executions' },
         (payload) => {
           const row = (payload.new ?? payload.old) as Record<string, unknown>;
-          if (row?.remote_jid === remoteJid) void refresh();
+          if (row?.remote_jid === remoteJid)
+            void queryClient.invalidateQueries({ queryKey: key });
         }
       )
       .subscribe();
@@ -444,16 +439,16 @@ export function useAutomationSuggestions(remoteJid: string | null) {
       ch.unsubscribe();
       supabase.removeChannel(ch);
     };
-  }, [remoteJid, refresh]);
+  }, [remoteJid, queryClient]);
 
   const accept = useCallback(
     async (id: string) => {
       await safeClient.from('automation_executions', (q) =>
         q.update({ status: 'accepted', acted_at: new Date().toISOString() }).eq('id', id)
       );
-      void refresh();
+      void queryClient.invalidateQueries({ queryKey: key });
     },
-    [refresh]
+    [queryClient, remoteJid]
   );
 
   const dismiss = useCallback(
@@ -461,9 +456,9 @@ export function useAutomationSuggestions(remoteJid: string | null) {
       await safeClient.from('automation_executions', (q) =>
         q.update({ status: 'dismissed', acted_at: new Date().toISOString() }).eq('id', id)
       );
-      void refresh();
+      void queryClient.invalidateQueries({ queryKey: key });
     },
-    [refresh]
+    [queryClient, remoteJid]
   );
 
   const applyRecommendedTag = useCallback(
@@ -485,7 +480,7 @@ export function useAutomationSuggestions(remoteJid: string | null) {
           title: 'Tag aplicada',
           description: `"${sugg.recommended_tag}" foi adicionada ao contato.`,
         });
-        refresh();
+        void queryClient.invalidateQueries({ queryKey: key });
         return true;
       } catch (e) {
         toast({
@@ -496,7 +491,7 @@ export function useAutomationSuggestions(remoteJid: string | null) {
         return false;
       }
     },
-    [suggestions, refresh]
+    [suggestions, queryClient, remoteJid]
   );
 
   return { suggestions, loading, refresh, accept, dismiss, applyRecommendedTag };

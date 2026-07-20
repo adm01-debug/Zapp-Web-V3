@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
 interface DateRange {
@@ -22,100 +22,82 @@ export type { DateRange };
 
 /** Compares active queues by contacts, assignment rate, agent count, and message volume within the given date range. */
 export function useQueuesComparison(dateRange: DateRange) {
-  const [loading, setLoading] = useState(true);
-  const [queuesPerformance, setQueuesPerformance] = useState<QueuePerformance[]>([]);
+  const fromIso = dateRange.from.toISOString();
+  const toIso = dateRange.to.toISOString();
 
-  useEffect(() => {
-    let cancelled = false;
+  const { data: queuesPerformance = [], isLoading: loading } = useQuery({
+    queryKey: ['queues-comparison', fromIso, toIso],
+    queryFn: async (): Promise<QueuePerformance[]> => {
+      const { data: queues, error: qErr } = await supabase
+        .from('queues')
+        .select('id, name, color')
+        .eq('is_active', true);
 
-    async function fetchComparison() {
-      setLoading(true);
-      try {
-        const { data: queues, error: qErr } = await supabase
-          .from('queues')
-          .select('id, name, color')
-          .eq('is_active', true);
+      if (qErr) throw qErr;
 
-        if (qErr) throw qErr;
+      const queueList: Array<{ id: string; name: string; color: string }> = queues || [];
 
-        const queueList: Array<{ id: string; name: string; color: string }> = queues || [];
+      if (queueList.length === 0) return [];
 
-        if (queueList.length === 0) {
-          if (!cancelled) {
-            setQueuesPerformance([]);
-            setLoading(false);
-          }
-          return;
-        }
+      const [contactsRes, membersRes] = await Promise.all([
+        supabase
+          .from('contacts')
+          .select('id, queue_id, assigned_to')
+          .not('queue_id', 'is', null)
+          .gte('created_at', fromIso)
+          .lte('created_at', toIso),
+        supabase
+          .from('queue_members')
+          .select('queue_id, profile_id')
+          .eq('is_active', true),
+      ]);
 
-        const fromIso = dateRange.from.toISOString();
-        const toIso = dateRange.to.toISOString();
+      if (contactsRes.error) throw contactsRes.error;
+      if (membersRes.error) throw membersRes.error;
 
-        const [contactsRes, membersRes] = await Promise.all([
-          supabase
-            .from('contacts')
-            .select('id, queue_id, assigned_to')
-            .not('queue_id', 'is', null)
-            .gte('created_at', fromIso)
-            .lte('created_at', toIso),
-          supabase
-            .from('queue_members')
-            .select('queue_id, profile_id')
-            .eq('is_active', true),
-        ]);
+      const contactList = (contactsRes.data || []) as Array<{
+        id: string;
+        queue_id: string;
+        assigned_to: string | null;
+      }>;
+      const memberList = (membersRes.data || []) as Array<{ queue_id: string; profile_id: string }>;
 
-        if (contactsRes.error) throw contactsRes.error;
-        if (membersRes.error) throw membersRes.error;
+      const contactIds = contactList.map((c) => c.id);
 
-        const contactList: Array<{ id: string; queue_id: string; assigned_to: string | null }> =
-          contactsRes.data || [];
-        const memberList: Array<{ queue_id: string; profile_id: string }> = membersRes.data || [];
-
-        const contactIds = contactList.map((c) => c.id);
-
-        let messageList: Array<{ id: string; contact_id: string }> = [];
-        if (contactIds.length > 0) {
-          const { data: msgs, error: msgsErr } = await supabase
-            .from('messages')
-            .select('id, contact_id')
-            .in('contact_id', contactIds)
-            .gte('created_at', fromIso)
-            .lte('created_at', toIso);
-          if (msgsErr) throw msgsErr;
-          messageList = msgs || [];
-        }
-
-        const performance: QueuePerformance[] = queueList.map((q) => {
-          const qContacts = contactList.filter((c) => c.queue_id === q.id);
-          const totalContacts = qContacts.length;
-          const assignedContacts = qContacts.filter((c) => c.assigned_to !== null).length;
-          const agentCount = memberList.filter((m) => m.queue_id === q.id).length;
-          const qContactIds = qContacts.map((c) => c.id);
-          const messageCount = messageList.filter((m) => qContactIds.includes(m.contact_id)).length;
-          const assignmentRate = totalContacts > 0 ? (assignedContacts / totalContacts) * 100 : 0;
-          return {
-            queueId: q.id,
-            queueName: q.name,
-            color: q.color,
-            totalContacts,
-            assignedContacts,
-            agentCount,
-            messageCount,
-            assignmentRate,
-          };
-        });
-
-        if (!cancelled) setQueuesPerformance(performance);
-      } catch {
-        if (!cancelled) setQueuesPerformance([]);
-      } finally {
-        if (!cancelled) setLoading(false);
+      let messageList: Array<{ id: string; contact_id: string }> = [];
+      if (contactIds.length > 0) {
+        const { data: msgs, error: msgsErr } = await supabase
+          .from('messages')
+          .select('id, contact_id')
+          .in('contact_id', contactIds)
+          .gte('created_at', fromIso)
+          .lte('created_at', toIso);
+        if (msgsErr) throw msgsErr;
+        messageList = msgs || [];
       }
-    }
 
-    fetchComparison();
-    return () => { cancelled = true; };
-  }, [dateRange.from, dateRange.to]);
+      return queueList.map((q) => {
+        const qContacts = contactList.filter((c) => c.queue_id === q.id);
+        const totalContacts = qContacts.length;
+        const assignedContacts = qContacts.filter((c) => c.assigned_to !== null).length;
+        const agentCount = memberList.filter((m) => m.queue_id === q.id).length;
+        const qContactIds = qContacts.map((c) => c.id);
+        const messageCount = messageList.filter((m) => qContactIds.includes(m.contact_id)).length;
+        const assignmentRate = totalContacts > 0 ? (assignedContacts / totalContacts) * 100 : 0;
+        return {
+          queueId: q.id,
+          queueName: q.name,
+          color: q.color,
+          totalContacts,
+          assignedContacts,
+          agentCount,
+          messageCount,
+          assignmentRate,
+        };
+      });
+    },
+    staleTime: 30_000,
+  });
 
   return { loading, queuesPerformance };
 }

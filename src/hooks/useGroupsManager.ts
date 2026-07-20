@@ -1,9 +1,9 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { log } from '@/lib/logger';
 import { toast } from 'sonner';
 import { useGroupActions } from './groups/actions';
-import { useMountedRef } from '@/hooks/useMountedRef';
 import type { WhatsAppGroup, WhatsAppConnection } from './groups/types';
 
 // Re-export for external consumers
@@ -12,51 +12,63 @@ export type { WhatsAppGroup, WhatsAppConnection } from './groups/types';
 /** Re-exported module members. */
 export { GROUP_CATEGORIES } from './groups/types';
 
+const GROUPS_KEY = ['whatsapp-groups'] as const;
+const CONNECTIONS_KEY = ['whatsapp-connections-groups'] as const;
+
 /** Manages WhatsApp groups with filtering, selection, and bulk action capabilities. */
 export function useGroupsManager() {
-  const [groups, setGroups] = useState<WhatsAppGroup[]>([]);
-  const [connections, setConnections] = useState<WhatsAppConnection[]>([]);
+  const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
   const [selectedGroups, setSelectedGroups] = useState<Set<string>>(new Set());
-  const mountedRef = useMountedRef();
 
-  const fetchGroups = useCallback(async () => {
-    setIsLoading(true);
-    const { data, error } = await safeClient.from<WhatsAppGroup>('whatsapp_groups', (q) =>
-      q.select('*').order('name', { ascending: true })
-    );
-    if (!mountedRef.current) return;
-    if (error) {
-      toast.error('Erro ao carregar grupos');
-      log.error('Error fetching groups:', error);
-    } else setGroups(data ?? []);
-    setIsLoading(false);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  const { data: groups = [], isLoading } = useQuery({
+    queryKey: GROUPS_KEY,
+    queryFn: async () => {
+      const { data, error } = await safeClient.from<WhatsAppGroup>('whatsapp_groups', (q) =>
+        q.select('*').order('name', { ascending: true })
+      );
+      if (error) {
+        toast.error('Erro ao carregar grupos');
+        log.error('Error fetching groups:', error);
+        return [] as WhatsAppGroup[];
+      }
+      return data ?? [];
+    },
+    staleTime: 30_000,
+  });
 
-  const fetchConnections = useCallback(async () => {
-    const { data, error } = await safeClient.from<WhatsAppConnection>('whatsapp_connections', (q) =>
-      q
-        .select('id, name, phone_number, instance_id, instance_name')
-        .order('name', { ascending: true })
-    );
-    if (!mountedRef.current) return;
-    if (error) log.error('Error fetching connections:', error);
-    else setConnections(data ?? []);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  const { data: connections = [] } = useQuery({
+    queryKey: CONNECTIONS_KEY,
+    queryFn: async () => {
+      const { data, error } = await safeClient.from<WhatsAppConnection>(
+        'whatsapp_connections',
+        (q) =>
+          q
+            .select('id, name, phone_number, instance_id, instance_name')
+            .order('name', { ascending: true })
+      );
+      if (error) log.error('Error fetching connections:', error);
+      return data ?? [];
+    },
+    staleTime: 60_000,
+  });
 
-  useEffect(() => {
-    fetchGroups();
-    fetchConnections();
-  }, [fetchGroups, fetchConnections]);
+  const fetchGroups = useCallback(
+    () => queryClient.invalidateQueries({ queryKey: GROUPS_KEY }),
+    [queryClient]
+  );
 
   const actions = useGroupActions({
     connections,
     groups,
     selectedGroups,
-    setGroups,
+    setGroups: (updater: WhatsAppGroup[] | ((prev: WhatsAppGroup[]) => WhatsAppGroup[])) => {
+      queryClient.setQueryData(GROUPS_KEY, (prev: WhatsAppGroup[] | undefined) =>
+        typeof updater === 'function' ? updater(prev ?? []) : updater
+      );
+    },
     setSelectedGroups,
     fetchGroups,
   });

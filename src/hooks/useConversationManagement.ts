@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/services/api/queryKeys';
 import { useMountedRef } from '@/hooks/useMountedRef';
 import { supabase } from '@/integrations/supabase/client';
@@ -244,38 +244,33 @@ export interface ConversationAnalysis {
 
 /** Retrieves AI-generated conversation analyses and insights. */
 export function useConversationAnalyses(contactId: string | null) {
-  const [analyses, setAnalyses] = useState<ConversationAnalysis[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const mountedRef = useMountedRef();
+  const queryClient = useQueryClient();
+  const key = ['conversation-analyses', contactId] as const;
 
-  const fetchAnalyses = useCallback(async () => {
-    if (!contactId) return;
-
-    setLoading(true);
-    try {
+  const {
+    data: analyses = [],
+    isLoading: loading,
+    error: queryError,
+    refetch,
+  } = useQuery({
+    queryKey: key,
+    queryFn: async () => {
       const { data, error } = await supabase
         .from('conversation_analyses')
         .select('*')
-        .eq('contact_id', contactId)
+        .eq('contact_id', contactId!)
         .order('created_at', { ascending: false })
         .limit(20);
-
-      if (!mountedRef.current) return;
       if (error) throw error;
+      return (data || []) as ConversationAnalysis[];
+    },
+    enabled: !!contactId,
+    staleTime: 30_000,
+  });
 
-      setAnalyses((data || []) as ConversationAnalysis[]);
-    } catch (err) {
-      log.error('Error fetching analyses:', err);
-      if (mountedRef.current) setError(err instanceof Error ? err.message : 'Unknown error');
-    } finally {
-      if (mountedRef.current) setLoading(false);
-    }
-  }, [contactId, mountedRef]);
-
-  useEffect(() => {
-    void fetchAnalyses();
-  }, [fetchAnalyses]);
+  const error = queryError instanceof Error
+    ? queryError.message
+    : queryError ? String(queryError) : null;
 
   const saveAnalysis = async (
     analysis: Omit<ConversationAnalysis, 'id' | 'created_at' | 'analyzed_by'>
@@ -307,8 +302,7 @@ export function useConversationAnalyses(contactId: string | null) {
 
       if (error) throw error;
 
-      setAnalyses((prev) => [data as ConversationAnalysis, ...prev]);
-
+      await queryClient.invalidateQueries({ queryKey: key });
       return data as ConversationAnalysis;
     } catch (err) {
       log.error('Error saving analysis:', err);
@@ -345,7 +339,7 @@ export function useConversationAnalyses(contactId: string | null) {
     saveAnalysis,
     getLatestAnalysis,
     getSentimentTrend,
-    refetch: fetchAnalyses,
+    refetch,
   };
 }
 

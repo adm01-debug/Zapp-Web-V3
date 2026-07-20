@@ -1,4 +1,5 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { getLogger } from '@/lib/logger';
@@ -15,25 +16,12 @@ interface OnboardingStatus {
   [key: string]: boolean;
 }
 
+const DEFAULT_STATUS: OnboardingStatus = { profile: false, whatsapp: false, settings: false, templates: false };
+
 /** Hook: use Onboarding Checklist. */
 export function useOnboardingChecklist() {
   const { user } = useAuth();
-  const [status, setStatus] = useState<OnboardingStatus>({
-    profile: false,
-    whatsapp: false,
-    settings: false,
-    templates: false,
-  });
-  const [isLoading, setIsLoading] = useState(true);
   const [isDismissed, setIsDismissed] = useState(false);
-  const mountedRef = useRef(false);
-
-  useEffect(() => {
-    mountedRef.current = true;
-    return () => {
-      mountedRef.current = false;
-    };
-  }, []);
 
   useEffect(() => {
     try {
@@ -43,38 +31,28 @@ export function useOnboardingChecklist() {
     }
   }, [user?.id]);
 
-  const checkStatus = useCallback(async () => {
-    if (!user) {
-      if (mountedRef.current) setIsLoading(false);
-      return;
-    }
-
-    if (mountedRef.current) setIsLoading(true);
-    try {
+  const { data: status = DEFAULT_STATUS, isLoading, refetch } = useQuery({
+    queryKey: ['onboarding-status', user?.id],
+    queryFn: async (): Promise<OnboardingStatus> => {
       const [profileRes, whatsappRes, settingsRes, templatesRes] = await Promise.all([
-        supabase.from('profiles').select('name, avatar_url').eq('user_id', user.id).maybeSingle(),
-        supabase.from('whatsapp_connections').select('id').eq('created_by', user.id).limit(1),
-        supabase.from('user_settings').select('id').eq('user_id', user.id).maybeSingle(),
-        supabase.from('message_templates').select('id').eq('created_by', user.id).limit(1),
+        supabase.from('profiles').select('name, avatar_url').eq('user_id', user!.id).maybeSingle(),
+        supabase.from('whatsapp_connections').select('id').eq('created_by', user!.id).limit(1),
+        supabase.from('user_settings').select('id').eq('user_id', user!.id).maybeSingle(),
+        supabase.from('message_templates').select('id').eq('created_by', user!.id).limit(1),
       ]);
-
-      if (!mountedRef.current) return;
-      setStatus({
+      if (profileRes.error) log.error('Error checking onboarding status:', profileRes.error);
+      return {
         profile: !!(profileRes.data?.name && profileRes.data.name.length > 2),
         whatsapp: (whatsappRes.data?.length ?? 0) > 0,
         settings: !!settingsRes.data,
         templates: (templatesRes.data?.length ?? 0) > 0,
-      });
-    } catch (err) {
-      log.error('Error checking onboarding status:', err);
-    } finally {
-      if (mountedRef.current) setIsLoading(false);
-    }
-  }, [user]);
+      };
+    },
+    enabled: !!user,
+    staleTime: 60_000,
+  });
 
-  useEffect(() => {
-    checkStatus();
-  }, [checkStatus]);
+  const checkStatus = useCallback(() => { void refetch(); }, [refetch]);
 
   const dismiss = useCallback(() => {
     try {

@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
 import { BridgeService } from '@/services/connections/BridgeService';
 import type { HubTab, HealthRow, BridgeStatus } from '@/components/connections/types';
@@ -84,37 +85,18 @@ export function useHubTabNavigationManagement(
 export function useBridgeHealthManagement(
   _params: UseBridgeHealthParams = {}
 ): UseBridgeHealthResult {
-  const [status, setStatus] = useState<BridgeStatus>('idle');
-  const [health, setHealth] = useState<HealthRow | null>(null);
-  const [checkedAt, setCheckedAt] = useState<Date | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const mountedRef = useRef(true); // ✅ Fix: mounted guard para race condition
+  const { data, isFetching, refetch, dataUpdatedAt } = useQuery({
+    queryKey: ['bridge-health'] as const,
+    queryFn: () => BridgeService.checkHealth(),
+    staleTime: 30_000,
+  });
 
-  useEffect(() => {
-    mountedRef.current = true;
-    return () => {
-      mountedRef.current = false;
-    };
-  }, []);
+  const status: BridgeStatus = isFetching ? 'checking' : (data?.status ?? 'idle');
+  const health: HealthRow | null = data?.health ?? null;
+  const error: string | null = data?.error ?? null;
+  const checkedAt: Date | null = dataUpdatedAt > 0 ? new Date(dataUpdatedAt) : null;
 
-  const runCheck = useCallback(async () => {
-    setStatus('checking');
-    setError(null);
-
-    const result = await BridgeService.checkHealth();
-
-    // ✅ Fix: não atualizar estado se componente desmontado durante await
-    if (!mountedRef.current) return;
-
-    setHealth(result.health);
-    setError(result.error);
-    setStatus(result.status);
-    setCheckedAt(new Date());
-  }, []);
-
-  useEffect(() => {
-    void runCheck();
-  }, [runCheck]);
+  const runCheck = useCallback(async () => { await refetch(); }, [refetch]);
 
   return { status, health, checkedAt, error, runCheck };
 }

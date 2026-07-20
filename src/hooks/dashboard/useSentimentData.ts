@@ -1,4 +1,5 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { getLogger } from '@/lib/logger';
 
 const log = getLogger('useSentimentData');
@@ -51,61 +52,59 @@ export interface AgentSentimentData {
 
 /** Hook: use Sentiment Data. */
 export function useSentimentData(period: string) {
-  const [alerts, setAlerts] = useState<SentimentAlert[]>([]);
-  const [analyses, setAnalyses] = useState<ConversationAnalysis[]>([]);
-  const [agents, setAgents] = useState<AgentProfile[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetchData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [period]);
-
-  const fetchData = async () => {
-    setLoading(true);
-    const daysAgo = parseInt(period);
-    const startDate = startOfDay(subDays(new Date(), daysAgo)).toISOString();
-
-    try {
-      const { data: alertData, error: alertError } = await supabase
+  const { data: alerts = [], isLoading: loadingAlerts, refetch: refetchAlerts } = useQuery({
+    queryKey: ['sentiment-alerts', period],
+    queryFn: async () => {
+      const startDate = startOfDay(subDays(new Date(), parseInt(period))).toISOString();
+      const { data, error } = await supabase
         .from('audit_logs')
         .select('*')
         .eq('action', 'sentiment_alert')
         .gte('created_at', startDate)
         .order('created_at', { ascending: false });
-
-      if (alertError) throw alertError;
-
-      const formattedAlerts = (alertData || []).map((entry) => ({
+      if (error) throw error;
+      return ((data || []).map((entry) => ({
         id: entry.id,
         contactId: entry.entity_id,
         createdAt: entry.created_at,
         ...((entry.details || {}) as Record<string, unknown>),
-      })) as SentimentAlert[];
+      })) as SentimentAlert[]);
+    },
+    staleTime: 30_000,
+  });
 
-      setAlerts(formattedAlerts);
-
-      const { data: analysisData, error: analysisError } = await supabase
+  const { data: analyses = [], isLoading: loadingAnalyses, refetch: refetchAnalyses } = useQuery({
+    queryKey: ['sentiment-analyses', period],
+    queryFn: async () => {
+      const startDate = startOfDay(subDays(new Date(), parseInt(period))).toISOString();
+      const { data, error } = await supabase
         .from('conversation_analyses')
         .select('id, contact_id, sentiment, sentiment_score, created_at, analyzed_by')
         .gte('created_at', startDate)
         .order('created_at', { ascending: false });
+      if (error) throw error;
+      return (data || []) as ConversationAnalysis[];
+    },
+    staleTime: 30_000,
+  });
 
-      if (analysisError) throw analysisError;
-      setAnalyses((analysisData || []) as ConversationAnalysis[]);
-
-      const { data: agentsData, error: agentsError } = await supabase
+  const { data: agents = [], isLoading: loadingAgents, refetch: refetchAgents } = useQuery({
+    queryKey: ['sentiment-agents'],
+    queryFn: async () => {
+      const { data, error } = await supabase
         .from('profiles')
         .select('id, name, avatar_url')
         .eq('is_active', true);
+      if (error) throw error;
+      return (data || []) as AgentProfile[];
+    },
+    staleTime: 60_000,
+  });
 
-      if (agentsError) throw agentsError;
-      setAgents((agentsData || []) as AgentProfile[]);
-    } catch (error) {
-      log.error('Error fetching sentiment data:', error);
-    } finally {
-      setLoading(false);
-    }
+  const loading = loadingAlerts || loadingAnalyses || loadingAgents;
+
+  const fetchData = async () => {
+    await Promise.all([refetchAlerts(), refetchAnalyses(), refetchAgents()]);
   };
 
   const stats = useMemo(() => {
