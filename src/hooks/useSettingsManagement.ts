@@ -6,7 +6,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { log } from '@/lib/logger';
 
-
 // Default settings values (usados quando não há dados no banco)
 const DEFAULT_USER_SETTINGS = {
   theme: 'system' as const,
@@ -70,7 +69,9 @@ export function useUserSettingsManagement(userIdParam?: string) {
   const mountedRef = useRef(true);
 
   useEffect(() => {
-    return () => { mountedRef.current = false; };
+    return () => {
+      mountedRef.current = false;
+    };
   }, []);
 
   // Fix: setar loading=false quando não há userId
@@ -87,7 +88,7 @@ export function useUserSettingsManagement(userIdParam?: string) {
         .from('user_settings')
         .select('*')
         .eq('user_id', userId)
-        .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
+        .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
 
       if (err && err.code !== 'PGRST116') throw err;
       if (mountedRef.current) setSettings(data || null);
@@ -127,7 +128,13 @@ export function useUserSettingsManagement(userIdParam?: string) {
 
   // Fix: defaults + isLoading alias
   const effectiveSettings = settings ?? { ...DEFAULT_USER_SETTINGS, user_id: userId ?? '' };
-  return { settings: effectiveSettings, loading, isLoading: loading, updateSettings, refetch: fetchSettings };
+  return {
+    settings: effectiveSettings,
+    loading,
+    isLoading: loading,
+    updateSettings,
+    refetch: fetchSettings,
+  };
 }
 
 interface GlobalSettingRow {
@@ -168,19 +175,16 @@ export function useGlobalSettingsManagement() {
 
   // Helper: buscar valor de um setting por key
   const getSetting = (key: string): string | null => {
-    const row = settingsRows.find(r => r.key === key);
+    const row = settingsRows.find((r) => r.key === key);
     return row?.value ?? null;
   };
 
   // Helper: atualizar um setting existente
   const updateSetting = async (key: string, value: string): Promise<void> => {
     try {
-      const { error } = await supabase
-        .from('global_settings')
-        .update({ value })
-        .eq('key', key);
+      const { error } = await supabase.from('global_settings').update({ value }).eq('key', key);
       if (error) throw error;
-      setSettingsRows(prev => prev.map(r => r.key === key ? { ...r, value } : r));
+      setSettingsRows((prev) => prev.map((r) => (r.key === key ? { ...r, value } : r)));
     } catch (err) {
       log.error('Error updating global setting:', err);
     }
@@ -195,13 +199,21 @@ export function useGlobalSettingsManagement() {
         .select()
         .single();
       if (error) throw error;
-      if (data) setSettingsRows(prev => [...prev, data as GlobalSettingRow]);
+      if (data) setSettingsRows((prev) => [...prev, data as GlobalSettingRow]);
     } catch (err) {
       log.error('Error adding global setting:', err);
     }
   };
 
-  return { settings, settingsRows, loading, isLoading: loading, getSetting, updateSetting, addSetting };
+  return {
+    settings,
+    settingsRows,
+    loading,
+    isLoading: loading,
+    getSetting,
+    updateSetting,
+    addSetting,
+  };
 }
 
 export function useWebhookViewPreferencesManagement(userId?: string) {
@@ -214,6 +226,11 @@ export function useWebhookViewPreferencesManagement(userId?: string) {
       mountedRef.current = false;
     };
   }, []);
+
+  // Unblock loading spinner when userId is not available.
+  useEffect(() => {
+    if (!userId && mountedRef.current) setLoading(false);
+  }, [userId]);
 
   const fetchPreferences = useCallback(async () => {
     if (!userId) return;
@@ -253,6 +270,11 @@ export function useOnboardingChecklistManagement(userId?: string) {
       mountedRef.current = false;
     };
   }, []);
+
+  // Unblock loading spinner when userId is not available.
+  useEffect(() => {
+    if (!userId && mountedRef.current) setLoading(false);
+  }, [userId]);
 
   const fetchSteps = useCallback(async () => {
     if (!userId) return;
