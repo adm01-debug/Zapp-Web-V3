@@ -484,7 +484,7 @@ function useAdminChannelsManagement(statusFilter: string, search: string) {
       setChannels((chRes.data ?? []) as ServiceChannel[]);
       setChannelQueues((qRes.data ?? []) as QueueOption[]);
       setChannelWppConns((wRes.data ?? []) as WppConnOption[]);
-    } catch {
+    } catch (e) {
       if (myId !== loadIdRef.current) return;
       log.error('Load service channels failed', e);
       toast.error('Erro ao carregar canais');
@@ -1087,7 +1087,7 @@ function useHmacSecurityManagement(instance: string, includeNegative: boolean) {
         } else {
           void queryClient.invalidateQueries({ queryKey: queryKeys.adminOps.hmacAudit() });
         }
-      } catch {
+      } catch (e) {
         log.warn('audit insert threw', e);
       }
     },
@@ -1154,7 +1154,7 @@ function useHmacSecurityManagement(instance: string, includeNegative: boolean) {
             void queryClient.invalidateQueries({ queryKey: queryKeys.alerts.all() });
           }
         }
-      } catch {
+      } catch (e) {
         log.warn('alert sync threw', e);
       }
     },
@@ -1177,7 +1177,7 @@ function useHmacSecurityManagement(instance: string, includeNegative: boolean) {
       else toast.error(r.error ?? 'Falha no auto-teste HMAC');
       await logSecurityAudit(r, Math.round(performance.now() - t0));
       await syncSecurityAlert(r);
-    } catch {
+    } catch (e) {
       const msg = e instanceof Error ? e.message : 'Erro inesperado';
       const failure: SelfTestResult = { ok: false, configured: false, error: msg };
       setSecurityResult(failure);

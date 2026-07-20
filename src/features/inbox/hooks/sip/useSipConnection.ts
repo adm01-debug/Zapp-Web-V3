@@ -38,7 +38,7 @@ export function useSipConnection() {
       const registerer = registererRef.current;
       const ua = uaRef.current;
       if (ua) ua.transport.onDisconnect = () => {};
-      (async () => {
+      void (async () => {
         try {
           if (registerer) await registerer.unregister();
         } catch {

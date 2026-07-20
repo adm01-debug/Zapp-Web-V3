@@ -9,7 +9,7 @@ import { dbList } from '@/integrations/datasource/db';
 import { RPC } from '@/integrations/datasource/rpcCatalog';
 import { toast } from 'sonner';
 import { log } from '@/lib/logger';
-import { addHours, startOfTomorrow, addDays, setHours } from 'date-fns';
+import { addHours, startOfTomorrow, startOfDay, addDays, setHours } from 'date-fns';
 
 /* ============================================================================
    SECTION 1: useConversationActions - Pin, favorite, snooze management
@@ -175,7 +175,7 @@ export function useConversationActions() {
           break;
         case 'nextweek': {
           const daysUntilMonday = (1 - now.getDay() + 7) % 7 || 7;
-          snoozeUntil = setHours(addDays(now, daysUntilMonday), 9);
+          snoozeUntil = setHours(startOfDay(addDays(now, daysUntilMonday)), 9);
           break;
         }
         default:

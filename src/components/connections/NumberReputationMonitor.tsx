@@ -39,7 +39,7 @@ export function NumberReputationMonitor() {
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadData = async () => {
     setLoading(true);
@@ -54,7 +54,8 @@ export function NumberReputationMonitor() {
         reps.map((r) => ({
           ...r,
           connection: connections.find((c) => c.id === r.whatsapp_connection_id) as
-            ConnectionInfo | undefined,
+            | ConnectionInfo
+            | undefined,
         }))
       );
     }

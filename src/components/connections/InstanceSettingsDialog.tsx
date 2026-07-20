@@ -129,7 +129,7 @@ export function InstanceSettingsDialog({
         loadReconnectConfig();
       }
     }
-  }, [open, instanceName, connectionId]);
+  }, [open, instanceName, connectionId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadReconnectConfig = async () => {
     if (!connectionId) return;

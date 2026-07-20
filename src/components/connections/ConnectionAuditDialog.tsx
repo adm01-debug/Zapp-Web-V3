@@ -40,7 +40,7 @@ export function ConnectionAuditDialog({
     if (open && instanceId) {
       fetchLogs();
     }
-  }, [open, instanceId]);
+  }, [open, instanceId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchLogs = async () => {
     setLoading(true);

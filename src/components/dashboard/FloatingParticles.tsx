@@ -27,7 +27,7 @@ export const FloatingParticles = forwardRef<HTMLDivElement>((_, _ref) => {
       delay: Math.random() * 5,
       color: (['primary', 'secondary', 'accent'] as const)[Math.floor(Math.random() * 3)],
     }));
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
