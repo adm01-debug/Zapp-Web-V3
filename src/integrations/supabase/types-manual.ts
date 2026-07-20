@@ -16,7 +16,7 @@ import type { Database as GeneratedDatabase } from './types';
 // ManualZappTables — adicione aqui tabelas que não foram capturadas na geração.
 // Após regenerar types.ts, mova-as para cá SOMENTE se a CLI não as incluir.
 // ---------------------------------------------------------------------------
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
+
 /** Manual Zapp Tables interface definition. */
 export interface ManualZappTables {
   // Vazio após regeneração 2026-07-16 — todas as tabelas estão em types.ts

@@ -24,7 +24,7 @@ interface ServiceOptions {
 export const createService = <T = any>(tableName: string, options?: ServiceOptions) => {
   const { orderBy = 'created_at', orderDirection = 'desc' } = options || {};
   // Dynamic table accessor — tableName is a runtime string, not a literal from the generated types.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
   const db = supabase as unknown as {
     from(t: string): any; // ignore-audit: TS2589 with ReturnType<supabase.from>
   };

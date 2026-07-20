@@ -23,7 +23,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useMountedRef } from '@/hooks/useMountedRef';
 import { log, getLogger } from '@/lib/logger';
 import { invalidateRouteRolesCache } from '@/features/auth';
-import { normalizeProfileRef, type AdminProfileRef } from '@/features/admin/utils/profileMappers';
+import { normalizeProfileRef, type AdminProfileRef } from '../utils/profileMappers';
 import type { Json } from '@/integrations/supabase/schema';
 import type { AppRole } from '@/features/auth';
 
@@ -32,7 +32,11 @@ import type { AppRole } from '@/features/auth';
 // Automations
 /** Trigger Type type alias. */
 export type TriggerType =
-  'first_response_pending' | 'inactivity' | 'tag_applied' | 'tag_removed' | 'keyword_match';
+  | 'first_response_pending'
+  | 'inactivity'
+  | 'tag_applied'
+  | 'tag_removed'
+  | 'keyword_match';
 
 /** Trigger Config interface definition. */
 export interface TriggerConfig {

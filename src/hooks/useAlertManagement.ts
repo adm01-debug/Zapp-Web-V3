@@ -146,26 +146,33 @@ export function useWarRoomAlertsManagement(soundEnabled = true): UseWarRoomAlert
   useEffect(() => {
     const channel = supabase
       .channel('warroom-alerts-realtime')
-      .on('postgres_changes', { event: 'INSERT', schema: 'zapp', table: 'warroom_alerts' }, (payload) => {
-        const parsed = safeParseEvent(warRoomAlertRowSchema, payload.new);
-        if (!parsed.ok) {
-          log.warn('[useWarRoomAlertsManagement] received malformed realtime payload', payload.new);
-          return;
-        }
-        const alert = parsed.data as WarRoomAlert;
-        void queryClient.invalidateQueries({ queryKey: queryKeys.alerts.all() });
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'zapp', table: 'warroom_alerts' },
+        (payload) => {
+          const parsed = safeParseEvent(warRoomAlertRowSchema, payload.new);
+          if (!parsed.ok) {
+            log.warn(
+              '[useWarRoomAlertsManagement] received malformed realtime payload',
+              payload.new
+            );
+            return;
+          }
+          const alert = parsed.data as WarRoomAlert;
+          void queryClient.invalidateQueries({ queryKey: queryKeys.alerts.all() });
 
-        if (alert.alert_type === 'critical') {
-          playAlertSound();
-          playAlertSound();
-        } else {
-          playAlertSound();
-        }
+          if (alert.alert_type === 'critical') {
+            playAlertSound();
+            playAlertSound();
+          } else {
+            playAlertSound();
+          }
 
-        if (pushPermission === 'granted') {
-          showBrowserNotification(`⚠️ ${alert.title}`, alert.message);
+          if (pushPermission === 'granted') {
+            showBrowserNotification(`⚠️ ${alert.title}`, alert.message);
+          }
         }
-      })
+      )
       .subscribe();
 
     return () => {
@@ -275,7 +282,11 @@ export function useSentimentAlertsManagement(): UseSentimentAlertsResult {
           });
 
           if (settings.soundEnabled && !isQuietHours()) {
-            playNotificationSound('sla_warning' as const, settings.slaSoundType, settings.soundVolume);
+            playNotificationSound(
+              'sla_warning' as const,
+              settings.slaSoundType,
+              settings.soundVolume
+            );
           }
 
           if (settings.browserNotifications) {
@@ -288,7 +299,10 @@ export function useSentimentAlertsManagement(): UseSentimentAlertsResult {
         return { triggered: false, reason: alertResult?.reason || 'No alert needed' };
       } catch (error) {
         log.error('Error checking sentiment alert:', error);
-        return { triggered: false, reason: `Exception: ${error instanceof Error ? error.message : String(error)}` };
+        return {
+          triggered: false,
+          reason: `Exception: ${error instanceof Error ? error.message : String(error)}`,
+        };
       }
     },
     [threshold, consecutiveRequired, alertsEnabled, settings, isQuietHours]
@@ -328,17 +342,14 @@ export function useWebhookHealthAlertsManagement(): UseWebhookHealthAlertsResult
     return () => clearInterval(interval);
   }, [checkHealth]);
 
-  const acknowledgeAlert = useCallback(
-    async (alertId: string) => {
-      try {
-        await supabase.from('webhook_health_checks').update({ acknowledged: true }).eq('id', alertId);
-        setAlerts((prev) => prev.map((a) => (a.id === alertId ? { ...a } : a)));
-      } catch (error) {
-        log.error('Failed to acknowledge webhook health alert:', error);
-      }
-    },
-    []
-  );
+  const acknowledgeAlert = useCallback(async (alertId: string) => {
+    try {
+      await supabase.from('webhook_health_checks').update({ acknowledged: true }).eq('id', alertId);
+      setAlerts((prev) => prev.map((a) => (a.id === alertId ? { ...a } : a)));
+    } catch (error) {
+      log.error('Failed to acknowledge webhook health alert:', error);
+    }
+  }, []);
 
   return { alerts, loading, acknowledgeAlert, checkHealth };
 }
@@ -394,7 +405,6 @@ export function useRealtimeSentimentAlertsManagement(): UseRealtimeSentimentAler
       channel.unsubscribe();
       supabase.removeChannel(channel);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const acknowledgeAlert = useCallback(async (alertId: string) => {

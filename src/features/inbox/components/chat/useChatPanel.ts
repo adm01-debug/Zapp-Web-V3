@@ -11,7 +11,7 @@ import { useTextToSpeech } from '@/hooks/useTextToSpeech';
 import { useUserSettings } from '@/hooks/useUserSettings';
 import { useScheduledMessages } from '@/hooks/useScheduledMessages';
 import { useMessageSignature } from '@/features/inbox';
-import type { MessageQueueController } from '@/features/inbox/hooks/useMessageQueue';
+import type { MessageQueueController } from '../../hooks/useMessageQueue';
 import { useChatMediaSending } from '../../hooks/useChatMediaSending';
 import { useAmbientColor } from '@/hooks/useAmbientColor';
 import { ChatMessagesAreaRef } from './ChatMessagesArea';

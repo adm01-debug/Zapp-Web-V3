@@ -20,7 +20,7 @@ export function useEvolutionApiManagement() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    let _mounted = true;
+    const _mounted = true;
     const checkConnection = async () => {
       if (!_mounted) return;
       try {
@@ -70,7 +70,7 @@ export function useBitrixApiManagement() {
   const [webhookUrl, setWebhookUrl] = useState<string | null>(null);
 
   useEffect(() => {
-    let _mounted = true;
+    const _mounted = true;
     const checkBitrixConnection = async () => {
       if (!_mounted) return;
       try {
@@ -102,7 +102,7 @@ export function useTalkXManagement() {
   const [config, setConfig] = useState<any>(null);
 
   useEffect(() => {
-    let _mounted = true;
+    const _mounted = true;
     const fetchTalkXConfig = async () => {
       if (!_mounted) return;
       try {
