@@ -43,6 +43,10 @@ export function useContactIntelligenceManagement(contactId?: string) {
     };
   }, []);
 
+  useEffect(() => {
+    if (!contactId && mountedRef.current) setLoading(false);
+  }, [contactId]);
+
   const fetchIntelligence = useCallback(async () => {
     if (!contactId) return;
 
@@ -82,6 +86,10 @@ export function useContactNotesManagement(contactId?: string) {
       mountedRef.current = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (!contactId && mountedRef.current) setLoading(false);
+  }, [contactId]);
 
   const fetchNotes = useCallback(async () => {
     if (!contactId) return;
@@ -154,7 +162,10 @@ export function useContactEnrichedDataManagement(contactId?: string) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!contactId) return;
+    if (!contactId) {
+      setLoading(false);
+      return;
+    }
 
     const fetchEnrichedData = async () => {
       try {
@@ -187,6 +198,10 @@ export function useContactAssignmentManagement(contactId?: string) {
       mountedRef.current = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (!contactId && mountedRef.current) setLoading(false);
+  }, [contactId]);
 
   const fetchAssignment = useCallback(async () => {
     if (!contactId) return;
@@ -247,6 +262,10 @@ export function useContactCustomFieldsManagement(contactId?: string) {
       mountedRef.current = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (!contactId && mountedRef.current) setLoading(false);
+  }, [contactId]);
 
   const fetchFields = useCallback(async () => {
     if (!contactId) return;
