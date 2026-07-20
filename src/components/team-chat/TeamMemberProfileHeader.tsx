@@ -7,22 +7,8 @@ import { cn } from '@/lib/utils';
 import { format, differenceInYears, isSameDay, addYears } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import type { TeamConversation } from '@/hooks/useTeamChat';
+import { type MemberProfile } from '@/hooks/useTeamMemberDetails';
 
-interface MemberProfile {
-  id: string;
-  name: string;
-  email: string | null;
-  phone: string | null;
-  avatar_url: string | null;
-  job_title: string | null;
-  department: string | null;
-  role: string | null;
-  is_active: boolean | null;
-  created_at: string;
-  birthday: string | null;
-}
-
-/** Re-exported module members. */
 export type { MemberProfile };
 
 /** get Birthday Info component for the team chat section. */
