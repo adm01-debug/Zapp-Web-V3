@@ -94,7 +94,8 @@ describe('useQueueManagement — hooks consolidados', () => {
     it('não busca sem usuário autenticado', async () => {
       mockUseAuth.mockReturnValue({ user: null });
       const { result } = renderHook(() => useQueuesCrudManagement(), { wrapper: makeWrapper() });
-      expect(result.current.loading).toBe(true);
+      // useQuery with enabled:false is not loading (idle/pending), not fetching
+      expect(result.current.loading).toBe(false);
       expect(mockFrom).not.toHaveBeenCalled();
     });
   });

@@ -194,6 +194,7 @@ describe('GroupsView', () => {
     mockOrder.mockResolvedValue({ data: [], error: null });
     renderWithQC(<GroupsView />);
     await waitFor(() => expect(screen.getByText('Sincronizar')).toBeInTheDocument());
+    await waitFor(() => expect(mockOrder).toHaveBeenCalledTimes(2));
     fireEvent.click(screen.getByText('Sincronizar'));
     await waitFor(() => {
       expect(mockInvoke).toHaveBeenCalledWith('evolution-api', {
