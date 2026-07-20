@@ -6,12 +6,7 @@
  */
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import {
-  createListQuery,
-  createDetailQuery,
-  createSearchQuery,
-  queryKeys,
-} from '@/services/api';
+import { useListQuery, useDetailQuery, useSearchQuery, queryKeys } from '@/services/api';
 import { contactsService, type Contact } from './index';
 import type { QueryParams } from '@/services/api/types';
 
@@ -19,21 +14,17 @@ import type { QueryParams } from '@/services/api/types';
  * Hook to list all contacts with filtering and pagination
  */
 export const useContactsList = (filters?: Partial<Contact> & QueryParams) => {
-  return createListQuery(
-    queryKeys.contacts.list(filters),
-    () => contactsService.list(filters),
-    {
-      staleTime: 30_000,
-      enabled: true,
-    }
-  );
+  return useListQuery(queryKeys.contacts.list(filters), () => contactsService.list(filters), {
+    staleTime: 30_000,
+    enabled: true,
+  });
 };
 
 /**
  * Hook to get a single contact by ID
  */
 export const useContact = (id?: string) => {
-  return createDetailQuery(
+  return useDetailQuery(
     queryKeys.contacts.detail(id || ''),
     () => contactsService.getById(id!),
     !!id,
@@ -47,7 +38,7 @@ export const useContact = (id?: string) => {
  * Hook to search contacts
  */
 export const useContactsSearch = (query?: string) => {
-  return createSearchQuery(
+  return useSearchQuery(
     queryKeys.contacts.search(query),
     () => contactsService.search(query || ''),
     !!query && query.length >= 2,
@@ -61,26 +52,18 @@ export const useContactsSearch = (query?: string) => {
  * Hook to get active contacts
  */
 export const useActiveContacts = (params?: Partial<QueryParams>) => {
-  return createListQuery(
-    queryKeys.contacts.list(params),
-    () => contactsService.getActive(params),
-    {
-      staleTime: 30_000,
-    }
-  );
+  return useListQuery(queryKeys.contacts.list(params), () => contactsService.getActive(params), {
+    staleTime: 30_000,
+  });
 };
 
 /**
  * Hook to get archived contacts
  */
 export const useArchivedContacts = (params?: Partial<QueryParams>) => {
-  return createListQuery(
-    queryKeys.contacts.list(params),
-    () => contactsService.getArchived(params),
-    {
-      staleTime: 30_000,
-    }
-  );
+  return useListQuery(queryKeys.contacts.list(params), () => contactsService.getArchived(params), {
+    staleTime: 30_000,
+  });
 };
 
 /**

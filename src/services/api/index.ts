@@ -7,23 +7,23 @@
 
 export { queryKeys } from './queryKeys';
 export {
-  createListQuery,
-  createDetailQuery,
-  createSearchQuery,
-  createRealtimeQuery,
-  createPaginatedQuery,
-  createInfiniteQuery,
+  useListQuery,
+  useDetailQuery,
+  useSearchQuery,
+  useRealtimeQuery,
+  usePaginatedQuery,
+  useInfiniteQueryStub,
   handleQueryError,
   retryConfig,
 } from './queryFactory';
 
 /** Re-exported module members. */
 export {
-  createCreateMutation,
-  createUpdateMutation,
-  createDeleteMutation,
-  createBulkMutation,
-  createAsyncMutation,
+  useCreateMutation,
+  useUpdateMutation,
+  useDeleteMutation,
+  useBulkMutation,
+  useAsyncMutation,
   handleMutationError,
 } from './mutationFactory';
 

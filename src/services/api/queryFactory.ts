@@ -22,7 +22,7 @@ interface QueryFactoryOptions<TData> extends Omit<UseQueryOptions<TData>, 'query
 /**
  * Factory for creating list queries
  */
-export const createListQuery = <TData = any>(
+export const useListQuery = <TData = any>(
   queryKey: readonly any[],
   queryFn: () => Promise<TData[]>,
   options?: QueryFactoryOptions<TData[]>
@@ -40,7 +40,7 @@ export const createListQuery = <TData = any>(
 /**
  * Factory for creating detail/get queries
  */
-export const createDetailQuery = <TData = any>(
+export const useDetailQuery = <TData = any>(
   queryKey: readonly any[],
   queryFn: () => Promise<TData>,
   enabled: boolean = true,
@@ -60,7 +60,7 @@ export const createDetailQuery = <TData = any>(
 /**
  * Factory for creating search queries
  */
-export const createSearchQuery = <TData = any>(
+export const useSearchQuery = <TData = any>(
   queryKey: readonly any[],
   queryFn: () => Promise<TData[]>,
   enabled: boolean = true,
@@ -72,9 +72,9 @@ export const createSearchQuery = <TData = any>(
     enabled,
     staleTime: options?.staleTime ?? 10_000,
     gcTime: options?.gcTime ?? 2 * 60_000,
-    retry: options?.retry ?? ((failureCount: number, error: unknown) =>
-      tanstackRetry(failureCount, error, 1)
-    ),
+    retry:
+      options?.retry ??
+      ((failureCount: number, error: unknown) => tanstackRetry(failureCount, error, 1)),
     ...options,
   });
 };
@@ -84,7 +84,7 @@ export const createSearchQuery = <TData = any>(
  * NOTA: refetchInterval padrao removido — caller deve definir explicitamente
  * para evitar polling inadvertido em erros de permissao.
  */
-export const createRealtimeQuery = <TData = any>(
+export const useRealtimeQuery = <TData = any>(
   queryKey: readonly any[],
   queryFn: () => Promise<TData>,
   enabled: boolean = true,
@@ -104,7 +104,7 @@ export const createRealtimeQuery = <TData = any>(
 /**
  * Factory for creating paginated queries
  */
-export const createPaginatedQuery = <TData = any>(
+export const usePaginatedQuery = <TData = any>(
   queryKey: readonly any[],
   queryFn: () => Promise<{ data: TData[]; total: number; page: number }>,
   options?: QueryFactoryOptions<{ data: TData[]; total: number; page: number }>
@@ -126,13 +126,13 @@ export const createPaginatedQuery = <TData = any>(
  * FIX 2026-07-16: substituido `return null` por throw para evitar
  * crash silencioso em qualquer consumidor que tente desestruturar o retorno.
  */
-export const createInfiniteQuery = <TData = any>(
+export const useInfiniteQueryStub = <TData = any>(
   _queryKey: readonly any[],
   _queryFn: (pageParam: number) => Promise<TData[]>,
   _options?: QueryFactoryOptions<TData[]>
 ): never => {
   throw new Error(
-    '[createInfiniteQuery] Nao implementado — use useInfiniteQuery do TanStack diretamente.'
+    '[useInfiniteQueryStub] Nao implementado — use useInfiniteQuery do TanStack diretamente.'
   );
 };
 
