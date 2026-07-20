@@ -1,4 +1,5 @@
 import { useRef, useCallback, useState, useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/features/auth';
 import { getLogger } from '@/lib/logger';
@@ -322,12 +323,14 @@ export function useSwipeNavigationManagement(options: UseSwipeNavigationOptions 
 // DEVICE DETECTION MANAGEMENT
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════════════
 
+const DEVICES_KEY = (userId: string | undefined) => ['user-devices', userId] as const;
+const SESSIONS_KEY = (userId: string | undefined) => ['user-sessions', userId] as const;
+
 /** Detects and manages trusted devices and user sessions for security monitoring. */
 export function useDeviceDetectionManagement() {
   const { user } = useAuth();
-  const [devices, setDevices] = useState<UserDevice[]>([]);
-  const [sessions, setSessions] = useState<UserSession[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const userId = user?.id;
   const [currentDeviceId, setCurrentDeviceId] = useState<string | null>(null);
   const mountedRef = useRef(true);
 
@@ -336,6 +339,37 @@ export function useDeviceDetectionManagement() {
       mountedRef.current = false;
     };
   }, []);
+
+  const { data: devices = [], isLoading: devicesLoading } = useQuery({
+    queryKey: DEVICES_KEY(userId),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('user_devices')
+        .select('*')
+        .order('last_seen_at', { ascending: false });
+      if (error) throw error;
+      return (data || []) as UserDevice[];
+    },
+    enabled: !!userId,
+    staleTime: 30_000,
+  });
+
+  const { data: sessions = [], isLoading: sessionsLoading } = useQuery({
+    queryKey: SESSIONS_KEY(userId),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('user_sessions')
+        .select('*')
+        .eq('is_active', true)
+        .order('last_activity_at', { ascending: false });
+      if (error) throw error;
+      return (data || []) as UserSession[];
+    },
+    enabled: !!userId,
+    staleTime: 30_000,
+  });
+
+  const loading = devicesLoading || sessionsLoading;
 
   const generateFingerprint = useCallback(() => {
     const canvas = document.createElement('canvas');
@@ -411,48 +445,9 @@ export function useDeviceDetectionManagement() {
         deviceDetectionLog.debug('Device check result:', response.data);
       }
     } catch (error) {
-      if (mountedRef.current) {
-        deviceDetectionLog.error('Error checking device:', error);
-      }
+      deviceDetectionLog.error('Error checking device:', error);
     }
-  }, [user, generateFingerprint, getBrowserInfo, mountedRef]);
-
-  const fetchDevices = useCallback(async () => {
-    if (!user) return;
-
-    try {
-      const { data, error } = await supabase
-        .from('user_devices')
-        .select('*')
-        .order('last_seen_at', { ascending: false });
-
-      if (error) throw error;
-      if (mountedRef.current) setDevices(data || []);
-    } catch (error) {
-      if (mountedRef.current) {
-        deviceDetectionLog.error('Error fetching devices:', error);
-      }
-    }
-  }, [user, mountedRef]);
-
-  const fetchSessions = useCallback(async () => {
-    if (!user) return;
-
-    try {
-      const { data, error } = await supabase
-        .from('user_sessions')
-        .select('*')
-        .eq('is_active', true)
-        .order('last_activity_at', { ascending: false });
-
-      if (error) throw error;
-      if (mountedRef.current) setSessions(data || []);
-    } catch (error) {
-      if (mountedRef.current) {
-        deviceDetectionLog.error('Error fetching sessions:', error);
-      }
-    }
-  }, [user, mountedRef]);
+  }, [user, generateFingerprint, getBrowserInfo]);
 
   const trustDevice = useCallback(
     async (deviceId: string) => {
@@ -463,14 +458,12 @@ export function useDeviceDetectionManagement() {
           .eq('id', deviceId);
 
         if (error) throw error;
-        await fetchDevices();
+        await queryClient.invalidateQueries({ queryKey: DEVICES_KEY(userId) });
       } catch (error) {
-        if (mountedRef.current) {
-          deviceDetectionLog.error('Error trusting device:', error);
-        }
+        deviceDetectionLog.error('Error trusting device:', error);
       }
     },
-    [fetchDevices, mountedRef]
+    [queryClient, userId]
   );
 
   const removeDevice = useCallback(
@@ -486,15 +479,15 @@ export function useDeviceDetectionManagement() {
         const { error } = await supabase.from('user_devices').delete().eq('id', deviceId);
 
         if (error) throw error;
-        await fetchDevices();
-        await fetchSessions();
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: DEVICES_KEY(userId) }),
+          queryClient.invalidateQueries({ queryKey: SESSIONS_KEY(userId) }),
+        ]);
       } catch (error) {
-        if (mountedRef.current) {
-          deviceDetectionLog.error('Error removing device:', error);
-        }
+        deviceDetectionLog.error('Error removing device:', error);
       }
     },
-    [fetchDevices, fetchSessions, mountedRef]
+    [queryClient, userId]
   );
 
   const endSession = useCallback(
@@ -506,14 +499,12 @@ export function useDeviceDetectionManagement() {
           .eq('id', sessionId);
 
         if (error) throw error;
-        await fetchSessions();
+        await queryClient.invalidateQueries({ queryKey: SESSIONS_KEY(userId) });
       } catch (error) {
-        if (mountedRef.current) {
-          deviceDetectionLog.error('Error ending session:', error);
-        }
+        deviceDetectionLog.error('Error ending session:', error);
       }
     },
-    [fetchSessions, mountedRef]
+    [queryClient, userId]
   );
 
   const endAllOtherSessions = useCallback(async () => {
@@ -527,22 +518,15 @@ export function useDeviceDetectionManagement() {
         .eq('is_active', true);
 
       if (error) throw error;
-      await fetchSessions();
+      await queryClient.invalidateQueries({ queryKey: SESSIONS_KEY(userId) });
     } catch (error) {
-      if (mountedRef.current) {
-        deviceDetectionLog.error('Error ending sessions:', error);
-      }
+      deviceDetectionLog.error('Error ending sessions:', error);
     }
-  }, [currentDeviceId, fetchSessions, mountedRef]);
+  }, [currentDeviceId, queryClient, userId]);
 
   useEffect(() => {
-    if (user) {
-      setLoading(true);
-      Promise.all([checkDevice(), fetchDevices(), fetchSessions()]).finally(() => {
-        if (mountedRef.current) setLoading(false);
-      });
-    }
-  }, [user, checkDevice, fetchDevices, fetchSessions, mountedRef]);
+    if (user) void checkDevice();
+  }, [user, checkDevice]);
 
   return {
     devices,
@@ -554,8 +538,10 @@ export function useDeviceDetectionManagement() {
     endSession,
     endAllOtherSessions,
     refetch: async () => {
-      await fetchDevices();
-      await fetchSessions();
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: DEVICES_KEY(userId) }),
+        queryClient.invalidateQueries({ queryKey: SESSIONS_KEY(userId) }),
+      ]);
     },
   };
 }
