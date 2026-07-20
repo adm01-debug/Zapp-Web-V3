@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
-import { queryKeys } from '@/services/api/queryKeys';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { unwrapRow, unwrapRows } from '@/lib/supabase-helpers';
+import {
+  useGoalsConfigProfile,
+  useGoalsConfigData,
+  useSaveGoals,
+  type GoalConfig,
+} from '@/hooks/useGoalsConfig';
 import {
   Dialog,
   DialogContent,
@@ -23,15 +25,6 @@ import { useAuth } from '@/features/auth';
 interface GoalsConfigDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-}
-
-interface GoalConfig {
-  id?: string;
-  goal_type: string;
-  daily_target: number;
-  weekly_target: number;
-  monthly_target: number;
-  is_active: boolean;
 }
 
 const DEFAULT_GOALS: GoalConfig[] = [
@@ -80,41 +73,15 @@ const GOAL_LABELS: Record<string, { label: string; icon: React.ElementType; desc
 /** Goals Config Dialog component for the dashboard section. */
 export function GoalsConfigDialog({ open, onOpenChange }: GoalsConfigDialogProps) {
   const { user } = useAuth();
-  const queryClient = useQueryClient();
   const [goals, setGoals] = useState<GoalConfig[]>(DEFAULT_GOALS);
 
-  // Fetch current user's profile
-  const { data: profile } = useQuery({
-    queryKey: queryKeys.userProfile.meById(user?.id),
-    queryFn: async () => {
-      if (!user?.id) return null;
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id, name')
-        .eq('user_id', user.id)
-        .maybeSingle();
-      if (error) throw error;
-      return unwrapRow<{ id: string; name: string | null }>(data);
-    },
-    enabled: !!user?.id,
+  const { data: profile } = useGoalsConfigProfile(user?.id);
+  const { data: existingGoals, isLoading } = useGoalsConfigData(profile?.id, open);
+  const saveMutation = useSaveGoals(profile?.id, () => {
+    toast.success('Metas salvas com sucesso!');
+    onOpenChange(false);
   });
 
-  // Fetch existing goal configurations
-  const { data: existingGoals, isLoading } = useQuery({
-    queryKey: queryKeys.goals.configForProfile(profile?.id),
-    queryFn: async () => {
-      if (!profile?.id) return [] as GoalConfig[];
-      const { data, error } = await supabase
-        .from('goals_configurations')
-        .select('*')
-        .eq('profile_id', profile.id);
-      if (error) throw error;
-      return unwrapRows<GoalConfig>(data);
-    },
-    enabled: !!profile?.id && open,
-  });
-
-  // Update local state when existing goals are fetched
   useEffect(() => {
     if (existingGoals && existingGoals.length > 0) {
       const mergedGoals = DEFAULT_GOALS.map((defaultGoal) => {
@@ -137,36 +104,6 @@ export function GoalsConfigDialog({ open, onOpenChange }: GoalsConfigDialogProps
     }
   }, [existingGoals]);
 
-  // Save mutation
-  const saveMutation = useMutation({
-    mutationFn: async (goalsToSave: GoalConfig[]) => {
-      if (!profile?.id) throw new Error('Profile not found');
-
-      const rows = goalsToSave.map((goal) => ({
-        ...(goal.id ? { id: goal.id } : {}),
-        profile_id: profile.id,
-        goal_type: goal.goal_type,
-        daily_target: goal.daily_target,
-        weekly_target: goal.weekly_target,
-        monthly_target: goal.monthly_target,
-        is_active: goal.is_active,
-      }));
-      const { error } = await supabase
-        .from('goals_configurations')
-        .upsert(rows, { onConflict: 'profile_id,goal_type' });
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      toast.success('Metas salvas com sucesso!');
-      queryClient.invalidateQueries({ queryKey: queryKeys.goals.config() });
-      queryClient.invalidateQueries({ queryKey: queryKeys.goals.messagesRoot() });
-      onOpenChange(false);
-    },
-    onError: (error: Error) => {
-      toast.error('Erro ao salvar metas: ' + error.message);
-    },
-  });
-
   const handleGoalChange = (goalType: string, field: keyof GoalConfig, value: number | boolean) => {
     setGoals((prev) => prev.map((g) => (g.goal_type === goalType ? { ...g, [field]: value } : g)));
   };
@@ -177,7 +114,11 @@ export function GoalsConfigDialog({ open, onOpenChange }: GoalsConfigDialogProps
   };
 
   const handleSave = () => {
-    saveMutation.mutate(goals);
+    saveMutation.mutate(goals, {
+      onError: (error: Error) => {
+        toast.error('Erro ao salvar metas: ' + error.message);
+      },
+    });
   };
 
   return (

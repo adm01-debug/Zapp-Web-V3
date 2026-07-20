@@ -2,8 +2,13 @@ import { useState, useEffect } from 'react';
 import { useMountedRef } from '@/hooks/useMountedRef';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Check, Plus, Trash2, Globe, Loader2, Search, ShieldCheck } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/features/auth';
+import {
+  fetchIPWhitelist,
+  addIPToWhitelist,
+  removeIPFromWhitelist,
+  type WhitelistedIP,
+} from '@/hooks/useIPWhitelist';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -30,14 +35,6 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
-interface WhitelistedIP {
-  id: string;
-  ip_address: string;
-  description: string | null;
-  added_by: string | null;
-  created_at: string;
-}
-
 /** IPWhitelist Panel component for the security section. */
 export function IPWhitelistPanel() {
   const { user } = useAuth();
@@ -55,14 +52,9 @@ export function IPWhitelistPanel() {
 
   const fetchWhitelistedIPs = async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from('ip_whitelist')
-      .select('*')
-      .order('created_at', { ascending: false });
+    const data = await fetchIPWhitelist();
     if (!mountedRef.current) return;
-    if (!error && data) {
-      setWhitelistedIPs(data);
-    }
+    setWhitelistedIPs(data);
     setLoading(false);
   };
 
@@ -84,7 +76,7 @@ export function IPWhitelistPanel() {
     }
 
     setUpdating(true);
-    const { error } = await supabase.from('ip_whitelist').insert({
+    const { error } = await addIPToWhitelist({
       ip_address: newIP,
       description: description || null,
       added_by: user?.id,
@@ -109,14 +101,13 @@ export function IPWhitelistPanel() {
     if (!ipToRemove) return;
 
     setUpdating(true);
-    const { error } = await supabase.from('ip_whitelist').delete().eq('id', ipToRemove.id);
-
-    if (error) {
-      toast.error('Erro ao remover IP');
-    } else {
+    try {
+      await removeIPFromWhitelist(ipToRemove.id);
       toast.success('IP removido da whitelist');
       setIpToRemove(null);
       fetchWhitelistedIPs();
+    } catch {
+      toast.error('Erro ao remover IP');
     }
     setUpdating(false);
   };
