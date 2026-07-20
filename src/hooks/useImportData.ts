@@ -211,8 +211,8 @@ export function useImportDataTyped<T>(options: UseImportDataOptions<T>) {
           `Erro ao processar arquivo: ${error instanceof Error ? error.message : 'Erro desconhecido'}`
         );
       }
-      // eslint-disable-next-line react-hooks/exhaustive-deps
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [parseCSV, parseExcel, validateData]
   );
 

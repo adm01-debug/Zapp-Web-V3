@@ -842,8 +842,8 @@ export function useExternalCatalog() {
         logCatalog.error('Failed to fetch product', err);
         return null;
       }
-      // eslint-disable-next-line react-hooks/exhaustive-deps
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [queryClient]
   );
 

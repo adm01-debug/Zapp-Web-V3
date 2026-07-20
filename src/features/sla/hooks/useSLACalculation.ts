@@ -105,9 +105,9 @@ export function formatTimeRemaining(ms: number): string {
 export function useSLACalculation(params: UseSLACalculationParams): SLATimerState {
   const [state, setState] = useState<SLATimerState>(() => compute(params));
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   const recompute = useCallback(
     () => setState(compute(params)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [
       params.firstMessageAt,
       params.firstResponseAt,
