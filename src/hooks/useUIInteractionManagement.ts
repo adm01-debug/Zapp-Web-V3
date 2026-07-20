@@ -203,7 +203,7 @@ export function useSwipeNavigationManagement(options: UseSwipeNavigationOptions 
       opacity: 0;
       transition: opacity 0.15s, transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
     `;
-    el.textContent =
+    el.innerHTML =
       side === 'left'
         ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>'
         : '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>';
@@ -476,10 +476,12 @@ export function useDeviceDetectionManagement() {
   const removeDevice = useCallback(
     async (deviceId: string) => {
       try {
-        await supabase
+        const { error: sessionError } = await supabase
           .from('user_sessions')
           .update({ is_active: false, ended_at: new Date().toISOString() })
           .eq('device_id', deviceId);
+
+        if (sessionError) throw sessionError;
 
         const { error } = await supabase.from('user_devices').delete().eq('id', deviceId);
 

@@ -13,7 +13,7 @@ import type { QueryParams } from '@/services/api/types';
  * Hook to list all users
  */
 export const useUsersList = (filters?: Partial<User> & QueryParams) => {
-  return useListQuery(queryKeys.users.list(filters), () => usersService.listUsers(filters), {
+  return useListQuery(queryKeys.users.userList(filters), () => usersService.listUsers(filters), {
     staleTime: 30_000,
     enabled: true,
   });
@@ -51,7 +51,7 @@ export const useSearchUsers = (query?: string) => {
  * Hook to list all agents
  */
 export const useAgentsList = (filters?: Partial<Agent> & QueryParams) => {
-  return useListQuery(queryKeys.users.list(filters), () => usersService.listAgents(filters), {
+  return useListQuery(queryKeys.users.agentList(filters), () => usersService.listAgents(filters), {
     staleTime: 30_000,
     enabled: true,
   });

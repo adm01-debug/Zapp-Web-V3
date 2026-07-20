@@ -52,7 +52,7 @@ export const useContactsSearch = (query?: string) => {
  * Hook to get active contacts
  */
 export const useActiveContacts = (params?: Partial<QueryParams>) => {
-  return useListQuery(queryKeys.contacts.list(params), () => contactsService.getActive(params), {
+  return useListQuery(queryKeys.contacts.active(params), () => contactsService.getActive(params), {
     staleTime: 30_000,
   });
 };
@@ -61,9 +61,13 @@ export const useActiveContacts = (params?: Partial<QueryParams>) => {
  * Hook to get archived contacts
  */
 export const useArchivedContacts = (params?: Partial<QueryParams>) => {
-  return useListQuery(queryKeys.contacts.list(params), () => contactsService.getArchived(params), {
-    staleTime: 30_000,
-  });
+  return useListQuery(
+    queryKeys.contacts.archived(params),
+    () => contactsService.getArchived(params),
+    {
+      staleTime: 30_000,
+    }
+  );
 };
 
 /**

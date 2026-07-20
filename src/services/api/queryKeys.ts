@@ -17,13 +17,34 @@ export const queryKeys = {
     list: (filters?: Record<string, unknown>) =>
       [...queryKeys.contacts.lists(), { filters }] as const,
     details: () => [...queryKeys.contacts.all(), 'detail'] as const,
-    detail: (id: string) =>
-      [...queryKeys.contacts.details(), id] as const,
-    search: (query?: string) =>
-      [...queryKeys.contacts.all(), 'search', query] as const,
+    detail: (id: string) => [...queryKeys.contacts.details(), id] as const,
+    active: (params?: unknown) => [...queryKeys.contacts.lists(), 'active', params] as const,
+    archived: (params?: unknown) => [...queryKeys.contacts.lists(), 'archived', params] as const,
+    search: (query?: string) => [...queryKeys.contacts.all(), 'search', query] as const,
     total: () => [...queryKeys.contacts.all(), 'total'] as const,
-    searchResults: (search?: string, tab?: string, company?: string, jobTitle?: string, tag?: string, dateFrom?: string | null, sortField?: string, sortDir?: string, page?: number) =>
-      ['contacts-search', search, tab, company, jobTitle, tag, dateFrom, sortField, sortDir, page] as const,
+    searchResults: (
+      search?: string,
+      tab?: string,
+      company?: string,
+      jobTitle?: string,
+      tag?: string,
+      dateFrom?: string | null,
+      sortField?: string,
+      sortDir?: string,
+      page?: number
+    ) =>
+      [
+        'contacts-search',
+        search,
+        tab,
+        company,
+        jobTitle,
+        tag,
+        dateFrom,
+        sortField,
+        sortDir,
+        page,
+      ] as const,
     searchRoot: () => ['contacts-search'] as const,
   },
 
@@ -34,8 +55,7 @@ export const queryKeys = {
     list: (filters?: Record<string, unknown>) =>
       [...queryKeys.connections.lists(), { filters }] as const,
     details: () => [...queryKeys.connections.all(), 'detail'] as const,
-    detail: (id: string) =>
-      [...queryKeys.connections.details(), id] as const,
+    detail: (id: string) => [...queryKeys.connections.details(), id] as const,
     health: () => [...queryKeys.connections.all(), 'health'] as const,
     healthFor: (id?: string) => [...queryKeys.connections.all(), 'health', id] as const,
     search: (query?: string) => [...queryKeys.connections.all(), 'search', query] as const,
@@ -48,10 +68,8 @@ export const queryKeys = {
     list: (filters?: Record<string, unknown>) =>
       [...queryKeys.queues.lists(), { filters }] as const,
     details: () => [...queryKeys.queues.all(), 'detail'] as const,
-    detail: (id: string) =>
-      [...queryKeys.queues.details(), id] as const,
-    analytics: (id: string) =>
-      [...queryKeys.queues.all(), 'analytics', id] as const,
+    detail: (id: string) => [...queryKeys.queues.details(), id] as const,
+    analytics: (id: string) => [...queryKeys.queues.all(), 'analytics', id] as const,
     forRouting: () => [...queryKeys.queues.all(), 'for-routing'] as const,
     search: (query?: string) => [...queryKeys.queues.all(), 'search', query] as const,
   },
@@ -63,27 +81,26 @@ export const queryKeys = {
     list: (filters?: Record<string, unknown>) =>
       [...queryKeys.messages.lists(), { filters }] as const,
     details: () => [...queryKeys.messages.all(), 'detail'] as const,
-    detail: (id: string) =>
-      [...queryKeys.messages.details(), id] as const,
-    thread: (threadId: string) =>
-      [...queryKeys.messages.all(), 'thread', threadId] as const,
+    detail: (id: string) => [...queryKeys.messages.details(), id] as const,
+    thread: (threadId: string) => [...queryKeys.messages.all(), 'thread', threadId] as const,
     conversationLists: () => [...queryKeys.messages.all(), 'conversation-list'] as const,
     conversationList: (filters?: Record<string, unknown>) =>
       [...queryKeys.messages.conversationLists(), { filters }] as const,
     conversationDetails: () => [...queryKeys.messages.all(), 'conversation-detail'] as const,
-    conversationDetail: (id: string) =>
-      [...queryKeys.messages.conversationDetails(), id] as const,
+    conversationDetail: (id: string) => [...queryKeys.messages.conversationDetails(), id] as const,
   },
 
   // Users/Agents
   users: {
     all: () => ['users'] as const,
     lists: () => [...queryKeys.users.all(), 'list'] as const,
-    list: (filters?: Record<string, unknown>) =>
-      [...queryKeys.users.lists(), { filters }] as const,
+    list: (filters?: Record<string, unknown>) => [...queryKeys.users.lists(), { filters }] as const,
+    userLists: () => [...queryKeys.users.all(), 'users-list'] as const,
+    userList: (filters?: unknown) => [...queryKeys.users.userLists(), { filters }] as const,
+    agentLists: () => [...queryKeys.users.all(), 'agents-list'] as const,
+    agentList: (filters?: unknown) => [...queryKeys.users.agentLists(), { filters }] as const,
     details: () => [...queryKeys.users.all(), 'detail'] as const,
-    detail: (id: string) =>
-      [...queryKeys.users.details(), id] as const,
+    detail: (id: string) => [...queryKeys.users.details(), id] as const,
     me: () => [...queryKeys.users.all(), 'me'] as const,
     online: () => [...queryKeys.users.all(), 'online'] as const,
     byStatus: (status?: string) => [...queryKeys.users.all(), 'status', status] as const,
@@ -95,10 +112,8 @@ export const queryKeys = {
   // Settings
   settings: {
     all: () => ['settings'] as const,
-    user: (userId: string) =>
-      [...queryKeys.settings.all(), 'user', userId] as const,
-    workspace: () =>
-      [...queryKeys.settings.all(), 'workspace'] as const,
+    user: (userId: string) => [...queryKeys.settings.all(), 'user', userId] as const,
+    workspace: () => [...queryKeys.settings.all(), 'workspace'] as const,
   },
 
   // Automations
@@ -108,8 +123,7 @@ export const queryKeys = {
     list: (filters?: Record<string, unknown>) =>
       [...queryKeys.automations.lists(), { filters }] as const,
     details: () => [...queryKeys.automations.all(), 'detail'] as const,
-    detail: (id: string) =>
-      [...queryKeys.automations.details(), id] as const,
+    detail: (id: string) => [...queryKeys.automations.details(), id] as const,
     autoClose: () => [...queryKeys.automations.all(), 'auto-close-config'] as const,
   },
 
@@ -121,8 +135,7 @@ export const queryKeys = {
   // Tags
   tags: {
     all: () => ['tags'] as const,
-    contact: (contactId: string | undefined) =>
-      ['contact-tags', contactId] as const,
+    contact: (contactId: string | undefined) => ['contact-tags', contactId] as const,
   },
 
   // Chatbot Flows
@@ -227,7 +240,8 @@ export const queryKeys = {
     all: () => ['business-hours'] as const,
     connection: (connectionId: string) => ['business-hours', connectionId] as const,
     check: () => ['business-hours-check'] as const,
-    checkConnection: (connectionId: string | null | undefined) => ['business-hours-check', connectionId] as const,
+    checkConnection: (connectionId: string | null | undefined) =>
+      ['business-hours-check', connectionId] as const,
   },
 
   // Away Message / Auto-reply
@@ -239,7 +253,8 @@ export const queryKeys = {
   // SLA
   sla: {
     timeline: (conversationId?: string) => ['sla-timeline', conversationId] as const,
-    timelineDetailed: (remoteJid?: string, contactId?: string) => ['sla-timeline', remoteJid, contactId] as const,
+    timelineDetailed: (remoteJid?: string, contactId?: string) =>
+      ['sla-timeline', remoteJid, contactId] as const,
     configurations: () => ['sla-configurations'] as const,
     configurationsDefault: () => ['sla-configurations-default'] as const,
     rules: () => ['sla-rules'] as const,
@@ -249,8 +264,7 @@ export const queryKeys = {
     alertHistory: () => ['sla-alert-history'] as const,
     history: (period?: string) => ['sla-history', period] as const,
     metrics: (period?: string) => ['sla-metrics', period] as const,
-    deliveryConfig: (contactId: string | undefined) =>
-      ['sla-delivery-config', contactId] as const,
+    deliveryConfig: (contactId: string | undefined) => ['sla-delivery-config', contactId] as const,
     deliveryViolations: (statusFilter?: string) =>
       ['sla-delivery-violations', statusFilter] as const,
     contact: (contactId?: string) => ['contact-sla', contactId] as const,
@@ -284,12 +298,10 @@ export const queryKeys = {
 
   // Conversation history / ticket events
   conversationHistory: {
-    events: (contactId: string | null | undefined) =>
-      ['conversation-events', contactId] as const,
+    events: (contactId: string | null | undefined) => ['conversation-events', contactId] as const,
     auditLogs: (contactId: string | null | undefined) =>
       ['conversation-audit-logs', contactId] as const,
-    queuePosition: (contactId: string) =>
-      ['queue-position', contactId] as const,
+    queuePosition: (contactId: string) => ['queue-position', contactId] as const,
   },
 
   // Team profiles (names lookup)
@@ -368,7 +380,8 @@ export const queryKeys = {
   mediaGallery: {
     contact: (contactId?: string) => ['media-gallery', contactId] as const,
     preview: (contactId?: string) => ['media-gallery-preview', contactId] as const,
-    previewPaged: (contactId?: string, pageSize?: number) => ['media-gallery-preview', contactId, pageSize] as const,
+    previewPaged: (contactId?: string, pageSize?: number) =>
+      ['media-gallery-preview', contactId, pageSize] as const,
     count: (contactId?: string) => ['shared-media-count', contactId] as const,
   },
 
@@ -381,13 +394,17 @@ export const queryKeys = {
   // Reports
   reports: {
     contacts: (period?: string) => ['reports-contacts', period] as const,
-    contactsFiltered: (period?: string, agent?: string, tag?: string) => ['reports-contacts', period, agent, tag] as const,
+    contactsFiltered: (period?: string, agent?: string, tag?: string) =>
+      ['reports-contacts', period, agent, tag] as const,
     contactsPrevious: (period?: string) => ['reports-contacts-previous', period] as const,
-    contactsPreviousFiltered: (period?: string, agent?: string) => ['reports-contacts-previous', period, agent] as const,
+    contactsPreviousFiltered: (period?: string, agent?: string) =>
+      ['reports-contacts-previous', period, agent] as const,
     messages: (period?: string) => ['reports-messages', period] as const,
-    messagesFiltered: (period?: string, agent?: string) => ['reports-messages', period, agent] as const,
+    messagesFiltered: (period?: string, agent?: string) =>
+      ['reports-messages', period, agent] as const,
     messagesPrevious: (period?: string) => ['reports-messages-previous', period] as const,
-    messagesPreviousFiltered: (period?: string, agent?: string) => ['reports-messages-previous', period, agent] as const,
+    messagesPreviousFiltered: (period?: string, agent?: string) =>
+      ['reports-messages-previous', period, agent] as const,
   },
 
   // Goals / Targets
@@ -397,7 +414,8 @@ export const queryKeys = {
     messagesRoot: () => ['goals-messages'] as const,
     messages: (period?: string) => ['goals-messages', period] as const,
     contacts: (period?: string) => ['goals-contacts', period] as const,
-    contactsFiltered: (period?: string, profileId?: string) => ['goals-contacts', period, profileId] as const,
+    contactsFiltered: (period?: string, profileId?: string) =>
+      ['goals-contacts', period, profileId] as const,
   },
 
   // TalkX (bulk messaging)
@@ -406,7 +424,8 @@ export const queryKeys = {
     campaignLive: () => ['talkx-campaign-live'] as const,
     campaignLiveById: (campaignId?: string) => ['talkx-campaign-live', campaignId] as const,
     recipientsList: () => ['talkx-recipients-list'] as const,
-    recipientsListForCampaign: (campaignId?: string) => ['talkx-recipients-list', campaignId] as const,
+    recipientsListForCampaign: (campaignId?: string) =>
+      ['talkx-recipients-list', campaignId] as const,
     contactsForBlacklist: () => ['contacts-for-blacklist'] as const,
     contactsTalkx: () => ['contacts-talkx'] as const,
     waConnections: () => ['wa-connections-talkx'] as const,
@@ -484,33 +503,58 @@ export const queryKeys = {
     inboxScopes: () => [...queryKeys.admin.all(), 'inbox-custom-scopes'] as const,
     sicoobBridge: () => [...queryKeys.admin.all(), 'sicoob-bridge-dashboard'] as const,
     emailWebhook: () => [...queryKeys.admin.all(), 'email-webhook-monitor'] as const,
-    rateLimitLogs: (page?: string) =>
-      [...queryKeys.admin.all(), 'rate-limit-logs', page] as const,
+    rateLimitLogs: (page?: string) => [...queryKeys.admin.all(), 'rate-limit-logs', page] as const,
     diagnostics: () => [...queryKeys.admin.all(), 'diagnostics'] as const,
     agentVersions: () => ['admin-agent-versions-list'] as const,
     alertHistory: () => ['admin-alert-history'] as const,
-    alertHistoryFiltered: (hoursBack?: string | number, statusFilter?: string, typeFilter?: string, instanceFilter?: string) =>
-      ['admin-alert-history', hoursBack, statusFilter, typeFilter, instanceFilter] as const,
+    alertHistoryFiltered: (
+      hoursBack?: string | number,
+      statusFilter?: string,
+      typeFilter?: string,
+      instanceFilter?: string
+    ) => ['admin-alert-history', hoursBack, statusFilter, typeFilter, instanceFilter] as const,
     evolutionApiLogs: () => ['admin-evolution-api-logs'] as const,
-    evolutionApiLogsFiltered: (hoursBack?: string | number, statusFilter?: string, actionSearch?: string, instanceFilter?: string) =>
+    evolutionApiLogsFiltered: (
+      hoursBack?: string | number,
+      statusFilter?: string,
+      actionSearch?: string,
+      instanceFilter?: string
+    ) =>
       ['admin-evolution-api-logs', hoursBack, statusFilter, actionSearch, instanceFilter] as const,
     webhookOverview: () => ['admin-webhook-overview'] as const,
     webhookOverviewFiltered: (hours?: string | number, includeUnprocessed?: boolean) =>
       ['admin-webhook-overview', hours, includeUnprocessed] as const,
     webhookInstances: () => ['webhook-instances-list'] as const,
-    webhookRecentEvents: (instanceId?: string) =>
-      ['webhook-recent-events', instanceId] as const,
+    webhookRecentEvents: (instanceId?: string) => ['webhook-recent-events', instanceId] as const,
     webhookSecretStatus: () => ['webhook-secret-status'] as const,
     webhookEvents: () => ['admin-webhook-events'] as const,
-    webhookEventsFiltered: (hours?: string | number, eventType?: string, instance?: string, messageType?: string, status?: string, remoteJidFilter?: string, pushNameFilter?: string) =>
-      ['admin-webhook-events', hours, eventType, instance, messageType, status, remoteJidFilter, pushNameFilter] as const,
+    webhookEventsFiltered: (
+      hours?: string | number,
+      eventType?: string,
+      instance?: string,
+      messageType?: string,
+      status?: string,
+      remoteJidFilter?: string,
+      pushNameFilter?: string
+    ) =>
+      [
+        'admin-webhook-events',
+        hours,
+        eventType,
+        instance,
+        messageType,
+        status,
+        remoteJidFilter,
+        pushNameFilter,
+      ] as const,
     kbArticleCount: () => ['kb-article-count'] as const,
     dlqAuditLog: () => ['dlq-audit-log'] as const,
     dlqAuditLogFiltered: (params?: unknown) => ['dlq-audit-log', params] as const,
     userRoles: () => ['user-roles-overview'] as const,
     realtimeMonitor: () => ['realtime-monitor'] as const,
     realtimeMonitorConnections: () => ['realtime-monitor', 'connections'] as const,
-    realtimeMonitorEvents: (windowHours?: number) => ['realtime-monitor', 'events', windowHours] as const,
+    realtimeMonitorEvents: (windowHours?: number) =>
+      ['realtime-monitor', 'events', windowHours] as const,
     warroom: {
       agents: () => ['warroom-agents'] as const,
       queues: () => ['warroom-queues'] as const,
@@ -523,16 +567,20 @@ export const queryKeys = {
     conversationTimeline: (filters?: unknown) => ['conversation-timeline', filters] as const,
     sentimentTrend: (filters?: unknown) => ['sentiment-trend', filters] as const,
     authEventSummary: (filters?: unknown) => ['auth-event-summary', filters] as const,
-    authEventSummaryDetailed: (hours?: number, filter?: string) => ['auth-event-summary', hours, filter] as const,
+    authEventSummaryDetailed: (hours?: number, filter?: string) =>
+      ['auth-event-summary', hours, filter] as const,
     authEventTrend: (filters?: unknown) => ['auth-event-trend', filters] as const,
-    authEventTrendDetailed: (hours?: number, filter?: string) => ['auth-event-trend', hours, filter] as const,
+    authEventTrendDetailed: (hours?: number, filter?: string) =>
+      ['auth-event-trend', hours, filter] as const,
     hmacAudit: () => ['hmac-selftest-audit'] as const,
-    hmacAuditFiltered: (range?: unknown, instanceFilter?: string) => ['hmac-selftest-audit', range, instanceFilter] as const,
+    hmacAuditFiltered: (range?: unknown, instanceFilter?: string) =>
+      ['hmac-selftest-audit', range, instanceFilter] as const,
     hmacAuditInstances: () => ['hmac-selftest-audit-instances'] as const,
     hmacAuditInstancesRange: (range?: unknown) => ['hmac-selftest-audit-instances', range] as const,
     idempotencyMiss: () => ['idempotency-miss'] as const,
     incidentEvents: () => ['incident-events'] as const,
-    incidentEventsDetailed: (pauseId?: string, sinceMin?: number) => ['incident-events', pauseId, sinceMin] as const,
+    incidentEventsDetailed: (pauseId?: string, sinceMin?: number) =>
+      ['incident-events', pauseId, sinceMin] as const,
     instancePauses: () => ['instance-pauses'] as const,
     instancePausesActive: () => ['instance-pauses', 'active'] as const,
     instancePausesHistory: () => ['instance-pauses', 'history'] as const,
@@ -548,9 +596,9 @@ export const queryKeys = {
     deliveryStats: () => ['delivery-stats'] as const,
     operationsLogsAll: () => ['operations-logs'] as const,
     evolutionRetryMetrics: () => ['evolution-retry-metrics'] as const,
-    evolutionRetryMetricsFiltered: (filters?: unknown) => ['evolution-retry-metrics', filters] as const,
-    alertInstanceDetail: (alertId?: string) =>
-      ['alert-instance-detail', alertId] as const,
+    evolutionRetryMetricsFiltered: (filters?: unknown) =>
+      ['evolution-retry-metrics', filters] as const,
+    alertInstanceDetail: (alertId?: string) => ['alert-instance-detail', alertId] as const,
     operationsLogs: (filters?: unknown) => ['operations-logs', filters] as const,
     telemetry: (severityFilter?: string, timeFilter?: string, dateFrom?: string, dateTo?: string) =>
       ['query-telemetry', severityFilter, timeFilter, dateFrom, dateTo] as const,
@@ -569,7 +617,6 @@ export const queryKeys = {
     forEntity: (entityType: string, entityId: string) =>
       ['versions', entityType, entityId] as const,
   },
-
 };
 
 /**

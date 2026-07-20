@@ -18,7 +18,7 @@ import type { Database as GeneratedDatabase } from './types';
 // ---------------------------------------------------------------------------
 
 /** Manual Zapp Tables type definition. */
-export type ManualZappTables = Record<string, never>;
+export type ManualZappTables = Record<never, never>;
 
 // ---------------------------------------------------------------------------
 // MergeTables — mescla dois conjuntos de tabelas sem criar intersseção

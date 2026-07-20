@@ -126,8 +126,10 @@ export const settingsRepository = {
           table: 'user_settings',
           filter: `user_id=eq.${userId}`,
         },
-        (payload: { new: unknown; old: unknown }) =>
-          callback((payload.new || payload.old) as UserSettings)
+        (payload: { eventType: string; new: unknown; old: unknown }) => {
+          if (payload.eventType === 'DELETE') return;
+          callback(payload.new as UserSettings);
+        }
       )
       .subscribe();
   },
@@ -146,8 +148,10 @@ export const settingsRepository = {
           table: 'workspace_settings',
           filter: `workspace_id=eq.${workspaceId}`,
         },
-        (payload: { new: unknown; old: unknown }) =>
-          callback((payload.new || payload.old) as WorkspaceSettings)
+        (payload: { eventType: string; new: unknown; old: unknown }) => {
+          if (payload.eventType === 'DELETE') return;
+          callback(payload.new as WorkspaceSettings);
+        }
       )
       .subscribe();
   },

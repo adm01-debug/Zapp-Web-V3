@@ -38,13 +38,14 @@ export const useCalls = () => {
   const [currentCallId, setCurrentCallId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const mountedRef = useMountedRef();
-  const abortControllerRef = useRef<AbortController | null>(null);
+  const activeControllersRef = useRef<Set<AbortController>>(new Set());
   const queryClient = useQueryClient();
 
   // Cleanup: abort all pending operations on unmount
   useEffect(() => {
     return () => {
-      abortControllerRef.current?.abort();
+      activeControllersRef.current.forEach((c) => c.abort());
+      activeControllersRef.current.clear();
     };
   }, []);
 
@@ -105,7 +106,7 @@ export const useCalls = () => {
   const answerCall = useCallback(
     async (callId: string): Promise<boolean> => {
       const controller = new AbortController();
-      abortControllerRef.current = controller;
+      activeControllersRef.current.add(controller);
 
       try {
         const builder = supabase
@@ -134,6 +135,8 @@ export const useCalls = () => {
         if (controller.signal.aborted) return false;
         log.error('Error answering call:', error);
         return false;
+      } finally {
+        activeControllersRef.current.delete(controller);
       }
     },
     [queryClient]
@@ -143,7 +146,7 @@ export const useCalls = () => {
   const endCall = useCallback(
     async (callId: string, durationSeconds: number): Promise<boolean> => {
       const controller = new AbortController();
-      abortControllerRef.current = controller;
+      activeControllersRef.current.add(controller);
 
       try {
         const builder = supabase
@@ -182,6 +185,8 @@ export const useCalls = () => {
           });
         }
         return false;
+      } finally {
+        activeControllersRef.current.delete(controller);
       }
     },
     [mountedRef, queryClient]
@@ -191,7 +196,7 @@ export const useCalls = () => {
   const missCall = useCallback(
     async (callId: string): Promise<boolean> => {
       const controller = new AbortController();
-      abortControllerRef.current = controller;
+      activeControllersRef.current.add(controller);
 
       try {
         const builder = supabase
@@ -222,6 +227,8 @@ export const useCalls = () => {
         if (controller.signal.aborted) return false;
         log.error('Error marking call as missed:', error);
         return false;
+      } finally {
+        activeControllersRef.current.delete(controller);
       }
     },
     [queryClient]
@@ -231,7 +238,7 @@ export const useCalls = () => {
   const addCallNotes = useCallback(
     async (callId: string, notes: string): Promise<boolean> => {
       const controller = new AbortController();
-      abortControllerRef.current = controller;
+      activeControllersRef.current.add(controller);
 
       try {
         const builder = supabase.from('calls').update({ notes }).eq('id', callId);
@@ -254,6 +261,8 @@ export const useCalls = () => {
         if (controller.signal.aborted) return false;
         log.error('Error adding call notes:', error);
         return false;
+      } finally {
+        activeControllersRef.current.delete(controller);
       }
     },
     [queryClient]
@@ -262,7 +271,7 @@ export const useCalls = () => {
   // Get call history for a contact with abort signal support
   const getContactCalls = useCallback(async (contactId: string): Promise<Call[]> => {
     const controller = new AbortController();
-    abortControllerRef.current = controller;
+    activeControllersRef.current.add(controller);
 
     try {
       const builder = supabase
@@ -288,6 +297,8 @@ export const useCalls = () => {
       if (controller.signal.aborted) return [];
       log.error('Error fetching contact calls:', error);
       return [];
+    } finally {
+      activeControllersRef.current.delete(controller);
     }
   }, []);
 

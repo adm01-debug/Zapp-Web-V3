@@ -181,7 +181,9 @@ export function useQueuesCrudManagement() {
 /** Retrieves queue performance metrics and analytics. */
 export function useQueueAnalyticsManagement(params: { queueId: string; dateRange: DateRange }) {
   const { user } = useAuth();
-  const { queueId } = params;
+  const { queueId, dateRange } = params;
+  const startIso = dateRange.startDate.toISOString();
+  const endIso = dateRange.endDate.toISOString();
   const [analytics, setAnalytics] = useState<QueueAnalytics | null>(null);
   const [loading, setLoading] = useState(true);
   const mountedRef = useRef(true);
@@ -203,6 +205,8 @@ export function useQueueAnalyticsManagement(params: { queueId: string; dateRange
       const { data, error: err } = await safeFrom('queue_analytics')
         .select('*')
         .eq('queue_id', queueId)
+        .gte('timestamp', startIso)
+        .lte('timestamp', endIso)
         .order('timestamp', { ascending: false })
         .limit(1)
         .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
@@ -216,7 +220,7 @@ export function useQueueAnalyticsManagement(params: { queueId: string; dateRange
     } finally {
       if (mountedRef.current) setLoading(false);
     }
-  }, [user, queueId]);
+  }, [user, queueId, startIso, endIso]);
 
   useEffect(() => {
     if (user && queueId) fetchAnalytics();
