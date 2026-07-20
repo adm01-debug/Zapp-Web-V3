@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { sanitizeText } from '@/lib/sanitize';
 import { validatePhoneDetailed } from '@/lib/phoneUtils';
@@ -129,10 +129,20 @@ export function useContactFormV3({
     [toast]
   );
 
+  const phoneValidation = useMemo(
+    () => (form.phone ? validatePhoneDetailed(form.phone) : null),
+    [form.phone]
+  );
+
   const doSave = useCallback(
     async (forceOverwrite = false) => {
       if (!form.name.trim() && !form.phone.trim() && !form.email.trim()) {
         toast({ title: 'Preencha ao menos nome, telefone ou e-mail.', variant: 'destructive' });
+        return;
+      }
+
+      if (form.phone && phoneValidation && !phoneValidation.valid) {
+        toast({ title: `Telefone inválido: ${phoneValidation.error}`, variant: 'destructive' });
         return;
       }
 
@@ -190,7 +200,7 @@ export function useContactFormV3({
         onSaved(form);
       }, 'Salvar contato');
     },
-    [form, mode, workspaceId, withRetry, toast, onSaved]
+    [form, mode, workspaceId, withRetry, toast, onSaved, phoneValidation]
   );
 
   const handlePhoneBlur = useCallback(() => {
@@ -219,8 +229,6 @@ export function useContactFormV3({
     setConflictOpen(false);
     onCancel?.();
   }, [onCancel]);
-
-  const phoneValidation = validatePhoneDetailed(form.phone);
 
   return {
     form,

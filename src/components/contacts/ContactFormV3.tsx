@@ -1,16 +1,4 @@
-/**
- * ContactFormV3.tsx
- * Complete contact form integrating ALL v3.0 improvements:
- * - Real-time duplicate detection with merge prompt
- * - Multiple phone numbers (ContactPhoneManager)
- * - LGPD consent management
- * - Phone normalization + validation
- * - XSS-safe field rendering
- * - Optimistic locking (versioned saves)
- * - Retry on network failure
- * - Conflict resolution on concurrent edit
- */
-import React, { useState, useCallback, useEffect, useMemo } from 'react';
+import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -19,31 +7,26 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
 import { AlertTriangle, Save, Loader2, User, Building2, Mail, Tag, GitMerge } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
 import { sanitizeText } from '@/lib/sanitize';
-import { validatePhoneDetailed } from '@/lib/phoneUtils';
-import { useContactDuplicateDetector } from './useContactDuplicateDetector';
-import { useRetryOperation } from '@/hooks/useRetryAndErrorPrevention';
 import { ContactPhoneManager, PhoneEntry } from './ContactPhoneManager';
-import { ContactConsentManager, ConsentData } from './ContactConsentManager';
-import { ContactMergeDialog, ContactForMerge } from './ContactMergeDialog';
-import { ConflictResolutionDialog, ConflictInfo } from './ConflictResolutionDialog';
-import { dbFrom, dbRpc } from '@/integrations/datasource/db';
-import { RPC } from '@/integrations/datasource/rpcCatalog';
+import { ContactConsentManager } from './ContactConsentManager';
+import { ContactMergeDialog } from './ContactMergeDialog';
+import { ConflictResolutionDialog } from './ConflictResolutionDialog';
+import { useContactFormV3 } from './useContactFormV3';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
 export interface ContactV3FormData {
   id?: string;
   name: string;
-  phone: string; // primary phone (legacy compat)
-  phone_numbers: PhoneEntry[]; // all phones
+  phone: string;
+  phone_numbers: PhoneEntry[];
   email: string;
   company: string;
   tags: string[];
   notes: string;
-  version?: number; // optimistic locking
-  consent?: Partial<ConsentData>;
+  version?: number;
+  consent?: Partial<import('./ContactConsentManager').ConsentData>;
 }
 
 interface ContactFormV3Props {
@@ -54,18 +37,6 @@ interface ContactFormV3Props {
   mode?: 'create' | 'edit';
 }
 
-// ── Helpers ────────────────────────────────────────────────────────────────
-
-const EMPTY_FORM: ContactV3FormData = {
-  name: '',
-  phone: '',
-  phone_numbers: [],
-  email: '',
-  company: '',
-  tags: [],
-  notes: '',
-};
-
 // ── Component ──────────────────────────────────────────────────────────────
 
 export const ContactFormV3: React.FC<ContactFormV3Props> = ({
@@ -75,152 +46,34 @@ export const ContactFormV3: React.FC<ContactFormV3Props> = ({
   onCancel,
   mode = 'create',
 }) => {
-  const { toast } = useToast();
-  const [form, setForm] = useState<ContactV3FormData>({ ...EMPTY_FORM, ...initial });
-  const [tagInput, setTagInput] = useState('');
-  const [dirty, setDirty] = useState(false);
-
-  // Conflict resolution state
-  const [conflict, setConflict] = useState<ConflictInfo | null>(null);
-  const [conflictOpen, setConflictOpen] = useState(false);
-
-  // Merge dialog state
-  const [mergeTarget, setMergeTarget] = useState<ContactForMerge | null>(null);
-  const [mergeOpen, setMergeOpen] = useState(false);
-
-  // Hooks
-  const { withRetry, loading: retrying } = useRetryOperation(3, 500);
-  const { hasDuplicates, duplicates, checking, checkDuplicates } = useContactDuplicateDetector({
-    workspaceId,
-    excludeId: form.id,
-    debounceMs: 600,
-  });
-
-  const phoneValidation = useMemo(
-    () => (form.phone ? validatePhoneDetailed(form.phone) : null),
-    [form.phone]
-  );
-
-  // Check duplicates when phone or email changes
-  useEffect(() => {
-    if (form.phone || form.email) {
-      checkDuplicates(form.phone, form.email, form.name);
-    }
-  }, [form.phone, form.email, form.name, checkDuplicates]);
-
-  const update = useCallback(
-    <K extends keyof ContactV3FormData>(key: K, value: ContactV3FormData[K]) => {
-      setForm((prev) => ({ ...prev, [key]: value }));
-      setDirty(true);
-    },
-    []
-  );
-
-  const addTag = useCallback(() => {
-    const tag = tagInput.trim();
-    if (tag && !form.tags.includes(tag)) {
-      update('tags', [...form.tags, tag]);
-      setTagInput('');
-    }
-  }, [tagInput, form.tags, update]);
-
-  const removeTag = useCallback(
-    (tag: string) => {
-      update(
-        'tags',
-        form.tags.filter((t) => t !== tag)
-      );
-    },
-    [form.tags, update]
-  );
-
-  // ── Save logic ─────────────────────────────────────────────────────────
-
-  const doSave = useCallback(
-    async (forceOverwrite = false) => {
-      // Validate
-      if (!form.name.trim() && !form.phone.trim() && !form.email.trim()) {
-        toast({ title: 'Preencha ao menos nome, telefone ou e-mail.', variant: 'destructive' });
-        return;
-      }
-
-      // Phone validation
-      if (form.phone && phoneValidation && !phoneValidation.valid) {
-        toast({ title: `Telefone inválido: ${phoneValidation.error}`, variant: 'destructive' });
-        return;
-      }
-
-      await withRetry(async () => {
-        const payload = {
-          name: sanitizeText(form.name),
-          phone: form.phone || null,
-          phone_numbers: form.phone_numbers,
-          email: form.email?.toLowerCase().trim() || null,
-          company: sanitizeText(form.company) || null,
-          tags: form.tags,
-          notes: form.notes || null,
-          workspace_id: workspaceId,
-          updated_at: new Date().toISOString(),
-        };
-
-        if (mode === 'edit' && form.id && !forceOverwrite) {
-          // Versioned update (optimistic locking)
-          const { data, error } = await dbRpc(RPC.updateContactVersioned, {
-            p_contact_id: form.id,
-            p_expected_version: form.version ?? 1,
-            p_updates: payload,
-          });
-
-          if (error) throw error;
-
-          const result = (data ?? {}) as Record<string, unknown>;
-          if (result?.error === 'CONFLICT') {
-            setConflict(result as unknown as ConflictInfo);
-            setConflictOpen(true);
-            return;
-          }
-
-          // Update local version
-          setForm((prev) => ({
-            ...prev,
-            version: (result?.version as number | undefined) ?? prev.version,
-          }));
-        } else if (mode === 'edit' && form.id && forceOverwrite) {
-          // Force overwrite after conflict resolution
-          const { error } = await dbFrom('contacts').update(payload).eq('id', form.id);
-          if (error) throw error;
-        } else {
-          // Insert new contact
-          const { data, error } = await dbFrom('contacts')
-            .insert({ ...payload, created_at: new Date().toISOString() })
-            .select()
-            .single();
-
-          if (error) throw error;
-          setForm((prev) => ({ ...prev, id: data.id, version: 1 }));
-        }
-
-        toast({
-          title: mode === 'create' ? '✅ Contato criado!' : '✅ Contato salvo!',
-          duration: 3_000,
-        });
-        setDirty(false);
-        onSaved(form);
-      }, 'Salvar contato');
-    },
-    [form, mode, workspaceId, withRetry, toast, onSaved]
-  );
-
-  // ── Phone normalization on blur ───────────────────────────────────────
-
-  const handlePhoneBlur = () => {
-    if (!phoneValidation) return;
-    if (phoneValidation.valid && phoneValidation.normalized) {
-      update('phone', phoneValidation.normalized);
-    }
-  };
-
-  const isSaving = retrying;
+  const {
+    form,
+    tagInput,
+    setTagInput,
+    dirty,
+    conflict,
+    conflictOpen,
+    setConflictOpen,
+    mergeTarget,
+    mergeOpen,
+    setMergeOpen,
+    loadingMergeTarget,
+    hasDuplicates,
+    duplicates,
+    checking,
+    isSaving,
+    phoneValidation,
+    update,
+    addTag,
+    removeTag,
+    openMergeDialog,
+    doSave,
+    handlePhoneBlur,
+    updateConsent,
+    handleMergeComplete,
+    handleConflictKeepMine,
+    handleConflictTakeTheirs,
+  } = useContactFormV3({ workspaceId, initial, mode, onSaved, onCancel });
 
   return (
     <div className="space-y-6">
@@ -238,13 +91,15 @@ export const ContactFormV3: React.FC<ContactFormV3Props> = ({
               <Button
                 variant="link"
                 size="sm"
-                onClick={() => {
-                  setMergeTarget(duplicates[0] as unknown as ContactForMerge);
-                  setMergeOpen(true);
-                }}
+                onClick={() => openMergeDialog(duplicates[0].id)}
+                disabled={loadingMergeTarget}
                 className="ml-2 h-auto p-0 text-warning-foreground underline"
               >
-                <GitMerge className="mr-1 h-3.5 w-3.5" />
+                {loadingMergeTarget ? (
+                  <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <GitMerge className="mr-1 h-3.5 w-3.5" />
+                )}
                 Mesclar
               </Button>
             )}
@@ -423,9 +278,7 @@ export const ContactFormV3: React.FC<ContactFormV3Props> = ({
             lgpd_data_sharing: form.consent?.lgpd_data_sharing ?? false,
             lgpd_profiling: form.consent?.lgpd_profiling ?? false,
           }}
-          onUpdated={(updated) =>
-            setForm((prev) => ({ ...prev, consent: { ...prev.consent, ...updated } }))
-          }
+          onUpdated={updateConsent}
         />
       )}
 
@@ -473,10 +326,7 @@ export const ContactFormV3: React.FC<ContactFormV3Props> = ({
             created_at: new Date().toISOString(),
           }}
           secondaryContact={mergeTarget}
-          onMergeComplete={() => {
-            setMergeOpen(false);
-            onSaved(form);
-          }}
+          onMergeComplete={handleMergeComplete}
         />
       )}
 
@@ -485,14 +335,8 @@ export const ContactFormV3: React.FC<ContactFormV3Props> = ({
         <ConflictResolutionDialog
           open={conflictOpen}
           conflict={conflict}
-          onKeepMine={() => {
-            setConflictOpen(false);
-            doSave(true);
-          }}
-          onTakeTheirs={() => {
-            setConflictOpen(false);
-            onCancel?.();
-          }}
+          onKeepMine={handleConflictKeepMine}
+          onTakeTheirs={handleConflictTakeTheirs}
           onCancel={() => setConflictOpen(false)}
         />
       )}

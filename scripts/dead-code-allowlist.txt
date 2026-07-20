@@ -37,7 +37,6 @@ src/pages/admin/connections/ConnectionsWebhooksTab.tsx  # tab component da refat
 src/components/connections/AddConnectionDialog.tsx  # UI real de criação de conexões; página de conexões refatorada não renderiza mais; lógica de formulário preservada para reintegração futura
 src/components/connections/ConnectionsStats.tsx  # widget de 3 cards de estatísticas de conexões; planejado para adição ao dashboard
 src/components/connections/QrCodeDialog.tsx  # modal real de QR code; tipo QrCodeDialogState duplicado em features/connections impede wiring
-src/components/contacts/useContactFormV3.ts  # hook v3 com conflict-detection e merge flow; ContactFormV3.tsx gerencia estado próprio e não importa este hook
 src/components/team-chat/TeamChatMessageRow.tsx  # row de mensagens com reactions, TTS e context-menu; referenciado apenas em teste de auditoria, nunca renderizado
 src/features/inbox/components/chat/useChatPanel.ts  # orquestra estado do chat-panel (agendamento, quick-replies, TTS, drag-drop, atalhos); ChatPanel.tsx migrou para importar useChatPanelHandlers diretamente
 src/features/inbox/components/conversation-list/ConversationItemComfortable.tsx  # variante de densidade "confortável"; ConversationItem.tsx é self-contained e não delega
