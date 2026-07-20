@@ -111,7 +111,7 @@ Deno.serve(async (req) => {
     if (!Number.isFinite(offsetRaw) || offsetRaw < 0) {
       return jsonResponse(req, { error: "offset must be a non-negative number" }, 400);
     }
-    offset = Math.trunc(offsetRaw);
+    offset = Math.min(Math.trunc(offsetRaw), 1_000_000);
     mode = "offset";
   }
 

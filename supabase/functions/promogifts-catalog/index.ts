@@ -43,7 +43,7 @@ const ListProductsSchema = z.object({
   category_id: z.string().uuid().optional(),
   supplier_id: z.string().uuid().optional(),
   limit: z.number().int().min(1).max(100).default(50),
-  offset: z.number().int().min(0).default(0),
+  offset: z.number().int().min(0).max(1_000_000).default(0),
   order_by: z.enum(ALLOWED_ORDER_FIELDS).default("name"),
   ascending: z.boolean().default(true),
   only_active: z.boolean().default(true),
@@ -74,7 +74,7 @@ const ActionSchema = z.object({
  * (que o driver já previne).
  */
 function sanitizeSearch(input: string): string {
-  return input.replace(/[%_.\\(),:'"`]/g, "").trim().slice(0, 100);
+  return input.replace(/[%_.\\(),:'"\`]/g, "").trim().slice(0, 100);
 }
 
 const PRODUCT_FIELDS = `id, name, description, short_description, sku, sale_price, suggested_price,
