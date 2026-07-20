@@ -1,10 +1,4 @@
-import { queryKeys } from '@/services/api/queryKeys';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getLogger } from '@/lib/logger';
-
-const log = getLogger('AIAutoTagsConfig');
-import { supabase } from '@/integrations/supabase/client';
-import { autoTag } from '@/integrations/supabase/ai-router';
+import { useAITagStats, useRetagRecentContacts } from '@/hooks/useAIAutoTags';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -14,66 +8,23 @@ import { cn } from '@/lib/utils';
 
 /** AIAuto Tags Config component for the settings section. */
 export function AIAutoTagsConfig() {
-  const queryClient = useQueryClient();
+  const { data: tagStats = [], isLoading } = useAITagStats();
 
-  const { data: tagStats = [], isLoading } = useQuery({
-    queryKey: queryKeys.aiFeatures.tagStats(),
-    queryFn: async () => {
-      const { data } = await supabase.from('ai_conversation_tags').select('tag_name, confidence');
-
-      if (!data) return [];
-
-      // Aggregate by tag
-      const tagMap = new Map<string, { count: number; avgConfidence: number }>();
-      data.forEach((t) => {
-        const existing = tagMap.get(t.tag_name) || { count: 0, avgConfidence: 0 };
-        existing.count += 1;
-        existing.avgConfidence =
-          (existing.avgConfidence * (existing.count - 1) + Number(t.confidence)) / existing.count;
-        tagMap.set(t.tag_name, existing);
-      });
-
-      return Array.from(tagMap.entries())
-        .map(([name, stats]) => ({ name, ...stats }))
-        .sort((a, b) => b.count - a.count);
-    },
+  const retagMutation = useRetagRecentContacts((count) => {
+    toast({
+      title: 'Tags atualizadas!',
+      description: `${count} conversas classificadas por IA.`,
+    });
   });
 
-  const retagMutation = useMutation({
-    mutationFn: async () => {
-      // Get recent contacts with messages
-      const { data: contacts } = await supabase
-        .from('contacts')
-        .select('id')
-        .order('updated_at', { ascending: false })
-        .limit(20);
-
-      if (!contacts) return;
-
-      let processed = 0;
-      for (const contact of contacts) {
-        try {
-          await autoTag({ contactId: contact.id });
-          processed++;
-        } catch (e) {
-          log.error('Error tagging contact:', contact.id, e);
-        }
-        // Small delay to avoid rate limits
-        await new Promise((r) => setTimeout(r, 1000));
-      }
-      return processed;
-    },
-    onSuccess: (count) => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.aiFeatures.tagStats() });
-      toast({
-        title: 'Tags atualizadas!',
-        description: `${count} conversas classificadas por IA.`,
-      });
-    },
-    onError: (e: Error) => {
-      toast({ title: 'Erro', description: e.message, variant: 'destructive' });
-    },
-  });
+  // Wrap onError to use toast
+  const handleRetag = () => {
+    retagMutation.mutate(undefined, {
+      onError: (e: Error) => {
+        toast({ title: 'Erro', description: e.message, variant: 'destructive' });
+      },
+    });
+  };
 
   const tagColors: Record<string, string> = {
     suporte_tecnico: 'bg-info/15 text-info border-info',
@@ -100,7 +51,7 @@ export function AIAutoTagsConfig() {
           </p>
         </div>
         <Button
-          onClick={() => retagMutation.mutate()}
+          onClick={handleRetag}
           disabled={retagMutation.isPending}
           className="gap-2"
         >

@@ -18,7 +18,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { TalkXCampaign } from '@/hooks/useTalkX';
 import { TalkXMessagePreview } from './TalkXMessagePreview';
 import { TalkXContactSelector } from './TalkXContactSelector';
-import { useCampaignEditor, VARIABLES, MESSAGE_TEMPLATES, MEDIA_TYPES } from './useCampaignEditor';
+import { useCampaignEditor, VARIABLES, MESSAGE_TEMPLATES, MEDIA_TYPES } from '@/hooks/useCampaignEditor';
 
 const MEDIA_ICONS = { image: Image, video: Video, document: FileText, audio: Music } as const;
 

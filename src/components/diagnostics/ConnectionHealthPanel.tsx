@@ -7,6 +7,7 @@ import { getLogger } from '@/lib/logger';
 const log = getLogger('ConnectionHealthPanel');
 import { supabase } from '@/integrations/supabase/client';
 import { safeWhatsAppConnectionsQuery } from '@/integrations/supabase/safe-queries';
+import { fetchConnectionHealthLogs, type HealthLog } from '@/hooks/useConnectionHealthLogs';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -44,15 +45,6 @@ interface ConnectionHealth {
   health_response_ms: number | null;
 }
 
-interface HealthLog {
-  id: string;
-  instance_id: string;
-  status: string;
-  response_time_ms: number | null;
-  error_message: string | null;
-  checked_at: string;
-}
-
 /** Connection Health Panel component for the diagnostics section. */
 export function ConnectionHealthPanel(): JSX.Element {
   const [connections, setConnections] = useState<ConnectionHealth[]>([]);
@@ -80,21 +72,15 @@ export function ConnectionHealthPanel(): JSX.Element {
   };
 
   const fetchData = useCallback(async (): Promise<void> => {
-    const safeQueries = safeWhatsAppConnectionsQuery(
-      supabase as unknown as SupabaseClient<Database>
-    );
-    const [connResult, { data: logs }] = await Promise.all([
+    const safeQueries = safeWhatsAppConnectionsQuery(supabase as unknown as SupabaseClient<Database>);
+    const [connResult, logs] = await Promise.all([
       safeQueries.getList(),
-      supabase
-        .from('connection_health_logs')
-        .select('id, instance_id, status, response_time_ms, error_message, checked_at')
-        .order('checked_at', { ascending: false })
-        .limit(50),
+      fetchConnectionHealthLogs(),
     ]);
 
     if (!mountedRef.current) return;
     if (connResult.data) setConnections(connResult.data as unknown as ConnectionHealth[]);
-    if (logs) setRecentLogs(logs as HealthLog[]);
+    setRecentLogs(logs);
     setLoading(false);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 

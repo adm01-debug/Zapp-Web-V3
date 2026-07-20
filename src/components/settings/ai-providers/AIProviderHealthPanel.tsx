@@ -1,7 +1,5 @@
-import { queryKeys } from '@/services/api/queryKeys';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useAIProviderHealth, type UsageLog } from '@/hooks/useAIProviderHealth';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Activity, CheckCircle, XCircle, AlertTriangle, Clock, Zap, TrendingUp, Sparkles } from 'lucide-react';
@@ -10,36 +8,9 @@ import { motion } from 'framer-motion';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
-interface UsageLog {
-  id: string;
-  function_name: string;
-  model: string | null;
-  status: string;
-  duration_ms: number | null;
-  input_tokens: number | null;
-  output_tokens: number | null;
-  total_tokens: number | null;
-  error_message: string | null;
-  created_at: string;
-  metadata: Record<string, unknown> | null;
-}
-
 /** AIProvider Health Panel component for the settings section. */
 export function AIProviderHealthPanel() {
-  const { data: recentLogs = [], isLoading } = useQuery({
-    queryKey: queryKeys.aiFeatures.providerHealth(),
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('ai_usage_logs')
-        .select('*')
-        .eq('function_name', 'ai-proxy')
-        .order('created_at', { ascending: false })
-        .limit(50);
-      if (error) throw error;
-      return (data || []) as UsageLog[];
-    },
-    refetchInterval: 30000,
-  });
+  const { data: recentLogs = [], isLoading } = useAIProviderHealth();
 
   const stats = {
     total: recentLogs.length,

@@ -1,66 +1,12 @@
 /* eslint-disable react-refresh/only-export-components */
-import { supabase } from '@/integrations/supabase/client';
-import { queryKeys } from '@/services/api/queryKeys';
-import { useQuery } from '@tanstack/react-query';
 import {
   TrendingUp, TrendingDown, Minus, Smile, Meh, Frown, AlertTriangle,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
-import { format, subDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-
-/** Sentiment Data component for the dashboard section. */
-export interface SentimentData {
-  date: string;
-  positive: number;
-  neutral: number;
-  negative: number;
-  avg_score: number;
-  alerts_count: number;
-}
-
-/** use Real Sentiment Data component for the dashboard section. */
-export function useRealSentimentData(days: number): SentimentData[] | null {
-  const { data } = useQuery({
-    queryKey: queryKeys.adminOps.sentimentTrend(days),
-    queryFn: async () => {
-      const startDate = subDays(new Date(), days);
-      const { data: analyses, error } = await supabase
-        .from('conversation_analyses')
-        .select('created_at, sentiment, sentiment_score')
-        .gte('created_at', startDate.toISOString())
-        .order('created_at');
-      
-      if (error) throw error;
-      if (!analyses || analyses.length === 0) return null;
-      
-      const dayMap = new Map<string, { positive: number; negative: number; neutral: number; total: number; alerts: number }>();
-      
-      analyses.forEach(a => {
-        const dateKey = format(new Date(a.created_at), 'yyyy-MM-dd');
-        if (!dayMap.has(dateKey)) dayMap.set(dateKey, { positive: 0, negative: 0, neutral: 0, total: 0, alerts: 0 });
-        const entry = dayMap.get(dateKey) ?? { positive: 0, negative: 0, neutral: 0, total: 0, alerts: 0 };
-        entry.total++;
-        if (a.sentiment === 'positivo') entry.positive++;
-        else if (a.sentiment === 'negativo') { entry.negative++; entry.alerts++; }
-        else entry.neutral++;
-      });
-      
-      return Array.from(dayMap.entries()).map(([date, counts]) => ({
-        date,
-        positive: Math.round((counts.positive / counts.total) * 100),
-        neutral: Math.round((counts.neutral / counts.total) * 100),
-        negative: Math.round((counts.negative / counts.total) * 100),
-        avg_score: (counts.positive - counts.negative) / counts.total,
-        alerts_count: counts.alerts,
-      }));
-    },
-    staleTime: 5 * 60 * 1000,
-  });
-  
-  return data ?? null;
-}
+export type { SentimentData } from '@/hooks/useSentimentAnalyses';
+export { useRealSentimentData } from '@/hooks/useSentimentAnalyses';
 
 /** Sentiment Icon component for the dashboard section. */
 export function SentimentIcon({ score }: { score: number }) {

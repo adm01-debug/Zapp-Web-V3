@@ -45,7 +45,7 @@ import {
   VARIABLES,
   MESSAGE_TEMPLATES,
   MEDIA_TYPES,
-} from '../useCampaignEditor';
+} from '@/hooks/useCampaignEditor';
 
 // ── toLocalDateTimeInput ──────────────────────────────────────────────────
 

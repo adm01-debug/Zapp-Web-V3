@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { fetchAbandonmentRateMessages } from '@/hooks/useAbandonmentRateData';
 import {
   Select,
   SelectContent,
@@ -26,12 +26,7 @@ export function AbandonmentRate() {
     const since = new Date();
     since.setDate(since.getDate() - parseInt(period));
 
-    // Get contacts that sent messages in the period
-    const { data: contactMessages } = await supabase
-      .from('messages')
-      .select('contact_id, sender')
-      .gte('created_at', since.toISOString())
-      .limit(1000);
+    const contactMessages = await fetchAbandonmentRateMessages(since);
 
     if (contactMessages) {
       const contactSet = new Set<string>();

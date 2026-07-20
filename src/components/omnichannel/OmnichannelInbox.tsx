@@ -17,8 +17,8 @@ import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { fetchActiveChannelConnections } from '@/hooks/useChannelConnections';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { EmailChatInbox } from '@/components/email/EmailChatInbox';
@@ -66,12 +66,8 @@ export function OmnichannelInbox() {
   }, []);
 
   const loadConnections = async () => {
-    const { data } = await supabase
-      .from('channel_connections_safe')
-      .select('*')
-      .eq('is_active', true);
-
-    if (data) setConnections(data);
+    const data = await fetchActiveChannelConnections();
+    setConnections(data);
   };
 
   const loadUnifiedInbox = async () => {

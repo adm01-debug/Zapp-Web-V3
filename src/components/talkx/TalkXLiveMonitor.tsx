@@ -4,10 +4,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
-import { queryKeys } from '@/services/api/queryKeys';
-import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
+import { useTalkXCampaignLive } from '@/hooks/useTalkXCampaignLive';
 import { TalkXRecipientsList } from './TalkXRecipientsList';
 import { motion } from 'framer-motion';
 import type { TalkXCampaign } from '@/hooks/useTalkX';
@@ -34,19 +33,7 @@ export function TalkXLiveMonitor({ campaignId }: Props) {
   const [campaign, setCampaign] = useState<TalkXCampaign | null>(null);
   const [recipientsKey, setRecipientsKey] = useState(0);
 
-  const { data } = useQuery({
-    queryKey: queryKeys.talkx.campaignLiveById(campaignId),
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('talkx_campaigns')
-        .select('*')
-        .eq('id', campaignId)
-        .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
-      if (error) throw error;
-      return data as TalkXCampaign; // ignore-audit: narrows variables_config from Supabase Json to string[]
-    },
-    refetchInterval: 3000,
-  });
+  const { data } = useTalkXCampaignLive(campaignId);
 
   useEffect(() => {
     if (data) setCampaign(data);

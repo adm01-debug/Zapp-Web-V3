@@ -7,10 +7,8 @@ import { Button } from '@/components/ui/button';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { getLogger } from '@/lib/logger';
-import {
-  normalizeSecurityAlert,
-  type NormalizedSecurityAlert as SecurityAlert,
-} from '@/lib/normalizers';
+import { normalizeSecurityAlert, type NormalizedSecurityAlert as SecurityAlert } from '@/lib/normalizers';
+import { fetchUnresolvedSecurityAlerts, resolveSecurityAlert } from '@/hooks/useSecurityAlerts';
 
 const log = getLogger('RateLimitRealtimeAlerts');
 
@@ -48,22 +46,13 @@ export function RateLimitRealtimeAlerts() {
   useEffect(() => {
     // Fetch recent unresolved alerts
     const fetchAlerts = async () => {
-      const { data, error } = await supabase
-        .from('security_alerts')
-        .select('*')
-        .eq('is_resolved', false)
-        .order('created_at', { ascending: false })
-        .limit(10);
-
-      if (error) {
+      try {
+        const alerts = await fetchUnresolvedSecurityAlerts();
+        if (!mountedRef.current) return;
+        setAlerts(alerts);
+      } catch (error) {
         log.error('Failed to fetch security_alerts', error);
-        return;
       }
-      if (!mountedRef.current) return;
-      if (data)
-        setAlerts(
-          data.map((row) => normalizeSecurityAlert(row as unknown as Record<string, unknown>))
-        );
     };
 
     void fetchAlerts();
@@ -110,12 +99,11 @@ export function RateLimitRealtimeAlerts() {
 
   const handleDismiss = async (alertId: string) => {
     setDismissed((prev) => new Set([...prev, alertId]));
-
-    const { error } = await supabase
-      .from('security_alerts')
-      .update({ is_resolved: true, resolved_at: new Date().toISOString() })
-      .eq('id', alertId);
-    if (error) log.error('Failed to mark security alert as resolved', error);
+    try {
+      await resolveSecurityAlert(alertId);
+    } catch (error) {
+      log.error('Failed to mark security alert as resolved', error);
+    }
   };
 
   const visibleAlerts = alerts.filter((a) => !dismissed.has(a.id));
