@@ -22,7 +22,7 @@ export const emailApi = {
     to: number,
     filters?: { status?: string; dateFrom?: string; dateTo?: string }
   ) => {
-    let query = supabase.from('email_revalidation_jobs' as any).select('*', { count: 'exact' });
+    let query = supabase.from('email_revalidation_jobs').select('*', { count: 'exact' });
 
     if (filters?.status && filters.status !== 'all') {
       query = query.eq('status', filters.status);

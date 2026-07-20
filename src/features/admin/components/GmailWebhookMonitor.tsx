@@ -39,11 +39,11 @@ export function EmailWebhookMonitor() {
         })) as EmailAccount[];
 
         const { count: totalThreads } = await supabase
-          .from('email_threads' as any)
+          .from('email_threads')
           .select('*', { count: 'exact', head: true });
 
         const { count: unreadThreads } = await supabase
-          .from('email_threads' as any)
+          .from('email_threads')
           .select('*', { count: 'exact', head: true })
           .eq('is_unread', true);
 
