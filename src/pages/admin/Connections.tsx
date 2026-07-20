@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { updateRuntimeExternalConfig } from '@/integrations/supabase/externalClient';
+import { MCP_SERVER_URL } from '@/pages/admin/useConnections';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { toast } from '@/hooks/use-toast';
 import { runConnectionDiagnostics } from '@/lib/diagnostics';
@@ -707,7 +708,7 @@ export default function AdminConnectionsPage() {
                     <div className="flex items-center gap-2">
                       <Input
                         readOnly
-                        value="https://allrjhkpuscmgbsnmjlv.supabase.co/functions/v1/mcp-server"
+                        value={MCP_SERVER_URL}
                         className="font-mono text-[10px]"
                       />
                       <Button size="icon" variant="ghost">
