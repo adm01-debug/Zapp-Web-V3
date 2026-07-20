@@ -43,9 +43,10 @@ export const useCalls = () => {
 
   // Cleanup: abort all pending operations on unmount
   useEffect(() => {
+    const controllers = activeControllersRef.current;
     return () => {
-      activeControllersRef.current.forEach((c) => c.abort());
-      activeControllersRef.current.clear();
+      controllers.forEach((c) => c.abort());
+      controllers.clear();
     };
   }, []);
 
