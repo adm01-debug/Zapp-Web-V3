@@ -5,7 +5,9 @@ import DOMPurifyFactory from 'dompurify';
 describe('Debug DOMPurify behavior', () => {
   test('Debug: Check what config DOMPurify receives', () => {
     // Test with direct DOMPurify in happy-dom environment
-    const win: typeof window | undefined = (globalThis as any).window;
+    const win: typeof window | undefined = (
+      globalThis as typeof globalThis & { window?: typeof window }
+    ).window;
     if (!win) {
       throw new Error('No window object available');
     }
