@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { useAuth } from '@/features/auth';
 import { toast } from '@/hooks/use-toast';
@@ -102,103 +103,86 @@ const DEFAULT_SETTINGS: UserSettings = {
   transcription_sound_type: 'default',
 };
 
+const USER_SETTINGS_KEY = (userId: string | undefined) =>
+  ['user-settings', userId] as const;
+
 export function useUserSettings() {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [settings, setSettings] = useState<UserSettings>(DEFAULT_SETTINGS);
-  const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const mountedRef = useRef(false);
+  const initializedRef = useRef(false);
 
-  useEffect(() => {
-    mountedRef.current = true;
-    return () => {
-      mountedRef.current = false;
-    };
-  }, []);
-
-  // Fetch settings from DB
-  useEffect(() => {
-    if (!user?.id) {
-      setIsLoading(false);
-      return;
-    }
-
-    let cancelled = false;
-
-    const fetchSettings = async () => {
-      setIsLoading(true);
-      try {
-        const { data: rows, error } = await safeClient.from<UserSettings>('user_settings', (q) =>
-          q.select('*').eq('user_id', user.id).limit(1)
-        );
-        if (cancelled) return;
-        const data = rows?.[0] ?? null;
-
-        if (error) {
-          log.error('Error fetching settings:', error);
-          return;
-        }
-
-        if (data) {
-          setSettings({
-            id: data.id,
-            user_id: data.user_id,
-            business_hours_enabled:
-              data.business_hours_enabled ?? DEFAULT_SETTINGS.business_hours_enabled,
-            business_hours_start:
-              data.business_hours_start ?? DEFAULT_SETTINGS.business_hours_start,
-            business_hours_end: data.business_hours_end ?? DEFAULT_SETTINGS.business_hours_end,
-            work_days: data.work_days ?? DEFAULT_SETTINGS.work_days,
-            welcome_message: data.welcome_message ?? DEFAULT_SETTINGS.welcome_message,
-            away_message: data.away_message ?? DEFAULT_SETTINGS.away_message,
-            closing_message: data.closing_message ?? DEFAULT_SETTINGS.closing_message,
-            auto_assignment_enabled:
-              data.auto_assignment_enabled ?? DEFAULT_SETTINGS.auto_assignment_enabled,
-            auto_assignment_method:
-              data.auto_assignment_method ?? DEFAULT_SETTINGS.auto_assignment_method,
-            inactivity_timeout: data.inactivity_timeout ?? DEFAULT_SETTINGS.inactivity_timeout,
-            auto_transcription_enabled:
-              data.auto_transcription_enabled ?? DEFAULT_SETTINGS.auto_transcription_enabled,
-            sound_enabled: data.sound_enabled ?? DEFAULT_SETTINGS.sound_enabled,
-            browser_notifications_enabled:
-              data.browser_notifications_enabled ?? DEFAULT_SETTINGS.browser_notifications_enabled,
-            quiet_hours_enabled: data.quiet_hours_enabled ?? DEFAULT_SETTINGS.quiet_hours_enabled,
-            quiet_hours_start: data.quiet_hours_start ?? DEFAULT_SETTINGS.quiet_hours_start,
-            quiet_hours_end: data.quiet_hours_end ?? DEFAULT_SETTINGS.quiet_hours_end,
-            theme: data.theme ?? DEFAULT_SETTINGS.theme,
-            language: data.language ?? DEFAULT_SETTINGS.language,
-            compact_mode: data.compact_mode ?? DEFAULT_SETTINGS.compact_mode,
-            tts_voice_id: data.tts_voice_id ?? DEFAULT_SETTINGS.tts_voice_id,
-            tts_speed: data.tts_speed ?? DEFAULT_SETTINGS.tts_speed,
-            simulation_mode_enabled:
-              data.simulation_mode_enabled ?? DEFAULT_SETTINGS.simulation_mode_enabled,
-            global_sla_warning_minutes:
-              data.global_sla_warning_minutes ?? DEFAULT_SETTINGS.global_sla_warning_minutes,
-            global_sla_critical_minutes:
-              data.global_sla_critical_minutes ?? DEFAULT_SETTINGS.global_sla_critical_minutes,
-            global_sla_notification_message:
-              data.global_sla_notification_message ??
-              DEFAULT_SETTINGS.global_sla_notification_message,
-            message_sound_type: data.message_sound_type ?? DEFAULT_SETTINGS.message_sound_type,
-            mention_sound_type: data.mention_sound_type ?? DEFAULT_SETTINGS.mention_sound_type,
-            sla_sound_type: data.sla_sound_type ?? DEFAULT_SETTINGS.sla_sound_type,
-            goal_sound_type: data.goal_sound_type ?? DEFAULT_SETTINGS.goal_sound_type,
-            transcription_sound_type:
-              data.transcription_sound_type ?? DEFAULT_SETTINGS.transcription_sound_type,
-          });
-        }
-      } catch (err) {
-        log.error('Error in fetchSettings:', err);
-      } finally {
-        if (!cancelled) setIsLoading(false);
+  const { data: serverSettings, isLoading } = useQuery({
+    queryKey: USER_SETTINGS_KEY(user?.id),
+    queryFn: async () => {
+      const { data: rows, error } = await safeClient.from<UserSettings>(
+        'user_settings',
+        (q) => q.select('*').eq('user_id', user!.id).limit(1)
+      );
+      if (error) {
+        log.error('Error fetching settings:', error);
+        return null;
       }
-    };
+      return rows?.[0] ?? null;
+    },
+    enabled: !!user?.id,
+    staleTime: 30_000,
+  });
 
-    void fetchSettings();
-    return () => {
-      cancelled = true;
-    };
-  }, [user?.id]);
+  // Initialize local form state once from server data
+  useEffect(() => {
+    if (serverSettings && !initializedRef.current) {
+      initializedRef.current = true;
+      const data = serverSettings;
+      setSettings({
+        id: data.id,
+        user_id: data.user_id,
+        business_hours_enabled:
+          data.business_hours_enabled ?? DEFAULT_SETTINGS.business_hours_enabled,
+        business_hours_start:
+          data.business_hours_start ?? DEFAULT_SETTINGS.business_hours_start,
+        business_hours_end: data.business_hours_end ?? DEFAULT_SETTINGS.business_hours_end,
+        work_days: data.work_days ?? DEFAULT_SETTINGS.work_days,
+        welcome_message: data.welcome_message ?? DEFAULT_SETTINGS.welcome_message,
+        away_message: data.away_message ?? DEFAULT_SETTINGS.away_message,
+        closing_message: data.closing_message ?? DEFAULT_SETTINGS.closing_message,
+        auto_assignment_enabled:
+          data.auto_assignment_enabled ?? DEFAULT_SETTINGS.auto_assignment_enabled,
+        auto_assignment_method:
+          data.auto_assignment_method ?? DEFAULT_SETTINGS.auto_assignment_method,
+        inactivity_timeout: data.inactivity_timeout ?? DEFAULT_SETTINGS.inactivity_timeout,
+        auto_transcription_enabled:
+          data.auto_transcription_enabled ?? DEFAULT_SETTINGS.auto_transcription_enabled,
+        sound_enabled: data.sound_enabled ?? DEFAULT_SETTINGS.sound_enabled,
+        browser_notifications_enabled:
+          data.browser_notifications_enabled ?? DEFAULT_SETTINGS.browser_notifications_enabled,
+        quiet_hours_enabled: data.quiet_hours_enabled ?? DEFAULT_SETTINGS.quiet_hours_enabled,
+        quiet_hours_start: data.quiet_hours_start ?? DEFAULT_SETTINGS.quiet_hours_start,
+        quiet_hours_end: data.quiet_hours_end ?? DEFAULT_SETTINGS.quiet_hours_end,
+        theme: data.theme ?? DEFAULT_SETTINGS.theme,
+        language: data.language ?? DEFAULT_SETTINGS.language,
+        compact_mode: data.compact_mode ?? DEFAULT_SETTINGS.compact_mode,
+        tts_voice_id: data.tts_voice_id ?? DEFAULT_SETTINGS.tts_voice_id,
+        tts_speed: data.tts_speed ?? DEFAULT_SETTINGS.tts_speed,
+        simulation_mode_enabled:
+          data.simulation_mode_enabled ?? DEFAULT_SETTINGS.simulation_mode_enabled,
+        global_sla_warning_minutes:
+          data.global_sla_warning_minutes ?? DEFAULT_SETTINGS.global_sla_warning_minutes,
+        global_sla_critical_minutes:
+          data.global_sla_critical_minutes ?? DEFAULT_SETTINGS.global_sla_critical_minutes,
+        global_sla_notification_message:
+          data.global_sla_notification_message ??
+          DEFAULT_SETTINGS.global_sla_notification_message,
+        message_sound_type: data.message_sound_type ?? DEFAULT_SETTINGS.message_sound_type,
+        mention_sound_type: data.mention_sound_type ?? DEFAULT_SETTINGS.mention_sound_type,
+        sla_sound_type: data.sla_sound_type ?? DEFAULT_SETTINGS.sla_sound_type,
+        goal_sound_type: data.goal_sound_type ?? DEFAULT_SETTINGS.goal_sound_type,
+        transcription_sound_type:
+          data.transcription_sound_type ?? DEFAULT_SETTINGS.transcription_sound_type,
+      });
+    }
+  }, [serverSettings]);
 
   // Update settings locally
   const updateSettings = useCallback((updates: Partial<UserSettings>) => {
@@ -266,6 +250,7 @@ export function useUserSettings() {
         return false;
       }
 
+      void queryClient.invalidateQueries({ queryKey: USER_SETTINGS_KEY(user.id) });
       toast({
         title: 'Configurações salvas',
         description: 'Suas configurações foram salvas com sucesso.',
@@ -280,9 +265,9 @@ export function useUserSettings() {
       });
       return false;
     } finally {
-      if (mountedRef.current) setIsSaving(false);
+      setIsSaving(false);
     }
-  }, [user?.id, settings]);
+  }, [user?.id, settings, queryClient]);
 
   // Reset to defaults
   const resetSettings = useCallback(() => {
