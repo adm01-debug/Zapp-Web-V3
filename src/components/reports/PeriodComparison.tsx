@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { fetchConversationClosuresCount } from '@/hooks/usePeriodComparison';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Select,
@@ -59,29 +59,22 @@ export function PeriodComparison() {
         .eq('sender', 'contact'),
     ]);
 
-    const [currentClosures, previousClosures] = await Promise.all([
-      supabase
-        .from('conversation_closures')
-        .select('id', { count: 'exact', head: true })
-        .gte('created_at', currentStart.toISOString()),
-      supabase
-        .from('conversation_closures')
-        .select('id', { count: 'exact', head: true })
-        .gte('created_at', previousStart.toISOString())
-        .lt('created_at', previousEnd.toISOString()),
+    const [currentClosuresCount, previousClosuresCount] = await Promise.all([
+      fetchConversationClosuresCount(currentStart.toISOString()),
+      fetchConversationClosuresCount(previousStart.toISOString(), previousEnd.toISOString()),
     ]);
 
     setComparison({
       current: {
         label: period === 'week' ? 'Esta semana' : 'Este mês',
         total: currentRes.count || 0,
-        resolved: currentClosures.count || 0,
+        resolved: currentClosuresCount,
         avgResponseTime: 0,
       },
       previous: {
         label: period === 'week' ? 'Semana passada' : 'Mês passado',
         total: previousRes.count || 0,
-        resolved: previousClosures.count || 0,
+        resolved: previousClosuresCount,
         avgResponseTime: 0,
       },
     });

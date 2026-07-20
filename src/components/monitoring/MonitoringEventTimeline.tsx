@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { supabase } from '@/integrations/supabase/client';
 import { Radio, MessageSquare, ArrowUp, Wifi, WifiOff } from 'lucide-react';
+import { fetchConnectionHealthLogsTimeline } from '@/hooks/useConnectionHealthLogs';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -46,11 +46,7 @@ export function MonitoringEventTimeline() {
           .gte('created_at', oneHourAgo)
           .order('created_at', { ascending: false })
           .limit(20),
-        supabase
-          .from('connection_health_logs')
-          .select('id, instance_id, status, checked_at')
-          .order('checked_at', { ascending: false })
-          .limit(10),
+        fetchConnectionHealthLogsTimeline(),
       ]);
 
       if (cancelled) return;
@@ -67,7 +63,7 @@ export function MonitoringEventTimeline() {
         });
       });
 
-      healthRes.data?.forEach(h => {
+      healthRes?.forEach(h => {
         const ok = h.status === 'connected' || h.status === 'healthy';
         timeline.push({
           id: h.id,

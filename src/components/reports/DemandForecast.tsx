@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { fetchContactMessagesForHeatmap } from '@/hooks/useConversationHeatmap';
 import { Badge } from '@/components/ui/badge';
 import { TrendingUp, Clock } from 'lucide-react';
 import { format, subDays, getDay, getHours } from 'date-fns';
@@ -34,12 +34,7 @@ export function DemandForecast() {
     setLoading(true);
     const since = subDays(new Date(), 28);
 
-    const { data: messages } = await supabase
-      .from('messages')
-      .select('created_at')
-      .gte('created_at', since.toISOString())
-      .eq('sender', 'contact')
-      .limit(1000);
+    const messages = await fetchContactMessagesForHeatmap(since);
 
     if (!messages) {
       setLoading(false);

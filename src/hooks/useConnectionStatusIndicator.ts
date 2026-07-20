@@ -18,7 +18,7 @@ import {
   type FilterValue,
   type ConnectionRow,
   type DisconnectEvent,
-} from './connectionStatusStorage';
+} from '@/components/layout/connectionStatusStorage';
 
 const log = getLogger('ConnectionStatusIndicator');
 
