@@ -275,12 +275,17 @@ export function useWebAuthn() {
     [user, queryClient]
   );
 
+  const fetchPasskeys = useCallback(async () => {
+    if (!user) return;
+    await refetchPasskeys();
+  }, [user, refetchPasskeys]);
+
   return {
     loading,
     passkeys,
     isSupported,
     isPlatformAuthenticatorAvailable,
-    fetchPasskeys: refetchPasskeys,
+    fetchPasskeys,
     registerPasskey,
     authenticateWithPasskey,
     deletePasskey,
