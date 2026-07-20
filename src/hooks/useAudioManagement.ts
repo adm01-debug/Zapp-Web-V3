@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { getLogger } from '@/lib/logger';
@@ -8,6 +9,8 @@ import { toast as toastHook } from '@/hooks/use-toast';
 import type { MediaRefreshKey } from '@/types/mediaRefresh';
 import { audioPlaybackBus } from '@/features/inbox';
 import { MAX_PTT_DURATION_SEC } from '@/lib/audio/pttLimits';
+
+const AUDIO_MEMES_KEY = ['audio-memes'] as const;
 
 const log = getLogger('useAudioManagement');
 
@@ -39,95 +42,86 @@ export interface PendingUpload {
 
 /** Manages audio meme library with loading, syncing, categorization, and playback control. */
 export function useAudioMemes(open: boolean) {
-  const [memes, setMemes] = useState<AudioMemeItem[]>([]);
-  const [loading, setLoading] = useState(false);
+  const queryClient = useQueryClient();
   const [syncing, setSyncing] = useState(false);
   const [syncError, setSyncError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [playingId, setPlayingId] = useState<string | null>(null);
   const [pendingUpload, setPendingUpload] = useState<PendingUpload | null>(null);
 
-  const mountedRef = useRef(false);
-  useEffect(() => {
-    mountedRef.current = true;
-    return () => {
-      mountedRef.current = false;
-    };
-  }, []);
-
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const fetchMemes = useCallback(async () => {
-    setLoading(true);
-    const { data, error } = await safeClient.rpc<AudioMemeItem[]>('fn_list_audio_memes_for_user', {
-      p_category: null,
-      p_only_favorites: false,
-      p_search: null,
-    });
-
-    if (!error && data) {
-      if (mountedRef.current) setMemes(data);
-    } else if (error) {
-      log.error('fetchMemes error', error);
-      const { data: basicData } = await supabase
-        .from('audio_memes')
-        .select('*')
-        .order('use_count', { ascending: false });
-      if (basicData && mountedRef.current) setMemes(basicData as AudioMemeItem[]);
-    }
-    if (mountedRef.current) setLoading(false);
-  }, []);
+  const { data: memes = [], isLoading: loading } = useQuery({
+    queryKey: AUDIO_MEMES_KEY,
+    queryFn: async () => {
+      const { data, error } = await safeClient.rpc<AudioMemeItem[]>('fn_list_audio_memes_for_user', {
+        p_category: null,
+        p_only_favorites: false,
+        p_search: null,
+      });
+      if (!error && data) return data;
+      if (error) {
+        log.error('fetchMemes error', error);
+        const { data: basicData } = await supabase
+          .from('audio_memes')
+          .select('*')
+          .order('use_count', { ascending: false });
+        return (basicData as AudioMemeItem[]) ?? [];
+      }
+      return [] as AudioMemeItem[];
+    },
+    enabled: open,
+    staleTime: 30_000,
+  });
 
   useEffect(() => {
-    if (open) {
-      void fetchMemes();
-      setSyncing(true);
-      setSyncError(null);
+    if (!open) return;
+    setSyncing(true);
+    setSyncError(null);
 
-      const catalogChannel = supabase
-        .channel('audio-memes-catalog')
-        .on('postgres_changes', { event: '*', schema: 'zapp', table: 'audio_memes' }, () => {
-          log.info('Catalog update received');
-          fetchMemes();
-        })
-        .subscribe((status) => {
-          if (status === 'SUBSCRIBED') {
-            setSyncing(false);
-          } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-            setSyncError('Erro na sincronização do catálogo');
-            setSyncing(false);
-          }
-        });
-
-      const favoritesChannel = supabase
-        .channel('audio-memes-favorites')
-        .on(
-          'postgres_changes',
-          { event: '*', schema: 'zapp', table: 'audio_meme_favorites' },
-          () => {
-            log.info('Favorites update received');
-            fetchMemes();
-          }
-        )
-        .subscribe((status) => {
-          if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-            setSyncError('Erro na sincronização de favoritos');
-          }
-        });
-
-      return () => {
-        catalogChannel.unsubscribe();
-        supabase.removeChannel(catalogChannel);
-        favoritesChannel.unsubscribe();
-        supabase.removeChannel(favoritesChannel);
-        if (audioRef.current) {
-          audioRef.current.pause();
-          audioRef.current = null;
+    const catalogChannel = supabase
+      .channel('audio-memes-catalog')
+      .on('postgres_changes', { event: '*', schema: 'zapp', table: 'audio_memes' }, () => {
+        log.info('Catalog update received');
+        void queryClient.invalidateQueries({ queryKey: AUDIO_MEMES_KEY });
+      })
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          setSyncing(false);
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          setSyncError('Erro na sincronização do catálogo');
+          setSyncing(false);
         }
-      };
-    }
-  }, [open, fetchMemes]);
+      });
+
+    const favoritesChannel = supabase
+      .channel('audio-memes-favorites')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'zapp', table: 'audio_meme_favorites' },
+        () => {
+          log.info('Favorites update received');
+          void queryClient.invalidateQueries({ queryKey: AUDIO_MEMES_KEY });
+        }
+      )
+      .subscribe((status) => {
+        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          setSyncError('Erro na sincronização de favoritos');
+        }
+      });
+
+    return () => {
+      catalogChannel.unsubscribe();
+      supabase.removeChannel(catalogChannel);
+      favoritesChannel.unsubscribe();
+      supabase.removeChannel(favoritesChannel);
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+    };
+  }, [open, queryClient]);
 
   const handlePreview = useCallback(
     (meme: AudioMemeItem) => {
@@ -245,9 +239,9 @@ export function useAudioMemes(open: boolean) {
       }
       toast.success(`Áudio salvo como "${pending.selectedCategory}"!`);
       setPendingUpload(null);
-      void fetchMemes();
+      await queryClient.invalidateQueries({ queryKey: AUDIO_MEMES_KEY });
     },
-    [fetchMemes]
+    [queryClient]
   );
 
   const handleCancelUpload = useCallback(async () => {
@@ -265,15 +259,15 @@ export function useAudioMemes(open: boolean) {
       }
       onSend(meme);
       onClose();
-      setMemes((prev) =>
-        prev.map((m) => (m.id === meme.id ? { ...m, use_count: (m.use_count || 0) + 1 } : m))
+      queryClient.setQueryData(AUDIO_MEMES_KEY, (prev: AudioMemeItem[] | undefined) =>
+        (prev ?? []).map((m) => (m.id === meme.id ? { ...m, use_count: (m.use_count || 0) + 1 } : m))
       );
       const { error: incErr } = await safeClient.rpc('fn_increment_meme_use', {
         p_meme_id: meme.id,
       });
       if (incErr) log.error('fn_increment_meme_use error', incErr);
     },
-    []
+    [queryClient]
   );
 
   const toggleFavorite = useCallback(async (e: React.MouseEvent, meme: AudioMemeItem) => {
@@ -287,7 +281,9 @@ export function useAudioMemes(open: boolean) {
     }
 
     const newVal = !meme.is_favorite;
-    setMemes((prev) => prev.map((m) => (m.id === meme.id ? { ...m, is_favorite: newVal } : m)));
+    queryClient.setQueryData(AUDIO_MEMES_KEY, (prev: AudioMemeItem[] | undefined) =>
+      (prev ?? []).map((m) => (m.id === meme.id ? { ...m, is_favorite: newVal } : m))
+    );
 
     const { error } = await safeClient.rpc('fn_toggle_user_meme_favorite', {
       p_meme_id: meme.id,
@@ -295,25 +291,31 @@ export function useAudioMemes(open: boolean) {
 
     if (error) {
       log.error('toggleFavorite error', error);
-      setMemes((prev) => prev.map((m) => (m.id === meme.id ? { ...m, is_favorite: !newVal } : m)));
+      queryClient.setQueryData(AUDIO_MEMES_KEY, (prev: AudioMemeItem[] | undefined) =>
+        (prev ?? []).map((m) => (m.id === meme.id ? { ...m, is_favorite: !newVal } : m))
+      );
       toast.error('Erro ao atualizar favorito');
     }
-  }, []);
+  }, [queryClient]);
 
   const handleCategoryChange = useCallback(async (meme: AudioMemeItem, newCategory: string) => {
-    setMemes((prev) => prev.map((m) => (m.id === meme.id ? { ...m, category: newCategory } : m)));
+    queryClient.setQueryData(AUDIO_MEMES_KEY, (prev: AudioMemeItem[] | undefined) =>
+      (prev ?? []).map((m) => (m.id === meme.id ? { ...m, category: newCategory } : m))
+    );
     await supabase.from('audio_memes').update({ category: newCategory }).eq('id', meme.id);
     toast.success(`Categoria alterada`);
-  }, []);
+  }, [queryClient]);
 
   const handleDelete = useCallback(async (e: React.MouseEvent, meme: AudioMemeItem) => {
     e.stopPropagation();
-    setMemes((prev) => prev.filter((m) => m.id !== meme.id));
+    queryClient.setQueryData(AUDIO_MEMES_KEY, (prev: AudioMemeItem[] | undefined) =>
+      (prev ?? []).filter((m) => m.id !== meme.id)
+    );
     const path = meme.audio_url.split('/audio-memes/')[1];
     if (path) await supabase.storage.from('audio-memes').remove([path]);
     await supabase.from('audio_memes').delete().eq('id', meme.id);
     toast.success('Áudio meme removido');
-  }, []);
+  }, [queryClient]);
 
   const cleanup = useCallback(() => {
     if (audioRef.current) {
