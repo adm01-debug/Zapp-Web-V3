@@ -1,11 +1,6 @@
-import type { SupabaseClient } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
 
-// Tables that exist in the DB but not in the generated types use this untyped client.
-const dynSupabase = supabase as unknown as SupabaseClient;
-
-/** Email Revalidation Job. */
 export interface EmailRevalidationJob {
   id: string;
   status: string;
@@ -14,7 +9,6 @@ export interface EmailRevalidationJob {
   result: Record<string, unknown> | null;
 }
 
-/** Email Health Summary. */
 export interface EmailHealthSummary {
   id: string;
   status: string | null;
@@ -22,14 +16,13 @@ export interface EmailHealthSummary {
   failure_count_60m: number | null;
 }
 
-/** email Api. */
 export const emailApi = {
   getAuditLogs: async (
     from: number,
     to: number,
     filters?: { status?: string; dateFrom?: string; dateTo?: string }
   ) => {
-    let query = dynSupabase.from('email_revalidation_jobs').select('*', { count: 'exact' });
+    let query = supabase.from('email_revalidation_jobs' as any).select('*', { count: 'exact' });
 
     if (filters?.status && filters.status !== 'all') {
       query = query.eq('status', filters.status);
@@ -45,7 +38,7 @@ export const emailApi = {
       .order('requested_at', { ascending: false })
       .range(from, to);
 
-    return { data: data as EmailRevalidationJob[] | null, count, error }; // ignore-audit: narrows Supabase query result to local interface
+    return { data: data as EmailRevalidationJob[] | null, count, error };
   },
   getHealthSummary: async () => {
     const { data: rows, error } = await safeClient.from<EmailHealthSummary>(
@@ -54,18 +47,15 @@ export const emailApi = {
     );
     return { data: rows?.[0] ?? null, error };
   },
-
   markThreadRead: async (threadId: string, read: boolean) => {
     return await safeClient.rpc('rpc_email_mark_thread_read', {
       p_thread_id: threadId,
       p_read: read,
     });
   },
-
   getTokenStatus: async () => {
     return await safeClient.rpc('rpc_email_token_status');
   },
-
   retryJob: async (jobId: string) => {
     const { data: jobRows } = await safeClient.from<EmailRevalidationJob>(
       'email_revalidation_jobs',

@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef } from 'react';
 import { toast } from '@/hooks/use-toast';
-import type { WhatsAppConnection, QrCodeDialogState, WhatsAppApiType } from '../types';
+import { WhatsAppConnection, QrCodeDialogState } from '../useConnectionsManager';
 
 const INITIAL_QR_STATE: QrCodeDialogState = {
   open: false,
@@ -32,7 +32,6 @@ function loadPersistedQr() {
   }
 }
 
-/** Hook: use Connections State. */
 export function useConnectionsState() {
   const [connections, setConnections] = useState<WhatsAppConnection[]>([]);
   const [loading, setLoading] = useState(true);
@@ -58,7 +57,7 @@ export function useConnectionsState() {
   const [newConnection, setNewConnection] = useState<{
     name: string;
     phone_number: string;
-    api_type: WhatsAppApiType;
+    api_type: string;
   }>({ name: '', phone_number: '', api_type: 'evolution' });
   const [isCreating, setIsCreating] = useState(false);
   const [syncingHistory, setSyncingHistory] = useState<string | null>(null);

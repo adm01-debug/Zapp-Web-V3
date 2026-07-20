@@ -1,30 +1,37 @@
+/**
+ * emailApi.ts — Funções utilitárias para chamadas à Email API
+ *
+ * Todas as operações que precisam ir diretamente à Email API (não ao banco).
+ * Estas funções são chamadas pelas Edge Functions, não diretamente pelo frontend.
+ *
+ * NOTA: O frontend NUNCA chama a Email API diretamente.
+ * Todas as operações passam pelas Edge Functions:
+ *   - email-oauth   → auth e tokens
+ *   - email-sync    → sincronização de threads/mensagens
+ *   - email-send    → envio de emails
+ *   - email-webhook → Pub/Sub watch e eventos
+ */
+
 import { supabase } from '@/integrations/supabase/client';
-import {
-  type EmailApiError,
-  type EmailApiResponse,
-  type EmailAttachment,
-  type MarkReadParams,
-  type ModifyLabelsParams,
-  type SendMessageParams,
-  type TrashMessageParams,
-  type SaveDraftParams,
-  type ListThreadsParams,
-} from './gmailApiTypes';
 
-/** Re-exported module members. */
-export type {
-  EmailApiError,
-  EmailApiResponse,
-  EmailAttachment,
-  MarkReadParams,
-  ModifyLabelsParams,
-  SendMessageParams,
-  TrashMessageParams,
-  SaveDraftParams,
-  ListThreadsParams,
-} from './gmailApiTypes';
+// ── Tipos base ───────────────────────────────────────────────────────────
 
-/** Hook: fetch Message Body. */
+export interface EmailApiError {
+  code: number;
+  message: string;
+  status: string;
+}
+
+export interface EmailApiResponse<T> {
+  data: T | null;
+  error: EmailApiError | null;
+}
+
+// ── Funções de API (via Edge Functions) ─────────────────────────────────────
+
+/**
+ * Busca o conteúdo completo de uma mensagem (body_html + attachments)
+ */
 export async function fetchMessageBody(
   accountId: string,
   emailMessageId: string
@@ -40,7 +47,9 @@ export async function fetchMessageBody(
   return { data, error: null };
 }
 
-/** Hook: download Attachment. */
+/**
+ * Baixa um anexo Email
+ */
 export async function downloadAttachment(
   accountId: string,
   messageId: string,
@@ -55,7 +64,9 @@ export async function downloadAttachment(
   return { data, error: null };
 }
 
-/** Hook: create Email Label. */
+/**
+ * Cria uma label no Email
+ */
 export async function createEmailLabel(
   accountId: string,
   name: string,
@@ -70,7 +81,9 @@ export async function createEmailLabel(
   return { data, error: null };
 }
 
-/** Hook: move Thread To Trash. */
+/**
+ * Move thread para a lixeira
+ */
 export async function moveThreadToTrash(
   accountId: string,
   emailThreadId: string
@@ -84,7 +97,9 @@ export async function moveThreadToTrash(
   return { data, error: null };
 }
 
-/** Hook: modify Thread Labels. */
+/**
+ * Aplica/remove labels em uma thread
+ */
 export async function modifyThreadLabels(
   accountId: string,
   emailThreadId: string,
@@ -106,10 +121,12 @@ export async function modifyThreadLabels(
   return { data, error: null };
 }
 
-/** Hook: renew Email Watch. */
+/**
+ * Atualiza o Pub/Sub watch de uma conta Email
+ */
 export async function renewEmailWatch(
   accountId: string
-): Promise<EmailApiResponse<{ watchExpiry: string; historyId: string }>> {
+): Promise<EmailApiResponse<{ expiresAt: string; historyId: string }>> {
   const { data, error } = await supabase.functions.invoke('gmail-webhook', {
     body: { action: 'renewWatch', accountId },
   });
@@ -119,7 +136,9 @@ export async function renewEmailWatch(
   return { data, error: null };
 }
 
-/** Hook: list Email Labels. */
+/**
+ * Lista labels do Email via API
+ */
 export async function listEmailLabels(
   accountId: string
 ): Promise<
@@ -134,7 +153,9 @@ export async function listEmailLabels(
   return { data, error: null };
 }
 
-/** Hook: create Draft. */
+/**
+ * Cria um rascunho no Email
+ */
 export async function createDraft(
   accountId: string,
   params: {
@@ -154,7 +175,9 @@ export async function createDraft(
   return { data, error: null };
 }
 
-/** Hook: update Draft. */
+/**
+ * Atualiza um rascunho existente
+ */
 export async function updateDraft(
   accountId: string,
   draftId: string,
@@ -174,7 +197,9 @@ export async function updateDraft(
   return { data, error: null };
 }
 
-/** Hook: send Draft. */
+/**
+ * Envia um rascunho existente
+ */
 export async function sendDraft(
   accountId: string,
   draftId: string
@@ -188,10 +213,13 @@ export async function sendDraft(
   return { data, error: null };
 }
 
-/** Hook: email Refresh Token. */
+/**
+ * Renova o access_token Email via refresh_token armazenado.
+ * Edge function: email-token-refresh.
+ */
 export async function emailRefreshToken(
   accountId: string
-): Promise<EmailApiResponse<{ accessToken: string; expiresAt: string }>> {
+): Promise<EmailApiResponse<{ success: boolean; newExpiry: string }>> {
   const { data, error } = await supabase.functions.invoke('gmail-token-refresh', {
     body: { accountId },
   });
@@ -201,7 +229,9 @@ export async function emailRefreshToken(
   return { data, error: null };
 }
 
-/** Hook: email Revoke Account. */
+/**
+ * Revoga a conta Email (tokens + watch) e remove credenciais armazenadas.
+ */
 export async function emailRevokeAccount(
   accountId: string
 ): Promise<EmailApiResponse<{ success: boolean }>> {
@@ -214,20 +244,34 @@ export async function emailRevokeAccount(
   return { data, error: null };
 }
 
-/** Hook: email Register Watch. */
+/**
+ * Registra/renova o Pub/Sub watch da conta Email.
+ * Alias semântico de renewEmailWatch para clareza no fluxo de OAuth.
+ */
 export async function emailRegisterWatch(
   accountId: string
-): Promise<EmailApiResponse<{ watchExpiry: string; historyId: string }>> {
+): Promise<EmailApiResponse<{ expiresAt: string; historyId: string }>> {
   return renewEmailWatch(accountId);
 }
 
-/** Hook: is Auth Error. */
+// ── Tipos de Anexo ───────────────────────────────────────────────────
+
+export interface EmailAttachment {
+  attachmentId: string;
+  filename: string;
+  mimeType: string;
+  size: number;
+}
+
+// ── Helper: verificar se error é de autenticação ────────────────────────
+
 export function isAuthError(error: EmailApiError | null): boolean {
   if (!error) return false;
   return error.code === 401 || error.status === 'UNAUTHENTICATED';
 }
 
-/** Hook: build Mime Message. */
+// ── Helper: construir MIME message para Email API ──────────────────────────
+
 export function buildMimeMessage(params: {
   from: string;
   to: string[];
@@ -256,7 +300,23 @@ export function buildMimeMessage(params: {
     .replace(/=+$/, '');
 }
 
-/** Hook: email Mark Read. */
+// ───────────────────────────────────────────────────────────────────
+// IMPLEMENTAÇÕES (antes eram stubs 501 que quebravam UI Email).
+// Todas usam as Edge Functions já existentes (email-send, email-sync).
+// Se uma action ainda não existe na edge function, supabase retorna erro
+// estruturado — bem melhor que 501 silencioso.
+// ───────────────────────────────────────────────────────────────────
+
+interface MarkReadParams {
+  accountId: string;
+  messageIds: string[];
+  read: boolean;
+}
+
+/**
+ * Marca mensagens como lidas/não-lidas no Email.
+ * Edge function: email-send action=markRead
+ */
 export async function emailMarkRead(params: MarkReadParams): Promise<EmailApiResponse<void>> {
   const { data, error } = await supabase.functions.invoke('gmail-send', {
     body: { action: 'markRead', ...params },
@@ -266,7 +326,18 @@ export async function emailMarkRead(params: MarkReadParams): Promise<EmailApiRes
   return { data: data ?? null, error: null };
 }
 
-/** Hook: email Modify Labels. */
+interface ModifyLabelsParams {
+  accountId: string;
+  messageId?: string;
+  threadId?: string;
+  addLabelIds?: string[];
+  removeLabelIds?: string[];
+}
+
+/**
+ * Adiciona/remove labels em mensagem ou thread.
+ * Edge function: email-send action=modifyLabels
+ */
 export async function emailModifyLabels(
   params: ModifyLabelsParams
 ): Promise<EmailApiResponse<void>> {
@@ -278,7 +349,28 @@ export async function emailModifyLabels(
   return { data: data ?? null, error: null };
 }
 
-/** Hook: email Send Message. */
+interface SendMessageParams {
+  accountId: string;
+  to: string[];
+  cc?: string[];
+  bcc?: string[];
+  subject: string;
+  bodyHtml: string;
+  bodyPlain?: string;
+  threadId?: string;
+  inReplyTo?: string;
+  references?: string;
+  attachments?: Array<{
+    name: string;
+    mimeType: string;
+    data: string; // base64
+  }>;
+}
+
+/**
+ * Envia uma mensagem nova ou reply.
+ * Edge function: email-send action=send
+ */
 export async function emailSendMessage(
   params: SendMessageParams
 ): Promise<EmailApiResponse<{ id: string; threadId: string }>> {
@@ -290,7 +382,15 @@ export async function emailSendMessage(
   return { data, error: null };
 }
 
-/** Hook: email Trash Message. */
+interface TrashMessageParams {
+  accountId: string;
+  messageId: string;
+}
+
+/**
+ * Move uma mensagem específica para a lixeira.
+ * Edge function: email-send action=trashMessage
+ */
 export async function emailTrashMessage(
   params: TrashMessageParams
 ): Promise<EmailApiResponse<void>> {
@@ -302,7 +402,21 @@ export async function emailTrashMessage(
   return { data: data ?? null, error: null };
 }
 
-/** Hook: email Save Draft. */
+interface SaveDraftParams {
+  accountId: string;
+  draftId?: string;
+  to: string[];
+  cc?: string[];
+  subject: string;
+  bodyHtml: string;
+  threadId?: string;
+}
+
+/**
+ * Cria ou atualiza rascunho. Se draftId existe, atualiza; senão, cria.
+ * Wrapper sobre createDraft/updateDraft para manter compatibilidade com
+ * call-sites em useEmailDraft.ts que esperam interface unificada.
+ */
 export async function emailSaveDraft(
   params: SaveDraftParams
 ): Promise<EmailApiResponse<{ draftId: string }>> {
@@ -317,7 +431,10 @@ export async function emailSaveDraft(
   }
 }
 
-/** Hook: email Delete Draft. */
+/**
+ * Remove um rascunho do Email.
+ * Edge function: email-send action=deleteDraft
+ */
 export async function emailDeleteDraft(
   accountId: string,
   draftId: string
@@ -330,8 +447,21 @@ export async function emailDeleteDraft(
   return { data: data ?? null, error: null };
 }
 
-/** Hook: email List Threads. */
-export async function emailListThreads(params: ListThreadsParams): Promise<
+interface ListThreadsParams {
+  accountId: string;
+  q?: string;
+  maxResults?: number;
+  pageToken?: string;
+  labelIds?: string[];
+}
+
+/**
+ * Lista threads do Email com filtros opcionais.
+ * Edge function: email-sync action=listThreads
+ */
+export async function emailListThreads(
+  params: ListThreadsParams
+): Promise<
   EmailApiResponse<{
     threads: Array<{ id: string; snippet: string; historyId: string }>;
     nextPageToken?: string;

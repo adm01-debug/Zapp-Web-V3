@@ -32,8 +32,8 @@ interface AutomationExecutionRowMinimal {
   status: string | null;
   rule_id: string | null;
   remote_jid: string | null;
-  trigger_payload: Record<string, unknown> | null;
-  rule_snapshot: Record<string, unknown> | null;
+  trigger_payload: Record<string, any> | null;
+  rule_snapshot: Record<string, any> | null;
 }
 
 function describeStage(stage: string | null | undefined): string {
@@ -58,7 +58,6 @@ function shortError(msg: string | null | undefined, max = 120): string {
   return clean.length > max ? `${clean.slice(0, max - 1)}…` : clean;
 }
 
-/** Listens for automation_executions rows that transition to `failed` and fires an actionable toast with stage context. Covers both INSERT (born-failed) and UPDATE transitions. */
 export function useAutomationFailureAlerts(enabled = true): void {
   const seenRef = useRef<Set<string>>(new Set());
 
@@ -76,12 +75,10 @@ export function useAutomationFailureAlerts(enabled = true): void {
       seenRef.current.add(row.id);
 
       const payload = row.trigger_payload ?? {};
-      const ctx = (payload.error_context ?? {}) as Record<string, unknown>;
+      const ctx = (payload.error_context ?? {}) as Record<string, any>;
       const ruleName =
-        (row.rule_snapshot?.name as string | undefined) ??
-        (payload.rule_name as string | undefined) ??
-        "Regra sem nome";
-      const stage = describeStage(ctx.stage as string | null | undefined);
+        row.rule_snapshot?.name ?? (payload.rule_name as string | undefined) ?? 'Regra sem nome';
+      const stage = describeStage(ctx.stage);
       const errMsg = shortError(payload.error as string | undefined);
       const tail = row.remote_jid ? ` em ${row.remote_jid.split('@')[0]}` : '';
 
@@ -99,31 +96,34 @@ export function useAutomationFailureAlerts(enabled = true): void {
       log.warn('[automation-alert] failed', {
         executionId: row.id,
         ruleId: row.rule_id,
-        stage: (ctx['stage'] as string | null | undefined) ?? null,
+        stage: ctx.stage ?? null,
       });
     };
 
     const channel = supabase
-      .channel("automation_executions_failure_alerts")
-      .on<AutomationExecutionRowMinimal>(
-        "postgres_changes",
-        { event: "UPDATE", schema: "zapp", table: "automation_executions" },
+      .channel('automation_executions_failure_alerts')
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'zapp', table: 'automation_executions' },
         (payload) => {
-          handle(payload.new, payload.old?.status ?? null);
-        },
+          const next = payload.new as AutomationExecutionRowMinimal | null;
+          const prev = payload.old as AutomationExecutionRowMinimal | null;
+          handle(next, prev?.status ?? null);
+        }
       )
-      .on<AutomationExecutionRowMinimal>(
-        "postgres_changes",
-        { event: "INSERT", schema: "zapp", table: "automation_executions" },
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'zapp', table: 'automation_executions' },
         (payload) => {
           // Cobre o caso (raro) onde a execução já nasce 'failed'.
-          handle(payload.new, null);
-        },
+          const next = payload.new as AutomationExecutionRowMinimal | null;
+          handle(next, null);
+        }
       )
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel).catch(() => {});
+      supabase.removeChannel(channel);
     };
   }, [enabled]);
 }

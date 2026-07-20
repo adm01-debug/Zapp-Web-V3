@@ -1,4 +1,3 @@
-import { queryKeys } from '@/services/api/queryKeys';
 import { memo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -26,22 +25,21 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 
-interface TeamFilesProps {
-  contactId: string;
-}
-
 interface WhisperFile {
   id: string;
   contact_id: string;
   file_name: string;
   file_url: string;
-  file_size: number | null;
-  file_type: string | null;
-  sender_id: string | null;
-  created_at: string;
+  file_size: number;
+  file_type: string;
+  sender_id?: string | null;
+  created_at?: string | null;
 }
 
-/** Team Files component. */
+interface TeamFilesProps {
+  contactId: string;
+}
+
 export const TeamFiles = memo(function TeamFiles({ contactId }: TeamFilesProps) {
   const queryClient = useQueryClient();
   const [isUploading, setIsUploading] = useState(false);
@@ -49,15 +47,14 @@ export const TeamFiles = memo(function TeamFiles({ contactId }: TeamFilesProps) 
   const [typeFilter, setTypeFilter] = useState<string>('all');
 
   const { data: files = [], isLoading } = useQuery({
-    queryKey: queryKeys.teamChat.files(contactId),
-    enabled: !!contactId,
+    queryKey: ['team-files', contactId],
     queryFn: async () => {
       const { data, error } = await safeClient.from<WhisperFile>('whisper_files', (q) =>
         q.select('*').eq('contact_id', contactId).order('created_at', { ascending: false })
       );
 
       if (error) throw error;
-      return data ?? [];
+      return data;
     },
   });
 
@@ -95,13 +92,13 @@ export const TeamFiles = memo(function TeamFiles({ contactId }: TeamFilesProps) 
       if (dbError) throw dbError;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.teamChat.files(contactId) });
+      queryClient.invalidateQueries({ queryKey: ['team-files', contactId] });
       toast({
         title: 'Arquivo enviado',
         description: 'O documento interno foi salvo com sucesso.',
       });
     },
-    onError: (error: Error) => {
+    onError: (error: any) => {
       toast({ title: 'Erro no upload', description: error.message, variant: 'destructive' });
     },
     onSettled: () => setIsUploading(false),
@@ -113,15 +110,8 @@ export const TeamFiles = memo(function TeamFiles({ contactId }: TeamFilesProps) 
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.teamChat.files(contactId) });
+      queryClient.invalidateQueries({ queryKey: ['team-files', contactId] });
       toast({ title: 'Arquivo removido' });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: 'Erro ao remover arquivo',
-        description: error.message,
-        variant: 'destructive',
-      });
     },
   });
 
@@ -139,8 +129,8 @@ export const TeamFiles = memo(function TeamFiles({ contactId }: TeamFilesProps) 
   };
 
   const filteredFiles = files.filter((file) => {
-    const fileName = file.file_name;
-    const fileType = file.file_type ?? '';
+    const fileName = file.file_name || '';
+    const fileType = file.file_type || '';
     const matchesSearch = fileName.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesType =
       typeFilter === 'all' ||
@@ -199,7 +189,6 @@ export const TeamFiles = memo(function TeamFiles({ contactId }: TeamFilesProps) 
           <select
             value={typeFilter}
             onChange={(e) => setTypeFilter(e.target.value)}
-            aria-label="Filtrar por tipo de arquivo"
             className="h-8 rounded-md border-warning bg-warning/30 px-2 text-[10px] text-warning-foreground outline-none focus:ring-1 focus:ring-amber-200"
           >
             <option value="all">Todos</option>
@@ -226,8 +215,7 @@ export const TeamFiles = memo(function TeamFiles({ contactId }: TeamFilesProps) 
             </p>
           </div>
         ) : (
-          filteredFiles.map((file) => (
-            // ignore-audit
+          filteredFiles.map((file: any) => (
             <div
               key={file.id}
               className="group flex items-center gap-3 rounded-xl border border-warning bg-warning/50 p-2 transition-colors hover:bg-warning/50"
@@ -255,7 +243,6 @@ export const TeamFiles = memo(function TeamFiles({ contactId }: TeamFilesProps) 
                         variant="ghost"
                         size="icon"
                         className="h-7 w-7 text-warning-foreground hover:bg-warning"
-                        aria-label="Visualizar imagem"
                       >
                         <Eye className="h-3.5 w-3.5" />
                       </Button>
@@ -299,7 +286,6 @@ export const TeamFiles = memo(function TeamFiles({ contactId }: TeamFilesProps) 
                   size="icon"
                   className="h-7 w-7 text-warning-foreground hover:bg-warning"
                   asChild
-                  aria-label="Baixar arquivo"
                 >
                   <a
                     href={file.file_url}
@@ -315,7 +301,6 @@ export const TeamFiles = memo(function TeamFiles({ contactId }: TeamFilesProps) 
                   size="icon"
                   className="h-7 w-7 text-destructive hover:bg-destructive/10"
                   onClick={() => deleteMutation.mutate(file.id)}
-                  aria-label="Excluir arquivo"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                 </Button>

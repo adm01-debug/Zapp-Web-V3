@@ -4,7 +4,6 @@ import { useActionFeedback } from '@/hooks/useActionFeedback';
 import { useContactsSearch } from '@/hooks/useContactsSearch';
 import { openContactInChat } from '@/lib/openContactInChat';
 import { dbFrom } from '@/integrations/datasource/db';
-import type { ContactRow } from '@/integrations/supabase/schema';
 
 interface ContactFormData {
   name: string;
@@ -28,22 +27,19 @@ const EMPTY_CONTACT: ContactFormData = {
   contact_type: 'cliente',
 };
 
-/** Contact component for the contacts section. */
-export type Contact = Pick<
-  NonNullable<ContactRow>,
-  | 'id'
-  | 'name'
-  | 'nickname'
-  | 'surname'
-  | 'job_title'
-  | 'company'
-  | 'phone'
-  | 'email'
-  | 'contact_type'
-  | 'tags'
->;
+export interface Contact {
+  id: string;
+  name: string;
+  nickname: string | null;
+  surname: string | null;
+  job_title: string | null;
+  company: string | null;
+  phone: string;
+  email: string | null;
+  contact_type: string | null;
+  tags?: string[] | null;
+}
 
-/** use Contacts CRUD component for the contacts section. */
 export function useContactsCRUD() {
   const { profile } = useAuth();
   const feedback = useActionFeedback();
@@ -81,13 +77,7 @@ export function useContactsCRUD() {
 
   const generateProtocol = useCallback(() => {
     const now = new Date();
-    const rng = new Uint8Array(4);
-    crypto.getRandomValues(rng);
-    const suffix = Array.from(rng, (b) => b.toString(36).padStart(2, '0'))
-      .join('')
-      .slice(0, 6)
-      .toUpperCase();
-    return `CT-${now.getFullYear()}${(now.getMonth() + 1).toString().padStart(2, '0')}${now.getDate().toString().padStart(2, '0')}-${suffix}`;
+    return `CT-${now.getFullYear()}${(now.getMonth() + 1).toString().padStart(2, '0')}${now.getDate().toString().padStart(2, '0')}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
   }, []);
 
   const handleAddContact = async () => {
@@ -145,7 +135,7 @@ export function useContactsCRUD() {
             surname: editingContact.surname,
             job_title: editingContact.job_title,
             company: editingContact.company,
-            phone: editingContact.phone.replace(/\D/g, ''),
+            phone: editingContact.phone,
             email: editingContact.email,
             contact_type: editingContact.contact_type,
           })

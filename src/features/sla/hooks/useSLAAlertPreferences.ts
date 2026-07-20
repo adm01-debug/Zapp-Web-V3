@@ -5,7 +5,6 @@ import { getLogger } from '@/lib/logger';
 
 const log = getLogger('useSLAAlertPreferences');
 
-/** S L A Alert Preferences interface definition. */
 export interface SLAAlertPreferences {
   enabled: boolean;
   alert_first_response: boolean;
@@ -14,7 +13,6 @@ export interface SLAAlertPreferences {
   severity_breached: boolean;
 }
 
-/** D E F A U L T_ S L A_ A L E R T_ P R E F E R E N C E S constant. */
 export const DEFAULT_SLA_ALERT_PREFERENCES: SLAAlertPreferences = {
   enabled: true,
   alert_first_response: true,
@@ -66,13 +64,14 @@ export function useSLAAlertPreferences() {
         if (error) {
           // Codigos que indicam tabela inexistente (ambiente sem migration)
           // ou linha não encontrada: tratar como defaults silenciosamente.
-          // safeClient wraps errors to standard Error — check message only.
+          const code = (error as { code?: string })?.code ?? '';
           const msg = error?.message ?? '';
           const isTableMissing =
+            code === 'PGRST116' ||
+            code === 'PGRST204' ||
+            code === '42P01' ||
             msg.includes('relation') ||
             msg.includes('does not exist') ||
-            msg.includes('Recurso indisponível') ||
-            msg.includes('não disponível') ||
             msg.includes('404');
 
           if (!isTableMissing) {
@@ -83,7 +82,7 @@ export function useSLAAlertPreferences() {
           return;
         }
 
-        const row = (data?.[0] ?? null) as SLAAlertPreferences | null;
+        const row = data?.[0] ?? null;
         if (row) {
           setPreferences({
             enabled: row.enabled,

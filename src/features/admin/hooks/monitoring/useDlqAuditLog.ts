@@ -1,18 +1,15 @@
-import { queryKeys } from '@/services/api/queryKeys';
 import { useQuery } from '@tanstack/react-query';
-import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useUserRole } from '@/features/auth';
 
 /**
  * Histórico de auditoria das operações da DLQ (Dead-Letter Queue).
  *
- * Lê de `zapp.audit_logs` (entity_type='failed_messages') via
+ * Lê de `public.audit_logs` (entity_type='failed_messages') via
  * `rpc_dlq_list_audit`, que faz JOIN com `profiles` para trazer o nome/email
  * de quem executou. Acesso restrito a admin (RPC valida via `has_role`).
  */
 
-/** Dlq Audit Action type alias. */
 export type DlqAuditAction =
   | 'dlq_reprocess_trigger'
   | 'dlq_reprocess_result'
@@ -21,7 +18,6 @@ export type DlqAuditAction =
   | 'dlq_bulk_retry'
   | 'dlq_bulk_abandon';
 
-/** Dlq Audit Entry interface definition. */
 export interface DlqAuditEntry {
   id: string;
   action: DlqAuditAction | string;
@@ -33,36 +29,29 @@ export interface DlqAuditEntry {
   user_email: string | null;
 }
 
-/** Use Dlq Audit Log Options interface definition. */
 export interface UseDlqAuditLogOptions {
   limit?: number;
   action?: DlqAuditAction | 'all' | null;
   enabled?: boolean;
-  page?: number;
 }
 
-/** use Dlq Audit Log function. */
 export function useDlqAuditLog(opts: UseDlqAuditLogOptions = {}) {
-  const { limit = 30, action = null, enabled = true, page = 0 } = opts;
+  const { limit = 30, action = null, enabled = true } = opts;
   const { isDev } = useUserRole();
 
-  const [currentPage, setCurrentPage] = useState(page);
-
-  const query = useQuery<DlqAuditEntry[]>({
-    queryKey: queryKeys.adminOps.dlqAuditLogFiltered({ limit, action, page: currentPage }),
+  return useQuery<DlqAuditEntry[]>({
+    queryKey: ['dlq-audit-log', { limit, action }],
     enabled: enabled && isDev,
     queryFn: async () => {
       const { data, error } = await supabase.rpc('rpc_dlq_list_audit', {
         p_limit: limit,
+        p_offset: 0,
         p_action: action,
-        p_offset: currentPage * limit,
       });
       if (error) throw error;
-      return (data ?? []) as unknown as DlqAuditEntry[];
+      return (data ?? []) as DlqAuditEntry[];
     },
     staleTime: 15_000,
     refetchInterval: 60_000,
   });
-
-  return { ...query, currentPage, setCurrentPage };
 }

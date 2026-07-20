@@ -4,12 +4,11 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
-import { type EmailMessage } from '@/hooks/gmail/gmailTypes';
-import { type EmailThread } from '@/types/gmail';
+import { type EmailThread, type EmailMessage } from '@/hooks/gmail/gmailTypes';
 import { EmailChatBubble } from './EmailChatBubble';
 import { EmailChatReplyBar } from './EmailChatReplyBar';
 import { EmailSLABadge, SLAProgressBar } from './EmailSLABadge';
-import { useEmailSLA } from '@/hooks/useEmailManagement';
+import { useEmailSLA } from '@/hooks/useEmailSLA';
 
 interface EmailChatThreadProps {
   thread: EmailThread;
@@ -20,7 +19,6 @@ interface EmailChatThreadProps {
   className?: string;
 }
 
-/** Email Chat Thread component for the email section. */
 export function EmailChatThread({
   thread,
   messages,
@@ -32,8 +30,8 @@ export function EmailChatThread({
   const bottomRef = useRef<HTMLDivElement>(null);
   const { getRecord, getStatus, markReplied } = useEmailSLA(accountId);
 
-  const slaRecord = getRecord(thread.email_thread_id);
-  const slaStatus = getStatus(thread.email_thread_id);
+  const slaRecord = getRecord(thread.thread_id);
+  const slaStatus = getStatus(thread.thread_id);
 
   // Auto-scroll para o final ao carregar novas mensagens
   useEffect(() => {
@@ -57,7 +55,6 @@ export function EmailChatThread({
         <div className="flex items-center gap-3">
           {onBack && (
             <Button
-              aria-label="Voltar"
               variant="ghost"
               size="icon"
               className="h-8 w-8 rounded-full hover:bg-primary/5 md:hidden"
@@ -180,11 +177,11 @@ export function EmailChatThread({
         <EmailChatReplyBar
           accountId={accountId}
           threadId={thread.id}
-          threadEmailId={thread.email_thread_id}
+          threadEmailId={thread.thread_id}
           toEmails={replyTo}
           subject={thread.subject ?? ''}
           onSent={() => {
-            markReplied(thread.email_thread_id);
+            markReplied(thread.thread_id);
           }}
           className="border-none"
         />
