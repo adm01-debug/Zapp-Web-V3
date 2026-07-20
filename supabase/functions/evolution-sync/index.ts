@@ -60,8 +60,8 @@ Deno.serve(async (req) => {
     const rawInstanceName = typeof body.instanceName === 'string' ? body.instanceName : 'wpp2';
     const pageNum = typeof body.page === 'number' ? body.page : 1;
     const offsetNum = typeof body.offset === 'number' ? body.offset : 100;
-    const page = Math.max(1, Math.floor(pageNum));
-    const offset = Math.max(1, Math.floor(offsetNum));
+    const page = Math.min(Math.max(1, Math.floor(pageNum)), 10_000);
+    const offset = Math.min(Math.max(1, Math.floor(offsetNum)), 1_000);
 
     // Reject instance names that could inject path segments into Evolution API URLs
     const INSTANCE_NAME_RE = /^[a-zA-Z0-9_-]{1,64}$/;
@@ -95,7 +95,7 @@ Deno.serve(async (req) => {
     }
 
     const messagesPerContactNum = typeof body.messagesPerContact === 'number' ? body.messagesPerContact : 200;
-    const messagesPerContact = Math.max(1, Math.floor(messagesPerContactNum));
+    const messagesPerContact = Math.min(Math.max(1, Math.floor(messagesPerContactNum)), 1_000);
     if (action === 'sync-all-messages') {
       return await syncAllMessages(supabase, evolutionApiUrl, evolutionApiKey, instanceName, messagesPerContact, corsHeaders);
     }

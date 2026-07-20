@@ -30,6 +30,14 @@ type RequestBody = {
 const PLACEHOLDER_RE = /PLACEHOLDER|REPLACE|CHANGE_ME|YOUR_/i;
 const EVO_TABLE_RE = /^evolution_/;
 const SAFE_IDENT_RE = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
+// Explicit allowlist for PostgREST filter methods — prevents calling query-builder
+// meta-methods like `then` (which makes the thenable fire, dropping all subsequent filters).
+const ALLOWED_FILTER_METHODS = new Set([
+  'eq', 'neq', 'lt', 'lte', 'gt', 'gte',
+  'like', 'ilike', 'is', 'in',
+  'contains', 'containedBy', 'overlaps', 'textSearch',
+  'filter', 'not', 'or', 'match',
+]);
 function pickEnv(name: string): string | undefined {
   const value = Deno.env.get(name)?.trim();
   if (!value || PLACEHOLDER_RE.test(value)) return undefined;
@@ -509,7 +517,7 @@ async function handleRequest(req: Request, _t0: number): Promise<Response> {
       for (const item of filters) {
         const column = String(item.column ?? "");
         const operator = String(item.operator ?? "eq");
-        if (!isSafeIdent(column) || !isSafeIdent(operator)) continue;
+        if (!isSafeIdent(column) || !ALLOWED_FILTER_METHODS.has(operator)) continue;
         const maybeOperator = query[operator as keyof typeof query];
         if (typeof maybeOperator === "function") {
           query = (maybeOperator as (column: string, value: unknown) => typeof query).call(query, column, item.value);

@@ -26,6 +26,9 @@ const ALLOWED_FILTER_OPERATORS = new Set([
 // Allowlist for countMode PostgREST parameter.
 const ALLOWED_COUNT_MODES = new Set(['exact', 'planned', 'estimated']);
 
+// Validates plain SQL identifiers — no dots (would trigger PostgREST relationship traversal).
+const STRICT_IDENT_RE = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
+
 // ─── Telemetry helper ─────────────────────────────────────────
 interface TelemetryPayload {
   operation: string;
@@ -138,7 +141,7 @@ Deno.serve(async (req) => {
       ? (parsedData.params as Record<string, unknown>)
       : null;
     const limit = typeof parsedData.limit === 'number' ? Math.max(1, parsedData.limit) : null;
-    const offset = typeof parsedData.offset === 'number' ? Math.max(0, parsedData.offset) : null;
+    const offset = typeof parsedData.offset === 'number' ? Math.min(Math.max(0, parsedData.offset), 1_000_000) : null;
     const rawCountMode = typeof parsedData.countMode === 'string' ? parsedData.countMode : '';
     const countMode = ALLOWED_COUNT_MODES.has(rawCountMode) ? rawCountMode : '';
 
@@ -168,8 +171,9 @@ Deno.serve(async (req) => {
               const fObj = f as Record<string, unknown>;
               const fColumn = typeof fObj.column === 'string' ? fObj.column : '';
               const fOperator = typeof fObj.operator === 'string' ? fObj.operator : '';
-              // Allowlist operator to prevent PostgREST operator injection
-              if (fColumn && fOperator && ALLOWED_FILTER_OPERATORS.has(fOperator)) {
+              // Validate column (no dots — would trigger PostgREST relationship traversal).
+              // Allowlist operator to prevent PostgREST operator injection.
+              if (fColumn && STRICT_IDENT_RE.test(fColumn) && fOperator && ALLOWED_FILTER_OPERATORS.has(fOperator)) {
                 query = query.filter(fColumn, fOperator, fObj.value);
               }
             }
@@ -179,7 +183,8 @@ Deno.serve(async (req) => {
         if (params && typeof params === 'object' && params.order && typeof params.order === 'object' && !Array.isArray(params.order)) {
           const ordObj = params.order as Record<string, unknown>;
           const ordColumn = typeof ordObj.column === 'string' ? ordObj.column : '';
-          if (ordColumn) {
+          // Validate column name — no dots (PostgREST relationship traversal risk).
+          if (ordColumn && STRICT_IDENT_RE.test(ordColumn)) {
             query = query.order(ordColumn, { ascending: typeof ordObj.ascending === 'boolean' ? ordObj.ascending : true });
           }
         }
@@ -267,7 +272,21 @@ Deno.serve(async (req) => {
         return errorResponse("Invalid action or missing table/rpc", 400, req);
       }
     } catch (err) {
-      queryError = err instanceof Error ? err.message : String(err);
+      // Map PG/PostgREST error codes to generic messages so raw schema metadata
+      // (column names, relation names, constraint details) never reaches the caller.
+      const pgCode = (err as { code?: string }).code ?? '';
+      const pgCodeMap: Record<string, string> = {
+        '23505': 'Duplicate key — record already exists',
+        '23503': 'Foreign key constraint violation',
+        '23502': 'Required field is missing',
+        '23514': 'Check constraint violation',
+        '42501': 'Insufficient privileges',
+        '42P01': 'Relation not found',
+        'PGRST116': 'No rows returned',
+        'PGRST301': 'Database error',
+        'PGRST205': 'Schema not available',
+      };
+      queryError = pgCodeMap[pgCode] ?? 'Database operation failed';
     }
 
     const durationMs = performance.now() - startTime;
@@ -290,10 +309,8 @@ Deno.serve(async (req) => {
     }
 
     if (queryError) {
-      log.done(500, { severity, durationMs: Math.round(durationMs), rawError: queryError });
-      // Sanitize error before returning — never expose raw DB messages to callers
-      const clientError = queryError.length > 200 ? 'Database operation failed' : queryError.replace(/\b(password|secret|key|token)\b[^,\n]*/gi, '[redacted]');
-      return jsonResponse({ error: clientError, telemetry: { severity, duration_ms: Math.round(durationMs) } }, 500, req);
+      log.done(500, { severity, durationMs: Math.round(durationMs) });
+      return jsonResponse({ error: queryError, telemetry: { severity, duration_ms: Math.round(durationMs) } }, 500, req);
     }
 
     log.done(200, { severity, durationMs: Math.round(durationMs) });

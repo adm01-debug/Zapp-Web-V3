@@ -29,12 +29,6 @@ Deno.serve(async (req) => {
 
       const { message_id, sender_name, sender_email, sender_phone, singular_name, singular_id, content, vendedor_user_id, created_at } = parsed.data;
 
-      // Check idempotency
-      const { data: existingMsg } = await supabase.from('messages').select('id').eq('external_id', message_id).maybeSingle();
-      if (existingMsg) {
-        return jsonResponse({ success: true, message: 'Message already exists', message_id: existingMsg.id }, 200, req);
-      }
-
       // Check existing mapping
       const { data: existingMapping } = await supabase
         .from('sicoob_contact_mapping')
@@ -76,7 +70,16 @@ Deno.serve(async (req) => {
         status: 'delivered', created_at: created_at || new Date().toISOString(),
       }).select('id').single();
 
-      if (msgError) throw new Error(`Failed to create message: ${msgError.message}`);
+      // 23505 = unique_violation: concurrent request already inserted this message_id.
+      // Treat as success (idempotent). The partial unique index on (external_id) WHERE
+      // whatsapp_connection_id IS NULL guarantees this constraint fires atomically.
+      if (msgError) {
+        if ((msgError as { code?: string }).code === '23505') {
+          log.info("Duplicate message_id — returning idempotent success", { message_id });
+          return jsonResponse({ success: true, message: 'Message already exists', idempotent: true }, 200, req);
+        }
+        throw new Error(`Failed to create message: ${msgError.message}`);
+      }
 
       await supabase.from('contacts').update({ updated_at: new Date().toISOString() }).eq('id', contactId);
 
