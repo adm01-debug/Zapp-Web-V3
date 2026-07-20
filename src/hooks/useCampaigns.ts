@@ -97,8 +97,11 @@ export function useCampaigns() {
       campaignId: string;
       contactIds: string[];
     }) => {
-      // GAP-1: add_contacts_to_campaign RPC not yet deployed to DB
-      throw new Error('Adicionar contatos a campanhas não está disponível no momento.');
+      const { error } = await supabase.rpc('add_contacts_to_campaign', {
+        p_campaign_id: campaignId,
+        p_contact_ids: contactIds,
+      });
+      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.campaigns.all() });
