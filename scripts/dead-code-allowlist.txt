@@ -39,6 +39,7 @@ src/pages/admin/connections/ConnectionsExternalDbTab.tsx  # tab component da ref
 src/pages/admin/connections/ConnectionsIntegrationsTab.tsx  # tab component da refatoração pendente de Connections.tsx; lógica real mas não importada ainda
 src/pages/admin/connections/ConnectionsMcpTab.tsx  # tab component da refatoração pendente de Connections.tsx; lógica real mas não importada ainda
 src/pages/admin/connections/ConnectionsWebhooksTab.tsx  # tab component da refatoração pendente de Connections.tsx; lógica real mas não importada ainda
+src/pages/admin/AutomationRuleDialog.tsx  # dialog de criação/edição de regra de automação; página de automações não renderiza mais o dialog diretamente; componente real preservado para reintegração
 
 # Wave 3 dead-code triage (2026-07-20) — auditoria completa por agente especializado
 # Arquivos com código real e distinto mas sem importador ativo; preservados intencionalmente.
