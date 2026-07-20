@@ -15,7 +15,7 @@ Deno.serve(async (req) => {
 
     // Dual-mode auth: user JWT (frontend) or service-role (Postgres trigger).
     const bearer = getBearer(req);
-    const isServiceRole = serviceRoleKey !== '' && timingSafeStringEqual(bearer, serviceRoleKey);
+    const isServiceRole = bearer !== null && serviceRoleKey !== '' && timingSafeStringEqual(bearer, serviceRoleKey);
     let agent_id: string | null = null;
 
     if (isServiceRole) {

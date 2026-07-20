@@ -488,7 +488,7 @@ async function handleRequest(req: Request, _t0: number): Promise<Response> {
 
   const selectCols = String(body.select ?? "*");
   const limit = Math.min(Math.max(Number(body.limit ?? 50), 1), 500);
-  const offset = Math.max(Number(body.offset ?? 0), 0);
+  const offset = Math.min(Math.max(Number(body.offset ?? 0), 0), 1_000_000);
   const filter = body.filter && typeof body.filter === "object" ? body.filter : null;
   const filters = Array.isArray(body.filters) ? body.filters : null;
   const orderBy = body.order_by ? String(body.order_by) : body.order?.column ? String(body.order.column) : null;

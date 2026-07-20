@@ -160,6 +160,10 @@ Deno.serve(async (req) => {
 
     try {
       if (action === "select" && table) {
+        // Validate table identifier — dots trigger PostgREST relationship traversal.
+        if (!STRICT_IDENT_RE.test(table)) {
+          return errorResponse("Invalid table name", 400, req);
+        }
         const selectStr = (params && typeof params.select === 'string') ? params.select : "*";
         let query = supabaseUser.from(table).select(selectStr, {
           count: (countMode as "exact" | "planned" | "estimated") || undefined,
