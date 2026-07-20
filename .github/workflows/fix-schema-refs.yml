@@ -7,7 +7,7 @@ jobs:
   fix:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Replace all schema public refs with zapp
         run: |
           find src/ -type f \( -name '*.ts' -o -name '*.tsx' \) \
