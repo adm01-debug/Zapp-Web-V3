@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useMountedRef } from '@/hooks/useMountedRef';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   supabase,
   isSupabaseConfigured,
@@ -22,10 +22,11 @@ import {
 
 const log = getLogger('ConnectionStatusIndicator');
 
+const CONNECTIONS_STATUS_KEY = ['whatsapp-connections-status'] as const;
+
 /** use Connection Status Indicator component for the layout section. */
 export function useConnectionStatusIndicator() {
-  const [connections, setConnections] = useState<ConnectionRow[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [reconnecting, setReconnecting] = useState<string | null>(null);
   const [reconnectingAll, setReconnectingAll] = useState(false);
   const [open, setOpen] = useState(false);
@@ -36,7 +37,43 @@ export function useConnectionStatusIndicator() {
   const prevDisconnectedRef = useRef<Set<string>>(new Set());
   const initializedRef = useRef(false);
   const itemRefs = useRef<Map<string, HTMLLIElement>>(new Map());
-  const mountedRef = useMountedRef();
+
+  const { data: connections = [], isLoading: loading, isSuccess } = useQuery({
+    queryKey: CONNECTIONS_STATUS_KEY,
+    queryFn: async () => {
+      if (!isSupabaseConfigured) {
+        warnSupabaseUnconfigured('ConnectionStatusIndicator');
+        return [] as ConnectionRow[];
+      }
+      const { data, error } = (await supabase
+        .from('whatsapp_connections')
+        .select('id, instance_id, instance_name, name, phone_number, status')) as unknown as {
+        // ignore-audit — Supabase select returns PostgrestSingleResponse with generic Row; casting to selected-columns shape
+        data: Array<{
+          id: string;
+          instance_id: string | null;
+          instance_name: string | null;
+          name: string | null;
+          phone_number: string | null;
+          status: string | null;
+        }> | null;
+        error: { message: string } | null;
+      };
+      if (error) {
+        log.warn('Failed to fetch connections', { error: error.message });
+        return [] as ConnectionRow[];
+      }
+      return (data ?? []).map((r) => ({
+        id: r.id,
+        instance_id: r.instance_id || r.id,
+        instance_name: r.instance_name ?? null,
+        name: r.name ?? null,
+        phone_number: r.phone_number,
+        status: r.status ?? 'disconnected',
+      }));
+    },
+    staleTime: 30_000,
+  });
 
   useEffect(() => {
     try {
@@ -65,43 +102,12 @@ export function useConnectionStatusIndicator() {
     return () => clearTimeout(t);
   }, [open, selectedInstance]);
 
-  const fetchStatus = async () => {
-    if (!isSupabaseConfigured) {
-      warnSupabaseUnconfigured('ConnectionStatusIndicator');
-      setLoading(false);
-      return;
-    }
-    const { data, error } = (await supabase
-      .from('whatsapp_connections')
-      .select('id, instance_id, instance_name, name, phone_number, status')) as unknown as {
-      // ignore-audit — Supabase select returns PostgrestSingleResponse with generic Row; casting to selected-columns shape
-      data: Array<{
-        id: string;
-        instance_id: string | null;
-        instance_name: string | null;
-        name: string | null;
-        phone_number: string | null;
-        status: string | null;
-      }> | null;
-      error: { message: string } | null;
-    };
-    if (error) {
-      log.warn('Failed to fetch connections', { error: error.message });
-      return;
-    }
-    if (!mountedRef.current) return;
-    const rows: ConnectionRow[] = (data ?? []).map((r) => ({
-      id: r.id,
-      instance_id: r.instance_id || r.id,
-      instance_name: r.instance_name ?? null,
-      name: r.name ?? null,
-      phone_number: r.phone_number,
-      status: r.status ?? 'disconnected',
-    }));
-    setConnections(rows);
-    setLoading(false);
+  // Disconnect detection: guard with isSuccess to avoid premature initialization
+  // before real server data arrives (connections defaults to [] before query resolves).
+  useEffect(() => {
+    if (!isSuccess) return;
 
-    const disconnectedRows = rows.filter((r) => r.status !== 'connected');
+    const disconnectedRows = connections.filter((r) => r.status !== 'connected');
     const currentDisconnected = new Set(disconnectedRows.map((r) => r.instance_id));
 
     if (initializedRef.current && currentDisconnected.size > 0) {
@@ -133,24 +139,24 @@ export function useConnectionStatusIndicator() {
     }
     prevDisconnectedRef.current = currentDisconnected;
     initializedRef.current = true;
-  };
+  }, [connections, isSuccess]);
 
+  // Realtime subscription — invalidates the query on any connection change.
   useEffect(() => {
-    fetchStatus();
     const channel = supabase
       .channel('connection-status-indicator')
       .on('postgres_changes', { event: '*', schema: 'zapp', table: 'whatsapp_connections' }, () => {
         import('@/lib/whatsappConnectionsCache')
           .then((m) => m.invalidateWhatsappConnectionsCache())
           .catch(() => {});
-        fetchStatus();
+        void queryClient.invalidateQueries({ queryKey: CONNECTIONS_STATUS_KEY });
       })
       .subscribe();
     return () => {
       channel.unsubscribe();
       supabase.removeChannel(channel);
     };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [queryClient]);
 
   const reconnectInstance = async (
     conn: ConnectionRow,
