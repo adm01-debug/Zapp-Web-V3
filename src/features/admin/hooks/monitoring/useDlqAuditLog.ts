@@ -1,6 +1,6 @@
 import { queryKeys } from '@/services/api/queryKeys';
 import { useQuery } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useUserRole } from '@/features/auth';
 
@@ -43,6 +43,15 @@ export function useDlqAuditLog(opts: UseDlqAuditLogOptions = {}) {
   const { isDev } = useUserRole();
 
   const [currentPage, setCurrentPage] = useState(page);
+
+  // Reset to page 0 when the caller changes filter dimensions.
+  useEffect(() => {
+    setCurrentPage(0);
+  }, [action, limit]);
+  // Re-sync if caller changes the controlled `page` prop.
+  useEffect(() => {
+    setCurrentPage(page);
+  }, [page]);
 
   const query = useQuery<DlqAuditEntry[]>({
     queryKey: queryKeys.adminOps.dlqAuditLogFiltered({ limit, action, page: currentPage }),

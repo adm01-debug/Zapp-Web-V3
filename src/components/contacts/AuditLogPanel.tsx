@@ -1,7 +1,7 @@
 /**
- * AuditLogPanel.tsx — v2.0
+ * AuditLogPanel.tsx — v2.1
  * LGPD Art.37 audit history using contact_audit_log table.
- * Adapts to actual schema: field_name/old_value/new_value columns.
+ * Schema: old_values/new_values are jsonb (not text field_name/old_value/new_value).
  */
 import React, { useState, useEffect, useCallback } from 'react';
 import { useMountedRef } from '@/hooks/useMountedRef';
@@ -18,12 +18,11 @@ const log = getLogger('AuditLogPanel');
 interface AuditEntry {
   id: string;
   action: string;
-  field_name: string | null;
-  old_value: string | null;
-  new_value: string | null;
+  old_values: Record<string, unknown> | null;
+  new_values: Record<string, unknown> | null;
   changed_by: string | null;
   changed_at: string;
-  metadata: Record<string, unknown> | null;
+  reason: string | null;
 }
 
 const ACTION_COLORS: Record<string, string> = {
@@ -72,7 +71,7 @@ export const AuditLogPanel: React.FC<{ contactId: string; maxEntries?: number }>
     try {
       const { data } = await safeClient.from<AuditEntry>('contact_audit_log', (q) =>
         q
-          .select('id,action,field_name,old_value,new_value,changed_by,changed_at,metadata')
+          .select('id,action,old_values,new_values,changed_by,changed_at,reason')
           .eq('contact_id', contactId)
           .order('changed_at', { ascending: false })
           .limit(maxEntries)
@@ -120,9 +119,14 @@ export const AuditLogPanel: React.FC<{ contactId: string; maxEntries?: number }>
       <div className="max-h-64 space-y-1 overflow-y-auto">
         {entries.map((e) => {
           const isOpen = expanded === e.id;
-          const label = FIELD_LABELS[e.field_name ?? ''] ?? sanitizeText(e.field_name ?? e.action);
+          const changedFields = e.new_values ? Object.keys(e.new_values) : [];
+          const fieldSummary =
+            changedFields.length > 0
+              ? changedFields.map((k) => FIELD_LABELS[k] ?? sanitizeText(k)).join(', ')
+              : (ACTION_LABELS[e.action] ?? sanitizeText(e.action));
           const colorClass = ACTION_COLORS[e.action] ?? ACTION_COLORS.UPDATE;
           const actionLabel = ACTION_LABELS[e.action] ?? sanitizeText(e.action);
+          const hasDetail = e.old_values !== null || e.new_values !== null;
 
           return (
             <div key={e.id} className="rounded border text-xs">
@@ -136,7 +140,7 @@ export const AuditLogPanel: React.FC<{ contactId: string; maxEntries?: number }>
                   <Badge className={`shrink-0 border px-1.5 py-0 text-xs ${colorClass}`}>
                     {actionLabel}
                   </Badge>
-                  <span className="truncate text-muted-foreground">{label}</span>
+                  <span className="truncate text-muted-foreground">{fieldSummary}</span>
                 </div>
                 <div className="ml-2 flex shrink-0 items-center gap-1">
                   <span className="text-muted-foreground/60">
@@ -152,20 +156,28 @@ export const AuditLogPanel: React.FC<{ contactId: string; maxEntries?: number }>
                 </div>
               </button>
 
-              {isOpen && (e.old_value !== null || e.new_value !== null) && (
+              {isOpen && hasDetail && (
                 <div className="space-y-1 border-t bg-muted/10 px-2 py-2">
-                  {e.old_value !== null && (
+                  {e.old_values !== null && (
                     <div className="flex gap-2">
                       <span className="w-12 shrink-0 text-muted-foreground">Antes:</span>
                       <span className="truncate text-destructive-foreground line-through">
-                        {sanitizeText(e.old_value)}
+                        {sanitizeText(JSON.stringify(e.old_values))}
                       </span>
                     </div>
                   )}
-                  {e.new_value !== null && (
+                  {e.new_values !== null && (
                     <div className="flex gap-2">
                       <span className="w-12 shrink-0 text-muted-foreground">Depois:</span>
-                      <span className="truncate text-primary">{sanitizeText(e.new_value)}</span>
+                      <span className="truncate text-primary">
+                        {sanitizeText(JSON.stringify(e.new_values))}
+                      </span>
+                    </div>
+                  )}
+                  {e.reason !== null && (
+                    <div className="flex gap-2">
+                      <span className="w-12 shrink-0 text-muted-foreground">Motivo:</span>
+                      <span className="truncate">{sanitizeText(e.reason)}</span>
                     </div>
                   )}
                 </div>

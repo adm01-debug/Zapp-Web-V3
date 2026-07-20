@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { queryKeys } from '@/services/api/queryKeys';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -53,7 +53,11 @@ export function useDispatchErrorLogs(filters: DispatchErrorLogFilters = {}) {
     pageSize = 50,
   } = filters;
 
-  const fromIso = new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
+  // Memoized so refetchInterval cycles don't use a stale closure value.
+  const fromIso = useMemo(
+    () => new Date(Date.now() - hours * 60 * 60 * 1000).toISOString(),
+    [hours]
+  );
 
   // Cursor-based pagination: page 0 always has cursor=null; subsequent pages
   // use the last row ID returned by the previous page.
