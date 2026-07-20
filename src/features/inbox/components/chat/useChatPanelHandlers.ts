@@ -2,8 +2,8 @@ import { useState, useRef, useCallback } from 'react';
 import { getLogger } from '@/lib/logger';
 
 const log = getLogger('useChatPanelHandlers');
-import { supabase } from '@/integrations/supabase/client';
 import { undoToast } from '@/lib/undoToast';
+import { insertWhisperMessage } from '../../hooks/useWhisperMessagesMutation';
 import { useAuth } from '@/features/auth';
 import { Message } from '@/types/chat';
 import { toast } from '@/hooks/use-toast';
@@ -185,7 +185,7 @@ export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
             return;
           }
 
-          const { error } = await supabase.from('whisper_messages').insert({
+          const { error } = await insertWhisperMessage({
             contact_id: opts.contactId,
             sender_id: profile.id,
             content: messageContent,

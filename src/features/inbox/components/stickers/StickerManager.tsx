@@ -1,7 +1,7 @@
 import { queryKeys } from '@/services/api/queryKeys';
 import { useState, useCallback, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { fetchStickers, updateStickerFavorite, deleteStickerById, updateStickerCategory, incrementStickerUseCount } from '../../hooks/useStickerMutations';
 import { getLogger } from '@/lib/logger';
 
 const log = getLogger('StickerManager');
@@ -35,22 +35,12 @@ export function StickerManager({ onSend, mode: _mode = 'manager' }: StickerManag
 
   const { data: stickers = [], isLoading } = useQuery({
     queryKey: queryKeys.stickers.all(),
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('stickers')
-        .select('*')
-        .order('use_count', { ascending: false });
-      if (error) throw error;
-      return (data || []) as StickerItem[];
-    },
+    queryFn: async () => (await fetchStickers()) as StickerItem[],
   });
 
   const toggleFavorite = useMutation({
     mutationFn: async (sticker: StickerItem) => {
-      const { error } = await supabase
-        .from('stickers')
-        .update({ is_favorite: !sticker.is_favorite })
-        .eq('id', sticker.id);
+      const { error } = await updateStickerFavorite(sticker.id, !sticker.is_favorite);
       if (error) throw error;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.stickers.all() }),
@@ -58,7 +48,7 @@ export function StickerManager({ onSend, mode: _mode = 'manager' }: StickerManag
 
   const deleteSticker = useMutation({
     mutationFn: async (sticker: StickerItem) => {
-      const { error } = await supabase.from('stickers').delete().eq('id', sticker.id);
+      const { error } = await deleteStickerById(sticker.id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -69,7 +59,7 @@ export function StickerManager({ onSend, mode: _mode = 'manager' }: StickerManag
 
   const updateCategory = useMutation({
     mutationFn: async ({ id, category }: { id: string; category: string }) => {
-      const { error } = await supabase.from('stickers').update({ category }).eq('id', id);
+      const { error } = await updateStickerCategory(id, category);
       if (error) throw error;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.stickers.all() }),
@@ -78,13 +68,9 @@ export function StickerManager({ onSend, mode: _mode = 'manager' }: StickerManag
   const handleSend = useCallback(
     (sticker: StickerItem) => {
       onSend?.(sticker.image_url);
-      void supabase
-        .from('stickers')
-        .update({ use_count: sticker.use_count + 1 })
-        .eq('id', sticker.id)
-        .then(({ error }) => {
-          if (error) log.warn('[StickerManager] use_count update failed', error);
-        });
+      void incrementStickerUseCount(sticker.id, sticker.use_count).then(({ error }) => {
+        if (error) log.warn('[StickerManager] use_count update failed', error);
+      });
     },
     [onSend]
   );
