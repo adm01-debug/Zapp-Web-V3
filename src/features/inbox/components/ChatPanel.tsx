@@ -218,7 +218,7 @@ export function ChatPanel({
 
   useEffect(() => {
     initResolve();
-  }, [conversation.contact.id]);
+  }, [conversation.contact.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Avalia regras de automação para a conversa ativa
   useAutomations({

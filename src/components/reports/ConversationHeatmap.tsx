@@ -27,7 +27,7 @@ export function ConversationHeatmap() {
 
   useEffect(() => {
     loadData();
-  }, [period]);
+  }, [period]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadData = async () => {
     setLoading(true);

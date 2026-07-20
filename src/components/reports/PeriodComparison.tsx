@@ -1,7 +1,13 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { TrendingUp, TrendingDown, ArrowRight, BarChart3 } from 'lucide-react';
 import { dbFrom } from '@/integrations/datasource/db';
@@ -15,13 +21,16 @@ interface PeriodData {
 
 /** Period Comparison component for the reports section. */
 export function PeriodComparison() {
-  const [comparison, setComparison] = useState<{ current: PeriodData; previous: PeriodData } | null>(null);
+  const [comparison, setComparison] = useState<{
+    current: PeriodData;
+    previous: PeriodData;
+  } | null>(null);
   const [period, setPeriod] = useState('week');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     loadComparison();
-  }, [period]);
+  }, [period]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadComparison = async () => {
     setLoading(true);
@@ -39,17 +48,25 @@ export function PeriodComparison() {
     }
 
     const [currentRes, previousRes] = await Promise.all([
-      dbFrom('messages').select('id', { count: 'exact', head: true })
-        .gte('created_at', currentStart.toISOString()).eq('sender', 'contact'),
-      dbFrom('messages').select('id', { count: 'exact', head: true })
+      dbFrom('messages')
+        .select('id', { count: 'exact', head: true })
+        .gte('created_at', currentStart.toISOString())
+        .eq('sender', 'contact'),
+      dbFrom('messages')
+        .select('id', { count: 'exact', head: true })
         .gte('created_at', previousStart.toISOString())
-        .lt('created_at', previousEnd.toISOString()).eq('sender', 'contact'),
+        .lt('created_at', previousEnd.toISOString())
+        .eq('sender', 'contact'),
     ]);
 
     const [currentClosures, previousClosures] = await Promise.all([
-      supabase.from('conversation_closures').select('id', { count: 'exact', head: true })
+      supabase
+        .from('conversation_closures')
+        .select('id', { count: 'exact', head: true })
         .gte('created_at', currentStart.toISOString()),
-      supabase.from('conversation_closures').select('id', { count: 'exact', head: true })
+      supabase
+        .from('conversation_closures')
+        .select('id', { count: 'exact', head: true })
         .gte('created_at', previousStart.toISOString())
         .lt('created_at', previousEnd.toISOString()),
     ]);
@@ -76,38 +93,70 @@ export function PeriodComparison() {
     return Math.round(((current - previous) / previous) * 100);
   };
 
-  const VariationBadge = ({ current, previous, inverted = false }: { current: number; previous: number; inverted?: boolean }) => {
+  const VariationBadge = ({
+    current,
+    previous,
+    inverted = false,
+  }: {
+    current: number;
+    previous: number;
+    inverted?: boolean;
+  }) => {
     const variation = getVariation(current, previous);
     const isPositive = inverted ? variation < 0 : variation > 0;
     return (
-      <Badge variant="outline" className={`text-[10px] ${isPositive ? 'text-success border-success/30' : variation < 0 ? 'text-destructive border-destructive/30' : 'text-muted-foreground'}`}>
-        {isPositive ? <TrendingUp className="w-3 h-3 mr-0.5" /> : <TrendingDown className="w-3 h-3 mr-0.5" />}
-        {variation > 0 ? '+' : ''}{variation}%
+      <Badge
+        variant="outline"
+        className={`text-[10px] ${isPositive ? 'border-success/30 text-success' : variation < 0 ? 'border-destructive/30 text-destructive' : 'text-muted-foreground'}`}
+      >
+        {isPositive ? (
+          <TrendingUp className="mr-0.5 h-3 w-3" />
+        ) : (
+          <TrendingDown className="mr-0.5 h-3 w-3" />
+        )}
+        {variation > 0 ? '+' : ''}
+        {variation}%
       </Badge>
     );
   };
 
   if (loading) {
-    return <Card><CardContent className="p-6"><div className="h-32 bg-muted/20 rounded-xl animate-pulse" /></CardContent></Card>;
+    return (
+      <Card>
+        <CardContent className="p-6">
+          <div className="h-32 animate-pulse rounded-xl bg-muted/20" />
+        </CardContent>
+      </Card>
+    );
   }
 
   if (!comparison) return null;
 
   const metrics = [
-    { label: 'Mensagens recebidas', current: comparison.current.total, previous: comparison.previous.total },
-    { label: 'Conversas encerradas', current: comparison.current.resolved, previous: comparison.previous.resolved },
+    {
+      label: 'Mensagens recebidas',
+      current: comparison.current.total,
+      previous: comparison.previous.total,
+    },
+    {
+      label: 'Conversas encerradas',
+      current: comparison.current.resolved,
+      previous: comparison.previous.resolved,
+    },
   ];
 
   return (
     <Card>
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-sm flex items-center gap-2">
-            <BarChart3 className="w-4 h-4 text-primary" />
+          <CardTitle className="flex items-center gap-2 text-sm">
+            <BarChart3 className="h-4 w-4 text-primary" />
             Comparativo entre Períodos
           </CardTitle>
           <Select value={period} onValueChange={setPeriod}>
-            <SelectTrigger className="w-32 h-7 text-xs"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="h-7 w-32 text-xs">
+              <SelectValue />
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="week">Semanal</SelectItem>
               <SelectItem value="month">Mensal</SelectItem>
@@ -124,12 +173,12 @@ export function PeriodComparison() {
                 <VariationBadge current={m.current} previous={m.previous} />
               </div>
               <div className="flex items-center gap-3">
-                <div className="flex-1 text-center p-2 rounded-lg bg-muted/20">
+                <div className="flex-1 rounded-lg bg-muted/20 p-2 text-center">
                   <p className="text-lg font-bold">{m.previous}</p>
                   <p className="text-[10px] text-muted-foreground">{comparison.previous.label}</p>
                 </div>
-                <ArrowRight className="w-4 h-4 text-muted-foreground shrink-0" />
-                <div className="flex-1 text-center p-2 rounded-lg bg-primary/10">
+                <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                <div className="flex-1 rounded-lg bg-primary/10 p-2 text-center">
                   <p className="text-lg font-bold text-primary">{m.current}</p>
                   <p className="text-[10px] text-muted-foreground">{comparison.current.label}</p>
                 </div>

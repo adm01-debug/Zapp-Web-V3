@@ -92,7 +92,7 @@ export function ConversationListSidebar({
 
   const handleAgentChange = useCallback(
     (agentId: string | null) => inboxFilters.setFilters({ ...inboxFilters.filters, agentId }),
-    [inboxFilters],
+    [inboxFilters]
   );
 
   const onSearchFocus = useCallback(() => contactSearchRef.current?.focus(), []);
@@ -353,7 +353,6 @@ export function ConversationListSidebar({
           >
             <VirtualizedRealtimeList
               conversations={inboxFilters.filteredConversations}
-
               selectedContactId={inbox.selectedContactId}
               onSelectConversation={inbox.handleSelectConversation}
               selectionMode={bulkActions.selectionMode}

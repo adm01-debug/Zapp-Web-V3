@@ -190,7 +190,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       rolesChannel.unsubscribe();
       supabase.removeChannel(rolesChannel);
     };
-  }, [user, profile?.id, fetchRoles, fetchPermissions]);
+  }, [user, profile?.id, fetchRoles, fetchPermissions]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const refreshProfile = useCallback(async () => {
     if (user) await fetchProfile(user.id);

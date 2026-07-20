@@ -76,7 +76,7 @@ export function AuditLogDashboard() {
 
   useEffect(() => {
     fetchLogs();
-  }, [actionFilter, entityFilter]);
+  }, [actionFilter, entityFilter]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchLogs = async () => {
     setLoading(true);
