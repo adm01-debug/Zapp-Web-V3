@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { log } from '@/lib/logger';
 
@@ -17,31 +18,15 @@ const MIN_QUERY_LENGTH = 2;
 /** Searches published knowledge base articles by title/content/tags. */
 export function useKnowledgeBaseSearch() {
   const [query, setQuery] = useState('');
-  const [articles, setArticles] = useState<KBArticle[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const mountedRef = useRef(true);
+  const [debouncedQuery, setDebouncedQuery] = useState('');
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  useEffect(() => {
-    mountedRef.current = true;
-    return () => {
-      mountedRef.current = false;
-      if (timerRef.current) clearTimeout(timerRef.current);
-    };
-  }, []);
+  useEffect(() => () => { if (timerRef.current) clearTimeout(timerRef.current); }, []);
 
-  const runSearch = useCallback(async (q: string) => {
-    const term = q.trim();
-    if (term.length < MIN_QUERY_LENGTH) {
-      if (mountedRef.current) {
-        setArticles([]);
-        setIsLoading(false);
-      }
-      return;
-    }
-
-    if (mountedRef.current) setIsLoading(true);
-    try {
+  const { data: articles = [], isLoading } = useQuery({
+    queryKey: ['kb-search', debouncedQuery],
+    queryFn: async (): Promise<KBArticle[]> => {
+      const term = debouncedQuery.trim();
       const pattern = `%${term}%`;
       const { data, error } = await supabase
         .from('knowledge_base_articles')
@@ -49,32 +34,28 @@ export function useKnowledgeBaseSearch() {
         .eq('is_published', true)
         .or(`title.ilike.${pattern},content.ilike.${pattern}`)
         .limit(20);
-
-      if (error) throw error;
-      if (mountedRef.current) setArticles((data as KBArticle[]) ?? []);
-    } catch (err) {
-      if (mountedRef.current) {
-        log.error('Knowledge base search error:', err);
-        setArticles([]);
+      if (error) {
+        log.error('Knowledge base search error:', error);
+        return [];
       }
-    } finally {
-      if (mountedRef.current) setIsLoading(false);
-    }
-  }, []);
+      return (data as KBArticle[]) ?? [];
+    },
+    enabled: debouncedQuery.trim().length >= MIN_QUERY_LENGTH,
+    staleTime: 30_000,
+  });
 
   const handleSearch = useCallback((value: string) => {
     setQuery(value);
     if (timerRef.current) clearTimeout(timerRef.current);
     timerRef.current = setTimeout(() => {
-      void runSearch(value);
+      setDebouncedQuery(value);
     }, DEBOUNCE_MS);
-  }, [runSearch]);
+  }, []);
 
   const clear = useCallback(() => {
     if (timerRef.current) clearTimeout(timerRef.current);
     setQuery('');
-    setArticles([]);
-    setIsLoading(false);
+    setDebouncedQuery('');
   }, []);
 
   return {
