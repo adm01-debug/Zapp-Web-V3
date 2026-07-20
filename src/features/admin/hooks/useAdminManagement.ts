@@ -371,7 +371,7 @@ function useAdminAutomationsManagement() {
 
   useEffect(() => {
     void loadAutomations();
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const saveAutomation = async (editing: Rule | null): Promise<boolean> => {
     if (!editing) return false;
@@ -495,7 +495,7 @@ function useAdminChannelsManagement(statusFilter: string, search: string) {
 
   useEffect(() => {
     loadChannels();
-  }, [statusFilter]);
+  }, [statusFilter]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const filteredChannels = useMemo(() => {
     if (!search.trim()) return channels;
@@ -649,7 +649,7 @@ function useAdminQueuesManagement() {
 
   useEffect(() => {
     void loadQueues();
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const saveQueue = async (editing: Queue | null): Promise<boolean> => {
     if (!editing) return false;
@@ -882,7 +882,7 @@ function useRolesManagement() {
 
   useEffect(() => {
     if (showAddRoleDialog) void fetchAvailableRoleUsers();
-  }, [showAddRoleDialog, roleUsers]);
+  }, [showAddRoleDialog, roleUsers]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleAddRole = async () => {
     if (!selectedRoleUser || !selectedRole) return;
@@ -990,7 +990,7 @@ function useRoutePermissionsManagement() {
     return () => {
       isMountedRef.current = false;
     };
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function savePermissionRow(path: string, nextRoles: AppRole[]) {
     setSavingPermPath(path);

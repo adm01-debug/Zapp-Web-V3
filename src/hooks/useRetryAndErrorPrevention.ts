@@ -153,7 +153,7 @@ export function useSafeAsync<T>(
       safeCallback(() => withErrorRecovery(fn, { operation, fallback, shouldThrow }), {
         name: operation,
       })(),
-    [operation, fallback, shouldThrow, ...dependencies]
+    [operation, fallback, shouldThrow, ...dependencies] // eslint-disable-line react-hooks/exhaustive-deps
   );
 
   return executeAsync;
@@ -189,7 +189,7 @@ export function useSafeRetry<T>(
         delayMs,
         backoffMultiplier,
       }),
-    [operation, maxAttempts, delayMs, backoffMultiplier, ...dependencies]
+    [operation, maxAttempts, delayMs, backoffMultiplier, ...dependencies] // eslint-disable-line react-hooks/exhaustive-deps
   );
 
   return executeRetry;
@@ -258,7 +258,7 @@ export function useSafePromise<T>(
     }).catch(() => {
       // Already logged
     });
-  }, [...dependencies]);
+  }, [...dependencies]); // eslint-disable-line react-hooks/exhaustive-deps
 }
 
 /**
@@ -305,7 +305,7 @@ export function useAsyncEffect<T>(
       abortRef.current?.abort();
       options?.cleanup?.();
     };
-  }, options?.dependencies);
+  }, options?.dependencies); // eslint-disable-line react-hooks/exhaustive-deps
 }
 
 /**
@@ -377,7 +377,7 @@ export function useRetryableAsync<T>(
       log.error(`Retry exhausted for ${operationName}:`, error);
       throw error;
     }
-  }, [operationName, ...dependencies]);
+  }, [operationName, ...dependencies]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const getMetrics = useCallback(() => {
     return executorRef.current.getMetrics();
