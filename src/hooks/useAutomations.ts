@@ -125,8 +125,7 @@ export function useAutomations({
         });
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const c: any = Array.isArray(contact) ? contact[0] : contact;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        currentTags = Array.isArray(c?.tags) ? c.tags.map((t: any) => String(t)) : [];
+        currentTags = Array.isArray(c?.tags) ? c.tags.map((t: unknown) => String(t)) : [];
         if (prevTagsRef.current !== null) {
           const prev = prevTagsRef.current;
           addedTags = currentTags.filter((t) => !prev.includes(t));
@@ -177,8 +176,7 @@ export function useAutomations({
         } else if (rule.trigger_type === 'tag_applied') {
           // Aceita 'tag' (string) ou 'tags' (array). Se vazio, qualquer tag adicionada dispara.
           const wanted: string[] = Array.isArray(cfg.tags)
-            ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              cfg.tags.map((t: any) => String(t))
+            ? cfg.tags.map((t: unknown) => String(t))
             : cfg.tag
               ? [String(cfg.tag)]
               : [];
@@ -189,8 +187,7 @@ export function useAutomations({
           }
         } else if (rule.trigger_type === 'tag_removed') {
           const wanted: string[] = Array.isArray(cfg.tags)
-            ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              cfg.tags.map((t: any) => String(t))
+            ? cfg.tags.map((t: unknown) => String(t))
             : cfg.tag
               ? [String(cfg.tag)]
               : [];
