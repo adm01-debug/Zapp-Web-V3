@@ -8,7 +8,9 @@ import { getLogger } from '@/lib/logger';
 const log = getLogger('Connections');
 
 const APP_ENV = (import.meta.env.VITE_APP_ENV || 'production') as
-  'development' | 'staging' | 'production';
+  | 'development'
+  | 'staging'
+  | 'production';
 
 const getInitialConfig = () => {
   switch (APP_ENV) {

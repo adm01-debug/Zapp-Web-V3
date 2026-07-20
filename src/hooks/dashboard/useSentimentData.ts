@@ -58,6 +58,7 @@ export function useSentimentData(period: string) {
 
   useEffect(() => {
     fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [period]);
 
   const fetchData = async () => {
@@ -75,7 +76,7 @@ export function useSentimentData(period: string) {
 
       if (alertError) throw alertError;
 
-      const formattedAlerts = (alertData || []).map(entry => ({
+      const formattedAlerts = (alertData || []).map((entry) => ({
         id: entry.id,
         contactId: entry.entity_id,
         createdAt: entry.created_at,
@@ -109,41 +110,61 @@ export function useSentimentData(period: string) {
 
   const stats = useMemo(() => {
     const totalAnalyses = analyses.length;
-    const negativeAnalyses = analyses.filter(a => a.sentiment === 'negativo').length;
-    const positiveAnalyses = analyses.filter(a => a.sentiment === 'positivo').length;
-    const neutralAnalyses = analyses.filter(a => a.sentiment === 'neutro').length;
-    const avgSentiment = totalAnalyses > 0
-      ? Math.round(analyses.reduce((sum, a) => sum + (a.sentiment_score || 50), 0) / totalAnalyses)
-      : 50;
-    const criticalAlerts = alerts.filter(a => (a.sentiment_score || 50) < 20).length;
-    const emailsSent = alerts.filter(a => a.email_sent).length;
-    const uniqueContacts = new Set(alerts.map(a => a.contactId)).size;
+    const negativeAnalyses = analyses.filter((a) => a.sentiment === 'negativo').length;
+    const positiveAnalyses = analyses.filter((a) => a.sentiment === 'positivo').length;
+    const neutralAnalyses = analyses.filter((a) => a.sentiment === 'neutro').length;
+    const avgSentiment =
+      totalAnalyses > 0
+        ? Math.round(
+            analyses.reduce((sum, a) => sum + (a.sentiment_score || 50), 0) / totalAnalyses
+          )
+        : 50;
+    const criticalAlerts = alerts.filter((a) => (a.sentiment_score || 50) < 20).length;
+    const emailsSent = alerts.filter((a) => a.email_sent).length;
+    const uniqueContacts = new Set(alerts.map((a) => a.contactId)).size;
 
     return {
-      totalAnalyses, negativeAnalyses, positiveAnalyses, neutralAnalyses, avgSentiment,
-      totalAlerts: alerts.length, criticalAlerts, emailsSent, uniqueContacts,
+      totalAnalyses,
+      negativeAnalyses,
+      positiveAnalyses,
+      neutralAnalyses,
+      avgSentiment,
+      totalAlerts: alerts.length,
+      criticalAlerts,
+      emailsSent,
+      uniqueContacts,
       negativeRate: totalAnalyses > 0 ? Math.round((negativeAnalyses / totalAnalyses) * 100) : 0,
     };
   }, [analyses, alerts]);
 
   const dailyData = useMemo(() => {
     const days = parseInt(period);
-    const data: { date: string; positive: number; neutral: number; negative: number; avgScore: number }[] = [];
+    const data: {
+      date: string;
+      positive: number;
+      neutral: number;
+      negative: number;
+      avgScore: number;
+    }[] = [];
 
     for (let i = days - 1; i >= 0; i--) {
       const date = subDays(new Date(), i);
-      const dayAnalyses = analyses.filter(a =>
+      const dayAnalyses = analyses.filter((a) =>
         isWithinInterval(new Date(a.created_at), { start: startOfDay(date), end: endOfDay(date) })
       );
 
       data.push({
         date: format(date, 'dd/MM', { locale: ptBR }),
-        positive: dayAnalyses.filter(a => a.sentiment === 'positivo').length,
-        neutral: dayAnalyses.filter(a => a.sentiment === 'neutro').length,
-        negative: dayAnalyses.filter(a => a.sentiment === 'negativo').length,
-        avgScore: dayAnalyses.length > 0
-          ? Math.round(dayAnalyses.reduce((sum, a) => sum + (a.sentiment_score || 50), 0) / dayAnalyses.length)
-          : 0,
+        positive: dayAnalyses.filter((a) => a.sentiment === 'positivo').length,
+        neutral: dayAnalyses.filter((a) => a.sentiment === 'neutro').length,
+        negative: dayAnalyses.filter((a) => a.sentiment === 'negativo').length,
+        avgScore:
+          dayAnalyses.length > 0
+            ? Math.round(
+                dayAnalyses.reduce((sum, a) => sum + (a.sentiment_score || 50), 0) /
+                  dayAnalyses.length
+              )
+            : 0,
       });
     }
     return data;
@@ -153,28 +174,56 @@ export function useSentimentData(period: string) {
     const days = parseInt(period);
     const halfPeriod = Math.floor(days / 2);
 
-    return agents.map(agent => {
-      const agentAnalyses = analyses.filter(a => a.analyzed_by === agent.id);
-      const totalAnalyses = agentAnalyses.length;
-      const positive = agentAnalyses.filter(a => a.sentiment === 'positivo').length;
-      const neutral = agentAnalyses.filter(a => a.sentiment === 'neutro').length;
-      const negative = agentAnalyses.filter(a => a.sentiment === 'negativo').length;
-      const avgScore = totalAnalyses > 0
-        ? Math.round(agentAnalyses.reduce((sum, a) => sum + (a.sentiment_score || 50), 0) / totalAnalyses)
-        : 0;
+    return agents
+      .map((agent) => {
+        const agentAnalyses = analyses.filter((a) => a.analyzed_by === agent.id);
+        const totalAnalyses = agentAnalyses.length;
+        const positive = agentAnalyses.filter((a) => a.sentiment === 'positivo').length;
+        const neutral = agentAnalyses.filter((a) => a.sentiment === 'neutro').length;
+        const negative = agentAnalyses.filter((a) => a.sentiment === 'negativo').length;
+        const avgScore =
+          totalAnalyses > 0
+            ? Math.round(
+                agentAnalyses.reduce((sum, a) => sum + (a.sentiment_score || 50), 0) / totalAnalyses
+              )
+            : 0;
 
-      const firstHalfStart = subDays(new Date(), days);
-      const firstHalfEnd = subDays(new Date(), halfPeriod);
-      const secondHalfStart = subDays(new Date(), halfPeriod);
+        const firstHalfStart = subDays(new Date(), days);
+        const firstHalfEnd = subDays(new Date(), halfPeriod);
+        const secondHalfStart = subDays(new Date(), halfPeriod);
 
-      const firstHalfAnalyses = agentAnalyses.filter(a => { const d = new Date(a.created_at); return d >= firstHalfStart && d < firstHalfEnd; });
-      const secondHalfAnalyses = agentAnalyses.filter(a => { const d = new Date(a.created_at); return d >= secondHalfStart; });
+        const firstHalfAnalyses = agentAnalyses.filter((a) => {
+          const d = new Date(a.created_at);
+          return d >= firstHalfStart && d < firstHalfEnd;
+        });
+        const secondHalfAnalyses = agentAnalyses.filter((a) => {
+          const d = new Date(a.created_at);
+          return d >= secondHalfStart;
+        });
 
-      const firstHalfAvg = firstHalfAnalyses.length > 0 ? firstHalfAnalyses.reduce((s, a) => s + (a.sentiment_score || 50), 0) / firstHalfAnalyses.length : 50;
-      const secondHalfAvg = secondHalfAnalyses.length > 0 ? secondHalfAnalyses.reduce((s, a) => s + (a.sentiment_score || 50), 0) / secondHalfAnalyses.length : 50;
+        const firstHalfAvg =
+          firstHalfAnalyses.length > 0
+            ? firstHalfAnalyses.reduce((s, a) => s + (a.sentiment_score || 50), 0) /
+              firstHalfAnalyses.length
+            : 50;
+        const secondHalfAvg =
+          secondHalfAnalyses.length > 0
+            ? secondHalfAnalyses.reduce((s, a) => s + (a.sentiment_score || 50), 0) /
+              secondHalfAnalyses.length
+            : 50;
 
-      return { agent, totalAnalyses, avgScore, positive, neutral, negative, trend: Math.round(secondHalfAvg - firstHalfAvg) };
-    }).filter(a => a.totalAnalyses > 0).sort((a, b) => b.avgScore - a.avgScore);
+        return {
+          agent,
+          totalAnalyses,
+          avgScore,
+          positive,
+          neutral,
+          negative,
+          trend: Math.round(secondHalfAvg - firstHalfAvg),
+        };
+      })
+      .filter((a) => a.totalAnalyses > 0)
+      .sort((a, b) => b.avgScore - a.avgScore);
   }, [analyses, agents, period]);
 
   return { alerts, analyses, agents, loading, stats, dailyData, agentData, fetchData };
@@ -197,9 +246,13 @@ export function getSentimentBg(score: number) {
 /** Hook: get Sentiment Label. */
 export function getSentimentLabel(sentiment: string) {
   switch (sentiment) {
-    case 'positivo': return 'Positivo';
-    case 'negativo': return 'Negativo';
-    case 'neutro': return 'Neutro';
-    default: return sentiment;
+    case 'positivo':
+      return 'Positivo';
+    case 'negativo':
+      return 'Negativo';
+    case 'neutro':
+      return 'Neutro';
+    default:
+      return sentiment;
   }
 }

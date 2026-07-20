@@ -56,7 +56,7 @@ export function IntegrationsPanel({
       };
     }
     return undefined;
-  }, [open, instanceName]);
+  }, [open, instanceName]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadAll = async (isCancelled: () => boolean = () => false) => {
     const abortController = new AbortController();

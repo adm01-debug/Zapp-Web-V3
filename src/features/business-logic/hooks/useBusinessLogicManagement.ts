@@ -69,10 +69,11 @@ export function useBusinessLogicCampaignsManagement(
   const { campaignId } = params;
   const [variants, setVariants] = useState<ABVariant[]>([]);
   const [loading, setLoading] = useState(true);
+  const mountedRef = useMountedRef();
 
   const fetchVariants = useCallback(async () => {
     if (!campaignId) {
-      setLoading(false);
+      if (mountedRef.current) setLoading(false);
       return;
     }
     setLoading(true);
@@ -81,6 +82,7 @@ export function useBusinessLogicCampaignsManagement(
       .select('*')
       .eq('campaign_id', campaignId)
       .order('created_at');
+    if (!mountedRef.current) return;
     if (!error && data) {
       setVariants(
         data.map((v) => ({
@@ -96,7 +98,7 @@ export function useBusinessLogicCampaignsManagement(
       );
     }
     setLoading(false);
-  }, [campaignId]);
+  }, [campaignId, mountedRef]);
 
   useEffect(() => {
     void fetchVariants();
@@ -168,7 +170,11 @@ export interface UseBusinessLogicCatalogResult {
   setSelectedContact: (contact: ContactResult | null) => void;
   resetContactSelection: () => void;
   isSending: boolean;
-  sendProductToContact: (contact: ContactResult, message: string, imageUrls: string[]) => Promise<void>;
+  sendProductToContact: (
+    contact: ContactResult,
+    message: string,
+    imageUrls: string[]
+  ) => Promise<void>;
 }
 
 /** Manages product catalog sending to contacts with image uploads and media handling. */
@@ -187,17 +193,26 @@ export function useBusinessLogicCatalogManagement(
       setContactResults([]);
       return;
     }
+    let cancelled = false;
     const timeout = setTimeout(async () => {
+      if (cancelled) return;
       setSearchingContacts(true);
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('contacts')
         .select('id, name, phone, avatar_url')
-        .or(`name.ilike.%${sanitizePostgrestFilter(contactSearch)}%,phone.ilike.%${sanitizePostgrestFilter(contactSearch)}%`)
+        .or(
+          `name.ilike.%${sanitizePostgrestFilter(contactSearch)}%,phone.ilike.%${sanitizePostgrestFilter(contactSearch)}%`
+        )
         .limit(15);
+      if (cancelled) return;
+      if (error) log.error('Failed to search contacts:', error);
       setContactResults(data || []);
       setSearchingContacts(false);
     }, 300);
-    return () => clearTimeout(timeout);
+    return () => {
+      cancelled = true;
+      clearTimeout(timeout);
+    };
   }, [contactSearch, step]);
 
   useEffect(() => {
@@ -242,15 +257,21 @@ export function useBusinessLogicCatalogManagement(
 
         const connection = connections?.[0];
         const evoName = connection
-          ? evolutionInstanceName({ instance_name: connection.name, instance_id: connection.instance_id })
+          ? evolutionInstanceName({
+              instance_name: connection.name,
+              instance_id: connection.instance_id,
+            })
           : null;
         if (!evoName) {
-          toast({ title: 'Nenhuma conexão WhatsApp ativa com nome de instância válido.', variant: 'destructive' });
+          toast({
+            title: 'Nenhuma conexão WhatsApp ativa com nome de instância válido.',
+            variant: 'destructive',
+          });
           return;
         }
 
         for (const imgUrl of imageUrls) {
-          const { data: dbResult } = await supabase
+          const { data: dbResult, error: dbError } = await supabase
             .from('messages')
             .insert({
               contact_id: contact.id,
@@ -261,7 +282,10 @@ export function useBusinessLogicCatalogManagement(
               whatsapp_connection_id: connection?.id || null,
             })
             .select('id')
-            .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
+            .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
+
+          if (dbError || !dbResult?.id)
+            throw new Error(dbError?.message ?? 'Image DB insert failed');
 
           const { data: apiResult } = await supabase.functions.invoke('evolution-api', {
             body: {
@@ -282,7 +306,7 @@ export function useBusinessLogicCatalogManagement(
           }
         }
 
-        const { data: textDbResult } = await supabase
+        const { data: textDbResult, error: textDbError } = await supabase
           .from('messages')
           .insert({
             contact_id: contact.id,
@@ -293,7 +317,10 @@ export function useBusinessLogicCatalogManagement(
             whatsapp_connection_id: connection?.id || null,
           })
           .select('id')
-          .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
+          .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
+
+        if (textDbError || !textDbResult?.id)
+          throw new Error(textDbError?.message ?? 'Text DB insert failed');
 
         const { data: textApiResult } = await supabase.functions.invoke('evolution-api', {
           body: {
@@ -340,10 +367,8 @@ export function useBusinessLogicCatalogManagement(
 // Sales Pipeline Management
 // ═══════════════════════════════════════════════════════════
 
-/** Use Business Logic Pipeline Params interface definition. */
-export interface UseBusinessLogicPipelineParams {
-  // no params needed
-}
+/** Use Business Logic Pipeline Params type definition. */
+export type UseBusinessLogicPipelineParams = Record<string, never>;
 
 /** Use Business Logic Pipeline Result interface definition. */
 export interface UseBusinessLogicPipelineResult {
@@ -536,13 +561,11 @@ export function useBusinessLogicPipelineManagement(
       toast({ title: 'Erro ao mover deal', description: error.message, variant: 'destructive' });
       return;
     }
-    await supabase
-      .from('deal_activities')
-      .insert({
-        deal_id: dealId,
-        activity_type: 'stage_change',
-        description: `Movido para ${stages.find((s) => s.id === newStageId)?.name}`,
-      });
+    await supabase.from('deal_activities').insert({
+      deal_id: dealId,
+      activity_type: 'stage_change',
+      description: `Movido para ${stages.find((s) => s.id === newStageId)?.name}`,
+    });
     fetchData();
   };
 
@@ -562,7 +585,11 @@ export function useBusinessLogicPipelineManagement(
       .update({ status: 'won', won_at: new Date().toISOString() })
       .eq('id', deal.id);
     if (error) {
-      toast({ title: 'Erro ao marcar como ganho', description: error.message, variant: 'destructive' });
+      toast({
+        title: 'Erro ao marcar como ganho',
+        description: error.message,
+        variant: 'destructive',
+      });
       return;
     }
     toast({
@@ -578,7 +605,11 @@ export function useBusinessLogicPipelineManagement(
       .update({ status: 'lost', lost_at: new Date().toISOString() })
       .eq('id', deal.id);
     if (error) {
-      toast({ title: 'Erro ao marcar como perdido', description: error.message, variant: 'destructive' });
+      toast({
+        title: 'Erro ao marcar como perdido',
+        description: error.message,
+        variant: 'destructive',
+      });
       return;
     }
     toast({ title: 'Deal perdido', description: deal.title });

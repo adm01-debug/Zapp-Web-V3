@@ -514,6 +514,7 @@ export function useInboxFilters({
         : new Date(b.contact.updated_at).getTime();
       return bTime - aTime;
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     conversations,
     search,

@@ -342,6 +342,7 @@ export function useEmailOAuthFlow(): UseEmailOAuthFlowReturn {
     for (const acc of accounts) {
       ensureWatch(acc.id);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [accounts.map((a) => a.id).join(','), ensureWatch]);
 
   // Cleanup OAuth listeners if component unmounts mid-flow

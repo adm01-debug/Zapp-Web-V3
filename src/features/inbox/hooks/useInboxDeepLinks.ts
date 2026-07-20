@@ -11,7 +11,11 @@ interface DeepLinkHandlers {
 }
 
 /** Reads deep-link `?contact=` / `?message=` URL params, legacy window globals, and the `open-contact-chat` custom event to set the pending contact/message on mount. */
-export function useInboxDeepLinks({ setPendingContactId, setPendingMessageId, useExternalDb }: DeepLinkHandlers) {
+export function useInboxDeepLinks({
+  setPendingContactId,
+  setPendingMessageId,
+  useExternalDb,
+}: DeepLinkHandlers) {
   const [searchParams] = useSearchParams();
 
   useEffect(() => {
@@ -27,7 +31,7 @@ export function useInboxDeepLinks({ setPendingContactId, setPendingMessageId, us
       log.info('Deep-link: found pending contact', { contactId: urlContact.trim() });
       setPendingContactId(urlContact.trim());
     }
-    
+
     if (urlMessage?.trim()) {
       log.info('Deep-link: found pending message highlight', { messageId: urlMessage.trim() });
       setPendingMessageId(urlMessage.trim());

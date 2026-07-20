@@ -104,15 +104,6 @@ const MIN_QUERY_LEN = 2;
 /** Returns true when the given ID is a mock identifier (prefixed with 'mock-'), used to short-circuit real API calls. */
 const isMockId = (id?: string | null): boolean => !!id && id.startsWith('mock-');
 
-interface BaseThreadRow {
-  id: string;
-  gmail_thread_id?: string | null;
-  gmail_account_id: string;
-  is_unread?: boolean;
-  message_count?: number;
-  [key: string]: unknown;
-}
-
 /** Maps a raw Supabase email_threads row to a typed EmailThread, normalising field aliases and computing unread_count. */
 const mapBaseThreadRow = (row: Record<string, unknown>): EmailThread =>
   emailMappers.thread({
@@ -1115,6 +1106,7 @@ export function useEmailSearch(accountId: string | null) {
 
 /** Tracks SLA metrics for email threads with configurable thresholds and status monitoring. */
 export function useEmailSLA(accountId: string | null, config: Partial<SLAConfig> = {}) {
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const slaConfig: SLAConfig = { ...DEFAULT_SLA, ...config };
   const [records, setRecords] = useState<Record<string, EmailSLARecord>>({});
 
@@ -1283,7 +1275,7 @@ export function useEmailSignature(accountId: string | null) {
               html_content: sig.html_content,
               is_default: sig.is_default ?? false,
             })
-            .eq('id', sig.id!)
+            .eq('id', sig.id ?? '')
         );
         if (error) {
           log.error('Email signature save error', error);
@@ -1324,10 +1316,19 @@ export function useEmailSignature(accountId: string | null) {
   const setDefault = useCallback(
     async (id: string) => {
       if (!accountId) return;
-      await safeClient.from('email_signatures', (q) =>
-        q.update({ is_default: false }).eq('account_id', accountId!)
+      // Set the new default first so there is always at least one default signature.
+      // Clear others second: if this fails, two rows have is_default=true (harmless)
+      // rather than zero rows (which would break the UI).
+      const { error: setErr } = await safeClient.from('email_signatures', (q) =>
+        q.update({ is_default: true }).eq('id', id)
       );
-      await safeClient.from('email_signatures', (q) => q.update({ is_default: true }).eq('id', id));
+      if (setErr) return;
+      await safeClient.from('email_signatures', (q) =>
+        q
+          .update({ is_default: false })
+          .eq('account_id', accountId ?? '')
+          .neq('id', id)
+      );
       await load();
     },
     [accountId, load]

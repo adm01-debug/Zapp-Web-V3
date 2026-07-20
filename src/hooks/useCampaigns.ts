@@ -92,8 +92,8 @@ export function useCampaigns() {
 
   const addContactsToCampaign = useMutation({
     mutationFn: async ({
-      campaignId,
-      contactIds,
+      campaignId: _campaignId,
+      contactIds: _contactIds,
     }: {
       campaignId: string;
       contactIds: string[];

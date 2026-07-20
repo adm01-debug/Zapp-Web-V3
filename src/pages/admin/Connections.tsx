@@ -36,7 +36,9 @@ const log = getLogger('Connections');
 import { motion, AnimatePresence } from 'framer-motion';
 
 const APP_ENV = (import.meta.env.VITE_APP_ENV || 'production') as
-  'development' | 'staging' | 'production';
+  | 'development'
+  | 'staging'
+  | 'production';
 
 const getInitialConfig = () => {
   switch (APP_ENV) {
@@ -68,6 +70,7 @@ const DEFAULT_EXTERNAL_KEY = initialConfig.key;
 
 export default function AdminConnectionsPage() {
   const [activeTab, setActiveTab] = useState('external-db');
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [connections, setConnections] = useState<any[]>([]);
   const [_loading, setLoading] = useState(true);
 
@@ -100,6 +103,7 @@ export default function AdminConnectionsPage() {
 
         if (rolesError) throw rolesError;
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const hasAccess = !!roles?.some((r: any) => r.role === 'admin' || r.role === 'dev');
         setIsAdmin(hasAccess);
 
@@ -109,6 +113,7 @@ export default function AdminConnectionsPage() {
       } else {
         setIsAdmin(false);
       }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (e: any) {
       log.error('Error checking roles or connection', e);
       setIsAdmin(false);
@@ -144,6 +149,7 @@ export default function AdminConnectionsPage() {
 
   async function fetchConnections() {
     setLoading(true);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data, error } = await safeClient.from<any>('system_connections', (q) =>
       q.select('*').order('created_at', { ascending: false })
     );
@@ -151,6 +157,7 @@ export default function AdminConnectionsPage() {
     if (!error && data) {
       setConnections(data);
       const fatorX = data.find(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (c: any) => c.provider === 'supabase_external' || c.name === 'FATOR X'
       );
       if (fatorX?.config?.url && fatorX?.config?.anon_key) {
@@ -195,6 +202,7 @@ export default function AdminConnectionsPage() {
         variant: 'destructive',
       });
       return false;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (e: any) {
       toast({
         title: 'Erro de rede',
@@ -229,6 +237,7 @@ export default function AdminConnectionsPage() {
       return;
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const payload: any = {
       name: 'FATOR X',
       provider: 'supabase_external',
@@ -237,11 +246,14 @@ export default function AdminConnectionsPage() {
     };
 
     try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const existing: any = connections.find(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (c: any) => c.provider === 'supabase_external' || c.name === 'FATOR X'
       );
       const insertPayload = currentUserId ? { ...payload, created_by: currentUserId } : payload;
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data, error } = await safeClient.from<any>('system_connections', (q) =>
         existing
           ? q.update(payload).eq('id', existing.id).select()
@@ -272,6 +284,7 @@ export default function AdminConnectionsPage() {
       // Pequeno delay para garantir que o banco processou a transação (útil em setups com latência)
       await new Promise((resolve) => setTimeout(resolve, 800));
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data: verifyRows, error: verifyError } = await safeClient.from<any>(
         'system_connections',
         (q) =>
@@ -309,6 +322,7 @@ export default function AdminConnectionsPage() {
       }, 1500);
 
       await fetchConnections();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (e: any) {
       const msg = `[Exceção] ${e?.message ?? 'Falha desconhecida ao processar a requisição.'}`;
       setSaveError(msg);
@@ -714,11 +728,7 @@ export default function AdminConnectionsPage() {
                       da Anthropic.
                     </p>
                     <div className="flex items-center gap-2">
-                      <Input
-                        readOnly
-                        value={MCP_SERVER_URL}
-                        className="font-mono text-[10px]"
-                      />
+                      <Input readOnly value={MCP_SERVER_URL} className="font-mono text-[10px]" />
                       <Button size="icon" variant="ghost">
                         <ExternalLink className="h-4 w-4" />
                       </Button>

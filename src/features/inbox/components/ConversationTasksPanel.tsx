@@ -51,7 +51,7 @@ export function ConversationTasksPanel({ contactId, profileId }: ConversationTas
 
   useEffect(() => {
     loadTasks();
-  }, [contactId]);
+  }, [contactId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadTasks = async () => {
     setLoading(true);

@@ -166,7 +166,7 @@ export function useErrorMonitoringManagement() {
 
 /** Hook: use Latest Analysis Management. */
 export function useLatestAnalysisManagement(timeWindow: number = 24) {
-  const [analysis, setAnalysis] = useState<Analysis | null>(null);
+  const [analysis, _setAnalysis] = useState<Analysis | null>(null);
   const [loading, setLoading] = useState(true);
   const mounted = useMountedRef();
 

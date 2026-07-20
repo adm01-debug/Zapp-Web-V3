@@ -122,7 +122,8 @@ export function RealtimeInboxView() {
 
   const openGlobalSearch = useCallback(
     () => inbox.setGlobalSearchOpen(true),
-    [inbox.setGlobalSearchOpen],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [inbox.setGlobalSearchOpen]
   );
   useGlobalSearchShortcut({ onOpen: openGlobalSearch });
 
@@ -216,7 +217,8 @@ export function RealtimeInboxView() {
       {!isMobile && (
         <Tooltip delayDuration={0}>
           <TooltipTrigger asChild>
-            <button type="button"
+            <button
+              type="button"
               onClick={() => inbox.setShowNewConversation(true)}
               className="fixed bottom-24 right-6 z-50 flex h-[54px] w-[54px] items-center justify-center rounded-full border border-primary/20 bg-gradient-to-br from-primary via-primary to-secondary text-primary-foreground shadow-xl shadow-primary/20 transition-all duration-500 hover:shadow-2xl hover:shadow-primary/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-95"
               aria-label="Nova conversa"
@@ -254,7 +256,8 @@ export function RealtimeInboxView() {
         </div>
 
         {/* Reset Width Button - Visible when not at default */}
-        <button type="button"
+        <button
+          type="button"
           onClick={resetWidth}
           className={cn(
             'absolute top-1/2 z-[60] flex h-12 w-6 -translate-y-1/2 items-center justify-center rounded-r-xl border border-border bg-background shadow-lg transition-all duration-200 hover:bg-muted active:scale-95',

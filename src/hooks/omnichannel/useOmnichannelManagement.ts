@@ -43,9 +43,7 @@ export interface RoutingRule {
 }
 
 /** Hook: Use Omnichannel Channels Params. */
-export interface UseOmnichannelChannelsParams {
-  // no params needed
-}
+export type UseOmnichannelChannelsParams = Record<string, never>;
 
 /** Hook: Use Omnichannel Channels Result. */
 export interface UseOmnichannelChannelsResult {
@@ -56,9 +54,7 @@ export interface UseOmnichannelChannelsResult {
 }
 
 /** Hook: Use Channel Routing Rules Params. */
-export interface UseChannelRoutingRulesParams {
-  // no params needed
-}
+export type UseChannelRoutingRulesParams = Record<string, never>;
 
 /** Hook: Use Channel Routing Rules Result. */
 export interface UseChannelRoutingRulesResult {
@@ -105,7 +101,9 @@ export function useOmnichannelChannelsManagement(
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.omnichannel.channels() });
-      void queryClient.invalidateQueries({ queryKey: queryKeys.adminOps.realtimeMonitorConnections() });
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.adminOps.realtimeMonitorConnections(),
+      });
       toastHook({ title: 'Canal adicionado com sucesso' });
     },
     onError: () => {
@@ -120,7 +118,9 @@ export function useOmnichannelChannelsManagement(
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.omnichannel.channels() });
-      void queryClient.invalidateQueries({ queryKey: queryKeys.adminOps.realtimeMonitorConnections() });
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.adminOps.realtimeMonitorConnections(),
+      });
       toastHook({ title: 'Canal removido' });
     },
     onError: () => {

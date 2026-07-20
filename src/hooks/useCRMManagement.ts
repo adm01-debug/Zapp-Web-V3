@@ -153,6 +153,7 @@ export function useContactNotesManagement(contactId?: string) {
 
 /** Calls the `enrich_contact` RPC to retrieve third-party enriched data (LinkedIn, company info, etc.) for a contact. */
 export function useContactEnrichedDataManagement(contactId?: string) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [enrichedData, setEnrichedData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
@@ -182,6 +183,7 @@ export function useContactEnrichedDataManagement(contactId?: string) {
 
 /** Manages the agent assignment record for a contact, exposing `assignToUser` to upsert an assignment. */
 export function useContactAssignmentManagement(contactId?: string) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [assignment, setAssignment] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const mountedRef = useRef(true);

@@ -12,7 +12,16 @@ let aiTagsRows: unknown[] = [];
 let slaRow: Record<string, unknown> | null = null;
 
 function chain(finalValue: { data: unknown; error: unknown }) {
-  const c: any = {
+  type Chain = {
+    select: () => Chain;
+    eq: () => Chain;
+    or: () => Chain;
+    order: () => Chain;
+    limit: () => Chain;
+    maybeSingle: () => Promise<typeof finalValue>;
+    then: (resolve: (v: unknown) => void) => Promise<unknown>;
+  };
+  const c: Chain = {
     select: () => c,
     eq: () => c,
     or: () => c,

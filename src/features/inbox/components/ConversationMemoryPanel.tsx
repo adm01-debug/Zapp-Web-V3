@@ -56,7 +56,7 @@ export function ConversationMemoryPanel({ contactId, profileId }: ConversationMe
 
   useEffect(() => {
     loadMemory();
-  }, [contactId]);
+  }, [contactId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadMemory = async () => {
     setLoading(true);

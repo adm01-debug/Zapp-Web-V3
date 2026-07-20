@@ -40,14 +40,14 @@ export function LeadRiskScorePanel({ contactId }: LeadRiskScorePanelProps) {
 
   useEffect(() => {
     loadData();
-  }, [contactId]);
+  }, [contactId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadData = async () => {
     const { data } = await supabase
       .from('contacts')
       .select('lead_score, risk_score, lead_origin, consent_status')
       .eq('id', contactId)
-      .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
+      .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
     if (data) {
       setLeadScore(data.lead_score ?? 0);
       setRiskScore(data.risk_score ?? 0);

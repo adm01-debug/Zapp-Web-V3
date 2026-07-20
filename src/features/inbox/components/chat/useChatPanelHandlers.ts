@@ -232,7 +232,7 @@ export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
         setIsSending(false);
       }
     },
-    [contactPhone, instanceName, editMessageApi, applySignature, onSendMessage, handleTypingStop]
+    [contactPhone, instanceName, editMessageApi, applySignature, onSendMessage, handleTypingStop] // eslint-disable-line react-hooks/exhaustive-deps
   );
 
   const retryLastSend = useCallback(async () => {

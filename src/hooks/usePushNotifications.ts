@@ -13,12 +13,14 @@ export function usePushNotifications() {
     if (!mgmt.isSubscribed) {
       await mgmt.toggleSubscription();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mgmt.isSubscribed, mgmt.toggleSubscription]);
 
   const unsubscribe = useCallback(async () => {
     if (mgmt.isSubscribed) {
       await mgmt.toggleSubscription();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mgmt.isSubscribed, mgmt.toggleSubscription]);
 
   return {

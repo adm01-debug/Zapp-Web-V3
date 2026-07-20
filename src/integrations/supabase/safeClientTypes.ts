@@ -8,8 +8,8 @@ export type AnyQueryResult = PromiseLike<{ data: unknown; error: PostgrestError 
 /** Any Query Builder Result. */
 export type AnyQueryBuilderResult = AnyQueryResult & { single?: () => AnyQueryResult };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 /** Safe Query Builder. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type SafeQueryBuilder = any;
 
 /** Safe Response. */

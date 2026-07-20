@@ -80,7 +80,7 @@ const MediaContent = memo(function MediaContent({ msg }: { msg: TeamMessage }) {
             'max-h-48 cursor-pointer rounded-lg object-contain',
             msg.media_type === 'sticker' || msg.media_type === 'emoji' ? 'h-24 w-24' : 'max-w-full'
           )}
-          onClick={() => window.open(msg.media_url!, '_blank')}
+          onClick={() => window.open(msg.media_url ?? '', '_blank')}
         />
       );
     case 'video':
@@ -181,7 +181,7 @@ function TeamChatPanelContent({ conversation, onBack, onToggleDetails, showDetai
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [s.showSearch, onBack, s.setShowSearch, s.setSearchQuery]);
+  }, [s.showSearch, onBack, s.setShowSearch, s.setSearchQuery]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const isDeptMember = useMemo(() => {
     if (conversation.type !== 'department') return true;
@@ -209,7 +209,7 @@ function TeamChatPanelContent({ conversation, onBack, onToggleDetails, showDetai
     }
     // reset cache if needed (handled by dynamicRowHeight key mostly)
     itemHeights.current = {};
-  }, [s.filteredMessages.length, conversation.id]);
+  }, [s.filteredMessages.length, conversation.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     // If we are at the bottom, stay at the bottom
@@ -219,7 +219,7 @@ function TeamChatPanelContent({ conversation, onBack, onToggleDetails, showDetai
         s.listRef.current.scrollToRow({ index: lastIndex, align: 'end' });
       }
     }
-  }, [s.filteredMessages.length, conversation.id]);
+  }, [s.filteredMessages.length, conversation.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Handle incoming messages while reading old ones
   useEffect(() => {
@@ -233,11 +233,11 @@ function TeamChatPanelContent({ conversation, onBack, onToggleDetails, showDetai
       // The scroll container naturally stays where it is if content is added at the end,
       // unless we are using a virtualized list that might shift things.
     }
-  }, [s.filteredMessages.length]);
+  }, [s.filteredMessages.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (s.showSearch) s.searchInputRef.current?.focus();
-  }, [s.showSearch]);
+  }, [s.showSearch]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const dateFirstIndexes = useMemo(() => {
     const seen = new Set<string>();

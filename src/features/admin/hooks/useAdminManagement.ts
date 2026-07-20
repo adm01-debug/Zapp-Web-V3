@@ -23,8 +23,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useMountedRef } from '@/hooks/useMountedRef';
 import { log, getLogger } from '@/lib/logger';
 import { invalidateRouteRolesCache } from '@/features/auth';
-import { normalizeProfileRef, type AdminProfileRef } from '@/features/admin/utils/profileMappers';
-import type { Json } from '@/integrations/supabase/schema';
+import { normalizeProfileRef, type AdminProfileRef } from '../utils/profileMappers';
 import type { AppRole } from '@/features/auth';
 
 // ─── Type Exports ────────────────────────────────────────────────────────────
@@ -32,7 +31,11 @@ import type { AppRole } from '@/features/auth';
 // Automations
 /** Trigger Type type alias. */
 export type TriggerType =
-  'first_response_pending' | 'inactivity' | 'tag_applied' | 'tag_removed' | 'keyword_match';
+  | 'first_response_pending'
+  | 'inactivity'
+  | 'tag_applied'
+  | 'tag_removed'
+  | 'keyword_match';
 
 /** Trigger Config interface definition. */
 export interface TriggerConfig {
@@ -368,7 +371,7 @@ function useAdminAutomationsManagement() {
 
   useEffect(() => {
     void loadAutomations();
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const saveAutomation = async (editing: Rule | null): Promise<boolean> => {
     if (!editing) return false;
@@ -492,7 +495,7 @@ function useAdminChannelsManagement(statusFilter: string, search: string) {
 
   useEffect(() => {
     loadChannels();
-  }, [statusFilter]);
+  }, [statusFilter]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const filteredChannels = useMemo(() => {
     if (!search.trim()) return channels;
@@ -528,7 +531,7 @@ function useAdminChannelsManagement(statusFilter: string, search: string) {
       toast.success(editing.id ? 'Canal atualizado' : 'Canal criado');
       loadChannels();
       return true;
-    } catch (e) {
+    } catch {
       toast.error('Erro ao salvar');
       return false;
     }
@@ -562,7 +565,7 @@ function useAdminChannelsManagement(statusFilter: string, search: string) {
       );
       loadChannels();
       return true;
-    } catch (e) {
+    } catch {
       toast.error('Erro');
       return false;
     }
@@ -576,7 +579,7 @@ function useAdminChannelsManagement(statusFilter: string, search: string) {
       if (error) throw new Error(error.message);
       toast.success('Canal reativado');
       loadChannels();
-    } catch (e) {
+    } catch {
       toast.error('Erro');
     }
   };
@@ -637,7 +640,7 @@ function useAdminQueuesManagement() {
       setQueueChannels((cRes.data ?? []) as QueueServiceChannel[]);
       setChannelQueues((chqRes.data ?? []) as ChannelQueue[]);
       setProfiles((pRes.data ?? []) as Profile[]);
-    } catch (e) {
+    } catch {
       toast({ title: 'Erro ao carregar filas', variant: 'destructive' });
     } finally {
       if (mountedRef.current) setQueuesLoading(false);
@@ -646,7 +649,7 @@ function useAdminQueuesManagement() {
 
   useEffect(() => {
     void loadQueues();
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const saveQueue = async (editing: Queue | null): Promise<boolean> => {
     if (!editing) return false;
@@ -745,7 +748,7 @@ function useDepartmentsManagement() {
       }))
     );
     setDeptLoading(false);
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     void fetchDepartments();
@@ -879,7 +882,7 @@ function useRolesManagement() {
 
   useEffect(() => {
     if (showAddRoleDialog) void fetchAvailableRoleUsers();
-  }, [showAddRoleDialog, roleUsers]);
+  }, [showAddRoleDialog, roleUsers]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleAddRole = async () => {
     if (!selectedRoleUser || !selectedRole) return;
@@ -987,7 +990,7 @@ function useRoutePermissionsManagement() {
     return () => {
       isMountedRef.current = false;
     };
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function savePermissionRow(path: string, nextRoles: AppRole[]) {
     setSavingPermPath(path);

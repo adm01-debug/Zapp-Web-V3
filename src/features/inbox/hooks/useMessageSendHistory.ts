@@ -21,7 +21,6 @@ import {
   padRetryAttempts,
 } from './messageSendHistory.schemas';
 
-
 /** Re-exported module members. */
 export type { AuditEntry, FinalStatus, RetryAttempt };
 
@@ -45,17 +44,6 @@ export interface MessageSendHistory {
 }
 
 const STALE_MS = 15_000;
-
-interface OutboundAuditRow {
-  id: string;
-  event_type: string | null;
-  status: string | null;
-  latency_ms: number | null;
-  instance_name: string | null;
-  error_message: string | null;
-  created_at: string;
-  metadata: Record<string, unknown> | null;
-}
 
 /** Fetches the full send-history audit trail for a message (retry metrics + outbound audit log), normalises shapes via Zod, and dedupes entries for the debug sheet. */
 export function useMessageSendHistory(messageId: string | undefined, enabled: boolean) {

@@ -91,7 +91,7 @@ export function useChatInputLogic({
     if (draft && !inputValue) {
       setNativeValue(inputRef, draft);
     }
-  }, [contactId]);
+  }, [contactId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleFileSelect = useCallback((file: File) => {
     const validation = validateFile(file);

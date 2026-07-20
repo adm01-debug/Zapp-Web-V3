@@ -90,7 +90,8 @@ const playSoundPreview = (soundId: string) => {
   const AudioCtx =
     window.AudioContext ||
     (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-  const ctx = new AudioCtx!();
+  if (!AudioCtx) return;
+  const ctx = new (AudioCtx as typeof AudioContext)();
   const osc = ctx.createOscillator();
   const gain = ctx.createGain();
   osc.connect(gain);

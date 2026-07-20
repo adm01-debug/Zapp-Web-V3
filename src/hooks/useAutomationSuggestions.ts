@@ -131,6 +131,7 @@ export function useAutomationSuggestions(remoteJid: string | null) {
       try {
         const externalClient = getClient();
         if (externalClient) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           await externalClient.rpc('rpc_upsert_contact' as any, {
             p_remote_jid: sugg.remote_jid,
             p_instance: sugg.instance_name,

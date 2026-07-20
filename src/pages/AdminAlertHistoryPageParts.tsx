@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { AlertCircle, AlertTriangle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';

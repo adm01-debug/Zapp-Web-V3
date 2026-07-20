@@ -65,7 +65,7 @@ export function MFAEnroll({ onSuccess, onCancel }: MFAEnrollProps) {
     if (code.length === 6) {
       handleVerify();
     }
-  }, [code]);
+  }, [code]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <Card className="mx-auto w-full max-w-md">

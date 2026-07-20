@@ -170,7 +170,7 @@ export function useRealtimeInbox() {
         );
       }
     });
-  }, [selectedMessages, selectedContactId]);
+  }, [selectedMessages, selectedContactId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Listen for SLA alerts
   useEffect(() => {

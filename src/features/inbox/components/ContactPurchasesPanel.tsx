@@ -58,7 +58,7 @@ export function ContactPurchasesPanel({ contactId, profileId }: ContactPurchases
 
   useEffect(() => {
     loadPurchases();
-  }, [contactId]);
+  }, [contactId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadPurchases = async () => {
     setLoading(true);

@@ -220,6 +220,7 @@ export function useExternalMutation() {
       validateEntityAccess(params.table, 'external');
       if (params.action === 'insert') {
         const { data, error } = await getExternalSupabase()
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           .from(params.table as any)
           .insert(params.data)
           .select();
@@ -228,6 +229,7 @@ export function useExternalMutation() {
       }
       if (params.action === 'update') {
         let q = getExternalSupabase()
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           .from(params.table as any)
           .update(params.data);
         if (params.match) {

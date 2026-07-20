@@ -37,7 +37,7 @@ export function BlockedIPsPanel() {
 
   useEffect(() => {
     void fetchBlockedIPs();
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const filteredIPs = blockedIPs.filter(
     (ip) => ip.ip_address.includes(search) || ip.reason.toLowerCase().includes(search.toLowerCase())

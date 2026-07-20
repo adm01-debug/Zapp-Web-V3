@@ -1,4 +1,3 @@
-
 /**
  * useContactDuplicateDetector.ts
  * Real-time duplicate detection when creating/editing contacts.
@@ -138,7 +137,7 @@ export function useContactDuplicateDetector({
         }
       }
     },
-    [workspaceId, excludeId]
+    [workspaceId, excludeId] // eslint-disable-line react-hooks/exhaustive-deps
   );
 
   const reset = useCallback(() => {

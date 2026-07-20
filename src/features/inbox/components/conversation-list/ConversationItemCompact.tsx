@@ -115,7 +115,6 @@ export const ConversationItemCompact = memo(function ConversationItemCompact({
                   .slice(0, 2)}
               </AvatarFallback>
             </Avatar>
-            {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
             {typeof conversation.assignedTo === 'object' && conversation.assignedTo?.name ? (
               <Avatar className="absolute -bottom-0.5 -right-0.5 h-4 w-4 ring-1 ring-sidebar">
                 <AvatarImage
@@ -251,7 +250,9 @@ export const ConversationItemCompact = memo(function ConversationItemCompact({
                   compact={true}
                   className="w-full justify-start"
                 />
-                {isRetryBadgeMessage(lastMessage) && <RetryFailureBadge message={lastMessage} compact />}
+                {isRetryBadgeMessage(lastMessage) && (
+                  <RetryFailureBadge message={lastMessage} compact />
+                )}
               </div>
             )}
           </div>

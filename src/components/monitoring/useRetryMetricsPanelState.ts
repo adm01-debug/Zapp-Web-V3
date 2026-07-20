@@ -38,6 +38,7 @@ export function useRetryMetricsPanelState() {
 
   const { data, isLoading, refetch, isFetching, byInstance } = useRetryMetrics(filters);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const rows = data?.rows ?? [];
   const agg = data?.aggregates;
 

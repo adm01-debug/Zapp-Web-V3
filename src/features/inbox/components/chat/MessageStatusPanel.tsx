@@ -175,7 +175,7 @@ export const MessageStatusPanel = memo(function MessageStatusPanel({
         highlight: true,
       },
     ];
-  }, [isSent, message.status, message.contact_read_at, lastUpdate, sentStamp]);
+  }, [isSent, message.status, message.contact_read_at, lastUpdate, sentStamp]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <Popover>

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { useAuth } from '@/features/auth';
 import { toast } from '@/hooks/use-toast';
@@ -107,6 +107,14 @@ export function useUserSettings() {
   const [settings, setSettings] = useState<UserSettings>(DEFAULT_SETTINGS);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const mountedRef = useRef(false);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   // Fetch settings from DB
   useEffect(() => {
@@ -115,12 +123,15 @@ export function useUserSettings() {
       return;
     }
 
+    let cancelled = false;
+
     const fetchSettings = async () => {
       setIsLoading(true);
       try {
         const { data: rows, error } = await safeClient.from<UserSettings>('user_settings', (q) =>
           q.select('*').eq('user_id', user.id).limit(1)
         );
+        if (cancelled) return;
         const data = rows?.[0] ?? null;
 
         if (error) {
@@ -179,11 +190,14 @@ export function useUserSettings() {
       } catch (err) {
         log.error('Error in fetchSettings:', err);
       } finally {
-        setIsLoading(false);
+        if (!cancelled) setIsLoading(false);
       }
     };
 
     void fetchSettings();
+    return () => {
+      cancelled = true;
+    };
   }, [user?.id]);
 
   // Update settings locally
@@ -266,7 +280,7 @@ export function useUserSettings() {
       });
       return false;
     } finally {
-      setIsSaving(false);
+      if (mountedRef.current) setIsSaving(false);
     }
   }, [user?.id, settings]);
 

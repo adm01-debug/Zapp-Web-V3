@@ -61,7 +61,7 @@ export function AlertInstanceDetailDialog({ open, onOpenChange, instance }: Prop
     queryFn: async () => {
       const { data, error } = await supabase.rpc('rpc_instance_auth_event_trend', {
         p_hours: 24,
-        p_instance: instance!,
+        p_instance: instance ?? '',
       });
       if (error) throw error;
       return ((data ?? []) as TrendRow[])

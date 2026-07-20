@@ -51,149 +51,170 @@ export function useImportDataTyped<T>(options: UseImportDataOptions<T>) {
     };
   }, []);
 
-  const parseCSV = useCallback(async (file: File): Promise<unknown[]> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
+  const parseCSV = useCallback(
+    async (file: File): Promise<unknown[]> => {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
 
-      reader.onload = (e) => {
-        try {
-          const text = e.target?.result as string;
-          const workbook = XLSX.read(text, { type: 'string' });
-          const sheet = workbook.Sheets[workbook.SheetNames[0]];
-          const jsonData = XLSX.utils.sheet_to_json(sheet, {
-            defval: '',
-            raw: false,
-          });
-
-          const normalized = (jsonData as Record<string, unknown>[]).map((row: Record<string, unknown>) => {
-            const newRow: Record<string, unknown> = {};
-            Object.keys(row).forEach(key => {
-              const normalizedKey = key.trim().toLowerCase().replace(/\s+/g, '_');
-              newRow[normalizedKey] = row[key];
+        reader.onload = (e) => {
+          try {
+            const text = e.target?.result as string;
+            const workbook = XLSX.read(text, { type: 'string' });
+            const sheet = workbook.Sheets[workbook.SheetNames[0]];
+            const jsonData = XLSX.utils.sheet_to_json(sheet, {
+              defval: '',
+              raw: false,
             });
-            return newRow;
-          });
 
-          if (skipFirstRow && normalized.length > 0) {
-            normalized.shift();
+            const normalized = (jsonData as Record<string, unknown>[]).map(
+              (row: Record<string, unknown>) => {
+                const newRow: Record<string, unknown> = {};
+                Object.keys(row).forEach((key) => {
+                  const normalizedKey = key.trim().toLowerCase().replace(/\s+/g, '_');
+                  newRow[normalizedKey] = row[key];
+                });
+                return newRow;
+              }
+            );
+
+            if (skipFirstRow && normalized.length > 0) {
+              normalized.shift();
+            }
+
+            resolve(normalized);
+          } catch (error) {
+            reject(error);
           }
+        };
 
-          resolve(normalized);
-        } catch (error) {
-          reject(error);
-        }
-      };
+        reader.onerror = () => reject(new Error('Erro ao ler arquivo'));
+        reader.readAsText(file);
+      });
+    },
+    [skipFirstRow]
+  );
 
-      reader.onerror = () => reject(new Error('Erro ao ler arquivo'));
-      reader.readAsText(file);
-    });
-  }, [skipFirstRow]);
+  const parseExcel = useCallback(
+    async (file: File): Promise<unknown[]> => {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
 
-  const parseExcel = useCallback(async (file: File): Promise<unknown[]> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-
-      reader.onload = (e) => {
-        try {
-          const data = new Uint8Array(e.target?.result as ArrayBuffer);
-          const workbook = XLSX.read(data, { type: 'array' });
-          const sheet = workbook.Sheets[workbook.SheetNames[0]];
-          const jsonData = XLSX.utils.sheet_to_json(sheet, {
-            defval: '',
-            raw: false,
-          });
-
-          const normalized = (jsonData as Record<string, unknown>[]).map((row: Record<string, unknown>) => {
-            const newRow: Record<string, unknown> = {};
-            Object.keys(row).forEach(key => {
-              const normalizedKey = key.trim().toLowerCase().replace(/\s+/g, '_');
-              newRow[normalizedKey] = row[key];
+        reader.onload = (e) => {
+          try {
+            const data = new Uint8Array(e.target?.result as ArrayBuffer);
+            const workbook = XLSX.read(data, { type: 'array' });
+            const sheet = workbook.Sheets[workbook.SheetNames[0]];
+            const jsonData = XLSX.utils.sheet_to_json(sheet, {
+              defval: '',
+              raw: false,
             });
-            return newRow;
-          });
 
-          if (skipFirstRow && normalized.length > 0) {
-            normalized.shift();
+            const normalized = (jsonData as Record<string, unknown>[]).map(
+              (row: Record<string, unknown>) => {
+                const newRow: Record<string, unknown> = {};
+                Object.keys(row).forEach((key) => {
+                  const normalizedKey = key.trim().toLowerCase().replace(/\s+/g, '_');
+                  newRow[normalizedKey] = row[key];
+                });
+                return newRow;
+              }
+            );
+
+            if (skipFirstRow && normalized.length > 0) {
+              normalized.shift();
+            }
+
+            resolve(normalized);
+          } catch (error) {
+            reject(error);
           }
+        };
 
-          resolve(normalized);
+        reader.onerror = () => reject(new Error('Erro ao ler arquivo'));
+        reader.readAsArrayBuffer(file);
+      });
+    },
+    [skipFirstRow]
+  );
+
+  const validateData = useCallback(
+    (data: unknown[]): ImportResult<T> => {
+      const success: T[] = [];
+      const errors: ImportError[] = [];
+
+      data.slice(0, maxRows).forEach((row, index) => {
+        try {
+          const validated = schema.parse(row);
+          success.push(validated);
         } catch (error) {
-          reject(error);
-        }
-      };
-
-      reader.onerror = () => reject(new Error('Erro ao ler arquivo'));
-      reader.readAsArrayBuffer(file);
-    });
-  }, [skipFirstRow]);
-
-  const validateData = useCallback((data: unknown[]): ImportResult<T> => {
-    const success: T[] = [];
-    const errors: ImportError[] = [];
-
-    data.slice(0, maxRows).forEach((row, index) => {
-      try {
-        const validated = schema.parse(row);
-        success.push(validated);
-      } catch (error) {
-        if (error instanceof z.ZodError) {
-          error.issues.forEach((err) => {
-            errors.push({
-              row: index + 2,
-              field: err.path.join('.'),
-              message: err.message,
-              value: (row as Record<string, unknown>)[err.path[0] as string],
+          if (error instanceof z.ZodError) {
+            error.issues.forEach((err) => {
+              errors.push({
+                row: index + 2,
+                field: err.path.join('.'),
+                message: err.message,
+                value: (row as Record<string, unknown>)[err.path[0] as string],
+              });
             });
-          });
+          }
         }
-      }
-    });
+      });
 
-    return {
-      success,
-      errors,
-      total: data.length,
-      fileName: '',
-    };
-  }, [schema, maxRows]);
+      return {
+        success,
+        errors,
+        total: data.length,
+        fileName: '',
+      };
+    },
+    [schema, maxRows]
+  );
 
   const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
 
-  const processFile = useCallback(async (file: File) => {
-    setStatus('parsing');
-    setProgress(10);
-    setResult(null);
+  const processFile = useCallback(
+    async (file: File) => {
+      setStatus('parsing');
+      setProgress(10);
+      setResult(null);
 
-    try {
-      if (file.size > MAX_FILE_SIZE_BYTES) {
-        throw new Error(
-          `Arquivo muito grande (${(file.size / 1024 / 1024).toFixed(1)} MB). Limite: 10 MB.`
+      try {
+        if (file.size > MAX_FILE_SIZE_BYTES) {
+          throw new Error(
+            `Arquivo muito grande (${(file.size / 1024 / 1024).toFixed(1)} MB). Limite: 10 MB.`
+          );
+        }
+
+        const isExcel = file.name.endsWith('.xlsx') || file.name.endsWith('.xls');
+        const data = isExcel ? await parseExcel(file) : await parseCSV(file);
+
+        setStatus('validating');
+        setProgress(40);
+
+        const validationResult = validateData(data);
+        validationResult.fileName = file.name;
+
+        setResult(validationResult);
+        setProgress(60);
+        setStatus('complete');
+
+        if (validationResult.errors.length > 0) {
+          toast.warning(
+            `${validationResult.success.length} válidos, ${validationResult.errors.length} com erros`
+          );
+        } else {
+          toast.success(`${validationResult.success.length} registros prontos para importar`);
+        }
+      } catch (error) {
+        setStatus('error');
+        toast.error(
+          `Erro ao processar arquivo: ${error instanceof Error ? error.message : 'Erro desconhecido'}`
         );
       }
-
-      const isExcel = file.name.endsWith('.xlsx') || file.name.endsWith('.xls');
-      const data = isExcel ? await parseExcel(file) : await parseCSV(file);
-
-      setStatus('validating');
-      setProgress(40);
-
-      const validationResult = validateData(data);
-      validationResult.fileName = file.name;
-
-      setResult(validationResult);
-      setProgress(60);
-      setStatus('complete');
-
-      if (validationResult.errors.length > 0) {
-        toast.warning(`${validationResult.success.length} válidos, ${validationResult.errors.length} com erros`);
-      } else {
-        toast.success(`${validationResult.success.length} registros prontos para importar`);
-      }
-    } catch (error) {
-      setStatus('error');
-      toast.error(`Erro ao processar arquivo: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
-    }
-  }, [parseCSV, parseExcel, validateData]);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [parseCSV, parseExcel, validateData]
+  );
 
   const confirmImport = useCallback(async () => {
     if (!result || result.success.length === 0) {
@@ -217,7 +238,9 @@ export function useImportDataTyped<T>(options: UseImportDataOptions<T>) {
       }, 2000);
     } catch (error) {
       setStatus('error');
-      toast.error(`Erro ao importar: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
+      toast.error(
+        `Erro ao importar: ${error instanceof Error ? error.message : 'Erro desconhecido'}`
+      );
     }
   }, [result, onImport]);
 

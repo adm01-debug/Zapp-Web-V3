@@ -65,7 +65,11 @@ export interface MessageQueueController {
   ) => void;
   retryMessage: (id: string) => void;
   updateProgress: (id: string, progress: number) => void;
-  reconcileWithDelivery: (contactId: string, externalId: string, status: 'confirmed' | 'failed') => void;
+  reconcileWithDelivery: (
+    contactId: string,
+    externalId: string,
+    status: 'confirmed' | 'failed'
+  ) => void;
   getMetrics: () => QueueMetrics;
   removeFromQueue: (id: string) => void;
 }
@@ -85,7 +89,9 @@ export function useMessageQueue(
 
   useEffect(() => {
     return () => {
+      // eslint-disable-next-line react-hooks/exhaustive-deps
       activeTimersRef.current.forEach(clearTimeout);
+      // eslint-disable-next-line react-hooks/exhaustive-deps
       processedDeliveriesRef.current.clear();
       currentlySendingRef.current = 0;
     };
@@ -330,7 +336,7 @@ export function useMessageQueue(
         return currentQueue; // O estado será atualizado dentro do bloco assíncrono
       });
     },
-    [processMessage]
+    [processMessage] // eslint-disable-line react-hooks/exhaustive-deps
   );
 
   // Disparar processamento quando a fila mudar

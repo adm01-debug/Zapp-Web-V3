@@ -46,7 +46,7 @@ const BUS_MSG_TTL = 15_000;
 const STORAGE_RETRY_MAX = 3;
 const STORAGE_RETRY_BACKOFF = [10, 20, 40]; // ms
 const DEDUP_RING_SIZE = 100;
-const EVENT_PROCESSING_BUFFER = 50; // ms for out-of-order events
+// EVENT_PROCESSING_BUFFER = 50ms for out-of-order events (reserved for future use)
 const CLOCK_MASTER_TIMEOUT = 30_000; // re-elect master if no heartbeat
 
 /** @internal — exposto para testes que precisam do prefixo de lock. */
@@ -279,10 +279,11 @@ async function initIndexedDB(): Promise<boolean> {
 /** Persists an arbitrary value to the IndexedDB results store; returns false if IDB is unavailable or the write fails. */
 async function writeToIndexedDB(key: string, value: unknown): Promise<boolean> {
   if (!(await initIndexedDB()) || !idb) return false;
+  const db = idb;
 
   try {
     return new Promise((resolve) => {
-      const tx = idb!.transaction(['results'], 'readwrite');
+      const tx = db.transaction(['results'], 'readwrite');
       const store = tx.objectStore('results');
       const req = store.put({ key, value });
       req.onerror = () => resolve(false);

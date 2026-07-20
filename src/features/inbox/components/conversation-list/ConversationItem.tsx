@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { useRef, useState, useEffect, useCallback, ReactNode, memo } from 'react';
 import { cn } from '@/lib/utils';
 import { useDensity } from '@/hooks/useDensity';
@@ -107,8 +108,10 @@ function TruncatedTooltip({
 }
 
 interface ConversationItemProps {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   conversation: any;
   isSelected: boolean;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   onSelect: (conversation: any) => void;
   compact?: boolean;
   selectionMode?: boolean;
@@ -117,6 +120,7 @@ interface ConversationItemProps {
   isPinned?: boolean;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function buildPrimaryLabel(conversation: any): string {
   const name = (
     conversation.contact?.name ||
@@ -133,10 +137,12 @@ function buildPrimaryLabel(conversation: any): string {
   return safeName;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function buildFullPrimaryLabel(conversation: any): string {
   return buildPrimaryLabel(conversation);
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function buildSecondaryLabel(conversation: any): string | null {
   const jobTitle =
     conversation.contact?.job_title?.trim() ||

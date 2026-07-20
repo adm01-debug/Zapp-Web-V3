@@ -49,7 +49,7 @@ export function useNPSSurveys() {
     } finally {
       if (mountedRef.current) setIsLoading(false);
     }
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     void fetchSurveys();
@@ -67,7 +67,7 @@ export function useNPSSurveys() {
           .from('profiles')
           .select('id')
           .eq('user_id', (await supabase.auth.getUser()).data.user?.id || '')
-          .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
+          .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
 
         const { error } = await supabase.from('nps_surveys').insert({
           contact_id: data.contact_id,

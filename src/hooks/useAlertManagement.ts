@@ -146,26 +146,33 @@ export function useWarRoomAlertsManagement(soundEnabled = true): UseWarRoomAlert
   useEffect(() => {
     const channel = supabase
       .channel('warroom-alerts-realtime')
-      .on('postgres_changes', { event: 'INSERT', schema: 'zapp', table: 'warroom_alerts' }, (payload) => {
-        const parsed = safeParseEvent(warRoomAlertRowSchema, payload.new);
-        if (!parsed.ok) {
-          log.warn('[useWarRoomAlertsManagement] received malformed realtime payload', payload.new);
-          return;
-        }
-        const alert = parsed.data as WarRoomAlert;
-        void queryClient.invalidateQueries({ queryKey: queryKeys.alerts.all() });
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'zapp', table: 'warroom_alerts' },
+        (payload) => {
+          const parsed = safeParseEvent(warRoomAlertRowSchema, payload.new);
+          if (!parsed.ok) {
+            log.warn(
+              '[useWarRoomAlertsManagement] received malformed realtime payload',
+              payload.new
+            );
+            return;
+          }
+          const alert = parsed.data as WarRoomAlert;
+          void queryClient.invalidateQueries({ queryKey: queryKeys.alerts.all() });
 
-        if (alert.alert_type === 'critical') {
-          playAlertSound();
-          playAlertSound();
-        } else {
-          playAlertSound();
-        }
+          if (alert.alert_type === 'critical') {
+            playAlertSound();
+            playAlertSound();
+          } else {
+            playAlertSound();
+          }
 
-        if (pushPermission === 'granted') {
-          showBrowserNotification(`⚠️ ${alert.title}`, alert.message);
+          if (pushPermission === 'granted') {
+            showBrowserNotification(`⚠️ ${alert.title}`, alert.message);
+          }
         }
-      })
+      )
       .subscribe();
 
     return () => {
@@ -275,7 +282,11 @@ export function useSentimentAlertsManagement(): UseSentimentAlertsResult {
           });
 
           if (settings.soundEnabled && !isQuietHours()) {
-            playNotificationSound('sla_warning' as const, settings.slaSoundType, settings.soundVolume);
+            playNotificationSound(
+              'sla_warning' as const,
+              settings.slaSoundType,
+              settings.soundVolume
+            );
           }
 
           if (settings.browserNotifications) {
@@ -288,7 +299,10 @@ export function useSentimentAlertsManagement(): UseSentimentAlertsResult {
         return { triggered: false, reason: alertResult?.reason || 'No alert needed' };
       } catch (error) {
         log.error('Error checking sentiment alert:', error);
-        return { triggered: false, reason: `Exception: ${error instanceof Error ? error.message : String(error)}` };
+        return {
+          triggered: false,
+          reason: `Exception: ${error instanceof Error ? error.message : String(error)}`,
+        };
       }
     },
     [threshold, consecutiveRequired, alertsEnabled, settings, isQuietHours]
@@ -328,17 +342,18 @@ export function useWebhookHealthAlertsManagement(): UseWebhookHealthAlertsResult
     return () => clearInterval(interval);
   }, [checkHealth]);
 
-  const acknowledgeAlert = useCallback(
-    async (alertId: string) => {
-      try {
-        await supabase.from('webhook_health_checks').update({ acknowledged: true }).eq('id', alertId);
-        setAlerts((prev) => prev.map((a) => (a.id === alertId ? { ...a } : a)));
-      } catch (error) {
-        log.error('Failed to acknowledge webhook health alert:', error);
-      }
-    },
-    []
-  );
+  const acknowledgeAlert = useCallback(async (alertId: string) => {
+    try {
+      const { error: updateError } = await supabase
+        .from('webhook_health_checks')
+        .update({ acknowledged: true })
+        .eq('id', alertId);
+      if (updateError) throw updateError;
+      setAlerts((prev) => prev.map((a) => (a.id === alertId ? { ...a, acknowledged: true } : a)));
+    } catch (error) {
+      log.error('Failed to acknowledge webhook health alert:', error);
+    }
+  }, []);
 
   return { alerts, loading, acknowledgeAlert, checkHealth };
 }
@@ -351,6 +366,14 @@ export function useWebhookHealthAlertsManagement(): UseWebhookHealthAlertsResult
 export function useRealtimeSentimentAlertsManagement(): UseRealtimeSentimentAlertsResult {
   const [alerts, setAlerts] = useState<RealtimeSentimentAlert[]>([]);
   const { settings, isQuietHours } = useNotificationSettingsManagement();
+
+  const mountedRef = useRef(false);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   // Refs para evitar re-subscribe a cada render (settings/isQuietHours mudam de referência)
   const settingsRef = useRef(settings);
@@ -394,13 +417,21 @@ export function useRealtimeSentimentAlertsManagement(): UseRealtimeSentimentAler
       channel.unsubscribe();
       supabase.removeChannel(channel);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const acknowledgeAlert = useCallback(async (alertId: string) => {
     try {
-      await supabase.from('sentiment_alerts').update({ acknowledged: true }).eq('id', alertId);
-      setAlerts((prev) => prev.map((a) => (a.id === alertId ? { ...a, acknowledged: true } : a)));
+      const { error } = await supabase
+        .from('sentiment_alerts' as never)
+        .update({ acknowledged: true })
+        .eq('id', alertId);
+      if (error) {
+        log.error('Failed to acknowledge sentiment alert:', error.message);
+        return;
+      }
+      if (mountedRef.current) {
+        setAlerts((prev) => prev.map((a) => (a.id === alertId ? { ...a, acknowledged: true } : a)));
+      }
     } catch (error) {
       log.error('Failed to acknowledge sentiment alert:', error);
     }
@@ -408,8 +439,17 @@ export function useRealtimeSentimentAlertsManagement(): UseRealtimeSentimentAler
 
   const clearAlert = useCallback(async (alertId: string) => {
     try {
-      await supabase.from('sentiment_alerts').delete().eq('id', alertId);
-      setAlerts((prev) => prev.filter((a) => a.id !== alertId));
+      const { error } = await supabase
+        .from('sentiment_alerts' as never)
+        .delete()
+        .eq('id', alertId);
+      if (error) {
+        log.error('Failed to clear sentiment alert:', error.message);
+        return;
+      }
+      if (mountedRef.current) {
+        setAlerts((prev) => prev.filter((a) => a.id !== alertId));
+      }
     } catch (error) {
       log.error('Failed to clear sentiment alert:', error);
     }

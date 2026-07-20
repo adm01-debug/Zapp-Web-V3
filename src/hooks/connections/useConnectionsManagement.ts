@@ -19,9 +19,7 @@ export interface UseHubTabNavigationResult {
 }
 
 /** Hook: Use Bridge Health Params. */
-export interface UseBridgeHealthParams {
-  // no params needed
-}
+export type UseBridgeHealthParams = Record<string, never>;
 
 /** Hook: Use Bridge Health Result. */
 export interface UseBridgeHealthResult {
@@ -72,6 +70,7 @@ export function useHubTabNavigationManagement(
     if (validated !== tab) {
       setTab(validated);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams, isDev, tab]);
 
   return { tab, setTab };
@@ -93,7 +92,9 @@ export function useBridgeHealthManagement(
 
   useEffect(() => {
     mountedRef.current = true;
-    return () => { mountedRef.current = false; };
+    return () => {
+      mountedRef.current = false;
+    };
   }, []);
 
   const runCheck = useCallback(async () => {

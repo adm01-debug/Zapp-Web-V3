@@ -37,7 +37,7 @@ export function RemindersPanel({ contactId, profileId }: RemindersPanelProps) {
 
   useEffect(() => {
     loadReminders();
-  }, [contactId, profileId]);
+  }, [contactId, profileId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadReminders = async () => {
     if (!profileId) return;

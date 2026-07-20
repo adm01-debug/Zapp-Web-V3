@@ -1,5 +1,5 @@
 import { MessageSquare, Clock, Star, Users, TrendingUp, TrendingDown } from 'lucide-react';
-import { useContactDetailStats } from '@/features/inbox/hooks/useContactDetailStats';
+import { useContactDetailStats } from '../../hooks/useContactDetailStats';
 import { Skeleton } from '@/components/ui/skeleton';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
