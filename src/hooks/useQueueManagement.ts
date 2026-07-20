@@ -1,7 +1,7 @@
 // Consolidated Queue Management Module (ETAPA 33)
 // Consolidates: useQueues, useQueueAnalytics, useQueueGoals, useQueueSlaPanel, useQueuesComparison
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
+import { useCallback } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { safeFrom } from '@/integrations/supabase/safeClient';
 import { useAuth } from '@/features/auth';
@@ -137,159 +137,6 @@ interface DateRange {
   endDate: Date;
 }
 
-/** Provides queue CRUD operations and management capabilities. */
-export function useQueuesCrudManagement() {
-  const { user } = useAuth();
-  const [queues, setQueues] = useState<Queue[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const mountedRef = useRef(true);
-
-  useEffect(() => {
-    return () => {
-      mountedRef.current = false;
-    };
-  }, []);
-
-  const fetchQueues = useCallback(async () => {
-    if (!user) return;
-
-    try {
-      setLoading(true);
-      const { data, error: err } = await safeFrom('queues').select('*').order('name');
-
-      if (err) throw err;
-      if (mountedRef.current) setQueues((data || []) as Queue[]);
-    } catch (err) {
-      if (mountedRef.current) {
-        const message = err instanceof Error ? err.message : 'Failed to fetch queues';
-        setError(message);
-        log.error('Error fetching queues:', err);
-      }
-    } finally {
-      if (mountedRef.current) setLoading(false);
-    }
-  }, [user]);
-
-  useEffect(() => {
-    if (user) fetchQueues();
-  }, [user, fetchQueues]);
-
-  return { queues, loading, error, refetch: fetchQueues };
-}
-
-/** Retrieves queue performance metrics and analytics. */
-export function useQueueAnalyticsManagement(params: { queueId: string; dateRange: DateRange }) {
-  const { user } = useAuth();
-  const { queueId, dateRange } = params;
-  const startIso = dateRange.startDate.toISOString();
-  const endIso = dateRange.endDate.toISOString();
-  const [analytics, setAnalytics] = useState<QueueAnalytics | null>(null);
-  const [loading, setLoading] = useState(true);
-  const mountedRef = useRef(true);
-
-  useEffect(() => {
-    return () => {
-      mountedRef.current = false;
-    };
-  }, []);
-
-  const fetchAnalytics = useCallback(async () => {
-    if (!user) {
-      if (mountedRef.current) setLoading(false);
-      return;
-    }
-
-    try {
-      setLoading(true);
-      const { data, error: err } = await safeFrom('queue_analytics')
-        .select('*')
-        .eq('queue_id', queueId)
-        .gte('timestamp', startIso)
-        .lte('timestamp', endIso)
-        .order('timestamp', { ascending: false })
-        .limit(1)
-        .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
-
-      if (err && err.code !== 'PGRST116') throw err;
-      if (mountedRef.current) setAnalytics((data as QueueAnalytics | null) || null);
-    } catch (err) {
-      if (mountedRef.current) {
-        log.error('Error fetching queue analytics:', err);
-      }
-    } finally {
-      if (mountedRef.current) setLoading(false);
-    }
-  }, [user, queueId, startIso, endIso]);
-
-  useEffect(() => {
-    if (user && queueId) fetchAnalytics();
-  }, [user, queueId, fetchAnalytics]);
-
-  return { analytics, loading, refetch: fetchAnalytics };
-}
-
-/** Manages queue goals, targets, and performance thresholds. */
-export function useQueueGoalsManagement(queueId?: string) {
-  const { user } = useAuth();
-  const [goals, setGoals] = useState<QueueGoal[]>([]);
-  const [loading, setLoading] = useState(true);
-  const mountedRef = useRef(true);
-
-  useEffect(() => {
-    return () => {
-      mountedRef.current = false;
-    };
-  }, []);
-
-  const fetchGoals = useCallback(async () => {
-    if (!user) {
-      if (mountedRef.current) setLoading(false);
-      return;
-    }
-
-    try {
-      setLoading(true);
-      let query = safeFrom('queue_goals').select('*');
-      if (queueId) query = query.eq('queue_id', queueId);
-      const { data, error: err } = await query;
-
-      if (err) throw err;
-      if (mountedRef.current) setGoals((data || []) as QueueGoal[]);
-    } catch (err) {
-      if (mountedRef.current) {
-        log.error('Error fetching queue goals:', err);
-      }
-    } finally {
-      if (mountedRef.current) setLoading(false);
-    }
-  }, [user, queueId]);
-
-  const updateGoalStatus = useCallback(
-    async (goalId: string, status: 'on_track' | 'at_risk' | 'missed') => {
-      try {
-        const { error: err } = await safeFrom('queue_goals').update({ status }).eq('id', goalId);
-
-        if (err) throw err;
-        await fetchGoals();
-      } catch (err) {
-        if (mountedRef.current) {
-          log.error('Error updating goal status:', err);
-        }
-      }
-    },
-    [fetchGoals, mountedRef]
-  );
-
-  useEffect(() => {
-    if (user) fetchGoals();
-    else setLoading(false);
-  }, [user, fetchGoals]);
-
-  return { goals, loading, updateGoalStatus, refetch: fetchGoals };
-}
-
-/** Monitors SLA compliance across queues with filterable metrics. */
 function isQueueSlaPriority(value: unknown): value is QueueSlaPriority {
   return value === 'low' || value === 'medium' || value === 'high' || value === 'critical';
 }
@@ -322,64 +169,145 @@ function normalizeQueueSlaRow(row: Record<string, unknown>): QueueSlaRow {
   };
 }
 
-/** use Queue Sla Management function. */
+/** Provides queue CRUD operations and management capabilities. */
+export function useQueuesCrudManagement() {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const key = ['queues-crud', user?.id] as const;
+
+  const { data: queues = [], isLoading: loading, error: queryError } = useQuery({
+    queryKey: key,
+    queryFn: async () => {
+      const { data, error: err } = await safeFrom('queues').select('*').order('name');
+      if (err) throw err;
+      return (data ?? []) as Queue[];
+    },
+    enabled: !!user,
+    staleTime: 30_000,
+  });
+
+  const error = queryError instanceof Error ? queryError.message : queryError ? String(queryError) : null;
+
+  return {
+    queues,
+    loading,
+    error,
+    refetch: () => queryClient.invalidateQueries({ queryKey: key }),
+  };
+}
+
+/** Retrieves queue performance metrics and analytics. */
+export function useQueueAnalyticsManagement(params: { queueId: string; dateRange: DateRange }) {
+  const { user } = useAuth();
+  const { queueId, dateRange } = params;
+  const startIso = dateRange.startDate.toISOString();
+  const endIso = dateRange.endDate.toISOString();
+  const queryClient = useQueryClient();
+  const key = ['queue-analytics', queueId, startIso, endIso, user?.id] as const;
+
+  const { data: analytics = null, isLoading: loading } = useQuery({
+    queryKey: key,
+    queryFn: async () => {
+      const { data, error: err } = await safeFrom('queue_analytics')
+        .select('*')
+        .eq('queue_id', queueId)
+        .gte('timestamp', startIso)
+        .lte('timestamp', endIso)
+        .order('timestamp', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (err && err.code !== 'PGRST116') throw err;
+      return (data as QueueAnalytics | null) ?? null;
+    },
+    enabled: !!user && !!queueId,
+    staleTime: 30_000,
+  });
+
+  return {
+    analytics,
+    loading,
+    refetch: () => queryClient.invalidateQueries({ queryKey: key }),
+  };
+}
+
+/** Manages queue goals, targets, and performance thresholds. */
+export function useQueueGoalsManagement(queueId?: string) {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const key = ['queue-goals', queueId ?? null, user?.id] as const;
+
+  const { data: goals = [], isLoading: loading } = useQuery({
+    queryKey: key,
+    queryFn: async () => {
+      let query = safeFrom('queue_goals').select('*');
+      if (queueId) query = query.eq('queue_id', queueId);
+      const { data, error: err } = await query;
+      if (err) throw err;
+      return (data ?? []) as QueueGoal[];
+    },
+    enabled: !!user,
+    staleTime: 30_000,
+  });
+
+  const updateGoalStatus = useCallback(
+    async (goalId: string, status: 'on_track' | 'at_risk' | 'missed') => {
+      try {
+        const { error: err } = await safeFrom('queue_goals').update({ status }).eq('id', goalId);
+        if (err) throw err;
+        await queryClient.invalidateQueries({ queryKey: key });
+      } catch (err) {
+        log.error('Error updating goal status:', err);
+      }
+    },
+    [queryClient, key]
+  );
+
+  return {
+    goals,
+    loading,
+    updateGoalStatus,
+    refetch: () => queryClient.invalidateQueries({ queryKey: key }),
+  };
+}
+
+/** Monitors SLA compliance across queues with filterable metrics. */
 export function useQueueSlaManagement(params: { filters: QueueSlaFilters }) {
   const { user } = useAuth();
   const { filters } = params;
-  const [slaRows, setSlaRows] = useState<QueueSlaRow[]>([]);
-  const [loading, setLoading] = useState(true);
-  const mountedRef = useRef(true);
   const queryClient = useQueryClient();
+  const key = ['queue-sla', filters.skill_name, filters.channel_type, filters.sla_status, user?.id] as const;
 
-  useEffect(() => {
-    return () => {
-      mountedRef.current = false;
-    };
-  }, []);
-
-  const fetchSla = useCallback(async () => {
-    if (!user) return;
-
-    try {
-      setLoading(true);
+  const { data: slaRows = [], isLoading: loading } = useQuery({
+    queryKey: key,
+    queryFn: async () => {
       const { data, error: err } = await rpcClient.rpc('rpc_queue_sla_panel', {
         p_skill_name: filters.skill_name,
         p_channel_type: filters.channel_type,
         p_sla_status: filters.sla_status,
       });
-
       if (err) throw err;
-      if (mountedRef.current) {
-        setSlaRows(((data ?? []) as Record<string, unknown>[]).map(normalizeQueueSlaRow));
-      }
-    } catch (err) {
-      if (mountedRef.current) {
-        log.error('Error fetching SLA data:', err);
-      }
-    } finally {
-      if (mountedRef.current) setLoading(false);
-    }
-  }, [user, filters]);
-
-  useEffect(() => {
-    if (user) fetchSla();
-  }, [user, fetchSla]);
+      return ((data ?? []) as Record<string, unknown>[]).map(normalizeQueueSlaRow);
+    },
+    enabled: !!user,
+    staleTime: 30_000,
+  });
 
   const updateQueueConfig = useCallback(
     async (queueId: string, patch: QueueSlaPatch): Promise<boolean> => {
       try {
         const { error: err } = await safeFrom('queues').update(patch).eq('id', queueId);
-
         if (err) throw err;
-        await fetchSla();
-        void queryClient.invalidateQueries({ queryKey: queryKeys.queues.all() });
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: key }),
+          queryClient.invalidateQueries({ queryKey: queryKeys.queues.all() }),
+        ]);
         return true;
       } catch (err) {
         log.error('Error updating queue SLA config:', err);
         return false;
       }
     },
-    [fetchSla, queryClient]
+    [queryClient, key]
   );
 
   const triggerRebalance = useCallback(
@@ -389,21 +317,21 @@ export function useQueueSlaManagement(params: { filters: QueueSlaFilters }) {
           p_limit: limit,
         });
         if (err) throw err;
-        await fetchSla();
+        await queryClient.invalidateQueries({ queryKey: key });
         return true;
       } catch (err) {
         log.error('Error triggering queue rebalance:', err);
         return false;
       }
     },
-    [fetchSla]
+    [queryClient, key]
   );
 
   return {
     rows: slaRows,
     slaRows,
     loading,
-    refetch: fetchSla,
+    refetch: () => queryClient.invalidateQueries({ queryKey: key }),
     updateQueueConfig,
     triggerRebalance,
   };
@@ -412,65 +340,50 @@ export function useQueueSlaManagement(params: { filters: QueueSlaFilters }) {
 /** Compares queue performance metrics across time periods. */
 export function useQueuesComparisonManagement(_params: { dateRange: DateRange }) {
   const { user } = useAuth();
-  const [comparison, setComparison] = useState<QueueComparison[]>([]);
-  const [loading, setLoading] = useState(true);
-  const mountedRef = useRef(true);
+  const queryClient = useQueryClient();
+  const key = ['queues-comparison', user?.id] as const;
 
-  useEffect(() => {
-    return () => {
-      mountedRef.current = false;
-    };
-  }, []);
-
-  const fetchComparison = useCallback(async () => {
-    if (!user) return;
-
-    try {
-      setLoading(true);
-      const { data, error: err } = await safeFrom('queues').select(`
-          id,
-          name,
-          queue_analytics(
-            total_messages,
-            average_response_time,
-            resolution_rate,
-            customer_satisfaction
-          )
-        `);
-
-      if (err) throw err;
-
+  const { data: comparison = [], isLoading: loading } = useQuery({
+    queryKey: key,
+    queryFn: async () => {
       type QueueComparisonSource = {
         id: string;
         name: string;
         queue_analytics?: Array<Partial<QueueAnalytics>> | null;
       };
-      const formatted = ((data || []) as QueueComparisonSource[]).map((q) => ({
+
+      const { data, error: err } = await safeFrom('queues').select(`
+        id,
+        name,
+        queue_analytics(
+          total_messages,
+          average_response_time,
+          resolution_rate,
+          customer_satisfaction
+        )
+      `);
+      if (err) throw err;
+
+      return ((data ?? []) as QueueComparisonSource[]).map((q) => ({
         queue_id: q.id,
         queue_name: q.name,
         metrics: {
-          messageCount: q.queue_analytics?.[0]?.total_messages || 0,
-          avgResponseTime: q.queue_analytics?.[0]?.average_response_time || 0,
-          resolution: q.queue_analytics?.[0]?.resolution_rate || 0,
-          satisfaction: q.queue_analytics?.[0]?.customer_satisfaction || 0,
+          messageCount: q.queue_analytics?.[0]?.total_messages ?? 0,
+          avgResponseTime: q.queue_analytics?.[0]?.average_response_time ?? 0,
+          resolution: q.queue_analytics?.[0]?.resolution_rate ?? 0,
+          satisfaction: q.queue_analytics?.[0]?.customer_satisfaction ?? 0,
         },
       }));
+    },
+    enabled: !!user,
+    staleTime: 30_000,
+  });
 
-      if (mountedRef.current) setComparison(formatted);
-    } catch (err) {
-      if (mountedRef.current) {
-        log.error('Error fetching queue comparison:', err);
-      }
-    } finally {
-      if (mountedRef.current) setLoading(false);
-    }
-  }, [user]);
-
-  useEffect(() => {
-    if (user) fetchComparison();
-  }, [user, fetchComparison]);
-
-  return { comparison, loading, refetch: fetchComparison };
+  return {
+    comparison,
+    loading,
+    refetch: () => queryClient.invalidateQueries({ queryKey: key }),
+  };
 }
 
 /** Re-exported module members. */
