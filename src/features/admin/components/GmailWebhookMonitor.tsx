@@ -1,12 +1,13 @@
-import { queryKeys } from '@/services/api/queryKeys';
 import { useQuery } from '@tanstack/react-query';
 import { getLogger } from '@/lib/logger';
+
 const log = getLogger('EmailWebhookMonitor');
 import { Mail, RefreshCw, CheckCircle, AlertCircle, Clock, Wifi, WifiOff } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { safeClient, safeFrom } from '@/integrations/supabase/safeClient';
+import { supabase } from '@/integrations/supabase/client';
+import { safeClient } from '@/integrations/supabase/safeClient';
 
 interface EmailAccount {
   id: string;
@@ -24,26 +25,25 @@ interface ThreadStats {
   unread: number;
 }
 
-/** Email Webhook Monitor component. */
 export function EmailWebhookMonitor() {
   const { data, isFetching, refetch } = useQuery({
-    queryKey: queryKeys.adminOps.emailWebhook(),
+    queryKey: ['admin', 'email-webhook-monitor'],
     queryFn: async () => {
       // Best-effort load: mirrors legacy behavior — failures degrade to empty data
       // (the panel renders an empty state rather than surfacing an error).
       try {
         const { data: emailAccounts } = await safeClient.rpc('get_own_email_accounts');
-        const accounts = (emailAccounts || []).map((a: Record<string, unknown>) => ({
+        const accounts = (emailAccounts || []).map((a: any) => ({
           ...a,
           history_id: null,
         })) as EmailAccount[];
 
-        const { count: totalThreads } = await safeFrom('email_threads').select('*', {
-          count: 'exact',
-          head: true,
-        });
+        const { count: totalThreads } = await supabase
+          .from('email_threads' as any)
+          .select('*', { count: 'exact', head: true });
 
-        const { count: unreadThreads } = await safeFrom('email_threads')
+        const { count: unreadThreads } = await supabase
+          .from('email_threads' as any)
           .select('*', { count: 'exact', head: true })
           .eq('is_unread', true);
 

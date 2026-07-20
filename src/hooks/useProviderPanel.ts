@@ -3,10 +3,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { useToast } from '@/hooks/use-toast';
 
-/** Provider Type type alias. */
 export type ProviderType = 'evolution' | 'wppconnect' | 'baileys' | 'custom';
 
-/** Provider Row interface definition. */
 export interface ProviderRow {
   provider_id: string;
   name: string;
@@ -26,7 +24,6 @@ export interface ProviderRow {
   routes_active: number;
 }
 
-/** Provider Log interface definition. */
 export interface ProviderLog {
   log_id: string;
   session_id: string | null;
@@ -39,7 +36,6 @@ export interface ProviderLog {
   created_at: string;
 }
 
-/** Manages WhatsApp provider configuration panel with health monitoring and provider CRUD. */
 export function useProviderPanel() {
   const [rows, setRows] = useState<ProviderRow[]>([]);
   const [logs, setLogs] = useState<ProviderLog[]>([]);
@@ -79,14 +75,14 @@ export function useProviderPanel() {
   const upsertProvider = async (
     payload: Partial<ProviderRow> & { id?: string; auth_token?: string }
   ) => {
-    const { id, name, provider_type, base_url, auth_token, priority, is_active } = payload;
+    const { id, ...rest } = payload;
     const data = {
-      name: name ?? '',
-      provider_type: provider_type ?? ('custom' as const),
-      base_url: base_url ?? '',
-      auth_token: auth_token ?? null,
-      priority: priority ?? 10,
-      is_active: is_active ?? true,
+      name: rest.name,
+      provider_type: rest.provider_type,
+      base_url: rest.base_url,
+      auth_token: rest.auth_token ?? null,
+      priority: rest.priority ?? 10,
+      is_active: rest.is_active ?? true,
     };
     const { error } = id
       ? await safeClient.from('provider_configs', (q) => q.update(data).eq('id', id))

@@ -112,18 +112,15 @@ function TimelineRow({
   );
 }
 
-/** Message Status Panel constant. */
 export const MessageStatusPanel = memo(function MessageStatusPanel({
   children,
   message,
 }: MessageStatusPanelProps) {
   const { data: stats } = useDeliveryStats(
-    message.sender === 'agent'
-      ? (message.remote_jid ?? undefined)
-      : (message.contact_id ?? undefined)
+    message.sender === 'agent' ? message.remote_jid : message.contact_id
   );
   const isSent = message.sender === 'agent';
-  const isFailed = (TERMINAL_FAILURES as Set<string>).has(message.status);
+  const isFailed = TERMINAL_FAILURES.has(message.status as never);
 
   const lastUpdate = message.status_updated_at ?? message.updated_at ?? null;
   const sentStamp = message.created_at ?? message.timestamp ?? null;
@@ -291,15 +288,11 @@ export const MessageStatusPanel = memo(function MessageStatusPanel({
                     contentStyle={{
                       backgroundColor: 'hsl(var(--popover))',
                       borderColor: 'hsl(var(--border))',
-                      fontSize: '0.75rem',
+                      fontSize: '10px',
                       borderRadius: '6px',
                     }}
                     itemStyle={{ padding: '0px' }}
-                    labelFormatter={(label) => {
-                      const value =
-                        typeof label === 'string' || typeof label === 'number' ? label : String(label ?? '');
-                      return format(new Date(value), 'HH:mm');
-                    }}
+                    labelFormatter={(label: string | number) => format(new Date(label), 'HH:mm')}
                   />
                   <Line
                     type="monotone"

@@ -1,12 +1,22 @@
-// Re-export from consolidated useIntegrationManagement module (ETAPA 42 consolidation)
-import { useGmailOAuthFlowManagement } from '@/hooks/useIntegrationManagement';
-import { useState, useCallback, useEffect, useRef } from 'react';
-import { toast } from 'sonner';
-import { getLogger } from '@/lib/logger';
+/**
+ * useEmailOAuthFlow.ts — OAuth2 Email com refresh automático de token
+ *
+ * Responsabilidades:
+ * 1. Iniciar fluxo OAuth (redirect para Google)
+ * 2. Trocar code por tokens (Edge Function email-oauth)
+ * 3. Refresh automático do access_token 5 min antes de expirar
+ * 4. Revogar acesso (disconnect)
+ * 5. Retornar estado do token (valid | expiring | expired | loading)
+ */
+
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
-import { emailRefreshToken, emailRegisterWatch, emailRevokeAccount } from '@/hooks/gmail/gmailApi';
 import { emailMappers } from '@/utils/emailMappers';
+import { EmailAccount } from '@/types/gmail';
+import { emailRefreshToken, emailRevokeAccount, emailRegisterWatch } from './gmail/gmailApi';
+import { toast } from 'sonner';
+import { getLogger } from '@/lib/logger';
 
 const log = getLogger('useEmailOAuthFlow');
 
@@ -15,21 +25,7 @@ const REFRESH_AHEAD_MS = 5 * 60 * 1000;
 // Intervalo de verificação do token
 const CHECK_INTERVAL_MS = 60 * 1000;
 
-/** Hook: Token Status. */
 export type TokenStatus = 'loading' | 'valid' | 'expiring' | 'expired' | 'disconnected';
-
-/** Hook: Email Account. */
-export interface EmailAccount {
-  id: string;
-  user_id: string;
-  email: string;
-  display_name: string | null;
-  picture_url: string | null;
-  token_expiry: string | null;
-  is_active: boolean;
-  created_at: string;
-  watch_expiry?: string | null;
-}
 
 interface UseEmailOAuthFlowReturn {
   accounts: EmailAccount[];
@@ -41,12 +37,6 @@ interface UseEmailOAuthFlowReturn {
   ensureWatch: (accountId: string) => Promise<void>;
 }
 
-/** Hook: use Gmail OAuth Flow. */
-export function useGmailOAuthFlow() {
-  return useGmailOAuthFlowManagement();
-}
-
-/** Hook: use Email OAuth Flow. */
 export function useEmailOAuthFlow(): UseEmailOAuthFlowReturn {
   const [accounts, setAccounts] = useState<EmailAccount[]>([]);
   const [tokenStatus, setTokenStatus] = useState<Record<string, TokenStatus>>({});
@@ -109,15 +99,14 @@ export function useEmailOAuthFlow(): UseEmailOAuthFlowReturn {
     try {
       const result = await emailRefreshToken(accountId);
 
-      // Atualiza token_expiry local
+      // Atualiza token_expiry local (edge fn retorna `newExpiry`, não `expiresAt`)
+      const newExpiry = result.data?.newExpiry ?? null;
       setAccounts((prev) =>
-        prev.map((a) =>
-          a.id === accountId ? { ...a, token_expiry: result.data?.expiresAt ?? a.token_expiry } : a
-        )
+        prev.map((a) => (a.id === accountId ? { ...a, token_expiry: newExpiry } : a))
       );
       setTokenStatus((prev) => ({ ...prev, [accountId]: 'valid' }));
 
-      log.info(`Token refreshed for account ${accountId}, expires at ${result.data?.expiresAt}`);
+      log.info(`Token refreshed for account ${accountId}, expires at ${newExpiry}`);
     } catch (err) {
       log.error(`Falha ao refreshar token para conta ${accountId}`, err);
       setTokenStatus((prev) => ({ ...prev, [accountId]: 'expired' }));
@@ -160,16 +149,12 @@ export function useEmailOAuthFlow(): UseEmailOAuthFlowReturn {
       if (!acc.watch_expiry || watchExpiry - Date.now() < renewThreshold) {
         try {
           const result = await emailRegisterWatch(accountId);
+          // edge fn gmail-webhook retorna `expiresAt`, não `watchExpiry`
+          const newWatchExpiry = result.data?.expiresAt ?? null;
           setAccounts((prev) =>
-            prev.map((a) =>
-              a.id === accountId
-                ? { ...a, watch_expiry: result.data?.watchExpiry ?? a.watch_expiry }
-                : a
-            )
+            prev.map((a) => (a.id === accountId ? { ...a, watch_expiry: newWatchExpiry } : a))
           );
-          log.info(
-            `Pub/Sub watch renovado para ${accountId}, expira em ${result.data?.watchExpiry}`
-          );
+          log.info(`Pub/Sub watch renovado para ${accountId}, expira em ${newWatchExpiry}`);
         } catch (err) {
           log.warn(`Não foi possível renovar watch para ${accountId}`, err);
         }
@@ -223,7 +208,6 @@ export function useEmailOAuthFlow(): UseEmailOAuthFlowReturn {
         //   { type: 'gmail-oauth-code',  code }   -> trocar code por tokens (exchangeCode)
         //   { type: 'gmail-oauth-error', error }  -> falha
         const onMessage = async (event: MessageEvent) => {
-          if (event.origin !== window.location.origin) return;
           if (settled) return;
           const msg = event.data;
           if (msg?.type === 'gmail-oauth-error') {
@@ -334,7 +318,6 @@ export function useEmailOAuthFlow(): UseEmailOAuthFlowReturn {
       .subscribe();
 
     return () => {
-      channel.unsubscribe();
       supabase.removeChannel(channel);
     };
   }, [loadAccounts]);

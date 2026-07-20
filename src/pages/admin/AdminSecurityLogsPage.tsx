@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { getLogger } from '@/lib/logger';
 import { supabase } from '@/integrations/supabase/client';
-import { safeClient } from '@/integrations/supabase/safeClient';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Table,
@@ -26,7 +25,7 @@ interface AuditLog {
   resource: string;
   action: string;
   status: string;
-  details: Record<string, unknown>;
+  details: any;
   created_at: string;
   profiles?: {
     name: string;
@@ -34,7 +33,6 @@ interface AuditLog {
   };
 }
 
-/** Admin Security Logs Page. */
 export default function AdminSecurityLogsPage() {
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(true);
@@ -42,17 +40,25 @@ export default function AdminSecurityLogsPage() {
   useEffect(() => {
     let mounted = true;
     const fetchLogs = async () => {
-      const { data, error } = await safeClient.from<AuditLog>('security_audit_logs', (q) =>
-        q.select(`*, profiles:user_id (name, email)`)
-         .order('created_at', { ascending: false })
-         .limit(50)
-      );
+      const { data, error } = await supabase
+        .from('security_audit_logs')
+        .select(
+          `
+          *,
+          profiles:user_id (
+            name,
+            email
+          )
+        `
+        )
+        .order('created_at', { ascending: false })
+        .limit(50);
 
       if (!mounted) return;
       if (error) {
         log.error('Error fetching audit logs', error);
       } else {
-        setLogs(((data ?? []) as AuditLog[]));
+        setLogs(data as AuditLog[]);
       }
       setLoading(false);
     };
@@ -64,7 +70,7 @@ export default function AdminSecurityLogsPage() {
       .channel('security_logs_realtime')
       .on(
         'postgres_changes',
-        { event: 'INSERT', schema: 'zapp', table: 'security_audit_logs' },
+        { event: 'INSERT', schema: 'public', table: 'security_audit_logs' },
         (payload) => {
           setLogs((prev) => [payload.new as AuditLog, ...prev].slice(0, 50));
         }
@@ -73,7 +79,6 @@ export default function AdminSecurityLogsPage() {
 
     return () => {
       mounted = false;
-      channel.unsubscribe();
       supabase.removeChannel(channel);
     };
   }, []);

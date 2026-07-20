@@ -1,19 +1,11 @@
 import { MessageSquare, Clock, Star, Users, TrendingUp, TrendingDown } from 'lucide-react';
-import { useContactStats } from '@/hooks/useContactStats';
+import { useContactDetailStats } from '@/features/inbox/hooks/useContactDetailStats';
 import { Skeleton } from '@/components/ui/skeleton';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 
 interface ContactStatsSectionProps {
   contactId: string;
-}
-
-interface ContactSpecificStats {
-  totalMessages?: number;
-  avgResponseTimeMinutes?: number;
-  totalConversations?: number;
-  csatAverage?: number | null;
-  csatCount?: number;
 }
 
 // Mini sparkline SVG component
@@ -24,11 +16,13 @@ function MiniSparkline({ data, color }: { data: number[]; color: string }) {
   const range = max - min || 1;
   const w = 48;
   const h = 16;
-  const points = data.map((v, i) => {
-    const x = (i / (data.length - 1)) * w;
-    const y = h - ((v - min) / range) * h;
-    return `${x},${y}`;
-  }).join(' ');
+  const points = data
+    .map((v, i) => {
+      const x = (i / (data.length - 1)) * w;
+      const y = h - ((v - min) / range) * h;
+      return `${x},${y}`;
+    })
+    .join(' ');
 
   return (
     <svg width={w} height={h} className="opacity-60">
@@ -44,11 +38,8 @@ function MiniSparkline({ data, color }: { data: number[]; color: string }) {
   );
 }
 
-/** Contact Stats Section component for the contact details section. */
-export function ContactStatsSection({ contactId: _contactId }: ContactStatsSectionProps) {
-  const result = useContactStats();
-  const { isLoading } = result;
-  const stats = result.stats as unknown as ContactSpecificStats | null; // ignore-audit — useContactStats provides aggregate data; per-contact hook pending
+export function ContactStatsSection({ contactId }: ContactStatsSectionProps) {
+  const { stats, isLoading } = useContactDetailStats(contactId);
 
   if (isLoading) {
     return (
@@ -93,9 +84,10 @@ export function ContactStatsSection({ contactId: _contactId }: ContactStatsSecti
     {
       icon: Star,
       label: 'CSAT',
-      value: stats?.csatAverage !== null && stats?.csatAverage !== undefined
-        ? `${stats.csatAverage.toFixed(1)}⭐`
-        : '—',
+      value:
+        stats?.csatAverage !== null && stats?.csatAverage !== undefined
+          ? `${stats.csatAverage.toFixed(1)}⭐`
+          : '—',
       subtitle: stats?.csatCount ? `${stats.csatCount} avaliações` : undefined,
       sparkData: [4, 3, 5, 4, 5, 4, stats?.csatAverage ?? 4],
       change: 5,
@@ -111,31 +103,37 @@ export function ContactStatsSection({ contactId: _contactId }: ContactStatsSecti
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: idx * 0.05, duration: 0.2 }}
-          className="bg-background/40 rounded-xl p-3 border border-border/20 hover:border-primary/20 transition-all relative overflow-hidden"
+          className="relative overflow-hidden rounded-xl border border-border/20 bg-background/40 p-3 transition-all hover:border-primary/20"
         >
           {/* Sparkline in background */}
           <div className="absolute bottom-1 right-1.5 opacity-40">
             <MiniSparkline data={item.sparkData} color={item.color} />
           </div>
 
-          <div className="flex items-center gap-1.5 text-muted-foreground mb-1.5">
-            <item.icon className="w-3.5 h-3.5" />
+          <div className="mb-1.5 flex items-center gap-1.5 text-muted-foreground">
+            <item.icon className="h-3.5 w-3.5" />
             <span className="text-[10px] uppercase tracking-wider">{item.label}</span>
           </div>
           <div className="flex items-end gap-1.5">
-            <span className="text-lg font-semibold text-primary leading-none">{item.value}</span>
+            <span className="text-lg font-semibold leading-none text-primary">{item.value}</span>
             {item.change !== 0 && typeof item.value === 'number' && (
-              <span className={cn(
-                'text-[10px] flex items-center gap-0.5 leading-none mb-0.5',
-                item.change > 0 ? 'text-success' : 'text-destructive'
-              )}>
-                {item.change > 0 ? <TrendingUp className="w-2.5 h-2.5" /> : <TrendingDown className="w-2.5 h-2.5" />}
+              <span
+                className={cn(
+                  'mb-0.5 flex items-center gap-0.5 text-[10px] leading-none',
+                  item.change > 0 ? 'text-success' : 'text-destructive'
+                )}
+              >
+                {item.change > 0 ? (
+                  <TrendingUp className="h-2.5 w-2.5" />
+                ) : (
+                  <TrendingDown className="h-2.5 w-2.5" />
+                )}
                 {Math.abs(item.change)}%
               </span>
             )}
           </div>
           {item.subtitle && (
-            <p className="text-[10px] text-muted-foreground mt-0.5">{item.subtitle}</p>
+            <p className="mt-0.5 text-[10px] text-muted-foreground">{item.subtitle}</p>
           )}
         </motion.div>
       ))}

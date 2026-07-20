@@ -1,33 +1,29 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useOfflineCache } from '@/hooks/useOfflineCache';
-import type {
-  ConversationWithMessages,
-  RealtimeMessage,
-  ConversationContact,
-} from './realtime/types';
-import { seedAvatarCache } from './realtime/avatarBatchStore';
+import {
+  type ConversationWithMessages,
+  type ConversationContact,
+  type RealtimeMessage,
+} from '@/features/inbox';
 import { useAuth } from '@/features/auth';
 import { supabase } from '@/integrations/supabase/client';
 import { getLogger } from '@/lib/logger';
 import { toast } from 'sonner';
 import { validatePttBlob } from '@/lib/audio/pttLimits';
+import { seedAvatarCache } from '@/features/inbox';
+import { isValidUUID } from '@/utils/uuid';
 import { mapToLegacyConversation, mapToLegacyMessages } from '@/adapters/inboxLegacyMapper';
 import { dbFrom } from '@/integrations/datasource/db';
 import { useMessageQueue, QueueItem } from './useMessageQueue';
 import { useInboxHeartbeat } from './useInboxHeartbeat';
 import { useInboxDeepLinks } from './useInboxDeepLinks';
 import { useInboxSource } from './useInboxSource';
-import { useWhisperCount } from './useWhisperCount';
-import { useFallbackContact } from './useFallbackContact';
 
 const log = getLogger('useRealtimeInbox');
 
 // Feature flag: use external evolution DB (FATOR X) as data source.
-// FIX: tipo explícito 'boolean' (não literal 'true') para preservar a branch
-// !USE_EXTERNAL_DB no compilador TypeScript quando o modo local for reativado.
-const USE_EXTERNAL_DB: boolean = true;
+const USE_EXTERNAL_DB = true;
 
-/** Top-level inbox orchestrator: wires together data source, heartbeat, deep links, offline cache, message queue, legacy mappers, and all conversation/send handlers. */
 export function useRealtimeInbox() {
   const { profile } = useAuth();
   const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
@@ -48,6 +44,9 @@ export function useRealtimeInbox() {
     delay: number;
     message?: string;
   } | null>(null);
+  const [selectedContactFallback, setSelectedContactFallback] =
+    useState<ConversationContact | null>(null);
+  const [whisperCount, setWhisperCount] = useState(0);
   const postSendTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   // 1. Data Source (Local or External)
@@ -120,14 +119,37 @@ export function useRealtimeInbox() {
   const selectedConversation = useMemo(
     () =>
       conversations.find(
-        (c) =>
-          c.contact.id === selectedContactId ||
-          (c.contact as { remote_jid?: string }).remote_jid === selectedContactId
+        (c) => c.contact.id === selectedContactId || c.contact.remote_jid === selectedContactId
       ) || null,
     [conversations, selectedContactId]
   );
 
-  const resolvedSelectedConversation = useFallbackContact(selectedContactId, selectedConversation);
+  useEffect(() => {
+    if (!selectedContactId || selectedConversation || USE_EXTERNAL_DB) {
+      setSelectedContactFallback(null);
+      return;
+    }
+
+    let cancelled = false;
+    const loadSelectedContact = async () => {
+      const { data, error } = await supabase
+        .from('contacts')
+        .select('*')
+        .eq('id', selectedContactId)
+        .maybeSingle();
+      if (!cancelled && !error) setSelectedContactFallback(data || null);
+    };
+    void loadSelectedContact();
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedContactId, selectedConversation]);
+
+  const resolvedSelectedConversation = useMemo<ConversationWithMessages | null>(() => {
+    if (selectedConversation) return selectedConversation;
+    if (!selectedContactFallback) return null;
+    return { contact: selectedContactFallback, messages: [], unreadCount: 0, lastMessage: null };
+  }, [selectedConversation, selectedContactFallback]);
 
   // Reconcile message queue with incoming messages
   useEffect(() => {
@@ -150,24 +172,75 @@ export function useRealtimeInbox() {
     });
   }, [selectedMessages, selectedContactId]);
 
-  // Listen for SLA alerts — bound by selectedContactId to avoid memory leak
+  // Listen for SLA alerts
   useEffect(() => {
-    if (!selectedContactId) return;
-
     const handler = (e: Event) => {
       const detail = (e as CustomEvent).detail;
-      if (detail?.contactId === selectedContactId) {
+      if (detail && detail.contactId === selectedContactId) {
         setDeliveryAlert({ status: detail.status, delay: detail.delay, message: detail.message });
       }
     };
     window.addEventListener('sla-delivery-alert', handler);
-    return () => {
-      window.removeEventListener('sla-delivery-alert', handler);
-    };
+    return () => window.removeEventListener('sla-delivery-alert', handler);
   }, [selectedContactId]);
 
   // Whisper count
-  const whisperCount = useWhisperCount(selectedContactId, profile?.id);
+  useEffect(() => {
+    if (!selectedContactId || !profile?.id) {
+      setWhisperCount(0);
+      return;
+    }
+
+    // ── UUID guard ──────────────────────────────────────────────────────────
+    // whisper_messages.contact_id is a uuid column. When USE_EXTERNAL_DB=true,
+    // selectedContactId may be a WhatsApp JID / phone number (e.g. "551146375517")
+    // instead of a UUID. PostgREST returns 400 "invalid input syntax for type uuid"
+    // when a non-UUID string is used as a filter on a uuid column.
+    // Skip both the count query and the realtime subscription in that case.
+
+    if (!isValidUUID(selectedContactId)) {
+      log.debug(
+        '[whisperCount] selectedContactId is not a UUID — skipping whisper query (likely a WhatsApp JID)',
+        { selectedContactId }
+      );
+      setWhisperCount(0);
+      return;
+    }
+    // ────────────────────────────────────────────────────────────────────────
+
+    let cancelled = false;
+    const fetchWhisperCount = async () => {
+      const { count, error } = await supabase
+        .from('whisper_messages')
+        .select('*', { count: 'exact', head: true })
+        .eq('contact_id', selectedContactId)
+        .eq('is_read', false);
+      if (!cancelled && !error && count !== null) setWhisperCount(count);
+    };
+    void fetchWhisperCount();
+
+    // Wave 2: whisper_messages is a VIEW in public schema — zapp.whisper_messages is the base table.
+    // PostgreSQL views never emit WAL events, so Realtime subscriptions must target the base table.
+    const channel = supabase
+      .channel(`whisper-count-${selectedContactId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'zapp',
+          table: 'whisper_messages',
+          filter: `contact_id=eq.${selectedContactId}`,
+        },
+        () => {
+          void fetchWhisperCount();
+        }
+      )
+      .subscribe();
+    return () => {
+      cancelled = true;
+      supabase.removeChannel(channel);
+    };
+  }, [selectedContactId, profile?.id]);
 
   const messageQueue = useMessageQueue(async (item: QueueItem) => {
     const { contactId, content, attachments } = item;
@@ -188,8 +261,7 @@ export function useRealtimeInbox() {
     }
 
     if (USE_EXTERNAL_DB) {
-      const { sendExternalText, sendExternalMedia, sendExternalAudio } =
-        await import('./realtime/externalMessageSender');
+      const { sendExternalText, sendExternalMedia, sendExternalAudio } = await import('..');
       const currentAvatar = resolvedSelectedConversation?.contact.avatar_url;
 
       try {
@@ -197,17 +269,7 @@ export function useRealtimeInbox() {
           const { optimistic } = await sendExternalAudio(contactId, attachments[0], {
             contactAvatar: currentAvatar,
             isPtt: !attachments[0].name.endsWith('.mp3'),
-            conversationInstance:
-              (
-                resolvedSelectedConversation as ConversationWithMessages & {
-                  instance_name?: string;
-                }
-              )?.instance_name ||
-              (
-                resolvedSelectedConversation?.contact as ConversationContact & {
-                  instance_name?: string;
-                }
-              )?.instance_name,
+            conversationInstance: resolvedSelectedConversation?.contact?.instance_name ?? undefined,
             onProgress: (p) => {
               messageQueue.updateProgress(item.id, p);
             },
@@ -221,10 +283,8 @@ export function useRealtimeInbox() {
               contactAvatar: currentAvatar,
               caption: i === 0 ? content : undefined,
               onProgress: (p) => {
-                messageQueue.updateProgress(
-                  item.id,
-                  p / attachments.length + (i / attachments.length) * 100
-                );
+                const total = (i / attachments.length) * 100 + p / attachments.length;
+                messageQueue.updateProgress(item.id, total);
               },
             });
             if (optimistic.external_id) item.externalId = optimistic.external_id;
@@ -246,11 +306,8 @@ export function useRealtimeInbox() {
       }
 
       clearTimeout(postSendTimerRef.current);
-      // Only refresh the sidebar list — the message list is already updated
-      // via the optimistic message added above; polling handles reconciliation.
-      // Calling refetchSelectedMessages() (= initialFetch) here would collapse
-      // the chat to the last page, discarding any messages loaded via scroll-up.
       postSendTimerRef.current = setTimeout(() => {
+        void refetchSelectedMessages();
         void refetch();
       }, 1500);
       return;
@@ -389,9 +446,6 @@ export function useRealtimeInbox() {
     loadingOlderMessages,
     hasMoreMessages,
     whisperCount,
-    // FIX Bug#2-residual + TypeScript: useExternalDb é boolean (não literal 'true').
-    // Permite que !inbox.useExternalDb funcione corretamente em local mode futuro.
-    useExternalDb: USE_EXTERNAL_DB as boolean,
     batcherStatus: USE_EXTERNAL_DB ? null : localRealtime.batcherStatus,
     deliveryAlert,
     messageQueue,

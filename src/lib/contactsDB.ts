@@ -20,7 +20,6 @@ import { getExternalSupabase, isExternalConfigured } from '@/integrations/supaba
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 // ─── Types ─────────────────────────────────────────────────────
-/** External Contact interface. */
 export interface ExternalContact {
   id: string;
   user_id: string;
@@ -69,7 +68,6 @@ export interface ExternalContact {
   updated_at: string;
 }
 
-/** Contact Note interface definition. */
 export interface ContactNote {
   id: string;
   contact_id: string;
@@ -81,7 +79,6 @@ export interface ContactNote {
   updated_at: string;
 }
 
-/** Contact Phone interface definition. */
 export interface ContactPhone {
   id: string;
   contact_id: string;
@@ -92,7 +89,6 @@ export interface ContactPhone {
   created_at: string;
 }
 
-/** Contact Email interface definition. */
 export interface ContactEmail {
   id: string;
   contact_id: string;
@@ -116,7 +112,6 @@ function getClient(): SupabaseClient {
 }
 
 // ─── Contact CRUD ─────────────────────────────────────────────
-/** contacts D B constant. */
 export const contactsDB = {
   /** Check if external DB is configured */
   get isConfigured() {
@@ -132,7 +127,7 @@ export const contactsDB = {
       .is('deleted_at', null)
       .maybeSingle();
     if (error) throw error;
-    return data as ExternalContact | null; // ignore-audit: narrows Supabase query result to local interface
+    return data as ExternalContact | null;
   },
 
   /** Find contact by phone number (cleaned digits only) */
@@ -148,7 +143,7 @@ export const contactsDB = {
       .limit(1)
       .maybeSingle();
     if (error) throw error;
-    return data as ExternalContact | null; // ignore-audit: narrows Supabase query result to local interface
+    return data as ExternalContact | null;
   },
 
   /** Find contact by phone via contact_phones table */
@@ -164,7 +159,7 @@ export const contactsDB = {
       .maybeSingle();
     if (error) throw error;
     if (!data) return null;
-    return (data as typeof data & { contacts: ExternalContact }).contacts;
+    return (data as { contact_id: string; contacts: ExternalContact }).contacts;
   },
 
   /** Update contact fields */
@@ -178,9 +173,9 @@ export const contactsDB = {
       .update({ ...rest, updated_at: new Date().toISOString() })
       .eq('id', contactId)
       .select()
-      .single(); // POST-UPDATE: .single() correto — update retorna exatamente 1 linha
+      .single();
     if (error) throw error;
-    return data as ExternalContact; // ignore-audit: narrows Supabase query result to local interface
+    return data as ExternalContact;
   },
 
   /** Update avatar URL */
@@ -261,7 +256,7 @@ export const contactsDB = {
         .select()
         .single();
       if (error) throw error;
-      return data as ContactNote; // ignore-audit: narrows Supabase query result to local interface
+      return data as ContactNote;
     },
 
     async update(noteId: string, content: string): Promise<void> {
@@ -334,5 +329,4 @@ export const contactsDB = {
   },
 };
 
-/** Default export. */
 export default contactsDB;
