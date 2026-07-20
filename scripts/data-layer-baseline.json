@@ -2,8 +2,8 @@
   "updatedAt": "2026-07-20",
   "calls": {
     "src/components": 84,
-    "src/pages": 19,
+    "src/pages": 16,
     "src/features": 271,
-    "src/hooks": 230
+    "src/hooks": 233
   }
 }
