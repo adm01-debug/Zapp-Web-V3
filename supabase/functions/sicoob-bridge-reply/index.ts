@@ -1,6 +1,6 @@
 import { handleCors, errorResponse, jsonResponse, Logger } from "../_shared/validation.ts";
 import { SicoobBridgeReplySchema, parseBody } from "../_shared/schemas.ts";
-import { requireUser, requireServiceRoleOnly, getBearer } from "../_shared/auth.ts";
+import { requireUser, requireServiceRoleOnly, getBearer, timingSafeStringEqual } from "../_shared/auth.ts";
 import { createZappAdminClient } from "../_shared/db-client.ts";
 
 Deno.serve(async (req) => {
@@ -15,7 +15,7 @@ Deno.serve(async (req) => {
 
     // Dual-mode auth: user JWT (frontend) or service-role (Postgres trigger).
     const bearer = getBearer(req);
-    const isServiceRole = bearer === serviceRoleKey;
+    const isServiceRole = serviceRoleKey !== '' && timingSafeStringEqual(bearer, serviceRoleKey);
     let agent_id: string | null = null;
 
     if (isServiceRole) {

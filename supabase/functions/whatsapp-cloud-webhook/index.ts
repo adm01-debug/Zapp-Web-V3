@@ -14,6 +14,7 @@ import { MetaWebhookPayloadSchema } from "../_shared/webhook-schemas.ts";
 import { markEventProcessed } from "../_shared/evolution-helpers.ts";
 
 import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
+import { timingSafeStringEqual } from '../_shared/auth.ts';
 interface MetaWAMessage {
   from: string;
   id: string;
@@ -118,7 +119,7 @@ Deno.serve(async (req) => {
     const mode = url.searchParams.get("hub.mode");
     const token = url.searchParams.get("hub.verify_token");
     const challenge = url.searchParams.get("hub.challenge");
-    if (mode === "subscribe" && token && VERIFY_TOKEN && token === VERIFY_TOKEN) {
+    if (mode === "subscribe" && token && VERIFY_TOKEN && timingSafeStringEqual(token, VERIFY_TOKEN)) {
       console.log(`[whatsapp-cloud-webhook][${rid}] verification ok`);
       void recordPing("handshake", { rid, mode, source: req.headers.get("user-agent") ?? null });
       return new Response(challenge ?? "", { status: 200, headers: getCorsHeaders(req) });

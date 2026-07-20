@@ -2,6 +2,7 @@ import { z } from "https://esm.sh/zod@3.23.8";
 import { getCorsHeaders, jsonResponse, errorResponse, Logger } from "../_shared/validation.ts";
 import { createZappAdminClient } from "../_shared/db-client.ts";
 import { verifyHmacSignature } from "../_shared/hmac-validation.ts";
+import { timingSafeStringEqual } from "../_shared/auth.ts";
 import { initSentry, captureException, captureMessage } from "../_shared/sentry.ts";
 
 const WhatsAppStatusSchema = z.object({
@@ -59,7 +60,7 @@ Deno.serve(async (req) => {
       return new Response('Configuration error', { status: 500, headers: getCorsHeaders(req) });
     }
 
-    if (mode === 'subscribe' && token === verifyToken) {
+    if (mode === 'subscribe' && token !== null && timingSafeStringEqual(token, verifyToken)) {
       log.info("Webhook verified successfully");
       return new Response(challenge, {
         status: 200,
