@@ -115,6 +115,7 @@ export function ConnectionsView() {
     handleSetDefault,
     handleSetApiType,
     handleDelete,
+    handleAddConnection,
     closeQrDialog,
   } = useConnectionsManager();
 
@@ -275,7 +276,7 @@ export function ConnectionsView() {
                     Cancelar
                   </Button>
                   <Button
-                    onClick={(useConnectionsManager() as any).handleAddConnection}
+                    onClick={handleAddConnection}
                     className="bg-whatsapp hover:bg-whatsapp-dark"
                     disabled={isCreating}
                   >
