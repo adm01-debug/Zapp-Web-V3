@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { log } from '@/lib/logger';
@@ -20,6 +20,14 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
   const [audioLevel, setAudioLevel] = useState(0);
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [transcription, setTranscription] = useState('');
+
+  const mountedRef = useRef(false);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -94,17 +102,17 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
           // If local transcription is empty and we had issues, try backend STT
           if (transcription.trim() === '' && audioBlob.size > 1000) {
             try {
-              setIsTranscribing(true);
+              if (mountedRef.current) setIsTranscribing(true);
               const { data } = await supabase.functions.invoke('speech-to-text', {
                 body: { audio: await blobToBase64(audioBlob) },
               });
-              if (data?.text) {
+              if (data?.text && mountedRef.current) {
                 setTranscription(data.text);
               }
             } catch (err) {
               log.error('Backend STT failed:', err);
             } finally {
-              setIsTranscribing(false);
+              if (mountedRef.current) setIsTranscribing(false);
             }
           }
 
@@ -115,7 +123,7 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
           if (audioContextRef.current) audioContextRef.current.close();
           analyserRef.current = null;
           audioContextRef.current = null;
-          setAudioLevel(0);
+          if (mountedRef.current) setAudioLevel(0);
         };
 
         mediaRecorder.start(100);

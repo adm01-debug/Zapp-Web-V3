@@ -67,14 +67,16 @@ export function useOnboarding() {
   const completeOnboarding = async () => {
     if (user) {
       try {
-        await supabase
+        const { error } = await supabase
           .from('user_settings')
           .update({ onboarding_completed: true })
           .eq('user_id', user.id);
-
+        if (error) {
+          log.error('[useOnboarding] completeOnboarding DB update failed:', error.message);
+        }
         localStorage.setItem(`${ONBOARDING_KEY}_${user.id}`, 'true');
-      } catch {
-        /* ignore storage error */
+      } catch (err) {
+        log.error('[useOnboarding] completeOnboarding unexpected error:', err);
       }
       setHasCompletedOnboarding(true);
     }

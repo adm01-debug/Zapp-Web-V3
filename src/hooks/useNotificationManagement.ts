@@ -380,7 +380,14 @@ export function useTeamChatNotificationsManagement() {
 
   const markAsRead = useCallback(async (notificationId: string) => {
     try {
-      await supabase.from('notifications').update({ is_read: true }).eq('id', notificationId);
+      const { error } = await supabase
+        .from('notifications')
+        .update({ is_read: true })
+        .eq('id', notificationId);
+      if (error) {
+        log.error('Error marking notification as read:', error.message);
+        return;
+      }
       setNotifications((prev) =>
         prev.map((n) => (n.id === notificationId ? { ...n, is_read: true } : n))
       );

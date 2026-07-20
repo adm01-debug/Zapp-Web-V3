@@ -47,6 +47,14 @@ export function useAudioMemes(open: boolean) {
   const [playingId, setPlayingId] = useState<string | null>(null);
   const [pendingUpload, setPendingUpload] = useState<PendingUpload | null>(null);
 
+  const mountedRef = useRef(false);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -59,16 +67,16 @@ export function useAudioMemes(open: boolean) {
     });
 
     if (!error && data) {
-      setMemes(data);
+      if (mountedRef.current) setMemes(data);
     } else if (error) {
       log.error('fetchMemes error', error);
       const { data: basicData } = await supabase
         .from('audio_memes')
         .select('*')
         .order('use_count', { ascending: false });
-      if (basicData) setMemes(basicData as AudioMemeItem[]);
+      if (basicData && mountedRef.current) setMemes(basicData as AudioMemeItem[]);
     }
-    setLoading(false);
+    if (mountedRef.current) setLoading(false);
   }, []);
 
   useEffect(() => {
