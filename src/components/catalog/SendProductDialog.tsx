@@ -92,7 +92,7 @@ export const SendProductDialog: React.FC<SendProductDialogProps> = ({
     } else {
       setFullProduct(product);
     }
-  }, [open, product.id]);
+  }, [open, product.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const variantGroups = useMemo(
     () => groupVariantsByColor(fullProduct.variants || []),

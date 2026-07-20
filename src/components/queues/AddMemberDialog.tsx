@@ -1,18 +1,11 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { log } from '@/lib/logger';
+import { fetchActiveProfiles, type Profile } from '@/hooks/useActiveProfiles';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Check, Loader2 } from 'lucide-react';
-
-interface Profile {
-  id: string;
-  name: string;
-  avatar_url: string | null;
-  is_active: boolean | null;
-}
 
 interface AddMemberDialogProps {
   open: boolean;
@@ -43,14 +36,8 @@ export function AddMemberDialog({
   const fetchProfiles = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id, name, avatar_url, is_active')
-        .eq('is_active', true)
-        .order('name');
-
-      if (error) throw error;
-      setProfiles(data || []);
+      const data = await fetchActiveProfiles();
+      setProfiles(data);
     } catch (err) {
       log.error('Error fetching profiles:', err);
     } finally {

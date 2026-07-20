@@ -353,7 +353,7 @@ export function useGlobalSearchData(open: boolean) {
     if (search.length >= 2 || selectedTags.length > 0 || mediaTypeFilter !== 'all') {
       performSearch(search, activeTypes, dateFilter, selectedTags, mediaTypeFilter);
     }
-  }, [activeTypes, dateFilter, selectedTags, mediaTypeFilter]);
+  }, [activeTypes, dateFilter, selectedTags, mediaTypeFilter]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleTagSelect = useCallback((tag: TagSuggestion) => {
     setSelectedTags((prev) => [...prev, tag.id]);

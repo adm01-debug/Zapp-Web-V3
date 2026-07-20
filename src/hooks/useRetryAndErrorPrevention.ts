@@ -12,7 +12,6 @@ import { useToast } from '@/hooks/use-toast';
 import { getLogger } from '@/lib/logger';
 import {
   safeCallback,
-  safeEventListener,
   handlePromiseRejection,
   fireAndForget,
   retryWithBackoff,
@@ -39,15 +38,20 @@ const log = getLogger('useRetryAndErrorPrevention');
 // ──────────────────────────────────────────────────────────────────────────
 
 const FATAL_CODES = [
-  'PGRST116',     // not found
-  '23505',        // unique violation
-  '23514',        // check constraint
+  'PGRST116', // not found
+  '23505', // unique violation
+  '23514', // check constraint
   'CONTACT_NOT_FOUND',
   'CONFLICT',
-  '401', '403',
+  '401',
+  '403',
 ];
 
-interface RetryState { loading: boolean; attempt: number; lastError: string | null; }
+interface RetryState {
+  loading: boolean;
+  attempt: number;
+  lastError: string | null;
+}
 
 /**
  * Simple retry hook for operations with exponential backoff (multiplier 3)
@@ -58,32 +62,47 @@ export function useRetryOperation(maxAttempts = 3, baseDelayMs = 500) {
   const { toast } = useToast();
   const [state, setState] = useState<RetryState>({ loading: false, attempt: 0, lastError: null });
 
-  const withRetry = useCallback(async <T>(fn: () => Promise<T>, label = 'Salvar'): Promise<T> => {
-    let lastErr: Error | null = null;
+  const withRetry = useCallback(
+    async <T>(fn: () => Promise<T>, label = 'Salvar'): Promise<T> => {
+      let lastErr: Error | null = null;
 
-    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-      setState({ loading: true, attempt, lastError: null });
-      try {
-        const result = await fn();
-        setState({ loading: false, attempt: 0, lastError: null });
-        return result;
-      } catch (err: unknown) {
-        const error = err instanceof Error ? err : new Error(String(err));
-        lastErr = error;
-        if (FATAL_CODES.some((c) => error.message.includes(c))) {
-          setState({ loading: false, attempt: 0, lastError: error.message });
-          throw error;
+      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        setState({ loading: true, attempt, lastError: null });
+        try {
+          const result = await fn();
+          setState({ loading: false, attempt: 0, lastError: null });
+          return result;
+        } catch (err: unknown) {
+          const error = err instanceof Error ? err : new Error(String(err));
+          lastErr = error;
+          if (FATAL_CODES.some((c) => error.message.includes(c))) {
+            setState({ loading: false, attempt: 0, lastError: error.message });
+            throw error;
+          }
+          if (attempt === maxAttempts) break;
+          const delay = Math.min(
+            baseDelayMs * Math.pow(3, attempt - 1) * (1 + Math.random() * 0.2),
+            30000
+          );
+          setState({
+            loading: true,
+            attempt,
+            lastError: `Tentando novamente (${attempt}/${maxAttempts})...`,
+          });
+          if (attempt > 1)
+            toast({
+              title: `⏳ ${label}`,
+              description: `Tentativa ${attempt + 1}/${maxAttempts}...`,
+              duration: delay,
+            });
+          await new Promise((r) => setTimeout(r, delay));
         }
-        if (attempt === maxAttempts) break;
-        const delay = Math.min(baseDelayMs * Math.pow(3, attempt - 1) * (1 + Math.random() * 0.2), 30000);
-        setState({ loading: true, attempt, lastError: `Tentando novamente (${attempt}/${maxAttempts})...` });
-        if (attempt > 1) toast({ title: `⏳ ${label}`, description: `Tentativa ${attempt + 1}/${maxAttempts}...`, duration: delay });
-        await new Promise((r) => setTimeout(r, delay));
       }
-    }
-    setState({ loading: false, attempt: 0, lastError: lastErr?.message ?? 'Erro' });
-    throw lastErr;
-  }, [maxAttempts, baseDelayMs, toast]);
+      setState({ loading: false, attempt: 0, lastError: lastErr?.message ?? 'Erro' });
+      throw lastErr;
+    },
+    [maxAttempts, baseDelayMs, toast]
+  );
 
   const reset = useCallback(() => setState({ loading: false, attempt: 0, lastError: null }), []);
 
@@ -134,7 +153,7 @@ export function useSafeAsync<T>(
       safeCallback(() => withErrorRecovery(fn, { operation, fallback, shouldThrow }), {
         name: operation,
       })(),
-    [operation, fallback, shouldThrow, ...dependencies]
+    [operation, fallback, shouldThrow, ...dependencies] // eslint-disable-line react-hooks/exhaustive-deps
   );
 
   return executeAsync;
@@ -170,7 +189,7 @@ export function useSafeRetry<T>(
         delayMs,
         backoffMultiplier,
       }),
-    [operation, maxAttempts, delayMs, backoffMultiplier, ...dependencies]
+    [operation, maxAttempts, delayMs, backoffMultiplier, ...dependencies] // eslint-disable-line react-hooks/exhaustive-deps
   );
 
   return executeRetry;
@@ -190,6 +209,7 @@ export function useFireAndForget() {
  * Hook for wrapping callbacks with automatic error logging.
  */
 /** Wraps callbacks with automatic error logging, fallback returns, and optional throwing. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function useSafeCallback<T extends (...args: any[]) => any>(
   callback: T,
   options?: {
@@ -206,6 +226,7 @@ export function useSafeCallback<T extends (...args: any[]) => any>(
     dependencies = [],
   } = options || {};
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   return useCallback(
     safeCallback(callback, {
       name,
@@ -239,7 +260,7 @@ export function useSafePromise<T>(
     }).catch(() => {
       // Already logged
     });
-  }, [...dependencies]);
+  }, [...dependencies]); // eslint-disable-line react-hooks/exhaustive-deps
 }
 
 /**
@@ -286,7 +307,7 @@ export function useAsyncEffect<T>(
       abortRef.current?.abort();
       options?.cleanup?.();
     };
-  }, options?.dependencies);
+  }, options?.dependencies); // eslint-disable-line react-hooks/exhaustive-deps
 }
 
 /**
@@ -358,7 +379,7 @@ export function useRetryableAsync<T>(
       log.error(`Retry exhausted for ${operationName}:`, error);
       throw error;
     }
-  }, [operationName, ...dependencies]);
+  }, [operationName, ...dependencies]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const getMetrics = useCallback(() => {
     return executorRef.current.getMetrics();

@@ -9,11 +9,8 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { fromTable } from '@/lib/supabaseHelpers';
 import { useUserSettings } from '@/hooks/useUserSettings';
-import { queryKeys } from '@/services/api/queryKeys';
+import { useParticipantStats } from '@/hooks/useParticipantStats';
 
 interface ParticipantStatsGraphProps {
   conversationId: string;
@@ -22,83 +19,7 @@ interface ParticipantStatsGraphProps {
 /** Participant Stats Graph component for the team chat section. */
 export function ParticipantStatsGraph({ conversationId }: ParticipantStatsGraphProps) {
   const { settings } = useUserSettings();
-
-  const { data, isLoading } = useQuery({
-    queryKey: queryKeys.messageReactions.participantStatsDetailed(conversationId, settings.simulation_mode_enabled),
-    queryFn: async () => {
-      if (settings.simulation_mode_enabled) {
-        // Generate mock data for simulation
-        return [
-          { name: 'Alice', sent: 120, delivered: 115, read: 100 },
-          { name: 'Bob', sent: 80, delivered: 80, read: 75 },
-          { name: 'Charlie', sent: 150, delivered: 140, read: 120 },
-          { name: 'Diana', sent: 95, delivered: 90, read: 85 },
-          { name: 'Edward', sent: 110, delivered: 110, read: 110 },
-        ];
-      }
-
-      // Real data query
-      const { data: messages, error: msgError } = await supabase
-        .from('team_messages')
-        .select('id, sender_id')
-        .eq('conversation_id', conversationId);
-
-      if (msgError) throw msgError;
-      if (!messages || messages.length === 0) return [];
-
-      const messageIds = messages.map((m) => m.id);
-
-      type ReceiptRow = {
-        status: string;
-        profile_id: string | null;
-        profiles: { name: string | null } | null;
-      };
-      const { data: rawReceipts, error: recError } = await fromTable('team_message_receipts')
-        .select('status, profile_id, profiles(name)')
-        .in('message_id', messageIds);
-      const allReceipts = (rawReceipts as ReceiptRow[] | null) ?? null;
-
-      if (recError) throw recError;
-
-      type StatEntry = { name: string; sent: number; delivered: number; read: number };
-      const statsMap: Record<string, StatEntry> = {};
-
-      messages.forEach((m) => {
-        const senderId = m.sender_id;
-        if (senderId) {
-          if (!statsMap[senderId]) {
-            statsMap[senderId] = { name: 'Unknown', sent: 0, delivered: 0, read: 0 };
-          }
-          statsMap[senderId].sent++;
-        }
-      });
-
-      if (allReceipts) {
-        allReceipts.forEach((r) => {
-          const pid = r.profile_id;
-          if (pid) {
-            if (!statsMap[pid]) {
-              statsMap[pid] = {
-                name: r.profiles?.name || 'Unknown',
-                sent: 0,
-                delivered: 0,
-                read: 0,
-              };
-            }
-            statsMap[pid].name = r.profiles?.name || 'Unknown';
-            if (r.status === 'delivered') statsMap[pid].delivered++;
-            if (r.status === 'read') {
-              statsMap[pid].delivered++;
-              statsMap[pid].read++;
-            }
-          }
-        });
-      }
-
-      return Object.values(statsMap);
-    },
-    enabled: !!conversationId,
-  });
+  const { data, isLoading } = useParticipantStats(conversationId, settings.simulation_mode_enabled);
 
   if (isLoading)
     return <div className="flex h-[300px] items-center justify-center">Carregando gráfico...</div>;

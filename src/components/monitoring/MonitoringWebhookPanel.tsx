@@ -64,7 +64,7 @@ export function MonitoringWebhookPanel({
 
   useEffect(() => {
     loadSecretStatus();
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const copyUrl = (url: string) => {
     navigator.clipboard.writeText(url);

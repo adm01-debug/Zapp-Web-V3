@@ -214,6 +214,7 @@ export function ChatInputArea(props: ChatInputAreaProps) {
         onOpenTeamFiles={onOpenTeamFiles}
       />
     ),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [
       instanceName,
       contactPhone,
@@ -296,7 +297,8 @@ export function ChatInputArea(props: ChatInputAreaProps) {
                       </span>
                     </div>
                   )}
-                  <button type="button"
+                  <button
+                    type="button"
                     onClick={() => logic.removeAttachment(att.id)}
                     className="absolute right-1 top-1 rounded-full bg-background/80 p-0.5 text-foreground opacity-0 transition-opacity hover:bg-destructive hover:text-foreground group-hover:opacity-100"
                   >
@@ -364,13 +366,15 @@ export function ChatInputArea(props: ChatInputAreaProps) {
                   <div className="flex items-center gap-2">
                     {item.status === 'failed' && (
                       <div className="flex gap-2">
-                        <button type="button"
+                        <button
+                          type="button"
                           onClick={() => props.onRetry?.(item.id)}
                           className="text-primary-accessible rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-black transition-colors hover:text-primary"
                         >
                           Tentar novamente
                         </button>
-                        <button type="button"
+                        <button
+                          type="button"
                           onClick={() => props.onRemoveFromQueue?.(item.id)}
                           className="rounded-full bg-destructive/10 px-2 py-0.5 text-[10px] font-black text-destructive transition-colors hover:text-destructive/80"
                         >

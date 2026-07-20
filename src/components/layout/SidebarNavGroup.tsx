@@ -25,46 +25,64 @@ interface SidebarNavGroupProps {
 }
 
 /** Sidebar Nav Group component for the layout section. */
-export const SidebarNavGroup = React.memo(function SidebarNavGroup({ label, icon: GroupIcon, items, currentView, onViewChange, defaultOpen = false, collapsed = true, onToggleFavorite, isFavorite, badgeMap }: SidebarNavGroupProps) {
-  const hasActiveItem = items.some(item => item.id === currentView);
+export const SidebarNavGroup = React.memo(function SidebarNavGroup({
+  label,
+  icon: GroupIcon,
+  items,
+  currentView,
+  onViewChange,
+  defaultOpen = false,
+  collapsed = true,
+  onToggleFavorite,
+  isFavorite,
+  badgeMap,
+}: SidebarNavGroupProps) {
+  const hasActiveItem = items.some((item) => item.id === currentView);
   const [isOpen, setIsOpen] = useState(defaultOpen || hasActiveItem);
 
   useEffect(() => {
     if (hasActiveItem && !isOpen) setIsOpen(true);
-  }, [hasActiveItem]);
+  }, [hasActiveItem]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const triggerButton = (
-    <button type="button"
+    <button
+      type="button"
       onClick={() => setIsOpen((prev) => !prev)}
       className={cn(
-        'rounded-xl flex items-center transition-all duration-500 group/trigger outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1',
-        collapsed ? 'w-full h-[38px] justify-center gap-1' : 'w-full h-[38px] px-3 gap-2 hover:bg-muted/15',
-        hasActiveItem
-          ? 'text-primary font-black'
-          : 'text-muted-foreground/80 hover:text-foreground'
+        'group/trigger flex items-center rounded-xl outline-none transition-all duration-500 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1',
+        collapsed
+          ? 'h-[38px] w-full justify-center gap-1'
+          : 'h-[38px] w-full gap-2 px-3 hover:bg-muted/15',
+        hasActiveItem ? 'font-black text-primary' : 'text-muted-foreground/80 hover:text-foreground'
       )}
       aria-expanded={isOpen}
       aria-label={`${label} — ${isOpen ? 'recolher' : 'expandir'}`}
     >
-      <GroupIcon className={cn(
-        collapsed ? 'w-[11px] h-[11px]' : 'w-[13px] h-[13px]',
-        'shrink-0 transition-colors duration-200'
-      )} />
+      <GroupIcon
+        className={cn(
+          collapsed ? 'h-[11px] w-[11px]' : 'h-[13px] w-[13px]',
+          'shrink-0 transition-colors duration-200'
+        )}
+      />
       {!collapsed && (
-        <span className="text-[10px] font-semibold uppercase tracking-[0.08em] truncate select-none">
+        <span className="select-none truncate text-[10px] font-semibold uppercase tracking-[0.08em]">
           {label}
         </span>
       )}
-      <ChevronRight className={cn(
-        'transition-transform duration-250 ease-out shrink-0',
-        collapsed ? 'w-[8px] h-[8px]' : 'w-[11px] h-[11px] ml-auto opacity-60 group-hover/trigger:opacity-100',
-        isOpen && 'rotate-90'
-      )} />
+      <ChevronRight
+        className={cn(
+          'shrink-0 transition-transform duration-250 ease-out',
+          collapsed
+            ? 'h-[8px] w-[8px]'
+            : 'ml-auto h-[11px] w-[11px] opacity-60 group-hover/trigger:opacity-100',
+          isOpen && 'rotate-90'
+        )}
+      />
     </button>
   );
 
   return (
-    <div className="flex flex-col w-full border-t border-border/40 first:border-t-0 pt-1.5 mt-0.5 first:mt-0 first:pt-0">
+    <div className="mt-0.5 flex w-full flex-col border-t border-border/40 pt-1.5 first:mt-0 first:border-t-0 first:pt-0">
       {collapsed ? (
         <Tooltip delayDuration={0}>
           <TooltipTrigger asChild>{triggerButton}</TooltipTrigger>
@@ -83,14 +101,17 @@ export const SidebarNavGroup = React.memo(function SidebarNavGroup({ label, icon
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
-            className={cn('flex flex-col w-full overflow-hidden', collapsed && 'items-center')}
+            className={cn('flex w-full flex-col overflow-hidden', collapsed && 'items-center')}
             aria-label={label}
           >
-            <ul role="list" className={cn(
-              'flex flex-col gap-0.5 w-full list-none p-0 m-0 pt-0.5',
+            <ul
+              role="list"
+              className={cn(
+                'm-0 flex w-full list-none flex-col gap-0.5 p-0 pt-0.5',
                 collapsed && 'items-center px-[11px]',
                 !collapsed && 'px-2'
-            )}>
+              )}
+            >
               {items.map((item) => {
                 const b = badgeMap?.[item.id];
                 return (

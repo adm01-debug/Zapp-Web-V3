@@ -3,20 +3,13 @@ import { getLogger } from '@/lib/logger';
 import { useMountedRef } from '@/hooks/useMountedRef';
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { supabase } from '@/integrations/supabase/client';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { fetchConnectionAuditLogs, type AuditLog } from '@/hooks/useConnectionAuditLogs';
 import { AlertCircle, CheckCircle2, Info, RefreshCw } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 const log = getLogger('ConnectionAuditDialog');
-
-interface AuditLog {
-  id: string;
-  action: string;
-  created_at: string;
-  details: Record<string, unknown>;
-}
 
 interface ConnectionAuditDialogProps {
   open: boolean;
@@ -40,30 +33,14 @@ export function ConnectionAuditDialog({
     if (open && instanceId) {
       fetchLogs();
     }
-  }, [open, instanceId]);
+  }, [open, instanceId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchLogs = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('audit_logs')
-        .select('*')
-        .contains('details', { instance_id: instanceId })
-        .order('created_at', { ascending: false })
-        .limit(50);
-
+      const data = await fetchConnectionAuditLogs(instanceId);
       if (!mountedRef.current) return;
-      if (error) throw error;
-      const normalized: AuditLog[] = (data ?? []).map((row) => ({
-        id: row.id,
-        action: row.action,
-        created_at: row.created_at,
-        details:
-          row.details && typeof row.details === 'object' && !Array.isArray(row.details)
-            ? (row.details as Record<string, unknown>)
-            : {},
-      }));
-      setLogs(normalized);
+      setLogs(data);
     } catch (err) {
       log.error('Failed to fetch connection audit logs', err);
     } finally {

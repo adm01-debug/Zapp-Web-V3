@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useEffect, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
@@ -19,7 +19,7 @@ interface WarRoomAlert {
 const VALID_ALERT_TYPES = ['critical', 'warning', 'info', 'sla_breach'];
 
 /** Subscribes to warroom_alerts in realtime and fires browser notifications and sounds for critical/warning/SLA-breach events. Logs errors before returning an empty array on fetch failure. */
-export function useWarRoomAlerts(soundEnabled = true) {
+export function useWarRoomAlerts(_soundEnabled = true) {
   const { showNotification } = usePushNotifications();
   const queryClient = useQueryClient();
 
@@ -37,9 +37,7 @@ export function useWarRoomAlerts(soundEnabled = true) {
         log.error('Failed to fetch warroom alerts', error);
         return [];
       }
-      return (data ?? []).filter(
-        (a) => a.id && VALID_ALERT_TYPES.includes(a.alert_type)
-      );
+      return (data ?? []).filter((a) => a.id && VALID_ALERT_TYPES.includes(a.alert_type));
     },
   });
 
@@ -62,29 +60,30 @@ export function useWarRoomAlerts(soundEnabled = true) {
           });
         }
       )
-      .on(
-        'postgres_changes',
-        { event: 'UPDATE', schema: 'zapp', table: 'warroom_alerts' },
-        () => {
-          queryClient.invalidateQueries({ queryKey: ['warroom_alerts'] });
-        }
-      )
+      .on('postgres_changes', { event: 'UPDATE', schema: 'zapp', table: 'warroom_alerts' }, () => {
+        queryClient.invalidateQueries({ queryKey: ['warroom_alerts'] });
+      })
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [showNotification, queryClient]);
 
-  const dismissAlert = useCallback(async (alertId: string) => {
-    const { error } = await supabase
-      .from('warroom_alerts')
-      .update({ is_read: true })
-      .eq('id', alertId);
-    if (error) {
-      log.error('Failed to dismiss alert', alertId, error);
-      return;
-    }
-    queryClient.invalidateQueries({ queryKey: ['warroom_alerts'] });
-  }, [queryClient]);
+  const dismissAlert = useCallback(
+    async (alertId: string) => {
+      const { error } = await supabase
+        .from('warroom_alerts')
+        .update({ is_read: true })
+        .eq('id', alertId);
+      if (error) {
+        log.error('Failed to dismiss alert', alertId, error);
+        return;
+      }
+      queryClient.invalidateQueries({ queryKey: ['warroom_alerts'] });
+    },
+    [queryClient]
+  );
 
   return { alerts, dismissAlert };
 }

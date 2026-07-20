@@ -32,7 +32,9 @@ interface AutomationExecutionRowMinimal {
   status: string | null;
   rule_id: string | null;
   remote_jid: string | null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   trigger_payload: Record<string, any> | null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   rule_snapshot: Record<string, any> | null;
 }
 
@@ -75,6 +77,7 @@ export function useAutomationFailureAlerts(enabled = true): void {
       seenRef.current.add(row.id);
 
       const payload = row.trigger_payload ?? {};
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const ctx = (payload.error_context ?? {}) as Record<string, any>;
       const ruleName =
         row.rule_snapshot?.name ?? (payload.rule_name as string | undefined) ?? 'Regra sem nome';

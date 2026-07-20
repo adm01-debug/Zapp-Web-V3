@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollText, RefreshCw, Inbox } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useLGPDAuditLogs } from './useLGPDAuditLogs';
+import { useLGPDAuditLogs } from '@/hooks/useLGPDAuditLogs';
 import { useAuth } from '@/features/auth';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';

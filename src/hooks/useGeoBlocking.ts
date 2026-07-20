@@ -40,7 +40,7 @@ export function useGeoBlocking() {
         .from('geo_blocking_settings')
         .select('*')
         .limit(1)
-        .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
+        .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
 
       const { data: allowedData } = await supabase
         .from('allowed_countries')
@@ -66,6 +66,7 @@ export function useGeoBlocking() {
 
   useEffect(() => {
     void fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   /** Updates the geo-blocking mode column and reflects the change in local settings state. */
@@ -132,9 +133,10 @@ export function useGeoBlocking() {
   const handleRemoveCountry = async () => {
     if (!countryToRemove) return;
     try {
-      const { error } = activeTab === 'whitelist'
-        ? await supabase.from('allowed_countries').delete().eq('id', countryToRemove.id)
-        : await supabase.from('blocked_countries').delete().eq('id', countryToRemove.id);
+      const { error } =
+        activeTab === 'whitelist'
+          ? await supabase.from('allowed_countries').delete().eq('id', countryToRemove.id)
+          : await supabase.from('blocked_countries').delete().eq('id', countryToRemove.id);
       if (error) throw error;
       toast.success(`${countryToRemove.country_name} removido`);
       setCountryToRemove(null);

@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { getLogger } from '@/lib/logger';
@@ -26,6 +26,14 @@ export function useOnboardingChecklist() {
   });
   const [isLoading, setIsLoading] = useState(true);
   const [isDismissed, setIsDismissed] = useState(false);
+  const mountedRef = useRef(false);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   useEffect(() => {
     try {
@@ -37,35 +45,20 @@ export function useOnboardingChecklist() {
 
   const checkStatus = useCallback(async () => {
     if (!user) {
-      setIsLoading(false);
+      if (mountedRef.current) setIsLoading(false);
       return;
     }
 
-    setIsLoading(true);
+    if (mountedRef.current) setIsLoading(true);
     try {
       const [profileRes, whatsappRes, settingsRes, templatesRes] = await Promise.all([
-        supabase
-          .from('profiles')
-          .select('name, avatar_url')
-          .eq('user_id', user.id)
-          .maybeSingle(),
-        supabase
-          .from('whatsapp_connections')
-          .select('id')
-          .eq('created_by', user.id)
-          .limit(1),
-        supabase
-          .from('user_settings')
-          .select('id')
-          .eq('user_id', user.id)
-          .maybeSingle(),
-        supabase
-          .from('message_templates')
-          .select('id')
-          .eq('created_by', user.id)
-          .limit(1),
+        supabase.from('profiles').select('name, avatar_url').eq('user_id', user.id).maybeSingle(),
+        supabase.from('whatsapp_connections').select('id').eq('created_by', user.id).limit(1),
+        supabase.from('user_settings').select('id').eq('user_id', user.id).maybeSingle(),
+        supabase.from('message_templates').select('id').eq('created_by', user.id).limit(1),
       ]);
 
+      if (!mountedRef.current) return;
       setStatus({
         profile: !!(profileRes.data?.name && profileRes.data.name.length > 2),
         whatsapp: (whatsappRes.data?.length ?? 0) > 0,
@@ -75,7 +68,7 @@ export function useOnboardingChecklist() {
     } catch (err) {
       log.error('Error checking onboarding status:', err);
     } finally {
-      setIsLoading(false);
+      if (mountedRef.current) setIsLoading(false);
     }
   }, [user]);
 

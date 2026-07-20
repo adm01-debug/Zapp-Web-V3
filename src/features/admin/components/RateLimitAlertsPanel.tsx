@@ -14,25 +14,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
   useRateLimitAlerts,
   loadThresholds,
   saveThresholds,
   type AlertSeverity,
   type RateLimitAlertThresholds,
-} from '@/features/admin/hooks/useRateLimitAlerts';
+} from '../hooks/useRateLimitAlerts';
 import {
   useRateLimitAlertNotifier,
   loadNotifyPrefs,
   saveNotifyPrefs,
   requestBrowserNotificationPermission,
   type NotifyPreferences,
-} from '@/features/admin/hooks/useRateLimitAlertNotifier';
+} from '../hooks/useRateLimitAlertNotifier';
 import { toast } from 'sonner';
 
 const SEVERITY_STYLES: Record<AlertSeverity, { badge: string; border: string; label: string }> = {
@@ -96,7 +92,7 @@ export function RateLimitAlertsPanel() {
       <CardHeader className="flex flex-row items-start justify-between gap-4">
         <div>
           <CardTitle className="flex items-center gap-2 text-base">
-            <ShieldAlert className="w-5 h-5 text-warning" />
+            <ShieldAlert className="h-5 w-5 text-warning" />
             Alertas de Rate Limit
           </CardTitle>
           <CardDescription>
@@ -122,12 +118,12 @@ export function RateLimitAlertsPanel() {
         </div>
 
         {loading && alerts.length === 0 && (
-          <p className="text-sm text-muted-foreground py-6 text-center">Carregando alertas…</p>
+          <p className="py-6 text-center text-sm text-muted-foreground">Carregando alertas…</p>
         )}
 
         {!loading && alerts.length === 0 && (
-          <div className="text-center py-8 space-y-2">
-            <AlertTriangle className="w-8 h-8 mx-auto text-muted-foreground/50" />
+          <div className="space-y-2 py-8 text-center">
+            <AlertTriangle className="mx-auto h-8 w-8 text-muted-foreground/50" />
             <p className="text-sm text-muted-foreground">
               Nenhum alerta ativo. Todos os IPs e endpoints estão dentro dos limites.
             </p>
@@ -140,21 +136,21 @@ export function RateLimitAlertsPanel() {
             return (
               <div
                 key={alert.id}
-                className={`rounded-md border border-l-4 ${style.border} bg-card p-3 flex items-start justify-between gap-3`}
+                className={`rounded-md border border-l-4 ${style.border} flex items-start justify-between gap-3 bg-card p-3`}
               >
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2 flex-wrap">
+                  <div className="flex flex-wrap items-center gap-2">
                     <Badge className={style.badge}>{style.label}</Badge>
                     <Badge variant="outline" className="text-xs">
                       {alert.scope === 'ip' ? 'IP' : 'Endpoint'}
                     </Badge>
-                    <p className="text-sm font-medium truncate">{alert.title}</p>
+                    <p className="truncate text-sm font-medium">{alert.title}</p>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-1">{alert.description}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">{alert.description}</p>
                 </div>
                 <Button asChild variant="ghost" size="sm" className="shrink-0">
                   <Link to={alert.detailsHref}>
-                    <ExternalLink className="w-4 h-4 mr-1" />
+                    <ExternalLink className="mr-1 h-4 w-4" />
                     Detalhes
                   </Link>
                 </Button>
@@ -196,25 +192,55 @@ function ThresholdsPopover({
     <Popover>
       <PopoverTrigger asChild>
         <Button variant="outline" size="sm">
-          <Settings2 className="w-4 h-4 mr-1" />
+          <Settings2 className="mr-1 h-4 w-4" />
           Thresholds
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-80 space-y-3">
         <div>
-          <p className="text-sm font-medium mb-2">Por IP</p>
+          <p className="mb-2 text-sm font-medium">Por IP</p>
           <div className="grid grid-cols-3 gap-2">
-            {numberField(draft.ip.low, (n) => setDraft({ ...draft, ip: { ...draft.ip, low: n } }), 'Baixo', 'ip-low')}
-            {numberField(draft.ip.medium, (n) => setDraft({ ...draft, ip: { ...draft.ip, medium: n } }), 'Médio', 'ip-med')}
-            {numberField(draft.ip.high, (n) => setDraft({ ...draft, ip: { ...draft.ip, high: n } }), 'Alto', 'ip-high')}
+            {numberField(
+              draft.ip.low,
+              (n) => setDraft({ ...draft, ip: { ...draft.ip, low: n } }),
+              'Baixo',
+              'ip-low'
+            )}
+            {numberField(
+              draft.ip.medium,
+              (n) => setDraft({ ...draft, ip: { ...draft.ip, medium: n } }),
+              'Médio',
+              'ip-med'
+            )}
+            {numberField(
+              draft.ip.high,
+              (n) => setDraft({ ...draft, ip: { ...draft.ip, high: n } }),
+              'Alto',
+              'ip-high'
+            )}
           </div>
         </div>
         <div>
-          <p className="text-sm font-medium mb-2">Por Endpoint</p>
+          <p className="mb-2 text-sm font-medium">Por Endpoint</p>
           <div className="grid grid-cols-3 gap-2">
-            {numberField(draft.endpoint.low, (n) => setDraft({ ...draft, endpoint: { ...draft.endpoint, low: n } }), 'Baixo', 'ep-low')}
-            {numberField(draft.endpoint.medium, (n) => setDraft({ ...draft, endpoint: { ...draft.endpoint, medium: n } }), 'Médio', 'ep-med')}
-            {numberField(draft.endpoint.high, (n) => setDraft({ ...draft, endpoint: { ...draft.endpoint, high: n } }), 'Alto', 'ep-high')}
+            {numberField(
+              draft.endpoint.low,
+              (n) => setDraft({ ...draft, endpoint: { ...draft.endpoint, low: n } }),
+              'Baixo',
+              'ep-low'
+            )}
+            {numberField(
+              draft.endpoint.medium,
+              (n) => setDraft({ ...draft, endpoint: { ...draft.endpoint, medium: n } }),
+              'Médio',
+              'ep-med'
+            )}
+            {numberField(
+              draft.endpoint.high,
+              (n) => setDraft({ ...draft, endpoint: { ...draft.endpoint, high: n } }),
+              'Alto',
+              'ep-high'
+            )}
           </div>
         </div>
         <div>
@@ -228,7 +254,7 @@ function ThresholdsPopover({
         <Button size="sm" className="w-full" onClick={() => onSave(draft)}>
           Salvar thresholds
         </Button>
-    </PopoverContent>
+      </PopoverContent>
     </Popover>
   );
 }
@@ -246,13 +272,15 @@ function NotifyPrefsPopover({
     <Popover>
       <PopoverTrigger asChild>
         <Button variant="outline" size="sm" aria-label="Preferências de notificação">
-          {value.enabled ? <Bell className="w-4 h-4 mr-1" /> : <BellOff className="w-4 h-4 mr-1" />}
+          {value.enabled ? <Bell className="mr-1 h-4 w-4" /> : <BellOff className="mr-1 h-4 w-4" />}
           Notificações
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-80 space-y-3">
         <div className="flex items-center justify-between">
-          <Label htmlFor="notify-enabled" className="text-sm">Ativar toasts automáticos</Label>
+          <Label htmlFor="notify-enabled" className="text-sm">
+            Ativar toasts automáticos
+          </Label>
           <Switch
             id="notify-enabled"
             checked={draft.enabled}
@@ -260,10 +288,14 @@ function NotifyPrefsPopover({
           />
         </div>
         <div className="space-y-1">
-          <Label htmlFor="notify-min-sev" className="text-xs">Notificar a partir de</Label>
+          <Label htmlFor="notify-min-sev" className="text-xs">
+            Notificar a partir de
+          </Label>
           <Select
             value={draft.minSeverity}
-            onValueChange={(v) => setDraft({ ...draft, minSeverity: v as NotifyPreferences['minSeverity'] })}
+            onValueChange={(v) =>
+              setDraft({ ...draft, minSeverity: v as NotifyPreferences['minSeverity'] })
+            }
           >
             <SelectTrigger id="notify-min-sev" className="h-9">
               <SelectValue />
@@ -277,7 +309,9 @@ function NotifyPrefsPopover({
           </Select>
         </div>
         <div className="flex items-center justify-between">
-          <Label htmlFor="notify-browser" className="text-sm">Notificações do navegador</Label>
+          <Label htmlFor="notify-browser" className="text-sm">
+            Notificações do navegador
+          </Label>
           <Switch
             id="notify-browser"
             checked={draft.browserNotifications}

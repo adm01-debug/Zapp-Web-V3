@@ -26,6 +26,7 @@ export function TransitionProvider({
   defaultVariant = 'fade',
   defaultOverrides = {},
 }: TransitionProviderProps) {
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const initial: TransitionState = { variant: defaultVariant, overrides: defaultOverrides };
   const [state, setState] = useState<TransitionState>(initial);
 
@@ -33,14 +34,14 @@ export function TransitionProvider({
     (variant: TransitionVariantName, overrides: TransitionOverrides = {}) => {
       setState({ variant, overrides });
     },
-    [],
+    []
   );
 
   const resetVariant = useCallback(() => setState(initial), [initial]);
 
   const value = useMemo<TransitionContextValue>(
     () => ({ ...state, setVariant, resetVariant }),
-    [state, setVariant, resetVariant],
+    [state, setVariant, resetVariant]
   );
 
   return <TransitionContext.Provider value={value}>{children}</TransitionContext.Provider>;

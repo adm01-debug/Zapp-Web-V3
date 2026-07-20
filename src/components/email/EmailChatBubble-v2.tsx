@@ -49,7 +49,6 @@ export const EmailChatBubble: React.FC<EmailChatBubbleProps> = ({ email, classNa
   return (
     <div
       className={className}
-      // eslint-disable-next-line react/no-danger
       dangerouslySetInnerHTML={{ __html: sanitizedHtml }}
       // Safe: sanitized with DOM-native config-based approach.
       // No mutable hook state that could collide in recursive renders.
@@ -104,7 +103,6 @@ export const EmailChatBubbleV2: React.FC<EmailChatBubbleProps> = ({ email, class
   return (
     <div
       className={className}
-      // eslint-disable-next-line react/no-danger
       dangerouslySetInnerHTML={{ __html: sanitizedElement }}
       // Safe: config-based sanitization, no mutable global hooks.
     />

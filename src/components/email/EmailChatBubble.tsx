@@ -26,7 +26,7 @@ import { motion } from '@/components/ui/motion';
 import { type EmailMessage } from '@/hooks/gmail/gmailTypes';
 import { EmailAttachmentPreview } from './EmailAttachmentPreview';
 import { EmailSLABadge } from './EmailSLABadge';
-import { type SLAStatus } from '@/hooks/useEmailSLA';
+import { type SLAStatus } from '@/hooks/useEmailManagement';
 import { emailMarkRead, emailTrashMessage, emailModifyLabels } from '@/hooks/gmail/gmailApi';
 import { toast } from 'sonner';
 import { formatDistanceToNow, format } from 'date-fns';

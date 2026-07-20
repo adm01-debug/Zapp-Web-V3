@@ -1,5 +1,5 @@
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 /** Toast type alias. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type Toast = { id: string; open: boolean; [key: string]: any }; // ignore-audit
 type ToastState = { toasts: Toast[] };
 
@@ -19,9 +19,7 @@ export function reducer(state: ToastState, action: ToastAction): ToastState {
     case 'UPDATE_TOAST':
       return {
         ...state,
-        toasts: state.toasts.map((t) =>
-          t.id === action.toast.id ? { ...t, ...action.toast } : t
-        ),
+        toasts: state.toasts.map((t) => (t.id === action.toast.id ? { ...t, ...action.toast } : t)),
       };
     case 'DISMISS_TOAST':
       return {
@@ -57,7 +55,10 @@ export type LegacyToastInput = ExternalToast & {
 type ToastMessage = Parameters<typeof sonnerToast>[0];
 type ToastOptions = Parameters<typeof sonnerToast>[1];
 
-type CompatToast = ((message: ToastMessage | LegacyToastInput, data?: ToastOptions) => string | number) &
+type CompatToast = ((
+  message: ToastMessage | LegacyToastInput,
+  data?: ToastOptions
+) => string | number) &
   typeof sonnerToast;
 
 const normalizeToast = (input: LegacyToastInput): { message: ReactNode; data: ExternalToast } => {

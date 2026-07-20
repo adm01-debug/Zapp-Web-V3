@@ -15,6 +15,7 @@ import {
 import { Loader2, Play, Music, Volume2, RefreshCw, Check, Wand2, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 
+import { insertAudioMeme } from '@/hooks/useAudioMemesMutations';
 import { getLogger } from '@/lib/logger';
 const log = getLogger('AIGenerateDialog');
 
@@ -82,17 +83,14 @@ export function AIGenerateDialog({
       } catch (err) {
         log.error('Unexpected error in AIGenerateDialog:', err);
       }
-      const { error: insertError } = await supabase
-        .from('audio_memes')
-        .insert({
-          name: genPrompt.substring(0, 80),
-          audio_url: urlData.publicUrl,
-          category: aiCategory,
-          is_favorite: false,
-          use_count: 0,
-          uploaded_by: user?.id || null,
-        });
-      if (insertError) throw insertError;
+      await insertAudioMeme({
+        name: genPrompt.substring(0, 80),
+        audio_url: urlData.publicUrl,
+        category: aiCategory,
+        is_favorite: false,
+        use_count: 0,
+        uploaded_by: user?.id || null,
+      });
       toast.success(`Áudio salvo como "${aiCategory}"`);
       onOpenChange(false);
       setGenPrompt('');

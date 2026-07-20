@@ -36,6 +36,7 @@ export function useHubTabNavigation(isDev: boolean) {
     if (validated !== tab) {
       setTab(validated);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams, isDev, tab]);
 
   const setValidatedTab = (t: string) => setTab(validateTab(t));

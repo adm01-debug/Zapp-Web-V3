@@ -95,7 +95,9 @@ export function useTeamChatPanel(conversation: TeamConversation) {
 
       // If clearing search, we might want to pre-populate or clean up
       if (!newQuery.trim()) {
-        void queryClient.invalidateQueries({ queryKey: queryKeys.teamChat.messages(conversation.id, '') });
+        void queryClient.invalidateQueries({
+          queryKey: queryKeys.teamChat.messages(conversation.id, ''),
+        });
       }
 
       const duration = performance.now() - start;
@@ -132,7 +134,7 @@ export function useTeamChatPanel(conversation: TeamConversation) {
       setHasNewMessagesUnseen(true);
       setShowScrollDown(true); // Ensure indicator shows up
     }
-  }, [messages.length, profile?.id]);
+  }, [messages.length, profile?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useLayoutEffect(() => {
     // Scroll anchor for infinite scroll UP
@@ -168,7 +170,7 @@ export function useTeamChatPanel(conversation: TeamConversation) {
       }
       lastMessageIdRef.current = latestMsg.id;
     }
-  }, [messages.length]);
+  }, [messages.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSend = useCallback(() => {
     const trimmed = text.trim();
@@ -292,7 +294,12 @@ export function useTeamChatPanel(conversation: TeamConversation) {
   }, []);
 
   // Instrumentation for render cost and update time
-  useEffect(() => () => { if (settingsTimerRef.current) clearTimeout(settingsTimerRef.current); }, []);
+  useEffect(
+    () => () => {
+      if (settingsTimerRef.current) clearTimeout(settingsTimerRef.current);
+    },
+    []
+  );
 
   const renderStartTimeRef = useRef<number>(0);
   useEffect(() => {

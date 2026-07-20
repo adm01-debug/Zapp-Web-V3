@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle2 } from 'lucide-react';
 

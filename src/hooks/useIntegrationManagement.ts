@@ -1,6 +1,6 @@
 // Consolidated Integration Management Module (ETAPA 42)
 // Consolidates: useEvolutionApi, useGmailOAuthFlow, useBitrixApi, useTalkX, useSyncToCRM, useOnboarding
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { log } from '@/lib/logger';
 import { toast } from 'sonner';
@@ -10,6 +10,7 @@ interface Integration {
   type: string;
   name: string;
   is_active: boolean;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   config: Record<string, any>;
 }
 
@@ -20,25 +21,28 @@ export function useEvolutionApiManagement() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    let _mounted = true;
+    let cancelled = false;
     const checkConnection = async () => {
-      if (!_mounted) return;
       try {
         // SCHEMA: zapp — evolution_instances existe como view em zapp (security_invoker=on)
         // Não usar .schema('evo') — evo.evolution_instances não existe no DB (PGRST205).
         const { data, error: err } = await supabase.from('evolution_instances').select('*');
 
+        if (cancelled) return;
         if (err) throw err;
         setInstances(data || []);
         setIsConnected((data || []).length > 0);
       } catch (err) {
         log.error('Error checking Evolution API connection:', err);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
 
     checkConnection();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   return { isConnected, instances, loading };
@@ -46,8 +50,8 @@ export function useEvolutionApiManagement() {
 
 /** Handles Gmail OAuth authentication flow and token management. */
 export function useGmailOAuthFlowManagement() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [isAuthenticated, _setIsAuthenticated] = useState(false);
+  const [loading, _setLoading] = useState(false);
 
   const initiateOAuth = useCallback(async () => {
     // GAP-2: initiate_gmail_oauth RPC not yet deployed to DB
@@ -70,9 +74,8 @@ export function useBitrixApiManagement() {
   const [webhookUrl, setWebhookUrl] = useState<string | null>(null);
 
   useEffect(() => {
-    let _mounted = true;
+    let cancelled = false;
     const checkBitrixConnection = async () => {
-      if (!_mounted) return;
       try {
         const { data, error: err } = await supabase
           .from('integrations')
@@ -80,6 +83,7 @@ export function useBitrixApiManagement() {
           .eq('type', 'bitrix24')
           .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
 
+        if (cancelled) return;
         if (err && err.code !== 'PGRST116') throw err;
         if (data?.config?.webhook_url) {
           setIsConnected(true);
@@ -91,6 +95,9 @@ export function useBitrixApiManagement() {
     };
 
     checkBitrixConnection();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   return { isConnected, webhookUrl };
@@ -99,12 +106,12 @@ export function useBitrixApiManagement() {
 /** Fetches and manages TalkX integration configuration settings. */
 export function useTalkXManagement() {
   const [isEnabled, setIsEnabled] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [config, setConfig] = useState<any>(null);
 
   useEffect(() => {
-    let _mounted = true;
+    let cancelled = false;
     const fetchTalkXConfig = async () => {
-      if (!_mounted) return;
       try {
         const { data, error: err } = await supabase
           .from('integrations')
@@ -112,6 +119,7 @@ export function useTalkXManagement() {
           .eq('type', 'talkx')
           .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
 
+        if (cancelled) return;
         if (err && err.code !== 'PGRST116') throw err;
         if (data) {
           setIsEnabled(true);
@@ -123,6 +131,9 @@ export function useTalkXManagement() {
     };
 
     fetchTalkXConfig();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   return { isEnabled, config };

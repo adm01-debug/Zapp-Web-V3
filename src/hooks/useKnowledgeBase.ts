@@ -74,7 +74,7 @@ export function useKnowledgeBase() {
       );
     if (filesRes.data) setFiles(filesRes.data);
     setLoading(false);
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const saveArticle = useCallback(
     async (

@@ -200,11 +200,7 @@ export function useThemeManagement(): UseThemeReturn {
 
   const cycleTheme = useCallback(() => {
     const nextTheme =
-      themeState.theme === 'light'
-        ? 'dark'
-        : themeState.theme === 'dark'
-          ? 'system'
-          : 'light';
+      themeState.theme === 'light' ? 'dark' : themeState.theme === 'dark' ? 'system' : 'light';
     updateThemeState(nextTheme);
   }, []);
 
@@ -249,7 +245,9 @@ export function useZenModeManagement(): UseZenModeReturn {
       const next = !prev;
       try {
         localStorage.setItem(ZEN_MODE_STORAGE_KEY, String(next));
-      } catch {}
+      } catch {
+        /* localStorage may be unavailable in private mode */
+      }
       return next;
     });
   }, []);
@@ -258,7 +256,9 @@ export function useZenModeManagement(): UseZenModeReturn {
     setIsZen(false);
     try {
       localStorage.setItem(ZEN_MODE_STORAGE_KEY, 'false');
-    } catch {}
+    } catch {
+      /* localStorage may be unavailable in private mode */
+    }
   }, []);
 
   useEffect(() => {
@@ -365,12 +365,14 @@ export function useThemeAuditManagement(): AuditResult {
         }
       }
 
-      const preset = PRESETS.find(p => p.id === presetId);
+      const preset = PRESETS.find((p) => p.id === presetId);
       const shouldHaveInlineFont = !!preset?.font;
 
       if (!computedFont.includes('Inter') && !shouldHaveInlineFont) {
         fontPass = false;
-        violations.push(`[Font] Tipografia desalinhada: --font-sans="${computedFont}" (Esperado: Inter)`);
+        violations.push(
+          `[Font] Tipografia desalinhada: --font-sans="${computedFont}" (Esperado: Inter)`
+        );
       }
 
       const computedPrimary = getComputedStyle(root).getPropertyValue('--primary').trim();

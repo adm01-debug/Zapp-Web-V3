@@ -25,6 +25,7 @@ export function useSpeechToTextManagement(language: string = 'pt-BR'): VoiceStat
     error: null,
   });
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const recognitionRef = useRef<any>(null);
   const mountedRef = useRef(true);
 
@@ -36,8 +37,15 @@ export function useSpeechToTextManagement(language: string = 'pt-BR'): VoiceStat
 
   const startListening = useCallback(() => {
     if (!recognitionRef.current) {
-      const SpeechRecognition = (window as Window & { SpeechRecognition?: typeof globalThis.SpeechRecognition; webkitSpeechRecognition?: typeof globalThis.SpeechRecognition }).SpeechRecognition
-        || (window as Window & { webkitSpeechRecognition?: typeof globalThis.SpeechRecognition }).webkitSpeechRecognition;
+      const SpeechRecognition =
+        (
+          window as Window & {
+            SpeechRecognition?: typeof globalThis.SpeechRecognition;
+            webkitSpeechRecognition?: typeof globalThis.SpeechRecognition;
+          }
+        ).SpeechRecognition ||
+        (window as Window & { webkitSpeechRecognition?: typeof globalThis.SpeechRecognition })
+          .webkitSpeechRecognition;
       if (!SpeechRecognition) {
         if (mountedRef.current) {
           setVoiceState((prev) => ({
@@ -142,24 +150,33 @@ export function useTextToSpeechManagement(text: string) {
     };
   }, []);
 
-  const speak = useCallback((textToSpeak?: string) => {
-    const textContent = textToSpeak || text;
-    if (!textContent) return;
+  const speak = useCallback(
+    (textToSpeak?: string) => {
+      const textContent = textToSpeak || text;
+      if (!textContent) return;
 
-    try {
-      const utterance = new SpeechSynthesisUtterance(textContent);
-      utterance.onstart = () => { if (mountedRef.current) setIsPlaying(true); };
-      utterance.onend = () => { if (mountedRef.current) setIsPlaying(false); };
-      utterance.onerror = (event) => { if (mountedRef.current) setError(event.error); };
+      try {
+        const utterance = new SpeechSynthesisUtterance(textContent);
+        utterance.onstart = () => {
+          if (mountedRef.current) setIsPlaying(true);
+        };
+        utterance.onend = () => {
+          if (mountedRef.current) setIsPlaying(false);
+        };
+        utterance.onerror = (event) => {
+          if (mountedRef.current) setError(event.error);
+        };
 
-      utteranceRef.current = utterance;
-      speechSynthesis.speak(utterance);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Speech synthesis error';
-      setError(message);
-      log.error('Text to speech error:', err);
-    }
-  }, [text]);
+        utteranceRef.current = utterance;
+        speechSynthesis.speak(utterance);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Speech synthesis error';
+        setError(message);
+        log.error('Text to speech error:', err);
+      }
+    },
+    [text]
+  );
 
   const stop = useCallback(() => {
     speechSynthesis.cancel();

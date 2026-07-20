@@ -78,6 +78,7 @@ export default function AdminDevDiagnosticsPage() {
       void loadLogs();
       void logAccess();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isDev]);
 
   if (!isDev && !loading) {

@@ -121,6 +121,7 @@ export function RetryMetricsPanel() {
 
   const { data, isLoading, refetch, isFetching, byInstance } = useRetryMetrics(filters);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const rows = data?.rows ?? [];
   const agg = data?.aggregates;
 
@@ -414,7 +415,7 @@ export function RetryMetricsPanel() {
                                 className="h-5 w-5 p-0"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  copy(row.idempotency_key!);
+                                  copy(row.idempotency_key ?? '');
                                 }}
                               >
                                 <Copy className="h-3 w-3" />

@@ -6,26 +6,23 @@
  * optimistic updates, and invalidation patterns.
  *
  * Usage:
- * const createMutation = mutationFactory.useCreate(
+ * const mutation = useCreateMutation(
  *   contactsService.create,
  *   { invalidateKey: queryKeys.contacts.lists() }
  * );
  */
 
-import {
-  UseMutationOptions,
-  useMutation,
-  useQueryClient,
-} from '@tanstack/react-query';
+import { UseMutationOptions, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from '@/hooks/use-toast';
 import { log } from '@/lib/logger';
 
-interface MutationFactoryOptions<TData, TVariables>
-  extends Omit<
-    UseMutationOptions<TData, Error, TVariables>,
-    'mutationFn'
-  > {
+interface MutationFactoryOptions<TData, TVariables> extends Omit<
+  UseMutationOptions<TData, Error, TVariables>,
+  'mutationFn'
+> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   invalidateKey?: readonly any[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   invalidateKeys?: (readonly any[])[];
   onSuccessMessage?: string;
   onErrorMessage?: string;
@@ -36,7 +33,8 @@ interface MutationFactoryOptions<TData, TVariables>
  * Factory for create mutations
  * Handles common create logic: optimistic updates, invalidation, toasts
  */
-export const createCreateMutation = <TData, TVariables = any>(
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const useCreateMutation = <TData, TVariables = any>(
   mutationFn: (variables: TVariables) => Promise<TData>,
   options?: MutationFactoryOptions<TData, TVariables>
 ) => {
@@ -57,9 +55,7 @@ export const createCreateMutation = <TData, TVariables = any>(
 
       // Show success toast
       if (options?.showToasts !== false) {
-        toast.success(
-          options?.onSuccessMessage || 'Criado com sucesso!'
-        );
+        toast.success(options?.onSuccessMessage || 'Criado com sucesso!');
       }
 
       // Call original onSuccess if provided
@@ -71,10 +67,7 @@ export const createCreateMutation = <TData, TVariables = any>(
 
       // Show error toast
       if (options?.showToasts !== false) {
-        toast.error(
-          options?.onErrorMessage ||
-            'Ocorreu um erro ao criar. Tente novamente.'
-        );
+        toast.error(options?.onErrorMessage || 'Ocorreu um erro ao criar. Tente novamente.');
       }
 
       // Call original onError if provided
@@ -88,7 +81,8 @@ export const createCreateMutation = <TData, TVariables = any>(
 /**
  * Factory for update mutations
  */
-export const createUpdateMutation = <TData, TVariables = any>(
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const useUpdateMutation = <TData, TVariables = any>(
   mutationFn: (variables: TVariables) => Promise<TData>,
   options?: MutationFactoryOptions<TData, TVariables>
 ) => {
@@ -107,9 +101,7 @@ export const createUpdateMutation = <TData, TVariables = any>(
       }
 
       if (options?.showToasts !== false) {
-        toast.success(
-          options?.onSuccessMessage || 'Atualizado com sucesso!'
-        );
+        toast.success(options?.onSuccessMessage || 'Atualizado com sucesso!');
       }
 
       options?.onSuccess?.(data, variables, context);
@@ -119,10 +111,7 @@ export const createUpdateMutation = <TData, TVariables = any>(
       log.error('Mutation error:', error);
 
       if (options?.showToasts !== false) {
-        toast.error(
-          options?.onErrorMessage ||
-            'Ocorreu um erro ao atualizar. Tente novamente.'
-        );
+        toast.error(options?.onErrorMessage || 'Ocorreu um erro ao atualizar. Tente novamente.');
       }
 
       options?.onError?.(error);
@@ -136,7 +125,8 @@ export const createUpdateMutation = <TData, TVariables = any>(
  * Factory for delete mutations
  * Includes confirmation handling
  */
-export const createDeleteMutation = <TData = void, TVariables = any>(
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const useDeleteMutation = <TData = void, TVariables = any>(
   mutationFn: (variables: TVariables) => Promise<TData>,
   options?: MutationFactoryOptions<TData, TVariables> & {
     confirmMessage?: string;
@@ -157,9 +147,7 @@ export const createDeleteMutation = <TData = void, TVariables = any>(
       }
 
       if (options?.showToasts !== false) {
-        toast.success(
-          options?.onSuccessMessage || 'Deletado com sucesso!'
-        );
+        toast.success(options?.onSuccessMessage || 'Deletado com sucesso!');
       }
 
       options?.onSuccess?.(data, variables, context);
@@ -169,10 +157,7 @@ export const createDeleteMutation = <TData = void, TVariables = any>(
       log.error('Mutation error:', error);
 
       if (options?.showToasts !== false) {
-        toast.error(
-          options?.onErrorMessage ||
-            'Ocorreu um erro ao deletar. Tente novamente.'
-        );
+        toast.error(options?.onErrorMessage || 'Ocorreu um erro ao deletar. Tente novamente.');
       }
 
       options?.onError?.(error);
@@ -186,7 +171,8 @@ export const createDeleteMutation = <TData = void, TVariables = any>(
  * Factory for bulk operations
  * Handles multiple mutations with progress tracking
  */
-export const createBulkMutation = <TData, TVariables = any>(
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const useBulkMutation = <TData, TVariables = any>(
   mutationFn: (variables: TVariables[]) => Promise<TData>,
   options?: MutationFactoryOptions<TData, TVariables[]> & {
     onProgress?: (current: number, total: number) => void;
@@ -208,8 +194,7 @@ export const createBulkMutation = <TData, TVariables = any>(
 
       if (options?.showToasts !== false) {
         toast.success(
-          options?.onSuccessMessage ||
-            `${variables.length} itens processados com sucesso!`
+          options?.onSuccessMessage || `${variables.length} itens processados com sucesso!`
         );
       }
 
@@ -220,10 +205,7 @@ export const createBulkMutation = <TData, TVariables = any>(
       log.error('Mutation error:', error);
 
       if (options?.showToasts !== false) {
-        toast.error(
-          options?.onErrorMessage ||
-            'Ocorreu um erro ao processar. Tente novamente.'
-        );
+        toast.error(options?.onErrorMessage || 'Ocorreu um erro ao processar. Tente novamente.');
       }
 
       options?.onError?.(error);
@@ -237,7 +219,8 @@ export const createBulkMutation = <TData, TVariables = any>(
  * Factory for async operations
  * Used for side effects that don't require UI updates
  */
-export const createAsyncMutation = <TData, TVariables = any>(
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const useAsyncMutation = <TData, TVariables = any>(
   mutationFn: (variables: TVariables) => Promise<TData>,
   options?: MutationFactoryOptions<TData, TVariables> & {
     showProgress?: boolean;
@@ -249,10 +232,7 @@ export const createAsyncMutation = <TData, TVariables = any>(
       log.error('Async operation error:', error);
 
       if (options?.showToasts !== false) {
-        toast.error(
-          options?.onErrorMessage ||
-            'Ocorreu um erro ao processar. Tente novamente.'
-        );
+        toast.error(options?.onErrorMessage || 'Ocorreu um erro ao processar. Tente novamente.');
       }
 
       options?.onError?.(error);

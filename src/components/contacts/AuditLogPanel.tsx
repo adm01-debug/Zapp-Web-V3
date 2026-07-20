@@ -86,7 +86,7 @@ export const AuditLogPanel: React.FC<{ contactId: string; maxEntries?: number }>
     } finally {
       if (mountedRef.current) setLoading(false);
     }
-  }, [contactId, maxEntries]);
+  }, [contactId, maxEntries]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     load();

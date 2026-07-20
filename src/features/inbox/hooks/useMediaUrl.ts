@@ -248,7 +248,7 @@ export function useMediaUrl(opts: UseMediaUrlOptions): UseMediaUrlResult {
     })();
     inFlightRef.current = job;
     return job;
-  }, [enabled, instanceName, messageKey, maxAttempts]);
+  }, [enabled, instanceName, messageKey, maxAttempts]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Automatic onError trigger: respeita o cap de tentativas.
   const onError = useCallback(() => {

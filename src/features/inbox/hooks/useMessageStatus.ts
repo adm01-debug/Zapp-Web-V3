@@ -32,7 +32,9 @@ export const useMessageStatus = (contactId?: string) => {
       return;
     }
 
+    let cancelled = false;
     const fetchInitialStatuses = async () => {
+      if (cancelled) return;
       setIsLoading(true);
       try {
         const { data, error } = await dbFrom('messages')
@@ -41,6 +43,7 @@ export const useMessageStatus = (contactId?: string) => {
           .eq('sender', 'agent')
           .not('status', 'is', null);
 
+        if (cancelled) return;
         if (error) {
           log.error('Error fetching message statuses:', error);
           return;
@@ -64,11 +67,14 @@ export const useMessageStatus = (contactId?: string) => {
       } catch (err) {
         log.error('Error in fetchInitialStatuses:', err);
       } finally {
-        setIsLoading(false);
+        if (!cancelled) setIsLoading(false);
       }
     };
 
     fetchInitialStatuses();
+    return () => {
+      cancelled = true;
+    };
   }, [contactId]);
 
   // Subscribe to realtime status updates from DB
@@ -147,7 +153,7 @@ export const useMessageStatus = (contactId?: string) => {
       }
       return undefined;
     },
-    [statusUpdates, busTick]
+    [statusUpdates, busTick] // eslint-disable-line react-hooks/exhaustive-deps
   );
 
   const getMessageStatusDetail = useCallback(
@@ -176,7 +182,7 @@ export const useMessageStatus = (contactId?: string) => {
         errorReason: db?.error_reason ?? undefined,
       };
     },
-    [statusUpdates, busTick, getMessageStatus]
+    [statusUpdates, busTick, getMessageStatus] // eslint-disable-line react-hooks/exhaustive-deps
   );
 
   const updateLocalStatus = useCallback((messageId: string, status: MessageUIStatus) => {

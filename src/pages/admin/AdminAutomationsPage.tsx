@@ -42,7 +42,6 @@ import {
   Building2,
   Radio,
 } from 'lucide-react';
-import { AutomationRuleDialog } from './AutomationRuleDialog';
 
 const SLA_LEVELS = [
   { value: 'low', label: 'Baixa' },

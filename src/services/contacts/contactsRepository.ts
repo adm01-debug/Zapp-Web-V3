@@ -19,6 +19,7 @@ export interface Contact {
   status?: 'active' | 'archived';
   created_at?: string;
   updated_at?: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [key: string]: any;
 }
 
@@ -141,10 +142,7 @@ export const contactsRepository = {
   /**
    * Bulk update status
    */
-  updateStatusBulk: async (
-    ids: string[],
-    status: 'active' | 'archived'
-  ): Promise<Contact[]> => {
+  updateStatusBulk: async (ids: string[], status: 'active' | 'archived'): Promise<Contact[]> => {
     return baseContactsService.updateMany({ id: ids as unknown as string }, { status });
   },
 

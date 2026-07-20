@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { safeWhatsAppConnectionsQuery } from '@/integrations/supabase/safe-queries';
 import { toast } from '@/hooks/use-toast';
@@ -37,6 +37,14 @@ export function useClientWallet() {
     whatsapp_connection_id: '',
     priority: 0,
   });
+  const mountedRef = useRef(false);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -44,6 +52,8 @@ export function useClientWallet() {
       .from('client_wallet_rules')
       .select('*')
       .order('priority', { ascending: false });
+
+    if (!mountedRef.current) return;
 
     if (!rulesError && rulesData) {
       const agentIds = [...new Set(rulesData.map((r) => r.agent_id))];
@@ -61,6 +71,7 @@ export function useClientWallet() {
           ? await safeQueries.getByIds(connectionIds as string[])
           : { data: [], error: null };
 
+      if (!mountedRef.current) return;
       setRules(
         rulesData.map((rule) => ({
           ...rule,
@@ -71,10 +82,12 @@ export function useClientWallet() {
     }
 
     const { data: allAgents } = await supabase.from('profiles').select('id, name').order('name');
+    if (!mountedRef.current) return;
     if (allAgents) setAgents(allAgents);
 
     const safeQueries2 = safeWhatsAppConnectionsQuery(supabase);
     const { data: allConnections } = await safeQueries2.getList();
+    if (!mountedRef.current) return;
     if (allConnections) setConnections(allConnections as unknown as Connection[]);
 
     setLoading(false);

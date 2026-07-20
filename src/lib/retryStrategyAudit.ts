@@ -272,7 +272,7 @@ export class RetryExecutor {
   async execute<T>(fn: () => Promise<T>, shouldRetry?: RetryPolicy): Promise<T> {
     const startTime = Date.now();
     const circuitBreaker = this.circuitBreakerMap.get(this.operationName);
-    const metrics = this.metricsMap.get(this.operationName)!;
+    const metrics = this.metricsMap.get(this.operationName) as RetryMetrics;
 
     if (circuitBreaker && !circuitBreaker.canExecute()) {
       metrics.circuitBreakerTrips++;

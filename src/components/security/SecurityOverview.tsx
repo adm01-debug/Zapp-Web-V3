@@ -17,7 +17,7 @@ import { Progress } from '@/components/ui/progress';
 import { useAuth } from '@/features/auth';
 import { useMFA } from '@/features/auth';
 import { useDeviceDetection } from '@/hooks/useDeviceDetection';
-import { supabase } from '@/integrations/supabase/client';
+import { fetchUserSecurityAlerts, type SecurityAlert } from '@/hooks/useUserSecurityAlerts';
 import { SecurityAlertsPanel, SecurityDevicesPanel } from './SecurityPanels';
 import { normalizeUserDevice } from '@/lib/normalizers';
 
@@ -27,16 +27,6 @@ interface SecurityScore {
   devices: number;
   sessions: number;
   password: number;
-}
-
-interface SecurityAlert {
-  id: string;
-  alert_type: string;
-  severity: string;
-  title: string;
-  description: string | null;
-  created_at: string;
-  is_resolved: boolean | null;
 }
 
 /** Security Overview component for the security section. */
@@ -55,16 +45,9 @@ export function SecurityOverview() {
       if (!user) return;
 
       try {
-        const { data, error } = await supabase
-          .from('security_alerts')
-          .select('*')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false })
-          .limit(5);
-
-        if (error) throw error;
+        const data = await fetchUserSecurityAlerts(user.id);
         if (!mountedRef.current) return;
-        setSecurityAlerts(data || []);
+        setSecurityAlerts(data);
       } catch (error) {
         log.error('Error fetching alerts:', error);
       } finally {
@@ -73,7 +56,7 @@ export function SecurityOverview() {
     }
 
     fetchAlerts();
-  }, [user]);
+  }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Calculate security score
   const calculateScore = (): SecurityScore => {

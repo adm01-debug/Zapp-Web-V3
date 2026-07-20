@@ -9,7 +9,7 @@ import { dbList } from '@/integrations/datasource/db';
 import { RPC } from '@/integrations/datasource/rpcCatalog';
 import { toast } from 'sonner';
 import { log } from '@/lib/logger';
-import { addHours, startOfTomorrow, addDays, setHours } from 'date-fns';
+import { addHours, startOfTomorrow, startOfDay, addDays, setHours } from 'date-fns';
 
 /* ============================================================================
    SECTION 1: useConversationActions - Pin, favorite, snooze management
@@ -32,9 +32,13 @@ export function useConversationActions() {
       data: { user },
     } = await supabase.auth.getUser();
     if (!user || !mountedRef.current) return;
-    const { data } = await supabase.from('profiles').select('id').eq('user_id', user.id).maybeSingle(); // ✅ fix: maybeSingle evita PGRST116
+    const { data } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('user_id', user.id)
+      .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116
     if (data && mountedRef.current) setProfileId(data.id);
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadPinned = useCallback(async (pid: string) => {
     const { data } = await supabase
@@ -42,7 +46,7 @@ export function useConversationActions() {
       .select('contact_id')
       .eq('pinned_by', pid);
     if (data && mountedRef.current) setPinnedIds(new Set(data.map((p) => p.contact_id)));
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadFavorites = useCallback(async () => {
     const {
@@ -55,7 +59,7 @@ export function useConversationActions() {
       .eq('user_id', user.id);
     if (data && mountedRef.current)
       setFavoriteIds(new Set(data.map((f: FavoriteContact) => f.contact_id)));
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadSnoozed = useCallback(async (pid: string) => {
     const { data } = await supabase
@@ -64,7 +68,7 @@ export function useConversationActions() {
       .eq('snoozed_by', pid)
       .gt('snooze_until', new Date().toISOString());
     if (data && mountedRef.current) setSnoozedIds(new Set(data.map((s) => s.contact_id)));
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     loadProfile();
@@ -170,24 +174,22 @@ export function useConversationActions() {
           snoozeUntil = setHours(startOfTomorrow(), 9);
           break;
         case 'nextweek': {
-          const daysUntilMonday = ((1 - now.getDay() + 7) % 7) || 7;
-          snoozeUntil = setHours(addDays(now, daysUntilMonday), 9);
+          const daysUntilMonday = (1 - now.getDay() + 7) % 7 || 7;
+          snoozeUntil = setHours(startOfDay(addDays(now, daysUntilMonday)), 9);
           break;
         }
         default:
           snoozeUntil = addHours(now, 1);
       }
 
-      const { error } = await supabase
-        .from('conversation_snoozes')
-        .upsert(
-          {
-            contact_id: contactId,
-            snoozed_by: profileId,
-            snooze_until: snoozeUntil.toISOString(),
-          },
-          { onConflict: 'contact_id,snoozed_by' }
-        );
+      const { error } = await supabase.from('conversation_snoozes').upsert(
+        {
+          contact_id: contactId,
+          snoozed_by: profileId,
+          snooze_until: snoozeUntil.toISOString(),
+        },
+        { onConflict: 'contact_id,snoozed_by' }
+      );
       if (!error) {
         setSnoozedIds((prev) => new Set([...prev, contactId]));
         toast.success('Conversa adiada');
@@ -245,6 +247,7 @@ export function useConversationAnalyses(contactId: string | null) {
   const [analyses, setAnalyses] = useState<ConversationAnalysis[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const mountedRef = useMountedRef();
 
   const fetchAnalyses = useCallback(async () => {
     if (!contactId) return;
@@ -258,16 +261,17 @@ export function useConversationAnalyses(contactId: string | null) {
         .order('created_at', { ascending: false })
         .limit(20);
 
+      if (!mountedRef.current) return;
       if (error) throw error;
 
       setAnalyses((data || []) as ConversationAnalysis[]);
     } catch (err) {
       log.error('Error fetching analyses:', err);
-      setError(err instanceof Error ? err.message : 'Unknown error');
+      if (mountedRef.current) setError(err instanceof Error ? err.message : 'Unknown error');
     } finally {
-      setLoading(false);
+      if (mountedRef.current) setLoading(false);
     }
-  }, [contactId]);
+  }, [contactId, mountedRef]);
 
   useEffect(() => {
     void fetchAnalyses();

@@ -91,7 +91,9 @@ export function useEvolutionAutoSync(onSynced?: () => void) {
       }
 
       // 5. Refresh connections list and invalidate React Query caches
-      void queryClient.invalidateQueries({ queryKey: queryKeys.adminOps.whatsappConnectionsCsat() });
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.adminOps.whatsappConnectionsCsat(),
+      });
       void queryClient.invalidateQueries({ queryKey: queryKeys.talkx.waConnections() });
       void queryClient.invalidateQueries({ queryKey: queryKeys.connections.all() });
       onSynced?.();
@@ -104,6 +106,7 @@ export function useEvolutionAutoSync(onSynced?: () => void) {
     if (ran.current) return;
     ran.current = true;
     void syncAll();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // intentionally empty — runs once on mount
 
   return { syncAll };

@@ -58,6 +58,7 @@ export function ConnectionsView() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [showDiagnostic, setShowDiagnostic] = useState(false);
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const maskSensitiveData = (obj: any) => {
     if (!obj) return null;
     const masked = { ...obj };
@@ -75,6 +76,7 @@ export function ConnectionsView() {
       'cookie',
     ];
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const maskValue = (o: any) => {
       if (typeof o !== 'object' || o === null) return o;
       for (const key in o) {
@@ -117,7 +119,6 @@ export function ConnectionsView() {
     handleDelete,
     handleAddConnection,
     closeQrDialog,
-    handleAddConnection,
   } = useConnectionsManager();
 
   // Auto-sync Evolution instances not yet in whatsapp_connections

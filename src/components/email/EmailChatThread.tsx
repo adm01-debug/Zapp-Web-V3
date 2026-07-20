@@ -8,7 +8,7 @@ import { type EmailThread, type EmailMessage } from '@/hooks/gmail/gmailTypes';
 import { EmailChatBubble } from './EmailChatBubble';
 import { EmailChatReplyBar } from './EmailChatReplyBar';
 import { EmailSLABadge, SLAProgressBar } from './EmailSLABadge';
-import { useEmailSLA } from '@/hooks/useEmailSLA';
+import { useEmailSLA } from '@/hooks/useEmailManagement';
 
 interface EmailChatThreadProps {
   thread: EmailThread;

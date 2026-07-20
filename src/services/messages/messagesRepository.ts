@@ -6,7 +6,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { createService } from '@/services/api/genericService';
-import type { ListResponse, QueryParams } from '@/services/api/types';
+import type { QueryParams } from '@/services/api/types';
 
 /** Message interface. */
 export interface Message {
@@ -45,20 +45,15 @@ const conversationsBaseService = createService<Conversation>('conversations');
 /** messages Repository constant. */
 export const messagesRepository = {
   // Messages
-  listMessages: (filters?: Partial<Message> & QueryParams) =>
-    messagesBaseService.list(filters),
+  listMessages: (filters?: Partial<Message> & QueryParams) => messagesBaseService.list(filters),
 
-  getMessage: (id: string) =>
-    messagesBaseService.get(id),
+  getMessage: (id: string) => messagesBaseService.get(id),
 
-  createMessage: (data: Partial<Message>) =>
-    messagesBaseService.create(data),
+  createMessage: (data: Partial<Message>) => messagesBaseService.create(data),
 
-  updateMessage: (id: string, updates: Partial<Message>) =>
-    messagesBaseService.update(id, updates),
+  updateMessage: (id: string, updates: Partial<Message>) => messagesBaseService.update(id, updates),
 
-  deleteMessage: (id: string) =>
-    messagesBaseService.delete(id),
+  deleteMessage: (id: string) => messagesBaseService.delete(id),
 
   // Conversation messages
   async listConversationMessages(conversationId: string, filters?: Partial<QueryParams>) {
@@ -77,17 +72,14 @@ export const messagesRepository = {
   listConversations: (filters?: Partial<Conversation> & QueryParams) =>
     conversationsBaseService.list(filters),
 
-  getConversation: (id: string) =>
-    conversationsBaseService.get(id),
+  getConversation: (id: string) => conversationsBaseService.get(id),
 
-  createConversation: (data: Partial<Conversation>) =>
-    conversationsBaseService.create(data),
+  createConversation: (data: Partial<Conversation>) => conversationsBaseService.create(data),
 
   updateConversation: (id: string, updates: Partial<Conversation>) =>
     conversationsBaseService.update(id, updates),
 
-  deleteConversation: (id: string) =>
-    conversationsBaseService.delete(id),
+  deleteConversation: (id: string) => conversationsBaseService.delete(id),
 
   // Unread messages count
   async getUnreadMessagesCount(conversationId: string) {
@@ -101,7 +93,7 @@ export const messagesRepository = {
   },
 
   // Mark as read
-  async markMessagesAsRead(conversationId: string, userId: string) {
+  async markMessagesAsRead(conversationId: string, _userId: string) {
     const { error } = await supabase
       .from('messages')
       .update({ is_read: true, read_at: new Date().toISOString() })
@@ -110,5 +102,4 @@ export const messagesRepository = {
 
     return { error };
   },
-
 };

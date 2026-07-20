@@ -46,7 +46,12 @@ export function SoundSelector({
 }: SoundSelectorProps) {
   const [isTesting, setIsTesting] = useState(false);
   const testingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  useEffect(() => () => { if (testingTimerRef.current !== null) clearTimeout(testingTimerRef.current); }, []);
+  useEffect(
+    () => () => {
+      if (testingTimerRef.current !== null) clearTimeout(testingTimerRef.current);
+    },
+    []
+  );
 
   const handleTest = () => {
     setIsTesting(true);

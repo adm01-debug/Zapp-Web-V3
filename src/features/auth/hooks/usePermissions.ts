@@ -94,7 +94,7 @@ export function usePermissions() {
     } finally {
       if (mountedRef.current) setFetchingAll(false);
     }
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (user) fetchAllPermissionsData();

@@ -106,14 +106,18 @@ export function useAuthForm() {
   }, [lockStatus.remainingTime]);
 
   useEffect(() => {
+    let cancelled = false;
     const checkLock = async () => {
       if (formData.email && formData.email.includes('@')) {
         const status = await checkAccountLock(formData.email);
-        setLockStatus(status);
+        if (!cancelled && mountedRef.current) setLockStatus(status);
       }
     };
     const debounce = setTimeout(checkLock, 500);
-    return () => clearTimeout(debounce);
+    return () => {
+      cancelled = true;
+      clearTimeout(debounce);
+    };
   }, [formData.email]);
 
   const handleLogin = async (e: React.FormEvent) => {

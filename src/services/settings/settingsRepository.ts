@@ -6,7 +6,6 @@
  */
 
 import { supabase } from '@/integrations/supabase/client';
-import type { QueryParams } from '@/services/api/types';
 
 /** User Settings interface. */
 export interface UserSettings {
@@ -18,6 +17,7 @@ export interface UserSettings {
   email_notifications: boolean;
   desktop_notifications: boolean;
   timezone?: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   preferences?: Record<string, any>;
   created_at: string;
   updated_at: string;
@@ -34,6 +34,7 @@ export interface WorkspaceSettings {
   working_hours_start?: string;
   working_hours_end?: string;
   timezone?: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   settings?: Record<string, any>;
   created_at: string;
   updated_at: string;
@@ -47,7 +48,7 @@ export const settingsRepository = {
       .from('user_settings')
       .select('*')
       .eq('user_id', userId)
-      .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
+      .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
 
     if (error) return null;
     return data;
@@ -59,7 +60,7 @@ export const settingsRepository = {
       .update(updates)
       .eq('user_id', userId)
       .select()
-      .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
+      .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
 
     return { data, error };
   },
@@ -72,7 +73,7 @@ export const settingsRepository = {
         ...settings,
       })
       .select()
-      .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
+      .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
 
     return { data, error };
   },
@@ -83,7 +84,7 @@ export const settingsRepository = {
       .from('workspace_settings')
       .select('*')
       .eq('workspace_id', workspaceId)
-      .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
+      .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
 
     if (error) return null;
     return data;
@@ -95,7 +96,7 @@ export const settingsRepository = {
       .update(updates)
       .eq('workspace_id', workspaceId)
       .select()
-      .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
+      .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
 
     return { data, error };
   },
@@ -108,7 +109,7 @@ export const settingsRepository = {
         ...settings,
       })
       .select()
-      .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
+      .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
 
     return { data, error };
   },
@@ -125,12 +126,18 @@ export const settingsRepository = {
           table: 'user_settings',
           filter: `user_id=eq.${userId}`,
         },
-        (payload: { new: unknown; old: unknown }) => callback((payload.new || payload.old) as UserSettings)
+        (payload: { eventType: string; new: unknown; old: unknown }) => {
+          if (payload.eventType === 'DELETE') return;
+          callback(payload.new as UserSettings);
+        }
       )
       .subscribe();
   },
 
-  subscribeToWorkspaceSettings: (workspaceId: string, callback: (settings: WorkspaceSettings) => void) => {
+  subscribeToWorkspaceSettings: (
+    workspaceId: string,
+    callback: (settings: WorkspaceSettings) => void
+  ) => {
     return supabase
       .channel(`workspace_settings:${workspaceId}`)
       .on(
@@ -141,7 +148,10 @@ export const settingsRepository = {
           table: 'workspace_settings',
           filter: `workspace_id=eq.${workspaceId}`,
         },
-        (payload: { new: unknown; old: unknown }) => callback((payload.new || payload.old) as WorkspaceSettings)
+        (payload: { eventType: string; new: unknown; old: unknown }) => {
+          if (payload.eventType === 'DELETE') return;
+          callback(payload.new as WorkspaceSettings);
+        }
       )
       .subscribe();
   },

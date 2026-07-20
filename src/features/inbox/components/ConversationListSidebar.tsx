@@ -92,7 +92,7 @@ export function ConversationListSidebar({
 
   const handleAgentChange = useCallback(
     (agentId: string | null) => inboxFilters.setFilters({ ...inboxFilters.filters, agentId }),
-    [inboxFilters],
+    [inboxFilters]
   );
 
   const onSearchFocus = useCallback(() => contactSearchRef.current?.focus(), []);
@@ -110,6 +110,7 @@ export function ConversationListSidebar({
       );
     }
   }, [inbox.selectedContactId]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const onRefresh = useCallback(() => inbox.refetch(), [inbox.refetch]);
 
   useInboxShortcuts({
@@ -353,7 +354,6 @@ export function ConversationListSidebar({
           >
             <VirtualizedRealtimeList
               conversations={inboxFilters.filteredConversations}
-
               selectedContactId={inbox.selectedContactId}
               onSelectConversation={inbox.handleSelectConversation}
               selectionMode={bulkActions.selectionMode}

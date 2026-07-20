@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { CheckCircle2, XCircle } from 'lucide-react';

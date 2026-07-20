@@ -26,24 +26,35 @@ export function useSipConnection() {
   const mountedRef = useMountedRef();
   const maxReconnectAttempts = 5;
 
-  useEffect(() => () => {
-    if (reconnectTimerRef.current) {
-      clearTimeout(reconnectTimerRef.current);
-      reconnectTimerRef.current = null;
-    }
-    // Tear down the SIP registration and WebSocket transport on unmount, otherwise
-    // the UserAgent keeps a registered session and an open socket alive in the background.
-    reconnectAttemptsRef.current = maxReconnectAttempts; // suppress auto-reconnect during teardown
-    const registerer = registererRef.current;
-    const ua = uaRef.current;
-    if (ua) ua.transport.onDisconnect = () => {};
-    (async () => {
-      try { if (registerer) await registerer.unregister(); } catch { /* ignore */ }
-      try { if (ua) await ua.stop(); } catch { /* ignore */ }
-    })();
-    registererRef.current = null;
-    uaRef.current = null;
-  }, []);
+  useEffect(
+    () => () => {
+      if (reconnectTimerRef.current) {
+        clearTimeout(reconnectTimerRef.current);
+        reconnectTimerRef.current = null;
+      }
+      // Tear down the SIP registration and WebSocket transport on unmount, otherwise
+      // the UserAgent keeps a registered session and an open socket alive in the background.
+      reconnectAttemptsRef.current = maxReconnectAttempts; // suppress auto-reconnect during teardown
+      const registerer = registererRef.current;
+      const ua = uaRef.current;
+      if (ua) ua.transport.onDisconnect = () => {};
+      void (async () => {
+        try {
+          if (registerer) await registerer.unregister();
+        } catch {
+          /* ignore */
+        }
+        try {
+          if (ua) await ua.stop();
+        } catch {
+          /* ignore */
+        }
+      })();
+      registererRef.current = null;
+      uaRef.current = null;
+    },
+    []
+  );
 
   const connect = useCallback(async (config: SipConfig) => {
     try {
@@ -52,8 +63,16 @@ export function useSipConnection() {
       // does not leave a second registered session / open socket behind.
       if (uaRef.current) {
         uaRef.current.transport.onDisconnect = () => {};
-        try { if (registererRef.current) await registererRef.current.unregister(); } catch { /* ignore */ }
-        try { await uaRef.current.stop(); } catch { /* ignore */ }
+        try {
+          if (registererRef.current) await registererRef.current.unregister();
+        } catch {
+          /* ignore */
+        }
+        try {
+          await uaRef.current.stop();
+        } catch {
+          /* ignore */
+        }
         uaRef.current = null;
         registererRef.current = null;
       }
@@ -77,7 +96,9 @@ export function useSipConnection() {
         if (reconnectAttemptsRef.current < maxReconnectAttempts) {
           reconnectAttemptsRef.current++;
           const delay = Math.min(1000 * Math.pow(2, reconnectAttemptsRef.current), 30000);
-          toast.info(`Conexão perdida. Reconectando em ${delay / 1000}s... (tentativa ${reconnectAttemptsRef.current}/${maxReconnectAttempts})`);
+          toast.info(
+            `Conexão perdida. Reconectando em ${delay / 1000}s... (tentativa ${reconnectAttemptsRef.current}/${maxReconnectAttempts})`
+          );
           if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
           reconnectTimerRef.current = setTimeout(() => {
             reconnectTimerRef.current = null;
@@ -90,12 +111,18 @@ export function useSipConnection() {
       };
 
       await ua.start();
-      if (!mountedRef.current) { await ua.stop().catch(() => {}); return; }
+      if (!mountedRef.current) {
+        await ua.stop().catch(() => {});
+        return;
+      }
       const registerer = new Registerer(ua);
       registerer.stateChange.addListener((state) => {
         if (!mountedRef.current) return;
-        if (state === 'Registered') { setSipStatus('registered'); reconnectAttemptsRef.current = 0; toast.success('VoIP conectado!'); }
-        else if (state === 'Unregistered' || state === 'Terminated') setSipStatus('disconnected');
+        if (state === 'Registered') {
+          setSipStatus('registered');
+          reconnectAttemptsRef.current = 0;
+          toast.success('VoIP conectado!');
+        } else if (state === 'Unregistered' || state === 'Terminated') setSipStatus('disconnected');
       });
       await registerer.register();
       uaRef.current = ua;
@@ -103,9 +130,11 @@ export function useSipConnection() {
     } catch (err: unknown) {
       log.error('SIP connection error:', err);
       if (mountedRef.current) setSipStatus('error');
-      toast.error(`Erro ao conectar VoIP: ${err instanceof Error ? err.message : 'Falha na conexão'}`);
+      toast.error(
+        `Erro ao conectar VoIP: ${err instanceof Error ? err.message : 'Falha na conexão'}`
+      );
     }
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const disconnect = useCallback(async () => {
     try {
@@ -115,12 +144,16 @@ export function useSipConnection() {
         reconnectTimerRef.current = null;
       }
       if (registererRef.current) await registererRef.current.unregister();
-      if (uaRef.current) { uaRef.current.transport.onDisconnect = () => {}; await uaRef.current.stop(); }
+      if (uaRef.current) {
+        uaRef.current.transport.onDisconnect = () => {};
+        await uaRef.current.stop();
+      }
       if (mountedRef.current) setSipStatus('disconnected');
       reconnectAttemptsRef.current = 0;
-    } catch (err) { log.error('SIP disconnect error:', err); }
-  }, []);
+    } catch (err) {
+      log.error('SIP disconnect error:', err);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return { sipStatus, uaRef, connect, disconnect };
 }
-

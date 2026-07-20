@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, type ComponentType } from 'react';
 import { useMountedRef } from '@/hooks/useMountedRef';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { fetchPaymentLinks, createPaymentLink, deletePaymentLink } from '@/hooks/usePaymentLinks';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Button } from '@/components/ui/button';
@@ -43,15 +44,9 @@ export function PaymentLinksView() {
 
   const fetchData = useCallback(async () => {
     setLoading(true);
-    const { data } = await supabase
-      .from('payment_links')
-      .select('*')
-      .order('created_at', { ascending: false });
+    const data = await fetchPaymentLinks();
     if (mountedRef.current) {
-      if (data)
-        setLinks(
-          data.map((row) => normalizePaymentLink(row as unknown as Record<string, unknown>))
-        );
+      setLinks(data.map((row) => normalizePaymentLink(row as unknown as Record<string, unknown>)));
       setLoading(false);
     }
   }, [mountedRef]);
@@ -80,7 +75,7 @@ export function PaymentLinksView() {
     // Generate a simple payment URL (in production would integrate with Stripe/payment provider)
     const paymentUrl = `${window.location.origin}/pay/${crypto.randomUUID().slice(0, 8)}`;
 
-    const { error } = await supabase.from('payment_links').insert({
+    const { error } = await createPaymentLink({
       title: formTitle,
       description: formDescription || null,
       amount,
@@ -108,7 +103,7 @@ export function PaymentLinksView() {
   };
 
   const deleteLink = async (id: string) => {
-    await supabase.from('payment_links').delete().eq('id', id);
+    await deletePaymentLink(id);
     toast({ title: 'Link removido' });
     fetchData();
   };
@@ -233,7 +228,7 @@ export function PaymentLinksView() {
                           variant="ghost"
                           size="icon"
                           className="h-7 w-7"
-                          onClick={() => copyLink(link.payment_url!)}
+                          onClick={() => copyLink(link.payment_url ?? '')}
                         >
                           <Copy className="h-3.5 w-3.5" />
                         </Button>

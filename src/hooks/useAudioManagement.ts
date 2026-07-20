@@ -47,6 +47,14 @@ export function useAudioMemes(open: boolean) {
   const [playingId, setPlayingId] = useState<string | null>(null);
   const [pendingUpload, setPendingUpload] = useState<PendingUpload | null>(null);
 
+  const mountedRef = useRef(false);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -59,16 +67,16 @@ export function useAudioMemes(open: boolean) {
     });
 
     if (!error && data) {
-      setMemes(data);
+      if (mountedRef.current) setMemes(data);
     } else if (error) {
       log.error('fetchMemes error', error);
       const { data: basicData } = await supabase
         .from('audio_memes')
         .select('*')
         .order('use_count', { ascending: false });
-      if (basicData) setMemes(basicData as AudioMemeItem[]);
+      if (basicData && mountedRef.current) setMemes(basicData as AudioMemeItem[]);
     }
-    setLoading(false);
+    if (mountedRef.current) setLoading(false);
   }, []);
 
   useEffect(() => {
@@ -438,7 +446,7 @@ export function useAudioPlayer({ audioUrl, messageId, refreshKey }: UseAudioPlay
             if (idx !== -1) {
               const pathWithQuery = url.substring(idx + marker.length);
               const path = decodeURIComponent(pathWithQuery.split('?')[0]);
-              const { data } = await supabase.storage.from(bucket).createSignedUrl(path, 604800) // ✅ fix: 7d TTL (era 1h — URLs quebravam após 1h);
+              const { data } = await supabase.storage.from(bucket).createSignedUrl(path, 604800); // ✅ fix: 7d TTL (era 1h — URLs quebravam após 1h);
               if (data?.signedUrl) return data.signedUrl;
             }
           }
@@ -465,7 +473,7 @@ export function useAudioPlayer({ audioUrl, messageId, refreshKey }: UseAudioPlay
           if (files && files.length > 0) {
             const { data } = await supabase.storage
               .from(bucket)
-              .createSignedUrl(files[0].name, 604800) // ✅ fix: 7d TTL (era 1h — URLs quebravam após 1h);
+              .createSignedUrl(files[0].name, 604800); // ✅ fix: 7d TTL (era 1h — URLs quebravam após 1h);
             if (data?.signedUrl) return data.signedUrl;
           }
         }
@@ -755,7 +763,10 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
         streamRef.current = stream;
         chunksRef.current = [];
 
-        const audioContext = new (window.AudioContext || (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext)();
+        const audioContext = new (
+          window.AudioContext ||
+          (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
+        )();
 
         if (audioContext.state === 'suspended') {
           await audioContext.resume();
@@ -914,6 +925,7 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
         });
       }
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [maxDuration, onRecordingComplete]
   );
 
@@ -1038,7 +1050,7 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
 
     const { data: signedData, error: signError } = await supabase.storage
       .from('audio-messages')
-      .createSignedUrl(fileName, 604800) // ✅ fix: 7d TTL (era 1h — URLs quebravam após 1h);
+      .createSignedUrl(fileName, 604800); // ✅ fix: 7d TTL (era 1h — URLs quebravam após 1h);
 
     if (signError || !signedData?.signedUrl) {
       throw signError || new Error('Failed to create signed URL');

@@ -77,7 +77,7 @@ export function useNewConversation(
       setIsLoading(false);
     }, 300);
     return () => clearTimeout(timeout);
-  }, [searchQuery, mode]);
+  }, [searchQuery, mode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const resetForm = () => {
     setSearchQuery('');
@@ -119,7 +119,7 @@ export function useNewConversation(
             whatsapp_connection_id: selectedConnection || null,
           })
           .select('id')
-          .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
+          .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
         if (newContactErr) {
           if (newContactErr.code === '23505') {
             toast.error('Já existe um contato com este número de telefone.');

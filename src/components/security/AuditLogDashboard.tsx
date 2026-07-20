@@ -23,21 +23,9 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
+import { fetchAuditLogs, type AuditLog } from '@/hooks/useAuditLogsDashboard';
 import { ptBR } from 'date-fns/locale';
-
-interface AuditLog {
-  id: string;
-  action: string;
-  entity_type: string | null;
-  entity_id: string | null;
-  user_id: string | null;
-  details: Record<string, unknown> | null;
-  ip_address: string | null;
-  user_agent: string | null;
-  created_at: string;
-}
 
 const ACTION_COLORS: Record<string, string> = {
   login: 'bg-success/10 text-success',
@@ -76,27 +64,17 @@ export function AuditLogDashboard() {
 
   useEffect(() => {
     fetchLogs();
-  }, [actionFilter, entityFilter]);
+  }, [actionFilter, entityFilter]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchLogs = async () => {
     setLoading(true);
-    let query = supabase
-      .from('audit_logs')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .limit(200);
-
-    if (actionFilter !== 'all') {
-      query = query.eq('action', actionFilter);
-    }
-    if (entityFilter !== 'all') {
-      query = query.eq('entity_type', entityFilter);
-    }
-
-    const { data, error } = await query;
-    if (!mountedRef.current) return;
-    if (!error && data) {
-      setLogs(data as AuditLog[]); // ignore-audit: narrows details from Supabase Json to Record<string,unknown>
+    try {
+      const data = await fetchAuditLogs(
+        actionFilter !== 'all' ? actionFilter : '',
+        entityFilter !== 'all' ? entityFilter : '',
+      );
+      if (!mountedRef.current) return;
+      setLogs(data);
 
       const today = new Date().toISOString().split('T')[0];
       const todayLogs = data.filter((l) => l.created_at.startsWith(today));
@@ -114,8 +92,11 @@ export function AuditLogDashboard() {
         suspicious: suspicious.length,
         uniqueUsers: uniqueUsers.size,
       });
+    } catch {
+      // silently ignore
+    } finally {
+      if (mountedRef.current) setLoading(false);
     }
-    setLoading(false);
   };
 
   const filteredLogs = logs.filter((log) => {

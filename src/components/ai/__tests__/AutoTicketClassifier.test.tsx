@@ -233,7 +233,7 @@ describe('AutoTicketClassifier', () => {
   // ===== EDGE CASES =====
   describe('Edge cases', () => {
     it('handles null contact', () => {
-      const contact: any = null;
+      const contact: { name?: string } | null = null;
       const name = contact?.name || 'Desconhecido';
       expect(name).toBe('Desconhecido');
     });

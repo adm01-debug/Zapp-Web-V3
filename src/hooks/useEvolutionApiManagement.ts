@@ -24,13 +24,12 @@ import { log } from '@/lib/logger';
 import { normalizeIdempotencyKey, deriveIdempotencyKey } from '@/lib/idempotency';
 import { loadRetryConfig, getRetryConfigSync } from '@/lib/retryConfig';
 import {
-  isEndpointUnavailable,
   withV237Fallback,
   fallbackFindChats,
   fallbackFindContacts,
   fallbackFetchProfile,
 } from '@/hooks/evolution/v237Fallbacks';
-import { getLogger } from '@/lib/logger';
+
 import type {
   SendMessageParams,
   SendTextOptions,
@@ -122,7 +121,10 @@ async function sleep(ms: number, signal?: AbortSignal): Promise<void> {
   return new Promise((resolve, reject) => {
     const timer = setTimeout(resolve, ms);
     if (signal) {
-      const onAbort = () => { clearTimeout(timer); reject(new DOMException('Aborted', 'AbortError')); };
+      const onAbort = () => {
+        clearTimeout(timer);
+        reject(new DOMException('Aborted', 'AbortError'));
+      };
       if (signal.aborted) return onAbort();
       signal.addEventListener('abort', onAbort, { once: true });
     }
@@ -142,10 +144,13 @@ export function useEvolutionApiCore() {
   }, []);
 
   const callApi = useCallback(
-    async <T = unknown>(action: string, body?: object, methodOrOptions: HttpMethod | CallApiOptions = 'POST'): Promise<T> => {
-      const opts: CallApiOptions = typeof methodOrOptions === 'string'
-        ? { method: methodOrOptions }
-        : methodOrOptions;
+    async <T = unknown>(
+      action: string,
+      body?: object,
+      methodOrOptions: HttpMethod | CallApiOptions = 'POST'
+    ): Promise<T> => {
+      const opts: CallApiOptions =
+        typeof methodOrOptions === 'string' ? { method: methodOrOptions } : methodOrOptions;
       const method: HttpMethod = opts.method ?? 'POST';
       const dynCfg = getRetryConfigSync();
       const baseBackoffMs = opts.baseBackoffMs ?? dynCfg.baseBackoffMs;
@@ -158,9 +163,8 @@ export function useEvolutionApiCore() {
           sanitizedPrefix: userKey?.slice(0, 16),
         });
       }
-      const derivedKey = !userKey && method === 'POST'
-        ? await deriveIdempotencyKey(action, body)
-        : undefined;
+      const derivedKey =
+        !userKey && method === 'POST' ? await deriveIdempotencyKey(action, body) : undefined;
       const effectiveKey = userKey ?? derivedKey;
 
       const canRetry = IDEMPOTENT_METHODS.has(method) || !!userKey;
@@ -168,7 +172,9 @@ export function useEvolutionApiCore() {
 
       const dedupeKey = effectiveKey
         ? `${method}:${action}:${effectiveKey}`
-        : (IDEMPOTENT_METHODS.has(method) ? `${method}:${action}` : '');
+        : IDEMPOTENT_METHODS.has(method)
+          ? `${method}:${action}`
+          : '';
       if (dedupeKey) {
         const existing = inflightRef.current.get(dedupeKey);
         if (existing) return existing as Promise<T>;
@@ -186,7 +192,12 @@ export function useEvolutionApiCore() {
           const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
           try {
-            const invokeOpts: { method: 'POST'; body: object; headers?: Record<string, string>; signal?: AbortSignal } = {
+            const invokeOpts: {
+              method: 'POST';
+              body: object;
+              headers?: Record<string, string>;
+              signal?: AbortSignal;
+            } = {
               method: 'POST',
               body: body ?? {},
               signal: controller.signal,
@@ -195,7 +206,10 @@ export function useEvolutionApiCore() {
               invokeOpts.headers = { 'Idempotency-Key': userKey };
             }
 
-            const { data, error } = await supabase.functions.invoke(`evolution-api/${action}`, invokeOpts);
+            const { data, error } = await supabase.functions.invoke(
+              `evolution-api/${action}`,
+              invokeOpts
+            );
             if (error) {
               const err = Object.assign(new Error(error.message || 'Evolution API error'), {
                 apiStatus: (error as { status?: number }).status,
@@ -203,7 +217,12 @@ export function useEvolutionApiCore() {
               throw err;
             }
             if (data && typeof data === 'object' && (data as { error?: boolean }).error === true) {
-              const d = data as { message?: string; details?: unknown; status?: number; retryAfter?: unknown };
+              const d = data as {
+                message?: string;
+                details?: unknown;
+                status?: number;
+                retryAfter?: unknown;
+              };
               const apiError = Object.assign(new Error(d.message || 'Evolution API error'), {
                 details: d.details,
                 apiStatus: d.status,
@@ -221,7 +240,11 @@ export function useEvolutionApiCore() {
 
             const backoff = err.retryAfterMs ?? baseBackoffMs * 2 ** (attempt - 1);
             const jitter = Math.floor(Math.random() * 100);
-            try { await sleep(backoff + jitter); } catch { break; }
+            try {
+              await sleep(backoff + jitter);
+            } catch {
+              break;
+            }
             continue;
           } finally {
             clearTimeout(timeoutId);
@@ -240,7 +263,7 @@ export function useEvolutionApiCore() {
       if (dedupeKey) inflightRef.current.set(dedupeKey, wrapped);
       return wrapped;
     },
-    [],
+    [] // eslint-disable-line react-hooks/exhaustive-deps
   );
 
   const withToast = useCallback(
@@ -249,7 +272,7 @@ export function useEvolutionApiCore() {
       body: object | undefined,
       successMsg: string,
       errorMsg: string,
-      methodOrOptions: HttpMethod | CallApiOptions = 'POST',
+      methodOrOptions: HttpMethod | CallApiOptions = 'POST'
     ): Promise<T> => {
       try {
         const data = await callApi<T>(action, body, methodOrOptions);
@@ -261,7 +284,7 @@ export function useEvolutionApiCore() {
         throw error;
       }
     },
-    [callApi],
+    [callApi]
   );
 
   return { isLoading, callApi, withToast };
@@ -274,7 +297,13 @@ export function useEvolutionApiCore() {
 /** Provides instance lifecycle operations: create, connect, reconnect, logout, restart, delete, and QR/pairing-code retrieval against the Evolution API. */
 function useEvolutionInstance(
   callApi: (action: string, body?: object, method?: HttpMethod) => Promise<unknown>,
-  withToast: (action: string, body: object | undefined, successMsg: string, errorMsg: string, method?: HttpMethod) => Promise<unknown>
+  withToast: (
+    action: string,
+    body: object | undefined,
+    successMsg: string,
+    errorMsg: string,
+    method?: HttpMethod
+  ) => Promise<unknown>
 ) {
   const createInstance = useCallback(
     (params: CreateInstanceParams) =>
@@ -385,8 +414,18 @@ function useEvolutionInstance(
 
 /** Provides all outbound messaging operations: text, media, audio, sticker, location, contact, reaction, poll, list, button, and template sends; plus read-marking, chat archiving, muting, and message editing/deletion. */
 function useEvolutionMessaging(
-  callApi: (action: string, body?: object, methodOrOptions?: HttpMethod | CallApiOptions) => Promise<unknown>,
-  withToast: (action: string, body: object | undefined, successMsg: string, errorMsg: string, methodOrOptions?: HttpMethod | CallApiOptions) => Promise<unknown>
+  callApi: (
+    action: string,
+    body?: object,
+    methodOrOptions?: HttpMethod | CallApiOptions
+  ) => Promise<unknown>,
+  withToast: (
+    action: string,
+    body: object | undefined,
+    successMsg: string,
+    errorMsg: string,
+    methodOrOptions?: HttpMethod | CallApiOptions
+  ) => Promise<unknown>
 ) {
   const sendTextMessage = useCallback(
     (instanceName: string, number: string, text: string, options?: SendTextOptions) =>
@@ -704,7 +743,13 @@ function useEvolutionMessaging(
 /** Provides group lifecycle operations: create, list, fetch group info, manage participants (add/remove/promote/demote), update subject/description/picture, toggle ephemeral mode, and manage invite codes. */
 function useEvolutionGroups(
   callApi: (action: string, body?: object, method?: HttpMethod) => Promise<unknown>,
-  withToast: (action: string, body: object | undefined, successMsg: string, errorMsg: string, method?: HttpMethod) => Promise<unknown>
+  withToast: (
+    action: string,
+    body: object | undefined,
+    successMsg: string,
+    errorMsg: string,
+    method?: HttpMethod
+  ) => Promise<unknown>
 ) {
   const createGroup = useCallback(
     (instanceName: string, subject: string, description: string, participants: string[]) =>

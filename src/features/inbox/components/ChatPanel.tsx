@@ -12,7 +12,7 @@ import { useUserSettings } from '@/hooks/useUserSettings';
 
 import { useScheduledMessages } from '@/hooks/useScheduledMessages';
 import { useMessageSignature } from '@/features/inbox';
-import { useChatMediaSending } from './useChatMediaSending';
+import { useChatMediaSending } from '../hooks/useChatMediaSending';
 import { CRMAutoSync } from './CRMAutoSync';
 import { useAmbientColor } from '@/hooks/useAmbientColor';
 import { ChatToolPanels } from './chat/ChatToolPanels';
@@ -70,6 +70,7 @@ interface ChatPanelProps extends LoadOlderProps {
   onHighlightConsumed?: () => void;
   whisperCount?: number;
   isLoading?: boolean;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   messageQueue?: any;
 }
 
@@ -184,7 +185,12 @@ export function ChatPanel({
       void saveSettings();
     }, 100);
   }, [saveSettings]);
-  useEffect(() => () => { if (saveSettingsTimerRef.current !== null) clearTimeout(saveSettingsTimerRef.current); }, []);
+  useEffect(
+    () => () => {
+      if (saveSettingsTimerRef.current !== null) clearTimeout(saveSettingsTimerRef.current);
+    },
+    []
+  );
 
   const handleVoiceChange = (v: string) => {
     updateSettings({ tts_voice_id: v });
@@ -228,7 +234,7 @@ export function ChatPanel({
 
   useEffect(() => {
     initResolve();
-  }, [conversation.contact.id]);
+  }, [conversation.contact.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Avalia regras de automação para a conversa ativa
   useAutomations({

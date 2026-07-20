@@ -57,7 +57,7 @@ export function MFAVerify({
     if (code.length === 6 && !verifying) {
       handleVerify();
     }
-  }, [code]);
+  }, [code]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <Card className="mx-auto w-full max-w-md">

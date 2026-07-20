@@ -35,7 +35,7 @@ export function useMessageSignature() {
       }
     };
     fetchName();
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const toggleSignature = useCallback(() => {
     setSignatureEnabled((prev) => {
