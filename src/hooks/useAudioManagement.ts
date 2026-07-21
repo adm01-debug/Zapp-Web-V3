@@ -873,10 +873,11 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
             logLib.warn('Speech recognition error:', event.error);
             if (event.error === 'no-speech') return;
 
+            const errCode = event.error as string;
             if (
-              event.error === 'network' ||
-              event.error === 'service-not-allowed' ||
-              event.error === 'service-unavailable'
+              errCode === 'network' ||
+              errCode === 'service-not-allowed' ||
+              errCode === 'service-unavailable'
             ) {
               logLib.info('Local speech recognition unavailable, will use backend STT');
               setIsTranscribing(true);
