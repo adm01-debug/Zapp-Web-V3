@@ -54,7 +54,7 @@ export function useTranscriptionNotifications(options: TranscriptionNotification
 
           if (!isQuietHours()) {
             if (playSound && settings?.soundEnabled) {
-              playNotificationSound();
+              playNotificationSound('message');
             }
             if (showBrowserNotification && settings?.browserNotifications) {
               showBrowserNotif('Transcrição concluída', String(row.transcription ?? ''));
