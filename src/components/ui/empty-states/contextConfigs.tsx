@@ -8,6 +8,7 @@
  * @see ConvenienceExports.tsx for pre-wired single-purpose components
  * @see index.ts for the public barrel export
  */
+import type { ReactNode } from 'react';
 import { MessageSquare, Users, Search, LayoutList, BarChart2, Tag, Inbox } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
