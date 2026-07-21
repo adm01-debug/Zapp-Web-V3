@@ -63,7 +63,7 @@ export function useDemandPrediction(externalData?: PredictionPoint[], currentCap
       if (error) throw error;
 
       const hourCounts = new Map<number, number[]>();
-      (data || []).forEach(m => {
+      (data || []).forEach((m: { created_at: string }) => {
         const hour = new Date(m.created_at).getHours();
         const bucket = hourCounts.get(hour);
         if (bucket) bucket.push(1);
