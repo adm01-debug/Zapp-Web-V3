@@ -132,6 +132,26 @@ As 3 correções de banco foram **aplicadas ao vivo e verificadas** no self-host
 
 > Obs.: `ALTER TABLE queue_positions REPLICA IDENTITY FULL` continuou bloqueado pelo classificador, mas é apenas refinamento — a tabela tem PK e o Realtime já opera para INSERT/UPDATE/DELETE por PK. Aplicar quando conveniente.
 
+## 🔴 CAUSA CENTRAL — 11 edge functions no repo mas NÃO deployadas (achado 2026-07-21)
+
+Sonda segura via HTTP OPTIONS no gateway (`/functions/v1/<nome>`) — deployada responde 200;
+não-bootável responde 500 `InvalidWorkerCreation: could not find an appropriate entrypoint`.
+Das 51 edge functions invocadas pelo código: **38 no ar, 13 caídas.**
+
+**11 caídas que ESTÃO no repo (`supabase/functions/`) → só falta DEPLOY:**
+`approve-password-reset` (redefinição de senha), `ai-router`, `ai-enhance-message`,
+`ai-conversation-analysis`, `ai-classify-tickets`, `ai-churn-analysis`, `ai-transcribe-audio`
+(camada de IA), `chatbot-l1`, `sentiment-alert`, `classify-audio-meme`, `elevenlabs-sfx`.
+
+**2 caídas AUSENTES do repo (fonte não versionada em nenhum repo GitHub):**
+`talkx-add-recipients`, `talkx-control`.
+
+**Provável causa raiz do "sistema falho":** funcionalidades inteiras (senha, IA, chatbot,
+sentimento) dependem dessas functions que nunca subiram ao edge-runtime self-hosted.
+**Correção:** `supabase functions deploy <nome>` (ou colocar no volume do container edge-runtime
+e reiniciar) para as 11 do repo. Requer acesso ao container (Portainer/SSH). Para as 2 talkx:
+escrever as functions ou remover as chamadas em `src/hooks/useTalkX.ts`.
+
 ### Pendências reconfirmadas (precisam de você / decisão de produto)
 - **Edge functions `talkx-add-recipients` / `talkx-control`**: self-hosted não lista functions via API; invocar para testar é perigoso (efeito colateral). Verificar deploy via Portainer/VPS (`ls /root/supabase/docker/volumes/functions/`).
 - **goal_notifications / transcription_notifications / dashboard_data**: features incompletas — `app_notifications` existe e está publicada, mas **não há gravador nem dados** desses tipos. Decisão: implementar a feature completa (tabela/tipo + writer) OU remover os hooks mortos (`useNotificationManagement.ts`, `useRealtimeManagement.ts`).
