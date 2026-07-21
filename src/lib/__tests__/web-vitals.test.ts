@@ -38,7 +38,7 @@ vi.mock('@/integrations/supabase/client', () => ({
 
 // ── PerformanceObserver stub ──────────────────────────────────────────────────
 type POCallback = (
-  list: PerformanceObserverList,
+  list: PerformanceObserverEntryList,
   observer: PerformanceObserver
 ) => void;
 
