@@ -1,4 +1,4 @@
-// @ts-nocheck
+
 /**
  * Safe Query Utilities - RLS Enforcement Layer
  *
@@ -113,9 +113,9 @@ export const safeWhatsAppConnectionsQuery = (supabase: AnySupabaseClient) => ({
     return supabase
       .channel('whatsapp_connections_safe')
       .on(
-        'postgres_changes',
+        'postgres_changes' as never,
         {
-          event: options?.event || '*',
+          event: (options?.event || '*') as never,
           schema: 'zapp',
           table: 'whatsapp_connections',
           filter: options?.filter,
@@ -142,7 +142,7 @@ export const safeChannelConnectionsQuery = (supabase: SupabaseClient<Database>) 
       .select('id, channel_type, name, status, updated_at');
 
     if (filters?.channelType) {
-      query = query.eq('channel_type', filters.channelType);
+      query = query.eq('channel_type', filters.channelType as never);
     }
     if (filters?.status) {
       query = query.eq('status', filters.status);
