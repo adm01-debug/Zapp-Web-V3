@@ -121,9 +121,18 @@ export function useTalkX() {
       campaignId: string;
       contactIds: string[];
     }) => {
-      const { data, error } = await supabase.functions.invoke('talkx-add-recipients', {
-        body: { campaignId, contactIds },
-      });
+      // Insere destinatários direto na tabela (idempotente via UNIQUE campaign_id+contact_id).
+      // A edge function 'talkx-add-recipients' não existe no backend; talkx-send resolve o
+      // telefone a partir de contact_id no envio, então basta registrar o vínculo aqui.
+      const rows = contactIds.map((contactId) => ({
+        campaign_id: campaignId,
+        contact_id: contactId,
+        status: 'pending',
+      }));
+      const { data, error } = await supabase
+        .from('talkx_recipients')
+        .upsert(rows, { onConflict: 'campaign_id,contact_id', ignoreDuplicates: true })
+        .select();
       if (error) throw error;
       return data;
     },
@@ -136,7 +145,7 @@ export function useTalkX() {
 
   const startCampaign = useCallback(async (id: string) => {
     try {
-      const { error } = await supabase.functions.invoke('talkx-control', {
+      const { error } = await supabase.functions.invoke('talkx-send', {
         body: { action: 'start', campaignId: id },
       });
       if (error) throw error;
@@ -150,7 +159,7 @@ export function useTalkX() {
 
   const pauseCampaign = useCallback(async (id: string) => {
     try {
-      const { error } = await supabase.functions.invoke('talkx-control', {
+      const { error } = await supabase.functions.invoke('talkx-send', {
         body: { action: 'pause', campaignId: id },
       });
       if (error) throw error;
@@ -164,7 +173,7 @@ export function useTalkX() {
 
   const cancelCampaign = useCallback(async (id: string) => {
     try {
-      const { error } = await supabase.functions.invoke('talkx-control', {
+      const { error } = await supabase.functions.invoke('talkx-send', {
         body: { action: 'cancel', campaignId: id },
       });
       if (error) throw error;

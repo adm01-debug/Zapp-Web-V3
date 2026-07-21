@@ -414,55 +414,11 @@ export function useSecurityPushNotificationsManagement() {
   return { securityAlerts };
 }
 
-/** Subscribes to real-time goal achievement and progress notifications. */
-export function useGoalNotificationsManagement() {
-  const [goalNotifications, setGoalNotifications] = useState<AppNotification[]>([]);
-
-  useEffect(() => {
-    const channel = supabase.channel('notifications:goals');
-    channel
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'zapp', table: 'goal_notifications' },
-        (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => {
-          setGoalNotifications((prev) => [payload.new as AppNotification, ...prev]);
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel).catch(() => {});
-    };
-  }, []);
-
-  return { goalNotifications };
-}
-
-/** Subscribes to real-time transcription completion and processing status notifications. */
-export function useTranscriptionNotificationsManagement() {
-  const [transcriptionNotifications, setTranscriptionNotifications] = useState<AppNotification[]>(
-    []
-  );
-
-  useEffect(() => {
-    const channel = supabase.channel('notifications:transcription');
-    channel
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'zapp', table: 'transcription_notifications' },
-        (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => {
-          setTranscriptionNotifications((prev) => [payload.new as AppNotification, ...prev]);
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel).catch(() => {});
-    };
-  }, []);
-
-  return { transcriptionNotifications };
-}
+// NOTA: useGoalNotificationsManagement e useTranscriptionNotificationsManagement foram
+// removidos (2026-07-21). Assinavam Realtime nas tabelas zapp.goal_notifications e
+// zapp.transcription_notifications, que NÃO existem no banco (nem tinham gravador/dados).
+// Eram código morto (nenhum componente os importava). Se a feature for implementada no
+// futuro, criar as tabelas + writer + adicioná-las à publication supabase_realtime antes.
 
 /** Re-exported module members. */
 export type { NotificationSettings, AppNotification as Notification };

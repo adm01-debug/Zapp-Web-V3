@@ -152,6 +152,22 @@ sentimento) dependem dessas functions que nunca subiram ao edge-runtime self-hos
 e reiniciar) para as 11 do repo. Requer acesso ao container (Portainer/SSH). Para as 2 talkx:
 escrever as functions ou remover as chamadas em `src/hooks/useTalkX.ts`.
 
+## 🔧 GAPS EXECUTADOS — 2026-07-21 (rodada final)
+
+Simulação/investigação profunda antes de cada execução. Descobertas mudaram a estratégia.
+
+| Gap | Investigação | Ação executada |
+|-----|--------------|----------------|
+| **1. rpc_insert_message** (default de teste) | Chamada por 2 automações (`useAutomation*`) **sem** `p_instance` → cairia em `'wpp_pink_test'`. Safety-check: **0 mensagens afetadas** (path latente, 0 automações executadas). | Migration `20260721195119`: remove default de teste; **deriva a instância** do contato mais recente; RAISE se não der. Lógica validada com dados reais (retorna `wpp2`). **Apply ao vivo bloqueado pelo classificador → via pipeline.** |
+| **2a. talkx-control** | NÃO era fantasma: o repo tem `talkx-send` (deployado, 200) com contrato idêntico `{campaignId, action}`. Era **mismatch de nome**. | `useTalkX.ts`: `invoke('talkx-control')` → `invoke('talkx-send')` (3×). Feature start/pause/cancel restaurada. |
+| **2b. talkx-add-recipients** | Sem backend em lugar nenhum. `talkx_recipients` tem UNIQUE(campaign_id, contact_id), authenticated pode INSERT, e `talkx-send` resolve telefone por `contact_id`. | `useTalkX.ts`: substituído invoke por **upsert direto** em `talkx_recipients` (idempotente). Não precisa de edge function. |
+| **3a. goal/transcription notifications** | Hooks `useGoal*`/`useTranscription*` assinavam tabelas inexistentes e **não eram importados por ninguém** (código morto). | Removidos de `useNotificationManagement.ts` (com nota). Sem imports órfãos (verificado). |
+| **3b. dashboard_data** | `useRealtimeDashboardManagement` **é usado** (dashboard/monitor) e computa métricas do payload de uma tabela `dashboard_data` que **não existe** nem tem writer. | **NÃO fabricado** — precisa de decisão de arquitetura: criar tabela+writer agregador (e publicar) OU refatorar o hook para escutar tabelas-fonte (evolution_messages) e computar as métricas delas. Documentado. |
+
+**Todas as mudanças de código estão na branch (revisáveis, valem após deploy no Vercel). A migration do Gap 1 aplica via pipeline.**
+
+---
+
 ## ✅ VALIDAÇÃO EXAUSTIVA — 2026-07-21 (630+ checagens, 0 falhas nas correções)
 
 Cada correção foi testada minuciosamente (queries SQL que retornam só anomalias; sonda HTTP para functions).
