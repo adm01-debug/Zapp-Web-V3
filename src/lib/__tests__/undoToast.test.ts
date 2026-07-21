@@ -68,7 +68,7 @@ describe('undoToast — undo action', () => {
     const onUndo = vi.fn();
     undoToast({ message: 'msg', onUndo });
     const opts = mockToast.mock.calls[0][1] as Record<string, unknown>;
-    const action = opts.action as Record<string, { onClick: () => void }>;
+    const action = opts.action as { onClick: () => void };
     action.onClick();
     expect(onUndo).toHaveBeenCalledTimes(1);
   });
@@ -77,7 +77,7 @@ describe('undoToast — undo action', () => {
     const onUndo = vi.fn();
     undoToast({ message: 'msg', onUndo });
     const opts = mockToast.mock.calls[0][1] as Record<string, unknown>;
-    const action = opts.action as Record<string, { onClick: () => void }>;
+    const action = opts.action as { onClick: () => void };
     action.onClick();
     expect(mockToast.success).toHaveBeenCalledTimes(1);
   });
@@ -86,7 +86,7 @@ describe('undoToast — undo action', () => {
     const onUndo = vi.fn();
     undoToast({ message: 'msg', onUndo });
     const opts = mockToast.mock.calls[0][1] as Record<string, unknown>;
-    const action = opts.action as Record<string, { onClick: () => void }>;
+    const action = opts.action as { onClick: () => void };
     action.onClick();
     expect(mockToast.success.mock.calls[0][0]).toBe('Ação desfeita');
   });
@@ -132,7 +132,7 @@ describe('confirmToast — resolves on user interaction', () => {
   it('resolves to true when action.onClick fires', async () => {
     const promise = confirmToast('Are you sure?');
     const opts = mockToast.mock.calls[0][1] as Record<string, unknown>;
-    const action = opts.action as Record<string, { onClick: () => void }>;
+    const action = opts.action as { onClick: () => void };
     action.onClick();
     await expect(promise).resolves.toBe(true);
   });
@@ -140,7 +140,7 @@ describe('confirmToast — resolves on user interaction', () => {
   it('resolves to false when cancel.onClick fires', async () => {
     const promise = confirmToast('Are you sure?');
     const opts = mockToast.mock.calls[0][1] as Record<string, unknown>;
-    const cancel = opts.cancel as Record<string, { onClick: () => void }>;
+    const cancel = opts.cancel as { onClick: () => void };
     cancel.onClick();
     await expect(promise).resolves.toBe(false);
   });
