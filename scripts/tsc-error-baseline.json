@@ -1,14 +1,4 @@
 {
-  "total": 23,
-  "files": {
-    "src/services/contacts/useContactsQueries.ts": 3,
-    "src/services/email/emailHealthService.ts": 7,
-    "src/services/messages/messagesRepository.ts": 1,
-    "src/services/messages/useMessagesQueries.ts": 2,
-    "src/services/queues/useQueuesQueries.ts": 1,
-    "src/services/settings/settingsService.ts": 1,
-    "src/services/users/useUsersQueries.ts": 2,
-    "src/utils/__tests__/notificationSounds.test.ts": 1,
-    "src/utils/emailMappers.ts": 5
-  }
+  "total": 0,
+  "files": {}
 }
