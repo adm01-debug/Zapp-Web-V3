@@ -134,7 +134,7 @@ export const ChatHeader = memo(function ChatHeader({
             <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/5 text-[11px] font-black uppercase text-primary">
               {conversation.contact.name
                 .split(' ')
-                .map((n) => n[0])
+                .map((n: any) => n[0])
                 .join('')
                 .slice(0, 2)}
             </AvatarFallback>
