@@ -68,7 +68,8 @@ export const connectionsRepository = {
 
   deleteWhatsAppConnection: (id: string) => whatsappBaseService.delete(id),
 
-  deleteWhatsAppConnectionsBulk: (ids: string[]) => whatsappBaseService.deleteMany(ids),
+  deleteWhatsAppConnectionsBulk: (ids: string[]) =>
+    Promise.all(ids.map((id) => whatsappBaseService.delete(id))),
 
   // Channel connections
   async listChannelConnections(filters?: Partial<ChannelConnection> & QueryParams) {
