@@ -60,10 +60,9 @@ export const IndexContentConnected = forwardRef<HTMLDivElement>(
     useWebhookHealthAlerts({ enabled: !!user && notifReady && isAdmin });
 
     // Onboarding Checklist
-    const { isComplete: checklistComplete, isDismissed: checklistDismissed } =
-      useOnboardingChecklist({
-        enabled: currentView === 'dashboard',
-      });
+    const { progress: checklistProgress, isDismissed: checklistDismissed } =
+      useOnboardingChecklist();
+    const checklistComplete = checklistProgress >= 100;
 
     const [showWelcome, setShowWelcome] = useState(false);
     useEffect(() => {
