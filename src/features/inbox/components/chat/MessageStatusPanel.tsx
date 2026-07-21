@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * MessageStatusPanel — Popover com a timeline de entrega/visualização
  * de uma mensagem.
@@ -118,7 +117,7 @@ export const MessageStatusPanel = memo(function MessageStatusPanel({
   message,
 }: MessageStatusPanelProps) {
   const { data: stats } = useDeliveryStats(
-    message.sender === 'agent' ? message.remote_jid : message.contact_id
+    message.sender === 'agent' ? (message.remote_jid ?? undefined) : (message.contact_id ?? undefined)
   );
   const isSent = message.sender === 'agent';
   const isFailed = TERMINAL_FAILURES.has(message.status as never);
@@ -293,7 +292,7 @@ export const MessageStatusPanel = memo(function MessageStatusPanel({
                       borderRadius: '6px',
                     }}
                     itemStyle={{ padding: '0px' }}
-                    labelFormatter={(label: string | number) => format(new Date(label), 'HH:mm')}
+                    labelFormatter={((label: string | number) => format(new Date(label), 'HH:mm')) as never}
                   />
                   <Line
                     type="monotone"

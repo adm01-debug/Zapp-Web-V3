@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState } from 'react';
 import { Bell, BellOff, Shield, Smartphone, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -21,7 +20,8 @@ export function SecurityNotificationsPanel() {
     showNotification,
   } = usePushNotifications();
 
-  const { isEnabled: _securityNotificationsEnabled } = useSecurityPushNotifications();
+  const _security = useSecurityPushNotifications();
+  const _securityNotificationsEnabled = (_security as { isEnabled?: boolean }).isEnabled ?? false;
   const [testSending, setTestSending] = useState(false);
 
   const handleToggle = async () => {
