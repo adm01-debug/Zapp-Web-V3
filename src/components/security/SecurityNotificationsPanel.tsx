@@ -21,7 +21,8 @@ export function SecurityNotificationsPanel() {
     showNotification,
   } = usePushNotifications();
 
-  const { isEnabled: _securityNotificationsEnabled } = useSecurityPushNotifications();
+  const _security = useSecurityPushNotifications();
+  const _securityNotificationsEnabled = (_security as { isEnabled?: boolean }).isEnabled ?? false;
   const [testSending, setTestSending] = useState(false);
 
   const handleToggle = async () => {
