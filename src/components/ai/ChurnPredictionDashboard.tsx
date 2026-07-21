@@ -54,7 +54,7 @@ export function ChurnPredictionDashboard() {
       if (error) throw error;
 
       const now = new Date();
-      const churnRisks: ChurnRisk[] = (contacts || []).map((contact: { id: string; name: string | null; phone: string | null; ai_sentiment: number | null; updated_at: string; created_at: string }) => {
+      const churnRisks: ChurnRisk[] = (contacts || []).map((contact: { id: string; name: string | null; phone: string | null; ai_sentiment: string | null; updated_at: string; created_at: string }) => {
         const daysSinceUpdate = differenceInDays(now, new Date(contact.updated_at));
         const daysSinceCreation = differenceInDays(now, new Date(contact.created_at));
 
