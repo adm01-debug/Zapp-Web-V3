@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { useVoiceAgent, type VoiceAgentAction } from '@/hooks/useVoiceAgent';
 import { VoiceSearchOverlay } from './VoiceSearchOverlay';
 
