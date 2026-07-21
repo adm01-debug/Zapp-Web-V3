@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -38,7 +37,7 @@ export function PrivacyAuditTrail() {
           </CardTitle>
           <CardDescription>Registros imutáveis das ações relacionadas aos seus dados</CardDescription>
         </div>
-        <Button variant="outline" size="sm" onClick={refetch} disabled={loading}>
+        <Button variant="outline" size="sm" onClick={() => { void refetch(); }} disabled={loading}>
           <RefreshCw className={`w-3.5 h-3.5 mr-1.5 ${loading ? 'animate-spin' : ''}`} aria-hidden="true" />
           Atualizar
         </Button>

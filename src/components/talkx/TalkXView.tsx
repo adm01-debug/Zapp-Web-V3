@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { GenericEmptyState } from '@/components/ui/GenericEmptyState';
 import { AnimatePresence } from 'framer-motion';
@@ -65,7 +64,7 @@ export default function TalkXView() {
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       result = result.filter(
-        (c) => c.name.toLowerCase().includes(q) || c.message_template.toLowerCase().includes(q)
+        (c) => c.name.toLowerCase().includes(q) || (c.message_template ?? '').toLowerCase().includes(q)
       );
     }
     return result;
