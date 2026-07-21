@@ -11,6 +11,11 @@
 import { MessageSquare, Users, Search, LayoutList, BarChart2, Tag, Inbox } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
+export interface EmptyStateAction {
+  label: string;
+  icon?: React.ReactNode;
+}
+
 /** Configuration object for a single empty-state context. */
 export interface EmptyStateConfig {
   /** Icon component from lucide-react displayed above the title. */
@@ -21,6 +26,14 @@ export interface EmptyStateConfig {
   description: string;
   /** Optional label for the primary call-to-action button. */
   actionLabel?: string;
+  /** Optional primary action metadata (label + icon) rendered by ContextualEmptyState. */
+  primaryAction?: EmptyStateAction;
+  /** Optional secondary action metadata. */
+  secondaryAction?: EmptyStateAction;
+  /** Optional tertiary action metadata. */
+  tertiaryAction?: EmptyStateAction;
+  /** Optional help hint shown below actions. */
+  helpText?: string;
 }
 
 /**
