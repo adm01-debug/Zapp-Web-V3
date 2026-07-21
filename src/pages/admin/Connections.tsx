@@ -260,7 +260,8 @@ export default function AdminConnectionsPage() {
       );
 
       if (error) {
-        const msg = `Falha na escrita [Provider: ${payload.provider}]: ${error.message}${error.code ? ` (Code: ${error.code})` : ''}`;
+        const errCode = (error as { code?: string }).code;
+        const msg = `Falha na escrita [Provider: ${payload.provider}]: ${error.message}${errCode ? ` (Code: ${errCode})` : ''}`;
         setSaveError(msg);
         toast({ title: 'Erro ao salvar no Supabase', description: msg, variant: 'destructive' });
         return;
