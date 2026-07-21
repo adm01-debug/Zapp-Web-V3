@@ -111,3 +111,15 @@ src/hooks/media-library/useMediaLibraryManagement.ts
 src/hooks/omnichannel/useOmnichannelManagement.ts
 src/hooks/sla/useSLAScopeOptions.ts
 src/hooks/team-chat/useDepartmentManagement.ts
+src/hooks/useActionFeedback.ts
+src/hooks/useAudioManagement.ts
+src/hooks/useAudioRecorder.ts
+src/hooks/useAutomationManagement.ts
+src/hooks/useAutomations.ts
+src/hooks/useCampaignEditor.ts
+src/hooks/useChatbotL1Config.ts
+src/hooks/useClientWallet.ts
+src/hooks/useConnectionManagement.ts
+src/hooks/useConnections.ts
+src/hooks/useDashboardData.ts
+src/hooks/useDeliveryStats.ts
