@@ -14,7 +14,7 @@ import type { LucideIcon } from 'lucide-react';
 
 export interface EmptyStateAction {
   label: string;
-  icon?: React.ReactNode;
+  icon?: ReactNode;
 }
 
 /** Configuration object for a single empty-state context. */
