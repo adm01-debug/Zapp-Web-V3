@@ -46,7 +46,7 @@ vi.mock('sonner', () => ({
   toast: { success: vi.fn(), error: vi.fn() },
 }));
 
-import { useExportData, ExportColumn } from '@/hooks/useExportData';
+import useExportData, { ExportColumn } from '@/hooks/useExportData';
 
 interface TestRow extends Record<string, unknown> {
   name: string;

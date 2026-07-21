@@ -369,7 +369,7 @@ function useMediaCrudManagement({ type }: UseMediaCrudParams): UseMediaCrudResul
     playingId,
     reclassifying,
     audioRef,
-    categories,
+    categories: (categories as any),
     filtered,
     existingCategories,
     fetchItems,

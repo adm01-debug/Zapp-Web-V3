@@ -30,7 +30,7 @@ export function useRealtimeSentimentAlerts() {
           toast.warning(message);
 
           if (settings?.soundEnabled && !isQuietHours()) {
-            playNotificationSound();
+            playNotificationSound('default');
           }
 
           if (settings?.browserNotifications) {

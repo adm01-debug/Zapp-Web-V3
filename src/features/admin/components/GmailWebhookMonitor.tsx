@@ -33,7 +33,7 @@ export function EmailWebhookMonitor() {
       try {
         const { data: emailAccounts } = await safeClient.rpc('get_own_email_accounts');
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const accounts = (emailAccounts || []).map((a: any) => ({
+        const accounts = ((emailAccounts as any) || []).map((a: any) => ({
           ...a,
           history_id: null,
         })) as EmailAccount[];

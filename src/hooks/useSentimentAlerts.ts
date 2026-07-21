@@ -1,3 +1,4 @@
+type SentimentAlertData = Record<string, unknown>;
 import { useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useNotificationSettings } from '@/hooks/useNotificationSettings';

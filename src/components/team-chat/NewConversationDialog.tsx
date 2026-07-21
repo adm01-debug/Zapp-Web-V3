@@ -92,7 +92,7 @@ export function NewConversationDialog({ open, onOpenChange, onCreated }: Props) 
         payload.memberIds = selectedIds;
       }
 
-      const result = await createMutation.mutateAsync(payload);
+      const result = await createMutation.mutateAsync(payload as any);
       setSelectedIds([]);
       setSelectedDeptId(null);
       setGroupName('');

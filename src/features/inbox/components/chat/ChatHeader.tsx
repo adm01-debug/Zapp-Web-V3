@@ -90,7 +90,7 @@ export const ChatHeader = memo(function ChatHeader({
   const _crmCustomer = crmData?.found ? crmData.customer : null;
   const _crmRfm = crmData?.found ? crmData.rfm : null;
 
-  const { data: intel } = useContactIntelligence(
+  const { intelligence: intel } = useContactIntelligence(
     isExternalConfigured ? conversation.contact.phone : undefined
   );
   const _briefing = intel?.found ? intel.briefing : null;

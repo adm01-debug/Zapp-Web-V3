@@ -85,7 +85,7 @@ export function useTeamChatPanel(conversation: TeamConversation) {
     initialSpeed: settings.tts_speed,
     onVoiceChange: handleVoiceChange,
     onSpeedChange: handleSpeedChange,
-  });
+  } as any);
 
   // Unified function to sync search filter with the infinite query cache
   const syncSearchWithCache = useCallback(

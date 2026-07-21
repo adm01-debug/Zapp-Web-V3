@@ -92,7 +92,7 @@ export function useAutomations({
       if (!client) return;
 
       // Pega últimas 10 msgs do FATOR X
-      const { data: msgs, error } = await client.rpc('rpc_list_messages', {
+      const { data: msgs, error } = await client.rpc('rpc_list_messages' as any, {
         p_remote_jid: remoteJid,
         p_instance: instanceName,
         p_limit: 10,

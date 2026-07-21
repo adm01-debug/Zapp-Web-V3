@@ -18,7 +18,7 @@ export function TeamChatView() {
   const [showDetails, setShowDetails] = useState(false);
 
   // Enable differentiated notifications for team chat
-  useTeamChatNotifications(selectedId as any);
+  useTeamChatNotifications();
 
   const selectedConversation = conversations.find(c => c.id === selectedId) || null;
 
