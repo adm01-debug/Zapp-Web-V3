@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * useEmailOAuthFlow.ts — OAuth2 Email com refresh automático de token
  *
@@ -80,7 +79,7 @@ export function useEmailOAuthFlow(): UseEmailOAuthFlowReturn {
     const statuses: Record<string, TokenStatus> = {};
 
     for (const acc of accs) {
-      const expiry = new Date(acc.token_expiry).getTime();
+      const expiry = new Date((acc as any).token_expiry).getTime();
       if (expiry < now) {
         statuses[acc.id] = 'expired';
       } else if (expiry - now < REFRESH_AHEAD_MS) {

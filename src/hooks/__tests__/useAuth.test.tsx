@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -50,7 +49,7 @@ describe('useAuth hook', () => {
   });
 
   it('handles sign in successfully', async () => {
-    vi.mocked(supabase.auth.signInWithPassword).mockResolvedValue({
+    (vi.mocked(supabase.auth.signInWithPassword) as any).mockResolvedValue({
       data: { user: { id: '123' } as never, session: null },
       error: null,
     });

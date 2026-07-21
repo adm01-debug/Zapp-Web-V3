@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useEffect } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -31,7 +30,7 @@ export function useRealtimeSentimentAlerts() {
           toast.warning(message);
 
           if (settings?.soundEnabled && !isQuietHours()) {
-            playNotificationSound();
+            playNotificationSound('alert');
           }
 
           if (settings?.browserNotifications) {

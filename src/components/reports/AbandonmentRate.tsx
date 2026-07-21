@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { fetchAbandonmentRateMessages } from '@/hooks/useAbandonmentRateData';
@@ -123,7 +122,7 @@ export function AbandonmentRate() {
                         <Cell key={idx} fill={entry.color} />
                       ))}
                     </Pie>
-                    <Tooltip formatter={(value: number | string) => [String(value), 'Conversas'] as unknown as any} />
+                    <Tooltip formatter={((value: any) => [String(value), 'Conversas']) as any} />
                   </PieChart>
                 </ResponsiveContainer>
               )}
