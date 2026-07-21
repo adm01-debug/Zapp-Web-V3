@@ -55,11 +55,6 @@ interface SpeechRecognition extends EventTarget {
   abort(): void;
 }
 
-declare const SpeechRecognition: {
-  prototype: SpeechRecognition;
-  new (): SpeechRecognition;
-};
-
 interface Window {
   SpeechRecognition?: unknown;
   webkitSpeechRecognition?: unknown;
