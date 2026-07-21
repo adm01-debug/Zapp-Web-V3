@@ -98,7 +98,7 @@ export function FailedMessagesFilters({ ui, stats }: FailedMessagesFiltersProps)
         )}
         <div className="flex flex-col gap-1">
           <label className="text-xs text-muted-foreground">Status</label>
-          <Select value={ui.statusFilter} onValueChange={(v) => ui.setStatusFilter(v)}>
+          <Select value={ui.statusFilter} onValueChange={(v) => ui.setStatusFilter(v as Parameters<typeof ui.setStatusFilter>[0])}>
             <SelectTrigger className="w-[180px]">
               <SelectValue />
             </SelectTrigger>
