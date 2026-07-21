@@ -9,7 +9,6 @@ src/components/team-chat/TeamChatPanel.tsx
 src/components/ui/chart.tsx
 src/components/ui/resizable.tsx
 src/components/voice/VoiceSearchOverlayConnected.tsx
-src/features/admin/components/AdminView.tsx
 src/features/contacts/hooks/useContactEnrichedData.ts
 src/features/dashboard/hooks/useDashboardVisualizationManagement.ts
 src/features/inbox/components/AnalysisBadges.tsx
@@ -18,11 +17,9 @@ src/features/inbox/components/chat/MessageAttemptsTimeline.tsx
 src/features/inbox/components/chat/hooks/__tests__/useInitialHighlight.test.ts
 src/features/inbox/components/chat/useChatPanel.ts
 src/features/inbox/components/contact-details/ContactIntelligencePanel.tsx
-src/features/inbox/components/conversation-list/ConversationItem.tsx
 src/features/inbox/components/stickers/PersonalStickers.tsx
 src/features/inbox/components/useGlobalSearchData.ts
 src/features/inbox/hooks/__tests__/inboxLogic.test.ts
-src/features/inbox/hooks/useAgentRecentSends.ts
 src/features/inbox/hooks/useRealtimeInbox.ts
 src/features/sla/components/SLADeliveryHistoryDashboard.tsx
 src/features/sla/hooks/useSLAAlertPreferences.ts
@@ -45,10 +42,7 @@ src/hooks/useSearchManagement.ts
 src/hooks/useVoiceManagement.ts
 src/integrations/datasource/db.ts
 src/integrations/supabase/connectionPool.ts
-src/integrations/supabase/externalClient.ts
-src/integrations/supabase/safe-queries.ts
 src/integrations/supabase/types-manual.ts
-src/pages/AdminRealtimeMonitorPage.tsx
 src/pages/AdminSearchInsightsPage.tsx
 src/pages/AdminWebhookSecretStatusPage.tsx
 src/pages/admin/AdminAutomationLogsPage.tsx
