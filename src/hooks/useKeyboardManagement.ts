@@ -286,7 +286,7 @@ export function useGlobalKeyboardShortcutsManagement(customActions?: GlobalShort
   );
 
   const actions = useMemo(() => {
-    const merged = { ...defaultActions };
+    const merged: Record<string, () => void> = { ...defaultActions };
     customActions?.forEach(({ id, action }) => {
       merged[id] = action;
     });
