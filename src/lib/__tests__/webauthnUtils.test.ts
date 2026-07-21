@@ -79,12 +79,12 @@ describe('base64URLToBuffer', () => {
 
 describe('bufferToBase64URL', () => {
   it('encodes a buffer to a base64url string', () => {
-    const buf = bytesFromString('hello').buffer;
+    const buf = bytesFromString('hello').buffer as ArrayBuffer;
     expect(bufferToBase64URL(buf)).toBe('aGVsbG8');
   });
 
   it('returns a string', () => {
-    const buf = bytesFromString('test').buffer;
+    const buf = bytesFromString('test').buffer as ArrayBuffer;
     expect(typeof bufferToBase64URL(buf)).toBe('string');
   });
 
