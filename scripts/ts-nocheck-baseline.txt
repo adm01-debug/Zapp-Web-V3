@@ -9,7 +9,6 @@ src/components/team-chat/TeamChatPanel.tsx
 src/components/ui/chart.tsx
 src/components/ui/resizable.tsx
 src/components/voice/VoiceSearchOverlayConnected.tsx
-src/features/contacts/hooks/useContactEnrichedData.ts
 src/features/dashboard/hooks/useDashboardVisualizationManagement.ts
 src/features/inbox/components/AnalysisBadges.tsx
 src/features/inbox/components/ChatPanel.tsx
@@ -31,7 +30,6 @@ src/hooks/__tests__/useTextToSpeech.test.ts
 src/hooks/__tests__/useViewTransition.test.ts
 src/hooks/omnichannel/useOmnichannelManagement.ts
 src/hooks/sla/useSLAScopeOptions.ts
-src/hooks/team-chat/useDepartmentManagement.ts
 src/hooks/useConnectionManagement.ts
 src/hooks/useEvolutionAutoReconnect.ts
 src/hooks/useExternalApiManagement.ts
@@ -39,7 +37,6 @@ src/hooks/useExternalDB.ts
 src/hooks/useQueueDetails.ts
 src/hooks/useRealtimeManagement.ts
 src/hooks/useSearchManagement.ts
-src/hooks/useVoiceManagement.ts
 src/integrations/datasource/db.ts
 src/integrations/supabase/connectionPool.ts
 src/integrations/supabase/types-manual.ts
