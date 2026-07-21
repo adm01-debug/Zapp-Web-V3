@@ -416,7 +416,7 @@ export function useRetryMetrics(operationName?: string) {
 /** Monitors all retry operations globally with health status tracking. */
 export function useGlobalRetryMetrics() {
   const [allMetrics, setAllMetrics] = useState<Map<string, RetryMetrics>>(new Map());
-  const [healthStatus, setHealthStatus] = useState({ healthy: [], degraded: [] });
+  const [healthStatus, setHealthStatus] = useState<{ healthy: string[]; degraded: string[] }>({ healthy: [], degraded: [] });
 
   useEffect(() => {
     const interval = setInterval(() => {

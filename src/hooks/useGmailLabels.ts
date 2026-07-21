@@ -37,7 +37,7 @@ export function useEmailLabels(accountId: string | null) {
         log.warn('Email labels load error', dbErr.message);
         throw new Error('Não foi possível carregar as pastas do Email.');
       }
-      return emailMappers.labels(Array.isArray(data) ? data : []);
+      return emailMappers.labels((Array.isArray(data) ? data : []) as Parameters<typeof emailMappers.labels>[0]);
     },
     enabled: !!accountId,
     staleTime: 30_000,
