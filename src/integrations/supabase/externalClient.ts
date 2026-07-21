@@ -69,7 +69,7 @@ type UntypedRpc = (fn: string, args: Record<string, unknown>) => Promise<{ data:
 
 /** Calls an untyped Supabase RPC function, forwarding args and returning raw data/error. */
 export function callExtRpc(
-  client: SupabaseClient<ExtendedDatabase>,
+  client: SupabaseClient<ExtendedDatabase, string, string>,
   fn: string,
   args: Record<string, unknown>
 ): Promise<{ data: unknown; error: { message: string } | null }> {
