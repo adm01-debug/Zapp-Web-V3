@@ -17,6 +17,17 @@ const DEFAULT_GOAL = {
 /** Re-exported module members. */
 export type { QueueGoal };
 
+/** Alerta acionável derivado das metas de uma fila. */
+export interface QueueAlert {
+  queueId: string;
+  queueName: string;
+  type: 'waiting_contacts' | 'wait_time' | 'assignment_rate' | 'messages_pending';
+  severity: 'info' | 'warning' | 'critical';
+  message: string;
+  value?: number;
+  threshold?: number;
+}
+
 /** Reads queue goals for an optional queue and exposes a saveGoal upsert that cannot be derailed by a caller-supplied queue_id in the Partial payload. */
 export function useQueueGoals(queueId?: string) {
   const { goals, loading, refetch } = useQueueGoalsManagement(queueId);
