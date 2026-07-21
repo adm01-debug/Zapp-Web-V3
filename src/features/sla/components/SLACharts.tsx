@@ -71,7 +71,7 @@ export function SLARateChart({ dailyData }: { dailyData: DailyData[] }) {
                   String(typeof value === 'number' ? value.toFixed(1) : Number(value).toFixed(1)) +
                     '%',
                   'Taxa SLA',
-                ]}
+                ]) as any}
               />
               <Area
                 type="monotone"
