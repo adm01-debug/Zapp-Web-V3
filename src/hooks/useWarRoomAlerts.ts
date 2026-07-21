@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useEffect, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -57,7 +56,6 @@ export function useWarRoomAlerts(_soundEnabled = true) {
           showNotification({
             title: alert.title || 'Alerta',
             body: alert.message,
-            requireInteraction: alert.alert_type === 'critical',
           });
         }
       )

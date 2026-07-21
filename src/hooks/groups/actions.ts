@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { getLogger } from '@/lib/logger';
@@ -84,7 +83,7 @@ export function useGroupActions({
                 updated_at: now,
               };
             })
-            .filter((r): r is GroupRow => r !== null);
+            .filter((r: GroupRow | null): r is GroupRow => r !== null);
 
           if (rows.length > 0) {
             const { error: upsertError } = await supabase
