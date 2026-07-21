@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Tests for timedRpc() in instrumentedExternal.ts.
  *
@@ -14,7 +13,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 // ── Hoisted mocks ─────────────────────────────────────────────────────────────
 const mockGenerateCid = vi.hoisted(() => vi.fn(() => 'test-cid-1'));
 const mockRecordQueryEvent = vi.hoisted(() => vi.fn());
-const mockClassifySeverity = vi.hoisted(() => vi.fn(() => 'ok' as const));
+const mockClassifySeverity = vi.hoisted(() => vi.fn<(...args: unknown[]) => string>(() => 'ok'));
 const mockRpc = vi.hoisted(() => vi.fn());
 const mockGetExternal = vi.hoisted(() => vi.fn(() => ({ rpc: mockRpc })));
 
