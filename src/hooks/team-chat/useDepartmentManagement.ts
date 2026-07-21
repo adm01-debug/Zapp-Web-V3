@@ -66,14 +66,16 @@ export function useDepartmentManagement(
       .select('whatsapp_mode, whatsapp_api_key, whatsapp_instance_id')
       .eq('id', initialDepartment.id)
       .maybeSingle() // ✅ fix: maybeSingle evita PGRST116
-      .then(({ data }) => {
-        if (data) {
-          setWhatsappMode((data.whatsapp_mode as WhatsappMode) || 'none');
-          setWhatsappApiKey(data.whatsapp_api_key || '');
-          setWhatsappInstanceId(data.whatsapp_instance_id || '');
-        }
-      })
-      .catch((err) => log.warn('[DeptMgmt] load whatsapp settings failed:', err));
+      .then(
+        ({ data }) => {
+          if (data) {
+            setWhatsappMode((data.whatsapp_mode as WhatsappMode) || 'none');
+            setWhatsappApiKey(data.whatsapp_api_key || '');
+            setWhatsappInstanceId(data.whatsapp_instance_id || '');
+          }
+        },
+        (err: unknown) => log.warn('[DeptMgmt] load whatsapp settings failed:', err),
+      );
   }, [open, view, initialDepartment.id]);
 
   const { data: allProfiles = [], isLoading: loadingProfiles } = useQuery<Profile[]>({
