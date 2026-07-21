@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { describe, test, expect } from 'vitest';
 import { sanitizeHtml } from '../sanitize';
 import DOMPurifyFactory from 'dompurify';

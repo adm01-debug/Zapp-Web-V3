@@ -1,4 +1,3 @@
-// @ts-nocheck
 // Consolidated Voice & Speech Management Module (ETAPA 35)
 // Consolidates: useSpeechToText, useTextToSpeech, useVoiceAgent, useVoiceActionHandler
 import { useState, useCallback, useRef, useEffect } from 'react';
