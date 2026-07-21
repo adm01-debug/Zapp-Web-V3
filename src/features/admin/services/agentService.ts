@@ -52,7 +52,7 @@ export const agentService = {
       }
 
       const chatCounts: Record<string, number> = {};
-      chatsResult.data?.forEach((contact) => {
+      chatsResult.data?.forEach((contact: any) => {
         if (contact.assigned_to) {
           chatCounts[contact.assigned_to] = (chatCounts[contact.assigned_to] || 0) + 1;
         }

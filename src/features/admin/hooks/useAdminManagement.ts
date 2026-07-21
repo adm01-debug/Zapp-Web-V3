@@ -607,7 +607,7 @@ function useAdminQueuesManagement() {
       return {
         queues: (qRes.data ?? []) as Queue[],
         queueMembers: (mRes.data ?? []) as QueueMember[],
-        queueSkills: (sRes.data ?? []).map((r) => ({
+        queueSkills: (sRes.data ?? []).map((r: any) => ({
           ...r,
           min_level: (r as { min_level?: number | null }).min_level ?? 1,
         })) as QueueSkill[],
