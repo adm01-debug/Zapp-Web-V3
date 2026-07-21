@@ -64,7 +64,7 @@ export default function TalkXView() {
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       result = result.filter(
-        (c) => c.name.toLowerCase().includes(q) || c.message_template.toLowerCase().includes(q)
+        (c) => c.name.toLowerCase().includes(q) || (c.message_template ?? '').toLowerCase().includes(q)
       );
     }
     return result;
