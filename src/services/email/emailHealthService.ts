@@ -6,16 +6,21 @@ import type { OperationFailure } from '@/integrations/supabase/safeClientTypes';
  * Onda 8: mapeamento OperationFailure → EmailFailure.
  * `resource` = `table` (default 'unknown') e `timestamp` vira ISO string.
  */
-const toEmailFailure = (f: OperationFailure): EmailFailure => ({
-  requestId: f.requestId,
-  operation: f.operation,
-  resource: f.table ?? 'unknown',
-  error: f.error,
-  timestamp: new Date(f.timestamp).toISOString(),
-});
+const toEmailFailure = (f: OperationFailure | EmailFailure): EmailFailure => {
+  const raw = f as OperationFailure & Partial<EmailFailure>;
+  return {
+    requestId: raw.requestId,
+    operation: raw.operation,
+    resource: raw.resource ?? raw.table ?? 'unknown',
+    error: raw.error,
+    timestamp:
+      typeof raw.timestamp === 'string' ? raw.timestamp : new Date(raw.timestamp).toISOString(),
+  };
+};
 
-const toEmailFailures = (arr: readonly OperationFailure[] | null | undefined): EmailFailure[] =>
-  Array.isArray(arr) ? arr.map(toEmailFailure) : [];
+const toEmailFailures = (
+  arr: readonly (OperationFailure | EmailFailure)[] | null | undefined
+): EmailFailure[] => (Array.isArray(arr) ? arr.map(toEmailFailure) : []);
 
 /** Email Health Service. */
 export class EmailHealthService {
