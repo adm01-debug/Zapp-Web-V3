@@ -51,8 +51,7 @@ import type {
 } from '@/hooks/evolutionApi.types';
 
 // ─── Type Exports ─────────────────────────────────────────────────────────
-/** Re-exported module members. */
-export type { HttpMethod, CallApiOptions } from './useEvolutionApiManagement';
+// HttpMethod and CallApiOptions are declared locally below.
 /** Re-exported module members. */
 export type {
   SendMessageParams,
