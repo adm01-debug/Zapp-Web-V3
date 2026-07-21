@@ -111,7 +111,7 @@ describe('bufferToBase64URL', () => {
   });
 
   it('encodes empty buffer to empty string', () => {
-    const buf = new Uint8Array(0).buffer;
+    const buf = new Uint8Array(0).buffer as ArrayBuffer;
     expect(bufferToBase64URL(buf)).toBe('');
   });
 });
@@ -126,7 +126,7 @@ describe('base64URLToBuffer / bufferToBase64URL — round-trip', () => {
 
   it('base64URLToBuffer(bufferToBase64URL(buf)) produces the same bytes', () => {
     const text = 'Round-trip test for WebAuthn utils';
-    const originalBuf = bytesFromString(text).buffer;
+    const originalBuf = bytesFromString(text).buffer as ArrayBuffer;
     const encoded = bufferToBase64URL(originalBuf);
     const decoded = base64URLToBuffer(encoded);
     expect(buffersEqual(originalBuf as ArrayBuffer, decoded)).toBe(true);
@@ -141,7 +141,7 @@ describe('base64URLToBuffer / bufferToBase64URL — round-trip', () => {
     ]);
     const encoded = bufferToBase64URL(bytes.buffer as ArrayBuffer);
     const decoded = base64URLToBuffer(encoded);
-    expect(buffersEqual(bytes.buffer, decoded)).toBe(true);
+    expect(buffersEqual(bytes.buffer as ArrayBuffer, decoded)).toBe(true);
   });
 
   it('round-trips all 256 byte values', () => {
@@ -149,6 +149,6 @@ describe('base64URLToBuffer / bufferToBase64URL — round-trip', () => {
     for (let i = 0; i < 256; i++) bytes[i] = i;
     const encoded = bufferToBase64URL(bytes.buffer as ArrayBuffer);
     const decoded = base64URLToBuffer(encoded);
-    expect(buffersEqual(bytes.buffer, decoded)).toBe(true);
+    expect(buffersEqual(bytes.buffer as ArrayBuffer, decoded)).toBe(true);
   });
 });
