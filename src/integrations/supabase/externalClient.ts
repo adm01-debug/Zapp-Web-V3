@@ -37,7 +37,8 @@ if (
 }
 
 /** external Supabase constant. */
-export const externalSupabase: SupabaseClient<ExtendedDatabase> = supabase;
+export const externalSupabase: SupabaseClient<ExtendedDatabase> =
+  supabase as unknown as SupabaseClient<ExtendedDatabase>;
 /** is External Configured constant. */
 export const isExternalConfigured = true;
 
@@ -48,7 +49,7 @@ export function getIsExternalConfigured(): boolean {
 
 /** get External Supabase function. */
 export function getExternalSupabase(): SupabaseClient<ExtendedDatabase> {
-  return supabase;
+  return supabase as unknown as SupabaseClient<ExtendedDatabase>;
 }
 
 /**
