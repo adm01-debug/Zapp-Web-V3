@@ -1,4 +1,3 @@
-// @ts-nocheck
 /* eslint-disable react-refresh/only-export-components */
 import {
   TrendingUp, TrendingDown, Minus, Smile, Meh, Frown, AlertTriangle,
