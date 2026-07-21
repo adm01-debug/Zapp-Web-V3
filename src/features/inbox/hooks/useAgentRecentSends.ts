@@ -68,7 +68,7 @@ export function useAgentRecentSends() {
         return { byAgent: new Map<string, RecentSend[]>(), totalSends: 0 };
       }
 
-      const ids = Array.from(new Set(parsed.map((p) => p.message_id)));
+      const ids = Array.from(new Set(parsed.map((p: RecentSend) => p.message_id)));
       const { data: msgs, error: msgsErr } = await dbFrom('messages')
         .select('id, agent_id')
         .in('id', ids);
