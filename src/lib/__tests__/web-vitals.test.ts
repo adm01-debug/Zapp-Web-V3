@@ -56,7 +56,7 @@ function fireObserver(type: string, entries: Partial<PerformanceEntry>[]) {
   const cb = observerRegistry.get(type);
   if (!cb) return;
   cb(
-    { getEntries: () => entries } as unknown as PerformanceObserverList,
+    { getEntries: () => entries } as unknown as PerformanceObserverEntryList,
     {} as PerformanceObserver
   );
 }
