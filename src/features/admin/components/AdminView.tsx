@@ -1,4 +1,4 @@
-// @ts-nocheck
+
 import { useState, useEffect } from 'react';
 import { motion } from '@/components/ui/motion';
 import { FloatingParticles } from '@/components/dashboard/FloatingParticles';
@@ -32,9 +32,9 @@ import { AdminAuditTable } from './AdminAuditTable';
 import { InboxScopeConfig } from './InboxScopeConfig';
 import { AgentVersionsPanel } from './AgentVersionsPanel';
 
-const roleIconMap = { dev: Code, admin: Crown, supervisor: UserCog, agent: User } as const;
-const roleLabelMap = { dev: 'Desenvolvedor', admin: 'Administrador', supervisor: 'Supervisor', agent: 'Atendente' } as const;
-const roleColorMap = { dev: 'text-destructive', admin: 'text-warning', supervisor: 'text-info', agent: 'text-muted-foreground' } as const;
+const roleIconMap: Record<AppRole, typeof Code> = { dev: Code, admin: Crown, manager: UserCog, supervisor: UserCog, agent: User };
+const roleLabelMap: Record<AppRole, string> = { dev: 'Desenvolvedor', admin: 'Administrador', manager: 'Gerente', supervisor: 'Supervisor', agent: 'Atendente' };
+const roleColorMap: Record<AppRole, string> = { dev: 'text-destructive', admin: 'text-warning', manager: 'text-info', supervisor: 'text-info', agent: 'text-muted-foreground' };
 
 /** Admin View component. */
 export function AdminView() {
