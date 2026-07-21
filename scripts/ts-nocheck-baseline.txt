@@ -162,3 +162,13 @@ src/pages/admin/AdminAutomationLogsPage.tsx
 src/pages/admin/AdminChannelsPage.tsx
 src/pages/admin/AdminEmailAuditPage.tsx
 src/pages/admin/AdminEvoApiHealthPage.tsx
+src/pages/admin/AdminQueuesPage.tsx
+src/pages/admin/Connections.tsx
+src/pages/admin/automationRuleDialogParts.tsx
+src/pages/admin/email/useEmailHealthStatus.ts
+src/pages/admin/operations/OpsLogsTab.tsx
+src/pages/failed-messages/FailedMessagesFilters.tsx
+src/services/api/mutationFactory.ts
+src/services/connections/connectionsRepository.ts
+src/services/connections/useConnectionsQueries.ts
+src/services/contacts/contactsRepository.ts
