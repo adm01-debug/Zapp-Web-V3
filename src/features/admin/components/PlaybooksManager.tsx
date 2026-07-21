@@ -114,7 +114,7 @@ export function PlaybooksManager(): JSX.Element {
       name: name.trim(),
       description: description || null,
       category,
-      steps: steps.filter((s) => s.title.trim()) as Json,
+      steps: steps.filter((s) => s.title.trim()) as unknown as Json,
     };
 
     const { error } = await savePlaybook(selectedPlaybook?.id, payload);

@@ -559,7 +559,7 @@ export function ConnectionsView() {
         ))}
       </div>
 
-      <DegradedQuickActions connections={connections} onShowQrCode={handleShowQrCode} />
+      <DegradedQuickActions connections={{connections} onShowQrCode={handleShowQrCode as any} /> as any}
 
       {/* Connections List */}
       {loading ? (

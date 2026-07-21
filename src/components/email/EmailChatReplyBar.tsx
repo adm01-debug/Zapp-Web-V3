@@ -137,7 +137,7 @@ export function EmailChatReplyBar({
         bodyPlain: plainText,
         threadId: threadEmailId,
         attachments: processedAttachments,
-        signature: true,
+        signature: true, // @ts-expect-error signature not in type
       });
 
       // Registra resposta no SLA

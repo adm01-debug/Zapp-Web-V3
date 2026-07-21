@@ -188,7 +188,7 @@ export function SecondaryToolbar({
         </Tooltip>
       )}
       <FileUploader
-        ref={fileUploaderRef}
+        ref={fileUploaderRef as any}
         instanceName={instanceName || ''}
         recipientNumber={contactPhone}
         contactId={contactId}

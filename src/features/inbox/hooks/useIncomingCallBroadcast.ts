@@ -60,7 +60,7 @@ export function useIncomingCallBroadcast(instance: string = DEFAULT_INSTANCE) {
         let contactId: string | null = null;
 
         try {
-          const { data, error } = await supabase.rpc('rpc_get_contact', {
+          const { data, error } = await supabase.rpc('rpc_get_contact' as any, {
             p_remote_jid: p.remote_jid,
             p_instance: instance,
           });
