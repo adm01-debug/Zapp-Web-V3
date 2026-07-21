@@ -21,10 +21,12 @@ export type { QueueGoal };
 export interface QueueAlert {
   queueId: string;
   queueName: string;
+  queueColor?: string;
   type: 'waiting_contacts' | 'wait_time' | 'assignment_rate' | 'messages_pending';
   severity: 'info' | 'warning' | 'critical';
   message: string;
   value?: number;
+  currentValue?: number;
   threshold?: number;
 }
 
