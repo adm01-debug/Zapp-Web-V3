@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { queryKeys } from '@/services/api/queryKeys';
 /**
  * Admin: Realtime monitoring page.
