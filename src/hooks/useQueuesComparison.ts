@@ -7,13 +7,15 @@ interface DateRange {
 }
 
 interface QueuePerformance {
-  queueId: string;
-  queueName: string;
+  id: string;
+  name: string;
   color: string;
   totalContacts: number;
   assignedContacts: number;
-  agentCount: number;
-  messageCount: number;
+  waitingContacts: number;
+  agentsCount: number;
+  totalMessages: number;
+  avgMessagesPerContact: number;
   assignmentRate: number;
 }
 
