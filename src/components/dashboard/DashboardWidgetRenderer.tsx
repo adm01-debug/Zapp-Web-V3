@@ -32,7 +32,7 @@ interface DashboardStats {
   queuesStats: Array<{
     id: string;
     name: string;
-    color: string;
+    color: string | null;
     waitingCount: number;
     onlineAgents: number;
     totalAgents: number;
