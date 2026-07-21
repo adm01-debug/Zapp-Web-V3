@@ -67,7 +67,7 @@ export function AuthEventTrendChart() {
   const [window, setWindow] = useState<Window>('24h');
   const [instanceFilter, setInstanceFilter] = useState('');
 
-  const filterTrim = instanceFilter.trim() || null;
+  const filterTrim = instanceFilter.trim() || undefined;
   const hours = WINDOW_HOURS[window];
 
   const trendQuery = useQuery({
