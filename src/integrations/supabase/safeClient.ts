@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { supabase as _supabase } from './client';
 import { getLogger } from '@/lib/logger';
 import type { PostgrestError } from '@supabase/supabase-js';
@@ -221,7 +220,7 @@ export const safeClient = {
         if (!error) {
           exists = true;
         } else {
-          const msg = (error.message ?? '').toLowerCase();
+          const msg = ((error as { message?: string }).message ?? "").toLowerCase();
           const isPermissionError =
             msg.includes('permission denied') ||
             msg.includes('42501') ||
@@ -245,7 +244,7 @@ export const safeClient = {
         if (!error) {
           exists = true;
         } else {
-          const msg = (error.message ?? '').toLowerCase();
+          const msg = ((error as { message?: string }).message ?? "").toLowerCase();
           const isPermissionError =
             msg.includes('permission denied') ||
             msg.includes('42501') ||
@@ -334,7 +333,7 @@ export const safeClient = {
       error,
       timestamp: new Date().toISOString(),
     };
-    telemetry.recentFailures.unshift(record as OperationFailure);
+    telemetry.recentFailures.unshift(record as unknown as OperationFailure);
     if (telemetry.recentFailures.length > MAX_FAILURES) telemetry.recentFailures.pop();
 
     if (_healthLogInProgress) return;

@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { describe, test, expect } from 'vitest';
 import { sanitizeHtml } from '../sanitize';
 import DOMPurifyFactory from 'dompurify';
@@ -30,7 +29,7 @@ describe('Debug DOMPurify behavior', () => {
   });
 
   test('Debug: Compare with sanitizeHtml function', () => {
-    const result = sanitizeHtml('<b>bold</b>');
+    const result = sanitizeHtml('<b>bold</b>') as unknown as { success: boolean; html: string };
     expect(result.success).toBe(true);
     expect(result.html).toBe('<b>bold</b>');
   });
