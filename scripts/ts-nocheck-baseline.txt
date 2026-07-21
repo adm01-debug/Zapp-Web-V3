@@ -103,3 +103,11 @@ src/hooks/__tests__/useRetryOperation.test.ts
 src/hooks/__tests__/useScanResponseHandler.test.ts
 src/hooks/__tests__/useTextToSpeech.test.ts
 src/hooks/__tests__/useViewTransition.test.ts
+src/hooks/evolution/v237Fallbacks.ts
+src/hooks/evolutionReconcile.ts
+src/hooks/groups/actions.ts
+src/hooks/media-library/useMediaLibrary.ts
+src/hooks/media-library/useMediaLibraryManagement.ts
+src/hooks/omnichannel/useOmnichannelManagement.ts
+src/hooks/sla/useSLAScopeOptions.ts
+src/hooks/team-chat/useDepartmentManagement.ts

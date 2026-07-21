@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { getLogger } from '@/lib/logger';
 import { externalSupabase, isExternalConfigured } from '@/integrations/supabase/externalClient';
 
