@@ -30,7 +30,7 @@ describe('Debug DOMPurify behavior', () => {
   });
 
   test('Debug: Compare with sanitizeHtml function', () => {
-    const result = sanitizeHtml('<b>bold</b>');
+    const result = sanitizeHtml('<b>bold</b>') as unknown as { success: boolean; html: string };
     expect(result.success).toBe(true);
     expect(result.html).toBe('<b>bold</b>');
   });
