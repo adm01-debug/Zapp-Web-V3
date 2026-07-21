@@ -13,7 +13,7 @@ export interface EmailHealthInfo {
   /** Populated by the edge function when telemetry is persisted via shared storage. */
   source?: string;
   lastValidation: Date | null;
-  cacheExpiration: number | null;
+  cacheExpiration: Date | null;
   recentFailures: EmailFailure[];
   stats: {
     totalCalls: number;
