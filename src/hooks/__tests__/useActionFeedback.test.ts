@@ -1,10 +1,19 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 
-const mockToast = vi.hoisted(() => vi.fn());
+const mockToast = vi.hoisted(() =>
+  Object.assign(vi.fn().mockReturnValue('toast-1'), {
+    success: vi.fn().mockReturnValue('toast-1'),
+    error: vi.fn().mockReturnValue('toast-1'),
+    warning: vi.fn().mockReturnValue('toast-1'),
+    info: vi.fn().mockReturnValue('toast-1'),
+    loading: vi.fn().mockReturnValue('toast-1'),
+    dismiss: vi.fn(),
+  })
+);
 
-vi.mock('@/hooks/use-toast', () => ({
-  useToast: () => ({ toast: mockToast }),
+vi.mock('sonner', () => ({
+  toast: mockToast,
 }));
 
 import { useActionFeedback } from '@/hooks/useActionFeedback';
@@ -12,7 +21,12 @@ import { useActionFeedback } from '@/hooks/useActionFeedback';
 describe('useActionFeedback', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockToast.mockReturnValue({ id: 'toast-1', dismiss: vi.fn(), update: vi.fn() });
+    mockToast.mockReturnValue('toast-1');
+    mockToast.success.mockReturnValue('toast-1');
+    mockToast.error.mockReturnValue('toast-1');
+    mockToast.warning.mockReturnValue('toast-1');
+    mockToast.info.mockReturnValue('toast-1');
+    mockToast.loading.mockReturnValue('toast-1');
   });
 
   it('initializes without error', () => {
@@ -52,19 +66,17 @@ describe('useActionFeedback', () => {
       result.current.success('Operação concluída');
     });
 
-    expect(mockToast).toHaveBeenCalled();
+    expect(mockToast.success).toHaveBeenCalled();
   });
 
-  it('error calls toast with destructive variant', () => {
+  it('error calls toast.error', () => {
     const { result } = renderHook(() => useActionFeedback());
 
     act(() => {
       result.current.error('Falha na operação');
     });
 
-    expect(mockToast).toHaveBeenCalledWith(
-      expect.objectContaining({ variant: 'destructive' })
-    );
+    expect(mockToast.error).toHaveBeenCalled();
   });
 
   it('showFeedback accepts custom options', () => {
@@ -78,8 +90,9 @@ describe('useActionFeedback', () => {
       });
     });
 
-    expect(mockToast).toHaveBeenCalledWith(
-      expect.objectContaining({ title: 'Custom Title' })
+    expect(mockToast.info).toHaveBeenCalledWith(
+      'Custom Title',
+      expect.objectContaining({ description: expect.stringContaining('Custom message') })
     );
   });
 
@@ -94,8 +107,8 @@ describe('useActionFeedback', () => {
       });
     });
 
-    expect(mockToast).toHaveBeenCalled();
-    const callArg = mockToast.mock.calls[0][0];
+    expect(mockToast.success).toHaveBeenCalled();
+    const callArg = mockToast.success.mock.calls[0][1];
     expect(callArg.description).toContain('Desfazer');
   });
 
