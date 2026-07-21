@@ -1,15 +1,15 @@
 # Simulação do Fluxo WhatsApp Multi-Atendimento
 
-Execução: 2026-07-21T21:16:54.546Z
+Execução: 2026-07-21T21:34:42.259Z
 Cenários: **693** · Mensagens simuladas: **13860**
 
 ## KPIs agregados
 
 | Métrica | Valor |
 |---|---|
-| Sent | 1923 (13.9%) |
-| Failed | 6679 |
-| Processed | 16200 |
+| Sent | 1921 (13.9%) |
+| Failed | 6547 |
+| Processed | 16009 |
 | Orphan processing | 0 |
 | Double sends | 0 |
 
@@ -22,13 +22,13 @@ Cenários: **693** · Mensagens simuladas: **13860**
 
 | Falha | Runs | Sent | Failed | Avg attempts (sucesso) |
 |---|---|---|---|---|
-| `none` | 63 | 1083 | 49 | 1 |
+| `none` | 63 | 1081 | 45 | 1 |
 | `http_401` | 63 | 0 | 1260 | 0 |
-| `http_429` | 63 | 0 | 480 | 0 |
-| `http_500` | 63 | 0 | 477 | 0 |
-| `http_502` | 63 | 0 | 451 | 0 |
-| `timeout` | 63 | 0 | 480 | 0 |
-| `network` | 63 | 0 | 479 | 0 |
+| `http_429` | 63 | 0 | 476 | 0 |
+| `http_500` | 63 | 0 | 471 | 0 |
+| `http_502` | 63 | 0 | 422 | 0 |
+| `timeout` | 63 | 0 | 425 | 0 |
+| `network` | 63 | 0 | 445 | 0 |
 | `invalid_number` | 63 | 0 | 1260 | 0 |
 | `flaky` | 63 | 840 | 420 | 1.33 |
 | `vault_missing` | 63 | 0 | 63 | 0 |
@@ -60,15 +60,15 @@ Os gaps abaixo foram derivados diretamente das violações agregadas acima e da 
 
 | ID | msg_type | falha | max_att | batch | conc | sent | failed | violations |
 |---|---|---|---|---|---|---|---|---|
-| S1 | text | none | 1 | 5 | 1 | 16 | 1 | — |
-| S2 | text | none | 1 | 10 | 1 | 19 | 0 | — |
-| S3 | text | none | 1 | 25 | 1 | 19 | 1 | — |
-| S4 | text | none | 3 | 5 | 1 | 13 | 3 | — |
+| S1 | text | none | 1 | 5 | 1 | 19 | 1 | — |
+| S2 | text | none | 1 | 10 | 1 | 15 | 3 | — |
+| S3 | text | none | 1 | 25 | 1 | 17 | 1 | — |
+| S4 | text | none | 3 | 5 | 1 | 16 | 1 | — |
 | S5 | text | none | 3 | 10 | 1 | 17 | 1 | — |
-| S6 | text | none | 3 | 25 | 1 | 16 | 1 | — |
-| S7 | text | none | 5 | 5 | 1 | 18 | 1 | — |
-| S8 | text | none | 5 | 10 | 1 | 18 | 0 | — |
-| S9 | text | none | 5 | 25 | 1 | 17 | 0 | — |
+| S6 | text | none | 3 | 25 | 1 | 16 | 3 | — |
+| S7 | text | none | 5 | 5 | 1 | 18 | 0 | — |
+| S8 | text | none | 5 | 10 | 1 | 15 | 0 | — |
+| S9 | text | none | 5 | 25 | 1 | 19 | 0 | — |
 | S10 | text | http_401 | 1 | 5 | 1 | 0 | 20 | — |
 
 ## Próximos passos sugeridos (ordenados por impacto)

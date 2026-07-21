@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Settings Service
  *
@@ -9,6 +8,8 @@ import { settingsRepository, type UserSettings, type WorkspaceSettings } from '.
 
 const VALID_THEMES = ['light', 'dark', 'auto'] as const;
 const VALID_LANGUAGES = ['pt-BR', 'en', 'es'] as const;
+type ValidTheme = (typeof VALID_THEMES)[number];
+type ValidLanguage = (typeof VALID_LANGUAGES)[number];
 
 export const settingsService = {
   // User Settings
@@ -20,11 +21,11 @@ export const settingsService = {
   updateUserSettings: async (userId: string, updates: Partial<UserSettings>): Promise<UserSettings> => {
     if (!userId) throw new Error('User ID is required');
 
-    if (updates.theme && !VALID_THEMES.includes(updates.theme)) {
+    if (updates.theme && !VALID_THEMES.includes(updates.theme as ValidTheme)) {
       throw new Error(`Invalid theme. Must be one of: ${VALID_THEMES.join(', ')}`);
     }
 
-    if (updates.language && !VALID_LANGUAGES.includes(updates.language)) {
+    if (updates.language && !VALID_LANGUAGES.includes(updates.language as ValidLanguage)) {
       throw new Error(`Invalid language. Must be one of: ${VALID_LANGUAGES.join(', ')}`);
     }
 
@@ -36,7 +37,7 @@ export const settingsService = {
   upsertUserSettings: async (userId: string, settings: Partial<UserSettings>): Promise<UserSettings> => {
     if (!userId) throw new Error('User ID is required');
 
-    if (settings.theme && !VALID_THEMES.includes(settings.theme)) {
+    if (settings.theme && !VALID_THEMES.includes(settings.theme as ValidTheme)) {
       throw new Error(`Invalid theme. Must be one of: ${VALID_THEMES.join(', ')}`);
     }
 

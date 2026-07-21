@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Messages Repository
  *
@@ -58,13 +57,16 @@ export const messagesRepository = {
 
   // Conversation messages
   async listConversationMessages(conversationId: string, filters?: Partial<QueryParams>) {
+    const limit = filters?.pageSize ?? 50;
+    const page = filters?.page ?? 1;
+    const from = (page - 1) * limit;
+    const to = from + limit - 1;
     const { data, error, count } = await supabase
       .from('messages')
       .select('*', { count: 'exact' })
       .eq('conversation_id', conversationId)
       .order('created_at', { ascending: false })
-      .limit(filters?.limit || 50)
-      .offset(filters?.offset || 0);
+      .range(from, to);
 
     return { data: data || [], error, count };
   },

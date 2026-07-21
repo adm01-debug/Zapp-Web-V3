@@ -166,12 +166,3 @@ src/services/api/mutationFactory.ts
 src/services/connections/connectionsRepository.ts
 src/services/connections/useConnectionsQueries.ts
 src/services/contacts/contactsRepository.ts
-src/services/contacts/useContactsQueries.ts
-src/services/email/emailHealthService.ts
-src/services/messages/messagesRepository.ts
-src/services/messages/useMessagesQueries.ts
-src/services/queues/useQueuesQueries.ts
-src/services/settings/settingsService.ts
-src/services/users/useUsersQueries.ts
-src/utils/__tests__/notificationSounds.test.ts
-src/utils/emailMappers.ts
