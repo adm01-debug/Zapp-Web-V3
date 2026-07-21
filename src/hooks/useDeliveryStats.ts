@@ -1,4 +1,4 @@
-// @ts-nocheck
+
 import { useQuery } from '@tanstack/react-query';
 import { dbList } from '@/integrations/datasource/db';
 import { RPC } from '@/integrations/datasource/rpcCatalog';
@@ -187,7 +187,7 @@ export function useDeliveryStats(remoteJid: string | undefined, instance = 'wpp2
         };
       }
 
-      const messages = (data && Array.isArray(data) ? data : []) as Record<string, unknown>[];
+      const messages = (data && Array.isArray(data) ? data : []) as unknown as Record<string, unknown>[];
       const isGroup = isGroupJid(remoteJid ?? '');
 
       const totals = {

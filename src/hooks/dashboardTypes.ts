@@ -9,7 +9,7 @@ export interface DashboardFilters {
 export interface QueueStats {
   id: string;
   name: string;
-  color: string;
+  color: string | null;
   waitingCount: number;
   onlineAgents: number;
   totalAgents: number;

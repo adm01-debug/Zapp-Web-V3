@@ -32,7 +32,7 @@ interface DashboardStats {
   queuesStats: Array<{
     id: string;
     name: string;
-    color: string;
+    color: string | null;
     waitingCount: number;
     onlineAgents: number;
     totalAgents: number;
@@ -250,7 +250,7 @@ function QueuesWidget({ stats }: { stats: DashboardStats }) {
                   <motion.div className="p-4 rounded-xl bg-muted/30 border border-border/30 hover:border-primary/20 transition-all duration-300 group" whileHover={{ x: 4, scale: 1.01 }} transition={{ duration: 0.2 }}>
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center gap-3">
-                        <motion.div className="w-4 h-4 rounded-full ring-4 ring-offset-2 ring-offset-background ring-primary/20" style={{ backgroundColor: queue.color }} animate={{ scale: [1, 1.1, 1] }} transition={{ duration: 2, repeat: Infinity }} />
+                        <motion.div className="w-4 h-4 rounded-full ring-4 ring-offset-2 ring-offset-background ring-primary/20" style={{ backgroundColor: queue.color ?? undefined }} animate={{ scale: [1, 1.1, 1] }} transition={{ duration: 2, repeat: Infinity }} />
                         <span className="font-semibold text-foreground">{queue.name}</span>
                         <Badge variant="secondary" className="text-xs bg-primary/10 text-primary border-0 font-semibold">{queue.waitingCount} aguardando</Badge>
                       </div>
