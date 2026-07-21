@@ -93,5 +93,6 @@ export function useExportDataTyped<T extends Record<string, unknown>>(
   };
 }
 
-/** Default export. */
-export default useExportData;
+/** Default export alias. */
+export const useExportData = useExportDataTyped;
+export default useExportDataTyped;
