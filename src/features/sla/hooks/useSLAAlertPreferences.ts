@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useCallback, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { safeClient } from '@/integrations/supabase/safeClient';
@@ -44,7 +43,7 @@ export function useSLAAlertPreferences() {
   const { data: preferences = DEFAULT_SLA_ALERT_PREFERENCES, isLoading } = useQuery({
     queryKey,
     queryFn: async (): Promise<SLAAlertPreferences> => {
-      const { data, error } = await safeClient.from('sla_alert_preferences', (q) =>
+      const { data, error } = await safeClient.from<SLAAlertPreferences>('sla_alert_preferences', (q) =>
         q
           .select(
             'enabled, alert_first_response, alert_resolution, severity_warning, severity_breached'
@@ -55,7 +54,7 @@ export function useSLAAlertPreferences() {
 
       if (error) {
         const code = (error as { code?: string })?.code ?? '';
-        const msg = error?.message ?? '';
+        const msg = (error as { message?: string })?.message ?? '';
         const isTableMissing =
           code === 'PGRST116' ||
           code === 'PGRST204' ||
@@ -69,14 +68,15 @@ export function useSLAAlertPreferences() {
         return DEFAULT_SLA_ALERT_PREFERENCES;
       }
 
-      const row = data?.[0] ?? null;
+      const rows = (data ?? []) as Partial<SLAAlertPreferences>[];
+      const row = rows[0];
       if (row) {
         return {
-          enabled: row.enabled,
-          alert_first_response: row.alert_first_response,
-          alert_resolution: row.alert_resolution,
-          severity_warning: row.severity_warning,
-          severity_breached: row.severity_breached,
+          enabled: row.enabled ?? DEFAULT_SLA_ALERT_PREFERENCES.enabled,
+          alert_first_response: row.alert_first_response ?? DEFAULT_SLA_ALERT_PREFERENCES.alert_first_response,
+          alert_resolution: row.alert_resolution ?? DEFAULT_SLA_ALERT_PREFERENCES.alert_resolution,
+          severity_warning: row.severity_warning ?? DEFAULT_SLA_ALERT_PREFERENCES.severity_warning,
+          severity_breached: row.severity_breached ?? DEFAULT_SLA_ALERT_PREFERENCES.severity_breached,
         };
       }
       return DEFAULT_SLA_ALERT_PREFERENCES;
