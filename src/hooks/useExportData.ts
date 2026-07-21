@@ -4,12 +4,6 @@ import { useState, useCallback } from 'react';
 import { toast } from 'sonner';
 import { useDownloadPermission } from '@/hooks/useDownloadPermission';
 
-/** Use Export Data Options interface definition. */
-export interface UseExportDataOptions<T> {
-  fileName: string;
-  columns: Array<{ key: keyof T; header: string; format?: (value: unknown) => string }>;
-}
-
 /** Export Column interface definition. */
 export interface ExportColumn<T extends Record<string, unknown>> {
   key: keyof T & string;
@@ -19,8 +13,8 @@ export interface ExportColumn<T extends Record<string, unknown>> {
 
 /** Use Export Data Options interface definition. */
 export interface UseExportDataOptions<T extends Record<string, unknown>> {
-  columns: ExportColumn<T>[];
   fileName: string;
+  columns: ExportColumn<T>[];
 }
 
 const BLOCKED_MSG = 'Exportação bloqueada por política de segurança';
