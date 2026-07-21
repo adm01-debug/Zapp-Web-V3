@@ -137,8 +137,8 @@ export function EmailChatReplyBar({
         bodyPlain: plainText,
         threadId: threadEmailId,
         attachments: processedAttachments,
-        signature: true, // @ts-expect-error signature not in type
-      });
+        signature: true,
+      } as any);
 
       // Registra resposta no SLA
       markReplied(threadEmailId);
