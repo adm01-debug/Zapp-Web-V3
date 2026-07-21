@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * useEmail.ts — Hook principal de gerenciamento Email
  *
@@ -135,7 +134,7 @@ export function useEmail() {
       }
     } else {
       setSchemaStatus({ ok: true, lastChecked: new Date() });
-      const accs = emailMappers.accounts(Array.isArray(data) ? data : []);
+      const accs = emailMappers.accounts((Array.isArray(data) ? data : []) as Parameters<typeof emailMappers.accounts>[0]);
       setAccounts(accs);
       if (accs.length > 0 && !activeAccountId) {
         setActiveAccountId(accs[0].id);
@@ -226,7 +225,7 @@ export function useEmail() {
         log.error('Email messages load error', dbErr);
       }
     } else {
-      setMessages(Array.isArray(data) ? data : []);
+      setMessages((Array.isArray(data) ? data : []) as unknown as EmailMessage[]);
     }
     setIsLoadingMessages(false);
   }, []);

@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -379,7 +378,7 @@ export function useAudioPlayer({ audioUrl, messageId, refreshKey }: UseAudioPlay
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
-  const [resolvedUrl, setResolvedUrl] = useState<string>(audioUrl);
+  const [resolvedUrl, setResolvedUrl] = useState<string>(audioUrl ?? '');
   const [volume, setVolumeState] = useState<number>(() => {
     try {
       const saved = localStorage.getItem('audio-player:volume');
@@ -874,10 +873,11 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
             logLib.warn('Speech recognition error:', event.error);
             if (event.error === 'no-speech') return;
 
+            const errCode = event.error as string;
             if (
-              event.error === 'network' ||
-              event.error === 'service-not-allowed' ||
-              event.error === 'service-unavailable'
+              errCode === 'network' ||
+              errCode === 'service-not-allowed' ||
+              errCode === 'service-unavailable'
             ) {
               logLib.info('Local speech recognition unavailable, will use backend STT');
               setIsTranscribing(true);
