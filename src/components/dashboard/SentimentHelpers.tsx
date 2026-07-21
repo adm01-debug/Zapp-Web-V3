@@ -4,6 +4,7 @@ import {
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
+import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 export type { SentimentData } from '@/hooks/useSentimentAnalyses';
 export { useRealSentimentData } from '@/hooks/useSentimentAnalyses';
