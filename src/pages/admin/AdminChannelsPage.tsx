@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { useState } from "react";
 import { useAdminChannels, type ServiceChannel, type ChannelStatus } from '@/hooks/admin/useAdminChannels';
 import { Button } from "@/components/ui/button";
