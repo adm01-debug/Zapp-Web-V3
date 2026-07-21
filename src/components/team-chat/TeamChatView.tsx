@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState } from 'react';
 import { useTeamConversations } from '@/hooks/useTeamChat';
 import { TeamConversationList } from './TeamConversationList';
@@ -19,7 +18,7 @@ export function TeamChatView() {
   const [showDetails, setShowDetails] = useState(false);
 
   // Enable differentiated notifications for team chat
-  useTeamChatNotifications(selectedId);
+  useTeamChatNotifications();
 
   const selectedConversation = conversations.find(c => c.id === selectedId) || null;
 

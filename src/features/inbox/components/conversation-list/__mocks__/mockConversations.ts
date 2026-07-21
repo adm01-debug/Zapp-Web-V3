@@ -1,4 +1,3 @@
-// @ts-nocheck
 import type {
   ConversationContact,
   ConversationWithMessages,
@@ -427,4 +426,4 @@ export const MOCK_CONVERSATIONS: ConversationWithMessages[] = [
       sender: 'agent',
     },
   },
-].map(buildConversation);
+].map(buildConversation as any);

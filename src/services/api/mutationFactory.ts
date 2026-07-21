@@ -1,3 +1,4 @@
+
 /**
  * Mutation Factory - Standard patterns for creating mutations
  *
@@ -59,7 +60,7 @@ export const useCreateMutation = <TData, TVariables = any>(
       }
 
       // Call original onSuccess if provided
-      options?.onSuccess?.(data, variables, context);
+      (options?.onSuccess as ((d: unknown, v: unknown, c: unknown) => void) | undefined)?.(data, variables, context);
     },
 
     onError: (error: unknown) => {
@@ -71,7 +72,7 @@ export const useCreateMutation = <TData, TVariables = any>(
       }
 
       // Call original onError if provided
-      options?.onError?.(error);
+      (options?.onError as ((e: unknown) => void) | undefined)?.(error);
     },
 
     ...options,
@@ -104,7 +105,7 @@ export const useUpdateMutation = <TData, TVariables = any>(
         toast.success(options?.onSuccessMessage || 'Atualizado com sucesso!');
       }
 
-      options?.onSuccess?.(data, variables, context);
+      (options?.onSuccess as ((d: unknown, v: unknown, c: unknown) => void) | undefined)?.(data, variables, context);
     },
 
     onError: (error: unknown) => {
@@ -114,7 +115,7 @@ export const useUpdateMutation = <TData, TVariables = any>(
         toast.error(options?.onErrorMessage || 'Ocorreu um erro ao atualizar. Tente novamente.');
       }
 
-      options?.onError?.(error);
+      (options?.onError as ((e: unknown) => void) | undefined)?.(error);
     },
 
     ...options,
@@ -150,7 +151,7 @@ export const useDeleteMutation = <TData = void, TVariables = any>(
         toast.success(options?.onSuccessMessage || 'Deletado com sucesso!');
       }
 
-      options?.onSuccess?.(data, variables, context);
+      (options?.onSuccess as ((d: unknown, v: unknown, c: unknown) => void) | undefined)?.(data, variables, context);
     },
 
     onError: (error: unknown) => {
@@ -160,7 +161,7 @@ export const useDeleteMutation = <TData = void, TVariables = any>(
         toast.error(options?.onErrorMessage || 'Ocorreu um erro ao deletar. Tente novamente.');
       }
 
-      options?.onError?.(error);
+      (options?.onError as ((e: unknown) => void) | undefined)?.(error);
     },
 
     ...options,
@@ -198,7 +199,7 @@ export const useBulkMutation = <TData, TVariables = any>(
         );
       }
 
-      options?.onSuccess?.(data, variables, context);
+      (options?.onSuccess as ((d: unknown, v: unknown, c: unknown) => void) | undefined)?.(data, variables, context);
     },
 
     onError: (error: unknown) => {
@@ -208,7 +209,7 @@ export const useBulkMutation = <TData, TVariables = any>(
         toast.error(options?.onErrorMessage || 'Ocorreu um erro ao processar. Tente novamente.');
       }
 
-      options?.onError?.(error);
+      (options?.onError as ((e: unknown) => void) | undefined)?.(error);
     },
 
     ...options,
@@ -235,7 +236,7 @@ export const useAsyncMutation = <TData, TVariables = any>(
         toast.error(options?.onErrorMessage || 'Ocorreu um erro ao processar. Tente novamente.');
       }
 
-      options?.onError?.(error);
+      (options?.onError as ((e: unknown) => void) | undefined)?.(error);
     },
 
     ...options,

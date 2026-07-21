@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useMemo, useState, useEffect } from 'react';
 import { format, formatDistanceStrict } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -260,7 +259,7 @@ export function SLATimelineSection({ conversation }: SLATimelineSectionProps) {
           icon={Clock}
           label="Última mensagem"
           timestamp={timeline.lastMessageAt}
-          durationLabel={`há ${formatDistanceStrict(new Date(timeline.lastMessageAt as string), new Date(), { locale: ptBR })}`}
+          durationLabel={`há ${formatDistanceStrict(new Date(timeline.lastMessageAt as unknown as string), new Date(), { locale: ptBR })}`}
           iconColor="text-muted-foreground"
         />
       ),

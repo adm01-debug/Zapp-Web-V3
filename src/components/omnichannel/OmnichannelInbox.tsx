@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
@@ -81,7 +80,7 @@ export function OmnichannelInbox() {
 
       if (error) throw error;
 
-      const unified: UnifiedMessage[] = (contacts || []).map((contact) => ({
+      const unified: UnifiedMessage[] = (contacts || []).map((contact: { id: string; name: string; phone: string; channel_type: string | null; updated_at: string; assigned_to: string | null }) => ({
         id: contact.id,
         contactName: contact.name,
         contactPhone: contact.phone,

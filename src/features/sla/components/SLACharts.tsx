@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -68,11 +67,11 @@ export function SLARateChart({ dailyData }: { dailyData: DailyData[] }) {
                   border: '1px solid hsl(var(--border))',
                   borderRadius: '8px',
                 }}
-                formatter={(value: number | string) => [
+                formatter={((value: any) => [
                   String(typeof value === 'number' ? value.toFixed(1) : Number(value).toFixed(1)) +
                     '%',
                   'Taxa SLA',
-                ]}
+                ]) as any}
               />
               <Area
                 type="monotone"

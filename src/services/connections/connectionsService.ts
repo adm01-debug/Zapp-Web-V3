@@ -59,7 +59,8 @@ export const connectionsService = {
 
   deleteWhatsAppConnectionsBulk: async (ids: string[]): Promise<number> => {
     if (!ids || ids.length === 0) throw new Error('No IDs provided');
-    return connectionsRepository.deleteWhatsAppConnectionsBulk(ids);
+    const results = await connectionsRepository.deleteWhatsAppConnectionsBulk(ids);
+    return results.length;
   },
 
   // Connection status and health

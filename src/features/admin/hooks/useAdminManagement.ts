@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Admin Management Hook — Unified orchestration of all admin panel integrations.
  * Consolidates 7 domain-specific hooks into one comprehensive module.
@@ -608,7 +607,7 @@ function useAdminQueuesManagement() {
       return {
         queues: (qRes.data ?? []) as Queue[],
         queueMembers: (mRes.data ?? []) as QueueMember[],
-        queueSkills: (sRes.data ?? []).map((r) => ({
+        queueSkills: (sRes.data ?? []).map((r: any) => ({
           ...r,
           min_level: (r as { min_level?: number | null }).min_level ?? 1,
         })) as QueueSkill[],

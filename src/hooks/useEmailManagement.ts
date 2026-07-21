@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * useEmailManagement.ts (v1.0)
  * Unified email management consolidating:
@@ -311,7 +310,7 @@ export function useEmail() {
       }
     } else {
       setSchemaStatus({ ok: true, lastChecked: new Date() });
-      const accs = emailMappers.accounts(Array.isArray(data) ? data : []);
+      const accs = emailMappers.accounts((Array.isArray(data) ? data : []) as Parameters<typeof emailMappers.accounts>[0]);
       setAccounts(accs);
       if (accs.length > 0) {
         setActiveAccountId((prev) => prev || accs[0].id);

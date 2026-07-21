@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -93,7 +92,7 @@ describe('useQueueManagement — hooks consolidados', () => {
     });
 
     it('não busca sem usuário autenticado', async () => {
-      mockUseAuth.mockReturnValue({ user: null });
+      mockUseAuth.mockReturnValue({ user: null as any });
       const { result } = renderHook(() => useQueuesCrudManagement(), { wrapper: makeWrapper() });
       // useQuery with enabled:false is not loading (idle/pending), not fetching
       expect(result.current.loading).toBe(false);

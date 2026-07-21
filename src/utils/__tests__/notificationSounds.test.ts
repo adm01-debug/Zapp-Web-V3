@@ -176,7 +176,7 @@ describe('notificationSounds (unified v2.0)', () => {
 
   describe('showBrowserNotification', () => {
     it('creates notification when granted', () => {
-      const NotificationSpy = vi.fn();
+      const NotificationSpy = vi.fn() as unknown as typeof Notification;
       vi.stubGlobal('Notification', { permission: 'granted' });
       (global as typeof global & { Notification: unknown }).Notification = NotificationSpy;
       Object.defineProperty(NotificationSpy, 'permission', {

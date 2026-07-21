@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Carrega o histórico completo de envio de uma mensagem para o painel
  * de debug: linha do tempo de tentativas (retry_metrics.retry_reasons),
@@ -88,7 +87,7 @@ export function useMessageSendHistory(messageId: string | undefined, enabled: bo
         details: e.details,
       }));
 
-      const outboundEntries: AuditEntry[] = (outboundAuditRes.data ?? []).map((e) => ({
+      const outboundEntries: AuditEntry[] = (outboundAuditRes.data ?? []).map((e: any) => ({
         id: e.id,
         action: `OUTBOUND_${(e.event_type ?? 'send').toUpperCase()}`,
         createdAt: e.created_at,

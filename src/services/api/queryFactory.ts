@@ -20,16 +20,21 @@ interface QueryFactoryOptions<TData> extends Omit<UseQueryOptions<TData>, 'query
 }
 
 /**
- * Factory for creating list queries
+ * Factory for creating list queries.
+ *
+ * NOTA (Onda 8): TData é o tipo bruto retornado pelo `queryFn` — pode ser um
+ * array (`Contact[]`) ou um envelope paginado (`ListResponse<Contact>`).
+ * Deixamos o consumidor decidir a forma para não forçar o service a
+ * desembrulhar prematuramente.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const useListQuery = <TData = any>(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   queryKey: readonly any[],
-  queryFn: () => Promise<TData[]>,
-  options?: QueryFactoryOptions<TData[]>
+  queryFn: () => Promise<TData>,
+  options?: QueryFactoryOptions<TData>
 ) => {
-  return useQuery({
+  return useQuery<TData>({
     queryKey,
     queryFn,
     staleTime: options?.staleTime ?? 30_000,

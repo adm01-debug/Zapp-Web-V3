@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * useMessagesCursor — paginacao incremental de mensagens (FATOR X)
  *
@@ -233,7 +232,7 @@ export function useMessagesCursor({
           const raw = payload.new;
           if (!raw || typeof raw !== 'object' || !('id' in raw)) return;
           // Realtime payloads are full rows; project to lite to keep memory low.
-          const m = toEvolutionMessageLite(raw as Record<string, unknown>);
+          const m = toEvolutionMessageLite(raw as unknown as Parameters<typeof toEvolutionMessageLite>[0]);
           setPages((prev) => {
             for (const p of prev) {
               if (p.some((x) => x.id === m.id)) return prev;
@@ -256,7 +255,7 @@ export function useMessagesCursor({
         (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => {
           const raw = payload.new;
           if (!raw || typeof raw !== 'object' || !('id' in raw)) return;
-          const m = toEvolutionMessageLite(raw as Record<string, unknown>);
+          const m = toEvolutionMessageLite(raw as unknown as Parameters<typeof toEvolutionMessageLite>[0]);
           setPages((prev) =>
             prev.map((page) => page.map((x) => (x.id === m.id ? { ...x, ...m } : x)))
           );

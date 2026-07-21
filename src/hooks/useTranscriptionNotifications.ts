@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { getLogger } from '@/lib/logger';
@@ -55,7 +54,7 @@ export function useTranscriptionNotifications(options: TranscriptionNotification
 
           if (!isQuietHours()) {
             if (playSound && settings?.soundEnabled) {
-              playNotificationSound();
+              playNotificationSound('message');
             }
             if (showBrowserNotification && settings?.browserNotifications) {
               showBrowserNotif('Transcrição concluída', String(row.transcription ?? ''));

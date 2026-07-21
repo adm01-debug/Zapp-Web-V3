@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import { AutoTicketClassifier } from '../AutoTicketClassifier';
@@ -235,7 +234,7 @@ describe('AutoTicketClassifier', () => {
   describe('Edge cases', () => {
     it('handles null contact', () => {
       const contact: { name?: string } | null = null;
-      const name = contact?.name || 'Desconhecido';
+      const name = (contact as any)?.name || 'Desconhecido';
       expect(name).toBe('Desconhecido');
     });
 

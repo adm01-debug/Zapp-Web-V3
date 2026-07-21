@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useRef, useCallback, useEffect, useLayoutEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { getLogger } from '@/lib/logger';
@@ -86,7 +85,7 @@ export function useTeamChatPanel(conversation: TeamConversation) {
     initialSpeed: settings.tts_speed,
     onVoiceChange: handleVoiceChange,
     onSpeedChange: handleSpeedChange,
-  });
+  } as any);
 
   // Unified function to sync search filter with the infinite query cache
   const syncSearchWithCache = useCallback(

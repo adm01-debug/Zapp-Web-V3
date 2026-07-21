@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useEffect } from 'react';
 import { log } from '@/lib/logger';
 import { fetchActiveProfiles, type Profile } from '@/hooks/useActiveProfiles';
@@ -82,9 +81,9 @@ export function AddMemberDialog({
                 >
                   <div className="flex items-center gap-3">
                     <Avatar className="h-10 w-10">
-                      <AvatarImage src={profile.avatar_url || undefined} alt={profile.name} />
+                      <AvatarImage src={profile.avatar_url ?? undefined} alt={profile.name ?? ''} />
                       <AvatarFallback className="bg-primary/10 text-primary">
-                        {profile.name[0]}
+                        {profile.name?.[0] ?? '?'}
                       </AvatarFallback>
                     </Avatar>
                     <span className="font-medium text-foreground">{profile.name}</span>

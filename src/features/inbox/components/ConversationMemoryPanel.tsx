@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useEffect } from 'react';
 import { fetchConversationMemory, saveConversationMemory } from '../hooks/useConversationMemoryData';
 import { Button } from '@/components/ui/button';
@@ -114,7 +113,7 @@ export function ConversationMemoryPanel({ contactId, profileId }: ConversationMe
       updated_by: profileId,
     };
 
-    const { error } = await saveConversationMemory(memory.id, payload);
+    const { error } = await saveConversationMemory(memory.id, payload as any);
 
     if (!error) {
       toast.success('Memória salva');

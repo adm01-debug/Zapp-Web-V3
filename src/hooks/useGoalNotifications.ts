@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useEffect, useCallback, useRef } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -43,7 +42,8 @@ export function useGoalNotifications() {
         if (!target || target <= 0 || current == null) continue;
 
         const pct = Math.round((current / target) * 100);
-        const crossed = NOTIFY_THRESHOLDS.filter((t) => pct >= t).at(-1);
+        const matched = NOTIFY_THRESHOLDS.filter((t) => pct >= t);
+        const crossed = matched.length > 0 ? matched[matched.length - 1] : undefined;
         if (crossed == null) continue;
 
         const prev = lastNotifiedRef.current.get(goal.id) ?? -1;

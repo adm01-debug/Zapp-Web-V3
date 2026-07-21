@@ -1,5 +1,4 @@
 
-// @ts-nocheck
 import { queryKeys } from '@/services/api/queryKeys';
 import { useState, useEffect, useMemo } from 'react';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
@@ -121,7 +120,7 @@ export function useFailedMessages(filters: FailedMessagesFilters = {}) {
       });
       const total = list[0]?.total_count != null ? Number(list[0].total_count) : 0;
       const rows: FailedMessageRow[] = filtered.map(
-        ({ total_count: _t, ...rest }) => rest as FailedMessageRow
+        ({ total_count: _t, ...rest }: Record<string, unknown>) => rest as unknown as FailedMessageRow
       );
       return { rows, total, deniedReason: null as string | null };
     },

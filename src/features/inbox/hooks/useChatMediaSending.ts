@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { log } from '@/lib/logger';
 import { supabase } from '@/integrations/supabase/client';
@@ -171,7 +170,7 @@ export function useChatMediaSending(contactId: string, contactPhone: string | un
 
         try {
           const result = await sendStickerMessage(inst, phone, stickerUrl);
-          externalId = result?.key?.id || null;
+          externalId = (result as any)?.key?.id || null;
         } catch (err: unknown) {
           if (messageId) await updateMessageStatus(messageId, 'failed');
           toast.error(err instanceof Error ? err.message : 'Erro ao enviar figurinha');

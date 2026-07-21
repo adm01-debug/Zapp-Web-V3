@@ -44,7 +44,6 @@ src/features/admin/components/GmailWebhookMonitor.tsx
 src/features/admin/components/PlaybooksManager.tsx
 src/features/admin/components/alerts/AlertInstanceDetailDialog.tsx
 src/features/admin/components/instance-pauses/AuthEventTrendChart.tsx
-src/features/admin/hooks/monitoring/useFailedMessages.ts
 src/features/admin/hooks/useAdminManagement.ts
 src/features/admin/services/agentService.ts
 src/features/connections/hooks/parts/useConnectionsActions.ts
@@ -156,9 +155,14 @@ src/lib/__tests__/debug-dompurify-test.ts
 src/pages/AdminRealtimeMonitorPage.tsx
 src/pages/AdminSearchInsightsPage.tsx
 src/pages/AdminWebhookSecretStatusPage.tsx
-src/pages/admin-webhook-secret-status/AdvancedFiltersPanel.tsx
-src/pages/admin-webhook-secret-status/HmacSelfTestButton.tsx
 src/pages/admin/AdminAutomationLogsPage.tsx
-src/pages/admin/AdminChannelsPage.tsx
-src/pages/admin/AdminEmailAuditPage.tsx
-src/pages/admin/AdminEvoApiHealthPage.tsx
+src/pages/admin/AdminQueuesPage.tsx
+src/pages/admin/Connections.tsx
+src/pages/admin/automationRuleDialogParts.tsx
+src/pages/admin/email/useEmailHealthStatus.ts
+src/pages/admin/operations/OpsLogsTab.tsx
+src/pages/failed-messages/FailedMessagesFilters.tsx
+src/services/api/mutationFactory.ts
+src/services/connections/connectionsRepository.ts
+src/services/connections/useConnectionsQueries.ts
+src/services/contacts/contactsRepository.ts

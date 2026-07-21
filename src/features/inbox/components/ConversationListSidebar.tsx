@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useCallback, useRef, useMemo, type RefObject } from 'react';
 import { motion } from 'framer-motion';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -222,7 +221,7 @@ export function ConversationListSidebar({
               onSubTabChange={inboxFilters.setSubTab}
               showAll={inboxFilters.showAll}
               onShowAllChange={inboxFilters.setShowAll}
-              scope={inboxFilters.scope}
+              scope={inboxFilters.scope as any}
               onScopeChange={inboxFilters.setScope}
               selectedQueueId={inboxFilters.selectedQueueId}
               onQueueChange={inboxFilters.setSelectedQueueId}

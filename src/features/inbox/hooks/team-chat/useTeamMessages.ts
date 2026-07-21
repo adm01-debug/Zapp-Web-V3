@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useEffect, useRef, useMemo } from 'react';
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -17,7 +16,7 @@ export function useTeamMessages(conversationId: string | null, searchQuery: stri
 
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading, isError, error } =
     useInfiniteQuery({
-      queryKey: queryKeys.teamChat.messages(conversationId, searchQuery),
+      queryKey: queryKeys.teamChat.messages(conversationId ?? undefined, searchQuery),
       queryFn: async ({ pageParam }) => {
         if (!conversationId) return { messages: [], nextCursor: null };
 

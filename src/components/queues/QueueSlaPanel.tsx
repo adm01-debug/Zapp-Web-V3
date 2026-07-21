@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useEffect, useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -55,8 +54,8 @@ export const QueueSlaPanel = () => {
         safeFrom('queue_skill_requirements').select('skill_name'),
         safeFrom('channel_connections').select('channel_type'),
       ]);
-      setSkills(Array.from(new Set((sk ?? []).map((s) => s.skill_name).filter(Boolean))));
-      setChannels(Array.from(new Set((ch ?? []).map((c) => c.channel_type).filter(Boolean))));
+      setSkills(Array.from(new Set((sk ?? []).map((s: any) => s.skill_name).filter(Boolean))));
+      setChannels(Array.from(new Set((ch ?? []).map((c: any) => c.channel_type).filter(Boolean))));
     })();
   }, []);
 

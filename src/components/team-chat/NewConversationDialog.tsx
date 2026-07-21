@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { queryKeys } from '@/services/api/queryKeys';
 import { useState, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -93,7 +92,7 @@ export function NewConversationDialog({ open, onOpenChange, onCreated }: Props) 
         payload.memberIds = selectedIds;
       }
 
-      const result = await createMutation.mutateAsync(payload);
+      const result = await createMutation.mutateAsync(payload as any);
       setSelectedIds([]);
       setSelectedDeptId(null);
       setGroupName('');

@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
@@ -41,7 +40,7 @@ describe('VoiceDictationButton', () => {
 
   it('returns null when not supported', async () => {
     const { useSpeechToText } = await import('@/hooks/useSpeechToText');
-    vi.mocked(useSpeechToText).mockReturnValueOnce({
+    vi.mocked(useSpeechToText as any).mockReturnValueOnce({
       isListening: false,
       isSupported: false,
       transcript: '',

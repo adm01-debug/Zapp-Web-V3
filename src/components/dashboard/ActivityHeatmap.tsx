@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -64,7 +63,7 @@ export const ActivityHeatmap = ({
 
       // Group by day
       const dayCounts = new Map<string, number>();
-      (messages || []).forEach((m) => {
+      (messages || []).forEach((m: { created_at: string }) => {
         const dateKey = format(new Date(m.created_at), 'yyyy-MM-dd');
         dayCounts.set(dateKey, (dayCounts.get(dateKey) || 0) + 1);
       });

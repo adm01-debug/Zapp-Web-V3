@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { motion } from 'framer-motion';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -16,7 +15,7 @@ export function ContactTagsContent({ contact, conversation }: ContactTagsContent
 
   return (
     <div className="flex flex-wrap gap-1.5">
-      {contactTags.map((tag, i) => (
+      {contactTags.map((tag: any, i: any) => (
         <motion.div
           key={`contact-${tag}`}
           initial={{ opacity: 0, scale: 0.8 }}

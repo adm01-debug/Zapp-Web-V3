@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * evolutionReconcile — Optimistic-to-canonical reconciliation utilities.
  * Shared by useExternalConversations and useExternalMessages.
@@ -64,7 +63,7 @@ export interface ReconcileResult {
 /** Resolves the effective audio sub-type of a message: `audio_meme`, `audio_ptt`, or `audio_recorded`. Non-audio messages return their original `message_type` unchanged. */
 function resolveAudioType(m: RealtimeMessage): string {
   if (m.message_type !== 'audio') return m.message_type;
-  const mExt = m as Record<string, unknown>;
+  const mExt = m as unknown as Record<string, unknown>;
   const isPtt = (mExt.media_meta as Record<string, unknown> | undefined)?.ptt === true;
   const isMeme = !!mExt.audio_meme_id;
   return isMeme ? 'audio_meme' : isPtt ? 'audio_ptt' : 'audio_recorded';

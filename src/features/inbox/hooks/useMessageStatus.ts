@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { getLogger } from '@/lib/logger';
@@ -52,7 +51,7 @@ export const useMessageStatus = (contactId?: string) => {
 
         if (data) {
           const statusMap = new Map<string, MessageStatusDbRow>();
-          data.forEach((msg) => {
+          data.forEach((msg: MessageStatusDbRow) => {
             if (msg.status) {
               statusMap.set(msg.id, {
                 id: msg.id,

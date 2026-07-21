@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -54,7 +53,7 @@ export function MonitoringEventTimeline() {
 
       const timeline: TimelineEvent[] = [];
 
-      msgRes.data?.forEach(m => {
+      msgRes.data?.forEach((m: { id: string; sender: string; content: string | null; created_at: string }) => {
         timeline.push({
           id: m.id,
           type: m.sender === 'contact' ? 'message_in' : 'message_out',

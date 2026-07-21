@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook } from '@testing-library/react';
 import React from 'react';
@@ -47,7 +46,7 @@ vi.mock('sonner', () => ({
   toast: { success: vi.fn(), error: vi.fn() },
 }));
 
-import { useExportData, ExportColumn } from '@/hooks/useExportData';
+import useExportData, { ExportColumn } from '@/hooks/useExportData';
 
 interface TestRow extends Record<string, unknown> {
   name: string;

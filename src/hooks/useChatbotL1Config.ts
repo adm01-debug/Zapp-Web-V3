@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { queryKeys } from '@/services/api/queryKeys';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -56,7 +55,7 @@ export function useChatbotL1Config() {
           .update({
             name,
             is_active: isActive,
-            variables: variables as Json,
+            variables: variables as unknown as Json,
             updated_at: new Date().toISOString(),
           })
           .eq('id', flow.id);
@@ -67,7 +66,7 @@ export function useChatbotL1Config() {
           is_active: isActive,
           trigger_type: 'ai_l1',
           trigger_value: 'auto',
-          variables: variables as Json,
+          variables: variables as unknown as Json,
           nodes: [],
           edges: [],
           created_by: profile?.id,

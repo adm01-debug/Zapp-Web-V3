@@ -1,3 +1,4 @@
+
 /**
  * Connections Repository
  *
@@ -67,15 +68,17 @@ export const connectionsRepository = {
 
   deleteWhatsAppConnection: (id: string) => whatsappBaseService.delete(id),
 
-  deleteWhatsAppConnectionsBulk: (ids: string[]) => whatsappBaseService.deleteMany(ids),
+  deleteWhatsAppConnectionsBulk: (ids: string[]) =>
+    Promise.all(ids.map((id) => whatsappBaseService.delete(id))),
 
   // Channel connections
   async listChannelConnections(filters?: Partial<ChannelConnection> & QueryParams) {
+    const limit = filters?.limit ?? 50;
+    const offset = filters?.offset ?? 0;
     const { data, error, count } = await supabase
       .from('channel_connections')
       .select('*', { count: 'exact' })
-      .limit(filters?.limit || 50)
-      .offset(filters?.offset || 0);
+      .range(offset, offset + limit - 1);
 
     return { data: data || [], error, count };
   },

@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Tests for useRetryOperation().
  *
@@ -98,7 +97,7 @@ describe('useRetryOperation — transient retry', () => {
       const promise = result.current.withRetry(fn);
       // Advance fake timers past the retry delay
       await vi.runAllTimersAsync();
-      value = await promise;
+      value = await promise as any;
     });
     expect(fn).toHaveBeenCalledTimes(2);
     expect(value).toBe('success');

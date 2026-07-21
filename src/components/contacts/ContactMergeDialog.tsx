@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React, { useState, useCallback, useMemo } from 'react';
 import { getLogger } from '@/lib/logger';
 
@@ -220,8 +219,8 @@ export const ContactMergeDialog: React.FC<ContactMergeDialogProps> = ({
     const fields: Array<keyof FieldResolution> = ['name', 'phone', 'email', 'company', 'notes'];
 
     fields.forEach((field) => {
-      const pVal = (primaryContact as Record<string, unknown>)[field];
-      const sVal = (secondaryContact as Record<string, unknown>)[field];
+      const pVal = (primaryContact as unknown as Record<string, unknown>)[field];
+      const sVal = (secondaryContact as unknown as Record<string, unknown>)[field];
 
       // If primary is empty but secondary isn't, prefer secondary
       if (!pVal && sVal) {

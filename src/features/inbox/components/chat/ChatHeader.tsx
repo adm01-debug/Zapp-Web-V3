@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { memo } from 'react';
 import { cn } from '@/lib/utils';
 import { VisionIcon } from '../ai-tools/VisionIcon';
@@ -91,10 +90,10 @@ export const ChatHeader = memo(function ChatHeader({
   const _crmCustomer = crmData?.found ? crmData.customer : null;
   const _crmRfm = crmData?.found ? crmData.rfm : null;
 
-  const { data: intel } = useContactIntelligence(
+  const { intelligence: intel } = useContactIntelligence(
     isExternalConfigured ? conversation.contact.phone : undefined
   );
-  const _briefing = intel?.found ? intel.briefing : null;
+  const _briefing = (intel as any)?.found ? (intel as any).briefing : null;
   const { avatarUrl } = useContactAvatar(conversation.contact.id, conversation.contact.avatar);
   const { density, cycleDensity } = useDensity();
 
@@ -134,7 +133,7 @@ export const ChatHeader = memo(function ChatHeader({
             <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/5 text-[11px] font-black uppercase text-primary">
               {conversation.contact.name
                 .split(' ')
-                .map((n) => n[0])
+                .map((n: any) => n[0])
                 .join('')
                 .slice(0, 2)}
             </AvatarFallback>
