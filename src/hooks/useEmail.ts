@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * useEmail.ts — Hook principal de gerenciamento Email
  *
