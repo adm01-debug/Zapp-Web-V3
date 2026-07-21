@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -266,7 +265,8 @@ export function useConnections() {
       );
 
       if (error) {
-        const msg = `Falha na escrita [Provider: ${payload.provider}]: ${error.message}${error.code ? ` (Code: ${error.code})` : ''}`;
+        const errAny = error as unknown as { code?: string; message?: string };
+        const msg = `Falha na escrita [Provider: ${payload.provider}]: ${errAny.message ?? String(error)}${errAny.code ? ` (Code: ${errAny.code})` : ''}`;
         setSaveError(msg);
         toast({ title: 'Erro ao salvar no Supabase', description: msg, variant: 'destructive' });
         return;

@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useCallback } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
@@ -65,7 +64,7 @@ export function useConnectionsActions(
 
       if (error) throw error;
 
-      setConnections((prev) => [...prev, data as WhatsAppConnection]);
+      setConnections((prev) => [...prev, data as unknown as WhatsAppConnection]);
 
       toast({
         title: 'Conexão criada!',
@@ -76,7 +75,7 @@ export function useConnectionsActions(
       setIsAddDialogOpen(false);
       setNewConnection({ name: '', phone_number: '', api_type: 'evolution' });
       invalidateConnectionsCaches();
-      if (data && !isOfficial) void handleShowQrCode(data as WhatsAppConnection);
+      if (data && !isOfficial) void handleShowQrCode(data as unknown as WhatsAppConnection);
     } catch (error: unknown) {
       log.error('Error creating connection:', error);
       const msg = error instanceof Error ? error.message : String(error);
