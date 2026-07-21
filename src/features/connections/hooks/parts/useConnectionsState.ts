@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef } from 'react';
 import { toast } from '@/hooks/use-toast';
-import { WhatsAppConnection, QrCodeDialogState } from '../useConnectionsManager';
+import { WhatsAppConnection, QrCodeDialogState, WhatsAppApiType } from '../useConnectionsManager';
 
 const INITIAL_QR_STATE: QrCodeDialogState = {
   open: false,
