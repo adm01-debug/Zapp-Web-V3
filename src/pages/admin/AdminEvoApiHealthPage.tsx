@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useMemo } from 'react';
 import { queryKeys } from '@/services/api/queryKeys';
 import { useQueryClient } from '@tanstack/react-query';
@@ -142,14 +141,14 @@ export default function AdminEvoApiHealthPage() {
 
         <TabsContent value="health">
           <SectionErrorBoundary sectionName="Saúde">
-            <HealthTab data={dashboardData} />
+            <HealthTab data={dashboardData ?? undefined} />
           </SectionErrorBoundary>
         </TabsContent>
 
         <TabsContent value="alerts">
           <SectionErrorBoundary sectionName="Alertas">
             <AlertsTab
-              alerts={alertsData}
+              alerts={alertsData ?? undefined}
               onAcknowledge={(id) => ack.mutate(id)}
               isAcknowledging={ack.isPending}
             />

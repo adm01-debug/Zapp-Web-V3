@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState } from "react";
 import { useAdminChannels, type ServiceChannel, type ChannelStatus } from '@/hooks/admin/useAdminChannels';
 import { Button } from "@/components/ui/button";
@@ -123,7 +122,7 @@ export default function AdminChannelsPage() {
               </SelectContent>
             </Select>
           </div>
-          <Button variant="outline" onClick={load}>Atualizar</Button>
+          <Button variant="outline" onClick={() => { void load(); }}>Atualizar</Button>
         </CardContent>
       </Card>
 

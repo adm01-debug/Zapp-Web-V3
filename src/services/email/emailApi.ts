@@ -11,6 +11,9 @@ export interface EmailRevalidationJob {
   requested_at: string;
   requested_by: string | null;
   result: Record<string, unknown> | null;
+  /** Aliases físicos aceitos pelo schema atual (compat legado). */
+  scheduled_at?: string;
+  triggered_by?: string | null;
 }
 
 export interface EmailHealthSummary {

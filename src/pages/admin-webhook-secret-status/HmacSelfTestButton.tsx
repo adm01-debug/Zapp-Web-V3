@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * HmacSelfTestButton
  * Aciona a edge function `webhook-hmac-selftest` e mostra a resposta detalhada
@@ -79,7 +78,7 @@ export function HmacSelfTestButton({ instance }: { instance: string | null }) {
       const uid = userData.user?.id;
       if (!uid) return;
 
-      const { data: existingRows } = await safeClient.from('warroom_alerts', (q) =>
+      const { data: existingRows } = await safeClient.from<{ id: string }>('warroom_alerts', (q) =>
         q
           .select('id')
           .eq('source', source)
