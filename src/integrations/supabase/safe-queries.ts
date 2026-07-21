@@ -113,9 +113,9 @@ export const safeWhatsAppConnectionsQuery = (supabase: AnySupabaseClient) => ({
     return supabase
       .channel('whatsapp_connections_safe')
       .on(
-        'postgres_changes',
+        'postgres_changes' as never,
         {
-          event: options?.event || '*',
+          event: (options?.event || '*') as never,
           schema: 'zapp',
           table: 'whatsapp_connections',
           filter: options?.filter,
