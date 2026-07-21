@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Evolution API Management Hook — Unified orchestration of all Evolution API integrations.
  * Consolidates 12 domain-specific hooks into one comprehensive module.
@@ -51,8 +50,7 @@ import type {
 } from '@/hooks/evolutionApi.types';
 
 // ─── Type Exports ─────────────────────────────────────────────────────────
-/** Re-exported module members. */
-export type { HttpMethod, CallApiOptions } from './useEvolutionApiManagement';
+// HttpMethod and CallApiOptions are declared locally below.
 /** Re-exported module members. */
 export type {
   SendMessageParams,
