@@ -65,7 +65,7 @@ export function useReportsData() {
       if (selectedAgent !== 'all') query = query.eq('agent_id', selectedAgent);
       const { data, error } = await query;
       if (error) throw error;
-      return data || [];
+      return (data ?? []) as ReportMessage[];
     },
   });
 
@@ -79,7 +79,7 @@ export function useReportsData() {
       if (selectedAgent !== 'all') query = query.eq('agent_id', selectedAgent);
       const { data, error } = await query;
       if (error) throw error;
-      return data || [];
+      return (data ?? []) as ReportMessage[];
     },
     enabled: compareEnabled,
   });
@@ -94,7 +94,7 @@ export function useReportsData() {
       if (selectedAgent !== 'all') query = query.eq('assigned_to', selectedAgent);
       const { data, error } = await query;
       if (error) throw error;
-      return data || [];
+      return (data ?? []) as ReportContact[];
     },
   });
 
@@ -108,7 +108,7 @@ export function useReportsData() {
       if (selectedAgent !== 'all') query = query.eq('assigned_to', selectedAgent);
       const { data, error } = await query;
       if (error) throw error;
-      return data || [];
+      return (data ?? []) as ReportContact[];
     },
     enabled: compareEnabled,
   });
