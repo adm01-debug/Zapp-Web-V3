@@ -50,8 +50,8 @@ export interface BulkResponse<T> {
 
 /** Pagination Params interface definition. */
 export interface PaginationParams {
-  page: number;
-  pageSize: number;
+  page?: number;
+  pageSize?: number;
   sortBy?: string;
   sortOrder?: 'asc' | 'desc';
 }
