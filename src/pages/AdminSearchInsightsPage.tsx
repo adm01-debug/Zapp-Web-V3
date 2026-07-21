@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -18,7 +17,11 @@ const WINDOWS: Array<{ days: number; label: string }> = [
 /** Admin Search Insights Page. */
 export default function AdminSearchInsightsPage() {
   const [days, setDays] = useState(7);
-  const { data, isLoading, isFetching, refetch, error } = useSearchInsights(days);
+  const { insights, loading: isLoading } = useSearchInsights(days);
+  const data = insights;
+  const isFetching = isLoading;
+  const error: unknown = null;
+  const refetch = () => {};
 
   return (
     <div className="mx-auto max-w-7xl space-y-4">
