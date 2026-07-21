@@ -185,7 +185,7 @@ export function useConnectionsManager() {
       setLoading(true);
       const { data, error } = await whatsappConnectionRepository.fetchConnections();
       if (cancelled) return;
-      if (!error && data) setConnections(data as WhatsAppConnection[]); // ignore-audit: narrows Supabase query result to local interface
+      if (!error && data) setConnections(data as unknown as WhatsAppConnection[]); // ignore-audit: narrows Supabase query result to local interface
       setLoading(false);
     };
     void fetchConnections();

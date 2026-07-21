@@ -31,7 +31,7 @@ function mountHookWithContainer(options: Parameters<typeof usePullToRefresh>[0])
   const { result } = renderHook(() => usePullToRefresh(options));
   // Attach a mock container with scrollTop = 0
   const mockContainer = { scrollTop: 0 } as HTMLDivElement;
-  result.current.containerRef.current = mockContainer;
+  (result.current.containerRef as { current: HTMLDivElement | null }).current = mockContainer;
   return { result, mockContainer };
 }
 
@@ -99,7 +99,7 @@ describe('usePullToRefresh — touchStart', () => {
       usePullToRefresh({ onRefresh, threshold: 80 })
     );
     // Attach container with scrollTop=100 (user has scrolled down)
-    result.current.containerRef.current = { scrollTop: 100 } as HTMLDivElement;
+    (result.current.containerRef as { current: HTMLDivElement | null }).current = { scrollTop: 100 } as HTMLDivElement;
 
     await act(async () => {
       result.current.handlers.onTouchStart(touchEvent(0));

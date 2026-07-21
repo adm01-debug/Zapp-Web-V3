@@ -56,7 +56,7 @@ export function useWhatsAppFlows() {
       name,
       description: description || null,
       screens:
-        defaultScreens as Json /* ignore-audit: local Screen[] type widened to Supabase Json column type */,
+        defaultScreens as unknown as Json /* ignore-audit: local Screen[] type widened to Supabase Json column type */,
     });
     if (error) {
       toast({ title: 'Erro', description: error.message, variant: 'destructive' });
@@ -78,7 +78,7 @@ export function useWhatsAppFlows() {
       .from('whatsapp_flows')
       .update({
         screens:
-          screens as Json /* ignore-audit: local Screen[] type widened to Supabase Json column type */,
+          screens as unknown as Json /* ignore-audit: local Screen[] type widened to Supabase Json column type */,
       })
       .eq('id', flowId);
   };

@@ -38,8 +38,8 @@ export * from './externalAudioSender';
 const log = getLogger('externalMessageSender');
 
 // Audit helper — fire-and-forget but surfaces failures to the logger instead of silently dropping them.
-const logAudit = (def, params) =>
-  dbInsert(def, params).catch((err) => log.warn('[audit] log failed', err));
+const logAudit = (def: unknown, params: unknown) =>
+  dbInsert(def as never, params as never).catch((err) => log.warn('[audit] log failed', err));
 
 /** Sends a text message directly to the Evolution external database, writes an optimistic message row, and logs an outbound audit entry; returns the new message ID and external WhatsApp key on success. */
 export async function sendExternalText(
