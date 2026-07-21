@@ -57,7 +57,7 @@ export function useConnectionsState() {
   const [newConnection, setNewConnection] = useState<{
     name: string;
     phone_number: string;
-    api_type: string;
+    api_type: WhatsAppApiType;
   }>({ name: '', phone_number: '', api_type: 'evolution' });
   const [isCreating, setIsCreating] = useState(false);
   const [syncingHistory, setSyncingHistory] = useState<string | null>(null);
