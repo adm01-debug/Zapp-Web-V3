@@ -61,6 +61,6 @@ declare const SpeechRecognition: {
 };
 
 interface Window {
-  SpeechRecognition?: typeof SpeechRecognition;
-  webkitSpeechRecognition?: typeof SpeechRecognition;
+  SpeechRecognition?: unknown;
+  webkitSpeechRecognition?: unknown;
 }
