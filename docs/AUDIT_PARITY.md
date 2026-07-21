@@ -152,6 +152,28 @@ sentimento) dependem dessas functions que nunca subiram ao edge-runtime self-hos
 e reiniciar) para as 11 do repo. Requer acesso ao container (Portainer/SSH). Para as 2 talkx:
 escrever as functions ou remover as chamadas em `src/hooks/useTalkX.ts`.
 
+### Mecanismo de deploy das edge functions (mapeado no VPS)
+
+As functions são **volume-based**: volume `functions` montado em `/home/deno/functions` no
+serviço Swarm `supabase_functions` (host: `/root/supabase/docker/volumes/functions`).
+Confirmado que **NÃO dá para deployar** do VS Code (Portainer MCP com token velho) nem do
+container `claude-code` da VPS (sem docker CLI, sem socket, sem o volume de functions montado —
+só alcança o edge-runtime por rede em 10.0.1.55). Deploy exige **Portainer** (funciona fora do
+VS Code) ou **SSH no host**.
+
+**Runbook (rodar via Portainer exec no host / SSH — validar caminho do repo e NÃO sobrescrever `_shared/`):**
+```bash
+cd <repo-no-host>/zapp-web-v3 && git pull
+FUNCS="approve-password-reset ai-router ai-enhance-message ai-conversation-analysis \
+ai-classify-tickets ai-churn-analysis ai-transcribe-audio chatbot-l1 sentiment-alert \
+classify-audio-meme elevenlabs-sfx"
+for f in $FUNCS; do cp -rn supabase/functions/$f /root/supabase/docker/volumes/functions/$f; done
+docker service update --force supabase_functions
+# verificar (200 = no ar):
+for f in $FUNCS; do curl -s -o /dev/null -w "$f %{http_code}\n" -X OPTIONS \
+  https://supabase.atomicabr.com.br/functions/v1/$f; done
+```
+
 ### Pendências reconfirmadas (precisam de você / decisão de produto)
 - **Edge functions `talkx-add-recipients` / `talkx-control`**: self-hosted não lista functions via API; invocar para testar é perigoso (efeito colateral). Verificar deploy via Portainer/VPS (`ls /root/supabase/docker/volumes/functions/`).
 - **goal_notifications / transcription_notifications / dashboard_data**: features incompletas — `app_notifications` existe e está publicada, mas **não há gravador nem dados** desses tipos. Decisão: implementar a feature completa (tabela/tipo + writer) OU remover os hooks mortos (`useNotificationManagement.ts`, `useRealtimeManagement.ts`).
