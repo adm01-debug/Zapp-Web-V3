@@ -11,12 +11,16 @@
 import { SupabaseClient } from '@supabase/supabase-js';
 import { Database } from './schema';
 
+// Accept clients bound to either schema (zapp is canonical, public via view proxy).
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnySupabaseClient = SupabaseClient<Database, any, any, any, any>;
+
 /**
  * Safe WhatsApp Connections Query
  * Returns only non-sensitive fields (id, name, phone_number, status, is_default)
  * Enforces RLS policies and hides sensitive fields (qr_code, instance_id, evo_instance_id)
  */
-export const safeWhatsAppConnectionsQuery = (supabase: SupabaseClient<Database>) => ({
+export const safeWhatsAppConnectionsQuery = (supabase: AnySupabaseClient) => ({
   /**
    * Get all connections visible to current user (RLS enforced)
    * Safe for: listing, filtering, display
