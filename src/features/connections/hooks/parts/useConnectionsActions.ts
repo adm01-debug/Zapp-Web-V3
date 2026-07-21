@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useCallback } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import { useQueryClient } from '@tanstack/react-query';

@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useCallback, useEffect, useState } from 'react';
 import { useOpsAuditLogs, type AuditRow } from '@/hooks/useOpsAuditLogs';
 import { safeClient } from '@/integrations/supabase/safeClient';
