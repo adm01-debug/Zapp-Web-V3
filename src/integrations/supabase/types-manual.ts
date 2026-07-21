@@ -32,18 +32,19 @@ type MergeTables<Base, Extra> = {
       : never;
 };
 
-// CORRIGIDO 2026-07-16: agora referencia o bloco 'zapp' nativo (antes era 'public')
-type GeneratedZappSchema = GeneratedDatabase['zapp'];
+// Tipos gerados só expõem 'public'; usamos essa forma como base tipada para 'zapp' e 'evo'
+// (o cliente é bound ao schema 'zapp' via db.schema no client.ts).
+type PublicSchema = GeneratedDatabase['public'];
 
 /** Extended Database type alias. */
 export type ExtendedDatabase = {
-  public: GeneratedDatabase['public'];
+  public: PublicSchema;
   zapp: {
-    Tables: MergeTables<GeneratedZappSchema['Tables'], ManualZappTables>;
-    Views: GeneratedZappSchema['Views'];
-    Functions: GeneratedZappSchema['Functions'];
-    Enums: GeneratedZappSchema['Enums'];
-    CompositeTypes: GeneratedZappSchema['CompositeTypes'];
+    Tables: MergeTables<PublicSchema['Tables'], ManualZappTables>;
+    Views: PublicSchema['Views'];
+    Functions: PublicSchema['Functions'];
+    Enums: PublicSchema['Enums'];
+    CompositeTypes: PublicSchema['CompositeTypes'];
   };
-  evo: GeneratedDatabase['evo'];
+  evo: PublicSchema;
 };
