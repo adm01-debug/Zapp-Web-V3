@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useEffect } from 'react';
 import { log } from '@/lib/logger';
 import { fetchActiveProfiles, type Profile } from '@/hooks/useActiveProfiles';
