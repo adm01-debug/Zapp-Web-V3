@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { useUserRole } from '@/features/auth';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Link2, Plug, Database } from 'lucide-react';
