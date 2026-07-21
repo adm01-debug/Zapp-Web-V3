@@ -235,7 +235,7 @@ describe('AutoTicketClassifier', () => {
   describe('Edge cases', () => {
     it('handles null contact', () => {
       const contact: { name?: string } | null = null;
-      const name = contact?.name || 'Desconhecido';
+      const name = contact?.name as any || 'Desconhecido';
       expect(name).toBe('Desconhecido');
     });
 

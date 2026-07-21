@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useEffect, useRef } from 'react';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -560,7 +559,7 @@ export function ConnectionsView() {
         ))}
       </div>
 
-      <DegradedQuickActions connections={connections} onShowQrCode={handleShowQrCode} />
+      <DegradedQuickActions connections={connections as any} onShowQrCode={handleShowQrCode as any} />
 
       {/* Connections List */}
       {loading ? (

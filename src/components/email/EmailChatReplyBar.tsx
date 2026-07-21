@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useRef, useCallback, useEffect } from 'react';
 import DOMPurify from 'dompurify';
 import {
@@ -139,7 +138,7 @@ export function EmailChatReplyBar({
         threadId: threadEmailId,
         attachments: processedAttachments,
         signature: true,
-      });
+      } as any);
 
       // Registra resposta no SLA
       markReplied(threadEmailId);

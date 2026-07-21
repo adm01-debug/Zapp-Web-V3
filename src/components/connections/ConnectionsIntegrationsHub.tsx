@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useUserRole } from '@/features/auth';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Link2, Plug, Database } from 'lucide-react';
@@ -14,7 +13,7 @@ import { HubTab } from './types';
  */
 export function ConnectionsIntegrationsHub() {
   const { isDev } = useUserRole();
-  const { tab, setTab } = useHubTabNavigation({ isDev });
+  const { tab, setTab } = useHubTabNavigation(isDev);
 
   return (
     <div className="flex flex-col h-full">

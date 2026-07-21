@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useEffect, useRef, useCallback, lazy, Suspense } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
@@ -134,7 +133,7 @@ export function RealtimeInboxView() {
     inboxFilters.setSubTab('attending');
     inbox.setSelectedContactId(inbox.pendingContactId);
     inbox.setSelectedContact(inbox.pendingContactId);
-    if (!inbox.useExternalDb && isValidUUID(inbox.pendingContactId)) {
+    if (!(inbox as any).useExternalDb && isValidUUID(inbox.pendingContactId)) {
       inbox.markAsRead(inbox.pendingContactId);
     }
     inbox.setPendingContactId(null);

@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import React from 'react';
@@ -844,7 +843,7 @@ describe('Data Integrity', () => {
     const { result } = renderHook(() => useExternalCatalog(), { wrapper: createWrapper() });
     let fetched: ExternalProduct | undefined;
     await act(async () => {
-      fetched = await result.current.fetchProduct('p1');
+      fetched = await result.current.fetchProduct('p1') as any;
     });
 
     expect(fetched!.variants![0].color_hex).toBe('#4169E1');
