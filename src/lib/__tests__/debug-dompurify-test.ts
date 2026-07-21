@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'vitest';
-import { sanitizeHtml } from '../sanitize-v2';
+import { sanitizeHtml } from '../sanitize';
 import DOMPurifyFactory from 'dompurify';
 
 describe('Debug DOMPurify behavior', () => {
