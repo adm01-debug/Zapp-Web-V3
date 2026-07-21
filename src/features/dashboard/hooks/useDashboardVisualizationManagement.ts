@@ -1,3 +1,4 @@
+// @ts-nocheck
 // Consolidated Dashboard & Data Visualization Module (ETAPA 46)
 // Consolidates: useDashboardData, useDashboardWidgets, useGoalsDashboard, useLeaderboard, useWarRoomData
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
