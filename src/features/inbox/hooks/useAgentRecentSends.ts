@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useQuery } from '@tanstack/react-query';
 import { queryKeys } from '@/services/api/queryKeys';
 import { useMemo } from 'react';
