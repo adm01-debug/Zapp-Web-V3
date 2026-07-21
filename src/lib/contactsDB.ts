@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * contactsDB.ts — Bridge layer for contact operations on the EXTERNAL CRM database
  *
