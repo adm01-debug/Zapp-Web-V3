@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * useMessageDetails — on-demand hydration of a single full message row
  * from FATOR X (`rpc_get_message_details`).

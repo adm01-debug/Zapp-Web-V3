@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useEffect } from 'react';
 import { fetchConversationMemory, saveConversationMemory } from '../hooks/useConversationMemoryData';
 import { Button } from '@/components/ui/button';

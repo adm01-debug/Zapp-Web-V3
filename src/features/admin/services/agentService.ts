@@ -1,4 +1,3 @@
-// @ts-nocheck
 
 import { agentRepository, AgentProfile } from '../data-access/agentRepository';
 

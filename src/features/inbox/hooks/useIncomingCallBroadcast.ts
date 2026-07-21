@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useEffect, useCallback } from 'react';
 import { externalSupabase, isExternalConfigured } from '@/integrations/supabase/externalClient';
 import { useAuth } from '@/features/auth';
