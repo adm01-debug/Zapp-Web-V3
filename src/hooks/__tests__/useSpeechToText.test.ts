@@ -3,8 +3,8 @@ import { renderHook, act } from '@testing-library/react';
 import { useSpeechToText } from '@/hooks/useSpeechToText';
 
 type WindowWithSR = typeof window & {
-  SpeechRecognition?: typeof MockSpeechRecognition;
-  webkitSpeechRecognition?: typeof MockSpeechRecognition;
+  SpeechRecognition?: unknown;
+  webkitSpeechRecognition?: unknown;
 };
 
 // Mock SpeechRecognition
@@ -39,7 +39,7 @@ describe('useSpeechToText', () => {
   });
 
   afterEach(() => {
-    win.SpeechRecognition = originalSR as typeof MockSpeechRecognition | undefined;
+    win.SpeechRecognition = originalSR as unknown;
     vi.restoreAllMocks();
   });
 
