@@ -1,4 +1,3 @@
-// @ts-nocheck
 /* eslint-disable react-refresh/only-export-components */
 import { useRef, useState, useEffect, useCallback, ReactNode, memo } from 'react';
 import { cn } from '@/lib/utils';
@@ -131,7 +130,7 @@ function buildPrimaryLabel(conversation: any): string {
   ).trim();
   const safeName = (name === 'Você' ? '' : name) || 'Contato';
 
-  const parts = safeName.split(' ').filter((p) => p.length > 0);
+  const parts = safeName.split(' ').filter((p: string) => p.length > 0);
   if (parts.length > 1) {
     return `${parts[0]} ${parts[parts.length - 1]}`;
   }
@@ -185,7 +184,7 @@ export const ConversationItem = memo(function ConversationItem({
   const status = conversation.status || 'open';
   const unreadCount = conversation.unreadCount || 0;
   const lastMessage = conversation.lastMessage;
-  const tags = contact?.tags ?? [];
+  const tags: string[] = (contact as { tags?: string[] } | undefined)?.tags ?? [];
   const avatarUrl = contact?.avatar || contact?.avatar_url;
 
   const companyName = contact?.company_name || contact?.company || contact?.organization;

@@ -1,4 +1,4 @@
-// @ts-nocheck
+
 /**
  * External Supabase Client — SHIM DE COMPATIBILIDADE
  *
@@ -37,7 +37,8 @@ if (
 }
 
 /** external Supabase constant. */
-export const externalSupabase: SupabaseClient<ExtendedDatabase> = supabase;
+export const externalSupabase: SupabaseClient<ExtendedDatabase> =
+  supabase as unknown as SupabaseClient<ExtendedDatabase>;
 /** is External Configured constant. */
 export const isExternalConfigured = true;
 
@@ -48,7 +49,7 @@ export function getIsExternalConfigured(): boolean {
 
 /** get External Supabase function. */
 export function getExternalSupabase(): SupabaseClient<ExtendedDatabase> {
-  return supabase;
+  return supabase as unknown as SupabaseClient<ExtendedDatabase>;
 }
 
 /**
@@ -68,7 +69,7 @@ type UntypedRpc = (fn: string, args: Record<string, unknown>) => Promise<{ data:
 
 /** Calls an untyped Supabase RPC function, forwarding args and returning raw data/error. */
 export function callExtRpc(
-  client: SupabaseClient<ExtendedDatabase>,
+  client: SupabaseClient<ExtendedDatabase, 'zapp' | 'public' | 'evo'>,
   fn: string,
   args: Record<string, unknown>
 ): Promise<{ data: unknown; error: { message: string } | null }> {
