@@ -1,4 +1,3 @@
-// @ts-nocheck
 // Unified media library management module consolidating media library hooks (ETAPA 21 consolidation)
 // Replaces: useMediaLibrary, useMediaUpload
 import { useState, useEffect, useCallback, useRef } from 'react';
