@@ -91,7 +91,7 @@ export function useTeamConversations() {
 
       const enriched: TeamConversation[] = conversations.map((conv) => {
         const members = (allMembers || []).filter(
-          (m) => m.conversation_id === conv.id
+          (m: any) => m.conversation_id === conv.id
         ) as TeamMember[];
         const lastMsg = lastMessageMap.get(conv.id) || null;
 

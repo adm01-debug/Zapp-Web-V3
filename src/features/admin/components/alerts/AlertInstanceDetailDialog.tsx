@@ -57,7 +57,7 @@ export function AlertInstanceDetailDialog({ open, onOpenChange, instance }: Prop
   const enabled = open && !!instance;
 
   const { data: rows, isLoading } = useQuery({
-    queryKey: queryKeys.adminOps.alertInstanceDetail(instance),
+    queryKey: queryKeys.adminOps.alertInstanceDetail(instance ?? undefined),
     queryFn: async () => {
       const { data, error } = await supabase.rpc('rpc_instance_auth_event_trend', {
         p_hours: 24,
