@@ -4,7 +4,15 @@ import { useState, useCallback } from 'react';
 const STORAGE_KEY = 'zappweb:webhook-view-prefs:v1';
 
 /** Hook: Webhook Status Filter. */
-export type WebhookStatusFilter = 'all' | 'success' | 'failed' | 'pending';
+export type WebhookStatusFilter =
+  | 'all'
+  | 'success'
+  | 'failed'
+  | 'pending'
+  | 'valid'
+  | 'invalid'
+  | 'unsigned'
+  | 'errored';
 /** Hook: Webhook Table Density. */
 export type WebhookTableDensity = 'compact' | 'normal' | 'comfortable';
 
@@ -19,7 +27,8 @@ export interface WebhookViewColumns {
   [key: string]: boolean;
 }
 
-interface WebhookViewPrefs {
+/** Preferências persistidas de visualização de webhooks. */
+export interface WebhookViewPreferences {
   statusFilter: WebhookStatusFilter | string;
   reasonSearch: string;
   eventTypeFilter: string;
@@ -28,6 +37,9 @@ interface WebhookViewPrefs {
   visibleColumns: WebhookViewColumns;
   [key: string]: unknown;
 }
+
+/** Alias interno — mantém compat com o restante do módulo. */
+type WebhookViewPrefs = WebhookViewPreferences;
 
 /** Hook: DEFAULT_WEBHOOK_VIEW_PREFS. */
 export const DEFAULT_WEBHOOK_VIEW_PREFS: WebhookViewPrefs = {
