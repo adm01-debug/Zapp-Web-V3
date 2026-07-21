@@ -37,15 +37,11 @@ export function useSpeechToTextManagement(language: string = 'pt-BR'): VoiceStat
 
   const startListening = useCallback(() => {
     if (!recognitionRef.current) {
-      const SpeechRecognition =
-        (
-          window as Window & {
-            SpeechRecognition?: typeof globalThis.SpeechRecognition;
-            webkitSpeechRecognition?: typeof globalThis.SpeechRecognition;
-          }
-        ).SpeechRecognition ||
-        (window as Window & { webkitSpeechRecognition?: typeof globalThis.SpeechRecognition })
-          .webkitSpeechRecognition;
+      const win = window as unknown as {
+        SpeechRecognition?: new () => unknown;
+        webkitSpeechRecognition?: new () => unknown;
+      };
+      const SpeechRecognition = win.SpeechRecognition || win.webkitSpeechRecognition;
       if (!SpeechRecognition) {
         if (mountedRef.current) {
           setVoiceState((prev) => ({
