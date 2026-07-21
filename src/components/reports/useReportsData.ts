@@ -7,6 +7,23 @@ import { format, subDays, startOfDay, endOfDay, eachDayOfInterval, parseISO } fr
 import { ptBR } from 'date-fns/locale';
 import { dbFrom } from '@/integrations/datasource/db';
 
+interface ReportMessage {
+  id: string;
+  created_at: string;
+  sender: string | null;
+  agent_id: string | null;
+  contact_id: string | null;
+  is_read: boolean | null;
+}
+
+interface ReportContact {
+  id: string;
+  created_at: string;
+  assigned_to: string | null;
+  tags: string[] | null;
+  contact_type: string | null;
+}
+
 /** use Reports Data component for the reports section. */
 export function useReportsData() {
   const [period, setPeriod] = useState('30');
