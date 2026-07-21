@@ -7,6 +7,23 @@ import { format, subDays, startOfDay, endOfDay, eachDayOfInterval, parseISO } fr
 import { ptBR } from 'date-fns/locale';
 import { dbFrom } from '@/integrations/datasource/db';
 
+interface ReportMessage {
+  id: string;
+  created_at: string;
+  sender: string | null;
+  agent_id: string | null;
+  contact_id: string | null;
+  is_read: boolean | null;
+}
+
+interface ReportContact {
+  id: string;
+  created_at: string;
+  assigned_to: string | null;
+  tags: string[] | null;
+  contact_type: string | null;
+}
+
 /** use Reports Data component for the reports section. */
 export function useReportsData() {
   const [period, setPeriod] = useState('30');
@@ -48,7 +65,7 @@ export function useReportsData() {
       if (selectedAgent !== 'all') query = query.eq('agent_id', selectedAgent);
       const { data, error } = await query;
       if (error) throw error;
-      return data || [];
+      return (data ?? []) as ReportMessage[];
     },
   });
 
@@ -62,7 +79,7 @@ export function useReportsData() {
       if (selectedAgent !== 'all') query = query.eq('agent_id', selectedAgent);
       const { data, error } = await query;
       if (error) throw error;
-      return data || [];
+      return (data ?? []) as ReportMessage[];
     },
     enabled: compareEnabled,
   });
@@ -77,7 +94,7 @@ export function useReportsData() {
       if (selectedAgent !== 'all') query = query.eq('assigned_to', selectedAgent);
       const { data, error } = await query;
       if (error) throw error;
-      return data || [];
+      return (data ?? []) as ReportContact[];
     },
   });
 
@@ -91,7 +108,7 @@ export function useReportsData() {
       if (selectedAgent !== 'all') query = query.eq('assigned_to', selectedAgent);
       const { data, error } = await query;
       if (error) throw error;
-      return data || [];
+      return (data ?? []) as ReportContact[];
     },
     enabled: compareEnabled,
   });

@@ -7,13 +7,15 @@ interface DateRange {
 }
 
 interface QueuePerformance {
-  queueId: string;
-  queueName: string;
+  id: string;
+  name: string;
   color: string;
   totalContacts: number;
   assignedContacts: number;
-  agentCount: number;
-  messageCount: number;
+  waitingContacts: number;
+  agentsCount: number;
+  totalMessages: number;
+  avgMessagesPerContact: number;
   assignmentRate: number;
 }
 
@@ -80,18 +82,22 @@ export function useQueuesComparison(dateRange: DateRange) {
         const qContacts = contactList.filter((c) => c.queue_id === q.id);
         const totalContacts = qContacts.length;
         const assignedContacts = qContacts.filter((c) => c.assigned_to !== null).length;
-        const agentCount = memberList.filter((m) => m.queue_id === q.id).length;
+        const waitingContacts = totalContacts - assignedContacts;
+        const agentsCount = memberList.filter((m) => m.queue_id === q.id).length;
         const qContactIds = qContacts.map((c) => c.id);
-        const messageCount = messageList.filter((m) => qContactIds.includes(m.contact_id)).length;
+        const totalMessages = messageList.filter((m) => qContactIds.includes(m.contact_id)).length;
+        const avgMessagesPerContact = totalContacts > 0 ? totalMessages / totalContacts : 0;
         const assignmentRate = totalContacts > 0 ? (assignedContacts / totalContacts) * 100 : 0;
         return {
-          queueId: q.id,
-          queueName: q.name,
+          id: q.id,
+          name: q.name,
           color: q.color,
           totalContacts,
           assignedContacts,
-          agentCount,
-          messageCount,
+          waitingContacts,
+          agentsCount,
+          totalMessages,
+          avgMessagesPerContact,
           assignmentRate,
         };
       });

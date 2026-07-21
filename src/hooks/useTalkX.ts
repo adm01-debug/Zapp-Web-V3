@@ -6,29 +6,7 @@ import { getLogger } from '@/lib/logger';
 
 const log = getLogger('useTalkX');
 
-/** Lightweight TalkX campaign shape used before the canonical type was available. Prefer the typed version below for new code. */
-export interface TalkXCampaign {
-  id: string;
-  name: string;
-  message_content?: string;
-  description?: string;
-  message_type?: string;
-  target_type?: string;
-  status?: string;
-  send_interval_seconds?: number;
-  created_at?: string;
-  [key: string]: unknown;
-}
-
-/** Lightweight TalkX recipient shape mirroring talkx_recipients rows. */
-export interface TalkXRecipient {
-  id: string;
-  campaign_id: string;
-  contact_id?: string;
-  phone?: string;
-  status?: string;
-  [key: string]: unknown;
-}
+// Canonical interfaces TalkXCampaign and TalkXRecipient are declared at the bottom of this file.
 
 /** Manages TalkX broadcast campaigns: listing, creating, pausing, resuming, archiving, and recipient tracking. Uses a stable refetch callback to avoid useCallback identity churn. */
 export function useTalkX() {
