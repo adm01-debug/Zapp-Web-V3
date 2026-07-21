@@ -89,7 +89,7 @@ export function useContactEnrichedData(contactId: string) {
 
   // Fetch enriched contact fields from DB
   const enrichedQuery = useQuery({
-    queryKey: queryKeys.contactDetails.enriched(localId),
+    queryKey: queryKeys.contactDetails.enriched(localId ?? undefined),
     queryFn: async () => {
       if (!localId) return null;
       const { data, error } = await dbFrom('contacts')
@@ -120,7 +120,7 @@ export function useContactEnrichedData(contactId: string) {
 
   // Fetch AI conversation tags
   const aiTagsQuery = useQuery({
-    queryKey: queryKeys.contactDetails.aiTags(localId),
+    queryKey: queryKeys.contactDetails.aiTags(localId ?? undefined),
     queryFn: async () => {
       if (!localId) return [] as AIConversationTag[];
       const { data, error } = await supabase
@@ -150,7 +150,7 @@ export function useContactEnrichedData(contactId: string) {
 
   // Fetch SLA info
   const slaQuery = useQuery({
-    queryKey: queryKeys.sla.contact(localId),
+    queryKey: queryKeys.sla.contact(localId ?? undefined),
     queryFn: async () => {
       if (!localId) return null;
       const { data, error } = await supabase
