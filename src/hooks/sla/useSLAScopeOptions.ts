@@ -1,7 +1,8 @@
-// @ts-nocheck
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type { SLARuleScope } from '@/features/sla';
+
+type ContactRow = { id: string; name: string | null; phone: string | null };
 
 interface QueueOption {
   id: string;
