@@ -293,7 +293,7 @@ export const MessageStatusPanel = memo(function MessageStatusPanel({
                       borderRadius: '6px',
                     }}
                     itemStyle={{ padding: '0px' }}
-                    labelFormatter={(label: string | number) => format(new Date(label), 'HH:mm')}
+                    labelFormatter={((label: string | number) => format(new Date(label), 'HH:mm')) as never}
                   />
                   <Line
                     type="monotone"
