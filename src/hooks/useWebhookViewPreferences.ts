@@ -31,7 +31,7 @@ export interface WebhookViewColumns {
 export interface WebhookViewPreferences {
   statusFilter: WebhookStatusFilter | string;
   reasonSearch: string;
-  eventTypeFilter: string;
+  eventTypeFilter: string | null;
   tableDensity: WebhookTableDensity;
   pinnedInstance: string | null;
   visibleColumns: WebhookViewColumns;
