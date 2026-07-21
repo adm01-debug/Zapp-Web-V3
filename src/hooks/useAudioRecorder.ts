@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -137,8 +136,8 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
 
         // Enhanced Transcription with Backend Fallback Support
         const w = window as Window & {
-          SpeechRecognition?: typeof SpeechRecognition;
-          webkitSpeechRecognition?: typeof SpeechRecognition;
+          SpeechRecognition?: new () => SpeechRecognition;
+          webkitSpeechRecognition?: new () => SpeechRecognition;
         };
         const SpeechRecognitionCtor = w.SpeechRecognition || w.webkitSpeechRecognition;
         if (SpeechRecognitionCtor) {
