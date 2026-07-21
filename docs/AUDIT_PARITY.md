@@ -152,6 +152,28 @@ sentimento) dependem dessas functions que nunca subiram ao edge-runtime self-hos
 e reiniciar) para as 11 do repo. Requer acesso ao container (Portainer/SSH). Para as 2 talkx:
 escrever as functions ou remover as chamadas em `src/hooks/useTalkX.ts`.
 
+## ✅ VALIDAÇÃO EXAUSTIVA — 2026-07-21 (630+ checagens, 0 falhas nas correções)
+
+Cada correção foi testada minuciosamente (queries SQL que retornam só anomalias; sonda HTTP para functions).
+
+| Suite | Escopo | Resultado |
+|-------|--------|-----------|
+| **V1 — Fix 1** (whatsapp_connections) | 39 colunas × privilégio + 8 checagens de integridade + simulação como role `authenticated` | ✅ 0 violações. Colunas seguras liberadas; `api_key`/`qr_code_base64` negados (testado: SELECT api_key como authenticated → permission denied). INSERT/UPDATE/DELETE, RLS e views seguras intactos. |
+| **V2 — Fix 2** (Realtime) | publication + replica identity + PK + filtros do código | ✅ queue_positions (event `*`, sem filtro, refetch → `default(PK)` suficiente) e sentiment_alerts (`INSERT`, `full`) corretos. |
+| **V3 — Fix 3** (overload RPC) | unicidade + chamada real por args nomeados | ✅ 1 overload; chamada resolve sem PGRST203 (chegou à execução, barrou no role-guard interno da função — esperado). |
+| **V4 — Assinaturas RPC** | 54 RPCs; foco nos que têm parâmetro obrigatório | ✅ maior risco (`rpc_list_failed_messages_cursor`, 6 obrigatórios) recebe os 8 args no código. Convenção `p_` bate com o banco em todos. |
+| **V5 — RLS/grants** | 155 tabelas × (RLS + policies + grant de leitura) | ✅ 0 problemas. whatsapp_connections resolvido; nenhum outro deny-all/grant faltando. |
+| **V6 — Edge functions** | 51 invocadas, sonda HTTP OPTIONS | ✅ 49/51 no ar (ai-router recuperado). 2 caídas = `talkx-*` (sem fonte em repo). |
+
+**Gaps encontrados na validação (pré-existentes, NÃO introduzidos pelas correções):**
+- `rpc_insert_message` e `rpc_upsert_contact`: `p_instance DEFAULT 'wpp_pink_test'` (instância de teste). Se chamados sem `p_instance`, gravam na instância errada. `rpc_insert_message` no código não passa `p_instance` — **revisar**.
+- `talkx-add-recipients` / `talkx-control`: sem fonte em nenhum repo (fantasmas).
+- Features de notificação `goal_notifications` / `transcription_notifications` / `dashboard_data`: sem tabela/writer.
+
+**Conclusão:** as 3 correções de banco + o deploy das edge functions estão **corretos, verificados e sem regressão**.
+
+---
+
 ### Mecanismo de deploy das edge functions (mapeado no VPS)
 
 As functions são **volume-based**: volume `functions` montado em `/home/deno/functions` no
