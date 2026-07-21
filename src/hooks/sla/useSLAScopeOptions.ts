@@ -1,7 +1,8 @@
-// @ts-nocheck
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type { SLARuleScope } from '@/features/sla';
+
+type ContactRow = { id: string; name: string | null; phone: string | null };
 
 interface QueueOption {
   id: string;
@@ -48,7 +49,8 @@ export function useSLAScopeOptions(
         .select('company')
         .not('company', 'is', null)
         .then(({ data }) => {
-          const unique = [...new Set((data ?? []).map((r) => r.company as string))].sort();
+          const rows = (data ?? []) as Array<{ company: string | null }>;
+          const unique = [...new Set(rows.map((r) => r.company).filter((v): v is string => !!v))].sort();
           setCompanies(unique);
         });
     }
@@ -59,7 +61,8 @@ export function useSLAScopeOptions(
         .select('job_title')
         .not('job_title', 'is', null)
         .then(({ data }) => {
-          const unique = [...new Set((data ?? []).map((r) => r.job_title as string))].sort();
+          const rows = (data ?? []) as Array<{ job_title: string | null }>;
+          const unique = [...new Set(rows.map((r) => r.job_title).filter((v): v is string => !!v))].sort();
           setJobTitles(unique);
         });
     }
@@ -70,7 +73,7 @@ export function useSLAScopeOptions(
         .select('id, name')
         .order('name')
         .then(({ data }) => {
-          setQueues((data ?? []) as QueueOption[]);
+          setQueues(((data ?? []) as unknown as QueueOption[]));
         });
     }
 
@@ -80,7 +83,7 @@ export function useSLAScopeOptions(
         .select('id, name')
         .order('name')
         .then(({ data }) => {
-          setAgents((data ?? []) as AgentOption[]);
+          setAgents(((data ?? []) as unknown as AgentOption[]));
         });
     }
   }, [open, scope]);
@@ -107,13 +110,19 @@ export function useSLAScopeOptions(
         .limit(20),
     ]).then(([nameRes, phoneRes]) => {
       const seen = new Set<string>();
-      const merged = [...(nameRes.data ?? []), ...(phoneRes.data ?? [])].filter(({ id }) => {
+      const combined = [
+        ...((nameRes.data ?? []) as unknown as ContactRow[]),
+        ...((phoneRes.data ?? []) as unknown as ContactRow[]),
+      ];
+      const merged = combined.filter(({ id }) => {
         if (seen.has(id)) return false;
         seen.add(id);
         return true;
       });
       merged.sort((a, b) => (a.name ?? '').localeCompare(b.name ?? ''));
-      setContacts(merged.slice(0, 20) as ContactOption[]);
+      setContacts(
+        merged.slice(0, 20).map((r) => ({ id: r.id, name: r.name ?? '', phone: r.phone ?? '' }))
+      );
     });
   }, [open, scope, contactSearch]);
 
