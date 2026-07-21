@@ -142,7 +142,7 @@ export const safeChannelConnectionsQuery = (supabase: SupabaseClient<Database>) 
       .select('id, channel_type, name, status, updated_at');
 
     if (filters?.channelType) {
-      query = query.eq('channel_type', filters.channelType);
+      query = query.eq('channel_type', filters.channelType as never);
     }
     if (filters?.status) {
       query = query.eq('status', filters.status);
