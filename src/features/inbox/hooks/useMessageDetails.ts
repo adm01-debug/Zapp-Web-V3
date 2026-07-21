@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * useMessageDetails — on-demand hydration of a single full message row
  * from FATOR X (`rpc_get_message_details`).
@@ -26,7 +25,7 @@ export function useMessageDetails(
   const enabled = !!messageId && opts.enabled !== false;
 
   return useQuery<EvolutionMessage | null, Error>({
-    queryKey: queryKeys.messageDetails.detail(messageId),
+    queryKey: queryKeys.messageDetails.detail(messageId ?? undefined),
     enabled,
     staleTime: 5 * 60_000,
     gcTime: 10 * 60_000,

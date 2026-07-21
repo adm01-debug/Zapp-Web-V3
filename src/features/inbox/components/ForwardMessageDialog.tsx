@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Forward,
@@ -157,7 +156,7 @@ export function ForwardMessageDialog({
                             <AvatarFallback className="bg-primary/10 text-sm text-primary">
                               {contact.name
                                 .split(' ')
-                                .map((n) => n[0])
+                                .map((n: any) => n[0])
                                 .join('')
                                 .slice(0, 2)
                                 .toUpperCase()}

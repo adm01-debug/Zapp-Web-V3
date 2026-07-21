@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { log } from '@/lib/logger';
@@ -118,7 +117,7 @@ export function ConversationHistory({
 
       // Group messages by day to create "conversation sessions"
       const groupedByDay: Record<string, typeof messages> = {};
-      messages.forEach((msg) => {
+      messages.forEach((msg: any) => {
         const dayKey = format(new Date(msg.created_at), 'yyyy-MM-dd');
         if (!groupedByDay[dayKey]) {
           groupedByDay[dayKey] = [];
