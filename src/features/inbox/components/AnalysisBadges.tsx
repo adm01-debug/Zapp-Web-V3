@@ -27,7 +27,7 @@ interface AnalysisBadgesProps {
 
 /** Analysis Badges component. */
 export function AnalysisBadges({ contactId, compact = false, className }: AnalysisBadgesProps) {
-  const { data: analysis } = useLatestAnalysis(contactId);
+  const { analysis } = useLatestAnalysis(contactId);
 
   if (!analysis) return null;
 
