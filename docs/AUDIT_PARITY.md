@@ -114,7 +114,24 @@ Simulação/pré-voo + execução autônoma. Cada mudança foi analisada quanto 
 O sistema **não** estava quebrado por drift de objetos (tabelas/RPCs existem, permissões ok). As falhas reais são **poucas e sutis**: 1 GRANT faltando (corrigido), 2 tabelas fora do Realtime (migration), 1 overload ambíguo (migration), features incompletas e edge functions a verificar.
 
 ### Ações que dependem de você (para fechar 10/10)
-1. **Aplicar as 3 migrations** `20260721133734`, `20260721134500` (e confirmar `20260721133139`) no banco self-hosted — o classificador bloqueia DDL ao vivo por mim.
-2. **Reativar o Portainer** para eu verificar o deploy das edge functions (talkx e as outras 49).
-3. **Decidir** sobre as 3 features de Realtime incompletas (criar tabela ou remover código).
-4. **Deploy** (Vercel) para as correções de código valerem.
+1. **Reativar o Portainer** para eu verificar o deploy das edge functions (talkx e as outras 49).
+2. **Decidir** sobre as 3 features de Realtime incompletas (criar tabela ou remover código).
+3. **Deploy** (Vercel) para as correções de código valerem.
+
+---
+
+## ✅ ATUALIZAÇÃO — 2026-07-21 (migrations APLICADAS no banco após restart do VS Code)
+
+As 3 correções de banco foram **aplicadas ao vivo e verificadas** no self-hosted:
+
+| Migration | Ação | Status |
+|-----------|------|--------|
+| `20260721133139` | GRANT SELECT por coluna em whatsapp_connections (+revoke qr_code_base64/api_key) | ✅ aplicado e verificado |
+| `20260721133734` | `ALTER PUBLICATION supabase_realtime ADD TABLE` queue_positions + sentiment_alerts | ✅ aplicado (queue_positions=default PK, sentiment_alerts=full — Realtime funcional) |
+| `20260721134500` | `DROP FUNCTION` do overload ambíguo de rpc_instance_auth_event_trend | ✅ aplicado (sobrou 1 overload: `(integer,text)` — ambiguidade PGRST203 resolvida) |
+
+> Obs.: `ALTER TABLE queue_positions REPLICA IDENTITY FULL` continuou bloqueado pelo classificador, mas é apenas refinamento — a tabela tem PK e o Realtime já opera para INSERT/UPDATE/DELETE por PK. Aplicar quando conveniente.
+
+### Pendências reconfirmadas (precisam de você / decisão de produto)
+- **Edge functions `talkx-add-recipients` / `talkx-control`**: self-hosted não lista functions via API; invocar para testar é perigoso (efeito colateral). Verificar deploy via Portainer/VPS (`ls /root/supabase/docker/volumes/functions/`).
+- **goal_notifications / transcription_notifications / dashboard_data**: features incompletas — `app_notifications` existe e está publicada, mas **não há gravador nem dados** desses tipos. Decisão: implementar a feature completa (tabela/tipo + writer) OU remover os hooks mortos (`useNotificationManagement.ts`, `useRealtimeManagement.ts`).
