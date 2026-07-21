@@ -93,7 +93,7 @@ export const ChatHeader = memo(function ChatHeader({
   const { intelligence: intel } = useContactIntelligence(
     isExternalConfigured ? conversation.contact.phone : undefined
   );
-  const _briefing = intel?.found ? intel.briefing : null;
+  const _briefing = (intel as any)?.found ? (intel as any).briefing : null;
   const { avatarUrl } = useContactAvatar(conversation.contact.id, conversation.contact.avatar);
   const { density, cycleDensity } = useDensity();
 
