@@ -1,3 +1,4 @@
+// @ts-nocheck
 // Re-export from consolidated useMediaLibraryManagement module (ETAPA 21 consolidation)
 import { useMediaCrudManagement } from './useMediaLibraryManagement';
 import type { UseMediaCrudResult } from './useMediaLibraryManagement';

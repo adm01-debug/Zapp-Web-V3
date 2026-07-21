@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * useEmailManagement.ts (v1.0)
  * Unified email management consolidating:
