@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getLogger } from '@/lib/logger';
@@ -265,8 +264,7 @@ export function TranscriptionsHistoryView() {
                     : 'Transcrições de áudios aparecerão aqui automaticamente'
                 }
                 illustration="transcriptions"
-                secondaryActionLabel={searchQuery ? 'Limpar busca' : undefined}
-                onSecondaryAction={searchQuery ? () => setSearchQuery('') : undefined}
+                secondaryAction={searchQuery ? { label: 'Limpar busca', onClick: () => setSearchQuery('') } : undefined}
               />
             ) : (
               Object.entries(groupedByContact).map(

@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Calendar, Clock, TrendingUp, Flame, Info } from 'lucide-react';
@@ -43,7 +42,7 @@ function useHeatmapData() {
       const heatmap: HeatmapData[] = [];
       const counts = new Map<string, number>();
 
-      (data || []).forEach((m) => {
+      (data || []).forEach((m: { created_at: string }) => {
         const d = new Date(m.created_at);
         const key = `${d.getDay()}-${d.getHours()}`;
         counts.set(key, (counts.get(key) || 0) + 1);
