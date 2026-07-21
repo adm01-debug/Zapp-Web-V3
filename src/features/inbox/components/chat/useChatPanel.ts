@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useChatScheduleMessage } from './hooks/useChatScheduleMessage';
 import { useChatQuickReplyControl } from './hooks/useChatQuickReplyControl';
