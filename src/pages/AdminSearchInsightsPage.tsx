@@ -20,7 +20,7 @@ export default function AdminSearchInsightsPage() {
   const { insights, loading: isLoading } = useSearchInsights(days);
   const data = insights;
   const isFetching = isLoading;
-  const error: unknown = null;
+  const error: Error | null = null;
   const refetch = () => {};
 
   return (
