@@ -41,6 +41,7 @@ export interface NotificationPayload {
   body?: string;
   tag?: string;
   icon?: string;
+  data?: Record<string, unknown>;
 }
 
 /** Push Notification State interface definition. */
