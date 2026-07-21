@@ -77,7 +77,7 @@ export function useZappMessages({ remoteJid, instance = ZAPPWEB_INSTANCE, limit 
             log.warn('[useZappMessages] INSERT payload rejeitado', parsed.error);
             return;
           }
-          const msg = parsed.data as EvolutionMessage; // ignore-audit: narrows Supabase query result to local interface
+          const msg = parsed.data as unknown as EvolutionMessage; // ignore-audit: narrows Supabase query result to local interface
           if (msg.remote_jid !== remoteJid) return;
           setMessages((prev) => (prev.some((m) => m.id === msg.id) ? prev : [...prev, msg]));
         }
