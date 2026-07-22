@@ -1,4 +1,4 @@
-// @ts-nocheck
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * useConnectionManagement.ts (v1.0)
  * Unified connection management consolidating:
