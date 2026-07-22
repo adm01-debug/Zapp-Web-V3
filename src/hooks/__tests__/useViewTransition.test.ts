@@ -42,7 +42,7 @@ function makeMockTransition(opts: Partial<{ rejectAll: boolean }> = {}): MockTra
 describe('useViewTransition — fallback (no startViewTransition)', () => {
   beforeEach(() => {
     // Ensure API is absent
-    delete (document as Document & { startViewTransition?: unknown }).startViewTransition;
+    delete (document as unknown as { startViewTransition?: unknown }).startViewTransition;
   });
 
   it('calls the callback immediately when startViewTransition is not available', () => {
@@ -62,12 +62,12 @@ describe('useViewTransition — with startViewTransition', () => {
       cb();
       return makeMockTransition();
     });
-    (document as Document & { startViewTransition?: unknown }).startViewTransition =
+    (document as unknown as { startViewTransition?: unknown }).startViewTransition =
       mockStartViewTransition;
   });
 
   afterEach(() => {
-    delete (document as Document & { startViewTransition?: unknown }).startViewTransition;
+    delete (document as unknown as { startViewTransition?: unknown }).startViewTransition;
   });
 
   it('delegates to document.startViewTransition when available', () => {
@@ -83,7 +83,7 @@ describe('useViewTransition — with startViewTransition', () => {
       cb();
       return makeMockTransition({ rejectAll: true });
     });
-    (document as Document & { startViewTransition?: unknown }).startViewTransition =
+    (document as unknown as { startViewTransition?: unknown }).startViewTransition =
       mockStartViewTransition;
 
     const { result } = renderHook(() => useViewTransition());
