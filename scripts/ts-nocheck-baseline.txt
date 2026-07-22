@@ -1,4 +1,3 @@
-src/components/email/EmailChatThread.tsx
 src/components/queues/QueueGoalsDialog.tsx
 src/components/queues/QueuesView.tsx
 src/components/settings/media-library/MediaAdminPanel.tsx
