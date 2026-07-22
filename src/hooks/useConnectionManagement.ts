@@ -175,7 +175,7 @@ export function useConnectionPoolMonitor() {
 
   const updateMetrics = useCallback(() => {
     try {
-      const poolMetrics = safeClient.getPoolMetrics();
+      const poolMetrics = poolClient.getPoolMetrics?.() ?? EMPTY_METRICS;
       setMetrics(poolMetrics);
 
       // Alert on critical conditions
