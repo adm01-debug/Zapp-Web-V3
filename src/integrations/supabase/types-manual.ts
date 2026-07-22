@@ -1,4 +1,4 @@
-// @ts-nocheck
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * types-manual.ts — Extensões manuais ao Database type gerado.
  *
