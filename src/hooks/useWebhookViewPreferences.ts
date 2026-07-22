@@ -115,16 +115,20 @@ export function useWebhookViewPreferences(_userId?: string) {
     []
   );
 
-  const setVisibleColumn = useCallback((column: string, visible: boolean) => {
-    setPrefsState((prev) => {
-      const next = {
-        ...prev,
-        visibleColumns: { ...prev.visibleColumns, [column]: visible },
-      };
-      savePrefs(next);
-      return next;
-    });
-  }, []);
+  const setVisibleColumn = useCallback(
+    <K extends keyof WebhookViewColumns>(column: K, visible: boolean) => {
+      setPrefsState((prev) => {
+        const next = {
+          ...prev,
+          visibleColumns: { ...prev.visibleColumns, [column]: visible },
+        };
+        savePrefs(next);
+        return next;
+      });
+    },
+    []
+  );
+
 
   const resetPrefs = useCallback(() => {
     const defaults = { ...DEFAULT_WEBHOOK_VIEW_PREFS };
