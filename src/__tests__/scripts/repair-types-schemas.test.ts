@@ -13,7 +13,7 @@
  *                                              antes de "consertar"
  *  - `state/gen-fail`                        → se existir, gen sai 1
  */
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { spawnSync } from 'node:child_process';
 import {
   mkdtempSync,
