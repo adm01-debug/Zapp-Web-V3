@@ -100,7 +100,7 @@ export function useRealtimeDashboardManagement(dashboardId: string) {
   const unreadMessages = updates.filter(
     (update) => update.data?.is_read === false || update.data?.read === false
   ).length;
-  const lastUpdate = messageUpdates.at(-1);
+  const lastUpdate = messageUpdates[messageUpdates.length - 1];
   const lastMessageAt = lastUpdate?.timestamp ? new Date(lastUpdate.timestamp) : null;
   const metricsHistory: RealtimeMetricPoint[] = updates.slice(-30).map((update, index) => ({
     timestamp: update.timestamp,
