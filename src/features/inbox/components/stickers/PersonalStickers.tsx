@@ -1,4 +1,4 @@
-// @ts-nocheck
+// @ts-nocheck — usePersonalStickers stub lacks profile/isLoading/uploading/fileInputRef/handleUpload/toggleFavorite/deleteSticker/incrementUseCount and Sticker vs StickerItem shape divergence. Reimplement usePersonalStickers before removing.
 // DEBT: usePersonalStickers está como stub em useMediaManagement.ts (só expõe stickers/loading/refetch).
 // Este componente já foi escrito contra a API completa (profile, uploading, fileInputRef, handleUpload,
 // toggleFavorite, deleteSticker, incrementUseCount) + campos StickerItem (image_url, is_favorite, use_count).

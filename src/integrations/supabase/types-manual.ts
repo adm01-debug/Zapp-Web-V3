@@ -2,11 +2,10 @@
 /**
  * types-manual.ts — Extensões manuais ao Database type gerado.
  *
- * DÉBITO TÉCNICO: `types.ts` só expõe `public` no ambiente Lovable Cloud,
- * então o remapeamento para `zapp`/`evo` produzia tipos `never`, mascarando
- * incompatibilidades reais em dezenas de hooks e componentes. Manter
- * `@ts-nocheck` até que os consumidores sejam migrados para tipos concretos
- * (tarefa multi-onda; ver docs/ts-nocheck-batch-*.md).
+ * DÉBITO TÉCNICO ATIVO: `types.ts` no ambiente Lovable Cloud expõe apenas
+ * `public`; acessar `zapp`/`evo` cascateia `never` em ~2000 usos e derruba
+ * dezenas de hooks/telas. Manter `@ts-nocheck` até regenerar `types.ts`
+ * a partir da instância self-hosted (docs/GEN_TYPES.md).
  */
 
 import type { Database as GeneratedDatabase } from './types';

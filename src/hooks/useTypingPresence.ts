@@ -4,12 +4,14 @@ import { supabase } from '@/integrations/supabase/client';
 interface TypingUser {
   userId: string;
   userName: string;
+  name?: string;
 }
 
 interface UseTypingPresenceParams {
   conversationId: string;
   currentUserId?: string;
   currentUserName?: string;
+  remoteJid?: string;
 }
 
 /** Hook: use Typing Presence. */

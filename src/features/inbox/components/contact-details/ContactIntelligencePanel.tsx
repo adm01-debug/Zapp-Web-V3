@@ -1,4 +1,4 @@
-// @ts-nocheck
+// @ts-nocheck — dependent on richer ContactIntelligence shape (briefing/disc_tips/triggers/rapport/best_times/churn). Reimplement useContactIntelligenceManagement to return this shape before removing.
 /**
  * ContactIntelligencePanel
  * 
@@ -252,7 +252,7 @@ function DISCSection({ disc }: { disc: DISCTips }) {
 // ========================
 
 function ContactIntelligencePanelInner({ phone }: ContactIntelligencePanelProps) {
-  const { data, isLoading } = useContactIntelligence(phone);
+  const { intelligence: data, loading: isLoading } = useContactIntelligence(phone);
 
   if (isLoading) {
     return (

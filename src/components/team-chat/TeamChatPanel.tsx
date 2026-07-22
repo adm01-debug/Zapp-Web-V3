@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useEffect, useMemo, useState, useRef, memo } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
 import { getLogger } from '@/lib/logger';
@@ -606,7 +605,7 @@ function TeamChatPanelContent({ conversation, onBack, onToggleDetails, showDetai
                                               onClick={() =>
                                                 isThisTtsPlaying
                                                   ? s.tts.stop()
-                                                  : s.tts.speak(msg.content, msg.id)
+                                                  : (s.tts.setCurrentMessageId?.(msg.id), s.tts.speak(msg.content))
                                               }
                                               className={cn(
                                                 'rounded-full p-0.5 opacity-0 transition-opacity group-hover/msg:opacity-100',

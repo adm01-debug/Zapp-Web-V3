@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -25,7 +24,7 @@ import {
 import { Sparkles, RefreshCcw, Eye, ScrollText } from 'lucide-react';
 import { useAutomationLogs } from './useAutomationLogs';
 import type { AutomationLogsFilters } from './useAutomationLogs';
-import { PAGE_SIZE, STATUS_META, statusBadge, Section, KV, Pre } from './automationLogsHelpers';
+import { PAGE_SIZE, STATUS_META, statusBadge } from './automationLogsHelpers';
 import type { ExecutionRow } from './automationLogsHelpers';
 
 /** Admin Automation Logs Page. */
@@ -180,12 +179,14 @@ export default function AdminAutomationLogsPage() {
               </TableRow>
             )}
             {rows.map((r) => {
-              const triggerType =
-                r.rule_snapshot?.trigger_type ?? r.trigger_payload?.trigger_type ?? '—';
-              const ruleName =
+              const triggerType = String(
+                r.rule_snapshot?.trigger_type ?? r.trigger_payload?.trigger_type ?? '—'
+              );
+              const ruleName = String(
                 r.rule_snapshot?.name ??
-                (r.rule_id ? ruleNameById[r.rule_id] : null) ??
-                '(regra removida)';
+                  (r.rule_id ? ruleNameById[r.rule_id] : null) ??
+                  '(regra removida)'
+              );
               const tagsCount = (r.applied_tags ?? []).length;
               return (
                 <TableRow key={r.id} className="cursor-pointer" onClick={() => setDetail(r)}>

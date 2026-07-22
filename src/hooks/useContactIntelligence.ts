@@ -43,6 +43,8 @@ export interface DISCTips {
   name: string;
   communication_tips?: string[];
   avoid?: string[];
+  keywords_to_use?: string[];
+  keywords_to_avoid?: string[];
 }
 
 /** Hook: use Contact Intelligence. */

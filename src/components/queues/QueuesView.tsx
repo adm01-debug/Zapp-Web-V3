@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '@/components/layout/PageHeader';
@@ -10,7 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Plus, Clock, BarChart3, AlertTriangle } from 'lucide-react';
 import { useQueues, QueueWithMembers } from '@/hooks/useQueues';
-import { useQueueGoals, QueueAlert } from '@/hooks/useQueueGoals';
+import { useQueueGoals, QueueAlert, QueueGoal } from '@/hooks/useQueueGoals';
 import { CreateQueueDialog } from './CreateQueueDialog';
 import { AddMemberDialog } from './AddMemberDialog';
 import { QueueGoalsDialog } from './QueueGoalsDialog';
@@ -32,18 +31,22 @@ export function QueuesView() {
 
   const alerts = useMemo<QueueAlert[]>(() => {
     const allAlerts: QueueAlert[] = [];
+    const goalsByQueue: Record<string, QueueGoal> = {};
+    (goals as QueueGoal[]).forEach((g) => { if (g.queue_id) goalsByQueue[g.queue_id] = g; });
     queues.forEach(queue => {
-      const queueGoal = goals[queue.id];
+      const queueGoal = goalsByQueue[queue.id];
       if (!queueGoal || !queueGoal.alerts_enabled) return;
       const activeMembers = queue.members.filter(m => m.is_active).length;
       const assignmentRate = queue.waiting_count + activeMembers > 0 ? Math.round((activeMembers / (queue.waiting_count + activeMembers)) * 100) : 100;
-      if (queue.waiting_count > queueGoal.max_waiting_contacts) {
+      const maxWaiting = queueGoal.max_waiting_contacts ?? 10;
+      const minAssign = queueGoal.min_assignment_rate ?? 80;
+      if (queue.waiting_count > maxWaiting) {
         const alertKey = `${queue.id}-waiting_contacts`;
-        if (!dismissedAlerts.has(alertKey)) allAlerts.push({ type: 'waiting_contacts', queueId: queue.id, queueName: queue.name, queueColor: queue.color, message: `${queue.waiting_count} contatos aguardando atendimento`, severity: queue.waiting_count > queueGoal.max_waiting_contacts * 1.5 ? 'critical' : 'warning', currentValue: queue.waiting_count, threshold: queueGoal.max_waiting_contacts });
+        if (!dismissedAlerts.has(alertKey)) allAlerts.push({ type: 'waiting_contacts', queueId: queue.id, queueName: queue.name, queueColor: queue.color, message: `${queue.waiting_count} contatos aguardando atendimento`, severity: queue.waiting_count > maxWaiting * 1.5 ? 'critical' : 'warning', currentValue: queue.waiting_count, threshold: maxWaiting });
       }
-      if (assignmentRate < queueGoal.min_assignment_rate && queue.waiting_count > 0) {
+      if (assignmentRate < minAssign && queue.waiting_count > 0) {
         const alertKey = `${queue.id}-assignment_rate`;
-        if (!dismissedAlerts.has(alertKey)) allAlerts.push({ type: 'assignment_rate', queueId: queue.id, queueName: queue.name, queueColor: queue.color, message: 'Taxa de atribuição abaixo do esperado', severity: assignmentRate < queueGoal.min_assignment_rate * 0.5 ? 'critical' : 'warning', currentValue: assignmentRate, threshold: queueGoal.min_assignment_rate });
+        if (!dismissedAlerts.has(alertKey)) allAlerts.push({ type: 'assignment_rate', queueId: queue.id, queueName: queue.name, queueColor: queue.color, message: 'Taxa de atribuição abaixo do esperado', severity: assignmentRate < minAssign * 0.5 ? 'critical' : 'warning', currentValue: assignmentRate, threshold: minAssign });
       }
     });
     return allAlerts;
