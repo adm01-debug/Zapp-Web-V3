@@ -11,6 +11,16 @@
  * cascata neste arquivo e em dezenas de hooks/componentes que dependem
  * dele. Portanto o `@ts-nocheck` aqui é *load-bearing*, não decorativo —
  * removê-lo exige regerar `types.ts` fora do sandbox Lovable Cloud.
+ *
+ * CRITÉRIO DE SAÍDA (quando remover o @ts-nocheck):
+ *   1. `node scripts/check-types-schemas.mjs` passa (schemas zapp+evo
+ *      presentes no types.ts).
+ *   2. `tsc --noEmit -p tsconfig.app.json` roda sem novos erros neste
+ *      arquivo.
+ *   3. Atualizar o baseline: `node scripts/check-ts-nocheck.mjs --update`.
+ * Enquanto (1) não for verdade, o gate em package.json/CI bloqueia o
+ * build antes do tsc — a diretiva abaixo é o que impede o erro TS2339
+ * em cascata neste arquivo específico durante esse período.
  */
 
 import type { Database as GeneratedDatabase } from './types';

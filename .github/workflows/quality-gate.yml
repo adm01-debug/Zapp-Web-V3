@@ -114,6 +114,15 @@ jobs:
         # localmente apenas quando o baseline REDUZIR (progresso).
         run: node scripts/check-tsc-ratchet.mjs
 
+      - name: Schema type coverage (zapp/evo) — blocking
+        # Garante que types.ts contém os schemas zapp e evo antes de
+        # qualquer gate baseado em tsc. Modo remoto opcional valida
+        # postgres-meta quando os secrets estão configurados.
+        env:
+          ZAPP_META_URL: ${{ secrets.ZAPP_META_URL }}
+          ZAPP_META_TOKEN: ${{ secrets.ZAPP_META_TOKEN }}
+        run: node scripts/check-types-schemas.mjs
+
       - name: Supabase types freshness (advisory se secrets ausentes)
         # Bloqueia deploy se src/integrations/supabase/types.ts estiver
         # defasado em relação ao schema atual da VPS. Skipa com warning
