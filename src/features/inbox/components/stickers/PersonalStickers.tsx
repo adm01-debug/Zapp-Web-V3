@@ -1,8 +1,4 @@
-// @ts-nocheck
-// DEBT: usePersonalStickers está como stub em useMediaManagement.ts (só expõe stickers/loading/refetch).
-// Este componente já foi escrito contra a API completa (profile, uploading, fileInputRef, handleUpload,
-// toggleFavorite, deleteSticker, incrementUseCount) + campos StickerItem (image_url, is_favorite, use_count).
-// Remover este @ts-nocheck só após reimplementar o hook e alinhar o tipo Sticker → StickerItem.
+// Personal stickers panel — full API backed by usePersonalStickers hook.
 import { useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
