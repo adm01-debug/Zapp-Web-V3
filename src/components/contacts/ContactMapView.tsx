@@ -121,7 +121,7 @@ export function ContactMapView({ contacts, onContactClick }: ContactMapViewProps
   const regions = useMemo(() => {
     const map = new Map<string, Contact[]>();
     contacts.forEach((c) => {
-      const region = getRegionFromPhone(c.phone);
+      const region = getRegionFromPhone(c.phone ?? '');
       const group = map.get(region);
       if (group) group.push(c);
       else map.set(region, [c]);
@@ -221,7 +221,7 @@ export function ContactMapView({ contacts, onContactClick }: ContactMapViewProps
                       <ScrollArea className="mt-2 max-h-36">
                         <div className="space-y-1">
                           {members.slice(0, 20).map((c) => {
-                            const colors = getAvatarColor(c.name);
+                            const colors = getAvatarColor(c.name ?? '');
                             return (
                               <button
                                 type="button"
@@ -233,11 +233,11 @@ export function ContactMapView({ contacts, onContactClick }: ContactMapViewProps
                                 className="flex w-full items-center gap-2 rounded-md p-1.5 text-left transition-colors hover:bg-muted/50"
                               >
                                 <Avatar className="h-6 w-6">
-                                  <AvatarImage src={c.avatar_url || undefined} alt={c.name} />
+                                  <AvatarImage src={c.avatar_url || undefined} alt={c.name ?? ''} />
                                   <AvatarFallback
                                     className={cn(colors.bg, colors.text, 'text-[8px]')}
                                   >
-                                    {getInitials(c.name)}
+                                    {getInitials(c.name ?? '')}
                                   </AvatarFallback>
                                 </Avatar>
                                 <span className="flex-1 truncate text-[11px]">{c.name}</span>
