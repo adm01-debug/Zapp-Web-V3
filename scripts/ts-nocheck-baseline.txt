@@ -17,7 +17,6 @@ src/features/inbox/components/useGlobalSearchData.ts
 src/features/inbox/hooks/__tests__/inboxLogic.test.ts
 src/features/inbox/hooks/useRealtimeInbox.ts
 src/features/sla/components/SLADeliveryHistoryDashboard.tsx
-src/hooks/__tests__/useQueueGoals.test.tsx
 src/hooks/omnichannel/useOmnichannelManagement.ts
 src/hooks/useConnectionManagement.ts
 src/hooks/useEvolutionAutoReconnect.ts
