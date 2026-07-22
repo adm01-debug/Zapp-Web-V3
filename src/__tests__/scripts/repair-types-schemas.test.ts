@@ -176,5 +176,4 @@ describe('scripts/repair-types-schemas.mjs', () => {
   });
 });
 
-// afterEach declaration hoist for TS — importa após o describe para clareza.
-import { afterEach } from 'vitest';
+
