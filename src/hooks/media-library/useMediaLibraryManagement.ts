@@ -44,7 +44,7 @@ interface UseMediaCrudResult {
   playingId: string | null;
   reclassifying: boolean;
   audioRef: React.RefObject<HTMLAudioElement | null>;
-  categories: string[];
+  categories: Record<string, string>;
   filtered: MediaItem[];
   existingCategories: string[];
   fetchItems: () => Promise<void>;
