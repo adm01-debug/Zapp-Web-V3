@@ -100,7 +100,7 @@ describe('useInboxFilters Business Rules', () => {
     const { result } = renderHook(
       () =>
         useInboxFilters({
-          conversations: mockConversations as unknown as never,
+          conversations: mockConversations as never,
           profileId: 'agent-1',
         }),
       { wrapper }
@@ -124,7 +124,7 @@ describe('useInboxFilters Business Rules', () => {
     const { result } = renderHook(
       () =>
         useInboxFilters({
-          conversations: mockConversations as unknown as never,
+          conversations: mockConversations as never,
           profileId: 'agent-1',
         }),
       { wrapper }
@@ -154,7 +154,7 @@ describe('useInboxFilters Business Rules', () => {
     const { result } = renderHook(
       () =>
         useInboxFilters({
-          conversations: mockConversations as unknown as never,
+          conversations: mockConversations as never,
           profileId: 'agent-1',
         }),
       { wrapper }
