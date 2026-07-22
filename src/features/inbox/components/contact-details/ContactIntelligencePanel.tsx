@@ -1,4 +1,4 @@
-// @ts-nocheck — dependent on richer ContactIntelligence shape (briefing/disc_tips/triggers/rapport/best_times/churn). Reimplement useContactIntelligenceManagement to return this shape before removing.
+
 /**
  * ContactIntelligencePanel
  * 
