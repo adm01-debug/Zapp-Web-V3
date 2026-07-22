@@ -251,13 +251,11 @@ export function useConnectionPoolMonitor() {
  * Hook for getting pool diagnostics (detailed connection info).
  */
 export function useConnectionPoolDiagnostics() {
-  const [diagnostics, setDiagnostics] = useState<ReturnType<
-    typeof safeClient.getPoolDiagnostics
-  > | null>(null);
+  const [diagnostics, setDiagnostics] = useState<Record<string, unknown> | null>(null);
 
   const getDiagnostics = useCallback(() => {
     try {
-      const diag = safeClient.getPoolDiagnostics();
+      const diag = poolClient.getPoolDiagnostics?.() ?? null;
       setDiagnostics(diag);
       return diag;
     } catch (err) {
