@@ -55,18 +55,20 @@ export default function AdminSearchInsightsPage() {
         </div>
       </header>
 
-      {error && (
+      {error ? (
         <Card role="alert">
           <CardContent className="p-6">
             <GenericEmptyState
               icon={Search}
               title="Falha ao carregar insights"
-              description={error instanceof Error ? error.message : 'Erro desconhecido'}
+              description={(error as Error).message ?? 'Erro desconhecido'}
               className="py-4"
             />
           </CardContent>
         </Card>
-      )}
+      ) : null}
+
+
 
       {!error && data && data.total_searches === 0 && !isLoading ? (
         <Card>
