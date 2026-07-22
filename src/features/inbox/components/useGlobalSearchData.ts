@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { log } from '@/lib/logger';
 import { supabase } from '@/integrations/supabase/client';
@@ -167,7 +166,7 @@ export function useGlobalSearchData(open: boolean) {
           if (dateStart) textQuery = textQuery.gte('created_at', dateStart.toISOString());
 
           const { data: textMessages } = await textQuery;
-          textMessages?.forEach((msg) => {
+          (textMessages as any[])?.forEach((msg: any) => {
             const contact = msg.contacts as unknown as {
               id: string;
               name: string;
@@ -204,7 +203,7 @@ export function useGlobalSearchData(open: boolean) {
           if (dateStart) audioQuery = audioQuery.gte('created_at', dateStart.toISOString());
 
           const { data: audioMessages } = await audioQuery;
-          audioMessages?.forEach((msg) => {
+          (audioMessages as any[])?.forEach((msg: any) => {
             if (addedMessageIds.has(msg.id)) return;
             const contact = msg.contacts as unknown as {
               id: string;
@@ -245,14 +244,14 @@ export function useGlobalSearchData(open: boolean) {
             .order('name', { ascending: true })
             .limit(10);
           if (contacts) {
-            let filtered = contacts;
+            let filtered = contacts as any[];
             if (tags.length > 0) {
               const tagNames = allTags.filter((t) => tags.includes(t.id)).map((t) => t.name);
-              filtered = contacts.filter(
-                (c) => c.tags && c.tags.some((tag: string) => tagNames.includes(tag))
+              filtered = (contacts as any[]).filter(
+                (c: any) => c.tags && c.tags.some((tag: string) => tagNames.includes(tag))
               );
             }
-            filtered.forEach((contact) => {
+            filtered.forEach((contact: any) => {
               searchResults.push({
                 id: contact.id,
                 type: 'contact',
