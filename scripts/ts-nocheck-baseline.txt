@@ -5,7 +5,6 @@ src/features/dashboard/hooks/useDashboardVisualizationManagement.ts
 src/features/inbox/components/ChatPanel.tsx
 src/features/inbox/components/chat/useChatPanel.ts
 src/features/inbox/components/contact-details/ContactIntelligencePanel.tsx
-src/features/inbox/components/stickers/PersonalStickers.tsx
 src/features/inbox/components/useGlobalSearchData.ts
 src/features/inbox/hooks/useRealtimeInbox.ts
 src/features/sla/components/SLADeliveryHistoryDashboard.tsx
