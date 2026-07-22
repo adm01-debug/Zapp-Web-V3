@@ -30,9 +30,9 @@ export function EmailChatThread({
 }: EmailChatThreadProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
   const { getRecord, getStatus, markReplied } = useEmailSLA(accountId);
-
-  const slaRecord = getRecord(thread.thread_id);
-  const slaStatus = getStatus(thread.thread_id);
+  const threadKey = thread.thread_id ?? '';
+  const slaRecord = getRecord(threadKey);
+  const slaStatus = getStatus(threadKey);
 
   // Auto-scroll para o final ao carregar novas mensagens
   useEffect(() => {
