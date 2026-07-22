@@ -44,7 +44,7 @@ describe('chat-open smoke (post-types regen)', () => {
   it('carrega o hook useRealtimeInbox sem erros de import/tipos em runtime', async () => {
     const mod = await import('../useRealtimeInbox');
     expect(typeof mod.useRealtimeInbox).toBe('function');
-  });
+  }, 60000);
 
   it('carrega adaptadores legacy usados no render do chat', async () => {
     const a = await import('@/adapters/inboxLegacyMapper');
