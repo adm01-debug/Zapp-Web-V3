@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
-import { useQueueGoals, type QueueGoalForm } from '@/hooks/useQueueGoals';
+import { useQueueGoals } from '@/hooks/useQueueGoals';
 import { Target, Bell, Users, Clock, MessageSquare, TrendingUp } from 'lucide-react';
 
 interface QueueGoalsDialogProps {
@@ -20,6 +20,14 @@ interface QueueGoalsDialogProps {
   queueId: string;
   queueName: string;
   queueColor: string;
+}
+
+interface QueueGoalForm {
+  max_waiting_contacts: number;
+  max_avg_wait_minutes: number;
+  min_assignment_rate: number;
+  max_messages_pending: number;
+  alerts_enabled: boolean;
 }
 
 /** Queue Goals Dialog component for the queues section. */
@@ -36,7 +44,9 @@ export function QueueGoalsDialog({
 
   useEffect(() => {
     if (open) {
-      const existingGoal = goals[queueId];
+      const existingGoal = Array.isArray(goals)
+        ? goals.find((g) => g.queue_id === queueId)
+        : undefined;
       if (existingGoal) {
         setFormData({
           max_waiting_contacts: existingGoal.max_waiting_contacts ?? 10,
@@ -50,6 +60,7 @@ export function QueueGoalsDialog({
       }
     }
   }, [open, queueId, goals, getDefaultGoal]);
+
 
   const handleSave = async () => {
     setSaving(true);
