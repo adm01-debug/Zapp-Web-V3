@@ -9,7 +9,6 @@ src/features/inbox/components/stickers/PersonalStickers.tsx
 src/features/inbox/hooks/useRealtimeInbox.ts
 src/features/sla/components/SLADeliveryHistoryDashboard.tsx
 src/hooks/omnichannel/useOmnichannelManagement.ts
-src/hooks/useConnectionManagement.ts
 src/hooks/useExternalApiManagement.ts
 src/integrations/supabase/types-manual.ts
 src/pages/admin/AdminAutomationLogsPage.tsx

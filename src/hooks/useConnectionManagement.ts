@@ -1,4 +1,4 @@
-// @ts-nocheck
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * useConnectionManagement.ts (v1.0)
  * Unified connection management consolidating:
@@ -16,6 +16,19 @@ import type { ConnectionMetrics } from '@/integrations/supabase/connectionPool';
 import { getLogger } from '@/lib/logger';
 
 const log = getLogger('ConnectionManagement');
+
+// Optional pool telemetry accessors — safeClient may not expose these in all builds.
+type PoolTelemetry = {
+  getPoolMetrics?: () => ConnectionMetrics;
+  getPoolDiagnostics?: () => Record<string, unknown>;
+};
+const poolClient = safeClient as unknown as PoolTelemetry;
+const EMPTY_METRICS = {
+  activeConnections: 0,
+  maxConcurrent: 0,
+  poolUtilization: 0,
+  totalErrors: 0,
+} as unknown as ConnectionMetrics;
 
 // ──────────────────────────────────────────────────────────────────────────
 // CONNECTION ALERTS PUSH
@@ -162,7 +175,7 @@ export function useConnectionPoolMonitor() {
 
   const updateMetrics = useCallback(() => {
     try {
-      const poolMetrics = safeClient.getPoolMetrics();
+      const poolMetrics = poolClient.getPoolMetrics?.() ?? EMPTY_METRICS;
       setMetrics(poolMetrics);
 
       // Alert on critical conditions
@@ -238,13 +251,11 @@ export function useConnectionPoolMonitor() {
  * Hook for getting pool diagnostics (detailed connection info).
  */
 export function useConnectionPoolDiagnostics() {
-  const [diagnostics, setDiagnostics] = useState<ReturnType<
-    typeof safeClient.getPoolDiagnostics
-  > | null>(null);
+  const [diagnostics, setDiagnostics] = useState<Record<string, unknown> | null>(null);
 
   const getDiagnostics = useCallback(() => {
     try {
-      const diag = safeClient.getPoolDiagnostics();
+      const diag = poolClient.getPoolDiagnostics?.() ?? null;
       setDiagnostics(diag);
       return diag;
     } catch (err) {
