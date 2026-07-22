@@ -368,7 +368,7 @@ let poolInstance: ConnectionPoolManager | null = null;
 
 /** initialize Connection Pool function. */
 export function initializeConnectionPool(
-  options?: Parameters<typeof ConnectionPoolManager>[0]
+  options?: ConstructorParameters<typeof ConnectionPoolManager>[0]
 ): ConnectionPoolManager {
   if (poolInstance) {
     return poolInstance;
