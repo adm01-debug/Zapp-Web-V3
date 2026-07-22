@@ -88,7 +88,7 @@ export function EmailChatBubble({
 }: EmailChatBubbleProps) {
   const [expanded, setExpanded] = useState(isFirst);
   const [showFullHtml, setShowFullHtml] = useState(false);
-  const [isStarred, setIsStarred] = useState(message.label_ids.includes('STARRED'));
+  const [isStarred, setIsStarred] = useState(message.label_ids?.includes('STARRED') ?? false);
   const [isRead, setIsRead] = useState(message.is_read);
   const contentRef = useRef<HTMLDivElement>(null);
 
