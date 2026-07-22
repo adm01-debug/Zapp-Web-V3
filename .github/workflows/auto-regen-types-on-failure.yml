@@ -1,0 +1,84 @@
+name: Auto-regen types on schema failure
+
+# Escuta o término do CI/CD Pipeline. Se a job falhou por causa da
+# sentinela `LOVABLE_AUTOREGEN_TRIGGER` emitida por
+# scripts/check-types-schemas.mjs (schemas zapp/evo ausentes em types.ts),
+# dispara automaticamente o workflow `Regenerate Supabase types (zapp + evo)`,
+# que abre um PR com o types.ts atualizado.
+#
+# Só age em falhas do branch default para evitar loop de PRs em forks/branches
+# de trabalho. Idempotente: gen-types-zapp usa concurrency group próprio e
+# create-pull-request reaproveita a branch `chore/regen-zapp-types`.
+
+on:
+  workflow_run:
+    workflows: ["CI/CD Pipeline"]
+    types: [completed]
+
+permissions:
+  actions: write
+  contents: read
+
+concurrency:
+  group: auto-regen-types-${{ github.event.workflow_run.head_branch }}
+  cancel-in-progress: false
+
+jobs:
+  maybe-regen:
+    if: >
+      github.event.workflow_run.conclusion == 'failure' &&
+      github.event.workflow_run.head_branch == github.event.repository.default_branch &&
+      github.event.workflow_run.event != 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Baixar logs da execução falhada
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/ci-logs
+          # A API retorna um zip com um .txt por step.
+          curl -sSL \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            -o /tmp/ci-logs/logs.zip \
+            "https://api.github.com/repos/$REPO/actions/runs/$RUN_ID/logs"
+          unzip -q -o /tmp/ci-logs/logs.zip -d /tmp/ci-logs
+          echo "logs extraídos: $(find /tmp/ci-logs -name '*.txt' | wc -l) arquivos"
+
+      - name: Detectar sentinela de schemas ausentes
+        id: detect
+        run: |
+          if grep -RIl "LOVABLE_AUTOREGEN_TRIGGER" /tmp/ci-logs >/dev/null 2>&1; then
+            echo "Sentinela encontrada — disparando regeneração."
+            echo "should_regen=true" >> "$GITHUB_OUTPUT"
+            grep -RIh "LOVABLE_AUTOREGEN_TRIGGER" /tmp/ci-logs | head -3
+          else
+            echo "Falha não relacionada a schemas zapp/evo — ignorando."
+            echo "should_regen=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Disparar workflow gen-types-zapp
+        if: steps.detect.outputs.should_regen == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          REF: ${{ github.event.workflow_run.head_branch }}
+        run: |
+          set -euo pipefail
+          curl -sSL -X POST \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/$REPO/actions/workflows/gen-types-zapp.yml/dispatches" \
+            -d "{\"ref\":\"$REF\",\"inputs\":{\"schemas\":\"public,zapp,evo\"}}"
+          echo "::notice title=Auto-regen disparado::Workflow gen-types-zapp iniciado para $REF."
+
+      - name: Resumo
+        if: always()
+        run: |
+          echo "### Auto-regen types" >> "$GITHUB_STEP_SUMMARY"
+          echo "- CI run: ${{ github.event.workflow_run.html_url }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Sentinela detectada: ${{ steps.detect.outputs.should_regen }}" >> "$GITHUB_STEP_SUMMARY"
