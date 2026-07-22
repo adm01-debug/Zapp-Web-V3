@@ -23,14 +23,12 @@ type PoolTelemetry = {
   getPoolDiagnostics?: () => Record<string, unknown>;
 };
 const poolClient = safeClient as unknown as PoolTelemetry;
-const EMPTY_METRICS: ConnectionMetrics = {
+const EMPTY_METRICS = {
   activeConnections: 0,
   maxConcurrent: 0,
   poolUtilization: 0,
   totalErrors: 0,
-  totalRequests: 0,
-  avgResponseTime: 0,
-} as ConnectionMetrics;
+} as unknown as ConnectionMetrics;
 
 // ──────────────────────────────────────────────────────────────────────────
 // CONNECTION ALERTS PUSH
