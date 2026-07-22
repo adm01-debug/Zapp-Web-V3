@@ -127,7 +127,7 @@ export function EmailChatBubble({
     const wasRead = isRead;
     setIsRead(!wasRead);
     try {
-      await emailMarkRead({ accountId, messageIds: [message.message_id], read: !wasRead });
+      await emailMarkRead({ accountId, messageIds: [message.message_id ?? ''], read: !wasRead });
     } catch {
       setIsRead(wasRead);
     }
@@ -135,7 +135,7 @@ export function EmailChatBubble({
 
   const handleTrash = async () => {
     try {
-      await emailTrashMessage({ accountId, messageId: message.message_id });
+      await emailTrashMessage({ accountId, messageId: message.message_id ?? '' });
       toast.success('Mensagem movida para lixeira');
     } catch {
       toast.error('Erro ao mover para lixeira');
@@ -223,12 +223,12 @@ export function EmailChatBubble({
           {expanded && (
             <div className="mt-1 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/50">
               <span className="text-primary/60">Para:</span>
-              <span className="max-w-[300px] truncate">{message.to_emails.join(', ')}</span>
-              {message.cc_emails.length > 0 && (
+              <span className="max-w-[300px] truncate">{(message.to_emails ?? []).join(', ')}</span>
+              {(message.cc_emails?.length ?? 0) > 0 && (
                 <>
                   <span className="mx-1 opacity-30">|</span>
                   <span className="text-primary/60">Cc:</span>
-                  <span className="max-w-[200px] truncate">{message.cc_emails.join(', ')}</span>
+                  <span className="max-w-[200px] truncate">{(message.cc_emails ?? []).join(', ')}</span>
                 </>
               )}
             </div>
