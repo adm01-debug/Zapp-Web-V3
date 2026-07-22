@@ -166,7 +166,7 @@ export function useGlobalSearchData(open: boolean) {
           if (dateStart) textQuery = textQuery.gte('created_at', dateStart.toISOString());
 
           const { data: textMessages } = await textQuery;
-          textMessages?.forEach((msg) => {
+          (textMessages as any[])?.forEach((msg: any) => {
             const contact = msg.contacts as unknown as {
               id: string;
               name: string;
