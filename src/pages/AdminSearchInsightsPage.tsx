@@ -100,7 +100,7 @@ export default function AdminSearchInsightsPage() {
             }
             isLoading={isLoading}
           />
-          {data && <SearchInsightsTables data={data} />}
+          {data && <SearchInsightsTables />}
         </>
       )}
     </div>
