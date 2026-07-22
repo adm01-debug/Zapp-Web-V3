@@ -45,7 +45,8 @@
     "build-storybook": "storybook build",
     "check:febesync": "bash scripts/check-fe-be-sync.sh",
     "check:deadcode": "node scripts/check-dead-code.mjs",
-    "check:datalayer": "node scripts/check-data-layer.mjs"
+    "check:datalayer": "node scripts/check-data-layer.mjs",
+    "check:types-schemas": "node scripts/check-types-schemas.mjs"
   },
   "dependencies": {
     "@axe-core/react": "^4.12.1",
