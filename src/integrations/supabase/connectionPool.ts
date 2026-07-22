@@ -302,13 +302,15 @@ class ConnectionPoolManager {
     const heapRatio = this.getHeapUsageRatio();
     let heapBefore: number | null = null;
     let heapAfter: number | null = null;
+    const perf = performance as Performance & { memory?: { usedJSHeapSize: number } };
+    const gcFn = (globalThis as { gc?: (full?: boolean) => void }).gc;
 
     if (heapRatio > ConnectionPoolManager.MEMORY_PRESSURE_THRESHOLD) {
-      heapBefore = Math.round(performance.memory?.usedJSHeapSize ?? 0);
+      heapBefore = Math.round(perf.memory?.usedJSHeapSize ?? 0);
 
-      if (typeof gc !== 'undefined') {
-        gc(false); // non-full garbage collection
-        heapAfter = Math.round(performance.memory?.usedJSHeapSize ?? 0);
+      if (typeof gcFn === 'function') {
+        gcFn(false);
+        heapAfter = Math.round(perf.memory?.usedJSHeapSize ?? 0);
       }
     }
 
