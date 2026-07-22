@@ -32,6 +32,9 @@ const META = process.env.META_URL || process.env.ZAPP_META_URL;
 const TOKEN = process.env.META_TOKEN || process.env.ZAPP_META_TOKEN;
 const MAX_ATTEMPTS = Number(process.env.MAX_ATTEMPTS || 3);
 const RETRY_DELAY_MS = Number(process.env.RETRY_DELAY_MS || 2000);
+const DRY_RUN =
+  process.argv.includes('--dry-run') ||
+  /^(1|true|yes)$/i.test(process.env.DRY_RUN || '');
 
 function log(msg) {
   console.log(`[types:repair] ${msg}`);
