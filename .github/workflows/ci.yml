@@ -107,15 +107,40 @@ jobs:
           exit 0
 
       - name: Supabase schema coverage gate (zapp + evo)
+        id: schema_gate
         # Valida que types.ts expõe os schemas `zapp` e `evo`. Sem eles o
         # tsc gera milhares de TS2339 em cascata. Roda em modo local
         # (bloqueante); a checagem remota fica pulada quando os secrets
         # da VPS não estão presentes (forks/PRs externos).
+        # Marcado como continue-on-error para permitir o fallback
+        # automático de `types:repair` abaixo; o gate final volta a ser
+        # bloqueante no step "Schema gate final".
+        continue-on-error: true
         env:
           SCHEMA_REPORT_DIR: reports/schema-status
           META_URL: ${{ secrets.ZAPP_META_URL }}
           META_TOKEN: ${{ secrets.ZAPP_META_TOKEN }}
         run: node scripts/check-types-schemas.mjs
+
+      - name: Auto-repair types (fallback quando o gate falha)
+        # Só roda se o gate acima falhou E os secrets da VPS estão
+        # disponíveis (sem eles o repair é no-op documentado). Captura
+        # stdout+stderr em reports/types-repair/repair.log para o
+        # artefato dedicado, sem quebrar o job se o repair também falhar
+        # — o gate final consolida o resultado.
+        id: schema_repair
+        if: steps.schema_gate.outcome == 'failure' && env.META_URL != '' && env.META_TOKEN != ''
+        continue-on-error: true
+        env:
+          SCHEMA_REPORT_DIR: reports/schema-status
+          META_URL: ${{ secrets.ZAPP_META_URL }}
+          META_TOKEN: ${{ secrets.ZAPP_META_TOKEN }}
+        run: |
+          mkdir -p reports/types-repair
+          set +e
+          node scripts/repair-types-schemas.mjs 2>&1 | tee reports/types-repair/repair.log
+          echo "${PIPESTATUS[0]}" > reports/types-repair/exit-code.txt
+          exit 0
 
       - name: Publish schema status report
         # Sempre publica o artefato — inclusive em falha — para permitir
@@ -127,6 +152,30 @@ jobs:
           path: reports/schema-status/
           if-no-files-found: warn
           retention-days: 14
+
+      - name: Publish types:repair log
+        # Publicado apenas quando o fallback rodou (bem-sucedido ou não),
+        # para inspeção do log de reparo sem misturar com o relatório do
+        # gate de schemas.
+        if: always() && steps.schema_repair.outcome != 'skipped'
+        uses: actions/upload-artifact@v4
+        with:
+          name: types-repair-log
+          path: reports/types-repair/
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Schema gate final (bloqueante)
+        # Consolida o resultado após o eventual auto-repair. Se o gate
+        # inicial passou, este re-check é praticamente instantâneo. Se o
+        # repair rodou, revalida `types.ts` regenerado. Qualquer falha
+        # aqui bloqueia o build.
+        env:
+          SCHEMA_REPORT_DIR: reports/schema-status
+          META_URL: ${{ secrets.ZAPP_META_URL }}
+          META_TOKEN: ${{ secrets.ZAPP_META_TOKEN }}
+        run: node scripts/check-types-schemas.mjs
+
 
       - name: TypeScript check (ratchet, blocking)
         # Baseline em scripts/tsc-error-baseline.json congela o número de
