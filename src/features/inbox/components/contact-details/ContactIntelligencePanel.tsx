@@ -252,7 +252,7 @@ function DISCSection({ disc }: { disc: DISCTips }) {
 // ========================
 
 function ContactIntelligencePanelInner({ phone }: ContactIntelligencePanelProps) {
-  const { data, isLoading } = useContactIntelligence(phone);
+  const { intelligence: data, loading: isLoading } = useContactIntelligence(phone);
 
   if (isLoading) {
     return (
