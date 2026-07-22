@@ -77,7 +77,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         );
 
       if (perms) {
-        const permNames = (perms as Array<{ permissions: { name: string } | null }>)
+        const permNames = (perms as unknown as Array<{ permissions: { name: string } | null }>)
           .map((p) => p.permissions?.name)
           .filter((n): n is string => typeof n === 'string');
         setPermissions([...new Set(permNames)]);
