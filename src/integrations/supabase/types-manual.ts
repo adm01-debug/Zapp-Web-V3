@@ -5,36 +5,24 @@
  * O `types.ts` gerado no Lovable Cloud contém APENAS o schema `public`.
  * Os schemas `zapp` e `evo` só ficam completos após rodar
  * `scripts/gen-types-zapp.mjs` contra a VPS. Para permitir compilação
- * limpa em ambos os cenários, este arquivo:
- *   1. Detecta via tipo condicional se `zapp`/`evo` existem em
- *      `GeneratedDatabase`.
- *   2. Se existirem → usa o schema gerado e faz merge com
- *      `ManualZappTables`.
- *   3. Se NÃO existirem → sintetiza um schema mínimo compatível com o
- *      contrato PostgREST (`Tables`/`Views`/`Functions`/`Enums`/
- *      `CompositeTypes`) usando `ManualZappTables` como base.
+ * limpa em ambos os cenários, este arquivo detecta via tipo condicional
+ * se `zapp`/`evo` existem em `GeneratedDatabase`:
  *
- * Consumidores continuam importando `ExtendedDatabase` normalmente; o
- * tipo resolvido depende apenas do `types.ts` presente no ambiente.
+ *   • existem  → usa o schema gerado e faz merge com `ManualZappTables`
+ *                / `ManualEvoTables` (overrides manuais)
+ *   • ausentes → cai em `FallbackSchema`, estruturalmente compatível com
+ *                `GenericSchema` do supabase-js, mas com Row/Insert/
+ *                Update/Relationships abertos (`any`) — evita cascatas
+ *                de TS2339 nos consumidores.
+ *
+ * Consumidores importam `ExtendedDatabase` normalmente; o tipo resolvido
+ * depende apenas do `types.ts` presente no ambiente.
  */
 
 import type { Database as GeneratedDatabase } from './types';
 
-/**
- * Shape genérico de uma tabela desconhecida quando o schema real (`zapp`
- * ou `evo`) não está presente no `types.ts` gerado. Mantém compatibilidade
- * estrutural com o contrato PostgREST do supabase-js, mas com Row/Insert/
- * Update abertos — evita cascatas de TS2339 sem recorrer a `@ts-nocheck`.
- */
 // biome-ignore lint/suspicious/noExplicitAny: fallback permissivo consciente
-type UnknownRow = any;
-type FallbackTable = {
-  Row: UnknownRow;
-  Insert: UnknownRow;
-  Update: UnknownRow;
-  // biome-ignore lint/suspicious/noExplicitAny: relacionamentos abertos para joins arbitrários
-  Relationships: any;
-};
+type AnyRow = any;
 
 /** Extensões manuais de tabelas do schema zapp (adicione aqui overrides). */
 export type ManualZappTables = Record<never, never>;
@@ -42,23 +30,21 @@ export type ManualZappTables = Record<never, never>;
 /** Extensões manuais de tabelas do schema evo. */
 export type ManualEvoTables = Record<never, never>;
 
-/**
- * Índice de tabelas permissivo: qualquer chave string resolve para
- * `FallbackTable`, ficando ao mesmo tempo mesclável com overrides manuais.
- */
-type FallbackTables<Extra> = Extra & {
-  [key: string]: FallbackTable;
+/** Tabela fallback compatível com o contrato PostgREST do supabase-js. */
+type FallbackTable = {
+  Row: AnyRow;
+  Insert: AnyRow;
+  Update: AnyRow;
+  Relationships: AnyRow;
 };
 
-/** Shape mínimo compatível com PostgREST para um schema Supabase. */
-type EmptySchema<TTables> = {
-  Tables: TTables;
-  // biome-ignore lint/suspicious/noExplicitAny: fallback permissivo
-  Views: { [key: string]: { Row: UnknownRow; Relationships: [] } };
-  // biome-ignore lint/suspicious/noExplicitAny: fallback permissivo
-  Functions: { [key: string]: { Args: Record<string, any>; Returns: any } };
-  Enums: Record<string, string>;
-  CompositeTypes: Record<string, UnknownRow>;
+/** Schema fallback permissivo (usado quando o schema real não existe). */
+type FallbackSchema<Extra> = {
+  Tables: Extra & { [key: string]: FallbackTable };
+  Views: { [key: string]: { Row: AnyRow; Relationships: AnyRow } };
+  Functions: { [key: string]: { Args: AnyRow; Returns: AnyRow } };
+  Enums: { [key: string]: string };
+  CompositeTypes: { [key: string]: AnyRow };
 };
 
 type MergeTables<Base, Extra> = {
@@ -71,7 +57,7 @@ type MergeTables<Base, Extra> = {
 
 /**
  * Resolve um schema: se `K` existe em `GeneratedDatabase`, faz merge com
- * `Extra`; caso contrário, sintetiza um schema vazio contendo `Extra`.
+ * `Extra`; caso contrário, cai no `FallbackSchema` permissivo.
  */
 type ResolveSchema<K extends string, Extra> = K extends keyof GeneratedDatabase
   ? GeneratedDatabase[K] extends {
@@ -88,8 +74,8 @@ type ResolveSchema<K extends string, Extra> = K extends keyof GeneratedDatabase
         Enums: E;
         CompositeTypes: C;
       }
-    : EmptySchema<FallbackTables<Extra>>
-  : EmptySchema<FallbackTables<Extra>>;
+    : FallbackSchema<Extra>
+  : FallbackSchema<Extra>;
 
 /** Extended Database type alias com fallback automático. */
 export type ExtendedDatabase = {
