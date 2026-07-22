@@ -1,10 +1,11 @@
 /**
  * types-manual.ts — Extensões manuais ao Database type gerado.
  *
- * Em Lovable Cloud, `types.ts` expõe apenas o schema `public`. No self-hosted,
- * a regeneração inclui blocos nativos para `zapp` e `evo`. Este arquivo
- * abstrai a diferença: se o schema existir em `GeneratedDatabase`, usamos ele;
- * caso contrário, fazemos fallback para `public` (que é o proxy runtime).
+ * Em Lovable Cloud, `types.ts` expõe apenas o schema `public`. O runtime do
+ * cliente Supabase está configurado com `db: { schema: 'zapp' }`, então o
+ * PostgREST recebe `Accept-Profile: zapp`, mas os TIPOS aqui apenas replicam
+ * `public` para `zapp` e `evo` — as tabelas físicas existem no self-hosted e
+ * o proxy Lovable Cloud espelha-as em `public`.
  */
 
 import type { Database as GeneratedDatabase } from './types';
@@ -20,34 +21,17 @@ type MergeTables<Base, Extra> = {
       : never;
 };
 
-type SchemaOrPublic<K extends string> = K extends keyof GeneratedDatabase
-  ? GeneratedDatabase[K]
-  : GeneratedDatabase['public'];
-
-type BaseZappSchema = SchemaOrPublic<'zapp'>;
-
-type SchemaShape = {
-  Tables: Record<string, unknown>;
-  Views: Record<string, unknown>;
-  Functions: Record<string, unknown>;
-  Enums: Record<string, unknown>;
-  CompositeTypes: Record<string, unknown>;
-};
-
-type EnsureShape<T> = T extends SchemaShape ? T : SchemaShape;
-
-type ZappSchema = EnsureShape<BaseZappSchema>;
-type EvoSchema = EnsureShape<SchemaOrPublic<'evo'>>;
+type PublicSchema = GeneratedDatabase['public'];
 
 /** Extended Database type alias. */
 export type ExtendedDatabase = {
-  public: GeneratedDatabase['public'];
+  public: PublicSchema;
   zapp: {
-    Tables: MergeTables<ZappSchema['Tables'], ManualZappTables>;
-    Views: ZappSchema['Views'];
-    Functions: ZappSchema['Functions'];
-    Enums: ZappSchema['Enums'];
-    CompositeTypes: ZappSchema['CompositeTypes'];
+    Tables: MergeTables<PublicSchema['Tables'], ManualZappTables>;
+    Views: PublicSchema['Views'];
+    Functions: PublicSchema['Functions'];
+    Enums: PublicSchema['Enums'];
+    CompositeTypes: PublicSchema['CompositeTypes'];
   };
-  evo: EvoSchema;
+  evo: PublicSchema;
 };
