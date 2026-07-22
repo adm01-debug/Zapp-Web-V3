@@ -131,7 +131,7 @@ export function useQueueDetails(id: string | undefined) {
           ...contact,
           messages_count: countMap.get(contact.id) || 0,
           last_message_at: lastMessageMap.get(contact.id) || null,
-          assigned_agent: contact.assigned_to ? agentMap.get(contact.assigned_to) ?? null : null,
+          assigned_agent: contact.assigned_to ? agentMap.get(contact.assigned_to) ?? undefined : undefined,
         }));
       }
 
