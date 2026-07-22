@@ -26,12 +26,26 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 
+interface SLADeliveryViolation {
+  id: string;
+  contact_id: string;
+  message_id: string;
+  detected_at: string;
+  delivered_at: string;
+  severity: 'breached' | 'warning' | string;
+  is_resolved: boolean;
+  resolved_at?: string | null;
+  resolved_by?: string | null;
+  resolution_notes?: string | null;
+  resolved_by_profile?: { display_name?: string | null } | null;
+}
+
 export const SLADeliveryHistoryDashboard = () => {
   const queryClient = useQueryClient();
   const [searchTerm, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
 
-  const { data: violations, isLoading } = useQuery({
+  const { data: violations, isLoading } = useQuery<SLADeliveryViolation[]>({
     queryKey: ['sla-delivery-violations', statusFilter],
     queryFn: async () => {
       const { data, error } = await safeClient.from('sla_delivery_violations', (q) => {
@@ -43,7 +57,7 @@ export const SLADeliveryHistoryDashboard = () => {
         return query;
       });
       if (error) throw error;
-      return data;
+      return (data ?? []) as unknown as SLADeliveryViolation[];
     },
   });
 
@@ -72,8 +86,8 @@ export const SLADeliveryHistoryDashboard = () => {
 
   const filteredViolations = violations?.filter(
     (v) =>
-      v.contact_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      v.message_id.toLowerCase().includes(searchTerm.toLowerCase())
+      (v.contact_id ?? '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (v.message_id ?? '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
