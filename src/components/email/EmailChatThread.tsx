@@ -178,11 +178,11 @@ export function EmailChatThread({
         <EmailChatReplyBar
           accountId={accountId}
           threadId={thread.id}
-          threadEmailId={thread.thread_id}
+          threadEmailId={thread.thread_id ?? ''}
           toEmails={replyTo}
           subject={thread.subject ?? ''}
           onSent={() => {
-            markReplied(thread.thread_id);
+            markReplied(threadKey);
           }}
           className="border-none"
         />
