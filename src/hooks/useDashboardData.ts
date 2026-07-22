@@ -105,7 +105,7 @@ export function useDashboardData(filters?: DashboardFilters) {
     if (!contactsData || !agentsData || !queuesData) return null;
 
     const contacts = contactsData as ContactRow[];
-    const queues = queuesData as QueueRow[];
+    const queues = queuesData as unknown as QueueRow[];
 
     const openConversations = contacts.filter((c) => c.assigned_to).length;
     const pendingConversations = contacts.filter((c) => !c.assigned_to && c.queue_id).length;
