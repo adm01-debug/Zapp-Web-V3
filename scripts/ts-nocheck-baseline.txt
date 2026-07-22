@@ -9,7 +9,6 @@ src/components/team-chat/TeamChatPanel.tsx
 src/components/ui/chart.tsx
 src/features/dashboard/hooks/useDashboardVisualizationManagement.ts
 src/features/inbox/components/ChatPanel.tsx
-src/features/inbox/components/chat/hooks/__tests__/useInitialHighlight.test.ts
 src/features/inbox/components/chat/useChatPanel.ts
 src/features/inbox/components/contact-details/ContactIntelligencePanel.tsx
 src/features/inbox/components/stickers/PersonalStickers.tsx
