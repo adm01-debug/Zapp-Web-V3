@@ -264,7 +264,7 @@ export function useEvolutionAutoReconnect(instanceName?: string) {
       await connectInstance(instanceName);
       await new Promise<void>((r) => setTimeout(r, 5_000));
 
-      const currentStatus = await getInstanceStatus(instanceName);
+      const currentStatus = (await getInstanceStatus(instanceName)) as { instance?: { state?: string }; state?: string } | null;
       const state: string = currentStatus?.instance?.state ?? currentStatus?.state ?? 'unknown';
       setStatus(state);
 
