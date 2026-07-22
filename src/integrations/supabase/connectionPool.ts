@@ -271,10 +271,11 @@ class ConnectionPoolManager {
    * Get heap usage ratio (0-1).
    */
   private getHeapUsageRatio(): number {
-    if (typeof performance === 'undefined' || !performance.memory) {
+    const perf = performance as Performance & { memory?: { usedJSHeapSize: number; jsHeapSizeLimit: number } };
+    if (typeof performance === 'undefined' || !perf.memory) {
       return 0;
     }
-    const { usedJSHeapSize, jsHeapSizeLimit } = performance.memory;
+    const { usedJSHeapSize, jsHeapSizeLimit } = perf.memory;
     return usedJSHeapSize / jsHeapSizeLimit;
   }
 
