@@ -1,4 +1,3 @@
-src/components/connections/InstanceSettingsDialog.tsx
 src/components/contacts/ContactMapView.tsx
 src/components/email/EmailChatThread.tsx
 src/components/queues/QueueGoalsDialog.tsx

@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useEffect } from 'react';
 import { useMountedRef } from '@/hooks/useMountedRef';
 import {
@@ -197,16 +196,16 @@ export function InstanceSettingsDialog({
   const loadSettings = async () => {
     setLoadingTab('settings');
     try {
-      const data = await getSettings(instanceName);
+      const data = (await getSettings(instanceName)) as Record<string, unknown> | null;
       if (data && mountedRef.current)
         setSettingsData({
-          rejectCall: data.rejectCall ?? false,
-          msgCall: data.msgCall ?? '',
-          groupsIgnore: data.groupsIgnore ?? false,
-          alwaysOnline: data.alwaysOnline ?? false,
-          readMessages: data.readMessages ?? false,
-          readStatus: data.readStatus ?? false,
-          syncFullHistory: data.syncFullHistory ?? false,
+          rejectCall: (data.rejectCall as boolean) ?? false,
+          msgCall: (data.msgCall as string) ?? '',
+          groupsIgnore: (data.groupsIgnore as boolean) ?? false,
+          alwaysOnline: (data.alwaysOnline as boolean) ?? false,
+          readMessages: (data.readMessages as boolean) ?? false,
+          readStatus: (data.readStatus as boolean) ?? false,
+          syncFullHistory: (data.syncFullHistory as boolean) ?? false,
         });
     } catch (err) {
       log.error('Error loading settings:', err);
@@ -216,12 +215,12 @@ export function InstanceSettingsDialog({
 
   const loadProfile = async () => {
     try {
-      const data = await fetchProfile(instanceName);
+      const data = (await fetchProfile(instanceName)) as Record<string, unknown> | null;
       if (data && mountedRef.current)
         setProfile({
-          name: data.name ?? '',
-          status: data.status ?? '',
-          pictureUrl: data.profilePictureUrl ?? '',
+          name: (data.name as string) ?? '',
+          status: (data.status as string) ?? '',
+          pictureUrl: (data.profilePictureUrl as string) ?? '',
         });
     } catch (err) {
       log.error('Error loading profile:', err);
