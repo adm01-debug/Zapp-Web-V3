@@ -27,12 +27,13 @@ import type { Database as GeneratedDatabase } from './types';
  * Update abertos — evita cascatas de TS2339 sem recorrer a `@ts-nocheck`.
  */
 // biome-ignore lint/suspicious/noExplicitAny: fallback permissivo consciente
-type UnknownRow = Record<string, any>;
+type UnknownRow = any;
 type FallbackTable = {
   Row: UnknownRow;
   Insert: UnknownRow;
   Update: UnknownRow;
-  Relationships: [];
+  // biome-ignore lint/suspicious/noExplicitAny: relacionamentos abertos para joins arbitrários
+  Relationships: any;
 };
 
 /** Extensões manuais de tabelas do schema zapp (adicione aqui overrides). */
