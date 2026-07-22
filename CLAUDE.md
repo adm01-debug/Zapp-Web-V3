@@ -177,10 +177,7 @@ bun run test:e2e
 
 # Regenerar tipos TypeScript do banco
 # (requer acesso à instância self-hosted)
-curl -s "http://supabase_meta:8080/generators/typescript\
-  ?included_schemas=public,zapp\
-  &detect_one_to_one_relationships=true" \
-  > src/integrations/supabase/types.ts
+curl -s "http://supabase_meta:8080/generators/typescript?included_schemas=public,zapp&detect_one_to_one_relationships=true" > src/integrations/supabase/types.ts
 ```
 
 ---
@@ -196,6 +193,10 @@ curl -s "http://supabase_meta:8080/generators/typescript\
 | `docs/EVOLUTION_API_REFERENCE.md` | API Evolution (WhatsApp) |
 | `docs/RUNBOOK_OBSERVABILITY.md` | Observabilidade e alertas |
 | `SECURITY.md` | Políticas de segurança |
+| `infra/runbooks/OPERATIONS.md` | Runbook de operações (22/07) |
+| `infra/backup/README.md` | Backup & restore procedure |
+| `infra/evolution/SETTINGS.md` | Configs Evolution wpp2 |
+| `docs/QA_REPORT_2026-07-22.md` | QA Report completo (22/07) |
 
 ---
 
@@ -216,6 +217,14 @@ supabase/
 │   └── _shared/
 │       └── db-client.ts     # createZappAdminClient()
 └── migrations/              # 800+ migrações SQL
+
+infra/                       # Infraestrutura
+├── runbooks/                # Procedimentos operacionais
+│   └── OPERATIONS.md        # Runbook (lean)
+├── backup/                  # Documentação de backup
+│   └── README.md            # Procedimento de restore
+└── evolution/               # Configurações Evolution
+    └── SETTINGS.md          # Settings atuais da wpp2
 ```
 
 ---
@@ -240,3 +249,49 @@ supabase/
 - SECDEF: 0 sem search_path fixo
 - Realtime: `zapp.failed_messages` na publication ✅ (subscription com `schema:'zapp'`)
 - Crons: 119 ativos (18 novo: bpm-check-breached-slas)
+
+---
+
+## Sessão 2026-07-22 — QA Exaustiva de Infraestrutura (10/10)
+
+### Contexto
+QA realizado diretamente no ambiente de produção AtomicaBR (VPS Docker Swarm).
+144 containers auditados, 11 módulos testados, 7 bugs encontrados.
+Todas as correções foram aplicadas em runtime (Evolution API, Docker, PostgreSQL, Hermes Cron).
+
+### Bugs Encontrados
+
+| # | Componente | Problema | Severidade | Status |
+|---|---|---|---|---|
+| BUG-A | CrowdSec Bouncer | 7 dias sem atualizar decisões | 🔴 CRÍTICO | ✅ Corrigido (restart) |
+| BUG-B | WAL Slot | `cainophile_s7fgrb36` 278MB lag crescendo | 🔴 CRÍTICO | ✅ Corrigido (DB restart) |
+| BUG-C | n8n | FK constraint violada em workflow_history | 🟠 ALTO | ⏳ Pendente |
+| BUG-D | Edge Function | POST /rest/v1/contacts 404 | 🟠 ALTO | ⏳ Pendente |
+| BUG-E | Glitchtip | DB disconnect pós-deploy | 🟡 MÉDIO | ✅ Corrigido (restart) |
+| BUG-F | Backups | Falso alarme (backups R2 OK) | 🟡 MÉDIO | ✅ Investigado e limpo |
+| BUG-G | bridge.js | Sem Express error handler | 🟢 BAIXO | Baixo risco |
+
+### Shift-Left Items (runtime — recriar via docs)
+
+| Item | Local | Como Recriar |
+|---|---|---|
+| alwaysOnline=true | Evolution DB | `infra/evolution/SETTINGS.md` |
+| readMessages=true | Evolution DB | `infra/evolution/SETTINGS.md` |
+| Webhook disabled | Evolution DB | `infra/evolution/SETTINGS.md` |
+| Cron: WAL Monitor (15min) | Hermes Agent | `infra/runbooks/OPERATIONS.md` |
+| Cron: Backup Check (6h) | Hermes Agent | `infra/runbooks/OPERATIONS.md` |
+| VACUUM ANALYZE | PostgreSQL | Efeito temporário (re-aplicar) |
+| BACKUP_FAILED purge | Filesystem | Já limpo (245MB) |
+
+### Informações do Ambiente (22/07)
+
+| Métrica | Valor |
+|---|---|
+| Docker | 28.1.1, Ubuntu 20.04, 12 vCPU, 24GB RAM |
+| Disco | 119 GB usado (61%), 75 GB livre |
+| Containers | 144 total (107 running) |
+| Cache hit ratio | 99.91% |
+| Evolution msgs | 46.700+ processadas |
+| RabbitMQ | 17/17 filas, 0 erros |
+| Backups R2 | 13 consecutivos (último: 22/07, 27MB) |
+| WAL total | 1.024 GB (monitorar via cron) |
