@@ -11,7 +11,6 @@ src/features/sla/components/SLADeliveryHistoryDashboard.tsx
 src/hooks/omnichannel/useOmnichannelManagement.ts
 src/hooks/useConnectionManagement.ts
 src/hooks/useExternalApiManagement.ts
-src/hooks/useSearchManagement.ts
 src/integrations/supabase/types-manual.ts
 src/pages/admin/AdminAutomationLogsPage.tsx
 src/pages/admin/AdminQueuesPage.tsx
