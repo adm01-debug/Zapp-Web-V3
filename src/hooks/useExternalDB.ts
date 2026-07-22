@@ -119,7 +119,8 @@ export function useExternalRPC<T = unknown>(options: UseExternalRPCOptions) {
     queryFn: async () => {
       validateRpcAccess(options.rpc, 'external');
       const start = performance.now();
-      const { data, error } = await getExternalSupabase().rpc(options.rpc, options.params || {});
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (getExternalSupabase() as any).rpc(options.rpc, options.params || {});
       const duration = Math.round(performance.now() - start);
       if (error) throw new Error(error.message);
       return {
