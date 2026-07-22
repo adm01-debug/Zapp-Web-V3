@@ -1,4 +1,4 @@
-// @ts-nocheck
+
 /**
  * Datasource proxy — escolhe automaticamente o SupabaseClient correto
  * (Lovable Cloud vs self-hosted) e a tabela física para uma entidade lógica.
