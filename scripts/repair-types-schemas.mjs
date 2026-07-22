@@ -12,7 +12,13 @@
  *
  * Uso:
  *   npm run types:repair
+ *   npm run types:repair -- --max-retries=5 --backoff-ms=3000
  *   MAX_ATTEMPTS=5 RETRY_DELAY_MS=3000 npm run types:repair
+ *
+ * Flags CLI (têm precedência sobre env; env mantém defaults atuais):
+ *   --max-retries=N   (env MAX_ATTEMPTS,   default 3)
+ *   --backoff-ms=N    (env RETRY_DELAY_MS, default 2000)
+ *   --dry-run         (env DRY_RUN=1)
  *
  * Sem os secrets, sai com código 0 e emite um aviso — permite invocar
  * o script em CIs/máquinas sem credenciais sem quebrar a pipeline.
@@ -20,7 +26,8 @@
  * Exit codes:
  *   0  gate passa (ou secrets ausentes → no-op documentado)
  *   1  gate continua falhando após MAX_ATTEMPTS
- *   2  erro fatal fora do loop (ex.: gen-types-zapp não encontrado)
+ *   2  erro fatal fora do loop (ex.: gen-types-zapp não encontrado,
+ *      ou valor inválido em --max-retries/--backoff-ms)
  */
 import { spawnSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
@@ -28,10 +35,36 @@ import { existsSync } from 'node:fs';
 const GEN_SCRIPT = 'scripts/gen-types-zapp.mjs';
 const CHECK_SCRIPT = 'scripts/check-types-schemas.mjs';
 
+/** Lê `--flag=value` ou `--flag value` do argv. */
+function readFlag(name) {
+  const prefix = `--${name}=`;
+  const eq = process.argv.find((a) => a.startsWith(prefix));
+  if (eq) return eq.slice(prefix.length);
+  const idx = process.argv.indexOf(`--${name}`);
+  if (idx !== -1 && idx + 1 < process.argv.length) {
+    const next = process.argv[idx + 1];
+    if (next && !next.startsWith('--')) return next;
+  }
+  return undefined;
+}
+
+function readIntOption(flagName, envName, fallback) {
+  const raw = readFlag(flagName) ?? process.env[envName];
+  if (raw === undefined || raw === '') return fallback;
+  const n = Number(raw);
+  if (!Number.isFinite(n) || !Number.isInteger(n) || n < 0) {
+    console.error(
+      `[types:repair] ✗ Valor inválido para --${flagName}/${envName}: "${raw}" (esperado inteiro >= 0).`,
+    );
+    process.exit(2);
+  }
+  return n;
+}
+
 const META = process.env.META_URL || process.env.ZAPP_META_URL;
 const TOKEN = process.env.META_TOKEN || process.env.ZAPP_META_TOKEN;
-const MAX_ATTEMPTS = Number(process.env.MAX_ATTEMPTS || 3);
-const RETRY_DELAY_MS = Number(process.env.RETRY_DELAY_MS || 2000);
+const MAX_ATTEMPTS = readIntOption('max-retries', 'MAX_ATTEMPTS', 3);
+const RETRY_DELAY_MS = readIntOption('backoff-ms', 'RETRY_DELAY_MS', 2000);
 const DRY_RUN =
   process.argv.includes('--dry-run') ||
   /^(1|true|yes)$/i.test(process.env.DRY_RUN || '');
