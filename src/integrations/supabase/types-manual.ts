@@ -87,8 +87,8 @@ type ResolveSchema<K extends string, Extra> = K extends keyof GeneratedDatabase
         Enums: E;
         CompositeTypes: C;
       }
-    : EmptySchema<Extra>
-  : EmptySchema<Extra>;
+    : EmptySchema<FallbackTables<Extra>>
+  : EmptySchema<FallbackTables<Extra>>;
 
 /** Extended Database type alias com fallback automático. */
 export type ExtendedDatabase = {
