@@ -83,6 +83,34 @@ if (!existsSync(GEN_SCRIPT)) {
   process.exit(2);
 }
 
+// -------------------- Dry-run --------------------
+if (DRY_RUN) {
+  const hasSecrets = Boolean(META && TOKEN);
+  const schemas = process.env.SCHEMAS || 'public,zapp,evo';
+  const genEnvPreview = [
+    `META_URL=${META ? '<set>' : '<missing>'}`,
+    `META_TOKEN=${TOKEN ? '<set>' : '<missing>'}`,
+    `SCHEMAS=${schemas}`,
+  ].join(' ');
+  log('DRY-RUN — nenhum comando será executado e nenhum arquivo será escrito.');
+  log('');
+  log('Plano:');
+  log(`  1. Rodar gate inicial:  node ${CHECK_SCRIPT} --local-only`);
+  if (!hasSecrets) {
+    log('  2. Sem META_URL/META_TOKEN (ou ZAPP_META_*) — sairia 0 com aviso');
+    log('     e não tentaria regenerar. Nenhum arquivo seria modificado.');
+  } else {
+    log(`  2. Se o gate falhar, tentaria até ${MAX_ATTEMPTS}x (backoff linear ${RETRY_DELAY_MS}ms):`);
+    log(`       ${genEnvPreview} node ${GEN_SCRIPT}`);
+    log(`       node ${CHECK_SCRIPT} --local-only`);
+    log('     Cada execução de gen reescreveria src/integrations/supabase/types.ts.');
+    log('  3. Se após as tentativas o gate ainda falhasse, sairia 1.');
+  }
+  log('');
+  log('Para executar de verdade: `npm run types:repair` (sem --dry-run e sem DRY_RUN=1).');
+  process.exit(0);
+}
+
 // Fast-path: já está OK, nada a consertar.
 log('Executando gate inicial…');
 if (runCheck()) {
