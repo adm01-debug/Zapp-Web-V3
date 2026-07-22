@@ -1,4 +1,4 @@
-// @ts-nocheck
+// Consolidated Search & Discovery Management Module (ETAPA 36)
 // Consolidated Search & Discovery Management Module (ETAPA 36)
 // Consolidates: useGlobalSearchShortcut, useKnowledgeBaseSearch, useSearchHistory, useSearchInsights, useChatSearch
 import { useState, useCallback, useEffect } from 'react';
