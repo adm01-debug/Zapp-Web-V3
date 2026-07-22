@@ -1,5 +1,4 @@
 src/components/queues/QueuesView.tsx
-src/components/settings/media-library/MediaAdminPanel.tsx
 src/components/team-chat/TeamChatPanel.tsx
 src/components/ui/chart.tsx
 src/features/dashboard/hooks/useDashboardVisualizationManagement.ts
