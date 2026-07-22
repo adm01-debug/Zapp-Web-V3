@@ -22,30 +22,13 @@
 import type { Database as GeneratedDatabase } from './types';
 
 // biome-ignore lint/suspicious/noExplicitAny: fallback permissivo consciente
-type AnyRow = any;
+type AnyFallback = any;
 
 /** Extensões manuais de tabelas do schema zapp (adicione aqui overrides). */
 export type ManualZappTables = Record<never, never>;
 
 /** Extensões manuais de tabelas do schema evo. */
 export type ManualEvoTables = Record<never, never>;
-
-/** Tabela fallback compatível com o contrato PostgREST do supabase-js. */
-type FallbackTable = {
-  Row: AnyRow;
-  Insert: AnyRow;
-  Update: AnyRow;
-  Relationships: AnyRow;
-};
-
-/** Schema fallback permissivo (usado quando o schema real não existe). */
-type FallbackSchema<Extra> = {
-  Tables: Extra & { [key: string]: FallbackTable };
-  Views: { [key: string]: { Row: AnyRow; Relationships: AnyRow } };
-  Functions: { [key: string]: { Args: AnyRow; Returns: AnyRow } };
-  Enums: { [key: string]: string };
-  CompositeTypes: { [key: string]: AnyRow };
-};
 
 type MergeTables<Base, Extra> = {
   [K in keyof Base | keyof Extra]: K extends keyof Extra
@@ -57,7 +40,12 @@ type MergeTables<Base, Extra> = {
 
 /**
  * Resolve um schema: se `K` existe em `GeneratedDatabase`, faz merge com
- * `Extra`; caso contrário, cai no `FallbackSchema` permissivo.
+ * `Extra` sobre Tables. Caso contrário, o schema inteiro degrada para
+ * `any` — deliberadamente permissivo — para evitar cascatas de TS2339 e
+ * `SelectQueryError` em consumidores enquanto o `types.ts` não é
+ * regenerado com os schemas `zapp`/`evo` (via `gen-types-zapp.mjs`).
+ * O gate em `scripts/check-types-schemas.mjs` avisa quando o fallback
+ * está ativo.
  */
 type ResolveSchema<K extends string, Extra> = K extends keyof GeneratedDatabase
   ? GeneratedDatabase[K] extends {
@@ -74,8 +62,8 @@ type ResolveSchema<K extends string, Extra> = K extends keyof GeneratedDatabase
         Enums: E;
         CompositeTypes: C;
       }
-    : FallbackSchema<Extra>
-  : FallbackSchema<Extra>;
+    : AnyFallback
+  : AnyFallback;
 
 /** Extended Database type alias com fallback automático. */
 export type ExtendedDatabase = {
