@@ -65,8 +65,9 @@ describe('useQueueGoals', () => {
   it('maps goals by queue_id', async () => {
     const { result } = renderHook(() => useQueueGoals());
     await waitFor(() => expect(result.current.loading).toBe(false));
-    expect(result.current.goals['q1']).toBeDefined();
-    expect(result.current.goals['q1'].max_waiting_contacts).toBe(10);
+    const q1 = result.current.goals.find((g) => g.queue_id === 'q1');
+    expect(q1).toBeDefined();
+    expect(q1?.max_waiting_contacts).toBe(10);
   });
 
   it('handles fetch error gracefully', async () => {
