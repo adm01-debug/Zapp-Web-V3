@@ -64,6 +64,7 @@ function makeSandbox() {
 function runRepair(
   cwd: string,
   env: Record<string, string | undefined> = {},
+  args: string[] = [],
 ) {
   const clean: Record<string, string> = {};
   for (const [k, v] of Object.entries(process.env)) {
@@ -75,7 +76,7 @@ function runRepair(
   }
   const r = spawnSync(
     process.execPath,
-    ['scripts/repair-types-schemas.mjs'],
+    ['scripts/repair-types-schemas.mjs', ...args],
     { cwd, env: clean, encoding: 'utf8' },
   );
   const count = (name: string) => {
