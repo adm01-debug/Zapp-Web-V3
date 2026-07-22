@@ -328,7 +328,7 @@ describe('useInitialHighlight — cleanup on unmount', () => {
     unmount();
     vi.advanceTimersByTime(3500);
     // May have been called once synchronously with the id, but NOT the null clear
-    const nullCalls = p.setActiveHighlightId.mock.calls.filter(([v]) => v === null);
+    const nullCalls = vi.mocked(p.setActiveHighlightId).mock.calls.filter(([v]: [string | null]) => v === null);
     expect(nullCalls).toHaveLength(0);
   });
 
