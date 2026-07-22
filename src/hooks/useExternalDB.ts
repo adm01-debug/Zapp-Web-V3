@@ -27,7 +27,8 @@ async function queryExternal<T = unknown>(params: {
   validateEntityAccess(params.table, 'external');
   const start = performance.now();
 
-  let query = getExternalSupabase()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let query: any = (getExternalSupabase() as any)
     .from(params.table)
     .select(params.select || '*', { count: params.countMode || undefined });
 
