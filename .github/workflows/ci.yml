@@ -106,6 +106,28 @@ jobs:
           fi
           exit 0
 
+      - name: Supabase schema coverage gate (zapp + evo)
+        # Valida que types.ts expõe os schemas `zapp` e `evo`. Sem eles o
+        # tsc gera milhares de TS2339 em cascata. Roda em modo local
+        # (bloqueante); a checagem remota fica pulada quando os secrets
+        # da VPS não estão presentes (forks/PRs externos).
+        env:
+          SCHEMA_REPORT_DIR: reports/schema-status
+          META_URL: ${{ secrets.ZAPP_META_URL }}
+          META_TOKEN: ${{ secrets.ZAPP_META_TOKEN }}
+        run: node scripts/check-types-schemas.mjs
+
+      - name: Publish schema status report
+        # Sempre publica o artefato — inclusive em falha — para permitir
+        # auditoria e debugging via download direto do Actions run.
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: schema-status-report
+          path: reports/schema-status/
+          if-no-files-found: warn
+          retention-days: 14
+
       - name: TypeScript check (ratchet, blocking)
         # Baseline em scripts/tsc-error-baseline.json congela o número de
         # erros conhecidos. O CI falha se:
