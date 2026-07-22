@@ -20,19 +20,44 @@
 
 import type { Database as GeneratedDatabase } from './types';
 
+/**
+ * Shape genérico de uma tabela desconhecida quando o schema real (`zapp`
+ * ou `evo`) não está presente no `types.ts` gerado. Mantém compatibilidade
+ * estrutural com o contrato PostgREST do supabase-js, mas com Row/Insert/
+ * Update abertos — evita cascatas de TS2339 sem recorrer a `@ts-nocheck`.
+ */
+// biome-ignore lint/suspicious/noExplicitAny: fallback permissivo consciente
+type UnknownRow = Record<string, any>;
+type FallbackTable = {
+  Row: UnknownRow;
+  Insert: UnknownRow;
+  Update: UnknownRow;
+  Relationships: [];
+};
+
 /** Extensões manuais de tabelas do schema zapp (adicione aqui overrides). */
 export type ManualZappTables = Record<never, never>;
 
 /** Extensões manuais de tabelas do schema evo. */
 export type ManualEvoTables = Record<never, never>;
 
+/**
+ * Índice de tabelas permissivo: qualquer chave string resolve para
+ * `FallbackTable`, ficando ao mesmo tempo mesclável com overrides manuais.
+ */
+type FallbackTables<Extra> = Extra & {
+  [key: string]: FallbackTable;
+};
+
 /** Shape mínimo compatível com PostgREST para um schema Supabase. */
 type EmptySchema<TTables> = {
   Tables: TTables;
-  Views: Record<never, never>;
-  Functions: Record<never, never>;
-  Enums: Record<never, never>;
-  CompositeTypes: Record<never, never>;
+  // biome-ignore lint/suspicious/noExplicitAny: fallback permissivo
+  Views: { [key: string]: { Row: UnknownRow; Relationships: [] } };
+  // biome-ignore lint/suspicious/noExplicitAny: fallback permissivo
+  Functions: { [key: string]: { Args: Record<string, any>; Returns: any } };
+  Enums: Record<string, string>;
+  CompositeTypes: Record<string, UnknownRow>;
 };
 
 type MergeTables<Base, Extra> = {
