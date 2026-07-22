@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, type UseMutationResult } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import type { Database } from '@/integrations/supabase/schema';
@@ -49,8 +49,8 @@ export type UseOmnichannelChannelsParams = Record<string, never>;
 export interface UseOmnichannelChannelsResult {
   channels: OmnichannelChannel[];
   isLoading: boolean;
-  addChannel: ReturnType<typeof useMutation>;
-  deleteChannel: ReturnType<typeof useMutation>;
+  addChannel: UseMutationResult<void, Error, { name: string; channel_type: ChannelType }, unknown>;
+  deleteChannel: UseMutationResult<void, Error, string, unknown>;
 }
 
 /** Hook: Use Channel Routing Rules Params. */
@@ -61,9 +61,9 @@ export interface UseChannelRoutingRulesResult {
   rules: RoutingRule[];
   isLoading: boolean;
   queues: Array<{ id: string; name: string }>;
-  toggleRule: ReturnType<typeof useMutation>;
-  deleteRule: ReturnType<typeof useMutation>;
-  createRule: ReturnType<typeof useMutation>;
+  toggleRule: UseMutationResult<void, Error, { id: string; is_active: boolean }, unknown>;
+  deleteRule: UseMutationResult<void, Error, string, unknown>;
+  createRule: UseMutationResult<void, Error, NewRoutingRule, unknown>;
 }
 
 // ═══════════════════════════════════════════════════════════

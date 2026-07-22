@@ -1,29 +1,17 @@
-
 /**
  * types-manual.ts — Extensões manuais ao Database type gerado.
  *
- * REGENERAÇÃO 2026-07-16: types.ts agora inclui blocos nativos para
- * os schemas `zapp`, `evo` e `public` (80.411 linhas, 1467 entradas).
- * O remapeamento GeneratedDatabase['public'] → zapp foi REMOVIDO.
- * Agora referencia GeneratedDatabase['zapp'] diretamente.
- *
- * ÚLTIMA REGENERAÇÃO: 2026-07-16 via postgres-meta API (commit c48cf42)
- * COBERTURA: zapp=721, evo=213, public=533 entradas tipadas
+ * Em Lovable Cloud, `types.ts` expõe apenas o schema `public`. No self-hosted,
+ * a regeneração inclui blocos nativos para `zapp` e `evo`. Este arquivo
+ * abstrai a diferença: se o schema existir em `GeneratedDatabase`, usamos ele;
+ * caso contrário, fazemos fallback para `public` (que é o proxy runtime).
  */
 
 import type { Database as GeneratedDatabase } from './types';
 
-// ---------------------------------------------------------------------------
-// ManualZappTables — adicione aqui tabelas que não foram capturadas na geração.
-// Após regenerar types.ts, mova-as para cá SOMENTE se a CLI não as incluir.
-// ---------------------------------------------------------------------------
-
-/** Manual Zapp Tables type definition. */
+/** Manual Zapp Tables — adicione aqui tabelas ainda não capturadas na geração. */
 export type ManualZappTables = Record<never, never>;
 
-// ---------------------------------------------------------------------------
-// MergeTables — mescla dois conjuntos de tabelas sem criar intersseção
-// ---------------------------------------------------------------------------
 type MergeTables<Base, Extra> = {
   [K in keyof Base | keyof Extra]: K extends keyof Extra
     ? Extra[K]
@@ -32,18 +20,34 @@ type MergeTables<Base, Extra> = {
       : never;
 };
 
-// CORRIGIDO 2026-07-16: agora referencia o bloco 'zapp' nativo (antes era 'public')
-type GeneratedZappSchema = GeneratedDatabase['zapp'];
+type SchemaOrPublic<K extends string> = K extends keyof GeneratedDatabase
+  ? GeneratedDatabase[K]
+  : GeneratedDatabase['public'];
+
+type BaseZappSchema = SchemaOrPublic<'zapp'>;
+
+type SchemaShape = {
+  Tables: Record<string, unknown>;
+  Views: Record<string, unknown>;
+  Functions: Record<string, unknown>;
+  Enums: Record<string, unknown>;
+  CompositeTypes: Record<string, unknown>;
+};
+
+type EnsureShape<T> = T extends SchemaShape ? T : SchemaShape;
+
+type ZappSchema = EnsureShape<BaseZappSchema>;
+type EvoSchema = EnsureShape<SchemaOrPublic<'evo'>>;
 
 /** Extended Database type alias. */
 export type ExtendedDatabase = {
   public: GeneratedDatabase['public'];
   zapp: {
-    Tables: MergeTables<GeneratedZappSchema['Tables'], ManualZappTables>;
-    Views: GeneratedZappSchema['Views'];
-    Functions: GeneratedZappSchema['Functions'];
-    Enums: GeneratedZappSchema['Enums'];
-    CompositeTypes: GeneratedZappSchema['CompositeTypes'];
+    Tables: MergeTables<ZappSchema['Tables'], ManualZappTables>;
+    Views: ZappSchema['Views'];
+    Functions: ZappSchema['Functions'];
+    Enums: ZappSchema['Enums'];
+    CompositeTypes: ZappSchema['CompositeTypes'];
   };
-  evo: GeneratedDatabase['evo'];
+  evo: EvoSchema;
 };

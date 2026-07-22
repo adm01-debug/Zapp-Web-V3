@@ -54,9 +54,9 @@ export interface RuleActions {
   ai_prompt?: string;
   template?: string;
   escalate_sla?: {
-    enabled: boolean;
-    level: string;
-    reason: string;
+    enabled?: boolean;
+    level?: string;
+    reason?: string;
   };
   [key: string]: unknown;
 }
