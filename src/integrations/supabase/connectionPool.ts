@@ -1,4 +1,4 @@
-// @ts-nocheck
+
 import { getLogger } from '@/lib/logger';
 
 const log = getLogger('connectionPool');
@@ -271,10 +271,11 @@ class ConnectionPoolManager {
    * Get heap usage ratio (0-1).
    */
   private getHeapUsageRatio(): number {
-    if (typeof performance === 'undefined' || !performance.memory) {
+    const perf = performance as Performance & { memory?: { usedJSHeapSize: number; jsHeapSizeLimit: number } };
+    if (typeof performance === 'undefined' || !perf.memory) {
       return 0;
     }
-    const { usedJSHeapSize, jsHeapSizeLimit } = performance.memory;
+    const { usedJSHeapSize, jsHeapSizeLimit } = perf.memory;
     return usedJSHeapSize / jsHeapSizeLimit;
   }
 
@@ -301,13 +302,15 @@ class ConnectionPoolManager {
     const heapRatio = this.getHeapUsageRatio();
     let heapBefore: number | null = null;
     let heapAfter: number | null = null;
+    const perf = performance as Performance & { memory?: { usedJSHeapSize: number } };
+    const gcFn = (globalThis as { gc?: (full?: boolean) => void }).gc;
 
     if (heapRatio > ConnectionPoolManager.MEMORY_PRESSURE_THRESHOLD) {
-      heapBefore = Math.round(performance.memory?.usedJSHeapSize ?? 0);
+      heapBefore = Math.round(perf.memory?.usedJSHeapSize ?? 0);
 
-      if (typeof gc !== 'undefined') {
-        gc(false); // non-full garbage collection
-        heapAfter = Math.round(performance.memory?.usedJSHeapSize ?? 0);
+      if (typeof gcFn === 'function') {
+        gcFn(false);
+        heapAfter = Math.round(perf.memory?.usedJSHeapSize ?? 0);
       }
     }
 
@@ -365,7 +368,7 @@ let poolInstance: ConnectionPoolManager | null = null;
 
 /** initialize Connection Pool function. */
 export function initializeConnectionPool(
-  options?: Parameters<typeof ConnectionPoolManager>[0]
+  options?: ConstructorParameters<typeof ConnectionPoolManager>[0]
 ): ConnectionPoolManager {
   if (poolInstance) {
     return poolInstance;

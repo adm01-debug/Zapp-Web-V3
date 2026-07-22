@@ -13,8 +13,6 @@ src/hooks/useConnectionManagement.ts
 src/hooks/useExternalApiManagement.ts
 src/hooks/useRealtimeManagement.ts
 src/hooks/useSearchManagement.ts
-src/integrations/datasource/db.ts
-src/integrations/supabase/connectionPool.ts
 src/integrations/supabase/types-manual.ts
 src/pages/admin/AdminAutomationLogsPage.tsx
 src/pages/admin/AdminQueuesPage.tsx
