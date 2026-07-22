@@ -193,3 +193,11 @@ outdated.txt
 # Scripts de dados mock e saídas SQL grandes
 generate_mock_data.py
 mock_data.sql
+
+# Saída de build do TypeScript (gerado por `tsc --noEmit 2> ts_errors.txt`)
+# Não versionar: muda a cada build, aparece vazio quando clean
+ts_errors.txt
+
+# Artefatos de auditoria de design gerados (não são código-fonte)
+design-system-audit.html
+design-system-audit.md
