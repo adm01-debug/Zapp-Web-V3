@@ -20,7 +20,7 @@ export default function AdminSearchInsightsPage() {
   const { insights, loading: isLoading } = useSearchInsights(days);
   const data = insights;
   const isFetching = isLoading;
-  const error: unknown = null;
+  const error: Error | null = null;
   const refetch = () => {};
 
   return (
@@ -55,18 +55,20 @@ export default function AdminSearchInsightsPage() {
         </div>
       </header>
 
-      {error && (
+      {error ? (
         <Card role="alert">
           <CardContent className="p-6">
             <GenericEmptyState
               icon={Search}
               title="Falha ao carregar insights"
-              description={error instanceof Error ? error.message : 'Erro desconhecido'}
+              description={(error as Error).message ?? 'Erro desconhecido'}
               className="py-4"
             />
           </CardContent>
         </Card>
-      )}
+      ) : null}
+
+
 
       {!error && data && data.total_searches === 0 && !isLoading ? (
         <Card>
@@ -100,7 +102,7 @@ export default function AdminSearchInsightsPage() {
             }
             isLoading={isLoading}
           />
-          {data && <SearchInsightsTables data={data} />}
+          {data && <SearchInsightsTables />}
         </>
       )}
     </div>
