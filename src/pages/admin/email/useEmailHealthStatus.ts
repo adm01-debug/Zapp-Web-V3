@@ -113,24 +113,26 @@ export function useEmailHealthStatus() {
         'postgres_changes',
         { event: '*', schema: 'zapp', table: 'email_health_summary' },
         (payload) => {
-          if (payload.new) {
+          const next = payload.new as EmailHealthSummary | null;
+          if (next && Object.keys(next).length > 0) {
             setHealth((prev) =>
               prev
                 ? {
                     ...prev,
-                    status: castStatus(payload.new.status),
-                    lastValidation: payload.new.last_validation
-                      ? new Date(payload.new.last_validation)
+                    status: castStatus(next.status),
+                    lastValidation: next.last_validation
+                      ? new Date(next.last_validation)
                       : prev.lastValidation,
                     stats: {
                       ...prev.stats,
-                      failedCalls: payload.new.failure_count_60m || 0,
+                      failedCalls: next.failure_count_60m || 0,
                     },
                   }
                 : null
             );
           }
         }
+
       )
       .on(
         'postgres_changes',
