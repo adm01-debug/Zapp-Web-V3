@@ -1,4 +1,4 @@
-// @ts-nocheck
+
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
@@ -242,7 +242,7 @@ export function useEvolutionAutoReconnect(instanceName?: string) {
           `reconnect attempts failed — manual intervention required`
       );
       eventBus.emit('connection:reconnect-exhausted', {
-        instanceName,
+        instanceName: instanceName ?? '',
         attempts: reconnectAttemptCountRef.current,
       });
       return; // stop scheduling — caller must manually retry (e.g. via UI button)
@@ -264,7 +264,7 @@ export function useEvolutionAutoReconnect(instanceName?: string) {
       await connectInstance(instanceName);
       await new Promise<void>((r) => setTimeout(r, 5_000));
 
-      const currentStatus = await getInstanceStatus(instanceName);
+      const currentStatus = (await getInstanceStatus(instanceName)) as { instance?: { state?: string }; state?: string } | null;
       const state: string = currentStatus?.instance?.state ?? currentStatus?.state ?? 'unknown';
       setStatus(state);
 
@@ -338,7 +338,7 @@ export function useEvolutionAutoReconnect(instanceName?: string) {
     }
 
     try {
-      const currentStatus = await getInstanceStatus(instanceName);
+      const currentStatus = (await getInstanceStatus(instanceName)) as { instance?: { state?: string }; state?: string } | null;
       const state: string = currentStatus?.instance?.state ?? currentStatus?.state ?? 'unknown';
       setStatus(state);
 
