@@ -77,15 +77,23 @@ export function useQueueDetails(id: string | undefined) {
       if (isCancelled()) return;
       setMembers((membersData ?? []) as unknown as QueueMember[]);
 
-      const { data: contactsData } = await dbFrom('contacts')
+      const contactsRes = await dbFrom('contacts')
         .select('id, name, phone, avatar_url, assigned_to, created_at')
         .eq('queue_id', id)
         .order('created_at', { ascending: false })
         .limit(50);
+      const contactsData = (contactsRes.data ?? []) as Array<{
+        id: string;
+        name: string;
+        phone: string;
+        avatar_url: string | null;
+        assigned_to: string | null;
+        created_at: string;
+      }>;
 
       let contactsWithDetails: QueueContact[] = [];
 
-      if (contactsData && contactsData.length > 0) {
+      if (contactsData.length > 0) {
         const contactIds = contactsData.map((c) => c.id);
         const assignedToIds = Array.from(
           new Set(contactsData.map((c) => c.assigned_to).filter(Boolean) as string[])
@@ -105,16 +113,19 @@ export function useQueueDetails(id: string | undefined) {
 
         const countMap = new Map<string, number>();
         const lastMessageMap = new Map<string, string>();
-        (messagesResult.data || []).forEach((msg) => {
+        const messages = (messagesResult.data ?? []) as Array<{ contact_id: string; created_at: string }>;
+        messages.forEach((msg) => {
           countMap.set(msg.contact_id, (countMap.get(msg.contact_id) || 0) + 1);
           if (!lastMessageMap.has(msg.contact_id)) {
             lastMessageMap.set(msg.contact_id, msg.created_at);
           }
         });
 
+        const agents = (agentResult.data ?? []) as Array<{ id: string; name: string; avatar_url: string | null }>;
         const agentMap = new Map(
-          (agentResult.data || []).map((p) => [p.id, { name: p.name, avatar_url: p.avatar_url }])
+          agents.map((p) => [p.id, { name: p.name, avatar_url: p.avatar_url }])
         );
+
 
         contactsWithDetails = contactsData.map((contact) => ({
           ...contact,
