@@ -1,6 +1,8 @@
 // Re-export from consolidated useAlertManagement module (ETAPA 28 consolidation)
 import { useWebhookHealthAlertsManagement } from '@/hooks/useAlertManagement';
 import { DEFAULT_ALERT_CONFIG, type WebhookAlertConfig } from '@/lib/webhookHealthAlerts';
+import type { AlertHistoryEntry } from '@/lib/alertHistory';
+
 
 /** Hook: Recent Alert Entry. */
 export interface RecentAlertEntry {
