@@ -1,4 +1,4 @@
-// @ts-nocheck
+
 /**
  * types-manual.ts — Extensões manuais ao Database type gerado.
  *
