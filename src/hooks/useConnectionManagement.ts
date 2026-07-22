@@ -17,6 +17,21 @@ import { getLogger } from '@/lib/logger';
 
 const log = getLogger('ConnectionManagement');
 
+// Optional pool telemetry accessors — safeClient may not expose these in all builds.
+type PoolTelemetry = {
+  getPoolMetrics?: () => ConnectionMetrics;
+  getPoolDiagnostics?: () => Record<string, unknown>;
+};
+const poolClient = safeClient as unknown as PoolTelemetry;
+const EMPTY_METRICS: ConnectionMetrics = {
+  activeConnections: 0,
+  maxConcurrent: 0,
+  poolUtilization: 0,
+  totalErrors: 0,
+  totalRequests: 0,
+  avgResponseTime: 0,
+} as ConnectionMetrics;
+
 // ──────────────────────────────────────────────────────────────────────────
 // CONNECTION ALERTS PUSH
 // ──────────────────────────────────────────────────────────────────────────
