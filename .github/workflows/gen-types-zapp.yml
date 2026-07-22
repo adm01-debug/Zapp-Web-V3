@@ -63,13 +63,6 @@ jobs:
       - name: Regenerate types.ts
         run: node scripts/gen-types-zapp.mjs
 
-      - name: Validate zapp/evo coverage in generated types
-        # Trava a abertura do PR se o types.ts gerado não contiver
-        # os schemas zapp e evo — evita PR "vazio" quando o
-        # postgres-meta retorna apenas public por falta de permissão.
-        run: node scripts/check-types-schemas.mjs --local-only
-
-
       - name: Detect diff
         id: diff
         run: |

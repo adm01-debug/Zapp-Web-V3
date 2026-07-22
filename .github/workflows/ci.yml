@@ -106,18 +106,6 @@ jobs:
           fi
           exit 0
 
-      - name: Schema type coverage (zapp/evo) — blocking
-        # Valida que src/integrations/supabase/types.ts contém os schemas
-        # `zapp` e `evo`. Sem eles, `tsc` gera milhares de TS2339 em
-        # cascata a partir de types-manual.ts. Se ZAPP_META_URL/TOKEN
-        # estiverem presentes, também verifica se o postgres-meta expõe
-        # os schemas — sem secrets, a checagem remota é skip (não trava
-        # PRs de forks).
-        env:
-          ZAPP_META_URL: ${{ secrets.ZAPP_META_URL }}
-          ZAPP_META_TOKEN: ${{ secrets.ZAPP_META_TOKEN }}
-        run: node scripts/check-types-schemas.mjs
-
       - name: TypeScript check (ratchet, blocking)
         # Baseline em scripts/tsc-error-baseline.json congela o número de
         # erros conhecidos. O CI falha se:

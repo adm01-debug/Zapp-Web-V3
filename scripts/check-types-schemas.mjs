@@ -29,6 +29,8 @@ const LOCAL_ONLY = process.argv.includes('--local-only');
 const META = process.env.META_URL || process.env.ZAPP_META_URL;
 const TOKEN = process.env.META_TOKEN || process.env.ZAPP_META_TOKEN;
 const SCHEMAS = (process.env.SCHEMAS || 'public,zapp,evo').trim();
+const REPO = process.env.GITHUB_REPOSITORY || 'atomicabr/zapp-web';
+const WORKFLOW_URL = `https://github.com/${REPO}/actions/workflows/gen-types-zapp.yml`;
 
 /**
  * Extrai as chaves de primeiro nível dentro de `export type Database = { ... }`.
@@ -61,29 +63,51 @@ function extractTopLevelKeys(src) {
   return keys;
 }
 
-function fail(msg) {
+/**
+ * Renderiza um bloco de erro rico com chaves ausentes/presentes,
+ * link direto para o workflow de regeneração e comando local exato.
+ */
+function fail(msg, { missing = [], present = [], scope = 'local' } = {}) {
+  const W = 74;
+  const border = '═'.repeat(W);
+  const pad = (s) => '║  ' + String(s).padEnd(W - 2) + '║';
+  const suggested =
+    missing.length > 0
+      ? `SCHEMAS=${['public', ...REQUIRED].join(',')}`
+      : `SCHEMAS=${SCHEMAS}`;
+
   console.error('');
-  console.error('╔══════════════════════════════════════════════════════════════════╗');
-  console.error('║  COBERTURA DE SCHEMAS SUPABASE INCOMPLETA — BUILD BLOQUEADO      ║');
-  console.error('╠══════════════════════════════════════════════════════════════════╣');
-  for (const line of msg.split('\n')) {
-    console.error('║  ' + line.padEnd(64) + '║');
+  console.error(`╔${border}╗`);
+  console.error(pad(`COBERTURA DE SCHEMAS SUPABASE INCOMPLETA — BUILD BLOQUEADO [${scope}]`));
+  console.error(`╠${border}╣`);
+  for (const line of msg.split('\n')) console.error(pad(line));
+
+  if (missing.length || present.length) {
+    console.error(`╠${border}╣`);
+    if (missing.length) console.error(pad(`✗ Ausentes:  ${missing.join(', ')}`));
+    console.error(pad(`✓ Presentes: ${present.join(', ') || '(nenhum)'}`));
+    console.error(pad(`• Requeridos: ${REQUIRED.join(', ')}`));
   }
-  console.error('╠══════════════════════════════════════════════════════════════════╣');
-  console.error('║  Como resolver:                                                  ║');
-  console.error('║   1. GitHub Actions → "Regenerate Supabase types (zapp + evo)"   ║');
-  console.error('║      → Run workflow (schemas: public,zapp,evo)                   ║');
-  console.error('║   2. Faça merge do PR gerado                                     ║');
-  console.error('║   Alternativa local:                                             ║');
-  console.error('║      META_URL=... META_TOKEN=... \\                               ║');
-  console.error('║        node scripts/gen-types-zapp.mjs                           ║');
-  console.error('╚══════════════════════════════════════════════════════════════════╝');
+
+  console.error(`╠${border}╣`);
+  console.error(pad('Como resolver (recomendado — via GitHub Actions):'));
+  console.error(pad('  1. Abra o workflow "Regenerate Supabase types (zapp + evo)":'));
+  console.error(pad(`     ${WORKFLOW_URL}`));
+  console.error(pad('  2. Clique em "Run workflow" (schemas: public,zapp,evo)'));
+  console.error(pad('  3. Faça merge do PR "chore/regen-zapp-types" gerado automaticamente'));
+  console.error(pad(''));
+  console.error(pad('Alternativa local (requer VPN/token da VPS):'));
+  console.error(pad('  $ META_URL=https://supabase.atomicabr.com.br \\'));
+  console.error(pad('    META_TOKEN=<service_role> \\'));
+  console.error(pad(`    ${suggested} \\`));
+  console.error(pad('    node scripts/gen-types-zapp.mjs'));
+  console.error(`╚${border}╝`);
   process.exit(1);
 }
 
 // -------- Modo local (sempre) --------
 if (!existsSync(TYPES_FILE)) {
-  fail(`Arquivo ${TYPES_FILE} não encontrado.`);
+  fail(`Arquivo ${TYPES_FILE} não encontrado.`, { missing: REQUIRED, present: [] });
 }
 const localSrc = readFileSync(TYPES_FILE, 'utf8');
 const localKeys = extractTopLevelKeys(localSrc);
@@ -93,10 +117,13 @@ if (missingLocal.length) {
   // Sentinela machine-readable consumida por
   // .github/workflows/auto-regen-types-on-failure.yml para disparar
   // automaticamente o workflow de regeneração de tipos.
-  console.error(`::error title=MISSING_ZAPP_EVO_SCHEMAS::LOVABLE_AUTOREGEN_TRIGGER missing=${missingLocal.join(',')}`);
+  console.error(
+    `::error title=MISSING_ZAPP_EVO_SCHEMAS::LOVABLE_AUTOREGEN_TRIGGER missing=${missingLocal.join(',')}`,
+  );
   fail(
     `types.ts está sem os schemas: ${missingLocal.join(', ')}.\n` +
-    `Schemas presentes: ${[...localKeys].join(', ') || '(nenhum)'}.`
+    `Regenere os tipos para incluir os schemas faltantes.`,
+    { missing: missingLocal, present: [...localKeys], scope: 'local' },
   );
 }
 console.log(`✓ [local] types.ts contém schemas: ${[...localKeys].join(', ')}`);
@@ -134,8 +161,8 @@ try {
   if (missingRemote.length) {
     fail(
       `postgres-meta NÃO expõe os schemas: ${missingRemote.join(', ')}.\n` +
-      `Schemas retornados: ${[...remoteKeys].join(', ') || '(nenhum)'}.\n` +
-      `Verifique inclusão dos schemas e permissões do service_role.`
+      `Verifique inclusão dos schemas e permissões do service_role.`,
+      { missing: missingRemote, present: [...remoteKeys], scope: 'remoto' },
     );
   }
   console.log(`✓ [remoto] postgres-meta expõe schemas: ${[...remoteKeys].join(', ')}`);

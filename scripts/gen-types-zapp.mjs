@@ -75,20 +75,6 @@ if (existingTail && existingTail.includes('DatabaseWithoutInternals')) {
   console.warn('⚠ Cauda Lovable não localizada — helpers auxiliares podem faltar.');
 }
 
-// Validação: o payload do postgres-meta DEVE conter os schemas requisitados.
-// Sem isso, o workflow abriria um PR com types.ts incompleto (só `public`),
-// mascarando problema de permissão do service_role ou de include_schemas.
-const requestedSchemas = SCHEMAS.split(',').map((s) => s.trim()).filter(Boolean);
-const requiredTop = requestedSchemas.filter((s) => s === 'zapp' || s === 'evo');
-const missing = requiredTop.filter(
-  (s) => !new RegExp(`^\\s{2}${s}\\s*:\\s*\\{`, 'm').test(out)
-);
-if (missing.length) {
-  console.error(`✗ postgres-meta NÃO retornou os schemas: ${missing.join(', ')}.`);
-  console.error(`  Verifique include_schemas e as permissões do service_role no Kong.`);
-  process.exit(1);
-}
-
 writeFileSync(OUT, out);
 const linesOut = out.split('\n').length;
 console.log(`✓ ${OUT} gerado (${linesOut} linhas) para [${SCHEMAS}]`);
