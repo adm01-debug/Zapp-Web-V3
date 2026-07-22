@@ -18,19 +18,13 @@ interface WebhookEvent {
   processed?: boolean | null;
 }
 
-interface VisibleColumns {
-  when: boolean;
-  event: boolean;
-  instance: boolean;
-  signature: boolean;
-  status: boolean;
-  action: boolean;
-}
+interface VisibleColumns extends WebhookViewColumns {}
 
 interface Prefs {
   visibleColumns: VisibleColumns;
-  tableDensity: 'default' | 'compact';
+  tableDensity: WebhookTableDensity;
 }
+
 
 interface WebhookEventsTableProps {
   scopeLabel: string;
