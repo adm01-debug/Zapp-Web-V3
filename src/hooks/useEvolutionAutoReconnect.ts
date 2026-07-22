@@ -242,7 +242,7 @@ export function useEvolutionAutoReconnect(instanceName?: string) {
           `reconnect attempts failed — manual intervention required`
       );
       eventBus.emit('connection:reconnect-exhausted', {
-        instanceName,
+        instanceName: instanceName ?? '',
         attempts: reconnectAttemptCountRef.current,
       });
       return; // stop scheduling — caller must manually retry (e.g. via UI button)
