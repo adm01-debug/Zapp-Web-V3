@@ -221,20 +221,18 @@ export function useExternalMutation() {
       match?: Record<string, unknown>;
     }) => {
       validateEntityAccess(params.table, 'external');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const client = getExternalSupabase() as any;
       if (params.action === 'insert') {
-        const { data, error } = await getExternalSupabase()
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          .from(params.table as any)
-          .insert(params.data)
+        const { data, error } = await client
+          .from(params.table)
+          .insert(params.data ?? {})
           .select();
         if (error) throw new Error(error.message);
         return data;
       }
       if (params.action === 'update') {
-        let q = getExternalSupabase()
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          .from(params.table as any)
-          .update(params.data);
+        let q = client.from(params.table).update(params.data ?? {});
         if (params.match) {
           for (const [k, v] of Object.entries(params.match)) q = q.eq(k, v as string);
         }
@@ -243,7 +241,7 @@ export function useExternalMutation() {
         return data;
       }
       if (params.action === 'delete') {
-        let q = getExternalSupabase().from(params.table).delete();
+        let q = client.from(params.table).delete();
         if (params.match) {
           for (const [k, v] of Object.entries(params.match)) q = q.eq(k, v as string);
         }
