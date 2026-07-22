@@ -243,8 +243,8 @@ describe('useInitialHighlight — highlight clears after 3 500 ms', () => {
     });
     renderHook(() => useInitialHighlight(p));
     vi.advanceTimersByTime(3500);
-    const calls = p.setHighlightedMessageIds.mock.calls;
-    const lastArg = calls[calls.length - 1][0];
+    const calls = vi.mocked(p.setHighlightedMessageIds).mock.calls;
+    const lastArg = calls[calls.length - 1][0] as Set<string>;
     expect(lastArg).toBeInstanceOf(Set);
     expect(lastArg.size).toBe(0);
   });
