@@ -28,7 +28,8 @@ export function useWebhookHealthAlerts(options: UseWebhookHealthAlertsOptions = 
     },
     activeBreaches: [] as RecentAlertEntry[],
     recentAlerts: [] as RecentAlertEntry[],
-    history: [] as RecentAlertEntry[],
+    history: [] as AlertHistoryEntry[],
+
     reloadHistory: () => {
       /* stub */
     },
