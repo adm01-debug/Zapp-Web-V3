@@ -1,32 +1,39 @@
-// @ts-nocheck
 /**
  * types-manual.ts — Extensões manuais ao Database type gerado.
  *
- * DÉBITO TÉCNICO (mantido intencionalmente):
- * O `types.ts` gerado no ambiente Lovable Cloud contém APENAS o schema
- * `public`. Os schemas `zapp` e `evo` da instância self-hosted (VPS
- * AtomicaBR) só aparecem depois de rodar `scripts/gen-types-zapp.mjs` com
- * `META_URL` e `META_TOKEN` apontando para a VPS. Sem esses schemas, o
- * remapeamento `GeneratedDatabase['zapp' | 'evo']` produz erros TS2339 em
- * cascata neste arquivo e em dezenas de hooks/componentes que dependem
- * dele. Portanto o `@ts-nocheck` aqui é *load-bearing*, não decorativo —
- * removê-lo exige regerar `types.ts` fora do sandbox Lovable Cloud.
+ * ESTRATÉGIA DE FALLBACK (sem @ts-nocheck):
+ * O `types.ts` gerado no Lovable Cloud contém APENAS o schema `public`.
+ * Os schemas `zapp` e `evo` só ficam completos após rodar
+ * `scripts/gen-types-zapp.mjs` contra a VPS. Para permitir compilação
+ * limpa em ambos os cenários, este arquivo:
+ *   1. Detecta via tipo condicional se `zapp`/`evo` existem em
+ *      `GeneratedDatabase`.
+ *   2. Se existirem → usa o schema gerado e faz merge com
+ *      `ManualZappTables`.
+ *   3. Se NÃO existirem → sintetiza um schema mínimo compatível com o
+ *      contrato PostgREST (`Tables`/`Views`/`Functions`/`Enums`/
+ *      `CompositeTypes`) usando `ManualZappTables` como base.
  *
- * CRITÉRIO DE SAÍDA (quando remover o @ts-nocheck):
- *   1. `node scripts/check-types-schemas.mjs` passa (schemas zapp+evo
- *      presentes no types.ts).
- *   2. `tsc --noEmit -p tsconfig.app.json` roda sem novos erros neste
- *      arquivo.
- *   3. Atualizar o baseline: `node scripts/check-ts-nocheck.mjs --update`.
- * Enquanto (1) não for verdade, o gate em package.json/CI bloqueia o
- * build antes do tsc — a diretiva abaixo é o que impede o erro TS2339
- * em cascata neste arquivo específico durante esse período.
+ * Consumidores continuam importando `ExtendedDatabase` normalmente; o
+ * tipo resolvido depende apenas do `types.ts` presente no ambiente.
  */
 
 import type { Database as GeneratedDatabase } from './types';
 
-/** Manual Zapp Tables type definition. */
+/** Extensões manuais de tabelas do schema zapp (adicione aqui overrides). */
 export type ManualZappTables = Record<never, never>;
+
+/** Extensões manuais de tabelas do schema evo. */
+export type ManualEvoTables = Record<never, never>;
+
+/** Shape mínimo compatível com PostgREST para um schema Supabase. */
+type EmptySchema<TTables> = {
+  Tables: TTables;
+  Views: Record<never, never>;
+  Functions: Record<never, never>;
+  Enums: Record<never, never>;
+  CompositeTypes: Record<never, never>;
+};
 
 type MergeTables<Base, Extra> = {
   [K in keyof Base | keyof Extra]: K extends keyof Extra
@@ -36,17 +43,31 @@ type MergeTables<Base, Extra> = {
       : never;
 };
 
-type GeneratedZappSchema = GeneratedDatabase['zapp'];
+/**
+ * Resolve um schema: se `K` existe em `GeneratedDatabase`, faz merge com
+ * `Extra`; caso contrário, sintetiza um schema vazio contendo `Extra`.
+ */
+type ResolveSchema<K extends string, Extra> = K extends keyof GeneratedDatabase
+  ? GeneratedDatabase[K] extends {
+      Tables: infer T;
+      Views: infer V;
+      Functions: infer F;
+      Enums: infer E;
+      CompositeTypes: infer C;
+    }
+    ? {
+        Tables: MergeTables<T, Extra>;
+        Views: V;
+        Functions: F;
+        Enums: E;
+        CompositeTypes: C;
+      }
+    : EmptySchema<Extra>
+  : EmptySchema<Extra>;
 
-/** Extended Database type alias. */
+/** Extended Database type alias com fallback automático. */
 export type ExtendedDatabase = {
   public: GeneratedDatabase['public'];
-  zapp: {
-    Tables: MergeTables<GeneratedZappSchema['Tables'], ManualZappTables>;
-    Views: GeneratedZappSchema['Views'];
-    Functions: GeneratedZappSchema['Functions'];
-    Enums: GeneratedZappSchema['Enums'];
-    CompositeTypes: GeneratedZappSchema['CompositeTypes'];
-  };
-  evo: GeneratedDatabase['evo'];
+  zapp: ResolveSchema<'zapp', ManualZappTables>;
+  evo: ResolveSchema<'evo', ManualEvoTables>;
 };
