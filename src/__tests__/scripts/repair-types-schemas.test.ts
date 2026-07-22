@@ -54,6 +54,7 @@ process.exit(0);
 function makeSandbox() {
   const dir = mkdtempSync(join(tmpdir(), 'repair-types-'));
   mkdirSync(join(dir, 'scripts'), { recursive: true });
+  mkdirSync(join(dir, 'state'), { recursive: true });
   copyFileSync(REPAIR, join(dir, 'scripts/repair-types-schemas.mjs'));
   writeFileSync(join(dir, 'scripts/check-types-schemas.mjs'), CHECK_STUB);
   writeFileSync(join(dir, 'scripts/gen-types-zapp.mjs'), GEN_STUB);
