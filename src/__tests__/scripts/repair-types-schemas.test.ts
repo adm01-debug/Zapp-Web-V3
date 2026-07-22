@@ -173,6 +173,30 @@ describe('scripts/repair-types-schemas.mjs', () => {
     expect(`${r.stdout}${r.stderr}`).toMatch(/Falha ao regenerar/);
   });
 
+  it('dry-run (--dry-run): imprime plano e não executa nada', () => {
+    const r = runRepair(
+      sandbox,
+      { ZAPP_META_URL: 'https://example.test', ZAPP_META_TOKEN: 'tok' },
+      ['--dry-run'],
+    );
+    expect(r.status).toBe(0);
+    expect(r.checkCount).toBe(0);
+    expect(r.genCount).toBe(0);
+    expect(r.stdout).toMatch(/DRY-RUN/);
+    expect(r.stdout).toMatch(/Plano:/);
+    expect(r.stdout).toMatch(/gen-types-zapp\.mjs/);
+    expect(r.stdout).toMatch(/META_URL=<set>/);
+  });
+
+  it('dry-run (DRY_RUN=1) sem secrets: sinaliza que sairia com aviso', () => {
+    const r = runRepair(sandbox, { DRY_RUN: '1' });
+    expect(r.status).toBe(0);
+    expect(r.checkCount).toBe(0);
+    expect(r.genCount).toBe(0);
+    expect(r.stdout).toMatch(/DRY-RUN/);
+    expect(r.stdout).toMatch(/Sem META_URL\/META_TOKEN/);
+  });
+
   afterEach(() => {
     if (sandbox) rmSync(sandbox, { recursive: true, force: true });
   });
