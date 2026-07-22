@@ -90,6 +90,10 @@ const localKeys = extractTopLevelKeys(localSrc);
 const missingLocal = REQUIRED.filter((s) => !localKeys.has(s));
 
 if (missingLocal.length) {
+  // Sentinela machine-readable consumida por
+  // .github/workflows/auto-regen-types-on-failure.yml para disparar
+  // automaticamente o workflow de regeneração de tipos.
+  console.error(`::error title=MISSING_ZAPP_EVO_SCHEMAS::LOVABLE_AUTOREGEN_TRIGGER missing=${missingLocal.join(',')}`);
   fail(
     `types.ts está sem os schemas: ${missingLocal.join(', ')}.\n` +
     `Schemas presentes: ${[...localKeys].join(', ') || '(nenhum)'}.`
