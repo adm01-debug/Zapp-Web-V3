@@ -5,6 +5,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { RefreshCw } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import type { WebhookTableDensity, WebhookViewColumns } from '@/hooks/useWebhookViewPreferences';
+
 
 interface WebhookEvent {
   id?: string;
