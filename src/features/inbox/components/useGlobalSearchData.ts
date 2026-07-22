@@ -203,7 +203,7 @@ export function useGlobalSearchData(open: boolean) {
           if (dateStart) audioQuery = audioQuery.gte('created_at', dateStart.toISOString());
 
           const { data: audioMessages } = await audioQuery;
-          audioMessages?.forEach((msg) => {
+          (audioMessages as any[])?.forEach((msg: any) => {
             if (addedMessageIds.has(msg.id)) return;
             const contact = msg.contacts as unknown as {
               id: string;
