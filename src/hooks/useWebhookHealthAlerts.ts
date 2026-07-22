@@ -1,5 +1,6 @@
 // Re-export from consolidated useAlertManagement module (ETAPA 28 consolidation)
 import { useWebhookHealthAlertsManagement } from '@/hooks/useAlertManagement';
+import { DEFAULT_ALERT_CONFIG, type WebhookAlertConfig } from '@/lib/webhookHealthAlerts';
 
 /** Hook: Recent Alert Entry. */
 export interface RecentAlertEntry {
@@ -11,7 +12,7 @@ export interface RecentAlertEntry {
 
 interface UseWebhookHealthAlertsOptions {
   enabled?: boolean;
-  config?: unknown;
+  config?: WebhookAlertConfig;
 }
 
 /** Hook: use Webhook Health Alerts. */
@@ -19,13 +20,13 @@ export function useWebhookHealthAlerts(options: UseWebhookHealthAlertsOptions = 
   const { alerts, loading, acknowledgeAlert, checkHealth } = useWebhookHealthAlertsManagement();
 
   return {
-    config: options.config || {},
-    setConfig: () => {
+    config: options.config ?? DEFAULT_ALERT_CONFIG,
+    setConfig: (_next: WebhookAlertConfig) => {
       /* stub */
     },
-    activeBreaches: [],
-    recentAlerts: [],
-    history: [],
+    activeBreaches: [] as RecentAlertEntry[],
+    recentAlerts: [] as RecentAlertEntry[],
+    history: [] as RecentAlertEntry[],
     reloadHistory: () => {
       /* stub */
     },
@@ -35,3 +36,4 @@ export function useWebhookHealthAlerts(options: UseWebhookHealthAlertsOptions = 
     checkHealth,
   };
 }
+
