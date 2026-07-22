@@ -1,4 +1,4 @@
-// @ts-nocheck
+
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook } from '@testing-library/react';
 import { z } from 'zod';
@@ -20,7 +20,7 @@ vi.mock('sonner', () => ({
   toast: { success: vi.fn(), error: vi.fn(), info: vi.fn() },
 }));
 
-import { useImportData } from '@/hooks/useImportData';
+import { useImportDataTyped } from '@/hooks/useImportData';
 
 const testSchema = z.object({
   name: z.string().min(1),
@@ -38,7 +38,7 @@ describe('useImportData', () => {
 
   it('initializes with idle status', () => {
     const { result } = renderHook(() =>
-      useImportData<TestRow>({ schema: testSchema, onImport: mockOnImport })
+      useImportDataTyped<TestRow>({ schema: testSchema, onImport: mockOnImport })
     );
     expect(result.current.status).toBe('idle');
     expect(result.current.progress).toBe(0);
@@ -47,35 +47,35 @@ describe('useImportData', () => {
 
   it('exposes processFile function', () => {
     const { result } = renderHook(() =>
-      useImportData<TestRow>({ schema: testSchema, onImport: mockOnImport })
+      useImportDataTyped<TestRow>({ schema: testSchema, onImport: mockOnImport })
     );
     expect(typeof result.current.processFile).toBe('function');
   });
 
   it('exposes reset function', () => {
     const { result } = renderHook(() =>
-      useImportData<TestRow>({ schema: testSchema, onImport: mockOnImport })
+      useImportDataTyped<TestRow>({ schema: testSchema, onImport: mockOnImport })
     );
     expect(typeof result.current.reset).toBe('function');
   });
 
   it('exposes confirmImport function', () => {
     const { result } = renderHook(() =>
-      useImportData<TestRow>({ schema: testSchema, onImport: mockOnImport })
+      useImportDataTyped<TestRow>({ schema: testSchema, onImport: mockOnImport })
     );
     expect(typeof result.current.confirmImport).toBe('function');
   });
 
   it('isProcessing is false initially', () => {
     const { result } = renderHook(() =>
-      useImportData<TestRow>({ schema: testSchema, onImport: mockOnImport })
+      useImportDataTyped<TestRow>({ schema: testSchema, onImport: mockOnImport })
     );
     expect(result.current.isProcessing).toBe(false);
   });
 
   it('accepts maxRows option', () => {
     const { result } = renderHook(() =>
-      useImportData<TestRow>({ schema: testSchema, onImport: mockOnImport, maxRows: 100 })
+      useImportDataTyped<TestRow>({ schema: testSchema, onImport: mockOnImport, maxRows: 100 })
     );
     expect(result.current.status).toBe('idle');
   });
