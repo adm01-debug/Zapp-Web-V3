@@ -244,14 +244,14 @@ export function useGlobalSearchData(open: boolean) {
             .order('name', { ascending: true })
             .limit(10);
           if (contacts) {
-            let filtered = contacts;
+            let filtered = contacts as any[];
             if (tags.length > 0) {
               const tagNames = allTags.filter((t) => tags.includes(t.id)).map((t) => t.name);
-              filtered = contacts.filter(
-                (c) => c.tags && c.tags.some((tag: string) => tagNames.includes(tag))
+              filtered = (contacts as any[]).filter(
+                (c: any) => c.tags && c.tags.some((tag: string) => tagNames.includes(tag))
               );
             }
-            filtered.forEach((contact) => {
+            filtered.forEach((contact: any) => {
               searchResults.push({
                 id: contact.id,
                 type: 'contact',
