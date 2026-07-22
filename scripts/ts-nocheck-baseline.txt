@@ -7,10 +7,6 @@ src/features/inbox/components/chat/useChatPanel.ts
 src/features/inbox/components/contact-details/ContactIntelligencePanel.tsx
 src/features/inbox/components/stickers/PersonalStickers.tsx
 src/features/inbox/hooks/useRealtimeInbox.ts
-src/features/sla/components/SLADeliveryHistoryDashboard.tsx
-src/hooks/omnichannel/useOmnichannelManagement.ts
 src/hooks/useExternalApiManagement.ts
 src/integrations/supabase/types-manual.ts
 src/pages/admin/AdminAutomationLogsPage.tsx
-src/pages/admin/AdminQueuesPage.tsx
-src/pages/admin/automationRuleDialogParts.tsx
