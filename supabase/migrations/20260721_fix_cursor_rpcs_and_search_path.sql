@@ -112,6 +112,7 @@ BEGIN
 END;
 $$;
 
+REVOKE ALL ON FUNCTION zapp.rpc_list_failed_messages_cursor(text[], text, text, timestamptz, timestamptz, int, uuid, text) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION zapp.rpc_list_failed_messages_cursor(text[], text, text, timestamptz, timestamptz, int, uuid, text)
   TO authenticated;
 
@@ -318,10 +319,11 @@ STABLE
 SET search_path = zapp
 AS $$
 DECLARE
-  v_query     text;
-  v_sort_dir  text;
-  v_sort_expr text;
-  v_where     text;
+  v_query       text;
+  v_count_where text;
+  v_sort_dir    text;
+  v_sort_expr   text;
+  v_where       text;
 BEGIN
   v_sort_dir := UPPER(COALESCE(sort_direction, 'ASC'));
   IF v_sort_dir NOT IN ('ASC', 'DESC') THEN
@@ -344,6 +346,9 @@ BEGIN
   IF job_title_filter    IS NOT NULL THEN v_where := v_where || ' AND c.job_title ILIKE $4';   END IF;
   IF tag_filter          IS NOT NULL THEN v_where := v_where || ' AND $5 = ANY(c.tags)';       END IF;
   IF date_from           IS NOT NULL THEN v_where := v_where || ' AND c.created_at >= $6';     END IF;
+
+  -- Capture the filter-only WHERE (no cursor) for the total count CTE.
+  v_count_where := v_where;
 
   -- Keyset cursor: (sort_col, id) comparison via bare-column subquery.
   -- DO NOT use ROW() in the subquery — that wraps into a composite type (1 col)
@@ -378,11 +383,14 @@ BEGIN
   END IF;
 
   v_query :=
-    'SELECT c.id, c.name::text, c.nickname, c.surname, c.job_title,
+    'WITH total AS (
+       SELECT COUNT(*)::bigint AS cnt FROM zapp.contacts c ' || v_count_where || '
+     )
+     SELECT c.id, c.name::text, c.nickname, c.surname, c.job_title,
             c.company::text, c.phone, c.email::text, c.avatar_url,
             c.tags, c.notes, c.contact_type, c.created_at, c.updated_at,
-            COUNT(*) OVER()::bigint AS total_count
-     FROM zapp.contacts c
+            t.cnt AS total_count
+     FROM zapp.contacts c, total t
      ' || v_where || '
      ORDER BY ' || v_sort_expr || '
      LIMIT $8';

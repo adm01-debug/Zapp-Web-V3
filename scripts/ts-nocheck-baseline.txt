@@ -10,7 +10,6 @@ src/components/ui/chart.tsx
 src/components/ui/resizable.tsx
 src/components/voice/VoiceSearchOverlayConnected.tsx
 src/features/dashboard/hooks/useDashboardVisualizationManagement.ts
-src/features/inbox/components/AnalysisBadges.tsx
 src/features/inbox/components/ChatPanel.tsx
 src/features/inbox/components/chat/MessageAttemptsTimeline.tsx
 src/features/inbox/components/chat/hooks/__tests__/useInitialHighlight.test.ts
@@ -21,7 +20,6 @@ src/features/inbox/components/useGlobalSearchData.ts
 src/features/inbox/hooks/__tests__/inboxLogic.test.ts
 src/features/inbox/hooks/useRealtimeInbox.ts
 src/features/sla/components/SLADeliveryHistoryDashboard.tsx
-src/features/sla/hooks/useSLAAlertPreferences.ts
 src/hooks/__tests__/useImportData.test.ts
 src/hooks/__tests__/useMFA.test.tsx
 src/hooks/__tests__/useQueueGoals.test.tsx
@@ -29,7 +27,6 @@ src/hooks/__tests__/useScanResponseHandler.test.ts
 src/hooks/__tests__/useTextToSpeech.test.ts
 src/hooks/__tests__/useViewTransition.test.ts
 src/hooks/omnichannel/useOmnichannelManagement.ts
-src/hooks/sla/useSLAScopeOptions.ts
 src/hooks/useConnectionManagement.ts
 src/hooks/useEvolutionAutoReconnect.ts
 src/hooks/useExternalApiManagement.ts
@@ -40,7 +37,6 @@ src/hooks/useSearchManagement.ts
 src/integrations/datasource/db.ts
 src/integrations/supabase/connectionPool.ts
 src/integrations/supabase/types-manual.ts
-src/pages/AdminSearchInsightsPage.tsx
 src/pages/AdminWebhookSecretStatusPage.tsx
 src/pages/admin/AdminAutomationLogsPage.tsx
 src/pages/admin/AdminQueuesPage.tsx
