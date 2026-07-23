@@ -178,13 +178,22 @@ export function useServiceWorker() {
         // Listen for messages from service worker
         const onMessage = (event: MessageEvent) => {
           log.debug('[ServiceWorker] Message received:', event.data);
-          if (event.data.type === 'NOTIFICATION_CLICK') {
+          if (event.data?.type === 'NOTIFICATION_CLICK') {
             document.dispatchEvent(new CustomEvent('notification-click', {
               detail: event.data.data,
             }));
           }
+          if (event.data?.type === 'SW_UPDATED') {
+            // New sw.js activated (publish pipeline stamped a fresh build id).
+            // Reuse the build-version watcher's hard-refresh path: purges
+            // caches, unregisters SWs and reloads exactly once.
+            void import('@/lib/buildVersion').then(({ forceBundleRefresh }) =>
+              forceBundleRefresh(`sw-updated:${event.data.buildId ?? 'unknown'}`),
+            );
+          }
         };
         navigator.serviceWorker.addEventListener('message', onMessage);
+
 
         // Cleanup on unmount (interval was leaking before)
         cleanup = () => {
