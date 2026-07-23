@@ -161,6 +161,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // para facilitar debug de travamento na tela "Verificando acesso...".
     log.info(`[Auth] Supabase URL em uso: ${SUPABASE_RESOLVED_URL}`);
 
+    // Fast-fall: se nao ha token no localStorage, getSession() retornaria null
+    // instantaneamente, mas o Supabase SDK com detectSessionInUrl=true pode travar
+    // em ambientes com URL complexa (ex: Lovable preview). Pulamos a chamada HTTP
+    // e deixamos o onAuthStateChange disparar INITIAL_SESSION.
+    const hasLocalToken = typeof window !== 'undefined' &&
+      Object.keys(localStorage).some((k) => k.includes('-auth-token'));
+    if (!hasLocalToken) {
+      log.info('[Auth] Sem token local — pulando getSession().');
+      setLoading(false);
+    } else {
     // Explicit getSession() com timeout: se o backend não responder, saímos do
     // loading imediatamente em vez de esperar o INITIAL_SESSION que pode nunca vir.
     (async () => {
@@ -195,6 +205,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setLoading(false);
       }
     })();
+    } // fim do else hasLocalToken
 
     const subscription = authService.onAuthStateChange((event, session) => {
       if (!mounted) return;
