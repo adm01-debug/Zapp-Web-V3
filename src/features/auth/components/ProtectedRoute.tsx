@@ -105,6 +105,7 @@ export function ProtectedRoute({
   // Precede o "loading" para evitar spinner infinito ou redirect que so vai
   // recair na mesma tela apos o /auth tentar carregar de novo.
   if (bootstrapError === 'timeout' || bootstrapError === 'offline') {
+    const isOffline = bootstrapError === 'offline';
     const backendUrl = 'https://supabase.atomicabr.com.br';
     const elapsedLabel = bootstrapElapsedMs != null ? `${bootstrapElapsedMs}ms` : '—';
     return (
@@ -115,16 +116,20 @@ export function ProtectedRoute({
       >
         <div className="w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-xl">
           <h1 className="mb-2 text-xl font-semibold text-foreground">
-            Não foi possível conectar ao servidor
+            {isOffline ? 'Sem conexão com a internet' : 'Não foi possível conectar ao servidor'}
           </h1>
           <p className="mb-4 text-sm text-muted-foreground">
-            O backend não respondeu a tempo. Verifique sua conexão ou tente novamente em instantes.
+            {isOffline
+              ? 'Parece que você está sem acesso à rede. Verifique sua conexão Wi-Fi ou dados móveis e tente novamente.'
+              : 'O servidor não respondeu no tempo esperado. Pode ser instabilidade momentânea — tente novamente em alguns instantes.'}
           </p>
           <dl className="mb-5 grid grid-cols-[auto,1fr] gap-x-3 gap-y-1 text-xs text-muted-foreground">
-            <dt>Backend:</dt>
+            {!isOffline && <><dt>Backend:</dt>
             <dd className="truncate font-mono">{backendUrl}</dd>
             <dt>Tempo de resposta:</dt>
-            <dd className="font-mono">{elapsedLabel}</dd>
+            <dd className="font-mono">{elapsedLabel}</dd></>}
+            {isOffline && <><dt>Status de rede:</dt>
+            <dd className="font-mono text-destructive">Offline</dd></>}
           </dl>
           <div className="flex flex-col gap-2">
             <button
