@@ -142,77 +142,80 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [fetchProfile, fetchRolesAndPermissions]
   );
 
-  useEffect(() => {
-    let mounted = true;
+  // Ref para permitir retry manual via UI
+  const bootstrapRunRef = useRef(0);
 
-    // Verify that auth tokens are stored in httpOnly cookies (XSS-resistant)
-    if (!verifyHttpOnlyCookieAuth()) {
-      log.error('[Auth] Security check failed: httpOnly cookies not properly configured');
-    }
+  const runBootstrap = useCallback(async () => {
+    const runId = ++bootstrapRunRef.current;
+    setLoading(true);
+    setBootstrapError(null);
 
-    // Safety net: se onAuthStateChange NUNCA disparar (Supabase inacessível,
-    // CORS, DNS, etc.), força fim do loading após 12s para o ProtectedRoute
-    // conseguir redirecionar em vez de travar na tela de "Verificando acesso".
-    const bootstrapTimeout = setTimeout(() => {
-      if (!mounted) return;
-      log.error('[Auth] Bootstrap timeout (12s) — Supabase inacessivel. Forçando loading=false.');
-      setLoading(false);
-    }, 12000);
-
-    // Diagnóstico: registra a URL do Supabase em uso + duração do getSession()
-    // para facilitar debug de travamento na tela "Verificando acesso...".
-    log.info(`[Auth] Supabase URL em uso: ${SUPABASE_RESOLVED_URL}`);
-
-    // Fast-fall: se nao ha token no localStorage, getSession() retornaria null
-    // instantaneamente, mas o Supabase SDK com detectSessionInUrl=true pode travar
-    // em ambientes com URL complexa (ex: Lovable preview). Pulamos a chamada HTTP
-    // e deixamos o onAuthStateChange disparar INITIAL_SESSION.
+    // Fast-fall: se nao ha token no localStorage, pulamos a chamada HTTP
     const hasLocalToken = typeof window !== 'undefined' &&
       Object.keys(localStorage).some((k) => k.includes('-auth-token'));
     if (!hasLocalToken) {
       log.info('[Auth] Sem token local — pulando getSession().');
       setLoading(false);
-    } else {
-    // Explicit getSession() com timeout: se o backend não responder, saímos do
-    // loading imediatamente em vez de esperar o INITIAL_SESSION que pode nunca vir.
-    (async () => {
-      const startedAt =
-        typeof performance !== 'undefined' ? performance.now() : Date.now();
-      try {
-        const result = await withTimeout(
-          supabase.auth.getSession(),
-          4000,
-          'getSession'
-        );
-        const elapsedMs = Math.round(
-          (typeof performance !== 'undefined' ? performance.now() : Date.now()) - startedAt
-        );
-        if (!mounted) return;
-        const initialSession = result.data.session;
-        log.info(
-          `[Auth] getSession OK em ${elapsedMs}ms — session=${initialSession ? 'present' : 'null'}`
-        );
-        if (!initialSession) {
-          // Sem sessão — libera imediatamente para redirecionar a /auth
-          setLoading(false);
-        }
-        // Se houver sessão, deixamos o onAuthStateChange (INITIAL_SESSION)
-        // disparar refreshAll normalmente.
-      } catch (err) {
-        const elapsedMs = Math.round(
-          (typeof performance !== 'undefined' ? performance.now() : Date.now()) - startedAt
-        );
-        if (!mounted) return;
-        log.error(`[Auth] getSession falhou/timeout após ${elapsedMs}ms — URL=${SUPABASE_RESOLVED_URL}`, err);
-        setLoading(false);
-      }
-    })();
-    } // fim do else hasLocalToken
+      setBootstrapElapsedMs(0);
+      return;
+    }
+
+    const startedAt = typeof performance !== 'undefined' ? performance.now() : Date.now();
+    try {
+      const result = await withTimeout(supabase.auth.getSession(), 8000, 'getSession');
+      const elapsedMs = Math.round(
+        (typeof performance !== 'undefined' ? performance.now() : Date.now()) - startedAt
+      );
+      if (runId !== bootstrapRunRef.current) return;
+      setBootstrapElapsedMs(elapsedMs);
+      const initialSession = result.data.session;
+      log.info(
+        `[Auth] getSession OK em ${elapsedMs}ms — session=${initialSession ? 'present' : 'null'}`
+      );
+      if (!initialSession) setLoading(false);
+    } catch (err) {
+      const elapsedMs = Math.round(
+        (typeof performance !== 'undefined' ? performance.now() : Date.now()) - startedAt
+      );
+      if (runId !== bootstrapRunRef.current) return;
+      setBootstrapElapsedMs(elapsedMs);
+      log.error(
+        `[Auth] getSession falhou/timeout após ${elapsedMs}ms — URL=${SUPABASE_RESOLVED_URL}`,
+        err
+      );
+      setBootstrapError('timeout');
+      setLoading(false);
+    }
+  }, []);
+
+  const retryBootstrap = useCallback(async () => {
+    await runBootstrap();
+  }, [runBootstrap]);
+
+  useEffect(() => {
+    let mounted = true;
+
+    if (!verifyHttpOnlyCookieAuth()) {
+      log.error('[Auth] Security check failed: httpOnly cookies not properly configured');
+    }
+
+    // Safety net final (10s): reduzido de 12s. Se ainda estiver em loading,
+    // marca como timeout para o ProtectedRoute exibir tela de erro.
+    const bootstrapTimeout = setTimeout(() => {
+      if (!mounted) return;
+      log.error('[Auth] Bootstrap safety-net (10s) — forçando loading=false.');
+      setBootstrapError((prev) => prev ?? 'timeout');
+      setLoading(false);
+    }, 10000);
+
+    log.info(`[Auth] Supabase URL em uso: ${SUPABASE_RESOLVED_URL}`);
+    void runBootstrap();
 
     const subscription = authService.onAuthStateChange((event, session) => {
       if (!mounted) return;
       log.info(`[Auth] Event: ${event}`);
       clearTimeout(bootstrapTimeout);
+      setBootstrapError(null);
 
       setSession(session);
       setUser(session?.user ?? null);
@@ -232,7 +235,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       clearTimeout(bootstrapTimeout);
       subscription.unsubscribe();
     };
-  }, [refreshAll]);
+  }, [refreshAll, runBootstrap]);
 
 
   useEffect(() => {
