@@ -20,14 +20,27 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('push', (event) => {
+  const pushReceivedAt = Date.now();
+  console.log('[ServiceWorker] Push event received', {
+    at: new Date(pushReceivedAt).toISOString(),
+    hasData: !!event.data,
+  });
   let data = {
     title: 'Nova mensagem', body: 'Nova mensagem recebida',
     icon: '/favicon.ico', badge: '/favicon.ico', tag: 'default',
     data: {}, category: 'general',
   };
   if (event.data) {
-    try { const p = event.data.json(); data = { ...data, ...p }; }
-    catch (e) { data.body = event.data.text(); }
+    try {
+      const p = event.data.json();
+      data = { ...data, ...p };
+      console.log('[ServiceWorker] Push payload parsed as JSON', {
+        title: data.title, tag: data.tag, category: data.category,
+      });
+    } catch (e) {
+      data.body = event.data.text();
+      console.warn('[ServiceWorker] Push payload not JSON, using raw text', e);
+    }
   }
   let actions = [{ action: 'view', title: 'Ver' }, { action: 'dismiss', title: 'Dispensar' }];
   if (data.category === 'security') {
