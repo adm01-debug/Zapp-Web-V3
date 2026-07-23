@@ -94,7 +94,15 @@ export async function forceBundleRefresh(reason: string): Promise<void> {
   } catch {
     /* storage full / disabled — reload anyway */
   }
-  window.location.reload();
+  // Bypass query param — CDNs that respeitam query invalidam o cache-edge.
+  try {
+    const url = new URL(window.location.href);
+    url.searchParams.set('_bv', String(Date.now()));
+    window.location.replace(url.toString());
+    return;
+  } catch {
+    window.location.reload();
+  }
 }
 
 async function checkVersion(): Promise<void> {
@@ -102,15 +110,19 @@ async function checkVersion(): Promise<void> {
     const res = await fetch(`${VERSION_URL}?ts=${Date.now()}`, {
       cache: 'no-store',
       credentials: 'omit',
+      headers: { 'Cache-Control': 'no-store', Pragma: 'no-cache' },
     });
     if (!res.ok) return;
     const payload = (await res.json()) as { buildId?: string } | null;
     const remote = payload?.buildId;
     if (!remote || remote === CURRENT_BUILD_ID) {
-      // Same build (or version.json missing/malformed) — clear the reload guard
-      // so a legitimate future mismatch can trigger a reload again.
       if (remote === CURRENT_BUILD_ID) {
-        try { sessionStorage.removeItem(RELOAD_FLAG); } catch { /* noop */ }
+        // Build atual bate com o servidor — limpa TODAS as flags de guarda para
+        // evitar que uma sessao antiga fique presa em estado de "purga".
+        try {
+          sessionStorage.removeItem(RELOAD_FLAG);
+          sessionStorage.removeItem(SW_PURGE_FLAG);
+        } catch { /* noop */ }
       }
       return;
     }
@@ -120,6 +132,24 @@ async function checkVersion(): Promise<void> {
   } catch {
     /* offline / network hiccup — retry next tick */
   }
+}
+
+function isSkippableEnv(): boolean {
+  try {
+    if (import.meta.env?.DEV) return true;
+    if (typeof window === 'undefined') return true;
+    if (window.self !== window.top) return true;
+    const host = window.location.hostname;
+    if (
+      host.startsWith('id-preview--') ||
+      host.startsWith('preview--') ||
+      host === 'lovableproject.com' || host.endsWith('.lovableproject.com') ||
+      host === 'lovableproject-dev.com' || host.endsWith('.lovableproject-dev.com') ||
+      host === 'beta.lovable.dev' || host.endsWith('.beta.lovable.dev')
+    ) return true;
+    if (new URL(window.location.href).searchParams.get('sw') === 'off') return true;
+  } catch { /* noop */ }
+  return false;
 }
 
 /**
