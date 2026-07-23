@@ -122,8 +122,10 @@ export default defineConfig(({ mode }) => ({
       exclude: [/\.(br)$/, /\.(gz)$/],
     }),
     emitVersionJsonPlugin(),
+    stampSwVersionPlugin(),
     // PWA is manifest-only (public/manifest.json). No Workbox / no app-shell caching.
     // Push notifications continue via public/sw.js registered by useServiceWorker.
+
   ].filter(Boolean),
   resolve: {
     alias: {
