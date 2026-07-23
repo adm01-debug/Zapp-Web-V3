@@ -148,12 +148,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       log.error('[Auth] Security check failed: httpOnly cookies not properly configured');
     }
 
-    // onAuthStateChange fires INITIAL_SESSION immediately with the current session,
-    // so explicit getUser()/getSession() calls are not needed and introduce race conditions
-    // (double refreshAll, stale setState after unmount). Token cleanup is server-side.
+    // Safety net: se onAuthStateChange NUNCA disparar (Supabase inacessível,
+    // CORS, DNS, etc.), força fim do loading após 12s para o ProtectedRoute
+    // conseguir redirecionar em vez de travar na tela de "Verificando acesso".
+    const bootstrapTimeout = setTimeout(() => {
+      if (!mounted) return;
+      log.error('[Auth] Bootstrap timeout (12s) — Supabase inacessivel. Forçando loading=false.');
+      setLoading(false);
+    }, 12000);
+
+    // Explicit getSession() com timeout: se o backend não responder, saímos do
+    // loading imediatamente em vez de esperar o INITIAL_SESSION que pode nunca vir.
+    (async () => {
+      try {
+        const result = await withTimeout(
+          supabase.auth.getSession(),
+          8000,
+          'getSession'
+        );
+        if (!mounted) return;
+        const initialSession = result.data.session;
+        if (!initialSession) {
+          // Sem sessão — libera imediatamente para redirecionar a /auth
+          setLoading(false);
+        }
+        // Se houver sessão, deixamos o onAuthStateChange (INITIAL_SESSION)
+        // disparar refreshAll normalmente.
+      } catch (err) {
+        if (!mounted) return;
+        log.error('[Auth] getSession failed/timed out:', err);
+        setLoading(false);
+      }
+    })();
+
     const subscription = authService.onAuthStateChange((event, session) => {
       if (!mounted) return;
       log.info(`[Auth] Event: ${event}`);
+      clearTimeout(bootstrapTimeout);
 
       setSession(session);
       setUser(session?.user ?? null);
@@ -170,9 +201,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     return () => {
       mounted = false;
+      clearTimeout(bootstrapTimeout);
       subscription.unsubscribe();
     };
   }, [refreshAll]);
+
 
   useEffect(() => {
     if (!user) return;
