@@ -23,16 +23,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const fetchingPermissionsRef = useRef(false);
   const queryClient = useQueryClient();
 
+  const withTimeout = <T,>(promise: Promise<T>, ms: number, label: string): Promise<T> =>
+    Promise.race([
+      promise,
+      new Promise<T>((_, reject) =>
+        setTimeout(() => reject(new Error(`[Auth] Timeout (${ms}ms) em ${label}`)), ms)
+      ),
+    ]);
+
   const fetchProfile = useCallback(async (userId: string) => {
     if (fetchingProfileRef.current) return;
     fetchingProfileRef.current = true;
     try {
-      const { data, error } = await authService.getProfile(userId);
+      const { data, error } = await withTimeout(
+        authService.getProfile(userId),
+        8000,
+        'fetchProfile'
+      );
       if (!error && data) {
         setProfile(data);
+      } else if (error) {
+        log.error('[Auth] Error fetching profile:', error);
       }
     } catch (err: unknown) {
-      log.warn('[Auth] Failed to fetch profile for user:', userId, err);
+      log.error('[Auth] Failed to fetch profile for user:', userId, err);
+      setProfile(null);
     } finally {
       fetchingProfileRef.current = false;
     }
@@ -44,17 +59,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     fetchingPermissionsRef.current = true;
     try {
       if (!supabase) {
-        log.warn('[Auth] Supabase client not initialized for user:', userId);
+        log.error('[Auth] Supabase client not initialized for user:', userId);
         setRoles([]);
         setPermissions([]);
         return;
       }
-      const { data: userRoles, error } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', userId);
+      const { data: userRoles, error } = await withTimeout(
+        supabase.from('user_roles').select('role').eq('user_id', userId),
+        8000,
+        'fetchRoles'
+      );
 
       if (error || !userRoles) {
+        if (error) log.error('[Auth] Error fetching roles:', error);
         setRoles([]);
         setPermissions([]);
         return;
@@ -68,13 +85,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      const { data: perms } = await supabase
-        .from('role_permissions')
-        .select('permissions(name)')
-        .in(
-          'role',
-          roleNames as Array<'admin' | 'agent' | 'dev' | 'manager' | 'special_agent' | 'supervisor'>
-        );
+      const { data: perms } = await withTimeout(
+        supabase
+          .from('role_permissions')
+          .select('permissions(name)')
+          .in(
+            'role',
+            roleNames as Array<'admin' | 'agent' | 'dev' | 'manager' | 'special_agent' | 'supervisor'>
+          ),
+        8000,
+        'fetchPermissions'
+      );
 
       if (perms) {
         const permNames = (perms as Array<{ permissions: { name: string } | null }>)
@@ -83,12 +104,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setPermissions([...new Set(permNames)]);
       }
     } catch (err: unknown) {
-      log.warn('[Auth] Failed to fetch roles/permissions for user:', userId, err);
+      log.error('[Auth] Failed to fetch roles/permissions for user:', userId, err);
+      setRoles([]);
+      setPermissions([]);
     } finally {
       fetchingRolesRef.current = false;
       fetchingPermissionsRef.current = false;
     }
   }, []);
+
 
   const fetchRoles = useCallback(
     (userId: string) => fetchRolesAndPermissions(userId),
