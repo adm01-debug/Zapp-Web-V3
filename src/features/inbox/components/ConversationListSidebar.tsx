@@ -315,9 +315,11 @@ export function ConversationListSidebar({
               prestador_servico: 'Nenhum prestador encontrado',
               transportadora: 'Nenhuma transportadora encontrada',
             };
-            const msg = inboxFilters.search
-              ? 'Nenhuma conversa encontrada'
-              : emptyMessages[inboxFilters.selectedContactType || ''] || 'Sem conversas';
+            const msg = inbox.usingCache
+              ? 'Modo offline — sem dados em cache'
+              : inboxFilters.search
+                ? 'Nenhuma conversa encontrada'
+                : emptyMessages[inboxFilters.selectedContactType || ''] || 'Sem conversas';
             return (
               <motion.div
                 key={inboxFilters.selectedContactType || 'all'}
