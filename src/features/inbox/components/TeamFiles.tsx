@@ -241,7 +241,7 @@ export const TeamFiles = memo(function TeamFiles({ contactId }: TeamFilesProps) 
                 {file.file_type?.startsWith('image/') && (
                   <Dialog>
                     <DialogTrigger asChild>
-                      <Button
+                      <Button aria-label="Visualizar imagem"
                         variant="ghost"
                         size="icon"
                         className="h-7 w-7 text-warning-foreground hover:bg-warning"
@@ -298,7 +298,7 @@ export const TeamFiles = memo(function TeamFiles({ contactId }: TeamFilesProps) 
                     <Download className="h-3.5 w-3.5" />
                   </a>
                 </Button>
-                <Button
+                <Button aria-label="Excluir arquivo"
                   variant="ghost"
                   size="icon"
                   className="h-7 w-7 text-destructive hover:bg-destructive/10"

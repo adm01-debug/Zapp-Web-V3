@@ -90,16 +90,16 @@ export function QuickReplyCardList({
                         </div>
                       </div>
                       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={(e) => { e.stopPropagation(); onToggleFavorite(template.id); }}>
+                        <Button aria-label="Favoritar resposta rápida" variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={(e) => { e.stopPropagation(); onToggleFavorite(template.id); }}>
                           <Star className={cn("w-4 h-4", isFavorite(template.id) && "fill-yellow-400 text-warning")} />
                         </Button>
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={(e) => { e.stopPropagation(); onCopy(template.content); }}>
+                        <Button aria-label="Copiar conteúdo" variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={(e) => { e.stopPropagation(); onCopy(template.content); }}>
                           <Copy className="w-4 h-4" />
                         </Button>
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={(e) => { e.stopPropagation(); onEdit(template); }}>
+                        <Button aria-label="Editar resposta rápida" variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={(e) => { e.stopPropagation(); onEdit(template); }}>
                           <Edit2 className="w-4 h-4" />
                         </Button>
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-destructive hover:text-destructive" onClick={(e) => { e.stopPropagation(); onDelete(template.id); }}>
+                        <Button aria-label="Excluir resposta rápida" variant="ghost" size="sm" className="h-8 w-8 p-0 text-destructive hover:text-destructive" onClick={(e) => { e.stopPropagation(); onDelete(template.id); }}>
                           <Trash2 className="w-4 h-4" />
                         </Button>
                       </div>

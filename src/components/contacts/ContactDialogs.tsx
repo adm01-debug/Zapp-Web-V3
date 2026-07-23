@@ -130,7 +130,7 @@ export function ContactDialogs({
                   <code className="text-sm font-semibold text-foreground">
                     {showSuccess?.protocol}
                   </code>
-                  <Button
+                  <Button aria-label="Copiar protocolo"
                     variant="ghost"
                     size="icon"
                     className="h-6 w-6"

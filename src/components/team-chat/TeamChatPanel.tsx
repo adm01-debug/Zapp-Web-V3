@@ -307,7 +307,7 @@ function TeamChatPanelContent({ conversation, onBack, onToggleDetails, showDetai
                   {s.filteredMessages.length} resultado{s.filteredMessages.length !== 1 ? 's' : ''}
                 </span>
               )}
-              <Button
+              <Button aria-label="Fechar busca"
                 size="icon"
                 variant="ghost"
                 className="h-7 w-7 shrink-0"
@@ -413,7 +413,7 @@ function TeamChatPanelContent({ conversation, onBack, onToggleDetails, showDetai
                     exit={{ opacity: 0, y: 20 }}
                     className="absolute bottom-4 left-1/2 z-20 -translate-x-1/2"
                   >
-                    <Button
+                    <Button aria-label="Rolar para o final"
                       size="sm"
                       className="gap-2 rounded-full bg-primary text-primary-foreground shadow-lg hover:bg-primary/90"
                       onClick={s.scrollToBottom}
@@ -552,7 +552,7 @@ function TeamChatPanelContent({ conversation, onBack, onToggleDetails, showDetai
                                           autoFocus
                                         />
                                         <div className="flex justify-end gap-1">
-                                          <Button
+                                          <Button aria-label="Cancelar edição"
                                             size="icon"
                                             variant="ghost"
                                             className="h-5 w-5"
@@ -560,7 +560,7 @@ function TeamChatPanelContent({ conversation, onBack, onToggleDetails, showDetai
                                           >
                                             <X className="h-3 w-3" />
                                           </Button>
-                                          <Button
+                                          <Button aria-label="Salvar edição"
                                             size="icon"
                                             variant="ghost"
                                             className="h-5 w-5"
