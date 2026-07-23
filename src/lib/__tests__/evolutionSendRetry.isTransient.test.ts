@@ -10,7 +10,9 @@
 import { describe, it, expect, vi } from 'vitest';
 
 // ── Mock every import that evolutionSendRetry pulls in ───────────────────────
-vi.mock('@/integrations/supabase/client', () => ({ supabase: {} }));
+vi.mock('@/integrations/supabase/client', () => ({
+  SUPABASE_RESOLVED_URL: 'http://localhost:54321',
+  SUPABASE_RESOLVED_ANON_KEY: 'test-anon-key', supabase: {} }));
 vi.mock('@/lib/retry', () => ({ withRetry: vi.fn() }));
 vi.mock('@/lib/logger', () => ({ getLogger: () => ({ warn: vi.fn(), error: vi.fn() }) }));
 vi.mock('@/lib/failedMessagesEnqueue', () => ({ enqueueClientFailedMessage: vi.fn() }));

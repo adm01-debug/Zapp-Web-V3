@@ -30,6 +30,8 @@ const mockIsConfigured = vi.hoisted(() => ({ value: true }));
 vi.mock('@/lib/logger', () => ({ getLogger: mockGetLogger }));
 
 vi.mock('@/integrations/supabase/client', () => ({
+  SUPABASE_RESOLVED_URL: 'http://localhost:54321',
+  SUPABASE_RESOLVED_ANON_KEY: 'test-anon-key',
   get isSupabaseConfigured() {
     return mockIsConfigured.value;
   },
