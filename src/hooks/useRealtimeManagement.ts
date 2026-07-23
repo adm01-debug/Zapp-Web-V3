@@ -37,9 +37,9 @@ export function useRealtimeDashboardManagement(dashboardId: string) {
           setUpdates((prev) => [
             ...prev,
             {
-              id: payload.new?.id || Date.now().toString(),
+              id: String(payload.new?.id ?? Date.now()),
               type: payload.eventType,
-              data: payload.new || payload.old,
+              data: payload.new ?? payload.old ?? {},
               timestamp: new Date().toISOString(),
             },
           ]);
@@ -88,9 +88,8 @@ export function useRealtimeDashboardManagement(dashboardId: string) {
   const unreadMessages = updates.filter(
     (update) => update.data?.is_read === false || update.data?.read === false
   ).length;
-  const lastMessageAt = messageUpdates.at(-1)?.timestamp
-    ? new Date(messageUpdates.at(-1)!.timestamp)
-    : null;
+  const lastMessage = messageUpdates.length > 0 ? messageUpdates[messageUpdates.length - 1] : null;
+  const lastMessageAt = lastMessage ? new Date(lastMessage.timestamp) : null;
   const metricsHistory: RealtimeMetricPoint[] = updates.slice(-30).map((update, index) => ({
     timestamp: update.timestamp,
     messagesPerMinute: Math.max(
@@ -202,13 +201,13 @@ export function useTypingPresenceManagement(userId: string, chatId: string) {
     channelRef.current = supabase.channel(`typing:${chatId}`);
     channelRef.current
       .on('presence', { event: 'sync' }, () => {
-        const state = channelRef.current.presenceState();
-        const users = Object.entries(state)
-          .filter(([, presence]: [string, Array<{ typing?: boolean }>]) => presence?.[0]?.typing)
+        const state = channelRef.current.presenceState() as Record<string, Array<{ typing?: boolean }>>;
+        const users = (Object.entries(state) as Array<[string, Array<{ typing?: boolean }>]>)
+          .filter(([, presence]) => Boolean(presence?.[0]?.typing))
           .map(([key]) => key);
         setTypingUsers(users);
       })
-      .subscribe(async (status) => {
+      .subscribe(async (status: string) => {
         if (status === 'SUBSCRIBED') {
           await channelRef.current.track({ typing: true });
         }
