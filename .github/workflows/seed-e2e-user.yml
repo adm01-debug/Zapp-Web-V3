@@ -39,7 +39,36 @@ jobs:
           ssh -i ~/.ssh/id_ed25519 \
             "${{ secrets.VPS_SSH_USER }}@${{ secrets.VPS_SSH_HOST }}" \
             "chmod +x /tmp/seed-e2e-user.sh && \
+             SEED_REPORT_JSON=/tmp/seed-e2e-user-summary.json \
+             SEED_REPORT_LOG=/tmp/seed-e2e-user.log \
              SUPABASE_DB_URL='$SUPABASE_DB_URL' \
              E2E_USER_EMAIL='$E2E_USER_EMAIL' \
              E2E_USER_PASSWORD='$E2E_USER_PASSWORD' \
              /tmp/seed-e2e-user.sh"
+
+      - name: Trazer log/summary da VPS
+        if: always()
+        run: |
+          mkdir -p reports
+          scp -i ~/.ssh/id_ed25519 \
+            "${{ secrets.VPS_SSH_USER }}@${{ secrets.VPS_SSH_HOST }}:/tmp/seed-e2e-user-summary.json" \
+            reports/seed-e2e-user-summary.json || echo "{}" > reports/seed-e2e-user-summary.json
+          scp -i ~/.ssh/id_ed25519 \
+            "${{ secrets.VPS_SSH_USER }}@${{ secrets.VPS_SSH_HOST }}:/tmp/seed-e2e-user.log" \
+            reports/seed-e2e-user.log || true
+
+      - name: Renderizar HTML + Step Summary
+        if: always()
+        run: |
+          node scripts/render-seed-report.mjs \
+            reports/seed-e2e-user-report.html \
+            reports/seed-e2e-user-summary.json >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload artefato (HTML + log + json)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: seed-e2e-user-report
+          path: reports/
+          retention-days: 14
+
