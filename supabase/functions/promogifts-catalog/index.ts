@@ -1,3 +1,8 @@
+// schema-check-exempt: este arquivo cria clientes para o banco EXTERNO PromoGifts
+// (projeto Supabase separado, acessado via PROMOGIFTS_SUPABASE_URL/ANON_KEY).
+// O schema do projeto externo não é controlado por este repo — a regra
+// db.schema='zapp' da check-schema-usage não se aplica a esses createClient.
+// O cliente local do ZAPP usa createZappClient (importado de _shared/db-client).
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { createZappClient } from '../_shared/db-client.ts';
 import { z } from "https://esm.sh/zod@3.23.8";

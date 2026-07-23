@@ -65,7 +65,11 @@ for (const f of files) {
     !HAS_SCHEMA_METHOD.test(src) &&
     !/createZappAdminClient|createEvoAdminClient/.test(src) &&
     !/_shared\/db-client\.ts$/.test(f) &&
-    !/integrations\/supabase\/types\.ts$/.test(f)
+    !/integrations\/supabase\/types\.ts$/.test(f) &&
+    // Permite exceção explícita via comentário no topo do arquivo.
+    // Use quando o createClient conecta a um projeto Supabase EXTERNO
+    // (fora do controle deste repo) onde db.schema não se aplica.
+    !/\/\/ schema-check-exempt/.test(src)
   ) {
     violations.noSchema.push(relative('.', f));
   }
