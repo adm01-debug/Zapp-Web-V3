@@ -37,6 +37,48 @@ async function cleanupLegacyServiceWorker(): Promise<boolean> {
   return false;
 }
 
+/**
+ * Contextos onde o SW NUNCA deve registrar (skill PWA):
+ * - dev / iframe / preview do Lovable / beta / kill-switch (?sw=off)
+ * Nesses casos, também desregistra qualquer SW herdado para eliminar
+ * bundles antigos que possam estar em cache.
+ */
+function shouldSkipServiceWorker(): boolean {
+  if (typeof window === 'undefined') return true;
+  try {
+    if (import.meta.env?.DEV) return true;
+    if (window.self !== window.top) return true; // dentro de iframe (preview Lovable)
+    const host = window.location.hostname;
+    if (
+      host.startsWith('id-preview--') ||
+      host.startsWith('preview--') ||
+      host === 'lovableproject.com' || host.endsWith('.lovableproject.com') ||
+      host === 'lovableproject-dev.com' || host.endsWith('.lovableproject-dev.com') ||
+      host === 'beta.lovable.dev' || host.endsWith('.beta.lovable.dev')
+    ) return true;
+    if (new URL(window.location.href).searchParams.get('sw') === 'off') return true;
+  } catch {
+    /* noop */
+  }
+  return false;
+}
+
+async function unregisterAllServiceWorkers(): Promise<void> {
+  if (!('serviceWorker' in navigator)) return;
+  try {
+    const regs = await navigator.serviceWorker.getRegistrations?.();
+    if (regs && regs.length) {
+      await Promise.all(regs.map((r) => r.unregister().catch(() => false)));
+    }
+    if (typeof caches !== 'undefined') {
+      const keys = await caches.keys();
+      await Promise.all(keys.map((k) => caches.delete(k).catch(() => false)));
+    }
+  } catch {
+    /* noop */
+  }
+}
+
 /** use Service Worker function. */
 export function useServiceWorker() {
   const registeredRef = useRef(false);
@@ -46,6 +88,14 @@ export function useServiceWorker() {
     registeredRef.current = true;
 
     if (!('serviceWorker' in navigator)) return;
+
+    if (shouldSkipServiceWorker()) {
+      // Preview/dev/iframe: garante que nenhum SW antigo continue interceptando
+      void unregisterAllServiceWorkers();
+      return;
+    }
+
+
 
     let cleanup: (() => void) | undefined;
     let disposed = false;
