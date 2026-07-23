@@ -33,32 +33,24 @@ let intervalId: ReturnType<typeof setInterval> | undefined;
 let workboxChecked = false;
 
 /**
- * Signature-based detection of a stale Workbox-generated service worker still
- * cached at `/sw.js`. Older builds shipped a Workbox precache SW; the current
- * SW is push-only. If the served file still matches the old signature, purge
- * caches + unregister and reload once so the new push-only SW takes over.
+ * Detect Workbox precache entries in CacheStorage (fonte confiavel — nao depende
+ * do conteudo servido de /sw.js, que pode vir de cache de CDN). Se detectado,
+ * purga tudo e forca reload uma unica vez.
  */
 async function detectAndPurgeStaleWorkboxSW(): Promise<void> {
   if (workboxChecked) return;
   workboxChecked = true;
   try {
-    const res = await fetch(`${SW_URL}?ts=${Date.now()}`, {
-      cache: 'no-store',
-      credentials: 'omit',
-    });
-    if (!res.ok) return;
-    const body = await res.text();
-    const isWorkbox =
-      /workbox/i.test(body) ||
-      /precacheAndRoute|__WB_MANIFEST|workbox-precaching/.test(body);
-    if (!isWorkbox) return;
-    log.warn('[buildVersion] Stale Workbox SW detected at /sw.js — purging.');
+    if (typeof caches === 'undefined') return;
+    const keys = await caches.keys();
+    const hasWorkbox = keys.some((k) => /^workbox-(precache|runtime)/i.test(k));
+    if (!hasWorkbox) return;
+    log.warn('[buildVersion] Workbox cache entries detected — purging.', keys);
     const already = sessionStorage.getItem(SW_PURGE_FLAG) === '1';
     if (already) return;
     try { sessionStorage.setItem(SW_PURGE_FLAG, '1'); } catch { /* noop */ }
-    await forceBundleRefresh('stale-workbox-sw');
+    await forceBundleRefresh('stale-workbox-cache');
   } catch {
-    /* network hiccup — retry on next visibility/focus */
     workboxChecked = false;
   }
 }
