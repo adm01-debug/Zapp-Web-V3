@@ -894,6 +894,7 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
           setIsTranscribing(true);
         }
 
+        if (intervalRef.current) clearInterval(intervalRef.current);
         intervalRef.current = setInterval(() => {
           setDuration((prev) => {
             if (prev >= maxDuration) {
@@ -945,6 +946,7 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
     if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'paused') {
       mediaRecorderRef.current.resume();
       setIsPaused(false);
+      if (intervalRef.current) clearInterval(intervalRef.current);
       intervalRef.current = setInterval(() => {
         setDuration((prev) => prev + 1);
       }, 1000);

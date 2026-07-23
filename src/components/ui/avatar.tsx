@@ -87,7 +87,7 @@ function StatusIndicator({ status, size = 'default', pulse = true, className }: 
   return (
     <span className={cn("relative flex", className)}>
       <span className={cn(
-        "rounded-full ring-2 ring-black",
+        "rounded-full ring-2 ring-background",
         statusStyles[status],
         statusSizes[size],
       )} />
@@ -172,14 +172,14 @@ function AvatarGroup({ avatars, max = 4, size = 'default', className }: AvatarGr
         <Avatar
           key={`${avatar.src ?? ''}-${avatar.alt ?? ''}-${avatar.fallback ?? ''}-${index}`}
           size={size}
-          className="ring-2 ring-black border border-border"
+          className="ring-2 ring-background border border-border"
         >
           <AvatarImage src={avatar.src} alt={avatar.alt} />
           <AvatarFallback>{avatar.fallback}</AvatarFallback>
         </Avatar>
       ))}
       {remainingCount > 0 && (
-        <Avatar size={size} className="ring-2 ring-black border border-border">
+        <Avatar size={size} className="ring-2 ring-background border border-border">
           <AvatarFallback className="bg-accent text-muted-foreground">
             +{remainingCount}
           </AvatarFallback>

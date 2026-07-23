@@ -36,17 +36,19 @@ interface QueueRow {
 /** Fetches agents, contacts (with name/phone), and queues for the dashboard, computing stats and recent activity. Exposes a refetch callback that invalidates all three query keys. */
 export function useDashboardData(filters?: DashboardFilters) {
   const queryClient = useQueryClient();
-  const now = new Date();
-  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const endOfToday = new Date(startOfToday);
-  endOfToday.setDate(endOfToday.getDate() + 1);
 
-  const merged = {
-    dateRange: { from: startOfToday, to: endOfToday },
-    queueId: null,
-    agentId: null,
-    ...filters,
-  };
+  const merged = useMemo(() => {
+    const now = new Date();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const endOfToday = new Date(startOfToday);
+    endOfToday.setDate(endOfToday.getDate() + 1);
+    return {
+      dateRange: { from: startOfToday, to: endOfToday },
+      queueId: null,
+      agentId: null,
+      ...filters,
+    };
+  }, [filters]);
 
   const { data: agentsData, isLoading: loadingAgents } = useQuery({
     queryKey: ['dashboard-agents', merged.agentId],
@@ -111,7 +113,7 @@ export function useDashboardData(filters?: DashboardFilters) {
     const pendingConversations = contacts.filter((c) => !c.assigned_to && c.queue_id).length;
     const resolvedToday = contacts.filter((c) => {
       const updatedAt = new Date(c.updated_at);
-      return updatedAt >= startOfToday && c.status === 'closed';
+      return updatedAt >= merged.dateRange.from && c.status === 'closed';
     }).length;
 
     const queuesStats: QueueStats[] = queues.map((queue) => {
@@ -150,8 +152,7 @@ export function useDashboardData(filters?: DashboardFilters) {
       queuesStats,
       recentActivity,
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [contactsData, agentsData, queuesData]);
+  }, [contactsData, agentsData, queuesData, merged]);
 
   const refetch = useCallback(() => {
     return Promise.all([
