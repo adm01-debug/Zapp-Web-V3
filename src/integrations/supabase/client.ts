@@ -120,6 +120,50 @@ const realtimeReconnectAfterMs = (tries: number): number =>
   Math.min(1000 * 2 ** Math.max(0, tries - 1), 30000);
 
 // ---------------------------------------------------------------------------
+// Bounded fetch — nenhuma chamada de rede do Supabase pode pendurar para sempre.
+//
+// O backend self-hosted normalmente responde em <300ms, mas um edge/proxy
+// travado ou uma conexao derrubada pode deixar um request pendente
+// indefinidamente. Sem limite, auth.getSession() (que faz single-flight de um
+// refresh de token) pendura pela janela inteira do race no app e trava o
+// bootstrap de auth. Um timeout via AbortController converte qualquer stall em
+// falha rapida e limpa: getSession rejeita, o single-flight e liberado e o
+// autoRefreshToken se recupera no proximo tick. Um AbortSignal do caller
+// (realtime, aborts por request) e respeitado e encadeado.
+// ---------------------------------------------------------------------------
+const SUPABASE_FETCH_TIMEOUT_MS = 12_000;
+
+const makeTimeoutReason = (): unknown =>
+  typeof DOMException !== 'undefined'
+    ? new DOMException('Supabase request timed out', 'TimeoutError')
+    : Object.assign(new Error('Supabase request timed out'), { name: 'TimeoutError' });
+
+const boundedFetch: typeof fetch = (input, init) => {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(
+    () => controller.abort(makeTimeoutReason()),
+    SUPABASE_FETCH_TIMEOUT_MS,
+  );
+
+  const callerSignal = init?.signal ?? undefined;
+  if (callerSignal) {
+    if (callerSignal.aborted) {
+      controller.abort(callerSignal.reason);
+    } else {
+      callerSignal.addEventListener(
+        'abort',
+        () => controller.abort(callerSignal.reason),
+        { once: true },
+      );
+    }
+  }
+
+  return fetch(input, { ...init, signal: controller.signal }).finally(() =>
+    clearTimeout(timeoutId),
+  );
+};
+
+// ---------------------------------------------------------------------------
 // ZAPP Web client — schema 'zapp' (schema canônico de todas as tabelas)
 // ---------------------------------------------------------------------------
 /** supabase. */
@@ -133,6 +177,9 @@ export const supabase = createClient<ExtendedDatabase, 'zapp'>(supabaseUrl, supa
     autoRefreshToken: true,
     detectSessionInUrl: false,
     flowType: 'pkce',
+  },
+  global: {
+    fetch: boundedFetch,
   },
   realtime: {
     reconnectAfterMs: realtimeReconnectAfterMs,

@@ -193,12 +193,30 @@ export function useServiceWorker() {
             }));
           }
           if (event.data?.type === 'SW_UPDATED') {
-            // New sw.js activated (publish pipeline stamped a fresh build id).
-            // Reuse the build-version watcher's hard-refresh path: purges
-            // caches, unregisters SWs and reloads exactly once.
-            void import('@/lib/buildVersion').then(({ forceBundleRefresh }) =>
-              forceBundleRefresh(`sw-updated:${event.data.buildId ?? 'unknown'}`),
-            );
+            // A sw.js just activated. The stamped SW posts SW_UPDATED on EVERY
+            // activate — including the first install on a normal load, where the
+            // SW and this tab's JS come from the SAME deploy. Reloading in that
+            // case creates a purge -> reload -> re-register -> re-activate loop
+            // (the RELOAD_FLAG guard only masks it, at the cost of one wasted
+            // reload per page load). Only hard-refresh when the activated SW is
+            // genuinely NEWER than the bundle this tab is running.
+            void import('@/lib/buildVersion').then(({ forceBundleRefresh, getCurrentBuildId }) => {
+              const swBuildId =
+                typeof event.data.buildId === 'string' ? event.data.buildId : undefined;
+              const currentBuildId = getCurrentBuildId();
+              if (!swBuildId || swBuildId === 'unknown' || swBuildId === currentBuildId) {
+                log.debug(
+                  '[ServiceWorker] SW_UPDATED for the running build — no reload needed',
+                  { swBuildId, currentBuildId },
+                );
+                return;
+              }
+              log.info(
+                '[ServiceWorker] SW_UPDATED for a newer build — forcing hard refresh',
+                { swBuildId, currentBuildId },
+              );
+              void forceBundleRefresh(`sw-updated:${swBuildId}`);
+            });
           }
         };
         navigator.serviceWorker.addEventListener('message', onMessage);

@@ -192,4 +192,14 @@ export function startBuildVersionWatcher(): () => void {
   };
 }
 
+/**
+ * Build id this tab is currently running (compile-time constant injected by
+ * vite). Consumers compare against it to decide whether a freshly-activated
+ * service worker — or a version.json entry — is genuinely newer than the bundle
+ * this tab loaded, preventing spurious reloads when the ids already match.
+ */
+export function getCurrentBuildId(): string {
+  return CURRENT_BUILD_ID;
+}
+
 export const __TEST__ = { CURRENT_BUILD_ID };
