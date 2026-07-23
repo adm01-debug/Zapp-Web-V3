@@ -35,6 +35,7 @@ import {
 import { useAdminInboxSync } from './useAdminInboxSync';
 import { timeAgo, INSTANCE, MIN_THRESHOLD, MAX_THRESHOLD } from './inboxSyncUtils';
 
+/** Default export. */
 export default function AdminInboxSyncStatusPage() {
   const {
     loading,

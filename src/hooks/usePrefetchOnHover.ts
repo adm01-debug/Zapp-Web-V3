@@ -1,22 +1,21 @@
 import { useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '@/services/api/queryKeys';
 
 /**
  * Mapping from view IDs to their primary query keys.
  * When user hovers a nav item, we prefetch the data for that view
  * so the transition feels instant.
  */
-const VIEW_QUERY_KEYS: Record<string, string[][]> = {
-  inbox: [['contacts'], ['messages']],
-  contacts: [['contacts']],
-  dashboard: [['dashboard-stats'], ['contacts']],
-  campaigns: [['campaigns']],
-  'knowledge-base': [['knowledge-base-articles']],
-  automations: [['automations']],
-  agents: [['team-members']],
-  queues: [['queues']],
-  tags: [['tags']],
-};
+const VIEW_QUERY_KEYS = {
+  inbox: [queryKeys.contacts.all(), queryKeys.messages.all()],
+  contacts: [queryKeys.contacts.all()],
+  dashboard: [queryKeys.contacts.all()],
+  campaigns: [queryKeys.campaigns.all()],
+  automations: [queryKeys.automations.all()],
+  queues: [queryKeys.queues.all()],
+  tags: [queryKeys.tags.all()],
+} as const;
 
 /**
  * Returns an onMouseEnter handler that triggers query prefetch
@@ -29,13 +28,13 @@ export function usePrefetchOnHover() {
 
   const prefetch = useCallback(
     (viewId: string) => {
-      const keys = VIEW_QUERY_KEYS[viewId];
+      const keys = VIEW_QUERY_KEYS[viewId as keyof typeof VIEW_QUERY_KEYS];
       if (!keys) return;
 
-      keys.forEach((key) => {
+      keys.forEach((key: readonly unknown[]) => {
         // Only triggers if data is stale — no wasted requests
         queryClient.prefetchQuery({
-          queryKey: key,
+          queryKey: key as unknown[],
           staleTime: 1000 * 60 * 5, // 5 min
         });
       });

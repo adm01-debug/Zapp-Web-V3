@@ -1,15 +1,3 @@
-/**
- * ContactFormV3.tsx
- * Complete contact form integrating ALL v3.0 improvements:
- * - Real-time duplicate detection with merge prompt
- * - Multiple phone numbers (ContactPhoneManager)
- * - LGPD consent management
- * - Phone normalization + validation
- * - XSS-safe field rendering
- * - Optimistic locking (versioned saves)
- * - Retry on network failure
- * - Conflict resolution on concurrent edit
- */
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,8 +9,8 @@ import { Separator } from '@/components/ui/separator';
 import { AlertTriangle, Save, Loader2, User, Building2, Mail, Tag, GitMerge } from 'lucide-react';
 import { sanitizeText } from '@/lib/sanitize';
 import { ContactPhoneManager, PhoneEntry } from './ContactPhoneManager';
-import { ContactConsentManager, ConsentData } from './ContactConsentManager';
-import { ContactMergeDialog, ContactForMerge } from './ContactMergeDialog';
+import { ContactConsentManager } from './ContactConsentManager';
+import { ContactMergeDialog } from './ContactMergeDialog';
 import { ConflictResolutionDialog } from './ConflictResolutionDialog';
 import { useContactFormV3 } from './useContactFormV3';
 
@@ -38,7 +26,7 @@ export interface ContactV3FormData {
   tags: string[];
   notes: string;
   version?: number;
-  consent?: Partial<ConsentData>;
+  consent?: Partial<import('./ContactConsentManager').ConsentData>;
 }
 
 interface ContactFormV3Props {
@@ -67,7 +55,6 @@ export const ContactFormV3: React.FC<ContactFormV3Props> = ({
     conflictOpen,
     setConflictOpen,
     mergeTarget,
-    setMergeTarget,
     mergeOpen,
     setMergeOpen,
     loadingMergeTarget,
@@ -79,6 +66,7 @@ export const ContactFormV3: React.FC<ContactFormV3Props> = ({
     update,
     addTag,
     removeTag,
+    openMergeDialog,
     doSave,
     handlePhoneBlur,
     updateConsent,
@@ -103,14 +91,16 @@ export const ContactFormV3: React.FC<ContactFormV3Props> = ({
               <Button
                 variant="link"
                 size="sm"
-                onClick={() => {
-                  setMergeTarget(duplicates[0] as unknown as ContactForMerge);
-                  setMergeOpen(true);
-                }} // ignore-audit — PotentialDuplicate lacks company/tags/channel; merge dialog handles missing fields with fallbacks
+                onClick={() => openMergeDialog(duplicates[0].id)}
+                disabled={loadingMergeTarget}
                 className="ml-2 h-auto p-0 text-warning-foreground underline"
               >
-                <GitMerge className="mr-1 h-3.5 w-3.5" />
-                {loadingMergeTarget ? 'Carregando…' : 'Mesclar'}
+                {loadingMergeTarget ? (
+                  <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <GitMerge className="mr-1 h-3.5 w-3.5" />
+                )}
+                Mesclar
               </Button>
             )}
           </AlertDescription>
@@ -153,10 +143,10 @@ export const ContactFormV3: React.FC<ContactFormV3Props> = ({
             </div>
           )}
         </div>
-        {form.phone && !phoneValidation.valid && (
+        {phoneValidation && !phoneValidation.valid && (
           <p className="text-xs text-muted-foreground">{phoneValidation.error}</p>
         )}
-        {form.phone && phoneValidation.valid && (
+        {phoneValidation?.valid && (
           <p className="text-xs text-primary">
             ✓ {phoneValidation.formatted} (
             {phoneValidation.type === 'mobile'
@@ -331,7 +321,6 @@ export const ContactFormV3: React.FC<ContactFormV3Props> = ({
             email: form.email,
             company: form.company,
             tags: form.tags,
-            notes: form.notes || null,
             channel: null,
             avatar_url: null,
             created_at: new Date().toISOString(),

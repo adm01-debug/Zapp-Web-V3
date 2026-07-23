@@ -1,4 +1,4 @@
-import { test, expect } from '../fixtures/auth';
+import { test, expect } from '../../../e2e/fixtures/auth';
 
 const FUZZ_INPUTS = [
   "'; DROP TABLE contacts; --",

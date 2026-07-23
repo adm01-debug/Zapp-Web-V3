@@ -58,12 +58,14 @@ export const playNotificationSound = (
   }
 };
 
+/** preview Sound constant. */
 export const previewSound = (soundType: SoundType, volume: number = 70) => {
   playNotificationSound('message', soundType, volume);
 };
 
+/** request Notification Permission constant. */
 export const requestNotificationPermission = async (): Promise<boolean> => {
-  if (!('Notification' in window)) {
+  if (typeof Notification === 'undefined') {
     log.warn('Notifications not supported');
     return false;
   }
@@ -72,12 +74,13 @@ export const requestNotificationPermission = async (): Promise<boolean> => {
   return (await Notification.requestPermission()) === 'granted';
 };
 
+/** show Browser Notification constant. */
 export const showBrowserNotification = (
   title: string,
   body: string,
   optionsOrIcon?: string | { icon?: string; tag?: string; onClick?: () => void }
 ) => {
-  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+  if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
 
   let options: { icon?: string; tag?: string; onClick?: () => void } = {};
   if (typeof optionsOrIcon === 'string') {
@@ -86,12 +89,19 @@ export const showBrowserNotification = (
     options = optionsOrIcon;
   }
 
-  const notification = new Notification(title, {
+  const notifOptions: NotificationOptions = {
     body,
     icon: options.icon || '/favicon.ico',
-    badge: '/favicon.ico',
     tag: options.tag || 'notification',
-  });
+  };
+
+  let notification: Notification;
+  try {
+    notification = new Notification(title, notifOptions);
+  } catch (err) {
+    log.warn('Could not show browser notification:', err);
+    return;
+  }
 
   if (options.onClick) {
     notification.onclick = () => {

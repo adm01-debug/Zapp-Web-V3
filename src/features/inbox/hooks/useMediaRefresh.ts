@@ -33,6 +33,7 @@ interface UseMediaRefreshResult {
 
 const noopRefresh = async () => {};
 
+/** No-op wrapper around `useMediaUrl`; when `refreshKey` is omitted returns stable nulls so media components can accept the prop without special-casing it. */
 export function useMediaRefresh(originalUrl: string | null | undefined, refreshKey?: MediaRefreshKey): UseMediaRefreshResult {
   const enabled = !!refreshKey;
   const result = useMediaUrl({

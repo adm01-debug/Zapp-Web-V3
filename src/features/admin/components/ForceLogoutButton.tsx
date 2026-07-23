@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { LogOut, Loader2 } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { invalidateUserSession } from '../hooks/useForceLogoutMutation';
 import { toast } from 'sonner';
 
 interface ForceLogoutButtonProps {
@@ -9,6 +9,7 @@ interface ForceLogoutButtonProps {
   userName: string;
 }
 
+/** Force Logout Button component. */
 export function ForceLogoutButton({ userId, userName }: ForceLogoutButtonProps) {
   const [loading, setLoading] = useState(false);
 
@@ -17,9 +18,7 @@ export function ForceLogoutButton({ userId, userName }: ForceLogoutButtonProps) 
 
     setLoading(true);
     try {
-      const { error } = await (supabase.from('profiles') as any)
-        .update({ session_invalidated_at: new Date().toISOString() })
-        .eq('user_id', userId);
+      const { error } = await invalidateUserSession(userId);
 
       if (error) throw error;
       toast.success(`Sessão de ${userName} invalidada`);

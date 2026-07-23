@@ -23,6 +23,7 @@ interface VoiceChangerProps {
   initialTaskId?: string | null;
 }
 
+/** Voice Changer component. */
 export const VoiceChanger = memo(function VoiceChanger({
   audioBlob,
   audioUrl,
@@ -234,7 +235,7 @@ export const VoiceChanger = memo(function VoiceChanger({
   const proceedWithClonedVoice = useCallback(() => {
     setShowCloneWarning(false);
     if (selectedVoice) handleConvert(selectedVoice);
-  }, [selectedVoice]);
+  }, [selectedVoice]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleConfirm = useCallback(() => {
     if (!convertedAudioUrl) return;

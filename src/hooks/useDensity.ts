@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 
+/** Density Mode type alias. */
 export type DensityMode = 'comfortable' | 'compact' | 'dense';
 
 const STORAGE_KEY = 'ui-density';

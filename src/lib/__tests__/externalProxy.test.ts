@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { queryExternalProxy, __testing } from '../externalProxy';
 import { recordQueryEvent, recordRetryOutcome } from '@/lib/clientTelemetry';
@@ -6,6 +5,9 @@ import { recordQueryEvent, recordRetryOutcome } from '@/lib/clientTelemetry';
 // ── Module mocks ──────────────────────────────────────────────────────────────
 
 vi.mock('@/integrations/supabase/client', () => ({
+  isSupabaseConfigured: true,
+  SUPABASE_RESOLVED_URL: 'http://localhost:54321',
+  SUPABASE_RESOLVED_ANON_KEY: 'test-anon-key',
   supabase: {
     auth: {
       getSession: vi.fn().mockResolvedValue({ data: { session: null }, error: null }),
@@ -224,7 +226,7 @@ describe('queryExternalProxy — non-transient invoke errors', () => {
 
   it('wraps error message with correlation id prefix', async () => {
     __testing!.setInvokeOverride(makeErrorOverride('FunctionsHttpError', 'Not Found', 404));
-    const err = await queryExternalProxy({ table: 'contacts' }).catch((e: Error) => e);
+    const err = (await queryExternalProxy({ table: 'contacts' }).catch((e: Error) => e)) as Error;
     expect(err.message).toContain('cid=');
     expect(err.message).toContain('Not Found');
   });
@@ -243,7 +245,7 @@ describe('queryExternalProxy — non-transient invoke errors', () => {
 describe('queryExternalProxy — AbortError', () => {
   it('re-throws as an error with name:"AbortError"', async () => {
     __testing!.setInvokeOverride(makeErrorOverride('AbortError', 'signal aborted'));
-    const err = await queryExternalProxy({ table: 'contacts' }).catch((e: Error) => e);
+    const err = (await queryExternalProxy({ table: 'contacts' }).catch((e: Error) => e)) as Error;
     expect(err.name).toBe('AbortError');
   });
 
@@ -417,7 +419,7 @@ describe('auth lock', () => {
     await expect(queryExternalProxy({ table: 'contacts' })).rejects.toThrow();
 
     __testing!.clearInvokeOverride();
-    const err = await queryExternalProxy({ table: 'contacts' }).catch((e: Error) => e);
+    const err = (await queryExternalProxy({ table: 'contacts' }).catch((e: Error) => e)) as Error;
     expect(err.message).toContain('contacts');
     expect(err.message).toContain('retry in');
   });
@@ -471,7 +473,7 @@ describe('config auth lock — session-wide', () => {
     await expect(queryExternalProxy({ table: 'contacts' })).rejects.toThrow();
 
     __testing!.clearInvokeOverride();
-    const err = await queryExternalProxy({ table: 'any' }).catch((e: Error) => e);
+    const err = (await queryExternalProxy({ table: 'any' }).catch((e: Error) => e)) as Error;
     expect(err.message).toContain('session-wide');
   });
 

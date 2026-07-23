@@ -21,6 +21,7 @@ import { HighlightText } from './HighlightText';
 import { calculateContactHealth, getHealthColor } from '@/lib/contactHealth';
 import type { ContactItemProps } from './types';
 
+/** Contact List Item component for the contacts section. */
 export function ContactListItem({
   contact, isSelected, onToggleSelect, onOpenChat, onEdit, onDelete, index, companyLogo, companyName, searchQuery,
 }: ContactItemProps) {

@@ -67,6 +67,7 @@ const statusConfig = {
   },
 };
 
+/** Conversation History component. */
 export function ConversationHistory({
   contactId,
   contactPhone,
@@ -79,7 +80,7 @@ export function ConversationHistory({
 
   useEffect(() => {
     fetchConversationHistory();
-  }, [contactId, contactPhone, periodFilter]);
+  }, [contactId, contactPhone, periodFilter]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchConversationHistory = async () => {
     setIsLoading(true);
@@ -116,7 +117,7 @@ export function ConversationHistory({
 
       // Group messages by day to create "conversation sessions"
       const groupedByDay: Record<string, typeof messages> = {};
-      messages.forEach((msg) => {
+      messages.forEach((msg: any) => {
         const dayKey = format(new Date(msg.created_at), 'yyyy-MM-dd');
         if (!groupedByDay[dayKey]) {
           groupedByDay[dayKey] = [];
@@ -173,7 +174,14 @@ export function ConversationHistory({
   return (
     <div className="space-y-3">
       {/* Period Filter */}
-      <Select value={periodFilter} onValueChange={(v) => setPeriodFilter(v as PeriodFilter /* ignore-audit: Select/Tabs value string narrowed to union; developer controls option values */)}>
+      <Select
+        value={periodFilter}
+        onValueChange={(v) =>
+          setPeriodFilter(
+            v as PeriodFilter /* ignore-audit: Select/Tabs value string narrowed to union; developer controls option values */
+          )
+        }
+      >
         <SelectTrigger className="h-8 w-full border-border/30 bg-muted/20 text-xs hover:border-primary/30">
           <div className="flex items-center gap-2">
             <Filter className="h-3 w-3 text-muted-foreground" />

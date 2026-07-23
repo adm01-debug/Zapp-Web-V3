@@ -7,6 +7,7 @@
  * garantir tolerância a linhas legadas e derivação consistente de
  * `finalStatus`.
  */
+import { queryKeys } from '@/services/api/queryKeys';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { fromTable } from '@/lib/supabaseHelpers';
@@ -20,12 +21,10 @@ import {
   padRetryAttempts,
 } from './messageSendHistory.schemas';
 
-// Schema escape hatch: zapp tables not yet in generated types (gen-types-zapp.mjs pendente na VPS)
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const db = supabase as any;
-
+/** Re-exported module members. */
 export type { AuditEntry, FinalStatus, RetryAttempt };
 
+/** Aggregated send-history for a single message: retry metrics row plus deduplicated outbound_delivery_audit entries. */
 export interface MessageSendHistory {
   metric: {
     id: string;
@@ -46,20 +45,10 @@ export interface MessageSendHistory {
 
 const STALE_MS = 15_000;
 
-interface OutboundAuditRow {
-  id: string;
-  event_type: string | null;
-  status: string | null;
-  latency_ms: number | null;
-  instance_name: string | null;
-  error_message: string | null;
-  created_at: string;
-  metadata: Record<string, unknown> | null;
-}
-
+/** Fetches the full send-history audit trail for a message (retry metrics + outbound audit log), normalises shapes via Zod, and dedupes entries for the debug sheet. */
 export function useMessageSendHistory(messageId: string | undefined, enabled: boolean) {
   return useQuery<MessageSendHistory>({
-    queryKey: ['message-send-history', messageId],
+    queryKey: queryKeys.messageDetails.sendHistory(messageId),
     enabled: Boolean(messageId) && enabled,
     staleTime: STALE_MS,
     queryFn: async (): Promise<MessageSendHistory> => {
@@ -74,14 +63,14 @@ export function useMessageSendHistory(messageId: string | undefined, enabled: bo
         .order('created_at', { ascending: false })
         .limit(10);
       const [metricRes, auditRes, outboundAuditRes] = await Promise.all([
-        db
+        supabase
           .from('evolution_retry_metrics')
           .select('*')
           .eq('idempotency_key', idempotencyKey)
           .order('created_at', { ascending: false })
           .limit(1)
           .maybeSingle(),
-        db
+        supabase
           .from('audit_logs')
           .select('id, action, created_at, details')
           .eq('entity_type', 'message')
@@ -91,7 +80,7 @@ export function useMessageSendHistory(messageId: string | undefined, enabled: bo
         outboundQuery,
       ]);
 
-      const auditEntries: AuditEntry[] = (auditRes.data ?? []).map((e: any) => ({
+      const auditEntries: AuditEntry[] = (auditRes.data ?? []).map((e) => ({
         id: e.id,
         action: e.action,
         createdAt: e.created_at ?? new Date(0).toISOString(),
@@ -117,20 +106,26 @@ export function useMessageSendHistory(messageId: string | undefined, enabled: bo
         )
       );
 
-      const row = metricRes.data as any;
+      const row = metricRes.data;
       if (!row) return { metric: null, auditEntries: combinedAudit };
+
+      // These columns exist on the view but aren't in the generated types yet
+      type RowExtra = typeof row & {
+        external_message_id?: string | null;
+        max_retries?: number | null;
+        next_retry_at?: string | null;
+      };
+      const rowEx = row as RowExtra;
 
       const attempts = padRetryAttempts(
         normalizeRetryReasons(row.retry_reasons),
         row.attempt_count ?? 0
       );
       const finalStatus = deriveFinalStatus({
-        externalMessageId:
-          (row as unknown as { external_message_id?: string | null }).external_message_id ?? null,
+        externalMessageId: rowEx.external_message_id ?? null,
         retryCount: row.attempt_count ?? 0,
-        maxRetries:
-          (row as unknown as { max_retries?: number | null }).max_retries ?? attempts.length,
-        nextRetryAt: (row as unknown as { next_retry_at?: string | null }).next_retry_at ?? null,
+        maxRetries: rowEx.max_retries ?? attempts.length,
+        nextRetryAt: rowEx.next_retry_at ?? null,
         storedFinalStatus: row.final_status,
       });
 

@@ -19,6 +19,7 @@ interface Props {
   onPickTable: (table: string) => void;
 }
 
+/** Table Catalog Block. */
 export function TableCatalogBlock({ onPickTable }: Props) {
   const [counts, setCounts] = useState<Record<string, CountState>>({});
   const [running, setRunning] = useState(false);

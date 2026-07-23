@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useMountedRef } from '@/hooks/useMountedRef';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getLogger } from '@/lib/logger';
 
@@ -18,10 +19,12 @@ interface OnboardingChecklistProps {
   compact?: boolean;
 }
 
+/** Onboarding Checklist component for the onboarding section. */
 export function OnboardingChecklist({ onNavigate, onDismiss, compact = false }: OnboardingChecklistProps) {
   const { user } = useAuth();
   const [completedSteps, setCompletedSteps] = useState<string[]>([]);
   const [isExpanded, setIsExpanded] = useState(true);
+  const mounted = useMountedRef();
 
   useEffect(() => {
     if (!isExpanded) return;
@@ -41,12 +44,13 @@ export function OnboardingChecklist({ onNavigate, onDismiss, compact = false }: 
         try { if (await step.checkCondition()) completed.push(step.id); }
         catch (error) { log.error(`Error checking step ${step.id}:`, error); }
       }
+      if (!mounted.current) return;
       setCompletedSteps(completed);
       setIsLoading(false);
     };
     try { if (localStorage.getItem(`checklist_dismissed_${user.id}`) === 'true') setIsDismissed(true); } catch (e) { log.warn('localStorage unavailable for checklist:', e); }
     checkAllSteps();
-  }, [user]);
+  }, [user, mounted]);
 
   const handleDismiss = () => {
     if (user) { try { localStorage.setItem(`checklist_dismissed_${user.id}`, 'true'); } catch { /* storage unavailable */ } }

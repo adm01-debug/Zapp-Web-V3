@@ -45,6 +45,7 @@ interface Props {
   setSelected: (row: EvolutionWebhookEvent | null) => void;
 }
 
+/** Webhook Events Table. */
 export function WebhookEventsTable({
   filtered,
   isLoading,

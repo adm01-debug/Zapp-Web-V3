@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo, useRef, memo, useCallback } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { cn } from '@/lib/utils';
 import { EmptyState } from '@/components/ui/empty-states';
@@ -41,6 +41,28 @@ function toConversationItemData(conversation: Conversation): ConversationItemDat
   };
 }
 
+const VirtualRow = memo(function VirtualRow({
+  conversation,
+  selectedId,
+  onSelect,
+  isCompactMode,
+}: {
+  conversation: Conversation;
+  selectedId: string | undefined;
+  onSelect: (conversation: Conversation) => void;
+  isCompactMode: boolean;
+}) {
+  const handleSelect = useCallback(() => onSelect(conversation), [onSelect, conversation]);
+  return (
+    <ConversationItem
+      conversation={toConversationItemData(conversation)}
+      isSelected={selectedId === conversation.id}
+      onSelect={handleSelect}
+      compact={isCompactMode}
+    />
+  );
+});
+
 interface VirtualizedConversationListProps {
   conversations: Conversation[];
   selectedId?: string;
@@ -50,6 +72,7 @@ interface VirtualizedConversationListProps {
   onMarkRead?: (conversation: Conversation) => void;
 }
 
+/** Virtualized Conversation List component. */
 export function VirtualizedConversationList({
   conversations,
   selectedId,
@@ -208,11 +231,11 @@ export function VirtualizedConversationList({
                     transform: `translateY(${virtualRow.start}px)`,
                   }}
                 >
-                  <ConversationItem
-                    conversation={toConversationItemData(conversation)}
-                    isSelected={selectedId === conversation.id}
-                    onSelect={() => onSelect(conversation)}
-                    compact={isCompactMode}
+                  <VirtualRow
+                    conversation={conversation}
+                    selectedId={selectedId}
+                    onSelect={onSelect}
+                    isCompactMode={isCompactMode}
                   />
                 </div>
               );

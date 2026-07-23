@@ -1,13 +1,12 @@
-// @ts-nocheck
 import React, { useEffect, useState, useMemo } from 'react';
 import { Users, CheckCircle2, XCircle, Clock, Loader2, Send, Download, Timer } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
-import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
+import { useTalkXCampaignLive } from '@/hooks/useTalkXCampaignLive';
 import { TalkXRecipientsList } from './TalkXRecipientsList';
 import { motion } from 'framer-motion';
 import type { TalkXCampaign } from '@/hooks/useTalkX';
@@ -29,23 +28,12 @@ interface RecipientExportRow {
   } | null;
 }
 
+/** Live monitor for a TalkX campaign: tracks send progress, recipient statuses, and CSV export. */
 export function TalkXLiveMonitor({ campaignId }: Props) {
   const [campaign, setCampaign] = useState<TalkXCampaign | null>(null);
   const [recipientsKey, setRecipientsKey] = useState(0);
 
-  const { data } = useQuery({
-    queryKey: ['talkx-campaign-live', campaignId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('talkx_campaigns')
-        .select('*')
-        .eq('id', campaignId)
-        .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
-      if (error) throw error;
-      return data as TalkXCampaign; // ignore-audit: narrows variables_config from Supabase Json to string[]
-    },
-    refetchInterval: 3000,
-  });
+  const { data } = useTalkXCampaignLive(campaignId);
 
   useEffect(() => {
     if (data) setCampaign(data);
@@ -82,7 +70,7 @@ export function TalkXLiveMonitor({ campaignId }: Props) {
       .subscribe();
 
     return () => {
-      channel.unsubscribe();
+      supabase.removeChannel(channel);
     };
   }, [campaignId]);
 

@@ -1,14 +1,16 @@
-// @ts-nocheck
+import { queryKeys } from '@/services/api/queryKeys';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { Json } from '@/integrations/supabase/schema';
 
+/** Hook: SLARule Metadata. */
 export interface SLARuleMetadata {
   notify_on_warning?: boolean;
   escalation_notes?: string;
 }
 
+/** Hook: SLARule. */
 export interface SLARule {
   id: string;
   name: string;
@@ -27,8 +29,10 @@ export interface SLARule {
   updated_at: string;
 }
 
+/** Hook: SLARule Scope. */
 export type SLARuleScope = 'contact' | 'company' | 'job_title' | 'contact_type' | 'queue' | 'agent';
 
+/** Hook: SLARule Form. */
 export interface SLARuleForm {
   name: string;
   first_response_minutes: number;
@@ -43,9 +47,10 @@ export interface SLARuleForm {
   metadata?: SLARuleMetadata;
 }
 
+/** Hook: use SLARules. */
 export function useSLARules(scope?: SLARuleScope) {
   const queryClient = useQueryClient();
-  const queryKey = ['sla-rules', scope];
+  const queryKey = queryKeys.sla.rulesForScope(scope);
 
   const { data: rules = [], isLoading } = useQuery({
     queryKey,
@@ -92,8 +97,9 @@ export function useSLARules(scope?: SLARuleScope) {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['sla-rules'] });
-      queryClient.invalidateQueries({ queryKey: ['sla-rules-counts'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.sla.rules() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.sla.rulesCounts() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.sla.rulesActive() });
       toast.success('Regra de SLA criada');
     },
     onError: (err: Error) => toast.error(err.message),
@@ -118,8 +124,9 @@ export function useSLARules(scope?: SLARuleScope) {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['sla-rules'] });
-      queryClient.invalidateQueries({ queryKey: ['sla-rules-counts'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.sla.rules() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.sla.rulesCounts() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.sla.rulesActive() });
       toast.success('Regra de SLA atualizada');
     },
     onError: (err: Error) => toast.error(err.message),
@@ -143,8 +150,9 @@ export function useSLARules(scope?: SLARuleScope) {
       toast.error(err.message);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['sla-rules'] });
-      queryClient.invalidateQueries({ queryKey: ['sla-rules-counts'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.sla.rules() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.sla.rulesCounts() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.sla.rulesActive() });
       toast.success('Regra de SLA removida');
     },
   });
@@ -165,7 +173,10 @@ export function useSLARules(scope?: SLARuleScope) {
     onError: (_err, _vars, context) => {
       if (context?.previous) queryClient.setQueryData(queryKey, context.previous);
     },
-    onSettled: () => queryClient.invalidateQueries({ queryKey: ['sla-rules'] }),
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.sla.rules() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.sla.rulesActive() });
+    },
   });
 
   return {

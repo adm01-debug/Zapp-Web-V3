@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { memo } from 'react';
 import { FileText, ImageIcon, Lock, Music, Shield, Link2, Video } from 'lucide-react';
 import { format, isToday, isYesterday } from 'date-fns';
@@ -5,10 +6,12 @@ import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { TeamMessage } from '@/hooks/useTeamChat';
 
+/** format Time component for the team chat section. */
 export function formatTime(dateStr: string) {
   return format(new Date(dateStr), 'HH:mm');
 }
 
+/** format Date Sep component for the team chat section. */
 export function formatDateSep(dateStr: string) {
   const d = new Date(dateStr);
   if (isToday(d)) return 'Hoje';
@@ -16,6 +19,7 @@ export function formatDateSep(dateStr: string) {
   return format(d, "d 'de' MMMM", { locale: ptBR });
 }
 
+/** Media Content component for the team chat section. */
 export const MediaContent = memo(function MediaContent({ msg }: { msg: TeamMessage }) {
   if (!msg.media_url) return null;
   switch (msg.media_type) {
@@ -23,7 +27,7 @@ export const MediaContent = memo(function MediaContent({ msg }: { msg: TeamMessa
     case 'sticker':
     case 'emoji':
       return (
-        <a href={msg.media_url!} target="_blank" rel="noopener noreferrer">
+        <a href={msg.media_url} target="_blank" rel="noopener noreferrer">
           <img
             src={msg.media_url}
             alt={
@@ -64,6 +68,7 @@ export const MediaContent = memo(function MediaContent({ msg }: { msg: TeamMessa
   }
 });
 
+/** Media Type Icon component for the team chat section. */
 export const MediaTypeIcon = memo(function MediaTypeIcon({ type }: { type: string | null }) {
   switch (type) {
     case 'image':
@@ -80,6 +85,7 @@ export const MediaTypeIcon = memo(function MediaTypeIcon({ type }: { type: strin
   }
 });
 
+/** Locked Dept View component for the team chat section. */
 export function LockedDeptView() {
   return (
     <div className="flex h-full flex-col items-center justify-center p-8 text-center">
@@ -113,6 +119,7 @@ export function LockedDeptView() {
   );
 }
 
+/** Locked Input Footer component for the team chat section. */
 export function LockedInputFooter() {
   return (
     <div className="flex flex-col items-center justify-center gap-2 border-t border-border bg-muted/30 p-6 text-center">

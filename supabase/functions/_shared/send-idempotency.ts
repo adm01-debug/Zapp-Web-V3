@@ -29,16 +29,19 @@ function getServiceClient() {
   return cached;
 }
 
+/** is Send Path function. */
 export function isSendPath(path: string): boolean {
   return path.startsWith('/message/');
 }
 
+/** is Valid Idem Key function. */
 export function isValidIdemKey(key: string | undefined | null): key is string {
   if (!key || typeof key !== 'string') return false;
   const trimmed = key.trim();
   return trimmed.length >= KEY_MIN && trimmed.length <= KEY_MAX;
 }
 
+/** Cached Send interface definition. */
 export interface CachedSend {
   response: unknown;
   http_status: number;
@@ -46,6 +49,7 @@ export interface CachedSend {
   created_at: string;
 }
 
+/** lookup Send Cache function. */
 export async function lookupSendCache(idemKey: string): Promise<CachedSend | null> {
   const client = getServiceClient();
   if (!client) return null;
@@ -69,6 +73,7 @@ export async function lookupSendCache(idemKey: string): Promise<CachedSend | nul
   }
 }
 
+/** Store Send Cache Input interface definition. */
 export interface StoreSendCacheInput {
   idem_key: string;
   instance_name: string;

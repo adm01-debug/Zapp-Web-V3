@@ -1,22 +1,24 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { getLogger } from '@/lib/logger';
 import { sanitizePostgrestFilter } from '@/lib/sanitize';
 import { UserAgent, Inviter, SessionState, Web } from 'sip.js';
 import { supabase } from '@/integrations/supabase/client';
+import { queryKeys } from '@/services/api/queryKeys';
 import { toast } from 'sonner';
 import { useSipConnection } from './sip/useSipConnection';
 
-// Schema escape hatch: zapp tables not yet in generated types (gen-types-zapp.mjs pendente na VPS)
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const db = supabase as any;
-
+/** Re-exported module members. */
 export type { SipStatus } from './sip/useSipConnection';
+/** Lifecycle state of the active SIP call session. */
 export type CallStatus = 'idle' | 'calling' | 'ringing' | 'active' | 'on-hold' | 'ended';
 
 const log = getLogger('SipClient');
 
+/** Manages a SIP.js WebRTC voice call session: connects/disconnects the UA, places/answers/holds/mutes calls, tracks duration, and persists call records to Supabase. */
 export function useSipClient() {
   const { sipStatus, uaRef, connect, disconnect } = useSipConnection();
+  const queryClient = useQueryClient();
   const [callStatus, setCallStatus] = useState<CallStatus>('idle');
   const callStatusRef = useRef<CallStatus>('idle');
   const [callDuration, setCallDuration] = useState(0);
@@ -60,7 +62,7 @@ export function useSipClient() {
       const safeN = sanitizePostgrestFilter(n);
       // Slice raw n before sanitizing so escape sequences aren't split by the slice
       const safeSuffix = sanitizePostgrestFilter(n.slice(-8));
-      const { data } = await db
+      const { data } = await supabase
         .from('contacts')
         .select('id')
         .or(`phone.eq.${safeN},phone.eq.+${safeN},phone.ilike.%${safeSuffix}%`)
@@ -79,7 +81,7 @@ export function useSipClient() {
         data: { user },
       } = await supabase.auth.getUser();
       if (!user) return null;
-      const { data } = await db
+      const { data } = await supabase
         .from('profiles')
         .select('id')
         .eq('user_id', user.id)
@@ -101,7 +103,7 @@ export function useSipClient() {
         const duration = Math.round(
           (new Date(endedAt).getTime() - new Date(startedAt).getTime()) / 1000
         );
-        await db.from('calls').insert({
+        await supabase.from('calls').insert({
           direction: 'outbound',
           status,
           started_at: startedAt,
@@ -112,11 +114,12 @@ export function useSipClient() {
           notes: `Chamada para ${number}`,
         });
         callStartTimeRef.current = null;
+        void queryClient.invalidateQueries({ queryKey: queryKeys.calls.history() });
       } catch (err) {
         log.error('Error logging call:', err);
       }
     },
-    [getProfileId, findContactByPhone]
+    [getProfileId, findContactByPhone, queryClient]
   );
 
   const makeCall = useCallback(

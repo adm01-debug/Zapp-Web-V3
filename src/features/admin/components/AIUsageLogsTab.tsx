@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -19,6 +20,7 @@ interface AIUsageLogsTabProps {
   profileMap: Map<string, { name?: string | null; email?: string | null }>;
 }
 
+/** AIUsage Logs Tab component. */
 export function AIUsageLogsTab({ logs, logsPage, setLogsPage, profileMap }: AIUsageLogsTabProps) {
   return (
     <Card>
@@ -50,7 +52,7 @@ export function AIUsageLogsTab({ logs, logsPage, setLogsPage, profileMap }: AIUs
                     <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">{format(new Date(l.created_at), 'dd/MM HH:mm:ss', { locale: ptBR })}</td>
                     <td className="px-3 py-2 text-foreground">{profile?.name || profile?.email || l.user_id?.slice(0, 8) || '-'}</td>
                     <td className="px-3 py-2">
-                      <Badge variant="secondary" className="text-[10px]" style={{ backgroundColor: (FUNCTION_COLORS[l.function_name] || '#666') + '20', color: FUNCTION_COLORS[l.function_name] || '#666' }}>
+                      <Badge variant="secondary" className="text-[10px]" style={{ '--badge-color': FUNCTION_COLORS[l.function_name] || 'hsl(var(--muted-foreground))', backgroundColor: 'color-mix(in srgb, var(--badge-color) 12%, transparent)', color: 'var(--badge-color)' } as CSSProperties}>
                         {FUNCTION_LABELS[l.function_name] || l.function_name}
                       </Badge>
                     </td>

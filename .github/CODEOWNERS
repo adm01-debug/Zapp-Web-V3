@@ -12,8 +12,11 @@
 * @adm01-debug
 
 # ===================
-# ÁREAS CRÍTICAS
+# ÁREAS CRÍTICAS (bloqueiam merge sem aprovação)
 # ===================
+
+# Supabase client, tipos e schema — NUNCA sobrescrever por bot
+/src/integrations/supabase/ @adm01-debug
 
 # Supabase (Database, Edge Functions, Migrations)
 /supabase/ @adm01-debug

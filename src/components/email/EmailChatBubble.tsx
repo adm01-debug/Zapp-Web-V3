@@ -44,17 +44,15 @@ interface EmailChatBubbleProps {
 }
 
 function sanitizeHtml(html: string): string {
-  // DOMPurify.sanitize() is synchronous in the browser, so the addHook/removeHook
-  // pair is safe: the hook fires inside sanitize(), finally removes it before the
-  // next caller can add its own. Use the correct DOMPurify entry point name
-  // 'afterSanitizeAttributes' (not a custom string) so the hook actually fires.
-  const forceLinksSecure = (node: Element) => {
+  // Força target="_blank" + rel="noopener noreferrer nofollow" em todos os <a>
+  // (clientes de email enviam links sem esses attrs; sem isso o link navega in-tab e
+  // pode permitir window.opener leak via tabnabbing).
+  DOMPurify.addHook('afterSanitizeAttributes', (node) => {
     if (node.tagName === 'A') {
       node.setAttribute('target', '_blank');
       node.setAttribute('rel', 'noopener noreferrer nofollow');
     }
-  };
-  DOMPurify.addHook('afterSanitizeAttributes', forceLinksSecure);
+  });
   try {
     return DOMPurify.sanitize(html, {
       FORBID_TAGS: ['script', 'iframe', 'object', 'embed', 'form'],
@@ -116,7 +114,7 @@ export function EmailChatBubble({
     try {
       await emailModifyLabels({
         accountId,
-        messageId: message.email_msg_id,
+        messageId: message.message_id,
         addLabelIds: wasStarred ? [] : ['STARRED'],
         removeLabelIds: wasStarred ? ['STARRED'] : [],
       });
@@ -129,7 +127,7 @@ export function EmailChatBubble({
     const wasRead = isRead;
     setIsRead(!wasRead);
     try {
-      await emailMarkRead({ accountId, messageIds: [message.email_msg_id], read: !wasRead });
+      await emailMarkRead({ accountId, messageIds: [message.message_id ?? ''], read: !wasRead });
     } catch {
       setIsRead(wasRead);
     }
@@ -137,7 +135,7 @@ export function EmailChatBubble({
 
   const handleTrash = async () => {
     try {
-      await emailTrashMessage({ accountId, messageId: message.email_msg_id });
+      await emailTrashMessage({ accountId, messageId: message.message_id ?? '' });
       toast.success('Mensagem movida para lixeira');
     } catch {
       toast.error('Erro ao mover para lixeira');
@@ -153,15 +151,11 @@ export function EmailChatBubble({
     >
       {/* Header */}
       <div
-        role="button"
-        tabIndex={0}
-        aria-expanded={expanded}
         className={cn(
           'group/header mx-2 my-1 flex cursor-pointer items-start gap-3 rounded-xl px-4 py-3 transition-all duration-300 hover:bg-muted/30',
           expanded && 'border border-border/5 bg-muted/15 shadow-sm'
         )}
         onClick={() => setExpanded((v) => !v)}
-        onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && setExpanded((v) => !v)}
       >
         {/* Avatar com Animação */}
         <motion.div whileHover={{ scale: 1.1 }} className="relative shrink-0">
@@ -230,13 +224,11 @@ export function EmailChatBubble({
             <div className="mt-1 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/50">
               <span className="text-primary/60">Para:</span>
               <span className="max-w-[300px] truncate">{(message.to_emails ?? []).join(', ')}</span>
-              {(message.cc_emails ?? []).length > 0 && (
+              {(message.cc_emails?.length ?? 0) > 0 && (
                 <>
                   <span className="mx-1 opacity-30">|</span>
                   <span className="text-primary/60">Cc:</span>
-                  <span className="max-w-[200px] truncate">
-                    {(message.cc_emails ?? []).join(', ')}
-                  </span>
+                  <span className="max-w-[200px] truncate">{(message.cc_emails ?? []).join(', ')}</span>
                 </>
               )}
             </div>
@@ -250,13 +242,7 @@ export function EmailChatBubble({
           {onReply && (
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button
-                  aria-label="Responder"
-                  variant="ghost"
-                  size="icon"
-                  className="h-7 w-7"
-                  onClick={onReply}
-                >
+                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onReply}>
                   <Reply className="h-3.5 w-3.5" />
                 </Button>
               </TooltipTrigger>

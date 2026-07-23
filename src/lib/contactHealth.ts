@@ -1,5 +1,6 @@
 import type { Contact } from '../components/contacts/types';
 
+/** calculate Contact Health. */
 export function calculateContactHealth(contact: Contact): number {
   let score = 0;
   let totalWeights = 0;
@@ -38,6 +39,7 @@ export function calculateContactHealth(contact: Contact): number {
   return Math.round((score / totalWeights) * 100);
 }
 
+/** get Health Color. */
 export function getHealthColor(score: number): string {
   if (score >= 90) return 'text-primary bg-primary/10';
   if (score >= 70) return 'text-primary bg-primary/10';

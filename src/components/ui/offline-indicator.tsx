@@ -7,6 +7,7 @@ interface OfflineIndicatorProps {
   className?: string;
 }
 
+/** Offline Indicator component for the ui section. */
 export function OfflineIndicator({ className }: OfflineIndicatorProps) {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [showReconnecting, setShowReconnecting] = useState(false);
@@ -66,7 +67,7 @@ export function OfflineIndicator({ className }: OfflineIndicatorProps) {
           <>
             <WifiOff className="w-4 h-4" />
             <span className="text-sm font-medium">Você está offline</span>
-            <button
+            <button type="button"
               onClick={handleRetry}
               className="ml-2 px-2 py-0.5 bg-destructive-foreground/20 hover:bg-destructive-foreground/30 rounded text-xs transition-colors"
             >
@@ -80,6 +81,7 @@ export function OfflineIndicator({ className }: OfflineIndicatorProps) {
 }
 
 // Hook for offline detection
+/** use Offline Status component for the ui section. */
 export function useOfflineStatus() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [wasOffline, setWasOffline] = useState(false);
@@ -112,6 +114,7 @@ export function useOfflineStatus() {
 }
 
 // Toast notification for connection changes
+/** Connection Toast component for the ui section. */
 export function ConnectionToast() {
   const { isOnline, wasOffline } = useOfflineStatus();
 

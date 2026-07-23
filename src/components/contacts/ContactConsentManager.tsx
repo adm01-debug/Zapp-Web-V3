@@ -20,6 +20,7 @@ const log = getLogger('ContactConsentManager');
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
+/** Consent Data component for the contacts section. */
 export interface ConsentData {
   lgpd_consent_at:        string | null;
   lgpd_consent_channel:   string | null; // 'whatsapp' | 'email' | 'form' | 'phone' | 'manual'
@@ -47,6 +48,7 @@ const CHANNEL_LABELS: Record<string, string> = {
 
 // ── Component ──────────────────────────────────────────────────────────────
 
+/** Contact Consent Manager component for the contacts section. */
 export const ContactConsentManager: React.FC<ContactConsentManagerProps> = ({
   contactId,
   contactName,
@@ -237,4 +239,5 @@ export const ContactConsentManager: React.FC<ContactConsentManagerProps> = ({
   );
 };
 
+/** Default export. */
 export default ContactConsentManager;

@@ -7,9 +7,11 @@ const meta: Meta<typeof Select> = {
   tags: ['autodocs'],
 };
 
+/** Default export. */
 export default meta;
 type Story = StoryObj<typeof Select>;
 
+/** Default component for the ui section. */
 export const Default: Story = {
   render: () => (
     <Select>
@@ -25,6 +27,7 @@ export const Default: Story = {
   ),
 };
 
+/** Disabled component for the ui section. */
 export const Disabled: Story = {
   render: () => (
     <Select disabled>

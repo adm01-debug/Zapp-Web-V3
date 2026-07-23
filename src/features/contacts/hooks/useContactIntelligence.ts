@@ -10,9 +10,11 @@ import { isExternalConfigured } from '@/integrations/supabase/externalClient';
 import { dbGet } from '@/integrations/datasource/db';
 import { RPC } from '@/integrations/datasource/rpcCatalog';
 import { getLogger } from '@/lib/logger';
+import { queryKeys } from '@/services/api/queryKeys';
 
 const log = getLogger('useContactIntelligence');
 
+/** Contact Briefing interface definition. */
 export interface ContactBriefing {
   contact_name: string | null;
   company_name: string | null;
@@ -34,6 +36,7 @@ export interface ContactBriefing {
   risk_alert: string | null;
 }
 
+/** Mental Trigger interface definition. */
 export interface MentalTrigger {
   trigger_name: string;
   description: string;
@@ -42,6 +45,7 @@ export interface MentalTrigger {
   intensity: number;
 }
 
+/** Rapport Data interface definition. */
 export interface RapportData {
   hobbies: string[];
   interests: string[];
@@ -53,6 +57,7 @@ export interface RapportData {
   suggestions: string[];
 }
 
+/** Best Time interface definition. */
 export interface BestTime {
   day_of_week: number;
   hour: number;
@@ -61,6 +66,7 @@ export interface BestTime {
   note?: string;
 }
 
+/** Churn Data interface definition. */
 export interface ChurnData {
   churn_probability: number;
   risk_level: string;
@@ -68,6 +74,7 @@ export interface ChurnData {
   recommended_actions: string[] | null;
 }
 
+/** D I S C Tips interface definition. */
 export interface DISCTips {
   profile: string;
   name: string;
@@ -79,6 +86,7 @@ export interface DISCTips {
   keywords_to_avoid: string[];
 }
 
+/** Contact Intelligence Data interface definition. */
 export interface ContactIntelligenceData {
   found: boolean;
   contact_id: string;
@@ -95,11 +103,12 @@ function cleanPhone(phone: string): string {
   return phone.replace(/[^0-9]/g, '');
 }
 
+/** use Contact Intelligence function. */
 export function useContactIntelligence(phone: string | undefined) {
   const cleanedPhone = phone ? cleanPhone(phone) : '';
 
   return useQuery<ContactIntelligenceData | null>({
-    queryKey: ['contact-intelligence', cleanedPhone],
+    queryKey: queryKeys.contactDetails.intelligence(cleanedPhone),
     queryFn: async () => {
       if (!cleanedPhone || cleanedPhone.length < 8) return null;
       const { data, error } = await dbGet(RPC.getContactIntelligenceByPhone, {

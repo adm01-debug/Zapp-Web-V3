@@ -1,12 +1,12 @@
-// @ts-nocheck
 import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import type { Tables } from '@/integrations/supabase/schema';
+import type { ContactRow } from '@/integrations/supabase/schema';
+import { queryKeys } from '@/services/api/queryKeys';
 
 type Contact = Pick<
-  Tables<'contacts'>,
+  NonNullable<ContactRow>,
   | 'id'
   | 'name'
   | 'nickname'
@@ -40,6 +40,7 @@ function parseSortOption(sortBy: string): { field: string; direction: string } {
   }
 }
 
+/** Hook: use Contacts Search. */
 export function useContactsSearch() {
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -142,8 +143,7 @@ export function useContactsSearch() {
 
   const { field: sortField, direction: sortDirection } = parseSortOption(sortBy);
 
-  const queryKey = [
-    'contacts-search',
+  const queryKey = queryKeys.contacts.searchResults(
     debouncedSearch,
     activeTab,
     filterCompany,
@@ -152,8 +152,8 @@ export function useContactsSearch() {
     dateFrom,
     sortField,
     sortDirection,
-    page,
-  ];
+    page
+  );
 
   // Cursor-based pagination: track cursor for each page
   const [pageIndexToCursor, setPageIndexToCursor] = useState<Map<number, string | null>>(
@@ -216,7 +216,7 @@ export function useContactsSearch() {
 
   // Fetch counts by type (lightweight separate query)
   const { data: typeCounts } = useQuery({
-    queryKey: ['contacts-type-counts'],
+    queryKey: queryKeys.contactDetails.typeCounts(),
     queryFn: async () => {
       const { data, error } = await supabase.rpc('contacts_count_by_type');
       if (error) throw error;

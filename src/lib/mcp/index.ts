@@ -5,6 +5,7 @@ import searchContactsTool from './tools/list-contacts';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL ?? 'https://supabase.atomicabr.com.br';
 
+/** MCP server definition for ZAPP Web: exposes whoami, list-connections, and list-contacts tools with Supabase OAuth auth. */
 export default defineMcp({
   name: 'zapp-web-mcp',
   title: 'ZAPP Web MCP',

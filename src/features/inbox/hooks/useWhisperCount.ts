@@ -3,12 +3,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { getLogger } from '@/lib/logger';
 import { isValidUUID } from '@/utils/uuid';
 
-// Schema escape hatch: zapp tables not yet in generated types (gen-types-zapp.mjs pendente na VPS)
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const db = supabase as any;
-
 const log = getLogger('useWhisperCount');
 
+/** Returns the live count of unread whisper messages for the given contact and agent profile, updating via realtime subscription. */
 export function useWhisperCount(
   selectedContactId: string | null,
   profileId: string | undefined
@@ -37,7 +34,7 @@ export function useWhisperCount(
 
     let cancelled = false;
     const fetchWhisperCount = async () => {
-      const { count, error } = await db
+      const { count, error } = await supabase
         .from('whisper_messages')
         .select('*', { count: 'exact', head: true })
         .eq('contact_id', selectedContactId)
@@ -65,8 +62,7 @@ export function useWhisperCount(
       .subscribe();
     return () => {
       cancelled = true;
-      void channel.unsubscribe();
-      supabase.removeChannel(channel);
+      supabase.removeChannel(channel).catch(() => {});
     };
   }, [selectedContactId, profileId]);
 

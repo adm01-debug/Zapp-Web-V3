@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { describe, it, expect } from 'vitest';
 import {
   base64URLToBuffer,
@@ -80,12 +79,12 @@ describe('base64URLToBuffer', () => {
 
 describe('bufferToBase64URL', () => {
   it('encodes a buffer to a base64url string', () => {
-    const buf = bytesFromString('hello').buffer;
+    const buf = bytesFromString('hello').buffer as ArrayBuffer;
     expect(bufferToBase64URL(buf)).toBe('aGVsbG8');
   });
 
   it('returns a string', () => {
-    const buf = bytesFromString('test').buffer;
+    const buf = bytesFromString('test').buffer as ArrayBuffer;
     expect(typeof bufferToBase64URL(buf)).toBe('string');
   });
 
@@ -93,26 +92,26 @@ describe('bufferToBase64URL', () => {
     // Encode many bytes to ensure + appears in standard base64 then check it is absent
     const bytes = new Uint8Array(256);
     for (let i = 0; i < 256; i++) bytes[i] = i;
-    const result = bufferToBase64URL(bytes.buffer);
+    const result = bufferToBase64URL(bytes.buffer as ArrayBuffer);
     expect(result).not.toContain('+');
   });
 
   it('output contains no / characters (replaced with _)', () => {
     const bytes = new Uint8Array(256);
     for (let i = 0; i < 256; i++) bytes[i] = i;
-    const result = bufferToBase64URL(bytes.buffer);
+    const result = bufferToBase64URL(bytes.buffer as ArrayBuffer);
     expect(result).not.toContain('/');
   });
 
   it('output contains no = padding characters', () => {
     const bytes = new Uint8Array(256);
     for (let i = 0; i < 256; i++) bytes[i] = i;
-    const result = bufferToBase64URL(bytes.buffer);
+    const result = bufferToBase64URL(bytes.buffer as ArrayBuffer);
     expect(result).not.toContain('=');
   });
 
   it('encodes empty buffer to empty string', () => {
-    const buf = new Uint8Array(0).buffer;
+    const buf = new Uint8Array(0).buffer as ArrayBuffer;
     expect(bufferToBase64URL(buf)).toBe('');
   });
 });
@@ -127,10 +126,10 @@ describe('base64URLToBuffer / bufferToBase64URL — round-trip', () => {
 
   it('base64URLToBuffer(bufferToBase64URL(buf)) produces the same bytes', () => {
     const text = 'Round-trip test for WebAuthn utils';
-    const originalBuf = bytesFromString(text).buffer;
+    const originalBuf = bytesFromString(text).buffer as ArrayBuffer;
     const encoded = bufferToBase64URL(originalBuf);
     const decoded = base64URLToBuffer(encoded);
-    expect(buffersEqual(originalBuf, decoded)).toBe(true);
+    expect(buffersEqual(originalBuf as ArrayBuffer, decoded)).toBe(true);
   });
 
   it('round-trips a 32-byte random-like buffer', () => {
@@ -140,16 +139,16 @@ describe('base64URLToBuffer / bufferToBase64URL — round-trip', () => {
       0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88,
       0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff, 0x00,
     ]);
-    const encoded = bufferToBase64URL(bytes.buffer);
+    const encoded = bufferToBase64URL(bytes.buffer as ArrayBuffer);
     const decoded = base64URLToBuffer(encoded);
-    expect(buffersEqual(bytes.buffer, decoded)).toBe(true);
+    expect(buffersEqual(bytes.buffer as ArrayBuffer, decoded)).toBe(true);
   });
 
   it('round-trips all 256 byte values', () => {
     const bytes = new Uint8Array(256);
     for (let i = 0; i < 256; i++) bytes[i] = i;
-    const encoded = bufferToBase64URL(bytes.buffer);
+    const encoded = bufferToBase64URL(bytes.buffer as ArrayBuffer);
     const decoded = base64URLToBuffer(encoded);
-    expect(buffersEqual(bytes.buffer, decoded)).toBe(true);
+    expect(buffersEqual(bytes.buffer as ArrayBuffer, decoded)).toBe(true);
   });
 });

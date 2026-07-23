@@ -4,6 +4,7 @@ import { Trophy, Zap, MessageSquare, Star, Flame, Rocket, Target, PartyPopper, C
 import { cn } from '@/lib/utils';
 import { useEffect, useState } from 'react';
 
+/** Achievement Type component for the gamification section. */
 export type AchievementType = 
   | 'fast_response' 
   | 'streak' 
@@ -116,6 +117,7 @@ function Particle({ delay, config }: { delay: number; config: AchievementConfig 
   );
 }
 
+/** Achievement Toast component for the gamification section. */
 export function AchievementToast({ 
   type, 
   message, 
@@ -264,6 +266,7 @@ export function AchievementToast({
 }
 
 // Hook to manage achievements
+/** use Achievements component for the gamification section. */
 export function useAchievements() {
   const [achievement, setAchievement] = useState<{
     type: AchievementType;

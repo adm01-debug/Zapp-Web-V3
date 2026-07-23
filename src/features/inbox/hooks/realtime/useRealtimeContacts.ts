@@ -1,5 +1,5 @@
-// @ts-nocheck
 import { useEffect, useRef } from 'react';
+import { queryKeys } from '@/services/api/queryKeys';
 import { useQueryClient } from '@tanstack/react-query';
 import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 import { externalSupabase } from '@/integrations/supabase/externalClient';
@@ -104,7 +104,10 @@ export function useRealtimeContacts(options: UseRealtimeContactsOptions = {}) {
     // principal autenticado quando VITE_EXTERNAL_* ausentes). O gate por
     // isExternalConfigured deixava o realtime de contatos permanentemente
     // desligado em produção.
-    if (!enabled || !externalSupabase) {
+    // Capture the client reference at effect setup time so cleanup always
+    // calls removeChannel on the same instance that created the channel.
+    const client = externalSupabase;
+    if (!enabled || !client) {
       setRealtimeContactsStatus('disconnected');
       return;
     }
@@ -117,8 +120,6 @@ export function useRealtimeContacts(options: UseRealtimeContactsOptions = {}) {
       const changes = Array.from(pending.values());
       pendingRef.current = new Map();
 
-      // Cache key used by useExternalConversations
-      const conversationsKey = ['external-evolution', 'conversations'];
       let invalidateConversations = false;
 
       for (const change of changes) {
@@ -127,11 +128,11 @@ export function useRealtimeContacts(options: UseRealtimeContactsOptions = {}) {
 
         // Patch individual contact cache if present (preserves omitted fields)
         queryClient.setQueriesData<EvolutionContact | undefined>(
-          { queryKey: ['contact', remoteJid] },
+          { queryKey: queryKeys.contactDetails.singleContact(remoteJid) },
           (prev) => (prev ? mergeContact(prev, contact) : prev)
         );
         queryClient.setQueriesData<EvolutionContact | undefined>(
-          { queryKey: ['external-evolution', 'contact', remoteJid] },
+          { queryKey: queryKeys.evolutionConversations.contact(remoteJid) },
           (prev) => (prev ? mergeContact(prev, contact) : prev)
         );
 
@@ -140,21 +141,9 @@ export function useRealtimeContacts(options: UseRealtimeContactsOptions = {}) {
           invalidateConversations = true;
         } else {
           // UPDATE: try to patch list entries in place, fallback to invalidate
-          let patched = false;
-          queryClient.setQueriesData<unknown>({ queryKey: ['contacts-list'] }, (prev) => {
-            if (!Array.isArray(prev)) return prev;
-            const idx = prev.findIndex(
-              (c) => c && typeof c === 'object' && (c as EvolutionContact).remote_jid === remoteJid
-            );
-            if (idx < 0) return prev;
-            patched = true;
-            const next = prev.slice();
-            next[idx] = mergeContact(next[idx] as EvolutionContact, contact);
-            return next;
-          });
-          // Even if patched in-place, force a re-sort when ranking-relevant
-          // fields changed (lead_status, assigned_to, pinned, tags, etc.).
-          if (!patched || change.reorder) invalidateConversations = true;
+          // Force a re-sort when ranking-relevant fields changed
+          // (lead_status, assigned_to, pinned, tags, etc.).
+          if (change.reorder) invalidateConversations = true;
         }
 
         // Notify non-React-Query consumers
@@ -170,8 +159,7 @@ export function useRealtimeContacts(options: UseRealtimeContactsOptions = {}) {
       }
 
       if (invalidateConversations) {
-        void queryClient.invalidateQueries({ queryKey: conversationsKey });
-        void queryClient.invalidateQueries({ queryKey: ['contacts-list'] });
+        void queryClient.invalidateQueries({ queryKey: queryKeys.evolutionConversations.all() });
       }
     };
 
@@ -221,7 +209,7 @@ export function useRealtimeContacts(options: UseRealtimeContactsOptions = {}) {
     };
 
     const channelName = `realtime:evolution_contacts:${instance}`;
-    const channel = externalSupabase
+    const channel = client
       .channel(channelName)
       .on(
         'postgres_changes',
@@ -249,8 +237,7 @@ export function useRealtimeContacts(options: UseRealtimeContactsOptions = {}) {
       }
       pendingRef.current = new Map();
       setRealtimeContactsStatus('disconnected');
-      void channel.unsubscribe();
-      void externalSupabase.removeChannel(channel);
+      client.removeChannel(channel);
     };
   }, [enabled, instance, queryClient]);
 }

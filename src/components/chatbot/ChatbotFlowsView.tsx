@@ -25,6 +25,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { ChatbotFlowEditor } from './ChatbotFlowEditor';
+import { SectionErrorBoundary } from '@/components/ui/section-error-boundary';
 const ChatbotExecutionsDashboard = lazy(() => import('./ChatbotExecutionsDashboard').then(m => ({ default: m.ChatbotExecutionsDashboard })));
 
 const triggerLabels: Record<string, { label: string; icon: React.ComponentType<{ className?: string }> }> = {
@@ -35,6 +36,7 @@ const triggerLabels: Record<string, { label: string; icon: React.ComponentType<{
   schedule: { label: 'Agendado', icon: Clock },
 };
 
+/** Chatbot Flows View component for the chatbot section. */
 export function ChatbotFlowsView() {
   const { flows, isLoading, createFlow, updateFlow, deleteFlow, toggleFlow } = useChatbotFlows();
   const [showCreate, setShowCreate] = useState(false);
@@ -261,9 +263,11 @@ export function ChatbotFlowsView() {
         </TabsContent>
 
         <TabsContent value="executions" className="flex-1 min-h-0 mt-4">
-          <Suspense fallback={<Skeleton className="h-96 w-full" />}>
-            <ChatbotExecutionsDashboard />
-          </Suspense>
+          <SectionErrorBoundary sectionName="Execuções do chatbot">
+            <Suspense fallback={<Skeleton className="h-96 w-full" />}>
+              <ChatbotExecutionsDashboard />
+            </Suspense>
+          </SectionErrorBoundary>
         </TabsContent>
       </Tabs>
 

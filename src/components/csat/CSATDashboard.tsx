@@ -15,6 +15,7 @@ const ratingColors: Record<number, string> = {
   5: 'bg-success',
 };
 
+/** CSATDashboard component for the csat section. */
 export function CSATDashboard() {
   const [period, setPeriod] = useState<'today' | 'week' | 'month'>('month');
   const { stats, surveys, isLoading } = useCSAT(period);

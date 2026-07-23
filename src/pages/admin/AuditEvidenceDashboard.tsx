@@ -61,7 +61,7 @@ const AuditEvidenceDashboard = () => {
                 <div className="text-xs  bg-muted text-muted-foreground p-3 rounded">
                   {ev.snippet}
                 </div>
-                <button className="w-full flex items-center justify-center gap-2 text-xs text-primary hover:underline">
+                <button type="button" className="w-full flex items-center justify-center gap-2 text-xs text-primary hover:underline">
                   <ExternalLink className="w-3 h-3" />
                   Ver no Repositório
                 </button>
@@ -74,4 +74,5 @@ const AuditEvidenceDashboard = () => {
   );
 };
 
+/** React component: Audit Evidence Dashboard. */
 export default AuditEvidenceDashboard;

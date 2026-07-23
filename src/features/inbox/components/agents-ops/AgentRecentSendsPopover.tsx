@@ -21,6 +21,7 @@ function statusVariant(http: number): 'success' | 'destructive' | 'warning' {
   return 'warning';
 }
 
+/** Agent Recent Sends Popover component for the agents ops section. */
 export function AgentRecentSendsPopover({ agentName, sends }: Props) {
   const [open, setOpen] = useState(false);
 

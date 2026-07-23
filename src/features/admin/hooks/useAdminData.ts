@@ -1,8 +1,10 @@
 import { useState, useCallback } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { toast } from 'sonner';
 import { unwrapRows } from '@/lib/supabase-helpers';
+import { queryKeys } from '@/services/api/queryKeys';
 import type { AppRole } from '@/features/auth';
 
 interface ProfileRow {
@@ -43,6 +45,7 @@ interface ProfileMini {
   email: string | null;
 }
 
+/** Hook: User With Role. */
 export interface UserWithRole {
   id: string;
   user_id: string;
@@ -62,6 +65,7 @@ export interface UserWithRole {
   created_at: string;
 }
 
+/** Hook: Audit Log. */
 export interface AuditLog {
   id: string;
   user_id: string | null;
@@ -72,6 +76,7 @@ export interface AuditLog {
   user?: { name: string; email: string | null } | null;
 }
 
+/** Hook: role Config. */
 export const roleConfig: Record<AppRole, { label: string; icon: string; color: string }> = {
   dev: { label: 'Desenvolvedor', icon: 'Code', color: 'text-destructive' },
   admin: { label: 'Administrador', icon: 'Crown', color: 'text-warning' },
@@ -80,6 +85,7 @@ export const roleConfig: Record<AppRole, { label: string; icon: string; color: s
   agent: { label: 'Atendente', icon: 'User', color: 'text-muted-foreground' },
 };
 
+/** Hook: access Level Config. */
 export const accessLevelConfig: Record<string, { label: string; description: string }> = {
   basic: { label: 'Básico', description: 'Acesso apenas aos próprios atendimentos' },
   standard: { label: 'Padrão', description: 'Acesso a atendimentos e contatos atribuídos' },
@@ -87,7 +93,9 @@ export const accessLevelConfig: Record<string, { label: string; description: str
   full: { label: 'Completo', description: 'Acesso total ao sistema' },
 };
 
+/** Hook: use Admin Data. */
 export function useAdminData(activeTab: 'users' | 'audit' | 'crm') {
+  const queryClient = useQueryClient();
   const [users, setUsers] = useState<UserWithRole[]>([]);
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(true);
@@ -137,7 +145,7 @@ export function useAdminData(activeTab: 'users' | 'audit' | 'crm') {
         ];
         const { data: profilesData } =
           userIds.length > 0
-            ? await (supabase.from('profiles').select('user_id, name, email') as any).in(
+            ? await supabase.from('profiles').select('user_id, name, email').in(
                 'user_id',
                 userIds
               )
@@ -186,7 +194,8 @@ export function useAdminData(activeTab: 'users' | 'audit' | 'crm') {
 
   const handleToggleActive = useCallback(
     async (user: UserWithRole) => {
-      const { error } = await (supabase.from('profiles') as any)
+      const { error } = await supabase
+        .from('profiles')
         .update({ is_active: !user.is_active })
         .eq('id', user.id);
       if (error) {
@@ -194,9 +203,10 @@ export function useAdminData(activeTab: 'users' | 'audit' | 'crm') {
       } else {
         toast.success(user.is_active ? 'Usuário desativado' : 'Usuário ativado');
         fetchData();
+        void queryClient.invalidateQueries({ queryKey: queryKeys.teamProfiles.all() });
       }
     },
-    [fetchData]
+    [fetchData, queryClient]
   );
 
   const handleSaveUser = useCallback(
@@ -216,7 +226,8 @@ export function useAdminData(activeTab: 'users' | 'audit' | 'crm') {
         avatarUrl = urlData.publicUrl;
       }
 
-      const { error } = await (supabase.from('profiles') as any)
+      const { error } = await supabase
+        .from('profiles')
         .update({
           name: editingUser.name,
           nickname: editingUser.nickname,
@@ -237,9 +248,11 @@ export function useAdminData(activeTab: 'users' | 'audit' | 'crm') {
       }
       toast.success('Usuário atualizado com sucesso');
       fetchData();
+      void queryClient.invalidateQueries({ queryKey: queryKeys.teamProfiles.all() });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.userProfile.me() });
       return true;
     },
-    [fetchData]
+    [fetchData, queryClient]
   );
 
   interface CreateUserPayload {
@@ -317,13 +330,14 @@ export function useAdminData(activeTab: 'users' | 'audit' | 'crm') {
         }
         toast.success('Usuário criado com sucesso!');
         fetchData();
+        void queryClient.invalidateQueries({ queryKey: queryKeys.teamProfiles.all() });
         return true;
       } catch {
         toast.error('Erro ao criar usuário');
         return false;
       }
     },
-    [fetchData]
+    [fetchData, queryClient]
   );
 
   return {

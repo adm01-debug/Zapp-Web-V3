@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Drawer com histórico do atendimento.
  *
@@ -13,6 +12,7 @@
  */
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { queryKeys } from '@/services/api/queryKeys';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
@@ -24,6 +24,7 @@ import {
 } from '@/components/ui/sheet';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
 import { CheckCircle2, Clock, Circle, UserCheck, UserMinus, UserPlus, Wand2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useTicketStatus } from '@/features/inbox';
@@ -180,11 +181,12 @@ function describeAudit(e: AuditLogRow): UnifiedEvent {
   };
 }
 
+/** Ticket History Sheet function. */
 export function TicketHistorySheet({ contactId, open, onOpenChange }: TicketHistorySheetProps) {
   const { events: localEvents } = useTicketStatus(contactId);
 
-  const { data: remote = [] } = useQuery<RemoteEvent[]>({
-    queryKey: ['conversation-events', contactId],
+  const { data: remote = [], isLoading: loadingRemote } = useQuery<RemoteEvent[]>({
+    queryKey: queryKeys.conversationHistory.events(contactId),
     enabled: open && !!contactId,
     queryFn: async () => {
       if (!contactId) return [];
@@ -209,8 +211,8 @@ export function TicketHistorySheet({ contactId, open, onOpenChange }: TicketHist
     },
   });
 
-  const { data: auditLogs = [] } = useQuery<AuditLogRow[]>({
-    queryKey: ['conversation-audit-logs', contactId],
+  const { data: auditLogs = [], isLoading: loadingAudit } = useQuery<AuditLogRow[]>({
+    queryKey: queryKeys.conversationHistory.auditLogs(contactId),
     enabled: open && !!contactId,
     queryFn: async () => {
       if (!contactId) return [];
@@ -228,7 +230,7 @@ export function TicketHistorySheet({ contactId, open, onOpenChange }: TicketHist
 
   type TeamProfile = { id: string; name: string };
   const { data: profiles = [] } = useQuery<TeamProfile[]>({
-    queryKey: ['team-profiles-names'],
+    queryKey: queryKeys.teamProfiles.names(),
     queryFn: async () => {
       const { data, error } = await supabase.rpc('get_team_profiles');
       if (error) throw error;
@@ -242,6 +244,8 @@ export function TicketHistorySheet({ contactId, open, onOpenChange }: TicketHist
     for (const p of profiles) m[p.id] = p.name;
     return m;
   }, [profiles]);
+
+  const isLoading = loadingRemote || loadingAudit;
 
   const unified = useMemo(() => {
     const all = [
@@ -262,7 +266,20 @@ export function TicketHistorySheet({ contactId, open, onOpenChange }: TicketHist
           </SheetDescription>
         </SheetHeader>
         <ScrollArea className="-mx-6 mt-4 h-[calc(100vh-8rem)] px-6">
-          {unified.length === 0 && (
+          {isLoading && (
+            <div className="space-y-3 py-2">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="flex gap-3">
+                  <Skeleton className="mt-0.5 h-7 w-7 shrink-0 rounded-full" />
+                  <div className="flex-1 space-y-1.5">
+                    <Skeleton className="h-4 w-2/3" />
+                    <Skeleton className="h-3 w-1/2" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          {!isLoading && unified.length === 0 && (
             <div className="py-12 text-center text-sm text-muted-foreground">
               Nenhum evento registrado ainda.
             </div>

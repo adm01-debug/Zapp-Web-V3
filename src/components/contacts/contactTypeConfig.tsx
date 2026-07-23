@@ -12,6 +12,7 @@ interface TypeConfig {
   badgeClass: string;
 }
 
+/** CONTACT_TYPE_CONFIG component for the contacts section. */
 export const CONTACT_TYPE_CONFIG: Record<string, TypeConfig> = {
   cliente: {
     label: 'Cliente',

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { queryKeys } from '@/services/api/queryKeys';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { subHours } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
@@ -6,17 +7,21 @@ import { safeClient } from '@/integrations/supabase/safeClient';
 import { RANGES, ALL_INSTANCES, bucketize } from './hmacAuditHistoryHelpers';
 import type { AuditRow, RangeKey } from './hmacAuditHistoryHelpers';
 
+/** use Hmac Audit History. */
 export function useHmacAuditHistory(range: RangeKey, instanceFilter: string, limit: number) {
   const queryClient = useQueryClient();
   const [realtimeStatus, setRealtimeStatus] = useState<'connecting' | 'live' | 'offline'>(
     'connecting'
   );
 
-  const rangeCfg = useMemo(() => RANGES.find((r) => r.value === range)!, [range]);
+  const rangeCfg = useMemo(
+    () => RANGES.find((r) => r.value === range) as (typeof RANGES)[number],
+    [range]
+  );
   const since = useMemo(() => subHours(new Date(), rangeCfg.hours).toISOString(), [rangeCfg]);
 
   const queryKey = useMemo(
-    () => ['hmac-selftest-audit', range, instanceFilter],
+    () => queryKeys.adminOps.hmacAuditFiltered(range, instanceFilter),
     [range, instanceFilter]
   );
 
@@ -43,7 +48,7 @@ export function useHmacAuditHistory(range: RangeKey, instanceFilter: string, lim
   });
 
   const { data: instanceOptions } = useQuery({
-    queryKey: ['hmac-selftest-audit-instances', range],
+    queryKey: queryKeys.adminOps.hmacAuditInstancesRange(range),
     queryFn: async () => {
       const { data, error } = await safeClient.from('hmac_selftest_audit', (q) =>
         q.select('instance').gte('created_at', since).not('instance', 'is', null).limit(1000)
@@ -69,8 +74,10 @@ export function useHmacAuditHistory(range: RangeKey, instanceFilter: string, lim
         () => {
           if (debounceRef.current) window.clearTimeout(debounceRef.current);
           debounceRef.current = window.setTimeout(() => {
-            void queryClient.invalidateQueries({ queryKey: ['hmac-selftest-audit'] });
-            void queryClient.invalidateQueries({ queryKey: ['hmac-selftest-audit-instances'] });
+            void queryClient.invalidateQueries({ queryKey: queryKeys.adminOps.hmacAudit() });
+            void queryClient.invalidateQueries({
+              queryKey: queryKeys.adminOps.hmacAuditInstances(),
+            });
           }, 300);
         }
       )
@@ -82,10 +89,12 @@ export function useHmacAuditHistory(range: RangeKey, instanceFilter: string, lim
       });
     return () => {
       if (debounceRef.current) window.clearTimeout(debounceRef.current);
+      channel.unsubscribe();
       supabase.removeChannel(channel);
     };
   }, [queryClient]);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const rows = data ?? [];
   const visibleRows = rows.slice(0, limit);
 

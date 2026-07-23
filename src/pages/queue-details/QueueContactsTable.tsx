@@ -19,6 +19,7 @@ interface QueueContact {
   last_message_at: string | null;
 }
 
+/** Queue Contacts Table. */
 export function QueueContactsTable({ contacts }: { contacts: QueueContact[] }) {
   return (
     <Card className="lg:col-span-2 border border-secondary/20 bg-card/50 backdrop-blur">

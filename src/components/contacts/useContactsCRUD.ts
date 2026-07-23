@@ -4,7 +4,6 @@ import { useActionFeedback } from '@/hooks/useActionFeedback';
 import { useContactsSearch } from '@/hooks/useContactsSearch';
 import { openContactInChat } from '@/lib/openContactInChat';
 import { dbFrom } from '@/integrations/datasource/db';
-import type { Tables } from '@/integrations/supabase/schema';
 
 interface ContactFormData {
   name: string;
@@ -18,11 +17,28 @@ interface ContactFormData {
 }
 
 const EMPTY_CONTACT: ContactFormData = {
-  name: '', nickname: '', surname: '', job_title: '',
-  company: '', phone: '', email: '', contact_type: 'cliente',
+  name: '',
+  nickname: '',
+  surname: '',
+  job_title: '',
+  company: '',
+  phone: '',
+  email: '',
+  contact_type: 'cliente',
 };
 
-export type Contact = Pick<Tables<'contacts'>, 'id' | 'name' | 'nickname' | 'surname' | 'job_title' | 'company' | 'phone' | 'email' | 'contact_type' | 'tags'>;
+export interface Contact {
+  id: string;
+  name: string;
+  nickname: string | null;
+  surname: string | null;
+  job_title: string | null;
+  company: string | null;
+  phone: string;
+  email: string | null;
+  contact_type: string | null;
+  tags?: string[] | null;
+}
 
 export function useContactsCRUD() {
   const { profile } = useAuth();
@@ -46,22 +62,22 @@ export function useContactsCRUD() {
   // o Inbox identifica conversas pelo `remote_jid` — não pelo UUID local.
   // Por isso passamos o `phone` (resolvido na lista carregada) para o helper
   // central `openContactInChat`, que monta o JID e cuida do handshake.
-  const openContactChat = useCallback((contactId: string) => {
-    const found = searchHook.contacts.find((c) => c.id === contactId);
-    const phone = found?.phone?.replace(/\D/g, '') || undefined;
-    void openContactInChat({
-      contactId,
-      phone,
-      remoteJid: phone ? `${phone}@s.whatsapp.net` : undefined,
-    });
-  }, [searchHook.contacts]);
+  const openContactChat = useCallback(
+    (contactId: string) => {
+      const found = searchHook.contacts.find((c) => c.id === contactId);
+      const phone = found?.phone?.replace(/\D/g, '') || undefined;
+      void openContactInChat({
+        contactId,
+        phone,
+        remoteJid: phone ? `${phone}@s.whatsapp.net` : undefined,
+      });
+    },
+    [searchHook.contacts]
+  );
 
   const generateProtocol = useCallback(() => {
     const now = new Date();
-    const rng = new Uint8Array(4);
-    crypto.getRandomValues(rng);
-    const suffix = Array.from(rng, b => b.toString(36).padStart(2, '0')).join('').slice(0, 6).toUpperCase();
-    return `CT-${now.getFullYear()}${(now.getMonth()+1).toString().padStart(2,'0')}${now.getDate().toString().padStart(2,'0')}-${suffix}`;
+    return `CT-${now.getFullYear()}${(now.getMonth() + 1).toString().padStart(2, '0')}${now.getDate().toString().padStart(2, '0')}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
   }, []);
 
   const handleAddContact = async () => {
@@ -119,7 +135,7 @@ export function useContactsCRUD() {
             surname: editingContact.surname,
             job_title: editingContact.job_title,
             company: editingContact.company,
-            phone: editingContact.phone.replace(/\D/g, ''),
+            phone: editingContact.phone,
             email: editingContact.email,
             contact_type: editingContact.contact_type,
           })
@@ -174,26 +190,42 @@ export function useContactsCRUD() {
   }, []);
 
   const handleNewContactChange = useCallback((field: string, value: string) => {
-    setNewContact(prev => ({ ...prev, [field]: value }));
+    setNewContact((prev) => ({ ...prev, [field]: value }));
   }, []);
 
   const handleEditContactChange = useCallback((field: string, value: string) => {
-    setEditingContact(prev => prev ? { ...prev, [field]: value } as Contact : null);
+    setEditingContact((prev) => (prev ? ({ ...prev, [field]: value } as Contact) : null));
   }, []);
 
   return {
     ...searchHook,
-    profile, feedback, scrollContainerRef,
-    isSubmitting, deleteTarget, setDeleteTarget,
-    showSuccess, setShowSuccess,
-    isAddDialogOpen, setIsAddDialogOpen,
-    isEditDialogOpen, setIsEditDialogOpen,
-    editingContact, showFilters, setShowFilters,
-    isCRMSearchOpen, setIsCRMSearchOpen,
-    selectedIds, setSelectedIds,
-    newContact, openContactChat,
-    handleAddContact, handleEditContact, handleDeleteContact,
-    openEditDialog, handleCancelForm,
-    handleNewContactChange, handleEditContactChange,
+    profile,
+    feedback,
+    scrollContainerRef,
+    isSubmitting,
+    deleteTarget,
+    setDeleteTarget,
+    showSuccess,
+    setShowSuccess,
+    isAddDialogOpen,
+    setIsAddDialogOpen,
+    isEditDialogOpen,
+    setIsEditDialogOpen,
+    editingContact,
+    showFilters,
+    setShowFilters,
+    isCRMSearchOpen,
+    setIsCRMSearchOpen,
+    selectedIds,
+    setSelectedIds,
+    newContact,
+    openContactChat,
+    handleAddContact,
+    handleEditContact,
+    handleDeleteContact,
+    openEditDialog,
+    handleCancelForm,
+    handleNewContactChange,
+    handleEditContactChange,
   };
 }

@@ -11,6 +11,7 @@ interface UseInboxShortcutsProps {
   enabled?: boolean;
 }
 
+/** Registers inbox keyboard shortcuts: Mod+K/slash for search, Alt+Up/Down for navigation, Mod+E archive, Mod+Shift+T transfer, Mod+R refresh, Mod+F chat search. */
 export function useInboxShortcuts({
   onSearchFocus,
   onNextConversation,

@@ -14,6 +14,7 @@ import { HealthCheckBlock } from './external-db-explorer/HealthCheckBlock';
 import { TableCatalogBlock } from './external-db-explorer/TableCatalogBlock';
 import { QueryExplorerBlock, type QueryExplorerHandle } from './external-db-explorer/QueryExplorerBlock';
 
+/** Admin page for read-only exploration of the external Evolution DB via the external-db-proxy edge function. */
 export default function AdminExternalDbExplorerPage() {
   const explorerRef = useRef<QueryExplorerHandle>(null);
 

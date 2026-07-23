@@ -2,8 +2,12 @@ import React, { useState, useCallback, useMemo } from 'react';
 import { getLogger } from '@/lib/logger';
 
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle,
-  DialogFooter, DialogDescription,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -56,36 +60,55 @@ interface ContactMergeDialogProps {
 
 // ── Sub-components ─────────────────────────────────────────────────────────
 
-function ContactCard({ contact, label, badge }: {
-  contact: ContactForMerge; label: string; badge?: string;
+function ContactCard({
+  contact,
+  label,
+  badge,
+}: {
+  contact: ContactForMerge;
+  label: string;
+  badge?: string;
 }) {
   return (
-    <div className="rounded-lg border bg-card p-4 space-y-2">
+    <div className="space-y-2 rounded-lg border bg-card p-4">
       <div className="flex items-center justify-between">
-        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{label}</span>
+        <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          {label}
+        </span>
         {badge && <Badge variant="secondary">{badge}</Badge>}
       </div>
       <div className="flex items-center gap-3">
-        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-          {contact.avatar_url
-            ? <img src={contact.avatar_url} alt={sanitizeText(contact.name)} className="h-10 w-10 rounded-full object-cover" />
-            : <User className="h-5 w-5 text-primary" />}
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10">
+          {contact.avatar_url ? (
+            <img
+              src={contact.avatar_url}
+              alt={sanitizeText(contact.name)}
+              className="h-10 w-10 rounded-full object-cover"
+            />
+          ) : (
+            <User className="h-5 w-5 text-primary" />
+          )}
         </div>
         <div>
-          <p className="font-semibold text-sm">{sanitizeText(contact.name)}</p>
+          <p className="text-sm font-semibold">{sanitizeText(contact.name)}</p>
           <p className="text-xs text-muted-foreground">{sanitizeText(contact.phone ?? '—')}</p>
         </div>
       </div>
-      <div className="text-xs space-y-1 text-muted-foreground">
+      <div className="space-y-1 text-xs text-muted-foreground">
         {[
-          ['Email',     contact.email],
-          ['Empresa',   contact.company],
-          ['Canal',     contact.channel],
+          ['Email', contact.email],
+          ['Empresa', contact.company],
+          ['Canal', contact.channel],
           ['Conversas', String(contact.conversation_count ?? 0)],
           ['Criado em', new Date(contact.created_at).toLocaleDateString('pt-BR')],
-          ['LGPD',      contact.lgpd_consent_at ? '✅ Consentimento registrado' : '⚠️ Sem consentimento'],
+          [
+            'LGPD',
+            contact.lgpd_consent_at ? '✅ Consentimento registrado' : '⚠️ Sem consentimento',
+          ],
         ].map(([k, v]) => (
-          <div key={k}><span className="font-medium">{k}:</span> {sanitizeText(v ?? '—')}</div>
+          <div key={k}>
+            <span className="font-medium">{k}:</span> {sanitizeText(v ?? '—')}
+          </div>
         ))}
         <div>
           <span className="font-medium">Tags:</span>{' '}
@@ -96,40 +119,70 @@ function ContactCard({ contact, label, badge }: {
   );
 }
 
-function FieldSelector({ fieldKey, label, primaryValue, secondaryValue, value, onChange }: {
-  fieldKey: string; label: string;
-  primaryValue: string; secondaryValue: string;
-  value: FieldChoice; onChange: (v: FieldChoice) => void;
+function FieldSelector({
+  fieldKey,
+  label,
+  primaryValue,
+  secondaryValue,
+  value,
+  onChange,
+}: {
+  fieldKey: string;
+  label: string;
+  primaryValue: string;
+  secondaryValue: string;
+  value: FieldChoice;
+  onChange: (v: FieldChoice) => void;
 }) {
   if (!primaryValue && !secondaryValue) return null;
   if (primaryValue === secondaryValue) return null; // no conflict
-  
+
   // Logic to determine if a choice is "recommended"
   const isSecondaryRecommended = !primaryValue && !!secondaryValue;
 
   return (
-    <div className="space-y-2 py-3 px-1 border-b border-border/30 last:border-0">
+    <div className="space-y-2 border-b border-border/30 px-1 py-3 last:border-0">
       <div className="flex items-center justify-between">
-        <p className="text-sm font-semibold flex items-center gap-1.5">
+        <p className="flex items-center gap-1.5 text-sm font-semibold">
           <Info className="h-3.5 w-3.5 text-primary/60" />
           {label}
         </p>
         {isSecondaryRecommended && (
-          <Badge variant="outline" className="text-[8px] bg-primary/5 text-primary border-primary/20">
+          <Badge
+            variant="outline"
+            className="border-primary/20 bg-primary/5 text-[8px] text-primary"
+          >
             Recomendado: Secundário
           </Badge>
         )}
       </div>
-      <RadioGroup value={value} onValueChange={(v) => onChange(v as FieldChoice /* ignore-audit: Select/Tabs value string narrowed to union; developer controls option values */)} className="grid grid-cols-1 gap-2">
-        {([['primary', primaryValue], ['secondary', secondaryValue]] as const).map(([side, val]) => (
-          <div key={side} className={cn(
-            "flex items-center gap-3 p-2 rounded-lg border transition-all cursor-pointer",
-            value === side ? "border-primary bg-primary/5 ring-1 ring-primary/20" : "border-border/50 hover:bg-muted/50"
-          )} onClick={() => onChange(side)}>
+      <RadioGroup
+        value={value}
+        onValueChange={(v) => onChange(v as FieldChoice)}
+        className="grid grid-cols-1 gap-2"
+      >
+        {(
+          [
+            ['primary', primaryValue],
+            ['secondary', secondaryValue],
+          ] as const
+        ).map(([side, val]) => (
+          <div
+            key={side}
+            className={cn(
+              'flex cursor-pointer items-center gap-3 rounded-lg border p-2 transition-all',
+              value === side
+                ? 'border-primary bg-primary/5 ring-1 ring-primary/20'
+                : 'border-border/50 hover:bg-muted/50'
+            )}
+            onClick={() => onChange(side)}
+          >
             <RadioGroupItem value={side} id={`${fieldKey}-${side}`} />
-            <Label htmlFor={`${fieldKey}-${side}`} className="text-xs flex-1 cursor-pointer">
+            <Label htmlFor={`${fieldKey}-${side}`} className="flex-1 cursor-pointer text-xs">
               {val || <span className="italic text-muted-foreground">vazio</span>}
-              {side === 'primary' && val && <span className="ml-2 text-[9px] text-muted-foreground">(Principal)</span>}
+              {side === 'primary' && val && (
+                <span className="ml-2 text-[9px] text-muted-foreground">(Principal)</span>
+              )}
             </Label>
           </div>
         ))}
@@ -141,11 +194,15 @@ function FieldSelector({ fieldKey, label, primaryValue, secondaryValue, value, o
 // ── Main ───────────────────────────────────────────────────────────────────
 
 export const ContactMergeDialog: React.FC<ContactMergeDialogProps> = ({
-  open, onOpenChange, primaryContact, secondaryContact, onMergeComplete,
+  open,
+  onOpenChange,
+  primaryContact,
+  secondaryContact,
+  onMergeComplete,
 }) => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
-  
+
   // Calculate Confidence Score
   const confidenceScore = useMemo(() => {
     let score = 0;
@@ -160,11 +217,11 @@ export const ContactMergeDialog: React.FC<ContactMergeDialogProps> = ({
   const [resolution, setResolution] = useState<FieldResolution>(() => {
     const res: Partial<FieldResolution> = {};
     const fields: Array<keyof FieldResolution> = ['name', 'phone', 'email', 'company', 'notes'];
-    
-    fields.forEach(field => {
-      const pVal = primaryContact[field as keyof ContactForMerge];
-      const sVal = secondaryContact[field as keyof ContactForMerge];
-      
+
+    fields.forEach((field) => {
+      const pVal = (primaryContact as unknown as Record<string, unknown>)[field];
+      const sVal = (secondaryContact as unknown as Record<string, unknown>)[field];
+
       // If primary is empty but secondary isn't, prefer secondary
       if (!pVal && sVal) {
         res[field] = 'secondary';
@@ -172,14 +229,17 @@ export const ContactMergeDialog: React.FC<ContactMergeDialogProps> = ({
         res[field] = 'primary';
       }
     });
-    
-    return res as FieldResolution; // ignore-audit: object built by iterating fields with string values; cast narrows to typed interface
+
+    return res as FieldResolution;
   });
 
-  const pick = useCallback((field: keyof FieldResolution): string => {
-    const src = resolution[field] === 'primary' ? primaryContact : secondaryContact;
-    return sanitizeText((src[field as keyof ContactForMerge] as string) ?? '');
-  }, [resolution, primaryContact, secondaryContact]);
+  const pick = useCallback(
+    (field: keyof FieldResolution): string => {
+      const src = resolution[field] === 'primary' ? primaryContact : secondaryContact;
+      return sanitizeText(((src as unknown as Record<string, unknown>)[field] as string) ?? '');
+    },
+    [resolution, primaryContact, secondaryContact]
+  );
 
   const handleMerge = async () => {
     setLoading(true);
@@ -189,12 +249,12 @@ export const ContactMergeDialog: React.FC<ContactMergeDialogProps> = ({
       // 1. Update primary with resolved fields
       const { error: e1 } = await dbFrom('contacts')
         .update({
-          name:    pick('name'),
-          phone:   pick('phone'),
-          email:   pick('email'),
+          name: pick('name'),
+          phone: pick('phone'),
+          email: pick('email'),
           company: pick('company'),
-          notes:   pick('notes'),
-          tags:    mergedTags,
+          notes: pick('notes'),
+          tags: mergedTags,
           // Preserve oldest LGPD consent
           lgpd_consent_at: primaryContact.lgpd_consent_at ?? secondaryContact.lgpd_consent_at,
           merged_from_id: secondaryContact.id,
@@ -218,7 +278,7 @@ export const ContactMergeDialog: React.FC<ContactMergeDialogProps> = ({
       // 4. Soft-delete secondary (never hard-delete — LGPD + audit trail)
       const { error: e4 } = await dbFrom('contacts')
         .update({
-          deleted_at:     new Date().toISOString(),
+          deleted_at: new Date().toISOString(),
           deleted_reason: `merged_into:${primaryContact.id}`,
         })
         .eq('id', secondaryContact.id);
@@ -239,19 +299,22 @@ export const ContactMergeDialog: React.FC<ContactMergeDialogProps> = ({
   };
 
   const fields: Array<[keyof FieldResolution, string, keyof ContactForMerge]> = [
-    ['name', 'Nome', 'name'], ['phone', 'Telefone', 'phone'],
-    ['email', 'E-mail', 'email'], ['company', 'Empresa', 'company'],
+    ['name', 'Nome', 'name'],
+    ['phone', 'Telefone', 'phone'],
+    ['email', 'E-mail', 'email'],
+    ['company', 'Empresa', 'company'],
     ['notes', 'Notas', 'notes'],
   ];
 
-  const conflictCount = fields.filter(([, , k]) =>
-    primaryContact[k] !== secondaryContact[k]).length;
+  const conflictCount = fields.filter(
+    ([, , k]) => primaryContact[k] !== secondaryContact[k]
+  ).length;
 
   const mergedTags = [...new Set([...primaryContact.tags, ...secondaryContact.tags])];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <GitMerge className="h-5 w-5 text-primary" />
@@ -260,8 +323,8 @@ export const ContactMergeDialog: React.FC<ContactMergeDialogProps> = ({
           <DialogDescription>
             {conflictCount > 0
               ? `${conflictCount} campo(s) com valores diferentes. Escolha qual manter.`
-              : 'Nenhum conflito de campos. Confirme a mesclagem.'}
-            {' '}O histórico completo de ambos os contatos será preservado.
+              : 'Nenhum conflito de campos. Confirme a mesclagem.'}{' '}
+            O histórico completo de ambos os contatos será preservado.
           </DialogDescription>
         </DialogHeader>
 
@@ -271,18 +334,18 @@ export const ContactMergeDialog: React.FC<ContactMergeDialogProps> = ({
         </div>
 
         {/* Confidence Score Panel */}
-        <div className="bg-primary/5 border border-primary/10 rounded-xl p-4 space-y-3">
+        <div className="space-y-3 rounded-xl border border-primary/10 bg-primary/5 p-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Zap className="h-4 w-4 text-primary" />
               <span className="text-sm font-bold tracking-tight">Score de Confiança</span>
             </div>
-            <Badge variant={confidenceScore > 60 ? "default" : "secondary"} className="">
+            <Badge variant={confidenceScore > 60 ? 'default' : 'secondary'} className="">
               {confidenceScore}%
             </Badge>
           </div>
           <Progress value={confidenceScore} className="h-2" />
-          <p className="text-[10px] text-muted-foreground flex items-center gap-1.5">
+          <p className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
             <ShieldCheck className="h-3 w-3 text-primary" />
             Sugestão baseada na similaridade de dados e completude de campos.
           </p>
@@ -294,7 +357,10 @@ export const ContactMergeDialog: React.FC<ContactMergeDialogProps> = ({
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <p className="text-sm font-bold">Resolver conflitos de campos</p>
-                <Badge variant="outline" className="text-[9px] uppercase border-primary/20 text-primary bg-primary/5">
+                <Badge
+                  variant="outline"
+                  className="border-primary/20 bg-primary/5 text-[9px] uppercase text-primary"
+                >
                   Sugestões Inteligentes Aplicadas
                 </Badge>
               </div>
@@ -304,8 +370,8 @@ export const ContactMergeDialog: React.FC<ContactMergeDialogProps> = ({
                     key={field}
                     fieldKey={field}
                     label={label}
-                    primaryValue={sanitizeText(primaryContact[k] as string ?? '')}
-                    secondaryValue={sanitizeText(secondaryContact[k] as string ?? '')}
+                    primaryValue={sanitizeText((primaryContact[k] as string) ?? '')}
+                    secondaryValue={sanitizeText((secondaryContact[k] as string) ?? '')}
                     value={resolution[field]}
                     onChange={(v) => setResolution((r) => ({ ...r, [field]: v }))}
                   />
@@ -317,10 +383,12 @@ export const ContactMergeDialog: React.FC<ContactMergeDialogProps> = ({
 
         {mergedTags.length > 0 && (
           <div className="rounded-md bg-muted/50 p-3 text-sm">
-            <p className="font-medium mb-2">Tags resultantes (união automática):</p>
+            <p className="mb-2 font-medium">Tags resultantes (união automática):</p>
             <div className="flex flex-wrap gap-1">
               {mergedTags.map((tag) => (
-                <Badge key={tag} variant="outline" className="text-xs">{sanitizeText(tag)}</Badge>
+                <Badge key={tag} variant="outline" className="text-xs">
+                  {sanitizeText(tag)}
+                </Badge>
               ))}
             </div>
           </div>
@@ -331,7 +399,14 @@ export const ContactMergeDialog: React.FC<ContactMergeDialogProps> = ({
             Cancelar
           </Button>
           <Button onClick={handleMerge} disabled={loading} className="gap-2">
-            {loading ? 'Mesclando...' : <><Check className="h-4 w-4" />Confirmar Mesclagem</>}
+            {loading ? (
+              'Mesclando...'
+            ) : (
+              <>
+                <Check className="h-4 w-4" />
+                Confirmar Mesclagem
+              </>
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>

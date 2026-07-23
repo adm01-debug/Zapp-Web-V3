@@ -1,3 +1,4 @@
+import { queryKeys } from '@/services/api/queryKeys';
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { safeClient } from '@/integrations/supabase/safeClient';
@@ -13,6 +14,18 @@ interface SLADeliveryConfigSectionProps {
   contactId: string;
 }
 
+interface SLADeliveryRule {
+  id: string;
+  contact_id: string;
+  name: string;
+  warning_threshold_minutes: number;
+  breach_threshold_minutes: number;
+  custom_message: string | null;
+  is_active: boolean;
+  updated_at: string;
+}
+
+/** SLADelivery Config Section component for the contact details section. */
 export function SLADeliveryConfigSection({ contactId }: SLADeliveryConfigSectionProps) {
   const queryClient = useQueryClient();
   const [warningThreshold, setWarningThreshold] = useState<number>(30);
@@ -20,23 +33,22 @@ export function SLADeliveryConfigSection({ contactId }: SLADeliveryConfigSection
   const [customMessage, setCustomMessage] = useState<string>('');
 
   const { data: config, isLoading } = useQuery({
-    queryKey: ['sla-delivery-config', contactId],
+    queryKey: queryKeys.sla.deliveryConfig(contactId),
     enabled: !!contactId,
     queryFn: async () => {
       const { data: rows, error } = await safeClient.from('sla_delivery_rules', (q) =>
         q.select('*').eq('contact_id', contactId).limit(1)
       );
       if (error) throw error;
-      return rows?.[0] ?? null;
+      return (rows?.[0] ?? null) as SLADeliveryRule | null;
     },
   });
 
   useEffect(() => {
     if (config) {
-      const cfg = config as any;
-      setWarningThreshold(cfg.warning_threshold_minutes);
-      setBreachThreshold(cfg.breach_threshold_minutes);
-      setCustomMessage(cfg.custom_message || '');
+      setWarningThreshold(config.warning_threshold_minutes);
+      setBreachThreshold(config.breach_threshold_minutes);
+      setCustomMessage(config.custom_message || '');
     }
   }, [config]);
 
@@ -52,9 +64,9 @@ export function SLADeliveryConfigSection({ contactId }: SLADeliveryConfigSection
         updated_at: new Date().toISOString(),
       };
 
-      if ((config as any)?.id) {
+      if (config?.id) {
         const { error } = await safeClient.from('sla_delivery_rules', (q) =>
-          q.update(payload).eq('id', (config as any).id)
+          q.update(payload).eq('id', config.id)
         );
         if (error) throw error;
       } else {
@@ -64,7 +76,7 @@ export function SLADeliveryConfigSection({ contactId }: SLADeliveryConfigSection
     },
     onSuccess: () => {
       toast.success('Configurações de SLA salvas');
-      queryClient.invalidateQueries({ queryKey: ['sla-delivery-config', contactId] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.sla.deliveryConfig(contactId) });
     },
     onError: (err: Error) => {
       toast.error(`Erro ao salvar: ${err.message}`);
@@ -148,7 +160,7 @@ export function SLADeliveryConfigSection({ contactId }: SLADeliveryConfigSection
             const current = localStorage.getItem('zappweb:sla-simulation') === 'true';
             localStorage.setItem('zappweb:sla-simulation', String(!current));
             toast.info(`Modo Simulação ${!current ? 'ATIVADO' : 'DESATIVADO'}`);
-            void queryClient.invalidateQueries({ queryKey: ['delivery-stats'] });
+            void queryClient.invalidateQueries({ queryKey: queryKeys.adminOps.deliveryStats() });
           }}
         >
           <Beaker className="mr-2 h-3 w-3" />

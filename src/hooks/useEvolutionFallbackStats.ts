@@ -1,3 +1,4 @@
+import { queryKeys } from "@/services/api/queryKeys";
 import { useQuery } from "@tanstack/react-query";
 import { safeClient } from "@/integrations/supabase/safeClient";
 
@@ -20,6 +21,7 @@ export interface FallbackStatsRecent {
   primary_ms: number | null;
 }
 
+/** Fallback Stats interface definition. */
 export interface FallbackStats {
   window_hours: number;
   total: number;
@@ -36,7 +38,7 @@ export interface FallbackStats {
 /** Fetches Evolution API fallback event statistics aggregated by RPC for the specified hour window. */
 export function useEvolutionFallbackStats(windowHours = 24) {
   return useQuery<FallbackStats>({
-    queryKey: ["evolution-fallback-stats", windowHours],
+    queryKey: queryKeys.evolutionFallback.statsWindowed(windowHours),
     queryFn: async () => {
       const { data, error } = await safeClient.rpc<FallbackStats>('rpc_evolution_fallback_stats', { p_hours: windowHours });
       if (error) throw error;

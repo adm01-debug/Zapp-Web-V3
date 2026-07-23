@@ -4,6 +4,7 @@ import { isValidUUID } from '@/utils/uuid';
 
 const log = getLogger('Audit');
 
+/** Audit Action type alias. */
 export type AuditAction =
   | 'login'
   | 'logout'
@@ -40,6 +41,7 @@ export function normalizeEntityId(
   };
 }
 
+/** log Audit function. */
 export async function logAudit({ action, entityType, entityId, details }: AuditLogParams) {
   try {
     const norm = normalizeEntityId(entityId ?? null, details);

@@ -1,4 +1,4 @@
-// @ts-nocheck
+
 /**
  * Connections Queries Hook
  *
@@ -6,12 +6,7 @@
  */
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import {
-  createListQuery,
-  createDetailQuery,
-  createSearchQuery,
-  queryKeys,
-} from '@/services/api';
+import { useListQuery, useDetailQuery, useSearchQuery, queryKeys } from '@/services/api';
 import { connectionsService, type WhatsAppConnection } from './index';
 import type { QueryParams } from '@/services/api/types';
 
@@ -19,7 +14,7 @@ import type { QueryParams } from '@/services/api/types';
  * Hook to list all WhatsApp connections with filtering and pagination
  */
 export const useWhatsAppConnectionsList = (filters?: Partial<WhatsAppConnection> & QueryParams) => {
-  return createListQuery(
+  return useListQuery(
     queryKeys.connections.list(filters),
     () => connectionsService.listWhatsAppConnections(filters),
     {
@@ -33,9 +28,9 @@ export const useWhatsAppConnectionsList = (filters?: Partial<WhatsAppConnection>
  * Hook to get a single WhatsApp connection by ID
  */
 export const useWhatsAppConnection = (id?: string) => {
-  return createDetailQuery(
+  return useDetailQuery(
     queryKeys.connections.detail(id || ''),
-    () => connectionsService.getWhatsAppConnection(id!),
+    () => connectionsService.getWhatsAppConnection(id ?? ''),
     !!id,
     {
       staleTime: 60_000,
@@ -47,7 +42,7 @@ export const useWhatsAppConnection = (id?: string) => {
  * Hook to search WhatsApp connections
  */
 export const useSearchWhatsAppConnections = (query?: string) => {
-  return createSearchQuery(
+  return useSearchQuery(
     queryKeys.connections.search(query),
     () => connectionsService.searchWhatsAppConnections(query || ''),
     !!query && query.length >= 2,
@@ -62,8 +57,8 @@ export const useSearchWhatsAppConnections = (query?: string) => {
  */
 export const useConnectionHealth = (connectionId?: string) => {
   return useQuery({
-    queryKey: queryKeys.connections.health(),
-    queryFn: () => connectionsService.checkConnectionHealth(connectionId!),
+    queryKey: queryKeys.connections.healthFor(connectionId),
+    queryFn: () => connectionsService.checkConnectionHealth(connectionId ?? ''),
     enabled: !!connectionId,
     staleTime: 5_000, // Health status is checked frequently
   });
@@ -75,7 +70,7 @@ export const useConnectionHealth = (connectionId?: string) => {
 export const useConnectionStatus = (connectionId?: string) => {
   return useQuery({
     queryKey: queryKeys.connections.detail(connectionId || ''),
-    queryFn: () => connectionsService.getConnectionStatus(connectionId!),
+    queryFn: () => connectionsService.getConnectionStatus(connectionId ?? ''),
     enabled: !!connectionId,
     staleTime: 10_000,
   });

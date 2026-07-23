@@ -1,0 +1,129 @@
+name: E2E CRM (VPS)
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: 'URL alvo da VPS'
+        required: false
+        default: 'https://zapp.atomicabr.com.br'
+      include_fuzz:
+        description: 'Rodar fuzz tests de contatos?'
+        required: false
+        default: 'false'
+      runner:
+        description: 'Runner alvo (self-hosted na VPS ou ubuntu-latest)'
+        required: false
+        default: 'self-hosted'
+        type: choice
+        options:
+          - self-hosted
+          - ubuntu-latest
+
+jobs:
+  validate-user:
+    name: Pré-check — permissões CRM do E2E user
+    uses: ./.github/workflows/validate-e2e-user.yml
+    secrets: inherit
+
+  seed-contacts:
+    name: Pré-seed — contatos E2E
+    needs: [validate-user, seed-contacts]
+    uses: ./.github/workflows/seed-e2e-contacts.yml
+    secrets: inherit
+
+  e2e-crm:
+    name: Playwright CRM contra VPS
+    needs: validate-user
+    runs-on: ${{ github.event.inputs.runner == 'ubuntu-latest' && 'ubuntu-latest' || fromJSON('["self-hosted","vps-zapp","playwright"]') }}
+    timeout-minutes: 45
+    env:
+      E2E_BASE_URL: ${{ github.event.inputs.base_url }}
+      E2E_USER_EMAIL: ${{ secrets.E2E_USER_EMAIL }}
+      E2E_USER_PASSWORD: ${{ secrets.E2E_USER_PASSWORD }}
+      VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+      VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+      CI: 'true'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+
+      - name: Instalar dependências
+        run: bun install --frozen-lockfile
+
+      - name: Instalar Chromium do Playwright
+        run: bunx playwright install --with-deps chromium
+
+      - name: Validar credenciais
+        run: |
+          if [ -z "$E2E_USER_EMAIL" ] || [ -z "$E2E_USER_PASSWORD" ]; then
+            echo "::error::E2E_USER_EMAIL / E2E_USER_PASSWORD não configurados nos secrets do repositório."
+            exit 1
+          fi
+          echo "Alvo: $E2E_BASE_URL"
+
+      - name: Rodar suite CRM
+        id: run_crm
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          SPECS="e2e/contacts-crud.spec.ts e2e/audit-enterprise.spec.ts e2e/multi-service-flow.spec.ts e2e/navigation.spec.ts"
+          if [ "${{ github.event.inputs.include_fuzz }}" = "true" ]; then
+            SPECS="$SPECS tests/e2e/fuzz/contacts-fuzz.spec.ts"
+          fi
+          bunx playwright test \
+            --config=playwright.e2e.config.ts \
+            --reporter=list,html,json \
+            $SPECS 2>&1 | tee playwright-crm.log
+
+      - name: Gerar resumo em Markdown
+        if: always()
+        run: |
+          {
+            echo "# Relatório E2E CRM — $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            echo ""
+            echo "- Alvo: \`$E2E_BASE_URL\`"
+            echo "- Resultado do step CRM: \`${{ steps.run_crm.outcome }}\`"
+            echo ""
+            echo "## Últimas linhas do log"
+            echo '```'
+            tail -n 80 playwright-crm.log 2>/dev/null || echo "(sem log)"
+            echo '```'
+          } > e2e-crm-vps-report.md
+          cat e2e-crm-vps-report.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload do relatório HTML
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-e2e-crm
+          path: playwright-report-e2e/
+          retention-days: 14
+
+      - name: Upload de test-results (traces, screenshots, videos)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-e2e-crm
+          path: test-results/
+          retention-days: 14
+          if-no-files-found: ignore
+
+      - name: Upload do resumo markdown
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-crm-vps-report
+          path: e2e-crm-vps-report.md
+          retention-days: 30
+
+      - name: Falhar job se testes falharam
+        if: steps.run_crm.outcome == 'failure'
+        run: |
+          echo "::error::Testes E2E de CRM falharam contra $E2E_BASE_URL"
+          exit 1

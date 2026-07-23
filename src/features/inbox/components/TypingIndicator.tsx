@@ -10,6 +10,7 @@ interface TypingIndicatorProps {
   multipleUsers?: string[];
 }
 
+/** Typing Indicator component. */
 export function TypingIndicator({ 
   isVisible = true, 
   userName = 'Contato',
@@ -237,6 +238,7 @@ export function TypingIndicator({
 }
 
 // Compact version for header
+/** Typing Indicator Compact component. */
 export function TypingIndicatorCompact({ 
   isVisible = true,
   className 
@@ -277,6 +279,7 @@ export function TypingIndicatorCompact({
 }
 
 // Inline version for chat header
+/** Typing Indicator Inline component. */
 export function TypingIndicatorInline({
   isVisible = true,
   userName = 'Contato',

@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useSentimentData, getSentimentColor, getSentimentBg } from '@/hooks/dashboard/useSentimentData';
 import { OverviewTab, AgentsTab, AlertsTab, DistributionTab } from './SentimentTabContent';
 
+/** Sentiment Alerts Dashboard component for the dashboard section. */
 export function SentimentAlertsDashboard() {
   const [period, setPeriod] = useState('7');
   const [activeTab, setActiveTab] = useState('overview');

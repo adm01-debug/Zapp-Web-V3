@@ -37,6 +37,7 @@ function statusTone(status: string | null): string {
   return 'text-primary';
 }
 
+/** Call Correlation View function. */
 export function CallCorrelationView({ events }: Props) {
   const groupsByInstance = useMemo(() => {
     const all = groupEventsByCall(events);
@@ -181,6 +182,7 @@ function TimelineNode({ entry, startedAt }: { entry: CallTimelineEntry; startedA
   return (
     <li className="relative">
       <span
+        aria-label={entry.errorMessage ? 'Erro' : entry.processed ? 'Processado' : 'Pendente'}
         className={cn(
           'absolute -left-[21px] top-1.5 h-2.5 w-2.5 rounded-full border-2 border-background',
           entry.errorMessage

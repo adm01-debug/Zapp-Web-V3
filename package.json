@@ -11,8 +11,9 @@
     "types:gen": "bash scripts/validate-supabase-types.sh",
     "types:check": "bash scripts/validate-supabase-types.sh --check --summary",
     "gen:types:zapp": "node scripts/gen-types-zapp.mjs",
-
-    "check": "npm run check:fnsync && npm run check:febesync && npm run check:deadcode && npm run check:datalayer && npm run typecheck && npm run lint && npm run build",
+    "check": "npm run check:schema && npm run check:fnsync && npm run check:febesync && npm run check:deadcode && npm run check:datalayer && npm run typecheck && npm run lint && npm run build",
+    "check:schema": "node scripts/check-schema-usage.mjs",
+    "check:casts": "node scripts/lint-supabase-casts.mjs",
     "check:fnsync": "bash scripts/check-edge-function-sync.sh",
     "verify": "npm run check",
     "prebuild": "npm run types:gen && bun run scripts/generate-component-registry.ts",
@@ -44,7 +45,9 @@
     "build-storybook": "storybook build",
     "check:febesync": "bash scripts/check-fe-be-sync.sh",
     "check:deadcode": "node scripts/check-dead-code.mjs",
-    "check:datalayer": "node scripts/check-data-layer.mjs"
+    "check:datalayer": "node scripts/check-data-layer.mjs",
+    "check:types-schemas": "node scripts/check-types-schemas.mjs",
+    "types:repair": "node scripts/repair-types-schemas.mjs"
   },
   "dependencies": {
     "@axe-core/react": "^4.12.1",
@@ -52,7 +55,7 @@
     "@hello-pangea/dnd": "^17.0.0",
     "@hookform/resolvers": "^5.2.2",
     "@lovable.dev/cloud-auth-js": "^1.1.1",
-    "@lovable.dev/mcp-js": "^0.20.0",
+    "@lovable.dev/mcp-js": "^0.24.0",
     "@radix-ui/react-accordion": "^1.2.15",
     "@radix-ui/react-alert-dialog": "^1.1.18",
     "@radix-ui/react-aspect-ratio": "^1.1.11",
@@ -81,7 +84,7 @@
     "@radix-ui/react-toggle-group": "^1.1.14",
     "@radix-ui/react-tooltip": "^1.2.11",
     "@radix-ui/react-visually-hidden": "^1.2.4",
-    "@sentry/react": "10.65.0",
+    "@sentry/react": "10.66.0",
     "@supabase/supabase-js": "^2.110.0",
     "@tanstack/react-query": "^5.101.2",
     "@tanstack/react-virtual": "^3.14.5",
@@ -104,8 +107,6 @@
     "lucide-react": "^0.577.0",
     "mapbox-gl": "^3.25.0",
     "next-themes": "^0.4.6",
-    "prettier": "^3.9.5",
-    "prettier-plugin-tailwindcss": "^0.8.0",
     "react": "^18.3.1",
     "react-day-picker": "^10.0.1",
     "react-dom": "^18.3.1",
@@ -155,6 +156,7 @@
     "@types/react-dom": "^18.3.7",
     "@vitejs/plugin-react": "^6.0.3",
     "@vitejs/plugin-react-swc": "^4.3.1",
+    "@vitest/browser": "4.1.10",
     "@vitest/browser-playwright": "4.1.10",
     "@vitest/coverage-v8": "^4.1.10",
     "autoprefixer": "^10.5.2",
@@ -172,22 +174,24 @@
     "lovable-tagger": "^1.3.1",
     "playwright": "^1.59.1",
     "postcss": "^8.5.16",
-    "prettier": "^3.9.4",
+    "prettier": "^3.9.5",
     "prettier-plugin-tailwindcss": "^0.8.0",
     "prop-types": "^15.8.1",
     "storybook": "^10.4.6",
     "supabase": "2.109.1",
     "tailwindcss": "^3.4.17",
-    "typescript": "^7.0.2",
+    "typescript": "^5.7.0",
     "typescript-eslint": "^8.62.1",
     "vite": "^6.4.3",
     "vitest": "^4.1.10",
     "wait-on": "^9.0.5"
   },
   "overrides": {
-    "csstype": "3.2.3"
+    "csstype": "3.2.3",
+    "@vitest/browser": "4.1.10"
   },
   "resolutions": {
-    "csstype": "3.2.3"
+    "csstype": "3.2.3",
+    "@vitest/browser": "4.1.10"
   }
 }

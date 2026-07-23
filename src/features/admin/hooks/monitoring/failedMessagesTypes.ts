@@ -1,7 +1,9 @@
 import type { RootCause, RootCauseMeta } from '@/lib/failureRootCause';
 
-export type FailedMessageStatus = 'pending' | 'retrying' | 'succeeded' | 'abandoned';
+/** Failed Message Status type alias. */
+export type FailedMessageStatus = 'pending' | 'retrying' | 'succeeded' | 'abandoned' | 'failed';
 
+/** Failed Message Row interface definition. */
 export interface FailedMessageRow {
   id: string;
   instance_name: string;
@@ -20,6 +22,7 @@ export interface FailedMessageRow {
   updated_at: string;
 }
 
+/** Failed Messages Filters interface definition. */
 export interface FailedMessagesFilters {
   hours?: number;
   status?: FailedMessageStatus | null;
@@ -35,23 +38,27 @@ export interface FailedMessagesFilters {
   pageSize?: number;
 }
 
+/** Error Code Aggregate interface. */
 export interface ErrorCodeAggregate {
   code: string;
   count: number;
   lastAt: string;
 }
 
+/** Instance Aggregate interface definition. */
 export interface InstanceAggregate {
   instance: string;
   count: number;
 }
 
+/** Root Cause Aggregate interface definition. */
 export interface RootCauseAggregate {
   cause: RootCause;
   count: number;
   meta: RootCauseMeta;
 }
 
+/** Failed Messages Aggregates interface definition. */
 export interface FailedMessagesAggregates {
   pending: number;
   retrying: number;
@@ -64,6 +71,7 @@ export interface FailedMessagesAggregates {
   topInstance: InstanceAggregate | null;
 }
 
+/** Dlq Stats interface. */
 export interface DlqStats {
   total: number;
   total_24h: number;

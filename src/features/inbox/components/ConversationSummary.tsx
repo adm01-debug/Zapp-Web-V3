@@ -75,6 +75,7 @@ const sentimentConfig = {
   negativo: { icon: ThumbsDown, className: 'text-destructive' },
 };
 
+/** Conversation Summary component. */
 export function ConversationSummary({
   messages,
   contactName,
@@ -116,7 +117,7 @@ export function ConversationSummary({
       setSummary(null);
       setHasGenerated(false);
     }
-  }, [analysisPeriod, customDateFrom, customDateTo]);
+  }, [analysisPeriod, customDateFrom, customDateTo]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (initialSummary) {
       setSummary(initialSummary as unknown as SummaryData);

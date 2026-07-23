@@ -4,7 +4,9 @@ import { SLAHistoryDashboard, SLADeliveryHistoryDashboard } from '@/features/sla
 import { FloatingParticles } from '@/components/dashboard/FloatingParticles';
 import { AuroraBorealis } from '@/components/effects/AuroraBorealis';
 import { Tabs, TabsContent, TabsTrigger, TabsList } from '@/components/ui/tabs';
+import { SectionErrorBoundary } from '@/components/ui/section-error-boundary';
 
+/** Page displaying SLA history metrics and compliance trends for all conversations. */
 const SLAHistory = () => {
   const [currentView, setCurrentView] = useState('sla-history');
 
@@ -21,10 +23,14 @@ const SLAHistory = () => {
               <TabsTrigger value="delivery">Entregas & Leituras</TabsTrigger>
             </TabsList>
             <TabsContent value="standard">
-              <SLAHistoryDashboard />
+              <SectionErrorBoundary sectionName="Histórico de SLA">
+                <SLAHistoryDashboard />
+              </SectionErrorBoundary>
             </TabsContent>
             <TabsContent value="delivery">
-              <SLADeliveryHistoryDashboard />
+              <SectionErrorBoundary sectionName="Histórico de Entregas">
+                <SLADeliveryHistoryDashboard />
+              </SectionErrorBoundary>
             </TabsContent>
           </Tabs>
         </div>
@@ -33,4 +39,5 @@ const SLAHistory = () => {
   );
 };
 
+/** Default export. */
 export default SLAHistory;

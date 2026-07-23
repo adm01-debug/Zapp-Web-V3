@@ -9,6 +9,7 @@ interface MessagePreviewProps {
 }
 
 // Convert markdown-like syntax and emoji shortcodes to formatted preview
+/** Message Preview component. */
 export function MessagePreview({ content, className }: MessagePreviewProps) {
   const formattedContent = useMemo(() => {
     if (!content) return null;
@@ -180,6 +181,7 @@ export function MessagePreview({ content, className }: MessagePreviewProps) {
 }
 
 // Hook to detect if content has formattable elements
+/** use Has Formattable Content component. */
 export function useHasFormattableContent(content: string): boolean {
   return useMemo(() => {
     if (!content) return false;

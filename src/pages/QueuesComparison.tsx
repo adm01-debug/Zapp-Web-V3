@@ -6,6 +6,7 @@ import { AuroraBorealis } from '@/components/effects/AuroraBorealis';
 import { Skeleton } from '@/components/ui/skeleton';
 import { QueuesComparisonDashboard } from '@/components/queues/QueuesComparisonDashboard';
 
+/** Queues Comparison. */
 export default function QueuesComparison() {
   const navigate = useNavigate();
   const { user, loading } = useAuth();

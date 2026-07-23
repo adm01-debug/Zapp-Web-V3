@@ -16,6 +16,7 @@ const PROVIDER_MAP: Record<"google" | "apple" | "microsoft", Provider> = {
   microsoft: "azure", // Supabase usa 'azure' pra Microsoft/Entra ID
 };
 
+/** lovable. */
 export const lovable = {
   auth: {
     signInWithOAuth: async (

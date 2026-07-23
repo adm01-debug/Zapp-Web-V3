@@ -98,6 +98,7 @@ function statusIcon(status: string): JSX.Element | null {
   }
 }
 
+/** Retry Metrics Panel component for the monitoring section. */
 export function RetryMetricsPanel() {
   const [hours, setHours] = useState<number>(24);
   const [actionFilter, setActionFilter] = useState<string>('all');
@@ -120,6 +121,7 @@ export function RetryMetricsPanel() {
 
   const { data, isLoading, refetch, isFetching, byInstance } = useRetryMetrics(filters);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const rows = data?.rows ?? [];
   const agg = data?.aggregates;
 
@@ -280,7 +282,7 @@ export function RetryMetricsPanel() {
               knownInstances={byInstance.map((b) => b.instance)}
               hasBreaches={breaches.length > 0}
             />
-            <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
+            <Button aria-label="Atualizar" variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
               <RefreshCw className={cn('h-3.5 w-3.5', isFetching && 'animate-spin')} />
             </Button>
           </div>
@@ -353,9 +355,11 @@ export function RetryMetricsPanel() {
                       <TableRow
                         key={row.id}
                         role="button"
+                        tabIndex={0}
                         aria-expanded={isOpen}
                         className="cursor-pointer"
                         onClick={() => toggle(row.id)}
+                        onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && toggle(row.id)}
                       >
                         <TableCell className="text-xs text-muted-foreground">
                           <span className="inline-flex items-center gap-1">
@@ -405,13 +409,13 @@ export function RetryMetricsPanel() {
                               <code className="text-[10px] text-muted-foreground">
                                 {row.idempotency_key.slice(0, 10)}…
                               </code>
-                              <Button
+                              <Button aria-label="Copiar"
                                 variant="ghost"
                                 size="sm"
                                 className="h-5 w-5 p-0"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  copy(row.idempotency_key!);
+                                  copy(row.idempotency_key ?? '');
                                 }}
                               >
                                 <Copy className="h-3 w-3" />
@@ -579,7 +583,7 @@ function TopReasonsChart({
               tick={{
                 fontSize: 10,
                 fill: 'hsl(var(--foreground))',
-                fontFamily: 'ui-monospace, monospace',
+                fontFamily: 'var(--font-mono, ui-monospace, monospace)',
               }}
               axisLine={false}
               tickLine={false}

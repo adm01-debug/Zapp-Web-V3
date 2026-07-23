@@ -10,6 +10,7 @@ import {
   useLayoutEffect,
 } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '@/services/api/queryKeys';
 import { Loader2, Lock, ChevronDown, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getLogger } from '@/lib/logger';
@@ -52,6 +53,7 @@ interface ChatMessagesAreaProps extends LoadOlderProps {
   isLoading?: boolean;
 }
 
+/** Chat Messages Area Ref interface definition. */
 export interface ChatMessagesAreaRef {
   scrollToBottom: () => void;
   registerMessageRef: (messageId: string, el: HTMLDivElement | null) => void;
@@ -60,6 +62,7 @@ export interface ChatMessagesAreaRef {
   getScrollContainer: () => HTMLElement | null;
 }
 
+/** Chat Messages Area constant. */
 export const ChatMessagesArea = memo(
   forwardRef<ChatMessagesAreaRef, ChatMessagesAreaProps>(
     (
@@ -131,13 +134,13 @@ export const ChatMessagesArea = memo(
             (payload) => {
               const updatedMsg = payload.new as { id: string };
               if (updatedMsg.id && messagesRef.current.some((m) => m.id === updatedMsg.id)) {
-                void queryClient.invalidateQueries({ queryKey: ['messages'] });
+                void queryClient.invalidateQueries({ queryKey: queryKeys.messages.all() });
               }
             }
           )
           .subscribe();
         return () => {
-          void channel.unsubscribe();
+          supabase.removeChannel(channel);
         };
       }, [conversationId, queryClient]);
 
@@ -197,9 +200,11 @@ export const ChatMessagesArea = memo(
         prevLengthRef.current = messages.length;
       }, [messages.length]);
 
-      const handleMessageDeleted = (id: string) => {
+      const handleMessageDeleted = useCallback((id: string) => {
         log.info('Message deleted:', id);
-      };
+      }, []);
+
+      const noopRegisterRef = useCallback(() => {}, []);
 
       return (
         <div
@@ -282,7 +287,7 @@ export const ChatMessagesArea = memo(
                     activeHighlightId={activeHighlightId}
                     searchQuery={searchQuery}
                     onAudioVoiceChange={onAudioVoiceChange}
-                    registerRef={() => {}}
+                    registerRef={noopRegisterRef}
                     instanceName={instanceName}
                     contactJid={contactJid}
                   />

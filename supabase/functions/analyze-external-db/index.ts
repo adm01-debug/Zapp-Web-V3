@@ -94,12 +94,28 @@ Deno.serve(async (req) => {
   }
 
   // F10: Rate limiting — 2 analyses per minute per user (heavy operation)
-  const { data: rateLimitOk } = await self.rpc('check_rate_limit', {
-    p_key: `analyze_ext_db:${user.id}`,
-    p_max: 2,
-    p_window_seconds: 60,
-  }).maybeSingle();
-  if (rateLimitOk === false) {
+  //
+  // AUDITORIA 2026-07-17 — CORRIGIDO. O código chamava `check_rate_limit(p_key,
+  // p_max, p_window_seconds)`, que NÃO EXISTE em nenhum schema do banco canônico.
+  // A função real é zapp.fn_rate_limit_check(p_identifier, p_rpc_name, p_max_calls,
+  // p_window_minutes) -> boolean.
+  //
+  // Impacto do bug: o RPC inexistente devolvia error + data=null. Como o `error`
+  // era descartado e a guarda era `rateLimitOk === false`, null !== false =>
+  // a guarda NUNCA disparava. O rate limit desta operação pesada estava
+  // 100% bypassado (fail-open). Agora é fail-closed.
+  //
+  // `.maybeSingle()` também estava errado: fn_rate_limit_check retorna escalar
+  // boolean, não linha — maybeSingle() pede Accept: pgrst.object+json e falha.
+  const { data: rateLimitOk, error: rateLimitErr } = await self.rpc('fn_rate_limit_check', {
+    p_identifier: `analyze_ext_db:${user.id}`,
+    p_rpc_name: 'analyze-external-db',
+    p_max_calls: 2,
+    p_window_minutes: 1,
+  });
+  if (rateLimitErr || rateLimitOk === false) {
+    // fail-closed: se o rate limiter não responde, nega. Operação pesada não
+    // pode rodar sem contabilização.
     return new Response(JSON.stringify({ error: 'Rate limit exceeded. Max 2 analyses per minute.' }), {
       status: 429, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
     });

@@ -1,4 +1,4 @@
-// @ts-nocheck
+
 import { useState, useEffect } from 'react';
 import { motion } from '@/components/ui/motion';
 import { FloatingParticles } from '@/components/dashboard/FloatingParticles';
@@ -25,16 +25,18 @@ import { TrainingMode } from './TrainingMode';
 import { CrisisRoom } from './CrisisRoom';
 import { QrAttemptsPanel } from './QrAttemptsPanel';
 import { VisibilityGrantsManager } from './VisibilityGrantsManager';
+import { SectionErrorBoundary } from '@/components/ui/section-error-boundary';
 import { useAdminData, accessLevelConfig, type UserWithRole } from '../hooks/useAdminData';
 import { AdminUsersTable } from './AdminUsersTable';
 import { AdminAuditTable } from './AdminAuditTable';
 import { InboxScopeConfig } from './InboxScopeConfig';
 import { AgentVersionsPanel } from './AgentVersionsPanel';
 
-const roleIconMap = { dev: Code, admin: Crown, supervisor: UserCog, agent: User } as const;
-const roleLabelMap = { dev: 'Desenvolvedor', admin: 'Administrador', supervisor: 'Supervisor', agent: 'Atendente' } as const;
-const roleColorMap = { dev: 'text-destructive', admin: 'text-warning', supervisor: 'text-info', agent: 'text-muted-foreground' } as const;
+const roleIconMap: Record<AppRole, typeof Code> = { dev: Code, admin: Crown, manager: UserCog, supervisor: UserCog, agent: User };
+const roleLabelMap: Record<AppRole, string> = { dev: 'Desenvolvedor', admin: 'Administrador', manager: 'Gerente', supervisor: 'Supervisor', agent: 'Atendente' };
+const roleColorMap: Record<AppRole, string> = { dev: 'text-destructive', admin: 'text-warning', manager: 'text-info', supervisor: 'text-info', agent: 'text-muted-foreground' };
 
+/** Admin View component. */
 export function AdminView() {
   const { isAdmin, isSupervisor, loading: roleLoading } = useUserRole();
   const [activeTab, setActiveTab] = useState<'users' | 'audit' | 'crm' | 'playbooks' | 'copilot' | 'training' | 'crisis' | 'qr-history' | 'queues' | 'inbox-config' | 'agent-versions'>('users');
@@ -308,17 +310,29 @@ export function AdminView() {
       ) : activeTab === 'audit' ? (
         <AdminAuditTable logs={filteredLogs} />
       ) : activeTab === 'crm' ? (
-        <AdminCRMDashboard />
+        <SectionErrorBoundary sectionName="CRM Admin">
+          <AdminCRMDashboard />
+        </SectionErrorBoundary>
       ) : activeTab === 'playbooks' ? (
-        <PlaybooksManager />
+        <SectionErrorBoundary sectionName="Playbooks">
+          <PlaybooksManager />
+        </SectionErrorBoundary>
       ) : activeTab === 'copilot' ? (
-        <SupervisorCopilot />
+        <SectionErrorBoundary sectionName="Copiloto">
+          <SupervisorCopilot />
+        </SectionErrorBoundary>
       ) : activeTab === 'training' ? (
-        <TrainingMode />
+        <SectionErrorBoundary sectionName="Modo Treinamento">
+          <TrainingMode />
+        </SectionErrorBoundary>
       ) : activeTab === 'crisis' ? (
-        <CrisisRoom />
+        <SectionErrorBoundary sectionName="Sala de Crise">
+          <CrisisRoom />
+        </SectionErrorBoundary>
       ) : activeTab === 'qr-history' ? (
-        <QrAttemptsPanel />
+        <SectionErrorBoundary sectionName="Histórico QR">
+          <QrAttemptsPanel />
+        </SectionErrorBoundary>
       ) : null}
     </div>
   );

@@ -1,17 +1,19 @@
-// @ts-nocheck
 import { useCallback } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { useToast } from '@/hooks/use-toast';
 import { whatsappConnectionService } from '../../services/whatsappConnectionService';
 import { getLogger } from '@/lib/logger';
 import { evolutionInstanceName } from '@/lib/evolutionInstance';
+import { queryKeys } from '@/services/api/queryKeys';
 import type { WhatsAppApiType, WhatsAppConnection } from '../types';
 
 const log = getLogger('useConnectionsActions');
 
 type NewConnectionForm = { name: string; phone_number: string; api_type: WhatsAppApiType };
 
+/** Hook: use Connections Actions. */
 export function useConnectionsActions(
   connections: WhatsAppConnection[],
   setConnections: Dispatch<SetStateAction<WhatsAppConnection[]>>,
@@ -24,6 +26,12 @@ export function useConnectionsActions(
   newConnection: NewConnectionForm
 ) {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const invalidateConnectionsCaches = useCallback(() => {
+    void queryClient.invalidateQueries({ queryKey: queryKeys.connections.all() });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.talkx.waConnections() });
+  }, [queryClient]);
 
   const handleAddConnection = useCallback(async () => {
     if (!newConnection.name) {
@@ -56,7 +64,7 @@ export function useConnectionsActions(
 
       if (error) throw error;
 
-      setConnections((prev) => [...prev, data as WhatsAppConnection]);
+      setConnections((prev) => [...prev, data as unknown as WhatsAppConnection]);
 
       toast({
         title: 'Conexão criada!',
@@ -66,7 +74,8 @@ export function useConnectionsActions(
       });
       setIsAddDialogOpen(false);
       setNewConnection({ name: '', phone_number: '', api_type: 'evolution' });
-      if (data && !isOfficial) void handleShowQrCode(data as WhatsAppConnection);
+      invalidateConnectionsCaches();
+      if (data && !isOfficial) void handleShowQrCode(data as unknown as WhatsAppConnection);
     } catch (error: unknown) {
       log.error('Error creating connection:', error);
       const msg = error instanceof Error ? error.message : String(error);
@@ -83,6 +92,7 @@ export function useConnectionsActions(
     toast,
     setIsCreating,
     setConnections,
+    invalidateConnectionsCaches,
   ]);
 
   const handleSetDefault = useCallback(
@@ -96,13 +106,14 @@ export function useConnectionsActions(
         );
         if (error) throw error;
         setConnections((prev) => prev.map((c) => ({ ...c, is_default: c.id === id })));
+        invalidateConnectionsCaches();
         toast({ title: 'Conexão padrão atualizada' });
       } catch (error: unknown) {
         const msg = error instanceof Error ? error.message : String(error);
         toast({ title: 'Erro ao definir padrão', description: msg, variant: 'destructive' });
       }
     },
-    [setConnections, toast]
+    [setConnections, toast, invalidateConnectionsCaches]
   );
 
   const handleDelete = useCallback(
@@ -120,13 +131,14 @@ export function useConnectionsActions(
         );
         if (error) throw error;
         setConnections((prev) => prev.filter((c) => c.id !== connection.id));
+        invalidateConnectionsCaches();
         toast({ title: 'Conexão removida' });
       } catch (error: unknown) {
         const msg = error instanceof Error ? error.message : String(error);
         toast({ title: 'Erro ao deletar', description: msg, variant: 'destructive' });
       }
     },
-    [setConnections, toast, deleteInstance]
+    [setConnections, toast, deleteInstance, invalidateConnectionsCaches]
   );
 
   return {

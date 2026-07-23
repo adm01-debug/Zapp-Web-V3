@@ -40,6 +40,7 @@ interface AIConversationAssistantProps {
   onClose: () => void;
 }
 
+/** AIConversation Assistant component. */
 export function AIConversationAssistant({
   messages,
   contactId,

@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { queryKeys } from '@/services/api/queryKeys';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -61,19 +62,20 @@ function formatBucket(ts: string, window: Window) {
   return d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 }
 
+/** Auth Event Trend Chart component for the instance pauses section. */
 export function AuthEventTrendChart() {
   const [window, setWindow] = useState<Window>('24h');
   const [instanceFilter, setInstanceFilter] = useState('');
 
-  const filterTrim = instanceFilter.trim() || null;
+  const filterTrim = instanceFilter.trim() || undefined;
   const hours = WINDOW_HOURS[window];
 
   const trendQuery = useQuery({
-    queryKey: ['auth-event-trend', hours, filterTrim],
+    queryKey: queryKeys.adminOps.authEventTrendDetailed(hours, filterTrim),
     queryFn: async () => {
-      const { data, error } = await (supabase as any).rpc('rpc_instance_auth_event_trend', {
+      const { data, error } = await supabase.rpc('rpc_instance_auth_event_trend', {
         p_hours: hours,
-        p_instance: filterTrim,
+        p_instance: filterTrim as string,
       });
       if (error) throw error;
       return (data ?? []) as TrendRow[];
@@ -82,11 +84,10 @@ export function AuthEventTrendChart() {
   });
 
   const summaryQuery = useQuery({
-    queryKey: ['auth-event-summary', hours, filterTrim],
+    queryKey: queryKeys.adminOps.authEventSummaryDetailed(hours, filterTrim),
     queryFn: async () => {
-      const { data, error } = await (supabase as any).rpc('rpc_instance_auth_event_summary', {
-        p_hours: hours,
-        p_instance: filterTrim,
+      const { data, error } = await supabase.rpc('rpc_instance_auth_event_summary', {
+        p_instance: filterTrim as string,
       });
       if (error) throw error;
       return data as SummaryResp; // ignore-audit: narrows Supabase query result to local interface

@@ -79,4 +79,5 @@ const NotFound = () => {
   );
 };
 
+/** React component: Not Found. */
 export default NotFound;

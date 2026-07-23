@@ -5,8 +5,10 @@ import { useUserRole } from '@/features/auth';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { usePrefetchOnHover } from '@/hooks/usePrefetchOnHover';
 
+/** Nav Required Role type alias. */
 export type NavRequiredRole = 'dev' | 'admin' | 'supervisor' | 'agent';
 
+/** Nav Item Config interface definition. */
 export interface NavItemConfig {
   id: string;
   icon: React.ComponentType<{ className?: string }>;
@@ -34,6 +36,7 @@ interface SidebarNavItemProps {
   isFavorite?: boolean;
 }
 
+/** Sidebar Nav Item constant. */
 export const SidebarNavItem = React.memo(function SidebarNavItem({ item, currentView, onViewChange, badge, badgeVariant = 'destructive', badgeTitle, collapsed = true, onToggleFavorite, isFavorite }: SidebarNavItemProps) {
   const { hasRole } = useUserRole();
   const { prefetch } = usePrefetchOnHover();
@@ -54,7 +57,7 @@ export const SidebarNavItem = React.memo(function SidebarNavItem({ item, current
   }
 
   const button = (
-    <button
+    <button type="button"
       data-tour={item.id}
       onClick={() => onViewChange(item.id)}
       onMouseEnter={handleMouseEnter}
@@ -91,10 +94,10 @@ export const SidebarNavItem = React.memo(function SidebarNavItem({ item, current
         <span className="relative z-10 text-[13px] font-medium truncate">{item.label}</span>
       )}
       {/*
-       * IMPORTANTE: Não usar <button> aqui dentro — HTML proíbe elemento
+       * IMPORTANTE: Não usar <button type="button"> aqui dentro — HTML proíbe elemento
        * interativo dentro de outro elemento interativo (button > button).
        * Isso causava o warning:
-       *   "Warning: <button> cannot appear as a descendant of <button>"
+       *   "Warning: <button type="button"> cannot appear as a descendant of <button type="button">"
        * e quebrava acessibilidade de teclado. Usamos <div role="button">
        * com tabIndex e onKeyDown para manter semântica ARIA válida.
        */}

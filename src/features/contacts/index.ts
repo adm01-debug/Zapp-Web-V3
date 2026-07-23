@@ -1,3 +1,4 @@
+/** Public barrel exports for the contacts module. */
 export * from './hooks/useContactAssignment';
 export * from './hooks/useContactCustomFields';
 export * from './hooks/useContactEnrichedData';

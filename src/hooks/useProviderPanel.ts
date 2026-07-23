@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { useToast } from '@/hooks/use-toast';
@@ -36,54 +37,54 @@ export interface ProviderLog {
   created_at: string;
 }
 
-/** Manages WhatsApp provider configuration panel with health monitoring and provider CRUD. */
+interface ProviderPanelData {
+  rows: ProviderRow[];
+  logs: ProviderLog[];
+}
+
 export function useProviderPanel() {
-  const [rows, setRows] = useState<ProviderRow[]>([]);
-  const [logs, setLogs] = useState<ProviderLog[]>([]);
-  const [loading, setLoading] = useState(true);
   const [selectedProviderId, setSelectedProviderId] = useState<string | null>(null);
+  const queryClient = useQueryClient();
   const { toast } = useToast();
-  const mountedRef = useRef(true);
-  useEffect(() => {
-    mountedRef.current = true;
-    return () => {
-      mountedRef.current = false;
-    };
-  }, []);
 
-  const fetchPanel = useCallback(async () => {
-    setLoading(true);
-    const [{ data: panelData }, { data: logsData }] = await Promise.all([
-      safeClient.rpc<ProviderRow[]>('rpc_provider_panel'),
-      safeClient.rpc<ProviderLog[]>('rpc_provider_session_timeline', {
-        p_provider_id: selectedProviderId,
-        p_session_id: null,
-        p_limit: 100,
-      }),
-    ]);
-    if (!mountedRef.current) return;
-    setRows(panelData ?? []);
-    setLogs(logsData ?? []);
-    setLoading(false);
-  }, [selectedProviderId]);
+  const queryKey = ['provider-panel', selectedProviderId] as const;
 
-  useEffect(() => {
-    fetchPanel();
-    const id = setInterval(fetchPanel, 30_000);
-    return () => clearInterval(id);
-  }, [fetchPanel]);
+  const { data, isLoading: loading } = useQuery({
+    queryKey,
+    queryFn: async (): Promise<ProviderPanelData> => {
+      const [{ data: panelData }, { data: logsData }] = await Promise.all([
+        safeClient.rpc<ProviderRow[]>('rpc_provider_panel'),
+        safeClient.rpc<ProviderLog[]>('rpc_provider_session_timeline', {
+          p_provider_id: selectedProviderId,
+          p_session_id: null,
+          p_limit: 100,
+        }),
+      ]);
+      return { rows: panelData ?? [], logs: logsData ?? [] };
+    },
+    staleTime: 30_000,
+    refetchInterval: 30_000,
+  });
+
+  const rows = data?.rows ?? [];
+  const logs = data?.logs ?? [];
+
+  const refetch = useCallback(
+    () => queryClient.invalidateQueries({ queryKey }),
+    [queryClient, selectedProviderId] // eslint-disable-line react-hooks/exhaustive-deps
+  );
 
   const upsertProvider = async (
     payload: Partial<ProviderRow> & { id?: string; auth_token?: string }
   ) => {
-    const { id, name, provider_type, base_url, auth_token, priority, is_active } = payload;
+    const { id, ...rest } = payload;
     const data = {
-      name: name ?? '',
-      provider_type: provider_type ?? ('custom' as const),
-      base_url: base_url ?? '',
-      auth_token: auth_token ?? null,
-      priority: priority ?? 10,
-      is_active: is_active ?? true,
+      name: rest.name,
+      provider_type: rest.provider_type,
+      base_url: rest.base_url,
+      auth_token: rest.auth_token ?? null,
+      priority: rest.priority ?? 10,
+      is_active: rest.is_active ?? true,
     };
     const { error } = id
       ? await safeClient.from('provider_configs', (q) => q.update(data).eq('id', id))
@@ -93,7 +94,7 @@ export function useProviderPanel() {
       return false;
     }
     toast({ title: id ? 'Provedor atualizado' : 'Provedor criado' });
-    fetchPanel();
+    void queryClient.invalidateQueries({ queryKey });
     return true;
   };
 
@@ -104,20 +105,20 @@ export function useProviderPanel() {
       return;
     }
     toast({ title: 'Provedor removido' });
-    fetchPanel();
+    void queryClient.invalidateQueries({ queryKey });
   };
 
   const runHealthcheck = async () => {
-    const { data, error } = await supabase.functions.invoke('provider-healthcheck', { body: {} });
+    const { data: fnData, error } = await supabase.functions.invoke('provider-healthcheck', { body: {} });
     if (error) {
       toast({ title: 'Falha no healthcheck', description: error.message, variant: 'destructive' });
       return;
     }
     toast({
       title: 'Healthcheck executado',
-      description: `${data?.checked ?? 0} provedor(es) verificado(s).`,
+      description: `${fnData?.checked ?? 0} provedor(es) verificado(s).`,
     });
-    fetchPanel();
+    void queryClient.invalidateQueries({ queryKey });
   };
 
   return {
@@ -126,7 +127,7 @@ export function useProviderPanel() {
     loading,
     selectedProviderId,
     setSelectedProviderId,
-    refetch: fetchPanel,
+    refetch,
     upsertProvider,
     deleteProvider,
     runHealthcheck,

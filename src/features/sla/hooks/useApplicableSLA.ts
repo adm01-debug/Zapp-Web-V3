@@ -1,4 +1,4 @@
-// @ts-nocheck
+import { queryKeys } from '@/services/api/queryKeys';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -11,6 +11,7 @@ interface ContactSLAParams {
   agentId?: string | null;
 }
 
+/** S L A Matched Level type alias. */
 export type SLAMatchedLevel =
   | 'contact'
   | 'company'
@@ -21,6 +22,7 @@ export type SLAMatchedLevel =
   | 'global_default'
   | 'system_default';
 
+/** Applicable S L A interface definition. */
 export interface ApplicableSLA {
   firstResponseMinutes: number;
   resolutionMinutes: number;
@@ -58,9 +60,10 @@ const SYSTEM_DEFAULT: ApplicableSLA = {
 
 // Shared hook — fetches ALL active SLA rules once; React Query deduplicates
 // across every useApplicableSLA caller in the same render tree.
+/** use Active S L A Rules function. */
 export function useActiveSLARules() {
   return useQuery<ActiveSLARule[]>({
-    queryKey: ['sla-rules-active'],
+    queryKey: queryKeys.sla.rulesActive(),
     queryFn: async () => {
       const { data, error } = await supabase
         .from('sla_rules')
@@ -77,9 +80,10 @@ export function useActiveSLARules() {
 }
 
 // Shared hook — fetches the single global-default SLA config once.
+/** use S L A Default Config function. */
 export function useSLADefaultConfig() {
   return useQuery<SLAConfig | null>({
-    queryKey: ['sla-configurations-default'],
+    queryKey: queryKeys.sla.configurationsDefault(),
     queryFn: async () => {
       const { data } = await supabase
         .from('sla_configurations')
@@ -174,7 +178,7 @@ export function useApplicableSLA(params: ContactSLAParams) {
   const { data: defaultConfig, isLoading: configLoading } = useSLADefaultConfig();
 
   return useQuery<ApplicableSLA>({
-    queryKey: ['applicable-sla', params],
+    queryKey: queryKeys.sla.applicable(params),
     queryFn: (): ApplicableSLA => {
       const match = resolveHierarchy(rules ?? [], params);
       if (match) return match;

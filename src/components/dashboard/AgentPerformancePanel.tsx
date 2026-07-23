@@ -1,5 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { useAgentPerformanceRanking } from '@/hooks/useAgentPerformanceRanking';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -7,84 +6,10 @@ import { Progress } from '@/components/ui/progress';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Trophy, Flame, Zap, Target, Clock, MessageSquare, Star, Crown, Medal } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { unwrapRows } from '@/lib/supabase-helpers';
 
-interface AgentStatsRow {
-  profile_id: string;
-  xp: number;
-  level: number;
-  current_streak: number;
-  best_streak: number;
-  messages_sent: number;
-  conversations_resolved: number;
-  avg_response_time_seconds: number | null;
-  customer_satisfaction_score: number | string | null;
-}
-
-interface ProfileRow {
-  id: string;
-  name: string | null;
-  avatar_url: string | null;
-}
-
-interface AgentMetric {
-  id: string;
-  name: string;
-  avatar?: string;
-  xp: number;
-  level: number;
-  streak: number;
-  bestStreak: number;
-  messagessSent: number;
-  resolved: number;
-  avgResponseTime: number;
-  satisfaction: number;
-  rank: number;
-}
-
+/** Agent Performance Panel component for the dashboard section. */
 export function AgentPerformancePanel() {
-  const { data: agents = [], isLoading } = useQuery({
-    queryKey: ['agent-performance-ranking'],
-    queryFn: async () => {
-      const { data: statsData } = await supabase
-        .from('agent_stats')
-        .select(
-          'profile_id, xp, level, current_streak, best_streak, messages_sent, conversations_resolved, avg_response_time_seconds, customer_satisfaction_score'
-        )
-        .order('xp', { ascending: false });
-
-      const stats = unwrapRows<AgentStatsRow>(statsData);
-      if (stats.length === 0) return [];
-
-      const profileIds = stats.map((s) => s.profile_id);
-      const { data: profilesData } = await supabase
-        .from('profiles')
-        .select('id, name, avatar_url')
-        .in('id', profileIds as never);
-
-      const profiles = unwrapRows<ProfileRow>(profilesData);
-      const profileMap = new Map(profiles.map((p) => [p.id, p]));
-
-      return stats.map((s, i): AgentMetric => {
-        const profile = profileMap.get(s.profile_id);
-        return {
-          id: s.profile_id,
-          name: profile?.name || 'Agente',
-          avatar: profile?.avatar_url || undefined,
-          xp: s.xp,
-          level: s.level,
-          streak: s.current_streak,
-          bestStreak: s.best_streak,
-          messagessSent: s.messages_sent,
-          resolved: s.conversations_resolved,
-          avgResponseTime: s.avg_response_time_seconds || 0,
-          satisfaction: Number(s.customer_satisfaction_score) || 0,
-          rank: i + 1,
-        };
-      });
-    },
-    refetchInterval: 30000,
-  });
+  const { data: agents = [], isLoading } = useAgentPerformanceRanking();
 
   const rankIcons = [Crown, Medal, Trophy];
   const rankColors = ['text-warning', 'text-muted-foreground', 'text-warning'];

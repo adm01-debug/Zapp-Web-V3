@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 
 type CallbackStatus = 'loading' | 'success' | 'error';
 
+/** SSOCallback. */
 export default function SSOCallback() {
   const navigate = useNavigate();
   const [status, setStatus] = useState<CallbackStatus>('loading');
@@ -27,38 +28,44 @@ export default function SSOCallback() {
 
     const handleCallback = async () => {
       try {
-        const { data, error } = await supabase.auth.getSession();
+        // Subscribe to auth state changes unconditionally — not gated by any condition
+        // that could be influenced by user-controlled data. This must happen first.
+        const { data: authData } = supabase.auth.onAuthStateChange((event, session) => {
+          if (!mountedRef.current) return;
+          if (event === 'SIGNED_IN' && session) {
+            setStatus('success');
+            toast.success('Login realizado com sucesso!');
+            addTimer(setTimeout(() => navigate('/'), 1500));
+          } else if (event === 'SIGNED_OUT') {
+            setStatus('error');
+            setErrorMessage('Sessão não encontrada');
+          }
+        });
+        subscriptionRef.current = authData.subscription;
 
-        if (!mountedRef.current) return;
-
-        if (error) {
-          throw error;
+        // Check for OAuth error codes in the hash — user-controlled, so sanitize
+        // and set state directly instead of throwing to avoid taint propagation.
+        const hashParams = new URLSearchParams(window.location.hash.substring(1));
+        const rawErrorCode = hashParams.get('error') ?? '';
+        const rawErrorDesc = hashParams.get('error_description') ?? '';
+        const safeError = (rawErrorDesc || rawErrorCode).slice(0, 200).replace(/[<>"'&]/g, '');
+        if (safeError) {
+          setStatus('error');
+          setErrorMessage(safeError);
+          return;
         }
+
+        // No hash error — check if we already have a valid session.
+        const { data, error } = await supabase.auth.getSession();
+        if (!mountedRef.current) return;
+        if (error) throw error;
 
         if (data.session) {
           setStatus('success');
           toast.success('Login realizado com sucesso!');
           addTimer(setTimeout(() => { navigate('/'); }, 1500));
         } else {
-          const hashParams = new URLSearchParams(window.location.hash.substring(1));
-          const errorParam = hashParams.get('error_description') || hashParams.get('error');
-
-          if (errorParam) {
-            throw new Error(errorParam);
-          }
-
-          const { data: authData } = supabase.auth.onAuthStateChange((event, session) => {
-            if (event === 'SIGNED_IN' && session) {
-              setStatus('success');
-              toast.success('Login realizado com sucesso!');
-              addTimer(setTimeout(() => navigate('/'), 1500));
-            } else if (event === 'SIGNED_OUT') {
-              setStatus('error');
-              setErrorMessage('Sessão não encontrada');
-            }
-          });
-          subscriptionRef.current = authData.subscription;
-
+          // No session yet; auth subscription above will handle SIGNED_IN event.
           addTimer(setTimeout(() => {
             setStatus(prev => {
               if (prev === 'loading') {
@@ -131,7 +138,7 @@ export default function SSOCallback() {
         )}
 
         {status === 'error' && (
-          <Card>
+          <Card role="alert">
             <CardHeader className="text-center">
               <motion.div
                 initial={{ scale: 0 }}

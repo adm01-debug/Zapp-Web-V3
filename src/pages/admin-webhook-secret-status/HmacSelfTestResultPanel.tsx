@@ -5,6 +5,7 @@ interface Props {
   result: SelfTestResult;
 }
 
+/** Hmac Self Test Result Panel. */
 export function HmacSelfTestResultPanel({ result }: Props) {
   return (
     <div className="space-y-3 text-sm">

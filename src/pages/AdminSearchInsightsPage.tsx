@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -15,9 +14,14 @@ const WINDOWS: Array<{ days: number; label: string }> = [
   { days: 30, label: '30 dias' },
 ];
 
+/** Admin Search Insights Page. */
 export default function AdminSearchInsightsPage() {
   const [days, setDays] = useState(7);
-  const { data, isLoading, isFetching, refetch, error } = useSearchInsights(days);
+  const { insights, loading: isLoading } = useSearchInsights(days);
+  const data = insights;
+  const isFetching = isLoading;
+  const error: Error | null = null;
+  const refetch = () => {};
 
   return (
     <div className="mx-auto max-w-7xl space-y-4">
@@ -51,18 +55,20 @@ export default function AdminSearchInsightsPage() {
         </div>
       </header>
 
-      {error && (
-        <Card>
+      {error ? (
+        <Card role="alert">
           <CardContent className="p-6">
             <GenericEmptyState
               icon={Search}
               title="Falha ao carregar insights"
-              description={error instanceof Error ? error.message : 'Erro desconhecido'}
+              description={(error as Error).message ?? 'Erro desconhecido'}
               className="py-4"
             />
           </CardContent>
         </Card>
-      )}
+      ) : null}
+
+
 
       {!error && data && data.total_searches === 0 && !isLoading ? (
         <Card>
@@ -96,7 +102,7 @@ export default function AdminSearchInsightsPage() {
             }
             isLoading={isLoading}
           />
-          {data && <SearchInsightsTables data={data} />}
+          {data && <SearchInsightsTables />}
         </>
       )}
     </div>

@@ -37,6 +37,7 @@ function installStorageListener(): boolean {
   }
 }
 
+/** ensure Transport function. */
 export function ensureTransport(onMessage: (msg: BroadcastMessage) => void): Transport {
   if (!storedHandler) storedHandler = onMessage;
   if (transportKind && transportKind !== 'none') return transportKind;
@@ -65,6 +66,7 @@ export function ensureTransport(onMessage: (msg: BroadcastMessage) => void): Tra
   return transportKind;
 }
 
+/** broadcast function. */
 export function broadcast<T>(msg: BroadcastMessage<T>): void {
   const kind = transportKind ?? 'none';
   if (kind === 'broadcast-channel' && bc) {

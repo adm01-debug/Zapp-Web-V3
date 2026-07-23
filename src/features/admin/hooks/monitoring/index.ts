@@ -22,6 +22,7 @@ export type {
 } from './failedMessagesTypes';
 
 // ─── Aggregation Utilities ─────────────────────────────────────────────────────
+/** Re-exported module members. */
 export { computeFailedMessagesAggregates } from './failedMessagesAggregates';
 
 // ─── Hooks ─────────────────────────────────────────────────────────────────────

@@ -1,3 +1,4 @@
+import { queryKeys } from '@/services/api/queryKeys';
 import { useState, useMemo, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -5,12 +6,9 @@ import { useAuth } from '@/features/auth';
 import { toast } from 'sonner';
 import { getLogger } from '@/lib/logger';
 
-// Schema escape hatch: zapp tables not yet in generated types (gen-types-zapp.mjs pendente na VPS)
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const db = supabase as any;
-
 const log = getLogger('useQuickReplies');
 
+/** Database row from the `message_templates` table; used for quick-reply lookup, search, and CRUD operations. */
 export interface QuickReplyTemplate {
   id: string;
   title: string;
@@ -24,12 +22,14 @@ export interface QuickReplyTemplate {
   updated_at: string;
 }
 
+/** LocalStorage entry tracking which quick-reply templates the agent has pinned as favourites. */
 export interface QuickReplyFavorite {
   id: string;
   templateId: string;
   order: number;
 }
 
+/** Fields required to create or update a quick-reply template. */
 export interface CreateTemplateInput {
   title: string;
   content: string;
@@ -40,6 +40,7 @@ export interface CreateTemplateInput {
 
 const FAVORITES_STORAGE_KEY = 'quick-reply-favorites';
 
+/** Manages quick-reply templates: fetches from Supabase, provides fuzzy search, CRUD mutations, per-agent favourites (localStorage), and use-count tracking. */
 export function useQuickReplies() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -52,11 +53,11 @@ export function useQuickReplies() {
     error,
     refetch,
   } = useQuery({
-    queryKey: ['quick-replies', user?.id],
+    queryKey: queryKeys.quickReplies.user(user?.id),
     queryFn: async () => {
       if (!user?.id) return [];
 
-      const { data, error } = await db
+      const { data, error } = await supabase
         .from('message_templates')
         .select('*')
         .or(`user_id.eq.${user.id},is_global.eq.true`)
@@ -135,7 +136,7 @@ export function useQuickReplies() {
     mutationFn: async (input: CreateTemplateInput) => {
       if (!user?.id) throw new Error('User not authenticated');
 
-      const { data, error } = await db
+      const { data, error } = await supabase
         .from('message_templates')
         .insert({
           title: input.title,
@@ -153,7 +154,7 @@ export function useQuickReplies() {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['quick-replies'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.quickReplies.all() });
       toast.success('Resposta rápida criada!');
     },
     onError: (error) => {
@@ -165,7 +166,7 @@ export function useQuickReplies() {
   // Update template mutation
   const updateMutation = useMutation({
     mutationFn: async ({ id, ...input }: { id: string } & Partial<CreateTemplateInput>) => {
-      const { data, error } = await db
+      const { data, error } = await supabase
         .from('message_templates')
         .update({
           title: input.title,
@@ -183,7 +184,7 @@ export function useQuickReplies() {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['quick-replies'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.quickReplies.all() });
       toast.success('Resposta rápida atualizada!');
     },
     onError: (error) => {
@@ -195,7 +196,7 @@ export function useQuickReplies() {
   // Delete template mutation
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await db.from('message_templates').delete().eq('id', id);
+      const { error } = await supabase.from('message_templates').delete().eq('id', id);
 
       if (error) throw error;
 
@@ -204,7 +205,7 @@ export function useQuickReplies() {
       saveFavorites(newFavorites);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['quick-replies'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.quickReplies.all() });
       toast.success('Resposta rápida excluída!');
     },
     onError: (error) => {
@@ -219,12 +220,12 @@ export function useQuickReplies() {
       const template = templates?.find((t) => t.id === templateId);
       if (!template) return;
 
-      await db
+      await supabase
         .from('message_templates')
         .update({ use_count: (template.use_count || 0) + 1 })
         .eq('id', templateId);
 
-      void queryClient.invalidateQueries({ queryKey: ['quick-replies'] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.quickReplies.all() });
     },
     [templates, queryClient]
   );

@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * AlertThresholdsPanel — UI para configurar thresholds de alertas
  * em tempo real do webhook + lista dos últimos 5 alertas disparados.
@@ -33,6 +32,7 @@ interface Props {
   activeCount: number;
 }
 
+/** Alert Thresholds Panel function. */
 export function AlertThresholdsPanel({ config, onChange, recentAlerts, activeCount }: Props) {
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState<WebhookAlertConfig>(config);

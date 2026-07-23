@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState } from 'react';
 import {
   Dialog,
@@ -16,9 +15,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
 import { useTransferTeamConversation } from '@/hooks/useTeamChat';
+import { useActiveDepartments } from '@/hooks/useActiveDepartments';
 import { TeamConversation } from '@/hooks/useTeamChat';
 import { Building2, Loader2 } from 'lucide-react';
 
@@ -28,22 +26,12 @@ interface Props {
   conversation: TeamConversation;
 }
 
+/** Transfer Conversation Dialog component for the team chat section. */
 export function TransferConversationDialog({ open, onOpenChange, conversation }: Props) {
   const [selectedDeptId, setSelectedDeptId] = useState<string>('');
   const transferMutation = useTransferTeamConversation();
 
-  const { data: departments = [] } = useQuery({
-    queryKey: ['departments-list'],
-    staleTime: Infinity,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('departments')
-        .select('id, name')
-        .eq('is_active', true);
-      if (error) throw error;
-      return data;
-    },
-  });
+  const { data: departments = [] } = useActiveDepartments(open);
 
   const handleTransfer = () => {
     if (!selectedDeptId) return;

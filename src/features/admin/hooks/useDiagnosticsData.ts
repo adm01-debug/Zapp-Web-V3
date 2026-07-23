@@ -1,10 +1,11 @@
-// @ts-nocheck
+import { queryKeys } from '@/services/api/queryKeys';
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { dbFrom } from '@/integrations/datasource/db';
 
+/** Hook: Connection Status. */
 export interface ConnectionStatus {
   id: string;
   instance_id: string;
@@ -14,6 +15,7 @@ export interface ConnectionStatus {
   updated_at: string;
 }
 
+/** Hook: Message Diagnostic. */
 export interface MessageDiagnostic {
   total: number;
   sent: number;
@@ -32,6 +34,7 @@ export interface MessageDiagnostic {
   }>;
 }
 
+/** Hook: System Health. */
 export interface SystemHealth {
   database: 'healthy' | 'degraded' | 'down';
   storage: 'healthy' | 'degraded' | 'down';
@@ -44,6 +47,7 @@ export interface SystemHealth {
   connectionsCount: number;
 }
 
+/** Hook: Error Log. */
 export interface ErrorLog {
   id: string;
   type: 'connection' | 'message' | 'system' | 'webhook';
@@ -278,9 +282,10 @@ async function fetchErrorLogs(): Promise<ErrorLog[]> {
   return logs;
 }
 
+/** Hook: use Diagnostics Data. */
 export function useDiagnosticsData() {
   const query = useQuery({
-    queryKey: ['admin', 'diagnostics'],
+    queryKey: queryKeys.adminOps.diagnostics(),
     queryFn: async () => {
       const [connections, messageDiag, health, errorLogs] = await Promise.all([
         fetchConnections(),

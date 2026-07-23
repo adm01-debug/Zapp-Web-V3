@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useEffect } from 'react';
 import { useMountedRef } from '@/hooks/useMountedRef';
 import { getLogger } from '@/lib/logger';
@@ -15,6 +14,7 @@ import {
 
 const log = getLogger('AdminEmailStatusPage');
 
+/** Narrows an arbitrary status string to the `EmailHealthInfo['status']` union, defaulting to `'error'` for unknown values. */
 export const castStatus = (status: string | null): EmailHealthInfo['status'] => {
   if (status && ['healthy', 'degraded', 'error'].includes(status)) {
     return status as EmailHealthInfo['status']; // ignore-audit: includes guard above confirms status is a valid union member
@@ -29,6 +29,7 @@ interface Filters {
   page: number;
 }
 
+/** Fetches email infrastructure health from the `email-health` edge function, subscribes to realtime changes, and exposes revalidation and action handlers. */
 export function useEmailHealthStatus() {
   const { accounts } = useEmail();
   const [health, setHealth] = useState<EmailHealthInfo | null>(null);
@@ -66,6 +67,7 @@ export function useEmailHealthStatus() {
       if (!mountedRef.current) return;
       setHealth({
         status: castStatus(dataFull.status),
+        source: typeof dataFull.source === 'string' ? dataFull.source : undefined,
         lastValidation: dataFull.last_validation ? new Date(dataFull.last_validation) : null,
         cacheExpiration: null,
         recentFailures: dataFull.failuresResult?.items || [],
@@ -111,24 +113,26 @@ export function useEmailHealthStatus() {
         'postgres_changes',
         { event: '*', schema: 'zapp', table: 'email_health_summary' },
         (payload) => {
-          if (payload.new) {
+          const next = payload.new as EmailHealthSummary | null;
+          if (next && Object.keys(next).length > 0) {
             setHealth((prev) =>
               prev
                 ? {
                     ...prev,
-                    status: castStatus(payload.new.status),
-                    lastValidation: payload.new.last_validation
-                      ? new Date(payload.new.last_validation)
+                    status: castStatus(next.status),
+                    lastValidation: next.last_validation
+                      ? new Date(next.last_validation)
                       : prev.lastValidation,
                     stats: {
                       ...prev.stats,
-                      failedCalls: payload.new.failure_count_60m || 0,
+                      failedCalls: next.failure_count_60m || 0,
                     },
                   }
                 : null
             );
           }
         }
+
       )
       .on(
         'postgres_changes',
@@ -148,6 +152,7 @@ export function useEmailHealthStatus() {
       .subscribe();
 
     return () => {
+      channel.unsubscribe();
       supabase.removeChannel(channel);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps

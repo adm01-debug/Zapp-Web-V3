@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useEffect, useRef, useState, useCallback } from 'react';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -8,17 +7,26 @@ import { getExternalSupabase } from '@/integrations/supabase/externalClient';
 import { toast } from '@/hooks/use-toast';
 import { log } from '@/lib/logger';
 import type { TablesInsert, TablesUpdate } from '@/integrations/supabase/schema';
+import { queryKeys } from '@/services/api/queryKeys';
+
+interface ExternalMessage {
+  message_timestamp: string;
+  created_at: string;
+  [key: string]: unknown;
+}
 
 const getClient = () => getExternalSupabase();
 
 /* ============ INTERFACES ============ */
 
+/** SLA escalation configuration attached to an automation trigger. */
 export interface SlaEscalate {
   enabled?: boolean;
   level?: string;
   reason?: string | null;
 }
 
+/** A single automation rule row from the database. */
 export interface AutomationRule {
   id: string;
   name: string;
@@ -29,18 +37,21 @@ export interface AutomationRule {
   priority: number;
 }
 
+/** Msg Row interface definition. */
 export interface MsgRow {
   created_at: string;
   from_me: boolean;
   content: string;
 }
 
+/** Use Automations Args interface definition. */
 export interface UseAutomationsArgs {
   remoteJid: string | null;
   instanceName?: string;
   assignedTo?: string | null;
 }
 
+/** Auto Close Config interface definition. */
 export interface AutoCloseConfig {
   id: string;
   inactivity_hours: number;
@@ -51,6 +62,7 @@ export interface AutoCloseConfig {
   updated_at: string;
 }
 
+/** Automation Suggestion interface definition. */
 export interface AutomationSuggestion {
   id: string;
   rule_id: string;
@@ -64,6 +76,7 @@ export interface AutomationSuggestion {
   remote_jid: string;
 }
 
+/** Automation Row interface definition. */
 export interface AutomationRow {
   id: string;
   name: string;
@@ -79,6 +92,7 @@ export interface AutomationRow {
   updated_at: string;
 }
 
+/** _ Raw Exec Row interface definition. */
 export interface _RawExecRow {
   id: string;
   rule_id: string;
@@ -154,7 +168,7 @@ export function useAutomations({
       const client = getClient();
       if (!client) return;
 
-      const { data: msgs, error } = await client.rpc('rpc_list_messages', {
+      const { data: msgs, error } = await client.rpc('rpc_list_messages' as any, {
         p_remote_jid: remoteJid,
         p_instance: instanceName,
         p_limit: 10,
@@ -163,7 +177,7 @@ export function useAutomations({
       if (error) throw error;
       if (!msgs || !Array.isArray(msgs) || !isMounted.current) return;
 
-      const sorted = [...(msgs as ExternalMessage[])].sort(
+      const sorted = [...(msgs as unknown as ExternalMessage[])].sort(
         (a, b) => new Date(a.message_timestamp).getTime() - new Date(b.message_timestamp).getTime()
       );
       const last = sorted[sorted.length - 1];
@@ -367,36 +381,25 @@ export function useAutomations({
 
 /** Generates AI-powered automation suggestions based on conversation patterns and history. */
 export function useAutomationSuggestions(remoteJid: string | null) {
-  const [suggestions, setSuggestions] = useState<AutomationSuggestion[]>([]);
-  const [loading, setLoading] = useState(false);
-  const mountedRef = useRef(true);
-  useEffect(() => {
-    mountedRef.current = true;
-    return () => {
-      mountedRef.current = false;
-    };
-  }, []);
+  const queryClient = useQueryClient();
+  const key = ['automation-suggestions', remoteJid] as const;
 
-  const refresh = useCallback(async () => {
-    if (!remoteJid) {
-      setSuggestions([]);
-      return;
-    }
-    setLoading(true);
-    const { data } = await safeClient.from<_RawExecRow>('automation_executions', (q) =>
-      q
-        .select(
-          'id, rule_id, suggestion_text, recommended_tag, kb_sources, status, created_at, instance_name, remote_jid, automations(name)'
-        )
-        .eq('remote_jid', remoteJid)
-        .eq('status', 'pending')
-        .not('suggestion_text', 'is', null)
-        .order('created_at', { ascending: false })
-        .limit(5)
-    );
-    if (!mountedRef.current) return;
-    setSuggestions(
-      (data ?? []).map((r) => ({
+  const { data: suggestions = [], isLoading: loading } = useQuery({
+    queryKey: key,
+    queryFn: async () => {
+      if (!remoteJid) return [] as AutomationSuggestion[];
+      const { data } = await safeClient.from<_RawExecRow>('automation_executions', (q) =>
+        q
+          .select(
+            'id, rule_id, suggestion_text, recommended_tag, kb_sources, status, created_at, instance_name, remote_jid, automations(name)'
+          )
+          .eq('remote_jid', remoteJid)
+          .eq('status', 'pending')
+          .not('suggestion_text', 'is', null)
+          .order('created_at', { ascending: false })
+          .limit(5)
+      );
+      return (data ?? []).map((r) => ({
         id: r.id,
         rule_id: r.rule_id,
         rule_name: r.automations?.name,
@@ -407,13 +410,18 @@ export function useAutomationSuggestions(remoteJid: string | null) {
         created_at: r.created_at,
         instance_name: r.instance_name,
         remote_jid: r.remote_jid,
-      }))
-    );
-    setLoading(false);
-  }, [remoteJid]);
+      }));
+    },
+    enabled: !!remoteJid,
+    staleTime: 30_000,
+  });
+
+  const refresh = useCallback(
+    () => queryClient.invalidateQueries({ queryKey: key }),
+    [queryClient, remoteJid]
+  );
 
   useEffect(() => {
-    void refresh();
     if (!remoteJid) return;
     const ch = supabase
       .channel(`automation-exec-${remoteJid}`)
@@ -422,23 +430,25 @@ export function useAutomationSuggestions(remoteJid: string | null) {
         { event: '*', schema: 'zapp', table: 'automation_executions' },
         (payload) => {
           const row = (payload.new ?? payload.old) as Record<string, unknown>;
-          if (row?.remote_jid === remoteJid) void refresh();
+          if (row?.remote_jid === remoteJid)
+            void queryClient.invalidateQueries({ queryKey: key });
         }
       )
       .subscribe();
     return () => {
       ch.unsubscribe();
+      supabase.removeChannel(ch);
     };
-  }, [remoteJid, refresh]);
+  }, [remoteJid, queryClient]);
 
   const accept = useCallback(
     async (id: string) => {
       await safeClient.from('automation_executions', (q) =>
         q.update({ status: 'accepted', acted_at: new Date().toISOString() }).eq('id', id)
       );
-      void refresh();
+      void queryClient.invalidateQueries({ queryKey: key });
     },
-    [refresh]
+    [queryClient, remoteJid]
   );
 
   const dismiss = useCallback(
@@ -446,9 +456,9 @@ export function useAutomationSuggestions(remoteJid: string | null) {
       await safeClient.from('automation_executions', (q) =>
         q.update({ status: 'dismissed', acted_at: new Date().toISOString() }).eq('id', id)
       );
-      void refresh();
+      void queryClient.invalidateQueries({ queryKey: key });
     },
-    [refresh]
+    [queryClient, remoteJid]
   );
 
   const applyRecommendedTag = useCallback(
@@ -470,7 +480,7 @@ export function useAutomationSuggestions(remoteJid: string | null) {
           title: 'Tag aplicada',
           description: `"${sugg.recommended_tag}" foi adicionada ao contato.`,
         });
-        refresh();
+        void queryClient.invalidateQueries({ queryKey: key });
         return true;
       } catch (e) {
         toast({
@@ -481,7 +491,7 @@ export function useAutomationSuggestions(remoteJid: string | null) {
         return false;
       }
     },
-    [suggestions, refresh]
+    [suggestions, queryClient, remoteJid]
   );
 
   return { suggestions, loading, refresh, accept, dismiss, applyRecommendedTag };
@@ -494,13 +504,13 @@ export function useAutoCloseConversations() {
   const queryClient = useQueryClient();
 
   const configQuery = useQuery({
-    queryKey: ['auto-close-config'],
+    queryKey: queryKeys.automations.autoClose(),
     queryFn: async () => {
       const { data, error } = await supabase
         .from('auto_close_config')
         .select('*')
         .limit(1)
-        .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
+        .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
 
       if (error) throw error;
       return data;
@@ -523,7 +533,7 @@ export function useAutoCloseConversations() {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['auto-close-config'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.automations.autoClose() });
       toast({
         title: 'Configuração salva',
         description: 'Auto-fechamento atualizado com sucesso.',
@@ -548,7 +558,7 @@ export function useAutomationsManagementCRUD() {
   const queryClient = useQueryClient();
 
   const { data: automations = [], isLoading } = useQuery({
-    queryKey: ['automations'],
+    queryKey: queryKeys.automations.all(),
     queryFn: async () => {
       const { data, error } = await supabase
         .from('automations')
@@ -573,12 +583,12 @@ export function useAutomationsManagementCRUD() {
           created_by: automation.created_by,
         } as TablesInsert<'automations'>)
         .select()
-        .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
+        .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
       if (error) throw error;
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['automations'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.automations.all() });
       toast({ title: 'Automação criada!', description: '' });
     },
     onError: () => toast({ title: 'Erro ao criar automação', variant: 'destructive' }),
@@ -593,7 +603,7 @@ export function useAutomationsManagementCRUD() {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['automations'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.automations.all() });
       toast({ title: 'Automação atualizada!', description: '' });
     },
     onError: () => toast({ title: 'Erro ao atualizar automação', variant: 'destructive' }),
@@ -605,7 +615,7 @@ export function useAutomationsManagementCRUD() {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['automations'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.automations.all() });
       toast({ title: 'Automação removida!', description: '' });
     },
     onError: () => toast({ title: 'Erro ao remover automação', variant: 'destructive' }),

@@ -4,6 +4,7 @@ import type { ConnectionInfo } from './types';
 
 const log = getLogger('useMonitoringNotifications');
 
+/** Hook: use Monitoring Notifications. */
 export function useMonitoringNotifications() {
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const prevConnectionsRef = useRef<ConnectionInfo[]>([]);

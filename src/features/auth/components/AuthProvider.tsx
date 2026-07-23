@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useEffect, useCallback, useRef, useMemo, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { useQueryClient } from '@tanstack/react-query';
@@ -24,16 +23,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const fetchingPermissionsRef = useRef(false);
   const queryClient = useQueryClient();
 
+  const withTimeout = <T,>(promise: Promise<T>, ms: number, label: string): Promise<T> =>
+    Promise.race([
+      promise,
+      new Promise<T>((_, reject) =>
+        setTimeout(() => reject(new Error(`[Auth] Timeout (${ms}ms) em ${label}`)), ms)
+      ),
+    ]);
+
   const fetchProfile = useCallback(async (userId: string) => {
     if (fetchingProfileRef.current) return;
     fetchingProfileRef.current = true;
     try {
-      const { data, error } = await authService.getProfile(userId);
+      const { data, error } = await withTimeout(
+        authService.getProfile(userId),
+        8000,
+        'fetchProfile'
+      );
       if (!error && data) {
         setProfile(data);
+      } else if (error) {
+        log.error('[Auth] Error fetching profile:', error);
       }
     } catch (err: unknown) {
-      log.warn('[Auth] Failed to fetch profile for user:', userId, err);
+      log.error('[Auth] Failed to fetch profile for user:', userId, err);
+      setProfile(null);
     } finally {
       fetchingProfileRef.current = false;
     }
@@ -45,17 +59,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     fetchingPermissionsRef.current = true;
     try {
       if (!supabase) {
-        log.warn('[Auth] Supabase client not initialized for user:', userId);
+        log.error('[Auth] Supabase client not initialized for user:', userId);
         setRoles([]);
         setPermissions([]);
         return;
       }
-      const { data: userRoles, error } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', userId);
+      const { data: userRoles, error } = await withTimeout(
+        Promise.resolve(supabase.from('user_roles').select('role').eq('user_id', userId)),
+        8000,
+        'fetchRoles'
+      );
+
 
       if (error || !userRoles) {
+        if (error) log.error('[Auth] Error fetching roles:', error);
         setRoles([]);
         setPermissions([]);
         return;
@@ -69,13 +86,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      const { data: perms } = await supabase
-        .from('role_permissions')
-        .select('permissions(name)')
-        .in(
-          'role',
-          roleNames as Array<'admin' | 'agent' | 'dev' | 'manager' | 'special_agent' | 'supervisor'>
-        );
+      const { data: perms } = await withTimeout(
+        Promise.resolve(
+          supabase
+            .from('role_permissions')
+            .select('permissions(name)')
+            .in(
+              'role',
+              roleNames as Array<'admin' | 'agent' | 'dev' | 'manager' | 'special_agent' | 'supervisor'>
+            )
+        ),
+        8000,
+        'fetchPermissions'
+      );
+
 
       if (perms) {
         const permNames = (perms as Array<{ permissions: { name: string } | null }>)
@@ -84,12 +108,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setPermissions([...new Set(permNames)]);
       }
     } catch (err: unknown) {
-      log.warn('[Auth] Failed to fetch roles/permissions for user:', userId, err);
+      log.error('[Auth] Failed to fetch roles/permissions for user:', userId, err);
+      setRoles([]);
+      setPermissions([]);
     } finally {
       fetchingRolesRef.current = false;
       fetchingPermissionsRef.current = false;
     }
   }, []);
+
 
   const fetchRoles = useCallback(
     (userId: string) => fetchRolesAndPermissions(userId),
@@ -103,23 +130,61 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const refreshAll = useCallback(
     async (userId: string) => {
       setLoading(true);
-      await Promise.all([fetchProfile(userId), fetchRolesAndPermissions(userId)]);
-      setLoading(false);
+      // A11y/robustez: garante que loading NUNCA fique preso se um fetch rejeitar.
+      try {
+        await Promise.all([fetchProfile(userId), fetchRolesAndPermissions(userId)]);
+      } finally {
+        setLoading(false);
+      }
     },
     [fetchProfile, fetchRolesAndPermissions]
   );
 
   useEffect(() => {
+    let mounted = true;
+
     // Verify that auth tokens are stored in httpOnly cookies (XSS-resistant)
     if (!verifyHttpOnlyCookieAuth()) {
       log.error('[Auth] Security check failed: httpOnly cookies not properly configured');
     }
 
-    const subscription = authService.onAuthStateChange((event, session) => {
-      log.info(`[Auth] Event: ${event}`);
+    // Safety net: se onAuthStateChange NUNCA disparar (Supabase inacessível,
+    // CORS, DNS, etc.), força fim do loading após 12s para o ProtectedRoute
+    // conseguir redirecionar em vez de travar na tela de "Verificando acesso".
+    const bootstrapTimeout = setTimeout(() => {
+      if (!mounted) return;
+      log.error('[Auth] Bootstrap timeout (12s) — Supabase inacessivel. Forçando loading=false.');
+      setLoading(false);
+    }, 12000);
 
-      // Token cleanup is now handled server-side via httpOnly cookie management.
-      // No client-side localStorage manipulation needed.
+    // Explicit getSession() com timeout: se o backend não responder, saímos do
+    // loading imediatamente em vez de esperar o INITIAL_SESSION que pode nunca vir.
+    (async () => {
+      try {
+        const result = await withTimeout(
+          supabase.auth.getSession(),
+          8000,
+          'getSession'
+        );
+        if (!mounted) return;
+        const initialSession = result.data.session;
+        if (!initialSession) {
+          // Sem sessão — libera imediatamente para redirecionar a /auth
+          setLoading(false);
+        }
+        // Se houver sessão, deixamos o onAuthStateChange (INITIAL_SESSION)
+        // disparar refreshAll normalmente.
+      } catch (err) {
+        if (!mounted) return;
+        log.error('[Auth] getSession failed/timed out:', err);
+        setLoading(false);
+      }
+    })();
+
+    const subscription = authService.onAuthStateChange((event, session) => {
+      if (!mounted) return;
+      log.info(`[Auth] Event: ${event}`);
+      clearTimeout(bootstrapTimeout);
 
       setSession(session);
       setUser(session?.user ?? null);
@@ -134,39 +199,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     });
 
-    authService
-      .getUser()
-      .then(({ data: { user } }) => {
-        setUser(user);
-        if (user) {
-          refreshAll(user.id);
-        } else {
-          setLoading(false);
-        }
-      })
-      .catch((err) => {
-        log.warn('[Auth] getUser failed, clearing local session', err);
-        try {
-          Object.keys(localStorage)
-            .filter((k) => k.startsWith('sb-') && k.includes('-auth-token'))
-            .forEach((k) => localStorage.removeItem(k));
-        } catch {
-          /* noop */
-        }
-        setLoading(false);
-      });
-
-    authService
-      .getSession()
-      .then(({ data: { session } }) => {
-        setSession(session);
-      })
-      .catch(() => {
-        // getSession error is already handled by getUser catch
-      });
-
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      clearTimeout(bootstrapTimeout);
+      subscription.unsubscribe();
+    };
   }, [refreshAll]);
+
 
   useEffect(() => {
     if (!user) return;
@@ -212,9 +251,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     return () => {
       profileChannel.unsubscribe();
+      supabase.removeChannel(profileChannel);
       rolesChannel.unsubscribe();
+      supabase.removeChannel(rolesChannel);
     };
-  }, [user, profile?.id, fetchRoles, fetchPermissions]);
+  }, [user, profile?.id, fetchRoles, fetchPermissions]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const refreshProfile = useCallback(async () => {
     if (user) await fetchProfile(user.id);
@@ -269,6 +310,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       refreshRoles,
       refreshPermissions,
     }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [
       user,
       session,

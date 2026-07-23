@@ -4,6 +4,7 @@
  * ensuring the entire UI transforms when a skin is selected.
  */
 
+/** Theme Mode Colors interface. */
 export interface ThemeModeColors {
   // Core surfaces
   background: string;
@@ -90,6 +91,7 @@ export interface ThemeModeColors {
   'chart-status-open': string;
 }
 
+/** Theme Preset interface definition. */
 export interface ThemePreset {
   id: string;
   name: string;
@@ -371,6 +373,7 @@ const buildGxPreset = (p: PresetParams): ThemePreset => {
 };
 
 // ──────────── PRESETS ────────────
+/** P R E S E T S constant. */
 export const PRESETS: ThemePreset[] = [
   buildPreset({ id: 'corporate', name: 'Padrão', description: 'Azul profissional', emoji: '💼', h: 221, s: 83, l: 53, gh: 230, sh: 215, ss: 70, sl: 55 }),
   buildPreset({ id: 'purpure', name: 'Púrpure', description: 'Roxo vibrante original', emoji: '💜', h: 254, s: 92, l: 62, gh: 260, sh: 260, ss: 90, sl: 67 }),
@@ -471,11 +474,14 @@ export const PRESETS: ThemePreset[] = [
   })(),
 ];
 
+/** S T O R A G E_ K E Y constant. */
 export const STORAGE_KEY = 'theme-custom-colors';
+/** D E F A U L T_ P R E S E T_ I D constant. */
 export const DEFAULT_PRESET_ID = 'corporate';
 
 const DEPRECATED_PRESET_IDS = new Set(['default', 'purpure']);
 
+/** normalize Stored Preset Id function. */
 export function normalizeStoredPresetId(presetId?: string | null): string {
   if (!presetId || DEPRECATED_PRESET_IDS.has(presetId)) {
     return DEFAULT_PRESET_ID;

@@ -25,6 +25,7 @@ function getMediaType(file: File): string {
   return 'document';
 }
 
+/** Team File Uploader component for the team chat section. */
 export function TeamFileUploader({ conversationId, onFileSent, disabled }: TeamFileUploaderProps) {
   const { profile } = useAuth();
   const [uploading, setUploading] = useState(false);

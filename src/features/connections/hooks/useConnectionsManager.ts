@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useEffect, useCallback, useRef } from 'react';
 import { getLogger } from '@/lib/logger';
 
@@ -14,10 +13,12 @@ import { useConnectionsRealtime } from './parts/useConnectionsRealtime';
 import { useConnectionsActions } from './parts/useConnectionsActions';
 import { evolutionInstanceName } from '@/lib/evolutionInstance';
 import type { WhatsAppApiType, WhatsAppConnection, QrTtlSource } from './types';
+/** Re-exported module members. */
 export type { WhatsAppApiType, WhatsAppConnection, QrCodeDialogState, QrTtlSource } from './types';
 
 const QR_STORAGE_KEY = 'zapp:qrDialog:v1';
 
+/** Hook: use Connections Manager. */
 export function useConnectionsManager() {
   const state = useConnectionsState();
   const {
@@ -183,7 +184,7 @@ export function useConnectionsManager() {
       setLoading(true);
       const { data, error } = await whatsappConnectionRepository.fetchConnections();
       if (cancelled) return;
-      if (!error && data) setConnections(data as WhatsAppConnection[]); // ignore-audit: narrows Supabase query result to local interface
+      if (!error && data) setConnections(data as unknown as WhatsAppConnection[]); // ignore-audit: narrows Supabase query result to local interface
       setLoading(false);
     };
     void fetchConnections();

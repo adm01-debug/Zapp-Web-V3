@@ -1,7 +1,7 @@
-
 // Consolidated CRM & Customer Management Module (ETAPA 43)
 // Consolidates: useContactIntelligence, useContactNotes, useContactEnrichedData, useContactAssignment, useContactCustomFields
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useCallback } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { log } from '@/lib/logger';
 
@@ -10,10 +10,6 @@ import { log } from '@/lib/logger';
 // self-hosted, mas os types gerados no ambiente Lovable (Cloud) não as expõem.
 // Enquanto scripts/gen-types-zapp.mjs não rodar contra a VPS, isolamos a
 // tipagem apenas na fronteira do postgrest — a superfície pública do hook
-// permanece 100% tipada.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const db = supabase as any;
-
 interface ContactIntelligence {
   contact_id: string;
   sentiment: string;
@@ -34,255 +30,194 @@ interface ContactCustomField {
   id: string;
   contact_id: string;
   field_name: string;
-  field_value: any;
+  field_value: unknown;
 }
 
+/** Fetches AI-derived sentiment, engagement score, and risk level for a contact from contact_intelligence. */
 export function useContactIntelligenceManagement(contactId?: string) {
-  const [intelligence, setIntelligence] = useState<ContactIntelligence | null>(null);
-  const [loading, setLoading] = useState(true);
-  const mountedRef = useRef(true);
-
-  useEffect(() => {
-    return () => {
-      mountedRef.current = false;
-    };
-  }, []);
-
-  const fetchIntelligence = useCallback(async () => {
-    if (!contactId) return;
-
-    try {
-      setLoading(true);
-      const { data, error: err } = await db
+  const { data: intelligence = null, isLoading: loading } = useQuery({
+    queryKey: ['contact-intelligence', contactId] as const,
+    queryFn: async () => {
+      const { data, error: err } = await supabase
         .from('contact_intelligence')
         .select('*')
-        .eq('contact_id', contactId)
-        .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
+        .eq('contact_id', contactId!)
+        .maybeSingle();
 
       if (err && err.code !== 'PGRST116') throw err;
-      if (mountedRef.current) setIntelligence(data || null);
-    } catch (err) {
-      if (mountedRef.current) {
-        log.error('Error fetching contact intelligence:', err);
-      }
-    } finally {
-      if (mountedRef.current) setLoading(false);
-    }
-  }, [contactId]);
-
-  useEffect(() => {
-    if (contactId) fetchIntelligence();
-  }, [contactId, fetchIntelligence]);
+      return (data || null) as ContactIntelligence | null;
+    },
+    enabled: !!contactId,
+    staleTime: 30_000,
+  });
 
   return { intelligence, loading };
 }
 
+/** Loads and creates timestamped notes for a contact, resolving the author profile from the current session. */
 export function useContactNotesManagement(contactId?: string) {
-  const [notes, setNotes] = useState<ContactNote[]>([]);
-  const [loading, setLoading] = useState(true);
-  const mountedRef = useRef(true);
+  const queryClient = useQueryClient();
+  const NOTES_KEY = ['contact-notes', contactId] as const;
 
-  useEffect(() => {
-    return () => {
-      mountedRef.current = false;
-    };
-  }, []);
-
-  const fetchNotes = useCallback(async () => {
-    if (!contactId) return;
-
-    try {
-      setLoading(true);
-      const { data, error: err } = await db
+  const { data: notes = [], isLoading: loading, refetch } = useQuery({
+    queryKey: NOTES_KEY,
+    queryFn: async () => {
+      const { data, error: err } = await supabase
         .from('contact_notes')
         .select('*')
-        .eq('contact_id', contactId)
+        .eq('contact_id', contactId!)
         .order('created_at', { ascending: false });
 
       if (err) throw err;
-      if (mountedRef.current) setNotes(data || []);
-    } catch (err) {
-      if (mountedRef.current) {
-        log.error('Error fetching contact notes:', err);
-      }
-    } finally {
-      if (mountedRef.current) setLoading(false);
-    }
-  }, [contactId]);
+      return (data || []) as ContactNote[];
+    },
+    enabled: !!contactId,
+    staleTime: 30_000,
+  });
 
   const addNote = useCallback(
     async (content: string) => {
       if (!contactId) return;
 
       try {
-        const { error: err } = await db.from('contact_notes').insert({
+        const {
+          data: { user },
+          error: authError,
+        } = await supabase.auth.getUser();
+        if (authError) throw authError;
+        if (!user) throw new Error('Usuário não autenticado');
+
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('user_id', user.id)
+          .maybeSingle();
+        if (profileError) throw profileError;
+        if (!profile) throw new Error('Perfil não encontrado');
+
+        const { error: err } = await supabase.from('contact_notes').insert({
           contact_id: contactId,
           content,
+          author_id: profile.id,
         });
 
         if (err) throw err;
-        await fetchNotes();
+        void queryClient.invalidateQueries({ queryKey: NOTES_KEY });
       } catch (err) {
-        if (mountedRef.current) {
-          log.error('Error adding contact note:', err);
-        }
+        log.error('Error adding contact note:', err);
       }
     },
-    [contactId, fetchNotes, mountedRef]
+    [contactId, queryClient, NOTES_KEY]
   );
 
-  useEffect(() => {
-    if (contactId) fetchNotes();
-  }, [contactId, fetchNotes]);
-
-  return { notes, loading, isLoading: loading, addNote, refetch: fetchNotes }; // ✅ fix: isLoading alias
+  return { notes, loading, isLoading: loading, addNote, refetch };
 }
 
+/** Calls the `enrich_contact` RPC to retrieve third-party enriched data (LinkedIn, company info, etc.) for a contact. */
 export function useContactEnrichedDataManagement(contactId?: string) {
-  const [enrichedData, setEnrichedData] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const { data: enrichedData = null, isLoading: loading } = useQuery({
+    queryKey: ['contact-enriched', contactId] as const,
+    queryFn: async () => {
+      const { data, error: err } = await supabase.rpc('enrich_contact', {
+        contact_id: contactId!,
+      });
 
-  useEffect(() => {
-    if (!contactId) return;
-
-    const fetchEnrichedData = async () => {
-      try {
-        const { data, error: err } = await supabase.rpc('enrich_contact', { contact_id: contactId });
-
-        if (err) throw err;
-        setEnrichedData(data);
-      } catch (err) {
-        log.error('Error enriching contact data:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchEnrichedData();
-  }, [contactId]);
+      if (err) throw err;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return data as any;
+    },
+    enabled: !!contactId,
+    staleTime: 60_000,
+  });
 
   return { enrichedData, loading };
 }
 
+/** Manages the agent assignment record for a contact, exposing `assignToUser` to upsert an assignment. */
 export function useContactAssignmentManagement(contactId?: string) {
-  const [assignment, setAssignment] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const mountedRef = useRef(true);
+  const queryClient = useQueryClient();
+  const ASSIGNMENT_KEY = ['contact-assignment', contactId] as const;
 
-  useEffect(() => {
-    return () => {
-      mountedRef.current = false;
-    };
-  }, []);
-
-  const fetchAssignment = useCallback(async () => {
-    if (!contactId) return;
-
-    try {
-      setLoading(true);
-      const { data, error: err } = await db
+  const { data: assignment = null, isLoading: loading, refetch } = useQuery({
+    queryKey: ASSIGNMENT_KEY,
+    queryFn: async () => {
+      const { data, error: err } = await supabase
         .from('contact_assignments')
         .select('*')
-        .eq('contact_id', contactId)
-        .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
+        .eq('contact_id', contactId!)
+        .maybeSingle();
 
       if (err && err.code !== 'PGRST116') throw err;
-      if (mountedRef.current) setAssignment(data || null);
-    } catch (err) {
-      if (mountedRef.current) {
-        log.error('Error fetching contact assignment:', err);
-      }
-    } finally {
-      if (mountedRef.current) setLoading(false);
-    }
-  }, [contactId]);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return (data || null) as any;
+    },
+    enabled: !!contactId,
+    staleTime: 30_000,
+  });
 
   const assignToUser = useCallback(
     async (userId: string) => {
       if (!contactId) return;
 
       try {
-        const { error: err } = await db
+        const { error: err } = await supabase
           .from('contact_assignments')
           .upsert({ contact_id: contactId, assigned_to_user_id: userId });
 
         if (err) throw err;
-        await fetchAssignment();
+        void queryClient.invalidateQueries({ queryKey: ASSIGNMENT_KEY });
       } catch (err) {
-        if (mountedRef.current) {
-          log.error('Error assigning contact:', err);
-        }
+        log.error('Error assigning contact:', err);
       }
     },
-    [contactId, fetchAssignment, mountedRef]
+    [contactId, queryClient, ASSIGNMENT_KEY]
   );
 
-  useEffect(() => {
-    if (contactId) fetchAssignment();
-  }, [contactId, fetchAssignment]);
-
-  return { assignment, loading, assignToUser, refetch: fetchAssignment };
+  return { assignment, loading, assignToUser, refetch };
 }
 
+/** Fetches and upserts arbitrary key-value custom fields for a contact from contact_custom_fields. */
 export function useContactCustomFieldsManagement(contactId?: string) {
-  const [fields, setFields] = useState<ContactCustomField[]>([]);
-  const [loading, setLoading] = useState(true);
-  const mountedRef = useRef(true);
+  const queryClient = useQueryClient();
+  const FIELDS_KEY = ['contact-custom-fields-mgmt', contactId] as const;
 
-  useEffect(() => {
-    return () => {
-      mountedRef.current = false;
-    };
-  }, []);
-
-  const fetchFields = useCallback(async () => {
-    if (!contactId) return;
-
-    try {
-      setLoading(true);
-      const { data, error: err } = await db
+  const { data: fields = [], isLoading: loading, refetch } = useQuery({
+    queryKey: FIELDS_KEY,
+    queryFn: async () => {
+      const { data, error: err } = await supabase
         .from('contact_custom_fields')
         .select('*')
-        .eq('contact_id', contactId);
+        .eq('contact_id', contactId!);
 
       if (err) throw err;
-      if (mountedRef.current) setFields(data || []);
-    } catch (err) {
-      if (mountedRef.current) {
-        log.error('Error fetching custom fields:', err);
-      }
-    } finally {
-      if (mountedRef.current) setLoading(false);
-    }
-  }, [contactId]);
+      return (data || []) as ContactCustomField[];
+    },
+    enabled: !!contactId,
+    staleTime: 30_000,
+  });
 
   const updateField = useCallback(
-    async (fieldName: string, fieldValue: any) => {
+    async (fieldName: string, fieldValue: unknown) => {
       if (!contactId) return;
 
       try {
-        const { error: err } = await db.from('contact_custom_fields').upsert({
+        const { error: err } = await supabase.from('contact_custom_fields').upsert({
           contact_id: contactId,
           field_name: fieldName,
           field_value: fieldValue,
         });
 
         if (err) throw err;
-        await fetchFields();
+        void queryClient.invalidateQueries({ queryKey: FIELDS_KEY });
       } catch (err) {
-        if (mountedRef.current) {
-          log.error('Error updating custom field:', err);
-        }
+        log.error('Error updating custom field:', err);
       }
     },
-    [contactId, fetchFields, mountedRef]
+    [contactId, queryClient, FIELDS_KEY]
   );
 
-  useEffect(() => {
-    if (contactId) fetchFields();
-  }, [contactId, fetchFields]);
-
-  return { fields, loading, updateField, refetch: fetchFields };
+  return { fields, loading, updateField, refetch };
 }
 
+/** Re-exported module members. */
 export type { ContactIntelligence, ContactNote, ContactCustomField };

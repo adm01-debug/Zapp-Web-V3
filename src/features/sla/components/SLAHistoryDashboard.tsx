@@ -63,6 +63,7 @@ const TrendIndicator = ({
   );
 };
 
+/** SLAHistory Dashboard component. */
 export const SLAHistoryDashboard = () => {
   const [period, setPeriod] = useState<HistoryPeriod>('30d');
   const { data, loading } = useSLAHistory(period);

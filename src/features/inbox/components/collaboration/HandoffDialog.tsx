@@ -1,5 +1,5 @@
-// @ts-nocheck
 import { useState } from 'react';
+import { queryKeys } from '@/services/api/queryKeys';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -25,6 +25,7 @@ interface HandoffDialogProps {
   onHandoff: (agentId: string, comment: string) => Promise<void>;
 }
 
+/** Handoff Dialog component for the collaboration section. */
 export function HandoffDialog({
   open,
   onOpenChange,
@@ -36,7 +37,7 @@ export function HandoffDialog({
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const { data: agents } = useQuery({
-    queryKey: ['agents-for-handoff'],
+    queryKey: queryKeys.contactDetails.agentForHandoff(),
     queryFn: async () => {
       const { data, error } = await supabase
         .from('profiles')
@@ -80,7 +81,7 @@ export function HandoffDialog({
             <ScrollArea className="h-48 rounded-lg border p-2">
               <div className="space-y-1">
                 {agents?.map((agent) => (
-                  <button
+                  <button type="button"
                     key={agent.id}
                     onClick={() => setSelectedAgent(agent.id)}
                     className={cn(

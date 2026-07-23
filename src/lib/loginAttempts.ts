@@ -59,6 +59,7 @@ async function invokeLoginAttempts(
   return data;
 }
 
+/** check Account Lock. */
 export async function checkAccountLock(email: string): Promise<LockStatus> {
   try {
     return toLockStatus(await invokeLoginAttempts('check', email));
@@ -68,6 +69,7 @@ export async function checkAccountLock(email: string): Promise<LockStatus> {
   }
 }
 
+/** record Failed Login. */
 export async function recordFailedLogin(email: string): Promise<LockStatus> {
   try {
     return toLockStatus(await invokeLoginAttempts('record_failed', email), 1);
@@ -77,6 +79,7 @@ export async function recordFailedLogin(email: string): Promise<LockStatus> {
   }
 }
 
+/** clear Login Attempts. */
 export async function clearLoginAttempts(email: string): Promise<void> {
   try {
     await invokeLoginAttempts('clear', email);
@@ -85,6 +88,7 @@ export async function clearLoginAttempts(email: string): Promise<void> {
   }
 }
 
+/** format Lock Time. */
 export function formatLockTime(seconds: number): string {
   if (seconds < 60) {
     return `${seconds} segundo${seconds !== 1 ? 's' : ''}`;

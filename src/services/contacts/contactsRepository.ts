@@ -1,4 +1,4 @@
-// @ts-nocheck
+
 /**
  * Contacts Repository
  *
@@ -20,6 +20,7 @@ export interface Contact {
   status?: 'active' | 'archived';
   created_at?: string;
   updated_at?: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [key: string]: any;
 }
 
@@ -112,21 +113,21 @@ export const contactsRepository = {
    * Delete multiple contacts
    */
   deleteMany: async (ids: string[]): Promise<number> => {
-    return baseContactsService.deleteMany({ id: ids } as any);
+    return baseContactsService.deleteMany({ id: ids as unknown as string });
   },
 
   /**
    * Archive a contact (soft delete)
    */
   archive: async (id: string): Promise<Contact> => {
-    return baseContactsService.update(id, { status: 'archived' } as any);
+    return baseContactsService.update(id, { status: 'archived' });
   },
 
   /**
    * Restore an archived contact
    */
   restore: async (id: string): Promise<Contact> => {
-    return baseContactsService.update(id, { status: 'active' } as any);
+    return baseContactsService.update(id, { status: 'active' });
   },
 
   /**
@@ -142,11 +143,8 @@ export const contactsRepository = {
   /**
    * Bulk update status
    */
-  updateStatusBulk: async (
-    ids: string[],
-    status: 'active' | 'archived'
-  ): Promise<Contact[]> => {
-    return baseContactsService.updateMany({ id: ids } as any, { status } as any);
+  updateStatusBulk: async (ids: string[], status: 'active' | 'archived'): Promise<Contact[]> => {
+    return baseContactsService.updateMany({ id: ids as unknown as string }, { status });
   },
 
   /**

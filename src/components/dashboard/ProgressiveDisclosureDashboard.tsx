@@ -53,6 +53,7 @@ interface EnhancedProps {
   isLoading?: boolean;
 }
 
+/** Enhanced Progressive Disclosure component for the dashboard section. */
 export function EnhancedProgressiveDisclosure({
   sections,
   renderWidget,
@@ -164,6 +165,7 @@ interface LegacyProps {
   renderWidget: (widget: DashboardWidget) => React.ReactNode;
 }
 
+/** Progressive Disclosure Dashboard component for the dashboard section. */
 export function ProgressiveDisclosureDashboard({
   level1Widgets,
   level2Widgets,

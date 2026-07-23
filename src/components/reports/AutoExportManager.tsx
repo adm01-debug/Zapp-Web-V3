@@ -5,6 +5,7 @@
 import { Card, CardContent } from '@/components/ui/card';
 import { ShieldAlert } from 'lucide-react';
 
+/** Renders a policy-blocked placeholder for automated data export — no actual export is performed. */
 export function AutoExportManager() {
   return (
     <div className="space-y-6">

@@ -3,6 +3,9 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 vi.mock('@/integrations/supabase/client', () => ({
+  isSupabaseConfigured: true,
+  SUPABASE_RESOLVED_URL: 'http://localhost:54321',
+  SUPABASE_RESOLVED_ANON_KEY: 'test-anon-key',
   supabase: {
     from: vi.fn().mockReturnValue({
       select: vi.fn().mockReturnValue({

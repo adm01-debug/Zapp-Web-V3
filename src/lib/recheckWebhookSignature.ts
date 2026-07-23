@@ -4,6 +4,7 @@
  */
 import { supabase } from '@/integrations/supabase/client';
 
+/** Diagnostic result returned by the `recheck-webhook-signature` edge function. */
 export interface RecheckResult {
   event_id: string;
   instance_name: string | null;
@@ -16,6 +17,7 @@ export interface RecheckResult {
   reason: string;
 }
 
+/** recheck Webhook Signature function. */
 export async function recheckWebhookSignature(eventId: string): Promise<RecheckResult> {
   const { data, error } = await supabase.functions.invoke('recheck-webhook-signature', {
     body: { event_id: eventId },

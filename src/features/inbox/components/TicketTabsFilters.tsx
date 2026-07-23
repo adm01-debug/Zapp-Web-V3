@@ -1,4 +1,4 @@
-// @ts-nocheck
+import { useMemo } from 'react';
 import { getLogger } from '@/lib/logger';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
@@ -14,7 +14,7 @@ import {
 import { Users, Headphones, User } from 'lucide-react';
 import { useAuth, useUserRole, usePermissions } from '@/features/auth';
 import { useAgents } from '@/features/admin';
-import { supabase } from '@/integrations/supabase/client';
+import { logAuditEvent } from '../hooks/useAuditLogMutation';
 import { toast } from 'sonner';
 import type { MainTab, SubTab, InboxScope } from './TicketTabs';
 
@@ -34,6 +34,7 @@ interface TicketTabsFiltersProps {
   departmentAgentIds: string[];
 }
 
+/** Ticket Tabs Filters component. */
 export function TicketTabsFilters({
   mainTab,
   subTab,
@@ -56,6 +57,18 @@ export function TicketTabsFilters({
   const canSeeDepartment = hasPermission('inbox.view_department');
   const canSeeAllDepartments = hasPermission('inbox.view_all');
   const canShowAll = canSeeAllDepartments || isSupervisor;
+
+  const departmentAgentIdSet = useMemo(
+    () => new Set(departmentAgentIds),
+    [departmentAgentIds]
+  );
+  const departmentAgents = useMemo(
+    () =>
+      scope === 'department'
+        ? agents.filter((a) => departmentAgentIdSet.has(a.id))
+        : agents,
+    [agents, scope, departmentAgentIdSet]
+  );
 
   return (
     <>
@@ -149,7 +162,7 @@ export function TicketTabsFilters({
                             scope: opt.id,
                             userId: user?.id,
                           });
-                          void supabase.from('audit_logs').insert({
+                          logAuditEvent({
                             user_id: user?.id,
                             action: 'UNAUTHORIZED_INBOX_SCOPE_ACCESS',
                             entity_type: 'inbox_scope',
@@ -200,10 +213,7 @@ export function TicketTabsFilters({
                   <SelectItem value="all" className="text-xs">
                     Todos os Colaboradores
                   </SelectItem>
-                  {(scope === 'department'
-                    ? agents.filter((a) => departmentAgentIds.includes(a.id))
-                    : agents
-                  ).map((agent) => (
+                  {departmentAgents.map((agent) => (
                     <SelectItem key={agent.id} value={agent.id} className="text-xs">
                       <div className="flex items-center gap-1.5">
                         <div

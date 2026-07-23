@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -6,12 +5,12 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Search, Loader2, UserPlus } from 'lucide-react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/features/auth';
 import { TeamConversation } from '@/hooks/useTeamChat';
+import { useActiveTeamProfiles, useAddConversationMembers } from '@/hooks/useTeamChatMembers';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { queryKeys } from '@/services/api/queryKeys';
 
 interface Props {
   open: boolean;
@@ -19,9 +18,9 @@ interface Props {
   conversation: TeamConversation;
 }
 
+/** Add Members Dialog component for the team chat section. */
 export function AddMembersDialog({ open, onOpenChange, conversation }: Props) {
   const { profile } = useAuth();
-  const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
@@ -30,19 +29,11 @@ export function AddMembersDialog({ open, onOpenChange, conversation }: Props) {
     [conversation.members]
   );
 
-  const { data: teammates = [], isLoading } = useQuery({
-    queryKey: ['team-profiles-for-add-members', conversation.id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id, name, email, avatar_url, is_active')
-        .eq('is_active', true)
-        .order('name');
-      if (error) throw error;
-      return (data || []).filter(t => !existingMemberIds.has(t.id));
-    },
-    enabled: open && !!profile,
-  });
+  const { data: allProfiles = [], isLoading } = useActiveTeamProfiles(
+    open && !!profile,
+    queryKeys.teamProfiles.forAddMembers(),
+  );
+  const teammates = allProfiles.filter(t => !existingMemberIds.has(t.id));
 
   const filtered = useMemo(() => {
     if (!search.trim()) return teammates;
@@ -52,28 +43,13 @@ export function AddMembersDialog({ open, onOpenChange, conversation }: Props) {
     );
   }, [teammates, search]);
 
-  const addMutation = useMutation({
-    mutationFn: async (memberIds: string[]) => {
-      const { error } = await supabase
-        .from('team_conversation_members')
-        .insert(memberIds.map(pid => ({
-          conversation_id: conversation.id,
-          profile_id: pid,
-        })));
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['team-conversations'] });
-      queryClient.invalidateQueries({ queryKey: ['team-messages', conversation.id] });
-      toast.success(`${selectedIds.length} membro(s) adicionado(s)`);
-      setSelectedIds([]);
-      setSearch('');
-      onOpenChange(false);
-    },
-    onError: () => {
-      toast.error('Erro ao adicionar membros');
-    },
-  });
+  const addMutation = useAddConversationMembers(conversation.id);
+  const handleMutationSuccess = () => {
+    toast.success(`${selectedIds.length} membro(s) adicionado(s)`);
+    setSelectedIds([]);
+    setSearch('');
+    onOpenChange(false);
+  };
 
   const toggleMember = (id: string) => {
     setSelectedIds(prev =>
@@ -83,7 +59,10 @@ export function AddMembersDialog({ open, onOpenChange, conversation }: Props) {
 
   const handleAdd = () => {
     if (selectedIds.length === 0) return;
-    addMutation.mutate(selectedIds);
+    addMutation.mutate(selectedIds, {
+      onSuccess: handleMutationSuccess,
+      onError: () => toast.error('Erro ao adicionar membros'),
+    });
   };
 
   return (
@@ -126,7 +105,7 @@ export function AddMembersDialog({ open, onOpenChange, conversation }: Props) {
               filtered.map(t => {
                 const isSelected = selectedIds.includes(t.id);
                 return (
-                  <button
+                  <button type="button"
                     key={t.id}
                     onClick={() => toggleMember(t.id)}
                     className={cn(

@@ -9,6 +9,7 @@ import type {
  * and legacy UI formats (Conversation/Message).
  */
 
+/** Maps a resolved ConversationWithMessages to the legacy Conversation UI shape used by chat components. Returns null when resolved is null. */
 export function mapToLegacyConversation(
   resolved: ConversationWithMessages | null
 ): Conversation | null {
@@ -47,6 +48,7 @@ export function mapToLegacyConversation(
   };
 }
 
+/** Maps an array of RealtimeMessages to the legacy Message UI shape, injecting contactAvatar where available. */
 export function mapToLegacyMessages(
   messageSource: RealtimeMessage[],
   contactId: string,

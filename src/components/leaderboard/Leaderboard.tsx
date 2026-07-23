@@ -22,6 +22,7 @@ function LeaderboardSkeleton() {
   );
 }
 
+/** Leaderboard component for the leaderboard section. */
 export function Leaderboard() {
   const { agents, isLoading, isRefreshing, timeRange, setTimeRange, handleRefresh } = useLeaderboard();
 

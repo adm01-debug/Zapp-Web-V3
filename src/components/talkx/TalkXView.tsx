@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { GenericEmptyState } from '@/components/ui/GenericEmptyState';
 import { AnimatePresence } from 'framer-motion';
@@ -34,7 +33,9 @@ import { TalkXCampaignCard } from './TalkXCampaignCard';
 import { toast } from 'sonner';
 import { TalkXBlacklist } from './TalkXBlacklist';
 import { TalkXAnalytics } from './TalkXAnalytics';
+import { SectionErrorBoundary } from '@/components/ui/section-error-boundary';
 
+/** Full-page TalkX view for creating, monitoring, and managing mass-message campaigns and the contact blacklist. */
 export default function TalkXView() {
   const {
     campaigns,
@@ -63,7 +64,7 @@ export default function TalkXView() {
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       result = result.filter(
-        (c) => c.name.toLowerCase().includes(q) || c.message_template.toLowerCase().includes(q)
+        (c) => c.name.toLowerCase().includes(q) || (c.message_template ?? '').toLowerCase().includes(q)
       );
     }
     return result;
@@ -94,7 +95,7 @@ export default function TalkXView() {
       })
       .subscribe();
     return () => {
-      channel.unsubscribe();
+      supabase.removeChannel(channel);
     };
   }, [refetchCampaigns]);
 
@@ -336,7 +337,9 @@ export default function TalkXView() {
 
         <TabsContent value="monitor" className="mt-4 flex-1 overflow-auto">
           {selectedCampaignId ? (
-            <TalkXLiveMonitor campaignId={selectedCampaignId} />
+            <SectionErrorBoundary sectionName="Monitor ao vivo">
+              <TalkXLiveMonitor campaignId={selectedCampaignId} />
+            </SectionErrorBoundary>
           ) : (
             <div className="flex items-center justify-center py-20 text-muted-foreground">
               Selecione uma campanha para monitorar
@@ -349,7 +352,9 @@ export default function TalkXView() {
         </TabsContent>
 
         <TabsContent value="analytics" className="mt-4 flex-1 overflow-auto">
-          <TalkXAnalytics campaigns={campaigns} />
+          <SectionErrorBoundary sectionName="Analytics de campanhas">
+            <TalkXAnalytics campaigns={campaigns} />
+          </SectionErrorBoundary>
         </TabsContent>
       </Tabs>
     </div>

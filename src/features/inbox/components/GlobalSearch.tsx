@@ -41,6 +41,7 @@ interface GlobalSearchProps {
   onSelectResult: (result: SearchResult) => void;
 }
 
+/** Global Search component. */
 export function GlobalSearch({ open, onOpenChange, onSelectResult }: GlobalSearchProps) {
   const {
     search,
@@ -328,7 +329,7 @@ export function GlobalSearch({ open, onOpenChange, onSelectResult }: GlobalSearc
                 <Tag className="h-3 w-3" /> Tags sugeridas
               </div>
               {tagSuggestions.map((tag, index) => (
-                <button
+                <button type="button"
                   key={tag.id}
                   onClick={() => handleTagSelect(tag)}
                   className={`flex w-full items-center gap-2 rounded-lg p-2 text-left transition-colors ${index === selectedIndex ? 'bg-muted' : 'hover:bg-muted/50'}`}
@@ -346,7 +347,7 @@ export function GlobalSearch({ open, onOpenChange, onSelectResult }: GlobalSearc
                 <Zap className="h-3 w-3" /> Ações rápidas
               </div>
               {filteredActions.map((action, index) => (
-                <button
+                <button type="button"
                   key={action.id}
                   onClick={() => action.action()}
                   className={`flex w-full items-center gap-3 rounded-lg p-2 text-left transition-colors ${!search && index === selectedIndex ? 'bg-muted' : 'hover:bg-muted/50'}`}

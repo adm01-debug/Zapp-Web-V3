@@ -32,6 +32,7 @@ interface FileUploaderProps {
   showDialog?: boolean;
 }
 
+/** File Uploader Ref component. */
 export interface FileUploaderRef {
   handleExternalFile: (file: File) => void;
   handleExternalFiles: (files: File[]) => void;
@@ -91,6 +92,7 @@ function QueueFileItem({ queuedFile, onRemove, disabled }: { queuedFile: QueuedF
   );
 }
 
+/** File Uploader component. */
 export const FileUploader = forwardRef<FileUploaderRef, FileUploaderProps>(({
   instanceName, recipientNumber, contactId, connectionId, onFileSelect, onFileSent, disabled, showDialog = true,
 }, ref) => {

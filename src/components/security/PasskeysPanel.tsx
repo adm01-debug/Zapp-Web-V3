@@ -28,6 +28,7 @@ const getDeviceIcon = (deviceType: string | null) => {
   return <Smartphone className="h-5 w-5" />;
 };
 
+/** Passkeys Panel component for the security section. */
 export function PasskeysPanel() {
   const {
     loading,

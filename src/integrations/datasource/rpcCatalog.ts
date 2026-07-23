@@ -32,6 +32,7 @@ import type {
 import type { DatasourceClient } from './registry';
 export type { DatasourceClient };
 
+/** Rpc Definition interface definition. */
 export interface RpcDefinition<TParams, TRow> {
   /** Nome exato da função SQL no banco. */
   readonly name: string;
@@ -208,6 +209,7 @@ interface GlobalSearchParams {
 
 // ── CRM 360 / Search avançado ─────────────────────────────────────────────────────
 
+/** Search Contacts Advanced Params interface definition. */
 export interface SearchContactsAdvancedParams {
   p_search?: string | null;
   p_vendedor?: string | null;
@@ -384,6 +386,7 @@ interface LogOutboundEventParams {
 
 const def = <P, R>(d: RpcDefinition<P, R>) => d;
 
+/** R P C constant. */
 export const RPC = {
   // ── Reads ──────────────────────────────────────────────────────────────────
   // NOTA: Nenhum default de p_instance — null = todas as instâncias.
@@ -633,4 +636,5 @@ export const RPC = {
   }),
 } as const;
 
+/** Rpc Key type alias. */
 export type RpcKey = keyof typeof RPC;

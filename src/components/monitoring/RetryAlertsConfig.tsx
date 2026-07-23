@@ -49,6 +49,7 @@ function sanitize(t: RetryThresholds): RetryThresholds {
   };
 }
 
+/** Retry Alerts Config function. */
 export function RetryAlertsConfig({
   value,
   onChange,

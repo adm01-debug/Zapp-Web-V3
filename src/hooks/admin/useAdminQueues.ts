@@ -1,6 +1,7 @@
 // Re-export from consolidated useAdminManagement module (ETAPA 19 consolidation)
 import { useAdminManagement } from '@/features/admin/hooks/useAdminManagement';
 
+/** Re-exported module members. */
 export {
   ALGO_LABEL,
   type Queue,
@@ -14,6 +15,7 @@ export {
   type ChannelQueue,
 } from '@/features/admin/hooks/useAdminManagement';
 
+/** Hook: use Admin Queues. */
 export function useAdminQueues() {
   const admin = useAdminManagement();
   return {

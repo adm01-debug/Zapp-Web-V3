@@ -1,4 +1,3 @@
-// @ts-nocheck
 import {
   whatsappStatusRepository,
   WhatsAppStatusMessage,
@@ -65,6 +64,7 @@ const extractStatusRecords = (data: unknown): WhatsAppStatusMessage[] => {
   return [];
 };
 
+/** whatsapp Status Service. */
 export const whatsappStatusService = {
   async getConnectionInfo(contactPhone: string): Promise<ContactConnectionInfo> {
     const cleanPhone = normalizeDigits(contactPhone);

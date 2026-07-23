@@ -398,7 +398,7 @@ Deno.serve(async (req) => {
         status: 503,
         code: 'INSTANCE_PAUSED',
         message: `Instância "${instance}" está pausada temporariamente por excesso de falhas de autenticação. Tente novamente em alguns minutos ou retome manualmente no painel.`,
-      }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Retry-After': '60' } });
+      }), { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Retry-After': '60' } });
     }
 
     if (instance && action.startsWith('send-') && SEND_PER_INSTANCE_PER_MIN > 0) {
@@ -410,7 +410,7 @@ Deno.serve(async (req) => {
           status: 429,
           code: 'INSTANCE_RATE_LIMIT',
           message: `Instância "${instance}" excedeu o limite de envios (${SEND_PER_INSTANCE_PER_MIN}/min). Tente novamente em alguns segundos.`,
-        }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Retry-After': '30' } });
+        }), { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Retry-After': '30' } });
       }
     }
 
@@ -425,7 +425,7 @@ Deno.serve(async (req) => {
           code: 'INSTANCE_NAME_IS_UUID',
           message: `Nome de instância "${instance}" é um UUID — provavelmente o instance_id interno da conexão. ${resolved ? `A instância Evolution correspondente chama-se "${resolved}".` : 'Use o campo instance_name da conexão.'} Criação bloqueada para evitar instância fantasma.`,
           resolvedInstanceName: resolved,
-        }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        }), { status: 422, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
       const payload = buildCreateInstancePayload(body, isMultipart);
       return await proxy('/instance/create', 'POST', { instanceName: instance, ...payload });
@@ -454,7 +454,7 @@ Deno.serve(async (req) => {
           message: `Falha de autenticação na API Evolution (${where}). Verifique se EVOLUTION_API_URL e EVOLUTION_API_KEY apontam para a mesma conta e se a chave tem permissão para gerenciar instâncias.`,
           code: 'EVOLUTION_AUTH_ERROR',
           details,
-        }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        }), { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
       let { response, data } = await doConnect();
 
@@ -480,7 +480,7 @@ Deno.serve(async (req) => {
             status: 422,
             code: 'INSTANCE_NAME_IS_UUID',
             message: `"${instance}" parece ser o UUID interno da Evolution, não o nome da instância. Use whatsapp_connections.instance_name. Criação automática bloqueada para evitar instância fantasma.`,
-          }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+          }), { status: 422, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
         }
         console.warn(`[evolution-api][connect] instanceName era UUID; resolvido para "${resolved}" via fetchInstances (auto-heal, sem create).`);
         instance = resolved;
@@ -512,7 +512,7 @@ Deno.serve(async (req) => {
             status: createResponse.status,
             message: 'Falha ao recriar instância na API Evolution.',
             details: createData,
-          }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+          }), { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
         }
 
         ({ response, data } = await doConnect());
@@ -537,7 +537,7 @@ Deno.serve(async (req) => {
           status: response.status,
           message: 'Falha ao conectar instância na API Evolution.',
           details: data,
-        }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        }), { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
 
       return new Response(JSON.stringify(data), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
@@ -604,7 +604,7 @@ Deno.serve(async (req) => {
           upstream_status: response.status,
           message: 'Evolution API rejeitou a requisição (Unauthorized). Verifique a API key ou recrie a instância.',
           details: data,
-        }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        }), { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
 
       // v2 returns { instance: { state: "open", ... } }, v1 might return { state: "open" }

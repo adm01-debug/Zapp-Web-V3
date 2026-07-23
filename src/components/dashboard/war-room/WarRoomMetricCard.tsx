@@ -13,6 +13,7 @@ interface MetricCardProps {
   positive?: boolean;
 }
 
+/** War Room Metric Card component for the dashboard section. */
 export function WarRoomMetricCard({ icon: Icon, label, value, suffix, trend, alert, critical, positive }: MetricCardProps) {
   return (
     <motion.div

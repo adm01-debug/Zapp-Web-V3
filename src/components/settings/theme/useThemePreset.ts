@@ -18,6 +18,7 @@ interface ThemeConfig {
   preset?: string;
 }
 
+/** use Theme Preset component for the settings section. */
 export function useThemePreset() {
   const { resolvedTheme } = useTheme();
   const [activePreset, setActivePreset] = useState<string>(DEFAULT_PRESET_ID);

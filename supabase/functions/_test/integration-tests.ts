@@ -401,6 +401,7 @@ async function testPerformanceBaselines(harness: TestHarness) {
 }
 
 // Main test execution
+/** integration-tests utilities and exports. */
 export async function runAllIntegrationTests() {
   const harness = new TestHarness();
 

@@ -1,3 +1,4 @@
+/** Public barrel exports for the hooks module. */
 export * from './useAIStats';
 export * from './useAIUsageDashboard';
 export * from './useAgentGamification';

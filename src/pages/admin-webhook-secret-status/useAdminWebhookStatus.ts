@@ -4,6 +4,7 @@
  * so the page component can focus purely on layout and rendering.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { queryKeys } from '@/services/api/queryKeys';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -31,12 +32,14 @@ interface SecretStatus {
 
 const REFRESH_INTERVAL = 30_000;
 
+/** use Admin Webhook Status function. */
 export function useAdminWebhookStatus() {
   const { filters, setFilters } = useUrlFilters();
 
   const selectedInstance = useMemo<string | null>(() => {
     const params = new URLSearchParams(window.location.search);
     return params.get('instance');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters]); // refresh when other filters change too
 
   const setInstance = useCallback(
@@ -52,7 +55,7 @@ export function useAdminWebhookStatus() {
 
   // ── Queries ─────────────────────────────────────────────────────────────
   const secretQuery = useQuery({
-    queryKey: ['webhook-secret-status'],
+    queryKey: queryKeys.adminOps.webhookSecretStatus(),
     queryFn: async (): Promise<SecretStatus> => {
       const { data, error } = await supabase.functions.invoke('webhook-secret-status');
       if (error) throw error;
@@ -62,7 +65,7 @@ export function useAdminWebhookStatus() {
   });
 
   const eventsQuery = useQuery({
-    queryKey: ['webhook-recent-events', selectedInstance],
+    queryKey: queryKeys.adminOps.webhookRecentEvents(selectedInstance ?? undefined),
     queryFn: async () => {
       const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
       const filtersArr = [{ column: 'created_at', operator: 'gte', value: since }];
@@ -85,7 +88,7 @@ export function useAdminWebhookStatus() {
   // Always fetch a small global slice for the instance dropdown so the user
   // can switch even when filtered to an instance with no traffic.
   const instancesQuery = useQuery({
-    queryKey: ['webhook-instances-list'],
+    queryKey: queryKeys.adminOps.webhookInstances(),
     queryFn: async () => {
       const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
       const res = await queryExternalProxy<{ instance_name: string | null }>({
@@ -107,6 +110,7 @@ export function useAdminWebhookStatus() {
   }, [secretQuery, eventsQuery, instancesQuery]);
 
   // ── Derived event metrics ────────────────────────────────────────────────
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const events = eventsQuery.data ?? [];
   const lastEvent = events[0];
   const total24h = events.length;

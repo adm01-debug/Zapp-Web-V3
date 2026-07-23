@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useEffect, useState } from 'react';
 import { supabase, isSupabaseConfigured, warnSupabaseUnconfigured } from '@/integrations/supabase/client';
 import { type AppRole } from './useUserRole';
@@ -91,6 +90,7 @@ export function useRouteRoles(path: string | undefined): AppRole[] | null {
   return roles;
 }
 
+/** invalidate Route Roles Cache function. */
 export function invalidateRouteRolesCache(path?: string) {
   if (path) cache.delete(path);
   else cache.clear();

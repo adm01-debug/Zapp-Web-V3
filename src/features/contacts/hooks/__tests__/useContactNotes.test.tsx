@@ -24,7 +24,14 @@ let insertResolver: ((v: unknown) => void) | null = null;
 let deleteResolver: ((v: unknown) => void) | null = null;
 
 function makeSelectChain(rows: unknown[]) {
-  const chain: any = {
+  type SelectChain = {
+    select: () => SelectChain;
+    eq: () => SelectChain;
+    in: () => Promise<{ data: unknown[]; error: null }>;
+    order: () => Promise<{ data: unknown[]; error: null }>;
+    maybeSingle: () => Promise<{ data: unknown; error: null }>;
+  };
+  const chain: SelectChain = {
     select: () => chain,
     eq: () => chain,
     in: () => Promise.resolve({ data: rows, error: null }),
@@ -45,7 +52,7 @@ vi.mock('@/integrations/supabase/client', () => ({
       if (table === 'contact_notes') {
         return {
           select: () => makeSelectChain(notesRows),
-          insert: (payload: any) => ({
+          insert: (payload: { contact_id: string; author_id: string; content: string }) => ({
             select: () => ({
               maybeSingle: () =>
                 new Promise((resolve) => {
@@ -122,9 +129,7 @@ describe('useContactNotes', () => {
     });
 
     await waitFor(() => expect(result.current.isAdding).toBe(false));
-    expect(mockToast).toHaveBeenCalledWith(
-      expect.objectContaining({ title: 'Nota adicionada' })
-    );
+    expect(mockToast).toHaveBeenCalledWith(expect.objectContaining({ title: 'Nota adicionada' }));
   });
 
   it('deleteNote: isDeleting fica true durante a mutação e remove a nota ao concluir', async () => {
@@ -156,9 +161,7 @@ describe('useContactNotes', () => {
 
     await waitFor(() => expect(result.current.isDeleting).toBe(false));
     await waitFor(() => expect(result.current.notes.length).toBe(0));
-    expect(mockToast).toHaveBeenCalledWith(
-      expect.objectContaining({ title: 'Nota removida' })
-    );
+    expect(mockToast).toHaveBeenCalledWith(expect.objectContaining({ title: 'Nota removida' }));
   });
 
   it('notes carregadas têm author sempre presente (placeholder quando profile ausente)', async () => {

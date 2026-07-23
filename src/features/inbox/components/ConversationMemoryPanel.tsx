@@ -1,6 +1,5 @@
-// @ts-nocheck
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { fetchConversationMemory, saveConversationMemory } from '../hooks/useConversationMemoryData';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
@@ -41,6 +40,7 @@ const SECTIONS = [
   { key: 'pending_items' as const, label: 'Pendências', icon: Clock, color: 'text-destructive' },
 ];
 
+/** Conversation Memory Panel component. */
 export function ConversationMemoryPanel({ contactId, profileId }: ConversationMemoryPanelProps) {
   const [memory, setMemory] = useState<MemoryData>({
     facts: [],
@@ -56,15 +56,11 @@ export function ConversationMemoryPanel({ contactId, profileId }: ConversationMe
 
   useEffect(() => {
     loadMemory();
-  }, [contactId]);
+  }, [contactId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadMemory = async () => {
     setLoading(true);
-    const { data } = await supabase
-      .from('conversation_memory')
-      .select('*')
-      .eq('contact_id', contactId)
-      .maybeSingle();
+    const data = await fetchConversationMemory(contactId);
     if (data) {
       setMemory({
         id: data.id,
@@ -117,9 +113,7 @@ export function ConversationMemoryPanel({ contactId, profileId }: ConversationMe
       updated_by: profileId,
     };
 
-    const { error } = memory.id
-      ? await supabase.from('conversation_memory').update(payload).eq('id', memory.id)
-      : await supabase.from('conversation_memory').insert(payload);
+    const { error } = await saveConversationMemory(memory.id, payload as any);
 
     if (!error) {
       toast.success('Memória salva');
@@ -171,13 +165,14 @@ export function ConversationMemoryPanel({ contactId, profileId }: ConversationMe
           <div className="space-y-1">
             {memory[key].map((item: string, idx: number) => (
               <motion.div
-                key={idx}
+                key={item}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 className="group flex items-center gap-1.5 rounded bg-muted/20 px-2 py-1 text-xs"
               >
                 <span className="flex-1">{item}</span>
                 <button
+                  type="button"
                   onClick={() => removeItem(key, idx)}
                   className="opacity-0 group-hover:opacity-100"
                 >
@@ -195,7 +190,13 @@ export function ConversationMemoryPanel({ contactId, profileId }: ConversationMe
               className="flex-1 rounded border border-border/30 bg-transparent px-2 py-1 text-xs focus:border-primary/50 focus:outline-none"
               onKeyDown={(e) => e.key === 'Enter' && addItem(key)}
             />
-            <Button aria-label="Adicionar item" variant="ghost" size="icon" className="h-6 w-6" onClick={() => addItem(key)}>
+            <Button
+              aria-label="Adicionar item"
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6"
+              onClick={() => addItem(key)}
+            >
               <Plus className="h-3 w-3" />
             </Button>
           </div>

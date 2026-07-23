@@ -17,7 +17,12 @@ interface UseTeamChatDraftOptions {
 }
 
 /** Manages team chat message drafts with auto-save, paste image uploads, and character limits. */
-export function useTeamChatDraft({ conversationId, text, setText, onFileSent }: UseTeamChatDraftOptions) {
+export function useTeamChatDraft({
+  conversationId,
+  text,
+  setText,
+  onFileSent,
+}: UseTeamChatDraftOptions) {
   const { profile } = useAuth();
   const [pasteUploading, setPasteUploading] = useState(false);
 
@@ -35,7 +40,9 @@ export function useTeamChatDraft({ conversationId, text, setText, onFileSent }: 
         } else {
           localStorage.removeItem(`${DRAFT_KEY_PREFIX}${conversationId}`);
         }
-      } catch { /* storage unavailable */ }
+      } catch {
+        /* storage unavailable */
+      }
     }, 500);
     return () => clearTimeout(timer);
   }, [text, conversationId]);
@@ -45,48 +52,56 @@ export function useTeamChatDraft({ conversationId, text, setText, onFileSent }: 
     try {
       const draft = localStorage.getItem(`${DRAFT_KEY_PREFIX}${conversationId}`);
       if (draft && !text) setText(draft);
-    } catch (err) { log.error('Unexpected error in useTeamChatDraft:', err); }
+    } catch (err) {
+      log.error('Unexpected error in useTeamChatDraft:', err);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [conversationId]);
 
   // Clear draft on send
   const clearDraft = useCallback(() => {
-    try { localStorage.removeItem(`${DRAFT_KEY_PREFIX}${conversationId}`); } catch { /* storage unavailable */ }
+    try {
+      localStorage.removeItem(`${DRAFT_KEY_PREFIX}${conversationId}`);
+    } catch {
+      /* storage unavailable */
+    }
   }, [conversationId]);
 
   // Paste images from clipboard
-  const handlePaste = useCallback(async (e: React.ClipboardEvent) => {
-    const items = e.clipboardData?.items;
-    if (!items || !profile || pasteUploading) return;
-    for (let i = 0; i < items.length; i++) {
-      if (items[i].type.startsWith('image/')) {
-        e.preventDefault();
-        const file = items[i].getAsFile();
-        if (!file) return;
+  const handlePaste = useCallback(
+    async (e: React.ClipboardEvent) => {
+      const items = e.clipboardData?.items;
+      if (!items || !profile || pasteUploading) return;
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].type.startsWith('image/')) {
+          e.preventDefault();
+          const file = items[i].getAsFile();
+          if (!file) return;
 
-        setPasteUploading(true);
-        try {
-          const ext = file.type.split('/')[1] || 'png';
-          const path = `${profile.id}/${conversationId}/${Date.now()}_paste.${ext}`;
-          const { error: uploadError } = await supabase.storage
-            .from('team-chat-files')
-            .upload(path, file, { contentType: file.type });
-          if (uploadError) throw uploadError;
+          setPasteUploading(true);
+          try {
+            const ext = file.type.split('/')[1] || 'png';
+            const path = `${profile.id}/${conversationId}/${Date.now()}_paste.${ext}`;
+            const { error: uploadError } = await supabase.storage
+              .from('team-chat-files')
+              .upload(path, file, { contentType: file.type });
+            if (uploadError) throw uploadError;
 
-          const { data: urlData } = supabase.storage
-            .from('team-chat-files')
-            .getPublicUrl(path);
+            const { data: urlData } = supabase.storage.from('team-chat-files').getPublicUrl(path);
 
-          onFileSent(urlData.publicUrl, 'image', `📋 Imagem colada`);
-        } catch (err) {
-          log.error('Paste image upload error:', err);
-          toast.error('Erro ao enviar imagem colada');
-        } finally {
-          setPasteUploading(false);
+            onFileSent(urlData.publicUrl, 'image', `📋 Imagem colada`);
+          } catch (err) {
+            log.error('Paste image upload error:', err);
+            toast.error('Erro ao enviar imagem colada');
+          } finally {
+            setPasteUploading(false);
+          }
+          return;
         }
-        return;
       }
-    }
-  }, [profile, conversationId, pasteUploading, onFileSent]);
+    },
+    [profile, conversationId, pasteUploading, onFileSent]
+  );
 
   return {
     charCount,

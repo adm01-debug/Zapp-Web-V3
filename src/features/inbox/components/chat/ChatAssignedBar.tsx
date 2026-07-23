@@ -9,6 +9,7 @@ interface ChatAssignedBarProps {
   onOpenTransfer: () => void;
 }
 
+/** Chat Assigned Bar component for the chat section. */
 export function ChatAssignedBar({ conversation, onOpenTransfer }: ChatAssignedBarProps) {
   return (
     <AnimatePresence>

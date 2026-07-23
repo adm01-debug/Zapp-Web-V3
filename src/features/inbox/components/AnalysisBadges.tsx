@@ -1,11 +1,10 @@
-// @ts-nocheck
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useLatestAnalysis } from '@/hooks/useLatestAnalysis';
-import { AlertTriangle, ThumbsUp, ThumbsDown, Minus, Zap } from 'lucide-react';
+import { AlertTriangle, ThumbsUp, ThumbsDown, Minus, Zap, type LucideIcon } from 'lucide-react';
 
-const sentimentMap: Record<string, { icon: typeof ThumbsUp; color: string; label: string }> = {
+const sentimentMap: Record<string, { icon: LucideIcon; color: string; label: string }> = {
   positivo: { icon: ThumbsUp, color: 'text-success', label: 'Positivo' },
   neutro: { icon: Minus, color: 'text-muted-foreground', label: 'Neutro' },
   negativo: { icon: ThumbsDown, color: 'text-warning', label: 'Negativo' },
@@ -25,8 +24,9 @@ interface AnalysisBadgesProps {
   className?: string;
 }
 
+/** Analysis Badges component. */
 export function AnalysisBadges({ contactId, compact = false, className }: AnalysisBadgesProps) {
-  const { data: analysis } = useLatestAnalysis(contactId);
+  const { analysis } = useLatestAnalysis(contactId);
 
   if (!analysis) return null;
 

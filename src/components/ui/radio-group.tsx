@@ -33,4 +33,5 @@ const RadioGroupItem = React.forwardRef<
 });
 RadioGroupItem.displayName = RadioGroupPrimitive.Item.displayName;
 
+/** radio-group component for the ui section. */
 export { RadioGroup, RadioGroupItem };

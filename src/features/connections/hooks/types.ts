@@ -1,5 +1,7 @@
+/** Whats App Api Type type alias. */
 export type WhatsAppApiType = 'evolution' | 'official';
 
+/** Whats App Connection interface definition. */
 export interface WhatsAppConnection {
   id: string;
   name: string;
@@ -25,8 +27,10 @@ export interface WhatsAppConnection {
   owner_jid?: string | null;
 }
 
+/** Qr Ttl Source type alias. */
 export type QrTtlSource = 'detected' | 'default' | 'clamped';
 
+/** Qr Code Dialog State interface definition. */
 export interface QrCodeDialogState {
   open: boolean;
   connectionId: string;

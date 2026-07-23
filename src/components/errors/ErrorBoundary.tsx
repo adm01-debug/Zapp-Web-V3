@@ -99,6 +99,7 @@ interface State {
   isStackOverflow?: boolean;
 }
 
+/** Error Boundary class implementation. */
 export class ErrorBoundary extends Component<Props, State> {
   public state: State = {
     hasError: false,
@@ -266,7 +267,7 @@ export class ErrorBoundary extends Component<Props, State> {
               </div>
 
               {!isChunkErr && (
-                <button
+                <button type="button"
                   onClick={this.handleReload}
                   className="w-full text-sm text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline"
                 >
@@ -283,6 +284,7 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 }
 
+/** with Error Boundary function. */
 export function withErrorBoundary<P extends object>(
   WrappedComponent: React.ComponentType<P>,
   fallback?: ReactNode
@@ -296,6 +298,7 @@ export function withErrorBoundary<P extends object>(
   };
 }
 
+/** Error Fallback function. */
 export function ErrorFallback({
   error,
   resetErrorBoundary,

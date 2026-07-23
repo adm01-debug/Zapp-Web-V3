@@ -11,6 +11,7 @@ export { usersRepository, type User, type Agent } from './usersRepository';
 export { usersService } from './usersService';
 
 // Query Hooks
+/** Re-exported module members. */
 export {
   useUsersList,
   useUser,
@@ -25,6 +26,7 @@ export {
 } from './useUsersQueries';
 
 // Mutation Hooks
+/** Re-exported module members. */
 export {
   useCreateUser,
   useUpdateUser,

@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState } from 'react';
 import { useTeamConversations } from '@/hooks/useTeamChat';
 import { TeamConversationList } from './TeamConversationList';
@@ -11,6 +10,7 @@ import { useTeamChatNotifications } from '@/hooks/useTeamChatNotifications';
 import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
 
+/** Team Chat View component for the team chat section. */
 export function TeamChatView() {
   const { data: conversations = [], isLoading } = useTeamConversations();
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -18,7 +18,7 @@ export function TeamChatView() {
   const [showDetails, setShowDetails] = useState(false);
 
   // Enable differentiated notifications for team chat
-  useTeamChatNotifications(selectedId);
+  useTeamChatNotifications();
 
   const selectedConversation = conversations.find(c => c.id === selectedId) || null;
 

@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Tests for the pure reconciliation utilities exported from useExternalEvolution:
  *   reconcileOptimistic — merges optimistic messages with canonical ones
@@ -43,7 +42,7 @@ vi.mock('@/lib/realtime/crossTabDedupe', () => ({
 }));
 
 // ── Import SUT AFTER mocks ─────────────────────────────────────────────────────
-import { reconcileOptimistic, applyReconciliation } from '../useExternalEvolution';
+import { reconcileOptimistic, applyReconciliation } from '../evolutionReconcile';
 import type { RealtimeMessage } from '@/features/inbox';
 
 // ── Helpers ────────────────────────────────────────────────────────────────────

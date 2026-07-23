@@ -18,9 +18,14 @@ import {
   categoryOrder,
   MAX_FILES,
 } from './useFileUploadLogicTypes';
+/** Re-exported module members. */
 export type { FileMessageData, FilePreview, QueuedFile } from './useFileUploadLogicTypes';
 
-function buildFileMessageData(result: unknown, mediaUrl: string, messageType?: string): FileMessageData {
+function buildFileMessageData(
+  result: unknown,
+  mediaUrl: string,
+  messageType?: string
+): FileMessageData {
   return {
     ...(typeof result === 'object' && result !== null ? result : {}),
     mediaUrl,
@@ -28,6 +33,7 @@ function buildFileMessageData(result: unknown, mediaUrl: string, messageType?: s
   };
 }
 
+/** use File Upload Logic component. */
 export function useFileUploadLogic(opts: {
   instanceName?: string;
   recipientNumber?: string;
@@ -333,7 +339,7 @@ export function useFileUploadLogic(opts: {
     setFileQueue([]);
     setCaption('');
     setIsDialogOpen(showDialog);
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleExternalFiles = useCallback(
     (files: File[]) => {
@@ -349,7 +355,7 @@ export function useFileUploadLogic(opts: {
       setCurrentQueueIndex(0);
       setIsDialogOpen(showDialog);
     },
-    [handleExternalFile, processFilesToQueue]
+    [handleExternalFile, processFilesToQueue] // eslint-disable-line react-hooks/exhaustive-deps
   );
 
   const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -363,7 +369,7 @@ export function useFileUploadLogic(opts: {
     setCaption('');
     setIsDialogOpen(showDialog);
     if (fileInputRef.current) fileInputRef.current.value = '';
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const removeFromQueue = useCallback((id: string) => {
     setFileQueue((prev) => {

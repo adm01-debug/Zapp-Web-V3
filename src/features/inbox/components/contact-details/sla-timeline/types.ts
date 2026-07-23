@@ -1,13 +1,19 @@
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
+/** SLAStatus component for the contact details section. */
 export type SLAStatus = 'ok' | 'warning' | 'breached' | 'na';
+/** Period Filter component for the contact details section. */
 export type PeriodFilter = '24h' | '7d' | '30d' | 'all';
+/** SLAScope component for the contact details section. */
 export type SLAScope = 'current' | 'queue' | 'agent' | 'none';
 
+/** FILTER_STORAGE_KEY component for the contact details section. */
 export const FILTER_STORAGE_KEY = 'sla-timeline-filters';
+/** ALL_STATUSES component for the contact details section. */
 export const ALL_STATUSES: SLAStatus[] = ['ok', 'warning', 'breached', 'na'];
 
+/** PERIOD_MS component for the contact details section. */
 export const PERIOD_MS: Record<PeriodFilter, number> = {
   '24h': 86_400_000,
   '7d': 604_800_000,
@@ -15,6 +21,7 @@ export const PERIOD_MS: Record<PeriodFilter, number> = {
   all: Infinity,
 };
 
+/** STATUS_STYLES component for the contact details section. */
 export const STATUS_STYLES: Record<SLAStatus, { label: string; className: string }> = {
   ok: { label: 'Dentro do SLA', className: 'bg-success/15 text-success border-success/30' },
   warning: { label: 'Em risco', className: 'bg-warning/15 text-warning border-warning/30' },
@@ -25,6 +32,7 @@ export const STATUS_STYLES: Record<SLAStatus, { label: string; className: string
   na: { label: '—', className: 'bg-muted/40 text-muted-foreground border-border/40' },
 };
 
+/** SCOPE_LABELS component for the contact details section. */
 export const SCOPE_LABELS: Record<SLAScope, string> = {
   current: 'Atual (fila + agente)',
   queue: 'Por fila',
@@ -32,6 +40,7 @@ export const SCOPE_LABELS: Record<SLAScope, string> = {
   none: 'Sem SLA',
 };
 
+/** get SLAStatus component for the contact details section. */
 export function getSLAStatus(durationMs: number | null, limitMinutes: number): SLAStatus {
   if (durationMs === null) return 'na';
   const limitMs = limitMinutes * 60_000;
@@ -40,12 +49,14 @@ export function getSLAStatus(durationMs: number | null, limitMinutes: number): S
   return 'ok';
 }
 
+/** is Within Period component for the contact details section. */
 export function isWithinPeriod(date: Date | null, period: PeriodFilter): boolean {
   if (period === 'all') return true;
   if (!date) return false;
   return Date.now() - date.getTime() <= PERIOD_MS[period];
 }
 
+/** format Duration Ms component for the contact details section. */
 export function formatDurationMs(ms: number | null): string {
   if (ms === null) return '—';
   if (ms < 60_000) return `${Math.round(ms / 1000)}s`;
@@ -54,10 +65,12 @@ export function formatDurationMs(ms: number | null): string {
   return `${Math.round(ms / 86_400_000)}d`;
 }
 
+/** format Ts component for the contact details section. */
 export function formatTs(d: Date | null): string {
   return d ? format(d, 'dd/MM HH:mm', { locale: ptBR }) : '—';
 }
 
+/** load Filters component for the contact details section. */
 export function loadFilters(): { status: SLAStatus[]; period: PeriodFilter; scope: SLAScope } {
   try {
     const raw = localStorage.getItem(FILTER_STORAGE_KEY);

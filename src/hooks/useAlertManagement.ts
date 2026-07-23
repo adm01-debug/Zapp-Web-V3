@@ -6,12 +6,14 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { safeClient } from '@/integrations/supabase/safeClient';
 import { usePushNotificationsManagement } from '@/hooks/useNotificationManagement';
 import { useNotificationSettingsManagement } from '@/hooks/useNotificationManagement';
 import { toast } from 'sonner';
 import { playNotificationSound, showBrowserNotification } from '@/utils/notificationSounds';
 import { getLogger } from '@/lib/logger';
 import { warRoomAlertRowSchema, safeParseEvent } from '@/shared/webhookEventSchemas';
+import { queryKeys } from '@/services/api/queryKeys';
 
 const log = getLogger('useAlertManagement');
 
@@ -19,14 +21,11 @@ const log = getLogger('useAlertManagement');
 // `sentiment_alerts` vivem no schema `zapp` da VPS self-hosted, mas ainda não
 // estão nos types gerados pela Lovable Cloud. Também usamos aqui para colunas
 // de `warroom_alerts`/`conversation_sla` que ainda divergem do types.ts local.
-// A superfície pública (interfaces exportadas) permanece 100% tipada.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const db = supabase as any;
-
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════════════
 // TYPE DEFINITIONS
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════════════
 
+/** War Room Alert interface definition. */
 export interface WarRoomAlert {
   id: string;
   alert_type: string;
@@ -37,6 +36,7 @@ export interface WarRoomAlert {
   created_at: string | null;
 }
 
+/** Sentiment Alert Data interface definition. */
 export interface SentimentAlertData {
   contactId: string;
   contactName: string;
@@ -45,6 +45,7 @@ export interface SentimentAlertData {
   analysisId: string;
 }
 
+/** Webhook Health Alert interface definition. */
 export interface WebhookHealthAlert {
   id: string;
   webhook_id: string;
@@ -54,6 +55,7 @@ export interface WebhookHealthAlert {
   created_at: string;
 }
 
+/** Realtime Sentiment Alert interface definition. */
 export interface RealtimeSentimentAlert {
   id: string;
   contact_id: string;
@@ -64,17 +66,20 @@ export interface RealtimeSentimentAlert {
   created_at: string;
 }
 
+/** Use War Room Alerts Result interface definition. */
 export interface UseWarRoomAlertsResult {
   alerts: WarRoomAlert[];
   dismissAlert: (alertId: string) => Promise<void>;
 }
 
+/** Use Sentiment Alerts Result interface definition. */
 export interface UseSentimentAlertsResult {
   checkAndTriggerAlert: (
     data: SentimentAlertData
   ) => Promise<{ triggered: boolean; reason: string }>;
 }
 
+/** Use Webhook Health Alerts Result interface definition. */
 export interface UseWebhookHealthAlertsResult {
   alerts: WebhookHealthAlert[];
   loading: boolean;
@@ -82,6 +87,7 @@ export interface UseWebhookHealthAlertsResult {
   checkHealth: () => Promise<void>;
 }
 
+/** Use Realtime Sentiment Alerts Result interface definition. */
 export interface UseRealtimeSentimentAlertsResult {
   alerts: RealtimeSentimentAlert[];
   acknowledgeAlert: (alertId: string) => Promise<void>;
@@ -115,9 +121,9 @@ export function useWarRoomAlertsManagement(soundEnabled = true): UseWarRoomAlert
   }, [soundEnabled]);
 
   const { data: alerts = [] } = useQuery({
-    queryKey: ['warroom-alerts'],
+    queryKey: queryKeys.alerts.all(),
     queryFn: async () => {
-      const { data, error } = await db
+      const { data, error } = await supabase
         .from('warroom_alerts')
         .select('*')
         .eq('is_read', false)
@@ -140,45 +146,52 @@ export function useWarRoomAlertsManagement(soundEnabled = true): UseWarRoomAlert
   useEffect(() => {
     const channel = supabase
       .channel('warroom-alerts-realtime')
-      .on('postgres_changes', { event: 'INSERT', schema: 'zapp', table: 'warroom_alerts' }, (payload) => {
-        const parsed = safeParseEvent(warRoomAlertRowSchema, payload.new);
-        if (!parsed.ok) {
-          log.warn('[useWarRoomAlertsManagement] received malformed realtime payload', payload.new);
-          return;
-        }
-        const alert = parsed.data as WarRoomAlert;
-        void queryClient.invalidateQueries({ queryKey: ['warroom-alerts'] });
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'zapp', table: 'warroom_alerts' },
+        (payload) => {
+          const parsed = safeParseEvent(warRoomAlertRowSchema, payload.new);
+          if (!parsed.ok) {
+            log.warn(
+              '[useWarRoomAlertsManagement] received malformed realtime payload',
+              payload.new
+            );
+            return;
+          }
+          const alert = parsed.data as WarRoomAlert;
+          void queryClient.invalidateQueries({ queryKey: queryKeys.alerts.all() });
 
-        if (alert.alert_type === 'critical') {
-          playAlertSound();
-          playAlertSound();
-        } else {
-          playAlertSound();
-        }
+          if (alert.alert_type === 'critical') {
+            playAlertSound();
+            playAlertSound();
+          } else {
+            playAlertSound();
+          }
 
-        if (pushPermission === 'granted') {
-          showBrowserNotification(`⚠️ ${alert.title}`, alert.message);
+          if (pushPermission === 'granted') {
+            showBrowserNotification(`⚠️ ${alert.title}`, alert.message);
+          }
         }
-      })
+      )
       .subscribe();
 
     return () => {
-      void channel.unsubscribe();
+      supabase.removeChannel(channel);
     };
   }, [queryClient, playAlertSound, pushPermission]);
 
   const dismissAlert = async (alertId: string) => {
-    const { error } = await db
+    const { error } = await supabase
       .from('warroom_alerts')
       .update({ is_read: true })
       .eq('id', alertId);
     if (error) log.error('Failed to dismiss warroom alert', error);
-    queryClient.invalidateQueries({ queryKey: ['warroom-alerts'] });
+    queryClient.invalidateQueries({ queryKey: queryKeys.alerts.all() });
   };
 
   useEffect(() => {
     const checkSLABreaches = async () => {
-      const { data: breaches, error: breachesErr } = await db
+      const { data: breaches, error: breachesErr } = await supabase
         .from('conversation_sla')
         .select('id, contact_id, first_response_breached, resolution_breached')
         .or('first_response_breached.eq.true,resolution_breached.eq.true');
@@ -192,7 +205,7 @@ export function useWarRoomAlertsManagement(soundEnabled = true): UseWarRoomAlert
         const newBreachCount = breaches.length;
         const existingAlerts = alertsRef.current.filter((a) => a.source === 'sla-monitor');
         if (existingAlerts.length === 0 || newBreachCount > existingAlerts.length) {
-          const { error: insertErr } = await db.from('warroom_alerts').insert({
+          const { error: insertErr } = await supabase.from('warroom_alerts').insert({
             alert_type: 'critical',
             title: `${newBreachCount} SLA(s) Violado(s)`,
             message: `Existem ${newBreachCount} conversas com SLA violado que precisam de atenção imediata.`,
@@ -269,7 +282,11 @@ export function useSentimentAlertsManagement(): UseSentimentAlertsResult {
           });
 
           if (settings.soundEnabled && !isQuietHours()) {
-            playNotificationSound('sla_warning' as const, settings.slaSoundType, settings.soundVolume);
+            playNotificationSound(
+              'sla_warning' as const,
+              settings.slaSoundType,
+              settings.soundVolume
+            );
           }
 
           if (settings.browserNotifications) {
@@ -282,7 +299,10 @@ export function useSentimentAlertsManagement(): UseSentimentAlertsResult {
         return { triggered: false, reason: alertResult?.reason || 'No alert needed' };
       } catch (error) {
         log.error('Error checking sentiment alert:', error);
-        return { triggered: false, reason: `Exception: ${error instanceof Error ? error.message : String(error)}` };
+        return {
+          triggered: false,
+          reason: `Exception: ${error instanceof Error ? error.message : String(error)}`,
+        };
       }
     },
     [threshold, consecutiveRequired, alertsEnabled, settings, isQuietHours]
@@ -297,44 +317,42 @@ export function useSentimentAlertsManagement(): UseSentimentAlertsResult {
 
 /** Monitors webhook endpoint health with failure detection and alert management. */
 export function useWebhookHealthAlertsManagement(): UseWebhookHealthAlertsResult {
-  const [alerts, setAlerts] = useState<WebhookHealthAlert[]>([]);
-  const [loading, setLoading] = useState(false);
+  const queryClient = useQueryClient();
+  const key = ['webhook-health-checks'] as const;
 
-  const checkHealth = useCallback(async () => {
-    setLoading(true);
-    try {
-      const { data, error } = await db
-        .from('webhook_health_checks')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(100);
-
-      if (error) throw error;
-      setAlerts((data || []) as WebhookHealthAlert[]);
-    } catch (error) {
-      log.error('Failed to check webhook health:', error);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    void checkHealth();
-    const interval = setInterval(checkHealth, 60000);
-    return () => clearInterval(interval);
-  }, [checkHealth]);
-
-  const acknowledgeAlert = useCallback(
-    async (alertId: string) => {
-      try {
-        await db.from('webhook_health_checks').update({ acknowledged: true }).eq('id', alertId);
-        setAlerts((prev) => prev.map((a) => (a.id === alertId ? { ...a } : a)));
-      } catch (error) {
-        log.error('Failed to acknowledge webhook health alert:', error);
+  const { data: alerts = [], isLoading: loading } = useQuery({
+    queryKey: key,
+    queryFn: async () => {
+      const { data, error } = await safeClient.from('webhook_health_checks', (q) =>
+        q.select('*').order('created_at', { ascending: false }).limit(100)
+      );
+      if (error) {
+        log.error('Failed to check webhook health:', error);
+        return [] as WebhookHealthAlert[];
       }
+      return (data || []) as WebhookHealthAlert[];
     },
-    []
+    staleTime: 30_000,
+    refetchInterval: 60_000,
+  });
+
+  const checkHealth = useCallback(
+    () => queryClient.invalidateQueries({ queryKey: key }),
+    [queryClient]
   );
+
+  const acknowledgeAlert = useCallback(async (alertId: string) => {
+    try {
+      const { error: updateError } = await supabase
+        .from('webhook_health_checks')
+        .update({ acknowledged: true })
+        .eq('id', alertId);
+      if (updateError) throw updateError;
+      await queryClient.invalidateQueries({ queryKey: key });
+    } catch (error) {
+      log.error('Failed to acknowledge webhook health alert:', error);
+    }
+  }, [queryClient]);
 
   return { alerts, loading, acknowledgeAlert, checkHealth };
 }
@@ -387,14 +405,21 @@ export function useRealtimeSentimentAlertsManagement(): UseRealtimeSentimentAler
       .subscribe();
 
     return () => {
+      channel.unsubscribe();
       supabase.removeChannel(channel);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const acknowledgeAlert = useCallback(async (alertId: string) => {
     try {
-      await db.from('sentiment_alerts').update({ acknowledged: true }).eq('id', alertId);
+      const { error } = await supabase
+        .from('sentiment_alerts' as never)
+        .update({ acknowledged: true })
+        .eq('id', alertId);
+      if (error) {
+        log.error('Failed to acknowledge sentiment alert:', error.message);
+        return;
+      }
       setAlerts((prev) => prev.map((a) => (a.id === alertId ? { ...a, acknowledged: true } : a)));
     } catch (error) {
       log.error('Failed to acknowledge sentiment alert:', error);
@@ -403,7 +428,14 @@ export function useRealtimeSentimentAlertsManagement(): UseRealtimeSentimentAler
 
   const clearAlert = useCallback(async (alertId: string) => {
     try {
-      await db.from('sentiment_alerts').delete().eq('id', alertId);
+      const { error } = await supabase
+        .from('sentiment_alerts' as never)
+        .delete()
+        .eq('id', alertId);
+      if (error) {
+        log.error('Failed to clear sentiment alert:', error.message);
+        return;
+      }
       setAlerts((prev) => prev.filter((a) => a.id !== alertId));
     } catch (error) {
       log.error('Failed to clear sentiment alert:', error);

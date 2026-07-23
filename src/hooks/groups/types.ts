@@ -1,3 +1,4 @@
+/** Hook: Whats App Group. */
 export interface WhatsAppGroup {
   id: string;
   whatsapp_connection_id: string | null;
@@ -11,6 +12,7 @@ export interface WhatsAppGroup {
   category: string | null;
 }
 
+/** Hook: Whats App Connection. */
 export interface WhatsAppConnection {
   id: string;
   name: string;
@@ -19,6 +21,7 @@ export interface WhatsAppConnection {
   instance_name?: string | null;
 }
 
+/** Hook: GROUP_CATEGORIES. */
 export const GROUP_CATEGORIES = [
   { value: 'orcamentos', label: 'Orçamentos | Fornecedores', color: 'text-info', icon: '📋' },
   { value: 'aprovacao', label: 'Aprovação | Fornecedores', color: 'text-success', icon: '✅' },

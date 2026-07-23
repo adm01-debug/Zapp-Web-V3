@@ -1,3 +1,4 @@
+/** Contract Error Code. */
 export const ContractErrorCode = {
   INVALID_PAYLOAD: 'INVALID_PAYLOAD',
   INVALID_PHONE_NUMBER: 'INVALID_PHONE_NUMBER',
@@ -5,6 +6,7 @@ export const ContractErrorCode = {
   INVALID_INSTANCE: 'INVALID_INSTANCE',
 } as const;
 
+/** Contract Error Code. */
 export type ContractErrorCode = typeof ContractErrorCode[keyof typeof ContractErrorCode];
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -15,6 +17,7 @@ type ValidationIssue = {
   message?: string;
 };
 
+/** create Critical Payload Schemas. */
 export function createCriticalPayloadSchemas(z: ZodLike) {
   const normalizedPhoneSchema = z
     .string()
@@ -52,6 +55,7 @@ export function createCriticalPayloadSchemas(z: ZodLike) {
   };
 }
 
+/** map Validation Issues To Contract Error. */
 export function mapValidationIssuesToContractError(issues: ValidationIssue[] = []) {
   const issueByPath = (field: string) => issues.find((issue) => (issue.path || []).includes(field));
 

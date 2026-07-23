@@ -32,10 +32,12 @@ interface QueryResult {
   error?: string;
 }
 
+/** Query Explorer Handle. */
 export interface QueryExplorerHandle {
   setTable: (table: string) => void;
 }
 
+/** Query Explorer Block. */
 export const QueryExplorerBlock = forwardRef<QueryExplorerHandle>(function QueryExplorerBlock(_props, ref) {
   const [mode, setMode] = useState<'select' | 'rpc'>('select');
 
@@ -265,7 +267,7 @@ export const QueryExplorerBlock = forwardRef<QueryExplorerHandle>(function Query
                 aria-label="Parâmetros RPC em JSON"
                 className="w-full  text-xs rounded-md border bg-background p-2 focus:outline-none focus:ring-2 focus:ring-ring"
               />
-              {paramsError && <p className="text-xs text-destructive mt-1">{paramsError}</p>}
+              {paramsError && <p role="alert" className="text-xs text-destructive mt-1">{paramsError}</p>}
             </div>
           </TabsContent>
         </Tabs>

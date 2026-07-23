@@ -4,6 +4,7 @@ import { getLogger } from '@/lib/logger';
 
 const log = getLogger('EmailHealthRepository');
 
+/** Email Health Repository. */
 export class EmailHealthRepository {
   async getRemoteSummary() {
     try {
@@ -30,6 +31,21 @@ export class EmailHealthRepository {
       size: 0
     };
   }
+
+  /**
+   * Força revalidação limpando cache local dos recursos críticos.
+   * Onda 8: adicionado para compatibilidade com `EmailHealthService.forceRevalidation`.
+   */
+  async forceRevalidation(resources: string[] = []): Promise<void> {
+    try {
+      for (const r of resources) {
+        safeClient.clearCache(r);
+      }
+    } catch (err) {
+      log.warn('Error forcing revalidation', err);
+    }
+  }
 }
 
+/** email Health Repository. */
 export const emailHealthRepository = new EmailHealthRepository();

@@ -25,6 +25,7 @@ type DiagnosticLog = {
   created_at: string;
 };
 
+/** Admin Dev Diagnostics Page. */
 export default function AdminDevDiagnosticsPage() {
   const { toast } = useToast();
   const { roles } = useUserRole();
@@ -77,6 +78,7 @@ export default function AdminDevDiagnosticsPage() {
       void loadLogs();
       void logAccess();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isDev]);
 
   if (!isDev && !loading) {

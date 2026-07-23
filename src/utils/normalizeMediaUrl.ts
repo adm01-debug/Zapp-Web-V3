@@ -1,3 +1,4 @@
+/** normalize Media Url. */
 export const normalizeMediaUrl = (url?: string | null): string => {
   if (!url) return '';
 

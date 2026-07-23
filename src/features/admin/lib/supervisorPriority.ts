@@ -5,8 +5,10 @@
  * A pontuação numérica é usada para ordenar a fila de forma estável.
  */
 
+/** Priority Level type alias. */
 export type PriorityLevel = 'critical' | 'high' | 'medium' | 'normal';
 
+/** Supervisor Conversation Input interface. */
 export interface SupervisorConversationInput {
   id: string;
   name: string;
@@ -18,6 +20,7 @@ export interface SupervisorConversationInput {
   updated_at: string;
 }
 
+/** Priority Info interface definition. */
 export interface PriorityInfo {
   level: PriorityLevel;
   label: string;
@@ -26,13 +29,15 @@ export interface PriorityInfo {
   waitingMinutes: number;
 }
 
+/** P R I O R I T Y_ M E T A constant. */
 export const PRIORITY_META: Record<PriorityLevel, { label: string; badgeClass: string; order: number }> = {
   critical: { label: 'P1 · Crítica', badgeClass: 'bg-destructive text-destructive-foreground', order: 0 },
-  high: { label: 'P2 · Alta', badgeClass: 'bg-orange-500 text-white', order: 1 },
-  medium: { label: 'P3 · Média', badgeClass: 'bg-amber-500 text-white', order: 2 },
+  high: { label: 'P2 · Alta', badgeClass: 'bg-warning text-warning-foreground', order: 1 },
+  medium: { label: 'P3 · Média', badgeClass: 'bg-warning/70 text-warning-foreground', order: 2 },
   normal: { label: 'P4 · Normal', badgeClass: 'bg-muted text-muted-foreground', order: 3 },
 };
 
+/** P R I O R I T Y_ R U L E S_ T E X T constant. */
 export const PRIORITY_RULES_TEXT = [
   'P1 Crítica → sem atendente há mais de 30 min, ou risco ≥ 80, ou marcação de urgência da IA.',
   'P2 Alta → aguardando há mais de 15 min, ou risco ≥ 60.',
@@ -40,6 +45,7 @@ export const PRIORITY_RULES_TEXT = [
   'P4 Normal → demais conversas em atendimento.',
 ] as const;
 
+/** compute Priority function. */
 export function computePriority(c: SupervisorConversationInput, now: Date = new Date()): PriorityInfo {
   const updated = new Date(c.updated_at).getTime();
   const waitingMinutes = Math.max(0, Math.floor((now.getTime() - updated) / 60000));
@@ -88,6 +94,7 @@ export function computePriority(c: SupervisorConversationInput, now: Date = new 
   };
 }
 
+/** sort By Priority function. */
 export function sortByPriority<T extends { priority: PriorityInfo }>(rows: T[]): T[] {
   return [...rows].sort((a, b) => {
     const oa = PRIORITY_META[a.priority.level].order;

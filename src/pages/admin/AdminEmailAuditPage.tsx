@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useEffect, useCallback } from 'react';
 import { useMountedRef } from '@/hooks/useMountedRef';
 import { getLogger } from '@/lib/logger';
@@ -27,6 +26,7 @@ import { emailApi, type EmailRevalidationJob } from '@/services/email/emailApi';
 
 const log = getLogger('AdminEmailAuditPage');
 
+/** Admin Email Audit Page. */
 export default function AdminEmailAuditPage() {
   const [logs, setLogs] = useState<EmailRevalidationJob[]>([]);
   const [loading, setLoading] = useState(true);
@@ -63,7 +63,7 @@ export default function AdminEmailAuditPage() {
     } finally {
       if (mountedRef.current) setLoading(false);
     }
-  }, [page, statusFilter, dateFrom, dateTo]);
+  }, [page, statusFilter, dateFrom, dateTo]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     void loadAuditLogs();
@@ -93,7 +93,10 @@ export default function AdminEmailAuditPage() {
         return <Badge variant="secondary">Pendente</Badge>;
       case 'processing':
         return (
-          <Badge variant="secondary" className="bg-blue-500 text-white hover:bg-blue-600">
+          <Badge
+            variant="secondary"
+            className="bg-primary text-primary-foreground hover:bg-primary/90"
+          >
             Processando
           </Badge>
         );
@@ -231,9 +234,9 @@ export default function AdminEmailAuditPage() {
                         <td className="px-4 py-3">{getStatusBadge(log.status)}</td>
                         <td className="px-4 py-3">
                           <div className="flex flex-col">
-                            <span>{new Date(log.scheduled_at).toLocaleDateString()}</span>
+                            <span>{new Date(log.scheduled_at ?? log.requested_at).toLocaleDateString()}</span>
                             <span className="text-[10px] text-muted-foreground">
-                              {new Date(log.scheduled_at).toLocaleTimeString()}
+                              {new Date(log.scheduled_at ?? log.requested_at).toLocaleTimeString()}
                             </span>
                           </div>
                         </td>

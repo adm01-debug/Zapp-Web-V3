@@ -81,6 +81,7 @@ const aiFeatures: AIFeature[] = [
   },
 ];
 
+/** AIQuick Access component for the dashboard section. */
 export function AIQuickAccess() {
   const navigate = useNavigate();
   const [hoveredFeature, setHoveredFeature] = useState<string | null>(null);

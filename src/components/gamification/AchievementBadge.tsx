@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { motion } from 'framer-motion';
 import { 
   Zap, Flame, Target, Star, Crown, Trophy, Rocket, 
@@ -6,6 +7,7 @@ import {
 import { cn } from '@/lib/utils';
 import { ACHIEVEMENT_TYPES } from '@/features/admin';
 
+/** Achievement Badge Props component for the gamification section. */
 export interface AchievementBadgeProps {
   type: string;
   name: string;
@@ -117,7 +119,8 @@ const SIZE_CONFIG = {
   lg: { container: 'w-20 h-20', icon: 'w-9 h-9', text: 'text-base' },
 };
 
-export function AchievementBadge({
+/** Achievement Badge component for the gamification section. */
+export const AchievementBadge = memo(function AchievementBadge({
   type,
   name,
   description,
@@ -226,15 +229,16 @@ export function AchievementBadge({
       )}
     </motion.div>
   );
-}
+});
 
 // Mini badge for compact displays
-export function AchievementBadgeMini({ 
-  type, 
-  name 
-}: { 
-  type: string; 
-  name: string; 
+/** Achievement Badge Mini component for the gamification section. */
+export const AchievementBadgeMini = memo(function AchievementBadgeMini({
+  type,
+  name
+}: {
+  type: string;
+  name: string;
 }) {
   const config = BADGE_CONFIG[type] || DEFAULT_BADGE;
   const Icon = config.icon;
@@ -253,4 +257,4 @@ export function AchievementBadgeMini({
       <Icon className="w-5 h-5 text-primary-foreground drop-shadow-sm" />
     </motion.div>
   );
-}
+});

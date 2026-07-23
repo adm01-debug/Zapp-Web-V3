@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
+/** Build Validation Overlay component for the debug section. */
 export const BuildValidationOverlay: React.FC = () => {
   const { status, lastError, generateEvidence, runProactiveChecks } = useValidation();
   const [isOpen, setIsOpen] = useState(false);
@@ -32,10 +33,10 @@ export const BuildValidationOverlay: React.FC = () => {
         <div className="w-80 max-h-[500px] bg-background border rounded-lg shadow-xl flex flex-col overflow-hidden animate-in slide-in-from-bottom-2">
           <div className="p-3 border-b bg-muted/50 flex items-center justify-between">
             <div className="flex items-center gap-2 font-semibold text-sm">
-              <Shield className={cn("w-4 h-4", status === 'healthy' ? "text-green-500" : "text-red-500")} />
+              <Shield className={cn("w-4 h-4", status === 'healthy' ? "text-success" : "text-destructive")} />
               Build Validation Checklist
             </div>
-            <button onClick={() => setIsOpen(false)} className="text-muted-foreground hover:text-foreground" aria-label="Fechar validação de build">
+            <button type="button" onClick={() => setIsOpen(false)} className="text-muted-foreground hover:text-foreground" aria-label="Fechar validação de build">
               <X className="w-4 h-4" />
             </button>
           </div>
@@ -47,11 +48,11 @@ export const BuildValidationOverlay: React.FC = () => {
                 <div className="flex flex-col gap-2">
                   <div className="flex items-center gap-2">
                     {status === 'healthy' ? (
-                      <Badge variant="secondary" className="bg-green-500/10 text-green-500 border-green-500/20 gap-1">
+                      <Badge variant="secondary" className="bg-success/10 text-success border-success/20 gap-1">
                         <CheckCircle className="w-3 h-3" /> System Operational
                       </Badge>
                     ) : status === 'warning' ? (
-                      <Badge variant="secondary" className="bg-yellow-500/10 text-yellow-500 border-yellow-500/20 gap-1">
+                      <Badge variant="secondary" className="bg-warning/10 text-warning border-warning/20 gap-1">
                         <Shield className="w-3 h-3" /> Minor Issues
                       </Badge>
                     ) : (
@@ -79,10 +80,10 @@ export const BuildValidationOverlay: React.FC = () => {
                         <div className="flex items-center justify-between">
                           <span className={cn(
                             "font-bold uppercase px-1 rounded",
-                            event.type === 'error' ? "text-red-500 bg-red-500/10" :
-                            event.type === 'network' ? "text-yellow-500 bg-yellow-500/10" :
-                            event.type === 'render' ? "text-green-500 bg-green-500/10" :
-                            "text-blue-500 bg-blue-500/10"
+                            event.type === 'error' ? "text-destructive bg-destructive/10" :
+                            event.type === 'network' ? "text-warning bg-warning/10" :
+                            event.type === 'render' ? "text-success bg-success/10" :
+                            "text-primary bg-primary/10"
                           )}>
                             {event.type}
                           </span>
@@ -113,13 +114,13 @@ export const BuildValidationOverlay: React.FC = () => {
         </div>
       )}
 
-      <button
+      <button type="button"
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
           "w-12 h-12 rounded-full flex items-center justify-center shadow-2xl transition-all hover:scale-110 active:scale-95 border-2",
-          status === 'healthy' ? "bg-green-600 text-white border-green-400" : 
-          status === 'warning' ? "bg-yellow-500 text-white border-yellow-300" :
-          "bg-red-600 text-white border-red-400 animate-pulse"
+          status === 'healthy' ? "bg-success text-success-foreground border-success" :
+          status === 'warning' ? "bg-warning text-warning-foreground border-warning" :
+          "bg-destructive text-destructive-foreground border-destructive animate-pulse"
         )}
         title="Post-Build Validation Status"
         aria-label={`Status de validação: ${status === 'healthy' ? 'operacional' : status === 'warning' ? 'alertas' : 'crítico'}`}

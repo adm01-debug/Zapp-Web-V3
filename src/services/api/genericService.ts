@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Generic Service Factory
  *
@@ -11,6 +10,7 @@
  */
 
 import { supabase } from '@/integrations/supabase/client';
+import { isPermanentQueryError } from '@/lib/errors/queryErrors';
 import type { ListResponse, QueryParams } from './types';
 
 interface ServiceOptions {
@@ -21,20 +21,22 @@ interface ServiceOptions {
 /**
  * Factory function to create a standardized service for any table
  */
-export const createService = <T = any>(
-  tableName: string,
-  options?: ServiceOptions
-) => {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const createService = <T = any>(tableName: string, options?: ServiceOptions) => {
   const { orderBy = 'created_at', orderDirection = 'desc' } = options || {};
+  // Dynamic table accessor — tableName is a runtime string, not a literal from the generated types.
+
+  const db = supabase as unknown as {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    from(t: string): any; // ignore-audit: TS2589 with ReturnType<supabase.from>
+  };
 
   return {
     /**
      * List all records with optional filtering and pagination
      */
     async list(filters?: Partial<T> & QueryParams): Promise<ListResponse<T>> {
-      let query = supabase
-        .from(tableName)
-        .select('*', { count: 'exact' });
+      let query = db.from(tableName).select('*', { count: 'exact' });
 
       // Apply filters
       if (filters) {
@@ -51,10 +53,12 @@ export const createService = <T = any>(
           if (value !== undefined && value !== null) {
             if (Array.isArray(value)) {
               query = query.in(key, value);
-            } else if (typeof value === 'object') {
+            } else if (typeof value === 'object' && value !== null) {
               // Handle range filters: { min: 10, max: 100 }
-              if ('min' in value) query = query.gte(key, value.min);
-              if ('max' in value) query = query.lte(key, value.max);
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              const rangeVal = value as Record<string, any>;
+              if ('min' in rangeVal) query = query.gte(key, rangeVal.min);
+              if ('max' in rangeVal) query = query.lte(key, rangeVal.max);
             } else if (value === 'null') {
               query = query.is(key, null);
             } else if (value === 'not_null') {
@@ -101,11 +105,7 @@ export const createService = <T = any>(
      * Get a single record by ID
      */
     async get(id: string): Promise<T | null> {
-      const { data, error } = await supabase
-        .from(tableName)
-        .select('*')
-        .eq('id', id)
-        .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
+      const { data, error } = await db.from(tableName).select('*').eq('id', id).maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
 
       if (error && error.code !== 'PGRST116') throw error; // PGRST116 = not found
       return data || null;
@@ -115,10 +115,7 @@ export const createService = <T = any>(
      * Search records by a text field
      */
     async search(query: string, searchField: string = 'name'): Promise<T[]> {
-      const { data, error } = await supabase
-        .from(tableName)
-        .select('*')
-        .ilike(searchField, `%${query}%`);
+      const { data, error } = await db.from(tableName).select('*').ilike(searchField, `%${query}%`);
 
       if (error) throw error;
       return data || [];
@@ -128,11 +125,7 @@ export const createService = <T = any>(
      * Create a new record
      */
     async create(record: Partial<T>): Promise<T> {
-      const { data, error } = await supabase
-        .from(tableName)
-        .insert([record])
-        .select()
-        .single();
+      const { data, error } = await db.from(tableName).insert([record]).select().single();
 
       if (error) throw error;
       return data;
@@ -142,10 +135,7 @@ export const createService = <T = any>(
      * Create multiple records
      */
     async createBulk(records: Partial<T>[]): Promise<T[]> {
-      const { data, error } = await supabase
-        .from(tableName)
-        .insert(records)
-        .select();
+      const { data, error } = await db.from(tableName).insert(records).select();
 
       if (error) throw error;
       return data || [];
@@ -155,12 +145,12 @@ export const createService = <T = any>(
      * Update a record by ID
      */
     async update(id: string, updates: Partial<T>): Promise<T> {
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from(tableName)
         .update(updates)
         .eq('id', id)
         .select()
-        .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
+        .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
 
       if (error) throw error;
       return data;
@@ -169,11 +159,8 @@ export const createService = <T = any>(
     /**
      * Update multiple records matching a condition
      */
-    async updateMany(
-      condition: Partial<T>,
-      updates: Partial<T>
-    ): Promise<T[]> {
-      let query = supabase.from(tableName).update(updates);
+    async updateMany(condition: Partial<T>, updates: Partial<T>): Promise<T[]> {
+      let query = db.from(tableName).update(updates);
 
       Object.entries(condition).forEach(([key, value]) => {
         query = query.eq(key, value);
@@ -189,10 +176,7 @@ export const createService = <T = any>(
      * Delete a record by ID
      */
     async delete(id: string): Promise<{ id: string }> {
-      const { error } = await supabase
-        .from(tableName)
-        .delete()
-        .eq('id', id);
+      const { error } = await db.from(tableName).delete().eq('id', id);
 
       if (error) throw error;
       return { id };
@@ -202,7 +186,7 @@ export const createService = <T = any>(
      * Delete multiple records matching a condition
      */
     async deleteMany(condition: Partial<T>): Promise<number> {
-      let query = supabase.from(tableName).delete();
+      let query = db.from(tableName).delete();
 
       Object.entries(condition).forEach(([key, value]) => {
         query = query.eq(key, value);
@@ -218,11 +202,7 @@ export const createService = <T = any>(
      * Check if a record exists
      */
     async exists(id: string): Promise<boolean> {
-      const { data, error } = await supabase
-        .from(tableName)
-        .select('id')
-        .eq('id', id)
-        .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
+      const { data, error } = await db.from(tableName).select('id').eq('id', id).maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
 
       if (error && error.code !== 'PGRST116') throw error;
       return !!data;
@@ -232,9 +212,7 @@ export const createService = <T = any>(
      * Count records matching a condition
      */
     async count(condition?: Partial<T>): Promise<number> {
-      let query = supabase
-        .from(tableName)
-        .select('*', { count: 'exact', head: true });
+      let query = db.from(tableName).select('*', { count: 'exact', head: true });
 
       if (condition) {
         Object.entries(condition).forEach(([key, value]) => {
@@ -250,10 +228,7 @@ export const createService = <T = any>(
     /**
      * Subscribe to realtime updates
      */
-    subscribe(
-      callback: (data: T) => void,
-      filter?: Partial<T>
-    ) {
+    subscribe(callback: (data: T) => void, _filter?: Partial<T>) {
       const channel = supabase
         .channel(`${tableName}-changes`)
         .on(
@@ -263,13 +238,14 @@ export const createService = <T = any>(
             schema: 'zapp',
             table: tableName,
           },
-          (payload: any) => {
-            callback(payload.new);
+          (payload: { new: unknown }) => {
+            callback(payload.new as T);
           }
         )
         .subscribe();
 
       return () => {
+        channel.unsubscribe();
         supabase.removeChannel(channel);
       };
     },
@@ -277,20 +253,31 @@ export const createService = <T = any>(
 };
 
 /**
- * Retry policy for failed operations
+ * Retry policy for failed operations with semantic error classification.
+ *
+ * FIX 2026-07-16: integrado isPermanentQueryError para nao retentarmos
+ * erros permanentes (42501 permission denied, 401/403 auth, JWT expirado,
+ * schema drift 42P01/42883). Esses erros sao identicos em todas as tentativas
+ * e so geram latencia desnecessaria e ruido no console.
+ *
+ * Comportamento:
+ *  - Erro permanente (auth/permission/schema): lanca imediatamente, 0 retries.
+ *  - Erro transiente (network/timeout/5xx): retenta ate maxRetries com backoff linear.
  */
 export const applyRetry = async <T>(
   fn: () => Promise<T>,
   maxRetries = 3,
   delay = 1000
 ): Promise<T> => {
-  let lastError: any;
+  let lastError: unknown;
 
   for (let i = 0; i < maxRetries; i++) {
     try {
       return await fn();
     } catch (error) {
       lastError = error;
+      // Nao retenta erros permanentes — identicos em todas as tentativas
+      if (isPermanentQueryError(error)) break;
       if (i < maxRetries - 1) {
         await new Promise((resolve) => setTimeout(resolve, delay * (i + 1)));
       }

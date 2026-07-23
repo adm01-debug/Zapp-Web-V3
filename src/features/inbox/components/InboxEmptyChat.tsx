@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import { MessageSquare, MessageSquarePlus, Search as SearchIcon } from 'lucide-react';
 
+/** Inbox Empty Chat component. */
 export function InboxEmptyChat() {
   return (
     <div className="flex-1 flex items-center justify-center bg-background min-h-0 overflow-hidden">

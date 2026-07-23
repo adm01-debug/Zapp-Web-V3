@@ -36,12 +36,14 @@ type AnyPayload = {
 // only stores the *last* event per consumer, plus the last 50 globally.
 // ---------------------------------------------------------------------------
 
+/** Fanout Subscription Record interface definition. */
 export interface FanoutSubscriptionRecord {
   hookName: string;
   bind: Bind;
   registeredAt: number;
 }
 
+/** Fanout Event Record interface definition. */
 export interface FanoutEventRecord {
   hookName: string;
   eventType: string;
@@ -63,23 +65,28 @@ function notify(): void {
   });
 }
 
+/** Subscribes to the realtime fan-out event bus; returns an unsubscribe function. */
 export function subscribeFanoutBus(listener: Listener): () => void {
   listeners.add(listener);
   return () => { listeners.delete(listener); };
 }
 
+/** get Fanout Subscriptions function. */
 export function getFanoutSubscriptions(): FanoutSubscriptionRecord[] {
   return Array.from(subscriptions.values());
 }
 
+/** get Fanout Last Events function. */
 export function getFanoutLastEvents(): Map<string, FanoutEventRecord> {
   return new Map(lastEventByHook);
 }
 
+/** get Fanout Recent Events function. */
 export function getFanoutRecentEvents(): FanoutEventRecord[] {
   return [...recentEvents];
 }
 
+/** clear Fanout History function. */
 export function clearFanoutHistory(): void {
   lastEventByHook.clear();
   recentEvents.length = 0;
@@ -87,12 +94,12 @@ export function clearFanoutHistory(): void {
 }
 
 
-const STYLE_REG = 'color:#888;font-weight:600';
-const STYLE_HOOK = 'color:#3b82f6;font-weight:700';
-const STYLE_EVENT_INSERT = 'color:#16a34a;font-weight:600';
-const STYLE_EVENT_UPDATE = 'color:#d97706;font-weight:600';
-const STYLE_EVENT_DELETE = 'color:#dc2626;font-weight:600';
-const STYLE_DIM = 'color:#888';
+const STYLE_REG = 'color:#888;font-weight:600'; // audit-ok: browser console CSS — CSS variables not supported here
+const STYLE_HOOK = 'color:#3b82f6;font-weight:700'; // audit-ok
+const STYLE_EVENT_INSERT = 'color:#16a34a;font-weight:600'; // audit-ok
+const STYLE_EVENT_UPDATE = 'color:#d97706;font-weight:600'; // audit-ok
+const STYLE_EVENT_DELETE = 'color:#dc2626;font-weight:600'; // audit-ok
+const STYLE_DIM = 'color:#888'; // audit-ok
 
 function eventStyle(evt: string | undefined): string {
   switch ((evt ?? '').toUpperCase()) {
@@ -138,6 +145,7 @@ export function logMessagesSubscribe(hookName: string, bind: Bind): void {
   );
 }
 
+/** wrap Messages Handler function. */
 export function wrapMessagesHandler<T>(
   hookName: string,
   handler: (payload: T) => void,

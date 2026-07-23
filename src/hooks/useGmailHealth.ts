@@ -1,35 +1,30 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { emailHealthService } from '@/services/email/emailHealthService';
 import type { EmailHealthInfo } from '@/services/email/types';
 import { useToast } from '@/hooks/use-toast';
 import { getLogger } from '@/lib/logger';
 
 const log = getLogger('useEmailHealth');
+const HEALTH_KEY = ['email-health'] as const;
 
+/** Hook: use Email Health. */
 export function useEmailHealth() {
-  const [health, setHealth] = useState<EmailHealthInfo | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
-  const mountedRef = useRef(true);
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    mountedRef.current = true;
-    return () => {
-      mountedRef.current = false;
-    };
-  }, []);
-
-  const loadHealth = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const data = await emailHealthService.getHealthStatus();
-      if (mountedRef.current) setHealth(data);
-    } catch (err) {
-      log.error('Email health load error', err);
-    } finally {
-      if (mountedRef.current) setIsLoading(false);
-    }
-  }, []);
+  const { data: health = null, isLoading } = useQuery<EmailHealthInfo | null>({
+    queryKey: HEALTH_KEY,
+    queryFn: async () => {
+      try {
+        return await emailHealthService.getHealthStatus();
+      } catch (err) {
+        log.error('Email health load error', err);
+        return null;
+      }
+    },
+    staleTime: 25_000,
+    refetchInterval: 30_000,
+  });
 
   const forceRevalidation = async () => {
     try {
@@ -38,7 +33,7 @@ export function useEmailHealth() {
         title: 'Cache atualizado',
         description: 'A revalidação do schema foi forçada com sucesso.',
       });
-      await loadHealth();
+      await queryClient.invalidateQueries({ queryKey: HEALTH_KEY });
     } catch {
       toast({
         title: 'Erro na revalidação',
@@ -48,16 +43,10 @@ export function useEmailHealth() {
     }
   };
 
-  useEffect(() => {
-    void loadHealth();
-    const interval = setInterval(loadHealth, 30000); // 30s
-    return () => clearInterval(interval);
-  }, [loadHealth]);
-
   return {
     health,
     isLoading,
-    refresh: loadHealth,
+    refresh: () => queryClient.invalidateQueries({ queryKey: HEALTH_KEY }),
     forceRevalidation,
   };
 }

@@ -26,6 +26,7 @@ interface ContactSelectionStepProps {
   onSend: () => void;
 }
 
+/** Contact Selection Step component for the catalog section. */
 export function ContactSelectionStep({
   productName, productImageUrl, selectedImagesCount,
   template, variantLabel, templateLabels,
@@ -83,7 +84,7 @@ export function ContactSelectionStep({
         ) : (
           <div className="space-y-1">
             {contactResults.map((contact) => (
-              <button
+              <button type="button"
                 key={contact.id}
                 onClick={() => onSelectContact(contact)}
                 className={cn(

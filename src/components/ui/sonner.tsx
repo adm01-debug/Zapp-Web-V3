@@ -43,4 +43,5 @@ const Toaster = ({ ...props }: ToasterProps) => {
   );
 };
 
+/** sonner component for the ui section. */
 export { Toaster, toast };

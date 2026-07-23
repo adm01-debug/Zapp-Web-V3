@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { 
@@ -28,6 +27,7 @@ interface ContactQuickViewProps {
   onOpenChat: (phone: string, name: string) => void;
 }
 
+/** Contact Quick View component for the contacts section. */
 export const ContactQuickView: React.FC<ContactQuickViewProps> = ({
   contact, isOpen, onClose, onEdit, onDelete, onOpenChat
 }) => {
@@ -37,7 +37,7 @@ export const ContactQuickView: React.FC<ContactQuickViewProps> = ({
   if (!contact) return null;
 
   const typeCfg = contact.contact_type ? CONTACT_TYPE_CONFIG[contact.contact_type] : null;
-  const initials = contact.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+  const initials = contact.name.split(' ').map((n: any) => n[0]).join('').toUpperCase().slice(0, 2);
   const healthColor = getHealthColor(health);
 
   return (
@@ -243,7 +243,7 @@ export const ContactQuickView: React.FC<ContactQuickViewProps> = ({
             <section className="space-y-4">
               <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-widest px-1">Tags</h3>
               <div className="flex flex-wrap gap-2 px-1">
-                {contact.tags.map(tag => (
+                {contact.tags.map((tag: any) => (
                   <Badge key={tag} variant="outline" className="bg-primary/5 border-primary/20 text-primary px-3 py-1">
                     <Tag className="w-3 h-3 mr-1.5 opacity-70" />
                     {tag}

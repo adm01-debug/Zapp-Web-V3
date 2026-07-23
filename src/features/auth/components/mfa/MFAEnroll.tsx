@@ -13,6 +13,7 @@ interface MFAEnrollProps {
   onCancel?: () => void;
 }
 
+/** MFAEnroll component for the mfa section. */
 export function MFAEnroll({ onSuccess, onCancel }: MFAEnrollProps) {
   const { enrollTOTP, verifyTOTP, loading, enrollmentData } = useMFA();
   const [step, setStep] = useState<'intro' | 'qr' | 'verify'>('intro');
@@ -64,7 +65,7 @@ export function MFAEnroll({ onSuccess, onCancel }: MFAEnrollProps) {
     if (code.length === 6) {
       handleVerify();
     }
-  }, [code]);
+  }, [code]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <Card className="mx-auto w-full max-w-md">

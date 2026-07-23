@@ -52,7 +52,12 @@ lerna-debug.log*
 # ====================
 # DEPENDÊNCIAS
 # ====================
-node_modules/
+# AUDITORIA 2026-07-17: era "node_modules/" (com barra), que ignora apenas
+# DIRETORIO. Um symlink chamado node_modules e um ARQUIVO -> passava batido no
+# git add -A, era commitado, e no runner virava symlink pendurado. bun install
+# morria com: ENOENT: could not open the "node_modules" directory (exit 1).
+# Sem a barra, ignora diretorio, symlink e arquivo.
+node_modules
 .pnp
 .pnp.js
 .yarn/install-state.gz
@@ -188,3 +193,11 @@ outdated.txt
 # Scripts de dados mock e saídas SQL grandes
 generate_mock_data.py
 mock_data.sql
+
+# Saída de build do TypeScript (gerado por `tsc --noEmit 2> ts_errors.txt`)
+# Não versionar: muda a cada build, aparece vazio quando clean
+ts_errors.txt
+
+# Artefatos de auditoria de design gerados (não são código-fonte)
+design-system-audit.html
+design-system-audit.md

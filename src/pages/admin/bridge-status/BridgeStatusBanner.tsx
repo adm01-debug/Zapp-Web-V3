@@ -14,6 +14,7 @@ interface BridgeStatusBannerProps {
   statusConfig: StatusConfig;
 }
 
+/** Bridge Status Banner. */
 export function BridgeStatusBanner({ status, statusConfig }: BridgeStatusBannerProps) {
   return (
     <motion.div
@@ -34,7 +35,7 @@ export function BridgeStatusBanner({ status, statusConfig }: BridgeStatusBannerP
             initial={{ scale: 0 }}
             animate={{ scale: 1.5, opacity: 0 }}
             transition={{ repeat: Infinity, duration: 2 }}
-            className="absolute inset-0 rounded-full bg-white/30"
+            className="absolute inset-0 rounded-full bg-background/30"
           />
         )}
       </div>

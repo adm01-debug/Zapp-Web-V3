@@ -1,12 +1,13 @@
-// @ts-nocheck
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { TablesInsert, TablesUpdate } from '@/integrations/supabase/schema';
+import { queryKeys } from '@/services/api/queryKeys';
 
 type ChatbotFlowInsert = TablesInsert<'chatbot_flows'>;
 type ChatbotFlowUpdate = TablesUpdate<'chatbot_flows'>;
 
+/** Chatbot Node interface definition. */
 export interface ChatbotNode {
   id: string;
   type: 'start' | 'message' | 'question' | 'condition' | 'action' | 'delay' | 'transfer' | 'end';
@@ -22,6 +23,7 @@ export interface ChatbotNode {
   position: { x: number; y: number };
 }
 
+/** Chatbot Edge interface definition. */
 export interface ChatbotEdge {
   id: string;
   source: string;
@@ -30,6 +32,7 @@ export interface ChatbotEdge {
   condition?: string;
 }
 
+/** Chatbot Flow interface definition. */
 export interface ChatbotFlow {
   id: string;
   name: string;
@@ -53,7 +56,7 @@ export function useChatbotFlows() {
   const queryClient = useQueryClient();
 
   const flowsQuery = useQuery({
-    queryKey: ['chatbot-flows'],
+    queryKey: queryKeys.chatbotFlows.all(),
     queryFn: async () => {
       const { data, error } = await supabase
         .from('chatbot_flows')
@@ -91,7 +94,8 @@ export function useChatbotFlows() {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['chatbot-flows'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.chatbotFlows.all() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.chatbot.l1Flow() });
       toast.success('Fluxo de chatbot criado!');
     },
     onError: (err: Error) => toast.error(`Erro: ${err.message}`),
@@ -114,7 +118,8 @@ export function useChatbotFlows() {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['chatbot-flows'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.chatbotFlows.all() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.chatbot.l1Flow() });
       toast.success('Fluxo atualizado!');
     },
     onError: (err: Error) => toast.error(`Erro: ${err.message}`),
@@ -126,7 +131,8 @@ export function useChatbotFlows() {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['chatbot-flows'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.chatbotFlows.all() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.chatbot.l1Flow() });
       toast.success('Fluxo excluído!');
     },
     onError: (err: Error) => toast.error(`Erro: ${err.message}`),
@@ -138,7 +144,8 @@ export function useChatbotFlows() {
       if (error) throw error;
     },
     onSuccess: (_, { is_active }) => {
-      queryClient.invalidateQueries({ queryKey: ['chatbot-flows'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.chatbotFlows.all() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.chatbot.l1Flow() });
       toast.success(is_active ? 'Fluxo ativado!' : 'Fluxo desativado!');
     },
     onError: (err: Error) => toast.error(`Erro: ${err.message}`),

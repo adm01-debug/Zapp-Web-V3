@@ -1,5 +1,5 @@
-// @ts-nocheck
 import { useRef, useCallback, useState, useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/features/auth';
 import { getLogger } from '@/lib/logger';
@@ -12,20 +12,23 @@ const deviceDetectionLog = getLogger('DeviceDetection');
 // TYPE DEFINITIONS
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════════════
 
-interface UseSwipeGestureOptions {
+/** Use Swipe Gesture Options interface definition. */
+export interface UseSwipeGestureOptions {
   onSwipeLeft?: () => void;
   onSwipeRight?: () => void;
   threshold?: number;
   enabled?: boolean;
 }
 
+/** Swipe State interface definition. */
 export interface SwipeState {
   offsetX: number;
   isSwiping: boolean;
   direction: 'left' | 'right' | null;
 }
 
-interface UseSwipeNavigationOptions {
+/** Use Swipe Navigation Options interface definition. */
+export interface UseSwipeNavigationOptions {
   onSwipeBack?: () => void;
   onSwipeForward?: () => void;
   canGoBack?: boolean;
@@ -35,6 +38,7 @@ interface UseSwipeNavigationOptions {
   enabled?: boolean;
 }
 
+/** User Device interface definition. */
 export interface UserDevice {
   id: string;
   device_fingerprint: string;
@@ -49,6 +53,7 @@ export interface UserDevice {
   last_seen_at: string;
 }
 
+/** User Session interface definition. */
 export interface UserSession {
   id: string;
   device_id: string | null;
@@ -60,6 +65,7 @@ export interface UserSession {
   expires_at: string;
 }
 
+/** Sidebar State interface definition. */
 export interface SidebarState {
   collapsed: boolean;
   toggleCollapsed: () => void;
@@ -69,6 +75,7 @@ export interface SidebarState {
   maxReached: boolean;
 }
 
+/** Use Aria Announcer Return interface definition. */
 export interface UseAriaAnnouncerReturn {
   announce: (message: string) => void;
 }
@@ -90,36 +97,42 @@ export function useSwipeGestureManagement(options: UseSwipeGestureOptions = {}) 
     direction: null,
   });
 
-  const handleTouchStart = useCallback((e: React.TouchEvent) => {
-    if (!enabled) return;
-    startX.current = e.touches[0].clientX;
-    startY.current = e.touches[0].clientY;
-    currentX.current = startX.current;
-    isTracking.current = true;
-  }, [enabled]);
+  const handleTouchStart = useCallback(
+    (e: React.TouchEvent) => {
+      if (!enabled) return;
+      startX.current = e.touches[0].clientX;
+      startY.current = e.touches[0].clientY;
+      currentX.current = startX.current;
+      isTracking.current = true;
+    },
+    [enabled]
+  );
 
-  const handleTouchMove = useCallback((e: React.TouchEvent) => {
-    if (!enabled || !isTracking.current) return;
-    const touch = e.touches[0];
-    const deltaX = touch.clientX - startX.current;
-    const deltaY = touch.clientY - startY.current;
+  const handleTouchMove = useCallback(
+    (e: React.TouchEvent) => {
+      if (!enabled || !isTracking.current) return;
+      const touch = e.touches[0];
+      const deltaX = touch.clientX - startX.current;
+      const deltaY = touch.clientY - startY.current;
 
-    if (Math.abs(deltaY) > Math.abs(deltaX) * 1.5) {
-      isTracking.current = false;
-      setSwipeState({ offsetX: 0, isSwiping: false, direction: null });
-      return;
-    }
+      if (Math.abs(deltaY) > Math.abs(deltaX) * 1.5) {
+        isTracking.current = false;
+        setSwipeState({ offsetX: 0, isSwiping: false, direction: null });
+        return;
+      }
 
-    currentX.current = touch.clientX;
-    const clampedOffset = Math.max(-threshold * 1.5, Math.min(threshold * 1.5, deltaX));
-    const direction = deltaX > 0 ? 'right' : deltaX < 0 ? 'left' : null;
+      currentX.current = touch.clientX;
+      const clampedOffset = Math.max(-threshold * 1.5, Math.min(threshold * 1.5, deltaX));
+      const direction = deltaX > 0 ? 'right' : deltaX < 0 ? 'left' : null;
 
-    setSwipeState({
-      offsetX: clampedOffset,
-      isSwiping: Math.abs(deltaX) > 10,
-      direction,
-    });
-  }, [enabled, threshold]);
+      setSwipeState({
+        offsetX: clampedOffset,
+        isSwiping: Math.abs(deltaX) > 10,
+        direction,
+      });
+    },
+    [enabled, threshold]
+  );
 
   const handleTouchEnd = useCallback(() => {
     if (!enabled || !isTracking.current) return;
@@ -152,8 +165,21 @@ export function useSwipeGestureManagement(options: UseSwipeGestureOptions = {}) 
 
 /** Enables edge-based swipe navigation for back/forward with visual feedback indicators. */
 export function useSwipeNavigationManagement(options: UseSwipeNavigationOptions = {}) {
-  const { onSwipeBack, onSwipeForward, canGoBack = false, canGoForward = false, threshold = 80, edgeWidth = 24, enabled = true } = options;
-  const touchStart = useRef<{ x: number; y: number; edge: 'left' | 'right' | null; time: number } | null>(null);
+  const {
+    onSwipeBack,
+    onSwipeForward,
+    canGoBack = false,
+    canGoForward = false,
+    threshold = 80,
+    edgeWidth = 24,
+    enabled = true,
+  } = options;
+  const touchStart = useRef<{
+    x: number;
+    y: number;
+    edge: 'left' | 'right' | null;
+    time: number;
+  } | null>(null);
   const indicatorRef = useRef<HTMLDivElement | null>(null);
 
   const createIndicator = useCallback((side: 'left' | 'right') => {
@@ -178,9 +204,10 @@ export function useSwipeNavigationManagement(options: UseSwipeNavigationOptions 
       opacity: 0;
       transition: opacity 0.15s, transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
     `;
-    el.textContent = side === 'left'
-      ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>'
-      : '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>';
+    el.innerHTML =
+      side === 'left'
+        ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>'
+        : '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>';
     el.style.color = 'hsl(var(--primary))';
     document.body.appendChild(el);
     indicatorRef.current = el;
@@ -279,19 +306,31 @@ export function useSwipeNavigationManagement(options: UseSwipeNavigationOptions 
       document.removeEventListener('touchend', handleTouchEnd);
       removeIndicator();
     };
-  }, [enabled, canGoBack, canGoForward, onSwipeBack, onSwipeForward, threshold, edgeWidth, createIndicator, removeIndicator]);
+  }, [
+    enabled,
+    canGoBack,
+    canGoForward,
+    onSwipeBack,
+    onSwipeForward,
+    threshold,
+    edgeWidth,
+    createIndicator,
+    removeIndicator,
+  ]);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════════════
 // DEVICE DETECTION MANAGEMENT
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════════════
 
+const DEVICES_KEY = (userId: string | undefined) => ['user-devices', userId] as const;
+const SESSIONS_KEY = (userId: string | undefined) => ['user-sessions', userId] as const;
+
 /** Detects and manages trusted devices and user sessions for security monitoring. */
 export function useDeviceDetectionManagement() {
   const { user } = useAuth();
-  const [devices, setDevices] = useState<UserDevice[]>([]);
-  const [sessions, setSessions] = useState<UserSession[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const userId = user?.id;
   const [currentDeviceId, setCurrentDeviceId] = useState<string | null>(null);
   const mountedRef = useRef(true);
 
@@ -300,6 +339,37 @@ export function useDeviceDetectionManagement() {
       mountedRef.current = false;
     };
   }, []);
+
+  const { data: devices = [], isLoading: devicesLoading } = useQuery({
+    queryKey: DEVICES_KEY(userId),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('user_devices')
+        .select('*')
+        .order('last_seen_at', { ascending: false });
+      if (error) throw error;
+      return (data || []) as UserDevice[];
+    },
+    enabled: !!userId,
+    staleTime: 30_000,
+  });
+
+  const { data: sessions = [], isLoading: sessionsLoading } = useQuery({
+    queryKey: SESSIONS_KEY(userId),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('user_sessions')
+        .select('*')
+        .eq('is_active', true)
+        .order('last_activity_at', { ascending: false });
+      if (error) throw error;
+      return (data || []) as UserSession[];
+    },
+    enabled: !!userId,
+    staleTime: 30_000,
+  });
+
+  const loading = devicesLoading || sessionsLoading;
 
   const generateFingerprint = useCallback(() => {
     const canvas = document.createElement('canvas');
@@ -361,7 +431,9 @@ export function useDeviceDetectionManagement() {
       const fingerprint = generateFingerprint();
       const { browser, os, deviceName } = getBrowserInfo();
 
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!session?.access_token) return;
 
       const response = await supabase.functions.invoke('detect-new-device', {
@@ -373,99 +445,67 @@ export function useDeviceDetectionManagement() {
         deviceDetectionLog.debug('Device check result:', response.data);
       }
     } catch (error) {
-      if (mountedRef.current) {
-        deviceDetectionLog.error('Error checking device:', error);
-      }
+      deviceDetectionLog.error('Error checking device:', error);
     }
-  }, [user, generateFingerprint, getBrowserInfo, mountedRef]);
+  }, [user, generateFingerprint, getBrowserInfo]);
 
-  const fetchDevices = useCallback(async () => {
-    if (!user) return;
+  const trustDevice = useCallback(
+    async (deviceId: string) => {
+      try {
+        const { error } = await supabase
+          .from('user_devices')
+          .update({ is_trusted: true })
+          .eq('id', deviceId);
 
-    try {
-      const { data, error } = await supabase
-        .from('user_devices')
-        .select('*')
-        .order('last_seen_at', { ascending: false });
-
-      if (error) throw error;
-      if (mountedRef.current) setDevices(data || []);
-    } catch (error) {
-      if (mountedRef.current) {
-        deviceDetectionLog.error('Error fetching devices:', error);
-      }
-    }
-  }, [user, mountedRef]);
-
-  const fetchSessions = useCallback(async () => {
-    if (!user) return;
-
-    try {
-      const { data, error } = await supabase
-        .from('user_sessions')
-        .select('*')
-        .eq('is_active', true)
-        .order('last_activity_at', { ascending: false });
-
-      if (error) throw error;
-      if (mountedRef.current) setSessions(data || []);
-    } catch (error) {
-      if (mountedRef.current) {
-        deviceDetectionLog.error('Error fetching sessions:', error);
-      }
-    }
-  }, [user, mountedRef]);
-
-  const trustDevice = useCallback(async (deviceId: string) => {
-    try {
-      const { error } = await supabase
-        .from('user_devices')
-        .update({ is_trusted: true })
-        .eq('id', deviceId);
-
-      if (error) throw error;
-      await fetchDevices();
-    } catch (error) {
-      if (mountedRef.current) {
+        if (error) throw error;
+        await queryClient.invalidateQueries({ queryKey: DEVICES_KEY(userId) });
+      } catch (error) {
         deviceDetectionLog.error('Error trusting device:', error);
       }
-    }
-  }, [fetchDevices, mountedRef]);
+    },
+    [queryClient, userId]
+  );
 
-  const removeDevice = useCallback(async (deviceId: string) => {
-    try {
-      await supabase
-        .from('user_sessions')
-        .update({ is_active: false, ended_at: new Date().toISOString() })
-        .eq('device_id', deviceId);
+  const removeDevice = useCallback(
+    async (deviceId: string) => {
+      try {
+        const { error: sessionError } = await supabase
+          .from('user_sessions')
+          .update({ is_active: false, ended_at: new Date().toISOString() })
+          .eq('device_id', deviceId);
 
-      const { error } = await supabase.from('user_devices').delete().eq('id', deviceId);
+        if (sessionError) throw sessionError;
 
-      if (error) throw error;
-      await fetchDevices();
-      await fetchSessions();
-    } catch (error) {
-      if (mountedRef.current) {
+        const { error } = await supabase.from('user_devices').delete().eq('id', deviceId);
+
+        if (error) throw error;
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: DEVICES_KEY(userId) }),
+          queryClient.invalidateQueries({ queryKey: SESSIONS_KEY(userId) }),
+        ]);
+      } catch (error) {
         deviceDetectionLog.error('Error removing device:', error);
       }
-    }
-  }, [fetchDevices, fetchSessions, mountedRef]);
+    },
+    [queryClient, userId]
+  );
 
-  const endSession = useCallback(async (sessionId: string) => {
-    try {
-      const { error } = await supabase
-        .from('user_sessions')
-        .update({ is_active: false, ended_at: new Date().toISOString() })
-        .eq('id', sessionId);
+  const endSession = useCallback(
+    async (sessionId: string) => {
+      try {
+        const { error } = await supabase
+          .from('user_sessions')
+          .update({ is_active: false, ended_at: new Date().toISOString() })
+          .eq('id', sessionId);
 
-      if (error) throw error;
-      await fetchSessions();
-    } catch (error) {
-      if (mountedRef.current) {
+        if (error) throw error;
+        await queryClient.invalidateQueries({ queryKey: SESSIONS_KEY(userId) });
+      } catch (error) {
         deviceDetectionLog.error('Error ending session:', error);
       }
-    }
-  }, [fetchSessions, mountedRef]);
+    },
+    [queryClient, userId]
+  );
 
   const endAllOtherSessions = useCallback(async () => {
     if (!currentDeviceId) return;
@@ -478,22 +518,15 @@ export function useDeviceDetectionManagement() {
         .eq('is_active', true);
 
       if (error) throw error;
-      await fetchSessions();
+      await queryClient.invalidateQueries({ queryKey: SESSIONS_KEY(userId) });
     } catch (error) {
-      if (mountedRef.current) {
-        deviceDetectionLog.error('Error ending sessions:', error);
-      }
+      deviceDetectionLog.error('Error ending sessions:', error);
     }
-  }, [currentDeviceId, fetchSessions, mountedRef]);
+  }, [currentDeviceId, queryClient, userId]);
 
   useEffect(() => {
-    if (user) {
-      setLoading(true);
-      Promise.all([checkDevice(), fetchDevices(), fetchSessions()]).finally(() => {
-        if (mountedRef.current) setLoading(false);
-      });
-    }
-  }, [user, checkDevice, fetchDevices, fetchSessions, mountedRef]);
+    if (user) void checkDevice();
+  }, [user, checkDevice]);
 
   return {
     devices,
@@ -505,8 +538,10 @@ export function useDeviceDetectionManagement() {
     endSession,
     endAllOtherSessions,
     refetch: async () => {
-      await fetchDevices();
-      await fetchSessions();
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: DEVICES_KEY(userId) }),
+        queryClient.invalidateQueries({ queryKey: SESSIONS_KEY(userId) }),
+      ]);
     },
   };
 }
@@ -577,7 +612,10 @@ export function useViewTransitionManagement() {
     if (doc.startViewTransition) {
       const transition = doc.startViewTransition(callback);
       transition.finished.catch((err: unknown) => {
-        viewTransitionLog.debug('ViewTransition.finished rejected (aborted by rapid navigation)', err);
+        viewTransitionLog.debug(
+          'ViewTransition.finished rejected (aborted by rapid navigation)',
+          err
+        );
       });
       transition.ready.catch((err: unknown) => {
         viewTransitionLog.debug('ViewTransition.ready rejected', err);
@@ -609,7 +647,7 @@ export function useSidebarCollapseManagement() {
   });
 
   const toggle = useCallback(() => {
-    setCollapsed(prev => {
+    setCollapsed((prev) => {
       const next = !prev;
       safeSetItem(COLLAPSE_STORAGE_KEY, String(next));
       return next;
@@ -639,7 +677,9 @@ export function useSidebarFavoritesManagement() {
   useEffect(() => {
     try {
       localStorage.setItem(FAVORITES_STORAGE_KEY, JSON.stringify(favorites));
-    } catch {}
+    } catch {
+      /* localStorage may be unavailable in private mode */
+    }
   }, [favorites]);
 
   const toggleFavorite = useCallback((id: string) => {

@@ -22,6 +22,7 @@ import { sanitizeText } from '@/lib/sanitize';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
+/** Phone Entry interface definition. */
 export interface PhoneEntry {
   number:       string;
   type:         'mobile' | 'work' | 'home' | 'landline' | 'other';
@@ -56,6 +57,7 @@ interface ContactPhoneManagerProps {
   className?:   string;
 }
 
+/** Contact Phone Manager constant. */
 export const ContactPhoneManager: React.FC<ContactPhoneManagerProps> = ({
   phones,
   onChange,
@@ -128,7 +130,7 @@ export const ContactPhoneManager: React.FC<ContactPhoneManagerProps> = ({
       <div className="space-y-2">
         {phones.map((phone, idx) => (
           <div
-            key={idx}
+            key={phone.number || idx}
             className={`flex items-center gap-2 rounded-md border p-2 text-sm ${
               phone.is_primary ? 'border-primary/40 bg-primary/5' : 'bg-muted/30'
             }`}
@@ -260,4 +262,5 @@ export const ContactPhoneManager: React.FC<ContactPhoneManagerProps> = ({
   );
 };
 
+/** Default export. */
 export default ContactPhoneManager;

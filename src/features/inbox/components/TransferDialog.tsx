@@ -1,5 +1,4 @@
-// @ts-nocheck
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -26,6 +25,7 @@ interface TransferDialogProps {
   onTransfer: (type: 'agent' | 'queue' | 'connection', targetId: string, message?: string) => void;
 }
 
+/** Transfer Dialog component. */
 export function TransferDialog({ open, onOpenChange, onTransfer }: TransferDialogProps) {
   const [transferType, setTransferType] = useState<'agent' | 'queue' | 'connection'>('agent');
   const [selectedTarget, setSelectedTarget] = useState<string>('');
@@ -78,8 +78,10 @@ export function TransferDialog({ open, onOpenChange, onTransfer }: TransferDialo
     }
   }, [open]);
 
-  // Filter online/away agents (active ones)
-  const availableAgents = agents.filter((a) => a.status === 'online' || a.status === 'away');
+  const availableAgents = useMemo(
+    () => agents.filter((a) => a.status === 'online' || a.status === 'away'),
+    [agents]
+  );
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

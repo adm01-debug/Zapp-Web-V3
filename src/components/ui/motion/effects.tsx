@@ -3,8 +3,13 @@ import { ReactNode, useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
 
 // Animated counter
-interface AnimatedCounterProps { value: number; duration?: number; className?: string; }
+interface AnimatedCounterProps {
+  value: number;
+  duration?: number;
+  className?: string;
+}
 
+/** Smoothly counts up/down to `value` over `duration` seconds using a cubic-ease animation frame loop. */
 export function AnimatedCounter({ value, duration = 1, className }: AnimatedCounterProps) {
   const [displayValue, setDisplayValue] = useState(0);
   const prevRef = { current: 0 };
@@ -26,69 +31,228 @@ export function AnimatedCounter({ value, duration = 1, className }: AnimatedCoun
     };
     frame = requestAnimationFrame(animate);
     return () => cancelAnimationFrame(frame);
-  }, [value, duration]);
+  }, [value, duration]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  return <motion.span key={displayValue} initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} className={className}>{displayValue.toLocaleString()}</motion.span>;
+  return (
+    <motion.span
+      key={displayValue}
+      initial={{ opacity: 0, y: 5 }}
+      animate={{ opacity: 1, y: 0 }}
+      className={className}
+    >
+      {displayValue.toLocaleString()}
+    </motion.span>
+  );
 }
 
 // Animated progress bar
-export function AnimatedProgress({ value, max = 100, className, showValue = false, size = 'md' }: { value: number; max?: number; className?: string; showValue?: boolean; size?: 'sm' | 'md' | 'lg' }) {
+/** Renders a progress bar that animates from 0 to the given percentage on mount; optionally shows numeric label. */
+export function AnimatedProgress({
+  value,
+  max = 100,
+  className,
+  showValue = false,
+  size = 'md',
+}: {
+  value: number;
+  max?: number;
+  className?: string;
+  showValue?: boolean;
+  size?: 'sm' | 'md' | 'lg';
+}) {
   const pct = Math.min((value / max) * 100, 100);
   const h = { sm: 'h-1', md: 'h-2', lg: 'h-3' };
   return (
     <div className={cn('relative w-full', className)}>
-      <div className={cn('w-full bg-muted rounded-full overflow-hidden', h[size])}>
-        <motion.div initial={{ width: 0 }} animate={{ width: `${pct}%` }} transition={{ duration: 0.8, ease: [0.25, 0.46, 0.45, 0.94] }} className="h-full bg-primary rounded-full" />
+      <div className={cn('w-full overflow-hidden rounded-full bg-muted', h[size])}>
+        <motion.div
+          initial={{ width: 0 }}
+          animate={{ width: `${pct}%` }}
+          transition={{ duration: 0.8, ease: [0.25, 0.46, 0.45, 0.94] }}
+          className="h-full rounded-full bg-primary"
+        />
       </div>
-      {showValue && <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="absolute right-0 -top-6 text-xs text-muted-foreground">{Math.round(pct)}%</motion.span>}
+      {showValue && (
+        <motion.span
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="absolute -top-6 right-0 text-xs text-muted-foreground"
+        >
+          {Math.round(pct)}%
+        </motion.span>
+      )}
     </div>
   );
 }
 
 // Presence wrapper
-export function Presence({ children, mode = 'wait' }: { children: ReactNode; mode?: 'wait' | 'sync' | 'popLayout' }) {
+/** Thin wrapper around `AnimatePresence` that exposes the `mode` prop for exit animation sequencing. */
+export function Presence({
+  children,
+  mode = 'wait',
+}: {
+  children: ReactNode;
+  mode?: 'wait' | 'sync' | 'popLayout';
+}) {
   return <AnimatePresence mode={mode}>{children}</AnimatePresence>;
 }
 
 // Enhanced stagger container
-export function StaggerContainerEnhanced({ children, staggerDelay = 0.1, delayChildren = 0.1, className }: { children: ReactNode; staggerDelay?: number; className?: string; delayChildren?: number }) {
-  const v: Variants = { hidden: { opacity: 0 }, visible: { opacity: 1, transition: { staggerChildren: staggerDelay, delayChildren } } };
-  return <motion.div variants={v} initial="hidden" animate="visible" className={className}>{children}</motion.div>;
+/** Stagger container with configurable per-child delay and initial delay before the first child animates in. */
+export function StaggerContainerEnhanced({
+  children,
+  staggerDelay = 0.1,
+  delayChildren = 0.1,
+  className,
+}: {
+  children: ReactNode;
+  staggerDelay?: number;
+  className?: string;
+  delayChildren?: number;
+}) {
+  const v: Variants = {
+    hidden: { opacity: 0 },
+    visible: { opacity: 1, transition: { staggerChildren: staggerDelay, delayChildren } },
+  };
+  return (
+    <motion.div variants={v} initial="hidden" animate="visible" className={className}>
+      {children}
+    </motion.div>
+  );
 }
 
 // Slide transition
 type SlideDirection = 'left' | 'right' | 'up' | 'down';
 
-export function SlideTransition({ children, direction = 'up', distance = 20, className }: { children: ReactNode; direction?: SlideDirection; distance?: number; className?: string }) {
-  const init = direction === 'left' ? { opacity: 0, x: distance } : direction === 'right' ? { opacity: 0, x: -distance } : direction === 'up' ? { opacity: 0, y: distance } : { opacity: 0, y: -distance };
-  return <motion.div initial={init} animate={{ opacity: 1, x: 0, y: 0 }} exit={init} transition={{ duration: 0.3, ease: 'easeOut' }} className={className}>{children}</motion.div>;
+/** Slides and fades children in from the specified direction; mirrors the animation on exit. */
+export function SlideTransition({
+  children,
+  direction = 'up',
+  distance = 20,
+  className,
+}: {
+  children: ReactNode;
+  direction?: SlideDirection;
+  distance?: number;
+  className?: string;
+}) {
+  const init =
+    direction === 'left'
+      ? { opacity: 0, x: distance }
+      : direction === 'right'
+        ? { opacity: 0, x: -distance }
+        : direction === 'up'
+          ? { opacity: 0, y: distance }
+          : { opacity: 0, y: -distance };
+  return (
+    <motion.div
+      initial={init}
+      animate={{ opacity: 1, x: 0, y: 0 }}
+      exit={init}
+      transition={{ duration: 0.3, ease: 'easeOut' }}
+      className={className}
+    >
+      {children}
+    </motion.div>
+  );
 }
 
 // Hover scale
-export function HoverScale({ children, className, scale = 1.02 }: { children: ReactNode; className?: string; scale?: number }) {
-  return <motion.div whileHover={{ scale }} whileTap={{ scale: 0.98 }} transition={{ duration: 0.2 }} className={className}>{children}</motion.div>;
+/** Lightweight wrapper that scales its children on hover and slightly compresses on tap/click. */
+export function HoverScale({
+  children,
+  className,
+  scale = 1.02,
+}: {
+  children: ReactNode;
+  className?: string;
+  scale?: number;
+}) {
+  return (
+    <motion.div
+      whileHover={{ scale }}
+      whileTap={{ scale: 0.98 }}
+      transition={{ duration: 0.2 }}
+      className={className}
+    >
+      {children}
+    </motion.div>
+  );
 }
 
 // Animated list
+/** Wraps a `<ul>` in AnimatePresence with popLayout mode so items animate in/out smoothly as the list changes. */
 export function AnimatedList({ children, className }: { children: ReactNode; className?: string }) {
-  return <AnimatePresence mode="popLayout"><motion.ul className={className} layout>{children}</motion.ul></AnimatePresence>;
+  return (
+    <AnimatePresence mode="popLayout">
+      <motion.ul className={className} layout>
+        {children}
+      </motion.ul>
+    </AnimatePresence>
+  );
 }
 
-export function AnimatedListItem({ children, className, layoutId }: { children: ReactNode; className?: string; layoutId?: string }) {
+/** Individual list item for AnimatedList; scales in/out and supports a `layoutId` for shared-element transitions. */
+export function AnimatedListItem({
+  children,
+  className,
+  layoutId,
+}: {
+  children: ReactNode;
+  className?: string;
+  layoutId?: string;
+}) {
   return (
-    <motion.li layout layoutId={layoutId} initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }}
-      transition={{ duration: 0.2, layout: { duration: 0.3 } }} className={className}>{children}</motion.li>
+    <motion.li
+      layout
+      layoutId={layoutId}
+      initial={{ opacity: 0, scale: 0.8 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.8 }}
+      transition={{ duration: 0.2, layout: { duration: 0.3 } }}
+      className={className}
+    >
+      {children}
+    </motion.li>
   );
 }
 
 // Typewriter
-export function Typewriter({ text, speed = 50, className, onComplete }: { text: string; speed?: number; className?: string; onComplete?: () => void }) {
+/** Types `text` one character at a time at the given `speed` (ms per character), firing `onComplete` when done. */
+export function Typewriter({
+  text,
+  speed = 50,
+  className,
+  onComplete,
+}: {
+  text: string;
+  speed?: number;
+  className?: string;
+  onComplete?: () => void;
+}) {
   const [display, setDisplay] = useState('');
   useEffect(() => {
     let i = 0;
-    const iv = setInterval(() => { if (i <= text.length) { setDisplay(text.slice(0, i)); i++; } else { clearInterval(iv); onComplete?.(); } }, speed);
+    const iv = setInterval(() => {
+      if (i <= text.length) {
+        setDisplay(text.slice(0, i));
+        i++;
+      } else {
+        clearInterval(iv);
+        onComplete?.();
+      }
+    }, speed);
     return () => clearInterval(iv);
   }, [text, speed, onComplete]);
 
-  return <span className={className}>{display}{display.length < text.length && <motion.span animate={{ opacity: [1, 0] }} transition={{ duration: 0.5, repeat: Infinity }}>|</motion.span>}</span>;
+  return (
+    <span className={className}>
+      {display}
+      {display.length < text.length && (
+        <motion.span animate={{ opacity: [1, 0] }} transition={{ duration: 0.5, repeat: Infinity }}>
+          |
+        </motion.span>
+      )}
+    </span>
+  );
 }

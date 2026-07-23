@@ -1,3 +1,4 @@
+/** empty-states component for the ui section. */
 export {
   EmptyState,
   InboxEmptyState,

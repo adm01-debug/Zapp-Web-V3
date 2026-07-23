@@ -1,4 +1,4 @@
-// @ts-nocheck
+
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -17,7 +17,9 @@ import { WebhookKpiCards } from './admin-webhook-secret-status/WebhookKpiCards';
 import { WebhookEventsTable } from './admin-webhook-secret-status/WebhookEventsTable';
 import { WebhookValidationMetaCard } from './admin-webhook-secret-status/WebhookValidationMetaCard';
 import { useAdminWebhookStatus } from './admin-webhook-secret-status/useAdminWebhookStatus';
+import { SectionErrorBoundary } from '@/components/ui/section-error-boundary';
 
+/** Admin Webhook Secret Status Page. */
 export default function AdminWebhookSecretStatusPage() {
   const {
     selectedInstance,
@@ -140,7 +142,9 @@ export default function AdminWebhookSecretStatusPage() {
         eventsLoading={eventsQuery.isLoading}
       />
 
-      <HmacAuditHistoryPanel instance={selectedInstance} />
+      <SectionErrorBoundary sectionName="Histórico de auditoria HMAC">
+        <HmacAuditHistoryPanel instance={selectedInstance} />
+      </SectionErrorBoundary>
 
       {!selectedInstance && (
         <InstanceBreakdownTable stats={breakdown} onSelectInstance={setInstance} />

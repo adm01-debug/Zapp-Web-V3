@@ -1,76 +1,35 @@
-// @ts-nocheck
 import { useState } from "react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { Activity, RefreshCw, Trash2, Download, FileText, CalendarIcon } from "lucide-react";
 import { TelemetryCharts } from "@/features/admin";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import type { TelemetryRow, SeverityFilter, TimeFilter } from "./admin-telemetria/telemetryTypes";
+import type { SeverityFilter, TimeFilter } from "@/hooks/useQueryTelemetry";
+import { useQueryTelemetry } from "@/hooks/useQueryTelemetry";
 import { formatDuration, computeTopOffenders } from "./admin-telemetria/telemetryUtils";
 import { TelemetryStatsCards } from "./admin-telemetria/TelemetryStatsCards";
 import { TelemetryTopOffenders } from "./admin-telemetria/TelemetryTopOffenders";
 import { TelemetryTable } from "./admin-telemetria/TelemetryTable";
 import { ClientTelemetryPanel } from "./admin-telemetria/ClientTelemetryPanel";
 
+/** Admin Telemetria Page. */
 export default function AdminTelemetriaPage() {
   const [severityFilter, setSeverityFilter] = useState<SeverityFilter>("all");
   const [timeFilter, setTimeFilter] = useState<TimeFilter>("24h");
   const [customDateFrom, setCustomDateFrom] = useState<Date | undefined>();
   const [customDateTo, setCustomDateTo] = useState<Date | undefined>();
 
-  const getTimeThreshold = (): { from: string; to: string } => {
-    const now = new Date();
-    const to = now.toISOString();
-    if (timeFilter === "custom" && customDateFrom && customDateTo) {
-      const endOfDay = new Date(customDateTo);
-      endOfDay.setHours(23, 59, 59, 999);
-      return { from: customDateFrom.toISOString(), to: endOfDay.toISOString() };
-    }
-    const ms = timeFilter === "1h" ? 3600000
-      : timeFilter === "6h" ? 21600000
-      : timeFilter === "24h" ? 86400000
-      : 604800000;
-    return { from: new Date(now.getTime() - ms).toISOString(), to };
-  };
-
-  const { data: rows = [], isLoading, refetch, isRefetching } = useQuery<TelemetryRow[]>({
-    queryKey: ["query-telemetry", severityFilter, timeFilter, customDateFrom?.toISOString(), customDateTo?.toISOString()],
-    queryFn: async () => {
-      const { from, to } = getTimeThreshold();
-      let query = supabase
-        .from('query_telemetry')
-        .select("*")
-        .gte("created_at", from)
-        .lte("created_at", to)
-        .order("created_at", { ascending: false })
-        .limit(500);
-
-      if (severityFilter !== "all") {
-        query = query.eq("severity", severityFilter);
-      }
-
-      const { data, error } = await query;
-      if (error) throw error;
-      return (data as TelemetryRow[]) || []; // ignore-audit: narrows Supabase query result to local interface
-    },
-    refetchInterval: 30000,
-    staleTime: 10000,
+  const { rows, isLoading, refetch, isRefetching, handleCleanup } = useQueryTelemetry({
+    severityFilter,
+    timeFilter,
+    customDateFrom,
+    customDateTo,
   });
-
-  const handleCleanup = async () => {
-    const threshold = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-    const { error } = await supabase.from('query_telemetry').delete().lt("created_at", threshold);
-    if (error) toast.error("Erro ao limpar dados antigos");
-    else { toast.success("Dados com mais de 7 dias removidos"); refetch(); }
-  };
 
   const handleExportCSV = () => {
     if (rows.length === 0) {
@@ -85,7 +44,7 @@ export default function AdminTelemetriaPage() {
       r.count_mode ?? "-", `"${(r.error_message || "").replace(/"/g, '""')}"`,
     ]);
     const csvContent = [headers.join(";"), ...csvRows.map(r => r.join(";"))].join("\n");
-    const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
+    const blob = new Blob(["﻿" + csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url; a.download = `telemetria_${format(new Date(), "yyyy-MM-dd")}_${timeFilter}.csv`; a.click();

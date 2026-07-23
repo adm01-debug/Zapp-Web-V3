@@ -2,5 +2,6 @@
 import { useBusinessLogicPipelineManagement } from '@/features/business-logic/hooks/useBusinessLogicManagement';
 import type { PipelineStage, UseBusinessLogicPipelineParams, UseBusinessLogicPipelineResult } from '@/features/business-logic/hooks/useBusinessLogicManagement';
 
+/** Hook: use Sales Pipeline. */
 export { useBusinessLogicPipelineManagement as useSalesPipeline };
 export type { PipelineStage, UseBusinessLogicPipelineParams, UseBusinessLogicPipelineResult };

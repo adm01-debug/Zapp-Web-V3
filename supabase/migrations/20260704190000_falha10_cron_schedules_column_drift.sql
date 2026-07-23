@@ -95,7 +95,7 @@ BEGIN
       SELECT extensions.http_post(
         url     := COALESCE(
                      NULLIF(current_setting('app.settings.supabase_url', true), ''),
-                     'https://allrjhkpuscmgbsnmjlv.supabase.co'
+                     'https://supabase.atomicabr.com.br'
                    ) || '/functions/v1/cleanup-storage-orphans',
         body    := '{}',
         headers := jsonb_build_object(
@@ -117,7 +117,7 @@ BEGIN
       SELECT extensions.http_post(
         url     := COALESCE(
                      NULLIF(current_setting('app.settings.supabase_url', true), ''),
-                     'https://allrjhkpuscmgbsnmjlv.supabase.co'
+                     'https://supabase.atomicabr.com.br'
                    ) || '/functions/v1/connection-health-check',
         body    := '{}',
         headers := jsonb_build_object(
@@ -139,7 +139,7 @@ BEGIN
       SELECT extensions.http_post(
         url     := COALESCE(
                      NULLIF(current_setting('app.settings.supabase_url', true), ''),
-                     'https://allrjhkpuscmgbsnmjlv.supabase.co'
+                     'https://supabase.atomicabr.com.br'
                    ) || '/functions/v1/nps-scheduler',
         body    := '{}',
         headers := jsonb_build_object(
@@ -161,7 +161,7 @@ BEGIN
       SELECT extensions.http_post(
         url     := COALESCE(
                      NULLIF(current_setting('app.settings.supabase_url', true), ''),
-                     'https://allrjhkpuscmgbsnmjlv.supabase.co'
+                     'https://supabase.atomicabr.com.br'
                    ) || '/functions/v1/provider-healthcheck',
         body    := '{}',
         headers := jsonb_build_object(
@@ -183,7 +183,7 @@ BEGIN
       SELECT extensions.http_post(
         url     := COALESCE(
                      NULLIF(current_setting('app.settings.supabase_url', true), ''),
-                     'https://allrjhkpuscmgbsnmjlv.supabase.co'
+                     'https://supabase.atomicabr.com.br'
                    ) || '/functions/v1/queue-rebalance',
         body    := '{}',
         headers := jsonb_build_object(
@@ -208,7 +208,7 @@ BEGIN
       SELECT extensions.http_post(
         url     := COALESCE(
                      NULLIF(current_setting('app.settings.supabase_url', true), ''),
-                     'https://allrjhkpuscmgbsnmjlv.supabase.co'
+                     'https://supabase.atomicabr.com.br'
                    ) || '/functions/v1/reprocess-failed-messages',
         body    := '{}',
         headers := jsonb_build_object(
@@ -230,7 +230,7 @@ BEGIN
       SELECT extensions.http_post(
         url     := COALESCE(
                      NULLIF(current_setting('app.settings.supabase_url', true), ''),
-                     'https://allrjhkpuscmgbsnmjlv.supabase.co'
+                     'https://supabase.atomicabr.com.br'
                    ) || '/functions/v1/talkx-scheduler',
         body    := '{}',
         headers := jsonb_build_object(
@@ -254,7 +254,7 @@ BEGIN
       SELECT extensions.http_post(
         url     := COALESCE(
                      NULLIF(current_setting('app.settings.supabase_url', true), ''),
-                     'https://allrjhkpuscmgbsnmjlv.supabase.co'
+                     'https://supabase.atomicabr.com.br'
                    ) || '/functions/v1/auto-escalate-sla',
         body    := '{"mode":"resolve"}',
         headers := jsonb_build_object(

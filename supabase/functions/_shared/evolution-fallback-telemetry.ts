@@ -28,11 +28,13 @@
  *   }
  */
 
+/** Evolution Fallback Action type alias. */
 export type EvolutionFallbackAction =
   | 'find-chats'
   | 'find-contacts'
   | 'fetch-profile';
 
+/** Evolution Fallback Reason type alias. */
 export type EvolutionFallbackReason =
   | 'http_404'
   | 'http_405'
@@ -43,8 +45,10 @@ export type EvolutionFallbackReason =
   | 'empty_payload'
   | 'upstream_error';
 
+/** Evolution Fallback Mode type alias. */
 export type EvolutionFallbackMode = 'detected' | 'triggered';
 
+/** Evolution Fallback Event interface definition. */
 export interface EvolutionFallbackEvent {
   tag: 'evolution-fallback';
   ts: string;

@@ -1,7 +1,7 @@
-// @ts-nocheck
 import { useState } from 'react';
+import { queryKeys } from '@/services/api/queryKeys';
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { fetchMentionableProfiles } from '../../hooks/useMentionableProfilesData';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -17,17 +17,14 @@ interface MentionInputProps {
   disabled?: boolean;
 }
 
+/** Mention Input component for the collaboration section. */
 export function MentionInput({ value, onChange, onSubmit, placeholder, disabled }: MentionInputProps) {
   const [showMentions, setShowMentions] = useState(false);
   const [mentionFilter, setMentionFilter] = useState('');
 
   const { data: agents } = useQuery({
-    queryKey: ['agents-for-mention'],
-    queryFn: async () => {
-      const { data, error } = await supabase.from('profiles').select('id, name, avatar_url').eq('is_active', true).limit(20);
-      if (error) throw error;
-      return data || [];
-    },
+    queryKey: queryKeys.contactDetails.agentForMention(),
+    queryFn: fetchMentionableProfiles,
   });
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -69,7 +66,7 @@ export function MentionInput({ value, onChange, onSubmit, placeholder, disabled 
             className="absolute bottom-full left-0 right-0 mb-1 bg-popover border rounded-lg shadow-lg overflow-hidden">
             <ScrollArea className="max-h-48">
               {filteredAgents.map((agent) => (
-                <button key={agent.id} className="w-full flex items-center gap-2 p-2 hover:bg-muted text-left"
+                <button type="button" key={agent.id} className="w-full flex items-center gap-2 p-2 hover:bg-muted text-left"
                   onClick={() => handleSelectMention(agent)}>
                   <Avatar className="w-6 h-6">
                     <AvatarImage src={agent.avatar_url || undefined} alt={agent.name} />

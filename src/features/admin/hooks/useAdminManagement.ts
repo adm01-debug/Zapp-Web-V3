@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Admin Management Hook — Unified orchestration of all admin panel integrations.
  * Consolidates 7 domain-specific hooks into one comprehensive module.
@@ -14,21 +13,22 @@
  * 8. Orchestration — Main hook combining all domains
  */
 
-import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { safeClient, safeFrom } from '@/integrations/supabase/safeClient';
+import { queryKeys } from '@/services/api/queryKeys';
 import { toast } from 'sonner';
 import { useToast } from '@/hooks/use-toast';
-import { useMountedRef } from '@/hooks/useMountedRef';
 import { log, getLogger } from '@/lib/logger';
 import { invalidateRouteRolesCache } from '@/features/auth';
-import { normalizeProfileRef, type AdminProfileRef } from '@/features/admin/utils/profileMappers';
-import type { Json } from '@/integrations/supabase/schema';
+import { normalizeProfileRef, type AdminProfileRef } from '../utils/profileMappers';
 import type { AppRole } from '@/features/auth';
 
 // ─── Type Exports ────────────────────────────────────────────────────────────
 
 // Automations
+/** Trigger Type type alias. */
 export type TriggerType =
   | 'first_response_pending'
   | 'inactivity'
@@ -36,30 +36,59 @@ export type TriggerType =
   | 'tag_removed'
   | 'keyword_match';
 
+/** Trigger Config interface definition. */
+export interface TriggerConfig {
+  threshold_seconds?: number;
+  side?: string;
+  keywords?: string[];
+  tags?: string[];
+  tag?: string;
+  [key: string]: unknown;
+}
+
+/** Rule Actions interface definition. */
+export interface RuleActions {
+  suggest_reply?: boolean;
+  auto_send?: boolean;
+  apply_tags?: string[];
+  ai_prompt?: string;
+  template?: string;
+  escalate_sla?: {
+    enabled?: boolean;
+    level?: string;
+    reason?: string;
+  };
+  [key: string]: unknown;
+}
+
+/** Rule interface definition. */
 export interface Rule {
   id: string;
   name: string;
   description: string | null;
   is_active: boolean;
   trigger_type: TriggerType;
-  trigger_config: Json;
-  actions: Json;
+  trigger_config: TriggerConfig;
+  actions: RuleActions;
   priority: number;
   cooldown_seconds: number;
   channel_id: string | null;
   department_id: string | null;
 }
 
+/** Automation Channel interface definition. */
 export interface AutomationChannel {
   id: string;
   name: string;
 }
 
+/** Automation Department interface definition. */
 export interface AutomationDepartment {
   id: string;
   name: string;
 }
 
+/** T R I G G E R_ L A B E L constant. */
 export const TRIGGER_LABEL: Record<TriggerType, string> = {
   first_response_pending: 'Primeira resposta pendente',
   inactivity: 'Ausência / inatividade',
@@ -68,6 +97,7 @@ export const TRIGGER_LABEL: Record<TriggerType, string> = {
   keyword_match: 'Palavra-chave',
 };
 
+/** E M P T Y_ R U L E constant. */
 export const EMPTY_RULE: Omit<Rule, 'id'> = {
   name: '',
   description: '',
@@ -89,8 +119,10 @@ export const EMPTY_RULE: Omit<Rule, 'id'> = {
 };
 
 // Channels
+/** Channel Status type alias. */
 export type ChannelStatus = 'active' | 'paused' | 'disabled';
 
+/** Service Channel interface definition. */
 export interface ServiceChannel {
   id: string;
   name: string;
@@ -111,12 +143,14 @@ export interface ServiceChannel {
   disabled_reason: string | null;
 }
 
+/** Queue Option interface definition. */
 export interface QueueOption {
   id: string;
   name: string;
   color: string;
 }
 
+/** Wpp Conn Option interface definition. */
 export interface WppConnOption {
   id: string;
   name: string;
@@ -124,9 +158,12 @@ export interface WppConnOption {
 }
 
 // Queues
+/** Queue Status type alias. */
 export type QueueStatus = 'active' | 'paused' | 'archived';
+/** Dist Algo type alias. */
 export type DistAlgo = 'round_robin' | 'least_busy' | 'longest_idle' | 'manual_pull';
 
+/** Queue interface definition. */
 export interface Queue {
   id: string;
   name: string;
@@ -145,12 +182,14 @@ export interface Queue {
   paused_reason: string | null;
 }
 
+/** Profile interface definition. */
 export interface Profile {
   id: string;
   name: string;
   avatar_url: string | null;
 }
 
+/** Queue Member interface definition. */
 export interface QueueMember {
   id: string;
   queue_id: string;
@@ -158,6 +197,7 @@ export interface QueueMember {
   profile?: Profile;
 }
 
+/** Queue Skill interface definition. */
 export interface QueueSkill {
   id: string;
   queue_id: string;
@@ -165,11 +205,13 @@ export interface QueueSkill {
   min_level: number;
 }
 
+/** Queue Department interface definition. */
 export interface QueueDepartment {
   id: string;
   name: string;
 }
 
+/** Queue Service Channel interface definition. */
 export interface QueueServiceChannel {
   id: string;
   name: string;
@@ -177,6 +219,7 @@ export interface QueueServiceChannel {
   default_queue_id: string | null;
 }
 
+/** Channel Queue interface definition. */
 export interface ChannelQueue {
   id: string;
   channel_id: string;
@@ -185,6 +228,7 @@ export interface ChannelQueue {
   is_active: boolean;
 }
 
+/** A L G O_ L A B E L constant. */
 export const ALGO_LABEL: Record<DistAlgo, string> = {
   round_robin: 'Round-robin',
   least_busy: 'Menos ocupado',
@@ -193,6 +237,7 @@ export const ALGO_LABEL: Record<DistAlgo, string> = {
 };
 
 // Departments
+/** Department interface definition. */
 export interface Department {
   id: string;
   name: string;
@@ -207,6 +252,7 @@ export interface Department {
 // Roles
 type RoleType = 'dev' | 'admin' | 'manager' | 'supervisor' | 'agent';
 
+/** User With Role interface definition. */
 export interface UserWithRole {
   id: string;
   user_id: string;
@@ -215,6 +261,7 @@ export interface UserWithRole {
 }
 
 // Permissions
+/** Route Permission type alias. */
 export type RoutePermission = {
   path: string;
   allowed_roles: AppRole[];
@@ -223,9 +270,11 @@ export type RoutePermission = {
   updated_at: string;
 };
 
+/** A L L_ R O L E S constant. */
 export const ALL_ROLES: AppRole[] = ['dev', 'admin', 'manager', 'supervisor', 'agent'];
 
 // Security
+/** Phase type alias. */
 export type Phase =
   | 'config'
   | 'parse-body'
@@ -238,6 +287,7 @@ export type Phase =
   | 'temporal'
   | 'response';
 
+/** Scenario Report interface definition. */
 export interface ScenarioReport {
   name: string;
   description: string;
@@ -251,6 +301,7 @@ export interface ScenarioReport {
   nonce: string;
 }
 
+/** Self Test Result interface definition. */
 export interface SelfTestResult {
   ok: boolean;
   configured: boolean;
@@ -268,19 +319,18 @@ export interface SelfTestResult {
 
 /** Manages automation rules, channels, and departments for rule configuration. */
 function useAdminAutomationsManagement() {
-  const [rules, setRules] = useState<Rule[]>([]);
-  const [automationChannels, setAutomationChannels] = useState<AutomationChannel[]>([]);
-  const [automationDepartments, setAutomationDepartments] = useState<AutomationDepartment[]>([]);
-  const [automationLoading, setAutomationLoading] = useState(false);
-  const [automationError, setAutomationError] = useState<Error | null>(null);
-  const mountedRef = useMountedRef();
+  const queryClient = useQueryClient();
 
-  const loadAutomations = async () => {
-    setAutomationLoading(true);
-    setAutomationError(null);
-    const { withRetry } = await import('@/lib/retry');
-    try {
-      const result = await withRetry(
+  const {
+    data: automationsData,
+    isLoading: automationLoading,
+    error: automationErrorRaw,
+    refetch: loadAutomations,
+  } = useQuery({
+    queryKey: queryKeys.automations.all(),
+    queryFn: async () => {
+      const { withRetry } = await import('@/lib/retry');
+      return withRetry(
         async () => {
           const [rulesRes, chsRes, depsRes] = await Promise.all([
             supabase.from('automations').select('*').order('name', { ascending: true }),
@@ -289,7 +339,11 @@ function useAdminAutomationsManagement() {
           ]);
           const firstError = rulesRes.error ?? chsRes.error ?? depsRes.error;
           if (firstError) throw new Error(firstError.message ?? 'Erro ao carregar automações');
-          return { rulesData: rulesRes.data, chs: chsRes.data, deps: depsRes.data };
+          return {
+            rules: (rulesRes.data ?? []) as unknown as Rule[],
+            automationChannels: (chsRes.data ?? []) as AutomationChannel[],
+            automationDepartments: (depsRes.data ?? []) as AutomationDepartment[],
+          };
         },
         {
           maxRetries: 3,
@@ -302,24 +356,15 @@ function useAdminAutomationsManagement() {
           },
         }
       );
-      if (!mountedRef.current) return;
-      setRules((result.rulesData ?? []) as unknown as Rule[]);
-      setAutomationChannels((result.chs ?? []) as AutomationChannel[]);
-      setAutomationDepartments((result.deps ?? []) as AutomationDepartment[]);
-    } catch (err) {
-      if (!mountedRef.current) return;
-      const e = err instanceof Error ? err : new Error('Erro ao carregar automações');
-      setAutomationError(e);
-      toast.error(e.message);
-    } finally {
-      if (mountedRef.current) setAutomationLoading(false);
-    }
-  };
+    },
+    staleTime: 30_000,
+  });
 
-
-  useEffect(() => {
-    void loadAutomations();
-  }, []);
+  const automationError =
+    automationErrorRaw instanceof Error ? automationErrorRaw : null;
+  const rules = automationsData?.rules ?? [];
+  const automationChannels = automationsData?.automationChannels ?? [];
+  const automationDepartments = automationsData?.automationDepartments ?? [];
 
   const saveAutomation = async (editing: Rule | null): Promise<boolean> => {
     if (!editing) return false;
@@ -348,7 +393,7 @@ function useAdminAutomationsManagement() {
       return false;
     }
     toast.success('Regra salva');
-    loadAutomations();
+    void queryClient.invalidateQueries({ queryKey: queryKeys.automations.all() });
     return true;
   };
 
@@ -358,7 +403,7 @@ function useAdminAutomationsManagement() {
       toast.error('Erro ao remover');
       return;
     }
-    loadAutomations();
+    void queryClient.invalidateQueries({ queryKey: queryKeys.automations.all() });
   };
 
   const toggleAutomationActive = async (r: Rule) => {
@@ -370,7 +415,7 @@ function useAdminAutomationsManagement() {
       toast.error('Erro ao alterar status');
       return;
     }
-    loadAutomations();
+    void queryClient.invalidateQueries({ queryKey: queryKeys.automations.all() });
   };
 
   const adjustAutomationPriority = async (r: Rule, delta: number) => {
@@ -383,7 +428,7 @@ function useAdminAutomationsManagement() {
       toast.error('Erro ao ajustar prioridade');
       return;
     }
-    loadAutomations();
+    void queryClient.invalidateQueries({ queryKey: queryKeys.automations.all() });
   };
 
   return {
@@ -398,24 +443,21 @@ function useAdminAutomationsManagement() {
     toggleAutomationActive,
     adjustAutomationPriority,
   };
-
 }
 
 // ─── Section 2: Channels ─────────────────────────────────────────────────────
 
 /** Manages service channels, routing configuration, queue binding, and channel status. */
 function useAdminChannelsManagement(statusFilter: string, search: string) {
-  const [channels, setChannels] = useState<ServiceChannel[]>([]);
-  const [channelQueues, setChannelQueues] = useState<QueueOption[]>([]);
-  const [channelWppConns, setChannelWppConns] = useState<WppConnOption[]>([]);
-  const [channelsLoading, setChannelsLoading] = useState(true);
-  const mountedRef = useMountedRef();
-  const loadIdRef = useRef(0);
+  const queryClient = useQueryClient();
 
-  const loadChannels = async () => {
-    const myId = ++loadIdRef.current;
-    setChannelsLoading(true);
-    try {
+  const {
+    data: channelsData,
+    isLoading: channelsLoading,
+    refetch: loadChannels,
+  } = useQuery({
+    queryKey: ['admin-service-channels', statusFilter, search] as const,
+    queryFn: async () => {
       const [chRes, qRes, wRes] = await Promise.all([
         safeClient.rpc<ServiceChannel[]>('rpc_list_service_channels', {
           p_status: statusFilter === 'all' ? null : statusFilter,
@@ -424,23 +466,19 @@ function useAdminChannelsManagement(statusFilter: string, search: string) {
         supabase.from('queues').select('id,name,color').order('name'),
         supabase.from('whatsapp_connections').select('id,name,phone_number').order('name'),
       ]);
-      if (myId !== loadIdRef.current || !mountedRef.current) return;
       if (chRes.error) throw new Error(chRes.error.message);
-      setChannels((chRes.data ?? []) as ServiceChannel[]);
-      setChannelQueues((qRes.data ?? []) as QueueOption[]);
-      setChannelWppConns((wRes.data ?? []) as WppConnOption[]);
-    } catch (e) {
-      if (myId !== loadIdRef.current) return;
-      log.error('Load service channels failed', e);
-      toast.error('Erro ao carregar canais');
-    } finally {
-      if (myId === loadIdRef.current && mountedRef.current) setChannelsLoading(false);
-    }
-  };
+      return {
+        channels: (chRes.data ?? []) as ServiceChannel[],
+        channelQueues: (qRes.data ?? []) as QueueOption[],
+        channelWppConns: (wRes.data ?? []) as WppConnOption[],
+      };
+    },
+    staleTime: 30_000,
+  });
 
-  useEffect(() => {
-    loadChannels();
-  }, [statusFilter]);
+  const channels = channelsData?.channels ?? [];
+  const channelQueues = channelsData?.channelQueues ?? [];
+  const channelWppConns = channelsData?.channelWppConns ?? [];
 
   const filteredChannels = useMemo(() => {
     if (!search.trim()) return channels;
@@ -474,9 +512,9 @@ function useAdminChannelsManagement(statusFilter: string, search: string) {
       });
       if (error) throw new Error(error.message);
       toast.success(editing.id ? 'Canal atualizado' : 'Canal criado');
-      loadChannels();
+      void queryClient.invalidateQueries({ queryKey: ['admin-service-channels'] });
       return true;
-    } catch (e) {
+    } catch {
       toast.error('Erro ao salvar');
       return false;
     }
@@ -508,9 +546,9 @@ function useAdminChannelsManagement(statusFilter: string, search: string) {
             ? 'Canal desativado'
             : 'Sticky removido'
       );
-      loadChannels();
+      void queryClient.invalidateQueries({ queryKey: ['admin-service-channels'] });
       return true;
-    } catch (e) {
+    } catch {
       toast.error('Erro');
       return false;
     }
@@ -523,8 +561,8 @@ function useAdminChannelsManagement(statusFilter: string, search: string) {
       });
       if (error) throw new Error(error.message);
       toast.success('Canal reativado');
-      loadChannels();
-    } catch (e) {
+      void queryClient.invalidateQueries({ queryKey: ['admin-service-channels'] });
+    } catch {
       toast.error('Erro');
     }
   };
@@ -547,48 +585,48 @@ function useAdminChannelsManagement(statusFilter: string, search: string) {
 /** Manages queue creation, member assignments, skill levels, and distribution algorithms. */
 function useAdminQueuesManagement() {
   const { toast } = useToast();
-  const [queues, setQueues] = useState<Queue[]>([]);
-  const [queueMembers, setQueueMembers] = useState<QueueMember[]>([]);
-  const [queueSkills, setQueueSkills] = useState<QueueSkill[]>([]);
-  const [queueDepartments, setQueueDepartments] = useState<QueueDepartment[]>([]);
-  const [queueChannels, setQueueChannels] = useState<QueueServiceChannel[]>([]);
-  const [channelQueues, setChannelQueues] = useState<ChannelQueue[]>([]);
-  const [profiles, setProfiles] = useState<Profile[]>([]);
-  const [queuesLoading, setQueuesLoading] = useState(true);
-  const mountedRef = useMountedRef();
+  const queryClient = useQueryClient();
 
-  const loadQueues = async () => {
-    setQueuesLoading(true);
-    try {
+  const {
+    data: queuesData,
+    isLoading: queuesLoading,
+    refetch: loadQueues,
+  } = useQuery({
+    queryKey: queryKeys.queues.all(),
+    queryFn: async () => {
       const [qRes, mRes, sRes, dRes, cRes, chqRes, pRes] = await Promise.all([
         supabase.from('queues').select('*'),
         supabase.from('queue_members').select('*'),
-        supabase.from('queue_skills').select('*'),
+        safeFrom('queue_skill_requirements').select('*'),
         supabase.from('departments').select('*'),
-        supabase.from('service_channels').select('id,name,channel_type,default_queue_id'),
-        supabase.from('channel_queues').select('*'),
+        safeFrom('service_channels').select('id,name,channel_type,default_queue_id'),
+        safeFrom('channel_queues').select('*'),
         supabase.from('profiles').select('id,name,avatar_url'),
       ]);
 
-      if (!mountedRef.current) return;
+      return {
+        queues: (qRes.data ?? []) as Queue[],
+        queueMembers: (mRes.data ?? []) as QueueMember[],
+        queueSkills: (sRes.data ?? []).map((r: any) => ({
+          ...r,
+          min_level: (r as { min_level?: number | null }).min_level ?? 1,
+        })) as QueueSkill[],
+        queueDepartments: (dRes.data ?? []) as QueueDepartment[],
+        queueChannels: (cRes.data ?? []) as QueueServiceChannel[],
+        channelQueues: (chqRes.data ?? []) as ChannelQueue[],
+        profiles: (pRes.data ?? []) as Profile[],
+      };
+    },
+    staleTime: 30_000,
+  });
 
-      setQueues((qRes.data ?? []) as Queue[]);
-      setQueueMembers((mRes.data ?? []) as QueueMember[]);
-      setQueueSkills((sRes.data ?? []) as QueueSkill[]);
-      setQueueDepartments((dRes.data ?? []) as QueueDepartment[]);
-      setQueueChannels((cRes.data ?? []) as QueueServiceChannel[]);
-      setChannelQueues((chqRes.data ?? []) as ChannelQueue[]);
-      setProfiles((pRes.data ?? []) as Profile[]);
-    } catch (e) {
-      toast({ title: 'Erro ao carregar filas', variant: 'destructive' });
-    } finally {
-      if (mountedRef.current) setQueuesLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    void loadQueues();
-  }, []);
+  const queues = queuesData?.queues ?? [];
+  const queueMembers = queuesData?.queueMembers ?? [];
+  const queueSkills = queuesData?.queueSkills ?? [];
+  const queueDepartments = queuesData?.queueDepartments ?? [];
+  const queueChannels = queuesData?.queueChannels ?? [];
+  const channelQueues = queuesData?.channelQueues ?? [];
+  const profiles = queuesData?.profiles ?? [];
 
   const saveQueue = async (editing: Queue | null): Promise<boolean> => {
     if (!editing) return false;
@@ -604,7 +642,7 @@ function useAdminQueuesManagement() {
       return false;
     }
     toast({ title: 'Fila salva' });
-    await loadQueues();
+    void queryClient.invalidateQueries({ queryKey: queryKeys.queues.all() });
     return true;
   };
 
@@ -615,7 +653,7 @@ function useAdminQueuesManagement() {
       return false;
     }
     toast({ title: 'Fila removida' });
-    await loadQueues();
+    void queryClient.invalidateQueries({ queryKey: queryKeys.queues.all() });
     return true;
   };
 
@@ -638,57 +676,45 @@ function useAdminQueuesManagement() {
 
 /** Manages department CRUD operations, member assignments, and department activation. */
 function useDepartmentsManagement() {
-  const [departments, setDepartments] = useState<Department[]>([]);
-  const [deptLoading, setDeptLoading] = useState(true);
   const [deptSaving, setDeptSaving] = useState(false);
-  const mountedRef = useMountedRef();
   const deptLogger = getLogger('useDepartmentsAdmin');
+  const queryClient = useQueryClient();
 
-  const fetchDepartments = useCallback(async () => {
-    setDeptLoading(true);
-    const { data, error } = await supabase.from('departments').select('*').order('name');
+  const {
+    data: departments,
+    isLoading: deptLoading,
+    refetch: fetchDepartments,
+  } = useQuery({
+    queryKey: queryKeys.departmentChat.list(),
+    queryFn: async () => {
+      const { data, error } = await supabase.from('departments').select('*').order('name');
+      if (error) throw new Error('Erro ao carregar departamentos');
 
-    if (!mountedRef.current) return;
-
-    if (error) {
-      toast.error('Erro ao carregar departamentos');
-      setDeptLoading(false);
-      return;
-    }
-
-    const ids = (data ?? []).map((d) => d.id);
-    let counts: Record<string, number> = {};
-    let countsFailed = false;
-    if (ids.length) {
-      const { data: profilesByDept, error: profilesByDeptErr } = await supabase
-        .from('profiles')
-        .select('department_id')
-        .in('department_id', ids);
-      if (!mountedRef.current) return;
-      if (profilesByDeptErr) {
-        deptLogger.warn('member-count fetch failed:', profilesByDeptErr.message);
-        countsFailed = true;
-      } else {
-        counts = (profilesByDept ?? []).reduce<Record<string, number>>((acc, p) => {
-          if (p.department_id) acc[p.department_id] = (acc[p.department_id] ?? 0) + 1;
-          return acc;
-        }, {});
+      const ids = (data ?? []).map((d) => d.id);
+      let counts: Record<string, number> = {};
+      if (ids.length) {
+        const { data: profilesByDept, error: profilesByDeptErr } = await supabase
+          .from('profiles')
+          .select('department_id')
+          .in('department_id', ids);
+        if (profilesByDeptErr) {
+          deptLogger.warn('member-count fetch failed:', profilesByDeptErr.message);
+        } else {
+          counts = (profilesByDept ?? []).reduce<Record<string, number>>((acc, p) => {
+            if (p.department_id) acc[p.department_id] = (acc[p.department_id] ?? 0) + 1;
+            return acc;
+          }, {});
+        }
       }
-    }
 
-    setDepartments(
-      (data ?? []).map((d) => ({
+      return (data ?? []).map((d) => ({
         ...d,
         is_active: d.is_active ?? true,
-        member_count: countsFailed ? undefined : (counts[d.id] ?? 0),
-      }))
-    );
-    setDeptLoading(false);
-  }, []);
-
-  useEffect(() => {
-    void fetchDepartments();
-  }, [fetchDepartments]);
+        member_count: counts[d.id] ?? 0,
+      })) as Department[];
+    },
+    staleTime: 30_000,
+  });
 
   const saveDepartment = async (
     payload: { name: string; slug: string; description: string | null; is_active: boolean },
@@ -712,7 +738,7 @@ function useDepartmentsManagement() {
     }
 
     toast.success(editingId ? 'Departamento atualizado' : 'Departamento criado');
-    void fetchDepartments();
+    void queryClient.invalidateQueries({ queryKey: queryKeys.departmentChat.list() });
     return true;
   };
 
@@ -727,12 +753,12 @@ function useDepartmentsManagement() {
     }
 
     toast.success('Departamento removido');
-    void fetchDepartments();
+    void queryClient.invalidateQueries({ queryKey: queryKeys.departmentChat.list() });
     return true;
   };
 
   return {
-    departments,
+    departments: departments ?? [],
     deptLoading,
     deptSaving,
     fetchDepartments,
@@ -744,8 +770,6 @@ function useDepartmentsManagement() {
 // ─── Section 5: Roles ────────────────────────────────────────────────────────
 
 function useRolesManagement() {
-  const [roleUsers, setRoleUsers] = useState<UserWithRole[]>([]);
-  const [rolesLoading, setRolesLoading] = useState(true);
   const [rolesSearch, setRolesSearch] = useState('');
   const [showAddRoleDialog, setShowAddRoleDialog] = useState(false);
   const [selectedRoleUser, setSelectedRoleUser] = useState('');
@@ -755,44 +779,55 @@ function useRolesManagement() {
   >([]);
   const [userToRemoveRole, setUserToRemoveRole] = useState<UserWithRole | null>(null);
   const [rolesUpdating, setRolesUpdating] = useState(false);
+  const queryClient = useQueryClient();
 
-  const fetchRoleUsers = async () => {
-    setRolesLoading(true);
-    type RoleRow = {
-      id: string;
-      user_id: string;
-      role: string;
-      profiles: unknown;
-    };
-    const { data, error } = await safeClient.from<RoleRow>('user_roles', (q) =>
-      q
-        .select(`id, user_id, role, profiles!user_roles_user_id_fkey (name, email, avatar_url)`)
-        .order('role')
-    );
-
-    if (!error && data) {
-      setRoleUsers(
-        data.map((u) => {
-          const ref = normalizeProfileRef(u.profiles as never);
-          return {
-            id: u.id,
-            user_id: u.user_id,
-            role: u.role as RoleType,
-            profile: ref
-              ? { name: ref.name, email: ref.email, avatar_url: ref.avatar_url }
-              : undefined,
-          };
-        })
+  const {
+    data: roleUsers,
+    isLoading: rolesLoading,
+    refetch: fetchRoleUsers,
+  } = useQuery({
+    queryKey: queryKeys.adminOps.userRoles(),
+    queryFn: async () => {
+      type RoleRow = {
+        id: string;
+        user_id: string;
+        role: string;
+        profiles: unknown;
+      };
+      const { data, error } = await safeClient.from<RoleRow>('user_roles', (q) =>
+        q
+          .select(`id, user_id, role, profiles!user_roles_user_id_fkey (name, email, avatar_url)`)
+          .order('role')
       );
-    }
-    setRolesLoading(false);
-  };
+      if (error || !data) return [] as UserWithRole[];
+      return data.map((u) => {
+        const ref = normalizeProfileRef(u.profiles as never);
+        return {
+          id: u.id,
+          user_id: u.user_id,
+          role: u.role as RoleType,
+          profile: ref
+            ? { name: ref.name, email: ref.email, avatar_url: ref.avatar_url }
+            : undefined,
+        };
+      }) as UserWithRole[];
+    },
+    staleTime: 60_000,
+  });
+
+  const roleUsersList = roleUsers ?? [];
 
   const fetchAvailableRoleUsers = async () => {
-    const { data, error: profilesErr } = await supabase.from('profiles').select('user_id, name, email').order('name');
-    if (profilesErr) { log.warn('Failed to fetch profiles for role users', profilesErr); return; } // ✅ fix: error check
+    const { data, error: profilesErr } = await supabase
+      .from('profiles')
+      .select('user_id, name, email')
+      .order('name');
+    if (profilesErr) {
+      log.warn('Failed to fetch profiles for role users', profilesErr);
+      return;
+    }
     if (data) {
-      const usersWithRoles = roleUsers.map((u) => u.user_id);
+      const usersWithRoles = roleUsersList.map((u) => u.user_id);
       setAvailableRoleUsers(
         data.filter((u) => !usersWithRoles.includes(u.user_id)) as {
           user_id: string;
@@ -804,12 +839,8 @@ function useRolesManagement() {
   };
 
   useEffect(() => {
-    void fetchRoleUsers();
-  }, []);
-
-  useEffect(() => {
     if (showAddRoleDialog) void fetchAvailableRoleUsers();
-  }, [showAddRoleDialog, roleUsers]);
+  }, [showAddRoleDialog, roleUsersList]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleAddRole = async () => {
     if (!selectedRoleUser || !selectedRole) return;
@@ -822,7 +853,7 @@ function useRolesManagement() {
       toast.success('Role adicionada com sucesso');
       setShowAddRoleDialog(false);
       setSelectedRoleUser('');
-      fetchRoleUsers();
+      void queryClient.invalidateQueries({ queryKey: queryKeys.adminOps.userRoles() });
     }
     setRolesUpdating(false);
   };
@@ -835,19 +866,19 @@ function useRolesManagement() {
     else {
       toast.success('Role removida com sucesso');
       setUserToRemoveRole(null);
-      fetchRoleUsers();
+      void queryClient.invalidateQueries({ queryKey: queryKeys.adminOps.userRoles() });
     }
     setRolesUpdating(false);
   };
 
   const filteredRoleUsers = useMemo(
     () =>
-      roleUsers.filter(
+      roleUsersList.filter(
         (u) =>
           u.profile?.name?.toLowerCase().includes(rolesSearch.toLowerCase()) ||
           u.profile?.email?.toLowerCase().includes(rolesSearch.toLowerCase())
       ),
-    [roleUsers, rolesSearch]
+    [roleUsersList, rolesSearch]
   );
 
   const groupedRoleUsers = useMemo(
@@ -862,7 +893,7 @@ function useRolesManagement() {
   );
 
   return {
-    roleUsers,
+    roleUsers: roleUsersList,
     rolesLoading,
     rolesSearch,
     setRolesSearch,
@@ -879,43 +910,36 @@ function useRolesManagement() {
     handleAddRole,
     handleRemoveRole,
     groupedRoleUsers,
+    fetchRoleUsers,
+    filteredRoleUsers,
   };
 }
 
 // ─── Section 6: Permissions ──────────────────────────────────────────────────
 
+const PERMISSIONS_QUERY_KEY = ['admin-route-permissions'] as const;
+
 function useRoutePermissionsManagement() {
-  const [permissionRows, setPermissionRows] = useState<RoutePermission[]>([]);
-  const [permLoading, setPermLoading] = useState(true);
   const [savingPermPath, setSavingPermPath] = useState<string | null>(null);
   const { toast } = useToast();
-  const isMountedRef = useRef(true);
+  const queryClient = useQueryClient();
 
-  async function loadPermissions() {
-    setPermLoading(true);
-    const { data, error } = await supabase
-      .from('route_permissions')
-      .select('path, allowed_roles, description, is_system, updated_at')
-      .order('path', { ascending: true });
-    if (!isMountedRef.current) return;
-    if (error) {
-      toast({
-        title: 'Erro ao carregar permissões',
-        description: error.message,
-        variant: 'destructive',
-      });
-    } else {
-      setPermissionRows((data ?? []) as RoutePermission[]);
-    }
-    setPermLoading(false);
-  }
-
-  useEffect(() => {
-    void loadPermissions();
-    return () => {
-      isMountedRef.current = false;
-    };
-  }, []);
+  const {
+    data: permissionRows,
+    isLoading: permLoading,
+    refetch: loadPermissions,
+  } = useQuery({
+    queryKey: PERMISSIONS_QUERY_KEY,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('route_permissions')
+        .select('path, allowed_roles, description, is_system, updated_at')
+        .order('path', { ascending: true });
+      if (error) throw new Error(error.message);
+      return (data ?? []) as RoutePermission[];
+    },
+    staleTime: 60_000,
+  });
 
   async function savePermissionRow(path: string, nextRoles: AppRole[]) {
     setSavingPermPath(path);
@@ -930,7 +954,7 @@ function useRoutePermissionsManagement() {
     }
     invalidateRouteRolesCache(path);
     toast({ title: 'Permissão atualizada', description: path });
-    await loadPermissions();
+    void queryClient.invalidateQueries({ queryKey: PERMISSIONS_QUERY_KEY });
     return true;
   }
 
@@ -942,7 +966,7 @@ function useRoutePermissionsManagement() {
     }
     invalidateRouteRolesCache(path);
     toast({ title: 'Rota removida', description: path });
-    await loadPermissions();
+    void queryClient.invalidateQueries({ queryKey: PERMISSIONS_QUERY_KEY });
     return true;
   }
 
@@ -968,12 +992,12 @@ function useRoutePermissionsManagement() {
     }
     invalidateRouteRolesCache();
     toast({ title: 'Rota cadastrada', description: path });
-    await loadPermissions();
+    void queryClient.invalidateQueries({ queryKey: PERMISSIONS_QUERY_KEY });
     return true;
   }
 
   return {
-    permissionRows,
+    permissionRows: permissionRows ?? [],
     permLoading,
     savingPermPath,
     loadPermissions,
@@ -989,6 +1013,7 @@ function useHmacSecurityManagement(instance: string, includeNegative: boolean) {
   const [securityLoading, setSecurityLoading] = useState(false);
   const [securityResult, setSecurityResult] = useState<SelfTestResult | null>(null);
   const [lastSecurityRunAt, setLastSecurityRunAt] = useState<Date | null>(null);
+  const queryClient = useQueryClient();
 
   const logSecurityAudit = useCallback(
     async (payload: SelfTestResult, fallbackMs: number) => {
@@ -1008,12 +1033,14 @@ function useHmacSecurityManagement(instance: string, includeNegative: boolean) {
         );
         if (insertError) {
           log.warn('audit insert failed', insertError);
+        } else {
+          void queryClient.invalidateQueries({ queryKey: queryKeys.adminOps.hmacAudit() });
         }
       } catch (e) {
         log.warn('audit insert threw', e);
       }
     },
-    [instance]
+    [instance, queryClient]
   );
 
   const syncSecurityAlert = useCallback(
@@ -1053,7 +1080,11 @@ function useHmacSecurityManagement(instance: string, includeNegative: boolean) {
             message: `${phasePrefix}${detail}${reqSuffix}`.slice(0, 500),
             source,
           });
-          if (insertAlertError) log.warn('warroom_alerts insert failed', insertAlertError);
+          if (insertAlertError) {
+            log.warn('warroom_alerts insert failed', insertAlertError);
+          } else {
+            void queryClient.invalidateQueries({ queryKey: queryKeys.alerts.all() });
+          }
         } else if (payload.ok && activeId) {
           const { error: resolveError } = await safeClient.from('warroom_alerts', (q) =>
             q
@@ -1066,13 +1097,17 @@ function useHmacSecurityManagement(instance: string, includeNegative: boolean) {
               .eq('source', source)
               .is('resolved_at', null)
           );
-          if (resolveError) log.warn('warroom_alerts resolve failed', resolveError);
+          if (resolveError) {
+            log.warn('warroom_alerts resolve failed', resolveError);
+          } else {
+            void queryClient.invalidateQueries({ queryKey: queryKeys.alerts.all() });
+          }
         }
       } catch (e) {
         log.warn('alert sync threw', e);
       }
     },
-    [instance]
+    [instance, queryClient]
   );
 
   const runSecurityTest = useCallback(async () => {

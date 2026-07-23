@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Bell, BellOff, AlertTriangle, Smartphone } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
+/** Push Notification Card component for the notifications section. */
 export function PushNotificationCard() {
   const {
     isSupported,

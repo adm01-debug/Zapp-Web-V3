@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { playTtsAudio, type TtsPlayback, type PlayTtsOptions } from '@/features/inbox';
 import { toast } from 'sonner';
 
+/** use Summary Tts component for the summary section. */
 export function useSummaryTts(contactId?: string) {
   const ttsRef = useRef<TtsPlayback | null>(null);
   const mountedRef = useRef(true);

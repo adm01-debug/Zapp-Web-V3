@@ -1,5 +1,6 @@
 import { lazy } from 'react';
 
+/** C H U N K_ R E L O A D_ S E S S I O N_ K E Y constant. */
 export const CHUNK_RELOAD_SESSION_KEY = '__zapp_chunk_reload_at';
 const CHUNK_RELOAD_COOLDOWN_MS = 30_000;
 
@@ -112,8 +113,8 @@ export function triggerChunkReload(): boolean {
  *   chunk errors always escalate to a page reload, never to a visible error
  *   boundary (unless the 30-second cooldown is active).
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function lazyWithRetry<T extends React.ComponentType<any>>(
+/** Wraps React.lazy with automatic retry on chunk-load errors, escalating to a page reload when needed. */
+export function lazyWithRetry<T extends React.ComponentType<any>>( // eslint-disable-line @typescript-eslint/no-explicit-any
   factory: () => Promise<{ default: T }>,
   maxAttempts = 3
 ): React.LazyExoticComponent<T> {

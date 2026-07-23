@@ -1,8 +1,10 @@
+import { queryKeys } from '@/services/api/queryKeys';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { startOfDay, subDays, startOfWeek, startOfMonth } from 'date-fns';
 
+/** Hook: Period Filter. */
 export type PeriodFilter = 'today' | 'week' | 'month' | 'all';
 
 interface SLAMetric {
@@ -21,6 +23,7 @@ interface AgentSLAMetric {
   overallRate: number;
 }
 
+/** Hook: SLADashboard Data. */
 export interface SLADashboardData {
   overall: {
     firstResponse: SLAMetric;
@@ -45,6 +48,14 @@ function getStartDate(period: PeriodFilter): Date {
   }
 }
 
+interface SLARow {
+  first_response_at: string | null;
+  first_response_breached: boolean | null;
+  resolved_at: string | null;
+  resolution_breached: boolean | null;
+  contacts: { assigned_to: string | null } | null;
+}
+
 function buildMetric(onTime: number, breached: number): SLAMetric {
   const total = onTime + breached;
   return { total, onTime, breached, rate: total > 0 ? (onTime / total) * 100 : 100 };
@@ -63,8 +74,8 @@ async function fetchSLAMetrics(period: PeriodFilter): Promise<SLADashboardData> 
   if (slaResult.error) throw slaResult.error;
   if (profilesResult.error) throw profilesResult.error;
 
-  const slaData = (slaResult.data || []) as any[];
-  const profiles = (profilesResult.data || []) as any[];
+  const slaData = (slaResult.data || []) as SLARow[];
+  const profiles = (profilesResult.data || []) as { id: string; name: string; avatar_url: string | null }[];
 
   // Overall
   const frOnTime = slaData.filter((s) => s.first_response_at && !s.first_response_breached).length;
@@ -87,15 +98,15 @@ async function fetchSLAMetrics(period: PeriodFilter): Promise<SLADashboardData> 
   // By agent
   const agentMap = new Map<string, { frOn: number; frBr: number; resOn: number; resBr: number }>();
 
-  for (const sla of slaData as any[]) {
-    const agentId = (sla as any).contacts?.assigned_to;
+  for (const sla of slaData) {
+    const agentId = sla.contacts?.assigned_to;
     if (!agentId) continue;
 
     const stats = agentMap.get(agentId) || { frOn: 0, frBr: 0, resOn: 0, resBr: 0 };
-    if ((sla as any).first_response_at && !(sla as any).first_response_breached) stats.frOn++;
-    if ((sla as any).first_response_breached) stats.frBr++;
-    if ((sla as any).resolved_at && !(sla as any).resolution_breached) stats.resOn++;
-    if ((sla as any).resolution_breached) stats.resBr++;
+    if (sla.first_response_at && !sla.first_response_breached) stats.frOn++;
+    if (sla.first_response_breached) stats.frBr++;
+    if (sla.resolved_at && !sla.resolution_breached) stats.resOn++;
+    if (sla.resolution_breached) stats.resBr++;
     agentMap.set(agentId, stats);
   }
 
@@ -119,9 +130,10 @@ async function fetchSLAMetrics(period: PeriodFilter): Promise<SLADashboardData> 
   return { overall, byAgent };
 }
 
+/** Hook: use SLAMetrics. */
 export const useSLAMetrics = (period: PeriodFilter = 'today') => {
   const { data = null, isLoading: loading } = useQuery({
-    queryKey: ['sla-metrics', period],
+    queryKey: queryKeys.sla.metrics(period),
     queryFn: () => fetchSLAMetrics(period),
     staleTime: 30_000,
     refetchInterval: 60_000,

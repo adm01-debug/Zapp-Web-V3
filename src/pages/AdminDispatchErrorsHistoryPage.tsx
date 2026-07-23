@@ -26,6 +26,7 @@ const RANGE_OPTIONS = [
 
 const PAGE_SIZE = 50;
 
+/** Default export. */
 export default function AdminDispatchErrorsHistoryPage() {
   const [hours, setHours] = useState<string>('168');
   const [instance, setInstance] = useState<string>('');
@@ -84,11 +85,13 @@ export default function AdminDispatchErrorsHistoryPage() {
         </CardHeader>
         <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <Input
+            aria-label="Instância"
             placeholder="Instância (ex.: wpp2)"
             value={instance}
             onChange={(e) => { setInstance(e.target.value); setPage(0); }}
           />
           <Input
+            aria-label="E-mail do agente"
             placeholder="E-mail do agente"
             value={agent}
             onChange={(e) => { setAgent(e.target.value); setPage(0); }}
@@ -96,6 +99,7 @@ export default function AdminDispatchErrorsHistoryPage() {
           <div className="relative">
             <Search className="h-4 w-4 absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <Input
+              aria-label="Busca por remote_jid, código ou mensagem"
               className="pl-8"
               placeholder="Busca em remote_jid, código ou mensagem"
               value={search}

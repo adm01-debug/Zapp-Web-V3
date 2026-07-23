@@ -1,17 +1,8 @@
-import { useCallback, useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CheckCircle2, XCircle, Loader2, RefreshCw, Database, Wifi, Shield } from "lucide-react";
-
-type PingStatus = "idle" | "checking" | "ok" | "error";
-
-interface PingResult {
-  status: PingStatus;
-  latencyMs?: number;
-  error?: string;
-}
+import { useBackendDiagnostics, type PingResult } from "@/hooks/useBackendDiagnostics";
 
 function extractProjectRef(url: string | undefined): string {
   if (!url) return "—";
@@ -26,66 +17,13 @@ function detectBackendType(url: string | undefined): { label: string; tone: "def
   return { label: "Supabase Self-hosted / Externo", tone: "secondary" };
 }
 
+/** Backend Diagnostics. */
 export default function BackendDiagnostics() {
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
-  const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined;
+  const { restPing, authPing, dbPing, hasSession, runChecks, supabaseUrl, anonKey } =
+    useBackendDiagnostics();
+
   const projectRef = extractProjectRef(supabaseUrl);
   const backend = detectBackendType(supabaseUrl);
-
-  const [restPing, setRestPing] = useState<PingResult>({ status: "idle" });
-  const [authPing, setAuthPing] = useState<PingResult>({ status: "idle" });
-  const [dbPing, setDbPing] = useState<PingResult>({ status: "idle" });
-  const [hasSession, setHasSession] = useState<boolean | null>(null);
-
-  const runChecks = useCallback(async () => {
-    // REST ping
-    setRestPing({ status: "checking" });
-    try {
-      const t0 = performance.now();
-      const res = await fetch(`${supabaseUrl}/rest/v1/`, {
-        headers: { apikey: anonKey ?? "" },
-      });
-      const dt = Math.round(performance.now() - t0);
-      setRestPing(res.ok ? { status: "ok", latencyMs: dt } : { status: "error", latencyMs: dt, error: `HTTP ${res.status}` });
-    } catch (err) {
-      setRestPing({ status: "error", error: err instanceof Error ? err.message : "falha" });
-    }
-
-    // Auth ping
-    setAuthPing({ status: "checking" });
-    try {
-      const t0 = performance.now();
-      const { data, error } = await supabase.auth.getSession();
-      const dt = Math.round(performance.now() - t0);
-      if (error) setAuthPing({ status: "error", latencyMs: dt, error: error.message });
-      else {
-        setAuthPing({ status: "ok", latencyMs: dt });
-        setHasSession(!!data.session);
-      }
-    } catch (err) {
-      setAuthPing({ status: "error", error: err instanceof Error ? err.message : "falha" });
-    }
-
-    // DB ping (lightweight RPC)
-    setDbPing({ status: "checking" });
-    try {
-      const t0 = performance.now();
-      const { error } = await supabase.from("profiles").select("id", { count: "exact", head: true }).limit(1);
-      const dt = Math.round(performance.now() - t0);
-      // 42501 (RLS) ainda significa que o DB respondeu — consideramos OK
-      if (error && !["42501", "PGRST301"].includes(error.code ?? "")) {
-        setDbPing({ status: "error", latencyMs: dt, error: `${error.code ?? ""} ${error.message}` });
-      } else {
-        setDbPing({ status: "ok", latencyMs: dt });
-      }
-    } catch (err) {
-      setDbPing({ status: "error", error: err instanceof Error ? err.message : "falha" });
-    }
-  }, [supabaseUrl, anonKey]);
-
-  useEffect(() => {
-    void runChecks();
-  }, [runChecks]);
 
   return (
     <div className="container max-w-3xl mx-auto p-6 space-y-6">

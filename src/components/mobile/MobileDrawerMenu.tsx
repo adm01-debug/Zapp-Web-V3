@@ -68,6 +68,7 @@ const listItemVariants = {
   }),
 };
 
+/** Mobile Drawer Menu component for the mobile section. */
 export function MobileDrawerMenu({
   isOpen,
   onClose,
@@ -222,7 +223,7 @@ export function MobileDrawerMenu({
                     const Icon = item.icon;
                     const isActive = currentView === item.id;
                     return (
-                      <button
+                      <button type="button"
                         key={`recent-${item.id}`}
                         onClick={() => handleNav(item.id)}
                         className={cn(

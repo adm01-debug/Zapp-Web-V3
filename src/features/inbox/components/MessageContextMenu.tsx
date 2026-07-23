@@ -46,6 +46,7 @@ interface MessageContextMenuProps {
 
 const REACTION_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🙏'];
 
+/** Message Context Menu component. */
 export function MessageContextMenu({
   children,
   message,
@@ -73,7 +74,7 @@ export function MessageContextMenu({
         {/* Quick Reactions */}
         <div className="flex items-center justify-between border-b border-border/50 px-2 py-1.5">
           {REACTION_EMOJIS.map((emoji) => (
-            <button
+            <button type="button"
               key={emoji}
               className="flex h-8 w-8 items-center justify-center rounded-full text-lg transition-colors hover:scale-125 hover:bg-muted"
               onClick={() => onReact?.(message.id, emoji)}

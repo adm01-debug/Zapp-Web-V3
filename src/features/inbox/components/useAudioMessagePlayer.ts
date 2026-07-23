@@ -26,6 +26,7 @@ interface UseAudioMessagePlayerParams {
   resolveAudioUrl: (url: string | null) => Promise<string | null>;
 }
 
+/** Manages playback state and on-demand transcription for a single audio message, subscribing to realtime transcription_status updates. */
 export function useAudioMessagePlayer({
   messageId,
   audioUrl,
@@ -75,8 +76,7 @@ export function useAudioMessagePlayer({
       )
       .subscribe();
     return () => {
-      void channel.unsubscribe();
-      supabase.removeChannel(channel);
+      supabase.removeChannel(channel).catch(() => {});
     };
   }, [messageId]);
 
@@ -129,8 +129,7 @@ export function useAudioMessagePlayer({
     fetchStatus();
 
     return () => {
-      void channel.unsubscribe();
-      supabase.removeChannel(channel);
+      supabase.removeChannel(channel).catch(() => {});
     };
   }, [messageId, onVoiceChange]);
 

@@ -1,5 +1,5 @@
-// @ts-nocheck
 import { useMemo } from 'react';
+import { queryKeys } from '@/services/api/queryKeys';
 import { useQueryClient } from '@tanstack/react-query';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -24,6 +24,7 @@ import { ChannelsTab } from '@/components/evoApiHealth/tabs/ChannelsTab';
 import { HistoryTab } from '@/components/evoApiHealth/tabs/HistoryTab';
 import { DrTab } from '@/components/evoApiHealth/tabs/DrTab';
 
+/** Admin Evo Api Health Page. */
 export default function AdminEvoApiHealthPage() {
   const qc = useQueryClient();
   const dash = useEvoApiDashboard();
@@ -49,7 +50,7 @@ export default function AdminEvoApiHealthPage() {
   );
 
   const handleRefresh = async () => {
-    await qc.invalidateQueries({ queryKey: ['evo-api-health'] });
+    await qc.invalidateQueries({ queryKey: queryKeys.adminOps.evoApiHealth() });
   };
 
   return (
@@ -140,14 +141,14 @@ export default function AdminEvoApiHealthPage() {
 
         <TabsContent value="health">
           <SectionErrorBoundary sectionName="Saúde">
-            <HealthTab data={dashboardData} />
+            <HealthTab data={dashboardData ?? undefined} />
           </SectionErrorBoundary>
         </TabsContent>
 
         <TabsContent value="alerts">
           <SectionErrorBoundary sectionName="Alertas">
             <AlertsTab
-              alerts={alertsData}
+              alerts={alertsData ?? undefined}
               onAcknowledge={(id) => ack.mutate(id)}
               isAcknowledging={ack.isPending}
             />

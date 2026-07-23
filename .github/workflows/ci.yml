@@ -41,21 +41,29 @@ jobs:
         # bun.lock is generated inside Lovable's private registry environment,
         # so `bun install --frozen-lockfile` always fails on CI (registry
         # credentials unavailable).  Instead we enforce the invariant with a
-        # git diff: if package.json changed, bun.lock must also have changed.
+        # targeted git diff: only fail when dependency sections change without
+        # a corresponding bun.lock update.  Script/version/author edits do NOT
+        # affect the lockfile and must NOT trigger this check (false positive
+        # fixed 2026-07-16 after a scripts-only package.json edit blocked CI).
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ]; then
-            git fetch --depth=1 origin ${{ github.base_ref }}
+            git fetch origin ${{ github.base_ref }}
             BASE="origin/${{ github.base_ref }}"
-            PKG_DIFF=$(git diff "$BASE"...HEAD --name-only -- package.json)
             LOCK_DIFF=$(git diff "$BASE"...HEAD --name-only -- bun.lock)
+            OLD_PKG=$(git show "$BASE:package.json" 2>/dev/null || echo '{}')
+            NEW_PKG=$(cat package.json)
           else
-            PKG_DIFF=$(git diff HEAD^ HEAD --name-only -- package.json 2>/dev/null || true)
             LOCK_DIFF=$(git diff HEAD^ HEAD --name-only -- bun.lock 2>/dev/null || true)
+            OLD_PKG=$(git show "HEAD^:package.json" 2>/dev/null || echo '{}')
+            NEW_PKG=$(cat package.json)
           fi
-          echo "package.json changed: ${PKG_DIFF:-none}"
-          echo "bun.lock changed:    ${LOCK_DIFF:-none}"
-          if [ -n "$PKG_DIFF" ] && [ -z "$LOCK_DIFF" ]; then
-            echo "::error::package.json was modified without updating bun.lock. Run 'bun install' locally and commit the updated lockfile."
+          # Compare only the dependency fields — scripts/version changes are irrelevant.
+          OLD_DEPS=$(echo "$OLD_PKG" | jq -Sc '{d: (.dependencies // {}), dd: (.devDependencies // {}), pd: (.peerDependencies // {}), od: (.optionalDependencies // {})}')
+          NEW_DEPS=$(echo "$NEW_PKG" | jq -Sc '{d: (.dependencies // {}), dd: (.devDependencies // {}), pd: (.peerDependencies // {}), od: (.optionalDependencies // {})}')
+          echo "Dependency fields changed: $([ "$OLD_DEPS" != "$NEW_DEPS" ] && echo yes || echo no)"
+          echo "bun.lock changed:         ${LOCK_DIFF:-none}"
+          if [ "$OLD_DEPS" != "$NEW_DEPS" ] && [ -z "$LOCK_DIFF" ]; then
+            echo "::error::Dependency fields in package.json changed without updating bun.lock. Run 'bun install' locally and commit the updated lockfile."
             exit 1
           fi
           echo "Lockfile consistency check passed."
@@ -73,7 +81,7 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: 1.3.3
+          bun-version: 1.3.14
 
       - name: Install dependencies
         run: bun install
@@ -97,6 +105,77 @@ jobs:
             echo "::warning title=Design-system debt::Design-system check failed; keeping it advisory until the existing baseline is cleaned."
           fi
           exit 0
+
+      - name: Supabase schema coverage gate (zapp + evo)
+        id: schema_gate
+        # Valida que types.ts expõe os schemas `zapp` e `evo`. Sem eles o
+        # tsc gera milhares de TS2339 em cascata. Roda em modo local
+        # (bloqueante); a checagem remota fica pulada quando os secrets
+        # da VPS não estão presentes (forks/PRs externos).
+        # Marcado como continue-on-error para permitir o fallback
+        # automático de `types:repair` abaixo; o gate final volta a ser
+        # bloqueante no step "Schema gate final".
+        continue-on-error: true
+        env:
+          SCHEMA_REPORT_DIR: reports/schema-status
+          META_URL: ${{ secrets.ZAPP_META_URL }}
+          META_TOKEN: ${{ secrets.ZAPP_META_TOKEN }}
+        run: node scripts/check-types-schemas.mjs
+
+      - name: Auto-repair types (fallback quando o gate falha)
+        # Só roda se o gate acima falhou E os secrets da VPS estão
+        # disponíveis (sem eles o repair é no-op documentado). Captura
+        # stdout+stderr em reports/types-repair/repair.log para o
+        # artefato dedicado, sem quebrar o job se o repair também falhar
+        # — o gate final consolida o resultado.
+        id: schema_repair
+        if: steps.schema_gate.outcome == 'failure' && env.META_URL != '' && env.META_TOKEN != ''
+        continue-on-error: true
+        env:
+          SCHEMA_REPORT_DIR: reports/schema-status
+          META_URL: ${{ secrets.ZAPP_META_URL }}
+          META_TOKEN: ${{ secrets.ZAPP_META_TOKEN }}
+        run: |
+          mkdir -p reports/types-repair
+          set +e
+          node scripts/repair-types-schemas.mjs 2>&1 | tee reports/types-repair/repair.log
+          echo "${PIPESTATUS[0]}" > reports/types-repair/exit-code.txt
+          exit 0
+
+      - name: Publish schema status report
+        # Sempre publica o artefato — inclusive em falha — para permitir
+        # auditoria e debugging via download direto do Actions run.
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: schema-status-report
+          path: reports/schema-status/
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Publish types:repair log
+        # Publicado apenas quando o fallback rodou (bem-sucedido ou não),
+        # para inspeção do log de reparo sem misturar com o relatório do
+        # gate de schemas.
+        if: always() && steps.schema_repair.outcome != 'skipped'
+        uses: actions/upload-artifact@v4
+        with:
+          name: types-repair-log
+          path: reports/types-repair/
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Schema gate final (bloqueante)
+        # Consolida o resultado após o eventual auto-repair. Se o gate
+        # inicial passou, este re-check é praticamente instantâneo. Se o
+        # repair rodou, revalida `types.ts` regenerado. Qualquer falha
+        # aqui bloqueia o build.
+        env:
+          SCHEMA_REPORT_DIR: reports/schema-status
+          META_URL: ${{ secrets.ZAPP_META_URL }}
+          META_TOKEN: ${{ secrets.ZAPP_META_TOKEN }}
+        run: node scripts/check-types-schemas.mjs
+
 
       - name: TypeScript check (ratchet, blocking)
         # Baseline em scripts/tsc-error-baseline.json congela o número de
@@ -146,7 +225,7 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: 1.3.3
+          bun-version: 1.3.14
 
       - name: Install dependencies
         run: bun install
@@ -180,7 +259,7 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: 1.3.3
+          bun-version: 1.3.14
 
       - name: Install dependencies
         run: bun install
@@ -221,7 +300,7 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: 1.3.3
+          bun-version: 1.3.14
 
       - name: Install dependencies
         run: bun install
@@ -254,7 +333,7 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: 1.3.3
+          bun-version: 1.3.14
 
       - name: Install dependencies
         run: bun install
@@ -287,7 +366,7 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: 1.3.3
+          bun-version: 1.3.14
 
       - name: Install dependencies
         run: bun install

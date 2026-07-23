@@ -3,13 +3,20 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
+/** SIDEBAR_COOKIE_NAME component for the ui section. */
 export const SIDEBAR_COOKIE_NAME = "sidebar:state";
+/** SIDEBAR_COOKIE_MAX_AGE component for the ui section. */
 export const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7;
+/** SIDEBAR_WIDTH component for the ui section. */
 export const SIDEBAR_WIDTH = "16rem";
+/** SIDEBAR_WIDTH_MOBILE component for the ui section. */
 export const SIDEBAR_WIDTH_MOBILE = "18rem";
+/** SIDEBAR_WIDTH_ICON component for the ui section. */
 export const SIDEBAR_WIDTH_ICON = "3rem";
+/** SIDEBAR_KEYBOARD_SHORTCUT component for the ui section. */
 export const SIDEBAR_KEYBOARD_SHORTCUT = "b";
 
+/** Sidebar Context Type component for the ui section. */
 export type SidebarContextType = {
   state: "expanded" | "collapsed";
   open: boolean;
@@ -20,8 +27,10 @@ export type SidebarContextType = {
   toggleSidebar: () => void;
 };
 
+/** Sidebar Context component for the ui section. */
 export const SidebarContext = React.createContext<SidebarContextType | null>(null);
 
+/** use Sidebar component for the ui section. */
 export function useSidebar() {
   const context = React.useContext(SidebarContext);
   if (!context) {
@@ -30,6 +39,7 @@ export function useSidebar() {
   return context;
 }
 
+/** Sidebar Provider component for the ui section. */
 export const SidebarProvider = React.forwardRef<
   HTMLDivElement,
   React.ComponentProps<"div"> & {

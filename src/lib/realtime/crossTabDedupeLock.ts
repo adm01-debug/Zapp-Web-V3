@@ -1,5 +1,6 @@
 import { LS_LOCK_PREFIX, TAB_ID, type LockPayload } from './crossTabDedupeTypes';
 
+/** read Lock. */
 export function readLock(key: string): LockPayload | null {
   if (typeof localStorage === 'undefined') return null;
   try {
@@ -16,6 +17,7 @@ export function readLock(key: string): LockPayload | null {
   }
 }
 
+/** write Lock. */
 export function writeLock(key: string, ttl: number): boolean {
   if (typeof localStorage === 'undefined') return false;
   const existing = readLock(key);
@@ -34,6 +36,7 @@ export function writeLock(key: string, ttl: number): boolean {
   }
 }
 
+/** release Lock. */
 export function releaseLock(key: string) {
   if (typeof localStorage === 'undefined') return;
   const lock = readLock(key);

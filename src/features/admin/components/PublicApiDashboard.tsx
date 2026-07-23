@@ -1,4 +1,4 @@
-// @ts-nocheck
+import { queryKeys } from '@/services/api/queryKeys';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getLogger } from '@/lib/logger';
@@ -21,13 +21,14 @@ interface ApiLog {
   entity_type: string | null;
 }
 
+/** Public Api Dashboard component. */
 export function PublicApiDashboard() {
   const [newToken, setNewToken] = useState('');
   const [showToken, setShowToken] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const { data, isFetching, refetch } = useQuery({
-    queryKey: ['admin', 'public-api-dashboard'],
+    queryKey: queryKeys.adminOps.publicApi(),
     queryFn: async () => {
       try {
         const { data: setting } = await supabase

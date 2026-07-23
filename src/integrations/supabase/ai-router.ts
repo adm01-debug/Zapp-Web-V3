@@ -17,6 +17,7 @@
 
 import { supabase } from './client';
 
+/** Ai Action type alias. */
 export type AiAction =
   | 'auto_tag'
   | 'conversation_summary'
@@ -28,11 +29,13 @@ export type AiAction =
   | 'suggest_reply'
   | 'transcribe_audio';
 
+/** Ai Router Request interface definition. */
 export interface AiRouterRequest {
   action: AiAction;
   [key: string]: unknown;
 }
 
+/** Ai Router Response interface definition. */
 export interface AiRouterResponse {
   success: boolean;
   data?: unknown;

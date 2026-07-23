@@ -22,6 +22,7 @@ function getMediaInfo(message: Message): { icon: React.ElementType; label: strin
   }
 }
 
+/** Reply Preview component. */
 export function ReplyPreview({ message, onCancel }: ReplyPreviewProps) {
   const isSent = message.sender === 'agent';
   const mediaInfo = getMediaInfo(message);
@@ -90,6 +91,7 @@ interface QuotedMessageProps {
   onClick?: () => void;
 }
 
+/** Quoted Message component. */
 export function QuotedMessage({ replyTo, isSent, onClick }: QuotedMessageProps) {
   const isQuoteFromAgent = replyTo.sender === 'agent';
   

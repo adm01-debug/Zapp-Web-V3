@@ -10,6 +10,7 @@ interface WelcomeModalProps {
   userName?: string;
 }
 
+/** Welcome Modal component for the onboarding section. */
 export const WelcomeModal = forwardRef<HTMLDivElement, WelcomeModalProps>(function WelcomeModal(
   { isOpen, onClose, onStartTour, userName },
   _ref
@@ -38,7 +39,7 @@ export const WelcomeModal = forwardRef<HTMLDivElement, WelcomeModalProps>(functi
           </div>
 
           {/* Close button */}
-          <button
+          <button type="button"
             onClick={onClose}
             className="absolute right-4 top-4 z-10 rounded-full p-2 transition-colors hover:bg-muted"
           >

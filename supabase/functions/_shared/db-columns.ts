@@ -11,6 +11,7 @@
  * build-time (import inexistente) e simplifica refactors futuros.
  */
 
+/** Whatsapp Connections constant. */
 export const WHATSAPP_CONNECTIONS = {
   table: 'whatsapp_connections',
   columns: {
@@ -26,6 +27,7 @@ export const WHATSAPP_CONNECTIONS = {
   },
 } as const;
 
+/** C O N T A C T S constant. */
 export const CONTACTS = {
   table: 'contacts',
   columns: {
@@ -41,6 +43,7 @@ export const CONTACTS = {
   },
 } as const;
 
+/** M E S S A G E S constant. */
 export const MESSAGES = {
   table: 'messages',
   columns: {

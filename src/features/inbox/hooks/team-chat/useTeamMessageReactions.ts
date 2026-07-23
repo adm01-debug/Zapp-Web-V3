@@ -1,4 +1,4 @@
-// @ts-nocheck
+import { queryKeys } from '@/services/api/queryKeys';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
@@ -6,6 +6,7 @@ import { safeClient } from '@/integrations/supabase/safeClient';
 import { useAuth } from '@/features/auth';
 import { toast } from '@/hooks/use-toast';
 
+/** Raw reaction row from the team_message_reactions table, linking a profile's emoji choice to a specific team message. */
 export interface TeamReaction {
   id: string;
   message_id: string;
@@ -14,6 +15,7 @@ export interface TeamReaction {
   created_at: string;
 }
 
+/** Derived reaction summary for a single emoji: total count, whether the current agent reacted, and the list of profile IDs who reacted. */
 export interface AggregatedReaction {
   emoji: string;
   count: number;
@@ -21,12 +23,13 @@ export interface AggregatedReaction {
   profileIds: string[];
 }
 
+/** Manages emoji reactions on team-chat messages: fetch, add, remove, and realtime subscription per conversation. */
 export function useTeamMessageReactions(conversationId: string | undefined) {
   const queryClient = useQueryClient();
   const { profile } = useAuth();
 
   const { data: reactions = [] } = useQuery({
-    queryKey: ['team-reactions', conversationId],
+    queryKey: queryKeys.teamChat.reactions(conversationId),
     queryFn: async () => {
       if (!conversationId) return [];
       // Fetch all reactions for messages in this conversation
@@ -54,12 +57,11 @@ export function useTeamMessageReactions(conversationId: string | undefined) {
         'postgres_changes',
         { event: '*', schema: 'zapp', table: 'team_message_reactions' },
         () => {
-          void queryClient.invalidateQueries({ queryKey: ['team-reactions', conversationId] });
+          void queryClient.invalidateQueries({ queryKey: queryKeys.teamChat.reactions(conversationId) });
         }
       )
       .subscribe();
     return () => {
-      void channel.unsubscribe();
       supabase.removeChannel(channel);
     };
   }, [conversationId, queryClient]);
@@ -83,11 +85,10 @@ export function useTeamMessageReactions(conversationId: string | undefined) {
       }
     },
     onMutate: async ({ messageId, emoji }) => {
-      await queryClient.cancelQueries({ queryKey: ['team-reactions', conversationId] });
-      const previousReactions = queryClient.getQueryData<TeamReaction[]>([
-        'team-reactions',
-        conversationId,
-      ]);
+      await queryClient.cancelQueries({ queryKey: queryKeys.teamChat.reactions(conversationId) });
+      const previousReactions = queryClient.getQueryData<TeamReaction[]>(
+        queryKeys.teamChat.reactions(conversationId)
+      );
 
       if (profile && previousReactions) {
         const existingIdx = previousReactions.findIndex(
@@ -106,17 +107,17 @@ export function useTeamMessageReactions(conversationId: string | undefined) {
             created_at: new Date().toISOString(),
           });
         }
-        queryClient.setQueryData(['team-reactions', conversationId], newReactions);
+        queryClient.setQueryData(queryKeys.teamChat.reactions(conversationId), newReactions);
       }
 
       return { previousReactions };
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['team-reactions', conversationId] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.teamChat.reactions(conversationId) });
     },
     onError: (err: { status?: number; code?: string | number } & Error, _variables, context) => {
       if (context?.previousReactions) {
-        queryClient.setQueryData(['team-reactions', conversationId], context.previousReactions);
+        queryClient.setQueryData(queryKeys.teamChat.reactions(conversationId), context.previousReactions);
       }
       const e = err as { status?: number; code?: string };
       const status = e?.status || e?.code;

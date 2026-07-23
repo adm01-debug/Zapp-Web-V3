@@ -31,6 +31,7 @@ interface CommandPaletteProps {
   customCommands?: CommandItem[];
 }
 
+/** Command Palette component for the ui section. */
 export function CommandPalette({
   open,
   onOpenChange,
@@ -140,7 +141,7 @@ export function CommandPalette({
     };
     window.addEventListener('keydown', h);
     return () => window.removeEventListener('keydown', h);
-  }, [open, allItems, selectedIndex]);
+  }, [open, allItems, selectedIndex]); // eslint-disable-line react-hooks/exhaustive-deps
 
   React.useEffect(() => {
     if (!open) {
@@ -178,6 +179,7 @@ export function CommandPalette({
           />
           {query && (
             <button
+              type="button"
               onClick={() => handleQueryChange('')}
               aria-label="Limpar busca"
               className="rounded-md p-1.5 transition-colors hover:bg-muted"
@@ -218,6 +220,7 @@ export function CommandPalette({
                     </span>
                     {onClearRecent && (
                       <button
+                        type="button"
                         onClick={onClearRecent}
                         className="text-xs text-muted-foreground transition-colors hover:text-foreground"
                       >
@@ -228,6 +231,7 @@ export function CommandPalette({
                   <div className="space-y-0.5">
                     {recentSearches.slice(0, 5).map((s) => (
                       <button
+                        type="button"
                         key={s}
                         onClick={() => {
                           onRecentSearchSelect?.(s);
@@ -252,6 +256,7 @@ export function CommandPalette({
                 <div className="space-y-0.5">
                   {defaultNavigationCommands.slice(0, 5).map((cmd, idx) => (
                     <button
+                      type="button"
                       key={cmd.id}
                       onClick={() => executeCommand(cmd)}
                       className={cn(
@@ -376,6 +381,7 @@ export function CommandPalette({
   );
 }
 
+/** use Command Palette component for the ui section. */
 export function useCommandPalette() {
   const [isOpen, setIsOpen] = React.useState(false);
   React.useEffect(() => {
@@ -392,4 +398,5 @@ export function useCommandPalette() {
 }
 
 // Re-export types for consumers
+/** Re-exported module members. */
 export type { CommandItem, CommandGroup, CommandCategory };

@@ -1,0 +1,32 @@
+-- Nota sobre correcao da escalacao exponencial de lockout (2026-07-16)
+--
+-- BUG: a edge function login-attempts/index.ts tinha a seguinte logica:
+--
+--   const previousLockExpired = existing?.locked_until
+--     ? Date.parse(existing.locked_until) <= Date.now() : false;
+--   const attempts = existing && !previousLockExpired
+--     ? existing.attempt_count + 1 : 1;  -- BUG: resetava para 1
+--
+-- Quando previousLockExpired=true, o contador era zerado para 1.
+-- Isso significava que a escalacao exponencial (nextLockUntil usa 2^N)
+-- NUNCA funcionava: o lockout sempre durava 1 minuto.
+--
+-- Ataque possivel: 5 tentativas -> espera 1 minuto -> mais 5 -> infinito.
+--
+-- FIX aplicado na edge function:
+--
+--   const attempts = existing ? existing.attempt_count + 1 : 1;
+--
+-- O contador so e zerado via action='clear' (chamado apos login bem-sucedido
+-- que deleta o row completo). Entre ciclos de lockout, o contador acumula:
+--
+--   Ciclo 1 (attempts 1-5):  lock = 2^(5-5) = 1 minuto
+--   Ciclo 2 (attempts 6-10): lock = 2^(10-5) = 32 minutos
+--   Ciclo 3 (attempts 11-15): lock = 2^(15-5 cap 10) = 1024 minutos (~17h)
+--   Ciclo 4+: mantido em 1024 minutos (cap MAX_LOCK_EXPONENT=10)
+--
+-- Nenhuma migracao de schema necessaria (logica na edge function apenas).
+-- Este arquivo documenta a correcao para auditoria e historico.
+--
+-- Nao ha DDL a executar aqui.
+SELECT 'login_attempts_escalation_fix_documented_2026_07_16' AS audit_marker;

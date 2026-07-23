@@ -7,7 +7,9 @@ import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
 import type { AggregatedReaction } from '@/features/inbox/hooks/team-chat/useTeamMessageReactions';
 
+/** QUICK_EMOJIS component for the team chat section. */
 export const QUICK_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🙏'];
+/** EXTENDED_EMOJIS component for the team chat section. */
 export const EXTENDED_EMOJIS = [
   ...QUICK_EMOJIS,
   '🔥',
@@ -38,6 +40,7 @@ interface Props {
   onToggle: (emoji: string) => void;
 }
 
+/** Message Reactions component for the team chat section. */
 export const MessageReactions = memo(function MessageReactions({
   messageId,
   reactions,
@@ -67,7 +70,7 @@ export const MessageReactions = memo(function MessageReactions({
       data-testid={`reactions-container-${messageId}`}
     >
       {reactions.map((r) => (
-        <button
+        <button type="button"
           key={r.emoji}
           onClick={() => onToggle(r.emoji)}
           className={cn(
@@ -92,7 +95,7 @@ export const MessageReactions = memo(function MessageReactions({
 
       <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
         <PopoverTrigger asChild>
-          <button
+          <button type="button"
             className={cn(
               'transition-all focus-visible:opacity-100',
               'rounded-full p-1 outline-none focus-visible:ring-2 focus-visible:ring-primary',
@@ -135,6 +138,7 @@ export const MessageReactions = memo(function MessageReactions({
   );
 });
 
+/** Team Quick Reaction Bar component for the team chat section. */
 export const TeamQuickReactionBar = memo(function TeamQuickReactionBar({
   messageId: _messageId,
   isMine,
@@ -180,7 +184,7 @@ export const TeamQuickReactionBar = memo(function TeamQuickReactionBar({
         className="flex items-center gap-0.5 rounded-full border border-border/40 bg-card/95 px-1 py-1 shadow-xl backdrop-blur-md dark:bg-[hsl(var(--card)/0.95)]"
       >
         {QUICK_EMOJIS.map((emoji) => (
-          <button
+          <button type="button"
             key={emoji}
             onClick={() => handleReact(emoji)}
             aria-label={`Reagir com ${emoji}`}
@@ -195,7 +199,7 @@ export const TeamQuickReactionBar = memo(function TeamQuickReactionBar({
 
         <Popover open={showPicker} onOpenChange={setShowPicker}>
           <PopoverTrigger asChild>
-            <button
+            <button type="button"
               className="flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground outline-none transition-all hover:bg-muted/80 hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary"
               aria-label="Mais reações"
             >
@@ -211,7 +215,7 @@ export const TeamQuickReactionBar = memo(function TeamQuickReactionBar({
           >
             <div className="grid grid-cols-6 gap-1 outline-none" role="grid">
               {EXTENDED_EMOJIS.map((emoji) => (
-                <button
+                <button type="button"
                   key={emoji}
                   role="gridcell"
                   aria-label={`Reagir com ${emoji}`}

@@ -33,6 +33,7 @@ export function escapeCsvCell(value: unknown): string {
 
 // ── CSV Builder ────────────────────────────────────────────────────────────
 
+/** Csv Column interface definition. */
 export interface CsvColumn<T = Record<string, unknown>> {
   key: keyof T | string;
   label: string;
@@ -201,6 +202,7 @@ export function downloadCsv(filename: string, csvContent: string): void {
   downloadCsvFile(csvContent, filename);
 }
 
+/** build Csv String constant. */
 export const buildCsvString = buildCsv;
 
 /**

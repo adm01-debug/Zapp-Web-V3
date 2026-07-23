@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * crossTabDedupe — Evita chamadas duplicadas de carregamento entre abas.
  *
@@ -32,26 +31,6 @@
 
 import { recordDedupeEvent } from '@/lib/realtime/dedupeTelemetry';
 import { getLogger } from '@/lib/logger';
-import {
-  DEFAULT_LOCK_TTL,
-  DEFAULT_RESULT_TTL,
-  DEFAULT_WAIT_TIMEOUT,
-  GC_INTERVAL,
-  TAB_ID,
-  LS_LOCK_PREFIX,
-  LS_RESULT_PREFIX,
-  LS_BUS_PREFIX,
-  type BroadcastMessage,
-  type DedupeOptions,
-} from './crossTabDedupeTypes';
-import { readLock, writeLock, releaseLock } from './crossTabDedupeLock';
-import {
-  readPersistedResult,
-  writePersistedResult,
-  gcLocalStorageKeys,
-} from './crossTabDedupeCache';
-import { ensureTransport, broadcast, __getActiveTransport } from './crossTabDedupeTransport';
-
 const log = getLogger('crossTabDedupe');
 
 const LS_LOCK_PREFIX = 'ctd:lock:';
@@ -67,7 +46,7 @@ const BUS_MSG_TTL = 15_000;
 const STORAGE_RETRY_MAX = 3;
 const STORAGE_RETRY_BACKOFF = [10, 20, 40]; // ms
 const DEDUP_RING_SIZE = 100;
-const EVENT_PROCESSING_BUFFER = 50; // ms for out-of-order events
+// EVENT_PROCESSING_BUFFER = 50ms for out-of-order events (reserved for future use)
 const CLOCK_MASTER_TIMEOUT = 30_000; // re-elect master if no heartbeat
 
 /** @internal — exposto para testes que precisam do prefixo de lock. */
@@ -106,6 +85,8 @@ interface BroadcastMessage<T = unknown> extends VersionedPayload {
 }
 
 const TAB_ID = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+/** @internal — exposed for tests. */
+export const __TAB_ID = TAB_ID;
 
 // MELHORIA #8: Versioned state with sequence counters and metrics
 let globalSequence = 0;
@@ -122,6 +103,7 @@ const dedupRing: DedupRingEntry[] = [];
 let masterTabId: string | null = null;
 let masterClockOffset = 0;
 let lastClockHeartbeat = Date.now();
+/** Returns current time adjusted by the master-tab clock offset to compensate for cross-tab clock skew. */
 function getNormalizedTime(): number {
   return Date.now() + masterClockOffset;
 }
@@ -162,6 +144,7 @@ interface Subscription {
 }
 const subscribers = new Set<Subscription>();
 
+/** Invokes all matching subscriber handlers for a completed dedup result, swallowing handler errors. */
 function notifySubscribers(key: string, data: unknown, source: 'remote' | 'local') {
   subscribers.forEach((sub) => {
     if (!sub.match(key)) return;
@@ -174,6 +157,7 @@ function notifySubscribers(key: string, data: unknown, source: 'remote' | 'local
 }
 
 // MELHORIA #8.9: Payload Integrity Check via SHA256 hash
+/** Computes a SHA-256 hex digest of the JSON-serialised payload; returns empty string on failure. */
 async function computePayloadHash(data: unknown): Promise<string> {
   try {
     const json = JSON.stringify(data);
@@ -189,6 +173,7 @@ async function computePayloadHash(data: unknown): Promise<string> {
 }
 
 // MELHORIA #8: Dedup Ring — evita reprocessar mesmos eventos
+/** Appends an entry to the circular dedup ring, evicting the oldest entry when the ring is full. */
 function addToDedupRing(tabId: string, key: string): void {
   dedupRing.push({ tabId, key, ts: getNormalizedTime() });
   if (dedupRing.length > DEDUP_RING_SIZE) {
@@ -196,12 +181,14 @@ function addToDedupRing(tabId: string, key: string): void {
   }
 }
 
+/** Returns true if the (tabId, key) pair appears in the dedup ring within the last 500 ms. */
 function isInDedupRing(tabId: string, key: string): boolean {
   const recentWindow = getNormalizedTime() - 500; // últimos 500ms
   return dedupRing.some((e) => e.tabId === tabId && e.key === key && e.ts > recentWindow);
 }
 
 // MELHORIA #8.5: Clock Master election
+/** Elects this tab as clock master if none exists or the current master's heartbeat has timed out. */
 function electClockMaster(): void {
   if (!masterTabId || getNormalizedTime() - lastClockHeartbeat > CLOCK_MASTER_TIMEOUT) {
     masterTabId = TAB_ID;
@@ -210,11 +197,13 @@ function electClockMaster(): void {
   }
 }
 
+/** Returns the next monotonically increasing sequence number for ordering cross-tab messages. */
 function getSequenceNumber(): number {
   return ++globalSequence;
 }
 
 // MELHORIA #8.2: CAS-based storage with retry
+/** Writes a versioned payload to localStorage with read-back CAS verification and exponential-backoff retry. */
 async function writeWithRetry<T extends VersionedPayload>(
   key: string,
   value: T,
@@ -258,6 +247,7 @@ async function writeWithRetry<T extends VersionedPayload>(
 let idbReady = false;
 let idb: IDBDatabase | null = null;
 
+/** Opens (or reuses) the crossTabDedupe IndexedDB database, creating the results object store on first run. */
 async function initIndexedDB(): Promise<boolean> {
   if (idbReady) return !!idb;
   if (typeof indexedDB === 'undefined') return false;
@@ -286,12 +276,14 @@ async function initIndexedDB(): Promise<boolean> {
   }
 }
 
+/** Persists an arbitrary value to the IndexedDB results store; returns false if IDB is unavailable or the write fails. */
 async function writeToIndexedDB(key: string, value: unknown): Promise<boolean> {
   if (!(await initIndexedDB()) || !idb) return false;
+  const db = idb;
 
   try {
     return new Promise((resolve) => {
-      const tx = idb!.transaction(['results'], 'readwrite');
+      const tx = db.transaction(['results'], 'readwrite');
       const store = tx.objectStore('results');
       const req = store.put({ key, value });
       req.onerror = () => resolve(false);
@@ -302,6 +294,7 @@ async function writeToIndexedDB(key: string, value: unknown): Promise<boolean> {
   }
 }
 
+/** Returns a snapshot of cross-tab deduplication metrics (collisions, race resolutions, fallbacks). */
 export function getDeduplicationMetrics(): DeduplicationMetrics {
   return { ...metrics };
 }
@@ -320,6 +313,7 @@ let transportKind: Transport | null = null;
 let bc: BroadcastChannel | null = null;
 let storageListenerInstalled = false;
 
+/** Registers the window storage event listener for the localStorage-fallback transport; idempotent. */
 function installStorageListener(): boolean {
   if (storageListenerInstalled) return true;
   if (typeof window === 'undefined' || typeof window.addEventListener !== 'function') return false;
@@ -343,6 +337,7 @@ function installStorageListener(): boolean {
   }
 }
 
+/** Initialises the cross-tab transport (BroadcastChannel preferred, storage-event fallback) and returns the active kind. */
 function ensureTransport(): Transport {
   if (transportKind && transportKind !== 'none') return transportKind;
   // Tentativa 1 — BroadcastChannel.
@@ -383,6 +378,7 @@ export function __getActiveTransport(): Transport {
   return transportKind ?? 'none';
 }
 
+/** Processes an incoming broadcast message from another tab, updating caches and resolving waiters. */
 function onBroadcast(msg: BroadcastMessage) {
   if (!msg || msg.ownerId === TAB_ID) return;
   // Validate version
@@ -448,6 +444,7 @@ function onBroadcast(msg: BroadcastMessage) {
   }
 }
 
+/** Reads the current lock payload for the given key from localStorage; returns null if absent or expired. */
 function readLock(key: string): LockPayload | null {
   if (typeof localStorage === 'undefined') return null;
   try {
@@ -466,6 +463,7 @@ function readLock(key: string): LockPayload | null {
   }
 }
 
+/** Attempts to acquire a cross-tab lock for the given key with the specified TTL; returns false if another tab holds it. */
 async function writeLock(key: string, ttl: number): Promise<boolean> {
   if (typeof localStorage === 'undefined') return false;
 
@@ -492,6 +490,7 @@ async function writeLock(key: string, ttl: number): Promise<boolean> {
   return success;
 }
 
+/** Removes the lock entry for the given key from localStorage, only if this tab owns it. */
 function releaseLock(key: string) {
   if (typeof localStorage === 'undefined') return;
   const lock = readLock(key);
@@ -504,14 +503,24 @@ function releaseLock(key: string) {
 }
 
 // MELHORIA #8.3: Dual-backend result persistence
+/** Reads a persisted result from localStorage, returning null if absent, expired, or structurally invalid. */
 async function readPersistedResult<T>(key: string): Promise<T | null> {
   if (typeof localStorage === 'undefined') return null;
   try {
     const raw = localStorage.getItem(LS_RESULT_PREFIX + key);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as ResultPayload<T>;
-    // Validate version
-    if (!parsed.version || parsed.version !== 1) return null;
+    if (
+      typeof parsed !== 'object' ||
+      parsed === null ||
+      typeof parsed.expiresAt !== 'number' ||
+      typeof parsed.payloadHash !== 'string' ||
+      typeof parsed.sequence !== 'number' ||
+      !('value' in parsed)
+    ) {
+      localStorage.removeItem(LS_RESULT_PREFIX + key);
+      return null;
+    }
     if (parsed.expiresAt < getNormalizedTime()) {
       localStorage.removeItem(LS_RESULT_PREFIX + key);
       return null;
@@ -522,6 +531,7 @@ async function readPersistedResult<T>(key: string): Promise<T | null> {
   }
 }
 
+/** Writes a versioned result payload to localStorage (primary) and IndexedDB (backup) with hash and TTL metadata. */
 async function writePersistedResult<T>(
   key: string,
   value: T,
@@ -548,7 +558,7 @@ async function writePersistedResult<T>(
   }
 }
 
-// MELHORIA #8.7: Garbage Collector with configurable TTL
+/** Scans localStorage for expired lock and result keys and removes them. Returns the count of swept entries per category. */
 export function gcExpiredKeys(): { locksSwept: number; resultsSwept: number } {
   let locksSwept = 0;
   let resultsSwept = 0;
@@ -587,13 +597,8 @@ export function gcExpiredKeys(): { locksSwept: number; resultsSwept: number } {
             continue;
           }
 
-          // Locks and results: check version and expiresAt
-          const parsed = JSON.parse(raw) as VersionedPayload & { expiresAt?: number };
-          if (!parsed.version || parsed.version !== 1) {
-            toRemove.push(k);
-            continue;
-          }
-
+          // Locks and results: check expiresAt only (no version requirement for backwards compat)
+          const parsed = JSON.parse(raw) as { expiresAt?: number };
           if (typeof parsed.expiresAt === 'number' && parsed.expiresAt < now) {
             toRemove.push(k);
           }
@@ -627,6 +632,7 @@ export function gcExpiredKeys(): { locksSwept: number; resultsSwept: number } {
 }
 
 let gcTimer: ReturnType<typeof setInterval> | null = null;
+/** Starts the periodic GC interval if it has not been started yet; safe to call multiple times. */
 function startGcIfNeeded() {
   if (gcTimer || typeof setInterval === 'undefined') return;
   gcTimer = setInterval(gcExpiredKeys, GC_INTERVAL);
@@ -635,6 +641,7 @@ function startGcIfNeeded() {
   }
 }
 
+/** Sends a broadcast message to all other open tabs via BroadcastChannel or localStorage storage-event fallback. */
 function broadcast<T>(msg: BroadcastMessage<T>) {
   // Broadcast clock heartbeat periodically (master tab)
   if (TAB_ID === masterTabId && msg.type === 'result') {
@@ -686,6 +693,7 @@ function broadcast<T>(msg: BroadcastMessage<T>) {
   }
 }
 
+/** Options controlling TTL and wait behaviour for {@link dedupedFetch}. */
 export interface DedupeOptions {
   /** TTL do lock no localStorage (ms). Default 10s. */
   lockTtl?: number;
@@ -695,7 +703,12 @@ export interface DedupeOptions {
   waitTimeout?: number;
 }
 
-export async function dedupedFetch<T>(
+/**
+ * Fetches `key` exactly once across all open tabs using a cross-tab lock.
+ * Subsequent callers in the same or other tabs receive the cached/broadcast result.
+ * Falls back to IndexedDB when localStorage is unavailable.
+ */
+export function dedupedFetch<T>(
   key: string,
   fetcher: () => Promise<T>,
   opts: DedupeOptions = {}
@@ -706,127 +719,133 @@ export async function dedupedFetch<T>(
 
   startGcIfNeeded();
   electClockMaster();
-  const startedAt = getNormalizedTime();
-  const seq = getSequenceNumber();
 
-  // 1. Cache em memória.
+  // 1. Cache em memória (sync — check before any await).
   const cached = resultCache.get(key);
   if (cached && cached.expiresAt > getNormalizedTime()) {
     recordDedupeEvent({ key, reason: 'memory_cache' });
-    return cached.value as T;
+    return Promise.resolve(cached.value as T);
   }
-  if (cached && cached.expiresAt <= getNormalizedTime()) {
-    resultCache.delete(key);
-  }
+  if (cached) resultCache.delete(key);
 
-  // 1b. Cache persistente (localStorage + IndexedDB).
-  const persisted = await readPersistedResult<T>(key);
-  if (persisted !== null) {
-    resultCache.set(key, { value: persisted, expiresAt: getNormalizedTime() + resultTtl });
-    recordDedupeEvent({ key, reason: 'persisted_cache' });
-    return persisted;
-  }
-
-  // 2. Inflight na mesma aba.
+  // 2. Inflight na mesma aba (sync — must be checked before registering new work).
   const pending = inflight.get(key);
   if (pending) {
     recordDedupeEvent({ key, reason: 'inflight_local' });
-    return pending as Promise<T>; // ignore-audit: inflight map stores Promise<unknown>; cast safe — same key was inserted with Promise<T>
+    return pending as Promise<T>;
   }
 
-  // 3. Tenta adquirir lock cross-tab (com retry via CAS).
-  const acquired = await writeLock(key, lockTtl);
-  if (!acquired) {
-    getBroadcastChannel();
-    log.debug('Lock detido por outra aba, aguardando broadcast', { key });
-    const waited = await waitForResult<T>(key, waitTimeout);
-    if (waited.ok) {
-      recordDedupeEvent({
-        key,
-        reason: 'broadcast_wait',
-        durationMs: getNormalizedTime() - startedAt,
-      });
-      return waited.data;
-    }
-
-    const lateCache = await readPersistedResult<T>(key);
-    if (lateCache !== null) {
-      resultCache.set(key, { value: lateCache, expiresAt: getNormalizedTime() + resultTtl });
-      recordDedupeEvent({
-        key,
-        reason: 'late_cache',
-        durationMs: getNormalizedTime() - startedAt,
-      });
-      return lateCache;
-    }
-
-    metrics.fallbackActivations++;
-  }
-
-  // 4. Líder: executa fetcher, cacheia, hash, broadcasta, libera lock.
-  const isFallback = !acquired;
+  // 3. All async work runs inside a single IIFE so we can register it in inflight
+  //    synchronously before the first yield, preventing concurrent duplicate calls.
+  const startedAt = getNormalizedTime();
+  const seq = getSequenceNumber();
   const exec = (async () => {
     try {
-      const data = await fetcher();
-      const hash = await computePayloadHash(data);
+      // 3a. Cache persistente (localStorage + IndexedDB).
+      const persisted = await readPersistedResult<T>(key);
+      if (persisted !== null) {
+        resultCache.set(key, { value: persisted, expiresAt: getNormalizedTime() + resultTtl });
+        recordDedupeEvent({ key, reason: 'persisted_cache' });
+        return persisted;
+      }
 
-      resultCache.set(key, { value: data, expiresAt: getNormalizedTime() + resultTtl });
-      await writePersistedResult(key, data, resultTtl, hash);
+      // 3b. Tenta adquirir lock cross-tab (com retry via CAS).
+      const acquired = await writeLock(key, lockTtl);
+      if (!acquired) {
+        getBroadcastChannel();
+        log.debug('Lock detido por outra aba, aguardando broadcast', { key });
+        const waited = await waitForResult<T>(key, waitTimeout);
+        if (waited.ok) {
+          recordDedupeEvent({
+            key,
+            reason: 'broadcast_wait',
+            durationMs: getNormalizedTime() - startedAt,
+          });
+          return waited.data;
+        }
 
-      broadcast<T>({
-        version: 1,
-        type: 'result',
-        key,
-        ownerId: TAB_ID,
-        data,
-        ts: getNormalizedTime(),
-        resultTtl,
-        payloadHash: hash,
-        sequence: seq,
-      });
+        const lateCache = await readPersistedResult<T>(key);
+        if (lateCache !== null) {
+          resultCache.set(key, { value: lateCache, expiresAt: getNormalizedTime() + resultTtl });
+          recordDedupeEvent({
+            key,
+            reason: 'late_cache',
+            durationMs: getNormalizedTime() - startedAt,
+          });
+          return lateCache;
+        }
 
-      notifySubscribers(key, data, 'local');
-      recordDedupeEvent({
-        key,
-        reason: isFallback ? 'fallback_after_wait' : 'lock_acquired_lead',
-        durationMs: getNormalizedTime() - startedAt,
-      });
-      return data;
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      broadcast({
-        version: 1,
-        type: 'error',
-        key,
-        ownerId: TAB_ID,
-        error: message,
-        ts: getNormalizedTime(),
-        sequence: seq,
-      });
-      recordDedupeEvent({
-        key,
-        reason: isFallback ? 'fallback_after_wait' : 'lock_acquired_lead',
-        durationMs: getNormalizedTime() - startedAt,
-        errorMessage: message,
-      });
-      throw err;
+        metrics.fallbackActivations++;
+      }
+
+      // 3c. Líder: executa fetcher, cacheia, hash, broadcasta, libera lock.
+      const isFallback = !acquired;
+      try {
+        const data = await fetcher();
+        const hash = await computePayloadHash(data);
+
+        resultCache.set(key, { value: data, expiresAt: getNormalizedTime() + resultTtl });
+        await writePersistedResult(key, data, resultTtl, hash);
+
+        broadcast<T>({
+          version: 1,
+          type: 'result',
+          key,
+          ownerId: TAB_ID,
+          data,
+          ts: getNormalizedTime(),
+          resultTtl,
+          payloadHash: hash,
+          sequence: seq,
+        });
+
+        notifySubscribers(key, data, 'local');
+        recordDedupeEvent({
+          key,
+          reason: isFallback ? 'fallback_after_wait' : 'lock_acquired_lead',
+          durationMs: getNormalizedTime() - startedAt,
+        });
+        return data;
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        broadcast({
+          version: 1,
+          type: 'error',
+          key,
+          ownerId: TAB_ID,
+          error: message,
+          ts: getNormalizedTime(),
+          sequence: seq,
+        });
+        recordDedupeEvent({
+          key,
+          reason: isFallback ? 'fallback_after_wait' : 'lock_acquired_lead',
+          durationMs: getNormalizedTime() - startedAt,
+          errorMessage: message,
+        });
+        throw err;
+      } finally {
+        releaseLock(key);
+        broadcast({
+          version: 1,
+          type: 'release',
+          key,
+          ownerId: TAB_ID,
+          ts: getNormalizedTime(),
+          sequence: seq,
+        });
+      }
     } finally {
-      releaseLock(key);
-      broadcast({
-        version: 1,
-        type: 'release',
-        key,
-        ownerId: TAB_ID,
-        ts: getNormalizedTime(),
-        sequence: seq,
-      });
       inflight.delete(key);
     }
   })();
+
+  // Register before any microtask runs so concurrent calls see the in-flight promise.
   inflight.set(key, exec);
   return exec;
 }
 
+/** Waits for a broadcast result or error for the given key, resolving with {ok:false} after the timeout. */
 function waitForResult<T>(
   key: string,
   timeoutMs: number
@@ -861,6 +880,11 @@ export function clearCrossTabDedupe(): void {
   globalSequence = 0;
   masterTabId = null;
   masterClockOffset = 0;
+
+  if (gcTimer !== null) {
+    clearInterval(gcTimer);
+    gcTimer = null;
+  }
 
   if (typeof localStorage !== 'undefined') {
     try {
@@ -917,7 +941,7 @@ export function subscribeDedupe<T = unknown>(
       : (k: string) => keyMatcher.test(k);
   const sub: Subscription = { match, handler: handler as SubscriberFn };
   subscribers.add(sub);
-  ensureTransport(onBroadcast);
+  ensureTransport();
   return () => {
     subscribers.delete(sub);
   };

@@ -1,3 +1,4 @@
+/** Media Item component for the media gallery section. */
 export interface MediaItem {
   id: string;
   url: string;
@@ -7,6 +8,7 @@ export interface MediaItem {
   message_content: string;
 }
 
+/** get Media Type component for the media gallery section. */
 export const getMediaType = (url: string, messageType: string): MediaItem['type'] => {
   const extension = url.split('.').pop()?.toLowerCase() || '';
   if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(extension) || messageType === 'image') return 'image';
@@ -15,6 +17,7 @@ export const getMediaType = (url: string, messageType: string): MediaItem['type'
   return 'document';
 };
 
+/** get Filename component for the media gallery section. */
 export const getFilename = (url: string): string => {
   try {
     const urlObj = new URL(url);

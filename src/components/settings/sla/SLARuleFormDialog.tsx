@@ -33,6 +33,7 @@ interface SLARuleFormDialogProps {
   editingRule: SLARule | null;
 }
 
+/** SLARule Form Dialog component for the settings section. */
 export function SLARuleFormDialog({
   open,
   onOpenChange,
@@ -140,7 +141,7 @@ export function SLARuleFormDialog({
           {contacts.length > 0 && (
             <div className="max-h-32 overflow-auto rounded-xl border">
               {contacts.map((c) => (
-                <button
+                <button type="button"
                   key={c.id}
                   onClick={() => {
                     setScopeValue(c.id);

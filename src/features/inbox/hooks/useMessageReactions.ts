@@ -5,15 +5,15 @@ import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/features/auth';
 import { useReactionMutations } from './reactions/useReactionMutations';
 import type { MessageReaction, UseMessageReactionsOptions } from './reactions/types';
-
-// Schema escape hatch: zapp tables not yet in generated types (gen-types-zapp.mjs pendente na VPS)
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const db = supabase as any;
+import { queryKeys } from '@/services/api/queryKeys';
 
 // Re-export types and batch hook for consumers
+/** Re-exported module members. */
 export type { MessageReaction, UseMessageReactionsOptions };
+/** Re-exported module members. */
 export { useMessagesReactions } from './reactions/useBatchReactions';
 
+/** Manages emoji reactions for a single message — fetching, adding, removing, and optionally subscribing to realtime updates. */
 export function useMessageReactions(messageId: string, options?: UseMessageReactionsOptions) {
   const queryClient = useQueryClient();
   const { user } = useAuth();
@@ -34,23 +34,22 @@ export function useMessageReactions(messageId: string, options?: UseMessageReact
           filter: `message_id=eq.${messageId}`,
         },
         () => {
-          void queryClient.invalidateQueries({ queryKey: ['message-reactions', messageId] });
-          void queryClient.invalidateQueries({ queryKey: ['operations-logs'] });
+          void queryClient.invalidateQueries({ queryKey: queryKeys.messageReactions.message(messageId) });
+          void queryClient.invalidateQueries({ queryKey: queryKeys.adminOps.operationsLogsAll() });
         }
       )
       .subscribe();
 
     return () => {
-      void channel.unsubscribe();
-      void supabase.removeChannel(channel);
+      void Promise.resolve(supabase.removeChannel(channel)).catch(() => {});
     };
   }, [messageId, options?.disableRealtime, queryClient]);
 
   const { data: profile } = useQuery({
-    queryKey: ['my-profile-reactions', user?.id],
+    queryKey: queryKeys.messageReactions.myProfile(user?.id),
     queryFn: async () => {
       if (!user?.id) return null;
-      const { data, error } = await db.from('profiles')
+      const { data, error } = await supabase.from('profiles')
         .select('id, name')
         .eq('user_id', user.id)
         .maybeSingle();
@@ -67,23 +66,23 @@ export function useMessageReactions(messageId: string, options?: UseMessageReact
     isLoading,
     refetch,
   } = useQuery({
-    queryKey: ['message-reactions', messageId],
+    queryKey: queryKeys.messageReactions.message(messageId),
     queryFn: async () => {
-      const { data, error } = await db.from('message_reactions')
+      const { data, error } = await supabase.from('message_reactions')
         .select('*')
         .eq('message_id', messageId);
       if (error) throw error;
 
-      const userIds = (data?.filter((r: any) => r.user_id).map((r: any) => r.user_id) || []) as string[];
+      const userIds = (data?.filter((r) => r.user_id).map((r) => r.user_id) || []) as string[];
       let usersMap = new Map<string, string>();
       if (userIds.length > 0) {
-        const { data: users } = await db.from('profiles')
+        const { data: users } = await supabase.from('profiles')
           .select('id, name')
           .in('id', userIds);
-        usersMap = new Map(users?.map((u: any) => [u.id, u.name]) || []);
+        usersMap = new Map(users?.map((u) => [u.id, u.name]) || []);
       }
 
-      return (data || []).map((r: any) => ({
+      return (data || []).map((r) => ({
         ...r,
         user_name: r.user_id ? usersMap.get(r.user_id) || 'Agente' : 'Cliente',
       })) as MessageReaction[];

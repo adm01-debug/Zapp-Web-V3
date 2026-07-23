@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { getLogger } from '@/lib/logger';
@@ -41,8 +40,13 @@ export async function sendMessageToContact(
     .eq('user_id', (await supabase.auth.getUser()).data.user?.id ?? '')
     .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
 
+  // Generate id client-side so the RETURNING clause always carries a non-null id
+  // even if the INSTEAD OF trigger on zapp.messages does not assign NEW.id before RETURN NEW.
+  const messageId = crypto.randomUUID();
+
   const { data, error } = await dbFrom('messages')
     .insert({
+      id: messageId,
       contact_id: contactId,
       agent_id: profile?.id,
       content,

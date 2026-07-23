@@ -1,6 +1,6 @@
-// @ts-nocheck
+import { queryKeys } from '@/services/api/queryKeys';
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { fetchActiveAgentsCount, fetchBreachedSLACount } from '../hooks/useCrisisRoomData';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -17,25 +17,22 @@ interface CrisisMetric {
   icon: typeof AlertTriangle;
 }
 
+/** Crisis Room component. */
 export function CrisisRoom() {
   const { data: metrics = [], isFetching, refetch } = useQuery<CrisisMetric[]>({
-    queryKey: ['admin', 'crisis-room'],
+    queryKey: queryKeys.adminOps.crisisRoom(),
     queryFn: async () => {
       const now = new Date();
       const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
 
-      const [unanswered, activeAgents, breachedSLA] = await Promise.all([
+      const [unanswered, agentCount, slaBreached] = await Promise.all([
         dbFrom('messages').select('id', { count: 'exact', head: true })
           .eq('sender', 'contact').gte('created_at', oneHourAgo.toISOString()),
-        supabase.from('profiles').select('id', { count: 'exact', head: true })
-          .eq('is_active', true).in('role', ['agent', 'admin', 'supervisor']),
-        supabase.from('conversation_sla').select('id', { count: 'exact', head: true })
-          .eq('first_response_breached', true),
+        fetchActiveAgentsCount(),
+        fetchBreachedSLACount(),
       ]);
 
       const unansweredCount = unanswered.count || 0;
-      const agentCount = activeAgents.count || 0;
-      const slaBreached = breachedSLA.count || 0;
       const queueRatio = agentCount > 0 ? Math.round(unansweredCount / agentCount) : unansweredCount;
 
       return [

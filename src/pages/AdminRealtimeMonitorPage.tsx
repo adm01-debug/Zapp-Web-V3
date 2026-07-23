@@ -1,4 +1,5 @@
-// @ts-nocheck
+
+import { queryKeys } from '@/services/api/queryKeys';
 /**
  * Admin: Realtime monitoring page.
  * Single consolidated dashboard with connection status, webhook event volume
@@ -33,6 +34,7 @@ const WINDOW_OPTIONS = [
   { value: '24', label: 'Últimas 24h' },
 ] as const;
 
+/** Default export. */
 export default function AdminRealtimeMonitorPage() {
   const [windowHours, setWindowHours] = useState<string>('1');
   const [autoRefresh, setAutoRefresh] = useState<boolean>(true);
@@ -42,8 +44,8 @@ export default function AdminRealtimeMonitorPage() {
   const isLive = autoRefresh && lastEventAt !== null && Date.now() - lastEventAt < 30_000;
 
   const handleManualRefresh = () => {
-    void queryClient.invalidateQueries({ queryKey: ['realtime-monitor'] });
-    void queryClient.invalidateQueries({ queryKey: ['failed-messages'] });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.adminOps.realtimeMonitor() });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.failedMessages.all() });
   };
 
   return (

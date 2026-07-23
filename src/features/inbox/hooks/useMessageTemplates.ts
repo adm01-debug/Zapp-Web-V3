@@ -4,12 +4,9 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/features/auth';
 import { getLogger } from '@/lib/logger';
 
-// Schema escape hatch: zapp tables not yet in generated types (gen-types-zapp.mjs pendente na VPS)
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const db = supabase as any;
-
 const log = getLogger('useMessageTemplates');
 
+/** Quick-reply template row from the `message_templates` table. */
 export interface Template {
   id: string;
   title: string;
@@ -22,6 +19,7 @@ export interface Template {
   updated_at?: string;
 }
 
+/** CRUD and usage-count management for message_templates; fetches templates ordered by use_count and exposes add/update/delete/increment helpers. */
 export function useMessageTemplates() {
   const [templates, setTemplates] = useState<Template[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -39,13 +37,13 @@ export function useMessageTemplates() {
     if (!user?.id) return;
     setIsLoading(true);
     try {
-      const { data, error } = await db
+      const { data, error } = await supabase
         .from('message_templates')
         .select('*')
         .order('use_count', { ascending: false });
       if (!mountedRef.current) return;
       if (error) throw error;
-      setTemplates((data as any) || []);
+      setTemplates((data as Template[]) || []);
     } catch (err) {
       log.error('Error fetching templates:', err);
     } finally {
@@ -64,7 +62,7 @@ export function useMessageTemplates() {
         return false;
       }
       try {
-        const { error } = await db.from('message_templates').insert({
+        const { error } = await supabase.from('message_templates').insert({
           user_id: user.id,
           title: template.title,
           content: template.content,
@@ -90,7 +88,7 @@ export function useMessageTemplates() {
   const updateTemplate = useCallback(
     async (template: Template) => {
       try {
-        const { error } = await db
+        const { error } = await supabase
           .from('message_templates')
           .update({
             title: template.title,
@@ -114,7 +112,7 @@ export function useMessageTemplates() {
   const deleteTemplate = useCallback(
     async (id: string) => {
       try {
-        const { error } = await db.from('message_templates').delete().eq('id', id);
+        const { error } = await supabase.from('message_templates').delete().eq('id', id);
         if (error) throw error;
         toast({ title: 'Template excluído', description: 'O template foi removido.' });
         await fetchTemplates();
@@ -128,7 +126,7 @@ export function useMessageTemplates() {
   );
 
   const incrementUseCount = useCallback(async (template: Template) => {
-    await db
+    await supabase
       .from('message_templates')
       .update({ use_count: template.use_count + 1 })
       .eq('id', template.id);

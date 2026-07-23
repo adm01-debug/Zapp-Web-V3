@@ -3,6 +3,7 @@
  */
 
 // ─── evolution_messages ───────────────────────────────────────
+/** Evolution Message interface. */
 export interface EvolutionMessage {
   id: string;
   message_id: string;
@@ -54,6 +55,7 @@ export interface EvolutionMessage {
 // raw_data, notes, tags, follow_up_*, contact_id, conversation_id, status,
 // status_at duplicates, etc. Heavy fields are fetched on-demand via
 // `useMessageDetails` (rpc_get_message_details).
+/** Evolution Message Lite type alias. */
 export type EvolutionMessageLite = Pick<
   EvolutionMessage,
   | 'id'
@@ -120,6 +122,7 @@ export function toEvolutionMessageLite(
 }
 
 // ─── evolution_webhook_events ─────────────────────────────────
+/** Evolution Webhook Event interface definition. */
 export interface EvolutionWebhookEvent {
   id: string;
   event_type: string;
@@ -136,6 +139,7 @@ export interface EvolutionWebhookEvent {
 }
 
 // ─── evolution_settings ───────────────────────────────────────
+/** Evolution Setting interface definition. */
 export interface EvolutionSetting {
   id: string;
   key: string;
@@ -148,6 +152,7 @@ export interface EvolutionSetting {
 }
 
 // ─── evolution_contacts ───────────────────────────────────────
+/** Evolution Contact interface definition. */
 export interface EvolutionContact {
   id: string;
   remote_jid: string;
@@ -164,6 +169,7 @@ export interface EvolutionContact {
 }
 
 // ─── evolution_conversations ──────────────────────────────────
+/** Evolution Conversation interface definition. */
 export interface EvolutionConversation {
   id: string;
   remote_jid: string;
@@ -177,6 +183,7 @@ export interface EvolutionConversation {
 }
 
 // ─── Derived contact from messages (since evolution_contacts is empty) ──
+/** Derived Contact interface definition. */
 export interface DerivedContact {
   remoteJid: string;
   pushName: string | null;

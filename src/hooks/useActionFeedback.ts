@@ -1,6 +1,5 @@
-// @ts-nocheck
 import { useCallback, useRef, useState } from 'react';
-import { useToast } from '@/hooks/use-toast';
+import { toast as sonnerToast } from 'sonner';
 import type {
   FeedbackType,
   FeedbackOptions,
@@ -10,37 +9,60 @@ import type {
 import {
   FEEDBACK_ICONS,
   FEEDBACK_TITLES,
-  FEEDBACK_VARIANTS,
   FEEDBACK_DURATIONS,
 } from './feedback/feedbackTypes';
 
+/** Re-exported module members. */
 export type { FeedbackType, FeedbackOptions, WithFeedbackOptions, UndoableOptions };
+
+interface ToastHandle {
+  id: string | number;
+  dismiss: () => void;
+  update: (opts: { description?: string; title?: string }) => void;
+}
+
+function makeHandle(id: string | number, title: string | undefined): ToastHandle {
+  return {
+    id,
+    dismiss: () => sonnerToast.dismiss(id),
+    update: (opts) => {
+      sonnerToast(opts.title ?? title ?? '', { id, description: opts.description });
+    },
+  };
+}
 
 /** Provides feedback notifications for user actions with customizable types and durations. */
 export function useActionFeedback() {
-  const { toast } = useToast();
-  const activeToasts = useRef<Map<string, { dismiss: () => void }>>(new Map());
+  const activeToasts = useRef<Map<string | number, ToastHandle>>(new Map());
 
   const showFeedback = useCallback(
-    (type: FeedbackType, options: FeedbackOptions) => {
+    (type: FeedbackType, options: FeedbackOptions): ToastHandle => {
       const icon = FEEDBACK_ICONS[type];
       const title = options.title || FEEDBACK_TITLES[type];
       const duration = options.duration ?? FEEDBACK_DURATIONS[type];
       const description = options.action
         ? `${icon} ${options.description} [${options.action.label}]`
         : `${icon} ${options.description}`;
-      const toastResult = toast({ title, description, variant: FEEDBACK_VARIANTS[type], duration });
+
+      const emit =
+        type === 'error'
+          ? sonnerToast.error
+          : type === 'warning'
+            ? sonnerToast.warning
+            : type === 'success'
+              ? sonnerToast.success
+              : type === 'loading'
+                ? sonnerToast.loading
+                : sonnerToast.info;
+
+      const id = emit(title, { description, duration });
+      const handle = makeHandle(id, title);
       if (options.action) {
-        activeToasts.current.set(toastResult.id, {
-          dismiss: () => {
-            toastResult.dismiss();
-            activeToasts.current.delete(toastResult.id);
-          },
-        });
+        activeToasts.current.set(id, handle);
       }
-      return toastResult;
+      return handle;
     },
-    [toast]
+    []
   );
 
   const success = useCallback(
@@ -103,8 +125,7 @@ export function useActionFeedback() {
       return new Promise((resolve) => {
         const { description, undoDuration = 5000, onUndo, onConfirm } = options;
         let undone = false;
-        // eslint-disable-next-line prefer-const
-        let timeoutId: NodeJS.Timeout;
+        let timeoutId: ReturnType<typeof setTimeout>;
         const toastResult = showFeedback('info', {
           description,
           duration: undoDuration,
@@ -159,7 +180,6 @@ export function useActionFeedback() {
       const loadingToast = loading(progressMessage(0, total));
       for (let i = 0; i < actions.length; i++) {
         loadingToast.update({
-          id: loadingToast.id,
           description: `⟳ ${progressMessage(i + 1, total)}`,
         });
         try {

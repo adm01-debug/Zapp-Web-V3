@@ -21,6 +21,7 @@ interface ScheduleMessageDialogProps {
   onSchedule: (message: string, scheduledAt: Date, attachment?: File) => void;
 }
 
+/** Schedule Message Dialog component. */
 export function ScheduleMessageDialog({ open, onOpenChange, onSchedule }: ScheduleMessageDialogProps) {
   const [message, setMessage] = useState('');
   const [date, setDate] = useState(format(addDays(new Date(), 1), 'yyyy-MM-dd'));

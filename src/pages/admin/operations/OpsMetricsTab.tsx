@@ -72,6 +72,7 @@ function fmtSeconds(sec: number | null | undefined) {
   return `${(sec / 3600).toFixed(1)}h`;
 }
 
+/** Ops Metrics Tab. */
 export function OpsMetricsTab() {
   const [windowHours, setWindowHours] = useState('24');
   const [data, setData] = useState<Metrics | null>(null);

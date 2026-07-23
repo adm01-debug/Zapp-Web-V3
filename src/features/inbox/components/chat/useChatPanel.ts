@@ -12,7 +12,7 @@ import { useTextToSpeech } from '@/hooks/useTextToSpeech';
 import { useUserSettings } from '@/hooks/useUserSettings';
 import { useScheduledMessages } from '@/hooks/useScheduledMessages';
 import { useMessageSignature } from '@/features/inbox';
-import type { MessageQueueController } from '@/features/inbox/hooks/useMessageQueue';
+import type { MessageQueueController } from '../../hooks/useMessageQueue';
 import { useChatMediaSending } from '../../hooks/useChatMediaSending';
 import { useAmbientColor } from '@/hooks/useAmbientColor';
 import { ChatMessagesAreaRef } from './ChatMessagesArea';
@@ -32,6 +32,7 @@ import { useInboxShortcuts } from '../../hooks/useInboxShortcuts';
 import { dbFrom } from '@/integrations/datasource/db';
 import { useUserRole } from '@/features/auth';
 
+/** Chat Panel Props component for the chat section. */
 export interface ChatPanelProps extends LoadOlderProps {
   conversation: Conversation;
   messages: Message[];
@@ -48,6 +49,7 @@ export interface ChatPanelProps extends LoadOlderProps {
   messageQueue?: MessageQueueController;
 }
 
+/** use Chat Panel component for the chat section. */
 export function useChatPanel({
   conversation,
   messages,
@@ -186,7 +188,7 @@ export function useChatPanel({
 
   useEffect(() => {
     initResolve();
-  }, [conversation.contact.id]);
+  }, [conversation.contact.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useAutomations({
     remoteJid: conversation.contact.id,

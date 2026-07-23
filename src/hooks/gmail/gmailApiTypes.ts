@@ -1,14 +1,17 @@
+/** Hook: Email Api Error. */
 export interface EmailApiError {
   code: number;
   message: string;
   status: string;
 }
 
+/** Hook: Email Api Response. */
 export interface EmailApiResponse<T> {
   data: T | null;
   error: EmailApiError | null;
 }
 
+/** Hook: Email Attachment. */
 export interface EmailAttachment {
   attachmentId: string;
   filename: string;
@@ -16,12 +19,14 @@ export interface EmailAttachment {
   size: number;
 }
 
+/** Hook: Mark Read Params. */
 export interface MarkReadParams {
   accountId: string;
   messageIds: string[];
   read: boolean;
 }
 
+/** Hook: Modify Labels Params. */
 export interface ModifyLabelsParams {
   accountId: string;
   messageId?: string;
@@ -30,6 +35,7 @@ export interface ModifyLabelsParams {
   removeLabelIds?: string[];
 }
 
+/** Hook: Send Message Params. */
 export interface SendMessageParams {
   accountId: string;
   to: string[];
@@ -49,11 +55,13 @@ export interface SendMessageParams {
   signature?: boolean;
 }
 
+/** Hook: Trash Message Params. */
 export interface TrashMessageParams {
   accountId: string;
   messageId: string;
 }
 
+/** Hook: Save Draft Params. */
 export interface SaveDraftParams {
   accountId: string;
   draftId?: string;
@@ -64,6 +72,7 @@ export interface SaveDraftParams {
   threadId?: string;
 }
 
+/** Hook: List Threads Params. */
 export interface ListThreadsParams {
   accountId: string;
   q?: string;

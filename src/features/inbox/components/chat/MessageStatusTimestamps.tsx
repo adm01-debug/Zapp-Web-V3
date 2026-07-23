@@ -84,6 +84,7 @@ const STAGE_TONE: Record<Stage, string> = {
   read: 'text-info',
 };
 
+/** Message Status Timestamps constant. */
 export const MessageStatusTimestamps = memo(function MessageStatusTimestamps({
   message,
   className,

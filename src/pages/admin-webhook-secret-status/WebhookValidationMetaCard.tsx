@@ -17,6 +17,7 @@ interface WebhookValidationMetaCardProps {
   errored: number;
 }
 
+/** Webhook Validation Meta Card. */
 export function WebhookValidationMetaCard({
   secret,
   unsigned,

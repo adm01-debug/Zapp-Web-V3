@@ -12,6 +12,7 @@
  */
 import type { RetryConfig } from '@/lib/retryConfig';
 
+/** Details of a single attempt in a simulated retry schedule. */
 export interface RetryAttempt {
   /** Número da tentativa (1-indexed). */
   attempt: number;
@@ -25,6 +26,7 @@ export interface RetryAttempt {
   isFinal: boolean;
 }
 
+/** Full simulated retry schedule for a given retry configuration. */
 export interface RetrySchedule {
   attempts: RetryAttempt[];
   /** Soma de todos os delays entre tentativas. */
@@ -35,6 +37,7 @@ export interface RetrySchedule {
   bestCaseTotalMs: number;
 }
 
+/** Deterministically simulates the retry attempt schedule for a given retry configuration. */
 export function simulateRetrySchedule(config: RetryConfig): RetrySchedule {
   const { maxRetries, baseBackoffMs, maxBackoffMs, timeoutMs } = config;
   const totalAttempts = Math.max(1, maxRetries + 1);

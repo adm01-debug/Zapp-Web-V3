@@ -20,6 +20,7 @@ interface UniversityHelpProps {
 
 type FilterMode = 'all' | 'client' | 'agent';
 
+/** University Help component. */
 export function UniversityHelp({
   contactId,
   contactName,
@@ -197,6 +198,7 @@ export function UniversityHelp({
 
       {error && !response && (
         <motion.div
+          role="alert"
           initial={{ opacity: 0, y: 5 }}
           animate={{ opacity: 1, y: 0 }}
           className="flex items-start gap-2 rounded-xl border border-destructive/20 bg-destructive/10 p-3"

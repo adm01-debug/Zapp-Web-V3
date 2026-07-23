@@ -15,9 +15,11 @@ const meta: Meta<typeof Tooltip> = {
   ],
 };
 
+/** Default export. */
 export default meta;
 type Story = StoryObj<typeof Tooltip>;
 
+/** Default component for the ui section. */
 export const Default: Story = {
   render: () => (
     <Tooltip>

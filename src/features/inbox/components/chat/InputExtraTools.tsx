@@ -26,6 +26,7 @@ interface InputExtraToolsProps {
   onSendProduct: (product: ExternalProduct) => void;
 }
 
+/** Input Extra Tools component for the chat section. */
 export function InputExtraTools({
   isRecordingAudio,
   messages,

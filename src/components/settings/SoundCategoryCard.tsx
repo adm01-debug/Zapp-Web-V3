@@ -24,6 +24,7 @@ interface SoundCategoryCardProps {
   onPlayPreview: (category: string, soundId: string) => void;
 }
 
+/** Sound Category Card component for the settings section. */
 export function SoundCategoryCard({ categoryKey, label, description, icon: Icon, sounds, currentSound, isPlaying, disabled, onSoundChange, onPlayPreview }: SoundCategoryCardProps) {
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>

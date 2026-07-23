@@ -19,6 +19,7 @@ const ROOT_CAUSE_TONE_CLASS: Record<'warning' | 'destructive' | 'info' | 'muted'
   muted: 'bg-muted text-muted-foreground border-border',
 };
 
+/** Failed Message Details Sheet. */
 export function FailedMessageDetailsSheet({ selected, onClose, onViewInChat }: { selected: FailedMessageRow | null; onClose: () => void; onViewInChat: (row: FailedMessageRow) => void }) {
   const copy = (val: string) => {
     navigator.clipboard.writeText(val);

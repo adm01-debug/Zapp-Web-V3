@@ -1,9 +1,6 @@
-// @ts-nocheck
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getLogger } from '@/lib/logger';
-
-const log = getLogger('TranscriptionsHistoryView');
 import { FloatingParticles } from '@/components/dashboard/FloatingParticles';
 import { AuroraBorealis } from '@/components/effects/AuroraBorealis';
 import { EmptyState } from '@/components/ui/empty-states';
@@ -23,6 +20,8 @@ import { isToday, isThisWeek, isThisMonth } from 'date-fns';
 import { TranscriptionContactGroup } from './TranscriptionContactGroup';
 import { dbFrom } from '@/integrations/datasource/db';
 
+const log = getLogger('TranscriptionsHistoryView');
+
 interface TranscriptionRecord {
   id: string;
   content: string;
@@ -37,6 +36,7 @@ interface TranscriptionRecord {
 
 type DateFilter = 'all' | 'today' | 'week' | 'month';
 
+/** Transcriptions History View component for the transcriptions section. */
 export function TranscriptionsHistoryView() {
   const [transcriptions, setTranscriptions] = useState<TranscriptionRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -264,8 +264,7 @@ export function TranscriptionsHistoryView() {
                     : 'Transcrições de áudios aparecerão aqui automaticamente'
                 }
                 illustration="transcriptions"
-                secondaryActionLabel={searchQuery ? 'Limpar busca' : undefined}
-                onSecondaryAction={searchQuery ? () => setSearchQuery('') : undefined}
+                secondaryAction={searchQuery ? { label: 'Limpar busca', onClick: () => setSearchQuery('') } : undefined}
               />
             ) : (
               Object.entries(groupedByContact).map(

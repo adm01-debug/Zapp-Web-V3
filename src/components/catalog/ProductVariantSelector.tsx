@@ -12,6 +12,7 @@ interface ProductVariantSelectorProps {
   setIsEditing: (editing: boolean) => void;
 }
 
+/** Product Variant Selector component for the catalog section. */
 export function ProductVariantSelector({
   variantGroups,
   sendMode,
@@ -62,7 +63,7 @@ export function ProductVariantSelector({
               const isSelected = selectedColorGroup === group.colorName;
               const groupStock = group.variants.reduce((s, v) => s + v.stock_quantity, 0);
               return (
-                <button
+                <button type="button"
                   key={group.colorName}
                   onClick={() => {
                     setSelectedColorGroup(group.colorName);

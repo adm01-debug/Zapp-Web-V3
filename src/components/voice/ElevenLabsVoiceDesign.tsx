@@ -25,6 +25,7 @@ interface Voice {
   preview_url: string;
 }
 
+/** Eleven Labs Voice Design component for the voice section. */
 export function ElevenLabsVoiceDesign() {
   const [loading, setLoading] = useState(false);
   const [voices, setVoices] = useState<Voice[]>([]);

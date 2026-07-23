@@ -16,9 +16,11 @@ const meta: Meta<typeof Dialog> = {
   tags: ['autodocs'],
 };
 
+/** Default export. */
 export default meta;
 type Story = StoryObj<typeof Dialog>;
 
+/** Default component for the ui section. */
 export const Default: Story = {
   render: () => (
     <Dialog>

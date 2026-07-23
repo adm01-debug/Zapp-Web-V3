@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useEffect, useCallback } from 'react';
 import { externalSupabase, isExternalConfigured } from '@/integrations/supabase/externalClient';
 import { useAuth } from '@/features/auth';
@@ -19,6 +18,7 @@ interface BroadcastPayload {
   wa_call_id?: string | null;
 }
 
+/** Subscribes to incoming WhatsApp call broadcasts on the external Supabase channel for a given Evolution instance. */
 export function useIncomingCallBroadcast(instance: string = DEFAULT_INSTANCE) {
   const { profile } = useAuth();
   const [incomingCall, setIncomingCall] = useState<IncomingCall | null>(null);
@@ -60,7 +60,7 @@ export function useIncomingCallBroadcast(instance: string = DEFAULT_INSTANCE) {
         let contactId: string | null = null;
 
         try {
-          const { data, error } = await db.rpc('rpc_get_contact', {
+          const { data, error } = await supabase.rpc('rpc_get_contact' as any, {
             p_remote_jid: p.remote_jid,
             p_instance: instance,
           });
@@ -104,9 +104,7 @@ export function useIncomingCallBroadcast(instance: string = DEFAULT_INSTANCE) {
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
-      void channel.unsubscribe();
-      externalSupabase?.removeChannel(channel);
+      externalSupabase.removeChannel(channel);
     };
   }, [profile?.id, instance]);
 

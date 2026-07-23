@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { useAuth } from '@/features/auth';
 import { getLogger } from '@/lib/logger';
@@ -35,69 +36,59 @@ export const DEFAULT_SLA_ALERT_PREFERENCES: SLAAlertPreferences = {
  */
 export function useSLAAlertPreferences() {
   const { user } = useAuth();
-  const [preferences, setPreferences] = useState<SLAAlertPreferences>(
-    DEFAULT_SLA_ALERT_PREFERENCES
-  );
-  const [isLoading, setIsLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const queryKey = ['sla-alert-preferences', user?.id] as const;
   const [isSaving, setIsSaving] = useState(false);
 
-  useEffect(() => {
-    let cancelled = false;
-    if (!user?.id) {
-      setIsLoading(false);
-      return;
-    }
-    setIsLoading(true);
-
-    void safeClient
-      .from('sla_alert_preferences', (q) =>
+  const { data: preferences = DEFAULT_SLA_ALERT_PREFERENCES, isLoading } = useQuery({
+    queryKey,
+    queryFn: async (): Promise<SLAAlertPreferences> => {
+      const { data, error } = await safeClient.from<SLAAlertPreferences>('sla_alert_preferences', (q) =>
         q
           .select(
             'enabled, alert_first_response, alert_resolution, severity_warning, severity_breached'
           )
-          .eq('user_id', user.id)
+          .eq('user_id', user!.id)
           .limit(1)
-      )
-      .then(({ data, error }) => {
-        if (cancelled) return;
+      );
 
-        if (error) {
-          // Codigos que indicam tabela inexistente (ambiente sem migration)
-          // ou linha não encontrada: tratar como defaults silenciosamente.
-          // safeClient wraps errors to standard Error — check message only.
-          const msg = error?.message ?? '';
-          const isTableMissing =
-            msg.includes('relation') ||
-            msg.includes('does not exist') ||
-            msg.includes('Recurso indisponível') ||
-            msg.includes('não disponível') ||
-            msg.includes('404');
-
-          if (!isTableMissing) {
-            log.warn('[useSLAAlertPreferences] Erro ao carregar preferências:', msg);
-          }
-          // Em qualquer caso de erro: manter defaults (já é o estado inicial).
-          setIsLoading(false);
-          return;
+      if (error) {
+        const code = (error as { code?: string })?.code ?? '';
+        const msg = (error as { message?: string })?.message ?? '';
+        const isTableMissing =
+          code === 'PGRST116' ||
+          code === 'PGRST204' ||
+          code === '42P01' ||
+          msg.includes('relation') ||
+          msg.includes('does not exist') ||
+          msg.includes('404');
+        if (!isTableMissing) {
+          log.warn('[useSLAAlertPreferences] Erro ao carregar preferências:', msg);
         }
+        return DEFAULT_SLA_ALERT_PREFERENCES;
+      }
 
-        const row = (data?.[0] ?? null) as any;
-        if (row) {
-          setPreferences({
-            enabled: (row as any).enabled,
-            alert_first_response: (row as any).alert_first_response,
-            alert_resolution: (row as any).alert_resolution,
-            severity_warning: (row as any).severity_warning,
-            severity_breached: (row as any).severity_breached,
-          });
-        }
-        setIsLoading(false);
-      });
+      const rows = (data ?? []) as Partial<SLAAlertPreferences>[];
+      const row = rows[0];
+      if (row) {
+        return {
+          enabled: row.enabled ?? DEFAULT_SLA_ALERT_PREFERENCES.enabled,
+          alert_first_response: row.alert_first_response ?? DEFAULT_SLA_ALERT_PREFERENCES.alert_first_response,
+          alert_resolution: row.alert_resolution ?? DEFAULT_SLA_ALERT_PREFERENCES.alert_resolution,
+          severity_warning: row.severity_warning ?? DEFAULT_SLA_ALERT_PREFERENCES.severity_warning,
+          severity_breached: row.severity_breached ?? DEFAULT_SLA_ALERT_PREFERENCES.severity_breached,
+        };
+      }
+      return DEFAULT_SLA_ALERT_PREFERENCES;
+    },
+    enabled: !!user?.id,
+    staleTime: 60_000,
+  });
 
-    return () => {
-      cancelled = true;
-    };
-  }, [user?.id]);
+  const setPreferences = useCallback(
+    (next: SLAAlertPreferences) => queryClient.setQueryData(queryKey, next),
+    [queryClient, queryKey] // eslint-disable-line react-hooks/exhaustive-deps
+  );
 
   const save = useCallback(
     async (next: SLAAlertPreferences) => {
@@ -107,10 +98,10 @@ export function useSLAAlertPreferences() {
         q.upsert({ user_id: user.id, ...next }, { onConflict: 'user_id' })
       );
       setIsSaving(false);
-      if (!error) setPreferences(next);
+      if (!error) queryClient.setQueryData(queryKey, next);
       return { error };
     },
-    [user?.id]
+    [user?.id, queryClient, queryKey] // eslint-disable-line react-hooks/exhaustive-deps
   );
 
   return { preferences, setPreferences, save, isLoading, isSaving };

@@ -1,9 +1,51 @@
+/** Toast type alias. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type Toast = { id: string; open: boolean; [key: string]: any }; // ignore-audit
+type ToastState = { toasts: Toast[] };
+
+type ToastAction =
+  | { type: 'ADD_TOAST'; toast: Toast }
+  | { type: 'UPDATE_TOAST'; toast: Partial<Toast> & { id: string } }
+  | { type: 'DISMISS_TOAST'; toastId?: string }
+  | { type: 'REMOVE_TOAST'; toastId?: string };
+
+const TOAST_LIMIT = 1;
+
+/** reducer function. */
+export function reducer(state: ToastState, action: ToastAction): ToastState {
+  switch (action.type) {
+    case 'ADD_TOAST':
+      return { ...state, toasts: [action.toast, ...state.toasts].slice(0, TOAST_LIMIT) };
+    case 'UPDATE_TOAST':
+      return {
+        ...state,
+        toasts: state.toasts.map((t) => (t.id === action.toast.id ? { ...t, ...action.toast } : t)),
+      };
+    case 'DISMISS_TOAST':
+      return {
+        ...state,
+        toasts: state.toasts.map((t) =>
+          action.toastId === undefined || t.id === action.toastId ? { ...t, open: false } : t
+        ),
+      };
+    case 'REMOVE_TOAST':
+      return {
+        ...state,
+        toasts:
+          action.toastId === undefined ? [] : state.toasts.filter((t) => t.id !== action.toastId),
+      };
+    default:
+      return state;
+  }
+}
+
 import { toast as sonnerToast } from 'sonner';
 import type { ExternalToast } from 'sonner';
 import type { ReactNode } from 'react';
 
 type LegacyToastVariant = 'default' | 'destructive';
 
+/** Legacy Toast Input type alias. */
 export type LegacyToastInput = ExternalToast & {
   title?: ReactNode;
   description?: ReactNode;
@@ -13,7 +55,10 @@ export type LegacyToastInput = ExternalToast & {
 type ToastMessage = Parameters<typeof sonnerToast>[0];
 type ToastOptions = Parameters<typeof sonnerToast>[1];
 
-type CompatToast = ((message: ToastMessage | LegacyToastInput, data?: ToastOptions) => string | number) &
+type CompatToast = ((
+  message: ToastMessage | LegacyToastInput,
+  data?: ToastOptions
+) => string | number) &
   typeof sonnerToast;
 
 const normalizeToast = (input: LegacyToastInput): { message: ReactNode; data: ExternalToast } => {
@@ -62,55 +107,5 @@ const useToast = () => {
   };
 };
 
+/** Re-exported module members. */
 export { useToast, toastCompat as toast };
-
-// ────────────────────────────────────────────────────────────────────
-// Reducer — estado local de toasts para testes unitários puros
-// (produção usa Sonner; este reducer é exportado apenas para testabilidade)
-// ────────────────────────────────────────────────────────────────────
-
-const TOAST_LIMIT = 1;
-
-interface ToastState {
-  toasts: Array<{ id: string; open?: boolean; title?: unknown; description?: unknown; [key: string]: unknown }>;
-}
-
-type ToastAction =
-  | { type: 'ADD_TOAST'; toast: ToastState['toasts'][0] }
-  | { type: 'UPDATE_TOAST'; toast: Partial<ToastState['toasts'][0]> & { id: string } }
-  | { type: 'DISMISS_TOAST'; toastId?: string }
-  | { type: 'REMOVE_TOAST'; toastId?: string };
-
-export function reducer(state: ToastState, action: ToastAction): ToastState {
-  switch (action.type) {
-    case 'ADD_TOAST':
-      return {
-        ...state,
-        toasts: [action.toast, ...state.toasts].slice(0, TOAST_LIMIT),
-      };
-    case 'UPDATE_TOAST':
-      return {
-        ...state,
-        toasts: state.toasts.map((t) =>
-          t.id === action.toast.id ? { ...t, ...action.toast } : t
-        ),
-      };
-    case 'DISMISS_TOAST':
-      return {
-        ...state,
-        toasts: state.toasts.map((t) =>
-          action.toastId === undefined || t.id === action.toastId
-            ? { ...t, open: false }
-            : t
-        ),
-      };
-    case 'REMOVE_TOAST':
-      if (action.toastId === undefined) return { ...state, toasts: [] };
-      return {
-        ...state,
-        toasts: state.toasts.filter((t) => t.id !== action.toastId),
-      };
-    default:
-      return state;
-  }
-}

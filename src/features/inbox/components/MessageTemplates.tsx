@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FileText, Plus, Search, Trash2, Edit2, X, Save, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -15,6 +15,7 @@ interface MessageTemplatesProps {
 
 const categories = ['general', 'saudacao', 'despedida', 'suporte', 'vendas'];
 
+/** Message Templates component. */
 export function MessageTemplates({ onSelectTemplate }: MessageTemplatesProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState('');
@@ -58,11 +59,15 @@ export function MessageTemplates({ onSelectTemplate }: MessageTemplatesProps) {
     if (editingTemplate && (await updateTemplate(editingTemplate))) setEditingTemplate(null);
   };
 
-  const filteredTemplates = templates.filter(
-    (t) =>
-      t.title.toLowerCase().includes(search.toLowerCase()) ||
-      t.content.toLowerCase().includes(search.toLowerCase()) ||
-      t.shortcut?.toLowerCase().includes(search.toLowerCase())
+  const filteredTemplates = useMemo(
+    () =>
+      templates.filter(
+        (t) =>
+          t.title.toLowerCase().includes(search.toLowerCase()) ||
+          t.content.toLowerCase().includes(search.toLowerCase()) ||
+          t.shortcut?.toLowerCase().includes(search.toLowerCase())
+      ),
+    [templates, search]
   );
 
   const formData = editingTemplate || newTemplate;
@@ -188,7 +193,7 @@ export function MessageTemplates({ onSelectTemplate }: MessageTemplatesProps) {
                   className="group rounded-lg border border-border p-3 transition-colors hover:bg-muted/30"
                 >
                   <div className="flex items-start justify-between">
-                    <button
+                    <button type="button"
                       onClick={() => handleSelectTemplate(template)}
                       className="flex-1 text-left"
                     >

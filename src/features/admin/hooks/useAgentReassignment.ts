@@ -3,11 +3,22 @@
  * 
  * Exposes RPCs for reassigning absent and overloaded agents.
  */
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { queryKeys } from '@/services/api/queryKeys';
 
+/** Exposes RPC mutations for reassigning absent and overloaded agents to a new queue or agent. */
 export function useAgentReassignment() {
+  const queryClient = useQueryClient();
+
+  const invalidateAfterReassignment = () => {
+    queryClient.invalidateQueries({ queryKey: queryKeys.contacts.lists() });
+    queryClient.invalidateQueries({ queryKey: queryKeys.evolutionConversations.all() });
+    queryClient.invalidateQueries({ queryKey: queryKeys.adminOps.warroom.queues() });
+    queryClient.invalidateQueries({ queryKey: queryKeys.adminOps.warroom.agents() });
+  };
+
   const reassignAbsent = useMutation({
     mutationFn: async (inactiveMinutes: number = 30) => {
       const { data, error } = await supabase.rpc('reassign_absent_agents', {
@@ -17,6 +28,7 @@ export function useAgentReassignment() {
       return (data as unknown as number); // RPC returns bigint mapped to number
     },
     onSuccess: (count) => {
+      invalidateAfterReassignment();
       if (count > 0) {
         toast.success(`${count} conversa(s) reatribuída(s) de agentes ausentes`);
       } else {
@@ -33,6 +45,7 @@ export function useAgentReassignment() {
       return (data as unknown as number); // RPC returns bigint mapped to number
     },
     onSuccess: (count) => {
+      invalidateAfterReassignment();
       if (count > 0) {
         toast.success(`${count} conversa(s) reatribuída(s) de agentes sobrecarregados`);
       } else {

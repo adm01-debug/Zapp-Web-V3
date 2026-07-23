@@ -36,6 +36,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   general: 'Geral',
 };
 
+/** Permission Matrix component for the permissions section. */
 export function PermissionMatrix() {
   const { permissions, rolePermissions, addPermissionToRole, removePermissionFromRole, loading } =
     usePermissions();

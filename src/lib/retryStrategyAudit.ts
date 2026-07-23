@@ -19,6 +19,7 @@ const log = getLogger('retryStrategyAudit');
  * - Adaptive retry strategies based on error types
  */
 
+/** Retryable Error Type enum. */
 export enum RetryableErrorType {
   NETWORK = 'network',
   TIMEOUT = 'timeout',
@@ -28,6 +29,7 @@ export enum RetryableErrorType {
   NOT_RETRYABLE = 'not_retryable',
 }
 
+/** Retry Config interface definition. */
 export interface RetryConfig {
   maxAttempts: number;
   baseDelayMs: number;
@@ -39,6 +41,7 @@ export interface RetryConfig {
   circuitBreakerResetMs?: number;
 }
 
+/** Retry Metrics interface definition. */
 export interface RetryMetrics {
   operationName: string;
   totalAttempts: number;
@@ -51,6 +54,7 @@ export interface RetryMetrics {
   successRate: number;
 }
 
+/** Retry Policy Context interface definition. */
 export interface RetryPolicyContext {
   error: Error;
   attemptNumber: number;
@@ -59,6 +63,7 @@ export interface RetryPolicyContext {
   timeoutMs?: number;
 }
 
+/** Retry Policy type alias. */
 export type RetryPolicy = (context: RetryPolicyContext) => boolean;
 
 /**
@@ -113,7 +118,7 @@ export const RETRY_CONFIG_ASYNC: RetryConfig = {
  */
 export function classifyError(error: Error | unknown): RetryableErrorType {
   const msg = (error instanceof Error ? error.message : String(error)).toLowerCase();
-  const code = (error as any)?.code?.toUpperCase() || '';
+  const code = (error as { code?: string })?.code?.toUpperCase() || '';
 
   // Network errors
   if (
@@ -267,7 +272,7 @@ export class RetryExecutor {
   async execute<T>(fn: () => Promise<T>, shouldRetry?: RetryPolicy): Promise<T> {
     const startTime = Date.now();
     const circuitBreaker = this.circuitBreakerMap.get(this.operationName);
-    const metrics = this.metricsMap.get(this.operationName)!;
+    const metrics = this.metricsMap.get(this.operationName) as RetryMetrics;
 
     if (circuitBreaker && !circuitBreaker.canExecute()) {
       metrics.circuitBreakerTrips++;
@@ -397,8 +402,10 @@ class RetryMetricsTracker {
   }
 }
 
+/** retry Metrics Tracker constant. */
 export const retryMetricsTracker = new RetryMetricsTracker();
 
+/** Default export. */
 export default {
   classifyError,
   isRetryable,

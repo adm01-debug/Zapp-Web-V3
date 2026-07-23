@@ -33,6 +33,7 @@ interface ContactActionButtonsProps {
   onStartCall: (type: 'whatsapp' | 'voip') => void;
 }
 
+/** Contact Action Buttons component for the contact details section. */
 export function ContactActionButtons({
   contact,
   conversation,

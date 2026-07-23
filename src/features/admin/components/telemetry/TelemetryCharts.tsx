@@ -28,6 +28,7 @@ function formatBucketTime(ts: number, timeFilter: string): string {
   return d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 }
 
+/** Telemetry Charts component for the telemetry section. */
 export function TelemetryCharts({ rows, timeFilter }: TelemetryChartsProps) {
   const bucketMs =
     timeFilter === "1h" ? 5 * 60_000

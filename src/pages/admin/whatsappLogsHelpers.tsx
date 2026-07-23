@@ -1,13 +1,20 @@
+/* eslint-disable react-refresh/only-export-components */
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle2 } from 'lucide-react';
 
+/** Mode Filter. */
 export type ModeFilter = 'all' | 'official' | 'unofficial';
 
+/** OFFICIAL_PROVIDERS. */
 export const OFFICIAL_PROVIDERS = ['whatsapp_cloud', 'cloud', 'meta', 'whatsapp-cloud'];
+/** UNOFFICIAL_PROVIDERS. */
 export const UNOFFICIAL_PROVIDERS = ['evolution', 'baileys', 'evolution-api'];
+/** OFFICIAL_CHANNELS. */
 export const OFFICIAL_CHANNELS = ['whatsapp_cloud', 'cloud', 'official'];
+/** UNOFFICIAL_CHANNELS. */
 export const UNOFFICIAL_CHANNELS = ['evolution', 'whatsapp', 'unofficial'];
 
+/** Send Log Row. */
 export interface SendLogRow {
   id: string;
   provider: string;
@@ -22,6 +29,7 @@ export interface SendLogRow {
   delivered_at: string | null;
 }
 
+/** Webhook Ping Row. */
 export interface WebhookPingRow {
   id: string;
   kind: string;
@@ -29,6 +37,7 @@ export interface WebhookPingRow {
   created_at: string;
 }
 
+/** Error Log Row. */
 export interface ErrorLogRow {
   id: string;
   instance_name: string;
@@ -41,10 +50,12 @@ export interface ErrorLogRow {
   occurred_at: string;
 }
 
+/** fmt Time. */
 export function fmtTime(iso: string) {
   return new Date(iso).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'medium' });
 }
 
+/** mode Of Provider. */
 export function modeOfProvider(provider: string | null | undefined): ModeFilter {
   if (!provider) return 'all';
   const p = provider.toLowerCase();
@@ -53,6 +64,7 @@ export function modeOfProvider(provider: string | null | undefined): ModeFilter 
   return 'all';
 }
 
+/** mode Badge. */
 export function modeBadge(mode: ModeFilter) {
   if (mode === 'official')
     return (
@@ -64,6 +76,7 @@ export function modeBadge(mode: ModeFilter) {
   return <Badge variant="outline">—</Badge>;
 }
 
+/** status Badge. */
 export function statusBadge(s: string) {
   const ok = ['delivered', 'read', 'sent', 'received'].includes(s);
   const warn = ['pending', 'queued', 'routing'].includes(s);
@@ -82,6 +95,7 @@ export function statusBadge(s: string) {
   return <Badge variant="destructive">{s}</Badge>;
 }
 
+/** kind Badge. */
 export function kindBadge(kind: string) {
   if (kind === 'handshake')
     return (
@@ -96,6 +110,7 @@ export function kindBadge(kind: string) {
   return <Badge variant="outline">{kind}</Badge>;
 }
 
+/** Empty State. */
 export function EmptyState({ mode, kind }: { mode: ModeFilter; kind: string }) {
   return (
     <div className="py-12 text-center text-sm text-muted-foreground">

@@ -1,6 +1,7 @@
 // Re-export from consolidated useSearchManagement module (ETAPA 29 consolidation)
 import { useSearchInsightsManagement, type SearchInsights, type SearchInsightsTopQuery, type SearchInsightsZeroResult } from '@/hooks/useSearchManagement';
 
+/** Re-exported module members. */
 export type { SearchInsights, SearchInsightsTopQuery, SearchInsightsZeroResult };
 
 /** Retrieves search analytics and trends for specified number of days. */

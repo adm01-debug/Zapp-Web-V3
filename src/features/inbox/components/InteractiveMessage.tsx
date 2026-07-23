@@ -19,6 +19,7 @@ interface InteractiveMessageProps {
   disabled?: boolean;
 }
 
+/** Interactive Message Display component. */
 export function InteractiveMessageDisplay({ 
   interactive, 
   isSent,
@@ -231,6 +232,7 @@ interface ListResponseBadgeProps {
   isSent: boolean;
 }
 
+/** List Response Badge component. */
 export function ListResponseBadge({ sectionTitle, itemTitle, isSent }: ListResponseBadgeProps) {
   return (
     <div className={cn(
@@ -252,6 +254,7 @@ interface ButtonResponseBadgeProps {
   isSent: boolean;
 }
 
+/** Button Response Badge component. */
 export function ButtonResponseBadge({ buttonTitle, isSent }: ButtonResponseBadgeProps) {
   return (
     <div className={cn(

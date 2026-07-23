@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
@@ -18,8 +17,8 @@ import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { fetchActiveChannelConnections } from '@/hooks/useChannelConnections';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { EmailChatInbox } from '@/components/email/EmailChatInbox';
@@ -51,6 +50,7 @@ const CHANNEL_CONFIG: Record<
   webchat: { icon: Globe, label: 'Webchat', color: 'text-secondary bg-secondary/10' },
 };
 
+/** Omnichannel Inbox component for the omnichannel section. */
 export function OmnichannelInbox() {
   const [activeMainTab, setActiveMainTab] = useState<'channels' | 'email'>('channels');
   const [messages, setMessages] = useState<UnifiedMessage[]>([]);
@@ -66,12 +66,8 @@ export function OmnichannelInbox() {
   }, []);
 
   const loadConnections = async () => {
-    const { data } = await supabase
-      .from('channel_connections_safe')
-      .select('*')
-      .eq('is_active', true);
-
-    if (data) setConnections(data);
+    const data = await fetchActiveChannelConnections();
+    setConnections(data);
   };
 
   const loadUnifiedInbox = async () => {
@@ -84,7 +80,7 @@ export function OmnichannelInbox() {
 
       if (error) throw error;
 
-      const unified: UnifiedMessage[] = (contacts || []).map((contact) => ({
+      const unified: UnifiedMessage[] = (contacts || []).map((contact: { id: string; name: string; phone: string; channel_type: string | null; updated_at: string; assigned_to: string | null }) => ({
         id: contact.id,
         contactName: contact.name,
         contactPhone: contact.phone,

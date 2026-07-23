@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,6 +21,7 @@ interface FailedMessagesFiltersProps {
   stats: DlqStats | undefined;
 }
 
+/** Failed Messages Filters. */
 export function FailedMessagesFilters({ ui, stats }: FailedMessagesFiltersProps) {
   const { api } = ui;
 
@@ -97,7 +97,7 @@ export function FailedMessagesFilters({ ui, stats }: FailedMessagesFiltersProps)
         )}
         <div className="flex flex-col gap-1">
           <label className="text-xs text-muted-foreground">Status</label>
-          <Select value={ui.statusFilter} onValueChange={(v) => ui.setStatusFilter(v)}>
+          <Select value={ui.statusFilter} onValueChange={(v) => ui.setStatusFilter(v as Parameters<typeof ui.setStatusFilter>[0])}>
             <SelectTrigger className="w-[180px]">
               <SelectValue />
             </SelectTrigger>
@@ -128,7 +128,7 @@ export function FailedMessagesFilters({ ui, stats }: FailedMessagesFiltersProps)
         </div>
         <div className="flex flex-col gap-1">
           <label className="text-xs text-muted-foreground">Causa raiz</label>
-          <Select value={ui.rootCauseFilter} onValueChange={(v) => ui.setRootCauseFilter(v)}>
+          <Select value={ui.rootCauseFilter} onValueChange={(v) => ui.setRootCauseFilter(v as Parameters<typeof ui.setRootCauseFilter>[0])}>
             <SelectTrigger className="w-[180px]">
               <SelectValue />
             </SelectTrigger>

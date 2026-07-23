@@ -127,7 +127,7 @@ export const contactsDB = {
       .is('deleted_at', null)
       .maybeSingle();
     if (error) throw error;
-    return data as ExternalContact | null; // ignore-audit: narrows Supabase query result to local interface
+    return data as ExternalContact | null;
   },
 
   /** Find contact by phone number (cleaned digits only) */
@@ -143,7 +143,7 @@ export const contactsDB = {
       .limit(1)
       .maybeSingle();
     if (error) throw error;
-    return data as ExternalContact | null; // ignore-audit: narrows Supabase query result to local interface
+    return data as ExternalContact | null;
   },
 
   /** Find contact by phone via contact_phones table */
@@ -159,7 +159,7 @@ export const contactsDB = {
       .maybeSingle();
     if (error) throw error;
     if (!data) return null;
-    return (data as typeof data & { contacts: ExternalContact }).contacts;
+    return (data as unknown as { contact_id: string; contacts: ExternalContact }).contacts;
   },
 
   /** Update contact fields */
@@ -173,9 +173,9 @@ export const contactsDB = {
       .update({ ...rest, updated_at: new Date().toISOString() })
       .eq('id', contactId)
       .select()
-      .single(); // POST-UPDATE: .single() correto — update retorna exatamente 1 linha
+      .single();
     if (error) throw error;
-    return data as ExternalContact; // ignore-audit: narrows Supabase query result to local interface
+    return data as ExternalContact;
   },
 
   /** Update avatar URL */
@@ -256,7 +256,7 @@ export const contactsDB = {
         .select()
         .single();
       if (error) throw error;
-      return data as ContactNote; // ignore-audit: narrows Supabase query result to local interface
+      return data as ContactNote;
     },
 
     async update(noteId: string, content: string): Promise<void> {

@@ -3,7 +3,9 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { X, Bug, RefreshCw } from 'lucide-react';
 import { useUserRole } from '@/features/auth/hooks/useUserRole';
+import { safeGetJSON } from '@/lib/safeStorage';
 
+/** Theme Debugger component for the debug section. */
 export function ThemeDebugger() {
   const { roles, loading: rolesLoading } = useUserRole();
   // Restrito ESTRITAMENTE a usuários com role 'dev' no banco — não usamos
@@ -19,15 +21,8 @@ export function ThemeDebugger() {
   const refreshTokens = () => {
     const root = document.documentElement;
     const computedStyle = getComputedStyle(root);
-    const saved = localStorage.getItem('purpure-chat-theme-v2');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        setActivePreset(parsed.preset || 'default');
-      } catch {
-        setActivePreset('error');
-      }
-    }
+    const saved = safeGetJSON<{ preset?: string }>('purpure-chat-theme-v2', {});
+    setActivePreset(saved.preset ?? 'default');
 
     const relevant = [
       '--primary',

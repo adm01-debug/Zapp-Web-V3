@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -35,6 +35,7 @@ interface ExternalProductCatalogProps {
 
 const PAGE_SIZE = 24;
 
+/** External Product Catalog component for the catalog section. */
 export const ExternalProductCatalog: React.FC<ExternalProductCatalogProps> = ({
   onSendProduct,
   trigger,
@@ -65,7 +66,7 @@ export const ExternalProductCatalog: React.FC<ExternalProductCatalogProps> = ({
   const [onlyInStock, setOnlyInStock] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [page, setPage] = useState(0);
-  const [searchTimeout, setSearchTimeout] = useState<ReturnType<typeof setTimeout> | null>(null);
+  const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Build category tree for display
   const parentCategories = categories.filter((c) => !c.parent_id);
@@ -93,40 +94,45 @@ export const ExternalProductCatalog: React.FC<ExternalProductCatalogProps> = ({
       fetchSuppliers();
       doFetch();
     }
-  }, [isOpen]);
+  }, [isOpen]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Re-fetch on filter changes (debounced for search)
   useEffect(() => {
     if (!isOpen) return;
-    if (searchTimeout) clearTimeout(searchTimeout);
-    const t = setTimeout(() => {
+    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+    searchTimeoutRef.current = setTimeout(() => {
       setPage(0);
       doFetch({ offset: 0 });
     }, 300);
-    setSearchTimeout(t);
-    return () => clearTimeout(t);
-  }, [search, categoryId, supplierId, onlyInStock]);
+    return () => {
+      if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+    };
+  }, [search, categoryId, supplierId, onlyInStock, isOpen, doFetch]);
 
   // Re-fetch on page change
   useEffect(() => {
     if (isOpen && page > 0) doFetch();
-  }, [page]);
+  }, [page]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const handleSend = (product: ExternalProduct) => {
-    onSendProduct(product);
-    setIsOpen(false);
-    toast({ title: 'Produto enviado!', description: `${product.name} foi enviado para o chat.` });
-  };
+  const handleSend = useCallback(
+    (product: ExternalProduct) => {
+      onSendProduct(product);
+      setIsOpen(false);
+      toast({ title: 'Produto enviado!', description: `${product.name} foi enviado para o chat.` });
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [onSendProduct]
+  );
 
   const totalPages = Math.ceil(totalProducts / PAGE_SIZE);
 
-  const clearFilters = () => {
+  const clearFilters = useCallback(() => {
     setSearch('');
     setCategoryId('all');
     setSupplierId('all');
     setOnlyInStock(false);
     setPage(0);
-  };
+  }, []);
 
   const hasFilters = search || categoryId !== 'all' || supplierId !== 'all' || onlyInStock;
 
@@ -134,25 +140,32 @@ export const ExternalProductCatalog: React.FC<ExternalProductCatalogProps> = ({
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
         {trigger || (
-          <Button aria-label="Catálogo de produtos" variant="ghost" size="icon" title="Catálogo de produtos">
-            <Package className="w-5 h-5" />
+          <Button
+            aria-label="Catálogo de produtos"
+            variant="ghost"
+            size="icon"
+            title="Catálogo de produtos"
+          >
+            <Package className="h-5 w-5" />
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent className="max-w-5xl max-h-[90vh] p-0">
+      <DialogContent className="max-h-[90vh] max-w-5xl p-0">
         <DialogHeader className="p-6 pb-0">
           <DialogTitle className="flex items-center gap-2 text-xl">
-            <Package className="w-5 h-5 text-primary" />
+            <Package className="h-5 w-5 text-primary" />
             Catálogo PromoGifts
-            <Badge variant="secondary" className="text-xs">{totalProducts.toLocaleString('pt-BR')} produtos</Badge>
+            <Badge variant="secondary" className="text-xs">
+              {totalProducts.toLocaleString('pt-BR')} produtos
+            </Badge>
           </DialogTitle>
         </DialogHeader>
 
-        <div className="p-6 pt-4 space-y-4">
+        <div className="space-y-4 p-6 pt-4">
           {/* Filters */}
           <div className="flex flex-wrap gap-3">
-            <div className="flex-1 min-w-[200px] relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <div className="relative min-w-[200px] flex-1">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 placeholder="Buscar por nome, SKU ou marca..."
                 value={search}
@@ -160,8 +173,14 @@ export const ExternalProductCatalog: React.FC<ExternalProductCatalogProps> = ({
                 className="pl-9"
               />
               {search && (
-                <Button aria-label="Limpar busca" variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7" onClick={() => setSearch('')}>
-                  <X className="w-4 h-4" />
+                <Button
+                  aria-label="Limpar busca"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2"
+                  onClick={() => setSearch('')}
+                >
+                  <X className="h-4 w-4" />
                 </Button>
               )}
             </div>
@@ -176,7 +195,9 @@ export const ExternalProductCatalog: React.FC<ExternalProductCatalogProps> = ({
                   const subs = getSubcategories(cat.id);
                   return (
                     <React.Fragment key={cat.id}>
-                      <SelectItem value={cat.id} className="font-semibold">{cat.name}</SelectItem>
+                      <SelectItem value={cat.id} className="font-semibold">
+                        {cat.name}
+                      </SelectItem>
                       {subs.map((sub) => (
                         <SelectItem key={sub.id} value={sub.id} className="pl-6 text-sm">
                           {sub.name}
@@ -195,22 +216,38 @@ export const ExternalProductCatalog: React.FC<ExternalProductCatalogProps> = ({
               <SelectContent>
                 <SelectItem value="all">Todos fornecedores</SelectItem>
                 {suppliers.map((s) => (
-                  <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                  <SelectItem key={s.id} value={s.id}>
+                    {s.name}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
 
             <div className="flex items-center gap-2">
               <Switch id="stock-filter" checked={onlyInStock} onCheckedChange={setOnlyInStock} />
-              <Label htmlFor="stock-filter" className="text-sm cursor-pointer">Em estoque</Label>
+              <Label htmlFor="stock-filter" className="cursor-pointer text-sm">
+                Em estoque
+              </Label>
             </div>
 
-            <div className="flex border rounded-md">
-              <Button aria-label="Visualização em grade" variant={viewMode === 'grid' ? 'secondary' : 'ghost'} size="icon" className="rounded-r-none" onClick={() => setViewMode('grid')}>
-                <Grid3X3 className="w-4 h-4" />
+            <div className="flex rounded-md border">
+              <Button
+                aria-label="Visualização em grade"
+                variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
+                size="icon"
+                className="rounded-r-none"
+                onClick={() => setViewMode('grid')}
+              >
+                <Grid3X3 className="h-4 w-4" />
               </Button>
-              <Button aria-label="Visualização em lista" variant={viewMode === 'list' ? 'secondary' : 'ghost'} size="icon" className="rounded-l-none" onClick={() => setViewMode('list')}>
-                <List className="w-4 h-4" />
+              <Button
+                aria-label="Visualização em lista"
+                variant={viewMode === 'list' ? 'secondary' : 'ghost'}
+                size="icon"
+                className="rounded-l-none"
+                onClick={() => setViewMode('list')}
+              >
+                <List className="h-4 w-4" />
               </Button>
             </div>
           </div>
@@ -218,7 +255,9 @@ export const ExternalProductCatalog: React.FC<ExternalProductCatalogProps> = ({
           {/* Status bar */}
           <div className="flex items-center justify-between text-sm text-muted-foreground">
             <span>
-              Mostrando {Math.min(page * PAGE_SIZE + 1, totalProducts)}-{Math.min((page + 1) * PAGE_SIZE, totalProducts)} de {totalProducts.toLocaleString('pt-BR')}
+              Mostrando {Math.min(page * PAGE_SIZE + 1, totalProducts)}-
+              {Math.min((page + 1) * PAGE_SIZE, totalProducts)} de{' '}
+              {totalProducts.toLocaleString('pt-BR')}
             </span>
             {hasFilters && (
               <Button variant="link" size="sm" onClick={clearFilters} className="h-auto p-0">
@@ -228,7 +267,7 @@ export const ExternalProductCatalog: React.FC<ExternalProductCatalogProps> = ({
           </div>
 
           {error && (
-            <div role="alert" className="bg-destructive/10 text-destructive rounded-lg p-3 text-sm">
+            <div role="alert" className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
               {error}
             </div>
           )}
@@ -236,14 +275,20 @@ export const ExternalProductCatalog: React.FC<ExternalProductCatalogProps> = ({
           {/* Products */}
           <ScrollArea className="h-[50vh]">
             {loading ? (
-              <div className={viewMode === 'grid' ? 'grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4' : 'space-y-3'}>
+              <div
+                className={
+                  viewMode === 'grid'
+                    ? 'grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4'
+                    : 'space-y-3'
+                }
+              >
                 {[...Array(8)].map((_, i) => (
                   <Skeleton key={i} className={viewMode === 'grid' ? 'h-72' : 'h-20'} />
                 ))}
               </div>
             ) : products.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-                <Package className="w-12 h-12 mb-4 opacity-50" />
+                <Package className="mb-4 h-12 w-12 opacity-50" />
                 <p className="font-medium">Nenhum produto encontrado</p>
                 <p className="text-sm">Tente ajustar os filtros de busca.</p>
               </div>
@@ -253,7 +298,7 @@ export const ExternalProductCatalog: React.FC<ExternalProductCatalogProps> = ({
                   layout
                   className={
                     viewMode === 'grid'
-                      ? 'grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4'
+                      ? 'grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4'
                       : 'space-y-2'
                   }
                 >
@@ -280,14 +325,24 @@ export const ExternalProductCatalog: React.FC<ExternalProductCatalogProps> = ({
           {/* Pagination */}
           {totalPages > 1 && (
             <div className="flex items-center justify-center gap-2 pt-2">
-              <Button variant="outline" size="sm" disabled={page === 0} onClick={() => setPage((p) => p - 1)}>
-                <ChevronLeft className="w-4 h-4" />
+              <Button aria-label="Anterior"
+                variant="outline"
+                size="sm"
+                disabled={page === 0}
+                onClick={() => setPage((p) => p - 1)}
+              >
+                <ChevronLeft className="h-4 w-4" />
               </Button>
               <span className="text-sm text-muted-foreground">
                 Página {page + 1} de {totalPages}
               </span>
-              <Button variant="outline" size="sm" disabled={page >= totalPages - 1} onClick={() => setPage((p) => p + 1)}>
-                <ChevronRight className="w-4 h-4" />
+              <Button aria-label="Próximo"
+                variant="outline"
+                size="sm"
+                disabled={page >= totalPages - 1}
+                onClick={() => setPage((p) => p + 1)}
+              >
+                <ChevronRight className="h-4 w-4" />
               </Button>
             </div>
           )}

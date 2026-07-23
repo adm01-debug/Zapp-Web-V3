@@ -1,3 +1,4 @@
+import { queryKeys } from '@/services/api/queryKeys';
 import { useQuery } from '@tanstack/react-query';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,9 +17,10 @@ const STATUS_MAP: Record<string, { label: string; color: string; icon: React.Com
   paused: { label: 'Pausado', color: 'bg-warning/20 text-warning border-warning/30', icon: Clock },
 };
 
+/** Follow Up Executions History component for the settings section. */
 export function FollowUpExecutionsHistory() {
   const { data: executions = [], isLoading } = useQuery({
-    queryKey: ['followup-executions'],
+    queryKey: queryKeys.followupSequences.executionsRoot(),
     queryFn: async () => {
       type ExecutionRow = { id: string; status: string; current_step: number; created_at: string; sequence: { name: string } | null; contact: { name: string | null; phone: string | null } | null };
       const { data, error } = await safeClient.from<ExecutionRow>(

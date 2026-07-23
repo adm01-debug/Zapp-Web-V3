@@ -41,6 +41,7 @@ function MetricCard({ icon: Icon, label, value, color }: {
   );
 }
 
+/** NPSDashboard component for the nps section. */
 export function NPSDashboard() {
   const { surveys, isLoading, metrics } = useNPSSurveys();
 

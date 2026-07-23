@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useEffect, useMemo, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -68,6 +67,7 @@ const COLUMN_LABELS: Record<keyof WebhookViewColumns, string> = {
   action: 'Ação',
 };
 
+/** Advanced Filters Panel function. */
 export function AdvancedFiltersPanel({
   prefs,
   setPref,

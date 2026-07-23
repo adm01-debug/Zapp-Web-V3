@@ -1,7 +1,7 @@
-// @ts-nocheck
 import { Users, MessageSquare, Clock, Sparkles, Bell, Palette } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
+/** Checklist Step. */
 export interface ChecklistStep {
   id: string;
   title: string;
@@ -12,6 +12,7 @@ export interface ChecklistStep {
   checkCondition: () => Promise<boolean>;
 }
 
+/** CHECKLIST_STEPS. */
 export const CHECKLIST_STEPS: ChecklistStep[] = [
   {
     id: 'profile',

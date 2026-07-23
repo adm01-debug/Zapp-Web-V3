@@ -29,16 +29,19 @@ export { z };
 
 // ─── Tipos do envelope ───────────────────────────────────────────────────────
 
+/** Contract Error Code type alias. */
 export type ContractErrorCode =
   | "invalid_json"
   | "contract_violation"
   | "unsupported_contract_version";
 
+/** Contract Error Detail interface definition. */
 export interface ContractErrorDetail {
   path: string;
   message: string;
 }
 
+/** Contract Error Body interface definition. */
 export interface ContractErrorBody {
   error: true;
   code: ContractErrorCode;
@@ -49,8 +52,10 @@ export interface ContractErrorBody {
   details: ContractErrorDetail[];
 }
 
+/** Partial map of version strings to Zod schemas for contract validation. */
 export type SchemaMap = Partial<Record<string, z.ZodTypeAny>>;
 
+/** Successful contract parse result containing the validated data and version metadata. */
 export interface ParseOk<T = unknown> {
   ok: true;
   data: T;
@@ -62,6 +67,7 @@ export interface ParseOk<T = unknown> {
   headers: Record<string, string>;
 }
 
+/** Failed contract parse result containing a ready-to-send 422 response and error body. */
 export interface ParseFail {
   ok: false;
   /** Response 422 pronta, com envelope único e CORS herdado de extraHeaders. */
@@ -69,8 +75,10 @@ export interface ParseFail {
   body: ContractErrorBody;
 }
 
+/** Union type representing either a successful or failed contract parse outcome. */
 export type ParseResult<T = unknown> = ParseOk<T> | ParseFail;
 
+/** Options passed to parseOrReject and parseRequestOrReject for request context. */
 export interface ParseOptions {
   requestId?: string;
   /** Headers extra (tipicamente CORS do endpoint). Content-Type é forçado. */
@@ -111,6 +119,7 @@ function zodIssuesToDetails(error: z.ZodError): ContractErrorDetail[] {
   }));
 }
 
+/** build Contract Error Body function. */
 export function buildContractErrorBody(
   contractName: string,
   version: string | undefined,

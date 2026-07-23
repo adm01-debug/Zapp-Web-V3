@@ -1,9 +1,10 @@
-// @ts-nocheck
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '@/services/api/queryKeys';
 import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { toast } from '@/hooks/use-toast';
 
+/** Hook: Step. */
 export interface Step {
   step_order: number;
   delay_hours: number;
@@ -25,13 +26,12 @@ interface FollowUpSequence {
   followup_steps: FollowUpStep[];
 }
 
-const QUERY_KEY = ['followup-sequences'];
-
+/** Hook: use Follow Up Sequences. */
 export function useFollowUpSequences() {
   const queryClient = useQueryClient();
 
   const { data: sequences = [], isLoading } = useQuery({
-    queryKey: QUERY_KEY,
+    queryKey: queryKeys.followupSequences.all(),
     queryFn: async () => {
       const { data, error } = await supabase
         .from('followup_sequences')
@@ -60,7 +60,8 @@ export function useFollowUpSequences() {
       }
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: QUERY_KEY });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.followupSequences.all() });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.followupSequences.executionsRoot() });
       toast({ title: 'Sequência criada' });
     },
     onError: () => {
@@ -77,7 +78,8 @@ export function useFollowUpSequences() {
       if (error) throw error;
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: QUERY_KEY });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.followupSequences.all() });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.followupSequences.executionsRoot() });
     },
     onError: () => {
       toast({ title: 'Erro ao alterar status', variant: 'destructive' });
@@ -90,7 +92,8 @@ export function useFollowUpSequences() {
       if (error) throw error;
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: QUERY_KEY });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.followupSequences.all() });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.followupSequences.executionsRoot() });
       toast({ title: 'Sequência excluída' });
     },
     onError: () => {

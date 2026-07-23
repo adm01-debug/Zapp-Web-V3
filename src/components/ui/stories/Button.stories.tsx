@@ -33,9 +33,11 @@ const meta: Meta<typeof Button> = {
   },
 };
 
+/** Default export. */
 export default meta;
 type Story = StoryObj<typeof Button>;
 
+/** Default component for the ui section. */
 export const Default: Story = {
   args: {
     children: 'Button',
@@ -44,6 +46,7 @@ export const Default: Story = {
   },
 };
 
+/** All Variants component for the ui section. */
 export const AllVariants: Story = {
   render: () => (
     <div className="flex flex-wrap gap-4">
@@ -59,9 +62,10 @@ export const AllVariants: Story = {
   ),
 };
 
+/** Special Variants component for the ui section. */
 export const SpecialVariants: Story = {
   render: () => (
-    <div className="flex flex-wrap gap-4 rounded-xl bg-slate-900 p-8">
+    <div className="flex flex-wrap gap-4 rounded-xl bg-card p-8">
       <Button variant="glowPurple">Glow Purple</Button>
       <Button variant="glowGradient">Glow Gradient</Button>
       <Button variant="neon">Neon</Button>
@@ -70,6 +74,7 @@ export const SpecialVariants: Story = {
   ),
 };
 
+/** Sizes component for the ui section. */
 export const Sizes: Story = {
   render: () => (
     <div className="flex flex-col gap-6">
@@ -94,6 +99,7 @@ export const Sizes: Story = {
   ),
 };
 
+/** Loading States component for the ui section. */
 export const LoadingStates: Story = {
   render: () => (
     <div className="flex flex-wrap gap-4">
@@ -108,6 +114,7 @@ export const LoadingStates: Story = {
   ),
 };
 
+/** With Icons component for the ui section. */
 export const WithIcons: Story = {
   render: () => (
     <div className="flex flex-wrap gap-4">

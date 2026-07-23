@@ -60,7 +60,7 @@ export function DegradedConnectionsBanner({ onNavigate, recentWindowMs = 10 * 60
       .subscribe();
     const interval = setInterval(fetchDegraded, 60_000);
     return () => {
-      channel.unsubscribe();
+      supabase.removeChannel(channel);
       clearInterval(interval);
     };
   }, [fetchDegraded]);
@@ -112,14 +112,14 @@ export function DegradedConnectionsBanner({ onNavigate, recentWindowMs = 10 * 60
               ? `Rebaixamento mais recente em ${firstDegradedAt}.`
               : 'Latência alta ou estado intermitente detectado.'}
           </span>
-          <button
+          <button type="button"
             onClick={() => onNavigate('connections')}
             className="ml-auto inline-flex items-center gap-1.5 rounded-md bg-warning-foreground/15 px-3 py-1 text-xs font-semibold transition-colors hover:bg-warning-foreground/25"
           >
             Ver conexões
             <ArrowRight className="h-3 w-3" />
           </button>
-          <button
+          <button type="button"
             onClick={() => setDismissedIds(currentSignature)}
             className="shrink-0 rounded p-1 transition-colors hover:bg-warning-foreground/20"
             aria-label="Fechar alerta"

@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useTour } from './tourContext';
 
+/** Tour Overlay component for the onboarding section. */
 export function TourOverlay() {
   const { isActive, currentStep, steps, nextStep, prevStep, endTour, goToStep } = useTour();
   const [targetRect, setTargetRect] = useState<DOMRect | null>(null);

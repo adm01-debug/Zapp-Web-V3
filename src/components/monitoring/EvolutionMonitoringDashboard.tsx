@@ -44,6 +44,7 @@ function StatusSemaphore({ connections }: { connections: { status: string }[] })
   );
 }
 
+/** Evolution Monitoring Dashboard component for the monitoring section. */
 export function EvolutionMonitoringDashboard() {
   const {
     connections, healthLogs, loading, refreshing, webhookTest, webhookConfig,

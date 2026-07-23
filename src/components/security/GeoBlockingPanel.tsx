@@ -41,6 +41,7 @@ const COUNTRIES = [
   { code: 'VE', name: 'Venezuela' }, { code: 'VN', name: 'Vietnã' },
 ];
 
+/** Geo Blocking Panel component for the security section. */
 export function GeoBlockingPanel() {
   const {
     settings, allowedCountries, blockedCountries, loading,

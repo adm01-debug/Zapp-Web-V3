@@ -10,6 +10,7 @@
 import { useFailedMessageAlerts } from '@/features/inbox';
 import { useRetryResolutionAlerts } from '@/features/inbox';
 
+/** Headless component that activates failed-message and retry-resolution toast alerts; renders nothing. */
 export function FailedMessageAlertsMount(): null {
   useFailedMessageAlerts(true);
   useRetryResolutionAlerts(true);

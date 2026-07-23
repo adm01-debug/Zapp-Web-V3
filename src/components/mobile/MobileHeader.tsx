@@ -39,6 +39,7 @@ const viewLabels: Record<string, string> = {
   admin: 'Admin',
 };
 
+/** Mobile Header component for the mobile section. */
 export const MobileHeader = forwardRef<HTMLElement, MobileHeaderProps>(
   function MobileHeader(
     {

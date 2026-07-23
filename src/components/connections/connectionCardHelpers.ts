@@ -1,5 +1,6 @@
 import { Wifi, WifiOff, QrCode, RefreshCw, Loader2 } from 'lucide-react';
 
+/** status Config component for the connections section. */
 export const statusConfig: Record<
   string,
   { label: string; color: string; icon: typeof Wifi; bgClass: string }
@@ -36,6 +37,7 @@ export const statusConfig: Record<
   },
 };
 
+/** HEALTH_REASON_LABEL component for the connections section. */
 export const HEALTH_REASON_LABEL: Record<string, { short: string; long: string; severe: boolean }> =
   {
     phantom_session: {
@@ -80,6 +82,7 @@ export const HEALTH_REASON_LABEL: Record<string, { short: string; long: string; 
     },
   };
 
+/** get Last Activity component for the connections section. */
 export function getLastActivity(updatedAt: string | null | undefined): string | null {
   if (!updatedAt) return null;
   const diff = Date.now() - new Date(updatedAt).getTime();

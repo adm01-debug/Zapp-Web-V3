@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
@@ -15,7 +15,9 @@ import { NotificationSettings, SoundTypeOption } from '@/hooks/useNotificationSe
 import { playNotificationSound, SoundType, NotificationType } from '@/utils/notificationSounds';
 import { cn } from '@/lib/utils';
 
+/** Re-exported module members. */
 export { SentimentAlertCard } from './NotificationSentimentCard';
+/** Re-exported module members. */
 export { QuietHoursCard } from './NotificationQuietHoursCard';
 
 const SOUND_TYPES: { value: SoundTypeOption; label: string; description: string }[] = [
@@ -34,6 +36,7 @@ interface SoundSelectorProps {
   soundVolume: number;
 }
 
+/** Sound Selector component for the notifications section. */
 export function SoundSelector({
   value,
   onChange,
@@ -42,11 +45,19 @@ export function SoundSelector({
   soundVolume,
 }: SoundSelectorProps) {
   const [isTesting, setIsTesting] = useState(false);
+  const testingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(
+    () => () => {
+      if (testingTimerRef.current !== null) clearTimeout(testingTimerRef.current);
+    },
+    []
+  );
 
   const handleTest = () => {
     setIsTesting(true);
     playNotificationSound(notificationType, value as SoundType, soundVolume);
-    setTimeout(() => setIsTesting(false), 1000);
+    if (testingTimerRef.current !== null) clearTimeout(testingTimerRef.current);
+    testingTimerRef.current = setTimeout(() => setIsTesting(false), 1000);
   };
 
   return (
@@ -82,6 +93,7 @@ interface NotificationTypeSectionProps {
   updateSettings: (partial: Partial<NotificationSettings>) => void;
 }
 
+/** Notification Type Section component for the notifications section. */
 export function NotificationTypeSection({
   settings,
   updateSettings,

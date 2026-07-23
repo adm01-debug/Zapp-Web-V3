@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { log } from '@/lib/logger';
 import { supabase } from '@/integrations/supabase/client';
@@ -10,6 +9,7 @@ import { subDays, subMonths, startOfDay } from 'date-fns';
 import { dbFrom, dbRpc } from '@/integrations/datasource/db';
 import { RPC } from '@/integrations/datasource/rpcCatalog';
 
+/** Search Result interface definition. */
 export interface SearchResult {
   id: string;
   type: 'message' | 'contact' | 'transcription' | 'action' | 'crm';
@@ -24,10 +24,14 @@ export interface SearchResult {
   crmPhone?: string;
 }
 
+/** Result Type type alias. */
 export type ResultType = 'message' | 'contact' | 'transcription' | 'action' | 'crm';
+/** Date Filter type alias. */
 export type DateFilter = 'all' | 'today' | '7days' | '30days' | '90days';
+/** Media Type Filter type alias. */
 export type MediaTypeFilter = 'all' | 'text' | 'image' | 'video' | 'audio' | 'document' | 'link';
 
+/** Tag Suggestion interface definition. */
 export interface TagSuggestion {
   id: string;
   name: string;
@@ -50,6 +54,7 @@ function getDateFilterStart(filter: DateFilter): Date | null {
   }
 }
 
+/** use Global Search Data function. */
 export function useGlobalSearchData(open: boolean) {
   const [search, setSearch] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -161,7 +166,7 @@ export function useGlobalSearchData(open: boolean) {
           if (dateStart) textQuery = textQuery.gte('created_at', dateStart.toISOString());
 
           const { data: textMessages } = await textQuery;
-          textMessages?.forEach((msg) => {
+          (textMessages as any[])?.forEach((msg: any) => {
             const contact = msg.contacts as unknown as {
               id: string;
               name: string;
@@ -198,7 +203,7 @@ export function useGlobalSearchData(open: boolean) {
           if (dateStart) audioQuery = audioQuery.gte('created_at', dateStart.toISOString());
 
           const { data: audioMessages } = await audioQuery;
-          audioMessages?.forEach((msg) => {
+          (audioMessages as any[])?.forEach((msg: any) => {
             if (addedMessageIds.has(msg.id)) return;
             const contact = msg.contacts as unknown as {
               id: string;
@@ -239,14 +244,14 @@ export function useGlobalSearchData(open: boolean) {
             .order('name', { ascending: true })
             .limit(10);
           if (contacts) {
-            let filtered = contacts;
+            let filtered = contacts as any[];
             if (tags.length > 0) {
               const tagNames = allTags.filter((t) => tags.includes(t.id)).map((t) => t.name);
-              filtered = contacts.filter(
-                (c) => c.tags && c.tags.some((tag: string) => tagNames.includes(tag))
+              filtered = (contacts as any[]).filter(
+                (c: any) => c.tags && c.tags.some((tag: string) => tagNames.includes(tag))
               );
             }
-            filtered.forEach((contact) => {
+            filtered.forEach((contact: any) => {
               searchResults.push({
                 id: contact.id,
                 type: 'contact',
@@ -348,7 +353,7 @@ export function useGlobalSearchData(open: boolean) {
     if (search.length >= 2 || selectedTags.length > 0 || mediaTypeFilter !== 'all') {
       performSearch(search, activeTypes, dateFilter, selectedTags, mediaTypeFilter);
     }
-  }, [activeTypes, dateFilter, selectedTags, mediaTypeFilter]);
+  }, [activeTypes, dateFilter, selectedTags, mediaTypeFilter]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleTagSelect = useCallback((tag: TagSuggestion) => {
     setSelectedTags((prev) => [...prev, tag.id]);

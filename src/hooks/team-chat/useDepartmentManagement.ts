@@ -1,9 +1,9 @@
-// @ts-nocheck
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { getLogger } from '@/lib/logger';
+import { queryKeys } from '@/services/api/queryKeys';
 
 const log = getLogger('useDepartmentManagement');
 
@@ -37,6 +37,7 @@ interface Invitation {
 type WhatsappMode = 'none' | 'evolution' | 'official';
 type ManageAction = 'add' | 'remove';
 
+/** Hook: use Department Management. */
 export function useDepartmentManagement(
   initialDepartment: Department,
   open: boolean,
@@ -65,18 +66,20 @@ export function useDepartmentManagement(
       .select('whatsapp_mode, whatsapp_api_key, whatsapp_instance_id')
       .eq('id', initialDepartment.id)
       .maybeSingle() // ✅ fix: maybeSingle evita PGRST116
-      .then(({ data }) => {
-        if (data) {
-          setWhatsappMode((data.whatsapp_mode as WhatsappMode) || 'none');
-          setWhatsappApiKey(data.whatsapp_api_key || '');
-          setWhatsappInstanceId(data.whatsapp_instance_id || '');
-        }
-      })
-      .catch((err) => log.warn('[DeptMgmt] load whatsapp settings failed:', err));
+      .then(
+        ({ data }) => {
+          if (data) {
+            setWhatsappMode((data.whatsapp_mode as WhatsappMode) || 'none');
+            setWhatsappApiKey(data.whatsapp_api_key || '');
+            setWhatsappInstanceId(data.whatsapp_instance_id || '');
+          }
+        },
+        (err: unknown) => log.warn('[DeptMgmt] load whatsapp settings failed:', err),
+      );
   }, [open, view, initialDepartment.id]);
 
   const { data: allProfiles = [], isLoading: loadingProfiles } = useQuery<Profile[]>({
-    queryKey: ['dept-profiles', initialDepartment.id],
+    queryKey: queryKeys.departments.profiles(initialDepartment.id),
     staleTime: 30_000,
     queryFn: async () => {
       const { data, error } = await supabase
@@ -90,7 +93,7 @@ export function useDepartmentManagement(
   });
 
   const { data: auditLogs = [], isLoading: loadingAudit } = useQuery<AuditLog[]>({
-    queryKey: ['dept-audit', initialDepartment.id],
+    queryKey: queryKeys.departments.audit(initialDepartment.id),
     staleTime: 30_000,
     queryFn: async () => {
       const { data, error } = await supabase
@@ -112,7 +115,7 @@ export function useDepartmentManagement(
   });
 
   const { data: invitations = [], isLoading: loadingInvites } = useQuery<Invitation[]>({
-    queryKey: ['dept-invites', initialDepartment.id],
+    queryKey: queryKeys.departments.invites(initialDepartment.id),
     staleTime: 30_000,
     queryFn: async () => {
       const { data, error } = await supabase
@@ -147,7 +150,7 @@ export function useDepartmentManagement(
       if (error) throw error;
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['dept-invites', initialDepartment.id] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.departments.invites(initialDepartment.id) });
       toast({ title: 'Link de convite criado' });
     },
     onError: () => {
@@ -161,7 +164,7 @@ export function useDepartmentManagement(
       if (error) throw error;
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['dept-invites', initialDepartment.id] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.departments.invites(initialDepartment.id) });
       toast({ title: 'Convite removido' });
     },
     onError: () => {
@@ -182,6 +185,7 @@ export function useDepartmentManagement(
       if (error) throw error;
     },
     onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.departmentChat.list() });
       toast({ title: 'Configurações salvas com sucesso' });
     },
     onError: () => {
@@ -200,20 +204,24 @@ export function useDepartmentManagement(
       const {
         data: { user },
       } = await supabase.auth.getUser();
-      void supabase
-        .from('audit_logs')
-        .insert({
-          action: action === 'add' ? 'ADD_MEMBER' : 'REMOVE_MEMBER',
-          entity_id: initialDepartment.id,
-          entity_type: 'department',
-          user_id: user?.id,
-          details: { profile_id: profileId },
-        })
-        .catch((err: unknown) => log.warn('[audit] department member change log failed', err));
+      try {
+        await supabase
+          .from('audit_logs')
+          .insert({
+            action: action === 'add' ? 'ADD_MEMBER' : 'REMOVE_MEMBER',
+            entity_id: initialDepartment.id,
+            entity_type: 'department',
+            user_id: user?.id,
+            details: { profile_id: profileId },
+          });
+      } catch (err: unknown) {
+        log.warn('[audit] department member change log failed', err);
+      }
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['dept-profiles', initialDepartment.id] });
-      void queryClient.invalidateQueries({ queryKey: ['dept-audit', initialDepartment.id] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.departments.profiles(initialDepartment.id) });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.departments.audit(initialDepartment.id) });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.departmentChat.agents(initialDepartment.id) });
     },
     onError: () => {
       toast({ title: 'Erro ao gerenciar membro', variant: 'destructive' });

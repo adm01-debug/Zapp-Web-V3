@@ -1,7 +1,6 @@
-// @ts-nocheck
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
-import { useEmailDraft } from './useEmailDraft';
+import { useEmailDraft } from './useEmailManagement';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { emailSaveDraft, emailDeleteDraft } from './gmail/gmailApi';
 

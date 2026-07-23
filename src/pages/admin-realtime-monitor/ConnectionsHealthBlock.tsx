@@ -1,23 +1,13 @@
 import { useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { CheckCircle2, XCircle, AlertTriangle, QrCode, Smartphone } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { GenericEmptyState } from '@/components/ui/GenericEmptyState';
 import { cn } from '@/lib/utils';
-
-interface ConnectionRow {
-  id: string;
-  name: string | null;
-  channel_type: string | null;
-  status: string | null;
-  is_active: boolean | null;
-  updated_at: string | null;
-}
+import { useConnectionsHealth, type ConnectionRow } from '@/hooks/useConnectionsHealth';
 
 const STATUS_META: Record<string, { label: string; tone: 'success' | 'destructive' | 'warning' | 'info'; icon: typeof CheckCircle2 }> = {
   connected: { label: 'Conectado', tone: 'success', icon: CheckCircle2 },
@@ -41,20 +31,9 @@ function toneClasses(tone: 'success' | 'destructive' | 'warning' | 'info'): stri
 
 const STALE_DISCONNECT_MS = 5 * 60_000;
 
+/** Connections Health Block. */
 export function ConnectionsHealthBlock() {
-  const { data, isLoading, error } = useQuery({
-    queryKey: ['realtime-monitor', 'connections'],
-    queryFn: async (): Promise<ConnectionRow[]> => {
-      const { data, error } = await supabase
-        .from('channel_connections_safe')
-        .select('id,name,channel_type,status,is_active,updated_at')
-        .order('updated_at', { ascending: false });
-      if (error) throw error;
-      return (data ?? []) as ConnectionRow[];
-    },
-    staleTime: 10_000,
-    refetchInterval: 30_000,
-  });
+  const { data, isLoading, error } = useConnectionsHealth();
 
   const stats = useMemo(() => {
     const rows = data ?? [];

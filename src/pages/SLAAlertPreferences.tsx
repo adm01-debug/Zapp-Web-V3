@@ -81,6 +81,7 @@ function PreferenceRow({
   );
 }
 
+/** SLAAlert Preferences Page. */
 export default function SLAAlertPreferencesPage() {
   const [currentView, setCurrentView] = useState('settings');
   const { preferences, save, isLoading, isSaving } = useSLAAlertPreferences();

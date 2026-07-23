@@ -50,6 +50,7 @@ interface ChatSearchFiltersProps {
   setCustomDateTo: (d: Date | null) => void;
 }
 
+/** Chat Search Filters component for the chat section. */
 export function ChatSearchFilters({
   filter, setFilter, filterCounts, debouncedQuery, hasDateFilter,
   datePreset, setDatePreset, customDateFrom, setCustomDateFrom, customDateTo, setCustomDateTo,
@@ -76,7 +77,7 @@ export function ChatSearchFilters({
         const count = filterCounts[f.key];
         const showCount = (debouncedQuery.trim() || f.key !== 'all' || hasDateFilter) && count > 0;
         return (
-          <button key={f.key} role="tab" aria-selected={isActive} tabIndex={0}
+          <button type="button" key={f.key} role="tab" aria-selected={isActive} tabIndex={0}
             className={cn('inline-flex items-center gap-1.5 whitespace-nowrap text-[11px] px-3 py-1.5 rounded-lg font-medium transition-all duration-150 shrink-0 select-none',
               isActive ? 'bg-primary text-foreground shadow-sm' : 'bg-background/80 dark:bg-card/80 text-muted-foreground hover:bg-muted hover:text-foreground'
             )}
@@ -95,7 +96,7 @@ export function ChatSearchFilters({
       <div className="w-px h-4 bg-border shrink-0 mx-0.5" />
       <Popover open={datePopoverOpen} onOpenChange={setDatePopoverOpen}>
         <PopoverTrigger asChild>
-          <button className={cn('inline-flex items-center gap-1.5 whitespace-nowrap text-xs px-3 py-1.5 rounded-lg font-medium transition-all duration-150 shrink-0 select-none',
+          <button type="button" className={cn('inline-flex items-center gap-1.5 whitespace-nowrap text-xs px-3 py-1.5 rounded-lg font-medium transition-all duration-150 shrink-0 select-none',
             hasDateFilter ? 'bg-primary text-foreground shadow-sm' : 'bg-background/80 dark:bg-card/80 text-muted-foreground hover:bg-muted hover:text-foreground'
           )}>
             <CalendarDays className="w-3.5 h-3.5" />
@@ -113,7 +114,7 @@ export function ChatSearchFilters({
             <div className="w-[160px] border-r border-border bg-muted/30 p-2 flex flex-col gap-0.5">
               <p className="text-[10px] text-muted-foreground font-semibold px-2.5 pt-1 pb-2 uppercase tracking-widest">Atalhos</p>
               {DATE_PRESETS.filter((p) => p.key !== 'custom').map((p) => (
-                <button key={p.key} className={cn('w-full text-left text-[13px] px-2.5 py-2 rounded-lg transition-all duration-150 font-medium',
+                <button type="button" key={p.key} className={cn('w-full text-left text-[13px] px-2.5 py-2 rounded-lg transition-all duration-150 font-medium',
                   datePreset === p.key ? 'bg-primary text-primary-foreground shadow-sm' : 'text-foreground/80 hover:bg-muted hover:text-foreground'
                 )} onClick={() => { setDatePreset(p.key); setCustomDateFrom(null); setCustomDateTo(null); if (p.key !== 'custom') setDatePopoverOpen(false); }}>
                   {p.label}

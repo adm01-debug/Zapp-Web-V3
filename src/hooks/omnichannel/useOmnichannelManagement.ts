@@ -1,17 +1,19 @@
-// @ts-nocheck
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, type UseMutationResult } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import type { Database } from '@/integrations/supabase/schema';
 import { toast as toastSonner } from 'sonner';
 import { toast as toastHook } from '@/hooks/use-toast';
+import { queryKeys } from '@/services/api/queryKeys';
 
 // ═══════════════════════════════════════════════════════════
 // Types
 // ═══════════════════════════════════════════════════════════
 
+/** Hook: Channel Type. */
 export type ChannelType = 'whatsapp' | 'instagram' | 'telegram' | 'messenger' | 'webchat' | 'email';
 
+/** Hook: Omnichannel Channel. */
 export interface OmnichannelChannel {
   id: string;
   name: string;
@@ -19,12 +21,14 @@ export interface OmnichannelChannel {
   status: string;
 }
 
+/** Hook: New Routing Rule. */
 export interface NewRoutingRule {
   channel_type: string;
   queue_id: string;
   priority: number;
 }
 
+/** Hook: Routing Rule. */
 export interface RoutingRule {
   id: string;
   channel_type: string;
@@ -38,42 +42,42 @@ export interface RoutingRule {
   channel_connection?: { name: string } | null;
 }
 
-export interface UseOmnichannelChannelsParams {
-  // no params needed
-}
+/** Hook: Use Omnichannel Channels Params. */
+export type UseOmnichannelChannelsParams = Record<string, never>;
 
+/** Hook: Use Omnichannel Channels Result. */
 export interface UseOmnichannelChannelsResult {
   channels: OmnichannelChannel[];
   isLoading: boolean;
-  addChannel: ReturnType<typeof useMutation>;
-  deleteChannel: ReturnType<typeof useMutation>;
+  addChannel: UseMutationResult<void, Error, { name: string; channel_type: ChannelType }, unknown>;
+  deleteChannel: UseMutationResult<void, Error, string, unknown>;
 }
 
-export interface UseChannelRoutingRulesParams {
-  // no params needed
-}
+/** Hook: Use Channel Routing Rules Params. */
+export type UseChannelRoutingRulesParams = Record<string, never>;
 
+/** Hook: Use Channel Routing Rules Result. */
 export interface UseChannelRoutingRulesResult {
   rules: RoutingRule[];
   isLoading: boolean;
   queues: Array<{ id: string; name: string }>;
-  toggleRule: ReturnType<typeof useMutation>;
-  deleteRule: ReturnType<typeof useMutation>;
-  createRule: ReturnType<typeof useMutation>;
+  toggleRule: UseMutationResult<void, Error, { id: string; is_active: boolean }, unknown>;
+  deleteRule: UseMutationResult<void, Error, string, unknown>;
+  createRule: UseMutationResult<void, Error, NewRoutingRule, unknown>;
 }
 
 // ═══════════════════════════════════════════════════════════
 // Channels Management (useOmnichannelChannels consolidation)
 // ═══════════════════════════════════════════════════════════
 
+/** Hook: use Omnichannel Channels Management. */
 export function useOmnichannelChannelsManagement(
   _params: UseOmnichannelChannelsParams = {}
 ): UseOmnichannelChannelsResult {
   const queryClient = useQueryClient();
-  const QUERY_KEY = ['omnichannel-channels'];
 
   const { data: channels = [], isLoading } = useQuery({
-    queryKey: QUERY_KEY,
+    queryKey: queryKeys.omnichannel.channels(),
     queryFn: async () => {
       const { data, error } = await supabase
         .from('channel_connections')
@@ -96,7 +100,10 @@ export function useOmnichannelChannelsManagement(
       if (error) throw error;
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: QUERY_KEY });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.omnichannel.channels() });
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.adminOps.realtimeMonitorConnections(),
+      });
       toastHook({ title: 'Canal adicionado com sucesso' });
     },
     onError: () => {
@@ -110,7 +117,10 @@ export function useOmnichannelChannelsManagement(
       if (error) throw error;
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: QUERY_KEY });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.omnichannel.channels() });
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.adminOps.realtimeMonitorConnections(),
+      });
       toastHook({ title: 'Canal removido' });
     },
     onError: () => {
@@ -125,13 +135,14 @@ export function useOmnichannelChannelsManagement(
 // Routing Rules Management (useChannelRoutingRules consolidation)
 // ═══════════════════════════════════════════════════════════
 
+/** Hook: use Channel Routing Rules Management. */
 export function useChannelRoutingRulesManagement(
   _params: UseChannelRoutingRulesParams = {}
 ): UseChannelRoutingRulesResult {
   const queryClient = useQueryClient();
 
   const { data: rules = [], isLoading } = useQuery({
-    queryKey: ['channel-routing-rules'],
+    queryKey: queryKeys.omnichannel.routingRules(),
     queryFn: async () => {
       const { data, error } = await safeClient.from('channel_routing_rules', (q) =>
         q
@@ -145,7 +156,7 @@ export function useChannelRoutingRulesManagement(
   });
 
   const { data: queues = [] } = useQuery({
-    queryKey: ['queues-for-routing'],
+    queryKey: queryKeys.queues.forRouting(),
     queryFn: async () => {
       const { data, error } = await supabase
         .from('queues')
@@ -167,7 +178,7 @@ export function useChannelRoutingRulesManagement(
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['channel-routing-rules'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.omnichannel.routingRules() });
     },
     onError: (err: Error) => toastSonner.error(err.message),
   });
@@ -178,7 +189,7 @@ export function useChannelRoutingRulesManagement(
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['channel-routing-rules'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.omnichannel.routingRules() });
       toastSonner.success('Regra removida');
     },
     onError: (err: Error) => toastSonner.error(err.message),
@@ -195,7 +206,7 @@ export function useChannelRoutingRulesManagement(
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['channel-routing-rules'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.omnichannel.routingRules() });
       toastSonner.success('Regra criada');
     },
     onError: (err: Error) => toastSonner.error(err.message),

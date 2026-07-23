@@ -14,6 +14,7 @@ import { Star, Info } from 'lucide-react';
  * `dataUnavailable` pelo resultado do hook e remova este aviso.
  */
 
+/** Renders CSAT/NPS satisfaction metrics; shows an explicit unavailable state until real data integration is available. */
 export const SatisfactionMetrics = () => {
   const [selectedPeriod, setSelectedPeriod] = useState<'7d' | '30d' | '90d'>('30d');
 

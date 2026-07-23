@@ -1,7 +1,7 @@
-// @ts-nocheck
+import { queryKeys } from '@/services/api/queryKeys';
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { fetchPlaybooks, savePlaybook, deletePlaybookById } from '../hooks/usePlaybooksData';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -51,6 +51,7 @@ const CATEGORIES = [
   { value: 'general', label: 'Geral' },
 ];
 
+/** Playbooks Manager component. */
 export function PlaybooksManager(): JSX.Element {
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -64,13 +65,10 @@ export function PlaybooksManager(): JSX.Element {
   const [steps, setSteps] = useState<PlaybookStep[]>([]);
 
   const { data: playbooks = [], isLoading: loading } = useQuery<Playbook[]>({
-    queryKey: ['admin', 'playbooks'],
+    queryKey: queryKeys.adminOps.playbooks(),
     queryFn: async () => {
-      const { data } = await supabase
-        .from('playbooks')
-        .select('*')
-        .order('category', { ascending: true });
-      return (data || []).map((p) => ({
+      const data = await fetchPlaybooks();
+      return data.map((p) => ({
         ...p,
         steps: Array.isArray(p.steps) ? (p.steps as unknown as PlaybookStep[]) : [],
       }));
@@ -116,26 +114,24 @@ export function PlaybooksManager(): JSX.Element {
       name: name.trim(),
       description: description || null,
       category,
-      steps: steps.filter((s) => s.title.trim()) as Json,
+      steps: steps.filter((s) => s.title.trim()) as unknown as Json,
     };
 
-    const { error } = selectedPlaybook
-      ? await supabase.from('playbooks').update(payload).eq('id', selectedPlaybook.id)
-      : await supabase.from('playbooks').insert(payload);
+    const { error } = await savePlaybook(selectedPlaybook?.id, payload);
 
     if (!error) {
       toast.success(selectedPlaybook ? 'Playbook atualizado' : 'Playbook criado');
       setDialogOpen(false);
-      void queryClient.invalidateQueries({ queryKey: ['admin', 'playbooks'] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.adminOps.playbooks() });
     } else {
       toast.error('Erro ao salvar');
     }
   };
 
   const deletePlaybook = async (id: string): Promise<void> => {
-    await supabase.from('playbooks').delete().eq('id', id);
+    await deletePlaybookById(id);
     toast.success('Playbook removido');
-    void queryClient.invalidateQueries({ queryKey: ['admin', 'playbooks'] });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.adminOps.playbooks() });
   };
 
   const grouped = playbooks.reduce<Record<string, Playbook[]>>((acc, pb) => {
@@ -248,8 +244,8 @@ export function PlaybooksManager(): JSX.Element {
                 {viewPlaybook.description && (
                   <p className="text-sm text-muted-foreground">{viewPlaybook.description}</p>
                 )}
-                {viewPlaybook.steps.map((step, idx) => (
-                  <div key={idx} className="flex gap-3 rounded-lg bg-muted/20 p-3">
+                {viewPlaybook.steps.map((step) => (
+                  <div key={step.order} className="flex gap-3 rounded-lg bg-muted/20 p-3">
                     <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
                       {step.order}
                     </div>
@@ -306,7 +302,7 @@ export function PlaybooksManager(): JSX.Element {
               <p className="text-sm font-medium">Passos</p>
               {steps.map((step, idx) => (
                 <div
-                  key={idx}
+                  key={step.order}
                   className="space-y-2 rounded-lg border border-border/30 bg-muted/10 p-3"
                 >
                   <div className="flex items-center justify-between">

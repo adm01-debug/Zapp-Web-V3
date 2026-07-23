@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/features/auth';
+import { queryKeys } from '@/services/api/queryKeys';
 
 /**
  * Uses get_visible_agent_ids RPC for RBAC-filtered agent visibility.
@@ -10,7 +11,7 @@ export function useVisibleAgents() {
   const { user } = useAuth();
 
   return useQuery({
-    queryKey: ['visible-agent-ids', user?.id],
+    queryKey: queryKeys.userProfile.visibleAgentIdsForUser(user?.id),
     queryFn: async () => {
       if (!user) return [];
       const { data, error } = await supabase.rpc('get_visible_agent_ids', {

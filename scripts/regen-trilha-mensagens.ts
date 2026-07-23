@@ -42,26 +42,13 @@ interface ConsumerDef {
   description: string;    // o que ele faz com o evento
 }
 
-const CONSUMERS: ConsumerDef[] = [
-  { id: "URM", label: "useRealtimeMessages",       path: "src/features/inbox/hooks/useRealtimeMessages.ts",
-    description: "feed global do inbox (INSERT/UPDATE/DELETE)" },
-  { id: "UM",  label: "useMessages",               path: "src/features/inbox/hooks/useMessages.ts",
-    description: "lista por contato aberto (INSERT/UPDATE/DELETE)" },
-  { id: "UMS", label: "useMessageStatus",          path: "src/features/inbox/hooks/useMessageStatus.ts",
-    description: "status sent/delivered/read por mensagem (UPDATE)" },
-  { id: "UTN", label: "useTranscriptionNotifications", path: "src/hooks/useTranscriptionNotifications.ts",
-    description: "alerta quando transcricao conclui (UPDATE)" },
-  { id: "URD", label: "useRealtimeDashboard",      path: "src/hooks/useRealtimeDashboard.ts",
-    description: "KPIs em tempo real (INSERT)" },
-  { id: "UEM", label: "useEvolutionMonitoring",    path: "src/components/monitoring/hooks/useEvolutionMonitoring.ts",
-    description: "saude do webhook/instancia (INSERT)" },
-  { id: "AMP", label: "AudioMessagePlayer",        path: "src/features/inbox/components/AudioMessagePlayer.tsx",
-    description: "refresh de media_url assinada (UPDATE)" },
-  { id: "URRA", label: "useRetryResolutionAlerts", path: "src/features/inbox/hooks/realtime/useRetryResolutionAlerts.ts",
-    description: "toast quando retrying -> sent/failed (UPDATE)" },
-  { id: "CMA", label: "ChatMessagesArea",          path: "src/features/inbox/components/chat/ChatMessagesArea.tsx",
-    description: "refetch/scroll no realtime (INSERT/UPDATE)" },
-];
+// NOTA (2026-07-16): Todos os consumidores migraram de postgres_changes { schema:'zapp', table:'messages' }
+// para { schema:'evo', table:'evolution_messages' } (tabela-fonte real, com Realtime habilitado).
+// A view zapp.messages NÃO emite CDC — subscriptions nela são silenciosas.
+// A função messagesRepository.subscribeToMessages foi removida por ser dead code com subscription inválida.
+// Se um novo consumidor assinar evolution_messages via postgres_changes e for relevante para este diagrama,
+// adicione-o aqui com o caminho correto.
+const CONSUMERS: ConsumerDef[] = [];
 
 // Outros nós (não consumem 'messages' mas têm click links)
 const EXTRA_CLICKS: { id: string; path: string }[] = [
@@ -122,7 +109,7 @@ function scan(): Hit[] {
     SUB_RE.lastIndex = 0;
     while ((m = SUB_RE.exec(src)) !== null) {
       const binding = m[1];
-      if (!new RegExp(`table:\\s*(['"]${TARGET_TABLE}['"]|dbTable\\(['"]${TARGET_TABLE}['"]\\))`).test(binding)) continue;
+      if (!new RegExp(`table:\\s*(['"\`]${TARGET_TABLE}['"\`]|dbTable\\(['"\`]${TARGET_TABLE}['"\`]\\))`).test(binding)) continue;
       const evMatch = binding.match(/event:\s*['"]([^'"]+)['"]/);
       evs.push(evMatch ? evMatch[1] : "*");
     }
@@ -204,7 +191,7 @@ function ensureMarkers(content: string): string {
 
   // LEGEND: envolve o bloco de "%% Legenda das arestas..." até a última linha "%%"
   if (!next.includes(LEGEND_START)) {
-    const legendRe = /%% Legenda das arestas:[^]*?(?=\n(?!%%)|\n*$)/;
+    const legendRe = /%% Legenda das arestas:[^]*?(?=\n(?!%%)| \n*$)/;
     const m = next.match(legendRe);
     if (m) {
       next = next.replace(m[0], `${LEGEND_START}\n${LEGEND_END}`);

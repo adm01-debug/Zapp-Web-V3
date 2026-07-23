@@ -5,6 +5,7 @@ import { useAuth } from '@/features/auth';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Eye, Send, Loader2, ChevronDown, ChevronUp } from 'lucide-react';
+import { queryKeys } from '@/services/api/queryKeys';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -31,6 +32,7 @@ interface WhisperModeProps {
   defaultExpanded?: boolean;
 }
 
+/** Collapsible compose panel for sending private whisper messages to a specific agent within a conversation. */
 export function WhisperMode({
   contactId,
   targetAgentId,
@@ -47,7 +49,7 @@ export function WhisperMode({
   const contactIsUUID = isValidUUID(contactId ?? '');
 
   const { data: whispers = [], isLoading } = useQuery<WhisperMessage[]>({
-    queryKey: ['whispers', contactId],
+    queryKey: queryKeys.whispers.contact(contactId),
     queryFn: async () => {
       if (!contactIsUUID) return [];
       const { data, error } = await safeClient.from<WhisperMessage>('whisper_messages', (q) =>
@@ -79,7 +81,7 @@ export function WhisperMode({
     },
     onSuccess: () => {
       setMessage('');
-      queryClient.invalidateQueries({ queryKey: ['whispers', contactId] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.whispers.contact(contactId) });
     },
     onError: (err) => {
       toast.error('Erro ao enviar whisper: ' + (err as Error).message);
@@ -100,14 +102,13 @@ export function WhisperMode({
           filter: `contact_id=eq.${contactId}`,
         },
         () => {
-          queryClient.invalidateQueries({ queryKey: ['whispers', contactId] });
+          queryClient.invalidateQueries({ queryKey: queryKeys.whispers.contact(contactId) });
           setIsExpanded(true);
         }
       )
       .subscribe();
     return () => {
-      void channel.unsubscribe();
-      void supabase.removeChannel(channel);
+      supabase.removeChannel(channel).catch(() => {});
     };
   }, [contactId, queryClient, contactIsUUID]);
 
@@ -140,7 +141,7 @@ export function WhisperMode({
         className
       )}
     >
-      <button
+      <button type="button"
         onClick={() => setIsExpanded(!isExpanded)}
         className="flex items-center justify-between rounded-t-lg px-3 py-2 text-xs font-medium text-amber-700 transition-colors hover:bg-amber-100 dark:text-amber-300 dark:hover:bg-amber-900/30"
       >
@@ -185,7 +186,7 @@ export function WhisperMode({
                       'max-w-[85%] rounded-lg px-2.5 py-1.5 text-xs',
                       w.sender_id === profile?.id
                         ? 'bg-amber-300 text-amber-900 dark:bg-amber-700 dark:text-amber-100'
-                        : 'border border-amber-200 bg-white text-amber-800 dark:border-amber-700 dark:bg-amber-900 dark:text-amber-200'
+                        : 'border border-amber-200 bg-card text-amber-800 dark:border-amber-700 dark:bg-amber-900 dark:text-amber-200'
                     )}
                   >
                     {w.sender && w.sender_id !== profile?.id && (
@@ -215,7 +216,7 @@ export function WhisperMode({
               onChange={(e) => setMessage(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Mensagem interna (visível só para a equipe)..."
-              className="max-h-24 min-h-[36px] flex-1 resize-none border-amber-200 bg-white text-xs focus:ring-amber-300 dark:border-amber-700 dark:bg-amber-900"
+              className="max-h-24 min-h-[36px] flex-1 resize-none border-amber-200 bg-card text-xs focus:ring-amber-300 dark:border-amber-700 dark:bg-amber-900"
               rows={1}
             />
             <div className="flex flex-col gap-1">
@@ -237,7 +238,7 @@ export function WhisperMode({
               />
               <Button
                 size="icon"
-                className="h-8 w-8 shrink-0 bg-amber-500 text-white hover:bg-amber-600"
+                className="h-8 w-8 shrink-0 bg-warning text-warning-foreground hover:bg-warning/90"
                 aria-label="Enviar sussurro"
                 onClick={handleSend}
                 disabled={!message.trim() || sendWhisper.isPending}

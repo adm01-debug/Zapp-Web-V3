@@ -1,36 +1,33 @@
-# Dependabot configuration file
-# https://docs.github.com/en/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
-
 version: 2
 updates:
-  # npm/yarn/bun dependencies
-  - package-ecosystem: "npm"
+  - package-ecosystem: npm
     directory: "/"
     schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "09:00"
+      interval: weekly
+      day: monday
+      time: "08:00"
       timezone: "America/Sao_Paulo"
-    open-pull-requests-limit: 10
+    open-pull-requests-limit: 8
     reviewers:
       - "adm01-debug"
     labels:
       - "dependencies"
       - "automated"
     commit-message:
-      prefix: "⬆️ deps:"
+      prefix: "chore(deps)"
+      include: "scope"
     groups:
-      # Group minor and patch updates together
       minor-and-patch:
         patterns:
           - "*"
         update-types:
           - "minor"
           - "patch"
-
-  # GitHub Actions
     ignore:
-      # Majors estruturais = projetos de migração dedicados, não bumps automáticos (2026-07-06)
+      - dependency-name: "xlsx"
+        reason: "Projeto usa tarball CDN da SheetJS — registry npm não tem versões >= 0.19"
+      - dependency-name: "@supabase/postgrest-js"
+        reason: "Lovable usa versão privada; upgrade pode quebrar tipos gerados no CI"
       - dependency-name: "react"
         update-types: ["version-update:semver-major"]
       - dependency-name: "react-dom"
@@ -43,24 +40,41 @@ updates:
         update-types: ["version-update:semver-major"]
       - dependency-name: "tailwindcss"
         update-types: ["version-update:semver-major"]
-      - dependency-name: "eslint-plugin-tailwindcss"
+      - dependency-name: "eslint"
         update-types: ["version-update:semver-major"]
       - dependency-name: "lucide-react"
         update-types: ["version-update:semver-major"]
-      - dependency-name: "@elevenlabs/react"
-        update-types: ["version-update:semver-major"]
 
-  - package-ecosystem: "github-actions"
-    directory: "/"
+  - package-ecosystem: github-actions
+    directory: "/.github/workflows"
     schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "09:00"
+      interval: weekly
+      day: monday
+      time: "08:00"
       timezone: "America/Sao_Paulo"
+    open-pull-requests-limit: 5
     reviewers:
       - "adm01-debug"
     labels:
       - "dependencies"
       - "ci"
     commit-message:
-      prefix: "⬆️ ci:"
+      prefix: "ci(deps)"
+      include: "scope"
+
+  - package-ecosystem: docker
+    directory: "/"
+    schedule:
+      interval: monthly
+      day: monday
+      time: "08:00"
+      timezone: "America/Sao_Paulo"
+    open-pull-requests-limit: 3
+    reviewers:
+      - "adm01-debug"
+    labels:
+      - "dependencies"
+      - "docker"
+    commit-message:
+      prefix: "build(deps)"
+      include: "scope"

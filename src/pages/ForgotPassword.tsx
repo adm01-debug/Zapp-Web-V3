@@ -1,80 +1,17 @@
-// @ts-nocheck
-import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Mail, ArrowLeft, Loader2, Clock } from 'lucide-react';
-import { getLogger } from '@/lib/logger';
-
-const log = getLogger('ForgotPassword');
-import { z } from 'zod';
-import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { toast } from 'sonner';
+import { useForgotPassword } from '@/hooks/useForgotPassword';
 
-const emailSchema = z.string().email('Email inválido');
-
+/** Forgot Password. */
 export default function ForgotPassword() {
-  const [email, setEmail] = useState('');
-  const [reason, setReason] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [sent, setSent] = useState(false);
-  const [error, setError] = useState('');
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-
-    try {
-      emailSchema.parse(email);
-    } catch (err) {
-      if (err instanceof z.ZodError) {
-        setError(err.issues[0].message);
-        return;
-      }
-    }
-
-    setLoading(true);
-    try {
-      // First, find the user by email
-      // We need to create a reset request instead of directly sending
-      const { data: existingUser } = await supabase
-        .from('profiles')
-        .select('user_id')
-        .eq('email', email)
-        .maybeSingle();
-
-      if (!existingUser) {
-        // Don't reveal if user exists or not for security
-        setSent(true);
-        toast.success('Se o email existir, sua solicitação será analisada.');
-        return;
-      }
-
-      // Create password reset request
-      const { error: insertError } = await supabase.from('password_reset_requests').insert({
-        user_id: existingUser.user_id,
-        email,
-        reason: reason || null,
-        ip_address: null, // Could get from an API if needed
-        user_agent: navigator.userAgent,
-      });
-
-      if (insertError) throw insertError;
-
-      setSent(true);
-      toast.success('Solicitação enviada! Aguarde a aprovação de um administrador.');
-    } catch (err: unknown) {
-      log.error('Error submitting reset request:', err);
-      setError('Erro ao enviar solicitação. Tente novamente.');
-      toast.error('Erro ao enviar solicitação');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { email, setEmail, reason, setReason, loading, sent, error, handleSubmit } =
+    useForgotPassword();
 
   if (sent) {
     return (

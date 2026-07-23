@@ -9,6 +9,7 @@ interface ReauthResult {
   error?: string;
 }
 
+/** Hook: use Reauthentication. */
 export function useReauthentication() {
   const [isReauthenticating, setIsReauthenticating] = useState(false);
   const [showReauthDialog, setShowReauthDialog] = useState(false);

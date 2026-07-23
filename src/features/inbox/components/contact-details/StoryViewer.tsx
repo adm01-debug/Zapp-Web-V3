@@ -58,6 +58,7 @@ interface ResolvedMedia {
   mimetype: string | null;
 }
 
+/** Story Viewer component for the contact details section. */
 export function StoryViewer({ messages, initialIndex, open, onClose, pushName }: StoryViewerProps) {
   const { getMediaBase64 } = useEvolutionApi();
   const [index, setIndex] = useState(initialIndex);
@@ -150,12 +151,12 @@ export function StoryViewer({ messages, initialIndex, open, onClose, pushName }:
 
         <div className="relative flex items-center justify-center min-h-[50vh] max-h-[70vh]">
           {index > 0 && (
-            <button onClick={goPrev} className="absolute left-2 z-10 w-10 h-10 rounded-full bg-muted/60 backdrop-blur flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-all">
+            <button aria-label="Story anterior" type="button" onClick={goPrev} className="absolute left-2 z-10 w-10 h-10 rounded-full bg-muted/60 backdrop-blur flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-all">
               <ChevronLeft className="w-5 h-5" />
             </button>
           )}
           {index < messages.length - 1 && (
-            <button onClick={goNext} className="absolute right-2 z-10 w-10 h-10 rounded-full bg-muted/60 backdrop-blur flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-all">
+            <button aria-label="Próximo story" type="button" onClick={goNext} className="absolute right-2 z-10 w-10 h-10 rounded-full bg-muted/60 backdrop-blur flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-all">
               <ChevronRight className="w-5 h-5" />
             </button>
           )}

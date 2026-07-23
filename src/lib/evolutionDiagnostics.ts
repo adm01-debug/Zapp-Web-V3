@@ -2,6 +2,7 @@
 import { whatsappConnectionRepository } from '@/features/connections/data-access/whatsappConnectionRepository';
 import { isExternalConfigured, getExternalSupabase } from '@/integrations/supabase/externalClient';
 
+/** Diagnostic Result. */
 export interface DiagnosticResult {
   step: string;
   status: 'ok' | 'fail' | 'warn';
@@ -9,6 +10,7 @@ export interface DiagnosticResult {
   details?: Record<string, unknown> | null;
 }
 
+/** run Evolution Diagnostics. */
 export async function runEvolutionDiagnostics(): Promise<DiagnosticResult[]> {
   const results: DiagnosticResult[] = [];
 

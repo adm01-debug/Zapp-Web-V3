@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Settings2, RotateCcw, Save, Info, AlertCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -63,6 +62,7 @@ function buildPreview(c: RetryConfig): string {
   return steps.join(' → ');
 }
 
+/** Retry Config Panel component. */
 export function RetryConfigPanel() {
   const [instances, setInstances] = useState<string[]>([]);
   const [selected, setSelected] = useState<string>(GLOBAL);

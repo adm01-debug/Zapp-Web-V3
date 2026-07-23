@@ -9,6 +9,7 @@ import { useAdminWhatsAppMode } from './useAdminWhatsAppMode';
 import { AdminWhatsAppWebhookVerifyCard } from './AdminWhatsAppWebhookVerifyCard';
 import { AdminWhatsAppSecretsCard } from './AdminWhatsAppSecretsCard';
 
+/** Admin Whats App Mode Page. */
 export default function AdminWhatsAppModePage() {
   const {
     mode,

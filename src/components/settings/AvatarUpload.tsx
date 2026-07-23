@@ -1,16 +1,20 @@
-// @ts-nocheck
 import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Camera, Loader2, Trash2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { updateProfileAvatarUrl } from '@/hooks/useProfileAvatarMutations';
 import { useAuth } from '@/features/auth';
 import { useActionFeedback } from '@/hooks/useActionFeedback';
+import { useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '@/services/api/queryKeys';
 
+/** Avatar Upload component for the settings section. */
 export function AvatarUpload() {
   const { user, profile, refreshProfile } = useAuth();
   const feedback = useActionFeedback();
+  const queryClient = useQueryClient();
   const [uploading, setUploading] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState(profile?.avatar_url || null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -44,14 +48,13 @@ export function AvatarUpload() {
         const urlWithCache = `${publicUrl}?t=${Date.now()}`;
 
         // Update profile
-        const { error: updateError } = await supabase
-          .from('profiles')
-          .update({ avatar_url: urlWithCache })
-          .eq('user_id', user.id);
+        const { error: updateError } = await updateProfileAvatarUrl(user.id, urlWithCache);
         if (updateError) throw updateError;
 
         setAvatarUrl(urlWithCache);
         await refreshProfile();
+        void queryClient.invalidateQueries({ queryKey: queryKeys.teamProfiles.all() });
+        void queryClient.invalidateQueries({ queryKey: queryKeys.userProfile.me() });
       },
       {
         loadingMessage: 'Enviando foto...',
@@ -67,13 +70,12 @@ export function AvatarUpload() {
 
     await feedback.withFeedback(
       async () => {
-        const { error } = await supabase
-          .from('profiles')
-          .update({ avatar_url: null })
-          .eq('user_id', user.id);
+        const { error } = await updateProfileAvatarUrl(user.id, null);
         if (error) throw error;
         setAvatarUrl(null);
         await refreshProfile();
+        void queryClient.invalidateQueries({ queryKey: queryKeys.teamProfiles.all() });
+        void queryClient.invalidateQueries({ queryKey: queryKeys.userProfile.me() });
       },
       {
         successMessage: 'Foto removida!',

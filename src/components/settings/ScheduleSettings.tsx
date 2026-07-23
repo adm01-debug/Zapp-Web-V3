@@ -26,6 +26,7 @@ const workDays = [
   { id: 6, label: 'Sáb' },
 ];
 
+/** Schedule Settings component for the settings section. */
 export function ScheduleSettings({ settings, updateSettings, toggleWorkDay }: ScheduleSettingsProps) {
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>

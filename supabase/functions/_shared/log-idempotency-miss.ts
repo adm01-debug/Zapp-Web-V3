@@ -30,6 +30,7 @@ function getExternalServiceClient() {
   return cached === false ? null : cached;
 }
 
+/** log-idempotency-miss utilities and exports. */
 export interface IdempotencyMissInput {
   idem_key: string;
   instance_name: string | null;
@@ -37,6 +38,7 @@ export interface IdempotencyMissInput {
   reason?: 'cache_miss' | 'cache_unavailable';
 }
 
+/** Records an idempotency cache miss into evolution_audit_log; best-effort, never throws. */
 export async function logIdempotencyMiss(input: IdempotencyMissInput): Promise<void> {
   const client = getExternalServiceClient();
   if (!client) return;

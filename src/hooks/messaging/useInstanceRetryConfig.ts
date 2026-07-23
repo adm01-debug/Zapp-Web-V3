@@ -1,5 +1,5 @@
-// @ts-nocheck
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { getLogger } from '@/lib/logger';
@@ -20,6 +20,10 @@ import {
 
 const GLOBAL = '_global';
 
+const RETRY_CONFIG_KEY = (instanceName: string) =>
+  ['instance-retry-config', instanceName] as const;
+
+/** Use Instance Retry Config Result interface definition. */
 export interface UseInstanceRetryConfigResult {
   config: RetryConfig;
   globalConfig: RetryConfig;
@@ -39,54 +43,42 @@ export interface UseInstanceRetryConfigResult {
 export function useInstanceRetryConfig(
   instanceName: string = GLOBAL
 ): UseInstanceRetryConfigResult {
-  const [config, setConfig] = useState<RetryConfig>(DEFAULT_RETRY_CONFIG);
-  const [globalConfig, setGlobalConfig] = useState<RetryConfig>(DEFAULT_RETRY_CONFIG);
-  const [hasInstanceOverride, setHasInstanceOverride] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [isSaving, setIsSaving] = useState(false);
 
-  const mountedRef = useRef(true); // ✅ Fix: mounted guard
-  useEffect(() => {
-    mountedRef.current = true;
-    return () => { mountedRef.current = false; };
-  }, []);
-
-  const load = useCallback(async () => {
-    setIsLoading(true);
-    try {
+  const { data, isLoading } = useQuery({
+    queryKey: RETRY_CONFIG_KEY(instanceName),
+    queryFn: async () => {
       invalidateRetryConfigCache(instanceName);
       const [resolved, global] = await Promise.all([
         loadRetryConfig(instanceName === GLOBAL ? undefined : instanceName),
         loadRetryConfig(),
       ]);
-      if (!mountedRef.current) return; // ✅ Fix: abort se desmontado
-      setConfig(resolved);
-      setGlobalConfig(global);
 
+      let hasInstanceOverride = false;
       if (instanceName !== GLOBAL) {
         const keys = RETRY_CONFIG_FIELDS.map((f) => settingKeyFor(f, instanceName));
-        const { data } = await supabase.from('global_settings').select('key').in('key', keys);
-        setHasInstanceOverride((data?.length ?? 0) > 0);
-      } else {
-        setHasInstanceOverride(false);
+        const { data: rows } = await supabase.from('global_settings').select('key').in('key', keys);
+        hasInstanceOverride = (rows?.length ?? 0) > 0;
       }
-    } catch (err) {
-      log.error('[useInstanceRetryConfig] load failed', err);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [instanceName]);
 
-  useEffect(() => {
-    void load();
-  }, [load]);
+      return { config: resolved, globalConfig: global, hasInstanceOverride };
+    },
+    staleTime: 60_000,
+  });
+
+  const config: RetryConfig = data?.config ?? DEFAULT_RETRY_CONFIG;
+  const globalConfig: RetryConfig = data?.globalConfig ?? DEFAULT_RETRY_CONFIG;
+  const hasInstanceOverride = data?.hasInstanceOverride ?? false;
+
+  const invalidateAndReload = useCallback(() => {
+    return queryClient.invalidateQueries({ queryKey: RETRY_CONFIG_KEY(instanceName) });
+  }, [queryClient, instanceName]);
 
   const save = useCallback(
     async (partial: Partial<RetryConfig>) => {
       setIsSaving(true);
       try {
-        // Clampa cada campo informado e monta o estado resultante (merge com config atual)
-        // pra validar combinações cruzadas ANTES de tocar no banco.
         const clampedPartial: Partial<RetryConfig> = {};
         for (const [field, value] of Object.entries(partial)) {
           if (value == null || !Number.isFinite(value as number)) continue;
@@ -119,7 +111,7 @@ export function useInstanceRetryConfig(
         if (error) throw error;
 
         invalidateRetryConfigCache(instanceName === GLOBAL ? undefined : instanceName);
-        await load();
+        await invalidateAndReload();
         toast.success('Configuração de retry salva');
       } catch (err) {
         if (err instanceof RetryConfigValidationError) throw err;
@@ -130,7 +122,7 @@ export function useInstanceRetryConfig(
         setIsSaving(false);
       }
     },
-    [instanceName, load, config]
+    [instanceName, invalidateAndReload, config]
   );
 
   const resetToGlobal = useCallback(async () => {
@@ -141,7 +133,7 @@ export function useInstanceRetryConfig(
       const { error } = await supabase.from('global_settings').delete().in('key', keys);
       if (error) throw error;
       invalidateRetryConfigCache(instanceName);
-      await load();
+      await invalidateAndReload();
       toast.success('Override removido — herdando do global');
     } catch (err) {
       log.error('[useInstanceRetryConfig] resetToGlobal failed', err);
@@ -149,7 +141,7 @@ export function useInstanceRetryConfig(
     } finally {
       setIsSaving(false);
     }
-  }, [instanceName, load]);
+  }, [instanceName, invalidateAndReload]);
 
   const resetToDefault = useCallback(async () => {
     if (instanceName !== GLOBAL) return;
@@ -159,7 +151,7 @@ export function useInstanceRetryConfig(
       const { error } = await supabase.from('global_settings').delete().in('key', keys);
       if (error) throw error;
       invalidateRetryConfigCache();
-      await load();
+      await invalidateAndReload();
       toast.success('Configuração restaurada ao padrão de fábrica');
     } catch (err) {
       log.error('[useInstanceRetryConfig] resetToDefault failed', err);
@@ -167,7 +159,11 @@ export function useInstanceRetryConfig(
     } finally {
       setIsSaving(false);
     }
-  }, [instanceName, load]);
+  }, [instanceName, invalidateAndReload]);
+
+  const reload = useCallback(async () => {
+    await invalidateAndReload();
+  }, [invalidateAndReload]);
 
   return {
     config,
@@ -175,7 +171,7 @@ export function useInstanceRetryConfig(
     isLoading,
     isSaving,
     hasInstanceOverride,
-    reload: load,
+    reload,
     save,
     resetToGlobal,
     resetToDefault,

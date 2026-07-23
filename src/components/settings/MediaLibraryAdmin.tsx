@@ -2,6 +2,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Sticker, SmilePlus, Volume2, Package } from 'lucide-react';
 import { MediaAdminPanel } from './media-library/MediaAdminPanel';
 
+/** Media Library Admin component for the settings section. */
 export function MediaLibraryAdmin() {
   return (
     <div className="space-y-4">

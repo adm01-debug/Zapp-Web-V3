@@ -13,6 +13,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { Calendar, Activity, TrendingUp, Flame } from 'lucide-react';
 import { format, subDays, eachDayOfInterval, getDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { queryKeys } from '@/services/api/queryKeys';
 import { useQuery } from '@tanstack/react-query';
 import { dbFrom } from '@/integrations/datasource/db';
 
@@ -38,6 +39,7 @@ const getLevelColor = (level: number, isDark: boolean = false) => {
   return colors[level] || colors[0];
 };
 
+/** Activity Heatmap component for the dashboard section. */
 export const ActivityHeatmap = ({
   title = 'Atividade',
   data: propData,
@@ -48,7 +50,7 @@ export const ActivityHeatmap = ({
 
   // Fetch real activity data from messages table
   const { data: realData } = useQuery({
-    queryKey: ['activity-heatmap', selectedPeriod, metric],
+    queryKey: queryKeys.adminOps.activityHeatmap({ selectedPeriod, metric }),
     queryFn: async () => {
       const days = selectedPeriod === '3m' ? 90 : selectedPeriod === '6m' ? 180 : 365;
       const startDate = subDays(new Date(), days);
@@ -61,7 +63,7 @@ export const ActivityHeatmap = ({
 
       // Group by day
       const dayCounts = new Map<string, number>();
-      (messages || []).forEach((m) => {
+      (messages || []).forEach((m: { created_at: string }) => {
         const dateKey = format(new Date(m.created_at), 'yyyy-MM-dd');
         dayCounts.set(dateKey, (dayCounts.get(dateKey) || 0) + 1);
       });

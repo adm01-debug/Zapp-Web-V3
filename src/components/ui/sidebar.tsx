@@ -1,4 +1,5 @@
 // Barrel re-export — all sidebar components are now modularized in ./sidebar/
+/** sidebar component for the ui section. */
 export {
   Sidebar,
   SidebarContent,

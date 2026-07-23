@@ -4,9 +4,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { useAuth } from '@/features/auth';
 import type { TeamMessage } from './teamChatTypes';
+import { queryKeys } from '@/services/api/queryKeys';
 
 const MESSAGES_PER_PAGE = 50;
 
+/** Fetches paginated messages for a team conversation with optional full-text search filtering, subscribes to Realtime inserts, and marks the conversation as read on mount. */
 export function useTeamMessages(conversationId: string | null, searchQuery: string = '') {
   const { profile } = useAuth();
   const queryClient = useQueryClient();
@@ -14,7 +16,7 @@ export function useTeamMessages(conversationId: string | null, searchQuery: stri
 
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading, isError, error } =
     useInfiniteQuery({
-      queryKey: ['team-messages', conversationId, searchQuery],
+      queryKey: queryKeys.teamChat.messages(conversationId ?? undefined, searchQuery),
       queryFn: async ({ pageParam }) => {
         if (!conversationId) return { messages: [], nextCursor: null };
 
@@ -78,7 +80,7 @@ export function useTeamMessages(conversationId: string | null, searchQuery: stri
         (payload) => {
           if (!searchQuery.trim()) {
             queryClient.setQueryData(
-              ['team-messages', conversationId, ''],
+              queryKeys.teamChat.messages(conversationId, ''),
               (oldData: { pages: { messages: TeamMessage[] }[] } | undefined) => {
                 if (!oldData || !oldData.pages) return oldData;
 
@@ -94,13 +96,14 @@ export function useTeamMessages(conversationId: string | null, searchQuery: stri
             );
           }
 
-          void queryClient.invalidateQueries({ queryKey: ['team-messages', conversationId] });
+          void queryClient.invalidateQueries({ queryKey: queryKeys.teamChat.allMessages(conversationId) });
         }
       )
       .subscribe();
 
     return () => {
-      void supabase.removeChannel(channel);
+      channel.unsubscribe();
+      supabase.removeChannel(channel);
     };
   }, [conversationId, queryClient, searchQuery]);
 

@@ -1,7 +1,7 @@
-// @ts-nocheck
+import { queryKeys } from '@/services/api/queryKeys';
 import { useState, useCallback, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { fetchStickers, updateStickerFavorite, deleteStickerById, updateStickerCategory, incrementStickerUseCount } from '../../hooks/useStickerMutations';
 import { getLogger } from '@/lib/logger';
 
 const log = getLogger('StickerManager');
@@ -23,6 +23,7 @@ interface StickerManagerProps {
   mode?: 'picker' | 'manager';
 }
 
+/** Sticker Manager component for the stickers section. */
 export function StickerManager({ onSend, mode: _mode = 'manager' }: StickerManagerProps) {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
@@ -33,57 +34,43 @@ export function StickerManager({ onSend, mode: _mode = 'manager' }: StickerManag
   const [pendingUpload, setPendingUpload] = useState<PendingUpload | null>(null);
 
   const { data: stickers = [], isLoading } = useQuery({
-    queryKey: ['stickers-manager'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('stickers')
-        .select('*')
-        .order('use_count', { ascending: false });
-      if (error) throw error;
-      return (data || []) as StickerItem[];
-    },
+    queryKey: queryKeys.stickers.all(),
+    queryFn: async () => (await fetchStickers()) as StickerItem[],
   });
 
   const toggleFavorite = useMutation({
     mutationFn: async (sticker: StickerItem) => {
-      const { error } = await supabase
-        .from('stickers')
-        .update({ is_favorite: !sticker.is_favorite })
-        .eq('id', sticker.id);
+      const { error } = await updateStickerFavorite(sticker.id, !sticker.is_favorite);
       if (error) throw error;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['stickers-manager'] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.stickers.all() }),
   });
 
   const deleteSticker = useMutation({
     mutationFn: async (sticker: StickerItem) => {
-      const { error } = await supabase.from('stickers').delete().eq('id', sticker.id);
+      const { error } = await deleteStickerById(sticker.id);
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['stickers-manager'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.stickers.all() });
       toast.success('Figurinha removida');
     },
   });
 
   const updateCategory = useMutation({
     mutationFn: async ({ id, category }: { id: string; category: string }) => {
-      const { error } = await supabase.from('stickers').update({ category }).eq('id', id);
+      const { error } = await updateStickerCategory(id, category);
       if (error) throw error;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['stickers-manager'] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.stickers.all() }),
   });
 
   const handleSend = useCallback(
     (sticker: StickerItem) => {
       onSend?.(sticker.image_url);
-      void supabase
-        .from('stickers')
-        .update({ use_count: sticker.use_count + 1 })
-        .eq('id', sticker.id)
-        .then(({ error }) => {
-          if (error) log.warn('[StickerManager] use_count update failed', error);
-        });
+      void incrementStickerUseCount(sticker.id, sticker.use_count).then(({ error }) => {
+        if (error) log.warn('[StickerManager] use_count update failed', error);
+      });
     },
     [onSend]
   );
@@ -147,7 +134,7 @@ export function StickerManager({ onSend, mode: _mode = 'manager' }: StickerManag
               />
             </div>
             <div className="flex items-center rounded-lg border border-border/50 p-0.5">
-              <button
+              <button type="button"
                 onClick={() => setGridSize('sm')}
                 className={cn(
                   'rounded-md p-1.5 transition-colors',
@@ -158,7 +145,7 @@ export function StickerManager({ onSend, mode: _mode = 'manager' }: StickerManag
               >
                 <Grid3X3 className="h-4 w-4" />
               </button>
-              <button
+              <button type="button"
                 onClick={() => setGridSize('md')}
                 className={cn(
                   'rounded-md p-1.5 transition-colors',
@@ -191,7 +178,7 @@ export function StickerManager({ onSend, mode: _mode = 'manager' }: StickerManag
                 onConfirm={(p) => {
                   toast.success(`Figurinha "${p.name}" salva!`);
                   setPendingUpload(null);
-                  queryClient.invalidateQueries({ queryKey: ['stickers-manager'] });
+                  queryClient.invalidateQueries({ queryKey: queryKeys.stickers.all() });
                 }}
                 onCancel={() => setPendingUpload(null)}
               />

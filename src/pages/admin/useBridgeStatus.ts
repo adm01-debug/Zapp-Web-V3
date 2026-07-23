@@ -15,8 +15,10 @@ import { runEvolutionDiagnostics, type DiagnosticResult } from '@/lib/evolutionD
 
 const log = getLogger('AdminBridgeStatusPage');
 
+/** Bridge Status type alias. */
 export type BridgeStatus = 'online' | 'degraded' | 'offline' | 'loading';
 
+/** System Incident interface definition. */
 export interface SystemIncident {
   id: string;
   title: string;
@@ -26,6 +28,7 @@ export interface SystemIncident {
   resolved_at: string | null;
 }
 
+/** Active Alert interface definition. */
 export interface ActiveAlert {
   id: string;
   title: string;
@@ -34,6 +37,7 @@ export interface ActiveAlert {
 
 const REFRESH_INTERVAL = 30;
 
+/** use Bridge Status function. */
 export function useBridgeStatus() {
   const { toast } = useToast();
   const mountedRef = useMountedRef();
@@ -217,7 +221,9 @@ export function useBridgeStatus() {
 
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
+      trafficSub.unsubscribe();
       supabase.removeChannel(trafficSub);
+      alertsSub.unsubscribe();
       supabase.removeChannel(alertsSub);
     };
   }, [fetchIncidents, checkHealth, autoRefresh]);

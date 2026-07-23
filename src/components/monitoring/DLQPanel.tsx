@@ -21,6 +21,7 @@ const STATUS_OPTIONS: Array<{ value: FailedMessageStatus | 'all'; label: string 
   { value: 'retrying', label: 'Em retry' },
   { value: 'succeeded', label: 'Sucesso' },
   { value: 'abandoned', label: 'Abandonadas' },
+  { value: 'failed', label: 'Falhou' },
 ];
 
 function statusBadge(status: FailedMessageStatus) {
@@ -29,6 +30,7 @@ function statusBadge(status: FailedMessageStatus) {
     case 'retrying': return <Badge variant="outline" className="text-[10px] border-primary/40 text-primary">retrying</Badge>;
     case 'succeeded': return <Badge variant="outline" className="text-[10px] border-primary/40 text-primary">succeeded</Badge>;
     case 'abandoned': return <Badge variant="destructive" className="text-[10px]">abandoned</Badge>;
+    case 'failed': return <Badge variant="destructive" className="text-[10px]">failed</Badge>;
   }
 }
 
@@ -47,6 +49,7 @@ function fmtDate(iso: string | null) {
   return d.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
 }
 
+/** DLQPanel component for the monitoring section. */
 export function DLQPanel() {
   const [hours, setHours] = useState<number>(24);
   const [statusFilter, setStatusFilter] = useState<FailedMessageStatus | 'all'>('all');
@@ -92,7 +95,7 @@ export function DLQPanel() {
                 : <ListChecks className="w-3.5 h-3.5 mr-1" />}
               Reprocessar agora
             </Button>
-            <Button variant="ghost" size="sm" onClick={() => refetch()} disabled={isLoading}>
+            <Button aria-label="Atualizar" variant="ghost" size="sm" onClick={() => refetch()} disabled={isLoading}>
               <RefreshCw className={cn('w-3.5 h-3.5', isLoading && 'animate-spin')} />
             </Button>
           </div>

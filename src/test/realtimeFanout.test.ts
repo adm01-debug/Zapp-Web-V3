@@ -28,7 +28,8 @@ const EXPECTED_REALTIME_CONSUMERS: string[] = [
   'src/features/inbox/components/useAudioMessagePlayer.ts',
   'src/features/inbox/hooks/realtime/useRetryResolutionAlerts.ts',
   'src/features/inbox/components/chat/ChatMessagesArea.tsx',
-  'src/services/messages/messagesRepository.ts',
+  'src/hooks/useRealtimeMessages.ts',
+  'src/hooks/useTranscriptionNotifications.ts',
 ];
 
 const UPDATE_HINT =
@@ -117,6 +118,7 @@ describe('Diagrama TRILHA_MENSAGENS_NAVEGAVEL — validador de fan-out realtime'
     const INFRA_IGNORELIST = new Set<string>([
       'src/integrations/datasource/db.ts',
       'src/integrations/datasource/registry.ts',
+      'src/services/messages/messagesRepository.ts',
     ]);
     const listeners = findMessagesListeners().filter((p) => !INFRA_IGNORELIST.has(p));
     const orphans = listeners.filter((p) => !EXPECTED_REALTIME_CONSUMERS.includes(p));

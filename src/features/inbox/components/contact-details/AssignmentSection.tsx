@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { User, Users } from 'lucide-react';
 import {
@@ -18,10 +17,15 @@ interface AssignmentSectionProps {
   conversation: Conversation;
 }
 
+/** Assignment Section component for the contact details section. */
 export function AssignmentSection({ conversation }: AssignmentSectionProps) {
   const { agents } = useAgents();
   const { queues } = useQueues();
-  const { assignAgent, assignQueue } = useContactAssignment(conversation.contact.id);
+  const assignment = useContactAssignment(conversation.contact.id) as unknown as {
+    assignAgent: (userId: string) => Promise<void> | void;
+    assignQueue: (queueId: string) => Promise<void> | void;
+  };
+  const { assignAgent, assignQueue } = assignment;
 
   const currentAgent = agents.find(a => a.id === conversation.assignedTo?.id);
 

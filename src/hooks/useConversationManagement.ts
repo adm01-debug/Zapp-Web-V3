@@ -1,6 +1,6 @@
-// @ts-nocheck
 import { useState, useEffect, useCallback } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '@/services/api/queryKeys';
 import { useMountedRef } from '@/hooks/useMountedRef';
 import { supabase } from '@/integrations/supabase/client';
 import { externalSupabase, isExternalConfigured } from '@/integrations/supabase/externalClient';
@@ -9,7 +9,7 @@ import { dbList } from '@/integrations/datasource/db';
 import { RPC } from '@/integrations/datasource/rpcCatalog';
 import { toast } from 'sonner';
 import { log } from '@/lib/logger';
-import { addHours, startOfTomorrow, addDays, setHours } from 'date-fns';
+import { addHours, startOfTomorrow, startOfDay, addDays, setHours } from 'date-fns';
 
 /* ============================================================================
    SECTION 1: useConversationActions - Pin, favorite, snooze management
@@ -32,39 +32,56 @@ export function useConversationActions() {
       data: { user },
     } = await supabase.auth.getUser();
     if (!user || !mountedRef.current) return;
-    const { data } = await supabase.from('profiles').select('id').eq('user_id', user.id).maybeSingle(); // ✅ fix: maybeSingle evita PGRST116
+    const { data } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('user_id', user.id)
+      .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116
     if (data && mountedRef.current) setProfileId(data.id);
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadPinned = useCallback(async (pid: string) => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('pinned_conversations')
       .select('contact_id')
       .eq('pinned_by', pid);
+    if (error) {
+      log.warn('loadPinned failed', error);
+      return;
+    }
     if (data && mountedRef.current) setPinnedIds(new Set(data.map((p) => p.contact_id)));
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadFavorites = useCallback(async () => {
     const {
       data: { user },
     } = await supabase.auth.getUser();
     if (!user || !mountedRef.current) return;
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('favorite_contacts')
       .select('contact_id')
       .eq('user_id', user.id);
+    if (error) {
+      log.warn('loadFavorites failed', error);
+      return;
+    }
     if (data && mountedRef.current)
       setFavoriteIds(new Set(data.map((f: FavoriteContact) => f.contact_id)));
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadSnoozed = useCallback(async (pid: string) => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('conversation_snoozes')
       .select('contact_id')
       .eq('snoozed_by', pid)
       .gt('snooze_until', new Date().toISOString());
+    if (error) {
+      log.warn('loadSnoozed failed', error);
+      return;
+    }
     if (data && mountedRef.current) setSnoozedIds(new Set(data.map((s) => s.contact_id)));
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
 
   useEffect(() => {
     loadProfile();
@@ -170,24 +187,22 @@ export function useConversationActions() {
           snoozeUntil = setHours(startOfTomorrow(), 9);
           break;
         case 'nextweek': {
-          const daysUntilMonday = ((1 - now.getDay() + 7) % 7) || 7;
-          snoozeUntil = setHours(addDays(now, daysUntilMonday), 9);
+          const daysUntilMonday = (1 - now.getDay() + 7) % 7 || 7;
+          snoozeUntil = setHours(startOfDay(addDays(now, daysUntilMonday)), 9);
           break;
         }
         default:
           snoozeUntil = addHours(now, 1);
       }
 
-      const { error } = await supabase
-        .from('conversation_snoozes')
-        .upsert(
-          {
-            contact_id: contactId,
-            snoozed_by: profileId,
-            snooze_until: snoozeUntil.toISOString(),
-          },
-          { onConflict: 'contact_id,snoozed_by' }
-        );
+      const { error } = await supabase.from('conversation_snoozes').upsert(
+        {
+          contact_id: contactId,
+          snoozed_by: profileId,
+          snooze_until: snoozeUntil.toISOString(),
+        },
+        { onConflict: 'contact_id,snoozed_by' }
+      );
       if (!error) {
         setSnoozedIds((prev) => new Set([...prev, contactId]));
         toast.success('Conversa adiada');
@@ -222,6 +237,7 @@ export function useConversationActions() {
    SECTION 2: useConversationAnalyses - Conversation analysis & sentiment
    ============================================================================ */
 
+/** Conversation Analysis interface. */
 export interface ConversationAnalysis {
   id: string;
   contact_id: string;
@@ -241,36 +257,33 @@ export interface ConversationAnalysis {
 
 /** Retrieves AI-generated conversation analyses and insights. */
 export function useConversationAnalyses(contactId: string | null) {
-  const [analyses, setAnalyses] = useState<ConversationAnalysis[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+  const key = ['conversation-analyses', contactId] as const;
 
-  const fetchAnalyses = useCallback(async () => {
-    if (!contactId) return;
-
-    setLoading(true);
-    try {
+  const {
+    data: analyses = [],
+    isLoading: loading,
+    error: queryError,
+    refetch,
+  } = useQuery({
+    queryKey: key,
+    queryFn: async () => {
       const { data, error } = await supabase
         .from('conversation_analyses')
         .select('*')
-        .eq('contact_id', contactId)
+        .eq('contact_id', contactId!)
         .order('created_at', { ascending: false })
         .limit(20);
-
       if (error) throw error;
+      return (data || []) as ConversationAnalysis[];
+    },
+    enabled: !!contactId,
+    staleTime: 30_000,
+  });
 
-      setAnalyses((data || []) as ConversationAnalysis[]);
-    } catch (err) {
-      log.error('Error fetching analyses:', err);
-      setError(err instanceof Error ? err.message : 'Unknown error');
-    } finally {
-      setLoading(false);
-    }
-  }, [contactId]);
-
-  useEffect(() => {
-    void fetchAnalyses();
-  }, [fetchAnalyses]);
+  const error = queryError instanceof Error
+    ? queryError.message
+    : queryError ? String(queryError) : null;
 
   const saveAnalysis = async (
     analysis: Omit<ConversationAnalysis, 'id' | 'created_at' | 'analyzed_by'>
@@ -302,8 +315,7 @@ export function useConversationAnalyses(contactId: string | null) {
 
       if (error) throw error;
 
-      setAnalyses((prev) => [data as ConversationAnalysis, ...prev]);
-
+      await queryClient.invalidateQueries({ queryKey: key });
       return data as ConversationAnalysis;
     } catch (err) {
       log.error('Error saving analysis:', err);
@@ -340,7 +352,7 @@ export function useConversationAnalyses(contactId: string | null) {
     saveAnalysis,
     getLatestAnalysis,
     getSentimentTrend,
-    refetch: fetchAnalyses,
+    refetch,
   };
 }
 
@@ -348,6 +360,7 @@ export function useConversationAnalyses(contactId: string | null) {
    SECTION 3: useConversationSLATimeline - SLA milestones & attribution
    ============================================================================ */
 
+/** SLA Attribution interface. */
 export interface SLAAttribution {
   agentId: string | null;
   agentName: string | null;
@@ -355,12 +368,14 @@ export interface SLAAttribution {
   queueName: string | null;
 }
 
+/** First Response Attribution Source type alias. */
 export type FirstResponseAttributionSource =
   | 'assign-event'
   | 'pre-contact-assign'
   | 'insufficient-events'
   | 'not-applicable';
 
+/** S L A Timeline Data interface definition. */
 export interface SLATimelineData {
   firstContactAt: Date | null;
   firstResponseAt: Date | null;
@@ -419,7 +434,7 @@ export function useConversationSLATimeline(remoteJid: string | null, contactId: 
   const enabled = Boolean(remoteJid && isExternalConfigured);
 
   return useQuery({
-    queryKey: ['sla-timeline', remoteJid, contactId],
+    queryKey: queryKeys.sla.timelineDetailed(remoteJid ?? undefined, contactId ?? undefined),
     enabled,
     staleTime: 30_000,
     refetchInterval: (query) => {

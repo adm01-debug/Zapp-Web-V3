@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { AgentsEmptyState } from '@/components/ui/contextual-empty-states';
 import { InviteAgentDialog } from '@/components/agents/InviteAgentDialog';
 import { ConfigurePermissionsDialog } from '@/components/agents/ConfigurePermissionsDialog';
@@ -34,14 +34,20 @@ import {
 import { cn } from '@/lib/utils';
 import { getAvatarColor, getInitials } from '@/lib/avatarColors';
 
+/** Agents View component for the agents section. */
 export function AgentsView() {
   const { agents, stats, isLoading, refetch } = useAgents();
   const [search, setSearch] = useState('');
   const [inviteOpen, setInviteOpen] = useState(false);
   const [permissionsOpen, setPermissionsOpen] = useState(false);
-  const filteredAgents = agents.filter((agent) =>
-    agent.name.toLowerCase().includes(search.toLowerCase()) ||
-    (agent.email?.toLowerCase().includes(search.toLowerCase()) ?? false)
+  const filteredAgents = useMemo(
+    () =>
+      agents.filter(
+        (agent) =>
+          agent.name.toLowerCase().includes(search.toLowerCase()) ||
+          (agent.email?.toLowerCase().includes(search.toLowerCase()) ?? false)
+      ),
+    [agents, search]
   );
 
   const statsData = [

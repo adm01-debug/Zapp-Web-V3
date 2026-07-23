@@ -8,12 +8,14 @@
  *   }
  */
 
+/** Rls Denied Shape interface. */
 export interface RlsDeniedShape {
   code?: string;
   status?: number;
   message?: string;
 }
 
+/** Returns true if the error is a Postgres RLS denial (code 42501) or HTTP 403. */
 export function isRlsDeniedError(err: unknown): boolean {
   if (!err || typeof err !== 'object') return false;
   const e = err as RlsDeniedShape;
@@ -23,6 +25,7 @@ export function isRlsDeniedError(err: unknown): boolean {
   return msg.includes('forbidden') || msg.includes('row-level security') || msg.includes('permission denied');
 }
 
+/** rls Denied Message function. */
 export function rlsDeniedMessage(resource: string): string {
   return `Acesso negado a ${resource}. Apenas administradores ou supervisores podem visualizar este recurso.`;
 }

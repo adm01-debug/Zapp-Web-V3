@@ -1,4 +1,4 @@
-// @ts-nocheck
+
 /**
  * Safe Query Utilities - RLS Enforcement Layer
  *
@@ -11,12 +11,16 @@
 import { SupabaseClient } from '@supabase/supabase-js';
 import { Database } from './schema';
 
+// Accept clients bound to either schema (zapp is canonical, public via view proxy).
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnySupabaseClient = SupabaseClient<Database, any, any, any, any>;
+
 /**
  * Safe WhatsApp Connections Query
  * Returns only non-sensitive fields (id, name, phone_number, status, is_default)
  * Enforces RLS policies and hides sensitive fields (qr_code, instance_id, evo_instance_id)
  */
-export const safeWhatsAppConnectionsQuery = (supabase: SupabaseClient<Database>) => ({
+export const safeWhatsAppConnectionsQuery = (supabase: AnySupabaseClient) => ({
   /**
    * Get all connections visible to current user (RLS enforced)
    * Safe for: listing, filtering, display
@@ -109,9 +113,9 @@ export const safeWhatsAppConnectionsQuery = (supabase: SupabaseClient<Database>)
     return supabase
       .channel('whatsapp_connections_safe')
       .on(
-        'postgres_changes',
+        'postgres_changes' as never,
         {
-          event: options?.event || '*',
+          event: (options?.event || '*') as never,
           schema: 'zapp',
           table: 'whatsapp_connections',
           filter: options?.filter,
@@ -138,7 +142,7 @@ export const safeChannelConnectionsQuery = (supabase: SupabaseClient<Database>) 
       .select('id, channel_type, name, status, updated_at');
 
     if (filters?.channelType) {
-      query = query.eq('channel_type', filters.channelType);
+      query = query.eq('channel_type', filters.channelType as never);
     }
     if (filters?.status) {
       query = query.eq('status', filters.status);

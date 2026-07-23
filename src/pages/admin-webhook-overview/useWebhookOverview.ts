@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { queryKeys } from '@/services/api/queryKeys';
 import { useQuery } from '@tanstack/react-query';
 import { subHours } from 'date-fns';
 import { safeGetItem, safeSetItem } from '@/lib/safeStorage';
@@ -11,10 +12,12 @@ import {
   type WebhookEventLite,
 } from './aggregations';
 
+/** HARD_LIMIT. */
 export const HARD_LIMIT = 200;
 const AUTO_REFRESH_STORAGE_KEY = 'zappweb:webhook-overview:auto-refresh';
 const AUTO_REFRESH_INTERVAL_MS = 60_000;
 
+/** use Webhook Overview. */
 export function useWebhookOverview() {
   const [hours, setHours] = useState<string>('24');
   const [instance, setInstance] = useState<string>('all');
@@ -31,7 +34,7 @@ export function useWebhookOverview() {
   const sinceISO = useMemo(() => subHours(new Date(), Number(hours)).toISOString(), [hours]);
 
   const { data, isLoading, isRefetching, refetch, error } = useQuery({
-    queryKey: ['admin-webhook-overview', hours, includeUnprocessed],
+    queryKey: queryKeys.adminOps.webhookOverviewFiltered(hours, includeUnprocessed),
     queryFn: async () => {
       const filters: { column: string; operator: string; value: unknown }[] = [
         { column: 'created_at', operator: 'gte', value: sinceISO },

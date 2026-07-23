@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useEffect } from 'react';
 
 import { supabase } from '@/integrations/supabase/client';
@@ -11,6 +10,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Json } from '@/integrations/supabase/schema';
 
 interface SimMessage {
+  id: string;
   role: 'customer' | 'agent';
   content: string;
 }
@@ -61,6 +61,7 @@ const SCENARIOS = [
   },
 ];
 
+/** Training Mode component. */
 export function TrainingMode(): JSX.Element {
   const [activeSession, setActiveSession] = useState<string | null>(null);
   const [scenario, setScenario] = useState<(typeof SCENARIOS)[0] | null>(null);
@@ -78,14 +79,18 @@ export function TrainingMode(): JSX.Element {
 
   useEffect(() => {
     if (profileId) loadSessions();
-  }, [profileId]);
+  }, [profileId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadProfile = async () => {
     const {
       data: { user },
     } = await supabase.auth.getUser();
     if (!user) return;
-    const { data } = await supabase.from('profiles').select('id').eq('user_id', user.id).maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
+    const { data } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('user_id', user.id)
+      .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
     if (data) setProfileId(data.id);
   };
 
@@ -106,7 +111,11 @@ export function TrainingMode(): JSX.Element {
     setCustomerStep(0);
     setScore(null);
     setFeedback('');
-    const firstMsg: SimMessage = { role: 'customer', content: s.customerScript[0] };
+    const firstMsg: SimMessage = {
+      id: `msg-${Date.now()}`,
+      role: 'customer',
+      content: s.customerScript[0],
+    };
     setMessages([firstMsg]);
     setCustomerStep(1);
 
@@ -120,19 +129,20 @@ export function TrainingMode(): JSX.Element {
         status: 'in_progress',
       })
       .select('id')
-      .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
+      .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
     if (data) setActiveSession(data.id);
   };
 
   const sendResponse = async () => {
     if (!input.trim() || !scenario || !activeSession) return;
-    const agentMsg: SimMessage = { role: 'agent', content: input.trim() };
+    const agentMsg: SimMessage = { id: `msg-${Date.now()}`, role: 'agent', content: input.trim() };
     const newMessages = [...messages, agentMsg];
     setInput('');
 
     // Customer responds if there are more steps
     if (customerStep < scenario.customerScript.length) {
       const customerMsg: SimMessage = {
+        id: `msg-${Date.now()}-${customerStep}`,
         role: 'customer',
         content: scenario.customerScript[customerStep],
       };
@@ -276,9 +286,9 @@ export function TrainingMode(): JSX.Element {
             {/* Messages */}
             <div className="max-h-80 space-y-2 overflow-y-auto">
               <AnimatePresence>
-                {messages.map((msg, idx) => (
+                {messages.map((msg) => (
                   <motion.div
-                    key={idx}
+                    key={msg.id}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     className={`flex gap-2 ${msg.role === 'agent' ? 'justify-end' : ''}`}

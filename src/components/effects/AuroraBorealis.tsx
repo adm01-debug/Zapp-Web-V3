@@ -1,5 +1,6 @@
 import { motion, useReducedMotion } from 'framer-motion';
 
+/** Aurora Borealis component for the effects section. */
 export function AuroraBorealis() {
   const prefersReducedMotion = useReducedMotion();
   

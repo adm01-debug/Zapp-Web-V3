@@ -24,6 +24,7 @@ import {
 type SortOption = 'recent' | 'xp' | 'type';
 type FilterOption = 'all' | 'today' | 'week' | 'month';
 
+/** Achievements Panel component for the gamification section. */
 export function AchievementsPanel() {
   const { achievements, stats, isLoading } = useAgentGamification();
   const [searchQuery, setSearchQuery] = useState('');

@@ -3,6 +3,7 @@ import {
   Users, Clock, Star, Archive, Bell, Zap, MessageSquare, Package, EyeOff, Share2,
 } from 'lucide-react';
 
+/** Slash Command component for the slash commands section. */
 export interface SlashCommand {
   id: string;
   command: string;
@@ -15,6 +16,7 @@ export interface SlashCommand {
   subCommands?: { id: string; label: string; value: string }[];
 }
 
+/** SLASH_COMMANDS component for the slash commands section. */
 export const SLASH_COMMANDS: SlashCommand[] = [
   { id: 'transfer', command: '/transfer', label: 'Transferir', description: 'Transferir conversa para outro agente ou fila', icon: ArrowRight, category: 'actions', color: 'text-info', shortcut: 'T', subCommands: [{ id: 'agent', label: 'Para Agente', value: 'agent' }, { id: 'queue', label: 'Para Fila', value: 'queue' }] },
   { id: 'resolve', command: '/resolve', label: 'Resolver', description: 'Marcar conversa como resolvida', icon: CheckCircle, category: 'actions', color: 'text-success', shortcut: 'R' },
@@ -34,6 +36,7 @@ export const SLASH_COMMANDS: SlashCommand[] = [
   { id: 'internal-file', command: '/files', label: 'Arquivos Equipe', description: 'Abre central de arquivos internos', icon: Share2, category: 'internal', color: 'text-warning-foreground', shortcut: 'U' },
 ];
 
+/** category Colors component for the slash commands section. */
 export const categoryColors: Record<string, string> = {
   actions: 'bg-info/10 text-info',
   templates: 'bg-primary/10 text-primary',
@@ -43,6 +46,7 @@ export const categoryColors: Record<string, string> = {
   internal: 'bg-warning text-warning-foreground',
 };
 
+/** category Labels component for the slash commands section. */
 export const categoryLabels: Record<string, string> = {
   actions: 'Ações',
   templates: 'Templates',

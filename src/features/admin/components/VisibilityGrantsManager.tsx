@@ -1,4 +1,4 @@
-// @ts-nocheck
+import { queryKeys } from '@/services/api/queryKeys';
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -32,6 +32,7 @@ interface QueryData {
   grants: Grant[];
 }
 
+/** Visibility Grants Manager component. */
 export function VisibilityGrantsManager() {
   const queryClient = useQueryClient();
   const [saving, setSaving] = useState(false);
@@ -39,7 +40,7 @@ export function VisibilityGrantsManager() {
   const [selectedTargetAgent, setSelectedTargetAgent] = useState('');
 
   const { data, isLoading: loading } = useQuery<QueryData>({
-    queryKey: ['admin', 'visibility-grants'],
+    queryKey: queryKeys.adminOps.visibilityGrants(),
     queryFn: async () => {
       // O papel `special_agent` foi descontinuado em favor do papel `agent`.
       // Esta tela permanece apenas para visualizar grants legados (lista vazia por padrão).
@@ -126,7 +127,7 @@ export function VisibilityGrantsManager() {
     } else {
       toast.success('Permissão de visibilidade adicionada');
       setSelectedTargetAgent('');
-      void queryClient.invalidateQueries({ queryKey: ['admin', 'visibility-grants'] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.adminOps.visibilityGrants() });
     }
     setSaving(false);
   };
@@ -141,7 +142,7 @@ export function VisibilityGrantsManager() {
       toast.error('Erro ao remover permissão');
     } else {
       toast.success('Permissão removida');
-      void queryClient.invalidateQueries({ queryKey: ['admin', 'visibility-grants'] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.adminOps.visibilityGrants() });
     }
   };
 
@@ -281,7 +282,7 @@ export function VisibilityGrantsManager() {
                           <p className="text-xs text-muted-foreground">{grant.target_profile?.email}</p>
                         </div>
                       </div>
-                      <Button
+                      <Button aria-label="Excluir"
                         variant="ghost"
                         size="sm"
                         onClick={() => handleRemoveGrant(grant.id)}

@@ -1,10 +1,7 @@
-// @ts-nocheck
-import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { log } from '@/lib/logger';
-import type { Tables } from '@/integrations/supabase/schema';
-
-type ContactRow = Tables<'contacts'>;
+import type { ContactRow } from '@/integrations/supabase/schema';
 
 interface UseContactDataResult {
   contact: ContactRow | null;
@@ -14,56 +11,30 @@ interface UseContactDataResult {
 
 /** Fetches contact data by ID with loading and error handling. */
 export function useContactData(contactId: string | undefined): UseContactDataResult {
-  const [contact, setContact] = useState<ContactRow | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
-
-  useEffect(() => {
-    if (!contactId) {
-      setContact(null);
-      setLoading(false);
-      return;
-    }
-
-    let cancelled = false;
-
-    const fetchContact = async () => {
+  const { data: contact = null, isLoading: loading, error: queryError } = useQuery({
+    queryKey: ['contact', contactId],
+    queryFn: async () => {
       try {
         const { data, error: fetchError } = await supabase
           .from('contacts')
           .select('*')
-          .eq('id', contactId)
-          .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
-
-        if (cancelled) return;
-
-        if (fetchError) {
-          setError(new Error(fetchError.message));
-          setContact(null);
-        } else {
-          setContact(data);
-          setError(null);
-        }
+          .eq('id', contactId!)
+          .maybeSingle();
+        if (fetchError) throw new Error(fetchError.message);
+        return data as ContactRow | null;
       } catch (err) {
-        if (!cancelled) {
-          const error = err instanceof Error ? err : new Error(String(err));
-          log.error('Failed to fetch contact:', error);
-          setError(error);
-          setContact(null);
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
+        const e = err instanceof Error ? err : new Error(String(err));
+        log.error('Failed to fetch contact:', e);
+        throw e;
       }
-    };
+    },
+    enabled: !!contactId,
+    staleTime: 30_000,
+  });
 
-    void fetchContact();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [contactId]);
-
-  return { contact, loading, error };
+  return {
+    contact,
+    loading,
+    error: queryError instanceof Error ? queryError : queryError ? new Error(String(queryError)) : null,
+  };
 }

@@ -81,6 +81,7 @@ function summary(entry: DlqAuditEntry): React.ReactNode {
   }
 }
 
+/** DLQAudit History component for the monitoring section. */
 export function DLQAuditHistory() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const { data: entries = [], isLoading, refetch, isFetching } = useDlqAuditLog({ limit: 30 });

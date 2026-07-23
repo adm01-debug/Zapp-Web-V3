@@ -1,9 +1,10 @@
-import { useState, useCallback } from 'react';
+import { useCallback } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { safeFrom } from '@/integrations/supabase/safeClient';
 import { toast } from '@/hooks/use-toast';
-import { useMountedRef } from '@/hooks/useMountedRef';
 
+/** Article interface definition. */
 export interface Article {
   id: string;
   title: string;
@@ -16,6 +17,7 @@ export interface Article {
   updated_at: string;
 }
 
+/** K B File interface definition. */
 export interface KBFile {
   id: string;
   article_id: string | null;
@@ -27,6 +29,7 @@ export interface KBFile {
   created_at: string;
 }
 
+/** C A T E G O R I E S constant. */
 export const CATEGORIES = [
   'general',
   'product',
@@ -37,6 +40,7 @@ export const CATEGORIES = [
   'faq',
 ];
 
+/** C A T E G O R Y_ L A B E L S constant. */
 export const CATEGORY_LABELS: Record<string, string> = {
   general: 'Geral',
   product: 'Produto',
@@ -47,30 +51,40 @@ export const CATEGORY_LABELS: Record<string, string> = {
   faq: 'FAQ',
 };
 
+interface KBSnapshot {
+  articles: Article[];
+  files: KBFile[];
+}
+
+const KB_QUERY_KEY = ['knowledge-base'] as const;
+
 /** Manages knowledge base articles and files with create, update, delete, and upload operations. */
 export function useKnowledgeBase() {
-  const [articles, setArticles] = useState<Article[]>([]);
-  const [files, setFiles] = useState<KBFile[]>([]);
-  const [loading, setLoading] = useState(true);
-  const mountedRef = useMountedRef();
+  const queryClient = useQueryClient();
 
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    const [articlesRes, filesRes] = await Promise.all([
-      safeFrom('knowledge_base_articles').select('*').order('updated_at', { ascending: false }),
-      safeFrom('knowledge_base_files').select('*').order('created_at', { ascending: false }),
-    ]);
-    if (!mountedRef.current) return;
-    if (articlesRes.data)
-      setArticles(
-        articlesRes.data.map((a: Record<string, unknown>) => ({
-          ...a,
-          tags: (a.tags as string[]) || [],
-        }))
-      );
-    if (filesRes.data) setFiles(filesRes.data);
-    setLoading(false);
-  }, []);
+  const { data, isLoading: loading } = useQuery({
+    queryKey: KB_QUERY_KEY,
+    queryFn: async (): Promise<KBSnapshot> => {
+      const [articlesRes, filesRes] = await Promise.all([
+        safeFrom('knowledge_base_articles').select('*').order('updated_at', { ascending: false }),
+        safeFrom('knowledge_base_files').select('*').order('created_at', { ascending: false }),
+      ]);
+      const articles = (articlesRes.data ?? []).map((a: Record<string, unknown>) => ({
+        ...a,
+        tags: (a.tags as string[]) || [],
+      })) as Article[];
+      return { articles, files: (filesRes.data ?? []) as KBFile[] };
+    },
+    staleTime: 30_000,
+  });
+
+  const articles = data?.articles ?? [];
+  const files = data?.files ?? [];
+
+  const fetchData = useCallback(
+    () => queryClient.invalidateQueries({ queryKey: KB_QUERY_KEY }),
+    [queryClient]
+  );
 
   const saveArticle = useCallback(
     async (
@@ -108,19 +122,19 @@ export function useKnowledgeBase() {
         }
         toast({ title: 'Artigo criado!' });
       }
-      void fetchData();
+      void queryClient.invalidateQueries({ queryKey: KB_QUERY_KEY });
       return true;
     },
-    [fetchData]
+    [queryClient]
   );
 
   const deleteArticle = useCallback(
     async (id: string) => {
       await safeFrom('knowledge_base_articles').delete().eq('id', id);
       toast({ title: 'Artigo removido' });
-      void fetchData();
+      void queryClient.invalidateQueries({ queryKey: KB_QUERY_KEY });
     },
-    [fetchData]
+    [queryClient]
   );
 
   const uploadFile = useCallback(
@@ -151,9 +165,9 @@ export function useKnowledgeBase() {
         file_size: file.size,
       });
       toast({ title: 'Arquivo enviado!', description: file.name });
-      void fetchData();
+      void queryClient.invalidateQueries({ queryKey: KB_QUERY_KEY });
     },
-    [fetchData]
+    [queryClient]
   );
 
   return { articles, files, loading, fetchData, saveArticle, deleteArticle, uploadFile };

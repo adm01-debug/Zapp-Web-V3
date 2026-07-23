@@ -4,6 +4,7 @@ import { useExternalConversations, useExternalMessages } from '@/hooks/useExtern
 import { useMessages } from './useMessages';
 import type { LoadOlderCallback, CancelLoadOlderCallback } from '../components/chat/loadOlderTypes';
 
+/** Multiplexes between the local Realtime data source and the external FATOR-X evolution DB, returning a unified conversation/message interface and pagination callbacks. */
 export function useInboxSource(useExternalDb: boolean, selectedContactId: string | null) {
   // Local DB source
   const localRealtime = useRealtimeMessages();

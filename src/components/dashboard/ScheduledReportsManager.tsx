@@ -1,7 +1,5 @@
-// @ts-nocheck
 import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { useScheduledReports } from '@/hooks/useScheduledReports';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -25,9 +23,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Calendar, Clock, FileText, Mail, Plus, Trash2, RefreshCw } from 'lucide-react';
-import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import { useAuth } from '@/features/auth';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -47,79 +43,14 @@ const REPORT_TYPE_LABELS: Record<string, string> = {
   full: 'Completo',
 };
 
+/** Scheduled Reports Manager component for the dashboard section. */
 export function ScheduledReportsManager() {
-  const queryClient = useQueryClient();
-  const { profile } = useAuth();
+  const { configs, isLoading, createConfig, toggleActive, deleteConfig } = useScheduledReports();
   const [showCreate, setShowCreate] = useState(false);
   const [formName, setFormName] = useState('');
   const [formType, setFormType] = useState('performance');
   const [formFrequency, setFormFrequency] = useState('weekly');
   const [formRecipients, setFormRecipients] = useState('');
-
-  const { data: configs = [], isLoading } = useQuery({
-    queryKey: ['scheduled-report-configs'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('scheduled_report_configs')
-        .select('*')
-        .order('created_at', { ascending: false });
-      if (error) throw error;
-      return data || [];
-    },
-  });
-
-  const createConfig = useMutation({
-    mutationFn: async () => {
-      const recipients = formRecipients
-        .split(',')
-        .map((r) => r.trim())
-        .filter(Boolean);
-      const { error } = await supabase.from('scheduled_report_configs').insert({
-        name: formName,
-        report_type: formType,
-        frequency: formFrequency,
-        recipients,
-        created_by: profile?.id,
-        is_active: true,
-        config: {},
-      });
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['scheduled-report-configs'] });
-      toast.success('Relatório agendado criado!');
-      setShowCreate(false);
-      resetForm();
-    },
-    onError: () => toast.error('Erro ao criar relatório'),
-  });
-
-  const toggleActive = useMutation({
-    mutationFn: async ({ id, isActive }: { id: string; isActive: boolean }) => {
-      const { error } = await supabase
-        .from('scheduled_report_configs')
-        .update({ is_active: !isActive })
-        .eq('id', id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['scheduled-report-configs'] });
-      toast.success('Status atualizado');
-    },
-    onError: () => toast.error('Erro ao atualizar status'),
-  });
-
-  const deleteConfig = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from('scheduled_report_configs').delete().eq('id', id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['scheduled-report-configs'] });
-      toast.success('Relatório removido');
-    },
-    onError: () => toast.error('Erro ao remover relatório'),
-  });
 
   const resetForm = () => {
     setFormName('');
@@ -308,7 +239,22 @@ export function ScheduledReportsManager() {
               Cancelar
             </Button>
             <Button
-              onClick={() => createConfig.mutate()}
+              onClick={() =>
+                createConfig.mutate(
+                  {
+                    name: formName,
+                    reportType: formType,
+                    frequency: formFrequency,
+                    recipients: formRecipients.split(',').map((r) => r.trim()).filter(Boolean),
+                  },
+                  {
+                    onSuccess: () => {
+                      setShowCreate(false);
+                      resetForm();
+                    },
+                  },
+                )
+              }
               disabled={!formName || !formRecipients || createConfig.isPending}
             >
               {createConfig.isPending ? (

@@ -18,26 +18,30 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { errorResponse, requireEnv, validateEnvironment } from "./validation.ts";
 import { createZappAdminClient } from "./db-client.ts";
 
+/** Authed User interface. */
 export interface AuthedUser {
   user: { id: string; email: string | null };
 }
 
-/** Constant-time string comparison to prevent timing-based secret enumeration. */
+/**
+ * Constant-time string comparison to prevent timing-based secret enumeration.
+ * Always iterates exactly bb.byteLength (the secret's length) times, so the
+ * loop duration is determined by the secret, not by the attacker-supplied value.
+ * Length mismatch is folded into `diff` without branching the loop.
+ */
 export function timingSafeStringEqual(a: string, b: string): boolean {
   const enc = new TextEncoder();
   const ab = enc.encode(a);
   const bb = enc.encode(b);
-  if (ab.byteLength !== bb.byteLength) {
-    // Consume comparable time even on length mismatch
-    let _x = 0;
-    for (let i = 0; i < ab.byteLength; i++) _x |= ab[i] ^ (bb[i % (bb.byteLength || 1)] ?? 0);
-    return false;
+  // Start diff at 1 if lengths differ; the loop alone cannot flip it back to 0.
+  let diff = ab.byteLength === bb.byteLength ? 0 : 1;
+  for (let i = 0; i < bb.byteLength; i++) {
+    diff |= (ab[i] ?? 0) ^ bb[i];
   }
-  let diff = 0;
-  for (let i = 0; i < ab.byteLength; i++) diff |= ab[i] ^ bb[i];
   return diff === 0;
 }
 
+/** get Bearer function. */
 export function getBearer(req: Request): string | null {
   const raw = req.headers.get("Authorization") || req.headers.get("authorization");
   if (!raw) return null;
@@ -58,10 +62,11 @@ function readSupabaseUrl(name: string): string | null {
 
 function readSecret(name: string): string | null {
   const raw = Deno.env.get(name)?.trim();
-  if (!raw || /PLACEHOLDER|REPLACE|CHANGE_ME|YOUR_/i.test(raw)) return null;
+  if (!raw || raw.length < 8 || /PLACEHOLDER|REPLACE|CHANGE_ME|YOUR_/i.test(raw)) return null;
   return raw;
 }
 
+/** require User function. */
 export async function requireUser(req: Request): Promise<AuthedUser | Response> {
   const token = getBearer(req);
   if (!token) return errorResponse("Unauthorized: missing bearer token", 401, req);
@@ -146,6 +151,7 @@ export async function requireUser(req: Request): Promise<AuthedUser | Response> 
   return errorResponse(`Unauthorized: invalid token (${lastErr ?? "unknown"})`, 401, req);
 }
 
+/** require Admin Or Supervisor function. */
 export async function requireAdminOrSupervisor(req: Request): Promise<AuthedUser | Response> {
   // requireUser already validates token expiry, so no need to check again here
   const authed = await requireUser(req);

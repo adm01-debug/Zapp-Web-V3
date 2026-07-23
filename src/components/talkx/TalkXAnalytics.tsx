@@ -22,6 +22,7 @@ interface Props {
 
 const _COLORS = ['hsl(var(--primary))', 'hsl(var(--destructive))', 'hsl(var(--muted-foreground))'];
 
+/** Talk XAnalytics component for the talkx section. */
 export function TalkXAnalytics({ campaigns }: Props) {
   const stats = useMemo(() => {
     const total = campaigns.length;
@@ -72,8 +73,8 @@ export function TalkXAnalytics({ campaigns }: Props) {
     'hsl(var(--muted-foreground))',
     'hsl(var(--destructive))',
     'hsl(var(--accent-foreground))',
-    '#f59e0b',
-    '#6366f1',
+    'hsl(var(--warning))',
+    'hsl(var(--secondary))',
   ];
 
   if (campaigns.length === 0) {

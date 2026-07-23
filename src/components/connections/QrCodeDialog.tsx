@@ -6,6 +6,7 @@ import { CheckCircle2, XCircle, AlertCircle, Loader2, QrCode } from 'lucide-reac
 import { RefreshQrButton } from './RefreshQrButton';
 import { QrAttemptHistory } from './QrAttemptHistory';
 
+/** Qr Code Dialog State component for the connections section. */
 export interface QrCodeDialogState {
   open?: boolean;
   status: 'loading' | 'pending' | 'connected' | 'error';
@@ -63,6 +64,7 @@ function maskSensitiveData(obj: unknown): unknown {
   return maskValue(JSON.parse(JSON.stringify(obj)));
 }
 
+/** Qr Code Dialog component for the connections section. */
 export function QrCodeDialog({
   open,
   onClose,
@@ -186,7 +188,7 @@ export function QrCodeDialog({
                     <p className="text-[10px] font-bold uppercase text-muted-foreground">
                       Payload Evolution API (Mascarado)
                     </p>
-                    <pre className="max-h-40 overflow-x-auto rounded bg-black/5 p-2 font-mono text-[9px]">
+                    <pre className="max-h-40 overflow-x-auto rounded bg-muted/40 p-2 font-mono text-[9px]">
                       {JSON.stringify(maskSensitiveData(rawPayload), null, 2)}
                     </pre>
                     <p className="text-[8px] italic text-muted-foreground">

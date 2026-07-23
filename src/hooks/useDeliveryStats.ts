@@ -1,12 +1,14 @@
-// @ts-nocheck
+
 import { useQuery } from '@tanstack/react-query';
 import { dbList } from '@/integrations/datasource/db';
 import { RPC } from '@/integrations/datasource/rpcCatalog';
+import { queryKeys } from '@/services/api/queryKeys';
 import { startOfHour, format, parseISO, subHours } from 'date-fns';
 import { getLogger } from '@/lib/logger';
 
 const log = getLogger('useDeliveryStats');
 
+/** Participant Stats interface definition. */
 export interface ParticipantStats {
   participantJid: string;
   displayName: string;
@@ -19,6 +21,7 @@ export interface ParticipantStats {
   timeline: DeliveryTimelinePoint[];
 }
 
+/** Delivery Timeline Point interface definition. */
 export interface DeliveryTimelinePoint {
   time: string;
   sent: number;
@@ -26,6 +29,7 @@ export interface DeliveryTimelinePoint {
   read: number;
 }
 
+/** Delivery Stats Result interface definition. */
 export interface DeliveryStatsResult {
   isGroup: boolean;
   totals: {
@@ -49,16 +53,19 @@ const STATUS_RANK: Record<string, number> = {
   played: 3,
 };
 
+/** Returns the later of two nullable ISO timestamp strings; returns the non-null side when one argument is null. */
 function maxDate(a: string | null, b: string | null): string | null {
   if (!a) return b;
   if (!b) return a;
   return new Date(a) > new Date(b) ? a : b;
 }
 
+/** Returns true when the JID string belongs to a WhatsApp group (ends with `@g.us`). */
 function isGroupJid(jid: string): boolean {
   return jid?.endsWith('@g.us');
 }
 
+/** Extracts participant JID and display name from a raw message row, handling group participant nesting inside `payload.key.participant`. Returns `{ jid: 'me', name: 'Atendente' }` for outbound messages. */
 function extractParticipant(msg: Record<string, unknown>): { jid: string; name: string } {
   const fromMe = !!msg.from_me;
   const remoteJid = String(msg.remote_jid ?? '');
@@ -83,6 +90,7 @@ function extractParticipant(msg: Record<string, unknown>): { jid: string; name: 
 }
 
 // SIMULATION DATA GENERATOR
+/** Generates synthetic 24-hour delivery timeline and fake participant stats for the given JID; used in development and demo environments. */
 function generateMockData(remoteJid: string): DeliveryStatsResult {
   const isGroup = isGroupJid(remoteJid);
   const now = new Date();
@@ -144,7 +152,7 @@ function generateMockData(remoteJid: string): DeliveryStatsResult {
 /** Retrieves message delivery statistics and success rates. */
 export function useDeliveryStats(remoteJid: string | undefined, instance = 'wpp2') {
   return useQuery<DeliveryStatsResult>({
-    queryKey: ['delivery-stats', remoteJid, instance],
+    queryKey: queryKeys.deliveryStats.contact(remoteJid, instance),
     enabled: !!remoteJid,
     staleTime: 30_000,
     queryFn: async () => {
@@ -155,7 +163,7 @@ export function useDeliveryStats(remoteJid: string | undefined, instance = 'wpp2
       }
 
       const { data, error } = await dbList(RPC.listMessages, {
-        p_remote_jid: remoteJid!,
+        p_remote_jid: remoteJid ?? '',
         p_instance: instance,
         p_limit: 500,
       });
@@ -164,7 +172,7 @@ export function useDeliveryStats(remoteJid: string | undefined, instance = 'wpp2
       if (error) {
         log.error('Delivery stats query error', error);
         return {
-          isGroup: isGroupJid(remoteJid!),
+          isGroup: isGroupJid(remoteJid ?? ''),
           totals: {
             sent: 0,
             delivered: 0,
@@ -179,8 +187,8 @@ export function useDeliveryStats(remoteJid: string | undefined, instance = 'wpp2
         };
       }
 
-      const messages = (data && Array.isArray(data) ? data : []) as Record<string, unknown>[];
-      const isGroup = isGroupJid(remoteJid!);
+      const messages = (data && Array.isArray(data) ? data : []) as unknown as Record<string, unknown>[];
+      const isGroup = isGroupJid(remoteJid ?? '');
 
       const totals = {
         sent: 0,
@@ -208,7 +216,7 @@ export function useDeliveryStats(remoteJid: string | undefined, instance = 'wpp2
           if (!timelineMap.has(hourKey)) {
             timelineMap.set(hourKey, { time: hourKey, sent: 0, delivered: 0, read: 0 });
           }
-          const point = timelineMap.get(hourKey)!;
+          const point = timelineMap.get(hourKey) as DeliveryTimelinePoint;
           if (rank >= 1) point.sent++;
           if (rank >= 2) point.delivered++;
           if (rank >= 3) point.read++;
@@ -227,7 +235,7 @@ export function useDeliveryStats(remoteJid: string | undefined, instance = 'wpp2
             timeline: [], // Initial state for participant timeline
           });
         }
-        const p = byParticipant.get(jid)!;
+        const p = byParticipant.get(jid) as ParticipantStats;
         if (name && name.length > p.displayName.length) p.displayName = name;
 
         // Participant timeline aggregation

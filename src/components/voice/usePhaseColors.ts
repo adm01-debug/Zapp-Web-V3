@@ -14,6 +14,7 @@ function hsl(h: number, s: number, l: number) {
   return `hsl(${h}, ${s}%, ${l}%)`;
 }
 
+/** use Phase Colors component for the voice section. */
 export function usePhaseColors(phase: VoiceAgentPhase): PhaseColors {
   const [themeHue, setThemeHue] = useState(220);
 

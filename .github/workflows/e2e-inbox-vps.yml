@@ -1,0 +1,145 @@
+name: E2E Inbox (VPS)
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: 'URL alvo da VPS'
+        required: false
+        default: 'https://zapp.atomicabr.com.br'
+      include_reactions:
+        description: 'Rodar whatsapp-reactions-realtime?'
+        required: false
+        default: 'false'
+      runner:
+        description: 'Runner alvo (self-hosted na VPS ou ubuntu-latest)'
+        required: false
+        default: 'self-hosted'
+        type: choice
+        options:
+          - self-hosted
+          - ubuntu-latest
+  schedule:
+    # Diário 06:00 BRT (09:00 UTC)
+    - cron: '0 9 * * *'
+
+jobs:
+  validate-user:
+    name: Pré-check — permissões CRM do E2E user
+    uses: ./.github/workflows/validate-e2e-user.yml
+    secrets: inherit
+
+  seed-contacts:
+    name: Pré-seed — contatos E2E
+    needs: [validate-user, seed-contacts]
+    uses: ./.github/workflows/seed-e2e-contacts.yml
+    secrets: inherit
+
+  e2e-inbox:
+    name: Playwright Inbox contra VPS
+    needs: validate-user
+    runs-on: ${{ github.event.inputs.runner == 'ubuntu-latest' && 'ubuntu-latest' || fromJSON('["self-hosted","vps-zapp","playwright"]') }}
+    timeout-minutes: 60
+    env:
+      E2E_BASE_URL: ${{ github.event.inputs.base_url || 'https://zapp.atomicabr.com.br' }}
+      E2E_USER_EMAIL: ${{ secrets.E2E_USER_EMAIL }}
+      E2E_USER_PASSWORD: ${{ secrets.E2E_USER_PASSWORD }}
+      VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+      VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+      CI: 'true'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+
+      - name: Instalar dependências
+        run: bun install --frozen-lockfile
+
+      - name: Instalar Chromium do Playwright
+        run: bunx playwright install --with-deps chromium
+
+      - name: Validar credenciais
+        run: |
+          if [ -z "$E2E_USER_EMAIL" ] || [ -z "$E2E_USER_PASSWORD" ]; then
+            echo "::error::E2E_USER_EMAIL / E2E_USER_PASSWORD não configurados nos secrets do repositório."
+            exit 1
+          fi
+          echo "Alvo: $E2E_BASE_URL"
+
+      - name: Rodar suite Inbox
+        id: run_inbox
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          SPECS="e2e/inbox-full-flow.spec.ts \
+            e2e/inbox-realtime.spec.ts \
+            e2e/inbox-thread-message-arrival.spec.ts \
+            e2e/inbox-scope.spec.ts \
+            e2e/inbox-created-thread-inbound.spec.ts \
+            e2e/chat-accessibility.spec.ts \
+            e2e/chat-advanced.spec.ts \
+            e2e/chat-media.spec.ts \
+            e2e/chat-resilience-responsive.spec.ts \
+            e2e/send-message.spec.ts \
+            e2e/send-message-cycle.spec.ts \
+            e2e/conversations-routing.spec.ts \
+            e2e/connection-to-inbox-inbound.spec.ts"
+          if [ "${{ github.event.inputs.include_reactions }}" = "true" ]; then
+            SPECS="$SPECS e2e/whatsapp-reactions-realtime.spec.ts"
+          fi
+          bunx playwright test \
+            --config=playwright.e2e.config.ts \
+            --reporter=list,html,json \
+            $SPECS 2>&1 | tee playwright-inbox.log
+
+      - name: Gerar resumo em Markdown
+        if: always()
+        run: |
+          {
+            echo "# Relatório E2E Inbox — $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            echo ""
+            echo "- Alvo: \`$E2E_BASE_URL\`"
+            echo "- Resultado do step Inbox: \`${{ steps.run_inbox.outcome }}\`"
+            echo "- reactions: \`${{ github.event.inputs.include_reactions }}\`"
+            echo ""
+            echo "## Últimas linhas do log"
+            echo '```'
+            tail -n 120 playwright-inbox.log 2>/dev/null || echo "(sem log)"
+            echo '```'
+          } > e2e-inbox-vps-report.md
+          cat e2e-inbox-vps-report.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload do relatório HTML
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-e2e-inbox
+          path: playwright-report-e2e/
+          retention-days: 14
+
+      - name: Upload de test-results (traces, screenshots, videos)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-e2e-inbox
+          path: test-results/
+          retention-days: 14
+          if-no-files-found: ignore
+
+      - name: Upload do resumo markdown
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-inbox-vps-report
+          path: e2e-inbox-vps-report.md
+          retention-days: 30
+
+      - name: Falhar job se testes falharam
+        if: steps.run_inbox.outcome == 'failure'
+        run: |
+          echo "::error::Testes E2E de Inbox falharam contra $E2E_BASE_URL"
+          exit 1

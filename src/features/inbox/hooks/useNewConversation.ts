@@ -1,5 +1,5 @@
-// @ts-nocheck
 import { useState, useEffect } from 'react';
+import { useMountedRef } from '@/hooks/useMountedRef';
 import { supabase } from '@/integrations/supabase/client';
 import { sanitizePostgrestFilter } from '@/lib/sanitize';
 import { toast } from 'sonner';
@@ -19,12 +19,14 @@ interface ContactResult {
   avatar_url: string | null;
 }
 
+/** Manages the new-conversation dialog state: contact search, new-contact creation, message composition, and sending via the Evolution API edge function. */
 export function useNewConversation(
   open: boolean,
   onConversationStarted?: (contactId: string) => void,
   onClose?: () => void
 ) {
   const { sendTextPayloadSchema } = createCriticalPayloadSchemas(z);
+  const mounted = useMountedRef();
   const [searchQuery, setSearchQuery] = useState('');
   const [contacts, setContacts] = useState<ContactResult[]>([]);
   const [selectedContact, setSelectedContact] = useState<ContactResult | null>(null);
@@ -47,14 +49,14 @@ export function useNewConversation(
       .eq('status', 'connected')
       .then(
         ({ data }) => {
-          if (data && data.length > 0) {
+          if (data && data.length > 0 && mounted.current) {
             setConnections(data);
             setSelectedConnection(data[0].id);
           }
         },
         () => {}
       );
-  }, [open]);
+  }, [open, mounted]);
 
   useEffect(() => {
     if (!searchQuery.trim() || mode !== 'search') {
@@ -70,11 +72,12 @@ export function useNewConversation(
           `name.ilike.%${sanitizePostgrestFilter(searchQuery)}%,phone.ilike.%${sanitizePostgrestFilter(searchQuery)}%`
         )
         .limit(10);
+      if (!mounted.current) return;
       setContacts(data || []);
       setIsLoading(false);
     }, 300);
     return () => clearTimeout(timeout);
-  }, [searchQuery, mode]);
+  }, [searchQuery, mode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const resetForm = () => {
     setSearchQuery('');
@@ -116,7 +119,7 @@ export function useNewConversation(
             whatsapp_connection_id: selectedConnection || null,
           })
           .select('id')
-          .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
+          .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
         if (newContactErr) {
           if (newContactErr.code === '23505') {
             toast.error('Já existe um contato com este número de telefone.');

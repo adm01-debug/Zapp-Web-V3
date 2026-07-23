@@ -1,6 +1,7 @@
 // WhatsApp supported file types and size limits
 // Based on official WhatsApp Business API documentation
 
+/** File Type Config interface definition. */
 export interface FileTypeConfig {
   extensions: string[];
   mimeTypes: string[];
@@ -9,6 +10,7 @@ export interface FileTypeConfig {
   label: string;
 }
 
+/** W H A T S A P P_ F I L E_ T Y P E S constant. */
 export const WHATSAPP_FILE_TYPES: Record<string, FileTypeConfig> = {
   image: {
     extensions: ['.jpg', '.jpeg', '.png', '.webp'],
@@ -79,22 +81,22 @@ export const WHATSAPP_FILE_TYPES: Record<string, FileTypeConfig> = {
   }
 };
 
-// Get all allowed file extensions
+/** Returns all file extensions accepted by WhatsApp (e.g. `.jpg`, `.mp4`, `.pdf`). */
 export const getAllowedExtensions = (): string[] => {
   return Object.values(WHATSAPP_FILE_TYPES).flatMap(config => config.extensions);
 };
 
-// Get all allowed MIME types
+/** Returns all MIME types accepted by WhatsApp across image, video, audio, document, and sticker categories. */
 export const getAllowedMimeTypes = (): string[] => {
   return Object.values(WHATSAPP_FILE_TYPES).flatMap(config => config.mimeTypes);
 };
 
-// Get accept string for file input
+/** Builds a comma-separated accept string for an `<input type="file">` element covering all supported WhatsApp MIME types. */
 export const getFileInputAccept = (): string => {
   return getAllowedMimeTypes().join(',');
 };
 
-// Validate file type and size
+/** Result returned by validateFile describing whether a file is accepted, its category, and size limit. */
 export interface FileValidationResult {
   valid: boolean;
   error?: string;
@@ -102,6 +104,7 @@ export interface FileValidationResult {
   maxSizeMB?: number;
 }
 
+/** Validates a File against supported WhatsApp MIME types and per-category size limits. Returns valid=false with a localized error message on failure. */
 export const validateFile = (file: File): FileValidationResult => {
   const mimeType = file.type.toLowerCase();
   const extension = '.' + file.name.split('.').pop()?.toLowerCase();
@@ -135,14 +138,14 @@ export const validateFile = (file: File): FileValidationResult => {
   };
 };
 
-// Format file size for display
+/** Formats a byte count as a human-readable string (e.g. "1.2 MB", "512 KB", "256 B"). */
 export const formatFileSize = (bytes: number): string => {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
 };
 
-// Get file category from MIME type
+/** Resolves a MIME type string to a WhatsApp file category (image/video/audio/document/sticker), falling back to prefix-based detection. Returns null for unsupported types. */
 export const getFileCategory = (mimeType: string): FileTypeConfig['category'] | null => {
   const mime = mimeType.toLowerCase();
   
@@ -161,19 +164,19 @@ export const getFileCategory = (mimeType: string): FileTypeConfig['category'] | 
   return null;
 };
 
-// Get max file size for category
+/** Returns the maximum allowed file size in MB for the given WhatsApp file category. Defaults to 16 MB when the category is not found. */
 export const getMaxSizeForCategory = (category: FileTypeConfig['category']): number => {
   const config = Object.values(WHATSAPP_FILE_TYPES).find(c => c.category === category);
   return config?.maxSizeMB || 16;
 };
 
-// Get file extension from filename
+/** Extracts the file extension from a filename (e.g. "photo.jpg" → "jpg"). Returns an empty string when no extension is present. */
 export const getFileExtension = (fileName: string): string => {
   const parts = fileName.split('.');
   return parts.length > 1 ? parts.pop() || '' : '';
 };
 
-// Get filename from URL
+/** Extracts the filename from a URL path (e.g. "https://…/uploads/photo.jpg" → "photo.jpg"). Returns "file" when the URL is invalid or has no path segment. */
 export const getFileNameFromUrl = (url: string): string => {
   try {
     const urlObj = new URL(url);
@@ -186,6 +189,7 @@ export const getFileNameFromUrl = (url: string): string => {
 };
 
 // Contact types for categorization
+/** C O N T A C T_ T Y P E S constant. */
 export const CONTACT_TYPES = [
   { value: 'cliente', label: 'Cliente', color: 'bg-primary' },
   { value: 'fornecedor', label: 'Fornecedor', color: 'bg-secondary' },
@@ -198,8 +202,10 @@ export const CONTACT_TYPES = [
   { value: 'outros', label: 'Outros', color: 'bg-muted' },
 ] as const;
 
+/** Union type of all valid contact type values (e.g. 'cliente', 'lead', 'parceiro'). */
 export type ContactType = typeof CONTACT_TYPES[number]['value'];
 
+/** Looks up the CONTACT_TYPES entry for the given type value. Falls back to the first entry (cliente) when no match is found. */
 export const getContactTypeInfo = (type: string) => {
   return CONTACT_TYPES.find(t => t.value === type) || CONTACT_TYPES[0];
 };

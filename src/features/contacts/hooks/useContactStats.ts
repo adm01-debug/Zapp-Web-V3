@@ -1,6 +1,8 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { safeClient } from '@/integrations/supabase/safeClient';
 
+/** Hook: Contact Stats Data. */
 export interface ContactStatsData {
   total: number;
   with_email: number;
@@ -22,45 +24,25 @@ interface UseContactStatsReturn {
   refresh: () => Promise<void>;
 }
 
+const CONTACT_STATS_KEY = ['contact-stats'] as const;
+
+/** Hook: use Contact Stats. */
 export function useContactStats(): UseContactStatsReturn {
-  const [stats, setStats] = useState<ContactStatsData | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
-  const mountedRef = useRef(true);
-  useEffect(() => {
-    mountedRef.current = true;
-    return () => {
-      mountedRef.current = false;
-    };
-  }, []);
+  const queryClient = useQueryClient();
 
-  const fetch = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
-
-    try {
+  const { data: stats = null, isLoading, error } = useQuery({
+    queryKey: CONTACT_STATS_KEY,
+    queryFn: async (): Promise<ContactStatsData | null> => {
       const { data, error: rpcErr } = await safeClient.rpc<ContactStatsData>('rpc_contact_stats');
-
-      if (!mountedRef.current) return;
       if (rpcErr) throw new Error(rpcErr.message);
+      return data;
+    },
+    staleTime: 30_000,
+  });
 
-      setStats(data);
-    } catch (err) {
-      if (mountedRef.current) setError(err instanceof Error ? err : new Error(String(err)));
-    } finally {
-      if (mountedRef.current) setIsLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    void fetch();
-  }, [fetch]);
-
-  // Métricas derivadas
   const hasDuplicates = (stats?.duplicate_candidates ?? 0) > 0;
   const hasLgpdPending = (stats?.pending_lgpd_deletion ?? 0) > 0;
 
-  // Crescimento percentual: recent_30d / (total - recent_30d) * 100
   const growthPct30d: number | null = (() => {
     if (!stats) return null;
     const base = stats.total - stats.recent_30d;
@@ -68,13 +50,18 @@ export function useContactStats(): UseContactStatsReturn {
     return Math.round((stats.recent_30d / base) * 100);
   })();
 
+  const refresh = useCallback(
+    async () => { void queryClient.invalidateQueries({ queryKey: CONTACT_STATS_KEY }); },
+    [queryClient]
+  );
+
   return {
     stats,
     isLoading,
-    error,
+    error: error as Error | null,
     hasDuplicates,
     hasLgpdPending,
     growthPct30d,
-    refresh: fetch,
+    refresh,
   };
 }

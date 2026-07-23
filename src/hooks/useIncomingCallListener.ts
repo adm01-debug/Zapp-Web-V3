@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useEffect, useCallback } from 'react';
 import { useMountedRef } from '@/hooks/useMountedRef';
 import { supabase } from '@/integrations/supabase/client';
@@ -8,6 +7,7 @@ import { getLogger } from '@/lib/logger';
 const log = getLogger('useIncomingCallListener');
 import type { IncomingCall } from '@/types/incomingCall';
 
+/** Re-exported module members. */
 export type { IncomingCall } from '@/types/incomingCall';
 
 /** Listens for incoming calls via Supabase realtime and fetches contact information. */
@@ -47,7 +47,7 @@ export function useIncomingCallListener() {
               .from('contacts')
               .select('name, phone')
               .eq('id', call.contact_id as string)
-              .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
+              .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
 
             if (!mountedRef.current) return;
 
@@ -78,9 +78,9 @@ export function useIncomingCallListener() {
       .subscribe();
 
     return () => {
-      channel.unsubscribe();
+      supabase.removeChannel(channel);
     };
-  }, [profile?.id]);
+  }, [profile?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return { incomingCall, dismissCall };
 }

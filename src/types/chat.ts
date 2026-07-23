@@ -1,10 +1,11 @@
 // W4 (2026-07-06): núcleo derivado do schema gerado; 'avatar' e 'createdAt' são
-import type { Tables } from '@/integrations/supabase/schema';
+import type { ContactRow } from '@/integrations/supabase/schema';
 // aliases camelCase client-side (mapeados de avatar_url/created_at nos adapters).
-export type Contact = Pick<Tables<'contacts'>, 'id' | 'name' | 'phone' | 'tags'> &
+/** Contact type alias. */
+export type Contact = Pick<NonNullable<ContactRow>, 'id' | 'name' | 'phone' | 'tags'> &
   Partial<
     Pick<
-      Tables<'contacts'>,
+      NonNullable<ContactRow>,
       | 'nickname'
       | 'surname'
       | 'job_title'
@@ -19,6 +20,7 @@ export type Contact = Pick<Tables<'contacts'>, 'id' | 'name' | 'phone' | 'tags'>
   };
 
 // WhatsApp Interactive Message Types
+/** Interactive Button interface definition. */
 export interface InteractiveButton {
   type: 'reply' | 'url' | 'phone';
   id: string;
@@ -29,6 +31,7 @@ export interface InteractiveButton {
   phoneNumber?: string;
 }
 
+/** Interactive List Section interface definition. */
 export interface InteractiveListSection {
   title: string;
   rows: {
@@ -38,6 +41,7 @@ export interface InteractiveListSection {
   }[];
 }
 
+/** Interactive Message interface definition. */
 export interface InteractiveMessage {
   type: 'buttons' | 'list' | 'cta_url';
   header?: {
@@ -55,6 +59,7 @@ export interface InteractiveMessage {
 }
 
 // Location Message Types
+/** Location Message interface definition. */
 export interface LocationMessage {
   latitude: number;
   longitude: number;
@@ -65,6 +70,7 @@ export interface LocationMessage {
 }
 
 // Message Reaction Types (WhatsApp API)
+/** Message Reaction interface definition. */
 export interface MessageReaction {
   emoji: string;
   userId: string;
@@ -72,6 +78,7 @@ export interface MessageReaction {
   timestamp: Date;
 }
 
+/** Message interface definition. */
 export interface Message {
   id: string;
   conversationId: string;
@@ -147,6 +154,7 @@ export interface Message {
   media_meta?: (Record<string, unknown> & { ptt?: boolean; isPtv?: boolean }) | null;
 }
 
+/** Conversation interface. */
 export interface Conversation {
   id: string;
   contact: Contact;
@@ -170,6 +178,7 @@ export interface Conversation {
   is_muted?: boolean;
 }
 
+/** Agent interface definition. */
 export interface Agent {
   id: string;
   name: string;
@@ -182,6 +191,7 @@ export interface Agent {
   queues: string[];
 }
 
+/** Queue interface definition. */
 export interface Queue {
   id: string;
   name: string;
@@ -191,6 +201,7 @@ export interface Queue {
   waitingCount: number;
 }
 
+/** Quick Reply interface definition. */
 export interface QuickReply {
   id: string;
   title: string;
@@ -199,6 +210,7 @@ export interface QuickReply {
   category: string;
 }
 
+/** Whats App Instance interface definition. */
 export interface WhatsAppInstance {
   id: string;
   name: string;

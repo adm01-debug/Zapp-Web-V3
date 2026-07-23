@@ -45,6 +45,7 @@ interface ConnectionCardProps {
   onSyncHistory: (connection: WhatsAppConnection) => void;
 }
 
+/** Connection Card component for the connections section. */
 export function ConnectionCard({
   connection,
   syncingHistory,

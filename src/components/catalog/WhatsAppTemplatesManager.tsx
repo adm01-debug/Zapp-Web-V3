@@ -19,6 +19,7 @@ const STATUS_ICONS: Record<string, React.ElementType> = {
   CheckCircle2, Clock, XCircle, FileText,
 };
 
+/** Whats App Templates Manager component for the catalog section. */
 export function WhatsAppTemplatesManager() {
   const {
     templates, loading, search, setSearch,

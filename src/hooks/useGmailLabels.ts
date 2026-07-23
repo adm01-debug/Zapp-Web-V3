@@ -1,56 +1,54 @@
-// @ts-nocheck
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { emailMappers } from '@/utils/emailMappers';
 import { EmailLabelInfo as EmailLabel } from '@/types/gmail';
 import { getLogger } from '@/lib/logger';
 
+/** Re-exported module members. */
 export type { EmailLabel };
 
 const log = getLogger('useEmailLabels');
 
+/** Hook: SYSTEM_LABELS. */
 export const SYSTEM_LABELS: Array<{ id: string; name: string; icon: string; color: string }> = [
-  { id: 'INBOX', name: 'Inbox', icon: 'inbox', color: '#1a73e8' },
-  { id: 'STARRED', name: 'Favoritos', icon: 'star', color: '#f29900' },
-  { id: 'IMPORTANT', name: 'Importantes', icon: 'flag', color: '#e37400' },
-  { id: 'SENT', name: 'Enviados', icon: 'send', color: '#34a853' },
-  { id: 'DRAFTS', name: 'Rascunhos', icon: 'draft', color: '#9e9e9e' },
-  { id: 'SPAM', name: 'Spam', icon: 'block', color: '#d93025' },
-  { id: 'TRASH', name: 'Lixeira', icon: 'delete', color: '#777777' },
+  { id: 'INBOX', name: 'Inbox', icon: 'inbox', color: 'hsl(var(--primary))' },
+  { id: 'STARRED', name: 'Favoritos', icon: 'star', color: 'hsl(var(--warning))' },
+  { id: 'IMPORTANT', name: 'Importantes', icon: 'flag', color: 'hsl(var(--warning))' },
+  { id: 'SENT', name: 'Enviados', icon: 'send', color: 'hsl(var(--success))' },
+  { id: 'DRAFTS', name: 'Rascunhos', icon: 'draft', color: 'hsl(var(--muted-foreground))' },
+  { id: 'SPAM', name: 'Spam', icon: 'block', color: 'hsl(var(--destructive))' },
+  { id: 'TRASH', name: 'Lixeira', icon: 'delete', color: 'hsl(var(--muted-foreground))' },
 ];
 
+/** Hook: use Email Labels. */
 export function useEmailLabels(accountId: string | null) {
-  const [labels, setLabels] = useState<EmailLabel[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const mountedRef = useRef(true); // ✅ Fix race condition: mounted guard
+  const queryClient = useQueryClient();
+  const key = ['email-labels', accountId] as const;
 
-  useEffect(() => {
-    mountedRef.current = true;
-    return () => { mountedRef.current = false; };
-  }, []);
+  const { data: labels = [], isLoading, error: queryError } = useQuery({
+    queryKey: key,
+    queryFn: async () => {
+      const { data, error: dbErr } = await safeClient.from('email_labels', (q) =>
+        q.select('*').eq('account_id', accountId!).order('name', { ascending: true })
+      );
+      if (dbErr) {
+        log.warn('Email labels load error', dbErr.message);
+        throw new Error('Não foi possível carregar as pastas do Email.');
+      }
+      return emailMappers.labels((Array.isArray(data) ? data : []) as Parameters<typeof emailMappers.labels>[0]);
+    },
+    enabled: !!accountId,
+    staleTime: 30_000,
+  });
 
-  const loadLabels = useCallback(async () => {
-    if (!accountId) return;
+  const error = queryError instanceof Error ? queryError.message : null;
 
-    setIsLoading(true);
-    setError(null);
-    const { data, error: dbErr } = await safeClient.from('email_labels', (q) =>
-      q.select('*').eq('account_id', accountId).order('name', { ascending: true })
-    );
-
-    // ✅ Fix: não atualizar estado se componente desmontado
-    if (!mountedRef.current) return;
-
-    if (dbErr) {
-      log.warn('Email labels load error', dbErr.message);
-      setError(`Não foi possível carregar as pastas do Email.`);
-    } else {
-      setLabels(emailMappers.labels(Array.isArray(data) ? data : []));
-    }
-    setIsLoading(false);
-  }, [accountId]);
+  const loadLabels = useCallback(
+    () => queryClient.invalidateQueries({ queryKey: key }),
+    [queryClient, key]
+  );
 
   const syncLabels = useCallback(async () => {
     if (!accountId) return;
@@ -59,23 +57,21 @@ export function useEmailLabels(accountId: string | null) {
         body: { action: 'syncLabels', accountId },
       });
       if (!fnErr && data?.success) {
-        await loadLabels();
+        await queryClient.invalidateQueries({ queryKey: key });
       }
     } catch {
       // ignore
     }
-  }, [accountId, loadLabels]);
+  }, [accountId, queryClient, key]);
 
   const getLabelCount = useCallback(
     async (labelId: string): Promise<{ thread_count: number; unread_count: number }> => {
       if (!accountId) return { thread_count: 0, unread_count: 0 };
-
       const { data } = await safeClient.from<{ id: string; unread_count: number }>(
         'email_threads',
         (q) =>
           q.select('id, unread_count').eq('account_id', accountId).contains('label_ids', [labelId])
       );
-
       const threads = data ?? [];
       return {
         thread_count: threads.length,
@@ -96,10 +92,6 @@ export function useEmailLabels(accountId: string | null) {
 
   const userLabels = labels.filter((l) => l.type === 'user');
   const allLabels = [...systemLabels, ...userLabels];
-
-  useEffect(() => {
-    if (accountId) void loadLabels();
-  }, [accountId, loadLabels]);
 
   return {
     labels,

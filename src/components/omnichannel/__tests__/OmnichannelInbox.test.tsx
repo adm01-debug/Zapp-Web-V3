@@ -91,12 +91,12 @@ describe('OmnichannelInbox', () => {
   // ===== CHANNEL CONFIG =====
   describe('Channel configuration', () => {
     const CHANNEL_CONFIG = {
-      whatsapp: { label: 'WhatsApp', color: 'text-green-500' },
-      instagram: { label: 'Instagram', color: 'text-pink-500' },
-      telegram: { label: 'Telegram', color: 'text-blue-400' },
-      messenger: { label: 'Messenger', color: 'text-blue-600' },
-      email: { label: 'Email', color: 'text-yellow-500' },
-      webchat: { label: 'Webchat', color: 'text-purple-500' },
+      whatsapp: { label: 'WhatsApp', color: 'text-success bg-success/10' },
+      instagram: { label: 'Instagram', color: 'text-accent bg-accent/10' },
+      telegram: { label: 'Telegram', color: 'text-info bg-info/10' },
+      messenger: { label: 'Messenger', color: 'text-info bg-info/10' },
+      email: { label: 'Email', color: 'text-warning bg-warning/10' },
+      webchat: { label: 'Webchat', color: 'text-secondary bg-secondary/10' },
     };
 
     it('has 6 channel types', () => expect(Object.keys(CHANNEL_CONFIG).length).toBe(6));

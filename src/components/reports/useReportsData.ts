@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { queryKeys } from '@/services/api/queryKeys';
 import { useQuery } from '@tanstack/react-query';
 import { useAgents } from '@/features/admin';
 import { useTags } from '@/hooks/useTags';
@@ -6,6 +7,24 @@ import { format, subDays, startOfDay, endOfDay, eachDayOfInterval, parseISO } fr
 import { ptBR } from 'date-fns/locale';
 import { dbFrom } from '@/integrations/datasource/db';
 
+interface ReportMessage {
+  id: string;
+  created_at: string;
+  sender: string | null;
+  agent_id: string | null;
+  contact_id: string | null;
+  is_read: boolean | null;
+}
+
+interface ReportContact {
+  id: string;
+  created_at: string;
+  assigned_to: string | null;
+  tags: string[] | null;
+  contact_type: string | null;
+}
+
+/** use Reports Data component for the reports section. */
 export function useReportsData() {
   const [period, setPeriod] = useState('30');
   const [selectedAgent, setSelectedAgent] = useState<string>('all');
@@ -37,7 +56,7 @@ export function useReportsData() {
 
   // Fetch messages data
   const { data: messagesData, isLoading: loadingMessages } = useQuery({
-    queryKey: ['reports-messages', period, selectedAgent],
+    queryKey: queryKeys.reports.messagesFiltered(period, selectedAgent),
     queryFn: async () => {
       let query = dbFrom('messages')
         .select('id, created_at, sender, agent_id, contact_id, is_read')
@@ -46,12 +65,12 @@ export function useReportsData() {
       if (selectedAgent !== 'all') query = query.eq('agent_id', selectedAgent);
       const { data, error } = await query;
       if (error) throw error;
-      return data || [];
+      return (data ?? []) as ReportMessage[];
     },
   });
 
   const { data: previousMessagesData, isLoading: loadingPreviousMessages } = useQuery({
-    queryKey: ['reports-messages-previous', period, selectedAgent],
+    queryKey: queryKeys.reports.messagesPreviousFiltered(period, selectedAgent),
     queryFn: async () => {
       let query = dbFrom('messages')
         .select('id, created_at, sender, agent_id, contact_id, is_read')
@@ -60,13 +79,13 @@ export function useReportsData() {
       if (selectedAgent !== 'all') query = query.eq('agent_id', selectedAgent);
       const { data, error } = await query;
       if (error) throw error;
-      return data || [];
+      return (data ?? []) as ReportMessage[];
     },
     enabled: compareEnabled,
   });
 
   const { data: contactsData, isLoading: loadingContacts } = useQuery({
-    queryKey: ['reports-contacts', period, selectedAgent, selectedTag],
+    queryKey: queryKeys.reports.contactsFiltered(period, selectedAgent, selectedTag),
     queryFn: async () => {
       let query = dbFrom('contacts')
         .select('id, created_at, assigned_to, tags, contact_type')
@@ -75,12 +94,12 @@ export function useReportsData() {
       if (selectedAgent !== 'all') query = query.eq('assigned_to', selectedAgent);
       const { data, error } = await query;
       if (error) throw error;
-      return data || [];
+      return (data ?? []) as ReportContact[];
     },
   });
 
   const { data: previousContactsData, isLoading: loadingPreviousContacts } = useQuery({
-    queryKey: ['reports-contacts-previous', period, selectedAgent, selectedTag],
+    queryKey: queryKeys.reports.contactsPreviousFiltered(period, selectedAgent),
     queryFn: async () => {
       let query = dbFrom('contacts')
         .select('id, created_at, assigned_to, tags, contact_type')
@@ -89,7 +108,7 @@ export function useReportsData() {
       if (selectedAgent !== 'all') query = query.eq('assigned_to', selectedAgent);
       const { data, error } = await query;
       if (error) throw error;
-      return data || [];
+      return (data ?? []) as ReportContact[];
     },
     enabled: compareEnabled,
   });

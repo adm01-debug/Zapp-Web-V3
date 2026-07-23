@@ -35,6 +35,7 @@ const PHASE_LABEL: Record<Phase, string> = {
   'response': 'Resposta',
 };
 
+/** Default export. */
 export default function HmacSelfTestPage() {
   const [params, setParams] = useSearchParams();
   const initialInstance = params.get('instance') ?? 'wpp2';

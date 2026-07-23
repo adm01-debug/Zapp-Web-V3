@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { queryKeys } from '@/services/api/queryKeys';
 import { format, subDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { dbFrom } from '@/integrations/datasource/db';
@@ -18,14 +19,17 @@ type AuditLogRow = {
   details: Record<string, unknown> | null;
 };
 
+/** Hook: Period Option. */
 export type PeriodOption = 7 | 14 | 30;
 
+/** Hook: Trend Data. */
 export interface TrendData {
   direction: 'up' | 'down' | 'stable';
   change: number;
   percentage: number;
 }
 
+/** Hook: Sentiment Alert. */
 export interface SentimentAlert {
   id: string;
   contactId: string | null;
@@ -35,6 +39,7 @@ export interface SentimentAlert {
   consecutive_low?: number;
 }
 
+/** Hook: AIStats. */
 export interface AIStats {
   totalAnalyses: number;
   avgSentimentScore: number;
@@ -58,6 +63,7 @@ export interface AIStats {
   };
 }
 
+/** Hook: calculate Trend. */
 export const calculateTrend = (current: number, previous: number): TrendData => {
   if (previous === 0 && current === 0) return { direction: 'stable', change: 0, percentage: 0 };
   if (previous === 0) return { direction: 'up', change: current, percentage: 100 };
@@ -67,9 +73,10 @@ export const calculateTrend = (current: number, previous: number): TrendData => 
   return { direction: change > 0 ? 'up' : 'down', change, percentage };
 };
 
+/** Hook: use AIStats. */
 export function useAIStats(selectedPeriod: PeriodOption) {
   return useQuery({
-    queryKey: ['ai-stats-widget', selectedPeriod],
+    queryKey: queryKeys.aiFeatures.statsWidgetPeriod(String(selectedPeriod)),
     queryFn: async (): Promise<AIStats> => {
       const now = new Date();
       const periodStart = subDays(now, selectedPeriod);
@@ -147,7 +154,7 @@ export function useAIStats(selectedPeriod: PeriodOption) {
         .lt('created_at', periodStart.toISOString());
 
       const last24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-      const { data: alertRaw } = await (supabase.from('audit_logs') as any)
+      const { data: alertRaw } = await supabase.from('audit_logs')
         .select('*')
         .eq('action', 'sentiment_alert')
         .gte('created_at', last24h)

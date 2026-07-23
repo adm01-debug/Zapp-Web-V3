@@ -2,7 +2,9 @@ import { useEffect, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import type { InstanceMetrics } from '@/lib/retryAlerts';
+import { queryKeys } from '@/services/api/queryKeys';
 
+/** Retry Metric Row interface definition. */
 export interface RetryMetricRow {
   id: string;
   action: string;
@@ -17,6 +19,7 @@ export interface RetryMetricRow {
   created_at: string;
 }
 
+/** Retry Aggregates interface definition. */
 export interface RetryAggregates {
   total: number;
   successAfterRetry: number;
@@ -30,6 +33,7 @@ export interface RetryAggregates {
   topReasons: Array<{ reason: string; count: number }>;
 }
 
+/** Retry Metrics Response interface definition. */
 export interface RetryMetricsResponse {
   rows: RetryMetricRow[];
   aggregates: RetryAggregates;
@@ -40,6 +44,7 @@ export interface RetryMetricsResponse {
   windowHours: number;
 }
 
+/** Retry Metrics Filters interface. */
 export interface RetryMetricsFilters {
   hours?: number;
   action?: string | null;
@@ -47,10 +52,11 @@ export interface RetryMetricsFilters {
   status?: 'success' | 'failed' | 'exhausted' | null;
 }
 
+/** Fetches aggregated retry metrics (success rate, durations, top actions/reasons) with delta vs. the prior window. */
 export function useRetryMetrics(filters: RetryMetricsFilters = {}) {
   const queryClient = useQueryClient();
   const { hours = 24, action = null, instance = null, status = null } = filters;
-  const queryKey = ['evolution-retry-metrics', { hours, action, instance, status }];
+  const queryKey = queryKeys.adminOps.evolutionRetryMetricsFiltered({ hours, action, instance, status });
 
   const query = useQuery<RetryMetricsResponse>({
     queryKey,
@@ -115,13 +121,13 @@ export function useRetryMetrics(filters: RetryMetricsFilters = {}) {
         'postgres_changes',
         { event: 'INSERT', schema: 'evo', table: 'evolution_retry_metrics' },
         () => {
-          void queryClient.invalidateQueries({ queryKey: ['evolution-retry-metrics'] });
+          void queryClient.invalidateQueries({ queryKey: queryKeys.adminOps.evolutionRetryMetrics() });
         }
       )
       .subscribe();
 
     return () => {
-      channel.unsubscribe();
+      supabase.removeChannel(channel);
     };
   }, [queryClient]);
 

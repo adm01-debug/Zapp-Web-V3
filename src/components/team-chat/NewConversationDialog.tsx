@@ -1,4 +1,4 @@
-// @ts-nocheck
+import { queryKeys } from '@/services/api/queryKeys';
 import { useState, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -7,10 +7,10 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Search, User, Users, Loader2, Building2 } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/features/auth';
 import { useCreateTeamConversation } from '@/hooks/useTeamChat';
+import { useActiveTeamProfiles } from '@/hooks/useTeamChatMembers';
+import { useActiveDepartments } from '@/hooks/useActiveDepartments';
 import { cn } from '@/lib/utils';
 
 import { getLogger } from '@/lib/logger';
@@ -22,6 +22,7 @@ interface Props {
   onCreated: (conversationId: string) => void;
 }
 
+/** New Conversation Dialog component for the team chat section. */
 export function NewConversationDialog({ open, onOpenChange, onCreated }: Props) {
   const { profile } = useAuth();
   const [tab, setTab] = useState<'direct' | 'group' | 'department'>('direct');
@@ -33,35 +34,15 @@ export function NewConversationDialog({ open, onOpenChange, onCreated }: Props) 
 
   const _isAdmin = profile?.role === 'admin';
 
-  const { data: teammates = [], isLoading: loadingTeammates } = useQuery({
-    queryKey: ['team-profiles-for-chat'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id, name, email, avatar_url, is_active')
-        .neq('id', profile?.id || '')
-        .eq('is_active', true)
-        .order('name');
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: open && !!profile && tab !== 'department',
-  });
+  const { data: teammates = [], isLoading: loadingTeammates } = useActiveTeamProfiles(
+    open && !!profile && tab !== 'department',
+    queryKeys.teamProfiles.forChat(),
+    profile?.id || '',
+  );
 
-  const { data: departments = [], isLoading: loadingDepts } = useQuery({
-    queryKey: ['departments-list'],
-    staleTime: Infinity,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('departments')
-        .select('*')
-        .eq('is_active', true)
-        .order('name');
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: open && !!profile && tab === 'department',
-  });
+  const { data: departments = [], isLoading: loadingDepts } = useActiveDepartments(
+    open && !!profile && tab === 'department',
+  );
 
   const filteredTeammates = useMemo(() => {
     if (!search.trim()) return teammates;
@@ -111,7 +92,7 @@ export function NewConversationDialog({ open, onOpenChange, onCreated }: Props) 
         payload.memberIds = selectedIds;
       }
 
-      const result = await createMutation.mutateAsync(payload);
+      const result = await createMutation.mutateAsync(payload as any);
       setSelectedIds([]);
       setSelectedDeptId(null);
       setGroupName('');
@@ -185,7 +166,7 @@ export function NewConversationDialog({ open, onOpenChange, onCreated }: Props) 
                   filteredDepts.map((d) => {
                     const isSelected = selectedDeptId === d.id;
                     return (
-                      <button
+                      <button type="button"
                         key={d.id}
                         onClick={() => setSelectedDeptId(d.id)}
                         className={cn(
@@ -225,7 +206,7 @@ export function NewConversationDialog({ open, onOpenChange, onCreated }: Props) 
                 filteredTeammates.map((t) => {
                   const isSelected = selectedIds.includes(t.id);
                   return (
-                    <button
+                    <button type="button"
                       key={t.id}
                       onClick={() => toggleMember(t.id)}
                       className={cn(

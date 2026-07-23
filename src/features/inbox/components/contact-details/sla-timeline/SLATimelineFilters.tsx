@@ -25,6 +25,7 @@ interface SLATimelineFiltersProps {
   totalCount: number;
 }
 
+/** SLATimeline Filters component for the contact details section. */
 export function SLATimelineFilters({
   statusFilter,
   setStatusFilter,

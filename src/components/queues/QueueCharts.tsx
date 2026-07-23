@@ -53,6 +53,7 @@ function ChartCard({
   );
 }
 
+/** Queue Charts component for the queues section. */
 export function QueueCharts({ queueId, queueColor }: QueueChartsProps) {
   const [period, setPeriod] = useState<PeriodOption>('7d');
   const [dateRange, setDateRange] = useState(() => ({

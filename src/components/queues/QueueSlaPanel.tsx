@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react';
-import type { ReactNode } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -17,15 +16,11 @@ import { AlertTriangle, Clock, RefreshCw, Users, Zap, Filter } from 'lucide-reac
 import {
   useQueueSlaPanel,
   QueueSlaFilters,
-  QueueSlaPatch,
   QueueSlaRow,
   SlaStatusFilter,
 } from '@/hooks/useQueueSlaPanel';
 import { safeFrom } from '@/integrations/supabase/safeClient';
 import { cn } from '@/lib/utils';
-
-const isNonEmptyString = (value: unknown): value is string =>
-  typeof value === 'string' && value.length > 0;
 
 const PRIORITY_LABEL: Record<QueueSlaRow['sla_priority'], string> = {
   critical: 'Crítica',
@@ -59,20 +54,8 @@ export const QueueSlaPanel = () => {
         safeFrom('queue_skill_requirements').select('skill_name'),
         safeFrom('channel_connections').select('channel_type'),
       ]);
-      setSkills(
-        Array.from(
-          new Set(
-            ((sk ?? []) as Array<{ skill_name: string | null }>).map((s) => s.skill_name).filter(isNonEmptyString)
-          )
-        )
-      );
-      setChannels(
-        Array.from(
-          new Set(
-            ((ch ?? []) as Array<{ channel_type: string | null }>).map((c) => c.channel_type).filter(isNonEmptyString)
-          )
-        )
-      );
+      setSkills(Array.from(new Set((sk ?? []).map((s: any) => s.skill_name).filter(Boolean))));
+      setChannels(Array.from(new Set((ch ?? []).map((c: any) => c.channel_type).filter(Boolean))));
     })();
   }, []);
 
@@ -166,7 +149,7 @@ export const QueueSlaPanel = () => {
             onValueChange={(v) =>
               setFilters((f) => ({
                 ...f,
-                sla_status: v === '__all' ? null : (v as SlaStatusFilter),
+                sla_status: v === '__all' ? null : (v as Exclude<SlaStatusFilter, null>),
               }))
             }
           >
@@ -211,20 +194,20 @@ export const QueueSlaPanel = () => {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-sm" aria-label="Painel de SLA das filas">
+              <table className="w-full text-sm">
                 <thead className="border-b text-xs uppercase text-muted-foreground">
                   <tr className="text-left [&>th]:px-2 [&>th]:py-2">
-                    <th scope="col">Fila</th>
-                    <th scope="col">Prioridade</th>
-                    <th scope="col">Peso</th>
-                    <th scope="col">Auto</th>
-                    <th scope="col">Agentes</th>
-                    <th scope="col">Aguardando</th>
-                    <th scope="col">Em atend.</th>
-                    <th scope="col">Em risco</th>
-                    <th scope="col">Estourados</th>
-                    <th scope="col">+ tempo (min)</th>
-                    <th scope="col">Último roteamento</th>
+                    <th>Fila</th>
+                    <th>Prioridade</th>
+                    <th>Peso</th>
+                    <th>Auto</th>
+                    <th>Agentes</th>
+                    <th>Aguardando</th>
+                    <th>Em atend.</th>
+                    <th>Em risco</th>
+                    <th>Estourados</th>
+                    <th>+ tempo (min)</th>
+                    <th>Último roteamento</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -254,7 +237,7 @@ function KpiCard({
 }: {
   label: string;
   value: number;
-  icon: ReactNode;
+  icon: React.ReactNode;
   tone?: 'default' | 'warning' | 'destructive';
 }) {
   return (
@@ -284,7 +267,7 @@ function QueueRow({
   onUpdate,
 }: {
   row: QueueSlaRow;
-  onUpdate: (id: string, patch: QueueSlaPatch) => Promise<boolean>;
+  onUpdate: (id: string, patch: Partial<QueueSlaRow>) => Promise<boolean>;
 }) {
   const [weight, setWeight] = useState(String(row.routing_weight));
   useEffect(() => setWeight(String(row.routing_weight)), [row.routing_weight]);
@@ -300,7 +283,9 @@ function QueueRow({
       <td>
         <Select
           value={row.sla_priority}
-          onValueChange={(v) => onUpdate(row.queue_id, { sla_priority: v as QueueSlaRow['sla_priority'] })}
+          onValueChange={(v) =>
+            onUpdate(row.queue_id, { sla_priority: v as QueueSlaRow['sla_priority'] })
+          }
         >
           <SelectTrigger className="h-8 w-[110px]">
             <Badge className={cn('text-[10px]', PRIORITY_COLOR[row.sla_priority])}>

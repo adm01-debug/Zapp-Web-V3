@@ -1,10 +1,10 @@
-// @ts-nocheck
 import { useCallback, useState, useEffect } from 'react';
 import { useMountedRef } from '@/hooks/useMountedRef';
 import { useAuth } from './useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
 
+/** Permission interface definition. */
 export interface Permission {
   id: string;
   name: string;
@@ -12,6 +12,7 @@ export interface Permission {
   category: string;
 }
 
+/** Role Permission interface definition. */
 export interface RolePermission {
   role: 'dev' | 'admin' | 'supervisor' | 'agent';
   permission_id: string;
@@ -66,6 +67,7 @@ function invalidatePermissionsCache() {
   cache = null;
 }
 
+/** use Permissions function. */
 export function usePermissions() {
   const {
     user,
@@ -92,7 +94,7 @@ export function usePermissions() {
     } finally {
       if (mountedRef.current) setFetchingAll(false);
     }
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (user) fetchAllPermissionsData();

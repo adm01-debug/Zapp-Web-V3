@@ -7,5 +7,6 @@ import type {
   RoutingRule,
 } from './useOmnichannelManagement';
 
+/** Hook: use Channel Routing Rules. */
 export { useChannelRoutingRulesManagement as useChannelRoutingRules };
 export type { UseChannelRoutingRulesParams, UseChannelRoutingRulesResult, NewRoutingRule, RoutingRule };

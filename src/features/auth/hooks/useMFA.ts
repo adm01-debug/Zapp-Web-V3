@@ -22,6 +22,7 @@ interface EnrollResponse {
   };
 }
 
+/** Hook: use MFA. */
 export function useMFA() {
   const [loading, setLoading] = useState(false);
   const [factors, setFactors] = useState<MFAFactor[]>([]);

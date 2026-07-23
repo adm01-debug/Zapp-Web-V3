@@ -1,6 +1,7 @@
 import React from 'react';
 import { CheckCircle2, XCircle, Clock, Loader2, SkipForward } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { queryKeys } from '@/services/api/queryKeys';
 import { useQuery } from '@tanstack/react-query';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { motion } from 'framer-motion';
@@ -19,9 +20,10 @@ interface Props {
   campaignId: string;
 }
 
+/** Talk XRecipients List component for the talkx section. */
 export function TalkXRecipientsList({ campaignId }: Props) {
   const { data: recipients = [], isLoading } = useQuery({
-    queryKey: ['talkx-recipients-list', campaignId],
+    queryKey: queryKeys.talkx.recipientsListForCampaign(campaignId),
     queryFn: async () => {
       const { data, error } = await safeClient.from<TalkXRecipient>('talkx_recipients', (q) =>
         q

@@ -20,6 +20,7 @@ const passwordSchema = z
   .regex(/[0-9]/, 'Deve conter número')
   .regex(/[^A-Za-z0-9]/, 'Deve conter caractere especial');
 
+/** Reset Password. */
 export default function ResetPassword() {
   const navigate = useNavigate();
   const [password, setPassword] = useState('');

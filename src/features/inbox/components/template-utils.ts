@@ -1,5 +1,6 @@
 import { User, Building2, Tag, Sparkles, Calendar, Hash, LucideIcon } from 'lucide-react';
 
+/** Template Variable component. */
 export interface TemplateVariable {
   key: string;
   label: string;
@@ -7,6 +8,7 @@ export interface TemplateVariable {
   example: string;
 }
 
+/** AVAILABLE_VARIABLES component. */
 export const AVAILABLE_VARIABLES: TemplateVariable[] = [
   { key: 'nome', label: 'Nome do contato', icon: User, example: 'João Silva' },
   { key: 'primeiro_nome', label: 'Primeiro nome', icon: User, example: 'João' },
@@ -18,6 +20,7 @@ export const AVAILABLE_VARIABLES: TemplateVariable[] = [
   { key: 'atendente', label: 'Nome do atendente', icon: User, example: 'Maria Santos' },
 ];
 
+/** replace Variables component. */
 export function replaceVariables(
   content: string,
   contactData?: { name?: string; company?: string; job_title?: string },
@@ -51,6 +54,7 @@ export function replaceVariables(
   return result;
 }
 
+/** extract Variables component. */
 export function extractVariables(content: string): string[] {
   const matches = content.match(/\{\{([^}]+)\}\}/g) || [];
   return [...new Set(matches.map(m => m.slice(2, -2).toLowerCase()))];

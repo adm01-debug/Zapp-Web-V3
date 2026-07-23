@@ -1,7 +1,9 @@
+import { queryKeys } from '@/services/api/queryKeys';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
+/** Rate Limit Log interface definition. */
 export interface RateLimitLog {
   id: string;
   ip_address: string;
@@ -23,9 +25,12 @@ interface RateLimitStats {
   topIPs: { ip: string; count: number; blocked: boolean }[];
 }
 
+/** Rate Limit Sort Key type alias. */
 export type RateLimitSortKey = 'created_at' | 'ip_address' | 'endpoint' | 'request_count' | 'blocked';
+/** Rate Limit Sort Dir type alias. */
 export type RateLimitSortDir = 'asc' | 'desc';
 
+/** Rate Limit Logs Filters interface definition. */
 export interface RateLimitLogsFilters {
   ip?: string;
   endpoint?: string;
@@ -36,6 +41,7 @@ export interface RateLimitLogsFilters {
   sortDir: RateLimitSortDir;
 }
 
+/** D E F A U L T_ F I L T E R S constant. */
 export const DEFAULT_FILTERS: RateLimitLogsFilters = {
   ip: '',
   endpoint: '',
@@ -53,7 +59,6 @@ const LOGS_COLUMNS = sel(
   'id, ip_address, endpoint, user_id, request_count, blocked, user_agent, country, city, created_at',
 );
 
-const STATS_KEY = ['admin', 'rate-limit-logs', 'stats'] as const;
 
 function stableFilterKey(f: RateLimitLogsFilters) {
   return [
@@ -82,6 +87,7 @@ interface UseRateLimitLogsResult {
   refetch: () => void;
 }
 
+/** Paginates and filters rate-limit log entries, computing aggregate stats (blocked count, top IPs/endpoints). */
 export function useRateLimitLogs(initial?: Partial<RateLimitLogsFilters>): UseRateLimitLogsResult {
   const queryClient = useQueryClient();
   const [filters, setFiltersState] = useState<RateLimitLogsFilters>({
@@ -146,7 +152,7 @@ export function useRateLimitLogs(initial?: Partial<RateLimitLogsFilters>): UseRa
     isFetching: statsLoading,
     refetch: refetchStats,
   } = useQuery<RateLimitLog[]>({
-    queryKey: STATS_KEY,
+    queryKey: queryKeys.adminOps.rateLimitLogsStats(),
     queryFn: async () => {
       const { data: rows, error } = await supabase
         .from('rate_limit_logs')
@@ -168,15 +174,15 @@ export function useRateLimitLogs(initial?: Partial<RateLimitLogsFilters>): UseRa
         'postgres_changes',
         { event: 'INSERT', schema: 'zapp', table: 'rate_limit_logs' },
         (payload) => {
-          queryClient.setQueryData<RateLimitLog[]>(STATS_KEY, (prev) =>
+          queryClient.setQueryData<RateLimitLog[]>(queryKeys.adminOps.rateLimitLogsStats(), (prev) =>
             [payload.new, ...(prev ?? [])].slice(0, 200),
           );
-          queryClient.invalidateQueries({ queryKey: ['admin', 'rate-limit-logs', 'page'] });
+          queryClient.invalidateQueries({ queryKey: queryKeys.adminOps.rateLimitLogs('page') });
         },
       )
       .subscribe();
     return () => {
-      channel.unsubscribe();
+      supabase.removeChannel(channel);
     };
   }, [queryClient]);
 

@@ -1,9 +1,11 @@
+/* eslint-disable react-refresh/only-export-components */
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { CheckCircle2, XCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 
+/** Retry Metric. */
 export interface RetryMetric {
   id: string;
   action: string;
@@ -17,6 +19,7 @@ export interface RetryMetric {
   created_at: string;
 }
 
+/** RANGE_OPTIONS. */
 export const RANGE_OPTIONS = [
   { value: '1', label: 'Última hora' },
   { value: '6', label: 'Últimas 6h' },
@@ -25,6 +28,7 @@ export const RANGE_OPTIONS = [
   { value: '168', label: 'Últimos 7 dias' },
 ] as const;
 
+/** STATUS_OPTIONS. */
 export const STATUS_OPTIONS = [
   { value: 'all', label: 'Todos' },
   { value: 'success', label: 'Sucesso' },
@@ -32,6 +36,7 @@ export const STATUS_OPTIONS = [
   { value: 'exhausted', label: 'Esgotou retries' },
 ] as const;
 
+/** format Date. */
 export function formatDate(iso: string) {
   try {
     return format(new Date(iso), 'dd/MM HH:mm:ss', { locale: ptBR });
@@ -40,12 +45,14 @@ export function formatDate(iso: string) {
   }
 }
 
+/** format Duration. */
 export function formatDuration(ms: number | null) {
   if (ms == null) return '—';
   if (ms >= 1000) return `${(ms / 1000).toFixed(2)}s`;
   return `${ms}ms`;
 }
 
+/** Status Badge. */
 export function StatusBadge({ status, http }: { status: string; http: number | null }) {
   const isOk = status === 'success';
   const isAuth = http === 401 || http === 403;

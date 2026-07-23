@@ -20,6 +20,7 @@ function loadVolume(): number {
   }
 }
 
+/** use Audio Recorder UI component. */
 export function useAudioRecorderUI(
   audioRef: RefObject<HTMLAudioElement>,
   onSend?: (audioBlob: Blob) => void,
@@ -131,7 +132,11 @@ export function useAudioRecorderUI(
       if (isRecording || isPaused) {
         if (e.key === ' ' || e.key === 'p' || e.key === 'P') {
           e.preventDefault();
-          isPaused ? resumeRecording() : pauseRecording();
+          if (isPaused) {
+            resumeRecording();
+          } else {
+            pauseRecording();
+          }
         }
         if (e.key === 'Escape') {
           e.preventDefault();

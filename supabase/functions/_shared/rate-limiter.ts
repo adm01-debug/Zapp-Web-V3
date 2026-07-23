@@ -16,6 +16,7 @@
 
 import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+/** rate-limiter utilities and exports. */
 export async function checkRateLimit(supabase: SupabaseClient, {
   instanceId,
   eventType,

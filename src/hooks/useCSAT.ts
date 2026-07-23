@@ -1,8 +1,9 @@
-// @ts-nocheck
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { queryKeys } from '@/services/api/queryKeys';
 
+/** C S A T Survey interface definition. */
 export interface CSATSurvey {
   id: string;
   contact_id: string;
@@ -13,6 +14,7 @@ export interface CSATSurvey {
   created_at: string;
 }
 
+/** C S A T Stats interface definition. */
 export interface CSATStats {
   average: number;
   total: number;
@@ -43,7 +45,7 @@ export function useCSAT(period: 'today' | 'week' | 'month' = 'month') {
   };
 
   const surveysQuery = useQuery({
-    queryKey: ['csat-surveys', period],
+    queryKey: queryKeys.csat.surveys(period),
     queryFn: async () => {
       const { data, error } = await supabase
         .from('csat_surveys')
@@ -57,7 +59,7 @@ export function useCSAT(period: 'today' | 'week' | 'month' = 'month') {
   });
 
   const statsQuery = useQuery({
-    queryKey: ['csat-stats', period],
+    queryKey: queryKeys.csat.stats(period),
     queryFn: async () => {
       const surveys = surveysQuery.data || [];
       if (surveys.length === 0) {
@@ -103,8 +105,8 @@ export function useCSAT(period: 'today' | 'week' | 'month' = 'month') {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['csat-surveys'] });
-      queryClient.invalidateQueries({ queryKey: ['csat-stats'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.csat.surveysRoot() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.csat.statsRoot() });
       toast({ title: 'Avaliação enviada!', description: 'Obrigado pelo feedback.' });
     },
     onError: () => {

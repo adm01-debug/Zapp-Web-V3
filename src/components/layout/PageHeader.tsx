@@ -12,6 +12,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
+/** Breadcrumb Item interface definition. */
 export interface BreadcrumbItem {
   label: string;
   href?: string;

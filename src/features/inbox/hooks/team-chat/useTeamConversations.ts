@@ -1,17 +1,18 @@
-// @ts-nocheck
 import { useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { useAuth } from '@/features/auth';
+import { queryKeys } from '@/services/api/queryKeys';
 import type { TeamConversation, TeamMember, TeamMessage } from './teamChatTypes';
 
+/** Fetches the current agent's team conversations with member profiles and last-message previews, then subscribes to Realtime changes to keep the list current. */
 export function useTeamConversations() {
   const { profile } = useAuth();
   const queryClient = useQueryClient();
 
   const query = useQuery({
-    queryKey: ['team-conversations', profile?.id],
+    queryKey: queryKeys.teamChat.conversationList(profile?.id),
     queryFn: async () => {
       if (!profile) return [];
 
@@ -90,7 +91,7 @@ export function useTeamConversations() {
 
       const enriched: TeamConversation[] = conversations.map((conv) => {
         const members = (allMembers || []).filter(
-          (m) => m.conversation_id === conv.id
+          (m: any) => m.conversation_id === conv.id
         ) as TeamMember[];
         const lastMsg = lastMessageMap.get(conv.id) || null;
 
@@ -127,21 +128,22 @@ export function useTeamConversations() {
       .channel('team-chat-updates')
       // team_messages: tabela base em zapp
       .on('postgres_changes', { event: '*', schema: 'zapp', table: 'team_messages' }, () => {
-        void queryClient.invalidateQueries({ queryKey: ['team-conversations'] });
+        void queryClient.invalidateQueries({ queryKey: queryKeys.teamChat.conversations() });
       })
       // team_conversations + team_conversation_members: tabelas base em zapp
       .on('postgres_changes', { event: '*', schema: 'zapp', table: 'team_conversations' }, () => {
-        void queryClient.invalidateQueries({ queryKey: ['team-conversations'] });
+        void queryClient.invalidateQueries({ queryKey: queryKeys.teamChat.conversations() });
       })
       .on(
         'postgres_changes',
         { event: '*', schema: 'zapp', table: 'team_conversation_members' },
         () => {
-          void queryClient.invalidateQueries({ queryKey: ['team-conversations'] });
+          void queryClient.invalidateQueries({ queryKey: queryKeys.teamChat.conversations() });
         }
       )
       .subscribe();
     return () => {
+      channel.unsubscribe();
       supabase.removeChannel(channel);
     };
   }, [profile, queryClient]);

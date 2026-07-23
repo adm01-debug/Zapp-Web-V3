@@ -7,6 +7,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Bookmark, Plus, X, Filter, Check } from 'lucide-react';
 import { toast } from 'sonner';
 
+/** Filter Preset component for the contacts section. */
 export interface FilterPreset {
   id: string;
   name: string;
@@ -36,6 +37,7 @@ function savePresets(presets: FilterPreset[]) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(presets));
 }
 
+/** Filter Presets component for the contacts section. */
 export function FilterPresets({ onApplyPreset, currentFilters }: FilterPresetsProps) {
   const [presets, setPresets] = useState<FilterPreset[]>(getPresets);
   const [saving, setSaving] = useState(false);
@@ -102,7 +104,7 @@ export function FilterPresets({ onApplyPreset, currentFilters }: FilterPresetsPr
                   <Filter className="w-3 h-3 mr-1.5 text-primary" />
                   {preset.name}
                 </Button>
-                <button
+                <button type="button"
                   onClick={() => handleDelete(preset.id)}
                   className="p-1 text-muted-foreground hover:text-destructive transition-colors"
                 >
@@ -126,10 +128,10 @@ export function FilterPresets({ onApplyPreset, currentFilters }: FilterPresetsPr
                 className="h-7 text-xs"
                 autoFocus
               />
-              <button onClick={handleSave} className="p-1 text-primary hover:text-primary/80">
+              <button type="button" onClick={handleSave} className="p-1 text-primary hover:text-primary/80">
                 <Check className="w-3.5 h-3.5" />
               </button>
-              <button onClick={() => setSaving(false)} className="p-1 text-muted-foreground hover:text-foreground">
+              <button type="button" onClick={() => setSaving(false)} className="p-1 text-muted-foreground hover:text-foreground">
                 <X className="w-3.5 h-3.5" />
               </button>
             </motion.div>

@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { DashboardWidget } from '@/hooks/useDashboardWidgets';
 
+/** Widget Section component for the dashboard section. */
 export interface WidgetSection {
   id: string;
   title: string;
@@ -43,6 +44,7 @@ const variantStyles = {
   },
 };
 
+/** Section Header component for the dashboard section. */
 export function SectionHeader({ section, isOpen, onToggle }: SectionHeaderProps) {
   const Icon = section.icon;
   const styles = variantStyles[section.variant || 'default'];

@@ -35,7 +35,8 @@ const ProductImage: React.FC<{ src: string | null; alt: string; iconSize?: strin
   </>
 );
 
-export const ExternalProductCard: React.FC<ExternalProductCardProps> = ({ product, onSend, compact = false }) => {
+/** External Product Card component for the catalog section. */
+export const ExternalProductCard: React.FC<ExternalProductCardProps> = React.memo(({ product, onSend, compact = false }) => {
   const [showDetails, setShowDetails] = useState(false);
 
   if (compact) {
@@ -112,4 +113,4 @@ export const ExternalProductCard: React.FC<ExternalProductCardProps> = ({ produc
       <ProductDetailDialog product={product} open={showDetails} onOpenChange={setShowDetails} onSend={onSend} />
     </>
   );
-};
+});

@@ -52,6 +52,7 @@ interface ConversationListSidebarProps {
   width?: number;
 }
 
+/** Conversation List Sidebar component. */
 export function ConversationListSidebar({
   inbox,
   inboxFilters,
@@ -89,27 +90,36 @@ export function ConversationListSidebar({
     }
   }, [inbox, sortedFilteredIds]);
 
+  const handleAgentChange = useCallback(
+    (agentId: string | null) => inboxFilters.setFilters({ ...inboxFilters.filters, agentId }),
+    [inboxFilters]
+  );
+
+  const onSearchFocus = useCallback(() => contactSearchRef.current?.focus(), []);
+  const onArchive = useCallback(() => {
+    if (inbox.selectedContactId) {
+      toast.info('Arquivando conversa...');
+    }
+  }, [inbox.selectedContactId]);
+  const onTransfer = useCallback(() => {
+    if (inbox.selectedContactId) {
+      window.dispatchEvent(
+        new CustomEvent('open-transfer-dialog', {
+          detail: { contactId: inbox.selectedContactId },
+        })
+      );
+    }
+  }, [inbox.selectedContactId]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const onRefresh = useCallback(() => inbox.refetch(), [inbox.refetch]);
+
   useInboxShortcuts({
-    onSearchFocus: () => contactSearchRef.current?.focus(),
+    onSearchFocus,
     onNextConversation: handleNextConversation,
     onPrevConversation: handlePrevConversation,
-    onArchive: () => {
-      if (inbox.selectedContactId) {
-        toast.info('Arquivando conversa...');
-        // Hook internal handles real logic via context menu or bulk actions
-      }
-    },
-    onTransfer: () => {
-      if (inbox.selectedContactId) {
-        // Dispatch event for UI to open transfer dialog
-        window.dispatchEvent(
-          new CustomEvent('open-transfer-dialog', {
-            detail: { contactId: inbox.selectedContactId },
-          })
-        );
-      }
-    },
-    onRefresh: () => inbox.refetch(),
+    onArchive,
+    onTransfer,
+    onRefresh,
   });
 
   return (
@@ -211,16 +221,14 @@ export function ConversationListSidebar({
               onSubTabChange={inboxFilters.setSubTab}
               showAll={inboxFilters.showAll}
               onShowAllChange={inboxFilters.setShowAll}
-              scope={inboxFilters.scope}
+              scope={inboxFilters.scope as any}
               onScopeChange={inboxFilters.setScope}
               selectedQueueId={inboxFilters.selectedQueueId}
               onQueueChange={inboxFilters.setSelectedQueueId}
               contactType={inboxFilters.selectedContactType}
               onContactTypeChange={inboxFilters.handleContactTypeChange}
               selectedAgentId={inboxFilters.filters.agentId ?? undefined}
-              onAgentChange={(agentId) =>
-                inboxFilters.setFilters({ ...inboxFilters.filters, agentId })
-              }
+              onAgentChange={handleAgentChange}
               departmentAgentIds={inboxFilters.departmentAgentIds}
             />
           </div>
@@ -346,7 +354,6 @@ export function ConversationListSidebar({
           >
             <VirtualizedRealtimeList
               conversations={inboxFilters.filteredConversations}
-
               selectedContactId={inbox.selectedContactId}
               onSelectConversation={inbox.handleSelectConversation}
               selectionMode={bulkActions.selectionMode}

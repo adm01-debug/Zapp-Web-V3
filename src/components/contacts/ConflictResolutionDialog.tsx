@@ -14,6 +14,7 @@ import { sanitizeText } from '@/lib/sanitize';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
+/** Conflict Info interface definition. */
 export interface ConflictInfo {
   message:         string;
   current_version: number;
@@ -32,6 +33,7 @@ interface ConflictResolutionDialogProps {
 
 // ── Component ──────────────────────────────────────────────────────────────
 
+/** Conflict Resolution Dialog constant. */
 export const ConflictResolutionDialog: React.FC<ConflictResolutionDialogProps> = ({
   open, conflict, onKeepMine, onTakeTheirs, onCancel,
 }) => {
@@ -99,4 +101,5 @@ export const ConflictResolutionDialog: React.FC<ConflictResolutionDialogProps> =
   );
 };
 
+/** Default export. */
 export default ConflictResolutionDialog;

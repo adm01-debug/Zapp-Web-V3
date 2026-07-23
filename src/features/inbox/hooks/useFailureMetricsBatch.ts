@@ -10,15 +10,15 @@
  * React Query. Só roda quando `enabled` (filtro ativado).
  */
 import { useQuery } from '@tanstack/react-query';
+import { queryKeys } from '@/services/api/queryKeys';
 import { supabase } from '@/integrations/supabase/client';
 import type { ConversationWithMessages } from '@/features/inbox';
 
-// Schema escape hatch: zapp tables not yet in generated types (gen-types-zapp.mjs pendente na VPS)
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const db = supabase as any;
 
+/** Visual failure category derived from evolution_retry_metrics; used to power the inbox failure-filter dropdown. */
 export type FailureCategory = 'auth' | 'http_4xx' | 'http_5xx' | 'network' | 'unknown';
 
+/** Human-readable Portuguese label for each FailureCategory, used in the failure-filter UI chips. */
 export const FAILURE_CATEGORY_LABEL: Record<FailureCategory, string> = {
   auth: 'Falha de autenticação',
   http_4xx: 'HTTP 4xx (cliente)',
@@ -73,6 +73,7 @@ function collectTerminalMessageIds(conversations: ConversationWithMessages[]): s
 const STALE_MS = 30_000;
 const CHUNK_SIZE = 200;
 
+/** Batch-fetches evolution_retry_metrics for all terminal-failure messages in the inbox conversations and returns a map of messageId → FailureCategory. */
 export function useFailureMetricsBatch(
   conversations: ConversationWithMessages[],
   enabled: boolean,
@@ -80,7 +81,7 @@ export function useFailureMetricsBatch(
   const messageIds = enabled ? collectTerminalMessageIds(conversations) : [];
 
   return useQuery<Record<string, FailureCategory>>({
-    queryKey: ['failure-metrics-batch', messageIds.sort().join(',')],
+    queryKey: queryKeys.failedMessages.metricsBatch(messageIds.sort().join(',')),
     enabled: enabled && messageIds.length > 0,
     staleTime: STALE_MS,
     queryFn: async () => {
@@ -97,7 +98,7 @@ export function useFailureMetricsBatch(
       // Chunk para evitar queries gigantes
       for (let i = 0; i < keys.length; i += CHUNK_SIZE) {
         const slice = keys.slice(i, i + CHUNK_SIZE);
-        const { data, error } = await db
+        const { data, error } = await supabase
           .from('evolution_retry_metrics')
           .select('idempotency_key, final_http_status, retry_reasons')
           .in('idempotency_key', slice);

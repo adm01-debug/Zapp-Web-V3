@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Webhook, Plus, Settings, Trash2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
+/** Connections Webhooks Tab. */
 export function ConnectionsWebhooksTab() {
   return (
     <motion.div

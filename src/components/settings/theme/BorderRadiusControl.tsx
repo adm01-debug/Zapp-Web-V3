@@ -7,6 +7,7 @@ interface BorderRadiusControlProps {
   onChange: (value: number[]) => void;
 }
 
+/** Border Radius Control component for the settings section. */
 export function BorderRadiusControl({ borderRadius, onChange }: BorderRadiusControlProps) {
   const r = `${borderRadius}px`;
 
@@ -44,25 +45,25 @@ export function BorderRadiusControl({ borderRadius, onChange }: BorderRadiusCont
           <div className="bg-muted/20 border border-border/30 rounded-xl p-4 space-y-3">
             {/* Row 1: Buttons */}
             <div className="flex flex-wrap gap-2">
-              <button
+              <button type="button"
                 className="bg-primary text-primary-foreground px-4 h-9 text-xs font-medium flex items-center gap-1.5 transition-all"
                 style={{ borderRadius: r }}
               >
                 <Send className="w-3.5 h-3.5" /> Enviar
               </button>
-              <button
+              <button type="button"
                 className="bg-secondary text-secondary-foreground px-4 h-9 text-xs font-medium flex items-center gap-1.5 transition-all"
                 style={{ borderRadius: r }}
               >
                 <Heart className="w-3.5 h-3.5" /> Curtir
               </button>
-              <button
+              <button type="button"
                 className="border border-border bg-card text-foreground px-4 h-9 text-xs font-medium flex items-center gap-1.5 transition-all"
                 style={{ borderRadius: r }}
               >
                 <Settings className="w-3.5 h-3.5" /> Config
               </button>
-              <button
+              <button type="button"
                 className="bg-destructive text-destructive-foreground px-3 h-9 text-xs font-medium transition-all"
                 style={{ borderRadius: r }}
               >

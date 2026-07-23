@@ -10,6 +10,7 @@
  * (mute/unmute do AudioContext) — eventos genéricos perderiam contexto.
  */
 
+/** Handle registered by an active audio player, allowing global shortcuts to call toggleMute/getVolume directly on it. */
 export interface ActivePlayerHandle {
   messageId: string;
   /** Toggle entre volume 0 e o último volume não-zero. Retorna o novo estado. */
@@ -27,6 +28,7 @@ function emit() {
   }
 }
 
+/** Singleton pub/sub for the currently playing audio player; enables keyboard shortcuts (e.g. M for mute) to target any active player without prop-drilling. */
 export const audioPlaybackBus = {
   /**
    * Registra handle como o player ativo. Substitui o anterior — qualquer

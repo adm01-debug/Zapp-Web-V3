@@ -142,6 +142,7 @@ function DirectionRow({
   );
 }
 
+/** Conversation Delivery Summary constant. */
 export const ConversationDeliverySummary = memo(function ConversationDeliverySummary({
   messages,
   className,

@@ -100,4 +100,5 @@ const CardFooter = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDiv
 );
 CardFooter.displayName = "CardFooter";
 
+/** React component: card. */
 export { Card, MotionCardComponent, CardHeader, CardFooter, CardTitle, CardDescription, CardContent, cardVariants };

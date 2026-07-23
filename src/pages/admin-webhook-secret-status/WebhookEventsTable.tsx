@@ -5,6 +5,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { RefreshCw } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import type { WebhookTableDensity, WebhookViewColumns } from '@/hooks/useWebhookViewPreferences';
+
 
 interface WebhookEvent {
   id?: string;
@@ -16,19 +18,13 @@ interface WebhookEvent {
   processed?: boolean | null;
 }
 
-interface VisibleColumns {
-  when: boolean;
-  event: boolean;
-  instance: boolean;
-  signature: boolean;
-  status: boolean;
-  action: boolean;
-}
+interface VisibleColumns extends WebhookViewColumns {}
 
 interface Prefs {
   visibleColumns: VisibleColumns;
-  tableDensity: 'default' | 'compact';
+  tableDensity: WebhookTableDensity;
 }
+
 
 interface WebhookEventsTableProps {
   scopeLabel: string;
@@ -42,6 +38,7 @@ interface WebhookEventsTableProps {
   clearAllFiltersAndUrl: () => void;
 }
 
+/** Webhook Events Table. */
 export function WebhookEventsTable({
   scopeLabel,
   events,

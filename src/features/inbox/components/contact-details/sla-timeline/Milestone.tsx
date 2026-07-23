@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { formatTs, STATUS_STYLES, type SLAStatus } from './types';
 
+/** Milestone Props interface definition. */
 export interface MilestoneProps {
   index: number;
   icon: typeof MessageCircle;
@@ -24,6 +25,7 @@ export interface MilestoneProps {
   onOpenConversation?: () => void;
 }
 
+/** Renders a single SLA timeline milestone with icon, label, timestamp, agent/queue chips, and an optional "open conversation" CTA. */
 export function Milestone({
   index,
   icon: Icon,

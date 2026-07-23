@@ -33,6 +33,7 @@ interface SLAMetricCardsProps {
   sparkConversations: number[];
 }
 
+/** SLAMetric Cards component for the queues section. */
 export function SLAMetricCards({ data, periodLabel, sparkOverall, sparkFR, sparkRes, sparkConversations }: SLAMetricCardsProps) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

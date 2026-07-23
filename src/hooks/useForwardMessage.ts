@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { getLogger } from '@/lib/logger';
@@ -6,9 +5,9 @@ import { toast } from '@/hooks/use-toast';
 
 const log = getLogger('useForwardMessage');
 import { dbFrom } from '@/integrations/datasource/db';
-import type { Tables } from '@/integrations/supabase/schema';
+import type { ContactRow } from '@/integrations/supabase/schema';
 
-type Contact = Pick<Tables<'contacts'>, 'id' | 'name' | 'phone' | 'avatar_url'>;
+type Contact = Pick<NonNullable<ContactRow>, 'id' | 'name' | 'phone' | 'avatar_url'>;
 
 interface Group {
   id: string;
@@ -35,10 +34,13 @@ export function useForwardMessage(
   const mountedRef = useRef(true); // ✅ Fix: mounted guard para race condition
   useEffect(() => {
     mountedRef.current = true;
-    return () => { mountedRef.current = false; };
+    return () => {
+      mountedRef.current = false;
+    };
   }, []);
 
-  const fetchContacts = useCallback(async () => { // ✅ Fix: useCallback para deps estáveis
+  const fetchContacts = useCallback(async () => {
+    // ✅ Fix: useCallback para deps estáveis
     setIsLoading(true);
     try {
       const { data, error } = await dbFrom('contacts')
@@ -60,6 +62,7 @@ export function useForwardMessage(
     }
   }, [open, fetchContacts]); // ✅ Fix: adicionar fetchContacts e fetchGroups nas deps
 
+  /** Fetches all WhatsApp groups ordered by name and populates local state; silently logs errors. */
   const fetchGroups = async () => {
     try {
       const { data, error } = await supabase
@@ -81,12 +84,14 @@ export function useForwardMessage(
     g.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  /** Adds `id` to the selected contacts set if absent, or removes it when already present. */
   const toggleContact = (id: string) => {
     setSelectedContacts((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
     );
   };
 
+  /** Adds `id` to the selected groups set if absent, or removes it when already present. */
   const toggleGroup = (id: string) => {
     setSelectedGroups((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
   };
@@ -97,6 +102,7 @@ export function useForwardMessage(
     setSearchQuery('');
   }, []);
 
+  /** Validates that at least one recipient is selected, invokes `onForward` for contacts and groups, shows a success toast, and closes the dialog. */
   const handleForward = async () => {
     if (selectedContacts.length === 0 && selectedGroups.length === 0) {
       toast({
@@ -130,6 +136,7 @@ export function useForwardMessage(
     }
   };
 
+  /** Resets selection and search state then closes the forward dialog. */
   const handleClose = () => {
     reset();
     onOpenChange(false);
@@ -156,4 +163,5 @@ export function useForwardMessage(
   };
 }
 
+/** Re-exported module members. */
 export type { Contact, Group };

@@ -1,5 +1,6 @@
 import { Archive, Check, Trash2, RotateCcw, Pin, PinOff, Star, Bell, BellOff } from 'lucide-react';
 
+/** Swipe Action interface definition. */
 export interface SwipeAction {
   icon: typeof Archive;
   color: string;
@@ -8,10 +9,12 @@ export interface SwipeAction {
   action: () => void;
 }
 
+/** D E F A U L T_ L E F T_ A C T I O N constant. */
 export const DEFAULT_LEFT_ACTION: SwipeAction = {
   icon: Check, color: 'text-primary-foreground', bgColor: 'bg-success', label: 'Lido', action: () => {},
 };
 
+/** D E F A U L T_ R I G H T_ A C T I O N constant. */
 export const DEFAULT_RIGHT_ACTION: SwipeAction = {
   icon: Archive, color: 'text-primary-foreground', bgColor: 'bg-warning', label: 'Arquivar', action: () => {},
 };

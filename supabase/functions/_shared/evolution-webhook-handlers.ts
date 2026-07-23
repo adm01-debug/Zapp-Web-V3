@@ -7,6 +7,7 @@ import {
   getConnectionByInstance, getContactByPhone, persistProfilePicture, generatePhoneVariants,
 } from "./evolution-helpers.ts";
 
+/** evolution-webhook-handlers utilities and exports. */
 export async function handleLogoutInstance(supabase: SupabaseClient, instance: string, data: unknown) {
   const payload = isRecord(data) ? data : {};
   const reasonCode = (payload.disconnectionReasonCode as number | undefined)
@@ -33,6 +34,7 @@ export async function handleLogoutInstance(supabase: SupabaseClient, instance: s
   console.log(`[LOGOUT_INSTANCE] instance=${instance} reasonCode=${reasonCode ?? 'n/a'}`);
 }
 
+/** handle Groups Upsert function. */
 export async function handleGroupsUpsert(supabase: SupabaseClient, instance: string, data: unknown) {
   const groups = toEventRecords(data, ['groups']);
   if (groups.length === 0) return;
@@ -62,6 +64,7 @@ export async function handleGroupsUpsert(supabase: SupabaseClient, instance: str
   console.log(`[groups.upsert] instance=${instance} upserted=${upserted}/${groups.length}`);
 }
 
+/** handle Group Participants Update function. */
 export async function handleGroupParticipantsUpdate(supabase: SupabaseClient, instance: string, data: unknown) {
   const payload = isRecord(data) ? data : {};
   const groupId = payload.id as string;
@@ -92,11 +95,13 @@ export async function handleGroupParticipantsUpdate(supabase: SupabaseClient, in
 }
 
 // Re-export message handlers for backward compatibility
+/** Re-exported module members. */
 export {
   handleSendMessage, handleMessagesUpdate, handleMessagesDelete,
   handleMessagesSet, handleMessagesEdited,
 } from "./evolution-webhook-msg-handlers.ts";
 
+/** handle Connection Update function. */
 export async function handleConnectionUpdate(supabase: SupabaseClient, instance: string, baseData: Record<string, unknown>) {
   // Lê estado de várias chaves possíveis
   const evoState = (baseData.state ?? baseData.status ?? baseData.connectionStatus
@@ -187,6 +192,7 @@ export async function handleConnectionUpdate(supabase: SupabaseClient, instance:
   }
 }
 
+/** handle Contacts Upsert function. */
 export async function handleContactsUpsert(supabase: SupabaseClient, instance: string, data: unknown) {
   const contacts = Array.isArray(data) ? data : [data];
   const connection = await getConnectionByInstance(supabase, instance);
@@ -203,7 +209,9 @@ export async function handleContactsUpsert(supabase: SupabaseClient, instance: s
 
     if (pushName) {
       let permanentAvatarUrl: string | null = null;
-      if (profilePicUrl && profilePicUrl.includes('pps.whatsapp.net')) {
+      const WHATSAPP_CDN_RE = /^[\w-]+\.whatsapp\.net$/;
+      const isWhatsAppCdn = (url: string) => { try { return WHATSAPP_CDN_RE.test(new URL(url).hostname); } catch { return false; } };
+      if (profilePicUrl && isWhatsAppCdn(profilePicUrl)) {
         permanentAvatarUrl = await persistProfilePicture(supabase, phone, profilePicUrl);
       } else if (profilePicUrl) {
         permanentAvatarUrl = profilePicUrl;
@@ -229,6 +237,7 @@ export async function handleContactsUpsert(supabase: SupabaseClient, instance: s
   }
 }
 
+/** handle Presence Update function. */
 export async function handlePresenceUpdate(supabase: SupabaseClient, instance: string, data: unknown) {
   const presenceData = isRecord(data) ? data : {};
   const jid = (presenceData.id as string) || (presenceData.remoteJid as string);
@@ -306,6 +315,7 @@ export async function handlePresenceUpdate(supabase: SupabaseClient, instance: s
   }
 }
 
+/** handle Chats Update function. */
 export async function handleChatsUpdate(supabase: SupabaseClient, instance: string, data: unknown) {
   const chats = Array.isArray(data) ? data : [data];
   const connection = await getConnectionByInstance(supabase, instance);
@@ -331,6 +341,7 @@ export async function handleChatsUpdate(supabase: SupabaseClient, instance: stri
   }
 }
 
+/** handle Labels Edit function. */
 export async function handleLabelsEdit(supabase: SupabaseClient, instance: string, data: unknown) {
   const labelData = isRecord(data) ? data : {};
   const labelId = labelData.id as string;
@@ -355,6 +366,7 @@ export async function handleLabelsEdit(supabase: SupabaseClient, instance: strin
   }
 }
 
+/** handle Labels Association function. */
 export async function handleLabelsAssociation(supabase: SupabaseClient, instance: string, data: unknown) {
   const assocData = isRecord(data) ? data : {};
   const labelId = assocData.labelId as string || (assocData.label as Record<string, unknown>)?.id as string;
@@ -383,6 +395,7 @@ export async function handleLabelsAssociation(supabase: SupabaseClient, instance
   }
 }
 
+/** handle Call Event function. */
 export async function handleCallEvent(supabase: SupabaseClient, instance: string, data: unknown) {
   const callData = isRecord(data) ? data : {};
   const from = callData.from as string;
@@ -465,6 +478,7 @@ export async function handleCallEvent(supabase: SupabaseClient, instance: string
   }
 }
 
+/** handle Chats Delete function. */
 export async function handleChatsDelete(supabase: SupabaseClient, instance: string, data: unknown) {
   const chats = Array.isArray(data) ? data : [data];
   const connection = await getConnectionByInstance(supabase, instance);
@@ -485,6 +499,7 @@ export async function handleChatsDelete(supabase: SupabaseClient, instance: stri
   }
 }
 
+/** handle Application Startup function. */
 export async function handleApplicationStartup(supabase: SupabaseClient, instance: string) {
   console.log(`Application startup event from instance: ${instance}`);
   const { data: conn } = await supabase.from('whatsapp_connections')
@@ -495,6 +510,7 @@ export async function handleApplicationStartup(supabase: SupabaseClient, instanc
   }
 }
 
+/** handle Contacts Set function. */
 export async function handleContactsSet(supabase: SupabaseClient, instance: string, data: unknown) {
   const contacts = toEventRecords(data, ['contacts']);
   if (contacts.length === 0) return;
@@ -521,6 +537,7 @@ export async function handleContactsSet(supabase: SupabaseClient, instance: stri
   console.log(`contacts.set: synced ${synced}, skipped ${skipped} for ${instance}`);
 }
 
+/** handle Chats Set function. */
 export async function handleChatsSet(supabase: SupabaseClient, instance: string, data: unknown) {
   const chats = toEventRecords(data, ['chats']);
   const connection = await getConnectionByInstance(supabase, instance);

@@ -7,6 +7,7 @@
  * queries via `ZAPPWEB_INSTANCE`.
  */
 
+/** Whats App Message Type type alias. */
 export type WhatsAppMessageType =
   | 'conversation'
   | 'extendedTextMessage'
@@ -24,9 +25,13 @@ export type WhatsAppMessageType =
   | 'reaction'
   | string;
 
+/** Message Status type alias. */
 export type MessageStatus = 'sent' | 'delivered' | 'read' | 'pending' | 'failed';
+/** Conversation Status type alias. */
 export type ConversationStatus = 'aberta' | 'arquivada';
+/** Conversation Priority type alias. */
 export type ConversationPriority = 'normal' | 'alta' | 'urgente';
+/** Lead Status type alias. */
 export type LeadStatus =
   | 'novo'
   | 'qualificado'
@@ -35,6 +40,7 @@ export type LeadStatus =
   | 'perdido'
   | string;
 
+/** Evolution Contact interface definition. */
 export interface EvolutionContact {
   id: string;
   remote_jid: string;
@@ -58,6 +64,7 @@ export interface EvolutionContact {
   updated_at?: string;
 }
 
+/** Evolution Conversation interface definition. */
 export interface EvolutionConversation {
   id: string;
   contact_id: string | null;
@@ -76,6 +83,7 @@ export interface EvolutionConversation {
   evolution_contacts?: EvolutionContact | null;
 }
 
+/** Evolution Message interface definition. */
 export interface EvolutionMessage {
   id: string;
   message_id: string;

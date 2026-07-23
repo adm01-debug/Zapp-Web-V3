@@ -5,14 +5,10 @@ import { getLogger } from '@/lib/logger';
 const log = getLogger('useBatchReactions');
 import type { MessageReaction } from './types';
 
-// Schema escape hatch: zapp tables not yet in generated types (gen-types-zapp.mjs pendente na VPS)
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const db = supabase as any;
-
 /**
  * Hook for batch loading reactions for multiple messages.
- * 
- * Performance: uses useMemo for messageIds join key to avoid re-triggering 
+ *
+ * Performance: uses useMemo for messageIds join key to avoid re-triggering
  * on same arrays. Returns a typed Record<string, MessageReaction[]>.
  */
 export function useMessagesReactions(messageIds: string[]) {
@@ -30,21 +26,25 @@ export function useMessagesReactions(messageIds: string[]) {
     const fetchReactions = async () => {
       setIsLoading(true);
       try {
-        const { data, error } = await db.from('message_reactions')
+        const { data, error } = await supabase
+          .from('message_reactions')
           .select('*')
           .in('message_id', messageIds);
 
         if (error) throw error;
 
-        // Correctly type the return data explicitly as MessageReaction[] 
+        // Correctly type the return data explicitly as MessageReaction[]
         // to resolve any potential 'unknown' issues during reduce
         const rawData = (data || []) as MessageReaction[];
 
-        const grouped = rawData.reduce((acc, r) => {
-          if (!acc[r.message_id]) acc[r.message_id] = [];
-          acc[r.message_id].push(r);
-          return acc;
-        }, {} as Record<string, MessageReaction[]>);
+        const grouped = rawData.reduce(
+          (acc, r) => {
+            if (!acc[r.message_id]) acc[r.message_id] = [];
+            acc[r.message_id].push(r);
+            return acc;
+          },
+          {} as Record<string, MessageReaction[]>
+        );
 
         setReactionsMap(grouped);
       } catch (err) {
@@ -55,7 +55,7 @@ export function useMessagesReactions(messageIds: string[]) {
     };
 
     void fetchReactions();
-  }, [memoizedIds]);
+  }, [memoizedIds]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return { reactionsMap, isLoading };
 }

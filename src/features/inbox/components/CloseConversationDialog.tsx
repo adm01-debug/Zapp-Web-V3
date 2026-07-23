@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import {
@@ -57,6 +56,7 @@ const CLASSIFICATIONS = [
   { value: 'feedback', label: 'Feedback' },
 ];
 
+/** Close Conversation Dialog component. */
 export function CloseConversationDialog({
   open,
   onOpenChange,

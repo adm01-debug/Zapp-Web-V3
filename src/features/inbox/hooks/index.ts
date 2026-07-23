@@ -1,3 +1,4 @@
+/** Public barrel exports for the hooks module. */
 export * from './useAgentPendingCounts';
 export * from './useAgentRecentSends';
 export * from './useCalls';

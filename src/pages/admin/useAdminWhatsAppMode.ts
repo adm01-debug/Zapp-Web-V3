@@ -10,6 +10,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import type { SecretStatus, VerifyResult } from './adminWhatsAppModeTypes';
 
+/** use Admin Whats App Mode. */
 export function useAdminWhatsAppMode() {
   const { toast } = useToast();
   const [mode, setMode] = useState<WhatsAppMode>('unofficial');

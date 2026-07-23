@@ -14,6 +14,7 @@
  *  3. Configure o webhook na Evolution API.
  */
 
+/** Whatsapp Instances constant. */
 export const WHATSAPP_INSTANCES = [
   // Instância legada — dados históricos até Maio 2026
   'wpp2',
@@ -23,6 +24,7 @@ export const WHATSAPP_INSTANCES = [
   'default',
 ] as const;
 
+/** Whats App Instance type alias. */
 export type WhatsAppInstance = (typeof WHATSAPP_INSTANCES)[number];
 
 /**
@@ -49,6 +51,7 @@ export const SELECTABLE_WHATSAPP_INSTANCES = WHATSAPP_INSTANCES.filter(
   (i) => i !== 'default',
 ) as readonly WhatsAppInstance[];
 
+/** Returns true if value is one of the registered WhatsApp instance identifiers. */
 export function isValidWhatsAppInstance(value: unknown): value is WhatsAppInstance {
   return typeof value === 'string' && (WHATSAPP_INSTANCES as readonly string[]).includes(value);
 }

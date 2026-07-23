@@ -17,6 +17,7 @@ const alertIcons: Record<QueueAlert['type'], LucideIcon> = {
   messages_pending: MessageSquare,
 };
 
+/** Queue Alerts Display component for the queues section. */
 export function QueueAlertsDisplay({ alerts, onDismiss, onNavigate }: QueueAlertsDisplayProps) {
   if (alerts.length === 0) return null;
 

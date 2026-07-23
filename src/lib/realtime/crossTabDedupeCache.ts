@@ -6,6 +6,7 @@ import {
   type ResultPayload,
 } from './crossTabDedupeTypes';
 
+/** read Persisted Result function. */
 export function readPersistedResult<T>(key: string): T | null {
   if (typeof localStorage === 'undefined') return null;
   try {
@@ -22,6 +23,7 @@ export function readPersistedResult<T>(key: string): T | null {
   }
 }
 
+/** write Persisted Result function. */
 export function writePersistedResult<T>(key: string, value: T, ttl: number): void {
   if (typeof localStorage === 'undefined') return;
   try {

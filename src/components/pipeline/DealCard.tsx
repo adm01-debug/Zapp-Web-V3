@@ -51,6 +51,7 @@ interface DealCardProps {
   onDelete: (id: string) => void;
 }
 
+/** Deal Card component for the pipeline section. */
 export function DealCard({ deal, isDragging, onDragStart, onDragEnd, onEdit, onMarkWon, onMarkLost, onDelete }: DealCardProps) {
   return (
     <motion.div
@@ -87,4 +88,5 @@ export function DealCard({ deal, isDragging, onDragStart, onDragEnd, onEdit, onM
   );
 }
 
+/** Re-exported module members. */
 export type { Deal };

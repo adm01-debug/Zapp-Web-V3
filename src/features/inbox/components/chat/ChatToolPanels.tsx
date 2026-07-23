@@ -25,6 +25,7 @@ interface ChatToolPanelsProps {
   onSelectSuggestion: (text: string) => void;
 }
 
+/** Chat Tool Panels component for the chat section. */
 export function ChatToolPanels({
   activeTool,
   onSetActiveTool,

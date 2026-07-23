@@ -57,6 +57,7 @@ interface ConversationContextMenuProps {
   onOpenSLASettings?: (id: string) => void;
 }
 
+/** Conversation Context Menu component. */
 export function ConversationContextMenu({
   children,
   conversationId,

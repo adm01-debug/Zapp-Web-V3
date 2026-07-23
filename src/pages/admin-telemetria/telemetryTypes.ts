@@ -1,3 +1,4 @@
+/** Telemetry Row. */
 export interface TelemetryRow {
   id: string;
   operation: string;
@@ -14,5 +15,7 @@ export interface TelemetryRow {
   created_at: string;
 }
 
+/** Severity Filter. */
 export type SeverityFilter = "all" | "slow" | "very_slow" | "error";
+/** Time Filter. */
 export type TimeFilter = "1h" | "6h" | "24h" | "7d" | "custom";

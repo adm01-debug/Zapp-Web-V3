@@ -1,4 +1,4 @@
-// @ts-nocheck
+
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -44,8 +44,9 @@ import { StatsCards } from './StatsCards';
 import { AIGenerateDialog } from './AIGenerateDialog';
 import { MediaItemRow } from './MediaItemRow';
 
+/** Media Admin Panel component for the settings section. */
 export function MediaAdminPanel({ type }: { type: MediaType }) {
-  const lib = useMediaLibrary(type);
+  const lib = useMediaLibrary({ type });
   const upload = useMediaUpload(type, lib.fetchItems);
   const [showGenDialog, setShowGenDialog] = useState(false);
 

@@ -1,11 +1,10 @@
-// @ts-nocheck
 // Consolidated Settings & Preferences Management Module (ETAPA 41)
 // Consolidates: useUserSettings, useGlobalSettings, useWebhookViewPreferences, useOnboardingChecklist
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useCallback } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { log } from '@/lib/logger';
-
 
 // Default settings values (usados quando não há dados no banco)
 const DEFAULT_USER_SETTINGS = {
@@ -44,14 +43,14 @@ interface UserSettings {
   language: string;
   timezone: string;
   notifications_enabled: boolean;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 interface GlobalSettings {
   maintenance_mode: boolean;
   feature_flags: Record<string, boolean>;
   api_rate_limit: number;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 interface OnboardingStep {
@@ -60,74 +59,53 @@ interface OnboardingStep {
   timestamp?: string;
 }
 
+/** Fetches and updates per-user settings (TTS, UI preferences). Re-throws errors from update so callers can handle them. */
 export function useUserSettingsManagement(userIdParam?: string) {
-  // Fix: usar useAuth se userId não fornecido
   const authCtx = useAuth();
   const userId = userIdParam ?? authCtx?.user?.id;
+  const queryClient = useQueryClient();
 
-  const [settings, setSettings] = useState<UserSettings | null>(null);
-  const [loading, setLoading] = useState(true);
-  const mountedRef = useRef(true);
+  const USER_SETTINGS_KEY = ['user-settings', userId] as const;
 
-  useEffect(() => {
-    return () => { mountedRef.current = false; };
-  }, []);
-
-  // Fix: setar loading=false quando não há userId
-  useEffect(() => {
-    if (!userId && mountedRef.current) setLoading(false);
-  }, [userId]);
-
-  const fetchSettings = useCallback(async () => {
-    if (!userId) return;
-
-    try {
-      setLoading(true);
+  const { data: settings, isLoading: loading, refetch } = useQuery({
+    queryKey: USER_SETTINGS_KEY,
+    queryFn: async () => {
       const { data, error: err } = await supabase
         .from('user_settings')
         .select('*')
-        .eq('user_id', userId)
-        .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
-
+        .eq('user_id', userId!)
+        .maybeSingle();
       if (err && err.code !== 'PGRST116') throw err;
-      if (mountedRef.current) setSettings(data || null);
-    } catch (err) {
-      if (mountedRef.current) {
-        log.error('Error fetching user settings:', err);
-      }
-    } finally {
-      if (mountedRef.current) setLoading(false);
-    }
-  }, [userId]);
+      return (data || null) as UserSettings | null;
+    },
+    enabled: !!userId,
+    staleTime: 60_000,
+  });
 
   const updateSettings = useCallback(
     async (updates: Partial<UserSettings>) => {
       if (!userId) return;
-
-      try {
-        const { error: err } = await supabase
-          .from('user_settings')
-          .update(updates)
-          .eq('user_id', userId);
-
-        if (err) throw err;
-        await fetchSettings();
-      } catch (err) {
-        if (mountedRef.current) {
-          log.error('Error updating user settings:', err);
-        }
+      const { error: err } = await supabase
+        .from('user_settings')
+        .update(updates)
+        .eq('user_id', userId);
+      if (err) {
+        log.error('Error updating user settings:', err);
+        throw err;
       }
+      void queryClient.invalidateQueries({ queryKey: USER_SETTINGS_KEY });
     },
-    [userId, fetchSettings, mountedRef]
+    [userId, queryClient, USER_SETTINGS_KEY]
   );
 
-  useEffect(() => {
-    if (userId) fetchSettings();
-  }, [userId, fetchSettings]);
-
-  // Fix: defaults + isLoading alias
   const effectiveSettings = settings ?? { ...DEFAULT_USER_SETTINGS, user_id: userId ?? '' };
-  return { settings: effectiveSettings, loading, isLoading: loading, updateSettings, refetch: fetchSettings };
+  return {
+    settings: effectiveSettings,
+    loading,
+    isLoading: loading,
+    updateSettings,
+    refetch,
+  };
 }
 
 interface GlobalSettingRow {
@@ -137,140 +115,110 @@ interface GlobalSettingRow {
   description?: string;
 }
 
+const GLOBAL_SETTINGS_KEY = ['global-settings'] as const;
+
+/** Reads, writes, and adds workspace-level global settings stored in the global_settings table. Re-throws errors from updateSetting. */
 export function useGlobalSettingsManagement() {
-  const [settingsRows, setSettingsRows] = useState<GlobalSettingRow[]>([]);
-  const [settings, setSettings] = useState<GlobalSettings | null>(null);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    const fetchSettings = async () => {
-      try {
-        const { data, error: err } = await supabase
-          .from('global_settings')
-          .select('*')
-          .order('key', { ascending: true });
+  const { data, isLoading: loading } = useQuery({
+    queryKey: GLOBAL_SETTINGS_KEY,
+    queryFn: async () => {
+      const { data: rows, error: err } = await supabase
+        .from('global_settings')
+        .select('*')
+        .order('key', { ascending: true });
+      if (err && err.code !== 'PGRST116') throw err;
+      return {
+        settingsRows: (rows || []) as GlobalSettingRow[],
+        settings: ((rows || [])[0] || null) as GlobalSettings | null,
+      };
+    },
+    staleTime: 60_000,
+  });
 
-        if (err && err.code !== 'PGRST116') throw err;
-        setSettingsRows(data || []);
-        setSettings(data?.[0] || null);
-      } catch (err) {
-        log.error('Error fetching global settings:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const settingsRows = data?.settingsRows ?? [];
+  const settings = data?.settings ?? null;
 
-    fetchSettings();
-  }, []);
-
-  // Helper: buscar valor de um setting por key
+  /** Finds a settings row by key and returns its string value, or null when not found. */
   const getSetting = (key: string): string | null => {
-    const row = settingsRows.find(r => r.key === key);
+    const row = settingsRows.find((r) => r.key === key);
     return row?.value ?? null;
   };
 
-  // Helper: atualizar um setting existente
+  /** Updates a `global_settings` row by key in Supabase; re-throws on error. */
   const updateSetting = async (key: string, value: string): Promise<void> => {
-    try {
-      const { error } = await supabase
-        .from('global_settings')
-        .update({ value })
-        .eq('key', key);
-      if (error) throw error;
-      setSettingsRows(prev => prev.map(r => r.key === key ? { ...r, value } : r));
-    } catch (err) {
-      log.error('Error updating global setting:', err);
+    const { error } = await supabase.from('global_settings').update({ value }).eq('key', key);
+    if (error) {
+      log.error('Error updating global setting:', error);
+      throw error;
     }
+    void queryClient.invalidateQueries({ queryKey: GLOBAL_SETTINGS_KEY });
   };
 
-  // Helper: adicionar novo setting
+  /** Inserts a new `global_settings` row; re-throws on error. */
   const addSetting = async (key: string, value: string, description?: string): Promise<void> => {
-    try {
-      const { data, error } = await supabase
-        .from('global_settings')
-        .insert({ key, value, description })
-        .select()
-        .single();
-      if (error) throw error;
-      if (data) setSettingsRows(prev => [...prev, data as GlobalSettingRow]);
-    } catch (err) {
-      log.error('Error adding global setting:', err);
+    const { error } = await supabase
+      .from('global_settings')
+      .insert({ key, value, description })
+      .select()
+      .single();
+    if (error) {
+      log.error('Error adding global setting:', error);
+      throw error;
     }
+    void queryClient.invalidateQueries({ queryKey: GLOBAL_SETTINGS_KEY });
   };
 
-  return { settings, settingsRows, loading, isLoading: loading, getSetting, updateSetting, addSetting };
+  return {
+    settings,
+    settingsRows,
+    loading,
+    isLoading: loading,
+    getSetting,
+    updateSetting,
+    addSetting,
+  };
 }
 
+/** Loads and persists webhook-view display preferences (column visibility, sort order) per user. */
 export function useWebhookViewPreferencesManagement(userId?: string) {
-  const [preferences, setPreferences] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const mountedRef = useRef(true);
-
-  useEffect(() => {
-    return () => {
-      mountedRef.current = false;
-    };
-  }, []);
-
-  const fetchPreferences = useCallback(async () => {
-    if (!userId) return;
-
-    try {
-      setLoading(true);
+  const { data: preferences = null, isLoading: loading, refetch } = useQuery({
+    queryKey: ['webhook-preferences', userId] as const,
+    queryFn: async () => {
       const { data, error: err } = await supabase
         .from('webhook_preferences')
         .select('*')
-        .eq('user_id', userId);
-
+        .eq('user_id', userId!);
       if (err) throw err;
-      if (mountedRef.current) setPreferences(data || []);
-    } catch (err) {
-      if (mountedRef.current) {
-        log.error('Error fetching webhook preferences:', err);
-      }
-    } finally {
-      if (mountedRef.current) setLoading(false);
-    }
-  }, [userId]);
+      return data || [];
+    },
+    enabled: !!userId,
+    staleTime: 60_000,
+  });
 
-  useEffect(() => {
-    if (userId) fetchPreferences();
-  }, [userId, fetchPreferences]);
-
-  return { preferences, loading, refetch: fetchPreferences };
+  return { preferences, loading, refetch };
 }
 
+/** Manages the onboarding checklist steps for a user, including marking steps complete and calculating overall progress. */
 export function useOnboardingChecklistManagement(userId?: string) {
-  const [steps, setSteps] = useState<OnboardingStep[]>([]);
-  const [loading, setLoading] = useState(true);
-  const mountedRef = useRef(true);
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    return () => {
-      mountedRef.current = false;
-    };
-  }, []);
+  const ONBOARDING_KEY = ['onboarding-steps', userId] as const;
 
-  const fetchSteps = useCallback(async () => {
-    if (!userId) return;
-
-    try {
-      setLoading(true);
+  const { data: steps = [], isLoading: loading, refetch } = useQuery({
+    queryKey: ONBOARDING_KEY,
+    queryFn: async () => {
       const { data, error: err } = await supabase
         .from('onboarding_steps')
         .select('*')
-        .eq('user_id', userId);
-
+        .eq('user_id', userId!);
       if (err) throw err;
-      if (mountedRef.current) setSteps(data || []);
-    } catch (err) {
-      if (mountedRef.current) {
-        log.error('Error fetching onboarding steps:', err);
-      }
-    } finally {
-      if (mountedRef.current) setLoading(false);
-    }
-  }, [userId]);
+      return (data || []) as OnboardingStep[];
+    },
+    enabled: !!userId,
+    staleTime: 30_000,
+  });
 
   const completeStep = useCallback(
     async (stepId: string) => {
@@ -279,21 +227,16 @@ export function useOnboardingChecklistManagement(userId?: string) {
           .from('onboarding_steps')
           .update({ completed: true, timestamp: new Date().toISOString() })
           .eq('id', stepId);
-        await fetchSteps();
+        void queryClient.invalidateQueries({ queryKey: ONBOARDING_KEY });
       } catch (err) {
-        if (mountedRef.current) {
-          log.error('Error completing onboarding step:', err);
-        }
+        log.error('Error completing onboarding step:', err);
       }
     },
-    [fetchSteps, mountedRef]
+    [queryClient, ONBOARDING_KEY]
   );
 
-  useEffect(() => {
-    if (userId) fetchSteps();
-  }, [userId, fetchSteps]);
-
-  return { steps, loading, completeStep, refetch: fetchSteps };
+  return { steps, loading, completeStep, refetch };
 }
 
+/** Re-exported module members. */
 export type { UserSettings, GlobalSettings, OnboardingStep };

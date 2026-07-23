@@ -1,10 +1,10 @@
-// @ts-nocheck
 import { useMemo, useState } from 'react';
 import {
   useAdminAutomations,
   TRIGGER_LABEL,
   EMPTY_RULE,
   type Rule,
+  type TriggerType,
 } from '@/hooks/admin/useAdminAutomations';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -19,6 +19,15 @@ import {
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Input } from '@/components/ui/input';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
 import {
   Plus,
   Pencil,
@@ -33,13 +42,18 @@ import {
   Building2,
   Radio,
 } from 'lucide-react';
-import { AutomationRuleDialog } from './AutomationRuleDialog';
 
+const SLA_LEVELS = [
+  { value: 'low', label: 'Baixa' },
+  { value: 'normal', label: 'Normal' },
+  { value: 'high', label: 'Alta' },
+  { value: 'critical', label: 'Crítica' },
+];
 
 // Ensure escalate_sla always has required properties with proper types
 function normalizeEscalateSla(
-  partial: Partial<typeof EMPTY_RULE.actions.escalate_sla> | undefined
-): typeof EMPTY_RULE.actions.escalate_sla {
+  partial: Partial<NonNullable<typeof EMPTY_RULE.actions.escalate_sla>> | undefined
+): { enabled: boolean; level: string; reason: string } {
   return {
     enabled: partial?.enabled ?? false,
     level: (partial?.level as string) ?? 'high',
@@ -47,7 +61,7 @@ function normalizeEscalateSla(
   };
 }
 
-
+/** Admin Automations Page. */
 export default function AdminAutomationsPage() {
   const {
     rules,
@@ -63,7 +77,6 @@ export default function AdminAutomationsPage() {
     channelMap,
     deptMap,
   } = useAdminAutomations();
-
 
   const [editing, setEditing] = useState<Rule | null>(null);
   const [open, setOpen] = useState(false);
@@ -227,13 +240,16 @@ export default function AdminAutomationsPage() {
                   Não foi possível carregar as automações
                 </h2>
                 <p className="text-sm text-muted-foreground">
-                  {error.message || 'Ocorreu um erro inesperado ao buscar as regras. Tente novamente em instantes.'}
+                  {error.message ||
+                    'Ocorreu um erro inesperado ao buscar as regras. Tente novamente em instantes.'}
                 </p>
                 <div className="flex flex-wrap items-center gap-2">
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => { void reload(); }}
+                    onClick={() => {
+                      void reload();
+                    }}
                     disabled={loading}
                     data-testid="automations-retry"
                   >
@@ -255,17 +271,17 @@ export default function AdminAutomationsPage() {
                     data-testid="automations-error-details"
                     className="mt-2 max-h-64 overflow-auto rounded bg-muted p-3 text-xs text-muted-foreground"
                   >
-{JSON.stringify(
-  {
-    name: error.name,
-    message: error.message,
-    stack: error.stack?.split('\n').slice(0, 6),
-    cause: (error as { cause?: unknown }).cause ?? null,
-    timestamp: new Date().toISOString(),
-  },
-  null,
-  2
-)}
+                    {JSON.stringify(
+                      {
+                        name: error.name,
+                        message: error.message,
+                        stack: error.stack?.split('\n').slice(0, 6),
+                        cause: (error as { cause?: unknown }).cause ?? null,
+                        timestamp: new Date().toISOString(),
+                      },
+                      null,
+                      2
+                    )}
                   </pre>
                 )}
               </div>
@@ -509,7 +525,7 @@ export default function AdminAutomationsPage() {
                     <div>
                       <Label htmlFor="auto-inactivity-side">De quem?</Label>
                       <Select
-                        value={((editing as any).trigger_config?.side as string) ?? 'any'}
+                        value={(editing.trigger_config?.side ?? 'any') as string}
                         onValueChange={(v) =>
                           setEditing({
                             ...editing,
@@ -563,9 +579,9 @@ export default function AdminAutomationsPage() {
                   <Input
                     id="auto-trigger-tags"
                     value={
-                      Array.isArray((editing as any).trigger_config?.tags)
-                        ? ((editing as any).trigger_config.tags as string[]).join(', ')
-                        : (((editing as any).trigger_config?.tag ?? '') as string)
+                      Array.isArray(editing.trigger_config?.tags)
+                        ? (editing.trigger_config.tags as string[]).join(', ')
+                        : ((editing.trigger_config?.tag ?? '') as string)
                     }
                     onChange={(e) =>
                       setEditing({
@@ -647,7 +663,7 @@ export default function AdminAutomationsPage() {
                             escalate_sla: {
                               ...normalizeEscalateSla(editing.actions.escalate_sla),
                               enabled: v,
-                            } as any,
+                            },
                           },
                         })
                       }
@@ -669,7 +685,7 @@ export default function AdminAutomationsPage() {
                                 escalate_sla: {
                                   ...normalizeEscalateSla(editing.actions.escalate_sla),
                                   level: v,
-                                } as any,
+                                },
                               },
                             })
                           }
@@ -699,9 +715,9 @@ export default function AdminAutomationsPage() {
                               actions: {
                                 ...editing.actions,
                                 escalate_sla: {
-                                  ...editing.actions.escalate_sla,
+                                  ...normalizeEscalateSla(editing.actions.escalate_sla),
                                   reason: e.target.value,
-                                } as any,
+                                },
                               },
                             })
                           }

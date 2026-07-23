@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -29,6 +29,7 @@ interface AudioMemePickerProps {
   disabled?: boolean;
 }
 
+/** Audio Meme Picker component. */
 export function AudioMemePicker({ onSendAudioMeme, disabled }: AudioMemePickerProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
@@ -55,16 +56,20 @@ export function AudioMemePicker({ onSendAudioMeme, disabled }: AudioMemePickerPr
     cleanup,
   } = useAudioMemes(open);
 
-  const categories = [...new Set(memes.map((m) => m.category).filter(Boolean))].sort();
-  const filtered = memes.filter((m) => {
-    const matchSearch =
-      !search ||
-      m.name?.toLowerCase().includes(search.toLowerCase()) ||
-      m.category?.toLowerCase().includes(search.toLowerCase());
-    if (showFavorites) return matchSearch && m.is_favorite;
-    if (activeCategory) return matchSearch && m.category === activeCategory;
-    return matchSearch;
-  });
+  const { categories, filtered, categoryCounts } = useMemo(() => {
+    const cats = [...new Set(memes.map((m) => m.category).filter(Boolean))].sort();
+    const counts = new Map(cats.map((cat) => [cat, memes.filter((m) => m.category === cat).length]));
+    const fil = memes.filter((m) => {
+      const matchSearch =
+        !search ||
+        m.name?.toLowerCase().includes(search.toLowerCase()) ||
+        m.category?.toLowerCase().includes(search.toLowerCase());
+      if (showFavorites) return matchSearch && m.is_favorite;
+      if (activeCategory) return matchSearch && m.category === activeCategory;
+      return matchSearch;
+    });
+    return { categories: cats, filtered: fil, categoryCounts: counts };
+  }, [memes, search, activeCategory, showFavorites]);
 
   return (
     <Popover
@@ -150,7 +155,7 @@ export function AudioMemePicker({ onSendAudioMeme, disabled }: AudioMemePickerPr
               className="h-8 border-border/50 bg-muted/50 pl-8 text-xs"
             />
             {search && (
-              <button
+              <button type="button"
                 onClick={() => setSearch('')}
                 className="absolute right-2 top-1/2 -translate-y-1/2"
               >
@@ -163,7 +168,7 @@ export function AudioMemePicker({ onSendAudioMeme, disabled }: AudioMemePickerPr
         <div className="border-b border-border/30 px-2 py-2">
           <ScrollArea className="w-full">
             <div className="flex flex-wrap gap-1.5">
-              <button
+              <button type="button"
                 onClick={() => {
                   setActiveCategory(null);
                   setShowFavorites(false);
@@ -177,7 +182,7 @@ export function AudioMemePicker({ onSendAudioMeme, disabled }: AudioMemePickerPr
               >
                 Todos ({memes.length})
               </button>
-              <button
+              <button type="button"
                 onClick={() => {
                   setShowFavorites(!showFavorites);
                   setActiveCategory(null);
@@ -193,9 +198,9 @@ export function AudioMemePicker({ onSendAudioMeme, disabled }: AudioMemePickerPr
               </button>
               {categories.map((cat) => {
                 const info = CATEGORY_LABELS[cat];
-                const count = memes.filter((m) => m.category === cat).length;
+                const count = categoryCounts.get(cat) ?? 0;
                 return (
-                  <button
+                  <button type="button"
                     key={cat}
                     onClick={() => {
                       setActiveCategory(activeCategory === cat ? null : cat);
@@ -253,7 +258,7 @@ export function AudioMemePicker({ onSendAudioMeme, disabled }: AudioMemePickerPr
                         )
                       }
                     >
-                      <button
+                      <button type="button"
                         onClick={(e) => {
                           e.stopPropagation();
                           handlePreview(meme);
@@ -290,7 +295,7 @@ export function AudioMemePicker({ onSendAudioMeme, disabled }: AudioMemePickerPr
                         </div>
                       </div>
                       <div className="flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
-                        <button
+                        <button aria-label="Favoritar" type="button"
                           onClick={(e) => toggleFavorite(e, meme)}
                           className="rounded p-1 hover:bg-muted"
                         >
@@ -303,7 +308,7 @@ export function AudioMemePicker({ onSendAudioMeme, disabled }: AudioMemePickerPr
                             )}
                           />
                         </button>
-                        <button
+                        <button aria-label="Excluir" type="button"
                           onClick={(e) => handleDelete(e, meme)}
                           className="rounded p-1 hover:bg-destructive/10"
                         >

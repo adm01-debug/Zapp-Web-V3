@@ -50,6 +50,7 @@ interface MessageHoverToolbarProps {
   onMessageDeleted: (messageId: string) => void;
 }
 
+/** Message Hover Toolbar component for the chat section. */
 export function MessageHoverToolbar({
   message,
   isSent,
@@ -171,7 +172,7 @@ export function MessageHoverToolbar({
         {/* ⋮ Unified menu — all actions in one place */}
         <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
           <DropdownMenuTrigger asChild>
-            <button
+            <button type="button"
               className="p-2 text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
               title="Mais opções"
             >
@@ -259,7 +260,7 @@ function ToolbarButton({
   children: React.ReactNode;
 }) {
   return (
-    <button
+    <button type="button"
       onClick={onClick}
       title={title}
       className="p-2 text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"

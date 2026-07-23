@@ -5,6 +5,7 @@ import { toast } from '@/hooks/use-toast';
 
 const log = getLogger('useMessageQueue');
 
+/** Retry and back-off configuration for the outbound message queue. */
 export interface QueueConfig {
   maxRetries: number;
   baseDelay: number;
@@ -12,6 +13,7 @@ export interface QueueConfig {
   jitter: boolean;
 }
 
+/** Default queue config: 3 retries with 1s base / 30s max exponential back-off and jitter. */
 export const DEFAULT_QUEUE_CONFIG: QueueConfig = {
   maxRetries: 3,
   baseDelay: 1000, // 1s
@@ -19,6 +21,7 @@ export const DEFAULT_QUEUE_CONFIG: QueueConfig = {
   jitter: true,
 };
 
+/** Single item in the outbound message queue, carrying lifecycle status, retry counters, progress, and per-attempt timing. */
 export interface QueueItem {
   id: string;
   contactId: string;
@@ -41,6 +44,7 @@ export interface QueueItem {
   }>;
 }
 
+/** Aggregate send metrics computed from queue history: totals by type and conversation with raw latency arrays for P50/P95 computation. */
 export interface QueueMetrics {
   totalSent: number;
   totalFailed: number;
@@ -50,6 +54,7 @@ export interface QueueMetrics {
   byConversation: Record<string, { sent: number; failed: number; latency: number[] }>;
 }
 
+/** Public API returned by useMessageQueue: queue state plus add/retry/progress/reconcile/metrics/remove operations. */
 export interface MessageQueueController {
   queue: QueueItem[];
   addToQueue: (
@@ -60,13 +65,18 @@ export interface MessageQueueController {
   ) => void;
   retryMessage: (id: string) => void;
   updateProgress: (id: string, progress: number) => void;
-  reconcileWithDelivery: (contactId: string, externalId: string, status: 'confirmed' | 'failed') => void;
+  reconcileWithDelivery: (
+    contactId: string,
+    externalId: string,
+    status: 'confirmed' | 'failed'
+  ) => void;
   getMetrics: () => QueueMetrics;
   removeFromQueue: (id: string) => void;
 }
 
 const MAX_CONCURRENT_SENDS = 5;
 
+/** Manages an ordered outbound message queue with exponential back-off retry, per-conversation concurrency cap, localStorage persistence, and send-metric collection. */
 export function useMessageQueue(
   processMessage: (item: QueueItem) => Promise<void>,
   configOverrides?: Partial<Record<string, Partial<QueueConfig>>>
@@ -79,7 +89,9 @@ export function useMessageQueue(
 
   useEffect(() => {
     return () => {
+      // eslint-disable-next-line react-hooks/exhaustive-deps
       activeTimersRef.current.forEach(clearTimeout);
+      // eslint-disable-next-line react-hooks/exhaustive-deps
       processedDeliveriesRef.current.clear();
       currentlySendingRef.current = 0;
     };
@@ -324,7 +336,7 @@ export function useMessageQueue(
         return currentQueue; // O estado será atualizado dentro do bloco assíncrono
       });
     },
-    [processMessage]
+    [processMessage] // eslint-disable-line react-hooks/exhaustive-deps
   );
 
   // Disparar processamento quando a fila mudar

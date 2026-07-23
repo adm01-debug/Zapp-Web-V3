@@ -1,7 +1,6 @@
-// @ts-nocheck
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { fetchAbandonmentRateMessages } from '@/hooks/useAbandonmentRateData';
 import {
   Select,
   SelectContent,
@@ -12,6 +11,7 @@ import {
 import { UserX, MessageSquare } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 
+/** Abandonment Rate component for the reports section. */
 export function AbandonmentRate() {
   const [data, setData] = useState({ total: 0, abandoned: 0, responded: 0 });
   const [period, setPeriod] = useState('7');
@@ -19,19 +19,14 @@ export function AbandonmentRate() {
 
   useEffect(() => {
     loadData();
-  }, [period]);
+  }, [period]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadData = async () => {
     setLoading(true);
     const since = new Date();
     since.setDate(since.getDate() - parseInt(period));
 
-    // Get contacts that sent messages in the period
-    const { data: contactMessages } = await supabase
-      .from('messages')
-      .select('contact_id, sender')
-      .gte('created_at', since.toISOString())
-      .limit(1000);
+    const contactMessages = await fetchAbandonmentRateMessages(since);
 
     if (contactMessages) {
       const contactSet = new Set<string>();
@@ -127,7 +122,7 @@ export function AbandonmentRate() {
                         <Cell key={idx} fill={entry.color} />
                       ))}
                     </Pie>
-                    <Tooltip formatter={(value: number | string) => [String(value), 'Conversas']} />
+                    <Tooltip formatter={((value: any) => [String(value), 'Conversas']) as any} />
                   </PieChart>
                 </ResponsiveContainer>
               )}

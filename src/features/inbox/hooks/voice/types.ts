@@ -1,3 +1,4 @@
+/** Hook: Voice Agent Action. */
 export interface VoiceAgentAction {
   action: "search" | "filter" | "navigate" | "sort" | "clear" | "answer";
   response: string;
@@ -16,13 +17,16 @@ export interface VoiceAgentAction {
   };
 }
 
+/** Hook: Voice Agent Phase. */
 export type VoiceAgentPhase = "idle" | "booting" | "listening" | "processing" | "speaking" | "error";
 
+/** Hook: Use Voice Agent Options. */
 export interface UseVoiceAgentOptions {
   onAction?: (action: VoiceAgentAction) => void;
   onError?: (error: string) => void;
 }
 
+/** Hook: Use Voice Agent Return. */
 export interface UseVoiceAgentReturn {
   phase: VoiceAgentPhase;
   partialTranscript: string;

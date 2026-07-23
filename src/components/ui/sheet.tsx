@@ -93,6 +93,7 @@ const SheetDescription = React.forwardRef<
 ));
 SheetDescription.displayName = SheetPrimitive.Description.displayName;
 
+/** sheet component for the ui section. */
 export {
   Sheet,
   SheetClose,

@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Replaces evolutionAdapter.ts with a more modular structure
  */
@@ -12,10 +11,12 @@ import { extractMessageType } from './evolution/messageTypes';
 
 export * from './evolution/messageTypes';
 
+/** Extracts the phone number from a WhatsApp JID by stripping the server suffix (e.g. `@s.whatsapp.net`). */
 export function jidToPhone(jid: string): string {
   return jid.replace(/@.*$/, '');
 }
 
+/** Maps an Evolution API `EvolutionMessage` to the internal `RealtimeMessage` shape used by the inbox. */
 export function evolutionToRealtimeMessage(evo: EvolutionMessage): RealtimeMessage {
   const msgType = extractMessageType(evo.message_type);
   let content = evo.content || evo.caption || '';
@@ -57,10 +58,13 @@ export function evolutionToRealtimeMessage(evo: EvolutionMessage): RealtimeMessa
     is_deleted: evo.deleted_at != null,
     deleted_at: evo.deleted_at ?? null,
     contactAvatar: null,
+    media_meta: Object.keys(mediaMeta).length > 0 ? mediaMeta : undefined,
     reactions: Array.isArray(evo.reactions)
-      ? evo.reactions  // pass-through: manter formato original da Evolution
+      ? evo.reactions.map((r: { text?: string; key?: { remoteJid?: string } }) => ({
+          user_id: r.key?.remoteJid ?? '',
+          emoji: r.text ?? '',
+        }))
       : [],
-    media_meta: Object.keys(mediaMeta).length > 0 ? mediaMeta : undefined, // exposto para compatibilidade
   };
 }
 
@@ -79,6 +83,7 @@ function mapStatus(evoStatus: string): 'sent' | 'delivered' | 'read' | 'failed' 
   return Object.prototype.hasOwnProperty.call(mapping, evoStatus) ? mapping[evoStatus] : 'sent';
 }
 
+/** derive Contacts From Messages function. */
 export function deriveContactsFromMessages(messages: EvolutionMessage[]): DerivedContact[] {
   const contactMap = new Map<string, DerivedContact>();
   for (const msg of messages) {
@@ -136,6 +141,7 @@ export function deriveContactsFromMessages(messages: EvolutionMessage[]): Derive
   );
 }
 
+/** derived To Conversation Contact function. */
 export function derivedToConversationContact(dc: DerivedContact): ConversationContact {
   return {
     id: dc.remoteJid,
@@ -161,6 +167,7 @@ export function derivedToConversationContact(dc: DerivedContact): ConversationCo
   };
 }
 
+/** build External Conversations function. */
 export function buildExternalConversations(
   messages: EvolutionMessage[]
 ): ConversationWithMessages[] {

@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -52,6 +51,7 @@ function InlineCategorySelect({
   );
 }
 
+/** Media Item Row Props component for the settings section. */
 export interface MediaItemRowProps {
   item: MediaItem;
   type: MediaType;
@@ -71,6 +71,7 @@ export interface MediaItemRowProps {
   onDelete: () => void;
 }
 
+/** Media Item Row component for the settings section. */
 export function MediaItemRow({
   item,
   type,
@@ -101,7 +102,7 @@ export function MediaItemRow({
       <Checkbox checked={isSelected} onCheckedChange={onToggleSelect} />
       <div className="h-10 w-12 shrink-0">
         {type === 'audio_memes' ? (
-          <button
+          <button type="button"
             onClick={onPreview}
             className={cn(
               'flex h-10 w-10 items-center justify-center rounded-lg transition-colors',
@@ -178,7 +179,7 @@ export function MediaItemRow({
         </Badge>
       </div>
       <div className="hidden w-12 text-center sm:block">
-        <button
+        <button type="button"
           onClick={onToggleFavorite}
           aria-label={item.is_favorite ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}
           className="rounded p-1 transition-colors hover:bg-muted/50"

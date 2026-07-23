@@ -1,5 +1,7 @@
+/** Hook: Time Period. */
 export type TimePeriod = '1h' | '6h' | '12h' | '24h' | '7d';
 
+/** Hook: period Ms. */
 export const periodMs: Record<TimePeriod, number> = {
   '1h': 60 * 60 * 1000,
   '6h': 6 * 60 * 60 * 1000,
@@ -8,10 +10,12 @@ export const periodMs: Record<TimePeriod, number> = {
   '7d': 7 * 24 * 60 * 60 * 1000,
 };
 
+/** Hook: period Buckets. */
 export const periodBuckets: Record<TimePeriod, number> = {
   '1h': 6, '6h': 6, '12h': 12, '24h': 24, '7d': 7,
 };
 
+/** Hook: Diagnostic Result. */
 export interface DiagnosticResult {
   timestamp: string;
   diagnostics: Array<{
@@ -26,6 +30,7 @@ export interface DiagnosticResult {
   overallHealth: { score: number; status: string };
 }
 
+/** Hook: Connection Info. */
 export interface ConnectionInfo {
   id: string;
   instance_id: string;
@@ -38,6 +43,7 @@ export interface ConnectionInfo {
   updated_at: string;
 }
 
+/** Hook: Health Log. */
 export interface HealthLog {
   id: string;
   instance_id: string;
@@ -47,6 +53,7 @@ export interface HealthLog {
   checked_at: string;
 }
 
+/** Hook: Message Stats. */
 export interface MessageStats {
   incoming: number;
   outgoing: number;
@@ -54,18 +61,21 @@ export interface MessageStats {
   hourlyData: { hour: string; incoming: number; outgoing: number }[];
 }
 
+/** Hook: Webhook Test Result. */
 export interface WebhookTestResult {
   status: 'idle' | 'testing' | 'success' | 'error';
   message?: string;
   latencyMs?: number;
 }
 
+/** Hook: Webhook Config. */
 export interface WebhookConfig {
   url?: string;
   events?: string[];
   configured: boolean;
 }
 
+/** Hook: Uptime Info. */
 export interface UptimeInfo {
   percentage: number;
   totalChecks: number;
@@ -73,12 +83,14 @@ export interface UptimeInfo {
   lastDowntime: string | null;
 }
 
+/** Hook: Sparkline Data. */
 export interface SparklineData {
   messages: number[];
   latency: number[];
   uptime: number[];
 }
 
+/** Hook: Instance Uptime. */
 export interface InstanceUptime {
   instanceId: string;
   percentage: number;

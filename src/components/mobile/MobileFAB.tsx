@@ -17,6 +17,7 @@ interface MobileFABProps {
   className?: string;
 }
 
+/** Mobile FAB component for the mobile section. */
 export function MobileFAB({ onNewConversation, onNewContact, onNewCampaign, className }: MobileFABProps) {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -69,7 +70,7 @@ export function MobileFAB({ onNewConversation, onNewContact, onNewCampaign, clas
                   <span className="text-xs font-medium text-foreground bg-card px-3 py-1.5 rounded-lg shadow-md border border-border/40 whitespace-nowrap">
                     {action.label}
                   </span>
-                  <button
+                  <button type="button"
                     onClick={action.onClick}
                     className="w-11 h-11 rounded-full bg-card shadow-lg border border-border/40 flex items-center justify-center text-foreground hover:bg-accent active:scale-95 transition-transform touch-manipulation"
                   >

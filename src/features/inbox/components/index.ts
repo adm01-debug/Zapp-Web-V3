@@ -1,3 +1,4 @@
+/** Public barrel exports for the components module. */
 export * from './AIConversationAssistant';
 export * from './AISuggestions';
 export * from './AIToolsPopover';
@@ -49,6 +50,7 @@ export * from './MediaPreview';
 export * from './MessageBatcherIndicator';
 export * from './MessageContextActions';
 export * from './MessageContextMenu';
+/** Re-exported module members. */
 export { MessagePreview as MessageTextPreview } from './MessagePreview';
 export * from './MessageReactions';
 export * from './MessageStatus';
@@ -83,6 +85,7 @@ export * from './TransferDialog';
 export * from './TypingIndicator';
 export * from './UniversityHelp';
 export * from './VideoFullscreen';
+/** Re-exported module members. */
 export { MessageBubble as VirtualMessageBubble } from './VirtualMessageBubble';
 export * from './VirtualizedConversationList';
 export * from './VirtualizedMessageList';
@@ -91,11 +94,13 @@ export * from './VoiceChanger';
 export * from './VoiceChangerPicker';
 export * from './VoiceSelector';
 export * from './WhisperMode';
+/** Re-exported module members. */
 export { CATEGORY_LABELS as EMOJI_CATEGORY_LABELS, ALL_CATEGORIES as EMOJI_ALL_CATEGORIES } from './emojiConstants';
 export * from './linkPreviewUtils';
 export * from './swipeActions';
 export * from './template-utils';
 export * from '../hooks/useChatMediaSending';
+/** Re-exported module members. */
 export { useFileUploadLogic, type FileMessageData, type FilePreview } from './useFileUploadLogic';
 export * from './useGlobalSearchData';
 export * from './agents-ops';

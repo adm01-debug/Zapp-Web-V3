@@ -25,6 +25,7 @@ import { ptBR } from 'date-fns/locale';
 import { useAgents } from '@/features/admin';
 import { useTags } from '@/hooks/useTags';
 
+/** Inbox Filters State component. */
 export interface InboxFiltersState {
   status: string[];
   tags: string[];
@@ -54,6 +55,7 @@ const DATE_PRESETS = [
   { label: 'Mês', getValue: () => ({ from: startOfDay(new Date(new Date().getFullYear(), new Date().getMonth(), 1)), to: endOfDay(new Date()) }) },
 ];
 
+/** Inbox Filters component. */
 export function InboxFilters({ filters, onFiltersChange }: InboxFiltersProps) {
   const [isOpen, setIsOpen] = useState(false);
   const { profile } = useAuth();
@@ -146,7 +148,7 @@ export function InboxFilters({ filters, onFiltersChange }: InboxFiltersProps) {
           <div className="px-3 py-2.5 border-b border-border flex items-center justify-between">
             <span className="text-xs font-semibold text-foreground">Filtros</span>
             {activeFiltersCount > 0 && (
-              <button
+              <button type="button"
                 onClick={clearFilters}
                 className="text-[10px] text-muted-foreground hover:text-destructive transition-colors"
               >
@@ -164,7 +166,7 @@ export function InboxFilters({ filters, onFiltersChange }: InboxFiltersProps) {
               </div>
               <div className="grid grid-cols-2 gap-1.5">
                 {STATUS_OPTIONS.map(status => (
-                  <button
+                  <button type="button"
                     key={status.value}
                     onClick={() => toggleStatus(status.value)}
                     className={cn(
@@ -192,7 +194,7 @@ export function InboxFilters({ filters, onFiltersChange }: InboxFiltersProps) {
               {tags.length > 0 ? (
                 <div className="flex flex-wrap gap-1">
                   {tags.map(tag => (
-                    <button
+                    <button type="button"
                       key={tag.id}
                       onClick={() => toggleTag(tag.id)}
                       className={cn(
@@ -273,7 +275,7 @@ export function InboxFilters({ filters, onFiltersChange }: InboxFiltersProps) {
               </div>
               <div className="flex flex-wrap gap-1">
                 {DATE_PRESETS.map(preset => (
-                  <button
+                  <button type="button"
                     key={preset.label}
                     onClick={() => setDateRange(preset.getValue())}
                     className="px-2 py-1 rounded-md text-[10px] font-medium bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"

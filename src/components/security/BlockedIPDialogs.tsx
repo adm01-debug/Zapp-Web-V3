@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -8,7 +7,7 @@ import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
+import { insertBlockedIP, deleteBlockedIP } from '@/hooks/useBlockedIPMutations';
 import { useAuth } from '@/features/auth';
 
 interface BlockIPDialogProps {
@@ -17,6 +16,7 @@ interface BlockIPDialogProps {
   onSuccess: () => void;
 }
 
+/** Block IPDialog component for the security section. */
 export function BlockIPDialog({ open, onClose, onSuccess }: BlockIPDialogProps) {
   const { user } = useAuth();
   const [newIP, setNewIP] = useState('');
@@ -33,7 +33,7 @@ export function BlockIPDialog({ open, onClose, onSuccess }: BlockIPDialogProps) 
 
     setUpdating(true);
     const expiresAt = isPermanent ? null : new Date(Date.now() + parseInt(duration) * 60 * 1000).toISOString();
-    const { error } = await supabase.from('blocked_ips').insert({ ip_address: newIP, reason, is_permanent: isPermanent, expires_at: expiresAt, blocked_by: user?.id });
+    const { error } = await insertBlockedIP({ ip_address: newIP, reason, is_permanent: isPermanent, expires_at: expiresAt, blocked_by: user?.id });
 
     if (error) { toast.error(error.code === '23505' ? 'Este IP já está bloqueado' : 'Erro ao bloquear IP'); }
     else { toast.success('IP bloqueado com sucesso'); onClose(); resetForm(); onSuccess(); }
@@ -68,13 +68,14 @@ interface UnblockIPDialogProps {
   onSuccess: () => void;
 }
 
+/** Unblock IPDialog component for the security section. */
 export function UnblockIPDialog({ ip, onClose, onSuccess }: UnblockIPDialogProps) {
   const [updating, setUpdating] = useState(false);
 
   const handleUnblock = async () => {
     if (!ip) return;
     setUpdating(true);
-    const { error } = await supabase.from('blocked_ips').delete().eq('id', ip.id);
+    const { error } = await deleteBlockedIP(ip.id);
     if (error) toast.error('Erro ao desbloquear IP');
     else { toast.success('IP desbloqueado'); onClose(); onSuccess(); }
     setUpdating(false);

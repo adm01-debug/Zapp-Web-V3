@@ -58,6 +58,7 @@ function emptyChannel(): Partial<ServiceChannel> {
   };
 }
 
+/** Admin Channels Page. */
 export default function AdminChannelsPage() {
   const [editing, setEditing] = useState<Partial<ServiceChannel> | null>(null);
   const [search, setSearch] = useState("");
@@ -121,7 +122,7 @@ export default function AdminChannelsPage() {
               </SelectContent>
             </Select>
           </div>
-          <Button variant="outline" onClick={load}>Atualizar</Button>
+          <Button variant="outline" onClick={() => { void load(); }}>Atualizar</Button>
         </CardContent>
       </Card>
 

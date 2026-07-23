@@ -12,6 +12,7 @@ import { getLogger } from '@/lib/logger';
 
 const log = getLogger('loadOlderMetrics');
 
+/** Load Older Snapshot interface. */
 export interface LoadOlderSnapshot {
   started: number;
   cancelled: number;
@@ -60,6 +61,7 @@ function publishToWindow() {
   (window as unknown as { __loadOlderMetrics?: LoadOlderSnapshot }).__loadOlderMetrics = snapshot(); // ignore-audit — window debug property for devtools inspection
 }
 
+/** record Load Older Started function. */
 export function recordLoadOlderStarted(meta?: Record<string, unknown>): number {
   state.started += 1;
   const startedAt = performance.now();
@@ -68,6 +70,7 @@ export function recordLoadOlderStarted(meta?: Record<string, unknown>): number {
   return startedAt;
 }
 
+/** record Load Older Cancelled function. */
 export function recordLoadOlderCancelled(startedAt: number | null, meta?: Record<string, unknown>): void {
   state.cancelled += 1;
   const elapsed = startedAt != null ? Math.round(performance.now() - startedAt) : null;
@@ -75,6 +78,7 @@ export function recordLoadOlderCancelled(startedAt: number | null, meta?: Record
   publishToWindow();
 }
 
+/** record Load Older Completed function. */
 export function recordLoadOlderCompleted(startedAt: number, meta?: Record<string, unknown>): void {
   state.completed += 1;
   const elapsed = Math.round(performance.now() - startedAt);
@@ -87,10 +91,12 @@ export function recordLoadOlderCompleted(startedAt: number, meta?: Record<string
   publishToWindow();
 }
 
+/** get Load Older Metrics function. */
 export function getLoadOlderMetrics(): LoadOlderSnapshot {
   return snapshot();
 }
 
+/** reset Load Older Metrics function. */
 export function resetLoadOlderMetrics(): void {
   state.started = 0;
   state.cancelled = 0;

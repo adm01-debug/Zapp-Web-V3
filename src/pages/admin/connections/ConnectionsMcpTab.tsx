@@ -8,6 +8,7 @@ import { Cpu, ShieldCheck, ExternalLink } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { MCP_SERVER_URL } from '../useConnections';
 
+/** Connections Mcp Tab. */
 export function ConnectionsMcpTab() {
   return (
     <motion.div

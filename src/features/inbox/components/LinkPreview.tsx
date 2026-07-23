@@ -10,6 +10,7 @@ import {
   type LinkMetadata,
 } from './linkPreviewUtils';
 
+/** Re-exported module members. */
 export { extractLinks };
 
 interface LinkPreviewProps {
@@ -20,6 +21,7 @@ interface LinkPreviewProps {
   onRemove?: () => void;
 }
 
+/** Link Preview component. */
 export function LinkPreview({ url, className, compact = false, showRemove, onRemove }: LinkPreviewProps) {
   const [metadata, setMetadata] = useState<LinkMetadata | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -71,7 +73,7 @@ export function LinkPreview({ url, className, compact = false, showRemove, onRem
 
   if (metadata.type === 'image' && metadata.image && !imageError) return (
     <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className={cn("relative group rounded-xl overflow-hidden", className)}>
-      {showRemove && <button onClick={onRemove} className="absolute top-2 right-2 z-10 p-1.5 rounded-full bg-background/50 text-primary-foreground opacity-0 group-hover:opacity-100 transition-opacity hover:bg-background/70"><X className="w-4 h-4" /></button>}
+      {showRemove && <button type="button" onClick={onRemove} className="absolute top-2 right-2 z-10 p-1.5 rounded-full bg-background/50 text-primary-foreground opacity-0 group-hover:opacity-100 transition-opacity hover:bg-background/70"><X className="w-4 h-4" /></button>}
       <a href={url} target="_blank" rel="noopener noreferrer"><img src={metadata.image} alt={metadata.title || 'Imagem do link'} onError={() => setImageError(true)} className="max-w-full max-h-64 rounded-xl object-cover hover:scale-[1.02] transition-transform" /></a>
     </motion.div>
   );
@@ -102,13 +104,14 @@ export function LinkPreview({ url, className, compact = false, showRemove, onRem
         {metadata.title && <h4 className="font-medium text-sm line-clamp-2 group-hover:text-primary transition-colors">{metadata.title}</h4>}
         {metadata.description && <p className="text-xs text-muted-foreground line-clamp-2">{metadata.description}</p>}
       </div>
-      {showRemove && <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); onRemove?.(); }} className="absolute top-2 right-2 p-1.5 rounded-full bg-background/50 text-primary-foreground opacity-0 group-hover:opacity-100 transition-opacity hover:bg-background/70"><X className="w-4 h-4" /></button>}
+      {showRemove && <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); onRemove?.(); }} className="absolute top-2 right-2 p-1.5 rounded-full bg-background/50 text-primary-foreground opacity-0 group-hover:opacity-100 transition-opacity hover:bg-background/70"><X className="w-4 h-4" /></button>}
     </motion.a>
   );
 }
 
 interface TextWithLinksProps { text: string; className?: string; showPreviews?: boolean; maxPreviews?: number; }
 
+/** Text With Links component. */
 export function TextWithLinks({ text, className, showPreviews = true, maxPreviews = 3 }: TextWithLinksProps) {
   const links = useMemo(() => extractLinks(text), [text]);
   const displayLinks = links.slice(0, maxPreviews);

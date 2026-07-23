@@ -1,9 +1,8 @@
-// @ts-nocheck
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { getLogger } from '@/lib/logger';
 import { toast } from 'sonner';
-import { useMountedRef } from '@/hooks/useMountedRef';
 
 const log = getLogger('useGeoBlocking');
 
@@ -22,52 +21,43 @@ interface GeoSettings {
   mode: 'disabled' | 'whitelist' | 'blacklist';
 }
 
+const GEO_KEY = ['geo-blocking'] as const;
+
 /** Manages geographic blocking settings with whitelist and blacklist country controls. */
 export function useGeoBlocking() {
-  const [settings, setSettings] = useState<GeoSettings | null>(null);
-  const [allowedCountries, setAllowedCountries] = useState<Country[]>([]);
-  const [blockedCountries, setBlockedCountries] = useState<Country[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedCountry, setSelectedCountry] = useState('');
   const [countryToRemove, setCountryToRemove] = useState<Country | null>(null);
   const [activeTab, setActiveTab] = useState<'whitelist' | 'blacklist'>('whitelist');
-  const mountedRef = useMountedRef();
 
-  const fetchData = async () => {
-    try {
-      const { data: settingsData } = await supabase
-        .from('geo_blocking_settings')
-        .select('*')
-        .limit(1)
-        .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
+  const { data, isLoading: loading } = useQuery({
+    queryKey: GEO_KEY,
+    queryFn: async () => {
+      const [settingsResult, allowedResult, blockedResult] = await Promise.all([
+        supabase.from('geo_blocking_settings').select('*').limit(1).maybeSingle(),
+        supabase.from('allowed_countries').select('*').order('created_at', { ascending: false }),
+        supabase.from('blocked_countries').select('*').order('created_at', { ascending: false }),
+      ]);
 
-      const { data: allowedData } = await supabase
-        .from('allowed_countries')
-        .select('*')
-        .order('created_at', { ascending: false });
+      if (settingsResult.error) log.error('Error fetching geo settings:', settingsResult.error);
+      if (allowedResult.error) log.error('Error fetching allowed countries:', allowedResult.error);
+      if (blockedResult.error) log.error('Error fetching blocked countries:', blockedResult.error);
 
-      const { data: blockedData } = await supabase
-        .from('blocked_countries')
-        .select('*')
-        .order('created_at', { ascending: false });
+      return {
+        settings: (settingsResult.data || null) as GeoSettings | null,
+        allowedCountries: (allowedResult.data || []) as Country[],
+        blockedCountries: (blockedResult.data || []) as Country[],
+      };
+    },
+    staleTime: 30_000,
+  });
 
-      if (!mountedRef.current) return;
-      if (settingsData) setSettings(settingsData as GeoSettings);
-      setAllowedCountries(allowedData || []);
-      setBlockedCountries(blockedData || []);
-    } catch (error) {
-      log.error('Error fetching geo data:', error);
-      if (mountedRef.current) toast.error('Erro ao carregar dados');
-    } finally {
-      if (mountedRef.current) setLoading(false);
-    }
-  };
+  const settings = data?.settings ?? null;
+  const allowedCountries = data?.allowedCountries ?? [];
+  const blockedCountries = data?.blockedCountries ?? [];
 
-  useEffect(() => {
-    void fetchData();
-  }, []);
-
+  /** Updates the geo-blocking mode column and refreshes the settings. */
   const handleModeChange = async (mode: 'disabled' | 'whitelist' | 'blacklist') => {
     if (!settings) return;
     try {
@@ -79,7 +69,7 @@ export function useGeoBlocking() {
         .update({ mode, updated_by: user?.id, updated_at: new Date().toISOString() })
         .eq('id', settings.id);
       if (error) throw error;
-      setSettings({ ...settings, mode });
+      void queryClient.invalidateQueries({ queryKey: GEO_KEY });
       const modeLabels = {
         disabled: 'Desativado',
         whitelist: 'Whitelist (apenas permitidos)',
@@ -92,6 +82,7 @@ export function useGeoBlocking() {
     }
   };
 
+  /** Inserts a country record into the allowed or blocked list based on the active tab. */
   const handleAddCountry = async (countryCode: string, countryName: string) => {
     try {
       const {
@@ -119,22 +110,25 @@ export function useGeoBlocking() {
       );
       setDialogOpen(false);
       setSelectedCountry('');
-      fetchData();
+      void queryClient.invalidateQueries({ queryKey: GEO_KEY });
     } catch (error) {
       log.error('Error adding country:', error);
       toast.error('Erro ao adicionar país');
     }
   };
 
+  /** Deletes `countryToRemove` from the appropriate allowed/blocked table. */
   const handleRemoveCountry = async () => {
     if (!countryToRemove) return;
     try {
-      const table = activeTab === 'whitelist' ? 'allowed_countries' : 'blocked_countries';
-      const { error } = await supabase.from(table).delete().eq('id', countryToRemove.id);
+      const { error } =
+        activeTab === 'whitelist'
+          ? await supabase.from('allowed_countries').delete().eq('id', countryToRemove.id)
+          : await supabase.from('blocked_countries').delete().eq('id', countryToRemove.id);
       if (error) throw error;
       toast.success(`${countryToRemove.country_name} removido`);
       setCountryToRemove(null);
-      fetchData();
+      void queryClient.invalidateQueries({ queryKey: GEO_KEY });
     } catch (error) {
       log.error('Error removing country:', error);
       toast.error('Erro ao remover país');

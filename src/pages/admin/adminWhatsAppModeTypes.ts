@@ -1,9 +1,11 @@
+/** Ping Row. */
 export interface PingRow {
   kind: string;
   meta: Record<string, unknown>;
   created_at: string;
 }
 
+/** Verify Result. */
 export interface VerifyResult {
   verifyTokenConfigured: boolean;
   webhookUrl: string;
@@ -30,12 +32,14 @@ export interface VerifyResult {
   checkedAt: string;
 }
 
+/** Secret Status. */
 export interface SecretStatus {
   name: string;
   configured: boolean;
   length: number;
 }
 
+/** SECRET_DOCS. */
 export const SECRET_DOCS: Record<string, { label: string; description: string; where: string }> = {
   WHATSAPP_CLOUD_PHONE_NUMBER_ID: {
     label: 'Phone Number ID',

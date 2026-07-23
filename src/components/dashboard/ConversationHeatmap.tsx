@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { queryKeys } from '@/services/api/queryKeys';
 import { useQuery } from '@tanstack/react-query';
 import { dbFrom } from '@/integrations/datasource/db';
 
@@ -30,7 +31,7 @@ const HOURS = Array.from({ length: 24 }, (_, i) => i);
 // Generate heatmap data from real messages
 function useHeatmapData() {
   return useQuery({
-    queryKey: ['conversation-heatmap'],
+    queryKey: queryKeys.adminOps.conversationHeatmap(),
     queryFn: async () => {
       const { data, error } = await dbFrom('messages')
         .select('created_at')
@@ -41,7 +42,7 @@ function useHeatmapData() {
       const heatmap: HeatmapData[] = [];
       const counts = new Map<string, number>();
 
-      (data || []).forEach((m) => {
+      (data || []).forEach((m: { created_at: string }) => {
         const d = new Date(m.created_at);
         const key = `${d.getDay()}-${d.getHours()}`;
         counts.set(key, (counts.get(key) || 0) + 1);
@@ -64,25 +65,44 @@ function useHeatmapData() {
 const METRIC_CONFIG = {
   volume: {
     label: 'Volume de Mensagens',
-    colorScale: ['#f0fdf4', '#86efac', '#22c55e', '#15803d', '#14532d'],
+    colorScale: [
+      'hsl(var(--success) / 0.08)',
+      'hsl(var(--success) / 0.25)',
+      'hsl(var(--success) / 0.55)',
+      'hsl(var(--success) / 0.80)',
+      'hsl(var(--success))',
+    ],
     unit: 'msgs',
     description: 'Número total de mensagens por período',
   },
   response_time: {
     label: 'Tempo de Resposta',
-    colorScale: ['#fef9c3', '#fde047', '#facc15', '#eab308', '#ca8a04'],
+    colorScale: [
+      'hsl(var(--warning) / 0.08)',
+      'hsl(var(--warning) / 0.25)',
+      'hsl(var(--warning) / 0.55)',
+      'hsl(var(--warning) / 0.80)',
+      'hsl(var(--warning))',
+    ],
     unit: 'seg',
     description: 'Tempo médio de primeira resposta',
   },
   satisfaction: {
     label: 'Satisfação',
-    colorScale: ['#fef2f2', '#fecaca', '#f87171', '#ef4444', '#dc2626'],
+    colorScale: [
+      'hsl(var(--destructive) / 0.08)',
+      'hsl(var(--destructive) / 0.25)',
+      'hsl(var(--destructive) / 0.55)',
+      'hsl(var(--destructive) / 0.80)',
+      'hsl(var(--destructive))',
+    ],
     unit: '/5',
     description: 'Nota média de satisfação do cliente',
     invert: true,
   },
 };
 
+/** Conversation Heatmap component for the dashboard section. */
 export default function ConversationHeatmap({
   data: externalData,
   metric = 'volume',
@@ -90,6 +110,7 @@ export default function ConversationHeatmap({
   onCellClick,
 }: ConversationHeatmapProps) {
   const { data: realData } = useHeatmapData();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const data = externalData || realData || [];
   const [selectedMetric, setSelectedMetric] = useState(metric);
 

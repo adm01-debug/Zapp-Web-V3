@@ -1,7 +1,9 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { dbFrom } from '@/integrations/datasource/db';
+import { queryKeys } from '@/services/api/queryKeys';
 
+/** Hook: Prediction Point. */
 export interface PredictionPoint {
   time: string;
   actual?: number;
@@ -11,6 +13,7 @@ export interface PredictionPoint {
   isPrediction?: boolean;
 }
 
+/** Hook: Demand Insights. */
 export interface DemandInsights {
   maxPredicted: number;
   avgPredicted: number;
@@ -49,9 +52,10 @@ function generatePredictionFromHistory(messageHistory: { hour: number; count: nu
   return data;
 }
 
+/** Hook: use Demand Prediction. */
 export function useDemandPrediction(externalData?: PredictionPoint[], currentCapacity = 35) {
   const { data: messageHistory = [] } = useQuery({
-    queryKey: ['demand-prediction-history'],
+    queryKey: queryKeys.demandPrediction.history(),
     queryFn: async () => {
       const { data, error } = await dbFrom('messages')
         .select('created_at')
@@ -59,7 +63,7 @@ export function useDemandPrediction(externalData?: PredictionPoint[], currentCap
       if (error) throw error;
 
       const hourCounts = new Map<number, number[]>();
-      (data || []).forEach(m => {
+      (data || []).forEach((m: { created_at: string }) => {
         const hour = new Date(m.created_at).getHours();
         const bucket = hourCounts.get(hour);
         if (bucket) bucket.push(1);

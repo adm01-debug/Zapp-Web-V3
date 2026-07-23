@@ -25,6 +25,7 @@ import { getLogger } from '@/lib/logger';
 
 const log = getLogger('ChurnPredictionDashboard');
 
+/** Churn Prediction Dashboard component for the ai section. */
 export function ChurnPredictionDashboard() {
   const [risks, setRisks] = useState<ChurnRisk[]>([]);
   const [loading, setLoading] = useState(true);
@@ -53,7 +54,7 @@ export function ChurnPredictionDashboard() {
       if (error) throw error;
 
       const now = new Date();
-      const churnRisks: ChurnRisk[] = (contacts || []).map((contact) => {
+      const churnRisks: ChurnRisk[] = (contacts || []).map((contact: { id: string; name: string | null; phone: string | null; ai_sentiment: string | null; updated_at: string; created_at: string }) => {
         const daysSinceUpdate = differenceInDays(now, new Date(contact.updated_at));
         const daysSinceCreation = differenceInDays(now, new Date(contact.created_at));
 

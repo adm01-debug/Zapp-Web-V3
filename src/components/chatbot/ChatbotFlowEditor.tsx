@@ -18,6 +18,7 @@ interface Props {
   onClose: () => void;
 }
 
+/** Chatbot Flow Editor component for the chatbot section. */
 export function ChatbotFlowEditor({ flow, onSave, onClose }: Props) {
   const [nodes, setNodes] = useState<ChatbotNode[]>(Array.isArray(flow.nodes) ? flow.nodes : []);
   const [edges, setEdges] = useState<ChatbotEdge[]>(Array.isArray(flow.edges) ? flow.edges : []);

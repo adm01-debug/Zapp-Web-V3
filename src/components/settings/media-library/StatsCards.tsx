@@ -1,9 +1,9 @@
-// @ts-nocheck
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Package, TrendingUp, Star, Filter } from 'lucide-react';
 import type { MediaItem, MediaType } from '@/hooks/media-library/useMediaLibrary';
 
+/** Stats Cards component for the settings section. */
 export function StatsCards({ items, type: _type }: { items: MediaItem[]; type: MediaType }) {
   const total = items.length;
   const totalUses = items.reduce((s, i) => s + (i.use_count || 0), 0);

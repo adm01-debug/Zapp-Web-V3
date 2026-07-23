@@ -8,6 +8,7 @@ interface BusinessHoursBadgeProps {
   className?: string;
 }
 
+/** Business Hours Badge component. */
 export function BusinessHoursBadge({ connectionId, className }: BusinessHoursBadgeProps) {
   const { data: isOpen } = useBusinessHoursCheck(connectionId);
 

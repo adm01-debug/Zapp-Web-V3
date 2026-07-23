@@ -30,6 +30,7 @@ function CustomTooltip({ active, payload, label }: { active?: boolean; payload?:
   );
 }
 
+/** Monitoring Message Chart component for the monitoring section. */
 export function MonitoringMessageChart({ messageStats, period }: Props) {
   const [chartType, setChartType] = useState<'area' | 'step'>('area');
 

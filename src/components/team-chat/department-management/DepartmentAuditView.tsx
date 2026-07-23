@@ -17,6 +17,7 @@ interface Props {
   departmentName: string;
 }
 
+/** Department Audit View component for the team chat section. */
 export function DepartmentAuditView({ auditLogs, departmentName }: Props) {
   const exportCsv = () => {
     if (auditLogs.length === 0) return;

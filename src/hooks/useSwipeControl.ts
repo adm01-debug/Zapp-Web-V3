@@ -1,13 +1,22 @@
 // Re-export from consolidated useUIInteractionManagement module (ETAPA 32 consolidation)
-import { useSwipeGestureManagement, useSwipeNavigationManagement, type SwipeState } from '@/hooks/useUIInteractionManagement';
+import {
+  useSwipeGestureManagement,
+  useSwipeNavigationManagement,
+  type SwipeState,
+  type UseSwipeGestureOptions,
+  type UseSwipeNavigationOptions,
+} from '@/hooks/useUIInteractionManagement';
 
-export type { SwipeState };
+/** Re-exported module members. */
+export type { SwipeState, UseSwipeGestureOptions, UseSwipeNavigationOptions };
 
-export function useSwipeGesture(options: any) {
+/** Hook: use Swipe Gesture. */
+export function useSwipeGesture(options: UseSwipeGestureOptions) {
   return useSwipeGestureManagement(options);
 }
 
-export function useSwipeNavigation(options: any) {
+/** Hook: use Swipe Navigation. */
+export function useSwipeNavigation(options: UseSwipeNavigationOptions) {
   return useSwipeNavigationManagement(options);
 }
 

@@ -27,6 +27,7 @@ interface ScriptLine {
   text: string;
 }
 
+/** Eleven Labs Dialogue component for the voice section. */
 export function ElevenLabsDialogue() {
   const [lines, setLines] = useState<ScriptLine[]>([
     { id: crypto.randomUUID(), voice_id: VOICES[0].id, text: '' },

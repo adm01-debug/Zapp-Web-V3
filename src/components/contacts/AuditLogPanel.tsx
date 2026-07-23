@@ -58,6 +58,7 @@ const FIELD_LABELS: Record<string, string> = {
   merged_into: 'Mesclado em',
 };
 
+/** Audit Log Panel constant. */
 export const AuditLogPanel: React.FC<{ contactId: string; maxEntries?: number }> = ({
   contactId,
   maxEntries = 20,
@@ -85,7 +86,7 @@ export const AuditLogPanel: React.FC<{ contactId: string; maxEntries?: number }>
     } finally {
       if (mountedRef.current) setLoading(false);
     }
-  }, [contactId, maxEntries]);
+  }, [contactId, maxEntries]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     load();
@@ -112,7 +113,7 @@ export const AuditLogPanel: React.FC<{ contactId: string; maxEntries?: number }>
             <Shield className="h-3 w-3 text-muted-foreground" />
           </span>
         </div>
-        <Button variant="ghost" size="sm" onClick={load} disabled={loading} className="h-6 w-6 p-0">
+        <Button aria-label="Atualizar" variant="ghost" size="sm" onClick={load} disabled={loading} className="h-6 w-6 p-0">
           <RefreshCw className={`h-3 w-3 ${loading ? 'animate-spin' : ''}`} />
         </Button>
       </div>
@@ -178,4 +179,5 @@ export const AuditLogPanel: React.FC<{ contactId: string; maxEntries?: number }>
   );
 };
 
+/** Default export. */
 export default AuditLogPanel;

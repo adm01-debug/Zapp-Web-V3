@@ -4,6 +4,7 @@ import { z } from 'zod';
 // Contract error types
 // ─────────────────────────────────────────────
 
+/** Typed error codes used by safeParseEvent to distinguish payload vs envelope validation failures. */
 export enum ContractErrorCode {
   INVALID_PAYLOAD = 'INVALID_PAYLOAD',
   INVALID_EVENT_SHAPE = 'INVALID_EVENT_SHAPE',
@@ -22,6 +23,7 @@ type ParseFail = {
 };
 type ParseResult<T> = ParseOk<T> | ParseFail;
 
+/** Validates `raw` against `schema` and returns a discriminated union: `{ok: true, data}` or `{ok: false, error}` with typed details. */
 export function safeParseEvent<T>(
   schema: z.ZodType<T>,
   raw: unknown,
@@ -47,6 +49,7 @@ export function safeParseEvent<T>(
 // Realtime envelope
 // ─────────────────────────────────────────────
 
+/** Zod schema for the generic Supabase Realtime change envelope (INSERT/UPDATE/DELETE) without a typed row payload. */
 export const realtimeEnvelopeSchema = z.object({
   schema: z.string().optional(),
   table: z.string(),
@@ -55,6 +58,7 @@ export const realtimeEnvelopeSchema = z.object({
   old: z.record(z.string(), z.unknown()).nullable().optional(),
 });
 
+/** Returns a typed Realtime envelope schema where the `new` field is validated against the provided `rowSchema`. */
 export function realtimeEnvelopeFor<T extends z.ZodTypeAny>(rowSchema: T) {
   return z.object({
     schema: z.string().optional(),
@@ -69,6 +73,7 @@ export function realtimeEnvelopeFor<T extends z.ZodTypeAny>(rowSchema: T) {
 // Generic row schemas
 // ─────────────────────────────────────────────
 
+/** Zod schema for a public.messages row received via Supabase Realtime; uses passthrough to tolerate new columns. */
 export const messageRowSchema = z
   .object({
     id: z.string().uuid(),
@@ -85,6 +90,7 @@ export const messageRowSchema = z
   })
   .passthrough();
 
+/** Zod schema for a public.contacts row received via Supabase Realtime; uses passthrough to tolerate new columns. */
 export const contactRowSchema = z
   .object({
     id: z.string().uuid(),
@@ -98,6 +104,7 @@ export const contactRowSchema = z
   })
   .passthrough();
 
+/** Zod schema for a public.failed_messages row used to surface delivery-failure events via Realtime. */
 export const failedMessageRowSchema = z.object({
   id: z.string().uuid(),
   instance_name: z.string().nullable(),
@@ -114,6 +121,7 @@ export const failedMessageRowSchema = z.object({
 
 const jidRegex = /^[^@\s]+@[^@\s]+$/;
 
+/** Zod schema for the Evolution API `messages.upsert` webhook payload; validates event name, instance, and message key. */
 export const evolutionMessageUpsertSchema = z.object({
   event: z.literal('messages.upsert'),
   instance: z.string(),
@@ -134,6 +142,7 @@ export const evolutionMessageUpsertSchema = z.object({
 // WhatsApp Cloud webhook
 // ─────────────────────────────────────────────
 
+/** Zod schema for the WhatsApp Cloud API webhook envelope; validates the entry/changes structure and message status enum. */
 export const whatsappCloudWebhookSchema = z.object({
   object: z.string(),
   entry: z
@@ -167,6 +176,7 @@ export const whatsappCloudWebhookSchema = z.object({
 // Gmail push
 // ─────────────────────────────────────────────
 
+/** Zod schema for the Gmail push notification payload sent by Google Pub/Sub on new email activity. */
 export const gmailPushSchema = z.object({
   emailAddress: z.string().email(),
   historyId: z.union([z.string(), z.number()]),
@@ -176,6 +186,7 @@ export const gmailPushSchema = z.object({
 // Notification row
 // ─────────────────────────────────────────────
 
+/** Zod schema for a zapp.notifications row used for in-app notification delivery via Realtime subscriptions. */
 export const notificationRowSchema = z.object({
   id: z.string().uuid(),
   user_id: z.string().uuid(),
@@ -192,6 +203,7 @@ export const notificationRowSchema = z.object({
 // Conversation event row
 // ─────────────────────────────────────────────
 
+/** Zod schema for a zapp.conversation_events row capturing agent assignment, queue transfer, and status change events. */
 export const conversationEventRowSchema = z.object({
   id: z.string().uuid(),
   contact_id: z.string().uuid(), // non-nullable per DB constraint
@@ -205,12 +217,14 @@ export const conversationEventRowSchema = z.object({
   created_at: z.string(),
 });
 
+/** TypeScript type inferred from conversationEventRowSchema for use in subscription handlers and reducers. */
 export type ConversationEventRow = z.infer<typeof conversationEventRowSchema>;
 
 // ─────────────────────────────────────────────
 // Conversation transfer row
 // ─────────────────────────────────────────────
 
+/** Zod schema for a zapp.conversation_transfers row tracking agent/queue handoff lifecycle (pending→active→closed). */
 export const conversationTransferRowSchema = z.object({
   id: z.string().uuid(),
   source_conversation_id: z.string().uuid(), // non-nullable per DB constraint
@@ -233,6 +247,7 @@ export const conversationTransferRowSchema = z.object({
 // Team message row (zapp.team_messages)
 // ─────────────────────────────────────────────
 
+/** Zod schema for a zapp.team_messages row used by the internal team-chat Realtime channel. */
 export const teamMessageRowSchema = z.object({
   id: z.string().uuid(),
   conversation_id: z.string().uuid(),
@@ -252,6 +267,7 @@ export const teamMessageRowSchema = z.object({
 // WarRoom alert row
 // ─────────────────────────────────────────────
 
+/** Zod schema for a WarRoom alert row surfaced in the real-time operations dashboard. */
 export const warRoomAlertRowSchema = z.object({
   id: z.string(),
   alert_type: z.enum(['info', 'warning', 'critical', 'sla_breach']),
@@ -262,12 +278,14 @@ export const warRoomAlertRowSchema = z.object({
   created_at: z.string().nullable(),
 });
 
+/** TypeScript type inferred from warRoomAlertRowSchema for use in WarRoom alert subscription handlers. */
 export type WarRoomAlertRow = z.infer<typeof warRoomAlertRowSchema>;
 
 // ─────────────────────────────────────────────
 // Conversation SLA row
 // ─────────────────────────────────────────────
 
+/** Zod schema for a zapp.conversation_sla row tracking first-response and resolution SLA breach flags. */
 export const conversationSlaRowSchema = z.object({
   id: z.string().uuid(),
   contact_id: z.string().nullable(),
@@ -282,6 +300,7 @@ export const conversationSlaRowSchema = z.object({
 // Evolution message row (evo.evolution_messages)
 // ─────────────────────────────────────────────
 
+/** Zod schema for a row in evo.evolution_messages; passthrough tolerates extra columns added in future migrations. */
 export const evolutionMessageRowSchema = z
   .object({
     id: z.string(),
@@ -304,12 +323,14 @@ export const evolutionMessageRowSchema = z
   })
   .passthrough();
 
+/** TypeScript type inferred from evolutionMessageRowSchema for typed Realtime handlers on evo.evolution_messages. */
 export type EvolutionMessageRow = z.infer<typeof evolutionMessageRowSchema>;
 
 // ─────────────────────────────────────────────
 // Sentiment alert audit row (zapp.audit_logs)
 // ─────────────────────────────────────────────
 
+/** Zod schema for a zapp.audit_logs row with action='sentiment_alert'; used by the sentiment monitoring pipeline. */
 export const sentimentAlertAuditRowSchema = z.object({
   id: z.string().uuid(),
   action: z.literal('sentiment_alert'),
@@ -324,6 +345,7 @@ export const sentimentAlertAuditRowSchema = z.object({
 // Team message notification row (for push notifications)
 // ─────────────────────────────────────────────
 
+/** Zod schema for a minimal team-message notification row used to fire push notifications to mentioned agents. */
 export const teamMessageNotificationRowSchema = z.object({
   id: z.string().uuid(),
   conversation_id: z.string().uuid(),

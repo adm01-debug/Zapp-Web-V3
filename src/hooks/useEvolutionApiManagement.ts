@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Evolution API Management Hook — Unified orchestration of all Evolution API integrations.
  * Consolidates 12 domain-specific hooks into one comprehensive module.
@@ -24,8 +23,13 @@ import { toast } from 'sonner';
 import { log } from '@/lib/logger';
 import { normalizeIdempotencyKey, deriveIdempotencyKey } from '@/lib/idempotency';
 import { loadRetryConfig, getRetryConfigSync } from '@/lib/retryConfig';
-import { externalSupabase, isExternalConfigured } from '@/integrations/supabase/externalClient';
-import { getLogger } from '@/lib/logger';
+import {
+  withV237Fallback,
+  fallbackFindChats,
+  fallbackFindContacts,
+  fallbackFetchProfile,
+} from '@/hooks/evolution/v237Fallbacks';
+
 import type {
   SendMessageParams,
   SendTextOptions,
@@ -46,7 +50,8 @@ import type {
 } from '@/hooks/evolutionApi.types';
 
 // ─── Type Exports ─────────────────────────────────────────────────────────
-export type { HttpMethod, CallApiOptions } from './useEvolutionApiManagement';
+// HttpMethod and CallApiOptions are declared locally below.
+/** Re-exported module members. */
 export type {
   SendMessageParams,
   ContactCard,
@@ -70,8 +75,10 @@ export type {
 // SECTION 1: CORE API — Low-level HTTP, retry logic, idempotency
 // ═══════════════════════════════════════════════════════════════════════════
 
+/** Http Method type alias. */
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
+/** Call Api Options interface definition. */
 export interface CallApiOptions {
   method?: HttpMethod;
   retries?: number;
@@ -89,6 +96,7 @@ interface EvolutionApiError extends Error {
   retryAfterMs?: number;
 }
 
+/** Returns true for HTTP status codes that warrant a retry (5xx, 408, 425, 429, or unknown), and false for terminal auth failures (401, 403). */
 function isRetriableStatus(status?: number): boolean {
   if (status == null) return true;
   if (status === 401 || status === 403) return false;
@@ -97,6 +105,7 @@ function isRetriableStatus(status?: number): boolean {
   return false;
 }
 
+/** Parses a Retry-After header value (seconds as a number/string or an HTTP-date string) into milliseconds, returning undefined when the value is absent or unparseable. */
 function parseRetryAfter(raw: unknown): number | undefined {
   if (typeof raw !== 'string' && typeof raw !== 'number') return undefined;
   const n = Number(raw);
@@ -106,106 +115,22 @@ function parseRetryAfter(raw: unknown): number | undefined {
   return undefined;
 }
 
+/** Resolves after ms milliseconds, or rejects with an AbortError immediately if the provided AbortSignal is already aborted or fires during the wait. */
 async function sleep(ms: number, signal?: AbortSignal): Promise<void> {
   return new Promise((resolve, reject) => {
     const timer = setTimeout(resolve, ms);
     if (signal) {
-      const onAbort = () => { clearTimeout(timer); reject(new DOMException('Aborted', 'AbortError')); };
+      const onAbort = () => {
+        clearTimeout(timer);
+        reject(new DOMException('Aborted', 'AbortError'));
+      };
       if (signal.aborted) return onAbort();
       signal.addEventListener('abort', onAbort, { once: true });
     }
   });
 }
 
-// ─── v237 Fallbacks ─────────────────────────────────────────────────────────
-
-const logV237 = getLogger('EvolutionV237');
-
-function isEndpointUnavailable(err: unknown): boolean {
-  if (!err) return false;
-  const status = (err as { status?: number }).status;
-  if (status === 404 || status === 405 || status === 501) return true;
-  const msg = err instanceof Error ? err.message : String(err ?? '');
-  return /not\s*found|not\s*implemented|method\s+not\s+allowed|404|405|501/i.test(msg);
-}
-
-async function withV237Fallback<T>(
-  primary: () => Promise<T>,
-  fallback: () => Promise<T>,
-  label: string
-): Promise<T> {
-  try {
-    const result = await primary();
-    if (result && typeof result === 'object') {
-      const wrapped = result as { error?: unknown; status?: number };
-      if (isEndpointUnavailable(wrapped) || wrapped.error === 'not_found') {
-        logV237.warn(`[${label}] primary returned not-found payload; using FATOR X fallback`);
-        return await fallback();
-      }
-    }
-    return result;
-  } catch (err) {
-    if (isEndpointUnavailable(err)) {
-      logV237.warn(`[${label}] primary failed (${(err as Error)?.message}); falling back to FATOR X`);
-      return await fallback();
-    }
-    throw err;
-  }
-}
-
-function ensureExternal() {
-  if (!isExternalConfigured || !externalSupabase) {
-    throw new Error('FATOR X external client is not configured');
-  }
-  return externalSupabase;
-}
-
-function callExternalRpc(
-  client: ReturnType<typeof ensureExternal>,
-  fn: string,
-  args: Record<string, unknown>
-) {
-  return (client as unknown as { rpc: typeof client.rpc }).rpc(fn, args);
-}
-
-async function fallbackFindChats(instanceName: string, limit = 200): Promise<unknown[]> {
-  const client = ensureExternal();
-  const { data, error } = await callExternalRpc(client, 'rpc_list_conversations', {
-    p_instance: instanceName,
-    p_status: null,
-    p_assigned_to: null,
-    p_limit: limit,
-  });
-  if (error) throw error;
-  return Array.isArray(data) ? data : [];
-}
-
-async function fallbackFindContacts(instanceName: string, limit = 500): Promise<unknown[]> {
-  const client = ensureExternal();
-  const { data, error } = await callExternalRpc(client, 'rpc_list_contacts', {
-    p_instance: instanceName,
-    p_lead_status: null,
-    p_assigned_to: null,
-    p_search: null,
-    p_limit: limit,
-    p_offset: 0,
-  });
-  if (error) throw error;
-  return Array.isArray(data) ? data : [];
-}
-
-async function fallbackFetchProfile(
-  remoteJid: string,
-  instanceName: string
-): Promise<unknown | null> {
-  const client = ensureExternal();
-  const { data, error } = await callExternalRpc(client, 'rpc_get_contact', {
-    p_remote_jid: remoteJid,
-    p_instance: instanceName,
-  });
-  if (error) throw error;
-  return data ?? null;
-}
+// ─── v237 Fallbacks imported from evolution/v237Fallbacks ────────────────────
 
 /** Provides low-level Evolution API HTTP calls with retry logic and idempotency. */
 export function useEvolutionApiCore() {
@@ -218,10 +143,13 @@ export function useEvolutionApiCore() {
   }, []);
 
   const callApi = useCallback(
-    async <T = unknown>(action: string, body?: object, methodOrOptions: HttpMethod | CallApiOptions = 'POST'): Promise<T> => {
-      const opts: CallApiOptions = typeof methodOrOptions === 'string'
-        ? { method: methodOrOptions }
-        : methodOrOptions;
+    async <T = unknown>(
+      action: string,
+      body?: object,
+      methodOrOptions: HttpMethod | CallApiOptions = 'POST'
+    ): Promise<T> => {
+      const opts: CallApiOptions =
+        typeof methodOrOptions === 'string' ? { method: methodOrOptions } : methodOrOptions;
       const method: HttpMethod = opts.method ?? 'POST';
       const dynCfg = getRetryConfigSync();
       const baseBackoffMs = opts.baseBackoffMs ?? dynCfg.baseBackoffMs;
@@ -234,9 +162,8 @@ export function useEvolutionApiCore() {
           sanitizedPrefix: userKey?.slice(0, 16),
         });
       }
-      const derivedKey = !userKey && method === 'POST'
-        ? await deriveIdempotencyKey(action, body)
-        : undefined;
+      const derivedKey =
+        !userKey && method === 'POST' ? await deriveIdempotencyKey(action, body) : undefined;
       const effectiveKey = userKey ?? derivedKey;
 
       const canRetry = IDEMPOTENT_METHODS.has(method) || !!userKey;
@@ -244,7 +171,9 @@ export function useEvolutionApiCore() {
 
       const dedupeKey = effectiveKey
         ? `${method}:${action}:${effectiveKey}`
-        : (IDEMPOTENT_METHODS.has(method) ? `${method}:${action}` : '');
+        : IDEMPOTENT_METHODS.has(method)
+          ? `${method}:${action}`
+          : '';
       if (dedupeKey) {
         const existing = inflightRef.current.get(dedupeKey);
         if (existing) return existing as Promise<T>;
@@ -262,7 +191,12 @@ export function useEvolutionApiCore() {
           const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
           try {
-            const invokeOpts: { method: 'POST'; body: object; headers?: Record<string, string>; signal?: AbortSignal } = {
+            const invokeOpts: {
+              method: 'POST';
+              body: object;
+              headers?: Record<string, string>;
+              signal?: AbortSignal;
+            } = {
               method: 'POST',
               body: body ?? {},
               signal: controller.signal,
@@ -271,7 +205,10 @@ export function useEvolutionApiCore() {
               invokeOpts.headers = { 'Idempotency-Key': userKey };
             }
 
-            const { data, error } = await supabase.functions.invoke(`evolution-api/${action}`, invokeOpts);
+            const { data, error } = await supabase.functions.invoke(
+              `evolution-api/${action}`,
+              invokeOpts
+            );
             if (error) {
               const err = Object.assign(new Error(error.message || 'Evolution API error'), {
                 apiStatus: (error as { status?: number }).status,
@@ -279,7 +216,12 @@ export function useEvolutionApiCore() {
               throw err;
             }
             if (data && typeof data === 'object' && (data as { error?: boolean }).error === true) {
-              const d = data as { message?: string; details?: unknown; status?: number; retryAfter?: unknown };
+              const d = data as {
+                message?: string;
+                details?: unknown;
+                status?: number;
+                retryAfter?: unknown;
+              };
               const apiError = Object.assign(new Error(d.message || 'Evolution API error'), {
                 details: d.details,
                 apiStatus: d.status,
@@ -297,7 +239,11 @@ export function useEvolutionApiCore() {
 
             const backoff = err.retryAfterMs ?? baseBackoffMs * 2 ** (attempt - 1);
             const jitter = Math.floor(Math.random() * 100);
-            try { await sleep(backoff + jitter); } catch { break; }
+            try {
+              await sleep(backoff + jitter);
+            } catch {
+              break;
+            }
             continue;
           } finally {
             clearTimeout(timeoutId);
@@ -316,7 +262,7 @@ export function useEvolutionApiCore() {
       if (dedupeKey) inflightRef.current.set(dedupeKey, wrapped);
       return wrapped;
     },
-    [],
+    [] // eslint-disable-line react-hooks/exhaustive-deps
   );
 
   const withToast = useCallback(
@@ -325,7 +271,7 @@ export function useEvolutionApiCore() {
       body: object | undefined,
       successMsg: string,
       errorMsg: string,
-      methodOrOptions: HttpMethod | CallApiOptions = 'POST',
+      methodOrOptions: HttpMethod | CallApiOptions = 'POST'
     ): Promise<T> => {
       try {
         const data = await callApi<T>(action, body, methodOrOptions);
@@ -337,7 +283,7 @@ export function useEvolutionApiCore() {
         throw error;
       }
     },
-    [callApi],
+    [callApi]
   );
 
   return { isLoading, callApi, withToast };
@@ -347,9 +293,16 @@ export function useEvolutionApiCore() {
 // SECTION 2: INSTANCE MANAGEMENT — Create, connect, disconnect, lifecycle
 // ═══════════════════════════════════════════════════════════════════════════
 
+/** Provides instance lifecycle operations: create, connect, reconnect, logout, restart, delete, and QR/pairing-code retrieval against the Evolution API. */
 function useEvolutionInstance(
   callApi: (action: string, body?: object, method?: HttpMethod) => Promise<unknown>,
-  withToast: (action: string, body: object | undefined, successMsg: string, errorMsg: string, method?: HttpMethod) => Promise<unknown>
+  withToast: (
+    action: string,
+    body: object | undefined,
+    successMsg: string,
+    errorMsg: string,
+    method?: HttpMethod
+  ) => Promise<unknown>
 ) {
   const createInstance = useCallback(
     (params: CreateInstanceParams) =>
@@ -458,9 +411,20 @@ function useEvolutionInstance(
 // SECTION 3: MESSAGING — Send messages, mark read, manage chat state
 // ═══════════════════════════════════════════════════════════════════════════
 
+/** Provides all outbound messaging operations: text, media, audio, sticker, location, contact, reaction, poll, list, button, and template sends; plus read-marking, chat archiving, muting, and message editing/deletion. */
 function useEvolutionMessaging(
-  callApi: (action: string, body?: object, methodOrOptions?: HttpMethod | CallApiOptions) => Promise<unknown>,
-  withToast: (action: string, body: object | undefined, successMsg: string, errorMsg: string, methodOrOptions?: HttpMethod | CallApiOptions) => Promise<unknown>
+  callApi: (
+    action: string,
+    body?: object,
+    methodOrOptions?: HttpMethod | CallApiOptions
+  ) => Promise<unknown>,
+  withToast: (
+    action: string,
+    body: object | undefined,
+    successMsg: string,
+    errorMsg: string,
+    methodOrOptions?: HttpMethod | CallApiOptions
+  ) => Promise<unknown>
 ) {
   const sendTextMessage = useCallback(
     (instanceName: string, number: string, text: string, options?: SendTextOptions) =>
@@ -775,9 +739,16 @@ function useEvolutionMessaging(
 // SECTION 4: GROUPS — Group creation, member management, settings
 // ═══════════════════════════════════════════════════════════════════════════
 
+/** Provides group lifecycle operations: create, list, fetch group info, manage participants (add/remove/promote/demote), update subject/description/picture, toggle ephemeral mode, and manage invite codes. */
 function useEvolutionGroups(
   callApi: (action: string, body?: object, method?: HttpMethod) => Promise<unknown>,
-  withToast: (action: string, body: object | undefined, successMsg: string, errorMsg: string, method?: HttpMethod) => Promise<unknown>
+  withToast: (
+    action: string,
+    body: object | undefined,
+    successMsg: string,
+    errorMsg: string,
+    method?: HttpMethod
+  ) => Promise<unknown>
 ) {
   const createGroup = useCallback(
     (instanceName: string, subject: string, description: string, participants: string[]) =>
@@ -946,6 +917,7 @@ function useEvolutionGroups(
 // SECTION 5: PROFILE — Fetch/update profile, privacy, labels
 // ═══════════════════════════════════════════════════════════════════════════
 
+/** Provides profile management: fetch local and remote profiles, update name/status/picture, remove profile picture, fetch business profile, update privacy settings, and manage WhatsApp labels. */
 function useEvolutionProfile(
   callApi: (action: string, body?: object, method?: HttpMethod) => Promise<unknown>,
   withToast: (
@@ -1068,6 +1040,7 @@ function useEvolutionProfile(
 // SECTION 6: CHATS — Find chats/messages/contacts, media retrieval
 // ═══════════════════════════════════════════════════════════════════════════
 
+/** Provides read-only access to conversation data: list chats (with v237 fallback), find messages, fetch status messages, search contacts (with v237 fallback), bulk-check WhatsApp numbers, and download media as Base64. */
 function useEvolutionChats(
   callApi: (action: string, body?: object, method?: HttpMethod) => Promise<unknown>
 ) {
@@ -1139,6 +1112,7 @@ function useEvolutionChats(
 // SECTION 7: BOTS — Bot integrations (Chatwoot, Typebot, OpenAI, etc)
 // ═══════════════════════════════════════════════════════════════════════════
 
+/** Provides CRUD and session management for all bot integrations: Chatwoot, Typebot (including session start), OpenAI, Dify, Flowise, and EvolutionBot — each with configure, retrieve, and delete operations. */
 function useEvolutionBots(
   callApi: (action: string, body?: object, method?: HttpMethod) => Promise<unknown>,
   withToast: (
@@ -1318,6 +1292,7 @@ function useEvolutionBots(
 // SECTION 8: AI AGENTS — AI agent settings (EvoAI, N8N)
 // ═══════════════════════════════════════════════════════════════════════════
 
+/** Provides configure/retrieve/delete operations for AI agent integrations: EvoAI (custom AI agent endpoint) and N8N (workflow automation), each with a set/get/delete triple. */
 function useEvolutionAiAgents(
   callApi: (action: string, body?: object, method?: HttpMethod) => Promise<unknown>,
   withToast: (
@@ -1418,6 +1393,7 @@ function useEvolutionAiAgents(
 // SECTION 9: STREAMING — Event streaming backends (RabbitMQ, SQS, etc)
 // ═══════════════════════════════════════════════════════════════════════════
 
+/** Provides set/get operations for all event-streaming backends: RabbitMQ, SQS, Kafka, NATS, and Pusher — each enabling event routing from WhatsApp to external message queues. */
 function useEvolutionStreaming(
   callApi: (action: string, body?: object, method?: HttpMethod) => Promise<unknown>
 ) {
@@ -1498,6 +1474,7 @@ function useEvolutionStreaming(
 // SECTION 10: MISCELLANEOUS — Templates, blocking, catalog, proxy
 // ═══════════════════════════════════════════════════════════════════════════
 
+/** Provides miscellaneous Evolution API operations: WhatsApp message templates (create/list/delete), contact blocking/unblocking, business catalog retrieval, and HTTP proxy configuration. */
 function useEvolutionMisc(
   callApi: (action: string, body?: object, method?: HttpMethod) => Promise<unknown>,
   withToast: (

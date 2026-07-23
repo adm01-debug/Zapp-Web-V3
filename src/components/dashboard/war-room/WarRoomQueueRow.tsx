@@ -9,6 +9,7 @@ interface QueueRowProps {
   onClick: () => void;
 }
 
+/** War Room Queue Row component for the dashboard section. */
 export function WarRoomQueueRow({ queue, onClick }: QueueRowProps) {
   const utilizationPercent = (queue.inProgress / (queue.waiting + queue.inProgress)) * 100 || 0;
   const hasCritical = queue.slaBreaches > 0;

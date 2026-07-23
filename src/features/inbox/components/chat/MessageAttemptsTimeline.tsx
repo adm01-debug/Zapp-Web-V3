@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * MessageAttemptsTimeline — timeline visual da pipeline de envio de uma
  * mensagem: tentativa atual / total, timestamps relevantes e motivo final
@@ -32,6 +31,7 @@ function fmt(ts: string | null | undefined): string {
   try { return format(new Date(ts), 'dd/MM/yyyy HH:mm:ss'); } catch { return ts; }
 }
 
+/** Message Attempts Timeline function. */
 export function MessageAttemptsTimeline({ messageId, enabled }: MessageAttemptsTimelineProps) {
   const { isSupervisor } = useUserRole();
   const canRead = isSupervisor;

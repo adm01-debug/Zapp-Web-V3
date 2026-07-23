@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * evolutionReconcile — Optimistic-to-canonical reconciliation utilities.
  * Shared by useExternalConversations and useExternalMessages.
@@ -7,6 +6,7 @@ import { playerStateStore } from '@/features/inbox';
 import { recordMatch } from '@/features/inbox';
 import type { RealtimeMessage } from '@/features/inbox';
 
+/** Prefix applied to optimistic message IDs before canonical IDs are assigned by the server. */
 export const OPTIMISTIC_PREFIX = 'optimistic:';
 const OPTIMISTIC_FALLBACK_WINDOW_MS = 120_000;
 const MEDIA_TYPES = new Set(['audio', 'image', 'video', 'document', 'sticker']);
@@ -24,11 +24,16 @@ const STATUS_RANK: Record<string, number> = {
   played: 5,
 };
 
+/** Returns the numeric rank of a delivery status, or -1 when the status is absent or unrecognised. */
 function rankOf(status: string | null | undefined): number {
   if (!status) return -1;
   return STATUS_RANK[status] ?? -1;
 }
 
+/**
+ * Returns the higher-ranked status between the optimistic and canonical messages, along with the
+ * corresponding `status_updated_at` timestamp. Reconciliation never regresses delivery state.
+ */
 function promoteStatus(
   optimistic: RealtimeMessage,
   canonical: RealtimeMessage
@@ -47,6 +52,7 @@ function promoteStatus(
   };
 }
 
+/** Reconcile Result interface definition. */
 export interface ReconcileResult {
   filteredPrev: RealtimeMessage[];
   additions: RealtimeMessage[];
@@ -54,14 +60,16 @@ export interface ReconcileResult {
   remap: Map<string, string>;
 }
 
+/** Resolves the effective audio sub-type of a message: `audio_meme`, `audio_ptt`, or `audio_recorded`. Non-audio messages return their original `message_type` unchanged. */
 function resolveAudioType(m: RealtimeMessage): string {
   if (m.message_type !== 'audio') return m.message_type;
-  const mExt = m as Record<string, unknown>;
+  const mExt = m as unknown as Record<string, unknown>;
   const isPtt = (mExt.media_meta as Record<string, unknown> | undefined)?.ptt === true;
   const isMeme = !!mExt.audio_meme_id;
   return isMeme ? 'audio_meme' : isPtt ? 'audio_ptt' : 'audio_recorded';
 }
 
+/** reconcile Optimistic function. */
 export function reconcileOptimistic(
   prev: RealtimeMessage[],
   incoming: RealtimeMessage[]

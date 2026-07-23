@@ -10,9 +10,9 @@ export {
   useConversationMessages,
   useConversationsList,
   useConversation,
-  useUnreadMessagesCount,
   useInvalidateMessages,
 } from './useMessagesQueries';
+/** Re-exported module members. */
 export {
   useCreateMessage,
   useUpdateMessage,

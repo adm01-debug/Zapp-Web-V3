@@ -1,6 +1,5 @@
-// @ts-nocheck
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { fetchContactPurchases, createContactPurchase } from '../hooks/useContactPurchasesData';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -48,6 +47,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
   cancelled: { label: 'Cancelado', color: 'bg-destructive/10 text-destructive' },
 };
 
+/** Contact Purchases Panel component. */
 export function ContactPurchasesPanel({ contactId, profileId }: ContactPurchasesPanelProps) {
   const [purchases, setPurchases] = useState<Purchase[]>([]);
   const [loading, setLoading] = useState(true);
@@ -58,27 +58,23 @@ export function ContactPurchasesPanel({ contactId, profileId }: ContactPurchases
 
   useEffect(() => {
     loadPurchases();
-  }, [contactId]);
+  }, [contactId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadPurchases = async () => {
     setLoading(true);
-    const { data } = await supabase
-      .from('contact_purchases')
-      .select('*')
-      .eq('contact_id', contactId)
-      .order('created_at', { ascending: false });
-    if (data) setPurchases(data);
+    const data = await fetchContactPurchases(contactId);
+    setPurchases(data);
     setLoading(false);
   };
 
   const addPurchase = async () => {
     if (!title.trim()) return;
-    const { error } = await supabase.from('contact_purchases').insert({
+    const { error } = await createContactPurchase({
       contact_id: contactId,
       title: title.trim(),
-      amount: amount ? parseFloat(amount) : null,
+      amount: amount ? parseFloat(amount) : 0,
       purchase_type: type,
-      created_by: profileId,
+      created_by: profileId as string,
     });
     if (!error) {
       toast.success('Registro adicionado');

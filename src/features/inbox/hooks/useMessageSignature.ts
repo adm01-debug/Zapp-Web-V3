@@ -2,12 +2,9 @@ import { useState, useEffect, useCallback } from 'react';
 import { useMountedRef } from '@/hooks/useMountedRef';
 import { supabase } from '@/integrations/supabase/client';
 
-// Schema escape hatch: zapp tables not yet in generated types (gen-types-zapp.mjs pendente na VPS)
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const db = supabase as any;
-
 const SIGNATURE_ENABLED_KEY = 'chat_signature_enabled';
 
+/** Manages the agent's outbound message signature (fetched from profiles) and a localStorage toggle that prepends it to sent messages. */
 export function useMessageSignature() {
   const [signatureEnabled, setSignatureEnabled] = useState(() => {
     try {
@@ -25,7 +22,7 @@ export function useMessageSignature() {
         data: { user },
       } = await supabase.auth.getUser();
       if (!user || !mountedRef.current) return;
-      const { data: profile } = await db
+      const { data: profile } = await supabase
         .from('profiles')
         .select('name, job_title')
         .eq('user_id', user.id)
@@ -38,7 +35,7 @@ export function useMessageSignature() {
       }
     };
     fetchName();
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const toggleSignature = useCallback(() => {
     setSignatureEnabled((prev) => {

@@ -1,6 +1,7 @@
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Info, Code, FileText } from "lucide-react";
 
+/** Typography Guide component for the docs section. */
 export function TypographyGuide() {
   return (
     <div className="space-y-8 animate-fade-in">

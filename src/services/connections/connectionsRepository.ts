@@ -1,4 +1,4 @@
-// @ts-nocheck
+
 /**
  * Connections Repository
  *
@@ -8,8 +8,9 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { createService } from '@/services/api/genericService';
-import type { ListResponse, QueryParams } from '@/services/api/types';
+import type { QueryParams } from '@/services/api/types';
 
+/** Whats App Connection interface. */
 export interface WhatsAppConnection {
   id: string;
   instance_name: string;
@@ -24,16 +25,19 @@ export interface WhatsAppConnection {
   updated_at: string;
 }
 
+/** Channel Connection interface definition. */
 export interface ChannelConnection {
   id: string;
   channel_type: string;
   account_id: string;
   connection_status: 'connected' | 'disconnected' | 'error';
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   credentials?: Record<string, any>;
   created_at: string;
   updated_at: string;
 }
 
+/** Connection interface definition. */
 export interface Connection {
   id: string;
   name?: string;
@@ -47,46 +51,44 @@ export interface Connection {
 // WhatsApp connections base service
 const whatsappBaseService = createService<WhatsAppConnection>('whatsapp_connections');
 
+/** connections Repository constant. */
 export const connectionsRepository = {
   // WhatsApp Connections
   listWhatsAppConnections: (filters?: Partial<WhatsAppConnection> & QueryParams) =>
     whatsappBaseService.list(filters),
 
-  getWhatsAppConnection: (id: string) =>
-    whatsappBaseService.get(id),
+  getWhatsAppConnection: (id: string) => whatsappBaseService.get(id),
 
-  searchWhatsAppConnections: (query: string) =>
-    whatsappBaseService.search(query),
+  searchWhatsAppConnections: (query: string) => whatsappBaseService.search(query),
 
-  createWhatsAppConnection: (data: Partial<WhatsAppConnection>) =>
-    whatsappBaseService.create(data),
+  createWhatsAppConnection: (data: Partial<WhatsAppConnection>) => whatsappBaseService.create(data),
 
   updateWhatsAppConnection: (id: string, updates: Partial<WhatsAppConnection>) =>
     whatsappBaseService.update(id, updates),
 
-  deleteWhatsAppConnection: (id: string) =>
-    whatsappBaseService.delete(id),
+  deleteWhatsAppConnection: (id: string) => whatsappBaseService.delete(id),
 
   deleteWhatsAppConnectionsBulk: (ids: string[]) =>
-    whatsappBaseService.deleteMany(ids),
+    Promise.all(ids.map((id) => whatsappBaseService.delete(id))),
 
   // Channel connections
   async listChannelConnections(filters?: Partial<ChannelConnection> & QueryParams) {
-    const { data, error, count } = await (supabase as any)
+    const limit = filters?.limit ?? 50;
+    const offset = filters?.offset ?? 0;
+    const { data, error, count } = await supabase
       .from('channel_connections')
       .select('*', { count: 'exact' })
-      .limit(filters?.limit || 50)
-      .offset(filters?.offset || 0);
+      .range(offset, offset + limit - 1);
 
     return { data: data || [], error, count };
   },
 
   async getChannelConnection(id: string) {
-    const { data, error } = await (supabase as any)
+    const { data, error } = await supabase
       .from('channel_connections')
       .select('*')
       .eq('id', id)
-      .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
+      .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
 
     return { data, error };
   },
@@ -94,11 +96,11 @@ export const connectionsRepository = {
   // Connection health
   async checkConnectionHealth(connectionId: string) {
     try {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from('whatsapp_connections')
         .select('connection_status, error_message')
         .eq('id', connectionId)
-        .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
+        .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
 
       if (error) return { data: null, error };
       return { data, error: null };

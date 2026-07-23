@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Feature flags system for ZAPP WEB.
  *
@@ -59,6 +58,7 @@ const DEFAULTS: Record<FeatureFlag, FeatureConfig> = {
 
 let flagCache: Record<string, FeatureConfig> | null = null;
 
+/** is Feature Enabled function. */
 export function isFeatureEnabled(
   flag: FeatureFlag,
   context?: { userId?: string; tenantId?: string }
@@ -89,6 +89,7 @@ export function isFeatureEnabled(
   return true;
 }
 
+/** load Feature Flags function. */
 export async function loadFeatureFlags(): Promise<void> {
   try {
     const { data, error } = await supabase
@@ -128,6 +129,7 @@ export async function loadFeatureFlags(): Promise<void> {
   }
 }
 
+/** get All Flags function. */
 export function getAllFlags(): Record<string, FeatureConfig> {
   return flagCache || DEFAULTS;
 }

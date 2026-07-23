@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Slider } from '@/components/ui/slider';
@@ -30,6 +29,7 @@ const LEAD_ORIGINS = [
   { value: 'other', label: 'Outro' },
 ];
 
+/** Lead Risk Score Panel component. */
 export function LeadRiskScorePanel({ contactId }: LeadRiskScorePanelProps) {
   const [leadScore, setLeadScore] = useState(0);
   const [riskScore, setRiskScore] = useState(0);
@@ -40,14 +40,14 @@ export function LeadRiskScorePanel({ contactId }: LeadRiskScorePanelProps) {
 
   useEffect(() => {
     loadData();
-  }, [contactId]);
+  }, [contactId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadData = async () => {
     const { data } = await supabase
       .from('contacts')
       .select('lead_score, risk_score, lead_origin, consent_status')
       .eq('id', contactId)
-      .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
+      .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
     if (data) {
       setLeadScore(data.lead_score ?? 0);
       setRiskScore(data.risk_score ?? 0);

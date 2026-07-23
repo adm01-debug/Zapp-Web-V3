@@ -1,6 +1,5 @@
-// @ts-nocheck
 import { useCallback, useEffect, useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { useOpsAuditLogs, type AuditRow } from '@/hooks/useOpsAuditLogs';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -43,16 +42,6 @@ const PML_STATUS = [
   { value: 'error', label: 'Erro' },
 ];
 
-type AuditRow = {
-  id: string;
-  user_id: string | null;
-  action: string;
-  entity_type: string;
-  entity_id: string | null;
-  created_at: string;
-  details: unknown;
-};
-
 type PmlRow = {
   id: string;
   provider: string;
@@ -65,6 +54,7 @@ type PmlRow = {
   received_at: string;
 };
 
+/** Ops Logs Tab. */
 export function OpsLogsTab() {
   return (
     <Tabs defaultValue="audit" className="w-full">
@@ -85,37 +75,8 @@ export function OpsLogsTab() {
 function AuditPanel() {
   const [entity, setEntity] = useState('all');
   const [search, setSearch] = useState('');
-  const [rows, setRows] = useState<AuditRow[]>([]);
-  const [loading, setLoading] = useState(true);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    let q = supabase
-      .from('audit_logs')
-      .select('id,user_id,action,entity_type,entity_id,created_at,details')
-      .order('created_at', { ascending: false })
-      .limit(100);
-    if (entity === 'all') {
-      q = q.in('entity_type', [
-        'service_channel',
-        'queue',
-        'channel_queue',
-        'sticky_assignment',
-        'message_reaction',
-      ]);
-    } else {
-      q = q.eq('entity_type', entity);
-    }
-    if (search.trim()) q = q.ilike('action', `%${search.trim()}%`);
-    const { data, error } = await q;
-    if (error) toast.error('Erro ao carregar audit: ' + error.message);
-    setRows((data as AuditRow[]) ?? []); // ignore-audit: narrows Supabase query result to local interface
-    setLoading(false);
-  }, [entity, search]);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
+  const { rows, loading, load } = useOpsAuditLogs({ entity, search });
 
   return (
     <Card>
@@ -146,7 +107,7 @@ function AuditPanel() {
               className="w-[180px] pl-7"
             />
           </div>
-          <Button variant="outline" size="sm" onClick={load} disabled={loading}>
+          <Button variant="outline" size="sm" onClick={() => { void load(); }} disabled={loading}>
             <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
           </Button>
         </div>

@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -13,6 +12,7 @@ interface SLASettingsProps {
   updateSettings: (updates: Partial<UserSettings>) => void;
 }
 
+/** SLASettings component for the settings section. */
 export function SLASettings({ settings, updateSettings }: SLASettingsProps) {
   return (
     <div className="space-y-6">

@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { subDays } from 'date-fns';
@@ -22,6 +21,7 @@ import { QueuesComparisonCharts } from './QueuesComparisonCharts';
 import { useQueuesComparison } from '@/hooks/useQueuesComparison';
 import { PeriodSelector, PeriodOption } from './PeriodSelector';
 
+/** Queues Comparison Dashboard component for the queues section. */
 export function QueuesComparisonDashboard() {
   const navigate = useNavigate();
   const [period, setPeriod] = useState<PeriodOption>('7d');

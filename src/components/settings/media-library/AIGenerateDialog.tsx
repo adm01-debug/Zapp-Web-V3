@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -16,9 +15,11 @@ import {
 import { Loader2, Play, Music, Volume2, RefreshCw, Check, Wand2, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 
+import { insertAudioMeme } from '@/hooks/useAudioMemesMutations';
 import { getLogger } from '@/lib/logger';
 const log = getLogger('AIGenerateDialog');
 
+/** AIGenerate Dialog component for the settings section. */
 export function AIGenerateDialog({
   open,
   onOpenChange,
@@ -82,17 +83,14 @@ export function AIGenerateDialog({
       } catch (err) {
         log.error('Unexpected error in AIGenerateDialog:', err);
       }
-      const { error: insertError } = await supabase
-        .from('audio_memes')
-        .insert({
-          name: genPrompt.substring(0, 80),
-          audio_url: urlData.publicUrl,
-          category: aiCategory,
-          is_favorite: false,
-          use_count: 0,
-          uploaded_by: user?.id || null,
-        });
-      if (insertError) throw insertError;
+      await insertAudioMeme({
+        name: genPrompt.substring(0, 80),
+        audio_url: urlData.publicUrl,
+        category: aiCategory,
+        is_favorite: false,
+        use_count: 0,
+        uploaded_by: user?.id || null,
+      });
       toast.success(`Áudio salvo como "${aiCategory}"`);
       onOpenChange(false);
       setGenPrompt('');
@@ -172,6 +170,7 @@ export function AIGenerateDialog({
               max={genMode === 'sfx' ? 22 : 60}
               value={genDuration}
               onChange={(e) => setGenDuration(Number(e.target.value))}
+              aria-label={`Duração: ${genDuration} segundos`}
               className="w-full accent-primary"
             />
             <div className="flex justify-between text-[10px] text-muted-foreground">

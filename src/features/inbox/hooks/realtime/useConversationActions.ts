@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { dbFrom } from '@/integrations/datasource/db';
@@ -18,6 +17,7 @@ interface UseConversationActionsOptions {
   commitConversations: CommitFn;
 }
 
+/** Provides sendMessage and markAsRead actions that write through to Supabase and optimistically update the local conversation list. */
 export function useConversationActions({ commitConversations }: UseConversationActionsOptions) {
   const lastSeenTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 

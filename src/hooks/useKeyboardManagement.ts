@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -9,6 +8,7 @@ import { DEFAULT_SHORTCUTS } from '@/hooks/shortcuts/defaultShortcuts';
 // TYPE DEFINITIONS
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════════════
 
+/** Shortcut Binding interface definition. */
 export interface ShortcutBinding {
   id: string;
   name: string;
@@ -285,7 +285,7 @@ export function useGlobalKeyboardShortcutsManagement(customActions?: GlobalShort
   );
 
   const actions = useMemo(() => {
-    const merged = { ...defaultActions };
+    const merged: Record<string, () => void> = { ...defaultActions };
     customActions?.forEach(({ id, action }) => {
       merged[id] = action;
     });

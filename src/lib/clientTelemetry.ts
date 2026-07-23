@@ -11,10 +11,14 @@ import { getLogger } from '@/lib/logger';
 
 const log = getLogger('clientTelemetry');
 
+/** Query latency classification severity. */
 export type Severity = 'ok' | 'slow' | 'very_slow' | 'timeout' | 'error';
+/** Source system for a tracked query. */
 export type QuerySource = 'externalProxy' | 'externalSupabase' | 'lovableCloud';
+/** SQL operation type for a tracked query. */
 export type QueryOperation = 'select' | 'rpc' | 'insert' | 'update' | 'delete';
 
+/** Query Event interface definition. */
 export interface QueryEvent {
   operation: QueryOperation;
   source: QuerySource;
@@ -31,6 +35,7 @@ export interface QueryEvent {
   correlationId?: string;
 }
 
+/** Immutable point-in-time snapshot of accumulated client-side query telemetry. */
 export interface TelemetrySnapshot {
   total: number;
   bySeverity: Record<Severity, number>;
@@ -42,6 +47,7 @@ export interface TelemetrySnapshot {
   retry: RetryStats;
 }
 
+/** Retry Stats interface definition. */
 export interface RetryStats {
   totalRetries: number;
   recoveredAfterRetry: number;
@@ -65,10 +71,12 @@ interface State {
   retry: RetryStats;
 }
 
+/** Returns a zeroed severity counter map for state initialisation or reset. */
 const initialBySeverity = (): Record<Severity, number> => ({
   ok: 0, slow: 0, very_slow: 0, timeout: 0, error: 0,
 });
 
+/** Returns a zeroed RetryStats object for state initialisation or reset. */
 const initialRetry = (): RetryStats => ({
   totalRetries: 0,
   recoveredAfterRetry: 0,
@@ -86,6 +94,7 @@ const state: State = {
   retry: initialRetry(),
 };
 
+/** classify Severity function. */
 export function classifySeverity(
   durationMs: number,
   hasError: boolean,
@@ -98,6 +107,7 @@ export function classifySeverity(
   return 'ok';
 }
 
+/** Computes the 95th-percentile value from an array of numbers; returns 0 for an empty array. */
 function p95(values: number[]): number {
   if (values.length === 0) return 0;
   const sorted = [...values].sort((a, b) => a - b);
@@ -105,6 +115,7 @@ function p95(values: number[]): number {
   return sorted[idx];
 }
 
+/** Builds an immutable snapshot of the current telemetry state including averages, p95, and per-category counts. */
 function snapshot(): TelemetrySnapshot {
   const avgDurationMs = state.total > 0 ? Math.round(state.totalDurationMs / state.total) : 0;
   const p95DurationMs = Math.round(p95(state.recentEvents.map((e) => e.durationMs)));
@@ -125,11 +136,13 @@ function snapshot(): TelemetrySnapshot {
   };
 }
 
+/** Publishes the current telemetry snapshot to window.__queryTelemetry for DevTools inspection. */
 function publishToWindow() {
   if (typeof window === 'undefined') return;
   (window as unknown as { __queryTelemetry?: TelemetrySnapshot }).__queryTelemetry = snapshot(); // ignore-audit — window debug property not in standard lib
 }
 
+/** Emits a structured log entry for a query event at the appropriate severity level (debug/info/warn). */
 function logEvent(ev: QueryEvent) {
   const meta = {
     cid: ev.correlationId,
@@ -159,6 +172,7 @@ function logEvent(ev: QueryEvent) {
   }
 }
 
+/** record Query Event function. */
 export function recordQueryEvent(
   ev: Omit<QueryEvent, 'severity'> & { severity?: Severity },
 ): QueryEvent {
@@ -190,10 +204,12 @@ export function recordQueryEvent(
   return fullEvent;
 }
 
+/** get Telemetry Snapshot function. */
 export function getTelemetrySnapshot(): TelemetrySnapshot {
   return snapshot();
 }
 
+/** reset Telemetry function. */
 export function resetTelemetry(): void {
   state.total = 0;
   state.bySeverity = initialBySeverity();
@@ -205,6 +221,7 @@ export function resetTelemetry(): void {
   publishToWindow();
 }
 
+/** Retry Outcome interface definition. */
 export interface RetryOutcome {
   target: string;
   attempts: number;
@@ -214,6 +231,7 @@ export interface RetryOutcome {
   correlationId?: string;
 }
 
+/** record Retry Outcome function. */
 export function recordRetryOutcome(outcome: RetryOutcome): void {
   const extraAttempts = Math.max(0, outcome.attempts - 1);
   state.retry.totalRetries += extraAttempts;
@@ -226,4 +244,5 @@ export function recordRetryOutcome(outcome: RetryOutcome): void {
   publishToWindow();
 }
 
+/** T E L E M E T R Y_ T H R E S H O L D S constant. */
 export const TELEMETRY_THRESHOLDS = { SLOW_MS, VERY_SLOW_MS };

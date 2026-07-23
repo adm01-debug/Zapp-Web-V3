@@ -45,7 +45,12 @@ export default defineConfig(({ mode }) => ({
     }),
     VitePWA({
       registerType: 'autoUpdate',
+      // O registro é feito manualmente por useServiceWorker (com guarda de
+      // hostname para NUNCA registrar em preview do Lovable / iframe / dev).
+      injectRegister: null,
+      devOptions: { enabled: false },
       includeAssets: ['favicon.ico', 'apple-touch-icon.png'],
+
       manifest: {
         name: 'OmniChannel Pro',
         short_name: 'OmniPro',

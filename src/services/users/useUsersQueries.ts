@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Users Queries Hook
  *
@@ -6,12 +5,7 @@
  */
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import {
-  createListQuery,
-  createDetailQuery,
-  createSearchQuery,
-  queryKeys,
-} from '@/services/api';
+import { useListQuery, useDetailQuery, useSearchQuery, queryKeys } from '@/services/api';
 import { usersService, type User, type Agent } from './index';
 import type { QueryParams } from '@/services/api/types';
 
@@ -19,23 +13,19 @@ import type { QueryParams } from '@/services/api/types';
  * Hook to list all users
  */
 export const useUsersList = (filters?: Partial<User> & QueryParams) => {
-  return createListQuery(
-    queryKeys.users.list(filters),
-    () => usersService.listUsers(filters),
-    {
-      staleTime: 30_000,
-      enabled: true,
-    }
-  );
+  return useListQuery(queryKeys.users.userList(filters), () => usersService.listUsers(filters), {
+    staleTime: 30_000,
+    enabled: true,
+  });
 };
 
 /**
  * Hook to get a single user by ID
  */
 export const useUser = (id?: string) => {
-  return createDetailQuery(
+  return useDetailQuery(
     queryKeys.users.detail(id || ''),
-    () => usersService.getUser(id!),
+    () => usersService.getUser(id ?? ''),
     !!id,
     {
       staleTime: 60_000,
@@ -47,8 +37,8 @@ export const useUser = (id?: string) => {
  * Hook to search users
  */
 export const useSearchUsers = (query?: string) => {
-  return createSearchQuery(
-    queryKeys.users.all(),
+  return useSearchQuery(
+    queryKeys.users.searchUsers(query),
     () => usersService.searchUsers(query || ''),
     !!query && query.length >= 2,
     {
@@ -61,23 +51,19 @@ export const useSearchUsers = (query?: string) => {
  * Hook to list all agents
  */
 export const useAgentsList = (filters?: Partial<Agent> & QueryParams) => {
-  return createListQuery(
-    queryKeys.users.list(filters),
-    () => usersService.listAgents(filters),
-    {
-      staleTime: 30_000,
-      enabled: true,
-    }
-  );
+  return useListQuery(queryKeys.users.agentList(filters), () => usersService.listAgents(filters), {
+    staleTime: 30_000,
+    enabled: true,
+  });
 };
 
 /**
  * Hook to get a single agent by ID
  */
 export const useAgent = (id?: string) => {
-  return createDetailQuery(
+  return useDetailQuery(
     queryKeys.users.detail(id || ''),
-    () => usersService.getAgent(id!),
+    () => usersService.getAgent(id ?? ''),
     !!id,
     {
       staleTime: 60_000,
@@ -89,8 +75,8 @@ export const useAgent = (id?: string) => {
  * Hook to search agents
  */
 export const useSearchAgents = (query?: string) => {
-  return createSearchQuery(
-    queryKeys.users.all(),
+  return useSearchQuery(
+    queryKeys.users.searchAgents(query),
     () => usersService.searchAgents(query || ''),
     !!query && query.length >= 2,
     {
@@ -104,7 +90,7 @@ export const useSearchAgents = (query?: string) => {
  */
 export const useAgentsByStatus = (status: Agent['status'], params?: Partial<QueryParams>) => {
   return useQuery({
-    queryKey: [...queryKeys.users.all(), 'status', status],
+    queryKey: queryKeys.users.byStatus(status),
     queryFn: () => usersService.getAgentsByStatus(status, params),
     staleTime: 15_000,
   });

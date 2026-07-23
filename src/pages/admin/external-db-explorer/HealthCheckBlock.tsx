@@ -21,6 +21,7 @@ interface HealthState {
   lastPayload: unknown;
 }
 
+/** Health Check Block. */
 export function HealthCheckBlock() {
   const [state, setState] = useState<HealthState>({ loading: false, pings: [], lastPayload: null });
 

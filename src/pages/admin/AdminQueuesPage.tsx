@@ -1,9 +1,13 @@
-// @ts-nocheck
+import { useState } from 'react';
+import { toast } from 'sonner';
 import { useAdminQueues, type Queue, type DistAlgo } from '@/hooks/admin/useAdminQueues';
 import { QueueEditDialog } from './queues/QueueEditDialog';
 import { QueueCard } from './queues/QueueCard';
 import { QueueMembersDialog } from './queues/QueueMembersDialog';
 
+const NOT_IMPLEMENTED = 'Ação indisponível nesta versão. Em breve.';
+
+/** Admin Queues Page. */
 export default function AdminQueuesPage() {
   const {
     queues,
@@ -14,26 +18,20 @@ export default function AdminQueuesPage() {
     channels,
     channelQueues,
     loading,
-    editing,
-    setEditing,
-    memberDialog,
-    setMemberDialog,
-    newSkill,
-    setNewSkill,
-    newMemberId,
-    setNewMemberId,
-    newChannelId,
-    setNewChannelId,
     save,
     remove,
-    togglePause,
-    addMember,
-    removeMember,
-    addSkill,
-    removeSkill,
-    linkChannel,
-    unlinkChannel,
   } = useAdminQueues();
+
+  const [editing, setEditing] = useState<Partial<Queue> | null>(null);
+  const [memberDialog, setMemberDialog] = useState<Queue | null>(null);
+  const [newSkill, setNewSkill] = useState<{ name: string; level: number }>({
+    name: '',
+    level: 1,
+  });
+  const [newMemberId, setNewMemberId] = useState('');
+  const [newChannelId, setNewChannelId] = useState('');
+
+  const notImplemented = () => toast.info(NOT_IMPLEMENTED);
 
   return (
     <div className="container mx-auto space-y-6 p-6">
@@ -60,8 +58,12 @@ export default function AdminQueuesPage() {
             })
           }
           onClose={() => setEditing(null)}
-          onChange={(q) => setEditing(q as Queue)}
-          onSave={save}
+          onChange={(q) => setEditing(q)}
+          onSave={() => {
+            void save(editing as Queue | null).then((ok) => {
+              if (ok) setEditing(null);
+            });
+          }}
         />
       </div>
 
@@ -77,7 +79,7 @@ export default function AdminQueuesPage() {
               skills={skills}
               channelQueues={channelQueues}
               channels={channels}
-              onTogglePause={(queue) => void togglePause(queue)}
+              onTogglePause={notImplemented}
               onEdit={setEditing}
               onRemove={(id) => void remove(id)}
               onMembers={setMemberDialog}
@@ -103,12 +105,12 @@ export default function AdminQueuesPage() {
         newSkill={newSkill}
         setNewSkill={setNewSkill}
         onClose={() => setMemberDialog(null)}
-        onAddMember={addMember}
-        onRemoveMember={(id) => void removeMember(id)}
-        onLinkChannel={linkChannel}
-        onUnlinkChannel={(channelId) => void unlinkChannel(channelId)}
-        onAddSkill={addSkill}
-        onRemoveSkill={(id) => void removeSkill(id)}
+        onAddMember={notImplemented}
+        onRemoveMember={notImplemented}
+        onLinkChannel={notImplemented}
+        onUnlinkChannel={notImplemented}
+        onAddSkill={notImplemented}
+        onRemoveSkill={notImplemented}
       />
     </div>
   );

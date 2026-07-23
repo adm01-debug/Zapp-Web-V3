@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -6,7 +5,9 @@ import type { Json } from '@/integrations/supabase/schema';
 import { toast } from '@/hooks/use-toast';
 import type { AIProvider, ProviderFormData } from '@/components/settings/ai-providers/types';
 import { EMPTY_FORM } from '@/components/settings/ai-providers/types';
+import { queryKeys } from '@/services/api/queryKeys';
 
+/** Hook: use AIProviders. */
 export function useAIProviders() {
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -15,7 +16,7 @@ export function useAIProviders() {
   const [testing, setTesting] = useState<string | null>(null);
 
   const { data: providers = [], isLoading } = useQuery({
-    queryKey: ['ai-providers'],
+    queryKey: queryKeys.aiProviders.all(),
     queryFn: async () => {
       const { data, error } = await supabase
         .from('ai_providers')
@@ -53,7 +54,7 @@ export function useAIProviders() {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['ai-providers'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.aiProviders.all() });
       toast({ title: editingId ? 'Provedor atualizado!' : 'Provedor criado!' });
       closeDialog();
     },
@@ -66,12 +67,13 @@ export function useAIProviders() {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['ai-providers'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.aiProviders.all() });
       toast({ title: 'Provedor removido.' });
     },
     onError: (e: Error) => toast({ title: 'Erro', description: e.message, variant: 'destructive' }),
   });
 
+  /** Tests the AI provider connection via the ai-proxy edge function and shows a success or error toast with the response. */
   const handleTest = async (provider: AIProvider) => {
     setTesting(provider.id);
     try {
@@ -96,6 +98,7 @@ export function useAIProviders() {
     }
   };
 
+  /** Populates the form with the given provider's data and opens the dialog in edit mode. */
   const openEdit = (p: AIProvider) => {
     setEditingId(p.id);
     setForm({
@@ -114,18 +117,21 @@ export function useAIProviders() {
     setDialogOpen(true);
   };
 
+  /** Resets editingId and form to empty state then opens the dialog for creating a new provider. */
   const openNew = () => {
     setEditingId(null);
     setForm(EMPTY_FORM);
     setDialogOpen(true);
   };
 
+  /** Closes the dialog and resets editingId and form to empty state. */
   const closeDialog = () => {
     setDialogOpen(false);
     setEditingId(null);
     setForm(EMPTY_FORM);
   };
 
+  /** Toggles `val` in the form's use_for array: removes it if present, appends it if absent. */
   const toggleUseFor = (val: string) => {
     setForm((prev) => ({
       ...prev,

@@ -9,6 +9,7 @@ interface KpiCardProps {
   warning?: boolean;
 }
 
+/** Kpi Card component for the evoApiHealth section. */
 export function KpiCard({ title, value, total, icon: Icon, warning }: KpiCardProps) {
   return (
     <Card>

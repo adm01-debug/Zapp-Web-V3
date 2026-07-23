@@ -25,6 +25,7 @@ interface AIRewriteButtonProps {
   contactName?: string;
 }
 
+/** AIRewrite Button component for the chat section. */
 export function AIRewriteButton({ inputValue, onRewrite, contactName }: AIRewriteButtonProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [loadingTone, setLoadingTone] = useState<string | null>(null);
@@ -97,7 +98,7 @@ export function AIRewriteButton({ inputValue, onRewrite, contactName }: AIRewrit
             const Icon = tone.icon;
             const isToneLoading = loadingTone === tone.id;
             return (
-              <button
+              <button type="button"
                 key={tone.id}
                 onClick={() => handleRewrite(tone.id)}
                 disabled={isLoading || !hasText}

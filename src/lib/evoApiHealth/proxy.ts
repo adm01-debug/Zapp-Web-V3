@@ -1,12 +1,12 @@
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, SUPABASE_RESOLVED_URL, SUPABASE_RESOLVED_ANON_KEY, isSupabaseConfigured } from '@/integrations/supabase/client';
 import { generateCorrelationId, CORRELATION_HEADER } from '@/lib/correlationId';
 import { getLogger } from '@/lib/logger';
 
 const log = getLogger('ExternalDbProxy');
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL ?? '';
-const SUPABASE_ANON = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ?? '';
-const PROXY_URL = SUPABASE_URL ? `${SUPABASE_URL}/functions/v1/external-db-proxy` : '';
+const SUPABASE_URL = SUPABASE_RESOLVED_URL;
+const SUPABASE_ANON = SUPABASE_RESOLVED_ANON_KEY;
+const PROXY_URL = isSupabaseConfigured ? `${SUPABASE_URL}/functions/v1/external-db-proxy` : '';
 
 interface ProxyResponse<T> {
   data: T;
@@ -151,4 +151,5 @@ class ExternalDbProxyClient {
 }
 
 // Export a singleton instance
+/** evo Api constant. */
 export const evoApi = new ExternalDbProxyClient();

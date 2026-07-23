@@ -4,11 +4,7 @@ import { getLogger } from '@/lib/logger';
 const log = getLogger('AIEnhanceButton');
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { motion, AnimatePresence } from '@/components/ui/motion';
 import { Sparkles, Loader2, Undo2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -37,51 +33,56 @@ interface AIEnhanceButtonProps {
   contactName?: string;
 }
 
+/** AIEnhance Button component for the chat section. */
 export function AIEnhanceButton({ inputValue, onInputChange, contactName }: AIEnhanceButtonProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [originalMessage, setOriginalMessage] = useState<string | null>(null);
 
-  const handleEnhance = useCallback(async (tone: string) => {
-    if (!inputValue.trim()) {
-      toast({ title: 'Digite uma mensagem primeiro', variant: 'destructive' });
-      return;
-    }
-
-    setIsLoading(true);
-    setIsOpen(false);
-    setOriginalMessage(inputValue);
-
-    try {
-      const { data, error } = await supabase.functions.invoke('ai-enhance-message', {
-        body: { message: inputValue, tone, contactName },
-      });
-
-      if (error) throw error;
-
-      if (data?.error) {
-        throw new Error(data.error);
+  const handleEnhance = useCallback(
+    async (tone: string) => {
+      if (!inputValue.trim()) {
+        toast({ title: 'Digite uma mensagem primeiro', variant: 'destructive' });
+        return;
       }
 
-      if (data?.enhanced) {
-        onInputChange(data.enhanced);
-        toast({
-          title: '✨ Mensagem aprimorada!',
-          description: 'Clique em ↩ para desfazer',
+      setIsLoading(true);
+      setIsOpen(false);
+      setOriginalMessage(inputValue);
+
+      try {
+        const { data, error } = await supabase.functions.invoke('ai-enhance-message', {
+          body: { message: inputValue, tone, contactName },
         });
+
+        if (error) throw error;
+
+        if (data?.error) {
+          throw new Error(data.error);
+        }
+
+        if (data?.enhanced) {
+          onInputChange(data.enhanced);
+          toast({
+            title: '✨ Mensagem aprimorada!',
+            description: 'Clique em ↩ para desfazer',
+          });
+        }
+      } catch (err) {
+        log.error('AI enhance error:', err);
+        setOriginalMessage(null);
+        toast({
+          title: 'Erro ao aprimorar mensagem',
+          description: err instanceof Error ? err.message : 'Tente novamente',
+          variant: 'destructive',
+        });
+      } finally {
+        setIsLoading(false);
       }
-    } catch (err) {
-      log.error('AI enhance error:', err);
-      setOriginalMessage(null);
-      toast({
-        title: 'Erro ao aprimorar mensagem',
-        description: err instanceof Error ? err.message : 'Tente novamente',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  }, [inputValue, onInputChange]);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [inputValue, onInputChange]
+  );
 
   const handleUndo = useCallback(() => {
     if (originalMessage !== null) {
@@ -106,11 +107,11 @@ export function AIEnhanceButton({ inputValue, onInputChange, contactName }: AIEn
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="w-8 h-8 text-warning hover:text-warning hover:bg-warning/10"
+                  className="h-8 w-8 text-warning hover:bg-warning/10 hover:text-warning"
                   onClick={handleUndo}
                   aria-label="Desfazer aprimoramento"
                 >
-                  <Undo2 className="w-4 h-4" />
+                  <Undo2 className="h-4 w-4" />
                 </Button>
               </TooltipTrigger>
               <TooltipContent>Desfazer aprimoramento</TooltipContent>
@@ -130,21 +131,21 @@ export function AIEnhanceButton({ inputValue, onInputChange, contactName }: AIEn
             aria-label="Aprimorar mensagem com IA"
             title="Aprimorar mensagem com IA"
             className={cn(
-              "w-8 h-8 inline-flex items-center justify-center rounded-md text-muted-foreground hover:text-primary hover:bg-primary/10 disabled:opacity-50 disabled:pointer-events-none transition-colors",
-              isLoading && "animate-pulse text-primary"
+              'inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary disabled:pointer-events-none disabled:opacity-50',
+              isLoading && 'animate-pulse text-primary'
             )}
           >
             {isLoading ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
+              <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
-              <Sparkles className="w-4 h-4" />
+              <Sparkles className="h-4 w-4" />
             )}
           </motion.button>
         </PopoverTrigger>
 
         <PopoverContent className="w-64 p-2" align="start" side="top">
           <div className="space-y-1">
-            <p className="text-xs font-medium text-muted-foreground px-2 py-1">
+            <p className="px-2 py-1 text-xs font-medium text-muted-foreground">
               ✨ Escolha o tom da mensagem
             </p>
             {toneOptions.map((tone) => (
@@ -152,10 +153,10 @@ export function AIEnhanceButton({ inputValue, onInputChange, contactName }: AIEn
                 key={tone.id}
                 whileHover={{ x: 4 }}
                 onClick={() => handleEnhance(tone.id)}
-                className="w-full flex items-center gap-3 px-2 py-2 rounded-md hover:bg-accent/50 transition-colors text-left"
+                className="flex w-full items-center gap-3 rounded-md px-2 py-2 text-left transition-colors hover:bg-accent/50"
               >
                 <span className="text-lg">{tone.emoji}</span>
-                <div className="flex-1 min-w-0">
+                <div className="min-w-0 flex-1">
                   <p className="text-sm font-medium text-foreground">{tone.label}</p>
                   <p className="text-xs text-muted-foreground">{tone.description}</p>
                 </div>

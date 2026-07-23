@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
@@ -6,6 +5,7 @@ import { useAuth } from '@/features/auth';
 import { toast } from '@/hooks/use-toast';
 import { log } from '@/lib/logger';
 import type { TeamMessage } from './teamChatTypes';
+import { queryKeys } from '@/services/api/queryKeys';
 
 interface TeamMessagePage {
   messages: TeamMessage[];
@@ -18,6 +18,7 @@ interface TeamMessageCache {
   [key: string]: unknown;
 }
 
+/** Mutation to update the delivery/read status of a team message and invalidate the messages cache. */
 export function useUpdateTeamMessageStatus() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -38,7 +39,7 @@ export function useUpdateTeamMessageStatus() {
     },
     onSuccess: (data) => {
       queryClient.setQueriesData(
-        { queryKey: ['team-messages', data.conversationId] },
+        { queryKey: queryKeys.teamChat.allMessages(data.conversationId) },
         (oldData: TeamMessageCache | undefined): TeamMessageCache | undefined => {
           if (!oldData?.pages) return oldData;
           const newPages = oldData.pages.map((page) => ({
@@ -55,6 +56,7 @@ export function useUpdateTeamMessageStatus() {
   });
 }
 
+/** Mutation to send a new message in a team conversation, with optional media URL, reply threading, and optimistic cache update. */
 export function useSendTeamMessage() {
   const { profile } = useAuth();
   const queryClient = useQueryClient();
@@ -96,19 +98,19 @@ export function useSendTeamMessage() {
     },
     onSuccess: (data, vars) => {
       queryClient.setQueriesData(
-        { queryKey: ['team-messages', vars.conversationId] },
+        { queryKey: queryKeys.teamChat.allMessages(vars.conversationId) },
         (oldData: TeamMessageCache | undefined): TeamMessageCache | undefined => {
           if (!oldData?.pages) return oldData;
           const newPages = [...oldData.pages];
           if (newPages.length > 0) {
-            const msgWithSender = {
+            const msgWithSender: TeamMessage = {
               ...data,
               sender: {
-                id: profile?.id,
-                name: profile?.name,
-                avatar_url: profile?.avatar_url,
+                id: profile?.id ?? '',
+                name: profile?.name ?? '',
+                avatar_url: profile?.avatar_url ?? null,
               },
-            } as any;
+            };
             newPages[0] = {
               ...newPages[0],
               messages: [...newPages[0].messages, msgWithSender],
@@ -117,7 +119,7 @@ export function useSendTeamMessage() {
           return { ...oldData, pages: newPages };
         }
       );
-      queryClient.invalidateQueries({ queryKey: ['team-conversations'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.teamChat.conversations() });
     },
     onError: () => {
       toast({ title: 'Erro ao enviar mensagem', variant: 'destructive' });
@@ -125,6 +127,7 @@ export function useSendTeamMessage() {
   });
 }
 
+/** Mutation to soft-delete a team message and invalidate the conversation's messages cache. */
 export function useDeleteTeamMessage() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -141,7 +144,7 @@ export function useDeleteTeamMessage() {
     },
     onSuccess: (_data, vars) => {
       queryClient.setQueriesData(
-        { queryKey: ['team-messages', vars.conversationId] },
+        { queryKey: queryKeys.teamChat.allMessages(vars.conversationId) },
         (oldData: TeamMessageCache | undefined): TeamMessageCache | undefined => {
           if (!oldData?.pages) return oldData;
           const newPages = oldData.pages.map((page) => ({
@@ -151,7 +154,7 @@ export function useDeleteTeamMessage() {
           return { ...oldData, pages: newPages };
         }
       );
-      queryClient.invalidateQueries({ queryKey: ['team-conversations'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.teamChat.conversations() });
     },
     onError: () => {
       toast({ title: 'Erro ao excluir mensagem', variant: 'destructive' });
@@ -159,6 +162,7 @@ export function useDeleteTeamMessage() {
   });
 }
 
+/** Mutation to update a team message's content, mark it as edited, and invalidate the messages cache. */
 export function useEditTeamMessage() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -180,7 +184,7 @@ export function useEditTeamMessage() {
     },
     onSuccess: (_data, vars) => {
       queryClient.setQueriesData(
-        { queryKey: ['team-messages', vars.conversationId] },
+        { queryKey: queryKeys.teamChat.allMessages(vars.conversationId) },
         (oldData: TeamMessageCache | undefined): TeamMessageCache | undefined => {
           if (!oldData?.pages) return oldData;
           const newPages = oldData.pages.map((page) => ({
@@ -199,6 +203,7 @@ export function useEditTeamMessage() {
   });
 }
 
+/** Mutation to create a new team conversation (direct, group, or department), add initial members, and refresh the conversations list. */
 export function useCreateTeamConversation() {
   const { profile } = useAuth();
   const queryClient = useQueryClient();
@@ -270,7 +275,7 @@ export function useCreateTeamConversation() {
           })
           .select()
       );
-      const conv = (convRows?.[0] ?? null) as any;
+      const conv = (convRows?.[0] ?? null) as { id: string } | null;
 
       if (convErr) throw convErr;
       if (!conv) throw new Error('Failed to create conversation');
@@ -282,14 +287,14 @@ export function useCreateTeamConversation() {
       const { error: memError } = await supabase
         .from('team_conversation_members')
         .insert(
-          memberProfileIds.map((pid) => ({ conversation_id: (conv as any).id, profile_id: pid }))
+          memberProfileIds.map((pid) => ({ conversation_id: conv.id, profile_id: pid }))
         );
       if (memError) throw memError;
 
       return conv;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['team-conversations'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.teamChat.conversations() });
     },
     onError: () => {
       toast({ title: 'Erro ao criar conversa', variant: 'destructive' });
@@ -297,6 +302,7 @@ export function useCreateTeamConversation() {
   });
 }
 
+/** Mutation to toggle the mute flag for the current agent's membership in a team conversation. */
 export function useToggleMuteConversation() {
   const { profile } = useAuth();
   const queryClient = useQueryClient();
@@ -311,7 +317,7 @@ export function useToggleMuteConversation() {
       if (muteError) throw muteError;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['team-conversations'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.teamChat.conversations() });
     },
     onError: () => {
       toast({ title: 'Erro ao alterar silenciar', variant: 'destructive' });
@@ -319,6 +325,7 @@ export function useToggleMuteConversation() {
   });
 }
 
+/** Mutation to transfer a team conversation to a different department or assign it to a specific agent. */
 export function useTransferTeamConversation() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -345,7 +352,7 @@ export function useTransferTeamConversation() {
       return rows?.[0] ?? null;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['team-conversations'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.teamChat.conversations() });
       toast({ title: 'Conversa transferida com sucesso' });
     },
     onError: () => {

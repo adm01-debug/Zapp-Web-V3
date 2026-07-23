@@ -41,6 +41,7 @@ interface WebhookKpiCardsProps {
   eventsLoading: boolean;
 }
 
+/** Webhook Kpi Cards. */
 export function WebhookKpiCards({
   secret,
   enabled,

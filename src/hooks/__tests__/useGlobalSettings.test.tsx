@@ -1,5 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import React from 'react';
+
+function makeWrapper() {
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return ({ children }: { children: React.ReactNode }) =>
+    React.createElement(QueryClientProvider, { client: qc }, children);
+}
 
 const mockFrom = vi.hoisted(() => vi.fn());
 vi.mock('@/integrations/supabase/client', () => ({
@@ -36,29 +44,29 @@ describe('useGlobalSettings', () => {
   });
 
   it('fetches global settings', async () => {
-    const { result } = renderHook(() => useGlobalSettings());
+    const { result } = renderHook(() => useGlobalSettings(), { wrapper: makeWrapper() });
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(mockFrom).toHaveBeenCalledWith('global_settings');
   });
 
   it('exposes getSetting function', async () => {
-    const { result } = renderHook(() => useGlobalSettings());
+    const { result } = renderHook(() => useGlobalSettings(), { wrapper: makeWrapper() });
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(typeof result.current.getSetting).toBe('function');
   });
 
   it('exposes updateSetting function', () => {
-    const { result } = renderHook(() => useGlobalSettings());
+    const { result } = renderHook(() => useGlobalSettings(), { wrapper: makeWrapper() });
     expect(typeof result.current.updateSetting).toBe('function');
   });
 
   it('exposes addSetting function', () => {
-    const { result } = renderHook(() => useGlobalSettings());
+    const { result } = renderHook(() => useGlobalSettings(), { wrapper: makeWrapper() });
     expect(typeof result.current.addSetting).toBe('function');
   });
 
   it('getSetting returns null for unknown key', async () => {
-    const { result } = renderHook(() => useGlobalSettings());
+    const { result } = renderHook(() => useGlobalSettings(), { wrapper: makeWrapper() });
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(result.current.getSetting('nonexistent')).toBeNull();
   });

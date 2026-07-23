@@ -1,7 +1,7 @@
-// @ts-nocheck
 import { supabase } from '@/integrations/supabase/client';
 import { dbFrom } from '@/integrations/datasource/db';
 
+/** Whats App Status Message. */
 export interface WhatsAppStatusMessage {
   id: string;
   fromMe: boolean;
@@ -41,17 +41,20 @@ export interface WhatsAppStatusMessage {
   pushName?: string;
 }
 
+/** Whats App Presence Info. */
 export interface WhatsAppPresenceInfo {
   isOnline: boolean;
   lastSeen?: string | null;
   loading: boolean;
 }
 
+/** Contact Connection Info. */
 export interface ContactConnectionInfo {
   contactName: string | null;
   instanceName: string | null;
 }
 
+/** whatsapp Status Repository. */
 export const whatsappStatusRepository = {
   async getContact(phone: string) {
     return dbFrom('contacts')

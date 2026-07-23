@@ -16,6 +16,7 @@ interface ExportButtonProps {
   className?: string;
 }
 
+/** Export Button constant. */
 export const ExportButton = ({ className }: ExportButtonProps) => {
   return (
     <Tooltip>

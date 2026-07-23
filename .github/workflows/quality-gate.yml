@@ -23,7 +23,7 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: 1.3.14
 
       - name: Install dependencies
         run: bun install
@@ -62,6 +62,12 @@ jobs:
         # Falha o build se aparecer .schema('public'), createClient sem schema
         # zapp/evo, ou URLs *.supabase.co em código de produção.
         run: node scripts/check-schema-usage.mjs
+
+      - name: Supabase cast safety (SUP-001..006 — blocking on errors)
+        # Falha o build se encontrar (supabase as any) sem // ignore-audit,
+        # (client as any) em Edge Functions, ou outros padrões inseguros de
+        # acesso ao banco. Warnings (SUP-004) são advisory (exit 0).
+        run: node scripts/lint-supabase-casts.mjs
 
       - name: Schema access simulation (~300 cenários)
         # Simulação estática de acesso a zapp/evo, Realtime e Edge Functions.

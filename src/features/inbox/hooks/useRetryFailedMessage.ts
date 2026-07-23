@@ -8,6 +8,7 @@
  *     `42501` (sem permissão) e `PGRST116` (item ausente da DLQ).
  */
 import { useCallback, useRef } from 'react';
+import { queryKeys } from '@/services/api/queryKeys';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -17,6 +18,7 @@ import type { AuditEntry, MessageSendHistory } from './useMessageSendHistory';
 const log = getLogger('useRetryFailedMessage');
 const RATE_LIMIT_MS = 30_000;
 
+/** Input for the retry mutation: DLQ record ID and logical message ID for cache keying. */
 export interface RetryFailedMessageInput {
   /** UUID do registro na `failed_messages` (aceita p_id/p_item_id). */
   failedMessageId: string;
@@ -35,6 +37,7 @@ function messageForError(err: unknown): string {
   return 'Falha ao reenviar a mensagem. Tente novamente em instantes.';
 }
 
+/** TanStack mutation that calls `rpc_dlq_retry_now` to re-queue a failed message, with auth guard, per-message rate limiting, optimistic audit cache update, and error-specific toast feedback. */
 export function useRetryFailedMessage() {
   const queryClient = useQueryClient();
   const lastAttemptAt = useRef<Map<string, number>>(new Map());
@@ -75,7 +78,7 @@ export function useRetryFailedMessage() {
       return data;
     },
     onMutate: async ({ messageId }) => {
-      const queryKey = ['message-send-history', messageId] as const;
+      const queryKey = queryKeys.messageDetails.sendHistory(messageId);
       await queryClient.cancelQueries({ queryKey });
       const previous = queryClient.getQueryData<MessageSendHistory>(queryKey);
 
@@ -105,7 +108,9 @@ export function useRetryFailedMessage() {
       });
     },
     onSuccess: (_data, { messageId }) => {
-      queryClient.invalidateQueries({ queryKey: ['message-send-history', messageId] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.messageDetails.sendHistory(messageId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.failedMessages.all() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.failedMessages.stats() });
       toast({ title: 'Reenvio enfileirado', description: 'A mensagem entrou novamente na fila.' });
     },
   });

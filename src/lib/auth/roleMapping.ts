@@ -6,8 +6,10 @@
  * Hierarquia: dev > admin > supervisor > agent > viewer
  */
 
+/** Canonical set of user roles used by RPC guards and UI visibility gates. */
 export type CanonicalRole = 'dev' | 'admin' | 'supervisor' | 'agent' | 'viewer';
 
+/** Numeric rank map for canonical roles — higher value means higher privilege. */
 export const ROLE_RANK: Record<CanonicalRole, number> = {
   dev: 100,
   admin: 80,
@@ -24,8 +26,10 @@ export const ADMIN_RESOURCES = {
   rlsDeniedLog: { minRole: 'supervisor' as CanonicalRole, label: 'o log de RLS' },
 } as const;
 
+/** Union type of all admin resource keys requiring at minimum the supervisor role. */
 export type AdminResource = keyof typeof ADMIN_RESOURCES;
 
+/** can Access Admin Resource function. */
 export function canAccessAdminResource(role: CanonicalRole | null | undefined, resource: AdminResource): boolean {
   if (!role) return false;
   const required = ROLE_RANK[ADMIN_RESOURCES[resource].minRole];

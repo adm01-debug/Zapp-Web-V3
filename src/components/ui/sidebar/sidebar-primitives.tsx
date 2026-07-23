@@ -8,6 +8,7 @@ import { Separator } from "@/components/ui/separator";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { useSidebar, SIDEBAR_WIDTH_MOBILE } from "./sidebar-context";
 
+/** Root sidebar shell that renders as a Sheet on mobile and a fixed column on desktop, with collapse/icon/offcanvas modes. */
 export const Sidebar = React.forwardRef<
   HTMLDivElement,
   React.ComponentProps<"div"> & {
@@ -90,6 +91,7 @@ export const Sidebar = React.forwardRef<
 });
 Sidebar.displayName = "Sidebar";
 
+/** Ghost icon button that toggles the sidebar open/closed state; renders a PanelLeft icon with a screen-reader label. */
 export const SidebarTrigger = React.forwardRef<React.ElementRef<typeof Button>, React.ComponentProps<typeof Button>>(
   ({ className, onClick, ...props }, ref) => {
     const { toggleSidebar } = useSidebar();
@@ -99,6 +101,7 @@ export const SidebarTrigger = React.forwardRef<React.ElementRef<typeof Button>, 
         data-sidebar="trigger"
         variant="ghost"
         size="icon"
+        aria-label="Alternar barra lateral"
         className={cn("h-7 w-7", className)}
         onClick={(event) => { onClick?.(event); toggleSidebar(); }}
         {...props}
@@ -111,15 +114,15 @@ export const SidebarTrigger = React.forwardRef<React.ElementRef<typeof Button>, 
 );
 SidebarTrigger.displayName = "SidebarTrigger";
 
+/** Thin clickable rail on the sidebar edge used to collapse/expand via drag-cursor affordance on desktop. */
 export const SidebarRail = React.forwardRef<HTMLButtonElement, React.ComponentProps<"button">>(
   ({ className, ...props }, ref) => {
     const { toggleSidebar } = useSidebar();
     return (
-      <button
+      <button type="button"
         ref={ref}
         data-sidebar="rail"
         aria-label="Alternar barra lateral"
-        tabIndex={-1}
         onClick={toggleSidebar}
         title="Alternar barra lateral"
         className={cn(
@@ -138,6 +141,7 @@ export const SidebarRail = React.forwardRef<HTMLButtonElement, React.ComponentPr
 );
 SidebarRail.displayName = "SidebarRail";
 
+/** Main content area that sits next to the sidebar; adapts margins and min-height for the inset variant. */
 export const SidebarInset = React.forwardRef<HTMLDivElement, React.ComponentProps<"main">>(({ className, ...props }, ref) => (
   <main
     ref={ref}
@@ -151,6 +155,7 @@ export const SidebarInset = React.forwardRef<HTMLDivElement, React.ComponentProp
 ));
 SidebarInset.displayName = "SidebarInset";
 
+/** Search/filter input styled for placement inside a sidebar header; matches sidebar background and ring color. */
 export const SidebarInput = React.forwardRef<React.ElementRef<typeof Input>, React.ComponentProps<typeof Input>>(
   ({ className, ...props }, ref) => (
     <Input
@@ -163,16 +168,19 @@ export const SidebarInput = React.forwardRef<React.ElementRef<typeof Input>, Rea
 );
 SidebarInput.displayName = "SidebarInput";
 
+/** Top section of the sidebar for branding, search, or workspace switcher content; uses a flex column layout. */
 export const SidebarHeader = React.forwardRef<HTMLDivElement, React.ComponentProps<"div">>(({ className, ...props }, ref) => (
   <div ref={ref} data-sidebar="header" className={cn("flex flex-col gap-2 p-2", className)} {...props} />
 ));
 SidebarHeader.displayName = "SidebarHeader";
 
+/** Bottom section of the sidebar for user profile, settings links, or action buttons. */
 export const SidebarFooter = React.forwardRef<HTMLDivElement, React.ComponentProps<"div">>(({ className, ...props }, ref) => (
   <div ref={ref} data-sidebar="footer" className={cn("flex flex-col gap-2 p-2", className)} {...props} />
 ));
 SidebarFooter.displayName = "SidebarFooter";
 
+/** Horizontal rule styled for sidebar use; uses sidebar-border color with auto horizontal margins. */
 export const SidebarSeparator = React.forwardRef<React.ElementRef<typeof Separator>, React.ComponentProps<typeof Separator>>(
   ({ className, ...props }, ref) => (
     <Separator ref={ref} data-sidebar="separator" className={cn("mx-2 w-auto bg-sidebar-border", className)} {...props} />
@@ -180,6 +188,7 @@ export const SidebarSeparator = React.forwardRef<React.ElementRef<typeof Separat
 );
 SidebarSeparator.displayName = "SidebarSeparator";
 
+/** Scrollable middle area of the sidebar that holds SidebarGroup sections; hides overflow when icon-only. */
 export const SidebarContent = React.forwardRef<HTMLDivElement, React.ComponentProps<"div">>(({ className, ...props }, ref) => (
   <div
     ref={ref}
@@ -190,11 +199,13 @@ export const SidebarContent = React.forwardRef<HTMLDivElement, React.ComponentPr
 ));
 SidebarContent.displayName = "SidebarContent";
 
+/** Logical grouping of related nav items inside SidebarContent; provides relative positioning for group actions. */
 export const SidebarGroup = React.forwardRef<HTMLDivElement, React.ComponentProps<"div">>(({ className, ...props }, ref) => (
   <div ref={ref} data-sidebar="group" className={cn("relative flex w-full min-w-0 flex-col p-2", className)} {...props} />
 ));
 SidebarGroup.displayName = "SidebarGroup";
 
+/** Section heading inside a SidebarGroup; fades out and collapses vertically when sidebar enters icon-only mode. */
 export const SidebarGroupLabel = React.forwardRef<HTMLDivElement, React.ComponentProps<"div"> & { asChild?: boolean }>(
   ({ className, asChild = false, ...props }, ref) => {
     const Comp = asChild ? Slot : "div";
@@ -214,6 +225,7 @@ export const SidebarGroupLabel = React.forwardRef<HTMLDivElement, React.Componen
 );
 SidebarGroupLabel.displayName = "SidebarGroupLabel";
 
+/** Absolute-positioned button in the top-right of a SidebarGroup for add/edit group-level actions; hidden in icon mode. */
 export const SidebarGroupAction = React.forwardRef<HTMLButtonElement, React.ComponentProps<"button"> & { asChild?: boolean }>(
   ({ className, asChild = false, ...props }, ref) => {
     const Comp = asChild ? Slot : "button";
@@ -234,6 +246,7 @@ export const SidebarGroupAction = React.forwardRef<HTMLButtonElement, React.Comp
 );
 SidebarGroupAction.displayName = "SidebarGroupAction";
 
+/** Content wrapper inside a SidebarGroup that constrains children to full width with small text size. */
 export const SidebarGroupContent = React.forwardRef<HTMLDivElement, React.ComponentProps<"div">>(
   ({ className, ...props }, ref) => (
     <div ref={ref} data-sidebar="group-content" className={cn("w-full text-sm", className)} {...props} />

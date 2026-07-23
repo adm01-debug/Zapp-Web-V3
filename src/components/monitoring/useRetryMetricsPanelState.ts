@@ -15,6 +15,7 @@ import {
   type RetryAlertDedupeMode,
 } from '@/lib/retryAlerts';
 
+/** use Retry Metrics Panel State component for the monitoring section. */
 export function useRetryMetricsPanelState() {
   const [hours, setHours] = useState<number>(24);
   const [actionFilter, setActionFilter] = useState<string>('all');
@@ -37,6 +38,7 @@ export function useRetryMetricsPanelState() {
 
   const { data, isLoading, refetch, isFetching, byInstance } = useRetryMetrics(filters);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const rows = data?.rows ?? [];
   const agg = data?.aggregates;
 

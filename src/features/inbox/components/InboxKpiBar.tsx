@@ -25,6 +25,7 @@ function formatDuration(ms: number): string {
   return rest === 0 ? `${h}h` : `${h}h ${rest}min`;
 }
 
+/** Inbox Kpi Bar function. */
 export function InboxKpiBar({ conversations }: InboxKpiBarProps) {
   const all = useAllTicketStates();
   const { profile } = useAuth();

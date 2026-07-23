@@ -17,6 +17,7 @@
  *   refetch fires on the next `visibilitychange` → visible.
  */
 import { useCallback, useEffect, useRef } from 'react';
+import { queryKeys } from '@/services/api/queryKeys';
 import { useQueryClient } from '@tanstack/react-query';
 import { useRealtimeContactsStatus } from './realtimeContactsStatusStore';
 
@@ -32,6 +33,7 @@ function resolveIntervalMs(): number {
   return Math.min(MAX_INTERVAL_MS, Math.max(MIN_INTERVAL_MS, Math.round(n)));
 }
 
+/** Resolved periodic fallback refetch interval in milliseconds, derived from VITE_REALTIME_FALLBACK_INTERVAL_MS env var with 5-minute default. */
 export const REALTIME_FALLBACK_REFETCH_MS = resolveIntervalMs();
 
 interface Options {
@@ -40,6 +42,7 @@ interface Options {
   intervalMs?: number;
 }
 
+/** Periodically invalidates all conversation/message queries as a fallback when the Supabase Realtime channel is disconnected or degraded, preventing stale inboxes. */
 export function useRealtimeFallbackRefetch({ enabled = true, intervalMs }: Options = {}) {
   const queryClient = useQueryClient();
   const status = useRealtimeContactsStatus();
@@ -54,11 +57,10 @@ export function useRealtimeFallbackRefetch({ enabled = true, intervalMs }: Optio
     lastRefetchAtRef.current = now;
 
     // Console-free: rely on React Query devtools; silent in production.
-    void queryClient.invalidateQueries({ queryKey: ['external-evolution', 'conversations'] });
-    void queryClient.invalidateQueries({ queryKey: ['contacts-list'] });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.evolutionConversations.all() });
     // Per-contact caches: invalidate the family (no specific jid).
-    void queryClient.invalidateQueries({ queryKey: ['external-evolution', 'contact'] });
-    void queryClient.invalidateQueries({ queryKey: ['contact'] });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.evolutionConversations.contactAll() });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.contactDetails.singleContactRoot() });
     // Tag the reason on the window for ad-hoc debugging.
     try {
       (window as unknown as { __lastRealtimeFallback?: string }).__lastRealtimeFallback = // ignore-audit — window debug tag for devtools inspection

@@ -10,6 +10,7 @@ interface GlobalSearchHistoryProps {
   onClear: () => void;
 }
 
+/** Global Search History component for the search section. */
 export function GlobalSearchHistory({
   show,
   history,
@@ -30,7 +31,7 @@ export function GlobalSearchHistory({
         </Button>
       </div>
       {history.map((item) => (
-        <button
+        <button type="button"
           key={item.timestamp}
           onClick={() => onSelect(item.query)}
           className="group flex w-full items-center justify-between rounded-lg p-2 text-left transition-colors hover:bg-muted/50"

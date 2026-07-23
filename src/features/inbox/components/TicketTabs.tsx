@@ -17,9 +17,12 @@ import { useQueues } from '@/hooks/useQueues';
 import { useAllTicketStates, ConversationWithMessages } from '@/features/inbox';
 import { TicketTabsFilters } from './TicketTabsFilters';
 
+/** Main Tab component. */
 export type MainTab = 'open' | 'resolved' | 'search' | 'unread';
+/** Sub Tab component. */
 export type SubTab = 'attending' | 'waiting';
 
+/** Inbox Scope component. */
 export type InboxScope = 'mine' | 'department' | 'all';
 
 interface TicketTabsProps {
@@ -41,6 +44,7 @@ interface TicketTabsProps {
   departmentAgentIds?: string[];
 }
 
+/** Ticket Tabs component. */
 export const TicketTabs = memo(function TicketTabs({
   conversations,
   mainTab,
@@ -144,7 +148,7 @@ export const TicketTabs = memo(function TicketTabs({
           const Icon = tab.icon;
           const isActive = mainTab === tab.id;
           return (
-            <button
+            <button type="button"
               key={tab.id}
               onClick={() => onMainTabChange(tab.id)}
               className={cn(
@@ -201,7 +205,7 @@ export const TicketTabs = memo(function TicketTabs({
             const Icon = tab.icon;
             const isActive = subTab === tab.id;
             return (
-              <button
+              <button type="button"
                 key={tab.id}
                 onClick={() => onSubTabChange(tab.id)}
                 className={cn(

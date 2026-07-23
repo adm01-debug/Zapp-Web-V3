@@ -2,6 +2,7 @@
 import { memo } from 'react';
 import { cn } from '@/lib/utils';
 
+/** TONE_OPTIONS component for the ai tools section. */
 export const TONE_OPTIONS = [
   { key: 'professional', label: 'Formal', emoji: '💼', prompt: 'Use tom formal, profissional e corporativo.' },
   { key: 'friendly', label: 'Amigável', emoji: '😊', prompt: 'Use tom amigável, acolhedor e empático.' },
@@ -10,8 +11,10 @@ export const TONE_OPTIONS = [
   { key: 'persuasive', label: 'Persuasivo', emoji: '🔥', prompt: 'Use tom persuasivo, confiante e orientado a resultados.' },
 ] as const;
 
+/** Tone Key component for the ai tools section. */
 export type ToneKey = typeof TONE_OPTIONS[number]['key'];
 
+/** get Tone Prompt component for the ai tools section. */
 export function getTonePrompt(tone: ToneKey): string {
   return TONE_OPTIONS.find(t => t.key === tone)?.prompt ?? TONE_OPTIONS[0].prompt;
 }
@@ -22,6 +25,7 @@ interface ToneSelectorProps {
   disabled?: boolean;
 }
 
+/** Tone Selector component for the ai tools section. */
 export const ToneSelector = memo(function ToneSelector({ selected, onChange, disabled }: ToneSelectorProps) {
   return (
     <div className="flex items-center justify-between gap-1" role="radiogroup" aria-label="Tom da resposta">

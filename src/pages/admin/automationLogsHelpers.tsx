@@ -1,8 +1,10 @@
+/* eslint-disable react-refresh/only-export-components */
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { ScrollText, AlertTriangle, CheckCircle2, Clock, XCircle } from 'lucide-react';
 
+/** Execution Row. */
 export interface ExecutionRow {
   id: string;
   rule_id: string | null;
@@ -24,11 +26,13 @@ export interface ExecutionRow {
   created_at: string;
 }
 
+/** Rule Lite. */
 export interface RuleLite {
   id: string;
   name: string;
 }
 
+/** STATUS_META. */
 export const STATUS_META: Record<
   string,
   { label: string; icon: React.ComponentType<{ className?: string }>; variant: string }
@@ -40,10 +44,13 @@ export const STATUS_META: Record<
   failed: { label: 'Falhou', icon: AlertTriangle, variant: 'destructive' },
 };
 
+/** Automation Status. */
 export type AutomationStatus = 'pending' | 'accepted' | 'executed' | 'dismissed' | 'failed';
 
+/** PAGE_SIZE. */
 export const PAGE_SIZE = 50;
 
+/** status Badge. */
 export function statusBadge(s: string) {
   const meta = STATUS_META[s] ?? { label: s, icon: ScrollText, variant: 'outline' };
   const Icon = meta.icon;
@@ -57,6 +64,7 @@ export function statusBadge(s: string) {
   );
 }
 
+/** Section. */
 export function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="space-y-2 rounded-md border p-3">
@@ -68,6 +76,7 @@ export function Section({ title, children }: { title: string; children: React.Re
   );
 }
 
+/** KV. */
 export function KV({ k, v }: { k: string; v: string }) {
   return (
     <div className="flex justify-between gap-3 text-xs">
@@ -77,6 +86,7 @@ export function KV({ k, v }: { k: string; v: string }) {
   );
 }
 
+/** Pre. */
 export function Pre({ title, data }: { title: string; data: unknown }) {
   return (
     <div>

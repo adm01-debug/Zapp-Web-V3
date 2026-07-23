@@ -10,6 +10,7 @@ interface WhatsAppStatusSectionProps {
   phone: string;
 }
 
+/** Whats App Status Section component for the contact details section. */
 export function WhatsAppStatusSection({ phone }: WhatsAppStatusSectionProps) {
   const { statusMessages, presence, loading, error, refresh } = useWhatsAppStatus(phone);
   const [viewerOpen, setViewerOpen] = useState(false);

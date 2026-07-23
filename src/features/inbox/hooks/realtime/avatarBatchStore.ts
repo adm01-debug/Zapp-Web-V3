@@ -150,6 +150,7 @@ function resolveJid(jid: string, url: string | null) {
  * Retorna do cache se disponível, caso contrário entra no próximo lote.
  * Nunca lança — falhas viram `null` para o caller renderizar fallback.
  */
+/** Returns the avatar URL for a contact JID, using cache when valid; otherwise coalesces into the next batch RPC call (100ms window). Never throws — failures return null. */
 export async function getContactAvatar(jid: string): Promise<string | null> {
   if (!jid) return null;
 

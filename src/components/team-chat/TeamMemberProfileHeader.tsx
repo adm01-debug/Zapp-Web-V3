@@ -1,4 +1,4 @@
-// @ts-nocheck
+/* eslint-disable react-refresh/only-export-components */
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -7,23 +7,11 @@ import { cn } from '@/lib/utils';
 import { format, differenceInYears, isSameDay, addYears } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import type { TeamConversation } from '@/hooks/useTeamChat';
-
-interface MemberProfile {
-  id: string;
-  name: string;
-  email: string | null;
-  phone: string | null;
-  avatar_url: string | null;
-  job_title: string | null;
-  department: string | null;
-  role: string | null;
-  is_active: boolean | null;
-  created_at: string;
-  birthday: string | null;
-}
+import { type MemberProfile } from '@/hooks/useTeamMemberDetails';
 
 export type { MemberProfile };
 
+/** get Birthday Info component for the team chat section. */
 export function getBirthdayInfo(birthday: string | null) {
   if (!birthday) return null;
   const date = new Date(birthday);
@@ -37,6 +25,7 @@ export function getBirthdayInfo(birthday: string | null) {
   return { date, age, isToday, daysUntil };
 }
 
+/** get Role Badge component for the team chat section. */
 export function getRoleBadge(role: string | null) {
   const map: Record<string, { label: string; className: string }> = {
     admin: {
@@ -51,6 +40,7 @@ export function getRoleBadge(role: string | null) {
   );
 }
 
+/** Info Row component for the team chat section. */
 export function InfoRow({
   icon: Icon,
   label,
@@ -77,6 +67,7 @@ interface DirectProfileHeaderProps {
   isLoading: boolean;
 }
 
+/** Direct Profile Header component for the team chat section. */
 export function DirectProfileHeader({ memberProfile, isLoading }: DirectProfileHeaderProps) {
   if (isLoading) {
     return (
@@ -158,11 +149,12 @@ export function DirectProfileHeader({ memberProfile, isLoading }: DirectProfileH
   );
 }
 
+/** Group Profile Header component for the team chat section. */
 export function GroupProfileHeader({ conversation }: { conversation: TeamConversation }) {
   return (
     <div className="flex flex-col items-center px-4 py-6">
       <Avatar className="mb-3 h-20 w-20 ring-2 ring-border">
-        <AvatarImage src={conversation.avatar_url || undefined} alt={conversation.name} />
+        <AvatarImage src={conversation.avatar_url ?? undefined} alt={conversation.name ?? ''} />
         <AvatarFallback className="bg-primary/10 text-xl text-primary">
           {conversation.type === 'department' ? (
             <Building2 className="h-8 w-8" />

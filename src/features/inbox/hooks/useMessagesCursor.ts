@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * useMessagesCursor — paginacao incremental de mensagens (FATOR X)
  *
@@ -19,8 +18,9 @@
  *  - Trocar `remoteJid` reseta estado e dispara nova primeira carga.
  */
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 import { useMountedRef } from '@/hooks/useMountedRef';
-import { externalSupabase } from '@/integrations/supabase/externalClient';
+import { externalSupabase, extRpcBuilder } from '@/integrations/supabase/externalClient';
 import type { EvolutionMessage, EvolutionMessageLite } from '@/types/evolutionExternal';
 import { toEvolutionMessageLite } from '@/types/evolutionExternal';
 import { getLogger } from '@/lib/logger';
@@ -31,6 +31,7 @@ const log = getLogger('useMessagesCursor');
 const DEFAULT_PAGE_SIZE = 50;
 const DEFAULT_INSTANCE = DEFAULT_WHATSAPP_INSTANCE;
 
+/** Options for cursor-based message pagination: target JID, Evolution instance, page size cap, and enabled flag. */
 export interface UseMessagesCursorOptions {
   remoteJid: string | null;
   instanceName?: string;
@@ -38,6 +39,7 @@ export interface UseMessagesCursorOptions {
   enabled?: boolean;
 }
 
+/** Return value of useMessagesCursor: paginated message list, loading states, and imperative controls for older-page loading and realtime message mutations. */
 export interface UseMessagesCursorReturn {
   messages: EvolutionMessageLite[];
   loading: boolean;
@@ -60,6 +62,7 @@ function dedupeAndSort(rows: EvolutionMessageLite[]): EvolutionMessageLite[] {
   );
 }
 
+/** Cursor-based incremental message loader for a WhatsApp JID; fetches the most-recent page on mount, exposes `loadOlder()` for backwards pagination, and patches state via Realtime INSERT/UPDATE/DELETE events. */
 export function useMessagesCursor({
   remoteJid,
   instanceName = DEFAULT_INSTANCE,
@@ -97,12 +100,10 @@ export function useMessagesCursor({
       abortRef.current?.abort();
       abortRef.current = controller;
 
-      // NOTE: usa `externalSupabase.rpc` direto (em vez de `dbList(RPC.listMessagesLite, ...)`)
-      // porque precisamos do `.abortSignal()` do PostgrestBuilder — o wrapper `dbRpc`
+      // NOTE: usa `extRpcBuilder` (em vez de `dbList(RPC.listMessagesLite, ...)`)
+      // porque precisamos do `.abortSignal()` do PostgrestBuilder — o wrapper `callExtRpc`
       // resolve a Promise antes do builder ser exposto. Caso de uso raro e justificado.
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const ext = externalSupabase as any; // ignore-audit — .abortSignal() not in generated external types
-      const builder = ext.rpc('rpc_list_messages_lite', {
+      const builder = extRpcBuilder(externalSupabase, 'rpc_list_messages_lite', {
         p_remote_jid: remoteJid,
         p_instance: instanceName,
         p_limit: pageSize,
@@ -156,7 +157,7 @@ export function useMessagesCursor({
     } finally {
       if (mountedRef.current) setLoading(false);
     }
-  }, [enabled, remoteJid, fetchPage, pageSize]);
+  }, [enabled, remoteJid, fetchPage, pageSize]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Reset + first load whenever remoteJid changes.
   useEffect(() => {
@@ -203,25 +204,20 @@ export function useMessagesCursor({
       if (mountedRef.current) setLoadingOlder(false);
       inFlightRef.current = false;
     }
-  }, [remoteJid, hasMoreOlder, fetchPage, pageSize]);
+  }, [remoteJid, hasMoreOlder, fetchPage, pageSize]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const cancelLoadOlder = useCallback(() => {
     if (!inFlightRef.current) return;
     abortRef.current?.abort();
     inFlightRef.current = false;
     if (mountedRef.current) setLoadingOlder(false);
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Realtime — only set up when enabled + jid present.
   useEffect(() => {
     if (!enabled || !remoteJid || !externalSupabase) return;
 
-    // externalSupabase is loosely typed (no Database generic), so the
-    // postgres_changes overload is not visible. Cast to any for dynamic access.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const client = externalSupabase as any; // ignore-audit — postgres_changes API not in external client types
-
-    const channel = client
+    const channel = externalSupabase
       .channel(`evolution_messages:${remoteJid}`)
       .on(
         'postgres_changes',
@@ -232,11 +228,11 @@ export function useMessagesCursor({
           // v6.2: postgres_changes aceita UM filtro; instance é implícita pelo jid.
           filter: `remote_jid=eq.${remoteJid}`,
         },
-        (payload) => {
-          const raw = (payload as any).new;
-          if (!raw || !(raw as any).id) return;
+        (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => {
+          const raw = payload.new;
+          if (!raw || typeof raw !== 'object' || !('id' in raw)) return;
           // Realtime payloads are full rows; project to lite to keep memory low.
-          const m = toEvolutionMessageLite(raw);
+          const m = toEvolutionMessageLite(raw as unknown as Parameters<typeof toEvolutionMessageLite>[0]);
           setPages((prev) => {
             for (const p of prev) {
               if (p.some((x) => x.id === m.id)) return prev;
@@ -256,10 +252,10 @@ export function useMessagesCursor({
           // v6.2: postgres_changes aceita UM filtro; instance é implícita pelo jid.
           filter: `remote_jid=eq.${remoteJid}`,
         },
-        (payload) => {
-          const raw = (payload as any).new;
-          if (!raw || !(raw as any).id) return;
-          const m = toEvolutionMessageLite(raw);
+        (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => {
+          const raw = payload.new;
+          if (!raw || typeof raw !== 'object' || !('id' in raw)) return;
+          const m = toEvolutionMessageLite(raw as unknown as Parameters<typeof toEvolutionMessageLite>[0]);
           setPages((prev) =>
             prev.map((page) => page.map((x) => (x.id === m.id ? { ...x, ...m } : x)))
           );
@@ -274,8 +270,11 @@ export function useMessagesCursor({
           // v6.2: postgres_changes aceita UM filtro; instance é implícita pelo jid.
           filter: `remote_jid=eq.${remoteJid}`,
         },
-        (payload) => {
-          const id = ((payload as any).old as any)?.id;
+        (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => {
+          const id =
+            payload.old && typeof payload.old === 'object'
+              ? (payload.old as Record<string, unknown>).id
+              : undefined;
           if (!id) return;
           setPages((prev) => prev.map((page) => page.filter((x) => x.id !== id)));
         }
@@ -283,7 +282,7 @@ export function useMessagesCursor({
       .subscribe();
 
     return () => {
-      channel.unsubscribe();
+      externalSupabase.removeChannel(channel);
     };
   }, [enabled, remoteJid]);
 

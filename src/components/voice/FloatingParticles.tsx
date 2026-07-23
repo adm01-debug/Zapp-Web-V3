@@ -25,13 +25,16 @@ const PHASE_CONFIG: Record<string, { count: number; speed: number; hueRange: [nu
   error: { count: 25, speed: 0.4, hueRange: [0, 30] },
 };
 
+/** Floating Particles component for the voice section. */
 export function FloatingParticles({ phase }: FloatingParticlesProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const particlesRef = useRef<Particle[]>([]);
   const animRef = useRef<number>(0);
   const dimsRef = useRef({ w: 0, h: 0 });
   const prefersReduced = useMemo(
-    () => typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+    () =>
+      typeof window !== 'undefined' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches,
     []
   );
 
@@ -113,7 +116,7 @@ export function FloatingParticles({ phase }: FloatingParticlesProps) {
           p.hue = config.hueRange[0] + Math.random() * (config.hueRange[1] - config.hueRange[0]);
         }
 
-        const alpha = Math.min(1, p.life / 30) * Math.max(0, 1 - (p.life / p.maxLife));
+        const alpha = Math.min(1, p.life / 30) * Math.max(0, 1 - p.life / p.maxLife);
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
         ctx.fillStyle = `hsla(${p.hue}, 80%, 70%, ${alpha * 0.6})`;
@@ -128,7 +131,8 @@ export function FloatingParticles({ phase }: FloatingParticlesProps) {
           const dx = particles[i].x - particles[j].x;
           const dy = particles[i].y - particles[j].y;
           const distSq = dx * dx + dy * dy;
-          if (distSq < 14400) { // 120²
+          if (distSq < 14400) {
+            // 120²
             const dist = Math.sqrt(distSq);
             const lineAlpha = (1 - dist / 120) * 0.12;
             ctx.beginPath();
@@ -150,7 +154,7 @@ export function FloatingParticles({ phase }: FloatingParticlesProps) {
       cancelAnimationFrame(animRef.current);
       window.removeEventListener('resize', resize);
     };
-  }, [phase]);
+  }, [phase]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  return <canvas ref={canvasRef} className="absolute inset-0 w-full h-full pointer-events-none" />;
+  return <canvas ref={canvasRef} className="pointer-events-none absolute inset-0 h-full w-full" />;
 }

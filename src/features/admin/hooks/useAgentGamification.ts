@@ -1,3 +1,4 @@
+import { queryKeys } from '@/services/api/queryKeys';
 import { useQuery } from '@tanstack/react-query';
 import { unwrapRow, unwrapRows } from '@/lib/supabase-helpers';
 import { supabase } from '@/integrations/supabase/client';
@@ -6,8 +7,11 @@ import { useGamificationMutations } from './gamification/mutations';
 import type { AgentStats, Achievement } from './gamification/types';
 
 // Re-export types and utilities for external consumers
+/** Re-exported module members. */
 export type { AgentStats, Achievement } from './gamification/types';
+/** Re-exported module members. */
 export { ACHIEVEMENT_TYPES } from './gamification/types';
+/** Re-exported module members. */
 export { calculateLevel, xpForNextLevel, levelProgress } from './gamification/levelUtils';
 
 // Schema drift: profiles/agent_stats/agent_achievements columns nem sempre
@@ -27,11 +31,12 @@ const db = supabase as unknown as {
   };
 };
 
+/** Hook: use Agent Gamification. */
 export const useAgentGamification = () => {
   const { user } = useAuth();
 
   const profileQuery = useQuery({
-    queryKey: ['user-profile', user?.id],
+    queryKey: queryKeys.userProfile.byId(user?.id),
     queryFn: async () => {
       if (!user?.id) return null;
       const { data, error } = await db
@@ -48,7 +53,7 @@ export const useAgentGamification = () => {
   const profileId = profileQuery.data?.id;
 
   const statsQuery = useQuery({
-    queryKey: ['agent-stats', profileId],
+    queryKey: queryKeys.agentGamification.stats(profileId),
     queryFn: async () => {
       if (!profileId) return null;
       const { data, error } = await db
@@ -64,7 +69,7 @@ export const useAgentGamification = () => {
   });
 
   const achievementsQuery = useQuery({
-    queryKey: ['agent-achievements', profileId],
+    queryKey: queryKeys.agentGamification.achievements(profileId),
     queryFn: async () => {
       if (!profileId) return [] as Achievement[];
       const { data, error } = await db

@@ -35,6 +35,7 @@ const gridColsMap = {
   lg: 'grid-cols-3',
 };
 
+/** Sticker Grid component for the stickers section. */
 export function StickerGrid({
   stickers,
   loading,
@@ -97,7 +98,7 @@ export function StickerGrid({
           Clique em <Plus className="inline h-3 w-3" aria-hidden="true" /> para adicionar
         </p>
         {!search && (
-          <button
+          <button type="button"
             onClick={onAddClick}
             className="mt-3 rounded px-2 py-1 text-xs text-primary hover:underline focus:outline-none focus:ring-2 focus:ring-primary"
           >
@@ -179,7 +180,7 @@ export function StickerGrid({
                         )}
                       >
                         <div className="flex w-full items-center justify-between">
-                          <button
+                          <button type="button"
                             onClick={(e) => onToggleFavorite(e, sticker)}
                             className="p-0.5 transition-transform hover:scale-110"
                             aria-label={
@@ -197,7 +198,7 @@ export function StickerGrid({
                               )}
                             />
                           </button>
-                          <button
+                          <button type="button"
                             onClick={(e) => {
                               e.stopPropagation();
                               setDeleteTarget(sticker);

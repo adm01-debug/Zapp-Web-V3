@@ -50,6 +50,7 @@ const iconSizeMap = {
   md: 'w-3.5 h-3.5',
 };
 
+/** Company Logo component for the contacts section. */
 export function CompanyLogo({ logoUrl, companyName, fallbackCompanyName, size = 'sm', className }: CompanyLogoProps) {
   const name = companyName || fallbackCompanyName;
   

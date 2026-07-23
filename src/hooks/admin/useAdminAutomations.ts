@@ -2,6 +2,7 @@
 import { useMemo } from 'react';
 import { useAdminManagement } from '@/features/admin/hooks/useAdminManagement';
 
+/** Re-exported module members. */
 export {
   TRIGGER_LABEL,
   EMPTY_RULE,
@@ -11,6 +12,7 @@ export {
   type AutomationDepartment,
 } from '@/features/admin/hooks/useAdminManagement';
 
+/** Hook: use Admin Automations. */
 export function useAdminAutomations() {
   const admin = useAdminManagement();
 

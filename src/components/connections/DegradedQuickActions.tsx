@@ -9,6 +9,7 @@ import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { evolutionInstanceName } from '@/lib/evolutionInstance';
 
+/** Degraded Connection interface definition. */
 export interface DegradedConnection {
   id: string;
   instance_id?: string | null;

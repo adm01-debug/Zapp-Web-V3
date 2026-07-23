@@ -10,6 +10,7 @@ export function useImportData() {
   return useImportDataManagement();
 }
 
+/** Validation error for a single row field during a bulk data import. */
 export interface ImportError {
   row: number;
   field: string;
@@ -17,8 +18,10 @@ export interface ImportError {
   value?: unknown;
 }
 
+/** Import Status type alias. */
 export type ImportStatus = 'idle' | 'parsing' | 'validating' | 'importing' | 'complete' | 'error';
 
+/** Import Result interface definition. */
 export interface ImportResult<T> {
   success: T[];
   errors: ImportError[];
@@ -32,10 +35,6 @@ interface UseImportDataOptions<T> {
   maxRows?: number;
   skipFirstRow?: boolean;
 }
-
-// ============================================
-// HOOK
-// ============================================
 
 /** Imports and validates data from CSV/Excel files with Zod schema validation. */
 export function useImportDataTyped<T>(options: UseImportDataOptions<T>) {
@@ -52,157 +51,171 @@ export function useImportDataTyped<T>(options: UseImportDataOptions<T>) {
     };
   }, []);
 
-  // Parsear CSV usando xlsx
-  const parseCSV = useCallback(async (file: File): Promise<unknown[]> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      
-      reader.onload = (e) => {
-        try {
-          const text = e.target?.result as string;
-          const workbook = XLSX.read(text, { type: 'string' });
-          const sheet = workbook.Sheets[workbook.SheetNames[0]];
-          const jsonData = XLSX.utils.sheet_to_json(sheet, {
-            defval: '',
-            raw: false,
-          });
-          
-          // Normalizar headers
-          const normalized = (jsonData as Record<string, unknown>[]).map((row: Record<string, unknown>) => {
-            const newRow: Record<string, unknown> = {};
-            Object.keys(row).forEach(key => {
-              const normalizedKey = key.trim().toLowerCase().replace(/\s+/g, '_');
-              newRow[normalizedKey] = row[key];
+  const parseCSV = useCallback(
+    async (file: File): Promise<unknown[]> => {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+
+        reader.onload = (e) => {
+          try {
+            const text = e.target?.result as string;
+            const workbook = XLSX.read(text, { type: 'string' });
+            const sheet = workbook.Sheets[workbook.SheetNames[0]];
+            const jsonData = XLSX.utils.sheet_to_json(sheet, {
+              defval: '',
+              raw: false,
             });
-            return newRow;
-          });
-          
-          if (skipFirstRow && normalized.length > 0) {
-            normalized.shift();
-          }
-          
-          resolve(normalized);
-        } catch (error) {
-          reject(error);
-        }
-      };
-      
-      reader.onerror = () => reject(new Error('Erro ao ler arquivo'));
-      reader.readAsText(file);
-    });
-  }, [skipFirstRow]);
 
-  // Parsear Excel
-  const parseExcel = useCallback(async (file: File): Promise<unknown[]> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      
-      reader.onload = (e) => {
-        try {
-          const data = new Uint8Array(e.target?.result as ArrayBuffer); // ignore-audit: narrows Supabase query result to local interface
-          const workbook = XLSX.read(data, { type: 'array' });
-          const sheet = workbook.Sheets[workbook.SheetNames[0]];
-          const jsonData = XLSX.utils.sheet_to_json(sheet, {
-            defval: '',
-            raw: false,
-          });
-          
-          // Normalizar headers
-          const normalized = (jsonData as Record<string, unknown>[]).map((row: Record<string, unknown>) => {
-            const newRow: Record<string, unknown> = {};
-            Object.keys(row).forEach(key => {
-              const normalizedKey = key.trim().toLowerCase().replace(/\s+/g, '_');
-              newRow[normalizedKey] = row[key];
+            const normalized = (jsonData as Record<string, unknown>[]).map(
+              (row: Record<string, unknown>) => {
+                const newRow: Record<string, unknown> = {};
+                Object.keys(row).forEach((key) => {
+                  const normalizedKey = key.trim().toLowerCase().replace(/\s+/g, '_');
+                  newRow[normalizedKey] = row[key];
+                });
+                return newRow;
+              }
+            );
+
+            if (skipFirstRow && normalized.length > 0) {
+              normalized.shift();
+            }
+
+            resolve(normalized);
+          } catch (error) {
+            reject(error);
+          }
+        };
+
+        reader.onerror = () => reject(new Error('Erro ao ler arquivo'));
+        reader.readAsText(file);
+      });
+    },
+    [skipFirstRow]
+  );
+
+  const parseExcel = useCallback(
+    async (file: File): Promise<unknown[]> => {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+
+        reader.onload = (e) => {
+          try {
+            const data = new Uint8Array(e.target?.result as ArrayBuffer);
+            const workbook = XLSX.read(data, { type: 'array' });
+            const sheet = workbook.Sheets[workbook.SheetNames[0]];
+            const jsonData = XLSX.utils.sheet_to_json(sheet, {
+              defval: '',
+              raw: false,
             });
-            return newRow;
-          });
-          
-          if (skipFirstRow && normalized.length > 0) {
-            normalized.shift();
+
+            const normalized = (jsonData as Record<string, unknown>[]).map(
+              (row: Record<string, unknown>) => {
+                const newRow: Record<string, unknown> = {};
+                Object.keys(row).forEach((key) => {
+                  const normalizedKey = key.trim().toLowerCase().replace(/\s+/g, '_');
+                  newRow[normalizedKey] = row[key];
+                });
+                return newRow;
+              }
+            );
+
+            if (skipFirstRow && normalized.length > 0) {
+              normalized.shift();
+            }
+
+            resolve(normalized);
+          } catch (error) {
+            reject(error);
           }
-          
-          resolve(normalized);
+        };
+
+        reader.onerror = () => reject(new Error('Erro ao ler arquivo'));
+        reader.readAsArrayBuffer(file);
+      });
+    },
+    [skipFirstRow]
+  );
+
+  const validateData = useCallback(
+    (data: unknown[]): ImportResult<T> => {
+      const success: T[] = [];
+      const errors: ImportError[] = [];
+
+      data.slice(0, maxRows).forEach((row, index) => {
+        try {
+          const validated = schema.parse(row);
+          success.push(validated);
         } catch (error) {
-          reject(error);
+          if (error instanceof z.ZodError) {
+            error.issues.forEach((err) => {
+              errors.push({
+                row: index + 2,
+                field: err.path.join('.'),
+                message: err.message,
+                value: (row as Record<string, unknown>)[err.path[0] as string],
+              });
+            });
+          }
         }
+      });
+
+      return {
+        success,
+        errors,
+        total: data.length,
+        fileName: '',
       };
-      
-      reader.onerror = () => reject(new Error('Erro ao ler arquivo'));
-      reader.readAsArrayBuffer(file);
-    });
-  }, [skipFirstRow]);
+    },
+    [schema, maxRows]
+  );
 
-  // Validar dados com Zod
-  const validateData = useCallback((data: unknown[]): ImportResult<T> => {
-    const success: T[] = [];
-    const errors: ImportError[] = [];
+  const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
 
-    data.slice(0, maxRows).forEach((row, index) => {
+  const processFile = useCallback(
+    async (file: File) => {
+      setStatus('parsing');
+      setProgress(10);
+      setResult(null);
+
       try {
-        const validated = schema.parse(row);
-        success.push(validated);
-      } catch (error) {
-        if (error instanceof z.ZodError) {
-          error.issues.forEach((err) => {
-            errors.push({
-              row: index + 2, // +2 porque linha 1 é header
-              field: err.path.join('.'),
-              message: err.message,
-              value: (row as Record<string, unknown>)[err.path[0] as string],
-            });
-          });
+        if (file.size > MAX_FILE_SIZE_BYTES) {
+          throw new Error(
+            `Arquivo muito grande (${(file.size / 1024 / 1024).toFixed(1)} MB). Limite: 10 MB.`
+          );
         }
-      }
-    });
 
-    return {
-      success,
-      errors,
-      total: data.length,
-      fileName: '',
-    };
-  }, [schema, maxRows]);
+        const isExcel = file.name.endsWith('.xlsx') || file.name.endsWith('.xls');
+        const data = isExcel ? await parseExcel(file) : await parseCSV(file);
 
-  const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB
+        setStatus('validating');
+        setProgress(40);
 
-  // Processar arquivo
-  const processFile = useCallback(async (file: File) => {
-    setStatus('parsing');
-    setProgress(10);
-    setResult(null);
+        const validationResult = validateData(data);
+        validationResult.fileName = file.name;
 
-    try {
-      if (file.size > MAX_FILE_SIZE_BYTES) {
-        throw new Error(
-          `Arquivo muito grande (${(file.size / 1024 / 1024).toFixed(1)} MB). Limite: 10 MB.`
+        setResult(validationResult);
+        setProgress(60);
+        setStatus('complete');
+
+        if (validationResult.errors.length > 0) {
+          toast.warning(
+            `${validationResult.success.length} válidos, ${validationResult.errors.length} com erros`
+          );
+        } else {
+          toast.success(`${validationResult.success.length} registros prontos para importar`);
+        }
+      } catch (error) {
+        setStatus('error');
+        toast.error(
+          `Erro ao processar arquivo: ${error instanceof Error ? error.message : 'Erro desconhecido'}`
         );
       }
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [parseCSV, parseExcel, validateData]
+  );
 
-      const isExcel = file.name.endsWith('.xlsx') || file.name.endsWith('.xls');
-      const data = isExcel ? await parseExcel(file) : await parseCSV(file);
-
-      setStatus('validating');
-      setProgress(40);
-
-      const validationResult = validateData(data);
-      validationResult.fileName = file.name;
-
-      setResult(validationResult);
-      setProgress(60);
-      setStatus('complete');
-
-      if (validationResult.errors.length > 0) {
-        toast.warning(`${validationResult.success.length} válidos, ${validationResult.errors.length} com erros`);
-      } else {
-        toast.success(`${validationResult.success.length} registros prontos para importar`);
-      }
-    } catch (error) {
-      setStatus('error');
-      toast.error(`Erro ao processar arquivo: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
-    }
-  }, [parseCSV, parseExcel, validateData]);
-
-  // Confirmar importação
   const confirmImport = useCallback(async () => {
     if (!result || result.success.length === 0) {
       toast.error('Nenhum dado válido para importar');
@@ -216,7 +229,7 @@ export function useImportDataTyped<T>(options: UseImportDataOptions<T>) {
       await onImport(result.success);
       setProgress(100);
       toast.success(`${result.success.length} registros importados com sucesso!`);
-      
+
       // Reset após 2 segundos — timer tracked so unmount can clear it
       resetTimerRef.current = setTimeout(() => {
         setStatus('idle');
@@ -225,11 +238,12 @@ export function useImportDataTyped<T>(options: UseImportDataOptions<T>) {
       }, 2000);
     } catch (error) {
       setStatus('error');
-      toast.error(`Erro ao importar: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
+      toast.error(
+        `Erro ao importar: ${error instanceof Error ? error.message : 'Erro desconhecido'}`
+      );
     }
   }, [result, onImport]);
 
-  // Reset
   const reset = useCallback(() => {
     setStatus('idle');
     setProgress(0);
@@ -247,4 +261,5 @@ export function useImportDataTyped<T>(options: UseImportDataOptions<T>) {
   };
 }
 
+/** Default export. */
 export default useImportData;

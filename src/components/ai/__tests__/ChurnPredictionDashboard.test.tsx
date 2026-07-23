@@ -181,17 +181,17 @@ describe('ChurnPredictionDashboard', () => {
     const getRiskColor = (level: string) => {
       switch (level) {
         case 'critical': return 'bg-destructive text-destructive-foreground';
-        case 'high': return 'bg-orange-500 text-white';
-        case 'medium': return 'bg-yellow-500 text-white';
-        case 'low': return 'bg-green-500 text-white';
+        case 'high': return 'bg-warning text-warning-foreground';
+        case 'medium': return 'bg-accent text-accent-foreground';
+        case 'low': return 'bg-primary text-primary-foreground';
         default: return 'bg-muted text-muted-foreground';
       }
     };
 
     it('critical is destructive', () => expect(getRiskColor('critical')).toContain('destructive'));
-    it('high is orange', () => expect(getRiskColor('high')).toContain('orange'));
-    it('medium is yellow', () => expect(getRiskColor('medium')).toContain('yellow'));
-    it('low is green', () => expect(getRiskColor('low')).toContain('green'));
+    it('high is warning', () => expect(getRiskColor('high')).toContain('warning'));
+    it('medium is accent', () => expect(getRiskColor('medium')).toContain('accent'));
+    it('low is primary', () => expect(getRiskColor('low')).toContain('primary'));
     it('unknown defaults to muted', () => expect(getRiskColor('unknown')).toContain('muted'));
   });
 

@@ -28,6 +28,7 @@ const LoadingFallback = () => (
   </div>
 );
 
+/** AITools Popover component. */
 export function AIToolsPopover({ contactId, contactName, lastMessages, allMessages, onSelectSuggestion }: AIToolsPopoverProps) {
   const [activeTab, setActiveTab] = useState('objections');
 

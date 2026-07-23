@@ -302,10 +302,10 @@ describe('evolutionToRealtimeMessage — PTT (voice note) meta', () => {
 });
 
 describe('evolutionToRealtimeMessage — reactions field', () => {
-  it('passes reactions array through unchanged', () => {
+  it('maps reactions to internal {user_id, emoji} shape', () => {
     const reactions = [{ text: '👍', key: { remoteJid: 'jid', fromMe: true, id: 'r1' } }];
     const result = evolutionToRealtimeMessage(makeMsg({ reactions }));
-    expect(result.reactions).toEqual(reactions);
+    expect(result.reactions).toEqual([{ user_id: 'jid', emoji: '👍' }]);
   });
 
   it('returns empty array when reactions is null', () => {

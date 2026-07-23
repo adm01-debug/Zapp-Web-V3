@@ -1,6 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
 
-import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { validationLogger } from '@/utils/validationLogger';
 import { supabase, isSupabaseConfigured, warnSupabaseUnconfigured } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -14,6 +14,7 @@ interface ValidationContextType {
 
 const ValidationContext = createContext<ValidationContextType | undefined>(undefined);
 
+/** Validation Provider component for the providers section. */
 export const ValidationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [status, setStatus] = useState<ValidationContextType['status']>('loading');
   const [lastError, setLastError] = useState<string>();
@@ -136,7 +137,7 @@ export const ValidationProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     };
   }, [getCurrentSessionEvidence, runProactiveChecks]);
 
-  const generateEvidence = () => {
+  const generateEvidence = useCallback(() => {
     const evidence = validationLogger.getEvidence();
     const blob = new Blob([JSON.stringify(evidence, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -146,15 +147,21 @@ export const ValidationProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     a.click();
     URL.revokeObjectURL(url);
     toast.success('Relatório de evidências exportado!');
-  };
+  }, []);
+
+  const contextValue = useMemo(
+    () => ({ status, lastError, generateEvidence, runProactiveChecks }),
+    [status, lastError, generateEvidence, runProactiveChecks]
+  );
 
   return (
-    <ValidationContext.Provider value={{ status, lastError, generateEvidence, runProactiveChecks }}>
+    <ValidationContext.Provider value={contextValue}>
       {children}
     </ValidationContext.Provider>
   );
 };
 
+/** use Validation component for the providers section. */
 export const useValidation = () => {
   const context = useContext(ValidationContext);
   if (!context) throw new Error('useValidation must be used within a ValidationProvider');

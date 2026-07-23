@@ -34,6 +34,7 @@ import {
 } from '@/integrations/supabase/client';
 import { log } from '@/lib/logger';
 
+/** Evolution Credentials interface definition. */
 export interface EvolutionCredentials {
   api_url: string;
   api_key: string;
@@ -181,6 +182,7 @@ function normalizeUrl(url: string): string {
   return u.replace(/\/+$/, '');
 }
 
+/** strip Jid function. */
 export function stripJid(numberOrJid: string): string {
   return (numberOrJid || '').replace(/@s\.whatsapp\.net$/i, '').replace(/@c\.us$/i, '');
 }
@@ -198,6 +200,7 @@ interface EvolutionInstancePublicRow {
   is_active: boolean;
 }
 
+/** Resolves the Evolution API URL and key for a given instance, with a short-lived URL cache. */
 export async function getEvolutionCredentials(
   instance: string = DEFAULT_INSTANCE
 ): Promise<EvolutionCredentials> {
@@ -292,6 +295,7 @@ async function evoFetch<T>(
 
 // ─── Mensageria ───────────────────────────────────────────────────────────
 
+/** send Text function. */
 export async function sendText(number: string, text: string, instance: string = DEFAULT_INSTANCE) {
   return evoFetch(
     `/message/sendText/${instance}`,
@@ -303,6 +307,7 @@ export async function sendText(number: string, text: string, instance: string = 
   );
 }
 
+/** send Media function. */
 export async function sendMedia(
   params: {
     number: string;
@@ -323,6 +328,7 @@ export async function sendMedia(
   );
 }
 
+/** send Whats App Audio function. */
 export async function sendWhatsAppAudio(
   number: string,
   audioUrl: string,
@@ -338,6 +344,7 @@ export async function sendWhatsAppAudio(
   );
 }
 
+/** mark Chat Read function. */
 export async function markChatRead(number: string, instance: string = DEFAULT_INSTANCE) {
   return evoFetch(
     `/chat/markChatUnread/${instance}`,
@@ -375,6 +382,7 @@ export async function getConnectionState(
   }
 }
 
+/** fetch Instances function. */
 export async function fetchInstances(instance: string = DEFAULT_INSTANCE) {
   return evoFetch<unknown[]>('/instance/fetchInstances', { method: 'GET' }, instance);
 }

@@ -57,6 +57,7 @@ const INTEGRATION_KEYS: KeyField[] = [
   },
 ];
 
+/** Integration Keys Section component for the settings section. */
 export function IntegrationKeysSection(): JSX.Element {
   const { isLoading, getSetting, addSetting } = useGlobalSettings();
   const { listInstances } = useEvolutionApi();
@@ -322,7 +323,7 @@ export function IntegrationKeysSection(): JSX.Element {
                   Instâncias Detectadas
                 </h5>
                 <div className="grid gap-2">
-                  {detectedInstances.map((inst, idx) => {
+                  {detectedInstances.map((inst) => {
                     const status = inst.instance?.status || 'unknown';
                     const isOnline = status === 'open';
                     const name = inst.instance?.instanceName || 'Sem nome';
@@ -330,7 +331,7 @@ export function IntegrationKeysSection(): JSX.Element {
 
                     return (
                       <div
-                        key={idx}
+                        key={inst.instance?.instanceName ?? name}
                         className="group flex items-center justify-between rounded-xl border border-border/10 bg-muted/20 p-3 transition-all hover:bg-muted/30"
                       >
                         <div className="flex items-center gap-3">

@@ -2,11 +2,12 @@ import { Mail, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { cn } from '@/lib/utils';
-import { useEmail, type EmailSearchResult } from '@/hooks/useEmailManagement';
+import { useEmail } from '@/hooks/useEmail';
 import { EmailThreadList } from './EmailThreadList';
 import { EmailChatThread } from './EmailChatThread';
 import { EmailSearchBar } from './EmailSearchBar';
 import { EmailAccountSelector } from '../gmail/GmailAccountSelector';
+import { type EmailSearchResult } from '@/hooks/useEmailSearch';
 import { type TokenStatus } from '@/hooks/useGmailOAuthFlow';
 
 interface EmailChatInboxProps {
@@ -87,18 +88,15 @@ export function EmailChatInbox({ className }: EmailChatInboxProps) {
   return (
     <div className={cn('flex h-full overflow-hidden', className)}>
       {/* Sidebar: Thread list */}
-      <div className="hidden h-full w-[340px] shrink-0 flex-col border-r bg-background/50 md:flex">
+      <div className="flex h-full w-[340px] shrink-0 flex-col border-r bg-background/50">
         {/* Account selector + search */}
         <div className="space-y-3 border-b bg-muted/5 p-3">
           <EmailAccountSelector
             accounts={accounts}
             activeAccountId={activeAccountId}
-            tokenStatus={
-              Object.fromEntries(tokenStatus.map((s) => [s.account_id, s.token_status])) as Record<
-                string,
-                TokenStatus
-              >
-            }
+            tokenStatus={Object.fromEntries(
+              tokenStatus.map((s) => [s.account_id, s.token_status as TokenStatus])
+            )}
             isSyncing={isSyncing}
             onSelectAccount={setActiveAccountId}
             onAddAccount={startOAuth}

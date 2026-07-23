@@ -4,8 +4,8 @@
  * incluindo os schemas `zapp` e `evo` (além de `public`).
  *
  * Uso:
- *   META_URL=https://supabase-meta.atomicabr.com.br \
- *   META_TOKEN=<service_role_or_meta_token> \
+ *   META_URL=https://supabase.atomicabr.com.br/pg \
+ *   META_TOKEN=<service_role_key> \
  *   node scripts/gen-types-zapp.mjs
  *
  * Diferenças vs gen-types.mjs:
@@ -13,16 +13,25 @@
  *  - garante que tabelas CRM (deals, pipelines, contatos_crm, etc.) fiquem
  *    tipadas mesmo quando vivem fora do schema public
  *  - mantém a cauda Lovable (DatabaseWithoutInternals + helpers)
+ *
+ * NOTA: O Kong do Supabase self-hosted usa key-auth (header `apikey`),
+ * NÃO `Authorization: Bearer`. Corrigido em 16/07/2026 após falha do
+ * workflow #1 (HTTP 401).
  */
 import { writeFileSync, readFileSync } from 'node:fs';
 
-const META = process.env.META_URL || 'http://10.0.1.52:8080';
+const META = process.env.META_URL || 'https://supabase.atomicabr.com.br/pg';
 const TOKEN = process.env.META_TOKEN || '';
 const SCHEMAS = (process.env.SCHEMAS || 'public,zapp,evo').trim();
 const OUT = process.env.OUT_FILE || 'src/integrations/supabase/types.ts';
 
 const headers = { 'content-type': 'application/json' };
-if (TOKEN) headers.authorization = `Bearer ${TOKEN}`;
+if (TOKEN) {
+  // Kong key-auth: usa header `apikey` (não Authorization: Bearer)
+  headers.apikey = TOKEN;
+  // Também envia como Bearer para compatibilidade com postgres-meta direto
+  headers.authorization = `Bearer ${TOKEN}`;
+}
 
 const url = new URL('/generators/typescript', META);
 url.searchParams.set('included_schemas', SCHEMAS);

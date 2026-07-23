@@ -7,6 +7,7 @@ import { useMonitoringNotifications } from './useMonitoringNotifications';
 import type { TimePeriod } from './types';
 
 // Re-export all types for consumers
+/** Re-exported module members. */
 export type {
   TimePeriod,
   DiagnosticResult,
@@ -20,6 +21,7 @@ export type {
   InstanceUptime,
 } from './types';
 
+/** Composes monitoring data, actions, and notifications for Evolution API connections into a single hook. */
 export function useEvolutionMonitoring() {
   const [period, setPeriod] = useState<TimePeriod>('12h');
   const [autoRefresh, setAutoRefresh] = useState(true);
@@ -89,7 +91,7 @@ export function useEvolutionMonitoring() {
       )
       .subscribe();
     return () => {
-      channel.unsubscribe();
+      supabase.removeChannel(channel);
     };
   }, [fetchData]);
 

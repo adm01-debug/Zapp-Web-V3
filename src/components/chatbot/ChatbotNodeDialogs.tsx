@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
+/** node Types component for the chatbot section. */
 export const nodeTypes: Record<string, { label: string; icon: React.ComponentType<{ className?: string }>; color: string }> = {
   start: { label: 'Início', icon: Zap, color: 'border-success bg-success/10' },
   message: { label: 'Mensagem', icon: MessageSquare, color: 'border-info bg-info/10' },
@@ -30,6 +31,7 @@ interface AddNodeDialogProps {
   onAdd: (type: ChatbotNode['type']) => void;
 }
 
+/** Add Node Dialog component for the chatbot section. */
 export function AddNodeDialog({ open, onOpenChange, onAdd }: AddNodeDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -59,6 +61,7 @@ interface EditNodeDialogProps {
   onChange: (node: ChatbotNode) => void;
 }
 
+/** Edit Node Dialog component for the chatbot section. */
 export function EditNodeDialog({ node, onClose, onSave, onChange }: EditNodeDialogProps) {
   if (!node) return null;
 

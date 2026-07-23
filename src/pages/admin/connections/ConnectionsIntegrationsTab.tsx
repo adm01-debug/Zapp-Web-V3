@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Globe, Link, Save } from 'lucide-react';
 import { motion } from 'framer-motion';
 
+/** Connections Integrations Tab. */
 export function ConnectionsIntegrationsTab() {
   return (
     <motion.div
@@ -18,7 +19,7 @@ export function ConnectionsIntegrationsTab() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2">
-              <Globe className="h-5 w-5 text-blue-500" /> Bitrix24
+              <Globe className="h-5 w-5 text-primary" /> Bitrix24
             </CardTitle>
             <Badge variant="outline">Pendente</Badge>
           </div>

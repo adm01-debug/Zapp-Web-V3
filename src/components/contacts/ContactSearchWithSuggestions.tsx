@@ -35,6 +35,7 @@ function clearRecentSearches() {
   localStorage.removeItem(STORAGE_KEY);
 }
 
+/** Contact Search With Suggestions component for the contacts section. */
 export function ContactSearchWithSuggestions({
   value, onChange, uniqueCompanies, uniqueTags, totalCount,
 }: ContactSearchWithSuggestionsProps) {
@@ -105,7 +106,7 @@ export function ContactSearchWithSuggestions({
         className={cn("pl-9 transition-all", focused && "ring-2 ring-primary/20")}
       />
       {value && (
-        <button
+        <button type="button"
           onClick={() => onChange('')}
           className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
         >
@@ -141,7 +142,7 @@ export function ContactSearchWithSuggestions({
                   <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1">
                     <Clock className="w-3 h-3" /> Recentes
                   </span>
-                  <button
+                  <button type="button"
                     onClick={() => { clearRecentSearches(); setRecentSearches([]); }}
                     className="text-[10px] text-muted-foreground hover:text-foreground transition-colors"
                   >
@@ -149,7 +150,7 @@ export function ContactSearchWithSuggestions({
                   </button>
                 </div>
                 {recentSearches.map((term) => (
-                  <button
+                  <button type="button"
                     key={term}
                     onClick={() => handleSelect(term)}
                     className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-xs text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-colors text-left"
@@ -170,7 +171,7 @@ export function ContactSearchWithSuggestions({
                 {suggestions.map((item) => {
                   const Icon = item.icon;
                   return (
-                    <button
+                    <button type="button"
                       key={`${item.type}-${item.label}`}
                       onClick={() => handleSelect(item.label)}
                       className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-xs hover:bg-muted/50 transition-colors text-left mt-0.5"
