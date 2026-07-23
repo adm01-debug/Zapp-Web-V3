@@ -102,8 +102,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const refreshAll = useCallback(
     async (userId: string) => {
       setLoading(true);
-      await Promise.all([fetchProfile(userId), fetchRolesAndPermissions(userId)]);
-      setLoading(false);
+      // A11y/robustez: garante que loading NUNCA fique preso se um fetch rejeitar.
+      try {
+        await Promise.all([fetchProfile(userId), fetchRolesAndPermissions(userId)]);
+      } finally {
+        setLoading(false);
+      }
     },
     [fetchProfile, fetchRolesAndPermissions]
   );
