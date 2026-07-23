@@ -46,6 +46,65 @@ const emitVersionJsonPlugin = () => ({
   },
 });
 
+// Vite plugin: stamps public/sw.js copied into dist with the current BUILD_ID
+// and appends an explicit purge of legacy Workbox precache buckets. This is the
+// "publish pipeline step" that invalidates the old Service Worker automatically:
+//   1. Stamping the build id guarantees a byte-diff on every deploy, so the
+//      browser sees the SW as changed and runs install/activate.
+//   2. The appended block deletes `workbox-precache-*` / `workbox-runtime-*`
+//      caches on activate and postMessages a `SW_UPDATED` event to all clients
+//      so open tabs reload into the fresh bundle.
+const stampSwVersionPlugin = () => ({
+  name: 'zapp-stamp-sw-version',
+  apply: 'build' as const,
+  async writeBundle(options: { dir?: string }) {
+    const fs = await import('node:fs/promises');
+    const p = await import('node:path');
+    const outDir = options.dir ?? 'dist';
+    const swPath = p.resolve(outDir, 'sw.js');
+    try {
+      const original = await fs.readFile(swPath, 'utf8');
+      const banner =
+        `// ZAPP_SW_BUILD_ID=${BUILD_ID}\n` +
+        `// Auto-injected by stampSwVersionPlugin — do not edit in dist/.\n` +
+        `self.__ZAPP_SW_BUILD_ID = ${JSON.stringify(BUILD_ID)};\n`;
+      const purgeAndNotify = `
+
+// -- Auto-injected: invalidate legacy Workbox SW + notify open clients --
+self.addEventListener('install', (event) => {
+  event.waitUntil((async () => {
+    try {
+      const keys = await caches.keys();
+      const legacy = keys.filter((k) =>
+        /^workbox-precache-v\\d+/.test(k) || /^workbox-runtime-/.test(k) || /workbox/i.test(k)
+      );
+      await Promise.all(legacy.map((k) => caches.delete(k).catch(() => false)));
+      if (legacy.length) {
+        console.log('[ServiceWorker] Purged legacy Workbox caches on install:', legacy);
+      }
+    } catch (_e) { /* Cache Storage unavailable — non-fatal */ }
+  })());
+});
+self.addEventListener('activate', (event) => {
+  event.waitUntil((async () => {
+    try {
+      const list = await self.clients.matchAll({ includeUncontrolled: true, type: 'window' });
+      for (const c of list) {
+        try { c.postMessage({ type: 'SW_UPDATED', buildId: self.__ZAPP_SW_BUILD_ID }); } catch (_e) { /* noop */ }
+      }
+    } catch (_e) { /* noop */ }
+  })());
+});
+`;
+      await fs.writeFile(swPath, banner + original + purgeAndNotify, 'utf8');
+    } catch (err) {
+      // Non-fatal: sw.js may be absent in some builds; publish should not break.
+      console.warn('[stampSwVersionPlugin] Could not stamp sw.js:', (err as Error).message);
+    }
+  },
+});
+
+
 export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
