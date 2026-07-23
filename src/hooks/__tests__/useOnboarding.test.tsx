@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
 
 const mockFrom = vi.hoisted(() => vi.fn());
@@ -29,6 +30,13 @@ vi.mock('@/lib/logger');
 
 import { useOnboarding } from '@/hooks/useOnboarding';
 
+function createWrapper() {
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return ({ children }: { children: ReactNode }) => (
+    <QueryClientProvider client={qc}>{children}</QueryClientProvider>
+  );
+}
+
 describe('useOnboarding', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -37,7 +45,7 @@ describe('useOnboarding', () => {
 
   it('returns loading=false when no user', async () => {
     mockUseAuth.mockReturnValue({ user: null });
-    const { result } = renderHook(() => useOnboarding());
+    const { result } = renderHook(() => useOnboarding(), { wrapper: createWrapper() });
     await waitFor(() => expect(result.current.loading).toBe(false));
   });
 
@@ -45,7 +53,7 @@ describe('useOnboarding', () => {
     mockUseAuth.mockReturnValue({ user: { id: 'u1' } });
     localStorage.setItem('onboarding_completed_u1', 'true');
 
-    const { result } = renderHook(() => useOnboarding());
+    const { result } = renderHook(() => useOnboarding(), { wrapper: createWrapper() });
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(result.current.hasCompletedOnboarding).toBe(true);
   });
@@ -62,7 +70,7 @@ describe('useOnboarding', () => {
       }),
     });
 
-    const { result } = renderHook(() => useOnboarding());
+    const { result } = renderHook(() => useOnboarding(), { wrapper: createWrapper() });
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(result.current.hasCompletedOnboarding).toBe(true);
   });
@@ -77,7 +85,7 @@ describe('useOnboarding', () => {
       }),
     });
 
-    const { result } = renderHook(() => useOnboarding());
+    const { result } = renderHook(() => useOnboarding(), { wrapper: createWrapper() });
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(result.current.hasCompletedOnboarding).toBe(false);
   });
@@ -92,14 +100,14 @@ describe('useOnboarding', () => {
       }),
     });
 
-    const { result } = renderHook(() => useOnboarding());
+    const { result } = renderHook(() => useOnboarding(), { wrapper: createWrapper() });
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(result.current.hasCompletedOnboarding).toBe(true);
   });
 
   it('exposes completeOnboarding function', async () => {
     mockUseAuth.mockReturnValue({ user: null });
-    const { result } = renderHook(() => useOnboarding());
+    const { result } = renderHook(() => useOnboarding(), { wrapper: createWrapper() });
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(typeof result.current.completeOnboarding).toBe('function');
   });

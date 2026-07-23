@@ -10,10 +10,12 @@ const InAppNotificationContext = createContext<InAppNotificationContextType>({
   showNotification: () => {},
 });
 
+/** use In App Notification component for the mobile section. */
 export function useInAppNotification() {
   return useContext(InAppNotificationContext);
 }
 
+/** In App Notification Provider component for the mobile section. */
 export function InAppNotificationProvider({ children }: { children: ReactNode }) {
   const [notification, setNotification] = useState<InAppNotificationData | null>(null);
 

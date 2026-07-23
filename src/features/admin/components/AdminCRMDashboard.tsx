@@ -186,6 +186,7 @@ function RecentSales() {
 }
 
 // ─── Main ────────────────────────────────────────────────────
+/** Admin C R M Dashboard constant. */
 export const AdminCRMDashboard = memo(function AdminCRMDashboard() {
   const navigate = useNavigate();
 

@@ -13,6 +13,7 @@ import {
   type SendStatusDetail,
 } from './sendStatusBus';
 
+/** Subscribes to transient send-status bus events for a single message; returns the current SendStatusDetail without any DB round-trip. */
 export function useMessageSendStatus(messageId: string | undefined): SendStatusDetail | undefined {
   const [detail, setDetail] = useState<SendStatusDetail | undefined>(() =>
     messageId ? getSendStatus(messageId) : undefined,

@@ -3,9 +3,12 @@
  */
 import { ExternalProduct, ExternalProductVariant } from '@/hooks/useExternalApiManagement';
 
+/** Message tone template for product send messages. */
 export type MessageTemplate = 'formal' | 'informal' | 'promo';
+/** Controls whether a product or a specific variant is sent. */
 export type SendMode = 'product' | 'variant';
 
+/** Product variants grouped by color for selection and preview. */
 export interface VariantGroup {
   colorName: string;
   colorHex: string | null;
@@ -13,6 +16,7 @@ export interface VariantGroup {
   images: string[];
 }
 
+/** Contact Result interface definition. */
 export interface ContactResult {
   id: string;
   name: string;
@@ -20,6 +24,7 @@ export interface ContactResult {
   avatar_url: string | null;
 }
 
+/** template Labels constant. */
 export const templateLabels: Record<MessageTemplate, string> = {
   formal: 'Formal',
   informal: 'Informal',
@@ -27,6 +32,7 @@ export const templateLabels: Record<MessageTemplate, string> = {
 };
 
 // ─── Group variants by color ──────────────────────────────────
+/** group Variants By Color function. */
 export function groupVariantsByColor(variants: ExternalProductVariant[]): VariantGroup[] {
   const map = new Map<string, VariantGroup>();
 
@@ -46,6 +52,7 @@ export function groupVariantsByColor(variants: ExternalProductVariant[]): Varian
 }
 
 // ─── Message builders ─────────────────────────────────────────
+/** build Message function. */
 export function buildMessage(
   product: ExternalProduct,
   template: MessageTemplate,
@@ -112,6 +119,7 @@ export function buildMessage(
 }
 
 // ─── Collect images ───────────────────────────────────────────
+/** collect All Images function. */
 export function collectAllImages(product: ExternalProduct): { url: string; label: string }[] {
   const imgs: { url: string; label: string }[] = [];
   if (product.primary_image_url) {

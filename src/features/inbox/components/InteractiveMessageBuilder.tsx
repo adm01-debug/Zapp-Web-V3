@@ -27,6 +27,7 @@ interface InteractiveMessageBuilderProps {
   onSend: (interactive: InteractiveMessage) => void;
 }
 
+/** Interactive Message Builder component. */
 export function InteractiveMessageBuilder({ open, onOpenChange, onSend }: InteractiveMessageBuilderProps) {
   const {
     messageType, setMessageType,

@@ -36,6 +36,7 @@ function EmptyIllustration({ context }: { context: string }) {
   );
 }
 
+/** Contextual Empty State component for the ui section. */
 export function ContextualEmptyState({
   context, title, description, onPrimaryAction, onSecondaryAction, onTertiaryAction, searchQuery, compact = false, showHelp = true, className,
 }: ContextualEmptyStateProps) {
@@ -60,7 +61,7 @@ export function ContextualEmptyState({
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="flex flex-col sm:flex-row items-center gap-3 flex-wrap justify-center">
         {onPrimaryAction && (
           <Button onClick={onPrimaryAction} className="group shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all" style={{ background: 'var(--gradient-primary)' }}>
-            {config.primaryAction.icon}{config.primaryAction.label}
+            {config.primaryAction?.icon}{config.primaryAction?.label ?? config.actionLabel ?? 'Ação'}
             <ArrowRight className="w-4 h-4 ml-2 transition-transform group-hover:translate-x-1" />
           </Button>
         )}

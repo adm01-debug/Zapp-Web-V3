@@ -1,5 +1,6 @@
 import { createContext, useContext } from 'react';
 
+/** Tour Step interface definition. */
 export interface TourStep {
   id: string;
   target: string;
@@ -9,6 +10,7 @@ export interface TourStep {
   spotlightPadding?: number;
 }
 
+/** Tour Context Type interface definition. */
 export interface TourContextType {
   isActive: boolean;
   currentStep: number;
@@ -25,6 +27,7 @@ const TourContext = createContext<TourContextType | null>(null);
 /** Internal bridge for TourProvider — do not use TourContext directly outside this module. */
 export const TourContextProvider = TourContext.Provider;
 
+/** Returns the TourContext value; must be called inside a TourProvider or it throws. */
 export function useTour(): TourContextType {
   const context = useContext(TourContext);
   if (!context) {

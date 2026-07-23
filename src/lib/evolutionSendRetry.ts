@@ -23,12 +23,14 @@ import { canCall, recordFailure, recordSuccess, CircuitOpenError } from '@/lib/e
 
 const log = getLogger('EvolutionSendRetry');
 
+/** Evolution Invoke Options interface definition. */
 export interface EvolutionInvokeOptions {
   body: Record<string, unknown>;
   method?: 'POST' | 'GET';
   headers?: Record<string, string>;
 }
 
+/** Evolution Invoke Result interface definition. */
 export interface EvolutionInvokeResult<T = unknown> {
   data: T | null;
   error: { message?: string; status?: number; name?: string } | null;
@@ -41,6 +43,7 @@ const TRANSIENT_PATTERNS = [
 // Word-boundary regex avoids false matches like '5024' or URLs containing these codes.
 const TRANSIENT_STATUS_IN_MSG_RE = /\b(429|502|503|504)\b/;
 
+/** is Transient function. */
 export function isTransient(err: unknown): boolean {
   if (!err) return false;
   if (err instanceof Error) {

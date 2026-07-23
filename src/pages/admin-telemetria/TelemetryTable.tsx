@@ -10,6 +10,7 @@ interface TelemetryTableProps {
   isLoading: boolean;
 }
 
+/** Telemetry Table. */
 export function TelemetryTable({ rows, isLoading }: TelemetryTableProps) {
   return (
     <Card>

@@ -150,6 +150,7 @@ function MessageBlock({ message }: { message: MessageGroup }) {
   );
 }
 
+/** Send Status Bus Debug. */
 export default function SendStatusBusDebug() {
   const [snapshot, setSnapshot] = useState<Record<string, SendStatusHistoryEntry[]>>(
     () => getAllSendStatusHistory(),

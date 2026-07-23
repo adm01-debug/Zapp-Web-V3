@@ -10,6 +10,7 @@ import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 import { Calendar, Link2, CheckCircle2, Clock, Bell, ExternalLink, Settings } from 'lucide-react';
 
+/** Google Calendar Integration component for the integrations section. */
 export function GoogleCalendarIntegration() {
   const [connected, setConnected] = useState(false);
   const [autoSync, setAutoSync] = useState(true);

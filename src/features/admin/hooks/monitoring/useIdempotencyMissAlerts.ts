@@ -94,6 +94,7 @@ interface AuditLogRow {
   created_at: string;
 }
 
+/** Instance Miss Count interface definition. */
 export interface InstanceMissCount {
   instance: string;
   count: number;
@@ -107,6 +108,7 @@ interface UseIdempotencyMissAlertsOptions {
   enabled?: boolean;
 }
 
+/** Polls the Evolution audit log for idempotency-miss events and raises war-room alerts when any instance exceeds the threshold. */
 export function useIdempotencyMissAlerts(opts: UseIdempotencyMissAlertsOptions = {}) {
   const { threshold = DEFAULT_MISS_THRESHOLD } = opts;
   const { isDev, loading: roleLoading } = useUserRole();
@@ -242,6 +244,7 @@ export function useIdempotencyMissAlerts(opts: UseIdempotencyMissAlertsOptions =
 }
 
 // Test-only helpers (tree-shaken in prod builds because they're unused).
+/** __test__ constant. */
 export const __test__ = {
   ALERT_DEDUPE_STORAGE_KEY,
   ONE_HOUR_MS,

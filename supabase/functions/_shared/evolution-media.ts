@@ -2,6 +2,7 @@
 import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { isRecord } from "./evolution-helpers.ts";
 
+/** evolution-media utilities and exports. */
 export function isValidMediaBytes(bytes: Uint8Array, messageType: string): boolean {
   if (bytes.length < 4) return false;
 
@@ -40,6 +41,7 @@ function detectExtension(respContentType: string, defaultExt: string): string {
   return defaultExt;
 }
 
+/** is Safe Media Cdn Url function. */
 export function isSafeMediaCdnUrl(url: string): boolean {
   try {
     const { protocol, hostname } = new URL(url);
@@ -52,6 +54,7 @@ export function isSafeMediaCdnUrl(url: string): boolean {
   } catch { return false; }
 }
 
+/** persist Media To Storage function. */
 export async function persistMediaToStorage(
   supabase: SupabaseClient,
   cdnUrl: string,
@@ -95,6 +98,7 @@ export async function persistMediaToStorage(
   } catch (err) { console.error(`[MEDIA] persistMediaToStorage error:`, err); return null; }
 }
 
+/** persist Media Via Api function. */
 export async function persistMediaViaApi(
   supabase: SupabaseClient,
   instance: string,
@@ -152,12 +156,14 @@ export async function persistMediaViaApi(
   } catch (err) { console.error(`[MEDIA] persistMediaViaApi error:`, err); return null; }
 }
 
+/** Parsed Message interface definition. */
 export interface ParsedMessage {
   content: string;
   messageType: string;
   mediaUrl: string | null;
 }
 
+/** parse Message Content function. */
 export function parseMessageContent(message: Record<string, unknown> | undefined, data: Record<string, unknown>): ParsedMessage {
   const unwrapMessage = (value: Record<string, unknown> | undefined): Record<string, unknown> | undefined => {
     if (!value) return undefined;

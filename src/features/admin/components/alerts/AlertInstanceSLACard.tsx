@@ -2,6 +2,7 @@ import { CheckCircle2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 
+/** SLAMetrics component for the alerts section. */
 export interface SLAMetrics {
   total: number;
   resolved: number;
@@ -11,6 +12,7 @@ export interface SLAMetrics {
   p95Min: number;
 }
 
+/** Alert Instance SLACard component for the alerts section. */
 export function AlertInstanceSLACard({ sla }: { sla: SLAMetrics }) {
   return (
     <Card data-testid="instance-sla-card">

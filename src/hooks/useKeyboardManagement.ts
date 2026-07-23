@@ -8,6 +8,7 @@ import { DEFAULT_SHORTCUTS } from '@/hooks/shortcuts/defaultShortcuts';
 // TYPE DEFINITIONS
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════════════
 
+/** Shortcut Binding interface definition. */
 export interface ShortcutBinding {
   id: string;
   name: string;
@@ -284,7 +285,7 @@ export function useGlobalKeyboardShortcutsManagement(customActions?: GlobalShort
   );
 
   const actions = useMemo(() => {
-    const merged = { ...defaultActions };
+    const merged: Record<string, () => void> = { ...defaultActions };
     customActions?.forEach(({ id, action }) => {
       merged[id] = action;
     });

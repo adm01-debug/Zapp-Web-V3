@@ -31,6 +31,7 @@ const SECRET_CODES: Record<string, { name: string; action: string }> = {
   lovable: { name: 'Lovable Easter Egg', action: 'lovable' },
 };
 
+/** Easter Eggs Provider component for the effects section. */
 export const EasterEggsProvider = forwardRef<HTMLDivElement, EasterEggsProviderProps>(
   function EasterEggsProvider({ children }, _ref) {
     const [konamiProgress, setKonamiProgress] = useState<string[]>([]);
@@ -41,7 +42,12 @@ export const EasterEggsProvider = forwardRef<HTMLDivElement, EasterEggsProviderP
     const effectTimers = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
     const { celebrate } = useCelebration();
 
-    useEffect(() => () => { effectTimers.current.forEach(clearTimeout); }, []);
+    useEffect(
+      () => () => {
+        effectTimers.current.forEach(clearTimeout);
+      },
+      []
+    );
 
     // Konami Code Detection
     useEffect(() => {
@@ -71,7 +77,7 @@ export const EasterEggsProvider = forwardRef<HTMLDivElement, EasterEggsProviderP
 
       window.addEventListener('keydown', handleKeyDown);
       return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [konamiProgress, typedText]);
+    }, [konamiProgress, typedText]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // Shake Detection (for mobile)
     // FIX: guard against Permissions Policy violations when running inside
@@ -149,7 +155,7 @@ export const EasterEggsProvider = forwardRef<HTMLDivElement, EasterEggsProviderP
           }
         }
       };
-    }, []);
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
     // Reset shake count after inactivity
     useEffect(() => {
@@ -174,7 +180,10 @@ export const EasterEggsProvider = forwardRef<HTMLDivElement, EasterEggsProviderP
 
       // Add rainbow effect to body
       document.body.classList.add('rainbow-mode');
-      const rt = setTimeout(() => { document.body.classList.remove('rainbow-mode'); effectTimers.current.delete(rt); }, 5000);
+      const rt = setTimeout(() => {
+        document.body.classList.remove('rainbow-mode');
+        effectTimers.current.delete(rt);
+      }, 5000);
       effectTimers.current.add(rt);
     }, [celebrate]);
 
@@ -206,7 +215,13 @@ export const EasterEggsProvider = forwardRef<HTMLDivElement, EasterEggsProviderP
               subtitle: 'Vamos celebrar!',
               emoji: '🥳',
             });
-            { const t = setTimeout(() => { setPartyMode(false); effectTimers.current.delete(t); }, 10000); effectTimers.current.add(t); }
+            {
+              const t = setTimeout(() => {
+                setPartyMode(false);
+                effectTimers.current.delete(t);
+              }, 10000);
+              effectTimers.current.add(t);
+            }
             break;
 
           case 'matrix':
@@ -215,7 +230,13 @@ export const EasterEggsProvider = forwardRef<HTMLDivElement, EasterEggsProviderP
               title: '💊 Matrix Mode',
               description: 'Você escolheu a pílula vermelha...',
             });
-            { const t = setTimeout(() => { setMatrixMode(false); effectTimers.current.delete(t); }, 8000); effectTimers.current.add(t); }
+            {
+              const t = setTimeout(() => {
+                setMatrixMode(false);
+                effectTimers.current.delete(t);
+              }, 8000);
+              effectTimers.current.add(t);
+            }
             break;
 
           case 'disco':
@@ -224,7 +245,13 @@ export const EasterEggsProvider = forwardRef<HTMLDivElement, EasterEggsProviderP
               title: '🪩 Disco Mode!',
               description: 'Brilhe como nos anos 70!',
             });
-            { const t = setTimeout(() => { document.body.classList.remove('disco-mode'); effectTimers.current.delete(t); }, 8000); effectTimers.current.add(t); }
+            {
+              const t = setTimeout(() => {
+                document.body.classList.remove('disco-mode');
+                effectTimers.current.delete(t);
+              }, 8000);
+              effectTimers.current.add(t);
+            }
             break;
 
           case 'lovable':
@@ -335,6 +362,7 @@ export const EasterEggsProvider = forwardRef<HTMLDivElement, EasterEggsProviderP
 );
 
 // Hook to trigger easter eggs programmatically
+/** use Easter Eggs component for the effects section. */
 export function useEasterEggs() {
   const { celebrate } = useCelebration();
 

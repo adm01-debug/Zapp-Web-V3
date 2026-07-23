@@ -14,6 +14,7 @@ const log = getLogger('IntegrationMigration');
  */
 const SESSION_KEY = 'whatsapp_integration_migrated';
 
+/** Headless component that runs the WhatsApp integration migration RPC once per browser session; renders nothing. */
 export function IntegrationMigrationMount() {
   const ranRef = useRef(false);
 

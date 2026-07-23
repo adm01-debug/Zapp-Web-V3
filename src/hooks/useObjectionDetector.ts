@@ -12,6 +12,7 @@ interface Objection {
   confidence: number;
 }
 
+/** Hook: use Objection Detector. */
 export function useObjectionDetector(
   contactId: string,
   contactName: string | undefined,

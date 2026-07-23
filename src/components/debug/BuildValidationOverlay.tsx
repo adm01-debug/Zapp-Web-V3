@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
+/** Build Validation Overlay component for the debug section. */
 export const BuildValidationOverlay: React.FC = () => {
   const { status, lastError, generateEvidence, runProactiveChecks } = useValidation();
   const [isOpen, setIsOpen] = useState(false);

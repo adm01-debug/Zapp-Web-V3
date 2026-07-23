@@ -10,6 +10,7 @@ interface UseInboxBulkActionsProps {
   filteredConversations: ConversationWithMessages[];
 }
 
+/** Provides selection-mode state and bulk operations (mark-as-read, transfer, archive, avatar batch-fetch) for a set of inbox conversations. */
 export function useInboxBulkActions({ refetch, filteredConversations }: UseInboxBulkActionsProps) {
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());

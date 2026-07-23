@@ -68,6 +68,7 @@ interface Props {
   onRemoveSkill: (id: string) => void;
 }
 
+/** Queue Members Dialog. */
 export function QueueMembersDialog({
   memberDialog,
   members,

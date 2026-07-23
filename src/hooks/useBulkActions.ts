@@ -14,6 +14,7 @@ import { toast } from 'sonner';
 // TIPOS
 // ============================================
 
+/** Bulk Action interface definition. */
 export interface BulkAction<T> {
   id: string;
   label: string;
@@ -54,6 +55,7 @@ interface UseBulkActionsResult<T> {
 // HOOK
 // ============================================
 
+/** use Bulk Actions function. */
 export function useBulkActions<T extends { id: string }>(
   items: T[],
   options: UseBulkActionsOptions<T> = {}
@@ -186,4 +188,5 @@ export function useBulkActions<T extends { id: string }>(
   };
 }
 
+/** Default export. */
 export default useBulkActions;

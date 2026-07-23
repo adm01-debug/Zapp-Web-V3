@@ -57,6 +57,7 @@ function formatMetric(entry: AlertHistoryEntry): string {
   return `${Math.round(entry.observed)} min (limite ${entry.threshold} min)`;
 }
 
+/** Webhook Alert History Panel function. */
 export function WebhookAlertHistoryPanel({ history, onCleared }: Props) {
   const [open, setOpen] = useState(false);
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all');

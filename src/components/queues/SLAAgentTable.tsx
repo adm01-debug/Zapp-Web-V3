@@ -30,6 +30,7 @@ interface SLAAgentTableProps {
   agents: AgentData[];
 }
 
+/** SLAAgent Table component for the queues section. */
 export function SLAAgentTable({ agents }: SLAAgentTableProps) {
   return (
     <Card className="rounded-2xl shadow-sm">

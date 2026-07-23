@@ -3,6 +3,12 @@ import { renderHook, waitFor, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
 
+function makeWrapper() {
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return ({ children }: { children: React.ReactNode }) =>
+    React.createElement(QueryClientProvider, { client: qc }, children);
+}
+
 const mockFrom = vi.hoisted(() => vi.fn());
 const mockRpc = vi.hoisted(() => vi.fn());
 const mockUseAuth = vi.hoisted(() => vi.fn(() => ({ user: { id: 'u1' } })));
@@ -63,7 +69,7 @@ describe('useQueueManagement — hooks consolidados', () => {
         }),
       });
 
-      const { result } = renderHook(() => useQueuesCrudManagement());
+      const { result } = renderHook(() => useQueuesCrudManagement(), { wrapper: makeWrapper() });
       await waitFor(() => expect(result.current.loading).toBe(false));
 
       expect(Array.isArray(result.current.queues)).toBe(true);
@@ -79,16 +85,17 @@ describe('useQueueManagement — hooks consolidados', () => {
         }),
       });
 
-      const { result } = renderHook(() => useQueuesCrudManagement());
+      const { result } = renderHook(() => useQueuesCrudManagement(), { wrapper: makeWrapper() });
       await waitFor(() => expect(result.current.loading).toBe(false));
       expect(result.current.error).toBe('boom');
       expect(result.current.queues).toEqual([]);
     });
 
     it('não busca sem usuário autenticado', async () => {
-      mockUseAuth.mockReturnValue({ user: null });
-      const { result } = renderHook(() => useQueuesCrudManagement());
-      expect(result.current.loading).toBe(true);
+      mockUseAuth.mockReturnValue({ user: null as any });
+      const { result } = renderHook(() => useQueuesCrudManagement(), { wrapper: makeWrapper() });
+      // useQuery with enabled:false is not loading (idle/pending), not fetching
+      expect(result.current.loading).toBe(false);
       expect(mockFrom).not.toHaveBeenCalled();
     });
   });
@@ -98,9 +105,13 @@ describe('useQueueManagement — hooks consolidados', () => {
       mockFrom.mockReturnValue({
         select: vi.fn().mockReturnValue({
           eq: vi.fn().mockReturnValue({
-            order: vi.fn().mockReturnValue({
-              limit: vi.fn().mockReturnValue({
-                maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+            gte: vi.fn().mockReturnValue({
+              lte: vi.fn().mockReturnValue({
+                order: vi.fn().mockReturnValue({
+                  limit: vi.fn().mockReturnValue({
+                    maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+                  }),
+                }),
               }),
             }),
           }),
@@ -108,7 +119,8 @@ describe('useQueueManagement — hooks consolidados', () => {
       });
 
       const { result } = renderHook(() =>
-        useQueueAnalyticsManagement({ queueId: 'q1', dateRange })
+        useQueueAnalyticsManagement({ queueId: 'q1', dateRange }),
+        { wrapper: makeWrapper() }
       );
       await waitFor(() => expect(result.current.loading).toBe(false));
       expect(result.current.analytics).toBeNull();
@@ -127,9 +139,13 @@ describe('useQueueManagement — hooks consolidados', () => {
       mockFrom.mockReturnValue({
         select: vi.fn().mockReturnValue({
           eq: vi.fn().mockReturnValue({
-            order: vi.fn().mockReturnValue({
-              limit: vi.fn().mockReturnValue({
-                maybeSingle: vi.fn().mockResolvedValue({ data: payload, error: null }),
+            gte: vi.fn().mockReturnValue({
+              lte: vi.fn().mockReturnValue({
+                order: vi.fn().mockReturnValue({
+                  limit: vi.fn().mockReturnValue({
+                    maybeSingle: vi.fn().mockResolvedValue({ data: payload, error: null }),
+                  }),
+                }),
               }),
             }),
           }),
@@ -137,7 +153,8 @@ describe('useQueueManagement — hooks consolidados', () => {
       });
 
       const { result } = renderHook(() =>
-        useQueueAnalyticsManagement({ queueId: 'q1', dateRange })
+        useQueueAnalyticsManagement({ queueId: 'q1', dateRange }),
+        { wrapper: makeWrapper() }
       );
       await waitFor(() => expect(result.current.loading).toBe(false));
       expect(result.current.analytics?.total_messages).toBe(42);
@@ -155,7 +172,7 @@ describe('useQueueManagement — hooks consolidados', () => {
         select: vi.fn().mockReturnValue({ eq }),
       });
 
-      const { result } = renderHook(() => useQueueGoalsManagement('q1'));
+      const { result } = renderHook(() => useQueueGoalsManagement('q1'), { wrapper: makeWrapper() });
       await waitFor(() => expect(result.current.loading).toBe(false));
 
       expect(eq).toHaveBeenCalledWith('queue_id', 'q1');
@@ -173,7 +190,7 @@ describe('useQueueManagement — hooks consolidados', () => {
         update,
       }));
 
-      const { result } = renderHook(() => useQueueGoalsManagement());
+      const { result } = renderHook(() => useQueueGoalsManagement(), { wrapper: makeWrapper() });
       await waitFor(() => expect(result.current.loading).toBe(false));
 
       await act(async () => {
@@ -205,14 +222,19 @@ describe('useQueueManagement — hooks consolidados', () => {
         error: null,
       });
 
-      const { result } = renderHook(() => useQueueSlaManagement({ filters }), { wrapper: createWrapper() });
+      const { result } = renderHook(() => useQueueSlaManagement({ filters }), {
+        wrapper: createWrapper(),
+      });
       await waitFor(() => expect(result.current.loading).toBe(false));
 
-      expect(mockRpc).toHaveBeenCalledWith('rpc_queue_sla_panel', expect.objectContaining({
-        p_skill_name: null,
-        p_channel_type: null,
-        p_sla_status: null,
-      }));
+      expect(mockRpc).toHaveBeenCalledWith(
+        'rpc_queue_sla_panel',
+        expect.objectContaining({
+          p_skill_name: null,
+          p_channel_type: null,
+          p_sla_status: null,
+        })
+      );
 
       const row = result.current.rows[0];
       expect(row.queue_id).toBe('q1');
@@ -226,7 +248,9 @@ describe('useQueueManagement — hooks consolidados', () => {
 
     it('rows e slaRows apontam para o mesmo dataset', async () => {
       mockRpc.mockResolvedValue({ data: [], error: null });
-      const { result } = renderHook(() => useQueueSlaManagement({ filters }), { wrapper: createWrapper() });
+      const { result } = renderHook(() => useQueueSlaManagement({ filters }), {
+        wrapper: createWrapper(),
+      });
       await waitFor(() => expect(result.current.loading).toBe(false));
       expect(result.current.rows).toBe(result.current.slaRows);
     });
@@ -239,7 +263,9 @@ describe('useQueueManagement — hooks consolidados', () => {
         }),
       });
 
-      const { result } = renderHook(() => useQueueSlaManagement({ filters }), { wrapper: createWrapper() });
+      const { result } = renderHook(() => useQueueSlaManagement({ filters }), {
+        wrapper: createWrapper(),
+      });
       await waitFor(() => expect(result.current.loading).toBe(false));
 
       let ok = true;
@@ -251,7 +277,9 @@ describe('useQueueManagement — hooks consolidados', () => {
 
     it('triggerRebalance chama RPC correta', async () => {
       mockRpc.mockResolvedValue({ data: [], error: null });
-      const { result } = renderHook(() => useQueueSlaManagement({ filters }), { wrapper: createWrapper() });
+      const { result } = renderHook(() => useQueueSlaManagement({ filters }), {
+        wrapper: createWrapper(),
+      });
       await waitFor(() => expect(result.current.loading).toBe(false));
 
       await act(async () => {
@@ -272,7 +300,12 @@ describe('useQueueManagement — hooks consolidados', () => {
               id: 'q2',
               name: 'B',
               queue_analytics: [
-                { total_messages: 10, average_response_time: 2, resolution_rate: 80, customer_satisfaction: 4 },
+                {
+                  total_messages: 10,
+                  average_response_time: 2,
+                  resolution_rate: 80,
+                  customer_satisfaction: 4,
+                },
               ],
             },
           ],
@@ -280,7 +313,7 @@ describe('useQueueManagement — hooks consolidados', () => {
         }),
       });
 
-      const { result } = renderHook(() => useQueuesComparisonManagement({ dateRange }));
+      const { result } = renderHook(() => useQueuesComparisonManagement({ dateRange }), { wrapper: makeWrapper() });
       await waitFor(() => expect(result.current.loading).toBe(false));
 
       expect(result.current.comparison).toHaveLength(2);

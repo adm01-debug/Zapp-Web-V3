@@ -17,15 +17,6 @@ interface ReactionMutationOptions {
   senderType?: 'contact' | 'agent';
 }
 
-interface ReactionRow {
-  id: string;
-  message_id: string;
-  user_id: string;
-  emoji: string;
-  created_at: string;
-  user_name?: string;
-}
-
 /**
  * Analytics helper
  */
@@ -59,6 +50,7 @@ const trackReactionEvent = (
   })();
 };
 
+/** Add/remove emoji reaction mutations for a single message: writes to Supabase, mirrors the reaction to WhatsApp via Evolution API when an externalId is provided, and invalidates the reactions query cache on success. */
 export function useReactionMutations(
   messageId: string,
   profileId: string | undefined,

@@ -150,4 +150,5 @@ const App = () => (
   </AppProviders>
 );
 
+/** Default export. */
 export default App;

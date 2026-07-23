@@ -35,6 +35,7 @@ const gridColsMap = {
   lg: 'grid-cols-3',
 };
 
+/** Sticker Grid component for the stickers section. */
 export function StickerGrid({
   stickers,
   loading,

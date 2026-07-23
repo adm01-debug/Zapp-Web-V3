@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { log } from '@/lib/logger';
 
+/** Two Factor Auth. */
 export default function TwoFactorAuth() {
   const navigate = useNavigate();
   const { user } = useAuth();

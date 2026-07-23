@@ -1,7 +1,7 @@
 // Consolidated Analytics & Monitoring Management Module (ETAPA 39)
 // Consolidates: usePerformanceMonitoring, useErrorMonitoring, useRealtimeMonitor, useLatestAnalysis, useMessageAttempts
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useMountedRef } from '@/hooks/useMountedRef';
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { log } from '@/lib/logger';
@@ -29,13 +29,16 @@ interface Analysis {
   timestamp: string;
 }
 
+/** Hook: Performance Snapshot. */
 export type PerformanceSnapshot = Database['zapp']['Tables']['performance_snapshots']['Row'];
 type PerformanceSnapshotInsert = Database['zapp']['Tables']['performance_snapshots']['Insert'];
+/** Hook: Performance Snapshot Input. */
 export type PerformanceSnapshotInput = Omit<
   PerformanceSnapshotInsert,
   'id' | 'profile_id' | 'created_at' | 'user_agent'
 >;
 
+/** Hook: use Performance Monitoring Management. */
 export function usePerformanceMonitoringManagement() {
   const [metrics, setMetrics] = useState<PerformanceMetric[]>([]);
   const metricsRef = useRef<PerformanceMetric[]>([]);
@@ -53,6 +56,7 @@ export function usePerformanceMonitoringManagement() {
   return { metrics, recordMetric };
 }
 
+/** Hook: use Performance Snapshots. */
 export function usePerformanceSnapshots() {
   const { profile } = useAuth();
   const [history, setHistory] = useState<PerformanceSnapshot[]>([]);
@@ -133,6 +137,7 @@ export function usePerformanceSnapshots() {
   return { history, saveSnapshot, loadHistory, clearOldSnapshots };
 }
 
+/** Hook: use Error Monitoring Management. */
 export function useErrorMonitoringManagement() {
   const [errors, setErrors] = useState<ErrorLog[]>([]);
 
@@ -159,59 +164,39 @@ export function useErrorMonitoringManagement() {
   return { errors, clearErrors };
 }
 
+/** Hook: use Latest Analysis Management. */
 export function useLatestAnalysisManagement(timeWindow: number = 24) {
-  const [analysis, setAnalysis] = useState<Analysis | null>(null);
-  const [loading, setLoading] = useState(true);
-  const mounted = useMountedRef();
-
-  useEffect(() => {
-    const fetchAnalysis = async () => {
-      try {
-        // GAP-6: get_latest_analysis RPC not yet deployed to DB
-        log.warn('fetchAnalysis called but get_latest_analysis RPC is not deployed', {
-          timeWindow,
-        });
-      } catch (err) {
-        log.error('Error fetching analysis:', err);
-      } finally {
-        if (mounted.current) setLoading(false);
-      }
-    };
-
-    fetchAnalysis();
-  }, [timeWindow, mounted]);
+  const { data: analysis = null, isLoading: loading } = useQuery({
+    queryKey: ['latest-analysis', timeWindow] as const,
+    queryFn: async () => {
+      // GAP-6: get_latest_analysis RPC not yet deployed to DB
+      log.warn('fetchAnalysis called but get_latest_analysis RPC is not deployed', { timeWindow });
+      return null as Analysis | null;
+    },
+    staleTime: 60_000,
+  });
 
   return { analysis, loading };
 }
 
+/** Hook: use Message Attempts Management. */
 export function useMessageAttemptsManagement(messageId: string) {
-  const [attempts, setAttempts] = useState<Record<string, unknown>[]>([]);
-  const [loading, setLoading] = useState(true);
-  const mounted = useMountedRef();
-
-  useEffect(() => {
-    if (!messageId) return;
-
-    const fetchAttempts = async () => {
-      try {
-        const { data, error: err } = await supabase
-          .from('message_attempts')
-          .select('*')
-          .eq('message_id', messageId);
-
-        if (err) throw err;
-        if (mounted.current) setAttempts(data || []);
-      } catch (err) {
-        log.error('Error fetching message attempts:', err);
-      } finally {
-        if (mounted.current) setLoading(false);
-      }
-    };
-
-    fetchAttempts();
-  }, [messageId, mounted]);
+  const { data: attempts = [], isLoading: loading } = useQuery({
+    queryKey: ['message-attempts', messageId] as const,
+    queryFn: async () => {
+      const { data, error: err } = await supabase
+        .from('message_attempts')
+        .select('*')
+        .eq('message_id', messageId);
+      if (err) throw err;
+      return (data || []) as Record<string, unknown>[];
+    },
+    enabled: !!messageId,
+    staleTime: 30_000,
+  });
 
   return { attempts, loading };
 }
 
+/** Re-exported module members. */
 export type { PerformanceMetric, ErrorLog, Analysis };

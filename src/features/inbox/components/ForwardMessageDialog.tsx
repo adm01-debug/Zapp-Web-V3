@@ -40,6 +40,7 @@ function truncateMessage(content: string, maxLength = 100) {
   return content.length <= maxLength ? content : content.slice(0, maxLength) + '...';
 }
 
+/** Forward Message Dialog component. */
 export function ForwardMessageDialog({
   open,
   onOpenChange,
@@ -155,7 +156,7 @@ export function ForwardMessageDialog({
                             <AvatarFallback className="bg-primary/10 text-sm text-primary">
                               {contact.name
                                 .split(' ')
-                                .map((n) => n[0])
+                                .map((n: any) => n[0])
                                 .join('')
                                 .slice(0, 2)
                                 .toUpperCase()}

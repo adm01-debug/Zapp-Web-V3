@@ -20,6 +20,7 @@ interface MentionAutocompleteProps {
   isOpen: boolean;
 }
 
+/** Mention Autocomplete function. */
 export function MentionAutocomplete({
   inputValue,
   cursorPosition,

@@ -28,6 +28,7 @@ const tooltipStyle = {
   fontSize: 12,
 };
 
+/** Webhook Charts Section. */
 export function WebhookChartsSection({
   byType,
   hourly,

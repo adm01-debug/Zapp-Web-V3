@@ -44,6 +44,7 @@ const statusIcon = (status: string) => {
   return <AlertCircle className="h-3.5 w-3.5 text-muted-foreground" />;
 };
 
+/** Knowledge Base View component for the knowledge section. */
 export function KnowledgeBaseView() {
   const { articles, files, fetchData, saveArticle, deleteArticle, uploadFile } = useKnowledgeBase();
   const [search, setSearch] = useState('');

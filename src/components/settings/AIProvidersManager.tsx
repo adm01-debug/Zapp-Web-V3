@@ -7,6 +7,7 @@ import { AIProviderCard } from './ai-providers/AIProviderCard';
 import { AIProviderFormDialog } from './ai-providers/AIProviderFormDialog';
 import { AIProviderHealthPanel } from './ai-providers/AIProviderHealthPanel';
 
+/** AIProviders Manager component for the settings section. */
 export function AIProvidersManager() {
   const {
     providers, isLoading, dialogOpen, setDialogOpen, editingId,

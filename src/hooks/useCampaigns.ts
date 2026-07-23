@@ -8,6 +8,7 @@ type CampaignRow = Tables<'campaigns'>;
 type CampaignInsert = TablesInsert<'campaigns'>;
 type CampaignUpdate = TablesUpdate<'campaigns'>;
 
+/** Campaign type alias. */
 export type Campaign = CampaignRow & {
   target_filter: Record<string, unknown> | null;
 };
@@ -91,8 +92,8 @@ export function useCampaigns() {
 
   const addContactsToCampaign = useMutation({
     mutationFn: async ({
-      campaignId,
-      contactIds,
+      campaignId: _campaignId,
+      contactIds: _contactIds,
     }: {
       campaignId: string;
       contactIds: string[];

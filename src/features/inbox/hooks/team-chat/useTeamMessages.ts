@@ -8,6 +8,7 @@ import { queryKeys } from '@/services/api/queryKeys';
 
 const MESSAGES_PER_PAGE = 50;
 
+/** Fetches paginated messages for a team conversation with optional full-text search filtering, subscribes to Realtime inserts, and marks the conversation as read on mount. */
 export function useTeamMessages(conversationId: string | null, searchQuery: string = '') {
   const { profile } = useAuth();
   const queryClient = useQueryClient();
@@ -15,7 +16,7 @@ export function useTeamMessages(conversationId: string | null, searchQuery: stri
 
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading, isError, error } =
     useInfiniteQuery({
-      queryKey: queryKeys.teamChat.messages(conversationId, searchQuery),
+      queryKey: queryKeys.teamChat.messages(conversationId ?? undefined, searchQuery),
       queryFn: async ({ pageParam }) => {
         if (!conversationId) return { messages: [], nextCursor: null };
 

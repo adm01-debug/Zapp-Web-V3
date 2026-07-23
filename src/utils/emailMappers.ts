@@ -65,10 +65,10 @@ export const emailMappers = {
     is_important: (data.is_important ?? false) as boolean,
     is_unread: ((data.unread_count || 0) > 0) as boolean,
     sla_status: data.sla_status as SLAStatus | null,
-    assigned_to: data.assigned_to as string | null | undefined,
-    last_message_at: data.last_message_at as string | null | undefined,
-    first_reply_at: data.first_reply_at as string | null | undefined,
-    created_at: data.created_at as string | undefined,
+    assigned_to: (data.assigned_to ?? null) as string | null,
+    last_message_at: (data.last_message_at ?? null) as string | null,
+    first_reply_at: (data.first_reply_at ?? null) as string | null,
+    created_at: (data.created_at ?? '') as string,
     contact: data.contact,
     tags: (data.tags || []) as string[],
   }),
@@ -80,7 +80,7 @@ export const emailMappers = {
     date: data.date as string,
     threads_received: (data.threads_received || 0) as number,
     threads_replied: (data.threads_replied || 0) as number,
-    avg_first_reply_minutes: data.avg_first_reply_minutes as number | null | undefined,
+    avg_first_reply_minutes: (data.avg_first_reply_minutes ?? null) as number | null,
     sla_met_count: (data.sla_met_count || 0) as number,
     sla_breached_count: (data.sla_breached_count || 0) as number,
   }),
@@ -95,8 +95,8 @@ export const emailMappers = {
     name: data.name as string,
     type: (data.type || 'user') as EmailLabelInfo['type'],
     color: data.color as string | null | undefined,
-    thread_count: data.thread_count as number | null | undefined,
-    unread_count: data.unread_count as number | null | undefined,
+    thread_count: (data.thread_count ?? undefined) as number | undefined,
+    unread_count: (data.unread_count ?? undefined) as number | undefined,
   }),
 
   /**
@@ -113,7 +113,7 @@ export const emailMappers = {
     token_expired: (data.token_expired ?? false) as boolean,
     unread_threads: (data.unread_threads || 0) as number,
     sla_breached: (data.sla_breached || 0) as number,
-    created_at: data.created_at as string | null | undefined,
+    created_at: (data.created_at ?? '') as string,
   }),
 
   /**

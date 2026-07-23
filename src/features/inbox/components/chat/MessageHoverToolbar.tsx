@@ -50,6 +50,7 @@ interface MessageHoverToolbarProps {
   onMessageDeleted: (messageId: string) => void;
 }
 
+/** Message Hover Toolbar component for the chat section. */
 export function MessageHoverToolbar({
   message,
   isSent,

@@ -142,6 +142,7 @@
 | ~~GAP-10~~ | `src/hooks/useQueueManagement.ts:203,415` | TABELA CRIADA: `zapp.queue_analytics` em `20260717000001_create_queue_analytics.sql`; FK para `queues`, RLS habilitado, índice em `(queue_id, timestamp DESC)` | Resolvido — necessário aplicar migração ao self-hosted |
 | ~~BUG-10~~ | `src/features/admin/hooks/monitoring/useFailedMessages.ts:60` | CORRIGIDO: `effectiveFrom` calculado a cada render com `Date.now()` e colocado em `queryKey` + `useEffect` deps → loop infinito de refetch + setState. Fix: `useMemo([from, hours])` para estabilizar o valor | Resolvido |
 | ~~BUG-11~~ | `supabase/migrations/20260717000002_create_missing_rpcs_stubs.sql` | CORRIGIDO: stubs `initiate_gmail_oauth` / `complete_gmail_oauth` retornavam JSON `{success:false}` sem RAISE; chamador em `useIntegrationManagement.ts:72` faz `setIsAuthenticated(true)` incondicionalmente após a RPC não retornar erro → falso estado autenticado. Fix: ambos os stubs agora fazem RAISE EXCEPTION com ERRCODE P0001 | Resolvido |
+|| ~~BUG-12~~ | `src/components/contacts/AuditLogPanel.tsx` | CORRIGIDO: colunas `field_name`, `old_value`, `new_value`, `metadata` nao existem em `contact_audit_log`; colunas reais sao `old_values jsonb`, `new_values jsonb`, `reason text`. Painel retornava 400 e ficava em branco | Resolvido |
 | ~~BUG-12~~ | `src/components/contacts/AuditLogPanel.tsx` | CORRIGIDO: colunas `field_name`, `old_value`, `new_value`, `metadata` não existem em `contact_audit_log`; colunas reais são `old_values jsonb`, `new_values jsonb`, `reason text`. Painel retornava 400 e ficava em branco | Resolvido |
 | ~~BUG-13~~ | `src/features/admin/hooks/monitoring/useDispatchErrorLogs.ts` | CORRIGIDO: `fromIso` calculado a cada render sem `useMemo`; valor ficava obsoleto nos ciclos de `refetchInterval`. Fix: `useMemo([hours])` | Resolvido |
 | ~~BUG-14~~ | `src/features/admin/hooks/monitoring/useDlqAuditLog.ts` | CORRIGIDO: `currentPage` não resetava ao mudar filtros (`action`, `limit`); paginação mantinha página errada. Fix: `useEffect([action, limit])` → `setCurrentPage(0)` | Resolvido |
@@ -154,6 +155,13 @@
 | ~~BUG-21~~ | `src/hooks/useAlertManagement.ts:363` | CORRIGIDO: `zapp.sentiment_alerts` estava em `logflare_pub` mas NÃO em `supabase_realtime`; subscription era no-op silencioso. Fix: `ALTER PUBLICATION supabase_realtime ADD TABLE zapp.sentiment_alerts` | Resolvido — `20260720000005` |
 | ~~BUG-22~~ | `src/hooks/useNotificationManagement.ts:420,447` | CORRIGIDO: subscriptions para tabelas fantasma `goal_notifications` / `transcription_notifications` (não existem em nenhuma migração). Fix: redirecionado para `zapp.app_notifications` (publicada) com filtro client-side por `type` | Resolvido |
 | ~~BUG-23~~ | `src/services/settings/settingsRepository.ts:114,130` | CORRIGIDO: `zapp.user_settings` e `zapp.workspace_settings` são tabelas físicas subscritas via Realtime para sincronização de configurações cross-tab, mas NÃO estavam em `supabase_realtime`; callbacks nunca disparavam. Fix: `ALTER PUBLICATION supabase_realtime ADD TABLE` para ambas | Resolvido — `20260720000006` |
+|| ~~BUG-13~~ | `zapp.rpc_dlq_list_audit` no DB | CORRIGIDO 2026-07-17: JOIN errado `p.id = a.user_id` — `profiles.id` eh UUID surrogado; o auth UID esta em `profiles.user_id`. Resultado: `user_name` e `user_email` sempre NULL no painel. Corrigido para `p.user_id = a.user_id` | Resolvido |
+| ~~BUG-12~~ | `zapp.rpc_dlq_bulk_retry_now` no DB | CORRIGIDO 2026-07-17: chamava `public.has_role()` e `public.log_rls_denied()` (não existem em public); escrevia em `public.audit_logs` (não existe). DROP+CREATE com `zapp.has_role` e `zapp.log_rls_denied` | Resolvido |
+| ~~BUG-13~~ | `zapp.rpc_dlq_list_audit` no DB | CORRIGIDO 2026-07-17: JOIN errado `p.id = a.user_id` — `profiles.id` é UUID surrogado; o auth UID está em `profiles.user_id`. Resultado: `user_name` e `user_email` sempre NULL no painel. Corrigido para `p.user_id = a.user_id` | Resolvido |
+| ~~BUG-14~~ | `zapp.rpc_dlq_log_item_action` no DB | CORRIGIDO 2026-07-17: 2 overloads inseguros sem role check gravando em `zapp.dlq_audit_log` (tabela errada — painel lê `zapp.audit_logs`). Drops aplicados; canonical (text,uuid[],text) corrigido para gravar em `zapp.audit_logs` com supervisor role | Resolvido |
+| ~~BUG-15~~ | `zapp.rpc_dlq_log_reprocess_trigger` / `rpc_dlq_log_reprocess_result` no DB | CORRIGIDO 2026-07-17: `SET search_path TO 'public','evo','zapp','monitoring'` inseguro; supervisor bloqueado. Corrigido para `SET search_path = zapp` + `zapp.has_role(..., 'supervisor')` | Resolvido |
+| ~~BUG-16~~ | `zapp.search_contacts_cursor` no DB | CORRIGIDO 2026-07-17: (1) cursor direction usava `sort_direction = 'asc'` case-sensitive — passar 'ASC' quebrava paginação pág 2+; (2) `sort_direction` injetável via ORDER BY string concat. Corrigido: `v_sort_dir := UPPER(...); IF v_sort_dir NOT IN ('ASC','DESC')` | Resolvido |
+
 
 ---
 
@@ -184,10 +192,7 @@ bun run test:e2e
 
 # Regenerar tipos TypeScript do banco
 # (requer acesso à instância self-hosted)
-curl -s "http://supabase_meta:8080/generators/typescript\
-  ?included_schemas=public,zapp\
-  &detect_one_to_one_relationships=true" \
-  > src/integrations/supabase/types.ts
+curl -s "http://supabase_meta:8080/generators/typescript?included_schemas=public,zapp&detect_one_to_one_relationships=true" > src/integrations/supabase/types.ts
 ```
 
 ---
@@ -203,6 +208,10 @@ curl -s "http://supabase_meta:8080/generators/typescript\
 | `docs/EVOLUTION_API_REFERENCE.md` | API Evolution (WhatsApp) |
 | `docs/RUNBOOK_OBSERVABILITY.md` | Observabilidade e alertas |
 | `SECURITY.md` | Políticas de segurança |
+| `infra/runbooks/OPERATIONS.md` | Runbook de operações (22/07) |
+| `infra/backup/README.md` | Backup & restore procedure |
+| `infra/evolution/SETTINGS.md` | Configs Evolution wpp2 |
+| `docs/QA_REPORT_2026-07-22.md` | QA Report completo (22/07) |
 
 ---
 
@@ -223,6 +232,14 @@ supabase/
 │   └── _shared/
 │       └── db-client.ts     # createZappAdminClient()
 └── migrations/              # 800+ migrações SQL
+
+infra/                       # Infraestrutura
+├── runbooks/                # Procedimentos operacionais
+│   └── OPERATIONS.md        # Runbook (lean)
+├── backup/                  # Documentação de backup
+│   └── README.md            # Procedimento de restore
+└── evolution/               # Configurações Evolution
+    └── SETTINGS.md          # Settings atuais da wpp2
 ```
 
 ---
@@ -281,3 +298,48 @@ supabase/
 - `zapp.goal_notifications` / `zapp.transcription_notifications` — tabelas fantasma, subscriptions redirecionadas
 - `zapp.dispatch_error_logs` — NÃO está em supabase_realtime (sem subscription ativa, ok)
 - Auditoria completa de 36 tabelas e 49 RPCs: todos presentes ou cobertos por stubs/migrations
+
+## Sessão 2026-07-22 — QA Exaustiva de Infraestrutura (10/10)
+
+### Contexto
+QA realizado diretamente no ambiente de produção AtomicaBR (VPS Docker Swarm).
+144 containers auditados, 11 módulos testados, 7 bugs encontrados.
+Todas as correções foram aplicadas em runtime (Evolution API, Docker, PostgreSQL, Hermes Cron).
+
+### Bugs Encontrados
+
+| # | Componente | Problema | Severidade | Status |
+|---|---|---|---|---|
+| BUG-A | CrowdSec Bouncer | 7 dias sem atualizar decisões | 🔴 CRÍTICO | ✅ Corrigido (restart) |
+| BUG-B | WAL Slot | `cainophile_s7fgrb36` 278MB lag crescendo | 🔴 CRÍTICO | ✅ Corrigido (DB restart) |
+| BUG-C | n8n | FK constraint violada em workflow_history | 🟠 ALTO | ⏳ Pendente |
+| BUG-D | Edge Function | POST /rest/v1/contacts 404 | 🟠 ALTO | ⏳ Pendente |
+| BUG-E | Glitchtip | DB disconnect pós-deploy | 🟡 MÉDIO | ✅ Corrigido (restart) |
+| BUG-F | Backups | Falso alarme (backups R2 OK) | 🟡 MÉDIO | ✅ Investigado e limpo |
+| BUG-G | bridge.js | Sem Express error handler | 🟢 BAIXO | Baixo risco |
+
+### Shift-Left Items (runtime — recriar via docs)
+
+| Item | Local | Como Recriar |
+|---|---|---|
+| alwaysOnline=true | Evolution DB | `infra/evolution/SETTINGS.md` |
+| readMessages=true | Evolution DB | `infra/evolution/SETTINGS.md` |
+| Webhook disabled | Evolution DB | `infra/evolution/SETTINGS.md` |
+| Cron: WAL Monitor (15min) | Hermes Agent | `infra/runbooks/OPERATIONS.md` |
+| Cron: Backup Check (6h) | Hermes Agent | `infra/runbooks/OPERATIONS.md` |
+| VACUUM ANALYZE | PostgreSQL | Efeito temporário (re-aplicar) |
+| BACKUP_FAILED purge | Filesystem | Já limpo (245MB) |
+
+### Informações do Ambiente (22/07)
+
+| Métrica | Valor |
+|---|---|
+| Docker | 28.1.1, Ubuntu 20.04, 12 vCPU, 24GB RAM |
+| Disco | 119 GB usado (61%), 75 GB livre |
+| Containers | 144 total (107 running) |
+| Cache hit ratio | 99.91% |
+| Evolution msgs | 46.700+ processadas |
+| RabbitMQ | 17/17 filas, 0 erros |
+| Backups R2 | 13 consecutivos (último: 22/07, 27MB) |
+| WAL total | 1.024 GB (monitorar via cron) |
+

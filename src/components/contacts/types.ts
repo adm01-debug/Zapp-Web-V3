@@ -1,5 +1,6 @@
 import type { ContactRow } from '@/integrations/supabase/schema';
 
+/** Contact component for the contacts section. */
 export type Contact = Pick<
   NonNullable<ContactRow>,
   | 'id'
@@ -16,6 +17,7 @@ export type Contact = Pick<
   | 'created_at'
 >;
 
+/** Contact Item Props component for the contacts section. */
 export interface ContactItemProps {
   contact: Contact;
   isSelected: boolean;

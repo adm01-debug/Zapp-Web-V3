@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { fetchContactMessagesForHeatmap } from '@/hooks/useConversationHeatmap';
 import { Badge } from '@/components/ui/badge';
 import { TrendingUp, Clock } from 'lucide-react';
 import { format, subDays, getDay, getHours } from 'date-fns';
@@ -18,6 +18,7 @@ import {
 
 const DAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
+/** Demand Forecast component for the reports section. */
 export function DemandForecast() {
   const [historicalData, setHistoricalData] = useState<
     { day: string; actual: number; predicted: number }[]
@@ -27,18 +28,13 @@ export function DemandForecast() {
 
   useEffect(() => {
     loadForecast();
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadForecast = async () => {
     setLoading(true);
     const since = subDays(new Date(), 28);
 
-    const { data: messages } = await supabase
-      .from('messages')
-      .select('created_at')
-      .gte('created_at', since.toISOString())
-      .eq('sender', 'contact')
-      .limit(1000);
+    const messages = await fetchContactMessagesForHeatmap(since);
 
     if (!messages) {
       setLoading(false);
@@ -128,7 +124,11 @@ export function DemandForecast() {
           <ResponsiveContainer width="100%" height="100%">
             <ComposedChart data={historicalData}>
               <CartesianGrid strokeDasharray="3 3" className="stroke-border/20" />
-              <XAxis dataKey="day" tick={{ style: { fontSize: '0.75rem' } }} className="fill-muted-foreground" />
+              <XAxis
+                dataKey="day"
+                tick={{ style: { fontSize: '0.75rem' } }}
+                className="fill-muted-foreground"
+              />
               <YAxis tick={{ style: { fontSize: '0.75rem' } }} className="fill-muted-foreground" />
               <Tooltip contentStyle={{ fontSize: 12 }} />
               <Bar

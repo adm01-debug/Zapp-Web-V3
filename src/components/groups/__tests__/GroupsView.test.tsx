@@ -1,6 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
+import React from 'react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
+function renderWithQC(ui: React.ReactElement) {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return render(
+    React.createElement(QueryClientProvider, { client: queryClient }, ui)
+  );
+}
 
 const mockOrder = vi.hoisted(() => vi.fn());
 const mockInvoke = vi.hoisted(() => vi.fn());
@@ -85,12 +94,12 @@ describe('GroupsView', () => {
   });
 
   it('renders the page title', async () => {
-    render(<GroupsView />);
+    renderWithQC(<GroupsView />);
     expect(screen.getByText('Grupos WhatsApp')).toBeInTheDocument();
   });
 
   it('shows empty state when no groups', async () => {
-    render(<GroupsView />);
+    renderWithQC(<GroupsView />);
     await waitFor(() => {
       expect(screen.getByTestId('empty-state')).toBeInTheDocument();
     });
@@ -116,7 +125,7 @@ describe('GroupsView', () => {
         error: null,
       })
       .mockResolvedValueOnce({ data: [], error: null });
-    render(<GroupsView />);
+    renderWithQC(<GroupsView />);
     await waitFor(() => {
       expect(screen.getByText('Meu Grupo')).toBeInTheDocument();
       expect(screen.getByText('10 participantes')).toBeInTheDocument();
@@ -155,7 +164,7 @@ describe('GroupsView', () => {
         error: null,
       })
       .mockResolvedValueOnce({ data: [], error: null });
-    render(<GroupsView />);
+    renderWithQC(<GroupsView />);
     await waitFor(() => expect(screen.getByText('Marketing')).toBeInTheDocument());
     fireEvent.change(screen.getByPlaceholderText('Buscar por nome ou ID do grupo...'), {
       target: { value: 'Vendas' },
@@ -168,7 +177,7 @@ describe('GroupsView', () => {
     mockOrder
       .mockResolvedValueOnce({ data: null, error: { message: 'err' } })
       .mockResolvedValueOnce({ data: [], error: null });
-    render(<GroupsView />);
+    renderWithQC(<GroupsView />);
     await waitFor(() => {
       expect(toast.error).toHaveBeenCalledWith('Erro ao carregar grupos');
     });
@@ -183,8 +192,9 @@ describe('GroupsView', () => {
       });
     mockInvoke.mockResolvedValue({ data: [], error: null });
     mockOrder.mockResolvedValue({ data: [], error: null });
-    render(<GroupsView />);
+    renderWithQC(<GroupsView />);
     await waitFor(() => expect(screen.getByText('Sincronizar')).toBeInTheDocument());
+    await waitFor(() => expect(mockOrder).toHaveBeenCalledTimes(2));
     fireEvent.click(screen.getByText('Sincronizar'));
     await waitFor(() => {
       expect(mockInvoke).toHaveBeenCalledWith('evolution-api', {
@@ -197,7 +207,7 @@ describe('GroupsView', () => {
     mockOrder
       .mockResolvedValueOnce({ data: [], error: null })
       .mockResolvedValueOnce({ data: [], error: null });
-    render(<GroupsView />);
+    renderWithQC(<GroupsView />);
     await waitFor(() => expect(screen.getByText('Sincronizar')).toBeInTheDocument());
     fireEvent.click(screen.getByText('Sincronizar'));
     await waitFor(() => {
@@ -225,7 +235,7 @@ describe('GroupsView', () => {
         error: null,
       })
       .mockResolvedValueOnce({ data: [], error: null });
-    render(<GroupsView />);
+    renderWithQC(<GroupsView />);
     await waitFor(() => {
       expect(screen.getByText('Admin')).toBeInTheDocument();
     });
@@ -254,7 +264,7 @@ describe('GroupsView', () => {
         data: [{ id: 'c1', name: 'WBiz', phone_number: '5511', instance_id: 'i1' }],
         error: null,
       });
-    render(<GroupsView />);
+    renderWithQC(<GroupsView />);
     await waitFor(() => {
       expect(screen.getByText('WBiz')).toBeInTheDocument();
     });
@@ -280,7 +290,7 @@ describe('GroupsView', () => {
         error: null,
       })
       .mockResolvedValueOnce({ data: [], error: null });
-    render(<GroupsView />);
+    renderWithQC(<GroupsView />);
     await waitFor(() => {
       expect(screen.getByText('Não vinculado')).toBeInTheDocument();
     });
@@ -306,7 +316,7 @@ describe('GroupsView', () => {
         error: null,
       })
       .mockResolvedValueOnce({ data: [], error: null });
-    render(<GroupsView />);
+    renderWithQC(<GroupsView />);
     await waitFor(() => {
       expect(screen.getByText('Selecionar todos')).toBeInTheDocument();
     });

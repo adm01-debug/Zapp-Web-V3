@@ -10,13 +10,14 @@ import { WifiOff, Wifi } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
-import { useConnectionStatusIndicator } from './useConnectionStatusIndicator';
+import { useConnectionStatusIndicator } from '@/hooks/useConnectionStatusIndicator';
 import { ConnectionPopoverContent } from './ConnectionPopoverContent';
 
 interface Props {
   collapsed?: boolean;
 }
 
+/** Connection Status Indicator function. */
 export function ConnectionStatusIndicator({ collapsed = false }: Props) {
   const {
     connections,

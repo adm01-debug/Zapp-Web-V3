@@ -45,6 +45,7 @@ interface Analysis {
 }
 
 // Overview Tab
+/** Overview Tab component for the dashboard section. */
 export function OverviewTab({ dailyData, alerts, onViewAllAlerts }: {
   dailyData: DailyData[];
   alerts: Alert[];
@@ -115,6 +116,7 @@ export function OverviewTab({ dailyData, alerts, onViewAllAlerts }: {
 }
 
 // Agents Tab
+/** Agents Tab component for the dashboard section. */
 export function AgentsTab({ agentData }: { agentData: AgentData[] }) {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -186,6 +188,7 @@ export function AgentsTab({ agentData }: { agentData: AgentData[] }) {
 }
 
 // Alerts Tab
+/** Alerts Tab component for the dashboard section. */
 export function AlertsTab({ alerts }: { alerts: Alert[] }) {
   return (
     <Card className="border-border/50">
@@ -231,6 +234,7 @@ export function AlertsTab({ alerts }: { alerts: Alert[] }) {
 }
 
 // Distribution Tab
+/** Distribution Tab component for the dashboard section. */
 export function DistributionTab({ stats, analyses }: {
   stats: { totalAnalyses: number; positiveAnalyses: number; neutralAnalyses: number; negativeAnalyses: number };
   analyses: Analysis[];

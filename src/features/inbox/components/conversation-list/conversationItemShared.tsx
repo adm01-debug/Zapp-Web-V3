@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import {
   MessageCircle,
   Instagram,
@@ -12,6 +13,7 @@ import { cn } from '@/lib/utils';
 
 // ─── Interfaces ────────────────────────────────────────────────────────────────
 
+/** Conversation Contact Data component for the conversation list section. */
 export interface ConversationContactData {
   id?: string;
   name?: string | null;
@@ -31,6 +33,7 @@ export interface ConversationContactData {
   contact_type?: string | null;
 }
 
+/** Conversation Item Data component for the conversation list section. */
 export interface ConversationItemData {
   id: string;
   contact?: ConversationContactData | null;
@@ -57,6 +60,7 @@ export interface ConversationItemData {
   priority?: string | null;
 }
 
+/** Conversation Item Props component for the conversation list section. */
 export interface ConversationItemProps {
   conversation: ConversationItemData;
   isSelected: boolean;
@@ -70,6 +74,7 @@ export interface ConversationItemProps {
 
 // ─── Status maps ───────────────────────────────────────────────────────────────
 
+/** status Icons component for the conversation list section. */
 export const statusIcons = {
   open: AlertCircle,
   pending: Clock,
@@ -77,6 +82,7 @@ export const statusIcons = {
   waiting: Loader2,
 };
 
+/** status Colors component for the conversation list section. */
 export const statusColors = {
   open: 'bg-status-open',
   pending: 'bg-status-pending',
@@ -86,6 +92,7 @@ export const statusColors = {
 
 // ─── ChannelBadge ──────────────────────────────────────────────────────────────
 
+/** Channel Badge component for the conversation list section. */
 export function ChannelBadge({ type }: { type?: string | null }) {
   const iconClass = 'w-2.5 h-2.5 text-primary-foreground';
   let Icon = MessageCircle;
@@ -114,6 +121,7 @@ export function ChannelBadge({ type }: { type?: string | null }) {
 
 // ─── Display helpers ───────────────────────────────────────────────────────────
 
+/** build Primary Label component for the conversation list section. */
 export function buildPrimaryLabel(conversation: ConversationItemData): string {
   const name = (
     conversation.contact?.name ||
@@ -129,6 +137,7 @@ export function buildPrimaryLabel(conversation: ConversationItemData): string {
   return safeName;
 }
 
+/** build Secondary Label component for the conversation list section. */
 export function buildSecondaryLabel(conversation: ConversationItemData): string | null {
   const jobTitle =
     conversation.contact?.job_title?.trim() ||
@@ -137,6 +146,7 @@ export function buildSecondaryLabel(conversation: ConversationItemData): string 
   return jobTitle || 'Cargo não informado';
 }
 
+/** short Relative Time component for the conversation list section. */
 export function shortRelativeTime(date: Date): string {
   const diff = Date.now() - date.getTime();
   const min = Math.floor(diff / 60000);

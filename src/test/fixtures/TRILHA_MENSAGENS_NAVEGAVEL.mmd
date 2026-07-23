@@ -40,6 +40,7 @@ flowchart LR
   subgraph RT["5. Realtime e Batching"]
     BATCH["useMessageUpdateBatcher"]
     URM["useRealtimeMessages"]
+    URMG["useRealtimeMessages<br/>(global hook)"]
     RUTL["realtimeUtils"]
     URN["useRealtimeNotifications"]
     UTN["useTranscriptionNotifications"]
@@ -110,6 +111,7 @@ flowchart LR
   %% FAN-OUT REALTIME — quem escuta postgres_changes na tabela 'messages'
   %% =====================================================================
   DB -.->|INSERT/UPDATE/DELETE| URM
+  DB -.->|INSERT/UPDATE/DELETE| URMG
   DB -.->|INSERT/UPDATE/DELETE| UM
   DB -.->|UPDATE status| UMS
   DB -.->|UPDATE transcription| UTN
@@ -157,7 +159,11 @@ flowchart LR
   click RUTL "src/features/inbox/hooks/realtime/realtimeUtils.ts"
   click SUBALL "src/features/inbox/hooks/realtime/sendStatusBus.ts"
   click UMSS "src/features/inbox/hooks/realtime/useMessageSendStatus.ts"
+  click URD "src/hooks/useRealtimeDashboard.ts"
+  click URM "src/features/inbox/hooks/useRealtimeMessages.ts"
+  click URMG "src/hooks/useRealtimeMessages.ts"
   click URN "src/features/inbox/hooks/realtime/useRealtimeNotifications.ts"
+  click UTN "src/hooks/useTranscriptionNotifications.ts"
   click VML "src/features/inbox/components/VirtualizedMessageList.tsx"
   %% AUTO:CLICKS:END
 

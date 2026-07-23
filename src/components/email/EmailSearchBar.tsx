@@ -14,6 +14,7 @@ interface EmailSearchBarProps {
   className?: string;
 }
 
+/** Email Search Bar component for the email section. */
 export function EmailSearchBar({ accountId, onSelectThread, className }: EmailSearchBarProps) {
   const { query, results, isSearching, handleQueryChange, clearSearch } = useEmailSearch(accountId);
   const inputRef = useRef<HTMLInputElement>(null);

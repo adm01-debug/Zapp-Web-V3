@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { illustrations } from './empty-state-illustrations';
 
+/** Empty State Context type alias. */
 export type EmptyStateContext =
   | 'inbox' | 'contacts' | 'dashboard' | 'calls' | 'tags'
   | 'search' | 'notifications' | 'generic' | 'transcriptions'
@@ -209,6 +210,7 @@ export function EmptyState({
 // PRESET EMPTY STATES — exported for convenience
 // ============================================================
 
+/** Inbox Empty State function. */
 export function InboxEmptyState({ onStartChat }: { onStartChat?: () => void }) {
   return (
     <EmptyState
@@ -228,6 +230,7 @@ export function InboxEmptyState({ onStartChat }: { onStartChat?: () => void }) {
   );
 }
 
+/** Contacts Empty State function. */
 export function ContactsEmptyState({ onAddContact }: { onAddContact?: () => void }) {
   return (
     <EmptyState
@@ -243,6 +246,7 @@ export function ContactsEmptyState({ onAddContact }: { onAddContact?: () => void
   );
 }
 
+/** Dashboard Empty State function. */
 export function DashboardEmptyState({ onExplore }: { onExplore?: () => void }) {
   return (
     <EmptyState
@@ -256,6 +260,7 @@ export function DashboardEmptyState({ onExplore }: { onExplore?: () => void }) {
   );
 }
 
+/** Search Empty State function. */
 export function SearchEmptyState({ query }: { query?: string }) {
   return (
     <EmptyState
@@ -270,6 +275,7 @@ export function SearchEmptyState({ query }: { query?: string }) {
   );
 }
 
+/** Notifications Empty State function. */
 export function NotificationsEmptyState() {
   return (
     <EmptyState
@@ -281,6 +287,7 @@ export function NotificationsEmptyState() {
   );
 }
 
+/** Tags Empty State function. */
 export function TagsEmptyState({ onCreateTag }: { onCreateTag?: () => void }) {
   return (
     <EmptyState
@@ -294,6 +301,7 @@ export function TagsEmptyState({ onCreateTag }: { onCreateTag?: () => void }) {
   );
 }
 
+/** Calls Empty State function. */
 export function CallsEmptyState() {
   return (
     <EmptyState
@@ -304,6 +312,7 @@ export function CallsEmptyState() {
   );
 }
 
+/** Transcriptions Empty State function. */
 export function TranscriptionsEmptyState() {
   return (
     <EmptyState
@@ -314,6 +323,7 @@ export function TranscriptionsEmptyState() {
   );
 }
 
+/** Campaigns Empty State function. */
 export function CampaignsEmptyState({ onCreateCampaign }: { onCreateCampaign?: () => void }) {
   return (
     <EmptyState
@@ -329,6 +339,7 @@ export function CampaignsEmptyState({ onCreateCampaign }: { onCreateCampaign?: (
   );
 }
 
+/** Chatbot Empty State function. */
 export function ChatbotEmptyState({ onCreateFlow }: { onCreateFlow?: () => void }) {
   return (
     <EmptyState
@@ -344,6 +355,7 @@ export function ChatbotEmptyState({ onCreateFlow }: { onCreateFlow?: () => void 
   );
 }
 
+/** Pipeline Empty State function. */
 export function PipelineEmptyState({ onCreateDeal }: { onCreateDeal?: () => void }) {
   return (
     <EmptyState
@@ -357,6 +369,7 @@ export function PipelineEmptyState({ onCreateDeal }: { onCreateDeal?: () => void
   );
 }
 
+/** Reports Empty State function. */
 export function ReportsEmptyState() {
   return (
     <EmptyState
@@ -367,6 +380,7 @@ export function ReportsEmptyState() {
   );
 }
 
+/** Integrations Empty State function. */
 export function IntegrationsEmptyState({ onExplore }: { onExplore?: () => void }) {
   return (
     <EmptyState
@@ -382,6 +396,7 @@ export function IntegrationsEmptyState({ onExplore }: { onExplore?: () => void }
   );
 }
 
+/** Templates Empty State function. */
 export function TemplatesEmptyState({ onCreateTemplate }: { onCreateTemplate?: () => void }) {
   return (
     <EmptyState
@@ -397,6 +412,7 @@ export function TemplatesEmptyState({ onCreateTemplate }: { onCreateTemplate?: (
   );
 }
 
+/** Catalog Empty State function. */
 export function CatalogEmptyState({ onAddProduct }: { onAddProduct?: () => void }) {
   return (
     <EmptyState

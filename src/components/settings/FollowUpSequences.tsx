@@ -10,6 +10,7 @@ import { Plus, Trash2, Clock, ArrowRight, Zap, MessageSquare } from 'lucide-reac
 import { FollowUpExecutionsHistory } from './FollowUpExecutionsHistory';
 import { useFollowUpSequences, type Step } from '@/hooks/followup/useFollowUpSequences';
 
+/** Follow Up Sequences component for the settings section. */
 export function FollowUpSequences() {
   const [showCreate, setShowCreate] = useState(false);
   const [newName, setNewName] = useState('');

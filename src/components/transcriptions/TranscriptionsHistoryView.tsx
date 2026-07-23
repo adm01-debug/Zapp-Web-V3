@@ -36,6 +36,7 @@ interface TranscriptionRecord {
 
 type DateFilter = 'all' | 'today' | 'week' | 'month';
 
+/** Transcriptions History View component for the transcriptions section. */
 export function TranscriptionsHistoryView() {
   const [transcriptions, setTranscriptions] = useState<TranscriptionRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -263,8 +264,7 @@ export function TranscriptionsHistoryView() {
                     : 'Transcrições de áudios aparecerão aqui automaticamente'
                 }
                 illustration="transcriptions"
-                secondaryActionLabel={searchQuery ? 'Limpar busca' : undefined}
-                onSecondaryAction={searchQuery ? () => setSearchQuery('') : undefined}
+                secondaryAction={searchQuery ? { label: 'Limpar busca', onClick: () => setSearchQuery('') } : undefined}
               />
             ) : (
               Object.entries(groupedByContact).map(

@@ -47,6 +47,7 @@ interface Props {
   clearFilters: () => void;
 }
 
+/** Webhook Filters Card. */
 export function WebhookFiltersCard({
   hours,
   setHours,

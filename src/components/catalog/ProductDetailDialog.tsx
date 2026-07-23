@@ -61,6 +61,7 @@ interface ProductDetailDialogProps {
   onSend?: (product: ExternalProduct) => void;
 }
 
+/** Product Detail Dialog component for the catalog section. */
 export function ProductDetailDialog({
   product,
   open,
@@ -91,7 +92,7 @@ export function ProductDetailDialog({
     } else {
       setFullProduct(product);
     }
-  }, [open, product.id]);
+  }, [open, product.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const dp = fullProduct;
 

@@ -15,6 +15,7 @@ interface PerformanceMetric {
   status: PerformanceMetricStatus;
 }
 
+/** Performance Monitor component for the performance section. */
 export function PerformanceMonitor() {
   const [metrics, setMetrics] = useState<PerformanceMetric[]>([]);
   const [localHistory, setLocalHistory] = useState<Array<{ time: string; fcp: number; memory: number }>>([]);

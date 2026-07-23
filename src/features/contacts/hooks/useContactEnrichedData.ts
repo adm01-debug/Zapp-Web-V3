@@ -6,6 +6,7 @@ import { sanitizePostgrestFilter } from '@/lib/sanitize';
 import { dbFrom } from '@/integrations/datasource/db';
 import { isValidUUID } from '@/utils/uuid';
 
+/** Enriched Contact Data interface definition. */
 export interface EnrichedContactData {
   company: string | null;
   job_title: string | null;
@@ -17,6 +18,7 @@ export interface EnrichedContactData {
   channel_type: string | null;
 }
 
+/** A I Conversation Tag interface definition. */
 export interface AIConversationTag {
   id: string;
   tag_name: string;
@@ -24,6 +26,7 @@ export interface AIConversationTag {
   source: string | null;
 }
 
+/** S L A Info interface definition. */
 export interface SLAInfo {
   first_response_breached: boolean | null;
   resolution_breached: boolean | null;
@@ -73,6 +76,7 @@ async function resolveLocalContactId(identifier: string): Promise<string | null>
   return data?.id ?? null;
 }
 
+/** use Contact Enriched Data function. */
 export function useContactEnrichedData(contactId: string) {
   // Step 1 — resolve the FATOR X identifier into a local Lovable Cloud UUID.
   // Without this, JIDs were being passed straight into UUID columns, triggering 22P02 errors.
@@ -85,7 +89,7 @@ export function useContactEnrichedData(contactId: string) {
 
   // Fetch enriched contact fields from DB
   const enrichedQuery = useQuery({
-    queryKey: queryKeys.contactDetails.enriched(localId),
+    queryKey: queryKeys.contactDetails.enriched(localId ?? undefined),
     queryFn: async () => {
       if (!localId) return null;
       const { data, error } = await dbFrom('contacts')
@@ -116,7 +120,7 @@ export function useContactEnrichedData(contactId: string) {
 
   // Fetch AI conversation tags
   const aiTagsQuery = useQuery({
-    queryKey: queryKeys.contactDetails.aiTags(localId),
+    queryKey: queryKeys.contactDetails.aiTags(localId ?? undefined),
     queryFn: async () => {
       if (!localId) return [] as AIConversationTag[];
       const { data, error } = await supabase
@@ -146,7 +150,7 @@ export function useContactEnrichedData(contactId: string) {
 
   // Fetch SLA info
   const slaQuery = useQuery({
-    queryKey: queryKeys.sla.contact(localId),
+    queryKey: queryKeys.sla.contact(localId ?? undefined),
     queryFn: async () => {
       if (!localId) return null;
       const { data, error } = await supabase

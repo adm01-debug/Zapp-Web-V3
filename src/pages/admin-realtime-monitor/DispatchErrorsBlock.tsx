@@ -3,7 +3,14 @@ import { useFailedMessages } from '@/features/admin';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { GenericEmptyState } from '@/components/ui/GenericEmptyState';
 import { AlertTriangle, UsersRound, Smartphone } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
@@ -14,9 +21,11 @@ interface Props {
   windowHours: number;
 }
 
+/** Dispatch Errors Block. */
 export function DispatchErrorsBlock({ windowHours }: Props) {
   const { data, isLoading, error } = useFailedMessages({ hours: windowHours, pageSize: 500 });
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const rows = data?.rows ?? [];
   const byAgent = useMemo(() => aggregateByAgent(rows), [rows]);
   const byChannel = useMemo(() => aggregateByChannel(rows), [rows]);
@@ -27,7 +36,9 @@ export function DispatchErrorsBlock({ windowHours }: Props) {
         <CardTitle className="flex items-center gap-2 text-base">
           <AlertTriangle className="h-5 w-5 text-warning-foreground" />
           Erros de dispatch
-          <Badge variant="outline" className="ml-1">{rows.length} falhas</Badge>
+          <Badge variant="outline" className="ml-1">
+            {rows.length} falhas
+          </Badge>
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -42,9 +53,9 @@ export function DispatchErrorsBlock({ windowHours }: Props) {
             description="Nenhuma mensagem falhou no envio nesta janela."
           />
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             <section>
-              <h3 className="text-sm font-semibold mb-2 flex items-center gap-2">
+              <h3 className="mb-2 flex items-center gap-2 text-sm font-semibold">
                 <UsersRound className="h-4 w-4" /> Por agente
               </h3>
               <div className="rounded-md border">
@@ -60,7 +71,7 @@ export function DispatchErrorsBlock({ windowHours }: Props) {
                   <TableBody>
                     {byAgent.slice(0, 10).map((a) => (
                       <TableRow key={a.agent}>
-                        <TableCell className="text-xs  truncate max-w-[180px]" title={a.agent}>
+                        <TableCell className="max-w-[180px] truncate text-xs" title={a.agent}>
                           {a.agent}
                         </TableCell>
                         <TableCell className="text-right text-xs">
@@ -77,7 +88,10 @@ export function DispatchErrorsBlock({ windowHours }: Props) {
                         </TableCell>
                         <TableCell className="text-[11px] text-muted-foreground">
                           {a.lastErrorAt
-                            ? formatDistanceToNow(new Date(a.lastErrorAt), { addSuffix: true, locale: ptBR })
+                            ? formatDistanceToNow(new Date(a.lastErrorAt), {
+                                addSuffix: true,
+                                locale: ptBR,
+                              })
                             : '—'}
                         </TableCell>
                       </TableRow>
@@ -88,7 +102,7 @@ export function DispatchErrorsBlock({ windowHours }: Props) {
             </section>
 
             <section>
-              <h3 className="text-sm font-semibold mb-2 flex items-center gap-2">
+              <h3 className="mb-2 flex items-center gap-2 text-sm font-semibold">
                 <Smartphone className="h-4 w-4" /> Por canal/instância
               </h3>
               <div className="rounded-md border">
@@ -104,16 +118,22 @@ export function DispatchErrorsBlock({ windowHours }: Props) {
                   <TableBody>
                     {byChannel.slice(0, 10).map((c) => (
                       <TableRow key={c.instance}>
-                        <TableCell className="text-xs ">{c.instance}</TableCell>
+                        <TableCell className="text-xs">{c.instance}</TableCell>
                         <TableCell className="text-right text-xs">
                           {c.total} <span className="text-muted-foreground">({c.pct}%)</span>
                         </TableCell>
-                        <TableCell className="text-xs truncate max-w-[200px]" title={c.lastError ?? ''}>
+                        <TableCell
+                          className="max-w-[200px] truncate text-xs"
+                          title={c.lastError ?? ''}
+                        >
                           {c.lastError ?? '—'}
                         </TableCell>
                         <TableCell className="text-[11px] text-muted-foreground">
                           {c.lastErrorAt
-                            ? formatDistanceToNow(new Date(c.lastErrorAt), { addSuffix: true, locale: ptBR })
+                            ? formatDistanceToNow(new Date(c.lastErrorAt), {
+                                addSuffix: true,
+                                locale: ptBR,
+                              })
                             : '—'}
                         </TableCell>
                       </TableRow>

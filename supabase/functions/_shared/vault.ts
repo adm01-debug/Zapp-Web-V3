@@ -4,6 +4,7 @@ interface CacheEntry { value: string; ts: number; }
 const vaultCache = new Map<string, CacheEntry>();
 const CACHE_TTL_MS = 60000;
 
+/** vault utilities and exports. */
 export async function getSecret(name: string, opts: { skipEnv?: boolean } = {}): Promise<string | null> {
   const envName = name.toUpperCase();
   const envValue = Deno.env.get(envName);

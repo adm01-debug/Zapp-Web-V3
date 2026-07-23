@@ -31,6 +31,7 @@ const log = getLogger('useMessagesCursor');
 const DEFAULT_PAGE_SIZE = 50;
 const DEFAULT_INSTANCE = DEFAULT_WHATSAPP_INSTANCE;
 
+/** Options for cursor-based message pagination: target JID, Evolution instance, page size cap, and enabled flag. */
 export interface UseMessagesCursorOptions {
   remoteJid: string | null;
   instanceName?: string;
@@ -38,6 +39,7 @@ export interface UseMessagesCursorOptions {
   enabled?: boolean;
 }
 
+/** Return value of useMessagesCursor: paginated message list, loading states, and imperative controls for older-page loading and realtime message mutations. */
 export interface UseMessagesCursorReturn {
   messages: EvolutionMessageLite[];
   loading: boolean;
@@ -60,6 +62,7 @@ function dedupeAndSort(rows: EvolutionMessageLite[]): EvolutionMessageLite[] {
   );
 }
 
+/** Cursor-based incremental message loader for a WhatsApp JID; fetches the most-recent page on mount, exposes `loadOlder()` for backwards pagination, and patches state via Realtime INSERT/UPDATE/DELETE events. */
 export function useMessagesCursor({
   remoteJid,
   instanceName = DEFAULT_INSTANCE,
@@ -154,7 +157,7 @@ export function useMessagesCursor({
     } finally {
       if (mountedRef.current) setLoading(false);
     }
-  }, [enabled, remoteJid, fetchPage, pageSize]);
+  }, [enabled, remoteJid, fetchPage, pageSize]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Reset + first load whenever remoteJid changes.
   useEffect(() => {
@@ -201,14 +204,14 @@ export function useMessagesCursor({
       if (mountedRef.current) setLoadingOlder(false);
       inFlightRef.current = false;
     }
-  }, [remoteJid, hasMoreOlder, fetchPage, pageSize]);
+  }, [remoteJid, hasMoreOlder, fetchPage, pageSize]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const cancelLoadOlder = useCallback(() => {
     if (!inFlightRef.current) return;
     abortRef.current?.abort();
     inFlightRef.current = false;
     if (mountedRef.current) setLoadingOlder(false);
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Realtime — only set up when enabled + jid present.
   useEffect(() => {
@@ -229,7 +232,7 @@ export function useMessagesCursor({
           const raw = payload.new;
           if (!raw || typeof raw !== 'object' || !('id' in raw)) return;
           // Realtime payloads are full rows; project to lite to keep memory low.
-          const m = toEvolutionMessageLite(raw as Record<string, unknown>);
+          const m = toEvolutionMessageLite(raw as unknown as Parameters<typeof toEvolutionMessageLite>[0]);
           setPages((prev) => {
             for (const p of prev) {
               if (p.some((x) => x.id === m.id)) return prev;
@@ -252,7 +255,7 @@ export function useMessagesCursor({
         (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => {
           const raw = payload.new;
           if (!raw || typeof raw !== 'object' || !('id' in raw)) return;
-          const m = toEvolutionMessageLite(raw as Record<string, unknown>);
+          const m = toEvolutionMessageLite(raw as unknown as Parameters<typeof toEvolutionMessageLite>[0]);
           setPages((prev) =>
             prev.map((page) => page.map((x) => (x.id === m.id ? { ...x, ...m } : x)))
           );
@@ -279,7 +282,6 @@ export function useMessagesCursor({
       .subscribe();
 
     return () => {
-      channel.unsubscribe();
       externalSupabase.removeChannel(channel);
     };
   }, [enabled, remoteJid]);

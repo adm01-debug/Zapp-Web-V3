@@ -8,11 +8,14 @@ import { queryKeys } from '@/services/api/queryKeys';
 import { toast } from 'sonner';
 import { useSipConnection } from './sip/useSipConnection';
 
+/** Re-exported module members. */
 export type { SipStatus } from './sip/useSipConnection';
+/** Lifecycle state of the active SIP call session. */
 export type CallStatus = 'idle' | 'calling' | 'ringing' | 'active' | 'on-hold' | 'ended';
 
 const log = getLogger('SipClient');
 
+/** Manages a SIP.js WebRTC voice call session: connects/disconnects the UA, places/answers/holds/mutes calls, tracks duration, and persists call records to Supabase. */
 export function useSipClient() {
   const { sipStatus, uaRef, connect, disconnect } = useSipConnection();
   const queryClient = useQueryClient();

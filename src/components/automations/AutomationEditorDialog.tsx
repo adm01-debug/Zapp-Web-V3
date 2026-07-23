@@ -29,6 +29,7 @@ interface AutomationEditorDialogProps {
   onSave: (data: Partial<AutomationRow>) => Promise<void>;
 }
 
+/** Automation Editor Dialog component for the automations section. */
 export function AutomationEditorDialog({
   open,
   onOpenChange,

@@ -12,6 +12,7 @@ interface SharedMediaAccordionItemProps {
   onOpen: () => void;
 }
 
+/** Shared Media Accordion Item component for the contact details section. */
 export function SharedMediaAccordionItem({ contactId, onOpen }: SharedMediaAccordionItemProps) {
   const queryClient = useQueryClient();
   const itemRef = useRef<HTMLDivElement>(null);

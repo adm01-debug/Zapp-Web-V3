@@ -5,10 +5,12 @@ export type InternalMessageType =
   | 'text' | 'image' | 'audio' | 'video' | 'document'
   | 'sticker' | 'location' | 'interactive' | 'unsupported';
 
+/** Message Category type alias. */
 export type MessageCategory =
   | 'text' | 'media' | 'interactive' | 'location'
   | 'contact' | 'poll' | 'reaction' | 'system' | 'unknown';
 
+/** Extracted Message Type interface definition. */
 export interface ExtractedMessageType {
   rawType: string;
   internalType: InternalMessageType;
@@ -51,6 +53,7 @@ const SHORT_ALIASES: Record<string, keyof typeof MESSAGE_TYPE_BLUEPRINT> = {
   interactive: 'buttonsMessage',
 };
 
+/** extract Message Type function. */
 export function extractMessageType(rawType: string | null | undefined): ExtractedMessageType {
   const raw = (rawType ?? '').trim();
   if (!raw) {

@@ -2,6 +2,7 @@
 import { useBusinessLogicCampaignsManagement } from '@/features/business-logic/hooks/useBusinessLogicManagement';
 import type { ABVariant, UseBusinessLogicCampaignsParams, UseBusinessLogicCampaignsResult } from '@/features/business-logic/hooks/useBusinessLogicManagement';
 
+/** Hook: use Campaign ABTesting. */
 export function useCampaignABTesting(
   params: UseBusinessLogicCampaignsParams | string
 ): UseBusinessLogicCampaignsResult {
@@ -10,5 +11,7 @@ export function useCampaignABTesting(
   );
 }
 
+/** Re-exported module members. */
 export { useBusinessLogicCampaignsManagement };
+/** Re-exported module members. */
 export type { ABVariant, UseBusinessLogicCampaignsParams, UseBusinessLogicCampaignsResult };

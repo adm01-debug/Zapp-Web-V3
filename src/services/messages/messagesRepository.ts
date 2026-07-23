@@ -6,8 +6,9 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { createService } from '@/services/api/genericService';
-import type { ListResponse, QueryParams } from '@/services/api/types';
+import type { QueryParams } from '@/services/api/types';
 
+/** Message interface. */
 export interface Message {
   id: string;
   conversation_id: string;
@@ -24,6 +25,7 @@ export interface Message {
   updated_at: string;
 }
 
+/** Conversation interface definition. */
 export interface Conversation {
   id: string;
   contact_id: string;
@@ -40,32 +42,31 @@ export interface Conversation {
 const messagesBaseService = createService<Message>('messages');
 const conversationsBaseService = createService<Conversation>('conversations');
 
+/** messages Repository constant. */
 export const messagesRepository = {
   // Messages
-  listMessages: (filters?: Partial<Message> & QueryParams) =>
-    messagesBaseService.list(filters),
+  listMessages: (filters?: Partial<Message> & QueryParams) => messagesBaseService.list(filters),
 
-  getMessage: (id: string) =>
-    messagesBaseService.get(id),
+  getMessage: (id: string) => messagesBaseService.get(id),
 
-  createMessage: (data: Partial<Message>) =>
-    messagesBaseService.create(data),
+  createMessage: (data: Partial<Message>) => messagesBaseService.create(data),
 
-  updateMessage: (id: string, updates: Partial<Message>) =>
-    messagesBaseService.update(id, updates),
+  updateMessage: (id: string, updates: Partial<Message>) => messagesBaseService.update(id, updates),
 
-  deleteMessage: (id: string) =>
-    messagesBaseService.delete(id),
+  deleteMessage: (id: string) => messagesBaseService.delete(id),
 
   // Conversation messages
   async listConversationMessages(conversationId: string, filters?: Partial<QueryParams>) {
+    const limit = filters?.pageSize ?? 50;
+    const page = filters?.page ?? 1;
+    const from = (page - 1) * limit;
+    const to = from + limit - 1;
     const { data, error, count } = await supabase
       .from('messages')
       .select('*', { count: 'exact' })
       .eq('conversation_id', conversationId)
       .order('created_at', { ascending: false })
-      .limit(filters?.limit || 50)
-      .offset(filters?.offset || 0);
+      .range(from, to);
 
     return { data: data || [], error, count };
   },
@@ -74,17 +75,14 @@ export const messagesRepository = {
   listConversations: (filters?: Partial<Conversation> & QueryParams) =>
     conversationsBaseService.list(filters),
 
-  getConversation: (id: string) =>
-    conversationsBaseService.get(id),
+  getConversation: (id: string) => conversationsBaseService.get(id),
 
-  createConversation: (data: Partial<Conversation>) =>
-    conversationsBaseService.create(data),
+  createConversation: (data: Partial<Conversation>) => conversationsBaseService.create(data),
 
   updateConversation: (id: string, updates: Partial<Conversation>) =>
     conversationsBaseService.update(id, updates),
 
-  deleteConversation: (id: string) =>
-    conversationsBaseService.delete(id),
+  deleteConversation: (id: string) => conversationsBaseService.delete(id),
 
   // Unread messages count
   async getUnreadMessagesCount(conversationId: string) {
@@ -98,7 +96,7 @@ export const messagesRepository = {
   },
 
   // Mark as read
-  async markMessagesAsRead(conversationId: string, userId: string) {
+  async markMessagesAsRead(conversationId: string, _userId: string) {
     const { error } = await supabase
       .from('messages')
       .update({ is_read: true, read_at: new Date().toISOString() })
@@ -107,5 +105,4 @@ export const messagesRepository = {
 
     return { error };
   },
-
 };

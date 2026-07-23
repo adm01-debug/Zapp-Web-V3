@@ -49,6 +49,7 @@ function fmtDate(iso: string | null) {
   return d.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
 }
 
+/** DLQPanel component for the monitoring section. */
 export function DLQPanel() {
   const [hours, setHours] = useState<number>(24);
   const [statusFilter, setStatusFilter] = useState<FailedMessageStatus | 'all'>('all');
@@ -94,7 +95,7 @@ export function DLQPanel() {
                 : <ListChecks className="w-3.5 h-3.5 mr-1" />}
               Reprocessar agora
             </Button>
-            <Button variant="ghost" size="sm" onClick={() => refetch()} disabled={isLoading}>
+            <Button aria-label="Atualizar" variant="ghost" size="sm" onClick={() => refetch()} disabled={isLoading}>
               <RefreshCw className={cn('w-3.5 h-3.5', isLoading && 'animate-spin')} />
             </Button>
           </div>

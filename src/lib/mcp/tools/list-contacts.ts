@@ -16,6 +16,7 @@ function supabaseForUser(ctx: ToolContext) {
   );
 }
 
+/** MCP tool: list-contacts. */
 export default defineTool({
   name: 'search_contacts',
   title: 'Buscar contatos',

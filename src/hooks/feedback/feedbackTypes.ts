@@ -1,5 +1,7 @@
+/** Hook: Feedback Type. */
 export type FeedbackType = 'success' | 'error' | 'warning' | 'info' | 'loading';
 
+/** Hook: Feedback Options. */
 export interface FeedbackOptions {
   title?: string;
   description: string;
@@ -10,6 +12,7 @@ export interface FeedbackOptions {
   };
 }
 
+/** Hook: With Feedback Options. */
 export interface WithFeedbackOptions<T> {
   loadingMessage?: string;
   successMessage?: string | ((result: T) => string);
@@ -19,6 +22,7 @@ export interface WithFeedbackOptions<T> {
   onError?: (error: Error) => void;
 }
 
+/** Hook: Undoable Options. */
 export interface UndoableOptions<T> {
   description: string;
   undoDuration?: number;
@@ -26,6 +30,7 @@ export interface UndoableOptions<T> {
   onConfirm?: (result: T) => void;
 }
 
+/** Hook: FEEDBACK_ICONS. */
 export const FEEDBACK_ICONS: Record<FeedbackType, string> = {
   success: '✓',
   error: '✕',
@@ -34,6 +39,7 @@ export const FEEDBACK_ICONS: Record<FeedbackType, string> = {
   loading: '⟳',
 };
 
+/** Hook: FEEDBACK_TITLES. */
 export const FEEDBACK_TITLES: Record<FeedbackType, string> = {
   success: 'Sucesso!',
   error: 'Erro!',
@@ -42,6 +48,7 @@ export const FEEDBACK_TITLES: Record<FeedbackType, string> = {
   loading: 'Processando...',
 };
 
+/** Hook: FEEDBACK_VARIANTS. */
 export const FEEDBACK_VARIANTS: Record<FeedbackType, 'default' | 'destructive'> = {
   success: 'default',
   error: 'destructive',
@@ -50,6 +57,7 @@ export const FEEDBACK_VARIANTS: Record<FeedbackType, 'default' | 'destructive'> 
   loading: 'default',
 };
 
+/** Hook: FEEDBACK_DURATIONS. */
 export const FEEDBACK_DURATIONS: Record<FeedbackType, number> = {
   success: 3000,
   error: 5000,

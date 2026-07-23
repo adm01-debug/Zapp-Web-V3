@@ -17,6 +17,7 @@ interface QuickRepliesManagerProps {
   compact?: boolean;
 }
 
+/** Quick Replies Manager component. */
 export function QuickRepliesManager({ onSelect, compact = false }: QuickRepliesManagerProps) {
   const {
     templates, filteredTemplates, favoriteTemplates, recentTemplates,

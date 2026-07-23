@@ -1,4 +1,3 @@
-
 /**
  * useContactDuplicateDetector.ts
  * Real-time duplicate detection when creating/editing contacts.
@@ -15,6 +14,7 @@ const log = getLogger('useContactDuplicateDetector');
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
+/** Potential Duplicate interface definition. */
 export interface PotentialDuplicate {
   id: string;
   name: string;
@@ -49,6 +49,7 @@ function normalizePhone(phone: string): string {
 
 // ── Hook ───────────────────────────────────────────────────────────────────
 
+/** use Contact Duplicate Detector function. */
 export function useContactDuplicateDetector({
   workspaceId,
   excludeId,
@@ -136,7 +137,7 @@ export function useContactDuplicateDetector({
         }
       }
     },
-    [workspaceId, excludeId]
+    [workspaceId, excludeId] // eslint-disable-line react-hooks/exhaustive-deps
   );
 
   const reset = useCallback(() => {

@@ -12,6 +12,7 @@ export { connectionsRepository, type WhatsAppConnection, type ChannelConnection,
 export { connectionsService } from './connectionsService';
 
 // Query Hooks
+/** Re-exported module members. */
 export {
   useWhatsAppConnectionsList,
   useWhatsAppConnection,
@@ -22,6 +23,7 @@ export {
 } from './useConnectionsQueries';
 
 // Mutation Hooks
+/** Re-exported module members. */
 export {
   useCreateWhatsAppConnection,
   useUpdateWhatsAppConnection,

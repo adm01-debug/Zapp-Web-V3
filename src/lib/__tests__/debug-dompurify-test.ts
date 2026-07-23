@@ -1,11 +1,13 @@
 import { describe, test, expect } from 'vitest';
-import { sanitizeHtml } from '../sanitize-v2';
+import { sanitizeHtml } from '../sanitize';
 import DOMPurifyFactory from 'dompurify';
 
 describe('Debug DOMPurify behavior', () => {
   test('Debug: Check what config DOMPurify receives', () => {
     // Test with direct DOMPurify in happy-dom environment
-    const win: typeof window | undefined = (globalThis as any).window;
+    const win: typeof window | undefined = (
+      globalThis as typeof globalThis & { window?: typeof window }
+    ).window;
     if (!win) {
       throw new Error('No window object available');
     }
@@ -23,16 +25,11 @@ describe('Debug DOMPurify behavior', () => {
     const input = '<b>bold</b>';
     const output = DOMPurify.sanitize(input, config);
 
-    console.log('Input:', input);
-    console.log('Output:', output);
-    console.log('Config:', config);
-
     expect(output).toBe('<b>bold</b>');
   });
 
   test('Debug: Compare with sanitizeHtml function', () => {
-    const result = sanitizeHtml('<b>bold</b>');
-    console.log('sanitizeHtml result:', result);
+    const result = sanitizeHtml('<b>bold</b>') as unknown as { success: boolean; html: string };
     expect(result.success).toBe(true);
     expect(result.html).toBe('<b>bold</b>');
   });

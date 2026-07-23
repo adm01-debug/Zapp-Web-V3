@@ -61,6 +61,7 @@ const STATUS_LABEL: Record<FailedMessageStatus, string> = {
   failed: 'Falhou',
 };
 
+/** Bulk Reprocess Guided Dialog function. */
 export function BulkReprocessGuidedDialog({
   open, onOpenChange, selectedRows, onConfirm, isPending,
 }: BulkReprocessGuidedDialogProps) {
@@ -383,4 +384,5 @@ function ImpactSection<K extends string>({
   );
 }
 
+/** Default export. */
 export default BulkReprocessGuidedDialog;

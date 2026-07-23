@@ -24,6 +24,7 @@ interface AudioMessagePlayerProps {
   conversationId?: string;
 }
 
+/** Audio message player component with transcription, voice change, and volume controls. */
 export const AudioMessagePlayer = memo(function AudioMessagePlayer({
   audioUrl,
   messageId,

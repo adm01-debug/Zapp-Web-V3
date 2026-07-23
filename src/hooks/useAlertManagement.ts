@@ -25,6 +25,7 @@ const log = getLogger('useAlertManagement');
 // TYPE DEFINITIONS
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════════════
 
+/** War Room Alert interface definition. */
 export interface WarRoomAlert {
   id: string;
   alert_type: string;
@@ -35,6 +36,7 @@ export interface WarRoomAlert {
   created_at: string | null;
 }
 
+/** Sentiment Alert Data interface definition. */
 export interface SentimentAlertData {
   contactId: string;
   contactName: string;
@@ -43,6 +45,7 @@ export interface SentimentAlertData {
   analysisId: string;
 }
 
+/** Webhook Health Alert interface definition. */
 export interface WebhookHealthAlert {
   id: string;
   webhook_id: string;
@@ -52,6 +55,7 @@ export interface WebhookHealthAlert {
   created_at: string;
 }
 
+/** Realtime Sentiment Alert interface definition. */
 export interface RealtimeSentimentAlert {
   id: string;
   contact_id: string;
@@ -62,17 +66,20 @@ export interface RealtimeSentimentAlert {
   created_at: string;
 }
 
+/** Use War Room Alerts Result interface definition. */
 export interface UseWarRoomAlertsResult {
   alerts: WarRoomAlert[];
   dismissAlert: (alertId: string) => Promise<void>;
 }
 
+/** Use Sentiment Alerts Result interface definition. */
 export interface UseSentimentAlertsResult {
   checkAndTriggerAlert: (
     data: SentimentAlertData
   ) => Promise<{ triggered: boolean; reason: string }>;
 }
 
+/** Use Webhook Health Alerts Result interface definition. */
 export interface UseWebhookHealthAlertsResult {
   alerts: WebhookHealthAlert[];
   loading: boolean;
@@ -80,6 +87,7 @@ export interface UseWebhookHealthAlertsResult {
   checkHealth: () => Promise<void>;
 }
 
+/** Use Realtime Sentiment Alerts Result interface definition. */
 export interface UseRealtimeSentimentAlertsResult {
   alerts: RealtimeSentimentAlert[];
   acknowledgeAlert: (alertId: string) => Promise<void>;
@@ -138,30 +146,36 @@ export function useWarRoomAlertsManagement(soundEnabled = true): UseWarRoomAlert
   useEffect(() => {
     const channel = supabase
       .channel('warroom-alerts-realtime')
-      .on('postgres_changes', { event: 'INSERT', schema: 'zapp', table: 'warroom_alerts' }, (payload) => {
-        const parsed = safeParseEvent(warRoomAlertRowSchema, payload.new);
-        if (!parsed.ok) {
-          log.warn('[useWarRoomAlertsManagement] received malformed realtime payload', payload.new);
-          return;
-        }
-        const alert = parsed.data as WarRoomAlert;
-        void queryClient.invalidateQueries({ queryKey: queryKeys.alerts.all() });
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'zapp', table: 'warroom_alerts' },
+        (payload) => {
+          const parsed = safeParseEvent(warRoomAlertRowSchema, payload.new);
+          if (!parsed.ok) {
+            log.warn(
+              '[useWarRoomAlertsManagement] received malformed realtime payload',
+              payload.new
+            );
+            return;
+          }
+          const alert = parsed.data as WarRoomAlert;
+          void queryClient.invalidateQueries({ queryKey: queryKeys.alerts.all() });
 
-        if (alert.alert_type === 'critical') {
-          playAlertSound();
-          playAlertSound();
-        } else {
-          playAlertSound();
-        }
+          if (alert.alert_type === 'critical') {
+            playAlertSound();
+            playAlertSound();
+          } else {
+            playAlertSound();
+          }
 
-        if (pushPermission === 'granted') {
-          showBrowserNotification(`⚠️ ${alert.title}`, alert.message);
+          if (pushPermission === 'granted') {
+            showBrowserNotification(`⚠️ ${alert.title}`, alert.message);
+          }
         }
-      })
+      )
       .subscribe();
 
     return () => {
-      channel.unsubscribe();
       supabase.removeChannel(channel);
     };
   }, [queryClient, playAlertSound, pushPermission]);
@@ -268,7 +282,11 @@ export function useSentimentAlertsManagement(): UseSentimentAlertsResult {
           });
 
           if (settings.soundEnabled && !isQuietHours()) {
-            playNotificationSound('sla_warning' as const, settings.slaSoundType, settings.soundVolume);
+            playNotificationSound(
+              'sla_warning' as const,
+              settings.slaSoundType,
+              settings.soundVolume
+            );
           }
 
           if (settings.browserNotifications) {
@@ -281,7 +299,10 @@ export function useSentimentAlertsManagement(): UseSentimentAlertsResult {
         return { triggered: false, reason: alertResult?.reason || 'No alert needed' };
       } catch (error) {
         log.error('Error checking sentiment alert:', error);
-        return { triggered: false, reason: `Exception: ${error instanceof Error ? error.message : String(error)}` };
+        return {
+          triggered: false,
+          reason: `Exception: ${error instanceof Error ? error.message : String(error)}`,
+        };
       }
     },
     [threshold, consecutiveRequired, alertsEnabled, settings, isQuietHours]
@@ -296,42 +317,42 @@ export function useSentimentAlertsManagement(): UseSentimentAlertsResult {
 
 /** Monitors webhook endpoint health with failure detection and alert management. */
 export function useWebhookHealthAlertsManagement(): UseWebhookHealthAlertsResult {
-  const [alerts, setAlerts] = useState<WebhookHealthAlert[]>([]);
-  const [loading, setLoading] = useState(false);
+  const queryClient = useQueryClient();
+  const key = ['webhook-health-checks'] as const;
 
-  const checkHealth = useCallback(async () => {
-    setLoading(true);
-    try {
+  const { data: alerts = [], isLoading: loading } = useQuery({
+    queryKey: key,
+    queryFn: async () => {
       const { data, error } = await safeClient.from('webhook_health_checks', (q) =>
         q.select('*').order('created_at', { ascending: false }).limit(100)
       );
-
-      if (error) throw error;
-      setAlerts((data || []) as WebhookHealthAlert[]);
-    } catch (error) {
-      log.error('Failed to check webhook health:', error);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    void checkHealth();
-    const interval = setInterval(checkHealth, 60000);
-    return () => clearInterval(interval);
-  }, [checkHealth]);
-
-  const acknowledgeAlert = useCallback(
-    async (alertId: string) => {
-      try {
-        await supabase.from('webhook_health_checks').update({ acknowledged: true }).eq('id', alertId);
-        setAlerts((prev) => prev.map((a) => (a.id === alertId ? { ...a } : a)));
-      } catch (error) {
-        log.error('Failed to acknowledge webhook health alert:', error);
+      if (error) {
+        log.error('Failed to check webhook health:', error);
+        return [] as WebhookHealthAlert[];
       }
+      return (data || []) as WebhookHealthAlert[];
     },
-    []
+    staleTime: 30_000,
+    refetchInterval: 60_000,
+  });
+
+  const checkHealth = useCallback(
+    () => queryClient.invalidateQueries({ queryKey: key }),
+    [queryClient]
   );
+
+  const acknowledgeAlert = useCallback(async (alertId: string) => {
+    try {
+      const { error: updateError } = await supabase
+        .from('webhook_health_checks')
+        .update({ acknowledged: true })
+        .eq('id', alertId);
+      if (updateError) throw updateError;
+      await queryClient.invalidateQueries({ queryKey: key });
+    } catch (error) {
+      log.error('Failed to acknowledge webhook health alert:', error);
+    }
+  }, [queryClient]);
 
   return { alerts, loading, acknowledgeAlert, checkHealth };
 }
@@ -387,12 +408,18 @@ export function useRealtimeSentimentAlertsManagement(): UseRealtimeSentimentAler
       channel.unsubscribe();
       supabase.removeChannel(channel);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const acknowledgeAlert = useCallback(async (alertId: string) => {
     try {
-      await supabase.from('sentiment_alerts').update({ acknowledged: true }).eq('id', alertId);
+      const { error } = await supabase
+        .from('sentiment_alerts' as never)
+        .update({ acknowledged: true })
+        .eq('id', alertId);
+      if (error) {
+        log.error('Failed to acknowledge sentiment alert:', error.message);
+        return;
+      }
       setAlerts((prev) => prev.map((a) => (a.id === alertId ? { ...a, acknowledged: true } : a)));
     } catch (error) {
       log.error('Failed to acknowledge sentiment alert:', error);
@@ -401,7 +428,14 @@ export function useRealtimeSentimentAlertsManagement(): UseRealtimeSentimentAler
 
   const clearAlert = useCallback(async (alertId: string) => {
     try {
-      await supabase.from('sentiment_alerts').delete().eq('id', alertId);
+      const { error } = await supabase
+        .from('sentiment_alerts' as never)
+        .delete()
+        .eq('id', alertId);
+      if (error) {
+        log.error('Failed to clear sentiment alert:', error.message);
+        return;
+      }
       setAlerts((prev) => prev.filter((a) => a.id !== alertId));
     } catch (error) {
       log.error('Failed to clear sentiment alert:', error);

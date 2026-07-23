@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 
 const SIGNATURE_ENABLED_KEY = 'chat_signature_enabled';
 
+/** Manages the agent's outbound message signature (fetched from profiles) and a localStorage toggle that prepends it to sent messages. */
 export function useMessageSignature() {
   const [signatureEnabled, setSignatureEnabled] = useState(() => {
     try {
@@ -34,7 +35,7 @@ export function useMessageSignature() {
       }
     };
     fetchName();
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const toggleSignature = useCallback(() => {
     setSignatureEnabled((prev) => {

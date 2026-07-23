@@ -31,6 +31,7 @@ function SkeletonPulse({ className }: { className?: string }) {
   );
 }
 
+/** Skeleton List function. */
 export function SkeletonList({ count = 5, variant = 'list', className }: SkeletonListProps) {
   if (variant === 'card') {
     return (

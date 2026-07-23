@@ -3,6 +3,7 @@
  * from the external CRM database (bancodadosclientes)
  */
 
+/** Contact360 Phone interface. */
 export interface Contact360Phone {
   numero: string;
   numero_e164: string | null;
@@ -12,6 +13,7 @@ export interface Contact360Phone {
   departamento?: string | null;
 }
 
+/** Contact360 Email interface definition. */
 export interface Contact360Email {
   email: string;
   email_type: string;
@@ -19,6 +21,7 @@ export interface Contact360Email {
   departamento?: string | null;
 }
 
+/** Contact360 Social interface definition. */
 export interface Contact360Social {
   plataforma: string;
   handle: string | null;
@@ -27,6 +30,7 @@ export interface Contact360Social {
   seguidores?: number | null;
 }
 
+/** Contact360 Interaction interface definition. */
 export interface Contact360Interaction {
   id: string;
   channel: string;
@@ -38,6 +42,7 @@ export interface Contact360Interaction {
   type: string | null;
 }
 
+/** Contact360 Behavior interface definition. */
 export interface Contact360Behavior {
   discProfile: string | null;
   discConfidence: number;
@@ -54,6 +59,7 @@ export interface Contact360Behavior {
   temperamentProfile: { primary: string | null };
 }
 
+/** Contact360 Contact interface definition. */
 export interface Contact360Contact {
   id: string;
   first_name: string | null;
@@ -78,6 +84,7 @@ export interface Contact360Contact {
   created_at: string;
 }
 
+/** Contact360 Company interface definition. */
 export interface Contact360Company {
   id: string;
   nome_crm: string | null;
@@ -98,6 +105,7 @@ export interface Contact360Company {
   bitrix_company_id: number | null;
 }
 
+/** Contact360 Customer interface definition. */
 export interface Contact360Customer {
   vendedor_nome: string | null;
   sdr_nome: string | null;
@@ -118,6 +126,7 @@ export interface Contact360Customer {
   motivo_inativacao: string | null;
 }
 
+/** Contact360 R F M interface definition. */
 export interface Contact360RFM {
   recency_score: number | null;
   frequency_score: number | null;
@@ -128,6 +137,7 @@ export interface Contact360RFM {
   last_interaction_date: string | null;
 }
 
+/** Contact360 Stakeholder interface definition. */
 export interface Contact360Stakeholder {
   buying_role: string | null;
   power_level: number;
@@ -136,6 +146,7 @@ export interface Contact360Stakeholder {
   engagement_priority: string | null;
 }
 
+/** Contact360 Address interface definition. */
 export interface Contact360Address {
   logradouro: string | null;
   numero: string | null;
@@ -148,6 +159,7 @@ export interface Contact360Address {
   longitude: number | null;
 }
 
+/** Contact360 Data interface definition. */
 export interface Contact360Data {
   found: boolean;
   searched_phone: string;

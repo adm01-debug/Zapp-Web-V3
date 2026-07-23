@@ -5,11 +5,11 @@
  * Direct Supabase access only - no business logic.
  */
 
-import { supabase } from '@/integrations/supabase/client';
 import { safeFrom } from '@/integrations/supabase/safeClient';
 import { createService } from '@/services/api/genericService';
 import type { QueryParams } from '@/services/api/types';
 
+/** User interface. */
 export interface User {
   id: string;
   email: string;
@@ -23,6 +23,7 @@ export interface User {
   updated_at: string;
 }
 
+/** Agent interface definition. */
 export interface Agent {
   id: string;
   user_id: string;
@@ -43,44 +44,33 @@ export interface Agent {
 const usersBaseService = createService<User>('users');
 const agentsBaseService = createService<Agent>('agents');
 
+/** users Repository constant. */
 export const usersRepository = {
   // Users
-  listUsers: (filters?: Partial<User> & QueryParams) =>
-    usersBaseService.list(filters),
+  listUsers: (filters?: Partial<User> & QueryParams) => usersBaseService.list(filters),
 
-  getUser: (id: string) =>
-    usersBaseService.get(id),
+  getUser: (id: string) => usersBaseService.get(id),
 
-  searchUsers: (query: string) =>
-    usersBaseService.search(query),
+  searchUsers: (query: string) => usersBaseService.search(query),
 
-  createUser: (data: Partial<User>) =>
-    usersBaseService.create(data),
+  createUser: (data: Partial<User>) => usersBaseService.create(data),
 
-  updateUser: (id: string, updates: Partial<User>) =>
-    usersBaseService.update(id, updates),
+  updateUser: (id: string, updates: Partial<User>) => usersBaseService.update(id, updates),
 
-  deleteUser: (id: string) =>
-    usersBaseService.delete(id),
+  deleteUser: (id: string) => usersBaseService.delete(id),
 
   // Agents
-  listAgents: (filters?: Partial<Agent> & QueryParams) =>
-    agentsBaseService.list(filters),
+  listAgents: (filters?: Partial<Agent> & QueryParams) => agentsBaseService.list(filters),
 
-  getAgent: (id: string) =>
-    agentsBaseService.get(id),
+  getAgent: (id: string) => agentsBaseService.get(id),
 
-  searchAgents: (query: string) =>
-    agentsBaseService.search(query),
+  searchAgents: (query: string) => agentsBaseService.search(query),
 
-  createAgent: (data: Partial<Agent>) =>
-    agentsBaseService.create(data),
+  createAgent: (data: Partial<Agent>) => agentsBaseService.create(data),
 
-  updateAgent: (id: string, updates: Partial<Agent>) =>
-    agentsBaseService.update(id, updates),
+  updateAgent: (id: string, updates: Partial<Agent>) => agentsBaseService.update(id, updates),
 
-  deleteAgent: (id: string) =>
-    agentsBaseService.delete(id),
+  deleteAgent: (id: string) => agentsBaseService.delete(id),
 
   // Current user (via auth)
   async getCurrentUser(): Promise<User | null> {
@@ -101,8 +91,7 @@ export const usersRepository = {
   },
 
   // Realtime subscriptions
-  subscribeToUserChanges: (callback: (user: User) => void) =>
-    usersBaseService.subscribe(callback),
+  subscribeToUserChanges: (callback: (user: User) => void) => usersBaseService.subscribe(callback),
 
   subscribeToAgentChanges: (callback: (agent: Agent) => void) =>
     agentsBaseService.subscribe(callback),

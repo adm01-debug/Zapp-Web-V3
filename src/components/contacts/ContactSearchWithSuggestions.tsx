@@ -35,6 +35,7 @@ function clearRecentSearches() {
   localStorage.removeItem(STORAGE_KEY);
 }
 
+/** Contact Search With Suggestions component for the contacts section. */
 export function ContactSearchWithSuggestions({
   value, onChange, uniqueCompanies, uniqueTags, totalCount,
 }: ContactSearchWithSuggestionsProps) {

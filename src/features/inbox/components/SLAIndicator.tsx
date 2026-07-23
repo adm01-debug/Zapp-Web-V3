@@ -56,6 +56,7 @@ function getPercent(remainingMs: number, totalMs: number, breached: boolean): nu
   return Math.max(0, Math.min(100, (remainingMs / totalMs) * 100));
 }
 
+/** SLAIndicator component. */
 export function SLAIndicator({
   firstMessageAt,
   firstResponseAt,

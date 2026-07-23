@@ -1,6 +1,7 @@
 // Mirror of src/shared/criticalPayloadSchemas.ts — duplicated here because
 // edge functions cannot import from outside supabase/functions/ at bundle time.
 
+/** critical Payload Schemas utilities and exports. */
 export const ContractErrorCode = {
   INVALID_PAYLOAD: 'INVALID_PAYLOAD',
   INVALID_PHONE_NUMBER: 'INVALID_PHONE_NUMBER',
@@ -8,6 +9,7 @@ export const ContractErrorCode = {
   INVALID_INSTANCE: 'INVALID_INSTANCE',
 } as const;
 
+/** Contract Error Code type alias. */
 export type ContractErrorCode = typeof ContractErrorCode[keyof typeof ContractErrorCode];
 
 // deno-lint-ignore no-explicit-any
@@ -18,6 +20,7 @@ type ValidationIssue = {
   message?: string;
 };
 
+/** create Critical Payload Schemas function. */
 export function createCriticalPayloadSchemas(z: ZodLike) {
   const normalizedPhoneSchema = z
     .string()
@@ -55,6 +58,7 @@ export function createCriticalPayloadSchemas(z: ZodLike) {
   };
 }
 
+/** map Validation Issues To Contract Error function. */
 export function mapValidationIssuesToContractError(issues: ValidationIssue[] = []) {
   const issueByPath = (field: string) => issues.find((issue) => (issue.path || []).includes(field));
 

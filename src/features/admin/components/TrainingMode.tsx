@@ -61,6 +61,7 @@ const SCENARIOS = [
   },
 ];
 
+/** Training Mode component. */
 export function TrainingMode(): JSX.Element {
   const [activeSession, setActiveSession] = useState<string | null>(null);
   const [scenario, setScenario] = useState<(typeof SCENARIOS)[0] | null>(null);
@@ -78,14 +79,18 @@ export function TrainingMode(): JSX.Element {
 
   useEffect(() => {
     if (profileId) loadSessions();
-  }, [profileId]);
+  }, [profileId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadProfile = async () => {
     const {
       data: { user },
     } = await supabase.auth.getUser();
     if (!user) return;
-    const { data } = await supabase.from('profiles').select('id').eq('user_id', user.id).maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
+    const { data } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('user_id', user.id)
+      .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
     if (data) setProfileId(data.id);
   };
 
@@ -106,7 +111,11 @@ export function TrainingMode(): JSX.Element {
     setCustomerStep(0);
     setScore(null);
     setFeedback('');
-    const firstMsg: SimMessage = { id: `msg-${Date.now()}`, role: 'customer', content: s.customerScript[0] };
+    const firstMsg: SimMessage = {
+      id: `msg-${Date.now()}`,
+      role: 'customer',
+      content: s.customerScript[0],
+    };
     setMessages([firstMsg]);
     setCustomerStep(1);
 
@@ -120,7 +129,7 @@ export function TrainingMode(): JSX.Element {
         status: 'in_progress',
       })
       .select('id')
-      .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
+      .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
     if (data) setActiveSession(data.id);
   };
 

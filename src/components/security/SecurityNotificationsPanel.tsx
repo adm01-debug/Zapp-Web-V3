@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { useSecurityPushNotifications } from '@/hooks/useSecurityPushNotifications';
 
+/** Security Notifications Panel component for the security section. */
 export function SecurityNotificationsPanel() {
   const {
     isSupported,
@@ -19,7 +20,8 @@ export function SecurityNotificationsPanel() {
     showNotification,
   } = usePushNotifications();
 
-  const { isEnabled: _securityNotificationsEnabled } = useSecurityPushNotifications();
+  const _security = useSecurityPushNotifications();
+  const _securityNotificationsEnabled = (_security as { isEnabled?: boolean }).isEnabled ?? false;
   const [testSending, setTestSending] = useState(false);
 
   const handleToggle = async () => {

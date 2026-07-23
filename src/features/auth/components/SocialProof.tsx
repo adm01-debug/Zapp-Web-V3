@@ -8,6 +8,7 @@ const stats = [
   { icon: Shield, value: '100%', label: 'Seguro' },
 ];
 
+/** Social Proof component. */
 export function SocialProof() {
   return (
     <motion.div

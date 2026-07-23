@@ -29,6 +29,7 @@ interface AudioMemePickerProps {
   disabled?: boolean;
 }
 
+/** Audio Meme Picker component. */
 export function AudioMemePicker({ onSendAudioMeme, disabled }: AudioMemePickerProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
@@ -294,7 +295,7 @@ export function AudioMemePicker({ onSendAudioMeme, disabled }: AudioMemePickerPr
                         </div>
                       </div>
                       <div className="flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
-                        <button type="button"
+                        <button aria-label="Favoritar" type="button"
                           onClick={(e) => toggleFavorite(e, meme)}
                           className="rounded p-1 hover:bg-muted"
                         >
@@ -307,7 +308,7 @@ export function AudioMemePicker({ onSendAudioMeme, disabled }: AudioMemePickerPr
                             )}
                           />
                         </button>
-                        <button type="button"
+                        <button aria-label="Excluir" type="button"
                           onClick={(e) => handleDelete(e, meme)}
                           className="rounded p-1 hover:bg-destructive/10"
                         >

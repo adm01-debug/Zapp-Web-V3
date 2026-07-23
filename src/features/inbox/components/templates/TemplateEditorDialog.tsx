@@ -90,6 +90,7 @@ interface TemplateEditorDialogProps {
   onSave: (data: Partial<Template>) => Promise<void>;
 }
 
+/** Template Editor Dialog component for the templates section. */
 export function TemplateEditorDialog({
   open,
   onOpenChange,
@@ -241,4 +242,5 @@ export function TemplateEditorDialog({
   );
 }
 
+/** Re-exported module members. */
 export { VariableInserter, TemplatePreview };

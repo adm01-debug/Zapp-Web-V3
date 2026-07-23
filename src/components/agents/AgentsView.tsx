@@ -34,6 +34,7 @@ import {
 import { cn } from '@/lib/utils';
 import { getAvatarColor, getInitials } from '@/lib/avatarColors';
 
+/** Agents View component for the agents section. */
 export function AgentsView() {
   const { agents, stats, isLoading, refetch } = useAgents();
   const [search, setSearch] = useState('');

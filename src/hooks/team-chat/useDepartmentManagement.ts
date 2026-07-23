@@ -37,6 +37,7 @@ interface Invitation {
 type WhatsappMode = 'none' | 'evolution' | 'official';
 type ManageAction = 'add' | 'remove';
 
+/** Hook: use Department Management. */
 export function useDepartmentManagement(
   initialDepartment: Department,
   open: boolean,
@@ -65,14 +66,16 @@ export function useDepartmentManagement(
       .select('whatsapp_mode, whatsapp_api_key, whatsapp_instance_id')
       .eq('id', initialDepartment.id)
       .maybeSingle() // ✅ fix: maybeSingle evita PGRST116
-      .then(({ data }) => {
-        if (data) {
-          setWhatsappMode((data.whatsapp_mode as WhatsappMode) || 'none');
-          setWhatsappApiKey(data.whatsapp_api_key || '');
-          setWhatsappInstanceId(data.whatsapp_instance_id || '');
-        }
-      })
-      .catch((err) => log.warn('[DeptMgmt] load whatsapp settings failed:', err));
+      .then(
+        ({ data }) => {
+          if (data) {
+            setWhatsappMode((data.whatsapp_mode as WhatsappMode) || 'none');
+            setWhatsappApiKey(data.whatsapp_api_key || '');
+            setWhatsappInstanceId(data.whatsapp_instance_id || '');
+          }
+        },
+        (err: unknown) => log.warn('[DeptMgmt] load whatsapp settings failed:', err),
+      );
   }, [open, view, initialDepartment.id]);
 
   const { data: allProfiles = [], isLoading: loadingProfiles } = useQuery<Profile[]>({
@@ -201,16 +204,19 @@ export function useDepartmentManagement(
       const {
         data: { user },
       } = await supabase.auth.getUser();
-      void supabase
-        .from('audit_logs')
-        .insert({
-          action: action === 'add' ? 'ADD_MEMBER' : 'REMOVE_MEMBER',
-          entity_id: initialDepartment.id,
-          entity_type: 'department',
-          user_id: user?.id,
-          details: { profile_id: profileId },
-        })
-        .catch((err: unknown) => log.warn('[audit] department member change log failed', err));
+      try {
+        await supabase
+          .from('audit_logs')
+          .insert({
+            action: action === 'add' ? 'ADD_MEMBER' : 'REMOVE_MEMBER',
+            entity_id: initialDepartment.id,
+            entity_type: 'department',
+            user_id: user?.id,
+            details: { profile_id: profileId },
+          });
+      } catch (err: unknown) {
+        log.warn('[audit] department member change log failed', err);
+      }
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.departments.profiles(initialDepartment.id) });

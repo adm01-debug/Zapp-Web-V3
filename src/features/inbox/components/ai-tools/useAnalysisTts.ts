@@ -2,6 +2,7 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { playTtsAudio, type TtsPlayback, type PlayTtsOptions } from '@/features/inbox';
 import { toast } from 'sonner';
 
+/** use Analysis Tts component for the ai tools section. */
 export function useAnalysisTts() {
   const [isTtsPlaying, setIsTtsPlaying] = useState(false);
   const [isTtsLoading, setIsTtsLoading] = useState(false);

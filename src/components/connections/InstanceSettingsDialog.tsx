@@ -14,7 +14,7 @@ import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useEvolutionApi } from '@/hooks/useEvolutionApi';
 import { supabase } from '@/integrations/supabase/client';
-import { safeWhatsAppConnectionsQuery } from '@/integrations/supabase/safe-queries';
+import { safeFrom } from '@/integrations/supabase/safeClient';
 import { toast } from 'sonner';
 import { Loader2, Settings, Shield, User, Tag, History, RotateCcw } from 'lucide-react';
 import { getLogger } from '@/lib/logger';
@@ -27,80 +27,8 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import type { SupabaseClient } from '@supabase/supabase-js';
-import type { Database } from '@/integrations/supabase/schema';
 
 const log = getLogger('InstanceSettingsDialog');
-
-interface ReconnectionLog {
-  id: string;
-  result: 'success' | string;
-  created_at: string;
-  attempt_number: number;
-  error_message: string | null;
-}
-
-interface EvolutionInstanceSettings {
-  rejectCall?: boolean;
-  msgCall?: string;
-  groupsIgnore?: boolean;
-  alwaysOnline?: boolean;
-  readMessages?: boolean;
-  readStatus?: boolean;
-  syncFullHistory?: boolean;
-}
-
-interface EvolutionLabel {
-  id: string;
-  name: string;
-  color: string;
-}
-
-interface ReconnectionLogRow {
-  id: string;
-  status: string | null;
-  created_at: string | null;
-  attempt_number: number | null;
-  error_message: string | null;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null;
-}
-
-function normalizeInstanceSettings(value: unknown): EvolutionInstanceSettings {
-  if (!isRecord(value)) return {};
-  return {
-    rejectCall: typeof value.rejectCall === 'boolean' ? value.rejectCall : undefined,
-    msgCall: typeof value.msgCall === 'string' ? value.msgCall : undefined,
-    groupsIgnore: typeof value.groupsIgnore === 'boolean' ? value.groupsIgnore : undefined,
-    alwaysOnline: typeof value.alwaysOnline === 'boolean' ? value.alwaysOnline : undefined,
-    readMessages: typeof value.readMessages === 'boolean' ? value.readMessages : undefined,
-    readStatus: typeof value.readStatus === 'boolean' ? value.readStatus : undefined,
-    syncFullHistory: typeof value.syncFullHistory === 'boolean' ? value.syncFullHistory : undefined,
-  };
-}
-
-function normalizeReconnectionLogs(rows: ReconnectionLogRow[]): ReconnectionLog[] {
-  return rows.map((row) => ({
-    id: row.id,
-    result: row.status ?? 'failed',
-    created_at: row.created_at ?? new Date(0).toISOString(),
-    attempt_number: row.attempt_number ?? 0,
-    error_message: row.error_message,
-  }));
-}
-
-function normalizeLabels(value: unknown): EvolutionLabel[] {
-  if (!Array.isArray(value)) return [];
-  return value.flatMap((item) => {
-    if (!isRecord(item)) return [];
-    const id = typeof item.id === 'string' ? item.id : typeof item._id === 'string' ? item._id : '';
-    const name = typeof item.name === 'string' ? item.name : typeof item.label === 'string' ? item.label : '';
-    const color = typeof item.color === 'string' ? item.color : 'hsl(var(--primary))';
-    return id && name ? [{ id, name, color }] : [];
-  });
-}
 
 interface InstanceSettingsDialogProps {
   open: boolean;
@@ -173,37 +101,27 @@ export function InstanceSettingsDialog({
     readStatus: false,
     syncFullHistory: false,
   });
-  const [auditLogs, setAuditLogs] = useState<ReconnectionLog[]>([]);
-  const [loadingTab, setLoadingTab] = useState('');
-  const [reconnectConfig, setReconnectConfig] = useState<{
-    enabled: boolean;
-    interval: number;
-    maxAttempts: number;
-    loopProtection: boolean;
-  }>({
+  const [profile, setProfile] = useState({ name: '', status: '', pictureUrl: '' });
+  const [privacy, setPrivacy] = useState<Record<string, string>>({
+    readreceipts: 'all',
+    profile: 'all',
+    status: 'contacts',
+    online: 'all',
+    last: 'contacts',
+    groupadd: 'contacts',
+  });
+  const [labels, setLabels] = useState<{ id: string; name: string; color: string }[]>([]);
+
+  // Reconnection & Audit state
+  const [reconnectConfig, setReconnectConfig] = useState({
     enabled: true,
     interval: 30,
     maxAttempts: 5,
     loopProtection: false,
   });
-  const [profile, setProfile] = useState<{
-    name: string;
-    status: string;
-    pictureUrl: string;
-  }>({
-    name: '',
-    status: '',
-    pictureUrl: '',
-  });
-  const [privacy, setPrivacy] = useState<Record<string, string>>({
-    readreceipts: 'all',
-    profile: 'all',
-    status: 'all',
-    online: 'all',
-    last: 'all',
-    groupadd: 'all',
-  });
-  const [labels, setLabels] = useState<EvolutionLabel[]>([]);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [auditLogs, setAuditLogs] = useState<any[]>([]);
+  const [loadingTab, setLoadingTab] = useState('');
 
   useEffect(() => {
     if (open && instanceName) {
@@ -213,13 +131,17 @@ export function InstanceSettingsDialog({
         loadReconnectConfig();
       }
     }
-  }, [open, instanceName, connectionId]);
+  }, [open, instanceName, connectionId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadReconnectConfig = async () => {
     if (!connectionId) return;
     try {
-      const safeQueries = safeWhatsAppConnectionsQuery(supabase as unknown as SupabaseClient<Database>);
-      const { data, error } = await safeQueries.getById(connectionId);
+      const { data, error } = await safeFrom('whatsapp_connections')
+        .select(
+          'auto_reconnect_enabled, reconnect_interval_seconds, max_reconnect_attempts, loop_protection_active'
+        )
+        .eq('id', connectionId)
+        .single();
 
       if (!error && data && mountedRef.current) {
         setReconnectConfig({
@@ -237,8 +159,7 @@ export function InstanceSettingsDialog({
   const saveReconnectConfig = async () => {
     if (!connectionId) return;
     try {
-      const { error } = await supabase
-        .from('whatsapp_connections')
+      const { error } = await safeFrom('whatsapp_connections')
         .update({
           auto_reconnect_enabled: reconnectConfig.enabled,
           reconnect_interval_seconds: reconnectConfig.interval,
@@ -259,16 +180,13 @@ export function InstanceSettingsDialog({
     if (!connectionId) return;
     setLoadingTab('audit');
     try {
-      const { data, error } = await supabase
-        .from('reconnection_logs')
+      const { data, error } = await safeFrom('reconnection_logs')
         .select('*')
         .eq('connection_id', connectionId)
         .order('created_at', { ascending: false })
         .limit(20);
 
-      if (!error && data && mountedRef.current) {
-        setAuditLogs(normalizeReconnectionLogs(data as ReconnectionLogRow[]));
-      }
+      if (!error && data && mountedRef.current) setAuditLogs(data);
     } catch (err) {
       log.error('Error loading audit logs:', err);
     }
@@ -278,16 +196,16 @@ export function InstanceSettingsDialog({
   const loadSettings = async () => {
     setLoadingTab('settings');
     try {
-      const data = normalizeInstanceSettings(await getSettings(instanceName));
+      const data = (await getSettings(instanceName)) as Record<string, unknown> | null;
       if (data && mountedRef.current)
         setSettingsData({
-          rejectCall: data.rejectCall ?? false,
-          msgCall: data.msgCall ?? '',
-          groupsIgnore: data.groupsIgnore ?? false,
-          alwaysOnline: data.alwaysOnline ?? false,
-          readMessages: data.readMessages ?? false,
-          readStatus: data.readStatus ?? false,
-          syncFullHistory: data.syncFullHistory ?? false,
+          rejectCall: (data.rejectCall as boolean) ?? false,
+          msgCall: (data.msgCall as string) ?? '',
+          groupsIgnore: (data.groupsIgnore as boolean) ?? false,
+          alwaysOnline: (data.alwaysOnline as boolean) ?? false,
+          readMessages: (data.readMessages as boolean) ?? false,
+          readStatus: (data.readStatus as boolean) ?? false,
+          syncFullHistory: (data.syncFullHistory as boolean) ?? false,
         });
     } catch (err) {
       log.error('Error loading settings:', err);
@@ -297,16 +215,12 @@ export function InstanceSettingsDialog({
 
   const loadProfile = async () => {
     try {
-      const raw = (await fetchProfile(instanceName)) as {
-        name?: string;
-        status?: string;
-        profilePictureUrl?: string;
-      } | null;
-      if (raw && mountedRef.current)
+      const data = (await fetchProfile(instanceName)) as Record<string, unknown> | null;
+      if (data && mountedRef.current)
         setProfile({
-          name: raw.name ?? '',
-          status: raw.status ?? '',
-          pictureUrl: raw.profilePictureUrl ?? '',
+          name: (data.name as string) ?? '',
+          status: (data.status as string) ?? '',
+          pictureUrl: (data.profilePictureUrl as string) ?? '',
         });
     } catch (err) {
       log.error('Error loading profile:', err);
@@ -317,7 +231,7 @@ export function InstanceSettingsDialog({
     setLoadingTab('labels');
     try {
       const data = await findLabels(instanceName);
-      if (mountedRef.current) setLabels(normalizeLabels(data));
+      if (Array.isArray(data) && mountedRef.current) setLabels(data);
     } catch (err) {
       log.error('Error loading labels:', err);
     }
@@ -367,9 +281,8 @@ export function InstanceSettingsDialog({
               </h4>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="reconnect-interval">Intervalo (segundos)</Label>
+                  <Label>Intervalo (segundos)</Label>
                   <Input
-                    id="reconnect-interval"
                     type="number"
                     value={reconnectConfig.interval}
                     onChange={(e) =>
@@ -378,9 +291,8 @@ export function InstanceSettingsDialog({
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="reconnect-max-attempts">Máximo de Tentativas</Label>
+                  <Label>Máximo de Tentativas</Label>
                   <Input
-                    id="reconnect-max-attempts"
                     type="number"
                     value={reconnectConfig.maxAttempts}
                     onChange={(e) =>
@@ -391,13 +303,12 @@ export function InstanceSettingsDialog({
               </div>
               <div className="mt-4 flex items-center justify-between rounded-lg bg-background/50 p-2">
                 <div className="space-y-0.5">
-                  <Label htmlFor="loop-protection">Proteção contra Loop</Label>
+                  <Label>Proteção contra Loop</Label>
                   <p className="text-[10px] text-muted-foreground">
                     Pausa automática se houver muitas quedas seguidas
                   </p>
                 </div>
                 <Switch
-                  id="loop-protection"
                   checked={reconnectConfig.loopProtection}
                   onCheckedChange={(v) => setReconnectConfig((p) => ({ ...p, loopProtection: v }))}
                 />
@@ -470,34 +381,31 @@ export function InstanceSettingsDialog({
               <div className="flex justify-center">
                 <img
                   src={profile.pictureUrl}
-                  alt="Foto do perfil da instância"
+                  alt="Profile"
                   className="h-24 w-24 rounded-full border-2 border-primary/30 object-cover"
                 />
               </div>
             )}
             <div>
-              <Label htmlFor="profile-name">Nome</Label>
+              <Label>Nome</Label>
               <Input
-                id="profile-name"
                 value={profile.name}
                 onChange={(e) => setProfile((p) => ({ ...p, name: e.target.value }))}
                 placeholder="Nome do perfil"
               />
             </div>
             <div>
-              <Label htmlFor="profile-status">Recado (Status)</Label>
+              <Label>Recado (Status)</Label>
               <Input
-                id="profile-status"
                 value={profile.status}
                 onChange={(e) => setProfile((p) => ({ ...p, status: e.target.value }))}
                 placeholder="Seu recado aqui..."
               />
             </div>
             <div>
-              <Label htmlFor="profile-picture-url">Nova foto de perfil (URL)</Label>
+              <Label>Nova foto de perfil (URL)</Label>
               <div className="flex gap-2">
                 <Input
-                  id="profile-picture-url"
                   value={profile.pictureUrl}
                   onChange={(e) => setProfile((p) => ({ ...p, pictureUrl: e.target.value }))}
                   placeholder="https://exemplo.com/foto.jpg"

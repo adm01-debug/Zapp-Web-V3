@@ -18,12 +18,7 @@
     "noFallthroughCasesInSwitch": true,
     "forceConsistentCasingInFileNames": true,
     "paths": {
-      "@/*": ["./src/*"],
-      "@/admin": ["./src/features/admin"],
-      "@/auth": ["./src/features/auth"],
-      "@/connections": ["./src/features/connections"],
-      "@/inbox": ["./src/features/inbox"],
-      "@/sla": ["./src/features/sla"]
+      "@/*": ["./src/*"]
     },
     "skipLibCheck": true,
     "strict": true,

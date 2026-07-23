@@ -106,7 +106,6 @@ export function QrAttemptsPanel() {
       })
       .subscribe();
     return () => {
-      channel.unsubscribe();
       supabase.removeChannel(channel);
     };
   }, [queryClient]);

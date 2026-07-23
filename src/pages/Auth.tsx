@@ -21,6 +21,7 @@ import { HeroBenefits } from '@/features/auth';
 import { useAuthForm } from '@/features/auth';
 import { Link } from 'react-router-dom';
 
+/** Auth. */
 export default function Auth() {
   const {
     loading,

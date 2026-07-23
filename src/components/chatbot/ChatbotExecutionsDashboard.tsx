@@ -39,6 +39,7 @@ const STATUS_CONFIG: Record<
   },
 };
 
+/** Chatbot Executions Dashboard component for the chatbot section. */
 export function ChatbotExecutionsDashboard() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
 

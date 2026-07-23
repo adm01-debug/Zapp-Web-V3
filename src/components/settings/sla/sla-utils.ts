@@ -1,6 +1,7 @@
 import { SLARuleScope } from '@/features/sla';
 import { User, Building2, Briefcase, Tag, LayoutGrid, UserCog } from 'lucide-react';
 
+/** SCOPE_TABS component for the settings section. */
 export const SCOPE_TABS: { value: SLARuleScope; label: string; icon: React.ElementType }[] = [
   { value: 'contact', label: 'Por Cliente', icon: User },
   { value: 'company', label: 'Por Empresa', icon: Building2 },
@@ -10,8 +11,10 @@ export const SCOPE_TABS: { value: SLARuleScope; label: string; icon: React.Eleme
   { value: 'agent', label: 'Por Agente', icon: UserCog },
 ];
 
+/** CONTACT_TYPES component for the settings section. */
 export const CONTACT_TYPES = ['cliente', 'lead', 'fornecedor', 'parceiro', 'vip'] as const;
 
+/** SCOPE_LABELS component for the settings section. */
 export const SCOPE_LABELS: Record<SLARuleScope, string> = {
   contact: 'Cliente',
   company: 'Empresa',
@@ -21,6 +24,7 @@ export const SCOPE_LABELS: Record<SLARuleScope, string> = {
   agent: 'Agente',
 };
 
+/** format SLAMinutes component for the settings section. */
 export function formatSLAMinutes(m: number): string {
   if (m < 60) return `${m}min`;
   const h = Math.floor(m / 60);

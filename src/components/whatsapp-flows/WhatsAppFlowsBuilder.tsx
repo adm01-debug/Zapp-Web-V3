@@ -1,7 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import type { Json } from '@/integrations/supabase/schema';
-import { toast } from '@/hooks/use-toast';
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Button } from '@/components/ui/button';
@@ -33,23 +30,7 @@ import {
 import { cn } from '@/lib/utils';
 import { FlowComponentPreview } from './FlowComponentPreview';
 import type { FlowComponent } from './FlowComponentPreview';
-
-interface FlowScreen {
-  id: string;
-  title: string;
-  layout: FlowComponent[];
-}
-
-interface WhatsAppFlow {
-  id: string;
-  name: string;
-  description: string | null;
-  flow_json: Json;
-  screens: FlowScreen[];
-  status: string;
-  whatsapp_flow_id: string | null;
-  created_at: string;
-}
+import { useWhatsAppFlows, type WhatsAppFlow, type FlowScreen } from '@/hooks/useWhatsAppFlows';
 
 const COMPONENT_TYPES = [
   { type: 'TextHeading', label: 'Título', icon: Type },
@@ -63,9 +44,10 @@ const COMPONENT_TYPES = [
   { type: 'Footer', label: 'Botão de Ação', icon: Send },
 ] as const;
 
+/** Whats App Flows Builder component for the whatsapp flows section. */
 export function WhatsAppFlowsBuilder(): JSX.Element {
-  const [flows, setFlows] = useState<WhatsAppFlow[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { flows, loading, createFlow, deleteFlow, updateFlowScreens } = useWhatsAppFlows();
+
   const [selectedFlow, setSelectedFlow] = useState<WhatsAppFlow | null>(null);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [editingScreen, setEditingScreen] = useState<number>(0);
@@ -73,28 +55,7 @@ export function WhatsAppFlowsBuilder(): JSX.Element {
   const [formName, setFormName] = useState('');
   const [formDescription, setFormDescription] = useState('');
 
-  const fetchFlows = useCallback(async (): Promise<void> => {
-    setLoading(true);
-    const { data } = await supabase
-      .from('whatsapp_flows')
-      .select('*')
-      .order('created_at', { ascending: false });
-    if (data) {
-      setFlows(
-        data.map((f) => ({
-          ...f,
-          screens: (Array.isArray(f.screens) ? f.screens : []) as unknown as FlowScreen[],
-        })) as WhatsAppFlow[]
-      );
-    }
-    setLoading(false);
-  }, []);
-
-  useEffect(() => {
-    fetchFlows();
-  }, [fetchFlows]);
-
-  const createFlow = async (): Promise<void> => {
+  const handleCreateFlow = async (): Promise<void> => {
     if (!formName.trim()) return;
     const defaultScreens: FlowScreen[] = [
       {
@@ -107,45 +68,28 @@ export function WhatsAppFlowsBuilder(): JSX.Element {
         ],
       },
     ];
-    const { error: insertError } = await supabase.from('whatsapp_flows').insert({
-      name: formName,
-      description: formDescription || null,
-      screens:
-        defaultScreens as Json /* ignore-audit: local Screen[] type widened to Supabase Json column type */,
-    });
-    if (insertError) {
-      toast({ title: 'Erro', description: insertError.message, variant: 'destructive' });
-      return;
+    const ok = await createFlow(formName, formDescription, defaultScreens);
+    if (ok) {
+      setShowCreateDialog(false);
+      setFormName('');
+      setFormDescription('');
     }
-    toast({ title: 'Flow criado!' });
-    setShowCreateDialog(false);
-    setFormName('');
-    setFormDescription('');
-    fetchFlows();
   };
 
-  const deleteFlow = async (id: string): Promise<void> => {
-    await supabase.from('whatsapp_flows').delete().eq('id', id);
+  const handleDeleteFlow = async (id: string): Promise<void> => {
+    await deleteFlow(id);
     if (selectedFlow?.id === id) setSelectedFlow(null);
-    toast({ title: 'Flow removido' });
-    fetchFlows();
   };
 
-  const updateFlowScreens = async (screens: FlowScreen[]): Promise<void> => {
+  const handleUpdateScreens = async (screens: FlowScreen[]): Promise<void> => {
     if (!selectedFlow) return;
     setSelectedFlow({ ...selectedFlow, screens });
-    await supabase
-      .from('whatsapp_flows')
-      .update({
-        screens:
-          screens as Json /* ignore-audit: local Screen[] type widened to Supabase Json column type */,
-      })
-      .eq('id', selectedFlow.id);
+    await updateFlowScreens(selectedFlow.id, screens);
   };
 
   const addScreen = (): void => {
     if (!selectedFlow) return;
-    updateFlowScreens([
+    handleUpdateScreens([
       ...selectedFlow.screens,
       {
         id: crypto.randomUUID(),
@@ -183,17 +127,19 @@ export function WhatsAppFlowsBuilder(): JSX.Element {
           ]
         : undefined,
     };
-    const footerIdx = screens[editingScreen].layout.findIndex((c) => c.type === 'Footer');
+    const footerIdx = screens[editingScreen].layout.findIndex(
+      (c) => (c as FlowComponent).type === 'Footer',
+    );
     if (footerIdx >= 0) screens[editingScreen].layout.splice(footerIdx, 0, newComp);
     else screens[editingScreen].layout.push(newComp);
-    updateFlowScreens(screens);
+    handleUpdateScreens(screens);
   };
 
   const removeComponent = (compIdx: number): void => {
     if (!selectedFlow) return;
     const screens = [...selectedFlow.screens];
     screens[editingScreen].layout.splice(compIdx, 1);
-    updateFlowScreens(screens);
+    handleUpdateScreens(screens);
   };
 
   if (!selectedFlow) {
@@ -235,7 +181,7 @@ export function WhatsAppFlowsBuilder(): JSX.Element {
                           className="h-6 w-6 text-destructive"
                           onClick={(e) => {
                             e.stopPropagation();
-                            deleteFlow(flow.id);
+                            handleDeleteFlow(flow.id);
                           }}
                           aria-label="Excluir flow"
                         >
@@ -298,7 +244,7 @@ export function WhatsAppFlowsBuilder(): JSX.Element {
               <Button variant="outline" onClick={() => setShowCreateDialog(false)}>
                 Cancelar
               </Button>
-              <Button onClick={createFlow}>Criar</Button>
+              <Button onClick={handleCreateFlow}>Criar</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -335,14 +281,15 @@ export function WhatsAppFlowsBuilder(): JSX.Element {
       <div className="flex flex-1 gap-4 overflow-hidden px-6 pb-6">
         <div className="w-48 flex-shrink-0 space-y-2 overflow-y-auto">
           {selectedFlow.screens.map((screen, idx) => (
-            <button type="button"
+            <button
+              type="button"
               key={screen.id}
               onClick={() => setEditingScreen(idx)}
               className={cn(
                 'w-full rounded-lg border p-3 text-left text-sm transition-all',
                 idx === editingScreen
                   ? 'border-secondary bg-secondary/10 text-secondary'
-                  : 'border-border/30 bg-card/30 text-muted-foreground hover:border-border'
+                  : 'border-border/30 bg-card/30 text-muted-foreground hover:border-border',
               )}
             >
               <div className="font-medium">{screen.title}</div>
@@ -357,7 +304,8 @@ export function WhatsAppFlowsBuilder(): JSX.Element {
                 Componentes
               </p>
               {COMPONENT_TYPES.map(({ type, label, icon: Icon }) => (
-                <button type="button"
+                <button
+                  type="button"
                   key={type}
                   onClick={() => addComponent(type)}
                   className="flex w-full items-center gap-2 rounded-lg p-2 text-left text-sm text-foreground transition-colors hover:bg-muted/50"
@@ -379,8 +327,8 @@ export function WhatsAppFlowsBuilder(): JSX.Element {
                 <div className="min-h-[400px] space-y-3 p-4">
                   {currentScreen?.layout.map((comp, idx) => (
                     <FlowComponentPreview
-                      key={comp.id}
-                      comp={comp}
+                      key={(comp as FlowComponent).id}
+                      comp={comp as FlowComponent}
                       preview={previewMode}
                       onRemove={() => removeComponent(idx)}
                     />

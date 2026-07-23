@@ -16,6 +16,7 @@ interface ExportDropdownProps {
   itemCount?: number;
 }
 
+/** Export Dropdown function. */
 export function ExportDropdown({ onExport, isExporting, disabled }: ExportDropdownProps) {
   const { canDownload } = useDownloadPermission();
 
@@ -55,4 +56,5 @@ export function ExportDropdown({ onExport, isExporting, disabled }: ExportDropdo
   );
 }
 
+/** Default export. */
 export default ExportDropdown;

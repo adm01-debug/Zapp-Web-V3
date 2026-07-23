@@ -1,6 +1,7 @@
 import { LucideIcon } from 'lucide-react';
 import { Info, Smartphone, Brain, Sparkles, Tag, User, ListTodo, Bell, FileText, Clock, BarChart3, Image, TrendingUp, ShoppingBag, GitBranch } from 'lucide-react';
 
+/** Accordion Section Config interface definition. */
 export interface AccordionSectionConfig {
   value: string;
   label: string;
@@ -30,10 +31,12 @@ export const CONTACT_DETAIL_SECTIONS: AccordionSectionConfig[] = [
   { value: 'media', label: 'Mídia Compartilhada', icon: Image, customIndex: 8 },
 ];
 
+/** D E F A U L T_ O P E N_ S E C T I O N S constant. */
 export const DEFAULT_OPEN_SECTIONS = ['info', 'crm-360', 'intelligence', 'tags', 'assignment', 'custom-fields', 'notes', 'history', 'stats'];
 
 const ACCORDION_STORAGE_KEY = 'contact-details-accordion-state';
 
+/** get Stored Accordion State function. */
 export function getStoredAccordionState(): string[] {
   try {
     const stored = localStorage.getItem(ACCORDION_STORAGE_KEY);
@@ -42,6 +45,7 @@ export function getStoredAccordionState(): string[] {
   return DEFAULT_OPEN_SECTIONS;
 }
 
+/** Persists the current accordion open-section list to localStorage. */
 export function saveAccordionState(value: string[]) {
   try {
     localStorage.setItem(ACCORDION_STORAGE_KEY, JSON.stringify(value));

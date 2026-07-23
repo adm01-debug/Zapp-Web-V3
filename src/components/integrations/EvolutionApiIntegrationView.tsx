@@ -16,6 +16,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useEvolutionApiIntegration, DEFAULT_URL } from '@/features/integrations/hooks/useEvolutionApiIntegration';
 
+/** Evolution Api Integration View component for the integrations section. */
 export function EvolutionApiIntegrationView() {
   const [activeTab, setActiveTab] = useState('instances');
   const [searchTerm, setSearchTerm] = useState('');

@@ -1,11 +1,13 @@
 // Re-export from consolidated useAdminManagement module (ETAPA 19 consolidation)
 import { useAdminManagement } from '@/features/admin/hooks/useAdminManagement';
 
+/** Re-exported module members. */
 export {
   ALL_ROLES,
   type RoutePermission,
 } from '@/features/admin/hooks/useAdminManagement';
 
+/** Hook: use Route Permissions. */
 export function useRoutePermissions() {
   const admin = useAdminManagement();
   return {

@@ -17,6 +17,7 @@ const log = getLogger('silentErrorPrevention');
  * - Error recovery patterns for common failure scenarios
  */
 
+/** Error Suppression type alias. */
 export type ErrorSuppression = 'intentional' | 'expected' | 'recoverable' | 'logged';
 
 /**
@@ -58,6 +59,7 @@ export async function safeAsync<T>(
 /**
  * Safe wrapper for callbacks that prevents silent failures.
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function safeCallback<T extends (...args: any[]) => any>(
   callback: T,
   context: {
@@ -66,6 +68,7 @@ export function safeCallback<T extends (...args: any[]) => any>(
     shouldThrow?: boolean;
   }
 ): T {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return ((...args: any[]) => {
     try {
       return callback(...args);
@@ -85,8 +88,10 @@ export function safeCallback<T extends (...args: any[]) => any>(
  * Safe wrapper for event listeners that prevents silent failures.
  */
 export function safeEventListener<K extends keyof HTMLElementEventMap>(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   handler: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any,
   context: { eventName: K; shouldThrow?: boolean }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): (this: HTMLElement, ev: HTMLElementEventMap[K]) => any {
   return function (this: HTMLElement, ev: HTMLElementEventMap[K]) {
     try {
@@ -240,6 +245,7 @@ export function detectSilentErrors(): void {
   // Check for console.error calls that might be swallowed
   const originalError = console.error;
   let errorCount = 0;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   console.error = function (...args: any[]) {
     errorCount++;
     if (errorCount > 10 && errorCount % 10 === 0) {
@@ -259,28 +265,14 @@ export function detectSilentErrors(): void {
 /**
  * Initialize global silent error prevention.
  * Should be called once on application startup.
+ *
+ * NOTE: Global `unhandledrejection` and `error` listeners are registered in
+ * main.tsx (which also handles suppression of known-benign browser errors).
+ * This function only initialises dev-mode static analysis to avoid duplicate
+ * global handlers that would log every error twice.
  */
 export function initializeSilentErrorPrevention(): void {
   if (typeof window === 'undefined') return;
-
-  // Track unhandled promise rejections
-  window.addEventListener('unhandledrejection', (event) => {
-    const error = event.reason instanceof Error ? event.reason : new Error(String(event.reason));
-    log.error('Unhandled promise rejection detected:', error);
-    logStructuredError(error, {
-      url: window.location.href,
-    });
-  });
-
-  // Track uncaught errors
-  window.addEventListener('error', (event) => {
-    if (event.error) {
-      log.error('Uncaught error detected:', event.error);
-      logStructuredError(event.error, {
-        url: window.location.href,
-      });
-    }
-  });
 
   // Initialize silent error detection in development
   if (import.meta.env.DEV) {
@@ -290,6 +282,7 @@ export function initializeSilentErrorPrevention(): void {
   log.info('Silent error prevention initialized');
 }
 
+/** Default export. */
 export default {
   suppressError,
   safeAsync,

@@ -25,6 +25,7 @@ const statusConfig: Record<string, { icon: typeof CheckCircle2; color: string; b
 };
 const defaultStatus = { icon: Clock, color: 'text-muted-foreground', bg: 'bg-muted/30' };
 
+/** Monitoring Health Logs component for the monitoring section. */
 export function MonitoringHealthLogs({ healthLogs }: Props) {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [instanceFilter, setInstanceFilter] = useState<string>('all');

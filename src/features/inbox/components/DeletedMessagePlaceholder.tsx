@@ -12,6 +12,7 @@ interface DeletedMessagePlaceholderProps {
   deletedAt?: string | null;
 }
 
+/** Renders a placeholder indicating a deleted message, with optional original content reveal and relative deletion time. */
 export function DeletedMessagePlaceholder({ isSent, content, deletedAt }: DeletedMessagePlaceholderProps) {
   const hasOriginalContent = content && content !== '[Mensagem apagada]';
   const deletedDate = deletedAt ? new Date(deletedAt) : null;

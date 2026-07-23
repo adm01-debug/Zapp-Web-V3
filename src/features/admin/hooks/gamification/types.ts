@@ -1,3 +1,4 @@
+/** Hook: Agent Stats. */
 export interface AgentStats {
   id: string;
   profile_id: string;
@@ -13,6 +14,7 @@ export interface AgentStats {
   customer_satisfaction_score: number | null;
 }
 
+/** Hook: Achievement. */
 export interface Achievement {
   id: string;
   profile_id: string;
@@ -23,6 +25,7 @@ export interface Achievement {
   earned_at: string;
 }
 
+/** Hook: ACHIEVEMENT_TYPES. */
 export const ACHIEVEMENT_TYPES = {
   FAST_RESPONSE: 'fast_response',
   SPEED_DEMON: 'speed_demon',

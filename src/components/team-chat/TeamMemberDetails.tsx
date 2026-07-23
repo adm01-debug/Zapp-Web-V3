@@ -1,8 +1,6 @@
-import { queryKeys } from '@/services/api/queryKeys';
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/features/auth';
-import { supabase } from '@/integrations/supabase/client';
+import { useTeamMemberDetails } from '@/hooks/useTeamMemberDetails';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -14,7 +12,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import type { TeamConversation } from '@/hooks/useTeamChat';
 import {
-  type MemberProfile, getBirthdayInfo, getRoleBadge, InfoRow,
+  getBirthdayInfo, getRoleBadge, InfoRow,
   DirectProfileHeader, GroupProfileHeader,
 } from './TeamMemberProfileHeader';
 
@@ -29,46 +27,13 @@ function SectionHeader({ icon: Icon, label, open, onToggle }: { icon: React.Elem
 
 interface TeamMemberDetailsProps { conversation: TeamConversation; onClose: () => void; }
 
+/** Team Member Details component for the team chat section. */
 export function TeamMemberDetails({ conversation, onClose }: TeamMemberDetailsProps) {
   const { profile } = useAuth();
   const [sections, setSections] = useState({ info: true, team: false, activity: false });
   const toggleAll = () => { const allClosed = !sections.info && !sections.team && !sections.activity; setSections({ info: allClosed, team: allClosed, activity: allClosed }); };
 
-  const otherMemberId = conversation.type === 'direct' ? conversation.members?.find(m => m.profile_id !== profile?.id)?.profile_id : null;
-
-  const { data: memberProfile, isLoading } = useQuery({
-    queryKey: queryKeys.teamProfiles.memberProfile(otherMemberId || conversation.id),
-    queryFn: async () => {
-      if (conversation.type === 'direct' && otherMemberId) {
-        const { data, error } = await supabase.from('profiles').select('id, name, email, phone, avatar_url, job_title, department, role, is_active, created_at, birthday').eq('id', otherMemberId).maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
-        if (error) throw error;
-        return data as MemberProfile; // ignore-audit: MemberProfile maps a subset of profiles columns; select explicitly lists them
-      }
-      return null;
-    },
-    enabled: conversation.type === 'direct' && !!otherMemberId,
-  });
-
-  const memberIds = conversation.members?.map(m => m.profile_id) || [];
-  const { data: groupMembers = [] } = useQuery({
-    queryKey: queryKeys.teamChat.groupMembers(`${conversation.id}-${conversation.type}-${conversation.department_id}-${memberIds.join(',')}`),
-    queryFn: async () => {
-      if (conversation.type === 'department' && conversation.department_id) {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('id, name, email, phone, avatar_url, job_title, department, role, is_active, created_at, birthday')
-          .eq('department_id', conversation.department_id);
-        if (error) throw error;
-        return (data || []) as MemberProfile[];
-      }
-      
-      if (memberIds.length === 0) return [];
-      const { data, error } = await supabase.from('profiles').select('id, name, email, phone, avatar_url, job_title, department, role, is_active, created_at, birthday').in('id', memberIds);
-      if (error) throw error;
-      return (data || []) as MemberProfile[];
-    },
-    enabled: (conversation.type === 'group' && memberIds.length > 0) || (conversation.type === 'department' && !!conversation.department_id),
-  });
+  const { memberProfile, isLoading, groupMembers } = useTeamMemberDetails(conversation, profile?.id ?? null);
 
   return (
     <div className="w-[300px] border-l border-border flex flex-col bg-card h-full" role="complementary" aria-label="Detalhes da conversa">

@@ -4,6 +4,7 @@ import { useAuth } from '@/features/auth';
 import { toast } from '@/hooks/use-toast';
 import { queryKeys } from '@/services/api/queryKeys';
 
+/** Scheduled Message interface definition. */
 export interface ScheduledMessage {
   id: string;
   contact_id: string;

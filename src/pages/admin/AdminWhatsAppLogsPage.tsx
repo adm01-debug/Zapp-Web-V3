@@ -26,6 +26,7 @@ import {
 import type { ModeFilter } from './whatsappLogsHelpers';
 import { useWhatsAppLogs } from './useWhatsAppLogs';
 
+/** Admin Whats App Logs Page. */
 export default function AdminWhatsAppLogsPage() {
   const [mode, setMode] = useState<ModeFilter>('all');
   const [search, setSearch] = useState('');

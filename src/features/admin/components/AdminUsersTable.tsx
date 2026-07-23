@@ -26,6 +26,7 @@ interface AdminUsersTableProps {
   onEditUser: (user: UserWithRole) => void;
 }
 
+/** Admin Users Table component. */
 export function AdminUsersTable({ users, isAdmin, onRoleChange, onToggleActive, onEditUser }: AdminUsersTableProps) {
   return (
     <Card className="border border-secondary/20 bg-card">

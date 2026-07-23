@@ -1,3 +1,4 @@
+/** Hook: Media Item. */
 export interface MediaItem {
   id: string;
   name: string;
@@ -11,11 +12,15 @@ export interface MediaItem {
   duration_seconds?: number | null;
 }
 
+/** Hook: Media Type. */
 export type MediaType = 'stickers' | 'audio_memes' | 'custom_emojis';
 
+/** Hook: MAX_UPLOAD_SIZE_MB. */
 export const MAX_UPLOAD_SIZE_MB = 10;
+/** Hook: MAX_UPLOAD_SIZE_BYTES. */
 export const MAX_UPLOAD_SIZE_BYTES = MAX_UPLOAD_SIZE_MB * 1024 * 1024;
 
+/** Hook: STICKER_CATEGORIES. */
 export const STICKER_CATEGORIES: Record<string, string> = {
   memes: '😂',
   reações: '👍',
@@ -28,6 +33,7 @@ export const STICKER_CATEGORIES: Record<string, string> = {
   outros: '📦',
 };
 
+/** Hook: AUDIO_CATEGORIES. */
 export const AUDIO_CATEGORIES: Record<string, string> = {
   risadas: '😂',
   bordões: '🎤',
@@ -39,6 +45,7 @@ export const AUDIO_CATEGORIES: Record<string, string> = {
   outros: '📦',
 };
 
+/** Hook: EMOJI_CATEGORIES. */
 export const EMOJI_CATEGORIES: Record<string, string> = {
   custom: '⭐',
   team: '👥',
@@ -47,6 +54,7 @@ export const EMOJI_CATEGORIES: Record<string, string> = {
   outros: '📦',
 };
 
+/** Hook: get Categories For Type. */
 export function getCategoriesForType(type: MediaType): Record<string, string> {
   switch (type) {
     case 'stickers':
@@ -58,10 +66,12 @@ export function getCategoriesForType(type: MediaType): Record<string, string> {
   }
 }
 
+/** Hook: get Url Field. */
 export function getUrlField(type: MediaType): 'image_url' | 'audio_url' {
   return type === 'audio_memes' ? 'audio_url' : 'image_url';
 }
 
+/** Hook: get Bucket. */
 export function getBucket(type: MediaType): string {
   switch (type) {
     case 'stickers':
@@ -73,6 +83,7 @@ export function getBucket(type: MediaType): string {
   }
 }
 
+/** Hook: extract Storage Path. */
 export function extractStoragePath(
   url: string,
   bucket: string

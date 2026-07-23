@@ -16,6 +16,7 @@ interface RealtimeTranscriptionProps {
   className?: string;
 }
 
+/** Realtime Transcription component. */
 export function RealtimeTranscription({ 
   onTranscript, 
   onStatusChange,

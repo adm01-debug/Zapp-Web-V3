@@ -2,8 +2,8 @@ import { useState, useRef, useCallback } from 'react';
 import { getLogger } from '@/lib/logger';
 
 const log = getLogger('useChatPanelHandlers');
-import { supabase } from '@/integrations/supabase/client';
 import { undoToast } from '@/lib/undoToast';
+import { insertWhisperMessage } from '../../hooks/useWhisperMessagesMutation';
 import { useAuth } from '@/features/auth';
 import { Message } from '@/types/chat';
 import { toast } from '@/hooks/use-toast';
@@ -34,6 +34,7 @@ interface UseChatPanelHandlersOptions {
   handleSetActiveTool: (tool: ActiveTool) => void;
 }
 
+/** use Chat Panel Handlers component for the chat section. */
 export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
   const {
     contactPhone,
@@ -184,7 +185,7 @@ export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
             return;
           }
 
-          const { error } = await supabase.from('whisper_messages').insert({
+          const { error } = await insertWhisperMessage({
             contact_id: opts.contactId,
             sender_id: profile.id,
             content: messageContent,
@@ -231,7 +232,7 @@ export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
         setIsSending(false);
       }
     },
-    [contactPhone, instanceName, editMessageApi, applySignature, onSendMessage, handleTypingStop]
+    [contactPhone, instanceName, editMessageApi, applySignature, onSendMessage, handleTypingStop] // eslint-disable-line react-hooks/exhaustive-deps
   );
 
   const retryLastSend = useCallback(async () => {

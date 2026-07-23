@@ -32,6 +32,7 @@ function queryConnections(field: 'name' | 'instance_id', value: string) {
     .maybeSingle() as unknown as Promise<{ data: WhatsappConnectionRow | null; error: unknown }>;
 }
 
+/** resolve Send Function function. */
 export async function resolveSendFunction(
   instanceName: string | undefined | null,
 ): Promise<FnName> {

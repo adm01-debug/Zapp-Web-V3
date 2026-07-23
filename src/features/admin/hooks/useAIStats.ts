@@ -19,14 +19,17 @@ type AuditLogRow = {
   details: Record<string, unknown> | null;
 };
 
+/** Hook: Period Option. */
 export type PeriodOption = 7 | 14 | 30;
 
+/** Hook: Trend Data. */
 export interface TrendData {
   direction: 'up' | 'down' | 'stable';
   change: number;
   percentage: number;
 }
 
+/** Hook: Sentiment Alert. */
 export interface SentimentAlert {
   id: string;
   contactId: string | null;
@@ -36,6 +39,7 @@ export interface SentimentAlert {
   consecutive_low?: number;
 }
 
+/** Hook: AIStats. */
 export interface AIStats {
   totalAnalyses: number;
   avgSentimentScore: number;
@@ -59,6 +63,7 @@ export interface AIStats {
   };
 }
 
+/** Hook: calculate Trend. */
 export const calculateTrend = (current: number, previous: number): TrendData => {
   if (previous === 0 && current === 0) return { direction: 'stable', change: 0, percentage: 0 };
   if (previous === 0) return { direction: 'up', change: current, percentage: 100 };
@@ -68,6 +73,7 @@ export const calculateTrend = (current: number, previous: number): TrendData => 
   return { direction: change > 0 ? 'up' : 'down', change, percentage };
 };
 
+/** Hook: use AIStats. */
 export function useAIStats(selectedPeriod: PeriodOption) {
   return useQuery({
     queryKey: queryKeys.aiFeatures.statsWidgetPeriod(String(selectedPeriod)),

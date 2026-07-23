@@ -22,6 +22,7 @@ interface MessageReactionsProps {
   disableRealtime?: boolean;
 }
 
+/** Message Reactions component. */
 export const MessageReactions = memo(function MessageReactions({
   messageId,
   isSent,
@@ -230,6 +231,7 @@ interface QuickReactionBarProps extends MessageReactionsProps {
   forceShow?: boolean;
 }
 
+/** Quick Reaction Bar component. */
 export const QuickReactionBar = memo(function QuickReactionBar({
   messageId,
   isSent,

@@ -1,0 +1,69 @@
+name: Seed E2E contacts (VPS)
+
+on:
+  workflow_dispatch:
+  workflow_call:
+    secrets:
+      VPS_SSH_HOST:    { required: true }
+      VPS_SSH_USER:    { required: true }
+      VPS_SSH_KEY:     { required: true }
+      SUPABASE_DB_URL: { required: true }
+
+jobs:
+  seed-contacts:
+    name: Semear contatos E2E em zapp.contacts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configurar SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H "${{ secrets.VPS_SSH_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Copiar seed para VPS
+        run: |
+          scp -i ~/.ssh/id_ed25519 \
+            scripts/seed-e2e-contacts.sql scripts/seed-e2e-contacts.sh \
+            "${{ secrets.VPS_SSH_USER }}@${{ secrets.VPS_SSH_HOST }}:/tmp/"
+
+      - name: Aplicar seed
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          ssh -i ~/.ssh/id_ed25519 \
+            "${{ secrets.VPS_SSH_USER }}@${{ secrets.VPS_SSH_HOST }}" \
+            "chmod +x /tmp/seed-e2e-contacts.sh && \
+             SEED_REPORT_JSON=/tmp/seed-e2e-contacts-summary.json \
+             SEED_REPORT_LOG=/tmp/seed-e2e-contacts.log \
+             SUPABASE_DB_URL='$SUPABASE_DB_URL' \
+             /tmp/seed-e2e-contacts.sh"
+
+      - name: Trazer log/summary da VPS
+        if: always()
+        run: |
+          mkdir -p reports
+          scp -i ~/.ssh/id_ed25519 \
+            "${{ secrets.VPS_SSH_USER }}@${{ secrets.VPS_SSH_HOST }}:/tmp/seed-e2e-contacts-summary.json" \
+            reports/seed-e2e-contacts-summary.json || echo "{}" > reports/seed-e2e-contacts-summary.json
+          scp -i ~/.ssh/id_ed25519 \
+            "${{ secrets.VPS_SSH_USER }}@${{ secrets.VPS_SSH_HOST }}:/tmp/seed-e2e-contacts.log" \
+            reports/seed-e2e-contacts.log || true
+
+      - name: Renderizar HTML + Step Summary
+        if: always()
+        run: |
+          node scripts/render-seed-report.mjs \
+            reports/seed-e2e-contacts-report.html \
+            reports/seed-e2e-contacts-summary.json >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload artefato (HTML + log + json)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: seed-e2e-contacts-report
+          path: reports/
+          retention-days: 14
+

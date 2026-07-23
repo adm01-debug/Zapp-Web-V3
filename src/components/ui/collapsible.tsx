@@ -6,4 +6,5 @@ const CollapsibleTrigger = CollapsiblePrimitive.CollapsibleTrigger;
 
 const CollapsibleContent = CollapsiblePrimitive.CollapsibleContent;
 
+/** collapsible component for the ui section. */
 export { Collapsible, CollapsibleTrigger, CollapsibleContent };

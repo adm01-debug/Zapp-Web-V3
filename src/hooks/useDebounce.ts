@@ -8,11 +8,13 @@ interface UseDebounceOptions {
 }
 
 /** Returns a debounced version of a callback that executes after specified delay. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function useDebounce<T extends (...args: any[]) => any>(
   callback: T,
-  optionsOrDelay: UseDebounceOptions | number = {},
+  optionsOrDelay: UseDebounceOptions | number = {}
 ): T {
-  const options: UseDebounceOptions = typeof optionsOrDelay === 'number' ? { delay: optionsOrDelay } : optionsOrDelay;
+  const options: UseDebounceOptions =
+    typeof optionsOrDelay === 'number' ? { delay: optionsOrDelay } : optionsOrDelay;
   const { delay = 300, leading = false } = options;
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const callbackRef = useRef(callback);
@@ -56,7 +58,7 @@ export function useDebounce<T extends (...args: any[]) => any>(
         hasTrailingRef.current = false;
       }, delay);
     },
-    [delay, leading],
+    [delay, leading]
   ) as T;
 
   return debouncedFn;

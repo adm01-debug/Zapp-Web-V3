@@ -1,3 +1,4 @@
+/** Sticker Item component for the stickers section. */
 export interface StickerItem {
   id: string;
   name: string | null;
@@ -8,6 +9,7 @@ export interface StickerItem {
   owner_id?: string | null;
 }
 
+/** CATEGORY_LABELS component for the stickers section. */
 export const CATEGORY_LABELS: Record<string, { emoji: string; label: string }> = {
   'pessoal': { emoji: '📸', label: 'Pessoal' },
   'comemoração': { emoji: '🎉', label: 'Comemoração' },
@@ -35,8 +37,10 @@ export const CATEGORY_LABELS: Record<string, { emoji: string; label: string }> =
   'enviadas': { emoji: '📤', label: 'Enviadas' },
 };
 
+/** ALL_CATEGORIES component for the stickers section. */
 export const ALL_CATEGORIES = Object.keys(CATEGORY_LABELS);
 
+/** Pending Upload component for the stickers section. */
 export interface PendingUpload {
   file: File;
   imageUrl: string;

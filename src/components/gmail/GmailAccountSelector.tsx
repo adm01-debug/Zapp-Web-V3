@@ -30,6 +30,7 @@ const TOKEN_STATUS_CONFIG: Record<TokenStatus, { icon: typeof Wifi; color: strin
   disconnected: { icon: WifiOff, color: 'text-muted-foreground', label: 'Desconectado' },
 };
 
+/** Email Account Selector component for the gmail section. */
 export function EmailAccountSelector({
   accounts,
   activeAccountId,

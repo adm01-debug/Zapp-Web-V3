@@ -32,6 +32,7 @@ interface WhisperModeProps {
   defaultExpanded?: boolean;
 }
 
+/** Collapsible compose panel for sending private whisper messages to a specific agent within a conversation. */
 export function WhisperMode({
   contactId,
   targetAgentId,
@@ -107,8 +108,7 @@ export function WhisperMode({
       )
       .subscribe();
     return () => {
-      void channel.unsubscribe();
-      void supabase.removeChannel(channel);
+      supabase.removeChannel(channel).catch(() => {});
     };
   }, [contactId, queryClient, contactIsUUID]);
 

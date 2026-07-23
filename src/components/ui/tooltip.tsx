@@ -119,6 +119,7 @@ function SimpleTooltip({
   );
 }
 
+/** tooltip component for the ui section. */
 export { 
   Tooltip, 
   TooltipTrigger, 

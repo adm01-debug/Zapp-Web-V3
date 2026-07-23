@@ -15,6 +15,7 @@ interface UseInputHandlersOptions {
   handleSetActiveTool: (tool: ActiveTool) => void;
 }
 
+/** use Input Handlers component for the chat section. */
 export function useInputHandlers({
   setInputValue,
   setIsWhisper,

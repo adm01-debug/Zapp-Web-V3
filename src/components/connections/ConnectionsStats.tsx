@@ -7,6 +7,7 @@ interface ConnectionsStatsProps {
   connections: WhatsAppConnection[];
 }
 
+/** Connections Stats component for the connections section. */
 export function ConnectionsStats({ connections }: ConnectionsStatsProps) {
   const online = connections.filter((c) => c.status === 'connected').length;
   const needsAction = connections.filter((c) => c.status !== 'connected').length;

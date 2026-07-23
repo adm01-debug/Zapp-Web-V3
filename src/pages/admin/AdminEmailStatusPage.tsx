@@ -45,6 +45,7 @@ const getStatusLabel = (status?: string) => {
   }
 };
 
+/** Admin dashboard page for monitoring email infrastructure health, failure logs, and triggering manual revalidation jobs. */
 export default function AdminEmailStatusPage() {
   const {
     accounts,
@@ -110,7 +111,9 @@ export default function AdminEmailStatusPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{getStatusLabel(health?.status)}</div>
-            <p className="mt-1 text-xs text-muted-foreground">Telemetria em tempo real.</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {health?.source ? `Fonte: ${health.source}` : 'Telemetria em tempo real.'}
+            </p>
           </CardContent>
         </Card>
 

@@ -26,6 +26,7 @@ const ROLE_RANK: Record<AppRole, number> = {
   agent: 1,
 };
 
+/** use User Role function. */
 export function useUserRole() {
   const { roles: authRoles, loading, refreshRoles } = useAuth();
 

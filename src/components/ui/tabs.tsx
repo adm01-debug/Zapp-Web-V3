@@ -50,4 +50,5 @@ const TabsContent = React.forwardRef<
 ));
 TabsContent.displayName = TabsPrimitive.Content.displayName;
 
+/** tabs component for the ui section. */
 export { Tabs, TabsList, TabsTrigger, TabsContent };

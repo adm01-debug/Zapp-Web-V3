@@ -17,8 +17,10 @@
 import { getLogger } from '@/lib/logger';
 const log = getLogger('reconciliationTelemetry');
 
+/** Which reconciliation strategy resolved a given optimistic→canonical match. */
 export type MatchStrategy = 'external_id' | 'text_fallback' | 'media_fallback';
 
+/** Single reconciliation event capturing which strategy matched an optimistic bubble to its canonical DB row. */
 export interface MatchEvent {
   strategy: MatchStrategy;
   messageType: string;
@@ -62,6 +64,7 @@ function debugEnabled(): boolean {
   }
 }
 
+/** Records a reconciliation match, updates counters/ring buffer, and notifies subscribers. */
 export function recordMatch(ev: Omit<MatchEvent, 'at'>): void {
   const event: MatchEvent = { ...ev, at: Date.now() };
   counters.total += 1;
@@ -90,6 +93,7 @@ export function recordMatch(ev: Omit<MatchEvent, 'at'>): void {
   }
 }
 
+/** Returns a shallow copy of the current reconciliation counters (total, by-strategy, by-type, matrix). */
 export function getReconciliationStats(): Counters {
   // Devolve cópia rasa para evitar mutação externa dos contadores.
   return {
@@ -104,15 +108,18 @@ export function getReconciliationStats(): Counters {
   };
 }
 
+/** Returns the N most-recent match events from the ring buffer (default 20), oldest first. */
 export function getRecentMatches(limit = 20): MatchEvent[] {
   return recentEvents.slice(-limit);
 }
 
+/** Subscribes to live reconciliation events; returns an unsubscribe function. */
 export function subscribeReconciliation(fn: (ev: MatchEvent) => void): () => void {
   listeners.add(fn);
   return () => listeners.delete(fn);
 }
 
+/** Resets all counters and clears the ring buffer; intended for tests and manual debug resets. */
 export function resetReconciliationStats(): void {
   counters.total = 0;
   counters.byStrategy = { external_id: 0, text_fallback: 0, media_fallback: 0 };

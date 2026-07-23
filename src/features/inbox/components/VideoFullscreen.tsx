@@ -9,6 +9,7 @@ interface VideoFullscreenProps {
   onClose: () => void;
 }
 
+/** Video Fullscreen component. */
 export function VideoFullscreen({ url, onClose }: VideoFullscreenProps) {
   const [isMuted, setIsMuted] = useState(false);
   const [playbackRate, setPlaybackRate] = useState(1.0);

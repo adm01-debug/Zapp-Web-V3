@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { fetchReminders, createReminder, dismissReminderById, deleteReminderById } from '../hooks/useRemindersData';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Bell, BellOff, Plus, Trash2, Clock } from 'lucide-react';
@@ -28,6 +28,7 @@ interface RemindersPanelProps {
   profileId?: string | null;
 }
 
+/** Reminders Panel component. */
 export function RemindersPanel({ contactId, profileId }: RemindersPanelProps) {
   const [reminders, setReminders] = useState<Reminder[]>([]);
   const [newTitle, setNewTitle] = useState('');
@@ -36,7 +37,7 @@ export function RemindersPanel({ contactId, profileId }: RemindersPanelProps) {
 
   useEffect(() => {
     loadReminders();
-  }, [contactId, profileId]);
+  }, [contactId, profileId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadReminders = async () => {
     if (!profileId) {
@@ -44,14 +45,8 @@ export function RemindersPanel({ contactId, profileId }: RemindersPanelProps) {
       return;
     }
     setLoading(true);
-    const { data } = await supabase
-      .from('reminders')
-      .select('*')
-      .eq('contact_id', contactId)
-      .eq('profile_id', profileId)
-      .eq('is_dismissed', false)
-      .order('remind_at', { ascending: true });
-    if (data) setReminders(data);
+    const data = await fetchReminders(contactId, profileId);
+    setReminders(data);
     setLoading(false);
   };
 
@@ -79,9 +74,9 @@ export function RemindersPanel({ contactId, profileId }: RemindersPanelProps) {
         remindAt = addHours(now, 1);
     }
 
-    const { error } = await supabase.from('reminders').insert({
+    const { error } = await createReminder({
       contact_id: contactId,
-      profile_id: profileId,
+      profile_id: profileId as string,
       title: newTitle.trim(),
       remind_at: remindAt.toISOString(),
     });
@@ -93,13 +88,13 @@ export function RemindersPanel({ contactId, profileId }: RemindersPanelProps) {
   };
 
   const dismissReminder = async (id: string) => {
-    await supabase.from('reminders').update({ is_dismissed: true }).eq('id', id);
+    await dismissReminderById(id);
     toast.success('Lembrete dispensado');
     loadReminders();
   };
 
   const deleteReminder = async (id: string) => {
-    await supabase.from('reminders').delete().eq('id', id);
+    await deleteReminderById(id);
     loadReminders();
   };
 

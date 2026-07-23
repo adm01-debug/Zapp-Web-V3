@@ -31,6 +31,7 @@ const rippleVariants = {
 
 const rippleSizes = { sm: 80, md: 150, lg: 250 };
 
+/** Ripple Button component for the ui section. */
 export function RippleButton({
   rippleConfig = {},
   variant = 'default',
@@ -129,6 +130,7 @@ const iconButtonVariants = {
 
 const iconButtonSizes = { sm: 'h-8 w-8', md: 'h-10 w-10', lg: 'h-12 w-12' };
 
+/** Interactive Icon Button component for the ui section. */
 export function InteractiveIconButton({
   children, variant = 'ghost', size = 'md', pulseOnHover = false,
   className, disabled, onClick, 'aria-label': ariaLabel,
@@ -174,6 +176,7 @@ interface BounceTapProps {
 
 const bounceValues = { light: { scale: 0.98, y: 1 }, medium: { scale: 0.95, y: 2 }, strong: { scale: 0.92, y: 4 } };
 
+/** Bounce Tap Button component for the ui section. */
 export function BounceTapButton({ children, bounceIntensity = 'medium', className, onClick, disabled, type = 'button' }: BounceTapProps) {
   const bounce = bounceValues[bounceIntensity];
   return (
@@ -199,6 +202,7 @@ interface MagneticButtonProps {
   disabled?: boolean;
 }
 
+/** Magnetic Button component for the ui section. */
 export function MagneticButton({ children, intensity = 0.3, className, onClick, disabled }: MagneticButtonProps) {
   const buttonRef = React.useRef<HTMLButtonElement>(null);
   const [position, setPosition] = React.useState({ x: 0, y: 0 });
@@ -234,6 +238,7 @@ interface GlowButtonProps {
 
 const glowIntensities = { subtle: '0 0 20px', medium: '0 0 40px', intense: '0 0 60px' };
 
+/** Glow Button component for the ui section. */
 export function GlowButton({ children, glowColor = 'hsl(var(--primary))', glowIntensity = 'medium', className, onClick, disabled, type = 'button' }: GlowButtonProps) {
   const [isHovered, setIsHovered] = React.useState(false);
 
@@ -274,6 +279,7 @@ interface PressFeedbackProps {
   className?: string;
 }
 
+/** Press Feedback component for the ui section. */
 export function PressFeedback({ children, onPress, disabled, className }: PressFeedbackProps) {
   return (
     <motion.div

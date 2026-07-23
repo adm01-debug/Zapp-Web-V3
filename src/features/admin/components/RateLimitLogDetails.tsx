@@ -15,7 +15,7 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from 'sonner';
-import type { RateLimitLog } from '@/features/admin/hooks/useRateLimitLogs';
+import type { RateLimitLog } from '../hooks/useRateLimitLogs';
 
 interface Props {
   log: RateLimitLog | null;
@@ -83,12 +83,19 @@ function Field({
           </Button>
         )}
       </div>
-      <div className={mono ? 'font-mono text-sm break-all' : 'text-sm'}>{value}</div>
+      <div className={mono ? 'break-all font-mono text-sm' : 'text-sm'}>{value}</div>
     </div>
   );
 }
 
-export function RateLimitLogDetails({ log, open, onOpenChange, onFilterByIp, onFilterByEndpoint }: Props) {
+/** Rate Limit Log Details component. */
+export function RateLimitLogDetails({
+  log,
+  open,
+  onOpenChange,
+  onFilterByIp,
+  onFilterByEndpoint,
+}: Props) {
   const ua = useMemo(() => parseUA(log?.user_agent ?? null), [log?.user_agent]);
 
   if (!log) {
@@ -106,9 +113,9 @@ export function RateLimitLogDetails({ log, open, onOpenChange, onFilterByIp, onF
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-full sm:max-w-lg p-0 flex flex-col">
+      <SheetContent side="right" className="flex w-full flex-col p-0 sm:max-w-lg">
         <SheetHeader className="p-6 pb-4">
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex flex-wrap items-center gap-2">
             {log.blocked ? (
               <Badge variant="destructive">Bloqueado</Badge>
             ) : (
@@ -117,7 +124,7 @@ export function RateLimitLogDetails({ log, open, onOpenChange, onFilterByIp, onF
             {ua.bot && <Badge variant="outline">Bot/Automatizado</Badge>}
             <Badge variant="outline">{log.request_count} req</Badge>
           </div>
-          <SheetTitle className="text-lg mt-2">Detalhes do log de rate limit</SheetTitle>
+          <SheetTitle className="mt-2 text-lg">Detalhes do log de rate limit</SheetTitle>
           <SheetDescription>
             {absolute} · {relative}
           </SheetDescription>
@@ -126,14 +133,8 @@ export function RateLimitLogDetails({ log, open, onOpenChange, onFilterByIp, onF
         <Separator />
 
         <ScrollArea className="flex-1">
-          <div className="p-6 space-y-5">
-            <Field
-              label="ID do log"
-              mono
-              value={log.id}
-              copyable={log.id}
-              copyLabel="ID"
-            />
+          <div className="space-y-5 p-6">
+            <Field label="ID do log" mono value={log.id} copyable={log.id} copyLabel="ID" />
 
             <div className="grid grid-cols-1 gap-4">
               <Field
@@ -154,7 +155,7 @@ export function RateLimitLogDetails({ log, open, onOpenChange, onFilterByIp, onF
                           onOpenChange(false);
                         }}
                       >
-                        <Filter className="h-3 w-3 mr-1" />
+                        <Filter className="mr-1 h-3 w-3" />
                         Filtrar
                       </Button>
                     )}
@@ -179,7 +180,7 @@ export function RateLimitLogDetails({ log, open, onOpenChange, onFilterByIp, onF
                           onOpenChange(false);
                         }}
                       >
-                        <Filter className="h-3 w-3 mr-1" />
+                        <Filter className="mr-1 h-3 w-3" />
                         Filtrar
                       </Button>
                     )}
@@ -192,10 +193,7 @@ export function RateLimitLogDetails({ log, open, onOpenChange, onFilterByIp, onF
 
             <div className="grid grid-cols-2 gap-4">
               <Field label="Requisições" value={log.request_count.toString()} />
-              <Field
-                label="Status"
-                value={log.blocked ? 'Bloqueado (429)' : 'Permitido'}
-              />
+              <Field label="Status" value={log.blocked ? 'Bloqueado (429)' : 'Permitido'} />
               <Field label="Localização" value={location} />
               <Field
                 label="Usuário"
@@ -225,8 +223,8 @@ export function RateLimitLogDetails({ log, open, onOpenChange, onFilterByIp, onF
                 </div>
               </div>
               <div className="rounded-md bg-muted p-3">
-                <p className="text-[10px] uppercase text-muted-foreground mb-1">User-Agent bruto</p>
-                <p className="font-mono text-xs break-all">{log.user_agent ?? '—'}</p>
+                <p className="mb-1 text-[10px] uppercase text-muted-foreground">User-Agent bruto</p>
+                <p className="break-all font-mono text-xs">{log.user_agent ?? '—'}</p>
               </div>
             </div>
 
@@ -234,8 +232,8 @@ export function RateLimitLogDetails({ log, open, onOpenChange, onFilterByIp, onF
 
             <div className="space-y-2">
               <p className="text-sm font-medium">Payload bruto</p>
-              <pre className="rounded-md bg-muted p-3 text-xs overflow-x-auto">
-{JSON.stringify(log, null, 2)}
+              <pre className="overflow-x-auto rounded-md bg-muted p-3 text-xs">
+                {JSON.stringify(log, null, 2)}
               </pre>
               <Button
                 variant="outline"
@@ -243,7 +241,7 @@ export function RateLimitLogDetails({ log, open, onOpenChange, onFilterByIp, onF
                 className="w-full"
                 onClick={() => copyToClipboard(JSON.stringify(log, null, 2), 'Payload JSON')}
               >
-                <Copy className="h-3 w-3 mr-1" />
+                <Copy className="mr-1 h-3 w-3" />
                 Copiar payload
               </Button>
             </div>
@@ -255,13 +253,15 @@ export function RateLimitLogDetails({ log, open, onOpenChange, onFilterByIp, onF
               <div className="grid grid-cols-1 gap-2">
                 <Button asChild variant="outline" size="sm">
                   <Link to={`/admin/rate-limit?tab=logs&ip=${encodeURIComponent(log.ip_address)}`}>
-                    <ExternalLink className="h-3 w-3 mr-1" />
+                    <ExternalLink className="mr-1 h-3 w-3" />
                     Ver todos os logs deste IP
                   </Link>
                 </Button>
                 <Button asChild variant="outline" size="sm">
-                  <Link to={`/admin/rate-limit?tab=logs&endpoint=${encodeURIComponent(log.endpoint)}`}>
-                    <ExternalLink className="h-3 w-3 mr-1" />
+                  <Link
+                    to={`/admin/rate-limit?tab=logs&endpoint=${encodeURIComponent(log.endpoint)}`}
+                  >
+                    <ExternalLink className="mr-1 h-3 w-3" />
                     Ver todos os logs deste endpoint
                   </Link>
                 </Button>

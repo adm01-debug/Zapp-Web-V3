@@ -39,6 +39,7 @@ interface Props {
   departments: Department[];
 }
 
+/** Automation Rule Dialog. */
 export function AutomationRuleDialog({
   open,
   onOpenChange,

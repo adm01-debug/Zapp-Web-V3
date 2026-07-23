@@ -33,6 +33,7 @@ const STATUS_META: Record<Status, { icon: typeof CheckCircle2; cls: string; labe
   skip: { icon: MinusCircle, cls: "text-muted-foreground", label: "Ignorado" },
 };
 
+/** Connection Test Panel component for the settings section. */
 export function ConnectionTestPanel() {
   const [running, setRunning] = useState(false);
   const [result, setResult] = useState<TestResult | null>(null);

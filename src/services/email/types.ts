@@ -1,3 +1,4 @@
+/** Email Failure interface definition. */
 export interface EmailFailure {
   requestId: string;
   operation: string;
@@ -6,12 +7,13 @@ export interface EmailFailure {
   timestamp: string;
 }
 
+/** Email Health Info interface definition. */
 export interface EmailHealthInfo {
   status: 'healthy' | 'degraded' | 'error';
   /** Populated by the edge function when telemetry is persisted via shared storage. */
   source?: string;
   lastValidation: Date | null;
-  cacheExpiration: number | null;
+  cacheExpiration: Date | null;
   recentFailures: EmailFailure[];
   stats: {
     totalCalls: number;
@@ -20,6 +22,7 @@ export interface EmailHealthInfo {
   };
 }
 
+/** Email Health Filters interface definition. */
 export interface EmailHealthFilters {
   requestId?: string;
   operation?: string;

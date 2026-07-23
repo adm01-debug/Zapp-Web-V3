@@ -20,6 +20,7 @@ interface ChatSearchResultsListProps {
   onSelect: (idx: number, messageId: string) => void;
 }
 
+/** Chat Search Results List component for the chat section. */
 export const ChatSearchResultsList = forwardRef<HTMLDivElement, ChatSearchResultsListProps>(
   ({ results, activeIndex, debouncedQuery, onSelect }, ref) => {
     if (results.length === 0) return null;

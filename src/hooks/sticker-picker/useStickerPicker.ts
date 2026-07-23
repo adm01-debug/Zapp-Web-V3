@@ -53,6 +53,7 @@ function validateStickerRow(row: unknown): row is StickerItem {
   return typeof r.id === 'string' && typeof r.image_url === 'string';
 }
 
+/** Manages sticker picker state: browsing, uploading, deleting stickers, and triggering sends. */
 export function useStickerPicker(onSendSticker: (url: string) => void) {
   const [open, setOpen] = useState(false);
   const [stickers, setStickers] = useState<StickerItem[]>([]);
@@ -67,6 +68,14 @@ export function useStickerPicker(onSendSticker: (url: string) => void) {
   const [isDragOver, setIsDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const mountedRef = useRef(false);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   // FIX BUG 3: Runtime validation instead of unsafe `as StickerItem[]` cast
   const fetchStickers = useCallback(async () => {
@@ -78,6 +87,7 @@ export function useStickerPicker(onSendSticker: (url: string) => void) {
         .order('use_count', { ascending: false })
         .limit(1000);
 
+      if (!mountedRef.current) return;
       if (error) {
         log.error('[fetchStickers] Query error:', error.message);
         setLoading(false);
@@ -95,13 +105,14 @@ export function useStickerPicker(onSendSticker: (url: string) => void) {
     } catch (err) {
       log.error('[fetchStickers] Exception:', err);
     }
-    setLoading(false);
+    if (mountedRef.current) setLoading(false);
   }, []);
 
   useEffect(() => {
     if (open) {
       void fetchStickers();
-      setTimeout(() => searchInputRef.current?.focus(), 100);
+      const focusTimer = setTimeout(() => searchInputRef.current?.focus(), 100);
+      return () => clearTimeout(focusTimer);
     }
   }, [open, fetchStickers]);
 

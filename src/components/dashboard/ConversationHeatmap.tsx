@@ -42,7 +42,7 @@ function useHeatmapData() {
       const heatmap: HeatmapData[] = [];
       const counts = new Map<string, number>();
 
-      (data || []).forEach((m) => {
+      (data || []).forEach((m: { created_at: string }) => {
         const d = new Date(m.created_at);
         const key = `${d.getDay()}-${d.getHours()}`;
         counts.set(key, (counts.get(key) || 0) + 1);
@@ -102,6 +102,7 @@ const METRIC_CONFIG = {
   },
 };
 
+/** Conversation Heatmap component for the dashboard section. */
 export default function ConversationHeatmap({
   data: externalData,
   metric = 'volume',
@@ -109,6 +110,7 @@ export default function ConversationHeatmap({
   onCellClick,
 }: ConversationHeatmapProps) {
   const { data: realData } = useHeatmapData();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const data = externalData || realData || [];
   const [selectedMetric, setSelectedMetric] = useState(metric);
 

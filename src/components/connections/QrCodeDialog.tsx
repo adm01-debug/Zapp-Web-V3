@@ -6,6 +6,7 @@ import { CheckCircle2, XCircle, AlertCircle, Loader2, QrCode } from 'lucide-reac
 import { RefreshQrButton } from './RefreshQrButton';
 import { QrAttemptHistory } from './QrAttemptHistory';
 
+/** Qr Code Dialog State component for the connections section. */
 export interface QrCodeDialogState {
   open?: boolean;
   status: 'loading' | 'pending' | 'connected' | 'error';
@@ -63,6 +64,7 @@ function maskSensitiveData(obj: unknown): unknown {
   return maskValue(JSON.parse(JSON.stringify(obj)));
 }
 
+/** Qr Code Dialog component for the connections section. */
 export function QrCodeDialog({
   open,
   onClose,

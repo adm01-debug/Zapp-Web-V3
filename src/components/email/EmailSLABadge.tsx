@@ -48,6 +48,7 @@ const CONFIG: Record<SLAStatus, {
   },
 };
 
+/** Email SLABadge component for the email section. */
 export function EmailSLABadge({
   status,
   receivedAt,
@@ -95,6 +96,7 @@ interface SLADotProps {
   className?: string;
 }
 
+/** SLADot component for the email section. */
 export function SLADot({ status, className }: SLADotProps) {
   if (!status || status === 'ok') return null;
 
@@ -118,6 +120,7 @@ interface SLAProgressBarProps {
   className?: string;
 }
 
+/** SLAProgress Bar component for the email section. */
 export function SLAProgressBar({ receivedAt, thresholdMinutes, repliedAt, className }: SLAProgressBarProps) {
   const [_now] = useState(Date.now);
   const elapsed = Math.floor((Date.now() - new Date(receivedAt).getTime()) / 60_000);

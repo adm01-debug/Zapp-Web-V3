@@ -11,6 +11,7 @@ interface VoiceSuggestionsProps {
   visible: boolean;
 }
 
+/** Voice Suggestions component for the voice section. */
 export function VoiceSuggestions({ visible }: VoiceSuggestionsProps) {
   const prefersReduced = useReducedMotion();
 

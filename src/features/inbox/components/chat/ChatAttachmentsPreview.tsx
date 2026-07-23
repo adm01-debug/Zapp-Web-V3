@@ -8,6 +8,7 @@ interface ChatAttachmentsPreviewProps {
   onRemove: (id: string) => void;
 }
 
+/** Chat Attachments Preview component for the chat section. */
 export function ChatAttachmentsPreview({ attachments, onRemove }: ChatAttachmentsPreviewProps) {
   return (
     <AnimatePresence>

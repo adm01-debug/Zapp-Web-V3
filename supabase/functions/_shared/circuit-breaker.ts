@@ -21,6 +21,7 @@ const FAILURE_THRESHOLD = 5;      // Open circuit after 5 failures
 const FAILURE_WINDOW_MS = 60_000;   // In 60 second window
 const RECOVERY_TIMEOUT_MS = 30_000; // Try recovery after 30 seconds
 
+/** Circuit Breaker Error class implementation. */
 export class CircuitBreakerError extends Error {
   constructor(message: string) {
     super(message);
@@ -44,6 +45,7 @@ function updateState(key: string, newState: CircuitBreakerState): void {
   circuitBreakerStates.set(key, newState);
 }
 
+/** with Circuit Breaker function. */
 export async function withCircuitBreaker<T>(
   key: string,
   fn: () => Promise<T>,
@@ -106,10 +108,12 @@ export async function withCircuitBreaker<T>(
   }
 }
 
+/** get Circuit Breaker Status function. */
 export function getCircuitBreakerStatus(key: string): CircuitBreakerState {
   return getState(key);
 }
 
+/** reset Circuit Breaker function. */
 export function resetCircuitBreaker(key: string): void {
   circuitBreakerStates.set(key, {
     state: 'CLOSED',

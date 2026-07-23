@@ -15,6 +15,7 @@ interface WebhookMatrixTableProps {
   matrix: MatrixAggregate;
 }
 
+/** Webhook Matrix Table. */
 export function WebhookMatrixTable({ matrix }: WebhookMatrixTableProps) {
   if (matrix.instances.length === 0) return null;
 

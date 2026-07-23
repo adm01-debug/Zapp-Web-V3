@@ -32,6 +32,7 @@ const PHASE_META: Record<VoiceAgentPhase, { title: string; subtitle: string }> =
   error: { title: 'Erro', subtitle: 'Toque para tentar novamente' },
 };
 
+/** Voice Search Overlay component for the voice section. */
 export function VoiceSearchOverlay({
   isOpen, phase, partialTranscript, finalTranscript, agentResponse, error,
   onClose, onStartListening, onStopListening, onStopSpeaking,

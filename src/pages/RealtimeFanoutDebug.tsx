@@ -79,6 +79,7 @@ function formatTime(ts: number): string {
   );
 }
 
+/** Default export. */
 export default function RealtimeFanoutDebug() {
   const [, force] = useState(0);
   const [autoRefresh, setAutoRefresh] = useState(true);

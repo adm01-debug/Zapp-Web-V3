@@ -1,3 +1,4 @@
+
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useInboxFilters } from '../useInboxFilters';
@@ -75,17 +76,17 @@ describe('useInboxFilters Business Rules', () => {
       contact: { id: 'c1', assigned_to: 'agent-1', contact_type: 'cliente' },
       messages: [],
       unreadCount: 0,
-    } as any,
+    },
     {
       contact: { id: 'c2', assigned_to: 'agent-2', contact_type: 'colaborador' },
       messages: [],
       unreadCount: 0,
-    } as any,
+    },
     {
       contact: { id: 'c3', assigned_to: null, contact_type: 'cliente' },
       messages: [],
       unreadCount: 0,
-    } as any,
+    },
   ];
 
   beforeEach(() => {
@@ -99,7 +100,7 @@ describe('useInboxFilters Business Rules', () => {
     const { result } = renderHook(
       () =>
         useInboxFilters({
-          conversations: mockConversations,
+          conversations: mockConversations as never,
           profileId: 'agent-1',
         }),
       { wrapper }
@@ -123,7 +124,7 @@ describe('useInboxFilters Business Rules', () => {
     const { result } = renderHook(
       () =>
         useInboxFilters({
-          conversations: mockConversations,
+          conversations: mockConversations as never,
           profileId: 'agent-1',
         }),
       { wrapper }
@@ -153,7 +154,7 @@ describe('useInboxFilters Business Rules', () => {
     const { result } = renderHook(
       () =>
         useInboxFilters({
-          conversations: mockConversations,
+          conversations: mockConversations as never,
           profileId: 'agent-1',
         }),
       { wrapper }

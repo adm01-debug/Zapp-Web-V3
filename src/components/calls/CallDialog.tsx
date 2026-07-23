@@ -36,6 +36,7 @@ interface CallDialogProps {
   onEnd: () => void;
 }
 
+/** Call Dialog component for the calls section. */
 export function CallDialog({
   open,
   onOpenChange,

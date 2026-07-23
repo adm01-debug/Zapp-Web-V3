@@ -79,6 +79,7 @@ function parseRows(rawRows: string[][]): Array<Record<string, string>> {
 
 // ── Component ──────────────────────────────────────────────────────────────
 
+/** Contact Import Dialog constant. */
 export const ContactImportDialog: React.FC<ContactImportDialogProps> = ({
   open,
   onOpenChange,
@@ -387,4 +388,5 @@ Maria Santos,(21) 99876-5432,maria@exemplo.com,XYZ Ltda,fornecedor,
   );
 };
 
+/** Default export. */
 export default ContactImportDialog;

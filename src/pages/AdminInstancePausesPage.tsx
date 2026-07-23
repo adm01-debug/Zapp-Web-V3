@@ -32,6 +32,7 @@ async function invoke<T>(action: string, payload: Record<string, unknown> = {}):
   return data as T; // ignore-audit: narrows Supabase query result to local interface
 }
 
+/** Admin Instance Pauses Page. */
 export default function AdminInstancePausesPage() {
   const qc = useQueryClient();
   const [instance, setInstance] = useState<WhatsAppInstance>(DEFAULT_WHATSAPP_INSTANCE);

@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { fetchContactMessagesForHeatmap } from '@/hooks/useConversationHeatmap';
 import {
   Select,
   SelectContent,
@@ -19,6 +19,7 @@ interface HeatmapCell {
 const DAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
 
+/** Conversation Heatmap component for the reports section. */
 export function ConversationHeatmap() {
   const [data, setData] = useState<HeatmapCell[]>([]);
   const [period, setPeriod] = useState('30');
@@ -26,19 +27,14 @@ export function ConversationHeatmap() {
 
   useEffect(() => {
     loadData();
-  }, [period]);
+  }, [period]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadData = async () => {
     setLoading(true);
     const since = new Date();
     since.setDate(since.getDate() - parseInt(period));
 
-    const { data: messages } = await supabase
-      .from('messages')
-      .select('created_at')
-      .gte('created_at', since.toISOString())
-      .eq('sender', 'contact')
-      .limit(1000);
+    const messages = await fetchContactMessagesForHeatmap(since);
 
     if (messages) {
       const heatmap: Record<string, number> = {};

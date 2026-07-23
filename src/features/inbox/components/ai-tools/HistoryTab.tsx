@@ -28,6 +28,7 @@ interface HistoryTabProps {
   onLoadHistory: (item: AnalysisData) => void;
 }
 
+/** History Tab component for the ai tools section. */
 export function HistoryTab({ analyses, historyLoading, onLoadHistory }: HistoryTabProps) {
   if (historyLoading) {
     return (

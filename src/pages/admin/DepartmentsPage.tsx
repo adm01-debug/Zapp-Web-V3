@@ -39,6 +39,7 @@ function slugify(input: string): string {
     .slice(0, 60);
 }
 
+/** Departments Page. */
 export default function DepartmentsPage() {
   const { departments, loading, saving, save, removeDepartment } = useDepartmentsAdmin();
   const [showDialog, setShowDialog] = useState(false);

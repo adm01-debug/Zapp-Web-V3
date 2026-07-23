@@ -8,6 +8,7 @@ interface MobilePullToRefreshProps {
   pullDistance: number;
 }
 
+/** Mobile Pull To Refresh Indicator component for the mobile section. */
 export function MobilePullToRefreshIndicator({
   isRefreshing,
   pullProgress,

@@ -21,6 +21,7 @@ interface ApiLog {
   entity_type: string | null;
 }
 
+/** Public Api Dashboard component. */
 export function PublicApiDashboard() {
   const [newToken, setNewToken] = useState('');
   const [showToken, setShowToken] = useState(false);

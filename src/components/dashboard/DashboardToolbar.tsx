@@ -10,6 +10,7 @@ interface DashboardToolbarProps {
   lastUpdated?: Date;
 }
 
+/** Dashboard Toolbar component for the dashboard section. */
 export function DashboardToolbar({ onRefresh, onExport, onFilter, isLoading, lastUpdated }: DashboardToolbarProps) {
   return (
     <div className="flex items-center justify-between mb-6">

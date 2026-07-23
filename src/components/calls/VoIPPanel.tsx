@@ -7,10 +7,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { queryKeys } from '@/services/api/queryKeys';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
+import { useCallsHistory } from '@/hooks/useCallsHistory';
 import {
   Phone,
   PhoneCall,
@@ -27,20 +26,6 @@ import { format, formatDuration, intervalToDuration } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { DialPad } from './DialPad';
 import { useSipClient } from '@/features/inbox';
-
-interface Call {
-  id: string;
-  contact_id: string | null;
-  agent_id: string | null;
-  direction: string;
-  status: string;
-  started_at: string;
-  answered_at: string | null;
-  ended_at: string | null;
-  duration_seconds: number | null;
-  recording_url: string | null;
-  notes: string | null;
-}
 
 const SIP_SETTINGS_KEY = 'voip_sip_settings';
 
@@ -68,6 +53,7 @@ function loadSipSettings(): SipSettings {
   };
 }
 
+/** Vo IPPanel component for the calls section. */
 export function VoIPPanel() {
   const [activeTab, setActiveTab] = useState('dialer');
   const defaults = loadSipSettings();
@@ -101,18 +87,7 @@ export function VoIPPanel() {
     sip.connect({ server: sipServer, user: sipUser, password, wsPort });
   };
 
-  const { data: calls = [], isLoading } = useQuery({
-    queryKey: queryKeys.calls.history(),
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('calls')
-        .select('*')
-        .order('started_at', { ascending: false })
-        .limit(50);
-      if (error) throw error;
-      return (data || []) as Call[];
-    },
-  });
+  const { data: calls = [], isLoading } = useCallsHistory();
 
   const getDirectionIcon = (direction: string, status: string) => {
     if (status === 'missed') return <PhoneMissed className="h-4 w-4 text-destructive" />;

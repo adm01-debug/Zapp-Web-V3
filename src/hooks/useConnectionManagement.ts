@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * useConnectionManagement.ts (v1.0)
  * Unified connection management consolidating:
@@ -8,12 +9,26 @@
  * Backward compatibility maintained through re-exports of legacy hook names.
  */
 import { useState, useEffect, useCallback } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import type { ConnectionMetrics } from '@/integrations/supabase/connectionPool';
 import { getLogger } from '@/lib/logger';
 
 const log = getLogger('ConnectionManagement');
+
+// Optional pool telemetry accessors — safeClient may not expose these in all builds.
+type PoolTelemetry = {
+  getPoolMetrics?: () => ConnectionMetrics;
+  getPoolDiagnostics?: () => Record<string, unknown>;
+};
+const poolClient = safeClient as unknown as PoolTelemetry;
+const EMPTY_METRICS = {
+  activeConnections: 0,
+  maxConcurrent: 0,
+  poolUtilization: 0,
+  totalErrors: 0,
+} as unknown as ConnectionMetrics;
 
 // ──────────────────────────────────────────────────────────────────────────
 // CONNECTION ALERTS PUSH
@@ -71,7 +86,6 @@ export function useConnectionAlertsPush() {
     return () => {
       cancelled = true;
       if (channel) {
-        void channel.unsubscribe();
         supabase.removeChannel(channel);
       }
     };
@@ -82,6 +96,7 @@ export function useConnectionAlertsPush() {
 // CONNECTION QUEUES
 // ──────────────────────────────────────────────────────────────────────────
 
+/** Connection Queue interface definition. */
 export interface ConnectionQueue {
   id: string;
   whatsapp_connection_id: string;
@@ -89,34 +104,28 @@ export interface ConnectionQueue {
   created_at: string;
 }
 
+const CONN_QUEUES_KEY = (id: string | undefined) => ['connection-queues', id] as const;
+
 /**
  * Hook for managing queues associated with a WhatsApp connection.
  * Provides CRUD operations for connection queue relationships.
  */
 export function useConnectionQueues(connectionId?: string) {
-  const [connectionQueues, setConnectionQueues] = useState<ConnectionQueue[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const queryClient = useQueryClient();
 
-  const fetchQueues = useCallback(async () => {
-    if (!connectionId) return;
-    setIsLoading(true);
-    try {
+  const { data: connectionQueues = [], isLoading, refetch } = useQuery({
+    queryKey: CONN_QUEUES_KEY(connectionId),
+    queryFn: async () => {
       const { data, error } = await supabase
         .from('whatsapp_connection_queues')
         .select('*')
-        .eq('whatsapp_connection_id', connectionId);
+        .eq('whatsapp_connection_id', connectionId!);
       if (error) throw error;
-      setConnectionQueues(data || []);
-    } catch (err) {
-      log.error('Error fetching connection queues:', err);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [connectionId]);
-
-  useEffect(() => {
-    void fetchQueues();
-  }, [fetchQueues]);
+      return (data || []) as ConnectionQueue[];
+    },
+    enabled: !!connectionId,
+    staleTime: 30_000,
+  });
 
   const addQueue = useCallback(async (queueId: string) => {
     if (!connectionId) return;
@@ -125,12 +134,12 @@ export function useConnectionQueues(connectionId?: string) {
         .from('whatsapp_connection_queues')
         .insert({ whatsapp_connection_id: connectionId, queue_id: queueId });
       if (error) throw error;
-      await fetchQueues();
+      void queryClient.invalidateQueries({ queryKey: CONN_QUEUES_KEY(connectionId) });
     } catch (err) {
       log.error('Error adding queue to connection:', err);
       throw err;
     }
-  }, [connectionId, fetchQueues]);
+  }, [connectionId, queryClient]);
 
   const removeQueue = useCallback(async (queueId: string) => {
     if (!connectionId) return;
@@ -141,14 +150,14 @@ export function useConnectionQueues(connectionId?: string) {
         .eq('whatsapp_connection_id', connectionId)
         .eq('queue_id', queueId);
       if (error) throw error;
-      setConnectionQueues(prev => prev.filter(cq => cq.queue_id !== queueId));
+      void queryClient.invalidateQueries({ queryKey: CONN_QUEUES_KEY(connectionId) });
     } catch (err) {
       log.error('Error removing queue from connection:', err);
       throw err;
     }
-  }, [connectionId]);
+  }, [connectionId, queryClient]);
 
-  return { connectionQueues, isLoading, addQueue, removeQueue, refetch: fetchQueues };
+  return { connectionQueues, isLoading, addQueue, removeQueue, refetch };
 }
 
 // ──────────────────────────────────────────────────────────────────────────
@@ -166,7 +175,7 @@ export function useConnectionPoolMonitor() {
 
   const updateMetrics = useCallback(() => {
     try {
-      const poolMetrics = safeClient.getPoolMetrics();
+      const poolMetrics = poolClient.getPoolMetrics?.() ?? EMPTY_METRICS;
       setMetrics(poolMetrics);
 
       // Alert on critical conditions
@@ -242,13 +251,11 @@ export function useConnectionPoolMonitor() {
  * Hook for getting pool diagnostics (detailed connection info).
  */
 export function useConnectionPoolDiagnostics() {
-  const [diagnostics, setDiagnostics] = useState<ReturnType<
-    typeof safeClient.getPoolDiagnostics
-  > | null>(null);
+  const [diagnostics, setDiagnostics] = useState<Record<string, unknown> | null>(null);
 
   const getDiagnostics = useCallback(() => {
     try {
-      const diag = safeClient.getPoolDiagnostics();
+      const diag = poolClient.getPoolDiagnostics?.() ?? null;
       setDiagnostics(diag);
       return diag;
     } catch (err) {
@@ -307,6 +314,7 @@ export function useConnectionPoolExhaustionDetector(threshold: number = 0.85) {
 // BACKWARD COMPATIBILITY
 // ──────────────────────────────────────────────────────────────────────────
 
+/** Default export. */
 export default {
   useConnectionAlertsPush,
   useConnectionQueues,

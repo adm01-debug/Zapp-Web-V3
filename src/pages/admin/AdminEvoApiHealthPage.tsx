@@ -24,6 +24,7 @@ import { ChannelsTab } from '@/components/evoApiHealth/tabs/ChannelsTab';
 import { HistoryTab } from '@/components/evoApiHealth/tabs/HistoryTab';
 import { DrTab } from '@/components/evoApiHealth/tabs/DrTab';
 
+/** Admin Evo Api Health Page. */
 export default function AdminEvoApiHealthPage() {
   const qc = useQueryClient();
   const dash = useEvoApiDashboard();
@@ -140,14 +141,14 @@ export default function AdminEvoApiHealthPage() {
 
         <TabsContent value="health">
           <SectionErrorBoundary sectionName="Saúde">
-            <HealthTab data={dashboardData} />
+            <HealthTab data={dashboardData ?? undefined} />
           </SectionErrorBoundary>
         </TabsContent>
 
         <TabsContent value="alerts">
           <SectionErrorBoundary sectionName="Alertas">
             <AlertsTab
-              alerts={alertsData}
+              alerts={alertsData ?? undefined}
               onAcknowledge={(id) => ack.mutate(id)}
               isAcknowledging={ack.isPending}
             />

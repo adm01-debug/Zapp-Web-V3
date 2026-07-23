@@ -10,6 +10,7 @@ import {
 import { Globe, Check } from 'lucide-react';
 import { useLanguage } from '@/i18n';
 
+/** Language Selector component for the settings section. */
 export const LanguageSelector = forwardRef<HTMLDivElement>((_, _ref) => {
   const { t: _t } = useTranslation();
   const { currentLanguage, changeLanguage, languages } = useLanguage();

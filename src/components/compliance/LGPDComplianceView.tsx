@@ -14,6 +14,7 @@ import { PrivacyPolicySection } from './PrivacyPolicySection';
 import { WhatsAppComplianceGuide } from './WhatsAppComplianceGuide';
 import { PrivacyAuditTrail } from './PrivacyAuditTrail';
 
+/** LGPDCompliance View component for the compliance section. */
 export function LGPDComplianceView() {
   const { user } = useAuth();
   const [isDeleting, setIsDeleting] = useState(false);

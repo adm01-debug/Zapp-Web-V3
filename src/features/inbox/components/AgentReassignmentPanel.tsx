@@ -9,6 +9,7 @@ interface AgentReassignmentPanelProps {
   className?: string;
 }
 
+/** Agent Reassignment Panel component. */
 export function AgentReassignmentPanel({ className }: AgentReassignmentPanelProps) {
   const { reassignAbsent, reassignOverloaded, isLoading } = useAgentReassignment();
 

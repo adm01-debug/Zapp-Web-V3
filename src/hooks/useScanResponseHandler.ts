@@ -10,6 +10,7 @@ import {
   isInputError,
 } from '@/lib/scanResponse';
 
+/** Handle Scan Options interface definition. */
 export interface HandleScanOptions {
   /** File name shown as toast description for blocking outcomes. */
   fileName?: string;
@@ -19,6 +20,7 @@ export interface HandleScanOptions {
   onRetry?: () => void;
 }
 
+/** Scan Outcome type alias. */
 export type ScanOutcome = 'success' | 'blocked' | 'retry' | 'input' | 'error';
 
 /**

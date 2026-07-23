@@ -20,4 +20,5 @@ const Slider = React.forwardRef<
 ));
 Slider.displayName = SliderPrimitive.Root.displayName;
 
+/** slider component for the ui section. */
 export { Slider };

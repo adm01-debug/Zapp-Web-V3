@@ -14,6 +14,7 @@
  * UI layer should consume only the normalized `ScanResult`.
  */
 
+/** Scan Code type alias. */
 export type ScanCode =
   | 'MALWARE_DETECTED'
   | 'SUSPICIOUS_FILE'
@@ -27,8 +28,10 @@ export type ScanCode =
   | 'NETWORK_ERROR'
   | 'UNKNOWN';
 
+/** Scan Verdict type alias. */
 export type ScanVerdict = 'clean' | 'malicious' | 'suspicious' | 'unknown';
 
+/** Scan Success interface definition. */
 export interface ScanSuccess {
   status: 'success';
   verdict: 'clean';
@@ -37,6 +40,7 @@ export interface ScanSuccess {
   payload: Record<string, unknown>;
 }
 
+/** Scan Error interface definition. */
 export interface ScanError {
   status: 'error';
   code: ScanCode;
@@ -46,10 +50,12 @@ export interface ScanError {
   details?: Record<string, unknown>;
 }
 
+/** Scan Result type alias. */
 export type ScanResult = ScanSuccess | ScanError;
 
 /** Block the upload entirely — file must not be retried as-is. */
 export type BlockingScanError = ScanError & { code: 'MALWARE_DETECTED' | 'SUSPICIOUS_FILE' };
+/** Returns true when the scan result is a blocking error (malware or suspicious) that must not be retried as-is. */
 export function isBlocking(r: ScanResult): r is BlockingScanError {
   return r.status === 'error' && (r.code === 'MALWARE_DETECTED' || r.code === 'SUSPICIOUS_FILE');
 }
@@ -58,6 +64,7 @@ export function isBlocking(r: ScanResult): r is BlockingScanError {
 export type RetryableScanError = ScanError & {
   code: 'SCAN_TIMEOUT' | 'SCAN_UNAVAILABLE' | 'NETWORK_ERROR';
 };
+/** Returns true when the scan result is a transient error that the caller may safely retry without changing the request. */
 export function isRetryable(r: ScanResult): r is RetryableScanError {
   return (
     r.status === 'error' &&
@@ -67,6 +74,7 @@ export function isRetryable(r: ScanResult): r is RetryableScanError {
 
 /** Bad input — caller should change the request, not retry as-is. */
 export type InputScanError = ScanError & { code: 'INVALID_INPUT' | 'METHOD_NOT_ALLOWED' };
+/** Returns true when the scan error was caused by bad input; the caller should fix the request rather than retry as-is. */
 export function isInputError(r: ScanResult): r is InputScanError {
   return r.status === 'error' && (r.code === 'INVALID_INPUT' || r.code === 'METHOD_NOT_ALLOWED');
 }
@@ -96,21 +104,25 @@ const BACKEND_CODES = new Set<ScanCode>([
   'INTERNAL_ERROR',
 ]);
 
+/** Casts an unknown value to a known ScanCode if it is in the backend allowlist, or returns 'UNKNOWN'. */
 function asScanCode(v: unknown): ScanCode {
   if (typeof v === 'string' && BACKEND_CODES.has(v as ScanCode)) return v as ScanCode; // ignore-audit: BACKEND_CODES.has() guard confirms v is a valid ScanCode member
   return 'UNKNOWN';
 }
 
+/** Coerces an unknown value to a ScanVerdict, returning 'unknown' for any unrecognised string. */
 function asVerdict(v: unknown): ScanVerdict {
   return v === 'clean' || v === 'malicious' || v === 'suspicious' || v === 'unknown'
     ? v
     : 'unknown';
 }
 
+/** Returns v as a non-empty scan ID string, or null if the value is missing or empty. */
 function asScanId(v: unknown): string | null {
   return typeof v === 'string' && v.length > 0 ? v : null;
 }
 
+/** Parses a raw response body object into a ScanResult, returning null when the body lacks both success and error markers. */
 function fromBody(body: Record<string, unknown> | null | undefined): ScanResult | null {
   if (!body || typeof body !== 'object') return null;
 

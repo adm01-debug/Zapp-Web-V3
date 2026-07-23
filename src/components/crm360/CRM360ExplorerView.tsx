@@ -14,6 +14,7 @@ import { ContactFormDialog } from './ContactFormDialog';
 import { DataExplorerTable } from './DataExplorerTable';
 import { TABS } from './crm360TabsConfig';
 
+/** C R M360 Explorer View function. */
 export function CRM360ExplorerView() {
   const [activeTab, setActiveTab] = useState<string>(TABS[0].id);
   const [companyDialogOpen, setCompanyDialogOpen] = useState(false);

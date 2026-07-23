@@ -28,8 +28,10 @@ import { getLogger } from '@/lib/logger';
 
 const log = getLogger('EvolutionCircuitBreaker');
 
+/** Per-instance circuit breaker state machine states. */
 export type CircuitState = 'CLOSED' | 'OPEN' | 'HALF_OPEN';
 
+/** Configuration parameters for a per-instance Evolution API circuit breaker. */
 export interface CircuitBreakerConfig {
   /** Consecutive failures to OPEN the circuit. Default 5. */
   failureThreshold: number;
@@ -37,6 +39,7 @@ export interface CircuitBreakerConfig {
   cooldownMs: number;
 }
 
+/** Default circuit breaker configuration used when no override is provided. */
 export const DEFAULT_BREAKER_CONFIG: CircuitBreakerConfig = {
   failureThreshold: 5,
   cooldownMs: 30_000,
@@ -97,6 +100,7 @@ export function subscribeBreakerEvents(fn: Subscriber): () => void {
   };
 }
 
+/** Logs and broadcasts a state-change event to all registered subscribers; swallows subscriber errors to keep the breaker stable. */
 function emitTransition(
   instance: string,
   from: CircuitState,
@@ -133,6 +137,7 @@ export function getAllBreakerStates(): Array<{ instance: string } & BreakerEntry
   return Array.from(breakers.entries()).map(([instance, entry]) => ({ instance, ...entry }));
 }
 
+/** Returns the existing BreakerEntry for `instance`, creating a default CLOSED entry if none exists yet. */
 function getEntry(instance: string): BreakerEntry {
   let e = breakers.get(instance);
   if (!e) {
@@ -155,6 +160,7 @@ export type CanCallResult = {
   retryAfterMs?: number;
 };
 
+/** Checks whether a call to the given Evolution API instance is permitted by the circuit breaker. */
 export function canCall(
   instance: string,
   _cfg: CircuitBreakerConfig = DEFAULT_BREAKER_CONFIG

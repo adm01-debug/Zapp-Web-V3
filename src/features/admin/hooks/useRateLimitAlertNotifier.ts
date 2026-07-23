@@ -5,6 +5,7 @@ import type { AlertSeverity, RateLimitAlert } from './useRateLimitAlerts';
 const SEEN_KEY = 'zapp:admin:rate-limit-seen:v1';
 const NOTIFY_PREF_KEY = 'zapp:admin:rate-limit-notify:v1';
 
+/** Notify Preferences interface definition. */
 export interface NotifyPreferences {
   enabled: boolean;
   minSeverity: AlertSeverity;
@@ -19,6 +20,7 @@ const DEFAULT_PREFS: NotifyPreferences = {
 
 const SEV_RANK: Record<AlertSeverity, number> = { low: 0, medium: 1, high: 2, critical: 3 };
 
+/** load Notify Prefs function. */
 export function loadNotifyPrefs(): NotifyPreferences {
   try {
     const raw = localStorage.getItem(NOTIFY_PREF_KEY);
@@ -29,6 +31,7 @@ export function loadNotifyPrefs(): NotifyPreferences {
   }
 }
 
+/** save Notify Prefs function. */
 export function saveNotifyPrefs(next: NotifyPreferences) {
   try {
     localStorage.setItem(NOTIFY_PREF_KEY, JSON.stringify(next));
@@ -110,6 +113,7 @@ export function useRateLimitAlertNotifier(
   }, [alerts, prefs.enabled, prefs.minSeverity, prefs.browserNotifications]);
 }
 
+/** request Browser Notification Permission function. */
 export async function requestBrowserNotificationPermission(): Promise<NotificationPermission> {
   if (typeof Notification === 'undefined') return 'denied';
   if (Notification.permission === 'granted' || Notification.permission === 'denied') {

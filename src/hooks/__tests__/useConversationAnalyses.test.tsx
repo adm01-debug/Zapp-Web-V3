@@ -1,5 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import React from 'react';
+
+function makeWrapper() {
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return ({ children }: { children: React.ReactNode }) =>
+    React.createElement(QueryClientProvider, { client: qc }, children);
+}
 
 const mockFrom = vi.hoisted(() => vi.fn());
 const mockGetUser = vi.hoisted(() => vi.fn());
@@ -85,13 +93,13 @@ describe('useConversationAnalyses', () => {
   });
 
   it('fetches analyses for a contact', async () => {
-    const { result } = renderHook(() => useConversationAnalyses('c1'));
+    const { result } = renderHook(() => useConversationAnalyses('c1'), { wrapper: makeWrapper() });
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(result.current.analyses).toHaveLength(2);
   });
 
   it('returns empty for null contactId', async () => {
-    const { result } = renderHook(() => useConversationAnalyses(null));
+    const { result } = renderHook(() => useConversationAnalyses(null), { wrapper: makeWrapper() });
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(result.current.analyses).toEqual([]);
   });
@@ -107,32 +115,32 @@ describe('useConversationAnalyses', () => {
       }),
     });
 
-    const { result } = renderHook(() => useConversationAnalyses('c1'));
+    const { result } = renderHook(() => useConversationAnalyses('c1'), { wrapper: makeWrapper() });
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(result.current.error).toBeTruthy();
   });
 
   it('exposes saveAnalysis function', async () => {
-    const { result } = renderHook(() => useConversationAnalyses('c1'));
+    const { result } = renderHook(() => useConversationAnalyses('c1'), { wrapper: makeWrapper() });
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(typeof result.current.saveAnalysis).toBe('function');
   });
 
   it('exposes refetch function', async () => {
-    const { result } = renderHook(() => useConversationAnalyses('c1'));
+    const { result } = renderHook(() => useConversationAnalyses('c1'), { wrapper: makeWrapper() });
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(typeof result.current.refetch).toBe('function');
   });
 
   it('getLatestAnalysis returns first analysis', async () => {
-    const { result } = renderHook(() => useConversationAnalyses('c1'));
+    const { result } = renderHook(() => useConversationAnalyses('c1'), { wrapper: makeWrapper() });
     await waitFor(() => expect(result.current.loading).toBe(false));
     const latest = result.current.getLatestAnalysis();
     expect(latest?.id).toBe('a1');
   });
 
   it('getSentimentTrend returns a value', async () => {
-    const { result } = renderHook(() => useConversationAnalyses('c1'));
+    const { result } = renderHook(() => useConversationAnalyses('c1'), { wrapper: makeWrapper() });
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(typeof result.current.getSentimentTrend).toBe('function');
   });

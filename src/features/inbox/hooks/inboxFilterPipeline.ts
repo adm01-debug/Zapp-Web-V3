@@ -16,6 +16,7 @@ interface TicketStateMap {
   [id: string]: { status: string; assignedTo?: string | null } | undefined;
 }
 
+/** Input bag for the pure inbox filter pipeline: conversations, active filter state, ticket map, permission checker, and user context. */
 export interface ApplyInboxFiltersOptions {
   conversations: ConversationWithMessages[];
   profileId: string | undefined;
@@ -40,6 +41,7 @@ export interface ApplyInboxFiltersOptions {
   hasPermission: PermissionChecker;
 }
 
+/** Pure function that applies all active inbox filters (tab, scope, search, agent, queue, tags, failure category, date, contact type) and returns the filtered conversation list. */
 export function applyInboxFilters(opts: ApplyInboxFiltersOptions): ConversationWithMessages[] {
   const {
     conversations,
@@ -269,12 +271,14 @@ export function applyInboxFilters(opts: ApplyInboxFiltersOptions): ConversationW
   });
 }
 
+/** Options for building per-failure-category conversation counts used to populate the failure filter dropdown. */
 export interface BuildFailureCategoryCountsOptions {
   conversations: ConversationWithMessages[];
   showOnlyRetrying: boolean;
   failureCategoryById: Record<string, FailureCategory>;
 }
 
+/** Counts conversations per failure category (auth, http_4xx, http_5xx, network, unknown, all) for the failure-filter chips in the inbox. */
 export function buildFailureCategoryCounts(
   opts: BuildFailureCategoryCountsOptions
 ): Record<FailureCategory | 'all', number> {

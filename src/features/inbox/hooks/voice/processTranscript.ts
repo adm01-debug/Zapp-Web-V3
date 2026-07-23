@@ -1,5 +1,6 @@
 import type { VoiceAgentAction } from './types';
 
+/** Hook: process Voice Transcript. */
 export async function processVoiceTranscript(
   transcript: string,
   supabaseUrl: string,

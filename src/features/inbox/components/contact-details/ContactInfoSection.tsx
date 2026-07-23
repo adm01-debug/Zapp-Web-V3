@@ -99,6 +99,7 @@ function EditableField({ value, icon, onSave, placeholder, label }: EditableFiel
   );
 }
 
+/** Contact Info Section component for the contact details section. */
 export function ContactInfoSection({ contact, enrichedData }: ContactInfoSectionProps) {
   const queryClient = useQueryClient();
 

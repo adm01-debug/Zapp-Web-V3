@@ -32,6 +32,7 @@ import { formatTime, formatDateSep, MediaContent, MediaTypeIcon } from './teamCh
 import type { TeamMessage } from '@/hooks/useTeamChat';
 import type { AggregatedReaction } from '@/features/inbox/hooks/team-chat/useTeamMessageReactions';
 
+/** Team Chat Message Row Props component for the team chat section. */
 export interface TeamChatMessageRowProps {
   index: number;
   style: React.CSSProperties;
@@ -61,6 +62,7 @@ export interface TeamChatMessageRowProps {
   onToggleReaction: (params: { messageId: string; emoji: string }) => void;
 }
 
+/** Team Chat Message Row component for the team chat section. */
 export const TeamChatMessageRow = React.memo(function TeamChatMessageRow({
   index,
   style,

@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { isValidUUID } from '@/utils/uuid';
 import type { ConversationWithMessages, ConversationContact } from './realtime/types';
 
+/** Resolves the selected conversation from the list or falls back to a fresh DB lookup by contact ID, JID, or phone; returns null while loading. */
 export function useFallbackContact(
   selectedContactId: string | null,
   selectedConversation: ConversationWithMessages | null

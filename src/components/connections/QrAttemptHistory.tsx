@@ -1,20 +1,14 @@
 import { useEffect, useState } from 'react';
 import { CheckCircle2, Clock, XCircle, AlertCircle, History, Loader2 } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
 import { getLogger } from '@/lib/logger';
+import { fetchQrAttemptHistory } from '@/hooks/useQrAttemptHistory';
 import { cn } from '@/lib/utils';
 import { formatTimeHMS } from '@/lib/formatters';
 
 const log = getLogger('QrAttemptHistory');
 
-export interface QrAttemptRow {
-  id: string;
-  status: 'pending' | 'connected' | 'expired' | 'error';
-  created_at: string;
-  connected_at: string | null;
-  expired_at: string | null;
-  error_message: string | null;
-}
+export type { QrAttemptRow } from '@/hooks/useQrAttemptHistory';
+import type { QrAttemptRow } from '@/hooks/useQrAttemptHistory';
 
 interface Props {
   connectionId: string;
@@ -33,6 +27,7 @@ const STATUS_META: Record<
   error: { label: 'Erro', icon: XCircle, tone: 'text-destructive' },
 };
 
+/** Qr Attempt History function. */
 export function QrAttemptHistory({ connectionId, refreshKey, limit = 5 }: Props) {
   const [rows, setRows] = useState<QrAttemptRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -43,21 +38,19 @@ export function QrAttemptHistory({ connectionId, refreshKey, limit = 5 }: Props)
     let cancelled = false;
     setLoading(true);
     (async () => {
-      const { data, error } = await supabase
-        .from('qr_attempts')
-        .select('id,status,created_at,connected_at,expired_at,error_message')
-        .eq('connection_id', connectionId)
-        .order('created_at', { ascending: false })
-        .limit(limit);
-      if (cancelled) return;
-      if (error) {
+      try {
+        const data = await fetchQrAttemptHistory(connectionId, limit);
+        if (cancelled) return;
+        setRows(data);
+      } catch (error) {
         log.warn('[QrAttemptHistory] fetch error', error);
-        setForbidden(true);
-        setRows([]);
-      } else {
-        setRows((data ?? []) as QrAttemptRow[]);
+        if (!cancelled) {
+          setForbidden(true);
+          setRows([]);
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-      setLoading(false);
     })();
     return () => {
       cancelled = true;

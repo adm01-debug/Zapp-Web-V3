@@ -14,6 +14,7 @@ interface ValidationContextType {
 
 const ValidationContext = createContext<ValidationContextType | undefined>(undefined);
 
+/** Validation Provider component for the providers section. */
 export const ValidationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [status, setStatus] = useState<ValidationContextType['status']>('loading');
   const [lastError, setLastError] = useState<string>();
@@ -160,6 +161,7 @@ export const ValidationProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   );
 };
 
+/** use Validation component for the providers section. */
 export const useValidation = () => {
   const context = useContext(ValidationContext);
   if (!context) throw new Error('useValidation must be used within a ValidationProvider');

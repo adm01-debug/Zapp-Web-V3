@@ -3,8 +3,8 @@ import { renderHook, act } from '@testing-library/react';
 import { useSpeechToText } from '@/hooks/useSpeechToText';
 
 type WindowWithSR = typeof window & {
-  SpeechRecognition?: typeof MockSpeechRecognition;
-  webkitSpeechRecognition?: typeof MockSpeechRecognition;
+  SpeechRecognition?: unknown;
+  webkitSpeechRecognition?: unknown;
 };
 
 // Mock SpeechRecognition
@@ -29,7 +29,8 @@ describe('useSpeechToText', () => {
 
   beforeEach(() => {
     originalSR = win.SpeechRecognition;
-    win.SpeechRecognition = MockSpeechRecognition;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (win as any).SpeechRecognition = MockSpeechRecognition;
     // Mock navigator.vibrate
     Object.defineProperty(navigator, 'vibrate', {
       value: vi.fn(),
@@ -39,7 +40,8 @@ describe('useSpeechToText', () => {
   });
 
   afterEach(() => {
-    win.SpeechRecognition = originalSR as typeof MockSpeechRecognition | undefined;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (win as any).SpeechRecognition = originalSR;
     vi.restoreAllMocks();
   });
 

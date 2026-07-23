@@ -1,9 +1,5 @@
 import { useState, useMemo } from 'react';
-import { queryKeys } from '@/services/api/queryKeys';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { fromTable } from '@/lib/supabaseHelpers';
-import { toast } from 'sonner';
+import { useTalkXBlacklist } from '@/hooks/useTalkXBlacklist';
 import { ShieldBan, Trash2, Plus, Search, UserX, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -38,19 +34,6 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 
-interface BlacklistEntry {
-  id: string;
-  contact_id: string;
-  reason: string | null;
-  created_at: string;
-  contacts: {
-    name: string;
-    phone: string;
-    company: string | null;
-    avatar_url: string | null;
-  } | null;
-}
-
 const OPT_OUT_REASONS = [
   'Solicitação do cliente',
   'Número inválido / bounce',
@@ -59,8 +42,8 @@ const OPT_OUT_REASONS = [
   'Outro',
 ];
 
+/** Talk XBlacklist component for the talkx section. */
 export function TalkXBlacklist() {
-  const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [selectedContactId, setSelectedContactId] = useState('');
@@ -68,34 +51,8 @@ export function TalkXBlacklist() {
   const [customReason, setCustomReason] = useState('');
   const [contactSearch, setContactSearch] = useState('');
 
-  const { data: blacklist = [], isLoading } = useQuery({
-    queryKey: queryKeys.talkx.blacklist(),
-    queryFn: async () => {
-      const { data, error } = await fromTable('talkx_blacklist')
-        .select('*, contacts:contact_id(name, phone, company, avatar_url)')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      return (data ?? []) as BlacklistEntry[];
-    },
-    staleTime: Infinity,
-  });
-
-  const { data: availableContacts = [] } = useQuery({
-    queryKey: queryKeys.talkx.contactsForBlacklist(),
-    queryFn: async () => {
-      const { data } = await supabase
-        .from('contacts')
-        .select('id, name, phone, company')
-        .not('phone', 'is', null)
-        .order('name');
-      return data || [];
-    },
-    enabled: showAddDialog,
-    staleTime: 300_000,
-  });
-
-  const blacklistedIds = useMemo(() => new Set(blacklist.map((b) => b.contact_id)), [blacklist]);
+  const { blacklist, isLoading, availableContacts, blacklistedIds, addMutation, removeMutation } =
+    useTalkXBlacklist(showAddDialog);
 
   const filteredAvailable = useMemo(() => {
     const nonBlocked = availableContacts.filter((c) => !blacklistedIds.has(c.id));
@@ -117,39 +74,6 @@ export function TalkXBlacklist() {
     );
   }, [blacklist, search]);
 
-  const addMutation = useMutation({
-    mutationFn: async () => {
-      const { data: profile } = await supabase.from('profiles').select('id').maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
-      const finalReason = reason === 'Outro' ? customReason || 'Outro' : reason;
-      const { error } = await fromTable('talkx_blacklist').insert({
-        contact_id: selectedContactId,
-        reason: finalReason,
-        blocked_by: profile?.id,
-      });
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.talkx.blacklist() });
-      toast.success('Contato adicionado à lista negra');
-      setShowAddDialog(false);
-      setSelectedContactId('');
-      setReason(OPT_OUT_REASONS[0]);
-      setCustomReason('');
-    },
-    onError: (e: Error) => toast.error(`Erro: ${e.message}`),
-  });
-
-  const removeMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from('talkx_blacklist').delete().eq('id', id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.talkx.blacklist() });
-      toast.success('Contato removido da lista negra');
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
 
   return (
     <div className="space-y-4">
@@ -230,7 +154,20 @@ export function TalkXBlacklist() {
             </div>
             <DialogFooter>
               <Button
-                onClick={() => addMutation.mutate()}
+                onClick={() => {
+                  const finalReason = reason === 'Outro' ? customReason || 'Outro' : reason;
+                  addMutation.mutate(
+                    { contactId: selectedContactId, reason: finalReason },
+                    {
+                      onSuccess: () => {
+                        setShowAddDialog(false);
+                        setSelectedContactId('');
+                        setReason(OPT_OUT_REASONS[0]);
+                        setCustomReason('');
+                      },
+                    },
+                  );
+                }}
                 disabled={!selectedContactId || addMutation.isPending}
                 className="gap-1.5"
               >

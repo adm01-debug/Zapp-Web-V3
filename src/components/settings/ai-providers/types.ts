@@ -1,7 +1,9 @@
 import { Cloud, Brain, Zap, Webhook, Bot } from 'lucide-react';
 
+/** Provider Type component for the settings section. */
 export type ProviderType = 'lovable_ai' | 'openai_compatible' | 'google_gemini' | 'custom_webhook' | 'custom_agent';
 
+/** AIProvider component for the settings section. */
 export interface AIProvider {
   id: string;
   name: string;
@@ -18,6 +20,7 @@ export interface AIProvider {
   created_at: string;
 }
 
+/** PROVIDER_LABELS component for the settings section. */
 export const PROVIDER_LABELS: Record<ProviderType, { label: string; icon: typeof Brain; color: string }> = {
   lovable_ai: { label: 'Lovable AI', icon: Cloud, color: 'bg-primary/15 text-primary' },
   openai_compatible: { label: 'OpenAI Compatível', icon: Brain, color: 'bg-success/15 text-success' },
@@ -26,6 +29,7 @@ export const PROVIDER_LABELS: Record<ProviderType, { label: string; icon: typeof
   custom_agent: { label: 'Agente IA Externo', icon: Bot, color: 'bg-accent/30 text-accent-foreground' },
 };
 
+/** USE_FOR_OPTIONS component for the settings section. */
 export const USE_FOR_OPTIONS = [
   { value: 'copilot', label: 'Copiloto' },
   { value: 'analysis', label: 'Análise de Conversa' },
@@ -34,8 +38,10 @@ export const USE_FOR_OPTIONS = [
   { value: 'auto_reply', label: 'Resposta Automática' },
 ];
 
+/** Provider Form Data component for the settings section. */
 export type ProviderFormData = Omit<AIProvider, 'id' | 'created_at'>;
 
+/** EMPTY_FORM component for the settings section. */
 export const EMPTY_FORM: ProviderFormData = {
   name: '',
   description: '',

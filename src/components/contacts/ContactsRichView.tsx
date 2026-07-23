@@ -32,6 +32,7 @@ interface ContactsRichViewProps {
   onOpenChat?: (remoteJid: string, contactName: string) => void;
 }
 
+/** Contacts Rich View constant. */
 export const ContactsRichView: React.FC<ContactsRichViewProps> = ({ onOpenChat }) => {
   const state = useContactsViewState();
   const { crud, highContrast, setHighContrast } = state;
@@ -280,4 +281,5 @@ export const ContactsRichView: React.FC<ContactsRichViewProps> = ({ onOpenChat }
   );
 };
 
+/** Default export. */
 export default ContactsRichView;

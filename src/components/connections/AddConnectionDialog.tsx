@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/select';
 import { Plus, Loader2 } from 'lucide-react';
 
+/** New Connection Data component for the connections section. */
 export interface NewConnectionData {
   name: string;
   phone_number: string;
@@ -34,6 +35,7 @@ interface AddConnectionDialogProps {
   onAdd: () => void;
 }
 
+/** Add Connection Dialog component for the connections section. */
 export function AddConnectionDialog({
   open,
   onOpenChange,

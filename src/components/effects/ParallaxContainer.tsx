@@ -9,6 +9,7 @@ interface ParallaxContainerProps {
   direction?: 'up' | 'down';
 }
 
+/** Parallax Container component for the effects section. */
 export function ParallaxContainer({
   children,
   className,
@@ -40,6 +41,7 @@ interface ParallaxImageProps {
   scale?: boolean;
 }
 
+/** Parallax Image component for the effects section. */
 export function ParallaxImage({
   src,
   alt,
@@ -76,6 +78,7 @@ interface ParallaxTextProps {
   speed?: number;
 }
 
+/** Parallax Text component for the effects section. */
 export function ParallaxText({
   children,
   className,
@@ -133,6 +136,7 @@ const variants = {
   },
 };
 
+/** Scroll Reveal component for the effects section. */
 export function ScrollReveal({
   children,
   className,
@@ -170,6 +174,7 @@ interface ScrollProgressBarProps {
   color?: string;
 }
 
+/** Scroll Progress Bar component for the effects section. */
 export function ScrollProgressBar({ className, color }: ScrollProgressBarProps) {
   const { scrollYProgress } = useScroll();
   const scaleX = useSpring(scrollYProgress, { stiffness: 100, damping: 30 });
@@ -192,6 +197,7 @@ interface FloatingElementProps {
   frequency?: number;
 }
 
+/** Floating Element component for the effects section. */
 export function FloatingElement({
   children,
   className,
@@ -222,6 +228,7 @@ interface GlowingOrbProps {
   blur?: number;
 }
 
+/** Glowing Orb component for the effects section. */
 export function GlowingOrb({
   className,
   color = 'hsl(var(--primary))',

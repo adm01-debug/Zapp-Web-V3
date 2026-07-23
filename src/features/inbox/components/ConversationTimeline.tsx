@@ -57,6 +57,7 @@ const EVENT_CONFIG: Record<string, { icon: typeof ArrowRight; label: string; col
   reopen: { icon: RotateCcw, label: 'Reaberto', color: 'text-success' },
 };
 
+/** Conversation Timeline component. */
 export function ConversationTimeline({ contactId }: { contactId: string }) {
   const { data: events = [], isLoading } = useQuery({
     queryKey: queryKeys.adminOps.conversationTimeline(contactId),

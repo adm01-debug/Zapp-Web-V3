@@ -22,6 +22,7 @@ interface Props {
 
 const _COLORS = ['hsl(var(--primary))', 'hsl(var(--destructive))', 'hsl(var(--muted-foreground))'];
 
+/** Talk XAnalytics component for the talkx section. */
 export function TalkXAnalytics({ campaigns }: Props) {
   const stats = useMemo(() => {
     const total = campaigns.length;

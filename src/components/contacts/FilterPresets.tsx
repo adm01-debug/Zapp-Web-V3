@@ -7,6 +7,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Bookmark, Plus, X, Filter, Check } from 'lucide-react';
 import { toast } from 'sonner';
 
+/** Filter Preset component for the contacts section. */
 export interface FilterPreset {
   id: string;
   name: string;
@@ -36,6 +37,7 @@ function savePresets(presets: FilterPreset[]) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(presets));
 }
 
+/** Filter Presets component for the contacts section. */
 export function FilterPresets({ onApplyPreset, currentFilters }: FilterPresetsProps) {
   const [presets, setPresets] = useState<FilterPreset[]>(getPresets);
   const [saving, setSaving] = useState(false);

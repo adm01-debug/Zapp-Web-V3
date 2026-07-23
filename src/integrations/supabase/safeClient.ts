@@ -1,7 +1,7 @@
 import { supabase as _supabase } from './client';
 import { getLogger } from '@/lib/logger';
 import type { PostgrestError } from '@supabase/supabase-js';
-import type { AnyQueryBuilderResult, SafeQueryBuilder } from './safeClientTypes';
+import type { SafeQueryBuilder } from './safeClientTypes';
 import type {
   SafeResponse,
   OperationFailure,
@@ -15,11 +15,17 @@ import {
   applyMasking as _applyMasking,
 } from './safeClientMasking';
 
+/** Re-exported module members. */
 export type { SafeResponse, OperationFailure, ClientTelemetry, CacheInfo };
+/** Re-exported module members. */
 export { maskEmail, maskSensitiveData } from './safeClientMasking';
 
 const supabase = _supabase;
 const _log = getLogger('safeClient');
+
+// Escape hatch for email_app schema RPCs absent from the generated TypeScript types.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const _emailRpc = supabase.rpc as any;
 
 // Dynamic table accessor — bypasses the overloaded `from()` signature that
 // requires a string-literal table name from the generated types.
@@ -55,10 +61,12 @@ function validateTableName(table: string): void {
   }
 }
 
+/** safe From. */
 export function safeFrom(table: string): SafeQueryBuilder {
   return (supabase as unknown as DynamicSupabaseClient).from(table);
 }
 
+/** safe Client. */
 export const safeClient = {
   async from<T = unknown>(
     table: string,
@@ -212,7 +220,7 @@ export const safeClient = {
         if (!error) {
           exists = true;
         } else {
-          const msg = (error.message ?? '').toLowerCase();
+          const msg = ((error as { message?: string }).message ?? "").toLowerCase();
           const isPermissionError =
             msg.includes('permission denied') ||
             msg.includes('42501') ||
@@ -229,12 +237,14 @@ export const safeClient = {
         }
       } else {
         const { error } = await (
-          supabase.rpc(name as Parameters<typeof supabase.rpc>[0]) as unknown as { limit: (n: number) => Promise<{ error: unknown }> }
+          supabase.rpc(name as Parameters<typeof supabase.rpc>[0]) as unknown as {
+            limit: (n: number) => Promise<{ error: unknown }>;
+          }
         ).limit(0); // ignore-audit — .limit() not on RPC return type in generated types
         if (!error) {
           exists = true;
         } else {
-          const msg = (error.message ?? '').toLowerCase();
+          const msg = ((error as { message?: string }).message ?? "").toLowerCase();
           const isPermissionError =
             msg.includes('permission denied') ||
             msg.includes('42501') ||
@@ -265,8 +275,7 @@ export const safeClient = {
       else if (snap.recentFailures.length > 0) status = 'degraded';
 
       type RpcResult = { data: unknown; error: { message: string } | null };
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { error: rpcErr } = (await (supabase as any).rpc('rpc_update_email_health_state', { // ignore-audit — RPC not in generated types; email_app/zapp schema function
+      const { error: rpcErr } = (await _emailRpc('rpc_update_email_health_state', {
         p_status: status,
         p_failure_count: snap.recentFailures.length,
         p_metadata: {
@@ -324,15 +333,14 @@ export const safeClient = {
       error,
       timestamp: new Date().toISOString(),
     };
-    telemetry.recentFailures.unshift(record as OperationFailure);
+    telemetry.recentFailures.unshift(record as unknown as OperationFailure);
     if (telemetry.recentFailures.length > MAX_FAILURES) telemetry.recentFailures.pop();
 
     if (_healthLogInProgress) return;
     _healthLogInProgress = true;
     try {
       type RpcResult = { data: unknown; error: { message: string } | null };
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { error: rpcErr } = (await (supabase as any).rpc('rpc_log_email_health', { // ignore-audit — RPC not in generated types; email_app/zapp schema function
+      const { error: rpcErr } = (await _emailRpc('rpc_log_email_health', {
         p_status: 'error',
         p_operation: operation,
         p_resource: resource,

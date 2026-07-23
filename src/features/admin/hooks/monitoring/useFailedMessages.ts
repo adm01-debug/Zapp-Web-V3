@@ -1,3 +1,4 @@
+
 import { queryKeys } from '@/services/api/queryKeys';
 import { useState, useEffect, useMemo } from 'react';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
@@ -10,6 +11,7 @@ import { isRlsDeniedError, formatAdminError } from '@/lib/errors/rlsError';
 import { classifyRootCause } from '@/lib/failureRootCause';
 import { computeFailedMessagesAggregates } from './failedMessagesAggregates';
 
+/** Re-exported module members. */
 export type {
   FailedMessageStatus,
   FailedMessageRow,
@@ -41,6 +43,7 @@ interface _RpcRow extends FailedMessageRow {
   total_count: number | string;
 }
 
+/** Queries failed Evolution API messages with DLQ stats, retry mutations, and realtime invalidation. */
 export function useFailedMessages(filters: FailedMessagesFilters = {}) {
   const queryClient = useQueryClient();
   const { isDev } = useUserRole();
@@ -117,7 +120,7 @@ export function useFailedMessages(filters: FailedMessagesFilters = {}) {
       });
       const total = list[0]?.total_count != null ? Number(list[0].total_count) : 0;
       const rows: FailedMessageRow[] = filtered.map(
-        ({ total_count: _t, ...rest }) => rest as FailedMessageRow
+        ({ total_count: _t, ...rest }: Record<string, unknown>) => rest as unknown as FailedMessageRow
       );
       return { rows, total, deniedReason: null as string | null };
     },
@@ -158,7 +161,6 @@ export function useFailedMessages(filters: FailedMessagesFilters = {}) {
       })
       .subscribe();
     return () => {
-      channel.unsubscribe();
       supabase.removeChannel(channel);
     };
   }, [queryClient]);

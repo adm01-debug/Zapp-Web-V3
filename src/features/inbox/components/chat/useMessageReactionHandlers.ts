@@ -12,6 +12,7 @@ interface UseMessageReactionHandlersOptions {
   openDialog: (key: DialogKey) => void;
 }
 
+/** use Message Reaction Handlers component for the chat section. */
 export function useMessageReactionHandlers({
   inputRef,
   forwardMessage,

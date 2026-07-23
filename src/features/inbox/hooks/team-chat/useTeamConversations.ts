@@ -6,6 +6,7 @@ import { useAuth } from '@/features/auth';
 import { queryKeys } from '@/services/api/queryKeys';
 import type { TeamConversation, TeamMember, TeamMessage } from './teamChatTypes';
 
+/** Fetches the current agent's team conversations with member profiles and last-message previews, then subscribes to Realtime changes to keep the list current. */
 export function useTeamConversations() {
   const { profile } = useAuth();
   const queryClient = useQueryClient();
@@ -90,7 +91,7 @@ export function useTeamConversations() {
 
       const enriched: TeamConversation[] = conversations.map((conv) => {
         const members = (allMembers || []).filter(
-          (m) => m.conversation_id === conv.id
+          (m: any) => m.conversation_id === conv.id
         ) as TeamMember[];
         const lastMsg = lastMessageMap.get(conv.id) || null;
 

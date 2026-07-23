@@ -87,6 +87,7 @@ const CallDialog = lazy(() =>
   import('@/components/calls/CallDialog').then((m) => ({ default: m.CallDialog }))
 );
 
+/** Contact Header Section component for the contact details section. */
 export function ContactHeaderSection({
   contact,
   enrichedData,

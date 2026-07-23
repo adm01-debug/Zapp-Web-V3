@@ -26,6 +26,7 @@ const RANGE_OPTIONS = [
 
 const PAGE_SIZE = 50;
 
+/** Default export. */
 export default function AdminDispatchErrorsHistoryPage() {
   const [hours, setHours] = useState<string>('168');
   const [instance, setInstance] = useState<string>('');

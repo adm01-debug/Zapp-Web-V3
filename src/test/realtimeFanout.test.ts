@@ -28,6 +28,8 @@ const EXPECTED_REALTIME_CONSUMERS: string[] = [
   'src/features/inbox/components/useAudioMessagePlayer.ts',
   'src/features/inbox/hooks/realtime/useRetryResolutionAlerts.ts',
   'src/features/inbox/components/chat/ChatMessagesArea.tsx',
+  'src/hooks/useRealtimeMessages.ts',
+  'src/hooks/useTranscriptionNotifications.ts',
 ];
 
 const UPDATE_HINT =

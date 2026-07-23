@@ -1,11 +1,12 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
-import { useMountedRef } from '@/hooks/useMountedRef';
+import { useCallback, useMemo } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getLogger } from '@/lib/logger';
 
 const log = getLogger('NPSSurveys');
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
+/** N P S Survey interface definition. */
 export interface NPSSurvey {
   id: string;
   contact_id: string;
@@ -25,34 +26,28 @@ interface NPSMetrics {
   avgScore: number;
 }
 
+const NPS_QUERY_KEY = ['nps-surveys'] as const;
+
 /** Manages NPS survey campaigns and response tracking. */
 export function useNPSSurveys() {
-  const [surveys, setSurveys] = useState<NPSSurvey[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const mountedRef = useMountedRef();
+  const queryClient = useQueryClient();
 
-  const fetchSurveys = useCallback(async () => {
-    setIsLoading(true);
-    try {
+  const { data: surveys = [], isLoading } = useQuery({
+    queryKey: NPS_QUERY_KEY,
+    queryFn: async (): Promise<NPSSurvey[]> => {
       const { data, error } = await supabase
         .from('nps_surveys')
         .select('*')
         .order('created_at', { ascending: false })
         .limit(500);
-
-      if (error) throw error;
-      if (!mountedRef.current) return;
-      setSurveys((data as NPSSurvey[]) || []); // ignore-audit: narrows survey_type from string to 'periodic'|'post_resolution'|'manual'
-    } catch (err) {
-      log.error('Error fetching NPS surveys:', err);
-    } finally {
-      if (mountedRef.current) setIsLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    void fetchSurveys();
-  }, [fetchSurveys]);
+      if (error) {
+        log.error('Error fetching NPS surveys:', error);
+        throw error;
+      }
+      return (data as NPSSurvey[]) ?? []; // ignore-audit: narrows survey_type from string to 'periodic'|'post_resolution'|'manual'
+    },
+    staleTime: 30_000,
+  });
 
   const createSurvey = useCallback(
     async (data: {
@@ -66,7 +61,7 @@ export function useNPSSurveys() {
           .from('profiles')
           .select('id')
           .eq('user_id', (await supabase.auth.getUser()).data.user?.id || '')
-          .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
+          .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
 
         const { error } = await supabase.from('nps_surveys').insert({
           contact_id: data.contact_id,
@@ -78,13 +73,13 @@ export function useNPSSurveys() {
 
         if (error) throw error;
         toast.success('Pesquisa NPS registrada!');
-        await fetchSurveys();
+        void queryClient.invalidateQueries({ queryKey: NPS_QUERY_KEY });
       } catch (err) {
         toast.error('Erro ao registrar pesquisa NPS');
         throw err;
       }
     },
-    [fetchSurveys]
+    [queryClient]
   );
 
   const metrics: NPSMetrics = useMemo(() => {
@@ -109,5 +104,10 @@ export function useNPSSurveys() {
     return { totalResponses: total, promoters, passives, detractors, npsScore, avgScore };
   }, [surveys]);
 
-  return { surveys, isLoading, metrics, createSurvey, refetch: fetchSurveys };
+  const refetch = useCallback(
+    () => queryClient.invalidateQueries({ queryKey: NPS_QUERY_KEY }),
+    [queryClient]
+  );
+
+  return { surveys, isLoading, metrics, createSurvey, refetch };
 }

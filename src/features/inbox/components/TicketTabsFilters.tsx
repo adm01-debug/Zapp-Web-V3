@@ -14,7 +14,7 @@ import {
 import { Users, Headphones, User } from 'lucide-react';
 import { useAuth, useUserRole, usePermissions } from '@/features/auth';
 import { useAgents } from '@/features/admin';
-import { supabase } from '@/integrations/supabase/client';
+import { logAuditEvent } from '../hooks/useAuditLogMutation';
 import { toast } from 'sonner';
 import type { MainTab, SubTab, InboxScope } from './TicketTabs';
 
@@ -34,6 +34,7 @@ interface TicketTabsFiltersProps {
   departmentAgentIds: string[];
 }
 
+/** Ticket Tabs Filters component. */
 export function TicketTabsFilters({
   mainTab,
   subTab,
@@ -161,7 +162,7 @@ export function TicketTabsFilters({
                             scope: opt.id,
                             userId: user?.id,
                           });
-                          void supabase.from('audit_logs').insert({
+                          logAuditEvent({
                             user_id: user?.id,
                             action: 'UNAUTHORIZED_INBOX_SCOPE_ACCESS',
                             entity_type: 'inbox_scope',

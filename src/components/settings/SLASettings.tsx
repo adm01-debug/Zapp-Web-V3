@@ -12,6 +12,7 @@ interface SLASettingsProps {
   updateSettings: (updates: Partial<UserSettings>) => void;
 }
 
+/** SLASettings component for the settings section. */
 export function SLASettings({ settings, updateSettings }: SLASettingsProps) {
   return (
     <div className="space-y-6">

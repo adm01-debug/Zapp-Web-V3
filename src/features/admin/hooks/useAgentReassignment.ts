@@ -8,6 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { queryKeys } from '@/services/api/queryKeys';
 
+/** Exposes RPC mutations for reassigning absent and overloaded agents to a new queue or agent. */
 export function useAgentReassignment() {
   const queryClient = useQueryClient();
 

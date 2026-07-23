@@ -1,3 +1,4 @@
+
 import { useQuery } from '@tanstack/react-query';
 import { queryKeys } from '@/services/api/queryKeys';
 import { useMemo } from 'react';
@@ -5,6 +6,7 @@ import { safeClient } from '@/integrations/supabase/safeClient';
 import { dbFrom } from '@/integrations/datasource/db';
 
 
+/** Single send record from evolution_send_idempotency joined to the owning message's agent_id. */
 export interface RecentSend {
   idem_key: string;
   instance_name: string;
@@ -44,7 +46,8 @@ export function useAgentRecentSends() {
       );
       if (sendsErr) throw sendsErr;
 
-      const parsed = ((sends as unknown) ?? [])
+      const sendsArr = (Array.isArray(sends) ? sends : []) as unknown[];
+      const parsed = sendsArr
         .map((s: unknown) => {
           const record = s as Record<string, unknown>;
           const idemKey = record.idem_key as string;
@@ -65,7 +68,7 @@ export function useAgentRecentSends() {
         return { byAgent: new Map<string, RecentSend[]>(), totalSends: 0 };
       }
 
-      const ids = Array.from(new Set(parsed.map((p) => p.message_id)));
+      const ids = Array.from(new Set(parsed.map((p: RecentSend) => p.message_id)));
       const { data: msgs, error: msgsErr } = await dbFrom('messages')
         .select('id, agent_id')
         .in('id', ids);

@@ -101,6 +101,7 @@ function UploadPreview({ pending, onConfirm, onCancel, uploading, progress, erro
 }
 
 
+/** Custom Emoji Picker component. */
 export function CustomEmojiPicker({ onSendEmoji, disabled }: CustomEmojiPickerProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
@@ -224,8 +225,8 @@ export function CustomEmojiPicker({ onSendEmoji, disabled }: CustomEmojiPickerPr
                             <img src={emoji.image_url} alt={emoji.name} className="w-full h-full object-contain p-1" loading="lazy" />
                             <div className="absolute inset-0 bg-background/70 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-between p-0.5">
                               <div className="flex items-center justify-between w-full">
-                                <button type="button" onClick={(e) => toggleFavorite(e, emoji)} className="p-0.5"><Star className={cn('w-3 h-3 transition-colors', emoji.is_favorite ? 'fill-primary text-primary' : 'text-muted-foreground')} /></button>
-                                <button type="button" onClick={(e) => handleDelete(e, emoji)} className="p-0.5"><Trash2 className="w-3 h-3 text-destructive" /></button>
+                                <button aria-label="Favoritar" type="button" onClick={(e) => toggleFavorite(e, emoji)} className="p-0.5"><Star className={cn('w-3 h-3 transition-colors', emoji.is_favorite ? 'fill-primary text-primary' : 'text-muted-foreground')} /></button>
+                                <button aria-label="Excluir" type="button" onClick={(e) => handleDelete(e, emoji)} className="p-0.5"><Trash2 className="w-3 h-3 text-destructive" /></button>
                               </div>
                               <div onClick={(e) => e.stopPropagation()}><CategorySelector value={emoji.category} onChange={(cat) => handleCategoryChange(emoji, cat)} size="xs" /></div>
                             </div>

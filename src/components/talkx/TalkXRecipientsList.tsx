@@ -20,6 +20,7 @@ interface Props {
   campaignId: string;
 }
 
+/** Talk XRecipients List component for the talkx section. */
 export function TalkXRecipientsList({ campaignId }: Props) {
   const { data: recipients = [], isLoading } = useQuery({
     queryKey: queryKeys.talkx.recipientsListForCampaign(campaignId),

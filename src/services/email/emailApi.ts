@@ -11,6 +11,9 @@ export interface EmailRevalidationJob {
   requested_at: string;
   requested_by: string | null;
   result: Record<string, unknown> | null;
+  /** Aliases físicos aceitos pelo schema atual (compat legado). */
+  scheduled_at?: string;
+  triggered_by?: string | null;
 }
 
 export interface EmailHealthSummary {
@@ -42,7 +45,7 @@ export const emailApi = {
       .order('requested_at', { ascending: false })
       .range(from, to);
 
-    return { data: data as EmailRevalidationJob[] | null, count, error }; // ignore-audit: narrows Supabase query result to local interface
+    return { data: data as EmailRevalidationJob[] | null, count, error };
   },
   getHealthSummary: async () => {
     const { data: rows, error } = await safeClient.from<EmailHealthSummary>(
@@ -51,18 +54,15 @@ export const emailApi = {
     );
     return { data: rows?.[0] ?? null, error };
   },
-
   markThreadRead: async (threadId: string, read: boolean) => {
     return await safeClient.rpc('rpc_email_mark_thread_read', {
       p_thread_id: threadId,
       p_read: read,
     });
   },
-
   getTokenStatus: async () => {
     return await safeClient.rpc('rpc_email_token_status');
   },
-
   retryJob: async (jobId: string) => {
     const { data: jobRows } = await safeClient.from<EmailRevalidationJob>(
       'email_revalidation_jobs',

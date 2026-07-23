@@ -48,8 +48,7 @@ export function useConversationReactionsRealtime(
       });
 
     return () => {
-      void channel.unsubscribe();
-      void supabase.removeChannel(channel);
+      supabase.removeChannel(channel).catch(() => {});
     };
   }, [conversationId, queryClient]);
 }

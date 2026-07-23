@@ -22,6 +22,7 @@ import type {
 } from '@/types/contact360';
 
 // ─── Section header ──────────────────────────────────────────
+/** Section Title function. */
 export function SectionTitle({ icon: Icon, children }: { icon: React.ElementType; children: React.ReactNode }) {
   return (
     <h5 className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
@@ -32,6 +33,7 @@ export function SectionTitle({ icon: Icon, children }: { icon: React.ElementType
 }
 
 // ─── Info row helper ─────────────────────────────────────────
+/** Info Row function. */
 export function InfoRow({ label, value, icon: Icon }: { label: string; value: string | number | null | undefined; icon?: React.ElementType }) {
   if (value === null || value === undefined || value === '') return null;
   return (
@@ -46,6 +48,7 @@ export function InfoRow({ label, value, icon: Icon }: { label: string; value: st
 }
 
 // ─── RFM Badge ───────────────────────────────────────────────
+/** R F M Badge function. */
 export function RFMBadge({ rfm }: { rfm: Contact360RFM }) {
   const segmentColors: Record<string, string> = {
     Champions: 'bg-success/15 text-success border-success/30',
@@ -93,6 +96,7 @@ export function RFMBadge({ rfm }: { rfm: Contact360RFM }) {
 }
 
 // ─── Company Card ────────────────────────────────────────────
+/** Company Card function. */
 export function CompanyCard({ company }: { company: Contact360Company }) {
   const displayName = company.nome_fantasia || company.nome_crm || company.razao_social;
   const formatCurrency = (v: number | null) => v != null ? `R$ ${v.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : null;
@@ -131,6 +135,7 @@ export function CompanyCard({ company }: { company: Contact360Company }) {
 }
 
 // ─── Customer Profile ────────────────────────────────────────
+/** Customer Profile function. */
 export function CustomerProfile({ customer }: { customer: Contact360Customer }) {
   const formatCurrency = (v: number | null) => v != null ? `R$ ${v.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : '—';
   return (
@@ -166,6 +171,7 @@ export function CustomerProfile({ customer }: { customer: Contact360Customer }) 
 }
 
 // ─── Contact Detail Card ─────────────────────────────────────
+/** Contact Detail Card function. */
 export function ContactDetailCard({ contact }: { contact: Contact360Contact }) {
   return (
     <div className="space-y-1">
@@ -186,6 +192,7 @@ export function ContactDetailCard({ contact }: { contact: Contact360Contact }) {
 }
 
 // ─── Stakeholder Card ────────────────────────────────────────
+/** Stakeholder Card function. */
 export function StakeholderCard({ stakeholder }: { stakeholder: Contact360Stakeholder }) {
   return (
     <div className="space-y-1">
@@ -199,6 +206,7 @@ export function StakeholderCard({ stakeholder }: { stakeholder: Contact360Stakeh
 }
 
 // ─── Interactions Timeline ───────────────────────────────────
+/** Interactions Timeline function. */
 export function InteractionsTimeline({ interactions }: { interactions: Contact360Interaction[] }) {
   if (!interactions.length) return null;
   const channelEmoji: Record<string, string> = { whatsapp: '💬', email: '📧', phone: '📞', presencial: '🤝', chat: '💻' };
@@ -223,6 +231,7 @@ export function InteractionsTimeline({ interactions }: { interactions: Contact36
 }
 
 // ─── Social Links ────────────────────────────────────────────
+/** Social Links function. */
 export function SocialLinks({ social }: { social: { plataforma: string; url: string | null; handle: string | null }[] }) {
   if (!social.length) return null;
   const icons: Record<string, React.ReactNode> = { instagram: <Instagram className="w-3.5 h-3.5" />, linkedin: <Linkedin className="w-3.5 h-3.5" />, facebook: <Facebook className="w-3.5 h-3.5" /> };
@@ -238,6 +247,7 @@ export function SocialLinks({ social }: { social: { plataforma: string; url: str
 }
 
 // ─── Address ─────────────────────────────────────────────────
+/** Address Line function. */
 export function AddressLine({ address }: { address: Contact360Data['company_address'] }) {
   if (!address) return null;
   const parts = [address.logradouro, address.numero && `nº ${address.numero}`, address.complemento, address.bairro, address.cidade && address.estado && `${address.cidade}/${address.estado}`, address.cep].filter(Boolean);
@@ -256,6 +266,7 @@ export function AddressLine({ address }: { address: Contact360Data['company_addr
 }
 
 // ─── Contact Phones & Emails ─────────────────────────────────
+/** Contact Channels function. */
 export function ContactChannels({ phones, emails }: { phones: Contact360Data['contact_phones']; emails: Contact360Data['contact_emails'] }) {
   if (!phones?.length && !emails?.length) return null;
   return (
@@ -278,6 +289,7 @@ export function ContactChannels({ phones, emails }: { phones: Contact360Data['co
 }
 
 // ─── Behavior Radar ──────────────────────────────────────────
+/** Behavior Radar function. */
 export function BehaviorRadar({ decisionPower, formalityLevel, discProfile }: { decisionPower: number; formalityLevel: number; discProfile?: string | null }) {
   const dp = decisionPower / 10;
   const fl = formalityLevel / 5;

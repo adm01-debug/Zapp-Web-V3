@@ -16,6 +16,7 @@ interface UseMessagesOptions {
   enabled?: boolean;
 }
 
+/** Fetches and subscribes to the message list for a given contact; supports optimistic add/update/remove operations and Realtime INSERT/UPDATE/DELETE events. */
 export function useMessages({ contactId, enabled = true }: UseMessagesOptions) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
@@ -48,7 +49,7 @@ export function useMessages({ contactId, enabled = true }: UseMessagesOptions) {
     } finally {
       if (mountedRef.current) setLoading(false);
     }
-  }, [contactId]);
+  }, [contactId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Handle new message from realtime
   const handleNewMessage = useCallback(

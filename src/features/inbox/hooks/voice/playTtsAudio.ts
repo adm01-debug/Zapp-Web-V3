@@ -2,11 +2,13 @@ import { getLogger } from '@/lib/logger';
 
 const log = getLogger('playTtsAudio');
 
+/** Hook: Tts Playback. */
 export interface TtsPlayback {
   promise: Promise<void>;
   stop: () => void;
 }
 
+/** Hook: Play Tts Options. */
 export interface PlayTtsOptions {
   onLoadingChange?: (loading: boolean) => void;
   onError?: (error: Error) => void;
@@ -84,6 +86,7 @@ function splitTextIntoTtsChunks(text: string): string[] {
   return chunks;
 }
 
+/** Hook: play Tts Audio. */
 export function playTtsAudio(
   text: string,
   supabaseUrl: string,

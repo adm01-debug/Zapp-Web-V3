@@ -1,5 +1,6 @@
 import { z } from 'https://esm.sh/zod@3.23.8';
 
+/** Re-exported module members. */
 export { z };
 
 /**
@@ -30,6 +31,7 @@ export const EvolutionWebhookV2Schema = EvolutionWebhookV1Schema.extend({
   environment: z.enum(['production', 'development', 'staging']).optional(),
 });
 
+/** Webhook Payload Schema constant. */
 export const WebhookPayloadSchema = z.union([EvolutionWebhookV1Schema, EvolutionWebhookV2Schema]);
 
 /**
@@ -51,11 +53,13 @@ export const MetaWebhookChangeSchema = z.object({
   }),
 });
 
+/** Meta Webhook Entry Schema constant. */
 export const MetaWebhookEntrySchema = z.object({
   id: z.string().trim().min(1),
   changes: z.array(MetaWebhookChangeSchema).min(1),
 });
 
+/** Meta Webhook Payload Schema constant. */
 export const MetaWebhookPayloadSchema = z.object({
   object: z.literal('whatsapp_business_account'),
   entry: z.array(MetaWebhookEntrySchema).min(1),

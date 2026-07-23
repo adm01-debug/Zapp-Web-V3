@@ -38,6 +38,7 @@ function computeBackoffMs(attempt: number): number {
   return Math.max(1_000, Math.round(capped + jitter));
 }
 
+/** Enqueue Client Failed Message Input interface. */
 export interface EnqueueClientFailedMessageInput {
   instance_name: string;
   remote_jid?: string | null;
@@ -52,6 +53,7 @@ export interface EnqueueClientFailedMessageInput {
 const PERMANENT_STATUSES = new Set([400, 401, 403, 404, 422]);
 const MAX_RETRIES = 5;
 
+/** Returns true when the failure is transient (5xx, 429, timeout, or network error) and should be retried via the DLQ. */
 function isTransientFailure(input: EnqueueClientFailedMessageInput): boolean {
   if (input.http_status == null) {
     return input.error_code === 'timeout' || input.error_code === 'network_error';
@@ -62,10 +64,12 @@ function isTransientFailure(input: EnqueueClientFailedMessageInput): boolean {
   return false;
 }
 
+/** Returns true when the given API path targets a message-send endpoint that belongs in the DLQ on failure. */
 function isSendPath(path: string): boolean {
   return path.startsWith('/message/') || path.includes('/message/');
 }
 
+/** enqueue Client Failed Message function. */
 export function enqueueClientFailedMessage(input: EnqueueClientFailedMessageInput): void {
   const method = input.method ?? 'POST';
   if (method !== 'POST') return;
@@ -110,4 +114,5 @@ export function enqueueClientFailedMessage(input: EnqueueClientFailedMessageInpu
 }
 
 // Helpers exportados para testes
+/** __test__ constant. */
 export const __test__ = { isTransientFailure, isSendPath };

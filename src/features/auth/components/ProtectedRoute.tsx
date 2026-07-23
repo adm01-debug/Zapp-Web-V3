@@ -20,6 +20,7 @@ interface ProtectedRouteProps {
   routePath?: string;
 }
 
+/** Route guard that redirects unauthenticated users and enforces role/permission requirements before rendering children. */
 export function ProtectedRoute({
   children,
   requiredRoles,
@@ -27,11 +28,13 @@ export function ProtectedRoute({
   fallback,
   routePath,
 }: ProtectedRouteProps) {
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, signOut } = useAuth();
   const { roles, loading: rolesLoading, hasRole } = useUserRole();
   const location = useLocation();
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [permissionChecking, setPermissionChecking] = useState(false);
+  const [loadingElapsed, setLoadingElapsed] = useState(0);
+  const [timedOut, setTimedOut] = useState(false);
 
   // Dynamic override from route_permissions table.
   // Skip lookup while unauthenticated — RLS forbids anon SELECT and would spam
@@ -39,6 +42,26 @@ export function ProtectedRoute({
   const overrideRoles = useRouteRoles(user ? (routePath ?? location.pathname) : undefined);
 
   const loading = authLoading || (rolesLoading && roles.length === 0) || permissionChecking;
+
+  // Safety timer: se loading persistir >10s, força fallback para /auth
+  useEffect(() => {
+    if (!loading) {
+      setLoadingElapsed(0);
+      setTimedOut(false);
+      return;
+    }
+    const start = Date.now();
+    const interval = setInterval(() => {
+      const elapsed = Math.floor((Date.now() - start) / 1000);
+      setLoadingElapsed(elapsed);
+      if (elapsed >= 10) {
+        log.error('[ProtectedRoute] Loading timeout after 10s — forçando redirect para /auth');
+        setTimedOut(true);
+        clearInterval(interval);
+      }
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [loading]);
 
   useEffect(() => {
     let isMounted = true;
@@ -77,24 +100,50 @@ export function ProtectedRoute({
     };
   }, [authLoading, user, requiredPermission]);
 
-  // Removed redundant and potentially looping re-fetch logic for roles.
-  // useUserRole already handles initial fetch and real-time updates.
+  if (timedOut) {
+    return <Navigate to="/auth?reason=timeout" state={{ from: location }} replace />;
+  }
 
   if (loading || (requiredPermission && user && hasPermission === null)) {
+    const step = authLoading
+      ? 'Carregando sessão...'
+      : rolesLoading
+      ? 'Verificando permissões...'
+      : 'Preparando aplicação...';
     return (
       <div
         className="flex min-h-screen items-center justify-center bg-background"
         role="status"
         aria-busy="true"
+        aria-live="polite"
         aria-label="Verificando acesso"
       >
-        <div className="flex flex-col items-center gap-4">
+        <div className="flex flex-col items-center gap-4 px-6 text-center">
           <Loader2 className="h-8 w-8 animate-spin text-primary" aria-hidden="true" />
-          <p className="animate-pulse text-muted-foreground">Verificando acesso e permissões...</p>
+          <p className="animate-pulse text-muted-foreground">{step}</p>
+          {loadingElapsed >= 5 && (
+            <div className="flex flex-col items-center gap-2">
+              <p className="text-xs text-muted-foreground">
+                A conexão está demorando mais do que o esperado ({loadingElapsed}s).
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  void signOut().finally(() => {
+                    window.location.href = '/auth';
+                  });
+                }}
+                className="rounded-md border border-border bg-card px-4 py-2 text-sm text-foreground hover:bg-accent"
+              >
+                Sair e tentar novamente
+              </button>
+            </div>
+          )}
         </div>
       </div>
     );
   }
+
 
   if (!user) {
     return <Navigate to="/auth" state={{ from: location }} replace />;
@@ -162,6 +211,7 @@ export function ProtectedRoute({
 }
 
 // Higher-order component for permission-based rendering
+/** with Permission function. */
 export function withPermission<P extends object>(
   WrappedComponent: React.ComponentType<P>,
   permission: string

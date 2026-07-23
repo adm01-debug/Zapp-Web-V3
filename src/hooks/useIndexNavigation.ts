@@ -6,25 +6,28 @@ import { User } from '@supabase/supabase-js';
 
 /** Manages view navigation history with deep-linking, back/forward, and keyboard shortcuts. */
 export function useIndexNavigation(user: User | null, loading: boolean) {
-  const { 
-    currentView, 
-    navigateTo: rawNavigateTo, 
-    goBack: rawGoBack, 
-    goForward: rawGoForward, 
-    canGoBack, 
-    canGoForward, 
-    breadcrumbTrail 
+  const {
+    currentView,
+    navigateTo: rawNavigateTo,
+    goBack: rawGoBack,
+    goForward: rawGoForward,
+    canGoBack,
+    canGoForward,
+    breadcrumbTrail,
   } = useNavigationHistory('inbox');
   const [searchParams] = useSearchParams();
-  
+
   const navDirectionRef = useRef<'forward' | 'back'>('forward');
   const deepLinkViewHandledRef = useRef(false);
   const { registerNavigationHandler, unregisterNavigationHandler } = useGlobalKeyboard();
 
-  const setCurrentView = useCallback((viewId: string) => {
-    navDirectionRef.current = 'forward';
-    rawNavigateTo(viewId);
-  }, [rawNavigateTo]);
+  const setCurrentView = useCallback(
+    (viewId: string) => {
+      navDirectionRef.current = 'forward';
+      rawNavigateTo(viewId);
+    },
+    [rawNavigateTo]
+  );
 
   const goBack = useCallback(() => {
     navDirectionRef.current = 'back';
@@ -56,7 +59,7 @@ export function useIndexNavigation(user: User | null, loading: boolean) {
   useEffect(() => {
     if (deepLinkViewHandledRef.current || loading || !user) return;
     const targetView = searchParams.get('view');
-    
+
     // Se o targetView for uma rota que agora é interna (como connections ou integrations)
     // mapeamos para o novo hub unificado.
     let resolvedView = targetView;
@@ -70,6 +73,7 @@ export function useIndexNavigation(user: User | null, loading: boolean) {
     } else if (resolvedView) {
       deepLinkViewHandledRef.current = true;
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading, user, currentView, setCurrentView]);
 
   return {
@@ -80,6 +84,6 @@ export function useIndexNavigation(user: User | null, loading: boolean) {
     canGoBack,
     canGoForward,
     breadcrumbTrail,
-    navDirectionRef
+    navDirectionRef,
   };
 }

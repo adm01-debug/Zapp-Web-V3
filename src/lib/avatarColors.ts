@@ -22,11 +22,13 @@ function hashName(name: string): number {
   return Math.abs(hash);
 }
 
+/** get Avatar Color function. */
 export function getAvatarColor(name: string): { bg: string; text: string } {
   const idx = hashName(name) % AVATAR_PALETTES.length;
   return AVATAR_PALETTES[idx];
 }
 
+/** get Initials function. */
 export function getInitials(name: string): string {
   return name
     .split(' ')

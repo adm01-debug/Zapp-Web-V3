@@ -14,6 +14,7 @@ import { AgentOpsTable } from '@/features/inbox/components/agents-ops/AgentOpsTa
 
 type StatusFilter = 'all' | AgentWithStats['status'];
 
+/** Agents Operations Page. */
 export default function AgentsOperationsPage() {
   const { agents, stats, isLoading: loadingAgents } = useAgents();
   const { connections } = useConnectionsManager();

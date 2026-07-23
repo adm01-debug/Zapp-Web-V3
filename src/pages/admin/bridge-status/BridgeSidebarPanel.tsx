@@ -11,6 +11,7 @@ interface BridgeSidebarPanelProps {
   activeAlerts: ActiveAlert[];
 }
 
+/** Bridge Sidebar Panel. */
 export function BridgeSidebarPanel({ incidents, activeAlerts }: BridgeSidebarPanelProps) {
   return (
     <div className="space-y-6">

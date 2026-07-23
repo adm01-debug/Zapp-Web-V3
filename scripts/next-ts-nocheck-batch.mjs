@@ -19,20 +19,31 @@
  * Não faz commits. Não trava o build. Sempre encerra com exit 0.
  */
 import { readFile, writeFile } from "node:fs/promises";
-import { execSync } from "node:child_process";
+import { execSync, spawnSync } from "node:child_process";
 import { glob } from "node:fs/promises";
 import { argv } from "node:process";
 
 const args = new Map();
 for (let i = 2; i < argv.length; i += 2) args.set(argv[i], argv[i + 1]);
-const pattern = args.get("--pattern") ?? "src/**/*.{ts,tsx}";
-const limit = Number(args.get("--limit") ?? 25);
+const rawPattern = args.get("--pattern") ?? "src/**/*.{ts,tsx}";
+// Allowlist: safe glob chars AND no path-traversal segments — prevents indirect file-write injection.
+const SAFE_GLOB = /^[a-zA-Z0-9_/.*{}[\],\-]+$/;
+const hasTraversal = rawPattern.split('/').some(seg => seg === '..');
+const safePattern = SAFE_GLOB.test(rawPattern) && !hasTraversal ? rawPattern : "src/**/*.{ts,tsx}";
+// Clamp to a safe integer range — user-controlled input must never reach subprocesses unchecked.
+const rawLimit = Number(args.get("--limit") ?? 25);
+const limit = Number.isFinite(rawLimit) && rawLimit > 0 ? Math.min(Math.floor(rawLimit), 500) : 25;
 
-// Listagem via ripgrep (mais rápido que globbing puro)
-const listing = execSync(
-  `rg -l --no-messages "^// @ts-nocheck" -g "${pattern}" src`,
-  { encoding: "utf8" },
-).split("\n").filter(Boolean).slice(0, limit);
+// rg searches src/ with NO user-supplied args — eliminates indirect injection taint path.
+// User-supplied pattern is applied in JavaScript via native glob (no subprocess involvement).
+const rgResult = spawnSync("rg", ["-l", "--no-messages", "^// @ts-nocheck", "src"], { encoding: "utf8" });
+const rgHits = new Set((rgResult.stdout ?? "").split("\n").filter(Boolean));
+const matched = [];
+for await (const f of glob(safePattern)) {
+  if (rgHits.has(f)) matched.push(f);
+  if (matched.length >= limit) break;
+}
+const listing = matched;
 
 console.log(`> ${listing.length} arquivos candidatos`);
 

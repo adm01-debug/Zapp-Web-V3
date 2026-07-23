@@ -1,3 +1,4 @@
+
 import { queryKeys } from '@/services/api/queryKeys';
 /**
  * Admin: Realtime monitoring page.
@@ -33,6 +34,7 @@ const WINDOW_OPTIONS = [
   { value: '24', label: 'Últimas 24h' },
 ] as const;
 
+/** Default export. */
 export default function AdminRealtimeMonitorPage() {
   const [windowHours, setWindowHours] = useState<string>('1');
   const [autoRefresh, setAutoRefresh] = useState<boolean>(true);

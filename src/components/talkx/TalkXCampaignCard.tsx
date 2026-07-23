@@ -40,6 +40,7 @@ interface Props {
   onDelete: (id: string) => void;
 }
 
+/** Talk XCampaign Card component for the talkx section. */
 export function TalkXCampaignCard({
   campaign, onEdit, onView, onDuplicate,
   onStart, onPause, onCancel, onDelete,

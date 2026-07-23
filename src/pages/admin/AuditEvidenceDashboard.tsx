@@ -74,4 +74,5 @@ const AuditEvidenceDashboard = () => {
   );
 };
 
+/** React component: Audit Evidence Dashboard. */
 export default AuditEvidenceDashboard;

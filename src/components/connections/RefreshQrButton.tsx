@@ -6,6 +6,7 @@ import { getLogger } from '@/lib/logger';
 
 const log = getLogger('RefreshQrButton');
 
+/** Refresh Qr Button Status type alias. */
 export type RefreshQrButtonStatus = 'loading' | 'pending' | 'connected' | 'error';
 
 interface RefreshQrButtonProps {
@@ -42,6 +43,7 @@ const REASON_COPY: Record<BlockReason, (extra: { secondsLeft: number; status: st
   awaiting_stabilization: () => 'Aguardando o novo status do QR estabilizar… O botão reabilitará em instantes.',
 };
 
+/** Refresh Qr Button function. */
 export function RefreshQrButton({
   onRefresh,
   loading,

@@ -1,3 +1,4 @@
+
 /**
  * Tests for useScanResponseHandler().
  *
@@ -25,7 +26,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook } from '@testing-library/react';
 import { useScanResponseHandler } from '../useScanResponseHandler';
-import type { ScanResult } from '@/lib/scanResponse';
+import type { ScanResult, ScanCode } from '@/lib/scanResponse';
 
 vi.mock('sonner', () => ({
   toast: {
@@ -47,7 +48,7 @@ function makeSuccess(): ScanResult {
   };
 }
 
-function makeError(code: ScanResult extends { status: 'error'; code: infer C } ? C : never, extra?: Partial<Extract<ScanResult, { status: 'error' }>>): ScanResult {
+function makeError(code: ScanCode, extra?: Partial<Extract<ScanResult, { status: 'error' }>>): ScanResult {
   return {
     status: 'error',
     code,

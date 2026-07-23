@@ -41,6 +41,7 @@ function KpiCard({ icon, label, value, lastAt, tone }: {
   );
 }
 
+/** Delivery Stats Panel component. */
 export function DeliveryStatsPanel({ remoteJid, instance = 'wpp2' }: Props) {
   const { data, isLoading, error } = useDeliveryStats(remoteJid, instance);
 

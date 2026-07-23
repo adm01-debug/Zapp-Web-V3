@@ -39,6 +39,7 @@ const EMPTY_COMPANY = {
 const STATUS_OPTIONS = ['ativo', 'inativo', 'prospecto', 'suspenso'];
 const PORTE_OPTIONS = ['MEI', 'ME', 'EPP', 'Médio', 'Grande'];
 
+/** Company Form Dialog function. */
 export function CompanyFormDialog({ open, onOpenChange, company, onSuccess }: CompanyFormDialogProps) {
   const isEdit = !!company;
   const mutation = useExternalMutation();

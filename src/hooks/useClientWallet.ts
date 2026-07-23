@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { safeWhatsAppConnectionsQuery } from '@/integrations/supabase/safe-queries';
 import { toast } from '@/hooks/use-toast';
@@ -24,12 +25,12 @@ interface Connection {
   phone_number: string;
 }
 
+const WALLET_KEY = ['client-wallet'] as const;
+
 /** Manages client wallet rules for agent and WhatsApp connection assignment by priority. */
 export function useClientWallet() {
-  const [rules, setRules] = useState<WalletRule[]>([]);
-  const [agents, setAgents] = useState<Profile[]>([]);
-  const [connections, setConnections] = useState<Connection[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [newRule, setNewRule] = useState({
     name: '',
@@ -38,53 +39,50 @@ export function useClientWallet() {
     priority: 0,
   });
 
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    const { data: rulesData, error: rulesError } = await supabase
-      .from('client_wallet_rules')
-      .select('*')
-      .order('priority', { ascending: false });
+  const { data, isLoading: loading } = useQuery({
+    queryKey: WALLET_KEY,
+    queryFn: async () => {
+      const { data: rulesData } = await supabase
+        .from('client_wallet_rules')
+        .select('*')
+        .order('priority', { ascending: false });
 
-    if (!rulesError && rulesData) {
-      const agentIds = [...new Set(rulesData.map((r) => r.agent_id))];
+      const rawRules = rulesData ?? [];
+      const agentIds = [...new Set(rawRules.map((r) => r.agent_id))];
       const connectionIds = [
-        ...new Set(rulesData.map((r) => r.whatsapp_connection_id).filter(Boolean)),
-      ];
+        ...new Set(rawRules.map((r) => r.whatsapp_connection_id).filter(Boolean)),
+      ] as string[];
 
-      const { data: agentsData } = await supabase
-        .from('profiles')
-        .select('id, name')
-        .in('id', agentIds);
-      const safeQueries = safeWhatsAppConnectionsQuery(supabase);
-      const { data: connectionsData } =
-        connectionIds.length > 0
-          ? await safeQueries.getByIds(connectionIds as string[])
-          : { data: [], error: null };
+      const [{ data: agentsData }, connectionsResult, { data: allAgents }, allConnectionsResult] =
+        await Promise.all([
+          supabase.from('profiles').select('id, name').in('id', agentIds),
+          connectionIds.length > 0
+            ? safeWhatsAppConnectionsQuery(supabase).getByIds(connectionIds)
+            : Promise.resolve({ data: [], error: null }),
+          supabase.from('profiles').select('id, name').order('name'),
+          safeWhatsAppConnectionsQuery(supabase).getList(),
+        ]);
 
-      setRules(
-        rulesData.map((rule) => ({
-          ...rule,
-          agent: agentsData?.find((a) => a.id === rule.agent_id),
-          connection: connectionsData?.find((c) => c.id === rule.whatsapp_connection_id),
-        }))
-      );
-    }
+      const rules: WalletRule[] = rawRules.map((rule) => ({
+        ...rule,
+        agent: agentsData?.find((a) => a.id === rule.agent_id),
+        connection: connectionsResult.data?.find((c) => c.id === rule.whatsapp_connection_id),
+      }));
 
-    const { data: allAgents } = await supabase.from('profiles').select('id, name').order('name');
-    if (allAgents) setAgents(allAgents);
+      return {
+        rules,
+        agents: (allAgents ?? []) as Profile[],
+        connections: (allConnectionsResult.data ?? []) as unknown as Connection[],
+      };
+    },
+    staleTime: 30_000,
+  });
 
-    const safeQueries2 = safeWhatsAppConnectionsQuery(supabase);
-    const { data: allConnections } = await safeQueries2.getList();
-    if (allConnections) setConnections(allConnections as unknown as Connection[]);
+  const rules = data?.rules ?? [];
+  const agents = data?.agents ?? [];
+  const connections = data?.connections ?? [];
 
-    setLoading(false);
-  }, []);
-
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
-
-  const handleAddRule = async () => {
+  const handleAddRule = useCallback(async () => {
     if (!newRule.name || !newRule.agent_id) {
       toast({
         title: 'Erro',
@@ -105,25 +103,31 @@ export function useClientWallet() {
       toast({ title: 'Regra criada!', description: 'A regra de carteira foi adicionada.' });
       setIsAddDialogOpen(false);
       setNewRule({ name: '', agent_id: '', whatsapp_connection_id: '', priority: 0 });
-      fetchData();
+      void queryClient.invalidateQueries({ queryKey: WALLET_KEY });
     }
-  };
+  }, [newRule, queryClient]);
 
-  const handleToggleActive = async (id: string, isActive: boolean) => {
-    const { error } = await supabase
-      .from('client_wallet_rules')
-      .update({ is_active: isActive })
-      .eq('id', id);
-    if (!error) setRules(rules.map((r) => (r.id === id ? { ...r, is_active: isActive } : r)));
-  };
+  const handleToggleActive = useCallback(
+    async (id: string, isActive: boolean) => {
+      const { error } = await supabase
+        .from('client_wallet_rules')
+        .update({ is_active: isActive })
+        .eq('id', id);
+      if (!error) void queryClient.invalidateQueries({ queryKey: WALLET_KEY });
+    },
+    [queryClient]
+  );
 
-  const handleDeleteRule = async (id: string) => {
-    const { error } = await supabase.from('client_wallet_rules').delete().eq('id', id);
-    if (!error) {
-      setRules(rules.filter((r) => r.id !== id));
-      toast({ title: 'Regra excluída', description: 'A regra foi removida com sucesso.' });
-    }
-  };
+  const handleDeleteRule = useCallback(
+    async (id: string) => {
+      const { error } = await supabase.from('client_wallet_rules').delete().eq('id', id);
+      if (!error) {
+        toast({ title: 'Regra excluída', description: 'A regra foi removida com sucesso.' });
+        void queryClient.invalidateQueries({ queryKey: WALLET_KEY });
+      }
+    },
+    [queryClient]
+  );
 
   return {
     rules,
@@ -140,4 +144,5 @@ export function useClientWallet() {
   };
 }
 
+/** Re-exported module members. */
 export type { WalletRule, Profile, Connection };

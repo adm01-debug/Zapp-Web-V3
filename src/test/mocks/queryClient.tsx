@@ -1,6 +1,7 @@
 import React from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
+/** React component: query Client. */
 export function createTestQueryClient() {
   return new QueryClient({
     defaultOptions: {
@@ -16,6 +17,7 @@ export function createTestQueryClient() {
   });
 }
 
+/** Test Query Wrapper function. */
 export function TestQueryWrapper({ children }: { children: React.ReactNode }) {
   const queryClient = createTestQueryClient();
   return (

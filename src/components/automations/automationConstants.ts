@@ -1,5 +1,6 @@
 import { MessageSquare, Tag, Clock, Users, AlertCircle, CheckCircle2 } from 'lucide-react';
 
+/** TRIGGER_TYPES component for the automations section. */
 export const TRIGGER_TYPES = [
   { type: 'new_message', label: 'Nova Mensagem', icon: MessageSquare, description: 'Quando uma nova mensagem é recebida' },
   { type: 'keyword', label: 'Palavra-chave', icon: Tag, description: 'Quando uma mensagem contém palavras específicas' },
@@ -8,6 +9,7 @@ export const TRIGGER_TYPES = [
   { type: 'business_hours', label: 'Fora do Horário', icon: Clock, description: 'Quando mensagem chega fora do expediente' },
 ];
 
+/** ACTION_TYPES component for the automations section. */
 export const ACTION_TYPES = [
   { type: 'send_message', label: 'Enviar Mensagem', icon: MessageSquare, description: 'Envia uma mensagem automática' },
   { type: 'assign_agent', label: 'Atribuir Agente', icon: Users, description: 'Atribui a conversa a um agente' },

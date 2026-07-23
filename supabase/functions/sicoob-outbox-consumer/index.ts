@@ -72,8 +72,9 @@ Deno.serve(async (req) => {
     }
 
     return await processBatch(req, claimed ?? [], supabase, sicoobGiftsUrl, bridgeSecret);
-  } catch (e) {
-    return json(req, { error: e instanceof Error ? e.message : String(e) }, 500);
+  } catch {
+    console.error("[sicoob-outbox] fatal error");
+    return json(req, { error: "Internal server error" }, 500);
   }
 });
 
@@ -172,9 +173,8 @@ async function processBatch(
         .update({ status: "sent", processed_at: new Date().toISOString(), last_error: null })
         .eq("id", item.id);
       sent++;
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      await markFailed(supabase, item, msg, false);
+    } catch {
+      await markFailed(supabase, item, 'unexpected delivery error', false);
       failed++;
     }
   }

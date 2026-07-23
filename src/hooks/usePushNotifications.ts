@@ -1,10 +1,31 @@
-// Re-export from consolidated useNotificationManagement module (ETAPA 27 consolidation)
+import { useCallback } from 'react';
 import { usePushNotificationsManagement } from '@/hooks/useNotificationManagement';
 import type { PushNotificationState, NotificationPayload } from '@/hooks/useNotificationManagement';
 
+/** Re-exported module members. */
 export type { PushNotificationState, NotificationPayload };
 
-/** Manages browser push notifications with permission requests and notification sending. */
+/** Hook: use Push Notifications. */
 export function usePushNotifications() {
-  return usePushNotificationsManagement();
+  const mgmt = usePushNotificationsManagement();
+
+  const subscribe = useCallback(async () => {
+    if (!mgmt.isSubscribed) {
+      await mgmt.toggleSubscription();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mgmt.isSubscribed, mgmt.toggleSubscription]);
+
+  const unsubscribe = useCallback(async () => {
+    if (mgmt.isSubscribed) {
+      await mgmt.toggleSubscription();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mgmt.isSubscribed, mgmt.toggleSubscription]);
+
+  return {
+    ...mgmt,
+    subscribe,
+    unsubscribe,
+  };
 }

@@ -14,6 +14,7 @@ import {
   BarChart3,
 } from 'lucide-react';
 
+/** Active Tool type alias. */
 export type ActiveTool =
   | 'chatSearch'
   | 'objections'
@@ -85,6 +86,7 @@ function ToolButton({ icon, label, active, onClick, disabled, badge, highlight }
   );
 }
 
+/** Chat Header Toolbar function. */
 export function ChatHeaderToolbar({
   activeTool,
   showAIAssistant: _showAIAssistant,

@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useState } from 'react';
 
+/** Hook: SLAConfig. */
 export interface SLAConfig {
   id: string;
   name: string;
@@ -16,6 +17,7 @@ export interface SLAConfig {
   updated_at: string;
 }
 
+/** Hook: PRIORITY_CONFIG. */
 export const PRIORITY_CONFIG: Record<string, { label: string; color: string }> = {
   critical: { label: 'Crítica', color: 'bg-destructive/20 text-destructive border-destructive/30' },
   high: { label: 'Alta', color: 'bg-warning/20 text-warning border-warning/30' },
@@ -31,8 +33,10 @@ const defaultForm = {
   is_default: false,
 };
 
+/** Hook: SLAForm. */
 export type SLAForm = typeof defaultForm;
 
+/** Hook: use SLAConfigurations. */
 export function useSLAConfigurations() {
   const queryClient = useQueryClient();
   const [showDialog, setShowDialog] = useState(false);

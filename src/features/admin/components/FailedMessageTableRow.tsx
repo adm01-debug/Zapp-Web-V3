@@ -36,6 +36,7 @@ interface FailedMessageTableRowProps {
   isAbandoning: boolean;
 }
 
+/** Failed Message Table Row component. */
 export function FailedMessageTableRow({
   row,
   canEdit,

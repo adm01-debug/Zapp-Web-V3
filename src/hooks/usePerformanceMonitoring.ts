@@ -6,6 +6,7 @@ import {
   type PerformanceSnapshotInput,
 } from '@/hooks/useAnalyticsManagement';
 
+/** Hook: use Performance Metrics. */
 export function usePerformanceMetrics(_componentName: string) {
   return usePerformanceMonitoringManagement();
 }

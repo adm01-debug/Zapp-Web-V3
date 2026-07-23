@@ -62,11 +62,12 @@ function formatBucket(ts: string, window: Window) {
   return d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 }
 
+/** Auth Event Trend Chart component for the instance pauses section. */
 export function AuthEventTrendChart() {
   const [window, setWindow] = useState<Window>('24h');
   const [instanceFilter, setInstanceFilter] = useState('');
 
-  const filterTrim = instanceFilter.trim() || null;
+  const filterTrim = instanceFilter.trim() || undefined;
   const hours = WINDOW_HOURS[window];
 
   const trendQuery = useQuery({

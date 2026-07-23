@@ -17,6 +17,7 @@ interface AdminAuditTableProps {
   logs: AuditLog[];
 }
 
+/** Admin Audit Table component. */
 export function AdminAuditTable({ logs }: AdminAuditTableProps) {
   return (
     <Card>

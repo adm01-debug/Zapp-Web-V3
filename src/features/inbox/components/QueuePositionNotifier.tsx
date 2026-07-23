@@ -10,6 +10,7 @@ interface QueuePositionNotifierProps {
   className?: string;
 }
 
+/** Queue Position Notifier component. */
 export function QueuePositionNotifier({ contactId, className }: QueuePositionNotifierProps) {
   const { data: position } = useQuery({
     queryKey: queryKeys.conversationHistory.queuePosition(contactId),

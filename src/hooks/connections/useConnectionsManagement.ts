@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
 import { BridgeService } from '@/services/connections/BridgeService';
 import type { HubTab, HealthRow, BridgeStatus } from '@/components/connections/types';
@@ -7,19 +8,21 @@ import type { HubTab, HealthRow, BridgeStatus } from '@/components/connections/t
 // Types
 // ═══════════════════════════════════════════════════════════
 
+/** Hook: Use Hub Tab Navigation Params. */
 export interface UseHubTabNavigationParams {
   isDev: boolean;
 }
 
+/** Hook: Use Hub Tab Navigation Result. */
 export interface UseHubTabNavigationResult {
   tab: HubTab;
   setTab: (tab: HubTab) => void;
 }
 
-export interface UseBridgeHealthParams {
-  // no params needed
-}
+/** Hook: Use Bridge Health Params. */
+export type UseBridgeHealthParams = Record<string, never>;
 
+/** Hook: Use Bridge Health Result. */
 export interface UseBridgeHealthResult {
   status: BridgeStatus;
   health: HealthRow | null;
@@ -32,6 +35,7 @@ export interface UseBridgeHealthResult {
 // Hub Tab Navigation Management (useHubTabNavigation consolidation)
 // ═══════════════════════════════════════════════════════════
 
+/** Hook: use Hub Tab Navigation Management. */
 export function useHubTabNavigationManagement(
   params: UseHubTabNavigationParams
 ): UseHubTabNavigationResult {
@@ -67,6 +71,7 @@ export function useHubTabNavigationManagement(
     if (validated !== tab) {
       setTab(validated);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams, isDev, tab]);
 
   return { tab, setTab };
@@ -76,38 +81,22 @@ export function useHubTabNavigationManagement(
 // Bridge Health Management (useBridgeHealth consolidation)
 // ═══════════════════════════════════════════════════════════
 
+/** Hook: use Bridge Health Management. */
 export function useBridgeHealthManagement(
   _params: UseBridgeHealthParams = {}
 ): UseBridgeHealthResult {
-  const [status, setStatus] = useState<BridgeStatus>('idle');
-  const [health, setHealth] = useState<HealthRow | null>(null);
-  const [checkedAt, setCheckedAt] = useState<Date | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const mountedRef = useRef(true); // ✅ Fix: mounted guard para race condition
+  const { data, isFetching, refetch, dataUpdatedAt } = useQuery({
+    queryKey: ['bridge-health'] as const,
+    queryFn: () => BridgeService.checkHealth(),
+    staleTime: 30_000,
+  });
 
-  useEffect(() => {
-    mountedRef.current = true;
-    return () => { mountedRef.current = false; };
-  }, []);
+  const status: BridgeStatus = isFetching ? 'checking' : (data?.status ?? 'idle');
+  const health: HealthRow | null = data?.health ?? null;
+  const error: string | null = data?.error ?? null;
+  const checkedAt: Date | null = dataUpdatedAt > 0 ? new Date(dataUpdatedAt) : null;
 
-  const runCheck = useCallback(async () => {
-    setStatus('checking');
-    setError(null);
-
-    const result = await BridgeService.checkHealth();
-
-    // ✅ Fix: não atualizar estado se componente desmontado durante await
-    if (!mountedRef.current) return;
-
-    setHealth(result.health);
-    setError(result.error);
-    setStatus(result.status);
-    setCheckedAt(new Date());
-  }, []);
-
-  useEffect(() => {
-    void runCheck();
-  }, [runCheck]);
+  const runCheck = useCallback(async () => { await refetch(); }, [refetch]);
 
   return { status, health, checkedAt, error, runCheck };
 }

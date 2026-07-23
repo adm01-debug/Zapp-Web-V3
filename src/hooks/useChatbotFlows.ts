@@ -7,6 +7,7 @@ import { queryKeys } from '@/services/api/queryKeys';
 type ChatbotFlowInsert = TablesInsert<'chatbot_flows'>;
 type ChatbotFlowUpdate = TablesUpdate<'chatbot_flows'>;
 
+/** Chatbot Node interface definition. */
 export interface ChatbotNode {
   id: string;
   type: 'start' | 'message' | 'question' | 'condition' | 'action' | 'delay' | 'transfer' | 'end';
@@ -22,6 +23,7 @@ export interface ChatbotNode {
   position: { x: number; y: number };
 }
 
+/** Chatbot Edge interface definition. */
 export interface ChatbotEdge {
   id: string;
   source: string;
@@ -30,6 +32,7 @@ export interface ChatbotEdge {
   condition?: string;
 }
 
+/** Chatbot Flow interface definition. */
 export interface ChatbotFlow {
   id: string;
   name: string;

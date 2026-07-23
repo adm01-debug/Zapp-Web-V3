@@ -1,7 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 
+/** Hook: SLAStatus. */
 export type SLAStatus = 'ok' | 'warning' | 'breached';
 
+/** Hook: SLATimer State. */
 export interface SLATimerState {
   firstResponse: {
     status: SLAStatus;
@@ -52,7 +54,9 @@ function calculateStatus(
 
 function compute(params: UseSLACalculationParams): SLATimerState {
   const now = new Date();
-  const frDeadline = new Date(params.firstMessageAt.getTime() + params.firstResponseMinutes * 60_000);
+  const frDeadline = new Date(
+    params.firstMessageAt.getTime() + params.firstResponseMinutes * 60_000
+  );
   const resDeadline = new Date(params.firstMessageAt.getTime() + params.resolutionMinutes * 60_000);
 
   const firstResponse = calculateStatus(
@@ -83,6 +87,7 @@ function compute(params: UseSLACalculationParams): SLATimerState {
   return { firstResponse, resolution, worstStatus };
 }
 
+/** Hook: format Time Remaining. */
 export function formatTimeRemaining(ms: number): string {
   const absMs = Math.abs(ms);
   const totalSeconds = Math.floor(absMs / 1000);
@@ -96,16 +101,21 @@ export function formatTimeRemaining(ms: number): string {
   return `${seconds}s`;
 }
 
+/** Hook: use SLACalculation. */
 export function useSLACalculation(params: UseSLACalculationParams): SLATimerState {
   const [state, setState] = useState<SLATimerState>(() => compute(params));
 
-  const recompute = useCallback(() => setState(compute(params)), [
-    params.firstMessageAt,
-    params.firstResponseAt,
-    params.resolvedAt,
-    params.firstResponseMinutes,
-    params.resolutionMinutes,
-  ]);
+  const recompute = useCallback(
+    () => setState(compute(params)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [
+      params.firstMessageAt,
+      params.firstResponseAt,
+      params.resolvedAt,
+      params.firstResponseMinutes,
+      params.resolutionMinutes,
+    ]
+  );
 
   useEffect(() => {
     recompute();

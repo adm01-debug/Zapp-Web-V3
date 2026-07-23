@@ -1,30 +1,17 @@
 import { useState, useEffect } from 'react';
 import { useMountedRef } from '@/hooks/useMountedRef';
-import { supabase } from '@/integrations/supabase/client';
+import {
+  fetchNumberReputations,
+  startReputationWarmup,
+  type ReputationData,
+  type ConnectionInfo,
+} from '@/hooks/useNumberReputation';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Shield, Flame, Thermometer } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
-
-interface ReputationData {
-  id: string;
-  whatsapp_connection_id: string;
-  health_score: number;
-  messages_sent_today: number;
-  failures_today: number;
-  complaints_count: number;
-  warmup_status: string;
-  warmup_day: number | null;
-  daily_limit: number | null;
-}
-
-interface ConnectionInfo {
-  id: string;
-  instance_id: string;
-  phone_number: string | null;
-}
 
 /**
  * Number Reputation Monitor — hides itself entirely when no data exists.
@@ -39,33 +26,18 @@ export function NumberReputationMonitor() {
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadData = async () => {
     setLoading(true);
-    const { data: reps } = await supabase.from('number_reputation').select('*');
+    const data = await fetchNumberReputations();
     if (!mountedRef.current) return;
-    const { data: connections } = await supabase
-      .from('whatsapp_connections')
-      .select('id, instance_id, phone_number');
-    if (!mountedRef.current) return;
-    if (reps && connections) {
-      setReputations(
-        reps.map((r) => ({
-          ...r,
-          connection: connections.find((c) => c.id === r.whatsapp_connection_id) as
-            ConnectionInfo | undefined,
-        }))
-      );
-    }
+    setReputations(data);
     setLoading(false);
   };
 
   const startWarmup = async (id: string) => {
-    await supabase
-      .from('number_reputation')
-      .update({ warmup_status: 'active', warmup_day: 1, daily_limit: 20 })
-      .eq('id', id);
+    await startReputationWarmup(id);
     toast.success('Aquecimento iniciado');
     loadData();
   };

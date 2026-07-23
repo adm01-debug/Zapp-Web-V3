@@ -12,9 +12,11 @@ import {
   GAMIFICATION_TABS,
   METADATA_TABS,
 } from './crm360TabsData';
+/** Re-exported module members. */
 export type { TabConfig } from './crm360TabsData';
 
 // ─── Aggregated TABS array ──────────────────────────────────
+/** T A B S constant. */
 export const TABS: TabConfig[] = [
   ...CORE_TABS,
   ...COMMUNICATION_TABS,
@@ -25,6 +27,7 @@ export const TABS: TabConfig[] = [
 ];
 
 // ─── Value formatters ────────────────────────────────────────
+/** format Cell Value function. */
 export function formatCellValue(value: unknown, format?: string): string {
   if (value === null || value === undefined) return '—';
   if (format === 'date' && typeof value === 'string') {
@@ -46,6 +49,7 @@ export function formatCellValue(value: unknown, format?: string): string {
 }
 
 // ─── CSV Export ──────────────────────────────────────────────
+/** export To C S V function. */
 export function exportToCSV(
   data: Record<string, unknown>[],
   columns: TabConfig['columns'],
@@ -73,6 +77,7 @@ export function exportToCSV(
 }
 
 // ─── RFM Segment colors ─────────────────────────────────────
+/** R F M_ S E G M E N T_ C O L O R S constant. */
 export const RFM_SEGMENT_COLORS: Record<string, string> = {
   Champions: 'bg-success/15 text-success dark:text-success',
   'Loyal Customers': 'bg-info/15 text-info',

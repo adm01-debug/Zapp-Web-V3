@@ -31,6 +31,7 @@ function fmt(ts: string | null | undefined): string {
   try { return format(new Date(ts), 'dd/MM/yyyy HH:mm:ss'); } catch { return ts; }
 }
 
+/** Message Attempts Timeline function. */
 export function MessageAttemptsTimeline({ messageId, enabled }: MessageAttemptsTimelineProps) {
   const { isSupervisor } = useUserRole();
   const canRead = isSupervisor;

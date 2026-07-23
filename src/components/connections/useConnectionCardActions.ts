@@ -5,6 +5,7 @@ import { evolutionInstanceName } from '@/lib/evolutionInstance';
 import type { WhatsAppConnection } from '@/features/connections';
 import { useEvolutionApi } from '@/hooks/useEvolutionApi';
 
+/** use Connection Card Actions component for the connections section. */
 export function useConnectionCardActions(
   connection: WhatsAppConnection,
   onShowQrCode: (c: WhatsAppConnection) => void

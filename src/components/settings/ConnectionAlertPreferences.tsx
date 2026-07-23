@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useMountedRef } from '@/hooks/useMountedRef';
 import { supabase } from '@/integrations/supabase/client';
+import { fetchConnectionAlertPrefs, upsertConnectionAlertPrefs } from '@/hooks/useConnectionAlertPreferences';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
@@ -22,6 +23,7 @@ const DEFAULTS: Prefs = {
   alert_on_disconnected: true,
 };
 
+/** Connection Alert Preferences component for the settings section. */
 export function ConnectionAlertPreferences() {
   const [prefs, setPrefs] = useState<Prefs>(DEFAULTS);
   const [loading, setLoading] = useState(true);
@@ -36,13 +38,9 @@ export function ConnectionAlertPreferences() {
       const { data: auth } = await supabase.auth.getUser();
       if (!mounted.current) return;
       if (!auth.user) { setLoading(false); return; }
-      const { data } = await supabase
-        .from('connection_alert_preferences')
-        .select('push_enabled, email_enabled, alert_on_degraded, alert_on_disconnected')
-        .eq('user_id', auth.user.id)
-        .maybeSingle();
+      const data = await fetchConnectionAlertPrefs(auth.user.id);
       if (!mounted.current) return;
-      if (data) setPrefs(data as Prefs); // ignore-audit: narrows Supabase query result to local interface
+      if (data) setPrefs(data as Prefs);
       setLoading(false);
     })();
   }, [mounted]);
@@ -65,9 +63,7 @@ export function ConnectionAlertPreferences() {
       setSaving(false);
       return;
     }
-    const { error } = await supabase
-      .from('connection_alert_preferences')
-      .upsert({ user_id: auth.user.id, ...prefs }, { onConflict: 'user_id' });
+    const { error } = await upsertConnectionAlertPrefs(auth.user.id, prefs);
     setSaving(false);
     if (error) toast.error('Falha ao salvar preferências');
     else toast.success('Preferências salvas');

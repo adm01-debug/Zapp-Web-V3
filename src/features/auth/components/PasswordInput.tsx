@@ -8,6 +8,7 @@ interface PasswordInputProps extends React.InputHTMLAttributes<HTMLInputElement>
   id: string;
 }
 
+/** Password Input component. */
 export function PasswordInput({ id, className, ...props }: PasswordInputProps) {
   const [showPassword, setShowPassword] = useState(false);
 

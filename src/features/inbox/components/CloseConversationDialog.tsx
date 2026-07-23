@@ -56,6 +56,7 @@ const CLASSIFICATIONS = [
   { value: 'feedback', label: 'Feedback' },
 ];
 
+/** Close Conversation Dialog component. */
 export function CloseConversationDialog({
   open,
   onOpenChange,

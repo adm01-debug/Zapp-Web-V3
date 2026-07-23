@@ -1,5 +1,4 @@
-import { queryKeys } from '@/services/api/queryKeys';
-import { useQuery } from '@tanstack/react-query';
+import { useTeamPermissions } from '@/hooks/useTeamPermissions';
 import {
   Dialog,
   DialogContent,
@@ -10,50 +9,15 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Shield, Users, Loader2 } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
 
 interface ConfigurePermissionsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
+/** Configure Permissions Dialog component for the agents section. */
 export function ConfigurePermissionsDialog({ open, onOpenChange }: ConfigurePermissionsDialogProps) {
-  const { data: roles = [], isLoading } = useQuery({
-    queryKey: queryKeys.adminOps.userRoles(),
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('user_roles')
-        .select('id, user_id, role');
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: open,
-  });
-
-  const { data: permissions = [] } = useQuery({
-    queryKey: queryKeys.userProfile.permissionsList(),
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('permissions')
-        .select('id, name, description, category');
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: open,
-  });
-
-  const { data: profiles = [] } = useQuery({
-    queryKey: queryKeys.userProfile.forPermissions(),
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id, name, email, role')
-        .order('name');
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: open,
-  });
+  const { roles, permissions, profiles, isLoading } = useTeamPermissions(open);
 
   const getRoleBadge = (role: string) => {
     const colors: Record<string, string> = {

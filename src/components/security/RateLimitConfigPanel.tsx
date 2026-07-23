@@ -14,18 +14,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-
-interface RateLimitRule {
-  id: string;
-  name: string;
-  endpoint: string;
-  max_requests: number;
-  window_seconds: number;
-  is_active: boolean;
-  action: 'block' | 'throttle' | 'alert';
-}
+import {
+  fetchRateLimitConfigs,
+  saveRateLimitConfigs,
+  type RateLimitRule,
+} from '@/hooks/useRateLimitConfigs';
 
 const DEFAULT_RULES: Omit<RateLimitRule, 'id'>[] = [
   {
@@ -70,6 +64,7 @@ const DEFAULT_RULES: Omit<RateLimitRule, 'id'>[] = [
   },
 ];
 
+/** Rate Limit Config Panel component for the security section. */
 export function RateLimitConfigPanel() {
   const [rules, setRules] = useState<RateLimitRule[]>([]);
   const [loading, setLoading] = useState(true);
@@ -81,23 +76,9 @@ export function RateLimitConfigPanel() {
 
   const fetchRules = async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from('rate_limit_configs')
-      .select('*')
-      .order('created_at', { ascending: true });
-
-    if (!error && data && data.length > 0) {
-      setRules(
-        data.map((r) => ({
-          id: r.id,
-          name: r.name || r.endpoint_pattern,
-          endpoint: r.endpoint_pattern,
-          max_requests: r.max_requests,
-          window_seconds: r.window_seconds,
-          is_active: r.is_active ?? true,
-          action: 'block' as RateLimitRule['action'],
-        }))
-      );
+    const data = await fetchRateLimitConfigs();
+    if (data.length > 0) {
+      setRules(data);
     } else {
       // Initialize with defaults
       setRules(DEFAULT_RULES.map((r, i) => ({ ...r, id: `temp-${i}` })));
@@ -131,26 +112,7 @@ export function RateLimitConfigPanel() {
   const saveRules = async () => {
     setSaving(true);
     try {
-      // Delete existing rules
-      await supabase
-        .from('rate_limit_configs')
-        .delete()
-        .neq('id', '00000000-0000-0000-0000-000000000000');
-
-      // Insert updated rules
-      const toInsert = rules.map((r) => ({
-        name: r.name,
-        endpoint_pattern: r.endpoint,
-        max_requests: r.max_requests,
-        window_seconds: r.window_seconds,
-        // NOT NULL sem default no schema; 15min = padrão de bloqueio do domínio
-        block_duration_minutes: 15,
-        is_active: r.is_active,
-      }));
-
-      const { error } = await supabase.from('rate_limit_configs').insert(toInsert);
-      if (error) throw error;
-
+      await saveRateLimitConfigs(rules);
       toast.success('Regras de rate limit salvas!');
       await fetchRules();
     } catch {

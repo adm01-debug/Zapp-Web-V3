@@ -1,3 +1,4 @@
+
 /**
  * Tests for useInitialHighlight().
  *
@@ -242,8 +243,8 @@ describe('useInitialHighlight — highlight clears after 3 500 ms', () => {
     });
     renderHook(() => useInitialHighlight(p));
     vi.advanceTimersByTime(3500);
-    const calls = p.setHighlightedMessageIds.mock.calls;
-    const lastArg = calls[calls.length - 1][0];
+    const calls = vi.mocked(p.setHighlightedMessageIds).mock.calls;
+    const lastArg = calls[calls.length - 1][0] as Set<string>;
     expect(lastArg).toBeInstanceOf(Set);
     expect(lastArg.size).toBe(0);
   });
@@ -327,7 +328,7 @@ describe('useInitialHighlight — cleanup on unmount', () => {
     unmount();
     vi.advanceTimersByTime(3500);
     // May have been called once synchronously with the id, but NOT the null clear
-    const nullCalls = p.setActiveHighlightId.mock.calls.filter(([v]) => v === null);
+    const nullCalls = vi.mocked(p.setActiveHighlightId).mock.calls.filter((args: unknown[]) => args[0] === null);
     expect(nullCalls).toHaveLength(0);
   });
 

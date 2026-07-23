@@ -6,6 +6,7 @@ import { MetaWebhookPayloadSchema } from "./webhook-schemas.ts";
 // Meta sends webhooks shaped as:
 // { object: "whatsapp_business_account", entry: [{ id, changes: [{ value: { messaging_product, metadata, contacts, messages, statuses } }] }] }
 
+/** Normalized Incoming interface definition. */
 export interface NormalizedIncoming {
   kind: 'message';
   wamid: string;
@@ -20,6 +21,7 @@ export interface NormalizedIncoming {
   metadata?: Record<string, unknown>;
 }
 
+/** Normalized Status interface definition. */
 export interface NormalizedStatus {
   kind: 'status';
   wamid: string;
@@ -29,6 +31,7 @@ export interface NormalizedStatus {
   recipientPhone?: string;
 }
 
+/** Normalized Event type alias. */
 export type NormalizedEvent = NormalizedIncoming | NormalizedStatus;
 
 interface MetaMessage {
@@ -81,6 +84,7 @@ interface MetaWebhookPayload {
   }>;
 }
 
+/** normalize Meta Payload function. */
 export function normalizeMetaPayload(payload: unknown): {
   events: NormalizedEvent[];
   phoneNumberId?: string;

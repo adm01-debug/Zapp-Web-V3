@@ -5,8 +5,10 @@ import { useUserRole } from '@/features/auth';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { usePrefetchOnHover } from '@/hooks/usePrefetchOnHover';
 
+/** Nav Required Role type alias. */
 export type NavRequiredRole = 'dev' | 'admin' | 'supervisor' | 'agent';
 
+/** Nav Item Config interface definition. */
 export interface NavItemConfig {
   id: string;
   icon: React.ComponentType<{ className?: string }>;
@@ -34,6 +36,7 @@ interface SidebarNavItemProps {
   isFavorite?: boolean;
 }
 
+/** Sidebar Nav Item constant. */
 export const SidebarNavItem = React.memo(function SidebarNavItem({ item, currentView, onViewChange, badge, badgeVariant = 'destructive', badgeTitle, collapsed = true, onToggleFavorite, isFavorite }: SidebarNavItemProps) {
   const { hasRole } = useUserRole();
   const { prefetch } = usePrefetchOnHover();

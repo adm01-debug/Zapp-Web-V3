@@ -43,6 +43,7 @@ interface MilestoneEntry {
   render: (index: number) => JSX.Element;
 }
 
+/** SLATimeline Section component for the contact details section. */
 export function SLATimelineSection({ conversation }: SLATimelineSectionProps) {
   const { contact, queue, assignedTo } = conversation;
   const remoteJid = useMemo(
@@ -258,7 +259,7 @@ export function SLATimelineSection({ conversation }: SLATimelineSectionProps) {
           icon={Clock}
           label="Última mensagem"
           timestamp={timeline.lastMessageAt}
-          durationLabel={`há ${formatDistanceStrict(new Date(timeline.lastMessageAt as string), new Date(), { locale: ptBR })}`}
+          durationLabel={`há ${formatDistanceStrict(new Date(timeline.lastMessageAt as unknown as string), new Date(), { locale: ptBR })}`}
           iconColor="text-muted-foreground"
         />
       ),

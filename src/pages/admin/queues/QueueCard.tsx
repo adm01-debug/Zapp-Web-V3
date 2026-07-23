@@ -45,6 +45,7 @@ interface Props {
   onMembers: (q: Queue) => void;
 }
 
+/** Queue Card. */
 export function QueueCard({
   queue,
   members,

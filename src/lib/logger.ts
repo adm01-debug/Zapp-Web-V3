@@ -19,6 +19,7 @@ const sessionId: string = (() => {
 // NOT cryptographically random. For security-grade correlation IDs,
 // use generateCorrelationId from @/lib/correlationId instead.
 let requestCounter = 0;
+/** generate Request Tag function. */
 export function generateRequestTag(prefix = 'req'): string {
   return `${prefix}_${++requestCounter}_${Date.now().toString(36)}`;
 }
@@ -33,6 +34,7 @@ export function generateRequestTag(prefix = 'req'): string {
  */
 export const generateCorrelationId = generateRequestTag;
 
+/** Returns the session-scoped correlation ID generated at page load. */
 export function getSessionId(): string {
   return sessionId;
 }
@@ -102,17 +104,21 @@ class Logger {
 }
 
 // Factory function to create module-specific loggers
+/** create Logger function. */
 export function createLogger(module: string): Logger {
   return new Logger(module);
 }
 
 // Default logger for quick usage
+/** logger constant. */
 export const logger = new Logger('App');
 
 // Shorthand export for convenience
+/** log constant. */
 export const log = logger;
 const loggers: Record<string, Logger> = {};
 
+/** get Logger function. */
 export function getLogger(module: string): Logger {
   if (!loggers[module]) {
     loggers[module] = new Logger(module);
@@ -121,6 +127,7 @@ export function getLogger(module: string): Logger {
 }
 
 // Performance logging
+/** log Performance function. */
 export function logPerformance(label: string, fn: () => void): void {
   if (!isDev) {
     fn();
@@ -134,6 +141,7 @@ export function logPerformance(label: string, fn: () => void): void {
 }
 
 // Async performance logging
+/** log Async Performance function. */
 export async function logAsyncPerformance<T>(label: string, fn: () => Promise<T>): Promise<T> {
   if (!isDev) {
     return fn();

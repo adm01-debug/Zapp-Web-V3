@@ -8,6 +8,7 @@ interface ThemeProviderProps {
 
 // Thin wrapper for API compatibility — actual theme state is managed by the
 // useTheme.ts singleton and ThemeSync mounted inside AppProviders.
+/** Theme Provider component. */
 export function ThemeProvider({ children }: ThemeProviderProps) {
   return <>{children}</>;
 }

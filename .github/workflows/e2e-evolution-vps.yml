@@ -1,0 +1,138 @@
+name: E2E Evolution (VPS)
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: 'URL alvo da VPS'
+        required: false
+        default: 'https://zapp.atomicabr.com.br'
+      include_webhook_parity:
+        description: 'Rodar webhook-providers-parity (requer EVOLUTION_WEBHOOK_SECRET no backend)?'
+        required: false
+        default: 'false'
+      include_voice_changer:
+        description: 'Rodar voice-changer-integration?'
+        required: false
+        default: 'false'
+      runner:
+        description: 'Runner alvo (self-hosted na VPS ou ubuntu-latest)'
+        required: false
+        default: 'self-hosted'
+        type: choice
+        options:
+          - self-hosted
+          - ubuntu-latest
+
+jobs:
+  validate-user:
+    name: Pré-check — permissões CRM do E2E user
+    uses: ./.github/workflows/validate-e2e-user.yml
+    secrets: inherit
+
+  e2e-evolution:
+    name: Playwright Evolution contra VPS
+    needs: validate-user
+    runs-on: ${{ github.event.inputs.runner == 'ubuntu-latest' && 'ubuntu-latest' || fromJSON('["self-hosted","vps-zapp","playwright"]') }}
+    timeout-minutes: 45
+    env:
+      E2E_BASE_URL: ${{ github.event.inputs.base_url }}
+      E2E_USER_EMAIL: ${{ secrets.E2E_USER_EMAIL }}
+      E2E_USER_PASSWORD: ${{ secrets.E2E_USER_PASSWORD }}
+      VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+      VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+      CI: 'true'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+
+      - name: Instalar dependências
+        run: bun install --frozen-lockfile
+
+      - name: Instalar Chromium do Playwright
+        run: bunx playwright install --with-deps chromium
+
+      - name: Validar credenciais
+        run: |
+          if [ -z "$E2E_USER_EMAIL" ] || [ -z "$E2E_USER_PASSWORD" ]; then
+            echo "::error::E2E_USER_EMAIL / E2E_USER_PASSWORD não configurados nos secrets do repositório."
+            exit 1
+          fi
+          echo "Alvo: $E2E_BASE_URL"
+
+      - name: Rodar suite Evolution
+        id: run_evolution
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          SPECS="e2e/admin-evolution-api-smoke.spec.ts \
+            e2e/evolution-retry-failure.spec.ts \
+            e2e/evolution-media-retry-failure.spec.ts \
+            e2e/whatsapp-connection.spec.ts \
+            e2e/whatsapp-reactions-realtime.spec.ts \
+            e2e/whatsapp-reactions-advanced.spec.ts"
+          if [ "${{ github.event.inputs.include_webhook_parity }}" = "true" ]; then
+            SPECS="$SPECS e2e/webhook-providers-parity.spec.ts"
+            export E2E_WEBHOOK_PARITY=1
+          fi
+          if [ "${{ github.event.inputs.include_voice_changer }}" = "true" ]; then
+            SPECS="$SPECS e2e/voice-changer-integration.spec.ts"
+          fi
+          bunx playwright test \
+            --config=playwright.e2e.config.ts \
+            --reporter=list,html,json \
+            $SPECS 2>&1 | tee playwright-evolution.log
+
+      - name: Gerar resumo em Markdown
+        if: always()
+        run: |
+          {
+            echo "# Relatório E2E Evolution — $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            echo ""
+            echo "- Alvo: \`$E2E_BASE_URL\`"
+            echo "- Resultado do step Evolution: \`${{ steps.run_evolution.outcome }}\`"
+            echo "- webhook-parity: \`${{ github.event.inputs.include_webhook_parity }}\`"
+            echo "- voice-changer: \`${{ github.event.inputs.include_voice_changer }}\`"
+            echo ""
+            echo "## Últimas linhas do log"
+            echo '```'
+            tail -n 80 playwright-evolution.log 2>/dev/null || echo "(sem log)"
+            echo '```'
+          } > e2e-evolution-vps-report.md
+          cat e2e-evolution-vps-report.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload do relatório HTML
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-e2e-evolution
+          path: playwright-report-e2e/
+          retention-days: 14
+
+      - name: Upload de test-results (traces, screenshots, videos)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-e2e-evolution
+          path: test-results/
+          retention-days: 14
+          if-no-files-found: ignore
+
+      - name: Upload do resumo markdown
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-evolution-vps-report
+          path: e2e-evolution-vps-report.md
+          retention-days: 30
+
+      - name: Falhar job se testes falharam
+        if: steps.run_evolution.outcome == 'failure'
+        run: |
+          echo "::error::Testes E2E de Evolution falharam contra $E2E_BASE_URL"
+          exit 1

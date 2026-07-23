@@ -21,6 +21,7 @@ const STATUS_OPTIONS = [
 
 const STATUS_LABELS: Record<string, string> = { online: 'Online', away: 'Ausente', offline: 'Offline' };
 
+/** Agent Profile Popover component for the layout section. */
 export function AgentProfilePopover({ agent, collapsed, statusOpen, onStatusOpenChange, onStatusChange, onViewChange, onLogout }: AgentProfilePopoverProps) {
   return (
     <Popover open={statusOpen} onOpenChange={onStatusOpenChange}>

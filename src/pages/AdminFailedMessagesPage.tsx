@@ -49,6 +49,7 @@ function extractMessageIdFromPayload(payload: unknown): string | null {
   return null;
 }
 
+/** Admin Failed Messages Page. */
 export default function AdminFailedMessagesPage() {
   const { isDev, isAdmin } = useUserRole();
   const canEdit = isDev;

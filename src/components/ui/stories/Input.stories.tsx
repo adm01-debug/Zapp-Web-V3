@@ -21,9 +21,11 @@ const meta: Meta<typeof Input> = {
   },
 };
 
+/** Default export. */
 export default meta;
 type Story = StoryObj<typeof Input>;
 
+/** Default component for the ui section. */
 export const Default: Story = {
   args: {
     placeholder: 'Type something...',
@@ -31,6 +33,7 @@ export const Default: Story = {
   },
 };
 
+/** Input Gallery component for the ui section. */
 export const InputGallery: Story = {
   render: () => (
     <div className="flex max-w-md flex-col gap-6">
@@ -62,6 +65,7 @@ export const InputGallery: Story = {
   ),
 };
 
+/** Validation States component for the ui section. */
 export const ValidationStates: Story = {
   render: () => (
     <div className="flex max-w-md flex-col gap-6">
@@ -80,6 +84,7 @@ export const ValidationStates: Story = {
   ),
 };
 
+/** Sizes component for the ui section. */
 export const Sizes: Story = {
   render: () => (
     <div className="flex max-w-md flex-col gap-4">
@@ -90,6 +95,7 @@ export const Sizes: Story = {
   ),
 };
 
+/** Common Use Cases component for the ui section. */
 export const CommonUseCases: Story = {
   render: () => (
     <div className="flex max-w-md flex-col gap-6">

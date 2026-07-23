@@ -123,6 +123,7 @@ const floatAnimation = {
   },
 };
 
+/** Empty State function. */
 export function EmptyState({
   variant = 'generic',
   icon: IconOverride,

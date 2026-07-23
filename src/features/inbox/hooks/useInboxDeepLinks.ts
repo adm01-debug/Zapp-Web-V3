@@ -10,7 +10,12 @@ interface DeepLinkHandlers {
   useExternalDb: boolean;
 }
 
-export function useInboxDeepLinks({ setPendingContactId, setPendingMessageId, useExternalDb }: DeepLinkHandlers) {
+/** Reads deep-link `?contact=` / `?message=` URL params, legacy window globals, and the `open-contact-chat` custom event to set the pending contact/message on mount. */
+export function useInboxDeepLinks({
+  setPendingContactId,
+  setPendingMessageId,
+  useExternalDb,
+}: DeepLinkHandlers) {
   const [searchParams] = useSearchParams();
 
   useEffect(() => {
@@ -26,7 +31,7 @@ export function useInboxDeepLinks({ setPendingContactId, setPendingMessageId, us
       log.info('Deep-link: found pending contact', { contactId: urlContact.trim() });
       setPendingContactId(urlContact.trim());
     }
-    
+
     if (urlMessage?.trim()) {
       log.info('Deep-link: found pending message highlight', { messageId: urlMessage.trim() });
       setPendingMessageId(urlMessage.trim());
@@ -54,7 +59,12 @@ export function useInboxDeepLinks({ setPendingContactId, setPendingMessageId, us
       const resolvedId = useExternalDb
         ? (detail?.remoteJid ?? detail?.contactId)
         : detail?.contactId;
-      if (resolvedId) setPendingContactId(resolvedId);
+      if (resolvedId) {
+        setPendingContactId(resolvedId);
+        // Cancel the dispatch retry loop: the inbox has now received the event,
+        // so there is no need to keep firing for up to 15 more iterations.
+        (window as Window & { __cancelPendingOpenLoop?: () => void }).__cancelPendingOpenLoop?.();
+      }
       if (detail?.messageId) setPendingMessageId(detail.messageId);
     };
 

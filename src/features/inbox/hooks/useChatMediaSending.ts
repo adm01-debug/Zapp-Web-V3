@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { log } from '@/lib/logger';
 import { supabase } from '@/integrations/supabase/client';
 import { normalizeMediaUrl } from '@/utils/normalizeMediaUrl';
@@ -19,10 +19,17 @@ import { evolutionInstanceName } from '@/lib/evolutionInstance';
  *   Resolução de instância agora usa exclusivamente `contacts.whatsapp_connection_id`
  *   + fallback para primeira conexão ativa.
  */
+/** Encapsulates WhatsApp instance resolution and media-message sending (stickers, custom emojis, audio memes) for a given contact. */
 export function useChatMediaSending(contactId: string, contactPhone: string | undefined) {
   const [instanceName, setInstanceName] = useState('');
   const [whatsappConnectionId, setWhatsappConnectionId] = useState<string | null>(null);
   const resolvedRef = useRef(false);
+
+  useEffect(() => {
+    resolvedRef.current = false;
+    setInstanceName('');
+    setWhatsappConnectionId(null);
+  }, [contactId]);
 
   const { sendStickerMessage } = useEvolutionApi();
 
@@ -152,7 +159,7 @@ export function useChatMediaSending(contactId: string, contactPhone: string | un
             status: 'sending',
           })
           .select('id')
-          .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
+          .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
 
         if (dbDataErr) {
           log.error('[Sticker] DB insert failed:', dbDataErr);
@@ -163,7 +170,7 @@ export function useChatMediaSending(contactId: string, contactPhone: string | un
 
         try {
           const result = await sendStickerMessage(inst, phone, stickerUrl);
-          externalId = result?.key?.id || null;
+          externalId = (result as any)?.key?.id || null;
         } catch (err: unknown) {
           if (messageId) await updateMessageStatus(messageId, 'failed');
           toast.error(err instanceof Error ? err.message : 'Erro ao enviar figurinha');
@@ -183,7 +190,7 @@ export function useChatMediaSending(contactId: string, contactPhone: string | un
 
         // FALHA 6 FIX: Auto-save with error handling
         try {
-          const { data: existing, error: existingErr } = await supabase
+          const { data: existing, error: _existingErr } = await supabase
             .from('stickers')
             .select('id')
             .eq('image_url', stickerUrl)
@@ -214,6 +221,7 @@ export function useChatMediaSending(contactId: string, contactPhone: string | un
         toast.error('Erro ao enviar figurinha');
       }
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [
       ensureInstance,
       contactId,
@@ -271,7 +279,7 @@ export function useChatMediaSending(contactId: string, contactPhone: string | un
             request_id: trace.requestId,
           })
           .select('id')
-          .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
+          .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
 
         const results = await Promise.allSettled([apiPromise, dbPromise]);
         const apiResult =
@@ -303,6 +311,7 @@ export function useChatMediaSending(contactId: string, contactPhone: string | un
         toast.error('Erro ao enviar emoji');
       }
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [
       ensureInstance,
       contactId,
@@ -362,7 +371,7 @@ export function useChatMediaSending(contactId: string, contactPhone: string | un
             ...(memeId ? { audio_meme_id: memeId } : {}),
           })
           .select('id')
-          .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
+          .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
 
         const results = await Promise.allSettled([apiPromise, dbPromise]);
         const apiResult =
@@ -396,6 +405,7 @@ export function useChatMediaSending(contactId: string, contactPhone: string | un
         toast.error('Erro ao enviar áudio meme');
       }
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [
       ensureInstance,
       contactId,

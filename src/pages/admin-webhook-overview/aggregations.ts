@@ -3,6 +3,7 @@
  * Kept separate from the page so they can be unit-tested.
  */
 
+/** Webhook Event Lite interface. */
 export interface WebhookEventLite {
   event_type: string;
   instance_name: string;
@@ -11,6 +12,7 @@ export interface WebhookEventLite {
   created_at: string;
 }
 
+/** Type Aggregate interface definition. */
 export interface TypeAggregate {
   type: string;
   total: number;
@@ -19,12 +21,14 @@ export interface TypeAggregate {
   lastAt: string | null;
 }
 
+/** Matrix Aggregate interface definition. */
 export interface MatrixAggregate {
   types: string[];
   instances: string[];
   matrix: Record<string, Record<string, number>>;
 }
 
+/** Hourly Bucket interface definition. */
 export interface HourlyBucket {
   bucket: string;
   /** ISO timestamp at the start of the bucket — kept for sorting. */

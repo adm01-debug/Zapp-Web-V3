@@ -1,19 +1,53 @@
-// Re-export from consolidated useAlertManagement module (ETAPA 28 consolidation)
-import { useSentimentAlertsManagement } from '@/hooks/useAlertManagement';
-import { useNotificationSettings } from '@/hooks/useNotificationSettings';
-import { supabase } from '@/integrations/supabase/client';
+type SentimentAlertData = { sentimentScore: number; [k: string]: unknown };
 import { useCallback } from 'react';
-import { getLogger } from '@/lib/logger';
+import { supabase } from '@/integrations/supabase/client';
+import { useNotificationSettings } from '@/hooks/useNotificationSettings';
 
-const log = getLogger('useSentimentAlerts');
-
+/** Hook: use Sentiment Alerts. */
 export function useSentimentAlerts() {
-  const { checkAndTriggerAlert } = useSentimentAlertsManagement();
   const { settings } = useNotificationSettings();
 
   const threshold = settings.sentimentAlertThreshold ?? 30;
   const consecutiveRequired = settings.sentimentConsecutiveCount ?? 2;
   const alertsEnabled = settings.sentimentAlertEnabled ?? true;
+
+  const checkAndTriggerAlert = useCallback(
+    async (data: SentimentAlertData) => {
+      if (!alertsEnabled) {
+        return { triggered: false, reason: 'Alerts disabled' };
+      }
+
+      if (data.sentimentScore >= threshold) {
+        return { triggered: false, reason: 'Sentiment above threshold' };
+      }
+
+      try {
+        const { data: result, error } = await supabase.functions.invoke('sentiment-alert', {
+          body: {
+            contactId: data.contactId,
+            contactName: data.contactName,
+            sentimentScore: data.sentimentScore,
+            consecutiveRequired,
+            analysisId: data.analysisId,
+          },
+        });
+
+        if (error) {
+          return { triggered: false, error };
+        }
+
+        return {
+          triggered: result?.alerted ?? false,
+          consecutiveLow: result?.consecutiveLow,
+          emailSent: result?.emailSent,
+          ...result,
+        };
+      } catch (err) {
+        return { triggered: false, error: err };
+      }
+    },
+    [threshold, consecutiveRequired, alertsEnabled]
+  );
 
   const getRecentAlerts = useCallback(async (limit = 10) => {
     try {
@@ -26,14 +60,15 @@ export function useSentimentAlerts() {
 
       if (error) throw error;
 
-      return data?.map(entry => ({
-        id: entry.id,
-        contactId: entry.entity_id,
-        createdAt: entry.created_at,
-        ...((entry.details || {}) as Record<string, unknown>),
-      })) || [];
-    } catch (err) {
-      log.error('Failed to fetch recent alerts:', err);
+      return (data || []).map(
+        (entry: { id: string; entity_id: string; created_at: string; details?: Record<string, unknown> }) => ({
+          id: entry.id,
+          contactId: entry.entity_id,
+          createdAt: entry.created_at,
+          ...((entry.details || {}) as Record<string, unknown>),
+        })
+      );
+    } catch {
       return [];
     }
   }, []);

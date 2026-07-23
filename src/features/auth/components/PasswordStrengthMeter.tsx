@@ -40,6 +40,7 @@ async function sha1Hash(str: string): Promise<string> {
     .toUpperCase();
 }
 
+/** Password Strength Meter component. */
 export function PasswordStrengthMeter({ password, onStrengthChange }: PasswordStrengthMeterProps) {
   const [isBreached, setIsBreached] = useState<boolean | null>(null);
   const [checkingBreach, setCheckingBreach] = useState(false);

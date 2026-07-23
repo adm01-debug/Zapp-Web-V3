@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 
 type VerificationStatus = 'loading' | 'success' | 'error' | 'expired';
 
+/** Verify Email. */
 export default function VerifyEmail() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();

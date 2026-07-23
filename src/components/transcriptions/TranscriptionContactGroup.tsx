@@ -47,6 +47,7 @@ function formatDateLabel(date: Date) {
   return format(date, "d 'de' MMMM", { locale: ptBR });
 }
 
+/** Transcription Contact Group component for the transcriptions section. */
 export function TranscriptionContactGroup({ contact, transcriptions, isExpanded, onToggle, index }: TranscriptionContactGroupProps) {
   const [playingAudio, setPlayingAudio] = useState<string | null>(null);
   const dateGroups = groupByDate(transcriptions);

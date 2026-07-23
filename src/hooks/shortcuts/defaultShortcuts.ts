@@ -1,5 +1,6 @@
 import type { ShortcutBinding } from '@/hooks/useCustomShortcuts';
 
+/** Hook: DEFAULT_SHORTCUTS. */
 export const DEFAULT_SHORTCUTS: ShortcutBinding[] = [
   // Chat shortcuts
   { id: 'send-message', name: 'Enviar mensagem', description: 'Envia a mensagem atual', defaultKey: 'Enter', defaultModifiers: { ctrlKey: true }, category: 'chat' },

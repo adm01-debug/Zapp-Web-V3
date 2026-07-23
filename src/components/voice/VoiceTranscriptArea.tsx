@@ -17,6 +17,7 @@ interface VoiceTranscriptAreaProps {
   };
 }
 
+/** Voice Transcript Area component for the voice section. */
 export function VoiceTranscriptArea({
   phase,
   partialTranscript,

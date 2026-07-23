@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { getLogger } from '@/lib/logger';
@@ -9,12 +10,15 @@ import type { MediaRefreshKey } from '@/types/mediaRefresh';
 import { audioPlaybackBus } from '@/features/inbox';
 import { MAX_PTT_DURATION_SEC } from '@/lib/audio/pttLimits';
 
+const AUDIO_MEMES_KEY = ['audio-memes'] as const;
+
 const log = getLogger('useAudioManagement');
 
 /* ============================================================================
    SECTION 1: useAudioMemes - Audio meme catalog management
    ============================================================================ */
 
+/** Audio Meme Item interface. */
 export interface AudioMemeItem {
   id: string;
   name: string;
@@ -25,6 +29,7 @@ export interface AudioMemeItem {
   use_count: number;
 }
 
+/** Pending Upload interface definition. */
 export interface PendingUpload {
   file: File;
   audioUrl: string;
@@ -37,8 +42,7 @@ export interface PendingUpload {
 
 /** Manages audio meme library with loading, syncing, categorization, and playback control. */
 export function useAudioMemes(open: boolean) {
-  const [memes, setMemes] = useState<AudioMemeItem[]>([]);
-  const [loading, setLoading] = useState(false);
+  const queryClient = useQueryClient();
   const [syncing, setSyncing] = useState(false);
   const [syncError, setSyncError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -48,76 +52,76 @@ export function useAudioMemes(open: boolean) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const fetchMemes = useCallback(async () => {
-    setLoading(true);
-    const { data, error } = await safeClient.rpc<AudioMemeItem[]>('fn_list_audio_memes_for_user', {
-      p_category: null,
-      p_only_favorites: false,
-      p_search: null,
-    });
-
-    if (!error && data) {
-      setMemes(data);
-    } else if (error) {
-      log.error('fetchMemes error', error);
-      const { data: basicData } = await supabase
-        .from('audio_memes')
-        .select('*')
-        .order('use_count', { ascending: false });
-      if (basicData) setMemes(basicData as AudioMemeItem[]);
-    }
-    setLoading(false);
-  }, []);
+  const { data: memes = [], isLoading: loading } = useQuery({
+    queryKey: AUDIO_MEMES_KEY,
+    queryFn: async () => {
+      const { data, error } = await safeClient.rpc<AudioMemeItem[]>('fn_list_audio_memes_for_user', {
+        p_category: null,
+        p_only_favorites: false,
+        p_search: null,
+      });
+      if (!error && data) return data;
+      if (error) {
+        log.error('fetchMemes error', error);
+        const { data: basicData } = await supabase
+          .from('audio_memes')
+          .select('*')
+          .order('use_count', { ascending: false });
+        return (basicData as AudioMemeItem[]) ?? [];
+      }
+      return [] as AudioMemeItem[];
+    },
+    enabled: open,
+    staleTime: 30_000,
+  });
 
   useEffect(() => {
-    if (open) {
-      void fetchMemes();
-      setSyncing(true);
-      setSyncError(null);
+    if (!open) return;
+    setSyncing(true);
+    setSyncError(null);
 
-      const catalogChannel = supabase
-        .channel('audio-memes-catalog')
-        .on('postgres_changes', { event: '*', schema: 'zapp', table: 'audio_memes' }, () => {
-          log.info('Catalog update received');
-          fetchMemes();
-        })
-        .subscribe((status) => {
-          if (status === 'SUBSCRIBED') {
-            setSyncing(false);
-          } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-            setSyncError('Erro na sincronização do catálogo');
-            setSyncing(false);
-          }
-        });
-
-      const favoritesChannel = supabase
-        .channel('audio-memes-favorites')
-        .on(
-          'postgres_changes',
-          { event: '*', schema: 'zapp', table: 'audio_meme_favorites' },
-          () => {
-            log.info('Favorites update received');
-            fetchMemes();
-          }
-        )
-        .subscribe((status) => {
-          if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-            setSyncError('Erro na sincronização de favoritos');
-          }
-        });
-
-      return () => {
-        catalogChannel.unsubscribe();
-        supabase.removeChannel(catalogChannel);
-        favoritesChannel.unsubscribe();
-        supabase.removeChannel(favoritesChannel);
-        if (audioRef.current) {
-          audioRef.current.pause();
-          audioRef.current = null;
+    const catalogChannel = supabase
+      .channel('audio-memes-catalog')
+      .on('postgres_changes', { event: '*', schema: 'zapp', table: 'audio_memes' }, () => {
+        log.info('Catalog update received');
+        void queryClient.invalidateQueries({ queryKey: AUDIO_MEMES_KEY });
+      })
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          setSyncing(false);
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          setSyncError('Erro na sincronização do catálogo');
+          setSyncing(false);
         }
-      };
-    }
-  }, [open, fetchMemes]);
+      });
+
+    const favoritesChannel = supabase
+      .channel('audio-memes-favorites')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'zapp', table: 'audio_meme_favorites' },
+        () => {
+          log.info('Favorites update received');
+          void queryClient.invalidateQueries({ queryKey: AUDIO_MEMES_KEY });
+        }
+      )
+      .subscribe((status) => {
+        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          setSyncError('Erro na sincronização de favoritos');
+        }
+      });
+
+    return () => {
+      catalogChannel.unsubscribe();
+      supabase.removeChannel(catalogChannel);
+      favoritesChannel.unsubscribe();
+      supabase.removeChannel(favoritesChannel);
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+    };
+  }, [open, queryClient]);
 
   const handlePreview = useCallback(
     (meme: AudioMemeItem) => {
@@ -235,9 +239,9 @@ export function useAudioMemes(open: boolean) {
       }
       toast.success(`Áudio salvo como "${pending.selectedCategory}"!`);
       setPendingUpload(null);
-      void fetchMemes();
+      await queryClient.invalidateQueries({ queryKey: AUDIO_MEMES_KEY });
     },
-    [fetchMemes]
+    [queryClient]
   );
 
   const handleCancelUpload = useCallback(async () => {
@@ -255,15 +259,15 @@ export function useAudioMemes(open: boolean) {
       }
       onSend(meme);
       onClose();
-      setMemes((prev) =>
-        prev.map((m) => (m.id === meme.id ? { ...m, use_count: (m.use_count || 0) + 1 } : m))
+      queryClient.setQueryData(AUDIO_MEMES_KEY, (prev: AudioMemeItem[] | undefined) =>
+        (prev ?? []).map((m) => (m.id === meme.id ? { ...m, use_count: (m.use_count || 0) + 1 } : m))
       );
       const { error: incErr } = await safeClient.rpc('fn_increment_meme_use', {
         p_meme_id: meme.id,
       });
       if (incErr) log.error('fn_increment_meme_use error', incErr);
     },
-    []
+    [queryClient]
   );
 
   const toggleFavorite = useCallback(async (e: React.MouseEvent, meme: AudioMemeItem) => {
@@ -277,7 +281,9 @@ export function useAudioMemes(open: boolean) {
     }
 
     const newVal = !meme.is_favorite;
-    setMemes((prev) => prev.map((m) => (m.id === meme.id ? { ...m, is_favorite: newVal } : m)));
+    queryClient.setQueryData(AUDIO_MEMES_KEY, (prev: AudioMemeItem[] | undefined) =>
+      (prev ?? []).map((m) => (m.id === meme.id ? { ...m, is_favorite: newVal } : m))
+    );
 
     const { error } = await safeClient.rpc('fn_toggle_user_meme_favorite', {
       p_meme_id: meme.id,
@@ -285,25 +291,31 @@ export function useAudioMemes(open: boolean) {
 
     if (error) {
       log.error('toggleFavorite error', error);
-      setMemes((prev) => prev.map((m) => (m.id === meme.id ? { ...m, is_favorite: !newVal } : m)));
+      queryClient.setQueryData(AUDIO_MEMES_KEY, (prev: AudioMemeItem[] | undefined) =>
+        (prev ?? []).map((m) => (m.id === meme.id ? { ...m, is_favorite: !newVal } : m))
+      );
       toast.error('Erro ao atualizar favorito');
     }
-  }, []);
+  }, [queryClient]);
 
   const handleCategoryChange = useCallback(async (meme: AudioMemeItem, newCategory: string) => {
-    setMemes((prev) => prev.map((m) => (m.id === meme.id ? { ...m, category: newCategory } : m)));
+    queryClient.setQueryData(AUDIO_MEMES_KEY, (prev: AudioMemeItem[] | undefined) =>
+      (prev ?? []).map((m) => (m.id === meme.id ? { ...m, category: newCategory } : m))
+    );
     await supabase.from('audio_memes').update({ category: newCategory }).eq('id', meme.id);
     toast.success(`Categoria alterada`);
-  }, []);
+  }, [queryClient]);
 
   const handleDelete = useCallback(async (e: React.MouseEvent, meme: AudioMemeItem) => {
     e.stopPropagation();
-    setMemes((prev) => prev.filter((m) => m.id !== meme.id));
+    queryClient.setQueryData(AUDIO_MEMES_KEY, (prev: AudioMemeItem[] | undefined) =>
+      (prev ?? []).filter((m) => m.id !== meme.id)
+    );
     const path = meme.audio_url.split('/audio-memes/')[1];
     if (path) await supabase.storage.from('audio-memes').remove([path]);
     await supabase.from('audio_memes').delete().eq('id', meme.id);
     toast.success('Áudio meme removido');
-  }, []);
+  }, [queryClient]);
 
   const cleanup = useCallback(() => {
     if (audioRef.current) {
@@ -335,6 +347,7 @@ export function useAudioMemes(open: boolean) {
   };
 }
 
+/** format Duration constant. */
 export const formatDuration = (seconds: number | null) => {
   if (!seconds) return '--';
   const s = Math.round(seconds);
@@ -365,7 +378,7 @@ export function useAudioPlayer({ audioUrl, messageId, refreshKey }: UseAudioPlay
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
-  const [resolvedUrl, setResolvedUrl] = useState<string>(audioUrl);
+  const [resolvedUrl, setResolvedUrl] = useState<string>(audioUrl ?? '');
   const [volume, setVolumeState] = useState<number>(() => {
     try {
       const saved = localStorage.getItem('audio-player:volume');
@@ -435,7 +448,7 @@ export function useAudioPlayer({ audioUrl, messageId, refreshKey }: UseAudioPlay
             if (idx !== -1) {
               const pathWithQuery = url.substring(idx + marker.length);
               const path = decodeURIComponent(pathWithQuery.split('?')[0]);
-              const { data } = await supabase.storage.from(bucket).createSignedUrl(path, 604800) // ✅ fix: 7d TTL (era 1h — URLs quebravam após 1h);
+              const { data } = await supabase.storage.from(bucket).createSignedUrl(path, 604800); // ✅ fix: 7d TTL (era 1h — URLs quebravam após 1h);
               if (data?.signedUrl) return data.signedUrl;
             }
           }
@@ -462,7 +475,7 @@ export function useAudioPlayer({ audioUrl, messageId, refreshKey }: UseAudioPlay
           if (files && files.length > 0) {
             const { data } = await supabase.storage
               .from(bucket)
-              .createSignedUrl(files[0].name, 604800) // ✅ fix: 7d TTL (era 1h — URLs quebravam após 1h);
+              .createSignedUrl(files[0].name, 604800); // ✅ fix: 7d TTL (era 1h — URLs quebravam após 1h);
             if (data?.signedUrl) return data.signedUrl;
           }
         }
@@ -509,29 +522,35 @@ export function useAudioPlayer({ audioUrl, messageId, refreshKey }: UseAudioPlay
     const audio = audioRef.current;
     if (!audio) return;
 
+    /** Sets the track duration once audio metadata is available and clears loading/error states. */
     const handleLoadedMetadata = () => {
       const d = audio.duration;
       setDuration(isFinite(d) && !isNaN(d) ? d : 0);
       setIsLoading(false);
       setHasError(false);
     };
+    /** Synchronizes `currentTime` and `progress` percentage as the audio position advances. */
     const handleTimeUpdate = () => {
       setCurrentTime(audio.currentTime);
       if (audio.duration && isFinite(audio.duration))
         setProgress((audio.currentTime / audio.duration) * 100);
     };
+    /** Resets playback state when the audio track reaches the end. */
     const handleEnded = () => {
       setIsPlaying(false);
       setProgress(0);
       setCurrentTime(0);
     };
+    /** Stops playback and marks the element as errored when the browser cannot load or decode the audio. */
     const handleError = () => {
       logLib.error('Audio error:', messageId);
       setIsPlaying(false);
       setIsLoading(false);
       setHasError(true);
     };
+    /** Sets loading state while the browser is buffering audio data. */
     const handleWaiting = () => setIsLoading(true);
+    /** Clears loading state once the browser has buffered enough to begin playback. */
     const handleCanPlay = () => setIsLoading(false);
 
     audio.addEventListener('loadedmetadata', handleLoadedMetadata);
@@ -655,6 +674,7 @@ export function useAudioPlayer({ audioUrl, messageId, refreshKey }: UseAudioPlay
     if (audioRef.current) audioRef.current.playbackRate = newRate;
   }, [playbackRate]);
 
+  /** Formats a seconds value as `m:ss`; returns `'0:00'` for non-finite inputs. */
   const formatTime = (seconds: number) => {
     if (!isFinite(seconds) || isNaN(seconds) || seconds < 0) return '0:00';
     return `${Math.floor(seconds / 60)}:${Math.floor(seconds % 60)
@@ -745,7 +765,10 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
         streamRef.current = stream;
         chunksRef.current = [];
 
-        const audioContext = new (window.AudioContext || (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext)();
+        const audioContext = new (
+          window.AudioContext ||
+          (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
+        )();
 
         if (audioContext.state === 'suspended') {
           await audioContext.resume();
@@ -762,6 +785,7 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
         const bufferLength = analyser.frequencyBinCount;
         const dataArray = new Uint8Array(bufferLength);
 
+        /** Reads the frequency analyser data each animation frame and updates the normalized audio level (0–1). */
         const updateLevel = () => {
           if (!analyserRef.current) return;
           analyserRef.current.getByteFrequencyData(dataArray);
@@ -849,10 +873,11 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
             logLib.warn('Speech recognition error:', event.error);
             if (event.error === 'no-speech') return;
 
+            const errCode = event.error as string;
             if (
-              event.error === 'network' ||
-              event.error === 'service-not-allowed' ||
-              event.error === 'service-unavailable'
+              errCode === 'network' ||
+              errCode === 'service-not-allowed' ||
+              errCode === 'service-unavailable'
             ) {
               logLib.info('Local speech recognition unavailable, will use backend STT');
               setIsTranscribing(true);
@@ -869,6 +894,7 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
           setIsTranscribing(true);
         }
 
+        if (intervalRef.current) clearInterval(intervalRef.current);
         intervalRef.current = setInterval(() => {
           setDuration((prev) => {
             if (prev >= maxDuration) {
@@ -903,6 +929,7 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
         });
       }
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [maxDuration, onRecordingComplete]
   );
 
@@ -919,6 +946,7 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
     if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'paused') {
       mediaRecorderRef.current.resume();
       setIsPaused(false);
+      if (intervalRef.current) clearInterval(intervalRef.current);
       intervalRef.current = setInterval(() => {
         setDuration((prev) => prev + 1);
       }, 1000);
@@ -1027,7 +1055,7 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
 
     const { data: signedData, error: signError } = await supabase.storage
       .from('audio-messages')
-      .createSignedUrl(fileName, 604800) // ✅ fix: 7d TTL (era 1h — URLs quebravam após 1h);
+      .createSignedUrl(fileName, 604800); // ✅ fix: 7d TTL (era 1h — URLs quebravam após 1h);
 
     if (signError || !signedData?.signedUrl) {
       throw signError || new Error('Failed to create signed URL');
@@ -1062,6 +1090,7 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
   };
 }
 
+/** Converts a Blob to a Base64-encoded string (without the data-URL prefix) via FileReader. */
 async function blobToBase64(blob: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();

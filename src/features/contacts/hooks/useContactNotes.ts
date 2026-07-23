@@ -8,12 +8,14 @@ import { getLogger } from '@/lib/logger';
 
 const log = getLogger('useContactNotes');
 
+/** Contact Note Author interface definition. */
 export interface ContactNoteAuthor {
   id: string;
   name: string | null;
   avatar_url: string | null;
 }
 
+/** Contact Note interface definition. */
 export interface ContactNote {
   id: string;
   contact_id: string;
@@ -25,6 +27,7 @@ export interface ContactNote {
   author: ContactNoteAuthor;
 }
 
+/** Provides CRUD operations and real-time state for private notes attached to a contact. */
 export function useContactNotes(contactId: string) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -39,7 +42,7 @@ export function useContactNotes(contactId: string) {
         .select('id, name, avatar_url')
         .eq('user_id', user.id)
         .maybeSingle();
-      
+
       if (error) throw error;
       return data;
     },
@@ -47,38 +50,53 @@ export function useContactNotes(contactId: string) {
   });
 
   // Fetch notes for this contact
-  const { data: notes = [], isLoading, error, refetch } = useQuery({
+  const {
+    data: notes = [],
+    isLoading,
+    error,
+    refetch,
+  } = useQuery({
     queryKey: queryKeys.contactDetails.notes(contactId),
     queryFn: async () => {
       const { data, error } = await supabase
         .from('contact_notes')
-        .select(`
+        .select(
+          `
           id,
           contact_id,
           author_id,
           content,
           created_at,
           updated_at
-        `)
+        `
+        )
         .eq('contact_id', contactId)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
 
       // Fetch author profiles separately
-      const authorIds = [...new Set(data?.map(n => n.author_id) || [])];
-      const { data: authors } = await supabase
+      const authorIds = [...new Set(data?.map((n) => n.author_id) || [])];
+      const { data: authors, error: authorsErr } = await supabase
         .from('profiles')
         .select('id, name, avatar_url')
         .in('id', authorIds);
+      if (authorsErr) log.error('Failed to fetch author profiles for notes:', authorsErr);
 
       const authorsMap = new Map<string, ContactNoteAuthor>(
-        (authors ?? []).map((a) => [a.id, { id: a.id, name: a.name ?? null, avatar_url: a.avatar_url ?? null }])
+        (authors ?? []).map((a) => [
+          a.id,
+          { id: a.id, name: a.name ?? null, avatar_url: a.avatar_url ?? null },
+        ])
       );
 
       return (data || []).map<ContactNote>((note) => ({
         ...note,
-        author: authorsMap.get(note.author_id) ?? { id: note.author_id, name: null, avatar_url: null },
+        author: authorsMap.get(note.author_id) ?? {
+          id: note.author_id,
+          name: null,
+          avatar_url: null,
+        },
       }));
     },
     enabled: !!contactId,
@@ -97,7 +115,7 @@ export function useContactNotes(contactId: string) {
           content,
         })
         .select()
-        .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
+        .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
 
       if (error) throw error;
       return data;
@@ -123,10 +141,7 @@ export function useContactNotes(contactId: string) {
   // Delete note mutation
   const deleteNoteMutation = useMutation({
     mutationFn: async (noteId: string) => {
-      const { error } = await supabase
-        .from('contact_notes')
-        .delete()
-        .eq('id', noteId);
+      const { error } = await supabase.from('contact_notes').delete().eq('id', noteId);
 
       if (error) throw error;
     },
@@ -148,13 +163,19 @@ export function useContactNotes(contactId: string) {
     },
   });
 
-  const addNote = useCallback((content: string) => {
-    return addNoteMutation.mutateAsync(content);
-  }, [addNoteMutation]);
+  const addNote = useCallback(
+    (content: string) => {
+      return addNoteMutation.mutateAsync(content);
+    },
+    [addNoteMutation]
+  );
 
-  const deleteNote = useCallback((noteId: string) => {
-    return deleteNoteMutation.mutateAsync(noteId);
-  }, [deleteNoteMutation]);
+  const deleteNote = useCallback(
+    (noteId: string) => {
+      return deleteNoteMutation.mutateAsync(noteId);
+    },
+    [deleteNoteMutation]
+  );
 
   return {
     notes,

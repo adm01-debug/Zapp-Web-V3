@@ -5,6 +5,7 @@ import { X, Bug, RefreshCw } from 'lucide-react';
 import { useUserRole } from '@/features/auth/hooks/useUserRole';
 import { safeGetJSON } from '@/lib/safeStorage';
 
+/** Theme Debugger component for the debug section. */
 export function ThemeDebugger() {
   const { roles, loading: rolesLoading } = useUserRole();
   // Restrito ESTRITAMENTE a usuários com role 'dev' no banco — não usamos

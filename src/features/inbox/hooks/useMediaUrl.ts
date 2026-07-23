@@ -43,8 +43,10 @@ interface UseMediaUrlOptions {
   maxAttempts?: number;
 }
 
+/** Reason category for a media load failure; used to show targeted fallback messages to the agent. */
 export type MediaErrorReason = 'expired' | 'not_found' | 'network' | 'unsupported' | 'unknown';
 
+/** Structured media load error with reason category and a human-readable pt-BR message for fallback UI. */
 export interface MediaError {
   reason: MediaErrorReason;
   /** Human, pt-BR. Safe to show in fallback UI. */
@@ -123,6 +125,7 @@ function classifyError(raw: unknown): MediaError {
 
 const DEFAULT_MAX_ATTEMPTS = 2;
 
+/** Auto-refreshes expired WhatsApp media URLs via Evolution `chat/getBase64`; deduplicates in-flight requests, caps retry attempts, and surfaces structured errors for fallback UI. */
 export function useMediaUrl(opts: UseMediaUrlOptions): UseMediaUrlResult {
   const {
     instanceName,
@@ -245,7 +248,7 @@ export function useMediaUrl(opts: UseMediaUrlOptions): UseMediaUrlResult {
     })();
     inFlightRef.current = job;
     return job;
-  }, [enabled, instanceName, messageKey, maxAttempts]);
+  }, [enabled, instanceName, messageKey, maxAttempts]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Automatic onError trigger: respeita o cap de tentativas.
   const onError = useCallback(() => {

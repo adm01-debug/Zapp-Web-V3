@@ -20,6 +20,7 @@ interface UniversityHelpProps {
 
 type FilterMode = 'all' | 'client' | 'agent';
 
+/** University Help component. */
 export function UniversityHelp({
   contactId,
   contactName,

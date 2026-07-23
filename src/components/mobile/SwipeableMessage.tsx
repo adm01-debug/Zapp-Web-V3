@@ -13,6 +13,7 @@ interface SwipeableMessageProps {
 
 const SWIPE_THRESHOLD = 60;
 
+/** Swipeable Message component for the mobile section. */
 export function SwipeableMessage({
   children,
   onSwipeRight,

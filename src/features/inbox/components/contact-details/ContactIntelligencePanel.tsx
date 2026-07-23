@@ -1,3 +1,4 @@
+
 /**
  * ContactIntelligencePanel
  * 
@@ -251,7 +252,7 @@ function DISCSection({ disc }: { disc: DISCTips }) {
 // ========================
 
 function ContactIntelligencePanelInner({ phone }: ContactIntelligencePanelProps) {
-  const { data, isLoading } = useContactIntelligence(phone);
+  const { intelligence: data, loading: isLoading } = useContactIntelligence(phone);
 
   if (isLoading) {
     return (
@@ -336,4 +337,5 @@ function ContactIntelligencePanelInner({ phone }: ContactIntelligencePanelProps)
   );
 }
 
+/** Contact Intelligence Panel constant. */
 export const ContactIntelligencePanel = memo(ContactIntelligencePanelInner);

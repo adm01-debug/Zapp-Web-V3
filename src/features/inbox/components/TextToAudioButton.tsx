@@ -14,6 +14,7 @@ interface TextToAudioButtonProps {
   disabled?: boolean;
 }
 
+/** Text To Audio Button component. */
 export function TextToAudioButton({ inputValue, onAudioReady, disabled }: TextToAudioButtonProps) {
   const [open, setOpen] = useState(false);
   const [selectedVoice, setSelectedVoice] = useState<ElevenLabsVoice | null>(null);

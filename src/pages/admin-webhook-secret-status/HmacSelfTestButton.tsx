@@ -31,6 +31,7 @@ import { HmacSelfTestResultPanel } from './HmacSelfTestResultPanel';
 
 const log = getLogger('HmacSelfTest');
 
+/** Hmac Self Test Button function. */
 export function HmacSelfTestButton({ instance }: { instance: string | null }) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -77,7 +78,7 @@ export function HmacSelfTestButton({ instance }: { instance: string | null }) {
       const uid = userData.user?.id;
       if (!uid) return;
 
-      const { data: existingRows } = await safeClient.from('warroom_alerts', (q) =>
+      const { data: existingRows } = await safeClient.from<{ id: string }>('warroom_alerts', (q) =>
         q
           .select('id')
           .eq('source', source)

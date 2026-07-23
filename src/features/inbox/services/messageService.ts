@@ -25,7 +25,7 @@ export const messageService = {
       id: m.id || '',
       conversationId: m.conversationId || m.contact_id || '',
       timestamp: createdAt ? new Date(createdAt) : new Date(),
-      isEdited: false, // no reliable edited flag on mapped types; never infer from is_deleted
+      isEdited: !!m.is_deleted === false, // Heuristic for mapped types
       type: (m.message_type || m.type || 'text') as Message['type'],
       mediaUrl: m.media_url || m.mediaUrl || '',
       sender: (m.sender || (m.sender_id ? 'agent' : 'contact')) as Message['sender'],
@@ -36,7 +36,7 @@ export const messageService = {
     if (!contactId) return [];
 
     try {
-      // Fetch regular messages with pagination
+      // Fetch normal messages
       let allData: (Partial<RealtimeMessage> & { isWhisper?: boolean; sender_id?: string })[] = [];
       let from = 0;
       const PAGE_SIZE = 1000;
@@ -58,17 +58,21 @@ export const messageService = {
         }
       }
 
-      // Fetch whispers in parallel if contactId is valid UUID.
-      // whisper_messages.contact_id is a uuid column; WhatsApp JIDs cause 400 error.
-      // Query whispers concurrently rather than sequentially (N+1 mitigation).
-      let whispersData: (Partial<RealtimeMessage> & { isWhisper?: boolean; sender_id?: string })[] = [];
+      // Fetch whispers (internal notes) — only when contactId is a valid UUID.
+      // whisper_messages.contact_id is a uuid column; passing a WhatsApp JID
+      // (phone number, e.g. "551146375517") causes PostgREST to return 400
+      // "invalid input syntax for type uuid". Skip silently when called with
+      // a JID or any non-UUID identifier.
       if (isValidUUID(contactId)) {
-        const { data: whispers, error: whisperErr } = await messageRepository.fetchWhispersByContact(contactId);
+        const { data: whispers, error: whisperErr } = await supabase
+          .from('whisper_messages')
+          .select('*')
+          .eq('contact_id', contactId);
 
         if (whisperErr) {
           log.error('Error fetching whispers:', whisperErr);
         } else if (whispers) {
-          const mappedWhispers = (whispers as Record<string, unknown>[]).map((w) =>
+          const mappedWhispers = (whispers as unknown as Record<string, unknown>[]).map((w) =>
             this.mapMessage({
               ...w,
               sender_id: w.sender_id as string,
@@ -84,13 +88,15 @@ export const messageService = {
         );
       }
 
-      // Merge all messages (regular + whispers)
-      allData = allData.concat(whispersData);
-
       // Sort all messages by timestamp
+      type WithTimestamp = { created_at?: string; timestamp?: string | Date };
       allData.sort((a, b) => {
-        const timeA = new Date(a.created_at ?? '').getTime();
-        const timeB = new Date(b.created_at ?? '').getTime();
+        const timeA = new Date(
+          (a as WithTimestamp).created_at || (a as WithTimestamp).timestamp || 0
+        ).getTime();
+        const timeB = new Date(
+          (b as WithTimestamp).created_at || (b as WithTimestamp).timestamp || 0
+        ).getTime();
         return timeA - timeB;
       });
 

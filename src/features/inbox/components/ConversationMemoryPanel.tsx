@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { fetchConversationMemory, saveConversationMemory } from '../hooks/useConversationMemoryData';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
@@ -40,6 +40,7 @@ const SECTIONS = [
   { key: 'pending_items' as const, label: 'Pendências', icon: Clock, color: 'text-destructive' },
 ];
 
+/** Conversation Memory Panel component. */
 export function ConversationMemoryPanel({ contactId, profileId }: ConversationMemoryPanelProps) {
   const [memory, setMemory] = useState<MemoryData>({
     facts: [],
@@ -55,15 +56,11 @@ export function ConversationMemoryPanel({ contactId, profileId }: ConversationMe
 
   useEffect(() => {
     loadMemory();
-  }, [contactId]);
+  }, [contactId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadMemory = async () => {
     setLoading(true);
-    const { data } = await supabase
-      .from('conversation_memory')
-      .select('*')
-      .eq('contact_id', contactId)
-      .maybeSingle();
+    const data = await fetchConversationMemory(contactId);
     if (data) {
       setMemory({
         id: data.id,
@@ -116,9 +113,7 @@ export function ConversationMemoryPanel({ contactId, profileId }: ConversationMe
       updated_by: profileId,
     };
 
-    const { error } = memory.id
-      ? await supabase.from('conversation_memory').update(payload).eq('id', memory.id)
-      : await supabase.from('conversation_memory').insert(payload);
+    const { error } = await saveConversationMemory(memory.id, payload as any);
 
     if (!error) {
       toast.success('Memória salva');

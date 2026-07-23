@@ -1,7 +1,9 @@
+/* eslint-disable react-refresh/only-export-components */
 import { AlertCircle, AlertTriangle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 
+/** Alert Row. */
 export interface AlertRow {
   id: string;
   alert_type: string;
@@ -14,6 +16,7 @@ export interface AlertRow {
   created_at: string;
 }
 
+/** RANGES. */
 export const RANGES = [
   { value: '6', label: 'Últimas 6h' },
   { value: '24', label: 'Últimas 24h' },
@@ -22,12 +25,14 @@ export const RANGES = [
   { value: '720', label: 'Últimos 30 dias' },
 ] as const;
 
+/** STATUS. */
 export const STATUS = [
   { value: 'all', label: 'Todos' },
   { value: 'active', label: 'Ativos' },
   { value: 'resolved', label: 'Resolvidos' },
 ] as const;
 
+/** Type Badge. */
 export function TypeBadge({ type }: { type: string }) {
   const lower = type.toLowerCase();
   const isCritical = lower.includes('critical') || lower === 'error';

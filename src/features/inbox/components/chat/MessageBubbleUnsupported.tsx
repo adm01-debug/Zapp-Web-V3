@@ -37,6 +37,7 @@ const ICON_BY_CATEGORY: Record<ExtractedMessageType['category'], typeof HelpCirc
   unknown: HelpCircle,
 };
 
+/** Message Bubble Unsupported function. */
 export function MessageBubbleUnsupported({
   extracted, rawContent, isSent,
 }: MessageBubbleUnsupportedProps) {

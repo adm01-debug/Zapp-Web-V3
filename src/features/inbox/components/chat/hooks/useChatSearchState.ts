@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 
+/** Hook: use Chat Search State. */
 export function useChatSearchState() {
   const [highlightedMessageIds, setHighlightedMessageIds] = useState<Set<string>>(new Set());
   const [activeHighlightId, setActiveHighlightId] = useState<string | null>(null);

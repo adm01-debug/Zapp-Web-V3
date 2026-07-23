@@ -1,3 +1,4 @@
+/** Public barrel exports for the contact-details module. */
 export * from './AssignmentSection';
 export * from './CompactContactHeader';
 export * from './Contact360Helpers';

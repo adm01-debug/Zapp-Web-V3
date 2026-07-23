@@ -51,12 +51,12 @@ export default defineConfig({
     },
   ],
 
-  webServer: {
+  webServer: BASE_URL.includes('localhost') ? {
     command: 'npm run dev',
     url: BASE_URL,
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
     stdout: 'ignore',
     stderr: 'pipe',
-  },
+  } : undefined,
 });

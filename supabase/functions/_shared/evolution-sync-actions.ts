@@ -14,6 +14,7 @@ type EvolutionRawMsg = {
   reactionMessage?: unknown;
   [key: string]: unknown;
 };
+/** evolution-sync-actions utilities and exports. */
 export async function syncContacts(
   supabase: SupabaseClient, evolutionApiUrl: string, evolutionApiKey: string,
   instanceName: string, corsHeaders: Record<string, string>, page: number, offset: number
@@ -77,6 +78,7 @@ export async function syncContacts(
   return jsonRes({ success: true, synced, skipped, page, totalFetched: contacts.length, hasMore: contacts.length >= offset }, corsHeaders);
 }
 
+/** sync Messages function. */
 export async function syncMessages(
   supabase: SupabaseClient, evolutionApiUrl: string, evolutionApiKey: string,
   instanceName: string, contactPhone: string, corsHeaders: Record<string, string>
@@ -127,6 +129,7 @@ export async function syncMessages(
   return jsonRes({ success: true, synced, totalFetched: messages.length }, corsHeaders);
 }
 
+/** sync All Messages function. */
 export async function syncAllMessages(
   supabase: SupabaseClient, evolutionApiUrl: string, evolutionApiKey: string,
   instanceName: string, messagesPerContact: number, corsHeaders: Record<string, string>
@@ -197,6 +200,7 @@ export async function syncAllMessages(
   return jsonRes({ success: true, totalSynced, totalSkipped, totalErrors, totalContacts: allContacts.length }, corsHeaders);
 }
 
+/** setup Webhook function. */
 export async function setupWebhook(
   evolutionApiUrl: string, evolutionApiKey: string,
   instanceName: string, supabaseUrl: string, webhookUrlOverride: string | undefined, corsHeaders: Record<string, string>
@@ -216,6 +220,7 @@ export async function setupWebhook(
   });
 }
 
+/** cleanup Mock function. */
 export async function cleanupMock(supabase: SupabaseClient, corsHeaders: Record<string, string>): Promise<Response> {
   const { data: mockContacts } = await supabase.from('contacts').select('id').like('id', 'c1000001-%');
   if (mockContacts?.length) {
@@ -229,6 +234,7 @@ export async function cleanupMock(supabase: SupabaseClient, corsHeaders: Record<
   return jsonRes({ success: true, removed: 0, message: 'No mock data found' }, corsHeaders);
 }
 
+/** full Sync function. */
 export async function fullSync(
   supabase: SupabaseClient, evolutionApiUrl: string, evolutionApiKey: string,
   instanceName: string, supabaseUrl: string, corsHeaders: Record<string, string>
@@ -313,6 +319,7 @@ export async function fullSync(
 // que registramos na Evolution API e o que efetivamente tratamos no backend.
 // Em particular: MESSAGES_UPDATE traz ACK (SERVER_ACK/DELIVERY_ACK/READ/PLAYED)
 // e CHATS_UPDATE traz a virada de unreadCount → 0 vinda do device do cliente.
+/** W E B H O O K_ E V E N T S constant. */
 export const WEBHOOK_EVENTS = [
   'APPLICATION_STARTUP', 'QRCODE_UPDATED', 'CONNECTION_UPDATE', 'LOGOUT_INSTANCE',
   'MESSAGES_SET', 'MESSAGES_UPSERT', 'MESSAGES_UPDATE', 'MESSAGES_DELETE', 'MESSAGES_EDITED',

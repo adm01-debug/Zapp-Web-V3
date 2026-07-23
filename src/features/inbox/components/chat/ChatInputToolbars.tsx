@@ -63,6 +63,7 @@ interface SecondaryToolbarProps {
   disabled?: boolean;
 }
 
+/** Secondary Toolbar component for the chat section. */
 export function SecondaryToolbar({
   inputRef,
   inputValue,
@@ -187,7 +188,7 @@ export function SecondaryToolbar({
         </Tooltip>
       )}
       <FileUploader
-        ref={fileUploaderRef}
+        ref={fileUploaderRef as any}
         instanceName={instanceName || ''}
         recipientNumber={contactPhone}
         contactId={contactId}
@@ -232,6 +233,7 @@ interface TertiaryToolsMenuProps {
   onOpenTeamFiles?: () => void;
 }
 
+/** Tertiary Tools Menu component for the chat section. */
 export function TertiaryToolsMenu({
   instanceName,
   contactPhone,

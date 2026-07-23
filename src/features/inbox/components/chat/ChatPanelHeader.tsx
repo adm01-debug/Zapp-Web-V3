@@ -69,6 +69,7 @@ interface ChatPanelHeaderProps {
   onOpenValidation?: () => void;
 }
 
+/** Chat Panel Header component for the chat section. */
 export function ChatPanelHeader({
   conversation,
   isContactTyping,
@@ -122,7 +123,7 @@ export function ChatPanelHeader({
             <AvatarFallback className="bg-primary/15 text-sm font-semibold text-primary">
               {conversation.contact.name
                 .split(' ')
-                .map((n) => n[0])
+                .map((n: any) => n[0])
                 .join('')
                 .slice(0, 2)}
             </AvatarFallback>

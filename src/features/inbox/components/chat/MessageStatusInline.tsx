@@ -54,6 +54,7 @@ const TERMINAL_DB = new Set([
   'failed', 'failed_auth', 'failed_retries',
 ]);
 
+/** Message Status Inline constant. */
 export const MessageStatusInline = memo(function MessageStatusInline({
   message,
   className,

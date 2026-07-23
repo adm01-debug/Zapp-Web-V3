@@ -1,8 +1,296 @@
-// Re-export from consolidated useSettingsManagement module (ETAPA 41 consolidation)
-import { useUserSettingsManagement } from '@/hooks/useSettingsManagement';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { safeClient } from '@/integrations/supabase/safeClient';
+import { useAuth } from '@/features/auth';
+import { toast } from '@/hooks/use-toast';
+import { log } from '@/lib/logger';
 
-export type { UserSettings } from '@/hooks/userSettingsSchema';
+// Default ElevenLabs voice: Custom system voice
+const DEFAULT_TTS_VOICE_ID = 'TY3h8ANhQUsJaa0Bga5F';
+const DEFAULT_TTS_SPEED = 1.0;
 
-export function useUserSettings(userId?: string) {
-  return useUserSettingsManagement(userId);
+export interface UserSettings {
+  id?: string;
+  user_id?: string;
+
+  // Business hours
+  business_hours_enabled: boolean;
+  business_hours_start: string;
+  business_hours_end: string;
+  work_days: number[];
+
+  // Messages
+  welcome_message: string;
+  away_message: string;
+  closing_message: string;
+
+  // Automation
+  auto_assignment_enabled: boolean;
+  auto_assignment_method: string;
+  inactivity_timeout: number;
+  auto_transcription_enabled: boolean;
+
+  // Notifications
+  sound_enabled: boolean;
+  browser_notifications_enabled: boolean;
+  quiet_hours_enabled: boolean;
+  quiet_hours_start: string;
+  quiet_hours_end: string;
+
+  // Appearance
+  theme: string;
+  language: string;
+  compact_mode: boolean;
+
+  // TTS
+  tts_voice_id: string;
+  tts_speed: number;
+
+  // Simulation
+  simulation_mode_enabled: boolean;
+
+  // SLA
+  global_sla_warning_minutes: number;
+  global_sla_critical_minutes: number;
+  global_sla_notification_message: string;
+
+  // Sound customization per category
+  message_sound_type?: string;
+  mention_sound_type?: string;
+  sla_sound_type?: string;
+  goal_sound_type?: string;
+  transcription_sound_type?: string;
+}
+
+const DEFAULT_SETTINGS: UserSettings = {
+  business_hours_enabled: true,
+  business_hours_start: '09:00',
+  business_hours_end: '18:00',
+  work_days: [1, 2, 3, 4, 5],
+
+  welcome_message: '',
+  away_message: '',
+  closing_message: '',
+
+  auto_assignment_enabled: true,
+  auto_assignment_method: 'roundrobin',
+  inactivity_timeout: 30,
+  auto_transcription_enabled: true,
+
+  sound_enabled: true,
+  browser_notifications_enabled: true,
+  quiet_hours_enabled: false,
+  quiet_hours_start: '22:00',
+  quiet_hours_end: '07:00',
+
+  theme: 'system',
+  language: 'pt-BR',
+  compact_mode: false,
+
+  tts_voice_id: DEFAULT_TTS_VOICE_ID,
+  tts_speed: DEFAULT_TTS_SPEED,
+
+  simulation_mode_enabled: false,
+
+  global_sla_warning_minutes: 30,
+  global_sla_critical_minutes: 60,
+  global_sla_notification_message: 'Alerta SLA: Tempo limite excedido para resposta.',
+
+  message_sound_type: 'default',
+  mention_sound_type: 'default',
+  sla_sound_type: 'default',
+  goal_sound_type: 'default',
+  transcription_sound_type: 'default',
+};
+
+const USER_SETTINGS_KEY = (userId: string | undefined) =>
+  ['user-settings', userId] as const;
+
+export function useUserSettings() {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const [settings, setSettings] = useState<UserSettings>(DEFAULT_SETTINGS);
+  const [isSaving, setIsSaving] = useState(false);
+  const initializedRef = useRef(false);
+
+  const { data: serverSettings, isLoading } = useQuery({
+    queryKey: USER_SETTINGS_KEY(user?.id),
+    queryFn: async () => {
+      const { data: rows, error } = await safeClient.from<UserSettings>(
+        'user_settings',
+        (q) => q.select('*').eq('user_id', user!.id).limit(1)
+      );
+      if (error) {
+        log.error('Error fetching settings:', error);
+        return null;
+      }
+      return rows?.[0] ?? null;
+    },
+    enabled: !!user?.id,
+    staleTime: 30_000,
+  });
+
+  // Initialize local form state once from server data
+  useEffect(() => {
+    if (serverSettings && !initializedRef.current) {
+      initializedRef.current = true;
+      const data = serverSettings;
+      setSettings({
+        id: data.id,
+        user_id: data.user_id,
+        business_hours_enabled:
+          data.business_hours_enabled ?? DEFAULT_SETTINGS.business_hours_enabled,
+        business_hours_start:
+          data.business_hours_start ?? DEFAULT_SETTINGS.business_hours_start,
+        business_hours_end: data.business_hours_end ?? DEFAULT_SETTINGS.business_hours_end,
+        work_days: data.work_days ?? DEFAULT_SETTINGS.work_days,
+        welcome_message: data.welcome_message ?? DEFAULT_SETTINGS.welcome_message,
+        away_message: data.away_message ?? DEFAULT_SETTINGS.away_message,
+        closing_message: data.closing_message ?? DEFAULT_SETTINGS.closing_message,
+        auto_assignment_enabled:
+          data.auto_assignment_enabled ?? DEFAULT_SETTINGS.auto_assignment_enabled,
+        auto_assignment_method:
+          data.auto_assignment_method ?? DEFAULT_SETTINGS.auto_assignment_method,
+        inactivity_timeout: data.inactivity_timeout ?? DEFAULT_SETTINGS.inactivity_timeout,
+        auto_transcription_enabled:
+          data.auto_transcription_enabled ?? DEFAULT_SETTINGS.auto_transcription_enabled,
+        sound_enabled: data.sound_enabled ?? DEFAULT_SETTINGS.sound_enabled,
+        browser_notifications_enabled:
+          data.browser_notifications_enabled ?? DEFAULT_SETTINGS.browser_notifications_enabled,
+        quiet_hours_enabled: data.quiet_hours_enabled ?? DEFAULT_SETTINGS.quiet_hours_enabled,
+        quiet_hours_start: data.quiet_hours_start ?? DEFAULT_SETTINGS.quiet_hours_start,
+        quiet_hours_end: data.quiet_hours_end ?? DEFAULT_SETTINGS.quiet_hours_end,
+        theme: data.theme ?? DEFAULT_SETTINGS.theme,
+        language: data.language ?? DEFAULT_SETTINGS.language,
+        compact_mode: data.compact_mode ?? DEFAULT_SETTINGS.compact_mode,
+        tts_voice_id: data.tts_voice_id ?? DEFAULT_SETTINGS.tts_voice_id,
+        tts_speed: data.tts_speed ?? DEFAULT_SETTINGS.tts_speed,
+        simulation_mode_enabled:
+          data.simulation_mode_enabled ?? DEFAULT_SETTINGS.simulation_mode_enabled,
+        global_sla_warning_minutes:
+          data.global_sla_warning_minutes ?? DEFAULT_SETTINGS.global_sla_warning_minutes,
+        global_sla_critical_minutes:
+          data.global_sla_critical_minutes ?? DEFAULT_SETTINGS.global_sla_critical_minutes,
+        global_sla_notification_message:
+          data.global_sla_notification_message ??
+          DEFAULT_SETTINGS.global_sla_notification_message,
+        message_sound_type: data.message_sound_type ?? DEFAULT_SETTINGS.message_sound_type,
+        mention_sound_type: data.mention_sound_type ?? DEFAULT_SETTINGS.mention_sound_type,
+        sla_sound_type: data.sla_sound_type ?? DEFAULT_SETTINGS.sla_sound_type,
+        goal_sound_type: data.goal_sound_type ?? DEFAULT_SETTINGS.goal_sound_type,
+        transcription_sound_type:
+          data.transcription_sound_type ?? DEFAULT_SETTINGS.transcription_sound_type,
+      });
+    }
+  }, [serverSettings]);
+
+  // Update settings locally
+  const updateSettings = useCallback((updates: Partial<UserSettings>) => {
+    setSettings((prev) => ({ ...prev, ...updates }));
+  }, []);
+
+  // Save settings to DB
+  const saveSettings = useCallback(async () => {
+    if (!user?.id) {
+      toast({
+        title: 'Erro',
+        description: 'Você precisa estar logado para salvar configurações.',
+        variant: 'destructive',
+      });
+      return false;
+    }
+
+    setIsSaving(true);
+    try {
+      const settingsData = {
+        user_id: user.id,
+        business_hours_enabled: settings.business_hours_enabled,
+        business_hours_start: settings.business_hours_start,
+        business_hours_end: settings.business_hours_end,
+        work_days: settings.work_days,
+        welcome_message: settings.welcome_message,
+        away_message: settings.away_message,
+        closing_message: settings.closing_message,
+        auto_assignment_enabled: settings.auto_assignment_enabled,
+        auto_assignment_method: settings.auto_assignment_method,
+        inactivity_timeout: settings.inactivity_timeout,
+        auto_transcription_enabled: settings.auto_transcription_enabled,
+        sound_enabled: settings.sound_enabled,
+        browser_notifications_enabled: settings.browser_notifications_enabled,
+        quiet_hours_enabled: settings.quiet_hours_enabled,
+        quiet_hours_start: settings.quiet_hours_start,
+        quiet_hours_end: settings.quiet_hours_end,
+        theme: settings.theme,
+        language: settings.language,
+        compact_mode: settings.compact_mode,
+        tts_voice_id: settings.tts_voice_id,
+        tts_speed: settings.tts_speed,
+        simulation_mode_enabled: settings.simulation_mode_enabled,
+        global_sla_warning_minutes: settings.global_sla_warning_minutes,
+        global_sla_critical_minutes: settings.global_sla_critical_minutes,
+        global_sla_notification_message: settings.global_sla_notification_message,
+        message_sound_type: settings.message_sound_type,
+        mention_sound_type: settings.mention_sound_type,
+        sla_sound_type: settings.sla_sound_type,
+        goal_sound_type: settings.goal_sound_type,
+        transcription_sound_type: settings.transcription_sound_type,
+      };
+
+      const { error } = await safeClient.from('user_settings', (q) =>
+        q.upsert(settingsData, { onConflict: 'user_id' })
+      );
+
+      if (error) {
+        log.error('Error saving settings:', error);
+        toast({
+          title: 'Erro ao salvar',
+          description: 'Não foi possível salvar as configurações.',
+          variant: 'destructive',
+        });
+        return false;
+      }
+
+      void queryClient.invalidateQueries({ queryKey: USER_SETTINGS_KEY(user.id) });
+      toast({
+        title: 'Configurações salvas',
+        description: 'Suas configurações foram salvas com sucesso.',
+      });
+      return true;
+    } catch (err) {
+      log.error('Error in saveSettings:', err);
+      toast({
+        title: 'Erro ao salvar',
+        description: 'Ocorreu um erro inesperado.',
+        variant: 'destructive',
+      });
+      return false;
+    } finally {
+      setIsSaving(false);
+    }
+  }, [user?.id, settings, queryClient]);
+
+  // Reset to defaults
+  const resetSettings = useCallback(() => {
+    setSettings(DEFAULT_SETTINGS);
+  }, []);
+
+  // Toggle work day
+  const toggleWorkDay = useCallback((day: number) => {
+    setSettings((prev) => {
+      const workDays = prev.work_days.includes(day)
+        ? prev.work_days.filter((d) => d !== day)
+        : [...prev.work_days, day].sort();
+      return { ...prev, work_days: workDays };
+    });
+  }, []);
+
+  return {
+    settings,
+    isLoading,
+    isSaving,
+    updateSettings,
+    saveSettings,
+    resetSettings,
+    toggleWorkDay,
+  };
 }

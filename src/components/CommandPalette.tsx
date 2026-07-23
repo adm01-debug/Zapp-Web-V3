@@ -50,6 +50,7 @@ function pushRecent(id: string) {
   safeSetJSON(RECENT_KEY, list.slice(0, MAX_RECENT));
 }
 
+/** Command Palette component. */
 export function CommandPalette({ onNavigate }: CommandPaletteProps) {
   const [open, setOpen] = useState(false);
   const [recent, setRecent] = useState<string[]>([]);

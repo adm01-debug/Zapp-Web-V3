@@ -52,15 +52,16 @@ function formatHour(iso: string) {
   return new Date(iso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 }
 
+/** Alert Instance Detail Dialog component for the alerts section. */
 export function AlertInstanceDetailDialog({ open, onOpenChange, instance }: Props) {
   const enabled = open && !!instance;
 
   const { data: rows, isLoading } = useQuery({
-    queryKey: queryKeys.adminOps.alertInstanceDetail(instance),
+    queryKey: queryKeys.adminOps.alertInstanceDetail(instance ?? undefined),
     queryFn: async () => {
       const { data, error } = await supabase.rpc('rpc_instance_auth_event_trend', {
         p_hours: 24,
-        p_instance: instance!,
+        p_instance: instance ?? '',
       });
       if (error) throw error;
       return ((data ?? []) as TrendRow[])

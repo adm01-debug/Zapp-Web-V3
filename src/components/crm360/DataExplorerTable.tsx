@@ -30,6 +30,7 @@ interface DataExplorerTableProps {
   onCreateClick?: () => void;
 }
 
+/** Data Explorer Table component for the crm360 section. */
 export function DataExplorerTable({ tabConfig, onRowClick, onCreateClick }: DataExplorerTableProps) {
   const browser = useExternalTableBrowser(tabConfig.id as ExternalTableName);
   const [searchInput, setSearchInput] = useState('');
@@ -89,7 +90,7 @@ export function DataExplorerTable({ tabConfig, onRowClick, onCreateClick }: Data
             <SelectItem value="100">100</SelectItem>
           </SelectContent>
         </Select>
-        <Button variant="outline" size="sm" onClick={() => void browser.refetch()} className="h-9">
+        <Button aria-label="Atualizar" variant="outline" size="sm" onClick={() => void browser.refetch()} className="h-9">
           <RefreshCw className="h-3.5 w-3.5" />
         </Button>
         <Button variant="outline" size="sm" onClick={() => exportToCSV(browser.data as Record<string, unknown>[] /* ignore-audit: narrows Supabase query result to local interface */, tabConfig.columns, tabConfig.id)} disabled={browser.data.length === 0} className="h-9">
@@ -160,8 +161,8 @@ export function DataExplorerTable({ tabConfig, onRowClick, onCreateClick }: Data
       <div className="flex items-center justify-between">
         <span className="text-xs text-muted-foreground">Pág. {browser.page + 1} de {totalPages}</span>
         <div className="flex items-center gap-1.5">
-          <Button variant="outline" size="sm" onClick={browser.prevPage} disabled={browser.page === 0} className="h-7 px-2"><ChevronLeft className="h-3.5 w-3.5" /></Button>
-          <Button variant="outline" size="sm" onClick={browser.nextPage} disabled={browser.page >= totalPages - 1} className="h-7 px-2"><ChevronRight className="h-3.5 w-3.5" /></Button>
+          <Button aria-label="Anterior" variant="outline" size="sm" onClick={browser.prevPage} disabled={browser.page === 0} className="h-7 px-2"><ChevronLeft className="h-3.5 w-3.5" /></Button>
+          <Button aria-label="Próximo" variant="outline" size="sm" onClick={browser.nextPage} disabled={browser.page >= totalPages - 1} className="h-7 px-2"><ChevronRight className="h-3.5 w-3.5" /></Button>
         </div>
       </div>
 

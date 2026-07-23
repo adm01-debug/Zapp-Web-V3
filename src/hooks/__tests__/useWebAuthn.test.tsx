@@ -1,6 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { renderHook, act } from '@testing-library/react';
+import { renderHook, act, waitFor } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
+
+function createWrapper() {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+  return ({ children }: { children: ReactNode }) => (
+    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+  );
+}
 
 const mockFrom = vi.hoisted(() => vi.fn());
 const mockInvoke = vi.hoisted(() => vi.fn());
@@ -42,20 +52,20 @@ describe('useWebAuthn', () => {
   });
 
   it('initializes with empty passkeys', () => {
-    const { result } = renderHook(() => useWebAuthn());
+    const { result } = renderHook(() => useWebAuthn(), { wrapper: createWrapper() });
     expect(result.current.passkeys).toEqual([]);
     expect(result.current.loading).toBe(false);
   });
 
   it('isSupported checks for PublicKeyCredential', () => {
-    const { result } = renderHook(() => useWebAuthn());
+    const { result } = renderHook(() => useWebAuthn(), { wrapper: createWrapper() });
     // In jsdom, PublicKeyCredential is not defined
     expect(result.current.isSupported()).toBe(false);
   });
 
   it('registerPasskey requires user to be logged in', async () => {
     mockUseAuth.mockReturnValue({ user: null });
-    const { result } = renderHook(() => useWebAuthn());
+    const { result } = renderHook(() => useWebAuthn(), { wrapper: createWrapper() });
 
     let res: { success: boolean } = { success: false };
     await act(async () => {
@@ -67,7 +77,7 @@ describe('useWebAuthn', () => {
 
   it('registerPasskey fails when WebAuthn not supported', async () => {
     mockUseAuth.mockReturnValue({ user: { id: 'u1', email: 'test@test.com' } });
-    const { result } = renderHook(() => useWebAuthn());
+    const { result } = renderHook(() => useWebAuthn(), { wrapper: createWrapper() });
 
     let res: { success: boolean } = { success: false };
     await act(async () => {
@@ -78,7 +88,7 @@ describe('useWebAuthn', () => {
   });
 
   it('authenticateWithPasskey fails when WebAuthn not supported', async () => {
-    const { result } = renderHook(() => useWebAuthn());
+    const { result } = renderHook(() => useWebAuthn(), { wrapper: createWrapper() });
 
     let res: { success: boolean } = { success: false };
     await act(async () => {
@@ -90,7 +100,7 @@ describe('useWebAuthn', () => {
 
   it('deletePasskey requires user to be logged in', async () => {
     mockUseAuth.mockReturnValue({ user: null });
-    const { result } = renderHook(() => useWebAuthn());
+    const { result } = renderHook(() => useWebAuthn(), { wrapper: createWrapper() });
 
     let res: { success: boolean } = { success: false };
     await act(async () => {
@@ -115,7 +125,7 @@ describe('useWebAuthn', () => {
       }),
     });
 
-    const { result } = renderHook(() => useWebAuthn());
+    const { result } = renderHook(() => useWebAuthn(), { wrapper: createWrapper() });
 
     let res: { success: boolean } = { success: false };
     await act(async () => {
@@ -127,7 +137,7 @@ describe('useWebAuthn', () => {
 
   it('renamePasskey requires user', async () => {
     mockUseAuth.mockReturnValue({ user: null });
-    const { result } = renderHook(() => useWebAuthn());
+    const { result } = renderHook(() => useWebAuthn(), { wrapper: createWrapper() });
 
     let res: { success: boolean } = { success: false };
     await act(async () => {
@@ -152,7 +162,7 @@ describe('useWebAuthn', () => {
       }),
     });
 
-    const { result } = renderHook(() => useWebAuthn());
+    const { result } = renderHook(() => useWebAuthn(), { wrapper: createWrapper() });
 
     let res: { success: boolean } = { success: false };
     await act(async () => {
@@ -164,7 +174,7 @@ describe('useWebAuthn', () => {
 
   it('fetchPasskeys does nothing when no user', async () => {
     mockUseAuth.mockReturnValue({ user: null });
-    const { result } = renderHook(() => useWebAuthn());
+    const { result } = renderHook(() => useWebAuthn(), { wrapper: createWrapper() });
 
     await act(async () => {
       await result.current.fetchPasskeys();
@@ -195,12 +205,10 @@ describe('useWebAuthn', () => {
       }),
     });
 
-    const { result } = renderHook(() => useWebAuthn());
+    const { result } = renderHook(() => useWebAuthn(), { wrapper: createWrapper() });
 
-    await act(async () => {
-      await result.current.fetchPasskeys();
+    await waitFor(() => {
+      expect(result.current.passkeys).toEqual(mockPasskeys);
     });
-
-    expect(result.current.passkeys).toEqual(mockPasskeys);
   });
 });

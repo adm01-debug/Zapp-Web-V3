@@ -37,6 +37,7 @@ const iconButtonVariants = cva(
   }
 );
 
+/** Icon Button Props interface definition. */
 export interface IconButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>,
     VariantProps<typeof iconButtonVariants> {
@@ -148,4 +149,5 @@ const MotionIconButton = React.forwardRef<HTMLButtonElement, MotionIconButtonPro
 );
 MotionIconButton.displayName = 'MotionIconButton';
 
+/** Re-exported module members. */
 export { IconButton, MotionIconButton, iconButtonVariants };

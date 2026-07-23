@@ -1,7 +1,7 @@
 import { queryKeys } from '@/services/api/queryKeys';
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { fetchPlaybooks, savePlaybook, deletePlaybookById } from '../hooks/usePlaybooksData';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -51,6 +51,7 @@ const CATEGORIES = [
   { value: 'general', label: 'Geral' },
 ];
 
+/** Playbooks Manager component. */
 export function PlaybooksManager(): JSX.Element {
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -66,11 +67,8 @@ export function PlaybooksManager(): JSX.Element {
   const { data: playbooks = [], isLoading: loading } = useQuery<Playbook[]>({
     queryKey: queryKeys.adminOps.playbooks(),
     queryFn: async () => {
-      const { data } = await supabase
-        .from('playbooks')
-        .select('*')
-        .order('category', { ascending: true });
-      return (data || []).map((p) => ({
+      const data = await fetchPlaybooks();
+      return data.map((p) => ({
         ...p,
         steps: Array.isArray(p.steps) ? (p.steps as unknown as PlaybookStep[]) : [],
       }));
@@ -116,12 +114,10 @@ export function PlaybooksManager(): JSX.Element {
       name: name.trim(),
       description: description || null,
       category,
-      steps: steps.filter((s) => s.title.trim()) as Json,
+      steps: steps.filter((s) => s.title.trim()) as unknown as Json,
     };
 
-    const { error } = selectedPlaybook
-      ? await supabase.from('playbooks').update(payload).eq('id', selectedPlaybook.id)
-      : await supabase.from('playbooks').insert(payload);
+    const { error } = await savePlaybook(selectedPlaybook?.id, payload);
 
     if (!error) {
       toast.success(selectedPlaybook ? 'Playbook atualizado' : 'Playbook criado');
@@ -133,7 +129,7 @@ export function PlaybooksManager(): JSX.Element {
   };
 
   const deletePlaybook = async (id: string): Promise<void> => {
-    await supabase.from('playbooks').delete().eq('id', id);
+    await deletePlaybookById(id);
     toast.success('Playbook removido');
     void queryClient.invalidateQueries({ queryKey: queryKeys.adminOps.playbooks() });
   };

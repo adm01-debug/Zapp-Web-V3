@@ -14,7 +14,7 @@ import { useQuery } from '@tanstack/react-query';
 import { queryKeys } from '@/services/api/queryKeys';
 import { supabase } from '@/integrations/supabase/client';
 
-
+/** Terminal failure details for a single outbound message, extracted from evolution_retry_metrics for tooltip enrichment. */
 export interface MessageFailureReason {
   /** Último motivo registrado (ex.: 'http_503', 'timeout'). */
   reason: string;
@@ -26,15 +26,9 @@ export interface MessageFailureReason {
   finalStatus: 'success' | 'failed' | 'exhausted';
 }
 
-interface RetryReasonRow {
-  attempt_count: number;
-  final_status: 'success' | 'failed' | 'exhausted';
-  final_http_status: number | null;
-  retry_reasons: Array<{ attempt: number; status?: number; reason: string }> | null;
-}
-
 const STALE_MS = 60_000;
 
+/** Lazy query that fetches terminal failure reason and HTTP status from evolution_retry_metrics for a given message; only runs when the message is in a failed state and `enabled` is true. */
 export function useFailureReason(messageId: string | undefined, enabled: boolean) {
   return useQuery<MessageFailureReason | null>({
     queryKey: queryKeys.failedMessages.reason(messageId),

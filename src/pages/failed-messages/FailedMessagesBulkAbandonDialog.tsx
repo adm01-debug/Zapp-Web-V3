@@ -5,6 +5,7 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { type useFailedMessagesUI } from '@/features/admin/hooks/monitoring/useFailedMessagesUI';
 
+/** Failed Messages Bulk Abandon Dialog. */
 export function FailedMessagesBulkAbandonDialog({ ui, onConfirm }: { ui: ReturnType<typeof useFailedMessagesUI>; onConfirm: (ids: string[], reason: string) => void }) {
   return (
     <AlertDialog open={ui.confirmBulkAbandon} onOpenChange={(o) => {

@@ -1,6 +1,6 @@
-import { queryKeys } from '@/services/api/queryKeys';
 import { useQuery } from '@tanstack/react-query';
 import { getLogger } from '@/lib/logger';
+
 const log = getLogger('EmailWebhookMonitor');
 import { Mail, RefreshCw, CheckCircle, AlertCircle, Clock, Wifi, WifiOff } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -26,13 +26,14 @@ interface ThreadStats {
 
 export function EmailWebhookMonitor() {
   const { data, isFetching, refetch } = useQuery({
-    queryKey: queryKeys.adminOps.emailWebhook(),
+    queryKey: ['admin', 'email-webhook-monitor'],
     queryFn: async () => {
       // Best-effort load: mirrors legacy behavior — failures degrade to empty data
       // (the panel renders an empty state rather than surfacing an error).
       try {
         const { data: emailAccounts } = await safeClient.rpc('get_own_email_accounts');
-        const accounts = (emailAccounts || []).map((a: Record<string, unknown>) => ({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const accounts = ((emailAccounts as any) || []).map((a: any) => ({
           ...a,
           history_id: null,
         })) as EmailAccount[];

@@ -9,6 +9,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 import { buildIdempotencyKey, classifyRetryReason, computeBackoffMsByReason } from './dlq-backoff.ts';
 
+/** enqueue-failed-message utilities and exports. */
 export interface EnqueueFailedMessageInput {
   instance_name: string;
   remote_jid?: string | null;
@@ -49,6 +50,7 @@ function isSendPath(path: string): boolean {
   return path.startsWith('/message/') || path.includes('/message/');
 }
 
+/** enqueue Failed Message function. */
 export function enqueueFailedMessage(input: EnqueueFailedMessageInput): void {
   if (input.method !== 'POST') return;
   if (!isSendPath(input.path)) return;

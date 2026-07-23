@@ -11,6 +11,7 @@ import {
   buildSecondaryLabel,
 } from './conversationItemShared';
 
+/** use Conversation Display component for the conversation list section. */
 export function useConversationDisplay(conversation: ConversationItemData) {
   const contact = conversation.contact;
   const contactId = contact?.id || conversation.id;

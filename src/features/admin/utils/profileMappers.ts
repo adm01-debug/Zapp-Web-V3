@@ -95,6 +95,7 @@ export function normalizeAgentProfile(raw: unknown): AdminAgentProfile | null {
   };
 }
 
+/** normalize Agent Profiles function. */
 export function normalizeAgentProfiles(rows: unknown): AdminAgentProfile[] {
   if (!Array.isArray(rows)) return [];
   const out: AdminAgentProfile[] = [];

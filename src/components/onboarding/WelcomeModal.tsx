@@ -10,6 +10,7 @@ interface WelcomeModalProps {
   userName?: string;
 }
 
+/** Welcome Modal component for the onboarding section. */
 export const WelcomeModal = forwardRef<HTMLDivElement, WelcomeModalProps>(function WelcomeModal(
   { isOpen, onClose, onStartTour, userName },
   _ref

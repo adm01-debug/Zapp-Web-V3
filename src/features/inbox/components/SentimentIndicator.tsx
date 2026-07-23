@@ -10,6 +10,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 
+/** Sentiment Level component. */
 export type SentimentLevel = 'positive' | 'neutral' | 'negative' | 'critical';
 
 interface SentimentIndicatorProps {
@@ -57,6 +58,7 @@ const sentimentConfig: Record<SentimentLevel, {
   },
 };
 
+/** get Sentiment From Score component. */
 export function getSentimentFromScore(score: number): SentimentLevel {
   if (score >= 70) return 'positive';
   if (score >= 45) return 'neutral';
@@ -64,6 +66,7 @@ export function getSentimentFromScore(score: number): SentimentLevel {
   return 'critical';
 }
 
+/** Sentiment Indicator component. */
 export function SentimentIndicator({
   sentiment,
   score,
@@ -137,6 +140,7 @@ export function SentimentIndicator({
 }
 
 // Compact emoji-only indicator for list views
+/** Sentiment Emoji component. */
 export const SentimentEmoji = forwardRef<
   HTMLSpanElement,
   { sentiment: SentimentLevel; animated?: boolean; className?: string }
@@ -172,6 +176,7 @@ export const SentimentEmoji = forwardRef<
 SentimentEmoji.displayName = 'SentimentEmoji';
 
 // Bar indicator showing sentiment distribution
+/** Sentiment Bar component. */
 export function SentimentBar({ score }: { score: number }) {
   const sentiment = getSentimentFromScore(score);
   const config = sentimentConfig[sentiment];

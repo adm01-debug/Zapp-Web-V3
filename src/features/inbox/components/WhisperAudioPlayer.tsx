@@ -3,6 +3,7 @@ interface WhisperAudioPlayerProps {
   className?: string;
 }
 
+/** Whisper Audio Player component. */
 export function WhisperAudioPlayer({ audioUrl, className }: WhisperAudioPlayerProps) {
   return (
     <audio

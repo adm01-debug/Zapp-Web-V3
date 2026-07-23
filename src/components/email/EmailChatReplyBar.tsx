@@ -32,6 +32,7 @@ interface EmailChatReplyBarProps {
   className?: string;
 }
 
+/** Email Chat Reply Bar component for the email section. */
 export function EmailChatReplyBar({
   accountId,
   threadId,
@@ -137,7 +138,7 @@ export function EmailChatReplyBar({
         threadId: threadEmailId,
         attachments: processedAttachments,
         signature: true,
-      });
+      } as any);
 
       // Registra resposta no SLA
       markReplied(threadEmailId);

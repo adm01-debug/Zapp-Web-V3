@@ -13,6 +13,7 @@ const log = getLogger('useContactAvatar');
  * - Se não, agenda fetch em batch.
  * - Falhas do batch viram `null` (UI cai no AvatarFallback com iniciais).
  */
+/** Resolves and caches a contact's WhatsApp profile picture URL; uses initialUrl immediately if available, otherwise batches the fetch via avatarBatchStore. */
 export function useContactAvatar(jid: string | null | undefined, initialUrl?: string | null) {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(initialUrl || null);
   const [loading, setLoading] = useState(!initialUrl && !!jid);

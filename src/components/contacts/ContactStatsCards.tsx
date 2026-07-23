@@ -91,6 +91,7 @@ const TYPE_LABELS: Record<string, string> = {
   outros: 'Outros',
 };
 
+/** Contact Stats Cards function. */
 export function ContactStatsCards({
   totalCount, contactCountByType, uniqueCompanies, contacts,
 }: ContactStatsCardsProps) {

@@ -5,6 +5,7 @@ import { useAuth } from '@/features/auth';
 import { toast } from '@/hooks/use-toast';
 import { queryKeys } from '@/services/api/queryKeys';
 
+/** Tag interface definition. */
 export interface Tag {
   id: string;
   name: string;
@@ -113,7 +114,7 @@ export function useTags() {
         })
         .eq('id', data.id)
         .select()
-        .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
+        .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
 
       if (tagErr) throw tagErr;
       return tag;
@@ -182,7 +183,7 @@ export function useContactTags(contactId: string | undefined) {
 
       type ContactTagRow = { tag_id: string; tags: Tag | null };
       const { data, error } = await safeClient.from<ContactTagRow>('contact_tags', (q) =>
-        q.select('tag_id, tags(*)').eq('contact_id', contactId!)
+        q.select('tag_id, tags(*)').eq('contact_id', contactId ?? '')
       );
 
       if (error) throw error;

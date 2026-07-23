@@ -52,6 +52,7 @@ interface ConversationListSidebarProps {
   width?: number;
 }
 
+/** Conversation List Sidebar component. */
 export function ConversationListSidebar({
   inbox,
   inboxFilters,
@@ -91,7 +92,7 @@ export function ConversationListSidebar({
 
   const handleAgentChange = useCallback(
     (agentId: string | null) => inboxFilters.setFilters({ ...inboxFilters.filters, agentId }),
-    [inboxFilters],
+    [inboxFilters]
   );
 
   const onSearchFocus = useCallback(() => contactSearchRef.current?.focus(), []);
@@ -109,6 +110,7 @@ export function ConversationListSidebar({
       );
     }
   }, [inbox.selectedContactId]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const onRefresh = useCallback(() => inbox.refetch(), [inbox.refetch]);
 
   useInboxShortcuts({
@@ -219,7 +221,7 @@ export function ConversationListSidebar({
               onSubTabChange={inboxFilters.setSubTab}
               showAll={inboxFilters.showAll}
               onShowAllChange={inboxFilters.setShowAll}
-              scope={inboxFilters.scope}
+              scope={inboxFilters.scope as any}
               onScopeChange={inboxFilters.setScope}
               selectedQueueId={inboxFilters.selectedQueueId}
               onQueueChange={inboxFilters.setSelectedQueueId}
@@ -352,7 +354,6 @@ export function ConversationListSidebar({
           >
             <VirtualizedRealtimeList
               conversations={inboxFilters.filteredConversations}
-
               selectedContactId={inbox.selectedContactId}
               onSelectConversation={inbox.handleSelectConversation}
               selectionMode={bulkActions.selectionMode}

@@ -21,6 +21,7 @@ import {
   DialogContent,
 } from '@/components/ui/dialog';
 
+/** MFASettings component for the mfa section. */
 export function MFASettings() {
   const { factors, fetchFactors, unenroll, loading, isMFAEnabled } = useMFA();
   const [showEnrollDialog, setShowEnrollDialog] = useState(false);
@@ -118,7 +119,7 @@ export function MFASettings() {
                         </p>
                       </div>
                     </div>
-                    <Button
+                    <Button aria-label="Excluir"
                       variant="ghost"
                       size="sm"
                       onClick={() => setFactorToRemove(factor.id)}

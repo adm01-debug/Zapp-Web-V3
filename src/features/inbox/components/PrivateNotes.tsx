@@ -13,6 +13,7 @@ interface PrivateNotesProps {
   contactId: string;
 }
 
+/** Private Notes component. */
 export function PrivateNotes({ contactId }: PrivateNotesProps) {
   const {
     notes,

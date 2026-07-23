@@ -4,6 +4,7 @@ import type {
   WebhookConfig,
 } from './hooks/useEvolutionMonitoring';
 
+/** Secret Status component for the monitoring section. */
 export interface SecretStatus {
   configured: boolean;
   length: number;
@@ -12,6 +13,7 @@ export interface SecretStatus {
   checkedAt: string;
 }
 
+/** Monitoring Webhook Panel Props component for the monitoring section. */
 export interface MonitoringWebhookPanelProps {
   connections: ConnectionInfo[];
   webhookTest: WebhookTestResult;
@@ -22,6 +24,7 @@ export interface MonitoringWebhookPanelProps {
   onCheckConfig: (instanceId: string) => void;
 }
 
+/** ALL_EXPECTED_EVENTS component for the monitoring section. */
 export const ALL_EXPECTED_EVENTS = [
   'MESSAGES_UPSERT',
   'MESSAGES_UPDATE',
@@ -45,6 +48,7 @@ export const ALL_EXPECTED_EVENTS = [
   'QRCODE_UPDATED',
 ];
 
+/** EVENT_CATEGORIES component for the monitoring section. */
 export const EVENT_CATEGORIES: Record<string, string[]> = {
   Mensagens: [
     'MESSAGES_UPSERT',

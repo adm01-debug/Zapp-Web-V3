@@ -6,6 +6,9 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 // Mock supabase
 const mockInvoke = vi.hoisted(() => vi.fn());
 vi.mock('@/integrations/supabase/client', () => ({
+  isSupabaseConfigured: true,
+  SUPABASE_RESOLVED_URL: 'http://localhost:54321',
+  SUPABASE_RESOLVED_ANON_KEY: 'test-anon-key',
   supabase: {
     functions: { invoke: (...args: unknown[]) => mockInvoke(...args) },
   },
@@ -20,7 +23,7 @@ import {
   ExternalSupplier,
   ExternalProductVariant,
   CatalogFilters,
-} from '@/hooks/useExternalCatalog';
+} from '@/hooks/useExternalApiManagement';
 
 // ─── QueryClient Wrapper ──────────────────────────────────────
 function createWrapper() {
@@ -843,7 +846,7 @@ describe('Data Integrity', () => {
     const { result } = renderHook(() => useExternalCatalog(), { wrapper: createWrapper() });
     let fetched: ExternalProduct | undefined;
     await act(async () => {
-      fetched = await result.current.fetchProduct('p1');
+      fetched = await result.current.fetchProduct('p1') as any;
     });
 
     expect(fetched!.variants![0].color_hex).toBe('#4169E1');

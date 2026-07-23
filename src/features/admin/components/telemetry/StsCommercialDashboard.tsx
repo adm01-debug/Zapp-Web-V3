@@ -23,6 +23,7 @@ interface StsReportRow {
   p95_ms: number;
 }
 
+/** Sts Commercial Dashboard component for the telemetry section. */
 export function StsCommercialDashboard() {
   const { data: stats = [], isLoading: loading } = useQuery<StsReportRow[]>({
     queryKey: queryKeys.adminOps.stsDashboard(),

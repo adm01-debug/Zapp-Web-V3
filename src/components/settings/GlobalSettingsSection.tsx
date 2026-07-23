@@ -10,6 +10,7 @@ import { LanguageSelector } from '@/components/settings/LanguageSelector';
 import { WhatsAppModeSetting } from '@/components/settings/WhatsAppModeSetting';
 import { ConnectionTestPanel } from '@/components/settings/ConnectionTestPanel';
 
+/** Global Settings Section component for the settings section. */
 export function GlobalSettingsSection() {
   const { settings: _settings, isLoading, getSetting, updateSetting } = useGlobalSettings();
 

@@ -4,8 +4,10 @@ import {
   Plus, Keyboard,
 } from 'lucide-react';
 
+/** Command Category component for the ui section. */
 export type CommandCategory = 'navigation' | 'action' | 'search' | 'recent';
 
+/** Command Item component for the ui section. */
 export interface CommandItem {
   id: string;
   title: string;
@@ -20,11 +22,13 @@ export interface CommandItem {
   disabled?: boolean;
 }
 
+/** Command Group component for the ui section. */
 export interface CommandGroup {
   title: string;
   items: CommandItem[];
 }
 
+/** default Navigation Commands component for the ui section. */
 export const defaultNavigationCommands: CommandItem[] = [
   { id: 'nav-inbox', title: 'Inbox', description: 'Ver caixa de entrada', icon: <Inbox className="h-4 w-4" />, category: 'navigation', keywords: ['caixa', 'entrada', 'mensagens', 'chat'], shortcut: ['g', 'i'] },
   { id: 'nav-dashboard', title: 'Dashboard', description: 'Ver métricas e estatísticas', icon: <LayoutDashboard className="h-4 w-4" />, category: 'navigation', keywords: ['métricas', 'estatísticas', 'gráficos', 'painel'], shortcut: ['g', 'd'] },
@@ -37,6 +41,7 @@ export const defaultNavigationCommands: CommandItem[] = [
   { id: 'nav-settings', title: 'Configurações', description: 'Ajustar preferências', icon: <Settings className="h-4 w-4" />, category: 'navigation', keywords: ['preferências', 'ajustes', 'config'], shortcut: ['g', 's'] },
 ];
 
+/** default Action Commands component for the ui section. */
 export const defaultActionCommands: CommandItem[] = [
   { id: 'action-new-chat', title: 'Nova conversa', description: 'Iniciar uma nova conversa', icon: <Plus className="h-4 w-4" />, category: 'action', keywords: ['criar', 'iniciar', 'novo'], shortcut: ['n'] },
   { id: 'action-quick-reply', title: 'Respostas rápidas', description: 'Acessar templates de resposta', icon: <Zap className="h-4 w-4" />, category: 'action', keywords: ['template', 'atalho', 'rápida'] },
@@ -44,6 +49,7 @@ export const defaultActionCommands: CommandItem[] = [
 ];
 
 // Fuzzy search helpers
+/** fuzzy Match component for the ui section. */
 export function fuzzyMatch(text: string, query: string): boolean {
   const lt = text.toLowerCase();
   const lq = query.toLowerCase();
@@ -54,6 +60,7 @@ export function fuzzyMatch(text: string, query: string): boolean {
   return qi === lq.length;
 }
 
+/** highlight Match component for the ui section. */
 export function highlightMatch(text: string, query: string): React.ReactNode {
   if (!query) return text;
   const lt = text.toLowerCase();

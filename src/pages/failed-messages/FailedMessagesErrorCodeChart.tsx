@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { type ErrorCodeAggregate } from '@/features/admin/hooks/monitoring/useFailedMessages';
 
+/** Failed Messages Error Code Chart. */
 export function FailedMessagesErrorCodeChart({ stats, filter, onFilterChange }: { stats: ErrorCodeAggregate[]; filter: string; onFilterChange: (v: string) => void }) {
   if (stats.length === 0) return null;
   const maxReasonCount = stats[0]?.count ?? 1;

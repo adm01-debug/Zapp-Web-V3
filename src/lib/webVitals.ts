@@ -9,6 +9,7 @@ import { supabase, isSupabaseConfigured } from '@/integrations/supabase/client';
 const log = getLogger('WebVitals');
 const CLIENT_OBSERVABILITY_STORAGE_KEY = 'zapp_client_observability_disabled';
 
+/** A single Core Web Vitals measurement captured for reporting. */
 export interface WebVitalMetric {
   name: string;
   value: number;
@@ -25,6 +26,7 @@ const thresholds = {
   TTFB: { good: 800, poor: 1800 },
 };
 
+/** Maps a metric name and raw value to a 'good' / 'needs-improvement' / 'poor' rating using the pre-defined per-metric thresholds. */
 function getRating(name: string, value: number): 'good' | 'needs-improvement' | 'poor' {
   const t = thresholds[name as keyof typeof thresholds];
   if (!t) return 'good';
@@ -41,12 +43,14 @@ const lastSentByName = new Map<string, number>();
 let uploadTimer: number | null = null;
 const OBS_FUNCTION = 'client-observability';
 
+/** Returns true when client-side observability is enabled via the VITE flag and the circuit-breaker sessionStorage key is absent. */
 function isClientObservabilityEnabled(): boolean {
   if (import.meta.env.VITE_ENABLE_CLIENT_OBSERVABILITY !== 'true') return false;
   if (typeof sessionStorage === 'undefined') return true;
   return sessionStorage.getItem(CLIENT_OBSERVABILITY_STORAGE_KEY) !== '1';
 }
 
+/** Writes the circuit-breaker flag to sessionStorage so client observability uploads are suppressed for the rest of this page session. */
 function disableClientObservabilityForSession(): void {
   if (typeof sessionStorage === 'undefined') return;
   try {
@@ -64,6 +68,7 @@ const BREAKER_COOLDOWN_MS = 60_000;
 let obsFailures = 0;
 let obsSilencedUntil = 0;
 
+/** Drains the upload queue and posts all pending metrics to the backend observability function, applying circuit-breaker logic on repeated failures. */
 async function flushMetrics() {
   if (!uploadQueue.length) return;
   if (!isClientObservabilityEnabled()) {
@@ -110,6 +115,7 @@ async function flushMetrics() {
   }
 }
 
+/** Schedules a debounced flush of the upload queue 5 s in the future; subsequent calls before the timer fires are no-ops. */
 function scheduleFlush() {
   if (uploadTimer !== null) return;
   uploadTimer = window.setTimeout(() => {
@@ -135,6 +141,7 @@ function shouldUpload(metric: WebVitalMetric): boolean {
 const lastLoggedByName = new Map<string, { value: number; at: number }>();
 const LOG_DEDUP_WINDOW_MS = 2000;
 
+/** Receives a raw Web Vital measurement, deduplicates console logging, and enqueues non-good metrics for backend upload. */
 function onMetric(metric: WebVitalMetric) {
   metricsBuffer.push(metric);
 
@@ -165,6 +172,7 @@ function onMetric(metric: WebVitalMetric) {
 }
 
 let __initialized = false;
+/** init Web Vitals function. */
 export function initWebVitals() {
   if (typeof window === 'undefined') return;
   if (__initialized) return;
@@ -278,6 +286,7 @@ export function initWebVitals() {
   }
 }
 
+/** get Web Vitals Report function. */
 export function getWebVitalsReport(): WebVitalMetric[] {
   return [...metricsBuffer];
 }

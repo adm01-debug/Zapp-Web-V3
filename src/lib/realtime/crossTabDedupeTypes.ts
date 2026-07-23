@@ -1,26 +1,39 @@
+/** L S_ L O C K_ P R E F I X constant. */
 export const LS_LOCK_PREFIX = 'ctd:lock:';
+/** L S_ R E S U L T_ P R E F I X constant. */
 export const LS_RESULT_PREFIX = 'ctd:result:';
+/** L S_ B U S_ P R E F I X constant. */
 export const LS_BUS_PREFIX = 'ctd:bus:'; // fallback de "broadcast" via storage event
+/** B C_ N A M E constant. */
 export const BC_NAME = 'cross-tab-dedupe';
+/** D E F A U L T_ L O C K_ T T L constant. */
 export const DEFAULT_LOCK_TTL = 10_000; // 10s — máximo razoável para pageload de 100 msgs
+/** D E F A U L T_ R E S U L T_ T T L constant. */
 export const DEFAULT_RESULT_TTL = 30_000; // resultado fica em cache 30s
+/** D E F A U L T_ W A I T_ T I M E O U T constant. */
 export const DEFAULT_WAIT_TIMEOUT = 8_000;
+/** G C_ I N T E R V A L constant. */
 export const GC_INTERVAL = 60_000; // varre chaves expiradas a cada 60s
+/** B U S_ M S G_ T T L constant. */
 export const BUS_MSG_TTL = 15_000; // mensagens de bus expiram rápido (storage GC)
 
 /** @internal — exposto para testes que precisam do prefixo de lock. */
 export const LS_PREFIX = LS_LOCK_PREFIX;
 
+/** Unique identifier for this browser tab, used to track lock ownership across tabs. */
 export const TAB_ID = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 
+/** Inter-tab communication transport in use (BroadcastChannel, storage event, or none). */
 export type Transport = 'broadcast-channel' | 'storage-event' | 'none';
 
+/** Stored lock entry recording owner, acquisition, and expiry timestamps. */
 export interface LockPayload {
   ownerId: string;
   acquiredAt: number;
   expiresAt: number;
 }
 
+/** Broadcast Message interface definition. */
 export interface BroadcastMessage<T = unknown> {
   type: 'result' | 'error' | 'release';
   key: string;
@@ -32,6 +45,7 @@ export interface BroadcastMessage<T = unknown> {
   resultTtl?: number;
 }
 
+/** Options for tuning cross-tab deduplication TTLs and wait timeouts. */
 export interface DedupeOptions {
   /** TTL do lock no localStorage (ms). Default 10s. */
   lockTtl?: number;
@@ -41,6 +55,7 @@ export interface DedupeOptions {
   waitTimeout?: number;
 }
 
+/** Cached deduplication result stored in localStorage with an expiry timestamp. */
 export interface ResultPayload<T = unknown> {
   value: T;
   expiresAt: number;

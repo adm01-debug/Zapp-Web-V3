@@ -103,6 +103,7 @@ function VersionCard({
   );
 }
 
+/** Agent Versions Panel component. */
 export function AgentVersionsPanel() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [search, setSearch] = useState('');

@@ -49,4 +49,5 @@ const AccordionContent = React.forwardRef<
 
 AccordionContent.displayName = AccordionPrimitive.Content.displayName;
 
+/** accordion component for the ui section. */
 export { Accordion, AccordionItem, AccordionTrigger, AccordionContent };

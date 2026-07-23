@@ -6,6 +6,7 @@ import { getLogger } from '@/lib/logger';
 
 const log = getLogger('useMessageTemplates');
 
+/** Quick-reply template row from the `message_templates` table. */
 export interface Template {
   id: string;
   title: string;
@@ -18,6 +19,7 @@ export interface Template {
   updated_at?: string;
 }
 
+/** CRUD and usage-count management for message_templates; fetches templates ordered by use_count and exposes add/update/delete/increment helpers. */
 export function useMessageTemplates() {
   const [templates, setTemplates] = useState<Template[]>([]);
   const [isLoading, setIsLoading] = useState(false);

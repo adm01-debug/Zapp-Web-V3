@@ -28,6 +28,7 @@ const COLORS = [
   '#84CC16', // lime
 ];
 
+/** Create Queue Dialog component for the queues section. */
 export function CreateQueueDialog({ open, onOpenChange, onSubmit }: CreateQueueDialogProps) {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');

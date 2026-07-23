@@ -66,6 +66,7 @@ interface EditContactDialogProps {
 
 // ── Component ──────────────────────────────────────────────────────────────
 
+/** Edit Contact Dialog constant. */
 export const EditContactDialog: React.FC<EditContactDialogProps> = ({
   open,
   onOpenChange,
@@ -113,7 +114,7 @@ export const EditContactDialog: React.FC<EditContactDialogProps> = ({
             ]
           : []
     );
-  }, [contact.id]);
+  }, [contact.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const buildUpdateData = () => ({
     name: sanitizeText(name).trim(),
@@ -329,4 +330,5 @@ export const EditContactDialog: React.FC<EditContactDialogProps> = ({
   );
 };
 
+/** Default export. */
 export default EditContactDialog;

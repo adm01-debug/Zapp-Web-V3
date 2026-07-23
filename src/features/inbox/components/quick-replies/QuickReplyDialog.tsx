@@ -17,6 +17,7 @@ interface QuickReplyDialogProps {
   onUpdate: (id: string, data: CreateTemplateInput) => Promise<void>;
 }
 
+/** Quick Reply Dialog component for the quick replies section. */
 export function QuickReplyDialog({ open, editingTemplate, isSubmitting, onClose, onCreate, onUpdate }: QuickReplyDialogProps) {
   const [formData, setFormData] = useState<CreateTemplateInput>(() =>
     editingTemplate

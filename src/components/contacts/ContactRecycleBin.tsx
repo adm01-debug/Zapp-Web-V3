@@ -45,6 +45,7 @@ function formatReason(reason: string | null): string {
   return sanitizeText(reason);
 }
 
+/** Contact Recycle Bin constant. */
 export const ContactRecycleBin: React.FC<ContactRecycleBinProps> = ({
   workspaceId: instanceName,
   onRestored,
@@ -75,7 +76,7 @@ export const ContactRecycleBin: React.FC<ContactRecycleBinProps> = ({
     } finally {
       if (mountedRef.current) setLoading(false);
     }
-  }, [instanceName]);
+  }, [instanceName]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     load();
@@ -220,4 +221,5 @@ export const ContactRecycleBin: React.FC<ContactRecycleBinProps> = ({
   );
 };
 
+/** Default export. */
 export default ContactRecycleBin;

@@ -28,6 +28,7 @@ interface Props {
   forceLabel?: boolean;
 }
 
+/** Message Read Status constant. */
 export const MessageReadStatus = memo(function MessageReadStatus({
   message,
   className,

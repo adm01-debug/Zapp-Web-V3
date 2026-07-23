@@ -68,6 +68,7 @@ function SectionErrorBanner({
   );
 }
 
+/** SLAAnd AITags Section component for the contact details section. */
 export function SLAAndAITagsSection({
   slaInfo,
   aiTags,

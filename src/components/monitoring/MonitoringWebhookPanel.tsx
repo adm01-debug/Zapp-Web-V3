@@ -30,6 +30,7 @@ import {
   EVENT_CATEGORIES,
 } from './MonitoringWebhookPanelTypes';
 
+/** Monitoring Webhook Panel component for the monitoring section. */
 export function MonitoringWebhookPanel({
   connections,
   webhookTest,
@@ -63,7 +64,7 @@ export function MonitoringWebhookPanel({
 
   useEffect(() => {
     loadSecretStatus();
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const copyUrl = (url: string) => {
     navigator.clipboard.writeText(url);
@@ -274,7 +275,7 @@ export function MonitoringWebhookPanel({
                       <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
                         URL
                       </p>
-                      <Button
+                      <Button aria-label="Copiar"
                         variant="ghost"
                         size="sm"
                         className="h-5 w-5 p-0"

@@ -8,6 +8,7 @@ interface VoiceOrbProps {
   size?: number;
 }
 
+/** Voice Orb component for the voice section. */
 export function VoiceOrb({ phase, size = 200 }: VoiceOrbProps) {
   const colors = usePhaseColors(phase);
   const prefersReduced = useReducedMotion();

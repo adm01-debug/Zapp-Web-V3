@@ -25,6 +25,7 @@ interface Props {
   onBirthdayContactClick: (id: string) => void;
 }
 
+/** Contacts Rich Header component for the contacts section. */
 export function ContactsRichHeader({
   totalCount,
   contactCountByType,

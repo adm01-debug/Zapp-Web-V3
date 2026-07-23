@@ -9,12 +9,13 @@ interface ContactTagsContentProps {
   conversation: Conversation;
 }
 
+/** Contact Tags Content component for the contact details section. */
 export function ContactTagsContent({ contact, conversation }: ContactTagsContentProps) {
   const contactTags = contact.tags ?? [];
 
   return (
     <div className="flex flex-wrap gap-1.5">
-      {contactTags.map((tag, i) => (
+      {contactTags.map((tag: any, i: any) => (
         <motion.div
           key={`contact-${tag}`}
           initial={{ opacity: 0, scale: 0.8 }}

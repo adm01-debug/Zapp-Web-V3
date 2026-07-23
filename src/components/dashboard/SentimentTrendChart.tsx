@@ -22,6 +22,7 @@ interface SentimentTrendChartProps {
   onExport?: () => void;
 }
 
+/** Sentiment Trend Chart component for the dashboard section. */
 export function SentimentTrendChart({ data: externalData, isLoading, onRefresh, onExport }: SentimentTrendChartProps) {
   const [period, setPeriod] = useState<'7' | '14' | '30'>('14');
   const realSentimentData = useRealSentimentData(parseInt(period));

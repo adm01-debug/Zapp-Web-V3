@@ -20,6 +20,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { validateFile } from '@/utils/whatsappFileTypes';
 import type { QuickReply } from '@/types/chat';
 
+/** Queued File component for the chat section. */
 export interface QueuedFile {
   id: string;
   file: File;
@@ -57,11 +58,13 @@ interface ChatMessageInputProps {
   sendProgress?: number;
 }
 
+/** Chat Message Input Ref component for the chat section. */
 export interface ChatMessageInputRef {
   focus: () => void;
   handleExternalFiles: (files: File[]) => void;
 }
 
+/** Chat Message Input component for the chat section. */
 export const ChatMessageInput = forwardRef<ChatMessageInputRef, ChatMessageInputProps>(
   (
     {

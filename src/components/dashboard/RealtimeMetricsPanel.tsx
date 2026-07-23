@@ -18,6 +18,7 @@ import { useRealtimeDashboard } from '@/hooks/useRealtimeDashboard';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
+/** Realtime Metrics Panel component for the dashboard section. */
 export function RealtimeMetricsPanel() {
   const {
     messagesThisHour,

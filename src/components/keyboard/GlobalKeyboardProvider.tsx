@@ -15,6 +15,7 @@ interface GlobalKeyboardContextType {
 
 const GlobalKeyboardContext = createContext<GlobalKeyboardContextType | null>(null);
 
+/** use Global Keyboard component for the keyboard section. */
 export const useGlobalKeyboard = () => {
   const context = useContext(GlobalKeyboardContext);
   if (!context) {
@@ -34,6 +35,7 @@ interface GlobalKeyboardProviderProps {
   customActions?: { id: string; action: () => void }[];
 }
 
+/** Global Keyboard Provider component for the keyboard section. */
 export function GlobalKeyboardProvider({ children, customActions }: GlobalKeyboardProviderProps) {
   const [showHelp, setShowHelp] = useState(false);
   const [showCommandPalette, setShowCommandPalette] = useState(false);

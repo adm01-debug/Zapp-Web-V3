@@ -22,6 +22,7 @@ interface Props {
   className?: string;
 }
 
+/** Failed Message Status Badge component. */
 export function FailedMessageStatusBadge({ status, className }: Props) {
   return (
     <Badge variant={STATUS_VARIANT[status]} className={className}>

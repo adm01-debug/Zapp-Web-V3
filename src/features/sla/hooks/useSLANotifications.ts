@@ -19,6 +19,7 @@ interface SLABreachPayload {
   resolved_at: string | null;
 }
 
+/** Hook: use SLANotifications. */
 export const useSLANotifications = () => {
   const { user } = useAuth();
   const { settings, isQuietHours } = useNotificationSettings();
@@ -34,11 +35,12 @@ export const useSLANotifications = () => {
       contactId: string
     ) => {
       // Fetch contact info
-      const { data: contact } = await supabase
+      const { data: contact, error: contactErr } = await supabase
         .from('contacts')
         .select('name, phone')
         .eq('id', contactId)
         .maybeSingle();
+      if (contactErr) log.error('Failed to fetch contact for SLA notification:', contactErr);
 
       const title =
         type === 'first_response'
@@ -161,7 +163,6 @@ export const useSLANotifications = () => {
 
     return () => {
       log.debug('Cleaning up subscription');
-      channel.unsubscribe();
       supabase.removeChannel(channel);
     };
   }, [user, settings, isQuietHours]);

@@ -11,6 +11,7 @@ interface CacheEntry {
   timestamp: number;
 }
 
+/** Reads the conversation cache from localStorage; returns null when the cache is absent or older than the 30-minute TTL. */
 function readCache(): ConversationWithMessages[] | null {
   try {
     const raw = localStorage.getItem(CACHE_KEY);
@@ -26,6 +27,7 @@ function readCache(): ConversationWithMessages[] | null {
   }
 }
 
+/** Trims conversations to the last 50 with 20 messages each and serializes them to localStorage with a current timestamp. Silently ignores quota errors. */
 function writeCache(data: ConversationWithMessages[]) {
   try {
     // Only cache last 50 conversations with last 20 messages each

@@ -8,6 +8,7 @@ import { getLogger } from "@/lib/logger";
 
 const log = getLogger('AccessDenied');
 
+/** Access Denied. */
 export default function AccessDenied() {
   const navigate = useNavigate();
   const location = useLocation();

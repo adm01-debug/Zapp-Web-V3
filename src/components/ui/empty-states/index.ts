@@ -36,12 +36,15 @@ export { EmptyState } from '../empty-state';
 export type { EmptyStateConfig } from './contextConfigs';
 
 // ─── Configuration ────────────────────────────────────────────────────────────
+/** Re-exported module members. */
 export { contextConfigs } from './contextConfigs';
 
 // ─── Primary component ─────────────────────────────────────────────────────────
+/** Re-exported module members. */
 export { ContextualEmptyState } from './ContextualEmptyState';
 
 // ─── Convenience components (pre-wired for each module) ──────────────────────
+/** Re-exported module members. */
 export {
   InboxEmptyState,
   ContactsEmptyState,

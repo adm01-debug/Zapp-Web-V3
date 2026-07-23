@@ -9,6 +9,7 @@ import { Route, Trash2, Plus, AlertTriangle } from 'lucide-react';
 import { useState } from 'react';
 import { useChannelRoutingRules } from '@/hooks/omnichannel/useChannelRoutingRules';
 
+/** Channel Routing Rules component for the omnichannel section. */
 export function ChannelRoutingRules() {
   const [adding, setAdding] = useState(false);
   const [newRule, setNewRule] = useState({ channel_type: 'whatsapp', queue_id: '', priority: 1 });

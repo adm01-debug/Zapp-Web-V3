@@ -11,6 +11,7 @@ interface MessagesSettingsProps {
   updateSettings: (updates: Partial<MessagesSettingsProps['settings']>) => void;
 }
 
+/** Messages Settings component for the settings section. */
 export function MessagesSettings({ settings, updateSettings }: MessagesSettingsProps) {
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">

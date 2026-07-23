@@ -5,6 +5,7 @@ import { getLogger } from '@/lib/logger';
 const log = getLogger('useContactAssignment');
 import { dbFrom } from '@/integrations/datasource/db';
 
+/** Hook: use Contact Assignment. */
 export function useContactAssignment(contactId: string) {
   const assignAgent = useCallback(async (agentId: string | null) => {
     try {

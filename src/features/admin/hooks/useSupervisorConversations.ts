@@ -15,18 +15,21 @@ import {
   type SupervisorConversationInput,
 } from '../lib/supervisorPriority';
 
+/** Supervisor Conversation Row interface definition. */
 export interface SupervisorConversationRow extends SupervisorConversationInput {
   agentName: string | null;
   queueName: string | null;
   priority: PriorityInfo;
 }
 
+/** Agent Option interface definition. */
 export interface AgentOption {
   id: string;
   name: string;
   role: string;
 }
 
+/** Queue Option interface definition. */
 export interface QueueOption {
   id: string;
   name: string;
@@ -41,6 +44,7 @@ interface ContactsResp {
 
 const SUPERVISOR_ROLES = ['agent', 'supervisor', 'admin', 'manager'];
 
+/** use Supervisor Conversations function. */
 export function useSupervisorConversations() {
   const [rows, setRows] = useState<SupervisorConversationRow[]>([]);
   const [agents, setAgents] = useState<AgentOption[]>([]);

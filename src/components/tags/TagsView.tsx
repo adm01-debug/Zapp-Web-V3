@@ -46,6 +46,7 @@ const COLORS = [
   '#6b7280', // gray
 ];
 
+/** Tags View component for the tags section. */
 export function TagsView() {
   const { tags, isLoading, createTag, updateTag, deleteTag, isCreating, isUpdating, isDeleting } = useTags();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);

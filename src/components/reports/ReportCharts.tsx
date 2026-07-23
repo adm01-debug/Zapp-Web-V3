@@ -24,7 +24,9 @@ import {
   type ContactsChartData,
 } from './reportChartsHelpers';
 
+/** Re-exported module members. */
 export type { ChartData, ContactsChartData };
+/** Re-exported module members. */
 export {
   ComparisonSummaryChart,
   PeriodAreaChart,
@@ -33,6 +35,7 @@ export {
 } from './reportChartsCommon';
 
 // ─── Daily Messages Chart (non-comparison) ───
+/** Daily Messages Chart component for the reports section. */
 export function DailyMessagesChart({ data, isLoading }: { data: ChartData; isLoading: boolean }) {
   return (
     <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
@@ -116,6 +119,7 @@ export function DailyMessagesChart({ data, isLoading }: { data: ChartData; isLoa
 }
 
 // ─── Contacts Charts ───
+/** Contacts Charts component for the reports section. */
 export function ContactsCharts({
   data,
   isLoading,
@@ -168,7 +172,7 @@ export function ContactsCharts({
                   cy="50%"
                   outerRadius={100}
                   dataKey="value"
-                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  label={({ name, percent }) => `${name} ${((percent ?? 0) * 100).toFixed(0)}%`}
                 >
                   {data.byType.map((_, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />

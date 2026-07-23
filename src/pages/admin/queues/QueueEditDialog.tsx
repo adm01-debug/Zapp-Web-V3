@@ -36,6 +36,7 @@ interface Props {
   onSave: () => void;
 }
 
+/** Queue Edit Dialog. */
 export function QueueEditDialog({
   open,
   editing,
@@ -63,7 +64,7 @@ export function QueueEditDialog({
             <Input
               id="queue-name"
               value={editing?.name ?? ''}
-              onChange={(e) => onChange({ ...editing!, name: e.target.value })}
+              onChange={(e) => onChange({ ...(editing ?? {}), name: e.target.value })}
             />
           </div>
           <div>
@@ -71,7 +72,7 @@ export function QueueEditDialog({
             <Input
               id="queue-description"
               value={editing?.description ?? ''}
-              onChange={(e) => onChange({ ...editing!, description: e.target.value })}
+              onChange={(e) => onChange({ ...(editing ?? {}), description: e.target.value })}
             />
           </div>
           <div className="grid grid-cols-2 gap-3">
@@ -81,7 +82,7 @@ export function QueueEditDialog({
                 id="queue-color"
                 type="color"
                 value={editing?.color ?? '#3B82F6'}
-                onChange={(e) => onChange({ ...editing!, color: e.target.value })}
+                onChange={(e) => onChange({ ...(editing ?? {}), color: e.target.value })}
               />
             </div>
             <div>
@@ -90,7 +91,7 @@ export function QueueEditDialog({
                 id="queue-priority"
                 type="number"
                 value={editing?.priority ?? 0}
-                onChange={(e) => onChange({ ...editing!, priority: Number(e.target.value) })}
+                onChange={(e) => onChange({ ...(editing ?? {}), priority: Number(e.target.value) })}
               />
             </div>
           </div>
@@ -101,7 +102,7 @@ export function QueueEditDialog({
               <Select
                 value={editing?.distribution_algorithm ?? 'least_busy'}
                 onValueChange={(v) =>
-                  onChange({ ...editing!, distribution_algorithm: v as DistAlgo })
+                  onChange({ ...(editing ?? {}), distribution_algorithm: v as DistAlgo })
                 }
               >
                 <SelectTrigger id="queue-algorithm">
@@ -121,7 +122,7 @@ export function QueueEditDialog({
               <Select
                 value={editing?.department_id ?? 'none'}
                 onValueChange={(v) =>
-                  onChange({ ...editing!, department_id: v === 'none' ? null : v })
+                  onChange({ ...(editing ?? {}), department_id: v === 'none' ? null : v })
                 }
               >
                 <SelectTrigger id="queue-department">
@@ -149,7 +150,7 @@ export function QueueEditDialog({
                 value={editing?.max_queue_size ?? ''}
                 onChange={(e) =>
                   onChange({
-                    ...editing!,
+                    ...(editing ?? {}),
                     max_queue_size: e.target.value ? Number(e.target.value) : null,
                   })
                 }
@@ -164,7 +165,7 @@ export function QueueEditDialog({
                 value={editing?.max_wait_seconds ?? ''}
                 onChange={(e) =>
                   onChange({
-                    ...editing!,
+                    ...(editing ?? {}),
                     max_wait_seconds: e.target.value ? Number(e.target.value) : null,
                   })
                 }
@@ -179,7 +180,7 @@ export function QueueEditDialog({
                 value={editing?.max_per_queue_per_agent ?? ''}
                 onChange={(e) =>
                   onChange({
-                    ...editing!,
+                    ...(editing ?? {}),
                     max_per_queue_per_agent: e.target.value ? Number(e.target.value) : null,
                   })
                 }
@@ -192,7 +193,7 @@ export function QueueEditDialog({
             <Select
               value={editing?.overflow_queue_id ?? 'none'}
               onValueChange={(v) =>
-                onChange({ ...editing!, overflow_queue_id: v === 'none' ? null : v })
+                onChange({ ...(editing ?? {}), overflow_queue_id: v === 'none' ? null : v })
               }
             >
               <SelectTrigger id="queue-overflow">
@@ -218,7 +219,7 @@ export function QueueEditDialog({
               type="number"
               value={editing?.max_wait_time_minutes ?? 30}
               onChange={(e) =>
-                onChange({ ...editing!, max_wait_time_minutes: Number(e.target.value) })
+                onChange({ ...(editing ?? {}), max_wait_time_minutes: Number(e.target.value) })
               }
             />
           </div>
@@ -228,7 +229,7 @@ export function QueueEditDialog({
             <Switch
               id="queue-is-active"
               checked={editing?.is_active ?? true}
-              onCheckedChange={(v) => onChange({ ...editing!, is_active: v })}
+              onCheckedChange={(v) => onChange({ ...(editing ?? {}), is_active: v })}
             />
           </div>
         </div>

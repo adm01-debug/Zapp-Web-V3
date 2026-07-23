@@ -38,6 +38,7 @@ function KpiCard({ icon, label, value, hint }: KpiProps) {
   );
 }
 
+/** Search Insights K P I Cards function. */
 export function SearchInsightsKPICards({ data, isLoading }: Props) {
   const insights: SearchInsights = normalizeSearchInsights(data);
   const placeholder = isLoading ? '—' : null;

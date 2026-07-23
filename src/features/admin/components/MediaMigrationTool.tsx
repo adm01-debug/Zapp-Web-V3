@@ -16,6 +16,7 @@ interface MigrationResult {
   _id?: number;
 }
 
+/** Media Migration Tool component. */
 export function MediaMigrationTool() {
   const [running, setRunning] = useState(false);
   const [result, setResult] = useState<MigrationResult | null>(null);

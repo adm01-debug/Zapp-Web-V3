@@ -5,6 +5,7 @@
  */
 import { useAutomationFailureAlerts } from "@/features/inbox";
 
+/** Headless component that activates the global automation-failure toast alert system; renders nothing. */
 export function AutomationFailureAlertsMount(): null {
   useAutomationFailureAlerts(true);
   return null;

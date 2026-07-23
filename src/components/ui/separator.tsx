@@ -17,4 +17,5 @@ const Separator = React.forwardRef<
 ));
 Separator.displayName = SeparatorPrimitive.Root.displayName;
 
+/** separator component for the ui section. */
 export { Separator };

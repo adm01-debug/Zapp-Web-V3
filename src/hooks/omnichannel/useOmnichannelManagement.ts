@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, type UseMutationResult } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import type { Database } from '@/integrations/supabase/schema';
@@ -10,8 +10,10 @@ import { queryKeys } from '@/services/api/queryKeys';
 // Types
 // ═══════════════════════════════════════════════════════════
 
+/** Hook: Channel Type. */
 export type ChannelType = 'whatsapp' | 'instagram' | 'telegram' | 'messenger' | 'webchat' | 'email';
 
+/** Hook: Omnichannel Channel. */
 export interface OmnichannelChannel {
   id: string;
   name: string;
@@ -19,12 +21,14 @@ export interface OmnichannelChannel {
   status: string;
 }
 
+/** Hook: New Routing Rule. */
 export interface NewRoutingRule {
   channel_type: string;
   queue_id: string;
   priority: number;
 }
 
+/** Hook: Routing Rule. */
 export interface RoutingRule {
   id: string;
   channel_type: string;
@@ -38,34 +42,35 @@ export interface RoutingRule {
   channel_connection?: { name: string } | null;
 }
 
-export interface UseOmnichannelChannelsParams {
-  // no params needed
-}
+/** Hook: Use Omnichannel Channels Params. */
+export type UseOmnichannelChannelsParams = Record<string, never>;
 
+/** Hook: Use Omnichannel Channels Result. */
 export interface UseOmnichannelChannelsResult {
   channels: OmnichannelChannel[];
   isLoading: boolean;
-  addChannel: ReturnType<typeof useMutation>;
-  deleteChannel: ReturnType<typeof useMutation>;
+  addChannel: UseMutationResult<void, Error, { name: string; channel_type: ChannelType }, unknown>;
+  deleteChannel: UseMutationResult<void, Error, string, unknown>;
 }
 
-export interface UseChannelRoutingRulesParams {
-  // no params needed
-}
+/** Hook: Use Channel Routing Rules Params. */
+export type UseChannelRoutingRulesParams = Record<string, never>;
 
+/** Hook: Use Channel Routing Rules Result. */
 export interface UseChannelRoutingRulesResult {
   rules: RoutingRule[];
   isLoading: boolean;
   queues: Array<{ id: string; name: string }>;
-  toggleRule: ReturnType<typeof useMutation>;
-  deleteRule: ReturnType<typeof useMutation>;
-  createRule: ReturnType<typeof useMutation>;
+  toggleRule: UseMutationResult<void, Error, { id: string; is_active: boolean }, unknown>;
+  deleteRule: UseMutationResult<void, Error, string, unknown>;
+  createRule: UseMutationResult<void, Error, NewRoutingRule, unknown>;
 }
 
 // ═══════════════════════════════════════════════════════════
 // Channels Management (useOmnichannelChannels consolidation)
 // ═══════════════════════════════════════════════════════════
 
+/** Hook: use Omnichannel Channels Management. */
 export function useOmnichannelChannelsManagement(
   _params: UseOmnichannelChannelsParams = {}
 ): UseOmnichannelChannelsResult {
@@ -96,7 +101,9 @@ export function useOmnichannelChannelsManagement(
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.omnichannel.channels() });
-      void queryClient.invalidateQueries({ queryKey: queryKeys.adminOps.realtimeMonitorConnections() });
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.adminOps.realtimeMonitorConnections(),
+      });
       toastHook({ title: 'Canal adicionado com sucesso' });
     },
     onError: () => {
@@ -111,7 +118,9 @@ export function useOmnichannelChannelsManagement(
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.omnichannel.channels() });
-      void queryClient.invalidateQueries({ queryKey: queryKeys.adminOps.realtimeMonitorConnections() });
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.adminOps.realtimeMonitorConnections(),
+      });
       toastHook({ title: 'Canal removido' });
     },
     onError: () => {
@@ -126,6 +135,7 @@ export function useOmnichannelChannelsManagement(
 // Routing Rules Management (useChannelRoutingRules consolidation)
 // ═══════════════════════════════════════════════════════════
 
+/** Hook: use Channel Routing Rules Management. */
 export function useChannelRoutingRulesManagement(
   _params: UseChannelRoutingRulesParams = {}
 ): UseChannelRoutingRulesResult {

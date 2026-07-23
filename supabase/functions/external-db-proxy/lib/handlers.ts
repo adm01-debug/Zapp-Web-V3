@@ -12,6 +12,7 @@ import {
 
 const HARD_TIMEOUT_MS = 14000
 
+/** handlers utilities and exports. */
 export async function withTimeout<T>(p: PromiseLike<T>): Promise<{ data: T | null; timeoutFired: boolean }> {
   let timer: number | undefined
   let timeoutFired = false
@@ -30,6 +31,7 @@ export async function withTimeout<T>(p: PromiseLike<T>): Promise<{ data: T | nul
   return result
 }
 
+/** handle Rpc function. */
 export async function handleRpc(
   client: SupabaseClient,
   rpc: string,
@@ -106,6 +108,7 @@ export async function handleRpc(
 
 type DynamicQueryBuilder = Record<string, (col: string, val: unknown) => DynamicQueryBuilder>
 
+/** handle Query function. */
 export async function handleQuery(
   client: SupabaseClient,
   action: 'select' | 'update',

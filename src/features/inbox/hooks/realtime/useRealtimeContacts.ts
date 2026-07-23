@@ -104,7 +104,10 @@ export function useRealtimeContacts(options: UseRealtimeContactsOptions = {}) {
     // principal autenticado quando VITE_EXTERNAL_* ausentes). O gate por
     // isExternalConfigured deixava o realtime de contatos permanentemente
     // desligado em produção.
-    if (!enabled || !externalSupabase) {
+    // Capture the client reference at effect setup time so cleanup always
+    // calls removeChannel on the same instance that created the channel.
+    const client = externalSupabase;
+    if (!enabled || !client) {
       setRealtimeContactsStatus('disconnected');
       return;
     }
@@ -206,7 +209,7 @@ export function useRealtimeContacts(options: UseRealtimeContactsOptions = {}) {
     };
 
     const channelName = `realtime:evolution_contacts:${instance}`;
-    const channel = externalSupabase
+    const channel = client
       .channel(channelName)
       .on(
         'postgres_changes',
@@ -234,8 +237,7 @@ export function useRealtimeContacts(options: UseRealtimeContactsOptions = {}) {
       }
       pendingRef.current = new Map();
       setRealtimeContactsStatus('disconnected');
-      void channel.unsubscribe();
-      void externalSupabase.removeChannel(channel);
+      client.removeChannel(channel);
     };
   }, [enabled, instance, queryClient]);
 }

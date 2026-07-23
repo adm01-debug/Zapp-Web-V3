@@ -12,6 +12,7 @@ interface QuietHoursCardProps {
   isQuietHours: () => boolean;
 }
 
+/** Quiet Hours Card component for the notifications section. */
 export function QuietHoursCard({ settings, updateSettings, isQuietHours }: QuietHoursCardProps) {
   return (
     <Card className="border-secondary/20 bg-card">

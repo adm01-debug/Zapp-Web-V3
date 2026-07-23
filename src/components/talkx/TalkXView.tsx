@@ -35,6 +35,7 @@ import { TalkXBlacklist } from './TalkXBlacklist';
 import { TalkXAnalytics } from './TalkXAnalytics';
 import { SectionErrorBoundary } from '@/components/ui/section-error-boundary';
 
+/** Full-page TalkX view for creating, monitoring, and managing mass-message campaigns and the contact blacklist. */
 export default function TalkXView() {
   const {
     campaigns,
@@ -63,7 +64,7 @@ export default function TalkXView() {
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       result = result.filter(
-        (c) => c.name.toLowerCase().includes(q) || c.message_template.toLowerCase().includes(q)
+        (c) => c.name.toLowerCase().includes(q) || (c.message_template ?? '').toLowerCase().includes(q)
       );
     }
     return result;
@@ -94,7 +95,6 @@ export default function TalkXView() {
       })
       .subscribe();
     return () => {
-      channel.unsubscribe();
       supabase.removeChannel(channel);
     };
   }, [refetchCampaigns]);

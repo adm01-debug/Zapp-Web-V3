@@ -18,6 +18,7 @@ interface NewConversationModalProps {
   onConversationStarted?: (contactId: string) => void;
 }
 
+/** New Conversation Modal component. */
 export function NewConversationModal({ open, onOpenChange, onConversationStarted }: NewConversationModalProps) {
   const {
     searchQuery, setSearchQuery, contacts, selectedContact, setSelectedContact,

@@ -19,6 +19,7 @@ import { TruncatedTooltip } from './TruncatedTooltip';
 import { useConversationDisplay } from './useConversationDisplay';
 import { AlertCircle } from 'lucide-react';
 
+/** Conversation Item Comfortable component for the conversation list section. */
 export const ConversationItemComfortable = memo(function ConversationItemComfortable({
   conversation,
   isSelected,
@@ -145,7 +146,6 @@ export const ConversationItemComfortable = memo(function ConversationItemComfort
                     .toUpperCase()}
                 </AvatarFallback>
               </Avatar>
-              {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
               {typeof conversation.assignedTo === 'object' && conversation.assignedTo?.name ? (
                 <Avatar className="absolute -bottom-1 -right-1 h-5 w-5 shadow-sm ring-2 ring-background">
                   <AvatarImage

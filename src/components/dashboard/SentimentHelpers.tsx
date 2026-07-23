@@ -1,71 +1,22 @@
 /* eslint-disable react-refresh/only-export-components */
-import { supabase } from '@/integrations/supabase/client';
-import { queryKeys } from '@/services/api/queryKeys';
-import { useQuery } from '@tanstack/react-query';
 import {
   TrendingUp, TrendingDown, Minus, Smile, Meh, Frown, AlertTriangle,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
-import { format, subDays } from 'date-fns';
+import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+export type { SentimentData } from '@/hooks/useSentimentAnalyses';
+export { useRealSentimentData } from '@/hooks/useSentimentAnalyses';
 
-export interface SentimentData {
-  date: string;
-  positive: number;
-  neutral: number;
-  negative: number;
-  avg_score: number;
-  alerts_count: number;
-}
-
-export function useRealSentimentData(days: number): SentimentData[] | null {
-  const { data } = useQuery({
-    queryKey: queryKeys.adminOps.sentimentTrend(days),
-    queryFn: async () => {
-      const startDate = subDays(new Date(), days);
-      const { data: analyses, error } = await supabase
-        .from('conversation_analyses')
-        .select('created_at, sentiment, sentiment_score')
-        .gte('created_at', startDate.toISOString())
-        .order('created_at');
-      
-      if (error) throw error;
-      if (!analyses || analyses.length === 0) return null;
-      
-      const dayMap = new Map<string, { positive: number; negative: number; neutral: number; total: number; alerts: number }>();
-      
-      analyses.forEach(a => {
-        const dateKey = format(new Date(a.created_at), 'yyyy-MM-dd');
-        if (!dayMap.has(dateKey)) dayMap.set(dateKey, { positive: 0, negative: 0, neutral: 0, total: 0, alerts: 0 });
-        const entry = dayMap.get(dateKey) ?? { positive: 0, negative: 0, neutral: 0, total: 0, alerts: 0 };
-        entry.total++;
-        if (a.sentiment === 'positivo') entry.positive++;
-        else if (a.sentiment === 'negativo') { entry.negative++; entry.alerts++; }
-        else entry.neutral++;
-      });
-      
-      return Array.from(dayMap.entries()).map(([date, counts]) => ({
-        date,
-        positive: Math.round((counts.positive / counts.total) * 100),
-        neutral: Math.round((counts.neutral / counts.total) * 100),
-        negative: Math.round((counts.negative / counts.total) * 100),
-        avg_score: (counts.positive - counts.negative) / counts.total,
-        alerts_count: counts.alerts,
-      }));
-    },
-    staleTime: 5 * 60 * 1000,
-  });
-  
-  return data ?? null;
-}
-
+/** Sentiment Icon component for the dashboard section. */
 export function SentimentIcon({ score }: { score: number }) {
   if (score >= 0.3) return <Smile className="w-5 h-5 text-success" />;
   if (score >= -0.3) return <Meh className="w-5 h-5 text-warning" />;
   return <Frown className="w-5 h-5 text-destructive" />;
 }
 
+/** Trend Indicator component for the dashboard section. */
 export function TrendIndicator({ current, previous }: { current: number; previous: number }) {
   const diff = current - previous;
   const percentage = previous !== 0 ? Math.abs((diff / previous) * 100).toFixed(1) : '0';
@@ -96,6 +47,7 @@ export function TrendIndicator({ current, previous }: { current: number; previou
   );
 }
 
+/** Sentiment Stats Cards component for the dashboard section. */
 export function SentimentStatsCards({ stats }: { stats: { avgScore: number; totalAlerts: number; avgPositive: number; avgNegative: number; recentAvg: number; previousAvg: number } }) {
   return (
     <div className="grid grid-cols-4 gap-3">
@@ -146,12 +98,14 @@ interface TooltipPayloadItem {
   payload: SentimentDataPoint;
 }
 
+/** Custom Tooltip Props component for the dashboard section. */
 export interface CustomTooltipProps {
   active?: boolean;
   payload?: TooltipPayloadItem[];
   label?: string;
 }
 
+/** Sentiment Custom Tooltip component for the dashboard section. */
 export const SentimentCustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
   if (!active || !payload || !payload.length || !label) return null;
   

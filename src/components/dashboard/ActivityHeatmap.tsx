@@ -39,6 +39,7 @@ const getLevelColor = (level: number, isDark: boolean = false) => {
   return colors[level] || colors[0];
 };
 
+/** Activity Heatmap component for the dashboard section. */
 export const ActivityHeatmap = ({
   title = 'Atividade',
   data: propData,
@@ -62,7 +63,7 @@ export const ActivityHeatmap = ({
 
       // Group by day
       const dayCounts = new Map<string, number>();
-      (messages || []).forEach((m) => {
+      (messages || []).forEach((m: { created_at: string }) => {
         const dateKey = format(new Date(m.created_at), 'yyyy-MM-dd');
         dayCounts.set(dateKey, (dayCounts.get(dateKey) || 0) + 1);
       });

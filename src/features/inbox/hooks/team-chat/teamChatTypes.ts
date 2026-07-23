@@ -1,3 +1,4 @@
+/** Database row for an internal team conversation: direct DM, group chat, or department channel, with optional embedded members and last-message preview. */
 export interface TeamConversation {
   id: string;
   type: 'direct' | 'group' | 'department';
@@ -13,6 +14,7 @@ export interface TeamConversation {
   metadata?: Record<string, unknown> | null;
 }
 
+/** Membership record linking a profile to a team conversation, tracking join time, last-read position, and mute preference. */
 export interface TeamMember {
   id: string;
   conversation_id: string;
@@ -29,6 +31,7 @@ export interface TeamMember {
   };
 }
 
+/** A single message in an internal team conversation, supporting text, media, replies, edits, and delivery status tracking. */
 export interface TeamMessage {
   id: string;
   conversation_id: string;

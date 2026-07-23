@@ -120,11 +120,12 @@ Deno.serve(async (req) => {
         echoMatches: text === challenge,
         durationMs: Math.round(performance.now() - t0),
       };
-    } catch (e) {
+    } catch {
+      console.error("[webhook-verify] handshake error — see server logs");
       handshake = {
         status: "fail",
         durationMs: Math.round(performance.now() - t0),
-        error: e instanceof Error ? e.message : String(e),
+        error: "Erro interno ao verificar webhook. Consulte os logs para detalhes.",
       };
     }
   }

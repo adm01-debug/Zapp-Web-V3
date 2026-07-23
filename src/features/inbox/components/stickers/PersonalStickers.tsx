@@ -1,3 +1,4 @@
+// Personal stickers panel — full API backed by usePersonalStickers hook.
 import { useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -14,6 +15,7 @@ import type { StickerItem } from './StickerTypes';
 
 interface PersonalStickersProps { onSend?: (stickerUrl: string) => void; }
 
+/** Personal Stickers component for the stickers section. */
 export function PersonalStickers({ onSend }: PersonalStickersProps) {
   const { profile, stickers, isLoading, uploading, fileInputRef, handleUpload, toggleFavorite, deleteSticker, incrementUseCount } = usePersonalStickers();
   const [search, setSearch] = useState('');

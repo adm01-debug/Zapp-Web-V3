@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { useMountedRef } from '@/hooks/useMountedRef';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Ban, Plus, Trash2, Clock, Globe, Loader2, Search, Shield } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,8 +9,10 @@ import { Badge } from '@/components/ui/badge';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { BlockIPDialog, UnblockIPDialog } from './BlockedIPDialogs';
-import { normalizeBlockedIP, type NormalizedBlockedIP as BlockedIP } from '@/lib/normalizers';
+import { type NormalizedBlockedIP as BlockedIP } from '@/lib/normalizers';
+import { fetchBlockedIPs } from '@/hooks/useBlockedIPs';
 
+/** Blocked IPs Panel component for the security section. */
 export function BlockedIPsPanel() {
   const [blockedIPs, setBlockedIPs] = useState<BlockedIP[]>([]);
   const [loading, setLoading] = useState(true);
@@ -20,22 +21,21 @@ export function BlockedIPsPanel() {
   const [ipToRemove, setIpToRemove] = useState<BlockedIP | null>(null);
   const mountedRef = useMountedRef();
 
-  const fetchBlockedIPs = async () => {
+  const loadBlockedIPs = async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from('blocked_ips')
-      .select('*')
-      .order('blocked_at', { ascending: false });
-    if (!mountedRef.current) return;
-    if (!error && data)
-      setBlockedIPs(
-        data.map((row) => normalizeBlockedIP(row as unknown as Record<string, unknown>))
-      );
-    setLoading(false);
+    try {
+      const data = await fetchBlockedIPs();
+      if (!mountedRef.current) return;
+      setBlockedIPs(data);
+    } catch {
+      // silently ignore
+    } finally {
+      if (mountedRef.current) setLoading(false);
+    }
   };
 
   useEffect(() => {
-    void fetchBlockedIPs();
+    void loadBlockedIPs();
   }, []);
 
   const filteredIPs = blockedIPs.filter(
@@ -125,7 +125,7 @@ export function BlockedIPsPanel() {
                         )}
                       </div>
                     </div>
-                    <Button
+                    <Button aria-label="Excluir"
                       variant="ghost"
                       size="sm"
                       onClick={() => setIpToRemove(ip)}
@@ -143,12 +143,12 @@ export function BlockedIPsPanel() {
       <BlockIPDialog
         open={showAddDialog}
         onClose={() => setShowAddDialog(false)}
-        onSuccess={fetchBlockedIPs}
+        onSuccess={loadBlockedIPs}
       />
       <UnblockIPDialog
         ip={ipToRemove}
         onClose={() => setIpToRemove(null)}
-        onSuccess={fetchBlockedIPs}
+        onSuccess={loadBlockedIPs}
       />
     </>
   );

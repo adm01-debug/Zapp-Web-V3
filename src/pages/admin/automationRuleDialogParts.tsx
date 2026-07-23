@@ -25,6 +25,7 @@ interface EditingProps {
 }
 
 /* ─── Trigger-specific config fields ─── */
+/** Form fields for configuring the trigger condition of an automation rule. */
 export function TriggerConfigFields({ editing, setEditing }: EditingProps) {
   if (editing.trigger_type === 'first_response_pending' || editing.trigger_type === 'inactivity') {
     return (
@@ -133,6 +134,7 @@ export function TriggerConfigFields({ editing, setEditing }: EditingProps) {
 }
 
 /* ─── Actions form fields ─── */
+/** Form fields for configuring the action list of an automation rule. */
 export function AutomationActionsFields({ editing, setEditing }: EditingProps) {
   return (
     <div className="space-y-3 border-t pt-4">

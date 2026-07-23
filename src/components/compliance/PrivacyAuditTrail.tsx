@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollText, RefreshCw, Inbox } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useLGPDAuditLogs } from './useLGPDAuditLogs';
+import { useLGPDAuditLogs } from '@/hooks/useLGPDAuditLogs';
 import { useAuth } from '@/features/auth';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -23,6 +23,7 @@ function describeAction(action: string): string {
   return ACTION_LABELS[action] ?? action;
 }
 
+/** Privacy Audit Trail component for the compliance section. */
 export function PrivacyAuditTrail() {
   const { user } = useAuth();
   const { logs, loading, error, refetch } = useLGPDAuditLogs(user?.id, 50);
@@ -36,7 +37,7 @@ export function PrivacyAuditTrail() {
           </CardTitle>
           <CardDescription>Registros imutáveis das ações relacionadas aos seus dados</CardDescription>
         </div>
-        <Button variant="outline" size="sm" onClick={refetch} disabled={loading}>
+        <Button variant="outline" size="sm" onClick={() => { void refetch(); }} disabled={loading}>
           <RefreshCw className={`w-3.5 h-3.5 mr-1.5 ${loading ? 'animate-spin' : ''}`} aria-hidden="true" />
           Atualizar
         </Button>

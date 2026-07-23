@@ -11,6 +11,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase as _supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { emailMappers } from '@/utils/emailMappers';
@@ -18,7 +19,6 @@ import { type EmailMessage } from './gmail/gmailTypes';
 import { GMAIL_MOCKS } from './gmail/gmailMocks';
 import { emailSaveDraft, emailDeleteDraft, emailListThreads } from './gmail/gmailApi';
 import { getLogger } from '@/lib/logger';
-import { useMountedRef } from '@/hooks/useMountedRef';
 import {
   EmailAccount,
   EmailTokenInfo,
@@ -34,12 +34,17 @@ const log = getLogger('EmailManagement');
 // TYPES AND INTERFACES
 // ──────────────────────────────────────────────────────────────────────────
 
+/** Re-exported module members. */
 export type { EmailAccount, EmailTokenInfo, EmailThread, EmailSendParams, EmailLabel, SLAStatus };
 
+/** Email Token Status type alias. */
 export type EmailTokenStatus = 'valid' | 'expiring_soon' | 'expired' | 'no_token';
+/** Email Watch Status type alias. */
 export type EmailWatchStatus = 'active' | 'expiring_soon' | 'expired' | 'no_watch';
+/** Token Status type alias. */
 export type TokenStatus = EmailTokenStatus;
 
+/** Draft State interface definition. */
 export interface DraftState {
   id?: string;
   email_draft_id?: string;
@@ -51,6 +56,7 @@ export interface DraftState {
   lastSaved?: Date;
 }
 
+/** Email Search Result interface definition. */
 export interface EmailSearchResult {
   id: string;
   thread_id: string;
@@ -63,6 +69,7 @@ export interface EmailSearchResult {
   source: 'local' | 'remote';
 }
 
+/** Email S L A Record interface definition. */
 export interface EmailSLARecord {
   thread_id: string;
   account_id: string;
@@ -74,6 +81,7 @@ export interface EmailSLARecord {
   warning_threshold_pct: number;
 }
 
+/** Email Signature interface definition. */
 export interface EmailSignature {
   id: string;
   account_id: string;
@@ -90,20 +98,17 @@ export interface EmailSignature {
 
 const supabase = _supabase;
 const AUTO_SAVE_DELAY_MS = 30_000;
+
+const EMAIL_TOKEN_STATUS_KEY = ['email-token-status'] as const;
+const EMAIL_SIGNATURES_KEY = (accountId: string | null) =>
+  ['email-signatures', accountId] as const;
 const DEBOUNCE_MS = 350;
 const MIN_QUERY_LEN = 2;
 
+/** Returns true when the given ID is a mock identifier (prefixed with 'mock-'), used to short-circuit real API calls. */
 const isMockId = (id?: string | null): boolean => !!id && id.startsWith('mock-');
 
-interface BaseThreadRow {
-  id: string;
-  gmail_thread_id?: string | null;
-  gmail_account_id: string;
-  is_unread?: boolean;
-  message_count?: number;
-  [key: string]: unknown;
-}
-
+/** Maps a raw Supabase email_threads row to a typed EmailThread, normalising field aliases and computing unread_count. */
 const mapBaseThreadRow = (row: Record<string, unknown>): EmailThread =>
   emailMappers.thread({
     ...row,
@@ -113,6 +118,7 @@ const mapBaseThreadRow = (row: Record<string, unknown>): EmailThread =>
     unread_count: row['is_unread'] ? Math.max(Number(row['message_count'] ?? 1), 1) : 0,
   });
 
+/** Returns a shallow copy of o with all undefined values removed, used when merging partial realtime updates. */
 const definedOnly = <T extends object>(o: T): Partial<T> =>
   Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined)) as Partial<T>;
 
@@ -132,6 +138,7 @@ const DEFAULT_SLA: SLAConfig = {
   business_end_hour: 18,
 };
 
+/** Computes the number of elapsed business minutes between two dates, optionally restricting to configured business hours and weekdays. */
 function elapsedBusinessMinutes(from: Date, to: Date = new Date(), config?: SLAConfig): number {
   if (!config?.business_hours_only) {
     return Math.floor((to.getTime() - from.getTime()) / 60_000);
@@ -189,6 +196,7 @@ function elapsedBusinessMinutes(from: Date, to: Date = new Date(), config?: SLAC
   return elapsed;
 }
 
+/** Maps elapsed business minutes against SLA thresholds to an SLAStatus of 'ok', 'warning', or 'breached'. */
 function computeStatus(elapsed: number, config: SLAConfig): SLAStatus {
   if (elapsed >= config.threshold_minutes) return 'breached';
   if (elapsed >= config.threshold_minutes * (config.warning_threshold_pct / 100)) return 'warning';
@@ -207,8 +215,8 @@ interface EmailThreadRow {
 
 /** Manages email accounts, threads, messages, and token lifecycle with Gmail integration. */
 export function useEmail() {
+  const queryClient = useQueryClient();
   const [accounts, setAccounts] = useState<EmailAccount[]>([]);
-  const [tokenStatus, setTokenStatus] = useState<EmailTokenInfo[]>([]);
   const [threads, setThreads] = useState<EmailThread[]>([]);
   const [selectedThread, setSelectedThread] = useState<EmailThread | null>(null);
   const [messages, setMessages] = useState<EmailMessage[]>([]);
@@ -237,7 +245,22 @@ export function useEmail() {
     };
   }, []);
 
-  const tokenCheckInterval = useRef<ReturnType<typeof setInterval> | null>(null);
+  const { data: tokenStatus = [], refetch: refetchTokenStatus } = useQuery({
+    queryKey: EMAIL_TOKEN_STATUS_KEY,
+    queryFn: async () => {
+      const { data, error: rpcErr } = await safeClient.rpc('rpc_email_token_status');
+      if (rpcErr && (rpcErr.message.includes('disponível') || rpcErr.message.includes('not found'))) {
+        return GMAIL_MOCKS.tokenStatus;
+      }
+      if (!rpcErr && data) {
+        return emailMappers.tokenInfos(Array.isArray(data) ? data : []);
+      }
+      return [] as EmailTokenInfo[];
+    },
+    enabled: isAuthenticated,
+    refetchInterval: 5 * 60 * 1000,
+    staleTime: 60_000,
+  });
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -287,7 +310,7 @@ export function useEmail() {
       }
     } else {
       setSchemaStatus({ ok: true, lastChecked: new Date() });
-      const accs = emailMappers.accounts(Array.isArray(data) ? data : []);
+      const accs = emailMappers.accounts((Array.isArray(data) ? data : []) as Parameters<typeof emailMappers.accounts>[0]);
       setAccounts(accs);
       if (accs.length > 0) {
         setActiveAccountId((prev) => prev || accs[0].id);
@@ -297,20 +320,8 @@ export function useEmail() {
   }, []);
 
   const checkTokenStatus = useCallback(async () => {
-    const { data, error: rpcErr } = await safeClient.rpc('rpc_email_token_status');
-    if (!mountedRef.current) return;
-    if (rpcErr && (rpcErr.message.includes('disponível') || rpcErr.message.includes('not found'))) {
-      setTokenStatus(GMAIL_MOCKS.tokenStatus);
-    } else if (!rpcErr && data) {
-      const tokenInfos = emailMappers.tokenInfos(Array.isArray(data) ? data : []);
-      setTokenStatus(tokenInfos);
-
-      const statusMap: Record<string, string> = {};
-      tokenInfos.forEach((s) => {
-        statusMap[s.account_id] = s.token_status;
-      });
-    }
-  }, []);
+    await refetchTokenStatus();
+  }, [refetchTokenStatus]);
 
   const loadThreads = useCallback(
     async (accountId?: string, label: EmailLabel = 'INBOX', pageOffset = 0) => {
@@ -630,6 +641,7 @@ export function useEmail() {
       };
 
       const handler = async (event: MessageEvent) => {
+        if (event.origin !== window.location.origin) return;
         if (settled) return;
         if (event.data?.type === 'gmail-oauth-error') {
           settled = true;
@@ -741,22 +753,6 @@ export function useEmail() {
       supabase.removeChannel(channel);
     };
   }, [activeAccountId]);
-
-  useEffect(() => {
-    if (!isAuthenticated) return;
-    void checkTokenStatus();
-
-    tokenCheckInterval.current = setInterval(
-      () => {
-        void checkTokenStatus();
-      },
-      5 * 60 * 1000
-    );
-
-    return () => {
-      if (tokenCheckInterval.current) clearInterval(tokenCheckInterval.current);
-    };
-  }, [checkTokenStatus, isAuthenticated]);
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -1101,6 +1097,7 @@ export function useEmailSearch(accountId: string | null) {
 
 /** Tracks SLA metrics for email threads with configurable thresholds and status monitoring. */
 export function useEmailSLA(accountId: string | null, config: Partial<SLAConfig> = {}) {
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const slaConfig: SLAConfig = { ...DEFAULT_SLA, ...config };
   const [records, setRecords] = useState<Record<string, EmailSLARecord>>({});
 
@@ -1234,28 +1231,21 @@ export function useEmailSLA(accountId: string | null, config: Partial<SLAConfig>
 
 /** Manages email signatures per account with create, update, delete, and default selection capabilities. */
 export function useEmailSignature(accountId: string | null) {
-  const [signatures, setSignatures] = useState<EmailSignature[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const mountedRef = useMountedRef();
+  const queryClient = useQueryClient();
 
-  const load = useCallback(async () => {
-    if (!accountId) {
-      setSignatures([]);
-      return;
-    }
-    setIsLoading(true);
-    const { data, error } = await safeClient.from<EmailSignature>('email_signatures', (q) =>
-      q.select('*').eq('account_id', accountId).order('is_default', { ascending: false })
-    );
-
-    if (!mountedRef.current) return;
-    if (!error) setSignatures(data ?? []);
-    setIsLoading(false);
-  }, [accountId, mountedRef]);
-
-  useEffect(() => {
-    load();
-  }, [load]);
+  const { data: signatures = [], isLoading } = useQuery({
+    queryKey: EMAIL_SIGNATURES_KEY(accountId),
+    queryFn: async () => {
+      if (!accountId) return [] as EmailSignature[];
+      const { data, error } = await safeClient.from<EmailSignature>('email_signatures', (q) =>
+        q.select('*').eq('account_id', accountId).order('is_default', { ascending: false })
+      );
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: !!accountId,
+    staleTime: 30_000,
+  });
 
   const save = useCallback(
     async (sig: Partial<EmailSignature> & { html_content: string; name: string }) => {
@@ -1269,7 +1259,7 @@ export function useEmailSignature(accountId: string | null) {
               html_content: sig.html_content,
               is_default: sig.is_default ?? false,
             })
-            .eq('id', sig.id!)
+            .eq('id', sig.id ?? '')
         );
         if (error) {
           log.error('Email signature save error', error);
@@ -1290,9 +1280,9 @@ export function useEmailSignature(accountId: string | null) {
         }
       }
 
-      await load();
+      await queryClient.invalidateQueries({ queryKey: EMAIL_SIGNATURES_KEY(accountId) });
     },
-    [accountId, load]
+    [accountId, queryClient]
   );
 
   const remove = useCallback(
@@ -1302,21 +1292,30 @@ export function useEmailSignature(accountId: string | null) {
         log.error('Email signature delete error', error);
         return;
       }
-      await load();
+      await queryClient.invalidateQueries({ queryKey: EMAIL_SIGNATURES_KEY(accountId) });
     },
-    [load]
+    [accountId, queryClient]
   );
 
   const setDefault = useCallback(
     async (id: string) => {
       if (!accountId) return;
-      await safeClient.from('email_signatures', (q) =>
-        q.update({ is_default: false }).eq('account_id', accountId!)
+      // Set the new default first so there is always at least one default signature.
+      // Clear others second: if this fails, two rows have is_default=true (harmless)
+      // rather than zero rows (which would break the UI).
+      const { error: setErr } = await safeClient.from('email_signatures', (q) =>
+        q.update({ is_default: true }).eq('id', id)
       );
-      await safeClient.from('email_signatures', (q) => q.update({ is_default: true }).eq('id', id));
-      await load();
+      if (setErr) return;
+      await safeClient.from('email_signatures', (q) =>
+        q
+          .update({ is_default: false })
+          .eq('account_id', accountId ?? '')
+          .neq('id', id)
+      );
+      await queryClient.invalidateQueries({ queryKey: EMAIL_SIGNATURES_KEY(accountId) });
     },
-    [accountId, load]
+    [accountId, queryClient]
   );
 
   const defaultSignature = signatures.find((s) => s.is_default) ?? null;
@@ -1328,6 +1327,7 @@ export function useEmailSignature(accountId: string | null) {
 // BACKWARD COMPATIBILITY
 // ──────────────────────────────────────────────────────────────────────────
 
+/** Default export. */
 export default {
   useEmail,
   useEmailDraft,

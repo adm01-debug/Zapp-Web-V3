@@ -2,17 +2,20 @@
  * Comprehensive emoji database with Portuguese keywords for search
  */
 
+/** Emoji Entry interface. */
 export interface EmojiEntry {
   emoji: string;
   keywords: string[];
 }
 
+/** Emoji Category Data interface. */
 export interface EmojiCategoryData {
   label: string;
   icon: string;
   emojis: EmojiEntry[];
 }
 
+/** emoji Database constant. */
 export const emojiDatabase: Record<string, EmojiCategoryData> = {
   smileys: {
     label: 'Rostos',
@@ -617,12 +620,14 @@ export const emojiDatabase: Record<string, EmojiCategoryData> = {
 // Flatten all emojis for search
 let _searchCache: EmojiEntry[] | null = null;
 
+/** get All Emojis function. */
 export function getAllEmojis(): EmojiEntry[] {
   if (_searchCache) return _searchCache;
   _searchCache = Object.values(emojiDatabase).flatMap(cat => cat.emojis);
   return _searchCache;
 }
 
+/** search Emojis function. */
 export function searchEmojis(query: string): EmojiEntry[] {
   if (!query.trim()) return [];
   const q = query.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
@@ -633,4 +638,5 @@ export function searchEmojis(query: string): EmojiEntry[] {
   );
 }
 
+/** E M O J I_ C A T E G O R Y_ K E Y S constant. */
 export const EMOJI_CATEGORY_KEYS = Object.keys(emojiDatabase);

@@ -6,6 +6,7 @@ import { useContactsCRUD } from './useContactsCRUD';
 import type { ContactViewMode } from './ContactViewSwitcher';
 import type { FilterPreset } from './FilterPresets';
 
+/** use Contacts View State component for the contacts section. */
 export function useContactsViewState() {
   const crud = useContactsCRUD();
   const {

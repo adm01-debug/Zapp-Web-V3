@@ -27,6 +27,7 @@ interface StickerPickerProps {
   disabled?: boolean;
 }
 
+/** Sticker Picker component. */
 export function StickerPicker({ onSendSticker, disabled }: StickerPickerProps) {
   const {
     open,

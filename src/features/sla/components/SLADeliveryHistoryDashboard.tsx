@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -18,7 +18,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { queryKeys } from '@/services/api/queryKeys';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
@@ -27,15 +26,18 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 
-interface SlaViolation {
+interface SLADeliveryViolation {
   id: string;
   contact_id: string;
   message_id: string;
   detected_at: string;
   delivered_at: string;
+  severity: 'breached' | 'warning' | string;
   is_resolved: boolean;
-  severity: string;
-  resolved_by_profile?: { display_name: string | null } | null;
+  resolved_at?: string | null;
+  resolved_by?: string | null;
+  resolution_notes?: string | null;
+  resolved_by_profile?: { display_name?: string | null } | null;
 }
 
 export const SLADeliveryHistoryDashboard = () => {
@@ -43,22 +45,19 @@ export const SLADeliveryHistoryDashboard = () => {
   const [searchTerm, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
 
-  const { data: violations, isLoading } = useQuery({
-    queryKey: queryKeys.sla.deliveryViolations(statusFilter),
+  const { data: violations, isLoading } = useQuery<SLADeliveryViolation[]>({
+    queryKey: ['sla-delivery-violations', statusFilter],
     queryFn: async () => {
-      const { data, error } = await safeClient.from<SlaViolation>(
-        'sla_delivery_violations',
-        (q) => {
-          let query = q
-            .select('*, resolved_by_profile:profiles!resolved_by(display_name)')
-            .order('detected_at', { ascending: false });
-          if (statusFilter === 'pending') query = query.eq('is_resolved', false);
-          else if (statusFilter === 'resolved') query = query.eq('is_resolved', true);
-          return query;
-        }
-      );
+      const { data, error } = await safeClient.from('sla_delivery_violations', (q) => {
+        let query = q
+          .select('*, resolved_by_profile:profiles!resolved_by(display_name)')
+          .order('detected_at', { ascending: false });
+        if (statusFilter === 'pending') query = query.eq('is_resolved', false);
+        else if (statusFilter === 'resolved') query = query.eq('is_resolved', true);
+        return query;
+      });
       if (error) throw error;
-      return data;
+      return (data ?? []) as unknown as SLADeliveryViolation[];
     },
   });
 
@@ -81,19 +80,14 @@ export const SLADeliveryHistoryDashboard = () => {
     },
     onSuccess: () => {
       toast.success('Alerta marcado como resolvido');
-      queryClient.invalidateQueries({ queryKey: queryKeys.sla.deliveryViolations() });
+      queryClient.invalidateQueries({ queryKey: ['sla-delivery-violations'] });
     },
-    onError: (err: Error) => toast.error(err.message),
   });
 
-  const filteredViolations = useMemo(
-    () =>
-      violations?.filter(
-        (v) =>
-          v.contact_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          v.message_id.toLowerCase().includes(searchTerm.toLowerCase()),
-      ),
-    [violations, searchTerm],
+  const filteredViolations = violations?.filter(
+    (v) =>
+      (v.contact_id ?? '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (v.message_id ?? '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
@@ -185,7 +179,12 @@ export const SLADeliveryHistoryDashboard = () => {
                           Resolvido
                         </div>
                         <span className="text-[10px] text-muted-foreground">
-                          por {v.resolved_by_profile?.display_name || 'Agente'}
+                          por{' '}
+                          {(
+                            v as typeof v & {
+                              resolved_by_profile?: { display_name?: string } | null;
+                            }
+                          ).resolved_by_profile?.display_name || 'Agente'}
                         </span>
                       </div>
                     ) : (

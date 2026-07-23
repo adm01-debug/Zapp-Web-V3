@@ -22,6 +22,7 @@ interface AIProviderCardProps {
   index: number;
 }
 
+/** AIProvider Card component for the settings section. */
 export function AIProviderCard({ provider: p, testing, onTest, onEdit, onDelete, index }: AIProviderCardProps) {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const meta = PROVIDER_LABELS[p.provider_type] || PROVIDER_LABELS.custom_agent;

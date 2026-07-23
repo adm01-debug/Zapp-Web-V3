@@ -13,6 +13,7 @@ interface SentimentAlertCardProps {
   updateSettings: (partial: Partial<NotificationSettings>) => void;
 }
 
+/** Sentiment Alert Card component for the notifications section. */
 export function SentimentAlertCard({ settings, updateSettings }: SentimentAlertCardProps) {
   return (
     <Card className="border-secondary/20 bg-card">

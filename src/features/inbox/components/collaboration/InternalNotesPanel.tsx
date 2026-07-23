@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { queryKeys } from '@/services/api/queryKeys';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { fetchProfileIdByUserId, insertContactNote } from '../../hooks/useContactNotesMutations';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -22,6 +22,7 @@ interface NoteRow {
   author?: { id?: string; name?: string; avatar_url?: string } | null;
 }
 
+/** Internal Notes Panel component for the collaboration section. */
 export function InternalNotesPanel({ contactId }: { contactId: string }) {
   const [newNote, setNewNote] = useState('');
   const queryClient = useQueryClient();
@@ -45,13 +46,9 @@ export function InternalNotesPanel({ contactId }: { contactId: string }) {
   const addNoteMutation = useMutation({
     mutationFn: async (content: string) => {
       if (!user?.id) throw new Error('User not authenticated');
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('user_id', user.id)
-        .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
+      const profile = await fetchProfileIdByUserId(user.id);
       if (!profile) throw new Error('Profile not found');
-      const { error } = await supabase.from('contact_notes').insert({
+      const { error } = await insertContactNote({
         contact_id: contactId,
         content,
         author_id: profile.id,

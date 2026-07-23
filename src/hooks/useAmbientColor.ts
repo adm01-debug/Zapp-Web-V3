@@ -3,6 +3,7 @@ import { useAmbientColorManagement, type AmbientColors } from '@/hooks/useUIMana
 
 type Sentiment = 'positive' | 'neutral' | 'negative' | string | null | undefined;
 
+/** Re-exported module members. */
 export type { AmbientColors };
 
 /** Retrieves ambient color styling based on sentiment classification. */

@@ -12,6 +12,7 @@ interface Props {
   onRunVerify: () => void;
 }
 
+/** Admin Whats App Webhook Verify Card. */
 export function AdminWhatsAppWebhookVerifyCard({ verify, verifyLoading, onRunVerify }: Props) {
   return (
     <Card>

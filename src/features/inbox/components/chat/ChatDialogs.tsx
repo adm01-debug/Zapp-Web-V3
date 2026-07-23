@@ -41,6 +41,7 @@ interface ChatDialogsProps {
   onSetInputValue: (value: string | ((prev: string) => string)) => void;
 }
 
+/** Chat Dialogs component for the chat section. */
 export function ChatDialogs({
   dialogs, openDialog, closeDialog, conversation, forwardMessage, callDirection,
   contactId, onTransfer, onScheduleMessage, onSendInteractiveMessage,

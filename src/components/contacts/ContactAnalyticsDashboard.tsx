@@ -23,6 +23,7 @@ interface ContactAnalyticsDashboardProps {
   className?: string;
 }
 
+/** Contact Analytics Dashboard component for the contacts section. */
 export function ContactAnalyticsDashboard({ contacts, className }: ContactAnalyticsDashboardProps) {
   const analytics = useMemo(() => {
     // Type distribution

@@ -5,6 +5,7 @@ interface ChatSendProgressProps {
   sendProgress: number;
 }
 
+/** Chat Send Progress component for the chat section. */
 export function ChatSendProgress({ isSending, sendProgress }: ChatSendProgressProps) {
   return (
     <AnimatePresence>

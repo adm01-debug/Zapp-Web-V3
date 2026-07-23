@@ -15,6 +15,7 @@ const alertStyles = {
   info: 'bg-muted border-muted-foreground/20 text-muted-foreground',
 };
 
+/** War Room Alert Row component for the dashboard section. */
 export function WarRoomAlertRow({ alert, onDismiss }: AlertRowProps) {
   return (
     <motion.div
