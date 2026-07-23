@@ -37,7 +37,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const { data, error } = await withTimeout(
         authService.getProfile(userId),
-        8000,
+        5000,
         'fetchProfile'
       );
       if (!error && data) {
@@ -66,7 +66,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       const { data: userRoles, error } = await withTimeout(
         Promise.resolve(supabase.from('user_roles').select('role').eq('user_id', userId)),
-        8000,
+        5000,
         'fetchRoles'
       );
 
@@ -96,7 +96,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               roleNames as Array<'admin' | 'agent' | 'dev' | 'manager' | 'special_agent' | 'supervisor'>
             )
         ),
-        8000,
+        5000,
         'fetchPermissions'
       );
 
@@ -169,7 +169,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         const result = await withTimeout(
           supabase.auth.getSession(),
-          8000,
+          4000,
           'getSession'
         );
         const elapsedMs = Math.round(
