@@ -152,8 +152,7 @@ export function useDashboardData(filters?: DashboardFilters) {
       queuesStats,
       recentActivity,
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [contactsData, agentsData, queuesData]);
+  }, [contactsData, agentsData, queuesData, merged]);
 
   const refetch = useCallback(() => {
     return Promise.all([
