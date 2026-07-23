@@ -162,6 +162,7 @@ export function ProtectedRoute({
   // 'dev' always has access
   const isDev = hasRole('dev' as AppRole);
   if (isDev) {
+    markTimeToMainScreen(location.pathname);
     return <>{children}</>;
   }
 
@@ -173,6 +174,12 @@ export function ProtectedRoute({
       log.warn(
         `Unauthorized role access attempt to ${location.pathname}. Required: ${effectiveRoles.join(', ')}`
       );
+      recordAuthzFailure({
+        route: location.pathname,
+        reason: 'role',
+        required: effectiveRoles,
+        current: roles,
+      });
 
       // Log event to Supabase
       // fire-and-forget: não bloquear navegação
@@ -194,6 +201,12 @@ export function ProtectedRoute({
     log.warn(
       `Unauthorized permission access attempt to ${location.pathname}. Required: ${requiredPermission}`
     );
+    recordAuthzFailure({
+      route: location.pathname,
+      reason: 'permission',
+      required: requiredPermission,
+      current: roles,
+    });
 
     // Log already happens inside RPC 'check_user_permission' if we used it,
     // but here we might be checking differently. Let's ensure logging.
@@ -210,6 +223,7 @@ export function ProtectedRoute({
     return <Navigate to="/access-denied" state={{ from: location }} replace />;
   }
 
+  markTimeToMainScreen(location.pathname);
   return <>{children}</>;
 }
 
