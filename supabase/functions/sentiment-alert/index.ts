@@ -1,7 +1,7 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { handleCors, errorResponse, jsonResponse, requireEnv, Logger } from "../_shared/validation.ts";
+import { handleCors, errorResponse, jsonResponse, Logger } from "../_shared/validation.ts";
 import { SentimentAlertSchema, parseBody } from "../_shared/schemas.ts";
 import { requireServiceRoleOrCron } from "../_shared/auth.ts";
+import { createZappAdminClient } from "../_shared/db-client.ts";
 
 Deno.serve(async (req) => {
   const cors = handleCors(req);
@@ -22,7 +22,7 @@ Deno.serve(async (req) => {
 
     log.info("Sentiment alert triggered", { contactId, sentimentScore, threshold, consecutiveRequired });
 
-    const supabase = createClient(requireEnv("SUPABASE_URL"), requireEnv("SUPABASE_SERVICE_ROLE_KEY"), { db: { schema: "zapp" }, auth: { persistSession: false } });
+    const supabase = createZappAdminClient();
 
     const { data: recentAnalyses, error: fetchError } = await supabase
       .from('conversation_analyses')

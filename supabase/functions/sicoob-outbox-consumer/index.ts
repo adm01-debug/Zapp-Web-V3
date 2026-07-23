@@ -1,7 +1,8 @@
 // Sprint 2 — Consumidor da outbox Sicoob.
 // Invocado por pg_cron a cada 1 min. Drena itens pendentes com backoff exponencial.
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCorsHeaders, handleCorsPreflight } from "../_shared/cors.ts";
+import { requireServiceRoleOrCron } from "../_shared/auth.ts";
+import { createZappAdminClient } from "../_shared/db-client.ts";
 
 const MAX_BATCH = 25;
 const MAX_ATTEMPTS = 6; // ~1+2+4+8+16+32 min de backoff
@@ -43,16 +44,17 @@ const MAX_ATTEMPTS = 6; // ~1+2+4+8+16+32 min de backoff
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return handleCorsPreflight(req);
 
+  const authErr = requireServiceRoleOrCron(req);
+  if (authErr) return authErr;
+
   try {
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const sicoobGiftsUrl = Deno.env.get("SICOOB_GIFTS_URL");
     const bridgeSecret = Deno.env.get("SICOOB_GIFTS_BRIDGE_SECRET");
     if (!sicoobGiftsUrl || !bridgeSecret) {
       return json(req, { error: "SICOOB_GIFTS_URL/SECRET not configured" }, 500);
     }
 
-    const supabase = createClient(supabaseUrl, serviceRoleKey, { db: { schema: "zapp" } });
+    const supabase = createZappAdminClient();
 
     // Claim batch atomicamente (evita processamento concorrente)
     const { data: claimed, error: claimErr } = await supabase.rpc("sicoob_outbox_claim", {
@@ -111,7 +113,7 @@ Deno.serve(async (req) => {
 async function processBatch(
   req: Request,
   items: Array<{ id: string; contact_id: string; message_id: string; agent_id: string | null; content: string; attempts: number }>,
-  supabase: ReturnType<typeof createClient>,
+  supabase: ReturnType<typeof createZappAdminClient>,
   sicoobGiftsUrl: string,
   bridgeSecret: string,
 ) {
@@ -214,7 +216,7 @@ async function processBatch(
  * @param fatal - If true, mark abandoned immediately without retry scheduling
  */
 async function markFailed(
-  supabase: ReturnType<typeof createClient>,
+  supabase: ReturnType<typeof createZappAdminClient>,
   item: { id: string; attempts: number },
   error: string,
   fatal: boolean,

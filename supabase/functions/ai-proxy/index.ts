@@ -7,8 +7,8 @@ import { getCorsHeaders } from "../_shared/cors.ts";
 import { z, parseBody } from "../_shared/schemas.ts";
 import { logAiUsage, extractTokenUsage } from "../_shared/ai-usage.ts";
 import { callLovableAI, callOpenAICompatible, callCustomWebhook, withRetry } from "../_shared/ai-providers.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.87.1";
-import { requireUser, getBearer } from "../_shared/auth.ts";
+import { requireUser } from "../_shared/auth.ts";
+import { createZappAdminClient, createZappClient } from "../_shared/db-client.ts";
 
 const AiToolFunctionSchema = z.object({ name: z.string().min(1).max(64), description: z.string().max(1000).optional(), parameters: z.record(z.unknown()).optional() });
 const AiToolSchema = z.object({ type: z.literal('function'), function: AiToolFunctionSchema });
@@ -17,7 +17,7 @@ const AiProxySchema = z.object({ messages: z.array(z.object({ role: z.string().m
 
 interface AiProvider { id: string; name: string; provider_type: string; api_endpoint: string | null; api_key_secret_name: string | null; model: string | null; system_prompt: string | null; config: Record<string, unknown>; is_active: boolean; }
 
-async function getProvider(supabase: ReturnType<typeof createClient>, useFor: string, providerId?: string): Promise<AiProvider | null> {
+async function getProvider(supabase: ReturnType<typeof createZappAdminClient>, useFor: string, providerId?: string): Promise<AiProvider | null> {
   let query = supabase.from('ai_providers').select('*').eq('is_active', true);
   if (providerId) { query = query.eq('id', providerId); } else { query = query.contains('use_for', [useFor]).eq('is_default', true); }
   const { data } = await query.limit(1).maybeSingle();
@@ -65,14 +65,10 @@ Deno.serve(async (req) => {
     const parsed = parseBody(AiProxySchema, await req.json());
     if (!parsed.success) return errorResponse(parsed.error, 400, req);
     const { messages, model: clientModel, use_for, provider_id, tools, tool_choice, stream } = parsed.data;
-    const supabaseUrl = requireEnv("SUPABASE_URL");
-    const serviceRoleKey = requireEnv("SUPABASE_SERVICE_ROLE_KEY");
-    const supabase = createClient(supabaseUrl, serviceRoleKey, { db: { schema: "zapp" } });
+    const supabase = createZappAdminClient();
     let provider;
     if (provider_id) {
-      const bearerToken = getBearer(req);
-      const anonKey = requireEnv("SUPABASE_ANON_KEY");
-      const userSupabase = bearerToken ? createClient(supabaseUrl, anonKey, { global: { headers: { Authorization: `Bearer ${bearerToken}` } }, db: { schema: "zapp" } }) : supabase;
+      const userSupabase = createZappClient(req);
       provider = (await getProvider(userSupabase, use_for as string, provider_id)) ?? await getProvider(supabase, use_for as string);
     } else { provider = await getProvider(supabase, use_for as string); }
     const providerType = provider?.provider_type || 'lovable_ai';

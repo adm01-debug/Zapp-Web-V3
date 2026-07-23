@@ -12,8 +12,10 @@
  * Auth: service-role JWT OR an admin user JWT (same pattern as e2e-fixtures).
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.4";
+import { createZappAdminClient } from '../_shared/db-client.ts';
 
 import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
+import { timingSafeStringEqual } from '../_shared/auth.ts';
 const E2E_PREFIX = "e2e-";
 
 type Action =
@@ -51,9 +53,8 @@ async function authorize(req: Request): Promise<{ ok: boolean; reason?: string }
   const token = authHeader.replace(/^Bearer\s+/i, "").trim();
   if (!token) return { ok: false, reason: "missing-bearer" };
   const serviceKey = envOrThrow("SUPABASE_SERVICE_ROLE_KEY");
-  if (token === serviceKey) return { ok: true };
-  const url = envOrThrow("SUPABASE_URL");
-  const admin = createClient(url, serviceKey, { auth: { persistSession: false }, db: { schema: "zapp" } });
+  if (timingSafeStringEqual(token, serviceKey)) return { ok: true };
+  const admin = createZappAdminClient();
   const { data: userData, error: userErr } = await admin.auth.getUser(token);
   if (userErr || !userData?.user) return { ok: false, reason: "invalid-jwt" };
   const { data: roleRow } = await admin
@@ -80,17 +81,14 @@ function validateBody(raw: unknown): { ok: true; body: RequestBody } | { ok: fal
 }
 
 function lovableClient() {
-  return createClient(envOrThrow("SUPABASE_URL"), envOrThrow("SUPABASE_SERVICE_ROLE_KEY"), {
-    auth: { persistSession: false },
-    db: { schema: "zapp" },
-  });
+  return createZappAdminClient();
 }
 
 function externalClient() {
   return createClient(
     envOrThrow("EXTERNAL_SUPABASE_URL"),
     envOrThrow("EXTERNAL_SUPABASE_SERVICE_ROLE_KEY"),
-    { auth: { persistSession: false }, db: { schema: "evo" } },
+    { auth: { persistSession: false }, db: { schema: 'zapp' } },
   );
 }
 

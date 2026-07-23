@@ -58,12 +58,11 @@
  *   summary: { recent_success_count, recent_error_count, avg_response_ms }
  * }
  */
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createZappAdminClient, createZappClient } from '../_shared/db-client.ts';
 
 import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
 const VERIFY_TOKEN = Deno.env.get("WHATSAPP_CLOUD_WEBHOOK_VERIFY_TOKEN") ?? "";
 const SUPABASE_URL = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'))!;
-const SERVICE_ROLE = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))!;
 
 function json(data: unknown, status = 200, req: Request) {
   return new Response(JSON.stringify(data), {
@@ -79,10 +78,7 @@ Deno.serve(async (req) => {
   const auth = req.headers.get("Authorization") ?? "";
   if (!auth.startsWith("Bearer ")) return json({ error: "unauthorized" }, 401, req);
 
-  const userClient = createClient(SUPABASE_URL, SERVICE_ROLE, {
-    global: { headers: { Authorization: auth } },
-    db: { schema: "zapp" },
-  });
+  const userClient = createZappClient(req);
   const { data: u } = await userClient.auth.getUser();
   if (!u?.user) return json({ error: "unauthorized" }, 401, req);
 
@@ -120,18 +116,17 @@ Deno.serve(async (req) => {
         echoMatches: text === challenge,
         durationMs: Math.round(performance.now() - t0),
       };
-    } catch {
-      console.error("[webhook-verify] handshake error — see server logs");
+    } catch (e) {
       handshake = {
         status: "fail",
         durationMs: Math.round(performance.now() - t0),
-        error: "Erro interno ao verificar webhook. Consulte os logs para detalhes.",
+        error: e instanceof Error ? e.message : String(e),
       };
     }
   }
 
   // ---- 2) Atividade recente do webhook ----
-  const adminClient = createClient(SUPABASE_URL, SERVICE_ROLE, { db: { schema: "zapp" } });
+  const adminClient = createZappAdminClient();
   const since24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
   const { data: pings } = await adminClient

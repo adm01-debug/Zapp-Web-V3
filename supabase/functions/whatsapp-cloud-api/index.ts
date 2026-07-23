@@ -4,7 +4,8 @@
 // via rpc_insert_message so the Inbox UI sees them in the unified evolution_messages table.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
-import { authorizeRoles, errorResponse, jsonResponse } from "../_shared/validation.ts";
+import { createZappAdminClient } from '../_shared/db-client.ts';
+import { authorizeRoles, errorResponse, jsonResponse, checkRateLimit } from "../_shared/validation.ts";
 
 
 import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
@@ -106,7 +107,10 @@ Deno.serve(async (req) => {
 
   try {
     // Basic staff authorization for all actions
-    await authorizeRoles(req, supabaseUrl, supabaseAnonKey, ['agent', 'supervisor', 'manager', 'admin', 'dev']);
+    const { user: authUser } = await authorizeRoles(req, supabaseUrl, supabaseAnonKey, ['agent', 'supervisor', 'manager', 'admin', 'dev']);
+
+    const rl = checkRateLimit(`whatsapp-cloud-api:${authUser.id}`, 60, 60_000);
+    if (!rl.allowed) return errorResponse('Rate limit exceeded. Tente novamente em instantes.', 429, req);
 
     let body: Record<string, unknown> = {};
     try { body = await req.json(); } catch { body = {}; }
@@ -117,18 +121,12 @@ Deno.serve(async (req) => {
   if (!action) return jsonResponse({ error: true, message: 'Missing action' }, 400, req);
   if (!instanceName) return jsonResponse({ error: true, message: 'Missing instanceName' }, 400, req);
 
-  const supabaseServiceRoleKey = Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-  if (!supabaseServiceRoleKey) {
-    console.error('[whatsapp-cloud-api] missing service role key for admin operations');
-    return errorResponse('Service role key not configured. Contact administrator.', 500, req);
-  }
-
-  const supabase = createClient(supabaseUrl, supabaseServiceRoleKey, { db: { schema: "zapp" } });
+  const supabase = createZappAdminClient();
   const externalUrl = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('EXTERNAL_SUPABASE_URL'));
   const externalKey = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('EXTERNAL_SUPABASE_SERVICE_ROLE_KEY'))
     ?? (Deno.env.get('SELFHOSTED_SUPABASE_ANON_KEY') ?? Deno.env.get('EXTERNAL_SUPABASE_ANON_KEY'));
   const externalClient = externalUrl && externalKey
-    ? createClient(externalUrl, externalKey, { db: { schema: 'evo' } })
+    ? createClient(externalUrl, externalKey, { db: { schema: 'zapp' } })
     : null;
 
   const creds = await loadCredentials(supabase, instanceName);

@@ -1,6 +1,7 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createZappAdminClient } from '../_shared/db-client.ts';
 import { z } from "https://esm.sh/zod@3.23.8";
-import { handleCors, errorResponse, jsonResponse, Logger, getCorsHeaders, validateBitrixOrigin } from "../_shared/validation.ts";
+import { handleCors, errorResponse, jsonResponse, Logger, getCorsHeaders, validateBitrixOrigin, checkRateLimit } from "../_shared/validation.ts";
+import { requireUser } from "../_shared/auth.ts";
 
 const BitrixBodySchema = z.object({
   action: z.enum([
@@ -41,6 +42,13 @@ Deno.serve(async (req) => {
     log.warn('rejected: invalid origin', { reason: originCheck.reason, origin: originCheck.origin });
     return errorResponse('invalid origin', 401, req);
   }
+
+  // Require authenticated Supabase user to prevent cross-app CRM data exfiltration
+  const authed = await requireUser(req);
+  if (authed instanceof Response) return authed;
+
+  const rl = checkRateLimit(`bitrix-api:${authed.user.id}`, 30, 60_000);
+  if (!rl.allowed) return errorResponse('Rate limit exceeded. Tente novamente em instantes.', 429, req);
 
   try {
     const BITRIX_WEBHOOK_URL = Deno.env.get('BITRIX_WEBHOOK_URL');
@@ -120,9 +128,7 @@ Deno.serve(async (req) => {
         };
         break;
       case 'sync_contacts': {
-        const supabaseUrl = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'))!;
-        const supabaseKey = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))!;
-        const supabase = createClient(supabaseUrl, supabaseKey, { db: { schema: "zapp" } });
+        const supabase = createZappAdminClient();
 
         const contactsResponse = await fetch(`${BITRIX_WEBHOOK_URL}/crm.contact.list`, {
           method: 'POST',

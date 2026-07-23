@@ -6,6 +6,8 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
 
 import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
+import { requireAdminOrSupervisor } from '../_shared/auth.ts';
+import { checkRateLimit } from '../_shared/validation.ts';
 interface RecheckRequest {
   event_id: string;
   /** Assinatura observada no recebimento (opcional, vem do payload se presente). */
@@ -50,41 +52,18 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: getCorsHeaders(req) });
 
   try {
-    // 1. AuthN — Bearer JWT do usuário logado
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader?.startsWith('Bearer ')) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-      });
-    }
-    const supabase = createClient(
-      (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'))!, (Deno.env.get('SELFHOSTED_SUPABASE_ANON_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY'))!,
-      { global: { headers: { Authorization: authHeader } }, db: { schema: "zapp" } },
-    );
-    const token = authHeader.replace('Bearer ', '');
-    const { data: claims, error: claimsErr } = await supabase.auth.getClaims(token);
-    if (claimsErr || !claims?.claims?.sub) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-      });
-    }
-    const userId = claims.claims.sub as string;
-
-    // 2. AuthZ — apenas admin (via has_role no Lovable Cloud)
-    const { data: isAdmin, error: roleErr } = await supabase.rpc('has_role', {
-      _user_id: userId,
-      _role: 'admin',
-    });
-    if (roleErr || !isAdmin) {
-      return new Response(JSON.stringify({ error: 'Forbidden' }), {
-        status: 403,
+    // 1. AuthN + AuthZ — server-side JWT verification + admin/supervisor role check
+    const authed = await requireAdminOrSupervisor(req);
+    if (authed instanceof Response) return authed;
+    const rl = checkRateLimit(`recheck-webhook-signature:${authed.user.id}`, 20, 60_000);
+    if (!rl.allowed) {
+      return new Response(JSON.stringify({ error: 'Rate limit exceeded' }), {
+        status: 429,
         headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       });
     }
 
-    // 3. Body
+    // 2. Body
     let body: RecheckRequest;
     try {
       body = (await req.json()) as RecheckRequest;
@@ -101,7 +80,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // 4. Secret + FATOR X creds
+    // 3. Secret + FATOR X creds
     const secret =
       Deno.env.get('EVOLUTION_WEBHOOK_SECRET') || Deno.env.get('WEBHOOK_SECRET') || '';
     const extUrl = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('EXTERNAL_SUPABASE_URL'));
@@ -115,9 +94,10 @@ Deno.serve(async (req) => {
     const ext = createClient(extUrl, extKey, {
       db: { schema: 'evo' },
       auth: { persistSession: false, autoRefreshToken: false },
+      db: { schema: 'zapp' },
     });
 
-    // 5. Buscar evento
+    // 4. Buscar evento
     const { data: ev, error: evErr } = await ext
       .from('evolution_webhook_events')
       .select('id,event_type,instance_name,created_at,payload')
@@ -151,7 +131,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // 6. Extrair assinatura observada do payload (se a Evolution salvou nos headers)
+    // 5. Extrair assinatura observada do payload (se a Evolution salvou nos headers)
     const payload = ev.payload as Record<string, unknown> | null;
     const headersField = (payload?._headers ?? payload?.headers ?? null) as
       | Record<string, string>
@@ -169,7 +149,7 @@ Deno.serve(async (req) => {
     }
     result.observed_signature = observed;
 
-    // 7. Recomputar — usamos JSON.stringify do payload armazenado.
+    // 6. Recomputar — usamos JSON.stringify do payload armazenado.
     // Limitação conhecida: o webhook original assina o RAW BODY, não o JSON re-serializado.
     // Diferenças de espaçamento/ordenação podem invalidar a assinatura mesmo com o secret correto.
     const raw = JSON.stringify(payload ?? {});

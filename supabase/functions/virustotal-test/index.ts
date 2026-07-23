@@ -1,5 +1,4 @@
-import { handleCors, jsonResponse, Logger, errorResponse } from "../_shared/validation.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { handleCors, jsonResponse, Logger, errorResponse, checkRateLimit } from "../_shared/validation.ts";
 import { requireUser } from "../_shared/auth.ts";
 
 /**
@@ -14,6 +13,9 @@ Deno.serve(async (req) => {
   try {
     const authed = await requireUser(req);
     if (authed instanceof Response) return authed;
+
+    const rl = checkRateLimit(`virustotal-test:${authed.user.id}`, 10, 60_000);
+    if (!rl.allowed) return errorResponse("Rate limit exceeded", 429, req);
 
     if (req.method !== "POST") {
       return errorResponse("Method not allowed", 405, req);

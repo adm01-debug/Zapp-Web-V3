@@ -6,7 +6,8 @@
 // Segurança: endpoint público (Prometheus scrape) mas só expõe agregados.
 // Rate limit via header METRICS_TOKEN opcional (env METRICS_SCRAPE_TOKEN).
 // =====================================================================
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
+import { timingSafeStringEqual, requireServiceRoleOrCron } from "../_shared/auth.ts";
+import { createZappAdminClient } from "../_shared/db-client.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -14,14 +15,14 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "GET, OPTIONS",
 };
 
-const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const SCRAPE_TOKEN = Deno.env.get("METRICS_SCRAPE_TOKEN") ?? "";
 
-const admin = createClient(SUPABASE_URL, SERVICE_ROLE, {
-  auth: { persistSession: false },
-  db: { schema: "zapp" },
-});
+// Lazy-initialized so SELFHOSTED env vars are read per-request (not at module load)
+let _admin: ReturnType<typeof createZappAdminClient> | null = null;
+const admin = () => {
+  if (!_admin) _admin = createZappAdminClient();
+  return _admin;
+};
 
 type Sample = { name: string; help: string; type: "counter" | "gauge" | "histogram"; labels?: Record<string, string>; value: number };
 
@@ -62,7 +63,7 @@ async function collect(): Promise<Sample[]> {
 
   // --- Webhooks Evolution: sucesso/falha nos últimos 5 min
   {
-    const { data } = await admin
+    const { data } = await admin()
       .from("webhook_audit_log")
       .select("status, count:id")
       .gte("created_at", since);
@@ -84,7 +85,7 @@ async function collect(): Promise<Sample[]> {
 
   // --- Falhas de envio Evolution (retry metrics)
   {
-    const { data } = await admin
+    const { data } = await admin()
       .schema("zapp")
       .from("evolution_retry_metrics")
       .select("outcome, latency_ms, created_at")
@@ -107,7 +108,7 @@ async function collect(): Promise<Sample[]> {
 
   // --- Realtime health (conexões WA ativas)
   {
-    const { count: active } = await admin
+    const { count: active } = await admin()
       .from("whatsapp_connections")
       .select("*", { count: "exact", head: true })
       .eq("status", "connected");
@@ -121,13 +122,13 @@ async function collect(): Promise<Sample[]> {
 
   // --- DLQ backlog
   {
-    const { count } = await admin.from("failed_messages").select("*", { count: "exact", head: true });
+    const { count } = await admin().from("failed_messages").select("*", { count: "exact", head: true });
     samples.push({ name: "zapp_dlq_size", help: "Failed messages awaiting reprocess", type: "gauge", value: count ?? 0 });
   }
 
   // --- Rate-limit denies (5m)
   {
-    const { count } = await admin
+    const { count } = await admin()
       .from("rate_limit_logs")
       .select("*", { count: "exact", head: true })
       .eq("blocked", true)
@@ -146,9 +147,13 @@ Deno.serve(async (req) => {
   }
   if (SCRAPE_TOKEN) {
     const provided = req.headers.get("x-metrics-token") ?? new URL(req.url).searchParams.get("token") ?? "";
-    if (provided !== SCRAPE_TOKEN) {
+    if (!timingSafeStringEqual(provided, SCRAPE_TOKEN)) {
       return new Response("forbidden", { status: 403, headers: corsHeaders });
     }
+  } else {
+    // Fail-closed: when METRICS_SCRAPE_TOKEN is not configured, require service role or cron secret
+    const denied = requireServiceRoleOrCron(req);
+    if (denied) return denied;
   }
   try {
     const body = fmt(await collect());

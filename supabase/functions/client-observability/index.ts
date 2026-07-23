@@ -1,6 +1,6 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { handleCors, errorResponse, jsonResponse, requireEnv, Logger, getCorsHeaders } from "../_shared/validation.ts";
+import { handleCors, errorResponse, jsonResponse, Logger, getCorsHeaders, checkRateLimit } from "../_shared/validation.ts";
 import { requireUser } from "../_shared/auth.ts";
+import { createZappAdminClient } from "../_shared/db-client.ts";
 
 type VitalName = 'LCP' | 'FID' | 'CLS' | 'INP' | 'TTFB';
 
@@ -32,6 +32,9 @@ Deno.serve(async (req) => {
     const authed = await requireUser(req);
     if (authed instanceof Response) return authed;
 
+    const rl = checkRateLimit(`client-observability:${authed.user.id}`, 60, 60_000);
+    if (!rl.allowed) return acceptedNoContent(req);
+
     if (req.method !== 'POST') {
       return errorResponse('Method not allowed', 405, req);
     }
@@ -62,11 +65,7 @@ Deno.serve(async (req) => {
       return errorResponse('No valid web-vital metric found', 400, req);
     }
 
-    const supabase = createClient(
-      requireEnv('SUPABASE_URL'),
-      requireEnv('SUPABASE_SERVICE_ROLE_KEY'),
-      { db: { schema: 'zapp' } },
-    );
+    const supabase = createZappAdminClient();
 
     const { error } = await supabase.from('query_telemetry').insert(rows);
     if (error) {

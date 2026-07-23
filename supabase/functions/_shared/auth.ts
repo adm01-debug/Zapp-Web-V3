@@ -14,8 +14,9 @@
  *     if (authed instanceof Response) return authed;
  *     // authed.user is now safe to use
  */
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { errorResponse, requireEnv, validateEnvironment } from "./validation.ts";
+import { createZappAdminClient } from "./db-client.ts";
 
 /** Authed User interface. */
 export interface AuthedUser {
@@ -156,10 +157,7 @@ export async function requireAdminOrSupervisor(req: Request): Promise<AuthedUser
   const authed = await requireUser(req);
   if (authed instanceof Response) return authed;
 
-  const admin = createClient(
-    requireEnv("SUPABASE_URL"), requireEnv("SUPABASE_SERVICE_ROLE_KEY"),
-    { auth: { persistSession: false, autoRefreshToken: false }, db: { schema: "zapp" } },
-  );
+  const admin = createZappAdminClient();
   const { data: isPriv, error } = await admin.rpc("is_admin_or_supervisor", { _user_id: authed.user.id });
   if (error) return errorResponse("Authorization check failed", 500, req);
   if (!isPriv) return errorResponse("Forbidden: admin or supervisor required", 403, req);

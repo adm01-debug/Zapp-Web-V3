@@ -14,11 +14,10 @@
 //
 // Output: text/plain; version=0.0.4 (Prometheus exposition format).
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0'
 import { getCorsHeaders, mergeCsvHeaderValues } from '../_shared/validation.ts'
+import { timingSafeStringEqual } from '../_shared/auth.ts'
+import { createZappAdminClient } from '../_shared/db-client.ts'
 
-const SUPABASE_URL = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'))!
-const SERVICE_ROLE_KEY = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))!
 const SCRAPE_TOKEN = Deno.env.get('PROXY_METRICS_TOKEN') ?? ''
 
 function getPromHeaders(req?: Request) {
@@ -217,7 +216,7 @@ Deno.serve(async (req) => {
   }
   const auth = req.headers.get('Authorization') ?? ''
   const provided = auth.startsWith('Bearer ') ? auth.slice(7) : auth
-  if (provided !== SCRAPE_TOKEN) {
+  if (!timingSafeStringEqual(provided, SCRAPE_TOKEN)) {
     return new Response('# unauthorized\n', { status: 401, headers: getPromHeaders(req) })
   }
 
@@ -225,8 +224,7 @@ Deno.serve(async (req) => {
   const windowKey = parseWindow(url.searchParams.get('window'))
   const since = new Date(Date.now() - WINDOW_SECONDS[windowKey] * 1000).toISOString()
 
-  const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
-    auth: { persistSession: false, autoRefreshToken: false }, db: { schema: "zapp" } })
+  const supabase = createZappAdminClient()
 
   // Page through proxy_metrics rows in the window (cap 5000 to bound memory).
   const PAGE = 1000

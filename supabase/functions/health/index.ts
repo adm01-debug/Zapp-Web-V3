@@ -8,7 +8,7 @@
 //   GET /functions/v1/health?probe=1  → texto curto (OK | FAIL)
 
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
-import { createClient } from 'npm:@supabase/supabase-js@2';
+import { createZappAdminClient } from '../_shared/db-client.ts';
 
 interface CheckResult {
   name: string;
@@ -17,9 +17,12 @@ interface CheckResult {
   detail?: string;
 }
 
-const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
+const SUPABASE_URL =
+  Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL') ?? '';
 const SERVICE_KEY =
+  Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ??
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ??
+  Deno.env.get('SELFHOSTED_SUPABASE_ANON_KEY') ??
   Deno.env.get('SUPABASE_ANON_KEY') ?? '';
 
 async function timed(name: string, fn: () => Promise<void>): Promise<CheckResult> {
@@ -39,11 +42,7 @@ async function timed(name: string, fn: () => Promise<void>): Promise<CheckResult
 
 async function checkDatabase(): Promise<CheckResult> {
   return timed('database', async () => {
-    if (!SUPABASE_URL || !SERVICE_KEY) throw new Error('missing env');
-    const client = createClient(SUPABASE_URL, SERVICE_KEY, {
-      db: { schema: 'zapp' },
-      auth: { persistSession: false },
-    });
+    const client = createZappAdminClient();
     const { error } = await client.from('profiles').select('id', { head: true, count: 'exact' }).limit(1);
     if (error) throw new Error(error.message);
   });

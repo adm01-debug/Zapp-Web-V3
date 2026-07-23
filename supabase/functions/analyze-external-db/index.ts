@@ -1,6 +1,7 @@
 // analyze-external-db v2.0
 // F10 security fix: auth required + rate limiting + BATCH_SIZE parallel queries (7x speedup)
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
+import { createZappAdminClient } from '../_shared/db-client.ts';
 import { requireServiceRoleOrCron } from '../_shared/auth.ts';
 
 import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
@@ -84,15 +85,7 @@ Deno.serve(async (req) => {
   }
 
   // Verify token against our own Supabase instance
-  const selfUrl = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'));
-  const selfKey = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'));
-  if (!selfUrl || !selfKey) {
-    return new Response(JSON.stringify({ error: 'Service misconfigured' }), {
-      status: 503, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-    });
-  }
-
-  const self = createClient(selfUrl, selfKey, { auth: { persistSession: false }, db: { schema: "zapp" } });
+  const self = createZappAdminClient();
   const { data: { user }, error: authErr } = await self.auth.getUser(authHeader.replace('Bearer ', ''));
   if (authErr || !user) {
     return new Response(JSON.stringify({ error: 'Invalid or expired token' }), {

@@ -6,17 +6,16 @@
 // Versão on-demand (1 contato) da lógica de batch-fetch-avatars. Resolve uma
 // instância Evolution conectada, busca a foto de perfil, persiste no Storage
 // ('avatars') para não expirar e devolve a URL pública.
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import {
   handleCors,
   errorResponse,
   jsonResponse,
-  requireEnv,
   Logger,
   checkRateLimit,
   getClientIP,
 } from "../_shared/validation.ts";
 import { requireUser } from "../_shared/auth.ts";
+import { createZappAdminClient } from "../_shared/db-client.ts";
 
 const ALLOWED_AVATAR_ORIGINS = new Set([
   "mmg.whatsapp.net",
@@ -74,7 +73,7 @@ Deno.serve(async (req) => {
     const phone = phoneRaw.replace(/\D/g, "");
     if (!phone) return errorResponse("Telefone inválido.", 400, req);
 
-    const supabase = createClient(requireEnv("SUPABASE_URL"), requireEnv("SUPABASE_SERVICE_ROLE_KEY"), { db: { schema: "zapp" }, auth: { persistSession: false } });
+    const supabase = createZappAdminClient();
     const evolutionUrl = Deno.env.get("EVOLUTION_API_URL");
     const evolutionKey = Deno.env.get("EVOLUTION_API_KEY");
     if (!evolutionUrl || !evolutionKey) {

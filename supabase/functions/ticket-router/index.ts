@@ -2,8 +2,9 @@
 // Resolve o agente para um contato em um canal usando sticky agent + round-robin com skills.
 // Opcionalmente persiste o sticky e atribui o contato (assigned_to + queue_id).
 
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { createZappAdminClient } from '../_shared/db-client.ts';
 import { requireAdminOrSupervisor } from "../_shared/auth.ts";
+import { checkRateLimit } from "../_shared/validation.ts";
 
 import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
 interface RouteRequest {
@@ -44,9 +45,12 @@ Deno.serve(async (req) => {
     const authed = await requireAdminOrSupervisor(req);
     if (authed instanceof Response) return authed;
 
-    const url = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'));
-    const serviceKey = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'));
-    if (!url || !serviceKey) return err500("missing_env");
+    const rl = checkRateLimit(`ticket-router:${authed.user.id}`, 60, 60_000);
+    if (!rl.allowed) {
+      return new Response(JSON.stringify({ error: 'rate_limit_exceeded' }), {
+        status: 429, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+      });
+    }
 
     let rawBody: unknown;
     try {
@@ -61,7 +65,7 @@ Deno.serve(async (req) => {
     if (typeof rawBody !== 'object' || rawBody === null || Array.isArray(rawBody)) {
       return new Response(JSON.stringify({ error: "invalid_json" }), {
         status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
       });
     }
 
@@ -81,8 +85,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    const admin = createClient(url, serviceKey, {
-      auth: { persistSession: false }, db: { schema: "zapp" } });
+    const admin = createZappAdminClient();
 
     // 1) Resolver agente
     const { data: resolved, error: resolveErr } = await admin.rpc(

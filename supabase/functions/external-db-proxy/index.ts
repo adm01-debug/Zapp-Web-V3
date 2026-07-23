@@ -2,13 +2,13 @@
 // Proxy autorizado para consultas de tabelas operacionais.
 // Evolution/FATOR X usa o Supabase self-hosted atomicabr e o schema `evo`.
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
+import { createZappAdminClient } from "../_shared/db-client.ts";
 import { requireUser } from "../_shared/auth.ts";
 
 import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
-type DynamicSupabaseClient = ReturnType<typeof createClient> & {
+type DynamicSupabaseClient = ReturnType<typeof createZappAdminClient> & {
   schema(schema: string): DynamicSupabaseClient;
-  from(table: string): ReturnType<ReturnType<typeof createClient>["from"]>;
+  from(table: string): ReturnType<ReturnType<typeof createZappAdminClient>["from"]>;
 };
 
 type RequestBody = {
@@ -30,6 +30,14 @@ type RequestBody = {
 const PLACEHOLDER_RE = /PLACEHOLDER|REPLACE|CHANGE_ME|YOUR_/i;
 const EVO_TABLE_RE = /^evolution_/;
 const SAFE_IDENT_RE = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
+// Explicit allowlist for PostgREST filter methods — prevents calling query-builder
+// meta-methods like `then` (which makes the thenable fire, dropping all subsequent filters).
+const ALLOWED_FILTER_METHODS = new Set([
+  'eq', 'neq', 'lt', 'lte', 'gt', 'gte',
+  'like', 'ilike', 'is', 'in',
+  'contains', 'containedBy', 'overlaps', 'textSearch',
+  'filter', 'not', 'or', 'match',
+]);
 function pickEnv(name: string): string | undefined {
   const value = Deno.env.get(name)?.trim();
   if (!value || PLACEHOLDER_RE.test(value)) return undefined;
@@ -132,7 +140,7 @@ try {
   if (!EXTERNAL_KEY) {
     throw new Error("SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY/EXTERNAL_SUPABASE_SERVICE_ROLE_KEY ausente ou inválida — configure uma chave service_role válida do self-hosted.");
   }
-  supabase = createClient(TARGET_URL, TARGET_KEY, { auth: { persistSession: false }, db: { schema: "zapp" } }) as DynamicSupabaseClient;
+  supabase = createZappAdminClient() as DynamicSupabaseClient;
 } catch (error) {
   bootError = error instanceof Error ? error.message : "Falha desconhecida ao iniciar o proxy.";
   console.error("[external-db-proxy] boot error:", bootError);
@@ -480,7 +488,7 @@ async function handleRequest(req: Request, _t0: number): Promise<Response> {
 
   const selectCols = String(body.select ?? "*");
   const limit = Math.min(Math.max(Number(body.limit ?? 50), 1), 500);
-  const offset = Math.max(Number(body.offset ?? 0), 0);
+  const offset = Math.min(Math.max(Number(body.offset ?? 0), 0), 1_000_000);
   const filter = body.filter && typeof body.filter === "object" ? body.filter : null;
   const filters = Array.isArray(body.filters) ? body.filters : null;
   const orderBy = body.order_by ? String(body.order_by) : body.order?.column ? String(body.order.column) : null;
@@ -509,7 +517,7 @@ async function handleRequest(req: Request, _t0: number): Promise<Response> {
       for (const item of filters) {
         const column = String(item.column ?? "");
         const operator = String(item.operator ?? "eq");
-        if (!isSafeIdent(column) || !isSafeIdent(operator)) continue;
+        if (!isSafeIdent(column) || !ALLOWED_FILTER_METHODS.has(operator)) continue;
         const maybeOperator = query[operator as keyof typeof query];
         if (typeof maybeOperator === "function") {
           query = (maybeOperator as (column: string, value: unknown) => typeof query).call(query, column, item.value);

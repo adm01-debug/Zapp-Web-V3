@@ -2,7 +2,7 @@
 // Para cada contato com conversa resolvida há ≥3 dias, sem convite NPS nos últimos 30 dias,
 // envia mensagem WhatsApp com link/instrução para responder e registra em nps_invitations.
 // Requer service-role bearer OU x-cron-secret.
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createZappAdminClient } from '../_shared/db-client.ts';
 import { requireServiceRoleOrCron } from '../_shared/auth.ts';
 import { getCorsHeaders } from '../_shared/cors.ts';
 
@@ -25,10 +25,7 @@ Deno.serve(async (req) => {
     });
   }
 
-  const supabase = createClient(
-    (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'))!, (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))!,
-    { db: { schema: "zapp" } },
-  );
+  const supabase = createZappAdminClient();
 
   const evolutionUrl = (Deno.env.get('EVOLUTION_API_URL') || '').replace(/\/+$/, '');
   const evolutionKey = Deno.env.get('EVOLUTION_API_KEY');

@@ -1,8 +1,8 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { z } from "https://esm.sh/zod@3.23.8";
-import { getCorsHeaders, jsonResponse, errorResponse, Logger, requireEnv } from "../_shared/validation.ts";
+import { getCorsHeaders, jsonResponse, errorResponse, Logger } from "../_shared/validation.ts";
+import { createZappAdminClient } from "../_shared/db-client.ts";
 import { verifyHmacSignature } from "../_shared/hmac-validation.ts";
+import { timingSafeStringEqual } from "../_shared/auth.ts";
 import { initSentry, captureException, captureMessage } from "../_shared/sentry.ts";
 
 const WhatsAppStatusSchema = z.object({
@@ -38,7 +38,7 @@ const WhatsAppWebhookSchema = z.object({
   })),
 });
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   initSentry('whatsapp-webhook');
 
   if (req.method === 'OPTIONS') {
@@ -60,7 +60,7 @@ serve(async (req) => {
       return new Response('Configuration error', { status: 500, headers: getCorsHeaders(req) });
     }
 
-    if (mode === 'subscribe' && token === verifyToken) {
+    if (mode === 'subscribe' && token !== null && timingSafeStringEqual(token, verifyToken)) {
       log.info("Webhook verified successfully");
       return new Response(challenge, {
         status: 200,
@@ -75,9 +75,7 @@ serve(async (req) => {
   // Handle webhook events (POST request)
   if (req.method === 'POST') {
     try {
-      const supabaseUrl = requireEnv('SUPABASE_URL');
-      const supabaseServiceKey = requireEnv('SUPABASE_SERVICE_ROLE_KEY');
-      const supabase = createClient(supabaseUrl, supabaseServiceKey, { db: { schema: "zapp" } });
+      const supabase = createZappAdminClient();
 
       // [A-3 FIX 2026-07-12] Validate Meta's X-Hub-Signature-256 (HMAC-SHA256 of the
       // RAW body, keyed by the App Secret) BEFORE trusting any status/message update.

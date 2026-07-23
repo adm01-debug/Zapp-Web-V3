@@ -1,6 +1,6 @@
 // Edge function admin-only: lista/agrega métricas de retry da Evolution API.
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getCorsHeaders } from '../_shared/cors.ts';
+import { createZappAdminClient, createZappClient } from '../_shared/db-client.ts';
 
 interface RetryRow {
   id: string;
@@ -77,23 +77,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const supabaseUrl = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'))!;
-    const anonKey = (Deno.env.get('SELFHOSTED_SUPABASE_ANON_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY'))!;
-    const serviceKey = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))!;
-
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: 'Missing authorization' }), {
-        status: 401,
-        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-      });
-    }
-
-    // Validação de admin/supervisor
-    const userClient = createClient(supabaseUrl, anonKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
-    const { data: userData, error: userErr } = await userClient.auth.getUser();
+    const { data: userData, error: userErr } = await createZappClient(req).auth.getUser();
     if (userErr || !userData?.user) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
@@ -101,7 +85,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const admin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false }, db: { schema: "zapp" } });
+    const admin = createZappAdminClient();
     const { data: roleCheck } = await admin.rpc('is_admin_or_supervisor', { _user_id: userData.user.id });
     if (!roleCheck) {
       return new Response(JSON.stringify({ error: 'Forbidden — admin or supervisor only' }), {

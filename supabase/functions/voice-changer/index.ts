@@ -1,6 +1,6 @@
-import { handleCors, errorResponse, getCorsHeaders, Logger, requireEnv } from "../_shared/validation.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { handleCors, errorResponse, getCorsHeaders, Logger, requireEnv, checkRateLimit } from "../_shared/validation.ts";
 import { requireUser, requireServiceRoleOrCron } from "../_shared/auth.ts";
+import { createZappAdminClient } from "../_shared/db-client.ts";
 
 const VOICE_PRESETS: Record<string, { voiceId: string; label: string; isCloned?: boolean }> = {
   // Masculinas
@@ -54,11 +54,11 @@ Deno.serve(async (req) => {
     if (internalCheck !== null) {
       const authed = await requireUser(req);
       if (authed instanceof Response) return authed;
+      const rl = checkRateLimit(`voice-changer:${authed.user.id}`, 5, 60_000);
+      if (!rl.allowed) return errorResponse('Rate limit exceeded', 429, req);
     }
 
-    const supabaseClient = createClient(
-      requireEnv('SUPABASE_URL'), requireEnv('SUPABASE_SERVICE_ROLE_KEY'), { db: { schema: "zapp" } }
-    );
+    const supabaseClient = createZappAdminClient();
 
     let audioData: Blob | null = null;
     let voicePreset = 'grave';

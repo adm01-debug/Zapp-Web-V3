@@ -1,8 +1,7 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createZappAdminClient } from '../_shared/db-client.ts';
 
 import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return handleCorsPreflight(req);
 
   const startTime = Date.now();
@@ -14,9 +13,7 @@ serve(async (req) => {
   };
 
   try {
-    const supabaseUrl = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'))!;
-    const supabaseKey = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))!;
-    const supabase = createClient(supabaseUrl, supabaseKey, { db: { schema: "zapp" } });
+    const supabase = createZappAdminClient();
 
     // 1. Check Database
     const { error: dbError } = await supabase.from('profiles').select('count', { count: 'exact', head: true }).limit(1);

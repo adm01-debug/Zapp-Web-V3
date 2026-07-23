@@ -4,7 +4,6 @@
 //       (`auth.ts`, `validation.ts`, `vault.ts`). Sem mudança de comportamento:
 //       mantém heavy=5 req/60s por usuário, preflight CORS via cors.ts,
 //       jsonResponse/errorResponse do cors.ts (assinatura req-first).
-import { serve } from "https://deno.land/std@0.177.1/http/server.ts";
 import { handleCorsPreflight, jsonResponse, errorResponse } from "../_shared/cors.ts";
 import { requireUser } from "../_shared/auth.ts";
 import { checkRateLimit, parseBody } from "../_shared/validation.ts";
@@ -98,7 +97,7 @@ async function fetchAudioWithCap(url: string, maxBytes: number): Promise<Uint8Ar
   return combined;
 }
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return handleCorsPreflight(req);
 
   // Health check público (GET)

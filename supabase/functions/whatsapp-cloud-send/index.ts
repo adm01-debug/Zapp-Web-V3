@@ -1,17 +1,14 @@
 // WhatsApp Cloud API sender — text, media, template, sticker, reaction, location, contacts, read
 // Auth: requires JWT (validated below). Body schema validated with Zod.
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createZappClient } from '../_shared/db-client.ts';
 import { z } from "https://esm.sh/zod@3.23.8";
-import { contractErrorResponse, getCorsHeaders } from "../_shared/validation.ts";
+import { contractErrorResponse, getCorsHeaders, checkRateLimit } from "../_shared/validation.ts";
 
 const corsHeaders = getCorsHeaders();
 
 const PHONE_NUMBER_ID = Deno.env.get("WHATSAPP_CLOUD_PHONE_NUMBER_ID") ?? "";
 const ACCESS_TOKEN = Deno.env.get("WHATSAPP_CLOUD_ACCESS_TOKEN") ?? "";
 const GRAPH_VERSION = "v21.0";
-
-const SUPABASE_URL = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL')) ?? "";
-const SUPABASE_ANON_KEY = (Deno.env.get('SELFHOSTED_SUPABASE_ANON_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY')) ?? "";
 
 const SendSchema = z.object({
   to: z.string().min(5), // E.164 phone w/o '+'
@@ -99,18 +96,20 @@ Deno.serve(async (req) => {
   if (!auth.startsWith("Bearer ")) {
     return jsonResponse({ error: "unauthorized" }, 401);
   }
+  let authedUserId = "";
   try {
-    const supa = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      db: { schema: "zapp" },
-      global: { headers: { Authorization: auth } },
-    });
+    const supa = createZappClient(req);
     const { data: userData, error: userErr } = await supa.auth.getUser();
     if (userErr || !userData || typeof userData !== 'object' || !userData.user) {
       return jsonResponse({ error: "unauthorized" }, 401);
     }
+    authedUserId = userData.user.id;
   } catch {
     return jsonResponse({ error: "unauthorized" }, 401);
   }
+
+  const rl = checkRateLimit(`whatsapp-cloud-send:${authedUserId}`, 60, 60_000);
+  if (!rl.allowed) return jsonResponse({ error: "rate_limit_exceeded", message: "Tente novamente em instantes." }, 429);
 
   if (!PHONE_NUMBER_ID || !ACCESS_TOKEN) {
     return jsonResponse(

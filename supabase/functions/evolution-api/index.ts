@@ -1,5 +1,5 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { Logger, checkRateLimit, getClientIP, getCorsHeaders, handleCors, authorizeRoles, errorResponse } from "../_shared/validation.ts";
+import { createZappAdminClient, createZappClient } from "../_shared/db-client.ts";
 import { initSentry, captureException } from "../_shared/sentry.ts";
 import { EVOLUTION_ENVELOPE_VERSION, proxyToEvolution, resolvePrivateBucketUrl } from "../_shared/evolution-api-proxy.ts";
 import { normalizeChatList, normalizeContactList, normalizeProfile } from "../_shared/evolution-response-normalizers.ts";
@@ -128,37 +128,12 @@ Deno.serve(async (req) => {
     });
   }
 
-  const supabaseUrl = Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL') ?? '';
-  const supabaseServiceKey = Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
-  if (!supabaseUrl || !supabaseServiceKey) {
-    return new Response(JSON.stringify({ error: 'backend_misconfigured', hint: 'SUPABASE_URL/SERVICE_ROLE ausentes' }),
-      { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-  }
-  const supabase = createClient(supabaseUrl, supabaseServiceKey, { db: { schema: "zapp" } });
+  const supabase = createZappAdminClient();
 
-
-  // Always authenticate — body action may differ from the URL path segment, so skipping
-  // auth based on the URL alone creates a bypass. Try self-hosted first (published app),
-  // then Cloud, so JWTs from either backend are accepted.
-  const selfUrlForAuth = Deno.env.get('SELFHOSTED_SUPABASE_URL');
-  const selfAnonForAuth = Deno.env.get('SELFHOSTED_SUPABASE_ANON_KEY');
-  const cloudUrlForAuth = Deno.env.get('SUPABASE_URL');
-  const cloudAnonForAuth = Deno.env.get('SUPABASE_ANON_KEY') ?? Deno.env.get('SUPABASE_PUBLISHABLE_KEY');
-  const authHeader = req.headers.get('Authorization') || '';
-  const authCandidates: Array<{ url: string; key: string }> = [];
-  if (selfUrlForAuth && selfAnonForAuth) authCandidates.push({ url: selfUrlForAuth, key: selfAnonForAuth });
-  if (cloudUrlForAuth && cloudAnonForAuth) authCandidates.push({ url: cloudUrlForAuth, key: cloudAnonForAuth });
+  // Authenticate via SELFHOSTED_SUPABASE_URL (priority) or SUPABASE_URL.
+  const { data: authData, error: authError } = await createZappClient(req).auth.getUser();
   let authedUser: { id: string; email: string | undefined } | null = null;
-  for (const c of authCandidates) {
-    try {
-      const uc = createClient(c.url, c.key, {
-        global: { headers: { Authorization: authHeader } },
-        auth: { persistSession: false, autoRefreshToken: false },
-      });
-      const { data, error } = await uc.auth.getUser();
-      if (!error && data?.user) { authedUser = { id: data.user.id, email: data.user.email }; break; }
-    } catch { /* try next */ }
-  }
+  if (!authError && authData?.user) authedUser = { id: authData.user.id, email: authData.user.email };
   if (!authedUser) {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), {
       status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },

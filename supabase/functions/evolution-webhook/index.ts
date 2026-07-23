@@ -1,6 +1,6 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createZappAdminClient } from "../_shared/db-client.ts";
 import { getCorsHeaders, handleCors, redactSecrets, contractErrorResponse } from "../_shared/validation.ts";
+import { timingSafeStringEqual } from "../_shared/auth.ts";
 import { initSentry, captureException } from "../_shared/sentry.ts";
 import { WebhookPayloadSchema } from "../_shared/webhook-schemas.ts";
 import {
@@ -65,7 +65,7 @@ async function isKnownInstance(supabase: any, instance: string): Promise<boolean
   }
 }
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   initSentry('evolution-webhook');
 
   const requestId = generateRequestId();
@@ -87,7 +87,7 @@ serve(async (req) => {
     return new Response(JSON.stringify({ error: 'webhook_misconfigured', hint: 'SUPABASE_URL/SERVICE_ROLE ausentes' }),
       { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   }
-  const supabase = createClient(supabaseUrl, supabaseServiceKey, { db: { schema: "zapp" } });
+  const supabase = createZappAdminClient();
 
   // HMAC validation before reading body as JSON so we can verify on raw text.
   let rawBody: string;
@@ -97,9 +97,8 @@ serve(async (req) => {
 
   // [PATCH 2026-07-03] Auth por secret estatico: Evolution API envia header fixo x-webhook-secret,
   // nao assina HMAC por payload. Comparacao timing-safe contra os secrets configurados.
-  const __tsEq = (a: string, b: string): boolean => { if (a.length !== b.length) { let d = 0; for (let i = 0; i < a.length; i++) d |= a.charCodeAt(i) ^ (b.charCodeAt(i % (b.length || 1)) || 0); return false; } let r = 0; for (let i = 0; i < a.length; i++) r |= a.charCodeAt(i) ^ b.charCodeAt(i); return r === 0; };
   const __staticSecret = req.headers.get('x-webhook-secret');
-  const __staticSecretOk = __staticSecret !== null && WEBHOOK_SECRETS.some((s) => __tsEq(__staticSecret, s));
+  const __staticSecretOk = __staticSecret !== null && WEBHOOK_SECRETS.some((s) => timingSafeStringEqual(__staticSecret, s));
   if (__staticSecretOk) {
     rawBody = await req.text();
   } else if (validateWebhook) {

@@ -33,8 +33,8 @@ Deno.serve(async (req) => {
         "content-type": "application/json",
         ...Object.fromEntries([...req.headers.entries()].filter(([k]) => k.toLowerCase().startsWith("x-") || k.toLowerCase() === "idempotency-key")),
       },
-      // action is placed last to prevent caller from overriding it via body spread
       body: JSON.stringify({ ...body, action: "conversation_summary" }),
+      signal: AbortSignal.timeout(60_000),
     });
 
     const responseBody = await res.json();

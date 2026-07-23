@@ -10,8 +10,7 @@
 // Auth: requires a valid Supabase JWT (verified in code).
 // RLS on `messages` is enforced via the user-scoped client.
 
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.4";
-
+import { createZappClient } from '../_shared/db-client.ts';
 import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
 interface CursorPayload {
   created_at: string;
@@ -112,7 +111,7 @@ Deno.serve(async (req) => {
     if (!Number.isFinite(offsetRaw) || offsetRaw < 0) {
       return jsonResponse(req, { error: "offset must be a non-negative number" }, 400);
     }
-    offset = Math.trunc(offsetRaw);
+    offset = Math.min(Math.trunc(offsetRaw), 1_000_000);
     mode = "offset";
   }
 
@@ -122,18 +121,8 @@ Deno.serve(async (req) => {
     return jsonResponse(req, { error: "Missing Authorization header" }, 401);
   }
 
-  const supabaseUrl = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'));
-  const anonKey = (Deno.env.get('SELFHOSTED_SUPABASE_ANON_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY'));
-  if (!supabaseUrl || !anonKey) {
-    return jsonResponse(req, { error: "Server misconfigured" }, 500);
-  }
-
   // User-scoped client → RLS applies on `messages`.
-  const supabase = createClient(supabaseUrl, anonKey, {
-    global: { headers: { Authorization: authHeader } },
-    auth: { persistSession: false },
-    db: { schema: "zapp" },
-  });
+  const supabase = createZappClient(req);
 
   const { data: userData, error: userErr } = await supabase.auth.getUser();
   if (userErr || !userData?.user) {

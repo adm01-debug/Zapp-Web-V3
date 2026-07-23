@@ -14,8 +14,10 @@
  *   - evolution_webhook_events        (FATOR X / external)
  */
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.4';
+import { createZappAdminClient } from '../_shared/db-client.ts';
 
-import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
+import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts'
+import { timingSafeStringEqual } from '../_shared/auth.ts';
 const E2E_PREFIX = 'e2e-';
 
 type SeedTarget = 'failed_messages' | 'webhook_events';
@@ -51,11 +53,10 @@ async function authorize(req: Request): Promise<{ ok: boolean; reason?: string }
   if (!token) return { ok: false, reason: 'missing-bearer' };
 
   const serviceKey = envOrThrow('SUPABASE_SERVICE_ROLE_KEY');
-  if (token === serviceKey) return { ok: true };
+  if (timingSafeStringEqual(token, serviceKey)) return { ok: true };
 
   // Otherwise, validate the JWT and confirm the user has app_role='admin'.
-  const url = envOrThrow('SUPABASE_URL');
-  const admin = createClient(url, serviceKey, { auth: { persistSession: false }, db: { schema: "zapp" } });
+  const admin = createZappAdminClient();
   const { data: userData, error: userErr } = await admin.auth.getUser(token);
   if (userErr || !userData || !userData.user) return { ok: false, reason: 'invalid-jwt' };
 
@@ -95,17 +96,14 @@ function validateBody(raw: unknown): { ok: true; body: RequestBody } | { ok: fal
 }
 
 function lovableClient() {
-  return createClient(envOrThrow('SUPABASE_URL'), envOrThrow('SUPABASE_SERVICE_ROLE_KEY'), {
-    auth: { persistSession: false },
-    db: { schema: "zapp" },
-  });
+  return createZappAdminClient();
 }
 
 function externalClient() {
   return createClient(
     envOrThrow('EXTERNAL_SUPABASE_URL'),
     envOrThrow('EXTERNAL_SUPABASE_SERVICE_ROLE_KEY'),
-    { auth: { persistSession: false }, db: { schema: 'evo' } },
+    { auth: { persistSession: false }, db: { schema: 'zapp' } },
   );
 }
 

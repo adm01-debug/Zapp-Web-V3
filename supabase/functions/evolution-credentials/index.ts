@@ -26,9 +26,10 @@
  * A api_key é injetada no header X-Evolution-Key (não no body)
  * para evitar log inadvertido em DevTools Network.
  */
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
 import { requireAdminOrSupervisor } from '../_shared/auth.ts';
+import { checkRateLimit } from '../_shared/validation.ts';
+import { createZappAdminClient } from '../_shared/db-client.ts';
 
 const INSTANCE = 'wpp2';
 
@@ -48,11 +49,15 @@ Deno.serve(async (req: Request) => {
   const authed = await requireAdminOrSupervisor(req);
   if (authed instanceof Response) return authed;
 
+  const rl = checkRateLimit(`evolution-credentials:${authed.user.id}`, 20, 60_000);
+  if (!rl.allowed) {
+    return new Response(JSON.stringify({ error: 'Rate limit exceeded' }), {
+      status: 429, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+    });
+  }
+
   // service_role → RPC SECURITY DEFINER (única ponte segura até o vault)
-  const supabaseAdmin = createClient(
-    Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
-    { db: { schema: "zapp" } },
-  );
+  const supabaseAdmin = createZappAdminClient();
 
   const { data: rpcRows, error: rpcError } = await supabaseAdmin.rpc(
     'fn_edge_get_evolution_credentials',

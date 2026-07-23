@@ -1,6 +1,6 @@
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createZappAdminClient } from '../_shared/db-client.ts';
 import { requireUser } from '../_shared/auth.ts';
+import { checkRateLimit } from '../_shared/validation.ts';
 
 import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
 const GMAIL_API = 'https://gmail.googleapis.com/gmail/v1/users/me';
@@ -47,7 +47,7 @@ const GMAIL_API = 'https://gmail.googleapis.com/gmail/v1/users/me';
  * - Gmail API errors: Logged, returned with error details from Gmail response
  * - Network timeouts: 10s AbortSignal on all Gmail API calls
  */
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: getCorsHeaders(req) });
 
   const json = (data: unknown, status = 200) =>
@@ -57,11 +57,10 @@ serve(async (req) => {
     const authed = await requireUser(req);
     if (authed instanceof Response) return authed;
 
-    const supabaseUrl = Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL');
-    const supabaseKey = Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-    if (!supabaseUrl || !supabaseKey) return json({ error: 'Server misconfigured' }, 503);
+    const rl = checkRateLimit(`gmail-sync:${authed.user.id}`, 20, 60_000);
+    if (!rl.allowed) return json({ error: 'Rate limit exceeded. Tente novamente em instantes.' }, 429);
 
-    const supabase = createClient(supabaseUrl, supabaseKey, { db: { schema: "zapp" } });
+    const supabase = createZappAdminClient();
 
     let rawBody: unknown;
     try {
@@ -376,7 +375,7 @@ function extractEmails(from: string): string[] {
  * Returns: Valid access token string, or null if token unavailable/refresh failed.
  * Prevents: Expired token usage, race conditions during token refresh, reuse of invalid tokens.
  */
-async function getValidToken(supabase: ReturnType<typeof createClient>, accountId: string): Promise<string | null> {
+async function getValidToken(supabase: ReturnType<typeof createZappAdminClient>, accountId: string): Promise<string | null> {
   const { data: acc } = await supabase
     .from('gmail_accounts')
     .select('access_token, token_expiry, refresh_token')
@@ -465,7 +464,7 @@ async function getValidToken(supabase: ReturnType<typeof createClient>, accountI
  * Used in bounded batches (concurrency=5) to respect Gmail API quota.
  */
 async function fetchAndPersistMessage(
-  supabase: ReturnType<typeof createClient>,
+  supabase: ReturnType<typeof createZappAdminClient>,
   token: string,
   accountId: string,
   messageId: string

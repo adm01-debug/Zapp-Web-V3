@@ -1,6 +1,6 @@
-import { handleCors, errorResponse, jsonResponse, requireEnv, Logger } from "../_shared/validation.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { handleCors, errorResponse, jsonResponse, Logger, checkRateLimit } from "../_shared/validation.ts";
 import { requireUser } from "../_shared/auth.ts";
+import { createZappAdminClient, createZappClient } from "../_shared/db-client.ts";
 
 Deno.serve(async (req) => {
   const cors = handleCors(req);
@@ -11,17 +11,14 @@ Deno.serve(async (req) => {
   try {
     const authed = await requireUser(req);
     if (authed instanceof Response) return authed;
+    const rl = checkRateLimit(`voice-copilot-action:${authed.user.id}`, 30, 60_000);
+    if (!rl.allowed) return errorResponse('Rate limit exceeded', 429, req);
     const { action, params } = await req.json();
     
-    const supabaseUrl = requireEnv('SUPABASE_URL');
-    const supabaseKey = requireEnv('SUPABASE_SERVICE_ROLE_KEY');
-    const supabase = createClient(supabaseUrl, supabaseKey, { db: { schema: "zapp" } });
+    const supabase = createZappAdminClient();
     // Caller-scoped client enforces RLS — used for user-data reads (contacts, analyses)
     // so tenant isolation is guaranteed without relying on a non-existent user_id column.
-    const callerClient = createClient(supabaseUrl, (Deno.env.get('SELFHOSTED_SUPABASE_ANON_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY')) ?? Deno.env.get('SUPABASE_PUBLISHABLE_KEY') ?? requireEnv('SUPABASE_ANON_KEY'), {
-      global: { headers: { authorization: req.headers.get('authorization') || '' } },
-      db: { schema: "zapp" },
-    });
+    const callerClient = createZappClient(req);
 
     if (!action || typeof action !== 'string') {
       return errorResponse('action must be a non-empty string', 400, req);
@@ -124,11 +121,16 @@ Deno.serve(async (req) => {
           result = { success: false, message: 'Contato não encontrado.' };
           break;
         }
-        // Find agent by name
+        // Find agent by name — sanitize SQL wildcards to prevent matching all agents
+        const sanitizedAgentName = String(agentName).replace(/[%_\\]/g, '').trim();
+        if (!sanitizedAgentName) {
+          result = { success: false, message: 'agentName inválido.' };
+          break;
+        }
         const { data: agent } = await supabase
           .from('profiles')
           .select('id, name')
-          .ilike('name', `%${agentName}%`)
+          .ilike('name', `%${sanitizedAgentName}%`)
           .eq('is_active', true)
           .limit(1)
           .single();
@@ -157,6 +159,9 @@ Deno.serve(async (req) => {
         }
         if (!content || typeof content !== 'string') {
           return errorResponse('content is required', 400, req);
+        }
+        if (content.length > 10_000) {
+          return errorResponse('content must be 10,000 characters or fewer', 400, req);
         }
         // Verify the caller owns this contact before inserting a note
         const { data: ownedContact, error: ownedContactErr } = await supabase

@@ -45,7 +45,7 @@
  * - API validation errors (4xx): Logged but not retried (user error)
  * - Campaign state conflicts (paused/cancelled during dispatch): Gracefully abandon batch
  */
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { createZappAdminClient } from '../_shared/db-client.ts';
 import { getCorsHeaders, handleCors, Logger } from "../_shared/validation.ts";
 import { parseOrReject } from "../_shared/contract-kit.ts";
 import { TalkxSendV1Schema } from "../_shared/contract-schemas.ts";
@@ -161,18 +161,13 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const supabaseUrl = Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL');
-    const serviceKey = Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-    if (!supabaseUrl || !serviceKey) {
-      return new Response(JSON.stringify({ error: "Supabase configuration missing" }), { status: 500, headers });
-    }
     const evolutionUrl = (Deno.env.get("EVOLUTION_API_URL") || "").replace(/\/+$/, "");
     const evolutionKey = Deno.env.get("EVOLUTION_API_KEY");
     if (!evolutionKey) {
       return new Response(JSON.stringify({ error: "Evolution API configuration missing" }), { status: 500, headers });
     }
 
-    const supabase = createClient(supabaseUrl, serviceKey, { db: { schema: "zapp" } });
+    const supabase = createZappAdminClient();
     // Contrato talkx-send@v1 (estrito): campaignId UUID + action enum.
     const raw = await req.json().catch(() => null);
     const parsed = parseOrReject('talkx-send', { v1: TalkxSendV1Schema }, req, raw, {

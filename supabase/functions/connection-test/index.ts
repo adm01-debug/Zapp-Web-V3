@@ -3,8 +3,8 @@
 //  - credenciais do provedor (Evolution ou Meta Cloud)
 //  - permissões/escopos (instância autenticada / phone number alcançável)
 //  - entrega de webhook (POST sintético assinado contra a URL pública correta)
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/validation.ts";
+import { requireAdminOrSupervisor } from "../_shared/auth.ts";
 
 type Mode = "official" | "unofficial";
 type Status = "pass" | "warn" | "fail" | "skip";
@@ -335,23 +335,10 @@ Deno.serve(async (req) => {
     return new Response("method not allowed", { status: 405, headers: corsHeaders });
   }
 
-  // Auth: precisa de usuário logado (admin idealmente). Validamos JWT.
-  const authHeader = req.headers.get("Authorization") ?? "";
-  if (!authHeader.startsWith("Bearer ")) {
-    return new Response(JSON.stringify({ error: "unauthorized" }), {
-      status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
-  const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-    global: { headers: { Authorization: authHeader } },
-    db: { schema: "zapp" },
-  });
-  const { data: userData, error: userErr } = await supabase.auth.getUser();
-  if (userErr || !userData?.user) {
-    return new Response(JSON.stringify({ error: "unauthorized" }), {
-      status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
+  // Restrict to admin/supervisor — any authenticated user could otherwise
+  // probe Evolution/Meta credentials and internal webhook configurations.
+  const authed = await requireAdminOrSupervisor(req);
+  if (authed instanceof Response) return authed;
 
   let mode: Mode = "unofficial";
   try {

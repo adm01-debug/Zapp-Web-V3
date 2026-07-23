@@ -1,6 +1,6 @@
-import { handleCors, jsonResponse, Logger, securityErrorResponse, requireEnv } from "../_shared/validation.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { handleCors, jsonResponse, Logger, securityErrorResponse, requireEnv, checkRateLimit } from "../_shared/validation.ts";
 import { requireUser } from "../_shared/auth.ts";
+import { createZappAdminClient } from "../_shared/db-client.ts";
 
 /**
  * Secure Upload Middleware
@@ -44,6 +44,16 @@ Deno.serve(async (req) => {
         req,
       );
     }
+
+    const rl = checkRateLimit(`secure-upload:${authed.user.id}`, 10, 60_000);
+    if (!rl.allowed) {
+      return securityErrorResponse(
+        { code: "RATE_LIMIT_EXCEEDED", message: "Limite de uploads atingido. Tente novamente em instantes." },
+        429,
+        req,
+      );
+    }
+
     const formData = await req.formData();
     const file = formData.get("file") as File;
 
@@ -149,14 +159,12 @@ Deno.serve(async (req) => {
     }
 
     // 2. Persist to storage
-    const supabaseUrl = requireEnv("SUPABASE_URL");
-    const supabaseServiceKey = requireEnv("SUPABASE_SERVICE_ROLE_KEY");
-    const supabase = createClient(supabaseUrl, supabaseServiceKey, { db: { schema: "zapp" } });
+    const supabase = createZappAdminClient();
 
     const fileExt = file.name.split(".").pop();
     const fileName =
       customPath ||
-      `secure/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+      `secure/${crypto.randomUUID()}.${fileExt}`;
 
     log.info("Persistindo no storage", { path: fileName });
 

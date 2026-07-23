@@ -7,17 +7,13 @@
 // SHA256: 0c585e2407ac428cb944756a2aeb6b1d1d0a6c535f14615e31a20f82d80f7a3e
 
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
 import { requireServiceRoleOrCron } from "../_shared/auth.ts";
-
 import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
-const SUPABASE_URL = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'))!;
-const SUPABASE_SERVICE_ROLE_KEY = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))!;
+import { createZappAdminClient } from '../_shared/db-client.ts';
 const BATCH_SIZE = 10;
 const SEND_DELAY_MS = 600;
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-  auth: { persistSession: false }, db: { schema: "zapp" } });
+const supabase = createZappAdminClient();
 
 // Cache de config Vault (renovado a cada cold start)
 let _config: { url: string; key: string; instance: string } | null = null;

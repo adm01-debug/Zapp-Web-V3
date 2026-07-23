@@ -57,10 +57,10 @@
  * - Default instance used if not specified
  * - Allows single provider to manage multiple business accounts
  */
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { requireAdminOrSupervisor } from "../_shared/auth.ts";
-
+import { createZappAdminClient } from "../_shared/db-client.ts";
 import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
+import { checkRateLimit } from '../_shared/validation.ts';
 type Action = "sendText" | "sendMedia" | "getStatus" | "ping";
 
 interface RouteRequest {
@@ -217,21 +217,11 @@ Deno.serve(async (req) => {
   const authed = await requireAdminOrSupervisor(req);
   if (authed instanceof Response) return authed;
 
-  const urlHosted = Deno.env.get('SELFHOSTED_SUPABASE_URL');
-  const urlDefault = Deno.env.get('SUPABASE_URL');
-  const url = (typeof urlHosted === 'string' && urlHosted.length > 0)
-    ? urlHosted
-    : (typeof urlDefault === 'string' && urlDefault.length > 0 ? urlDefault : '');
-
-  const serviceKeyHosted = Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY');
-  const serviceKeyDefault = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-  const serviceKey = (typeof serviceKeyHosted === 'string' && serviceKeyHosted.length > 0)
-    ? serviceKeyHosted
-    : (typeof serviceKeyDefault === 'string' && serviceKeyDefault.length > 0 ? serviceKeyDefault : '');
-
-  if (!url || !serviceKey) {
-    return new Response(JSON.stringify({ error: "missing_env" }), {
-      status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
+  // Per-user rate limit: 60 sends/minute to prevent runaway automation
+  const rl = checkRateLimit(`provider-router:${authed.user.id}`, 60, 60_000);
+  if (!rl.allowed) {
+    return new Response(JSON.stringify({ error: "rate_limit_exceeded" }), {
+      status: 429, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
     });
   }
 
@@ -241,7 +231,7 @@ Deno.serve(async (req) => {
     if (typeof parsed !== "object" || parsed === null) {
       console.warn('[provider-router] invalid json: not an object', { type: typeof parsed });
       return new Response(JSON.stringify({ error: "invalid_json" }), {
-        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 400, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
       });
     }
     body = parsed as RouteRequest;
@@ -259,7 +249,7 @@ Deno.serve(async (req) => {
     });
   }
 
-  const admin = createClient(url, serviceKey, { auth: { persistSession: false }, db: { schema: "zapp" } });
+  const admin = createZappAdminClient();
 
   // Buscar rota do canal
   const channelRef = body.channel_connection_id

@@ -1,6 +1,6 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { handleCors, errorResponse, jsonResponse, requireEnv, Logger, checkRateLimit, getClientIP } from "../_shared/validation.ts";
+import { handleCors, errorResponse, jsonResponse, Logger, checkRateLimit, getClientIP } from "../_shared/validation.ts";
 import { requireServiceRoleOrCron, requireUser } from "../_shared/auth.ts";
+import { createZappAdminClient } from "../_shared/db-client.ts";
 import { isSafeMediaCdnUrl } from "../_shared/evolution-media.ts";
 
 Deno.serve(async (req) => {
@@ -19,7 +19,7 @@ Deno.serve(async (req) => {
     const ip = getClientIP(req);
     const rl = checkRateLimit(`batch-avatars:${ip}`, 5, 60_000);
     if (!rl.allowed) return errorResponse("Rate limit exceeded", 429, req);
-    const supabase = createClient(requireEnv('SUPABASE_URL'), requireEnv('SUPABASE_SERVICE_ROLE_KEY'), { db: { schema: "zapp" } });
+    const supabase = createZappAdminClient();
 
     const { data: contacts, error: contactsError } = await supabase
       .from('contacts')

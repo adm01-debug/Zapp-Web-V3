@@ -1,7 +1,51 @@
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createZappAdminClient } from '../_shared/db-client.ts';
 
-import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
+import { getCorsHeaders } from '../_shared/cors.ts';
+import { requireUser } from '../_shared/auth.ts';
+import { checkRateLimit, isValidUUID } from '../_shared/validation.ts';
+import { timingSafeStringEqual } from '../_shared/auth.ts';
+
+/** Signs OAuth state token as base64(userId|nonce|hmac) — prevents Account Binding CSRF. */
+async function signOAuthState(userId: string, signingKey: string): Promise<string> {
+  const nonce = crypto.randomUUID();
+  const payload = `${userId}|${nonce}`;
+  const keyMaterial = new TextEncoder().encode(signingKey.slice(0, 32).padEnd(32, '0'));
+  const key = await crypto.subtle.importKey('raw', keyMaterial, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  const sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(payload));
+  const sigHex = Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2, '0')).join('');
+  return btoa(`${payload}|${sigHex}`);
+}
+
+/** Verifies state was signed by signOAuthState for this userId. Returns false on any mismatch. */
+async function verifyOAuthState(state: string, userId: string, signingKey: string): Promise<boolean> {
+  try {
+    const decoded = atob(state);
+    const parts = decoded.split('|');
+    if (parts.length !== 3) return false;
+    const [stateUserId, nonce, sig] = parts;
+    if (stateUserId !== userId) return false;
+    const payload = `${stateUserId}|${nonce}`;
+    const keyMaterial = new TextEncoder().encode(signingKey.slice(0, 32).padEnd(32, '0'));
+    const key = await crypto.subtle.importKey('raw', keyMaterial, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+    const expected = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(payload));
+    const expectedHex = Array.from(new Uint8Array(expected)).map(b => b.toString(16).padStart(2, '0')).join('');
+    return timingSafeStringEqual(sig, expectedHex);
+  } catch {
+    return false;
+  }
+}
+
+/** Validates that a nextLink URL is from Microsoft Graph API only — prevents SSRF. */
+function validateGraphNextLink(link: string): string | null {
+  try {
+    const u = new URL(link);
+    if (u.protocol !== 'https:') return null;
+    if (u.hostname !== 'graph.microsoft.com') return null;
+    return link;
+  } catch {
+    return null;
+  }
+}
 /**
  * outlook-oauth — Integração Microsoft Graph API para Outlook / Office 365
  *
@@ -32,31 +76,27 @@ const SCOPES = [
   'email',
 ].join(' ');
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: getCorsHeaders(req) });
 
-  const supabaseUrlHosted = Deno.env.get('SELFHOSTED_SUPABASE_URL');
-  const supabaseUrlDefault = Deno.env.get('SUPABASE_URL');
-  const supabaseUrl = (typeof supabaseUrlHosted === 'string' && supabaseUrlHosted.length > 0)
-    ? supabaseUrlHosted
-    : (typeof supabaseUrlDefault === 'string' && supabaseUrlDefault.length > 0 ? supabaseUrlDefault : '');
+  const supabaseUrl = Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL') ?? '';
+  const supabaseServiceKey = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))!;
 
-  const supabaseServiceKeyHosted = Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY');
-  const supabaseServiceKeyDefault = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-  const supabaseServiceKey = (typeof supabaseServiceKeyHosted === 'string' && supabaseServiceKeyHosted.length > 0)
-    ? supabaseServiceKeyHosted
-    : (typeof supabaseServiceKeyDefault === 'string' && supabaseServiceKeyDefault.length > 0 ? supabaseServiceKeyDefault : '');
+  const supabase = createZappAdminClient();
 
-  if (!supabaseUrl || !supabaseServiceKey) {
-    const json = (data: unknown, status = 200) =>
-      new Response(JSON.stringify(data), {
-        status,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    return json({ error: 'Server configuration error' }, 503);
-  }
+  const json = (data: unknown, status = 200) =>
+    new Response(JSON.stringify(data), {
+      status,
+      headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+    });
 
-  const supabase = createClient(supabaseUrl, supabaseServiceKey, { db: { schema: "zapp" } });
+  // All actions (including getAuthUrl) require a valid Supabase JWT
+  const authed = await requireUser(req);
+  if (authed instanceof Response) return authed;
+  const authenticatedUserId = authed.user.id;
+
+  const rl = checkRateLimit(`outlook-oauth:${authenticatedUserId}`, 20, 60_000);
+  if (!rl.allowed) return json({ error: 'Rate limit exceeded' }, 429);
 
   const clientIdRaw = Deno.env.get('MICROSOFT_CLIENT_ID');
   const clientSecretRaw = Deno.env.get('MICROSOFT_CLIENT_SECRET');
@@ -67,12 +107,6 @@ serve(async (req) => {
   const redirectUri = (typeof redirectUriRaw === 'string' && redirectUriRaw.length > 0)
     ? redirectUriRaw
     : `${supabaseUrl}/functions/v1/outlook-oauth`;
-
-  const json = (data: unknown, status = 200) =>
-    new Response(JSON.stringify(data), {
-      status,
-      headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-    });
 
   try {
     let bodyRaw: unknown;
@@ -89,10 +123,11 @@ serve(async (req) => {
     const action = typeof body.action === 'string' ? body.action : '';
 
     // ── getAuthUrl — gera URL de autorização OAuth2 ────────────────────
+    // State token is HMAC-signed with userId — prevents Account Binding CSRF
     if (action === 'getAuthUrl') {
       if (!clientId) return json({ error: 'MICROSOFT_CLIENT_ID não configurado' }, 500);
 
-      const state  = crypto.randomUUID();
+      const state  = await signOAuthState(authenticatedUserId, supabaseServiceKey);
       const params = new URLSearchParams({
         client_id:    clientId,
         response_type: 'code',
@@ -109,11 +144,29 @@ serve(async (req) => {
       });
     }
 
+    // ── listProviderSupport — informational, no auth needed ───────────
+    if (action === 'listProviderSupport') {
+      return json({
+        providers: [
+          { id: 'outlook', name: 'Microsoft Outlook / Office 365', method: 'microsoft_graph', note: 'OAuth2 via Microsoft Graph API — sem IMAP TCP' },
+          { id: 'gmail',   name: 'Gmail / Google Workspace',       method: 'google_oauth2',   note: 'OAuth2 via Gmail API — use gmail-oauth function' },
+          { id: 'yahoo',   name: 'Yahoo Mail',                     method: 'imap_password',   note: 'App Password + IMAP (requer worker externo)' },
+          { id: 'custom',  name: 'Servidor SMTP/IMAP customizado', method: 'imap_password',   note: 'App Password + IMAP (requer worker externo)' },
+        ],
+        note: 'Gmail e Outlook têm suporte completo via APIs HTTP. Yahoo e IMAP customizado requerem proxy TCP externo.',
+      });
+    }
+
     // ── exchangeCode — troca code por access_token + refresh_token ─────
     if (action === 'exchangeCode') {
       const code = typeof body.code === 'string' ? body.code : '';
       const userId = typeof body.userId === 'string' ? body.userId : '';
+      const state = typeof body.state === 'string' ? body.state : '';
       if (!code || !userId) return json({ error: 'code e userId obrigatórios' }, 400);
+      // Prevent token hijacking: caller may only bind the OAuth code to their own account
+      if (userId !== authenticatedUserId) return json({ error: 'Forbidden: userId does not match authenticated user' }, 403);
+      // Verify HMAC-signed state — prevents Account Binding CSRF
+      if (!state || !await verifyOAuthState(state, authenticatedUserId, supabaseServiceKey)) return json({ error: 'Invalid or missing OAuth state' }, 403);
       if (!clientId || !clientSecret) return json({ error: 'Credenciais Microsoft não configuradas' }, 500);
 
       const tokenRes = await fetch(`${AUTH_BASE}/token`, {
@@ -179,7 +232,7 @@ serve(async (req) => {
       const { data, error } = await supabase
         .from('imap_smtp_accounts')
         .upsert({
-          user_id:      userId,
+          user_id:      authenticatedUserId,
           email,
           provider:     'outlook',
           imap_host:    'outlook.office365.com',
@@ -235,6 +288,7 @@ serve(async (req) => {
         .from('imap_smtp_accounts')
         .select('email, password_encrypted')
         .eq('id', accountId)
+        .eq('user_id', authenticatedUserId)
         .single();
 
       if (!accountData || typeof accountData !== 'object' || Array.isArray(accountData)) {
@@ -267,8 +321,10 @@ serve(async (req) => {
         return json({ error: 'Failed to get access token' }, 401);
       }
 
-      // Buscar mensagens via Graph API
-      const url = nextLink || `${GRAPH_BASE}/me/mailFolders/inbox/messages?$top=${pageSize}&$orderby=receivedDateTime desc&$select=id,subject,bodyPreview,from,toRecipients,receivedDateTime,isRead,hasAttachments,conversationId`;
+      // Buscar mensagens via Graph API — validate nextLink to prevent SSRF
+      const safeNextLink = nextLink ? validateGraphNextLink(nextLink) : null;
+      if (nextLink && !safeNextLink) return json({ error: 'Invalid nextLink: must be a Microsoft Graph URL' }, 400);
+      const url = safeNextLink || `${GRAPH_BASE}/me/mailFolders/inbox/messages?$top=${pageSize}&$orderby=receivedDateTime desc&$select=id,subject,bodyPreview,from,toRecipients,receivedDateTime,isRead,hasAttachments,conversationId`;
 
       const msgsRes = await fetch(url, {
         headers: { Authorization: `Bearer ${accessToken}` },
@@ -312,6 +368,7 @@ serve(async (req) => {
         .from('imap_smtp_accounts')
         .select('email, password_encrypted')
         .eq('id', accountId)
+        .eq('user_id', authenticatedUserId)
         .single();
 
       if (!accountData || typeof accountData !== 'object' || Array.isArray(accountData)) {
@@ -403,6 +460,7 @@ serve(async (req) => {
         .from('imap_smtp_accounts')
         .select('password_encrypted')
         .eq('id', accountId)
+        .eq('user_id', authenticatedUserId)
         .single();
 
       if (!accountData || typeof accountData !== 'object' || Array.isArray(accountData)) {
@@ -458,6 +516,7 @@ serve(async (req) => {
         .from('imap_smtp_accounts')
         .select('password_encrypted')
         .eq('id', accountId)
+        .eq('user_id', authenticatedUserId)
         .single();
 
       if (!accountData || typeof accountData !== 'object' || Array.isArray(accountData)) {
@@ -509,19 +568,6 @@ serve(async (req) => {
       }
 
       return json({ message: msgRaw });
-    }
-
-    // ── listProviderSupport ────────────────────────────────────────────
-    if (action === 'listProviderSupport') {
-      return json({
-        providers: [
-          { id: 'outlook', name: 'Microsoft Outlook / Office 365', method: 'microsoft_graph', note: 'OAuth2 via Microsoft Graph API — sem IMAP TCP' },
-          { id: 'gmail',   name: 'Gmail / Google Workspace',       method: 'google_oauth2',   note: 'OAuth2 via Gmail API — use gmail-oauth function' },
-          { id: 'yahoo',   name: 'Yahoo Mail',                     method: 'imap_password',   note: 'App Password + IMAP (requer worker externo)' },
-          { id: 'custom',  name: 'Servidor SMTP/IMAP customizado', method: 'imap_password',   note: 'App Password + IMAP (requer worker externo)' },
-        ],
-        note: 'Gmail e Outlook têm suporte completo via APIs HTTP. Yahoo e IMAP customizado requerem proxy TCP externo.',
-      });
     }
 
     return json({ error: `Ação desconhecida: ${action}` }, 400);

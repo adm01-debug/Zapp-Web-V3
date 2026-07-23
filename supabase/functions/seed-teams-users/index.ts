@@ -1,4 +1,4 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.42.0";
+import { createZappAdminClient } from '../_shared/db-client.ts';
 import { corsHeaders } from "../_shared/validation.ts";
 import { requireServiceRoleOnly } from "../_shared/auth.ts";
 
@@ -9,10 +9,7 @@ Deno.serve(async (req) => {
   if (denied) return denied;
 
   try {
-    const supabase = createClient(
-      (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'))!, (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))!,
-      { auth: { persistSession: false }, db: { schema: "zapp" } }
-    );
+    const supabase = createZappAdminClient();
 
     const users = [
       { email: "admin_ti@zappweb.com", password: "ti123", role: "admin", department: "TI", name: "Admin TI", dept_id: "d2222222-2222-2222-2222-222222222222" },

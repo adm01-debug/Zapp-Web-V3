@@ -1,6 +1,5 @@
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { requireUser } from '../_shared/auth.ts';
+import { checkRateLimit } from '../_shared/validation.ts';
 import { parseOrReject } from '../_shared/contract-kit.ts';
 import { SendEmailV1Schema } from '../_shared/contract-schemas.ts';
 
@@ -12,7 +11,7 @@ import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
  * Use gmail-send diretamente em novos desenvolvimentos.
  */
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: getCorsHeaders(req) });
 
   const json = (data: unknown, status = 200) =>
@@ -21,6 +20,9 @@ serve(async (req) => {
   try {
     const authed = await requireUser(req);
     if (authed instanceof Response) return authed;
+
+    const rl = checkRateLimit(`send-email:${authed.user.id}`, 20, 60_000);
+    if (!rl.allowed) return json({ error: 'Rate limit exceeded. Tente novamente em instantes.' }, 429);
 
     // Contrato send-email@v1: accountId OU (to+subject+html). 422 unificado.
     let raw: unknown;
@@ -42,15 +44,8 @@ serve(async (req) => {
     if (accountId) {
       // Delega para gmail-send usando o token do usuário (não service role),
       // para que gmail-send possa verificar a propriedade da conta Gmail.
-      const supabaseUrlSelfHosted = Deno.env.get('SELFHOSTED_SUPABASE_URL');
-      const supabaseUrlDefault = Deno.env.get('SUPABASE_URL');
-      const supabaseUrl = (typeof supabaseUrlSelfHosted === 'string' && supabaseUrlSelfHosted.length > 0)
-        ? supabaseUrlSelfHosted
-        : (typeof supabaseUrlDefault === 'string' && supabaseUrlDefault.length > 0 ? supabaseUrlDefault : '');
-
-      if (!supabaseUrl) {
-        return json({ error: 'Supabase URL not configured' }, 503);
-      }
+      const supabaseUrl = Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL') ?? '';
+      if (!supabaseUrl) return json({ error: 'Supabase URL not configured' }, 503);
 
       const authHeader = req.headers.get('Authorization');
       if (!authHeader || typeof authHeader !== 'string' || authHeader.length === 0) {

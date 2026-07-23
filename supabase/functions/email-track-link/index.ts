@@ -1,5 +1,4 @@
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createZappAdminClient } from '../_shared/db-client.ts';
 
 /**
  * email-track-link — Rastreio de cliques em links de emails
@@ -33,7 +32,7 @@ function parseUA(ua: string): { device: string; browser: string; os: string } {
   return { device, browser, os };
 }
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method !== 'GET') {
     return new Response('Method not allowed', { status: 405 });
   }
@@ -45,10 +44,7 @@ serve(async (req) => {
     return new Response('Missing link_id', { status: 400 });
   }
 
-  const supabase = createClient(
-    (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'))!, (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))!,
-    { db: { schema: "zapp" } },
-  );
+  const supabase = createZappAdminClient();
 
   try {
     const ua      = req.headers.get('user-agent') ?? '';
@@ -78,11 +74,20 @@ serve(async (req) => {
       });
     }
 
+    // Validate redirect target to prevent javascript:/data: URI injection via stored URL
+    let safeLocation = 'https://pronto-talk-suite.lovable.app';
+    try {
+      const dest = new URL(data.original_url);
+      if (dest.protocol === 'https:' || dest.protocol === 'http:') {
+        safeLocation = data.original_url;
+      }
+    } catch { /* invalid URL — fall back to default */ }
+
     // Redirecionar 302 para URL original
     return new Response(null, {
       status: 302,
       headers: {
-        Location: data.original_url,
+        Location: safeLocation,
         'Cache-Control': 'no-store, no-cache',
       },
     });

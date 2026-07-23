@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { createZappClient } from '../_shared/db-client.ts';
 import { z } from "https://esm.sh/zod@3.23.8";
 import { getCorsHeaders, handleCors, Logger } from "../_shared/validation.ts";
 
@@ -42,7 +43,7 @@ const ListProductsSchema = z.object({
   category_id: z.string().uuid().optional(),
   supplier_id: z.string().uuid().optional(),
   limit: z.number().int().min(1).max(100).default(50),
-  offset: z.number().int().min(0).default(0),
+  offset: z.number().int().min(0).max(1_000_000).default(0),
   order_by: z.enum(ALLOWED_ORDER_FIELDS).default("name"),
   ascending: z.boolean().default(true),
   only_active: z.boolean().default(true),
@@ -73,7 +74,7 @@ const ActionSchema = z.object({
  * (que o driver já previne).
  */
 function sanitizeSearch(input: string): string {
-  return input.replace(/[%_.\\(),:'"`]/g, "").trim().slice(0, 100);
+  return input.replace(/[%_.\\(),:'"\`]/g, "").trim().slice(0, 100);
 }
 
 const PRODUCT_FIELDS = `id, name, description, short_description, sku, sale_price, suggested_price,
@@ -203,10 +204,7 @@ Deno.serve(async (req) => {
       return jsonRes({ error: "Unauthorized" }, 401, req);
     }
 
-    const localClient = createClient(
-      (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'))!, (Deno.env.get('SELFHOSTED_SUPABASE_ANON_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY'))!,
-      { global: { headers: { Authorization: authHeader } }, db: { schema: "zapp" } }
-    );
+    const localClient = createZappClient(req);
 
     const { data: userData, error: userErr } = await localClient.auth.getUser();
     if (userErr || !userData?.user) {

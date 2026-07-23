@@ -1,8 +1,13 @@
 // Edge function: gera sugestão de resposta para uma execução de automação
 // Usa Lovable AI Gateway (sem API key do usuário) + Knowledge Base + Tag Recommender
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createZappAdminClient } from "../_shared/db-client.ts";
 import { requireServiceRoleOrCron } from "../_shared/auth.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { isValidUUID } from "../_shared/validation.ts";
+
+const MAX_MESSAGE_CONTENT_LEN = 2_000;
+const MAX_CONTACT_NAME_LEN = 200;
+const MAX_HISTORY_MESSAGES = 8;
 
 interface Body {
   executionId: string;
@@ -60,7 +65,7 @@ function buildSearchQuery(messages: Array<{ from_me: boolean; content: string }>
  * Graceful failure: Network errors, empty results, parse errors → returns empty snippet + sources.
  */
 async function fetchKnowledgeContext(
-  supabase: ReturnType<typeof createClient>,
+  supabase: ReturnType<typeof createZappAdminClient>,
   query: string,
 ): Promise<{ snippet: string; sources: string[] }> {
   if (!query) return { snippet: "", sources: [] };
@@ -102,15 +107,10 @@ async function fetchKnowledgeContext(
  * Supports dual config: SELFHOSTED_SUPABASE_URL takes precedence; falls back to EXTERNAL_SUPABASE_URL.
  * Returns empty array if config missing or fetch fails (graceful degradation for tag recommendations).
  * Used by AI to narrow suggested tags to available taxonomy.
- *
- * Uses service role key: evo.evolution_tags RLS allows only `authenticated` and `service_role` —
- * the anon role has no policy and would always return empty silently.
  */
-async function fetchExternalTags(serviceKey: string): Promise<ExtTag[]> {
-  const url = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('EXTERNAL_SUPABASE_URL'));
-  if (!url || !serviceKey) return [];
+async function fetchExternalTags(): Promise<ExtTag[]> {
   try {
-    const ext = createClient(url, serviceKey, { db: { schema: "evo" } });
+    const ext = createZappAdminClient();
     const { data, error } = await ext
       .from("evolution_tags")
       .select("id, name, color, description")
@@ -245,9 +245,7 @@ Deno.serve(async (req) => {
 
   try {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    const SUPABASE_URL = Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL');
-    const SERVICE_KEY = Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-    if (!LOVABLE_API_KEY || !SUPABASE_URL || !SERVICE_KEY) throw new Error("Required environment variables missing");
+    if (!LOVABLE_API_KEY) throw new Error("Required environment variables missing");
 
     const rawBody = await req.json();
     if (typeof rawBody !== 'object' || rawBody === null || Array.isArray(rawBody)) {
@@ -261,8 +259,10 @@ Deno.serve(async (req) => {
     const skipAi = bodyObj.skipAi === true;
 
     if (!executionId || !ruleId) throw new Error("executionId and ruleId are required");
+    if (!isValidUUID(executionId)) throw new Error("executionId must be a valid UUID");
+    if (!isValidUUID(ruleId)) throw new Error("ruleId must be a valid UUID");
 
-    const supabase = createClient(SUPABASE_URL, SERVICE_KEY, { db: { schema: "zapp" } });
+    const supabase = createZappAdminClient();
 
     const { data: rule, error: ruleErr } = await supabase
       .from("automation_rules")
@@ -281,8 +281,6 @@ Deno.serve(async (req) => {
     let suggestion = template;
     let recommendedTag: string | null = null;
     let kbSources: string[] = [];
-    // Captures a 429/402 error response to return AFTER we persist the partial result.
-    let aiErrorResponse: Response | null = null;
 
     const useAi = !skipAi && (!template || customPrompt);
 
@@ -290,11 +288,14 @@ Deno.serve(async (req) => {
       const recent = Array.isArray(recentMessages) ? recentMessages : [];
       const validMessages = recent
         .filter((m): m is Record<string, unknown> => typeof m === 'object' && m !== null && !Array.isArray(m));
+      // Truncate each message to prevent prompt injection via oversized content
       const history = validMessages
-        .slice(-8)
+        .slice(-MAX_HISTORY_MESSAGES)
         .map(m => {
           const isFromMe = m.from_me === true;
-          const content = typeof m.content === 'string' ? m.content : '';
+          const rawContent = typeof m.content === 'string' ? m.content : '';
+          // Truncate and strip control characters to limit injection surface
+          const content = rawContent.slice(0, MAX_MESSAGE_CONTENT_LEN).replace(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g, '');
           return `${isFromMe ? "Atendente" : "Cliente"}: ${content}`;
         })
         .join("\n");
@@ -306,7 +307,7 @@ Deno.serve(async (req) => {
       })));
       const [{ snippet: kbSnippet, sources }, tags] = await Promise.all([
         fetchKnowledgeContext(supabase, searchQuery),
-        fetchExternalTags(SERVICE_KEY),
+        fetchExternalTags(),
       ]);
       kbSources = sources;
 
@@ -338,10 +339,17 @@ Deno.serve(async (req) => {
 
       const ruleName = typeof ruleObj.name === 'string' ? ruleObj.name : 'sem-nome';
       const ruleTrigger = typeof ruleObj.trigger_type === 'string' ? ruleObj.trigger_type : 'unknown';
+      // Sanitize contactName — customer-controlled, strip control chars and cap length
+      const safeContactName = (contactName ?? '—')
+        .replace(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g, '')
+        .slice(0, MAX_CONTACT_NAME_LEN);
+      // Wrap untrusted customer content in XML delimiters so the model can distinguish
+      // instructions from data — structural defense against prompt injection.
       const userPrompt = `Regra disparada: ${ruleName} (${ruleTrigger})
-Cliente: ${contactName ?? "—"}
-Histórico recente:
+Cliente: ${safeContactName}
+<historico_conversa>
 ${history || "(sem mensagens)"}
+</historico_conversa>
 
 Gere a melhor próxima resposta do atendente e recomende a tag mais adequada.`;
 
@@ -354,7 +362,6 @@ Gere a melhor próxima resposta do atendente e recomende a tag mais adequada.`;
           // Re-wrap with CORS headers so browsers receive the 429/402 error properly.
           // Parse and re-serialise so stack traces or internal details from the upstream
           // API are never forwarded verbatim to the browser (CodeQL: stack-trace exposure).
-          // Do NOT return here — fall through so the execution record is always updated.
           let safeBody: string;
           try {
             const raw = await e.json();
@@ -368,18 +375,15 @@ Gere a melhor próxima resposta do atendente e recomende a tag mais adequada.`;
           } catch {
             safeBody = JSON.stringify({ error: 'Request failed' });
           }
-          aiErrorResponse = new Response(safeBody, {
+          return new Response(safeBody, {
             status: e.status,
             headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
           });
-        } else {
-          throw e;
         }
+        throw e;
       }
     }
 
-    // Always persist the result (or the template fallback on AI error) so the
-    // execution record is never left in a pending state regardless of outcome.
     await supabase
       .from("automation_executions")
       .update({
@@ -388,8 +392,6 @@ Gere a melhor próxima resposta do atendente e recomende a tag mais adequada.`;
         kb_sources: kbSources,
       })
       .eq("id", executionId);
-
-    if (aiErrorResponse) return aiErrorResponse;
 
     return new Response(
       JSON.stringify({
