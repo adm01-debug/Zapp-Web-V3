@@ -68,12 +68,21 @@ async function unregisterAllServiceWorkers(): Promise<void> {
   try {
     const regs = await navigator.serviceWorker.getRegistrations?.();
     if (regs && regs.length) {
+      log.info('[ServiceWorker] Unregistering existing workers', regs.map((r) => r.scope));
       await Promise.all(regs.map((r) => r.unregister().catch(() => false)));
     }
     if (typeof caches !== 'undefined') {
       const keys = await caches.keys();
       await Promise.all(keys.map((k) => caches.delete(k).catch(() => false)));
     }
+    // Limpa flags para permitir que uma futura mudanca de versao volte a
+    // funcionar sem ficar presa em "ja purguei nesta sessao".
+    try {
+      sessionStorage.removeItem('zapp_sw_purged_v3');
+      sessionStorage.removeItem('zapp-build-reload-once');
+      sessionStorage.removeItem('zapp-workbox-purged-once');
+      sessionStorage.removeItem('sw-cache-reset-done');
+    } catch { /* noop */ }
   } catch {
     /* noop */
   }
