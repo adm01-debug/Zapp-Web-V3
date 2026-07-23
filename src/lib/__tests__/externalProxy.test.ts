@@ -5,6 +5,8 @@ import { recordQueryEvent, recordRetryOutcome } from '@/lib/clientTelemetry';
 // ── Module mocks ──────────────────────────────────────────────────────────────
 
 vi.mock('@/integrations/supabase/client', () => ({
+  SUPABASE_RESOLVED_URL: 'http://localhost:54321',
+  SUPABASE_RESOLVED_ANON_KEY: 'test-anon-key',
   supabase: {
     auth: {
       getSession: vi.fn().mockResolvedValue({ data: { session: null }, error: null }),

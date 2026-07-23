@@ -45,6 +45,8 @@ vi.mock('@/hooks/use-mobile', () => ({
 }));
 
 vi.mock('@/integrations/supabase/client', () => ({
+  SUPABASE_RESOLVED_URL: 'http://localhost:54321',
+  SUPABASE_RESOLVED_ANON_KEY: 'test-anon-key',
   supabase: {
     from: vi.fn(() => ({
       insert: vi.fn().mockResolvedValue({ error: null })
