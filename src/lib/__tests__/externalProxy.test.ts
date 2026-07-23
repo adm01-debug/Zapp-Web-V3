@@ -5,6 +5,7 @@ import { recordQueryEvent, recordRetryOutcome } from '@/lib/clientTelemetry';
 // ── Module mocks ──────────────────────────────────────────────────────────────
 
 vi.mock('@/integrations/supabase/client', () => ({
+  isSupabaseConfigured: true,
   SUPABASE_RESOLVED_URL: 'http://localhost:54321',
   SUPABASE_RESOLVED_ANON_KEY: 'test-anon-key',
   supabase: {
