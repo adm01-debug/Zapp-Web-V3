@@ -131,7 +131,7 @@ export const supabase = createClient<ExtendedDatabase, 'zapp'>(supabaseUrl, supa
     storage: cookieStorage,
     persistSession: true,
     autoRefreshToken: true,
-    detectSessionInUrl: true,
+    detectSessionInUrl: false,
     flowType: 'pkce',
   },
   realtime: {
