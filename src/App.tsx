@@ -59,13 +59,32 @@ function DeferredProviders() {
  */
 const DeferredHooks = lazy(() =>
   import('@/hooks/useServiceWorker').then((swMod) =>
-    import('@/features/auth').then((spMod) => ({
-      default: function DeferredHooksInner(): null {
-        swMod.useServiceWorker();
-        spMod.useScreenProtection();
-        return null;
-      },
-    }))
+    import('@/features/auth').then((spMod) =>
+      import('@/lib/buildVersion').then((bvMod) => ({
+        default: function DeferredHooksInner(): null {
+          swMod.useServiceWorker();
+          spMod.useScreenProtection();
+          useEffect(() => {
+            // Skip in dev / iframe preview / kill-switch — same policy as SW.
+            if (import.meta.env?.DEV) return;
+            try {
+              if (window.self !== window.top) return;
+              const host = window.location.hostname;
+              if (
+                host.startsWith('id-preview--') ||
+                host.startsWith('preview--') ||
+                host.endsWith('.lovableproject.com') ||
+                host.endsWith('.lovableproject-dev.com') ||
+                host.endsWith('.beta.lovable.dev')
+              ) return;
+              if (new URL(window.location.href).searchParams.get('sw') === 'off') return;
+            } catch { /* noop */ }
+            return bvMod.startBuildVersionWatcher();
+          }, []);
+          return null;
+        },
+      }))
+    )
   )
 );
 
