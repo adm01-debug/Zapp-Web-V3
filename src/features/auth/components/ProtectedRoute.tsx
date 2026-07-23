@@ -148,6 +148,7 @@ export function ProtectedRoute({
 
 
   if (!user) {
+    recordAuthzFailure({ route: location.pathname, reason: 'unauthenticated' });
     return <Navigate to="/auth" state={{ from: location }} replace />;
   }
 
