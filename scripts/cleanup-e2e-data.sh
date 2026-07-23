@@ -7,7 +7,9 @@
 
 set -euo pipefail
 
-: "${SUPABASE_DB_URL:?defina SUPABASE_DB_URL}"
+# shellcheck source=lib/preflight-secrets.sh
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/preflight-secrets.sh"
+preflight_secrets "cleanup-e2e-data" SUPABASE_DB_URL
 
 echo "[cleanup-e2e] executando zapp.rpc_e2e_cleanup()..."
 

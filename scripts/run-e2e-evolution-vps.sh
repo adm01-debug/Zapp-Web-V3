@@ -13,13 +13,12 @@
 
 set -euo pipefail
 
+# shellcheck source=lib/preflight-secrets.sh
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/preflight-secrets.sh"
+preflight_secrets "run-e2e-evolution" E2E_USER_EMAIL E2E_USER_PASSWORD
+
 export E2E_BASE_URL="${E2E_BASE_URL:-https://zapp.atomicabr.com.br}"
 export CI="${CI:-true}"
-
-if [ -z "${E2E_USER_EMAIL:-}" ] || [ -z "${E2E_USER_PASSWORD:-}" ]; then
-  echo "ERRO: defina E2E_USER_EMAIL e E2E_USER_PASSWORD antes de rodar." >&2
-  exit 1
-fi
 
 echo "Alvo: $E2E_BASE_URL"
 echo "Usuário: $E2E_USER_EMAIL"

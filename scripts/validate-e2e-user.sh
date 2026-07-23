@@ -11,8 +11,9 @@
 
 set -euo pipefail
 
-: "${SUPABASE_DB_URL:?SUPABASE_DB_URL é obrigatório}"
-: "${E2E_USER_EMAIL:?E2E_USER_EMAIL é obrigatório}"
+# shellcheck source=lib/preflight-secrets.sh
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/preflight-secrets.sh"
+preflight_secrets "validate-e2e-user" SUPABASE_DB_URL E2E_USER_EMAIL
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SQL_FILE="${SCRIPT_DIR}/validate-e2e-user.sql"
