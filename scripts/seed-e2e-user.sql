@@ -23,6 +23,12 @@ DECLARE
   v_password  text := :'password';
   v_user_id   uuid;
   v_encrypted text;
+  v_user_action text;
+  v_roles_before int := 0;
+  v_roles_after  int := 0;
+  v_roles_added  int := 0;
+  v_roles_list   text[];
+  v_summary      jsonb;
 BEGIN
   IF v_email IS NULL OR v_password IS NULL THEN
     RAISE EXCEPTION 'Parâmetros :email e :password são obrigatórios';
@@ -46,6 +52,7 @@ BEGIN
       jsonb_build_object('name','E2E Bot','seed','e2e'),
       false
     );
+    v_user_action := 'inserted';
     RAISE NOTICE 'auth.users criado: %', v_user_id;
   ELSE
     UPDATE auth.users
@@ -55,6 +62,7 @@ BEGIN
            banned_until       = NULL,
            deleted_at         = NULL
      WHERE id = v_user_id;
+    v_user_action := 'updated';
     RAISE NOTICE 'auth.users atualizado: %', v_user_id;
   END IF;
 
@@ -69,11 +77,34 @@ BEGIN
         updated_at   = now();
 
   -- 3) roles: agent (base) + supervisor (permite CRUD amplo de CRM/contatos)
+  SELECT COUNT(*) INTO v_roles_before
+    FROM zapp.user_roles WHERE user_id = v_user_id;
+
   INSERT INTO zapp.user_roles (user_id, role)
   VALUES (v_user_id, 'agent'), (v_user_id, 'supervisor')
   ON CONFLICT (user_id, role) DO NOTHING;
 
+  SELECT COUNT(*), array_agg(role::text ORDER BY role::text)
+    INTO v_roles_after, v_roles_list
+    FROM zapp.user_roles WHERE user_id = v_user_id;
+
+  v_roles_added := v_roles_after - v_roles_before;
+
+  v_summary := jsonb_build_object(
+    'kind',          'user',
+    'timestamp',     to_char(now() AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"'),
+    'email',         v_email,
+    'user_id',       v_user_id,
+    'user_action',   v_user_action,
+    'roles',         to_jsonb(v_roles_list),
+    'roles_total',   v_roles_after,
+    'roles_added',   v_roles_added,
+    'roles_existing',v_roles_before
+  );
+
+  RAISE NOTICE 'E2E_SEED_SUMMARY_JSON:%', v_summary::text;
   RAISE NOTICE 'Seed E2E concluído para % (id=%)', v_email, v_user_id;
 END $$;
+
 
 COMMIT;

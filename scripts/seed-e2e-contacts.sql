@@ -83,8 +83,24 @@ BEGIN
     END IF;
   END LOOP;
 
+  RAISE NOTICE 'E2E_SEED_SUMMARY_JSON:%', jsonb_build_object(
+    'kind',       'contacts',
+    'timestamp',  to_char(now() AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"'),
+    'table',      'zapp.contacts',
+    'inserted',   v_inserted,
+    'updated',    v_updated,
+    'total',      v_inserted + v_updated,
+    'columns',    jsonb_build_object(
+                    'email',      v_has_email,
+                    'remote_jid', v_has_jid,
+                    'is_active',  v_has_active,
+                    'tags',       v_has_tags
+                  )
+  )::text;
+
   RAISE NOTICE 'E2E_SEED_OK: contacts inseridos=% atualizados=% (total=%)',
     v_inserted, v_updated, v_inserted + v_updated;
 END $$;
+
 
 COMMIT;
