@@ -7,6 +7,19 @@ import { AuthContext } from '../context/AuthContext';
 import { supabase, SUPABASE_RESOLVED_URL } from '@/integrations/supabase/client';
 import { verifyHttpOnlyCookieAuth } from '@/integrations/supabase/cookieStorage';
 
+// ---------------------------------------------------------------------------
+// Utilitário de timeout para promises — definido no escopo do módulo para
+// evitar recriação em cada render do AuthProvider.
+// ---------------------------------------------------------------------------
+function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error(`[Auth] Timeout (${ms}ms) em ${label}`)), ms)
+    ),
+  ]);
+}
+
 /**
  * Componente central que fornece o estado de autenticação para toda a aplicação.
  * Encapsula a lógica de sessão do Supabase e sincronização do perfil do usuário.
@@ -24,14 +37,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const fetchingRolesRef = useRef(false);
   const fetchingPermissionsRef = useRef(false);
   const queryClient = useQueryClient();
-
-  const withTimeout = <T,>(promise: Promise<T>, ms: number, label: string): Promise<T> =>
-    Promise.race([
-      promise,
-      new Promise<T>((_, reject) =>
-        setTimeout(() => reject(new Error(`[Auth] Timeout (${ms}ms) em ${label}`)), ms)
-      ),
-    ]);
 
   const fetchProfile = useCallback(async (userId: string) => {
     if (fetchingProfileRef.current) return;
@@ -334,9 +339,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .subscribe();
 
     return () => {
-      profileChannel.unsubscribe();
+      // supabase.removeChannel() já chama unsubscribe() internamente (supabase-js v2).
+      // Chamar os dois causava double-cleanup e potenciais warnings de estado inválido.
       supabase.removeChannel(profileChannel);
-      rolesChannel.unsubscribe();
       supabase.removeChannel(rolesChannel);
     };
   }, [user, profile?.id, fetchRolesAndPermissions]); // eslint-disable-line react-hooks/exhaustive-deps
