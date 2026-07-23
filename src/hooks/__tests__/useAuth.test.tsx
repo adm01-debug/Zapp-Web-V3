@@ -41,12 +41,20 @@ describe('useAuth hook', () => {
     );
   };
 
-  it('initializes with loading state', async () => {
+  it('initializes with loading state and resolves quickly when no local token', async () => {
+    // Com !hasLocalToken (localStorage vazio em testes), o bootstrap fast-path
+    // resolve imediatamente: loading=false, user=null. Este é o comportamento
+    // correto — não chamar getSession desnecessariamente sem token.
     vi.mocked(supabase.auth.getSession).mockResolvedValue({ data: { session: null }, error: null });
 
     const { result } = renderHook(() => useAuth(), { wrapper });
 
-    expect(result.current.loading).toBe(true);
+    // Aguardar microtasks do bootstrap
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(result.current.loading).toBe(false);
     expect(result.current.user).toBeNull();
   });
 

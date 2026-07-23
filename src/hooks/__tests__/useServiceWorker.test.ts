@@ -22,6 +22,10 @@ describe('useServiceWorker', () => {
     mockUnregister.mockResolvedValue(true);
     vi.useFakeTimers();
     sessionStorage.clear();
+    // shouldSkipServiceWorker() retorna true se import.meta.env.DEV=true.
+    // Em vitest com mode='test', DEV deveria ser false, mas vi.stubEnv garante
+    // isso independentemente do modo configurado.
+    vi.stubEnv('DEV', false);
 
     Object.defineProperty(globalThis, 'caches', {
       value: mockCaches,
@@ -44,6 +48,7 @@ describe('useServiceWorker', () => {
 
   afterEach(() => {
     vi.useRealTimers();
+    vi.unstubAllEnvs();
   });
 
   it('registers service worker on mount', async () => {

@@ -10,14 +10,16 @@ import { verifyHttpOnlyCookieAuth } from '@/integrations/supabase/cookieStorage'
 // ---------------------------------------------------------------------------
 // Utilitário de timeout para promises — definido no escopo do módulo para
 // evitar recriação em cada render do AuthProvider.
+//
+// Cancela o timer interno quando a promise resolve antes do timeout (evita
+// timers órfãos que ficavam ativos por até 5s depois do resultado chegar).
 // ---------------------------------------------------------------------------
 function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
-  return Promise.race([
-    promise,
-    new Promise<T>((_, reject) =>
-      setTimeout(() => reject(new Error(`[Auth] Timeout (${ms}ms) em ${label}`)), ms)
-    ),
-  ]);
+  let timerId: ReturnType<typeof setTimeout>;
+  const timeoutPromise = new Promise<T>((_, reject) => {
+    timerId = setTimeout(() => reject(new Error(`[Auth] Timeout (${ms}ms) em ${label}`)), ms);
+  });
+  return Promise.race([promise, timeoutPromise]).finally(() => clearTimeout(timerId));
 }
 
 /**
@@ -233,6 +235,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const retryBootstrap = useCallback(async () => {
+    // Reseta o safety-net timeout para o retry — sem isso, se getSession
+    // travar durante uma retentativa, loading=true fica preso para sempre
+    // (bootstrapTimeoutRef foi zerado quando o primeiro erro foi setado).
+    if (bootstrapTimeoutRef.current !== null) {
+      clearTimeout(bootstrapTimeoutRef.current);
+    }
+    bootstrapTimeoutRef.current = setTimeout(() => {
+      log.error('[Auth] Bootstrap safety-net (10s) no retry — forçando loading=false.');
+      setBootstrapError((prev) => prev ?? 'timeout');
+      setLoading(false);
+      bootstrapTimeoutRef.current = null;
+    }, 10000);
     await runBootstrap();
   }, [runBootstrap]);
 
@@ -344,7 +358,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       supabase.removeChannel(profileChannel);
       supabase.removeChannel(rolesChannel);
     };
-  }, [user, profile?.id, fetchRolesAndPermissions]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Nota sobre deps: omitimos profile?.id intencionalmente — os canais
+  // são filtrados por user.id (não profile.id), então re-subscribing quando
+  // profile carrega seria desnecessário e causaria breve janela sem subscrição.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, fetchRolesAndPermissions]);
 
   const refreshProfile = useCallback(async () => {
     if (user) await fetchProfile(user.id);
