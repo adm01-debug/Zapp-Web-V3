@@ -29,6 +29,12 @@ jobs:
     uses: ./.github/workflows/validate-e2e-user.yml
     secrets: inherit
 
+  seed-contacts:
+    name: Pré-seed — contatos E2E
+    needs: [validate-user, seed-contacts]
+    uses: ./.github/workflows/seed-e2e-contacts.yml
+    secrets: inherit
+
   e2e-inbox:
     name: Playwright Inbox contra VPS
     needs: validate-user
