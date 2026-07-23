@@ -130,8 +130,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const refreshAll = useCallback(
-    async (userId: string) => {
-      setLoading(true);
+    async (userId: string, { showLoading = true } = {}) => {
+      // showLoading=false em eventos de token refresh silencioso (TOKEN_REFRESHED)
+      // para evitar flash de tela de carregamento em sessões já autenticadas.
+      if (showLoading) setLoading(true);
       // A11y/robustez: garante que loading NUNCA fique preso se um fetch rejeitar.
       try {
         await Promise.all([fetchProfile(userId), fetchRolesAndPermissions(userId)]);
@@ -207,11 +209,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       );
       if (runId !== bootstrapRunRef.current) return;
       setBootstrapElapsedMs(elapsedMs);
+      const isOffline =
+        typeof navigator !== 'undefined' && 'onLine' in navigator && !navigator.onLine;
       log.error(
-        `[Auth] getSession falhou/timeout após ${elapsedMs}ms — URL=${SUPABASE_RESOLVED_URL}`,
+        `[Auth] getSession falhou/${isOffline ? 'offline' : 'timeout'} após ${elapsedMs}ms — URL=${SUPABASE_RESOLVED_URL}`,
         err
       );
-      setBootstrapError('timeout');
+      // I07: distingue timeout de offline para o ProtectedRoute exibir mensagem correta.
+      setBootstrapError(isOffline ? 'offline' : 'timeout');
       setLoading(false);
       // Bootstrap resolveu com erro — cancela o safety-net para evitar
       // double-set e log desnecessário 10s depois (BUG C).
@@ -261,7 +266,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(session?.user ?? null);
 
       if (session?.user) {
-        refreshAll(session.user.id);
+        // TOKEN_REFRESHED é renovação silenciosa — não exibir loading (I06).
+        // SIGNED_IN, USER_UPDATED etc. implicam mudança de identidade → loading.
+        const showLoading = event !== 'TOKEN_REFRESHED';
+        refreshAll(session.user.id, { showLoading });
       } else {
         setProfile(null);
         setRoles([]);
