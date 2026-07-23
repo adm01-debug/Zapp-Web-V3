@@ -54,12 +54,25 @@ self.addEventListener('push', (event) => {
     requireInteraction: data.category === 'security' || data.requireInteraction || false,
     actions, silent: data.silent || false,
   };
-  event.waitUntil(self.registration.showNotification(data.title, options));
+  event.waitUntil(
+    self.registration.showNotification(data.title, options).then(
+      () => console.log('[ServiceWorker] Notification shown', {
+        title: data.title, tag: options.tag,
+        latencyMs: Date.now() - pushReceivedAt,
+      }),
+      (err) => console.error('[ServiceWorker] showNotification failed', err),
+    )
+  );
 });
 
 self.addEventListener('notificationclick', (event) => {
-  event.notification.close();
   const nd = event.notification.data || {};
+  console.log('[ServiceWorker] Notification clicked', {
+    tag: event.notification.tag,
+    action: event.action || '(default)',
+    category: nd.category,
+  });
+  event.notification.close();
   let targetUrl = '/';
   if (nd.category === 'security') targetUrl = '/?view=security';
   else if (nd.conversationId) targetUrl = `/?conversation=${nd.conversationId}`;
