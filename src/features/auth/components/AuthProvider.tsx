@@ -18,6 +18,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [roles, setRoles] = useState<string[]>([]);
   const [permissions, setPermissions] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+  const [bootstrapError, setBootstrapError] = useState<'timeout' | 'offline' | null>(null);
+  const [bootstrapElapsedMs, setBootstrapElapsedMs] = useState<number | null>(null);
   const fetchingProfileRef = useRef(false);
   const fetchingRolesRef = useRef(false);
   const fetchingPermissionsRef = useRef(false);
