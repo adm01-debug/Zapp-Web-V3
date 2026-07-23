@@ -23,7 +23,6 @@ const CURRENT_BUILD_ID: string =
   typeof __APP_BUILD_ID__ !== 'undefined' ? __APP_BUILD_ID__ : 'dev';
 
 const VERSION_URL = '/version.json';
-const SW_URL = '/sw.js';
 const POLL_INTERVAL_MS = 5 * 60 * 1000; // 5 min
 const RELOAD_FLAG = 'zapp-build-reload-once';
 const SW_PURGE_FLAG = 'zapp-workbox-purged-once';
@@ -33,32 +32,24 @@ let intervalId: ReturnType<typeof setInterval> | undefined;
 let workboxChecked = false;
 
 /**
- * Signature-based detection of a stale Workbox-generated service worker still
- * cached at `/sw.js`. Older builds shipped a Workbox precache SW; the current
- * SW is push-only. If the served file still matches the old signature, purge
- * caches + unregister and reload once so the new push-only SW takes over.
+ * Detect Workbox precache entries in CacheStorage (fonte confiavel — nao depende
+ * do conteudo servido de /sw.js, que pode vir de cache de CDN). Se detectado,
+ * purga tudo e forca reload uma unica vez.
  */
 async function detectAndPurgeStaleWorkboxSW(): Promise<void> {
   if (workboxChecked) return;
   workboxChecked = true;
   try {
-    const res = await fetch(`${SW_URL}?ts=${Date.now()}`, {
-      cache: 'no-store',
-      credentials: 'omit',
-    });
-    if (!res.ok) return;
-    const body = await res.text();
-    const isWorkbox =
-      /workbox/i.test(body) ||
-      /precacheAndRoute|__WB_MANIFEST|workbox-precaching/.test(body);
-    if (!isWorkbox) return;
-    log.warn('[buildVersion] Stale Workbox SW detected at /sw.js — purging.');
+    if (typeof caches === 'undefined') return;
+    const keys = await caches.keys();
+    const hasWorkbox = keys.some((k) => /^workbox-(precache|runtime)/i.test(k));
+    if (!hasWorkbox) return;
+    log.warn('[buildVersion] Workbox cache entries detected — purging.', keys);
     const already = sessionStorage.getItem(SW_PURGE_FLAG) === '1';
     if (already) return;
     try { sessionStorage.setItem(SW_PURGE_FLAG, '1'); } catch { /* noop */ }
-    await forceBundleRefresh('stale-workbox-sw');
+    await forceBundleRefresh('stale-workbox-cache');
   } catch {
-    /* network hiccup — retry on next visibility/focus */
     workboxChecked = false;
   }
 }
@@ -102,7 +93,15 @@ export async function forceBundleRefresh(reason: string): Promise<void> {
   } catch {
     /* storage full / disabled — reload anyway */
   }
-  window.location.reload();
+  // Bypass query param — CDNs that respeitam query invalidam o cache-edge.
+  try {
+    const url = new URL(window.location.href);
+    url.searchParams.set('_bv', String(Date.now()));
+    window.location.replace(url.toString());
+    return;
+  } catch {
+    window.location.reload();
+  }
 }
 
 async function checkVersion(): Promise<void> {
@@ -110,15 +109,19 @@ async function checkVersion(): Promise<void> {
     const res = await fetch(`${VERSION_URL}?ts=${Date.now()}`, {
       cache: 'no-store',
       credentials: 'omit',
+      headers: { 'Cache-Control': 'no-store', Pragma: 'no-cache' },
     });
     if (!res.ok) return;
     const payload = (await res.json()) as { buildId?: string } | null;
     const remote = payload?.buildId;
     if (!remote || remote === CURRENT_BUILD_ID) {
-      // Same build (or version.json missing/malformed) — clear the reload guard
-      // so a legitimate future mismatch can trigger a reload again.
       if (remote === CURRENT_BUILD_ID) {
-        try { sessionStorage.removeItem(RELOAD_FLAG); } catch { /* noop */ }
+        // Build atual bate com o servidor — limpa TODAS as flags de guarda para
+        // evitar que uma sessao antiga fique presa em estado de "purga".
+        try {
+          sessionStorage.removeItem(RELOAD_FLAG);
+          sessionStorage.removeItem(SW_PURGE_FLAG);
+        } catch { /* noop */ }
       }
       return;
     }
@@ -130,6 +133,24 @@ async function checkVersion(): Promise<void> {
   }
 }
 
+function isSkippableEnv(): boolean {
+  try {
+    if (import.meta.env?.DEV) return true;
+    if (typeof window === 'undefined') return true;
+    if (window.self !== window.top) return true;
+    const host = window.location.hostname;
+    if (
+      host.startsWith('id-preview--') ||
+      host.startsWith('preview--') ||
+      host === 'lovableproject.com' || host.endsWith('.lovableproject.com') ||
+      host === 'lovableproject-dev.com' || host.endsWith('.lovableproject-dev.com') ||
+      host === 'beta.lovable.dev' || host.endsWith('.beta.lovable.dev')
+    ) return true;
+    if (new URL(window.location.href).searchParams.get('sw') === 'off') return true;
+  } catch { /* noop */ }
+  return false;
+}
+
 /**
  * Idempotent. Safe to call from React effects; a second call is a no-op.
  * Should NOT run in Lovable preview/iframe/dev — the caller is responsible for
@@ -137,6 +158,7 @@ async function checkVersion(): Promise<void> {
  */
 export function startBuildVersionWatcher(): () => void {
   if (started || typeof window === 'undefined') return () => undefined;
+  if (isSkippableEnv()) return () => undefined;
   started = true;
 
   // Kick off first check after the tab is idle so we don't fight first paint.

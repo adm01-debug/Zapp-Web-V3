@@ -29,7 +29,7 @@ export function ProtectedRoute({
   fallback,
   routePath,
 }: ProtectedRouteProps) {
-  const { user, loading: authLoading, signOut } = useAuth();
+  const { user, loading: authLoading, signOut, bootstrapError, bootstrapElapsedMs, retryBootstrap } = useAuth();
   const { roles, loading: rolesLoading, hasRole } = useUserRole();
   const location = useLocation();
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
@@ -100,6 +100,66 @@ export function ProtectedRoute({
       isMounted = false;
     };
   }, [authLoading, user, requiredPermission]);
+
+  // Tela de erro quando o backend nao respondeu no boot.
+  // Precede o "loading" para evitar spinner infinito ou redirect que so vai
+  // recair na mesma tela apos o /auth tentar carregar de novo.
+  if (bootstrapError === 'timeout' || bootstrapError === 'offline') {
+    const backendUrl = 'https://supabase.atomicabr.com.br';
+    const elapsedLabel = bootstrapElapsedMs != null ? `${bootstrapElapsedMs}ms` : '—';
+    return (
+      <div
+        className="flex min-h-screen items-center justify-center bg-background p-6"
+        role="alert"
+        aria-live="assertive"
+      >
+        <div className="w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-xl">
+          <h1 className="mb-2 text-xl font-semibold text-foreground">
+            Não foi possível conectar ao servidor
+          </h1>
+          <p className="mb-4 text-sm text-muted-foreground">
+            O backend não respondeu a tempo. Verifique sua conexão ou tente novamente em instantes.
+          </p>
+          <dl className="mb-5 grid grid-cols-[auto,1fr] gap-x-3 gap-y-1 text-xs text-muted-foreground">
+            <dt>Backend:</dt>
+            <dd className="truncate font-mono">{backendUrl}</dd>
+            <dt>Tempo de resposta:</dt>
+            <dd className="font-mono">{elapsedLabel}</dd>
+          </dl>
+          <div className="flex flex-col gap-2">
+            <button
+              type="button"
+              onClick={() => { void retryBootstrap(); }}
+              className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90"
+            >
+              Tentar novamente
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                try {
+                  Object.keys(localStorage).forEach((k) => {
+                    if (k.startsWith('sb-') || k.startsWith('zapp')) localStorage.removeItem(k);
+                  });
+                  sessionStorage.clear();
+                } catch { /* noop */ }
+                void signOut().finally(() => { window.location.href = '/auth'; });
+              }}
+              className="rounded-md border border-border bg-card px-4 py-2 text-sm text-foreground hover:bg-accent"
+            >
+              Limpar dados e ir para login
+            </button>
+            <a
+              href="/auth?debug=boot"
+              className="text-center text-xs text-muted-foreground underline hover:text-foreground"
+            >
+              Abrir diagnóstico
+            </a>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (timedOut) {
     recordAuthzFailure({ route: location.pathname, reason: 'timeout' });
