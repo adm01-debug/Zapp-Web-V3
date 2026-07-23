@@ -13,6 +13,8 @@ import { AppRoutes } from '@/components/routing/AppRoutes';
 import { ServiceWorkerUpdateBanner } from '@/components/system/ServiceWorkerUpdateBanner';
 import { BuildValidationOverlay } from '@/components/debug/BuildValidationOverlay';
 import { HardResetButton } from '@/components/debug/HardResetButton';
+import { SwDebugWidget } from '@/components/debug/SwDebugWidget';
+
 import { useThemeAudit } from '@/hooks/useThemeAudit';
 import { TransitionProvider } from '@/components/transitions';
 
@@ -153,6 +155,8 @@ function AppContent() {
         <Toaster />
         <Sonner />
         <ServiceWorkerUpdateBanner />
+        <SwDebugWidget />
+
         <TransitionProvider defaultVariant="fade">
           <AppRoutes />
         </TransitionProvider>
