@@ -227,7 +227,7 @@ export function VoiceChangerPicker({ onSendAudio, disabled }: VoiceChangerPicker
               <AnimatePresence mode="wait">
                 {!recordedBlob && !isRecording && (
                   <motion.div key="idle" initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}>
-                    <Button
+                    <Button aria-label="Gravar áudio"
                       onClick={startRecording}
                       size="lg"
                       className="rounded-full w-16 h-16 bg-primary hover:bg-primary/90"
@@ -241,7 +241,7 @@ export function VoiceChangerPicker({ onSendAudio, disabled }: VoiceChangerPicker
                 {isRecording && (
                   <motion.div key="recording" role="status" aria-live="polite" initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="flex flex-col items-center">
                     <motion.div animate={{ scale: [1, 1.1, 1] }} transition={{ repeat: Infinity, duration: 1.2 }}>
-                      <Button
+                      <Button aria-label="Parar gravação"
                         onClick={stopRecording}
                         size="lg"
                         variant="destructive"

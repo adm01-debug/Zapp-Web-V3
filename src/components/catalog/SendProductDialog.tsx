@@ -307,7 +307,7 @@ export const SendProductDialog: React.FC<SendProductDialogProps> = ({
                 </Button>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button className="rounded-l-none border-l border-primary-foreground/20 px-2">
+                    <Button aria-label="Expandir" className="rounded-l-none border-l border-primary-foreground/20 px-2">
                       <ChevronDown className="h-4 w-4" />
                     </Button>
                   </DropdownMenuTrigger>

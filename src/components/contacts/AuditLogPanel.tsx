@@ -113,7 +113,7 @@ export const AuditLogPanel: React.FC<{ contactId: string; maxEntries?: number }>
             <Shield className="h-3 w-3 text-muted-foreground" />
           </span>
         </div>
-        <Button variant="ghost" size="sm" onClick={load} disabled={loading} className="h-6 w-6 p-0">
+        <Button aria-label="Atualizar" variant="ghost" size="sm" onClick={load} disabled={loading} className="h-6 w-6 p-0">
           <RefreshCw className={`h-3 w-3 ${loading ? 'animate-spin' : ''}`} />
         </Button>
       </div>

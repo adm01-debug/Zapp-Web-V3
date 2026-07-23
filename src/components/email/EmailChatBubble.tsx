@@ -252,7 +252,7 @@ export function EmailChatBubble({
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-7 w-7">
+              <Button aria-label="Mais opções" variant="ghost" size="icon" className="h-7 w-7">
                 <MoreHorizontal className="h-3.5 w-3.5" />
               </Button>
             </DropdownMenuTrigger>

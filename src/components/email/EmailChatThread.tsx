@@ -55,7 +55,7 @@ export function EmailChatThread({
       <div className="sticky top-0 z-10 flex h-[70px] flex-col justify-center border-b border-border/10 bg-background/80 px-4 py-3 shadow-sm backdrop-blur-xl">
         <div className="flex items-center gap-3">
           {onBack && (
-            <Button
+            <Button aria-label="Voltar"
               variant="ghost"
               size="icon"
               className="h-8 w-8 rounded-full hover:bg-primary/5 md:hidden"

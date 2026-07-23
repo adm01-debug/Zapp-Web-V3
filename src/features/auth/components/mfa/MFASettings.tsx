@@ -119,7 +119,7 @@ export function MFASettings() {
                         </p>
                       </div>
                     </div>
-                    <Button
+                    <Button aria-label="Excluir"
                       variant="ghost"
                       size="sm"
                       onClick={() => setFactorToRemove(factor.id)}

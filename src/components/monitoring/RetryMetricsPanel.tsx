@@ -282,7 +282,7 @@ export function RetryMetricsPanel() {
               knownInstances={byInstance.map((b) => b.instance)}
               hasBreaches={breaches.length > 0}
             />
-            <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
+            <Button aria-label="Atualizar" variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
               <RefreshCw className={cn('h-3.5 w-3.5', isFetching && 'animate-spin')} />
             </Button>
           </div>
@@ -409,7 +409,7 @@ export function RetryMetricsPanel() {
                               <code className="text-[10px] text-muted-foreground">
                                 {row.idempotency_key.slice(0, 10)}…
                               </code>
-                              <Button
+                              <Button aria-label="Copiar"
                                 variant="ghost"
                                 size="sm"
                                 className="h-5 w-5 p-0"

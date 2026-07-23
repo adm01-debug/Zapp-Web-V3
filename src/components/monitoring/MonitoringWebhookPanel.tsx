@@ -275,7 +275,7 @@ export function MonitoringWebhookPanel({
                       <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
                         URL
                       </p>
-                      <Button
+                      <Button aria-label="Copiar"
                         variant="ghost"
                         size="sm"
                         className="h-5 w-5 p-0"

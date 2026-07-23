@@ -282,7 +282,7 @@ export function VisibilityGrantsManager() {
                           <p className="text-xs text-muted-foreground">{grant.target_profile?.email}</p>
                         </div>
                       </div>
-                      <Button
+                      <Button aria-label="Excluir"
                         variant="ghost"
                         size="sm"
                         onClick={() => handleRemoveGrant(grant.id)}

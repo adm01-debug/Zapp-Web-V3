@@ -186,7 +186,7 @@ export function DeviceCard({
           {!isCurrentDevice && (
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <Button
+                <Button aria-label="Excluir"
                   variant="ghost"
                   size="sm"
                   className="text-destructive hover:bg-destructive/10 hover:text-destructive"

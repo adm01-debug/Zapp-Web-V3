@@ -191,7 +191,7 @@ export function IPWhitelistPanel() {
                         </p>
                       </div>
                     </div>
-                    <Button
+                    <Button aria-label="Excluir"
                       variant="ghost"
                       size="sm"
                       onClick={() => setIpToRemove(ip)}

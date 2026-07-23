@@ -325,7 +325,7 @@ export const ExternalProductCatalog: React.FC<ExternalProductCatalogProps> = ({
           {/* Pagination */}
           {totalPages > 1 && (
             <div className="flex items-center justify-center gap-2 pt-2">
-              <Button
+              <Button aria-label="Anterior"
                 variant="outline"
                 size="sm"
                 disabled={page === 0}
@@ -336,7 +336,7 @@ export const ExternalProductCatalog: React.FC<ExternalProductCatalogProps> = ({
               <span className="text-sm text-muted-foreground">
                 Página {page + 1} de {totalPages}
               </span>
-              <Button
+              <Button aria-label="Próximo"
                 variant="outline"
                 size="sm"
                 disabled={page >= totalPages - 1}
