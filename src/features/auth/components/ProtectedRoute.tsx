@@ -1,6 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
 import { ReactNode, useEffect, useState } from 'react';
 import { getLogger } from '@/lib/logger';
+import { markTimeToMainScreen, recordAuthzFailure } from '@/lib/appMetrics';
 
 const log = getLogger('ProtectedRoute');
 import { Navigate, useLocation } from 'react-router-dom';
