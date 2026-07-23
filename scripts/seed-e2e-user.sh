@@ -11,9 +11,57 @@
 
 set -euo pipefail
 
-: "${SUPABASE_DB_URL:?defina SUPABASE_DB_URL (postgres://user:pass@host:5432/postgres)}"
-: "${E2E_USER_EMAIL:?defina E2E_USER_EMAIL}"
-: "${E2E_USER_PASSWORD:?defina E2E_USER_PASSWORD}"
+# ── Pré-flight de secrets ─────────────────────────────────────────────
+# Falha explicitamente com orientação em vez de "unbound variable" críptico.
+REQUIRED=(SUPABASE_DB_URL E2E_USER_EMAIL E2E_USER_PASSWORD)
+MISSING=()
+for var in "${REQUIRED[@]}"; do
+  if [ -z "${!var:-}" ]; then MISSING+=("$var"); fi
+done
+
+if [ ${#MISSING[@]} -gt 0 ]; then
+  {
+    echo ""
+    echo "════════════════════════════════════════════════════════════════"
+    echo " ❌  Seed E2E abortado — secrets obrigatórios não configurados"
+    echo "════════════════════════════════════════════════════════════════"
+    echo ""
+    echo " Faltando: ${MISSING[*]}"
+    echo ""
+    echo " Como configurar:"
+    echo "   1. GitHub → Settings → Secrets and variables → Actions"
+    echo "      Adicione os secrets:"
+    for var in "${MISSING[@]}"; do
+      case "$var" in
+        SUPABASE_DB_URL)   echo "        • $var    → postgres://user:senha@host:5432/postgres" ;;
+        E2E_USER_EMAIL)    echo "        • $var     → e2e-bot@zappweb.test (ou outro @zappweb.test)" ;;
+        E2E_USER_PASSWORD) echo "        • $var  → senha forte (≥16 chars, gerada com password manager)" ;;
+      esac
+    done
+    echo ""
+    echo "   2. Localmente:  export ${MISSING[0]}=..."
+    echo ""
+    echo " Docs: docs/testing/e2e.md#seed-e2e-user"
+    echo "════════════════════════════════════════════════════════════════"
+  } >&2
+
+  # Emitir anotação para GitHub Actions (aparece na aba Summary/Checks)
+  if [ -n "${GITHUB_ACTIONS:-}" ]; then
+    echo "::error title=Seed E2E: secrets faltantes::${MISSING[*]} não configurado(s). Adicione em GitHub → Settings → Secrets → Actions. Veja docs/testing/e2e.md."
+    if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
+      {
+        echo "### ❌ Seed E2E abortado"
+        echo ""
+        echo "Secrets obrigatórios ausentes: $(printf '`%s` ' "${MISSING[@]}")"
+        echo ""
+        echo "Configure em **Settings → Secrets and variables → Actions** e re-execute o workflow."
+      } >> "$GITHUB_STEP_SUMMARY"
+    fi
+  fi
+
+  exit 78  # EX_CONFIG — sinaliza problema de configuração, não erro de runtime
+fi
+
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SUMMARY_JSON="${SEED_REPORT_JSON:-/tmp/seed-e2e-user-summary.json}"
