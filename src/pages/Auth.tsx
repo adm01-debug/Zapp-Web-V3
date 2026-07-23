@@ -382,6 +382,7 @@ export default function Auth() {
             <p className="text-xs text-muted-foreground">
               © {new Date().getFullYear()} Promo Brindes. Todos os direitos reservados.
             </p>
+            <AuthDiagnosticsPanel />
           </motion.div>
         </motion.div>
       </div>
