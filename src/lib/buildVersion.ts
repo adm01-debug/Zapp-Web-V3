@@ -104,12 +104,20 @@ export async function forceBundleRefresh(reason: string): Promise<void> {
   }
 }
 
+// Timeout para o fetch de version.json: evita que um stall de rede/CDN
+// pendure o intervalo de verificação indefinidamente. 10s é conservador —
+// version.json tem poucos bytes e o server costuma responder em <100ms.
+const VERSION_CHECK_TIMEOUT_MS = 10_000;
+
 async function checkVersion(): Promise<void> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), VERSION_CHECK_TIMEOUT_MS);
   try {
     const res = await fetch(`${VERSION_URL}?ts=${Date.now()}`, {
       cache: 'no-store',
       credentials: 'omit',
       headers: { 'Cache-Control': 'no-store', Pragma: 'no-cache' },
+      signal: controller.signal,
     });
     if (!res.ok) return;
     const payload = (await res.json()) as { buildId?: string } | null;
@@ -129,7 +137,9 @@ async function checkVersion(): Promise<void> {
       `client=${CURRENT_BUILD_ID} server=${remote}`,
     );
   } catch {
-    /* offline / network hiccup — retry next tick */
+    /* offline / timeout / network hiccup — retry next tick */
+  } finally {
+    clearTimeout(timeoutId);
   }
 }
 
