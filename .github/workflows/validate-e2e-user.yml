@@ -1,0 +1,44 @@
+name: Validate E2E user (VPS)
+
+on:
+  workflow_dispatch:
+  workflow_call:
+    secrets:
+      VPS_SSH_HOST:      { required: true }
+      VPS_SSH_USER:      { required: true }
+      VPS_SSH_KEY:       { required: true }
+      SUPABASE_DB_URL:   { required: true }
+      E2E_USER_EMAIL:    { required: true }
+
+jobs:
+  validate:
+    name: Validar permissões CRM do E2E_USER_EMAIL
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configurar SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H "${{ secrets.VPS_SSH_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Copiar validador para VPS
+        run: |
+          scp -i ~/.ssh/id_ed25519 \
+            scripts/validate-e2e-user.sql scripts/validate-e2e-user.sh \
+            "${{ secrets.VPS_SSH_USER }}@${{ secrets.VPS_SSH_HOST }}:/tmp/"
+
+      - name: Executar validação
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          E2E_USER_EMAIL:  ${{ secrets.E2E_USER_EMAIL }}
+        run: |
+          set -e
+          ssh -i ~/.ssh/id_ed25519 \
+            "${{ secrets.VPS_SSH_USER }}@${{ secrets.VPS_SSH_HOST }}" \
+            "chmod +x /tmp/validate-e2e-user.sh && \
+             SUPABASE_DB_URL='$SUPABASE_DB_URL' \
+             E2E_USER_EMAIL='$E2E_USER_EMAIL' \
+             /tmp/validate-e2e-user.sh"

@@ -24,8 +24,14 @@ on:
     - cron: '0 9 * * *'
 
 jobs:
+  validate-user:
+    name: Pré-check — permissões CRM do E2E user
+    uses: ./.github/workflows/validate-e2e-user.yml
+    secrets: inherit
+
   e2e-inbox:
     name: Playwright Inbox contra VPS
+    needs: validate-user
     runs-on: ${{ github.event.inputs.runner == 'ubuntu-latest' && 'ubuntu-latest' || fromJSON('["self-hosted","vps-zapp","playwright"]') }}
     timeout-minutes: 60
     env:
