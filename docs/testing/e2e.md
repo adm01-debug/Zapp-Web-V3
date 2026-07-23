@@ -22,6 +22,22 @@ Cobrimos os fluxos críticos do ZAPP Web com Playwright:
 | `e2e/admin-channels.spec.ts` | Admin → Canais: lista renderiza, toggle de status com feedback. Skip se não-admin. |
 | `e2e/error-handling.spec.ts` | Edge function 500/timeout, rede offline — app não crasha, feedback ao usuário. |
 | `e2e/auth-extended.spec.ts` | Credenciais inválidas, /forgot-password, expiração de sessão força redirect /auth. |
+| `e2e/admin-evolution-api-smoke.spec.ts` + `evolution-*retry-failure` + `whatsapp-connection` + `whatsapp-reactions-*` | Suite **Evolution** rodável na VPS via workflow `E2E Evolution (VPS)`. |
+
+## Execução contra a VPS (workflow manual)
+
+Workflow `.github/workflows/e2e-evolution-vps.yml` — dispatch manual no GitHub Actions:
+
+1. Actions → **E2E Evolution (VPS)** → Run workflow.
+2. Inputs: `base_url` (default `https://zapp.atomicabr.com.br`), `include_webhook_parity` (default `false`), `include_voice_changer` (default `false`).
+3. Secrets exigidos: `E2E_USER_EMAIL`, `E2E_USER_PASSWORD` (usuário com role admin/supervisor). Opcional: backend precisa de `EVOLUTION_WEBHOOK_SECRET` para paridade.
+4. Artefatos: `playwright-report-e2e-evolution` (HTML), `test-results-e2e-evolution` (traces/screenshots/vídeos), `e2e-evolution-vps-report` (resumo Markdown).
+
+Alternativa via SSH na VPS:
+
+```bash
+E2E_USER_EMAIL=... E2E_USER_PASSWORD=... ./scripts/run-e2e-evolution-vps.sh
+```
 
 ## Rodando local
 
