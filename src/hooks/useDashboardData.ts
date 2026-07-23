@@ -113,7 +113,7 @@ export function useDashboardData(filters?: DashboardFilters) {
     const pendingConversations = contacts.filter((c) => !c.assigned_to && c.queue_id).length;
     const resolvedToday = contacts.filter((c) => {
       const updatedAt = new Date(c.updated_at);
-      return updatedAt >= startOfToday && c.status === 'closed';
+      return updatedAt >= merged.dateRange.from && c.status === 'closed';
     }).length;
 
     const queuesStats: QueueStats[] = queues.map((queue) => {
