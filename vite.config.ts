@@ -26,6 +26,26 @@ const resolvePublicEnv = (mode: string) => {
   );
 };
 
+// Build id — one per `vite build` run. Consumed by src/lib/buildVersion.ts
+// via the `__APP_BUILD_ID__` global and mirrored to dist/version.json below,
+// so a running tab can detect that its bundle is older than what the CDN now
+// serves and force a hard refresh.
+const BUILD_ID = `${Date.now()}`;
+
+// Vite plugin: writes dist/version.json at the end of each production build.
+const emitVersionJsonPlugin = () => ({
+  name: 'zapp-emit-version-json',
+  apply: 'build' as const,
+  generateBundle() {
+    // @ts-expect-error — `this.emitFile` is provided by Rollup at build time
+    this.emitFile({
+      type: 'asset',
+      fileName: 'version.json',
+      source: JSON.stringify({ buildId: BUILD_ID, builtAt: new Date().toISOString() }),
+    });
+  },
+});
+
 export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
@@ -42,6 +62,7 @@ export default defineConfig(({ mode }) => ({
       algorithm: 'gzip',
       exclude: [/\.(br)$/, /\.(gz)$/],
     }),
+    emitVersionJsonPlugin(),
     // PWA is manifest-only (public/manifest.json). No Workbox / no app-shell caching.
     // Push notifications continue via public/sw.js registered by useServiceWorker.
   ].filter(Boolean),
@@ -50,7 +71,10 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
-  define: resolvePublicEnv(mode),
+  define: {
+    ...resolvePublicEnv(mode),
+    __APP_BUILD_ID__: JSON.stringify(BUILD_ID),
+  },
   build: {
     reportCompressedSize: false,
     cssCodeSplit: true,
