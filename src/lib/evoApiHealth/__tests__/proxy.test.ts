@@ -26,6 +26,8 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 const mockGetSession = vi.hoisted(() => vi.fn());
 
 vi.mock('@/integrations/supabase/client', () => ({
+  SUPABASE_RESOLVED_URL: 'http://localhost:54321',
+  SUPABASE_RESOLVED_ANON_KEY: 'test-anon-key',
   supabase: {
     auth: {
       getSession: mockGetSession,
