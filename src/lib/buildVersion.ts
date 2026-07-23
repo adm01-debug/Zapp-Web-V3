@@ -159,6 +159,7 @@ function isSkippableEnv(): boolean {
  */
 export function startBuildVersionWatcher(): () => void {
   if (started || typeof window === 'undefined') return () => undefined;
+  if (isSkippableEnv()) return () => undefined;
   started = true;
 
   // Kick off first check after the tab is idle so we don't fight first paint.
