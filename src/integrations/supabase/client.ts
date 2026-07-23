@@ -99,10 +99,10 @@ if (!isSupabaseConfigured) {
         `Corrija .env para evitar confusao.`
     );
   } else if (!isValidSupabaseUrl(envUrl) || !isValidSupabaseKey(envKey)) {
-    log.warn(
-      '[Supabase] ATENCAO: usando credenciais hardcoded (fallback). ' +
-        'Defina VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY no ambiente de deploy ' +
-        'e rotacione a anon key para remover a exposicao do source control.'
+    log.info(
+      '[Supabase] Usando credenciais self-hosted (fallback). ' +
+        'Para remover este aviso, defina VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY ' +
+        'no ambiente de deploy.'
     );
   }
   // Log da URL resolvida sempre (nao so DEV) para facilitar diagnostico em prod
