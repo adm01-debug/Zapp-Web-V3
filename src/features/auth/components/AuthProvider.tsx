@@ -65,10 +65,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
       const { data: userRoles, error } = await withTimeout(
-        supabase.from('user_roles').select('role').eq('user_id', userId),
+        Promise.resolve(supabase.from('user_roles').select('role').eq('user_id', userId)),
         8000,
         'fetchRoles'
       );
+
 
       if (error || !userRoles) {
         if (error) log.error('[Auth] Error fetching roles:', error);
@@ -86,16 +87,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       const { data: perms } = await withTimeout(
-        supabase
-          .from('role_permissions')
-          .select('permissions(name)')
-          .in(
-            'role',
-            roleNames as Array<'admin' | 'agent' | 'dev' | 'manager' | 'special_agent' | 'supervisor'>
-          ),
+        Promise.resolve(
+          supabase
+            .from('role_permissions')
+            .select('permissions(name)')
+            .in(
+              'role',
+              roleNames as Array<'admin' | 'agent' | 'dev' | 'manager' | 'special_agent' | 'supervisor'>
+            )
+        ),
         8000,
         'fetchPermissions'
       );
+
 
       if (perms) {
         const permNames = (perms as Array<{ permissions: { name: string } | null }>)
