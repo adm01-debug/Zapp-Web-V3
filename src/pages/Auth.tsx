@@ -20,6 +20,7 @@ import { SocialProof } from '@/features/auth';
 import { HeroBenefits } from '@/features/auth';
 import { useAuthForm } from '@/features/auth';
 import { Link } from 'react-router-dom';
+import { AuthDiagnosticsPanel } from '@/features/auth/components/AuthDiagnosticsPanel';
 
 /** Auth. */
 export default function Auth() {
