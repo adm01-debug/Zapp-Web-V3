@@ -316,9 +316,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           filter: `user_id=eq.${user.id}`,
         },
         () => {
-          log.info('[Auth] Role change detected, refetching...');
-          fetchRoles(user.id);
-          fetchPermissions(user.id);
+          log.info('[Auth] Role change detected, refetching roles and permissions...');
+          // fetchRoles e fetchPermissions são aliases de fetchRolesAndPermissions.
+          // Chamar os dois em sequência fazia a 2ª chamada ser sempre um no-op
+          // (fetchingRolesRef.current já true pelo guard). Chamada única aqui.
+          void fetchRolesAndPermissions(user.id);
         }
       )
       .subscribe();
@@ -329,7 +331,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       rolesChannel.unsubscribe();
       supabase.removeChannel(rolesChannel);
     };
-  }, [user, profile?.id, fetchRoles, fetchPermissions]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [user, profile?.id, fetchRolesAndPermissions]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const refreshProfile = useCallback(async () => {
     if (user) await fetchProfile(user.id);
