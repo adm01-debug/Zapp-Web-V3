@@ -140,16 +140,25 @@ export function startBuildVersionWatcher(): () => void {
   started = true;
 
   // Kick off first check after the tab is idle so we don't fight first paint.
-  const kickoff = window.setTimeout(() => { void checkVersion(); }, 10_000);
+  const kickoff = window.setTimeout(() => {
+    void detectAndPurgeStaleWorkboxSW();
+    void checkVersion();
+  }, 10_000);
 
   intervalId = setInterval(() => { void checkVersion(); }, POLL_INTERVAL_MS);
 
   const onVisible = () => {
-    if (document.visibilityState === 'visible') void checkVersion();
+    if (document.visibilityState === 'visible') {
+      void detectAndPurgeStaleWorkboxSW();
+      void checkVersion();
+    }
   };
   document.addEventListener('visibilitychange', onVisible);
 
-  const onFocus = () => { void checkVersion(); };
+  const onFocus = () => {
+    void detectAndPurgeStaleWorkboxSW();
+    void checkVersion();
+  };
   window.addEventListener('focus', onFocus);
 
   return () => {
