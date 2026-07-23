@@ -8,7 +8,9 @@
 
 set -euo pipefail
 
-: "${SUPABASE_DB_URL:?SUPABASE_DB_URL é obrigatório}"
+# shellcheck source=lib/preflight-secrets.sh
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/preflight-secrets.sh"
+preflight_secrets "seed-e2e-contacts" SUPABASE_DB_URL
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SQL_FILE="${SCRIPT_DIR}/seed-e2e-contacts.sql"
