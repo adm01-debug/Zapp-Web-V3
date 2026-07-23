@@ -37,9 +37,9 @@ export function useRealtimeDashboardManagement(dashboardId: string) {
           setUpdates((prev) => [
             ...prev,
             {
-              id: payload.new?.id || Date.now().toString(),
+              id: String(payload.new?.id ?? Date.now()),
               type: payload.eventType,
-              data: payload.new || payload.old,
+              data: payload.new ?? payload.old ?? {},
               timestamp: new Date().toISOString(),
             },
           ]);
