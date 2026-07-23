@@ -1,6 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
 import { ReactNode, useEffect, useState } from 'react';
 import { getLogger } from '@/lib/logger';
+import { markTimeToMainScreen, recordAuthzFailure } from '@/lib/appMetrics';
 
 const log = getLogger('ProtectedRoute');
 import { Navigate, useLocation } from 'react-router-dom';
@@ -101,6 +102,7 @@ export function ProtectedRoute({
   }, [authLoading, user, requiredPermission]);
 
   if (timedOut) {
+    recordAuthzFailure({ route: location.pathname, reason: 'timeout' });
     return <Navigate to="/auth?reason=timeout" state={{ from: location }} replace />;
   }
 
@@ -146,6 +148,7 @@ export function ProtectedRoute({
 
 
   if (!user) {
+    recordAuthzFailure({ route: location.pathname, reason: 'unauthenticated' });
     return <Navigate to="/auth" state={{ from: location }} replace />;
   }
 
@@ -159,6 +162,7 @@ export function ProtectedRoute({
   // 'dev' always has access
   const isDev = hasRole('dev' as AppRole);
   if (isDev) {
+    markTimeToMainScreen(location.pathname);
     return <>{children}</>;
   }
 
@@ -170,6 +174,12 @@ export function ProtectedRoute({
       log.warn(
         `Unauthorized role access attempt to ${location.pathname}. Required: ${effectiveRoles.join(', ')}`
       );
+      recordAuthzFailure({
+        route: location.pathname,
+        reason: 'role',
+        required: effectiveRoles,
+        current: roles,
+      });
 
       // Log event to Supabase
       // fire-and-forget: não bloquear navegação
@@ -191,6 +201,12 @@ export function ProtectedRoute({
     log.warn(
       `Unauthorized permission access attempt to ${location.pathname}. Required: ${requiredPermission}`
     );
+    recordAuthzFailure({
+      route: location.pathname,
+      reason: 'permission',
+      required: requiredPermission,
+      current: roles,
+    });
 
     // Log already happens inside RPC 'check_user_permission' if we used it,
     // but here we might be checking differently. Let's ensure logging.
@@ -207,6 +223,7 @@ export function ProtectedRoute({
     return <Navigate to="/access-denied" state={{ from: location }} replace />;
   }
 
+  markTimeToMainScreen(location.pathname);
   return <>{children}</>;
 }
 
