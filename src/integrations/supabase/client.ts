@@ -92,18 +92,26 @@ if (!isSupabaseConfigured) {
     '[Supabase] URL ou chave invalida -- verifique VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY.'
   );
 } else {
-  if (!isValidSupabaseUrl(envUrl) || !isValidSupabaseKey(envKey)) {
+  if (isLovableCloudUrl) {
+    log.warn(
+      `[Supabase] VITE_SUPABASE_URL aponta para Lovable Cloud (${envUrl}) — IGNORADO. ` +
+        `Usando self-hosted: ${SELF_HOSTED_URL}. ` +
+        `Corrija .env para evitar confusao.`
+    );
+  } else if (!isValidSupabaseUrl(envUrl) || !isValidSupabaseKey(envKey)) {
     log.warn(
       '[Supabase] ATENCAO: usando credenciais hardcoded (fallback). ' +
         'Defina VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY no ambiente de deploy ' +
         'e rotacione a anon key para remover a exposicao do source control.'
     );
-  } else if (import.meta.env.DEV) {
-    log.warn(
-      `[Supabase] Conectado: ${SUPABASE_URL === SELF_HOSTED_URL ? 'self-hosted (AtomicaBR)' : SUPABASE_URL}`
-    );
   }
+  // Log da URL resolvida sempre (nao so DEV) para facilitar diagnostico em prod
+  // eslint-disable-next-line no-console
+  console.info(
+    `[Supabase] Backend resolvido: ${SUPABASE_URL === SELF_HOSTED_URL ? 'self-hosted (AtomicaBR)' : SUPABASE_URL}`
+  );
 }
+
 
 const supabaseUrl = isSupabaseConfigured ? SUPABASE_URL : 'https://supabase-unconfigured.invalid';
 const supabaseAnonKey = isSupabaseConfigured ? SUPABASE_ANON_KEY : 'missing-anon-key';
