@@ -4,7 +4,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { authService, Profile } from '../services/authService';
 import { log } from '@/lib/logger';
 import { AuthContext } from '../context/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, SUPABASE_RESOLVED_URL } from '@/integrations/supabase/client';
 import { verifyHttpOnlyCookieAuth } from '@/integrations/supabase/cookieStorage';
 
 /**
@@ -157,17 +157,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(false);
     }, 12000);
 
+    // Diagnóstico: registra a URL do Supabase em uso + duração do getSession()
+    // para facilitar debug de travamento na tela "Verificando acesso...".
+    log.info(`[Auth] Supabase URL em uso: ${SUPABASE_RESOLVED_URL}`);
+
     // Explicit getSession() com timeout: se o backend não responder, saímos do
     // loading imediatamente em vez de esperar o INITIAL_SESSION que pode nunca vir.
     (async () => {
+      const startedAt =
+        typeof performance !== 'undefined' ? performance.now() : Date.now();
       try {
         const result = await withTimeout(
           supabase.auth.getSession(),
           8000,
           'getSession'
         );
+        const elapsedMs = Math.round(
+          (typeof performance !== 'undefined' ? performance.now() : Date.now()) - startedAt
+        );
         if (!mounted) return;
         const initialSession = result.data.session;
+        log.info(
+          `[Auth] getSession OK em ${elapsedMs}ms — session=${initialSession ? 'present' : 'null'}`
+        );
         if (!initialSession) {
           // Sem sessão — libera imediatamente para redirecionar a /auth
           setLoading(false);
@@ -175,8 +187,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Se houver sessão, deixamos o onAuthStateChange (INITIAL_SESSION)
         // disparar refreshAll normalmente.
       } catch (err) {
+        const elapsedMs = Math.round(
+          (typeof performance !== 'undefined' ? performance.now() : Date.now()) - startedAt
+        );
         if (!mounted) return;
-        log.error('[Auth] getSession failed/timed out:', err);
+        log.error(`[Auth] getSession falhou/timeout após ${elapsedMs}ms — URL=${SUPABASE_RESOLVED_URL}`, err);
         setLoading(false);
       }
     })();
