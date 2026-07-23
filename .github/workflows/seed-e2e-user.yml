@@ -17,6 +17,35 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Preflight — checar secrets obrigatórios
+        env:
+          SUPABASE_DB_URL:   ${{ secrets.SUPABASE_DB_URL }}
+          E2E_USER_EMAIL:    ${{ secrets.E2E_USER_EMAIL }}
+          E2E_USER_PASSWORD: ${{ secrets.E2E_USER_PASSWORD }}
+          VPS_SSH_HOST:      ${{ secrets.VPS_SSH_HOST }}
+          VPS_SSH_USER:      ${{ secrets.VPS_SSH_USER }}
+          VPS_SSH_KEY:       ${{ secrets.VPS_SSH_KEY }}
+        run: |
+          missing=()
+          for v in SUPABASE_DB_URL E2E_USER_EMAIL E2E_USER_PASSWORD VPS_SSH_HOST VPS_SSH_USER VPS_SSH_KEY; do
+            if [ -z "${!v:-}" ]; then missing+=("$v"); fi
+          done
+          if [ ${#missing[@]} -gt 0 ]; then
+            echo "::error title=Seed E2E: secrets faltantes::${missing[*]} não configurado(s) neste repo. Adicione em Settings → Secrets and variables → Actions."
+            {
+              echo "### ❌ Seed E2E abortado — secrets faltantes"
+              echo ""
+              echo "Configure em **Settings → Secrets and variables → Actions**:"
+              for v in "${missing[@]}"; do echo "- \`$v\`"; done
+              echo ""
+              echo "Depois re-execute este workflow."
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 78
+          fi
+          echo "✓ Todos os secrets obrigatórios presentes."
+
+
+
       - name: Configurar SSH
         run: |
           mkdir -p ~/.ssh
