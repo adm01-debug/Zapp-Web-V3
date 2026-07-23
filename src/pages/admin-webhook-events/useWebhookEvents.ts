@@ -206,7 +206,7 @@ export function useWebhookEvents() {
     setSelected,
     viewMode,
     setViewMode,
-    sinceISO,
+    // sinceISO é interno à query — não exposto no retorno público
     data,
     isLoading,
     isRefetching,
