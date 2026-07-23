@@ -153,6 +153,8 @@ function AppContent() {
         <Toaster />
         <Sonner />
         <ServiceWorkerUpdateBanner />
+        <SwDebugWidget />
+
         <TransitionProvider defaultVariant="fade">
           <AppRoutes />
         </TransitionProvider>
