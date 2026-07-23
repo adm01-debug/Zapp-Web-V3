@@ -4,7 +4,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { authService, Profile } from '../services/authService';
 import { log } from '@/lib/logger';
 import { AuthContext } from '../context/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, SUPABASE_RESOLVED_URL } from '@/integrations/supabase/client';
 import { verifyHttpOnlyCookieAuth } from '@/integrations/supabase/cookieStorage';
 
 /**
