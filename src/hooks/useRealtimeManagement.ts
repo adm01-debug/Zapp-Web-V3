@@ -201,13 +201,13 @@ export function useTypingPresenceManagement(userId: string, chatId: string) {
     channelRef.current = supabase.channel(`typing:${chatId}`);
     channelRef.current
       .on('presence', { event: 'sync' }, () => {
-        const state = channelRef.current.presenceState();
-        const users = Object.entries(state)
-          .filter(([, presence]: [string, Array<{ typing?: boolean }>]) => presence?.[0]?.typing)
+        const state = channelRef.current.presenceState() as Record<string, Array<{ typing?: boolean }>>;
+        const users = (Object.entries(state) as Array<[string, Array<{ typing?: boolean }>]>)
+          .filter(([, presence]) => Boolean(presence?.[0]?.typing))
           .map(([key]) => key);
         setTypingUsers(users);
       })
-      .subscribe(async (status) => {
+      .subscribe(async (status: string) => {
         if (status === 'SUBSCRIBED') {
           await channelRef.current.track({ typing: true });
         }
