@@ -3,7 +3,6 @@ import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
 import { compression } from 'vite-plugin-compression2';
-import { VitePWA } from 'vite-plugin-pwa';
 
 // Self-hosted Supabase (cutover 2026-06-30). These are FALLBACKS only, used
 // when the matching VITE_* env var is absent (e.g. local dev without .env).
