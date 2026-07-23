@@ -1,15 +1,15 @@
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, SUPABASE_RESOLVED_URL, SUPABASE_RESOLVED_ANON_KEY, isSupabaseConfigured } from '@/integrations/supabase/client';
 import { type QueryOperation } from '@/lib/clientTelemetry';
 
 // ─── Supabase function endpoint config ──────────────────────────────────────
 /** S U P A B A S E_ U R L constant. */
-export const SUPABASE_URL =
-  (import.meta as { env?: Record<string, string> }).env?.VITE_SUPABASE_URL ?? '';
+export const SUPABASE_URL = SUPABASE_RESOLVED_URL;
+
 /** S U P A B A S E_ A N O N constant. */
-export const SUPABASE_ANON =
-  (import.meta as { env?: Record<string, string> }).env?.VITE_SUPABASE_PUBLISHABLE_KEY ?? '';
+export const SUPABASE_ANON = SUPABASE_RESOLVED_ANON_KEY;
+
 /** F U N C T I O N S_ B A S E constant. */
-export const FUNCTIONS_BASE = SUPABASE_URL ? `${SUPABASE_URL}/functions/v1` : '';
+export const FUNCTIONS_BASE = isSupabaseConfigured ? `${SUPABASE_URL}/functions/v1` : '';
 
 // ─── Test-only invoke override ────────────────────────────────────────────────
 /** Invoke Override Fn type alias. */
