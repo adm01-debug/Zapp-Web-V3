@@ -144,19 +144,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Ref para permitir retry manual via UI
   const bootstrapRunRef = useRef(0);
+  // Ref para o safety-net timeout de bootstrap — acessível por runBootstrap
+  // para cancelar quando o bootstrap resolve ANTES de onAuthStateChange disparar.
+  // Sem essa ref, utilizadores sem sessão recebem bootstrapError='timeout'
+  // espúrio 10s após o carregamento (BUG C).
+  const bootstrapTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const runBootstrap = useCallback(async () => {
     const runId = ++bootstrapRunRef.current;
     setLoading(true);
     setBootstrapError(null);
 
-    // Fast-fall: se nao ha token no localStorage, pulamos a chamada HTTP
-    const hasLocalToken = typeof window !== 'undefined' &&
-      Object.keys(localStorage).some((k) => k.includes('-auth-token'));
+    // Fast-fall: se nao ha token no localStorage, pulamos a chamada HTTP.
+    // NOTA: Object.keys(localStorage) pode lançar SecurityError em modo privado
+    // restrito ou quando cookies/storage são bloqueados por política do browser
+    // (BUG D). O try-catch garante que o bootstrap degrada graciosamente.
+    const hasLocalToken = typeof window !== 'undefined' && (() => {
+      try {
+        return Object.keys(localStorage).some((k) => k.includes('-auth-token'));
+      } catch {
+        // localStorage inacessível — assume sem token; getSession() não é chamado.
+        return false;
+      }
+    })();
     if (!hasLocalToken) {
       log.info('[Auth] Sem token local — pulando getSession().');
       setLoading(false);
       setBootstrapElapsedMs(0);
+      // Sem token → onAuthStateChange não vai disparar → cancela o safety-net
+      // para evitar erro de timeout espúrio 10s depois (BUG C).
+      if (bootstrapTimeoutRef.current !== null) {
+        clearTimeout(bootstrapTimeoutRef.current);
+        bootstrapTimeoutRef.current = null;
+      }
       return;
     }
 
@@ -172,7 +192,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       log.info(
         `[Auth] getSession OK em ${elapsedMs}ms — session=${initialSession ? 'present' : 'null'}`
       );
-      if (!initialSession) setLoading(false);
+      if (!initialSession) {
+        setLoading(false);
+        // Sessão nula: onAuthStateChange pode não disparar se não havia sessão
+        // anterior → cancela o safety-net para evitar erro de timeout espúrio (BUG C).
+        if (bootstrapTimeoutRef.current !== null) {
+          clearTimeout(bootstrapTimeoutRef.current);
+          bootstrapTimeoutRef.current = null;
+        }
+      }
     } catch (err) {
       const elapsedMs = Math.round(
         (typeof performance !== 'undefined' ? performance.now() : Date.now()) - startedAt
@@ -185,6 +213,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       );
       setBootstrapError('timeout');
       setLoading(false);
+      // Bootstrap resolveu com erro — cancela o safety-net para evitar
+      // double-set e log desnecessário 10s depois (BUG C).
+      if (bootstrapTimeoutRef.current !== null) {
+        clearTimeout(bootstrapTimeoutRef.current);
+        bootstrapTimeoutRef.current = null;
+      }
     }
   }, []);
 
@@ -199,13 +233,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       log.error('[Auth] Security check failed: httpOnly cookies not properly configured');
     }
 
-    // Safety net final (10s): reduzido de 12s. Se ainda estiver em loading,
+    // Safety net final (10s): se ainda estiver em loading quando disparar,
     // marca como timeout para o ProtectedRoute exibir tela de erro.
-    const bootstrapTimeout = setTimeout(() => {
+    // Armazenado em bootstrapTimeoutRef para que runBootstrap possa cancelá-lo
+    // nos caminhos sem sessão (sem onAuthStateChange) — evitando erro espúrio (BUG C).
+    bootstrapTimeoutRef.current = setTimeout(() => {
       if (!mounted) return;
       log.error('[Auth] Bootstrap safety-net (10s) — forçando loading=false.');
       setBootstrapError((prev) => prev ?? 'timeout');
       setLoading(false);
+      bootstrapTimeoutRef.current = null;
     }, 10000);
 
     log.info(`[Auth] Supabase URL em uso: ${SUPABASE_RESOLVED_URL}`);
@@ -214,7 +251,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const subscription = authService.onAuthStateChange((event, session) => {
       if (!mounted) return;
       log.info(`[Auth] Event: ${event}`);
-      clearTimeout(bootstrapTimeout);
+      if (bootstrapTimeoutRef.current !== null) {
+        clearTimeout(bootstrapTimeoutRef.current);
+        bootstrapTimeoutRef.current = null;
+      }
       setBootstrapError(null);
 
       setSession(session);
@@ -232,7 +272,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     return () => {
       mounted = false;
-      clearTimeout(bootstrapTimeout);
+      if (bootstrapTimeoutRef.current !== null) {
+        clearTimeout(bootstrapTimeoutRef.current);
+        bootstrapTimeoutRef.current = null;
+      }
       subscription.unsubscribe();
     };
   }, [refreshAll, runBootstrap]);
@@ -312,9 +355,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       await authService.signOut();
       if (typeof window !== 'undefined') {
-        Object.keys(localStorage)
-          .filter((k) => k.startsWith('sb-') && k.includes('-auth-token'))
-          .forEach((k) => localStorage.removeItem(k));
+        try {
+          Object.keys(localStorage)
+            .filter((k) => k.startsWith('sb-') && k.includes('-auth-token'))
+            .forEach((k) => localStorage.removeItem(k));
+        } catch {
+          // localStorage bloqueado (modo privado / política de segurança) — ignora.
+        }
       }
     } catch (e) {
       log.warn('[Auth] Error during signOut:', e);
