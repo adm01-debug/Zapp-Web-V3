@@ -214,7 +214,7 @@ export function ConversationListSidebar({
             )}
           >
             <TicketTabs
-              conversations={inbox.conversations}
+              conversations={inbox.cachedConversations}
               mainTab={inboxFilters.mainTab}
               subTab={inboxFilters.subTab}
               onMainTabChange={inboxFilters.setMainTab}
