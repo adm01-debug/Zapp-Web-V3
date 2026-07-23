@@ -23,6 +23,7 @@ Cobrimos os fluxos críticos do ZAPP Web com Playwright:
 | `e2e/error-handling.spec.ts` | Edge function 500/timeout, rede offline — app não crasha, feedback ao usuário. |
 | `e2e/auth-extended.spec.ts` | Credenciais inválidas, /forgot-password, expiração de sessão força redirect /auth. |
 | `e2e/admin-evolution-api-smoke.spec.ts` + `evolution-*retry-failure` + `whatsapp-connection` + `whatsapp-reactions-*` | Suite **Evolution** rodável na VPS via workflow `E2E Evolution (VPS)`. |
+| `e2e/inbox-*.spec.ts` + `chat-*.spec.ts` + `send-message*.spec.ts` + `conversations-routing.spec.ts` + `connection-to-inbox-inbound.spec.ts` | Suite **Inbox** rodável na VPS via workflow `E2E Inbox (VPS)` (dispatch manual ou cron diário 06:00 BRT). |
 
 ## Execução contra a VPS (workflow manual)
 
