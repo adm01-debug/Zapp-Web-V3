@@ -583,7 +583,7 @@ function TopReasonsChart({
               tick={{
                 fontSize: 10,
                 fill: 'hsl(var(--foreground))',
-                fontFamily: 'ui-monospace, monospace',
+                fontFamily: 'var(--font-mono, ui-monospace, monospace)',
               }}
               axisLine={false}
               tickLine={false}

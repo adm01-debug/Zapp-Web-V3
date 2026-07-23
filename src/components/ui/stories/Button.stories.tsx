@@ -65,7 +65,7 @@ export const AllVariants: Story = {
 /** Special Variants component for the ui section. */
 export const SpecialVariants: Story = {
   render: () => (
-    <div className="flex flex-wrap gap-4 rounded-xl bg-slate-900 p-8">
+    <div className="flex flex-wrap gap-4 rounded-xl bg-card p-8">
       <Button variant="glowPurple">Glow Purple</Button>
       <Button variant="glowGradient">Glow Gradient</Button>
       <Button variant="neon">Neon</Button>

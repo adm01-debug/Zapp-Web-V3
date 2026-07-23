@@ -76,7 +76,7 @@ export const VariantGallery: Story = {
         <CardContent>Uses tokens for depth and elevation.</CardContent>
       </Card>
 
-      <Card variant="neon" className="bg-slate-950">
+      <Card variant="neon" className="bg-card">
         <CardHeader>
           <CardTitle className="text-lg text-secondary">Neon Card</CardTitle>
           <CardDescription className="text-secondary/70">Modern cyberpunk style</CardDescription>
@@ -86,7 +86,7 @@ export const VariantGallery: Story = {
 
       <Card
         variant="glass"
-        className="border-white/10 bg-gradient-to-br from-primary/20 to-secondary/20 backdrop-blur-xl"
+        className="border-border/10 bg-gradient-to-br from-primary/20 to-secondary/20 backdrop-blur-xl"
       >
         <CardHeader>
           <CardTitle className="text-lg">OLED Glass</CardTitle>
