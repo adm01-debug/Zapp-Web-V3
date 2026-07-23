@@ -23,7 +23,6 @@ const CURRENT_BUILD_ID: string =
   typeof __APP_BUILD_ID__ !== 'undefined' ? __APP_BUILD_ID__ : 'dev';
 
 const VERSION_URL = '/version.json';
-const SW_URL = '/sw.js';
 const POLL_INTERVAL_MS = 5 * 60 * 1000; // 5 min
 const RELOAD_FLAG = 'zapp-build-reload-once';
 const SW_PURGE_FLAG = 'zapp-workbox-purged-once';
