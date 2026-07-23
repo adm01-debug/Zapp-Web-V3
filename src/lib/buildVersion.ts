@@ -23,11 +23,45 @@ const CURRENT_BUILD_ID: string =
   typeof __APP_BUILD_ID__ !== 'undefined' ? __APP_BUILD_ID__ : 'dev';
 
 const VERSION_URL = '/version.json';
+const SW_URL = '/sw.js';
 const POLL_INTERVAL_MS = 5 * 60 * 1000; // 5 min
 const RELOAD_FLAG = 'zapp-build-reload-once';
+const SW_PURGE_FLAG = 'zapp-workbox-purged-once';
 
 let started = false;
 let intervalId: ReturnType<typeof setInterval> | undefined;
+let workboxChecked = false;
+
+/**
+ * Signature-based detection of a stale Workbox-generated service worker still
+ * cached at `/sw.js`. Older builds shipped a Workbox precache SW; the current
+ * SW is push-only. If the served file still matches the old signature, purge
+ * caches + unregister and reload once so the new push-only SW takes over.
+ */
+async function detectAndPurgeStaleWorkboxSW(): Promise<void> {
+  if (workboxChecked) return;
+  workboxChecked = true;
+  try {
+    const res = await fetch(`${SW_URL}?ts=${Date.now()}`, {
+      cache: 'no-store',
+      credentials: 'omit',
+    });
+    if (!res.ok) return;
+    const body = await res.text();
+    const isWorkbox =
+      /workbox/i.test(body) ||
+      /precacheAndRoute|__WB_MANIFEST|workbox-precaching/.test(body);
+    if (!isWorkbox) return;
+    log.warn('[buildVersion] Stale Workbox SW detected at /sw.js — purging.');
+    const already = sessionStorage.getItem(SW_PURGE_FLAG) === '1';
+    if (already) return;
+    try { sessionStorage.setItem(SW_PURGE_FLAG, '1'); } catch { /* noop */ }
+    await forceBundleRefresh('stale-workbox-sw');
+  } catch {
+    /* network hiccup — retry on next visibility/focus */
+    workboxChecked = false;
+  }
+}
 
 async function purgeClientCaches(): Promise<void> {
   try {
@@ -106,16 +140,25 @@ export function startBuildVersionWatcher(): () => void {
   started = true;
 
   // Kick off first check after the tab is idle so we don't fight first paint.
-  const kickoff = window.setTimeout(() => { void checkVersion(); }, 10_000);
+  const kickoff = window.setTimeout(() => {
+    void detectAndPurgeStaleWorkboxSW();
+    void checkVersion();
+  }, 10_000);
 
   intervalId = setInterval(() => { void checkVersion(); }, POLL_INTERVAL_MS);
 
   const onVisible = () => {
-    if (document.visibilityState === 'visible') void checkVersion();
+    if (document.visibilityState === 'visible') {
+      void detectAndPurgeStaleWorkboxSW();
+      void checkVersion();
+    }
   };
   document.addEventListener('visibilitychange', onVisible);
 
-  const onFocus = () => { void checkVersion(); };
+  const onFocus = () => {
+    void detectAndPurgeStaleWorkboxSW();
+    void checkVersion();
+  };
   window.addEventListener('focus', onFocus);
 
   return () => {
