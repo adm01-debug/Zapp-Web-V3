@@ -64,7 +64,7 @@ jobs:
             VITE_EXTERNAL_SUPABASE_ANON_KEY=${{ secrets.VITE_EXTERNAL_SUPABASE_ANON_KEY }}
             VITE_ZAPPWEB_SUPABASE_URL=${{ secrets.VITE_ZAPPWEB_SUPABASE_URL }}
             VITE_ZAPPWEB_SUPABASE_ANON_KEY=${{ secrets.VITE_ZAPPWEB_SUPABASE_ANON_KEY }}
-            VITE_SENTRY_DSN=${{ secrets.VITE_SENTRY_DSN }}
+            VITE_SENTRY_DSN=${{ secrets.VITE_SENTRY_DSN || 'https://50b1ab55-2b7d-4773-be20-00cc47ab7f06@erros.atomicabr.com.br/3' }}
             VITE_SENTRY_ENVIRONMENT=production
             VITE_APP_ENV=production
           cache-from: type=gha
