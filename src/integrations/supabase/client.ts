@@ -93,7 +93,7 @@ if (!isSupabaseConfigured) {
   );
 } else {
   if (isLovableCloudUrl) {
-    log.warn(
+    log.info(
       `[Supabase] VITE_SUPABASE_URL aponta para Lovable Cloud (${envUrl}) — IGNORADO. ` +
         `Usando self-hosted: ${SELF_HOSTED_URL}. ` +
         `Corrija .env para evitar confusao.`
