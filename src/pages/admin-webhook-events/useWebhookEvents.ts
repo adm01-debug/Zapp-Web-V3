@@ -89,8 +89,6 @@ export function useWebhookEvents() {
   const [selected, setSelected] = useState<EvolutionWebhookEvent | null>(null);
   const [viewMode, setViewMode] = useState<'events' | 'calls'>('events');
 
-  const sinceISO = useMemo(() => subHours(new Date(), Number(hours)).toISOString(), [hours]);
-
   const { data, isLoading, isRefetching, refetch, error } = useQuery({
     queryKey: queryKeys.adminOps.webhookEventsFiltered(
       hours,
@@ -102,6 +100,8 @@ export function useWebhookEvents() {
       pushNameFilter.trim().toLowerCase()
     ),
     queryFn: async () => {
+      // Computed inside queryFn so each refetchInterval cycle uses a fresh timestamp
+      const sinceISO = subHours(new Date(), Number(hours)).toISOString();
       const filters: { column: string; operator: string; value: unknown }[] = [
         { column: 'created_at', operator: 'gte', value: sinceISO },
       ];

@@ -8,6 +8,20 @@
 --
 -- This migration re-issues the GRANT with the correct 8-param signature.
 
-GRANT EXECUTE ON FUNCTION public.rpc_list_dispatch_error_logs_cursor(
-  timestamptz, timestamptz, text, text, text, text, integer, uuid
-) TO authenticated;
+-- Guard with an existence check: if the public RPC was already dropped/moved to zapp schema,
+-- the unguarded GRANT would abort this migration with "function does not exist".
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM pg_proc p
+    JOIN pg_namespace n ON n.oid = p.pronamespace
+    WHERE n.nspname = 'public'
+      AND p.proname = 'rpc_list_dispatch_error_logs_cursor'
+      AND p.pronargs = 8
+  ) THEN
+    EXECUTE 'GRANT EXECUTE ON FUNCTION public.rpc_list_dispatch_error_logs_cursor(
+      timestamptz, timestamptz, text, text, text, text, integer, uuid
+    ) TO authenticated';
+  END IF;
+END;
+$$;

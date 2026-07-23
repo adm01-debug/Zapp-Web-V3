@@ -42,3 +42,8 @@ CREATE POLICY "queue_analytics_delete_service" ON zapp.queue_analytics
 
 COMMENT ON TABLE zapp.queue_analytics IS
   'Periodic snapshots of queue performance metrics — one row per queue per measurement window.';
+
+-- RLS policies alone do not grant the underlying table privilege.
+-- authenticated needs SELECT; backend jobs run as service_role (all DML).
+GRANT SELECT ON zapp.queue_analytics TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON zapp.queue_analytics TO service_role;

@@ -2,6 +2,7 @@
 // Consolidates: useRealtimeDashboard, useRealtimeMessages, useRealtimeMonitor, useTypingPresence
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { log } from '@/lib/logger';
 
 interface RealtimeUpdate {
   id: string;
@@ -15,24 +16,10 @@ interface RealtimeMetricPoint {
   messagesPerMinute: number;
 }
 
-type RealtimeChannel = ReturnType<typeof supabase.channel>;
-type PgPayload = {
-  eventType: 'INSERT' | 'UPDATE' | 'DELETE';
-  new: Record<string, unknown>;
-  old: Record<string, unknown>;
-};
-
-const asRecord = (value: unknown): Record<string, unknown> =>
-  value && typeof value === 'object' ? (value as Record<string, unknown>) : {};
-
-const asString = (value: unknown, fallback = ''): string =>
-  typeof value === 'string' ? value : fallback;
-
-/** Subscribes to dashboard_data changes for a given dashboardId and computes derived metrics (messages per hour, active conversations, unread count). */
 export function useRealtimeDashboardManagement(dashboardId: string) {
   const [updates, setUpdates] = useState<RealtimeUpdate[]>([]);
   const [isConnected, setIsConnected] = useState(false);
-  const channelRef = useRef<RealtimeChannel | null>(null);
+  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   useEffect(() => {
     if (!dashboardId) return;
@@ -40,18 +27,19 @@ export function useRealtimeDashboardManagement(dashboardId: string) {
     channelRef.current = supabase.channel(`dashboard:${dashboardId}`);
     channelRef.current
       .on(
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        'postgres_changes' as any,
-        { event: '*', schema: 'zapp', table: 'dashboard_data' },
-        (payload: PgPayload) => {
-          const next = asRecord(payload.new);
-          const old = asRecord(payload.old);
+        'postgres_changes',
+        { event: '*', schema: 'zapp', table: 'app_notifications' },
+        (payload: {
+          eventType: string;
+          new?: Record<string, unknown>;
+          old?: Record<string, unknown>;
+        }) => {
           setUpdates((prev) => [
             ...prev,
             {
-              id: asString(next.id, Date.now().toString()),
+              id: payload.new?.id || Date.now().toString(),
               type: payload.eventType,
-              data: Object.keys(next).length > 0 ? next : old,
+              data: payload.new || payload.old,
               timestamp: new Date().toISOString(),
             },
           ]);
@@ -64,8 +52,8 @@ export function useRealtimeDashboardManagement(dashboardId: string) {
     return () => {
       setIsConnected(false);
       if (channelRef.current) {
-        void Promise.resolve(supabase.removeChannel(channelRef.current)).catch(() => {});
-        channelRef.current = null;
+        channelRef.current.unsubscribe();
+        supabase.removeChannel(channelRef.current);
       }
     };
   }, [dashboardId]);
@@ -100,8 +88,9 @@ export function useRealtimeDashboardManagement(dashboardId: string) {
   const unreadMessages = updates.filter(
     (update) => update.data?.is_read === false || update.data?.read === false
   ).length;
-  const lastUpdate = messageUpdates[messageUpdates.length - 1];
-  const lastMessageAt = lastUpdate?.timestamp ? new Date(lastUpdate.timestamp) : null;
+  const lastMessageAt = messageUpdates.at(-1)?.timestamp
+    ? new Date(messageUpdates.at(-1)!.timestamp)
+    : null;
   const metricsHistory: RealtimeMetricPoint[] = updates.slice(-30).map((update, index) => ({
     timestamp: update.timestamp,
     messagesPerMinute: Math.max(
@@ -124,7 +113,13 @@ export function useRealtimeDashboardManagement(dashboardId: string) {
   };
 }
 
-/** Subscribes to new evolution_messages for a specific chat JID and accumulates them in local state. */
+type RealtimeChannel = ReturnType<typeof supabase.channel>;
+type PgPayload = {
+  eventType: 'INSERT' | 'UPDATE' | 'DELETE';
+  new: Record<string, unknown>;
+  old: Record<string, unknown>;
+};
+
 export function useRealtimeMessagesManagement(chatId: string) {
   const [messages, setMessages] = useState<Record<string, unknown>[]>([]);
   const channelRef = useRef<RealtimeChannel | null>(null);
@@ -135,8 +130,7 @@ export function useRealtimeMessagesManagement(chatId: string) {
     channelRef.current = supabase.channel(`chat:${chatId}`);
     channelRef.current
       .on(
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        'postgres_changes' as any,
+        'postgres_changes',
         {
           event: 'INSERT',
           schema: 'evo',
@@ -144,15 +138,15 @@ export function useRealtimeMessagesManagement(chatId: string) {
           filter: `remote_jid=eq.${chatId}`,
         },
         (payload: PgPayload) => {
-          setMessages((prev) => [...prev, asRecord(payload.new)]);
+          setMessages((prev) => [...prev, payload.new]);
         }
       )
       .subscribe();
 
     return () => {
       if (channelRef.current) {
-        void Promise.resolve(supabase.removeChannel(channelRef.current)).catch(() => {});
-        channelRef.current = null;
+        channelRef.current.unsubscribe();
+        supabase.removeChannel(channelRef.current);
       }
     };
   }, [chatId]);
@@ -160,7 +154,6 @@ export function useRealtimeMessagesManagement(chatId: string) {
   return { messages };
 }
 
-/** Generic realtime monitor for any zapp-schema table; accumulates INSERT/UPDATE/DELETE payloads for debugging or admin panels. */
 export function useRealtimeMonitorManagement(tableName: string) {
   const [data, setData] = useState<Record<string, unknown>[]>([]);
   const [changes, setChanges] = useState<PgPayload[]>([]);
@@ -170,19 +163,18 @@ export function useRealtimeMonitorManagement(tableName: string) {
     channelRef.current = supabase.channel(`monitor:${tableName}`);
     channelRef.current
       .on(
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        'postgres_changes' as any,
+        'postgres_changes',
         { event: '*', schema: 'zapp', table: tableName },
         (payload: PgPayload) => {
           setChanges((prev) => [...prev, payload]);
-          const next = asRecord(payload.new);
-          const old = asRecord(payload.old);
           if (payload.eventType === 'INSERT') {
-            setData((prev) => [...prev, next]);
+            setData((prev) => [...prev, payload.new]);
           } else if (payload.eventType === 'DELETE') {
-            setData((prev) => prev.filter((item) => item.id !== old.id));
+            setData((prev) => prev.filter((item) => item.id !== payload.old.id));
           } else if (payload.eventType === 'UPDATE') {
-            setData((prev) => prev.map((item) => (item.id === next.id ? next : item)));
+            setData((prev) =>
+              prev.map((item) => (item.id === payload.new.id ? payload.new : item))
+            );
           }
         }
       )
@@ -190,8 +182,8 @@ export function useRealtimeMonitorManagement(tableName: string) {
 
     return () => {
       if (channelRef.current) {
-        void Promise.resolve(supabase.removeChannel(channelRef.current)).catch(() => {});
-        channelRef.current = null;
+        channelRef.current.unsubscribe();
+        supabase.removeChannel(channelRef.current);
       }
     };
   }, [tableName]);
@@ -199,11 +191,10 @@ export function useRealtimeMonitorManagement(tableName: string) {
   return { data, changes };
 }
 
-/** Tracks typing presence for a chat room using Supabase Presence. */
 export function useTypingPresenceManagement(userId: string, chatId: string) {
   const [typingUsers, setTypingUsers] = useState<string[]>([]);
-  const channelRef = useRef<RealtimeChannel | null>(null);
-  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const channelRef = useRef<any>(null);
+  const typingTimeoutRef = useRef<NodeJS.Timeout>();
 
   useEffect(() => {
     if (!userId || !chatId) return;
@@ -211,29 +202,22 @@ export function useTypingPresenceManagement(userId: string, chatId: string) {
     channelRef.current = supabase.channel(`typing:${chatId}`);
     channelRef.current
       .on('presence', { event: 'sync' }, () => {
-        const state = (channelRef.current?.presenceState() ?? {}) as Record<
-          string,
-          Array<{ typing?: boolean }>
-        >;
+        const state = channelRef.current.presenceState();
         const users = Object.entries(state)
-          .filter(([, presence]) => presence?.[0]?.typing)
+          .filter(([, presence]: [string, Array<{ typing?: boolean }>]) => presence?.[0]?.typing)
           .map(([key]) => key);
         setTypingUsers(users);
       })
-      .subscribe(async (status: string) => {
+      .subscribe(async (status) => {
         if (status === 'SUBSCRIBED') {
-          await channelRef.current?.track({ typing: true });
+          await channelRef.current.track({ typing: true });
         }
       });
 
     return () => {
-      if (typingTimeoutRef.current) {
-        clearTimeout(typingTimeoutRef.current);
-        typingTimeoutRef.current = undefined;
-      }
       if (channelRef.current) {
-        void Promise.resolve(supabase.removeChannel(channelRef.current)).catch(() => {});
-        channelRef.current = null;
+        channelRef.current.unsubscribe();
+        supabase.removeChannel(channelRef.current);
       }
     };
   }, [userId, chatId]);
@@ -241,12 +225,11 @@ export function useTypingPresenceManagement(userId: string, chatId: string) {
   const startTyping = useCallback(() => {
     if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
     typingTimeoutRef.current = setTimeout(() => {
-      void channelRef.current?.track({ typing: false });
+      channelRef.current?.track({ typing: false });
     }, 3000);
   }, []);
 
   return { typingUsers, startTyping };
 }
 
-/** Re-exported module members. */
 export type { RealtimeUpdate };

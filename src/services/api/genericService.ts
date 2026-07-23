@@ -159,11 +159,15 @@ export const createService = <T = any>(tableName: string, options?: ServiceOptio
     /**
      * Update multiple records matching a condition
      */
-    async updateMany(condition: Partial<T>, updates: Partial<T>): Promise<T[]> {
+    async updateMany(condition: Record<string, unknown>, updates: Partial<T>): Promise<T[]> {
       let query = db.from(tableName).update(updates);
 
       Object.entries(condition).forEach(([key, value]) => {
-        query = query.eq(key, value);
+        if (Array.isArray(value)) {
+          query = query.in(key, value);
+        } else {
+          query = query.eq(key, value);
+        }
       });
 
       const { data, error } = await query.select();
@@ -185,11 +189,15 @@ export const createService = <T = any>(tableName: string, options?: ServiceOptio
     /**
      * Delete multiple records matching a condition
      */
-    async deleteMany(condition: Partial<T>): Promise<number> {
+    async deleteMany(condition: Record<string, unknown>): Promise<number> {
       let query = db.from(tableName).delete();
 
       Object.entries(condition).forEach(([key, value]) => {
-        query = query.eq(key, value);
+        if (Array.isArray(value)) {
+          query = query.in(key, value);
+        } else {
+          query = query.eq(key, value);
+        }
       });
 
       const { count, error } = await query;

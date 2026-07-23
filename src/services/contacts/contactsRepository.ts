@@ -1,4 +1,3 @@
-
 /**
  * Contacts Repository
  *
@@ -20,7 +19,6 @@ export interface Contact {
   status?: 'active' | 'archived';
   created_at?: string;
   updated_at?: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [key: string]: any;
 }
 
@@ -113,7 +111,7 @@ export const contactsRepository = {
    * Delete multiple contacts
    */
   deleteMany: async (ids: string[]): Promise<number> => {
-    return baseContactsService.deleteMany({ id: ids as unknown as string });
+    return baseContactsService.deleteMany({ id: ids });
   },
 
   /**
@@ -144,7 +142,7 @@ export const contactsRepository = {
    * Bulk update status
    */
   updateStatusBulk: async (ids: string[], status: 'active' | 'archived'): Promise<Contact[]> => {
-    return baseContactsService.updateMany({ id: ids as unknown as string }, { status });
+    return baseContactsService.updateMany({ id: ids }, { status });
   },
 
   /**

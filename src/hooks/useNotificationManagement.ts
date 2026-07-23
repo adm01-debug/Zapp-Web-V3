@@ -415,7 +415,10 @@ export function useSecurityPushNotificationsManagement() {
   return { securityAlerts };
 }
 
-/** Subscribes to real-time goal achievement and progress notifications. */
+/** Subscribes to real-time goal achievement and progress notifications.
+ *  Redirected from phantom `goal_notifications` table to `app_notifications`
+ *  (physical table in supabase_realtime); filters by type client-side.
+ */
 export function useGoalNotificationsManagement() {
   const [goalNotifications, setGoalNotifications] = useState<AppNotification[]>([]);
 
@@ -424,9 +427,12 @@ export function useGoalNotificationsManagement() {
     channel
       .on(
         'postgres_changes',
-        { event: 'INSERT', schema: 'zapp', table: 'goal_notifications' },
+        { event: 'INSERT', schema: 'zapp', table: 'app_notifications' },
         (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => {
-          setGoalNotifications((prev) => [payload.new as AppNotification, ...prev]);
+          const row = payload.new as AppNotification;
+          if (row.type === 'goal_achievement' || row.type === 'goal_progress') {
+            setGoalNotifications((prev) => [row, ...prev]);
+          }
         }
       )
       .subscribe();
@@ -439,7 +445,10 @@ export function useGoalNotificationsManagement() {
   return { goalNotifications };
 }
 
-/** Subscribes to real-time transcription completion and processing status notifications. */
+/** Subscribes to real-time transcription completion and processing status notifications.
+ *  Redirected from phantom `transcription_notifications` table to `app_notifications`
+ *  (physical table in supabase_realtime); filters by type client-side.
+ */
 export function useTranscriptionNotificationsManagement() {
   const [transcriptionNotifications, setTranscriptionNotifications] = useState<AppNotification[]>(
     []
@@ -450,9 +459,12 @@ export function useTranscriptionNotificationsManagement() {
     channel
       .on(
         'postgres_changes',
-        { event: 'INSERT', schema: 'zapp', table: 'transcription_notifications' },
+        { event: 'INSERT', schema: 'zapp', table: 'app_notifications' },
         (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => {
-          setTranscriptionNotifications((prev) => [payload.new as AppNotification, ...prev]);
+          const row = payload.new as AppNotification;
+          if (row.type === 'transcription_complete' || row.type === 'transcription_processing') {
+            setTranscriptionNotifications((prev) => [row, ...prev]);
+          }
         }
       )
       .subscribe();

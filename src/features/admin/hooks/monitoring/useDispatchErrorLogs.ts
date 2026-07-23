@@ -55,8 +55,6 @@ export function useDispatchErrorLogs(filters: DispatchErrorLogFilters = {}) {
     pageSize = 50,
   } = filters;
 
-  const fromIso = new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
-
   // Cursor-based pagination: page 0 always has cursor=null; subsequent pages
   // use the last row ID returned by the previous page.
   const [pageIndexToCursor, setPageIndexToCursor] = useState<Map<number, string | null>>(
@@ -83,6 +81,9 @@ export function useDispatchErrorLogs(filters: DispatchErrorLogFilters = {}) {
       currentPageCursor,
     }),
     queryFn: async () => {
+      // Computed inside queryFn so each refetchInterval cycle uses a fresh timestamp,
+      // preventing the time window from drifting/growing between refetches.
+      const fromIso = new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
       const { data, error } = await supabase.rpc('rpc_list_dispatch_error_logs_cursor', {
         p_from: fromIso,
         p_to: to,

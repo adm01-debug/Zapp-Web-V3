@@ -87,7 +87,7 @@ export function useSendTeamMessage() {
           media_type: mediaType || null,
         })
         .select()
-        .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
+        .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
       if (error) throw error;
       const { error: touchErr } = await supabase
         .from('team_conversations')
@@ -196,6 +196,7 @@ export function useEditTeamMessage() {
           return { ...oldData, pages: newPages };
         }
       );
+      queryClient.invalidateQueries({ queryKey: queryKeys.teamChat.conversations() });
     },
     onError: () => {
       toast({ title: 'Erro ao editar mensagem', variant: 'destructive' });
@@ -286,9 +287,7 @@ export function useCreateTeamConversation() {
         type !== 'department' ? [...new Set([profile.id, ...memberIds])] : [profile.id];
       const { error: memError } = await supabase
         .from('team_conversation_members')
-        .insert(
-          memberProfileIds.map((pid) => ({ conversation_id: conv.id, profile_id: pid }))
-        );
+        .insert(memberProfileIds.map((pid) => ({ conversation_id: conv.id, profile_id: pid })));
       if (memError) throw memError;
 
       return conv;

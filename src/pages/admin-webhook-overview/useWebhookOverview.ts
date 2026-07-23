@@ -31,11 +31,11 @@ export function useWebhookOverview() {
     safeSetItem(AUTO_REFRESH_STORAGE_KEY, String(autoRefresh));
   }, [autoRefresh]);
 
-  const sinceISO = useMemo(() => subHours(new Date(), Number(hours)).toISOString(), [hours]);
-
   const { data, isLoading, isRefetching, refetch, error } = useQuery({
     queryKey: queryKeys.adminOps.webhookOverviewFiltered(hours, includeUnprocessed),
     queryFn: async () => {
+      // Computed inside queryFn so each refetchInterval cycle uses a fresh timestamp
+      const sinceISO = subHours(new Date(), Number(hours)).toISOString();
       const filters: { column: string; operator: string; value: unknown }[] = [
         { column: 'created_at', operator: 'gte', value: sinceISO },
       ];
