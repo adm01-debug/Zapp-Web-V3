@@ -102,6 +102,7 @@ export function ProtectedRoute({
   }, [authLoading, user, requiredPermission]);
 
   if (timedOut) {
+    recordAuthzFailure({ route: location.pathname, reason: 'timeout' });
     return <Navigate to="/auth?reason=timeout" state={{ from: location }} replace />;
   }
 
