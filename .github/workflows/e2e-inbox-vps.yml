@@ -11,6 +11,14 @@ on:
         description: 'Rodar whatsapp-reactions-realtime?'
         required: false
         default: 'false'
+      runner:
+        description: 'Runner alvo (self-hosted na VPS ou ubuntu-latest)'
+        required: false
+        default: 'self-hosted'
+        type: choice
+        options:
+          - self-hosted
+          - ubuntu-latest
   schedule:
     # Diário 06:00 BRT (09:00 UTC)
     - cron: '0 9 * * *'
@@ -18,7 +26,7 @@ on:
 jobs:
   e2e-inbox:
     name: Playwright Inbox contra VPS
-    runs-on: ubuntu-latest
+    runs-on: ${{ github.event.inputs.runner == 'ubuntu-latest' && 'ubuntu-latest' || fromJSON('["self-hosted","vps-zapp","playwright"]') }}
     timeout-minutes: 60
     env:
       E2E_BASE_URL: ${{ github.event.inputs.base_url || 'https://zapp.atomicabr.com.br' }}

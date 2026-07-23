@@ -15,11 +15,19 @@ on:
         description: 'Rodar voice-changer-integration?'
         required: false
         default: 'false'
+      runner:
+        description: 'Runner alvo (self-hosted na VPS ou ubuntu-latest)'
+        required: false
+        default: 'self-hosted'
+        type: choice
+        options:
+          - self-hosted
+          - ubuntu-latest
 
 jobs:
   e2e-evolution:
     name: Playwright Evolution contra VPS
-    runs-on: ubuntu-latest
+    runs-on: ${{ github.event.inputs.runner == 'ubuntu-latest' && 'ubuntu-latest' || fromJSON('["self-hosted","vps-zapp","playwright"]') }}
     timeout-minutes: 45
     env:
       E2E_BASE_URL: ${{ github.event.inputs.base_url }}

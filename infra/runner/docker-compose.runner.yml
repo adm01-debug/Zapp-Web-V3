@@ -1,0 +1,36 @@
+# Self-hosted runner alternativo, empacotado em Docker.
+# Útil quando não se quer instalar o runner diretamente no host da VPS.
+#
+# Uso:
+#   1. Copie infra/runner/.env.example para infra/runner/.env e preencha
+#      REPO_URL + RUNNER_TOKEN (gerado no GitHub UI, expira em 1h).
+#   2. docker compose -f infra/runner/docker-compose.runner.yml up -d
+#   3. Verifique: docker logs -f zapp-gh-runner
+#
+# A imagem myoung34/github-runner já inclui Node 20, Chromium deps e
+# suporta labels customizados.
+
+services:
+  gh-runner:
+    image: myoung34/github-runner:2.319.1-ubuntu-jammy
+    container_name: zapp-gh-runner
+    restart: unless-stopped
+    environment:
+      REPO_URL: ${REPO_URL}
+      RUNNER_TOKEN: ${RUNNER_TOKEN}
+      RUNNER_NAME: ${RUNNER_NAME:-zapp-docker-runner}
+      RUNNER_WORKDIR: /tmp/runner/work
+      LABELS: self-hosted,linux,x64,vps-zapp,playwright,docker
+      RUNNER_SCOPE: repo
+      DISABLE_AUTO_UPDATE: "true"
+    volumes:
+      - runner-work:/tmp/runner/work
+      - playwright-cache:/home/runner/.cache/ms-playwright
+      - /var/run/docker.sock:/var/run/docker.sock
+    security_opt:
+      - seccomp:unconfined
+    shm_size: "2gb"
+
+volumes:
+  runner-work:
+  playwright-cache:
