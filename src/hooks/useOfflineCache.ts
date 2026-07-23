@@ -80,9 +80,14 @@ export function useOfflineCache(conversations: ConversationWithMessages[], loadi
     }
   }, [conversations, loading]);
 
-  // Return cached data when offline and no live data
-  const effectiveData = isOffline && loading ? (cachedData || []) : conversations;
-  const usingCache = isOffline && loading && !!cachedData;
+  // Prefer live data whenever it exists; only fall back to the local cache
+  // when the browser is offline, the query is still loading AND there is
+  // nothing live yet. Prevents an empty/expired cache from hiding
+  // conversations that are already in memory.
+  const hasLive = conversations.length > 0;
+  const shouldUseCache = isOffline && loading && !hasLive && !!cachedData;
+  const effectiveData = shouldUseCache ? (cachedData as ConversationWithMessages[]) : conversations;
+  const usingCache = shouldUseCache;
 
   const clearCache = useCallback(() => {
     localStorage.removeItem(CACHE_KEY);
