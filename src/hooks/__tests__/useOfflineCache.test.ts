@@ -105,6 +105,38 @@ describe('useOfflineCache', () => {
     expect(localStorage.getItem('offline_conversations')).toBeNull();
   });
 
+  it('prefers live data over cache even when offline and loading', () => {
+    // Seed a cache in localStorage
+    const cachedEntry = {
+      data: [makeConversation('cached-1')],
+      timestamp: Date.now(),
+    };
+    localStorage.setItem('offline_conversations', JSON.stringify(cachedEntry));
+    vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false);
+
+    const liveConvs = [makeConversation('live-1'), makeConversation('live-2')];
+    const { result } = renderHook(() => useOfflineCache(liveConvs, true));
+
+    // Live data takes precedence — usingCache must be false
+    expect(result.current.conversations).toBe(liveConvs);
+    expect(result.current.usingCache).toBe(false);
+  });
+
+  it('falls back to cache only when offline, loading and live data is empty', () => {
+    const cachedEntry = {
+      data: [makeConversation('cached-1')],
+      timestamp: Date.now(),
+    };
+    localStorage.setItem('offline_conversations', JSON.stringify(cachedEntry));
+    vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false);
+
+    const { result } = renderHook(() => useOfflineCache([], true));
+
+    expect(result.current.usingCache).toBe(true);
+    expect(result.current.conversations).toHaveLength(1);
+    expect(result.current.conversations[0].contact.id).toBe('cached-1');
+  });
+
   it('tracks online/offline events', () => {
     const convs = [makeConversation('1')];
     const { result } = renderHook(() => useOfflineCache(convs, false));
