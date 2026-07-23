@@ -59,16 +59,9 @@ jobs:
           build-args: |
             VITE_SUPABASE_URL=${{ secrets.VITE_SUPABASE_URL }}
             VITE_SUPABASE_ANON_KEY=${{ secrets.VITE_SUPABASE_ANON_KEY }}
-            VITE_SUPABASE_PUBLISHABLE_KEY=${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
-            VITE_EXTERNAL_SUPABASE_URL=${{ secrets.VITE_EXTERNAL_SUPABASE_URL }}
-            VITE_EXTERNAL_SUPABASE_ANON_KEY=${{ secrets.VITE_EXTERNAL_SUPABASE_ANON_KEY }}
-            VITE_ZAPPWEB_SUPABASE_URL=${{ secrets.VITE_ZAPPWEB_SUPABASE_URL }}
-            VITE_ZAPPWEB_SUPABASE_ANON_KEY=${{ secrets.VITE_ZAPPWEB_SUPABASE_ANON_KEY }}
-            VITE_SENTRY_DSN=${{ secrets.VITE_SENTRY_DSN || 'https://50b1ab55-2b7d-4773-be20-00cc47ab7f06@erros.atomicabr.com.br/3' }}
+            VITE_SENTRY_DSN=${{ secrets.VITE_SENTRY_DSN }}
             VITE_SENTRY_ENVIRONMENT=production
             VITE_APP_ENV=production
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
 
   deploy:
     name: Deploy to VPS
@@ -98,25 +91,68 @@ jobs:
         run: |
           set -euo pipefail
           echo "Deploying: ${ZAPP_IMAGE}"
-          # Stack 157 = zapp-web-prod (Swarm endpoint 1) - sem SSH, sem firewall
+
+          # Compose completo com todos os labels Traefik (Host rule obrigatorio)
+          cat > /tmp/compose.yml << 'COMPOSEYML'
+          version: "3.8"
+          services:
+            web:
+              image: ghcr.io/adm01-debug/zapp-web-v3/zapp-web:production-latest
+              networks:
+                - AtomicaBRNet
+              healthcheck:
+                test: ["CMD", "wget", "-qO-", "http://127.0.0.1/healthz"]
+                interval: 30s
+                timeout: 5s
+                retries: 3
+                start_period: 30s
+              deploy:
+                mode: replicated
+                replicas: 1
+                placement:
+                  constraints:
+                    - node.role == manager
+                labels:
+                  - traefik.enable=true
+                  - "traefik.http.routers.zapp-prod.rule=Host(`zapp.atomicabr.com.br`)"
+                  - traefik.http.services.zapp-prod.loadbalancer.server.port=80
+                  - traefik.http.routers.zapp-prod.service=zapp-prod
+                  - traefik.http.routers.zapp-prod.entrypoints=websecure
+                  - traefik.http.routers.zapp-prod.tls.certresolver=letsencryptresolver
+                  - traefik.http.routers.zapp-prod.tls=true
+                  - com.centurylinklabs.watchtower.enable=false
+                update_config:
+                  failure_action: rollback
+                  monitor: 60s
+                  order: start-first
+                resources:
+                  limits:
+                    memory: 256M
+                    cpus: "0.5"
+          networks:
+            AtomicaBRNet:
+              external: true
+              name: AtomicaBRNet
+          COMPOSEYML
+
+          # Serializa o YAML como string JSON
+          STACK_CONTENT=$(cat /tmp/compose.yml | jq -Rs .)
+          PAYLOAD="{\"pullImage\":true,\"prune\":false,\"stackFileContent\":${STACK_CONTENT}}"
+
           HTTP=$(curl -s -o /tmp/pr.json -w "%{http_code}" \
-            -X POST "${PORTAINER_URL}/api/stacks/157/images?endpointId=1" \
-            -H "X-API-Key: ${PORTAINER_API_TOKEN}")
-          echo "Pull HTTP: ${HTTP}"; cat /tmp/pr.json | head -c 200 || true
-          # Trigger service update (force redeploy)
-          HTTP2=$(curl -s -o /tmp/pr2.json -w "%{http_code}" \
-            -X POST "${PORTAINER_URL}/api/stacks/157/associate?endpointId=1&swarmId=ypqv6itnmp6vnxz4xdkk4dpod&orphanedRunning=false" \
-            -H "X-API-Key: ${PORTAINER_API_TOKEN}" 2>/dev/null || echo 000)
-          # Portainer stack update (pull + redeploy)
-          HTTP3=$(curl -s -o /tmp/pr3.json -w "%{http_code}" \
             -X PUT "${PORTAINER_URL}/api/stacks/157?endpointId=1" \
             -H "X-API-Key: ${PORTAINER_API_TOKEN}" \
             -H "Content-Type: application/json" \
-            -d '{"pullImage":true,"prune":false,"stackFileContent":"version: \"3.8\"\nservices:\n  web:\n    image: ghcr.io/adm01-debug/zapp-web-v3/zapp-web:production-latest\n    networks:\n      - AtomicaBRNet\n    healthcheck:\n      test: [\"CMD\",\"wget\",\"-qO-\",\"http://127.0.0.1/healthz\"]\n      interval: 30s\n      timeout: 5s\n      retries: 3\n      start_period: 30s\n    deploy:\n      mode: replicated\n      replicas: 1\n      labels:\n        - traefik.enable=true\n        - traefik.http.services.zapp-prod.loadbalancer.server.port=80\n        - traefik.http.routers.zapp-prod.entrypoints=websecure\n        - traefik.http.routers.zapp-prod.tls.certresolver=letsencryptresolver\n        - traefik.http.routers.zapp-prod.tls=true\n        - com.centurylinklabs.watchtower.enable=false\n      update_config:\n        failure_action: rollback\n        order: start-first\n      resources:\n        limits:\n          memory: 256M\n          cpus: \"0.5\"\nnetworks:\n  AtomicaBRNet:\n    external: true\n    name: AtomicaBRNet\n"}')
-          echo "Update HTTP: ${HTTP3}"; cat /tmp/pr3.json | head -c 300 || true
-          [ "${HTTP3}" = "200" ] || { echo "::error::Portainer deploy failed HTTP ${HTTP3}"; exit 1; }
+            -d "${PAYLOAD}")
+
+          echo "Portainer HTTP: ${HTTP}"
+          cat /tmp/pr.json | head -c 400 || true
+          [ "${HTTP}" = "200" ] || { echo "::error::Deploy failed HTTP ${HTTP}"; exit 1; }
+
+          echo "Aguardando 20s rollout..."
           sleep 20
+
           HC=$(curl -s -o /dev/null -w "%{http_code}" --max-time 15 \
-            https://zapp.atomicabr.com.br/ || echo 000)
-          echo "Health: ${HC}"
-          case "${HC}" in 200|301|302) echo "App OK" ;; *) echo "::warning::HC=${HC}" ;; esac
+            https://zapp.atomicabr.com.br/auth || echo 000)
+          echo "Health /auth: ${HC}"
+          case "${HC}" in 200|301|302) echo "App OK" ;; *) echo "::warning::HC=${HC}"; esac
