@@ -153,17 +153,17 @@ export function useRealtimeMessagesManagement(chatId: string) {
   return { messages };
 }
 
-export function useRealtimeMonitorManagement(tableName: string) {
+export function useRealtimeMonitorManagement(tableName: string, schema: string = 'zapp') {
   const [data, setData] = useState<Record<string, unknown>[]>([]);
   const [changes, setChanges] = useState<PgPayload[]>([]);
   const channelRef = useRef<RealtimeChannel | null>(null);
 
   useEffect(() => {
-    channelRef.current = supabase.channel(`monitor:${tableName}`);
+    channelRef.current = supabase.channel(`monitor:${schema}:${tableName}`);
     channelRef.current
       .on(
         'postgres_changes',
-        { event: '*', schema: 'zapp', table: tableName },
+        { event: '*', schema, table: tableName },
         (payload: PgPayload) => {
           setChanges((prev) => [...prev, payload]);
           if (payload.eventType === 'INSERT') {
@@ -185,7 +185,7 @@ export function useRealtimeMonitorManagement(tableName: string) {
         supabase.removeChannel(channelRef.current);
       }
     };
-  }, [tableName]);
+  }, [tableName, schema]);
 
   return { data, changes };
 }

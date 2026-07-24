@@ -2,7 +2,7 @@ import { supabase } from '@/integrations/supabase/client';
 
 export async function fetchAbandonmentRateMessages(since: Date) {
   const { data, error } = await supabase
-    .from('messages')
+    .from('evolution_messages')
     .select('contact_id, sender')
     .gte('created_at', since.toISOString())
     .limit(1000);

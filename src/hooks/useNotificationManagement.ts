@@ -94,7 +94,7 @@ const normalizeSettings = (row: UserSettingsRow): NotificationSettings => ({
     row?.browser_notifications_enabled ?? DEFAULT_NOTIFICATION_SETTINGS.browserNotifications
   ),
   desktopAlerts: Boolean(
-    row?.browser_notifications_enabled ?? DEFAULT_NOTIFICATION_SETTINGS.desktopAlerts
+    row?.desktop_alerts_enabled ?? DEFAULT_NOTIFICATION_SETTINGS.desktopAlerts
   ),
   quietHoursEnabled: Boolean(
     row?.quiet_hours_enabled ?? DEFAULT_NOTIFICATION_SETTINGS.quietHoursEnabled
@@ -140,7 +140,7 @@ const toDbSettings = (settings: Partial<NotificationSettings>): Record<string, u
   if (settings.browserNotifications !== undefined)
     db.browser_notifications_enabled = settings.browserNotifications;
   if (settings.desktopAlerts !== undefined)
-    db.browser_notifications_enabled = settings.desktopAlerts;
+    db.desktop_alerts_enabled = settings.desktopAlerts;
   if (settings.quietHoursEnabled !== undefined) db.quiet_hours_enabled = settings.quietHoursEnabled;
   if (settings.quietHoursStart !== undefined) db.quiet_hours_start = settings.quietHoursStart;
   if (settings.quietHoursEnd !== undefined) db.quiet_hours_end = settings.quietHoursEnd;
@@ -356,7 +356,7 @@ export function useTeamChatNotificationsManagement() {
     channelRef.current
       .on(
         'postgres_changes',
-        { event: 'INSERT', schema: 'zapp', table: 'notifications' },
+        { event: 'INSERT', schema: 'zapp', table: 'app_notifications' },
         (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => {
           setNotifications((prev) => [payload.new as AppNotification, ...prev]);
         }
@@ -373,7 +373,7 @@ export function useTeamChatNotificationsManagement() {
   const markAsRead = useCallback(async (notificationId: string) => {
     try {
       const { error } = await supabase
-        .from('notifications')
+        .from('app_notifications')
         .update({ is_read: true })
         .eq('id', notificationId);
       if (error) {
@@ -391,7 +391,10 @@ export function useTeamChatNotificationsManagement() {
   return { notifications, markAsRead };
 }
 
-/** Subscribes to real-time security alerts and suspicious activity notifications. */
+/** Subscribes to real-time security alerts and suspicious activity notifications.
+ *  `zapp.security_alerts` is not in supabase_realtime; redirected to `zapp.app_notifications`
+ *  (physical, published) with client-side filter by type.
+ */
 export function useSecurityPushNotificationsManagement() {
   const [securityAlerts, setSecurityAlerts] = useState<AppNotification[]>([]);
 
@@ -400,9 +403,12 @@ export function useSecurityPushNotificationsManagement() {
     channel
       .on(
         'postgres_changes',
-        { event: 'INSERT', schema: 'zapp', table: 'security_alerts' },
+        { event: 'INSERT', schema: 'zapp', table: 'app_notifications' },
         (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => {
-          setSecurityAlerts((prev) => [payload.new as AppNotification, ...prev]);
+          const row = payload.new as AppNotification;
+          if (row.type === 'security_alert' || row.type === 'suspicious_activity') {
+            setSecurityAlerts((prev) => [row, ...prev]);
+          }
         }
       )
       .subscribe();
