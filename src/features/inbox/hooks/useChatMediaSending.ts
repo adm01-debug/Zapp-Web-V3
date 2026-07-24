@@ -8,6 +8,7 @@ import { newRequestId } from '@/lib/withRequestId';
 import { dbFrom } from '@/integrations/datasource/db';
 import type { AudioMemeItem } from '@/hooks/useAudioManagement';
 import { evolutionInstanceName } from '@/lib/evolutionInstance';
+import { isValidUUID } from '@/utils/uuid';
 
 /**
  * Encapsulates WhatsApp instance resolution and media-message sending
@@ -68,6 +69,7 @@ export function useChatMediaSending(contactId: string, contactPhone: string | un
 
   const resolveInstance = useCallback(async (): Promise<string> => {
     if (instanceName) return instanceName;
+    if (!isValidUUID(contactId)) return '';
 
     try {
       let connectionId: string | null = null;
