@@ -16,8 +16,8 @@ export const GMAIL_API  = 'https://gmail.googleapis.com/gmail/v1/users/me';
 /** get Supabase Admin function. */
 export function getSupabaseAdmin(): SupabaseClient {
   return createClient(
-    (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'))!,
-    (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))!,
+    (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL')) ?? '',
+    (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')) ?? '',
     { db: { schema: 'zapp' }, auth: { persistSession: false, autoRefreshToken: false } },
   );
 }
@@ -85,8 +85,12 @@ export async function refreshAccessToken(
   accountId: string,
   refreshToken: string
 ): Promise<string | null> {
-  const clientId     = Deno.env.get('GOOGLE_CLIENT_ID')!;
-  const clientSecret = Deno.env.get('GOOGLE_CLIENT_SECRET')!;
+  const clientId     = Deno.env.get('GOOGLE_CLIENT_ID') ?? '';
+  const clientSecret = Deno.env.get('GOOGLE_CLIENT_SECRET') ?? '';
+  if (!clientId || !clientSecret) {
+    console.warn('[gmail-helpers] refreshAccessToken: GOOGLE_CLIENT_ID/SECRET not configured');
+    return null;
+  }
 
   let tokens: Record<string, unknown>;
   try {

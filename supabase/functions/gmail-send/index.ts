@@ -236,6 +236,12 @@ Deno.serve(async (req) => {
         signal: AbortSignal.timeout(10_000),
       });
 
+      if (!res.ok) {
+        const errText = await res.text().catch(() => '');
+        console.error(`[gmail-send] modify labels HTTP ${res.status}`, errText.slice(0, 200));
+        return json({ error: `Gmail API error: ${res.status}` }, res.status >= 500 ? 502 : res.status);
+      }
+
       let data: unknown;
       try {
         data = await res.json();
@@ -292,6 +298,12 @@ Deno.serve(async (req) => {
           body: draftBody,
           signal: AbortSignal.timeout(15_000),
         });
+      }
+
+      if (!res.ok) {
+        const errText = await res.text().catch(() => '');
+        console.error(`[gmail-send] save draft HTTP ${res.status}`, errText.slice(0, 200));
+        return json({ error: `Gmail API error: ${res.status}` }, res.status >= 500 ? 502 : res.status);
       }
 
       let data: unknown;
