@@ -17,6 +17,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
+import { isValidUUID } from '@/utils/uuid';
 
 interface SicoobMapping {
   id: string;
@@ -50,7 +51,7 @@ export function SicoobBridgeDashboard() {
           .limit(50);
 
         const mappings = (mappingData || []) as SicoobMapping[];
-        const contactIds = mappings.map((m) => m.contact_id);
+        const contactIds = mappings.map((m) => m.contact_id).filter(isValidUUID);
 
         let recentMessages: SicoobMessage[] = [];
         if (contactIds.length > 0) {

@@ -5,6 +5,7 @@ import { getLogger } from '@/lib/logger';
 
 const log = getLogger('useTransferConversation');
 import { dbFrom } from '@/integrations/datasource/db';
+import { isValidUUID } from '@/utils/uuid';
 
 interface UseTransferConversationOptions {
   contactId: string;
@@ -24,9 +25,16 @@ interface UseTransferConversationOptions {
  *    transfer is auditable.
  * 3. Providing proper error handling with user-facing feedback.
  */
-export function useTransferConversation({ contactId, whatsappConnectionId }: UseTransferConversationOptions) {
+export function useTransferConversation({
+  contactId,
+  whatsappConnectionId,
+}: UseTransferConversationOptions) {
   const transferConversation = useCallback(
     async (type: 'agent' | 'queue', targetId: string, message?: string) => {
+      if (!isValidUUID(contactId)) {
+        log.warn('transferConversation: contactId is not a valid UUID, skipping', { contactId });
+        return;
+      }
       try {
         const updateData: Record<string, string | null> = {};
 
@@ -39,9 +47,7 @@ export function useTransferConversation({ contactId, whatsappConnectionId }: Use
           updateData.assigned_to = null;
         }
 
-        const { error } = await dbFrom('contacts')
-          .update(updateData)
-          .eq('id', contactId);
+        const { error } = await dbFrom('contacts').update(updateData).eq('id', contactId);
 
         if (error) throw error;
 
@@ -76,13 +82,12 @@ export function useTransferConversation({ contactId, whatsappConnectionId }: Use
         log.error('Transfer failed:', err);
         toast({
           title: 'Erro na transferência',
-          description:
-            'Não foi possível transferir o chat. Tente novamente.',
+          description: 'Não foi possível transferir o chat. Tente novamente.',
           variant: 'destructive',
         });
       }
     },
-    [contactId, whatsappConnectionId],
+    [contactId, whatsappConnectionId]
   );
 
   return { transferConversation };

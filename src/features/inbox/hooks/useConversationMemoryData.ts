@@ -24,6 +24,7 @@ export async function saveConversationMemory(
     updated_by: string | null;
   }
 ) {
+  if (!isValidUUID(payload.contact_id)) return { data: null, error: new Error('Invalid UUID') };
   if (existingId) {
     return supabase.from('conversation_memory').update(payload).eq('id', existingId);
   }

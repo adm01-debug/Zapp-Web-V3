@@ -591,33 +591,60 @@ Deno.serve(async (req) => {
     }
 
     if (action === 'status') {
-      const response = await fetch(`${evolutionApiUrl}/instance/connectionState/${instance}`, { method: 'GET', headers: { 'apikey': evolutionApiKey }, signal: AbortSignal.timeout(10_000) });
-      const text = await response.text();
-      const data = text ? safeJsonParse(text) : {};
+      try {
+        const response = await fetch(`${evolutionApiUrl}/instance/connectionState/${instance}`, { method: 'GET', headers: { 'apikey': evolutionApiKey }, signal: AbortSignal.timeout(10_000) });
+        const text = await response.text();
+        const data = text ? safeJsonParse(text) : {};
 
-      if (response.status === 401 || response.status === 403) {
-        recordAuthFailureAndMaybePause(supabase, String(instance), response.status === 401 ? 'auth_401' : 'auth_403', 'evolution-api', { http_status: response.status, message: 'status' });
-        await supabase.from('whatsapp_connections').update({ status: 'disconnected', qr_code: null }).eq('instance_name', instance);
+        if (response.status === 401 || response.status === 403) {
+          recordAuthFailureAndMaybePause(supabase, String(instance), response.status === 401 ? 'auth_401' : 'auth_403', 'evolution-api', { http_status: response.status, message: 'status' });
+          await supabase.from('whatsapp_connections').update({ status: 'disconnected', qr_code: null }).eq('instance_name', instance);
+          return new Response(JSON.stringify({
+            version: EVOLUTION_ENVELOPE_VERSION,
+            status: 'disconnected',
+            state: 'close',
+            error: true,
+            upstream_status: response.status,
+            message: 'Evolution API rejeitou a requisição (Unauthorized). Verifique a API key ou recrie a instância.',
+            details: data,
+          }), { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        }
+
+        // FIX #5: Se upstream retornar 5xx, retornar 200 com status='unknown' (graceful degradation)
+        // em vez de propagar 500 para o cliente. Polling continua sem derrubar a UI.
+        if (response.status >= 500) {
+          console.warn(`[evolution-api] status upstream ${response.status} for ${instance} — returning unknown`);
+          return new Response(JSON.stringify({
+            version: EVOLUTION_ENVELOPE_VERSION,
+            status: 'unknown',
+            state: null,
+            error: true,
+            upstream_status: response.status,
+            message: `Evolution API upstream retornou ${response.status} — status desconhecido`,
+            details: data,
+          }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        }
+
+        // v2 returns { instance: { state: "open", ... } }, v1 might return { state: "open" }
+        const rawState = data?.instance?.state || data?.state;
+        const status = rawState === 'open' ? 'connected' : 'disconnected';
+
+        await supabase.from('whatsapp_connections').update({ status, qr_code: null }).eq('instance_name', instance);
+        return new Response(JSON.stringify({ ...data, status, state: rawState }), {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      } catch (e) {
+        // FIX #5: Erro de rede (timeout, DNS, etc) retornar 200 com status='unknown'
+        console.error(`[evolution-api] status failed for ${instance}:`, e instanceof Error ? e.message : String(e));
         return new Response(JSON.stringify({
           version: EVOLUTION_ENVELOPE_VERSION,
-          status: 'disconnected',
-          state: 'close',
+          status: 'unknown',
+          state: null,
           error: true,
-          upstream_status: response.status,
-          message: 'Evolution API rejeitou a requisição (Unauthorized). Verifique a API key ou recrie a instância.',
-          details: data,
-        }), { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+          message: `Falha ao contactar Evolution API: ${e instanceof Error ? e.message : 'unknown'}`,
+        }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
-
-      // v2 returns { instance: { state: "open", ... } }, v1 might return { state: "open" }
-      const rawState = data?.instance?.state || data?.state;
-      const status = rawState === 'open' ? 'connected' : 'disconnected';
-      
-      await supabase.from('whatsapp_connections').update({ status, qr_code: null }).eq('instance_name', instance);
-      return new Response(JSON.stringify({ ...data, status, state: rawState }), {
-        status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
     }
 
     if (action === 'instance-info') return await proxy(`/instance/info/${instance}`, 'GET');

@@ -388,21 +388,29 @@ export function useAutomationSuggestions(remoteJid: string | null) {
     queryKey: key,
     queryFn: async () => {
       if (!remoteJid) return [] as AutomationSuggestion[];
-      const { data } = await safeClient.from<_RawExecRow>('automation_executions', (q) =>
+      // FIX #2: Join com automations(name) causa 400 — fazer 2 queries
+      const { data: execs } = await safeClient.from<_RawExecRow>('automation_executions', (q) =>
         q
-          .select(
-            'id, rule_id, suggestion_text, recommended_tag, kb_sources, status, created_at, instance_name, remote_jid, automations(name)'
-          )
+          .select('id, rule_id, suggestion_text, recommended_tag, kb_sources, status, created_at, instance_name, remote_jid')
           .eq('remote_jid', remoteJid)
           .eq('status', 'pending')
           .not('suggestion_text', 'is', null)
           .order('created_at', { ascending: false })
           .limit(5)
       );
-      return (data ?? []).map((r) => ({
+
+      const ruleIds = [...new Set((execs ?? []).map((r) => r.rule_id).filter(Boolean))];
+      const { data: rules } = ruleIds.length > 0
+        ? await safeClient.from<{ id: string; name: string }>('automations', (q) =>
+            q.select('id, name').in('id', ruleIds)
+          )
+        : { data: [] as { id: string; name: string }[] };
+      const ruleNameMap = new Map((rules ?? []).map((r) => [r.id, r.name]));
+
+      return (execs ?? []).map((r) => ({
         id: r.id,
         rule_id: r.rule_id,
-        rule_name: r.automations?.name,
+        rule_name: ruleNameMap.get(r.rule_id),
         suggestion_text: r.suggestion_text,
         recommended_tag: r.recommended_tag ?? null,
         kb_sources: Array.isArray(r.kb_sources) ? r.kb_sources.map(String) : [],

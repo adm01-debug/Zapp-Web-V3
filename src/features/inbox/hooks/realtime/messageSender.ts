@@ -17,6 +17,7 @@ import {
   buildEvolutionPayload,
   type SendMessageResult,
 } from './messageSenderHelpers';
+import { isValidUUID } from '@/utils/uuid';
 
 const MAX_RETRIES = 3;
 const lastInstabilityToastByContact = new Map<string, number>();
@@ -34,11 +35,15 @@ export async function sendMessageToContact(
   mediaPayload?: string,
   opts: { optimisticId?: string; conversationId?: string } = {}
 ): Promise<SendMessageResult> {
+  if (!isValidUUID(contactId)) {
+    throw new Error('contactId inválido (não é UUID) — possível WhatsApp JID');
+  }
+
   const { data: profile } = await supabase
     .from('profiles')
     .select('id')
     .eq('user_id', (await supabase.auth.getUser()).data.user?.id ?? '')
-    .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
+    .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
 
   // Generate id client-side so the RETURNING clause always carries a non-null id
   // even if the INSTEAD OF trigger on zapp.messages does not assign NEW.id before RETURN NEW.
@@ -57,7 +62,7 @@ export async function sendMessageToContact(
       status: 'sending',
     })
     .select()
-    .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
+    .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
 
   if (error) {
     log.error('Error saving message to DB:', error);
@@ -65,7 +70,9 @@ export async function sendMessageToContact(
   }
 
   if (!data) {
-    log.error('Error saving message to DB: INSERT returned no data (RLS may have blocked RETURNING)');
+    log.error(
+      'Error saving message to DB: INSERT returned no data (RLS may have blocked RETURNING)'
+    );
     throw new Error('Message insert returned no data');
   }
 
@@ -87,7 +94,7 @@ export async function sendMessageToContact(
     const { data: contact } = await dbFrom('contacts')
       .select('phone, whatsapp_connection_id')
       .eq('id', contactId)
-      .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
+      .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
 
     const { resolvedConnectionId, connection } = await resolveConnection(
       contact?.whatsapp_connection_id ?? null

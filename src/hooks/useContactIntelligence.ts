@@ -5,6 +5,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { log } from '@/lib/logger';
+import { isValidUUID } from '@/utils/uuid';
 
 /** Hook: Contact Briefing. */
 export interface ContactBriefing {
@@ -119,15 +120,15 @@ function buildChurn(raw: RawIntel | null): ChurnData | null {
     level === 'high' || engagement < 30
       ? 'high'
       : level === 'medium' || engagement < 60
-      ? 'medium'
-      : 'low';
+        ? 'medium'
+        : 'low';
   const churn_probability = Math.max(0, Math.min(100, 100 - engagement));
   const recommended_actions =
     risk_level === 'high'
       ? ['Priorize contato imediato e ofereça benefício exclusivo.']
       : risk_level === 'medium'
-      ? ['Reforce valor entregue e agende follow-up.']
-      : ['Mantenha cadência de relacionamento atual.'];
+        ? ['Reforce valor entregue e agende follow-up.']
+        : ['Mantenha cadência de relacionamento atual.'];
   return { risk_level, churn_probability, recommended_actions };
 }
 
@@ -179,17 +180,22 @@ function buildRapport(raw: RawIntel | null): RapportData {
   return { suggestions };
 }
 
-function buildBriefing(raw: RawIntel | null, totalMessages: number, lastAt: Date | null): ContactBriefing {
+function buildBriefing(
+  raw: RawIntel | null,
+  totalMessages: number,
+  lastAt: Date | null
+): ContactBriefing {
   const days =
     lastAt != null ? Math.floor((Date.now() - lastAt.getTime()) / (1000 * 60 * 60 * 24)) : null;
   const relationship_score =
-    raw?.relationship_score ?? (raw?.engagement_score != null ? Math.round(raw.engagement_score) : null);
+    raw?.relationship_score ??
+    (raw?.engagement_score != null ? Math.round(raw.engagement_score) : null);
   const opening_tip =
     days != null && days > 30
       ? 'Cliente sem contato há tempo — resgate com mensagem personalizada.'
       : days != null && days <= 1
-      ? 'Conversa recente — dê continuidade natural ao último tópico.'
-      : 'Inicie com pergunta aberta relacionada à necessidade principal.';
+        ? 'Conversa recente — dê continuidade natural ao último tópico.'
+        : 'Inicie com pergunta aberta relacionada à necessidade principal.';
   const risk_alert =
     (raw?.risk_level || '').toLowerCase() === 'high'
       ? 'Alto risco de churn detectado — priorize esta conversa.'
@@ -214,10 +220,15 @@ export function useContactIntelligence(contactIdOrPhone?: string) {
 
       let raw: RawIntel | null = null;
       try {
+        // FIX #3: contact_intelligence usa 'phone' (coluna física), mas se for UUID,
+        // usa 'contact_id'. Validar para evitar 400.
+        const orFilter = isValidUUID(contactIdOrPhone)
+          ? `contact_id.eq.${contactIdOrPhone}`
+          : `phone.eq.${contactIdOrPhone}`;
         const { data: intel } = await supabase
           .from('contact_intelligence' as never)
           .select('*')
-          .or(`contact_id.eq.${contactIdOrPhone},phone.eq.${contactIdOrPhone}`)
+          .or(orFilter)
           .maybeSingle();
         raw = (intel ?? null) as unknown as RawIntel | null;
       } catch (err) {
@@ -229,10 +240,15 @@ export function useContactIntelligence(contactIdOrPhone?: string) {
 
       if (!totalMessages || !lastAt) {
         try {
+          // FIX #4: evolution_messages usa 'remote_jid' (não 'phone') para o JID.
+          // Se for UUID, busco por contact_id. Se for phone-like, busco por remote_jid.
+          const filter = isValidUUID(contactIdOrPhone)
+            ? `contact_id.eq.${contactIdOrPhone}`
+            : `remote_jid.eq.${contactIdOrPhone}@s.whatsapp.net,remote_jid.eq.${contactIdOrPhone}`;
           const { data: msgs, count } = await supabase
             .from('evolution_messages' as never)
             .select('created_at', { count: 'exact', head: false })
-            .or(`contact_id.eq.${contactIdOrPhone},phone.eq.${contactIdOrPhone}`)
+            .or(filter)
             .order('created_at', { ascending: false })
             .limit(1);
           if (count != null) totalMessages = totalMessages || count;

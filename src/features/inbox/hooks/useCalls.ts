@@ -5,6 +5,7 @@ import { useAuth } from '@/features/auth';
 import { toast } from '@/hooks/use-toast';
 import { log } from '@/lib/logger';
 import { useMountedRef } from '@/hooks/useMountedRef';
+import { isValidUUID } from '@/utils/uuid';
 
 /** Database row shape for a voice call record (start/end timestamps, direction, status, recording URL). */
 export interface Call {
@@ -271,6 +272,8 @@ export const useCalls = () => {
 
   // Get call history for a contact with abort signal support
   const getContactCalls = useCallback(async (contactId: string): Promise<Call[]> => {
+    if (!isValidUUID(contactId)) return [];
+
     const controller = new AbortController();
     activeControllersRef.current.add(controller);
 
