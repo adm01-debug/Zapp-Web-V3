@@ -39,6 +39,7 @@ export interface ApplyInboxFiltersOptions {
   ticketStates: TicketStateMap;
   customScopes: { id: string; name: string }[];
   hasPermission: PermissionChecker;
+  permissionsLoading?: boolean;
 }
 
 /** Pure function that applies all active inbox filters (tab, scope, search, agent, queue, tags, failure category, date, contact type) and returns the filtered conversation list. */
@@ -65,6 +66,7 @@ export function applyInboxFilters(opts: ApplyInboxFiltersOptions): ConversationW
     ticketStates,
     customScopes,
     hasPermission,
+    permissionsLoading = false,
   } = opts;
 
   const canSeeWhatsapp = hasPermission('inbox.view_whatsapp');
@@ -82,7 +84,7 @@ export function applyInboxFilters(opts: ApplyInboxFiltersOptions): ConversationW
 
   const effectiveSearch = (externalSearch !== undefined ? externalSearch : search || '').trim();
 
-  const effectiveScope =
+  const requestedScope =
     showAll && canSeeAll
       ? 'all'
       : scope === 'department' && (canSeeDept || canSeeAll)
@@ -91,15 +93,29 @@ export function applyInboxFilters(opts: ApplyInboxFiltersOptions): ConversationW
           ? 'all'
           : 'mine';
 
+  const hasMineAssignments = conversations.some((c) => {
+    if (!c?.contact?.id) return false;
+    return assignedOf(c.contact.id, c.contact.assigned_to) === profileId;
+  });
+
+  const effectiveScope =
+    requestedScope === 'mine' && !hasMineAssignments && (canSeeAll || canSeeDept)
+      ? canSeeAll
+        ? 'all'
+        : 'department'
+      : requestedScope;
+
   // 0. Base validation + channel visibility (always applied, even in search)
   let result = conversations.filter((c) => c && c.contact && c.contact.id);
-  result = result.filter((c) => {
-    const channel = c.contact?.channel_type;
-    if (channel === 'whatsapp' && !canSeeWhatsapp) return false;
-    if (channel === 'instagram' && !canSeeInstagram) return false;
-    if ((channel === 'chat' || channel === 'webchat') && !canSeeChat) return false;
-    return true;
-  });
+  if (!permissionsLoading) {
+    result = result.filter((c) => {
+      const channel = c.contact?.channel_type;
+      if (channel === 'whatsapp' && !canSeeWhatsapp) return false;
+      if (channel === 'instagram' && !canSeeInstagram) return false;
+      if ((channel === 'chat' || channel === 'webchat') && !canSeeChat) return false;
+      return true;
+    });
+  }
 
   // 1. Tab / Status filtering
   if (effectiveSearch.length === 0) {
@@ -118,6 +134,8 @@ export function applyInboxFilters(opts: ApplyInboxFiltersOptions): ConversationW
             }
             return assignee === filters.agentId;
           }
+
+          if (!assignee) return false;
 
           if (effectiveScope === 'all') return true;
 
@@ -145,6 +163,8 @@ export function applyInboxFilters(opts: ApplyInboxFiltersOptions): ConversationW
       }
     } else if (mainTab === 'resolved') {
       result = result.filter((c) => statusOf(c.contact.id) === 'resolved');
+    } else if (mainTab === 'unread') {
+      result = result.filter((c) => c.unreadCount > 0 && statusOf(c.contact.id) !== 'resolved');
     }
   } else {
     if (mainTab === 'open') {
@@ -163,6 +183,8 @@ export function applyInboxFilters(opts: ApplyInboxFiltersOptions): ConversationW
       });
     } else if (mainTab === 'resolved') {
       result = result.filter((c) => statusOf(c.contact.id) === 'resolved');
+    } else if (mainTab === 'unread') {
+      result = result.filter((c) => c.unreadCount > 0 && statusOf(c.contact.id) !== 'resolved');
     }
   }
 
@@ -269,6 +291,33 @@ export function applyInboxFilters(opts: ApplyInboxFiltersOptions): ConversationW
       : new Date(b.contact.updated_at).getTime();
     return bTime - aTime;
   });
+}
+
+export interface InboxTabCounts {
+  open: number;
+  attending: number;
+  waiting: number;
+  resolved: number;
+  unread: number;
+}
+
+function countUnique(conversations: ConversationWithMessages[]): number {
+  return new Set(conversations.map((c) => c.contact.id)).size;
+}
+
+/** Computes inbox tab counters with the same permission/filter pipeline used by the visible list. */
+export function computeInboxTabCounts(opts: ApplyInboxFiltersOptions): InboxTabCounts {
+  const attending = applyInboxFilters({ ...opts, mainTab: 'open', subTab: 'attending' });
+  const waiting = applyInboxFilters({ ...opts, mainTab: 'open', subTab: 'waiting' });
+  const openIds = new Set([...attending, ...waiting].map((c) => c.contact.id));
+
+  return {
+    open: openIds.size,
+    attending: countUnique(attending),
+    waiting: countUnique(waiting),
+    resolved: countUnique(applyInboxFilters({ ...opts, mainTab: 'resolved' })),
+    unread: countUnique(applyInboxFilters({ ...opts, mainTab: 'unread' })),
+  };
 }
 
 /** Options for building per-failure-category conversation counts used to populate the failure filter dropdown. */

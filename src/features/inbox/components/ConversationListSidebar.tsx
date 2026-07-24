@@ -10,6 +10,7 @@ import { InboxFilters } from './InboxFilters';
 import { ContactTypeFilter, FILTER_OPTIONS } from './ContactTypeFilter';
 import { FailureCategoryFilter } from './FailureCategoryFilter';
 import { TicketTabs } from './TicketTabs';
+import type { InboxScope } from './TicketTabs';
 import type { useInboxFilters } from '../hooks/useInboxFilters';
 import type { useInboxBulkActions } from '../hooks/useInboxBulkActions';
 import type { useRealtimeInbox } from '../hooks/useRealtimeInbox';
@@ -21,6 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
 
 // Tooltips were removed from this header to avoid Radix Slot ref-loop bug
 // (TooltipTrigger asChild on inline span/Button caused Maximum update depth).
@@ -35,6 +37,11 @@ import { toast } from 'sonner';
 type InboxState = ReturnType<typeof useRealtimeInbox>;
 type InboxFiltersState = ReturnType<typeof useInboxFilters>;
 type BulkActionsState = ReturnType<typeof useInboxBulkActions>;
+
+function toInboxScope(value: string): InboxScope {
+  if (value === 'department' || value === 'all') return value;
+  return 'mine';
+}
 
 interface PullToRefreshState {
   isRefreshing: boolean;
@@ -215,13 +222,14 @@ export function ConversationListSidebar({
           >
             <TicketTabs
               conversations={inbox.cachedConversations}
+                counts={inboxFilters.inboxTabCounts}
               mainTab={inboxFilters.mainTab}
               subTab={inboxFilters.subTab}
               onMainTabChange={inboxFilters.setMainTab}
               onSubTabChange={inboxFilters.setSubTab}
               showAll={inboxFilters.showAll}
               onShowAllChange={inboxFilters.setShowAll}
-              scope={inboxFilters.scope as any}
+                scope={toInboxScope(inboxFilters.scope)}
               onScopeChange={inboxFilters.setScope}
               selectedQueueId={inboxFilters.selectedQueueId}
               onQueueChange={inboxFilters.setSelectedQueueId}
@@ -322,6 +330,18 @@ export function ConversationListSidebar({
               !!inboxFilters.selectedContactType && inboxFilters.selectedContactType !== 'all';
             const filtersHideAll =
               !inbox.usingCache && !inboxFilters.search && totalLoaded > 0;
+            const canShowWaiting =
+              inboxFilters.mainTab === 'open' &&
+              inboxFilters.subTab !== 'waiting' &&
+              inboxFilters.inboxTabCounts.waiting > 0;
+            const canShowAttending =
+              inboxFilters.mainTab === 'open' &&
+              inboxFilters.subTab !== 'attending' &&
+              inboxFilters.inboxTabCounts.attending > 0;
+            const canShowUnread =
+              inboxFilters.mainTab !== 'unread' && inboxFilters.inboxTabCounts.unread > 0;
+            const canShowAllAgents =
+              inboxFilters.scope !== 'all' && totalLoaded > inboxFilters.filteredConversations.length;
             const msg = inbox.usingCache
               ? 'Modo offline — sem dados em cache'
               : inboxFilters.search
@@ -352,14 +372,67 @@ export function ConversationListSidebar({
                 >
                   {msg}
                 </p>
-                {filtersHideAll && hasActiveTypeFilter && (
-                  <button
-                    type="button"
-                    onClick={() => inboxFilters.handleContactTypeChange(null)}
-                    className="mt-3 rounded-md border border-border/40 bg-muted/40 px-3 py-1.5 text-[11px] font-medium text-foreground/80 transition-colors hover:bg-muted"
-                  >
-                    Limpar filtro de tipo
-                  </button>
+                {filtersHideAll && (
+                  <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
+                    {canShowWaiting && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="h-8 text-[11px]"
+                        onClick={() => inboxFilters.setSubTab('waiting')}
+                      >
+                        Ver aguardando ({inboxFilters.inboxTabCounts.waiting})
+                      </Button>
+                    )}
+                    {canShowAttending && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="h-8 text-[11px]"
+                        onClick={() => inboxFilters.setSubTab('attending')}
+                      >
+                        Ver atendendo ({inboxFilters.inboxTabCounts.attending})
+                      </Button>
+                    )}
+                    {canShowUnread && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="h-8 text-[11px]"
+                        onClick={() => inboxFilters.setMainTab('unread')}
+                      >
+                        Ver não lidas ({inboxFilters.inboxTabCounts.unread})
+                      </Button>
+                    )}
+                    {canShowAllAgents && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="h-8 text-[11px]"
+                        onClick={() => {
+                          inboxFilters.setScope('all');
+                          inboxFilters.setShowAll(true);
+                        }}
+                      >
+                        Ver todos os atendentes
+                      </Button>
+                    )}
+                    {hasActiveTypeFilter && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="h-8 text-[11px]"
+                        onClick={() => inboxFilters.handleContactTypeChange(null)}
+                      >
+                        Limpar filtro de tipo
+                      </Button>
+                    )}
+                  </div>
                 )}
               </motion.div>
             );
