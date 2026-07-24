@@ -318,6 +318,8 @@ export function ConversationListSidebar({
             // Distingue "banco sem dados" (allConversations vazio) de
             // "filtros esconderam tudo" (allConversations > 0 mas filtered = 0).
             const totalLoaded = (inbox.conversations?.length ?? 0);
+            const hasActiveTypeFilter =
+              !!inboxFilters.selectedContactType && inboxFilters.selectedContactType !== 'all';
             const filtersHideAll =
               !inbox.usingCache && !inboxFilters.search && totalLoaded > 0;
             const msg = inbox.usingCache
@@ -350,6 +352,15 @@ export function ConversationListSidebar({
                 >
                   {msg}
                 </p>
+                {filtersHideAll && hasActiveTypeFilter && (
+                  <button
+                    type="button"
+                    onClick={() => inboxFilters.handleContactTypeChange(null)}
+                    className="mt-3 rounded-md border border-border/40 bg-muted/40 px-3 py-1.5 text-[11px] font-medium text-foreground/80 transition-colors hover:bg-muted"
+                  >
+                    Limpar filtro de tipo
+                  </button>
+                )}
               </motion.div>
             );
           })()
