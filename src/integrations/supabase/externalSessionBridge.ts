@@ -56,7 +56,7 @@ export async function mirrorExternalSignIn(email: string, password: string): Pro
   // e um getSession extra apenas adiciona contenção. Não há dual-session real a
   // manter, então isto é um no-op. Se um client external separado for
   // reintroduzido (externalSupabase !== supabase), o mirror reativa sozinho.
-  if (externalSupabase === supabase) return;
+  if ((externalSupabase as unknown) === (supabase as unknown)) return;
   try {
     const { data: existing } = await externalSupabase.auth.getSession();
     if (existing.session?.user?.email === email) {
@@ -110,7 +110,7 @@ export async function mirrorExternalSignOut(): Promise<void> {
   if (!isExternalConfigured) return;
   // No-op enquanto external === main: o signOut do client principal já encerra
   // a única sessão existente. Um signOut extra aqui é redundante.
-  if (externalSupabase === supabase) return;
+  if ((externalSupabase as unknown) === (supabase as unknown)) return;
   try {
     await externalSupabase.auth.signOut();
   } catch (e) {
@@ -145,7 +145,7 @@ export function registerExternalSessionBridge(): () => void {
   // bridge é inteiramente redundante neste modo, instala-se como no-op. Se um
   // client external separado voltar (externalSupabase !== supabase), o bridge
   // completo reativa automaticamente.
-  if (externalSupabase === supabase) {
+  if ((externalSupabase as unknown) === (supabase as unknown)) {
     log.debug('external === main (single-DB) — bridge instalado como no-op');
     return () => {
       bridgeInstalled = false;
