@@ -23,7 +23,7 @@ export function useConnectionAlertsPush() {
           {
             event: 'INSERT',
             schema: 'zapp',
-            table: 'notifications',
+            table: 'app_notifications',
             filter: `user_id=eq.${auth.user.id}`,
           },
           (payload) => {
