@@ -145,7 +145,7 @@ export function registerExternalSessionBridge(): () => void {
   // bridge é inteiramente redundante neste modo, instala-se como no-op. Se um
   // client external separado voltar (externalSupabase !== supabase), o bridge
   // completo reativa automaticamente.
-  if (externalSupabase === supabase) {
+  if ((externalSupabase as unknown) === (supabase as unknown)) {
     log.debug('external === main (single-DB) — bridge instalado como no-op');
     return () => {
       bridgeInstalled = false;
