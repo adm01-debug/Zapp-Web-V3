@@ -120,6 +120,10 @@ CREATE POLICY "admins_delete_password_reset_requests"
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE zapp.password_reset_requests TO authenticated;
 GRANT ALL ON TABLE zapp.password_reset_requests TO service_role;
 
+-- Index for RLS policies that filter by user_id = auth.uid()
+CREATE INDEX IF NOT EXISTS idx_password_reset_requests_user_id
+  ON zapp.password_reset_requests (user_id);
+
 -- ---------------------------------------------------------------------------
 -- Step 5: Create safe views
 --   • zapp.password_reset_requests_safe — resolved by safeClient.from('password_reset_requests_safe')

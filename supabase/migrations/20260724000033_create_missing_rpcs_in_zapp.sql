@@ -91,7 +91,8 @@ SET search_path = zapp
 AS $$
 BEGIN
   -- Only allow querying own permissions unless caller is admin/supervisor
-  IF _user_id <> auth.uid() AND NOT zapp.is_admin_or_supervisor() THEN
+  IF _user_id IS DISTINCT FROM auth.uid()
+     AND NOT COALESCE(zapp.is_admin_or_supervisor(), FALSE) THEN
     RETURN FALSE;
   END IF;
   RETURN public.user_has_permission(_user_id, _permission_name);
@@ -191,7 +192,8 @@ SET search_path = zapp
 AS $$
 BEGIN
   -- Only allow querying visibility for own user_id unless caller is admin/supervisor
-  IF _user_id <> auth.uid() AND NOT zapp.is_admin_or_supervisor() THEN
+  IF _user_id IS DISTINCT FROM auth.uid()
+     AND NOT COALESCE(zapp.is_admin_or_supervisor(), FALSE) THEN
     RETURN;
   END IF;
   RETURN QUERY SELECT * FROM public.get_visible_agent_ids(_user_id);

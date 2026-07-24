@@ -53,8 +53,7 @@ AS $$
   VALUES (p_request_id, p_token, p_expires_at)
   ON CONFLICT (request_id) DO UPDATE
     SET hashed_token = EXCLUDED.hashed_token,
-        expires_at   = EXCLUDED.expires_at,
-        created_at   = now();
+        expires_at   = EXCLUDED.expires_at;
 $$;
 
 -- Only service_role (used by admin client) can call this

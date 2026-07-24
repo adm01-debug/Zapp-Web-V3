@@ -95,12 +95,14 @@ CREATE POLICY "hmac_selftest_audit_insert_own"
   WITH CHECK (executed_by = auth.uid());
 
 -- ---------------------------------------------------------------------------
--- Step 5: Grants
+-- Step 5: Grants and index
 -- ---------------------------------------------------------------------------
 DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'zapp' AND tablename = 'hmac_selftest_audit') THEN
     EXECUTE 'GRANT SELECT, INSERT ON TABLE zapp.hmac_selftest_audit TO authenticated';
     EXECUTE 'GRANT ALL ON TABLE zapp.hmac_selftest_audit TO service_role';
+    -- Index for RLS policy that filters by executed_by = auth.uid()
+    EXECUTE 'CREATE INDEX IF NOT EXISTS idx_hmac_selftest_audit_executed_by ON zapp.hmac_selftest_audit (executed_by)';
   END IF;
 END; $$;
 
