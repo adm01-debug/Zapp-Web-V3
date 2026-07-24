@@ -68,13 +68,15 @@ Deno.serve(async (req) => {
           }),
           signal: AbortSignal.timeout(15_000),
         });
+        if (!watchRes.ok) {
+          const watchErr = await watchRes.json().catch(() => ({}));
+          return json({ error: 'Watch failed', detail: watchErr }, 500);
+        }
         const watchData = await watchRes.json();
         if (watchData.error) {
           console.error('[gmail-webhook] watch setup error', watchData.error);
           return json({ error: 'Failed to setup Gmail watch' }, 400);
         }
-
-        if (!watchRes.ok) return json({ error: 'Watch failed', detail: watchData }, 500);
 
         const expires = watchData.expiration ? new Date(parseInt(watchData.expiration)).toISOString() : null;
         await supabase.from('email_watch_history').upsert({
@@ -161,8 +163,9 @@ async function getValidToken(supabase: ReturnType<typeof createClient>, accountI
 
   if (!account.refresh_token) return null;
 
-  const clientId = account.client_id ?? Deno.env.get('GOOGLE_CLIENT_ID')!;
-  const clientSecret = account.client_secret ?? Deno.env.get('GOOGLE_CLIENT_SECRET')!;
+  const clientId = account.client_id ?? Deno.env.get('GOOGLE_CLIENT_ID') ?? '';
+  const clientSecret = account.client_secret ?? Deno.env.get('GOOGLE_CLIENT_SECRET') ?? '';
+  if (!clientId || !clientSecret) return null;
 
   const refreshRes = await fetch('https://oauth2.googleapis.com/token', {
     method: 'POST',

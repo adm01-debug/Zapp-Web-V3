@@ -129,6 +129,8 @@ Deno.serve(async (req) => {
   }
 
   const supabase = createZappAdminClient();
+  const supabaseUrl = ((Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL')) ?? '').replace(/\/+$/, '');
+  const supabaseServiceKey = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')) ?? '';
 
   // Authenticate via SELFHOSTED_SUPABASE_URL (priority) or SUPABASE_URL.
   const { data: authData, error: authError } = await createZappClient(req).auth.getUser();
@@ -415,7 +417,7 @@ Deno.serve(async (req) => {
     }
 
     if (action === 'create-instance') {
-      await authorizeRoles(req, supabaseUrl, (Deno.env.get('SELFHOSTED_SUPABASE_ANON_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY'))!, ['admin', 'dev']);
+      await authorizeRoles(req, supabaseUrl, (Deno.env.get('SELFHOSTED_SUPABASE_ANON_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY')) ?? '', ['admin', 'dev']);
       if (instanceLooksLikeUuid(instance)) {
         const resolved = await resolveInstanceNameById(String(instance));
         return new Response(JSON.stringify({
@@ -544,7 +546,7 @@ Deno.serve(async (req) => {
     }
 
     if (action === 'reprocess-failed-webhooks') {
-      await authorizeRoles(req, supabaseUrl, (Deno.env.get('SELFHOSTED_SUPABASE_ANON_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY'))!, ['admin', 'dev']);
+      await authorizeRoles(req, supabaseUrl, (Deno.env.get('SELFHOSTED_SUPABASE_ANON_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY')) ?? '', ['admin', 'dev']);
       const { data: failed, error } = await supabase
         .from('webhook_reprocess_queue')
         .select('*')
@@ -701,7 +703,7 @@ Deno.serve(async (req) => {
     }
 
     if (action === 'delete-instance') {
-      await authorizeRoles(req, supabaseUrl, (Deno.env.get('SELFHOSTED_SUPABASE_ANON_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY'))!, ['admin', 'dev']);
+      await authorizeRoles(req, supabaseUrl, (Deno.env.get('SELFHOSTED_SUPABASE_ANON_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY')) ?? '', ['admin', 'dev']);
       return await proxy(`/instance/delete/${instance}`, 'DELETE', body);
     }
     if (action === 'set-presence') {
