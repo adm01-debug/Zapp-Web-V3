@@ -117,6 +117,8 @@ export const EDGE_FUNCTION_NAMES = [
   'sla-alert-log-failure',
   'speech-to-text',
   'status',
+  'talkx-add-recipients',
+  'talkx-control',
   'talkx-scheduler',
   'talkx-send',
   'ticket-router',
