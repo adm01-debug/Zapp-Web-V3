@@ -380,14 +380,22 @@ jobs:
         # Intentional: --audit-level=critical (not high). Rationale documented above.
         run: |
           set +e
-          bun audit --audit-level=critical
+          audit_output=$(bun audit --audit-level=critical 2>&1)
           status=$?
           set -e
+          echo "$audit_output"
           if [ "$status" -ne 0 ]; then
-            echo "::error title=Dependency audit::CRITICAL severity vulnerabilities found. Pin or replace the offending packages before merging."
-            exit "$status"
+            # bun audit exits non-zero for both real CVEs and transient registry errors
+            # (e.g. "audit request failed (status 503)"). Only block CI for actual CVEs.
+            if echo "$audit_output" | grep -q "audit request failed"; then
+              echo "::warning title=Dependency audit::npm audit registry unreachable (transient 5xx). Skipping — no CVE action needed."
+            else
+              echo "::error title=Dependency audit::CRITICAL severity vulnerabilities found. Pin or replace the offending packages before merging."
+              exit "$status"
+            fi
+          else
+            echo "Dependency audit passed — no CRITICAL CVEs found."
           fi
-          echo "Dependency audit passed — no CRITICAL CVEs found."
 
       - name: Check for obvious secrets in code
         run: |
