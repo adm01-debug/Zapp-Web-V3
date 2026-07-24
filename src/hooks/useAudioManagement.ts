@@ -82,7 +82,7 @@ export function useAudioMemes(open: boolean) {
 
     const catalogChannel = supabase
       .channel('audio-memes-catalog')
-      .on('postgres_changes', { event: '*', schema: 'zapp', table: 'audio_memes' }, () => {
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'audio_memes' }, () => {
         log.info('Catalog update received');
         void queryClient.invalidateQueries({ queryKey: AUDIO_MEMES_KEY });
       })

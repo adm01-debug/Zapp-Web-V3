@@ -82,14 +82,16 @@ for (const f of files) {
     violations.cloudUrl.push(relative('.', f));
   }
 
-  // 4. .from('evolution_messages'|'evolution_conversations') no frontend sem sufixo
-  // de partição. Essas são tabelas-pai particionadas em `evo` — o frontend deve
-  // consultar a partição real (evolution_messages_wpp2). Edge Functions rodam com
-  // service_role e o PG roteia para a partição correta, então o guardrail se
-  // aplica apenas a src/.
-  const parentPartitionRe =
-    /\.from\(\s*['"](evolution_messages|evolution_conversations)['"]\s*\)/g;
-  if (!isTest && f.startsWith('src/') && parentPartitionRe.test(src)) {
+  // 4. .schema('evo').from('evolution_messages'|'evolution_conversations') no frontend
+  // é proibido — evolution_messages e evolution_conversations existem como VIEWS
+  // auto-updatable no schema `zapp` (security_invoker=on). Acessar via .schema('evo')
+  // causa PGRST205 porque a raiz particionada não responde ao PostgREST diretamente.
+  // CORRETO: supabase.from('evolution_messages') — usa a VIEW em zapp (schema padrão).
+  // ERRADO:  supabase.schema('evo').from('evolution_messages') — PGRST205.
+  // Subscriptions Realtime usam channel.on({ schema:'evo', table:... }) — não .from().
+  const evoRootDirectAccessRe =
+    /\.schema\s*\(\s*['"]evo['"]\s*\)\s*\.from\s*\(\s*['"](evolution_messages|evolution_conversations)['"]\s*\)/;
+  if (!isTest && f.startsWith('src/') && evoRootDirectAccessRe.test(src)) {
     violations.evoUnprefixed.push(relative('.', f));
   }
 
@@ -143,9 +145,11 @@ if (violations.cloudUrl.length) {
 }
 if (violations.evoUnprefixed.length) {
   console.error(
-    `\n— .from('evolution_messages'|'evolution_conversations') proibido (${violations.evoUnprefixed.length}):`
+    `\n— [SUP-004] .schema('evo').from('evolution_messages|evolution_conversations') proibido (${violations.evoUnprefixed.length}):`
   );
-  console.error("   Use a partição real (ex: 'evolution_messages_wpp2') com .schema('evo').");
+  console.error("   Essas tabelas existem como VIEWs em zapp (security_invoker=on).");
+  console.error("   Use: supabase.from('evolution_messages') — schema padrão zapp.");
+  console.error("   NÃO use .schema('evo').from(...) — causa PGRST205.");
   violations.evoUnprefixed.forEach((f) => console.error('   ' + f));
 }
 if (violations.evoSchemaRequired.length) {

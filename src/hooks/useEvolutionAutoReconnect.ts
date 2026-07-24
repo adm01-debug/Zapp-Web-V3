@@ -205,7 +205,7 @@ export function useEvolutionAutoReconnect(instanceName?: string) {
       .channel('evolution-reconnect-monitor')
       .on<WhatsAppConnection>(
         'postgres_changes',
-        { event: 'UPDATE', schema: 'zapp', table: 'whatsapp_connections' },
+        { event: 'UPDATE', schema: 'public', table: 'whatsapp_connections' },
         (payload) => {
           const connection = payload.new;
           const oldConnection = payload.old;

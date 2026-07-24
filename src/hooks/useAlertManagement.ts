@@ -148,7 +148,7 @@ export function useWarRoomAlertsManagement(soundEnabled = true): UseWarRoomAlert
       .channel('warroom-alerts-realtime')
       .on(
         'postgres_changes',
-        { event: 'INSERT', schema: 'zapp', table: 'warroom_alerts' },
+        { event: 'INSERT', schema: 'public', table: 'warroom_alerts' },
         (payload) => {
           const parsed = safeParseEvent(warRoomAlertRowSchema, payload.new);
           if (!parsed.ok) {
