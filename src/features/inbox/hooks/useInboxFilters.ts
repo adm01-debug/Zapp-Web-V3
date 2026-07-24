@@ -14,6 +14,7 @@ import { logAudit } from '@/lib/audit';
 import {
   CHANNEL_PERMISSION_KEYS,
   applyInboxFilters,
+  buildFailureCategoryCounts,
   computeInboxTabCounts,
 } from './inboxFilterPipeline';
 
@@ -377,44 +378,11 @@ export function useInboxFilters({
 
   // Contagem por categoria (apenas quando filtro retry está ativo e métricas carregadas)
   const failureCategoryCounts = useMemo(() => {
-    const counts: Record<FailureCategory | 'all', number> = {
-      all: 0,
-      auth: 0,
-      http_4xx: 0,
-      http_5xx: 0,
-      network: 0,
-      unknown: 0,
-    };
-    if (!showOnlyRetrying) return counts;
-    const seenConvs = new Set<string>();
-    const seenByCat: Record<string, Set<string>> = {
-      auth: new Set(),
-      http_4xx: new Set(),
-      http_5xx: new Set(),
-      network: new Set(),
-      unknown: new Set(),
-    };
-    for (const c of conversations) {
-      const failing =
-        c.messages?.filter(
-          (m) =>
-            m.status === 'failed' || m.status === 'failed_auth' || m.status === 'failed_retries'
-        ) || [];
-      if (failing.length === 0) continue;
-      seenConvs.add(c.contact.id);
-      for (const m of failing) {
-        const cat: FailureCategory =
-          m.status === 'failed_auth' ? 'auth' : (failureCategoryById[m.id] ?? 'unknown');
-        seenByCat[cat].add(c.contact.id);
-      }
-    }
-    counts.all = seenConvs.size;
-    counts.auth = seenByCat.auth.size;
-    counts.http_4xx = seenByCat.http_4xx.size;
-    counts.http_5xx = seenByCat.http_5xx.size;
-    counts.network = seenByCat.network.size;
-    counts.unknown = seenByCat.unknown.size;
-    return counts;
+    return buildFailureCategoryCounts({
+      conversations,
+      showOnlyRetrying,
+      failureCategoryById,
+    });
   }, [conversations, showOnlyRetrying, failureCategoryById]);
 
   return {
