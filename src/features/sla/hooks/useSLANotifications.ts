@@ -6,6 +6,7 @@ import { useNotificationSettings } from '@/hooks/useNotificationSettings';
 import { playNotificationSound, showBrowserNotification } from '@/utils/notificationSounds';
 import { getLogger } from '@/lib/logger';
 import { conversationSlaRowSchema, safeParseEvent } from '@/shared/webhookEventSchemas';
+import { isValidUUID } from '@/utils/uuid';
 
 const log = getLogger('SLANotifications');
 
@@ -34,6 +35,7 @@ export const useSLANotifications = () => {
       type: 'first_response' | 'resolution',
       contactId: string
     ) => {
+      if (!isValidUUID(contactId)) return;
       // Fetch contact info
       const { data: contact, error: contactErr } = await supabase
         .from('contacts')

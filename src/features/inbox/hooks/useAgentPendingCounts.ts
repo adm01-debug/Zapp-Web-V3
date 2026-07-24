@@ -19,7 +19,7 @@ export function useAgentPendingCounts() {
       const { data, error } = await dbFrom('messages')
         .select('agent_id, status, sender')
         .in('status', ['pending', 'failed'])
-        .eq('sender', 'me')
+        .eq('sender', 'agent')
         .not('agent_id', 'is', null)
         .limit(2000);
       if (error) throw error;

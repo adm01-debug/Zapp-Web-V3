@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { isValidUUID } from '@/utils/uuid';
 
 interface DateRange {
   from: Date;
@@ -48,10 +49,7 @@ export function useQueuesComparison(dateRange: DateRange) {
           .not('queue_id', 'is', null)
           .gte('created_at', fromIso)
           .lte('created_at', toIso),
-        supabase
-          .from('queue_members')
-          .select('queue_id, profile_id')
-          .eq('is_active', true),
+        supabase.from('queue_members').select('queue_id, profile_id').eq('is_active', true),
       ]);
 
       if (contactsRes.error) throw contactsRes.error;
@@ -64,7 +62,7 @@ export function useQueuesComparison(dateRange: DateRange) {
       }>;
       const memberList = (membersRes.data || []) as Array<{ queue_id: string; profile_id: string }>;
 
-      const contactIds = contactList.map((c) => c.id);
+      const contactIds = contactList.map((c) => c.id).filter(isValidUUID);
 
       let messageList: Array<{ id: string; contact_id: string }> = [];
       if (contactIds.length > 0) {

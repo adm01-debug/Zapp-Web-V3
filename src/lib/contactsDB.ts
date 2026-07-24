@@ -19,6 +19,7 @@
 import { getExternalSupabase, isExternalConfigured } from '@/integrations/supabase/externalClient';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { sanitizePostgrestFilter } from '@/lib/sanitize';
+import { isValidUUID } from '@/utils/uuid';
 
 // ─── Types ─────────────────────────────────────────────────────
 export interface ExternalContact {
@@ -121,6 +122,7 @@ export const contactsDB = {
 
   /** Get contact by ID */
   async getById(contactId: string): Promise<ExternalContact | null> {
+    if (!isValidUUID(contactId)) return null;
     const { data, error } = await getClient()
       .from('contacts')
       .select('*')
@@ -168,6 +170,7 @@ export const contactsDB = {
     contactId: string,
     fields: Partial<ExternalContact>
   ): Promise<ExternalContact | null> {
+    if (!isValidUUID(contactId)) throw new Error('Invalid contact ID');
     const { updated_at: _updated_at, ...rest } = fields;
     const { data, error } = await getClient()
       .from('contacts')
@@ -181,6 +184,7 @@ export const contactsDB = {
 
   /** Update avatar URL */
   async updateAvatar(contactId: string, avatarUrl: string): Promise<void> {
+    if (!isValidUUID(contactId)) throw new Error('Invalid contact ID');
     const { error } = await getClient()
       .from('contacts')
       .update({ avatar_url: avatarUrl, updated_at: new Date().toISOString() })
@@ -236,6 +240,7 @@ export const contactsDB = {
   // ─── Notes ──────────────────────────────────────────────────
   notes: {
     async list(contactId: string): Promise<ContactNote[]> {
+      if (!isValidUUID(contactId)) return [];
       const { data, error } = await getClient()
         .from('contact_notes')
         .select('*')
@@ -278,6 +283,7 @@ export const contactsDB = {
   // ─── Phones ─────────────────────────────────────────────────
   phones: {
     async list(contactId: string): Promise<ContactPhone[]> {
+      if (!isValidUUID(contactId)) return [];
       const { data, error } = await getClient()
         .from('contact_phones')
         .select('*')
@@ -291,6 +297,7 @@ export const contactsDB = {
   // ─── Emails ─────────────────────────────────────────────────
   emails: {
     async list(contactId: string): Promise<ContactEmail[]> {
+      if (!isValidUUID(contactId)) return [];
       const { data, error } = await getClient()
         .from('contact_emails')
         .select('*')

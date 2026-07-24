@@ -1,12 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useMountedRef } from '@/hooks/useMountedRef';
-import type { SupabaseClient } from '@supabase/supabase-js';
-import type { Database } from '@/integrations/supabase/schema';
 import { getLogger } from '@/lib/logger';
 
 const log = getLogger('ConnectionHealthPanel');
 import { supabase } from '@/integrations/supabase/client';
-import { safeWhatsAppConnectionsQuery } from '@/integrations/supabase/safe-queries';
 import { fetchConnectionHealthLogs, type HealthLog } from '@/hooks/useConnectionHealthLogs';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -72,14 +69,16 @@ export function ConnectionHealthPanel(): JSX.Element {
   };
 
   const fetchData = useCallback(async (): Promise<void> => {
-    const safeQueries = safeWhatsAppConnectionsQuery(supabase as unknown as SupabaseClient<Database>);
     const [connResult, logs] = await Promise.all([
-      safeQueries.getList(),
+      supabase
+        .from('whatsapp_connections')
+        .select('id, name, instance_name, status, phone_number, last_health_check, health_status, health_response_ms')
+        .order('name'),
       fetchConnectionHealthLogs(),
     ]);
 
     if (!mountedRef.current) return;
-    if (connResult.data) setConnections(connResult.data as unknown as ConnectionHealth[]);
+    if (connResult.data) setConnections(connResult.data as ConnectionHealth[]);
     setRecentLogs(logs);
     setLoading(false);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps

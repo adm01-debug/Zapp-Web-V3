@@ -3,6 +3,7 @@ import { queryKeys } from '@/services/api/queryKeys';
 import { supabase } from '@/integrations/supabase/client';
 import { ConversationWithMessages } from '@/features/inbox';
 import { getLogger } from '@/lib/logger';
+import { isValidUUID } from '@/utils/uuid';
 
 const log = getLogger('useInboxDataQueries');
 
@@ -11,7 +12,8 @@ export function useInboxDataQueries(conversations: ConversationWithMessages[]) {
   const { data: customScopes = [] } = useQuery({
     queryKey: queryKeys.contactDetails.inboxScopes(),
     queryFn: async () => {
-      const { data, error } = await supabase.from('inbox_custom_scopes')
+      const { data, error } = await supabase
+        .from('inbox_custom_scopes')
         .select('id, name')
         .eq('is_active', true);
       if (error) throw error;
@@ -22,35 +24,27 @@ export function useInboxDataQueries(conversations: ConversationWithMessages[]) {
 
   const { data: contactTagsMap = {} } = useQuery({
     queryKey: queryKeys.contactDetails.tagsMap(),
+    enabled: conversations.length > 0,
     queryFn: async () => {
-      // FIX #4: Filtrar IDs inválidos ANTES de criar o Set e usar no query
-      // - Remove undefined/null/string vazia
-      // - Garante que todos os IDs são strings UUID válidas
-      // - Previne erro "invalid input syntax for type uuid" no Supabase
-      const validContactIds = conversations
-        .filter((c): c is ConversationWithMessages & { contact: { id: string } } =>
-          c?.contact?.id != null && c.contact.id.length > 0
-        )
-        .map((c) => c.contact.id);
+      const conversationContactIds = new Set(
+        conversations.filter((c) => c?.contact?.id).map((c) => c.contact.id)
+      );
 
-      if (validContactIds.length === 0) return {};
+      if (conversationContactIds.size === 0) return {};
 
-      const uniqueContactIds = [...new Set(validContactIds)];
+      const contactIds = Array.from(conversationContactIds);
       const map: Record<string, string[]> = {};
 
+      const validContactIds = contactIds.filter(isValidUUID);
+      if (validContactIds.length === 0) return {};
+
       const CHUNK_SIZE = 500;
-      for (let i = 0; i < uniqueContactIds.length; i += CHUNK_SIZE) {
-        const chunk = uniqueContactIds.slice(i, i + CHUNK_SIZE);
-        // Validação final do chunk - remove qualquer valor que não seja UUID
-        const validChunk = chunk.filter((id): id is string =>
-          typeof id === 'string' && id.length === 36 && /^[0-9a-f-]{36}$/i.test(id)
-        );
-
-        if (validChunk.length === 0) continue;
-
-        const { data, error } = await supabase.from('contact_tags')
+      for (let i = 0; i < validContactIds.length; i += CHUNK_SIZE) {
+        const chunk = validContactIds.slice(i, i + CHUNK_SIZE);
+        const { data, error } = await supabase
+          .from('contact_tags')
           .select('contact_id, tag_id')
-          .in('contact_id', validChunk);
+          .in('contact_id', chunk);
 
         if (error) {
           log.warn('Error fetching contact tags for chunk', { error: error.message });

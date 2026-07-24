@@ -23,10 +23,12 @@ vi.mock('@/lib/logger');
 
 import { useConversationAnalyses } from '@/hooks/useConversationManagement';
 
+const CONTACT_UUID = '00000000-0000-4000-8000-000000000001';
+
 const mockAnalyses = [
   {
     id: 'a1',
-    contact_id: 'c1',
+    contact_id: CONTACT_UUID,
     analyzed_by: 'p1',
     summary: 'Customer wants refund',
     status: 'completed',
@@ -42,7 +44,7 @@ const mockAnalyses = [
   },
   {
     id: 'a2',
-    contact_id: 'c1',
+    contact_id: CONTACT_UUID,
     analyzed_by: 'p1',
     summary: 'General inquiry',
     status: 'completed',
@@ -93,7 +95,9 @@ describe('useConversationAnalyses', () => {
   });
 
   it('fetches analyses for a contact', async () => {
-    const { result } = renderHook(() => useConversationAnalyses('c1'), { wrapper: makeWrapper() });
+    const { result } = renderHook(() => useConversationAnalyses(CONTACT_UUID), {
+      wrapper: makeWrapper(),
+    });
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(result.current.analyses).toHaveLength(2);
   });
@@ -115,32 +119,42 @@ describe('useConversationAnalyses', () => {
       }),
     });
 
-    const { result } = renderHook(() => useConversationAnalyses('c1'), { wrapper: makeWrapper() });
+    const { result } = renderHook(() => useConversationAnalyses(CONTACT_UUID), {
+      wrapper: makeWrapper(),
+    });
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(result.current.error).toBeTruthy();
   });
 
   it('exposes saveAnalysis function', async () => {
-    const { result } = renderHook(() => useConversationAnalyses('c1'), { wrapper: makeWrapper() });
+    const { result } = renderHook(() => useConversationAnalyses(CONTACT_UUID), {
+      wrapper: makeWrapper(),
+    });
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(typeof result.current.saveAnalysis).toBe('function');
   });
 
   it('exposes refetch function', async () => {
-    const { result } = renderHook(() => useConversationAnalyses('c1'), { wrapper: makeWrapper() });
+    const { result } = renderHook(() => useConversationAnalyses(CONTACT_UUID), {
+      wrapper: makeWrapper(),
+    });
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(typeof result.current.refetch).toBe('function');
   });
 
   it('getLatestAnalysis returns first analysis', async () => {
-    const { result } = renderHook(() => useConversationAnalyses('c1'), { wrapper: makeWrapper() });
+    const { result } = renderHook(() => useConversationAnalyses(CONTACT_UUID), {
+      wrapper: makeWrapper(),
+    });
     await waitFor(() => expect(result.current.loading).toBe(false));
     const latest = result.current.getLatestAnalysis();
     expect(latest?.id).toBe('a1');
   });
 
   it('getSentimentTrend returns a value', async () => {
-    const { result } = renderHook(() => useConversationAnalyses('c1'), { wrapper: makeWrapper() });
+    const { result } = renderHook(() => useConversationAnalyses(CONTACT_UUID), {
+      wrapper: makeWrapper(),
+    });
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(typeof result.current.getSentimentTrend).toBe('function');
   });

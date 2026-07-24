@@ -1,37 +1,22 @@
-# Schema Status Report — ❌ FAIL
+# Schema Status Report — ✅ OK
 
-- **Gerado em:** 2026-07-24T01:45:31.928Z
+- **Gerado em:** 2026-07-24T15:32:23.308Z
 - **Requeridos:** `zapp, evo`
 
 ## Local (arquivo `types.ts`)
 
 | Campo | Valor |
 |-------|-------|
-| Status | ❌ fail |
+| Status | ✅ ok |
 | Arquivo existe | ✅ `src/integrations/supabase/types.ts` |
-| Schemas presentes | `__InternalSupabase`, `public` |
-| Schemas ausentes | `zapp`, `evo` |
-| Erro | `types.ts sem: zapp, evo` |
+| Schemas presentes | `__InternalSupabase`, `public`, `zapp`, `evo` |
+| Schemas ausentes | _(nenhum)_ |
 
 ## Remoto (`postgres-meta`)
 
 | Campo | Valor |
 |-------|-------|
 | Status | ⏭️ skipped |
+| Motivo | ZAPP_META_URL/ZAPP_META_TOKEN ausentes |
 | Schemas presentes | _(nenhum)_ |
 | Schemas ausentes | _(nenhum)_ |
-
-## Como resolver
-
-1. Rode o workflow de regeneração: [gen-types-zapp.yml](https://github.com/atomicabr/zapp-web/actions/workflows/gen-types-zapp.yml) → **Run workflow** (schemas: `public,zapp,evo`).
-2. Faça merge do PR `chore/regen-zapp-types` gerado automaticamente.
-3. Reexecute este job.
-
-Alternativa local (requer VPN/token da VPS):
-
-```bash
-META_URL=https://supabase.atomicabr.com.br \
-  META_TOKEN=<service_role> \
-  SCHEMAS=public,zapp,evo \
-  node scripts/gen-types-zapp.mjs
-```

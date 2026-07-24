@@ -10,6 +10,7 @@ import { InternalNotesPanel } from './collaboration/InternalNotesPanel';
 import { HandoffDialog } from './collaboration/HandoffDialog';
 import { dbFrom } from '@/integrations/datasource/db';
 import { queryKeys } from '@/services/api/queryKeys';
+import { isValidUUID } from '@/utils/uuid';
 
 interface RealtimeCollaborationProps {
   contactId: string;
@@ -22,6 +23,7 @@ export function RealtimeCollaboration({ contactId, className }: RealtimeCollabor
   const queryClient = useQueryClient();
 
   const handleHandoff = async (agentId: string, comment: string) => {
+    if (!isValidUUID(contactId)) return;
     await dbFrom('contacts').update({ assigned_to: agentId }).eq('id', contactId);
     if (comment) {
       const { data: userRes } = await supabase.auth.getUser();
@@ -34,7 +36,9 @@ export function RealtimeCollaboration({ contactId, className }: RealtimeCollabor
           author_id: profile.id,
           content: `Transferido: ${comment}`,
         });
-        void queryClient.invalidateQueries({ queryKey: queryKeys.internalNotes.contact(contactId) });
+        void queryClient.invalidateQueries({
+          queryKey: queryKeys.internalNotes.contact(contactId),
+        });
         void queryClient.invalidateQueries({ queryKey: queryKeys.contactDetails.notes(contactId) });
       }
     }

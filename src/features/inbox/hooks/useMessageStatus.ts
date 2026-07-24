@@ -5,6 +5,7 @@ import { getLogger } from '@/lib/logger';
 const log = getLogger('useMessageStatus');
 import { logMessagesSubscribe, wrapMessagesHandler } from '@/lib/devRealtimeLogger';
 import { dbFrom, dbTable } from '@/integrations/datasource/db';
+import { isValidUUID } from '@/utils/uuid';
 import { subscribeAllSendStatus, getSendStatus, type SendStatusDetail } from '@/features/inbox';
 import type {
   MessageStatusDbRow,
@@ -27,7 +28,7 @@ export const useMessageStatus = (contactId?: string) => {
 
   // Fetch initial statuses from database
   useEffect(() => {
-    if (!contactId) {
+    if (!contactId || !isValidUUID(contactId)) {
       setStatusUpdates(new Map());
       return;
     }
@@ -79,7 +80,7 @@ export const useMessageStatus = (contactId?: string) => {
 
   // Subscribe to realtime status updates from DB
   useEffect(() => {
-    if (!contactId) return;
+    if (!contactId || !isValidUUID(contactId)) return;
 
     logMessagesSubscribe('useMessageStatus', {
       event: 'UPDATE',

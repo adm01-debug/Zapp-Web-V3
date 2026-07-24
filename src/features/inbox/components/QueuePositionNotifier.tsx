@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Clock, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { queryKeys } from '@/services/api/queryKeys';
+import { isValidUUID } from '@/utils/uuid';
 
 interface QueuePositionNotifierProps {
   contactId: string;
@@ -14,7 +15,7 @@ interface QueuePositionNotifierProps {
 export function QueuePositionNotifier({ contactId, className }: QueuePositionNotifierProps) {
   const { data: position } = useQuery({
     queryKey: queryKeys.conversationHistory.queuePosition(contactId),
-    enabled: !!contactId,
+    enabled: !!contactId && isValidUUID(contactId),
     queryFn: async () => {
       const { data } = await supabase
         .from('queue_positions')

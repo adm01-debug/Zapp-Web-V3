@@ -2,21 +2,20 @@ import { queryKeys } from '@/services/api/queryKeys';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import type { SLARuleScope } from '@/features/sla';
+import { isValidUUID } from '@/utils/uuid';
 
 export function useSLAScopeNames(
   scope: SLARuleScope,
   contactIds: string[],
   queueIds: string[],
-  agentIds: string[],
+  agentIds: string[]
 ) {
   const { data: contactNames = {} } = useQuery({
     queryKey: queryKeys.sla.contactNames(contactIds),
     queryFn: async () => {
-      if (contactIds.length === 0) return {};
-      const { data } = await supabase
-        .from('contacts')
-        .select('id, name, phone')
-        .in('id', contactIds);
+      const validIds = contactIds.filter(isValidUUID);
+      if (validIds.length === 0) return {};
+      const { data } = await supabase.from('contacts').select('id, name, phone').in('id', validIds);
       const map: Record<string, string> = {};
       (data || []).forEach((c) => {
         map[c.id] = `${c.name} (${c.phone})`;

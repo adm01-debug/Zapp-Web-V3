@@ -274,19 +274,19 @@ export function useRealtimeInbox() {
   const messageQueue = useMessageQueue(async (item: QueueItem) => {
     const { contactId, content, attachments } = item;
 
-    // Auto-assign on reply
-    try {
-      const tableName = USE_EXTERNAL_DB ? 'evolution_contacts' : 'team_conversations';
-      const idField = USE_EXTERNAL_DB ? 'remote_jid' : 'id';
-      const { data: conv } = await dbFrom(tableName)
-        .select(`${idField}, routing_status`)
-        .eq(idField, contactId)
-        .maybeSingle();
-      if (conv && conv.routing_status === 'pending') {
-        await dbFrom(tableName).update({ routing_status: 'assigned' }).eq(idField, contactId);
+    // Auto-assign on reply (only valid for local team_conversations; evolution_contacts has no routing_status)
+    if (!USE_EXTERNAL_DB) {
+      try {
+        const { data: conv } = await dbFrom('team_conversations')
+          .select('id, routing_status')
+          .eq('id', contactId)
+          .maybeSingle();
+        if (conv && conv.routing_status === 'pending') {
+          await dbFrom('team_conversations').update({ routing_status: 'assigned' }).eq('id', contactId);
+        }
+      } catch (err) {
+        log.error('Error auto-assigning on reply:', err);
       }
-    } catch (err) {
-      log.error('Error auto-assigning on reply:', err);
     }
 
     if (USE_EXTERNAL_DB) {
