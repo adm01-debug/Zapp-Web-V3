@@ -71,7 +71,7 @@ export function useAutomationLogs(filters: AutomationLogsFilters) {
   const { data: rules = [] } = useQuery({
     queryKey: rulesKey,
     queryFn: async () => {
-      const { data } = await supabase.from('automations').select('id,name').order('name');
+      const { data } = await supabase.from('automation_rules').select('id,name').order('name');
       return (data ?? []) as RuleLite[];
     },
     staleTime: 60_000,
