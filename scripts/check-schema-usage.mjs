@@ -6,7 +6,7 @@
  *  1. `.schema('public')`           em src/ ou supabase/functions/
  *  2. `createClient(...)`           em código de produção sem `db: { schema: '<zapp|evo|...>' }`
  *  3. URLs `*.supabase.co`          fora de arquivos de teste (inclui .lovable/).
- *  4. .from('evolution_messages'|'evolution_conversations') sem sufixo de partição (frontend).
+ *  4. .schema('evo').from('evolution_messages'|'evolution_conversations') no frontend (bypassa view zapp).
  *  5. .from('evolution_instance_credentials'|'evolution_health_logs') sem .schema('evo') (frontend).
  *  6. .schema('evo').from('evolution_instances') — a view evolution_instances existe em
  *     zapp, NÃO em evo; chamar via .schema('evo') resulta em PGRST205 em produção.
@@ -82,13 +82,13 @@ for (const f of files) {
     violations.cloudUrl.push(relative('.', f));
   }
 
-  // 4. .from('evolution_messages'|'evolution_conversations') no frontend sem sufixo
-  // de partição. Essas são tabelas-pai particionadas em `evo` — o frontend deve
-  // consultar a partição real (evolution_messages_wpp2). Edge Functions rodam com
-  // service_role e o PG roteia para a partição correta, então o guardrail se
-  // aplica apenas a src/.
+  // 4. .schema('evo').from('evolution_messages'|'evolution_conversations') no frontend:
+  // proibido porque bypassa a view de segurança em zapp (security_invoker=on).
+  // O correto é supabase.from('evolution_messages') sem .schema('evo') — o client
+  // usa schema 'zapp' por padrão e a view auto-updatable roteia corretamente.
+  // NOTA: .from('evolution_messages') sem .schema('evo') é PERMITIDO (zapp view).
   const parentPartitionRe =
-    /\.from\(\s*['"](evolution_messages|evolution_conversations)['"]\s*\)/g;
+    /\.schema\s*\(\s*['"]evo['"]\s*\)\s*\.from\s*\(\s*['"](evolution_messages|evolution_conversations)['"]\s*\)/;
   if (!isTest && f.startsWith('src/') && parentPartitionRe.test(src)) {
     violations.evoUnprefixed.push(relative('.', f));
   }
@@ -143,9 +143,9 @@ if (violations.cloudUrl.length) {
 }
 if (violations.evoUnprefixed.length) {
   console.error(
-    `\n— .from('evolution_messages'|'evolution_conversations') proibido (${violations.evoUnprefixed.length}):`
+    `\n— .schema('evo').from('evolution_messages'|'evolution_conversations') proibido (${violations.evoUnprefixed.length}):`
   );
-  console.error("   Use a partição real (ex: 'evolution_messages_wpp2') com .schema('evo').");
+  console.error("   Bypassa a view de segurança zapp. Use supabase.from('evolution_messages') sem .schema('evo').");
   violations.evoUnprefixed.forEach((f) => console.error('   ' + f));
 }
 if (violations.evoSchemaRequired.length) {
