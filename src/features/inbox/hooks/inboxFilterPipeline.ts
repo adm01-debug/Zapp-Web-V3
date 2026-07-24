@@ -135,6 +135,8 @@ export function applyInboxFilters(opts: ApplyInboxFiltersOptions): ConversationW
             return assignee === filters.agentId;
           }
 
+          if (!assignee) return false;
+
           if (effectiveScope === 'all') return true;
 
           if (effectiveScope === 'department') {
