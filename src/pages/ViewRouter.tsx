@@ -13,14 +13,32 @@ import * as Views from './lazyViews';
 // Route-level role gates. Backend RPC/RLS remain the source of truth — this is a UX layer.
 // `hasRole` é hierárquico: requerer 'admin' já libera para dev; requerer 'supervisor' libera para admin/dev.
 const VIEW_REQUIRED_ROLES: Record<string, AppRole[]> = {
-  // Áreas técnicas — visualização: admin+ (admin já inclui dev).
+  // Áreas técnicas — admin+ (admin já inclui dev).
+  admin: ['admin'],
+  telemetry: ['admin'],
   'failed-messages': ['admin'],
   'failed-auth-messages': ['admin'],
   'search-insights': ['admin'],
+  'webhook-events': ['admin'],
+  'evolution-api-logs': ['admin'],
+  'webhook-overview': ['admin'],
+  'webhook-secret': ['admin'],
+  'inbox-sync-status': ['admin'],
+  'evo-api-health': ['admin'],
+  'email-status': ['admin'],
+  'email-audit': ['admin'],
+  'admin-connections': ['admin'],
+  'evolution-monitor': ['admin'],
+  'media-migration': ['admin'],
+  'sicoob-bridge': ['admin'],
   // Operação — supervisor+
   'agents-ops': ['supervisor'],
   'realtime-monitor': ['supervisor'],
   'dispatch-errors-history': ['supervisor'],
+  'alert-history': ['supervisor'],
+  warroom: ['supervisor'],
+  security: ['supervisor'],
+  'audit-logs': ['supervisor'],
 };
 
 interface ViewRouterProps {
