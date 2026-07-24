@@ -399,7 +399,9 @@ export function useDeviceDetectionManagement() {
         body: { device_fingerprint: fingerprint, browser, os, device_name: deviceName },
       });
 
-      if (response.data && mountedRef.current) {
+      if (response.error) {
+        deviceDetectionLog.error('detect-new-device error:', response.error);
+      } else if (response.data && mountedRef.current) {
         setCurrentDeviceId(response.data.device_id);
         deviceDetectionLog.debug('Device check result:', response.data);
       }

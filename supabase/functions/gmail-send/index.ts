@@ -98,12 +98,19 @@ Deno.serve(async (req) => {
         signal: AbortSignal.timeout(15_000),
       });
 
+      if (!sendRes.ok) {
+        let errBody = '';
+        try { errBody = await sendRes.text(); } catch { /* ignore */ }
+        console.error('[gmail-send] send HTTP error', sendRes.status, errBody.slice(0, 200));
+        return json({ error: 'Failed to send message' }, sendRes.status >= 500 ? 502 : 400);
+      }
+
       let sendData: unknown;
       try {
         sendData = await sendRes.json();
       } catch {
         console.error('[gmail-send] failed to parse send response');
-        return json({ error: 'Failed to send message' }, 400);
+        return json({ error: 'Failed to send message' }, 502);
       }
 
       if (!sendData || typeof sendData !== 'object' || Array.isArray(sendData)) {

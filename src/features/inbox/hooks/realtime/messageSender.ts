@@ -64,6 +64,11 @@ export async function sendMessageToContact(
     throw error;
   }
 
+  if (!data) {
+    log.error('Error saving message to DB: INSERT returned no data (RLS may have blocked RETURNING)');
+    throw new Error('Message insert returned no data');
+  }
+
   const effectiveId = opts.optimisticId || data.id;
   emitSendStatus(effectiveId, { status: 'sending' }, { contactId, source: 'messageSender' });
 
@@ -92,7 +97,7 @@ export async function sendMessageToContact(
       log.warn('WhatsApp connection not active, message marked as failed');
       await dbFrom('messages')
         .update({ status: 'failed', error_reason: 'Nenhuma conexão WhatsApp ativa disponível' })
-        .eq('id', data.id);
+        .eq('id', data.id || messageId);
 
       await safeClient.from('audit_logs', (q) =>
         q.insert({
