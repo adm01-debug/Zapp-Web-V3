@@ -174,4 +174,42 @@ describe('inboxFilterPipeline — visibilidade de conversas aguardando', () => {
     expect(waiting.map((conversation) => conversation.contact.id)).toEqual(['c1', 'c2']);
     expect(counts).toMatchObject({ open: 2, attending: 0, waiting: 2, unread: 2 });
   });
+
+  it('não derruba conversas WhatsApp durante carregamento das permissões de canal', () => {
+    const conversations = [
+      buildConversation('c1', null, 1),
+      buildConversation('c2', null, 1),
+    ];
+    const options = buildOptions(conversations, {
+      subTab: 'waiting',
+      hasPermission: () => false,
+      permissionsLoading: true,
+      enforceChannelPermissions: true,
+    });
+
+    const visible = applyInboxFilters(options);
+    const counts = computeInboxTabCounts(options);
+
+    expect(visible.map((conversation) => conversation.contact.id)).toEqual(['c1', 'c2']);
+    expect(counts).toMatchObject({ open: 2, attending: 0, waiting: 2, unread: 2 });
+  });
+
+  it('aplica bloqueio por canal somente quando o gate de permissões está hidratado', () => {
+    const conversations = [
+      buildConversation('c1', null, 1),
+      buildConversation('c2', null, 1),
+    ];
+    const options = buildOptions(conversations, {
+      subTab: 'waiting',
+      hasPermission: () => false,
+      permissionsLoading: false,
+      enforceChannelPermissions: true,
+    });
+
+    const visible = applyInboxFilters(options);
+    const counts = computeInboxTabCounts(options);
+
+    expect(visible).toHaveLength(0);
+    expect(counts).toMatchObject({ open: 0, attending: 0, waiting: 0, unread: 0 });
+  });
 });

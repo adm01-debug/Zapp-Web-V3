@@ -11,7 +11,11 @@ import { useAllTicketStates } from '@/features/inbox';
 import { usePermissions } from '@/features/auth';
 import { getLogger } from '@/lib/logger';
 import { logAudit } from '@/lib/audit';
-import { applyInboxFilters, computeInboxTabCounts } from './inboxFilterPipeline';
+import {
+  CHANNEL_PERMISSION_KEYS,
+  applyInboxFilters,
+  computeInboxTabCounts,
+} from './inboxFilterPipeline';
 
 const log = getLogger('useInboxFilters');
 
@@ -49,6 +53,7 @@ export function useInboxFilters({
     hasPermission,
     loading: permissionsLoading,
     userPermissions,
+    permissions,
   } = usePermissions();
   const [departmentAgentIds, setDepartmentAgentIds] = useState<string[]>([]);
   const [selectedQueueId, setSelectedQueueId] = useState<string | null>(null);
@@ -282,10 +287,12 @@ export function useInboxFilters({
 
   const enforceChannelPermissions = useMemo(() => {
     if (permissionsLoading) return false;
-    return userPermissions.some((permission) =>
-      ['inbox.view_whatsapp', 'inbox.view_instagram', 'inbox.view_chat'].includes(permission)
-    );
-  }, [permissionsLoading, userPermissions]);
+    const knownPermissionNames = new Set([
+      ...permissions.map((permission) => permission.name),
+      ...userPermissions,
+    ]);
+    return CHANNEL_PERMISSION_KEYS.every((permission) => knownPermissionNames.has(permission));
+  }, [permissions, permissionsLoading, userPermissions]);
 
   const pipelineOptions = useMemo(
     () => ({

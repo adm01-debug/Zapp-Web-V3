@@ -16,6 +16,12 @@ interface TicketStateMap {
   [id: string]: { status: string; assignedTo?: string | null } | undefined;
 }
 
+export const CHANNEL_PERMISSION_KEYS = [
+  'inbox.view_whatsapp',
+  'inbox.view_instagram',
+  'inbox.view_chat',
+] as const;
+
 /** Input bag for the pure inbox filter pipeline: conversations, active filter state, ticket map, permission checker, and user context. */
 export interface ApplyInboxFiltersOptions {
   conversations: ConversationWithMessages[];
@@ -40,6 +46,11 @@ export interface ApplyInboxFiltersOptions {
   customScopes: { id: string; name: string }[];
   hasPermission: PermissionChecker;
   permissionsLoading?: boolean;
+  /**
+   * Explicit hydration gate for channel visibility permissions.
+   * When false, loaded conversations are preserved instead of being silently hidden
+   * by an empty/deshydrated local permission payload during boot.
+   */
   enforceChannelPermissions?: boolean;
 }
 
@@ -71,9 +82,10 @@ export function applyInboxFilters(opts: ApplyInboxFiltersOptions): ConversationW
     enforceChannelPermissions = true,
   } = opts;
 
-  const canSeeWhatsapp = hasPermission('inbox.view_whatsapp');
-  const canSeeInstagram = hasPermission('inbox.view_instagram');
-  const canSeeChat = hasPermission('inbox.view_chat');
+  const shouldFilterChannels = !permissionsLoading && enforceChannelPermissions;
+  const canSeeWhatsapp = shouldFilterChannels ? hasPermission('inbox.view_whatsapp') : true;
+  const canSeeInstagram = shouldFilterChannels ? hasPermission('inbox.view_instagram') : true;
+  const canSeeChat = shouldFilterChannels ? hasPermission('inbox.view_chat') : true;
   const canSeeDept = hasPermission('inbox.view_department');
   const canSeeAll = hasPermission('inbox.view_all');
 
@@ -109,7 +121,7 @@ export function applyInboxFilters(opts: ApplyInboxFiltersOptions): ConversationW
 
   // 0. Base validation + channel visibility (always applied, even in search)
   let result = conversations.filter((c) => c && c.contact && c.contact.id);
-  if (!permissionsLoading && enforceChannelPermissions) {
+  if (shouldFilterChannels) {
     result = result.filter((c) => {
       const channel = c.contact?.channel_type;
       if (channel === 'whatsapp' && !canSeeWhatsapp) return false;
@@ -214,7 +226,7 @@ export function applyInboxFilters(opts: ApplyInboxFiltersOptions): ConversationW
   if (filters.status.length > 0) {
     result = result.filter((c) => {
       const hasUnread = c.unreadCount > 0;
-      const isAssigned = !!c.contact.assigned_to;
+      const isAssigned = !!assignedOf(c.contact.id, c.contact.assigned_to);
       if (filters.status.includes('unread') && hasUnread) return true;
       if (filters.status.includes('read') && !hasUnread && isAssigned) return true;
       if (filters.status.includes('pending') && !isAssigned && c.messages.length > 0) return true;
@@ -234,9 +246,11 @@ export function applyInboxFilters(opts: ApplyInboxFiltersOptions): ConversationW
   // 5. Agent filter (already partially handled in step 1; reinforced here for safety)
   if (filters.agentId) {
     if (filters.agentId === profileId || canSeeDept || canSeeAll) {
-      result = result.filter((c) => c.contact.assigned_to === filters.agentId);
+      result = result.filter(
+        (c) => assignedOf(c.contact.id, c.contact.assigned_to) === filters.agentId
+      );
     } else {
-      result = result.filter((c) => c.contact.assigned_to === profileId);
+      result = result.filter((c) => assignedOf(c.contact.id, c.contact.assigned_to) === profileId);
     }
   }
 
