@@ -139,6 +139,10 @@ Deno.serve(async (req) => {
           }),
           signal: AbortSignal.timeout(15_000),
         });
+        if (!contactsResponse.ok) {
+          const errText = await contactsResponse.text().catch(() => '');
+          return errorResponse(`Bitrix API error [${contactsResponse.status}]: ${errText.slice(0, 200)}`, 502, req);
+        }
         const contactsData = await contactsResponse.json();
 
         if (contactsData.result) {
@@ -179,6 +183,10 @@ Deno.serve(async (req) => {
           }),
           signal: AbortSignal.timeout(15_000),
         });
+        if (!pushResponse.ok) {
+          const errText = await pushResponse.text().catch(() => '');
+          return errorResponse(`Bitrix API error [${pushResponse.status}]: ${errText.slice(0, 200)}`, 502, req);
+        }
         const pushData = await pushResponse.json();
         log.done(200);
         return jsonResponse({ success: true, bitrixId: pushData.result }, 200, req);
@@ -200,6 +208,10 @@ Deno.serve(async (req) => {
           }),
           signal: AbortSignal.timeout(15_000),
         });
+        if (!leadResponse.ok) {
+          const errText = await leadResponse.text().catch(() => '');
+          return errorResponse(`Bitrix API error [${leadResponse.status}]: ${errText.slice(0, 200)}`, 502, req);
+        }
         const leadData = await leadResponse.json();
         log.done(200);
         return jsonResponse({ success: true, leadId: leadData.result }, 200, req);
@@ -216,6 +228,10 @@ Deno.serve(async (req) => {
         body: body ? JSON.stringify(body) : undefined,
         signal: AbortSignal.timeout(15_000),
       });
+      if (!bitrixResponse.ok) {
+        const errText = await bitrixResponse.text().catch(() => '');
+        return errorResponse(`Bitrix API error [${bitrixResponse.status}]: ${errText.slice(0, 200)}`, 502, req);
+      }
       const responseData = await bitrixResponse.json();
 
       if (responseData.error) {

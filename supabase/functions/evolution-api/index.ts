@@ -498,7 +498,7 @@ Deno.serve(async (req) => {
           signal: AbortSignal.timeout(15_000),
           body: JSON.stringify({ instanceName: instance, ...payload }),
         });
-        const createData = await createResponse.json();
+        const createData = await createResponse.json().catch(() => ({}));
 
         if (createResponse.status === 401 || createResponse.status === 403) {
           recordAuthFailureAndMaybePause(supabase, String(instance), createResponse.status === 401 ? 'auth_401' : 'auth_403', 'evolution-api', { http_status: createResponse.status, message: 'create-instance' });
