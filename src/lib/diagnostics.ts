@@ -75,7 +75,7 @@ export async function runConnectionDiagnostics(): Promise<DiagResult> {
     // Passo 3: Testar Conectividade Externa (Self-Hosted)
     try {
       const res = await fetch(
-        `${externalUrl.replace(/\/$/, '')}/rest/v1/?apikey=${encodeURIComponent(externalKey)}`,
+        `${externalUrl.replace(/\/$/, '')}/rest/v1/`,
         {
           headers: { apikey: externalKey, Authorization: `Bearer ${externalKey}` },
         }

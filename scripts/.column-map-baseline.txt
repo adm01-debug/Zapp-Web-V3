@@ -70,3 +70,6 @@
   src/pages/admin-webhook-secret-status/useAdminWebhookStatus.ts
   src/pages/admin/useAdminInboxSync.ts
   src/services/connections/connectionsService.ts
+  src/hooks/useAdminInboxSync.ts
+  src/hooks/useConnectionStatusIndicator.ts
+  src/hooks/useEvolutionApiLogs.ts

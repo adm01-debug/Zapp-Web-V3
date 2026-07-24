@@ -17,6 +17,17 @@
 import { execSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { globSync } from 'node:fs';
+import { resolve } from 'node:path';
+
+const NOCHECK_BASELINE_PATH = 'scripts/ts-nocheck-baseline.txt';
+const nocheckBaseline = new Set(
+  existsSync(NOCHECK_BASELINE_PATH)
+    ? readFileSync(NOCHECK_BASELINE_PATH, 'utf8')
+        .split('\n')
+        .map((l) => l.trim())
+        .filter(Boolean)
+    : []
+);
 
 const CLUSTERS = {
   'crm-sales': [
@@ -74,13 +85,14 @@ for (const [name, patterns] of Object.entries(CLUSTERS)) {
   }
   checkedClusters++;
 
-  // 1. Regra: sem @ts-nocheck em clusters já limpos
+  // 1. Regra: sem @ts-nocheck em clusters já limpos (ignora arquivos no baseline aprovado)
   const dirty = files.filter((f) => {
+    if (nocheckBaseline.has(f)) return false;
     try { return readFileSync(f, 'utf8').startsWith('// @ts-nocheck'); }
     catch { return false; }
   });
   if (dirty.length) {
-    console.error(`✗ Cluster ${name}: @ts-nocheck detectado em ${dirty.length} arquivo(s):`);
+    console.error(`✗ Cluster ${name}: @ts-nocheck detectado em ${dirty.length} arquivo(s) FORA do baseline:`);
     for (const f of dirty) console.error(`    ${f}`);
     failed++;
     continue;

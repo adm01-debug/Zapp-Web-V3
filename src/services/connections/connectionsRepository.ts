@@ -76,7 +76,7 @@ export const connectionsRepository = {
     const limit = filters?.limit ?? 50;
     const offset = filters?.offset ?? 0;
     const { data, error, count } = await supabase
-      .from('channel_connections')
+      .from('whatsapp_connections')
       .select('*', { count: 'exact' })
       .range(offset, offset + limit - 1);
 
@@ -85,7 +85,7 @@ export const connectionsRepository = {
 
   async getChannelConnection(id: string) {
     const { data, error } = await supabase
-      .from('channel_connections')
+      .from('whatsapp_connections')
       .select('*')
       .eq('id', id)
       .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;

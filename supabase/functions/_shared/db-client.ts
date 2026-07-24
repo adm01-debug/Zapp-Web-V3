@@ -37,7 +37,7 @@ const ANON_KEY = () =>
   requireEnv("SUPABASE_PUBLISHABLE_KEY");
 
 /** Service-role admin client — schema zapp, sem auth do caller. */
-export function createZappAdminClient(): SupabaseClient {
+export function createZappAdminClient(): SupabaseClient<any, "zapp"> {
   return createClient(SUPABASE_URL(), SERVICE_ROLE_KEY(), {
     auth: { persistSession: false, autoRefreshToken: false },
     db: { schema: "zapp" },
@@ -45,7 +45,7 @@ export function createZappAdminClient(): SupabaseClient {
 }
 
 /** Caller-authenticated client — schema zapp, JWT do header Authorization. */
-export function createZappClient(req: Request): SupabaseClient {
+export function createZappClient(req: Request): SupabaseClient<any, "zapp"> {
   const authHeader = req.headers.get("Authorization") ?? "";
   return createClient(SUPABASE_URL(), ANON_KEY(), {
     global: { headers: { Authorization: authHeader } },

@@ -57,7 +57,7 @@ export function useDemandPrediction(externalData?: PredictionPoint[], currentCap
   const { data: messageHistory = [] } = useQuery({
     queryKey: queryKeys.demandPrediction.history(),
     queryFn: async () => {
-      const { data, error } = await dbFrom('messages')
+      const { data, error } = await dbFrom('evolution_messages')
         .select('created_at')
         .gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString());
       if (error) throw error;

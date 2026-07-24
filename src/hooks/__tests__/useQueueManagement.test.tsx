@@ -105,13 +105,9 @@ describe('useQueueManagement — hooks consolidados', () => {
       mockFrom.mockReturnValue({
         select: vi.fn().mockReturnValue({
           eq: vi.fn().mockReturnValue({
-            gte: vi.fn().mockReturnValue({
-              lte: vi.fn().mockReturnValue({
-                order: vi.fn().mockReturnValue({
-                  limit: vi.fn().mockReturnValue({
-                    maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
-                  }),
-                }),
+            order: vi.fn().mockReturnValue({
+              limit: vi.fn().mockReturnValue({
+                maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
               }),
             }),
           }),
@@ -139,13 +135,9 @@ describe('useQueueManagement — hooks consolidados', () => {
       mockFrom.mockReturnValue({
         select: vi.fn().mockReturnValue({
           eq: vi.fn().mockReturnValue({
-            gte: vi.fn().mockReturnValue({
-              lte: vi.fn().mockReturnValue({
-                order: vi.fn().mockReturnValue({
-                  limit: vi.fn().mockReturnValue({
-                    maybeSingle: vi.fn().mockResolvedValue({ data: payload, error: null }),
-                  }),
-                }),
+            order: vi.fn().mockReturnValue({
+              limit: vi.fn().mockReturnValue({
+                maybeSingle: vi.fn().mockResolvedValue({ data: payload, error: null }),
               }),
             }),
           }),

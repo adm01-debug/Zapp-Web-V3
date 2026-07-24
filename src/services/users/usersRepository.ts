@@ -5,6 +5,7 @@
  * Direct Supabase access only - no business logic.
  */
 
+import { supabase } from '@/integrations/supabase/client';
 import { safeFrom } from '@/integrations/supabase/safeClient';
 import { createService } from '@/services/api/genericService';
 import type { QueryParams } from '@/services/api/types';
@@ -40,9 +41,9 @@ export interface Agent {
   updated_at: string;
 }
 
-// Base service for users
-const usersBaseService = createService<User>('users');
-const agentsBaseService = createService<Agent>('agents');
+// Users and agents are both stored in the `profiles` table (role column distinguishes them)
+const usersBaseService = createService<User>('profiles');
+const agentsBaseService = createService<Agent>('profiles');
 
 /** users Repository constant. */
 export const usersRepository = {
@@ -72,18 +73,24 @@ export const usersRepository = {
 
   deleteAgent: (id: string) => agentsBaseService.delete(id),
 
-  // Current user (via auth)
+  // Current user (via auth + profiles join)
   async getCurrentUser(): Promise<User | null> {
-    // This would typically get current user from auth context/session
-    // Implementation depends on auth setup
-    return null;
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return null;
+    const { data } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('user_id', user.id)
+      .maybeSingle();
+    return data as User | null;
   },
 
-  // Agent status
+  // Agent status — agents are profiles; filter by agent/supervisor roles
   async getAgentsByStatus(status: Agent['status'], filters?: Partial<QueryParams>) {
-    const { data, error, count } = await safeFrom('agents')
+    const { data, error, count } = await safeFrom('profiles')
       .select('*', { count: 'exact' })
       .eq('status', status)
+      .in('role', ['agent', 'supervisor'])
       .limit(filters?.limit || 50)
       .offset(filters?.offset || 0);
 

@@ -1,0 +1,53 @@
+{
+  "generated_at": "2026-07-24T01:45:31.928Z",
+  "ci": {
+    "run_id": null,
+    "run_attempt": null,
+    "workflow": null,
+    "ref": null,
+    "sha": null,
+    "repository": null,
+    "actor": null
+  },
+  "config": {
+    "types_file": "src/integrations/supabase/types.ts",
+    "required_schemas": [
+      "zapp",
+      "evo"
+    ],
+    "requested_schemas": [
+      "public",
+      "zapp",
+      "evo"
+    ],
+    "local_only": false,
+    "meta_url_present": false,
+    "meta_token_present": false
+  },
+  "local": {
+    "status": "fail",
+    "types_file_exists": true,
+    "present_schemas": [
+      "__InternalSupabase",
+      "public"
+    ],
+    "missing_schemas": [
+      "zapp",
+      "evo"
+    ],
+    "error": "types.ts sem: zapp, evo"
+  },
+  "remote": {
+    "status": "skipped",
+    "reason": null,
+    "http_status": null,
+    "present_schemas": [],
+    "missing_schemas": [],
+    "error": null
+  },
+  "overall": {
+    "status": "fail",
+    "exit_code": 1,
+    "remediation_url": "https://github.com/atomicabr/zapp-web/actions/workflows/gen-types-zapp.yml"
+  }
+}

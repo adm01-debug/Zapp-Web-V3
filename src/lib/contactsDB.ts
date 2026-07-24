@@ -191,19 +191,20 @@ export const contactsDB = {
   async search(query: string, limit = 20): Promise<ExternalContact[]> {
     const cleaned = query.trim();
     if (!cleaned) return [];
+    const safe = cleaned.replace(/[,()\\]/g, '');
 
     const { data, error } = await getClient()
       .from('contacts')
       .select('*')
       .is('deleted_at', null)
       .or(
-        `full_name.ilike.%${cleaned}%,` +
-          `first_name.ilike.%${cleaned}%,` +
-          `last_name.ilike.%${cleaned}%,` +
-          `email.ilike.%${cleaned}%,` +
-          `phone.ilike.%${cleaned}%,` +
-          `whatsapp.ilike.%${cleaned}%,` +
-          `apelido.ilike.%${cleaned}%`
+        `full_name.ilike.%${safe}%,` +
+          `first_name.ilike.%${safe}%,` +
+          `last_name.ilike.%${safe}%,` +
+          `email.ilike.%${safe}%,` +
+          `phone.ilike.%${safe}%,` +
+          `whatsapp.ilike.%${safe}%,` +
+          `apelido.ilike.%${safe}%`
       )
       .order('updated_at', { ascending: false })
       .limit(limit);
