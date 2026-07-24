@@ -53,7 +53,7 @@
    - Conversas → `schema: 'evo'`, tabela **`evolution_conversations`** (raiz), NÃO `evolution_conversations_wpp2`
    - Perfis/notificações → `schema: 'zapp'`
    - **`failed_messages`** → `schema: 'zapp'` (tabela física; `public.failed_messages` é VIEW, não entra na publication — subscription com `schema: 'public'` é no-op silencioso)
-   - **`dispatch_error_logs`** → **NÃO está em nenhuma publication** — qualquer subscription Realtime é no-op; adicionar `ALTER PUBLICATION supabase_realtime ADD TABLE zapp.dispatch_error_logs;` antes de usar
+   - **`dispatch_error_logs`** → `schema: 'zapp'` (adicionada à publication `supabase_realtime` em `20260721_fix_cursor_rpcs_and_search_path.sql`)
    - **Subscriptions na partição ficam silenciosas** (zero eventos) com `publish_via_partition_root=true`.
    - **Regra geral**: Realtime usa o WAL físico — apenas relations físicas na publication emitem eventos. Views nunca emitem, independentemente do schema.
 
@@ -128,7 +128,7 @@
 | ~~BUG-5~~ | `supabase/migrations/20260712001500_cursor_pagination_optimization.sql:145` | CORRIGIDO: GRANT em `rpc_list_dispatch_error_logs_cursor` tinha 7 params vs 8 na assinatura real; nenhum usuário autenticado tinha permissão; fix em `20260716_fix_dispatch_error_logs_grant.sql` | Resolvido |
 | ~~BUG-6~~ | `src/features/admin/hooks/monitoring/useDispatchErrorLogs.ts` | CORRIGIDO: `p_cursor_id` hardcoded como `null`; paginação nunca avançava; adicionado cursor state management | Resolvido |
 | ~~BUG-7~~ | `src/features/admin/hooks/monitoring/useFailedMessages.ts:142` | REVERTIDO: mudança anterior de `schema: 'zapp'` → `schema: 'public'` era regressão — `public.failed_messages` é VIEW, não está na publication `supabase_realtime`; subscription era no-op silencioso; mantido `schema: 'zapp'` (tabela física, publicada) | Resolvido |
-| GAP-1 | `src/hooks/useCampaigns.ts:100` | `rpc('add_contacts_to_campaign')` — SQL existe em `20260721000004_melhoria4_add_contacts_to_campaign_zapp.sql` (schema `zapp`; migração `20260712140000` era `public` — incorreta), não aplicado ao self-hosted | Runtime error até migração aplicada |
+| ~~GAP-1~~ | `src/hooks/useCampaigns.ts:100` | CORRIGIDO 2026-07-24: `rpc('add_contacts_to_campaign')` — UNIQUE constraint + SECURITY DEFINER function aplicados via `20260721000004_melhoria4_add_contacts_to_campaign_zapp.sql`; `is_admin_or_supervisor` auth + `FOR UPDATE` serialization + `ON CONFLICT DO NOTHING` | Resolvido |
 | ~~GAP-2~~ | `src/hooks/useIntegrationManagement.ts:54,69` | STUB CRIADO: `rpc('initiate_gmail_oauth')`, `rpc('complete_gmail_oauth')` — stubs em `20260717000002_create_missing_rpcs_stubs.sql`; retornam erro descritivo em vez de 42883 | UI degrada com mensagem; OAuth real pendente |
 | ~~GAP-3~~ | `src/hooks/useIntegrationManagement.ts:156` | STUB CRIADO: `rpc('sync_to_crm')` — stub em `20260717000002`; levanta RAISE EXCEPTION explícita (P0001) em vez de retornar void | Sync real pendente |
 | ~~GAP-4~~ | `src/hooks/useMediaManagement.ts:93,128` | STUB CRIADO: `rpc('export_user_data')`, `rpc('import_user_data')` — stubs em `20260717000002`; export retorna dados de perfil (formatos != 'json' rejeitados com RAISE); import levanta RAISE EXCEPTION | Export/Import parcial; full data export deve ser Edge Function |
@@ -136,7 +136,7 @@
 | ~~GAP-5~~ | `src/hooks/useCRMManagement.ts:146` | STUB CRIADO: `rpc('enrich_contact')` — stub em `20260717000002`; retorna dados básicos do contato com `enriched: false` | Integração com API de enriquecimento pendente |
 | ~~GAP-6~~ | `src/hooks/useAnalyticsManagement.ts:168` | STUB CRIADO: `rpc('get_latest_analysis')` — stub em `20260717000002`; retorna média de `contact_intelligence.engagement_score` | Analytics completo pendente |
 | ~~BUG-8~~ | `supabase/migrations/20260712001500_cursor_pagination_optimization.sql:8` | CORRIGIDO: `rpc_list_failed_messages_cursor` tinha RETURNS TABLE com 9 cols vs 15 esperadas por FailedMessageRow; `fm.message_id` inexistente causava erro de compilação; `next_retry_at` vs `next_attempt_at` (nome errado); cursor keyset ignorava ties na created_at. Fix: `20260716_fix_rpc_list_failed_messages_cursor_columns.sql` | Resolvido |
-| GAP-7 | `src/features/admin/hooks/monitoring/useFailedMessages.ts:78` | `rpc('rpc_list_failed_messages_cursor')` — definição SQL existia mas com bugs críticos (ver BUG-8); reescrita em `20260721_fix_cursor_rpcs_and_search_path.sql` (aplique TAMBÉM `20260721000008_melhoria8_fix_failed_messages_cursor_rpc.sql` antes — ambas necessárias, nessa ordem) — precisa ser aplicada ao self-hosted | Painel de mensagens falhas quebrado até migração aplicada |
+| ~~GAP-7~~ | `src/features/admin/hooks/monitoring/useFailedMessages.ts:78` | CORRIGIDO 2026-07-24: `rpc_list_failed_messages_cursor` + `rpc_list_dispatch_error_logs_cursor` + `rpc_dlq_list_audit_cursor` + `search_contacts_cursor` — bare-column tuple keyset, `zapp.is_admin_or_supervisor`, `search_path=zapp`, `dispatch_error_logs` adicionada à publication. Aplicado via `20260721000008` + `20260721_fix_cursor_rpcs_and_search_path.sql` | Resolvido |
 | ~~GAP-8~~ | `src/features/admin/hooks/monitoring/useDispatchErrorLogs.ts:61` | CORRIGIDO: `rpc_list_dispatch_error_logs_cursor` estava no schema `public` (PGRST202); tabela referenciada era `public.dispatch_error_logs` (VIEW); count era pós-cursor (decrementava por página); cursor sem ROW() ignorava ties. Fix: `20260717000003_fix_dispatch_dlq_cursor_rpcs_zapp_schema.sql` — movida para `zapp`, conta antes do cursor, ROW() keyset | Necessário aplicar migração ao self-hosted |
 | ~~GAP-9~~ | `src/features/admin/hooks/monitoring/useDlqAuditLog.ts:51` | CORRIGIDO: `rpc_dlq_list_audit_cursor` estava no schema `public` (PGRST202); referências `public.audit_logs`, `public.profiles` → `zapp.audit_logs`, `zapp.profiles`; cursor sem ROW() ignorava ties. Fix: `20260717000003_fix_dispatch_dlq_cursor_rpcs_zapp_schema.sql` | Necessário aplicar migração ao self-hosted |
 | ~~GAP-10~~ | `src/hooks/useQueueManagement.ts:203,415` | TABELA CRIADA: `zapp.queue_analytics` em `20260717000001_create_queue_analytics.sql`; FK para `queues`, RLS habilitado, índice em `(queue_id, timestamp DESC)` | Resolvido — necessário aplicar migração ao self-hosted |
@@ -304,7 +304,7 @@ infra/                       # Infraestrutura
 - `zapp.user_settings` ✅ (adicionada em `20260720000006` — sync de configurações cross-tab)
 - `zapp.workspace_settings` ✅ (adicionada em `20260720000006` — sync de configurações cross-tab)
 - `zapp.goal_notifications` / `zapp.transcription_notifications` — tabelas fantasma, subscriptions redirecionadas
-- `zapp.dispatch_error_logs` — NÃO está em supabase_realtime (sem subscription ativa, ok)
+- `zapp.dispatch_error_logs` ✅ (adicionada em `20260721_fix_cursor_rpcs_and_search_path.sql` — 2026-07-24)
 - Auditoria completa de 36 tabelas e 49 RPCs: todos presentes ou cobertos por stubs/migrations
 
 ### Estado do Realtime após sessão 2026-07-24
