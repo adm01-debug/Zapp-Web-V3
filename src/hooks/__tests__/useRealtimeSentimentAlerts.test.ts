@@ -57,7 +57,7 @@ describe('useRealtimeSentimentAlerts', () => {
     expect(mockChannel).toHaveBeenCalledWith('sentiment-alerts-realtime');
   });
 
-  it('listens for INSERT events on audit_logs', () => {
+  it('listens for INSERT events on zapp.sentiment_alerts', () => {
     const onMock = vi.fn().mockReturnThis();
     mockChannel.mockReturnValue({
       on: onMock,
@@ -69,8 +69,8 @@ describe('useRealtimeSentimentAlerts', () => {
       'postgres_changes',
       expect.objectContaining({
         event: 'INSERT',
-        table: 'audit_logs',
-        filter: 'action=eq.sentiment_alert',
+        schema: 'zapp',
+        table: 'sentiment_alerts',
       }),
       expect.any(Function)
     );

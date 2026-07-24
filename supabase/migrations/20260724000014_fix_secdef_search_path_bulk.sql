@@ -4,37 +4,29 @@
 -- Background
 -- ----------
 -- PostgreSQL resolves unqualified object names against schemas in search_path
--- order.  When a SECURITY DEFINER function runs, it runs with the *definer's*
+-- order.  When a SECURITY DEFINER function runs, it elevates to the definer's
 -- privileges.  If `public` appears early in search_path, any object created in
--- `public` with the same name as a legitimate zapp/evo object would be found
--- first, allowing a privilege-escalation by any user who can write to `public`.
+-- `public` with the same name as a legitimate zapp/evo object would shadow the
+-- real one, allowing privilege-escalation by any user who can write to `public`.
 --
--- This was audited on 2026-07-24 and found to affect:
---   ≈ 572 functions in `zapp` (most with pattern: public, evo, zapp, monitoring)
---   ≈  49 functions in `evo`
+-- Audit (2026-07-24) found:
+--   ≈ 572 functions in `zapp` with 'public' present in search_path
+--   ≈  49 functions in `evo`  with 'public' present in search_path
+-- Most common pattern: search_path=public, evo, zapp, monitoring (392 functions)
 --
--- All references inside these function bodies are fully-qualified (e.g.
--- zapp.foo, evo.bar, auth.uid()), so removing `public` is a no-op for object
--- resolution but closes the attack surface.
---
--- Algorithm
--- ---------
--- For each affected SECURITY DEFINER function in zapp/evo:
---   1. Parse the current search_path from pg_proc.proconfig
---   2. Split by comma, trim, remove 'public' and 'pg_temp' elements, deduplicate
---   3. Ensure the function's own schema (zapp or evo) is the first element
---   4. ALTER FUNCTION ... SET search_path = <new_path>
+-- All references inside these function bodies are fully-qualified (zapp.foo,
+-- evo.bar, auth.uid(), etc.), so removing 'public' is a no-op for object
+-- resolution but closes the shadowing attack surface.
 --
 -- pg_catalog is always implicitly appended by PostgreSQL regardless of
--- search_path, so gen_random_uuid(), now(), etc. continue to work.
+-- search_path, so gen_random_uuid(), now(), etc. continue to work without it.
 --
--- Failures for individual functions are logged as WARNINGs (not exceptions) so
--- that one bad function signature cannot abort the entire remediation.
+-- The DO block handles failures per-function so one bad signature cannot abort
+-- the entire remediation.
 
 DO $$
 DECLARE
   r             RECORD;
-  v_sp_config   TEXT;
   v_oldpath     TEXT;
   v_parts       TEXT[];
   v_newparts    TEXT[];
@@ -47,79 +39,85 @@ BEGIN
     SELECT
       p.oid,
       p.proname,
+      p.prokind,
       n.nspname,
-      pg_get_function_arguments(p.oid) AS args
+      pg_get_function_arguments(p.oid) AS args,
+      -- Extract the search_path value (strip 'search_path=' prefix = 12 chars)
+      (
+        SELECT substring(t.val FROM 13)
+        FROM pg_proc p2, unnest(p2.proconfig) AS t(val)
+        WHERE p2.oid = p.oid AND t.val LIKE 'search_path=%'
+        LIMIT 1
+      ) AS oldpath
     FROM pg_proc p
     JOIN pg_namespace n ON n.oid = p.pronamespace
     WHERE n.nspname IN ('zapp', 'evo')
       AND p.prosecdef = true
       AND EXISTS (
-        SELECT 1 FROM unnest(p.proconfig) kv(val)
-        WHERE kv.val LIKE 'search_path=%'
-          AND kv.val ~ 'public'
+        SELECT 1
+        FROM unnest(p.proconfig) AS t(val)
+        WHERE t.val LIKE 'search_path=%' AND t.val ~ 'public'
       )
     ORDER BY n.nspname, p.proname
   LOOP
-    -- Extract search_path value from proconfig
-    SELECT val INTO v_sp_config
-    FROM unnest(r.oid::pg_catalog.regproc::pg_catalog.oid::pg_proc.proconfig) kv(val)
-    WHERE kv.val LIKE 'search_path=%'
-    LIMIT 1;
+    v_oldpath := r.oldpath;
 
-    -- Fallback: query pg_proc directly by oid
-    IF v_sp_config IS NULL THEN
-      SELECT val INTO v_sp_config
-      FROM (
-        SELECT unnest(proconfig) AS val FROM pg_proc WHERE oid = r.oid
-      ) t WHERE val LIKE 'search_path=%' LIMIT 1;
-    END IF;
-
-    IF v_sp_config IS NULL THEN
-      RAISE WARNING 'SKIP %.%(%s): could not read proconfig', r.nspname, r.proname, LEFT(r.args,40);
+    IF v_oldpath IS NULL THEN
+      RAISE WARNING 'SKIP %.%(%) — cannot read search_path from proconfig',
+        r.nspname, r.proname, LEFT(r.args, 40);
       CONTINUE;
     END IF;
 
-    -- Strip 'search_path=' prefix (12 chars)
-    v_oldpath := substring(v_sp_config FROM 13);
-
-    -- Split, filter out public and pg_temp, deduplicate
-    v_parts   := regexp_split_to_array(v_oldpath, '\s*,\s*');
+    -- Split by comma, filter out 'public', deduplicate while preserving order.
+    -- NOTE: do NOT remove pg_temp here — if pg_temp is absent from search_path
+    -- PostgreSQL inserts it implicitly at FIRST position, which is the shadowing
+    -- vector. Keep it and move it to LAST position explicitly (see below).
+    v_parts    := regexp_split_to_array(v_oldpath, '\s*,\s*');
     v_newparts := ARRAY[]::TEXT[];
 
     FOREACH v_part IN ARRAY v_parts LOOP
       v_part := btrim(v_part);
-      -- Skip public, pg_temp (always implicit), and empty strings
-      CONTINUE WHEN v_part = '' OR v_part = 'public' OR v_part = 'pg_temp';
+      -- Drop public (attack vector) and blank entries
+      CONTINUE WHEN v_part = '' OR v_part = 'public';
       -- Deduplicate
       CONTINUE WHEN v_part = ANY(v_newparts);
       v_newparts := array_append(v_newparts, v_part);
     END LOOP;
 
-    -- Ensure function's own schema is present and first
+    -- Ensure the function's own schema (zapp or evo) is present and FIRST
     IF NOT (r.nspname = ANY(v_newparts)) THEN
-      -- Schema missing entirely — prepend it
+      -- Missing entirely — prepend it
       v_newparts := array_prepend(r.nspname, v_newparts);
     ELSIF v_newparts[1] IS DISTINCT FROM r.nspname THEN
-      -- Schema present but not first — move it to front
+      -- Present but not first — move it to front
       v_newparts := array_prepend(r.nspname, array_remove(v_newparts, r.nspname));
     END IF;
 
-    -- Safety: if array ended up empty somehow, use own schema
+    -- Safety guard: if array is still empty, use own schema
     IF array_length(v_newparts, 1) IS NULL OR array_length(v_newparts, 1) = 0 THEN
       v_newparts := ARRAY[r.nspname];
+    END IF;
+
+    -- Move pg_temp to LAST position so PostgreSQL searches it last.
+    -- If pg_temp were absent entirely, PG would implicitly insert it FIRST
+    -- (before all other schemas), enabling temp-table shadowing attacks.
+    -- Keeping it last preserves the explicit ordering while closing that vector.
+    IF 'pg_temp' = ANY(v_newparts) THEN
+      v_newparts := array_append(array_remove(v_newparts, 'pg_temp'), 'pg_temp');
     END IF;
 
     v_newsearchpath := array_to_string(v_newparts, ', ');
 
     BEGIN
-      -- Use OID-based regprocedure for accurate function signature
+      -- oid::regprocedure produces schema.fn(arg_types) — correct ALTER target
       EXECUTE format(
-        'ALTER FUNCTION %s SET search_path = %s',
+        'ALTER %s %s SET search_path = %s',
+        CASE r.prokind WHEN 'p' THEN 'PROCEDURE' ELSE 'FUNCTION' END,
         r.oid::regprocedure,
         v_newsearchpath
       );
       v_count := v_count + 1;
-      RAISE NOTICE 'Fixed [%] %.%(%) : [%] -> [%]',
+      RAISE NOTICE '[%] Fixed %.%(%): [%] -> [%]',
         v_count, r.nspname, r.proname, LEFT(r.args, 50), v_oldpath, v_newsearchpath;
     EXCEPTION WHEN OTHERS THEN
       v_failed := v_failed + 1;
@@ -128,11 +126,15 @@ BEGIN
     END;
   END LOOP;
 
-  RAISE NOTICE '=== search_path remediation complete: % fixed, % failed ===', v_count, v_failed;
+  RAISE NOTICE '=== search_path remediation complete: % fixed, % failed ===',
+    v_count, v_failed;
 END $$;
 
 -- ── Post-remediation verification ────────────────────────────────────────────
--- Confirm that no SECURITY DEFINER function in zapp/evo still has public first.
+-- Confirm no SECURITY DEFINER function in zapp/evo still has 'public' anywhere
+-- in search_path (not just first position — public in any position is a risk).
+-- Uses word-boundary regex \mpublic\M so it won't match 'public_ext' etc.
+-- RAISES EXCEPTION (fails the migration) if any functions remain unfixed.
 DO $$
 DECLARE
   v_remaining INTEGER;
@@ -143,14 +145,15 @@ BEGIN
   WHERE n.nspname IN ('zapp', 'evo')
     AND p.prosecdef = true
     AND EXISTS (
-      SELECT 1 FROM unnest(p.proconfig) kv(val)
-      WHERE kv.val LIKE 'search_path=%'
-        AND kv.val ~ '^search_path=public'   -- public still first
+      SELECT 1 FROM unnest(p.proconfig) AS t(val)
+      WHERE t.val LIKE 'search_path=%' AND t.val ~ '\mpublic\M'
     );
 
   IF v_remaining > 0 THEN
-    RAISE WARNING 'POST-CHECK: % SECURITY DEFINER function(s) still have public first in search_path', v_remaining;
+    RAISE EXCEPTION 'POST-CHECK FAILED: % SECURITY DEFINER function(s) in zapp/evo still have public in search_path — remediation incomplete',
+      v_remaining
+      USING ERRCODE = 'P0001';
   ELSE
-    RAISE NOTICE 'POST-CHECK OK: no SECURITY DEFINER functions in zapp/evo have public first in search_path';
+    RAISE NOTICE 'POST-CHECK OK: 0 SECURITY DEFINER functions in zapp/evo have public in search_path';
   END IF;
 END $$;

@@ -20,8 +20,11 @@ export function useRealtimeSentimentAlerts() {
         },
         (payload) => {
           const record = payload.new as Record<string, unknown>;
-          const level = record?.alert_level as string | undefined;
-          const score = record?.sentiment_score as number | undefined;
+          const level =
+            typeof record?.alert_level === 'string' ? record.alert_level : undefined;
+          const rawScore = record?.sentiment_score;
+          const score =
+            typeof rawScore === 'number' && Number.isFinite(rawScore) ? rawScore : undefined;
           const message = level
             ? `Alerta de sentimento ${level}${score != null ? ` (score: ${score})` : ''} detectado`
             : 'Alerta de sentimento detectado';

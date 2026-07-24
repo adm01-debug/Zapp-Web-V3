@@ -63,10 +63,30 @@ async function saveAnalysis(remoteJid: string, msgId: string | null, text: strin
   const { data: cv } = await convQuery.maybeSingle();
   const sV = ["positive","negative","neutral","mixed"].includes(a.sentiment) ? a.sentiment : "neutral";
   const uV = ["low","medium","high","critical"].includes(a.urgency) ? a.urgency : "low";
-  // Resolve instance_name: caller-supplied > contact record > empty string (row hidden by RLS until backfilled)
-  const resolvedInstance = instanceName || (c as { id?: string; instance_name?: string } | null)?.instance_name || '';
+  // Resolve instance_name: caller-supplied > contact record. Fail closed — a missing
+  // instance_name would produce a row invisible to tenant-scoped RLS policies.
+  const resolvedInstance = instanceName || (c as { id?: string; instance_name?: string } | null)?.instance_name;
+  if (!resolvedInstance) {
+    throw new Error(`Cannot persist sentiment: instance_name could not be resolved for jid=${remoteJid}`);
+  }
+
+  // Idempotency guard: the two writes below (analysis + alert) are sequential
+  // with no wrapping transaction. If the alert insert succeeds on retry but the
+  // analysis insert was already committed, we'd create a duplicate analysis row.
+  // Skip both inserts when this external_message_id + instance is already stored.
+  if (msgId) {
+    const { data: existing } = await supabase
+      .from("evolution_sentiment_analysis")
+      .select()
+      .eq("external_message_id", msgId)
+      .eq("instance_name", resolvedInstance)
+      .maybeSingle();
+    if (existing) return existing;
+  }
+
   const { data, error } = await supabase.from("evolution_sentiment_analysis").insert({
-    message_id: toUuid(msgId), conversation_id: cv?.id, contact_id: c?.id, remote_jid: remoteJid,
+    message_id: toUuid(msgId), external_message_id: msgId || null,
+    conversation_id: cv?.id, contact_id: c?.id, remote_jid: remoteJid,
     instance_name: resolvedInstance,
     message_text: text.slice(0, 5000), sentiment: sV, sentiment_score: typeof a.score === "number" ? a.score : 0,
     emotions: a.emotions || {}, intent: a.intent || "geral", urgency: uV,
@@ -84,7 +104,7 @@ async function saveAnalysis(remoteJid: string, msgId: string | null, text: strin
       alert_level: alertLevel,
       acknowledged: false,
     });
-    if (alertErr) console.error("[saveAnalysis] alert insert error:", alertErr.message);
+    if (alertErr) throw new Error(`[saveAnalysis] alert insert failed: ${alertErr.message}`);
   }
   return data;
 }

@@ -15,10 +15,18 @@
 --     evolution_conversations_compras/_default/_financeiro/_logistica/_marketing had
 --     auth_full_access FOR ALL while other conversation partitions (artes, comercial_01-15,
 --     gravacao, wpp2) have targeted authenticated_update (UPDATE only). Aligned.
+--     NOTE: USING (true) is intentional — these are child partitions of a partitioned root
+--     table (evolution_conversations). Tenant isolation is enforced by RLS on the root table
+--     and by the instance_name column (partition key). Duplicating a workspace_members check
+--     on every partition would (a) create inconsistency with the pre-existing wpp2/artes/…
+--     pattern, (b) add redundant overhead, and (c) risk policy drift. The root table is the
+--     single authoritative security boundary per PostgreSQL RLS partition semantics.
 --
 --   Phase 3 (5 tables): Message partitions without the standard INSERT policy.
 --     Same asymmetry as Phase 2 for evolution_messages_compras/_default/_financeiro/
 --     _logistica/_marketing. Aligned with the authenticated_insert (INSERT only) pattern.
+--     NOTE: WITH CHECK (true) is intentional for the same reason as Phase 2 — the root
+--     table evolution_messages enforces tenant isolation; child partitions inherit its RLS.
 --
 --   Phase 4 (22 tables): User-configurable tables → workspace-scoped FOR ALL.
 --     automations, quick_replies, broadcasts, business_hours, contact_notes, etc.
