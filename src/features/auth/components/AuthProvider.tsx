@@ -50,7 +50,9 @@ function readPersistedSession(): Session | null {
       keys.sort((a, b) => a.length - b.length)[0];
     const chunkKeys = keys
       .filter((k) => k.startsWith(`${baseKey}.`))
-      .sort((a, b) => Number(a.slice(baseKey.length + 1)) - Number(b.slice(baseKey.length + 1)));
+      .sort(
+        (a, b) => Number(a.slice(baseKey.length + 1)) - Number(b.slice(baseKey.length + 1))
+      );
     raw =
       chunkKeys.length > 0
         ? chunkKeys.map((k) => localStorage.getItem(k) ?? '').join('')
@@ -64,12 +66,11 @@ function readPersistedSession(): Session | null {
   const tryParse = (text: string): Session | null => {
     try {
       const parsed = JSON.parse(text) as
-        (Session & { currentSession?: Session }) | { currentSession?: Session };
-      const session = (
-        'access_token' in parsed && parsed.access_token
-          ? parsed
-          : (parsed as { currentSession?: Session }).currentSession
-      ) as Session | undefined;
+        | (Session & { currentSession?: Session })
+        | { currentSession?: Session };
+      const session = ('access_token' in parsed && parsed.access_token
+        ? parsed
+        : (parsed as { currentSession?: Session }).currentSession) as Session | undefined;
       if (!session?.user || !session?.refresh_token) return null;
       // Valida expires_at: deve ser número positivo finito (rejeita null, strings,
       // NaN, Infinity, 0, negativos — todos indicam sessão corrompida ou inválida).
@@ -116,7 +117,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const fetchProfile = useCallback(async (userId: string) => {
     try {
-      const { data, error } = await withTimeout(authService.getProfile(userId), 8000, 'getProfile');
+      const { data, error } = await withTimeout(
+        authService.getProfile(userId),
+        8000,
+        'getProfile'
+      );
       if (error || !data) {
         log.error('[Auth] Failed to fetch profile for user:', userId, error);
         return;
@@ -149,7 +154,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         Promise.resolve(
           supabase
             .from('role_permissions')
-            .select('permission_id, permissions(name)')
+            .select('permission')
             .in('role', roleNames)
         ),
         8000,
@@ -160,10 +165,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
       const permNames = userPermissions
-        .map((p) => {
-          const perm = p.permissions as { name: string } | null;
-          return perm?.name ?? null;
-        })
+        .map((p) => p.permission as string)
         .filter((n): n is string => typeof n === 'string');
       setPermissions(permNames);
     } catch (err: unknown) {
@@ -230,7 +232,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Sem sessão persistida E sem rede → não há o que fazer além de avisar o utilizador.
       // Quando a rede voltar, o listener 'online' no useEffect dispara retryBootstrap()
       // automaticamente. Com rede: fast-fall para /auth como antes.
-      if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      //
+      // guard de try/catch: navigator.onLine pode lançar em ambientes restritos
+      // (ex.: extensões de browser, workers com políticas estritas).
+      const isOffline = (() => {
+        try { return typeof navigator !== 'undefined' && !navigator.onLine; }
+        catch { return false; }
+      })();
+      if (isOffline) {
         log.warn('[Auth] Dispositivo offline e sem sessão local — aguardando rede.');
         setLoading(false);
         setBootstrapError('offline');
@@ -282,7 +291,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [refreshAll, clearBootstrapSafetyNet]);
 
-  // Ref (para guards síncronos) + state (para reactivos na UI) de retry em andamento.
+  // Ref (para guards síncronos) + state (para reativos na UI) de retry em andamento.
   const isRetryingRef = useRef(false);
   const [isRetrying, setIsRetrying] = useState(false);
 
@@ -396,6 +405,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [refreshAll, runBootstrap, retryBootstrap]);
 
+
   useEffect(() => {
     if (!user) return;
 
@@ -405,9 +415,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         'postgres_changes',
         {
           event: 'UPDATE',
-          schema: 'zapp',
+          schema: 'public',
           table: 'profiles',
-          filter: `user_id=eq.${user.id}`,
+          filter: `id=eq.${user.id}`,
         },
         () => {
           void fetchProfile(user.id);
@@ -421,7 +431,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         'postgres_changes',
         {
           event: '*',
-          schema: 'zapp',
+          schema: 'public',
           table: 'user_roles',
           filter: `user_id=eq.${user.id}`,
         },
