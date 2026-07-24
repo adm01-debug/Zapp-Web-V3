@@ -49,6 +49,7 @@ BEGIN
       conversation_id    UUID,
       contact_id         UUID,
       remote_jid         TEXT        NOT NULL,
+      instance_name      TEXT        NOT NULL DEFAULT '',
       message_text       TEXT,
       sentiment          TEXT        NOT NULL DEFAULT 'neutral'
                                      CHECK (sentiment IN ('positive','negative','neutral','mixed')),
@@ -88,6 +89,11 @@ BEGIN
     'CREATE INDEX IF NOT EXISTS idx_esa_sentiment_urgency ON %I.evolution_sentiment_analysis (sentiment, urgency) WHERE requires_attention = true',
     v_schema
   );
+  -- Tenant scoping: instance_name for workspace-isolated queries
+  EXECUTE format(
+    'CREATE INDEX IF NOT EXISTS idx_esa_instance_name ON %I.evolution_sentiment_analysis (instance_name)',
+    v_schema
+  );
 
   -- ── Table privileges ─────────────────────────────────────────────────────
   -- SQL-level GRANTs are required in addition to RLS policies.
@@ -118,21 +124,34 @@ BEGIN
     );
   END IF;
 
-  -- Authenticated users — read-only
-  IF NOT EXISTS (
+  -- Authenticated users — read only rows they own (via workspace → instance_name)
+  -- Drop stale blanket policy if it exists from a prior apply
+  IF EXISTS (
     SELECT 1 FROM pg_policies
     WHERE schemaname = v_schema AND tablename = 'evolution_sentiment_analysis'
       AND policyname = 'auth_read_evolution_sentiment_analysis'
   ) THEN
     EXECUTE format(
-      $p$
-      CREATE POLICY "auth_read_evolution_sentiment_analysis"
-        ON %I.evolution_sentiment_analysis
-        FOR SELECT TO authenticated USING (true)
-      $p$,
+      'DROP POLICY "auth_read_evolution_sentiment_analysis" ON %I.evolution_sentiment_analysis',
       v_schema
     );
   END IF;
+  EXECUTE format(
+    $pol$
+    CREATE POLICY "auth_read_evolution_sentiment_analysis"
+      ON %I.evolution_sentiment_analysis
+      FOR SELECT TO authenticated
+      USING (
+        instance_name IN (
+          SELECT wc.instance_name
+          FROM zapp.whatsapp_connections wc
+          INNER JOIN zapp.workspace_members wm ON wm.workspace_id = wc.workspace_id
+          WHERE wm.user_id = auth.uid()
+        )
+      )
+    $pol$,
+    v_schema
+  );
 
   RAISE NOTICE 'evolution_sentiment_analysis created/verified in % schema', v_schema;
 END $$;

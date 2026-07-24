@@ -54,13 +54,16 @@ async function analyzeAI(text: string): Promise<SentimentResult> {
   } catch { return analyzeRule(text); }
 }
 
-async function saveAnalysis(remoteJid: string, msgId: string | null, text: string, a: SentimentResult) {
-  const { data: c } = await supabase.from("evolution_contacts").select("id").eq("remote_jid", remoteJid).maybeSingle();
+async function saveAnalysis(remoteJid: string, msgId: string | null, text: string, a: SentimentResult, instanceName?: string) {
+  const { data: c } = await supabase.from("evolution_contacts").select("id, instance_name").eq("remote_jid", remoteJid).maybeSingle();
   const { data: cv } = await supabase.from("evolution_conversations").select("id").eq("remote_jid", remoteJid).order("updated_at", { ascending: false }).limit(1).maybeSingle();
   const sV = ["positive","negative","neutral","mixed"].includes(a.sentiment) ? a.sentiment : "neutral";
   const uV = ["low","medium","high","critical"].includes(a.urgency) ? a.urgency : "low";
+  // Resolve instance_name: caller-supplied > contact record > empty string (row hidden by RLS until backfilled)
+  const resolvedInstance = instanceName || (c as { id?: string; instance_name?: string } | null)?.instance_name || '';
   const { data, error } = await supabase.from("evolution_sentiment_analysis").insert({
     message_id: toUuid(msgId), conversation_id: cv?.id, contact_id: c?.id, remote_jid: remoteJid,
+    instance_name: resolvedInstance,
     message_text: text.slice(0, 5000), sentiment: sV, sentiment_score: typeof a.score === "number" ? a.score : 0,
     emotions: a.emotions || {}, intent: a.intent || "geral", urgency: uV,
     keywords: Array.isArray(a.keywords) ? a.keywords : [],
@@ -114,14 +117,14 @@ Deno.serve(async (req: Request) => {
     if (req.method === "POST") {
       const body = await req.json().catch(() => ({}));
       if (body.action === "analyze" || !body.action) {
-        const { text, remote_jid, message_id } = body;
+        const { text, remote_jid, message_id, instance_name } = body;
         // Validate text is a non-empty string — .slice() on a non-string crashes at runtime
         if (typeof text !== "string" || !text.trim()) {
           return new Response(JSON.stringify({ error: "text deve ser uma string não vazia" }), { status: 400, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } });
         }
         const analysis = await analyzeAI(text);
         let saved = null;
-        if (remote_jid) saved = await saveAnalysis(remote_jid, message_id || null, text, analysis);
+        if (remote_jid) saved = await saveAnalysis(remote_jid, message_id || null, text, analysis, instance_name);
         return new Response(JSON.stringify({ success: true, analysis, saved_id: saved?.id }), { headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } });
       }
     }
