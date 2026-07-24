@@ -115,8 +115,11 @@ for (const f of edgeFiles) {
   if (f.includes('_shared') || f.endsWith('.test.ts')) continue;
   const src = readFileSync(f, 'utf8');
   if (/createClient\s*\(/.test(src)) {
+    // schema-check-exempt: arquivos que acessam DB externo (ex: PromoGifts) e importam
+    // createZappClient/_Admin para o cliente local estão corretos por design.
+    if (/schema-check-exempt/.test(src)) continue;
     if (!/db:\s*\{\s*schema:\s*['"`](zapp|evo|email_app|financeiro|ai)['"`]/.test(src) &&
-        !/createZappAdminClient|createEvoAdminClient/.test(src)) {
+        !/createZappAdminClient|createEvoAdminClient|createZappClient/.test(src)) {
       edgeMissingSchema++;
       edgeOffenders.push(f.replace(ROOT + '/', ''));
     }
