@@ -289,8 +289,8 @@ export function useInboxFilters({
   const enforceChannelPermissions = useMemo(() => {
     if (permissionsLoading) return false;
     const knownPermissionNames = new Set([
-      ...permissions.map((permission) => permission.name),
-      ...userPermissions,
+      ...(permissions ?? []).map((permission) => permission.name),
+      ...(userPermissions ?? []),
     ]);
     return CHANNEL_PERMISSION_KEYS.every((permission) => knownPermissionNames.has(permission));
   }, [permissions, permissionsLoading, userPermissions]);
