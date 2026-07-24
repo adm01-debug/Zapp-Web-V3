@@ -12,6 +12,7 @@ import { useAllTicketStates } from '@/features/inbox';
 import { usePermissions } from '@/features/auth';
 import { getLogger } from '@/lib/logger';
 import { logAudit } from '@/lib/audit';
+import { computeInboxTabCounts } from './inboxFilterPipeline';
 
 const log = getLogger('useInboxFilters');
 
@@ -102,6 +103,11 @@ export function useInboxFilters({
   // Sync state with URL on mount only
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
+
+    if (params.has('subTab')) {
+      params.delete('subTab');
+      window.history.replaceState(null, '', `?${params.toString()}${window.location.hash}`);
+    }
 
     // Contact Type
     const typeFromUrl = params.get('type');
@@ -271,6 +277,71 @@ export function useInboxFilters({
 
   const ticketStates = useAllTicketStates();
 
+  const inboxTabCounts = useMemo(
+    () =>
+      computeInboxTabCounts({
+        conversations,
+        profileId,
+        externalSearch,
+        search,
+        sortBy,
+        statusFilter,
+        mainTab,
+        subTab,
+        showAll,
+        scope,
+        departmentAgentIds,
+        selectedQueueId,
+        selectedContactType,
+        showOnlyRetrying,
+        failureCategoryFilter,
+        failureCategoryById,
+        filters,
+        contactTagsMap,
+        ticketStates,
+        customScopes,
+        hasPermission,
+        permissionsLoading,
+      }),
+    [
+      conversations,
+      profileId,
+      externalSearch,
+      search,
+      sortBy,
+      statusFilter,
+      mainTab,
+      subTab,
+      showAll,
+      scope,
+      departmentAgentIds,
+      selectedQueueId,
+      selectedContactType,
+      showOnlyRetrying,
+      failureCategoryFilter,
+      failureCategoryById,
+      filters,
+      contactTagsMap,
+      ticketStates,
+      customScopes,
+      hasPermission,
+      permissionsLoading,
+    ]
+  );
+
+  useEffect(() => {
+    if (mainTab !== 'open' || conversations.length === 0) return;
+
+    if (subTab === 'attending' && inboxTabCounts.attending === 0 && inboxTabCounts.waiting > 0) {
+      setSubTab('waiting');
+      return;
+    }
+
+    if (subTab === 'waiting' && inboxTabCounts.waiting === 0 && inboxTabCounts.attending > 0) {
+      setSubTab('attending');
+    }
+  }, [mainTab, subTab, conversations.length, inboxTabCounts.attending, inboxTabCounts.waiting]);
+
   const filteredConversations = useMemo(() => {
     const rawCount = conversations.length;
     let result = conversations.filter((c) => c && c.contact && c.contact.id);
@@ -335,7 +406,7 @@ export function useInboxFilters({
             const canSeeDept = hasPermission('inbox.view_department');
             const canSeeAll = hasPermission('inbox.view_all');
 
-            const effectiveScope =
+            const requestedScope =
               showAll && canSeeAll
                 ? 'all'
                 : scope === 'department' && (canSeeDept || canSeeAll)
@@ -344,6 +415,15 @@ export function useInboxFilters({
                     ? 'all'
                     : 'mine';
             const assignee = assignedOf(c.contact.id, c.contact.assigned_to);
+            const hasMineAssignments = conversations.some(
+              (item) => assignedOf(item.contact.id, item.contact.assigned_to) === profileId
+            );
+            const effectiveScope =
+              requestedScope === 'mine' && !hasMineAssignments && (canSeeAll || canSeeDept)
+                ? canSeeAll
+                  ? 'all'
+                  : 'department'
+                : requestedScope;
 
             // 1. Prioridade para filtro de Agente específico (Coordenadores/Supervisores)
             if (filters.agentId) {
@@ -387,6 +467,8 @@ export function useInboxFilters({
         }
       } else if (mainTab === 'resolved') {
         result = result.filter((c) => statusOf(c.contact.id) === 'resolved');
+      } else if (mainTab === 'unread') {
+        result = result.filter((c) => c.unreadCount > 0 && statusOf(c.contact.id) !== 'resolved');
       }
     } else {
       // Quando há busca, filtramos apenas por aberto/resolvido se não estiver na aba de busca
@@ -400,13 +482,22 @@ export function useInboxFilters({
           // SECURITY: In search mode, also enforce scope if not searching globally
           const canSeeDept = hasPermission('inbox.view_department');
           const canSeeAll = hasPermission('inbox.view_all');
-          const effectiveScope =
+          const requestedScope =
             showAll && canSeeAll
               ? 'all'
               : scope === 'department' && (canSeeDept || canSeeAll)
                 ? 'department'
                 : 'mine';
           const assignee = assignedOf(c.contact.id, c.contact.assigned_to);
+          const hasMineAssignments = conversations.some(
+            (item) => assignedOf(item.contact.id, item.contact.assigned_to) === profileId
+          );
+          const effectiveScope =
+            requestedScope === 'mine' && !hasMineAssignments && (canSeeAll || canSeeDept)
+              ? canSeeAll
+                ? 'all'
+                : 'department'
+              : requestedScope;
 
           if (effectiveScope === 'mine' && assignee !== profileId) return false;
           if (effectiveScope === 'department' && assignee && !departmentAgentIds.includes(assignee))
@@ -416,6 +507,8 @@ export function useInboxFilters({
         });
       } else if (mainTab === 'resolved') {
         result = result.filter((c) => statusOf(c.contact.id) === 'resolved');
+      } else if (mainTab === 'unread') {
+        result = result.filter((c) => c.unreadCount > 0 && statusOf(c.contact.id) !== 'resolved');
       }
     }
 
@@ -633,6 +726,7 @@ export function useInboxFilters({
     search,
     setSearch,
     filteredConversations,
+    inboxTabCounts,
     customScopes,
     clearUrlFilters,
   };
