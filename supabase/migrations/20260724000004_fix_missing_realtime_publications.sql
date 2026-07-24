@@ -25,7 +25,7 @@ BEGIN
     'zapp.qr_attempts',             -- QrAttemptsPanel.tsx:104
     'zapp.whatsapp_connections',    -- useConnectionManagement.ts (UPDATE subscription)
     'zapp.audio_memes',             -- audio meme subscriptions
-    'public.payment_links',         -- PaymentLinksView.tsx:61 (table remains in public schema; never moved by 20260716)
+    'financeiro.payment_links',     -- PaymentLinksView.tsx:61 (physical table is financeiro.payment_links; public.payment_links is a VIEW proxy)
     'email_app.email_accounts'      -- useGmailOAuthFlow.ts:292
   ])
   LOOP
@@ -38,7 +38,15 @@ BEGIN
         AND schemaname = schema_name
         AND tablename  = table_name
     ) THEN
-      EXECUTE format('ALTER PUBLICATION supabase_realtime ADD TABLE %I.%I', schema_name, table_name);
+      BEGIN
+        EXECUTE format('ALTER PUBLICATION supabase_realtime ADD TABLE %I.%I', schema_name, table_name);
+        RAISE NOTICE 'Added %.% to supabase_realtime', schema_name, table_name;
+      EXCEPTION WHEN others THEN
+        RAISE WARNING 'Could not add %.% to supabase_realtime: % (%)',
+          schema_name, table_name, SQLERRM, SQLSTATE;
+      END;
+    ELSE
+      RAISE NOTICE '%.% already in supabase_realtime, skipping', schema_name, table_name;
     END IF;
   END LOOP;
 END $$;
