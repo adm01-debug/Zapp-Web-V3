@@ -150,6 +150,8 @@ export interface Message {
   isWhisper?: boolean;
   /** @internal Flag used for optimistic updates in the UI */
   _optimistic?: boolean;
+  /** Agente leu a mensagem inbound (mapeado de evolution_messages.is_read). */
+  is_read?: boolean | null;
   /** Meta-informações brutas (Evolution/WhatsApp API). Campos conhecidos são tipados; campos adicionais são aceitos via index. */
   media_meta?: (Record<string, unknown> & { ptt?: boolean; isPtv?: boolean }) | null;
 }

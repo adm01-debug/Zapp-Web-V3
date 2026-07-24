@@ -20,7 +20,7 @@ import { STAGE_LABEL_UNIFIED, STAGE_INITIAL_UNIFIED } from './messageStatusLangu
 type Stage = 'sent' | 'delivered' | 'read';
 
 interface Props {
-  message: Pick<Message, 'sender' | 'status' | 'timestamp' | 'created_at'> & {
+  message: Pick<Message, 'sender' | 'status' | 'timestamp' | 'created_at' | 'updated_at' | 'is_read'> & {
     status_updated_at?: string;
     contact_read_at?: string | null;
   };
@@ -71,7 +71,7 @@ function resolveStages(message: Props['message']): Record<Stage, string | Date |
   return {
     sent: message.timestamp ?? null,
     delivered: message.created_at ?? message.timestamp ?? null,
-    read: message.contact_read_at ?? null,
+    read: message.contact_read_at ?? (message.is_read ? (message.updated_at ?? null) : null),
   };
 }
 

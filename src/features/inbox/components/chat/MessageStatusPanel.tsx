@@ -46,6 +46,7 @@ interface MessageStatusPanelProps {
     contact_read_at?: string | null;
     remote_jid?: string | null;
     contact_id?: string | null;
+    is_read?: boolean | null;
   };
 }
 
@@ -153,7 +154,8 @@ export const MessageStatusPanel = memo(function MessageStatusPanel({
       ];
     }
     // Inbound
-    const reachedRead = !!message.contact_read_at;
+    const reachedRead = !!message.contact_read_at || !!message.is_read;
+    const readStamp = message.contact_read_at ?? (message.is_read ? (message.updated_at ?? null) : null);
     return [
       {
         reached: true,
@@ -170,12 +172,12 @@ export const MessageStatusPanel = memo(function MessageStatusPanel({
       {
         reached: reachedRead,
         label: 'Visualizada',
-        stamp: reachedRead ? formatStamp(message.contact_read_at) : 'ainda não',
+        stamp: reachedRead ? formatStamp(readStamp) : 'ainda não',
         icon: <Eye className="h-3 w-3" />,
         highlight: true,
       },
     ];
-  }, [isSent, message.status, message.contact_read_at, lastUpdate, sentStamp]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [isSent, message.status, message.contact_read_at, message.is_read, message.updated_at, lastUpdate, sentStamp]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <Popover>

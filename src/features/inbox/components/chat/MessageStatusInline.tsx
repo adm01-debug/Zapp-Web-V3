@@ -37,6 +37,7 @@ interface MessageStatusInlineProps {
     error_code?: string | null;
     error_reason?: string | null;
     contact_read_at?: string | null;
+    is_read?: boolean | null;
   };
   className?: string;
   /** Quando true, exibe sempre o rótulo textual (independente da preferência). */
