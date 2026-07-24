@@ -103,7 +103,7 @@ export function useSipClient() {
         const duration = Math.round(
           (new Date(endedAt).getTime() - new Date(startedAt).getTime()) / 1000
         );
-        await supabase.from('calls').insert({
+        const { error: insertErr } = await supabase.from('calls').insert({
           direction: 'outbound',
           status,
           started_at: startedAt,
@@ -113,6 +113,7 @@ export function useSipClient() {
           contact_id: contactId,
           notes: `Chamada para ${number}`,
         });
+        if (insertErr) throw insertErr;
         callStartTimeRef.current = null;
         void queryClient.invalidateQueries({ queryKey: queryKeys.calls.history() });
       } catch (err) {

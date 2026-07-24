@@ -299,21 +299,37 @@ export function useAudioMemes(open: boolean) {
   }, [queryClient]);
 
   const handleCategoryChange = useCallback(async (meme: AudioMemeItem, newCategory: string) => {
+    const prevCategory = meme.category;
     queryClient.setQueryData(AUDIO_MEMES_KEY, (prev: AudioMemeItem[] | undefined) =>
       (prev ?? []).map((m) => (m.id === meme.id ? { ...m, category: newCategory } : m))
     );
-    await supabase.from('audio_memes').update({ category: newCategory }).eq('id', meme.id);
+    const { error } = await supabase.from('audio_memes').update({ category: newCategory }).eq('id', meme.id);
+    if (error) {
+      log.error('[handleCategoryChange] DB update failed:', error.message);
+      queryClient.setQueryData(AUDIO_MEMES_KEY, (prev: AudioMemeItem[] | undefined) =>
+        (prev ?? []).map((m) => (m.id === meme.id ? { ...m, category: prevCategory } : m))
+      );
+      toast.error('Erro ao alterar categoria');
+      return;
+    }
     toast.success(`Categoria alterada`);
   }, [queryClient]);
 
   const handleDelete = useCallback(async (e: React.MouseEvent, meme: AudioMemeItem) => {
     e.stopPropagation();
+    const prevMemes = queryClient.getQueryData<AudioMemeItem[]>(AUDIO_MEMES_KEY);
     queryClient.setQueryData(AUDIO_MEMES_KEY, (prev: AudioMemeItem[] | undefined) =>
       (prev ?? []).filter((m) => m.id !== meme.id)
     );
     const path = meme.audio_url.split('/audio-memes/')[1];
     if (path) await supabase.storage.from('audio-memes').remove([path]);
-    await supabase.from('audio_memes').delete().eq('id', meme.id);
+    const { error: deleteError } = await supabase.from('audio_memes').delete().eq('id', meme.id);
+    if (deleteError) {
+      log.error('[handleDelete] DB delete failed:', deleteError.message);
+      queryClient.setQueryData(AUDIO_MEMES_KEY, prevMemes);
+      toast.error('Erro ao remover áudio meme');
+      return;
+    }
     toast.success('Áudio meme removido');
   }, [queryClient]);
 

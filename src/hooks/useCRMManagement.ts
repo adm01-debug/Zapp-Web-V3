@@ -167,22 +167,27 @@ export function useContactEnrichedDataManagement(contactId?: string) {
       return;
     }
 
+    let cancelled = false;
+
     const fetchEnrichedData = async () => {
       try {
         const { data, error: err } = await supabase.rpc('enrich_contact', {
           contact_id: contactId,
         });
 
+        if (cancelled) return;
         if (err) throw err;
         setEnrichedData(data);
       } catch (err) {
+        if (cancelled) return;
         log.error('Error enriching contact data:', err);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
 
     fetchEnrichedData();
+    return () => { cancelled = true; };
   }, [contactId]);
 
   return { enrichedData, loading };
