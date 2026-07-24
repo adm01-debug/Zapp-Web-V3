@@ -201,3 +201,6 @@ ts_errors.txt
 # Artefatos de auditoria de design gerados (não são código-fonte)
 design-system-audit.html
 design-system-audit.md
+
+# Relatórios de CI gerados por check-types-schemas.mjs e scripts similares
+reports/

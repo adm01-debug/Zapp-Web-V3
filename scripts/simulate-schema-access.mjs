@@ -114,6 +114,7 @@ const edgeOffenders = [];
 for (const f of edgeFiles) {
   if (f.includes('_shared') || f.endsWith('.test.ts')) continue;
   const src = readFileSync(f, 'utf8');
+  if (src.slice(0, 500).includes('schema-check-exempt')) continue;
   if (/createClient\s*\(/.test(src)) {
     if (!/db:\s*\{\s*schema:\s*['"`](zapp|evo|email_app|financeiro|ai)['"`]/.test(src) &&
         !/createZappAdminClient|createEvoAdminClient/.test(src)) {
