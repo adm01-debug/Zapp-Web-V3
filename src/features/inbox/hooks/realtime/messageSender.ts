@@ -17,6 +17,8 @@ import {
   buildEvolutionPayload,
   type SendMessageResult,
 } from './messageSenderHelpers';
+// FIX #23: Importar schema Zod para validação
+import { sendMessageSchema, safeValidateInput } from '@/shared/validation';
 
 const MAX_RETRIES = 3;
 const lastInstabilityToastByContact = new Map<string, number>();
@@ -24,7 +26,7 @@ const lastInstabilityToastByContact = new Map<string, number>();
 const log = getLogger('MessageSender');
 
 /**
- * Sends a message: saves to DB, dispatches via Evolution API, updates status.
+ * Sends a message: validates input with Zod, saves to DB, dispatches via Evolution API, updates status.
  */
 export async function sendMessageToContact(
   contactId: string,
@@ -34,6 +36,19 @@ export async function sendMessageToContact(
   mediaPayload?: string,
   opts: { optimisticId?: string; conversationId?: string } = {}
 ): Promise<SendMessageResult> {
+  // FIX #23: Validação Zod ANTES de qualquer operação
+  const validation = safeValidateInput(sendMessageSchema, {
+    contactId,
+    content,
+    messageType,
+    mediaUrl,
+    mediaPayload,
+  });
+  if (!validation.ok) {
+    log.error('sendMessageToContact: validação Zod falhou', { error: validation.error });
+    throw new Error(`Input inválido: ${validation.error}`);
+  }
+
   const { data: profile } = await supabase
     .from('profiles')
     .select('id')

@@ -342,6 +342,24 @@ export const sentimentAlertAuditRowSchema = z.object({
 });
 
 // ─────────────────────────────────────────────
+// Sentiment Alert row (zapp.sentiment_alerts)
+// ─────────────────────────────────────────────
+
+/** Zod schema for a zapp.sentiment_alerts row; used by realtime subscriptions and CRUD operations. */
+export const sentimentAlertRowSchema = z.object({
+  id: z.string().uuid(),
+  contact_id: z.string().uuid(),
+  message_id: z.string().uuid().nullable(),
+  sentiment_score: z.number().min(-1).max(1),
+  alert_level: z.enum(['low', 'medium', 'high']),
+  acknowledged: z.boolean().default(false),
+  created_at: z.string(),
+});
+
+/** TypeScript type inferred from sentimentAlertRowSchema. */
+export type SentimentAlertRow = z.infer<typeof sentimentAlertRowSchema>;
+
+// ─────────────────────────────────────────────
 // Team message notification row (for push notifications)
 // ─────────────────────────────────────────────
 

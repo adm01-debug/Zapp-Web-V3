@@ -12,7 +12,7 @@ import { useNotificationSettingsManagement } from '@/hooks/useNotificationManage
 import { toast } from 'sonner';
 import { playNotificationSound, showBrowserNotification } from '@/utils/notificationSounds';
 import { getLogger } from '@/lib/logger';
-import { warRoomAlertRowSchema, safeParseEvent } from '@/shared/webhookEventSchemas';
+import { warRoomAlertRowSchema, safeParseEvent, sentimentAlertRowSchema } from '@/shared/webhookEventSchemas';
 import { queryKeys } from '@/services/api/queryKeys';
 
 const log = getLogger('useAlertManagement');
@@ -191,7 +191,25 @@ export function useWarRoomAlertsManagement(soundEnabled = true): UseWarRoomAlert
   };
 
   useEffect(() => {
+    let isActive = true;
+
     const checkSLABreaches = async () => {
+      if (!isActive) return;
+
+      // FIX #2: Não usa alertsRef (stale) - query direto para verificar alertas existentes
+      // evita race condition entre interval e query invalidation
+      const { data: existingSlaAlerts, error: queryErr } = await supabase
+        .from('warroom_alerts')
+        .select('id')
+        .eq('source', 'sla-monitor')
+        .eq('is_read', false)
+        .limit(1);
+
+      if (queryErr) {
+        log.error('Failed to check existing SLA alerts', queryErr);
+        return;
+      }
+
       const { data: breaches, error: breachesErr } = await supabase
         .from('conversation_sla')
         .select('id, contact_id, first_response_breached, resolution_breached')
@@ -204,8 +222,9 @@ export function useWarRoomAlertsManagement(soundEnabled = true): UseWarRoomAlert
 
       if (breaches && breaches.length > 0) {
         const newBreachCount = breaches.length;
-        const existingAlerts = alertsRef.current.filter((a) => a.source === 'sla-monitor');
-        if (existingAlerts.length === 0 || newBreachCount > existingAlerts.length) {
+        // Se já existe alerta SLA não lido, não cria duplicata
+        const hasExistingAlert = existingSlaAlerts && existingSlaAlerts.length > 0;
+        if (!hasExistingAlert) {
           const { error: insertErr } = await supabase.from('warroom_alerts').insert({
             alert_type: 'critical',
             title: `${newBreachCount} SLA(s) Violado(s)`,
@@ -221,7 +240,10 @@ export function useWarRoomAlertsManagement(soundEnabled = true): UseWarRoomAlert
       void checkSLABreaches();
     }, 60000);
     void checkSLABreaches();
-    return () => clearInterval(interval);
+    return () => {
+      isActive = false;
+      clearInterval(interval);
+    };
   }, []);
 
   return { alerts, dismissAlert };
@@ -413,10 +435,10 @@ export function useRealtimeSentimentAlertsManagement(): UseRealtimeSentimentAler
 
   const acknowledgeAlert = useCallback(async (alertId: string) => {
     try {
-      const { error } = await supabase
-        .from('sentiment_alerts' as never)
-        .update({ acknowledged: true })
-        .eq('id', alertId);
+      // FIX #3: Substitui 'as never' pelo schema tipado (via safeClient que já tem fallback)
+      const { error } = await safeClient.from('sentiment_alerts', (q) =>
+        q.update({ acknowledged: true }).eq('id', alertId)
+      );
       if (error) {
         log.error('Failed to acknowledge sentiment alert:', error.message);
         return;
@@ -429,10 +451,10 @@ export function useRealtimeSentimentAlertsManagement(): UseRealtimeSentimentAler
 
   const clearAlert = useCallback(async (alertId: string) => {
     try {
-      const { error } = await supabase
-        .from('sentiment_alerts' as never)
-        .delete()
-        .eq('id', alertId);
+      // FIX #3: Substitui 'as never' pelo schema tipado (via safeClient que já tem fallback)
+      const { error } = await safeClient.from('sentiment_alerts', (q) =>
+        q.delete().eq('id', alertId)
+      );
       if (error) {
         log.error('Failed to clear sentiment alert:', error.message);
         return;
