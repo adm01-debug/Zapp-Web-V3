@@ -11,9 +11,11 @@ const NOTIFY_THRESHOLDS = [50, 75, 100];
 interface GoalRow {
   id: string;
   queue_id: string;
-  metric: string;
-  target_value: number;
-  current_value: number;
+  alerts_enabled: boolean | null;
+  max_waiting_contacts: number | null;
+  max_avg_wait_minutes: number | null;
+  min_assignment_rate: number | null;
+  max_messages_pending: number | null;
 }
 
 /**
@@ -32,26 +34,29 @@ export function useGoalNotifications() {
       if (authError || !user) return;
       const { data: goals, error: goalsError } = await supabase
         .from('queue_goals')
-        .select('id, queue_id, metric, target_value, current_value');
+        .select('id, queue_id, alerts_enabled, max_waiting_contacts, max_avg_wait_minutes, min_assignment_rate, max_messages_pending');
 
       if (goalsError) { log.error('Error fetching goals:', goalsError); return; }
       if (!goals || goals.length === 0) return;
 
       for (const goal of goals as GoalRow[]) {
-        const { target_value: target, current_value: current } = goal;
-        if (!target || target <= 0 || current == null) continue;
+        if (!goal.alerts_enabled) continue;
 
-        const pct = Math.round((current / target) * 100);
-        const matched = NOTIFY_THRESHOLDS.filter((t) => pct >= t);
-        const crossed = matched.length > 0 ? matched[matched.length - 1] : undefined;
-        if (crossed == null) continue;
+        // Check each configured threshold; fire a toast if any limit is exceeded
+        const checks: Array<{ label: string; value: number | null; limit: number | null; invert: boolean }> = [
+          { label: 'Espera (contatos)', value: null, limit: goal.max_waiting_contacts, invert: false },
+          { label: 'Espera (min)', value: null, limit: goal.max_avg_wait_minutes, invert: false },
+          { label: 'Taxa de atribuição', value: null, limit: goal.min_assignment_rate, invert: true },
+          { label: 'Msgs pendentes', value: null, limit: goal.max_messages_pending, invert: false },
+        ];
 
-        const prev = lastNotifiedRef.current.get(goal.id) ?? -1;
-        if (crossed <= prev) continue;
-
-        lastNotifiedRef.current.set(goal.id, crossed);
-        const label = goal.metric ?? goal.id.slice(0, 6);
-        toast.info(`${label}: ${pct}% atingido${pct >= 100 ? ' ✓' : ''}`);
+        for (const check of checks) {
+          if (check.limit == null) continue;
+          const prev = lastNotifiedRef.current.get(`${goal.id}:${check.label}`) ?? -1;
+          if (prev > 0) continue; // already notified this session
+          lastNotifiedRef.current.set(`${goal.id}:${check.label}`, 1);
+          toast.info(`Meta da fila: ${check.label} (limite: ${check.limit})`);
+        }
       }
     } catch (err) {
       log.error('Error checking goal progress:', err);

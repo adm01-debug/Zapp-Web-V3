@@ -739,6 +739,7 @@ function useDepartmentsManagement() {
 
     toast.success(editingId ? 'Departamento atualizado' : 'Departamento criado');
     void queryClient.invalidateQueries({ queryKey: queryKeys.departmentChat.list() });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.queues.all() });
     return true;
   };
 
@@ -754,6 +755,7 @@ function useDepartmentsManagement() {
 
     toast.success('Departamento removido');
     void queryClient.invalidateQueries({ queryKey: queryKeys.departmentChat.list() });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.queues.all() });
     return true;
   };
 

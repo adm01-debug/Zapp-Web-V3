@@ -154,7 +154,6 @@ const toDbSettings = (settings: Partial<NotificationSettings>): Record<string, u
     db.auto_transcription_enabled = settings.autoTranscriptionEnabled;
   if (settings.transcriptionNotificationEnabled !== undefined)
     db.transcription_notification_enabled = settings.transcriptionNotificationEnabled;
-  if (settings.soundType !== undefined) db.sound_type = settings.soundType;
   if (settings.messageSoundType !== undefined) db.message_sound_type = settings.messageSoundType;
   if (settings.mentionSoundType !== undefined) db.mention_sound_type = settings.mentionSoundType;
   if (settings.slaSoundType !== undefined) db.sla_sound_type = settings.slaSoundType;
@@ -170,7 +169,7 @@ export interface AppNotification {
   type: string;
   title: string;
   message: string;
-  read: boolean;
+  is_read: boolean;
   created_at: string;
 }
 

@@ -37,7 +37,7 @@ interface SLADeliveryViolation {
   resolved_at?: string | null;
   resolved_by?: string | null;
   resolution_notes?: string | null;
-  resolved_by_profile?: { display_name?: string | null } | null;
+  resolved_by_profile?: { name?: string | null } | null;
 }
 
 export const SLADeliveryHistoryDashboard = () => {
@@ -50,7 +50,7 @@ export const SLADeliveryHistoryDashboard = () => {
     queryFn: async () => {
       const { data, error } = await safeClient.from('sla_delivery_violations', (q) => {
         let query = q
-          .select('*, resolved_by_profile:profiles!resolved_by(display_name)')
+          .select('*, resolved_by_profile:profiles!resolved_by(name)')
           .order('detected_at', { ascending: false });
         if (statusFilter === 'pending') query = query.eq('is_resolved', false);
         else if (statusFilter === 'resolved') query = query.eq('is_resolved', true);
@@ -182,9 +182,9 @@ export const SLADeliveryHistoryDashboard = () => {
                           por{' '}
                           {(
                             v as typeof v & {
-                              resolved_by_profile?: { display_name?: string } | null;
+                              resolved_by_profile?: { name?: string } | null;
                             }
-                          ).resolved_by_profile?.display_name || 'Agente'}
+                          ).resolved_by_profile?.name || 'Agente'}
                         </span>
                       </div>
                     ) : (
