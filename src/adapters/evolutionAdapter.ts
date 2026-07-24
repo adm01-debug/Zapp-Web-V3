@@ -50,7 +50,7 @@ export function evolutionToRealtimeMessage(evo: EvolutionMessage): RealtimeMessa
     status: mapStatus(evo.status),
     status_updated_at: evo.status_at,
     created_at: evo.created_at,
-    updated_at: evo.updated_at ?? evo.created_at,
+    updated_at: (evo as EvolutionMessage & { updated_at?: string }).updated_at ?? evo.created_at,
     external_id: evo.message_id,
     whatsapp_connection_id: null,
     transcription: null,
