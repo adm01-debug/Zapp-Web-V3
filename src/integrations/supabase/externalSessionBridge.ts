@@ -51,6 +51,12 @@ function isUserNotFound(err: AuthError | null): boolean {
  */
 export async function mirrorExternalSignIn(email: string, password: string): Promise<void> {
   if (!isExternalConfigured) return;
+  // Guard pós-consolidação: enquanto externalSupabase === supabase (mesmo client,
+  // mesmo GoTrue), um 2º signInWithPassword rotaciona/invalida o token corrente
+  // e um getSession extra apenas adiciona contenção. Não há dual-session real a
+  // manter, então isto é um no-op. Se um client external separado for
+  // reintroduzido (externalSupabase !== supabase), o mirror reativa sozinho.
+  if (externalSupabase === supabase) return;
   try {
     const { data: existing } = await externalSupabase.auth.getSession();
     if (existing.session?.user?.email === email) {
@@ -102,6 +108,9 @@ export async function mirrorExternalSignIn(email: string, password: string): Pro
 /** Logout no external — silencioso em erro. */
 export async function mirrorExternalSignOut(): Promise<void> {
   if (!isExternalConfigured) return;
+  // No-op enquanto external === main: o signOut do client principal já encerra
+  // a única sessão existente. Um signOut extra aqui é redundante.
+  if (externalSupabase === supabase) return;
   try {
     await externalSupabase.auth.signOut();
   } catch (e) {
@@ -124,6 +133,23 @@ export function registerExternalSessionBridge(): () => void {
   if (!isExternalConfigured) {
     log.debug('external não configurado — bridge no-op');
     return () => {};
+  }
+
+  // ── Guard pós-consolidação (fix bootstrap-hang) ──────────────────────────
+  // Enquanto externalSupabase === supabase (shim single-DB), NÃO há dual-session
+  // a hidratar. A hidratação inicial fazia Promise.all([getSession, getSession])
+  // — duas chamadas IDÊNTICAS ao mesmo client no exato momento do boot — e o
+  // handler onAuthStateChange abaixo faz chamadas async de auth inline, um
+  // anti-pattern documentado que serializa/atrasa a próxima chamada de auth do
+  // client. Ambos contribuíam para a contenção no bootstrap de Auth. Como o
+  // bridge é inteiramente redundante neste modo, instala-se como no-op. Se um
+  // client external separado voltar (externalSupabase !== supabase), o bridge
+  // completo reativa automaticamente.
+  if (externalSupabase === supabase) {
+    log.debug('external === main (single-DB) — bridge instalado como no-op');
+    return () => {
+      bridgeInstalled = false;
+    };
   }
 
   void (async () => {

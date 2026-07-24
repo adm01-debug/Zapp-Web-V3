@@ -14,6 +14,14 @@ import { verifyHttpOnlyCookieAuth } from '@/integrations/supabase/cookieStorage'
 // Cancela o timer interno quando a promise resolve antes do timeout (evita
 // timers órfãos que ficavam ativos por até 5s depois do resultado chegar).
 // ---------------------------------------------------------------------------
+// Safety-net do bootstrap de Auth. DEVE ser maior que o timeout do fetch do
+// Supabase client (SUPABASE_FETCH_TIMEOUT_MS = 12s): assim, se um refresh de
+// token pendurar, o boundedFetch aborta (~12s), o INITIAL_SESSION resolve e
+// limpa o loading ANTES deste backstop declarar 'timeout' fatal. Se este valor
+// fosse ≤12s, o safety-net dispararia a tela de erro no meio de um refresh que
+// ainda ia resolver — exatamente o bug de bootstrap que estamos corrigindo.
+const BOOTSTRAP_SAFETY_NET_MS = 15_000;
+
 function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
   let timerId: ReturnType<typeof setTimeout>;
   const timeoutPromise = new Promise<T>((_, reject) => {
@@ -222,14 +230,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         `[Auth] getSession falhou/${isOffline ? 'offline' : 'timeout'} após ${elapsedMs}ms — URL=${SUPABASE_RESOLVED_URL}`,
         err
       );
-      // I07: distingue timeout de offline para o ProtectedRoute exibir mensagem correta.
-      setBootstrapError(isOffline ? 'offline' : 'timeout');
-      setLoading(false);
-      // Bootstrap resolveu com erro — cancela o safety-net para evitar
-      // double-set e log desnecessário 10s depois (BUG C).
-      if (bootstrapTimeoutRef.current !== null) {
-        clearTimeout(bootstrapTimeoutRef.current);
-        bootstrapTimeoutRef.current = null;
+      // FIX (bootstrap-hang): esta chamada de getSession é REDUNDANTE com o
+      // evento INITIAL_SESSION que onAuthStateChange (abaixo) sempre emite em
+      // supabase-js v2 — com a sessão real ou null. Se o getSession do bootstrap
+      // demora (ex.: um refresh de token que pendura por rede momentaneamente
+      // degradada), tratá-lo como falha FATAL mostrava a tela de erro cheia do
+      // ProtectedRoute prematuramente, mesmo quando o INITIAL_SESSION entregaria
+      // a sessão válida logo em seguida (ou governaria o logout corretamente).
+      //
+      // Portanto: só declaramos erro fatal quando o browser está REALMENTE
+      // offline (aí a tela de erro/retry é o comportamento certo). Quando há
+      // conectividade, apenas registramos e deixamos o INITIAL_SESSION governar
+      // o estado; o safety-net (useEffect) permanece como backstop final.
+      if (isOffline) {
+        setBootstrapError('offline');
+        setLoading(false);
+        if (bootstrapTimeoutRef.current !== null) {
+          clearTimeout(bootstrapTimeoutRef.current);
+          bootstrapTimeoutRef.current = null;
+        }
+      } else {
+        log.info('[Auth] getSession lento/pendurado — aguardando INITIAL_SESSION governar o estado (não-fatal).');
+        // NÃO seta bootstrapError e NÃO cancela o safety-net: o INITIAL_SESSION
+        // deve chegar e limpar loading; se nada resolver, o safety-net cobre.
       }
     }
   }, []);
@@ -242,11 +265,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       clearTimeout(bootstrapTimeoutRef.current);
     }
     bootstrapTimeoutRef.current = setTimeout(() => {
-      log.error('[Auth] Bootstrap safety-net (10s) no retry — forçando loading=false.');
+      log.error('[Auth] Bootstrap safety-net no retry — forçando loading=false.');
       setBootstrapError((prev) => prev ?? 'timeout');
       setLoading(false);
       bootstrapTimeoutRef.current = null;
-    }, 10000);
+    }, BOOTSTRAP_SAFETY_NET_MS);
     await runBootstrap();
   }, [runBootstrap]);
 
@@ -263,11 +286,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // nos caminhos sem sessão (sem onAuthStateChange) — evitando erro espúrio (BUG C).
     bootstrapTimeoutRef.current = setTimeout(() => {
       if (!mounted) return;
-      log.error('[Auth] Bootstrap safety-net (10s) — forçando loading=false.');
+      log.error('[Auth] Bootstrap safety-net — forçando loading=false.');
       setBootstrapError((prev) => prev ?? 'timeout');
       setLoading(false);
       bootstrapTimeoutRef.current = null;
-    }, 10000);
+    }, BOOTSTRAP_SAFETY_NET_MS);
 
     log.info(`[Auth] Supabase URL em uso: ${SUPABASE_RESOLVED_URL}`);
     void runBootstrap();
