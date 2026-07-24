@@ -39,6 +39,7 @@ BEGIN
     SELECT
       p.oid,
       p.proname,
+      p.prokind,
       n.nspname,
       pg_get_function_arguments(p.oid) AS args,
       -- Extract the search_path value (strip 'search_path=' prefix = 12 chars)
@@ -98,9 +99,10 @@ BEGIN
     v_newsearchpath := array_to_string(v_newparts, ', ');
 
     BEGIN
-      -- oid::regprocedure produces schema.fn(arg_types) — correct ALTER FUNCTION target
+      -- oid::regprocedure produces schema.fn(arg_types) — correct ALTER target
       EXECUTE format(
-        'ALTER FUNCTION %s SET search_path = %s',
+        'ALTER %s %s SET search_path = %s',
+        CASE r.prokind WHEN 'p' THEN 'PROCEDURE' ELSE 'FUNCTION' END,
         r.oid::regprocedure,
         v_newsearchpath
       );
