@@ -7,6 +7,8 @@ import { useContactNotes } from '../useContactNotes';
 const mockToast = vi.fn();
 vi.mock('@/hooks/use-toast', () => ({ toast: (p: unknown) => mockToast(p) }));
 
+const CONTACT_UUID = '00000000-0000-0000-0000-000000000001';
+
 vi.mock('@/features/auth', () => ({
   useAuth: () => ({ user: { id: 'user-1' } }),
 }));
@@ -106,13 +108,13 @@ beforeEach(() => {
 describe('useContactNotes', () => {
   it('expõe currentProfileId consistente após carregar o perfil', async () => {
     const { Wrapper } = makeWrapper();
-    const { result } = renderHook(() => useContactNotes('contact-1'), { wrapper: Wrapper });
+    const { result } = renderHook(() => useContactNotes(CONTACT_UUID), { wrapper: Wrapper });
     await waitFor(() => expect(result.current.currentProfileId).toBe('profile-1'));
   });
 
   it('addNote: isAdding fica true durante a mutação e volta a false ao concluir', async () => {
     const { Wrapper } = makeWrapper();
-    const { result } = renderHook(() => useContactNotes('contact-1'), { wrapper: Wrapper });
+    const { result } = renderHook(() => useContactNotes(CONTACT_UUID), { wrapper: Wrapper });
     await waitFor(() => expect(result.current.currentProfileId).toBe('profile-1'));
 
     expect(result.current.isAdding).toBe(false);
@@ -136,7 +138,7 @@ describe('useContactNotes', () => {
     notesRows = [
       {
         id: 'note-1',
-        contact_id: 'contact-1',
+        contact_id: CONTACT_UUID,
         author_id: 'profile-1',
         content: 'oi',
         created_at: new Date().toISOString(),
@@ -144,7 +146,7 @@ describe('useContactNotes', () => {
       },
     ];
     const { Wrapper } = makeWrapper();
-    const { result } = renderHook(() => useContactNotes('contact-1'), { wrapper: Wrapper });
+    const { result } = renderHook(() => useContactNotes(CONTACT_UUID), { wrapper: Wrapper });
     await waitFor(() => expect(result.current.notes.length).toBe(1));
 
     expect(result.current.isDeleting).toBe(false);
@@ -168,7 +170,7 @@ describe('useContactNotes', () => {
     notesRows = [
       {
         id: 'note-x',
-        contact_id: 'contact-1',
+        contact_id: CONTACT_UUID,
         author_id: 'ghost-author',
         content: 'órfã',
         created_at: new Date().toISOString(),
@@ -176,7 +178,7 @@ describe('useContactNotes', () => {
       },
     ];
     const { Wrapper } = makeWrapper();
-    const { result } = renderHook(() => useContactNotes('contact-1'), { wrapper: Wrapper });
+    const { result } = renderHook(() => useContactNotes(CONTACT_UUID), { wrapper: Wrapper });
     await waitFor(() => expect(result.current.notes.length).toBe(1));
     expect(result.current.notes[0].author).toEqual({
       id: 'ghost-author',
