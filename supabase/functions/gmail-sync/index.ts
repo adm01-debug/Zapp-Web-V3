@@ -113,6 +113,11 @@ Deno.serve(async (req) => {
         signal: AbortSignal.timeout(10_000),
       });
 
+      if (!listRes.ok) {
+        console.error('[gmail-sync] list threads HTTP error', listRes.status);
+        return json({ error: 'Failed to list Gmail threads' }, listRes.status >= 500 ? 502 : 400);
+      }
+
       let listData: unknown;
       try {
         listData = await listRes.json();
@@ -144,6 +149,7 @@ Deno.serve(async (req) => {
             headers: { Authorization: `Bearer ${token}` },
             signal: AbortSignal.timeout(10_000),
           });
+          if (!tRes.ok) return null;
           let tData: unknown;
           try {
             tData = await tRes.json();
@@ -279,6 +285,11 @@ Deno.serve(async (req) => {
         signal: AbortSignal.timeout(10_000),
       });
 
+      if (!lblRes.ok) {
+        console.error('[gmail-sync] syncLabels HTTP error', lblRes.status);
+        return json({ error: 'Failed to fetch Gmail labels' }, lblRes.status >= 500 ? 502 : 400);
+      }
+
       let lblDataRaw: unknown;
       try {
         lblDataRaw = await lblRes.json();
@@ -291,6 +302,10 @@ Deno.serve(async (req) => {
       }
 
       const lblData = lblDataRaw as Record<string, unknown>;
+      if (typeof lblData.error === 'object' && lblData.error !== null) {
+        console.error('[gmail-sync] syncLabels Gmail API error', lblData.error);
+        return json({ error: 'Failed to fetch Gmail labels' }, 400);
+      }
       const labels = Array.isArray(lblData.labels) ? lblData.labels : [];
       const labelsArray = labels
         .filter(l => typeof l === 'object' && l !== null && !Array.isArray(l))
@@ -473,6 +488,12 @@ async function fetchAndPersistMessage(
     headers: { Authorization: `Bearer ${token}` },
     signal: AbortSignal.timeout(10_000),
   });
+
+  if (!msgRes.ok) {
+    if (msgRes.status === 404) return; // deleted before ingestion, skip silently
+    // Non-404 HTTP errors: throw so batchSettled counts them as failures
+    throw new Error(`Gmail API HTTP ${msgRes.status} for message ${messageId}`);
+  }
 
   let msgRaw: unknown;
   try {

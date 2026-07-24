@@ -86,14 +86,21 @@ export function useMetaCapi() {
         .eq('key', key)
         .maybeSingle();
       if (existing) {
-        await supabase.from('global_settings').update({ value }).eq('key', key);
+        const { error } = await supabase.from('global_settings').update({ value }).eq('key', key);
+        if (error) throw error;
       } else {
-        await supabase.from('global_settings').insert({ key, value });
+        const { error } = await supabase.from('global_settings').insert({ key, value });
+        if (error) throw error;
       }
     };
-    await upsert('meta_pixel_id', pixelId);
-    await upsert('meta_capi_auto_track', String(autoTrack));
-    toast({ title: 'Configurações salvas!' });
+    try {
+      await upsert('meta_pixel_id', pixelId);
+      await upsert('meta_capi_auto_track', String(autoTrack));
+      toast({ title: 'Configurações salvas!' });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Erro ao salvar';
+      toast({ title: 'Erro ao salvar configurações', description: msg, variant: 'destructive' });
+    }
   }, [pixelId, autoTrack]);
 
   const sendTestEvent = useCallback(

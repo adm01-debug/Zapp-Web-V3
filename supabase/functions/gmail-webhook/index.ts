@@ -199,6 +199,13 @@ async function processHistory(
     `${GMAIL_API}/history?startHistoryId=${startHistoryId}&historyTypes=messageAdded`,
     { headers: { Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(10_000) }
   );
+  if (!histRes.ok) {
+    // 5xx → transient: throw so Pub/Sub retries and history_id is held in place.
+    // 4xx → permanent API error: log and return so history_id can advance and the account is not stalled.
+    if (histRes.status >= 500) throw new Error(`Gmail history API transient error: ${histRes.status}`);
+    console.error('[gmail-webhook] processHistory non-retryable HTTP error', histRes.status);
+    return;
+  }
   const histData = await histRes.json();
   if (histData.error) return;
 
@@ -246,6 +253,13 @@ async function fetchAndPersistMessage(
     headers: { Authorization: `Bearer ${token}` },
     signal: AbortSignal.timeout(10_000),
   });
+  if (!msgRes.ok) {
+    if (msgRes.status === 404) return; // deleted before ingestion, skip silently
+    if (msgRes.status === 429 || msgRes.status >= 500) {
+      throw new Error(`Gmail API transient HTTP error for message ${messageId}: ${msgRes.status}`);
+    }
+    throw new NonRetryableMessageError(`Gmail API non-retryable HTTP error for message ${messageId}: ${msgRes.status}`);
+  }
   const msg = await msgRes.json();
   if (msg.error) {
     // 404: message deleted before ingestion — expected and harmless, skip silently.

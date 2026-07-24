@@ -67,19 +67,24 @@ export function useWhatsAppFlows() {
   };
 
   const deleteFlow = async (id: string): Promise<void> => {
-    await supabase.from('whatsapp_flows').delete().eq('id', id);
+    const { error } = await supabase.from('whatsapp_flows').delete().eq('id', id);
+    if (error) {
+      toast({ title: 'Erro ao remover flow', description: error.message, variant: 'destructive' });
+      return;
+    }
     toast({ title: 'Flow removido' });
     await queryClient.invalidateQueries({ queryKey: FLOWS_KEY });
   };
 
   const updateFlowScreens = async (flowId: string, screens: FlowScreen[]): Promise<void> => {
-    await supabase
+    const { error } = await supabase
       .from('whatsapp_flows')
       .update({
         screens:
           screens as unknown as Json /* ignore-audit: local Screen[] type widened to Supabase Json column type */,
       })
       .eq('id', flowId);
+    if (error) throw error;
   };
 
   return { flows, loading, fetchFlows, createFlow, deleteFlow, updateFlowScreens };
