@@ -50,7 +50,7 @@ export function useConnectionsRealtime(
       .channel(channelName)
       .on<WhatsAppConnection>(
         'postgres_changes',
-        { event: '*', schema: 'zapp', table: 'whatsapp_connections' },
+        { event: '*', schema: 'public', table: 'whatsapp_connections' },
         (payload) => {
           log.debug('Connection update:', payload);
           if (payload.eventType === 'UPDATE') {

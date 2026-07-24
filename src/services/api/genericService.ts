@@ -16,6 +16,7 @@ import type { ListResponse, QueryParams } from './types';
 interface ServiceOptions {
   orderBy?: string;
   orderDirection?: 'asc' | 'desc';
+  realtimeSchema?: string;
 }
 
 /**
@@ -23,7 +24,7 @@ interface ServiceOptions {
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const createService = <T = any>(tableName: string, options?: ServiceOptions) => {
-  const { orderBy = 'created_at', orderDirection = 'desc' } = options || {};
+  const { orderBy = 'created_at', orderDirection = 'desc', realtimeSchema = 'zapp' } = options || {};
   // Dynamic table accessor — tableName is a runtime string, not a literal from the generated types.
 
   const db = supabase as unknown as {
@@ -245,7 +246,7 @@ export const createService = <T = any>(tableName: string, options?: ServiceOptio
           'postgres_changes',
           {
             event: '*',
-            schema: 'zapp',
+            schema: realtimeSchema,
             table: tableName,
           },
           (payload: { eventType: string; new: unknown; old: unknown }) => {
