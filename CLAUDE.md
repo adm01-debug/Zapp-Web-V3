@@ -166,6 +166,7 @@
 | ~~BUG-26~~ | `src/hooks/useGmailOAuthFlow.ts:292` | CORRIGIDO 2026-07-24: `email_app.email_accounts` não estava em `supabase_realtime`; callback pós-OAuth não disparava; fluxo OAuth aparentava travar. Fix: migration `20260724000006` adiciona tabela à publication (re-adds idempotentemente) | Resolvido |
 | ~~BUG-27~~ | `supabase/migrations/20260724000004_fix_realtime_payment_links_email_accounts.sql` | CORRIGIDO 2026-07-24: bloco verification declarou `t TEXT` (scalar) mas `FOREACH t SLICE 1 IN ARRAY targets` requer `TEXT[]`; PostgreSQL lança `ERROR: FOREACH ... SLICE loop variable must be of an array type` que faz rollback de toda a transação — nem `financeiro.payment_links` nem `email_app.email_accounts` foram adicionados à publication. Supercedido por `20260724000006` com declaração correta `t TEXT[]` | Resolvido — `20260724000006` |
 | ~~BUG-28~~ | `supabase/functions/evolution-sentiment/index.ts:66` | CORRIGIDO 2026-07-24: `saveAnalysis()` tentava inserir em `zapp.evolution_sentiment_alerts` (tabela inexistente — nenhuma migração a cria); erro era apenas logado, nunca propagado; subscriber em `useRealtimeSentimentAlerts.ts` escutava `zapp.sentiment_alerts` (correto e publicado) mas nenhum produtor jamais escrevia lá. Fix: insert redirecionado para `zapp.sentiment_alerts` com colunas corretas (`contact_id`, `message_id`, `sentiment_score`, `alert_level`, `acknowledged`) | Resolvido |
+| ~~BUG-29~~ | `supabase/functions/evolution-sentiment/index.ts:55` + migração ausente | CORRIGIDO 2026-07-24: `zapp.evolution_sentiment_analysis` referenciada em `saveAnalysis()` (linha 55) e no catalog (`catalog.ts:46`) mas sem nenhuma migração de criação — `throw error` na linha 63 fazia com que TODA análise falhasse silenciosamente antes de chegar ao código de alertas (raiz real do BUG-28). Fix: `20260724000007_create_evolution_sentiment_analysis.sql` cria a tabela com todos os campos esperados pelo edge function, 4 índices, RLS (service_role + authenticated SELECT), e adiciona à publication `supabase_realtime` | Resolvido — `20260724000007` |
 
 
 ---
@@ -319,7 +320,8 @@ infra/                       # Infraestrutura
 - `zapp.team_messages` ✅ (adicionada em `20260724000005`)
 - `zapp.warroom_alerts` ✅ (adicionada em `20260724000005`)
 - `zapp.whatsapp_connections` ✅ (adicionada em `20260724000005`)
-- `evolution-sentiment`: producer agora escreve em `zapp.sentiment_alerts` (era `evolution_sentiment_alerts` inexistente — BUG-28)
+- `zapp.evolution_sentiment_analysis` ✅ (criada em `20260724000007`, adicionada à publication)
+- `evolution-sentiment`: producer agora escreve em `zapp.evolution_sentiment_analysis` + `zapp.sentiment_alerts` (era `evolution_sentiment_alerts` inexistente — BUG-28/29)
 
 ## Sessão 2026-07-22 — QA Exaustiva de Infraestrutura (10/10)
 
