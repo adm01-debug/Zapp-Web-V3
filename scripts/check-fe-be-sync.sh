@@ -101,6 +101,7 @@ fi
 # O [C] também filtra pelo .sync-ignore (igual a [A] e [B]).
 grep -rihE "alter function " "${MIG_DIRS[@]}" 2>/dev/null \
   | grep -viE '^\s*--' \
+  | grep -viE 'alter function if (exists|not exists)' \
   | grep -oiE "alter function [a-zA-Z0-9_.\"]*[a-zA-Z0-9_\"]" \
   | sed -E 's/[Aa][Ll][Tt][Ee][Rr] [Ff][Uu][Nn][Cc][Tt][Ii][Oo][Nn] //' \
   | norm | grep -v '^$' | sort -u > "$TMP/fn_altered.txt"

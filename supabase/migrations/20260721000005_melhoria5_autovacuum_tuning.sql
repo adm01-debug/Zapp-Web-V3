@@ -73,10 +73,13 @@ ALTER TABLE zapp.app_notifications SET (
   autovacuum_freeze_max_age        = 50000000
 );
 
--- ── 4. Immediate VACUUM ANALYZE on never-vacuumed critical tables ─────────────
--- These have 30M+ xid_age and zero autovacuum history; run now to reset.
-VACUUM (ANALYZE, VERBOSE) evo.evolution_contacts;
-VACUUM (ANALYZE, VERBOSE) evo.evolution_conversations_wpp2;
-VACUUM (ANALYZE, VERBOSE) evo.evolution_media;
-VACUUM (ANALYZE, VERBOSE) evo.evolution_whatsapp_status;
-VACUUM (ANALYZE, VERBOSE) zapp.contatos;
+-- ── 4. Note: VACUUM cannot run inside a transaction block ────────────────────
+-- Supabase migrations execute inside a transaction, so VACUUM cannot be issued
+-- here. Run the following manually via psql after applying this migration, or
+-- schedule via pg_cron:
+--
+--   VACUUM (ANALYZE, VERBOSE) evo.evolution_contacts;
+--   VACUUM (ANALYZE, VERBOSE) evo.evolution_conversations_wpp2;
+--   VACUUM (ANALYZE, VERBOSE) evo.evolution_media;
+--   VACUUM (ANALYZE, VERBOSE) evo.evolution_whatsapp_status;
+--   VACUUM (ANALYZE, VERBOSE) zapp.contatos;

@@ -200,7 +200,7 @@ export function useWhatsAppTemplates() {
   const filteredTemplates = templates.filter((t) => {
     if (
       search &&
-      !t.name.includes(search.toLowerCase()) &&
+      !t.name.toLowerCase().includes(search.toLowerCase()) &&
       !t.content.toLowerCase().includes(search.toLowerCase())
     )
       return false;

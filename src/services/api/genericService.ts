@@ -115,7 +115,8 @@ export const createService = <T = any>(tableName: string, options?: ServiceOptio
      * Search records by a text field
      */
     async search(query: string, searchField: string = 'name'): Promise<T[]> {
-      const { data, error } = await db.from(tableName).select('*').ilike(searchField, `%${query}%`);
+      const escaped = query.replace(/[%_\\]/g, '\\$&');
+      const { data, error } = await db.from(tableName).select('*').ilike(searchField, `%${escaped}%`);
 
       if (error) throw error;
       return data || [];
@@ -150,9 +151,10 @@ export const createService = <T = any>(tableName: string, options?: ServiceOptio
         .update(updates)
         .eq('id', id)
         .select()
-        .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
+        .maybeSingle();
 
       if (error) throw error;
+      if (!data) throw new Error(`Record '${id}' not found in '${tableName}'`);
       return data;
     },
 
@@ -246,8 +248,9 @@ export const createService = <T = any>(tableName: string, options?: ServiceOptio
             schema: 'zapp',
             table: tableName,
           },
-          (payload: { new: unknown }) => {
-            callback(payload.new as T);
+          (payload: { eventType: string; new: unknown; old: unknown }) => {
+            const data = payload.eventType === 'DELETE' ? payload.old : payload.new;
+            callback(data as T);
           }
         )
         .subscribe();

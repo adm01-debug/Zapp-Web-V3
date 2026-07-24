@@ -57,9 +57,11 @@ export function useTalkXBlacklist(showAddDialog: boolean) {
       contactId: string;
       reason: string;
     }) => {
+      const { data: { user } } = await supabase.auth.getUser();
       const { data: profile } = await supabase
         .from('profiles')
         .select('id')
+        .eq('user_id', user?.id ?? '')
         .maybeSingle();
       const { error } = await fromTable('talkx_blacklist').insert({
         contact_id: contactId,

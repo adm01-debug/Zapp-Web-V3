@@ -200,7 +200,7 @@ export function useMonitoringDataManagement(
           .select('*')
           .order('checked_at', { ascending: false })
           .limit(500),
-        dbFrom('messages')
+        dbFrom('evolution_messages')
           .select('sender, created_at')
           .gte('created_at', since.toISOString())
           .order('created_at', { ascending: true }),
@@ -337,11 +337,11 @@ export function useMonitoringActionsManagement(
       if (invokeErr) throw invokeErr;
       await new Promise((r) => setTimeout(r, 1000));
       const { data: msg } = await supabase
-        .from('messages')
+        .from('evolution_messages')
         .select('id')
         .eq('external_id', testId)
         .maybeSingle();
-      if (msg) await supabase.from('messages').delete().eq('id', msg.id);
+      if (msg) await supabase.from('evolution_messages').delete().eq('id', msg.id);
       setWebhookTest({
         status: msg ? 'success' : 'error',
         message: msg

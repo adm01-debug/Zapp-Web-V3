@@ -69,7 +69,7 @@ export function useQueuesComparison(dateRange: DateRange) {
       let messageList: Array<{ id: string; contact_id: string }> = [];
       if (contactIds.length > 0) {
         const { data: msgs, error: msgsErr } = await supabase
-          .from('messages')
+          .from('evolution_messages')
           .select('id, contact_id')
           .in('contact_id', contactIds)
           .gte('created_at', fromIso)

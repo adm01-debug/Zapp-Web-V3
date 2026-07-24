@@ -45,12 +45,11 @@ export function sanitizeHtml(html: unknown): string {
   // Use a DOM hook to enforce rel/target on every <a> before DOMPurify serialises
   // the output. The hook runs on the live Element, not the serialised HTML string,
   // so it is immune to the "> in query-string" regex-splitting bug.
-  // CRITICAL: Use a unique hook name to prevent collision with other sanitizeHtml
-  // functions (e.g. EmailChatBubble.tsx). DOMPurify.removeHook() removes by array
-  // position, not by reference; if multiple hooks are active, removeHook pops the
-  // wrong one and leaves orphaned hooks active.
-  const HOOK_NAME = 'afterSanitizeAttributes_sanitizeHtml';
-  DOMPurify.addHook(HOOK_NAME as never, (node) => {
+  // Use the standard DOMPurify hook name — DOMPurify only fires hooks registered
+  // under its known event names; custom strings like 'afterSanitizeAttributes_sanitizeHtml'
+  // are stored but never called, silently bypassing the rel/target injection.
+  // The try/finally ensures we always removeHook even if sanitize() throws.
+  DOMPurify.addHook('afterSanitizeAttributes', (node) => {
     if ((node as Element).tagName === 'A') {
       (node as Element).setAttribute('rel', 'noopener noreferrer');
       (node as Element).setAttribute('target', '_blank');
@@ -78,7 +77,7 @@ export function sanitizeHtml(html: unknown): string {
       ],
     }).trim();
   } finally {
-    DOMPurify.removeHook(HOOK_NAME as never);
+    DOMPurify.removeHook('afterSanitizeAttributes');
   }
   return sanitized;
 }
