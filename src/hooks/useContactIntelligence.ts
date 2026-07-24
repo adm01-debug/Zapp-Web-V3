@@ -220,8 +220,10 @@ export function useContactIntelligence(contactIdOrPhone?: string) {
 
       let raw: RawIntel | null = null;
       try {
+        // FIX #3: contact_intelligence usa 'phone' (coluna física), mas se for UUID,
+        // usa 'contact_id'. Validar para evitar 400.
         const orFilter = isValidUUID(contactIdOrPhone)
-          ? `contact_id.eq.${contactIdOrPhone},phone.eq.${contactIdOrPhone}`
+          ? `contact_id.eq.${contactIdOrPhone}`
           : `phone.eq.${contactIdOrPhone}`;
         const { data: intel } = await supabase
           .from('contact_intelligence' as never)
@@ -238,14 +240,15 @@ export function useContactIntelligence(contactIdOrPhone?: string) {
 
       if (!totalMessages || !lastAt) {
         try {
+          // FIX #4: evolution_messages usa 'remote_jid' (não 'phone') para o JID.
+          // Se for UUID, busco por contact_id. Se for phone-like, busco por remote_jid.
+          const filter = isValidUUID(contactIdOrPhone)
+            ? `contact_id.eq.${contactIdOrPhone}`
+            : `remote_jid.eq.${contactIdOrPhone}@s.whatsapp.net,remote_jid.eq.${contactIdOrPhone}`;
           const { data: msgs, count } = await supabase
             .from('evolution_messages' as never)
             .select('created_at', { count: 'exact', head: false })
-            .or(
-              isValidUUID(contactIdOrPhone)
-                ? `contact_id.eq.${contactIdOrPhone},phone.eq.${contactIdOrPhone}`
-                : `phone.eq.${contactIdOrPhone}`
-            )
+            .or(filter)
             .order('created_at', { ascending: false })
             .limit(1);
           if (count != null) totalMessages = totalMessages || count;
