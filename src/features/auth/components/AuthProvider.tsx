@@ -154,7 +154,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         Promise.resolve(
           supabase
             .from('role_permissions')
-            .select('permission')
+            // FIX #1: Schema correto — role_permissions tem (role, permission_id), não 'permission'
+            // JOIN com permissions table para resolver nomes das permissões
+            .select('permission_id, permissions!inner(name)')
             .in('role', roleNames)
         ),
         8000,
@@ -165,7 +167,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
       const permNames = userPermissions
-        .map((p) => p.permission as string)
+        .map((p) => {
+          // p.permissions pode ser array (PostgREST join) ou objeto
+          const perm = Array.isArray(p.permissions) ? p.permissions[0] : p.permissions;
+          return (perm as { name?: string } | null)?.name;
+        })
         .filter((n): n is string => typeof n === 'string');
       setPermissions(permNames);
     } catch (err: unknown) {
