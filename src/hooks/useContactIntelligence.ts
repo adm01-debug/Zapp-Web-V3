@@ -232,7 +232,7 @@ export function useContactIntelligence(contactIdOrPhone?: string) {
           const { data: msgs, count } = await supabase
             .from('evolution_messages' as never)
             .select('created_at', { count: 'exact', head: false })
-            .or(`contact_id.eq.${contactIdOrPhone},phone.eq.${contactIdOrPhone}`)
+            .or(`contact_id.eq.${contactIdOrPhone},phone_number.eq.${contactIdOrPhone}`)
             .order('created_at', { ascending: false })
             .limit(1);
           if (count != null) totalMessages = totalMessages || count;
