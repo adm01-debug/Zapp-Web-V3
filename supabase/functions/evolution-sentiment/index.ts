@@ -23,6 +23,13 @@ async function getOpenAIKey(): Promise<string | null> {
   return _openAiKey;
 }
 
+// Evolution API message IDs (e.g. "3EB0C767D360A23D02C3") are NOT UUIDs.
+// This guard prevents PostgreSQL type errors on UUID columns.
+function toUuid(v: string | null | undefined): string | null {
+  if (!v) return null;
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v) ? v : null;
+}
+
 function safeParseJson(raw: string): SentimentResult | null {
   try { return JSON.parse(raw) as SentimentResult; } catch {}
   const m = raw.match(/\{[\s\S]*\}/);
@@ -53,7 +60,7 @@ async function saveAnalysis(remoteJid: string, msgId: string | null, text: strin
   const sV = ["positive","negative","neutral","mixed"].includes(a.sentiment) ? a.sentiment : "neutral";
   const uV = ["low","medium","high","critical"].includes(a.urgency) ? a.urgency : "low";
   const { data, error } = await supabase.from("evolution_sentiment_analysis").insert({
-    message_id: msgId, conversation_id: cv?.id, contact_id: c?.id, remote_jid: remoteJid,
+    message_id: toUuid(msgId), conversation_id: cv?.id, contact_id: c?.id, remote_jid: remoteJid,
     message_text: text.slice(0, 5000), sentiment: sV, sentiment_score: typeof a.score === "number" ? a.score : 0,
     emotions: a.emotions || {}, intent: a.intent || "geral", urgency: uV,
     keywords: Array.isArray(a.keywords) ? a.keywords : [],
@@ -65,7 +72,7 @@ async function saveAnalysis(remoteJid: string, msgId: string | null, text: strin
     const alertLevel = uV === "critical" ? "high" : uV as "low" | "medium" | "high";
     const { error: alertErr } = await supabase.from("sentiment_alerts").insert({
       contact_id: c?.id,
-      message_id: msgId,
+      message_id: toUuid(msgId),
       sentiment_score: typeof a.score === "number" ? a.score : 0,
       alert_level: alertLevel,
       acknowledged: false,
