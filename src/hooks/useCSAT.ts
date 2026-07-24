@@ -54,6 +54,7 @@ export function useCSAT(period: 'today' | 'week' | 'month' = 'month') {
 
   const surveysQuery = useQuery({
     queryKey: queryKeys.csat.surveys(period),
+    staleTime: 60_000,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('csat_surveys')

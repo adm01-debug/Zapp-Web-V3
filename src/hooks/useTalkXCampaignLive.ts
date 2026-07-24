@@ -7,6 +7,8 @@ export function useTalkXCampaignLive(campaignId: string) {
   return useQuery<TalkXCampaign | null>({
     queryKey: queryKeys.talkx.campaignLiveById(campaignId),
     refetchInterval: 3000,
+    staleTime: 2_500,
+    enabled: !!campaignId,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('talkx_campaigns')

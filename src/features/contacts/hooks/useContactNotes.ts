@@ -100,6 +100,7 @@ export function useContactNotes(contactId: string) {
       }));
     },
     enabled: !!contactId,
+    staleTime: 60_000,
   });
 
   // Add note mutation

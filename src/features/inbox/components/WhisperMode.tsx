@@ -96,7 +96,7 @@ export function WhisperMode({
         'postgres_changes',
         {
           event: 'INSERT',
-          schema: 'public',
+          schema: 'zapp',
           table: 'whisper_messages',
           filter: `contact_id=eq.${contactId}`,
         },

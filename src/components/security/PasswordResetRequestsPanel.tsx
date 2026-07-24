@@ -47,7 +47,7 @@ export function PasswordResetRequestsPanel() {
       .channel('password-reset-requests')
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'password_reset_requests' },
+        { event: '*', schema: 'zapp', table: 'password_reset_requests' },
         () => {
           void fetchRequests();
         }

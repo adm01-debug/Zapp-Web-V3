@@ -76,10 +76,10 @@ export function AIGenerateDialog({
       } = await supabase.auth.getUser();
       let aiCategory = 'outros';
       try {
-        const { data: classifyData } = await supabase.functions.invoke('classify-audio-meme', {
+        const { data: classifyData, error: classifyError } = await supabase.functions.invoke('classify-audio-meme', {
           body: { audio_url: urlData.publicUrl, file_name: genPrompt },
         });
-        if (classifyData?.category) aiCategory = classifyData.category;
+        if (!classifyError && classifyData?.category) aiCategory = classifyData.category;
       } catch (err) {
         log.error('Unexpected error in AIGenerateDialog:', err);
       }

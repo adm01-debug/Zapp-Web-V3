@@ -36,6 +36,7 @@ export function QueuePositionNotifier({ contactId, className }: QueuePositionNot
       return { ...data, queueName: queue?.name, queueColor: queue?.color };
     },
     refetchInterval: 15000,
+    staleTime: 12_000,
   });
 
   if (!position) return null;

@@ -116,7 +116,7 @@ Deno.serve(async (req) => {
               </body>
               </html>`;
 
-            await fetch("https://api.resend.com/emails", {
+            const emailRes = await fetch("https://api.resend.com/emails", {
               method: "POST",
               headers: { "Content-Type": "application/json", "Authorization": `Bearer ${RESEND_API_KEY}` },
               body: JSON.stringify({
@@ -127,7 +127,11 @@ Deno.serve(async (req) => {
               }),
               signal: AbortSignal.timeout(15_000),
             });
-            log.info("Security email sent");
+            if (!emailRes.ok) {
+              log.warn("Security email failed to send", { status: emailRes.status });
+            } else {
+              log.info("Security email sent");
+            }
           } catch (emailError) {
             log.error("Error sending email", { error: emailError instanceof Error ? emailError.message : String(emailError) });
           }

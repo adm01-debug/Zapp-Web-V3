@@ -493,7 +493,7 @@ Deno.serve(async (req) => {
         return json({ error: 'Failed to get access token' }, 401);
       }
 
-      await fetch(`${GRAPH_BASE}/me/messages/${messageId}`, {
+      const patchRes = await fetch(`${GRAPH_BASE}/me/messages/${messageId}`, {
         method: 'PATCH',
         headers: {
           Authorization: `Bearer ${accessToken}`,
@@ -502,6 +502,9 @@ Deno.serve(async (req) => {
         body: JSON.stringify({ isRead }),
         signal: AbortSignal.timeout(10_000),
       });
+      if (!patchRes.ok) {
+        return json({ error: `Graph API error: ${patchRes.status}` }, 502);
+      }
 
       return json({ success: true });
     }

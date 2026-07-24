@@ -70,7 +70,7 @@ export function useHmacAuditHistory(range: RangeKey, instanceFilter: string, lim
       .channel('hmac-selftest-audit-realtime')
       .on(
         'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'hmac_selftest_audit' },
+        { event: 'INSERT', schema: 'zapp', table: 'hmac_selftest_audit' },
         () => {
           if (debounceRef.current) window.clearTimeout(debounceRef.current);
           debounceRef.current = window.setTimeout(() => {

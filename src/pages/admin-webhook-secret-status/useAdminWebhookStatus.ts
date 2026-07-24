@@ -62,6 +62,7 @@ export function useAdminWebhookStatus() {
       return data as SecretStatus; // ignore-audit: narrows Supabase query result to local interface
     },
     refetchInterval: REFRESH_INTERVAL,
+    staleTime: REFRESH_INTERVAL - 5_000,
   });
 
   const eventsQuery = useQuery({
@@ -83,6 +84,7 @@ export function useAdminWebhookStatus() {
       return res.data ?? [];
     },
     refetchInterval: REFRESH_INTERVAL,
+    staleTime: REFRESH_INTERVAL - 5_000,
   });
 
   // Always fetch a small global slice for the instance dropdown so the user
@@ -101,6 +103,7 @@ export function useAdminWebhookStatus() {
       return res.data ?? [];
     },
     refetchInterval: REFRESH_INTERVAL * 4,
+    staleTime: REFRESH_INTERVAL * 4 - 5_000,
   });
 
   const refetchAll = useCallback(() => {

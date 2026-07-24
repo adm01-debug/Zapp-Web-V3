@@ -67,6 +67,7 @@ export function useQuickReplies() {
       return data as QuickReplyTemplate[]; // ignore-audit: narrows Supabase query result to local interface
     },
     enabled: !!user?.id,
+    staleTime: 60_000,
   });
 
   // Local favorites storage (synced with localStorage for persistence)

@@ -235,8 +235,8 @@ function useMediaCrudManagement({ type }: UseMediaCrudParams): UseMediaCrudResul
           type === 'audio_memes'
             ? { audio_url: item.audio_url || '', file_name: item.name || '' }
             : { image_url: item.image_url || '' };
-        const { data } = await supabase.functions.invoke(fnName, { body });
-        if (data?.category && data.category !== item.category) {
+        const { data, error: invokeError } = await supabase.functions.invoke(fnName, { body });
+        if (!invokeError && data?.category && data.category !== item.category) {
           const { error } = await supabase
             .from(type as 'stickers')
             .update({ category: data.category })

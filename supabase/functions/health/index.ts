@@ -73,11 +73,35 @@ async function checkMetrics(): Promise<CheckResult> {
   });
 }
 
+const HEALTH_SECRET = Deno.env.get('HEALTH_SECRET') ?? '';
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
   const url = new URL(req.url);
   const probe = url.searchParams.get('probe');
+
+  // Probe mode: public OK/FAIL for load-balancers (reveals no internal detail).
+  if (probe) {
+    const checks = await Promise.allSettled([checkDatabase()]);
+    const healthy = checks.every((c) => c.status === 'fulfilled' && c.value.status === 'ok');
+    return new Response(healthy ? 'OK' : 'FAIL', {
+      status: healthy ? 200 : 503,
+      headers: { ...corsHeaders, 'content-type': 'text/plain' },
+    });
+  }
+
+  // Detailed JSON: require HEALTH_SECRET token (Bearer or ?token=) when configured.
+  if (HEALTH_SECRET) {
+    const bearer = req.headers.get('authorization')?.replace(/^Bearer\s+/i, '') ?? '';
+    const qtoken = url.searchParams.get('token') ?? '';
+    if (bearer !== HEALTH_SECRET && qtoken !== HEALTH_SECRET) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'content-type': 'application/json' },
+      });
+    }
+  }
 
   const checks = await Promise.all([
     checkDatabase(),
@@ -88,13 +112,6 @@ Deno.serve(async (req) => {
   const failed = checks.filter((c) => c.status === 'fail');
   const healthy = failed.length === 0;
   const status = healthy ? 200 : 503;
-
-  if (probe) {
-    return new Response(healthy ? 'OK' : 'FAIL', {
-      status,
-      headers: { ...corsHeaders, 'content-type': 'text/plain' },
-    });
-  }
 
   return new Response(
     JSON.stringify({

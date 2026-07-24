@@ -54,7 +54,7 @@ export function DegradedConnectionsBanner({ onNavigate, recentWindowMs = 10 * 60
       .channel('degraded-banner')
       .on(
         'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'whatsapp_connections' },
+        { event: 'UPDATE', schema: 'zapp', table: 'whatsapp_connections' },
         () => fetchDegraded()
       )
       .subscribe();

@@ -414,9 +414,13 @@ export function checkRateLimit(
 
 /** Extract and normalize client IP from request for rate limiting (C.14: IPv6 support) */
 export function getClientIP(req: Request): string {
+  // Prefer x-real-ip (set by Supabase's infrastructure proxy, not client-controllable).
+  // Fall back to the RIGHTMOST x-forwarded-for entry — the leftmost is appended by the
+  // client and is fully attacker-controlled (reading it allows rate-limit bypass by
+  // cycling fake IPs).
   const raw =
-    req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
     req.headers.get('x-real-ip') ||
+    req.headers.get('x-forwarded-for')?.split(',').at(-1)?.trim() ||
     'unknown';
 
   // Normalize IPv6 addresses to lowercase canonical form to prevent rate-limit bypass

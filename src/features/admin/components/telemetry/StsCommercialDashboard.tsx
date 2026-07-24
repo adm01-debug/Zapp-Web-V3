@@ -42,7 +42,8 @@ export function StsCommercialDashboard() {
         throw err;
       }
     },
-    refetchInterval: 60000, // Auto refresh every min
+    refetchInterval: 60000,
+    staleTime: 55_000,
     retry: false,
   });
 

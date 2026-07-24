@@ -48,6 +48,8 @@ export const TeamFiles = memo(function TeamFiles({ contactId }: TeamFilesProps) 
 
   const { data: files = [], isLoading } = useQuery({
     queryKey: ['team-files', contactId],
+    enabled: !!contactId,
+    staleTime: 60_000,
     queryFn: async () => {
       const { data, error } = await safeClient.from<WhisperFile>('whisper_files', (q) =>
         q.select('*').eq('contact_id', contactId).order('created_at', { ascending: false })

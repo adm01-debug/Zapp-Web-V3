@@ -49,7 +49,7 @@ export function useWhisperCount(
         'postgres_changes',
         {
           event: '*',
-          schema: 'public',
+          schema: 'zapp',
           table: 'whisper_messages',
           filter: `contact_id=eq.${selectedContactId}`,
         },

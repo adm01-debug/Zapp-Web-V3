@@ -22,6 +22,7 @@ export function useContactDetailStats(contactId: string): UseContactDetailStatsR
     // Skip when contactId is a WhatsApp JID (e.g. 5511@s.whatsapp.net) — those are
     // external-DB contacts whose UUID columns can't accept JID strings.
     enabled: !!contactId && UUID_RE.test(contactId),
+    staleTime: 60_000,
     queryFn: async (): Promise<ContactDetailStats> => {
       const [msgsResult, eventsResult, csatResult] = await Promise.all([
         safeClient.from<{ sender: string; created_at: string }>('messages', (q) =>
