@@ -29,7 +29,7 @@ export function useIncomingCallListener() {
         'postgres_changes',
         {
           event: 'INSERT',
-          schema: 'zapp',
+          schema: 'public',
           table: 'calls',
           filter: `agent_id=eq.${profile.id}`,
         },
