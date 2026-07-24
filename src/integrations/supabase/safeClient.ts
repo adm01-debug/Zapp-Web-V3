@@ -23,22 +23,14 @@ export { maskEmail, maskSensitiveData } from './safeClientMasking';
 const supabase = _supabase;
 const _log = getLogger('safeClient');
 
-// Escape hatch for email_app schema RPCs absent from the generated TypeScript types.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const _emailRpc = supabase.rpc as any;
-
 // Dynamic table accessor — bypasses the overloaded `from()` signature that
 // requires a string-literal table name from the generated types.
 type DynamicSupabaseClient = { from(t: string): ReturnType<typeof supabase.from> };
-type DynamicSchemaClient = { schema(schema: string): DynamicSupabaseClient };
 
-let _emailAppClient: DynamicSupabaseClient | undefined;
-function getEmailAppClient(): DynamicSupabaseClient {
-  if (!_emailAppClient) {
-    _emailAppClient = (supabase as unknown as DynamicSchemaClient).schema('email_app');
-  }
-  return _emailAppClient;
-}
+// All email_* tables are accessible via auto-updatable views in the zapp schema.
+// Do NOT use supabase.schema('email_app') — PostgREST may not expose that schema,
+// and the zapp views handle routing transparently.
+const _dynamicClient = supabase as unknown as DynamicSupabaseClient;
 
 const MAX_FAILURES = 20;
 const CACHE_TTL = 5 * 60 * 1000;
@@ -74,7 +66,7 @@ function validateTableName(table: string): void {
 /** safe From. */
 export function safeFrom(table: string): SafeQueryBuilder {
   validateTableName(table);
-  return (supabase as unknown as DynamicSupabaseClient).from(table);
+  return _dynamicClient.from(table);
 }
 
 /** safe Client. */
@@ -86,16 +78,7 @@ export const safeClient = {
     const requestId = crypto.randomUUID();
     telemetry.stats.totalCalls++;
     try {
-      if (table.startsWith('email_')) {
-        const exists = await this.validateResource(table, 'table');
-        if (!exists) {
-          this.log(requestId, 'warn', `Tabela ${table} não encontrada no schema.`, { table });
-          await this.recordFailure(requestId, 'from', table, `Tabela ${table} não encontrada`);
-          return { data: [] as T[], error: new Error(`Tabela ${table} não disponível`), requestId };
-        }
-      }
-      const client = table.startsWith('email_') ? getEmailAppClient() : (supabase as unknown as DynamicSupabaseClient);
-      const { data, error } = await queryBuilder(client.from(table));
+      const { data, error } = await queryBuilder(_dynamicClient.from(table));
       if (error) {
         this.log(requestId, 'error', `Erro na query from ${table}`, error);
         await this.recordFailure(
@@ -135,17 +118,7 @@ export const safeClient = {
     telemetry.stats.totalCalls++;
     try {
       validateTableName(table);
-
-      if (table.startsWith('email_')) {
-        const exists = await this.validateResource(table, 'table');
-        if (!exists) {
-          this.log(requestId, 'warn', `Tabela ${table} não encontrada para single()`, { table });
-          await this.recordFailure(requestId, 'single', table, `Tabela ${table} não encontrada`);
-          return { data: null, error: new Error(`Tabela ${table} não disponível`), requestId };
-        }
-      }
-      const client = table.startsWith('email_') ? getEmailAppClient() : (supabase as unknown as DynamicSupabaseClient);
-      const { data, error } = await queryBuilder(client.from(table)).single();
+      const { data, error } = await queryBuilder(_dynamicClient.from(table)).single();
       if (error) {
         this.log(requestId, 'error', `Erro single query ${table}`, error);
         await this.recordFailure(
@@ -175,14 +148,6 @@ export const safeClient = {
     const requestId = crypto.randomUUID();
     telemetry.stats.totalCalls++;
     try {
-      if (name.startsWith('rpc_email_')) {
-        const exists = await this.validateResource(name, 'function');
-        if (!exists) {
-          this.log(requestId, 'warn', `RPC ${name} não encontrada no schema.`, { function: name });
-          await this.recordFailure(requestId, 'rpc', name, `Função ${name} não encontrada`);
-          return { data: null, error: new Error(`Função ${name} não disponível`), requestId };
-        }
-      }
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data, error } = await supabase.rpc(name as any, params); // ignore-audit — dynamic RPC name not in generated union
       if (error) {
@@ -226,8 +191,7 @@ export const safeClient = {
       try {
         let exists = false;
         if (type === 'table') {
-          const client = name.startsWith('email_') ? getEmailAppClient() : (supabase as unknown as DynamicSupabaseClient);
-          const { error } = await client
+          const { error } = await _dynamicClient
             .from(name)
             .select('count', { count: 'exact', head: true })
             .limit(0);
@@ -294,8 +258,8 @@ export const safeClient = {
       if (snap.recentFailures.length > 10) status = 'error';
       else if (snap.recentFailures.length > 0) status = 'degraded';
 
-      type RpcResult = { data: unknown; error: { message: string } | null };
-      const { error: rpcErr } = (await _emailRpc('rpc_update_email_health_state', {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error: rpcErr } = await supabase.rpc('rpc_update_email_health_state' as any, {
         p_status: status,
         p_failure_count: snap.recentFailures.length,
         p_metadata: {
@@ -303,9 +267,9 @@ export const safeClient = {
           cache_hits: snap.stats.cacheHits,
           last_validation: snap.lastValidation?.toISOString(),
         },
-      })) as RpcResult;
+      });
       if (rpcErr) {
-        _log.warn('Erro ao sincronizar estado de saúde', { error: rpcErr.message });
+        _log.warn('Erro ao sincronizar estado de saúde', { error: (rpcErr as { message?: string }).message });
       }
     } catch (err) {
       _log.warn('Erro ao sincronizar estado de saúde (exceção)', {
@@ -359,17 +323,17 @@ export const safeClient = {
     if (_healthLogInProgress) return;
     _healthLogInProgress = true;
     try {
-      type RpcResult = { data: unknown; error: { message: string } | null };
-      const { error: rpcErr } = (await _emailRpc('rpc_log_email_health', {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error: rpcErr } = await supabase.rpc('rpc_log_email_health' as any, {
         p_status: 'error',
         p_operation: operation,
         p_resource: resource,
         p_request_id: requestId,
         p_error_message: error,
         p_is_failure: true,
-      })) as RpcResult;
+      });
       if (rpcErr) {
-        _log.warn('Falha ao persistir log de saúde', { error: rpcErr.message });
+        _log.warn('Falha ao persistir log de saúde', { error: (rpcErr as { message?: string }).message });
       }
     } catch (dbErr) {
       _log.warn('Falha ao persistir log de saúde (exceção)', {

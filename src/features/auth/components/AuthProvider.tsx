@@ -154,7 +154,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         Promise.resolve(
           supabase
             .from('role_permissions')
-            .select('permission')
+            .select('permission_id, permissions(name)')
             .in('role', roleNames)
         ),
         8000,
@@ -165,7 +165,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
       const permNames = userPermissions
-        .map((p) => p.permission as string)
+        .map((p) => {
+          const perm = p.permissions as { name: string } | null;
+          return perm?.name ?? null;
+        })
         .filter((n): n is string => typeof n === 'string');
       setPermissions(permNames);
     } catch (err: unknown) {
