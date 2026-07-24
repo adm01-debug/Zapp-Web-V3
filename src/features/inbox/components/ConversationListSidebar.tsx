@@ -315,11 +315,19 @@ export function ConversationListSidebar({
               prestador_servico: 'Nenhum prestador encontrado',
               transportadora: 'Nenhuma transportadora encontrada',
             };
+            // Distingue "banco sem dados" (allConversations vazio) de
+            // "filtros esconderam tudo" (allConversations > 0 mas filtered = 0).
+            const totalLoaded = (inbox.conversations?.length ?? 0);
+            const filtersHideAll =
+              !inbox.usingCache && !inboxFilters.search && totalLoaded > 0;
             const msg = inbox.usingCache
               ? 'Modo offline — sem dados em cache'
               : inboxFilters.search
                 ? 'Nenhuma conversa encontrada'
-                : emptyMessages[inboxFilters.selectedContactType || ''] || 'Sem conversas';
+                : filtersHideAll
+                  ? `Nenhuma conversa nesta aba (${totalLoaded} no total). Ajuste os filtros.`
+                  : emptyMessages[inboxFilters.selectedContactType || ''] ||
+                    'Nenhuma conversa recente encontrada para a instância ativa';
             return (
               <motion.div
                 key={inboxFilters.selectedContactType || 'all'}
