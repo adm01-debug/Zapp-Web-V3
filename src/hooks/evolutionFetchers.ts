@@ -3,12 +3,18 @@
  */
 import { queryExternalProxy } from '@/lib/externalProxy';
 import type { EvolutionMessage } from '@/types/evolutionExternal';
-import { DEFAULT_WHATSAPP_INSTANCE } from '@/lib/constants/whatsappInstances';
+import { ACTIVE_WHATSAPP_INSTANCE } from '@/lib/constants/whatsappInstances';
+import { getLogger } from '@/lib/logger';
+
+const fetcherLog = getLogger('evolutionFetchers');
 
 /** Polling interval in milliseconds for evolution_messages real-time updates. */
 export const POLL_INTERVAL = 5000;
-/** Default WhatsApp instance identifier used when none is specified. */
-export const DEFAULT_INSTANCE = DEFAULT_WHATSAPP_INSTANCE;
+/**
+ * Default WhatsApp instance identifier used when none is specified.
+ * Aponta para a instância ATIVA (que recebe mensagens novas), não para a legada.
+ */
+export const DEFAULT_INSTANCE = ACTIVE_WHATSAPP_INSTANCE;
 /** Number of days back to fetch sidebar conversations. */
 export const SIDEBAR_DAYS_BACK = 7;
 /** Maximum number of conversations loaded in the sidebar. */
