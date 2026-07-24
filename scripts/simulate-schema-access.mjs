@@ -60,12 +60,11 @@ for (const t of zappTables) {
 }
 
 // -- Categoria 2: evo reads ---------------------------------------
+// evolution_contacts, evolution_media, evolution_whatsapp_status exist as
+// auto-updatable views in zapp schema (CLAUDE.md rule 2 — use without .schema('evo'))
 const evoTables = [
   'evolution_messages_wpp2',
-  'evolution_contacts',
-  'evolution_media',
   'evolution_conversations_wpp2',
-  'evolution_whatsapp_status',
 ];
 for (const t of evoTables) {
   let ok = true;
@@ -87,9 +86,11 @@ for (const t of evoTables) {
 }
 
 // -- Categoria 3: Realtime ----------------------------------------
-// Considera "com schema" se: (a) o objeto do 2º arg de .on() contém `schema:`,
-// OU (b) o próprio config passado como 2º arg é uma variável (aceito — analista
-// estático não infere), OU (c) o arquivo pertence ao _tests_/_mocks_.
+// Considera "com schema" se:
+//   (a) literal  schema: 'zapp'  ou  schema: "evo"  etc.
+//   (b) shorthand  schema  (JS shorthand property — valor é variável do escopo)
+//   (c) variável   schema: someVar  (estático não infere o valor, aceita)
+//   (d) arquivo pertence a _tests_/_mocks_
 let realtimeMissingSchema = 0;
 const realtimeOffenders = [];
 for (const f of files) {
@@ -99,7 +100,14 @@ for (const f of files) {
   const re = /\.on\(\s*['"`]postgres_changes['"`]\s*,\s*\{([\s\S]*?)\}\s*,/g;
   for (const m of src.matchAll(re)) {
     const body = m[1];
-    if (!/schema\s*:\s*['"`][a-z_]+['"`]/.test(body)) {
+    // (a) schema: 'literal'
+    // (b) schema shorthand (followed by comma, whitespace, or closing brace)
+    // (c) schema: variable (identifier, not a string)
+    const hasSchema =
+      /schema\s*:\s*['"`][a-z_]+['"`]/.test(body) ||   // (a) literal
+      /(?:^|[,{\s])schema(?:\s*[,}]|\s*$)/.test(body) || // (b) shorthand
+      /schema\s*:\s*[a-zA-Z_$][a-zA-Z0-9_$]*/.test(body); // (c) variable
+    if (!hasSchema) {
       realtimeMissingSchema++;
       realtimeOffenders.push(f.replace(ROOT + '/', ''));
     }

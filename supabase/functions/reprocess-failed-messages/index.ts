@@ -1,5 +1,6 @@
 // Reprocessa entradas pendentes na DLQ `failed_messages`.
 // Chamada por pg_cron a cada 15min ou manualmente por admin.
+// Auth: SUPABASE_SERVICE_ROLE_KEY (via createZappAdminClient) ou admin JWT.
 import { createZappAdminClient } from '../_shared/db-client.ts';
 import { computeBackoffMs, classifyRetryReason, computeBackoffMsByReason } from '../_shared/dlq-backoff.ts';
 import { requireServiceRoleOrCron, requireAdminOrSupervisor } from '../_shared/auth.ts';
