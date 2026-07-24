@@ -2,6 +2,7 @@ import { queryKeys } from '@/services/api/queryKeys';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { sanitizePostgrestFilter } from '@/lib/sanitize';
 
 /** Rate Limit Log interface definition. */
 export interface RateLimitLog {
@@ -26,7 +27,8 @@ interface RateLimitStats {
 }
 
 /** Rate Limit Sort Key type alias. */
-export type RateLimitSortKey = 'created_at' | 'ip_address' | 'endpoint' | 'request_count' | 'blocked';
+export type RateLimitSortKey =
+  'created_at' | 'ip_address' | 'endpoint' | 'request_count' | 'blocked';
 /** Rate Limit Sort Dir type alias. */
 export type RateLimitSortDir = 'asc' | 'desc';
 
@@ -56,9 +58,8 @@ export const DEFAULT_FILTERS: RateLimitLogsFilters = {
 // type level — keeps tsgo fast even with multiple builder branches.
 const sel = (s: string): string => s;
 const LOGS_COLUMNS = sel(
-  'id, ip_address, endpoint, user_id, request_count, blocked, user_agent, country, city, created_at',
+  'id, ip_address, endpoint, user_id, request_count, blocked, user_agent, country, city, created_at'
 );
-
 
 function stableFilterKey(f: RateLimitLogsFilters) {
   return [
@@ -128,15 +129,14 @@ export function useRateLimitLogs(initial?: Partial<RateLimitLogsFilters>): UseRa
       const from = (filters.page - 1) * filters.pageSize;
       const to = from + filters.pageSize - 1;
 
-      let q = supabase
-        .from('rate_limit_logs')
-        .select(LOGS_COLUMNS, { count: 'exact' });
+      let q = supabase.from('rate_limit_logs').select(LOGS_COLUMNS, { count: 'exact' });
 
       const ip = (filters.ip ?? '').trim();
       const ep = (filters.endpoint ?? '').trim();
-      if (ip) q = q.ilike('ip_address', `%${ip}%`);
-      if (ep) q = q.ilike('endpoint', `%${ep}%`);
-      if (filters.blockedOnly) q = (q as unknown as { eq: (c: string, v: unknown) => typeof q }).eq('blocked', true);
+      if (ip) q = q.ilike('ip_address', `%${sanitizePostgrestFilter(ip)}%`);
+      if (ep) q = q.ilike('endpoint', `%${sanitizePostgrestFilter(ep)}%`);
+      if (filters.blockedOnly)
+        q = (q as unknown as { eq: (c: string, v: unknown) => typeof q }).eq('blocked', true);
 
       q = q.order(filters.sortBy, { ascending: filters.sortDir === 'asc' }).range(from, to);
 
@@ -174,11 +174,12 @@ export function useRateLimitLogs(initial?: Partial<RateLimitLogsFilters>): UseRa
         'postgres_changes',
         { event: 'INSERT', schema: 'zapp', table: 'rate_limit_logs' },
         (payload) => {
-          queryClient.setQueryData<RateLimitLog[]>(queryKeys.adminOps.rateLimitLogsStats(), (prev) =>
-            [payload.new, ...(prev ?? [])].slice(0, 200),
+          queryClient.setQueryData<RateLimitLog[]>(
+            queryKeys.adminOps.rateLimitLogsStats(),
+            (prev) => [payload.new, ...(prev ?? [])].slice(0, 200)
           );
           queryClient.invalidateQueries({ queryKey: queryKeys.adminOps.rateLimitLogs('page') });
-        },
+        }
       )
       .subscribe();
     return () => {

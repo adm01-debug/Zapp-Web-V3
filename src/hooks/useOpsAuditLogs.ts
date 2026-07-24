@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { sanitizePostgrestFilter } from '@/lib/sanitize';
 import { toast } from 'sonner';
 
 export type AuditRow = {
@@ -26,7 +27,11 @@ interface UseOpsAuditLogsOptions {
 }
 
 export function useOpsAuditLogs({ entity, search }: UseOpsAuditLogsOptions) {
-  const { data: rows = [], isLoading: loading, refetch } = useQuery({
+  const {
+    data: rows = [],
+    isLoading: loading,
+    refetch,
+  } = useQuery({
     queryKey: ['ops-audit-logs', entity, search] as const,
     queryFn: async () => {
       let q = supabase
@@ -40,7 +45,7 @@ export function useOpsAuditLogs({ entity, search }: UseOpsAuditLogsOptions) {
       } else {
         q = q.eq('entity_type', entity);
       }
-      if (search.trim()) q = q.ilike('action', `%${search.trim()}%`);
+      if (search.trim()) q = q.ilike('action', `%${sanitizePostgrestFilter(search.trim())}%`);
 
       const { data, error } = await q;
       if (error) {

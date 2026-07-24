@@ -1,4 +1,3 @@
-
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useInboxFilters } from '../useInboxFilters';
@@ -11,6 +10,8 @@ const mockHasPermission = vi.hoisted(() => vi.fn());
 vi.mock('@/features/auth', () => ({
   usePermissions: () => ({
     hasPermission: mockHasPermission,
+    userPermissions: [],
+    loading: false,
   }),
 }));
 

@@ -1,9 +1,4 @@
-import type { SupabaseClient } from '@supabase/supabase-js';
-import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
-
-// Tables that exist in the DB but not in the generated types use this untyped client.
-const dynSupabase = supabase as unknown as SupabaseClient;
 
 export interface EmailRevalidationJob {
   id: string;
@@ -29,23 +24,23 @@ export const emailApi = {
     to: number,
     filters?: { status?: string; dateFrom?: string; dateTo?: string }
   ) => {
-    let query = dynSupabase.from('email_revalidation_jobs').select('*', { count: 'exact' });
-
-    if (filters?.status && filters.status !== 'all') {
-      query = query.eq('status', filters.status);
-    }
-    if (filters?.dateFrom) {
-      query = query.gte('requested_at', filters.dateFrom);
-    }
-    if (filters?.dateTo) {
-      query = query.lte('requested_at', filters.dateTo);
-    }
-
-    const { data, count, error } = await query
-      .order('requested_at', { ascending: false })
-      .range(from, to);
-
-    return { data: data as EmailRevalidationJob[] | null, count, error };
+    const { data: rows, error } = await safeClient.from<EmailRevalidationJob>(
+      'email_revalidation_jobs',
+      (q) => {
+        let query = q.select('*', { count: 'exact' });
+        if (filters?.status && filters.status !== 'all') {
+          query = query.eq('status', filters.status);
+        }
+        if (filters?.dateFrom) {
+          query = query.gte('requested_at', filters.dateFrom);
+        }
+        if (filters?.dateTo) {
+          query = query.lte('requested_at', filters.dateTo);
+        }
+        return query.order('requested_at', { ascending: false }).range(from, to);
+      }
+    );
+    return { data: rows as EmailRevalidationJob[] | null, count: rows?.length ?? 0, error };
   },
   getHealthSummary: async () => {
     const { data: rows, error } = await safeClient.from<EmailHealthSummary>(

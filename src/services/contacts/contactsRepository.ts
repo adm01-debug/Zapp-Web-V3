@@ -7,6 +7,7 @@
  */
 
 import { supabase } from '@/integrations/supabase/client';
+import { sanitizePostgrestFilter } from '@/lib/sanitize';
 import { applyRetry, createService } from '@/services/api/genericService';
 import type { ListResponse, QueryParams } from '@/services/api/types';
 
@@ -53,10 +54,11 @@ export const contactsRepository = {
    * Search contacts by name or email
    */
   search: async (query: string): Promise<Contact[]> => {
+    const safe = sanitizePostgrestFilter(query);
     const { data: byName, error: nameError } = await supabase
       .from('contacts')
       .select('*')
-      .ilike('name', `%${query}%`)
+      .ilike('name', `%${safe}%`)
       .limit(20);
 
     if (nameError && nameError.code !== 'PGRST116') throw nameError;
@@ -64,7 +66,7 @@ export const contactsRepository = {
     const { data: byEmail, error: emailError } = await supabase
       .from('contacts')
       .select('*')
-      .ilike('email', `%${query}%`)
+      .ilike('email', `%${safe}%`)
       .limit(20);
 
     if (emailError && emailError.code !== 'PGRST116') throw emailError;

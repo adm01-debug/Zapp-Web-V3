@@ -11,6 +11,7 @@ const mockProfile = { id: 'coord-1', department: 'Sales' };
 vi.mock('@/features/auth', () => ({
   usePermissions: () => ({
     hasPermission: mockHasPermission,
+    userPermissions: [],
     loading: false,
   }),
   useAuth: () => ({

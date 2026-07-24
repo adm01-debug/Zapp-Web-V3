@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
+import { sanitizePostgrestFilter } from '@/lib/sanitize';
 import { useToast } from '@/hooks/use-toast';
 import type { ExecutionRow, RuleLite, AutomationStatus } from '@/pages/admin/automationLogsHelpers';
 import { PAGE_SIZE } from '@/pages/admin/automationLogsHelpers';
@@ -22,7 +23,15 @@ export function useAutomationLogs(filters: AutomationLogsFilters) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const logsKey = ['automation-logs', page, filterRule, filterStatus, filterJid, filterFrom, filterTo] as const;
+  const logsKey = [
+    'automation-logs',
+    page,
+    filterRule,
+    filterStatus,
+    filterJid,
+    filterFrom,
+    filterTo,
+  ] as const;
   const rulesKey = ['automation-rules'] as const;
 
   const { data: rows = [], isLoading: loading } = useQuery({
@@ -35,7 +44,8 @@ export function useAutomationLogs(filters: AutomationLogsFilters) {
           .range(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE - 1);
         if (filterRule !== 'all') query = query.eq('rule_id', filterRule);
         if (filterStatus !== 'all') query = query.eq('status', filterStatus as AutomationStatus);
-        if (filterJid.trim()) query = query.ilike('remote_jid', `%${filterJid.trim()}%`);
+        if (filterJid.trim())
+          query = query.ilike('remote_jid', `%${sanitizePostgrestFilter(filterJid.trim())}%`);
         if (filterFrom) query = query.gte('created_at', new Date(filterFrom).toISOString());
         if (filterTo) {
           const to = new Date(filterTo);
@@ -46,7 +56,8 @@ export function useAutomationLogs(filters: AutomationLogsFilters) {
       });
       if (error) {
         const isMissing =
-          error.message?.includes('does not exist') || (error as { code?: string }).code === '42P01';
+          error.message?.includes('does not exist') ||
+          (error as { code?: string }).code === '42P01';
         if (!isMissing) {
           toast({ title: 'Erro', description: error.message, variant: 'destructive' });
         }
@@ -76,7 +87,15 @@ export function useAutomationLogs(filters: AutomationLogsFilters) {
         () => {
           if (page === 0) {
             void queryClient.invalidateQueries({
-              queryKey: ['automation-logs', page, filterRule, filterStatus, filterJid, filterFrom, filterTo],
+              queryKey: [
+                'automation-logs',
+                page,
+                filterRule,
+                filterStatus,
+                filterJid,
+                filterFrom,
+                filterTo,
+              ],
             });
           }
         }
@@ -92,7 +111,15 @@ export function useAutomationLogs(filters: AutomationLogsFilters) {
   const load = useCallback(
     () =>
       queryClient.invalidateQueries({
-        queryKey: ['automation-logs', page, filterRule, filterStatus, filterJid, filterFrom, filterTo],
+        queryKey: [
+          'automation-logs',
+          page,
+          filterRule,
+          filterStatus,
+          filterJid,
+          filterFrom,
+          filterTo,
+        ],
       }),
     [queryClient, page, filterRule, filterStatus, filterJid, filterFrom, filterTo]
   );

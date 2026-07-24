@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { log } from '@/lib/logger';
+import { sanitizePostgrestFilter } from '@/lib/sanitize';
 
 /** K B Article interface definition. */
 export interface KBArticle {
@@ -21,12 +22,17 @@ export function useKnowledgeBaseSearch() {
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  useEffect(() => () => { if (timerRef.current) clearTimeout(timerRef.current); }, []);
+  useEffect(
+    () => () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    },
+    []
+  );
 
   const { data: articles = [], isLoading } = useQuery({
     queryKey: ['kb-search', debouncedQuery],
     queryFn: async (): Promise<KBArticle[]> => {
-      const term = debouncedQuery.trim();
+      const term = sanitizePostgrestFilter(debouncedQuery.trim());
       const pattern = `%${term}%`;
       const { data, error } = await supabase
         .from('knowledge_base_articles')

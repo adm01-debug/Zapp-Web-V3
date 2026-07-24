@@ -2,6 +2,7 @@ import { useEffect, useRef, useMemo } from 'react';
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
+import { sanitizePostgrestFilter } from '@/lib/sanitize';
 import { useAuth } from '@/features/auth';
 import type { TeamMessage } from './teamChatTypes';
 import { queryKeys } from '@/services/api/queryKeys';
@@ -36,7 +37,7 @@ export function useTeamMessages(conversationId: string | null, searchQuery: stri
               );
             }
             if (searchQuery.trim()) {
-              query = query.ilike('content', `%${searchQuery.trim()}%`);
+              query = query.ilike('content', `%${sanitizePostgrestFilter(searchQuery.trim())}%`);
             }
             return query;
           }
@@ -96,7 +97,9 @@ export function useTeamMessages(conversationId: string | null, searchQuery: stri
             );
           }
 
-          void queryClient.invalidateQueries({ queryKey: queryKeys.teamChat.allMessages(conversationId) });
+          void queryClient.invalidateQueries({
+            queryKey: queryKeys.teamChat.allMessages(conversationId),
+          });
         }
       )
       .subscribe();
