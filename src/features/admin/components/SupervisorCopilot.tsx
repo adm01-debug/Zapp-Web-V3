@@ -77,6 +77,7 @@ Agentes: ${agents.map((a) => `${a.name} (${a.role})`).join(', ') || 'nenhum'}
         },
       });
 
+      if (response.error) throw response.error;
       const answer =
         response.data?.content ||
         response.data?.choices?.[0]?.message?.content ||
