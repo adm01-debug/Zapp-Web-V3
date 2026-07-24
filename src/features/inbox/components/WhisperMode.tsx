@@ -69,6 +69,7 @@ export function WhisperMode({
   const sendWhisper = useMutation({
     mutationFn: async ({ content, audioUrl }: { content?: string; audioUrl?: string }) => {
       if (!profile?.id) throw new Error('Not authenticated');
+      if (!isValidUUID(contactId)) throw new Error('Invalid contact ID');
       const payload = {
         contact_id: contactId,
         sender_id: profile.id,
@@ -140,7 +141,8 @@ export function WhisperMode({
         className
       )}
     >
-      <button type="button"
+      <button
+        type="button"
         onClick={() => setIsExpanded(!isExpanded)}
         className="flex items-center justify-between rounded-t-lg px-3 py-2 text-xs font-medium text-amber-700 transition-colors hover:bg-amber-100 dark:text-amber-300 dark:hover:bg-amber-900/30"
       >

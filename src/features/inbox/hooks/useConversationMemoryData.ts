@@ -1,6 +1,8 @@
 import { supabase } from '@/integrations/supabase/client';
+import { isValidUUID } from '@/utils/uuid';
 
 export async function fetchConversationMemory(contactId: string) {
+  if (!isValidUUID(contactId)) return null;
   const { data } = await supabase
     .from('conversation_memory')
     .select('*')

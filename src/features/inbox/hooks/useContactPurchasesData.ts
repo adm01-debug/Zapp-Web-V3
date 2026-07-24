@@ -1,6 +1,8 @@
 import { supabase } from '@/integrations/supabase/client';
+import { isValidUUID } from '@/utils/uuid';
 
 export async function fetchContactPurchases(contactId: string) {
+  if (!isValidUUID(contactId)) return [];
   const { data } = await supabase
     .from('contact_purchases')
     .select('*')

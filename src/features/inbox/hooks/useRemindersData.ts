@@ -1,6 +1,8 @@
 import { supabase } from '@/integrations/supabase/client';
+import { isValidUUID } from '@/utils/uuid';
 
 export async function fetchReminders(contactId: string, profileId: string) {
+  if (!isValidUUID(contactId) || !isValidUUID(profileId)) return [];
   const { data } = await supabase
     .from('reminders')
     .select('*')

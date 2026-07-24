@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/features/auth';
 import { toast } from '@/hooks/use-toast';
 import { queryKeys } from '@/services/api/queryKeys';
+import { isValidUUID } from '@/utils/uuid';
 
 /** Scheduled Message interface definition. */
 export interface ScheduledMessage {
@@ -28,7 +29,7 @@ export function useScheduledMessages(contactId?: string) {
 
   const { data: messages = [], isLoading } = useQuery({
     queryKey: queryKeys.scheduledMessages.contact(contactId),
-    enabled: !!contactId,
+    enabled: !!contactId && isValidUUID(contactId),
     staleTime: 30_000,
     queryFn: async () => {
       let query = supabase
@@ -80,7 +81,7 @@ export function useScheduledMessages(contactId?: string) {
           whatsapp_connection_id: data.connectionId || null,
         })
         .select()
-        .maybeSingle() // ✅ fix: maybeSingle evita PGRST116;
+        .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
 
       if (msgErr) throw msgErr;
       return msg;

@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { queryKeys } from '@/services/api/queryKeys';
 import { useSLAAlertPreferences } from './useSLAAlertPreferences';
+import { isValidUUID } from '@/utils/uuid';
 
 type SLAStatus = 'ok' | 'warning' | 'breached' | 'na';
 type SLAScope = 'current' | 'queue' | 'agent' | 'none';
@@ -151,7 +152,7 @@ export function useSLAAlerts(params: SLAAlertParams) {
 
   useEffect(() => {
     if (params.scope === 'none' || !params.contactId) return;
-    // Master switch: when disabled, skip toasts AND audit inserts AND webhook forward entirely.
+    if (!isValidUUID(params.contactId)) return;
     if (!preferences.enabled) return;
     const contactId = params.contactId;
 

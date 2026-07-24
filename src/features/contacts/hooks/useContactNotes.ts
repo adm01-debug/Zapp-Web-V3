@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/features/auth';
 import { toast } from '@/hooks/use-toast';
 import { getLogger } from '@/lib/logger';
+import { isValidUUID } from '@/utils/uuid';
 
 const log = getLogger('useContactNotes');
 
@@ -99,7 +100,7 @@ export function useContactNotes(contactId: string) {
         },
       }));
     },
-    enabled: !!contactId,
+    enabled: !!contactId && isValidUUID(contactId),
     staleTime: 60_000,
   });
 

@@ -36,6 +36,7 @@ import {
   ConflictInfo,
 } from '@/components/contacts/ConflictResolutionDialog';
 import { dbFrom } from '@/integrations/datasource/db';
+import { isValidUUID } from '@/utils/uuid';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -126,6 +127,7 @@ export const EditContactDialog: React.FC<EditContactDialogProps> = ({
   });
 
   const saveWithVersionCheck = async (force = false) => {
+    if (!isValidUUID(contact.id)) return;
     const data = buildUpdateData();
 
     if (!data.name) {
