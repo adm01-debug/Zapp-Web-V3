@@ -322,10 +322,22 @@ function renderPrometheus(): string {
 async function handleRequest(req: Request, _t0: number): Promise<Response> {
   if (req.method === "OPTIONS") return handleCorsPreflight(req);
 
-  // Métricas Prometheus (sem auth — só contadores agregados, sem PII)
+  // Métricas Prometheus — requires either a service-role JWT or METRICS_SECRET bearer token
+  // to prevent exposing table/RPC names in histogram labels to unauthenticated callers.
   {
     const u = new URL(req.url);
     if (req.method === "GET" && u.pathname.endsWith("/metrics")) {
+      const metricsSecret = Deno.env.get("METRICS_SECRET");
+      const authHeader = req.headers.get("authorization") ?? req.headers.get("Authorization") ?? "";
+      const callerToken = authHeader.toLowerCase().startsWith("bearer ") ? authHeader.slice(7).trim() : "";
+      const allowedBySecret = metricsSecret && callerToken === metricsSecret;
+      const allowedByServiceRole = callerToken === (Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "");
+      if (!allowedBySecret && !allowedByServiceRole) {
+        return new Response("Unauthorized", {
+          status: 401,
+          headers: { ...getCorsHeaders(req), "WWW-Authenticate": "Bearer" },
+        });
+      }
       return new Response(renderPrometheus(), {
         status: 200,
         headers: { ...getCorsHeaders(req), "Content-Type": "text/plain; version=0.0.4" },

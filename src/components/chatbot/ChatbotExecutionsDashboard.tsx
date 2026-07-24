@@ -45,6 +45,7 @@ export function ChatbotExecutionsDashboard() {
 
   const { data: executions = [], isLoading } = useQuery({
     queryKey: queryKeys.chatbot.executions(statusFilter),
+    staleTime: 30_000,
     queryFn: async () => {
       type ExecRow = {
         id: string;

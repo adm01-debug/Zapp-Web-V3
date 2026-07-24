@@ -67,6 +67,7 @@ export function useUserSettingsManagement(userIdParam?: string) {
   const [settings, setSettings] = useState<UserSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const mountedRef = useRef(true);
+  const fetchIdRef = useRef(0);
 
   useEffect(() => {
     return () => {
@@ -81,6 +82,7 @@ export function useUserSettingsManagement(userIdParam?: string) {
 
   const fetchSettings = useCallback(async () => {
     if (!userId) return;
+    const id = ++fetchIdRef.current;
 
     try {
       setLoading(true);
@@ -91,13 +93,13 @@ export function useUserSettingsManagement(userIdParam?: string) {
         .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
 
       if (err && err.code !== 'PGRST116') throw err;
-      if (mountedRef.current) setSettings(data || null);
+      if (mountedRef.current && id === fetchIdRef.current) setSettings(data || null);
     } catch (err) {
-      if (mountedRef.current) {
+      if (mountedRef.current && id === fetchIdRef.current) {
         log.error('Error fetching user settings:', err);
       }
     } finally {
-      if (mountedRef.current) setLoading(false);
+      if (mountedRef.current && id === fetchIdRef.current) setLoading(false);
     }
   }, [userId]);
 

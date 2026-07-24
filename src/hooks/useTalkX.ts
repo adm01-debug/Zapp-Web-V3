@@ -23,6 +23,7 @@ export function useTalkX() {
       if (error) throw error;
       return (data ?? []) as TalkXCampaign[];
     },
+    staleTime: 60_000,
   });
 
   const recipientsQuery = useQuery({

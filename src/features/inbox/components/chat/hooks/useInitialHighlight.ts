@@ -35,8 +35,13 @@ export function useInitialHighlight({
       null;
 
     let cancelled = false;
-    let highlightTimer: ReturnType<typeof setTimeout> | null = null;
+    const timers = new Set<ReturnType<typeof setTimeout>>();
     let attempts = 0;
+
+    const schedule = (fn: () => void, delay: number) => {
+      const id = setTimeout(() => { timers.delete(id); fn(); }, delay);
+      timers.add(id);
+    };
 
     const tryFindAndScroll = () => {
       if (cancelled) return;
@@ -50,11 +55,11 @@ export function useInitialHighlight({
           if (cancelled) return;
           scrollAttempts++;
           const found = messagesAreaRef.current?.scrollToMessage(internalId) ?? false;
-          if (!found && scrollAttempts < 10) setTimeout(tryScroll, 150);
+          if (!found && scrollAttempts < 10) schedule(tryScroll, 150);
         };
         tryScroll();
 
-        highlightTimer = setTimeout(() => {
+        schedule(() => {
           if (cancelled) return;
           setActiveHighlightId(null);
           setHighlightedMessageIds(new Set());
@@ -65,7 +70,7 @@ export function useInitialHighlight({
 
       attempts++;
       if (attempts < 20) {
-        setTimeout(tryFindAndScroll, 250);
+        schedule(tryFindAndScroll, 250);
       } else {
         toast({
           title: 'Mensagem não encontrada',
@@ -80,7 +85,8 @@ export function useInitialHighlight({
 
     return () => {
       cancelled = true;
-      if (highlightTimer) clearTimeout(highlightTimer);
+      timers.forEach(clearTimeout);
+      timers.clear();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialHighlightMessageId, messages, onHighlightConsumed]);

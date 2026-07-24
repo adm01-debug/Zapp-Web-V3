@@ -26,6 +26,8 @@ export function useChatbotL1Config() {
         .maybeSingle();
       return data;
     },
+    enabled: !!profile?.id,
+    staleTime: 60_000,
   });
 
   const { data: kbCount = 0 } = useQuery({
@@ -37,6 +39,8 @@ export function useChatbotL1Config() {
         .eq('is_published', true);
       return count || 0;
     },
+    enabled: !!profile?.id,
+    staleTime: 60_000,
   });
 
   const saveMutation = useMutation({

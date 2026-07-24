@@ -67,6 +67,7 @@ export function useReportsData() {
       if (error) throw error;
       return (data ?? []) as ReportMessage[];
     },
+    staleTime: 300_000,
   });
 
   const { data: previousMessagesData, isLoading: loadingPreviousMessages } = useQuery({
@@ -82,6 +83,7 @@ export function useReportsData() {
       return (data ?? []) as ReportMessage[];
     },
     enabled: compareEnabled,
+    staleTime: 300_000,
   });
 
   const { data: contactsData, isLoading: loadingContacts } = useQuery({
@@ -96,6 +98,7 @@ export function useReportsData() {
       if (error) throw error;
       return (data ?? []) as ReportContact[];
     },
+    staleTime: 300_000,
   });
 
   const { data: previousContactsData, isLoading: loadingPreviousContacts } = useQuery({
@@ -111,6 +114,7 @@ export function useReportsData() {
       return (data ?? []) as ReportContact[];
     },
     enabled: compareEnabled,
+    staleTime: 300_000,
   });
 
   // Process data for charts
