@@ -34,6 +34,8 @@ export function logVoiceCommand(params: VoiceCommandLogParams) {
         signal: controller.signal,
         headers: {
           'Content-Type': 'application/json',
+          'Content-Profile': 'zapp',
+          'Accept-Profile': 'zapp',
           apikey: key,
           Authorization: `Bearer ${token}`,
           Prefer: 'return=minimal',

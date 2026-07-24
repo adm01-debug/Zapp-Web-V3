@@ -10,7 +10,7 @@
  * Auth: aceita service-role JWT OU um usuário admin autenticado.
  *
  * Schemas tocados:
- *   - public.failed_messages          (Lovable Cloud)
+ *   - zapp.failed_messages            (tabela física; acessada via createZappAdminClient)
  *   - evolution_webhook_events        (FATOR X / external)
  */
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.4';

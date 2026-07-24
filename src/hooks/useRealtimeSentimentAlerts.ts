@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useNotificationSettings } from '@/hooks/useNotificationSettings';
 import { playNotificationSound, showBrowserNotification } from '@/utils/notificationSound';
 
-/** Subscribes to realtime sentiment alerts from audit_logs and shows a toast (plus optional browser notification and sound) when a sentiment_alert event is inserted. */
+/** Subscribes to realtime sentiment alerts from zapp.sentiment_alerts and shows a toast (plus optional browser notification and sound) when a new alert is inserted. */
 export function useRealtimeSentimentAlerts() {
   const { settings, isQuietHours } = useNotificationSettings();
 
@@ -20,10 +20,10 @@ export function useRealtimeSentimentAlerts() {
         },
         (payload) => {
           const record = payload.new as Record<string, unknown>;
-          const title = record?.contact_name as string | undefined;
-          const sentiment = record?.sentiment as string | undefined;
-          const message = sentiment
-            ? `Sentimento ${sentiment} detectado${title ? ` para ${title}` : ''}`
+          const level = record?.alert_level as string | undefined;
+          const score = record?.sentiment_score as number | undefined;
+          const message = level
+            ? `Alerta de sentimento ${level}${score != null ? ` (score: ${score})` : ''} detectado`
             : 'Alerta de sentimento detectado';
 
           toast.warning(message);

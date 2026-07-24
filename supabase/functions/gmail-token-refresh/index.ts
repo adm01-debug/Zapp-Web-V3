@@ -157,7 +157,6 @@ Deno.serve(async (req) => {
           message:    `Token refresh: ${refreshed} renovados, ${failed} falhas`,
           acknowledged: true,
           acknowledged_at: new Date().toISOString(),
-          acknowledged_by: 'gmail-token-refresh-fn',
         });
       }
 
