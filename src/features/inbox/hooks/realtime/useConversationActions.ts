@@ -28,6 +28,11 @@ export function useConversationActions({ commitConversations }: UseConversationA
     mediaUrl?: string,
     mediaPayload?: string
   ) => {
+    if (!isValidUUID(contactId)) {
+      log.warn('[sendMessage] contactId is not a valid UUID — skipping', { contactId });
+      return null;
+    }
+
     const response = await sendMessageToContact(
       contactId,
       content,

@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { log } from '@/lib/logger';
 import type { ContactRow } from '@/integrations/supabase/schema';
+import { isValidUUID } from '@/utils/uuid';
 
 interface UseContactDataResult {
   contact: ContactRow | null;
@@ -11,7 +12,11 @@ interface UseContactDataResult {
 
 /** Fetches contact data by ID with loading and error handling. */
 export function useContactData(contactId: string | undefined): UseContactDataResult {
-  const { data: contact = null, isLoading: loading, error: queryError } = useQuery({
+  const {
+    data: contact = null,
+    isLoading: loading,
+    error: queryError,
+  } = useQuery({
     queryKey: ['contact', contactId],
     queryFn: async () => {
       try {
@@ -28,13 +33,14 @@ export function useContactData(contactId: string | undefined): UseContactDataRes
         throw e;
       }
     },
-    enabled: !!contactId,
+    enabled: !!contactId && isValidUUID(contactId),
     staleTime: 30_000,
   });
 
   return {
     contact,
     loading,
-    error: queryError instanceof Error ? queryError : queryError ? new Error(String(queryError)) : null,
+    error:
+      queryError instanceof Error ? queryError : queryError ? new Error(String(queryError)) : null,
   };
 }

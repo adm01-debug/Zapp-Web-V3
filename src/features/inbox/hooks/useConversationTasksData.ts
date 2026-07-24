@@ -18,6 +18,7 @@ export async function createConversationTask(payload: {
   created_by: string;
   assigned_to: string;
 }) {
+  if (!isValidUUID(payload.contact_id)) return { data: null, error: new Error('Invalid UUID') };
   return supabase.from('conversation_tasks').insert(payload);
 }
 
