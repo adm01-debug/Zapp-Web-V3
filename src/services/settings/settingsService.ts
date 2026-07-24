@@ -31,6 +31,7 @@ export const settingsService = {
 
     const { data, error } = await settingsRepository.updateUserSettings(userId, updates);
     if (error) throw error;
+    if (!data) throw new Error('User settings not found after update');
     return data;
   },
 
@@ -43,6 +44,7 @@ export const settingsService = {
 
     const { data, error } = await settingsRepository.upsertUserSettings(userId, settings);
     if (error) throw error;
+    if (!data) throw new Error('User settings not found after upsert');
     return data;
   },
 
@@ -61,6 +63,7 @@ export const settingsService = {
 
     const { data, error } = await settingsRepository.updateWorkspaceSettings(workspaceId, updates);
     if (error) throw error;
+    if (!data) throw new Error('Workspace settings not found after update');
     return data;
   },
 
@@ -69,6 +72,7 @@ export const settingsService = {
 
     const { data, error } = await settingsRepository.upsertWorkspaceSettings(workspaceId, settings);
     if (error) throw error;
+    if (!data) throw new Error('Workspace settings not found after upsert');
     return data;
   },
 

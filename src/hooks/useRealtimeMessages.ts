@@ -76,8 +76,8 @@ export function useRealtimeMessages() {
         { data: contacts, error: contactsError },
         { data: messages, error: messagesError },
       ] = await Promise.all([
-        supabase.from('contacts').select('*').order('updated_at', { ascending: false }).limit(500),
-        supabase.from('messages').select('*').order('created_at', { ascending: false }).limit(100),
+        supabase.from('evolution_contacts').select('*').order('updated_at', { ascending: false }).limit(500),
+        supabase.from('evolution_messages').select('*').order('created_at', { ascending: false }).limit(100),
       ]);
       if (contactsError) throw contactsError;
       if (messagesError) throw messagesError;
@@ -95,7 +95,7 @@ export function useRealtimeMessages() {
       ];
 
       if (missingIds.length > 0) {
-        const { data: extra } = await supabase.from('contacts').select('*').in('id', missingIds);
+        const { data: extra } = await supabase.from('evolution_contacts').select('*').in('id', missingIds);
         (extra ?? []).forEach((c: Contact) => contactMap.set(c.id, c));
       }
 
@@ -199,7 +199,7 @@ export function useRealtimeMessages() {
   const sendMessage = useCallback(
     async (contactId: string, content: string, agentId?: string) => {
       try {
-        const { error: insertError } = await supabase.from('messages').insert({
+        const { error: insertError } = await supabase.from('evolution_messages').insert({
           contact_id: contactId,
           content,
           agent_id: agentId ?? null,

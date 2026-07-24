@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { queryKeys } from '@/services/api/queryKeys';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -38,14 +38,14 @@ export function useCSATAutoConfig() {
   const [connectionId, setConnectionId] = useState(config?.whatsapp_connection_id ?? '');
 
   // Sync state when data loads
-  useState(() => {
+  useEffect(() => {
     if (config) {
       setIsEnabled(config.is_enabled ?? false);
       setDelayMinutes(config.delay_minutes ?? 5);
       setTemplate(config.message_template ?? '');
       setConnectionId(config.whatsapp_connection_id ?? '');
     }
-  });
+  }, [config]);
 
   const saveMutation = useMutation({
     mutationFn: async () => {

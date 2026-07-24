@@ -57,7 +57,7 @@ export function useContactCustomFields(contactId: string | undefined) {
         log.error('Error adding custom field:', err);
       }
     },
-    [contactId, queryClient, FIELDS_KEY]
+    [contactId, queryClient]
   );
 
   const removeField = useCallback(
@@ -73,7 +73,7 @@ export function useContactCustomFields(contactId: string | undefined) {
         log.error('Error removing custom field:', err);
       }
     },
-    [queryClient, FIELDS_KEY]
+    [queryClient, contactId]
   );
 
   return { fields, isLoading, addField, removeField, refetch };

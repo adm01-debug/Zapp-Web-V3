@@ -100,7 +100,7 @@ export function useQueueDetails(id: string | undefined) {
         );
 
         const [messagesResult, agentResult] = await Promise.all([
-          dbFrom('messages')
+          dbFrom('evolution_messages')
             .select('contact_id, created_at')
             .in('contact_id', contactIds)
             .order('created_at', { ascending: false }),

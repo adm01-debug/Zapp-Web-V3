@@ -6,5 +6,5 @@ export const normalizeMediaUrl = (url?: string | null): string => {
     .trim()
     .replace(/^"+|"+$/g, '')
     .replace(/\.supabase\.co"\//, '.supabase.co/')
-    .replace(/([^:]\/)\/+?/g, '$1');
+    .replace(/([^:]\/)\/+/g, '$1');
 };
