@@ -434,11 +434,17 @@ async function getValidToken(supabase: ReturnType<typeof createZappAdminClient>,
     signal: AbortSignal.timeout(10_000),
   });
 
+  if (!tokenRes.ok) {
+    const errText = await tokenRes.text().catch(() => '');
+    console.warn(`[gmail-sync] token refresh HTTP ${tokenRes.status} for ${accountId}`, errText.slice(0, 200));
+    return null;
+  }
+
   let tokensRaw: unknown;
   try {
     tokensRaw = await tokenRes.json();
   } catch {
-    await supabase.from('gmail_accounts').update({ is_active: false }).eq('id', accountId);
+    console.warn(`[gmail-sync] token refresh non-JSON response for ${accountId}`);
     return null;
   }
 
