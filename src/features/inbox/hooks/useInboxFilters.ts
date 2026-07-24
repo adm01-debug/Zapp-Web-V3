@@ -31,7 +31,10 @@ export function useInboxFilters({
   statusFilter,
 }: UseInboxFiltersProps) {
   const [mainTab, setMainTab] = useState<MainTab>('open');
-  const [subTab, setSubTab] = useState<SubTab>('attending');
+  // Default 'waiting': funciona tanto para DB local (não atribuídos) quanto para
+  // a fonte Evolution externa (contatos derivados com assigned_to = null).
+  // Evita que a tela abra vazia em 'Atendendo + mine' quando ninguém está atribuído.
+  const [subTab, setSubTab] = useState<SubTab>('waiting');
   const [showAll, setShowAll] = useState(() => {
     const params = new URLSearchParams(window.location.search);
     return params.get('showAll') === 'true' || localStorage.getItem('inbox_show_all') === 'true';

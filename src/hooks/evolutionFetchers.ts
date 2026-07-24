@@ -3,12 +3,18 @@
  */
 import { queryExternalProxy } from '@/lib/externalProxy';
 import type { EvolutionMessage } from '@/types/evolutionExternal';
-import { DEFAULT_WHATSAPP_INSTANCE } from '@/lib/constants/whatsappInstances';
+import { ACTIVE_WHATSAPP_INSTANCE } from '@/lib/constants/whatsappInstances';
+import { getLogger } from '@/lib/logger';
+
+const fetcherLog = getLogger('evolutionFetchers');
 
 /** Polling interval in milliseconds for evolution_messages real-time updates. */
 export const POLL_INTERVAL = 5000;
-/** Default WhatsApp instance identifier used when none is specified. */
-export const DEFAULT_INSTANCE = DEFAULT_WHATSAPP_INSTANCE;
+/**
+ * Default WhatsApp instance identifier used when none is specified.
+ * Aponta para a instância ATIVA (que recebe mensagens novas), não para a legada.
+ */
+export const DEFAULT_INSTANCE = ACTIVE_WHATSAPP_INSTANCE;
 /** Number of days back to fetch sidebar conversations. */
 export const SIDEBAR_DAYS_BACK = 7;
 /** Maximum number of conversations loaded in the sidebar. */
@@ -65,7 +71,7 @@ export async function fetchRecentMessagesWindow(
   limit = SIDEBAR_LIMIT
 ): Promise<EvolutionMessage[]> {
   const since = new Date(Date.now() - daysBack * 86_400_000).toISOString();
-  const result = await queryExternalProxy<EvolutionMessage>({
+  const primary = await queryExternalProxy<EvolutionMessage>({
     table: 'evolution_messages',
     select: SLIM_MESSAGE_COLUMNS,
     filters: [
@@ -75,7 +81,23 @@ export async function fetchRecentMessagesWindow(
     order: { column: 'created_at', ascending: false },
     limit,
   });
-  return result.data;
+  if (primary.data.length > 0) return primary.data;
+
+  // Fallback: instância ativa não trouxe nada nos últimos N dias.
+  // Tenta sem filtro de instância para não esconder conversas de outras
+  // instâncias configuradas (ex.: legacy `wpp2`).
+  fetcherLog.warn(
+    'Sidebar sem mensagens para a instância ativa; tentando fallback sem filtro de instância',
+    { instance: DEFAULT_INSTANCE, daysBack, limit }
+  );
+  const fallback = await queryExternalProxy<EvolutionMessage>({
+    table: 'evolution_messages',
+    select: SLIM_MESSAGE_COLUMNS,
+    filters: [{ column: 'created_at', operator: 'gte', value: since }],
+    order: { column: 'created_at', ascending: false },
+    limit,
+  });
+  return fallback.data;
 }
 
 /** fetch Messages By Jid function. */
