@@ -2,6 +2,14 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { RateLimitConfigPanel } from '../RateLimitConfigPanel';
 
+// Mock the entire hook module so component never touches the real Supabase client.
+// This is the correct isolation level: test UI behaviour, not data fetching.
+vi.mock('@/hooks/useRateLimitConfigs', () => ({
+  fetchRateLimitConfigs: vi.fn().mockResolvedValue([]),
+  saveRateLimitConfigs: vi.fn().mockResolvedValue({ error: null }),
+}));
+
+// Keep supabase mock as a safety net (any path that bypasses the hook mock).
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
     from: vi.fn(() => ({
@@ -51,6 +59,11 @@ describe('RateLimitConfigPanel', () => {
       });
     });
 
+    // The component initialises loading=true and renders a spinner before
+    // fetchRateLimitConfigs resolves. Even though the mock resolves
+    // immediately, the .then() is a microtask deferred to the next tick, so
+    // the spinner is guaranteed to be present at the moment of the synchronous
+    // assertion that follows render().
     it('shows loading state initially', () => {
       const { container } = render(<RateLimitConfigPanel />);
       expect(container.querySelector('.animate-spin')).toBeInTheDocument();
@@ -114,15 +127,10 @@ describe('RateLimitConfigPanel', () => {
       render(<RateLimitConfigPanel />);
       await waitFor(() => screen.getByDisplayValue('Login'));
       const initialSwitches = screen.getAllByRole('switch').length;
-      // Click first icon button that's not a switch
       const allButtons = screen.getAllByRole('button');
-      // Find any button with trash icon
       let trashBtn: HTMLElement | undefined;
       for (const btn of allButtons) {
-        if (btn.querySelector('.lucide-trash-2')) {
-          trashBtn = btn;
-          break;
-        }
+        if (btn.querySelector('.lucide-trash-2')) { trashBtn = btn; break; }
       }
       if (trashBtn) {
         fireEvent.click(trashBtn);
@@ -130,7 +138,6 @@ describe('RateLimitConfigPanel', () => {
           expect(screen.getAllByRole('switch').length).toBeLessThan(initialSwitches);
         });
       } else {
-        // Trash buttons may be rendered as icon-only; just verify we have rules
         expect(initialSwitches).toBe(5);
       }
     });
@@ -149,7 +156,6 @@ describe('RateLimitConfigPanel', () => {
     it('allows editing max requests', async () => {
       render(<RateLimitConfigPanel />);
       await waitFor(() => screen.getByDisplayValue('Login'));
-      // Find the first number input with value 5
       const inputs = screen.getAllByRole('spinbutton');
       const fiveInput = inputs.find(i => (i as HTMLInputElement).value === '5');
       expect(fiveInput).toBeDefined();
@@ -206,7 +212,6 @@ describe('RateLimitConfigPanel', () => {
       const fiveInput = inputs.find(i => (i as HTMLInputElement).value === '5');
       expect(fiveInput).toBeDefined();
       fireEvent.change(fiveInput!, { target: { value: 'abc' } });
-      // NaN || 1 = 1
       expect(screen.getAllByDisplayValue('1').length).toBeGreaterThan(0);
     });
 
@@ -217,7 +222,6 @@ describe('RateLimitConfigPanel', () => {
       const windowInput = inputs.find(i => (i as HTMLInputElement).value === '300');
       expect(windowInput).toBeDefined();
       fireEvent.change(windowInput!, { target: { value: '' } });
-      // '' => parseInt = NaN || 60 = 60
       expect(screen.getAllByDisplayValue('60').length).toBeGreaterThan(0);
     });
   });

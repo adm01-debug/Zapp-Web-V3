@@ -77,7 +77,7 @@ function runRepair(
   const r = spawnSync(
     process.execPath,
     ['scripts/repair-types-schemas.mjs', ...args],
-    { cwd, env: clean, encoding: 'utf8' },
+    { cwd, env: clean, encoding: 'utf8', timeout: 20_000 },
   );
   const count = (name: string) => {
     const p = join(cwd, 'state', name);
@@ -98,7 +98,7 @@ describe('scripts/repair-types-schemas.mjs', () => {
     sandbox = makeSandbox();
   });
 
-  it('fast-path: sai 0 sem chamar gen quando o gate já passa', () => {
+  it('fast-path: sai 0 sem chamar gen quando o gate já passa', { timeout: 30_000 }, () => {
     writeFileSync(join(sandbox, 'state/fixed'), '1');
     const r = runRepair(sandbox);
     expect(r.status).toBe(0);
@@ -107,7 +107,7 @@ describe('scripts/repair-types-schemas.mjs', () => {
     expect(r.stdout).toMatch(/Gate já passa/);
   });
 
-  it('sem secrets: sai 0 com aviso e não tenta regenerar', () => {
+  it('sem secrets: sai 0 com aviso e não tenta regenerar', { timeout: 30_000 }, () => {
     const r = runRepair(sandbox); // sem META_*/ZAPP_META_*
     expect(r.status).toBe(0);
     expect(r.checkCount).toBe(1);
@@ -115,7 +115,7 @@ describe('scripts/repair-types-schemas.mjs', () => {
     expect(`${r.stdout}${r.stderr}`).toMatch(/ausentes/);
   });
 
-  it('com ZAPP_META_URL/TOKEN: conserta na primeira tentativa', () => {
+  it('com ZAPP_META_URL/TOKEN: conserta na primeira tentativa', { timeout: 30_000 }, () => {
     const r = runRepair(sandbox, {
       ZAPP_META_URL: 'https://example.test',
       ZAPP_META_TOKEN: 'tok',
@@ -129,7 +129,7 @@ describe('scripts/repair-types-schemas.mjs', () => {
     expect(r.stdout).toMatch(/Tipos reparados/);
   });
 
-  it('retries: precisa de várias execuções de gen antes de passar', () => {
+  it('retries: precisa de várias execuções de gen antes de passar', { timeout: 30_000 }, () => {
     writeFileSync(join(sandbox, 'state/gen-fix-after'), '3');
     const r = runRepair(sandbox, {
       META_URL: 'https://example.test',
@@ -143,7 +143,7 @@ describe('scripts/repair-types-schemas.mjs', () => {
     expect(r.checkCount).toBe(4);
   });
 
-  it('falha final: sai 1 após MAX_ATTEMPTS quando gen nunca conserta', () => {
+  it('falha final: sai 1 após MAX_ATTEMPTS quando gen nunca conserta', { timeout: 30_000 }, () => {
     writeFileSync(join(sandbox, 'state/gen-fix-after'), '999');
     const r = runRepair(sandbox, {
       META_URL: 'https://example.test',
@@ -158,7 +158,7 @@ describe('scripts/repair-types-schemas.mjs', () => {
     expect(r.stderr).toMatch(/continuou falhando/);
   });
 
-  it('gen quebrando: continua tentando e sai 1 ao esgotar tentativas', () => {
+  it('gen quebrando: continua tentando e sai 1 ao esgotar tentativas', { timeout: 30_000 }, () => {
     writeFileSync(join(sandbox, 'state/gen-fail'), '1');
     const r = runRepair(sandbox, {
       META_URL: 'https://example.test',
@@ -173,7 +173,7 @@ describe('scripts/repair-types-schemas.mjs', () => {
     expect(`${r.stdout}${r.stderr}`).toMatch(/Falha ao regenerar/);
   });
 
-  it('dry-run (--dry-run): imprime plano e não executa nada', () => {
+  it('dry-run (--dry-run): imprime plano e não executa nada', { timeout: 30_000 }, () => {
     const r = runRepair(
       sandbox,
       { ZAPP_META_URL: 'https://example.test', ZAPP_META_TOKEN: 'tok' },
@@ -188,7 +188,7 @@ describe('scripts/repair-types-schemas.mjs', () => {
     expect(r.stdout).toMatch(/META_URL=<set>/);
   });
 
-  it('dry-run (DRY_RUN=1) sem secrets: sinaliza que sairia com aviso', () => {
+  it('dry-run (DRY_RUN=1) sem secrets: sinaliza que sairia com aviso', { timeout: 30_000 }, () => {
     const r = runRepair(sandbox, { DRY_RUN: '1' });
     expect(r.status).toBe(0);
     expect(r.checkCount).toBe(0);

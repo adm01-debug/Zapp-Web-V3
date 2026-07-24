@@ -15,9 +15,53 @@
  * a regra prática é: nenhum cluster listado pode regredir.
  */
 import { execSync } from 'node:child_process';
-import { existsSync, readFileSync } from 'node:fs';
-import { globSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { resolve } from 'node:path';
+
+// ---------------------------------------------------------------------------
+// Node >= 20 compatible globSync (fs.globSync requires Node >= 22).
+// Supports ** (recursive) and * (single-segment) wildcards.
+// ---------------------------------------------------------------------------
+function globSync(pattern, _opts) {
+  const sep = '/';
+  const parts = pattern.split(sep);
+  function safeReaddir(d) {
+    try { return readdirSync(d, { withFileTypes: true }); } catch { return []; }
+  }
+  function walk(dir, segs) {
+    if (!segs.length) return [];
+    const head = segs[0]; const rest = segs.slice(1);
+    const results = [];
+    if (head === '**') {
+      if (rest.length) results.push(...walk(dir, rest));
+      for (const e of safeReaddir(dir)) {
+        if (e.isDirectory()) results.push(...walk(dir + sep + e.name, segs));
+      }
+    } else if (head.includes('*')) {
+      const esc = head.replace(/[.+^${}()|[\]\\]/g, "\\import { resolve } from 'node:path';").replace(/[*]/g, "[^/]*");
+      const re = new RegExp("^" + esc + "$");
+      for (const e of safeReaddir(dir)) {
+        if (!re.test(e.name)) continue;
+        const full = dir + sep + e.name;
+        if (!rest.length) { if (!e.isDirectory()) results.push(full); }
+        else if (e.isDirectory()) results.push(...walk(full, rest));
+      }
+    } else {
+      const full = dir + sep + head;
+      try {
+        const s = fs.lstatSync(full);
+        if (!rest.length) { if (!s.isDirectory()) results.push(full); }
+        else if (s.isDirectory()) results.push(...walk(full, rest));
+      } catch {}
+    }
+    return results;
+  }
+  const gi = parts.findIndex(p => p.includes('*') || p === '**');
+  const root = gi <= 0 ? '.' : parts.slice(0, gi).join(sep);
+  const rem  = gi <= 0 ? parts : parts.slice(gi);
+  return walk(root, rem);
+}
+
 
 const NOCHECK_BASELINE_PATH = 'scripts/ts-nocheck-baseline.txt';
 const nocheckBaseline = new Set(
