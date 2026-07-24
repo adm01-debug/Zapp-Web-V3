@@ -31,7 +31,13 @@ const _emailRpc = supabase.rpc as any;
 // requires a string-literal table name from the generated types.
 type DynamicSupabaseClient = { from(t: string): ReturnType<typeof supabase.from> };
 
-const _emailAppClient = supabase.schema('email_app') as unknown as DynamicSupabaseClient;
+let _emailAppClient: DynamicSupabaseClient | undefined;
+function getEmailAppClient(): DynamicSupabaseClient {
+  if (!_emailAppClient) {
+    _emailAppClient = supabase.schema('email_app') as unknown as DynamicSupabaseClient;
+  }
+  return _emailAppClient;
+}
 
 const MAX_FAILURES = 20;
 const CACHE_TTL = 5 * 60 * 1000;
@@ -87,7 +93,7 @@ export const safeClient = {
           return { data: [] as T[], error: new Error(`Tabela ${table} não disponível`), requestId };
         }
       }
-      const client = table.startsWith('email_') ? _emailAppClient : (supabase as unknown as DynamicSupabaseClient);
+      const client = table.startsWith('email_') ? getEmailAppClient() : (supabase as unknown as DynamicSupabaseClient);
       const { data, error } = await queryBuilder(client.from(table));
       if (error) {
         this.log(requestId, 'error', `Erro na query from ${table}`, error);
@@ -137,7 +143,7 @@ export const safeClient = {
           return { data: null, error: new Error(`Tabela ${table} não disponível`), requestId };
         }
       }
-      const client = table.startsWith('email_') ? _emailAppClient : (supabase as unknown as DynamicSupabaseClient);
+      const client = table.startsWith('email_') ? getEmailAppClient() : (supabase as unknown as DynamicSupabaseClient);
       const { data, error } = await queryBuilder(client.from(table)).single();
       if (error) {
         this.log(requestId, 'error', `Erro single query ${table}`, error);
@@ -219,7 +225,7 @@ export const safeClient = {
       try {
         let exists = false;
         if (type === 'table') {
-          const client = name.startsWith('email_') ? _emailAppClient : (supabase as unknown as DynamicSupabaseClient);
+          const client = name.startsWith('email_') ? getEmailAppClient() : (supabase as unknown as DynamicSupabaseClient);
           const { error } = await client
             .from(name)
             .select('count', { count: 'exact', head: true })
