@@ -23,8 +23,12 @@ BEGIN
 END;
 $$;
 
--- Ensure RLS is enabled after the move
-ALTER TABLE zapp.whatsapp_connection_queues ENABLE ROW LEVEL SECURITY;
+-- Ensure RLS is enabled after the move (conditional — safe on fresh envs if table didn't exist)
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'zapp' AND tablename = 'whatsapp_connection_queues') THEN
+    EXECUTE 'ALTER TABLE zapp.whatsapp_connection_queues ENABLE ROW LEVEL SECURITY';
+  END IF;
+END; $$;
 
 -- Re-grant access (any existing policies were carried over with the table)
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE zapp.whatsapp_connection_queues TO authenticated;

@@ -84,12 +84,18 @@ CREATE OR REPLACE FUNCTION zapp.user_has_permission(
   _user_id        UUID,
   _permission_name TEXT
 ) RETURNS BOOLEAN
-LANGUAGE sql
+LANGUAGE plpgsql
 STABLE
 SECURITY DEFINER
 SET search_path = zapp
 AS $$
-  SELECT public.user_has_permission(_user_id, _permission_name);
+BEGIN
+  -- Only allow querying own permissions unless caller is admin/supervisor
+  IF _user_id <> auth.uid() AND NOT zapp.is_admin_or_supervisor() THEN
+    RETURN FALSE;
+  END IF;
+  RETURN public.user_has_permission(_user_id, _permission_name);
+END;
 $$;
 
 REVOKE EXECUTE ON FUNCTION zapp.user_has_permission(UUID, TEXT) FROM PUBLIC, anon;
@@ -155,8 +161,8 @@ GRANT  EXECUTE ON FUNCTION zapp.search_knowledge_base(TEXT, INTEGER) TO authenti
 -- ---------------------------------------------------------------------------
 -- 7. contacts_count_by_type
 --    Caller: src/features/contacts/hooks/useContactsSearch.ts:221
---    Note: public function returns column named contact_type; types.ts expects
---          lead_status. The wrapper aliases to match historical types declaration.
+--    Note: public function returns column named contact_type (not lead_status).
+--          Caller in useContactsSearch.ts accesses the field as contact_type.
 -- ---------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION zapp.contacts_count_by_type()
 RETURNS TABLE (contact_type TEXT, count BIGINT)
@@ -178,12 +184,18 @@ GRANT  EXECUTE ON FUNCTION zapp.contacts_count_by_type() TO authenticated;
 CREATE OR REPLACE FUNCTION zapp.get_visible_agent_ids(
   _user_id UUID
 ) RETURNS SETOF UUID
-LANGUAGE sql
+LANGUAGE plpgsql
 STABLE
 SECURITY DEFINER
 SET search_path = zapp
 AS $$
-  SELECT * FROM public.get_visible_agent_ids(_user_id);
+BEGIN
+  -- Only allow querying visibility for own user_id unless caller is admin/supervisor
+  IF _user_id <> auth.uid() AND NOT zapp.is_admin_or_supervisor() THEN
+    RETURN;
+  END IF;
+  RETURN QUERY SELECT * FROM public.get_visible_agent_ids(_user_id);
+END;
 $$;
 
 REVOKE EXECUTE ON FUNCTION zapp.get_visible_agent_ids(UUID) FROM PUBLIC, anon;

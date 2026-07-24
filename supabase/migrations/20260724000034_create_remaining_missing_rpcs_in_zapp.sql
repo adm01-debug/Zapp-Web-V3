@@ -10,11 +10,16 @@
 CREATE OR REPLACE FUNCTION zapp.reassign_absent_agents(
   inactive_minutes INTEGER DEFAULT 30
 ) RETURNS INTEGER
-LANGUAGE sql
+LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = zapp
 AS $$
-  SELECT public.reassign_absent_agents(inactive_minutes);
+BEGIN
+  IF NOT zapp.is_admin_or_supervisor() THEN
+    RAISE EXCEPTION 'Admin or supervisor role required' USING ERRCODE = 'P0001';
+  END IF;
+  RETURN public.reassign_absent_agents(inactive_minutes);
+END;
 $$;
 
 REVOKE EXECUTE ON FUNCTION zapp.reassign_absent_agents(INTEGER) FROM PUBLIC, anon;
@@ -27,11 +32,16 @@ GRANT  EXECUTE ON FUNCTION zapp.reassign_absent_agents(INTEGER) TO authenticated
 -- ---------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION zapp.reassign_overloaded_agents()
 RETURNS INTEGER
-LANGUAGE sql
+LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = zapp
 AS $$
-  SELECT public.reassign_overloaded_agents();
+BEGIN
+  IF NOT zapp.is_admin_or_supervisor() THEN
+    RAISE EXCEPTION 'Admin or supervisor role required' USING ERRCODE = 'P0001';
+  END IF;
+  RETURN public.reassign_overloaded_agents();
+END;
 $$;
 
 REVOKE EXECUTE ON FUNCTION zapp.reassign_overloaded_agents() FROM PUBLIC, anon;

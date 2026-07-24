@@ -19,8 +19,12 @@ BEGIN
 END;
 $$;
 
--- Ensure RLS is enabled after the move
-ALTER TABLE zapp.queue_skill_requirements ENABLE ROW LEVEL SECURITY;
+-- Ensure RLS is enabled after the move (conditional — safe on fresh envs if table didn't exist)
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'zapp' AND tablename = 'queue_skill_requirements') THEN
+    EXECUTE 'ALTER TABLE zapp.queue_skill_requirements ENABLE ROW LEVEL SECURITY';
+  END IF;
+END; $$;
 
 -- Drop any stale public-schema policies (carried over names may conflict)
 DO $$

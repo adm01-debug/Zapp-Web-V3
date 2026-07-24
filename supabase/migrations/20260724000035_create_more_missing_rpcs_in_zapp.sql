@@ -239,9 +239,9 @@ AS $$
     ea.id,
     ea.email_address,
     COALESCE(ea.is_active, true)           AS is_active,
-    COALESCE(ea.sync_status, 'idle')       AS sync_status,
-    ea.last_sync_at,
-    ea.last_error,
+    NULL::TEXT                             AS sync_status,
+    NULL::TIMESTAMPTZ                      AS last_sync_at,
+    NULL::TEXT                             AS last_error,
     ea.created_at
   FROM email_app.email_accounts ea
   WHERE ea.user_id = auth.uid()
@@ -377,11 +377,16 @@ GRANT  EXECUTE ON FUNCTION zapp.rpc_email_token_status() TO authenticated;
 -- ---------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION zapp.rpc_migrate_whatsapp_integration()
 RETURNS JSONB
-LANGUAGE sql
+LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = zapp
 AS $$
-  SELECT public.rpc_migrate_whatsapp_integration();
+BEGIN
+  IF NOT zapp.is_admin_or_supervisor() THEN
+    RAISE EXCEPTION 'Admin or supervisor role required' USING ERRCODE = 'P0001';
+  END IF;
+  RETURN public.rpc_migrate_whatsapp_integration();
+END;
 $$;
 
 REVOKE EXECUTE ON FUNCTION zapp.rpc_migrate_whatsapp_integration() FROM PUBLIC, anon;
@@ -401,7 +406,7 @@ LANGUAGE sql
 SECURITY DEFINER
 SET search_path = zapp
 AS $$
-  SELECT to_jsonb(public.rpc_reactivate_service_channel(p_id).*);
+  SELECT to_jsonb(public.rpc_reactivate_service_channel(p_id));
 $$;
 
 REVOKE EXECUTE ON FUNCTION zapp.rpc_reactivate_service_channel(UUID) FROM PUBLIC, anon;
@@ -428,16 +433,21 @@ CREATE OR REPLACE FUNCTION zapp.rpc_upsert_service_channel(
   p_icon                   TEXT    DEFAULT NULL,
   p_color                  TEXT    DEFAULT '#3B82F6'
 ) RETURNS JSONB
-LANGUAGE sql
+LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = zapp
 AS $$
-  SELECT to_jsonb(public.rpc_upsert_service_channel(
+BEGIN
+  IF NOT zapp.is_admin_or_supervisor() THEN
+    RAISE EXCEPTION 'Admin or supervisor role required' USING ERRCODE = 'P0001';
+  END IF;
+  RETURN to_jsonb(public.rpc_upsert_service_channel(
     p_id, p_name, p_display_name, p_channel_type,
     p_whatsapp_connection_id, p_default_queue_id,
     p_routing_mode, p_sticky_enabled, p_sticky_ttl_hours,
     p_is_default, p_description, p_icon, p_color
-  ).*);
+  ));
+END;
 $$;
 
 REVOKE EXECUTE ON FUNCTION zapp.rpc_upsert_service_channel(UUID, TEXT, TEXT, TEXT, UUID, UUID, TEXT, BOOLEAN, INTEGER, BOOLEAN, TEXT, TEXT, TEXT) FROM PUBLIC, anon;
@@ -451,11 +461,16 @@ GRANT  EXECUTE ON FUNCTION zapp.rpc_upsert_service_channel(UUID, TEXT, TEXT, TEX
 CREATE OR REPLACE FUNCTION zapp.rpc_set_whatsapp_mode(
   p_mode TEXT
 ) RETURNS TEXT
-LANGUAGE sql
+LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = zapp
 AS $$
-  SELECT public.rpc_set_whatsapp_mode(p_mode);
+BEGIN
+  IF NOT zapp.is_admin_or_supervisor() THEN
+    RAISE EXCEPTION 'Admin or supervisor role required' USING ERRCODE = 'P0001';
+  END IF;
+  RETURN public.rpc_set_whatsapp_mode(p_mode);
+END;
 $$;
 
 REVOKE EXECUTE ON FUNCTION zapp.rpc_set_whatsapp_mode(TEXT) FROM PUBLIC, anon;
