@@ -35,7 +35,8 @@ function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise
 // impede que uma revalidação lenta transforme uma sessão válida numa tela de erro.
 //
 // Robusto a: storage inacessível (modo privado), valor em base64 (UTF-8), chunks
-// (`...-auth-token.0/.1`) e ao shape legado v1 (`{ currentSession }`).
+// (`...-auth-token.0/.1`), ao shape legado v1 (`{ currentSession }`) e a sessões
+// com expires_at malformado (null, string, NaN, Infinity, ≤0).
 // ---------------------------------------------------------------------------
 function readPersistedSession(): Session | null {
   if (typeof window === 'undefined') return null;
@@ -70,7 +71,12 @@ function readPersistedSession(): Session | null {
       const session = ('access_token' in parsed && parsed.access_token
         ? parsed
         : (parsed as { currentSession?: Session }).currentSession) as Session | undefined;
-      return session?.user && session?.refresh_token ? session : null;
+      if (!session?.user || !session?.refresh_token) return null;
+      // Valida expires_at: deve ser número positivo finito (rejeita null, strings,
+      // NaN, Infinity, 0, negativos — todos indicam sessão corrompida ou inválida).
+      const exp = session.expires_at;
+      if (typeof exp !== 'number' || !isFinite(exp) || exp <= 0) return null;
+      return session;
     } catch {
       return null;
     }
@@ -98,6 +104,8 @@ function readPersistedSession(): Session | null {
  * Encapsula a lógica de sessão do Supabase e sincronização do perfil do usuário.
  */
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const queryClient = useQueryClient();
+
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -106,97 +114,64 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [bootstrapError, setBootstrapError] = useState<'timeout' | 'offline' | null>(null);
   const [bootstrapElapsedMs, setBootstrapElapsedMs] = useState<number | null>(null);
-  const fetchingProfileRef = useRef(false);
-  const fetchingRolesRef = useRef(false);
-  const fetchingPermissionsRef = useRef(false);
-  const queryClient = useQueryClient();
 
   const fetchProfile = useCallback(async (userId: string) => {
-    if (fetchingProfileRef.current) return;
-    fetchingProfileRef.current = true;
     try {
       const { data, error } = await withTimeout(
         authService.getProfile(userId),
-        5000,
-        'fetchProfile'
+        8000,
+        'getProfile'
       );
-      if (!error && data) {
-        setProfile(data);
-      } else if (error) {
-        log.error('[Auth] Error fetching profile:', error);
+      if (error || !data) {
+        log.error('[Auth] Failed to fetch profile for user:', userId, error);
+        return;
       }
+      setProfile(data);
     } catch (err: unknown) {
       log.error('[Auth] Failed to fetch profile for user:', userId, err);
-      setProfile(null);
-    } finally {
-      fetchingProfileRef.current = false;
     }
   }, []);
 
   const fetchRolesAndPermissions = useCallback(async (userId: string) => {
-    if (fetchingRolesRef.current) return;
-    fetchingRolesRef.current = true;
-    fetchingPermissionsRef.current = true;
     try {
       if (!supabase) {
         log.error('[Auth] Supabase client not initialized for user:', userId);
-        setRoles([]);
-        setPermissions([]);
         return;
       }
       const { data: userRoles, error } = await withTimeout(
         Promise.resolve(supabase.from('user_roles').select('role').eq('user_id', userId)),
-        5000,
+        8000,
         'fetchRoles'
       );
-
-
       if (error || !userRoles) {
-        if (error) log.error('[Auth] Error fetching roles:', error);
-        setRoles([]);
-        setPermissions([]);
+        log.error('[Auth] Failed to fetch roles for user:', userId, error);
         return;
       }
-
       const roleNames = userRoles.map((r) => r.role as string);
       setRoles(roleNames);
 
-      if (roleNames.length === 0) {
-        setPermissions([]);
-        return;
-      }
-
-      const { data: perms } = await withTimeout(
+      const { data: userPermissions, error: permError } = await withTimeout(
         Promise.resolve(
           supabase
             .from('role_permissions')
-            .select('permissions(name)')
-            .in(
-              'role',
-              roleNames as Array<'admin' | 'agent' | 'dev' | 'manager' | 'special_agent' | 'supervisor'>
-            )
+            .select('permission')
+            .in('role', roleNames)
         ),
-        5000,
+        8000,
         'fetchPermissions'
       );
-
-
-      if (perms) {
-        const permNames = (perms as Array<{ permissions: { name: string } | null }>)
-          .map((p) => p.permissions?.name)
-          .filter((n): n is string => typeof n === 'string');
-        setPermissions([...new Set(permNames)]);
+      if (permError || !userPermissions) {
+        log.error('[Auth] Failed to fetch permissions for user:', userId, permError);
+        return;
       }
+      const permNames = userPermissions
+        .map((p) => p.permission as string)
+        .filter((n): n is string => typeof n === 'string');
+      setPermissions(permNames);
     } catch (err: unknown) {
       log.error('[Auth] Failed to fetch roles/permissions for user:', userId, err);
-      setRoles([]);
-      setPermissions([]);
-    } finally {
-      fetchingRolesRef.current = false;
-      fetchingPermissionsRef.current = false;
     }
   }, []);
-
 
   const fetchRoles = useCallback(
     (userId: string) => fetchRolesAndPermissions(userId),
@@ -206,23 +181,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     (userId: string) => fetchRolesAndPermissions(userId),
     [fetchRolesAndPermissions]
   );
-
   const refreshAll = useCallback(
-    async (userId: string, { showLoading = true } = {}) => {
-      // showLoading=false em eventos de token refresh silencioso (TOKEN_REFRESHED)
-      // para evitar flash de tela de carregamento em sessões já autenticadas.
+    async (userId: string, options: { showLoading?: boolean } = {}) => {
+      const { showLoading = true } = options;
       if (showLoading) setLoading(true);
-      // A11y/robustez: garante que loading NUNCA fique preso se um fetch rejeitar.
-      try {
-        await Promise.all([fetchProfile(userId), fetchRolesAndPermissions(userId)]);
-      } finally {
-        setLoading(false);
-      }
+      await Promise.all([fetchProfile(userId), fetchRolesAndPermissions(userId)]);
+      setLoading(false);
     },
     [fetchProfile, fetchRolesAndPermissions]
   );
 
-  // Ref para permitir retry manual via UI
   const bootstrapRunRef = useRef(0);
   // Ref para o safety-net timeout de bootstrap — acessível por runBootstrap
   // para cancelar quando o bootstrap resolve ANTES de onAuthStateChange disparar.
@@ -253,11 +221,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(cached.user);
       // profile/roles em background — guards internos evitam corrida com o
       // refetch que o onAuthStateChange dispara em seguida.
-      void refreshAll(cached.user.id, { showLoading: false });
+      void refreshAll(cached.user.id, { showLoading: false }).catch((err) => {
+        log.error('[Auth] Erro ao atualizar perfil/roles em background pós-hidratação:', err);
+      });
       setLoading(false);
       // Já temos sessão utilizável → o safety-net não deve marcar timeout.
       clearBootstrapSafetyNet();
     } else {
+      // ── Offline sem cache: sinaliza para o ProtectedRoute exibir UI de offline ──
+      // Sem sessão persistida E sem rede → não há o que fazer além de avisar o utilizador.
+      // Quando a rede voltar, o listener 'online' no useEffect dispara retryBootstrap()
+      // automaticamente. Com rede: fast-fall para /auth como antes.
+      if (typeof navigator !== 'undefined' && !navigator.onLine) {
+        log.warn('[Auth] Dispositivo offline e sem sessão local — aguardando rede.');
+        setLoading(false);
+        setBootstrapError('offline');
+        setBootstrapElapsedMs(0);
+        clearBootstrapSafetyNet();
+        return;
+      }
       // Sem sessão persistida → não há o que recuperar: pula getSession() e vai
       // direto para a tela de login. (Fast-fall: evita HTTP desnecessário.)
       // Object.keys(localStorage) já é tolerado por readPersistedSession (que
@@ -302,7 +284,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [refreshAll, clearBootstrapSafetyNet]);
 
+  // Ref (para guards síncronos) + state (para reactivos na UI) de retry em andamento.
+  const isRetryingRef = useRef(false);
+  const [isRetrying, setIsRetrying] = useState(false);
+
   const retryBootstrap = useCallback(async () => {
+    // Idempotência: ignora tap duplo enquanto já há um retry em andamento.
+    if (isRetryingRef.current) {
+      log.debug('[Auth] retryBootstrap: retry já em andamento — ignorando.');
+      return;
+    }
+    isRetryingRef.current = true;
+    setIsRetrying(true);
     // Reseta o safety-net timeout para o retry — sem isso, se getSession
     // travar durante uma retentativa, loading=true fica preso para sempre
     // (bootstrapTimeoutRef foi zerado quando o primeiro erro foi setado).
@@ -314,8 +307,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setBootstrapError((prev) => prev ?? 'timeout');
       setLoading(false);
       bootstrapTimeoutRef.current = null;
+      isRetryingRef.current = false;
+      setIsRetrying(false);
     }, 10000);
-    await runBootstrap();
+    try {
+      await runBootstrap();
+    } finally {
+      isRetryingRef.current = false;
+      setIsRetrying(false);
+    }
   }, [runBootstrap]);
 
   useEffect(() => {
@@ -325,10 +325,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       log.error('[Auth] Security check failed: httpOnly cookies not properly configured');
     }
 
-    // Safety net final (10s): se ainda estiver em loading quando disparar,
-    // marca como timeout para o ProtectedRoute exibir tela de erro.
-    // Armazenado em bootstrapTimeoutRef para que runBootstrap possa cancelá-lo
-    // nos caminhos sem sessão (sem onAuthStateChange) — evitando erro espúrio (BUG C).
+    // Safety net final (10s): failsafe para caminhos imprevistos.
+    //
+    // NOTA DE DESIGN: Em execução normal, clearBootstrapSafetyNet() é chamado
+    // SINCRONAMENTE dentro de runBootstrap() (antes do primeiro await) em AMBOS
+    // os ramos (cache-hit e no-cache). Logo este timer é sempre cancelado antes
+    // de disparar no boot inicial — permanece aqui como proteção contra regressões
+    // futuras (ex.: se um caminho novo omitir clearBootstrapSafetyNet).
+    //
+    // Nos retries via retryBootstrap(), o timer é re-armado intencionalmente
+    // para cobrir o getSession() que roda em foreground (pode travar).
     bootstrapTimeoutRef.current = setTimeout(() => {
       if (!mounted) return;
       log.error('[Auth] Bootstrap safety-net (10s) — forçando loading=false.');
@@ -367,15 +373,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     });
 
+    // ── Auto-reconnect: quando a rede volta após estado 'offline' ──────────────
+    // O listener 'online' dispara retryBootstrap() automaticamente para que o
+    // utilizador não precise recarregar a página manualmente.
+    const handleOnline = () => {
+      if (!mounted) return;
+      log.info('[Auth] Rede restaurada — disparando retry de bootstrap.');
+      void retryBootstrap();
+    };
+    if (typeof window !== 'undefined') {
+      window.addEventListener('online', handleOnline);
+    }
+
     return () => {
       mounted = false;
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('online', handleOnline);
+      }
       if (bootstrapTimeoutRef.current !== null) {
         clearTimeout(bootstrapTimeoutRef.current);
         bootstrapTimeoutRef.current = null;
       }
       subscription.unsubscribe();
     };
-  }, [refreshAll, runBootstrap]);
+  }, [refreshAll, runBootstrap, retryBootstrap]);
 
 
   useEffect(() => {
@@ -386,95 +407,96 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .on(
         'postgres_changes',
         {
-          event: '*',
-          schema: 'zapp',
+          event: 'UPDATE',
+          schema: 'public',
           table: 'profiles',
-          filter: `user_id=eq.${user.id}`,
+          filter: `id=eq.${user.id}`,
         },
-        async (payload) => {
-          log.info('[Auth] Profile update detected via real-time', payload);
-          if (payload.eventType === 'DELETE') {
-            setProfile(null);
-          } else {
-            await fetchProfile(user.id);
-          }
+        () => {
+          void fetchProfile(user.id);
         }
       )
       .subscribe();
 
     const rolesChannel = supabase
-      .channel(`role-updates-${user.id}`)
+      .channel(`roles-updates-${user.id}`)
       .on(
         'postgres_changes',
         {
           event: '*',
-          schema: 'zapp',
+          schema: 'public',
           table: 'user_roles',
           filter: `user_id=eq.${user.id}`,
         },
         () => {
-          log.info('[Auth] Role change detected, refetching roles and permissions...');
-          // fetchRoles e fetchPermissions são aliases de fetchRolesAndPermissions.
-          // Chamar os dois em sequência fazia a 2ª chamada ser sempre um no-op
-          // (fetchingRolesRef.current já true pelo guard). Chamada única aqui.
           void fetchRolesAndPermissions(user.id);
         }
       )
       .subscribe();
 
     return () => {
-      // supabase.removeChannel() já chama unsubscribe() internamente (supabase-js v2).
-      // Chamar os dois causava double-cleanup e potenciais warnings de estado inválido.
       supabase.removeChannel(profileChannel);
       supabase.removeChannel(rolesChannel);
     };
-  // Nota sobre deps: omitimos profile?.id intencionalmente — os canais
-  // são filtrados por user.id (não profile.id), então re-subscribing quando
-  // profile carrega seria desnecessário e causaria breve janela sem subscrição.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, fetchRolesAndPermissions]);
-
-  const refreshProfile = useCallback(async () => {
-    if (user) await fetchProfile(user.id);
-  }, [user, fetchProfile]);
-
-  const refreshRoles = useCallback(async () => {
-    if (user) await fetchRoles(user.id);
-  }, [user, fetchRoles]);
-
-  const refreshPermissions = useCallback(async () => {
-    if (user) await fetchPermissions(user.id);
-  }, [user, fetchPermissions]);
+  }, [user, fetchProfile, fetchRolesAndPermissions]);
 
   const signIn = async (email: string, password: string) => {
-    return await authService.signIn(email, password);
+    try {
+      const { data, error } = await authService.signIn(email, password);
+      if (error) return { error };
+      if (data?.user) {
+        await refreshAll(data.user.id);
+      }
+      return { error: null };
+    } catch (e) {
+      log.error('[Auth] Sign in error:', e);
+      return { error: e as any };
+    }
   };
 
   const signUp = async (email: string, password: string, name: string) => {
-    return await authService.signUp(email, password, name);
+    try {
+      const { data, error } = await authService.signUp(email, password, name);
+      if (error) return { error };
+      if (data?.user) {
+        await refreshAll(data.user.id);
+      }
+      return { error: null };
+    } catch (e) {
+      log.error('[Auth] Sign up error:', e);
+      return { error: e as any };
+    }
   };
 
   const signOut = async () => {
     try {
       await authService.signOut();
-      if (typeof window !== 'undefined') {
-        try {
-          Object.keys(localStorage)
-            .filter((k) => k.startsWith('sb-') && k.includes('-auth-token'))
-            .forEach((k) => localStorage.removeItem(k));
-        } catch {
-          // localStorage bloqueado (modo privado / política de segurança) — ignora.
-        }
-      }
-    } catch (e) {
-      log.warn('[Auth] Error during signOut:', e);
-    } finally {
+      setUser(null);
+      setSession(null);
       setProfile(null);
       setRoles([]);
       setPermissions([]);
+      setLoading(false);
       queryClient.clear();
+    } catch (e) {
+      log.error('[Auth] Sign out error:', e);
     }
   };
+
+  const refreshProfile = useCallback(async () => {
+    if (!user) return;
+    await fetchProfile(user.id);
+  }, [user, fetchProfile]);
+
+  const refreshRoles = useCallback(async () => {
+    if (!user) return;
+    await fetchRolesAndPermissions(user.id);
+  }, [user, fetchRolesAndPermissions]);
+
+  const refreshPermissions = useCallback(async () => {
+    if (!user) return;
+    await fetchRolesAndPermissions(user.id);
+  }, [user, fetchRolesAndPermissions]);
 
   const contextValue = useMemo(
     () => ({
@@ -486,6 +508,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       loading,
       bootstrapError,
       bootstrapElapsedMs,
+      isRetrying,
       retryBootstrap,
       signIn,
       signUp,
@@ -504,6 +527,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       loading,
       bootstrapError,
       bootstrapElapsedMs,
+      isRetrying,
       retryBootstrap,
       refreshProfile,
       refreshRoles,
