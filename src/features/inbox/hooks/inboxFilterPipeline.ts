@@ -307,14 +307,21 @@ function countUnique(conversations: ConversationWithMessages[]): number {
   return new Set(conversations.map((c) => c.contact.id)).size;
 }
 
-/** Computes inbox tab counters with the same permission/filter pipeline used by the visible list. */
+/**
+ * Computes inbox tab counters using the exact same pipeline as the visible list.
+ *
+ * Guarantee: for every tab, `count === applyInboxFilters(pipelineOptions with that tab).length`.
+ * "Abertos" respects the currently active subTab (attending/waiting) so the header count
+ * matches 1:1 what the user sees in the sidebar when that tab is active.
+ * "Não lidas" ignores subTab (same as the visible list under mainTab='unread').
+ */
 export function computeInboxTabCounts(opts: ApplyInboxFiltersOptions): InboxTabCounts {
   const attending = applyInboxFilters({ ...opts, mainTab: 'open', subTab: 'attending' });
   const waiting = applyInboxFilters({ ...opts, mainTab: 'open', subTab: 'waiting' });
-  const openIds = new Set([...attending, ...waiting].map((c) => c.contact.id));
+  const openForCurrentSubTab = opts.subTab === 'attending' ? attending : waiting;
 
   return {
-    open: openIds.size,
+    open: countUnique(openForCurrentSubTab),
     attending: countUnique(attending),
     waiting: countUnique(waiting),
     resolved: countUnique(applyInboxFilters({ ...opts, mainTab: 'resolved' })),
