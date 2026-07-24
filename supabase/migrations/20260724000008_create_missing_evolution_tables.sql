@@ -109,7 +109,8 @@ BEGIN
   ) THEN
     EXECUTE format($p$
       CREATE POLICY "auth_read_evolution_bitrix_queue"
-        ON %I.evolution_bitrix_queue FOR SELECT TO authenticated USING (true)
+        ON %I.evolution_bitrix_queue FOR SELECT TO authenticated
+        USING (EXISTS (SELECT 1 FROM zapp.workspace_members WHERE user_id = auth.uid()))
     $p$, v_schema);
   END IF;
 
@@ -174,7 +175,8 @@ BEGIN
   ) THEN
     EXECUTE format($p$
       CREATE POLICY "auth_read_evolution_chatbot_responses"
-        ON %I.evolution_chatbot_responses FOR SELECT TO authenticated USING (true)
+        ON %I.evolution_chatbot_responses FOR SELECT TO authenticated
+        USING (EXISTS (SELECT 1 FROM zapp.workspace_members WHERE user_id = auth.uid()))
     $p$, v_schema);
   END IF;
 
@@ -257,7 +259,8 @@ BEGIN
   ) THEN
     EXECUTE format($p$
       CREATE POLICY "auth_read_evolution_deals"
-        ON %I.evolution_deals FOR SELECT TO authenticated USING (true)
+        ON %I.evolution_deals FOR SELECT TO authenticated
+        USING (EXISTS (SELECT 1 FROM zapp.workspace_members WHERE user_id = auth.uid()))
     $p$, v_schema);
   END IF;
 
@@ -356,7 +359,8 @@ BEGIN
   ) THEN
     EXECUTE format($p$
       CREATE POLICY "auth_read_evolution_followups"
-        ON %I.evolution_followups FOR SELECT TO authenticated USING (true)
+        ON %I.evolution_followups FOR SELECT TO authenticated
+        USING (EXISTS (SELECT 1 FROM zapp.workspace_members WHERE user_id = auth.uid()))
     $p$, v_schema);
   END IF;
 
@@ -453,7 +457,8 @@ BEGIN
   ) THEN
     EXECUTE format($p$
       CREATE POLICY "auth_read_evolution_message_queue"
-        ON %I.evolution_message_queue FOR SELECT TO authenticated USING (true)
+        ON %I.evolution_message_queue FOR SELECT TO authenticated
+        USING (EXISTS (SELECT 1 FROM zapp.workspace_members WHERE user_id = auth.uid()))
     $p$, v_schema);
   END IF;
 
@@ -538,7 +543,8 @@ BEGIN
   ) THEN
     EXECUTE format($p$
       CREATE POLICY "auth_read_evolution_message_templates"
-        ON %I.evolution_message_templates FOR SELECT TO authenticated USING (true)
+        ON %I.evolution_message_templates FOR SELECT TO authenticated
+        USING (EXISTS (SELECT 1 FROM zapp.workspace_members WHERE user_id = auth.uid()))
     $p$, v_schema);
   END IF;
 
@@ -642,7 +648,8 @@ BEGIN
   ) THEN
     EXECUTE format($p$
       CREATE POLICY "auth_read_evolution_performance_metrics"
-        ON %I.evolution_performance_metrics FOR SELECT TO authenticated USING (true)
+        ON %I.evolution_performance_metrics FOR SELECT TO authenticated
+        USING (EXISTS (SELECT 1 FROM zapp.workspace_members WHERE user_id = auth.uid()))
     $p$, v_schema);
   END IF;
 
@@ -708,7 +715,8 @@ BEGIN
   ) THEN
     EXECUTE format($p$
       CREATE POLICY "auth_read_evolution_tags"
-        ON %I.evolution_tags FOR SELECT TO authenticated USING (true)
+        ON %I.evolution_tags FOR SELECT TO authenticated
+        USING (EXISTS (SELECT 1 FROM zapp.workspace_members WHERE user_id = auth.uid()))
     $p$, v_schema);
   END IF;
 

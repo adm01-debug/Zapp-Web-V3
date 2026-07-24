@@ -62,16 +62,17 @@ BEGIN
     );
   END IF;
 
+  -- workspace_members check: any member of any workspace can read sentiment data.
+  -- zapp.whatsapp_connections has no workspace_id column, so we cannot join through
+  -- connections — instead we verify that auth.uid() is a registered workspace member.
   EXECUTE format(
     $pol$
     CREATE POLICY "auth_read_evolution_sentiment_analysis"
       ON %I.evolution_sentiment_analysis
       FOR SELECT TO authenticated
       USING (
-        instance_name IN (
-          SELECT wc.instance_name
-          FROM zapp.whatsapp_connections wc
-          INNER JOIN zapp.workspace_members wm ON wm.workspace_id = wc.workspace_id
+        EXISTS (
+          SELECT 1 FROM zapp.workspace_members wm
           WHERE wm.user_id = auth.uid()
         )
       )
