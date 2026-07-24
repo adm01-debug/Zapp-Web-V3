@@ -438,7 +438,7 @@ export async function handleCallEvent(supabase: SupabaseClient, instance: string
     const { data: agentProfile } = await supabase.from('profiles')
       .select('user_id, name').eq('id', agentId).single();
     if (agentProfile?.user_id) {
-      await supabase.from('notifications').insert({
+      await supabase.from('app_notifications').insert({
         user_id: agentProfile.user_id, type: 'incoming_call',
         title: isVideo ? '📹 Chamada de vídeo recebida' : '📞 Chamada de voz recebida',
         message: `${contact.name || phone} está ligando para você`,
