@@ -58,7 +58,7 @@ export function PaymentLinksView() {
   useEffect(() => {
     const channel = supabase
       .channel('payment-links-changes')
-      .on('postgres_changes', { event: '*', schema: 'zapp', table: 'payment_links' }, () =>
+      .on('postgres_changes', { event: '*', schema: 'financeiro', table: 'payment_links' }, () =>
         fetchData()
       )
       .subscribe();
