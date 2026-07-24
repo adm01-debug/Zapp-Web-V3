@@ -408,6 +408,16 @@ Deno.serve(async (req) => {
     if (event === 'chats.set') await handleChatsSet(supabase, instance, data);
     if (event === 'messages.edited' || event === 'messages.edit') await handleMessagesEdited(supabase, instance, data, baseData);
 
+    if (event === 'messages.reaction') {
+      const reactionPayload = isRecord(baseData) ? baseData : {};
+      const reactionMsg = reactionPayload.reaction as Record<string, unknown> | undefined;
+      const reactorKey = isRecord(reactionPayload.key) ? reactionPayload.key : {};
+      const fromMe = Boolean(reactorKey.fromMe);
+      if (reactionMsg) {
+        await handleReactionEvent(supabase, instance, reactionMsg, fromMe);
+      }
+    }
+
     await auditWebhookEvent(supabase, {
       request_id: requestId, instance, event_type: event, status: 'processed', status_code: 200,
       duration_ms: Date.now() - startedAt,

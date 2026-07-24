@@ -82,7 +82,7 @@ Deno.test("Auditoria: estados rejected/duplicate/processed/error presentes", () 
 });
 
 /**
- * Lista canônica de 27 eventos do webhook Evolution v2 (mantida em
+ * Lista canônica de 28 eventos do webhook Evolution v2 (mantida em
  * `supabase/functions/_shared/evolution-sync-actions.ts` — `WEBHOOK_EVENTS`).
  * Aqui mapeamos para o formato `lower.dotted` que a Evolution envia no payload.
  *
@@ -103,6 +103,7 @@ const WEBHOOK_EVENTS_27: Array<{ name: string; critical: boolean }> = [
   { name: 'messages.update', critical: true },
   { name: 'messages.delete', critical: true },
   { name: 'messages.edited', critical: true },
+  { name: 'messages.reaction', critical: true },
   { name: 'send.message', critical: true },
 
   // Contatos
@@ -139,10 +140,10 @@ const WEBHOOK_EVENTS_27: Array<{ name: string; critical: boolean }> = [
   { name: 'typebot.change-status', critical: false },
 ];
 
-Deno.test("Roteamento: lista canônica tem exatamente 27 eventos", () => {
+Deno.test("Roteamento: lista canônica tem exatamente 28 eventos", () => {
   assert(
-    WEBHOOK_EVENTS_27.length === 27,
-    `Esperado 27 eventos, encontrado ${WEBHOOK_EVENTS_27.length}. ` +
+    WEBHOOK_EVENTS_27.length === 28,
+    `Esperado 28 eventos, encontrado ${WEBHOOK_EVENTS_27.length}. ` +
       `Se a Evolution adicionou/removeu eventos, atualize WEBHOOK_EVENTS em ` +
       `_shared/evolution-sync-actions.ts e este teste em conjunto.`,
   );
@@ -216,7 +217,7 @@ Deno.test("Roteamento: nenhum evento órfão (presente no código sem estar no c
   assert(
     orphans.length === 0,
     `Eventos roteados mas NÃO listados no contrato dos 27: ${orphans.join(", ")}. ` +
-      `Adicione-os em WEBHOOK_EVENTS_27 + WEBHOOK_EVENTS ou remova do roteador.`,
+      `Adicione-os em WEBHOOK_EVENTS_27 (agora 28 entradas) + WEBHOOK_EVENTS ou remova do roteador.`,
   );
 });
 
