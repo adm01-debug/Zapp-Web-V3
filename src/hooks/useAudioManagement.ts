@@ -99,7 +99,7 @@ export function useAudioMemes(open: boolean) {
       .channel('audio-memes-favorites')
       .on(
         'postgres_changes',
-        { event: '*', schema: 'zapp', table: 'audio_meme_favorites' },
+        { event: '*', schema: 'public', table: 'audio_meme_favorites' },
         () => {
           log.info('Favorites update received');
           void queryClient.invalidateQueries({ queryKey: AUDIO_MEMES_KEY });

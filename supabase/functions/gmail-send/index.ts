@@ -414,8 +414,10 @@ async function getValidToken(supabase: ReturnType<typeof createClient>, accountI
   const tokensObj = tokens as Record<string, unknown>;
   if (tokensObj.error) {
     const errorMsg = typeof tokensObj.error === 'string' ? tokensObj.error : JSON.stringify(tokensObj.error);
-    console.error('[gmail-send] token refresh error:', errorMsg);
-    await supabase.from('gmail_accounts').update({ is_active: false }).eq('id', accountId);
+    const PERMANENT_ERRORS = ['invalid_grant', 'token_revoked'];
+    const isPermanent = typeof tokensObj.error === 'string' && PERMANENT_ERRORS.includes(tokensObj.error);
+    console.error(`[gmail-send] token refresh error: ${errorMsg} (permanent=${isPermanent})`);
+    if (isPermanent) await supabase.from('gmail_accounts').update({ is_active: false }).eq('id', accountId);
     return null;
   }
 
