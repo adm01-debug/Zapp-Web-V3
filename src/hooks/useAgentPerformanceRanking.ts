@@ -78,5 +78,6 @@ export function useAgentPerformanceRanking() {
       });
     },
     refetchInterval: 30000,
+    staleTime: 25_000,
   });
 }

@@ -81,6 +81,7 @@ export function MediaGallery({ contactId, open, onOpenChange }: MediaGalleryProp
       return data || [];
     },
     enabled: open && !!contactId,
+    staleTime: 60_000,
     retry: 1,
   });
 

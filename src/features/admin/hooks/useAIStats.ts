@@ -187,5 +187,6 @@ export function useAIStats(selectedPeriod: PeriodOption) {
       };
     },
     refetchInterval: 60000,
+    staleTime: 55_000,
   });
 }

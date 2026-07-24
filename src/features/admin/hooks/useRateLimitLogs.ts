@@ -172,7 +172,7 @@ export function useRateLimitLogs(initial?: Partial<RateLimitLogsFilters>): UseRa
       .channel('rate-limit-logs')
       .on<RateLimitLog>(
         'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'rate_limit_logs' },
+        { event: 'INSERT', schema: 'zapp', table: 'rate_limit_logs' },
         (payload) => {
           queryClient.setQueryData<RateLimitLog[]>(queryKeys.adminOps.rateLimitLogsStats(), (prev) =>
             [payload.new, ...(prev ?? [])].slice(0, 200),

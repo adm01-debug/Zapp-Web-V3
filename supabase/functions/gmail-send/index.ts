@@ -313,11 +313,14 @@ Deno.serve(async (req) => {
       const draftId = typeof body.draftId === 'string' ? body.draftId : '';
       if (!draftId) return json({ error: 'draftId obrigatório' }, 400);
 
-      await fetch(`${GMAIL_API}/drafts/${draftId}`, {
+      const deleteRes = await fetch(`${GMAIL_API}/drafts/${draftId}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
         signal: AbortSignal.timeout(10_000),
       });
+      if (!deleteRes.ok && deleteRes.status !== 404) {
+        return json({ error: `Gmail API error: ${deleteRes.status}` }, 502);
+      }
 
       return json({ success: true });
     }

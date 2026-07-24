@@ -20,6 +20,7 @@ export function useAIProviderHealth() {
   return useQuery<UsageLog[]>({
     queryKey: queryKeys.aiFeatures.providerHealth(),
     refetchInterval: 30000,
+    staleTime: 25_000,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('ai_usage_logs')

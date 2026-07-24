@@ -3,7 +3,7 @@
 // This enables autocomplete, go to definition, etc.
 
 
-serve(async () => {
+Deno.serve(async () => {
   return new Response(
     `"Hello from Edge Functions!"`,
     { headers: { "Content-Type": "application/json" } },

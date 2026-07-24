@@ -92,7 +92,7 @@ export default function AdminAlertHistoryPage() {
   useEffect(() => {
     const channel = supabase
       .channel(channelId.current)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'warroom_alerts' }, () => {
+      .on('postgres_changes', { event: '*', schema: 'zapp', table: 'warroom_alerts' }, () => {
         setLastEventAt(new Date());
         if (debounceRef.current) window.clearTimeout(debounceRef.current);
         // Debounce 250ms: várias mudanças em sequência viram 1 refetch.

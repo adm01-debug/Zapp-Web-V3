@@ -72,7 +72,7 @@ export function useAutomationLogs(filters: AutomationLogsFilters) {
       .channel('automation-executions-audit')
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'automation_executions' },
+        { event: '*', schema: 'zapp', table: 'automation_executions' },
         () => {
           if (page === 0) {
             void queryClient.invalidateQueries({

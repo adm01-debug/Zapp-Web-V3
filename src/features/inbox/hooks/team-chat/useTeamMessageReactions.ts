@@ -55,7 +55,7 @@ export function useTeamMessageReactions(conversationId: string | undefined) {
       .channel(`team-reactions-${conversationId}`)
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'team_message_reactions' },
+        { event: '*', schema: 'zapp', table: 'team_message_reactions' },
         () => {
           void queryClient.invalidateQueries({ queryKey: queryKeys.teamChat.reactions(conversationId) });
         }

@@ -89,9 +89,9 @@ export function useQueues() {
 
     const channel = supabase
       .channel('queues-realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'queues' }, fetchQueues)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'queue_members' }, fetchQueues)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'queue_positions' }, fetchQueues)
+      .on('postgres_changes', { event: '*', schema: 'zapp', table: 'queues' }, fetchQueues)
+      .on('postgres_changes', { event: '*', schema: 'zapp', table: 'queue_members' }, fetchQueues)
+      .on('postgres_changes', { event: '*', schema: 'zapp', table: 'queue_positions' }, fetchQueues)
       .subscribe();
 
     return () => {

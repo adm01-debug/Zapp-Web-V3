@@ -731,7 +731,7 @@ export function useLeaderboardManagement() {
     void fetchLeaderboard(timeRange);
     const channel = supabase
       .channel('leaderboard-updates')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'agent_stats' }, () => {
+      .on('postgres_changes', { event: '*', schema: 'zapp', table: 'agent_stats' }, () => {
         log.debug('Agent stats updated, refreshing leaderboard...');
         void fetchLeaderboard(timeRange);
       })

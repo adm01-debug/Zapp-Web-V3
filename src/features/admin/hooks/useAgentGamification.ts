@@ -66,6 +66,7 @@ export const useAgentGamification = () => {
     },
     enabled: !!profileId,
     refetchInterval: 30000,
+    staleTime: 25_000,
   });
 
   const achievementsQuery = useQuery({

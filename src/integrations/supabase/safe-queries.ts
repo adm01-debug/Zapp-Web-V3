@@ -116,7 +116,7 @@ export const safeWhatsAppConnectionsQuery = (supabase: AnySupabaseClient) => ({
         'postgres_changes' as never,
         {
           event: (options?.event || '*') as never,
-          schema: 'public',
+          schema: 'zapp',
           table: 'whatsapp_connections',
           filter: options?.filter,
         },
@@ -174,7 +174,7 @@ export const safeChannelConnectionsQuery = (supabase: SupabaseClient<Database>) 
         'postgres_changes',
         {
           event: '*',
-          schema: 'public',
+          schema: 'zapp',
           table: 'channel_connections',
         },
         callback

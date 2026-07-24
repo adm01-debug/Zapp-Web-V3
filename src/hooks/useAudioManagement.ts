@@ -82,7 +82,7 @@ export function useAudioMemes(open: boolean) {
 
     const catalogChannel = supabase
       .channel('audio-memes-catalog')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'audio_memes' }, () => {
+      .on('postgres_changes', { event: '*', schema: 'zapp', table: 'audio_memes' }, () => {
         log.info('Catalog update received');
         void queryClient.invalidateQueries({ queryKey: AUDIO_MEMES_KEY });
       })
@@ -99,7 +99,7 @@ export function useAudioMemes(open: boolean) {
       .channel('audio-memes-favorites')
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'audio_meme_favorites' },
+        { event: '*', schema: 'zapp', table: 'audio_meme_favorites' },
         () => {
           log.info('Favorites update received');
           void queryClient.invalidateQueries({ queryKey: AUDIO_MEMES_KEY });
@@ -820,10 +820,10 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
           if (transcriptionRef.current.trim() === '' && audioBlob.size > 1000) {
             try {
               setIsTranscribing(true);
-              const { data } = await supabase.functions.invoke('speech-to-text', {
+              const { data, error } = await supabase.functions.invoke('speech-to-text', {
                 body: { audio: await blobToBase64(audioBlob) },
               });
-              if (data?.text) {
+              if (!error && data?.text) {
                 setTranscription(data.text);
               }
             } catch (err) {

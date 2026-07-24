@@ -36,6 +36,7 @@ export function TalkXRecipientsList({ campaignId }: Props) {
     },
     enabled: !!campaignId,
     refetchInterval: 5000,
+    staleTime: 4_000,
   });
 
   if (isLoading) {

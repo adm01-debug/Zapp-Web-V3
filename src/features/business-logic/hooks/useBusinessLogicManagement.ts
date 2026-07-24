@@ -256,7 +256,7 @@ export function useBusinessLogicCatalogManagement(
           if (dbError || !dbResult?.id)
             throw new Error(dbError?.message ?? 'Image DB insert failed');
 
-          const { data: apiResult } = await supabase.functions.invoke('evolution-api', {
+          const { data: apiResult, error: mediaApiErr } = await supabase.functions.invoke('evolution-api', {
             body: {
               action: 'send-media',
               instanceName: evoName,
@@ -266,6 +266,7 @@ export function useBusinessLogicCatalogManagement(
               caption: '',
             },
           });
+          if (mediaApiErr) throw mediaApiErr;
 
           const externalId = extractEvolutionMessageId(apiResult);
           if (dbResult?.id && externalId) {
@@ -291,7 +292,7 @@ export function useBusinessLogicCatalogManagement(
         if (textDbError || !textDbResult?.id)
           throw new Error(textDbError?.message ?? 'Text DB insert failed');
 
-        const { data: textApiResult } = await supabase.functions.invoke('evolution-api', {
+        const { data: textApiResult, error: textApiErr } = await supabase.functions.invoke('evolution-api', {
           body: {
             action: 'send-text',
             instanceName: evoName,
@@ -299,6 +300,7 @@ export function useBusinessLogicCatalogManagement(
             text: message,
           },
         });
+        if (textApiErr) throw textApiErr;
 
         const textExternalId = extractEvolutionMessageId(textApiResult);
         if (textDbResult?.id && textExternalId) {
@@ -449,7 +451,7 @@ export function useBusinessLogicPipelineManagement(
   useEffect(() => {
     const channel = supabase
       .channel('deals-changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'sales_deals' }, () => {
+      .on('postgres_changes', { event: '*', schema: 'zapp', table: 'sales_deals' }, () => {
         void queryClient.invalidateQueries({ queryKey: PIPELINE_KEY });
       })
       .subscribe();

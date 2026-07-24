@@ -81,6 +81,7 @@ export function AuthEventTrendChart() {
       return (data ?? []) as TrendRow[];
     },
     refetchInterval: 30_000,
+    staleTime: 25_000,
   });
 
   const summaryQuery = useQuery({
@@ -93,6 +94,7 @@ export function AuthEventTrendChart() {
       return data as SummaryResp; // ignore-audit: narrows Supabase query result to local interface
     },
     refetchInterval: 30_000,
+    staleTime: 25_000,
   });
 
   // Agrega buckets entre instâncias (gráfico mostra totais por motivo)

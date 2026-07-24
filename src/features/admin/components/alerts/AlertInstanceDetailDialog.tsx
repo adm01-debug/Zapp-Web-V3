@@ -70,6 +70,7 @@ export function AlertInstanceDetailDialog({ open, onOpenChange, instance }: Prop
     },
     enabled,
     refetchInterval: 30_000,
+    staleTime: 25_000,
   });
 
   const invalidPctData = useMemo(() => {

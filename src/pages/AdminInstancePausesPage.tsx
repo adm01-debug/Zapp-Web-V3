@@ -44,12 +44,14 @@ export default function AdminInstancePausesPage() {
     queryKey: queryKeys.adminOps.instancePausesActive(),
     queryFn: () => invoke<{ items: PauseRow[] }>('list'),
     refetchInterval: REFRESH_INTERVAL,
+    staleTime: REFRESH_INTERVAL - 3_000,
   });
 
   const historyQuery = useQuery({
     queryKey: queryKeys.adminOps.instancePausesHistory(),
     queryFn: () => invoke<{ items: PauseRow[] }>('history', { limit: 50 }),
     refetchInterval: REFRESH_INTERVAL * 2,
+    staleTime: REFRESH_INTERVAL * 2 - 3_000,
   });
 
   const pauseMut = useMutation({
