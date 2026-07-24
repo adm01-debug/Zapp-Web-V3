@@ -145,7 +145,7 @@ export function useWarRoomAlertsManagement(soundEnabled = true): UseWarRoomAlert
 
   useEffect(() => {
     const channel = supabase
-      .channel('warroom-alerts-realtime')
+      .channel('warroom-alerts-management')
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'warroom_alerts' },
