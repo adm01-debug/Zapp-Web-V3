@@ -55,8 +55,12 @@ async function analyzeAI(text: string): Promise<SentimentResult> {
 }
 
 async function saveAnalysis(remoteJid: string, msgId: string | null, text: string, a: SentimentResult, instanceName?: string) {
-  const { data: c } = await supabase.from("evolution_contacts").select("id, instance_name").eq("remote_jid", remoteJid).maybeSingle();
-  const { data: cv } = await supabase.from("evolution_conversations").select("id").eq("remote_jid", remoteJid).order("updated_at", { ascending: false }).limit(1).maybeSingle();
+  const contactQuery = supabase.from("evolution_contacts").select("id, instance_name").eq("remote_jid", remoteJid);
+  if (instanceName) contactQuery.eq("instance_name", instanceName);
+  const { data: c } = await contactQuery.maybeSingle();
+  const convQuery = supabase.from("evolution_conversations").select("id").eq("remote_jid", remoteJid).order("updated_at", { ascending: false }).limit(1);
+  if (instanceName) convQuery.eq("instance_name", instanceName);
+  const { data: cv } = await convQuery.maybeSingle();
   const sV = ["positive","negative","neutral","mixed"].includes(a.sentiment) ? a.sentiment : "neutral";
   const uV = ["low","medium","high","critical"].includes(a.urgency) ? a.urgency : "low";
   // Resolve instance_name: caller-supplied > contact record > empty string (row hidden by RLS until backfilled)

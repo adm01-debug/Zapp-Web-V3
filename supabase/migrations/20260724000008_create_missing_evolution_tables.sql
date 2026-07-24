@@ -265,11 +265,13 @@ BEGIN
   END IF;
 
   -- updated_at trigger; uses $trig$ tag to avoid colliding with outer DO $$ delimiter
+  -- Checks BOTH the legacy retained trigger name (trg_evolution_deals_updated_at,
+  -- kept by 20260703163000) AND the new name to avoid creating a redundant duplicate.
   IF NOT EXISTS (
     SELECT 1 FROM pg_trigger t
     JOIN pg_class c ON c.oid = t.tgrelid
     JOIN pg_namespace n ON n.oid = c.relnamespace
-    WHERE t.tgname = 'set_evolution_deals_updated_at'
+    WHERE t.tgname IN ('set_evolution_deals_updated_at', 'trg_evolution_deals_updated_at')
       AND n.nspname = v_schema AND c.relname = 'evolution_deals'
   ) THEN
     EXECUTE format($trig$

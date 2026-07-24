@@ -68,6 +68,24 @@ BEGIN
     v_schema
   );
 
+  -- ── Ensure instance_name exists even on tables created before this migration ─
+  -- CREATE TABLE IF NOT EXISTS is a no-op on existing tables; if the table was
+  -- created in an earlier schema revision without instance_name, the index below
+  -- would fail with "column does not exist". Guard it explicitly here so that
+  -- 000009's ADD COLUMN (which does the same) remains idempotent either way.
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = v_schema
+      AND table_name   = 'evolution_sentiment_analysis'
+      AND column_name  = 'instance_name'
+  ) THEN
+    EXECUTE format(
+      'ALTER TABLE %I.evolution_sentiment_analysis ADD COLUMN instance_name TEXT NOT NULL DEFAULT ''''',
+      v_schema
+    );
+    RAISE NOTICE 'Added instance_name column to %.evolution_sentiment_analysis', v_schema;
+  END IF;
+
   -- ── Indexes (guarded by IF NOT EXISTS in PG 9.5+) ────────────────────────
   -- remote_jid is the primary filter in every query from the edge function
   EXECUTE format(

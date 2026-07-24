@@ -126,3 +126,31 @@ BEGIN
 
   RAISE NOTICE 'OK: all existing target tables are now in supabase_realtime publication';
 END $$;
+
+-- Set REPLICA IDENTITY FULL on zapp.whatsapp_connections so that UPDATE events
+-- expose old.status in payload.old — required by useEvolutionAutoReconnect.ts
+-- (checks oldConnection.status === 'connected') and useConnectionsRealtime.ts.
+-- PostgreSQL default replica identity only includes primary key columns in old;
+-- without FULL, status is absent and reconnect / announcement logic misfires.
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_class c
+    JOIN pg_namespace n ON n.oid = c.relnamespace
+    WHERE c.relname = 'whatsapp_connections' AND n.nspname = 'zapp'
+      AND c.relkind = 'r'
+      AND c.relreplident = 'f'  -- 'f' = FULL already set
+  ) THEN
+    IF EXISTS (
+      SELECT 1 FROM pg_class c
+      JOIN pg_namespace n ON n.oid = c.relnamespace
+      WHERE c.relname = 'whatsapp_connections' AND n.nspname = 'zapp'
+        AND c.relkind = 'r'
+    ) THEN
+      ALTER TABLE zapp.whatsapp_connections REPLICA IDENTITY FULL;
+      RAISE NOTICE 'SET REPLICA IDENTITY FULL on zapp.whatsapp_connections';
+    END IF;
+  ELSE
+    RAISE NOTICE 'SKIP zapp.whatsapp_connections — REPLICA IDENTITY FULL already set';
+  END IF;
+END $$;
