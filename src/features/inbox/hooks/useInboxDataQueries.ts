@@ -22,6 +22,7 @@ export function useInboxDataQueries(conversations: ConversationWithMessages[]) {
 
   const { data: contactTagsMap = {} } = useQuery({
     queryKey: queryKeys.contactDetails.tagsMap(),
+    enabled: conversations.length > 0,
     queryFn: async () => {
       const conversationContactIds = new Set(
         conversations.filter((c) => c?.contact?.id).map((c) => c.contact.id)

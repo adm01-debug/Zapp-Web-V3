@@ -219,9 +219,9 @@ export function useInboxFilters({
     }
   }, [showAll, scope]);
 
-  // Load custom scopes
+  // Load custom scopes (separate key from useInboxDataQueries to avoid partial-result collision)
   const { data: customScopes = [] } = useQuery({
-    queryKey: ['inbox-custom-scopes'],
+    queryKey: ['inbox-custom-scopes-full'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('inbox_custom_scopes')
@@ -233,9 +233,9 @@ export function useInboxFilters({
     staleTime: 60_000,
   });
 
-  // Load contact_tags mapping
+  // Load full contact_tags mapping (separate key from useInboxDataQueries which is conversation-scoped)
   const { data: contactTagsMap = {} } = useQuery({
-    queryKey: ['contact-tags-map'],
+    queryKey: ['contact-tags-map-full'],
     queryFn: async () => {
       const { data, error } = await supabase.from('contact_tags').select('contact_id, tag_id');
       if (error) throw error;
