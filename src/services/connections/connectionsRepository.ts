@@ -10,17 +10,26 @@ import { supabase } from '@/integrations/supabase/client';
 import { createService } from '@/services/api/genericService';
 import type { QueryParams } from '@/services/api/types';
 
-/** Whats App Connection interface. */
+/** Whats App Connection interface — matches zapp.whatsapp_connections physical columns. */
 export interface WhatsAppConnection {
   id: string;
-  instance_name: string;
-  account_id: string;
-  session_id?: string;
-  phone_number?: string;
+  name: string;
+  phone_number: string;
+  instance_id?: string;
+  instance_name?: string;
+  status?: 'connected' | 'disconnected' | 'connecting' | 'qr_pending' | 'logged_out';
   qr_code?: string;
-  connection_status: 'connected' | 'disconnected' | 'qr_pending' | 'error';
+  is_default?: boolean;
+  created_by?: string;
+  is_active?: boolean;
   last_connected_at?: string;
-  error_message?: string;
+  health_status?: string;
+  health_reason?: string;
+  health_response_ms?: number;
+  last_health_check?: string;
+  api_type?: string;
+  routing_mode?: string;
+  owner_jid?: string;
   created_at: string;
   updated_at: string;
 }
@@ -98,7 +107,7 @@ export const connectionsRepository = {
     try {
       const { data, error } = await supabase
         .from('whatsapp_connections')
-        .select('connection_status, error_message')
+        .select('status, health_status, health_reason')
         .eq('id', connectionId)
         .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
 

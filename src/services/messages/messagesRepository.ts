@@ -8,32 +8,62 @@ import { supabase } from '@/integrations/supabase/client';
 import { createService } from '@/services/api/genericService';
 import type { QueryParams } from '@/services/api/types';
 
-/** Message interface. */
+/** Message interface — matches evo.evolution_messages physical columns. */
 export interface Message {
   id: string;
-  conversation_id: string;
-  contact_id: string;
-  sender_type: 'contact' | 'agent' | 'system';
-  sender_id?: string;
-  content: string;
-  media_urls?: string[];
-  message_type: 'text' | 'image' | 'document' | 'audio' | 'video';
-  status: 'sent' | 'delivered' | 'read' | 'failed';
-  is_read: boolean;
-  read_at?: string;
+  instance_name?: string;
+  remote_jid?: string;
+  message_id?: string;
+  from_me?: boolean;
+  push_name?: string;
+  message_type?: string;
+  content?: string;
+  media_url?: string;
+  status?: string;
+  timestamp?: string;
+  raw?: Record<string, any>;
   created_at: string;
   updated_at: string;
+  contact_id?: string;
+  conversation_id?: string;
+  direction?: 'inbound' | 'outbound';
+  is_read?: boolean;
+  is_starred?: boolean;
+  is_important?: boolean;
+  follow_up_at?: string | null;
+  follow_up_done?: boolean;
+  category?: string | null;
+  sentiment?: string | null;
+  tags?: string[];
+  notes?: string | null;
+  deleted_at?: string | null;
+  agent_id?: string | null;
+  transcription?: string | null;
+  transcription_status?: string | null;
+  ptt?: boolean;
+  media_meta?: Record<string, any> | null;
+  reactions?: any[];
+  caption?: string | null;
+  full_name?: string | null;
+  phone_number?: string | null;
 }
 
-/** Conversation interface definition. */
+/**
+ * Conversation interface — matches evo.evolution_conversations physical columns.
+ * status values are Portuguese per the CHECK constraint: 'aberta' | 'arquivada'.
+ * assigned_to is the correct column name (not assigned_agent_id).
+ */
 export interface Conversation {
   id: string;
-  contact_id: string;
-  queue_id?: string;
-  assigned_agent_id?: string;
-  status: 'open' | 'closed' | 'waiting' | 'paused';
-  subject?: string;
+  instance_name?: string;
+  remote_jid?: string;
+  contact_id?: string;
   last_message_at?: string;
+  last_message_preview?: string;
+  unread_count?: number;
+  assigned_to?: string | null;
+  status?: 'aberta' | 'arquivada';
+  raw?: Record<string, any>;
   created_at: string;
   updated_at: string;
 }
@@ -100,7 +130,7 @@ export const messagesRepository = {
   async markMessagesAsRead(conversationId: string, _userId: string) {
     const { error } = await supabase
       .from('evolution_messages')
-      .update({ is_read: true, read_at: new Date().toISOString() })
+      .update({ is_read: true })
       .eq('conversation_id', conversationId)
       .eq('is_read', false);
 
