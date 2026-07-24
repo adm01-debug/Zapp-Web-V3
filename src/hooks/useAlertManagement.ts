@@ -145,10 +145,10 @@ export function useWarRoomAlertsManagement(soundEnabled = true): UseWarRoomAlert
 
   useEffect(() => {
     const channel = supabase
-      .channel('warroom-alerts-realtime')
+      .channel('warroom-alerts-management')
       .on(
         'postgres_changes',
-        { event: 'INSERT', schema: 'zapp', table: 'warroom_alerts' },
+        { event: 'INSERT', schema: 'public', table: 'warroom_alerts' },
         (payload) => {
           const parsed = safeParseEvent(warRoomAlertRowSchema, payload.new);
           if (!parsed.ok) {

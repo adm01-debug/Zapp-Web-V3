@@ -79,7 +79,7 @@ export function useEvolutionMonitoring() {
     logMessagesSubscribe('useEvolutionMonitoring', { event: 'INSERT', table: 'messages' });
     const channel = supabase
       .channel('monitoring-connections')
-      .on('postgres_changes', { event: '*', schema: 'zapp', table: 'whatsapp_connections' }, () =>
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'whatsapp_connections' }, () =>
         fetchData()
       )
       .on(

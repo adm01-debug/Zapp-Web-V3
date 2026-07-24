@@ -1,32 +1,36 @@
 -- Fix missing supabase_realtime publications.
--- The frontend subscribes to these tables with schema-qualified paths (zapp.*, financeiro.*, email_app.*)
--- but many were only ever added as public.* proxy VIEWs — which are silent no-ops in Realtime.
--- All tables here are physical tables in their respective schemas.
 --
--- Idempotent: each table is checked before ALTER PUBLICATION to avoid errors on re-apply.
+-- Context: Physical tables that need to be in supabase_realtime.
+-- team_messages: moved to zapp by migration 000005 (was public); included here via 000005.
+-- team_conversations + team_conversation_members: physical tables in zapp (public.* are VIEWs).
+-- Other tables: physical in public or email_app schemas.
+--
+-- Idempotent: each entry guarded by pg_publication_tables check.
+-- Per-iteration EXCEPTION block: a single failure does not abort the rest.
+-- VIEWs are NOT included here — ALTER PUBLICATION ADD TABLE <view> fails in PostgreSQL.
 
 DO $$
 DECLARE
-  tbl text;
+  tbl         text;
   schema_name text;
-  table_name text;
+  table_name  text;
 BEGIN
-  -- zapp schema tables actively subscribed by frontend hooks
   FOR tbl IN SELECT unnest(ARRAY[
-    'zapp.team_messages',           -- useTeamConversations.ts:130
-    'zapp.talkx_campaigns',         -- TalkXView.tsx:92
-    'zapp.sales_deals',             -- useBusinessLogicManagement.ts:452
-    'zapp.automation_executions',   -- useAutomationLogs.ts, useAutomationSuggestions.ts
-    'zapp.agent_stats',             -- useDashboardVisualizationManagement.ts:734
-    'zapp.warroom_alerts',          -- useWarRoomAlerts.ts (2 subscriptions)
-    'zapp.queues',                  -- useQueueManagement.ts and others
-    'zapp.queue_members',           -- queue hooks
-    'zapp.queue_positions',         -- queue hooks
-    'zapp.qr_attempts',             -- QrAttemptsPanel.tsx:104
-    'zapp.whatsapp_connections',    -- useConnectionManagement.ts (UPDATE subscription)
-    'zapp.audio_memes',             -- audio meme subscriptions
-    'public.payment_links',         -- PaymentLinksView.tsx:61 (table remains in public schema; never moved by 20260716)
-    'email_app.email_accounts'      -- useGmailOAuthFlow.ts:292
+    'zapp.team_conversations',            -- useTeamConversations.ts: physical table in zapp
+    'zapp.team_conversation_members',     -- useTeamConversations.ts: physical table in zapp
+    'public.talkx_campaigns',             -- TalkXView.tsx:93
+    'public.sales_deals',             -- useBusinessLogicManagement.ts:452
+    'public.automation_executions',   -- useAutomationLogs.ts, useAutomationSuggestions.ts, useAutomationManagement.ts
+    'public.agent_stats',             -- useDashboardVisualizationManagement.ts:734
+    'public.warroom_alerts',          -- useWarRoomAlerts.ts, AdminAlertHistoryPage.tsx
+    'public.queues',                  -- useQueues.ts
+    'public.queue_members',           -- useQueues.ts
+    'public.queue_positions',         -- useQueues.ts
+    'public.qr_attempts',             -- QrAttemptsPanel.tsx:104
+    'public.whatsapp_connections',    -- useConnectionsRealtime.ts, useEvolutionMonitoring.ts, DegradedConnectionsBanner.tsx
+    'public.audio_memes',             -- useAudioManagement.ts
+    'public.payment_links',           -- PaymentLinksView.tsx:61
+    'email_app.email_accounts'        -- useGmailOAuthFlow.ts:292
   ])
   LOOP
     schema_name := split_part(tbl, '.', 1);
@@ -38,7 +42,18 @@ BEGIN
         AND schemaname = schema_name
         AND tablename  = table_name
     ) THEN
-      EXECUTE format('ALTER PUBLICATION supabase_realtime ADD TABLE %I.%I', schema_name, table_name);
+      BEGIN
+        EXECUTE format(
+          'ALTER PUBLICATION supabase_realtime ADD TABLE %I.%I',
+          schema_name, table_name
+        );
+        RAISE NOTICE 'Added %.% to supabase_realtime', schema_name, table_name;
+      EXCEPTION WHEN others THEN
+        RAISE WARNING 'Could not add %.% to supabase_realtime: % (%)',
+          schema_name, table_name, SQLERRM, SQLSTATE;
+      END;
+    ELSE
+      RAISE NOTICE '%.% already in supabase_realtime, skipping', schema_name, table_name;
     END IF;
   END LOOP;
 END $$;

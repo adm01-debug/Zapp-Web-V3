@@ -6,7 +6,7 @@
  *  1. `.schema('public')`           em src/ ou supabase/functions/
  *  2. `createClient(...)`           em código de produção sem `db: { schema: '<zapp|evo|...>' }`
  *  3. URLs `*.supabase.co`          fora de arquivos de teste (inclui .lovable/).
- *  4. .schema('evo').from('evolution_messages'|'evolution_conversations') no frontend (bypassa view zapp).
+ *  4. .from('evolution_messages'|'evolution_conversations') sem sufixo de partição (frontend).
  *  5. .from('evolution_instance_credentials'|'evolution_health_logs') sem .schema('evo') (frontend).
  *  6. .schema('evo').from('evolution_instances') — a view evolution_instances existe em
  *     zapp, NÃO em evo; chamar via .schema('evo') resulta em PGRST205 em produção.
@@ -82,14 +82,16 @@ for (const f of files) {
     violations.cloudUrl.push(relative('.', f));
   }
 
-  // 4. .schema('evo').from('evolution_messages'|'evolution_conversations') no frontend:
-  // proibido porque bypassa a view de segurança em zapp (security_invoker=on).
-  // O correto é supabase.from('evolution_messages') sem .schema('evo') — o client
-  // usa schema 'zapp' por padrão e a view auto-updatable roteia corretamente.
-  // NOTA: .from('evolution_messages') sem .schema('evo') é PERMITIDO (zapp view).
-  const parentPartitionRe =
+  // 4. .schema('evo').from('evolution_messages'|'evolution_conversations') no frontend
+  // é proibido — evolution_messages e evolution_conversations existem como VIEWS
+  // auto-updatable no schema `zapp` (security_invoker=on). Acessar via .schema('evo')
+  // causa PGRST205 porque a raiz particionada não responde ao PostgREST diretamente.
+  // CORRETO: supabase.from('evolution_messages') — usa a VIEW em zapp (schema padrão).
+  // ERRADO:  supabase.schema('evo').from('evolution_messages') — PGRST205.
+  // Subscriptions Realtime usam channel.on({ schema:'evo', table:... }) — não .from().
+  const evoRootDirectAccessRe =
     /\.schema\s*\(\s*['"]evo['"]\s*\)\s*\.from\s*\(\s*['"](evolution_messages|evolution_conversations)['"]\s*\)/;
-  if (!isTest && f.startsWith('src/') && parentPartitionRe.test(src)) {
+  if (!isTest && f.startsWith('src/') && evoRootDirectAccessRe.test(src)) {
     violations.evoUnprefixed.push(relative('.', f));
   }
 
@@ -143,9 +145,11 @@ if (violations.cloudUrl.length) {
 }
 if (violations.evoUnprefixed.length) {
   console.error(
-    `\n— .schema('evo').from('evolution_messages'|'evolution_conversations') proibido (${violations.evoUnprefixed.length}):`
+    `\n— [SUP-004] .schema('evo').from('evolution_messages|evolution_conversations') proibido (${violations.evoUnprefixed.length}):`
   );
-  console.error("   Bypassa a view de segurança zapp. Use supabase.from('evolution_messages') sem .schema('evo').");
+  console.error("   Essas tabelas existem como VIEWs em zapp (security_invoker=on).");
+  console.error("   Use: supabase.from('evolution_messages') — schema padrão zapp.");
+  console.error("   NÃO use .schema('evo').from(...) — causa PGRST205.");
   violations.evoUnprefixed.forEach((f) => console.error('   ' + f));
 }
 if (violations.evoSchemaRequired.length) {

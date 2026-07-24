@@ -29,7 +29,7 @@ export function useMessageReactions(messageId: string, options?: UseMessageReact
         'postgres_changes',
         {
           event: '*',
-          schema: 'zapp',
+          schema: 'public',
           table: 'message_reactions',
           filter: `message_id=eq.${messageId}`,
         },

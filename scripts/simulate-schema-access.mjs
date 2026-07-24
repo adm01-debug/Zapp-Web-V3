@@ -87,9 +87,12 @@ for (const t of evoTables) {
 }
 
 // -- Categoria 3: Realtime ----------------------------------------
-// Considera "com schema" se: (a) o objeto do 2º arg de .on() contém `schema:`,
+// Considera "com schema" se: (a) o objeto do 2º arg de .on() contém `schema:`
+// com literal string OU referência a variável (identificador JS válido),
 // OU (b) o próprio config passado como 2º arg é uma variável (aceito — analista
 // estático não infere), OU (c) o arquivo pertence ao _tests_/_mocks_.
+// Caso (d): genericService.ts usa `schema: realtimeSchema` (variável injetada via
+// ServiceOptions) — referência de identificador é aceita pois a semântica é correta.
 let realtimeMissingSchema = 0;
 const realtimeOffenders = [];
 for (const f of files) {
@@ -99,7 +102,8 @@ for (const f of files) {
   const re = /\.on\(\s*['"`]postgres_changes['"`]\s*,\s*\{([\s\S]*?)\}\s*,/g;
   for (const m of src.matchAll(re)) {
     const body = m[1];
-    if (!/schema\s*:\s*['"`][a-z_]+['"`]/.test(body) && !/\bschema\b(?!\s*:)/.test(body)) {
+    // Aceita tanto literal ('zapp', "public", `evo`) quanto identificador JS (realtimeSchema)
+    if (!/schema\s*:\s*(?:['"`][a-z_]+['"`]|[a-zA-Z_$][a-zA-Z0-9_$]*)/.test(body)) {
       realtimeMissingSchema++;
       realtimeOffenders.push(f.replace(ROOT + '/', ''));
     }

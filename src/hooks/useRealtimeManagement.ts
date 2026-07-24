@@ -160,10 +160,11 @@ export function useRealtimeMonitorManagement(tableName: string, schema: string =
 
   useEffect(() => {
     channelRef.current = supabase.channel(`monitor:${schema}:${tableName}`);
+    const pgConfig = { event: '*' as const, schema, table: tableName };
     channelRef.current
       .on(
         'postgres_changes',
-        { event: '*', schema, table: tableName },
+        pgConfig,
         (payload: PgPayload) => {
           setChanges((prev) => [...prev, payload]);
           if (payload.eventType === 'INSERT') {

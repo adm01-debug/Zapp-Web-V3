@@ -18,8 +18,7 @@ Deno.serve(async (req) => {
       if (authed instanceof Response) return authed;
     }
 
-    // Requires SUPABASE_SERVICE_ROLE_KEY (via createZappAdminClient) — never use anon/JWT here,
-    // RLS on failed_messages blocks UPDATE for non-admin callers.
+    // Uses service-role credentials (SUPABASE_SERVICE_ROLE_KEY) via createZappAdminClient()
     const supabase = createZappAdminClient();
 
     const evolutionUrl = (Deno.env.get('EVOLUTION_API_URL') || '').replace(/\/+$/, '');

@@ -126,11 +126,11 @@ export function useTeamConversations() {
     if (!profile) return;
     const channel = supabase
       .channel('team-chat-updates')
-      // team_messages: tabela base em zapp
+      // team_messages: tabela física em zapp (migration 000005 moveu de public)
       .on('postgres_changes', { event: '*', schema: 'zapp', table: 'team_messages' }, () => {
         void queryClient.invalidateQueries({ queryKey: queryKeys.teamChat.conversations() });
       })
-      // team_conversations + team_conversation_members: tabelas base em zapp
+      // team_conversations + team_conversation_members: tabelas físicas em zapp
       .on('postgres_changes', { event: '*', schema: 'zapp', table: 'team_conversations' }, () => {
         void queryClient.invalidateQueries({ queryKey: queryKeys.teamChat.conversations() });
       })
