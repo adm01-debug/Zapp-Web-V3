@@ -29,7 +29,14 @@ export function ProtectedRoute({
   fallback,
   routePath,
 }: ProtectedRouteProps) {
-  const { user, loading: authLoading, signOut, bootstrapError, bootstrapElapsedMs, retryBootstrap } = useAuth();
+  const {
+    user,
+    loading: authLoading,
+    signOut,
+    bootstrapError,
+    bootstrapElapsedMs,
+    retryBootstrap,
+  } = useAuth();
   const { roles, loading: rolesLoading, hasRole } = useUserRole();
   const location = useLocation();
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
@@ -124,17 +131,27 @@ export function ProtectedRoute({
               : 'O servidor não respondeu no tempo esperado. Pode ser instabilidade momentânea — tente novamente em alguns instantes.'}
           </p>
           <dl className="mb-5 grid grid-cols-[auto,1fr] gap-x-3 gap-y-1 text-xs text-muted-foreground">
-            {!isOffline && <><dt>Backend:</dt>
-            <dd className="truncate font-mono">{backendUrl}</dd>
-            <dt>Tempo de resposta:</dt>
-            <dd className="font-mono">{elapsedLabel}</dd></>}
-            {isOffline && <><dt>Status de rede:</dt>
-            <dd className="font-mono text-destructive">Offline</dd></>}
+            {!isOffline && (
+              <>
+                <dt>Backend:</dt>
+                <dd className="truncate font-mono">{backendUrl}</dd>
+                <dt>Tempo de resposta:</dt>
+                <dd className="font-mono">{elapsedLabel}</dd>
+              </>
+            )}
+            {isOffline && (
+              <>
+                <dt>Status de rede:</dt>
+                <dd className="font-mono text-destructive">Offline</dd>
+              </>
+            )}
           </dl>
           <div className="flex flex-col gap-2">
             <button
               type="button"
-              onClick={() => { void retryBootstrap(); }}
+              onClick={() => {
+                void retryBootstrap();
+              }}
               className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90"
             >
               Tentar novamente
@@ -147,8 +164,12 @@ export function ProtectedRoute({
                     if (k.startsWith('sb-') || k.startsWith('zapp')) localStorage.removeItem(k);
                   });
                   sessionStorage.clear();
-                } catch { /* noop */ }
-                void signOut().finally(() => { window.location.href = '/auth'; });
+                } catch {
+                  /* noop */
+                }
+                void signOut().finally(() => {
+                  window.location.href = '/auth';
+                });
               }}
               className="rounded-md border border-border bg-card px-4 py-2 text-sm text-foreground hover:bg-accent"
             >
@@ -175,8 +196,8 @@ export function ProtectedRoute({
     const step = authLoading
       ? 'Carregando sessão...'
       : rolesLoading
-      ? 'Verificando permissões...'
-      : 'Preparando aplicação...';
+        ? 'Verificando permissões...'
+        : 'Preparando aplicação...';
     return (
       <div
         className="flex min-h-screen items-center justify-center bg-background"
@@ -210,7 +231,6 @@ export function ProtectedRoute({
       </div>
     );
   }
-
 
   if (!user) {
     recordAuthzFailure({ route: location.pathname, reason: 'unauthenticated' });
@@ -246,15 +266,17 @@ export function ProtectedRoute({
         current: roles,
       });
 
-      // Log event to Supabase
-      // fire-and-forget: não bloquear navegação
-      void supabase.rpc('log_security_event', {
-        p_event_type: 'unauthorized_access',
-        p_resource: location.pathname,
-        p_action: 'NAVIGATE',
-        p_status: 'denied',
-        p_details: { required_roles: effectiveRoles, current_roles: roles },
-      });
+      void supabase
+        .rpc('log_security_event', {
+          p_event_type: 'unauthorized_access',
+          p_resource: location.pathname,
+          p_action: 'NAVIGATE',
+          p_status: 'denied',
+          p_details: { required_roles: effectiveRoles, current_roles: roles },
+        })
+        .then(({ error }) => {
+          if (error) log.warn('Failed to log security event', { error: error.message });
+        });
 
       if (fallback) return <>{fallback}</>;
       return <Navigate to="/access-denied" state={{ from: location }} replace />;
@@ -273,16 +295,17 @@ export function ProtectedRoute({
       current: roles,
     });
 
-    // Log already happens inside RPC 'check_user_permission' if we used it,
-    // but here we might be checking differently. Let's ensure logging.
-    // fire-and-forget: não bloquear navegação
-    void supabase.rpc('log_security_event', {
-      p_event_type: 'unauthorized_access',
-      p_resource: location.pathname,
-      p_action: 'NAVIGATE',
-      p_status: 'denied',
-      p_details: { required_permission: requiredPermission },
-    });
+    void supabase
+      .rpc('log_security_event', {
+        p_event_type: 'unauthorized_access',
+        p_resource: location.pathname,
+        p_action: 'NAVIGATE',
+        p_status: 'denied',
+        p_details: { required_permission: requiredPermission },
+      })
+      .then(({ error }) => {
+        if (error) log.warn('Failed to log security event', { error: error.message });
+      });
 
     if (fallback) return <>{fallback}</>;
     return <Navigate to="/access-denied" state={{ from: location }} replace />;

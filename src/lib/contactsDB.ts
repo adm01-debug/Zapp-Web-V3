@@ -18,6 +18,7 @@
  */
 import { getExternalSupabase, isExternalConfigured } from '@/integrations/supabase/externalClient';
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { sanitizePostgrestFilter } from '@/lib/sanitize';
 
 // ─── Types ─────────────────────────────────────────────────────
 export interface ExternalContact {
@@ -191,7 +192,7 @@ export const contactsDB = {
   async search(query: string, limit = 20): Promise<ExternalContact[]> {
     const cleaned = query.trim();
     if (!cleaned) return [];
-    const safe = cleaned.replace(/[,()\\]/g, '');
+    const safe = sanitizePostgrestFilter(cleaned);
 
     const { data, error } = await getClient()
       .from('contacts')
@@ -312,8 +313,9 @@ export const contactsDB = {
         conditions.push(`whatsapp.ilike.%${cleaned.slice(-8)}%`);
       }
       if (name && name.length >= 3) {
-        conditions.push(`full_name.ilike.%${name}%`);
-        conditions.push(`first_name.ilike.%${name}%`);
+        const safeName = sanitizePostgrestFilter(name);
+        conditions.push(`full_name.ilike.%${safeName}%`);
+        conditions.push(`first_name.ilike.%${safeName}%`);
       }
 
       if (conditions.length === 0) return [];

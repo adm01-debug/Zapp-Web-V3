@@ -10,6 +10,7 @@
  */
 
 import { supabase } from '@/integrations/supabase/client';
+import { sanitizePostgrestFilter } from '@/lib/sanitize';
 import { isPermanentQueryError } from '@/lib/errors/queryErrors';
 import type { ListResponse, QueryParams } from './types';
 
@@ -24,7 +25,11 @@ interface ServiceOptions {
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const createService = <T = any>(tableName: string, options?: ServiceOptions) => {
-  const { orderBy = 'created_at', orderDirection = 'desc', realtimeSchema = 'zapp' } = options || {};
+  const {
+    orderBy = 'created_at',
+    orderDirection = 'desc',
+    realtimeSchema = 'zapp',
+  } = options || {};
   // Dynamic table accessor — tableName is a runtime string, not a literal from the generated types.
 
   const db = supabase as unknown as {
@@ -116,8 +121,11 @@ export const createService = <T = any>(tableName: string, options?: ServiceOptio
      * Search records by a text field
      */
     async search(query: string, searchField: string = 'name'): Promise<T[]> {
-      const escaped = query.replace(/[%_\\]/g, '\\$&');
-      const { data, error } = await db.from(tableName).select('*').ilike(searchField, `%${escaped}%`);
+      const escaped = sanitizePostgrestFilter(query);
+      const { data, error } = await db
+        .from(tableName)
+        .select('*')
+        .ilike(searchField, `%${escaped}%`);
 
       if (error) throw error;
       return data || [];

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useOpsAuditLogs, type AuditRow } from '@/hooks/useOpsAuditLogs';
 import { safeClient } from '@/integrations/supabase/safeClient';
+import { sanitizePostgrestFilter } from '@/lib/sanitize';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -107,7 +108,14 @@ function AuditPanel() {
               className="w-[180px] pl-7"
             />
           </div>
-          <Button variant="outline" size="sm" onClick={() => { void load(); }} disabled={loading}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              void load();
+            }}
+            disabled={loading}
+          >
             <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
           </Button>
         </div>
@@ -172,7 +180,8 @@ function PmlPanel() {
         .order('received_at', { ascending: false })
         .limit(100);
       if (status !== 'all') query = query.eq('delivery_status', status);
-      if (search.trim()) query = query.ilike('instance_name', `%${search.trim()}%`);
+      if (search.trim())
+        query = query.ilike('instance_name', `%${sanitizePostgrestFilter(search.trim())}%`);
       return query;
     });
     if (error) toast.error('Erro ao carregar PML: ' + error.message);
