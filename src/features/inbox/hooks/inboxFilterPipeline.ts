@@ -40,6 +40,7 @@ export interface ApplyInboxFiltersOptions {
   customScopes: { id: string; name: string }[];
   hasPermission: PermissionChecker;
   permissionsLoading?: boolean;
+  enforceChannelPermissions?: boolean;
 }
 
 /** Pure function that applies all active inbox filters (tab, scope, search, agent, queue, tags, failure category, date, contact type) and returns the filtered conversation list. */
@@ -67,6 +68,7 @@ export function applyInboxFilters(opts: ApplyInboxFiltersOptions): ConversationW
     customScopes,
     hasPermission,
     permissionsLoading = false,
+    enforceChannelPermissions = true,
   } = opts;
 
   const canSeeWhatsapp = hasPermission('inbox.view_whatsapp');
@@ -107,7 +109,7 @@ export function applyInboxFilters(opts: ApplyInboxFiltersOptions): ConversationW
 
   // 0. Base validation + channel visibility (always applied, even in search)
   let result = conversations.filter((c) => c && c.contact && c.contact.id);
-  if (!permissionsLoading) {
+  if (!permissionsLoading && enforceChannelPermissions) {
     result = result.filter((c) => {
       const channel = c.contact?.channel_type;
       if (channel === 'whatsapp' && !canSeeWhatsapp) return false;
