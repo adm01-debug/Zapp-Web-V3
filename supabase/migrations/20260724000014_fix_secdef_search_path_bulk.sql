@@ -68,15 +68,17 @@ BEGIN
       CONTINUE;
     END IF;
 
-    -- Split by comma, filter out 'public' and 'pg_temp', deduplicate while
-    -- preserving order
+    -- Split by comma, filter out 'public', deduplicate while preserving order.
+    -- NOTE: do NOT remove pg_temp here — if pg_temp is absent from search_path
+    -- PostgreSQL inserts it implicitly at FIRST position, which is the shadowing
+    -- vector. Keep it and move it to LAST position explicitly (see below).
     v_parts    := regexp_split_to_array(v_oldpath, '\s*,\s*');
     v_newparts := ARRAY[]::TEXT[];
 
     FOREACH v_part IN ARRAY v_parts LOOP
       v_part := btrim(v_part);
-      -- Drop public (attack vector) and pg_temp (always implicit, no value)
-      CONTINUE WHEN v_part = '' OR v_part = 'public' OR v_part = 'pg_temp';
+      -- Drop public (attack vector) and blank entries
+      CONTINUE WHEN v_part = '' OR v_part = 'public';
       -- Deduplicate
       CONTINUE WHEN v_part = ANY(v_newparts);
       v_newparts := array_append(v_newparts, v_part);
@@ -94,6 +96,14 @@ BEGIN
     -- Safety guard: if array is still empty, use own schema
     IF array_length(v_newparts, 1) IS NULL OR array_length(v_newparts, 1) = 0 THEN
       v_newparts := ARRAY[r.nspname];
+    END IF;
+
+    -- Move pg_temp to LAST position so PostgreSQL searches it last.
+    -- If pg_temp were absent entirely, PG would implicitly insert it FIRST
+    -- (before all other schemas), enabling temp-table shadowing attacks.
+    -- Keeping it last preserves the explicit ordering while closing that vector.
+    IF 'pg_temp' = ANY(v_newparts) THEN
+      v_newparts := array_append(array_remove(v_newparts, 'pg_temp'), 'pg_temp');
     END IF;
 
     v_newsearchpath := array_to_string(v_newparts, ', ');
@@ -121,7 +131,10 @@ BEGIN
 END $$;
 
 -- ── Post-remediation verification ────────────────────────────────────────────
--- Confirm no SECURITY DEFINER function in zapp/evo still has public first.
+-- Confirm no SECURITY DEFINER function in zapp/evo still has 'public' anywhere
+-- in search_path (not just first position — public in any position is a risk).
+-- Uses word-boundary regex \mpublic\M so it won't match 'public_ext' etc.
+-- RAISES EXCEPTION (fails the migration) if any functions remain unfixed.
 DO $$
 DECLARE
   v_remaining INTEGER;
@@ -133,13 +146,14 @@ BEGIN
     AND p.prosecdef = true
     AND EXISTS (
       SELECT 1 FROM unnest(p.proconfig) AS t(val)
-      WHERE t.val ~ '^search_path=public'
+      WHERE t.val LIKE 'search_path=%' AND t.val ~ '\mpublic\M'
     );
 
   IF v_remaining > 0 THEN
-    RAISE WARNING 'POST-CHECK: % SECURITY DEFINER function(s) still have public-first search_path',
-      v_remaining;
+    RAISE EXCEPTION 'POST-CHECK FAILED: % SECURITY DEFINER function(s) in zapp/evo still have public in search_path — remediation incomplete',
+      v_remaining
+      USING ERRCODE = 'P0001';
   ELSE
-    RAISE NOTICE 'POST-CHECK OK: 0 SECURITY DEFINER functions in zapp/evo have public-first search_path';
+    RAISE NOTICE 'POST-CHECK OK: 0 SECURITY DEFINER functions in zapp/evo have public in search_path';
   END IF;
 END $$;

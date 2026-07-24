@@ -69,6 +69,21 @@ async function saveAnalysis(remoteJid: string, msgId: string | null, text: strin
   if (!resolvedInstance) {
     throw new Error(`Cannot persist sentiment: instance_name could not be resolved for jid=${remoteJid}`);
   }
+
+  // Idempotency guard: the two writes below (analysis + alert) are sequential
+  // with no wrapping transaction. If the alert insert succeeds on retry but the
+  // analysis insert was already committed, we'd create a duplicate analysis row.
+  // Skip both inserts when this external_message_id + instance is already stored.
+  if (msgId) {
+    const { data: existing } = await supabase
+      .from("evolution_sentiment_analysis")
+      .select()
+      .eq("external_message_id", msgId)
+      .eq("instance_name", resolvedInstance)
+      .maybeSingle();
+    if (existing) return existing;
+  }
+
   const { data, error } = await supabase.from("evolution_sentiment_analysis").insert({
     message_id: toUuid(msgId), external_message_id: msgId || null,
     conversation_id: cv?.id, contact_id: c?.id, remote_jid: remoteJid,
