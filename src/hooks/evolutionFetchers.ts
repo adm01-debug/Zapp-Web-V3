@@ -8,6 +8,8 @@ import { getLogger } from '@/lib/logger';
 
 const fetcherLog = getLogger('evolutionFetchers');
 
+const _sidebarEmptyWarned = new Set<string>();
+
 /** Polling interval in milliseconds for evolution_messages real-time updates. */
 export const POLL_INTERVAL = 5000;
 /**
@@ -86,10 +88,14 @@ export async function fetchRecentMessagesWindow(
   // Fallback: instância ativa não trouxe nada nos últimos N dias.
   // Tenta sem filtro de instância para não esconder conversas de outras
   // instâncias configuradas (ex.: legacy `wpp2`).
-  fetcherLog.warn(
-    'Sidebar sem mensagens para a instância ativa; tentando fallback sem filtro de instância',
-    { instance: DEFAULT_INSTANCE, daysBack, limit }
-  );
+  const warnKey = `${DEFAULT_INSTANCE}:${daysBack}`;
+  if (!_sidebarEmptyWarned.has(warnKey)) {
+    _sidebarEmptyWarned.add(warnKey);
+    fetcherLog.warn(
+      'Sidebar sem mensagens para a instância ativa; tentando fallback sem filtro de instância',
+      { instance: DEFAULT_INSTANCE, daysBack, limit }
+    );
+  }
   const fallback = await queryExternalProxy<EvolutionMessage>({
     table: 'evolution_messages',
     select: SLIM_MESSAGE_COLUMNS,
