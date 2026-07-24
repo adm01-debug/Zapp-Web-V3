@@ -19,6 +19,7 @@ Deno.serve(async (req) => {
       if (authed instanceof Response) return authed;
     }
 
+    // Uses service-role credentials (SUPABASE_SERVICE_ROLE_KEY) via createZappAdminClient()
     const supabase = createZappAdminClient();
 
     const evolutionUrl = (Deno.env.get('EVOLUTION_API_URL') || '').replace(/\/+$/, '');

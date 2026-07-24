@@ -38,6 +38,7 @@ BEGIN
   FOR r IN
     SELECT
       p.oid,
+      p.proname,
       n.nspname,
       pg_get_function_arguments(p.oid) AS args,
       -- Extract the search_path value (strip 'search_path=' prefix = 12 chars)

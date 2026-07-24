@@ -102,8 +102,24 @@ export function useExportDataManagement() {
 
       if (err) throw err;
 
+      let content: string;
+      let mimeType: string;
+      if (format === 'csv' && Array.isArray(data) && data.length > 0) {
+        const headers = Object.keys(data[0] as Record<string, unknown>).join(',');
+        const rows = (data as Record<string, unknown>[]).map((row) =>
+          Object.values(row)
+            .map((v) => JSON.stringify(v ?? ''))
+            .join(',')
+        );
+        content = [headers, ...rows].join('\n');
+        mimeType = 'text/csv';
+      } else {
+        content = JSON.stringify(data, null, 2);
+        mimeType = 'application/json';
+      }
+
       const element = document.createElement('a');
-      const file = new Blob([JSON.stringify(data)], { type: 'application/json' });
+      const file = new Blob([content], { type: mimeType });
       element.href = URL.createObjectURL(file);
       element.download = `export.${format}`;
       document.body.appendChild(element);

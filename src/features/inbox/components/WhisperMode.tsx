@@ -92,12 +92,11 @@ export function WhisperMode({
     if (!contactIsUUID) return;
     const channel = supabase
       .channel(`whisper-${contactId}`)
-      // whisper_messages: tabela base em zapp
       .on(
         'postgres_changes',
         {
           event: 'INSERT',
-          schema: 'zapp',
+          schema: 'public',
           table: 'whisper_messages',
           filter: `contact_id=eq.${contactId}`,
         },

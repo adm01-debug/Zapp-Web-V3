@@ -73,16 +73,16 @@ export function useRealtimeMessages() {
     setError(null);
     try {
       const [
-        { data: contacts, error: contactsError },
+        { data: contactsRaw, error: contactsError },
         { data: messages, error: messagesError },
       ] = await Promise.all([
-        supabase.from('evolution_contacts').select('*').order('updated_at', { ascending: false }).limit(500),
+        supabase.schema('evo').from('evolution_contacts').select('*').order('updated_at', { ascending: false }).limit(500),
         supabase.from('evolution_messages').select('*').order('created_at', { ascending: false }).limit(100),
       ]);
       if (contactsError) throw contactsError;
       if (messagesError) throw messagesError;
 
-      const contactList: Contact[] = contacts ?? [];
+      const contactList: Contact[] = (contactsRaw as unknown as Contact[] | null) ?? [];
       const messageList: Message[] = messages ?? [];
 
       const contactMap = new Map<string, Contact>();
@@ -95,8 +95,8 @@ export function useRealtimeMessages() {
       ];
 
       if (missingIds.length > 0) {
-        const { data: extra } = await supabase.from('evolution_contacts').select('*').in('id', missingIds);
-        (extra ?? []).forEach((c: Contact) => contactMap.set(c.id, c));
+        const { data: extraRaw } = await supabase.schema('evo').from('evolution_contacts').select('*').in('id', missingIds);
+        ((extraRaw as unknown as Contact[] | null) ?? []).forEach((c: Contact) => contactMap.set(c.id, c));
       }
 
       if (!isMountedRef.current) return;

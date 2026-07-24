@@ -81,7 +81,7 @@ export const useSLANotifications = () => {
         'postgres_changes',
         {
           event: 'UPDATE',
-          schema: 'zapp',
+          schema: 'public',
           table: 'conversation_sla',
         },
         async (payload) => {
@@ -126,7 +126,7 @@ export const useSLANotifications = () => {
         'postgres_changes',
         {
           event: 'INSERT',
-          schema: 'zapp',
+          schema: 'public',
           table: 'conversation_sla',
         },
         async (payload) => {
