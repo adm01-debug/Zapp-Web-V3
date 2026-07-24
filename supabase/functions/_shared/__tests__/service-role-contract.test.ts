@@ -47,9 +47,19 @@ Deno.test('enqueue helper: never UPDATEs/DELETEs failed_messages (insert-only pa
 });
 
 Deno.test('reprocess worker: builds client with SERVICE_ROLE_KEY (not anon/JWT)', () => {
-  assertMatch(REPROCESS, /SUPABASE_SERVICE_ROLE_KEY/);
-  assert(!/SUPABASE_ANON_KEY|SUPABASE_PUBLISHABLE_KEY/.test(REPROCESS),
-    'reprocess worker must not use anon key — RLS blocks UPDATE for non-admins');
+  // Accept either a direct env reference OR the approved helper (createZappAdminClient)
+  // which internally uses SUPABASE_SERVICE_ROLE_KEY in _shared/db-client.ts.
+  const usesServiceRole =
+    /SUPABASE_SERVICE_ROLE_KEY/.test(REPROCESS) ||
+    /createZappAdminClient\s*\(/.test(REPROCESS);
+  assert(
+    usesServiceRole,
+    'reprocess worker must use service role key (directly or via createZappAdminClient)',
+  );
+  assert(
+    !/SUPABASE_ANON_KEY|SUPABASE_PUBLISHABLE_KEY/.test(REPROCESS),
+    'reprocess worker must not use anon/publishable key — RLS blocks UPDATE for non-admins',
+  );
 });
 
 Deno.test('reprocess worker: UPDATEs failed_messages for all 3 outcomes (succeeded/abandoned/retrying)', () => {

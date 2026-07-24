@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useNotificationSettings } from '@/hooks/useNotificationSettings';
 import { playNotificationSound, showBrowserNotification } from '@/utils/notificationSound';
 
-/** Subscribes to realtime sentiment alerts from audit_logs and shows a toast (plus optional browser notification and sound) when a sentiment_alert event is inserted. */
+/** Subscribes to realtime sentiment alerts from zapp.sentiment_alerts and shows a toast (plus optional browser notification and sound) when a new alert is inserted. */
 export function useRealtimeSentimentAlerts() {
   const { settings, isQuietHours } = useNotificationSettings();
 
@@ -15,16 +15,18 @@ export function useRealtimeSentimentAlerts() {
         'postgres_changes',
         {
           event: 'INSERT',
-          schema: 'public',
-          table: 'audit_logs',
-          filter: 'action=eq.sentiment_alert',
+          schema: 'zapp',
+          table: 'sentiment_alerts',
         },
         (payload) => {
           const record = payload.new as Record<string, unknown>;
-          const title = (record?.details as Record<string, unknown>)?.contact_name as string | undefined;
-          const sentiment = (record?.details as Record<string, unknown>)?.sentiment as string | undefined;
-          const message = sentiment
-            ? `Sentimento ${sentiment} detectado${title ? ` para ${title}` : ''}`
+          const level =
+            typeof record?.alert_level === 'string' ? record.alert_level : undefined;
+          const rawScore = record?.sentiment_score;
+          const score =
+            typeof rawScore === 'number' && Number.isFinite(rawScore) ? rawScore : undefined;
+          const message = level
+            ? `Alerta de sentimento ${level}${score != null ? ` (score: ${score})` : ''} detectado`
             : 'Alerta de sentimento detectado';
 
           toast.warning(message);

@@ -6,15 +6,16 @@
  *  1. `.schema('public')`           em src/ ou supabase/functions/
  *  2. `createClient(...)`           em código de produção sem `db: { schema: '<zapp|evo|...>' }`
  *  3. URLs `*.supabase.co`          fora de arquivos de teste (inclui .lovable/).
- *  4. .from('evolution_messages'|'evolution_conversations') sem sufixo de partição (frontend).
- *  5. .from('evolution_instance_credentials'|'evolution_health_logs') sem .schema('evo') (frontend).
- *  6. .schema('evo').from('evolution_instances') — a view evolution_instances existe em
+ *  4. .from('evolution_instance_credentials'|'evolution_health_logs') sem .schema('evo') (frontend).
+ *  5. .schema('evo').from('evolution_instances') — a view evolution_instances existe em
  *     zapp, NÃO em evo; chamar via .schema('evo') resulta em PGRST205 em produção.
  *
  * Baseline (2026-07-15): script foi introduzido junto da consolidação single-DB.
  * Update (2026-07-16): adicionado scan de .lovable/ para URLs cloud; guardrail para
  *   tabelas evo-only (evolution_instance_credentials, evolution_health_logs).
  * Update (2026-07-16b): adicionada regra SUP-006 para .schema('evo').from('evolution_instances').
+ * Update (2026-07-24): regra 4 removida — evolution_messages/evolution_conversations existem como
+ *   views auto-updatable em zapp; supabase.from('evolution_messages') é correto no frontend.
  */
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
@@ -23,7 +24,7 @@ const ROOTS = ['src', 'supabase/functions', '.lovable'];
 const IGNORE_DIR = /node_modules|dist|\.next|\.turbo|coverage/;
 const TEST_RE = /\.test\.(ts|tsx|mts|cts|js|jsx)$|__tests__|test\/|tests\//;
 
-const violations = { public: [], noSchema: [], cloudUrl: [], evoUnprefixed: [], evoSchemaRequired: [], evoInstancesBadSchema: [] };
+const violations = { public: [], noSchema: [], cloudUrl: [], evoSchemaRequired: [], evoInstancesBadSchema: [] };
 
 function walk(dir, out = [], allExts = false) {
   let entries;
@@ -82,17 +83,6 @@ for (const f of files) {
     violations.cloudUrl.push(relative('.', f));
   }
 
-  // 4. .from('evolution_messages'|'evolution_conversations') no frontend sem sufixo
-  // de partição. Essas são tabelas-pai particionadas em `evo` — o frontend deve
-  // consultar a partição real (evolution_messages_wpp2). Edge Functions rodam com
-  // service_role e o PG roteia para a partição correta, então o guardrail se
-  // aplica apenas a src/.
-  const parentPartitionRe =
-    /\.from\(\s*['"](evolution_messages|evolution_conversations)['"]\s*\)/g;
-  if (!isTest && f.startsWith('src/') && parentPartitionRe.test(src)) {
-    violations.evoUnprefixed.push(relative('.', f));
-  }
-
   // 5. evolution_instance_credentials e evolution_health_logs vivem em `evo` —
   // o cliente padrão usa schema 'zapp', então qualquer .from() dessas tabelas
   // no frontend deve ser precedido por .schema('evo') ou pelo client evo.
@@ -119,12 +109,11 @@ const total =
   violations.public.length +
   violations.noSchema.length +
   violations.cloudUrl.length +
-  violations.evoUnprefixed.length +
   violations.evoSchemaRequired.length +
   violations.evoInstancesBadSchema.length;
 
 if (total === 0) {
-  console.log('✅ check-schema-usage: 0 violações (6 guardrails). Schema consolidado em zapp/evo.');
+  console.log('✅ check-schema-usage: 0 violações (5 guardrails). Schema consolidado em zapp/evo.');
   process.exit(0);
 }
 
@@ -140,13 +129,6 @@ if (violations.noSchema.length) {
 if (violations.cloudUrl.length) {
   console.error(`\n— URL *.supabase.co em código de produção (${violations.cloudUrl.length}):`);
   violations.cloudUrl.forEach((f) => console.error('   ' + f));
-}
-if (violations.evoUnprefixed.length) {
-  console.error(
-    `\n— .from('evolution_messages'|'evolution_conversations') proibido (${violations.evoUnprefixed.length}):`
-  );
-  console.error("   Use a partição real (ex: 'evolution_messages_wpp2') com .schema('evo').");
-  violations.evoUnprefixed.forEach((f) => console.error('   ' + f));
 }
 if (violations.evoSchemaRequired.length) {
   console.error(

@@ -23,6 +23,13 @@ async function getOpenAIKey(): Promise<string | null> {
   return _openAiKey;
 }
 
+// Evolution API message IDs (e.g. "3EB0C767D360A23D02C3") are NOT UUIDs.
+// This guard prevents PostgreSQL type errors on UUID columns.
+function toUuid(v: string | null | undefined): string | null {
+  if (!v) return null;
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v) ? v : null;
+}
+
 function safeParseJson(raw: string): SentimentResult | null {
   try { return JSON.parse(raw) as SentimentResult; } catch {}
   const m = raw.match(/\{[\s\S]*\}/);
@@ -47,13 +54,25 @@ async function analyzeAI(text: string): Promise<SentimentResult> {
   } catch { return analyzeRule(text); }
 }
 
-async function saveAnalysis(remoteJid: string, msgId: string | null, text: string, a: SentimentResult) {
-  const { data: c } = await supabase.from("evolution_contacts").select("id").eq("remote_jid", remoteJid).maybeSingle();
-  const { data: cv } = await supabase.from("evolution_conversations").select("id").eq("remote_jid", remoteJid).order("updated_at", { ascending: false }).limit(1).maybeSingle();
+async function saveAnalysis(remoteJid: string, msgId: string | null, text: string, a: SentimentResult, instanceName?: string) {
+  const contactQuery = supabase.from("evolution_contacts").select("id, instance_name").eq("remote_jid", remoteJid);
+  if (instanceName) contactQuery.eq("instance_name", instanceName);
+  const { data: c } = await contactQuery.maybeSingle();
+  const convQuery = supabase.from("evolution_conversations").select("id").eq("remote_jid", remoteJid).order("updated_at", { ascending: false }).limit(1);
+  if (instanceName) convQuery.eq("instance_name", instanceName);
+  const { data: cv } = await convQuery.maybeSingle();
   const sV = ["positive","negative","neutral","mixed"].includes(a.sentiment) ? a.sentiment : "neutral";
   const uV = ["low","medium","high","critical"].includes(a.urgency) ? a.urgency : "low";
+  // Resolve instance_name: caller-supplied > contact record. Fail closed — a missing
+  // instance_name would produce a row invisible to tenant-scoped RLS policies.
+  const resolvedInstance = instanceName || (c as { id?: string; instance_name?: string } | null)?.instance_name;
+  if (!resolvedInstance) {
+    throw new Error(`Cannot persist sentiment: instance_name could not be resolved for jid=${remoteJid}`);
+  }
   const { data, error } = await supabase.from("evolution_sentiment_analysis").insert({
-    message_id: msgId, conversation_id: cv?.id, contact_id: c?.id, remote_jid: remoteJid,
+    message_id: toUuid(msgId), external_message_id: msgId || null,
+    conversation_id: cv?.id, contact_id: c?.id, remote_jid: remoteJid,
+    instance_name: resolvedInstance,
     message_text: text.slice(0, 5000), sentiment: sV, sentiment_score: typeof a.score === "number" ? a.score : 0,
     emotions: a.emotions || {}, intent: a.intent || "geral", urgency: uV,
     keywords: Array.isArray(a.keywords) ? a.keywords : [],
@@ -62,12 +81,15 @@ async function saveAnalysis(remoteJid: string, msgId: string | null, text: strin
   }).select().maybeSingle();
   if (error) throw error;
   if (data && sV === "negative" && ["high","critical"].includes(uV)) {
-    const { error: alertErr } = await supabase.from("evolution_sentiment_alerts").insert({
-      sentiment_id: data.id, contact_id: c?.id, conversation_id: cv?.id,
-      alert_type: uV === "critical" ? "escalation_needed" : "negative_sentiment",
-      severity: uV, message_preview: text.substring(0, 200), acknowledged: false, resolved: false
+    const alertLevel = uV === "critical" ? "high" : uV as "low" | "medium" | "high";
+    const { error: alertErr } = await supabase.from("sentiment_alerts").insert({
+      contact_id: c?.id,
+      message_id: toUuid(msgId),
+      sentiment_score: typeof a.score === "number" ? a.score : 0,
+      alert_level: alertLevel,
+      acknowledged: false,
     });
-    if (alertErr) console.error("[saveAnalysis] alert insert error:", alertErr.message);
+    if (alertErr) throw new Error(`[saveAnalysis] alert insert failed: ${alertErr.message}`);
   }
   return data;
 }
@@ -104,14 +126,14 @@ Deno.serve(async (req: Request) => {
     if (req.method === "POST") {
       const body = await req.json().catch(() => ({}));
       if (body.action === "analyze" || !body.action) {
-        const { text, remote_jid, message_id } = body;
+        const { text, remote_jid, message_id, instance_name } = body;
         // Validate text is a non-empty string — .slice() on a non-string crashes at runtime
         if (typeof text !== "string" || !text.trim()) {
           return new Response(JSON.stringify({ error: "text deve ser uma string não vazia" }), { status: 400, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } });
         }
         const analysis = await analyzeAI(text);
         let saved = null;
-        if (remote_jid) saved = await saveAnalysis(remote_jid, message_id || null, text, analysis);
+        if (remote_jid) saved = await saveAnalysis(remote_jid, message_id || null, text, analysis, instance_name);
         return new Response(JSON.stringify({ success: true, analysis, saved_id: saved?.id }), { headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } });
       }
     }
