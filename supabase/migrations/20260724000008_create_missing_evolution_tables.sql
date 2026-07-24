@@ -14,6 +14,26 @@
 --   relkind 'r'/'p'      → CREATE TABLE IF NOT EXISTS is a no-op; indexes guarded
 --
 -- All statements are idempotent — safe to apply against any DB state.
+--
+-- TRIGGER FUNCTIONS are defined BEFORE the DO blocks that reference them so that
+-- CREATE TRIGGER ... EXECUTE FUNCTION resolves on a fresh install.
+-- GRANT statements follow ENABLE ROW LEVEL SECURITY so service_role can access
+-- tables created in any schema on a fresh install where default privileges may not cover
+-- the target schema.
+-- The dynamic trigger SQL uses $trig$ / $trig$ tags (never bare $$) to avoid
+-- colliding with the outer DO $$ ... END $$ delimiter.
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- Trigger functions (defined first — CREATE TRIGGER resolves them immediately)
+-- ─────────────────────────────────────────────────────────────────────────────
+
+CREATE OR REPLACE FUNCTION zapp.trg_evolution_deals_updated_at()
+RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER SET search_path = zapp AS $$
+BEGIN NEW.updated_at = now(); RETURN NEW; END $$;
+
+CREATE OR REPLACE FUNCTION zapp.trg_evolution_message_templates_updated_at()
+RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER SET search_path = zapp AS $$
+BEGIN NEW.updated_at = now(); RETURN NEW; END $$;
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- 1. evolution_bitrix_queue
@@ -67,6 +87,8 @@ BEGIN
     v_schema
   );
   EXECUTE format('ALTER TABLE %I.evolution_bitrix_queue ENABLE ROW LEVEL SECURITY', v_schema);
+  EXECUTE format('GRANT ALL ON TABLE %I.evolution_bitrix_queue TO service_role', v_schema);
+  EXECUTE format('GRANT SELECT ON TABLE %I.evolution_bitrix_queue TO authenticated', v_schema);
 
   IF NOT EXISTS (
     SELECT 1 FROM pg_policies
@@ -130,6 +152,8 @@ BEGIN
     v_schema
   );
   EXECUTE format('ALTER TABLE %I.evolution_chatbot_responses ENABLE ROW LEVEL SECURITY', v_schema);
+  EXECUTE format('GRANT ALL ON TABLE %I.evolution_chatbot_responses TO service_role', v_schema);
+  EXECUTE format('GRANT SELECT ON TABLE %I.evolution_chatbot_responses TO authenticated', v_schema);
 
   IF NOT EXISTS (
     SELECT 1 FROM pg_policies
@@ -162,6 +186,7 @@ END $$;
 --    CRM deals linked to evolution_contacts. SELECTed by chatbot (context
 --    enrichment) and followup (template rendering). UPDATEd by bitrix-sync
 --    (sets bitrix_id after successful CRM push).
+--    Trigger function trg_evolution_deals_updated_at defined at top of file.
 -- ─────────────────────────────────────────────────────────────────────────────
 DO $$
 DECLARE
@@ -181,20 +206,28 @@ BEGIN
 
   EXECUTE format($sql$
     CREATE TABLE IF NOT EXISTS %I.evolution_deals (
-      id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
-      title       TEXT,
-      stage       TEXT,
-      value       NUMERIC,
-      contact_id  UUID,
-      bitrix_id   INTEGER,
-      notes       TEXT,
-      created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
-      updated_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+      id            UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+      contact_id    UUID        NOT NULL,
+      title         TEXT        NOT NULL,
+      stage         TEXT        NOT NULL DEFAULT 'lead',
+      value         NUMERIC(12,2),
+      currency      TEXT        NOT NULL DEFAULT 'BRL',
+      probability   INTEGER     CHECK (probability BETWEEN 0 AND 100),
+      bitrix_id     INTEGER,
+      notes         TEXT,
+      closed_at     TIMESTAMPTZ,
+      metadata      JSONB       NOT NULL DEFAULT '{}',
+      created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+      updated_at    TIMESTAMPTZ NOT NULL DEFAULT now()
     )
   $sql$, v_schema);
 
   EXECUTE format(
-    'CREATE INDEX IF NOT EXISTS idx_ed_contact_updated ON %I.evolution_deals (contact_id, updated_at DESC) WHERE contact_id IS NOT NULL',
+    'CREATE INDEX IF NOT EXISTS idx_ed_contact_id ON %I.evolution_deals (contact_id)',
+    v_schema
+  );
+  EXECUTE format(
+    'CREATE INDEX IF NOT EXISTS idx_ed_stage ON %I.evolution_deals (stage)',
     v_schema
   );
   EXECUTE format(
@@ -202,6 +235,8 @@ BEGIN
     v_schema
   );
   EXECUTE format('ALTER TABLE %I.evolution_deals ENABLE ROW LEVEL SECURITY', v_schema);
+  EXECUTE format('GRANT ALL ON TABLE %I.evolution_deals TO service_role', v_schema);
+  EXECUTE format('GRANT SELECT ON TABLE %I.evolution_deals TO authenticated', v_schema);
 
   IF NOT EXISTS (
     SELECT 1 FROM pg_policies
@@ -226,7 +261,7 @@ BEGIN
     $p$, v_schema);
   END IF;
 
-  -- updated_at trigger (function body references no table, works across schemas)
+  -- updated_at trigger; uses $trig$ tag to avoid colliding with outer DO $$ delimiter
   IF NOT EXISTS (
     SELECT 1 FROM pg_trigger t
     JOIN pg_class c ON c.oid = t.tgrelid
@@ -234,20 +269,15 @@ BEGIN
     WHERE t.tgname = 'set_evolution_deals_updated_at'
       AND n.nspname = v_schema AND c.relname = 'evolution_deals'
   ) THEN
-    EXECUTE format($$
+    EXECUTE format($trig$
       CREATE TRIGGER set_evolution_deals_updated_at
         BEFORE UPDATE ON %I.evolution_deals
         FOR EACH ROW EXECUTE FUNCTION zapp.trg_evolution_deals_updated_at()
-    $$, v_schema);
+    $trig$, v_schema);
   END IF;
 
   RAISE NOTICE 'evolution_deals created/verified in % schema', v_schema;
 END $$;
-
--- Trigger function (idempotent; body is schema-agnostic — no table references)
-CREATE OR REPLACE FUNCTION zapp.trg_evolution_deals_updated_at()
-RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER SET search_path = zapp AS $$
-BEGIN NEW.updated_at = now(); RETURN NEW; END $$;
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- 4. evolution_followups
@@ -304,6 +334,8 @@ BEGIN
     v_schema
   );
   EXECUTE format('ALTER TABLE %I.evolution_followups ENABLE ROW LEVEL SECURITY', v_schema);
+  EXECUTE format('GRANT ALL ON TABLE %I.evolution_followups TO service_role', v_schema);
+  EXECUTE format('GRANT SELECT ON TABLE %I.evolution_followups TO authenticated', v_schema);
 
   IF NOT EXISTS (
     SELECT 1 FROM pg_policies
@@ -399,6 +431,8 @@ BEGIN
     v_schema
   );
   EXECUTE format('ALTER TABLE %I.evolution_message_queue ENABLE ROW LEVEL SECURITY', v_schema);
+  EXECUTE format('GRANT ALL ON TABLE %I.evolution_message_queue TO service_role', v_schema);
+  EXECUTE format('GRANT SELECT ON TABLE %I.evolution_message_queue TO authenticated', v_schema);
 
   IF NOT EXISTS (
     SELECT 1 FROM pg_policies
@@ -431,6 +465,8 @@ END $$;
 --    Reusable message templates with variable substitution ({{nome}}, etc.).
 --    Listed by evolution-templates (GET), resolved by evolution-sender and
 --    evolution-followup. fn_use_template increments usage_count.
+--    Trigger function trg_evolution_message_templates_updated_at defined at
+--    top of file.
 -- ─────────────────────────────────────────────────────────────────────────────
 DO $$
 DECLARE
@@ -480,6 +516,8 @@ BEGIN
     v_schema
   );
   EXECUTE format('ALTER TABLE %I.evolution_message_templates ENABLE ROW LEVEL SECURITY', v_schema);
+  EXECUTE format('GRANT ALL ON TABLE %I.evolution_message_templates TO service_role', v_schema);
+  EXECUTE format('GRANT SELECT ON TABLE %I.evolution_message_templates TO authenticated', v_schema);
 
   IF NOT EXISTS (
     SELECT 1 FROM pg_policies
@@ -504,7 +542,7 @@ BEGIN
     $p$, v_schema);
   END IF;
 
-  -- updated_at trigger
+  -- updated_at trigger; uses $trig$ tag to avoid colliding with outer DO $$ delimiter
   IF NOT EXISTS (
     SELECT 1 FROM pg_trigger t
     JOIN pg_class c ON c.oid = t.tgrelid
@@ -512,20 +550,15 @@ BEGIN
     WHERE t.tgname = 'set_evolution_message_templates_updated_at'
       AND n.nspname = v_schema AND c.relname = 'evolution_message_templates'
   ) THEN
-    EXECUTE format($$
+    EXECUTE format($trig$
       CREATE TRIGGER set_evolution_message_templates_updated_at
         BEFORE UPDATE ON %I.evolution_message_templates
         FOR EACH ROW EXECUTE FUNCTION zapp.trg_evolution_message_templates_updated_at()
-    $$, v_schema);
+    $trig$, v_schema);
   END IF;
 
   RAISE NOTICE 'evolution_message_templates created/verified in % schema', v_schema;
 END $$;
-
--- Trigger function (idempotent; body is schema-agnostic)
-CREATE OR REPLACE FUNCTION zapp.trg_evolution_message_templates_updated_at()
-RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER SET search_path = zapp AS $$
-BEGIN NEW.updated_at = now(); RETURN NEW; END $$;
 
 -- fn_use_template: increments usage_count. Uses zapp.evolution_message_templates —
 -- the VIEW proxy routes the UPDATE to the physical table in evo automatically.
@@ -587,6 +620,8 @@ BEGIN
     v_schema
   );
   EXECUTE format('ALTER TABLE %I.evolution_performance_metrics ENABLE ROW LEVEL SECURITY', v_schema);
+  EXECUTE format('GRANT ALL ON TABLE %I.evolution_performance_metrics TO service_role', v_schema);
+  EXECUTE format('GRANT SELECT ON TABLE %I.evolution_performance_metrics TO authenticated', v_schema);
 
   IF NOT EXISTS (
     SELECT 1 FROM pg_policies
@@ -651,6 +686,8 @@ BEGIN
     v_schema
   );
   EXECUTE format('ALTER TABLE %I.evolution_tags ENABLE ROW LEVEL SECURITY', v_schema);
+  EXECUTE format('GRANT ALL ON TABLE %I.evolution_tags TO service_role', v_schema);
+  EXECUTE format('GRANT SELECT ON TABLE %I.evolution_tags TO authenticated', v_schema);
 
   IF NOT EXISTS (
     SELECT 1 FROM pg_policies

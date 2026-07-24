@@ -89,6 +89,13 @@ BEGIN
     v_schema
   );
 
+  -- ── Table privileges ─────────────────────────────────────────────────────
+  -- SQL-level GRANTs are required in addition to RLS policies.
+  -- Without them, even USING(true) policies result in "permission denied"
+  -- at the privilege check before RLS runs (especially true in evo schema).
+  EXECUTE format('GRANT ALL ON TABLE %I.evolution_sentiment_analysis TO service_role', v_schema);
+  EXECUTE format('GRANT SELECT ON TABLE %I.evolution_sentiment_analysis TO authenticated', v_schema);
+
   -- ── RLS ──────────────────────────────────────────────────────────────────
   EXECUTE format(
     'ALTER TABLE %I.evolution_sentiment_analysis ENABLE ROW LEVEL SECURITY',
