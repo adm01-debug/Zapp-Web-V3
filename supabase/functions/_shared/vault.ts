@@ -17,7 +17,7 @@ export async function getSecret(name: string, opts: { skipEnv?: boolean } = {}):
     const url = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'));
     const svc = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'));
     if (!url || !svc) return null;
-    const admin = createClient(url, svc, { db: { schema: "zapp" } });
+    const admin = createClient(url, svc, { db: { schema: "zapp" }, auth: { persistSession: false, autoRefreshToken: false } });
     const { data, error } = await admin.rpc('fn_get_vault_secret', { p_name: name });
     if (error || !data) return null;
     if (typeof data === 'string' && data.startsWith('PLACEHOLDER_')) {

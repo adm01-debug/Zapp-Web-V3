@@ -126,7 +126,7 @@ Deno.serve(async (req) => {
   const externalKey = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('EXTERNAL_SUPABASE_SERVICE_ROLE_KEY'))
     ?? (Deno.env.get('SELFHOSTED_SUPABASE_ANON_KEY') ?? Deno.env.get('EXTERNAL_SUPABASE_ANON_KEY'));
   const externalClient = externalUrl && externalKey
-    ? createClient(externalUrl, externalKey, { db: { schema: 'zapp' } })
+    ? createClient(externalUrl, externalKey, { db: { schema: 'zapp' }, auth: { persistSession: false, autoRefreshToken: false } })
     : null;
 
   const creds = await loadCredentials(supabase, instanceName);

@@ -143,7 +143,7 @@ async function runHealthCheck(req: Request) {
 
   const startedAt = performance.now();
   try {
-    const extClient = createClient(extUrl, extKey);
+    const extClient = createClient(extUrl, extKey, { auth: { persistSession: false, autoRefreshToken: false } });
     const { error } = await extClient.from("categories").select("id", { count: "exact", head: true }).limit(1);
     const duration_ms = Math.round(performance.now() - startedAt);
     if (error) {
@@ -241,7 +241,7 @@ Deno.serve(async (req) => {
       log.error("Missing PromoGifts external DB secrets", { missing });
       return jsonRes(buildMisconfigPayload(missing), 503, req);
     }
-    const extClient = createClient(extUrl, extKey);
+    const extClient = createClient(extUrl, extKey, { auth: { persistSession: false, autoRefreshToken: false } });
 
     const bodyParse = ActionSchema.safeParse(rawBody);
     if (!bodyParse.success) {
