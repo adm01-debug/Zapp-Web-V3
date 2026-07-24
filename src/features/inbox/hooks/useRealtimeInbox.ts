@@ -228,7 +228,7 @@ export function useRealtimeInbox() {
         'postgres_changes',
         {
           event: '*',
-          schema: 'zapp',
+          schema: 'public',
           table: 'whisper_messages',
           filter: `contact_id=eq.${selectedContactId}`,
         },

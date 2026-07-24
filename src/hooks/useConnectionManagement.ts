@@ -55,7 +55,7 @@ export function useConnectionAlertsPush() {
           'postgres_changes',
           {
             event: 'INSERT',
-            schema: 'zapp',
+            schema: 'public',
             table: 'notifications',
             filter: `user_id=eq.${auth.user.id}`,
           },
