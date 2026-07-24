@@ -146,11 +146,12 @@ export const contactsRepository = {
     status: 'active' | 'archived',
     params?: Partial<QueryParams>
   ): Promise<ListResponse<Contact>> => {
-    // contacts table has no status column; filter via deleted_at
+    // contacts table has no status column; filter via deleted_at.
+    // genericService.list() treats the string 'null' as IS NULL and 'not_null' as IS NOT NULL.
     if (status === 'archived') {
-      return baseContactsService.list({ deleted_at: 'not.is.null' as unknown as string, ...params });
+      return baseContactsService.list({ deleted_at: 'not_null' as unknown as string, ...params });
     }
-    return baseContactsService.list({ deleted_at: null as unknown as string, ...params });
+    return baseContactsService.list({ deleted_at: 'null' as unknown as string, ...params });
   },
 
   /**
