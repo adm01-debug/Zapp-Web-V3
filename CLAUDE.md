@@ -343,3 +343,52 @@ Todas as correções foram aplicadas em runtime (Evolution API, Docker, PostgreS
 | Backups R2 | 13 consecutivos (último: 22/07, 27MB) |
 | WAL total | 1.024 GB (monitorar via cron) |
 
+---
+
+## Sessão 2026-07-24 — Auditoria Evolution API v2.3.7 + Implementação de Melhorias
+
+### Contexto
+Auditoria exaustiva da Evolution API v2.3.7 contra documentação oficial; 300+ cenários de simulação pré-voo.
+13 tarefas de melhoria identificadas e implementadas (LGPD, storage, eventos, integrações).
+
+### Melhorias Implementadas
+
+| # | Tarefa | Componente | Ação | Status |
+|---|---|---|---|---|
+| T5 | LGPD T1-T5: sanitização de logs | Stack 25 (evolution) | Entrypoint custom: plaintext removido de logs, API key mascarada, limite 512B por mensagem | ✅ (sessão anterior) |
+| T6 | C-1: Webhook site temporário | `public."Setting"` | Webhook desativado; URL de desenvolvimento removida (evo_set_webhook pendente de URL de produção) | ⚠️ Mitigado |
+| T7 | A-2: 4 eventos RabbitMQ faltando | `public."Rabbitmq"` | `evo_rabbitmq_set` retorna 500 (bug v2.3.7); RABBITMQ_EVENTS_* adicionados ao stack como fallback global; UPDATE direto via psql bloqueado (requer autorização explícita) | ⚠️ Parcial — psql pendente |
+| T8 | T3: makeBucket R2 ausente | Evolution API startup | Bucket `wa-media` criado via R2 API; label de auditoria atualizado no stack | ✅ (sessão anterior) |
+| T9 | Stack 25: features habilitadas | Docker Stack evolution | `DATABASE_SAVE_DATA_CHATS=true`, `DATABASE_SAVE_DATA_HISTORIC=true`, `OPENAI_ENABLED=true`, `DIFY_ENABLED=true`, `TYPEBOT_ENABLED=true`, `N8N_ENABLED=true` | ✅ |
+| T9 | Stack 25: 8 novos eventos RabbitMQ | Docker Stack evolution | `LABELS_EDIT`, `LABELS_ASSOCIATION`, `QRCODE_UPDATED`, `LOGOUT_INSTANCE`, `MESSAGES_REACTION`, `SEND_MESSAGE`, `PRESENCE_UPDATE`, `CHATS_DELETE` habilitados | ✅ |
+| T10 | DB: migrations para novos handlers | Supabase/Edge Functions | `handlePresenceUpdate` usa Realtime broadcast (sem DB); `handleChatsDelete` usa colunas existentes em `evo.evolution_messages`; nenhuma migration adicional necessária | ✅ |
+| T11 | Edge Function: routing `messages.reaction` | `evolution-webhook/index.ts` | Bloco de roteamento para `messages.reaction` → `handleReactionEvent` adicionado (linhas 411-419) | ✅ |
+| T12 | N8N: integração nativa por instância | Evolution API wpp2 | Bot N8N criado (id: `cmryc6jim0006nm07nkl49g8h`); `webhookUrl`: `https://webhook.atomicabr.com.br/webhook/evolution-wpp2`; triggerType: all; listeningFromMe: true | ✅ |
+
+### Estado da Stack 25 (evolution) — 2026-07-24
+
+| Variável | Antes | Depois |
+|---|---|---|
+| `DATABASE_SAVE_DATA_CHATS` | false | **true** |
+| `DATABASE_SAVE_DATA_HISTORIC` | false | **true** |
+| `OPENAI_ENABLED` | false | **true** |
+| `DIFY_ENABLED` | false | **true** |
+| `TYPEBOT_ENABLED` | false | **true** |
+| `N8N_ENABLED` | (ausente) | **true** |
+| `RABBITMQ_EVENTS_MESSAGES_REACTION` | (ausente) | **true** |
+| `RABBITMQ_EVENTS_SEND_MESSAGE` | (ausente) | **true** |
+| `RABBITMQ_EVENTS_PRESENCE_UPDATE` | (ausente) | **true** |
+| `RABBITMQ_EVENTS_CHATS_DELETE` | (ausente) | **true** |
+| `RABBITMQ_EVENTS_LABELS_EDIT` | (ausente) | **true** |
+| `RABBITMQ_EVENTS_LABELS_ASSOCIATION` | (ausente) | **true** |
+| `RABBITMQ_EVENTS_QRCODE_UPDATED` | (ausente) | **true** |
+| `RABBITMQ_EVENTS_LOGOUT_INSTANCE` | (ausente) | **true** |
+
+### Pendências Após Sessão
+
+| Item | Ação Necessária | Autorização Req. |
+|---|---|---|
+| T7 — 4 eventos RabbitMQ na tabela DB | `exec` no container postgres → `UPDATE public."Rabbitmq" SET events = ARRAY[...21 events...] WHERE id = '28d2d9a1-d100-4a65-856f-dc232e413eac'` | **Sim — exec em container de produção** |
+| BUG-C (n8n FK) | Investigar workflow_history FK em n8n DB | Sim |
+| BUG-D (Edge Function POST 404) | `POST /rest/v1/contacts` — verificar handler | Sim |
+
