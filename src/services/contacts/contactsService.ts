@@ -52,7 +52,7 @@ export const contactsService = {
     const created = await contactsRepository.create({
       ...contact,
       name: contact.name.trim(),
-      status: contact.status || 'active',
+      // contacts table has no status column; active state is the default (deleted_at IS NULL)
     });
 
     return created;
@@ -70,7 +70,7 @@ export const contactsService = {
       return {
         ...contact,
         name: contact.name.trim(),
-        status: contact.status || 'active',
+        // contacts table has no status column; active state is the default (deleted_at IS NULL)
       };
     });
 
