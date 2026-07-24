@@ -2,7 +2,7 @@ import { supabase } from '@/integrations/supabase/client';
 
 export async function fetchContactMessagesForHeatmap(since: Date) {
   const { data, error } = await supabase
-    .from('messages')
+    .from('evolution_messages')
     .select('created_at')
     .gte('created_at', since.toISOString())
     .eq('sender', 'contact')

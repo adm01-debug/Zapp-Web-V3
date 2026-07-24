@@ -38,9 +38,10 @@ export interface Conversation {
   updated_at: string;
 }
 
-// Base services
-const messagesBaseService = createService<Message>('messages');
-const conversationsBaseService = createService<Conversation>('conversations');
+// Base services — evolution_messages / evolution_conversations are the physical tables
+// in the zapp schema (auto-updatable views over evo.evolution_messages root partition)
+const messagesBaseService = createService<Message>('evolution_messages');
+const conversationsBaseService = createService<Conversation>('evolution_conversations');
 
 /** messages Repository constant. */
 export const messagesRepository = {
@@ -62,7 +63,7 @@ export const messagesRepository = {
     const from = (page - 1) * limit;
     const to = from + limit - 1;
     const { data, error, count } = await supabase
-      .from('messages')
+      .from('evolution_messages')
       .select('*', { count: 'exact' })
       .eq('conversation_id', conversationId)
       .order('created_at', { ascending: false })
@@ -87,7 +88,7 @@ export const messagesRepository = {
   // Unread messages count
   async getUnreadMessagesCount(conversationId: string) {
     const { count, error } = await supabase
-      .from('messages')
+      .from('evolution_messages')
       .select('id', { count: 'exact', head: true })
       .eq('conversation_id', conversationId)
       .eq('is_read', false);
@@ -98,7 +99,7 @@ export const messagesRepository = {
   // Mark as read
   async markMessagesAsRead(conversationId: string, _userId: string) {
     const { error } = await supabase
-      .from('messages')
+      .from('evolution_messages')
       .update({ is_read: true, read_at: new Date().toISOString() })
       .eq('conversation_id', conversationId)
       .eq('is_read', false);

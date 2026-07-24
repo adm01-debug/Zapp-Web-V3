@@ -55,26 +55,25 @@ export function useForwardMessage(
     }
   }, []); // ✅ deps vazias — dbFrom é estável
 
-  useEffect(() => {
-    if (open) {
-      void fetchContacts();
-      void fetchGroups();
-    }
-  }, [open, fetchContacts]); // ✅ Fix: adicionar fetchContacts e fetchGroups nas deps
-
-  /** Fetches all WhatsApp groups ordered by name and populates local state; silently logs errors. */
-  const fetchGroups = async () => {
+  const fetchGroups = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('whatsapp_groups')
         .select('id, name, avatar_url, participant_count')
         .order('name');
       if (error) throw error;
-      setGroups(data || []);
+      if (mountedRef.current) setGroups(data || []);
     } catch (error) {
       log.error('Error fetching groups:', error);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (open) {
+      void fetchContacts();
+      void fetchGroups();
+    }
+  }, [open, fetchContacts, fetchGroups]);
 
   const filteredContacts = contacts.filter(
     (c) => c.name.toLowerCase().includes(searchQuery.toLowerCase()) || c.phone.includes(searchQuery)

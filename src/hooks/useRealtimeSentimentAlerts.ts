@@ -15,14 +15,13 @@ export function useRealtimeSentimentAlerts() {
         'postgres_changes',
         {
           event: 'INSERT',
-          schema: 'public',
-          table: 'audit_logs',
-          filter: 'action=eq.sentiment_alert',
+          schema: 'zapp',
+          table: 'sentiment_alerts',
         },
         (payload) => {
           const record = payload.new as Record<string, unknown>;
-          const title = (record?.details as Record<string, unknown>)?.contact_name as string | undefined;
-          const sentiment = (record?.details as Record<string, unknown>)?.sentiment as string | undefined;
+          const title = record?.contact_name as string | undefined;
+          const sentiment = record?.sentiment as string | undefined;
           const message = sentiment
             ? `Sentimento ${sentiment} detectado${title ? ` para ${title}` : ''}`
             : 'Alerta de sentimento detectado';

@@ -73,10 +73,7 @@ export function useParticipantStats(conversationId: string, simulationModeEnable
           statsMap[pid].name = r.profiles.name;
         }
         if (r.status === 'delivered') statsMap[pid].delivered++;
-        if (r.status === 'read') {
-          statsMap[pid].delivered++;
-          statsMap[pid].read++;
-        }
+        else if (r.status === 'read') statsMap[pid].read++;
       });
 
       return Object.values(statsMap);
