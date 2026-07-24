@@ -76,7 +76,7 @@ export function useRealtimeMessages() {
         { data: contacts, error: contactsError },
         { data: messages, error: messagesError },
       ] = await Promise.all([
-        supabase.from('evolution_contacts').select('*').order('updated_at', { ascending: false }).limit(500),
+        supabase.schema('evo').from('evolution_contacts').select('*').order('updated_at', { ascending: false }).limit(500),
         supabase.from('evolution_messages').select('*').order('created_at', { ascending: false }).limit(100),
       ]);
       if (contactsError) throw contactsError;
@@ -95,7 +95,7 @@ export function useRealtimeMessages() {
       ];
 
       if (missingIds.length > 0) {
-        const { data: extra } = await supabase.from('evolution_contacts').select('*').in('id', missingIds);
+        const { data: extra } = await supabase.schema('evo').from('evolution_contacts').select('*').in('id', missingIds);
         (extra ?? []).forEach((c: Contact) => contactMap.set(c.id, c));
       }
 

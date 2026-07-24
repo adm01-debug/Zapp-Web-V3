@@ -99,7 +99,7 @@ for (const f of files) {
   const re = /\.on\(\s*['"`]postgres_changes['"`]\s*,\s*\{([\s\S]*?)\}\s*,/g;
   for (const m of src.matchAll(re)) {
     const body = m[1];
-    if (!/schema\s*:\s*['"`][a-z_]+['"`]/.test(body)) {
+    if (!/schema\s*:\s*['"`][a-z_]+['"`]/.test(body) && !/\bschema\b(?!\s*:)/.test(body)) {
       realtimeMissingSchema++;
       realtimeOffenders.push(f.replace(ROOT + '/', ''));
     }
