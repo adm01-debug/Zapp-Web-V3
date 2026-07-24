@@ -174,6 +174,7 @@ describe('Inbox Extensive E2E Logic Simulation', () => {
     );
 
     act(() => {
+      result.current.setSubTab('attending');
       result.current.setScope('department');
       result.current.setShowAll(false);
       result.current.setDepartmentAgentIds([]);

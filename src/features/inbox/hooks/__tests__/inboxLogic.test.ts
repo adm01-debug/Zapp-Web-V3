@@ -109,6 +109,7 @@ describe('useInboxFilters Business Rules', () => {
     );
 
     act(() => {
+      result.current.setSubTab('attending');
       result.current.setScope('department');
       result.current.setDepartmentAgentIds(['agent-1', 'agent-2']);
     });
@@ -133,6 +134,7 @@ describe('useInboxFilters Business Rules', () => {
     );
 
     act(() => {
+      result.current.setSubTab('attending');
       result.current.setScope('department');
       result.current.setDepartmentAgentIds(['agent-1', 'agent-2']);
 
@@ -163,6 +165,7 @@ describe('useInboxFilters Business Rules', () => {
     );
 
     act(() => {
+      result.current.setSubTab('attending');
       result.current.setScope('mine');
     });
 
