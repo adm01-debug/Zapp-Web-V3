@@ -14,20 +14,83 @@ import { verifyHttpOnlyCookieAuth } from '@/integrations/supabase/cookieStorage'
 // Cancela o timer interno quando a promise resolve antes do timeout (evita
 // timers órfãos que ficavam ativos por até 5s depois do resultado chegar).
 // ---------------------------------------------------------------------------
-// Safety-net do bootstrap de Auth. DEVE ser maior que o timeout do fetch do
-// Supabase client (SUPABASE_FETCH_TIMEOUT_MS = 12s): assim, se um refresh de
-// token pendurar, o boundedFetch aborta (~12s), o INITIAL_SESSION resolve e
-// limpa o loading ANTES deste backstop declarar 'timeout' fatal. Se este valor
-// fosse ≤12s, o safety-net dispararia a tela de erro no meio de um refresh que
-// ainda ia resolver — exatamente o bug de bootstrap que estamos corrigindo.
-const BOOTSTRAP_SAFETY_NET_MS = 15_000;
-
 function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
   let timerId: ReturnType<typeof setTimeout>;
   const timeoutPromise = new Promise<T>((_, reject) => {
     timerId = setTimeout(() => reject(new Error(`[Auth] Timeout (${ms}ms) em ${label}`)), ms);
   });
   return Promise.race([promise, timeoutPromise]).finally(() => clearTimeout(timerId));
+}
+
+// ---------------------------------------------------------------------------
+// Leitura SÍNCRONA da sessão persistida (localStorage) para hidratação otimista.
+//
+// O supabase-js persiste a sessão em `sb-<ref>-auth-token`. No boot, em vez de
+// bloquear o first paint numa chamada de rede (getSession() força um refresh de
+// token sob o navigator.locks e pode pendurar por segundos quando o lock está
+// contido ou o edge trava), lemos a sessão já gravada e renderizamos na hora.
+// O onAuthStateChange do supabase-js continua sendo a fonte de verdade: emite
+// TOKEN_REFRESHED em sucesso ou SIGNED_OUT se o refresh token for inválido,
+// reconciliando o estado no próximo tick. Isto NÃO substitui o refresh — apenas
+// impede que uma revalidação lenta transforme uma sessão válida numa tela de erro.
+//
+// Robusto a: storage inacessível (modo privado), valor em base64 (UTF-8), chunks
+// (`...-auth-token.0/.1`) e ao shape legado v1 (`{ currentSession }`).
+// ---------------------------------------------------------------------------
+function readPersistedSession(): Session | null {
+  if (typeof window === 'undefined') return null;
+  let raw: string | null = null;
+  try {
+    const keys = Object.keys(localStorage).filter((k) => k.includes('-auth-token'));
+    if (keys.length === 0) return null;
+    // Chave-base = a mais curta que casa (chunks acrescentam sufixo `.N`).
+    const baseKey =
+      keys.filter((k) => /-auth-token$/.test(k)).sort((a, b) => a.length - b.length)[0] ??
+      keys.sort((a, b) => a.length - b.length)[0];
+    const chunkKeys = keys
+      .filter((k) => k.startsWith(`${baseKey}.`))
+      .sort(
+        (a, b) => Number(a.slice(baseKey.length + 1)) - Number(b.slice(baseKey.length + 1))
+      );
+    raw =
+      chunkKeys.length > 0
+        ? chunkKeys.map((k) => localStorage.getItem(k) ?? '').join('')
+        : localStorage.getItem(baseKey);
+  } catch {
+    // localStorage bloqueado por política do browser — segue o fluxo normal.
+    return null;
+  }
+  if (!raw) return null;
+
+  const tryParse = (text: string): Session | null => {
+    try {
+      const parsed = JSON.parse(text) as
+        | (Session & { currentSession?: Session })
+        | { currentSession?: Session };
+      const session = ('access_token' in parsed && parsed.access_token
+        ? parsed
+        : (parsed as { currentSession?: Session }).currentSession) as Session | undefined;
+      return session?.user && session?.refresh_token ? session : null;
+    } catch {
+      return null;
+    }
+  };
+
+  // Caminho comum (localStorage puro): JSON direto.
+  const direct = tryParse(raw);
+  if (direct) return direct;
+
+  // Fallback: valor prefixado `base64-` (decodifica UTF-8 corretamente).
+  if (raw.startsWith('base64-')) {
+    try {
+      const bin = atob(raw.slice('base64-'.length));
+      const bytes = Uint8Array.from(bin, (c) => c.charCodeAt(0));
+      return tryParse(new TextDecoder().decode(bytes));
+    } catch {
+      return null;
+    }
+  }
+  return null;
 }
 
 /**
@@ -167,95 +230,77 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // espúrio 10s após o carregamento (BUG C).
   const bootstrapTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const clearBootstrapSafetyNet = useCallback(() => {
+    if (bootstrapTimeoutRef.current !== null) {
+      clearTimeout(bootstrapTimeoutRef.current);
+      bootstrapTimeoutRef.current = null;
+    }
+  }, []);
+
   const runBootstrap = useCallback(async () => {
     const runId = ++bootstrapRunRef.current;
     setLoading(true);
     setBootstrapError(null);
 
-    // Fast-fall: se nao ha token no localStorage, pulamos a chamada HTTP.
-    // NOTA: Object.keys(localStorage) pode lançar SecurityError em modo privado
-    // restrito ou quando cookies/storage são bloqueados por política do browser
-    // (BUG D). O try-catch garante que o bootstrap degrada graciosamente.
-    const hasLocalToken = typeof window !== 'undefined' && (() => {
-      try {
-        return Object.keys(localStorage).some((k) => k.includes('-auth-token'));
-      } catch {
-        // localStorage inacessível — assume sem token; getSession() não é chamado.
-        return false;
-      }
-    })();
-    if (!hasLocalToken) {
-      log.info('[Auth] Sem token local — pulando getSession().');
+    // ── 1) Hidratação otimista a partir da sessão persistida (SEM rede) ──────
+    // Se há sessão gravada, renderizamos imediatamente com a identidade em
+    // cache. NÃO bloqueamos o first paint numa chamada de rede. O
+    // onAuthStateChange reconcilia depois (TOKEN_REFRESHED / SIGNED_OUT).
+    const cached = readPersistedSession();
+    if (cached?.user) {
+      if (runId !== bootstrapRunRef.current) return;
+      setSession(cached);
+      setUser(cached.user);
+      // profile/roles em background — guards internos evitam corrida com o
+      // refetch que o onAuthStateChange dispara em seguida.
+      void refreshAll(cached.user.id, { showLoading: false });
+      setLoading(false);
+      // Já temos sessão utilizável → o safety-net não deve marcar timeout.
+      clearBootstrapSafetyNet();
+    } else {
+      // Sem sessão persistida → não há o que recuperar: pula getSession() e vai
+      // direto para a tela de login. (Fast-fall: evita HTTP desnecessário.)
+      // Object.keys(localStorage) já é tolerado por readPersistedSession (que
+      // trata SecurityError em modo privado retornando null).
+      log.info('[Auth] Sem sessão local — indo para login.');
       setLoading(false);
       setBootstrapElapsedMs(0);
-      // Sem token → onAuthStateChange não vai disparar → cancela o safety-net
-      // para evitar erro de timeout espúrio 10s depois (BUG C).
-      if (bootstrapTimeoutRef.current !== null) {
-        clearTimeout(bootstrapTimeoutRef.current);
-        bootstrapTimeoutRef.current = null;
-      }
+      clearBootstrapSafetyNet();
       return;
     }
 
+    // ── 2) Revalidação em BACKGROUND — não bloqueia o app já renderizado ─────
+    // getSession() dispara o refresh single-flight sob o navigator.locks do
+    // supabase-js. Se travar (lock contido / edge lento), o withTimeout rejeita,
+    // mas como já hidratámos do cache isto NÃO é fatal: o onAuthStateChange é a
+    // fonte de verdade e promove ou rebaixa a sessão no próximo tick. Nunca mais
+    // transformamos uma revalidação lenta numa tela de erro para quem tem sessão.
     const startedAt = typeof performance !== 'undefined' ? performance.now() : Date.now();
     try {
       const result = await withTimeout(supabase.auth.getSession(), 8000, 'getSession');
+      if (runId !== bootstrapRunRef.current) return;
       const elapsedMs = Math.round(
         (typeof performance !== 'undefined' ? performance.now() : Date.now()) - startedAt
       );
-      if (runId !== bootstrapRunRef.current) return;
       setBootstrapElapsedMs(elapsedMs);
-      const initialSession = result.data.session;
       log.info(
-        `[Auth] getSession OK em ${elapsedMs}ms — session=${initialSession ? 'present' : 'null'}`
+        `[Auth] getSession OK em ${elapsedMs}ms — session=${result.data.session ? 'present' : 'null'}`
       );
-      if (!initialSession) {
-        setLoading(false);
-        // Sessão nula: onAuthStateChange pode não disparar se não havia sessão
-        // anterior → cancela o safety-net para evitar erro de timeout espúrio (BUG C).
-        if (bootstrapTimeoutRef.current !== null) {
-          clearTimeout(bootstrapTimeoutRef.current);
-          bootstrapTimeoutRef.current = null;
-        }
-      }
+      // Se o backend confirmar que NÃO há sessão (refresh token revogado/expirado),
+      // o supabase-js emite SIGNED_OUT via onAuthStateChange e o app vai para /auth.
     } catch (err) {
+      if (runId !== bootstrapRunRef.current) return;
       const elapsedMs = Math.round(
         (typeof performance !== 'undefined' ? performance.now() : Date.now()) - startedAt
       );
-      if (runId !== bootstrapRunRef.current) return;
       setBootstrapElapsedMs(elapsedMs);
-      const isOffline =
-        typeof navigator !== 'undefined' && 'onLine' in navigator && !navigator.onLine;
-      log.error(
-        `[Auth] getSession falhou/${isOffline ? 'offline' : 'timeout'} após ${elapsedMs}ms — URL=${SUPABASE_RESOLVED_URL}`,
+      // Não-fatal: já renderizámos a partir do cache. Apenas registamos.
+      log.warn(
+        `[Auth] Revalidação em background lenta (${elapsedMs}ms) — mantendo sessão do cache. URL=${SUPABASE_RESOLVED_URL}`,
         err
       );
-      // FIX (bootstrap-hang): esta chamada de getSession é REDUNDANTE com o
-      // evento INITIAL_SESSION que onAuthStateChange (abaixo) sempre emite em
-      // supabase-js v2 — com a sessão real ou null. Se o getSession do bootstrap
-      // demora (ex.: um refresh de token que pendura por rede momentaneamente
-      // degradada), tratá-lo como falha FATAL mostrava a tela de erro cheia do
-      // ProtectedRoute prematuramente, mesmo quando o INITIAL_SESSION entregaria
-      // a sessão válida logo em seguida (ou governaria o logout corretamente).
-      //
-      // Portanto: só declaramos erro fatal quando o browser está REALMENTE
-      // offline (aí a tela de erro/retry é o comportamento certo). Quando há
-      // conectividade, apenas registramos e deixamos o INITIAL_SESSION governar
-      // o estado; o safety-net (useEffect) permanece como backstop final.
-      if (isOffline) {
-        setBootstrapError('offline');
-        setLoading(false);
-        if (bootstrapTimeoutRef.current !== null) {
-          clearTimeout(bootstrapTimeoutRef.current);
-          bootstrapTimeoutRef.current = null;
-        }
-      } else {
-        log.info('[Auth] getSession lento/pendurado — aguardando INITIAL_SESSION governar o estado (não-fatal).');
-        // NÃO seta bootstrapError e NÃO cancela o safety-net: o INITIAL_SESSION
-        // deve chegar e limpar loading; se nada resolver, o safety-net cobre.
-      }
     }
-  }, []);
+  }, [refreshAll, clearBootstrapSafetyNet]);
 
   const retryBootstrap = useCallback(async () => {
     // Reseta o safety-net timeout para o retry — sem isso, se getSession
@@ -265,11 +310,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       clearTimeout(bootstrapTimeoutRef.current);
     }
     bootstrapTimeoutRef.current = setTimeout(() => {
-      log.error('[Auth] Bootstrap safety-net no retry — forçando loading=false.');
+      log.error('[Auth] Bootstrap safety-net (10s) no retry — forçando loading=false.');
       setBootstrapError((prev) => prev ?? 'timeout');
       setLoading(false);
       bootstrapTimeoutRef.current = null;
-    }, BOOTSTRAP_SAFETY_NET_MS);
+    }, 10000);
     await runBootstrap();
   }, [runBootstrap]);
 
@@ -286,11 +331,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // nos caminhos sem sessão (sem onAuthStateChange) — evitando erro espúrio (BUG C).
     bootstrapTimeoutRef.current = setTimeout(() => {
       if (!mounted) return;
-      log.error('[Auth] Bootstrap safety-net — forçando loading=false.');
+      log.error('[Auth] Bootstrap safety-net (10s) — forçando loading=false.');
       setBootstrapError((prev) => prev ?? 'timeout');
       setLoading(false);
       bootstrapTimeoutRef.current = null;
-    }, BOOTSTRAP_SAFETY_NET_MS);
+    }, 10000);
 
     log.info(`[Auth] Supabase URL em uso: ${SUPABASE_RESOLVED_URL}`);
     void runBootstrap();
@@ -309,8 +354,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (session?.user) {
         // TOKEN_REFRESHED é renovação silenciosa — não exibir loading (I06).
+        // INITIAL_SESSION apenas confirma a sessão que já hidratámos do cache no
+        // boot → também silencioso, senão pisca o spinner logo após o first paint.
         // SIGNED_IN, USER_UPDATED etc. implicam mudança de identidade → loading.
-        const showLoading = event !== 'TOKEN_REFRESHED';
+        const showLoading = event !== 'TOKEN_REFRESHED' && event !== 'INITIAL_SESSION';
         refreshAll(session.user.id, { showLoading });
       } else {
         setProfile(null);
