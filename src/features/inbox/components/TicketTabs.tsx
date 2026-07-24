@@ -27,6 +27,13 @@ export type InboxScope = 'mine' | 'department' | 'all';
 
 interface TicketTabsProps {
   conversations: ConversationWithMessages[];
+  counts?: {
+    open: number;
+    attending: number;
+    waiting: number;
+    resolved: number;
+    unread: number;
+  };
   mainTab: MainTab;
   subTab: SubTab;
   onMainTabChange: (tab: MainTab) => void;
@@ -47,6 +54,7 @@ interface TicketTabsProps {
 /** Ticket Tabs component. */
 export const TicketTabs = memo(function TicketTabs({
   conversations,
+  counts: externalCounts,
   mainTab,
   subTab,
   onMainTabChange,
@@ -70,16 +78,18 @@ export const TicketTabs = memo(function TicketTabs({
   const ticketStates = useAllTicketStates();
   const isMobile = useIsMobile();
 
-  const counts = useMemo(() => {
+  const fallbackCounts = useMemo(() => {
     const userId = user?.id;
     let openCount = 0;
     let attending = 0;
     let waiting = 0;
     let resolved = 0;
+    let unread = 0;
     for (const c of conversations) {
       const t = ticketStates[c.contact.id];
       const status = t?.status ?? 'open';
       const assigned = t?.assignedTo ?? c.contact.assigned_to ?? null;
+      if (c.unreadCount > 0 && status !== 'resolved') unread += 1;
       if (status === 'resolved') {
         resolved += 1;
       } else {
@@ -88,8 +98,10 @@ export const TicketTabs = memo(function TicketTabs({
         if (!assigned) waiting += 1;
       }
     }
-    return { open: openCount, attending, waiting, resolved };
+    return { open: openCount, attending, waiting, resolved, unread };
   }, [conversations, ticketStates, user?.id]);
+
+  const counts = externalCounts ?? fallbackCounts;
 
   const mainTabs = useMemo(
     () => [
@@ -111,11 +123,11 @@ export const TicketTabs = memo(function TicketTabs({
         id: 'unread' as MainTab,
         label: 'Não lidas',
         icon: MessageCircle,
-        count: conversations.filter((c) => c.unreadCount > 0).length,
+        count: counts.unread,
         activeColor: 'bg-warning text-foreground',
       },
     ],
-    [counts, conversations]
+    [counts]
   );
 
   const subTabs = useMemo(
