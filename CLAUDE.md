@@ -162,8 +162,10 @@
 | ~~BUG-15~~ | `zapp.rpc_dlq_log_reprocess_trigger` / `rpc_dlq_log_reprocess_result` no DB | CORRIGIDO 2026-07-17: `SET search_path TO 'public','evo','zapp','monitoring'` inseguro; supervisor bloqueado. Corrigido para `SET search_path = zapp` + `zapp.has_role(..., 'supervisor')` | Resolvido |
 | ~~BUG-16~~ | `zapp.search_contacts_cursor` no DB | CORRIGIDO 2026-07-17: (1) cursor direction usava `sort_direction = 'asc'` case-sensitive — passar 'ASC' quebrava paginação pág 2+; (2) `sort_direction` injetável via ORDER BY string concat. Corrigido: `v_sort_dir := UPPER(...); IF v_sort_dir NOT IN ('ASC','DESC')` | Resolvido |
 | ~~BUG-24~~ | `src/hooks/useRealtimeSentimentAlerts.ts:18` | CORRIGIDO 2026-07-24: subscription usava `schema: 'public', table: 'audit_logs', filter: 'action=eq.sentiment_alert'` — `public.audit_logs` é VIEW proxy, nunca emite CDCs; alertas de sentimento completamente silenciosos desde migration `20260720000005`. Fix: `schema: 'zapp', table: 'sentiment_alerts'`; payload atualizado para `alert_level`/`sentiment_score` | Resolvido |
-| ~~BUG-25~~ | `src/components/payments/PaymentLinksView.tsx:61` | CORRIGIDO 2026-07-24: subscription usava `schema: 'financeiro'` (schema inexistente para `payment_links`); alterado para `schema: 'zapp'`. Adicionalmente: `zapp.payment_links` não estava em `supabase_realtime`; fix: migration `20260724000004` adiciona tabela à publication | Resolvido |
-| ~~BUG-26~~ | `src/hooks/useGmailOAuthFlow.ts:292` | CORRIGIDO 2026-07-24: `email_app.email_accounts` não estava em `supabase_realtime`; callback pós-OAuth não disparava; fluxo OAuth aparentava travar. Fix: migration `20260724000004` adiciona tabela à publication | Resolvido |
+| ~~BUG-25~~ | `src/components/payments/PaymentLinksView.tsx:61` | CORRIGIDO 2026-07-24 (v2): subscription estava em `schema: 'financeiro'` (CORRETO — tabela física), uma "correção" anterior desta sessão mudou erroneamente para `schema: 'zapp'` (VIEW proxy). Revertido para `schema: 'financeiro'`. Migration `20260724000006` adiciona `financeiro.payment_links` à publication (supercede `20260724000004` que tinha dois bugs: schema errado + FOREACH SLICE type bug) | Resolvido |
+| ~~BUG-26~~ | `src/hooks/useGmailOAuthFlow.ts:292` | CORRIGIDO 2026-07-24: `email_app.email_accounts` não estava em `supabase_realtime`; callback pós-OAuth não disparava; fluxo OAuth aparentava travar. Fix: migration `20260724000006` adiciona tabela à publication (re-adds idempotentemente) | Resolvido |
+| ~~BUG-27~~ | `supabase/migrations/20260724000004_fix_realtime_payment_links_email_accounts.sql` | CORRIGIDO 2026-07-24: bloco verification declarou `t TEXT` (scalar) mas `FOREACH t SLICE 1 IN ARRAY targets` requer `TEXT[]`; PostgreSQL lança `ERROR: FOREACH ... SLICE loop variable must be of an array type` que faz rollback de toda a transação — nem `financeiro.payment_links` nem `email_app.email_accounts` foram adicionados à publication. Supercedido por `20260724000006` com declaração correta `t TEXT[]` | Resolvido — `20260724000006` |
+| ~~BUG-28~~ | `supabase/functions/evolution-sentiment/index.ts:66` | CORRIGIDO 2026-07-24: `saveAnalysis()` tentava inserir em `zapp.evolution_sentiment_alerts` (tabela inexistente — nenhuma migração a cria); erro era apenas logado, nunca propagado; subscriber em `useRealtimeSentimentAlerts.ts` escutava `zapp.sentiment_alerts` (correto e publicado) mas nenhum produtor jamais escrevia lá. Fix: insert redirecionado para `zapp.sentiment_alerts` com colunas corretas (`contact_id`, `message_id`, `sentiment_score`, `alert_level`, `acknowledged`) | Resolvido |
 
 
 ---
@@ -301,6 +303,23 @@ infra/                       # Infraestrutura
 - `zapp.goal_notifications` / `zapp.transcription_notifications` — tabelas fantasma, subscriptions redirecionadas
 - `zapp.dispatch_error_logs` — NÃO está em supabase_realtime (sem subscription ativa, ok)
 - Auditoria completa de 36 tabelas e 49 RPCs: todos presentes ou cobertos por stubs/migrations
+
+### Estado do Realtime após sessão 2026-07-24
+- `financeiro.payment_links` ✅ (adicionada em `20260724000006` — supercede `20260724000004` com type bug)
+- `email_app.email_accounts` ✅ (adicionada em `20260724000006` — Gmail OAuth flow callback)
+- `email_app.email_threads` ✅ (adicionada em `20260724000005`)
+- `zapp.failed_messages` ✅ (confirmado; `20260724000005` idempotente)
+- `zapp.app_notifications` ✅ (confirmado; `20260724000005` idempotente)
+- `zapp.agent_stats` ✅ (adicionada em `20260724000005`)
+- `zapp.audio_memes` ✅ (adicionada em `20260724000005`)
+- `zapp.qr_attempts` ✅ (adicionada em `20260724000005`)
+- `zapp.queue_members`, `zapp.queue_positions`, `zapp.queues` ✅ (adicionadas em `20260724000005`)
+- `zapp.sales_deals` ✅ (adicionada em `20260724000005`)
+- `zapp.talkx_campaigns` ✅ (adicionada em `20260724000005`)
+- `zapp.team_messages` ✅ (adicionada em `20260724000005`)
+- `zapp.warroom_alerts` ✅ (adicionada em `20260724000005`)
+- `zapp.whatsapp_connections` ✅ (adicionada em `20260724000005`)
+- `evolution-sentiment`: producer agora escreve em `zapp.sentiment_alerts` (era `evolution_sentiment_alerts` inexistente — BUG-28)
 
 ## Sessão 2026-07-22 — QA Exaustiva de Infraestrutura (10/10)
 
