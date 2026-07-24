@@ -253,14 +253,16 @@ export function useSafePromise<T>(
   const { operation = 'Unknown', onReject, shouldThrow = false, dependencies = [] } = options || {};
 
   useEffect(() => {
+    let cancelled = false;
     handlePromiseRejection(promise, {
       operation,
-      onReject,
+      onReject: cancelled ? undefined : onReject,
       shouldThrow,
     }).catch(() => {
       // Already logged
     });
-  }, [...dependencies]); // eslint-disable-line react-hooks/exhaustive-deps
+    return () => { cancelled = true; };
+  }, [promise, ...dependencies]); // eslint-disable-line react-hooks/exhaustive-deps
 }
 
 /**

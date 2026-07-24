@@ -82,8 +82,10 @@ export function useChatSearch({
   // Stable refs for callbacks
   const onHighlightChangeRef = useRef(onHighlightChange);
   const onNavigateToMessageRef = useRef(onNavigateToMessage);
+  const onSearchQueryChangeRef = useRef(onSearchQueryChange);
   onHighlightChangeRef.current = onHighlightChange;
   onNavigateToMessageRef.current = onNavigateToMessage;
+  onSearchQueryChangeRef.current = onSearchQueryChange;
 
   // Compute effective date range
   const dateRange = useMemo(() => {
@@ -125,7 +127,7 @@ export function useChatSearch({
       setCustomDateFrom(null);
       setCustomDateTo(null);
       onHighlightChangeRef.current(new Set(), null);
-      onSearchQueryChange?.('');
+      onSearchQueryChangeRef.current?.('');
     }
   }, [isOpen]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -134,7 +136,7 @@ export function useChatSearch({
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
       setDebouncedQuery(query);
-      onSearchQueryChange?.(query);
+      onSearchQueryChangeRef.current?.(query);
     }, 200);
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);

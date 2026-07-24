@@ -41,6 +41,7 @@ export function useCampaigns() {
       if (error) throw error;
       return data as Campaign[]; // ignore-audit: Campaign.target_filter narrows Supabase Json to Record<string,unknown>
     },
+    staleTime: 60_000,
   });
 
   const createCampaign = useMutation<Campaign, Error, CampaignInput>({

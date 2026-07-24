@@ -336,7 +336,7 @@ export class WebhookSecurityService {
  * });
  * ```
  */
-export function createWebhookValidator(secret: string | string[], strictMode = false, allowSharedSecret = true) {
+export function createWebhookValidator(secret: string | string[], strictMode = true, allowSharedSecret = true) {
   const service = new WebhookSecurityService(secret, strictMode, allowSharedSecret);
   return (req: Request) => service.validateRequest(req);
 }

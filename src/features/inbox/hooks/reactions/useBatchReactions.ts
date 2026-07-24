@@ -23,6 +23,8 @@ export function useMessagesReactions(messageIds: string[]) {
       return;
     }
 
+    let cancelled = false;
+
     const fetchReactions = async () => {
       setIsLoading(true);
       try {
@@ -31,10 +33,9 @@ export function useMessagesReactions(messageIds: string[]) {
           .select('*')
           .in('message_id', messageIds);
 
+        if (cancelled) return;
         if (error) throw error;
 
-        // Correctly type the return data explicitly as MessageReaction[]
-        // to resolve any potential 'unknown' issues during reduce
         const rawData = (data || []) as MessageReaction[];
 
         const grouped = rawData.reduce(
@@ -48,13 +49,14 @@ export function useMessagesReactions(messageIds: string[]) {
 
         setReactionsMap(grouped);
       } catch (err) {
-        log.error('Error fetching reactions:', err);
+        if (!cancelled) log.error('Error fetching reactions:', err);
       } finally {
-        setIsLoading(false);
+        if (!cancelled) setIsLoading(false);
       }
     };
 
     void fetchReactions();
+    return () => { cancelled = true; };
   }, [memoizedIds]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return { reactionsMap, isLoading };

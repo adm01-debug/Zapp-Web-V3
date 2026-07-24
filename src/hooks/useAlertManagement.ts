@@ -136,6 +136,7 @@ export function useWarRoomAlertsManagement(soundEnabled = true): UseWarRoomAlert
       return (data || []) as WarRoomAlert[];
     },
     refetchInterval: 30000,
+    staleTime: 25_000,
   });
 
   const alertsRef = useRef(alerts);

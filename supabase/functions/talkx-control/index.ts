@@ -115,12 +115,16 @@ Deno.serve(async (req) => {
         Deno.env.get("SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY") ??
         Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 
+      // Service role key is the standard Supabase pattern for inter-function invocation.
+      // X-Internal-Call header lets talkx-send distinguish internal vs external callers.
+      const internalSecret = Deno.env.get("TALKX_INTERNAL_SECRET") ?? serviceKey.slice(-16);
       if (supabaseUrl && serviceKey) {
         const sendTask = fetch(`${supabaseUrl}/functions/v1/talkx-send`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${serviceKey}`,
+            "X-Internal-Call": internalSecret,
           },
           body: JSON.stringify({ campaignId, action: "start" }),
           signal: AbortSignal.timeout(5_000),

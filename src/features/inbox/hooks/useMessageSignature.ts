@@ -35,6 +35,7 @@ export function useMessageSignature() {
       }
     };
     fetchName();
+    // Intentionally runs once on mount — user identity does not change within a component lifetime.
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const toggleSignature = useCallback(() => {

@@ -48,8 +48,8 @@ export interface Connection {
   updated_at: string;
 }
 
-// WhatsApp connections base service — physical table is in `public`, so realtime must use `public` schema
-const whatsappBaseService = createService<WhatsAppConnection>('whatsapp_connections', { realtimeSchema: 'public' });
+// whatsapp_connections is a physical table in zapp schema; realtime subscription must use 'zapp'.
+const whatsappBaseService = createService<WhatsAppConnection>('whatsapp_connections', { realtimeSchema: 'zapp' });
 
 /** connections Repository constant. */
 export const connectionsRepository = {
