@@ -110,7 +110,7 @@ export async function mirrorExternalSignOut(): Promise<void> {
   if (!isExternalConfigured) return;
   // No-op enquanto external === main: o signOut do client principal já encerra
   // a única sessão existente. Um signOut extra aqui é redundante.
-  if (externalSupabase === supabase) return;
+  if ((externalSupabase as unknown) === (supabase as unknown)) return;
   try {
     await externalSupabase.auth.signOut();
   } catch (e) {
