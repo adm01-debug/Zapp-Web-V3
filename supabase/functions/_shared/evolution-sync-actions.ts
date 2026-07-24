@@ -214,7 +214,7 @@ export async function setupWebhook(
     }),
     signal: AbortSignal.timeout(10_000),
   });
-  const webhookData = await webhookResponse.json();
+  const webhookData = await webhookResponse.json().catch(() => ({}));
   return new Response(JSON.stringify({ success: webhookResponse.ok, webhook: webhookData }), {
     status: webhookResponse.ok ? 200 : 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });

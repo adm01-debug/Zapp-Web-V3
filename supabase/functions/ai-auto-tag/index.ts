@@ -48,7 +48,7 @@ Deno.serve(async (req) => {
       signal: AbortSignal.timeout(60_000),
     });
 
-    const responseBody = await forwardResponse.json();
+    const responseBody = await forwardResponse.json().catch(() => ({ error: `Upstream HTTP ${forwardResponse.status}` }));
     return new Response(JSON.stringify(responseBody), {
       status: forwardResponse.status,
       headers: {

@@ -48,7 +48,7 @@ Deno.serve(async (req: Request) => {
 
       try {
         const whRes = await fetch(`${evolutionUrl}/webhook/find/${conn.instance_id}`, { headers: { apikey: evolutionKey }, signal: AbortSignal.timeout(10000) });
-        const whData = await whRes.json();
+        const whData = await whRes.json().catch(() => ({}));
         const webhook = whData?.webhook || whData;
         const expectedUrl = `${supabaseUrl}/functions/v1/evolution-webhook`;
         const currentUrl = webhook?.url || webhook?.webhookUrl || '';
