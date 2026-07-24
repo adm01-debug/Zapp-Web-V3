@@ -47,11 +47,14 @@ const GMAIL_SCOPES = ['https://www.googleapis.com/auth/gmail.modify','https://ww
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: getCorsHeaders(req) });
   const jsonHeaders = { ...getCorsHeaders(req), 'Content-Type': 'application/json' };
-  const serviceRoleKey = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))!;
+  const serviceRoleKey = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')) ?? '';
   const supabase = createZappAdminClient();
-  const clientId = Deno.env.get('GOOGLE_CLIENT_ID')!;
-  const clientSecret = Deno.env.get('GOOGLE_CLIENT_SECRET')!;
+  const clientId = Deno.env.get('GOOGLE_CLIENT_ID') ?? '';
+  const clientSecret = Deno.env.get('GOOGLE_CLIENT_SECRET') ?? '';
   const redirectUri = Deno.env.get('GMAIL_REDIRECT_URI') ?? `${(Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'))}/functions/v1/gmail-oauth`;
+  if (!serviceRoleKey || !clientId || !clientSecret) {
+    return new Response(JSON.stringify({ error: 'Gmail OAuth not configured — set GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, and SUPABASE_SERVICE_ROLE_KEY in secrets.' }), { status: 503, headers: jsonHeaders });
+  }
   try {
     // OAuth callback from Google \u2014 no auth header present, handled before auth check
     const url = new URL(req.url);
