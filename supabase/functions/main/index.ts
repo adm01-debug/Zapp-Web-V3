@@ -36,7 +36,7 @@ async function verifyJWT(jwt: string): Promise<boolean> {
   return true
 }
 
-serve(async (req: Request) => {
+Deno.serve(async (req: Request) => {
   if (req.method !== 'OPTIONS' && VERIFY_JWT) {
     try {
       const token = getAuthToken(req)

@@ -61,7 +61,7 @@ async function fetchOwnerJid(baseUrl: string, key: string, instanceName: string,
 
 async function fetchLastActivityAt(externalUrl: string, externalKey: string, instanceName: string, log: Logger): Promise<Date | null> {
   try {
-    const ext = createClient(externalUrl, externalKey, { db: { schema: 'zapp' } });
+    const ext = createClient(externalUrl, externalKey, { db: { schema: 'zapp' }, auth: { persistSession: false, autoRefreshToken: false } });
     const TIMEOUT_MS = 8000;
     const queryPromise = ext
       .from('evolution_messages')

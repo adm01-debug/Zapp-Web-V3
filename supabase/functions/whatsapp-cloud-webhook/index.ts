@@ -38,7 +38,7 @@ const STRICT_MODE =
 const EXTERNAL_URL = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('EXTERNAL_SUPABASE_URL')) ?? "";
 const EXTERNAL_KEY = (Deno.env.get('SELFHOSTED_SUPABASE_ANON_KEY') ?? Deno.env.get('EXTERNAL_SUPABASE_ANON_KEY')) ?? "";
 const externalClient =
-  EXTERNAL_URL && EXTERNAL_KEY ? createClient(EXTERNAL_URL, EXTERNAL_KEY, { db: { schema: 'zapp' } }) : null;
+  EXTERNAL_URL && EXTERNAL_KEY ? createClient(EXTERNAL_URL, EXTERNAL_KEY, { db: { schema: 'zapp' }, auth: { persistSession: false, autoRefreshToken: false } }) : null;
 const localClient = createZappAdminClient();
 
 // Eventos do payload Meta que conhecemos. Qualquer field fora desta lista é

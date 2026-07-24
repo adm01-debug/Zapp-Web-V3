@@ -92,9 +92,11 @@ Deno.serve(async (req) => {
       // Verify HMAC-signed state \u2014 prevents Account Binding CSRF
       if (!state || !await verifyOAuthState(state, authenticatedUserId, serviceRoleKey)) return new Response(JSON.stringify({ error: 'Invalid or missing OAuth state' }), { status: 403, headers: jsonHeaders });
       const tokenRes = await fetch(GOOGLE_TOKEN_URL, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ code, client_id: clientId, client_secret: clientSecret, redirect_uri: redirectUri, grant_type: 'authorization_code' }), signal: AbortSignal.timeout(10_000) });
+      if (!tokenRes.ok) return new Response(JSON.stringify({ error: `Google token exchange failed: ${tokenRes.status}` }), { status: 502, headers: jsonHeaders });
       const tokens = await tokenRes.json();
       if (tokens.error) return new Response(JSON.stringify({ error: tokens.error_description ?? tokens.error }), { status: 400, headers: jsonHeaders });
       const profileRes = await fetch(GOOGLE_USERINFO, { headers: { Authorization: `Bearer ${tokens.access_token}` }, signal: AbortSignal.timeout(10_000) });
+      if (!profileRes.ok) return new Response(JSON.stringify({ error: `Google userinfo failed: ${profileRes.status}` }), { status: 502, headers: jsonHeaders });
       const profile = await profileRes.json();
       const expiresAt = new Date(Date.now() + (tokens.expires_in ?? 3600) * 1000).toISOString();
       const { data: account, error: upsertErr } = await supabase.from('gmail_accounts').upsert({ user_id: authenticatedUserId, email: profile.email, display_name: profile.name, picture_url: profile.picture, access_token: tokens.access_token, refresh_token: tokens.refresh_token, token_expiry: expiresAt, scope: tokens.scope, is_active: true }, { onConflict: 'user_id,email' }).select('id, email').single();
@@ -109,6 +111,7 @@ Deno.serve(async (req) => {
       // Verify caller owns this account
       if (account.user_id !== authenticatedUserId) return new Response(JSON.stringify({ error: 'Forbidden' }), { status: 403, headers: jsonHeaders });
       const tokenRes = await fetch(GOOGLE_TOKEN_URL, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ refresh_token: account.refresh_token, client_id: clientId, client_secret: clientSecret, grant_type: 'refresh_token' }), signal: AbortSignal.timeout(10_000) });
+      if (!tokenRes.ok && tokenRes.status !== 400) return new Response(JSON.stringify({ error: `Google token refresh failed: ${tokenRes.status}` }), { status: 502, headers: jsonHeaders });
       const tokens = await tokenRes.json();
       if (tokens.error) { await supabase.from('gmail_accounts').update({ is_active: false }).eq('id', accountId); return new Response(JSON.stringify({ error: 'refresh_token inv\u00e1lido \u2014 reconecte a conta' }), { status: 401, headers: jsonHeaders }); }
       const expiresAt = new Date(Date.now() + (tokens.expires_in ?? 3600) * 1000).toISOString();

@@ -539,6 +539,8 @@ export async function authorizeRoles(
 
   const supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
     global: { headers: { Authorization: authHeader } },
+    db: { schema: 'zapp' },
+    auth: { persistSession: false, autoRefreshToken: false },
   });
 
   const { data: { user }, error: authError } = await supabaseClient.auth.getUser();

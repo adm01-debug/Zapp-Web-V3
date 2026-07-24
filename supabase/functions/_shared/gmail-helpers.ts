@@ -101,6 +101,10 @@ export async function refreshAccessToken(
       }),
       signal: AbortSignal.timeout(10_000),
     });
+    if (!res.ok) {
+      console.warn(`[gmail-helpers] refreshAccessToken HTTP ${res.status} from Google`);
+      return null;
+    }
     tokens = await res.json();
   } catch (err) {
     console.warn('[gmail-helpers] refreshAccessToken network/parse error', err instanceof Error ? err.message : String(err));
