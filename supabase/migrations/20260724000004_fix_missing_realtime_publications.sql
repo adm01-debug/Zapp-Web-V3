@@ -1,16 +1,13 @@
 -- Fix missing supabase_realtime publications.
 --
--- Context: All of these are physical tables in `public` schema (or `email_app`).
--- They were NEVER moved to the `zapp` schema by the 20260716_fix_public_to_zapp_schema.sql
--- migration (which only moved security/infrastructure tables). Frontend hooks were
--- incorrectly written with schema: 'zapp', making every subscription a silent no-op.
--- Both the frontend code AND the publication entries are fixed together.
---
--- Physical schema verified by absence from 20260716_fix_public_to_zapp_schema.sql
--- (which is the only migration that ran ALTER TABLE ... SET SCHEMA zapp).
+-- Context: Physical tables that need to be in supabase_realtime.
+-- team_messages: moved to zapp by migration 000005 (was public); included here via 000005.
+-- team_conversations + team_conversation_members: physical tables in zapp (public.* are VIEWs).
+-- Other tables: physical in public or email_app schemas.
 --
 -- Idempotent: each entry guarded by pg_publication_tables check.
 -- Per-iteration EXCEPTION block: a single failure does not abort the rest.
+-- VIEWs are NOT included here — ALTER PUBLICATION ADD TABLE <view> fails in PostgreSQL.
 
 DO $$
 DECLARE
@@ -19,9 +16,8 @@ DECLARE
   table_name  text;
 BEGIN
   FOR tbl IN SELECT unnest(ARRAY[
-    'public.team_messages',               -- useTeamConversations.ts:130
-    'public.team_conversations',          -- useTeamConversations.ts:134
-    'public.team_conversation_members',   -- useTeamConversations.ts:139
+    'zapp.team_conversations',            -- useTeamConversations.ts: physical table in zapp
+    'zapp.team_conversation_members',     -- useTeamConversations.ts: physical table in zapp
     'public.talkx_campaigns',             -- TalkXView.tsx:93
     'public.sales_deals',             -- useBusinessLogicManagement.ts:452
     'public.automation_executions',   -- useAutomationLogs.ts, useAutomationSuggestions.ts, useAutomationManagement.ts
