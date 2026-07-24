@@ -62,10 +62,13 @@ async function saveAnalysis(remoteJid: string, msgId: string | null, text: strin
   }).select().maybeSingle();
   if (error) throw error;
   if (data && sV === "negative" && ["high","critical"].includes(uV)) {
-    const { error: alertErr } = await supabase.from("evolution_sentiment_alerts").insert({
-      sentiment_id: data.id, contact_id: c?.id, conversation_id: cv?.id,
-      alert_type: uV === "critical" ? "escalation_needed" : "negative_sentiment",
-      severity: uV, message_preview: text.substring(0, 200), acknowledged: false, resolved: false
+    const alertLevel = uV === "critical" ? "high" : uV as "low" | "medium" | "high";
+    const { error: alertErr } = await supabase.from("sentiment_alerts").insert({
+      contact_id: c?.id,
+      message_id: msgId,
+      sentiment_score: typeof a.score === "number" ? a.score : 0,
+      alert_level: alertLevel,
+      acknowledged: false,
     });
     if (alertErr) console.error("[saveAnalysis] alert insert error:", alertErr.message);
   }
