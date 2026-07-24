@@ -31,6 +31,14 @@ const _emailRpc = supabase.rpc as any;
 // requires a string-literal table name from the generated types.
 type DynamicSupabaseClient = { from(t: string): ReturnType<typeof supabase.from> };
 
+let _emailAppClient: DynamicSupabaseClient | undefined;
+function getEmailAppClient(): DynamicSupabaseClient {
+  if (!_emailAppClient) {
+    _emailAppClient = supabase.schema('email_app') as unknown as DynamicSupabaseClient;
+  }
+  return _emailAppClient;
+}
+
 const MAX_FAILURES = 20;
 const CACHE_TTL = 5 * 60 * 1000;
 const CACHE_MAX_SIZE = 100;
@@ -42,6 +50,7 @@ const telemetry: ClientTelemetry = {
 };
 
 const resourceCache = new Map<string, { exists: boolean; expires: number }>();
+const _validationInFlight = new Map<string, Promise<boolean>>();
 let _healthLogInProgress = false;
 
 function pruneResourceCache(): void {
@@ -84,9 +93,8 @@ export const safeClient = {
           return { data: [] as T[], error: new Error(`Tabela ${table} não disponível`), requestId };
         }
       }
-      const { data, error } = await queryBuilder(
-        supabase.from(table as Parameters<typeof supabase.from>[0])
-      );
+      const client = table.startsWith('email_') ? getEmailAppClient() : (supabase as unknown as DynamicSupabaseClient);
+      const { data, error } = await queryBuilder(client.from(table));
       if (error) {
         this.log(requestId, 'error', `Erro na query from ${table}`, error);
         await this.recordFailure(
@@ -135,9 +143,8 @@ export const safeClient = {
           return { data: null, error: new Error(`Tabela ${table} não disponível`), requestId };
         }
       }
-      const { data, error } = await queryBuilder(
-        supabase.from(table as Parameters<typeof supabase.from>[0])
-      ).single();
+      const client = table.startsWith('email_') ? getEmailAppClient() : (supabase as unknown as DynamicSupabaseClient);
+      const { data, error } = await queryBuilder(client.from(table)).single();
       if (error) {
         this.log(requestId, 'error', `Erro single query ${table}`, error);
         await this.recordFailure(
@@ -210,59 +217,70 @@ export const safeClient = {
       resourceCache.delete(cacheKey);
     }
 
-    telemetry.lastValidation = new Date();
-    try {
-      let exists = false;
-      if (type === 'table') {
-        const { error } = await supabase
-          .from(name as Parameters<typeof supabase.from>[0])
-          .select('count', { count: 'exact', head: true })
-          .limit(0);
-        if (!error) {
-          exists = true;
-        } else {
-          const msg = ((error as { message?: string }).message ?? "").toLowerCase();
-          const isPermissionError =
-            msg.includes('permission denied') ||
-            msg.includes('42501') ||
-            msg.includes('jwt') ||
-            msg.includes('unauthorized') ||
-            msg.includes('invalid api key') ||
-            msg.includes('row-level security');
-          const isNotFound =
-            msg.includes('does not exist') ||
-            msg.includes('not found') ||
-            msg.includes('42p01') ||
-            msg.includes('relation');
-          exists = isPermissionError || !isNotFound;
-        }
-      } else {
-        const { error } = await (
-          supabase.rpc(name as Parameters<typeof supabase.rpc>[0]) as unknown as {
-            limit: (n: number) => Promise<{ error: unknown }>;
+    const inFlight = _validationInFlight.get(cacheKey);
+    if (inFlight) return inFlight;
+
+    const promise = (async (): Promise<boolean> => {
+      telemetry.lastValidation = new Date();
+      try {
+        let exists = false;
+        if (type === 'table') {
+          const client = name.startsWith('email_') ? getEmailAppClient() : (supabase as unknown as DynamicSupabaseClient);
+          const { error } = await client
+            .from(name)
+            .select('count', { count: 'exact', head: true })
+            .limit(0);
+          if (!error) {
+            exists = true;
+          } else {
+            const msg = ((error as { message?: string }).message ?? "").toLowerCase();
+            const isPermissionError =
+              msg.includes('permission denied') ||
+              msg.includes('42501') ||
+              msg.includes('jwt') ||
+              msg.includes('unauthorized') ||
+              msg.includes('invalid api key') ||
+              msg.includes('row-level security');
+            const isNotFound =
+              msg.includes('does not exist') ||
+              msg.includes('not found') ||
+              msg.includes('42p01') ||
+              msg.includes('relation');
+            exists = isPermissionError || !isNotFound;
           }
-        ).limit(0); // ignore-audit — .limit() not on RPC return type in generated types
-        if (!error) {
-          exists = true;
         } else {
-          const msg = ((error as { message?: string }).message ?? "").toLowerCase();
-          const isPermissionError =
-            msg.includes('permission denied') ||
-            msg.includes('42501') ||
-            msg.includes('jwt') ||
-            msg.includes('unauthorized') ||
-            msg.includes('invalid api key');
-          const isNotFound =
-            msg.includes('does not exist') || msg.includes('not found') || msg.includes('42883');
-          exists = isPermissionError || !isNotFound;
+          const { error } = await (
+            supabase.rpc(name as Parameters<typeof supabase.rpc>[0]) as unknown as {
+              limit: (n: number) => Promise<{ error: unknown }>;
+            }
+          ).limit(0); // ignore-audit — .limit() not on RPC return type in generated types
+          if (!error) {
+            exists = true;
+          } else {
+            const msg = ((error as { message?: string }).message ?? "").toLowerCase();
+            const isPermissionError =
+              msg.includes('permission denied') ||
+              msg.includes('42501') ||
+              msg.includes('jwt') ||
+              msg.includes('unauthorized') ||
+              msg.includes('invalid api key');
+            const isNotFound =
+              msg.includes('does not exist') || msg.includes('not found') || msg.includes('42883');
+            exists = isPermissionError || !isNotFound;
+          }
         }
+        resourceCache.set(cacheKey, { exists, expires: Date.now() + CACHE_TTL });
+        if (resourceCache.size > CACHE_MAX_SIZE) pruneResourceCache();
+        return exists;
+      } catch {
+        return false;
+      } finally {
+        _validationInFlight.delete(cacheKey);
       }
-      resourceCache.set(cacheKey, { exists, expires: Date.now() + CACHE_TTL });
-      if (resourceCache.size > CACHE_MAX_SIZE) pruneResourceCache();
-      return exists;
-    } catch {
-      return false;
-    }
+    })();
+
+    _validationInFlight.set(cacheKey, promise);
+    return promise;
   },
 
   // Uses supabase.rpc() directly — NOT this.rpc() — to avoid recordFailure() recursion.

@@ -374,6 +374,8 @@ export function useExternalConversations(enabled = true) {
     enabled,
     refetchInterval: POLL_INTERVAL,
     staleTime: POLL_INTERVAL - 1000,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   });
 
   return {
