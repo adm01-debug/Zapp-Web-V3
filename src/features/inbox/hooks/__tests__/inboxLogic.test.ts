@@ -10,8 +10,9 @@ const mockHasPermission = vi.hoisted(() => vi.fn());
 vi.mock('@/features/auth', () => ({
   usePermissions: () => ({
     hasPermission: mockHasPermission,
-    userPermissions: [],
     loading: false,
+    permissions: [],
+    userPermissions: [],
   }),
 }));
 
