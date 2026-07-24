@@ -116,12 +116,15 @@ export async function refreshAccessToken(
   }
 
   if (tokens.error) {
-    // refresh_token inválido ou revogado → desativar conta
-    console.warn(`[gmail-helpers] refresh_token inválido para ${accountId}: ${tokens.error}`);
-    await supabase
-      .from('gmail_accounts')
-      .update({ is_active: false })
-      .eq('id', accountId);
+    const PERMANENT_ERRORS = ['invalid_grant', 'token_revoked'];
+    const isPermanent = typeof tokens.error === 'string' && PERMANENT_ERRORS.includes(tokens.error);
+    console.warn(`[gmail-helpers] refresh_token error para ${accountId}: ${tokens.error} (permanent=${isPermanent})`);
+    if (isPermanent) {
+      await supabase
+        .from('gmail_accounts')
+        .update({ is_active: false })
+        .eq('id', accountId);
+    }
     return null;
   }
 

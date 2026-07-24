@@ -26,7 +26,19 @@ Deno.serve(async (req) => {
       signal: AbortSignal.timeout(60_000),
     });
 
-    const responseBody = await res.json();
+    let responseBody: unknown;
+    try {
+      responseBody = await res.json();
+    } catch {
+      const text = await res.text().catch(() => "");
+      return new Response(
+        JSON.stringify({ error: `Upstream error: HTTP ${res.status}`, detail: text.slice(0, 200) }),
+        {
+          status: res.ok ? 502 : res.status,
+          headers: { ...getCorsHeaders(req), "content-type": "application/json" },
+        }
+      );
+    }
     return new Response(JSON.stringify(responseBody), {
       status: res.status,
       headers: { ...getCorsHeaders(req), "content-type": "application/json" },

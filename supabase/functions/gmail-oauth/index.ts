@@ -116,7 +116,13 @@ Deno.serve(async (req) => {
       const tokenRes = await fetch(GOOGLE_TOKEN_URL, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ refresh_token: account.refresh_token, client_id: clientId, client_secret: clientSecret, grant_type: 'refresh_token' }), signal: AbortSignal.timeout(10_000) });
       if (!tokenRes.ok && tokenRes.status !== 400) return new Response(JSON.stringify({ error: `Google token refresh failed: ${tokenRes.status}` }), { status: 502, headers: jsonHeaders });
       const tokens = await tokenRes.json();
-      if (tokens.error) { await supabase.from('gmail_accounts').update({ is_active: false }).eq('id', accountId); return new Response(JSON.stringify({ error: 'refresh_token inv\u00e1lido \u2014 reconecte a conta' }), { status: 401, headers: jsonHeaders }); }
+      if (tokens.error) {
+        const PERMANENT_ERRORS = ['invalid_grant', 'token_revoked'];
+        const isPermanent = typeof tokens.error === 'string' && PERMANENT_ERRORS.includes(tokens.error);
+        if (isPermanent) await supabase.from('gmail_accounts').update({ is_active: false }).eq('id', accountId);
+        const msg = isPermanent ? 'refresh_token inv\u00e1lido \u2014 reconecte a conta' : `Google token error: ${tokens.error}`;
+        return new Response(JSON.stringify({ error: msg }), { status: isPermanent ? 401 : 502, headers: jsonHeaders });
+      }
       const expiresAt = new Date(Date.now() + (tokens.expires_in ?? 3600) * 1000).toISOString();
       await supabase.from('gmail_accounts').update({ access_token: tokens.access_token, token_expiry: expiresAt, ...(tokens.refresh_token ? { refresh_token: tokens.refresh_token } : {}) }).eq('id', accountId);
       return new Response(JSON.stringify({ access_token: tokens.access_token, token_expiry: expiresAt }), { headers: jsonHeaders });
