@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { dbFrom } from '@/integrations/datasource/db';
+import { isValidUUID } from '@/utils/uuid';
 
 /** Hook: Connection Status. */
 export interface ConnectionStatus {
@@ -120,7 +121,9 @@ async function fetchMessageDiagnostics(): Promise<MessageDiagnostic> {
   const recentFailures = [];
   if (failures) {
     // Batch-fetch all contact names in a single query instead of one per failure.
-    const contactIds = failures.map((f) => f.contact_id).filter(Boolean) as string[];
+    const contactIds = (failures.map((f) => f.contact_id).filter(Boolean) as string[]).filter(
+      isValidUUID
+    );
     const contactNameMap = new Map<string, string>();
     if (contactIds.length > 0) {
       const { data: contacts } = await supabase

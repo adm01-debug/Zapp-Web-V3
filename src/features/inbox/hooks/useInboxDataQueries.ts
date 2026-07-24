@@ -3,6 +3,7 @@ import { queryKeys } from '@/services/api/queryKeys';
 import { supabase } from '@/integrations/supabase/client';
 import { ConversationWithMessages } from '@/features/inbox';
 import { getLogger } from '@/lib/logger';
+import { isValidUUID } from '@/utils/uuid';
 
 const log = getLogger('useInboxDataQueries');
 
@@ -11,7 +12,8 @@ export function useInboxDataQueries(conversations: ConversationWithMessages[]) {
   const { data: customScopes = [] } = useQuery({
     queryKey: queryKeys.contactDetails.inboxScopes(),
     queryFn: async () => {
-      const { data, error } = await supabase.from('inbox_custom_scopes')
+      const { data, error } = await supabase
+        .from('inbox_custom_scopes')
         .select('id, name')
         .eq('is_active', true);
       if (error) throw error;
@@ -33,10 +35,14 @@ export function useInboxDataQueries(conversations: ConversationWithMessages[]) {
       const contactIds = Array.from(conversationContactIds);
       const map: Record<string, string[]> = {};
 
+      const validContactIds = contactIds.filter(isValidUUID);
+      if (validContactIds.length === 0) return {};
+
       const CHUNK_SIZE = 500;
-      for (let i = 0; i < contactIds.length; i += CHUNK_SIZE) {
-        const chunk = contactIds.slice(i, i + CHUNK_SIZE);
-        const { data, error } = await supabase.from('contact_tags')
+      for (let i = 0; i < validContactIds.length; i += CHUNK_SIZE) {
+        const chunk = validContactIds.slice(i, i + CHUNK_SIZE);
+        const { data, error } = await supabase
+          .from('contact_tags')
           .select('contact_id, tag_id')
           .in('contact_id', chunk);
 

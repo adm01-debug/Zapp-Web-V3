@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { useUndoableAction } from '@/hooks/useUndoableAction';
 import { ConversationWithMessages } from '@/features/inbox';
 import { dbFrom } from '@/integrations/datasource/db';
+import { isValidUUID } from '@/utils/uuid';
 
 interface UseInboxBulkActionsProps {
   refetch: () => void;
@@ -53,7 +54,11 @@ export function useInboxBulkActions({ refetch, filteredConversations }: UseInbox
     if (selectedIds.size === 0) return;
     setBulkLoading(true);
     try {
-      const contactIds = Array.from(selectedIds);
+      const contactIds = Array.from(selectedIds).filter(isValidUUID);
+      if (contactIds.length === 0) {
+        setBulkLoading(false);
+        return;
+      }
       const { error } = await dbFrom('messages')
         .update({ is_read: true })
         .in('contact_id', contactIds)
@@ -74,7 +79,8 @@ export function useInboxBulkActions({ refetch, filteredConversations }: UseInbox
       if (selectedIds.size === 0) return;
       setBulkLoading(true);
       try {
-        const contactIds = Array.from(selectedIds);
+        const contactIds = Array.from(selectedIds).filter(isValidUUID);
+        if (contactIds.length === 0) return;
         const updateData: { assigned_to?: string; queue_id?: string } = {};
         if (type === 'agent') {
           updateData.assigned_to = targetId;
@@ -98,7 +104,11 @@ export function useInboxBulkActions({ refetch, filteredConversations }: UseInbox
   const bulkArchive = useCallback(async () => {
     if (selectedIds.size === 0) return;
     setBulkLoading(true);
-    const contactIds = Array.from(selectedIds);
+    const contactIds = Array.from(selectedIds).filter(isValidUUID);
+    if (contactIds.length === 0) {
+      setBulkLoading(false);
+      return;
+    }
 
     const { data: originalContacts } = await supabase
       .from('contacts')
