@@ -24,7 +24,7 @@ const log = getLogger('AvatarBatchStore');
 const BATCH_WINDOW_MS = 100;
 const CACHE_TTL_MS = 1000 * 60 * 30; // 30 minutos
 const NEGATIVE_TTL_MS = 1000 * 60 * 5; // null persiste por 5 min (não 30) para
-                                        // dar chance ao backend popular a foto.
+// dar chance ao backend popular a foto.
 const BC_NAME = 'avatar-updates';
 const RPC_NAME = 'get_avatars_by_jids_batch';
 
@@ -79,15 +79,23 @@ async function fetchAvatarBatch(jids: string[]): Promise<Record<string, string |
     if (client) {
       try {
         // RPC exists in external self-hosted DB, not in local generated types
-        const rpc = client.rpc as unknown as (name: string, params: Record<string, unknown>) => Promise<{ data: unknown; error: { message: string } | null }>;
+        const rpc = client.rpc as unknown as (
+          name: string,
+          params: Record<string, unknown>
+        ) => Promise<{ data: unknown; error: { message: string; code?: string } | null }>;
         const { data, error } = await rpc(RPC_NAME, { p_jids: jids });
         if (error) {
-          log.warn('Direct RPC failed, falling back to proxy', { error: error.message });
+          const isMissing = error.code === '42883' || error.message?.includes('does not exist');
+          if (isMissing) {
+            log.debug('Avatar batch RPC not available, using fallback avatars');
+          } else {
+            log.warn('Direct RPC failed, falling back to proxy', { error: error.message });
+          }
         } else {
           return (data ?? {}) as Record<string, string | null>;
         }
       } catch (err) {
-        log.warn('Direct RPC threw, falling back to proxy', {
+        log.debug('Direct RPC unavailable, falling back to proxy', {
           error: err instanceof Error ? err.message : String(err),
         });
       }
@@ -104,13 +112,19 @@ async function fetchAvatarBatch(jids: string[]): Promise<Record<string, string |
       params: { p_jids: jids },
     });
     if (result.error) {
-      log.error('Proxy RPC error', { error: result.error });
+      const errStr = typeof result.error === 'string' ? result.error : JSON.stringify(result.error);
+      const isMissing = errStr.includes('42883') || errStr.includes('does not exist');
+      if (isMissing) {
+        log.debug('Avatar batch RPC not available via proxy, using fallback avatars');
+      } else {
+        log.error('Proxy RPC error', { error: result.error });
+      }
       return {};
     }
     const first = Array.isArray(result.data) ? result.data[0] : result.data;
     return (first ?? {}) as Record<string, string | null>;
   } catch (err) {
-    log.error('Proxy RPC threw', {
+    log.debug('Proxy RPC unavailable for avatars', {
       error: err instanceof Error ? err.message : String(err),
     });
     return {};

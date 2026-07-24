@@ -249,7 +249,7 @@ export const createService = <T = any>(tableName: string, options?: ServiceOptio
      */
     subscribe(callback: (data: T) => void, _filter?: Partial<T>) {
       const channel = supabase
-        .channel(`${tableName}-changes`)
+        .channel(`${tableName}-changes:${Math.random().toString(36).slice(2, 10)}`)
         .on(
           'postgres_changes',
           {

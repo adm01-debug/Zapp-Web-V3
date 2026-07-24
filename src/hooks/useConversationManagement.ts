@@ -10,6 +10,7 @@ import { RPC } from '@/integrations/datasource/rpcCatalog';
 import { toast } from 'sonner';
 import { log } from '@/lib/logger';
 import { addHours, startOfTomorrow, startOfDay, addDays, setHours } from 'date-fns';
+import { isValidUUID } from '@/utils/uuid';
 
 /* ============================================================================
    SECTION 1: useConversationActions - Pin, favorite, snooze management
@@ -82,7 +83,6 @@ export function useConversationActions() {
     if (data && mountedRef.current) setSnoozedIds(new Set(data.map((s) => s.contact_id)));
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-
   useEffect(() => {
     loadProfile();
   }, [loadProfile]);
@@ -97,7 +97,7 @@ export function useConversationActions() {
 
   const pinConversation = useCallback(
     async (contactId: string) => {
-      if (!profileId) return;
+      if (!profileId || !isValidUUID(contactId)) return;
       const { error } = await supabase
         .from('pinned_conversations')
         .insert({ contact_id: contactId, pinned_by: profileId, position: 0 });
@@ -113,7 +113,7 @@ export function useConversationActions() {
 
   const unpinConversation = useCallback(
     async (contactId: string) => {
-      if (!profileId) return;
+      if (!profileId || !isValidUUID(contactId)) return;
       const { error } = await supabase
         .from('pinned_conversations')
         .delete()
@@ -134,6 +134,7 @@ export function useConversationActions() {
   );
 
   const favoriteContact = useCallback(async (contactId: string) => {
+    if (!isValidUUID(contactId)) return;
     const {
       data: { user },
     } = await supabase.auth.getUser();
@@ -150,6 +151,7 @@ export function useConversationActions() {
   }, []);
 
   const unfavoriteContact = useCallback(async (contactId: string) => {
+    if (!isValidUUID(contactId)) return;
     const {
       data: { user },
     } = await supabase.auth.getUser();
@@ -277,13 +279,12 @@ export function useConversationAnalyses(contactId: string | null) {
       if (error) throw error;
       return (data || []) as ConversationAnalysis[];
     },
-    enabled: !!contactId,
+    enabled: !!contactId && isValidUUID(contactId),
     staleTime: 30_000,
   });
 
-  const error = queryError instanceof Error
-    ? queryError.message
-    : queryError ? String(queryError) : null;
+  const error =
+    queryError instanceof Error ? queryError.message : queryError ? String(queryError) : null;
 
   const saveAnalysis = async (
     analysis: Omit<ConversationAnalysis, 'id' | 'created_at' | 'analyzed_by'>
@@ -370,10 +371,7 @@ export interface SLAAttribution {
 
 /** First Response Attribution Source type alias. */
 export type FirstResponseAttributionSource =
-  | 'assign-event'
-  | 'pre-contact-assign'
-  | 'insufficient-events'
-  | 'not-applicable';
+  'assign-event' | 'pre-contact-assign' | 'insufficient-events' | 'not-applicable';
 
 /** S L A Timeline Data interface definition. */
 export interface SLATimelineData {
@@ -481,7 +479,7 @@ export function useConversationSLATimeline(remoteJid: string | null, contactId: 
         ? 'insufficient-events'
         : 'not-applicable';
 
-      if (contactId) {
+      if (contactId && isValidUUID(contactId)) {
         const { data: events } = await safeClient.from<ConversationEventRow>(
           'conversation_events',
           (q) =>

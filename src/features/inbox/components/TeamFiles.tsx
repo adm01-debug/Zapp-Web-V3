@@ -2,6 +2,7 @@ import { memo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
+import { isValidUUID } from '@/utils/uuid';
 import {
   File,
   Download,
@@ -48,7 +49,7 @@ export const TeamFiles = memo(function TeamFiles({ contactId }: TeamFilesProps) 
 
   const { data: files = [], isLoading } = useQuery({
     queryKey: ['team-files', contactId],
-    enabled: !!contactId,
+    enabled: !!contactId && isValidUUID(contactId),
     staleTime: 60_000,
     queryFn: async () => {
       const { data, error } = await safeClient.from<WhisperFile>('whisper_files', (q) =>
@@ -62,6 +63,7 @@ export const TeamFiles = memo(function TeamFiles({ contactId }: TeamFilesProps) 
 
   const uploadMutation = useMutation({
     mutationFn: async (file: File) => {
+      if (!isValidUUID(contactId)) throw new Error('Invalid contact ID');
       setIsUploading(true);
       const fileExt = file.name.split('.').pop();
       const filePath = `team-files/${contactId}/${Math.random()}.${fileExt}`;
@@ -243,7 +245,8 @@ export const TeamFiles = memo(function TeamFiles({ contactId }: TeamFilesProps) 
                 {file.file_type?.startsWith('image/') && (
                   <Dialog>
                     <DialogTrigger asChild>
-                      <Button aria-label="Visualizar imagem"
+                      <Button
+                        aria-label="Visualizar imagem"
                         variant="ghost"
                         size="icon"
                         className="h-7 w-7 text-warning-foreground hover:bg-warning"
@@ -300,7 +303,8 @@ export const TeamFiles = memo(function TeamFiles({ contactId }: TeamFilesProps) 
                     <Download className="h-3.5 w-3.5" />
                   </a>
                 </Button>
-                <Button aria-label="Excluir arquivo"
+                <Button
+                  aria-label="Excluir arquivo"
                   variant="ghost"
                   size="icon"
                   className="h-7 w-7 text-destructive hover:bg-destructive/10"

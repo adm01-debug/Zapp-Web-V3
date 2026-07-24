@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 interface QueueMemberProfile {
@@ -42,6 +42,7 @@ export function useQueues() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const [queues, setQueues] = useState<QueueWithMembers[]>([]);
+  const channelName = useRef(`queues-realtime:${Math.random().toString(36).slice(2, 10)}`);
 
   useEffect(() => {
     let cancelled = false;
@@ -52,7 +53,9 @@ export function useQueues() {
       try {
         const [queuesRes, membersRes, positionsRes] = await Promise.all([
           supabase.from('queues').select('*').order('priority'),
-          supabase.from('queue_members').select('*, profile:profiles(id, name, avatar_url, is_active)'),
+          supabase
+            .from('queue_members')
+            .select('*, profile:profiles(id, name, avatar_url, is_active)'),
           supabase.from('queue_positions').select('queue_id'),
         ]);
 
@@ -88,7 +91,7 @@ export function useQueues() {
     fetchQueues();
 
     const channel = supabase
-      .channel('queues-realtime')
+      .channel(channelName.current)
       .on('postgres_changes', { event: '*', schema: 'zapp', table: 'queues' }, fetchQueues)
       .on('postgres_changes', { event: '*', schema: 'zapp', table: 'queue_members' }, fetchQueues)
       .on('postgres_changes', { event: '*', schema: 'zapp', table: 'queue_positions' }, fetchQueues)

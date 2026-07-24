@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useMountedRef } from '@/hooks/useMountedRef';
 import { getLogger } from '@/lib/logger';
 import { supabase } from '@/integrations/supabase/client';
+import { isValidUUID } from '@/utils/uuid';
 
 const log = getLogger('NextBestActionEngine');
 import { Badge } from '@/components/ui/badge';
@@ -43,6 +44,10 @@ export function NextBestActionEngine({ contactId, contactName }: NextBestActionP
 
     const run = async () => {
       setLoading(true);
+      if (!isValidUUID(contactId)) {
+        setLoading(false);
+        return;
+      }
       const suggestedActions: NextAction[] = [];
       try {
         const { data: lastMsg } = await supabase

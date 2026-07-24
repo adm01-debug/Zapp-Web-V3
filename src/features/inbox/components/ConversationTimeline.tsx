@@ -3,6 +3,7 @@ import { queryKeys } from '@/services/api/queryKeys';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { conversationEventRowSchema, safeParseEvent } from '@/shared/webhookEventSchemas';
 import { getLogger } from '@/lib/logger';
+import { isValidUUID } from '@/utils/uuid';
 
 const log = getLogger('ConversationTimeline');
 
@@ -61,7 +62,7 @@ const EVENT_CONFIG: Record<string, { icon: typeof ArrowRight; label: string; col
 export function ConversationTimeline({ contactId }: { contactId: string }) {
   const { data: events = [], isLoading } = useQuery({
     queryKey: queryKeys.adminOps.conversationTimeline(contactId),
-    enabled: !!contactId,
+    enabled: !!contactId && isValidUUID(contactId),
     queryFn: async () => {
       const { data, error } = await safeClient.from<TimelineEvent>('conversation_events', (q) =>
         q

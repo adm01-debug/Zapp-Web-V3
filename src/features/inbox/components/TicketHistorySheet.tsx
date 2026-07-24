@@ -13,6 +13,7 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { queryKeys } from '@/services/api/queryKeys';
+import { isValidUUID } from '@/utils/uuid';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
@@ -187,9 +188,9 @@ export function TicketHistorySheet({ contactId, open, onOpenChange }: TicketHist
 
   const { data: remote = [], isLoading: loadingRemote } = useQuery<RemoteEvent[]>({
     queryKey: queryKeys.conversationHistory.events(contactId),
-    enabled: open && !!contactId,
+    enabled: open && !!contactId && isValidUUID(contactId),
     queryFn: async () => {
-      if (!contactId) return [];
+      if (!contactId || !isValidUUID(contactId)) return [];
       const { data, error } = await supabase
         .from('conversation_events')
         .select('*')
@@ -213,9 +214,9 @@ export function TicketHistorySheet({ contactId, open, onOpenChange }: TicketHist
 
   const { data: auditLogs = [], isLoading: loadingAudit } = useQuery<AuditLogRow[]>({
     queryKey: queryKeys.conversationHistory.auditLogs(contactId),
-    enabled: open && !!contactId,
+    enabled: open && !!contactId && isValidUUID(contactId),
     queryFn: async () => {
-      if (!contactId) return [];
+      if (!contactId || !isValidUUID(contactId)) return [];
       const { data, error } = await supabase
         .from('audit_logs')
         .select('*')

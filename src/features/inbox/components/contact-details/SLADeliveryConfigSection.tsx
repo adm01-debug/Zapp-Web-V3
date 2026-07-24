@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card } from '@/components/ui/card';
 import { Clock, MessageSquare, Save, Loader2, Beaker } from 'lucide-react';
 import { toast } from 'sonner';
+import { isValidUUID } from '@/utils/uuid';
 
 interface SLADeliveryConfigSectionProps {
   contactId: string;
@@ -34,7 +35,7 @@ export function SLADeliveryConfigSection({ contactId }: SLADeliveryConfigSection
 
   const { data: config, isLoading } = useQuery({
     queryKey: queryKeys.sla.deliveryConfig(contactId),
-    enabled: !!contactId,
+    enabled: !!contactId && isValidUUID(contactId),
     queryFn: async () => {
       const { data: rows, error } = await safeClient.from('sla_delivery_rules', (q) =>
         q.select('*').eq('contact_id', contactId).limit(1)
