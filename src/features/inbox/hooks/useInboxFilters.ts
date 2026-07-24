@@ -554,6 +554,7 @@ export function useInboxFilters({
     sortBy,
     statusFilter,
     hasPermission,
+    permissionsLoading,
   ]);
 
   const retryingCount = useMemo(
