@@ -4,15 +4,14 @@ import { supabase } from '@/integrations/supabase/client';
 import { useUrlFilters } from '@/hooks/useUrlFilters';
 import { InboxFiltersState } from '@/features/inbox';
 import { ConversationWithMessages } from '@/features/inbox';
-import { filterByContactType } from '@/features/inbox';
-import { isAfter, isBefore, startOfDay, endOfDay, parseISO } from 'date-fns';
+import { parseISO } from 'date-fns';
 import { MainTab, SubTab } from '@/features/inbox';
 import { useFailureMetricsBatch, type FailureCategory } from '@/features/inbox';
 import { useAllTicketStates } from '@/features/inbox';
 import { usePermissions } from '@/features/auth';
 import { getLogger } from '@/lib/logger';
 import { logAudit } from '@/lib/audit';
-import { computeInboxTabCounts } from './inboxFilterPipeline';
+import { applyInboxFilters, computeInboxTabCounts } from './inboxFilterPipeline';
 
 const log = getLogger('useInboxFilters');
 
@@ -46,7 +45,11 @@ export function useInboxFilters({
     if (scopeParam) return scopeParam;
     return localStorage.getItem('inbox_scope') || 'mine';
   });
-  const { hasPermission, loading: permissionsLoading } = usePermissions();
+  const {
+    hasPermission,
+    loading: permissionsLoading,
+    userPermissions,
+  } = usePermissions();
   const [departmentAgentIds, setDepartmentAgentIds] = useState<string[]>([]);
   const [selectedQueueId, setSelectedQueueId] = useState<string | null>(null);
   const [selectedContactType, setSelectedContactType] = useState<string | null>(null);
@@ -277,32 +280,39 @@ export function useInboxFilters({
 
   const ticketStates = useAllTicketStates();
 
-  const inboxTabCounts = useMemo(
-    () =>
-      computeInboxTabCounts({
-        conversations,
-        profileId,
-        externalSearch,
-        search,
-        sortBy,
-        statusFilter,
-        mainTab,
-        subTab,
-        showAll,
-        scope,
-        departmentAgentIds,
-        selectedQueueId,
-        selectedContactType,
-        showOnlyRetrying,
-        failureCategoryFilter,
-        failureCategoryById,
-        filters,
-        contactTagsMap,
-        ticketStates,
-        customScopes,
-        hasPermission,
-        permissionsLoading,
-      }),
+  const enforceChannelPermissions = useMemo(() => {
+    if (permissionsLoading) return false;
+    return userPermissions.some((permission) =>
+      ['inbox.view_whatsapp', 'inbox.view_instagram', 'inbox.view_chat'].includes(permission)
+    );
+  }, [permissionsLoading, userPermissions]);
+
+  const pipelineOptions = useMemo(
+    () => ({
+      conversations,
+      profileId,
+      externalSearch,
+      search,
+      sortBy,
+      statusFilter,
+      mainTab,
+      subTab,
+      showAll,
+      scope,
+      departmentAgentIds,
+      selectedQueueId,
+      selectedContactType,
+      showOnlyRetrying,
+      failureCategoryFilter,
+      failureCategoryById,
+      filters,
+      contactTagsMap,
+      ticketStates,
+      customScopes,
+      hasPermission,
+      permissionsLoading,
+      enforceChannelPermissions,
+    }),
     [
       conversations,
       profileId,
@@ -326,8 +336,11 @@ export function useInboxFilters({
       customScopes,
       hasPermission,
       permissionsLoading,
+      enforceChannelPermissions,
     ]
   );
+
+  const inboxTabCounts = useMemo(() => computeInboxTabCounts(pipelineOptions), [pipelineOptions]);
 
   useEffect(() => {
     if (mainTab !== 'open' || conversations.length === 0) return;
@@ -342,313 +355,10 @@ export function useInboxFilters({
     }
   }, [mainTab, subTab, conversations.length, inboxTabCounts.attending, inboxTabCounts.waiting]);
 
-  const filteredConversations = useMemo(() => {
-    const rawCount = conversations.length;
-    let result = conversations.filter((c) => c && c.contact && c.contact.id);
-    const afterShapeCount = result.length;
-
-    // 0. Channel visibility filtering (CRITICAL SECURITY: Always apply, even during search)
-    // BUG-FIX: while permissions are still loading OR the permission list is empty
-    // (session hydration edge case), do NOT apply the deny-by-default filter.
-    // Otherwise the entire WhatsApp inbox disappears with no visible reason while
-    // counters (which use raw conversations) still show positive numbers.
-    let afterChannelPermissionCount = result.length;
-    if (!permissionsLoading) {
-      const canSeeWhatsapp = hasPermission('inbox.view_whatsapp');
-      const canSeeInstagram = hasPermission('inbox.view_instagram');
-      const canSeeChat = hasPermission('inbox.view_chat');
-
-      result = result.filter((c) => {
-        const channel = c.contact?.channel_type;
-        if (channel === 'whatsapp' && !canSeeWhatsapp) return false;
-        if (channel === 'instagram' && !canSeeInstagram) return false;
-        if ((channel === 'chat' || channel === 'webchat') && !canSeeChat) return false;
-        return true;
-      });
-      afterChannelPermissionCount = result.length;
-    }
-
-    log.debug('Recomputing filtered conversations', {
-      rawCount,
-      afterShapeCount,
-      afterChannelPermissionCount,
-      permissionsLoading,
-      mainTab,
-      subTab,
-      selectedContactType,
-      showOnlyRetrying,
-      failureCategoryFilter,
-    });
-
-    // Memoize utility functions for current render
-    const statusOf = (id: string) => ticketStates[id]?.status ?? 'open';
-    const assignedOf = (id: string, fallback: string | null | undefined) => {
-      const state = ticketStates[id];
-      if (state && state.assignedTo !== undefined) return state.assignedTo;
-      return fallback ?? null;
-    };
-    const effectiveSearch = (externalSearch !== undefined ? externalSearch : search || '').trim();
-    const searchTrimmed = effectiveSearch;
-
-    // 1. Tab and Status Filtering
-    if (searchTrimmed.length === 0) {
-      if (mainTab === 'open') {
-        result = result.filter((c) => {
-          const s = statusOf(c.contact.id);
-          const isOpenOrProgress = s === 'open' || s === 'in_progress';
-
-          if (!isOpenOrProgress) return false;
-
-          // Apply statusFilter if provided (legacy unread button etc)
-          if (statusFilter === 'unread' && c.unreadCount === 0) return false;
-
-          if (subTab === 'attending') {
-            const canSeeDept = hasPermission('inbox.view_department');
-            const canSeeAll = hasPermission('inbox.view_all');
-
-            const requestedScope =
-              showAll && canSeeAll
-                ? 'all'
-                : scope === 'department' && (canSeeDept || canSeeAll)
-                  ? 'department'
-                  : scope === 'all' && canSeeAll
-                    ? 'all'
-                    : 'mine';
-            const assignee = assignedOf(c.contact.id, c.contact.assigned_to);
-            const hasMineAssignments = conversations.some(
-              (item) => assignedOf(item.contact.id, item.contact.assigned_to) === profileId
-            );
-            const effectiveScope =
-              requestedScope === 'mine' && !hasMineAssignments && (canSeeAll || canSeeDept)
-                ? canSeeAll
-                  ? 'all'
-                  : 'department'
-                : requestedScope;
-
-            // 1. Prioridade para filtro de Agente específico (Coordenadores/Supervisores)
-            if (filters.agentId) {
-              // SECURITY: Only allow filtering by other agents if they have permission
-              if (filters.agentId !== profileId && !canSeeDept && !canSeeAll) {
-                return assignee === profileId; // Force to current user
-              }
-              return assignee === filters.agentId;
-            }
-
-            // 2. Se não houver agente específico, aplica a lógica de escopo
-            if (effectiveScope === 'all') return true;
-
-            if (effectiveScope === 'department') {
-              if (!assignee) return false;
-              return departmentAgentIds.includes(assignee);
-            }
-
-            if (effectiveScope === 'mine') {
-              return assignee === profileId;
-            }
-
-            // Custom scopes filtering logic
-            const customScope = customScopes.find((s) => s.name === effectiveScope);
-            if (customScope) {
-              return true;
-            }
-
-            return assignee === profileId; // Fallback
-          }
-
-          if (subTab === 'waiting') {
-            return !assignedOf(c.contact.id, c.contact.assigned_to);
-          }
-
-          return true;
-        });
-
-        if (selectedQueueId) {
-          result = result.filter((c) => c.contact.queue_id === selectedQueueId);
-        }
-      } else if (mainTab === 'resolved') {
-        result = result.filter((c) => statusOf(c.contact.id) === 'resolved');
-      } else if (mainTab === 'unread') {
-        result = result.filter((c) => c.unreadCount > 0 && statusOf(c.contact.id) !== 'resolved');
-      }
-    } else {
-      // Quando há busca, filtramos apenas por aberto/resolvido se não estiver na aba de busca
-      if (mainTab === 'open') {
-        result = result.filter((c) => {
-          const s = statusOf(c.contact.id);
-          const isOpen = s === 'open' || s === 'in_progress';
-          if (!isOpen) return false;
-          if (statusFilter === 'unread' && c.unreadCount === 0) return false;
-
-          // SECURITY: In search mode, also enforce scope if not searching globally
-          const canSeeDept = hasPermission('inbox.view_department');
-          const canSeeAll = hasPermission('inbox.view_all');
-          const requestedScope =
-            showAll && canSeeAll
-              ? 'all'
-              : scope === 'department' && (canSeeDept || canSeeAll)
-                ? 'department'
-                : 'mine';
-          const assignee = assignedOf(c.contact.id, c.contact.assigned_to);
-          const hasMineAssignments = conversations.some(
-            (item) => assignedOf(item.contact.id, item.contact.assigned_to) === profileId
-          );
-          const effectiveScope =
-            requestedScope === 'mine' && !hasMineAssignments && (canSeeAll || canSeeDept)
-              ? canSeeAll
-                ? 'all'
-                : 'department'
-              : requestedScope;
-
-          if (effectiveScope === 'mine' && assignee !== profileId) return false;
-          if (effectiveScope === 'department' && assignee && !departmentAgentIds.includes(assignee))
-            return false;
-
-          return true;
-        });
-      } else if (mainTab === 'resolved') {
-        result = result.filter((c) => statusOf(c.contact.id) === 'resolved');
-      } else if (mainTab === 'unread') {
-        result = result.filter((c) => c.unreadCount > 0 && statusOf(c.contact.id) !== 'resolved');
-      }
-    }
-
-    // 2. Search filtering
-    if (searchTrimmed) {
-      const searchLower = searchTrimmed.toLowerCase();
-      const digits = searchTrimmed.replace(/\D/g, '');
-      result = result.filter((c) => {
-        const name = (c.contact?.name || '').toLowerCase();
-        const phone = c.contact?.phone || '';
-        const email = (c.contact?.email || '').toLowerCase();
-        const jid = String(c.contact?.id || '').toLowerCase();
-        const lastMsg = (c.lastMessage?.content || '').toLowerCase();
-
-        const matches =
-          name.includes(searchLower) ||
-          (digits.length > 0 && phone.replace(/\D/g, '').includes(digits)) ||
-          email.includes(searchLower) ||
-          jid.includes(searchLower) ||
-          lastMsg.includes(searchLower);
-        return matches;
-      });
-    }
-
-    // 3. Status array filter
-    if (filters.status.length > 0) {
-      result = result.filter((c) => {
-        const hasUnread = c.unreadCount > 0;
-        const isAssigned = !!c.contact.assigned_to;
-        if (filters.status.includes('unread') && hasUnread) return true;
-        if (filters.status.includes('read') && !hasUnread && isAssigned) return true;
-        if (filters.status.includes('pending') && !isAssigned && c.messages.length > 0) return true;
-        if (filters.status.includes('resolved') && c.messages.length === 0) return true;
-        return false;
-      });
-    }
-
-    // 4. Tags filter
-    if (filters.tags.length > 0) {
-      result = result.filter((c) => {
-        const tagIds = contactTagsMap[c.contact.id] || [];
-        return filters.tags.some((filterTagId) => tagIds.includes(filterTagId));
-      });
-    }
-
-    // 5. Agent filter (SECURITY: already handled in step 1, but reinforced here)
-    if (filters.agentId) {
-      const canSeeDept = hasPermission('inbox.view_department');
-      const canSeeAll = hasPermission('inbox.view_all');
-      if (filters.agentId === profileId || canSeeDept || canSeeAll) {
-        result = result.filter((c) => c.contact.assigned_to === filters.agentId);
-      } else {
-        result = result.filter((c) => c.contact.assigned_to === profileId);
-      }
-    }
-
-    // 6. Date range filter
-    if (filters.dateRange.from) {
-      const fromStart = startOfDay(filters.dateRange.from);
-      const toEnd = filters.dateRange.to ? endOfDay(filters.dateRange.to) : null;
-
-      result = result.filter((c) => {
-        const lastMessageDate = c.lastMessage
-          ? new Date(c.lastMessage.created_at)
-          : new Date(c.contact.created_at);
-        if (isBefore(lastMessageDate, fromStart)) return false;
-        if (toEnd && isAfter(lastMessageDate, toEnd)) return false;
-        return true;
-      });
-    }
-
-    // 7. Contact type filter
-    result = filterByContactType(result, selectedContactType);
-
-    // 8. Failure filter
-    if (showOnlyRetrying) {
-      result = result.filter((c) => {
-        const failingMsgs = c.messages.filter(
-          (m) =>
-            m.status === 'retrying' ||
-            m.status === 'failed_retries' ||
-            m.status === 'failed' ||
-            m.status === 'failed_auth'
-        );
-        if (failingMsgs.length === 0) return false;
-
-        if (failureCategoryFilter === 'all') return true;
-
-        return failingMsgs.some((m) => {
-          if (m.status === 'retrying') return false;
-          if (m.status === 'failed_auth' && failureCategoryFilter === 'auth') return true;
-          const cat = failureCategoryById[m.id];
-          return cat === failureCategoryFilter;
-        });
-      });
-    }
-
-    // 9. Sorting
-    return [...result].sort((a, b) => {
-      if (sortBy === 'unread') {
-        if (a.unreadCount !== b.unreadCount) return b.unreadCount - a.unreadCount;
-      }
-
-      if (sortBy === 'name') {
-        return (a.contact.name || '').localeCompare(b.contact.name || '');
-      }
-
-      // Default: lastMessage date (descending)
-      const aTime = a.lastMessage
-        ? new Date(a.lastMessage.created_at).getTime()
-        : new Date(a.contact.updated_at).getTime();
-      const bTime = b.lastMessage
-        ? new Date(b.lastMessage.created_at).getTime()
-        : new Date(b.contact.updated_at).getTime();
-      return bTime - aTime;
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    conversations,
-    search,
-    externalSearch,
-    filters,
-    mainTab,
-    subTab,
-    showAll,
-    scope,
-    departmentAgentIds,
-    selectedQueueId,
-    selectedContactType,
-    showOnlyRetrying,
-    failureCategoryFilter,
-    failureCategoryById,
-    profileId,
-    contactTagsMap,
-    ticketStates,
-    sortBy,
-    statusFilter,
-    hasPermission,
-    permissionsLoading,
-  ]);
+  const filteredConversations = useMemo(
+    () => applyInboxFilters(pipelineOptions),
+    [pipelineOptions]
+  );
 
   const retryingCount = useMemo(
     () =>

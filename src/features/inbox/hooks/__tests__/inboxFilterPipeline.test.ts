@@ -153,4 +153,22 @@ describe('inboxFilterPipeline — visibilidade de conversas aguardando', () => {
     expect(waiting.map((conversation) => conversation.contact.id)).toEqual(['c2']);
     expect(counts).toMatchObject({ open: 3, attending: 2, waiting: 1 });
   });
+
+  it('preserva conversas carregadas quando permissões de canal ainda estão desidratadas', () => {
+    const conversations = [
+      buildConversation('c1', null, 1),
+      buildConversation('c2', null, 1),
+    ];
+    const options = buildOptions(conversations, {
+      hasPermission: () => false,
+      permissionsLoading: false,
+      enforceChannelPermissions: false,
+    });
+
+    const waiting = applyInboxFilters({ ...options, subTab: 'waiting' });
+    const counts = computeInboxTabCounts(options);
+
+    expect(waiting.map((conversation) => conversation.contact.id)).toEqual(['c1', 'c2']);
+    expect(counts).toMatchObject({ open: 2, attending: 0, waiting: 2, unread: 2 });
+  });
 });
