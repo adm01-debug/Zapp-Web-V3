@@ -272,26 +272,41 @@ export function useInboxFilters({
   const ticketStates = useAllTicketStates();
 
   const filteredConversations = useMemo(() => {
-    log.debug('Recomputing filtered conversations', {
-      total: conversations.length,
-      mainTab,
-      subTab,
-      showOnlyRetrying,
-      failureCategoryFilter,
-    });
+    const rawCount = conversations.length;
     let result = conversations.filter((c) => c && c.contact && c.contact.id);
+    const afterShapeCount = result.length;
 
     // 0. Channel visibility filtering (CRITICAL SECURITY: Always apply, even during search)
-    const canSeeWhatsapp = hasPermission('inbox.view_whatsapp');
-    const canSeeInstagram = hasPermission('inbox.view_instagram');
-    const canSeeChat = hasPermission('inbox.view_chat');
+    // BUG-FIX: while permissions are still loading OR the permission list is empty
+    // (session hydration edge case), do NOT apply the deny-by-default filter.
+    // Otherwise the entire WhatsApp inbox disappears with no visible reason while
+    // counters (which use raw conversations) still show positive numbers.
+    let afterChannelPermissionCount = result.length;
+    if (!permissionsLoading) {
+      const canSeeWhatsapp = hasPermission('inbox.view_whatsapp');
+      const canSeeInstagram = hasPermission('inbox.view_instagram');
+      const canSeeChat = hasPermission('inbox.view_chat');
 
-    result = result.filter((c) => {
-      const channel = c.contact?.channel_type;
-      if (channel === 'whatsapp' && !canSeeWhatsapp) return false;
-      if (channel === 'instagram' && !canSeeInstagram) return false;
-      if ((channel === 'chat' || channel === 'webchat') && !canSeeChat) return false;
-      return true;
+      result = result.filter((c) => {
+        const channel = c.contact?.channel_type;
+        if (channel === 'whatsapp' && !canSeeWhatsapp) return false;
+        if (channel === 'instagram' && !canSeeInstagram) return false;
+        if ((channel === 'chat' || channel === 'webchat') && !canSeeChat) return false;
+        return true;
+      });
+      afterChannelPermissionCount = result.length;
+    }
+
+    log.debug('Recomputing filtered conversations', {
+      rawCount,
+      afterShapeCount,
+      afterChannelPermissionCount,
+      permissionsLoading,
+      mainTab,
+      subTab,
+      selectedContactType,
+      showOnlyRetrying,
+      failureCategoryFilter,
     });
 
     // Memoize utility functions for current render
