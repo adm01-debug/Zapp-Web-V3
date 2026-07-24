@@ -30,11 +30,12 @@ const _emailRpc = supabase.rpc as any;
 // Dynamic table accessor — bypasses the overloaded `from()` signature that
 // requires a string-literal table name from the generated types.
 type DynamicSupabaseClient = { from(t: string): ReturnType<typeof supabase.from> };
+type DynamicSchemaClient = { schema(schema: string): DynamicSupabaseClient };
 
 let _emailAppClient: DynamicSupabaseClient | undefined;
 function getEmailAppClient(): DynamicSupabaseClient {
   if (!_emailAppClient) {
-    _emailAppClient = supabase.schema('email_app') as unknown as DynamicSupabaseClient;
+    _emailAppClient = (supabase as unknown as DynamicSchemaClient).schema('email_app');
   }
   return _emailAppClient;
 }
