@@ -56,7 +56,7 @@ export function useSecurityAuditLogs() {
       .channel('security_logs_realtime')
       .on(
         'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'security_audit_logs' },
+        { event: 'INSERT', schema: 'zapp', table: 'security_audit_logs' },
         () => {
           void queryClient.invalidateQueries({ queryKey: SECURITY_LOGS_KEY });
         }
