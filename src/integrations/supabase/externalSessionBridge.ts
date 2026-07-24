@@ -56,7 +56,7 @@ export async function mirrorExternalSignIn(email: string, password: string): Pro
   // e um getSession extra apenas adiciona contenção. Não há dual-session real a
   // manter, então isto é um no-op. Se um client external separado for
   // reintroduzido (externalSupabase !== supabase), o mirror reativa sozinho.
-  if (externalSupabase === supabase) return;
+  if ((externalSupabase as unknown) === (supabase as unknown)) return;
   try {
     const { data: existing } = await externalSupabase.auth.getSession();
     if (existing.session?.user?.email === email) {
