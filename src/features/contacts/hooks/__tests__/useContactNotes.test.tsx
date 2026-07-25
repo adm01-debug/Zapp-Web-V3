@@ -7,8 +7,6 @@ import { useContactNotes } from '../useContactNotes';
 const mockToast = vi.fn();
 vi.mock('@/hooks/use-toast', () => ({ toast: (p: unknown) => mockToast(p) }));
 
-const CONTACT_UUID = '00000000-0000-0000-0000-000000000001';
-
 vi.mock('@/features/auth', () => ({
   useAuth: () => ({ user: { id: 'user-1' } }),
 }));
@@ -24,6 +22,8 @@ let notesRows: Array<{
 }> = [];
 let insertResolver: ((v: unknown) => void) | null = null;
 let deleteResolver: ((v: unknown) => void) | null = null;
+
+const CONTACT_UUID = '00000000-0000-4000-8000-000000000001';
 
 function makeSelectChain(rows: unknown[]) {
   type SelectChain = {

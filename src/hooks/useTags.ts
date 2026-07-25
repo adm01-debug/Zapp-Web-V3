@@ -4,6 +4,7 @@ import { safeClient } from '@/integrations/supabase/safeClient';
 import { useAuth } from '@/features/auth';
 import { toast } from '@/hooks/use-toast';
 import { queryKeys } from '@/services/api/queryKeys';
+import { isValidUUID } from '@/utils/uuid';
 
 /** Tag interface definition. */
 export interface Tag {
@@ -189,12 +190,12 @@ export function useContactTags(contactId: string | undefined) {
       if (error) throw error;
       return data?.map((ct) => ct.tags).filter(Boolean) as Tag[];
     },
-    enabled: !!contactId,
+    enabled: !!contactId && isValidUUID(contactId),
   });
 
   const addTagMutation = useMutation({
     mutationFn: async (tagId: string) => {
-      if (!contactId) throw new Error('Contact ID is required');
+      if (!contactId || !isValidUUID(contactId)) throw new Error('Contact ID is required');
 
       const { error } = await supabase
         .from('contact_tags')
@@ -217,7 +218,7 @@ export function useContactTags(contactId: string | undefined) {
 
   const removeTagMutation = useMutation({
     mutationFn: async (tagId: string) => {
-      if (!contactId) throw new Error('Contact ID is required');
+      if (!contactId || !isValidUUID(contactId)) throw new Error('Contact ID is required');
 
       const { error } = await supabase
         .from('contact_tags')

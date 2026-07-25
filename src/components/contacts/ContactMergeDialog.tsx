@@ -19,6 +19,7 @@ import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import { sanitizeText } from '@/lib/sanitize';
 import { dbFrom } from '@/integrations/datasource/db';
+import { isValidUUID } from '@/utils/uuid';
 import { cn } from '@/lib/utils';
 
 const log = getLogger('ContactMergeDialog');
@@ -242,6 +243,14 @@ export const ContactMergeDialog: React.FC<ContactMergeDialogProps> = ({
   );
 
   const handleMerge = async () => {
+    if (!isValidUUID(primaryContact.id) || !isValidUUID(secondaryContact.id)) {
+      toast({
+        title: 'Erro ao mesclar',
+        description: 'IDs de contato inválidos.',
+        variant: 'destructive',
+      });
+      return;
+    }
     setLoading(true);
     try {
       const mergedTags = [...new Set([...primaryContact.tags, ...secondaryContact.tags])];

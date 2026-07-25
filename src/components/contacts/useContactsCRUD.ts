@@ -4,6 +4,7 @@ import { useActionFeedback } from '@/hooks/useActionFeedback';
 import { useContactsSearch } from '@/hooks/useContactsSearch';
 import { openContactInChat } from '@/lib/openContactInChat';
 import { dbFrom } from '@/integrations/datasource/db';
+import { isValidUUID } from '@/utils/uuid';
 
 interface ContactFormData {
   name: string;
@@ -125,6 +126,7 @@ export function useContactsCRUD() {
 
   const handleEditContact = async () => {
     if (!editingContact) return;
+    if (!isValidUUID(editingContact.id)) return;
     setIsSubmitting(true);
     await feedback.withFeedback(
       async () => {
@@ -162,6 +164,7 @@ export function useContactsCRUD() {
   };
 
   const handleDeleteContact = async (id: string) => {
+    if (!isValidUUID(id)) return;
     await feedback.withFeedback(
       async () => {
         const { error } = await dbFrom('contacts').delete().eq('id', id);

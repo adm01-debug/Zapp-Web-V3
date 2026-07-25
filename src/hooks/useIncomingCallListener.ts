@@ -3,6 +3,7 @@ import { useMountedRef } from '@/hooks/useMountedRef';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/features/auth';
 import { getLogger } from '@/lib/logger';
+import { isValidUUID } from '@/utils/uuid';
 
 const log = getLogger('useIncomingCallListener');
 import type { IncomingCall } from '@/types/incomingCall';
@@ -42,12 +43,12 @@ export function useIncomingCallListener() {
           let contactName = 'Desconhecido';
           let contactPhone = '';
 
-          if (call.contact_id) {
+          if (call.contact_id && isValidUUID(call.contact_id as string)) {
             const { data: contact } = await supabase
               .from('contacts')
               .select('name, phone')
               .eq('id', call.contact_id as string)
-              .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116;
+              .maybeSingle();
 
             if (!mountedRef.current) return;
 
