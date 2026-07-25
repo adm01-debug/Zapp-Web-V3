@@ -114,7 +114,7 @@ function computeInstanceUptimes(logs: HealthLog[], now: Date): InstanceUptime[] 
 /** Builds 8-hour sparkline arrays (messages-per-hour, avg-latency-per-hour, uptime-pct-per-hour) for the 8-hour window ending at `now`. */
 function computeSparklines(
   logs: HealthLog[],
-  messages: { sender: string; created_at: string }[],
+  messages: { from_me: boolean; created_at: string }[],
   now: Date
 ): SparklineData {
   const result: SparklineData = { messages: [], latency: [], uptime: [] };
@@ -201,17 +201,17 @@ export function useMonitoringDataManagement(
           .order('checked_at', { ascending: false })
           .limit(500),
         dbFrom('evolution_messages')
-          .select('sender, created_at')
+          .select('from_me, created_at')
           .gte('created_at', since.toISOString())
           .order('created_at', { ascending: true }),
       ]);
 
       const connections = (connRes.data ?? []) as ConnectionInfo[];
       const healthLogs = (logsRes.data ?? []) as HealthLog[];
-      const msgs = (msgRes.data ?? []) as { sender: string; created_at: string }[];
+      const msgs = (msgRes.data ?? []) as { from_me: boolean; created_at: string }[];
 
-      const incoming = msgs.filter((m) => m.sender === 'contact').length;
-      const outgoing = msgs.filter((m) => m.sender === 'agent').length;
+      const incoming = msgs.filter((m) => !m.from_me).length;
+      const outgoing = msgs.filter((m) => m.from_me).length;
 
       const bucketCount = periodBuckets[period];
       const bucketSize = periodMs[period] / bucketCount;
@@ -231,7 +231,7 @@ export function useMonitoringDataManagement(
             ? `${mTime.getDate().toString().padStart(2, '0')}/${(mTime.getMonth() + 1).toString().padStart(2, '0')}`
             : `${mTime.getHours().toString().padStart(2, '0')}:00`;
         if (buckets[key]) {
-          if (m.sender === 'contact') buckets[key].incoming++;
+          if (!m.from_me) buckets[key].incoming++;
           else buckets[key].outgoing++;
         }
       });
@@ -339,7 +339,7 @@ export function useMonitoringActionsManagement(
       const { data: msg } = await supabase
         .from('evolution_messages')
         .select('id')
-        .eq('external_id', testId)
+        .eq('message_id', testId)
         .maybeSingle();
       if (msg) await supabase.from('evolution_messages').delete().eq('id', msg.id);
       setWebhookTest({

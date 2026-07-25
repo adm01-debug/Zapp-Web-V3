@@ -205,11 +205,11 @@ export function useRealtimeMessages() {
           contact_id: contactId,
           content,
           agent_id: agentId ?? null,
-          sender: 'agent',
+          from_me: true,
           message_type: 'text',
           is_read: true,
           status: 'sent',
-          external_id: `local-${Date.now()}`,
+          message_id: `local-${Date.now()}`,
         });
         if (insertError) throw insertError;
       } catch (err) {

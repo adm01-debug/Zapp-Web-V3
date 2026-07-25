@@ -5,7 +5,7 @@ export async function fetchContactMessagesForHeatmap(since: Date) {
     .from('evolution_messages')
     .select('created_at')
     .gte('created_at', since.toISOString())
-    .eq('sender', 'contact')
+    .eq('from_me', false)
     .limit(1000);
   if (error) throw error;
   return data ?? [];

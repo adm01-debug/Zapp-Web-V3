@@ -17,7 +17,9 @@ export interface Contact {
   name: string;
   email?: string;
   phone?: string;
-  status?: 'active' | 'archived';
+  deleted_at?: string | null;
+  deleted_by?: string | null;
+  deleted_reason?: string | null;
   created_at?: string;
   updated_at?: string;
   [key: string]: any;
@@ -117,34 +119,50 @@ export const contactsRepository = {
   },
 
   /**
-   * Archive a contact (soft delete)
+   * Archive a contact (soft delete via deleted_at)
    */
   archive: async (id: string): Promise<Contact> => {
-    return baseContactsService.update(id, { status: 'archived' });
+    return baseContactsService.update(id, {
+      deleted_at: new Date().toISOString(),
+      deleted_reason: 'archived',
+    });
   },
 
   /**
-   * Restore an archived contact
+   * Restore an archived contact (clear deleted_at)
    */
   restore: async (id: string): Promise<Contact> => {
-    return baseContactsService.update(id, { status: 'active' });
+    return baseContactsService.update(id, {
+      deleted_at: null,
+      deleted_by: null,
+      deleted_reason: null,
+    });
   },
 
   /**
-   * Get contacts by status
+   * Get contacts by archive status (active = not deleted, archived = soft-deleted)
    */
   getByStatus: async (
     status: 'active' | 'archived',
     params?: Partial<QueryParams>
   ): Promise<ListResponse<Contact>> => {
-    return baseContactsService.list({ status, ...params });
+    // contacts table has no status column; filter via deleted_at.
+    // genericService.list() treats the string 'null' as IS NULL and 'not_null' as IS NOT NULL.
+    if (status === 'archived') {
+      return baseContactsService.list({ deleted_at: 'not_null' as unknown as string, ...params });
+    }
+    return baseContactsService.list({ deleted_at: 'null' as unknown as string, ...params });
   },
 
   /**
-   * Bulk update status
+   * Bulk archive contacts (soft delete)
    */
   updateStatusBulk: async (ids: string[], status: 'active' | 'archived'): Promise<Contact[]> => {
-    return baseContactsService.updateMany({ id: ids }, { status });
+    const patch =
+      status === 'archived'
+        ? { deleted_at: new Date().toISOString(), deleted_reason: 'archived' }
+        : { deleted_at: null, deleted_by: null, deleted_reason: null };
+    return baseContactsService.updateMany({ id: ids }, patch as Partial<Contact>);
   },
 
   /**

@@ -36,18 +36,15 @@ export const usersService = {
     if (!data.email || !isValidEmail(data.email)) {
       throw new Error('Valid email is required');
     }
-    if (!data.full_name || data.full_name.trim().length === 0) {
-      throw new Error('Full name is required');
-    }
-    if (!data.account_id) {
-      throw new Error('Account ID is required');
+    if (!data.name || data.name.trim().length === 0) {
+      throw new Error('Name is required');
     }
 
     return usersRepository.createUser({
       ...data,
       email: data.email.toLowerCase().trim(),
-      full_name: data.full_name.trim(),
-      status: 'active',
+      name: data.name.trim(),
+      is_active: true,
     });
   },
 
@@ -57,14 +54,14 @@ export const usersService = {
     if (updates.email && !isValidEmail(updates.email)) {
       throw new Error('Valid email is required');
     }
-    if (updates.full_name && updates.full_name.trim().length === 0) {
-      throw new Error('Full name cannot be empty');
+    if (updates.name !== undefined && updates.name.trim().length === 0) {
+      throw new Error('Name cannot be empty');
     }
 
     return usersRepository.updateUser(id, {
       ...updates,
       email: updates.email?.toLowerCase().trim(),
-      full_name: updates.full_name?.trim(),
+      name: updates.name?.trim(),
     });
   },
 
@@ -103,7 +100,8 @@ export const usersService = {
       ...data,
       name: data.name.trim(),
       email: data.email.toLowerCase().trim(),
-      status: 'offline',
+      online_status: 'offline',
+      is_active: true,
     });
   },
 
@@ -129,8 +127,8 @@ export const usersService = {
     return usersRepository.deleteAgent(id);
   },
 
-  // Agent status
-  getAgentsByStatus: async (status: Agent['status'], filters?: Partial<QueryParams>) => {
+  // Agent availability
+  getAgentsByStatus: async (status: Agent['online_status'], filters?: Partial<QueryParams>) => {
     return usersRepository.getAgentsByStatus(status, filters);
   },
 

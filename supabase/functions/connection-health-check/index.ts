@@ -365,8 +365,8 @@ Deno.serve(async (req) => {
           user_id: uid, title, message, type: 'connection_alert',
           metadata: { connection_id: alert.connection_id, instance_id: alert.instance_id, reason: alert.reason, phone: alert.phone },
         }));
-        await supabase.from('notifications').insert(rows).then(({ error }) => {
-          if (error) log.warn("notifications insert failed", { error: error.message });
+        await supabase.from('app_notifications').insert(rows).then(({ error }) => {
+          if (error) log.warn("app_notifications insert failed", { error: error.message });
         });
       }
     }

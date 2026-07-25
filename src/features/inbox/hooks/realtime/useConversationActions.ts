@@ -84,7 +84,7 @@ export function useConversationActions({ commitConversations }: UseConversationA
         await supabase
           .from('profiles')
           .update({ last_seen: new Date().toISOString() })
-          .eq('id', user.id);
+          .eq('user_id', user.id);
       }
     }, 5000);
 
