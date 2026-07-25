@@ -1,16 +1,25 @@
 -- Migration: Create zapp VIEW proxies for missing edge function tables (BUG-37)
 --
--- Problem: 25 tables accessed by edge functions via createZappAdminClient()
--- (db: { schema: "zapp" }) have no corresponding view or table in the zapp
+-- Problem: Several tables accessed by edge functions via createZappAdminClient()
+-- (db: { schema: "zapp" }) had no corresponding view or table in the zapp
 -- schema. PostgREST returns PGRST205 ("Relation not found") at runtime.
 --
--- Affected edge functions:
+-- This migration creates 20 VIEW proxies. 5 tables were skipped because they
+-- already exist as physical tables in zapp (either moved by batch migrations
+-- 43-47 or created directly in zapp by migration 20260715):
+--   SKIP: query_telemetry          (moved by migration 43/44/45)
+--   SKIP: sicoob_contact_mapping   (moved by migration 43/44/45)
+--   SKIP: rate_limit_logs          (moved by migration 47)
+--   SKIP: sts_telemetry            (physical table in zapp — migration 20260715)
+--   SKIP: sicoob_reply_outbox      (physical table in zapp — migration 20260715)
+--
+-- Affected edge functions (VIEWs created here):
 --   create-user              → gmail_accounts, user_service_accounts
 --   gmail-token-refresh      → gmail_accounts
 --   gmail-webhook            → gmail_threads, gmail_messages
 --   gmail-health             → gmail_health_logs, gmail_health_summary, gmail_revalidation_jobs
 --   gmail-sync               → gmail_labels
---   voice-changer            → voice_conversion_queue, sts_telemetry
+--   voice-changer            → voice_conversion_queue
 --   outlook-oauth            → imap_smtp_accounts
 --   email-imap-bridge        → imap_smtp_accounts
 --   whatsapp-cloud-api       → whatsapp_official_credentials
@@ -19,19 +28,11 @@
 --   provider-healthcheck     → channel_provider_routes, provider_configs, provider_session_logs
 --   provider-router          → channel_provider_routes, provider_sessions, provider_configs, provider_session_logs
 --   external-db-proxy/utils  → proxy_metrics
---   external-db-bridge       → query_telemetry
---   client-observability     → query_telemetry
 --   proxy-health             → proxy_metrics, proxy_alerts
 --   proxy-metrics            → proxy_metrics
 --   instance-pause-control   → instance_processing_pauses
---   sicoob-bridge            → sicoob_contact_mapping
---   sicoob-bridge-reply      → sicoob_contact_mapping
---   sicoob-outbox-consumer   → sicoob_contact_mapping, sicoob_reply_outbox
---   cleanup-rate-limit-logs  → rate_limit_logs
---   metrics                  → rate_limit_logs
 --   evolution-health         → messages_whatsapp
 --
--- All source tables are confirmed physical (relkind='r') via migration search.
 -- All views use security_invoker=on so the underlying table's RLS still applies.
 
 -- ── 1. gmail_accounts ─────────────────────────────────────────────────────────
@@ -107,14 +108,7 @@ REVOKE ALL ON zapp.voice_conversion_queue FROM PUBLIC, anon;
 GRANT ALL  ON zapp.voice_conversion_queue TO service_role;
 GRANT SELECT, INSERT, UPDATE ON zapp.voice_conversion_queue TO authenticated;
 
--- ── 9. sts_telemetry ──────────────────────────────────────────────────────────
-CREATE OR REPLACE VIEW zapp.sts_telemetry
-  WITH (security_invoker = on)
-AS SELECT * FROM public.sts_telemetry;
-
-REVOKE ALL ON zapp.sts_telemetry FROM PUBLIC, anon;
-GRANT ALL  ON zapp.sts_telemetry TO service_role;
-GRANT SELECT ON zapp.sts_telemetry TO authenticated;
+-- ── 9. sts_telemetry — SKIP: already a physical table in zapp (migration 20260715_create_missing_schema_objects) ──
 
 -- ── 10. imap_smtp_accounts ────────────────────────────────────────────────────
 -- Contains IMAP/SMTP passwords.
@@ -199,14 +193,7 @@ REVOKE ALL ON zapp.proxy_alerts FROM PUBLIC, anon;
 GRANT ALL  ON zapp.proxy_alerts TO service_role;
 GRANT SELECT ON zapp.proxy_alerts TO authenticated;
 
--- ── 19. query_telemetry ───────────────────────────────────────────────────────
-CREATE OR REPLACE VIEW zapp.query_telemetry
-  WITH (security_invoker = on)
-AS SELECT * FROM public.query_telemetry;
-
-REVOKE ALL ON zapp.query_telemetry FROM PUBLIC, anon;
-GRANT ALL  ON zapp.query_telemetry TO service_role;
-GRANT SELECT ON zapp.query_telemetry TO authenticated;
+-- ── 19. query_telemetry — SKIP: already a physical table in zapp (moved by earlier migration) ──
 
 -- ── 20. instance_processing_pauses ────────────────────────────────────────────
 CREATE OR REPLACE VIEW zapp.instance_processing_pauses
@@ -217,32 +204,11 @@ REVOKE ALL ON zapp.instance_processing_pauses FROM PUBLIC, anon;
 GRANT ALL  ON zapp.instance_processing_pauses TO service_role;
 GRANT SELECT, INSERT, UPDATE, DELETE ON zapp.instance_processing_pauses TO authenticated;
 
--- ── 21. sicoob_contact_mapping ────────────────────────────────────────────────
-CREATE OR REPLACE VIEW zapp.sicoob_contact_mapping
-  WITH (security_invoker = on)
-AS SELECT * FROM public.sicoob_contact_mapping;
+-- ── 21. sicoob_contact_mapping — SKIP: already a physical table in zapp (moved by earlier migration) ──
 
-REVOKE ALL ON zapp.sicoob_contact_mapping FROM PUBLIC, anon;
-GRANT ALL  ON zapp.sicoob_contact_mapping TO service_role;
-GRANT SELECT, INSERT, UPDATE, DELETE ON zapp.sicoob_contact_mapping TO authenticated;
+-- ── 22. sicoob_reply_outbox — SKIP: already a physical table in zapp (migration 20260715_create_missing_schema_objects) ──
 
--- ── 22. sicoob_reply_outbox ───────────────────────────────────────────────────
-CREATE OR REPLACE VIEW zapp.sicoob_reply_outbox
-  WITH (security_invoker = on)
-AS SELECT * FROM public.sicoob_reply_outbox;
-
-REVOKE ALL ON zapp.sicoob_reply_outbox FROM PUBLIC, anon;
-GRANT ALL  ON zapp.sicoob_reply_outbox TO service_role;
-GRANT SELECT, INSERT, UPDATE, DELETE ON zapp.sicoob_reply_outbox TO authenticated;
-
--- ── 23. rate_limit_logs ───────────────────────────────────────────────────────
-CREATE OR REPLACE VIEW zapp.rate_limit_logs
-  WITH (security_invoker = on)
-AS SELECT * FROM public.rate_limit_logs;
-
-REVOKE ALL ON zapp.rate_limit_logs FROM PUBLIC, anon;
-GRANT ALL  ON zapp.rate_limit_logs TO service_role;
-GRANT SELECT ON zapp.rate_limit_logs TO authenticated;
+-- ── 23. rate_limit_logs — SKIP: already a physical table in zapp (moved by migration 47) ──
 
 -- ── 24. user_service_accounts ─────────────────────────────────────────────────
 CREATE OR REPLACE VIEW zapp.user_service_accounts
