@@ -129,43 +129,33 @@ export function useInboxFilters({
     showOnlyRetrying
   );
 
-  // Sync state with URL on mount only
+  // Persistência: reflete aba/sub-aba/fila/tipo na URL (links compartilháveis)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
+    let changed = false;
 
-    if (params.has('subTab')) {
-      params.delete('subTab');
+    const setOrDelete = (key: string, value: string | null) => {
+      if (value) {
+        if (params.get(key) !== value) {
+          params.set(key, value);
+          changed = true;
+        }
+      } else if (params.has(key)) {
+        params.delete(key);
+        changed = true;
+      }
+    };
+
+    setOrDelete('tab', mainTab === 'open' ? null : mainTab);
+    setOrDelete('subTab', subTab);
+    setOrDelete('type', selectedContactType);
+    setOrDelete('queue', selectedQueueId);
+
+    if (changed) {
       window.history.replaceState(null, '', `?${params.toString()}${window.location.hash}`);
     }
+  }, [mainTab, subTab, selectedContactType, selectedQueueId]);
 
-    // Contact Type
-    const typeFromUrl = params.get('type');
-    if (typeFromUrl && typeFromUrl !== 'all') {
-      setSelectedContactType(typeFromUrl);
-    }
-
-    // Failures Only (deep-link de monitoramento)
-    if (params.get('failuresOnly') === 'true') {
-      log.info('Deep-link: filtering by failures only');
-      setShowOnlyRetrying(true);
-    }
-
-    // Failure Category (deep-link de monitoramento)
-    const catFromUrl = params.get('failureCategory');
-    if (catFromUrl) {
-      const validCategories: (FailureCategory | 'all')[] = [
-        'all',
-        'auth',
-        'http_4xx',
-        'http_5xx',
-        'network',
-        'unknown',
-      ];
-      if (validCategories.includes(catFromUrl as FailureCategory | 'all')) {
-        setFailureCategoryFilter(catFromUrl as FailureCategory | 'all');
-      }
-    }
-  }, []);
 
   const handleContactTypeChange = useCallback((value: string | null) => {
     setSelectedContactType(value);
