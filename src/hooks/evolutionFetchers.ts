@@ -85,20 +85,27 @@ export async function fetchRecentMessagesWindow(
   });
   if (primary.data.length > 0) return primary.data;
 
-  // Fallback: instância ativa não trouxe nada nos últimos N dias.
-  // Tenta sem filtro de instância para não esconder conversas de outras
-  // instâncias configuradas (ex.: legacy `wpp2`).
+  // FALLBACK (defensivo): instância ativa não retornou mensagens nos últimos N dias.
+  // Isso NÃO deveria acontecer em produção desde 2026-07-26 quando ACTIVE_WHATSAPP_INSTANCE
+  // foi corrigida para 'wpp2' (is_active=true, 12.527 conversas, 78 msgs/7d).
+  // Se este warn aparecer novamente, a instância ativa pode ter perdido conectividade
+  // ou ter sido trocada sem atualizar a constante.
+  // Ref: fix/console-bugs-2026-07-26 (PR #535).
   const warnKey = `${DEFAULT_INSTANCE}:${daysBack}`;
   if (!_sidebarEmptyWarned.has(warnKey)) {
     _sidebarEmptyWarned.add(warnKey);
     fetcherLog.warn(
-      'Sidebar sem mensagens para a instância ativa; tentando fallback sem filtro de instância',
+      '[INESPERADO] Sidebar vazia para a instância ativa. ' +
+      'Verifique se ACTIVE_WHATSAPP_INSTANCE está correta e se a instância está conectada. ' +
+      'Tentando fallback multi-instância.',
       { instance: DEFAULT_INSTANCE, daysBack, limit }
     );
   }
   const fallback = await queryExternalProxy<EvolutionMessage>({
     table: 'evolution_messages',
     select: SLIM_MESSAGE_COLUMNS,
+    // SEM filtro de instance_name: traz msgs de todas as instâncias configuradas.
+    // Garante que uma reconexão ou nova instância não apague a sidebar do usuário.
     filters: [{ column: 'created_at', operator: 'gte', value: since }],
     order: { column: 'created_at', ascending: false },
     limit,
@@ -111,11 +118,15 @@ export async function fetchMessagesByJid(
   remoteJid: string,
   limit = CONVERSATION_PAGE_SIZE,
   beforeDate?: string,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  /** Instância WhatsApp do contato. Padrão: DEFAULT_INSTANCE (wpp2).
+   *  Sempre passe conversation.instance_name quando disponível para evitar
+   *  mensagens vazias ao adicionar uma segunda instância ao sistema. */
+  instanceName: string = DEFAULT_INSTANCE
 ): Promise<EvolutionMessage[]> {
   const filters: { column: string; operator: string; value: unknown }[] = [
     { column: 'remote_jid', operator: 'eq', value: remoteJid },
-    { column: 'instance_name', operator: 'eq', value: DEFAULT_INSTANCE },
+    { column: 'instance_name', operator: 'eq', value: instanceName },
   ];
   if (beforeDate) {
     filters.push({ column: 'created_at', operator: 'lt', value: beforeDate });
@@ -135,14 +146,16 @@ export async function fetchMessagesByJid(
 export async function fetchMessagesAfter(
   remoteJid: string,
   afterDate: string,
-  limit = CONVERSATION_PAGE_SIZE
+  limit = CONVERSATION_PAGE_SIZE,
+  /** Instância WhatsApp do contato. Padrão: DEFAULT_INSTANCE (wpp2). */
+  instanceName: string = DEFAULT_INSTANCE
 ): Promise<EvolutionMessage[]> {
   const result = await queryExternalProxy<EvolutionMessage>({
     table: 'evolution_messages',
     select: SLIM_MESSAGE_COLUMNS,
     filters: [
       { column: 'remote_jid', operator: 'eq', value: remoteJid },
-      { column: 'instance_name', operator: 'eq', value: DEFAULT_INSTANCE },
+      { column: 'instance_name', operator: 'eq', value: instanceName },
       { column: 'created_at', operator: 'gt', value: afterDate },
     ],
     order: { column: 'created_at', ascending: true },
