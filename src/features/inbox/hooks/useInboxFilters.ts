@@ -17,6 +17,11 @@ import {
   buildFailureCategoryCounts,
   computeInboxTabCounts,
 } from './inboxFilterPipeline';
+import {
+  resolveInitialInboxFilters,
+  writeStoredInboxFilters,
+} from './inboxFilterPersistence';
+
 
 const log = getLogger('useInboxFilters');
 
