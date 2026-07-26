@@ -110,6 +110,8 @@ export function useEvolutionAutoReconnect(instanceName?: string) {
   const consecutiveFailsRef = useRef(0);
   /** Epoch ms: polling is suspended until this timestamp. */
   const circuitOpenUntilRef = useRef(0);
+  /** Ref to scheduleNextAttempt — avoids circular deps between it and attemptSpecificReconnect. */
+  const scheduleNextAttemptRef = useRef<(() => void) | null>(null);
 
   const setIsReconnecting = useCallback((v: boolean) => {
     isReconnectingRef.current = v;
@@ -257,7 +259,10 @@ export function useEvolutionAutoReconnect(instanceName?: string) {
     backoffRef.current = nextDelay;
     if (timerRef.current) clearTimeout(timerRef.current);
     timerRef.current = setTimeout(() => void attemptSpecificReconnect(), nextDelay);
-  }, [setIsReconnecting, instanceName]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [setIsReconnecting, instanceName]);
+
+  // Populate ref AFTER definition — breaks circular deps without stale closures
+  scheduleNextAttemptRef.current = scheduleNextAttempt;
 
   const attemptSpecificReconnect = useCallback(async () => {
     if (!instanceName || isReconnectingRef.current) return;
@@ -277,12 +282,12 @@ export function useEvolutionAutoReconnect(instanceName?: string) {
       if (state === 'open') {
         log.info(`Successfully reconnected instance ${instanceName}`);
         backoffRef.current = INITIAL_BACKOFF_MS;
-        reconnectAttemptCountRef.current = 0; // reset on success
+        reconnectAttemptCountRef.current = 0;
         setIsReconnecting(false);
         queryClient.invalidateQueries({ queryKey: queryKeys.evolutionConversations.all() });
         eventBus.emit('connection:recovered', { instanceName });
       } else {
-        scheduleNextAttempt();
+        scheduleNextAttemptRef.current?.();
       }
     } catch (err: unknown) {
       const httpStatus = extractHttpStatus(err);
@@ -301,7 +306,7 @@ export function useEvolutionAutoReconnect(instanceName?: string) {
       }
 
       log.error(`Failed to reconnect instance ${instanceName}:`, err);
-      scheduleNextAttempt();
+      scheduleNextAttemptRef.current?.();
     }
   }, [
     instanceName,
@@ -309,7 +314,7 @@ export function useEvolutionAutoReconnect(instanceName?: string) {
     getInstanceStatus,
     queryClient,
     setIsReconnecting,
-    scheduleNextAttempt,
+    eventBus,
   ]);
 
   /**

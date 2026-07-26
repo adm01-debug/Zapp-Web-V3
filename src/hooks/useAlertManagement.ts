@@ -174,7 +174,11 @@ export function useWarRoomAlertsManagement(soundEnabled = true): UseWarRoomAlert
           }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status !== 'SUBSCRIBED') {
+          log.warn('[useWarRoomAlertsManagement] warroom alerts subscription status:', status);
+        }
+      });
 
     return () => {
       channel.unsubscribe();

@@ -43,7 +43,10 @@ Deno.serve(async (req) => {
   const report: Record<string, unknown> = { started_at: new Date().toISOString() };
 
   try {
-    const body = await req.json().catch(() => ({}));
+    const body = await req.json().catch((e) => {
+      console.error('[lgpd-scheduled-jobs] Failed to parse request body:', e);
+      return {};
+    });
     const { job } = body;
 
     // ── Job 1: Anonimizar contatos com solicitação de exclusão pendente ──
