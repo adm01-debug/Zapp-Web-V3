@@ -4,9 +4,15 @@
  * FONTE DE VERDADE dinâmica: `SELECT instance_name, is_active FROM whatsapp_connections`.
  * Esta constante é o fallback estático de validação/UX.
  *
- * INSTÂNCIAS ATIVAS (verificado 2026-07-03):
- *  - wpp_pink_test: instância principal ATIVA (5342 msgs, 2203 convs)
- *  - wpp2          : instância legada (1.8M msgs histórico até Maio 2026)
+ * INSTÂNCIAS (reverificado contra o banco em 2026-07-26):
+ *  - wpp2          : instância PRODUTIVA. is_active=true, status='connected',
+ *                    12.527 conversas, mensagens até 2026-07-24.
+ *  - wpp_pink_test : instância de TESTE. is_active=false, status='archived',
+ *                    0 mensagens e 0 conversas — nunca recebeu tráfego.
+ *
+ * ATENCAO: até 2026-07-26 ACTIVE_WHATSAPP_INSTANCE apontava para
+ * `wpp_pink_test`, o que zerava a sidebar, zerava a abertura de conversas e
+ * disparava o fallback "sem filtro de instância" a cada carga da Inbox.
  *
  * Para adicionar uma nova instância:
  *  1. Adicione-a em WHATSAPP_INSTANCES abaixo.
@@ -38,7 +44,7 @@ export const DEFAULT_WHATSAPP_INSTANCE: WhatsAppInstance = 'wpp2';
  * Instância atualmente ATIVA (recebe mensagens novas).
  * Atualizar quando a instância principal mudar.
  */
-export const ACTIVE_WHATSAPP_INSTANCE: WhatsAppInstance = 'wpp_pink_test';
+export const ACTIVE_WHATSAPP_INSTANCE: WhatsAppInstance = 'wpp2';
 
 /**
  * Valor sentinela para indicar "todas as instâncias" nas RPCs.
