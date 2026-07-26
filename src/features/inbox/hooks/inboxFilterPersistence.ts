@@ -7,7 +7,7 @@
  */
 import { safeGetJSON, safeSetJSON } from '@/lib/safeStorage';
 import type { MainTab, SubTab } from '@/features/inbox/components/TicketTabs';
-import type { FailureCategory } from './inboxFilterPipeline';
+import type { FailureCategory } from '@/features/inbox';
 
 const STORAGE_KEY = 'inbox_filters_v1';
 
