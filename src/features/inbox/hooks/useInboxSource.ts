@@ -24,8 +24,24 @@ export function useInboxSource(useExternalDb: boolean, selectedContactId: string
   // Search and Filter controls (always from localRealtime for UI consistency)
   const { search, setSearch, statusFilter, setStatusFilter, sortBy, setSortBy } = localRealtime;
 
+  // Deriva a instancia WhatsApp da conversa selecionada.
+  // Isso garante que ao adicionar uma segunda instancia (ex.: wpp3), o hook de
+  // mensagens busque na particao correta em vez de filtrar sempre por DEFAULT_INSTANCE.
+  const selectedConversationInstance = useMemo(() => {
+    if (!useExternalDb || !selectedContactId) return undefined;
+    const found = conversations.find(
+      (c) =>
+        c.contact.id === selectedContactId ||
+        (c.contact.remote_jid != null && c.contact.remote_jid === selectedContactId)
+    );
+    return found?.contact.instance_name ?? undefined;
+  }, [useExternalDb, selectedContactId, conversations]);
+
   // Messages for selected contact
-  const externalMsgs = useExternalMessages(useExternalDb ? selectedContactId : null);
+  const externalMsgs = useExternalMessages(
+    useExternalDb ? selectedContactId : null,
+    selectedConversationInstance
+  );
   const localMsgs = useMessages({
     contactId: useExternalDb ? null : selectedContactId,
     enabled: !useExternalDb && Boolean(selectedContactId),

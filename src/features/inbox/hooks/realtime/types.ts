@@ -41,12 +41,12 @@ export interface RealtimeMessage {
   deleted_at?: string | null;
   retry_attempt?: number | null;
   retry_total?: number | null;
-  /** Cache do avatar do contato para mensagens recebidas. Propagado durante a hidratação/reconciliação. */
+  /** Cache do avatar do contato para mensagens recebidas. Propagado durante a hidratacao/reconciliacao. */
   contactAvatar?: string | null;
   reactions?: MessageReaction[] | null;
-  /** Meta-informações brutas da Evolution/WhatsApp API (ex.: ptt, mime_type). */
+  /** Meta-informacoes brutas da Evolution/WhatsApp API (ex.: ptt, mime_type). */
   media_meta?: Record<string, unknown> | null;
-  /** ID de meme de áudio do WhatsApp Business. Presente apenas em mensagens de tipo audio_meme. */
+  /** ID de meme de audio do WhatsApp Business. Presente apenas em mensagens de tipo audio_meme. */
   audio_meme_id?: string | null;
 }
 
@@ -79,6 +79,10 @@ export interface ConversationContact {
   ai_sentiment: string | null;
   channel_type: string | null;
   channel_connection_id: string | null;
+  /** JID do WhatsApp (ex.: 5511...@s.whatsapp.net ou @lid). */
+  remote_jid?: string | null;
+  /** Nome da instancia Evolution API a que o contato pertence. */
+  instance_name?: string | null;
 }
 
 /** Aggregated view of a contact together with their sorted, deduplicated message list, unread count, and last message reference. */
