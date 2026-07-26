@@ -9,6 +9,7 @@ import { BulkActionsToolbar } from './BulkActionsToolbar';
 import { InboxFilters } from './InboxFilters';
 import { ContactTypeFilter, FILTER_OPTIONS } from './ContactTypeFilter';
 import { FailureCategoryFilter } from './FailureCategoryFilter';
+import { InboxFilterPresets } from './InboxFilterPresets';
 import { TicketTabs } from './TicketTabs';
 import type { InboxScope } from './TicketTabs';
 import type { useInboxFilters } from '../hooks/useInboxFilters';
@@ -197,6 +198,14 @@ export function ConversationListSidebar({
               conversations={inbox.cachedConversations ?? []}
             />
           </div>
+
+          <InboxFilterPresets
+            presets={inboxFilters.presets}
+            onApply={inboxFilters.applyInboxPreset}
+            onSave={inboxFilters.saveInboxPreset}
+            onDelete={inboxFilters.deleteInboxPreset}
+          />
+
 
           {inboxFilters.showOnlyRetrying && (
             <FailureCategoryFilter
