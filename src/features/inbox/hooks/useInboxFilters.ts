@@ -391,6 +391,34 @@ export function useInboxFilters({
 
   const inboxTabCounts = useMemo(() => computeInboxTabCounts(pipelineOptions), [pipelineOptions]);
 
+  /**
+   * Fallback único para o estado restaurado (URL/localStorage): se a aba principal
+   * restaurada (Não lidas/Resolvidos) estiver vazia mas houver conversas em Abertos,
+   * volta para 'open' para não abrir a Inbox vazia após um reload.
+   * Só roda uma vez, preservando a navegação manual posterior do usuário.
+   */
+  const restoredTabCheckedRef = useRef(false);
+  useEffect(() => {
+    if (restoredTabCheckedRef.current) return;
+    if (conversations.length === 0) return;
+    restoredTabCheckedRef.current = true;
+
+    if (mainTab === 'open') return;
+    const restoredCount = mainTab === 'unread' ? inboxTabCounts.unread : inboxTabCounts.resolved;
+    const openCount = Math.max(inboxTabCounts.attending, inboxTabCounts.waiting);
+    if (mainTab !== 'search' && restoredCount === 0 && openCount > 0) {
+      log.info('Aba restaurada vazia; retornando para "Abertos"', { mainTab });
+      setMainTab('open');
+    }
+  }, [
+    mainTab,
+    conversations.length,
+    inboxTabCounts.unread,
+    inboxTabCounts.resolved,
+    inboxTabCounts.attending,
+    inboxTabCounts.waiting,
+  ]);
+
   useEffect(() => {
     if (mainTab !== 'open' || conversations.length === 0) return;
 
@@ -403,6 +431,7 @@ export function useInboxFilters({
       setSubTab('attending');
     }
   }, [mainTab, subTab, conversations.length, inboxTabCounts.attending, inboxTabCounts.waiting]);
+
 
   const filteredConversations = useMemo(
     () => applyInboxFilters(pipelineOptions),
