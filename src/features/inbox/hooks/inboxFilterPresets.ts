@@ -181,13 +181,10 @@ export function editInboxPreset(
   const target = presets.find((p) => p.id === id);
   if (!target) return presets;
 
-  const nextName = (changes.name ?? target.name).trim();
-  if (!nextName) return presets;
+  const validation = validatePresetName(changes.name ?? target.name, presets, id);
+  if (!validation.ok) return presets;
+  const nextName = validation.value;
 
-  const duplicated = presets.some(
-    (p) => p.id !== id && p.name.trim().toLowerCase() === nextName.toLowerCase()
-  );
-  if (duplicated) return presets;
 
   const updated: InboxFilterPreset = {
     ...target,
