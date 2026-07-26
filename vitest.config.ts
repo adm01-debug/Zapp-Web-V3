@@ -88,6 +88,13 @@ export default defineConfig({
       'src/lib/__tests__/diagnostics.test.ts',
       'src/lib/realtime/__tests__/crossTabDedupe.test.ts',
       'src/test/realtimeFanoutEvents.test.ts',
+      // Deno test files — use Deno.test() + https://deno.land imports, incompatible with Vitest/Node ESM
+      'src/hooks/__tests__/useAudioRecorder.cleanup.test.ts',
+      'src/lib/__tests__/clientRateLimiter.test.ts',
+      'src/lib/__tests__/healthCheck.test.ts',
+      'src/lib/__tests__/queryTimeout.test.ts',
+      'src/lib/__tests__/sanitize-extra.test.ts',
+      'src/shared/__tests__/validation.test.ts',
     ],
     coverage: {
       provider: 'v8',
