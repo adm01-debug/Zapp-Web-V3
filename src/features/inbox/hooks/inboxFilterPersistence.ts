@@ -42,8 +42,32 @@ const EMPTY: PersistedInboxFilters = {
   failureCategory: null,
 };
 
-function pick<T extends string>(value: string | null | undefined, allowed: T[]): T | null {
-  return value && (allowed as string[]).includes(value) ? (value as T) : null;
+/** Escopos válidos da Inbox. */
+export const INBOX_SCOPES = ['mine', 'department', 'all'] as const;
+export type InboxScope = (typeof INBOX_SCOPES)[number];
+
+/** Limite defensivo para o termo de busca vindo da URL (evita URLs abusivas). */
+const MAX_SEARCH_LENGTH = 200;
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const CONTACT_TYPE_RE = /^[a-z0-9_]{1,40}$/;
+
+function pick<T extends string>(value: string | null | undefined, allowed: readonly T[]): T | null {
+  return value && (allowed as readonly string[]).includes(value) ? (value as T) : null;
+}
+
+function sanitizeSearch(value: string | null | undefined): string | null {
+  if (typeof value !== 'string') return null;
+  const trimmed = value.replace(/[\u0000-\u001f\u007f]/g, '').trim();
+  if (!trimmed) return '';
+  return trimmed.slice(0, MAX_SEARCH_LENGTH);
+}
+
+function sanitizeQueueId(value: string | null | undefined): string | null {
+  return typeof value === 'string' && UUID_RE.test(value) ? value : null;
+}
+
+function sanitizeContactType(value: string | null | undefined): string | null {
+  return typeof value === 'string' && CONTACT_TYPE_RE.test(value) ? value : null;
 }
 
 /** Lê os filtros persistidos no localStorage (tolerante a payload inválido). */
@@ -52,9 +76,9 @@ export function readStoredInboxFilters(): PersistedInboxFilters {
   return {
     mainTab: pick(raw.mainTab, MAIN_TABS),
     subTab: pick(raw.subTab, SUB_TABS),
-    search: typeof raw.search === 'string' ? raw.search : null,
-    contactType: typeof raw.contactType === 'string' ? raw.contactType : null,
-    queueId: typeof raw.queueId === 'string' ? raw.queueId : null,
+    search: sanitizeSearch(raw.search),
+    contactType: sanitizeContactType(raw.contactType),
+    queueId: sanitizeQueueId(raw.queueId),
     showOnlyRetrying: typeof raw.showOnlyRetrying === 'boolean' ? raw.showOnlyRetrying : null,
     failureCategory: pick(raw.failureCategory, FAILURE_CATEGORIES),
   };
@@ -65,27 +89,93 @@ export function writeStoredInboxFilters(value: PersistedInboxFilters): void {
   safeSetJSON(STORAGE_KEY, value);
 }
 
+/** Lê o escopo da URL/localStorage com fallback seguro para 'mine'. */
+export function resolveInitialScope(searchString: string): InboxScope {
+  const params = new URLSearchParams(searchString);
+  const fromUrl = pick(params.get('scope'), INBOX_SCOPES);
+  if (fromUrl) return fromUrl;
+  let stored: string | null = null;
+  try {
+    stored = localStorage.getItem('inbox_scope');
+  } catch {
+    stored = null;
+  }
+  return pick(stored, INBOX_SCOPES) ?? 'mine';
+}
+
+/** Lê o flag showAll da URL/localStorage aceitando apenas booleanos explícitos. */
+export function resolveInitialShowAll(searchString: string): boolean {
+  const params = new URLSearchParams(searchString);
+  const fromUrl = params.get('showAll');
+  if (fromUrl === 'true') return true;
+  if (fromUrl === 'false') return false;
+  try {
+    return localStorage.getItem('inbox_show_all') === 'true';
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Remove da query string parâmetros de filtro com valores inválidos
+ * (links antigos/manipulados). Retorna a nova query e os nomes removidos.
+ */
+export function sanitizeInboxUrlParams(searchString: string): {
+  search: string;
+  removed: string[];
+} {
+  const params = new URLSearchParams(searchString);
+  const removed: string[] = [];
+  const drop = (key: string) => {
+    params.delete(key);
+    removed.push(key);
+  };
+
+  const checks: Array<[string, (v: string) => boolean]> = [
+    ['tab', (v) => (MAIN_TABS as string[]).includes(v)],
+    ['subTab', (v) => (SUB_TABS as string[]).includes(v)],
+    ['scope', (v) => (INBOX_SCOPES as readonly string[]).includes(v)],
+    ['showAll', (v) => v === 'true' || v === 'false'],
+    ['failuresOnly', (v) => v === 'true' || v === 'false'],
+    ['failureCategory', (v) => (FAILURE_CATEGORIES as string[]).includes(v)],
+    ['queue', (v) => v === 'all' || UUID_RE.test(v)],
+    ['type', (v) => v === 'all' || CONTACT_TYPE_RE.test(v)],
+    ['q', (v) => v.length <= MAX_SEARCH_LENGTH],
+  ];
+
+  for (const [key, isValid] of checks) {
+    const value = params.get(key);
+    if (value !== null && !isValid(value)) drop(key);
+  }
+
+  return { search: params.toString(), removed };
+}
+
 /**
  * Resolve o estado inicial combinando URL (prioridade) e localStorage (fallback).
+ * Valores inválidos na URL são ignorados e caem no fallback persistido.
  */
 export function resolveInitialInboxFilters(searchString: string): PersistedInboxFilters {
   const params = new URLSearchParams(searchString);
   const stored = readStoredInboxFilters();
 
-  const urlType = params.get('type');
-  const urlQueue = params.get('queue');
-  const urlSearch = params.get('q');
+  const urlType = sanitizeContactType(params.get('type'));
+  const urlQueue = sanitizeQueueId(params.get('queue'));
+  const urlSearch = sanitizeSearch(params.get('q'));
   const urlFailures = params.get('failuresOnly');
+  const rawType = params.get('type');
+  const rawQueue = params.get('queue');
 
   return {
     mainTab: pick(params.get('tab'), MAIN_TABS) ?? stored.mainTab ?? EMPTY.mainTab,
     subTab: pick(params.get('subTab'), SUB_TABS) ?? stored.subTab ?? EMPTY.subTab,
     search: urlSearch !== null ? urlSearch : stored.search,
-    contactType: urlType && urlType !== 'all' ? urlType : (urlType ? null : stored.contactType),
-    queueId: urlQueue && urlQueue !== 'all' ? urlQueue : (urlQueue ? null : stored.queueId),
+    contactType: urlType && urlType !== 'all' ? urlType : (rawType === 'all' ? null : stored.contactType),
+    queueId: urlQueue ?? (rawQueue === 'all' ? null : stored.queueId),
     showOnlyRetrying:
-      urlFailures !== null ? urlFailures === 'true' : stored.showOnlyRetrying,
+      urlFailures === 'true' ? true : urlFailures === 'false' ? false : stored.showOnlyRetrying,
     failureCategory:
       pick(params.get('failureCategory'), FAILURE_CATEGORIES) ?? stored.failureCategory,
   };
 }
+
