@@ -1,13 +1,23 @@
+# fix-schema-refs.yml
+# Updated to create PR instead of direct commit (branch protection now active)
+
 name: Fix schema references
+
 on:
   workflow_dispatch:
+
 permissions:
   contents: write
+  pull-requests: write
+
 jobs:
   fix:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
       - name: Replace all schema public refs with zapp
         run: |
           find src/ -type f \( -name '*.ts' -o -name '*.tsx' \) \
@@ -15,11 +25,56 @@ jobs:
             xargs -r sed -i "s/schema: 'public'/schema: 'zapp'/g"
           echo "Files changed:"
           git diff --stat
-      - name: Commit and push
+
+      - name: Check for changes
+        id: diff
+        run: |
+          if git diff --quiet; then
+            echo "changed=false" >> $GITHUB_OUTPUT
+            echo "No changes needed"
+          else
+            echo "changed=true" >> $GITHUB_OUTPUT
+            echo "Changes detected"
+            git diff --stat
+          fi
+
+      - name: Create PR if changed
+        if: steps.diff.outputs.changed == 'true'
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email 'github-actions[bot]@users.noreply.github.com'
+
+          TIMESTAMP=$(date +%Y%m%d%H%M%S)
+          BRANCH_NAME="fix/schema-public-to-zapp-${TIMESTAMP}"
+
+          git checkout -b "$BRANCH_NAME"
           git add -A
-          git diff --cached --quiet && echo 'No changes' && exit 0
           git commit -m 'fix: migrate ALL realtime subscriptions from schema public to zapp'
-          git push
+          git push -u origin "$BRANCH_NAME"
+
+          gh pr create \
+            --title "fix: migrate realtime subscriptions from public to zapp schema" \
+            --body "## Summary
+
+Automated migration of Realtime subscriptions from \`schema: 'public'\` to \`schema: 'zapp'\`.
+
+## Why
+
+The \`public\` schema contains proxy views, not physical tables. Only the \`zapp\` schema has physical tables that are published to Realtime.
+
+## Verification
+
+- [ ] CI passes
+- [ ] Realtime subscriptions work correctly
+- [ ] 1 approval required before merge" \
+            --base main
+
+      - name: Summary
+        if: steps.diff.outputs.changed == 'true'
+        run: |
+          echo '## ✅ Schema fix PR created' >> $GITHUB_STEP_SUMMARY
+          echo '' >> $GITHUB_STEP_SUMMARY
+          echo 'PR requires 1 approval before merge.' >> $GITHUB_STEP_SUMMARY
+        if: steps.diff.outputs.changed == 'false'
+        run: |
+          echo '## ℹ️ No changes needed' >> $GITHUB_STEP_SUMMARY
