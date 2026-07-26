@@ -369,7 +369,8 @@ export async function markChatRead(remoteJid: string, instance: string = DEFAULT
   });
 
   if (response && !response.ok) {
-    log.warn('[evolutionClient] markChatRead edge fn returned:', response.status);
+    const detail = await response.json().catch(() => null) as { upstream_status?: number; reason?: string } | null;
+    log.warn('[evolutionClient] markChatRead edge fn returned:', response.status, detail?.upstream_status ?? detail?.reason ?? '');
   }
 }
 

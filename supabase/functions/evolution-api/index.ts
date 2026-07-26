@@ -916,7 +916,7 @@ Deno.serve(async (req) => {
           .eq('instance_name', instance)
           .eq('from_me', false)
           .order('created_at', { ascending: false })
-          .limit(50);
+          .limit(500);
 
         if (msgsErr) {
           return new Response(JSON.stringify({ ok: false, skipped: true, reason: 'db_error' }), {
@@ -924,11 +924,13 @@ Deno.serve(async (req) => {
           });
         }
 
-        const readMessages = (msgs ?? []).map((m: { message_id: string; from_me: boolean }) => ({
-          id: m.message_id,
-          fromMe: m.from_me ?? false,
-          remoteJid,
-        }));
+        const readMessages = (msgs ?? [])
+          .filter((m: { message_id: string | null; from_me: boolean }) => m.message_id != null && m.message_id !== '')
+          .map((m: { message_id: string; from_me: boolean }) => ({
+            id: m.message_id,
+            fromMe: m.from_me ?? false,
+            remoteJid,
+          }));
 
         if (!readMessages.length) {
           return new Response(JSON.stringify({ ok: true, skipped: true, reason: 'no_messages' }), {
@@ -940,11 +942,11 @@ Deno.serve(async (req) => {
         if (response.ok) return response;
         const text = await response.text().catch(() => '');
         return new Response(JSON.stringify({ ok: false, skipped: true, upstream_status: response.status, details: text }), {
-          status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       } catch (err) {
         return new Response(JSON.stringify({ ok: false, skipped: true, error: 'proxy error' }), {
-          status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
     }
