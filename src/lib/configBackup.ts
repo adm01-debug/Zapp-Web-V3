@@ -57,11 +57,11 @@ class ConfigBackupService {
    */
   createSnapshot(options: BackupOptions = {}): ConfigSnapshot {
     const settings = {
-      theme: this.getLocalStorageItem('zapp:theme'),
-      language: this.getLocalStorageItem('zapp:language'),
-      notifications: this.getLocalStorageItem('zapp:notifications', {}),
-      shortcuts: this.getLocalStorageItem('zapp:shortcuts', {}),
-      ui: this.getLocalStorageItem('zapp:ui-state', {}),
+      theme: this.getLocalStorageItem<string>('zapp:theme'),
+      language: this.getLocalStorageItem<string>('zapp:language'),
+      notifications: this.getLocalStorageItem<Record<string, boolean>>('zapp:notifications', {}),
+      shortcuts: this.getLocalStorageItem<Record<string, string>>('zapp:shortcuts', {}),
+      ui: this.getLocalStorageItem<Record<string, unknown>>('zapp:ui-state', {}),
     };
 
     const snapshot: ConfigSnapshot = {
