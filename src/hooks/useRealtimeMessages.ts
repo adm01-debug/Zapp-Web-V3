@@ -1,5 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { getLogger } from '@/lib/logger';
+
+const log = getLogger('useRealtimeMessages');
 
 interface Contact {
   id: string;
@@ -191,9 +194,14 @@ export function useRealtimeMessages() {
         }
       );
 
-    channel.subscribe();
+    channel.subscribe((status) => {
+      if (status !== 'SUBSCRIBED') {
+        log.warn('[useRealtimeMessages] channel subscription status:', status);
+      }
+    });
 
     return () => {
+      channel.unsubscribe();
       supabase.removeChannel(channel).catch(() => {});
     };
   }, [fetchData]);

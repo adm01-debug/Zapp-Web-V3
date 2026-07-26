@@ -51,7 +51,7 @@ export function useTypingPresence({
         clearTimeout(stopTimerRef.current);
         stopTimerRef.current = null;
       }
-      channelRef.current = null;
+      channel.unsubscribe();
       supabase.removeChannel(channel);
     };
   }, [conversationId, currentUserId]);

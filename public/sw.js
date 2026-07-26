@@ -111,6 +111,14 @@ self.addEventListener('message', (event) => {
   if (event.origin !== self.location.origin) return;
   if (!event.data || typeof event.data.type !== 'string') return;
   if (event.data.type === 'SKIP_WAITING') self.skipWaiting();
+  if (event.data.type === 'SW_UPDATED') {
+    event.waitUntil(
+      (async () => {
+        const clients = await self.clients.matchAll({ includeUncontrolled: true, type: 'window' });
+        clients.forEach((c) => c.postMessage({ type: 'SW_UPDATED', buildId: self.__ZAPP_SW_BUILD_ID }));
+      })()
+    );
+  }
   if (event.data.type === 'SHOW_NOTIFICATION') {
     const { title, options } = event.data;
     if (typeof title === 'string') self.registration.showNotification(title, options);
