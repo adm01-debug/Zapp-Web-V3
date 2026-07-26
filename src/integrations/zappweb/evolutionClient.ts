@@ -355,7 +355,7 @@ export async function markChatRead(remoteJid: string, instance: string = DEFAULT
   const token = sessionData.session?.access_token;
   if (!token) return;
 
-  await fetch(`${SUPABASE_RESOLVED_URL}/functions/v1/evolution-api`, {
+  const response = await fetch(`${SUPABASE_RESOLVED_URL}/functions/v1/evolution-api`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -365,7 +365,12 @@ export async function markChatRead(remoteJid: string, instance: string = DEFAULT
     body: JSON.stringify({ action: 'read-messages', instanceName: instance, remoteJid }),
   }).catch((err: unknown) => {
     log.warn('[evolutionClient] markChatRead edge fn call failed:', err);
+    return undefined;
   });
+
+  if (response && !response.ok) {
+    log.warn('[evolutionClient] markChatRead edge fn returned:', response.status);
+  }
 }
 
 // ─── Status ──────────────────────────────────────────────────────────────

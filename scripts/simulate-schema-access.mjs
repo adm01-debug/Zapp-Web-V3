@@ -60,12 +60,13 @@ for (const t of zappTables) {
 }
 
 // -- Categoria 2: evo reads ---------------------------------------
+// Only tables that have NO VIEW proxy in zapp and must be accessed via .schema('evo').
+// EXCLUDED: evolution_contacts, evolution_media, evolution_whatsapp_status — these
+// exist as auto-updatable VIEW proxies in zapp (security_invoker=on) and MUST be
+// accessed WITHOUT .schema('evo') from client code (CLAUDE.md rule 2, SUP-004).
 const evoTables = [
   'evolution_messages_wpp2',
-  'evolution_contacts',
-  'evolution_media',
   'evolution_conversations_wpp2',
-  'evolution_whatsapp_status',
 ];
 for (const t of evoTables) {
   let ok = true;

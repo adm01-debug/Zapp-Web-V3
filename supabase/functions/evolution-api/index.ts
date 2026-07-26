@@ -909,7 +909,7 @@ Deno.serve(async (req) => {
       try {
         // Evolution API v2 removed /chat/markChatRead — use /chat/markMessageAsRead with
         // explicit message keys fetched from the DB (last 50 incoming messages for this JID).
-        const { data: msgs } = await supabase
+        const { data: msgs, error: msgsErr } = await supabase
           .from('evolution_messages')
           .select('message_id, from_me')
           .eq('remote_jid', remoteJid)
@@ -917,6 +917,12 @@ Deno.serve(async (req) => {
           .eq('from_me', false)
           .order('created_at', { ascending: false })
           .limit(50);
+
+        if (msgsErr) {
+          return new Response(JSON.stringify({ ok: false, skipped: true, reason: 'db_error' }), {
+            status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
 
         const readMessages = (msgs ?? []).map((m: { message_id: string; from_me: boolean }) => ({
           id: m.message_id,
