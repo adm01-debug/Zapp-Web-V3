@@ -35,11 +35,19 @@ export function useInboxFilters({
   sortBy,
   statusFilter,
 }: UseInboxFiltersProps) {
-  const [mainTab, setMainTab] = useState<MainTab>('open');
+  // Estado inicial restaurado da URL (prioridade) ou do localStorage.
+  const initialPersisted = useRef(
+    resolveInitialInboxFilters(window.location.search)
+  ).current;
+
+  const [mainTab, setMainTab] = useState<MainTab>(initialPersisted.mainTab ?? 'open');
   // Default 'waiting': funciona tanto para DB local (não atribuídos) quanto para
   // a fonte Evolution externa (contatos derivados com assigned_to = null).
   // Evita que a tela abra vazia em 'Atendendo + mine' quando ninguém está atribuído.
-  const [subTab, setSubTab] = useState<SubTab>('waiting');
+  const [subTab, setSubTab] = useState<SubTab>(initialPersisted.subTab ?? 'waiting');
+  // Se a sub-aba veio persistida/deep-link, respeitamos a escolha do usuário e
+  // desativamos o auto-switch inicial.
+  const userChoseSubTabRef = useRef(initialPersisted.subTab !== null);
   const [showAll, setShowAll] = useState(() => {
     const params = new URLSearchParams(window.location.search);
     return params.get('showAll') === 'true' || localStorage.getItem('inbox_show_all') === 'true';
@@ -57,12 +65,19 @@ export function useInboxFilters({
     permissions,
   } = usePermissions();
   const [departmentAgentIds, setDepartmentAgentIds] = useState<string[]>([]);
-  const [selectedQueueId, setSelectedQueueId] = useState<string | null>(null);
-  const [selectedContactType, setSelectedContactType] = useState<string | null>(null);
-  const [showOnlyRetrying, setShowOnlyRetrying] = useState(false);
-  const [failureCategoryFilter, setFailureCategoryFilter] = useState<FailureCategory | 'all'>(
-    'all'
+  const [selectedQueueId, setSelectedQueueId] = useState<string | null>(
+    initialPersisted.queueId
   );
+  const [selectedContactType, setSelectedContactType] = useState<string | null>(
+    initialPersisted.contactType
+  );
+  const [showOnlyRetrying, setShowOnlyRetrying] = useState(
+    initialPersisted.showOnlyRetrying ?? false
+  );
+  const [failureCategoryFilter, setFailureCategoryFilter] = useState<FailureCategory | 'all'>(
+    initialPersisted.failureCategory ?? 'all'
+  );
+
 
   const {
     filters: urlFilters,
