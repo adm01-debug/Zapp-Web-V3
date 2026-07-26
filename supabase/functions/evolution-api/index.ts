@@ -952,24 +952,26 @@ Deno.serve(async (req) => {
         }
 
         const response = await proxy(`/chat/markMessageAsRead/${instance}`, 'POST', { readMessages });
-        if (response.ok) {
-          // Persist read state so subsequent calls don't resend the same receipts
-          // if the Evolution chats.update webhook is delayed or lost. Awaited before
-          // returning so the update completes before the Deno execution context closes.
+        // proxyToEvolution always returns HTTP 200; check JSON envelope for upstream errors
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const envelope = await response.json().catch(() => ({}) as any) as Record<string, unknown>;
+        if (!envelope.error) {
+          // Persist read state only for the exact IDs acknowledged by Evolution.
+          // Restricting by message_id prevents marking as read any messages that
+          // arrived after allMsgRows was collected but before the proxy call returned.
+          const acknowledgedIds = readMessages.map((m) => m.id);
           const { error: updateErr } = await supabase
             .from('evolution_messages')
             .update({ is_read: true })
-            .eq('remote_jid', remoteJid)
-            .eq('instance_name', instance)
-            .eq('from_me', false)
-            .eq('is_read', false);
+            .in('message_id', acknowledgedIds);
           if (updateErr) {
             log.warn('[evolution-api] read-messages: failed to persist is_read=true:', updateErr.message);
           }
-          return response;
+          return new Response(JSON.stringify(envelope), {
+            status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
         }
-        const text = await response.text().catch(() => '');
-        return new Response(JSON.stringify({ ok: false, skipped: true, upstream_status: response.status, details: text }), {
+        return new Response(JSON.stringify({ ok: false, skipped: true, upstream_status: envelope.status, details: envelope.message }), {
           status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       } catch (err) {
