@@ -1,0 +1,45 @@
+name: E46 — Regression Test Gate
+
+on:
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  regression-test-gate:
+    name: Regression Test Requirement
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Collect PR metadata
+        id: pr_meta
+        run: |
+          # PR title
+          echo "pr_title=${{ github.event.pull_request.title }}" >> "$GITHUB_OUTPUT"
+
+          # Changed files in this PR
+          git fetch origin ${{ github.base_ref }}
+          CHANGED=$(git diff --name-only "origin/${{ github.base_ref }}"...HEAD)
+          echo "changed_files<<EOF" >> "$GITHUB_OUTPUT"
+          echo "$CHANGED" >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
+
+          # Commit messages in this PR (one per line)
+          COMMITS=$(git log --format="%s" "origin/${{ github.base_ref }}"..HEAD)
+          echo "commit_messages<<EOF" >> "$GITHUB_OUTPUT"
+          echo "$COMMITS" >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
+
+      - name: E46 — Enforce regression test for fix: PRs
+        # Advisory: warns when fix: PR has no test file changes.
+        # Set ADVISORY=false (or remove continue-on-error) to make this blocking.
+        env:
+          PR_TITLE: ${{ steps.pr_meta.outputs.pr_title }}
+          CHANGED_FILES: ${{ steps.pr_meta.outputs.changed_files }}
+          COMMIT_MESSAGES: ${{ steps.pr_meta.outputs.commit_messages }}
+          ADVISORY: "false"
+        run: node scripts/check-fix-regression-test.mjs
+        continue-on-error: true

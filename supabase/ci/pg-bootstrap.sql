@@ -165,3 +165,28 @@ CREATE OR REPLACE FUNCTION cron.unschedule(jobid bigint)
 -- net.http_post stub (pg_net calls in migrations)
 CREATE OR REPLACE FUNCTION net.http_post(url text, body jsonb DEFAULT NULL, headers jsonb DEFAULT NULL, timeout_milliseconds int DEFAULT 5000)
   RETURNS bigint LANGUAGE sql AS $$ SELECT 0::bigint; $$;
+
+-- ---------------------------------------------------------------------------
+-- 7. Supabase Realtime publication stub
+-- ---------------------------------------------------------------------------
+-- Migrations use ALTER PUBLICATION supabase_realtime ADD TABLE ...
+-- This publication doesn't exist in vanilla Postgres 16.
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_publication WHERE pubname = 'supabase_realtime') THEN
+    CREATE PUBLICATION supabase_realtime FOR ALL TABLES;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_publication WHERE pubname = 'logflare_pub') THEN
+    CREATE PUBLICATION logflare_pub FOR ALL TABLES;
+  END IF;
+END;
+$$;
+
+-- ---------------------------------------------------------------------------
+-- 8. pgsodium stub (some migrations reference pgsodium.create_key etc.)
+-- ---------------------------------------------------------------------------
+CREATE SCHEMA IF NOT EXISTS pgsodium;
+CREATE OR REPLACE FUNCTION pgsodium.create_key(key_type text DEFAULT 'aead-det', name text DEFAULT NULL, raw_key bytea DEFAULT NULL, raw_key_nonce bytea DEFAULT NULL, parent_key uuid DEFAULT NULL, comment text DEFAULT NULL, expires timestamptz DEFAULT NULL, associated_data text DEFAULT '')
+  RETURNS TABLE(id uuid, name text, status text, key_type text, key_id bigint, key_context bytea, created timestamptz, expires timestamptz, comment text)
+  LANGUAGE sql AS $$ SELECT gen_random_uuid(), '', 'valid', 'aead-det', 1, ''::bytea, now(), NULL::timestamptz, ''; $$;
+CREATE OR REPLACE FUNCTION pgsodium.server_key_id() RETURNS uuid LANGUAGE sql AS $$ SELECT gen_random_uuid(); $$;
