@@ -211,7 +211,8 @@ export function useMessagesCursor({
     abortRef.current?.abort();
     inFlightRef.current = false;
     if (mountedRef.current) setLoadingOlder(false);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional mount-only init
+  }, []);
 
   // Realtime — only set up when enabled + jid present.
   useEffect(() => {

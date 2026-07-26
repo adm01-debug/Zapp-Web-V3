@@ -81,7 +81,8 @@ export function RateLimitRealtimeAlerts() {
       channel.unsubscribe();
       supabase.removeChannel(channel);
     };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional mount-only init
+  }, []);
 
   const playAlertSound = () => {
     try {

@@ -13,9 +13,12 @@ const log = getLogger('RealtimeContacts');
 const FLUSH_DELAY_MS = 100;
 const BROADCAST_RE = /(^status@broadcast$|@broadcast$)/i;
 
-/** Contador de eventos descartados — exposto para métricas. */
-let _discardedEventCount = 0;
-export function getRealtimeDiscardedCount(): number { return _discardedEventCount; }
+// Module-level aggregate metric: intentionally shared across all hook instances so
+// monitoring dashboards see a cumulative total, not per-component counts.
+// Not reactive state — consumers must poll getRealtimeDiscardedCount() for reads.
+const _metrics = { discarded: 0 };
+export function getRealtimeDiscardedCount(): number { return _metrics.discarded; }
+export function resetRealtimeDiscardedCount(): void { _metrics.discarded = 0; }
 
 interface UseRealtimeContactsOptions {
   instance?: string;
@@ -212,12 +215,12 @@ export function useRealtimeContacts(options: UseRealtimeContactsOptions = {}) {
         // Log como debug (não warn) — este caso não é mais esperado após o fix,
         // mas pode acontecer em DELETEs sem REPLICA IDENTITY FULL configurado
         // em outras tabelas.
-        _discardedEventCount++;
+        _metrics.discarded++;
         log.debug('Payload sem remote_jid — descartando', {
           eventType: payload.eventType,
           hasNew: typeof payload.new === 'object' && Object.keys(payload.new ?? {}).length > 0,
           hasOld: typeof payload.old === 'object' && Object.keys(payload.old ?? {}).length > 0,
-          discardedTotal: _discardedEventCount,
+          discardedTotal: _metrics.discarded,
         });
         return;
       }

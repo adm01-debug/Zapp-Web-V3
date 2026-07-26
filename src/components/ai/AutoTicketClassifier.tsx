@@ -54,7 +54,7 @@ export function AutoTicketClassifier() {
     return () => {
       isMountedRef.current = false;
     };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [isMountedRef]);
 
   const loadClassifiedTickets = async () => {
     setLoading(true);

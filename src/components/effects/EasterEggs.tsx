@@ -155,7 +155,8 @@ export const EasterEggsProvider = forwardRef<HTMLDivElement, EasterEggsProviderP
           }
         }
       };
-    }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional mount-only init
+  }, []);
 
     // Reset shake count after inactivity
     useEffect(() => {
