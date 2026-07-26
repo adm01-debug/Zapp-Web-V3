@@ -7,10 +7,15 @@ import type { EvolutionContact } from '@/types/evolutionExternal';
 import { getLogger } from '@/lib/logger';
 import { DEFAULT_WHATSAPP_INSTANCE } from '@/lib/constants/whatsappInstances';
 import { setRealtimeContactsStatus } from './realtimeContactsStatusStore';
+import { sanitizeMediaUrl } from '@/lib/mediaUrl';
 
 const log = getLogger('RealtimeContacts');
 const FLUSH_DELAY_MS = 100;
 const BROADCAST_RE = /(^status@broadcast$|@broadcast$)/i;
+
+/** Contador de eventos descartados — exposto para métricas. */
+let _discardedEventCount = 0;
+export function getRealtimeDiscardedCount(): number { return _discardedEventCount; }
 
 interface UseRealtimeContactsOptions {
   instance?: string;
@@ -71,6 +76,9 @@ function hasReorderingChange(
  * omits a key (value === undefined). Critical for fields like `tags`: a
  * partial UPDATE that only changes `lead_status` must NOT wipe the
  * previously-known tags array out of the cache.
+ * 
+ * Also sanitizes profile_picture_url removing internal kong:8000 hosts
+ * (belt-and-suspenders against any residual data coming via realtime).
  */
 function mergeContact<T extends Partial<EvolutionContact>>(
   prev: T,
@@ -81,7 +89,34 @@ function mergeContact<T extends Partial<EvolutionContact>>(
     const v = (next as Record<string, unknown>)[k];
     if (v !== undefined) out[k] = v;
   }
+  // Sanitize profile picture URL — remove any kong:8000 host at render time
+  if (typeof out['profile_picture_url'] === 'string') {
+    out['profile_picture_url'] = sanitizeMediaUrl(out['profile_picture_url'] as string);
+  }
   return out as T; // ignore-audit: out is structurally T — built by spreading prev (typed T) and patching matching keys
+}
+
+/**
+ * Extrai a linha relevante de um payload Realtime.
+ *
+ * BUG FIX (C3): Em eventos DELETE, o Supabase Realtime envia:
+ *   payload.new = {} (objeto vazio, mas TRUTHY para ??)
+ *   payload.old = linha completa (com remote_jid, via REPLICA IDENTITY FULL)
+ *
+ * O operador ?? não funcionava porque {} não é null/undefined.
+ * A correção é usar payload.old explicitamente para DELETEs.
+ */
+function extractRow(
+  payload: RealtimePostgresChangesPayload<EvolutionContact>
+): EvolutionContact | undefined {
+  if (payload.eventType === 'DELETE') {
+    // payload.new é sempre {} em DELETEs — usar payload.old que tem a linha completa
+    const old = payload.old as Partial<EvolutionContact> | undefined;
+    return (old && Object.keys(old).length > 0 ? old : undefined) as EvolutionContact | undefined;
+  }
+  // INSERT / UPDATE: payload.new tem a linha nova (pode ser parcial em UPDATE)
+  const next = payload.new as Partial<EvolutionContact> | undefined;
+  return (next && Object.keys(next).length > 0 ? next : undefined) as EvolutionContact | undefined;
 }
 
 /**
@@ -169,9 +204,21 @@ export function useRealtimeContacts(options: UseRealtimeContactsOptions = {}) {
     };
 
     const handlePayload = (payload: RealtimePostgresChangesPayload<EvolutionContact>) => {
-      const row = (payload.new ?? payload.old) as EvolutionContact | undefined;
+      // FIX C3: usar extractRow() em vez de (payload.new ?? payload.old)
+      // porque payload.new = {} em DELETEs (truthy, ?? não funciona)
+      const row = extractRow(payload);
+
       if (!row || !row.remote_jid) {
-        log.warn('Payload sem remote_jid — descartando', { eventType: payload.eventType });
+        // Log como debug (não warn) — este caso não é mais esperado após o fix,
+        // mas pode acontecer em DELETEs sem REPLICA IDENTITY FULL configurado
+        // em outras tabelas.
+        _discardedEventCount++;
+        log.debug('Payload sem remote_jid — descartando', {
+          eventType: payload.eventType,
+          hasNew: typeof payload.new === 'object' && Object.keys(payload.new ?? {}).length > 0,
+          hasOld: typeof payload.old === 'object' && Object.keys(payload.old ?? {}).length > 0,
+          discardedTotal: _discardedEventCount,
+        });
         return;
       }
       if (BROADCAST_RE.test(row.remote_jid)) return;
