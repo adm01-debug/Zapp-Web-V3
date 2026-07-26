@@ -25,7 +25,9 @@ credentials.json
 service-account.json
 firebase-adminsdk*.json
 
-# Credenciais em texto plano (PT-BR e EN)
+# MCP Configuration (contains credentials - NEVER version)
+.mcp.json
+!.mcp.json.example
 *credencia*.txt
 *credential*.txt
 *cred*.txt

@@ -1,3 +1,6 @@
+# MCP Configuration Example
+# Copy this file to .mcp.json and fill in your actual values
+
 {
   "mcpServers": {
     "portainer": {
@@ -10,7 +13,7 @@
     },
     "supabase-selfhosted": {
       "type": "http",
-      "url": "https://supabase-mcp.atomicabr.com.br/s-a50174164e4b03ef181a29db65d2db80/mcp"
+      "url": "https://supabase-mcp.atomicabr.com.br/<SUPABASE_SERVICE_ROLE_KEY>/mcp"
     },
     "github": {
       "type": "http",
