@@ -63,9 +63,13 @@ function makeClient(chainOpts: ChainOpts = {}) {
   return { from: () => makeChain(chainOpts) };
 }
 
+// ── Valid UUID fixtures (isValidUUID guard rejects non-UUID contactIds) ────────
+const CONTACT_ID = '11111111-1111-1111-1111-111111111111';
+const MISSING_ID = '22222222-2222-2222-2222-222222222222';
+
 // ── Sample fixtures ───────────────────────────────────────────────────────────
 const CONTACT = {
-  id: 'c-1',
+  id: CONTACT_ID,
   user_id: 'u-1',
   company_id: null,
   first_name: 'João',
@@ -99,14 +103,14 @@ describe('contactsDB.isConfigured', () => {
 describe('getClient safety guard', () => {
   it('throws a descriptive error when getExternalSupabase returns null', async () => {
     mockGetExternal.mockReturnValue(null);
-    await expect(contactsDB.getById('any')).rejects.toThrow(
+    await expect(contactsDB.getById(CONTACT_ID)).rejects.toThrow(
       '[contactsDB] External Supabase not configured'
     );
   });
 
   it('error message mentions required env vars', async () => {
     mockGetExternal.mockReturnValue(null);
-    await expect(contactsDB.getById('any')).rejects.toThrow(
+    await expect(contactsDB.getById(CONTACT_ID)).rejects.toThrow(
       'VITE_EXTERNAL_SUPABASE_URL'
     );
   });
@@ -118,21 +122,21 @@ describe('contactsDB.getById', () => {
     mockGetExternal.mockReturnValue(
       makeClient({ maybeSingle: () => Promise.resolve({ data: CONTACT, error: null }) })
     );
-    expect(await contactsDB.getById('c-1')).toEqual(CONTACT);
+    expect(await contactsDB.getById(CONTACT_ID)).toEqual(CONTACT);
   });
 
   it('returns null when no row matches', async () => {
     mockGetExternal.mockReturnValue(
       makeClient({ maybeSingle: () => Promise.resolve({ data: null, error: null }) })
     );
-    expect(await contactsDB.getById('missing')).toBeNull();
+    expect(await contactsDB.getById(MISSING_ID)).toBeNull();
   });
 
   it('propagates DB errors', async () => {
     mockGetExternal.mockReturnValue(
       makeClient({ maybeSingle: () => Promise.resolve({ data: null, error: DB_ERROR }) })
     );
-    await expect(contactsDB.getById('c-1')).rejects.toThrow('db error');
+    await expect(contactsDB.getById(CONTACT_ID)).rejects.toThrow('db error');
   });
 });
 
@@ -220,14 +224,14 @@ describe('contactsDB.update', () => {
     mockGetExternal.mockReturnValue(
       makeClient({ single: () => Promise.resolve({ data: updated, error: null }) })
     );
-    expect(await contactsDB.update('c-1', { first_name: 'Maria' })).toEqual(updated);
+    expect(await contactsDB.update(CONTACT_ID, { first_name: 'Maria' })).toEqual(updated);
   });
 
   it('accepts fields that include updated_at without throwing (strips it internally)', async () => {
     mockGetExternal.mockReturnValue(
       makeClient({ single: () => Promise.resolve({ data: CONTACT, error: null }) })
     );
-    const result = await contactsDB.update('c-1', {
+    const result = await contactsDB.update(CONTACT_ID, {
       first_name: 'Test',
       updated_at: '2020-01-01T00:00:00Z',
     } as Parameters<typeof contactsDB.update>[1]);
@@ -238,7 +242,7 @@ describe('contactsDB.update', () => {
     mockGetExternal.mockReturnValue(
       makeClient({ single: () => Promise.resolve({ data: null, error: DB_ERROR }) })
     );
-    await expect(contactsDB.update('c-1', { first_name: 'X' })).rejects.toThrow('db error');
+    await expect(contactsDB.update(CONTACT_ID, { first_name: 'X' })).rejects.toThrow('db error');
   });
 });
 
@@ -249,7 +253,7 @@ describe('contactsDB.updateAvatar', () => {
       makeClient({ terminalEq: () => Promise.resolve({ error: null }) })
     );
     await expect(
-      contactsDB.updateAvatar('c-1', 'https://example.com/avatar.png')
+      contactsDB.updateAvatar(CONTACT_ID, 'https://example.com/avatar.png')
     ).resolves.toBeUndefined();
   });
 
@@ -257,7 +261,7 @@ describe('contactsDB.updateAvatar', () => {
     mockGetExternal.mockReturnValue(
       makeClient({ terminalEq: () => Promise.resolve({ error: DB_ERROR }) })
     );
-    await expect(contactsDB.updateAvatar('c-1', 'url')).rejects.toThrow('db error');
+    await expect(contactsDB.updateAvatar(CONTACT_ID, 'url')).rejects.toThrow('db error');
   });
 });
 
@@ -343,21 +347,21 @@ describe('contactsDB.notes.list', () => {
     mockGetExternal.mockReturnValue(
       makeClient({ terminalLimit: () => Promise.resolve({ data: [NOTE], error: null }) })
     );
-    expect(await contactsDB.notes.list('c-1')).toEqual([NOTE]);
+    expect(await contactsDB.notes.list(CONTACT_ID)).toEqual([NOTE]);
   });
 
   it('returns [] when DB returns null data', async () => {
     mockGetExternal.mockReturnValue(
       makeClient({ terminalLimit: () => Promise.resolve({ data: null, error: null }) })
     );
-    expect(await contactsDB.notes.list('c-1')).toEqual([]);
+    expect(await contactsDB.notes.list(CONTACT_ID)).toEqual([]);
   });
 
   it('propagates DB errors', async () => {
     mockGetExternal.mockReturnValue(
       makeClient({ terminalLimit: () => Promise.resolve({ data: null, error: DB_ERROR }) })
     );
-    await expect(contactsDB.notes.list('c-1')).rejects.toThrow('db error');
+    await expect(contactsDB.notes.list(CONTACT_ID)).rejects.toThrow('db error');
   });
 });
 
@@ -437,21 +441,21 @@ describe('contactsDB.phones.list', () => {
     mockGetExternal.mockReturnValue(
       makeClient({ terminalOrder: () => Promise.resolve({ data: [PHONE_ROW], error: null }) })
     );
-    expect(await contactsDB.phones.list('c-1')).toEqual([PHONE_ROW]);
+    expect(await contactsDB.phones.list(CONTACT_ID)).toEqual([PHONE_ROW]);
   });
 
   it('returns [] when DB returns null data', async () => {
     mockGetExternal.mockReturnValue(
       makeClient({ terminalOrder: () => Promise.resolve({ data: null, error: null }) })
     );
-    expect(await contactsDB.phones.list('c-1')).toEqual([]);
+    expect(await contactsDB.phones.list(CONTACT_ID)).toEqual([]);
   });
 
   it('propagates DB errors', async () => {
     mockGetExternal.mockReturnValue(
       makeClient({ terminalOrder: () => Promise.resolve({ data: null, error: DB_ERROR }) })
     );
-    await expect(contactsDB.phones.list('c-1')).rejects.toThrow('db error');
+    await expect(contactsDB.phones.list(CONTACT_ID)).rejects.toThrow('db error');
   });
 });
 
@@ -470,21 +474,21 @@ describe('contactsDB.emails.list', () => {
     mockGetExternal.mockReturnValue(
       makeClient({ terminalOrder: () => Promise.resolve({ data: [EMAIL_ROW], error: null }) })
     );
-    expect(await contactsDB.emails.list('c-1')).toEqual([EMAIL_ROW]);
+    expect(await contactsDB.emails.list(CONTACT_ID)).toEqual([EMAIL_ROW]);
   });
 
   it('returns [] when DB returns null data', async () => {
     mockGetExternal.mockReturnValue(
       makeClient({ terminalOrder: () => Promise.resolve({ data: null, error: null }) })
     );
-    expect(await contactsDB.emails.list('c-1')).toEqual([]);
+    expect(await contactsDB.emails.list(CONTACT_ID)).toEqual([]);
   });
 
   it('propagates DB errors', async () => {
     mockGetExternal.mockReturnValue(
       makeClient({ terminalOrder: () => Promise.resolve({ data: null, error: DB_ERROR }) })
     );
-    await expect(contactsDB.emails.list('c-1')).rejects.toThrow('db error');
+    await expect(contactsDB.emails.list(CONTACT_ID)).rejects.toThrow('db error');
   });
 });
 
