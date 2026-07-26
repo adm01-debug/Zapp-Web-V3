@@ -130,9 +130,6 @@ export default defineConfig(({ mode }) => ({
       template: 'treemap',
       gzipSize: true,
       brotliSize: true,
-      templateParameters: {
-        chunkSizeWarningLimit: 600,
-      },
     }),
     // PWA is manifest-only (public/manifest.json). No Workbox / no app-shell caching.
     // Push notifications continue via public/sw.js registered by useServiceWorker.
