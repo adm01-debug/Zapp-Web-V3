@@ -1,22 +1,43 @@
 /**
- * Presets de filtros da Inbox: salvar a combinação atual, aplicar e remover.
+ * Presets de filtros da Inbox: salvar a combinação atual, aplicar, editar e remover.
  *
  * Implementação nativa (botão + painel absoluto) para manter consistência com
  * o FailureCategoryFilter e evitar loops de composição do Radix no sidebar.
  */
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
-import { Bookmark, Plus, Trash2, ChevronDown } from 'lucide-react';
+import { Bookmark, Plus, Trash2, ChevronDown, Pencil, Check, X, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import type { InboxFilterPreset } from '@/features/inbox/hooks/inboxFilterPresets';
+import type {
+  InboxFilterPreset,
+  InboxFilterPresetInput,
+} from '@/features/inbox/hooks/inboxFilterPresets';
+import type { MainTab, SubTab } from '@/features/inbox/components/TicketTabs';
 
 interface Props {
   presets: InboxFilterPreset[];
   onApply: (preset: InboxFilterPreset) => void;
   onSave: (name: string) => void;
   onDelete: (id: string) => void;
+  onUpdate: (id: string, changes: Partial<InboxFilterPresetInput>) => void;
+  onUpdateWithCurrent: (id: string) => void;
 }
+
+const MAIN_TAB_OPTIONS: { value: MainTab; label: string }[] = [
+  { value: 'open', label: 'Abertos' },
+  { value: 'resolved', label: 'Resolvidos' },
+  { value: 'unread', label: 'Não lidas' },
+  { value: 'search', label: 'Busca' },
+];
+
+const SUB_TAB_OPTIONS: { value: SubTab; label: string }[] = [
+  { value: 'waiting', label: 'Aguardando' },
+  { value: 'attending', label: 'Atendendo' },
+];
+
+const selectClass =
+  'h-7 w-full rounded-md border border-border/60 bg-background px-1.5 text-[11px] focus:outline-none focus:ring-1 focus:ring-ring';
 
 /** Inbox Filter Presets control. */
 export const InboxFilterPresets = memo(function InboxFilterPresets({
@@ -24,9 +45,13 @@ export const InboxFilterPresets = memo(function InboxFilterPresets({
   onApply,
   onSave,
   onDelete,
+  onUpdate,
+  onUpdateWithCurrent,
 }: Props) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState('');
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [draft, setDraft] = useState<Partial<InboxFilterPresetInput>>({});
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -45,12 +70,43 @@ export const InboxFilterPresets = memo(function InboxFilterPresets({
     };
   }, [open]);
 
+  // Fecha o modo de edição ao fechar o painel, evitando estado órfão.
+  useEffect(() => {
+    if (!open) {
+      setEditingId(null);
+      setDraft({});
+    }
+  }, [open]);
+
   const handleSave = useCallback(() => {
     const trimmed = name.trim();
     if (!trimmed) return;
     onSave(trimmed);
     setName('');
   }, [name, onSave]);
+
+  const startEditing = useCallback((preset: InboxFilterPreset) => {
+    setEditingId(preset.id);
+    setDraft({
+      name: preset.name,
+      mainTab: preset.mainTab,
+      subTab: preset.subTab,
+      search: preset.search ?? '',
+      showOnlyRetrying: preset.showOnlyRetrying,
+    });
+  }, []);
+
+  const cancelEditing = useCallback(() => {
+    setEditingId(null);
+    setDraft({});
+  }, []);
+
+  const commitEditing = useCallback(() => {
+    if (!editingId) return;
+    if (!draft.name?.trim()) return;
+    onUpdate(editingId, draft);
+    cancelEditing();
+  }, [editingId, draft, onUpdate, cancelEditing]);
 
   return (
     <div ref={containerRef} className="relative shrink-0">
@@ -78,7 +134,7 @@ export const InboxFilterPresets = memo(function InboxFilterPresets({
           role="menu"
           aria-label="Presets salvos"
           className={cn(
-            'absolute left-0 z-50 mt-1 max-h-[340px] w-[260px] overflow-y-auto',
+            'absolute left-0 z-50 mt-1 max-h-[380px] w-[300px] overflow-y-auto',
             'rounded-md border bg-popover p-2 text-popover-foreground shadow-md'
           )}
         >
@@ -115,32 +171,150 @@ export const InboxFilterPresets = memo(function InboxFilterPresets({
                 Nenhum preset salvo ainda.
               </p>
             ) : (
-              presets.map((preset) => (
-                <div
-                  key={preset.id}
-                  className="flex items-center gap-1 rounded-sm hover:bg-accent hover:text-accent-foreground"
-                >
-                  <button
-                    type="button"
-                    role="menuitem"
-                    onClick={() => {
-                      onApply(preset);
-                      setOpen(false);
-                    }}
-                    className="flex-1 truncate px-2 py-1.5 text-left text-[11px] focus:outline-none"
+              presets.map((preset) =>
+                editingId === preset.id ? (
+                  <div
+                    key={preset.id}
+                    className="space-y-1.5 rounded-sm border border-border/60 bg-muted/30 p-2"
                   >
-                    {preset.name}
-                  </button>
-                  <button
-                    type="button"
-                    aria-label={`Remover preset ${preset.name}`}
-                    onClick={() => onDelete(preset.id)}
-                    className="mr-1 rounded-sm p-1 text-muted-foreground hover:text-destructive focus:outline-none"
+                    <Input
+                      value={draft.name ?? ''}
+                      onChange={(e) => setDraft((d) => ({ ...d, name: e.target.value }))}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          commitEditing();
+                        }
+                      }}
+                      placeholder="Nome do preset"
+                      aria-label={`Renomear preset ${preset.name}`}
+                      className="h-7 text-[11px]"
+                      autoFocus
+                    />
+
+                    <div className="flex gap-1">
+                      <select
+                        value={draft.mainTab ?? preset.mainTab}
+                        onChange={(e) =>
+                          setDraft((d) => ({ ...d, mainTab: e.target.value as MainTab }))
+                        }
+                        aria-label="Aba do preset"
+                        className={selectClass}
+                      >
+                        {MAIN_TAB_OPTIONS.map((o) => (
+                          <option key={o.value} value={o.value}>
+                            {o.label}
+                          </option>
+                        ))}
+                      </select>
+                      <select
+                        value={draft.subTab ?? preset.subTab}
+                        onChange={(e) =>
+                          setDraft((d) => ({ ...d, subTab: e.target.value as SubTab }))
+                        }
+                        aria-label="Sub-aba do preset"
+                        className={selectClass}
+                      >
+                        {SUB_TAB_OPTIONS.map((o) => (
+                          <option key={o.value} value={o.value}>
+                            {o.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <Input
+                      value={draft.search ?? ''}
+                      onChange={(e) => setDraft((d) => ({ ...d, search: e.target.value }))}
+                      placeholder="Termo de busca (opcional)"
+                      aria-label="Busca do preset"
+                      className="h-7 text-[11px]"
+                    />
+
+                    <label className="flex items-center gap-1.5 px-0.5 text-[11px] text-muted-foreground">
+                      <input
+                        type="checkbox"
+                        checked={draft.showOnlyRetrying ?? preset.showOnlyRetrying}
+                        onChange={(e) =>
+                          setDraft((d) => ({ ...d, showOnlyRetrying: e.target.checked }))
+                        }
+                        className="h-3.5 w-3.5 accent-primary"
+                      />
+                      Somente com falha/reenvio
+                    </label>
+
+                    <div className="flex items-center gap-1 pt-0.5">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="secondary"
+                        className="h-7 flex-1 px-2 text-[11px]"
+                        disabled={!draft.name?.trim()}
+                        onClick={commitEditing}
+                      >
+                        <Check className="mr-1 h-3.5 w-3.5" aria-hidden="true" />
+                        Salvar
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        className="h-7 px-2 text-[11px]"
+                        aria-label={`Substituir preset ${preset.name} pelos filtros atuais`}
+                        onClick={() => {
+                          onUpdateWithCurrent(preset.id);
+                          cancelEditing();
+                        }}
+                      >
+                        <RefreshCw className="h-3.5 w-3.5" aria-hidden="true" />
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        className="h-7 px-2 text-[11px]"
+                        aria-label="Cancelar edição"
+                        onClick={cancelEditing}
+                      >
+                        <X className="h-3.5 w-3.5" aria-hidden="true" />
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div
+                    key={preset.id}
+                    className="flex items-center gap-1 rounded-sm hover:bg-accent hover:text-accent-foreground"
                   >
-                    <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
-                  </button>
-                </div>
-              ))
+                    <button
+                      type="button"
+                      role="menuitem"
+                      onClick={() => {
+                        onApply(preset);
+                        setOpen(false);
+                      }}
+                      className="flex-1 truncate px-2 py-1.5 text-left text-[11px] focus:outline-none"
+                    >
+                      {preset.name}
+                    </button>
+                    <button
+                      type="button"
+                      aria-label={`Editar preset ${preset.name}`}
+                      onClick={() => startEditing(preset)}
+                      className="rounded-sm p-1 text-muted-foreground hover:text-foreground focus:outline-none"
+                    >
+                      <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
+                    </button>
+                    <button
+                      type="button"
+                      aria-label={`Remover preset ${preset.name}`}
+                      onClick={() => onDelete(preset.id)}
+                      className="mr-1 rounded-sm p-1 text-muted-foreground hover:text-destructive focus:outline-none"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+                    </button>
+                  </div>
+                )
+              )
             )}
           </div>
         </div>
