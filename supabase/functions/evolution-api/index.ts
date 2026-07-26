@@ -921,6 +921,7 @@ Deno.serve(async (req) => {
             .eq('remote_jid', remoteJid)
             .eq('instance_name', instance)
             .eq('from_me', false)
+            .eq('is_read', false)
             .order('created_at', { ascending: false })
             .range(offset, offset + PAGE_SIZE - 1);
 
