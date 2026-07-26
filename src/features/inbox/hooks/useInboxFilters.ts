@@ -281,6 +281,37 @@ export function useInboxFilters({
     [setUrlFilters]
   );
 
+  // Restaura a busca persistida quando a URL não traz `q` (ex.: troca de rota)
+  const searchRestoredRef = useRef(false);
+  useEffect(() => {
+    if (searchRestoredRef.current) return;
+    searchRestoredRef.current = true;
+    const stored = initialPersisted.search;
+    if (stored && !search) setSearch(stored);
+  }, [initialPersisted.search, search, setSearch]);
+
+  // Persiste o conjunto completo de filtros no localStorage
+  useEffect(() => {
+    writeStoredInboxFilters({
+      mainTab,
+      subTab,
+      search,
+      contactType: selectedContactType,
+      queueId: selectedQueueId,
+      showOnlyRetrying,
+      failureCategory: failureCategoryFilter,
+    });
+  }, [
+    mainTab,
+    subTab,
+    search,
+    selectedContactType,
+    selectedQueueId,
+    showOnlyRetrying,
+    failureCategoryFilter,
+  ]);
+
+
   const setFilters = useCallback(
     (newFilters: InboxFiltersState) => {
       setUrlFilters({
