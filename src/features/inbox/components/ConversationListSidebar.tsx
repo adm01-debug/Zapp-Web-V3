@@ -199,6 +199,14 @@ export function ConversationListSidebar({
             />
           </div>
 
+          <InboxFilterPresets
+            presets={inboxFilters.presets}
+            onApply={inboxFilters.applyInboxPreset}
+            onSave={inboxFilters.saveInboxPreset}
+            onDelete={inboxFilters.deleteInboxPreset}
+          />
+
+
           {inboxFilters.showOnlyRetrying && (
             <FailureCategoryFilter
               value={inboxFilters.failureCategoryFilter}
