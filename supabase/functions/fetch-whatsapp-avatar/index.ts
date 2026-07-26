@@ -16,6 +16,7 @@ import {
 } from "../_shared/validation.ts";
 import { requireUser } from "../_shared/auth.ts";
 import { createZappAdminClient } from "../_shared/db-client.ts";
+import { getStoragePublicUrl } from "../_shared/storage-url.ts";
 
 const ALLOWED_AVATAR_ORIGINS = new Set([
   "mmg.whatsapp.net",
@@ -149,9 +150,8 @@ Deno.serve(async (req) => {
             .from("avatars")
             .upload(storagePath, bytes, { contentType: "image/jpeg", cacheControl: "604800", upsert: true });
           if (!upErr) {
-            const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(storagePath);
-            log.done(200, { persisted: true });
-            return jsonResponse({ avatar_url: urlData.publicUrl }, 200, req);
+              log.done(200, { persisted: true });
+            return jsonResponse({ avatar_url: getStoragePublicUrl("avatars", storagePath) }, 200, req);
           }
         }
       }

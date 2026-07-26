@@ -7,6 +7,7 @@ import {
   generatePhoneVariants,
 } from "./evolution-helpers.ts";
 import { persistMediaToStorage, persistMediaViaApi, parseMessageContent, isSafeMediaCdnUrl } from "./evolution-media.ts";
+import { getStoragePublicUrl } from "./storage-url.ts";
 
 /** evolution-webhook-messages utilities and exports. */
 export async function handleOutgoingWhatsAppMessage(
@@ -235,8 +236,7 @@ export async function handleStickerMedia(
       const fileName = `sticker_${Date.now()}_${key.id.replace(/[^a-zA-Z0-9]/g, '')}.webp`;
       const { error: uploadErr } = await supabase.storage.from('whatsapp-media').upload(`stickers/${fileName}`, bytes, { contentType: 'image/webp', cacheControl: '31536000' });
       if (!uploadErr) {
-        const { data: urlData } = supabase.storage.from('whatsapp-media').getPublicUrl(`stickers/${fileName}`);
-        return urlData.publicUrl;
+        return getStoragePublicUrl('whatsapp-media', `stickers/${fileName}`);
       }
       return null;
     } catch { return null; }
@@ -256,7 +256,7 @@ export async function handleStickerMedia(
           if (bytes.length > 100) {
             const fileName = `sticker_${Date.now()}_${key.id.replace(/[^a-zA-Z0-9]/g, '')}.webp`;
             const { error: uploadErr } = await supabase.storage.from('whatsapp-media').upload(`stickers/${fileName}`, bytes, { contentType: 'image/webp', cacheControl: '31536000' });
-            if (!uploadErr) { const { data: urlData } = supabase.storage.from('whatsapp-media').getPublicUrl(`stickers/${fileName}`); mediaUrl = urlData.publicUrl; }
+            if (!uploadErr) { mediaUrl = getStoragePublicUrl('whatsapp-media', `stickers/${fileName}`); }
           }
         }
       } catch (dlErr) { console.error('[STICKER] mediaUrl download error:', dlErr); }
