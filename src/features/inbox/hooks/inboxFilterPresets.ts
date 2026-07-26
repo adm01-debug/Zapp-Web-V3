@@ -75,3 +75,35 @@ export function removeInboxPreset(
 ): InboxFilterPreset[] {
   return presets.filter((p) => p.id !== id);
 }
+
+/**
+ * Edita um preset existente pelo id, preservando `id`/`createdAt`.
+ * O nome é normalizado; conflitos de nome (case-insensitive) são rejeitados.
+ * Retorna a lista original quando o id não existe ou o nome é inválido/duplicado.
+ */
+export function editInboxPreset(
+  presets: InboxFilterPreset[],
+  id: string,
+  changes: Partial<InboxFilterPresetInput>
+): InboxFilterPreset[] {
+  const target = presets.find((p) => p.id === id);
+  if (!target) return presets;
+
+  const nextName = (changes.name ?? target.name).trim();
+  if (!nextName) return presets;
+
+  const duplicated = presets.some(
+    (p) => p.id !== id && p.name.trim().toLowerCase() === nextName.toLowerCase()
+  );
+  if (duplicated) return presets;
+
+  const updated: InboxFilterPreset = {
+    ...target,
+    ...changes,
+    name: nextName,
+    id: target.id,
+    createdAt: target.createdAt,
+  };
+
+  return presets.map((p) => (p.id === id ? updated : p));
+}
