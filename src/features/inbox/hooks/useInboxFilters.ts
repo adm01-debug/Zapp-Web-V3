@@ -493,7 +493,78 @@ export function useInboxFilters({
     log.info('Filtros da Inbox resetados para o padrão');
   }, [clearUrlFilters]);
 
+  // ===================== Presets de filtros =====================
+  const [presets, setPresets] = useState<InboxFilterPreset[]>(() => readInboxPresets());
+
+  /** Salva a combinação atual de filtros com o nome informado. */
+  const saveInboxPreset = useCallback(
+    (name: string) => {
+      setPresets((current) => {
+        const next = upsertInboxPreset(current, {
+          name,
+          mainTab,
+          subTab,
+          search: search ?? '',
+          contactType: selectedContactType,
+          queueId: selectedQueueId,
+          showOnlyRetrying,
+          failureCategory: failureCategoryFilter,
+        });
+        writeInboxPresets(next);
+        return next;
+      });
+    },
+    [
+      mainTab,
+      subTab,
+      search,
+      selectedContactType,
+      selectedQueueId,
+      showOnlyRetrying,
+      failureCategoryFilter,
+    ]
+  );
+
+  /** Aplica um preset salvo (estado + URL + localStorage). */
+  const applyInboxPreset = useCallback(
+    (preset: InboxFilterPreset) => {
+      setMainTab(preset.mainTab);
+      setSubTab(preset.subTab);
+      setSelectedContactType(preset.contactType);
+      setSelectedQueueId(preset.queueId);
+      setShowOnlyRetrying(preset.showOnlyRetrying);
+      setFailureCategoryFilter(preset.failureCategory);
+      setSearch(preset.search ?? '');
+
+      writeStoredInboxFilters({
+        mainTab: preset.mainTab,
+        subTab: preset.subTab,
+        search: preset.search ?? '',
+        contactType: preset.contactType,
+        queueId: preset.queueId,
+        showOnlyRetrying: preset.showOnlyRetrying,
+        failureCategory: preset.failureCategory,
+      });
+
+      log.info('Preset de filtros aplicado', { name: preset.name });
+    },
+    [setSearch]
+  );
+
+  /** Remove um preset salvo. */
+  const deleteInboxPreset = useCallback((id: string) => {
+    setPresets((current) => {
+      const next = removeInboxPreset(current, id);
+      writeInboxPresets(next);
+      return next;
+    });
+  }, []);
+
   return {
+    presets,
+    saveInboxPreset,
+    applyInboxPreset,
+    deleteInboxPreset,
     hasActiveInboxFilters,
     resetInboxFilters,
     mainTab,
