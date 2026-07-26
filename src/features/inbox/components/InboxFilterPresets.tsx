@@ -220,7 +220,12 @@ export const InboxFilterPresets = memo(function InboxFilterPresets({
                   >
                     <Input
                       value={draft.name ?? ''}
-                      onChange={(e) => setDraft((d) => ({ ...d, name: e.target.value }))}
+                      onChange={(e) =>
+                        setDraft((d) => ({
+                          ...d,
+                          name: e.target.value.slice(0, PRESET_NAME_MAX_LENGTH + 1),
+                        }))
+                      }
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') {
                           e.preventDefault();
@@ -229,9 +234,22 @@ export const InboxFilterPresets = memo(function InboxFilterPresets({
                       }}
                       placeholder="Nome do preset"
                       aria-label={`Renomear preset ${preset.name}`}
-                      className="h-7 text-[11px]"
+                      aria-invalid={editError ? true : undefined}
+                      aria-describedby={editError ? 'inbox-preset-edit-error' : undefined}
+                      maxLength={PRESET_NAME_MAX_LENGTH + 1}
+                      className={cn('h-7 text-[11px]', editError && 'border-destructive')}
                       autoFocus
                     />
+                    {editError && (
+                      <p
+                        id="inbox-preset-edit-error"
+                        role="alert"
+                        className="px-0.5 text-[10px] text-destructive"
+                      >
+                        {editError}
+                      </p>
+                    )}
+
 
                     <div className="flex gap-1">
                       <select
