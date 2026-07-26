@@ -81,12 +81,32 @@ export const InboxFilterPresets = memo(function InboxFilterPresets({
     }
   }, [open]);
 
+  // Duplicidade no formulário de criação não bloqueia: o preset é sobrescrito.
+  const duplicateOnCreate = useMemo(
+    () =>
+      presets.find((p) => p.name.trim().toLowerCase() === name.trim().toLowerCase()) ?? null,
+    [presets, name]
+  );
+
+  const saveValidation = useMemo(
+    () => validatePresetName(name, presets, duplicateOnCreate?.id),
+    [name, presets, duplicateOnCreate]
+  );
+
+  const editValidation = useMemo(
+    () => validatePresetName(draft.name ?? '', presets, editingId ?? undefined),
+    [draft.name, presets, editingId]
+  );
+
+  // Só exibe o erro depois que o usuário digitou algo (evita erro no campo vazio).
+  const saveError = name.length > 0 ? saveValidation.error : null;
+  const editError = editingId && (draft.name ?? '').length > 0 ? editValidation.error : null;
+
   const handleSave = useCallback(() => {
-    const trimmed = name.trim();
-    if (!trimmed) return;
-    onSave(trimmed);
+    if (!saveValidation.ok) return;
+    onSave(saveValidation.value);
     setName('');
-  }, [name, onSave]);
+  }, [saveValidation, onSave]);
 
   const startEditing = useCallback((preset: InboxFilterPreset) => {
     setEditingId(preset.id);
@@ -105,11 +125,11 @@ export const InboxFilterPresets = memo(function InboxFilterPresets({
   }, []);
 
   const commitEditing = useCallback(() => {
-    if (!editingId) return;
-    if (!draft.name?.trim()) return;
-    onUpdate(editingId, draft);
+    if (!editingId || !editValidation.ok) return;
+    onUpdate(editingId, { ...draft, name: editValidation.value });
     cancelEditing();
-  }, [editingId, draft, onUpdate, cancelEditing]);
+  }, [editingId, draft, editValidation, onUpdate, cancelEditing]);
+
 
   return (
     <div ref={containerRef} className="relative shrink-0">
