@@ -104,6 +104,7 @@ export const EDGE_FUNCTION_NAMES = [
   'recheck-webhook-signature',
   'recover-corrupted-audios',
   'reprocess-failed-messages',
+  'reprocess-webhook-dlq',
   'secure-upload',
   'seed-teams-users',
   'send-email',
