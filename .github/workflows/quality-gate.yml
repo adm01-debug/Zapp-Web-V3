@@ -58,6 +58,27 @@ jobs:
           fi
           exit 0
 
+      - name: Migration linter — static drift guard (blocking on new violations)
+        # E31: Scans only migration files changed in this PR/push.
+        # Catches ML-001 (SECDEF without search_path), ML-002 (writes to public
+        # VIEW proxies), ML-003 (Realtime add TABLE on VIEW), ML-004 (new zapp
+        # table without RLS), ML-005 (GRANT TO PUBLIC/anon), ML-007 (internal URLs).
+        # Historical violations in old migrations are EXCLUDED (CHANGED_FILES filter).
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            base="${{ github.event.pull_request.base.sha }}"
+          else
+            base="HEAD~1"
+          fi
+          changed=$(git diff --name-only "$base"...HEAD -- "supabase/migrations/*.sql" 2>/dev/null || true)
+          if [ -z "$changed" ]; then
+            echo "No migration files changed — linter skipped."
+            exit 0
+          fi
+          echo "Linting changed migrations:"
+          echo "$changed"
+          CHANGED_FILES="$changed" node scripts/lint-migrations.mjs
+
       - name: Schema usage guardrail (zapp/evo)
         # Falha o build se aparecer .schema('public'), createClient sem schema
         # zapp/evo, ou URLs *.supabase.co em código de produção.

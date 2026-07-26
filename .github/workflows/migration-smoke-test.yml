@@ -64,6 +64,30 @@ jobs:
         uses: actions/checkout@v4
         with:
           persist-credentials: false
+          fetch-depth: 0
+
+      - name: Setup Node (for migration linter)
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Migration linter — static drift guard (E31)
+        # Runs before applying to Postgres — fast static gate catches
+        # SECDEF/search_path, VIEW-proxy writes, RLS gaps on new tables.
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            base="${{ github.event.pull_request.base.sha }}"
+          else
+            base="HEAD~1"
+          fi
+          changed=$(git diff --name-only "$base"...HEAD -- "supabase/migrations/*.sql" 2>/dev/null || true)
+          if [ -z "$changed" ]; then
+            echo "No migration files changed — linter skipped."
+            exit 0
+          fi
+          echo "Linting changed migrations:"
+          echo "$changed"
+          CHANGED_FILES="$changed" node scripts/lint-migrations.mjs
 
       - name: Wait for Postgres
         run: |
