@@ -17,6 +17,11 @@ import {
   buildFailureCategoryCounts,
   computeInboxTabCounts,
 } from './inboxFilterPipeline';
+import {
+  resolveInitialInboxFilters,
+  writeStoredInboxFilters,
+} from './inboxFilterPersistence';
+
 
 const log = getLogger('useInboxFilters');
 
@@ -35,11 +40,19 @@ export function useInboxFilters({
   sortBy,
   statusFilter,
 }: UseInboxFiltersProps) {
-  const [mainTab, setMainTab] = useState<MainTab>('open');
+  // Estado inicial restaurado da URL (prioridade) ou do localStorage.
+  const initialPersisted = useRef(
+    resolveInitialInboxFilters(window.location.search)
+  ).current;
+
+  const [mainTab, setMainTab] = useState<MainTab>(initialPersisted.mainTab ?? 'open');
   // Default 'waiting': funciona tanto para DB local (não atribuídos) quanto para
   // a fonte Evolution externa (contatos derivados com assigned_to = null).
   // Evita que a tela abra vazia em 'Atendendo + mine' quando ninguém está atribuído.
-  const [subTab, setSubTab] = useState<SubTab>('waiting');
+  const [subTab, setSubTab] = useState<SubTab>(initialPersisted.subTab ?? 'waiting');
+  // Nota: o auto-switch abaixo só atua quando a sub-aba restaurada está vazia,
+  // então a escolha persistida do usuário é preservada sempre que houver dados.
+
   const [showAll, setShowAll] = useState(() => {
     const params = new URLSearchParams(window.location.search);
     return params.get('showAll') === 'true' || localStorage.getItem('inbox_show_all') === 'true';
@@ -57,12 +70,19 @@ export function useInboxFilters({
     permissions,
   } = usePermissions();
   const [departmentAgentIds, setDepartmentAgentIds] = useState<string[]>([]);
-  const [selectedQueueId, setSelectedQueueId] = useState<string | null>(null);
-  const [selectedContactType, setSelectedContactType] = useState<string | null>(null);
-  const [showOnlyRetrying, setShowOnlyRetrying] = useState(false);
-  const [failureCategoryFilter, setFailureCategoryFilter] = useState<FailureCategory | 'all'>(
-    'all'
+  const [selectedQueueId, setSelectedQueueId] = useState<string | null>(
+    initialPersisted.queueId
   );
+  const [selectedContactType, setSelectedContactType] = useState<string | null>(
+    initialPersisted.contactType
+  );
+  const [showOnlyRetrying, setShowOnlyRetrying] = useState(
+    initialPersisted.showOnlyRetrying ?? false
+  );
+  const [failureCategoryFilter, setFailureCategoryFilter] = useState<FailureCategory | 'all'>(
+    initialPersisted.failureCategory ?? 'all'
+  );
+
 
   const {
     filters: urlFilters,
@@ -109,43 +129,33 @@ export function useInboxFilters({
     showOnlyRetrying
   );
 
-  // Sync state with URL on mount only
+  // Persistência: reflete aba/sub-aba/fila/tipo na URL (links compartilháveis)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
+    let changed = false;
 
-    if (params.has('subTab')) {
-      params.delete('subTab');
+    const setOrDelete = (key: string, value: string | null) => {
+      if (value) {
+        if (params.get(key) !== value) {
+          params.set(key, value);
+          changed = true;
+        }
+      } else if (params.has(key)) {
+        params.delete(key);
+        changed = true;
+      }
+    };
+
+    setOrDelete('tab', mainTab === 'open' ? null : mainTab);
+    setOrDelete('subTab', subTab);
+    setOrDelete('type', selectedContactType);
+    setOrDelete('queue', selectedQueueId);
+
+    if (changed) {
       window.history.replaceState(null, '', `?${params.toString()}${window.location.hash}`);
     }
+  }, [mainTab, subTab, selectedContactType, selectedQueueId]);
 
-    // Contact Type
-    const typeFromUrl = params.get('type');
-    if (typeFromUrl && typeFromUrl !== 'all') {
-      setSelectedContactType(typeFromUrl);
-    }
-
-    // Failures Only (deep-link de monitoramento)
-    if (params.get('failuresOnly') === 'true') {
-      log.info('Deep-link: filtering by failures only');
-      setShowOnlyRetrying(true);
-    }
-
-    // Failure Category (deep-link de monitoramento)
-    const catFromUrl = params.get('failureCategory');
-    if (catFromUrl) {
-      const validCategories: (FailureCategory | 'all')[] = [
-        'all',
-        'auth',
-        'http_4xx',
-        'http_5xx',
-        'network',
-        'unknown',
-      ];
-      if (validCategories.includes(catFromUrl as FailureCategory | 'all')) {
-        setFailureCategoryFilter(catFromUrl as FailureCategory | 'all');
-      }
-    }
-  }, []);
 
   const handleContactTypeChange = useCallback((value: string | null) => {
     setSelectedContactType(value);
@@ -270,6 +280,37 @@ export function useInboxFilters({
     },
     [setUrlFilters]
   );
+
+  // Restaura a busca persistida quando a URL não traz `q` (ex.: troca de rota)
+  const searchRestoredRef = useRef(false);
+  useEffect(() => {
+    if (searchRestoredRef.current) return;
+    searchRestoredRef.current = true;
+    const stored = initialPersisted.search;
+    if (stored && !search) setSearch(stored);
+  }, [initialPersisted.search, search, setSearch]);
+
+  // Persiste o conjunto completo de filtros no localStorage
+  useEffect(() => {
+    writeStoredInboxFilters({
+      mainTab,
+      subTab,
+      search,
+      contactType: selectedContactType,
+      queueId: selectedQueueId,
+      showOnlyRetrying,
+      failureCategory: failureCategoryFilter,
+    });
+  }, [
+    mainTab,
+    subTab,
+    search,
+    selectedContactType,
+    selectedQueueId,
+    showOnlyRetrying,
+    failureCategoryFilter,
+  ]);
+
 
   const setFilters = useCallback(
     (newFilters: InboxFiltersState) => {
