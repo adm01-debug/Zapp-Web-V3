@@ -47,6 +47,9 @@ export function useRealtimeDashboardManagement(dashboardId: string) {
       )
       .subscribe((status: string) => {
         setIsConnected(status === 'SUBSCRIBED');
+        if (status !== 'SUBSCRIBED') {
+          log.warn('[useRealtimeManagement] channel subscription status:', status);
+        }
       });
 
     return () => {

@@ -81,9 +81,9 @@ export function isFeatureEnabled(
     if (!context?.userId) return false;
     const hash = context.userId.split('').reduce((a, b) => {
       a = (a << 5) - a + b.charCodeAt(0);
-      return a & a;
+      return Math.imul(a, 1);
     }, 0);
-    return Math.abs(hash % 100) < config.percentage;
+    return (hash >>> 0) % 100 < config.percentage;
   }
 
   return true;
