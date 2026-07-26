@@ -164,6 +164,18 @@ jobs:
         # Hard gate again.
         run: npm run test
 
+      - name: Coverage ratchet (E45 — advisory until baseline calibrated)
+        # Runs tests with --coverage and checks that overall coverage does not
+        # drop below the committed baseline in scripts/coverage-baseline.json.
+        # Currently advisory (continue-on-error: true) because the initial
+        # baseline requires a successful coverage run to calibrate. Once
+        # calibrated via `npm run test:coverage:ratchet -- --update`, this
+        # step should be made blocking by removing continue-on-error.
+        run: |
+          npm run test:coverage -- --reporter=dot
+          node scripts/check-coverage-ratchet.mjs
+        continue-on-error: true
+
       - name: Fuzzing Tests (advisory — no edge runtime in CI)
         # There is no Supabase edge runtime at localhost:54321 in CI, so this
         # only smoke-checks that the fuzzer harness itself runs; it cannot fuzz

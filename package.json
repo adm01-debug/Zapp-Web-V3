@@ -24,6 +24,8 @@
     "lint": "eslint . && bun run scripts/check-design-system.ts --ci",
     "preview": "vite preview",
     "test": "NODE_OPTIONS=--max-old-space-size=6144 vitest run",
+    "test:coverage": "NODE_OPTIONS=--max-old-space-size=6144 vitest run --coverage",
+    "test:coverage:ratchet": "node scripts/check-coverage-ratchet.mjs",
     "test:watch": "NODE_OPTIONS=--max-old-space-size=6144 vitest",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
