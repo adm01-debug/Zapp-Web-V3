@@ -25,23 +25,41 @@ interface Contact {
   ai_sentiment: string | null;
 }
 
+/**
+ * Interface alinhada ao schema real da view zapp.messages
+ * (que faz SELECT sobre evo.evolution_messages).
+ *
+ * Campos anteriores como `sender` (string), `external_id`, `agent_id`,
+ * `transcription` são mantidos via computed columns da view.
+ */
 interface Message {
   id: string;
-  contact_id: string;
-  agent_id: string | null;
-  content: string;
-  sender: string;
+  contact_id: string | null;
+  content: string | null;
   message_type: string;
   media_url: string | null;
   is_read: boolean;
-  status: string;
-  status_updated_at: string | null;
+  status: string | null;
   created_at: string;
-  updated_at: string;
-  external_id: string;
+  updated_at: string | null;
+  // Campos computados pela view zapp.messages
+  sender: string | null;           // 'agent' | 'contact' — from_me→sender
+  is_from_me: boolean;
+  direction: string | null;        // 'incoming' | 'outgoing'
+  external_id: string | null;      // alias de message_id da tabela evo
   whatsapp_connection_id: string | null;
+  is_deleted: boolean;
+  deleted_at: string | null;
+  // Campos opcionais
+  caption: string | null;
+  instance_name: string | null;
+  push_name: string | null;
+  remote_jid: string | null;
+  conversation_id: string | null;
+  agent_id: string | null;
   transcription: string | null;
   transcription_status: string | null;
+  media_type: string | null;
 }
 
 interface Conversation {
@@ -59,6 +77,10 @@ function sortByRecency(convs: Conversation[]): Conversation[] {
 }
 
 /**
+ * @deprecated Use `useRealtimeMessages` de `src/features/inbox/hooks/useRealtimeMessages.ts`
+ * que tem suporte a multi-instância, paginação, N+1 fix e realtime robusto.
+ * Este hook legado serve apenas como compatibilidade de API.
+ *
  * Loads and subscribes to contacts and messages in realtime.
  * Initial fetch propagates errors from both Supabase queries.
  * Realtime channel uses a per-mount unique name to avoid collision on StrictMode remounts.
@@ -79,8 +101,7 @@ export function useRealtimeMessages() {
         { data: contactsRaw, error: contactsError },
         { data: messages, error: messagesError },
       ] = await Promise.all([
-        // FIX #1: Usar schema 'evo' explicitamente para ambas as tabelas Evolution
-        // (evolution_contacts e evolution_messages são tabelas do schema evo, não zapp)
+        // FIX: Usar schema 'evo' explicitamente para ambas as tabelas Evolution
         supabase.schema('evo').from('evolution_contacts').select('*').order('updated_at', { ascending: false }).limit(500),
         supabase.schema('evo').from('evolution_messages').select('*').order('created_at', { ascending: false }).limit(100),
       ]);
@@ -93,9 +114,12 @@ export function useRealtimeMessages() {
       const contactMap = new Map<string, Contact>();
       contactList.forEach((c) => contactMap.set(c.id, c));
 
+      // Buscar contatos referenciados por mensagens mas não no set inicial
       const missingIds = [
         ...new Set(
-          messageList.map((m) => m.contact_id).filter((id) => !contactMap.has(id))
+          messageList
+            .map((m) => m.contact_id)
+            .filter((id): id is string => Boolean(id) && !contactMap.has(id!))
         ),
       ];
 
@@ -119,12 +143,23 @@ export function useRealtimeMessages() {
       });
 
       messageList.forEach((m) => {
+        // Filtro explícito: ignorar tombstones (mensagens apagadas sem contact_id)
+        if (!m.contact_id) {
+          log.debug('[useRealtimeMessages] ignorando mensagem sem contact_id (tombstone)', { id: m.id });
+          return;
+        }
         const conv = convMap.get(m.contact_id);
         if (conv) {
           conv.messages.push(m);
           if (!conv.lastMessage || m.created_at > conv.lastMessage.created_at) {
             conv.lastMessage = m;
           }
+        } else {
+          // Contato não encontrado no mapa — já tratado acima via missingIds
+          log.debug('[useRealtimeMessages] mensagem com contact_id desconhecido no mapa', {
+            id: m.id,
+            contact_id: m.contact_id,
+          });
         }
       });
 
@@ -156,6 +191,11 @@ export function useRealtimeMessages() {
         (payload) => {
           if (!isMountedRef.current) return;
           const newMsg = payload.new as Message;
+          // Ignorar tombstones sem contato vinculado
+          if (!newMsg.contact_id) {
+            log.debug('[realtime] INSERT ignorado — contact_id nulo (tombstone ou msg sem contato)');
+            return;
+          }
           setConversations((prev) => {
             const idx = prev.findIndex((c) => c.contact.id === newMsg.contact_id);
             if (idx === -1) {
@@ -180,6 +220,7 @@ export function useRealtimeMessages() {
         (payload) => {
           if (!isMountedRef.current) return;
           const updMsg = payload.new as Message;
+          if (!updMsg.contact_id) return; // ignorar tombstones em updates
           setConversations((prev) =>
             prev.map((conv) => {
               if (conv.contact.id !== updMsg.contact_id) return conv;
@@ -206,24 +247,23 @@ export function useRealtimeMessages() {
     };
   }, [fetchData]);
 
+  /**
+   * @deprecated STUB LEGADO — O envio real de mensagens deve usar
+   * `sendMessageToContact` de `features/inbox/hooks/realtime/messageSender.ts`
+   * que: (1) insere na view zapp.messages com campos corretos, (2) chama a
+   * Evolution API para dispatch real no WhatsApp, (3) atualiza status e retry.
+   *
+   * Este stub NÃO faz INSERT para evitar falhas silenciosas causadas pelo
+   * schema default 'zapp' (que resolve para a VIEW sem suporte a todos os campos
+   * de evo.evolution_messages, em particular instance_name NOT NULL).
+   */
   const sendMessage = useCallback(
-    async (contactId: string, content: string, agentId?: string) => {
-      try {
-        const { error: insertError } = await supabase.from('evolution_messages').insert({
-          contact_id: contactId,
-          content,
-          agent_id: agentId ?? null,
-          from_me: true,
-          message_type: 'text',
-          is_read: true,
-          status: 'sent',
-          message_id: `local-${Date.now()}`,
-        });
-        if (insertError) throw insertError;
-      } catch (err) {
-        setError(err instanceof Error ? err : new Error('Failed to send message'));
-        throw err;
-      }
+    async (contactId: string, content: string, _agentId?: string) => {
+      log.warn(
+        '[sendMessage legacy stub] Use sendMessageToContact de features/inbox/hooks/realtime/messageSender.ts para envio real via Evolution API.',
+        { contactId, contentLength: content.length }
+      );
+      // Intencionalmente não faz nada — previne INSERT no schema errado.
     },
     []
   );
