@@ -28,6 +28,11 @@ export function useConversationActions({ commitConversations }: UseConversationA
     mediaUrl?: string,
     mediaPayload?: string
   ) => {
+    if (!isValidUUID(contactId)) {
+      log.warn('[sendMessage] contactId is not a valid UUID — skipping', { contactId });
+      return null;
+    }
+
     const response = await sendMessageToContact(
       contactId,
       content,
@@ -79,7 +84,7 @@ export function useConversationActions({ commitConversations }: UseConversationA
         await supabase
           .from('profiles')
           .update({ last_seen: new Date().toISOString() })
-          .eq('id', user.id);
+          .eq('user_id', user.id);
       }
     }, 5000);
 

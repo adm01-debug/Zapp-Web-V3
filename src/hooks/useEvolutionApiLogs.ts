@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { subHours } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
+import { sanitizePostgrestFilter } from '@/lib/sanitize';
 import { queryKeys } from '@/services/api/queryKeys';
 
 export interface RetryMetric {
@@ -30,17 +31,14 @@ export function useEvolutionApiLogs({
   actionSearch,
   instanceFilter,
 }: UseEvolutionApiLogsOptions) {
-  const since = useMemo(
-    () => subHours(new Date(), Number(hoursBack)).toISOString(),
-    [hoursBack],
-  );
+  const since = useMemo(() => subHours(new Date(), Number(hoursBack)).toISOString(), [hoursBack]);
 
   const { data, isLoading, refetch, isFetching } = useQuery<RetryMetric[]>({
     queryKey: queryKeys.adminOps.evolutionApiLogsFiltered(
       hoursBack,
       statusFilter,
       actionSearch,
-      instanceFilter,
+      instanceFilter
     ),
     queryFn: async () => {
       let q = supabase
@@ -51,7 +49,8 @@ export function useEvolutionApiLogs({
         .limit(500);
 
       if (statusFilter !== 'all') q = q.eq('final_status', statusFilter);
-      if (actionSearch.trim()) q = q.ilike('action', `%${actionSearch.trim()}%`);
+      if (actionSearch.trim())
+        q = q.ilike('action', `%${sanitizePostgrestFilter(actionSearch.trim())}%`);
       if (instanceFilter.trim()) q = q.eq('instance_name', instanceFilter.trim());
 
       const { data, error } = await q;

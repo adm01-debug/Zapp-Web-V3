@@ -103,6 +103,34 @@ export function useRealtimeInbox() {
     loading
   );
 
+  // 🔬 Probe: log transitions in the conversations array coming from the data source
+  // (external Evolution DB when USE_EXTERNAL_DB=true). Emits on every length change,
+  // and always at least once with initial=true so we can prove 0→N hydration.
+  const convProbeRef = useRef<{ len: number; logged: boolean }>({ len: -1, logged: false });
+  useEffect(() => {
+    const len = conversations?.length ?? 0;
+    const prev = convProbeRef.current.len;
+    if (len !== prev || !convProbeRef.current.logged) {
+      convProbeRef.current = { len, logged: true };
+      log.info('[probe] conversations state', {
+        source: USE_EXTERNAL_DB ? 'external' : 'local',
+        length: len,
+        prevLength: prev,
+        loading,
+        error: error ?? null,
+        cachedLength: cachedConversations?.length ?? 0,
+        usingCache,
+        sample: (conversations ?? []).slice(0, 3).map((c) => ({
+          id: c?.contact?.id,
+          jid: c?.contact?.remote_jid,
+          name: c?.contact?.name,
+          assigned_to: c?.contact?.assigned_to ?? null,
+          unread: c?.unreadCount ?? 0,
+        })),
+      });
+    }
+  }, [conversations, loading, error, cachedConversations, usingCache]);
+
   // Seed avatar cache — only once per contact ID to avoid redundant calls when
   // the conversations array gets a new reference without data changes.
   const seededAvatarsRef = useRef<Set<string>>(new Set());
@@ -246,19 +274,19 @@ export function useRealtimeInbox() {
   const messageQueue = useMessageQueue(async (item: QueueItem) => {
     const { contactId, content, attachments } = item;
 
-    // Auto-assign on reply
-    try {
-      const tableName = USE_EXTERNAL_DB ? 'evolution_contacts' : 'team_conversations';
-      const idField = USE_EXTERNAL_DB ? 'remote_jid' : 'id';
-      const { data: conv } = await dbFrom(tableName)
-        .select(`${idField}, routing_status`)
-        .eq(idField, contactId)
-        .maybeSingle();
-      if (conv && conv.routing_status === 'pending') {
-        await dbFrom(tableName).update({ routing_status: 'assigned' }).eq(idField, contactId);
+    // Auto-assign on reply (only valid for local team_conversations; evolution_contacts has no routing_status)
+    if (!USE_EXTERNAL_DB) {
+      try {
+        const { data: conv } = await dbFrom('team_conversations')
+          .select('id, routing_status')
+          .eq('id', contactId)
+          .maybeSingle();
+        if (conv && conv.routing_status === 'pending') {
+          await dbFrom('team_conversations').update({ routing_status: 'assigned' }).eq('id', contactId);
+        }
+      } catch (err) {
+        log.error('Error auto-assigning on reply:', err);
       }
-    } catch (err) {
-      log.error('Error auto-assigning on reply:', err);
     }
 
     if (USE_EXTERNAL_DB) {

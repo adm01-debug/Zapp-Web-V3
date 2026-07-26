@@ -476,10 +476,14 @@ function useMediaUploadManagement({
               type === 'audio_memes'
                 ? { audio_url: urlData.publicUrl, file_name: file.name }
                 : { image_url: urlData.publicUrl };
-            const { data: classifyData, error: _error } = await supabase.functions.invoke(fnName, {
+            const { data: classifyData, error: classifyError } = await supabase.functions.invoke(fnName, {
               body,
             });
-            if (classifyData?.category) aiCategory = classifyData.category;
+            if (classifyError) {
+              log.warn('AI classification failed, using default category:', classifyError);
+            } else if (classifyData?.category) {
+              aiCategory = classifyData.category;
+            }
           } catch (err) {
             log.error('Unexpected error in useMediaUploadManagement:', err);
           }

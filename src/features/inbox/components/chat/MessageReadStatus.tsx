@@ -18,7 +18,7 @@ import { useInboxStatusPref } from '@/features/inbox';
 import type { Message } from '@/types/chat';
 
 interface Props {
-  message: Pick<Message, 'id' | 'sender' | 'status' | 'timestamp' | 'created_at' | 'updated_at'> & {
+  message: Pick<Message, 'id' | 'sender' | 'status' | 'timestamp' | 'created_at' | 'updated_at' | 'is_read'> & {
     status_updated_at?: string;
     contact_read_at?: string | null;
     error_code?: string | null;
@@ -36,7 +36,7 @@ export const MessageReadStatus = memo(function MessageReadStatus({
 }: Props) {
   const { showLabel } = useInboxStatusPref();
   const showTextLabel = forceLabel || showLabel;
-  const reachedRead = !!message.contact_read_at;
+  const reachedRead = !!message.contact_read_at || !!message.is_read;
   const wasReadRef = useRef(reachedRead);
 
   useEffect(() => {

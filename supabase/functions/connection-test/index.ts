@@ -3,7 +3,7 @@
 //  - credenciais do provedor (Evolution ou Meta Cloud)
 //  - permissões/escopos (instância autenticada / phone number alcançável)
 //  - entrega de webhook (POST sintético assinado contra a URL pública correta)
-import { corsHeaders } from "../_shared/validation.ts";
+import { getCorsHeaders } from "../_shared/validation.ts";
 import { requireAdminOrSupervisor } from "../_shared/auth.ts";
 
 type Mode = "official" | "unofficial";
@@ -16,8 +16,8 @@ interface Check {
   durationMs?: number;
 }
 
-const SUPABASE_URL = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'))!;
-const SUPABASE_SERVICE_ROLE_KEY = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))!;
+const SUPABASE_URL = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL')) ?? '';
+const SUPABASE_SERVICE_ROLE_KEY = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')) ?? '';;
 const PROJECT_FUNCTIONS_BASE = `${SUPABASE_URL}/functions/v1`;
 
 const ANON_KEY = (Deno.env.get('SELFHOSTED_SUPABASE_ANON_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY')) ?? "";
@@ -329,10 +329,10 @@ async function appendWebhookCheck(checks: Check[], _mode: Mode, secret: string):
 // ==================== HTTP entry ====================
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { headers: getCorsHeaders(req) });
   }
   if (req.method !== "POST") {
-    return new Response("method not allowed", { status: 405, headers: corsHeaders });
+    return new Response("method not allowed", { status: 405, headers: getCorsHeaders(req) });
   }
 
   // Restrict to admin/supervisor — any authenticated user could otherwise
@@ -367,6 +367,6 @@ Deno.serve(async (req) => {
         ? `${PROJECT_FUNCTIONS_BASE}/whatsapp-cloud-webhook`
         : `${PROJECT_FUNCTIONS_BASE}/evolution-webhook`,
     }),
-    { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    { status: 200, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } },
   );
 });

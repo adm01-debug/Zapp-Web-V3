@@ -41,8 +41,8 @@ export default defineTool({
       .slice(0, 200);                 // safety net
     const { data, error } = await sb
       .from('contacts')
-      .select('id, name, phone_number, email, assigned_to, created_at')
-      .or(`name.ilike.%${safeQuery}%,phone_number.ilike.%${safeQuery}%`)
+      .select('id, name, phone, email, assigned_to, created_at')
+      .or(`name.ilike.%${safeQuery}%,phone.ilike.%${safeQuery}%`)
       .limit(limit ?? 20);
 
     if (error) {

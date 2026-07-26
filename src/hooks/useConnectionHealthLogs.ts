@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 export interface HealthLog {
   id: string;
   instance_id: string;
+  connection_id: string;
   status: string;
   response_time_ms: number | null;
   error_message: string | null;

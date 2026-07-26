@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-24T01:45:31.928Z",
+  "generated_at": "2026-07-24T15:32:23.308Z",
   "ci": {
     "run_id": null,
     "run_attempt": null,
@@ -25,29 +25,28 @@
     "meta_token_present": false
   },
   "local": {
-    "status": "fail",
+    "status": "ok",
     "types_file_exists": true,
     "present_schemas": [
       "__InternalSupabase",
-      "public"
-    ],
-    "missing_schemas": [
+      "public",
       "zapp",
       "evo"
     ],
-    "error": "types.ts sem: zapp, evo"
+    "missing_schemas": [],
+    "error": null
   },
   "remote": {
     "status": "skipped",
-    "reason": null,
+    "reason": "ZAPP_META_URL/ZAPP_META_TOKEN ausentes",
     "http_status": null,
     "present_schemas": [],
     "missing_schemas": [],
     "error": null
   },
   "overall": {
-    "status": "fail",
-    "exit_code": 1,
+    "status": "ok",
+    "exit_code": 0,
     "remediation_url": "https://github.com/atomicabr/zapp-web/actions/workflows/gen-types-zapp.yml"
   }
 }

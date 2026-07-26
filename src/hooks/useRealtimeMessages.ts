@@ -76,8 +76,10 @@ export function useRealtimeMessages() {
         { data: contactsRaw, error: contactsError },
         { data: messages, error: messagesError },
       ] = await Promise.all([
+        // FIX #1: Usar schema 'evo' explicitamente para ambas as tabelas Evolution
+        // (evolution_contacts e evolution_messages são tabelas do schema evo, não zapp)
         supabase.schema('evo').from('evolution_contacts').select('*').order('updated_at', { ascending: false }).limit(500),
-        supabase.from('evolution_messages').select('*').order('created_at', { ascending: false }).limit(100),
+        supabase.schema('evo').from('evolution_messages').select('*').order('created_at', { ascending: false }).limit(100),
       ]);
       if (contactsError) throw contactsError;
       if (messagesError) throw messagesError;
@@ -203,11 +205,11 @@ export function useRealtimeMessages() {
           contact_id: contactId,
           content,
           agent_id: agentId ?? null,
-          sender: 'agent',
+          from_me: true,
           message_type: 'text',
           is_read: true,
           status: 'sent',
-          external_id: `local-${Date.now()}`,
+          message_id: `local-${Date.now()}`,
         });
         if (insertError) throw insertError;
       } catch (err) {

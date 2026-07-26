@@ -68,13 +68,15 @@ Deno.serve(async (req) => {
           }),
           signal: AbortSignal.timeout(15_000),
         });
+        if (!watchRes.ok) {
+          const watchErr = await watchRes.json().catch(() => ({}));
+          return json({ error: 'Watch failed', detail: watchErr }, 500);
+        }
         const watchData = await watchRes.json();
         if (watchData.error) {
           console.error('[gmail-webhook] watch setup error', watchData.error);
           return json({ error: 'Failed to setup Gmail watch' }, 400);
         }
-
-        if (!watchRes.ok) return json({ error: 'Watch failed', detail: watchData }, 500);
 
         const expires = watchData.expiration ? new Date(parseInt(watchData.expiration)).toISOString() : null;
         await supabase.from('email_watch_history').upsert({
@@ -161,8 +163,9 @@ async function getValidToken(supabase: ReturnType<typeof createClient>, accountI
 
   if (!account.refresh_token) return null;
 
-  const clientId = account.client_id ?? Deno.env.get('GOOGLE_CLIENT_ID')!;
-  const clientSecret = account.client_secret ?? Deno.env.get('GOOGLE_CLIENT_SECRET')!;
+  const clientId = account.client_id ?? Deno.env.get('GOOGLE_CLIENT_ID') ?? '';
+  const clientSecret = account.client_secret ?? Deno.env.get('GOOGLE_CLIENT_SECRET') ?? '';
+  if (!clientId || !clientSecret) return null;
 
   const refreshRes = await fetch('https://oauth2.googleapis.com/token', {
     method: 'POST',
@@ -199,6 +202,13 @@ async function processHistory(
     `${GMAIL_API}/history?startHistoryId=${startHistoryId}&historyTypes=messageAdded`,
     { headers: { Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(10_000) }
   );
+  if (!histRes.ok) {
+    // 5xx → transient: throw so Pub/Sub retries and history_id is held in place.
+    // 4xx → permanent API error: log and return so history_id can advance and the account is not stalled.
+    if (histRes.status >= 500) throw new Error(`Gmail history API transient error: ${histRes.status}`);
+    console.error('[gmail-webhook] processHistory non-retryable HTTP error', histRes.status);
+    return;
+  }
   const histData = await histRes.json();
   if (histData.error) return;
 
@@ -246,6 +256,13 @@ async function fetchAndPersistMessage(
     headers: { Authorization: `Bearer ${token}` },
     signal: AbortSignal.timeout(10_000),
   });
+  if (!msgRes.ok) {
+    if (msgRes.status === 404) return; // deleted before ingestion, skip silently
+    if (msgRes.status === 429 || msgRes.status >= 500) {
+      throw new Error(`Gmail API transient HTTP error for message ${messageId}: ${msgRes.status}`);
+    }
+    throw new NonRetryableMessageError(`Gmail API non-retryable HTTP error for message ${messageId}: ${msgRes.status}`);
+  }
   const msg = await msgRes.json();
   if (msg.error) {
     // 404: message deleted before ingestion — expected and harmless, skip silently.

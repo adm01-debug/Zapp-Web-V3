@@ -12,6 +12,7 @@ import {
 import { TrendingUp, ShieldAlert, Save, MapPin } from 'lucide-react';
 import { toast } from 'sonner';
 import { dbFrom } from '@/integrations/datasource/db';
+import { isValidUUID } from '@/utils/uuid';
 
 interface LeadRiskScorePanelProps {
   contactId: string;
@@ -43,6 +44,10 @@ export function LeadRiskScorePanel({ contactId }: LeadRiskScorePanelProps) {
   }, [contactId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadData = async () => {
+    if (!isValidUUID(contactId)) {
+      setLoaded(true);
+      return;
+    }
     const { data } = await supabase
       .from('contacts')
       .select('lead_score, risk_score, lead_origin, consent_status')
@@ -58,6 +63,7 @@ export function LeadRiskScorePanel({ contactId }: LeadRiskScorePanelProps) {
   };
 
   const save = async () => {
+    if (!isValidUUID(contactId)) return;
     setSaving(true);
     const { error } = await dbFrom('contacts')
       .update({

@@ -279,15 +279,32 @@ export function useStickerPicker(onSendSticker: (url: string) => void) {
     setStickers((prev) =>
       prev.map((s) => (s.id === sticker.id ? { ...s, is_favorite: newVal } : s))
     );
-    await supabase.from('stickers').update({ is_favorite: newVal }).eq('id', sticker.id);
+    const { error } = await supabase.from('stickers').update({ is_favorite: newVal }).eq('id', sticker.id);
+    if (error) {
+      log.error('[toggleFavorite] DB update failed:', error.message);
+      setStickers((prev) =>
+        prev.map((s) => (s.id === sticker.id ? { ...s, is_favorite: !newVal } : s))
+      );
+      toast.error('Erro ao atualizar favorito');
+      return;
+    }
     toast.success(newVal ? '⭐ Adicionada aos favoritos' : 'Removida dos favoritos');
   }, []);
 
   const handleCategoryChange = useCallback(async (sticker: StickerItem, newCategory: string) => {
+    const prevCategory = sticker.category;
     setStickers((prev) =>
       prev.map((s) => (s.id === sticker.id ? { ...s, category: newCategory } : s))
     );
-    await supabase.from('stickers').update({ category: newCategory }).eq('id', sticker.id);
+    const { error } = await supabase.from('stickers').update({ category: newCategory }).eq('id', sticker.id);
+    if (error) {
+      log.error('[handleCategoryChange] DB update failed:', error.message);
+      setStickers((prev) =>
+        prev.map((s) => (s.id === sticker.id ? { ...s, category: prevCategory } : s))
+      );
+      toast.error('Erro ao alterar categoria');
+      return;
+    }
     toast.success(`Categoria: "${CATEGORY_LABELS[newCategory]?.label || newCategory}"`);
   }, []);
 

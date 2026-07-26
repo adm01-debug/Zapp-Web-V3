@@ -18,6 +18,8 @@
  */
 import { getExternalSupabase, isExternalConfigured } from '@/integrations/supabase/externalClient';
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { sanitizePostgrestFilter } from '@/lib/sanitize';
+import { isValidUUID } from '@/utils/uuid';
 
 // ─── Types ─────────────────────────────────────────────────────
 export interface ExternalContact {
@@ -120,6 +122,7 @@ export const contactsDB = {
 
   /** Get contact by ID */
   async getById(contactId: string): Promise<ExternalContact | null> {
+    if (!isValidUUID(contactId)) return null;
     const { data, error } = await getClient()
       .from('contacts')
       .select('*')
@@ -167,6 +170,7 @@ export const contactsDB = {
     contactId: string,
     fields: Partial<ExternalContact>
   ): Promise<ExternalContact | null> {
+    if (!isValidUUID(contactId)) throw new Error('Invalid contact ID');
     const { updated_at: _updated_at, ...rest } = fields;
     const { data, error } = await getClient()
       .from('contacts')
@@ -180,6 +184,7 @@ export const contactsDB = {
 
   /** Update avatar URL */
   async updateAvatar(contactId: string, avatarUrl: string): Promise<void> {
+    if (!isValidUUID(contactId)) throw new Error('Invalid contact ID');
     const { error } = await getClient()
       .from('contacts')
       .update({ avatar_url: avatarUrl, updated_at: new Date().toISOString() })
@@ -191,7 +196,7 @@ export const contactsDB = {
   async search(query: string, limit = 20): Promise<ExternalContact[]> {
     const cleaned = query.trim();
     if (!cleaned) return [];
-    const safe = cleaned.replace(/[,()\\]/g, '');
+    const safe = sanitizePostgrestFilter(cleaned);
 
     const { data, error } = await getClient()
       .from('contacts')
@@ -235,6 +240,7 @@ export const contactsDB = {
   // ─── Notes ──────────────────────────────────────────────────
   notes: {
     async list(contactId: string): Promise<ContactNote[]> {
+      if (!isValidUUID(contactId)) return [];
       const { data, error } = await getClient()
         .from('contact_notes')
         .select('*')
@@ -277,6 +283,7 @@ export const contactsDB = {
   // ─── Phones ─────────────────────────────────────────────────
   phones: {
     async list(contactId: string): Promise<ContactPhone[]> {
+      if (!isValidUUID(contactId)) return [];
       const { data, error } = await getClient()
         .from('contact_phones')
         .select('*')
@@ -290,6 +297,7 @@ export const contactsDB = {
   // ─── Emails ─────────────────────────────────────────────────
   emails: {
     async list(contactId: string): Promise<ContactEmail[]> {
+      if (!isValidUUID(contactId)) return [];
       const { data, error } = await getClient()
         .from('contact_emails')
         .select('*')
@@ -312,8 +320,9 @@ export const contactsDB = {
         conditions.push(`whatsapp.ilike.%${cleaned.slice(-8)}%`);
       }
       if (name && name.length >= 3) {
-        conditions.push(`full_name.ilike.%${name}%`);
-        conditions.push(`first_name.ilike.%${name}%`);
+        const safeName = sanitizePostgrestFilter(name);
+        conditions.push(`full_name.ilike.%${safeName}%`);
+        conditions.push(`first_name.ilike.%${safeName}%`);
       }
 
       if (conditions.length === 0) return [];

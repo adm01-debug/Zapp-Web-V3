@@ -83,12 +83,13 @@ Deno.serve(async (req) => {
               signal: AbortSignal.timeout(30_000),
             }
           );
-          const result = await response.json();
           if (!response.ok) {
+            const result = await response.json().catch(() => ({ error: `HTTP ${response.status}` }));
             log.error(`talkx-send returned ${response.status} for campaign ${campaign.id}`, { result });
             await revertStatus();
             return { campaignId: campaign.id, name: campaign.name, success: false, error: result };
           }
+          const result = await response.json();
           log.info(`Scheduled campaign started: ${campaign.name} (${campaign.id})`);
           return { campaignId: campaign.id, name: campaign.name, success: true, result };
         } catch (err) {

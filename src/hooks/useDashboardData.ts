@@ -19,7 +19,6 @@ interface ContactRow {
   assigned_to: string | null;
   queue_id: string | null;
   updated_at: string;
-  status: string | null;
 }
 interface QueueMemberRow {
   queue_id: string;
@@ -75,7 +74,7 @@ export function useDashboardData(filters?: DashboardFilters) {
     queryFn: async () => {
       let query = supabase
         .from('contacts')
-        .select('id, name, phone, assigned_to, queue_id, updated_at, status')
+        .select('id, name, phone, assigned_to, queue_id, updated_at')
         .gte('updated_at', merged.dateRange.from.toISOString())
         .lte('updated_at', merged.dateRange.to.toISOString());
       if (merged.queueId) query = query.eq('queue_id', merged.queueId);
@@ -111,10 +110,8 @@ export function useDashboardData(filters?: DashboardFilters) {
 
     const openConversations = contacts.filter((c) => c.assigned_to).length;
     const pendingConversations = contacts.filter((c) => !c.assigned_to && c.queue_id).length;
-    const resolvedToday = contacts.filter((c) => {
-      const updatedAt = new Date(c.updated_at);
-      return updatedAt >= merged.dateRange.from && c.status === 'closed';
-    }).length;
+    // contacts table has no status column; resolved count not computable from this dataset
+    const resolvedToday = 0;
 
     const queuesStats: QueueStats[] = queues.map((queue) => {
       const members = queue.queue_members || [];

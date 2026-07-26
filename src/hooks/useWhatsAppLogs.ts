@@ -1,7 +1,13 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
-import type { ModeFilter, SendLogRow, WebhookPingRow, ErrorLogRow } from '@/pages/admin/whatsappLogsHelpers';
+import { sanitizePostgrestFilter } from '@/lib/sanitize';
+import type {
+  ModeFilter,
+  SendLogRow,
+  WebhookPingRow,
+  ErrorLogRow,
+} from '@/pages/admin/whatsappLogsHelpers';
 import {
   OFFICIAL_PROVIDERS,
   UNOFFICIAL_PROVIDERS,
@@ -26,10 +32,12 @@ export function useWhatsAppLogs(mode: ModeFilter, search: string) {
           .limit(150);
         if (mode === 'official') query = query.in('provider', OFFICIAL_PROVIDERS);
         if (mode === 'unofficial') query = query.in('provider', UNOFFICIAL_PROVIDERS);
-        if (search)
+        if (search) {
+          const safe = sanitizePostgrestFilter(search);
           query = query.or(
-            `remote_jid.ilike.%${search}%,error_code.ilike.%${search}%,error_message.ilike.%${search}%`
+            `remote_jid.ilike.%${safe}%,error_code.ilike.%${safe}%,error_message.ilike.%${safe}%`
           );
+        }
         return query;
       });
 
@@ -48,10 +56,12 @@ export function useWhatsAppLogs(mode: ModeFilter, search: string) {
           .limit(150);
         if (mode === 'official') query = query.in('channel_type', OFFICIAL_CHANNELS);
         if (mode === 'unofficial') query = query.in('channel_type', UNOFFICIAL_CHANNELS);
-        if (search)
+        if (search) {
+          const safe = sanitizePostgrestFilter(search);
           query = query.or(
-            `remote_jid.ilike.%${search}%,error_code.ilike.%${search}%,error_message.ilike.%${search}%`
+            `remote_jid.ilike.%${safe}%,error_code.ilike.%${safe}%,error_message.ilike.%${safe}%`
           );
+        }
         return query;
       });
 

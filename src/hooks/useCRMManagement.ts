@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { log } from '@/lib/logger';
+import { isValidUUID } from '@/utils/uuid';
 
 // Escape hatch de tipos: as tabelas contact_intelligence/contact_notes/
 // contact_assignments/contact_custom_fields vivem no schema `zapp` da instância
@@ -48,7 +49,7 @@ export function useContactIntelligenceManagement(contactId?: string) {
   }, [contactId]);
 
   const fetchIntelligence = useCallback(async () => {
-    if (!contactId) return;
+    if (!contactId || !isValidUUID(contactId)) return;
 
     try {
       setLoading(true);
@@ -92,7 +93,7 @@ export function useContactNotesManagement(contactId?: string) {
   }, [contactId]);
 
   const fetchNotes = useCallback(async () => {
-    if (!contactId) return;
+    if (!contactId || !isValidUUID(contactId)) return;
 
     try {
       setLoading(true);
@@ -162,10 +163,12 @@ export function useContactEnrichedDataManagement(contactId?: string) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!contactId) {
+    if (!contactId || !isValidUUID(contactId)) {
       setLoading(false);
       return;
     }
+
+    let cancelled = false;
 
     const fetchEnrichedData = async () => {
       try {
@@ -173,16 +176,21 @@ export function useContactEnrichedDataManagement(contactId?: string) {
           contact_id: contactId,
         });
 
+        if (cancelled) return;
         if (err) throw err;
         setEnrichedData(data);
       } catch (err) {
+        if (cancelled) return;
         log.error('Error enriching contact data:', err);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
 
     fetchEnrichedData();
+    return () => {
+      cancelled = true;
+    };
   }, [contactId]);
 
   return { enrichedData, loading };
@@ -204,7 +212,7 @@ export function useContactAssignmentManagement(contactId?: string) {
   }, [contactId]);
 
   const fetchAssignment = useCallback(async () => {
-    if (!contactId) return;
+    if (!contactId || !isValidUUID(contactId)) return;
 
     try {
       setLoading(true);
@@ -268,7 +276,7 @@ export function useContactCustomFieldsManagement(contactId?: string) {
   }, [contactId]);
 
   const fetchFields = useCallback(async () => {
-    if (!contactId) return;
+    if (!contactId || !isValidUUID(contactId)) return;
 
     try {
       setLoading(true);

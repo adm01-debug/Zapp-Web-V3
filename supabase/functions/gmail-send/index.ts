@@ -98,12 +98,19 @@ Deno.serve(async (req) => {
         signal: AbortSignal.timeout(15_000),
       });
 
+      if (!sendRes.ok) {
+        let errBody = '';
+        try { errBody = await sendRes.text(); } catch { /* ignore */ }
+        console.error('[gmail-send] send HTTP error', sendRes.status, errBody.slice(0, 200));
+        return json({ error: 'Failed to send message' }, sendRes.status >= 500 ? 502 : 400);
+      }
+
       let sendData: unknown;
       try {
         sendData = await sendRes.json();
       } catch {
         console.error('[gmail-send] failed to parse send response');
-        return json({ error: 'Failed to send message' }, 400);
+        return json({ error: 'Failed to send message' }, 502);
       }
 
       if (!sendData || typeof sendData !== 'object' || Array.isArray(sendData)) {
@@ -229,6 +236,12 @@ Deno.serve(async (req) => {
         signal: AbortSignal.timeout(10_000),
       });
 
+      if (!res.ok) {
+        const errText = await res.text().catch(() => '');
+        console.error(`[gmail-send] modify labels HTTP ${res.status}`, errText.slice(0, 200));
+        return json({ error: `Gmail API error: ${res.status}` }, res.status >= 500 ? 502 : res.status);
+      }
+
       let data: unknown;
       try {
         data = await res.json();
@@ -285,6 +298,12 @@ Deno.serve(async (req) => {
           body: draftBody,
           signal: AbortSignal.timeout(15_000),
         });
+      }
+
+      if (!res.ok) {
+        const errText = await res.text().catch(() => '');
+        console.error(`[gmail-send] save draft HTTP ${res.status}`, errText.slice(0, 200));
+        return json({ error: `Gmail API error: ${res.status}` }, res.status >= 500 ? 502 : res.status);
       }
 
       let data: unknown;
@@ -395,8 +414,10 @@ async function getValidToken(supabase: ReturnType<typeof createClient>, accountI
   const tokensObj = tokens as Record<string, unknown>;
   if (tokensObj.error) {
     const errorMsg = typeof tokensObj.error === 'string' ? tokensObj.error : JSON.stringify(tokensObj.error);
-    console.error('[gmail-send] token refresh error:', errorMsg);
-    await supabase.from('gmail_accounts').update({ is_active: false }).eq('id', accountId);
+    const PERMANENT_ERRORS = ['invalid_grant', 'token_revoked'];
+    const isPermanent = typeof tokensObj.error === 'string' && PERMANENT_ERRORS.includes(tokensObj.error);
+    console.error(`[gmail-send] token refresh error: ${errorMsg} (permanent=${isPermanent})`);
+    if (isPermanent) await supabase.from('gmail_accounts').update({ is_active: false }).eq('id', accountId);
     return null;
   }
 

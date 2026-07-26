@@ -62,7 +62,7 @@ import { createZappAdminClient, createZappClient } from '../_shared/db-client.ts
 
 import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
 const VERIFY_TOKEN = Deno.env.get("WHATSAPP_CLOUD_WEBHOOK_VERIFY_TOKEN") ?? "";
-const SUPABASE_URL = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'))!;
+const SUPABASE_URL = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL')) ?? '';
 
 function json(data: unknown, status = 200, req: Request) {
   return new Response(JSON.stringify(data), {

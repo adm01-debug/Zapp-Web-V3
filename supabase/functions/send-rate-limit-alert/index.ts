@@ -72,7 +72,7 @@ Deno.serve(async (req) => {
         metadata: { ip_address, endpoint, request_count, blocked },
       }));
 
-      await supabaseClient.from("notifications").insert(notifications);
+      await supabaseClient.from("app_notifications").insert(notifications);
     }
 
     log.done(200);

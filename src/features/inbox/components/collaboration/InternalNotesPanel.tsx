@@ -3,6 +3,7 @@ import { queryKeys } from '@/services/api/queryKeys';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchProfileIdByUserId, insertContactNote } from '../../hooks/useContactNotesMutations';
 import { safeClient } from '@/integrations/supabase/safeClient';
+import { isValidUUID } from '@/utils/uuid';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -30,6 +31,7 @@ export function InternalNotesPanel({ contactId }: { contactId: string }) {
 
   const { data: notes, isLoading } = useQuery<NoteRow[]>({
     queryKey: queryKeys.internalNotes.contact(contactId),
+    enabled: isValidUUID(contactId),
     queryFn: async () => {
       const { data, error } = await safeClient.from<NoteRow>('contact_notes', (q) =>
         q
@@ -46,6 +48,7 @@ export function InternalNotesPanel({ contactId }: { contactId: string }) {
   const addNoteMutation = useMutation({
     mutationFn: async (content: string) => {
       if (!user?.id) throw new Error('User not authenticated');
+      if (!isValidUUID(contactId)) throw new Error('Invalid contact ID');
       const profile = await fetchProfileIdByUserId(user.id);
       if (!profile) throw new Error('Profile not found');
       const { error } = await insertContactNote({

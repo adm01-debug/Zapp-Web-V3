@@ -15,6 +15,8 @@ export interface AuthContextType {
   loading: boolean;
   bootstrapError: AuthBootstrapError;
   bootstrapElapsedMs: number | null;
+  /** true enquanto retryBootstrap() está em execução — desabilita o botão de retry na UI. */
+  isRetrying: boolean;
   retryBootstrap: () => Promise<void>;
   signIn: (email: string, password: string) => Promise<{ error: AuthError | null }>;
   signUp: (email: string, password: string, name: string) => Promise<{ error: AuthError | null }>;

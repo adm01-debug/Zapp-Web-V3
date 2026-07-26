@@ -26,7 +26,55 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
     mountedRef.current = true;
     return () => {
       mountedRef.current = false;
+      // FIX #9: Cleanup completo em unmount para prevenir memory leaks
+      cleanupRecordingResources();
     };
+  }, []);
+
+  /**
+   * FIX #9: Libera todos os recursos do recorder (MediaStream, AudioContext,
+   * intervals, animation frames, recognition). Chamado em unmount e em
+   * fluxos de cancel/erro.
+   */
+  const cleanupRecordingResources = useCallback(() => {
+    // Para MediaStream tracks
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => {
+        try { track.stop(); } catch { /* ignore */ }
+      });
+      streamRef.current = null;
+    }
+
+    // Cancela animation frame do analyzer
+    if (animationFrameRef.current !== null) {
+      cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
+    }
+
+    // Fecha AudioContext
+    if (audioContextRef.current) {
+      try { audioContextRef.current.close(); } catch { /* ignore */ }
+      audioContextRef.current = null;
+    }
+    analyserRef.current = null;
+
+    // Limpa interval de duration
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+
+    // Para speech recognition
+    if (recognitionRef.current) {
+      try { recognitionRef.current.stop(); } catch { /* ignore */ }
+      recognitionRef.current = null;
+    }
+
+    // Limpa MediaRecorder reference
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      try { mediaRecorderRef.current.stop(); } catch { /* ignore */ }
+    }
+    mediaRecorderRef.current = null;
   }, []);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -220,10 +268,14 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
   const stopRecording = useCallback(() => {
     if (mediaRecorderRef.current && isRecording) {
       mediaRecorderRef.current.stop();
-      streamRef.current?.getTracks().forEach((track) => track.stop());
-
+      // FIX #9: cleanup após stop (stream tracks, interval, etc)
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((track) => track.stop());
+        streamRef.current = null;
+      }
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
+        intervalRef.current = null;
       }
 
       setIsRecording(false);
@@ -240,11 +292,19 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
           lastTranscriptionRef.current = transcription;
         }
 
-        mediaRecorderRef.current.stop();
-        streamRef.current?.getTracks().forEach((track) => track.stop());
-
+        try { mediaRecorderRef.current.stop(); } catch { /* ignore */ }
+        // FIX #9: cleanup de todos os recursos ao cancelar
+        if (streamRef.current) {
+          streamRef.current.getTracks().forEach((track) => track.stop());
+          streamRef.current = null;
+        }
         if (intervalRef.current) {
           clearInterval(intervalRef.current);
+          intervalRef.current = null;
+        }
+        if (animationFrameRef.current !== null) {
+          cancelAnimationFrame(animationFrameRef.current);
+          animationFrameRef.current = null;
         }
 
         chunksRef.current = [];

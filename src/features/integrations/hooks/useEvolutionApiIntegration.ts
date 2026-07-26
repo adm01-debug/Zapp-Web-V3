@@ -7,8 +7,9 @@ import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 
-// evolution_instance_credentials e evolution_health_logs residem no schema 'evo'
-// (schema não incluído em ExtendedDatabase gerado; cast controlado)
+// evolution_instance_credentials reside no schema 'evo' (física, service_role only).
+// evolution_health_logs foi movida para schema 'zapp' (migration 20260724000044) — usar supabase diretamente.
+// (schema 'evo' não incluído em ExtendedDatabase gerado; cast controlado)
 const evo = (supabase as unknown as { schema: (s: string) => ReturnType<typeof supabase.schema> }).schema('evo');
 
 /** Evolution Instance Credential interface definition. */
@@ -59,7 +60,7 @@ export function useEvolutionApiIntegration() {
     try {
       const [credsRes, logsRes] = await Promise.all([
         evo.from('evolution_instance_credentials').select('*').order('instance_name'),
-        evo
+        supabase
           .from('evolution_health_logs')
           .select('*')
           .order('performed_at', { ascending: false })
@@ -135,7 +136,7 @@ export function useEvolutionApiIntegration() {
 
       // Log the health check in the database
       if (creds.instance_name) {
-        await evo.from('evolution_health_logs').insert({
+        await supabase.from('evolution_health_logs').insert({
           instance_name: creds.instance_name,
           status: isSuccess ? 'success' : 'failure',
           error_message: errorMsg,
@@ -165,7 +166,7 @@ export function useEvolutionApiIntegration() {
       toast.error(`Erro de conexão: ${errorMsg}`);
 
       if (creds.instance_name) {
-        await evo.from('evolution_health_logs').insert({
+        await supabase.from('evolution_health_logs').insert({
           instance_name: creds.instance_name,
           status: 'failure',
           error_message: errorMsg,

@@ -118,7 +118,9 @@ export function useFailedMessages(filters: FailedMessagesFilters = {}) {
         }
         return true;
       });
-      const total = list[0]?.total_count != null ? Number(list[0].total_count) : 0;
+      const total = (rootCause && filtered.length !== list.length)
+        ? filtered.length
+        : (list[0]?.total_count != null ? Number(list[0].total_count) : 0);
       const rows: FailedMessageRow[] = filtered.map(
         ({ total_count: _t, ...rest }: Record<string, unknown>) => rest as unknown as FailedMessageRow
       );

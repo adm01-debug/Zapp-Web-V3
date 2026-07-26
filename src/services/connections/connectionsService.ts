@@ -25,17 +25,15 @@ export const connectionsService = {
   },
 
   createWhatsAppConnection: async (data: Partial<WhatsAppConnection>): Promise<WhatsAppConnection> => {
-    if (!data.instance_name || data.instance_name.trim().length === 0) {
-      throw new Error('Instance name is required');
-    }
-    if (!data.account_id) {
-      throw new Error('Account ID is required');
+    if (!data.name || data.name.trim().length === 0) {
+      throw new Error('Connection name is required');
     }
 
     return connectionsRepository.createWhatsAppConnection({
       ...data,
-      instance_name: data.instance_name.trim(),
-      connection_status: 'disconnected',
+      name: data.name.trim(),
+      instance_name: data.instance_name?.trim(),
+      status: 'disconnected',
     });
   },
 
@@ -67,7 +65,7 @@ export const connectionsService = {
   getConnectionStatus: async (id: string): Promise<string | null> => {
     if (!id) return null;
     const connection = await connectionsRepository.getWhatsAppConnection(id);
-    return connection?.connection_status || null;
+    return connection?.status || null;
   },
 
   checkConnectionHealth: async (id: string) => {

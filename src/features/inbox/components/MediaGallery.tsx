@@ -29,6 +29,7 @@ import { MediaPreviewDialog } from './media-gallery/MediaPreviewDialog';
 import { MediaGalleryListView } from './media-gallery/MediaGalleryListView';
 import { dbFrom } from '@/integrations/datasource/db';
 import { queryKeys } from '@/services/api/queryKeys';
+import { isValidUUID } from '@/utils/uuid';
 
 const MediaGridItem = memo(function MediaGridItem({
   item,
@@ -43,7 +44,14 @@ const MediaGridItem = memo(function MediaGridItem({
 }) {
   const handleSelect = useCallback(() => onToggleSelect(item.id), [onToggleSelect, item.id]);
   const handlePreview = useCallback(() => onPreview(item), [onPreview, item]);
-  return <MediaCard item={item} isSelected={isSelected} onSelect={handleSelect} onPreview={handlePreview} />;
+  return (
+    <MediaCard
+      item={item}
+      isSelected={isSelected}
+      onSelect={handleSelect}
+      onPreview={handlePreview}
+    />
+  );
 });
 
 interface MediaGalleryProps {
@@ -80,7 +88,7 @@ export function MediaGallery({ contactId, open, onOpenChange }: MediaGalleryProp
       if (error) throw error;
       return data || [];
     },
-    enabled: open && !!contactId,
+    enabled: open && !!contactId && isValidUUID(contactId),
     staleTime: 60_000,
     retry: 1,
   });

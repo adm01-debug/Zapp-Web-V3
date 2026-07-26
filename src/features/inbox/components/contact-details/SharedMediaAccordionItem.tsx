@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Image } from 'lucide-react';
 import { dbFrom } from '@/integrations/datasource/db';
 import { queryKeys } from '@/services/api/queryKeys';
+import { isValidUUID } from '@/utils/uuid';
 
 interface SharedMediaAccordionItemProps {
   contactId: string;
@@ -28,7 +29,7 @@ export function SharedMediaAccordionItem({ contactId, onOpen }: SharedMediaAccor
       if (error) throw error;
       return count ?? 0;
     },
-    enabled: !!contactId,
+    enabled: !!contactId && isValidUUID(contactId),
     staleTime: 60_000,
   });
 
@@ -39,7 +40,7 @@ export function SharedMediaAccordionItem({ contactId, onOpen }: SharedMediaAccor
   // Prefetch first page on accordion open so the gallery opens instantly.
   useEffect(() => {
     const el = itemRef.current;
-    if (!el || !contactId) return;
+    if (!el || !contactId || !isValidUUID(contactId)) return;
 
     const PAGE_SIZE = 24;
     const prefetchFirstPage = () => {

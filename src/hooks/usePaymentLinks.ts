@@ -19,6 +19,7 @@ export async function createPaymentLink(params: {
   return { error: error ? new Error(error.message) : null };
 }
 
-export async function deletePaymentLink(id: string): Promise<void> {
-  await supabase.from('payment_links').delete().eq('id', id);
+export async function deletePaymentLink(id: string): Promise<{ error: Error | null }> {
+  const { error } = await supabase.from('payment_links').delete().eq('id', id);
+  return { error: error ? new Error(error.message) : null };
 }

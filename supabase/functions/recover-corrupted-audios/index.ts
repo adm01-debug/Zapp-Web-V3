@@ -3,7 +3,7 @@ import { getCorsHeaders, handleCors, Logger } from "../_shared/validation.ts";
 import { requireServiceRoleOrCron } from "../_shared/auth.ts";
 
 const EVOLUTION_API_URL = (Deno.env.get("EVOLUTION_API_URL") || "").replace(/\/+$/, "");
-const EVOLUTION_API_KEY = Deno.env.get("EVOLUTION_API_KEY")!;
+const EVOLUTION_API_KEY = Deno.env.get("EVOLUTION_API_KEY") ?? '';
 
 const supabase = createZappAdminClient();
 

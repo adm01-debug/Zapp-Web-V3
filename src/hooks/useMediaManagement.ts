@@ -175,15 +175,19 @@ export function useDownloadPermissionManagement(resourceId?: string) {
       return;
     }
 
+    let cancelled = false;
+
     const checkPermission = async () => {
       try {
         const { data, error: err } = await supabase.rpc('check_download_permission', {
           resource_id: resourceId,
         });
 
+        if (cancelled) return;
         if (err) throw err;
         setHasPermission(data || false);
       } catch (err) {
+        if (cancelled) return;
         log.error('Error checking download permission:', err);
         // Fail open only when the RPC doesn't exist yet:
         //   PGRST202 = PostgREST cannot find the function in its schema cache
@@ -192,11 +196,12 @@ export function useDownloadPermissionManagement(resourceId?: string) {
         const code = (err as { code?: string })?.code;
         setHasPermission(code === '42883' || code === 'PGRST202');
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
 
     checkPermission();
+    return () => { cancelled = true; };
   }, [resourceId]);
 
   return { hasPermission, canDownload: hasPermission, loading };

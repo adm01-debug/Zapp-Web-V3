@@ -37,7 +37,7 @@ Deno.serve(async (req) => {
       signal: AbortSignal.timeout(10_000),
     });
 
-    const data = await response.json();
+    const data = await response.json().catch(() => ({}));
 
     if (!response.ok) {
       log.error("VirusTotal API test failed", { status: response.status, data });

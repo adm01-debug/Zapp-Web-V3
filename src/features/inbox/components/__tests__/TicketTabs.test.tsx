@@ -16,7 +16,7 @@ const mockUserRole = vi.fn(() => ({
   isManager: false,
   isAdmin: false,
   roles: ['agent'],
-  loading: false
+  loading: false,
 }));
 
 vi.mock('@/features/auth', () => ({
@@ -24,12 +24,13 @@ vi.mock('@/features/auth', () => ({
   useUserRole: () => mockUserRole(),
   usePermissions: () => ({
     hasPermission: mockHasPermission,
-    loading: false
-  })
+    userPermissions: [],
+    loading: false,
+  }),
 }));
 
 vi.mock('@/hooks/useQueues', () => ({
-  useQueues: () => ({ queues: [] })
+  useQueues: () => ({ queues: [] }),
 }));
 
 vi.mock('@/features/inbox', () => ({
@@ -37,11 +38,11 @@ vi.mock('@/features/inbox', () => ({
 }));
 
 vi.mock('@/hooks/useDensity', () => ({
-  useDensity: () => ({ density: 'default' })
+  useDensity: () => ({ density: 'default' }),
 }));
 
 vi.mock('@/hooks/use-mobile', () => ({
-  useIsMobile: () => false
+  useIsMobile: () => false,
 }));
 
 vi.mock('@/integrations/supabase/client', () => ({
@@ -50,9 +51,9 @@ vi.mock('@/integrations/supabase/client', () => ({
   SUPABASE_RESOLVED_ANON_KEY: 'test-anon-key',
   supabase: {
     from: vi.fn(() => ({
-      insert: vi.fn().mockResolvedValue({ error: null })
-    }))
-  }
+      insert: vi.fn().mockResolvedValue({ error: null }),
+    })),
+  },
 }));
 
 describe('TicketTabs - Visibilidade de Escopo', () => {
@@ -86,12 +87,12 @@ describe('TicketTabs - Visibilidade de Escopo', () => {
   });
 
   it('renderiza "Departamento" quando tem permissão inbox.view_department', () => {
-    mockHasPermission.mockImplementation((perm) => 
-      perm === 'inbox.view_mine' || perm === 'inbox.view_department'
+    mockHasPermission.mockImplementation(
+      (perm) => perm === 'inbox.view_mine' || perm === 'inbox.view_department'
     );
-    
+
     renderWithClient(
-      <TicketTabs 
+      <TicketTabs
         conversations={[]}
         mainTab="open"
         subTab="attending"
@@ -111,9 +112,9 @@ describe('TicketTabs - Visibilidade de Escopo', () => {
 
   it('renderiza todos os escopos quando tem permissão inbox.view_all', () => {
     mockHasPermission.mockReturnValue(true);
-    
+
     renderWithClient(
-      <TicketTabs 
+      <TicketTabs
         conversations={[]}
         mainTab="open"
         subTab="attending"

@@ -1448,7 +1448,7 @@ Responda APENAS em JSON:
           try {
             const admins = adminsResult.data;
             if (admins && Array.isArray(admins) && admins.length > 0) {
-              const { error: insertErr } = await supabase.from('notifications').insert(
+              const { error: insertErr } = await supabase.from('app_notifications').insert(
                 admins.map((a: any) => ({
                   user_id: a.user_id,
                   type: 'urgent_conversation',
@@ -1905,7 +1905,7 @@ Foque em:
           try {
             const admins = adminsResult.data;
             if (admins && Array.isArray(admins) && admins.length > 0) {
-              const { error: insertErr } = await supabase.from('notifications').insert(
+              const { error: insertErr } = await supabase.from('app_notifications').insert(
                 admins.map((a: any) => ({
                   user_id: a.user_id,
                   type: 'conversation_escalated',

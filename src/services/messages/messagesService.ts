@@ -25,9 +25,6 @@ export const messagesService = {
     if (!data.content || data.content.trim().length === 0) {
       throw new Error('Message content is required');
     }
-    if (!data.sender_type) {
-      throw new Error('Sender type is required');
-    }
 
     return messagesRepository.createMessage({
       ...data,
@@ -35,6 +32,7 @@ export const messagesService = {
       message_type: data.message_type || 'text',
       status: 'sent',
       is_read: false,
+      direction: data.from_me ? 'outbound' : 'inbound',
     });
   },
 
@@ -79,7 +77,7 @@ export const messagesService = {
 
     return messagesRepository.createConversation({
       ...data,
-      status: 'open',
+      status: 'aberta',
     });
   },
 
@@ -96,12 +94,12 @@ export const messagesService = {
   // Conversation management
   closeConversation: async (id: string): Promise<Conversation> => {
     if (!id) throw new Error('Conversation ID is required');
-    return messagesRepository.updateConversation(id, { status: 'closed' });
+    return messagesRepository.updateConversation(id, { status: 'arquivada' });
   },
 
   reopenConversation: async (id: string): Promise<Conversation> => {
     if (!id) throw new Error('Conversation ID is required');
-    return messagesRepository.updateConversation(id, { status: 'open' });
+    return messagesRepository.updateConversation(id, { status: 'aberta' });
   },
 
   assignConversation: async (id: string, agentId: string): Promise<Conversation> => {
@@ -109,8 +107,8 @@ export const messagesService = {
     if (!agentId) throw new Error('Agent ID is required');
 
     return messagesRepository.updateConversation(id, {
-      assigned_agent_id: agentId,
-      status: 'open',
+      assigned_to: agentId,
+      status: 'aberta',
     });
   },
 

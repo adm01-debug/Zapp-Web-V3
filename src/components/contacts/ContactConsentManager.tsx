@@ -9,12 +9,8 @@ import { useToast } from '@/hooks/use-toast';
 import { sanitizeText } from '@/lib/sanitize';
 import { dbFrom } from '@/integrations/datasource/db';
 import { getLogger } from '@/lib/logger';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
+import { isValidUUID } from '@/utils/uuid';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 const log = getLogger('ContactConsentManager');
 
@@ -22,28 +18,28 @@ const log = getLogger('ContactConsentManager');
 
 /** Consent Data component for the contacts section. */
 export interface ConsentData {
-  lgpd_consent_at:        string | null;
-  lgpd_consent_channel:   string | null; // 'whatsapp' | 'email' | 'form' | 'phone' | 'manual'
-  lgpd_opt_out_at:        string | null;
+  lgpd_consent_at: string | null;
+  lgpd_consent_channel: string | null; // 'whatsapp' | 'email' | 'form' | 'phone' | 'manual'
+  lgpd_opt_out_at: string | null;
   lgpd_marketing_consent: boolean;
-  lgpd_data_sharing:      boolean;
-  lgpd_profiling:         boolean;
+  lgpd_data_sharing: boolean;
+  lgpd_profiling: boolean;
 }
 
 interface ContactConsentManagerProps {
-  contactId:     string;
-  contactName:   string;
-  consentData:   ConsentData;
-  readonly?:     boolean;
-  onUpdated?:    (updated: Partial<ConsentData>) => void;
+  contactId: string;
+  contactName: string;
+  consentData: ConsentData;
+  readonly?: boolean;
+  onUpdated?: (updated: Partial<ConsentData>) => void;
 }
 
 const CHANNEL_LABELS: Record<string, string> = {
   whatsapp: 'WhatsApp',
-  email:    'E-mail',
-  form:     'Formulário Web',
-  phone:    'Telefone',
-  manual:   'Registro Manual',
+  email: 'E-mail',
+  form: 'Formulário Web',
+  phone: 'Telefone',
+  manual: 'Registro Manual',
 };
 
 // ── Component ──────────────────────────────────────────────────────────────
@@ -64,6 +60,7 @@ export const ContactConsentManager: React.FC<ContactConsentManagerProps> = ({
   const hasOptedOut = !!local.lgpd_opt_out_at;
 
   const saveConsent = async (updates: Partial<ConsentData>) => {
+    if (!isValidUUID(contactId)) return;
     setSaving(true);
     try {
       const { error } = await dbFrom('contacts')
@@ -95,19 +92,19 @@ export const ContactConsentManager: React.FC<ContactConsentManagerProps> = ({
 
   const grantConsent = () => {
     const updates: Partial<ConsentData> = {
-      lgpd_consent_at:      new Date().toISOString(),
+      lgpd_consent_at: new Date().toISOString(),
       lgpd_consent_channel: 'manual',
-      lgpd_opt_out_at:      null,
+      lgpd_opt_out_at: null,
     };
     saveConsent(updates);
   };
 
   const revokeConsent = () => {
     const updates: Partial<ConsentData> = {
-      lgpd_opt_out_at:        new Date().toISOString(),
+      lgpd_opt_out_at: new Date().toISOString(),
       lgpd_marketing_consent: false,
-      lgpd_data_sharing:      false,
-      lgpd_profiling:         false,
+      lgpd_data_sharing: false,
+      lgpd_profiling: false,
     };
     saveConsent(updates);
   };
@@ -123,16 +120,16 @@ export const ContactConsentManager: React.FC<ContactConsentManagerProps> = ({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Shield className="h-4 w-4 text-primary" />
-          <span className="font-semibold text-sm">LGPD / Consentimento</span>
+          <span className="text-sm font-semibold">LGPD / Consentimento</span>
         </div>
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+              <Info className="h-4 w-4 cursor-help text-muted-foreground" />
             </TooltipTrigger>
             <TooltipContent className="max-w-[280px] text-xs">
-              Conforme a Lei Geral de Proteção de Dados (LGPD — Lei 13.709/2018), o contato
-              deve consentir explicitamente com o uso de seus dados pessoais.
+              Conforme a Lei Geral de Proteção de Dados (LGPD — Lei 13.709/2018), o contato deve
+              consentir explicitamente com o uso de seus dados pessoais.
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
@@ -141,7 +138,7 @@ export const ContactConsentManager: React.FC<ContactConsentManagerProps> = ({
       {/* Consent Status Badge */}
       <div className="flex items-center gap-2">
         {hasConsent ? (
-          <Badge className="gap-1 bg-primary text-primary-foreground border-primary">
+          <Badge className="gap-1 border-primary bg-primary text-primary-foreground">
             <CheckCircle2 className="h-3 w-3" />
             Consentimento registrado
           </Badge>
@@ -151,7 +148,10 @@ export const ContactConsentManager: React.FC<ContactConsentManagerProps> = ({
             Opt-out registrado
           </Badge>
         ) : (
-          <Badge variant="outline" className="gap-1 text-warning-foreground border-warning bg-warning">
+          <Badge
+            variant="outline"
+            className="gap-1 border-warning bg-warning text-warning-foreground"
+          >
             <AlertTriangle className="h-3 w-3" />
             Sem consentimento
           </Badge>
@@ -160,7 +160,7 @@ export const ContactConsentManager: React.FC<ContactConsentManagerProps> = ({
 
       {/* Consent details */}
       {local.lgpd_consent_at && (
-        <div className="text-xs text-muted-foreground space-y-0.5">
+        <div className="space-y-0.5 text-xs text-muted-foreground">
           <p>
             <span className="font-medium">Concedido em:</span>{' '}
             {new Date(local.lgpd_consent_at).toLocaleString('pt-BR')}
@@ -168,7 +168,8 @@ export const ContactConsentManager: React.FC<ContactConsentManagerProps> = ({
           {local.lgpd_consent_channel && (
             <p>
               <span className="font-medium">Canal:</span>{' '}
-              {CHANNEL_LABELS[sanitizeText(local.lgpd_consent_channel)] ?? sanitizeText(local.lgpd_consent_channel)}
+              {CHANNEL_LABELS[sanitizeText(local.lgpd_consent_channel)] ??
+                sanitizeText(local.lgpd_consent_channel)}
             </p>
           )}
           {local.lgpd_opt_out_at && (
@@ -184,19 +185,19 @@ export const ContactConsentManager: React.FC<ContactConsentManagerProps> = ({
 
       {/* Granular consent toggles */}
       <div className="space-y-3">
-        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+        <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
           Finalidades específicas
         </p>
 
         {(
           [
             ['lgpd_marketing_consent', 'Marketing e comunicações comerciais'],
-            ['lgpd_data_sharing',      'Compartilhamento com parceiros'],
-            ['lgpd_profiling',         'Perfilamento e personalização'],
+            ['lgpd_data_sharing', 'Compartilhamento com parceiros'],
+            ['lgpd_profiling', 'Perfilamento e personalização'],
           ] as const
         ).map(([field, label]) => (
           <div key={field} className="flex items-center justify-between">
-            <Label htmlFor={field} className="text-sm cursor-pointer flex-1">
+            <Label htmlFor={field} className="flex-1 cursor-pointer text-sm">
               {label}
             </Label>
             <Switch
@@ -229,7 +230,7 @@ export const ContactConsentManager: React.FC<ContactConsentManagerProps> = ({
             </Button>
           )}
           {hasOptedOut && (
-            <p className="text-xs text-muted-foreground italic">
+            <p className="text-xs italic text-muted-foreground">
               Contato solicitou opt-out. Para reativar, o contato deve consentir novamente.
             </p>
           )}

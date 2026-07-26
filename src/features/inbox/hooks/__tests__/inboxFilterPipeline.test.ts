@@ -126,7 +126,7 @@ describe('inboxFilterPipeline — visibilidade de conversas aguardando', () => {
       buildConversation('c1', null, 1),
       buildConversation('c2', null, 1),
     ];
-    const options = buildOptions(conversations);
+    const options = buildOptions(conversations, { subTab: 'waiting' });
 
     const attending = applyInboxFilters({ ...options, subTab: 'attending' });
     const waiting = applyInboxFilters({ ...options, subTab: 'waiting' });
@@ -134,6 +134,7 @@ describe('inboxFilterPipeline — visibilidade de conversas aguardando', () => {
 
     expect(attending).toHaveLength(0);
     expect(waiting.map((conversation) => conversation.contact.id)).toEqual(['c1', 'c2']);
+    // open reflete o subTab ativo (waiting) para casar 1:1 com a lista visível
     expect(counts).toMatchObject({ open: 2, attending: 0, waiting: 2, unread: 2 });
   });
 
@@ -151,6 +152,64 @@ describe('inboxFilterPipeline — visibilidade de conversas aguardando', () => {
 
     expect(attending.map((conversation) => conversation.contact.id)).toEqual(['c1', 'c3']);
     expect(waiting.map((conversation) => conversation.contact.id)).toEqual(['c2']);
-    expect(counts).toMatchObject({ open: 3, attending: 2, waiting: 1 });
+    // subTab default 'attending' → open casa com attending (2), não união
+    expect(counts).toMatchObject({ open: 2, attending: 2, waiting: 1 });
+  });
+
+  it('preserva conversas carregadas quando permissões de canal ainda estão desidratadas', () => {
+    const conversations = [
+      buildConversation('c1', null, 1),
+      buildConversation('c2', null, 1),
+    ];
+    const options = buildOptions(conversations, {
+      subTab: 'waiting',
+      hasPermission: () => false,
+      permissionsLoading: false,
+      enforceChannelPermissions: false,
+    });
+
+    const waiting = applyInboxFilters({ ...options, subTab: 'waiting' });
+    const counts = computeInboxTabCounts(options);
+
+    expect(waiting.map((conversation) => conversation.contact.id)).toEqual(['c1', 'c2']);
+    expect(counts).toMatchObject({ open: 2, attending: 0, waiting: 2, unread: 2 });
+  });
+
+  it('não derruba conversas WhatsApp durante carregamento das permissões de canal', () => {
+    const conversations = [
+      buildConversation('c1', null, 1),
+      buildConversation('c2', null, 1),
+    ];
+    const options = buildOptions(conversations, {
+      subTab: 'waiting',
+      hasPermission: () => false,
+      permissionsLoading: true,
+      enforceChannelPermissions: true,
+    });
+
+    const visible = applyInboxFilters(options);
+    const counts = computeInboxTabCounts(options);
+
+    expect(visible.map((conversation) => conversation.contact.id)).toEqual(['c1', 'c2']);
+    expect(counts).toMatchObject({ open: 2, attending: 0, waiting: 2, unread: 2 });
+  });
+
+  it('aplica bloqueio por canal somente quando o gate de permissões está hidratado', () => {
+    const conversations = [
+      buildConversation('c1', null, 1),
+      buildConversation('c2', null, 1),
+    ];
+    const options = buildOptions(conversations, {
+      subTab: 'waiting',
+      hasPermission: () => false,
+      permissionsLoading: false,
+      enforceChannelPermissions: true,
+    });
+
+    const visible = applyInboxFilters(options);
+    const counts = computeInboxTabCounts(options);
+
+    expect(visible).toHaveLength(0);
+    expect(counts).toMatchObject({ open: 0, attending: 0, waiting: 0, unread: 0 });
   });
 });

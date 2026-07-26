@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { Message } from '@/types/chat';
+import { isValidUUID } from '@/utils/uuid';
 
 interface UseSLADeliveryProps {
   contactId: string;
@@ -10,7 +11,7 @@ interface UseSLADeliveryProps {
 /** Hook: use SLADelivery. */
 export function useSLADelivery({ contactId, messages }: UseSLADeliveryProps) {
   useEffect(() => {
-    if (!contactId || !messages.length) return;
+    if (!contactId || !isValidUUID(contactId) || !messages.length) return;
 
     const checkDeliveryDelay = async () => {
       const { data: ruleRows } = await safeClient.from('sla_delivery_rules', (q) =>

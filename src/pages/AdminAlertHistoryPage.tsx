@@ -41,6 +41,7 @@ import {
 } from '@/components/ui/table';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { sanitizePostgrestFilter } from '@/lib/sanitize';
 import { AlertInstanceDetailDialog } from '@/features/admin';
 import { formatDateTimeCompact } from '@/lib/formatters';
 import { type AlertRow, RANGES, STATUS, TypeBadge } from './AdminAlertHistoryPageParts';
@@ -61,7 +62,12 @@ export default function AdminAlertHistoryPage() {
   const queryClient = useQueryClient();
 
   const { data, isLoading, refetch, isFetching } = useQuery({
-    queryKey: queryKeys.adminOps.alertHistoryFiltered(hoursBack, statusFilter, typeFilter, instanceFilter),
+    queryKey: queryKeys.adminOps.alertHistoryFiltered(
+      hoursBack,
+      statusFilter,
+      typeFilter,
+      instanceFilter
+    ),
     queryFn: async () => {
       const { data, error } = await safeClient.from<AlertRow>('warroom_alerts', (q) => {
         let query = q
@@ -74,7 +80,8 @@ export default function AdminAlertHistoryPage() {
         if (statusFilter === 'active') query = query.is('resolved_at', null);
         if (statusFilter === 'resolved') query = query.not('resolved_at', 'is', null);
         if (typeFilter !== 'all') query = query.eq('alert_type', typeFilter);
-        if (instanceFilter.trim()) query = query.ilike('source', `%${instanceFilter.trim()}%`);
+        if (instanceFilter.trim())
+          query = query.ilike('source', `%${sanitizePostgrestFilter(instanceFilter.trim())}%`);
         return query;
       });
       if (error) throw error;

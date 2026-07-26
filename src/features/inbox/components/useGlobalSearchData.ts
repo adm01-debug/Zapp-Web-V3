@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { log } from '@/lib/logger';
 import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
+import { sanitizePostgrestFilter } from '@/lib/sanitize';
 import { isExternalConfigured } from '@/integrations/supabase/externalClient';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useSearchHistory } from '@/hooks/useSearchHistory';
@@ -130,6 +131,7 @@ export function useGlobalSearchData(open: boolean) {
         return;
       }
 
+      const safeQuery = sanitizePostgrestFilter(cleanQuery);
       const isLinkSearch = mediaType === 'link';
       setIsLoading(true);
       const dateStart = getDateFilterStart(dateRange);
@@ -151,9 +153,9 @@ export function useGlobalSearchData(open: boolean) {
               textQuery = textQuery.or(
                 `content.ilike.%http://%,content.ilike.%https://%,content.ilike.%www.%`
               );
-              textQuery = textQuery.ilike('content', `%${cleanQuery}%`);
+              textQuery = textQuery.ilike('content', `%${safeQuery}%`);
             } else {
-              textQuery = textQuery.ilike('content', `%${cleanQuery}%`);
+              textQuery = textQuery.ilike('content', `%${safeQuery}%`);
             }
           } else if (isLinkSearch) {
             textQuery = textQuery.or(
@@ -197,7 +199,7 @@ export function useGlobalSearchData(open: boolean) {
               `id, content, transcription, message_type, created_at, contact_id, contacts:contact_id (id, name, surname)`
             )
             .not('transcription', 'is', null)
-            .ilike('transcription', `%${cleanQuery}%`)
+            .ilike('transcription', `%${safeQuery}%`)
             .order('created_at', { ascending: false })
             .limit(15);
           if (dateStart) audioQuery = audioQuery.gte('created_at', dateStart.toISOString());
@@ -237,7 +239,7 @@ export function useGlobalSearchData(open: boolean) {
           );
           if (cleanQuery.length >= 2)
             contactQuery = contactQuery.or(
-              `name.ilike.%${cleanQuery}%,surname.ilike.%${cleanQuery}%,phone.ilike.%${cleanQuery}%,email.ilike.%${cleanQuery}%`
+              `name.ilike.%${safeQuery}%,surname.ilike.%${safeQuery}%,phone.ilike.%${safeQuery}%,email.ilike.%${safeQuery}%`
             );
 
           const { data: contacts } = await contactQuery

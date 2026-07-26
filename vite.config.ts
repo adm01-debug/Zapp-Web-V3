@@ -3,6 +3,7 @@ import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
 import { compression } from 'vite-plugin-compression2';
+import { visualizer } from 'rollup-plugin-visualizer';
 
 // Self-hosted Supabase (cutover 2026-06-30). These are FALLBACKS only, used
 // when the matching VITE_* env var is absent (e.g. local dev without .env).
@@ -123,6 +124,13 @@ export default defineConfig(({ mode }) => ({
     }),
     emitVersionJsonPlugin(),
     stampSwVersionPlugin(),
+    // Bundle analyzer — generates dist/stats.html (open in browser to inspect)
+    mode === 'production' && visualizer({
+      filename: 'dist/stats.html',
+      template: 'treemap',
+      gzipSize: true,
+      brotliSize: true,
+    }),
     // PWA is manifest-only (public/manifest.json). No Workbox / no app-shell caching.
     // Push notifications continue via public/sw.js registered by useServiceWorker.
 

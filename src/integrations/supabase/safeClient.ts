@@ -23,13 +23,14 @@ export { maskEmail, maskSensitiveData } from './safeClientMasking';
 const supabase = _supabase;
 const _log = getLogger('safeClient');
 
-// Escape hatch for email_app schema RPCs absent from the generated TypeScript types.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const _emailRpc = supabase.rpc as any;
-
 // Dynamic table accessor — bypasses the overloaded `from()` signature that
 // requires a string-literal table name from the generated types.
 type DynamicSupabaseClient = { from(t: string): ReturnType<typeof supabase.from> };
+
+// All email_* tables are accessible via auto-updatable views in the zapp schema.
+// Do NOT use supabase.schema('email_app') — PostgREST may not expose that schema,
+// and the zapp views handle routing transparently.
+const _dynamicClient = supabase as unknown as DynamicSupabaseClient;
 
 const MAX_FAILURES = 20;
 const CACHE_TTL = 5 * 60 * 1000;
@@ -42,6 +43,7 @@ const telemetry: ClientTelemetry = {
 };
 
 const resourceCache = new Map<string, { exists: boolean; expires: number }>();
+const _validationInFlight = new Map<string, Promise<boolean>>();
 let _healthLogInProgress = false;
 
 function pruneResourceCache(): void {
@@ -64,7 +66,7 @@ function validateTableName(table: string): void {
 /** safe From. */
 export function safeFrom(table: string): SafeQueryBuilder {
   validateTableName(table);
-  return (supabase as unknown as DynamicSupabaseClient).from(table);
+  return _dynamicClient.from(table);
 }
 
 /** safe Client. */
@@ -76,17 +78,7 @@ export const safeClient = {
     const requestId = crypto.randomUUID();
     telemetry.stats.totalCalls++;
     try {
-      if (table.startsWith('email_')) {
-        const exists = await this.validateResource(table, 'table');
-        if (!exists) {
-          this.log(requestId, 'warn', `Tabela ${table} não encontrada no schema.`, { table });
-          await this.recordFailure(requestId, 'from', table, `Tabela ${table} não encontrada`);
-          return { data: [] as T[], error: new Error(`Tabela ${table} não disponível`), requestId };
-        }
-      }
-      const { data, error } = await queryBuilder(
-        supabase.from(table as Parameters<typeof supabase.from>[0])
-      );
+      const { data, error } = await queryBuilder(_dynamicClient.from(table));
       if (error) {
         this.log(requestId, 'error', `Erro na query from ${table}`, error);
         await this.recordFailure(
@@ -126,18 +118,7 @@ export const safeClient = {
     telemetry.stats.totalCalls++;
     try {
       validateTableName(table);
-
-      if (table.startsWith('email_')) {
-        const exists = await this.validateResource(table, 'table');
-        if (!exists) {
-          this.log(requestId, 'warn', `Tabela ${table} não encontrada para single()`, { table });
-          await this.recordFailure(requestId, 'single', table, `Tabela ${table} não encontrada`);
-          return { data: null, error: new Error(`Tabela ${table} não disponível`), requestId };
-        }
-      }
-      const { data, error } = await queryBuilder(
-        supabase.from(table as Parameters<typeof supabase.from>[0])
-      ).single();
+      const { data, error } = await queryBuilder(_dynamicClient.from(table)).single();
       if (error) {
         this.log(requestId, 'error', `Erro single query ${table}`, error);
         await this.recordFailure(
@@ -167,14 +148,6 @@ export const safeClient = {
     const requestId = crypto.randomUUID();
     telemetry.stats.totalCalls++;
     try {
-      if (name.startsWith('rpc_email_')) {
-        const exists = await this.validateResource(name, 'function');
-        if (!exists) {
-          this.log(requestId, 'warn', `RPC ${name} não encontrada no schema.`, { function: name });
-          await this.recordFailure(requestId, 'rpc', name, `Função ${name} não encontrada`);
-          return { data: null, error: new Error(`Função ${name} não disponível`), requestId };
-        }
-      }
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data, error } = await supabase.rpc(name as any, params); // ignore-audit — dynamic RPC name not in generated union
       if (error) {
@@ -210,59 +183,69 @@ export const safeClient = {
       resourceCache.delete(cacheKey);
     }
 
-    telemetry.lastValidation = new Date();
-    try {
-      let exists = false;
-      if (type === 'table') {
-        const { error } = await supabase
-          .from(name as Parameters<typeof supabase.from>[0])
-          .select('count', { count: 'exact', head: true })
-          .limit(0);
-        if (!error) {
-          exists = true;
-        } else {
-          const msg = ((error as { message?: string }).message ?? "").toLowerCase();
-          const isPermissionError =
-            msg.includes('permission denied') ||
-            msg.includes('42501') ||
-            msg.includes('jwt') ||
-            msg.includes('unauthorized') ||
-            msg.includes('invalid api key') ||
-            msg.includes('row-level security');
-          const isNotFound =
-            msg.includes('does not exist') ||
-            msg.includes('not found') ||
-            msg.includes('42p01') ||
-            msg.includes('relation');
-          exists = isPermissionError || !isNotFound;
-        }
-      } else {
-        const { error } = await (
-          supabase.rpc(name as Parameters<typeof supabase.rpc>[0]) as unknown as {
-            limit: (n: number) => Promise<{ error: unknown }>;
+    const inFlight = _validationInFlight.get(cacheKey);
+    if (inFlight) return inFlight;
+
+    const promise = (async (): Promise<boolean> => {
+      telemetry.lastValidation = new Date();
+      try {
+        let exists = false;
+        if (type === 'table') {
+          const { error } = await _dynamicClient
+            .from(name)
+            .select('count', { count: 'exact', head: true })
+            .limit(0);
+          if (!error) {
+            exists = true;
+          } else {
+            const msg = ((error as { message?: string }).message ?? "").toLowerCase();
+            const isPermissionError =
+              msg.includes('permission denied') ||
+              msg.includes('42501') ||
+              msg.includes('jwt') ||
+              msg.includes('unauthorized') ||
+              msg.includes('invalid api key') ||
+              msg.includes('row-level security');
+            const isNotFound =
+              msg.includes('does not exist') ||
+              msg.includes('not found') ||
+              msg.includes('42p01') ||
+              msg.includes('relation');
+            exists = isPermissionError || !isNotFound;
           }
-        ).limit(0); // ignore-audit — .limit() not on RPC return type in generated types
-        if (!error) {
-          exists = true;
         } else {
-          const msg = ((error as { message?: string }).message ?? "").toLowerCase();
-          const isPermissionError =
-            msg.includes('permission denied') ||
-            msg.includes('42501') ||
-            msg.includes('jwt') ||
-            msg.includes('unauthorized') ||
-            msg.includes('invalid api key');
-          const isNotFound =
-            msg.includes('does not exist') || msg.includes('not found') || msg.includes('42883');
-          exists = isPermissionError || !isNotFound;
+          const { error } = await (
+            supabase.rpc(name as Parameters<typeof supabase.rpc>[0]) as unknown as {
+              limit: (n: number) => Promise<{ error: unknown }>;
+            }
+          ).limit(0); // ignore-audit — .limit() not on RPC return type in generated types
+          if (!error) {
+            exists = true;
+          } else {
+            const msg = ((error as { message?: string }).message ?? "").toLowerCase();
+            const isPermissionError =
+              msg.includes('permission denied') ||
+              msg.includes('42501') ||
+              msg.includes('jwt') ||
+              msg.includes('unauthorized') ||
+              msg.includes('invalid api key');
+            const isNotFound =
+              msg.includes('does not exist') || msg.includes('not found') || msg.includes('42883');
+            exists = isPermissionError || !isNotFound;
+          }
         }
+        resourceCache.set(cacheKey, { exists, expires: Date.now() + CACHE_TTL });
+        if (resourceCache.size > CACHE_MAX_SIZE) pruneResourceCache();
+        return exists;
+      } catch {
+        return false;
+      } finally {
+        _validationInFlight.delete(cacheKey);
       }
-      resourceCache.set(cacheKey, { exists, expires: Date.now() + CACHE_TTL });
-      if (resourceCache.size > CACHE_MAX_SIZE) pruneResourceCache();
-      return exists;
-    } catch {
-      return false;
-    }
+    })();
+
+    _validationInFlight.set(cacheKey, promise);
+    return promise;
   },
 
   // Uses supabase.rpc() directly — NOT this.rpc() — to avoid recordFailure() recursion.
@@ -275,8 +258,8 @@ export const safeClient = {
       if (snap.recentFailures.length > 10) status = 'error';
       else if (snap.recentFailures.length > 0) status = 'degraded';
 
-      type RpcResult = { data: unknown; error: { message: string } | null };
-      const { error: rpcErr } = (await _emailRpc('rpc_update_email_health_state', {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error: rpcErr } = await supabase.rpc('rpc_update_email_health_state' as any, {
         p_status: status,
         p_failure_count: snap.recentFailures.length,
         p_metadata: {
@@ -284,9 +267,9 @@ export const safeClient = {
           cache_hits: snap.stats.cacheHits,
           last_validation: snap.lastValidation?.toISOString(),
         },
-      })) as RpcResult;
+      });
       if (rpcErr) {
-        _log.warn('Erro ao sincronizar estado de saúde', { error: rpcErr.message });
+        _log.warn('Erro ao sincronizar estado de saúde', { error: (rpcErr as { message?: string }).message });
       }
     } catch (err) {
       _log.warn('Erro ao sincronizar estado de saúde (exceção)', {
@@ -340,17 +323,17 @@ export const safeClient = {
     if (_healthLogInProgress) return;
     _healthLogInProgress = true;
     try {
-      type RpcResult = { data: unknown; error: { message: string } | null };
-      const { error: rpcErr } = (await _emailRpc('rpc_log_email_health', {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error: rpcErr } = await supabase.rpc('rpc_log_email_health' as any, {
         p_status: 'error',
         p_operation: operation,
         p_resource: resource,
         p_request_id: requestId,
         p_error_message: error,
         p_is_failure: true,
-      })) as RpcResult;
+      });
       if (rpcErr) {
-        _log.warn('Falha ao persistir log de saúde', { error: rpcErr.message });
+        _log.warn('Falha ao persistir log de saúde', { error: (rpcErr as { message?: string }).message });
       }
     } catch (dbErr) {
       _log.warn('Falha ao persistir log de saúde (exceção)', {

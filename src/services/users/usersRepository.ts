@@ -14,11 +14,11 @@ import type { QueryParams } from '@/services/api/types';
 export interface User {
   id: string;
   email: string;
-  full_name?: string;
+  name?: string;
   avatar_url?: string;
   role: 'admin' | 'agent' | 'supervisor' | 'viewer';
-  status: 'active' | 'inactive' | 'suspended';
-  account_id: string;
+  is_active?: boolean;
+  account_id?: string;
   last_activity_at?: string;
   created_at: string;
   updated_at: string;
@@ -27,15 +27,16 @@ export interface User {
 /** Agent interface definition. */
 export interface Agent {
   id: string;
-  user_id: string;
+  user_id?: string;
   name: string;
   email: string;
-  status: 'available' | 'busy' | 'offline' | 'dnd';
+  is_active?: boolean;
+  online_status?: 'available' | 'busy' | 'offline' | 'dnd';
   avatar_url?: string;
   bio?: string;
-  max_concurrent_chats?: number;
-  current_chat_count?: number;
-  account_id: string;
+  max_chats?: number;
+  current_load?: number;
+  account_id?: string;
   is_bot?: boolean;
   created_at: string;
   updated_at: string;
@@ -85,15 +86,21 @@ export const usersRepository = {
     return data as User | null;
   },
 
-  // Agent status — agents are profiles; filter by agent/supervisor roles
-  async getAgentsByStatus(status: Agent['status'], filters?: Partial<QueryParams>) {
-    const { data, error, count } = await safeFrom('profiles')
+  // Agent availability — agents are profiles; profiles has online_status and is_active, not a combined 'status'
+  async getAgentsByStatus(status: Agent['online_status'], filters?: Partial<QueryParams>) {
+    let q = safeFrom('profiles')
       .select('*', { count: 'exact' })
-      .eq('status', status)
       .in('role', ['agent', 'supervisor'])
       .limit(filters?.limit || 50)
       .offset(filters?.offset || 0);
 
+    if (status === 'offline') {
+      q = (q as ReturnType<typeof safeFrom>).eq('is_active', false);
+    } else if (status) {
+      q = (q as ReturnType<typeof safeFrom>).eq('online_status', status).eq('is_active', true);
+    }
+
+    const { data, error, count } = await q;
     return { data: data || [], error, count };
   },
 

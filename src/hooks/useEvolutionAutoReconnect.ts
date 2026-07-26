@@ -157,9 +157,12 @@ export function useEvolutionAutoReconnect(instanceName?: string) {
       try {
         await restartInstance(evoInstanceName);
         await new Promise<void>((r) => setTimeout(r, 5_000));
-        await supabase.functions.invoke('connection-health-check', {
+        const { error: healthCheckError } = await supabase.functions.invoke('connection-health-check', {
           body: { instanceName: evoInstanceName },
         });
+        if (healthCheckError) {
+          log.warn(`Health check returned error for ${connection.name}`, healthCheckError);
+        }
       } catch (err: unknown) {
         attemptStatus = 'failed';
         errorMsg = err instanceof Error ? err.message : String(err);

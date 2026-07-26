@@ -1,6 +1,8 @@
 import { supabase } from '@/integrations/supabase/client';
+import { isValidUUID } from '@/utils/uuid';
 
 export async function fetchConversationTasks(contactId: string) {
+  if (!isValidUUID(contactId)) return [];
   const { data } = await supabase
     .from('conversation_tasks')
     .select('*')
@@ -16,6 +18,7 @@ export async function createConversationTask(payload: {
   created_by: string;
   assigned_to: string;
 }) {
+  if (!isValidUUID(payload.contact_id)) return { data: null, error: new Error('Invalid UUID') };
   return supabase.from('conversation_tasks').insert(payload);
 }
 

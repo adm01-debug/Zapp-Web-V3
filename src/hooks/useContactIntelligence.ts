@@ -6,8 +6,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { log } from '@/lib/logger';
 import { sanitizePostgrestFilter } from '@/lib/sanitize';
-
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+import { isValidUUID } from '@/utils/uuid';
 
 type ResolvedIdent = { kind: 'uuid'; value: string } | { kind: 'phone'; value: string };
 
@@ -18,14 +17,24 @@ type ResolvedIdent = { kind: 'uuid'; value: string } | { kind: 'phone'; value: s
  * Motivo: `contact_intelligence.contact_id` e `uuid` e `evolution_messages`
  * nao possui coluna `phone`. Interpolar um telefone (ou o sentinela
  * 'unknown') em `contact_id.eq.` gera HTTP 400 (22P02 invalid input syntax
- * for type uuid) e filtrar por `phone` numa tabela que nao tem essa coluna
- * gera HTTP 400 (42703 column does not exist). Retorna `null` quando o valor
- * nao e consultavel: nesse caso a query e pulada em vez de falhar.
+ * for type uuid); filtrar por `phone` numa relacao que nao tem essa coluna
+ * gera HTTP 400 (42703 column does not exist).
+ *
+ * Retorna `null` quando o valor nao e consultavel -- nesse caso a query e
+ * pulada em vez de disparar um 400. Era exatamente o que faltava: o request
+ * `?or=(phone.eq.unknown)` visto em producao nascia de um sentinela textual
+ * que passava direto pelo `isValidUUID` e virava filtro por telefone.
  */
 function resolveIdentifier(value?: string): ResolvedIdent | null {
   const raw = (value ?? '').trim();
   if (!raw || raw.toLowerCase() === 'unknown') return null;
-  if (UUID_RE.test(raw)) return { kind: 'uuid', value: raw };
+  // `isValidUUID` e declarado como type guard `value is string`. Aplicado
+  // direto num valor ja tipado `string`, ele estreita o ramo negativo para
+  // `never` e quebra o `raw.replace` abaixo. Guardar em `boolean` descarta o
+  // guard e preserva o tipo.
+  const looksLikeUuid: boolean = isValidUUID(raw);
+  if (looksLikeUuid) return { kind: 'uuid', value: raw };
+  // Normaliza: remove '+', espacos, parenteses e hifens antes de comparar.
   const digits = raw.replace(/[^0-9]/g, '');
   if (digits.length < 8) return null;
   return { kind: 'phone', value: sanitizePostgrestFilter(digits) };
@@ -144,15 +153,15 @@ function buildChurn(raw: RawIntel | null): ChurnData | null {
     level === 'high' || engagement < 30
       ? 'high'
       : level === 'medium' || engagement < 60
-      ? 'medium'
-      : 'low';
+        ? 'medium'
+        : 'low';
   const churn_probability = Math.max(0, Math.min(100, 100 - engagement));
   const recommended_actions =
     risk_level === 'high'
       ? ['Priorize contato imediato e ofereça benefício exclusivo.']
       : risk_level === 'medium'
-      ? ['Reforce valor entregue e agende follow-up.']
-      : ['Mantenha cadência de relacionamento atual.'];
+        ? ['Reforce valor entregue e agende follow-up.']
+        : ['Mantenha cadência de relacionamento atual.'];
   return { risk_level, churn_probability, recommended_actions };
 }
 
@@ -204,17 +213,22 @@ function buildRapport(raw: RawIntel | null): RapportData {
   return { suggestions };
 }
 
-function buildBriefing(raw: RawIntel | null, totalMessages: number, lastAt: Date | null): ContactBriefing {
+function buildBriefing(
+  raw: RawIntel | null,
+  totalMessages: number,
+  lastAt: Date | null
+): ContactBriefing {
   const days =
     lastAt != null ? Math.floor((Date.now() - lastAt.getTime()) / (1000 * 60 * 60 * 24)) : null;
   const relationship_score =
-    raw?.relationship_score ?? (raw?.engagement_score != null ? Math.round(raw.engagement_score) : null);
+    raw?.relationship_score ??
+    (raw?.engagement_score != null ? Math.round(raw.engagement_score) : null);
   const opening_tip =
     days != null && days > 30
       ? 'Cliente sem contato há tempo — resgate com mensagem personalizada.'
       : days != null && days <= 1
-      ? 'Conversa recente — dê continuidade natural ao último tópico.'
-      : 'Inicie com pergunta aberta relacionada à necessidade principal.';
+        ? 'Conversa recente — dê continuidade natural ao último tópico.'
+        : 'Inicie com pergunta aberta relacionada à necessidade principal.';
   const risk_alert =
     (raw?.risk_level || '').toLowerCase() === 'high'
       ? 'Alto risco de churn detectado — priorize esta conversa.'
@@ -242,9 +256,9 @@ export function useContactIntelligence(contactIdOrPhone?: string) {
 
       let raw: RawIntel | null = null;
       try {
-        // supabase-js NAO lanca excecao em erro HTTP: e obrigatorio checar `error`,
-        // senao um 400 vira `data: null` silencioso (foi exatamente o que mascarou
-        // este bug em producao).
+        // supabase-js NAO lanca excecao em erro HTTP: e obrigatorio checar
+        // `error`, senao um 400 vira `data: null` silencioso -- foi exatamente
+        // isso que manteve este bug invisivel em producao.
         const { data: intel, error } = await supabase
           .from('contact_intelligence' as never)
           .select('*')
@@ -267,7 +281,9 @@ export function useContactIntelligence(contactIdOrPhone?: string) {
       if (!totalMessages || !lastAt) {
         try {
           // `evolution_messages` nao tem coluna `phone`: por telefone o vinculo
-          // correto e `remote_jid` (ex.: 5511999999999@s.whatsapp.net / @lid).
+          // correto e `remote_jid`. O prefixo com LIKE cobre os dois sufixos que
+          // coexistem no banco -- `@s.whatsapp.net` e `@lid` -- e continua
+          // sargable (prefixo fixo, curinga so no fim).
           const { data: msgs, count, error } = await supabase
             .from('evolution_messages' as never)
             .select('created_at', { count: 'exact', head: false })

@@ -2,6 +2,7 @@ import { useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { getLogger } from '@/lib/logger';
+import { isValidUUID } from '@/utils/uuid';
 
 const log = getLogger('useContactCustomFields');
 
@@ -35,46 +36,49 @@ export function useContactCustomFields(contactId: string | undefined) {
       }
       return (data || []) as CustomField[];
     },
-    enabled: !!contactId,
+    enabled: !!contactId && isValidUUID(contactId),
     staleTime: 30_000,
   });
 
-  const addField = useCallback(async (fieldName: string, fieldValue: string, fieldType = 'text') => {
-    if (!contactId) return;
-    try {
-      const { error } = await supabase
-        .from('contact_custom_fields')
-        .upsert({
+  const addField = useCallback(
+    async (fieldName: string, fieldValue: string, fieldType = 'text') => {
+      if (!contactId || !isValidUUID(contactId)) return;
+      try {
+        const { error } = await supabase.from('contact_custom_fields').upsert({
           contact_id: contactId,
           field_name: fieldName,
           field_value: fieldValue,
           field_type: fieldType,
         });
-      if (error) throw error;
-      void queryClient.invalidateQueries({ queryKey });
-    } catch (err) {
-      log.error('Error adding custom field:', err);
-      throw err;
-    }
-  }, [contactId, queryClient, queryKey]); // eslint-disable-line react-hooks/exhaustive-deps
+        if (error) throw error;
+        void queryClient.invalidateQueries({ queryKey });
+      } catch (err) {
+        log.error('Error adding custom field:', err);
+        throw err;
+      }
+    },
+    [contactId, queryClient, queryKey]
+  );
 
-  const removeField = useCallback(async (fieldId: string) => {
-    try {
-      const { error } = await supabase
-        .from('contact_custom_fields')
-        .delete()
-        .eq('id', fieldId);
-      if (error) throw error;
-      queryClient.setQueryData<CustomField[]>(queryKey, prev => (prev ?? []).filter(f => f.id !== fieldId));
-    } catch (err) {
-      log.error('Error removing custom field:', err);
-      throw err;
-    }
-  }, [queryClient, queryKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  const removeField = useCallback(
+    async (fieldId: string) => {
+      try {
+        const { error } = await supabase.from('contact_custom_fields').delete().eq('id', fieldId);
+        if (error) throw error;
+        queryClient.setQueryData<CustomField[]>(queryKey, (prev) =>
+          (prev ?? []).filter((f) => f.id !== fieldId)
+        );
+      } catch (err) {
+        log.error('Error removing custom field:', err);
+        throw err;
+      }
+    },
+    [queryClient, queryKey]
+  );
 
   const refetch = useCallback(
     () => queryClient.invalidateQueries({ queryKey }),
-    [queryClient, queryKey] // eslint-disable-line react-hooks/exhaustive-deps
+    [queryClient, queryKey]
   );
 
   return { fields, isLoading, addField, removeField, refetch };

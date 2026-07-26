@@ -164,6 +164,7 @@ Se não houver objeções, retorne []`,
             model: 'google/gemini-3-flash-preview',
           },
         });
+        if (response.error) throw response.error;
         const content = response.data?.content || response.data?.choices?.[0]?.message?.content;
         if (content) {
           setObjections((prev) =>

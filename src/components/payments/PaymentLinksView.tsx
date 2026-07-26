@@ -103,7 +103,11 @@ export function PaymentLinksView() {
   };
 
   const deleteLink = async (id: string) => {
-    await deletePaymentLink(id);
+    const { error } = await deletePaymentLink(id);
+    if (error) {
+      toast({ title: 'Erro ao remover link', description: error.message, variant: 'destructive' });
+      return;
+    }
     toast({ title: 'Link removido' });
     fetchData();
   };

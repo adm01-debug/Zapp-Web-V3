@@ -65,7 +65,10 @@ Deno.serve(async (req) => {
           signal: AbortSignal.timeout(15_000),
         });
 
-        resData = await res.json();
+        resData = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          return json(resData, res.status >= 500 ? 502 : res.status);
+        }
       } catch (fetchErr) {
         console.error('[send-email] gmail-send fetch error:', fetchErr instanceof Error ? fetchErr.message : String(fetchErr));
         return json({ error: 'Failed to delegate to gmail-send' }, 502);
@@ -110,15 +113,14 @@ Deno.serve(async (req) => {
         signal: AbortSignal.timeout(15_000),
       });
 
-      resendData = await resendRes.json();
-      if (!resendData || typeof resendData !== 'object') {
-        return json({ error: 'Invalid Resend response' }, 502);
-      }
-
+      resendData = await resendRes.json().catch(() => ({}));
       if (!resendRes.ok) {
         const resendDataObj = resendData as Record<string, unknown>;
         const errorMsg = typeof resendDataObj.message === 'string' ? resendDataObj.message : 'Erro no Resend';
         return json({ error: errorMsg }, resendRes.status);
+      }
+      if (!resendData || typeof resendData !== 'object') {
+        return json({ error: 'Invalid Resend response' }, 502);
       }
 
       const resendDataObj = resendData as Record<string, unknown>;

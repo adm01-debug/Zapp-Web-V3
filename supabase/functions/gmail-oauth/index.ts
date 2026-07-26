@@ -47,11 +47,14 @@ const GMAIL_SCOPES = ['https://www.googleapis.com/auth/gmail.modify','https://ww
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: getCorsHeaders(req) });
   const jsonHeaders = { ...getCorsHeaders(req), 'Content-Type': 'application/json' };
-  const serviceRoleKey = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))!;
+  const serviceRoleKey = (Deno.env.get('SELFHOSTED_SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')) ?? '';
   const supabase = createZappAdminClient();
-  const clientId = Deno.env.get('GOOGLE_CLIENT_ID')!;
-  const clientSecret = Deno.env.get('GOOGLE_CLIENT_SECRET')!;
+  const clientId = Deno.env.get('GOOGLE_CLIENT_ID') ?? '';
+  const clientSecret = Deno.env.get('GOOGLE_CLIENT_SECRET') ?? '';
   const redirectUri = Deno.env.get('GMAIL_REDIRECT_URI') ?? `${(Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL'))}/functions/v1/gmail-oauth`;
+  if (!serviceRoleKey || !clientId || !clientSecret) {
+    return new Response(JSON.stringify({ error: 'Gmail OAuth not configured — set GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, and SUPABASE_SERVICE_ROLE_KEY in secrets.' }), { status: 503, headers: jsonHeaders });
+  }
   try {
     // OAuth callback from Google \u2014 no auth header present, handled before auth check
     const url = new URL(req.url);
@@ -113,7 +116,13 @@ Deno.serve(async (req) => {
       const tokenRes = await fetch(GOOGLE_TOKEN_URL, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ refresh_token: account.refresh_token, client_id: clientId, client_secret: clientSecret, grant_type: 'refresh_token' }), signal: AbortSignal.timeout(10_000) });
       if (!tokenRes.ok && tokenRes.status !== 400) return new Response(JSON.stringify({ error: `Google token refresh failed: ${tokenRes.status}` }), { status: 502, headers: jsonHeaders });
       const tokens = await tokenRes.json();
-      if (tokens.error) { await supabase.from('gmail_accounts').update({ is_active: false }).eq('id', accountId); return new Response(JSON.stringify({ error: 'refresh_token inv\u00e1lido \u2014 reconecte a conta' }), { status: 401, headers: jsonHeaders }); }
+      if (tokens.error) {
+        const PERMANENT_ERRORS = ['invalid_grant', 'token_revoked'];
+        const isPermanent = typeof tokens.error === 'string' && PERMANENT_ERRORS.includes(tokens.error);
+        if (isPermanent) await supabase.from('gmail_accounts').update({ is_active: false }).eq('id', accountId);
+        const msg = isPermanent ? 'refresh_token inv\u00e1lido \u2014 reconecte a conta' : `Google token error: ${tokens.error}`;
+        return new Response(JSON.stringify({ error: msg }), { status: isPermanent ? 401 : 502, headers: jsonHeaders });
+      }
       const expiresAt = new Date(Date.now() + (tokens.expires_in ?? 3600) * 1000).toISOString();
       await supabase.from('gmail_accounts').update({ access_token: tokens.access_token, token_expiry: expiresAt, ...(tokens.refresh_token ? { refresh_token: tokens.refresh_token } : {}) }).eq('id', accountId);
       return new Response(JSON.stringify({ access_token: tokens.access_token, token_expiry: expiresAt }), { headers: jsonHeaders });

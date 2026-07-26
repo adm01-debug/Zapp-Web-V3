@@ -24,6 +24,7 @@ import {
 import { format, subDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { dbFrom } from '@/integrations/datasource/db';
+import { isValidUUID } from '@/utils/uuid';
 
 interface ConversationHistoryItem {
   id: string;
@@ -83,6 +84,11 @@ export function ConversationHistory({
   }, [contactId, contactPhone, periodFilter]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchConversationHistory = async () => {
+    if (!isValidUUID(contactId)) {
+      setConversations([]);
+      setIsLoading(false);
+      return;
+    }
     setIsLoading(true);
     try {
       // Get the date filter

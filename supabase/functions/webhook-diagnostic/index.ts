@@ -11,7 +11,7 @@ Deno.serve(async (req: Request) => {
     if (authed instanceof Response) return authed;
 
     const evolutionUrl = (Deno.env.get('EVOLUTION_API_URL') || '').replace(/\/+$/, '');
-    const evolutionKey = Deno.env.get('EVOLUTION_API_KEY')!;
+    const evolutionKey = Deno.env.get('EVOLUTION_API_KEY') ?? '';
     const supabase = createZappAdminClient();
 
     const body = await req.json().catch(() => ({}));
@@ -48,7 +48,7 @@ Deno.serve(async (req: Request) => {
 
       try {
         const whRes = await fetch(`${evolutionUrl}/webhook/find/${conn.instance_id}`, { headers: { apikey: evolutionKey }, signal: AbortSignal.timeout(10000) });
-        const whData = await whRes.json();
+        const whData = await whRes.json().catch(() => ({}));
         const webhook = whData?.webhook || whData;
         const expectedUrl = `${supabaseUrl}/functions/v1/evolution-webhook`;
         const currentUrl = webhook?.url || webhook?.webhookUrl || '';

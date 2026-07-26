@@ -124,6 +124,8 @@ export function useMessages({ contactId, enabled = true }: UseMessagesOptions) {
       onDelete: wrapMessagesHandler('useMessages', handleMessageDelete),
     });
 
+    if (!channel) return;
+
     return () => {
       messageRepository.unsubscribe(channel);
     };

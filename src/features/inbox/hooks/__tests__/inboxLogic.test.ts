@@ -1,4 +1,3 @@
-
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useInboxFilters } from '../useInboxFilters';
@@ -11,6 +10,9 @@ const mockHasPermission = vi.hoisted(() => vi.fn());
 vi.mock('@/features/auth', () => ({
   usePermissions: () => ({
     hasPermission: mockHasPermission,
+    loading: false,
+    permissions: [],
+    userPermissions: [],
   }),
 }));
 
@@ -109,6 +111,7 @@ describe('useInboxFilters Business Rules', () => {
     );
 
     act(() => {
+      result.current.setSubTab('attending');
       result.current.setScope('department');
       result.current.setDepartmentAgentIds(['agent-1', 'agent-2']);
     });
@@ -133,6 +136,7 @@ describe('useInboxFilters Business Rules', () => {
     );
 
     act(() => {
+      result.current.setSubTab('attending');
       result.current.setScope('department');
       result.current.setDepartmentAgentIds(['agent-1', 'agent-2']);
 
@@ -163,6 +167,7 @@ describe('useInboxFilters Business Rules', () => {
     );
 
     act(() => {
+      result.current.setSubTab('attending');
       result.current.setScope('mine');
     });
 
