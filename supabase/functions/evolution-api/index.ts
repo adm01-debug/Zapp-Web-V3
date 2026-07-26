@@ -907,7 +907,10 @@ Deno.serve(async (req) => {
         });
       }
       try {
-        const response = await proxy(`/chat/markChatRead/${instance}`, 'POST', { chat: remoteJid });
+        // Evolution API v2: markMessageAsRead replaces deprecated markChatRead
+        const response = await proxy(`/chat/markMessageAsRead/${instance}`, 'POST', {
+          readMessages: [{ remoteJid }],
+        });
         if (response.ok) return response;
         const text = await response.text().catch(() => '');
         return new Response(JSON.stringify({ ok: false, skipped: true, upstream_status: response.status, details: text }), {

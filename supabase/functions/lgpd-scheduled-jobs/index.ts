@@ -97,7 +97,8 @@ Deno.serve(async (req) => {
               await supabase.from('contact_audit_log').insert({
                 contact_id: contact.id,
                 action: 'pii_anonymized',
-                metadata: { reason: 'lgpd_deletion_request_30d' },
+                reason: 'lgpd_deletion_request_30d',
+                new_values: { pii_masked_at: new Date().toISOString() },
               }).then(() => {}, (e) => console.error('[lgpd] audit log failed:', e));
               return true;
             })
