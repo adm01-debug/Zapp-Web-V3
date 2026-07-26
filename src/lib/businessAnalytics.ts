@@ -74,7 +74,10 @@ class BusinessAnalytics {
   /**
    * Track evento de negócio.
    */
-  track(event: Omit<BusinessEvent, 'timestamp' | 'userId' | 'workspaceId'>): void {
+  track(
+    event: Omit<BusinessEvent, 'timestamp' | 'userId' | 'workspaceId'> &
+      Partial<Pick<BusinessEvent, 'timestamp' | 'userId' | 'workspaceId'>>
+  ): void {
     if (this.config.enabled === false) return;
 
     // Sampling

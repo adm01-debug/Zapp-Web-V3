@@ -88,7 +88,10 @@ export const useSearchAgents = (query?: string) => {
 /**
  * Hook to get agents by status
  */
-export const useAgentsByStatus = (status: Agent['status'], params?: Partial<QueryParams>) => {
+export const useAgentsByStatus = (
+  status: NonNullable<Agent['online_status']>,
+  params?: Partial<QueryParams>
+) => {
   return useQuery({
     queryKey: queryKeys.users.byStatus(status),
     queryFn: () => usersService.getAgentsByStatus(status, params),
