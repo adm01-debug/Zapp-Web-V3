@@ -58,7 +58,9 @@ jobs:
             NEW_PKG=$(cat package.json)
           fi
           # Compare only the dependency fields — scripts/version changes are irrelevant.
-          OLD_DEPS=$(echo "$OLD_PKG" | jq -Sc '{d: (.dependencies // {}), dd: (.devDependencies // {}), pd: (.peerDependencies // {}), od: (.optionalDependencies // {})}')
+          # Graceful fallback: if OLD_PKG is not valid JSON (e.g. base64-corrupted on main),
+          # treat old deps as empty so the check only fails if NEW deps actually differ.
+          OLD_DEPS=$(echo "$OLD_PKG" | jq -Sc '{d: (.dependencies // {}), dd: (.devDependencies // {}), pd: (.peerDependencies // {}), od: (.optionalDependencies // {})}' 2>/dev/null || echo '{"d":{},"dd":{},"pd":{},"od":{}}')
           NEW_DEPS=$(echo "$NEW_PKG" | jq -Sc '{d: (.dependencies // {}), dd: (.devDependencies // {}), pd: (.peerDependencies // {}), od: (.optionalDependencies // {})}')
           echo "Dependency fields changed: $([ "$OLD_DEPS" != "$NEW_DEPS" ] && echo yes || echo no)"
           echo "bun.lock changed:         ${LOCK_DIFF:-none}"
