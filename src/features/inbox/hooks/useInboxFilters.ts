@@ -634,12 +634,59 @@ export function useInboxFilters({
     void deleteRemoteInboxPreset(id);
   }, []);
 
+  /**
+   * Edita um preset existente (renomear e/ou alterar aba, sub-aba, busca e
+   * demais parâmetros). Sincroniza local + remoto.
+   */
+  const updateInboxPreset = useCallback(
+    (id: string, changes: Partial<InboxFilterPresetInput>) => {
+      let updated: InboxFilterPreset | undefined;
+      setPresets((current) => {
+        const next = editInboxPreset(current, id, changes);
+        if (next === current) return current;
+        writeInboxPresets(next);
+        updated = next.find((p) => p.id === id);
+        return next;
+      });
+      if (updated) void upsertRemoteInboxPreset(updated);
+    },
+    []
+  );
+
+  /** Sobrescreve um preset com a combinação de filtros ativa no momento. */
+  const updateInboxPresetWithCurrent = useCallback(
+    (id: string) => {
+      updateInboxPreset(id, {
+        mainTab,
+        subTab,
+        search: search ?? '',
+        contactType: selectedContactType,
+        queueId: selectedQueueId,
+        showOnlyRetrying,
+        failureCategory: failureCategoryFilter,
+      });
+    },
+    [
+      updateInboxPreset,
+      mainTab,
+      subTab,
+      search,
+      selectedContactType,
+      selectedQueueId,
+      showOnlyRetrying,
+      failureCategoryFilter,
+    ]
+  );
+
 
   return {
     presets,
     saveInboxPreset,
     applyInboxPreset,
     deleteInboxPreset,
+    updateInboxPreset,
+    updateInboxPresetWithCurrent,
+
     hasActiveInboxFilters,
     resetInboxFilters,
     mainTab,
