@@ -907,7 +907,30 @@ Deno.serve(async (req) => {
         });
       }
       try {
-        const response = await proxy(`/chat/markChatRead/${instance}`, 'POST', { chat: remoteJid });
+        // Evolution API v2 removed /chat/markChatRead — use /chat/markMessageAsRead with
+        // explicit message keys fetched from the DB (last 50 incoming messages for this JID).
+        const { data: msgs } = await supabase
+          .from('evolution_messages')
+          .select('message_id, from_me')
+          .eq('remote_jid', remoteJid)
+          .eq('instance_name', instance)
+          .eq('from_me', false)
+          .order('created_at', { ascending: false })
+          .limit(50);
+
+        const readMessages = (msgs ?? []).map((m: { message_id: string; from_me: boolean }) => ({
+          id: m.message_id,
+          fromMe: m.from_me ?? false,
+          remoteJid,
+        }));
+
+        if (!readMessages.length) {
+          return new Response(JSON.stringify({ ok: true, skipped: true, reason: 'no_messages' }), {
+            status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+
+        const response = await proxy(`/chat/markMessageAsRead/${instance}`, 'POST', { readMessages });
         if (response.ok) return response;
         const text = await response.text().catch(() => '');
         return new Response(JSON.stringify({ ok: false, skipped: true, upstream_status: response.status, details: text }), {

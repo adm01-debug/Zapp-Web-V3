@@ -22,7 +22,7 @@
  *  - POST /message/sendText/{instance}
  *  - POST /message/sendMedia/{instance}
  *  - POST /message/sendWhatsAppAudio/{instance}
- *  - PUT  /chat/markChatUnread/{instance}
+ *  - POST /chat/markMessageAsRead/{instance}  (via edge fn evolution-api)
  *  - GET  /instance/fetchInstances
  *  - GET  /instance/connectionState/{instance}
  */
@@ -344,16 +344,28 @@ export async function sendWhatsAppAudio(
   );
 }
 
-/** mark Chat Read function. */
-export async function markChatRead(number: string, instance: string = DEFAULT_INSTANCE) {
-  return evoFetch(
-    `/chat/markChatUnread/${instance}`,
-    {
-      method: 'PUT',
-      body: JSON.stringify({ number: stripJid(number), unread: false }),
+/**
+ * Marks all recent incoming messages in a chat as read.
+ * Routes through the `evolution-api` edge function so the correct
+ * Evolution API v2 endpoint (/chat/markMessageAsRead) is used with
+ * message keys fetched server-side from the DB.
+ */
+export async function markChatRead(remoteJid: string, instance: string = DEFAULT_INSTANCE): Promise<void> {
+  const { data: sessionData } = await supabase.auth.getSession();
+  const token = sessionData.session?.access_token;
+  if (!token) return;
+
+  await fetch(`${SUPABASE_RESOLVED_URL}/functions/v1/evolution-api`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+      apikey: SUPABASE_RESOLVED_ANON_KEY,
     },
-    instance
-  );
+    body: JSON.stringify({ action: 'read-messages', instanceName: instance, remoteJid }),
+  }).catch((err: unknown) => {
+    log.warn('[evolutionClient] markChatRead edge fn call failed:', err);
+  });
 }
 
 // ─── Status ──────────────────────────────────────────────────────────────
