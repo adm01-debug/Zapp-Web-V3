@@ -31,6 +31,13 @@ import {
   removeInboxPreset,
   type InboxFilterPreset,
 } from './inboxFilterPresets';
+import {
+  fetchRemoteInboxPresets,
+  upsertRemoteInboxPreset,
+  deleteRemoteInboxPreset,
+  mergeInboxPresets,
+  pushLocalOnlyPresets,
+} from './inboxPresetsSync';
 
 
 const log = getLogger('useInboxFilters');
