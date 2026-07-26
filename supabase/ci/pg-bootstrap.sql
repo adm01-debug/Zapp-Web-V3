@@ -174,10 +174,10 @@ CREATE OR REPLACE FUNCTION net.http_post(url text, body jsonb DEFAULT NULL, head
 DO $$
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_publication WHERE pubname = 'supabase_realtime') THEN
-    CREATE PUBLICATION supabase_realtime FOR ALL TABLES;
+    CREATE PUBLICATION supabase_realtime;
   END IF;
   IF NOT EXISTS (SELECT 1 FROM pg_publication WHERE pubname = 'logflare_pub') THEN
-    CREATE PUBLICATION logflare_pub FOR ALL TABLES;
+    CREATE PUBLICATION logflare_pub;
   END IF;
 END;
 $$;
