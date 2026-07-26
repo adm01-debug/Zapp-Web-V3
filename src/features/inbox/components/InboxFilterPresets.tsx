@@ -164,7 +164,7 @@ export const InboxFilterPresets = memo(function InboxFilterPresets({
           <div className="flex items-center gap-1">
             <Input
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              onChange={(e) => setName(e.target.value.slice(0, PRESET_NAME_MAX_LENGTH + 1))}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
                   e.preventDefault();
@@ -173,7 +173,10 @@ export const InboxFilterPresets = memo(function InboxFilterPresets({
               }}
               placeholder="Nome do preset atual"
               aria-label="Nome do novo preset"
-              className="h-8 text-[11px]"
+              aria-invalid={saveError ? true : undefined}
+              aria-describedby={saveError ? 'inbox-preset-name-error' : undefined}
+              maxLength={PRESET_NAME_MAX_LENGTH + 1}
+              className={cn('h-8 text-[11px]', saveError && 'border-destructive')}
             />
             <Button
               type="button"
@@ -181,12 +184,27 @@ export const InboxFilterPresets = memo(function InboxFilterPresets({
               variant="secondary"
               className="h-8 shrink-0 px-2"
               aria-label="Salvar filtros atuais como preset"
-              disabled={!name.trim()}
+              disabled={!saveValidation.ok}
               onClick={handleSave}
             >
               <Plus className="h-3.5 w-3.5" aria-hidden="true" />
             </Button>
           </div>
+
+          {saveError ? (
+            <p
+              id="inbox-preset-name-error"
+              role="alert"
+              className="mt-1 px-0.5 text-[10px] text-destructive"
+            >
+              {saveError}
+            </p>
+          ) : duplicateOnCreate ? (
+            <p className="mt-1 px-0.5 text-[10px] text-muted-foreground">
+              Um preset com esse nome já existe e será substituído.
+            </p>
+          ) : null}
+
 
           <div className="mt-2 space-y-0.5">
             {presets.length === 0 ? (
