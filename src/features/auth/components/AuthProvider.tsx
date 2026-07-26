@@ -415,15 +415,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!user) return;
 
+    // zapp.profiles / zapp.user_roles são as tabelas físicas.
+    // public.profiles / public.user_roles são VIEW proxies → nunca emitem CDC.
     const profileChannel = supabase
       .channel(`profile-updates-${user.id}`)
       .on(
         'postgres_changes',
         {
           event: 'UPDATE',
-          schema: 'public',
+          schema: 'zapp',
           table: 'profiles',
-          filter: `id=eq.${user.id}`,
+          filter: `user_id=eq.${user.id}`,
         },
         () => {
           void fetchProfile(user.id);
@@ -437,7 +439,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         'postgres_changes',
         {
           event: '*',
-          schema: 'public',
+          schema: 'zapp',
           table: 'user_roles',
           filter: `user_id=eq.${user.id}`,
         },
