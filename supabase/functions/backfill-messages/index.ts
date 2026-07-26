@@ -171,7 +171,8 @@ Deno.serve(async (req) => {
            : Array.isArray(data?.messages) ? data.messages
            : [];
   } catch (err) {
-    return json({ error: 'evolution_fetch_failed', details: String(err) }, 502);
+    console.error('[backfill] evolution_fetch_failed', err);
+    return json({ error: 'evolution_fetch_failed', details: 'Connection to Evolution API failed' }, 502);
   }
 
   console.log(`[backfill] fetched ${evMsgs.length} msgs from Evolution API`);
