@@ -50,11 +50,21 @@ jobs:
             git fetch origin ${{ github.base_ref }}
             BASE="origin/${{ github.base_ref }}"
             LOCK_DIFF=$(git diff "$BASE"...HEAD --name-only -- bun.lock)
-            OLD_PKG=$(git show "$BASE:package.json" 2>/dev/null || echo '{}')
+            OLD_RAW=$(git show "$BASE:package.json" 2>/dev/null || echo '{}')
+            if echo "$OLD_RAW" | jq '.' >/dev/null 2>&1; then
+              OLD_PKG="$OLD_RAW"
+            else
+              OLD_PKG=$(echo "$OLD_RAW" | base64 -d 2>/dev/null || echo '{}')
+            fi
             NEW_PKG=$(cat package.json)
           else
             LOCK_DIFF=$(git diff HEAD^ HEAD --name-only -- bun.lock 2>/dev/null || true)
-            OLD_PKG=$(git show "HEAD^:package.json" 2>/dev/null || echo '{}')
+            OLD_RAW=$(git show "HEAD^:package.json" 2>/dev/null || echo '{}')
+            if echo "$OLD_RAW" | jq '.' >/dev/null 2>&1; then
+              OLD_PKG="$OLD_RAW"
+            else
+              OLD_PKG=$(echo "$OLD_RAW" | base64 -d 2>/dev/null || echo '{}')
+            fi
             NEW_PKG=$(cat package.json)
           fi
           # Compare only the dependency fields — scripts/version changes are irrelevant.
