@@ -952,7 +952,22 @@ Deno.serve(async (req) => {
         }
 
         const response = await proxy(`/chat/markMessageAsRead/${instance}`, 'POST', { readMessages });
-        if (response.ok) return response;
+        if (response.ok) {
+          // Persist read state so subsequent calls don't resend the same receipts
+          // if the Evolution chats.update webhook is delayed or lost. Awaited before
+          // returning so the update completes before the Deno execution context closes.
+          const { error: updateErr } = await supabase
+            .from('evolution_messages')
+            .update({ is_read: true })
+            .eq('remote_jid', remoteJid)
+            .eq('instance_name', instance)
+            .eq('from_me', false)
+            .eq('is_read', false);
+          if (updateErr) {
+            log.warn('[evolution-api] read-messages: failed to persist is_read=true:', updateErr.message);
+          }
+          return response;
+        }
         const text = await response.text().catch(() => '');
         return new Response(JSON.stringify({ ok: false, skipped: true, upstream_status: response.status, details: text }), {
           status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
