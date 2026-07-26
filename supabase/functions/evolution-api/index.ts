@@ -908,26 +908,38 @@ Deno.serve(async (req) => {
       }
       try {
         // Evolution API v2 removed /chat/markChatRead — use /chat/markMessageAsRead with
-        // explicit message keys fetched from the DB (last 50 incoming messages for this JID).
-        const { data: msgs, error: msgsErr } = await supabase
-          .from('evolution_messages')
-          .select('message_id, from_me')
-          .eq('remote_jid', remoteJid)
-          .eq('instance_name', instance)
-          .eq('from_me', false)
-          .order('created_at', { ascending: false })
-          .limit(500);
+        // explicit message keys fetched from the DB. Paginate in batches of 1000 to handle
+        // chats with more than 1000 unread incoming messages without silently truncating.
+        const PAGE_SIZE = 1000;
+        const allMsgRows: { message_id: string | null; from_me: boolean }[] = [];
+        let offset = 0;
+        let hasMore = true;
+        while (hasMore) {
+          const { data: page, error: pageErr } = await supabase
+            .from('evolution_messages')
+            .select('message_id, from_me')
+            .eq('remote_jid', remoteJid)
+            .eq('instance_name', instance)
+            .eq('from_me', false)
+            .order('created_at', { ascending: false })
+            .range(offset, offset + PAGE_SIZE - 1);
 
-        if (msgsErr) {
-          return new Response(JSON.stringify({ ok: false, skipped: true, reason: 'db_error' }), {
-            status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          });
+          if (pageErr) {
+            return new Response(JSON.stringify({ ok: false, skipped: true, reason: 'db_error' }), {
+              status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            });
+          }
+
+          const rows = page ?? [];
+          allMsgRows.push(...rows);
+          hasMore = rows.length === PAGE_SIZE;
+          offset += PAGE_SIZE;
         }
 
-        const readMessages = (msgs ?? [])
-          .filter((m: { message_id: string | null; from_me: boolean }) => m.message_id != null && m.message_id !== '')
-          .map((m: { message_id: string; from_me: boolean }) => ({
-            id: m.message_id,
+        const readMessages = allMsgRows
+          .filter((m) => m.message_id != null && m.message_id !== '')
+          .map((m) => ({
+            id: m.message_id as string,
             fromMe: m.from_me ?? false,
             remoteJid,
           }));
