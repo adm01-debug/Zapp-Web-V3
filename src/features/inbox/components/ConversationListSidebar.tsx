@@ -205,7 +205,22 @@ export function ConversationListSidebar({
               counts={inboxFilters.failureCategoryCounts}
             />
           )}
+
+          {inboxFilters.hasActiveInboxFilters && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              aria-label="Limpar filtros da caixa de entrada"
+              className="ml-auto h-8 shrink-0 gap-1 px-2 text-[11px] text-muted-foreground hover:text-foreground"
+              onClick={inboxFilters.resetInboxFilters}
+            >
+              <FilterX className="h-3.5 w-3.5" aria-hidden="true" />
+              Limpar filtros
+            </Button>
+          )}
         </div>
+
 
         <ErrorBoundary
           fallback={
