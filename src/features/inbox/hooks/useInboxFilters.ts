@@ -426,7 +426,76 @@ export function useInboxFilters({
     });
   }, [conversations, showOnlyRetrying, failureCategoryById]);
 
+  /** Indica se algum filtro difere do padrão (habilita o botão "Limpar filtros"). */
+  const hasActiveInboxFilters = useMemo(
+    () =>
+      mainTab !== 'open' ||
+      subTab !== 'waiting' ||
+      !!search ||
+      !!selectedContactType ||
+      !!selectedQueueId ||
+      showOnlyRetrying ||
+      failureCategoryFilter !== 'all' ||
+      !!filters.agentId ||
+      filters.status.length > 0 ||
+      filters.tags.length > 0 ||
+      !!filters.dateRange.from ||
+      !!filters.dateRange.to,
+    [
+      mainTab,
+      subTab,
+      search,
+      selectedContactType,
+      selectedQueueId,
+      showOnlyRetrying,
+      failureCategoryFilter,
+      filters,
+    ]
+  );
+
+  /**
+   * Reseta aba, sub-aba, busca e filtros auxiliares para o padrão,
+   * limpando também a URL e o snapshot no localStorage.
+   */
+  const resetInboxFilters = useCallback(() => {
+    setMainTab('open');
+    setSubTab('waiting');
+    setSelectedContactType(null);
+    setSelectedQueueId(null);
+    setShowOnlyRetrying(false);
+    setFailureCategoryFilter('all');
+
+    writeStoredInboxFilters({
+      mainTab: 'open',
+      subTab: 'waiting',
+      search: '',
+      contactType: null,
+      queueId: null,
+      showOnlyRetrying: false,
+      failureCategory: 'all',
+    });
+
+    // Limpa os parâmetros gerenciados pelo useUrlFilters (q, status, tags, agent, datas)
+    clearUrlFilters();
+
+    // Limpa os parâmetros próprios da Inbox mantidos via history.replaceState
+    const params = new URLSearchParams(window.location.search);
+    ['tab', 'subTab', 'type', 'queue', 'failuresOnly', 'failureCategory', 'q'].forEach((key) =>
+      params.delete(key)
+    );
+    const qs = params.toString();
+    window.history.replaceState(
+      null,
+      '',
+      `${window.location.pathname}${qs ? `?${qs}` : ''}${window.location.hash}`
+    );
+
+    log.info('Filtros da Inbox resetados para o padrão');
+  }, [clearUrlFilters]);
+
   return {
+    hasActiveInboxFilters,
+    resetInboxFilters,
     mainTab,
     setMainTab,
     subTab,
