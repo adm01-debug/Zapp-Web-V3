@@ -140,21 +140,25 @@ export function upsertInboxPreset(
   presets: InboxFilterPreset[],
   input: InboxFilterPresetInput
 ): InboxFilterPreset[] {
-  const name = input.name.trim();
-  if (!name) return presets;
+  // Permite sobrescrever pelo mesmo nome: ignora o próprio registro na checagem de duplicidade.
+  const existing = presets.find(
+    (p) => p.name.trim().toLowerCase() === (input.name ?? '').trim().toLowerCase()
+  );
+  const validation = validatePresetName(input.name, presets, existing?.id);
+  if (!validation.ok) return presets;
+  const name = validation.value;
 
   const preset: InboxFilterPreset = {
     ...input,
     name,
-    id:
-      presets.find((p) => p.name.toLowerCase() === name.toLowerCase())?.id ??
-      (globalThis.crypto?.randomUUID?.() ?? `preset_${Date.now()}`),
+    id: existing?.id ?? (globalThis.crypto?.randomUUID?.() ?? `preset_${Date.now()}`),
     createdAt: new Date().toISOString(),
   };
 
   const rest = presets.filter((p) => p.id !== preset.id);
   return [preset, ...rest].slice(0, MAX_INBOX_PRESETS);
 }
+
 
 /** Remove um preset pelo id. */
 export function removeInboxPreset(
