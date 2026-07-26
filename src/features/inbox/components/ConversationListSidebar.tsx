@@ -9,6 +9,7 @@ import { BulkActionsToolbar } from './BulkActionsToolbar';
 import { InboxFilters } from './InboxFilters';
 import { ContactTypeFilter, FILTER_OPTIONS } from './ContactTypeFilter';
 import { FailureCategoryFilter } from './FailureCategoryFilter';
+import { InboxFilterPresets } from './InboxFilterPresets';
 import { TicketTabs } from './TicketTabs';
 import type { InboxScope } from './TicketTabs';
 import type { useInboxFilters } from '../hooks/useInboxFilters';
