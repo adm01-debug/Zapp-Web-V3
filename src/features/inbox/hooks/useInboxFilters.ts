@@ -31,6 +31,13 @@ import {
   removeInboxPreset,
   type InboxFilterPreset,
 } from './inboxFilterPresets';
+import {
+  fetchRemoteInboxPresets,
+  upsertRemoteInboxPreset,
+  deleteRemoteInboxPreset,
+  mergeInboxPresets,
+  pushLocalOnlyPresets,
+} from './inboxPresetsSync';
 
 
 const log = getLogger('useInboxFilters');
@@ -542,9 +549,27 @@ export function useInboxFilters({
   // ===================== Presets de filtros =====================
   const [presets, setPresets] = useState<InboxFilterPreset[]>(() => readInboxPresets());
 
+  // Sincronização inicial com o backend (presets seguem o usuário entre dispositivos).
+  useEffect(() => {
+    let active = true;
+    void (async () => {
+      const remote = await fetchRemoteInboxPresets();
+      if (!active || remote === null) return;
+      const local = readInboxPresets();
+      const merged = mergeInboxPresets(local, remote);
+      writeInboxPresets(merged);
+      setPresets(merged);
+      await pushLocalOnlyPresets(local, remote);
+    })();
+    return () => {
+      active = false;
+    };
+  }, []);
+
   /** Salva a combinação atual de filtros com o nome informado. */
   const saveInboxPreset = useCallback(
     (name: string) => {
+      let created: InboxFilterPreset | undefined;
       setPresets((current) => {
         const next = upsertInboxPreset(current, {
           name,
@@ -557,8 +582,10 @@ export function useInboxFilters({
           failureCategory: failureCategoryFilter,
         });
         writeInboxPresets(next);
+        created = next[0];
         return next;
       });
+      if (created) void upsertRemoteInboxPreset(created);
     },
     [
       mainTab,
@@ -597,14 +624,16 @@ export function useInboxFilters({
     [setSearch]
   );
 
-  /** Remove um preset salvo. */
+  /** Remove um preset salvo (local + remoto). */
   const deleteInboxPreset = useCallback((id: string) => {
     setPresets((current) => {
       const next = removeInboxPreset(current, id);
       writeInboxPresets(next);
       return next;
     });
+    void deleteRemoteInboxPreset(id);
   }, []);
+
 
   return {
     presets,
