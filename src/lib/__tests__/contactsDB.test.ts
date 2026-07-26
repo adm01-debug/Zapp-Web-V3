@@ -17,6 +17,12 @@ vi.mock('@/integrations/supabase/externalClient', () => ({
   isExternalConfigured: true,
 }));
 
+// isValidUUID is mocked so tests can use arbitrary IDs like 'c-1'.
+// UUID validation has its own unit tests in utils/uuid.test.ts.
+vi.mock('@/utils/uuid', () => ({
+  isValidUUID: () => true,
+}));
+
 // ── Import SUT AFTER mocks ────────────────────────────────────────────────────
 import { contactsDB } from '../contactsDB';
 
