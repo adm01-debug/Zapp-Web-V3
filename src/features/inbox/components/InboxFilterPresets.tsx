@@ -4,16 +4,19 @@
  * Implementação nativa (botão + painel absoluto) para manter consistência com
  * o FailureCategoryFilter e evitar loops de composição do Radix no sidebar.
  */
-import { memo, useCallback, useEffect, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Bookmark, Plus, Trash2, ChevronDown, Pencil, Check, X, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import type {
-  InboxFilterPreset,
-  InboxFilterPresetInput,
+import {
+  PRESET_NAME_MAX_LENGTH,
+  validatePresetName,
+  type InboxFilterPreset,
+  type InboxFilterPresetInput,
 } from '@/features/inbox/hooks/inboxFilterPresets';
 import type { MainTab, SubTab } from '@/features/inbox/components/TicketTabs';
+
 
 interface Props {
   presets: InboxFilterPreset[];
