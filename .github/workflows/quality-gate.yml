@@ -79,6 +79,13 @@ jobs:
           echo "$changed"
           CHANGED_FILES="$changed" node scripts/lint-migrations.mjs
 
+      - name: RLS coverage audit (E34 — blocking on missing RLS)
+        # Parses migrations to verify all critical zapp tables have
+        # ENABLE ROW LEVEL SECURITY. Fails if any critical table is missing
+        # RLS entirely; advisory warnings for tables with no CREATE POLICY
+        # (may use service_role BYPASSRLS instead).
+        run: node scripts/audit-rls-coverage.mjs --check
+
       - name: Schema usage guardrail (zapp/evo)
         # Falha o build se aparecer .schema('public'), createClient sem schema
         # zapp/evo, ou URLs *.supabase.co em código de produção.
