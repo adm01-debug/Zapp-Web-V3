@@ -96,7 +96,7 @@ var list_contacts_default = defineTool3({
       return { content: [{ type: "text", text: "N\xE3o autenticado." }], isError: true };
     }
     const sb = supabaseForUser2(ctx);
-    const { data, error } = await sb.from("contacts").select("id, name, phone_number, email, assigned_to, created_at").or(`name.ilike.%${query}%,phone_number.ilike.%${query}%`).limit(limit ?? 20);
+    const { data, error } = await sb.from("contacts").select("id, name, phone_number, email, assigned_to, created_at").or(`name.ilike.%${encodeURIComponent(query)}%,phone_number.ilike.%${encodeURIComponent(query)}%`).limit(limit ?? 20);
     if (error) {
       return { content: [{ type: "text", text: error.message }], isError: true };
     }

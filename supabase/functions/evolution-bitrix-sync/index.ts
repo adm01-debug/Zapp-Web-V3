@@ -98,7 +98,7 @@ Deno.serve(async (req: Request) => {
   try {
     const start = Date.now();
     const result = await processQueue();
-    await supabase.from("evolution_performance_metrics").insert({ metric_date: new Date().toISOString().slice(0, 10), metric_type: "bitrix_sync", metric_value: result.processed, metadata: { ...result, duration_ms: Date.now() - start } }).then(()=>{},()=>{});
+    await supabase.from("evolution_performance_metrics").insert({ metric_date: new Date().toISOString().slice(0, 10), metric_type: "bitrix_sync", metric_value: result.processed, metadata: { ...result, duration_ms: Date.now() - start } }).catch((e) => console.error("[evolution-bitrix-sync] metrics insert failed:", e));
     return new Response(JSON.stringify({ success: true, version: "v3", ...result, duration_ms: Date.now() - start, timestamp: new Date().toISOString() }), { headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } });
   } catch (e) {
     console.error("[evolution-bitrix-sync] unhandled error:", e);
