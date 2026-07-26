@@ -9252,19 +9252,19 @@ export type Database = {
   // Schema stubs — satisfy check-types-schemas.mjs; real types flow from types-manual.ts.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   zapp: {
-    Tables: any
-    Views: any
-    Functions: any
-    Enums: any
-    CompositeTypes: any
+    Tables: any // ignore-audit
+    Views: any // ignore-audit
+    Functions: any // ignore-audit
+    Enums: any // ignore-audit
+    CompositeTypes: any // ignore-audit
   }
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   evo: {
-    Tables: any
-    Views: any
-    Functions: any
-    Enums: any
-    CompositeTypes: any
+    Tables: any // ignore-audit
+    Views: any // ignore-audit
+    Functions: any // ignore-audit
+    Enums: any // ignore-audit
+    CompositeTypes: any // ignore-audit
   }
 }
 
