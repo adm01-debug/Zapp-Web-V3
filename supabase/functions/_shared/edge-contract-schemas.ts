@@ -27,6 +27,7 @@ export const EDGE_FUNCTION_NAMES = [
   'auto-close-conversations',
   'auto-escalate-sla',
   'automation-suggest-reply',
+  'backfill-messages',
   'batch-fetch-avatars',
   'bitrix-api',
   'chatbot-l1',
