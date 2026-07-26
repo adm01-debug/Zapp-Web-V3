@@ -308,7 +308,7 @@ export const InboxFilterPresets = memo(function InboxFilterPresets({
                         size="sm"
                         variant="secondary"
                         className="h-7 flex-1 px-2 text-[11px]"
-                        disabled={!draft.name?.trim()}
+                        disabled={!editValidation.ok}
                         onClick={commitEditing}
                       >
                         <Check className="mr-1 h-3.5 w-3.5" aria-hidden="true" />
