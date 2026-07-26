@@ -323,15 +323,22 @@ export const safeClient = {
     if (_healthLogInProgress) return;
     _healthLogInProgress = true;
     try {
+      // Enforce 5s timeout — health logging must never block shutdown
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('health log timeout')), 5_000)
+      );
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { error: rpcErr } = await supabase.rpc('rpc_log_email_health' as any, {
-        p_status: 'error',
-        p_operation: operation,
-        p_resource: resource,
-        p_request_id: requestId,
-        p_error_message: error,
-        p_is_failure: true,
-      });
+      const { error: rpcErr } = await Promise.race([
+        supabase.rpc('rpc_log_email_health' as any, {
+          p_status: 'error',
+          p_operation: operation,
+          p_resource: resource,
+          p_request_id: requestId,
+          p_error_message: error,
+          p_is_failure: true,
+        }),
+        timeoutPromise,
+      ]);
       if (rpcErr) {
         _log.warn('Falha ao persistir log de saúde', { error: (rpcErr as { message?: string }).message });
       }

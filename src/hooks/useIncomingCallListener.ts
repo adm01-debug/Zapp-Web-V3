@@ -79,9 +79,10 @@ export function useIncomingCallListener() {
       .subscribe();
 
     return () => {
+      channel.unsubscribe();
       supabase.removeChannel(channel);
     };
-  }, [profile?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [profile?.id]);
 
   return { incomingCall, dismissCall };
 }

@@ -364,6 +364,7 @@ export function useTeamChatNotificationsManagement() {
 
     return () => {
       if (channelRef.current) {
+        channelRef.current.unsubscribe();
         supabase.removeChannel(channelRef.current).catch(() => {});
       }
     };

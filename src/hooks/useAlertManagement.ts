@@ -177,6 +177,7 @@ export function useWarRoomAlertsManagement(soundEnabled = true): UseWarRoomAlert
       .subscribe();
 
     return () => {
+      channel.unsubscribe();
       supabase.removeChannel(channel);
     };
   }, [queryClient, playAlertSound, pushPermission]);

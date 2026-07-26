@@ -1,5 +1,6 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useMountedRef } from '@/hooks/useMountedRef';
 import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { useEvolutionApi } from '@/hooks/useEvolutionApi';
@@ -90,6 +91,7 @@ export function useEvolutionAutoReconnect(instanceName?: string) {
   const queryClient = useQueryClient();
   const attemptMap = useRef<Record<string, number>>({});
   const lastAttemptTime = useRef<Record<string, number>>({});
+  const mountedRef = useMountedRef();
 
   const [status, setStatus] = useState<string>('unknown');
   const [isReconnecting, _setIsReconnecting] = useState(false);
@@ -259,6 +261,7 @@ export function useEvolutionAutoReconnect(instanceName?: string) {
 
   const attemptSpecificReconnect = useCallback(async () => {
     if (!instanceName || isReconnectingRef.current) return;
+    if (!mountedRef?.current) return;
 
     setIsReconnecting(true);
     log.info(`Attempting to reconnect specific instance ${instanceName}...`);
