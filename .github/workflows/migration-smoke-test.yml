@@ -1,0 +1,141 @@
+name: Migration Smoke Test
+
+# Applies every timestamped migration (YYYYMMDDHHMMSS_*.sql) against a fresh
+# Postgres 16 instance bootstrapped with Supabase-compatibility stubs.
+# Any migration that ABORTs or raises an unrecoverable error causes the job
+# to fail immediately, catching SQL errors before they reach production.
+#
+# What this catches:
+#   - Syntax errors in new migrations
+#   - References to tables/columns that don't exist yet at that migration step
+#   - Missing schema creation (CREATE SCHEMA IF NOT EXISTS)
+#   - Bad FK references
+#
+# What this does NOT catch (requires the real Supabase stack):
+#   - pg_cron / pg_net behaviour (stubbed here)
+#   - RLS policy evaluation against real JWT sessions
+#   - Supabase storage / Edge Function interactions
+
+on:
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - "supabase/migrations/**.sql"
+      - "supabase/ci/pg-bootstrap.sql"
+      - ".github/workflows/migration-smoke-test.yml"
+  push:
+    branches: [main]
+    paths:
+      - "supabase/migrations/**.sql"
+
+concurrency:
+  group: migration-smoke-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  smoke:
+    name: Apply migrations from scratch
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-bullseye
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      PGHOST: localhost
+      PGPORT: 5432
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: postgres
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Wait for Postgres
+        run: |
+          until pg_isready -h localhost -U postgres; do
+            echo "Waiting for postgres..."; sleep 1
+          done
+
+      - name: Apply Supabase compatibility bootstrap
+        run: |
+          psql -v ON_ERROR_STOP=1 -f supabase/ci/pg-bootstrap.sql
+          echo "Bootstrap applied successfully."
+
+      - name: Collect and apply migrations
+        # Applies only files matching YYYYMMDDHHMMSS_*.sql in lexicographic
+        # (timestamp) order.  Template / test-suite / README files are excluded.
+        # ON_ERROR_STOP=1 ensures psql aborts on the first error, making the
+        # step exit non-zero so GitHub Actions marks the job as failed.
+        run: |
+          MIGRATION_DIR="supabase/migrations"
+          FAILED=0
+          APPLIED=0
+          ERRORS=()
+
+          # Collect migrations matching the timestamp pattern, sorted
+          mapfile -t MIGRATIONS < <(
+            find "$MIGRATION_DIR" -maxdepth 1 -name '[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]_*.sql' \
+              | sort
+          )
+
+          echo "Found ${#MIGRATIONS[@]} migration files."
+
+          for f in "${MIGRATIONS[@]}"; do
+            echo "Applying: $f"
+            if ! psql -v ON_ERROR_STOP=1 -f "$f" 2>&1; then
+              echo "::error file=$f::Migration failed: $f"
+              ERRORS+=("$f")
+              FAILED=1
+              # Stop on first failure to preserve accurate error context
+              break
+            fi
+            APPLIED=$((APPLIED + 1))
+          done
+
+          echo ""
+          echo "──────────────────────────────────────────"
+          echo "Applied: $APPLIED / ${#MIGRATIONS[@]}"
+          if [ "$FAILED" -eq 1 ]; then
+            echo "FAILED migrations:"
+            for e in "${ERRORS[@]}"; do echo "  ✗ $e"; done
+            exit 1
+          else
+            echo "All migrations applied successfully. ✓"
+          fi
+
+      - name: Verify expected schemas exist
+        run: |
+          psql -v ON_ERROR_STOP=1 <<'SQL'
+            DO $$
+            DECLARE
+              missing text[] := '{}';
+              s text;
+            BEGIN
+              FOREACH s IN ARRAY ARRAY['zapp', 'evo', 'bpm', 'email_app', 'financeiro', 'ai', 'archive', 'vendas', 'ops']
+              LOOP
+                IF NOT EXISTS (SELECT 1 FROM information_schema.schemata WHERE schema_name = s) THEN
+                  missing := array_append(missing, s);
+                END IF;
+              END LOOP;
+              IF array_length(missing, 1) > 0 THEN
+                RAISE EXCEPTION 'Expected schemas not created by migrations: %', array_to_string(missing, ', ');
+              END IF;
+              RAISE NOTICE 'All expected schemas present. ✓';
+            END;
+            $$;
+          SQL
