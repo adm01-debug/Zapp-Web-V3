@@ -87,8 +87,6 @@ export function resolvePublicMediaUrl(params: {
     const sanitized = sanitizeMediaUrl(mediaUrl);
     if (!sanitized) return null; // CDN WhatsApp ou inválida
     if (isMediaUrlFailed(sanitized)) return null;
-    if (sanitized.startsWith(SUPABASE_PUBLIC_URL)) return sanitized;
-    if (sanitized.startsWith('https://zapp-media-proxy.adm01.workers.dev')) return sanitized;
     return sanitized;
   }
 
