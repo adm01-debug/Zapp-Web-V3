@@ -4,6 +4,23 @@ import { getLogger } from '@/lib/logger';
 
 const log = getLogger('useInboxDeepLinks');
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * Normaliza um identificador de handshake para o `remote_jid` usado pela Inbox
+ * em modo externo. Retorna `null` apenas quando o valor e um UUID legado, que
+ * nao tem correspondencia direta com um JID.
+ */
+function toRemoteJid(value: string): string | null {
+  const raw = value.trim();
+  if (!raw) return null;
+  if (raw.includes('@')) return raw; // ja e JID (@s.whatsapp.net / @lid / @g.us)
+  if (UUID_RE.test(raw)) return null; // UUID legado: sem traducao possivel
+  const digits = raw.replace(/[^0-9]/g, '');
+  if (digits.length < 8) return null;
+  return digits + '@s.whatsapp.net';
+}
+
 interface DeepLinkHandlers {
   setPendingContactId: (id: string | null) => void;
   setPendingMessageId: (id: string | null) => void;
@@ -41,10 +58,15 @@ export function useInboxDeepLinks({
     if (appWindow.__pendingOpenContactId) {
       const pending = appWindow.__pendingOpenContactId;
       // In external mode (FATOR X) the Inbox identifies contacts by `remote_jid`.
-      if (useExternalDb && !pending.includes('@')) {
-        log.warn('Ignoring legacy UUID handshake in external mode', { pending });
+      // Um handshake chega em 3 formatos: (a) JID completo, (b) UUID legado ou
+      // (c) telefone puro. Apenas (b) e inservivel. Antes, (c) tambem era
+      // descartado -- por isso o deep-link com '556191039392' nunca abria a
+      // conversa e so aparecia um WARN no console.
+      const resolved = useExternalDb ? toRemoteJid(pending) : pending;
+      if (resolved) {
+        setPendingContactId(resolved);
       } else {
-        setPendingContactId(pending);
+        log.warn('Ignoring legacy UUID handshake in external mode', { pending });
       }
       appWindow.__pendingOpenContactId = undefined;
     }

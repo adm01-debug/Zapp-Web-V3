@@ -5,6 +5,31 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { log } from '@/lib/logger';
+import { sanitizePostgrestFilter } from '@/lib/sanitize';
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+type ResolvedIdent = { kind: 'uuid'; value: string } | { kind: 'phone'; value: string };
+
+/**
+ * Resolve o identificador recebido (uuid de contato OU telefone) num filtro
+ * PostgREST valido.
+ *
+ * Motivo: `contact_intelligence.contact_id` e `uuid` e `evolution_messages`
+ * nao possui coluna `phone`. Interpolar um telefone (ou o sentinela
+ * 'unknown') em `contact_id.eq.` gera HTTP 400 (22P02 invalid input syntax
+ * for type uuid) e filtrar por `phone` numa tabela que nao tem essa coluna
+ * gera HTTP 400 (42703 column does not exist). Retorna `null` quando o valor
+ * nao e consultavel: nesse caso a query e pulada em vez de falhar.
+ */
+function resolveIdentifier(value?: string): ResolvedIdent | null {
+  const raw = (value ?? '').trim();
+  if (!raw || raw.toLowerCase() === 'unknown') return null;
+  if (UUID_RE.test(raw)) return { kind: 'uuid', value: raw };
+  const digits = raw.replace(/[^0-9]/g, '');
+  if (digits.length < 8) return null;
+  return { kind: 'phone', value: sanitizePostgrestFilter(digits) };
+}
 
 /** Hook: Contact Briefing. */
 export interface ContactBriefing {
@@ -212,16 +237,28 @@ export function useContactIntelligence(contactIdOrPhone?: string) {
     queryFn: async () => {
       if (!contactIdOrPhone) return null;
 
+      const ident = resolveIdentifier(contactIdOrPhone);
+      if (!ident) return null;
+
       let raw: RawIntel | null = null;
       try {
-        const { data: intel } = await supabase
+        // supabase-js NAO lanca excecao em erro HTTP: e obrigatorio checar `error`,
+        // senao um 400 vira `data: null` silencioso (foi exatamente o que mascarou
+        // este bug em producao).
+        const { data: intel, error } = await supabase
           .from('contact_intelligence' as never)
           .select('*')
-          .or(`contact_id.eq.${contactIdOrPhone},phone.eq.${contactIdOrPhone}`)
+          .or(
+            ident.kind === 'uuid'
+              ? `contact_id.eq.${ident.value}`
+              : `phone.eq.${ident.value}`
+          )
+          .limit(1)
           .maybeSingle();
+        if (error) log.warn('contact_intelligence lookup failed:', error.message);
         raw = (intel ?? null) as unknown as RawIntel | null;
       } catch (err) {
-        log.warn('contact_intelligence lookup failed:', err);
+        log.warn('contact_intelligence lookup threw:', err);
       }
 
       let totalMessages = raw?.total_interactions ?? 0;
@@ -229,12 +266,19 @@ export function useContactIntelligence(contactIdOrPhone?: string) {
 
       if (!totalMessages || !lastAt) {
         try {
-          const { data: msgs, count } = await supabase
+          // `evolution_messages` nao tem coluna `phone`: por telefone o vinculo
+          // correto e `remote_jid` (ex.: 5511999999999@s.whatsapp.net / @lid).
+          const { data: msgs, count, error } = await supabase
             .from('evolution_messages' as never)
             .select('created_at', { count: 'exact', head: false })
-            .or(`contact_id.eq.${contactIdOrPhone},phone.eq.${contactIdOrPhone}`)
+            .or(
+              ident.kind === 'uuid'
+                ? `contact_id.eq.${ident.value}`
+                : `remote_jid.like.${ident.value}@*`
+            )
             .order('created_at', { ascending: false })
             .limit(1);
+          if (error) log.warn('messages stats lookup failed:', error.message);
           if (count != null) totalMessages = totalMessages || count;
           const rows = (msgs ?? []) as Array<{ created_at?: string }>;
           if (!lastAt && rows[0]?.created_at) lastAt = new Date(rows[0].created_at);

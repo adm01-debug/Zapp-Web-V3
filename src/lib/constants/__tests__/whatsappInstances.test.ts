@@ -48,16 +48,24 @@ describe('DEFAULT_WHATSAPP_INSTANCE', () => {
 // ── ACTIVE_WHATSAPP_INSTANCE ─────────────────────────────────────────────────
 
 describe('ACTIVE_WHATSAPP_INSTANCE', () => {
-  it('is "wpp_pink_test"', () => {
-    expect(ACTIVE_WHATSAPP_INSTANCE).toBe('wpp_pink_test');
+  it('is "wpp2"', () => {
+    expect(ACTIVE_WHATSAPP_INSTANCE).toBe('wpp2');
   });
 
   it('is a member of WHATSAPP_INSTANCES', () => {
     expect(WHATSAPP_INSTANCES).toContain(ACTIVE_WHATSAPP_INSTANCE);
   });
 
-  it('is not the same as DEFAULT_WHATSAPP_INSTANCE', () => {
-    expect(ACTIVE_WHATSAPP_INSTANCE).not.toBe(DEFAULT_WHATSAPP_INSTANCE);
+  // Ate 2026-07-26 este teste exigia ACTIVE !== DEFAULT. A premissa caiu: a
+  // unica instancia viva no banco e `wpp2`, entao ACTIVE e DEFAULT convergem.
+  // O invariante que realmente importa e nunca apontar para a instancia de
+  // teste arquivada (`wpp_pink_test`, is_active=false, 0 mensagens).
+  it('never points to the archived test instance', () => {
+    expect(ACTIVE_WHATSAPP_INSTANCE).not.toBe('wpp_pink_test');
+  });
+
+  it('is a user-selectable instance', () => {
+    expect(SELECTABLE_WHATSAPP_INSTANCES).toContain(ACTIVE_WHATSAPP_INSTANCE);
   });
 });
 
