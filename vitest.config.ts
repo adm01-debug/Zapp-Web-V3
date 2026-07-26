@@ -91,9 +91,17 @@ export default defineConfig({
     ],
     coverage: {
       provider: 'v8',
-      reporter: ['text', 'json', 'html'],
+      reporter: ['text', 'json', 'html', 'json-summary'],
       reportsDirectory: './coverage',
       exclude: ['node_modules/', 'src/test/'],
+      // Coverage ratchet — raise these thresholds as the test suite grows.
+      // Current floor is intentionally conservative; do not lower them.
+      thresholds: {
+        lines: 40,
+        functions: 35,
+        branches: 25,
+        statements: 40,
+      },
     },
   },
   resolve: {

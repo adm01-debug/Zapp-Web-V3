@@ -246,6 +246,34 @@ jobs:
           path: coverage/
           retention-days: 7
 
+      - name: Coverage threshold gate (ratchet)
+        # Reads coverage/coverage-summary.json produced by the json-summary reporter
+        # and fails CI when any metric drops below the floor in vitest.config.ts.
+        # Vitest itself also enforces thresholds, so this step provides an explicit
+        # human-readable failure message. Raise the floor in vitest.config.ts as the
+        # suite grows — never lower it.
+        if: always()
+        run: |
+          SUMMARY="coverage/coverage-summary.json"
+          if [ ! -f "$SUMMARY" ]; then
+            echo "::warning title=Coverage gate::coverage-summary.json not found — skipping threshold check."
+            exit 0
+          fi
+          node - <<'JSEOF'
+          const fs = require('fs');
+          const s = JSON.parse(fs.readFileSync('coverage/coverage-summary.json','utf8')).total;
+          const floors = { lines: 40, functions: 35, branches: 25, statements: 40 };
+          let fail = false;
+          for (const [k, floor] of Object.entries(floors)) {
+            const pct = s[k]?.pct ?? 0;
+            const status = pct >= floor ? '✅' : '❌';
+            console.log(`${status} ${k}: ${pct.toFixed(1)}% (floor ${floor}%)`);
+            if (pct < floor) fail = true;
+          }
+          if (fail) { console.error('\n::error title=Coverage gate::One or more metrics are below the coverage floor. Raise coverage or adjust the floor intentionally.'); process.exit(1); }
+          else { console.log('\nCoverage gate passed.'); }
+          JSEOF
+
   build:
     name: Build
     runs-on: ubuntu-latest
