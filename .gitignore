@@ -1,1 +1,237 @@
-IyA9PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PQojIFpBUFAtV0VCIC5naXRpZ25vcmUgLSBTZWd1cmFuw6dhIFByaW1laXJvIQojID09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09CgojID09PT09PT09PT09PT09PT09PT09CiMgU0VDUkVUUyBFIEFNQklFTlRFIChDUsONVElDTyEpCiMgPT09PT09PT09PT09PT09PT09PT0KLmVudgouZW52LioKLmVudi5sb2NhbAouZW52LmRldmVsb3BtZW50Ci5lbnYuZGV2ZWxvcG1lbnQubG9jYWwKLmVudi50ZXN0Ci5lbnYudGVzdC5sb2NhbAouZW52LnByb2R1Y3Rpb24KLmVudi5wcm9kdWN0aW9uLmxvY2FsCi5lbnYuc3RhZ2luZwoqLnBlbQoqLmtleQoqLmNydAoqLnAxMgpzZWNyZXRzLwouc2VjcmV0cwpjcmVkZW50aWFscy5qc29uCnNlcnZpY2UtYWNjb3VudC5qc29uCmZpcmViYXNlLWFkbWluc2RrKi5qc29uCgojIENyZWRlbmNpYWlzIGVtIHRleHRvIHBsYW5vIChQVC1CUiBlIEVOKQoqY3JlZGVuY2lhKi50eHQKKmNyZWRlbnRpYWwqLnR4dAoqY3JlZCoudHh0Cip0b2tlbioudHh0CiphcGlrZXkqLnR4dAoqYXBpX2tleSoudHh0CipzZW5oYSoudHh0CipwYXNzd29yZCoudHh0CipzZWNyZXQqLnR4dAoqY2hhdmUqLnR4dAoKIyA9PT09PT09PT09PT09PT09PT09PQojIENPTkZJR1VSQcOHw5VFUyBNQ1AgKENSw41USUNPIC0gQ09OVMOJTSBUT0tFTlMhKQojID09PT09PT09PT09PT09PT09PT09CiMgTyBhcnF1aXZvIC5tY3AuanNvbiBjb250w6ltIFVSTHMgYXV0ZW50aWNhZGFzIGNvbSB0b2tlbnMgZW1idXRpZG9zLgojIE5VTkNBIGNvbW1pdGFyLiBVc2FyIC5tY3AuanNvbi5leGFtcGxlIGNvbW8gcmVmZXLDqm5jaWEuCi5tY3AuanNvbgoubWNwLmpzb24uYmFrCi5tY3AuanNvbi5iYWNrdXAKLm1jcC5sb2NhbC5qc29uCioubWNwLmxvY2FsLmpzb24KCiMgPT09PT09PT09PT09PT09PT09PT0KIyBMT0dTCiMgPT09PT09PT09PT09PT09PT09PT0KbG9ncy8KKi5sb2cKbnBtLWRlYnVnLmxvZyoKeWFybi1kZWJ1Zy5sb2cqCnlhcm4tZXJyb3IubG9nKgpwbnBtLWRlYnVnLmxvZyoKbGVybmEtZGVidWcubG9nKgoucG5wbS1kZWJ1Zy5sb2cqCgojID09PT09PT09PT09PT09PT09PT09CiMgREVQRU5Ew4pOQ0lBUwojID09PT09PT09PT09PT09PT09PT09CiMgQVVESVRPUklBIDIwMjYtMDctMTc6IGVyYSAibm9kZV9tb2R1bGVzLyIgKGNvbSBiYXJyYSksIHF1ZSBpZ25vcmEgYXBlbmFzCiMgRElSRVRPUklPLiBVbSBzeW1saW5rIGNoYW1hZG8gbm9kZV9tb2R1bGVzIGUgdW0gQVJRVUlWTyAtPiBwYXNzYXZhIGJhdGlkbyBubwojIGdpdCBhZGQgLUEsIGVyYSBjb21taXRhZG8sIGUgbm8gcnVubmVyIHZpcmF2YSBzeW1saW5rIHBlbmR1cmFkby4gYnVuIGluc3RhbGwKIyBtb3JyaWEgY29tOiBFTk9FTlQ6IGNvdWxkIG5vdCBvcGVuIHRoZSAibm9kZV9tb2R1bGVzIiBkaXJlY3RvcnkgKGV4aXQgMSkuCiMgU2VtIGEgYmFycmEsIGlnbm9yYSBkaXJldG9yaW8sIHN5bWxpbmsgZSBhcnF1aXZvLgpub2RlX21vZHVsZXMKLnBucAoucG5wLmpzCi55YXJuL2luc3RhbGwtc3RhdGUuZ3oKCiMgPT09PT09PT09PT09PT09PT09PT0KIyBMT0NLRklMRVMKIyA9PT09PT09PT09PT09PT09PT09PQojIEVzdGUgcHJvamV0byB1c2EgQlVOIGNvbW8gZ2VyZW5jaWFkb3IgZGUgcGFjb3Rlcy4KIyBPIGFycXVpdm8gY2Fuw7RuaWNvIMOpIGJ1bi5sb2NrIChjb21taXRhZG8gZSByYXN0cmVhZG8pLgojIHBhY2thZ2UtbG9jay5qc29uIMOpIGdlcmFkbyBwZWxvIG5wbSBlIE7Dg08gZGV2ZSBzZXIgY29tbWl0YWRvCiMgKGRpdmVyZ2UgZG8gYnVuLmxvY2sgZSBjYXVzYSBpbnN0YWxscyBuw6NvLWRldGVybWluw61zdGljb3MgZW0gQ0kpLgojIFBhcmEgaW5zdGFsYXI6IGJ1biBpbnN0YWxsCnBhY2thZ2UtbG9jay5qc29uCiMgYnVuLmxvY2tiIMOpIG8gZm9ybWF0byBiaW7DoXJpbyBkbyBidW4gdjEgKGVzdGUgcHJvamV0byB1c2EgYnVuIHYxLjMrIHRleHRvKQpidW4ubG9ja2IKCiMgPT09PT09PT09PT09PT09PT09PT0KIyBCVUlMRCBFIFBST0RVw4fDg08KIyA9PT09PT09PT09PT09PT09PT09PQpkaXN0LwpkaXN0LXNzci8KYnVpbGQvCi5uZXh0LwpvdXQvCioubG9jYWwKCiMgPT09PT09PT09PT09PT09PT09PT0KIyBDQUNIRQojID09PT09PT09PT09PT09PT09PT09Ci5jYWNoZS8KLnBhcmNlbC1jYWNoZS8KLnR1cmJvLwoudmVyY2VsLwoubmV0bGlmeS8KLnZpdGUvCioudHNidWlsZGluZm8KCiMgPT09PT09PT09PT09PT09PT09PT0KIyBURVNURVMKIyA9PT09PT09PT09PT09PT09PT09PQpjb3ZlcmFnZS8KLm55Y19vdXRwdXQvCnRlc3QtcmVzdWx0cy8KcGxheXdyaWdodC1yZXBvcnQvCnBsYXl3cmlnaHQtcmVwb3J0LWExMXkvCnBsYXl3cmlnaHQvLmNhY2hlLwoKIyA9PT09PT09PT09PT09PT09PT09PQojIEVESVRPUiBFIElERQojID09PT09PT09PT09PT09PT09PT09Ci52c2NvZGUvKgohLnZzY29kZS9leHRlbnNpb25zLmpzb24KIS52c2NvZGUvc2V0dGluZ3MuanNvbi5leGFtcGxlCi5pZGVhLwoqLnN1YmxpbWUtd29ya3NwYWNlCiouc3VibGltZS1wcm9qZWN0Ci5wcm9qZWN0Ci5jbGFzc3BhdGgKLnNldHRpbmdzLwoKIyA9PT09PT09PT09PT09PT09PT09PQojIFNJU1RFTUEgT1BFUkFDSU9OQUwKIyA9PT09PT09PT09PT09PT09PT09PQouRFNfU3RvcmUKLkRTX1N0b3JlPwouXyoKLlNwb3RsaWdodC1WMTAwCi5UcmFzaGVzCmVodGh1bWJzLmRiClRodW1icy5kYgoqLnN3cAoqLnN3bwoqfgoKIyA9PT09PT09PT09PT09PT09PT09PQojIFNVUEFCQVNFIExPQ0FMCiMgPT09PT09PT09PT09PT09PT09PT0Kc3VwYWJhc2UvLmJyYW5jaGVzLwpzdXBhYmFzZS8udGVtcC8KLnN1cGFiYXNlLwoKIyA9PT09PT09PT09PT09PT09PT09PQojIEFSUVVJVk9TIEdSQU5ERVMKIyA9PT09PT09PT09PT09PT09PT09PQoqLnppcAoqLnRhci5negoqLnJhcgoqLjd6CgojID09PT09PT09PT09PT09PT09PT09CiMgQkFDS1VQUwojID09PT09PT09PT09PT09PT09PT09CiouYmFrCiouYmFja3VwCipfYmFja3VwKgoqX29sZCoKKi5vcmlnCgojID09PT09PT09PT09PT09PT09PT09CiMgT1VUUk9TCiMgPT09PT09PT09PT09PT09PT09PT0KKi5zdW8KKi5udHZzKgoqLm5qc3Byb2oKKi5zbG4KKi5zdz8KLmVzbGludGNhY2hlCi5zdHlsZWxpbnRjYWNoZQoqLnRnegoueWFybi1pbnRlZ3JpdHkKCiMgUGxheXdyaWdodCBhdXRoIHN0YXRlCmUyZS8uYXV0aC8KcGxheXdyaWdodC1yZXBvcnQtZTJlLwouZGlzdC1iYWNrdXBzLwoKIyA9PT09PT09PT09PT09PT09PT09PQojIEFSVEVGQVRPUyBURU1QT1LDgVJJT1MgREUgREVWCiMgKE7Do28gc8OjbyBjw7NkaWdvIGRlIGFwbGljYcOnw6NvKQojID09PT09PT09PT09PT09PT09PT09CiMgRGlyZXTDs3JpbyBkZSB0cmFiYWxobyB0ZW1wb3LDoXJpbwp0bXAvCgojIFNhw61kYXMgZGUgc2NyaXB0cyBkZSBhdWRpdG9yaWEgYWQtaG9jCmF1ZGl0LmpzCmF1ZGl0Lm1qcwphdWRpdC5qc29uCmZ1bGxfYXVkaXRfcmVwb3J0LnR4dAoKIyBSYXN0cmVhbWVudG8gZGUgZGVwcyBkZXNhdHVhbGl6YWRhcyAobXVkYSB0b2RhIHNlbWFuYSwgbsOjbyDDqSBmb250ZSBkYSB2ZXJkYWRlKQpvdXRkYXRlZC50eHQKCiMgU2NyaXB0cyBkZSBkYWRvcyBtb2NrIGUgc2HDrWRhcyBTUUwgZ3JhbmRlcwpnZW5lcmF0ZV9tb2NrX2RhdGEucHkKbW9ja19kYXRhLnNxbAoKIyBTYcOtZGEgZGUgYnVpbGQgZG8gVHlwZVNjcmlwdCAoZ2VyYWRvIHBvciBgdHNjIC0tbm9FbWl0IDI+IHRzX2Vycm9ycy50eHRgKQojIE7Do28gdmVyc2lvbmFyOiBtdWRhIGEgY2FkYSBidWlsZCwgYXBhcmVjZSB2YXppbyBxdWFuZG8gY2xlYW4KdHNfZXJyb3JzLnR4dAoKIyBBcnRlZmF0b3MgZGUgYXVkaXRvcmlhIGRlIGRlc2lnbiBnZXJhZG9zIChuw6NvIHPDo28gY8OzZGlnby1mb250ZSkKZGVzaWduLXN5c3RlbS1hdWRpdC5odG1sCmRlc2lnbi1zeXN0ZW0tYXVkaXQubWQKCiMgUmVsYXTDs3Jpb3MgZGUgQ0kgZ2VyYWRvcyBwb3IgY2hlY2stdHlwZXMtc2NoZW1hcy5tanMgZSBzY3JpcHRzIHNpbWlsYXJlcwpyZXBvcnRzLwo=
+# ============================================
+# ZAPP-WEB .gitignore - Segurança Primeiro!
+# ============================================
+
+# ====================
+# SECRETS E AMBIENTE (CRÍTICO!)
+# ====================
+.env
+.env.*
+.env.local
+.env.development
+.env.development.local
+.env.test
+.env.test.local
+.env.production
+.env.production.local
+.env.staging
+*.pem
+*.key
+*.crt
+*.p12
+secrets/
+.secrets
+credentials.json
+service-account.json
+firebase-adminsdk*.json
+
+# Credenciais em texto plano (PT-BR e EN)
+*credencia*.txt
+*credential*.txt
+*cred*.txt
+*token*.txt
+*apikey*.txt
+*api_key*.txt
+*senha*.txt
+*password*.txt
+*secret*.txt
+*chave*.txt
+
+# ====================
+# CONFIGURAÇÕES MCP (CRÍTICO - CONTÉM TOKENS!)
+# ====================
+# O arquivo .mcp.json contém URLs autenticadas com tokens embutidos.
+# NUNCA commitar. Usar .mcp.json.example como referência.
+.mcp.json
+.mcp.json.bak
+.mcp.json.backup
+.mcp.local.json
+*.mcp.local.json
+
+# ====================
+# LOGS
+# ====================
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+.pnpm-debug.log*
+
+# ====================
+# DEPENDÊNCIAS
+# ====================
+# AUDITORIA 2026-07-17: era "node_modules/" (com barra), que ignora apenas
+# DIRETORIO. Um symlink chamado node_modules e um ARQUIVO -> passava batido no
+# git add -A, era commitado, e no runner virava symlink pendurado. bun install
+# morria com: ENOENT: could not open the "node_modules" directory (exit 1).
+# Sem a barra, ignora diretorio, symlink e arquivo.
+node_modules
+.pnp
+.pnp.js
+.yarn/install-state.gz
+
+# ====================
+# LOCKFILES
+# ====================
+# Este projeto usa BUN como gerenciador de pacotes.
+# O arquivo canônico é bun.lock (commitado e rastreado).
+# package-lock.json é gerado pelo npm e NÃO deve ser commitado
+# (diverge do bun.lock e causa installs não-determinísticos em CI).
+# Para instalar: bun install
+package-lock.json
+# bun.lockb é o formato binário do bun v1 (este projeto usa bun v1.3+ texto)
+bun.lockb
+
+# ====================
+# BUILD E PRODUÇÃO
+# ====================
+dist/
+dist-ssr/
+build/
+.next/
+out/
+*.local
+
+# ====================
+# CACHE
+# ====================
+.cache/
+.parcel-cache/
+.turbo/
+.vercel/
+.netlify/
+.vite/
+*.tsbuildinfo
+
+# ====================
+# TESTES
+# ====================
+coverage/
+.nyc_output/
+test-results/
+playwright-report/
+playwright-report-a11y/
+playwright/.cache/
+
+# ====================
+# EDITOR E IDE
+# ====================
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json.example
+.idea/
+*.sublime-workspace
+*.sublime-project
+.project
+.classpath
+.settings/
+
+# ====================
+# SISTEMA OPERACIONAL
+# ====================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# ====================
+# SUPABASE LOCAL
+# ====================
+supabase/.branches/
+supabase/.temp/
+.supabase/
+
+# ====================
+# ARQUIVOS GRANDES
+# ====================
+*.zip
+*.tar.gz
+*.rar
+*.7z
+
+# ====================
+# BACKUPS
+# ====================
+*.bak
+*.backup
+*_backup*
+*_old*
+*.orig
+
+# ====================
+# OUTROS
+# ====================
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.eslintcache
+.stylelintcache
+*.tgz
+.yarn-integrity
+
+# Playwright auth state
+e2e/.auth/
+playwright-report-e2e/
+.dist-backups/
+
+# ====================
+# ARTEFATOS TEMPORÁRIOS DE DEV
+# (Não são código de aplicação)
+# ====================
+# Diretório de trabalho temporário
+tmp/
+
+# Saídas de scripts de auditoria ad-hoc
+audit.js
+audit.mjs
+audit.json
+full_audit_report.txt
+
+# Rastreamento de deps desatualizadas (muda toda semana, não é fonte da verdade)
+outdated.txt
+
+# Scripts de dados mock e saídas SQL grandes
+generate_mock_data.py
+mock_data.sql
+
+# Saída de build do TypeScript (gerado por `tsc --noEmit 2> ts_errors.txt`)
+# Não versionar: muda a cada build, aparece vazio quando clean
+ts_errors.txt
+
+# Artefatos de auditoria de design gerados (não são código-fonte)
+design-system-audit.html
+design-system-audit.md
+
+# Relatórios de CI gerados por check-types-schemas.mjs e scripts similares
+reports/
+
+# Artefatos históricos de sessões/auditorias (movidos para docs/history/)
+ROUND-15-*.md
+ROUND-17-*.md
+MIGRATION-*-EXECUTION-READY.md
+MIGRATION-EXECUTION-PLAN.md
+EXECUTION-SIMULATION-*.md
+EXHAUSTIVE_VALIDATION_REPORT.md
+DEPLOYMENT-READINESS-CERTIFICATE.md
+DEPLOYMENT_EXECUTION_STATUS.md
+PRODUCTION_EXCELLENCE_IMPLEMENTATION.md
+PERFORMANCE-SLA-VALIDATION.md
+RUNTIME-RLS-VALIDATION.md
+SCHEMA-INTROSPECTION-PROTECTION.md
+FALHAS_E_GAPS.md
+FINAL_CHECKLIST.txt
+IMPLEMENTATION_SUMMARY.txt
+SMOKE-TESTS-ROUND15.sql
+ROUND-15-EXHAUSTIVE-TEST-SUITE.sql
+.gitignore_mcp_patch
