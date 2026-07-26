@@ -6,6 +6,7 @@
 import { useCallback, useRef, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { resolvePublicStorageUrl } from '@/lib/mediaUrl';
 import { useAuth } from '@/features/auth';
 import { toast } from '@/hooks/use-toast';
 import { log } from '@/lib/logger';
@@ -84,11 +85,10 @@ export function usePersonalStickers(): UsePersonalStickersResult {
             .upload(path, file, { contentType: file.type, upsert: false });
           if (upErr) throw upErr;
 
-          const { data: pub } = supabase.storage.from(STICKERS_BUCKET).getPublicUrl(path);
           const { error: insErr } = await supabase.from(STICKERS_TABLE as never).insert({
             owner_id: ownerId,
             name: file.name.replace(/\.[^.]+$/, ''),
-            image_url: pub.publicUrl,
+            image_url: resolvePublicStorageUrl(STICKERS_BUCKET, path),
             category: 'pessoal',
             is_favorite: false,
             use_count: 0,

@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
+import { resolvePublicStorageUrl } from '@/lib/mediaUrl';
 import { toast } from 'sonner';
 import { unwrapRows } from '@/lib/supabase-helpers';
 import { queryKeys } from '@/services/api/queryKeys';
@@ -222,8 +223,7 @@ export function useAdminData(activeTab: 'users' | 'audit' | 'crm') {
           toast.error('Erro ao enviar foto');
           return false;
         }
-        const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(filePath);
-        avatarUrl = urlData.publicUrl;
+        avatarUrl = resolvePublicStorageUrl('avatars', filePath);
       }
 
       const { error } = await supabase
@@ -291,8 +291,7 @@ export function useAdminData(activeTab: 'users' | 'audit' | 'crm') {
           toast.error('Erro ao fazer upload da foto');
           return false;
         }
-        const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(filePath);
-        avatarUrl = urlData.publicUrl;
+        avatarUrl = resolvePublicStorageUrl('avatars', filePath);
       }
 
       try {

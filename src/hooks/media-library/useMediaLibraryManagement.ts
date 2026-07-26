@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getLogger } from '@/lib/logger';
 import { supabase } from '@/integrations/supabase/client';
+import { resolvePublicStorageUrl } from '@/lib/mediaUrl';
 import { fromTable } from '@/lib/supabaseHelpers';
 import { toast } from 'sonner';
 import {
@@ -462,7 +463,7 @@ function useMediaUploadManagement({
             log.error(`Upload error for ${file.name}:`, uploadError);
             continue;
           }
-          const { data: urlData } = supabase.storage.from(bucket).getPublicUrl(storagePath);
+          const savedUrl = resolvePublicStorageUrl(bucket, storagePath) ?? '';
           const name = file.name.replace(/\.[^.]+$/, '');
           let aiCategory = 'outros';
           try {
@@ -474,8 +475,8 @@ function useMediaUploadManagement({
                   : 'classify-emoji';
             const body =
               type === 'audio_memes'
-                ? { audio_url: urlData.publicUrl, file_name: file.name }
-                : { image_url: urlData.publicUrl };
+                ? { audio_url: savedUrl, file_name: file.name }
+                : { image_url: savedUrl };
             const { data: classifyData, error: classifyError } = await supabase.functions.invoke(fnName, {
               body,
             });
@@ -494,8 +495,8 @@ function useMediaUploadManagement({
             use_count: 0,
             uploaded_by: user?.id || null,
           };
-          if (type === 'audio_memes') insertData.audio_url = urlData.publicUrl;
-          else insertData.image_url = urlData.publicUrl;
+          if (type === 'audio_memes') insertData.audio_url = savedUrl;
+          else insertData.image_url = savedUrl;
           const { error: insertError } = await fromTable(type).insert(insertData);
           if (!insertError) successCount++;
         } catch (err) {

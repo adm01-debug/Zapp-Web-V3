@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { resolvePublicStorageUrl } from '@/lib/mediaUrl';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { getLogger } from '@/lib/logger';
 import { log as logLib } from '@/lib/logger';
@@ -169,11 +170,11 @@ export function useAudioMemes(open: boolean) {
         return;
       }
 
-      const { data: urlData } = supabase.storage.from('audio-memes').getPublicUrl(storagePath);
+      const audioUrl = resolvePublicStorageUrl('audio-memes', storagePath);
 
       let duration: number | null = null;
       try {
-        const tempAudio = new Audio(urlData.publicUrl);
+        const tempAudio = new Audio(audioUrl ?? '');
         await new Promise<void>((resolve) => {
           tempAudio.onloadedmetadata = () => {
             duration = isFinite(tempAudio.duration)
@@ -194,7 +195,7 @@ export function useAudioMemes(open: boolean) {
         const { data: classifyData, error: classifyErr } = await supabase.functions.invoke(
           'classify-audio-meme',
           {
-            body: { audio_url: urlData.publicUrl, file_name: file.name },
+            body: { audio_url: audioUrl, file_name: file.name },
           }
         );
         if (!classifyErr && classifyData?.category) aiCategory = classifyData.category;
@@ -204,7 +205,7 @@ export function useAudioMemes(open: boolean) {
 
       setPendingUpload({
         file,
-        audioUrl: urlData.publicUrl,
+        audioUrl: audioUrl ?? '',
         storagePath,
         duration,
         aiCategory,

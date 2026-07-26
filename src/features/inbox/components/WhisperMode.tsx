@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { resolvePublicStorageUrl } from '@/lib/mediaUrl';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { useAuth } from '@/features/auth';
 import { Button } from '@/components/ui/button';
@@ -231,10 +232,7 @@ export function WhisperMode({
                     toast.error('Erro ao enviar áudio');
                     return;
                   }
-                  const {
-                    data: { publicUrl },
-                  } = supabase.storage.from('audio-messages').getPublicUrl(data.path);
-                  sendWhisper.mutate({ audioUrl: publicUrl });
+                  sendWhisper.mutate({ audioUrl: resolvePublicStorageUrl('audio-messages', data.path) ?? '' });
                 }}
               />
               <Button

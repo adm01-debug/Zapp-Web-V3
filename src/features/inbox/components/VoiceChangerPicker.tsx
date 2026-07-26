@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Mic, MicOff, Loader2, Play, Pause, Send, X, Wand2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { resolvePublicStorageUrl } from '@/lib/mediaUrl';
 
 const VOICE_PRESETS = [
   // Masculinas
@@ -169,8 +170,7 @@ export function VoiceChangerPicker({ onSendAudio, disabled }: VoiceChangerPicker
         .upload(path, blob, { contentType: 'audio/mpeg', cacheControl: '31536000' });
       if (uploadError) throw uploadError;
 
-      const { data: urlData } = supabase.storage.from('audio-memes').getPublicUrl(path);
-      onSendAudio(urlData.publicUrl);
+      onSendAudio(resolvePublicStorageUrl('audio-memes', path) ?? '');
       setOpen(false);
       cleanup();
       toast.success('Áudio enviado! 🎤');

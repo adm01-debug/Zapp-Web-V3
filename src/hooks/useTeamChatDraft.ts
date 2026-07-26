@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { resolvePublicStorageUrl } from '@/lib/mediaUrl';
 import { useAuth } from '@/features/auth';
 import { getLogger } from '@/lib/logger';
 import { toast } from 'sonner';
@@ -87,9 +88,7 @@ export function useTeamChatDraft({
               .upload(path, file, { contentType: file.type });
             if (uploadError) throw uploadError;
 
-            const { data: urlData } = supabase.storage.from('team-chat-files').getPublicUrl(path);
-
-            onFileSent(urlData.publicUrl, 'image', `📋 Imagem colada`);
+            onFileSent(resolvePublicStorageUrl('team-chat-files', path) ?? '', 'image', `📋 Imagem colada`);
           } catch (err) {
             log.error('Paste image upload error:', err);
             toast.error('Erro ao enviar imagem colada');
