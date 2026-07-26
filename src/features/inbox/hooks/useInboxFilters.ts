@@ -50,9 +50,9 @@ export function useInboxFilters({
   // a fonte Evolution externa (contatos derivados com assigned_to = null).
   // Evita que a tela abra vazia em 'Atendendo + mine' quando ninguém está atribuído.
   const [subTab, setSubTab] = useState<SubTab>(initialPersisted.subTab ?? 'waiting');
-  // Se a sub-aba veio persistida/deep-link, respeitamos a escolha do usuário e
-  // desativamos o auto-switch inicial.
-  const userChoseSubTabRef = useRef(initialPersisted.subTab !== null);
+  // Nota: o auto-switch abaixo só atua quando a sub-aba restaurada está vazia,
+  // então a escolha persistida do usuário é preservada sempre que houver dados.
+
   const [showAll, setShowAll] = useState(() => {
     const params = new URLSearchParams(window.location.search);
     return params.get('showAll') === 'true' || localStorage.getItem('inbox_show_all') === 'true';
