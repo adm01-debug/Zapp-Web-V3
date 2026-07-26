@@ -22,7 +22,7 @@ const resolvePublicEnv = (mode: string) => {
   return Object.fromEntries(
     Object.entries(MANAGED_PUBLIC_ENV_FALLBACKS).map(([key, fallback]) => [
       `import.meta.env.${key}`,
-      JSON.stringify(env[key] || process.env[key] || fallback),
+      JSON.stringify(env[key] ?? process.env[key] ?? fallback),
     ]),
   );
 };

@@ -13,7 +13,7 @@
  *   4. Log com messageId e URL para diagnóstico
  */
 
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { getLogger } from '@/lib/logger';
 import { markMediaUrlFailed } from '@/lib/mediaUrl';
 
@@ -177,6 +177,11 @@ export function useAudioPlayer(options: UseAudioPlayerOptions = {}): UseAudioPla
       audioRef.current.currentTime = Math.max(0, Math.min(seconds, audioRef.current.duration || 0));
     }
   }, []);
+
+  // Release the HTMLAudioElement and its event listeners when the component
+  // unmounts. Without this, event handlers that call setState fire after
+  // unmount, producing React stale-update warnings and memory leaks.
+  useEffect(() => cleanup, [cleanup]);
 
   return { state, error, currentTime, duration, play, pause, stop, seek };
 }

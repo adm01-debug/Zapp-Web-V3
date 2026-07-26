@@ -1,1 +1,71 @@
-LyoqCiAqIGVudi50cyDigJQgVmFyacOhdmVpcyBkZSBhbWJpZW50ZSB2YWxpZGFkYXMgcG9yIFpvZAogKgogKiBQcm9ibGVtYSByZXNvbHZpZG8gKEUzOCk6CiAqICAgU1VQQUJBU0VfUFVCTElDX1VSTCBlc3RhdmEgaGFyZGNvZGVkIGVtIG1lZGlhVXJsLnRzCiAqICAgVG9yb2NhIG5hciBlbnRyZSBhbWJpZW50ZXMgZXhpZ2lhIGVkaXRhciBjw7NkaWdvCiAqCiAqIFNvbHXDp8OjbzoKICogICBWYXJpw6F2ZWlzIG5vIC5lbnYuKiAtPiB2YWxpZGHDp8OjbyBaT0QgbmEgaW5pY2lhbGl6YcOnw6NvCiAqICAgYXBwIGZhbGhhIHLDoXBpZG8gZSBjb20gbWVuc2FnZW0gY2xhcmEgc2UgZW52IHZhbGlkYcOnw6NvIGZhbGhhcgogKgogKiBGYWxsYmFjazogdmFsb3JlcyBkZSBwcm9kdcOnw6NvIGF0dWFpcyBwYXJhIG7Do28gcXVlYnJhciBkZXBsb3kgYXR1YWwKICovCgppbXBvcnQgeyB6IH0gZnJvbSAnem9kJzsKCi8vIC0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLQovLyBTY2hlbWEgWm9kIOKAlCBkZWZpbmUgYSBlc3RydXR1cmEgZXNwZXJhZGEgZGFzIHZhcmlhdmVpcwovLyAtLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0KCmNvbnN0IGVudlNjaGVtYSA9IHoub2JqZWN0KHsKICAvKiogVVJMIHDDumJsaWNhIGRvIFN1cGFiYXNlIHNlbGYtaG9zdGVkIChzZW0gYmFycmEgbm8gZmluYWwpICovCiAgU1VQQUJBU0VfUFVCTElDX1VSTDogei5zdHJpbmcoKS51cmwoKS5kZWZhdWx0KCdodHRwczovL3N1cGFiYXNlLmF0b21pY2Fici5jb20uYnInKSwKCiAgLyoqIENoYXZlIGFuw7RuaW1hIGRvIFN1cGFiYXNlIChzZWd1cmEgcGFyYSBleHBvciBubyBmcm9udGVuZCkgKi8KICBTVVBBQkFTRV9BTk9OX0tFWTogei5zdHJpbmcoKS5taW4oMSkuZGVmYXVsdCgnJyksCgogIC8qKiBWZXJzw6NvIGRhIGFwbGljYcOnw6NvIChpbmpldGFkYSBubyBidWlsZCkgKi8KICBBUFBfVkVSU0lPTjogei5zdHJpbmcoKS5kZWZhdWx0KCcxLjAuMCcpLAp9KTsKCi8vIC0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLQovLyBQYXJzaW5nIOKAlCBmYWxoYSByw6FwaWRvIGNvbSBtZW5zYWdlbSBjbGFyYQovLyAtLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0KCmZ1bmN0aW9uIHBhcnNlRW52KCkgewogIGNvbnN0IHJhd0VudiA9IHsKICAgIC8vIFZpdGUgZXhww7VlIHZhcmnDoXZlaXMgY29tIHByZWZpeG8gVklURV8gcGFyYSBvIGZyb250ZW5kCiAgICBTVVBBQkFTRV9QVUJMSUNfVVJMOiBpbXBvcnQubWV0YS5lbnYuVklURV9TVVBBQkFTRV9VUkwgPz8gaW1wb3J0Lm1ldGEuZW52LlZJVEVfU1VQQUJBU0VfUFVCTElDX1VSTCwKICAgIFNVUEFCQVNFX0FOT05fS0VZOiBpbXBvcnQubWV0YS5lbnYuVklURV9TVVBBQkFTRV9BTk9OX0tFWSA/PyBpbXBvcnQubWV0YS5lbnYuVklURV9BTk9OX0tFWSwKICAgIEFQUF9WRVJTSU9OOiBpbXBvcnQubWV0YS5lbnYuVklURV9BUFBfVkVSU0lPTiA/PyBpbXBvcnQubWV0YS5lbnYuVklURV9WRVJTSUlPTiwKICB9OwoKICBjb25zdCByZXN1bHQgPSBlbnZTY2hlbWEuc2FmZVBhcnNlKHJhd0Vudik7CgogIGlmICghcmVzdWx0LnN1Y2Nlc3MpIHsKICAgIGNvbnNvbGUuZXJyb3IoJ1tlbnZdIFZhcmnDoXZlaXMgZGUgYW1iaWVudGUgaW52w6FsaWRhczonLCByZXN1bHQuZXJyb3IuZmxhdHRlbigpKTsKICAgIC8vIE7Do28gcXVlYnJhIG8gYXBwIOKAlCB1c2FyIGRlZmF1bHRzIGUgbG9ncnVhciBlcnJvCiAgICAvLyBFbSBwcm9kdcOnw6NvOiBhZGljaW9uYXIgYWxlcnRhIFNlbnRyeSBhcXVpCiAgICByZXR1cm4gZW52U2NoZW1hLnBhcnNlKHt9KTsgLy8gdXNhIHRvZG9zIG9zIGRlZmF1bHRzCiAgfQoKICByZXR1cm4gcmVzdWx0LmRhdGE7Cn0KCi8qKgogKiAqKlZhcmnDoXZlaXMgZGUgYW1iaWVudGUgdmFsaWRhZGFzIHBvciBab2QuKioKICoKICogVXNhciBhcXVpIGVtIHZleiBoYXJkY29kZWRhdGFzIFVSTHMgbm8gY8OzZGlnby4KICoKICogQGV4YW1wbGUKICogaW1wb3J0IHsgZW52IH0gZnJvbSAnQC9saWIvZW52JzsKICogY29uc3Qgc3VwYWJhc2VVcmwgPSBlbnYuU1VQQUJBU0VfUFVCTElDX1VSTDsKICovCmV4cG9ydCBjb25zdCBlbnYgPSBwYXJzZUVudigpOwoKLy8gLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tCi8vIFR5cGUgZXhwb3J0cwovLyAtLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0KCmV4cG9ydCB0eXBlIEVudiA9IHR5cGVvZiBlbnY7Cg==
+/**
+ * env.ts — Variáveis de ambiente validadas por Zod
+ *
+ * Problema resolvido (E38):
+ *   SUPABASE_PUBLIC_URL estava hardcoded em mediaUrl.ts
+ *   Troca entre ambientes exigia editar código
+ *
+ * Solução:
+ *   Variáveis no .env.* -> validação ZOD na inicialização
+ *   app falha rápido e com mensagem clara se env validação falhar
+ *
+ * Fallback: valores de produção atuais para não quebrar deploy atual
+ */
+
+import { z } from 'zod';
+
+// ---------------------------------------------------------------------------
+// Schema Zod — define a estrutura esperada das variaveis
+// ---------------------------------------------------------------------------
+
+const envSchema = z.object({
+  /** URL pública do Supabase self-hosted (sem barra no final) */
+  SUPABASE_PUBLIC_URL: z.string().url().default('https://supabase.atomicabr.com.br'),
+
+  /** Chave anônima do Supabase (segura para expor no frontend) */
+  SUPABASE_ANON_KEY: z.string().default(''),
+
+  /** Versão da aplicação (injetada no build) */
+  APP_VERSION: z.string().default('1.0.0'),
+});
+
+// ---------------------------------------------------------------------------
+// Parsing — falha rápido com mensagem clara
+// ---------------------------------------------------------------------------
+
+function parseEnv() {
+  const rawEnv = {
+    // Vite expõe variáveis com prefixo VITE_ para o frontend
+    SUPABASE_PUBLIC_URL: import.meta.env.VITE_SUPABASE_URL ?? import.meta.env.VITE_SUPABASE_PUBLIC_URL,
+    SUPABASE_ANON_KEY: import.meta.env.VITE_SUPABASE_ANON_KEY ?? import.meta.env.VITE_ANON_KEY,
+    APP_VERSION: import.meta.env.VITE_APP_VERSION ?? import.meta.env.VITE_VERSION,
+  };
+
+  const result = envSchema.safeParse(rawEnv);
+
+  if (!result.success) {
+    console.error('[env] Variáveis de ambiente inválidas:', result.error.flatten());
+    // Não quebra o app — usar defaults e logruar erro
+    // Em produção: adicionar alerta Sentry aqui
+    return envSchema.parse({}); // usa todos os defaults
+  }
+
+  return result.data;
+}
+
+/**
+ * **Variáveis de ambiente validadas por Zod.**
+ *
+ * Usar aqui em vez hardcodedatas URLs no código.
+ *
+ * @example
+ * import { env } from '@/lib/env';
+ * const supabaseUrl = env.SUPABASE_PUBLIC_URL;
+ */
+export const env = parseEnv();
+
+// ---------------------------------------------------------------------------
+// Type exports
+// ---------------------------------------------------------------------------
+
+export type Env = typeof env;

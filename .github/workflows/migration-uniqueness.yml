@@ -1,1 +1,90 @@
-bmFtZTogTWlncmF0aW9uIFVuaXF1ZW5lc3MgR2F0ZQoKb246CiAgcHVsbF9yZXF1ZXN0OgogICAgcGF0aHM6CiAgICAgIC0gJ3N1cGFiYXNlL21pZ3JhdGlvbnMvKionCiAgcHVzaDoKICAgIGJyYW5jaGVzOiBbbWFpbl0KICAgIHBhdGhzOgogICAgICAtICdzdXBhYmFzZS9taWdyYXRpb25zLyoqJwoKam9iczoKICBtaWdyYXRpb24tdW5pcXVlbmVzcy1jaGVjazoKICAgIG5hbWU6IENoZWNrIE1pZ3JhdGlvbiBVbmlxdWVuZXNzCiAgICBydW5zLW9uOiB1YnVudHUtbGF0ZXN0CiAgICBzdGVwczoKICAgICAgLSBuYW1lOiBDaGVja291dAogICAgICAgIHVzZXM6IGFjdGlvbnMvY2hlY2tvdXRAdjQKCiAgICAgIC0gbmFtZTogVmFsaWRhdGUgbWlncmF0aW9uIG5hbWUgdW5pcXVlbmVzcwogICAgICAgIHJ1bjogfAogICAgICAgICAgIyEvYmluL2Jhc2gKICAgICAgICAgIHNldCAtZW8gcGlwZWZhaWwKCiAgICAgICAgICBNSUdSQVRJT05TX0RJUj0ic3VwYWJhc2UvbWlncmF0aW9ucyIKICAgICAgICAgIEVSUk9SUz0wCgogICAgICAgICAgZWNobyAiPT09IENoZWNraW5nIG1pZ3JhdGlvbiBmaWxlIG5hbWUgdW5pcXVlbmVzcyA9PT0iCiAgICAgICAgICBlY2hvICIiCgogICAgICAgICAgIyBHZXQgYWxsIG1pZ3JhdGlvbiBmaWxlbmFtZXMKICAgICAgICAgIGlmIFsgISAtZCAiJE1JR1JBVElPTlNfRElSIiBdOyB0aGVuCiAgICAgICAgICAgIGVjaG8gIk5vIG1pZ3JhdGlvbnMgZGlyZWN0b3J5IGZvdW5kLiBTa2lwcGluZy4iCiAgICAgICAgICAgIGV4aXQgMAogICAgICAgICAgZmkKCiAgICAgICAgICAjIENoZWNrIDEgOiBEdXBsaWNhdGUgZXhhY3QgZmlsZW5hbWVzICh0aG91Z2ggT1Mgc2hvdWxkIHByZXZlbnQgdGhpcykKICAgICAgICAgIERVUExJQ0FURVM9JChmaW5kICIkTUlHUkFUSU9OU19ESVIiIC1uYW1lICIqLnNxbCIgLXR5cGUgZiB8IHhzb3J0IHwgc2VkICdzfC4qL3x8JyB8IHNvcnQgfCB1bmlxIC1kKQoKICAgICAgICAgIGlmIFsgLW4gIiREVVBMSUNBVEVTIiBdOyB0aGVuCiAgICAgICAgICAgIGVjaG8gIiMjIyBFUlJPUjogRHVwbGljYXRlIG1pZ3JhdGlvbiBmaWxlbmFtZXMgZGV0ZWN0ZWQhIgogICAgICAgICAgICBlY2hvICIkRFVQTElDQVRFUyIKICAgICAgICAgICAgRVJST1JTPSQoKEVSUk9SUysxKSkKICAgICAgICAgIGZpCgogICAgICAgICAgIyBDaGVjayAyOiBEdXBsaWNhdGUgbmFtZXMgKGZ1bGwgbmFtZSB3aXRob3V0IGV4dGVuc2lvbikKICAgICAgICAgIERVUF9OQU1FUz0kKGZpbmQgIiRNSUdSQVRJT05TX0RJUiIgLW5hbWUgIiouc3FsIiAtdHlwZSBmIHwgc2VkICdzfC4qL3x8JyB8IHNlZCAncy9cLnNxbCQvLycgfCBzb3J0IHwgdW5pcSAtZCkKCiAgICAgICAgICBpZiBbIC1uICIkRFVQX05BTUVTIiBdOyB0aGVuCiAgICAgICAgICAgIGVjaG8gIiIKICAgICAgICAgICAgZWNobyAiIyMjIEVSUk9SOiBEdXBsaWNhdGUgbWlncmF0aW9uIG5hbWVzIGRldGVjdGVkISIKICAgICAgICAgICAgZWNobyAiQ29sbGlzaW9uczoiCiAgICAgICAgICAgIGVjaG8gIiREVVBfTkFNRVMiCiAgICAgICAgICAgIGVjaG8gIiIKICAgICAgICAgICAgZWNobyAiRml4OiBSZW5hbWUgb25lIG9mIHRoZSBjb2xsaWRpbmcgZmlsZXMgd2l0aCBhIGRpZmZlcmVudCBzdWZmaXguIgogICAgICAgICAgICBFUlJPUlM9JCgoRVJST1JTKzEpKQogICAgICAgICAgZmkKCiAgICAgICAgICBlY2hvICIiCiAgICAgICAgICBUT1RBTF9NSUdSQVRJT05TPSQoZmluZCAiJE1JR1JBVElPTlNfRElSIiAtbmFtZSAiKi5zcWwiIC10eXBlIGYgfCB3YyAtbCB8IHRyIC1kICcgJykKICAgICAgICAgIGVjaG8gIlRvdGFsIG1pZ3JhdGlvbiBmaWxlczogJFRPVEFMX01JR1JBVElPTlMiCiAgICAgICAgICBlY2hvICJVbmlxdWVuZXNzIGNoZWNrIGNvbXBsZXRlLiIKCiAgICAgICAgICBpZiBbICRFUlJPUlMgLWd0IDAgXTsgdGhlbgogICAgICAgICAgICBlY2hvICIiCiAgICAgICAgICAgIGVjaG8gIiMjIyBGQUlMRUQ6ICRFUlJPUlMgdW5pcXVlbmVzcyB2aW9sYXRpb24ocykgZGV0ZWN0ZWQuIgogICAgICAgICAgICBlY2hvICJFYWNoIG1pZ3JhdGlvbiBmaWxlIE1VU1QgaGF2ZSBhIHVuaXF1ZSBuYW1lLiIKICAgICAgICAgICAgZXhpdCAxCiAgICAgICAgICBlbHNlCiAgICAgICAgICAgIGVjaG8gIiMjIyBQQVNTOiBBbGwgbWlncmF0aW9uIG5hbWVzIGFyZSB1bmlxdWUuIgogICAgICAgICAgZmkK
+name: Migration Uniqueness Gate
+
+on:
+  pull_request:
+    paths:
+      - 'supabase/migrations/**'
+  push:
+    branches: [main]
+    paths:
+      - 'supabase/migrations/**'
+
+jobs:
+  migration-uniqueness-check:
+    name: Check Migration Uniqueness
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate migration name uniqueness
+        run: |
+          #!/bin/bash
+          set -eo pipefail
+
+          MIGRATIONS_DIR="supabase/migrations"
+          ERRORS=0
+
+          echo "=== Checking migration file name uniqueness ==="
+          echo ""
+
+          # Get all migration filenames
+          if [ ! -d "$MIGRATIONS_DIR" ]; then
+            echo "No migrations directory found. Skipping."
+            exit 0
+          fi
+
+          # Check 1: Duplicate exact filenames (though OS should prevent this)
+          DUPLICATES=$(find "$MIGRATIONS_DIR" -name "*.sql" -type f | sort | sed 's|.*/||' | sort | uniq -d)
+
+          if [ -n "$DUPLICATES" ]; then
+            echo "### ERROR: Duplicate migration filenames detected!"
+            echo "$DUPLICATES"
+            ERRORS=$((ERRORS+1))
+          fi
+
+          # Check 2: Duplicate names (full name without extension)
+          DUP_NAMES=$(find "$MIGRATIONS_DIR" -name "*.sql" -type f | sed 's|.*/||' | sed 's/\.sql$//' | sort | uniq -d)
+
+          if [ -n "$DUP_NAMES" ]; then
+            echo ""
+            echo "### ERROR: Duplicate migration names detected!"
+            echo "Collisions:"
+            echo "$DUP_NAMES"
+            echo ""
+            echo "Fix: Rename one of the colliding files with a different suffix."
+            ERRORS=$((ERRORS+1))
+          fi
+
+          # Check 3: Duplicate 14-digit timestamp prefixes (same timestamp, different names)
+          # Supabase CLI applies migrations alphabetically — two files with the same timestamp
+          # prefix have undefined relative ordering, which is a semantic hazard.
+          DUP_TIMESTAMPS=$(find "$MIGRATIONS_DIR" -name "*.sql" -type f | sed 's|.*/||' | \
+            grep -oP '^\d{14}' | sort | uniq -d)
+
+          if [ -n "$DUP_TIMESTAMPS" ]; then
+            echo ""
+            echo "### ERROR: Duplicate migration timestamp prefixes detected!"
+            echo "Conflicting timestamps (Supabase ordering is undefined for same-prefix files):"
+            for TS in $DUP_TIMESTAMPS; do
+              echo "  Timestamp: $TS"
+              find "$MIGRATIONS_DIR" -name "${TS}*.sql" -type f | sed 's|.*/||' | sed 's/^/    - /'
+            done
+            echo ""
+            echo "Fix: Rename one of the colliding files to use a free adjacent timestamp."
+            ERRORS=$((ERRORS+1))
+          fi
+
+          echo ""
+          TOTAL_MIGRATIONS=$(find "$MIGRATIONS_DIR" -name "*.sql" -type f | wc -l | tr -d ' ')
+          echo "Total migration files: $TOTAL_MIGRATIONS"
+          echo "Uniqueness check complete."
+
+          if [ $ERRORS -gt 0 ]; then
+            echo ""
+            echo "### FAILED: $ERRORS uniqueness violation(s) detected."
+            echo "Each migration file MUST have a unique timestamp prefix."
+            exit 1
+          else
+            echo "### PASS: All migration names and timestamps are unique."
+          fi

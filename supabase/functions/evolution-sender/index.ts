@@ -121,10 +121,14 @@ async function sendMediaMessage(
     : mediaType === "audio" ? "sendWhatsAppAudio"
     : mediaType === "document" ? "sendDocument"
     : "sendMedia";
-  const body: Record<string, any> = { number: normalizeNumber(remoteJid), media: mediaUrl };
+  const body: Record<string, any> = { number: normalizeNumber(remoteJid) };
+  if (mediaType === "audio") {
+    body.audio = mediaUrl;
+  } else {
+    body.media = mediaUrl;
+  }
   if (caption) body.caption = caption;
   if (fileName) body.fileName = fileName;
-  if (mediaType === "audio") body.audio = mediaUrl;
   return callEvolution(endpoint, body, instance);
 }
 
@@ -336,7 +340,7 @@ Deno.serve(async (request: Request) => {
   if (authErr) return authErr;
 
   try {
-    console.log(`[${new Date().toISOString()}] evolution-sender v6 fired`);
+    console.log(`[${new Date().toISOString()}] evolution-sender v7 fired`);
     const result = await processQueue();
     await supabase.from("evolution_performance_metrics").insert({
       metric_date: new Date().toISOString().slice(0, 10),

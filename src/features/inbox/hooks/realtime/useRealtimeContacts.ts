@@ -89,9 +89,16 @@ function mergeContact<T extends Partial<EvolutionContact>>(
     const v = (next as Record<string, unknown>)[k];
     if (v !== undefined) out[k] = v;
   }
-  // Sanitize profile picture URL — remove any kong:8000 host at render time
+  // Sanitize profile picture URL — remove any kong:8000 host at render time.
+  // If sanitizeMediaUrl returns null (internal host), restore the previous
+  // value instead of nullifying a valid cached URL.
   if (typeof out['profile_picture_url'] === 'string') {
-    out['profile_picture_url'] = sanitizeMediaUrl(out['profile_picture_url'] as string);
+    const sanitized = sanitizeMediaUrl(out['profile_picture_url'] as string);
+    if (sanitized !== null) {
+      out['profile_picture_url'] = sanitized;
+    } else {
+      out['profile_picture_url'] = (prev as Record<string, unknown>)['profile_picture_url'] ?? null;
+    }
   }
   return out as T; // ignore-audit: out is structurally T — built by spreading prev (typed T) and patching matching keys
 }

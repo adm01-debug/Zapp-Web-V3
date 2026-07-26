@@ -112,7 +112,9 @@ export function useRealtimeMessages() {
       const messageList: Message[] = messages ?? [];
 
       const contactMap = new Map<string, Contact>();
-      contactList.forEach((c) => contactMap.set(c.id, c));
+      // Guard: evo.evolution_contacts rows may not have an `id` field matching
+      // the Contact interface — skip entries with no id to prevent undefined keys.
+      contactList.forEach((c) => { if (c.id) contactMap.set(c.id, c); });
 
       // Buscar contatos referenciados por mensagens mas não no set inicial
       const missingIds = [
