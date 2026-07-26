@@ -40,10 +40,24 @@ export function useInboxFilters({
   sortBy,
   statusFilter,
 }: UseInboxFiltersProps) {
-  // Estado inicial restaurado da URL (prioridade) ou do localStorage.
-  const initialPersisted = useRef(
-    resolveInitialInboxFilters(window.location.search)
+  // Sanitiza a URL antes de qualquer leitura: links antigos/manipulados podem
+  // trazer valores inválidos que gerariam estados impossíveis na Inbox.
+  const sanitizedSearch = useRef<string>(
+    (() => {
+      const { search, removed } = sanitizeInboxUrlParams(window.location.search);
+      if (removed.length > 0) {
+        window.history.replaceState(
+          null,
+          '',
+          `${window.location.pathname}${search ? `?${search}` : ''}${window.location.hash}`
+        );
+      }
+      return search;
+    })()
   ).current;
+
+  // Estado inicial restaurado da URL (prioridade) ou do localStorage.
+  const initialPersisted = useRef(resolveInitialInboxFilters(sanitizedSearch)).current;
 
   const [mainTab, setMainTab] = useState<MainTab>(initialPersisted.mainTab ?? 'open');
   // Default 'waiting': funciona tanto para DB local (não atribuídos) quanto para
@@ -53,16 +67,9 @@ export function useInboxFilters({
   // Nota: o auto-switch abaixo só atua quando a sub-aba restaurada está vazia,
   // então a escolha persistida do usuário é preservada sempre que houver dados.
 
-  const [showAll, setShowAll] = useState(() => {
-    const params = new URLSearchParams(window.location.search);
-    return params.get('showAll') === 'true' || localStorage.getItem('inbox_show_all') === 'true';
-  });
-  const [scope, setScope] = useState<string>(() => {
-    const params = new URLSearchParams(window.location.search);
-    const scopeParam = params.get('scope');
-    if (scopeParam) return scopeParam;
-    return localStorage.getItem('inbox_scope') || 'mine';
-  });
+  const [showAll, setShowAll] = useState(() => resolveInitialShowAll(sanitizedSearch));
+  const [scope, setScope] = useState<string>(() => resolveInitialScope(sanitizedSearch));
+
   const {
     hasPermission,
     loading: permissionsLoading,
