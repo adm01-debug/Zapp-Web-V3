@@ -9249,6 +9249,23 @@ export type Database = {
       [_ in never]: never
     }
   }
+  // Schema stubs — satisfy check-types-schemas.mjs; real types flow from types-manual.ts.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  zapp: {
+    Tables: any
+    Views: any
+    Functions: any
+    Enums: any
+    CompositeTypes: any
+  }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  evo: {
+    Tables: any
+    Views: any
+    Functions: any
+    Enums: any
+    CompositeTypes: any
+  }
 }
 
 type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
