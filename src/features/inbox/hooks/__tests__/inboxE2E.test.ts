@@ -14,7 +14,6 @@ vi.mock('@/features/auth', () => ({
     userPermissions: [],
     loading: false,
     permissions: [],
-    userPermissions: [],
   }),
   useAuth: () => ({
     profile: mockProfile,
