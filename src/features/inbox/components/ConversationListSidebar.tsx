@@ -204,6 +204,8 @@ export function ConversationListSidebar({
             onApply={inboxFilters.applyInboxPreset}
             onSave={inboxFilters.saveInboxPreset}
             onDelete={inboxFilters.deleteInboxPreset}
+            onUpdate={inboxFilters.updateInboxPreset}
+            onUpdateWithCurrent={inboxFilters.updateInboxPresetWithCurrent}
           />
 
 
