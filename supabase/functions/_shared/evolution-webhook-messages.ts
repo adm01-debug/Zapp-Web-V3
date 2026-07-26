@@ -89,7 +89,10 @@ export async function handleOutgoingWhatsAppMessage(
     status_at: new Date().toISOString(),
   }, { onConflict: 'message_id,instance_name', ignoreDuplicates: true }).select('id').maybeSingle();
 
-  if (msgError) { console.error('[FROM_ME] Error inserting outgoing message:', msgError); return; }
+  if (msgError) {
+    console.error('[FROM_ME] Error inserting outgoing message:', msgError);
+    throw new Error(`[FROM_ME] UPSERT failed: ${msgError.message} (code: ${msgError.code})`);
+  }
   if (!insertedMessage) return; // ON CONFLICT DO NOTHING: concurrent writer already persisted this message
   await supabase.from('contacts').update({ updated_at: new Date().toISOString() }).eq('id', contact.id);
 }
@@ -211,7 +214,9 @@ export async function handleIncomingMessage(
   if (msgError) {
     if (msgError.code === '23505') return; // concurrent webhook already inserted this message
     console.error('Error inserting message:', { msgError, externalId: key.id, bestJid, phone, messageType, content });
-    return;
+    // Throw so the per-entry catch in index.ts routes this to the DLQ instead of silently
+    // marking the event processed=true with no persisted message (the "ghost processed" bug).
+    throw new Error(`[INCOMING] INSERT failed: ${msgError.message} (code: ${msgError.code}, hint: ${msgError.hint ?? 'none'})`);
   }
   if (!insertedMessage) return; // ON CONFLICT DO NOTHING: concurrent writer won the race
   await supabase.from('contacts').update({ updated_at: new Date().toISOString() }).eq('id', contact.id);
