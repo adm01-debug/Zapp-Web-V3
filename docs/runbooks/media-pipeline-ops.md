@@ -2,61 +2,64 @@
 
 **Última atualização:** 2026-07-26  
 **Responsável:** Dev Sênior / Ops  
-**Versão:** 2.0 (pós-correção completa)
+**Versão:** 3.0 (pós-correção completa + monitoramento WAL)
 
 ---
 
 ## 1. Arquitetura do Pipeline (versão atual)
 
 ```
-[WhatsApp] → [Evolution API] → [Webhook] → [Trigger: fn_rewrite_media_url]
-                                                      ↓
-                                         [Supabase Storage: bucket whatsapp-media (PUBLIC)]
-                                                      ↓
-                              [evo.evolution_messages_wpp2.media_url] (URL pública HTTPS)
-                                                      ↓
-                                         [Browser: <img src="..."> direto]
-                                         (ZERO signed URL, ZERO POST extra)
+[WhatsApp] → [Evolution API] → [Webhook] → [fn_rewrite_media_url (trig)]
+                                                       ↓
+                                        [supabase.atomicabr.com.br/storage]
+                                             (bucket: whatsapp-media PUBLIC)
+                                                       ↓
+                               [evolution_messages_wpp2.media_url] (URL pública)
+                                                       ↓
+                                       [Browser: <img src="..."> direto]
+                                       ✅ ZERO signed URL, ZERO POST extra
 ```
 
-Para mídias recebidas via webhook com `media_key` (criptografadas):
+Para mídias com `mediaKey` (criptografadas pelo WhatsApp):
 ```
-[Webhook] → [fn_auto_enqueue_media_download] → [zapp.media_download_queue]
-                                                        ↓
-                                          [Worker n8n: Evolution.getBase64]
-                                                        ↓
-                                   [Supabase Storage: upload + media_url atualizado]
+[Webhook INSERT] → [fn_auto_enqueue_media_download (trig)]
+                           ↓
+               [zapp.media_download_queue (pending)]
+                           ↓
+           [Worker n8n: Evolution.getBase64 + decrypt]
+                           ↓
+   [Supabase Storage: upload → media_url → media_status=ready]
 ```
 
 ---
 
-## 2. Healthcheck Rápido
+## 2. Healthcheck Rápido (roda em <1 segundo)
 
 ```sql
--- Rodar para verificar o estado do sistema (responde em <1s)
-SELECT * FROM zapp.fn_media_pipeline_health_report() ORDER BY alert DESC, metric;
+SELECT * FROM zapp.fn_media_pipeline_health_report() ORDER BY alert DESC, status, metric;
 ```
 
-**Resultado esperado em produção normal:**
-- Todos os `status` = 'ok' ou 'warning'
-- `alert` = false em todos
-- `kong_urls_*` = 0 (SEMPRE)
+### Estado esperado em produção normal:
+- `alert = false` em TODOS os registros
+- `kong_urls_*` = 0 (SEMPRE — se > 0: incidente imediato)
 - `bucket_whatsapp_media_public` = 1 (SEMPRE)
+- `wal_logflare_lag_mb` < 300 (warning abaixo de 500, crítico acima)
+- `messages_media_unknown_status` = 0
 
 ---
 
 ## 3. Problemas Conhecidos e Soluções
 
-### 3.1 URLs `kong:8000` voltaram a aparecer
+### 3.1 URLs `kong:8000` voltaram
 
-**Sintoma:** `GET https://kong:8000/storage/... net::ERR_NAME_NOT_RESOLVED` no console  
-**Diagnóstico:** `SELECT count(*) FROM evo.evolution_messages_wpp2 WHERE media_url LIKE '%kong%'`
-
-**Causa:** Algum novo fluxo (n8n workflow, Edge Function) está gerando URLs com o hostname interno do Docker.
-
-**Solução imediata (banco):**
+**Sintoma:** `GET https://kong:8000/... net::ERR_NAME_NOT_RESOLVED` no console  
+**Diagnóstico:**
 ```sql
--- Corrigir todas de uma vez
+SELECT count(*) FROM evo.evolution_messages_wpp2 WHERE media_url LIKE '%kong%';
+```
+
+**Solução imediata:**
+```sql
 UPDATE evo.evolution_messages_wpp2 
 SET media_url = replace(media_url, 'http://kong:8000', 'https://supabase.atomicabr.com.br')
 WHERE media_url LIKE '%kong%';
@@ -70,121 +73,134 @@ SET profile_picture_url = replace(profile_picture_url, 'http://kong:8000', 'http
 WHERE profile_picture_url LIKE '%kong%';
 ```
 
-**Solução definitiva:** Identificar o fluxo que gera a URL e corrigir para usar `SUPABASE_PUBLIC_URL` em vez de `SUPABASE_URL`.
-
-**Prevenção:** O trigger `trg_block_kong_url` + `evo.fn_block_internal_media_url` já bloqueiam novas inserções com hosts internos. Se a URL veio via `UPDATE` em coluna não monitorada, adicionar a coluna ao trigger.
+**Causa raiz:** Identificar o workflow/Edge Function que usa `SUPABASE_URL` (interno) em vez de `SUPABASE_PUBLIC_URL`.
 
 ---
 
-### 3.2 Fila de mídia acumulando (worker parado)
+### 3.2 Fila acumulando (worker parado)
 
 **Sintoma:** `media_queue_stuck_pending > 0` no healthcheck  
 **Diagnóstico:**
 ```sql
 SELECT status, count(*), min(created_at), max(created_at) 
-FROM zapp.media_download_queue 
-GROUP BY status;
+FROM zapp.media_download_queue GROUP BY status;
 ```
 
 **Passos:**
-1. Verificar o workflow n8n responsável pelo consumo da fila
-2. Checar logs do n8n para erros de Evolution API
-3. Se a Evolution API estiver fora: aguardar e re-processar manualmente
-4. Para marcar jobs travados como retry:
+1. Verificar workflow n8n
+2. Fazer retry manual:
 ```sql
 UPDATE zapp.media_download_queue
-SET status = 'retry', next_retry_at = now(), retry_count = retry_count + 1
-WHERE status = 'pending' 
-  AND created_at < now() - interval '4 hours'
-  AND retry_count < max_retries;
+SET status='retry', next_retry_at=now(), retry_count=retry_count+1
+WHERE status='pending' AND created_at < now()-interval '4h' AND retry_count < max_retries;
 ```
 
 ---
 
 ### 3.3 Bucket `whatsapp-media` ficou privado
 
-**Sintoma:** 403 ao tentar acessar `https://supabase.atomicabr.com.br/storage/v1/object/public/whatsapp-media/...`  
-**Diagnóstico:** `SELECT public FROM storage.buckets WHERE name='whatsapp-media'`
-
+**Sintoma:** 403 ao carregar mídia  
 **Solução:**
 ```sql
-UPDATE storage.buckets SET public = true WHERE name = 'whatsapp-media';
+UPDATE storage.buckets SET public=true WHERE name='whatsapp-media';
 ```
-**Referência:** ADR-002 — O bucket deve ser sempre público.
 
 ---
 
-### 3.4 `[RealtimeContacts] Payload sem remote_jid` no console
+### 3.4 WAL Slot Logflare acumulando (⚠️ RISCO DE DISCO)
 
-**Sintoma:** Log persistindo após o fix  
-**Diagnóstico:** Verificar se o arquivo `useRealtimeContacts.ts` está na versão corrigida (função `extractRow`)  
-**Solução:** Re-deploy da aplicação com a branch `fix/media-realtime-perf-v2` mergeada.
+**Diagnóstico:**
+```sql
+SELECT slot_name, active, 
+       pg_wal_lsn_diff(pg_current_wal_lsn(), restart_lsn)/1048576 AS lag_mb
+FROM pg_replication_slots ORDER BY lag_mb DESC;
+```
+
+**Situação atual:** O slot `cainophile_nwl2ry0m` (Logflare) está acumulando WAL lentamente.  
+**Acção se > 500 MB:** Dropar o slot (Logflare não é crítico para operação):
+
+```bash
+# Via Docker (precisa acesso ao servidor):
+docker exec -it supabase-db psql -U postgres -c "
+  SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE query LIKE '%cainophile%';
+  SELECT pg_drop_replication_slot('cainophile_nwl2ry0m');
+"
+```
+
+**Via Portainer (terminal no container supabase-db):**
+```sql
+SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE query LIKE '%cainophile%';
+SELECT pg_drop_replication_slot('cainophile_nwl2ry0m');
+```
+
+**Alternativa — aguardar consumer reconectar:** O slot é `active=true` (consumer conectado mas lento). Pode se auto-resolver quando o servidor Logflare processar o backlog.
 
 ---
 
-### 3.5 Erro de áudio sem contexto (`[ERROR] [App] Audio error: <uuid>`)
+### 3.5 Realtime DELETE sem `remote_jid`
 
-**Sintoma:** Log com só o UUID, sem `MediaError.code`  
-**Diagnóstico:** O componente está usando o player antigo em vez do `useAudioPlayer`  
-**Solução:** Migrar o componente de player para usar `src/lib/audio/useAudioPlayer.ts`
+**Sintoma:** `[RealtimeContacts] Payload sem remote_jid` no console  
+**Diagnóstico:** Verificar se `useRealtimeContacts.ts` tem função `extractRow()`  
+**Solução:** Re-deploy com branch mergeada.
+
+---
+
+### 3.6 Erro de áudio sem contexto
+
+**Sintoma:** `[ERROR] [App] Audio error: <uuid>` sem code  
+**Diagnóstico:** Componente usando player antigo  
+**Solução:** Migrar para `src/lib/audio/useAudioPlayer.ts`
 
 ---
 
 ## 4. Comandos de Emergência
 
 ```sql
--- Ver as últimas URLs processadas (confirmar que são corretas)
-SELECT media_url, media_status, created_at 
-FROM evo.evolution_messages_wpp2
-WHERE media_url IS NOT NULL
-ORDER BY created_at DESC LIMIT 10;
+-- Estado completo em 1 comando
+SELECT * FROM zapp.fn_media_pipeline_health_report();
 
--- Forçar re-enfileiramento de mensagens sem mídia processada (últimas 24h)
+-- Forçar re-enfileiramento de mídias sem processamento
 INSERT INTO zapp.media_download_queue (
   message_id, message_uuid, remote_jid, instance_name, media_type, status
 )
-SELECT 
-  message_id, id, remote_jid, instance_name, message_type, 'pending'
+SELECT message_id, id, remote_jid, instance_name, message_type, 'pending'
 FROM evo.evolution_messages_wpp2
 WHERE media_status IN ('unknown', 'failed')
   AND media_url IS NULL
-  AND created_at > now() - interval '24 hours'
+  AND created_at > now()-interval '24h'
   AND message_id IS NOT NULL
 ON CONFLICT (message_id) DO NOTHING;
 
--- Ver estado completo do pipeline
-SELECT * FROM zapp.fn_media_pipeline_health_report();
+-- Verificar slots WAL
+SELECT slot_name, active,
+       pg_wal_lsn_diff(pg_current_wal_lsn(), restart_lsn)/1048576 AS lag_mb
+FROM pg_replication_slots ORDER BY lag_mb DESC;
 ```
 
 ---
 
 ## 5. Monitoramento Automático
 
-O cron job `media_pipeline_health_check` roda a cada 4 horas e:
-- Executa `fn_media_pipeline_health_report()`
-- Grava alertas em `zapp.warroom_alerts` se `alert = true`
-
-Para ver alertas recentes:
-```sql
-SELECT * FROM zapp.warroom_alerts 
-WHERE source = 'cron:media_pipeline_health_check'
-ORDER BY created_at DESC LIMIT 10;
-```
+- **Cron Job #213** (`media_pipeline_health_check`) — a cada 4h
+- Grava em `zapp.warroom_alerts` quando `alert=true`
+- Ver alertas: `SELECT * FROM zapp.warroom_alerts WHERE source LIKE 'cron%' ORDER BY created_at DESC LIMIT 10;`
 
 ---
 
-## 6. Arquivos-chave do Frontend
+## 6. Decisões Arquiteturais
+
+| ADR | Decisão | Motivo |
+|-----|---------|--------|
+| ADR-001 | URL absoluta proibida no banco | URL contendo host interno falha em browser |
+| ADR-002 | Bucket `whatsapp-media` sempre público | Elimina ~450 POSTs de signed URL por page load |
+
+---
+
+## 7. Arquivos-chave do Frontend
 
 | Arquivo | Responsabilidade |
 |---------|-----------------|
-| `src/lib/mediaUrl.ts` | Resolve URLs públicas, cache negativo, detecção de CDN WA |
-| `src/lib/useMediaUrl.ts` | Hook React para resolver URL de mídia sem signed URLs |
-| `src/lib/audio/useAudioPlayer.ts` | Player de áudio com `MediaError.code` + cache negativo |
-| `src/features/inbox/hooks/realtime/useRealtimeContacts.ts` | Realtime com fix do `payload.new={}` em DELETEs |
-
----
-
-## 7. Decisões Arquiteturais (ADRs)
-
-- **ADR-001**: URL absoluta proibida no banco. Banco guarda `bucket + path`. URL é montada em runtime.
-- **ADR-002**: Bucket `whatsapp-media` deve ser SEMPRE público. Zero `createSignedUrl` para leitura.
+| `src/lib/mediaUrl.ts` | Resolve URLs, cache negativo |
+| `src/lib/useMediaUrl.ts` | Hook React sem signed URLs (buckets públicos) |
+| `src/lib/audio/useAudioPlayer.ts` | Player com MediaError.code |
+| `src/features/inbox/hooks/realtime/useRealtimeContacts.ts` | Realtime com fix DELETE |
