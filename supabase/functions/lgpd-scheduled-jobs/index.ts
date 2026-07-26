@@ -98,7 +98,7 @@ Deno.serve(async (req) => {
                 contact_id: contact.id,
                 action: 'pii_anonymized',
                 metadata: { reason: 'lgpd_deletion_request_30d' },
-              }).catch(() => {});
+              }).then(() => {}, (e) => console.error('[lgpd] audit log failed:', e));
               return true;
             })
           );
@@ -249,7 +249,7 @@ Deno.serve(async (req) => {
       operation:  'lgpd_scheduled_job',
       table_name: 'lgpd_scheduled_jobs',
       new_data:   report,
-    }).catch(() => {});
+    }).then(() => {}, (e) => console.error('[lgpd] migration_audit insert failed:', e));
 
     return json(report);
 

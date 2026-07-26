@@ -347,7 +347,7 @@ Deno.serve(async (request: Request) => {
         duration_ms: result.duration_ms,
         errors: result.errors.length > 0 ? result.errors.slice(0, 5) : null,
       },
-    }).catch((e) => console.error('[evolution-sender] metrics insert failed:', e));
+    }).then(() => {}, (e) => console.error("[evolution-sender] metrics insert failed:", e));
     return new Response(JSON.stringify({
       success: true, version: "v7", ...result, timestamp: new Date().toISOString(),
     }), { status: 200, headers: { ...getCorsHeaders(request), "Content-Type": "application/json" } });

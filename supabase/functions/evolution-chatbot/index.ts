@@ -122,7 +122,7 @@ Deno.serve(async (req: Request) => {
 
     if (containsStopWord(message)) {
       const r = "👤 Entendi! Vou transferir você para um atendente humano.";
-      await supabase.from("evolution_chatbot_responses").insert({ remote_jid, response_text: r, model_used: "stop_word" }).catch((e) => console.error("[evolution-chatbot] chatbot_responses insert failed:", e));
+      await supabase.from("evolution_chatbot_responses").insert({ remote_jid, response_text: r, model_used: "stop_word" }).then(() => {}, (e) => console.error("[evolution-chatbot] chatbot_responses insert failed:", e));
       return new Response(JSON.stringify({ success: true, response: r, needs_human: true, model_used: "stop_word" }), { headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } });
     }
     const rl = await checkRateLimit(remote_jid);
@@ -146,7 +146,7 @@ Deno.serve(async (req: Request) => {
       if (openAiKey) { response = await callOpenAI(hist, sys); modelUsed = "gpt-4o-mini"; }
       else { response = await callAnthropic(hist, sys); modelUsed = "claude-haiku-4-5"; }
     } else { response = getFallback(message); }
-    await supabase.from("evolution_chatbot_responses").insert({ remote_jid, response_text: response, model_used: modelUsed }).catch((e) => console.error("[evolution-chatbot] chatbot_responses insert failed:", e));
+    await supabase.from("evolution_chatbot_responses").insert({ remote_jid, response_text: response, model_used: modelUsed }).then(() => {}, (e) => console.error("[evolution-chatbot] chatbot_responses insert failed:", e));
     const needsHuman = response.toLowerCase().includes("transferir") || response.toLowerCase().includes("atendente") || message.toLowerCase().includes("reclama");
     return new Response(JSON.stringify({ success: true, response, needs_human: needsHuman, model_used: modelUsed, rate_limit_remaining: rl.remaining }), { headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } });
   } catch (e) {
