@@ -417,7 +417,8 @@ export function useRealtimeMessages() {
     logMessagesSubscribe('useRealtimeMessages', { event: 'DELETE', table: dbTable('messages') });
 
     // FATOR X v6.2: Realtime na TABELA-FONTE evo.evolution_messages (views public não emitem).
-    // Adapter: a fonte usa from_me/deleted_at; o shape legado da view usa sender/is_deleted.
+    // Adapter: a fonte usa from_me/deleted_at/message_id; o shape legado da view usa
+    // sender/is_deleted/external_id. external_id é necessário para media refresh e downloads.
     const adaptEvoPayload = (
       p: RealtimePostgresChangesPayload<Record<string, unknown>>
     ): RealtimePostgresChangesPayload<RealtimeMessage> => {
@@ -426,6 +427,15 @@ export function useRealtimeMessages() {
           ...r,
           sender: (r as { from_me?: boolean }).from_me ? 'agent' : 'contact',
           is_deleted: (r as { deleted_at?: string | null }).deleted_at != null,
+          // evo.evolution_messages stores the WhatsApp message ID as `message_id`;
+          // the view aliases it to `external_id` used by media components.
+          external_id: (r as { external_id?: string; message_id?: string }).external_id
+            ?? (r as { message_id?: string }).message_id
+            ?? null,
+          // evo.evolution_messages has `status_at`; the view aliases it to `status_updated_at`.
+          status_updated_at: (r as { status_updated_at?: string; status_at?: string }).status_updated_at
+            ?? (r as { status_at?: string }).status_at
+            ?? null,
         };
       return {
         ...p,

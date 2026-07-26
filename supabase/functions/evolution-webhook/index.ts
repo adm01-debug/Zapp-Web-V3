@@ -375,7 +375,9 @@ Deno.serve(async (req) => {
           const entryDetail = entryError instanceof Error ? entryError.message : String(entryError);
           console.error(redactSecrets(`[webhook][${requestId}][msg.upsert] entry_error instance=${instance}: ${entryDetail}`));
           await routeToDeadLetter(supabase, {
-            event_type: event, instance, payload: entry,
+            // Store the merged payload so DLQ reprocessor has the same data the handler received.
+            // Without baseData, key fields (remoteJid, messageTimestamp, pushName) may be missing.
+            event_type: event, instance, payload: { ...baseData, ...entry },
             error_message: entryDetail, error_stack: entryError instanceof Error ? entryError.stack ?? null : null,
             request_id: requestId,
           });

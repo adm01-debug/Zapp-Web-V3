@@ -98,6 +98,9 @@ export function normalizeContact(row: ContactRow | null | undefined): ContactCan
 type MessageRow = Partial<MessageCanonical> & {
   sender_id?: string | null; // alias legado
   external_message_id?: string | null; // alias legado (schema antigo)
+  message_id?: string | null; // evo.evolution_messages physical column (CDC from Realtime)
+  from_me?: boolean | null; // evo.evolution_messages physical column (CDC from Realtime)
+  status_at?: string | null; // evo.evolution_messages physical column; view aliases to status_updated_at
 };
 
 /** normalize Message function. */
@@ -108,19 +111,23 @@ export function normalizeMessage(row: MessageRow | null | undefined): MessageCan
     id: row.id,
     contact_id: row.contact_id ?? null,
     whatsapp_connection_id: row.whatsapp_connection_id ?? null,
-    sender: row.sender ?? '',
+    // evo.evolution_messages uses `from_me`; the view computes `sender` as a string.
+    sender: row.sender ?? (row.from_me === true ? 'agent' : row.from_me === false ? 'contact' : ''),
     content: row.content ?? (cols.content.default as string),
     message_type: row.message_type ?? (cols.message_type.default as string),
     media_url: row.media_url ?? null,
     is_read: row.is_read ?? null,
     agent_id: row.agent_id ?? row.sender_id ?? null,
-    external_id: row.external_id ?? row.external_message_id ?? null,
+    // evo.evolution_messages (CDC source) stores WhatsApp msg ID as `message_id`;
+    // the view aliases it to `external_id`. Map all three to cover both paths.
+    external_id: row.external_id ?? row.external_message_id ?? row.message_id ?? null,
     created_at: row.created_at ?? new Date(0).toISOString(),
     updated_at: row.updated_at ?? row.created_at ?? new Date(0).toISOString(),
     transcription: row.transcription ?? null,
     transcription_status: row.transcription_status ?? null,
     status: row.status ?? null,
-    status_updated_at: row.status_updated_at ?? null,
+    // evo.evolution_messages has `status_at`; the view aliases it to `status_updated_at`.
+    status_updated_at: row.status_updated_at ?? row.status_at ?? null,
     is_deleted: row.is_deleted ?? null,
     channel_type: row.channel_type ?? null,
     channel_connection_id: row.channel_connection_id ?? null,
