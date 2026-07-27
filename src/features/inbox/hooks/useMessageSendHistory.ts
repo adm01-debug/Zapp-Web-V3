@@ -87,7 +87,7 @@ export function useMessageSendHistory(messageId: string | undefined, enabled: bo
         details: e.details,
       }));
 
-      const outboundEntries: AuditEntry[] = (outboundAuditRes.data ?? []).map((e: any) => ({
+      const outboundEntries: AuditEntry[] = (outboundAuditRes.data ?? []).map((e) => ({
         id: e.id,
         action: `OUTBOUND_${(e.event_type ?? 'send').toUpperCase()}`,
         createdAt: e.created_at,

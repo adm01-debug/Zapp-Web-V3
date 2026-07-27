@@ -455,7 +455,7 @@ export function useExternalMessages(
       setLoading(true);
       setError(null);
       const evoMessages = await dedupedFetch(
-        `inbox:initial:${remoteJid}:${CONVERSATION_PAGE_SIZE}:${DEFAULT_INSTANCE}`,
+        `inbox:initial:${remoteJid}:${CONVERSATION_PAGE_SIZE}:${instanceName ?? DEFAULT_INSTANCE}`,
         () => fetchMessagesByJid(remoteJid, CONVERSATION_PAGE_SIZE, undefined, undefined, instanceName),
         { lockTtl: 10_000, resultTtl: 15_000, waitTimeout: 8_000 }
       );
@@ -485,7 +485,7 @@ export function useExternalMessages(
     } finally {
       if (mountedRef.current) setLoading(false);
     }
-  }, [remoteJid, mountedRef, getContactAvatar]);
+  }, [remoteJid, mountedRef, getContactAvatar, instanceName]);
 
   const pollNewMessages = useCallback(async () => {
     if (!remoteJid || !mountedRef.current) return;
@@ -494,7 +494,7 @@ export function useExternalMessages(
 
     try {
       const newOnes = await dedupedFetch(
-        `inbox:poll:${remoteJid}:${afterDate}:${DEFAULT_INSTANCE}:${jidToPhone(remoteJid)}`,
+        `inbox:poll:${remoteJid}:${afterDate}:${instanceName ?? DEFAULT_INSTANCE}:${jidToPhone(remoteJid)}`,
         () => fetchMessagesAfter(remoteJid, afterDate, undefined, instanceName),
         { lockTtl: 4_000, resultTtl: POLL_INTERVAL - 1_000, waitTimeout: 3_000 }
       );
@@ -511,7 +511,7 @@ export function useExternalMessages(
     } catch (err) {
       logMessages.error('Error polling external messages:', err);
     }
-  }, [remoteJid, mountedRef, getContactAvatar]);
+  }, [remoteJid, mountedRef, getContactAvatar, instanceName]);
 
   const loadOlder = useCallback(async () => {
     if (!remoteJid || !mountedRef.current || loadingOlder || !hasMore) return;
@@ -528,7 +528,7 @@ export function useExternalMessages(
 
     try {
       setLoadingOlder(true);
-      const dedupeKey = `older:${remoteJid}:${oldest}:${CONVERSATION_PAGE_SIZE}:${DEFAULT_INSTANCE}`;
+      const dedupeKey = `older:${remoteJid}:${oldest}:${CONVERSATION_PAGE_SIZE}:${instanceName ?? DEFAULT_INSTANCE}`;
       const older = await dedupedFetch(
         dedupeKey,
         () => fetchMessagesByJid(remoteJid, CONVERSATION_PAGE_SIZE, oldest, controller.signal, instanceName),
@@ -559,7 +559,7 @@ export function useExternalMessages(
       }
       if (mountedRef.current) setLoadingOlder(false);
     }
-  }, [remoteJid, messages, loadingOlder, hasMore, mountedRef]);
+  }, [remoteJid, messages, loadingOlder, hasMore, mountedRef, instanceName]);
 
   // Initial fetch on jid change
   useEffect(() => {
