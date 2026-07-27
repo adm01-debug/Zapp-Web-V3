@@ -1,1 +1,101 @@
-LyoqCiAqIGJyYW5kZWQudHMg4oCUIFRpcG9zIGJyYW5kZWQgcGFyYSBKSUQgZSBVVUlECiAqCiAqIEZBU0UgMSAoYXR1YWwpOiBhbGlhc2VzIHNlbSBicmFuZCDigJQgemVybyBicmVha2luZyBjaGFuZ2VzCiAqIFVzbyBpbWVkaWF0bzogaW1wb3J0YXIgZXN0ZXMgdGlwb3MgZW0gdmV6IGRlIHVzYXIgc3RyaW5nIG5hdm8KICoKICogRkFTRSAyIChmdXR1cmEpOiBhZGljaW9uYXIgeyByZWFkb25seSBfX2JyYW5kOiAnSmlkJyB9CiAqIFN0cmF0w6lnaWE6IDEgYXJxdWl2byBwb3IgdmV6LCBjb21lw6dhbmRvIHBlbG9zIG1haXMgaXNvbGFkb3MKICoKICogTUVUQTogZWxpbWluYXIgYSBjbGFzc2UgZGUgYnVnIDIyUDAyICJKSUQgdXNhZG8gY29tbyBVVUlEIgogKiBBcXVpbzogMzAwKyBvY29ycsOqbmNpYXMgZGUgaXNWYWxpZFVVSUQoKSBjb21vIGd1YXJkYSBkZWZlbnNpdmEKICovCgovLyAtLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0KLy8gRkFTRSAxOiBBbGlhc2VzIHNlbcOibnRpY29zIChzZW0gYnJhbmQpCi8vIFN1YnN0aXR1aXIgdXNvcyBkZSBgc3RyaW5nYCBwb3IgZXN0ZXMgdGlwb3MgZ3JhZHVhbG1lbnRlCi8vIC0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLQoKLyoqCiAqIElkZW50aWZpY2Fkb3IgZGUgY29udGF0byBXaGF0c0FwcC4KICogRm9ybWF0bzogPG7Dum1lcm8+QHMud2hhdHNhcHAubmV0IChpbmRpdmlkdWFsKQogKiAgICAgIG91IDxncnVwb0lkPkBnLnVzIChncnVwbykKICogTlVOQ0EgdXNhciBjb21vIFVVSUQgZGUgYmFuY28gKGNhdXNhIGVycm8gMjJQMDIpCiAqCiAqIEBleGFtcGxlCiAqIGZ1bmN0aW9uIHNlbmRNZXNzYWdlKHRvOiBKaWQpIHsuLi59CiAqIGNvbnN0IHRvID0gcGFyc2VKaWQoJzU1MTE5OTk5OTk5OTlAcy53aGF0c2FwcC5uZXQnKTsKICovCmV4cG9ydCB0eXBlIEppZCA9IHN0cmluZzsgLy8gVE9ETyBGYXNlIDI6ICYgeyByZWFkb25seSBfX2p1aWQ6ICdKaWQnIH0KCi8qKgogKiBVVUlEIGRvIFBvc3RncmVTUUwgKHN1cGFiYXNlKS4KICogRm9ybWF0bzogOGNoYXItNGNoYXItNGNoYXItNGNoYXItMTJjaGFyICh1dWlkdjQpCiAqIE5VTkNBIHBhc3NhciB1bSBKaWQgb25kZSBVdWlkIMOpIGVzcGVyYWRvCiAqCiAqIEBleGFtcGxlCiAqIGZ1bmN0aW9uIGdldENvbnRhY3QoaWQ6IFV1aWQpIHsuLi59CiAqIGNvbnN0IGlkID0gcGFyc2VVdWlkKCcxMjM0NTY3OC0xMjM0LTEyMzQtMTIzNC0xMjM0NTY3ODkwYWInKTsKICovCmV4cG9ydCB0eXBlIFV1aWQgPSBzdHJpbmc7IC8vIFRPRE8gRmFzZSAyOiAmIHsgcmVhZG9ubHkgX191dWlkOiAnVXVpZCcgfQoKLyoqIElkZW50aWZpY2Fkb3IgZGUgbWVuc2FnZW0gKHBvZGUgc2VyIFVVSUQgb3UgSUQgZGEgRXZvbHV0aW9uKSAqLwpleHBvcnQgdHlwZSBNZXNzYWdlSWQgPSBzdHJpbmc7CgovKiogSWRlbnRpZmljYWRvciBkZSBpbnN0w6JuY2lhIFdoYXRzQXBwIChuYSBFdm9sdXRpb24gQVBJKSAqLwpleHBvcnQgdHlwZSBJbnN0YW5jZUlkID0gc3RyaW5nOwoKLy8gLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tCi8vIEZ1bsOnw7VlcyBkZSBwYXJzZSAoYm91bmRhcnkgZW50cmUgQVBJIGV4dGVybmEgZSB0aXBvcyBpbnRlcm5vcykKLy8gLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tCgpjb25zdCBKSURfUEFUVEVSTiA9IC9eXGQrQChzXC53aGF0c2FwcFwubmV0fGdcLnVzfGJyb2FkY2FzdCkkL2k7CmNvbnN0IFVVSURfUEFUVEVSTiA9IC9eWzAtOWEtZl17OH0tWzAtOWEtZl17NH0tWzAtOWEtZl17NH0tWzAtOWEtZl17NH0tWzAtOWEtZl17MTJ9JC9pOwoKLyoqCiAqIEZhesO6byBkZSBwYXJzZSBkZSBKaWQ6IHBvbnRvIGNhbsO0bmljbyBvbmRlIHN0cmluZyB2aXJhIEppZC4KICogVXNhciBuYSBmcm9udGVpcmEgY29tIGEgRXZvbHV0aW9uIEFQSSAvIFdlYmhvb2tzLgogKi8KZXhwb3J0IGZ1bmN0aW9uIHBhcnNlSmlkKHJhdzogc3RyaW5nIHwgbnVsbCB8IHVuZGVmaW5lZCk6IEppZCB8IG51bGwgewogIGlmICghcmF3IHx8IHR5cGVvZiByYXcgIT09ICdzdHJpbmcnKSByZXR1cm4gbnVsbDsKICBjb25zdCBub3JtYWxpemVkID0gcmF3LnRyaW0oKS50b0xvd2VyQ2FzZSgpOwogIHJldHVybiBKSURfUEFUVEVSTi50ZXN0KG5vcm1hbGl6ZWQpID8gbm9ybWFsaXplZCBhcyBKaWQgOiBudWxsOwp9CgovKioKICogRmHDp8OjbyBkZSBwYXJzZSBkZSBVdWlkOiBwb250byBjYW7DtG5pY28gb25kZSBzdHJpbmcgdmlyYSBVdWlkLgogKiBVc2FyIG5hIGZyb250ZWlyYSBjb20gbyBiYW5jbyBkZSBkYWRvcyAocmVzdWx0YWRvcyBkZSBxdWVyeSkuCiAqLwpleHBvcnQgZnVuY3Rpb24gcGFyc2VVdWlkKHJhdzogc3RyaW5nIHwgbnVsbCB8IHVuZGVmaW5lZCk6IFV1aWQgfCBudWxsIHsKICBpZiAoIXJhdyB8fCB0eXBlb2YgcmF3ICE9PSAnc3RyaW5nJykgcmV0dXJuIG51bGw7CiAgcmV0dXJuIFVVSURfUEFUVEVSTi50ZXN0KHJhdy50cmltKCkpID8gcmF3LnRyaW0oKS50b0xvd2VyQ2FzZSgpIGFzIFV1aWQgOiBudWxsOwp9CgovKioKICogUmV0b3JuYSB0cnVlIHNlIG8gSmQgw6kgdW0gSnVpZCB2w6FsaWRvLgogKiBVc2FyIHF1YW5kbyBuw6NvIHF1ZXIgZmF6ZXIgb3BhcnNlIG1hcyBhcGVuYXMgdmFsaWRhci4KICovCmV4cG9ydCBmdW5jdGlvbiBpc1ZhbGlkSmlkKHJhdzogdW5rbm93bik6IHJhdyBpcyBKaWQgewogIHJldHVybiB0eXBlb2YgcmF3ID09PSAnc3RyaW5nJyAmJiBKSURfUEFUVEVSTi50ZXN0KHJhdy50cmltKCkpOwp9CgovKioKICogUmV0b3JuYSB0cnVlIHNlIG8gdmFsb3IgZSB1bSBVVUlEIHbDoWxpZG8uCiAqLwpleHBvcnQgZnVuY3Rpb24gaXNWYWxpZFV1aWQocmF3OiB1bmtub3duKTogcmF3IGlzIFV1aWQgewogIHJldHVybiB0eXBlb2YgcmF3ID09PSAnc3RyaW5nJyAmJiBVVUlEX1BBVFRFUk4udGVzdChyYXcudHJpbSgpKTsKfQoKLyoqCiAqIEZpeHR1cmVzIHBhcmEgdGVzdGVzIOKAlCBKSURzIGUgVVVJRHMgdmFsaWRvcyBubyBmb3JtYXRvIGNvcnJldG8KICoKICogQGV4YW1wbGUKICogaW1wb3J0IHsgVEVTVF9GSVhUVVJFUyB9IGZyb20gJ0AvbGliL3R5cGVzL2JyYW5kZWQnOwogKiBjb25zdCBqaWQgPSBURVNUX0ZJWFRVUkVTLkpJRDsKICovCmV4cG9ydCBjb25zdCBURVNUX0ZJWFRVUkVTID0gewogIEpJRDogJzU1MTE5OTk5OTk5OTlAcy53aGF0c2FwcC5uZXQnIGFzIEppZCwKICBHUk9VUF9KSUQ6ICcxMjM0NTY3ODkwMTIzNDU2NzgxMjM0NTZAZy51cycgYXMgSmlkLAogIFVVSUQ6ICcxMjM0NTY3OC0xMjM0LTEyMzQtMTIzNC0xMjM0NTY3ODkwYWInIGFzIFV1aWQsCiAgTUVTU0FHRV9JRDogJ0FCQ0RFRjEyMzQ1Njc4OTNBQUNBQ0ExMzQ1NUNDMycgYXMgTWVzc2FnZUlkLAp9IGFzIGNvbnN0Owo=
+/**
+ * branded.ts — Tipos branded para JID e UUID
+ *
+ * FASE 1 (atual): aliases sem brand — zero breaking changes
+ * Uso imediato: importar estes tipos em vez de usar string navo
+ *
+ * FASE 2 (futura): adicionar { readonly __brand: 'Jid' }
+ * Stratégia: 1 arquivo por vez, começando pelos mais isolados
+ *
+ * META: eliminar a classe de bug 22P02 "JID usado como UUID"
+ * Aquio: 300+ ocorrências de isValidUUID() como guarda defensiva
+ */
+
+// ---------------------------------------------------------------------
+// FASE 1: Aliases semânticos (sem brand)
+// Substituir usos de `string` por estes tipos gradualmente
+// ---------------------------------------------------------------------
+
+/**
+ * Identificador de contato WhatsApp.
+ * Formato: <número>@s.whatsapp.net (individual)
+ *      ou <grupoId>@g.us (grupo)
+ * NUNCA usar como UUID de banco (causa erro 22P02)
+ *
+ * @example
+ * function sendMessage(to: Jid) {...}
+ * const to = parseJid('5511999999999@s.whatsapp.net');
+ */
+export type Jid = string; // TODO Fase 2: & { readonly __juid: 'Jid' }
+
+/**
+ * UUID do PostgreSQL (supabase).
+ * Formato: 8char-4char-4char-4char-12char (uuidv4)
+ * NUNCA passar um Jid onde Uuid é esperado
+ *
+ * @example
+ * function getContact(id: Uuid) {...}
+ * const id = parseUuid('12345678-1234-1234-1234-1234567890ab');
+ */
+export type Uuid = string; // TODO Fase 2: & { readonly __uuid: 'Uuid' }
+
+/** Identificador de mensagem (pode ser UUID ou ID da Evolution) */
+export type MessageId = string;
+
+/** Identificador de instância WhatsApp (na Evolution API) */
+export type InstanceId = string;
+
+// ---------------------------------------------------------------------
+// Funções de parse (boundary entre API externa e tipos internos)
+// ---------------------------------------------------------------------
+
+const JID_PATTERN = /^\d+@(s\.whatsapp\.net|g\.us|broadcast)$/i;
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * Fazúo de parse de Jid: ponto canônico onde string vira Jid.
+ * Usar na fronteira com a Evolution API / Webhooks.
+ */
+export function parseJid(raw: string | null | undefined): Jid | null {
+  if (!raw || typeof raw !== 'string') return null;
+  const normalized = raw.trim().toLowerCase();
+  return JID_PATTERN.test(normalized) ? normalized as Jid : null;
+}
+
+/**
+ * Fação de parse de Uuid: ponto canônico onde string vira Uuid.
+ * Usar na fronteira com o banco de dados (resultados de query).
+ */
+export function parseUuid(raw: string | null | undefined): Uuid | null {
+  if (!raw || typeof raw !== 'string') return null;
+  return UUID_PATTERN.test(raw.trim()) ? raw.trim().toLowerCase() as Uuid : null;
+}
+
+/**
+ * Retorna true se o Jd é um Juid válido.
+ * Usar quando não quer fazer oparse mas apenas validar.
+ */
+export function isValidJid(raw: unknown): raw is Jid {
+  return typeof raw === 'string' && JID_PATTERN.test(raw.trim());
+}
+
+/**
+ * Retorna true se o valor e um UUID válido.
+ */
+export function isValidUuid(raw: unknown): raw is Uuid {
+  return typeof raw === 'string' && UUID_PATTERN.test(raw.trim());
+}
+
+/**
+ * Fixtures para testes — JIDs e UUIDs validos no formato correto
+ *
+ * @example
+ * import { TEST_FIXTURES } from '@/lib/types/branded';
+ * const jid = TEST_FIXTURES.JID;
+ */
+export const TEST_FIXTURES = {
+  JID: '5511999999999@s.whatsapp.net' as Jid,
+  GROUP_JID: '123456789012345678123456@g.us' as Jid,
+  UUID: '12345678-1234-1234-1234-1234567890ab' as Uuid,
+  MESSAGE_ID: 'ABCDEF1234567893AACACA13455CC3' as MessageId,
+} as const;
