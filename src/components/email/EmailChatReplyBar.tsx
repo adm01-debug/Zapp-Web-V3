@@ -138,7 +138,7 @@ export function EmailChatReplyBar({
         threadId: threadEmailId,
         attachments: processedAttachments,
         signature: true,
-      } as any);
+      });
 
       // Registra resposta no SLA
       markReplied(threadEmailId);

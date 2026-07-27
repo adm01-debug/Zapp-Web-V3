@@ -360,6 +360,7 @@ interface SendMessageParams {
   threadId?: string;
   inReplyTo?: string;
   references?: string;
+  signature?: boolean;
   attachments?: Array<{
     name: string;
     mimeType: string;
