@@ -36,6 +36,8 @@ DECLARE
   t record;
   pol record;
   owner_col text;
+  owner_col_type text;
+  uid_expr text;
   staff_pred constant text :=
     '(public.has_role(auth.uid(), ''admin''::public.app_role) '
     || 'OR public.has_role(auth.uid(), ''supervisor''::public.app_role))';
@@ -50,12 +52,10 @@ BEGIN
          OR pg_get_expr(p.polwithcheck, p.polrelid) = 'true' )
   LOOP
     -- 1a. Detectar a coluna de propriedade (na ordem de preferência).
-    SELECT v.col INTO owner_col
+    SELECT v.col, ic.data_type INTO owner_col, owner_col_type
     FROM (VALUES ('user_id'),('created_by'),('agent_id'),('uploaded_by'),('owner_id')) AS v(col)
-    WHERE EXISTS (
-      SELECT 1 FROM information_schema.columns ic
-      WHERE ic.table_schema = 'public' AND ic.table_name = t.table_name AND ic.column_name = v.col
-    )
+    JOIN information_schema.columns ic
+      ON ic.table_schema = 'public' AND ic.table_name = t.table_name AND ic.column_name = v.col
     ORDER BY array_position(ARRAY['user_id','created_by','agent_id','uploaded_by','owner_id'], v.col)
     LIMIT 1;
 
@@ -74,9 +74,15 @@ BEGIN
 
     -- 1c. Criar políticas endurecidas.
     IF owner_col IS NOT NULL THEN
+      -- Cast auth.uid() to text when the owner column is not a uuid type.
+      IF owner_col_type IN ('text','character varying','varchar','character','char') THEN
+        uid_expr := 'auth.uid()::text';
+      ELSE
+        uid_expr := 'auth.uid()';
+      END IF;
       EXECUTE format(
         'CREATE POLICY %1$I_owner_access ON public.%1$I FOR ALL TO authenticated '
-        || 'USING (%2$I = auth.uid() OR %3$s) WITH CHECK (%2$I = auth.uid() OR %3$s);',
+        || 'USING (%2$I = ' || uid_expr || ' OR %3$s) WITH CHECK (%2$I = ' || uid_expr || ' OR %3$s);',
         t.table_name, owner_col, staff_pred
       );
     ELSE
@@ -93,6 +99,6 @@ BEGIN
       );
     END IF;
 
-    RAISE NOTICE 'RLS endurecida: public.% (owner_col=%)', t.table_name, COALESCE(owner_col, '<none>');
+    RAISE NOTICE 'RLS endurecida: public.% (owner_col=%, type=%)', t.table_name, COALESCE(owner_col, '<none>'), COALESCE(owner_col_type, '<none>');
   END LOOP;
 END $$;

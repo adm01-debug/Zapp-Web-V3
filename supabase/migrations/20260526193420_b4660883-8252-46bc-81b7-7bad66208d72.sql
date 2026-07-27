@@ -1,5 +1,5 @@
 -- Create route_permissions table
-CREATE TABLE public.route_permissions (
+CREATE TABLE IF NOT EXISTS public.route_permissions (
     path TEXT PRIMARY KEY,
     allowed_roles TEXT[] NOT NULL DEFAULT '{}',
     description TEXT,
@@ -16,27 +16,31 @@ GRANT ALL ON public.route_permissions TO service_role;
 ALTER TABLE public.route_permissions ENABLE ROW LEVEL SECURITY;
 
 -- Read policy (everyone can read to allow routing)
-CREATE POLICY "Route permissions are viewable by everyone" 
-ON public.route_permissions 
-FOR SELECT 
+DROP POLICY IF EXISTS "Route permissions are viewable by everyone" ON public.route_permissions;
+CREATE POLICY "Route permissions are viewable by everyone"
+ON public.route_permissions
+FOR SELECT
 USING (true);
 
 -- Manage policy (only admins and devs)
-CREATE POLICY "Route permissions are manageable by admins and devs" 
-ON public.route_permissions 
-FOR ALL 
+DROP POLICY IF EXISTS "Route permissions are manageable by admins and devs" ON public.route_permissions;
+CREATE POLICY "Route permissions are manageable by admins and devs"
+ON public.route_permissions
+FOR ALL
 TO authenticated
 USING (
     EXISTS (
-        SELECT 1 FROM public.user_roles 
-        WHERE user_id = auth.uid() 
+        SELECT 1 FROM public.user_roles
+        WHERE user_id = auth.uid()
         AND role::text IN ('admin', 'dev')
     )
 );
 
 -- Seed some default system routes
 INSERT INTO public.route_permissions (path, allowed_roles, description, is_system)
-VALUES 
-    ('/admin/roles', ARRAY['admin', 'dev'], 'Role management', true),
-    ('/admin/route-permissions', ARRAY['admin', 'dev'], 'Route permission management', true),
-    ('/admin/dev-diagnostics', ARRAY['dev'], 'Developer diagnostics', true);
+SELECT path, allowed_roles, description, is_system FROM (VALUES
+    ('/admin/roles',              ARRAY['admin','dev']::public.app_role[],  'Role management', true),
+    ('/admin/route-permissions',  ARRAY['admin','dev']::public.app_role[],  'Route permission management', true),
+    ('/admin/dev-diagnostics',    ARRAY['dev']::public.app_role[],          'Developer diagnostics', true)
+) AS v(path, allowed_roles, description, is_system)
+ON CONFLICT (path) DO NOTHING;

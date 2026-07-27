@@ -104,7 +104,7 @@ export const contactRowSchema = z
   })
   .passthrough();
 
-/** Zod schema for a public.failed_messages row used to surface delivery-failure events via Realtime. */
+/** Zod schema for a zapp.failed_messages row used to surface delivery-failure events via Realtime. */
 export const failedMessageRowSchema = z.object({
   id: z.string().uuid(),
   instance_name: z.string().nullable(),

@@ -2,6 +2,7 @@ import { type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.49.4
 import { handleCors, jsonResponse, errorResponse, Logger } from "../_shared/validation.ts";
 import { requireServiceRoleOrCron } from "../_shared/auth.ts";
 import { createZappAdminClient } from "../_shared/db-client.ts";
+import { getStoragePublicUrl } from "../_shared/storage-url.ts";
 
 /**
  * Edge Function: WhatsApp Media Migration Service
@@ -292,12 +293,7 @@ async function uploadToStorage(
     return null;
   }
 
-  const { data: urlData } = supabase.storage.from(bucket).getPublicUrl(fileName);
-  if (typeof urlData === 'object' && urlData !== null && !Array.isArray(urlData)) {
-    const dataObj = urlData as Record<string, unknown>;
-    if (typeof dataObj.publicUrl === 'string') return dataObj.publicUrl;
-  }
-  return null;
+  return getStoragePublicUrl(bucket, fileName);
 }
 
 async function migrateSimple(

@@ -2,6 +2,7 @@
 // Consolidates: useQueues, useQueueAnalytics, useQueueGoals, useQueueSlaPanel, useQueuesComparison
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { safeFrom, safeClient } from '@/integrations/supabase/safeClient';
 import { useAuth } from '@/features/auth';

@@ -41,6 +41,7 @@ GRANT SELECT (whatsapp_api_key) ON public.departments TO service_role;
 DROP POLICY IF EXISTS "Authenticated users can insert their own audit logs" ON public.audit_logs;
 DROP POLICY IF EXISTS "Only system can insert audit logs" ON public.audit_logs;
 
+DROP POLICY IF EXISTS "Users can insert their own audit logs" ON public.audit_logs;
 CREATE POLICY "Users can insert their own audit logs"
 ON public.audit_logs FOR INSERT TO authenticated
 WITH CHECK (user_id = auth.uid());

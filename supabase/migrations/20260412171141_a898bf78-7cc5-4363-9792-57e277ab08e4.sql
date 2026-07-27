@@ -1,4 +1,5 @@
 -- 1. Add SELECT policy for gmail_accounts so users can read their own records
+DROP POLICY IF EXISTS "Users can view their own gmail accounts" ON public.gmail_accounts;
 CREATE POLICY "Users can view their own gmail accounts"
 ON public.gmail_accounts
 FOR SELECT

@@ -11,12 +11,14 @@
 DROP POLICY IF EXISTS "Authenticated users can view profiles" ON public.profiles;
 
 -- Policy: Users can always read their own profile
+DROP POLICY IF EXISTS "Users can view own profile" ON public.profiles;
 CREATE POLICY "Users can view own profile"
 ON public.profiles FOR SELECT
 TO authenticated
 USING (auth.uid() = user_id);
 
 -- Policy: Admins/supervisors can view all profiles
+DROP POLICY IF EXISTS "Admins can view all profiles" ON public.profiles;
 CREATE POLICY "Admins can view all profiles"
 ON public.profiles FOR SELECT
 TO authenticated

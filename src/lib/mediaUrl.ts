@@ -111,6 +111,25 @@ export function isWhatsAppUrlExpired(url: string | null | undefined): boolean {
 }
 
 // ---------------------------------------------------------------------------
+// Registro de buckets privados vs públicos (ADR-001)
+// ---------------------------------------------------------------------------
+
+/**
+ * Buckets PÚBLICOS: URL construída via /storage/v1/object/public/...
+ * Qualquer outro bucket é PRIVADO e requer signed URL.
+ */
+export const PUBLIC_BUCKETS = new Set([
+  'avatars',
+  'custom-emojis',
+  'recibos-entrega',
+  'stickers',
+]);
+
+export function isBucketPublic(bucket: string): boolean {
+  return PUBLIC_BUCKETS.has(bucket);
+}
+
+// ---------------------------------------------------------------------------
 // Cache negativo em memória — evita retry de URLs que falharam na sessão
 // ---------------------------------------------------------------------------
 
@@ -203,4 +222,33 @@ export function resolveMessageMediaUrl(params: {
   }
 
   return null;
+}
+
+/**
+ * Resolve a URL de um objeto em um bucket PRIVADO via signed URL (async).
+ *
+ * Para buckets públicos, use resolveMediaUrl() diretamente.
+ * Esta função existe para evitar o padrão silencioso de retornar null
+ * quando uma URL pública é gerada para um bucket privado (que retornaria 403).
+ *
+ * @param supabaseClient - cliente Supabase autenticado (from '@/integrations/supabase/client')
+ * @param bucket - nome do bucket (deve ser privado — se público, use resolveMediaUrl())
+ * @param path - caminho do objeto dentro do bucket
+ * @param expiresIn - TTL em segundos (padrão: 7 dias)
+ * @returns URL assinada, ou null com erro logado se falhar
+ */
+export async function resolvePrivateMediaUrl(
+  supabaseClient: { storage: { from: (b: string) => { createSignedUrl: (p: string, s: number) => Promise<{ data: { signedUrl: string } | null; error: unknown }> } } },
+  bucket: string,
+  path: string,
+  expiresIn = 604800 // 7 days
+): Promise<string | null> {
+  if (!bucket || !path) return null;
+  const { data, error } = await supabaseClient.storage.from(bucket).createSignedUrl(path, expiresIn);
+  if (error || !data?.signedUrl) {
+    // Surface the error so callers know it wasn't a "no media" case
+    console.error(`[mediaUrl] Failed to sign ${bucket}/${path}:`, error);
+    return null;
+  }
+  return data.signedUrl;
 }

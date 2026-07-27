@@ -57,9 +57,13 @@ ALTER TABLE public.whatsapp_official_credentials ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.evolution_instance_credentials ENABLE ROW LEVEL SECURITY;
 
 -- Políticas de acesso
+DROP POLICY IF EXISTS "Allow service role all access" ON public.reconnection_logs;
 CREATE POLICY "Allow service role all access" ON public.reconnection_logs FOR ALL TO service_role USING (true);
+DROP POLICY IF EXISTS "Allow service role all access" ON public.qr_attempts;
 CREATE POLICY "Allow service role all access" ON public.qr_attempts FOR ALL TO service_role USING (true);
+DROP POLICY IF EXISTS "Allow service role all access" ON public.whatsapp_official_credentials;
 CREATE POLICY "Allow service role all access" ON public.whatsapp_official_credentials FOR ALL TO service_role USING (true);
+DROP POLICY IF EXISTS "Allow service role all access" ON public.evolution_instance_credentials;
 CREATE POLICY "Allow service role all access" ON public.evolution_instance_credentials FOR ALL TO service_role USING (true);
 
 -- Admins podem ver logs e credenciais
@@ -75,6 +79,7 @@ CREATE POLICY "Admins can manage official credentials" ON public.whatsapp_offici
   EXISTS (SELECT 1 FROM user_roles WHERE user_id = auth.uid() AND role IN ('admin', 'supervisor'))
 );
 
+DROP POLICY IF EXISTS "Admins can manage evolution credentials" ON public.evolution_instance_credentials;
 CREATE POLICY "Admins can manage evolution credentials" ON public.evolution_instance_credentials FOR ALL TO authenticated USING (
   EXISTS (SELECT 1 FROM user_roles WHERE user_id = auth.uid() AND role IN ('admin', 'supervisor'))
 );

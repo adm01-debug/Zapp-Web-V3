@@ -6,14 +6,18 @@
  *
  *  1. Nenhum script `workbox-*.js` é requisitado (precache Workbox ausente).
  *  2. Nenhuma cache do tipo `workbox-precache-*` é criada no CacheStorage.
- *  3. A tela carrega e fica interativa em ≤ 6 s, sem ficar presa em
+ *  3. A tela carrega e fica interativa em ≤ 6 s (≤ 10 s em CI), sem ficar presa em
  *     spinner de "Verificando acesso e permissões...".
  */
 import { test, expect, type Route } from '@playwright/test';
 
 const PREVIEW_ORIGIN = 'https://id-preview--zapp-test.lovable.app';
 const DEV_ORIGIN = 'http://localhost:5173';
-const BOOT_BUDGET_MS = 6000;
+// Em CI (GitHub Actions) o proxy para localhost adiciona latência de rede
+// (TLS handshake para o domínio preview + roteamento via proxy), fazendo o
+// goto() em si demorar ~600-700 ms a mais. O budget é ampliado para 10 s em
+// CI para cobrir essa overhead sem alterar o requisito local (6 s).
+const BOOT_BUDGET_MS = process.env.CI ? 10_000 : 6_000;
 
 async function proxyToDev(route: Route) {
   const url = new URL(route.request().url());
@@ -37,18 +41,22 @@ async function runBootAudit(page: import('@playwright/test').Page, url: string) 
   });
 
   const t0 = Date.now();
+  const deadline = t0 + BOOT_BUDGET_MS;
   await page.goto(url, { waitUntil: 'domcontentloaded' });
+  const remainingMs = deadline - Date.now();
+  if (remainingMs <= 0) {
+    throw new Error(`App excedeu o orçamento de boot (${BOOT_BUDGET_MS}ms) antes do polling`);
+  }
 
-  // Boot budget: precisa sair do spinner "Verificando acesso..." em ≤ 6s.
-  // Aceitamos QUALQUER estado final (auth, dashboard, erro visível) — só não
-  // pode ficar preso no gate de autenticação.
+  // Boot budget total (inclui goto + polling): não pode ficar preso no gate de autenticação.
+  // Aceitamos QUALQUER estado final (auth, dashboard, erro visível).
   await expect
     .poll(
       async () => {
         const text = (await page.locator('body').innerText().catch(() => '')) ?? '';
         return !/Verificando acesso e permissões/i.test(text);
       },
-      { timeout: BOOT_BUDGET_MS, message: 'App ficou preso no spinner de boot' },
+      { timeout: remainingMs, message: 'App ficou preso no spinner de boot' },
     )
     .toBe(true);
 

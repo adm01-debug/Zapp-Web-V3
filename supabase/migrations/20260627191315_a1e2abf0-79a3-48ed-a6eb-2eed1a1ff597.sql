@@ -46,6 +46,7 @@ REVOKE EXECUTE ON FUNCTION public.log_rls_denied(text, text, jsonb) FROM PUBLIC,
 GRANT EXECUTE ON FUNCTION public.log_rls_denied(text, text, jsonb) TO authenticated;
 
 -- 3) Paginated DLQ list with filters + role gating
+DROP FUNCTION IF EXISTS public.rpc_list_failed_messages(text[], text, text, timestamptz, timestamptz, integer, integer);
 CREATE OR REPLACE FUNCTION public.rpc_list_failed_messages(
   p_status text[],
   p_instance text,
@@ -98,6 +99,7 @@ REVOKE EXECUTE ON FUNCTION public.rpc_list_failed_messages(text[], text, text, t
 GRANT EXECUTE ON FUNCTION public.rpc_list_failed_messages(text[], text, text, timestamptz, timestamptz, integer, integer) TO authenticated;
 
 -- 4) Paginated DLQ audit with action filter + role gating
+DROP FUNCTION IF EXISTS public.rpc_dlq_list_audit(integer, integer, text);
 CREATE OR REPLACE FUNCTION public.rpc_dlq_list_audit(
   p_limit integer,
   p_offset integer,
@@ -168,7 +170,7 @@ RETURNS TABLE(
   reason text,
   from_agent_id uuid,
   to_agent_id uuid,
-  sla_deadline timestamptz,
+  expires_at timestamptz,
   created_at timestamptz,
   accepted_at timestamptz,
   completed_at timestamptz,
@@ -181,7 +183,7 @@ SET search_path TO 'public'
 AS $$
   SELECT t.id, t.source_instance, t.target_instance, t.remote_jid, t.contact_name,
          t.status, t.priority, t.transfer_type, t.category, t.reason,
-         t.from_agent_id, t.to_agent_id, t.sla_deadline,
+         t.from_agent_id, t.to_agent_id, t.expires_at,
          t.created_at, t.accepted_at, t.completed_at,
          COUNT(*) OVER()::bigint AS total_count
   FROM public.conversation_transfers t

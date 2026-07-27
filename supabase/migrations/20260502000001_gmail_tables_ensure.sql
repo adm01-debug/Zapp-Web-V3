@@ -30,6 +30,13 @@ CREATE TABLE IF NOT EXISTS public.gmail_accounts (
 COMMENT ON TABLE public.gmail_accounts IS
   'Contas Gmail conectadas via OAuth2. Tokens armazenados para refresh automático.';
 
+-- Reconcile schema: earlier migrations may have created this table with different column names.
+-- These are no-ops if the table was created by this migration (columns already exist).
+ALTER TABLE public.gmail_accounts ADD COLUMN IF NOT EXISTS email TEXT;
+ALTER TABLE public.gmail_accounts ADD COLUMN IF NOT EXISTS display_name TEXT;
+ALTER TABLE public.gmail_accounts ADD COLUMN IF NOT EXISTS token_expiry TIMESTAMPTZ;
+ALTER TABLE public.gmail_accounts ADD COLUMN IF NOT EXISTS watch_expiry TIMESTAMPTZ;
+
 -- Índices
 CREATE INDEX IF NOT EXISTS idx_gmail_accounts_user_id   ON public.gmail_accounts (user_id);
 CREATE INDEX IF NOT EXISTS idx_gmail_accounts_email     ON public.gmail_accounts (email);
@@ -268,5 +275,22 @@ COMMENT ON VIEW public.v_gmail_inbox_summary IS
 -- ------------------------------------
 -- 9. Realtime para threads
 -- ------------------------------------
-ALTER PUBLICATION supabase_realtime ADD TABLE IF NOT EXISTS public.gmail_threads;
-ALTER PUBLICATION supabase_realtime ADD TABLE IF NOT EXISTS public.gmail_messages;
+-- PG16 does not support "ALTER PUBLICATION ... ADD TABLE IF NOT EXISTS" — use a guard DO block instead.
+DO $pub1$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_publication WHERE pubname = 'supabase_realtime')
+  AND NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables
+    WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'gmail_threads'
+  ) THEN
+    EXECUTE 'ALTER PUBLICATION supabase_realtime ADD TABLE public.gmail_threads';
+  END IF;
+END $pub1$;
+DO $pub2$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_publication WHERE pubname = 'supabase_realtime')
+  AND NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables
+    WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'gmail_messages'
+  ) THEN
+    EXECUTE 'ALTER PUBLICATION supabase_realtime ADD TABLE public.gmail_messages';
+  END IF;
+END $pub2$;

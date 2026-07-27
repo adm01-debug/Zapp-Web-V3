@@ -1,4 +1,6 @@
 version: 2
+enable-beta-ecosystems: true
+enable-mile-high-markdown: false
 updates:
   - package-ecosystem: npm
     directory: "/"

@@ -1,4 +1,10 @@
 
+-- 0) Ensure conversation_transfers has from_agent_id / to_agent_id
+-- (earlier migration 20260520143901 used CREATE TABLE IF NOT EXISTS — no-op since table existed)
+ALTER TABLE public.conversation_transfers
+  ADD COLUMN IF NOT EXISTS from_agent_id UUID,
+  ADD COLUMN IF NOT EXISTS to_agent_id UUID;
+
 -- 1) departments: drop permissive SELECT and restrict to admins/supervisors
 DO $$
 DECLARE pol record;

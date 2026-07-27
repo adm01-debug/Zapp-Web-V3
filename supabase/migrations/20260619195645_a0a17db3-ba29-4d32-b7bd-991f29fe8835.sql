@@ -5,15 +5,18 @@
 -- 1) whatsapp_official_credentials --------------------------
 DROP POLICY IF EXISTS "Admins can manage official credentials" ON public.whatsapp_official_credentials;
 
+DROP POLICY IF EXISTS "Admins can insert official credentials" ON public.whatsapp_official_credentials;
 CREATE POLICY "Admins can insert official credentials"
   ON public.whatsapp_official_credentials FOR INSERT TO authenticated
   WITH CHECK (public.is_admin_or_supervisor(auth.uid()));
 
+DROP POLICY IF EXISTS "Admins can update official credentials" ON public.whatsapp_official_credentials;
 CREATE POLICY "Admins can update official credentials"
   ON public.whatsapp_official_credentials FOR UPDATE TO authenticated
   USING (public.is_admin_or_supervisor(auth.uid()))
   WITH CHECK (public.is_admin_or_supervisor(auth.uid()));
 
+DROP POLICY IF EXISTS "Admins can delete official credentials" ON public.whatsapp_official_credentials;
 CREATE POLICY "Admins can delete official credentials"
   ON public.whatsapp_official_credentials FOR DELETE TO authenticated
   USING (public.is_admin_or_supervisor(auth.uid()));
@@ -27,7 +30,6 @@ WITH (security_invoker = on) AS
 SELECT
   id,
   connection_id,
-  app_id,
   phone_number_id,
   waba_id,
   (access_token IS NOT NULL AND length(access_token) > 0) AS has_access_token,

@@ -18,15 +18,16 @@ CREATE OR REPLACE FUNCTION zapp.rpc_insert_message(
   p_direction    TEXT      DEFAULT 'outbound',
   p_instance     TEXT      DEFAULT 'wpp_pink_test'
 ) RETURNS JSONB
-LANGUAGE sql
-STABLE
+LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = zapp
 AS $$
-  SELECT to_jsonb(public.rpc_insert_message(
+BEGIN
+  RETURN to_jsonb(public.rpc_insert_message(
     p_remote_jid, p_content, p_message_type,
     p_message_id, p_from_me, p_direction, p_instance
   ));
+END;
 $$;
 
 REVOKE EXECUTE ON FUNCTION zapp.rpc_insert_message(TEXT, TEXT, TEXT, TEXT, BOOLEAN, TEXT, TEXT) FROM PUBLIC, anon;
@@ -81,16 +82,18 @@ CREATE OR REPLACE FUNCTION zapp.rpc_list_messages(
   p_limit       INTEGER   DEFAULT 50,
   p_before_date TIMESTAMPTZ DEFAULT NULL
 ) RETURNS JSONB
-LANGUAGE sql
+LANGUAGE plpgsql
 STABLE
 SECURITY DEFINER
 SET search_path = zapp
 AS $$
-  SELECT COALESCE(
+BEGIN
+  RETURN COALESCE(
     (SELECT jsonb_agg(to_jsonb(r.*))
      FROM public.rpc_list_messages(p_remote_jid, p_instance, p_limit, p_before_date) r),
     '[]'::jsonb
   );
+END;
 $$;
 
 REVOKE EXECUTE ON FUNCTION zapp.rpc_list_messages(TEXT, TEXT, INTEGER, TIMESTAMPTZ) FROM PUBLIC, anon;
@@ -109,16 +112,18 @@ CREATE OR REPLACE FUNCTION zapp.rpc_list_messages_lite(
   p_offset      INTEGER   DEFAULT 0,
   p_before_date TIMESTAMPTZ DEFAULT NULL
 ) RETURNS JSONB
-LANGUAGE sql
+LANGUAGE plpgsql
 STABLE
 SECURITY DEFINER
 SET search_path = zapp
 AS $$
-  SELECT COALESCE(
+BEGIN
+  RETURN COALESCE(
     (SELECT jsonb_agg(to_jsonb(r.*))
      FROM public.rpc_list_messages_lite(p_remote_jid, p_instance, p_limit, p_offset, p_before_date) r),
     '[]'::jsonb
   );
+END;
 $$;
 
 REVOKE EXECUTE ON FUNCTION zapp.rpc_list_messages_lite(TEXT, TEXT, INTEGER, INTEGER, TIMESTAMPTZ) FROM PUBLIC, anon;
@@ -197,11 +202,13 @@ CREATE OR REPLACE FUNCTION zapp.rpc_log_search_event(
   p_result_count INTEGER DEFAULT 0,
   p_found        BOOLEAN DEFAULT true
 ) RETURNS VOID
-LANGUAGE sql
+LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = zapp
 AS $$
-  SELECT public.rpc_log_search_event(p_query, p_results, p_result_count, p_found);
+BEGIN
+  PERFORM public.rpc_log_search_event(p_query, p_results, p_result_count, p_found);
+END;
 $$;
 
 REVOKE EXECUTE ON FUNCTION zapp.rpc_log_search_event(TEXT, TEXT[], INTEGER, BOOLEAN) FROM PUBLIC, anon;
@@ -217,11 +224,13 @@ CREATE OR REPLACE FUNCTION zapp.rpc_record_search_click(
   p_result_id   TEXT,
   p_result_type TEXT
 ) RETURNS VOID
-LANGUAGE sql
+LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = zapp
 AS $$
-  SELECT public.rpc_record_search_click(p_query, p_result_id, p_result_type);
+BEGIN
+  PERFORM public.rpc_record_search_click(p_query, p_result_id, p_result_type);
+END;
 $$;
 
 REVOKE EXECUTE ON FUNCTION zapp.rpc_record_search_click(TEXT, TEXT, TEXT) FROM PUBLIC, anon;

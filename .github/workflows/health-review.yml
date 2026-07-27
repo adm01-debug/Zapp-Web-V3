@@ -1,1 +1,94 @@
-bmFtZTogSGVhbHRoIFJldmlldyBRdWluemVuYWwKCm9uOgogIHNjaGVkdWxlOgogICAgIyBUb2RvIGRpYSAxIGUgMTUgZG8gbcOqcywgw6BzIDkgaCAoVVRDKQogICAgLSBjcm9uOiAnMCA5IDEsMTUgKiAqJwogIHdvcmtmbG93X2Rpc3BhdGNoOiB7fSAgIyBQZXJtaXRlIGV4ZWN1w6fDo28gbWFudWFsCgpqb2JzOgogIGhlYWx0aC1yZXZpZXc6CiAgICBuYW1lOiBQcm9qZWN0IEhlYWx0aCBSZXZpZXcKICAgIHJ1bnMtb246IHVidW50dS1sYXRlc3QKICAgIHN0ZXBzOgogICAgICAtIHVzZXM6IGFjdGlvbnMvY2hlY2tvdXRAdjQKCiAgICAgIC0gbmFtZTogUnVuIEhlYWx0aCBDaGVja3MKICAgICAgICBpZDogaGVhbHRoCiAgICAgICAgcnVuOiB8CiAgICAgICAgICAjISAvYmluL2Jhc2gKICAgICAgICAgIFJFU1VMVD0iIgoKICAgICAgICAgICMgMS4gQHRzLW5vY2hlY2sgY291bnQKICAgICAgICAgIFRTX0NPVU5UPSQoZ3JlcCAtciAnQHRzLW5vY2hlY2snIHNyYy8gLS1pbmNsdWRlPScqLnRzJyAtLWluY2x1ZGU9JyoudHN4JyAtbCAyPi9kZXYvbnVsbCB8IHdjIC1sIHwgdHIgLWQgJyAnKQogICAgICAgICAgUkVTVUxUPSIkUkVTVUxUXG4tIEBAdHMtbm9jaGVjazogJFRTX0NPVU5UIGZpbGVzIChiYXNlbGluZTogOSkiCgogICAgICAgICAgIyAyLiBUb3RhbCB3b3JrZmxvd3MKICAgICAgICAgIFdGX0NPVU5UPSQobHMgLjEvLmdpdGh1Yi93b3JrZmxvd3MvKi55bWwgMj4vZGV2L251bGwgfCB3YyAtbCB8IHRyIC1kICcgJykKICAgICAgICAgIFJFU1VMVD0iJFJFU1VMVFxuLSBXb3JrZmxvd3M6ICRKV0ZfQ09VTlQgeW1sIGZpbGVzIChtZXRhOiAxMikiCgogICAgICAgICAgIyAzLiBNaWdyYXRpb24gdGVtcGxhdGUgdXNhZ2UKICAgICAgICAgIE1JR19DT1VOVD0kKGZpbmQgc3VwYWJhc2UvbWlncmF0aW9ucyAtbmFtZSAnKi5zcWwnIC10eXBlIGYgfCBncmVwIC12IFRNUE0BVEVNUEFMVCB8IHdjIC1sIHwgdHIgLWQgJyAnKQogICAgICAgICAgUkVTVUxUPSIkUkVTVUxUXG4tIE1pZ3JhdGlvbnM6ICQoZmluZCBzdXBhYmFzZS9taWdyYXRpb25zIC1uYW1lICcqLnNxbCcgLXR5cGUgZiAyPi9kZXYvbnVsbCB8IHdjIC1sIHwgdHIgLWQgJyAnKSBmaWxlcyIKCiAgICAgICAgICAjIDQuIFJvb3QgZmlsZXMgcG9sdWnDp8OjbwogICAgICAgICAgUk9PVF9NRF9DT1VOVD0kKGZpbmQgLiBtYXhkZXB0aCAxIC1uYW1lICcqLm1kJyAtdHlwZSBmIDI+L2Rldi9udWxsIHwgd2MgLWwgfCB0ciAtZCAnICcpCiAgICAgICAgICBSRVNVTFQ9IiRSRVNVTFRcbi0gTWFya2Rvd24gbm8gcm9vdDogJFJPT1RfTURfQ09VTlQgZmlsZXMgKG1ldGE6IDwxMCkiCgogICAgICAgICAgZWNobyAicmVzdWx0PCRSZXN1bHQiID4+ICIkR0lUSFVCX09VVFBVVCIKICAGICAGICAGAGB        ZWNobyAiJFJFU1VMVCIKICAGICAGICAGAGB         ZWNobyAiIgoKICAgICAgICAgIGVjaG8gInRzX2NvdW50PSRUU19DT1VOVCIKICAGICAGICAGAGB         ZWNobyAid2ZfY291bnQ9JFdGX0NPVU5UICIKICAGICAGICAGAGB         ZWNobyAicm9vdF9tZF9jb3VudD0kUk9PVF9NRF9DT1VOVCIKCiAgICAgIC0gbmFtZTogQ3JlYXRlIEhlYWx0aCBSZXZpZXcgSXNzdWUKICAgICAgICB1c2VzOiBhY3Rpb25zL2dpdGh1Yi1zY3JpcHRAdjcKICAgICAgICB3aXRoOgogICAgICAgICAgZ2l0aHViLXRva2VuOiAke3sgc2VjcmV0cy5HSVRIVUJfVE9LRU4gfX0KICAgICAgICAgIHNjcmlwdDogfAogICAgICAgICAgICBjb25zdCBub3cgPSBuZXcgRGF0ZSgpOwogICAgICAgICAgICBjb25zdCB0aXRsZSA9IGBbSGVhbHRoIFJldmlld10gUXVpbnplbmFsIC0gJHtub3cudG9JU09TdHJpbmcoKS5zcGxpdCgnVCcpWzBdfWA7CgogICAgICAgICAgICBjb25zdCBib2R5ID0gWwogICAgICAgICAgICAgICcjIFJldmlldyBRdWluemVuYWwgZGUgU2HDumRlIGRvIFByb2pldG8nLAogICAgICAgICAgICAgIGAnYGBgJywKICAgICAgICAgICAgICAnQnVja2V0IHdoYXRzYXBwLW1lZGlhOiBwcml2YWRvIFsnICsgKHByb2Nlc3MuZW52LlRTX0NPVU5UIHx8ICc/JykgKyAnXScsCiAgICAgICAgICAgICAgJ0B0cy1ub2NoZWNrOiAnICsgKHByb2Nlc3MuZW52LlRTX0NPVU5UIHx8ICc/JykgKyAnIGZpbGVzJywKICAgICAgICAgICAgICAnV29ya2Zsb3dzIENJOiAnICsgKHByb2Nlc3MuZW52LldGX0NPVU5UIHx8ICc/JykgKyAnIGFyY2hpdm9zJywKICAgICAgICAgICAgICAnJycsCiAgICAgICAgICAgICAgJ2BgYCcsCiAgICAgICAgICAgICAgJyMjIENoZWNrbGlzdCBkbyBUaW1lJywKICAgICAgICAgICAgICAnLSBbIF0gUmV2aXNhciBhYmVydHVyYXMgZGUgc2VndXJhbsOnYSAoRGVwZW5kYWJvdCwgQ29kZVFMKScsCiAgICAgICAgICAgICAgJy0gWyBdIFZlcmlmaWNhciBzZSBidWNrZXQgd2hhdHNhcHAtbWVkaWEgY29udGludWEgcHJpdmFkbycsCiAgICAgICAgICAgICAgJy0gWyBdIFJldmlzYXIgUFJzIGFiZXJ0b3MgKiBtZXRhOiB6ZXJvIFBScyBhYmVydG9zIHBvciBtYWlzIGRlIDcgZGlhcyknLAogICAgICAgICAgICAgICctIFsgXSBBdHVhbGl6YXIgYmFzZWxpbmVzIHNlIEB0cy1ub2NoZWNrIGRpbWludWl1JywKICAgICAgICAgICAgICAnLSBbIF0gUmV2aXNhciBmaXgvZmVhdCByYXRpbyAobWV0YTogPSAyOjEpJywKICAgICAgICAgICAgXS5qb2luKCdcbicpOwoKICAgICAgICAgICAgYXdhaXQgZ2l0aHViLnJlc3QuaXNzdWVzLmNyZWF0ZSh7CiAgICAgICAgICAgICAgb3duZXI6IGNvbnRleHQucmVwby5vd25lciwKICAgICAgICAgICAgICByZXBvOiBjb250ZXh0LnJlcG8ucmVwbywKICAgICAgICAgICAgICB0aXRsZSwKICAgICAgICAgICAgICBib2R5LAogICAgICAgICAgICAgIGxhYmVsczogWydtYWludGVuYW5jZScsICdoZWFsdGgtcmV2aWV3J10KICAgICAgICAgICAgfSk7Cg==
+name: Health Review Quinzenal
+
+on:
+  pull_request:
+    branches: [main, master]
+  schedule:
+    # Todo dia 1 e 15 do mês, às 9 h (UTC)
+    - cron: '0 9 1,15 * *'
+  workflow_dispatch: {}  # Permite execução manual
+
+jobs:
+  pr-check:
+    permissions: {}
+    name: Health Review — skipped on PR (runs on schedule)
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Health Review skipped on PRs — runs automatically on the 1st and 15th of each month."
+
+  health-review:
+    permissions:
+      contents: read
+      issues: write
+    name: Project Health Review
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run Health Checks
+        id: health
+        run: |
+          #! /bin/bash
+          RESULT=""
+
+          # 1. @ts-nocheck count
+          TS_COUNT=$(grep -r '@ts-nocheck' src/ --include='*.ts' --include='*.tsx' -l 2>/dev/null | wc -l | tr -d ' ')
+          RESULT="$RESULT\n- @ts-nocheck: $TS_COUNT files (baseline: 9)"
+
+          # 2. Total workflows
+          WF_COUNT=$(ls .github/workflows/*.yml 2>/dev/null | wc -l | tr -d ' ')
+          RESULT="$RESULT\n- Workflows: $WF_COUNT yml files"
+
+          # 3. Migration count
+          MIG_COUNT=$(find supabase/migrations -name '*.sql' -type f 2>/dev/null | wc -l | tr -d ' ')
+          RESULT="$RESULT\n- Migrations: $MIG_COUNT files"
+
+          # 4. Root files poluição
+          ROOT_MD_COUNT=$(find . -maxdepth 1 -name '*.md' -type f 2>/dev/null | wc -l | tr -d ' ')
+          RESULT="$RESULT\n- Markdown no root: $ROOT_MD_COUNT files (meta: <10)"
+
+          echo "result<<EOF" >> "$GITHUB_OUTPUT"
+          echo -e "$RESULT" >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
+          echo "ts_count=$TS_COUNT" >> "$GITHUB_OUTPUT"
+          echo "wf_count=$WF_COUNT" >> "$GITHUB_OUTPUT"
+          echo "mig_count=$MIG_COUNT" >> "$GITHUB_OUTPUT"
+          echo "root_md_count=$ROOT_MD_COUNT" >> "$GITHUB_OUTPUT"
+
+      - name: Create Health Review Issue
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const now = new Date();
+            const title = `[Health Review] Quinzenal - ${now.toISOString().split('T')[0]}`;
+            const tsCount = '${{ steps.health.outputs.ts_count }}' || '?';
+            const wfCount = '${{ steps.health.outputs.wf_count }}' || '?';
+            const migCount = '${{ steps.health.outputs.mig_count }}' || '?';
+            const rootMdCount = '${{ steps.health.outputs.root_md_count }}' || '?';
+
+            const body = [
+              '# Review Quinzenal de Saúde do Projeto',
+              '```',
+              `@ts-nocheck: ${tsCount} files (baseline: 9)`,
+              `Workflows CI: ${wfCount} arquivos`,
+              `Migrations: ${migCount} arquivos`,
+              `Markdown no root: ${rootMdCount} files (meta: <10)`,
+              '```',
+              '## Checklist do Time',
+              '- [ ] Revisar aberturas de segurança (Dependabot, CodeQL)',
+              '- [ ] Verificar se bucket whatsapp-media continua privado',
+              '- [ ] Revisar PRs abertos (meta: zero PRs abertos por mais de 7 dias)',
+              '- [ ] Atualizar baselines se @ts-nocheck diminuiu',
+              '- [ ] Revisar fix/feat ratio (meta: >= 2:1)',
+            ].join('\n');
+
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title,
+              body,
+              labels: ['maintenance', 'health-review']
+            });
