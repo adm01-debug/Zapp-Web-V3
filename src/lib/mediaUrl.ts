@@ -40,6 +40,38 @@ const INTERNAL_HOSTS = [
 ] as const;
 
 // ---------------------------------------------------------------------------
+// Helpers internos
+// ---------------------------------------------------------------------------
+
+/**
+ * Verifica se uma URL pertence ao CDN do WhatsApp checando o hostname real.
+ * Usar new URL() em vez de includes() evita bypass via path/query injection
+ * (ex: https://evil.com/mmg.whatsapp.net passaria no includes mas falha aqui).
+ */
+function isWhatsAppCdnHost(rawUrl: string): boolean {
+  try {
+    const hostname = new URL(rawUrl).hostname;
+    return hostname === 'mmg.whatsapp.net' || hostname.endsWith('.mmg.whatsapp.net');
+  } catch {
+    // URL malformada — nunca é CDN do WhatsApp
+    return false;
+  }
+}
+
+/**
+ * Verifica se uma URL aponta para um arquivo .enc do WhatsApp (mídia encriptada).
+ * Usa pathname em vez de includes() para evitar match em query strings de outros domínios.
+ */
+function isEncryptedWhatsAppFile(rawUrl: string): boolean {
+  try {
+    const { pathname } = new URL(rawUrl);
+    return pathname.endsWith('.enc');
+  } catch {
+    return false;
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Funções públicas
 // ---------------------------------------------------------------------------
 
@@ -70,7 +102,7 @@ export function sanitizeMediaUrl(url: string | null | undefined): string | null 
   if (!url) return null;
 
   // Detectar URLs WhatsApp CDN (não renderizáveis pelo browser)
-  if (url.includes('mmg.whatsapp.net') || url.includes('.enc?')) {
+  if (isWhatsAppCdnHost(url) || isEncryptedWhatsAppFile(url)) {
     return null; // mídia não renderizável — usar placeholder
   }
 
@@ -95,7 +127,7 @@ export function sanitizeMediaUrl(url: string | null | undefined): string | null 
  */
 export function isWhatsAppCdnUrl(url: string | null | undefined): boolean {
   if (!url) return false;
-  return url.includes('mmg.whatsapp.net') || url.includes('.enc?');
+  return isWhatsAppCdnHost(url) || isEncryptedWhatsAppFile(url);
 }
 
 /**
