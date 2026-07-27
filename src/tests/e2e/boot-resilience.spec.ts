@@ -14,23 +14,27 @@ import { test, expect } from '@playwright/test';
 
 // Deriva os hosts a bloquear do env (CI usa example.supabase.co; produção usa
 // supabase.atomicabr.com.br). Sempre inclui o host de produção como fallback.
-function buildSupabaseBlockPattern(): RegExp {
+// Usa Set.has() com correspondência exata de hostname — sem regex construída
+// dinamicamente, evitando riscos de escape incompleto ou âncora ausente.
+function buildSupabaseBlockedHosts(): Set<string> {
   const hosts = new Set(['supabase.atomicabr.com.br']);
   try {
-    const url = process.env.VITE_SUPABASE_URL;
-    if (url) hosts.add(new URL(url).hostname);
+    const raw = process.env.VITE_SUPABASE_URL;
+    if (raw) hosts.add(new URL(raw).hostname);
   } catch {
     // env inválido — ignora
   }
-  const escaped = [...hosts].map((h) => h.replace(/\./g, '\\.')).join('|');
-  return new RegExp(escaped);
+  return hosts;
 }
 
-const SUPABASE_BLOCK = buildSupabaseBlockPattern();
+const SUPABASE_BLOCKED_HOSTS = buildSupabaseBlockedHosts();
 
 test.describe('boot resilience (backend offline)', () => {
   test.beforeEach(async ({ context }) => {
-    await context.route(SUPABASE_BLOCK, (route) => route.abort('failed'));
+    await context.route(
+      (url) => SUPABASE_BLOCKED_HOSTS.has(url.hostname),
+      (route) => route.abort('failed'),
+    );
   });
 
   test('SPA monta e não reloada em loop com backend inacessível', async ({ page }) => {
