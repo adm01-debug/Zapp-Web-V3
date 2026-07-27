@@ -88,6 +88,17 @@ export default defineConfig({
       'src/lib/__tests__/diagnostics.test.ts',
       'src/lib/realtime/__tests__/crossTabDedupe.test.ts',
       'src/test/realtimeFanoutEvents.test.ts',
+      // Deno test files — use https://deno.land/ imports incompatíveis com Node/vitest.
+      // Rodam apenas com `deno test` (suíte separada).
+      'src/hooks/__tests__/useAudioRecorder.cleanup.test.ts',
+      'src/lib/__tests__/clientRateLimiter.test.ts',
+      'src/lib/__tests__/healthCheck.test.ts',
+      'src/lib/__tests__/queryTimeout.test.ts',
+      'src/lib/__tests__/sanitize-extra.test.ts',
+      'src/shared/__tests__/validation.test.ts',
+      // contactsDB tests depende de VITE_EXTERNAL_SUPABASE_URL/ANON_KEY não configuradas em CI.
+      // Requerem env vars de instância externa; rodados separadamente via script de integração.
+      'src/lib/__tests__/contactsDB.test.ts',
     ],
     coverage: {
       provider: 'v8',

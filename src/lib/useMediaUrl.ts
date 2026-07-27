@@ -20,7 +20,12 @@
 
 import { useMemo, useState, useEffect, useCallback, useRef } from 'react';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { sanitizeMediaUrl, resolveMediaUrl, isMediaUrlFailed, SUPABASE_PUBLIC_URL } from './mediaUrl';
+import {
+  sanitizeMediaUrl,
+  resolveMediaUrl,
+  isMediaUrlFailed,
+  SUPABASE_PUBLIC_URL,
+} from './mediaUrl';
 
 // ---------------------------------------------------------------------------
 // Buckets públicos — não precisam de signed URL
@@ -34,9 +39,9 @@ import { sanitizeMediaUrl, resolveMediaUrl, isMediaUrlFailed, SUPABASE_PUBLIC_UR
  * Para adicionar um bucket aqui: garantir que não contém PII (LGPD).
  */
 export const PUBLIC_BUCKETS = new Set([
-  'avatars',      // fotos de perfil — sempre público
-  'stickers',     // figurinhas — sempre público
-  'audio-memes',  // sons de notificação — sempre público
+  'avatars', // fotos de perfil — sempre público
+  'stickers', // figurinhas — sempre público
+  'audio-memes', // sons de notificação — sempre público
   'custom-emojis', // emojis customizados — sempre público
 ]);
 
@@ -88,7 +93,11 @@ export function resolvePublicMediaUrl(params: {
     if (!sanitized) return null; // CDN WhatsApp ou inválida
     if (isMediaUrlFailed(sanitized)) return null;
     if (sanitized.startsWith(SUPABASE_PUBLIC_URL)) return sanitized;
-    if (sanitized.startsWith('https://zapp-media-proxy.adm01.workers.dev')) return sanitized;
+    try {
+      if (new URL(sanitized).hostname === 'zapp-media-proxy.adm01.workers.dev') return sanitized;
+    } catch {
+      /* URL inválida — ignorar */
+    }
     return sanitized;
   }
 
@@ -158,12 +167,12 @@ export function useSignedMediaUrlBatch(
   items: MediaItem[],
   supabase: SupabaseClient
 ): { signedUrls: Map<string, string | null>; loading: boolean } {
-  const [signedUrls, setSignedUrls] = useState<Map<string, string | null>>(new Map);
+  const [signedUrls, setSignedUrls] = useState<Map<string, string | null>>(new Map());
   const [loading, setLoading] = useState(false);
 
   // Estabilizar a referência dos items para evitar re-fetch desnecessário
   const itemsKey = useMemo(
-    () => items.map(i => `${i.media_bucket ?? ''}:${i.media_path ?? ''}`).join('|'),
+    () => items.map((i) => `${i.media_bucket ?? ''}:${i.media_path ?? ''}`).join('|'),
     [items]
   );
 
@@ -213,14 +222,15 @@ export function useSignedMediaUrlBatch(
 
     // UMA createSignedUrls() por bucket — este é o anti-N+1
     const promises = Array.from(byBucket.entries()).map(async ([bucket, pathItems]) => {
-      const paths = pathItems.map(p => p.path);
-      const { data, error } = await supabase.storage
-        .from(bucket)
-        .createSignedUrls(paths, 3600); // 60min TTL no servidor
+      const paths = pathItems.map((p) => p.path);
+      const { data, error } = await supabase.storage.from(bucket).createSignedUrls(paths, 3600); // 60min TTL no servidor
 
       if (error || !data) {
-        console.warn(`[useSignedMediaUrlBatch] Erro ao assinar ${paths.length} paths de ${bucket}:`, error);
-        return pathItems.map(p => ({ id: p.id, url: null as string | null }));
+        console.warn(
+          `[useSignedMediaUrlBatch] Erro ao assinar ${paths.length} paths de ${bucket}:`,
+          error
+        );
+        return pathItems.map((p) => ({ id: p.id, url: null as string | null }));
       }
 
       return pathItems.map((item, idx) => {
@@ -234,8 +244,8 @@ export function useSignedMediaUrlBatch(
     });
 
     Promise.all(promises)
-      .then(results => {
-        setSignedUrls(prev => {
+      .then((results) => {
+        setSignedUrls((prev) => {
           const next = new Map(prev);
           for (const batch of results) {
             for (const { id, url } of batch) {
@@ -245,7 +255,7 @@ export function useSignedMediaUrlBatch(
           return next;
         });
       })
-      .catch(err => {
+      .catch((err) => {
         console.error('[useSignedMediaUrlBatch] Erro inesperado:', err);
       })
       .finally(() => setLoading(false));
@@ -317,21 +327,26 @@ export function useMessageMediaUrl(params: {
  * NÃO faz chamadas de rede — apenas resolve URLs de buckets públicos.
  * Para buckets privados (whatsapp-media), use useSignedMediaUrlBatch().
  */
-export function resolveMediaUrlBatch(messages: Array<{
-  id: string;
-  media_bucket?: string | null;
-  media_path?: string | null;
-  media_url?: string | null;
-  media_status?: string | null;
-}>): Map<string, string | null> {
+export function resolveMediaUrlBatch(
+  messages: Array<{
+    id: string;
+    media_bucket?: string | null;
+    media_path?: string | null;
+    media_url?: string | null;
+    media_status?: string | null;
+  }>
+): Map<string, string | null> {
   const result = new Map<string, string | null>();
   for (const msg of messages) {
-    result.set(msg.id, resolvePublicMediaUrl({
-      mediaBucket: msg.media_bucket,
-      mediaPath: msg.media_path,
-      mediaUrl: msg.media_url,
-      mediaStatus: msg.media_status,
-    }));
+    result.set(
+      msg.id,
+      resolvePublicMediaUrl({
+        mediaBucket: msg.media_bucket,
+        mediaPath: msg.media_path,
+        mediaUrl: msg.media_url,
+        mediaStatus: msg.media_status,
+      })
+    );
   }
   return result;
 }
