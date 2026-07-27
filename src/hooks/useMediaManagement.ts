@@ -90,6 +90,8 @@ export function useCustomEmojisManagement() {
 export function useExportDataManagement() {
   const [isExporting, setIsExporting] = useState(false);
   const [progress, setProgress] = useState(0);
+  const mountedRef = useRef(true);
+  useEffect(() => { return () => { mountedRef.current = false; }; }, []);
 
   const exportData = useCallback(async (format: 'json' | 'csv' = 'json') => {
     setIsExporting(true);
@@ -128,11 +130,11 @@ export function useExportDataManagement() {
       document.body.removeChild(element);
       URL.revokeObjectURL(objectUrl);
 
-      setProgress(100);
+      if (mountedRef.current) setProgress(100);
     } catch (err) {
       log.error('Error exporting data:', err);
     } finally {
-      setIsExporting(false);
+      if (mountedRef.current) setIsExporting(false);
     }
   }, []);
 
@@ -142,6 +144,8 @@ export function useExportDataManagement() {
 export function useImportDataManagement() {
   const [isImporting, setIsImporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const mountedRef = useRef(true);
+  useEffect(() => { return () => { mountedRef.current = false; }; }, []);
 
   const importData = useCallback(async (file: File) => {
     setIsImporting(true);
@@ -156,10 +160,10 @@ export function useImportDataManagement() {
       if (err) throw err;
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Import failed';
-      setError(message);
+      if (mountedRef.current) setError(message);
       log.error('Error importing data:', err);
     } finally {
-      setIsImporting(false);
+      if (mountedRef.current) setIsImporting(false);
     }
   }, []);
 

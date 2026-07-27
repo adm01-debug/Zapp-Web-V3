@@ -393,6 +393,7 @@ export function useWebhookHealthAlertsManagement(): UseWebhookHealthAlertsResult
 export function useRealtimeSentimentAlertsManagement(): UseRealtimeSentimentAlertsResult {
   const [alerts, setAlerts] = useState<RealtimeSentimentAlert[]>([]);
   const { settings, isQuietHours } = useNotificationSettingsManagement();
+  const mountedRef = useRef(true);
 
   // Refs para evitar re-subscribe a cada render (settings/isQuietHours mudam de referência)
   const settingsRef = useRef(settings);
@@ -433,6 +434,7 @@ export function useRealtimeSentimentAlertsManagement(): UseRealtimeSentimentAler
       .subscribe();
 
     return () => {
+      mountedRef.current = false;
       channel.unsubscribe();
       supabase.removeChannel(channel);
     };
@@ -448,7 +450,7 @@ export function useRealtimeSentimentAlertsManagement(): UseRealtimeSentimentAler
         log.error('Failed to acknowledge sentiment alert:', error.message);
         return;
       }
-      setAlerts((prev) => prev.map((a) => (a.id === alertId ? { ...a, acknowledged: true } : a)));
+      if (mountedRef.current) setAlerts((prev) => prev.map((a) => (a.id === alertId ? { ...a, acknowledged: true } : a)));
     } catch (error) {
       log.error('Failed to acknowledge sentiment alert:', error);
     }
@@ -464,7 +466,7 @@ export function useRealtimeSentimentAlertsManagement(): UseRealtimeSentimentAler
         log.error('Failed to clear sentiment alert:', error.message);
         return;
       }
-      setAlerts((prev) => prev.filter((a) => a.id !== alertId));
+      if (mountedRef.current) setAlerts((prev) => prev.filter((a) => a.id !== alertId));
     } catch (error) {
       log.error('Failed to clear sentiment alert:', error);
     }

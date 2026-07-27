@@ -182,19 +182,21 @@ export function usePushNotificationsManagement() {
   const [isSupported, setIsSupported] = useState(false);
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const mountedRef = useRef(true);
 
   useEffect(() => {
     setIsSupported('Notification' in window);
     if ('Notification' in window) {
       setPermission(Notification.permission);
     }
+    return () => { mountedRef.current = false; };
   }, []);
 
   const requestPermission = useCallback(async () => {
     if (!isSupported) return;
     try {
       const perm = await Notification.requestPermission();
-      setPermission(perm);
+      if (mountedRef.current) setPermission(perm);
       return perm;
     } catch (err) {
       log.error('Error requesting notification permission:', err);
@@ -229,12 +231,12 @@ export function usePushNotificationsManagement() {
     try {
       if (!isSubscribed) {
         const nextPermission = permission === 'granted' ? permission : await requestPermission();
-        setIsSubscribed(nextPermission === 'granted');
+        if (mountedRef.current) setIsSubscribed(nextPermission === 'granted');
       } else {
         setIsSubscribed(false);
       }
     } finally {
-      setIsLoading(false);
+      if (mountedRef.current) setIsLoading(false);
     }
   }, [isSubscribed, permission, requestPermission]);
 
@@ -259,6 +261,8 @@ export function useNotificationSettingsManagement(userId?: string) {
   const queryClient = useQueryClient();
   const resolvedUserId = userId ?? user?.id;
   const [isSaving, setIsSaving] = useState(false);
+  const mountedRef = useRef(true);
+  useEffect(() => { return () => { mountedRef.current = false; }; }, []);
 
   const {
     data: settings = DEFAULT_NOTIFICATION_SETTINGS,
@@ -309,7 +313,7 @@ export function useNotificationSettingsManagement(userId?: string) {
           queryKey: NOTIFICATION_SETTINGS_KEY(resolvedUserId),
         });
       } finally {
-        setIsSaving(false);
+        if (mountedRef.current) setIsSaving(false);
       }
     },
     [resolvedUserId, queryClient]
@@ -349,6 +353,7 @@ export function useTeamChatNotificationsManagement() {
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const channelRef = useRef<any>(null);
+  const mountedRef = useRef(true);
 
   useEffect(() => {
     channelRef.current = supabase.channel('notifications:team-chat');
@@ -363,6 +368,7 @@ export function useTeamChatNotificationsManagement() {
       .subscribe();
 
     return () => {
+      mountedRef.current = false;
       if (channelRef.current) {
         channelRef.current.unsubscribe();
         supabase.removeChannel(channelRef.current).catch(() => {});
@@ -380,7 +386,7 @@ export function useTeamChatNotificationsManagement() {
         log.error('Error marking notification as read:', error.message);
         return;
       }
-      setNotifications((prev) =>
+      if (mountedRef.current) setNotifications((prev) =>
         prev.map((n) => (n.id === notificationId ? { ...n, is_read: true } : n))
       );
     } catch (err) {
