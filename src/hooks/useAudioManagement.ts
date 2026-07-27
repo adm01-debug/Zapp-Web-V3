@@ -763,6 +763,8 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
   const lastBlobRef = useRef<Blob | null>(null);
   const lastTranscriptionRef = useRef<string>('');
   const transcriptionRef = useRef<string>('');
+  const audioUrlRef = useRef<string | null>(null);
+  const mountedRef = useRef(true);
   useEffect(() => {
     transcriptionRef.current = transcription;
   }, [transcription]);
@@ -826,7 +828,9 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
 
         mediaRecorder.onstop = async () => {
           const audioBlob = new Blob(chunksRef.current, { type: 'audio/webm' });
+          if (audioUrlRef.current) URL.revokeObjectURL(audioUrlRef.current);
           const url = URL.createObjectURL(audioBlob);
+          audioUrlRef.current = url;
           setAudioUrl(url);
 
           if (recognitionRef.current) {
@@ -835,17 +839,17 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
 
           if (transcriptionRef.current.trim() === '' && audioBlob.size > 1000) {
             try {
-              setIsTranscribing(true);
+              if (mountedRef.current) setIsTranscribing(true);
               const { data, error } = await supabase.functions.invoke('speech-to-text', {
                 body: { audio: await blobToBase64(audioBlob) },
               });
-              if (!error && data?.text) {
+              if (!error && data?.text && mountedRef.current) {
                 setTranscription(data.text);
               }
             } catch (err) {
               logLib.error('Backend STT failed:', err);
             } finally {
-              setIsTranscribing(false);
+              if (mountedRef.current) setIsTranscribing(false);
             }
           }
 
@@ -855,7 +859,7 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
           if (audioContextRef.current) audioContextRef.current.close();
           analyserRef.current = null;
           audioContextRef.current = null;
-          setAudioLevel(0);
+          if (mountedRef.current) setAudioLevel(0);
         };
 
         mediaRecorder.start(100);
@@ -996,6 +1000,11 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
 
   useEffect(() => {
     return () => {
+      mountedRef.current = false;
+      if (audioUrlRef.current) {
+        URL.revokeObjectURL(audioUrlRef.current);
+        audioUrlRef.current = null;
+      }
       if (intervalRef.current) clearInterval(intervalRef.current);
       if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
       try {
@@ -1041,6 +1050,10 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
         setIsRecording(false);
         setIsPaused(false);
         setDuration(0);
+        if (audioUrlRef.current) {
+          URL.revokeObjectURL(audioUrlRef.current);
+          audioUrlRef.current = null;
+        }
         setAudioUrl(null);
       }
     },
@@ -1049,7 +1062,9 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
 
   const restoreRecording = useCallback(() => {
     if (lastBlobRef.current) {
+      if (audioUrlRef.current) URL.revokeObjectURL(audioUrlRef.current);
       const url = URL.createObjectURL(lastBlobRef.current);
+      audioUrlRef.current = url;
       setAudioUrl(url);
       setTranscription(lastTranscriptionRef.current);
       onRecordingComplete?.(lastBlobRef.current, url);
