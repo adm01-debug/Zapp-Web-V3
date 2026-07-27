@@ -20,7 +20,8 @@ export function useTeamConversations() {
       const { data: conversations, error: convErr } = await supabase
         .from('team_conversations')
         .select('*')
-        .order('updated_at', { ascending: false });
+        .order('updated_at', { ascending: false })
+        .limit(500);
 
       if (convErr) throw convErr;
       if (!conversations?.length) return [];
@@ -91,7 +92,7 @@ export function useTeamConversations() {
 
       const enriched: TeamConversation[] = conversations.map((conv) => {
         const members = (allMembers || []).filter(
-          (m: any) => m.conversation_id === conv.id
+          (m) => m.conversation_id === conv.id
         ) as TeamMember[];
         const lastMsg = lastMessageMap.get(conv.id) || null;
 

@@ -138,7 +138,7 @@ export function useEmailHealthStatus() {
         'postgres_changes',
         { event: '*', schema: 'email_app', table: 'email_revalidation_jobs' },
         (payload) => {
-          const job = (payload.new || payload.old) as EmailRevalidationJob;
+          const job = (payload.eventType === 'DELETE' ? payload.old : payload.new) as EmailRevalidationJob;
           if (payload.eventType === 'INSERT') {
             toast.info(`Nova solicitação de revalidação agendada`);
           } else if (payload.eventType === 'UPDATE' && job.status === 'completed') {
