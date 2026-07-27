@@ -14,7 +14,7 @@ jobs:
   fix:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
@@ -54,27 +54,17 @@ jobs:
 
           gh pr create \
             --title "fix: migrate realtime subscriptions from public to zapp schema" \
-            --body "## Summary
-
-Automated migration of Realtime subscriptions from \`schema: 'public'\` to \`schema: 'zapp'\`.
-
-## Why
-
-The \`public\` schema contains proxy views, not physical tables. Only the \`zapp\` schema has physical tables that are published to Realtime.
-
-## Verification
-
-- [ ] CI passes
-- [ ] Realtime subscriptions work correctly
-- [ ] 1 approval required before merge" \
+            --body $'## Summary\n\nAutomated migration of Realtime subscriptions from `schema: \'public\'` to `schema: \'zapp\'`.\n\n## Why\n\nThe `public` schema contains proxy views, not physical tables. Only the `zapp` schema has physical tables that are published to Realtime.\n\n## Verification\n\n- [ ] CI passes\n- [ ] Realtime subscriptions work correctly\n- [ ] 1 approval required before merge' \
             --base main
 
-      - name: Summary
+      - name: Summary (changes found)
         if: steps.diff.outputs.changed == 'true'
         run: |
           echo '## ✅ Schema fix PR created' >> $GITHUB_STEP_SUMMARY
           echo '' >> $GITHUB_STEP_SUMMARY
           echo 'PR requires 1 approval before merge.' >> $GITHUB_STEP_SUMMARY
+
+      - name: Summary (no changes)
         if: steps.diff.outputs.changed == 'false'
         run: |
           echo '## ℹ️ No changes needed' >> $GITHUB_STEP_SUMMARY
