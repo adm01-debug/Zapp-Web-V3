@@ -18,7 +18,7 @@
  *   ADR-003: Reverter para privado + batch signing (este arquivo)
  */
 
-import { useMemo, useState, useEffect, useCallback, useRef } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { sanitizeMediaUrl, resolveMediaUrl, isMediaUrlFailed, SUPABASE_PUBLIC_URL } from './mediaUrl';
 
