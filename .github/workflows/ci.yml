@@ -57,6 +57,15 @@ jobs:
             OLD_PKG=$(git show "HEAD^:package.json" 2>/dev/null || echo '{}')
             NEW_PKG=$(cat package.json)
           fi
+          # Some repo states may have base64-encoded package.json (e.g. the main
+          # branch during the window when this corruption existed).  Decode before
+          # parsing so the check doesn't fail with a jq parse error.
+          if ! echo "$OLD_PKG" | jq empty 2>/dev/null; then
+            OLD_PKG=$(echo "$OLD_PKG" | base64 -d 2>/dev/null || echo '{}')
+          fi
+          if ! echo "$NEW_PKG" | jq empty 2>/dev/null; then
+            NEW_PKG=$(echo "$NEW_PKG" | base64 -d 2>/dev/null || echo '{}')
+          fi
           # Compare only the dependency fields — scripts/version changes are irrelevant.
           OLD_DEPS=$(echo "$OLD_PKG" | jq -Sc '{d: (.dependencies // {}), dd: (.devDependencies // {}), pd: (.peerDependencies // {}), od: (.optionalDependencies // {})}')
           NEW_DEPS=$(echo "$NEW_PKG" | jq -Sc '{d: (.dependencies // {}), dd: (.devDependencies // {}), pd: (.peerDependencies // {}), od: (.optionalDependencies // {})}')
