@@ -58,16 +58,18 @@ CREATE OR REPLACE FUNCTION zapp.rpc_get_contact(
   p_remote_jid TEXT,
   p_instance   TEXT DEFAULT NULL
 ) RETURNS JSONB
-LANGUAGE sql
+LANGUAGE plpgsql
 STABLE
 SECURITY DEFINER
 SET search_path = zapp
 AS $$
-  SELECT COALESCE(
+BEGIN
+  RETURN COALESCE(
     (SELECT jsonb_agg(to_jsonb(r.*))
      FROM public.rpc_get_contact(p_remote_jid, p_instance) r),
     '[]'::jsonb
   );
+END;
 $$;
 
 REVOKE EXECUTE ON FUNCTION zapp.rpc_get_contact(TEXT, TEXT) FROM PUBLIC, anon;
@@ -88,14 +90,16 @@ CREATE OR REPLACE FUNCTION zapp.rpc_log_email_health(
   p_is_failure    BOOLEAN DEFAULT NULL,
   p_account_id    UUID    DEFAULT NULL
 ) RETURNS JSONB
-LANGUAGE sql
+LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = zapp
 AS $$
-  SELECT public.rpc_log_email_health(
+BEGIN
+  RETURN public.rpc_log_email_health(
     p_status, p_operation, p_resource, p_request_id,
     p_error_message, p_metadata, p_is_failure, p_account_id
   );
+END;
 $$;
 
 REVOKE EXECUTE ON FUNCTION zapp.rpc_log_email_health(TEXT, TEXT, TEXT, TEXT, TEXT, JSONB, BOOLEAN, UUID) FROM PUBLIC, anon;
@@ -111,11 +115,13 @@ CREATE OR REPLACE FUNCTION zapp.rpc_update_email_health_state(
   p_failure_count INTEGER DEFAULT 0,
   p_metadata      JSONB   DEFAULT NULL
 ) RETURNS JSONB
-LANGUAGE sql
+LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = zapp
 AS $$
-  SELECT public.rpc_update_email_health_state(p_status, p_failure_count, p_metadata);
+BEGIN
+  RETURN public.rpc_update_email_health_state(p_status, p_failure_count, p_metadata);
+END;
 $$;
 
 REVOKE EXECUTE ON FUNCTION zapp.rpc_update_email_health_state(TEXT, INTEGER, JSONB) FROM PUBLIC, anon;

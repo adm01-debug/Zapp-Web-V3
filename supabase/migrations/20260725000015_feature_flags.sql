@@ -102,7 +102,6 @@ $$;
 
 -- Grants
 GRANT EXECUTE ON FUNCTION zapp.is_feature_enabled TO authenticated;
-GRANT EXECUTE ON FUNCTION zapp.is_feature_enabled TO anon;
 
 -- Seed initial flags
 INSERT INTO zapp.feature_flags (key, enabled, rollout_percentage, allowed_roles, metadata) VALUES

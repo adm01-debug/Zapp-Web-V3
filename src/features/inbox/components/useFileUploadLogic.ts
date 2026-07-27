@@ -339,7 +339,8 @@ export function useFileUploadLogic(opts: {
     setFileQueue([]);
     setCaption('');
     setIsDialogOpen(showDialog);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional mount-only init
+  }, []);
 
   const handleExternalFiles = useCallback(
     (files: File[]) => {
@@ -369,7 +370,8 @@ export function useFileUploadLogic(opts: {
     setCaption('');
     setIsDialogOpen(showDialog);
     if (fileInputRef.current) fileInputRef.current.value = '';
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional mount-only init
+  }, []);
 
   const removeFromQueue = useCallback((id: string) => {
     setFileQueue((prev) => {

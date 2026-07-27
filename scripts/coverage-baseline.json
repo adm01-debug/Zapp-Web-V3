@@ -1,0 +1,10 @@
+{
+  "_generated": "2026-07-26T00:00:00.000Z",
+  "_note": "Initial ratchet baseline. Update with: node scripts/check-coverage-ratchet.mjs --update after a coverage run.",
+  "statements": 22.0,
+  "branches": 16.0,
+  "functions": 18.0,
+  "lines": 22.0,
+  "uncoveredLines": 0,
+  "totalStatements": 0
+}

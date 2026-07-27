@@ -20,7 +20,15 @@ CREATE POLICY "Authenticated can view versions" ON public.entity_versions FOR SE
 CREATE POLICY "Authenticated can insert versions" ON public.entity_versions FOR INSERT TO authenticated WITH CHECK (true);
 
 CREATE INDEX IF NOT EXISTS idx_versions_entity ON public.entity_versions(entity_type, entity_id);
-CREATE INDEX IF NOT EXISTS idx_versions_date ON public.entity_versions(created_at DESC);
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'entity_versions' AND column_name = 'created_at'
+  ) THEN
+    EXECUTE 'CREATE INDEX IF NOT EXISTS idx_versions_date ON public.entity_versions(created_at DESC)';
+  END IF;
+END $$;
 
 -- =============================================
 -- 2. AUTH TRIGGERS (on auth.users)

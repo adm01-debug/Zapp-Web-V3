@@ -81,7 +81,7 @@ export function ConnectionHealthPanel(): JSX.Element {
     if (connResult.data) setConnections(connResult.data as ConnectionHealth[]);
     setRecentLogs(logs);
     setLoading(false);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [mountedRef]);
 
   useEffect(() => {
     fetchData();

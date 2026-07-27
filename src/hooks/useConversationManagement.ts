@@ -39,7 +39,7 @@ export function useConversationActions() {
       .eq('user_id', user.id)
       .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116
     if (data && mountedRef.current) setProfileId(data.id);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [mountedRef]);
 
   const loadPinned = useCallback(async (pid: string) => {
     const { data, error } = await supabase
@@ -51,7 +51,7 @@ export function useConversationActions() {
       return;
     }
     if (data && mountedRef.current) setPinnedIds(new Set(data.map((p) => p.contact_id)));
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [mountedRef]);
 
   const loadFavorites = useCallback(async () => {
     const {
@@ -68,7 +68,7 @@ export function useConversationActions() {
     }
     if (data && mountedRef.current)
       setFavoriteIds(new Set(data.map((f: FavoriteContact) => f.contact_id)));
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [mountedRef]);
 
   const loadSnoozed = useCallback(async (pid: string) => {
     const { data, error } = await supabase
@@ -81,7 +81,7 @@ export function useConversationActions() {
       return;
     }
     if (data && mountedRef.current) setSnoozedIds(new Set(data.map((s) => s.contact_id)));
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [mountedRef]);
 
   useEffect(() => {
     loadProfile();

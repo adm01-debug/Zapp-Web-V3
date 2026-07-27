@@ -48,6 +48,8 @@ CREATE TABLE IF NOT EXISTS public.evolution_retry_metrics (
 );
 
 -- 4. Funções RPC solicitadas pelas Edge Functions
+-- Drop first: earlier migration may have created with different parameter defaults
+DROP FUNCTION IF EXISTS public.pause_instance(TEXT, TEXT, INTEGER, INTEGER);
 CREATE OR REPLACE FUNCTION public.pause_instance(
     p_instance TEXT,
     p_reason TEXT,
@@ -59,16 +61,17 @@ DECLARE
     v_until TIMESTAMPTZ;
 BEGIN
     v_until := now() + (p_minutes || ' minutes')::interval;
-    
+
     INSERT INTO public.instance_processing_pauses (instance_name, paused_until, reason, trigger_count)
     VALUES (p_instance, v_until, p_reason, p_trigger_count)
     RETURNING id INTO v_id;
-    
+
     RETURN v_id;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
-CREATE OR REPLACE FUNCTION public.unpause_instance(p_instance TEXT) 
+DROP FUNCTION IF EXISTS public.unpause_instance(TEXT);
+CREATE OR REPLACE FUNCTION public.unpause_instance(p_instance TEXT)
 RETURNS INTEGER AS $$
 DECLARE
     v_count INTEGER;
@@ -76,11 +79,11 @@ BEGIN
     UPDATE public.instance_processing_pauses
     SET paused_until = now()
     WHERE instance_name = p_instance AND paused_until > now();
-    
+
     GET DIAGNOSTICS v_count = ROW_COUNT;
     RETURN v_count;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 -- 5. Habilitar RLS e Criar Políticas
 ALTER TABLE public.whatsapp_cloud_webhook_pings ENABLE ROW LEVEL SECURITY;

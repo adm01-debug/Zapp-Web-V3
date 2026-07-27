@@ -1,5 +1,6 @@
 // Shared helpers for Evolution API webhook and sync functions
 declare const Deno: { env: { get(key: string): string | undefined } };
+import { getStoragePublicUrl } from "./storage-url.ts";
 
 
 /** Webhook Payload interface definition. */
@@ -432,8 +433,7 @@ export async function persistProfilePicture(supabase: any, phone: string, profil
     });
     if (error) { console.error('Avatar upload error:', error); return null; }
 
-    const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(storagePath);
-    return urlData.publicUrl;
+    return getStoragePublicUrl('avatars', storagePath);
   } catch (err) { console.error('Avatar persist error:', err); return null; }
 }
 

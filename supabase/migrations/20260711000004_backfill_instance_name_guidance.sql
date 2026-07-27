@@ -111,10 +111,24 @@ $$;
 
 -- SECURITY DEFINER retorna phone_number/status — não pode ficar executável via PUBLIC
 -- (bypass de RLS/controle de acesso). Migration auto-contida.
-ALTER FUNCTION ops.fn_diagnose_missing_instance_names() OWNER TO supabase_admin;
-REVOKE ALL ON FUNCTION ops.fn_diagnose_missing_instance_names() FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION ops.fn_diagnose_missing_instance_names()
-  TO postgres, supabase_admin;
+-- OWNER and GRANT guarded: supabase_admin role may not exist in CI
+DO $fn_diag_perms$ BEGIN
+  BEGIN
+    ALTER FUNCTION ops.fn_diagnose_missing_instance_names() OWNER TO supabase_admin;
+  EXCEPTION WHEN OTHERS THEN
+    RAISE NOTICE 'SKIP fn_diagnose_missing_instance_names OWNER TO supabase_admin: %', SQLERRM;
+  END;
+  REVOKE ALL ON FUNCTION ops.fn_diagnose_missing_instance_names() FROM PUBLIC;
+  BEGIN
+    GRANT EXECUTE ON FUNCTION ops.fn_diagnose_missing_instance_names() TO postgres, supabase_admin;
+  EXCEPTION WHEN OTHERS THEN
+    BEGIN
+      GRANT EXECUTE ON FUNCTION ops.fn_diagnose_missing_instance_names() TO postgres;
+    EXCEPTION WHEN OTHERS THEN
+      RAISE NOTICE 'SKIP GRANT fn_diagnose_missing_instance_names: %', SQLERRM;
+    END;
+  END;
+END $fn_diag_perms$;
 
 COMMENT ON FUNCTION ops.fn_diagnose_missing_instance_names() IS
   'GAP-04 (2026-07-11): lista conexoes com instance_name ausente (NULL) ou formato '

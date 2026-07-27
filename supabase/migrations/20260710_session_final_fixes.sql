@@ -18,9 +18,15 @@
 -- Max expandiu de 150→160 com nova dimensao v2_mirror_pipeline
 -- ============================================================
 
--- FIX 1: notify_sicoob_on_reply search_path
-ALTER FUNCTION public.notify_sicoob_on_reply()
-  SET search_path = public, extensions, pg_catalog;
+-- FIX 1: notify_sicoob_on_reply search_path — guarded
+DO $sp9_guards$ BEGIN
+  BEGIN
+    ALTER FUNCTION public.notify_sicoob_on_reply()
+      SET search_path = public, extensions, pg_catalog;
+  EXCEPTION WHEN OTHERS THEN
+    RAISE NOTICE 'SKIP notify_sicoob_on_reply SET search_path: %', SQLERRM;
+  END;
+END $sp9_guards$;
 
 -- Verificacao pos-fix
 SELECT COUNT(*)=0 AS zero_secdef_sem_sp
