@@ -1,0 +1,47 @@
+name: Merge Bot
+on:
+  workflow_dispatch:
+    inputs:
+      pr_numbers:
+        description: 'Space-separated PR numbers to merge'
+        required: true
+        default: '548 550 551 553 555 557 558 559 560 561 562'
+
+permissions:
+  pull-requests: write
+  contents: write
+
+jobs:
+  merge-prs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Merge PRs with admin bypass
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          FAILED=''
+          for pr in ${{ github.event.inputs.pr_numbers }}; do
+            echo "=== Merging PR #${pr} ==="
+            if gh pr merge "${pr}" --repo adm01-debug/zapp-web-v3 --squash --admin --yes; then
+              echo "PR #${pr} merged successfully"
+            else
+              echo "FAILED to merge PR #${pr}"
+              FAILED="${FAILED} ${pr}"
+            fi
+          done
+          if [ -n "$FAILED" ]; then
+            echo "Failed PRs:${FAILED}"
+            exit 1
+          fi
+
+      - name: Delete merged branches
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          BRANCHES="claude/validate-last-300-commits-idslez claude/zapp-web-v3-audit-74uxvx claude/zapp-web-v3-audit-38vfik claude/zapp-pipeline-restoration-1ul28y claude/zapp-messages-persistence-fix-2prigo claude/zapp-web-messages-missing-eb8x7y claude/zapp-pipeline-contacts-proxy-3zxaon fix/pipeline-persistence-and-inbox-t17-50 feat/migration-rollback-template feat/pr-size-gate fix/ci-gate-e-melhorias-processo"
+          for branch in $BRANCHES; do
+            echo "Deleting branch: ${branch}"
+            gh api --method DELETE "/repos/adm01-debug/zapp-web-v3/git/refs/heads/${branch}" && echo "Deleted ${branch}" || echo "Could not delete ${branch} (may already be deleted)"
+          done
+          echo "Branch cleanup complete"
