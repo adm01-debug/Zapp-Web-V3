@@ -39,6 +39,10 @@ export function useAudioRecorderUI(
   const [uploadProgress, setUploadProgress] = useState(0);
   const [volume, setVolumeState] = useState<number>(loadVolume);
 
+  const mountedRef = useRef(true);
+  const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const voiceChangedUrlRef = useRef<string | null>(null);
+
   const isMobile = useIsMobile();
 
   const setVolume = useCallback(
@@ -148,10 +152,22 @@ export function useAudioRecorderUI(
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isRecording, isPaused, resumeRecording, pauseRecording, handleCancel]);
 
-  // Auto-start recording on mount
+  // Auto-start recording on mount; mount/unmount cleanup for async guards
   useEffect(() => {
+    mountedRef.current = true;
     startRecording();
-    return () => cancelRecording();
+    return () => {
+      mountedRef.current = false;
+      cancelRecording();
+      if (retryTimerRef.current !== null) {
+        clearTimeout(retryTimerRef.current);
+        retryTimerRef.current = null;
+      }
+      if (voiceChangedUrlRef.current) {
+        URL.revokeObjectURL(voiceChangedUrlRef.current);
+        voiceChangedUrlRef.current = null;
+      }
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -183,15 +199,10 @@ export function useAudioRecorderUI(
       setIsUploading(true);
       setUploadProgress(10 * (retryCount + 1));
 
+      let interval: ReturnType<typeof setInterval> | null = null;
       try {
-        const interval = setInterval(() => {
-          setUploadProgress((prev) => {
-            if (prev >= 95) {
-              clearInterval(interval);
-              return 95;
-            }
-            return prev + 5;
-          });
+        interval = setInterval(() => {
+          setUploadProgress((prev) => (prev >= 95 ? 95 : prev + 5));
         }, 300);
 
         const startTime = Date.now();
@@ -201,13 +212,15 @@ export function useAudioRecorderUI(
           `[INBOX_METRIC] action=audio_upload_success size=${audioBlob.size} duration=${durationMs}ms`
         );
 
-        clearInterval(interval);
-        setUploadProgress(100);
+        if (mountedRef.current) {
+          setUploadProgress(100);
+          setAudioBlob(null);
+          setIsConfirming(false);
+        }
         toast({ title: 'Áudio enviado com sucesso!' });
-        setAudioBlob(null);
-        setIsConfirming(false);
       } catch (error: unknown) {
         log.error(`Audio send failed (attempt ${retryCount + 1}):`, error);
+        if (!mountedRef.current) return;
         const canRetry = retryCount < 3;
         toast({
           title: 'Erro no envio',
@@ -225,10 +238,15 @@ export function useAudioRecorderUI(
             ' Tentar agora'
           ),
         });
-        if (canRetry)
-          setTimeout(() => void handleSend(retryCount + 1), Math.pow(2, retryCount) * 1000);
+        if (canRetry) {
+          retryTimerRef.current = setTimeout(
+            () => void handleSend(retryCount + 1),
+            Math.pow(2, retryCount) * 1000
+          );
+        }
       } finally {
-        setIsUploading(false);
+        if (interval !== null) clearInterval(interval);
+        if (mountedRef.current) setIsUploading(false);
       }
     },
     [audioBlob, onSend]
@@ -239,7 +257,10 @@ export function useAudioRecorderUI(
       setAudioBlob(newBlob);
       setVoiceChanged(true);
       if (audioRef.current) {
-        audioRef.current.src = URL.createObjectURL(newBlob);
+        if (voiceChangedUrlRef.current) URL.revokeObjectURL(voiceChangedUrlRef.current);
+        const newUrl = URL.createObjectURL(newBlob);
+        voiceChangedUrlRef.current = newUrl;
+        audioRef.current.src = newUrl;
       }
     },
     [audioRef]

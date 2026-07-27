@@ -47,6 +47,8 @@ export async function sendExternalAudio(
 
   const instance = opts.instanceName || opts.conversationInstance || DEFAULT_INSTANCE;
   const localAudioUrl = URL.createObjectURL(blob);
+  // Revoke after 5 minutes — by then the webhook has materialised the real message URL.
+  setTimeout(() => URL.revokeObjectURL(localAudioUrl), 5 * 60_000);
   const convId = opts.conversationId || opts.conversation_id;
 
   const optimistic = makeOptimisticBubble(remoteJid, '[Áudio]', {

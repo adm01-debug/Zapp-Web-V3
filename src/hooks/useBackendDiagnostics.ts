@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 export type PingStatus = 'idle' | 'checking' | 'ok' | 'error';
@@ -17,8 +17,10 @@ export function useBackendDiagnostics() {
   const [authPing, setAuthPing] = useState<PingResult>({ status: 'idle' });
   const [dbPing, setDbPing] = useState<PingResult>({ status: 'idle' });
   const [hasSession, setHasSession] = useState<boolean | null>(null);
+  const mountedRef = useRef(true);
 
   const runChecks = useCallback(async () => {
+    if (!mountedRef.current) return;
     setRestPing({ status: 'checking' });
     try {
       const t0 = performance.now();
@@ -26,29 +28,35 @@ export function useBackendDiagnostics() {
         headers: { apikey: anonKey ?? '' },
       });
       const dt = Math.round(performance.now() - t0);
+      if (!mountedRef.current) return;
       setRestPing(
         res.ok
           ? { status: 'ok', latencyMs: dt }
           : { status: 'error', latencyMs: dt, error: `HTTP ${res.status}` },
       );
     } catch (err) {
+      if (!mountedRef.current) return;
       setRestPing({ status: 'error', error: err instanceof Error ? err.message : 'falha' });
     }
 
+    if (!mountedRef.current) return;
     setAuthPing({ status: 'checking' });
     try {
       const t0 = performance.now();
       const { data, error } = await supabase.auth.getSession();
       const dt = Math.round(performance.now() - t0);
+      if (!mountedRef.current) return;
       if (error) setAuthPing({ status: 'error', latencyMs: dt, error: error.message });
       else {
         setAuthPing({ status: 'ok', latencyMs: dt });
         setHasSession(!!data.session);
       }
     } catch (err) {
+      if (!mountedRef.current) return;
       setAuthPing({ status: 'error', error: err instanceof Error ? err.message : 'falha' });
     }
 
+    if (!mountedRef.current) return;
     setDbPing({ status: 'checking' });
     try {
       const t0 = performance.now();
@@ -57,6 +65,7 @@ export function useBackendDiagnostics() {
         .select('id', { count: 'exact', head: true })
         .limit(1);
       const dt = Math.round(performance.now() - t0);
+      if (!mountedRef.current) return;
       // 42501 (RLS) still means DB responded — treat as OK
       if (error && !['42501', 'PGRST301'].includes(error.code ?? '')) {
         setDbPing({ status: 'error', latencyMs: dt, error: `${error.code ?? ''} ${error.message}` });
@@ -64,12 +73,15 @@ export function useBackendDiagnostics() {
         setDbPing({ status: 'ok', latencyMs: dt });
       }
     } catch (err) {
+      if (!mountedRef.current) return;
       setDbPing({ status: 'error', error: err instanceof Error ? err.message : 'falha' });
     }
   }, [supabaseUrl, anonKey]);
 
   useEffect(() => {
+    mountedRef.current = true;
     void runChecks();
+    return () => { mountedRef.current = false; };
   }, [runChecks]);
 
   return { restPing, authPing, dbPing, hasSession, runChecks, supabaseUrl, anonKey };

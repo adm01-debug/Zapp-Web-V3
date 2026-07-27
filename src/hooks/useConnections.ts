@@ -84,6 +84,7 @@ export function useConnections() {
 
   const redirectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const fatorXInitializedRef = useRef(false);
+  const mountedRef = useRef(true);
 
   const { data: connections = [], refetch: refetchConnections } = useQuery({
     queryKey: CONNECTIONS_KEY,
@@ -121,6 +122,7 @@ export function useConnections() {
       } = await supabase.auth.getUser();
 
       if (authError) throw authError;
+      if (!mountedRef.current) return;
 
       setCurrentUserId(user?.id ?? null);
       if (user?.id) {
@@ -130,6 +132,7 @@ export function useConnections() {
           .eq('user_id', user.id);
 
         if (rolesError) throw rolesError;
+        if (!mountedRef.current) return;
 
         const hasAccess = !!roles?.some(
           (r: { role: string | null }) => r.role === 'admin' || r.role === 'dev'
@@ -143,6 +146,7 @@ export function useConnections() {
         setIsAdmin(false);
       }
     } catch (e: unknown) {
+      if (!mountedRef.current) return;
       log.error('Error checking roles or connection', e);
       setIsAdmin(false);
       const msg = e instanceof Error ? e.message : 'Banco indisponível';
@@ -155,11 +159,13 @@ export function useConnections() {
   }, []);
 
   useEffect(() => {
+    mountedRef.current = true;
     void checkAdminStatus();
 
     const handleFocus = () => void checkAdminStatus();
     window.addEventListener('focus', handleFocus);
     return () => {
+      mountedRef.current = false;
       window.removeEventListener('focus', handleFocus);
       if (redirectTimerRef.current !== null) {
         clearTimeout(redirectTimerRef.current);

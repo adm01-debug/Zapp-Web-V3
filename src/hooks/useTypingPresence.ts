@@ -21,6 +21,7 @@ export function useTypingPresence({
   const [typingUsers, setTypingUsers] = useState<TypingUser[]>([]);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const stopTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const handleTypingStopRef = useRef<() => void>(() => {});
 
   useEffect(() => {
     const channel = supabase.channel(`typing-presence-${conversationId}`);
@@ -56,20 +57,21 @@ export function useTypingPresence({
     };
   }, [conversationId, currentUserId]);
 
+  const handleTypingStop = useCallback(() => {
+    if (!channelRef.current) return;
+    if (stopTimerRef.current) clearTimeout(stopTimerRef.current);
+    channelRef.current.track({ userId: currentUserId, userName: currentUserName, isTyping: false });
+  }, [currentUserId, currentUserName]);
+
+  handleTypingStopRef.current = handleTypingStop;
+
   const handleTypingStart = useCallback(() => {
     if (!channelRef.current) return;
     if (stopTimerRef.current) clearTimeout(stopTimerRef.current);
     channelRef.current.track({ userId: currentUserId, userName: currentUserName, isTyping: true });
     stopTimerRef.current = setTimeout(() => {
-      handleTypingStop();
+      handleTypingStopRef.current();
     }, 3000);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentUserId, currentUserName]);
-
-  const handleTypingStop = useCallback(() => {
-    if (!channelRef.current) return;
-    if (stopTimerRef.current) clearTimeout(stopTimerRef.current);
-    channelRef.current.track({ userId: currentUserId, userName: currentUserName, isTyping: false });
   }, [currentUserId, currentUserName]);
 
   const isContactTyping = typingUsers.length > 0;
