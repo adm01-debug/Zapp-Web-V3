@@ -66,19 +66,23 @@ CREATE VIEW public.instance_registry WITH (security_invoker=true) AS
     SELECT id, instance_name, display_name, phone_number, department, responsible_name, responsible_email, is_active, webhook_url, webhook_enabled, auto_reply_enabled, auto_reply_message, business_hours_enabled, max_concurrent_chats, sla_first_response_minutes, sla_resolution_hours, bitrix_integration, n8n_workflows, config, notes, created_at, updated_at, slot_name, operator_name, operator_email, operator_since, operator_phone, usage_type, owner_id, status, connection_status, api_key, api_url, profile_picture, is_master, proxy_host, proxy_port, proxy_user, proxy_pass, settings, last_connected_at, message_count_sent, message_count_received, error_logs, metadata
     FROM zapp.instance_registry;
 
-CREATE OR REPLACE VIEW public.conversation_transfers WITH (security_invoker=true) AS
+DROP VIEW IF EXISTS public.conversation_transfers;
+CREATE VIEW public.conversation_transfers WITH (security_invoker=true) AS
     SELECT id, ticket_number, source_instance, source_conversation_id, source_message_id, source_operator, target_instance, target_conversation_id, target_operator, contact_id, remote_jid, contact_name, transfer_type, category, reason, context_summary, context_messages, tags, status, priority, created_at, updated_at, accepted_at, completed_at, expires_at, resolution_notes, resolution_type, from_agent_id, to_agent_id, from_queue_id, to_queue_id, sla_deadline, return_reason, metadata
     FROM zapp.conversation_transfers;
 
-CREATE OR REPLACE VIEW public.transfer_comments WITH (security_invoker=true) AS
+DROP VIEW IF EXISTS public.transfer_comments;
+CREATE VIEW public.transfer_comments WITH (security_invoker=true) AS
     SELECT id, transfer_id, author_name, author_instance, content, created_at, agent_id, metadata
     FROM zapp.transfer_comments;
 
-CREATE OR REPLACE VIEW zapp.departments WITH (security_invoker=true) AS
+DROP VIEW IF EXISTS zapp.departments;
+CREATE VIEW zapp.departments WITH (security_invoker=true) AS
     SELECT created_at, description, id, is_active, name, slug, updated_at, whatsapp_mode, whatsapp_api_key, whatsapp_instance_id
     FROM public.departments;
 
-CREATE OR REPLACE VIEW zapp.profiles WITH (security_invoker=true) AS
+DROP VIEW IF EXISTS zapp.profiles;
+CREATE VIEW zapp.profiles WITH (security_invoker=true) AS
     SELECT id, user_id, name, email, avatar_url, role, max_chats, department, is_online, last_seen, created_at, updated_at, access_level, birthday, can_download, department_id, is_active, job_title, nickname, permissions, phone, session_invalidated_at, signature, _admin_user_id, online_status
     FROM public.profiles;
 
@@ -178,7 +182,8 @@ ALTER TABLE evo.evolution_health_logs ADD COLUMN IF NOT EXISTS connection_id uui
 ALTER TABLE evo.evolution_health_logs ADD COLUMN IF NOT EXISTS error_count integer DEFAULT 0;
 ALTER TABLE evo.evolution_health_logs ADD COLUMN IF NOT EXISTS success_count integer DEFAULT 0;
 ALTER TABLE evo.evolution_health_logs ADD COLUMN IF NOT EXISTS created_at timestamp with time zone DEFAULT now();
-CREATE OR REPLACE VIEW public.evolution_health_logs AS
+DROP VIEW IF EXISTS public.evolution_health_logs;
+CREATE VIEW public.evolution_health_logs AS
  SELECT id, instance_name, status, error_message, response_time_ms, online_instances, total_instances, endpoint_tested, http_status_code, metadata, performed_at, connection_id, error_count, success_count, created_at
  FROM evo.evolution_health_logs;
 
