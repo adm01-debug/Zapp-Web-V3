@@ -39,3 +39,14 @@ scripts/check-schema-drift.sh
 # --- Docs canônicos ---
 docs/SCHEMA_REFERENCE.md
 CLAUDE.md
+
+# --- Build e Deploy config ---
+vercel.json
+vite.config.ts
+
+# --- CI gates de segurança ---
+.github/workflows/security-invoker-gate.yml
+.github/workflows/rls-gate.yml
+
+# --- Gitleaks config ---
+.gitleaks.toml

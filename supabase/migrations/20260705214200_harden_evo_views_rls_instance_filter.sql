@@ -7,10 +7,20 @@
 -- 1. Revogar acesso de authenticated/anon em views evo sem RLS própria
 --    Essas views não têm proteção de linha própria — apenas herdam da tabela base.
 --    Via PostgREST, authenticated podia lê-las sem filtro de instância.
-REVOKE ALL ON evo.active_messages         FROM authenticated, anon;
-REVOKE ALL ON evo.active_webhook_events   FROM authenticated, anon;
-REVOKE ALL ON evo.evolution_messages_v2   FROM authenticated, anon;
-REVOKE ALL ON evo.v_messages_unified      FROM authenticated, anon;
+--    Guarded: views são production-only (não criadas por nenhuma migration de CI).
+DO $$
+DECLARE v text;
+BEGIN
+  FOREACH v IN ARRAY ARRAY['active_messages','active_webhook_events','evolution_messages_v2','v_messages_unified']
+  LOOP
+    IF EXISTS (
+      SELECT FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
+      WHERE n.nspname='evo' AND c.relname=v
+    ) THEN
+      EXECUTE format('REVOKE ALL ON evo.%I FROM authenticated, anon', v);
+    END IF;
+  END LOOP;
+END $$;
 
 -- 2. Endurecer policy authenticated_read em tabelas base
 --    Antes: qual = 'true' (sem filtro de instância)
