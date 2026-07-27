@@ -469,7 +469,7 @@ test("should fetch contact", async () => {
 | **Supabase Schema `evo`** | https://supabase.atomicabr.com.br/project/default/database/schemas?schema=evo |
 | **Evolution API** | https://evolution-mcp.adm01.workers.dev/mcp |
 | **GitHub MCP** | https://github-mcp-server.adm01.workers.dev/mcp |
-| **Supabase MCP** | https://supabase-mcp.atomicabr.com.br/s-a50174164e4b03ef181a29db65d2db80/mcp |
+| **Supabase MCP** | `supabase-mcp.atomicabr.com.br/{SERVICE_ROLE_KEY}/mcp` (ver .mcp.json.local) |
 | **Portainer** | https://portainer-mcp.atomicabr.com.br/mcp |
 | **Vercel Deploys** | https://vercel.com/juca1/zapp-web-v3/deployments |
 

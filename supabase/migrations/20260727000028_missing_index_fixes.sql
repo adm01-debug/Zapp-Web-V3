@@ -1,0 +1,76 @@
+-- ============================================================
+-- Migration: 20260727000028_missing_index_fixes
+-- Objetivo: Criar índices faltantes identificados na análise
+-- Status: COMENTADO — executar com CREATE INDEX CONCURRENTLY fora de transaction
+-- Criado: 2026-07-27
+--参阅: Step 28
+--参阅: INDEXES.md
+-- ============================================================
+
+-- ============================================================================
+-- CANDIDATO 1: Trigram index em contatos (busca fuzzy por nome)
+-- Tabela: zapp.contatos | Coluna: nome, sobrenome | Tipo: GIN trgm
+-- Motivo: Busca fuzzy ILIKE '%joao%' sem índice é full table scan
+-- ============================================================================
+-- CREATE INDEX CONCURRENTLY IF NOT EXISTS zapp.contatos_nome_trgm
+-- ON zapp.contatos USING gin (nome gin_trgm_ops, sobrenome gin_trgm_ops)
+-- WITH (fillfactor = 75);
+
+-- ============================================================================
+-- CANDIDATO 2: Trigram index em empresas (busca fuzzy por nome fantasia)
+-- Tabela: zapp.empresas | Coluna: nome_fantasia | Tipo: GIN trgm
+-- Motivo: Busca fuzzy ILIKE '%promo%' sem índice é full table scan
+-- ============================================================================
+-- CREATE INDEX CONCURRENTLY IF NOT EXISTS zapp.empresas_nome_fantasia_trgm
+-- ON zapp.empresas USING gin (nome_fantasia gin_trgm_ops)
+-- WITH (fillfactor = 75);
+
+-- ============================================================================
+-- CANDIDATO 3: Cursor pagination em evolution_contacts
+-- Tabela: evo.evolution_contacts | Coluna: created_at | Tipo: B-tree
+-- Motivo: Paginação por cursor usa created_at ORDER BY sem índice
+-- ============================================================================
+-- CREATE INDEX CONCURRENTLY IF NOT EXISTS zapp.evolution_contacts_created_at_idx
+-- ON zapp.evolution_contacts (created_at DESC)
+-- WHERE active = true;  -- partial: só linhas ativas
+
+-- ============================================================================
+-- CANDIDATO 4: Cursor pagination em failed_messages
+-- Tabela: evo.failed_messages | Coluna: created_at | Tipo: B-tree
+-- Motivo: Polling de mensagens falhas sem índice causa full scan
+-- ============================================================================
+-- CREATE INDEX CONCURRENTLY IF NOT EXISTS zapp.failed_messages_created_at_idx
+-- ON zapp.failed_messages (created_at DESC);
+
+-- ============================================================================
+-- CANDIDATO 5: Cursor pagination em dispatch_error_logs
+-- Tabela: logistica.dispatch_error_logs | Coluna: created_at | Tipo: B-tree
+-- Motivo: Paginação de logs de erro sem índice
+-- ============================================================================
+-- CREATE INDEX CONCURRENTLY IF NOT EXISTS zapp.dispatch_error_logs_created_at_idx
+-- ON zapp.dispatch_error_logs (created_at DESC);
+
+-- ============================================================================
+-- VALIDAÇÃO: Verificar se índices foram criados
+-- ============================================================================
+-- SELECT schemaname, tablename, indexname, indexdef
+-- FROM pg_indexes
+-- WHERE indexname IN (
+--     'contatos_nome_trgm',
+--     'empresas_nome_fantasia_trgm',
+--     'evolution_contacts_created_at_idx',
+--     'failed_messages_created_at_idx',
+--     'dispatch_error_logs_created_at_idx'
+-- )
+-- ORDER BY indexname;
+
+-- ============================================================================
+-- REGISTRO: Documentar criação no baseline
+-- ============================================================================
+-- INSERT INTO ops.index_usage_snapshots (schemaname, tablename, indexname, idx_scan, index_size)
+-- VALUES
+--     ('zapp', 'contatos',           'contatos_nome_trgm',                  0, 0),
+--     ('zapp', 'empresas',           'empresas_nome_fantasia_trgm',         0, 0),
+--     ('zapp', 'evolution_contacts', 'evolution_contacts_created_at_idx', 0, 0),
+--     ('zapp', 'failed_messages',     'failed_messages_created_at_idx',    0, 0),
+--     ('zapp', 'dispatch_error_logs', 'dispatch_error_logs_created_at_idx', 0, 0);

@@ -1,11 +1,14 @@
 # apply-types-patch.yml
-# Disparo manual para aplicar o patch de types.ts (10 colunas whatsapp_connections).
-# Não requer PAT local — o Actions usa GITHUB_TOKEN automaticamente.
+# Updated to create PR instead of direct commit (branch protection now active)
 
 name: Apply types.ts patch (whatsapp_connections)
 
 on:
   workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
 
 jobs:
   apply-patch:
@@ -16,6 +19,7 @@ jobs:
         uses: actions/checkout@v7
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v7
@@ -37,21 +41,43 @@ jobs:
             git diff --stat src/integrations/supabase/types.ts
           fi
 
-      - name: Commit and push if changed
+      - name: Create PR if changed
         if: steps.diff.outputs.changed == 'true'
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email 'github-actions[bot]@users.noreply.github.com'
+
+          TIMESTAMP=$(date +%Y%m%d%H%M%S)
+          BRANCH_NAME="fix/types-patch-${TIMESTAMP}"
+
+          git checkout -b "$BRANCH_NAME"
           git add src/integrations/supabase/types.ts
           git commit -m 'fix(types): add missing whatsapp_connections columns via apply-types-patch.sh'
-          git push
+          git push -u origin "$BRANCH_NAME"
+
+          gh pr create \
+            --title "fix(types): add missing whatsapp_connections columns" \
+            --body "## Summary
+
+Automated types patch for whatsapp_connections columns.
+
+Columns added: api_type, api_url, connected_at, disconnected_at, evo_instance_id, is_active, last_connected_at, routing_mode, settings, webhook_url
+
+## Verification
+
+- [ ] CI passes
+- [ ] TypeScript compiles without errors
+- [ ] 1 approval required before merge" \
+            --base main
 
       - name: Summary
         run: |
           if [ "${{ steps.diff.outputs.changed }}" = "true" ]; then
-            echo '## ✅ types.ts patch applied successfully' >> $GITHUB_STEP_SUMMARY
+            echo '## ✅ types.ts patch PR created' >> $GITHUB_STEP_SUMMARY
             echo 'Columns added: api_type, api_url, connected_at, disconnected_at, evo_instance_id,' >> $GITHUB_STEP_SUMMARY
             echo 'is_active, last_connected_at, routing_mode, settings, webhook_url' >> $GITHUB_STEP_SUMMARY
+            echo '' >> $GITHUB_STEP_SUMMARY
+            echo 'PR requires 1 approval before merge.' >> $GITHUB_STEP_SUMMARY
           else
             echo '## ℹ️ Already up to date — no changes needed' >> $GITHUB_STEP_SUMMARY
           fi

@@ -18,8 +18,44 @@
   └───────────┘          └───────────┘              └──────────────────┘
 ```
 
-**Direção de dependência permitida:** `public → domínios → dados`. 
+**Direção de dependência permitida:** `public → domínios → dados`.
 **Proibido:** `evo → zapp` (a Evolution API nunca depende do app).
+
+## Diagrama de plataforma
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                         zapp-web-v3 (Frontend)                      │
+└─────────────────────────────────────────────────────────────────────┘
+                                  │
+                                  ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                     Supabase Self-hosted (PaaS)                      │
+│  ┌─────────┐  ┌──────────┐  ┌─────────┐  ┌──────────────────────┐  │
+│  │ PostgREST│  │ Realtime │  │  Auth   │  │ Storage (S3/LFS)    │  │
+│  │ /rest/v1│  │ WebSocket│  │ JWT     │  │ 13 buckets           │  │
+│  └────┬────┘  └────┬─────┘  └────┬────┘  └──────────────────────┘  │
+└───────┼────────────┼─────────────┼──────────────────────────────────┘
+        │            │             │
+        ▼            ▼             ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                    PostgreSQL 15.8 (Self-hosted)                     │
+│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌─────────┐  │
+│  │  zapp    │ │   evo    │ │  public  │ │   ops    │ │ others  │  │
+│  │ (core)   │ │(WhatsApp)│ │  (API)   │ │  (SRE)   │ │ bpm/fin │  │
+│  └──────────┘ └──────────┘ └──────────┘ └──────────┘ └─────────┘  │
+│  ┌──────────────────────────────────────────────────────────────┐   │
+│  │         Partitioned Tables (25 partitions each)              │   │
+│  │  evolution_messages │ evolution_conversations │ evo.webhook   │   │
+│  └──────────────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────────────┘
+                                  │
+                                  ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                      Evolution API v2.3.7                            │
+│                 WhatsApp Gateway (AtomicaBR VPS)                     │
+└─────────────────────────────────────────────────────────────────────┘
+```
 
 ## Onde mora cada dado (validado no catálogo)
 
@@ -57,18 +93,38 @@ O dado existe **uma única vez**. As cópias em `public`/`zapp` são **views** (
 
 ## A fachada de 3 camadas (por que `public` tem 539 views)
 
-O **PostgREST expõe o schema `public` por padrão**, e o app chama `/rest/v1/*`. Para servir os dados sem reconfigurar o PostgREST, foram criadas **views** no `public` que apontam para os schemas de domínio. Exemplo real: `public.profiles` é literalmente `SELECT ... FROM zapp.profiles`.
+O **PostgREST expõe o schema `public` por padrão**, e o app chama `/rest/v1/*`. Para servir os dados sem reconfigurar o PostgREST, foram criadas **views** no `public` que apontam para os schemas de domínio.
 
 - **`public` (539 views):** corredor de API → 300 apontam para `zapp`, 182 para `evo`, 41 para `bpm`, 12 para `vendas`, 3 para `logistica`.
 - **`zapp` (406 views):** 254 espelham o `evo` (segundo corredor, para código que usa nomes `zapp.*`).
 - **`evo` (dados reais):** fonte de verdade da Evolution.
 
-**Segurança:** todas as 539 + 406 + 16 views têm `security_invoker=on` → respeitam o RLS das tabelas base. A fachada é dívida de **arquitetura/manutenção**, não furo de RLS. Detalhes e regras em [`BACKCOMPAT-VIEWS.md`](./BACKCOMPAT-VIEWS.md).
+**Segurança:** todas as views têm `security_invoker=on` → respeitam o RLS das tabelas base. Detalhes em [`BACKCOMPAT-VIEWS.md`](./BACKCOMPAT-VIEWS.md).
+
+## Segurança
+
+- RLS ativo em todas as tabelas de negócio (zapp, evo, bpm, financeiro, etc.)
+- Views em `public` usam `security_invoker = on` (respeitam RLS da tabela base)
+- Funções `SECURITY DEFINER` **obrigam** `SET search_path = schema, pg_catalog` (jamais `public`)
+- REVOKE EXECUTE FROM PUBLIC em toda nova função
 
 ## Particionamento
 
-`evo.evolution_messages`, `evo.evolution_conversations` e `evo.evolution_webhook_events` são particionadas — **23 partições cada**, criadas automaticamente pelo cron `auto-create-monthly-partitions` (`evo.fn_auto_create_next_partitions`).
+`evo.evolution_messages`, `evo.evolution_conversations` e `evo.evolution_webhook_events` são particionadas — **25 partições cada**, criadas automaticamente pelo cron `auto-create-monthly-partitions` (`evo.fn_auto_create_next_partitions`).
 
 > **Realtime + partição:** a publicação `supabase_realtime` usa `publish_via_partition_root=true` — os eventos CDC saem pela **tabela raiz**, nunca pela partição-filha. Assine sempre a raiz (`evolution_messages`, não `evolution_messages_wpp2`). Detalhes em `../../CLAUDE.md`.
 
 **Não crie/dropar partição-filha à mão.**
+
+## Estratégia de Migration
+
+```
+1. Author escreve migration em supabase/migrations/
+2. Aplica em staging via supabase db push
+3. Smoke tests validam
+4. Code review + merge para main
+5. Aplica em produção via supabase db push
+6. Validação pós-deploy
+```
+
+Formato: `YYYYMMDDHHMMSS_description.sql` (14-digit prefix). Sem repetição de versão — gate de CI bloqueia duplicatas.

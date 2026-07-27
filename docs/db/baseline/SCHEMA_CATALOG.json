@@ -1,0 +1,17 @@
+{
+  "captured_at": "2026-07-16T00:00:00Z",
+  "postgres_version": "15.8",
+  "supabase_version": "self-hosted",
+  "schemas": {
+    "zapp": { "tables": 320, "views": 406, "matviews": 6, "functions": 1052 },
+    "evo": { "tables": 193, "views": 16, "matviews": 4, "functions": 69, "triggers": 446 },
+    "public": { "tables": 1, "views": 539, "functions": 145 },
+    "ops": { "tables": 20, "views": 4, "functions": 47 },
+    "bpm": { "tables": 30, "views": 15, "functions": 40 }
+  },
+  "indexes": { "total": 2176, "used": 195, "unused": 1981 },
+  "cron_jobs": { "total": 80 },
+  "partitioned_tables": 3,
+  "storage_buckets": 13,
+  "migrations": { "in_repo": 900, "in_db": 52 }
+}
