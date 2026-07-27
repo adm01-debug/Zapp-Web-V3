@@ -241,10 +241,13 @@ export const VoiceChanger = memo(function VoiceChanger({
     }
   };
 
+  const handleConvertRef = useRef(handleConvert);
+  handleConvertRef.current = handleConvert;
+
   const proceedWithClonedVoice = useCallback(() => {
     setShowCloneWarning(false);
-    if (selectedVoice) handleConvert(selectedVoice);
-  }, [selectedVoice]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (selectedVoice) handleConvertRef.current(selectedVoice);
+  }, [selectedVoice]);
 
   const handleConfirm = useCallback(() => {
     if (!convertedAudioUrl) return;

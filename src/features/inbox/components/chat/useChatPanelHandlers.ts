@@ -37,6 +37,7 @@ interface UseChatPanelHandlersOptions {
 /** use Chat Panel Handlers component for the chat section. */
 export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
   const {
+    contactId,
     contactPhone,
     instanceName,
     onSendMessage,
@@ -174,7 +175,7 @@ export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
 
           // Guard: whisper_messages.contact_id is uuid. When USE_EXTERNAL_DB=true,
           // opts.contactId may be a WhatsApp JID. Passing a JID causes PostgREST 400.
-          if (!isValidUUID(opts.contactId)) {
+          if (!isValidUUID(contactId)) {
             toast({
               title: 'Sussurro indisponivel',
               description:
@@ -186,7 +187,7 @@ export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
           }
 
           const { error } = await insertWhisperMessage({
-            contact_id: opts.contactId,
+            contact_id: contactId,
             sender_id: profile.id,
             content: messageContent,
             target_agent_id: profile.id,
@@ -232,7 +233,16 @@ export function useChatPanelHandlers(opts: UseChatPanelHandlersOptions) {
         setIsSending(false);
       }
     },
-    [contactPhone, instanceName, editMessageApi, applySignature, onSendMessage, handleTypingStop] // eslint-disable-line react-hooks/exhaustive-deps
+    [
+      contactId,
+      contactPhone,
+      instanceName,
+      editMessageApi,
+      applySignature,
+      onSendMessage,
+      handleTypingStop,
+      profile,
+    ]
   );
 
   const retryLastSend = useCallback(async () => {

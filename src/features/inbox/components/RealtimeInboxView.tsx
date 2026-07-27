@@ -122,23 +122,42 @@ export function RealtimeInboxView() {
 
   const openGlobalSearch = useCallback(
     () => inbox.setGlobalSearchOpen(true),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [inbox.setGlobalSearchOpen]
   );
   useGlobalSearchShortcut({ onOpen: openGlobalSearch });
 
+  const {
+    pendingContactId: inboxPendingContactId,
+    loading: inboxLoading,
+    setSelectedContactId: inboxSetSelectedContactId,
+    setSelectedContact: inboxSetSelectedContact,
+    markAsRead: inboxMarkAsRead,
+    setPendingContactId: inboxSetPendingContactId,
+  } = inbox;
+  const inboxUseExternalDb = (inbox as any).useExternalDb as boolean | undefined;
+  const { setMainTab: filtersSetMainTab, setSubTab: filtersSetSubTab } = inboxFilters;
+
   useEffect(() => {
-    if (!inbox.pendingContactId || inbox.loading) return;
-    inboxFilters.setMainTab('search');
-    inboxFilters.setSubTab('attending');
-    inbox.setSelectedContactId(inbox.pendingContactId);
-    inbox.setSelectedContact(inbox.pendingContactId);
-    if (!(inbox as any).useExternalDb && isValidUUID(inbox.pendingContactId)) {
-      inbox.markAsRead(inbox.pendingContactId);
+    if (!inboxPendingContactId || inboxLoading) return;
+    filtersSetMainTab('search');
+    filtersSetSubTab('attending');
+    inboxSetSelectedContactId(inboxPendingContactId);
+    inboxSetSelectedContact(inboxPendingContactId);
+    if (!inboxUseExternalDb && isValidUUID(inboxPendingContactId)) {
+      inboxMarkAsRead(inboxPendingContactId);
     }
-    inbox.setPendingContactId(null);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [inbox.pendingContactId, inbox.loading]);
+    inboxSetPendingContactId(null);
+  }, [
+    inboxPendingContactId,
+    inboxLoading,
+    inboxSetSelectedContactId,
+    inboxSetSelectedContact,
+    inboxMarkAsRead,
+    inboxSetPendingContactId,
+    inboxUseExternalDb,
+    filtersSetMainTab,
+    filtersSetSubTab,
+  ]);
 
   const { selectAll, selectionMode, selectedIds, bulkArchive, clearSelection, bulkMarkAsRead } =
     bulkActions;

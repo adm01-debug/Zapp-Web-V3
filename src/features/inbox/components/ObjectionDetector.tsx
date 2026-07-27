@@ -33,7 +33,7 @@ export function ObjectionDetector({
     (text: string) => {
       detector.handleSelect(text, onSelectSuggestion);
     },
-    [detector.handleSelect, onSelectSuggestion] // eslint-disable-line react-hooks/exhaustive-deps
+    [detector.handleSelect, onSelectSuggestion]
   );
 
   /* ── Pre-analysis state ── */

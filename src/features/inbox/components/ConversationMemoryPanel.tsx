@@ -1,5 +1,8 @@
-import { useState, useEffect } from 'react';
-import { fetchConversationMemory, saveConversationMemory } from '../hooks/useConversationMemoryData';
+import { useState, useEffect, useCallback } from 'react';
+import {
+  fetchConversationMemory,
+  saveConversationMemory,
+} from '../hooks/useConversationMemoryData';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
@@ -54,11 +57,7 @@ export function ConversationMemoryPanel({ contactId, profileId }: ConversationMe
   const [saving, setSaving] = useState(false);
   const [newItems, setNewItems] = useState<Record<string, string>>({});
 
-  useEffect(() => {
-    loadMemory();
-  }, [contactId]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const loadMemory = async () => {
+  const loadMemory = useCallback(async () => {
     setLoading(true);
     const data = await fetchConversationMemory(contactId);
     if (data) {
@@ -79,7 +78,11 @@ export function ConversationMemoryPanel({ contactId, profileId }: ConversationMe
       });
     }
     setLoading(false);
-  };
+  }, [contactId]);
+
+  useEffect(() => {
+    loadMemory();
+  }, [contactId, loadMemory]);
 
   const addItem = (
     key: keyof Pick<MemoryData, 'facts' | 'objections_handled' | 'promises_made' | 'pending_items'>

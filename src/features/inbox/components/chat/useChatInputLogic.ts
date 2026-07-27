@@ -43,6 +43,8 @@ export function useChatInputLogic({
   const [isSendingFiles, setIsSendingFiles] = useState(false);
   const [attachments, setAttachments] = useState<ChatInputAttachment[]>([]);
   const lastErrorRef = useRef<string | null>(null);
+  const inputValueRef = useRef(inputValue);
+  inputValueRef.current = inputValue;
   const isMobile = useIsMobile();
 
   const hasText = inputValue.trim().length > 0;
@@ -88,10 +90,10 @@ export function useChatInputLogic({
     } catch {
       /* storage unavailable */
     }
-    if (draft && !inputValue) {
+    if (draft && !inputValueRef.current) {
       setNativeValue(inputRef, draft);
     }
-  }, [contactId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [contactId, editingMessage, inputRef]);
 
   const handleFileSelect = useCallback((file: File) => {
     const validation = validateFile(file);

@@ -8,7 +8,7 @@
  * - ContactPhoneManager for multiple phones
  * - useRetryOperation for network resilience
  */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -77,6 +77,9 @@ export const EditContactDialog: React.FC<EditContactDialogProps> = ({
   const { toast } = useToast();
   const { withRetry, loading: retryLoading } = useRetryOperation(3, 500);
 
+  const contactRef = useRef(contact);
+  contactRef.current = contact;
+
   // Form state
   const [name, setName] = useState(contact.name);
   const [email, setEmail] = useState(contact.email ?? '');
@@ -95,19 +98,20 @@ export const EditContactDialog: React.FC<EditContactDialogProps> = ({
   const [conflict, setConflict] = useState<ConflictInfo | null>(null);
   const [_pendingData, setPendingData] = useState<Record<string, unknown> | null>(null);
 
-  // Reset form when contact changes (use contact.id to avoid infinite re-render loop — #310)
+  // Reset form when contact changes (key on contact.id only — avoids resetting while user types)
   useEffect(() => {
-    setName(contact.name);
-    setEmail(contact.email ?? '');
-    setCompany(contact.company ?? '');
-    setNotes(contact.notes ?? '');
+    const c = contactRef.current;
+    setName(c.name);
+    setEmail(c.email ?? '');
+    setCompany(c.company ?? '');
+    setNotes(c.notes ?? '');
     setPhoneNumbers(
-      contact.phone_numbers?.length > 0
-        ? contact.phone_numbers
-        : contact.phone
+      c.phone_numbers?.length > 0
+        ? c.phone_numbers
+        : c.phone
           ? [
               {
-                number: contact.phone,
+                number: c.phone,
                 type: 'mobile' as const,
                 is_whatsapp: true,
                 is_primary: true,
@@ -115,7 +119,7 @@ export const EditContactDialog: React.FC<EditContactDialogProps> = ({
             ]
           : []
     );
-  }, [contact.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [contact.id]);
 
   const buildUpdateData = () => ({
     name: sanitizeText(name).trim(),

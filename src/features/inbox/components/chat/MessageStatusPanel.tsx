@@ -118,7 +118,9 @@ export const MessageStatusPanel = memo(function MessageStatusPanel({
   message,
 }: MessageStatusPanelProps) {
   const { data: stats } = useDeliveryStats(
-    message.sender === 'agent' ? (message.remote_jid ?? undefined) : (message.contact_id ?? undefined)
+    message.sender === 'agent'
+      ? (message.remote_jid ?? undefined)
+      : (message.contact_id ?? undefined)
   );
   const isSent = message.sender === 'agent';
   const isFailed = TERMINAL_FAILURES.has(message.status as never);
@@ -155,7 +157,8 @@ export const MessageStatusPanel = memo(function MessageStatusPanel({
     }
     // Inbound
     const reachedRead = !!message.contact_read_at || !!message.is_read;
-    const readStamp = message.contact_read_at ?? (message.is_read ? (message.updated_at ?? null) : null);
+    const readStamp =
+      message.contact_read_at ?? (message.is_read ? (message.updated_at ?? null) : null);
     return [
       {
         reached: true,
@@ -177,7 +180,15 @@ export const MessageStatusPanel = memo(function MessageStatusPanel({
         highlight: true,
       },
     ];
-  }, [isSent, message.status, message.contact_read_at, message.is_read, message.updated_at, lastUpdate, sentStamp]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [
+    isSent,
+    message.status,
+    message.contact_read_at,
+    message.is_read,
+    message.updated_at,
+    lastUpdate,
+    sentStamp,
+  ]);
 
   return (
     <Popover>
@@ -294,7 +305,9 @@ export const MessageStatusPanel = memo(function MessageStatusPanel({
                       borderRadius: '6px',
                     }}
                     itemStyle={{ padding: '0px' }}
-                    labelFormatter={((label: string | number) => format(new Date(label), 'HH:mm')) as never}
+                    labelFormatter={
+                      ((label: string | number) => format(new Date(label), 'HH:mm')) as never
+                    }
                   />
                   <Line
                     type="monotone"
