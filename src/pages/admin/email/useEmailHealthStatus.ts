@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useMountedRef } from '@/hooks/useMountedRef';
 import { getLogger } from '@/lib/logger';
 import { useEmail } from '@/hooks/useEmailManagement';
@@ -49,63 +49,67 @@ export function useEmailHealthStatus() {
   const mountedRef = useMountedRef();
   const loadAbortRef = useRef<AbortController | null>(null);
 
-  const loadHealth = async (signal?: AbortSignal) => {
-    setLoading(true);
-    try {
-      const projectUrl = import.meta.env.VITE_SUPABASE_URL;
-      const functionUrl = `${projectUrl}/functions/v1/email-health?page=${filters.page}&pageSize=5${filters.requestId ? `&requestId=${filters.requestId}` : ''}${filters.resource ? `&resource=${filters.resource}` : ''}${filters.operation ? `&operation=${filters.operation}` : ''}`;
-
-      const fetchResponse = await fetch(functionUrl, {
-        headers: {
-          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        signal,
-      });
-      const dataFull = await fetchResponse.json();
-
-      if (!fetchResponse.ok) throw new Error(dataFull.error || 'Erro na Edge Function');
-
-      if (!mountedRef.current) return;
-      setHealth({
-        status: castStatus(dataFull.status),
-        source: typeof dataFull.source === 'string' ? dataFull.source : undefined,
-        lastValidation: dataFull.last_validation ? new Date(dataFull.last_validation) : null,
-        cacheExpiration: null,
-        recentFailures: dataFull.failuresResult?.items || [],
-        stats: {
-          totalCalls: 0,
-          failedCalls: dataFull.failure_count_window || 0,
-          cacheHits: 0,
-        },
-      });
-      setFailuresData(dataFull.failuresResult || { items: [], total: 0 });
-    } catch (error) {
-      if ((error instanceof DOMException && error.name === 'AbortError') || signal?.aborted) return;
-      log.error('Error loading email health', error);
-      toast.error('O serviço de telemetria do Email está indisponível.');
-
+  const loadHealth = useCallback(
+    async (signal?: AbortSignal) => {
+      setLoading(true);
       try {
-        const { data: summary, error: summaryError } = await emailApi.getHealthSummary();
-        if (summaryError) throw summaryError;
+        const projectUrl = import.meta.env.VITE_SUPABASE_URL;
+        const functionUrl = `${projectUrl}/functions/v1/email-health?page=${filters.page}&pageSize=5${filters.requestId ? `&requestId=${filters.requestId}` : ''}${filters.resource ? `&resource=${filters.resource}` : ''}${filters.operation ? `&operation=${filters.operation}` : ''}`;
 
-        if (summary) {
-          if (!mountedRef.current) return;
-          setHealth({
-            status: castStatus(summary.status),
-            lastValidation: summary.last_validation ? new Date(summary.last_validation) : null,
-            cacheExpiration: null,
-            recentFailures: [],
-            stats: { totalCalls: 0, failedCalls: summary.failure_count_60m || 0, cacheHits: 0 },
-          });
+        const fetchResponse = await fetch(functionUrl, {
+          headers: {
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          signal,
+        });
+        const dataFull = await fetchResponse.json();
+
+        if (!fetchResponse.ok) throw new Error(dataFull.error || 'Erro na Edge Function');
+
+        if (!mountedRef.current) return;
+        setHealth({
+          status: castStatus(dataFull.status),
+          source: typeof dataFull.source === 'string' ? dataFull.source : undefined,
+          lastValidation: dataFull.last_validation ? new Date(dataFull.last_validation) : null,
+          cacheExpiration: null,
+          recentFailures: dataFull.failuresResult?.items || [],
+          stats: {
+            totalCalls: 0,
+            failedCalls: dataFull.failure_count_window || 0,
+            cacheHits: 0,
+          },
+        });
+        setFailuresData(dataFull.failuresResult || { items: [], total: 0 });
+      } catch (error) {
+        if ((error instanceof DOMException && error.name === 'AbortError') || signal?.aborted)
+          return;
+        log.error('Error loading email health', error);
+        toast.error('O serviço de telemetria do Email está indisponível.');
+
+        try {
+          const { data: summary, error: summaryError } = await emailApi.getHealthSummary();
+          if (summaryError) throw summaryError;
+
+          if (summary) {
+            if (!mountedRef.current) return;
+            setHealth({
+              status: castStatus(summary.status),
+              lastValidation: summary.last_validation ? new Date(summary.last_validation) : null,
+              cacheExpiration: null,
+              recentFailures: [],
+              stats: { totalCalls: 0, failedCalls: summary.failure_count_60m || 0, cacheHits: 0 },
+            });
+          }
+        } catch (fallbackErr) {
+          log.error('Email health fallback also failed', fallbackErr);
         }
-      } catch (fallbackErr) {
-        log.error('Email health fallback also failed', fallbackErr);
+      } finally {
+        if (mountedRef.current) setLoading(false);
       }
-    } finally {
-      if (mountedRef.current) setLoading(false);
-    }
-  };
+    },
+    [filters, mountedRef]
+  );
 
   useEffect(() => {
     loadAbortRef.current?.abort();
@@ -161,8 +165,7 @@ export function useEmailHealthStatus() {
       void channel.unsubscribe();
       supabase.removeChannel(channel).catch(() => {});
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters]);
+  }, [filters, loadHealth]);
 
   const handleRevalidate = async () => {
     const revalidatePromise = async () => {

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -25,6 +25,20 @@ type DiagnosticLog = {
   created_at: string;
 };
 
+async function logAccess(dev: boolean) {
+  if (!dev) return;
+  await safeClient.from('dev_diagnostic_logs', (q) =>
+    q.insert({
+      action: 'Access Dev Diagnostics',
+      category: 'Audit',
+      details: {
+        user_agent: navigator.userAgent,
+        screen: `${window.innerWidth}x${window.innerHeight}`,
+      },
+    })
+  );
+}
+
 /** Admin Dev Diagnostics Page. */
 export default function AdminDevDiagnosticsPage() {
   const { toast } = useToast();
@@ -44,7 +58,7 @@ export default function AdminDevDiagnosticsPage() {
     setIsDev(roles?.includes('dev') || false);
   }, [roles]);
 
-  async function loadLogs() {
+  const loadLogs = useCallback(async () => {
     setLoading(true);
     const { data, error } = await safeClient.from<DiagnosticLog>('dev_diagnostic_logs', (q) =>
       q.select('*').order('created_at', { ascending: false }).limit(50)
@@ -57,29 +71,14 @@ export default function AdminDevDiagnosticsPage() {
       setLogs(data || []);
     }
     setLoading(false);
-  }
-
-  async function logAccess() {
-    if (!isDev) return;
-    await safeClient.from('dev_diagnostic_logs', (q) =>
-      q.insert({
-        action: 'Access Dev Diagnostics',
-        category: 'Audit',
-        details: {
-          user_agent: navigator.userAgent,
-          screen: `${window.innerWidth}x${window.innerHeight}`,
-        },
-      })
-    );
-  }
+  }, [toast, isMountedRef]);
 
   useEffect(() => {
     if (isDev) {
       void loadLogs();
-      void logAccess();
+      void logAccess(isDev);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isDev]);
+  }, [isDev, loadLogs]);
 
   if (!isDev && !loading) {
     return (

@@ -94,7 +94,6 @@ export function useHmacAuditHistory(range: RangeKey, instanceFilter: string, lim
     };
   }, [queryClient]);
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   const rows = data ?? [];
   const visibleRows = rows.slice(0, limit);
 
