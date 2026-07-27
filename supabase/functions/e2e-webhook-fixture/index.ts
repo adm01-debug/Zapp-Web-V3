@@ -74,8 +74,11 @@ function validateBody(raw: unknown): { ok: true; body: RequestBody } | { ok: fal
   if (!allowed.includes(b.action as Action)) {
     return { ok: false, error: `action must be one of ${allowed.join(", ")}` };
   }
-  if (typeof b.runId !== "string" || !b.runId.startsWith(E2E_PREFIX) || b.runId.length > 64) {
-    return { ok: false, error: `runId must start with "${E2E_PREFIX}" and be <=64 chars` };
+  if (
+    typeof b.runId !== "string" ||
+    !/^e2e-[a-zA-Z0-9_-]{1,59}$/.test(b.runId)
+  ) {
+    return { ok: false, error: 'runId must match e2e-[a-zA-Z0-9_-]+ (max 64 chars total)' };
   }
   return { ok: true, body: b as unknown as RequestBody };
 }

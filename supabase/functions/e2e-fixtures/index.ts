@@ -81,10 +81,12 @@ function validateBody(raw: unknown): { ok: true; body: RequestBody } | { ok: fal
   if (b.action !== 'seed' && b.action !== 'cleanup') {
     return { ok: false, error: "action must be 'seed' or 'cleanup'" };
   }
-  if (typeof b.runId !== 'string' || !b.runId.startsWith(E2E_PREFIX)) {
-    return { ok: false, error: `runId must start with "${E2E_PREFIX}"` };
+  if (
+    typeof b.runId !== 'string' ||
+    !/^e2e-[a-zA-Z0-9_-]{1,59}$/.test(b.runId)
+  ) {
+    return { ok: false, error: 'runId must match e2e-[a-zA-Z0-9_-]+ (max 64 chars total)' };
   }
-  if (b.runId.length > 64) return { ok: false, error: 'runId too long' };
   if (b.target !== undefined && !['failed_messages', 'webhook_events', 'all'].includes(String(b.target))) {
     return { ok: false, error: "target must be 'failed_messages', 'webhook_events' or 'all'" };
   }
