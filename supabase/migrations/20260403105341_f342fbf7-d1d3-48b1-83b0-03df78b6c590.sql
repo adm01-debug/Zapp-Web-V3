@@ -17,6 +17,9 @@ CREATE TABLE IF NOT EXISTS public.gmail_accounts (
 
 ALTER TABLE public.gmail_accounts ENABLE ROW LEVEL SECURITY;
 
+-- Ensure user_id column exists (table may have been created with profile_id by an earlier migration)
+ALTER TABLE public.gmail_accounts ADD COLUMN IF NOT EXISTS user_id UUID;
+
 DROP POLICY IF EXISTS "Users can view own gmail accounts" ON public.gmail_accounts;
 CREATE POLICY "Users can view own gmail accounts"
   ON public.gmail_accounts FOR SELECT
