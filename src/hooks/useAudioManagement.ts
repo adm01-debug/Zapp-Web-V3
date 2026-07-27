@@ -408,7 +408,8 @@ export function useAudioPlayer({ audioUrl, messageId, refreshKey }: UseAudioPlay
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
-  const [resolvedUrl, setResolvedUrl] = useState<string>(audioUrl ?? '');
+  // ✅ fix: inicia vazio em vez de audioUrl ?? '' para evitar preload de URL pública em bucket privado
+  const [resolvedUrl, setResolvedUrl] = useState<string>('');
   const [volume, setVolumeState] = useState<number>(() => {
     try {
       const saved = localStorage.getItem('audio-player:volume');
@@ -547,6 +548,18 @@ export function useAudioPlayer({ audioUrl, messageId, refreshKey }: UseAudioPlay
     },
     [messageId, refreshKey]
   );
+
+  // ✅ fix: pré-resolve URLs de storage para signed URLs no mount (evita 400 no preload)
+  useEffect(() => {
+    if (!audioUrl) { setResolvedUrl(''); return; }
+    if (!audioUrl.includes('/storage/v1/')) { setResolvedUrl(audioUrl); return; }
+    let cancelled = false;
+    resolveAudioUrl(audioUrl)
+      .then((signed) => { if (!cancelled && signed) setResolvedUrl(signed); })
+      .catch(() => { /* silently ignore: error state handled by player on click */ });
+    return () => { cancelled = true; };
+  }, [audioUrl, resolveAudioUrl]);
+
 
   useEffect(() => {
     const audio = audioRef.current;
