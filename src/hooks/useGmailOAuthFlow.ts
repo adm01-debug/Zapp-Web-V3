@@ -86,7 +86,7 @@ export function useEmailOAuthFlow(): UseEmailOAuthFlowReturn {
         continue;
       }
       const expiry = new Date(acc.token_expiry).getTime();
-      if (Number.isNaN(expiry) || expiry < now) {
+      if (Number.isNaN(expiry) || expiry <= now) {
         statuses[acc.id] = 'expired';
       } else if (expiry - now < REFRESH_AHEAD_MS) {
         statuses[acc.id] = 'expiring';

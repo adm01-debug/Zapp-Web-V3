@@ -114,7 +114,7 @@ export function MediaGallery({ contactId, open, onOpenChange }: MediaGalleryProp
         type: getMediaType(m.media_url, m.message_type),
         filename: getFilename(m.media_url),
         created_at: m.created_at,
-        message_content: m.content,
+        message_content: m.content ?? '',
       }));
   }, [messages]);
 

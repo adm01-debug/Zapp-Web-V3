@@ -51,13 +51,15 @@ export const QueueSlaPanel = () => {
 
   useEffect(() => {
     (async () => {
-      const [{ data: sk }, { data: ch }] = await Promise.all([
+      const [{ data: sk, error: skErr }, { data: ch, error: chErr }] = await Promise.all([
         safeFrom('queue_skill_requirements').select('skill_name'),
         safeFrom('channel_connections').select('channel_type'),
       ]);
-      setSkills(Array.from(new Set((sk ?? []).map((s) => s.skill_name).filter(Boolean))));
-      setChannels(Array.from(new Set((ch ?? []).map((c) => c.channel_type).filter(Boolean))));
-    })();
+      if (!skErr) setSkills(Array.from(new Set((sk ?? []).map((s) => s.skill_name).filter(Boolean))));
+      if (!chErr) setChannels(Array.from(new Set((ch ?? []).map((c) => c.channel_type).filter(Boolean))));
+    })().catch((err) => {
+      console.error('Failed to load SLA filter options:', err);
+    });
   }, []);
 
   const totals = useMemo(
