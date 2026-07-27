@@ -394,9 +394,19 @@ const USE_MOCKS =
   typeof window !== 'undefined' &&
   window.localStorage?.getItem('mockConversations') === '1';
 
+interface ContactEnrichmentData {
+  tags?: string[] | string | null;
+  company?: string | null;
+  ai_sentiment?: string | null;
+  name?: string | null;
+  push_name?: string | null;
+}
+
 // ─── Global Enrichment Cache to avoid redundant RPC calls ──────────
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const contactEnrichmentCache = new Map<string, { data: any; timestamp: number }>();
+const contactEnrichmentCache = new Map<
+  string,
+  { data: ContactEnrichmentData; timestamp: number }
+>();
 const CACHE_TTL = 300_000; // 5 minutes
 
 // ─── Hook: External Conversations (list for sidebar) ──────────
@@ -446,8 +456,7 @@ export function useExternalConversations(enabled = true) {
           // We limit concurrent fetches to avoid overloading the proxy.
           const enrichments = await Promise.all(
             jidsToFetch.map((jid) =>
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              queryExternalProxy<any>({
+              queryExternalProxy<ContactEnrichmentData>({
                 action: 'rpc',
                 rpc: 'rpc_get_contact',
                 params: {
