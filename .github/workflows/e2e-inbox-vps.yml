@@ -1,6 +1,8 @@
 name: E2E Inbox (VPS)
 
 on:
+  pull_request:
+    branches: [main, master]
   workflow_dispatch:
     inputs:
       base_url:
@@ -24,20 +26,44 @@ on:
     - cron: '0 9 * * *'
 
 jobs:
+  pr-check:
+    permissions: {}
+    name: VPS E2E Inbox — skipped on PR (requires live VPS)
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "VPS E2E Inbox skipped on PRs — run manually via workflow_dispatch against the live VPS."
+
   validate-user:
+    permissions:
+      contents: read
     name: Pré-check — permissões CRM do E2E user
+    if: github.event_name != 'pull_request'
     uses: ./.github/workflows/validate-e2e-user.yml
-    secrets: inherit
+    secrets:
+      VPS_SSH_HOST: ${{ secrets.VPS_SSH_HOST }}
+      VPS_SSH_USER: ${{ secrets.VPS_SSH_USER }}
+      VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+      SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+      E2E_USER_EMAIL: ${{ secrets.E2E_USER_EMAIL }}
 
   seed-contacts:
+    permissions:
+      contents: read
     name: Pré-seed — contatos E2E
-    needs: [validate-user, seed-contacts]
+    if: github.event_name != 'pull_request'
+    needs: [validate-user]
     uses: ./.github/workflows/seed-e2e-contacts.yml
-    secrets: inherit
+    secrets:
+      VPS_SSH_HOST: ${{ secrets.VPS_SSH_HOST }}
+      VPS_SSH_USER: ${{ secrets.VPS_SSH_USER }}
+      VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+      SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
 
   e2e-inbox:
     name: Playwright Inbox contra VPS
-    needs: validate-user
+    if: github.event_name != 'pull_request'
+    needs: [validate-user, seed-contacts]
     runs-on: ${{ github.event.inputs.runner == 'ubuntu-latest' && 'ubuntu-latest' || fromJSON('["self-hosted","vps-zapp","playwright"]') }}
     timeout-minutes: 60
     env:
