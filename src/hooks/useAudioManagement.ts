@@ -969,7 +969,7 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
         });
       }
     },
-    [maxDuration, onRecordingComplete]
+    [maxDuration, onRecordingComplete, setBlobUrl]
   );
 
   const pauseRecording = useCallback(() => {
@@ -1072,7 +1072,7 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
         setBlobUrl(null);
       }
     },
-    [isRecording, isPaused, transcription]
+    [isRecording, isPaused, transcription, setBlobUrl]
   );
 
   const restoreRecording = useCallback(() => {
@@ -1084,7 +1084,7 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
       return true;
     }
     return false;
-  }, [onRecordingComplete]);
+  }, [onRecordingComplete, setBlobUrl]);
 
   const uploadAudio = useCallback(async (blob: Blob, conversationId: string) => {
     const fileName = `${conversationId}/${crypto.randomUUID()}.webm`;

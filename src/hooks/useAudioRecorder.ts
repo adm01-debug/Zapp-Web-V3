@@ -33,7 +33,7 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
         blobUrlRef.current = null;
       }
     };
-  }, []);
+  }, [cleanupRecordingResources]);
 
   /**
    * FIX #9: Libera todos os recursos do recorder (MediaStream, AudioContext,
@@ -351,7 +351,7 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
         setBlobUrl(null);
       }
     },
-    [isRecording, isPaused, transcription]
+    [isRecording, isPaused, transcription, setBlobUrl]
   );
 
   const restoreRecording = useCallback(() => {
@@ -365,7 +365,7 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
       return true;
     }
     return false;
-  }, [onRecordingComplete]);
+  }, [onRecordingComplete, setBlobUrl]);
 
   const uploadAudio = useCallback(async (blob: Blob, conversationId: string) => {
     const fileName = `${conversationId}/${Date.now()}.webm`;
