@@ -199,7 +199,7 @@ export function useBridgeStatus() {
       .channel('health-incidents')
       .on(
         'postgres_changes',
-        { event: '*', schema: 'zapp', table: 'system_health_incidents' },
+        { event: '*', schema: 'public', table: 'system_health_incidents' },
         () => {
           void fetchIncidents();
           void checkHealth();
