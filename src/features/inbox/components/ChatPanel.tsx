@@ -47,6 +47,7 @@ import { useChatAutoScroll } from '../hooks/useChatAutoScroll';
 import { useTransferConversation } from '../hooks/useTransferConversation';
 import { useInboxShortcuts } from '../hooks/useInboxShortcuts';
 import { dbFrom } from '@/integrations/datasource/db';
+import type { MessageQueueController } from '../hooks/useMessageQueue';
 import { useUserRole } from '@/features/auth';
 
 if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
@@ -70,8 +71,7 @@ interface ChatPanelProps extends LoadOlderProps {
   onHighlightConsumed?: () => void;
   whisperCount?: number;
   isLoading?: boolean;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  messageQueue?: any;
+  messageQueue?: MessageQueueController;
 }
 
 export function ChatPanel({

@@ -11,6 +11,7 @@
  */
 
 import type { Mock } from 'vitest';
+import type { AnyFn } from '@/lib/silentErrorPrevention';
 
 /**
  * Forcibly narrow `unknown` (or any incompatible type) to `T`.
@@ -56,8 +57,7 @@ export function mockOf<T>(partial: Partial<T> = {}): T {
  *   asMock(useIsMobile).mockReturnValue(true);
  *   asMock(toast.error).mockClear();
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function asMock<T extends (...args: any[]) => any>(fn: T): Mock<T> {
+export function asMock<T extends AnyFn>(fn: T): Mock<T> {
   return fn as unknown as Mock<T>;
 }
 

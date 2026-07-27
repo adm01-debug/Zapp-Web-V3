@@ -30,6 +30,14 @@ import { ptBR } from 'date-fns/locale';
 
 const log = getLogger('InstanceSettingsDialog');
 
+interface ReconnectionLog {
+  id: string;
+  result: string;
+  created_at: string;
+  attempt_number: number;
+  error_message?: string | null;
+}
+
 interface InstanceSettingsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -119,8 +127,7 @@ export function InstanceSettingsDialog({
     maxAttempts: 5,
     loopProtection: false,
   });
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [auditLogs, setAuditLogs] = useState<any[]>([]);
+  const [auditLogs, setAuditLogs] = useState<ReconnectionLog[]>([]);
   const [loadingTab, setLoadingTab] = useState('');
 
   const loadReconnectConfig = useCallback(async () => {
@@ -220,7 +227,7 @@ export function InstanceSettingsDialog({
         .order('created_at', { ascending: false })
         .limit(20);
 
-      if (!error && data && mountedRef.current) setAuditLogs(data);
+      if (!error && data && mountedRef.current) setAuditLogs(data as unknown as ReconnectionLog[]);
     } catch (err) {
       log.error('Error loading audit logs:', err);
     }

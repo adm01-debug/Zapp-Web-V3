@@ -99,8 +99,7 @@ export const TeamFiles = memo(function TeamFiles({ contactId }: TeamFilesProps) 
         description: 'O documento interno foi salvo com sucesso.',
       });
     },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({ title: 'Erro no upload', description: error.message, variant: 'destructive' });
     },
     onSettled: () => setIsUploading(false),

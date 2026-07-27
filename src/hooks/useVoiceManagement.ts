@@ -11,6 +11,17 @@ interface VoiceState {
   error: string | null;
 }
 
+interface SpeechRecognitionInstance {
+  language: string;
+  continuous: boolean;
+  interimResults: boolean;
+  onstart: (() => void) | null;
+  onresult: ((event: SpeechRecognitionEvent) => void) | null;
+  onerror: ((event: SpeechRecognitionErrorEvent) => void) | null;
+  start(): void;
+  stop(): void;
+}
+
 /** Wraps the Web Speech API (SpeechRecognition) to provide continuous, interim-result transcription in the given language. */
 export function useSpeechToTextManagement(language: string = 'pt-BR'): VoiceState & {
   startListening: () => void;
@@ -25,8 +36,7 @@ export function useSpeechToTextManagement(language: string = 'pt-BR'): VoiceStat
     error: null,
   });
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const recognitionRef = useRef<any>(null);
+  const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
   const mountedRef = useRef(true);
 
   useEffect(() => {
@@ -38,8 +48,8 @@ export function useSpeechToTextManagement(language: string = 'pt-BR'): VoiceStat
   const startListening = useCallback(() => {
     if (!recognitionRef.current) {
       const win = window as unknown as {
-        SpeechRecognition?: new () => unknown;
-        webkitSpeechRecognition?: new () => unknown;
+        SpeechRecognition?: new () => SpeechRecognitionInstance;
+        webkitSpeechRecognition?: new () => SpeechRecognitionInstance;
       };
       const SpeechRecognition = win.SpeechRecognition || win.webkitSpeechRecognition;
       if (!SpeechRecognition) {

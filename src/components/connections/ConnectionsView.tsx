@@ -58,8 +58,7 @@ export function ConnectionsView() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [showDiagnostic, setShowDiagnostic] = useState(false);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const maskSensitiveData = (obj: any) => {
+  const maskSensitiveData = (obj: Record<string, unknown> | null | undefined) => {
     if (!obj) return null;
     const masked = { ...obj };
     const sensitiveKeys = [
@@ -76,27 +75,24 @@ export function ConnectionsView() {
       'cookie',
     ];
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const maskValue = (o: any) => {
+    const maskValue = (o: Record<string, unknown>): Record<string, unknown> => {
       if (typeof o !== 'object' || o === null) return o;
       for (const key in o) {
         if (sensitiveKeys.some((sk) => key.toLowerCase().includes(sk))) {
           if (typeof o[key] === 'string') {
-            o[key] =
-              o[key].length > 10
-                ? `${o[key].substring(0, 4)}...${o[key].substring(o[key].length - 4)}`
-                : '****';
+            const v = o[key] as string;
+            o[key] = v.length > 10 ? `${v.substring(0, 4)}...${v.substring(v.length - 4)}` : '****';
           } else {
             o[key] = '****';
           }
-        } else if (typeof o[key] === 'object') {
-          maskValue(o[key]);
+        } else if (typeof o[key] === 'object' && o[key] !== null) {
+          maskValue(o[key] as Record<string, unknown>);
         }
       }
       return o;
     };
 
-    return maskValue(JSON.parse(JSON.stringify(masked))); // Deep clone before masking
+    return maskValue(JSON.parse(JSON.stringify(masked)) as Record<string, unknown>);
   };
   const {
     connections,
@@ -559,7 +555,10 @@ export function ConnectionsView() {
         ))}
       </div>
 
-      <DegradedQuickActions connections={connections as any} onShowQrCode={handleShowQrCode as any} />
+      <DegradedQuickActions
+        connections={connections as any}
+        onShowQrCode={handleShowQrCode as any}
+      />
 
       {/* Connections List */}
       {loading ? (
