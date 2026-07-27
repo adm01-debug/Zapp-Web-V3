@@ -10,6 +10,7 @@ on:
 
 jobs:
   pr-check:
+    permissions: {}
     name: Health Review — skipped on PR (runs on schedule)
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
@@ -17,6 +18,9 @@ jobs:
       - run: echo "Health Review skipped on PRs — runs automatically on the 1st and 15th of each month."
 
   health-review:
+    permissions:
+      contents: read
+      issues: write
     name: Project Health Review
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
@@ -51,7 +55,7 @@ jobs:
           echo "ts_count=$TS_COUNT" >> "$GITHUB_OUTPUT"
           echo "wf_count=$WF_COUNT" >> "$GITHUB_OUTPUT"
           echo "mig_count=$MIG_COUNT" >> "$GITHUB_OUTPUT"
-          echo "root_md_count=$ROOT_MD_COUNT"
+          echo "root_md_count=$ROOT_MD_COUNT" >> "$GITHUB_OUTPUT"
 
       - name: Create Health Review Issue
         uses: actions/github-script@v7

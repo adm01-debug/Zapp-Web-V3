@@ -6,7 +6,7 @@
  *
  *  1. Nenhum script `workbox-*.js` é requisitado (precache Workbox ausente).
  *  2. Nenhuma cache do tipo `workbox-precache-*` é criada no CacheStorage.
- *  3. A tela carrega e fica interativa em ≤ 6 s, sem ficar presa em
+ *  3. A tela carrega e fica interativa em ≤ 6 s (≤ 10 s em CI), sem ficar presa em
  *     spinner de "Verificando acesso e permissões...".
  */
 import { test, expect, type Route } from '@playwright/test';
@@ -41,18 +41,22 @@ async function runBootAudit(page: import('@playwright/test').Page, url: string) 
   });
 
   const t0 = Date.now();
+  const deadline = t0 + BOOT_BUDGET_MS;
   await page.goto(url, { waitUntil: 'domcontentloaded' });
+  const remainingMs = deadline - Date.now();
+  if (remainingMs <= 0) {
+    throw new Error(`App excedeu o orçamento de boot (${BOOT_BUDGET_MS}ms) antes do polling`);
+  }
 
-  // Boot budget: precisa sair do spinner "Verificando acesso..." em ≤ 6s.
-  // Aceitamos QUALQUER estado final (auth, dashboard, erro visível) — só não
-  // pode ficar preso no gate de autenticação.
+  // Boot budget total (inclui goto + polling): não pode ficar preso no gate de autenticação.
+  // Aceitamos QUALQUER estado final (auth, dashboard, erro visível).
   await expect
     .poll(
       async () => {
         const text = (await page.locator('body').innerText().catch(() => '')) ?? '';
         return !/Verificando acesso e permissões/i.test(text);
       },
-      { timeout: BOOT_BUDGET_MS, message: 'App ficou preso no spinner de boot' },
+      { timeout: remainingMs, message: 'App ficou preso no spinner de boot' },
     )
     .toBe(true);
 
