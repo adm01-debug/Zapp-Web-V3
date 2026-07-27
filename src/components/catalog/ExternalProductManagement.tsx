@@ -71,12 +71,13 @@ export const ExternalProductManagement: React.FC = () => {
     [page, search, categoryId, supplierId, onlyInStock]
   );
 
-  // Initial load
+  // Initial load — uses fixed initial params so buildFilters (which closes over
+  // filter state) is not needed in the dep array.
   useEffect(() => {
     fetchCategories();
     fetchSuppliers();
-    fetchProducts(buildFilters());
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    fetchProducts({ limit: PAGE_SIZE, offset: 0, only_in_stock: false });
+  }, [fetchCategories, fetchSuppliers, fetchProducts]);
 
   // Filter changes - debounced
   useEffect(() => {
@@ -85,12 +86,12 @@ export const ExternalProductManagement: React.FC = () => {
       fetchProducts(buildFilters(0));
     }, 300);
     return () => clearTimeout(t);
-  }, [search, categoryId, supplierId, onlyInStock]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [search, categoryId, supplierId, onlyInStock, fetchProducts, buildFilters]);
 
   // Page changes
   useEffect(() => {
     if (page > 0) fetchProducts(buildFilters());
-  }, [page]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [page, fetchProducts, buildFilters]);
 
   const totalPages = Math.ceil(totalProducts / PAGE_SIZE);
   const hasFilters = search || categoryId !== 'all' || supplierId !== 'all' || onlyInStock;

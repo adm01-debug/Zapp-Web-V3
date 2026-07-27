@@ -92,7 +92,7 @@ export const SendProductDialog: React.FC<SendProductDialogProps> = ({
     } else {
       setFullProduct(product);
     }
-  }, [open, product.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [open, product, fetchProduct]);
 
   const variantGroups = useMemo(
     () => groupVariantsByColor(fullProduct.variants || []),
@@ -307,7 +307,10 @@ export const SendProductDialog: React.FC<SendProductDialogProps> = ({
                 </Button>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button aria-label="Expandir" className="rounded-l-none border-l border-primary-foreground/20 px-2">
+                    <Button
+                      aria-label="Expandir"
+                      className="rounded-l-none border-l border-primary-foreground/20 px-2"
+                    >
                       <ChevronDown className="h-4 w-4" />
                     </Button>
                   </DropdownMenuTrigger>

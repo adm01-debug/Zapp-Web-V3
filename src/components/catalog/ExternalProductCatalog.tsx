@@ -56,10 +56,13 @@ export const ExternalProductCatalog: React.FC<ExternalProductCatalogProps> = ({
 
   const [internalOpen, setInternalOpen] = useState(false);
   const isOpen = controlledOpen !== undefined ? controlledOpen : internalOpen;
-  const setIsOpen = (v: boolean) => {
-    setInternalOpen(v);
-    controlledOnOpenChange?.(v);
-  };
+  const setIsOpen = useCallback(
+    (v: boolean) => {
+      setInternalOpen(v);
+      controlledOnOpenChange?.(v);
+    },
+    [controlledOnOpenChange]
+  );
   const [search, setSearch] = useState('');
   const [categoryId, setCategoryId] = useState<string>('all');
   const [supplierId, setSupplierId] = useState<string>('all');
@@ -67,6 +70,10 @@ export const ExternalProductCatalog: React.FC<ExternalProductCatalogProps> = ({
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [page, setPage] = useState(0);
   const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Ref always holds the latest doFetch so the isOpen effect can call it
+  // without doFetch being in its dep array (which would conflict with the
+  // debounced filter-change effect below).
+  const doFetchRef = useRef<(overrides?: Record<string, unknown>) => void>(() => undefined);
 
   // Build category tree for display
   const parentCategories = categories.filter((c) => !c.parent_id);
@@ -88,13 +95,18 @@ export const ExternalProductCatalog: React.FC<ExternalProductCatalogProps> = ({
     [page, search, categoryId, supplierId, onlyInStock, fetchProducts]
   );
 
+  // Keep the ref pointing to the latest doFetch without adding it to effect deps.
+  useEffect(() => {
+    doFetchRef.current = doFetch;
+  });
+
   useEffect(() => {
     if (isOpen) {
       fetchCategories();
       fetchSuppliers();
-      doFetch();
+      doFetchRef.current();
     }
-  }, [isOpen]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [isOpen, fetchCategories, fetchSuppliers]);
 
   // Re-fetch on filter changes (debounced for search)
   useEffect(() => {
@@ -111,8 +123,8 @@ export const ExternalProductCatalog: React.FC<ExternalProductCatalogProps> = ({
 
   // Re-fetch on page change
   useEffect(() => {
-    if (isOpen && page > 0) doFetch();
-  }, [page]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (isOpen && page > 0) doFetchRef.current();
+  }, [isOpen, page]);
 
   const handleSend = useCallback(
     (product: ExternalProduct) => {
@@ -120,8 +132,7 @@ export const ExternalProductCatalog: React.FC<ExternalProductCatalogProps> = ({
       setIsOpen(false);
       toast({ title: 'Produto enviado!', description: `${product.name} foi enviado para o chat.` });
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [onSendProduct]
+    [onSendProduct, setIsOpen]
   );
 
   const totalPages = Math.ceil(totalProducts / PAGE_SIZE);
@@ -325,7 +336,8 @@ export const ExternalProductCatalog: React.FC<ExternalProductCatalogProps> = ({
           {/* Pagination */}
           {totalPages > 1 && (
             <div className="flex items-center justify-center gap-2 pt-2">
-              <Button aria-label="Anterior"
+              <Button
+                aria-label="Anterior"
                 variant="outline"
                 size="sm"
                 disabled={page === 0}
@@ -336,7 +348,8 @@ export const ExternalProductCatalog: React.FC<ExternalProductCatalogProps> = ({
               <span className="text-sm text-muted-foreground">
                 Página {page + 1} de {totalPages}
               </span>
-              <Button aria-label="Próximo"
+              <Button
+                aria-label="Próximo"
                 variant="outline"
                 size="sm"
                 disabled={page >= totalPages - 1}
