@@ -36,6 +36,7 @@ interface ForwardMessageDialogProps {
   onForward: (targetIds: string[], targetType: 'contact' | 'group') => void;
 }
 
+/** Truncates a message string to maxLength characters, appending '...' if the original exceeds the limit. */
 function truncateMessage(content: string, maxLength = 100) {
   return content.length <= maxLength ? content : content.slice(0, maxLength) + '...';
 }

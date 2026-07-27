@@ -101,6 +101,7 @@ export interface ContactEmail {
 }
 
 // ─── Client getter with safety ────────────────────────────────
+/** Returns the external Supabase client, throwing a descriptive error if the external DB is not configured. */
 function getClient(): SupabaseClient {
   const client = getExternalSupabase();
   if (!client) {

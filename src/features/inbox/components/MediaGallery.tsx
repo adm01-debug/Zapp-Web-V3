@@ -31,6 +31,7 @@ import { dbFrom } from '@/integrations/datasource/db';
 import { queryKeys } from '@/services/api/queryKeys';
 import { isValidUUID } from '@/utils/uuid';
 
+/** Memoized grid cell that renders a single media item with selection toggle and preview callbacks. */
 const MediaGridItem = memo(function MediaGridItem({
   item,
   isSelected,

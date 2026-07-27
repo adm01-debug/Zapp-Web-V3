@@ -36,6 +36,7 @@ const PRIORITY_COLOR: Record<QueueSlaRow['sla_priority'], string> = {
   low: 'bg-muted text-muted-foreground',
 };
 
+/** Displays queue SLA metrics with filters for skill and channel type, allowing inline priority updates. */
 export const QueueSlaPanel = () => {
   const [filters, setFilters] = useState<QueueSlaFilters>({
     skill_name: null,
@@ -229,6 +230,7 @@ export const QueueSlaPanel = () => {
   );
 };
 
+/** Renders a KPI metric card with a label, numeric value, icon, and optional colour tone (default, warning, destructive). */
 function KpiCard({
   label,
   value,
@@ -262,6 +264,7 @@ function KpiCard({
   );
 }
 
+/** Renders a single queue row in the SLA table with inline editable routing weight and priority selectors. */
 function QueueRow({
   row,
   onUpdate,
