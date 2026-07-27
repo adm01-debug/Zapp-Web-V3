@@ -102,7 +102,6 @@ export function useRealtimeMessages() {
         { data: messages, error: messagesError },
       ] = await Promise.all([
         supabase
-          .schema('evo')
           .from('evolution_contacts')
           .select('*')
           .order('updated_at', { ascending: false })
@@ -116,7 +115,7 @@ export function useRealtimeMessages() {
       if (contactsError) throw contactsError;
       if (messagesError) throw messagesError;
 
-      const contactList: Contact[] = (contactsRaw as unknown as Contact[] | null) ?? []; // ignore-audit — supabase.schema('evo') absent from generated types; contactsRaw typed as opaque null/unknown
+      const contactList: Contact[] = (contactsRaw as unknown as Contact[] | null) ?? [];
       const messageList: Message[] = messages ?? [];
 
       const contactMap = new Map<string, Contact>();
@@ -133,13 +132,12 @@ export function useRealtimeMessages() {
 
       if (missingIds.length > 0) {
         const { data: extraRaw } = await supabase
-          .schema('evo')
           .from('evolution_contacts')
           .select('*')
           .in('id', missingIds);
         ((extraRaw as unknown as Contact[] | null) ?? []).forEach((c: Contact) =>
           contactMap.set(c.id, c)
-        ); // ignore-audit — supabase.schema('evo') absent from generated types; extraRaw typed as opaque null/unknown
+        );
       }
 
       if (!isMountedRef.current) return;
