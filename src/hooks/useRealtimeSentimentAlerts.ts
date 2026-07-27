@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useNotificationSettings } from '@/hooks/useNotificationSettings';
@@ -7,6 +7,14 @@ import { playNotificationSound, showBrowserNotification } from '@/utils/notifica
 /** Subscribes to realtime sentiment alerts from zapp.sentiment_alerts and shows a toast (plus optional browser notification and sound) when a new alert is inserted. */
 export function useRealtimeSentimentAlerts() {
   const { settings, isQuietHours } = useNotificationSettings();
+
+  // Keep refs current to avoid subscription churn when settings change
+  const settingsRef = useRef(settings);
+  const isQuietHoursRef = useRef(isQuietHours);
+  useEffect(() => {
+    settingsRef.current = settings;
+    isQuietHoursRef.current = isQuietHours;
+  }, [settings, isQuietHours]);
 
   useEffect(() => {
     const channel = supabase
@@ -19,6 +27,8 @@ export function useRealtimeSentimentAlerts() {
           table: 'sentiment_alerts',
         },
         (payload) => {
+          const s = settingsRef.current;
+          const quiet = isQuietHoursRef.current;
           const record = payload.new as Record<string, unknown>;
           const level =
             typeof record?.alert_level === 'string' ? record.alert_level : undefined;
@@ -31,11 +41,11 @@ export function useRealtimeSentimentAlerts() {
 
           toast.warning(message);
 
-          if (settings?.soundEnabled && !isQuietHours()) {
+          if (s?.soundEnabled && !quiet()) {
             playNotificationSound('alert');
           }
 
-          if (settings?.browserNotifications) {
+          if (s?.browserNotifications) {
             showBrowserNotification('Alerta de Sentimento', message);
           }
         }
@@ -45,7 +55,7 @@ export function useRealtimeSentimentAlerts() {
     return () => {
       supabase.removeChannel(channel).catch(() => {});
     };
-  }, [settings, isQuietHours]);
+  }, []); // subscribe once; latest settings read via refs above
 
   return null;
 }

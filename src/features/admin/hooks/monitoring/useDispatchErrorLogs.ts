@@ -66,7 +66,7 @@ export function useDispatchErrorLogs(filters: DispatchErrorLogFilters = {}) {
   // Reset cursor map whenever filter dimensions change (new result set, start from page 0)
   useEffect(() => {
     setPageIndexToCursor(new Map([[0, null]]));
-  }, [hours, to, instance, agent, errorCode, search]);
+  }, [hours, to, instance, agent, errorCode, search, pageSize]);
 
   const query = useQuery<{ rows: DispatchErrorLogRow[]; total: number }>({
     queryKey: queryKeys.dispatchErrorLogs.filtered({
