@@ -148,7 +148,15 @@ DROP POLICY IF EXISTS "Custom scopes are viewable by everyone" ON zapp.inbox_cus
 CREATE POLICY "Custom scopes are viewable by everyone" ON zapp.inbox_custom_scopes FOR SELECT TO authenticated USING (true);
 DROP POLICY IF EXISTS "Only admins can manage custom scopes" ON zapp.inbox_custom_scopes;
 CREATE POLICY "Only admins can manage custom scopes" ON zapp.inbox_custom_scopes TO authenticated USING (public.is_admin_or_supervisor(auth.uid())) WITH CHECK (public.is_admin_or_supervisor(auth.uid()));
-CREATE OR REPLACE VIEW public.inbox_custom_scopes WITH (security_invoker=true) AS SELECT * FROM zapp.inbox_custom_scopes;
+-- public.inbox_custom_scopes may exist as TABLE from migration 20260527122016; migrate data then replace with VIEW
+DO $$ BEGIN
+  IF EXISTS (SELECT FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relname='inbox_custom_scopes' AND c.relkind='r') THEN
+    INSERT INTO zapp.inbox_custom_scopes SELECT * FROM public.inbox_custom_scopes ON CONFLICT (id) DO NOTHING;
+    DROP TABLE public.inbox_custom_scopes CASCADE;
+  END IF;
+END $$;
+DROP VIEW IF EXISTS public.inbox_custom_scopes;
+CREATE VIEW public.inbox_custom_scopes WITH (security_invoker=true) AS SELECT * FROM zapp.inbox_custom_scopes;
 
 -- 3.4 zapp.dlq_audit_log (+ view public.dlq_audit_log)
 CREATE TABLE IF NOT EXISTS zapp.dlq_audit_log (
@@ -163,7 +171,15 @@ CREATE TABLE IF NOT EXISTS zapp.dlq_audit_log (
 ALTER TABLE zapp.dlq_audit_log ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Admins view dlq" ON zapp.dlq_audit_log;
 CREATE POLICY "Admins view dlq" ON zapp.dlq_audit_log FOR SELECT TO authenticated USING ((EXISTS ( SELECT 1 FROM public.user_roles WHERE ((user_roles.user_id = auth.uid()) AND (user_roles.role = ANY (ARRAY['admin'::public.app_role, 'supervisor'::public.app_role]))))));
-CREATE OR REPLACE VIEW public.dlq_audit_log WITH (security_invoker=true) AS SELECT * FROM zapp.dlq_audit_log;
+-- public.dlq_audit_log may exist as TABLE from migration 20260521104452; migrate data then replace with VIEW
+DO $$ BEGIN
+  IF EXISTS (SELECT FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relname='dlq_audit_log' AND c.relkind='r') THEN
+    INSERT INTO zapp.dlq_audit_log(id,action,item_id,performed_by,reason,created_at) SELECT id,action,item_id,performed_by,reason,created_at FROM public.dlq_audit_log ON CONFLICT (id) DO NOTHING;
+    DROP TABLE public.dlq_audit_log CASCADE;
+  END IF;
+END $$;
+DROP VIEW IF EXISTS public.dlq_audit_log;
+CREATE VIEW public.dlq_audit_log WITH (security_invoker=true) AS SELECT * FROM zapp.dlq_audit_log;
 
 -- ╔═══ SEÇÃO 4 — TRIGGER: sincronismo online_status <-> is_online ═══╗
 CREATE OR REPLACE FUNCTION zapp.sync_profile_online_status()
@@ -183,7 +199,14 @@ ALTER TABLE evo.evolution_health_logs ADD COLUMN IF NOT EXISTS connection_id uui
 ALTER TABLE evo.evolution_health_logs ADD COLUMN IF NOT EXISTS error_count integer DEFAULT 0;
 ALTER TABLE evo.evolution_health_logs ADD COLUMN IF NOT EXISTS success_count integer DEFAULT 0;
 ALTER TABLE evo.evolution_health_logs ADD COLUMN IF NOT EXISTS created_at timestamp with time zone DEFAULT now();
-DROP VIEW IF EXISTS public.evolution_health_logs;
+-- public.evolution_health_logs may exist as TABLE from migration 20260506193742; drop whatever exists then create VIEW
+DO $$ BEGIN
+  IF EXISTS (SELECT FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relname='evolution_health_logs' AND c.relkind='r') THEN
+    DROP TABLE public.evolution_health_logs CASCADE;
+  ELSIF EXISTS (SELECT FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relname='evolution_health_logs' AND c.relkind='v') THEN
+    DROP VIEW public.evolution_health_logs CASCADE;
+  END IF;
+END $$;
 CREATE VIEW public.evolution_health_logs AS
  SELECT id, instance_name, status, error_message, response_time_ms, online_instances, total_instances, endpoint_tested, http_status_code, metadata, performed_at, connection_id, error_count, success_count, created_at
  FROM evo.evolution_health_logs;
