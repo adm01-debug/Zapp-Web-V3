@@ -90,6 +90,7 @@ export function useContactDuplicateDetector({
             (q) =>
               q
                 .select('id, name, phone, email, avatar_url')
+                .eq('workspace_id', workspaceId)
                 .is('deleted_at', null)
                 .neq('id', excludeId ?? '00000000-0000-0000-0000-000000000000')
                 .or(
@@ -114,6 +115,7 @@ export function useContactDuplicateDetector({
             (q) =>
               q
                 .select('id, name, phone, email, avatar_url')
+                .eq('workspace_id', workspaceId)
                 .eq('email', normalizedEmail)
                 .is('deleted_at', null)
                 .neq('id', excludeId ?? '00000000-0000-0000-0000-000000000000')

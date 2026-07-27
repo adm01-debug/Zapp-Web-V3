@@ -110,7 +110,7 @@ export default function ConversationHeatmap({
   onCellClick,
 }: ConversationHeatmapProps) {
   const { data: realData } = useHeatmapData();
-  const data = externalData || realData || [];
+  const data = useMemo(() => externalData || realData || [], [externalData, realData]);
   const [selectedMetric, setSelectedMetric] = useState(metric);
 
   const config = METRIC_CONFIG[selectedMetric];

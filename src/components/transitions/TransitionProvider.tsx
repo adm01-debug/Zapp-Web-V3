@@ -26,8 +26,10 @@ export function TransitionProvider({
   defaultVariant = 'fade',
   defaultOverrides = {},
 }: TransitionProviderProps) {
-  const initial: TransitionState = { variant: defaultVariant, overrides: defaultOverrides };
-  const [state, setState] = useState<TransitionState>(initial);
+  const [state, setState] = useState<TransitionState>({
+    variant: defaultVariant,
+    overrides: defaultOverrides,
+  });
 
   const setVariant = useCallback(
     (variant: TransitionVariantName, overrides: TransitionOverrides = {}) => {
@@ -36,7 +38,10 @@ export function TransitionProvider({
     []
   );
 
-  const resetVariant = useCallback(() => setState(initial), [initial]);
+  const resetVariant = useCallback(
+    () => setState({ variant: defaultVariant, overrides: defaultOverrides }),
+    [defaultVariant, defaultOverrides]
+  );
 
   const value = useMemo<TransitionContextValue>(
     () => ({ ...state, setVariant, resetVariant }),

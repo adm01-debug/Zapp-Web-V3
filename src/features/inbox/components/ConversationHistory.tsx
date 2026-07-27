@@ -169,11 +169,11 @@ export function ConversationHistory({
     } finally {
       setIsLoading(false);
     }
-  }, [contactId, contactPhone, periodFilter]);
+  }, [contactId, periodFilter]);
 
   useEffect(() => {
     fetchConversationHistory();
-  }, [contactId, contactPhone, periodFilter, fetchConversationHistory]);
+  }, [contactId, periodFilter, fetchConversationHistory]);
 
   const displayedConversations = isExpanded ? conversations : conversations.slice(0, 3);
 

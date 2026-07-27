@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { getLogger } from '@/lib/logger';
@@ -20,7 +20,7 @@ export interface CustomField {
 /** Hook: use Contact Custom Fields. */
 export function useContactCustomFields(contactId: string | undefined) {
   const queryClient = useQueryClient();
-  const queryKey = ['contact-custom-fields', contactId] as const;
+  const queryKey = useMemo(() => ['contact-custom-fields', contactId] as const, [contactId]);
 
   const { data: fields = [], isLoading } = useQuery({
     queryKey,

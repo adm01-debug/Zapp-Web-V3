@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useMountedRef } from '@/hooks/useMountedRef';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Ban, Plus, Trash2, Clock, Globe, Loader2, Search, Shield } from 'lucide-react';
@@ -21,7 +21,7 @@ export function BlockedIPsPanel() {
   const [ipToRemove, setIpToRemove] = useState<BlockedIP | null>(null);
   const mountedRef = useMountedRef();
 
-  const loadBlockedIPs = async () => {
+  const loadBlockedIPs = useCallback(async () => {
     setLoading(true);
     try {
       const data = await fetchBlockedIPs();
@@ -32,11 +32,11 @@ export function BlockedIPsPanel() {
     } finally {
       if (mountedRef.current) setLoading(false);
     }
-  };
+  }, [mountedRef]);
 
   useEffect(() => {
     void loadBlockedIPs();
-  }, []);
+  }, [loadBlockedIPs]);
 
   const filteredIPs = blockedIPs.filter(
     (ip) => ip.ip_address.includes(search) || ip.reason.toLowerCase().includes(search.toLowerCase())
@@ -125,7 +125,8 @@ export function BlockedIPsPanel() {
                         )}
                       </div>
                     </div>
-                    <Button aria-label="Excluir"
+                    <Button
+                      aria-label="Excluir"
                       variant="ghost"
                       size="sm"
                       onClick={() => setIpToRemove(ip)}

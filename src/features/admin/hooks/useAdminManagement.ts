@@ -471,9 +471,9 @@ function useAdminChannelsManagement(statusFilter: string, search: string) {
     staleTime: 30_000,
   });
 
-  const channels = channelsData?.channels ?? [];
-  const channelQueues = channelsData?.channelQueues ?? [];
-  const channelWppConns = channelsData?.channelWppConns ?? [];
+  const channels = useMemo(() => channelsData?.channels ?? [], [channelsData]);
+  const channelQueues = useMemo(() => channelsData?.channelQueues ?? [], [channelsData]);
+  const channelWppConns = useMemo(() => channelsData?.channelWppConns ?? [], [channelsData]);
 
   const filteredChannels = useMemo(() => {
     if (!search.trim()) return channels;
@@ -812,7 +812,7 @@ function useRolesManagement() {
     staleTime: 60_000,
   });
 
-  const roleUsersList = roleUsers ?? [];
+  const roleUsersList = useMemo(() => roleUsers ?? [], [roleUsers]);
 
   const fetchAvailableRoleUsers = useCallback(async () => {
     const { data, error: profilesErr } = await supabase
