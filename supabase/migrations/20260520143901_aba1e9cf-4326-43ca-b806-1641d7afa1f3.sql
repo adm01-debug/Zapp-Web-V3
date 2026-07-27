@@ -180,7 +180,9 @@ BEGIN
     
     RETURN v_transfer_id;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql
+SET search_path = pg_catalog, public
+SECURITY DEFINER;
 
 -- RPC: Accept Transfer
 CREATE OR REPLACE FUNCTION public.fn_accept_transfer(
@@ -199,7 +201,9 @@ BEGIN
     
     RETURN FOUND;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql
+SET search_path = pg_catalog, public
+SECURITY DEFINER;
 
 -- RLS Policies (Basic)
 CREATE POLICY "Enable read for authenticated users" ON public.instance_registry FOR SELECT TO authenticated USING (true);
