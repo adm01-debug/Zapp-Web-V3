@@ -10,6 +10,7 @@ import { Clock } from 'lucide-react';
 import { format, isToday, isYesterday } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useConversationReactionsRealtime } from '../hooks/reactions/useConversationReactionsRealtime';
+import { usePreloadConversationReactions } from '../hooks/reactions/usePreloadConversationReactions';
 
 interface VirtualizedMessageListProps {
   messages: Message[];
@@ -59,6 +60,8 @@ export const VirtualizedMessageList = forwardRef<VirtualizedMessageListRef, Virt
   const conversationId = messages[0]?.conversationId;
   const messageIds = useMemo(() => messages.map((m) => m.id), [messages]);
   useConversationReactionsRealtime(conversationId, messageIds);
+  // Batch-prime React Query cache → eliminates N+1 individual reaction queries
+  usePreloadConversationReactions(messageIds);
 
   const listItems = useMemo((): ListItem[] => {
     const items: ListItem[] = [];
