@@ -39,7 +39,10 @@ export function useInitialHighlight({
     let attempts = 0;
 
     const schedule = (fn: () => void, delay: number) => {
-      const id = setTimeout(() => { timers.delete(id); fn(); }, delay);
+      const id = setTimeout(() => {
+        timers.delete(id);
+        fn();
+      }, delay);
       timers.add(id);
     };
 
@@ -88,6 +91,12 @@ export function useInitialHighlight({
       timers.forEach(clearTimeout);
       timers.clear();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialHighlightMessageId, messages, onHighlightConsumed]);
+  }, [
+    initialHighlightMessageId,
+    messages,
+    onHighlightConsumed,
+    messagesAreaRef,
+    setHighlightedMessageIds,
+    setActiveHighlightId,
+  ]);
 }

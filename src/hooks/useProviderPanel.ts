@@ -70,8 +70,8 @@ export function useProviderPanel() {
   const logs = data?.logs ?? [];
 
   const refetch = useCallback(
-    () => queryClient.invalidateQueries({ queryKey }),
-    [queryClient, selectedProviderId] // eslint-disable-line react-hooks/exhaustive-deps
+    () => queryClient.invalidateQueries({ queryKey: ['provider-panel', selectedProviderId] }),
+    [queryClient, selectedProviderId]
   );
 
   const upsertProvider = async (
@@ -109,7 +109,9 @@ export function useProviderPanel() {
   };
 
   const runHealthcheck = async () => {
-    const { data: fnData, error } = await supabase.functions.invoke('provider-healthcheck', { body: {} });
+    const { data: fnData, error } = await supabase.functions.invoke('provider-healthcheck', {
+      body: {},
+    });
     if (error) {
       toast({ title: 'Falha no healthcheck', description: error.message, variant: 'destructive' });
       return;

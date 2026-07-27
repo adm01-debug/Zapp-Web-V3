@@ -102,12 +102,14 @@ export function useEvolutionAutoSync(onSynced?: () => void) {
     }
   };
 
+  const syncAllRef = useRef(syncAll);
+  syncAllRef.current = syncAll;
+
   useEffect(() => {
     if (ran.current) return;
     ran.current = true;
-    void syncAll();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // intentionally empty — runs once on mount
+    void syncAllRef.current();
+  }, []);
 
   return { syncAll };
 }

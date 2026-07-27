@@ -39,19 +39,22 @@ export function useConversationActions() {
       .eq('user_id', user.id)
       .maybeSingle(); // ✅ fix: maybeSingle evita PGRST116
     if (data && mountedRef.current) setProfileId(data.id);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [mountedRef]);
 
-  const loadPinned = useCallback(async (pid: string) => {
-    const { data, error } = await supabase
-      .from('pinned_conversations')
-      .select('contact_id')
-      .eq('pinned_by', pid);
-    if (error) {
-      log.warn('loadPinned failed', error);
-      return;
-    }
-    if (data && mountedRef.current) setPinnedIds(new Set(data.map((p) => p.contact_id)));
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  const loadPinned = useCallback(
+    async (pid: string) => {
+      const { data, error } = await supabase
+        .from('pinned_conversations')
+        .select('contact_id')
+        .eq('pinned_by', pid);
+      if (error) {
+        log.warn('loadPinned failed', error);
+        return;
+      }
+      if (data && mountedRef.current) setPinnedIds(new Set(data.map((p) => p.contact_id)));
+    },
+    [mountedRef]
+  );
 
   const loadFavorites = useCallback(async () => {
     const {
@@ -68,20 +71,23 @@ export function useConversationActions() {
     }
     if (data && mountedRef.current)
       setFavoriteIds(new Set(data.map((f: FavoriteContact) => f.contact_id)));
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [mountedRef]);
 
-  const loadSnoozed = useCallback(async (pid: string) => {
-    const { data, error } = await supabase
-      .from('conversation_snoozes')
-      .select('contact_id')
-      .eq('snoozed_by', pid)
-      .gt('snooze_until', new Date().toISOString());
-    if (error) {
-      log.warn('loadSnoozed failed', error);
-      return;
-    }
-    if (data && mountedRef.current) setSnoozedIds(new Set(data.map((s) => s.contact_id)));
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  const loadSnoozed = useCallback(
+    async (pid: string) => {
+      const { data, error } = await supabase
+        .from('conversation_snoozes')
+        .select('contact_id')
+        .eq('snoozed_by', pid)
+        .gt('snooze_until', new Date().toISOString());
+      if (error) {
+        log.warn('loadSnoozed failed', error);
+        return;
+      }
+      if (data && mountedRef.current) setSnoozedIds(new Set(data.map((s) => s.contact_id)));
+    },
+    [mountedRef]
+  );
 
   useEffect(() => {
     loadProfile();

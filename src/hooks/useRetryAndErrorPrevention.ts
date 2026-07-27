@@ -155,7 +155,7 @@ export function useSafeAsync<T>(
       safeCallback(() => withErrorRecovery(fnRef.current, { operation, fallback, shouldThrow }), {
         name: operation,
       })(),
-    [operation, fallback, shouldThrow, ...dependencies] // eslint-disable-line react-hooks/exhaustive-deps
+    [operation, fallback, shouldThrow]
   );
 
   return executeAsync;
@@ -193,7 +193,7 @@ export function useSafeRetry<T>(
         delayMs,
         backoffMultiplier,
       }),
-    [operation, maxAttempts, delayMs, backoffMultiplier, ...dependencies] // eslint-disable-line react-hooks/exhaustive-deps
+    [operation, maxAttempts, delayMs, backoffMultiplier]
   );
 
   return executeRetry;
@@ -238,7 +238,7 @@ export function useSafeCallback<T extends (...args: any[]) => any>(
         ...args
       );
     },
-    [name, fallbackReturn, shouldThrow, ...dependencies] // eslint-disable-line react-hooks/exhaustive-deps
+    [name, fallbackReturn, shouldThrow]
   ) as unknown as T;
 }
 
@@ -271,7 +271,7 @@ export function useSafePromise<T>(
     return () => {
       cancelled = true;
     };
-  }, [operation, promise, shouldThrow, ...dependencies]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [operation, promise, shouldThrow]);
 }
 
 /**
@@ -326,7 +326,7 @@ export function useAsyncEffect<T>(
       abortRef.current?.abort();
       cleanupRef.current?.();
     };
-  }, [operation, ...(dependencies ?? [])]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [operation]);
 }
 
 /**
@@ -402,7 +402,7 @@ export function useRetryableAsync<T>(
       log.error(`Retry exhausted for ${operationName}:`, error);
       throw error;
     }
-  }, [operationName, ...dependencies]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [operationName]);
 
   const getMetrics = useCallback(() => {
     return executorRef.current.getMetrics();

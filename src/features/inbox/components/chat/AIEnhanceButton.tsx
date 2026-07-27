@@ -80,8 +80,7 @@ export function AIEnhanceButton({ inputValue, onInputChange, contactName }: AIEn
         setIsLoading(false);
       }
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [inputValue, onInputChange]
+    [inputValue, onInputChange, contactName]
   );
 
   const handleUndo = useCallback(() => {

@@ -30,11 +30,7 @@ import type { AppRole } from '@/features/auth';
 // Automations
 /** Trigger Type type alias. */
 export type TriggerType =
-  | 'first_response_pending'
-  | 'inactivity'
-  | 'tag_applied'
-  | 'tag_removed'
-  | 'keyword_match';
+  'first_response_pending' | 'inactivity' | 'tag_applied' | 'tag_removed' | 'keyword_match';
 
 /** Trigger Config interface definition. */
 export interface TriggerConfig {
@@ -360,8 +356,7 @@ function useAdminAutomationsManagement() {
     staleTime: 30_000,
   });
 
-  const automationError =
-    automationErrorRaw instanceof Error ? automationErrorRaw : null;
+  const automationError = automationErrorRaw instanceof Error ? automationErrorRaw : null;
   const rules = automationsData?.rules ?? [];
   const automationChannels = automationsData?.automationChannels ?? [];
   const automationDepartments = automationsData?.automationDepartments ?? [];
@@ -819,7 +814,7 @@ function useRolesManagement() {
 
   const roleUsersList = roleUsers ?? [];
 
-  const fetchAvailableRoleUsers = async () => {
+  const fetchAvailableRoleUsers = useCallback(async () => {
     const { data, error: profilesErr } = await supabase
       .from('profiles')
       .select('user_id, name, email')
@@ -838,11 +833,11 @@ function useRolesManagement() {
         }[]
       );
     }
-  };
+  }, [roleUsersList]);
 
   useEffect(() => {
     if (showAddRoleDialog) void fetchAvailableRoleUsers();
-  }, [showAddRoleDialog, roleUsersList]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [showAddRoleDialog, roleUsersList, fetchAvailableRoleUsers]);
 
   const handleAddRole = async () => {
     if (!selectedRoleUser || !selectedRole) return;
