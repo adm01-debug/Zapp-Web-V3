@@ -30,6 +30,13 @@ CREATE TABLE IF NOT EXISTS public.gmail_accounts (
 COMMENT ON TABLE public.gmail_accounts IS
   'Contas Gmail conectadas via OAuth2. Tokens armazenados para refresh automático.';
 
+-- Reconcile schema: earlier migrations may have created this table with different column names.
+-- These are no-ops if the table was created by this migration (columns already exist).
+ALTER TABLE public.gmail_accounts ADD COLUMN IF NOT EXISTS email TEXT;
+ALTER TABLE public.gmail_accounts ADD COLUMN IF NOT EXISTS display_name TEXT;
+ALTER TABLE public.gmail_accounts ADD COLUMN IF NOT EXISTS token_expiry TIMESTAMPTZ;
+ALTER TABLE public.gmail_accounts ADD COLUMN IF NOT EXISTS watch_expiry TIMESTAMPTZ;
+
 -- Índices
 CREATE INDEX IF NOT EXISTS idx_gmail_accounts_user_id   ON public.gmail_accounts (user_id);
 CREATE INDEX IF NOT EXISTS idx_gmail_accounts_email     ON public.gmail_accounts (email);
