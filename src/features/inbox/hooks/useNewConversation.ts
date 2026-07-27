@@ -55,7 +55,9 @@ export function useNewConversation(
         },
         () => {}
       );
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [open]);
 
   useEffect(() => {
@@ -77,8 +79,11 @@ export function useNewConversation(
       setContacts(data || []);
       setIsLoading(false);
     }, 300);
-    return () => { cancelled = true; clearTimeout(timeout); };
-  }, [searchQuery, mode]); // eslint-disable-line react-hooks/exhaustive-deps
+    return () => {
+      cancelled = true;
+      clearTimeout(timeout);
+    };
+  }, [searchQuery, mode]);
 
   const resetForm = () => {
     setSearchQuery('');

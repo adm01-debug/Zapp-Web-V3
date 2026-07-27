@@ -778,6 +778,7 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
   const lastTranscriptionRef = useRef<string>('');
   const transcriptionRef = useRef<string>('');
   const blobUrlRef = useRef<string | null>(null);
+  const stopRecordingRef = useRef<(() => void) | null>(null);
 
   const setBlobUrl = useCallback((url: string | null) => {
     if (blobUrlRef.current) {
@@ -937,7 +938,7 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
         intervalRef.current = setInterval(() => {
           setDuration((prev) => {
             if (prev >= maxDuration) {
-              stopRecording();
+              stopRecordingRef.current?.();
               toastHook({
                 title: 'Limite de gravação atingido',
                 description: `O áudio foi encerrado em ${Math.floor(maxDuration / 60)} min (limite máximo).`,
@@ -968,7 +969,6 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
         });
       }
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [maxDuration, onRecordingComplete]
   );
 
@@ -1016,6 +1016,7 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
     setIsRecording(false);
     setIsPaused(false);
   }, []);
+  stopRecordingRef.current = stopRecording;
 
   useEffect(() => {
     return () => {
