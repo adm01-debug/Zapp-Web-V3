@@ -63,6 +63,7 @@ export function TeamChatInputArea({
   const isMobile = useIsMobile();
 
   const draft = useTeamChatDraft({ conversationId, text, setText, onFileSent });
+  const { hasText: draftHasText, isOverLimit: draftIsOverLimit, clearDraft } = draft;
   const {
     isOpen: mentionOpen,
     cursorPos: mentionCursorPos,
@@ -94,14 +95,14 @@ export function TeamChatInputArea({
   };
 
   const handleSendWithAnimation = useCallback(() => {
-    if (!draft.hasText || draft.isOverLimit || isPending) return;
+    if (!draftHasText || draftIsOverLimit || isPending) return;
     setSendAnimation(true);
-    draft.clearDraft();
+    clearDraft();
     if (isMobile && navigator.vibrate) navigator.vibrate(50);
     onSend();
     if (animTimerRef.current) clearTimeout(animTimerRef.current);
     animTimerRef.current = setTimeout(() => setSendAnimation(false), 400);
-  }, [draft.hasText, draft.isOverLimit, isPending, isMobile, onSend, draft.clearDraft]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [draftHasText, draftIsOverLimit, isPending, isMobile, onSend, clearDraft]);
 
   const handleVoiceDictation = useCallback(
     (transcript: string) => {
