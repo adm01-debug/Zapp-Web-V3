@@ -12,8 +12,12 @@
 
 -- ---------------------------------------------------------------------------
 -- 1. Core extensions
+-- extensions schema created first so pgcrypto installs there — Supabase
+-- production puts crypto functions in extensions.* and migrations reference
+-- them as extensions.digest(), extensions.hmac(), etc.
 -- ---------------------------------------------------------------------------
-CREATE EXTENSION IF NOT EXISTS pgcrypto;
+CREATE SCHEMA IF NOT EXISTS extensions;
+CREATE EXTENSION IF NOT EXISTS pgcrypto SCHEMA extensions;
 CREATE EXTENSION IF NOT EXISTS pg_trgm;
 CREATE EXTENSION IF NOT EXISTS unaccent;
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
