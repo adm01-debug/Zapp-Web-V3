@@ -9,7 +9,7 @@
  * 5. Retornar estado do token (valid | expiring | expired | loading)
  */
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
@@ -73,6 +73,10 @@ export function useEmailOAuthFlow(): UseEmailOAuthFlowReturn {
     },
     staleTime: 30_000,
   });
+
+  const accountsRef = useRef(accounts);
+  accountsRef.current = accounts;
+  const accountIdsKey = useMemo(() => accounts.map((a) => a.id).join(','), [accounts]);
 
   // ── Calcula status do token ─────────────────────────────────────────
 
@@ -327,11 +331,10 @@ export function useEmailOAuthFlow(): UseEmailOAuthFlowReturn {
 
   // Ensure Pub/Sub watch para todas as contas ativas
   useEffect(() => {
-    for (const acc of accounts) {
+    for (const acc of accountsRef.current) {
       ensureWatch(acc.id);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [accounts.map((a) => a.id).join(','), ensureWatch]);
+  }, [accountIdsKey, ensureWatch]);
 
   // Cleanup OAuth listeners if component unmounts mid-flow
   useEffect(() => {
