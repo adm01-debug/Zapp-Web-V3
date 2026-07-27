@@ -49,6 +49,104 @@ export const EasterEggsProvider = forwardRef<HTMLDivElement, EasterEggsProviderP
       []
     );
 
+    const triggerKonamiEasterEgg = useCallback(() => {
+      celebrate({
+        title: '🎮 KONAMI CODE!',
+        subtitle: 'Você desbloqueou um segredo!',
+        emoji: '🕹️',
+      });
+
+      toast({
+        title: '🎮 Konami Code Ativado!',
+        description: '+30 vidas... ops, errado! Você ganhou +100 XP bônus!',
+      });
+
+      document.body.classList.add('rainbow-mode');
+      const rt = setTimeout(() => {
+        document.body.classList.remove('rainbow-mode');
+        effectTimers.current.delete(rt);
+      }, 5000);
+      effectTimers.current.add(rt);
+    }, [celebrate]);
+
+    const triggerShakeEasterEgg = useCallback(() => {
+      if ('vibrate' in navigator) {
+        navigator.vibrate([100, 50, 100, 50, 200]);
+      }
+
+      celebrate({
+        title: '📱 SHAKE IT!',
+        subtitle: 'Você sacudiu o suficiente!',
+        emoji: '🎉',
+      });
+
+      toast({
+        title: '📱 Shake Detectado!',
+        description: 'Você descobriu o easter egg de shake!',
+      });
+    }, [celebrate]);
+
+    const triggerSecretCode = useCallback(
+      (_name: string, action: string) => {
+        switch (action) {
+          case 'party':
+            setPartyMode(true);
+            celebrate({
+              title: '🎉 MODO FESTA!',
+              subtitle: 'Vamos celebrar!',
+              emoji: '🥳',
+            });
+            {
+              const t = setTimeout(() => {
+                setPartyMode(false);
+                effectTimers.current.delete(t);
+              }, 10000);
+              effectTimers.current.add(t);
+            }
+            break;
+
+          case 'matrix':
+            setMatrixMode(true);
+            toast({
+              title: '💊 Matrix Mode',
+              description: 'Você escolheu a pílula vermelha...',
+            });
+            {
+              const t = setTimeout(() => {
+                setMatrixMode(false);
+                effectTimers.current.delete(t);
+              }, 8000);
+              effectTimers.current.add(t);
+            }
+            break;
+
+          case 'disco':
+            document.body.classList.add('disco-mode');
+            toast({
+              title: '🪩 Disco Mode!',
+              description: 'Brilhe como nos anos 70!',
+            });
+            {
+              const t = setTimeout(() => {
+                document.body.classList.remove('disco-mode');
+                effectTimers.current.delete(t);
+              }, 8000);
+              effectTimers.current.add(t);
+            }
+            break;
+
+          case 'lovable':
+            celebrate({
+              title: '💜 LOVABLE!',
+              subtitle: 'Feito com amor 💜',
+              emoji: '💜',
+            });
+            break;
+        }
+      },
+      [celebrate]
+    );
+
     // Konami Code Detection
     useEffect(() => {
       const handleKeyDown = (e: KeyboardEvent) => {
@@ -61,7 +159,6 @@ export const EasterEggsProvider = forwardRef<HTMLDivElement, EasterEggsProviderP
           setKonamiProgress([]);
         }
 
-        // Detect typed secret codes
         if (e.key && e.key.length === 1 && /[a-z]/i.test(e.key)) {
           const newTyped = (typedText + e.key.toLowerCase()).slice(-10);
           setTypedText(newTyped);
@@ -77,7 +174,7 @@ export const EasterEggsProvider = forwardRef<HTMLDivElement, EasterEggsProviderP
 
       window.addEventListener('keydown', handleKeyDown);
       return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [konamiProgress, typedText]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [konamiProgress, typedText, triggerKonamiEasterEgg, triggerSecretCode]);
 
     // Shake Detection (for mobile)
     // FIX: guard against Permissions Policy violations when running inside
@@ -155,7 +252,7 @@ export const EasterEggsProvider = forwardRef<HTMLDivElement, EasterEggsProviderP
           }
         }
       };
-    }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [triggerShakeEasterEgg]);
 
     // Reset shake count after inactivity
     useEffect(() => {
@@ -165,106 +262,6 @@ export const EasterEggsProvider = forwardRef<HTMLDivElement, EasterEggsProviderP
       }
       return undefined;
     }, [shakeCount]);
-
-    const triggerKonamiEasterEgg = useCallback(() => {
-      celebrate({
-        title: '🎮 KONAMI CODE!',
-        subtitle: 'Você desbloqueou um segredo!',
-        emoji: '🕹️',
-      });
-
-      toast({
-        title: '🎮 Konami Code Ativado!',
-        description: '+30 vidas... ops, errado! Você ganhou +100 XP bônus!',
-      });
-
-      // Add rainbow effect to body
-      document.body.classList.add('rainbow-mode');
-      const rt = setTimeout(() => {
-        document.body.classList.remove('rainbow-mode');
-        effectTimers.current.delete(rt);
-      }, 5000);
-      effectTimers.current.add(rt);
-    }, [celebrate]);
-
-    const triggerShakeEasterEgg = useCallback(() => {
-      // Haptic feedback if available
-      if ('vibrate' in navigator) {
-        navigator.vibrate([100, 50, 100, 50, 200]);
-      }
-
-      celebrate({
-        title: '📱 SHAKE IT!',
-        subtitle: 'Você sacudiu o suficiente!',
-        emoji: '🎉',
-      });
-
-      toast({
-        title: '📱 Shake Detectado!',
-        description: 'Você descobriu o easter egg de shake!',
-      });
-    }, [celebrate]);
-
-    const triggerSecretCode = useCallback(
-      (_name: string, action: string) => {
-        switch (action) {
-          case 'party':
-            setPartyMode(true);
-            celebrate({
-              title: '🎉 MODO FESTA!',
-              subtitle: 'Vamos celebrar!',
-              emoji: '🥳',
-            });
-            {
-              const t = setTimeout(() => {
-                setPartyMode(false);
-                effectTimers.current.delete(t);
-              }, 10000);
-              effectTimers.current.add(t);
-            }
-            break;
-
-          case 'matrix':
-            setMatrixMode(true);
-            toast({
-              title: '💊 Matrix Mode',
-              description: 'Você escolheu a pílula vermelha...',
-            });
-            {
-              const t = setTimeout(() => {
-                setMatrixMode(false);
-                effectTimers.current.delete(t);
-              }, 8000);
-              effectTimers.current.add(t);
-            }
-            break;
-
-          case 'disco':
-            document.body.classList.add('disco-mode');
-            toast({
-              title: '🪩 Disco Mode!',
-              description: 'Brilhe como nos anos 70!',
-            });
-            {
-              const t = setTimeout(() => {
-                document.body.classList.remove('disco-mode');
-                effectTimers.current.delete(t);
-              }, 8000);
-              effectTimers.current.add(t);
-            }
-            break;
-
-          case 'lovable':
-            celebrate({
-              title: '💜 LOVABLE!',
-              subtitle: 'Feito com amor 💜',
-              emoji: '💜',
-            });
-            break;
-        }
-      },
-      [celebrate]
-    );
 
     return (
       <>
