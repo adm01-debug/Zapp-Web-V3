@@ -33,6 +33,15 @@ function parseUA(ua: string): { device: string; browser: string; os: string } {
 }
 
 Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', {
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      },
+    });
+  }
   if (req.method !== 'GET') {
     return new Response('Method not allowed', { status: 405 });
   }

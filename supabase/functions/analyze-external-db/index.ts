@@ -1,7 +1,6 @@
-// analyze-external-db v2.0
-// F10 security fix: auth required + rate limiting + BATCH_SIZE parallel queries (7x speedup)
+// analyze-external-db v2.1
+// Service-role / cron only. BATCH_SIZE parallel queries (7x speedup vs sequential).
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
-import { createZappAdminClient } from '../_shared/db-client.ts';
 import { requireServiceRoleOrCron } from '../_shared/auth.ts';
 
 import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
@@ -76,53 +75,12 @@ Deno.serve(async (req) => {
     return new Response('ok', { headers: getCorsHeaders(req) });
   }
 
-  // F10: Authentication required — prevents unauthenticated enumeration of external DB
-  const authHeader = req.headers.get('Authorization');
-  if (!authHeader?.startsWith('Bearer ')) {
-    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-      status: 401, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-    });
-  }
-
-  // Verify token against our own Supabase instance
-  const self = createZappAdminClient();
-  const { data: { user }, error: authErr } = await self.auth.getUser(authHeader.replace('Bearer ', ''));
-  if (authErr || !user) {
-    return new Response(JSON.stringify({ error: 'Invalid or expired token' }), {
-      status: 401, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-    });
-  }
-
-  // F10: Rate limiting — 2 analyses per minute per user (heavy operation)
-  //
-  // AUDITORIA 2026-07-17 — CORRIGIDO. O código chamava `check_rate_limit(p_key,
-  // p_max, p_window_seconds)`, que NÃO EXISTE em nenhum schema do banco canônico.
-  // A função real é zapp.fn_rate_limit_check(p_identifier, p_rpc_name, p_max_calls,
-  // p_window_minutes) -> boolean.
-  //
-  // Impacto do bug: o RPC inexistente devolvia error + data=null. Como o `error`
-  // era descartado e a guarda era `rateLimitOk === false`, null !== false =>
-  // a guarda NUNCA disparava. O rate limit desta operação pesada estava
-  // 100% bypassado (fail-open). Agora é fail-closed.
-  //
-  // `.maybeSingle()` também estava errado: fn_rate_limit_check retorna escalar
-  // boolean, não linha — maybeSingle() pede Accept: pgrst.object+json e falha.
-  const { data: rateLimitOk, error: rateLimitErr } = await self.rpc('fn_rate_limit_check', {
-    p_identifier: `analyze_ext_db:${user.id}`,
-    p_rpc_name: 'analyze-external-db',
-    p_max_calls: 2,
-    p_window_minutes: 1,
-  });
-  if (rateLimitErr || rateLimitOk === false) {
-    // fail-closed: se o rate limiter não responde, nega. Operação pesada não
-    // pode rodar sem contabilização.
-    return new Response(JSON.stringify({ error: 'Rate limit exceeded. Max 2 analyses per minute.' }), {
-      status: 429, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-    });
-  }
-
-  const denied = requireServiceRoleOrCron(req)
-  if (denied) return denied
+  // Only service role or cron scheduler may call this endpoint.
+  // (Dead code removed 2026-07-27: prior JWT auth + rate-limit block was unreachable because
+  //  service-role keys are not valid user JWTs, so auth.getUser() always returned 401
+  //  before requireServiceRoleOrCron could run.)
+  const denied = requireServiceRoleOrCron(req);
+  if (denied) return denied;
 
   try {
     const url = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('EXTERNAL_SUPABASE_URL'));

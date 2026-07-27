@@ -63,8 +63,11 @@ Deno.serve(async (req) => {
       const state = url.searchParams.get('state');
       const errorP = url.searchParams.get('error');
       const safeJsonForScript = (value: unknown): string => JSON.stringify(value).replace(/</g, '\\u003c');
-      if (errorP) return new Response(`<script>window.opener?.postMessage({type:'gmail-oauth-error',error:${safeJsonForScript(errorP)},state:${safeJsonForScript(state)}},'*');window.close()</script>`, { headers: { 'Content-Type': 'text/html' } });
-      return new Response(`<script>\n          window.opener?.postMessage({type:'gmail-oauth-code',code:${safeJsonForScript(code)},state:${safeJsonForScript(state)}},'*');\n          window.close();\n        </script>`, { headers: { 'Content-Type': 'text/html' } });
+      // Restrict postMessage to the known app origin — prevents OAuth code interception by any parent window.
+      // Set APP_URL secret (e.g. https://zapp.atomicabr.com.br) in Supabase Vault.
+      const appOrigin = Deno.env.get('APP_URL') ?? '*';
+      if (errorP) return new Response(`<script>window.opener?.postMessage({type:'gmail-oauth-error',error:${safeJsonForScript(errorP)},state:${safeJsonForScript(state)}},${safeJsonForScript(appOrigin)});window.close()</script>`, { headers: { 'Content-Type': 'text/html' } });
+      return new Response(`<script>\n          window.opener?.postMessage({type:'gmail-oauth-code',code:${safeJsonForScript(code)},state:${safeJsonForScript(state)}},${safeJsonForScript(appOrigin)});\n          window.close();\n        </script>`, { headers: { 'Content-Type': 'text/html' } });
     }
 
     const body = await req.json().catch(() => ({}));

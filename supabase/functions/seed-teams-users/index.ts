@@ -11,11 +11,28 @@ Deno.serve(async (req) => {
   try {
     const supabase = createZappAdminClient();
 
+    // Passwords sourced from Supabase Vault secrets — never hardcoded.
+    // Set SEED_PASSWORD_ADMIN_TI, SEED_PASSWORD_AGENT_RH, SEED_PASSWORD_AGENT_FIN,
+    // SEED_PASSWORD_AGENT_TRANS in Vault before invoking this function.
+    const pw = {
+      adminTi:    Deno.env.get('SEED_PASSWORD_ADMIN_TI'),
+      agentRh:    Deno.env.get('SEED_PASSWORD_AGENT_RH'),
+      agentFin:   Deno.env.get('SEED_PASSWORD_AGENT_FIN'),
+      agentTrans: Deno.env.get('SEED_PASSWORD_AGENT_TRANS'),
+    };
+    const missing = Object.entries(pw).filter(([, v]) => !v).map(([k]) => k);
+    if (missing.length > 0) {
+      return new Response(JSON.stringify({ error: `Missing required secrets: ${missing.join(', ')} — set them in Supabase Vault before running this function.` }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 400,
+      });
+    }
+
     const users = [
-      { email: "admin_ti@zappweb.com", password: "ti123", role: "admin", department: "TI", name: "Admin TI", dept_id: "d2222222-2222-2222-2222-222222222222" },
-      { email: "agent_rh@zappweb.com", password: "rh123", role: "agent", department: "RH", name: "Agente RH", dept_id: "d3333333-3333-3333-3333-333333333333" },
-      { email: "agent_fin@zappweb.com", password: "fin123", role: "agent", department: "Financeiro", name: "Agente Financeiro", dept_id: "b2a0a820-14d3-4831-8916-8067aa0888dc" },
-      { email: "agent_trans@zappweb.com", password: "trans123", role: "agent", department: "Suporte", name: "Agente Transferidor", dept_id: "d4444444-4444-4444-4444-444444444444" },
+      { email: "admin_ti@zappweb.com", password: pw.adminTi!, role: "admin", department: "TI", name: "Admin TI", dept_id: "d2222222-2222-2222-2222-222222222222" },
+      { email: "agent_rh@zappweb.com", password: pw.agentRh!, role: "agent", department: "RH", name: "Agente RH", dept_id: "d3333333-3333-3333-3333-333333333333" },
+      { email: "agent_fin@zappweb.com", password: pw.agentFin!, role: "agent", department: "Financeiro", name: "Agente Financeiro", dept_id: "b2a0a820-14d3-4831-8916-8067aa0888dc" },
+      { email: "agent_trans@zappweb.com", password: pw.agentTrans!, role: "agent", department: "Suporte", name: "Agente Transferidor", dept_id: "d4444444-4444-4444-4444-444444444444" },
     ];
 
     const results = [];

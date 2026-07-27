@@ -63,7 +63,6 @@ Deno.serve(async (req) => {
     let audioData: Blob | null = null;
     let voicePreset = 'grave';
     let taskId: string | null = null;
-    let authorized = false;
 
     // Check if it's a multipart form or JSON (for queue processing)
     const contentType = req.headers.get('content-type') || '';
@@ -72,11 +71,11 @@ Deno.serve(async (req) => {
       audioData = formData.get('audio') as Blob | null;
       voicePreset = formData.get('voice_preset') as string || 'grave';
       taskId = formData.get('task_id') as string | null;
-      authorized = formData.get('authorized') === 'true';
+      // `authorized` field intentionally ignored — cloned-voice access is checked server-side below
     } else if (contentType.includes('application/json')) {
       const json = await req.json();
       taskId = json.task_id;
-      authorized = json.authorized || false;
+      // `authorized` field intentionally ignored — cloned-voice access is checked server-side below
     }
 
     // If we have a taskId but no audio, try to fetch from queue/storage
@@ -127,9 +126,21 @@ Deno.serve(async (req) => {
       return errorResponse(`Invalid voice preset: ${voicePreset}`, 400, req);
     }
 
-    // Validation for cloned voices
-    if (preset.isCloned && !authorized) {
-      return errorResponse('Permissão necessária para usar esta voz clonada.', 403, req);
+    // Cloned-voice access: server-side role check — never trust client-supplied `authorized` flag.
+    // Service-role / cron callers (internalCheck === null) are implicitly allowed.
+    if (preset.isCloned && internalCheck !== null) {
+      const authedForClone = await requireUser(req);
+      if (authedForClone instanceof Response) return authedForClone;
+      const { data: roles } = await supabaseClient
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', authedForClone.user.id);
+      const hasClonedAccess = roles?.some((r: { role: string }) =>
+        ['admin', 'dev', 'premium'].includes(r.role)
+      );
+      if (!hasClonedAccess) {
+        return errorResponse('Permissão necessária para usar esta voz clonada.', 403, req);
+      }
     }
 
     const startTime = Date.now();
