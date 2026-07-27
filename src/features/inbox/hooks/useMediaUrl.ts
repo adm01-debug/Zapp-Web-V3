@@ -141,6 +141,8 @@ export function useMediaUrl(opts: UseMediaUrlOptions): UseMediaUrlResult {
   const [attempts, setAttempts] = useState(0);
   const [failed, setFailed] = useState(false);
   const inFlightRef = useRef<Promise<void> | null>(null);
+  const originalUrlRef = useRef(originalUrl);
+  originalUrlRef.current = originalUrl;
 
   // Keep `url` in sync when the upstream metadata changes.
   useEffect(() => {
@@ -164,9 +166,9 @@ export function useMediaUrl(opts: UseMediaUrlOptions): UseMediaUrlResult {
     }
 
     // Otimização: Cache persistente via Storage Hash
-    if (originalUrl) {
+    if (originalUrlRef.current) {
       try {
-        const hash = await buildFileHash(originalUrl);
+        const hash = await buildFileHash(originalUrlRef.current);
         const { data: cacheRows } = await safeClient.from('media_cache', (q) =>
           q.select('storage_path').eq('file_hash', hash).limit(1)
         );
@@ -248,7 +250,7 @@ export function useMediaUrl(opts: UseMediaUrlOptions): UseMediaUrlResult {
     })();
     inFlightRef.current = job;
     return job;
-  }, [enabled, instanceName, messageKey, maxAttempts]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [enabled, instanceName, messageKey, maxAttempts]);
 
   // Automatic onError trigger: respeita o cap de tentativas.
   const onError = useCallback(() => {

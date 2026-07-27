@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useMountedRef } from '@/hooks/useMountedRef';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Check, Plus, Trash2, Globe, Loader2, Search, ShieldCheck } from 'lucide-react';
@@ -50,17 +50,17 @@ export function IPWhitelistPanel() {
   const [newIP, setNewIP] = useState('');
   const [description, setDescription] = useState('');
 
-  const fetchWhitelistedIPs = async () => {
+  const fetchWhitelistedIPs = useCallback(async () => {
     setLoading(true);
     const data = await fetchIPWhitelist();
     if (!mountedRef.current) return;
     setWhitelistedIPs(data);
     setLoading(false);
-  };
+  }, [mountedRef]);
 
   useEffect(() => {
     fetchWhitelistedIPs();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [fetchWhitelistedIPs]);
 
   const handleAddIP = async () => {
     if (!newIP.trim()) {
@@ -191,7 +191,8 @@ export function IPWhitelistPanel() {
                         </p>
                       </div>
                     </div>
-                    <Button aria-label="Excluir"
+                    <Button
+                      aria-label="Excluir"
                       variant="ghost"
                       size="sm"
                       onClick={() => setIpToRemove(ip)}
