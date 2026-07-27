@@ -1,7 +1,7 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { safeClient } from '@/integrations/supabase/safeClient';
-import { getExternalSupabase } from '@/integrations/supabase/externalClient';
+import { getExternalSupabase, callExtRpc } from '@/integrations/supabase/externalClient';
 import { log } from '@/lib/logger';
 
 // Lazy: getExternalSupabase() can return null when FATOR X env vars are absent.
@@ -92,7 +92,7 @@ export function useAutomations({
       if (!client) return;
 
       // Pega últimas 10 msgs do FATOR X
-      const { data: msgs, error } = await client.rpc('rpc_list_messages' as any, {
+      const { data: msgs, error } = await callExtRpc(client, 'rpc_list_messages', {
         p_remote_jid: remoteJid,
         p_instance: instanceName,
         p_limit: 10,
@@ -118,8 +118,7 @@ export function useAutomations({
       let addedTags: string[] = [];
       let removedTags: string[] = [];
       try {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { data: contact } = await client.rpc('rpc_get_contact' as any, {
+        const { data: contact } = await callExtRpc(client, 'rpc_get_contact', {
           p_remote_jid: remoteJid,
           p_instance: instanceName,
         });
@@ -226,8 +225,7 @@ export function useAutomations({
         const allTags = [...new Set([...cfgTags, ...slaTags])];
         if (allTags.length) {
           try {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            await client.rpc('rpc_upsert_contact' as any, {
+              await callExtRpc(client, 'rpc_upsert_contact', {
               p_remote_jid: remoteJid,
               p_instance: instanceName,
               p_tags: allTags,
@@ -279,8 +277,7 @@ export function useAutomations({
               );
               const exec = execArr?.[0] ?? null;
               if (exec?.suggestion_text) {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                await client.rpc('rpc_insert_message' as any, {
+                await callExtRpc(client, 'rpc_insert_message', {
                   p_remote_jid: remoteJid,
                   p_content: exec.suggestion_text,
                   p_from_me: true,
