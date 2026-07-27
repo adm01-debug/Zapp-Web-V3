@@ -15,6 +15,7 @@
  */
 
 const _PUBLIC_SUPABASE_URL = (() => {
+  if (typeof Deno === "undefined") return "";
   const url =
     Deno.env.get("SELFHOSTED_SUPABASE_URL") ??
     Deno.env.get("SUPABASE_URL") ??
