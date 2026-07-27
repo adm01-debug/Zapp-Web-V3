@@ -29,6 +29,12 @@ Deno.serve(async (req) => {
     const { device_fingerprint, browser, os, device_name } = parsed.data;
     const clientIp = getClientIP(req);
 
+    // Escape HTML special chars before injecting into email template
+    const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#x27;');
+    const safeDeviceName = esc(device_name);
+    const safeBrowser = esc(browser);
+    const safeOs = esc(os);
+
     const supabaseAdmin = createZappAdminClient();
 
     // Check if device exists
@@ -102,9 +108,9 @@ Deno.serve(async (req) => {
                   <div style="background: white; padding: 20px; border-radius: 8px; border-left: 4px solid #667eea; margin: 20px 0;">
                     <h3 style="margin-top: 0; color: #667eea;">Detalhes do Dispositivo:</h3>
                     <table style="width: 100%; font-size: 14px;">
-                      <tr><td style="padding: 8px 0; color: #666;"><strong>Dispositivo:</strong></td><td>${device_name}</td></tr>
-                      <tr><td style="padding: 8px 0; color: #666;"><strong>Navegador:</strong></td><td>${browser}</td></tr>
-                      <tr><td style="padding: 8px 0; color: #666;"><strong>Sistema:</strong></td><td>${os}</td></tr>
+                      <tr><td style="padding: 8px 0; color: #666;"><strong>Dispositivo:</strong></td><td>${safeDeviceName}</td></tr>
+                      <tr><td style="padding: 8px 0; color: #666;"><strong>Navegador:</strong></td><td>${safeBrowser}</td></tr>
+                      <tr><td style="padding: 8px 0; color: #666;"><strong>Sistema:</strong></td><td>${safeOs}</td></tr>
                       <tr><td style="padding: 8px 0; color: #666;"><strong>IP:</strong></td><td>${clientIp}</td></tr>
                       <tr><td style="padding: 8px 0; color: #666;"><strong>Data/Hora:</strong></td><td>${new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}</td></tr>
                     </table>
