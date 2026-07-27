@@ -108,11 +108,13 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS trg_instance_registry_updated_at ON public.instance_registry;
 CREATE TRIGGER trg_instance_registry_updated_at
 BEFORE UPDATE ON public.instance_registry
 FOR EACH ROW
 EXECUTE FUNCTION public.handle_updated_at();
 
+DROP TRIGGER IF EXISTS trg_conversation_transfers_updated_at ON public.conversation_transfers;
 CREATE TRIGGER trg_conversation_transfers_updated_at
 BEFORE UPDATE ON public.conversation_transfers
 FOR EACH ROW
