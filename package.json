@@ -93,7 +93,7 @@
     "@radix-ui/react-toggle-group": "^1.1.14",
     "@radix-ui/react-tooltip": "^1.2.11",
     "@radix-ui/react-visually-hidden": "^1.2.4",
-    "@sentry/react": "10.66.0",
+    "@sentry/react": "10.68.0",
     "@supabase/supabase-js": "^2.110.0",
     "@tanstack/react-query": "^5.101.2",
     "@tanstack/react-virtual": "^3.14.5",
