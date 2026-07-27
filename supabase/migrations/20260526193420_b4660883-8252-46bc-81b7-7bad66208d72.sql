@@ -37,9 +37,11 @@ USING (
 );
 
 -- Seed some default system routes
+-- allowed_roles column type may be app_role[] (cast to handle both text[] and enum[])
 INSERT INTO public.route_permissions (path, allowed_roles, description, is_system)
-VALUES
-    ('/admin/roles', ARRAY['admin', 'dev'], 'Role management', true),
-    ('/admin/route-permissions', ARRAY['admin', 'dev'], 'Route permission management', true),
-    ('/admin/dev-diagnostics', ARRAY['dev'], 'Developer diagnostics', true)
+SELECT path, allowed_roles, description, is_system FROM (VALUES
+    ('/admin/roles',              ARRAY['admin','dev']::text[],  'Role management', true),
+    ('/admin/route-permissions',  ARRAY['admin','dev']::text[],  'Route permission management', true),
+    ('/admin/dev-diagnostics',    ARRAY['dev']::text[],          'Developer diagnostics', true)
+) AS v(path, allowed_roles, description, is_system)
 ON CONFLICT (path) DO NOTHING;
