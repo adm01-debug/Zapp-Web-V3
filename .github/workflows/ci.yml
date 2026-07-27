@@ -57,6 +57,17 @@ jobs:
             OLD_PKG=$(git show "HEAD^:package.json" 2>/dev/null || echo '{}')
             NEW_PKG=$(cat package.json)
           fi
+          # Decode base64-encoded package.json if needed (Lovable CI encodes it)
+          decode_if_b64() {
+            local raw="$1"
+            if echo "$raw" | jq . >/dev/null 2>&1; then
+              printf '%s' "$raw"
+            else
+              echo "$raw" | base64 -d 2>/dev/null || printf '%s' "$raw"
+            fi
+          }
+          OLD_PKG=$(decode_if_b64 "$OLD_PKG")
+          NEW_PKG=$(decode_if_b64 "$NEW_PKG")
           # Compare only the dependency fields — scripts/version changes are irrelevant.
           OLD_DEPS=$(echo "$OLD_PKG" | jq -Sc '{d: (.dependencies // {}), dd: (.devDependencies // {}), pd: (.peerDependencies // {}), od: (.optionalDependencies // {})}')
           NEW_DEPS=$(echo "$NEW_PKG" | jq -Sc '{d: (.dependencies // {}), dd: (.devDependencies // {}), pd: (.peerDependencies // {}), od: (.optionalDependencies // {})}')
