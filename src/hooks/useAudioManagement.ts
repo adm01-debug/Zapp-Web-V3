@@ -56,11 +56,14 @@ export function useAudioMemes(open: boolean) {
   const { data: memes = [], isLoading: loading } = useQuery({
     queryKey: AUDIO_MEMES_KEY,
     queryFn: async () => {
-      const { data, error } = await safeClient.rpc<AudioMemeItem[]>('fn_list_audio_memes_for_user', {
-        p_category: null,
-        p_only_favorites: false,
-        p_search: null,
-      });
+      const { data, error } = await safeClient.rpc<AudioMemeItem[]>(
+        'fn_list_audio_memes_for_user',
+        {
+          p_category: null,
+          p_only_favorites: false,
+          p_search: null,
+        }
+      );
       if (!error && data) return data;
       if (error) {
         log.error('fetchMemes error', error);
@@ -98,14 +101,10 @@ export function useAudioMemes(open: boolean) {
 
     const favoritesChannel = supabase
       .channel('audio-memes-favorites')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'zapp', table: 'audio_meme_favorites' },
-        () => {
-          log.info('Favorites update received');
-          void queryClient.invalidateQueries({ queryKey: AUDIO_MEMES_KEY });
-        }
-      )
+      .on('postgres_changes', { event: '*', schema: 'zapp', table: 'audio_meme_favorites' }, () => {
+        log.info('Favorites update received');
+        void queryClient.invalidateQueries({ queryKey: AUDIO_MEMES_KEY });
+      })
       .subscribe((status) => {
         if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
           setSyncError('Erro na sincronização de favoritos');
@@ -261,7 +260,9 @@ export function useAudioMemes(open: boolean) {
       onSend(meme);
       onClose();
       queryClient.setQueryData(AUDIO_MEMES_KEY, (prev: AudioMemeItem[] | undefined) =>
-        (prev ?? []).map((m) => (m.id === meme.id ? { ...m, use_count: (m.use_count || 0) + 1 } : m))
+        (prev ?? []).map((m) =>
+          m.id === meme.id ? { ...m, use_count: (m.use_count || 0) + 1 } : m
+        )
       );
       const { error: incErr } = await safeClient.rpc('fn_increment_meme_use', {
         p_meme_id: meme.id,
@@ -271,68 +272,80 @@ export function useAudioMemes(open: boolean) {
     [queryClient]
   );
 
-  const toggleFavorite = useCallback(async (e: React.MouseEvent, meme: AudioMemeItem) => {
-    e.stopPropagation();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) {
-      toast.error('Efetue login para favoritar');
-      return;
-    }
+  const toggleFavorite = useCallback(
+    async (e: React.MouseEvent, meme: AudioMemeItem) => {
+      e.stopPropagation();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) {
+        toast.error('Efetue login para favoritar');
+        return;
+      }
 
-    const newVal = !meme.is_favorite;
-    queryClient.setQueryData(AUDIO_MEMES_KEY, (prev: AudioMemeItem[] | undefined) =>
-      (prev ?? []).map((m) => (m.id === meme.id ? { ...m, is_favorite: newVal } : m))
-    );
-
-    const { error } = await safeClient.rpc('fn_toggle_user_meme_favorite', {
-      p_meme_id: meme.id,
-    });
-
-    if (error) {
-      log.error('toggleFavorite error', error);
+      const newVal = !meme.is_favorite;
       queryClient.setQueryData(AUDIO_MEMES_KEY, (prev: AudioMemeItem[] | undefined) =>
-        (prev ?? []).map((m) => (m.id === meme.id ? { ...m, is_favorite: !newVal } : m))
+        (prev ?? []).map((m) => (m.id === meme.id ? { ...m, is_favorite: newVal } : m))
       );
-      toast.error('Erro ao atualizar favorito');
-    }
-  }, [queryClient]);
 
-  const handleCategoryChange = useCallback(async (meme: AudioMemeItem, newCategory: string) => {
-    const prevCategory = meme.category;
-    queryClient.setQueryData(AUDIO_MEMES_KEY, (prev: AudioMemeItem[] | undefined) =>
-      (prev ?? []).map((m) => (m.id === meme.id ? { ...m, category: newCategory } : m))
-    );
-    const { error } = await supabase.from('audio_memes').update({ category: newCategory }).eq('id', meme.id);
-    if (error) {
-      log.error('[handleCategoryChange] DB update failed:', error.message);
+      const { error } = await safeClient.rpc('fn_toggle_user_meme_favorite', {
+        p_meme_id: meme.id,
+      });
+
+      if (error) {
+        log.error('toggleFavorite error', error);
+        queryClient.setQueryData(AUDIO_MEMES_KEY, (prev: AudioMemeItem[] | undefined) =>
+          (prev ?? []).map((m) => (m.id === meme.id ? { ...m, is_favorite: !newVal } : m))
+        );
+        toast.error('Erro ao atualizar favorito');
+      }
+    },
+    [queryClient]
+  );
+
+  const handleCategoryChange = useCallback(
+    async (meme: AudioMemeItem, newCategory: string) => {
+      const prevCategory = meme.category;
       queryClient.setQueryData(AUDIO_MEMES_KEY, (prev: AudioMemeItem[] | undefined) =>
-        (prev ?? []).map((m) => (m.id === meme.id ? { ...m, category: prevCategory } : m))
+        (prev ?? []).map((m) => (m.id === meme.id ? { ...m, category: newCategory } : m))
       );
-      toast.error('Erro ao alterar categoria');
-      return;
-    }
-    toast.success(`Categoria alterada`);
-  }, [queryClient]);
+      const { error } = await supabase
+        .from('audio_memes')
+        .update({ category: newCategory })
+        .eq('id', meme.id);
+      if (error) {
+        log.error('[handleCategoryChange] DB update failed:', error.message);
+        queryClient.setQueryData(AUDIO_MEMES_KEY, (prev: AudioMemeItem[] | undefined) =>
+          (prev ?? []).map((m) => (m.id === meme.id ? { ...m, category: prevCategory } : m))
+        );
+        toast.error('Erro ao alterar categoria');
+        return;
+      }
+      toast.success(`Categoria alterada`);
+    },
+    [queryClient]
+  );
 
-  const handleDelete = useCallback(async (e: React.MouseEvent, meme: AudioMemeItem) => {
-    e.stopPropagation();
-    const prevMemes = queryClient.getQueryData<AudioMemeItem[]>(AUDIO_MEMES_KEY);
-    queryClient.setQueryData(AUDIO_MEMES_KEY, (prev: AudioMemeItem[] | undefined) =>
-      (prev ?? []).filter((m) => m.id !== meme.id)
-    );
-    const path = meme.audio_url.split('/audio-memes/')[1];
-    if (path) await supabase.storage.from('audio-memes').remove([path]);
-    const { error: deleteError } = await supabase.from('audio_memes').delete().eq('id', meme.id);
-    if (deleteError) {
-      log.error('[handleDelete] DB delete failed:', deleteError.message);
-      queryClient.setQueryData(AUDIO_MEMES_KEY, prevMemes);
-      toast.error('Erro ao remover áudio meme');
-      return;
-    }
-    toast.success('Áudio meme removido');
-  }, [queryClient]);
+  const handleDelete = useCallback(
+    async (e: React.MouseEvent, meme: AudioMemeItem) => {
+      e.stopPropagation();
+      const prevMemes = queryClient.getQueryData<AudioMemeItem[]>(AUDIO_MEMES_KEY);
+      queryClient.setQueryData(AUDIO_MEMES_KEY, (prev: AudioMemeItem[] | undefined) =>
+        (prev ?? []).filter((m) => m.id !== meme.id)
+      );
+      const path = meme.audio_url.split('/audio-memes/')[1];
+      if (path) await supabase.storage.from('audio-memes').remove([path]);
+      const { error: deleteError } = await supabase.from('audio_memes').delete().eq('id', meme.id);
+      if (deleteError) {
+        log.error('[handleDelete] DB delete failed:', deleteError.message);
+        queryClient.setQueryData(AUDIO_MEMES_KEY, prevMemes);
+        toast.error('Erro ao remover áudio meme');
+        return;
+      }
+      toast.success('Áudio meme removido');
+    },
+    [queryClient]
+  );
 
   const cleanup = useCallback(() => {
     if (audioRef.current) {
@@ -764,6 +777,15 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
   const lastBlobRef = useRef<Blob | null>(null);
   const lastTranscriptionRef = useRef<string>('');
   const transcriptionRef = useRef<string>('');
+  const blobUrlRef = useRef<string | null>(null);
+
+  const setBlobUrl = useCallback((url: string | null) => {
+    if (blobUrlRef.current) {
+      URL.revokeObjectURL(blobUrlRef.current);
+    }
+    blobUrlRef.current = url;
+    setAudioUrl(url);
+  }, []);
   useEffect(() => {
     transcriptionRef.current = transcription;
   }, [transcription]);
@@ -828,7 +850,7 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
         mediaRecorder.onstop = async () => {
           const audioBlob = new Blob(chunksRef.current, { type: 'audio/webm' });
           const url = URL.createObjectURL(audioBlob);
-          setAudioUrl(url);
+          setBlobUrl(url);
 
           if (recognitionRef.current) {
             recognitionRef.current.stop();
@@ -1020,6 +1042,10 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
           /* ignore */
         }
       }
+      if (blobUrlRef.current) {
+        URL.revokeObjectURL(blobUrlRef.current);
+        blobUrlRef.current = null;
+      }
     };
   }, []);
 
@@ -1042,7 +1068,7 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
         setIsRecording(false);
         setIsPaused(false);
         setDuration(0);
-        setAudioUrl(null);
+        setBlobUrl(null);
       }
     },
     [isRecording, isPaused, transcription]
@@ -1051,7 +1077,7 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
   const restoreRecording = useCallback(() => {
     if (lastBlobRef.current) {
       const url = URL.createObjectURL(lastBlobRef.current);
-      setAudioUrl(url);
+      setBlobUrl(url);
       setTranscription(lastTranscriptionRef.current);
       onRecordingComplete?.(lastBlobRef.current, url);
       return true;

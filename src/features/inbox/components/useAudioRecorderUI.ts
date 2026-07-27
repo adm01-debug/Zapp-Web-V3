@@ -63,6 +63,16 @@ export function useAudioRecorderUI(
   const swipeX = useMotionValue(0);
   const cancelOpacity = useTransform(swipeX, [-120, -60, 0], [1, 0.5, 0]);
   const swipeRef = useRef({ startX: 0, isSwiping: false });
+  const voiceChangedUrlRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (voiceChangedUrlRef.current) {
+        URL.revokeObjectURL(voiceChangedUrlRef.current);
+        voiceChangedUrlRef.current = null;
+      }
+    };
+  }, []);
 
   const {
     isRecording,
@@ -239,7 +249,12 @@ export function useAudioRecorderUI(
       setAudioBlob(newBlob);
       setVoiceChanged(true);
       if (audioRef.current) {
-        audioRef.current.src = URL.createObjectURL(newBlob);
+        if (voiceChangedUrlRef.current) {
+          URL.revokeObjectURL(voiceChangedUrlRef.current);
+        }
+        const url = URL.createObjectURL(newBlob);
+        voiceChangedUrlRef.current = url;
+        audioRef.current.src = url;
       }
     },
     [audioRef]
