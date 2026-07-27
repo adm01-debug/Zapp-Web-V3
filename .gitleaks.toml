@@ -4,11 +4,21 @@ title = "ZAPP-WEB gitleaks config"
 description = "Allowed patterns"
 paths = ["node_modules", "bun.lockb"]
 # JWT histórico: anon key self-hosted presente em commits anteriores a 2026-07-27.
-# Removida de client.ts neste commit. Rotação da chave real é tarefa humana
-# (ver AUDITORIA_SCHEMA_ZAPP_2026-07-16.md — Ação 3 pendente).
+# Removida de client.ts no PR #599 (commit d795d3f0). Rotação da chave real
+# é tarefa humana (ver AUDITORIA_SCHEMA_ZAPP_2026-07-16.md — Ação 3 pendente).
+#
+# NOTA TÉCNICA: A regex supabase-jwt captura header.payload (sem assinatura).
+# O secret detectado é: eyJhbGci...joxODcyODE3MjAwCn0
+# A allowlist precisa fazer match nesse valor, não na assinatura.
+#
 # REMOVER esta allowlist após: (a) git filter-repo limpar o histórico, OU
 # (b) a chave ser rotacionada e o histórico confirmado limpo.
-regexes = ["rvamc0XHuSCYB1glBwOCCxgfd9yxWVYLnhFzg5-7TRk"]
+regexes = [
+  # Match no payload base64 do token anon (role: anon, iat: 1715050800)
+  "ewogICJyb2xlIjogImFub24i",
+  # Match na assinatura (fallback caso gitleaks capture o JWT completo)
+  "rvamc0XHuSCYB1glBwOCCxgfd9yxWVYLnhFzg5-7TRk"
+]
 
 [[rules]]
 id = "supabase-jwt"
