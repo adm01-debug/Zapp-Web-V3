@@ -311,14 +311,7 @@ export function useChatMediaSending(contactId: string, contactPhone: string | un
         toast.error('Erro ao enviar emoji');
       }
     },
-    [
-      ensureInstance,
-      contactId,
-      contactPhone,
-      whatsappConnectionId,
-      getSafePhone,
-      updateMessageStatus,
-    ]
+    [ensureInstance, contactId, whatsappConnectionId, getSafePhone, updateMessageStatus]
   );
 
   const handleSendAudioMeme = useCallback(
@@ -404,14 +397,7 @@ export function useChatMediaSending(contactId: string, contactPhone: string | un
         toast.error('Erro ao enviar áudio meme');
       }
     },
-    [
-      ensureInstance,
-      contactId,
-      contactPhone,
-      whatsappConnectionId,
-      getSafePhone,
-      updateMessageStatus,
-    ]
+    [ensureInstance, contactId, whatsappConnectionId, getSafePhone, updateMessageStatus]
   );
 
   return {

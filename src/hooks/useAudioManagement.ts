@@ -969,7 +969,7 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
         });
       }
     },
-    [maxDuration, onRecordingComplete]
+    [maxDuration, onRecordingComplete, setBlobUrl]
   );
 
   const pauseRecording = useCallback(() => {
