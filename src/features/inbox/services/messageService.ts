@@ -40,9 +40,12 @@ export const messageService = {
       let allData: (Partial<RealtimeMessage> & { isWhisper?: boolean; sender_id?: string })[] = [];
       let from = 0;
       const PAGE_SIZE = 1000;
+      const MAX_PAGES = 50;
       let hasMore = true;
+      let pageCount = 0;
 
-      while (hasMore) {
+      while (hasMore && pageCount < MAX_PAGES) {
+        pageCount++;
         const { data: page, error } = await messageRepository.fetchMessagesByContact(
           contactId,
           from,
@@ -56,6 +59,9 @@ export const messageService = {
         } else {
           hasMore = false;
         }
+      }
+      if (pageCount >= MAX_PAGES && hasMore) {
+        log.warn('[getAllMessagesForContact] reached MAX_PAGES limit', { contactId, totalMessages: allData.length });
       }
 
       // Fetch whispers (internal notes) — only when contactId is a valid UUID.

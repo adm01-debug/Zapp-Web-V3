@@ -102,7 +102,7 @@ export function useRealtimeMessages() {
         { data: messages, error: messagesError },
       ] = await Promise.all([
         supabase.schema('evo').from('evolution_contacts').select('*').order('updated_at', { ascending: false }).limit(500),
-        supabase.from('evolution_messages').select('*').order('created_at', { ascending: false }).limit(100),
+        supabase.schema('evo').from('evolution_messages').select('*').order('created_at', { ascending: false }).limit(100),
       ]);
       if (contactsError) throw contactsError;
       if (messagesError) throw messagesError;

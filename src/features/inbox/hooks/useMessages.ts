@@ -90,9 +90,15 @@ export function useMessages({ contactId, enabled = true }: UseMessagesOptions) {
     [contactId]
   );
 
-  // Fetch on contact change
+  // Fetch on contact change or when enabled transitions to true.
+  // Reset the ref when disabled so that re-enabling with the same contactId
+  // triggers a fresh fetch instead of being silently skipped.
   useEffect(() => {
-    if (enabled && contactId !== previousContactIdRef.current) {
+    if (!enabled) {
+      previousContactIdRef.current = null;
+      return;
+    }
+    if (contactId !== previousContactIdRef.current) {
       previousContactIdRef.current = contactId;
       void fetchMessages();
     }

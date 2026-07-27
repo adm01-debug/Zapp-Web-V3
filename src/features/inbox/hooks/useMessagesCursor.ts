@@ -194,7 +194,7 @@ export function useMessagesCursor({
         setPages((prev) => [olderOrEq, ...prev]);
         oldestCursorRef.current = olderOrEq[0].created_at;
       }
-      setHasMoreOlder(rows.length === pageSize);
+      setHasMoreOlder(olderOrEq.length === pageSize);
     } catch (err: unknown) {
       const e = err as { name?: string; message?: string };
       if (e?.name === 'AbortError') return;

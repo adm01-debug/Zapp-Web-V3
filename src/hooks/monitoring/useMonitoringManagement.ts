@@ -337,11 +337,12 @@ export function useMonitoringActionsManagement(
       if (invokeErr) throw invokeErr;
       await new Promise((r) => setTimeout(r, 1000));
       const { data: msg } = await supabase
+        .schema('evo')
         .from('evolution_messages')
         .select('id')
         .eq('message_id', testId)
         .maybeSingle();
-      if (msg) await supabase.from('evolution_messages').delete().eq('id', msg.id);
+      if (msg) await supabase.schema('evo').from('evolution_messages').delete().eq('id', msg.id);
       setWebhookTest({
         status: msg ? 'success' : 'error',
         message: msg
