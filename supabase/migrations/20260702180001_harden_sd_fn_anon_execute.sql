@@ -37,8 +37,16 @@ BEGIN
   RAISE NOTICE 'SD functions hardened: %', cnt;
 END $$;
 
--- Close anon access to run-as-owner views leaked in prod (idempotent via REVOKE)
-REVOKE SELECT ON public.vw_system_health FROM anon;
+-- Close anon access to run-as-owner views leaked in prod (guarded: view may not exist in CI)
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
+    WHERE n.nspname='public' AND c.relname='vw_system_health'
+  ) THEN
+    EXECUTE 'REVOKE SELECT ON public.vw_system_health FROM anon';
+  END IF;
+END $$;
 
 DO $$
 DECLARE v record;

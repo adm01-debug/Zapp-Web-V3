@@ -53,9 +53,15 @@ BEGIN
   END IF;
 
   -- Revoke the underlying grants so the mine cannot be re-armed by a policy.
-  EXECUTE 'REVOKE ALL ON public.cookies_config FROM anon';
-  EXECUTE 'REVOKE ALL ON public.cookies_config FROM PUBLIC';
-  RAISE NOTICE 'cookies_config: revoked anon + PUBLIC grants (service_role retained)';
+  -- Guarded: table may not exist yet in a from-scratch CI migration run.
+  IF EXISTS (
+    SELECT FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
+    WHERE n.nspname='public' AND c.relname='cookies_config'
+  ) THEN
+    EXECUTE 'REVOKE ALL ON public.cookies_config FROM anon';
+    EXECUTE 'REVOKE ALL ON public.cookies_config FROM PUBLIC';
+    RAISE NOTICE 'cookies_config: revoked anon + PUBLIC grants (service_role retained)';
+  END IF;
 
   -- 2) whatsapp_connections: drop the dead anon policy ------------------------
   IF EXISTS (
@@ -68,7 +74,12 @@ BEGIN
     EXECUTE 'DROP POLICY "wconn_select_anon" ON public.whatsapp_connections';
     RAISE NOTICE 'whatsapp_connections: dropped dead anon SELECT policy';
   END IF;
-  EXECUTE 'REVOKE ALL ON public.whatsapp_connections FROM anon';
+  IF EXISTS (
+    SELECT FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
+    WHERE n.nspname='public' AND c.relname='whatsapp_connections'
+  ) THEN
+    EXECUTE 'REVOKE ALL ON public.whatsapp_connections FROM anon';
+  END IF;
 
   -- 3) n8n_variables: retarget the mislabeled PUBLIC policy to authenticated --
   IF EXISTS (
@@ -81,7 +92,12 @@ BEGIN
     EXECUTE 'ALTER POLICY "service_role_all" ON public.n8n_variables TO authenticated';
     RAISE NOTICE 'n8n_variables: retargeted PUBLIC policy -> authenticated';
   END IF;
-  EXECUTE 'REVOKE ALL ON public.n8n_variables FROM anon';
+  IF EXISTS (
+    SELECT FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
+    WHERE n.nspname='public' AND c.relname='n8n_variables'
+  ) THEN
+    EXECUTE 'REVOKE ALL ON public.n8n_variables FROM anon';
+  END IF;
 
   -- 4) internal tables: enable RLS + admin-scoped read -----------------------
   --    (service_role bypasses RLS; non-admin authenticated loses read)
@@ -115,6 +131,13 @@ BEGIN
   END LOOP;
 END $$;
 
-COMMENT ON TABLE public.cookies_config IS
-  'Third-party integration session state (LinkedIn/Lusha cookies, tokens). '
-  'SERVICE_ROLE ONLY — never grant to anon/authenticated. Hardened 2026-07-02.';
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
+    WHERE n.nspname='public' AND c.relname='cookies_config'
+  ) THEN
+    EXECUTE $c$COMMENT ON TABLE public.cookies_config IS
+      'Third-party integration session state (LinkedIn/Lusha cookies, tokens). SERVICE_ROLE ONLY — never grant to anon/authenticated. Hardened 2026-07-02.'$c$;
+  END IF;
+END $$;

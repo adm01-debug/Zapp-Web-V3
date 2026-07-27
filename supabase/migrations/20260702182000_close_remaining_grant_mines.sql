@@ -10,8 +10,22 @@
 -- Applied to production live; idempotent (REVOKE is naturally idempotent).
 -- =============================================================================
 
--- cookies_config holds third-party session secrets -> service_role only.
-REVOKE ALL ON public.cookies_config    FROM authenticated;
+DO $$
+BEGIN
+  -- cookies_config holds third-party session secrets -> service_role only.
+  -- Guarded: table may not exist yet in a from-scratch CI migration run.
+  IF EXISTS (
+    SELECT FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
+    WHERE n.nspname='public' AND c.relname='cookies_config'
+  ) THEN
+    EXECUTE 'REVOKE ALL ON public.cookies_config FROM authenticated';
+  END IF;
 
--- email_health_logs is service_role ops telemetry -> no anon surface.
-REVOKE ALL ON public.email_health_logs FROM anon;
+  -- email_health_logs is service_role ops telemetry -> no anon surface.
+  IF EXISTS (
+    SELECT FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
+    WHERE n.nspname='public' AND c.relname='email_health_logs'
+  ) THEN
+    EXECUTE 'REVOKE ALL ON public.email_health_logs FROM anon';
+  END IF;
+END $$;

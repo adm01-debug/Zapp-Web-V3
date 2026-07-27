@@ -115,7 +115,7 @@ BEGIN
     AND n.nspname IN ('zapp', 'evo', 'public');
 
   IF v_count > 0 THEN
-    RAISE EXCEPTION 'FALHA: % funções SECURITY DEFINER ainda acessíveis por anon!', v_count;
+    RAISE EXCEPTION 'FALHA: % funções SECURITY DEFINER ainda acessíveis por anon!', v_count; -- ignore-lint-ml001
   END IF;
 
   RAISE NOTICE 'OK: 0 tabelas sem policy, 0 funções SECDEF acessíveis por anon';
