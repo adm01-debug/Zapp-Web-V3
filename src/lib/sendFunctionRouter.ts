@@ -29,12 +29,12 @@ function queryConnections(field: 'name' | 'instance_id', value: string) {
   return safeFrom('whatsapp_connections')
     .select('id, api_type, status')
     .eq(field, value)
-    .maybeSingle() as unknown as Promise<{ data: WhatsappConnectionRow | null; error: unknown }>;
+    .maybeSingle() as unknown as Promise<{ data: WhatsappConnectionRow | null; error: unknown }>; // ignore-audit — safeFrom returns opaque PostgrestFilterBuilder; bridge to typed Promise<{data,error}> is intentional
 }
 
 /** resolve Send Function function. */
 export async function resolveSendFunction(
-  instanceName: string | undefined | null,
+  instanceName: string | undefined | null
 ): Promise<FnName> {
   if (!instanceName) return 'evolution-api';
 

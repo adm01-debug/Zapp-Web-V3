@@ -39,7 +39,11 @@ export function usePersonalStickers(): UsePersonalStickersResult {
 
   const QUERY_KEY = ['personal-stickers', ownerId] as const;
 
-  const { data: stickers = [], isLoading, refetch } = useQuery({
+  const {
+    data: stickers = [],
+    isLoading,
+    refetch,
+  } = useQuery({
     queryKey: QUERY_KEY,
     queryFn: async (): Promise<StickerItem[]> => {
       if (!ownerId) return [];
@@ -50,7 +54,7 @@ export function usePersonalStickers(): UsePersonalStickersResult {
         .order('is_favorite', { ascending: false })
         .order('use_count', { ascending: false });
       if (error) throw error;
-      return (data ?? []) as unknown as StickerItem[];
+      return (data ?? []) as unknown as StickerItem[]; // ignore-audit — STICKERS_TABLE cast as never makes TS infer data as never[]; bridge recovers usable StickerItem type
     },
     enabled: !!ownerId,
     staleTime: 30_000,
@@ -123,7 +127,11 @@ export function usePersonalStickers(): UsePersonalStickersResult {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: QUERY_KEY }),
     onError: (err) => {
       log.error('Toggle favorite failed:', err);
-      toast({ title: 'Erro', description: 'Não foi possível atualizar favorito.', variant: 'destructive' });
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível atualizar favorito.',
+        variant: 'destructive',
+      });
     },
   });
 
@@ -141,7 +149,10 @@ export function usePersonalStickers(): UsePersonalStickersResult {
       } catch (err) {
         log.warn('Storage cleanup skipped:', err);
       }
-      const { error } = await supabase.from(STICKERS_TABLE as never).delete().eq('id', sticker.id);
+      const { error } = await supabase
+        .from(STICKERS_TABLE as never)
+        .delete()
+        .eq('id', sticker.id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -154,18 +165,15 @@ export function usePersonalStickers(): UsePersonalStickersResult {
     },
   });
 
-  const incrementUseCount = useCallback(
-    (sticker: StickerItem) => {
-      void supabase
-        .from(STICKERS_TABLE as never)
-        .update({ use_count: (sticker.use_count ?? 0) + 1 } as never)
-        .eq('id', sticker.id)
-        .then(({ error }) => {
-          if (error) log.warn('Increment use_count failed:', error);
-        });
-    },
-    []
-  );
+  const incrementUseCount = useCallback((sticker: StickerItem) => {
+    void supabase
+      .from(STICKERS_TABLE as never)
+      .update({ use_count: (sticker.use_count ?? 0) + 1 } as never)
+      .eq('id', sticker.id)
+      .then(({ error }) => {
+        if (error) log.warn('Increment use_count failed:', error);
+      });
+  }, []);
 
   return {
     profile,

@@ -43,10 +43,10 @@ interface Message {
   created_at: string;
   updated_at: string | null;
   // Campos computados pela view zapp.messages
-  sender: string | null;           // 'agent' | 'contact' — from_me→sender
+  sender: string | null; // 'agent' | 'contact' — from_me→sender
   is_from_me: boolean;
-  direction: string | null;        // 'incoming' | 'outgoing'
-  external_id: string | null;      // alias de message_id da tabela evo
+  direction: string | null; // 'incoming' | 'outgoing'
+  external_id: string | null; // alias de message_id da tabela evo
   whatsapp_connection_id: string | null;
   is_deleted: boolean;
   deleted_at: string | null;
@@ -101,13 +101,22 @@ export function useRealtimeMessages() {
         { data: contactsRaw, error: contactsError },
         { data: messages, error: messagesError },
       ] = await Promise.all([
-        supabase.schema('evo').from('evolution_contacts').select('*').order('updated_at', { ascending: false }).limit(500),
-        supabase.from('evolution_messages').select('*').order('created_at', { ascending: false }).limit(100),
+        supabase
+          .schema('evo')
+          .from('evolution_contacts')
+          .select('*')
+          .order('updated_at', { ascending: false })
+          .limit(500),
+        supabase
+          .from('evolution_messages')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(100),
       ]);
       if (contactsError) throw contactsError;
       if (messagesError) throw messagesError;
 
-      const contactList: Contact[] = (contactsRaw as unknown as Contact[] | null) ?? [];
+      const contactList: Contact[] = (contactsRaw as unknown as Contact[] | null) ?? []; // ignore-audit — supabase.schema('evo') absent from generated types; contactsRaw typed as opaque null/unknown
       const messageList: Message[] = messages ?? [];
 
       const contactMap = new Map<string, Contact>();
@@ -123,8 +132,14 @@ export function useRealtimeMessages() {
       ];
 
       if (missingIds.length > 0) {
-        const { data: extraRaw } = await supabase.schema('evo').from('evolution_contacts').select('*').in('id', missingIds);
-        ((extraRaw as unknown as Contact[] | null) ?? []).forEach((c: Contact) => contactMap.set(c.id, c));
+        const { data: extraRaw } = await supabase
+          .schema('evo')
+          .from('evolution_contacts')
+          .select('*')
+          .in('id', missingIds);
+        ((extraRaw as unknown as Contact[] | null) ?? []).forEach((c: Contact) =>
+          contactMap.set(c.id, c)
+        ); // ignore-audit — supabase.schema('evo') absent from generated types; extraRaw typed as opaque null/unknown
       }
 
       if (!isMountedRef.current) return;
@@ -144,7 +159,9 @@ export function useRealtimeMessages() {
       messageList.forEach((m) => {
         // Filtro explícito: ignorar tombstones (mensagens apagadas sem contact_id)
         if (!m.contact_id) {
-          log.debug('[useRealtimeMessages] ignorando mensagem sem contact_id (tombstone)', { id: m.id });
+          log.debug('[useRealtimeMessages] ignorando mensagem sem contact_id (tombstone)', {
+            id: m.id,
+          });
           return;
         }
         const conv = convMap.get(m.contact_id);
@@ -178,7 +195,9 @@ export function useRealtimeMessages() {
   useEffect(() => {
     isMountedRef.current = true;
     fetchData();
-    return () => { isMountedRef.current = false; };
+    return () => {
+      isMountedRef.current = false;
+    };
   }, [fetchData]);
 
   useEffect(() => {
@@ -192,7 +211,9 @@ export function useRealtimeMessages() {
           const newMsg = payload.new as Message;
           // Ignorar tombstones sem contato vinculado
           if (!newMsg.contact_id) {
-            log.debug('[realtime] INSERT ignorado — contact_id nulo (tombstone ou msg sem contato)');
+            log.debug(
+              '[realtime] INSERT ignorado — contact_id nulo (tombstone ou msg sem contato)'
+            );
             return;
           }
           setConversations((prev) => {
@@ -256,16 +277,13 @@ export function useRealtimeMessages() {
    * schema default 'zapp' (que resolve para a VIEW sem suporte a todos os campos
    * de evo.evolution_messages, em particular instance_name NOT NULL).
    */
-  const sendMessage = useCallback(
-    async (contactId: string, content: string, _agentId?: string) => {
-      log.warn(
-        '[sendMessage legacy stub] Use sendMessageToContact de features/inbox/hooks/realtime/messageSender.ts para envio real via Evolution API.',
-        { contactId, contentLength: content.length }
-      );
-      // Intencionalmente não faz nada — previne INSERT no schema errado.
-    },
-    []
-  );
+  const sendMessage = useCallback(async (contactId: string, content: string, _agentId?: string) => {
+    log.warn(
+      '[sendMessage legacy stub] Use sendMessageToContact de features/inbox/hooks/realtime/messageSender.ts para envio real via Evolution API.',
+      { contactId, contentLength: content.length }
+    );
+    // Intencionalmente não faz nada — previne INSERT no schema errado.
+  }, []);
 
   const refetch = useCallback(() => fetchData(), [fetchData]);
 

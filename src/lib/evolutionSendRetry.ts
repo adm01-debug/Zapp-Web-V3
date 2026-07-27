@@ -19,7 +19,12 @@ import { loadRetryConfig } from '@/lib/retryConfig';
 import { crossTabDedupe } from '@/lib/crossTabSendDedupe';
 import { buildRequestDedupeKey } from '@/lib/requestDedupeKey';
 import { resolveSendFunction } from '@/lib/sendFunctionRouter';
-import { canCall, recordFailure, recordSuccess, CircuitOpenError } from '@/lib/evolutionCircuitBreaker';
+import {
+  canCall,
+  recordFailure,
+  recordSuccess,
+  CircuitOpenError,
+} from '@/lib/evolutionCircuitBreaker';
 
 const log = getLogger('EvolutionSendRetry');
 
@@ -37,8 +42,15 @@ export interface EvolutionInvokeResult<T = unknown> {
 }
 
 const TRANSIENT_PATTERNS = [
-  'fetch', 'network', 'timeout', 'aborted', 'econnreset',
-  'enotfound', 'unavailable', 'temporarily', 'gateway',
+  'fetch',
+  'network',
+  'timeout',
+  'aborted',
+  'econnreset',
+  'enotfound',
+  'unavailable',
+  'temporarily',
+  'gateway',
 ];
 // Word-boundary regex avoids false matches like '5024' or URLs containing these codes.
 const TRANSIENT_STATUS_IN_MSG_RE = /\b(429|502|503|504)\b/;
@@ -48,7 +60,7 @@ export function isTransient(err: unknown): boolean {
   if (!err) return false;
   if (err instanceof Error) {
     const msg = err.message.toLowerCase();
-    const status = (err as unknown as { status?: number }).status;
+    const status = (err as Error & { status?: number }).status;
     if (typeof status === 'number' && (status >= 500 || status === 429)) return true;
     return TRANSIENT_PATTERNS.some((p) => msg.includes(p)) || TRANSIENT_STATUS_IN_MSG_RE.test(msg);
   }
@@ -58,7 +70,9 @@ export function isTransient(err: unknown): boolean {
     if (anyErr.status === 429) return true;
     if (anyErr.message) {
       const msg = anyErr.message.toLowerCase();
-      return TRANSIENT_PATTERNS.some((p) => msg.includes(p)) || TRANSIENT_STATUS_IN_MSG_RE.test(msg);
+      return (
+        TRANSIENT_PATTERNS.some((p) => msg.includes(p)) || TRANSIENT_STATUS_IN_MSG_RE.test(msg)
+      );
     }
   }
   return false;
@@ -87,7 +101,8 @@ export async function invokeEvolutionWithRetry<T = unknown>(
 
   // Snapshot pra DLQ caso falhe definitivamente
   const instanceName = (opts.body?.instance_name ?? opts.body?.instanceName) as string | undefined;
-  const remoteJid = (opts.body?.remote_jid ?? opts.body?.number ?? opts.body?.to) as string | undefined;
+  const remoteJid = (opts.body?.remote_jid ?? opts.body?.number ?? opts.body?.to) as
+    string | undefined;
   const sendPath = `/message/${action}`;
 
   // Config dinâmica por instância (com fallback global → defaults)
@@ -106,65 +121,69 @@ export async function invokeEvolutionWithRetry<T = unknown>(
   // Cloud API (official) functions accept the same `{ action, ... }` body shape.
   const targetFn = await resolveSendFunction(instanceName);
   // For the Cloud API edge function, action goes in the body (not the path).
-  const invokePath = targetFn === 'whatsapp-cloud-api' ? 'whatsapp-cloud-api' : `evolution-api/${action}`;
-  const invokeBody = targetFn === 'whatsapp-cloud-api'
-    ? { action, ...opts.body }
-    : opts.body;
+  const invokePath =
+    targetFn === 'whatsapp-cloud-api' ? 'whatsapp-cloud-api' : `evolution-api/${action}`;
+  const invokeBody = targetFn === 'whatsapp-cloud-api' ? { action, ...opts.body } : opts.body;
 
-  const runRetryLoop = () => withRetry(
-    async () => {
-      // Circuit breaker: short-circuit before paying retry cost on a known
-      // bad instance. Tracked per `instanceName`; uncovered when no instance
-      // is on the body (rare — instance management calls).
-      if (instanceName) {
-        const decision = canCall(instanceName);
-        if (!decision.allowed) {
-          throw new CircuitOpenError(instanceName, decision.retryAfterMs ?? 0);
+  const runRetryLoop = () =>
+    withRetry(
+      async () => {
+        // Circuit breaker: short-circuit before paying retry cost on a known
+        // bad instance. Tracked per `instanceName`; uncovered when no instance
+        // is on the body (rare — instance management calls).
+        if (instanceName) {
+          const decision = canCall(instanceName);
+          if (!decision.allowed) {
+            throw new CircuitOpenError(instanceName, decision.retryAfterMs ?? 0);
+          }
         }
-      }
 
-      const result = await supabase.functions.invoke(invokePath, {
-        method: opts.method || 'POST',
-        body: invokeBody,
-        headers: mergedHeaders,
-      });
+        const result = await supabase.functions.invoke(invokePath, {
+          method: opts.method || 'POST',
+          body: invokeBody,
+          headers: mergedHeaders,
+        });
 
-      // Supabase encapsula erros em result.error; também checa payload com erro
-      if (result.error) {
-        const err = result.error as { message?: string; status?: number };
-        if (isTransient(err)) {
-          if (instanceName) recordFailure(instanceName);
-          throw Object.assign(new Error(err.message || 'transient'), { status: err.status });
+        // Supabase encapsula erros em result.error; também checa payload com erro
+        if (result.error) {
+          const err = result.error as { message?: string; status?: number };
+          if (isTransient(err)) {
+            if (instanceName) recordFailure(instanceName);
+            throw Object.assign(new Error(err.message || 'transient'), { status: err.status });
+          }
+          // Erro definitivo — não retry. Não conta como falha do breaker porque
+          // 4xx é "request inválida" do caller, não indisponibilidade do upstream.
+          return result as EvolutionInvokeResult<T>; // ignore-audit: narrows Supabase query result to local interface
         }
-        // Erro definitivo — não retry. Não conta como falha do breaker porque
-        // 4xx é "request inválida" do caller, não indisponibilidade do upstream.
+
+        const payload = result.data as {
+          error?: unknown;
+          status?: number;
+          message?: string;
+        } | null;
+        if (payload?.error || (payload?.status && payload.status >= 500)) {
+          const reason = (payload.message || JSON.stringify(payload.error)).toString();
+          if (isTransient({ message: reason, status: payload.status })) {
+            if (instanceName) recordFailure(instanceName);
+            throw Object.assign(new Error(reason), { status: payload.status });
+          }
+        }
+
+        // Success → close circuit if it was open/half-open.
+        if (instanceName) recordSuccess(instanceName);
         return result as EvolutionInvokeResult<T>; // ignore-audit: narrows Supabase query result to local interface
-      }
-
-      const payload = result.data as { error?: unknown; status?: number; message?: string } | null;
-      if (payload?.error || (payload?.status && payload.status >= 500)) {
-        const reason = (payload.message || JSON.stringify(payload.error)).toString();
-        if (isTransient({ message: reason, status: payload.status })) {
-          if (instanceName) recordFailure(instanceName);
-          throw Object.assign(new Error(reason), { status: payload.status });
-        }
-      }
-
-      // Success → close circuit if it was open/half-open.
-      if (instanceName) recordSuccess(instanceName);
-      return result as EvolutionInvokeResult<T>; // ignore-audit: narrows Supabase query result to local interface
-    },
-    {
-      maxRetries,
-      baseDelayMs,
-      maxDelayMs,
-      shouldRetry: (err) => isTransient(err),
-      onRetry: (err, attempt) => {
-        log.warn(`[evolution] retry ${attempt}/${maxRetries} action=${action}`, err);
-        onRetry?.(attempt, maxRetries, err);
       },
-    }
-  );
+      {
+        maxRetries,
+        baseDelayMs,
+        maxDelayMs,
+        shouldRetry: (err) => isTransient(err),
+        onRetry: (err, attempt) => {
+          log.warn(`[evolution] retry ${attempt}/${maxRetries} action=${action}`, err);
+          onRetry?.(attempt, maxRetries, err);
+        },
+      }
+    );
 
   try {
     // Collapse duplicate sends across browser tabs: only the leader tab
@@ -192,11 +211,11 @@ export async function invokeEvolutionWithRetry<T = unknown>(
         ? 'circuit_open'
         : status
           ? `http_${status}`
-          : message.toLowerCase().includes('timeout') ? 'timeout' : 'network_error';
+          : message.toLowerCase().includes('timeout')
+            ? 'timeout'
+            : 'network_error';
       // Embed the idem key in the DLQ payload so the cron worker reuses it.
-      const dlqPayload = idempotencyKey
-        ? { ...opts.body, __idemKey: idempotencyKey }
-        : opts.body;
+      const dlqPayload = idempotencyKey ? { ...opts.body, __idemKey: idempotencyKey } : opts.body;
       enqueueClientFailedMessage({
         instance_name: instanceName,
         remote_jid: remoteJid ?? null,

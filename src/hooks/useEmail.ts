@@ -230,7 +230,7 @@ export function useEmail() {
         log.error('Email messages load error', dbErr);
       }
     } else {
-      setMessages((Array.isArray(data) ? data : []) as unknown as EmailMessage[]);
+      setMessages((Array.isArray(data) ? data : []) as unknown as EmailMessage[]); // ignore-audit — Supabase Row[] lacks index signature; bridge cast to local EmailMessage[] is intentional
     }
     setIsLoadingMessages(false);
   }, []);

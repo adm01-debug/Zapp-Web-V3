@@ -43,7 +43,7 @@ export function DegradedConnectionsBanner({ onNavigate, recentWindowMs = 10 * 60
     // `data` pode vir como SelectQueryError quando alguma coluna do select
     // não existe no schema atual — nesse caso, tratamos como lista vazia.
     const rows: DegradedInstance[] = Array.isArray(data)
-      ? (data as unknown as DegradedInstance[])
+      ? (data as unknown as DegradedInstance[]) // ignore-audit — Supabase SelectQueryError union type prevents direct widening to DegradedInstance[]; Array.isArray guard narrows at runtime
       : [];
     setDegraded(rows);
   }, [recentWindowMs]);

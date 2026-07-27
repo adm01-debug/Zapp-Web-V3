@@ -50,7 +50,9 @@ export function useSLAScopeOptions(
         .not('company', 'is', null)
         .then(({ data }) => {
           const rows = (data ?? []) as Array<{ company: string | null }>;
-          const unique = [...new Set(rows.map((r) => r.company).filter((v): v is string => !!v))].sort();
+          const unique = [
+            ...new Set(rows.map((r) => r.company).filter((v): v is string => !!v)),
+          ].sort();
           setCompanies(unique);
         });
     }
@@ -62,7 +64,9 @@ export function useSLAScopeOptions(
         .not('job_title', 'is', null)
         .then(({ data }) => {
           const rows = (data ?? []) as Array<{ job_title: string | null }>;
-          const unique = [...new Set(rows.map((r) => r.job_title).filter((v): v is string => !!v))].sort();
+          const unique = [
+            ...new Set(rows.map((r) => r.job_title).filter((v): v is string => !!v)),
+          ].sort();
           setJobTitles(unique);
         });
     }
@@ -73,7 +77,7 @@ export function useSLAScopeOptions(
         .select('id, name')
         .order('name')
         .then(({ data }) => {
-          setQueues(((data ?? []) as unknown as QueueOption[]));
+          setQueues((data ?? []) as unknown as QueueOption[]); // ignore-audit — Supabase queues row has no index signature for direct widening to QueueOption
         });
     }
 
@@ -83,7 +87,7 @@ export function useSLAScopeOptions(
         .select('id, name')
         .order('name')
         .then(({ data }) => {
-          setAgents(((data ?? []) as unknown as AgentOption[]));
+          setAgents((data ?? []) as unknown as AgentOption[]); // ignore-audit — Supabase profiles row has no index signature for direct widening to AgentOption
         });
     }
   }, [open, scope]);
@@ -111,8 +115,8 @@ export function useSLAScopeOptions(
     ]).then(([nameRes, phoneRes]) => {
       const seen = new Set<string>();
       const combined = [
-        ...((nameRes.data ?? []) as unknown as ContactRow[]),
-        ...((phoneRes.data ?? []) as unknown as ContactRow[]),
+        ...((nameRes.data ?? []) as unknown as ContactRow[]), // ignore-audit — Supabase contacts row has no index signature for direct widening to ContactRow
+        ...((phoneRes.data ?? []) as unknown as ContactRow[]), // ignore-audit — Supabase contacts row has no index signature for direct widening to ContactRow
       ];
       const merged = combined.filter(({ id }) => {
         if (seen.has(id)) return false;

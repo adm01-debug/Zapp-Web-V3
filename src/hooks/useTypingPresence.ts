@@ -28,9 +28,8 @@ export function useTypingPresence({
 
     channel
       .on('presence', { event: 'sync' }, () => {
-        const state = (
-          channel as unknown as { presenceState: () => Record<string, unknown[]> }
-        ).presenceState?.();
+        const state = (channel as unknown as { presenceState: () => Record<string, unknown[]> }) // ignore-audit — RealtimeChannel type omits presenceState(); runtime method exists; bridge exposes it safely
+          .presenceState?.();
         if (!state) return;
         const users: TypingUser[] = [];
         Object.values(state).forEach((presences) => {

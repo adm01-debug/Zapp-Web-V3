@@ -177,7 +177,7 @@ export function useAutomations({
       if (error) throw error;
       if (!msgs || !Array.isArray(msgs) || !isMounted.current) return;
 
-      const sorted = [...(msgs as unknown as ExternalMessage[])].sort(
+      const sorted = [...(msgs as ExternalMessage[])].sort(
         (a, b) => new Date(a.message_timestamp).getTime() - new Date(b.message_timestamp).getTime()
       );
       const last = sorted[sorted.length - 1];
@@ -191,6 +191,7 @@ export function useAutomations({
       let removedTags: string[] = [];
       try {
         const { data: contact } = await (client as unknown as SupabaseClient).rpc(
+          // ignore-audit — ExtendedDatabase schema client cannot call unregistered RPCs; widening to bare SupabaseClient is intentional
           'rpc_get_contact',
           {
             p_remote_jid: remoteJid,
@@ -294,6 +295,7 @@ export function useAutomations({
         if (allTags.length) {
           try {
             await (client as unknown as SupabaseClient).rpc('rpc_upsert_contact', {
+              // ignore-audit — ExtendedDatabase schema client cannot call unregistered RPCs; widening to bare SupabaseClient is intentional
               p_remote_jid: remoteJid,
               p_instance: instanceName,
               p_tags: allTags,
@@ -343,6 +345,7 @@ export function useAutomations({
               const exec = execArr?.[0] ?? null;
               if (exec?.suggestion_text) {
                 await (client as unknown as SupabaseClient).rpc('rpc_insert_message', {
+                  // ignore-audit — ExtendedDatabase schema client cannot call unregistered RPCs; widening to bare SupabaseClient is intentional
                   p_remote_jid: remoteJid,
                   p_content: exec.suggestion_text,
                   p_from_me: true,
@@ -391,7 +394,9 @@ export function useAutomationSuggestions(remoteJid: string | null) {
       // FIX #2: Join com automations(name) causa 400 — fazer 2 queries
       const { data: execs } = await safeClient.from<_RawExecRow>('automation_executions', (q) =>
         q
-          .select('id, rule_id, suggestion_text, recommended_tag, kb_sources, status, created_at, instance_name, remote_jid')
+          .select(
+            'id, rule_id, suggestion_text, recommended_tag, kb_sources, status, created_at, instance_name, remote_jid'
+          )
           .eq('remote_jid', remoteJid)
           .eq('status', 'pending')
           .not('suggestion_text', 'is', null)
@@ -400,11 +405,12 @@ export function useAutomationSuggestions(remoteJid: string | null) {
       );
 
       const ruleIds = [...new Set((execs ?? []).map((r) => r.rule_id).filter(Boolean))];
-      const { data: rules } = ruleIds.length > 0
-        ? await safeClient.from<{ id: string; name: string }>('automations', (q) =>
-            q.select('id, name').in('id', ruleIds)
-          )
-        : { data: [] as { id: string; name: string }[] };
+      const { data: rules } =
+        ruleIds.length > 0
+          ? await safeClient.from<{ id: string; name: string }>('automations', (q) =>
+              q.select('id, name').in('id', ruleIds)
+            )
+          : { data: [] as { id: string; name: string }[] };
       const ruleNameMap = new Map((rules ?? []).map((r) => [r.id, r.name]));
 
       return (execs ?? []).map((r) => ({
@@ -438,8 +444,7 @@ export function useAutomationSuggestions(remoteJid: string | null) {
         { event: '*', schema: 'zapp', table: 'automation_executions' },
         (payload) => {
           const row = (payload.new ?? payload.old) as Record<string, unknown>;
-          if (row?.remote_jid === remoteJid)
-            void queryClient.invalidateQueries({ queryKey: key });
+          if (row?.remote_jid === remoteJid) void queryClient.invalidateQueries({ queryKey: key });
         }
       )
       .subscribe();
@@ -477,6 +482,7 @@ export function useAutomationSuggestions(remoteJid: string | null) {
         const extClient = getClient();
         if (!extClient) return false;
         await (extClient as unknown as SupabaseClient).rpc('rpc_upsert_contact', {
+          // ignore-audit — ExtendedDatabase schema client cannot call unregistered RPCs; widening to bare SupabaseClient is intentional
           p_remote_jid: sugg.remote_jid,
           p_instance: sugg.instance_name,
           p_tags: [sugg.recommended_tag],

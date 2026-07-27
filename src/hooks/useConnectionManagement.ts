@@ -21,13 +21,13 @@ type PoolTelemetry = {
   getPoolMetrics?: () => ConnectionMetrics;
   getPoolDiagnostics?: () => Record<string, unknown>;
 };
-const poolClient = safeClient as unknown as PoolTelemetry;
+const poolClient = safeClient as unknown as PoolTelemetry; // ignore-audit — safeClient (TypedSupabaseClient) has no index signature; bridge to local PoolTelemetry interface is intentional
 const EMPTY_METRICS = {
   activeConnections: 0,
   maxConcurrent: 0,
   poolUtilization: 0,
   totalErrors: 0,
-} as unknown as ConnectionMetrics;
+} as unknown as ConnectionMetrics; // ignore-audit — literal object lacks ConnectionMetrics index signature; bridge assigns typed fallback constant
 
 // ──────────────────────────────────────────────────────────────────────────
 // CONNECTION ALERTS PUSH
