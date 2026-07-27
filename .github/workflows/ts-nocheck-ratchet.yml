@@ -1,3 +1,45 @@
-bmFtZTogVHlwZVNjcmlwdCBAdHMtbm9jaGVjayBSYXRjaGV0CgpvbjoKICBwdWxsX3JlcXVlc3Q6CiAgICBicmFuY2hlczogW21haW5dCiAgICBwYXRoczoKICAgICAgLSAnc3JjLyoqJwoKZW52OgogICMgQmFzZWxpbmUgZG9jdW1lbnRhZG8gZW0gMjYvMDcvMjAyNgogICMgQXR1YWxpemFyIHF1YW5kbyBudW1lcm8gZGltaW51aXIgKGNlbGVicmFyISkKICBUU19OT0NIRUNLX0JBU0VMSU5FOiA5Cgpqb2JzOgogIHRzLW5vY2hlY2stcmF0Y2hldDoKICAgIG5hbWU6IENoZWNrIEBhdHMtbm9jaGVjayBSYXRjaGV0CiAgICBydW5zLW9uOiB1YnVudHUtbGF0ZXN0CiAgICBzdGVwczoKICAgICAgLSB1c2VzOiBhY3Rpb25zL2NoZWNrb3V0QHY0CgogICAgICAtIG5hbWU6IENvdW50IEBhdHMtbm9jaGVjayB1c2FnZXMKICAgICAgICBydW46IHwKICAgICAgICAgIENPVU5UPSQoZ3JlcCAtciAnQHRzLW5vY2hlY2snIHNyYy8gLS1pbmNsdWRlPScqLnRzJyAtLWluY2x1ZGU9JyoudHN4JyAtbCAyPi9kZXYvbnVsbCB8IHdjIC1sKQogICAgICAgICAgZWNobyAiY3VycmVudF9jb3VudD0kQ09VTlQiID4+ICJAR0lUSFVCX09VVFBVVCIKICAGICAKA==
+name: TypeScript @ts-nocheck Ratchet
 
-ICAgICAgLSBuYW1lOiBFbmZvcmNlIHJhdGNoZXQKICAgICAgICBydW46IHwKICAgICAgICAgIENPVU5UPSQoZ3JlcCAtciAnQHRzLW5vY2hlY2snIHNyYy8gLS1pbmNsdWRlPScqLnRzJyAtLWluY2x1ZGU9JyoudHN4JyAtbCAyPi9kZXYvbnVsbCB8IHdjIC1sKQogICAgICAgICAgQkFTRUxJTkU9JHtUU19OT0NIRUNLX0JBU0VMSU5FfQoKICAgICAgICAgIGVjaG8gIkBhdHMtbm9jaGVjayBjb3VudDogJENPVU5UIgogICAgICAgICAgZWNobyAiQmFzZWxpbmU6ICRCQVNFTElORSIKICAgICAgICAgIGVjaG8gIiIKCiAgICAgICAgICBpZiBbICIkQ09VTlQiIC1ndCAiJEJBU0VMSU5FIiBdOyB0aGVuCiAgICAgICAgICAgIGVjaG8gIiMjIyBFUlJPUjogQHRzLW5vY2hlY2sgaW5jcmVhc2VkIGZyb20gJEJBU0VMSU5FIHRvICRDT1VOVCIKICAGICAAGAGAGAGAGAGAG    ZWNobyAiQWZmZWN0ZWQgZmlsZXM6IgogICAgICAgICAgICBncmVwIC1yICdAdHMtbm9jaGVjaycgc3JjLyAtLWluY2x1ZGU9JyoudHMnIC0taW5jbHVkZT0nKi50c3gnIC1sCiAgICAgICAgICAgIGV4aXQgMQogICAgICAgICAgZWxzZQogICAgICAgICAgICBlY2hvICIjIyMgUEFTUzogQHRzLW5vY2hlY2sgY291bnQgaXMgJENPVU5UIgogICAgICAgICAgICBpZiBbICIkQ09VTlQiIC1sdCAiJEJBU0VMSU5FIiBdOyB0aGVuCiAgICAgICAgICAgICAgZWNobyAiIGNlbGVicmF0ZTogQ291bnQgZGVjcmVhc2VkISBVcGRhdGUgVFNfTk9DSEVDS19CQVNFSE5FIHRvICRDT1VOVCIKICAGICAGICAGICAGICAGGAGAG          ZmkKICAgICAgICAgIGZpCg==
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'src/**'
+
+env:
+  # Baseline documentado em 26/07/2026
+  # Atualizar quando numero diminuir (celebrar!)
+  TS_NOCHECK_BASELINE: 9
+
+jobs:
+  ts-nocheck-ratchet:
+    name: Check @ts-nocheck Ratchet
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Count @ts-nocheck usages
+        run: |
+          COUNT=$(grep -r '@ts-nocheck' src/ --include='*.ts' --include='*.tsx' -l 2>/dev/null | wc -l)
+          echo "current_count=$COUNT" >> "$GITHUB_OUTPUT"
+
+      - name: Enforce ratchet
+        run: |
+          COUNT=$(grep -r '@ts-nocheck' src/ --include='*.ts' --include='*.tsx' -l 2>/dev/null | wc -l)
+          BASELINE=${TS_NOCHECK_BASELINE}
+
+          echo "@ts-nocheck count: $COUNT"
+          echo "Baseline: $BASELINE"
+          echo ""
+
+          if [ "$COUNT" -gt "$BASELINE" ]; then
+            echo "### ERROR: @ts-nocheck increased from $BASELINE to $COUNT"
+            echo "Affected files:"
+            grep -r '@ts-nocheck' src/ --include='*.ts' --include='*.tsx' -l
+            exit 1
+          else
+            echo "### PASS: @ts-nocheck count is $COUNT"
+            if [ "$COUNT" -lt "$BASELINE" ]; then
+              echo "Celebrate: Count decreased! Update TS_NOCHECK_BASELINE to $COUNT"
+            fi
+          fi
