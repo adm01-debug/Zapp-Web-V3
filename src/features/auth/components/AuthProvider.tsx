@@ -489,7 +489,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { error: null };
     } catch (e) {
       log.error('[Auth] Sign in error:', e);
-      return { error: e as any };
+      return { error: e instanceof Error ? e : new Error(String(e)) };
     }
   };
 
@@ -503,7 +503,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { error: null };
     } catch (e) {
       log.error('[Auth] Sign up error:', e);
-      return { error: e as any };
+      return { error: e instanceof Error ? e : new Error(String(e)) };
     }
   };
 
