@@ -275,5 +275,22 @@ COMMENT ON VIEW public.v_gmail_inbox_summary IS
 -- ------------------------------------
 -- 9. Realtime para threads
 -- ------------------------------------
-ALTER PUBLICATION supabase_realtime ADD TABLE IF NOT EXISTS public.gmail_threads;
-ALTER PUBLICATION supabase_realtime ADD TABLE IF NOT EXISTS public.gmail_messages;
+-- PG16 does not support "ALTER PUBLICATION ... ADD TABLE IF NOT EXISTS" — use a guard DO block instead.
+DO $pub1$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_publication WHERE pubname = 'supabase_realtime')
+  AND NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables
+    WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'gmail_threads'
+  ) THEN
+    EXECUTE 'ALTER PUBLICATION supabase_realtime ADD TABLE public.gmail_threads';
+  END IF;
+END $pub1$;
+DO $pub2$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_publication WHERE pubname = 'supabase_realtime')
+  AND NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables
+    WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'gmail_messages'
+  ) THEN
+    EXECUTE 'ALTER PUBLICATION supabase_realtime ADD TABLE public.gmail_messages';
+  END IF;
+END $pub2$;

@@ -109,4 +109,13 @@ GROUP BY ga.user_id, ga.id, ga.email;
 COMMENT ON VIEW public.v_gmail_sla_dashboard IS 'Dashboard de SLA de email: threads por status, avg FRT e pendências.';
 
 -- Realtime para métricas
-ALTER PUBLICATION supabase_realtime ADD TABLE IF NOT EXISTS public.gmail_daily_metrics;
+-- PG16 does not support "ALTER PUBLICATION ... ADD TABLE IF NOT EXISTS" — use a guard DO block instead.
+DO $pub_m$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_publication WHERE pubname = 'supabase_realtime')
+  AND NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables
+    WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'gmail_daily_metrics'
+  ) THEN
+    EXECUTE 'ALTER PUBLICATION supabase_realtime ADD TABLE public.gmail_daily_metrics';
+  END IF;
+END $pub_m$;
