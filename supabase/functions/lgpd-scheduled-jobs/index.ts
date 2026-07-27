@@ -273,7 +273,7 @@ Deno.serve(async (req) => {
  * @returns Configuration value as string or defaultValue; never throws
  */
 async function getConfig(
-  supabase: ReturnType<typeof createClient>,
+  supabase: ReturnType<typeof createZappAdminClient>,
   key: string,
   defaultValue: string
 ): Promise<string> {
@@ -294,20 +294,4 @@ async function getConfig(
   }
 }
 
-/**
- * Computes 32-bit signed integer hash of input string for deduplication.
- * Used to detect duplicate contacts by hashing phone_number | email | full_name.
- * Converts hash to unsigned hex (8 chars, zero-padded) for storage in dedup_hash column.
- * Deterministic: same input always produces same hash for reliable dedup matching.
- * @param str - String to hash (typically contact identifiers concatenated)
- * @returns Hex-encoded hash as 8-character zero-padded string
- */
-function simpleHash(str: string): string {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    const char = str.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash = hash & hash;
-  }
-  return Math.abs(hash).toString(16).padStart(8, '0');
-}
+
