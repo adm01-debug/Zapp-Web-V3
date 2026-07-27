@@ -30,7 +30,7 @@ CREATE SCHEMA IF NOT EXISTS net;
 
 -- Minimal cron.job stub (some migrations CREATE OR REPLACE on this)
 CREATE TABLE IF NOT EXISTS cron.job (
-  jobid    bigint PRIMARY KEY,
+  jobid    bigserial PRIMARY KEY,
   schedule text,
   command  text,
   nodename text,
@@ -160,6 +160,30 @@ GRANT USAGE ON SCHEMA auth TO anon, authenticated, service_role;
 GRANT USAGE ON SCHEMA extensions TO anon, authenticated, service_role;
 GRANT USAGE ON SCHEMA storage TO anon, authenticated, service_role;
 GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role;
+
+-- ---------------------------------------------------------------------------
+-- 6b. Application schemas absent from Supabase vanilla postgres
+--     Migrations reference these schemas; they must exist for DDL to succeed.
+-- ---------------------------------------------------------------------------
+CREATE SCHEMA IF NOT EXISTS zapp;
+CREATE SCHEMA IF NOT EXISTS evo;
+CREATE SCHEMA IF NOT EXISTS bpm;
+CREATE SCHEMA IF NOT EXISTS email_app;
+CREATE SCHEMA IF NOT EXISTS financeiro;
+CREATE SCHEMA IF NOT EXISTS ai;
+CREATE SCHEMA IF NOT EXISTS archive;
+CREATE SCHEMA IF NOT EXISTS vendas;
+CREATE SCHEMA IF NOT EXISTS ops;
+
+GRANT USAGE ON SCHEMA zapp       TO anon, authenticated, service_role;
+GRANT USAGE ON SCHEMA evo        TO anon, authenticated, service_role;
+GRANT USAGE ON SCHEMA bpm        TO anon, authenticated, service_role;
+GRANT USAGE ON SCHEMA email_app  TO anon, authenticated, service_role;
+GRANT USAGE ON SCHEMA financeiro TO anon, authenticated, service_role;
+GRANT USAGE ON SCHEMA ai         TO anon, authenticated, service_role;
+GRANT USAGE ON SCHEMA archive    TO anon, authenticated, service_role;
+GRANT USAGE ON SCHEMA vendas     TO anon, authenticated, service_role;
+GRANT USAGE ON SCHEMA ops        TO anon, authenticated, service_role;
 
 -- Migrations may create cron.schedule() calls. Stub it so they don't abort.
 CREATE OR REPLACE FUNCTION cron.schedule(schedule_name text, schedule text, command text)

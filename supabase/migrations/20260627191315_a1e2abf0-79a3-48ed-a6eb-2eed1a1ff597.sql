@@ -168,7 +168,7 @@ RETURNS TABLE(
   reason text,
   from_agent_id uuid,
   to_agent_id uuid,
-  sla_deadline timestamptz,
+  expires_at timestamptz,
   created_at timestamptz,
   accepted_at timestamptz,
   completed_at timestamptz,
@@ -181,7 +181,7 @@ SET search_path TO 'public'
 AS $$
   SELECT t.id, t.source_instance, t.target_instance, t.remote_jid, t.contact_name,
          t.status, t.priority, t.transfer_type, t.category, t.reason,
-         t.from_agent_id, t.to_agent_id, t.sla_deadline,
+         t.from_agent_id, t.to_agent_id, t.expires_at,
          t.created_at, t.accepted_at, t.completed_at,
          COUNT(*) OVER()::bigint AS total_count
   FROM public.conversation_transfers t
