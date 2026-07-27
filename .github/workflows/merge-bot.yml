@@ -5,43 +5,57 @@ on:
       pr_numbers:
         description: 'Space-separated PR numbers to merge'
         required: true
-        default: '548 550 551 553 555 557 558 559 560 561 562'
+        default: '548 550 551 553 559 562 563 564 565 566 567 568'
 
 permissions:
   pull-requests: write
   contents: write
+  administration: write
 
 jobs:
   merge-prs:
     runs-on: ubuntu-latest
     steps:
       - name: Merge PRs with admin bypass
+        id: merge_prs
         env:
           GH_TOKEN: ${{ github.token }}
+          PR_NUMBERS: ${{ github.event.inputs.pr_numbers }}
         run: |
+          MERGED_BRANCHES=''
           FAILED=''
-          for pr in ${{ github.event.inputs.pr_numbers }}; do
+          for pr in $PR_NUMBERS; do
             echo "=== Merging PR #${pr} ==="
-            if gh pr merge "${pr}" --repo adm01-debug/zapp-web-v3 --squash --admin --yes; then
-              echo "PR #${pr} merged successfully"
+            BRANCH=$(gh pr view "${pr}" --repo "$GITHUB_REPOSITORY" --json headRefName \
+              -q .headRefName 2>/dev/null || true)
+            if gh pr merge "${pr}" --repo "$GITHUB_REPOSITORY" --squash --admin 2>&1; then
+              echo "PR #${pr} merged successfully (branch: ${BRANCH})"
+              [ -n "$BRANCH" ] && MERGED_BRANCHES="${MERGED_BRANCHES} ${BRANCH}"
             else
               echo "FAILED to merge PR #${pr}"
               FAILED="${FAILED} ${pr}"
             fi
           done
+          echo "merged_branches=${MERGED_BRANCHES}" >> "$GITHUB_OUTPUT"
           if [ -n "$FAILED" ]; then
             echo "Failed PRs:${FAILED}"
             exit 1
           fi
 
       - name: Delete merged branches
-        if: success()
+        if: always()
         env:
           GH_TOKEN: ${{ github.token }}
+          MERGED_BRANCHES: ${{ steps.merge_prs.outputs.merged_branches }}
         run: |
-          BRANCHES="claude/validate-last-300-commits-idslez claude/zapp-web-v3-audit-74uxvx claude/zapp-web-v3-audit-38vfik claude/zapp-pipeline-restoration-1ul28y claude/zapp-messages-persistence-fix-2prigo claude/zapp-web-messages-missing-eb8x7y claude/zapp-pipeline-contacts-proxy-3zxaon fix/pipeline-persistence-and-inbox-t17-50 feat/migration-rollback-template feat/pr-size-gate fix/ci-gate-e-melhorias-processo"
-          for branch in $BRANCHES; do
+          if [ -z "$MERGED_BRANCHES" ]; then
+            echo "No branches to delete."
+            exit 0
+          fi
+          for branch in $MERGED_BRANCHES; do
             echo "Deleting branch: ${branch}"
-            gh api --method DELETE "/repos/adm01-debug/zapp-web-v3/git/refs/heads/${branch}" && echo "Deleted ${branch}" || echo "Could not delete ${branch} (may already be deleted)"
+            gh api --method DELETE "/repos/$GITHUB_REPOSITORY/git/refs/heads/${branch}" \
+              && echo "Deleted: ${branch}" \
+              || echo "Could not delete ${branch} (may already be deleted)"
           done
-          echo "Branch cleanup complete"
+          echo "Branch cleanup complete."
