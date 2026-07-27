@@ -56,9 +56,10 @@ ALTER TABLE public.departments ADD COLUMN IF NOT EXISTS whatsapp_mode text DEFAU
 ALTER TABLE public.departments ADD COLUMN IF NOT EXISTS whatsapp_api_key text;
 ALTER TABLE public.departments ADD COLUMN IF NOT EXISTS whatsapp_instance_id text;
 
--- 1.6 public.profiles (+2)
+-- 1.6 public.profiles (+3)
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS _admin_user_id uuid;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS online_status text DEFAULT 'offline'::text;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS is_online boolean DEFAULT false;
 
 -- ╔═══ SEÇÃO 2 — RECRIAÇÃO DAS VIEWS DE COMPATIBILIDADE ═══╗
 DROP VIEW IF EXISTS public.instance_registry;
