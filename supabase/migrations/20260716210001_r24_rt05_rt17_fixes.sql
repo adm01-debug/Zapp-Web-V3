@@ -17,12 +17,14 @@ AS $$ BEGIN RETURN NEW; END; $$;
 CREATE OR REPLACE FUNCTION public.is_queue_member_of_contact(_contact_id uuid, _user_id uuid)
 RETURNS boolean LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public','zapp','pg_catalog'
 AS $$ BEGIN RETURN zapp.is_queue_member_of_contact(_contact_id, _user_id); END; $$;
+DROP FUNCTION IF EXISTS public.log_rls_denied(text, text, jsonb);
 CREATE OR REPLACE FUNCTION public.log_rls_denied(p_resource text, p_required_role text, p_context jsonb)
 RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public','zapp','pg_catalog'
 AS $$ BEGIN PERFORM zapp.log_rls_denied(p_resource, p_required_role, p_context); END; $$;
 CREATE OR REPLACE FUNCTION public.on_role_change()
 RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public','zapp','pg_catalog'
 AS $$ BEGIN RETURN NEW; END; $$;
+DROP FUNCTION IF EXISTS public.purge_old_query_telemetry(integer);
 CREATE OR REPLACE FUNCTION public.purge_old_query_telemetry(p_days integer)
 RETURNS integer LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public','zapp','pg_catalog'
 AS $$ BEGIN RETURN zapp.purge_old_query_telemetry(p_days); END; $$;
@@ -47,11 +49,11 @@ CREATE OR REPLACE VIEW public.departments_safe WITH (security_invoker=true) AS
          created_at, updated_at, (whatsapp_api_key IS NOT NULL) AS has_whatsapp_api_key
   FROM zapp.departments;
 CREATE OR REPLACE VIEW public.whatsapp_official_credentials_safe WITH (security_invoker=true) AS
-  SELECT id, connection_id, app_id, phone_number_id, waba_id,
+  SELECT id, connection_id, phone_number_id, waba_id,
          ((access_token IS NOT NULL) AND (length(access_token)>0)) AS has_access_token,
          ((app_secret IS NOT NULL) AND (length(app_secret)>0)) AS has_app_secret,
          created_at, updated_at
-  FROM zapp.whatsapp_official_credentials;
+  FROM public.whatsapp_official_credentials;
 CREATE OR REPLACE VIEW public.channel_connections_safe WITH (security_invoker=true) AS
   SELECT id, name, status, is_active, updated_at, created_at,
          created_by, external_account_id, external_page_id, webhook_url, whatsapp_connection_id

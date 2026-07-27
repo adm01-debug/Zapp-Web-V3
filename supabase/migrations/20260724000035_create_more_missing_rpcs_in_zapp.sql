@@ -230,11 +230,13 @@ RETURNS TABLE (
   last_error     TEXT,
   created_at     TIMESTAMPTZ
 )
-LANGUAGE sql
+LANGUAGE plpgsql
 STABLE
 SECURITY DEFINER
 SET search_path = zapp
 AS $$
+BEGIN
+  RETURN QUERY
   SELECT
     ea.id,
     ea.email_address,
@@ -246,6 +248,7 @@ AS $$
   FROM email_app.email_accounts ea
   WHERE ea.user_id = auth.uid()
   ORDER BY ea.created_at DESC;
+END;
 $$;
 
 REVOKE EXECUTE ON FUNCTION zapp.get_own_email_accounts() FROM PUBLIC, anon;
@@ -259,11 +262,13 @@ CREATE OR REPLACE FUNCTION zapp.rpc_email_archive_thread(
   p_thread_id UUID,
   p_archived  BOOLEAN DEFAULT true
 ) RETURNS VOID
-LANGUAGE sql
+LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = zapp
 AS $$
-  SELECT public.rpc_email_archive_thread(p_thread_id, p_archived);
+BEGIN
+  PERFORM public.rpc_email_archive_thread(p_thread_id, p_archived);
+END;
 $$;
 
 REVOKE EXECUTE ON FUNCTION zapp.rpc_email_archive_thread(UUID, BOOLEAN) FROM PUBLIC, anon;
@@ -278,11 +283,13 @@ CREATE OR REPLACE FUNCTION zapp.rpc_email_assign_thread(
   p_agent_id    TEXT DEFAULT NULL,
   p_assigned_by TEXT DEFAULT NULL
 ) RETURNS VOID
-LANGUAGE sql
+LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = zapp
 AS $$
-  SELECT public.rpc_email_assign_thread(p_thread_id, p_agent_id, p_assigned_by);
+BEGIN
+  PERFORM public.rpc_email_assign_thread(p_thread_id, p_agent_id, p_assigned_by);
+END;
 $$;
 
 REVOKE EXECUTE ON FUNCTION zapp.rpc_email_assign_thread(UUID, TEXT, TEXT) FROM PUBLIC, anon;
@@ -301,14 +308,16 @@ CREATE OR REPLACE FUNCTION zapp.rpc_email_search_threads(
   p_limit      INTEGER DEFAULT 20,
   p_offset     INTEGER DEFAULT 0
 ) RETURNS JSONB
-LANGUAGE sql
+LANGUAGE plpgsql
 STABLE
 SECURITY DEFINER
 SET search_path = zapp
 AS $$
-  SELECT public.rpc_email_search_threads(
+BEGIN
+  RETURN public.rpc_email_search_threads(
     p_query, p_account_id, p_status, p_label_id, p_limit, p_offset
   );
+END;
 $$;
 
 REVOKE EXECUTE ON FUNCTION zapp.rpc_email_search_threads(TEXT, UUID, TEXT, TEXT, INTEGER, INTEGER) FROM PUBLIC, anon;
@@ -323,11 +332,13 @@ CREATE OR REPLACE FUNCTION zapp.rpc_email_star_thread(
   p_thread_id TEXT,
   p_starred   BOOLEAN DEFAULT true
 ) RETURNS JSONB
-LANGUAGE sql
+LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = zapp
 AS $$
-  SELECT public.rpc_email_star_thread(p_thread_id, p_starred);
+BEGIN
+  RETURN public.rpc_email_star_thread(p_thread_id, p_starred);
+END;
 $$;
 
 REVOKE EXECUTE ON FUNCTION zapp.rpc_email_star_thread(TEXT, BOOLEAN) FROM PUBLIC, anon;
@@ -342,11 +353,13 @@ CREATE OR REPLACE FUNCTION zapp.rpc_email_mark_thread_read(
   p_thread_id TEXT,
   p_read      BOOLEAN
 ) RETURNS JSONB
-LANGUAGE sql
+LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = zapp
 AS $$
-  SELECT public.rpc_email_mark_thread_read(p_thread_id, p_read);
+BEGIN
+  RETURN public.rpc_email_mark_thread_read(p_thread_id, p_read);
+END;
 $$;
 
 REVOKE EXECUTE ON FUNCTION zapp.rpc_email_mark_thread_read(TEXT, BOOLEAN) FROM PUBLIC, anon;
@@ -359,12 +372,14 @@ GRANT  EXECUTE ON FUNCTION zapp.rpc_email_mark_thread_read(TEXT, BOOLEAN) TO aut
 -- ---------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION zapp.rpc_email_token_status()
 RETURNS JSONB
-LANGUAGE sql
+LANGUAGE plpgsql
 STABLE
 SECURITY DEFINER
 SET search_path = zapp
 AS $$
-  SELECT public.rpc_email_token_status();
+BEGIN
+  RETURN public.rpc_email_token_status();
+END;
 $$;
 
 REVOKE EXECUTE ON FUNCTION zapp.rpc_email_token_status() FROM PUBLIC, anon;
@@ -402,11 +417,13 @@ GRANT  EXECUTE ON FUNCTION zapp.rpc_migrate_whatsapp_integration() TO authentica
 CREATE OR REPLACE FUNCTION zapp.rpc_reactivate_service_channel(
   p_id UUID
 ) RETURNS JSONB
-LANGUAGE sql
+LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = zapp
 AS $$
-  SELECT to_jsonb(public.rpc_reactivate_service_channel(p_id));
+BEGIN
+  RETURN to_jsonb(public.rpc_reactivate_service_channel(p_id));
+END;
 $$;
 
 REVOKE EXECUTE ON FUNCTION zapp.rpc_reactivate_service_channel(UUID) FROM PUBLIC, anon;
@@ -490,17 +507,19 @@ CREATE OR REPLACE FUNCTION zapp.record_voice_telemetry(
   p_error_type   TEXT DEFAULT NULL,
   p_error_detail TEXT DEFAULT NULL
 ) RETURNS VOID
-LANGUAGE sql
+LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = zapp
 AS $$
-  SELECT public.record_voice_telemetry(
+BEGIN
+  PERFORM public.record_voice_telemetry(
     p_queue_id,
     p_duration_ms,
     p_status::public.voice_conversion_status,
     p_error_type,
     p_error_detail
   );
+END;
 $$;
 
 REVOKE EXECUTE ON FUNCTION zapp.record_voice_telemetry(UUID, INTEGER, TEXT, TEXT, TEXT) FROM PUBLIC, anon;
