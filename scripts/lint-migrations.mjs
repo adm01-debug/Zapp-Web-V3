@@ -106,8 +106,9 @@ for (const filePath of files) {
     const raw = line.trim();
 
     // ML-001: SECURITY DEFINER without SET search_path
-    // Detect function declaration with SECURITY DEFINER
-    if (/SECURITY\s+DEFINER/i.test(line)) {
+    // Detect function declaration with SECURITY DEFINER (skip pure SQL comment lines)
+    const isLineComment = /^\s*--/.test(line);
+    if (!isLineComment && /SECURITY\s+DEFINER/i.test(line)) {
       // Look ahead up to 20 lines for SET search_path
       const windowEnd = Math.min(i + 20, lines.length);
       const window = lines.slice(i, windowEnd).join('\n');

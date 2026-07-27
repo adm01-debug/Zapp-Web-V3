@@ -56,7 +56,7 @@ BEGIN
     VALUES ('app_settings', COALESCE(NEW.id, OLD.id), TG_OP, row_to_json(OLD), row_to_json(NEW), auth.uid());
     RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 CREATE TRIGGER tr_audit_app_settings
 AFTER INSERT OR UPDATE OR DELETE ON public.app_settings

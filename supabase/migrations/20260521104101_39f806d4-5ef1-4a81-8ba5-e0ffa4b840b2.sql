@@ -46,7 +46,7 @@ BEGIN
     ORDER BY rank DESC
     LIMIT max_results;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 -- 5. RPC para upsert de contato (usado no webhook)
 CREATE OR REPLACE FUNCTION public.rpc_upsert_contact(
@@ -67,7 +67,7 @@ BEGIN
     
     RETURN v_id;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 -- Habilitar RLS e Políticas
 ALTER TABLE public.evolution_health_logs ENABLE ROW LEVEL SECURITY;
