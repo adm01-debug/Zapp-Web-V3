@@ -30,7 +30,6 @@ WITH (security_invoker = on) AS
 SELECT
   id,
   connection_id,
-  app_id,
   phone_number_id,
   waba_id,
   (access_token IS NOT NULL AND length(access_token) > 0) AS has_access_token,

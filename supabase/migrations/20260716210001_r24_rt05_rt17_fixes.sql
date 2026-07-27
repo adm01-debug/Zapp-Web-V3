@@ -47,11 +47,11 @@ CREATE OR REPLACE VIEW public.departments_safe WITH (security_invoker=true) AS
          created_at, updated_at, (whatsapp_api_key IS NOT NULL) AS has_whatsapp_api_key
   FROM zapp.departments;
 CREATE OR REPLACE VIEW public.whatsapp_official_credentials_safe WITH (security_invoker=true) AS
-  SELECT id, connection_id, app_id, phone_number_id, waba_id,
+  SELECT id, connection_id, phone_number_id, waba_id,
          ((access_token IS NOT NULL) AND (length(access_token)>0)) AS has_access_token,
          ((app_secret IS NOT NULL) AND (length(app_secret)>0)) AS has_app_secret,
          created_at, updated_at
-  FROM zapp.whatsapp_official_credentials;
+  FROM public.whatsapp_official_credentials;
 CREATE OR REPLACE VIEW public.channel_connections_safe WITH (security_invoker=true) AS
   SELECT id, name, status, is_active, updated_at, created_at,
          created_by, external_account_id, external_page_id, webhook_url, whatsapp_connection_id
