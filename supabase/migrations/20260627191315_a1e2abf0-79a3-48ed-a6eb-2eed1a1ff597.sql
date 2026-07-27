@@ -99,6 +99,7 @@ REVOKE EXECUTE ON FUNCTION public.rpc_list_failed_messages(text[], text, text, t
 GRANT EXECUTE ON FUNCTION public.rpc_list_failed_messages(text[], text, text, timestamptz, timestamptz, integer, integer) TO authenticated;
 
 -- 4) Paginated DLQ audit with action filter + role gating
+DROP FUNCTION IF EXISTS public.rpc_dlq_list_audit(integer, integer, text);
 CREATE OR REPLACE FUNCTION public.rpc_dlq_list_audit(
   p_limit integer,
   p_offset integer,
