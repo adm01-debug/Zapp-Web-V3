@@ -137,7 +137,7 @@
     "vaul": "^0.9.9",
     "vite-plugin-compression2": "1.4.0",
     "vite-plugin-pwa": "0.19.8",
-    "web-vitals": "^5.3.0",
+    "web-vitals": "^6.0.1",
     "xlsx": "0.18.5",
     "zod": "^4.4.3"
   },
