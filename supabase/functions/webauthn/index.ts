@@ -52,6 +52,89 @@ function getRpId(origin: string): string {
   try { return new URL(origin).hostname; } catch { return 'localhost'; }
 }
 
+/** Extract the 'authData' byte string from a CBOR-encoded WebAuthn attestation object. */
+function extractAuthDataFromCBOR(bytes: Uint8Array): Uint8Array | null {
+  // CBOR text-string key "authData": 0x68 (tstr len=8) + "authData" in ASCII
+  const marker = new Uint8Array([0x68, 0x61, 0x75, 0x74, 0x68, 0x44, 0x61, 0x74, 0x61]);
+  outer: for (let i = 0; i <= bytes.length - marker.length; i++) {
+    for (let j = 0; j < marker.length; j++) { if (bytes[i + j] !== marker[j]) continue outer; }
+    return parseCBORByteString(bytes, i + marker.length);
+  }
+  return null;
+}
+
+function parseCBORByteString(bytes: Uint8Array, pos: number): Uint8Array | null {
+  if (pos >= bytes.length) return null;
+  const h = bytes[pos];
+  if ((h & 0xe0) !== 0x40) return null; // not a CBOR byte string
+  const info = h & 0x1f;
+  let offset = pos + 1, len: number;
+  if (info < 24) { len = info; }
+  else if (info === 24) { len = bytes[offset++]; }
+  else if (info === 25) { len = (bytes[offset] << 8) | bytes[offset + 1]; offset += 2; }
+  else if (info === 26) { len = (bytes[offset] << 24) | (bytes[offset+1] << 16) | (bytes[offset+2] << 8) | bytes[offset+3]; offset += 4; }
+  else return null;
+  if (offset + len > bytes.length) return null;
+  return bytes.slice(offset, offset + len);
+}
+
+/**
+ * Extract the CBOR-encoded COSE public key from registration authData.
+ * authData layout: 32B rpIdHash | 1B flags | 4B signCount | 16B AAGUID | 2B credIdLen | credId | COSE key
+ */
+function extractCOSEKeyFromAuthData(authData: Uint8Array): Uint8Array | null {
+  if (authData.length < 37) return null;
+  if ((authData[32] & 0x40) === 0) return null; // AT flag not set — no attested credential data
+  if (authData.length < 55) return null;
+  const credIdLen = (authData[53] << 8) | authData[54];
+  const start = 55 + credIdLen;
+  return start < authData.length ? authData.slice(start) : null;
+}
+
+/**
+ * Import a CBOR-encoded COSE ES256 (P-256 ECDSA) public key as a Web Crypto CryptoKey.
+ * Only alg -7 (ES256 / P-256) is supported; returns null for other algorithms (e.g. RS256).
+ */
+async function importCOSEPublicKey(cose: Uint8Array): Promise<CryptoKey | null> {
+  let pos = 0;
+  if (pos >= cose.length) return null;
+  const mapByte = cose[pos++];
+  if ((mapByte & 0xe0) !== 0xa0) return null; // not a CBOR map
+  let count = mapByte & 0x1f;
+  if (count === 0x18) count = cose[pos++]; // 1-byte count
+  let x: Uint8Array | null = null, y: Uint8Array | null = null;
+  for (let i = 0; i < count && pos < cose.length; i++) {
+    const kb = cose[pos++]; const kmaj = kb & 0xe0, kinfo = kb & 0x1f;
+    let key: number;
+    if (kmaj === 0x00) { key = kinfo < 24 ? kinfo : kinfo === 24 ? cose[pos++] : NaN; }
+    else if (kmaj === 0x20) { key = kinfo < 24 ? -(kinfo + 1) : kinfo === 24 ? -(cose[pos++] + 1) : NaN; }
+    else break;
+    if (isNaN(key)) break;
+    const vb = cose[pos++]; const vmaj = vb & 0xe0, vinfo = vb & 0x1f;
+    if (vmaj === 0x40) { // byte string value
+      let len: number;
+      if (vinfo < 24) { len = vinfo; }
+      else if (vinfo === 24) { len = cose[pos++]; }
+      else if (vinfo === 25) { len = (cose[pos] << 8) | cose[pos + 1]; pos += 2; }
+      else break;
+      const val = cose.slice(pos, pos + len); pos += len;
+      if (key === -2) x = val; else if (key === -3) y = val;
+    } else if (vmaj === 0x00 || vmaj === 0x20) {
+      // Integer value — skip extra bytes if any
+      if (vinfo === 24) pos++; else if (vinfo === 25) pos += 2; else if (vinfo === 26) pos += 4;
+    } else break; // unhandled CBOR major type
+  }
+  if (!x || !y || x.length !== 32 || y.length !== 32) return null;
+  // Uncompressed P-256 point: 0x04 || x || y
+  const ecPoint = new Uint8Array(65);
+  ecPoint[0] = 0x04; ecPoint.set(x, 1); ecPoint.set(y, 33);
+  try {
+    return await crypto.subtle.importKey(
+      'raw', ecPoint.buffer, { name: 'ECDSA', namedCurve: 'P-256' }, false, ['verify'],
+    );
+  } catch { return null; }
+}
+
 /**
  * Edge Function: WebAuthn Credential Management (FIDO2/U2F)
  *
@@ -306,10 +389,47 @@ Deno.serve(async (req) => {
         const newCounter = counterView.getUint32(0, false);
         const storedCounter = typeof storedObj.counter === 'number' ? storedObj.counter : 0;
 
-        if (newCounter <= storedCounter) {
+        // Skip counter check when newCounter=0: device does not implement the counter (spec §6.1)
+        if (newCounter > 0 && newCounter <= storedCounter) {
           return errorResponse('Counter regression detected - possible cloned authenticator', 400, req);
         }
 
+        // CRITICAL: verify ECDSA signature over (authData || sha256(clientDataJSON))
+        // before committing any state changes.
+        const storedPubKeyB64 = typeof storedObj.public_key === 'string' ? storedObj.public_key : '';
+        const attestationBytes = base64URLDecode(storedPubKeyB64);
+        const registrationAuthData = extractAuthDataFromCBOR(attestationBytes);
+        if (!registrationAuthData) {
+          return errorResponse('Failed to parse stored credential public key', 400, req);
+        }
+        const coseKey = extractCOSEKeyFromAuthData(registrationAuthData);
+        if (!coseKey) {
+          return errorResponse('Failed to extract COSE public key from stored credential', 400, req);
+        }
+        const cryptoKey = await importCOSEPublicKey(coseKey);
+        if (!cryptoKey) {
+          return errorResponse('Unsupported credential algorithm (only ES256/P-256 supported)', 400, req);
+        }
+
+        const clientDataBytesForHash = base64URLDecode(cr.clientDataJSON);
+        const clientDataHash = await crypto.subtle.digest('SHA-256', clientDataBytesForHash);
+        const signedData = new Uint8Array(authData.length + clientDataHash.byteLength);
+        signedData.set(authData, 0);
+        signedData.set(new Uint8Array(clientDataHash), authData.length);
+
+        const signatureBytes = base64URLDecode(cr.signature as string);
+        const signatureValid = await crypto.subtle.verify(
+          { name: 'ECDSA', hash: 'SHA-256' },
+          cryptoKey,
+          signatureBytes,
+          signedData,
+        );
+        if (!signatureValid) {
+          log.error("WebAuthn signature verification failed", { credentialId: id });
+          return errorResponse('Signature verification failed', 400, req);
+        }
+
+        // Signature verified — commit state changes
         await supabaseAdmin.from('passkey_credentials')
           .update({ last_used_at: new Date().toISOString(), counter: newCounter })
           .eq('id', storedObj.id);
