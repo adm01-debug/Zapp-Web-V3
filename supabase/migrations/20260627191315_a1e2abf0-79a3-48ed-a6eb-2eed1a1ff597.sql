@@ -46,6 +46,7 @@ REVOKE EXECUTE ON FUNCTION public.log_rls_denied(text, text, jsonb) FROM PUBLIC,
 GRANT EXECUTE ON FUNCTION public.log_rls_denied(text, text, jsonb) TO authenticated;
 
 -- 3) Paginated DLQ list with filters + role gating
+DROP FUNCTION IF EXISTS public.rpc_list_failed_messages(text[], text, text, timestamptz, timestamptz, integer, integer);
 CREATE OR REPLACE FUNCTION public.rpc_list_failed_messages(
   p_status text[],
   p_instance text,
