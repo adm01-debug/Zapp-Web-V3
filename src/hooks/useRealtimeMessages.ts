@@ -101,9 +101,9 @@ export function useRealtimeMessages() {
         { data: contactsRaw, error: contactsError },
         { data: messages, error: messagesError },
       ] = await Promise.all([
-        // FIX: Usar schema 'evo' explicitamente para ambas as tabelas Evolution
-        supabase.schema('evo').from('evolution_contacts').select('*').order('updated_at', { ascending: false }).limit(500),
-        supabase.schema('evo').from('evolution_messages').select('*').order('created_at', { ascending: false }).limit(100),
+        // evolution_contacts and evolution_messages are VIEWs in zapp schema (security_invoker=on) — use default client
+        supabase.from('evolution_contacts').select('*').order('updated_at', { ascending: false }).limit(500),
+        supabase.from('evolution_messages').select('*').order('created_at', { ascending: false }).limit(100),
       ]);
       if (contactsError) throw contactsError;
       if (messagesError) throw messagesError;
@@ -124,7 +124,7 @@ export function useRealtimeMessages() {
       ];
 
       if (missingIds.length > 0) {
-        const { data: extraRaw } = await supabase.schema('evo').from('evolution_contacts').select('*').in('id', missingIds);
+        const { data: extraRaw } = await supabase.from('evolution_contacts').select('*').in('id', missingIds);
         ((extraRaw as unknown as Contact[] | null) ?? []).forEach((c: Contact) => contactMap.set(c.id, c));
       }
 
