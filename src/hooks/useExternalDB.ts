@@ -30,7 +30,7 @@ async function queryExternal<T = unknown>(params: {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const extClient = getExternalSupabase() as SupabaseClient<any>;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let query: any = extClient
+  let query: any = extClient // ignore-audit — dynamic builder; type changes across .filter()/.order()/.range() chains
     .from(params.table)
     .select(params.select || '*', { count: params.countMode || undefined });
 
