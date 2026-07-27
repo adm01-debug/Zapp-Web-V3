@@ -199,11 +199,20 @@ function calculateNextSend(frequency: string): string {
   return next.toISOString();
 }
 
+function escapeHtml(unsafe: string): string {
+  return unsafe
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 function buildReportEmail(data: Record<string, unknown>): string {
   const rows = Object.entries(data)
     .filter(([key]) => key !== "title" && key !== "period" && key !== "agents")
     .map(([key, value]) =>
-      `<tr><td style="padding:8px 12px;border-bottom:1px solid #eee;font-weight:500;color:#333;">${formatKey(key)}</td><td style="padding:8px 12px;border-bottom:1px solid #eee;color:#555;">${String(value)}</td></tr>`
+      `<tr><td style="padding:8px 12px;border-bottom:1px solid #eee;font-weight:500;color:#333;">${formatKey(key)}</td><td style="padding:8px 12px;border-bottom:1px solid #eee;color:#555;">${escapeHtml(String(value))}</td></tr>`
     ).join("");
 
   let agentsTable = "";
@@ -215,18 +224,18 @@ function buildReportEmail(data: Record<string, unknown>): string {
         ${agents
           .filter((a): a is Record<string, unknown> => typeof a === 'object' && a !== null && !Array.isArray(a))
           .map(a => {
-            const name = typeof a.name === 'string' ? a.name : 'N/A';
+            const name = typeof a.name === 'string' ? escapeHtml(a.name) : 'N/A';
             const messagesHandled = typeof a.messagesHandled === 'number' ? a.messagesHandled : 0;
             const resolved = typeof a.resolved === 'number' ? a.resolved : 0;
-            const level = typeof a.level === 'string' || typeof a.level === 'number' ? String(a.level) : 'N/A';
+            const level = typeof a.level === 'string' || typeof a.level === 'number' ? escapeHtml(String(a.level)) : 'N/A';
             return `<tr><td style="padding:8px;">${name}</td><td style="padding:8px;text-align:center;">${messagesHandled}</td><td style="padding:8px;text-align:center;">${resolved}</td><td style="padding:8px;text-align:center;">${level}</td></tr>`;
           })
           .join("")}
       </table>`;
   }
 
-  const title = typeof data.title === 'string' ? data.title : 'Relatório';
-  const period = typeof data.period === 'string' ? data.period : 'Período não especificado';
+  const title = typeof data.title === 'string' ? escapeHtml(data.title) : 'Relatório';
+  const period = typeof data.period === 'string' ? escapeHtml(data.period) : 'Período não especificado';
 
   return `<!DOCTYPE html><html><body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;margin:0;padding:20px;background:#f9fafb;">
     <div style="max-width:600px;margin:0 auto;background:white;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.1);">

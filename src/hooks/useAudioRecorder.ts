@@ -88,6 +88,12 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
   const lastBlobRef = useRef<Blob | null>(null);
   const lastTranscriptionRef = useRef<string>('');
 
+  // Keep ref in sync with state so closures inside startRecording (which only
+  // capture the initial value of `transcription`) can read the latest value.
+  useEffect(() => {
+    lastTranscriptionRef.current = transcription;
+  }, [transcription]);
+
   const startRecording = useCallback(
     async (isRecovery = false) => {
       try {
@@ -148,7 +154,7 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
           }
 
           // If local transcription is empty and we had issues, try backend STT
-          if (transcription.trim() === '' && audioBlob.size > 1000) {
+          if (lastTranscriptionRef.current.trim() === '' && audioBlob.size > 1000) {
             try {
               if (mountedRef.current) setIsTranscribing(true);
               const { data, error } = await supabase.functions.invoke('speech-to-text', {
