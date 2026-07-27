@@ -1,6 +1,6 @@
 # Schema Status Report — ✅ OK
 
-- **Gerado em:** 2026-07-26T23:48:13.884Z
+- **Gerado em:** 2026-07-27T00:46:14.406Z
 - **Requeridos:** `zapp, evo`
 
 ## Local (arquivo `types.ts`)
