@@ -118,7 +118,7 @@ describe('contactsDB.getById', () => {
     mockGetExternal.mockReturnValue(
       makeClient({ maybeSingle: () => Promise.resolve({ data: CONTACT, error: null }) })
     );
-    expect(await contactsDB.getById('c-1')).toEqual(CONTACT);
+    expect(await contactsDB.getById('00000000-0000-0000-0000-000000000001')).toEqual(CONTACT);
   });
 
   it('returns null when no row matches', async () => {
@@ -132,7 +132,7 @@ describe('contactsDB.getById', () => {
     mockGetExternal.mockReturnValue(
       makeClient({ maybeSingle: () => Promise.resolve({ data: null, error: DB_ERROR }) })
     );
-    await expect(contactsDB.getById('c-1')).rejects.toThrow('db error');
+    await expect(contactsDB.getById('00000000-0000-0000-0000-000000000001')).rejects.toThrow('db error');
   });
 });
 
@@ -220,14 +220,14 @@ describe('contactsDB.update', () => {
     mockGetExternal.mockReturnValue(
       makeClient({ single: () => Promise.resolve({ data: updated, error: null }) })
     );
-    expect(await contactsDB.update('c-1', { first_name: 'Maria' })).toEqual(updated);
+    expect(await contactsDB.update('00000000-0000-0000-0000-000000000001', { first_name: 'Maria' })).toEqual(updated);
   });
 
   it('accepts fields that include updated_at without throwing (strips it internally)', async () => {
     mockGetExternal.mockReturnValue(
       makeClient({ single: () => Promise.resolve({ data: CONTACT, error: null }) })
     );
-    const result = await contactsDB.update('c-1', {
+    const result = await contactsDB.update('00000000-0000-0000-0000-000000000001', {
       first_name: 'Test',
       updated_at: '2020-01-01T00:00:00Z',
     } as Parameters<typeof contactsDB.update>[1]);
@@ -238,7 +238,7 @@ describe('contactsDB.update', () => {
     mockGetExternal.mockReturnValue(
       makeClient({ single: () => Promise.resolve({ data: null, error: DB_ERROR }) })
     );
-    await expect(contactsDB.update('c-1', { first_name: 'X' })).rejects.toThrow('db error');
+    await expect(contactsDB.update('00000000-0000-0000-0000-000000000001', { first_name: 'X' })).rejects.toThrow('db error');
   });
 });
 
@@ -249,7 +249,7 @@ describe('contactsDB.updateAvatar', () => {
       makeClient({ terminalEq: () => Promise.resolve({ error: null }) })
     );
     await expect(
-      contactsDB.updateAvatar('c-1', 'https://example.com/avatar.png')
+      contactsDB.updateAvatar('00000000-0000-0000-0000-000000000001', 'https://example.com/avatar.png')
     ).resolves.toBeUndefined();
   });
 
@@ -257,7 +257,7 @@ describe('contactsDB.updateAvatar', () => {
     mockGetExternal.mockReturnValue(
       makeClient({ terminalEq: () => Promise.resolve({ error: DB_ERROR }) })
     );
-    await expect(contactsDB.updateAvatar('c-1', 'url')).rejects.toThrow('db error');
+    await expect(contactsDB.updateAvatar('00000000-0000-0000-0000-000000000001', 'url')).rejects.toThrow('db error');
   });
 });
 
@@ -343,21 +343,21 @@ describe('contactsDB.notes.list', () => {
     mockGetExternal.mockReturnValue(
       makeClient({ terminalLimit: () => Promise.resolve({ data: [NOTE], error: null }) })
     );
-    expect(await contactsDB.notes.list('c-1')).toEqual([NOTE]);
+    expect(await contactsDB.notes.list('00000000-0000-0000-0000-000000000001')).toEqual([NOTE]);
   });
 
   it('returns [] when DB returns null data', async () => {
     mockGetExternal.mockReturnValue(
       makeClient({ terminalLimit: () => Promise.resolve({ data: null, error: null }) })
     );
-    expect(await contactsDB.notes.list('c-1')).toEqual([]);
+    expect(await contactsDB.notes.list('00000000-0000-0000-0000-000000000001')).toEqual([]);
   });
 
   it('propagates DB errors', async () => {
     mockGetExternal.mockReturnValue(
       makeClient({ terminalLimit: () => Promise.resolve({ data: null, error: DB_ERROR }) })
     );
-    await expect(contactsDB.notes.list('c-1')).rejects.toThrow('db error');
+    await expect(contactsDB.notes.list('00000000-0000-0000-0000-000000000001')).rejects.toThrow('db error');
   });
 });
 
