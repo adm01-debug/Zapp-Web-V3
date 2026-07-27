@@ -265,7 +265,7 @@ export function useConnections() {
       );
 
       if (error) {
-        const errAny = error as unknown as { code?: string; message?: string };
+        const errAny = error as unknown as { code?: string; message?: string }; // ignore-audit — safeClient PostgrestError opaque type requires bridge to extract code/message for display
         const msg = `Falha na escrita [Provider: ${payload.provider}]: ${errAny.message ?? String(error)}${errAny.code ? ` (Code: ${errAny.code})` : ''}`;
         setSaveError(msg);
         toast({ title: 'Erro ao salvar no Supabase', description: msg, variant: 'destructive' });

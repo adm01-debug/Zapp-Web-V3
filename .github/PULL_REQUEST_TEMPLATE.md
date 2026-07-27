@@ -1,1 +1,39 @@
-IyMgRGVzY3Jpw6fDo28KPCEtLSBEZXNjcmV2YSBicmV2ZW1lbnRlIG8gcXVlIGZvaSBmZWl0byBlIHBvciBxdcOqIC0tPgoKIyMgVGlwbyBkZSBtdWRhbsOnYQotIFsgXSBgZmVhdGA6IE5vdmEgZnVuY2lvbmFsaWRhZGUKLSBbIF0gYGZpeGA6IENvcnJlw6fDo28gZGUgYnVnCi0gWyBdIGByZWZhY3RvcmA6IFJlZmF0b3Jhw6fDo28gc2VtIGZlYXQgbmVtIGZpeAotIFsgXSBgZG9jc2A6IERvY3VtZW50YcOnw6NvCi0gWyBdIGBjaWA6IENJL0NECi0gWyBdIGBzZWN1cml0eWA6IFNlZ3VyYW7Dp2EKLSBbIF0gYGNob3JlYDogVGFyZWZhcyBkaXZlcnNhcwoKIyMgQ2hlY2tsaXN0IGRlIHF1YWxpZGFkZQoKIyMjIFBhcmEgdG9kbyBQUgotIFsgXSBUw610dWxvIHNlZ3VlIENvbnZlbnRpb25hbCBDb21taXRzIChgdGlwbzogZGVzY3Jpw6fDo28gZW0gbWluw7pzY3VsYXNgKQotIFsgXSBQUiBhYm9yZGEgdW0gw7puaWNvIHRlbWEKLSBbIF0gQnVpbGQgbG9jYWwgcGFzc2FuZG8gKGBidW4gcnVuIGJ1aWxkYCkKLSBbIF0gVHlwZVNjcmlwdCBzZW0gbm92b3MgZXJyb3MgKGBidW4gcnVuIHR5cGVjaGVja2ApCgojIyMgUGFyYSBQUnMgY29tIGBmaXg6YAotIFsgXSAqKk9CUklHQVTDkVJJTyoqOiBJbmNsdWkgYW8gbWVub3MgdW0gdGVzdGUgZGUgcmVncmVzc8OjbyBxdWUgZmFsaGEgc2VtIGEgY29ycmXDp8OjbwotIFsgXSBPIHRlc3RlIGVzdMOhIGVtIGBzcmMvKiovX190ZXN0c19fLyoudGVzdC50cyhmeClgCgojIyMgUGFyYSBQUnMgY29tIG11ZGFuw6dhcyBkZSBiYW5jbyAobWlncmF0aW9ucykKLSBbIF0gTWlncmF0aW9uIHRlbSBzZcOnw6NvIGRlIFJPTExCQUNLIGRvY3VtZW50YWRhIChvdSBqdXN0aWZpY2F0aXZhIGRlIGlycmV2ZXJzaWJpbGlkYWRlKQotIFsgXSBUZXN0YWRhIGVtIGFtYmllbnRlIGxvY2FsIGFudGVzIGRlIHByb3BvciBwYXJhIHByb2R1w6fDo28KLSBbIF0gTm9tZSBkbyBhcnF1aXZvIMOpIMO6bmljbyAoc2VtIHByZWZpeG8gZHVwbGljYWRvKQoKIyMjIFBhcmEgUFJzIGRlIHNlZ3VyYW7Dp2EKLSBbIF0gTmVuaHVtYSBjcmVkZW5jaWFsLCB0b2tlbiBvdSBzZWNyZXQgbm8gY8OzZGlnbwotIFsgXSBgZ2l0IGRpZmYgLS1zdGF0IEhFQUQgfCBncmVwIC1pIHNlY3JldGAgcmV0b3JuYSB2YXppbwoKIyMgVGVzdGVzIHJlbGFjaW9uYWRvcwo8IS0tIExpc3RlIG9zIGFycXVpdm9zIGRlIHRlc3RlIGFkaWNpb25hZG9zL21vZGlmaWNhZG9zIC0tPgoKIyMgTm90YXMgcGFyYSBvIHJldmlzb3IKPCEtLSBRdWFscXVlciBjb250ZXh0byBhZGljaW9uYWwgcXVlIGFqdWRlIG5hIHJldmlzw6NvIC0tPg==
+## Descrição
+<!-- Descreva brevemente o que foi feito e por quê -->
+
+## Tipo de mudança
+- [ ] `feat`: Nova funcionalidade
+- [ ] `fix`: Correção de bug
+- [ ] `refactor`: Refatoração sem feat nem fix
+- [ ] `docs`: Documentação
+- [ ] `ci`: CI/CD
+- [ ] `security`: Segurança
+- [ ] `chore`: Tarefas diversas
+
+## Checklist de qualidade
+
+### Para todo PR
+- [ ] Título segue Conventional Commits (`tipo: descrição em minúsculas`)
+- [ ] PR aborda um único tema
+- [ ] Build local passando (`bun run build`)
+- [ ] TypeScript sem novos erros (`bun run typecheck`)
+
+### Para PRs com `fix:`
+- [ ] **OBRIGATÓRIO**: Inclui ao menos um teste de regressão que falha sem a correção
+- [ ] O teste está em `src/**/__tests__/*.test.ts(x)`
+- [ ] Cobertura não regrediu — `bun run test --coverage` passa com os thresholds em `vitest.config.ts`
+
+### Para PRs com mudanças de banco (migrations)
+- [ ] Migration tem seção de ROLLBACK documentada (ou justificativa de irreversibilidade)
+- [ ] Testada em ambiente local antes de propor para produção
+- [ ] Nome do arquivo é único (sem prefixo duplicado)
+
+### Para PRs de segurança
+- [ ] Nenhuma credencial, token ou secret no código
+- [ ] `git diff --stat HEAD | grep -i secret` retorna vazio
+
+## Testes relacionados
+<!-- Liste os arquivos de teste adicionados/modificados -->
+
+## Notas para o revisor
+<!-- Qualquer contexto adicional que ajude na revisão -->

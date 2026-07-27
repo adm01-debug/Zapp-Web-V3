@@ -176,7 +176,8 @@ export function EmailChatReplyBar({
               {toEmails.join(', ')}
             </span>
           </div>
-          <button type="button"
+          <button
+            type="button"
             className="flex shrink-0 items-center gap-1 transition-colors hover:text-foreground"
             onClick={() => setShowCcBcc((v) => !v)}
           >
@@ -232,7 +233,55 @@ export function EmailChatReplyBar({
             <div
               className="max-h-16 overflow-hidden text-xs text-muted-foreground opacity-70"
               dangerouslySetInnerHTML={{
-                __html: DOMPurify.sanitize(selectedSignature.html_content),
+                __html: DOMPurify.sanitize(selectedSignature.html_content, {
+                  ALLOWED_TAGS: [
+                    'p',
+                    'br',
+                    'b',
+                    'i',
+                    'u',
+                    's',
+                    'strong',
+                    'em',
+                    'span',
+                    'a',
+                    'div',
+                    'h1',
+                    'h2',
+                    'h3',
+                    'h4',
+                    'h5',
+                    'h6',
+                    'table',
+                    'thead',
+                    'tbody',
+                    'tr',
+                    'td',
+                    'th',
+                    'ul',
+                    'ol',
+                    'li',
+                    'img',
+                    'hr',
+                  ],
+                  ALLOWED_ATTR: [
+                    'href',
+                    'src',
+                    'alt',
+                    'style',
+                    'class',
+                    'width',
+                    'height',
+                    'border',
+                    'cellpadding',
+                    'cellspacing',
+                    'align',
+                    'valign',
+                    'target',
+                    'rel',
+                  ],
+                  FORCE_BODY: true,
+                }),
               }}
             />
           </div>
@@ -242,9 +291,14 @@ export function EmailChatReplyBar({
         {attachments.length > 0 && (
           <div className="flex flex-wrap gap-1.5">
             {attachments.map((file, idx) => (
-              <Badge key={`${file.name}-${idx}`} variant="secondary" className="gap-1 pr-1 text-[11px]">
+              <Badge
+                key={`${file.name}-${idx}`}
+                variant="secondary"
+                className="gap-1 pr-1 text-[11px]"
+              >
                 <span className="max-w-32 truncate">{file.name}</span>
-                <button type="button"
+                <button
+                  type="button"
                   onClick={() => removeAttachment(idx)}
                   className="ml-1 hover:text-destructive"
                 >
@@ -260,7 +314,11 @@ export function EmailChatReplyBar({
           <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
             <Clock className="h-3 w-3" />
             <span>Rascunho não salvo</span>
-            <button type="button" onClick={saveDraft} className="ml-1 underline hover:text-foreground">
+            <button
+              type="button"
+              onClick={saveDraft}
+              className="ml-1 underline hover:text-foreground"
+            >
               Salvar agora
             </button>
           </div>

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { getLogger } from '@/lib/logger';
 import { supabase } from '@/integrations/supabase/client';
+import { resolvePublicStorageUrl } from '@/lib/mediaUrl';
 import { toast } from 'sonner';
 import { type StickerItem, type PendingUpload, CATEGORY_LABELS } from '@/features/inbox';
 
@@ -151,13 +152,13 @@ export function useStickerPicker(onSendSticker: (url: string) => void) {
         return;
       }
 
-      const { data: urlData } = supabase.storage.from('stickers').getPublicUrl(storagePath);
+      const stickerUrl = resolvePublicStorageUrl('stickers', storagePath);
       const aiCategory = 'enviadas';
 
       // Show upload preview immediately (GAP 16 FIX: non-blocking AI classification)
       setPendingUpload({
         file,
-        imageUrl: urlData.publicUrl,
+        imageUrl: stickerUrl ?? '',
         storagePath,
         aiCategory,
         selectedCategory: aiCategory,
@@ -166,7 +167,7 @@ export function useStickerPicker(onSendSticker: (url: string) => void) {
 
       // Background AI classification — updates category when ready
       supabase.functions
-        .invoke('classify-sticker', { body: { image_url: urlData.publicUrl } })
+        .invoke('classify-sticker', { body: { image_url: stickerUrl } })
         .then(({ data: classifyData, error: classifyErr }) => {
           if (!classifyErr && classifyData?.category) {
             setPendingUpload((prev) =>

@@ -43,6 +43,88 @@ interface EmailChatBubbleProps {
   className?: string;
 }
 
+// Explicit allowlist for external email HTML — block-based, not blocklist-based.
+// FORBID_TAGS alone passes <style>, <base>, <meta>, <svg>, <math>, etc.
+// This list allows all common email layout tags while blocking everything else.
+const EMAIL_ALLOWED_TAGS = [
+  'div',
+  'p',
+  'h1',
+  'h2',
+  'h3',
+  'h4',
+  'h5',
+  'h6',
+  'blockquote',
+  'pre',
+  'hr',
+  'br',
+  'table',
+  'thead',
+  'tbody',
+  'tfoot',
+  'tr',
+  'td',
+  'th',
+  'caption',
+  'ul',
+  'ol',
+  'li',
+  'dl',
+  'dt',
+  'dd',
+  'span',
+  'a',
+  'b',
+  'i',
+  'u',
+  's',
+  'strong',
+  'em',
+  'small',
+  'code',
+  'sub',
+  'sup',
+  'del',
+  'ins',
+  'mark',
+  'abbr',
+  'cite',
+  'img',
+  'address',
+  'time',
+  'center',
+  'font',
+];
+
+const EMAIL_ALLOWED_ATTR = [
+  'href',
+  'src',
+  'alt',
+  'style',
+  'class',
+  'id',
+  'title',
+  'width',
+  'height',
+  'border',
+  'cellpadding',
+  'cellspacing',
+  'align',
+  'valign',
+  'target',
+  'rel',
+  'colspan',
+  'rowspan',
+  'color',
+  'bgcolor',
+  'face',
+  'size',
+  'type',
+  'start',
+  'reversed',
+];
+
 function sanitizeHtml(html: string): string {
   // Força target="_blank" + rel="noopener noreferrer nofollow" em todos os <a>
   // (clientes de email enviam links sem esses attrs; sem isso o link navega in-tab e
@@ -55,8 +137,8 @@ function sanitizeHtml(html: string): string {
   });
   try {
     return DOMPurify.sanitize(html, {
-      FORBID_TAGS: ['script', 'iframe', 'object', 'embed', 'form'],
-      ADD_ATTR: ['target', 'rel'],
+      ALLOWED_TAGS: EMAIL_ALLOWED_TAGS,
+      ALLOWED_ATTR: EMAIL_ALLOWED_ATTR,
       FORCE_BODY: true,
     });
   } finally {
@@ -228,7 +310,9 @@ export function EmailChatBubble({
                 <>
                   <span className="mx-1 opacity-30">|</span>
                   <span className="text-primary/60">Cc:</span>
-                  <span className="max-w-[200px] truncate">{(message.cc_emails ?? []).join(', ')}</span>
+                  <span className="max-w-[200px] truncate">
+                    {(message.cc_emails ?? []).join(', ')}
+                  </span>
                 </>
               )}
             </div>

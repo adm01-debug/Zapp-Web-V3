@@ -39,7 +39,9 @@ export function useConversationReactionsRealtime(
           const messageId = newRow?.message_id ?? oldRow?.message_id;
           if (!messageId) return;
           if (!idsRef.current.has(messageId)) return;
-          queryClient.invalidateQueries({ queryKey: queryKeys.messageReactions.message(messageId) });
+          queryClient.invalidateQueries({
+            queryKey: queryKeys.messageReactions.message(messageId),
+          });
         }
       )
       .subscribe((status) => {
@@ -48,6 +50,7 @@ export function useConversationReactionsRealtime(
       });
 
     return () => {
+      channel.unsubscribe();
       supabase.removeChannel(channel).catch(() => {});
     };
   }, [conversationId, queryClient]);

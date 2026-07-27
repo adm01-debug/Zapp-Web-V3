@@ -64,6 +64,7 @@ export function useSecurityAuditLogs() {
       .subscribe();
 
     return () => {
+      channel.unsubscribe();
       supabase.removeChannel(channel);
     };
   }, [queryClient]);

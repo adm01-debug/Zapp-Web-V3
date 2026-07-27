@@ -139,8 +139,7 @@ const toDbSettings = (settings: Partial<NotificationSettings>): Record<string, u
   if (settings.soundEnabled !== undefined) db.sound_enabled = settings.soundEnabled;
   if (settings.browserNotifications !== undefined)
     db.browser_notifications_enabled = settings.browserNotifications;
-  if (settings.desktopAlerts !== undefined)
-    db.desktop_alerts_enabled = settings.desktopAlerts;
+  if (settings.desktopAlerts !== undefined) db.desktop_alerts_enabled = settings.desktopAlerts;
   if (settings.quietHoursEnabled !== undefined) db.quiet_hours_enabled = settings.quietHoursEnabled;
   if (settings.quietHoursStart !== undefined) db.quiet_hours_start = settings.quietHoursStart;
   if (settings.quietHoursEnd !== undefined) db.quiet_hours_end = settings.quietHoursEnd;
@@ -414,6 +413,7 @@ export function useSecurityPushNotificationsManagement() {
       .subscribe();
 
     return () => {
+      void channel.unsubscribe();
       supabase.removeChannel(channel).catch(() => {});
     };
   }, []);
@@ -444,6 +444,7 @@ export function useGoalNotificationsManagement() {
       .subscribe();
 
     return () => {
+      void channel.unsubscribe();
       supabase.removeChannel(channel).catch(() => {});
     };
   }, []);
@@ -476,6 +477,7 @@ export function useTranscriptionNotificationsManagement() {
       .subscribe();
 
     return () => {
+      void channel.unsubscribe();
       supabase.removeChannel(channel).catch(() => {});
     };
   }, []);

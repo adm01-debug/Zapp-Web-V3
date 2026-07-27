@@ -191,7 +191,7 @@ Deno.serve(async (req) => {
           const unread = tLabels.includes('UNREAD') ? 1 : 0;
           const messageCount = messages.length;
 
-          const { data: thread } = await supabase
+          const { data: thread, error: threadErr } = await supabase
             .from('gmail_threads')
             .upsert({
               account_id:         accountId,
@@ -205,7 +205,11 @@ Deno.serve(async (req) => {
               participant_emails: extractEmails(fromH),
             }, { onConflict: 'account_id,thread_id' })
             .select('id')
-            .single();
+            .maybeSingle();
+
+          if (threadErr) {
+            console.error(`[gmail-sync] thread upsert failed for ${t.id}:`, threadErr.message);
+          }
 
           return { id: t.id, subject, snippet, fromHeader: fromH, lastActivity: dateH, unread: unread > 0, dbId: thread?.id };
         },
@@ -585,7 +589,7 @@ async function fetchAndPersistMessage(
     return typeof part.filename === 'string' && part.filename.length > 0;
   });
 
-  const { data: thread } = await supabase.from('gmail_threads').upsert({
+  const { data: thread, error: threadErr2 } = await supabase.from('gmail_threads').upsert({
     account_id:          accountId,
     thread_id:           threadId,
     subject,
@@ -594,11 +598,15 @@ async function fetchAndPersistMessage(
     last_message_at:     date,
     unread_count:        isRead ? 0 : 1,
     participant_emails:  extractEmails(fromH),
-  }, { onConflict: 'account_id,thread_id' }).select('id').single();
+  }, { onConflict: 'account_id,thread_id' }).select('id').maybeSingle();
+
+  if (threadErr2) {
+    console.error(`[gmail-sync] thread upsert failed for ${threadId}:`, threadErr2.message);
+  }
 
   if (!thread) return;
 
-  await supabase.from('gmail_messages').upsert({
+  const { error: msgErr } = await supabase.from('gmail_messages').upsert({
     thread_id_ref:   thread.id,
     account_id:      accountId,
     message_id:      messageId,
@@ -617,4 +625,8 @@ async function fetchAndPersistMessage(
     has_attachments: hasAttachments,
     internal_date:   date,
   }, { onConflict: 'account_id,message_id' });
+
+  if (msgErr) {
+    console.error(`[gmail-sync] message upsert failed for ${messageId}:`, msgErr.message);
+  }
 }

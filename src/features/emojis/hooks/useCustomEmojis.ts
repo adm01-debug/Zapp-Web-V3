@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState, type MouseEvent } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { resolvePublicStorageUrl } from '@/lib/mediaUrl';
 import { toast } from 'sonner';
 import { log } from '@/lib/logger';
 
@@ -125,11 +126,10 @@ export function useCustomEmojis(enabled = true) {
           .upload(p.storagePath, p.file, { upsert: false, contentType: p.file.type });
         if (upErr) throw upErr;
         setUploadProgress(90);
-        const { data: pub } = supabase.storage.from(BUCKET).getPublicUrl(p.storagePath);
         const { data: userData } = await supabase.auth.getUser();
         const { error: insErr } = await supabase.from('custom_emojis').insert({
           name: p.name.trim(),
-          image_url: pub.publicUrl,
+          image_url: resolvePublicStorageUrl(BUCKET, p.storagePath),
           category: p.selectedCategory,
           uploaded_by: userData.user?.id ?? null,
         });

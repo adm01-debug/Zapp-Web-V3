@@ -1,6 +1,7 @@
 import { memo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { resolvePublicStorageUrl } from '@/lib/mediaUrl';
 import { safeClient } from '@/integrations/supabase/safeClient';
 import { isValidUUID } from '@/utils/uuid';
 import {
@@ -75,10 +76,6 @@ export const TeamFiles = memo(function TeamFiles({ contactId }: TeamFilesProps) 
       if (uploadError) throw uploadError;
 
       const {
-        data: { publicUrl },
-      } = supabase.storage.from('whatsapp-media').getPublicUrl(filePath);
-
-      const {
         data: { user },
       } = await supabase.auth.getUser();
 
@@ -86,7 +83,7 @@ export const TeamFiles = memo(function TeamFiles({ contactId }: TeamFilesProps) 
         q.insert({
           contact_id: contactId,
           file_name: file.name,
-          file_url: publicUrl,
+          file_url: resolvePublicStorageUrl('whatsapp-media', filePath),
           file_size: file.size,
           file_type: file.type,
           sender_id: user?.id,

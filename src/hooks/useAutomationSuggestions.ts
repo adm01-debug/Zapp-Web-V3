@@ -39,16 +39,20 @@ export function useAutomationSuggestions(remoteJid: string | null) {
   const queryClient = useQueryClient();
   const SUGGESTIONS_KEY = ['automation-suggestions', remoteJid] as const;
 
-  const { data: suggestions = [], isLoading: loading, refetch } = useQuery({
+  const {
+    data: suggestions = [],
+    isLoading: loading,
+    refetch,
+  } = useQuery({
     queryKey: SUGGESTIONS_KEY,
     queryFn: async () => {
       // FIX #2: Join com automations(name) causa 400 (relationship não existe).
       // Faz 2 queries: primeiro as exec, depois as rules.
-      const { data: execs } = await safeClient.from<_RawExecRow>(
-        'automation_executions',
-        (q) =>
+      const { data: execs } = await safeClient.from<_RawExecRow>('automation_executions', (q) =>
         q
-          .select('id, rule_id, suggestion_text, recommended_tag, kb_sources, status, created_at, instance_name, remote_jid')
+          .select(
+            'id, rule_id, suggestion_text, recommended_tag, kb_sources, status, created_at, instance_name, remote_jid'
+          )
           .eq('remote_jid', remoteJid!)
           .eq('status', 'pending')
           .not('suggestion_text', 'is', null)
@@ -58,11 +62,12 @@ export function useAutomationSuggestions(remoteJid: string | null) {
 
       // Fetch nomes das rules em paralelo
       const ruleIds = [...new Set((execs ?? []).map((r) => r.rule_id).filter(Boolean))];
-      const { data: rules } = ruleIds.length > 0
-        ? await safeClient.from<{ id: string; name: string }>('automations', (q) =>
-            q.select('id, name').in('id', ruleIds)
-          )
-        : { data: [] as { id: string; name: string }[] };
+      const { data: rules } =
+        ruleIds.length > 0
+          ? await safeClient.from<{ id: string; name: string }>('automations', (q) =>
+              q.select('id, name').in('id', ruleIds)
+            )
+          : { data: [] as { id: string; name: string }[] };
       const ruleNameMap = new Map((rules ?? []).map((r) => [r.id, r.name]));
 
       return (execs ?? []).map((r) => ({
@@ -91,11 +96,13 @@ export function useAutomationSuggestions(remoteJid: string | null) {
         { event: '*', schema: 'zapp', table: 'automation_executions' },
         (payload) => {
           const row = (payload.new ?? payload.old) as Record<string, unknown>;
-          if (row?.remote_jid === remoteJid) void queryClient.invalidateQueries({ queryKey: SUGGESTIONS_KEY });
+          if (row?.remote_jid === remoteJid)
+            void queryClient.invalidateQueries({ queryKey: SUGGESTIONS_KEY });
         }
       )
       .subscribe();
     return () => {
+      ch.unsubscribe();
       supabase.removeChannel(ch);
     };
   }, [remoteJid, queryClient, SUGGESTIONS_KEY]);

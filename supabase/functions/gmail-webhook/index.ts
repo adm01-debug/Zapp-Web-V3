@@ -6,7 +6,11 @@ import { initSentry, captureException, captureMessage } from '../_shared/sentry.
 
 import { getCorsHeaders, handleCorsPreflight } from '../_shared/cors.ts';
 const GMAIL_API = 'https://gmail.googleapis.com/gmail/v1/users/me';
-const PUBSUB_TOPIC = Deno.env.get('GMAIL_PUBSUB_TOPIC') ?? 'projects/your-project/topics/gmail';
+const PUBSUB_TOPIC = (() => {
+  const v = Deno.env.get('GMAIL_PUBSUB_TOPIC');
+  if (!v) throw new Error('[gmail-webhook] GMAIL_PUBSUB_TOPIC env var is required — set it before deploying');
+  return v;
+})();
 
 Deno.serve(async (req) => {
   initSentry('gmail-webhook');

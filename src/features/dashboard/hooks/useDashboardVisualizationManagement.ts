@@ -1,4 +1,3 @@
-// @ts-nocheck
 // Consolidated Dashboard & Data Visualization Module (ETAPA 46)
 // Consolidates: useDashboardData, useDashboardWidgets, useGoalsDashboard, useLeaderboard, useWarRoomData
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
@@ -769,19 +768,17 @@ export function useWarRoomDataManagement() {
         return acc;
       }, {});
 
-      return (profiles || []).map(
-        (p): WarRoomAgent => ({
-          id: p.id,
-          name: p.name,
-          avatar: p.avatar_url || undefined,
-          status: contactCounts[p.id] >= (p.max_chats || 5) ? 'busy' : 'online',
-          activeChats: contactCounts[p.id] || 0,
-          maxChats: p.max_chats || 5,
-          avgResponseTime: 0,
-          resolvedToday: 0,
-          satisfaction: 0,
-        })
-      );
+      return (profiles || []).map((p): WarRoomAgent => ({
+        id: p.id,
+        name: p.name,
+        avatar: p.avatar_url || undefined,
+        status: contactCounts[p.id] >= (p.max_chats || 5) ? 'busy' : 'online',
+        activeChats: contactCounts[p.id] || 0,
+        maxChats: p.max_chats || 5,
+        avgResponseTime: 0,
+        resolvedToday: 0,
+        satisfaction: 0,
+      }));
     },
     staleTime: 25_000,
     refetchInterval: 30000,
@@ -796,18 +793,16 @@ export function useWarRoomDataManagement() {
         .eq('is_active', true);
       if (dbQueuesErr) throw dbQueuesErr;
 
-      return (dbQueues || []).map(
-        (q): WarRoomQueue => ({
-          id: q.id,
-          name: q.name,
-          color: q.color,
-          waiting: 0,
-          avgWaitTime: 0,
-          slaBreaches: 0,
-          slaWarnings: 0,
-          inProgress: 0,
-        })
-      );
+      return (dbQueues || []).map((q): WarRoomQueue => ({
+        id: q.id,
+        name: q.name,
+        color: q.color,
+        waiting: 0,
+        avgWaitTime: 0,
+        slaBreaches: 0,
+        slaWarnings: 0,
+        inProgress: 0,
+      }));
     },
     staleTime: 30_000,
     refetchInterval: 30000,

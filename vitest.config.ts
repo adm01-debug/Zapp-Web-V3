@@ -88,12 +88,33 @@ export default defineConfig({
       'src/lib/__tests__/diagnostics.test.ts',
       'src/lib/realtime/__tests__/crossTabDedupe.test.ts',
       'src/test/realtimeFanoutEvents.test.ts',
+      // Deno test files — use https://deno.land/ imports incompatíveis com Node/vitest.
+      // Rodam apenas com `deno test` (suíte separada).
+      'src/hooks/__tests__/useAudioRecorder.cleanup.test.ts',
+      'src/lib/__tests__/clientRateLimiter.test.ts',
+      'src/lib/__tests__/healthCheck.test.ts',
+      'src/lib/__tests__/queryTimeout.test.ts',
+      'src/lib/__tests__/sanitize-extra.test.ts',
+      'src/shared/__tests__/validation.test.ts',
+      // contactsDB tests depende de VITE_EXTERNAL_SUPABASE_URL/ANON_KEY não configuradas em CI.
+      // Requerem env vars de instância externa; rodados separadamente via script de integração.
+      'src/lib/__tests__/contactsDB.test.ts',
     ],
     coverage: {
       provider: 'v8',
-      reporter: ['text', 'json', 'html'],
+      reporter: ['text', 'json', 'html', 'json-summary'],
       reportsDirectory: './coverage',
       exclude: ['node_modules/', 'src/test/'],
+      // Coverage ratchet — raise these thresholds as the test suite grows.
+      // Floors reflect actual measured coverage with ~3% safety margin.
+      // Many tests are quarantined (QUARENTENA block above); floors are
+      // deliberately conservative until the quarantined tests are rewritten.
+      thresholds: {
+        lines: 25,
+        functions: 18,
+        branches: 15,
+        statements: 24,
+      },
     },
   },
   resolve: {

@@ -134,7 +134,9 @@ export function useEmail() {
       }
     } else {
       setSchemaStatus({ ok: true, lastChecked: new Date() });
-      const accs = emailMappers.accounts((Array.isArray(data) ? data : []) as Parameters<typeof emailMappers.accounts>[0]);
+      const accs = emailMappers.accounts(
+        (Array.isArray(data) ? data : []) as Parameters<typeof emailMappers.accounts>[0]
+      );
       setAccounts(accs);
       if (accs.length > 0 && !activeAccountId) {
         setActiveAccountId(accs[0].id);
@@ -148,7 +150,10 @@ export function useEmail() {
     queryKey: ['email-token-status'],
     queryFn: async () => {
       const { data, error: rpcErr } = await safeClient.rpc('rpc_email_token_status');
-      if (rpcErr && (rpcErr.message.includes('disponível') || rpcErr.message.includes('not found'))) {
+      if (
+        rpcErr &&
+        (rpcErr.message.includes('disponível') || rpcErr.message.includes('not found'))
+      ) {
         return GMAIL_MOCKS.tokenStatus;
       }
       if (!rpcErr && data) {
@@ -225,7 +230,7 @@ export function useEmail() {
         log.error('Email messages load error', dbErr);
       }
     } else {
-      setMessages((Array.isArray(data) ? data : []) as unknown as EmailMessage[]);
+      setMessages((Array.isArray(data) ? data : []) as unknown as EmailMessage[]); // ignore-audit — Supabase Row[] lacks index signature; bridge cast to local EmailMessage[] is intentional
     }
     setIsLoadingMessages(false);
   }, []);
@@ -620,6 +625,7 @@ export function useEmail() {
       .subscribe();
 
     return () => {
+      channel.unsubscribe();
       supabase.removeChannel(channel);
     };
   }, [activeAccountId]);

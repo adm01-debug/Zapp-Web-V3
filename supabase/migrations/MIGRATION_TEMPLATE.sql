@@ -1,1 +1,63 @@
-LS0gPT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT0KLS0gVEVNUExBVEUgUEFSQSBOT1ZBUyBNSUdSQcOHw5VFUyBaQVBQLVdFQi1WMwotLSBDb3BpYXIgZXN0ZSBhcnF1aXZvLCByZW5vbWVhciBjb20gcHJlZml4byBVTklDTyBhbnRlcyBkZSB1c2FyCi0tID09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09CgotLSBOT01FIERCQSBNSUFSQVRJT046IDIwMjYwNzI2MDJMMDU1MDFfbm9tZV9kZXNjcml0aXZvLnNxbAotLSBGT1JNQVRPIE9CUklHQVTDs1JJTzogPFRJTUVTVEFNUF8xNGRpZ2l0b3M+XzxkZXNjcmljaW9fZW1fc25ha2VfY2FzZT4uc3FsCi0tIFRJTUVTVEFNUDogWVlZWU1NRERISDMzNTUgKGV4OiAyMDI2MDcyNjE4MDApIC0gREVWRSBTRVIgVU5JQ08KCi0tIC0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0KLS0gTUVUQURBRE9TCi0tIC0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0KLS0gVMOtdHVsbzogW0Rlc2NyZXZlciBvIHF1ZSBhIG1pZ3JhdGlvbiBmYXpdCi0tIEF1dG9yOiBbTm9tZS9hZ2VudGUgcXVlIGNyaW91XQotLSBEYXRhOiBbWVlZWS1NTS1ERF0KLS0gRXRhcGE6IFtFMjUvRTMwL2V0Yy4gb3UgJ2ZlYXR1cmUvYnVnLWZpeCddCi0tIEplcmE6IFtMaW5rIHBhcmEgb3UgdGlja2V0L1BSXQoKLS0gRGVwZW5kw6puY2lhczoKLS0gICAtIFtMaXN0YXIgdGFiZWxhcyBxdWUgcHJlY2lzYW0gZXhpc3RpciBhbnRlcyBkZXN0YSBtaWdyYXRpb25dCi0tICAgLSBbZXg6IHRhYmVsYSBldm8uZXZvbHV0aW9uX2NvbnRhY3RzIHByZWNpc2EgZXhpc3Rpcl0KCi0tIC0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0KLS0gQVBMSUNBw4fDg08gKEZvcndhcmQgTWlncmF0aW9uKQotLSAtLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tCgpCRUdJTjsKCi0tIFtTRVVTIENPTUFORE9TIFNRTCBBUVVJXQOTLSBFEGVTCGXVOGOTLSBBTFRFUIBUQUJMRSBWDWJSAWMUY29udGFjdHMgQUREIENPTFVNTiBpZl9ub3RfZXhpc3RzIHRhZ3MgdGV4dFtdIERFRkFVTFQgJ3t9JzsKCkNPTU1JVDsKCi0tIC0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0KLS0gUk9MTEJBQUsgKE9CUklHQVTDk1JJTS1TRSBQT1NTw41WRUwpCi0tIC0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0KLS0gRXN0YSBtaWdyYXRpb24gw6kgW1JFVkVSU8OtVkVMIC8gSVJSRVZFUlPDjVZFTF0uCi0tCi0tIFNlIFJFVkVSU8OtVkVMOgotLSAgIFBhcmEgZGVzZmF6ZXIgZXN0YSBtaWdyYXRpb246Ci0tCi0tICAgQkVHSU47Ci0tICAgLS0gW0NPTUFOREJPRCBERVJPTEFSIGFZIG11ZGFuw6dhcyBkZXN0YSBtaWdyYXRpb25dCi0tICAgLS0gRXhlbXBsbzoKLS0gICAtLSBBTFRFUiBUQUJMRSBwdWJsaWMuY29udGFjdHMgRFJPUCBDT0xVTU4gSUYgRVhJU1RTIHRhZ3M7Ci0tICAgQ09NTUlUOwotLQotLSBTZSBJUlJFVkVSU8OtVkVMOgotLSAgIEp1c3RpZmljYXRpdmE6IFtFeHBsaWNhciBwb3IgcXXDqiBuw6NvIGhhIHJvbGxiYWNrIHBvc3PDrXZlbF0KLS0gICBQbGFubyBkZSBjb250aW5nw6puY2lhOiBbT3Ugc2VqYSwgc2UgZGVyIGVycmFkbywgbyBxdWUgZmFtb3M/XQotLSAgIEJhY2t1cCBuZWNlc3PDpXJpbzogW0luZGljYXIgc2UgdW0gYmFja3VwIGZvaSBmZWl0byBhbnRlc10KCi0tIC0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0KLS0gVEVTVEVTIERFIFZBTElEQcOHw4dPIChvcGNpb25hbCBtYXMgcmVjb21lbmRhZG8pCi0tIC0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0KLS0gRXhlbXBsbzogQXNzZXJ0IHF1ZSBhIGNvbHVuYSBmb2kgYWRpY2lvbmFkYQotLSBETyAkJAotLSBCRUdJTgotLSAgIEFTU0VSVCBFWElTVFMgKFNFTEVDVCAxIEZST00gaW5mb3JtYXRpb25fc2NoZW1hLmNvbHVtbnMKLS0gICAgV0hFUkUgdGFibGVfc2NoZW1hID0gJ3B1YmxpYycgQU5EIHRhYmxlX25hbWUgPSAnY29udGFjdHMnCi0tICAgIEFORCBjb2x1bW5fbmFtZSA9ICd0YWdzJyksCi0tICAgICdDb2x1bmEgdGFncyBkZXZlIGV4aXN0aXIgZW0gcHVibGljLmNvbnRhY3RzJzsKLS0gRU5ECi0tICQkOwo=
+-- ==========================================================================
+-- TEMPLATE PARA NOVAS MIGRAÇÕES ZAPP-WEB-V3
+-- Copiar este arquivo, renomear com prefixo UNICO antes de usar
+-- ==========================================================================
+
+-- NOME DBA MIARATION: 2026072602L05501_nome_descritivo.sql
+-- FORMATO OBRIGATóRIO: <TIMESTAMP_14digitos>_<descricio_em_snake_case>.sql
+-- TIMESTAMP: YYYYMMDDHH3355 (ex: 202607261800) - DEVE SER UNICO
+
+-- -------------------------------------------------------------------------
+-- METADADOS
+-- -------------------------------------------------------------------------
+-- Título: [Descrever o que a migration faz]
+-- Autor: [Nome/agente que criou]
+-- Data: [YYYY-MM-DD]
+-- Etapa: [E25/E30/etc. ou 'feature/bug-fix']
+-- Jera: [Link para ou ticket/PR]
+
+-- Dependências:
+--   - [Listar tabelas que precisam existir antes desta migration]
+--   - [ex: tabela evo.evolution_contacts precisa existir]
+
+-- -------------------------------------------------------------------------
+-- APLICAÇÃO (Forward Migration)
+-- -------------------------------------------------------------------------
+
+BEGIN;
+
+-- [SEUS COMANDOS SQL AQUI]�- EeSe�8c�- ALTEP�TABLE VbRccontacts ADD COLUMN if_not_exists tags text[] DEFAULT '{}';
+
+COMMIT;
+
+-- -------------------------------------------------------------------------
+-- ROLLBAAK (OBRIGATÓRIM-SE POSSÍVEL)
+-- -------------------------------------------------------------------------
+-- Esta migration é [REVERSíVEL / IRREVERSÍVEL].
+--
+-- Se REVERSíVEL:
+--   Para desfazer esta migration:
+--
+--   BEGIN;
+--   -- [COMANDBOD DEROLAR aY mudanças desta migration]
+--   -- Exemplo:
+--   -- ALTER TABLE public.contacts DROP COLUMN IF EXISTS tags;
+--   COMMIT;
+--
+-- Se IRREVERSíVEL:
+--   Justificativa: [Explicar por quê não ha rollback possível]
+--   Plano de contingência: [Ou seja, se der errado, o que famos?]
+--   Backup necessårio: [Indicar se um backup foi feito antes]
+
+-- -------------------------------------------------------------------------
+-- TESTES DE VALIDAÇÇO (opcional mas recomendado)
+-- -------------------------------------------------------------------------
+-- Exemplo: Assert que a coluna foi adicionada
+-- DO $$
+-- BEGIN
+--   ASSERT EXISTS (SELECT 1 FROM information_schema.columns
+--    WHERE table_schema = 'public' AND table_name = 'contacts'
+--    AND column_name = 'tags'),
+--    'Coluna tags deve existir em public.contacts';
+-- END
+-- $$;

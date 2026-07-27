@@ -162,7 +162,7 @@ export const contactsDB = {
       .maybeSingle();
     if (error) throw error;
     if (!data) return null;
-    return (data as unknown as { contact_id: string; contacts: ExternalContact }).contacts;
+    return (data as unknown as { contact_id: string; contacts: ExternalContact }).contacts; // ignore-audit — Supabase nested join shape doesn't directly overlap with inline interface; bridge is intentional
   },
 
   /** Update contact fields */

@@ -53,13 +53,15 @@ export function useEmailOAuthFlow(): UseEmailOAuthFlowReturn {
   const { data: accounts = [], isLoading } = useQuery({
     queryKey: GMAIL_ACCOUNTS_KEY,
     queryFn: async () => {
-      const { data, error } = await safeClient.from<Record<string, unknown>>('email_accounts', (q) =>
-        q
-          .select(
-            'id, user_id, email:email_address, display_name, picture_url, token_expiry:token_expires_at, is_active, created_at'
-          )
-          .eq('is_active', true)
-          .order('created_at')
+      const { data, error } = await safeClient.from<Record<string, unknown>>(
+        'email_accounts',
+        (q) =>
+          q
+            .select(
+              'id, user_id, email:email_address, display_name, picture_url, token_expiry:token_expires_at, is_active, created_at'
+            )
+            .eq('is_active', true)
+            .order('created_at')
       );
 
       if (error) {
@@ -95,30 +97,33 @@ export function useEmailOAuthFlow(): UseEmailOAuthFlowReturn {
 
   // ── Refresh de token ────────────────────────────────────────────────
 
-  const refreshNow = useCallback(async (accountId: string) => {
-    if (refreshingRef.current.has(accountId)) return;
-    refreshingRef.current.add(accountId);
+  const refreshNow = useCallback(
+    async (accountId: string) => {
+      if (refreshingRef.current.has(accountId)) return;
+      refreshingRef.current.add(accountId);
 
-    setTokenStatus((prev) => ({ ...prev, [accountId]: 'loading' }));
+      setTokenStatus((prev) => ({ ...prev, [accountId]: 'loading' }));
 
-    try {
-      const result = await emailRefreshToken(accountId);
+      try {
+        const result = await emailRefreshToken(accountId);
 
-      const newExpiry = result.data?.newExpiry ?? null;
-      log.info(`Token refreshed for account ${accountId}, expires at ${newExpiry}`);
-      setTokenStatus((prev) => ({ ...prev, [accountId]: 'valid' }));
-      void queryClient.invalidateQueries({ queryKey: GMAIL_ACCOUNTS_KEY });
-    } catch (err) {
-      log.error(`Falha ao refreshar token para conta ${accountId}`, err);
-      setTokenStatus((prev) => ({ ...prev, [accountId]: 'expired' }));
-      toast.error('Sessão Email expirada', {
-        description: 'Reconecte sua conta Email nas configurações.',
-        duration: 8000,
-      });
-    } finally {
-      refreshingRef.current.delete(accountId);
-    }
-  }, [queryClient]);
+        const newExpiry = result.data?.newExpiry ?? null;
+        log.info(`Token refreshed for account ${accountId}, expires at ${newExpiry}`);
+        setTokenStatus((prev) => ({ ...prev, [accountId]: 'valid' }));
+        void queryClient.invalidateQueries({ queryKey: GMAIL_ACCOUNTS_KEY });
+      } catch (err) {
+        log.error(`Falha ao refreshar token para conta ${accountId}`, err);
+        setTokenStatus((prev) => ({ ...prev, [accountId]: 'expired' }));
+        toast.error('Sessão Email expirada', {
+          description: 'Reconecte sua conta Email nas configurações.',
+          duration: 8000,
+        });
+      } finally {
+        refreshingRef.current.delete(accountId);
+      }
+    },
+    [queryClient]
+  );
 
   // ── Auto-refresh loop ───────────────────────────────────────────────
 
@@ -267,21 +272,24 @@ export function useEmailOAuthFlow(): UseEmailOAuthFlowReturn {
 
   // ── Disconnect ───────────────────────────────────────────────────
 
-  const disconnect = useCallback(async (accountId: string) => {
-    try {
-      await emailRevokeAccount(accountId);
-      setTokenStatus((prev) => {
-        const next = { ...prev };
-        delete next[accountId];
-        return next;
-      });
-      void queryClient.invalidateQueries({ queryKey: GMAIL_ACCOUNTS_KEY });
-      toast.success('Conta Email desconectada');
-    } catch (err) {
-      log.error('Erro ao desconectar conta Email', err);
-      toast.error('Não foi possível desconectar a conta Email');
-    }
-  }, [queryClient]);
+  const disconnect = useCallback(
+    async (accountId: string) => {
+      try {
+        await emailRevokeAccount(accountId);
+        setTokenStatus((prev) => {
+          const next = { ...prev };
+          delete next[accountId];
+          return next;
+        });
+        void queryClient.invalidateQueries({ queryKey: GMAIL_ACCOUNTS_KEY });
+        toast.success('Conta Email desconectada');
+      } catch (err) {
+        log.error('Erro ao desconectar conta Email', err);
+        toast.error('Não foi possível desconectar a conta Email');
+      }
+    },
+    [queryClient]
+  );
 
   // ── Effects ───────────────────────────────────────────────────
 
@@ -289,12 +297,15 @@ export function useEmailOAuthFlow(): UseEmailOAuthFlowReturn {
   useEffect(() => {
     const channel = supabase
       .channel('email_accounts_changes')
-      .on('postgres_changes', { event: '*', schema: 'email_app', table: 'email_accounts' }, () =>
-        void queryClient.invalidateQueries({ queryKey: GMAIL_ACCOUNTS_KEY })
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'email_app', table: 'email_accounts' },
+        () => void queryClient.invalidateQueries({ queryKey: GMAIL_ACCOUNTS_KEY })
       )
       .subscribe();
 
     return () => {
+      channel.unsubscribe();
       supabase.removeChannel(channel);
     };
   }, [queryClient]);

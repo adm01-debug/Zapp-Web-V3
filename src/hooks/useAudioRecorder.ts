@@ -28,6 +28,10 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
       mountedRef.current = false;
       // FIX #9: Cleanup completo em unmount para prevenir memory leaks
       cleanupRecordingResources();
+      if (blobUrlRef.current) {
+        URL.revokeObjectURL(blobUrlRef.current);
+        blobUrlRef.current = null;
+      }
     };
   }, []);
 
@@ -40,7 +44,11 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
     // Para MediaStream tracks
     if (streamRef.current) {
       streamRef.current.getTracks().forEach((track) => {
-        try { track.stop(); } catch { /* ignore */ }
+        try {
+          track.stop();
+        } catch {
+          /* ignore */
+        }
       });
       streamRef.current = null;
     }
@@ -53,7 +61,11 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
 
     // Fecha AudioContext
     if (audioContextRef.current) {
-      try { audioContextRef.current.close(); } catch { /* ignore */ }
+      try {
+        audioContextRef.current.close();
+      } catch {
+        /* ignore */
+      }
       audioContextRef.current = null;
     }
     analyserRef.current = null;
@@ -66,13 +78,21 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
 
     // Para speech recognition
     if (recognitionRef.current) {
-      try { recognitionRef.current.stop(); } catch { /* ignore */ }
+      try {
+        recognitionRef.current.stop();
+      } catch {
+        /* ignore */
+      }
       recognitionRef.current = null;
     }
 
     // Limpa MediaRecorder reference
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-      try { mediaRecorderRef.current.stop(); } catch { /* ignore */ }
+      try {
+        mediaRecorderRef.current.stop();
+      } catch {
+        /* ignore */
+      }
     }
     mediaRecorderRef.current = null;
   }, []);
@@ -87,6 +107,15 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const lastBlobRef = useRef<Blob | null>(null);
   const lastTranscriptionRef = useRef<string>('');
+  const blobUrlRef = useRef<string | null>(null);
+
+  const setBlobUrl = useCallback((url: string | null) => {
+    if (blobUrlRef.current) {
+      URL.revokeObjectURL(blobUrlRef.current);
+    }
+    blobUrlRef.current = url;
+    setAudioUrl(url);
+  }, []);
 
   const startRecording = useCallback(
     async (isRecovery = false) => {
@@ -140,7 +169,7 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
         mediaRecorder.onstop = async () => {
           const audioBlob = new Blob(chunksRef.current, { type: 'audio/webm' });
           const url = URL.createObjectURL(audioBlob);
-          setAudioUrl(url);
+          setBlobUrl(url);
 
           // Finalize local transcription if active
           if (recognitionRef.current) {
@@ -292,7 +321,11 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
           lastTranscriptionRef.current = transcription;
         }
 
-        try { mediaRecorderRef.current.stop(); } catch { /* ignore */ }
+        try {
+          mediaRecorderRef.current.stop();
+        } catch {
+          /* ignore */
+        }
         // FIX #9: cleanup de todos os recursos ao cancelar
         if (streamRef.current) {
           streamRef.current.getTracks().forEach((track) => track.stop());
@@ -311,7 +344,7 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
         setIsRecording(false);
         setIsPaused(false);
         setDuration(0);
-        setAudioUrl(null);
+        setBlobUrl(null);
       }
     },
     [isRecording, isPaused, transcription]
@@ -320,7 +353,7 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
   const restoreRecording = useCallback(() => {
     if (lastBlobRef.current) {
       const url = URL.createObjectURL(lastBlobRef.current);
-      setAudioUrl(url);
+      setBlobUrl(url);
       setTranscription(lastTranscriptionRef.current);
       // We can't really "resume" a hardware stream after it's been stopped and discarded by the browser
       // but we can present the user with the recovered state.

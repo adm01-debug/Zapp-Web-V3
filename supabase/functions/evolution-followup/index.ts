@@ -59,7 +59,8 @@ async function processFollowUps() {
 
     processed++;
     try {
-      const { data: contact } = await supabase.from("evolution_contacts").select("id, remote_jid, full_name, phone_number, push_name").eq("id", fu.contact_id).maybeSingle();
+      const { data: contact, error: contactErr } = await supabase.from("evolution_contacts").select("id, remote_jid, full_name, phone_number, push_name").eq("id", fu.contact_id).maybeSingle();
+      if (contactErr) { console.error(`[followup] contact fetch error for ${fu.contact_id}:`, contactErr.message); await setStatus(fu.id, "failed", `db error: ${contactErr.message}`); failed++; continue; }
       if (!contact) { await setStatus(fu.id, "failed", "contact not found"); failed++; continue; }
 
       // hasRecentInbound

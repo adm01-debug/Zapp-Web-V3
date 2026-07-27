@@ -181,6 +181,7 @@ export function useRetryResolutionAlerts(enabled = true): void {
 
     return () => {
       unsubBus();
+      channel.unsubscribe();
       supabase.removeChannel(channel).catch(() => {});
     };
   }, [enabled, navigate]);

@@ -1,0 +1,71 @@
+name: AI Agent PR Policy
+
+# Validates that AI-agent-authored commits (Claude, Lovable, Copilot) arrive
+# via a PR targeting main — never pushed directly to main or develop.
+
+on:
+  push:
+    branches: [main, develop]
+
+jobs:
+  check-direct-push:
+    name: Block direct AI pushes to main
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 5
+
+      - name: Detect AI-authored commits pushed directly
+        run: |
+          set -euo pipefail
+
+          AI_AUTHORS=(
+            "claude" "copilot" "lovable" "github-actions" "dependabot"
+            "noreply@anthropic.com" "noreply@github.com"
+          )
+
+          # Commits that arrived in this push (not via PR merge)
+          # On a direct push github.event.before is the previous HEAD.
+          BEFORE="${{ github.event.before }}"
+          AFTER="${{ github.sha }}"
+
+          if [ "$BEFORE" = "0000000000000000000000000000000000000000" ]; then
+            echo "First push to branch — skip check."
+            exit 0
+          fi
+
+          # Merge commits from PRs have two parents; skip them.
+          DIRECT_COMMITS=$(git log --no-merges --format="%H %ae %an" "${BEFORE}..${AFTER}" 2>/dev/null || true)
+
+          if [ -z "$DIRECT_COMMITS" ]; then
+            echo "No direct commits detected."
+            exit 0
+          fi
+
+          VIOLATIONS=""
+          while IFS= read -r line; do
+            SHA=$(echo "$line" | awk '{print $1}')
+            EMAIL=$(echo "$line" | awk '{print $2}')
+            NAME=$(echo "$line" | awk '{print $3}')
+            for ai in "${AI_AUTHORS[@]}"; do
+              if echo "${EMAIL,,} ${NAME,,}" | grep -qi "$ai"; then
+                VIOLATIONS="${VIOLATIONS}\n  ${SHA:0:8} by ${NAME} <${EMAIL}>"
+                break
+              fi
+            done
+          done <<< "$DIRECT_COMMITS"
+
+          if [ -n "$VIOLATIONS" ]; then
+            echo "::error::AI-agent commits detected pushed directly to ${GITHUB_REF_NAME} (bypass PR policy):"
+            echo -e "$VIOLATIONS"
+            echo ""
+            echo "All AI-agent changes must arrive via a pull request."
+            echo "See CONTRIBUTING.md § AI Agents para detalhes."
+            exit 1
+          fi
+
+          echo "OK — no AI-authored direct pushes detected."
