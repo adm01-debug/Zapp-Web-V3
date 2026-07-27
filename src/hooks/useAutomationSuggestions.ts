@@ -9,6 +9,13 @@ import { toast } from '@/hooks/use-toast';
 // Resolve at call time so module import never crashes.
 const getClient = () => getExternalSupabase();
 
+// Stable query-key factory — lives outside the component so it never changes
+// reference. NEVER declare this inside the component body: a new array on every
+// render makes it an unstable dep that triggers an infinite subscribe/unsubscribe
+// loop in the Realtime useEffect.
+const suggestionsKey = (remoteJid: string | null) =>
+  ['automation-suggestions', remoteJid] as const;
+
 interface _RawExecRow {
   id: string;
   rule_id: string;
@@ -37,10 +44,9 @@ export interface AutomationSuggestion {
 
 export function useAutomationSuggestions(remoteJid: string | null) {
   const queryClient = useQueryClient();
-  const SUGGESTIONS_KEY = ['automation-suggestions', remoteJid] as const;
 
   const { data: suggestions = [], isLoading: loading, refetch } = useQuery({
-    queryKey: SUGGESTIONS_KEY,
+    queryKey: suggestionsKey(remoteJid),
     queryFn: async () => {
       // FIX #2: Join com automations(name) causa 400 (relationship não existe).
       // Faz 2 queries: primeiro as exec, depois as rules.
@@ -91,23 +97,27 @@ export function useAutomationSuggestions(remoteJid: string | null) {
         { event: '*', schema: 'zapp', table: 'automation_executions' },
         (payload) => {
           const row = (payload.new ?? payload.old) as Record<string, unknown>;
-          if (row?.remote_jid === remoteJid) void queryClient.invalidateQueries({ queryKey: SUGGESTIONS_KEY });
+          if (row?.remote_jid === remoteJid) {
+            void queryClient.invalidateQueries({ queryKey: suggestionsKey(remoteJid) });
+          }
         }
       )
       .subscribe();
     return () => {
+      ch.unsubscribe();
       supabase.removeChannel(ch);
     };
-  }, [remoteJid, queryClient, SUGGESTIONS_KEY]);
+  // Only remoteJid and queryClient drive re-subscription — not a key array reference.
+  }, [remoteJid, queryClient]);
 
   const accept = useCallback(
     async (id: string) => {
       await safeClient.from('automation_executions', (q) =>
         q.update({ status: 'accepted', acted_at: new Date().toISOString() }).eq('id', id)
       );
-      void queryClient.invalidateQueries({ queryKey: SUGGESTIONS_KEY });
+      void queryClient.invalidateQueries({ queryKey: suggestionsKey(remoteJid) });
     },
-    [queryClient, SUGGESTIONS_KEY]
+    [queryClient, remoteJid]
   );
 
   const dismiss = useCallback(
@@ -115,9 +125,9 @@ export function useAutomationSuggestions(remoteJid: string | null) {
       await safeClient.from('automation_executions', (q) =>
         q.update({ status: 'dismissed', acted_at: new Date().toISOString() }).eq('id', id)
       );
-      void queryClient.invalidateQueries({ queryKey: SUGGESTIONS_KEY });
+      void queryClient.invalidateQueries({ queryKey: suggestionsKey(remoteJid) });
     },
-    [queryClient, SUGGESTIONS_KEY]
+    [queryClient, remoteJid]
   );
 
   /**
@@ -146,7 +156,7 @@ export function useAutomationSuggestions(remoteJid: string | null) {
           title: 'Tag aplicada',
           description: `"${sugg.recommended_tag}" foi adicionada ao contato.`,
         });
-        void queryClient.invalidateQueries({ queryKey: SUGGESTIONS_KEY });
+        void queryClient.invalidateQueries({ queryKey: suggestionsKey(remoteJid) });
         return true;
       } catch (e) {
         toast({
@@ -157,7 +167,7 @@ export function useAutomationSuggestions(remoteJid: string | null) {
         return false;
       }
     },
-    [suggestions, queryClient, SUGGESTIONS_KEY]
+    [suggestions, queryClient, remoteJid]
   );
 
   return { suggestions, loading, refresh: refetch, accept, dismiss, applyRecommendedTag };
