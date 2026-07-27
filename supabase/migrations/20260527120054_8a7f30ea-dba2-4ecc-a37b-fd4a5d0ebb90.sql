@@ -25,9 +25,10 @@ USING (
 -- Garantir que a tabela de auditoria tenha RLS e permissões corretas
 ALTER TABLE public.audit_logs ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Users can insert their own audit logs" 
-ON public.audit_logs 
-FOR INSERT 
+DROP POLICY IF EXISTS "Users can insert their own audit logs" ON public.audit_logs;
+CREATE POLICY "Users can insert their own audit logs"
+ON public.audit_logs
+FOR INSERT
 WITH CHECK (auth.uid() = user_id);
 
 DROP POLICY IF EXISTS "Admins can view all audit logs" ON public.audit_logs;
