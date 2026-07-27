@@ -96,7 +96,7 @@ interface ChatInputAreaProps {
   onToggleSignature?: () => void;
   isWhisper?: boolean;
   onToggleWhisper?: () => void;
-  fileUploaderRef: React.RefObject<FileUploaderRef | null>;
+  fileUploaderRef: React.RefObject<FileUploaderRef>;
   inputRef: React.RefObject<HTMLTextAreaElement | null>;
   onOpenTeamFiles?: () => void;
   queue?: QueueItem[];

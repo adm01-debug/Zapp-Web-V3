@@ -110,10 +110,10 @@ export function ConversationMemoryPanel({ contactId, profileId }: ConversationMe
       pending_items: memory.pending_items,
       commercial_summary: memory.commercial_summary || null,
       cumulative_summary: memory.cumulative_summary || null,
-      updated_by: profileId,
+      updated_by: profileId ?? null,
     };
 
-    const { error } = await saveConversationMemory(memory.id, payload as any);
+    const { error } = await saveConversationMemory(memory.id, payload);
 
     if (!error) {
       toast.success('Memória salva');

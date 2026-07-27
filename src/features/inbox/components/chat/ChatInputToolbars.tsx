@@ -51,7 +51,7 @@ interface SecondaryToolbarProps {
   onSendCustomEmoji: (url: string) => void;
   onOpenCatalog?: () => void;
   onAudioSend: (blob: Blob) => void;
-  fileUploaderRef: React.RefObject<FileUploaderRef | null>;
+  fileUploaderRef: React.RefObject<FileUploaderRef>;
   instanceName?: string;
   contactPhone: string;
   contactId: string;
@@ -188,7 +188,7 @@ export function SecondaryToolbar({
         </Tooltip>
       )}
       <FileUploader
-        ref={fileUploaderRef as any}
+        ref={fileUploaderRef}
         instanceName={instanceName || ''}
         recipientNumber={contactPhone}
         contactId={contactId}
