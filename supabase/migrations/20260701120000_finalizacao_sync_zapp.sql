@@ -61,7 +61,8 @@ ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS _admin_user_id uuid;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS online_status text DEFAULT 'offline'::text;
 
 -- ╔═══ SEÇÃO 2 — RECRIAÇÃO DAS VIEWS DE COMPATIBILIDADE ═══╗
-CREATE OR REPLACE VIEW public.instance_registry WITH (security_invoker=true) AS
+DROP VIEW IF EXISTS public.instance_registry;
+CREATE VIEW public.instance_registry WITH (security_invoker=true) AS
     SELECT id, instance_name, display_name, phone_number, department, responsible_name, responsible_email, is_active, webhook_url, webhook_enabled, auto_reply_enabled, auto_reply_message, business_hours_enabled, max_concurrent_chats, sla_first_response_minutes, sla_resolution_hours, bitrix_integration, n8n_workflows, config, notes, created_at, updated_at, slot_name, operator_name, operator_email, operator_since, operator_phone, usage_type, owner_id, status, connection_status, api_key, api_url, profile_picture, is_master, proxy_host, proxy_port, proxy_user, proxy_pass, settings, last_connected_at, message_count_sent, message_count_received, error_logs, metadata
     FROM zapp.instance_registry;
 
