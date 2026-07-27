@@ -13,7 +13,11 @@ import { test, expect, type Route } from '@playwright/test';
 
 const PREVIEW_ORIGIN = 'https://id-preview--zapp-test.lovable.app';
 const DEV_ORIGIN = 'http://localhost:5173';
-const BOOT_BUDGET_MS = 6000;
+// Em CI (GitHub Actions) o proxy para localhost adiciona latência de rede
+// (TLS handshake para o domínio preview + roteamento via proxy), fazendo o
+// goto() em si demorar ~600-700 ms a mais. O budget é ampliado para 10 s em
+// CI para cobrir essa overhead sem alterar o requisito local (6 s).
+const BOOT_BUDGET_MS = process.env.CI ? 10_000 : 6_000;
 
 async function proxyToDev(route: Route) {
   const url = new URL(route.request().url());
