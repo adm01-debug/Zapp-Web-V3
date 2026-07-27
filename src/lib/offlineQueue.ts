@@ -150,12 +150,9 @@ export async function processQueue(): Promise<{ sent: number; failed: number }> 
 
   for (const msg of messages) {
     try {
-      // Attempt to send via sendMessageToContact
-      // (would need to import the function)
-      // const { sendMessageToContact } = await import('@/features/inbox/hooks/realtime/messageSender');
-      // await sendMessageToContact(msg.contactId, msg.content, msg.messageType, msg.mediaUrl);
-
-      // For now, simulate success
+      const { sendMessageToContact } =
+        await import('@/features/inbox/hooks/realtime/messageSender');
+      await sendMessageToContact(msg.contactId, msg.content, msg.messageType, msg.mediaUrl);
       await offlineQueue.remove(msg.id);
       sent++;
     } catch (err) {
