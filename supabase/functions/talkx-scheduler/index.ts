@@ -41,6 +41,13 @@ Deno.serve(async (req) => {
       );
     }
 
+    const supabaseUrl = Deno.env.get("SELFHOSTED_SUPABASE_URL") ?? Deno.env.get("SUPABASE_URL") ?? "";
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+    if (!supabaseUrl || !serviceKey) {
+      log.error("Missing Supabase URL or service key env vars");
+      return new Response(JSON.stringify({ error: "Server misconfiguration" }), { status: 500, headers });
+    }
+
     // Each campaign is claimed atomically (per campaign.id), so parallel processing is safe.
     const settled = await Promise.allSettled(
       dueCampaigns.map(async (campaign) => {

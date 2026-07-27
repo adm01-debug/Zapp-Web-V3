@@ -12,6 +12,7 @@ Deno.serve(async (req: Request) => {
 
     const evolutionUrl = (Deno.env.get('EVOLUTION_API_URL') || '').replace(/\/+$/, '');
     const evolutionKey = Deno.env.get('EVOLUTION_API_KEY') ?? '';
+    const supabaseUrl = (Deno.env.get('SELFHOSTED_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL') ?? '').replace(/\/+$/, '');
     const supabase = createZappAdminClient();
 
     const body = await req.json().catch(() => ({}));

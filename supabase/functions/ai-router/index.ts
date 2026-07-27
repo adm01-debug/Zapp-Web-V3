@@ -40,7 +40,7 @@
 import { createZappAdminClient } from "../_shared/db-client.ts";
 import {
   handleCors, errorResponse, jsonResponse,
-  sanitizeString, isValidUUID, checkRateLimit, getClientIP, requireEnv, Logger,
+  sanitizeString, isValidUUID, checkRateLimit, getClientIP, requireEnv, Logger, getCorsHeaders,
 } from "../_shared/validation.ts";
 import { timingSafeStringEqual } from "../_shared/auth.ts";
 import {

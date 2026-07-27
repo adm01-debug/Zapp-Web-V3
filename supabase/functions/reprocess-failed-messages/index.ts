@@ -11,6 +11,12 @@ const MAX_BATCH = 25;
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return handleCorsPreflight(req); // sets Access-Control-Allow-Origin
 
+  const json = (data: unknown, status = 200) =>
+    new Response(JSON.stringify(data), {
+      status,
+      headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+    });
+
   try {
     // Accept internal (service role / cron) or admin/supervisor user JWTs.
     const internalDenied = requireServiceRoleOrCron(req);
@@ -150,10 +156,3 @@ Deno.serve(async (req) => {
     return json({ error: true, message: 'Internal server error' }, 500);
   }
 });
-
-function json(data: unknown, status = 200) {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-  });
-}

@@ -114,7 +114,8 @@ Deno.serve(async (req) => {
 
         if (uploadErr) { results.failed++; results.errors.push(`${msg.external_id}: upload failed - ${uploadErr.message}`); continue; }
 
-        const newUrl = `${SUPABASE_URL}/storage/v1/object/public/audio-messages/${storagePath}`;
+        const supabasePublicUrl = (Deno.env.get("SELFHOSTED_SUPABASE_URL") ?? Deno.env.get("SUPABASE_URL") ?? "").replace(/\/+$/, "");
+        const newUrl = `${supabasePublicUrl}/storage/v1/object/public/audio-messages/${storagePath}`;
         await supabase.from("messages").update({ media_url: newUrl }).eq("id", msg.id);
         results.recovered++;
       } catch (err) {
