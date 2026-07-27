@@ -285,13 +285,10 @@ Deno.serve(async (req) => {
           .update({ qr_code: qrCode, status: 'qr_pending', updated_at: new Date().toISOString() })
           .or(instanceOrFilter(instance));
       }
-      // [M-6 FIX 2026-07-12] QR alert via n8n (fire-and-forget). URL agora é
-      // sobrescrevível por env (QR_ALERT_WEBHOOK_URL) em vez de fixa/acoplada a
-      // wpp2, com header de auth opcional (QR_ALERT_WEBHOOK_TOKEN) para que a URL
-      // não seja disparável por qualquer um que a conheça. Mantemos o valor atual
-      // como default explícito para NÃO desligar um alerta vivo caso a env não
-      // esteja provisionada.
-      const _n8nQrUrl = Deno.env.get('QR_ALERT_WEBHOOK_URL') ?? 'https://webhook.atomicabr.com.br/webhook/qr-alert-wpp2';
+      // QR alert via n8n (fire-and-forget). Set QR_ALERT_WEBHOOK_URL env var to
+      // enable; optional QR_ALERT_WEBHOOK_TOKEN for webhook auth. When the env
+      // var is absent the alert is silently skipped (see else branch below).
+      const _n8nQrUrl = Deno.env.get('QR_ALERT_WEBHOOK_URL') ?? '';
       if (_n8nQrUrl) {
         const _qrHeaders: Record<string, string> = { 'Content-Type': 'application/json' };
         const _qrToken = Deno.env.get('QR_ALERT_WEBHOOK_TOKEN');

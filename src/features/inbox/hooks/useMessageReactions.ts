@@ -34,13 +34,16 @@ export function useMessageReactions(messageId: string, options?: UseMessageReact
           filter: `message_id=eq.${messageId}`,
         },
         () => {
-          void queryClient.invalidateQueries({ queryKey: queryKeys.messageReactions.message(messageId) });
+          void queryClient.invalidateQueries({
+            queryKey: queryKeys.messageReactions.message(messageId),
+          });
           void queryClient.invalidateQueries({ queryKey: queryKeys.adminOps.operationsLogsAll() });
         }
       )
       .subscribe();
 
     return () => {
+      channel.unsubscribe();
       void Promise.resolve(supabase.removeChannel(channel)).catch(() => {});
     };
   }, [messageId, options?.disableRealtime, queryClient]);
@@ -49,7 +52,8 @@ export function useMessageReactions(messageId: string, options?: UseMessageReact
     queryKey: queryKeys.messageReactions.myProfile(user?.id),
     queryFn: async () => {
       if (!user?.id) return null;
-      const { data, error } = await supabase.from('profiles')
+      const { data, error } = await supabase
+        .from('profiles')
         .select('id, name')
         .eq('user_id', user.id)
         .maybeSingle();
@@ -68,7 +72,8 @@ export function useMessageReactions(messageId: string, options?: UseMessageReact
   } = useQuery({
     queryKey: queryKeys.messageReactions.message(messageId),
     queryFn: async () => {
-      const { data, error } = await supabase.from('message_reactions')
+      const { data, error } = await supabase
+        .from('message_reactions')
         .select('*')
         .eq('message_id', messageId);
       if (error) throw error;
@@ -76,7 +81,8 @@ export function useMessageReactions(messageId: string, options?: UseMessageReact
       const userIds = (data?.filter((r) => r.user_id).map((r) => r.user_id) || []) as string[];
       let usersMap = new Map<string, string>();
       if (userIds.length > 0) {
-        const { data: users } = await supabase.from('profiles')
+        const { data: users } = await supabase
+          .from('profiles')
           .select('id, name')
           .in('id', userIds);
         usersMap = new Map(users?.map((u) => [u.id, u.name]) || []);
