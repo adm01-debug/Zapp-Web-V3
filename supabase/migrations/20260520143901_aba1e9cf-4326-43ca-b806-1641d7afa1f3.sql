@@ -94,6 +94,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS trg_set_transfer_ticket ON public.conversation_transfers;
 CREATE TRIGGER trg_set_transfer_ticket
 BEFORE INSERT ON public.conversation_transfers
 FOR EACH ROW
