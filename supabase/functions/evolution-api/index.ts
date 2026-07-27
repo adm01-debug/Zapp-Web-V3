@@ -963,7 +963,8 @@ Deno.serve(async (req) => {
           const { error: updateErr } = await supabase
             .from('evolution_messages')
             .update({ is_read: true })
-            .in('message_id', acknowledgedIds);
+            .in('message_id', acknowledgedIds)
+            .eq('instance_name', instance);
           if (updateErr) {
             log.warn('[evolution-api] read-messages: failed to persist is_read=true:', updateErr.message);
           }
@@ -971,7 +972,7 @@ Deno.serve(async (req) => {
             status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           });
         }
-        return new Response(JSON.stringify({ ok: false, skipped: true, upstream_status: envelope.status, details: envelope.message }), {
+        return new Response(JSON.stringify({ ok: false, skipped: true, upstream_status: envelope.status, reason: 'upstream_error' }), {
           status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       } catch (err) {

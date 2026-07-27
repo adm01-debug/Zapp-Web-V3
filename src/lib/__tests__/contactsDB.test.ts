@@ -65,7 +65,7 @@ function makeClient(chainOpts: ChainOpts = {}) {
 
 // ── Sample fixtures ───────────────────────────────────────────────────────────
 const CONTACT = {
-  id: 'c-1',
+  id: '11111111-1111-1111-1111-111111111111',
   user_id: 'u-1',
   company_id: null,
   first_name: 'João',
@@ -118,7 +118,7 @@ describe('contactsDB.getById', () => {
     mockGetExternal.mockReturnValue(
       makeClient({ maybeSingle: () => Promise.resolve({ data: CONTACT, error: null }) })
     );
-    expect(await contactsDB.getById('c-1')).toEqual(CONTACT);
+    expect(await contactsDB.getById('11111111-1111-1111-1111-111111111111')).toEqual(CONTACT);
   });
 
   it('returns null when no row matches', async () => {
@@ -132,7 +132,7 @@ describe('contactsDB.getById', () => {
     mockGetExternal.mockReturnValue(
       makeClient({ maybeSingle: () => Promise.resolve({ data: null, error: DB_ERROR }) })
     );
-    await expect(contactsDB.getById('c-1')).rejects.toThrow('db error');
+    await expect(contactsDB.getById('11111111-1111-1111-1111-111111111111')).rejects.toThrow('db error');
   });
 });
 
@@ -191,7 +191,7 @@ describe('contactsDB.findByPhoneTable', () => {
   });
 
   it('extracts and returns the nested .contacts from the contact_phones row', async () => {
-    const row = { contact_id: 'c-1', contacts: CONTACT };
+    const row = { contact_id: '11111111-1111-1111-1111-111111111111', contacts: CONTACT };
     mockGetExternal.mockReturnValue(
       makeClient({ maybeSingle: () => Promise.resolve({ data: row, error: null }) })
     );
@@ -220,14 +220,14 @@ describe('contactsDB.update', () => {
     mockGetExternal.mockReturnValue(
       makeClient({ single: () => Promise.resolve({ data: updated, error: null }) })
     );
-    expect(await contactsDB.update('c-1', { first_name: 'Maria' })).toEqual(updated);
+    expect(await contactsDB.update('11111111-1111-1111-1111-111111111111', { first_name: 'Maria' })).toEqual(updated);
   });
 
   it('accepts fields that include updated_at without throwing (strips it internally)', async () => {
     mockGetExternal.mockReturnValue(
       makeClient({ single: () => Promise.resolve({ data: CONTACT, error: null }) })
     );
-    const result = await contactsDB.update('c-1', {
+    const result = await contactsDB.update('11111111-1111-1111-1111-111111111111', {
       first_name: 'Test',
       updated_at: '2020-01-01T00:00:00Z',
     } as Parameters<typeof contactsDB.update>[1]);
@@ -238,7 +238,7 @@ describe('contactsDB.update', () => {
     mockGetExternal.mockReturnValue(
       makeClient({ single: () => Promise.resolve({ data: null, error: DB_ERROR }) })
     );
-    await expect(contactsDB.update('c-1', { first_name: 'X' })).rejects.toThrow('db error');
+    await expect(contactsDB.update('11111111-1111-1111-1111-111111111111', { first_name: 'X' })).rejects.toThrow('db error');
   });
 });
 
@@ -249,7 +249,7 @@ describe('contactsDB.updateAvatar', () => {
       makeClient({ terminalEq: () => Promise.resolve({ error: null }) })
     );
     await expect(
-      contactsDB.updateAvatar('c-1', 'https://example.com/avatar.png')
+      contactsDB.updateAvatar('11111111-1111-1111-1111-111111111111', 'https://example.com/avatar.png')
     ).resolves.toBeUndefined();
   });
 
@@ -257,7 +257,7 @@ describe('contactsDB.updateAvatar', () => {
     mockGetExternal.mockReturnValue(
       makeClient({ terminalEq: () => Promise.resolve({ error: DB_ERROR }) })
     );
-    await expect(contactsDB.updateAvatar('c-1', 'url')).rejects.toThrow('db error');
+    await expect(contactsDB.updateAvatar('11111111-1111-1111-1111-111111111111', 'url')).rejects.toThrow('db error');
   });
 });
 
@@ -331,7 +331,7 @@ describe('contactsDB.list', () => {
 describe('contactsDB.notes.list', () => {
   const NOTE = {
     id: 'n-1',
-    contact_id: 'c-1',
+    contact_id: '11111111-1111-1111-1111-111111111111',
     user_id: 'u-1',
     content: 'Hello',
     note_type: null,
@@ -343,27 +343,27 @@ describe('contactsDB.notes.list', () => {
     mockGetExternal.mockReturnValue(
       makeClient({ terminalLimit: () => Promise.resolve({ data: [NOTE], error: null }) })
     );
-    expect(await contactsDB.notes.list('c-1')).toEqual([NOTE]);
+    expect(await contactsDB.notes.list('11111111-1111-1111-1111-111111111111')).toEqual([NOTE]);
   });
 
   it('returns [] when DB returns null data', async () => {
     mockGetExternal.mockReturnValue(
       makeClient({ terminalLimit: () => Promise.resolve({ data: null, error: null }) })
     );
-    expect(await contactsDB.notes.list('c-1')).toEqual([]);
+    expect(await contactsDB.notes.list('11111111-1111-1111-1111-111111111111')).toEqual([]);
   });
 
   it('propagates DB errors', async () => {
     mockGetExternal.mockReturnValue(
       makeClient({ terminalLimit: () => Promise.resolve({ data: null, error: DB_ERROR }) })
     );
-    await expect(contactsDB.notes.list('c-1')).rejects.toThrow('db error');
+    await expect(contactsDB.notes.list('11111111-1111-1111-1111-111111111111')).rejects.toThrow('db error');
   });
 });
 
 // ── notes.create ──────────────────────────────────────────────────────────────
 describe('contactsDB.notes.create', () => {
-  const PAYLOAD = { contact_id: 'c-1', user_id: 'u-1', content: 'Note text' };
+  const PAYLOAD = { contact_id: '11111111-1111-1111-1111-111111111111', user_id: 'u-1', content: 'Note text' };
   const CREATED_NOTE = {
     ...PAYLOAD,
     id: 'n-1',
@@ -425,7 +425,7 @@ describe('contactsDB.notes.delete', () => {
 describe('contactsDB.phones.list', () => {
   const PHONE_ROW = {
     id: 'p-1',
-    contact_id: 'c-1',
+    contact_id: '11111111-1111-1111-1111-111111111111',
     phone: '11999990000',
     phone_type: 'mobile',
     is_primary: true,
@@ -437,21 +437,21 @@ describe('contactsDB.phones.list', () => {
     mockGetExternal.mockReturnValue(
       makeClient({ terminalOrder: () => Promise.resolve({ data: [PHONE_ROW], error: null }) })
     );
-    expect(await contactsDB.phones.list('c-1')).toEqual([PHONE_ROW]);
+    expect(await contactsDB.phones.list('11111111-1111-1111-1111-111111111111')).toEqual([PHONE_ROW]);
   });
 
   it('returns [] when DB returns null data', async () => {
     mockGetExternal.mockReturnValue(
       makeClient({ terminalOrder: () => Promise.resolve({ data: null, error: null }) })
     );
-    expect(await contactsDB.phones.list('c-1')).toEqual([]);
+    expect(await contactsDB.phones.list('11111111-1111-1111-1111-111111111111')).toEqual([]);
   });
 
   it('propagates DB errors', async () => {
     mockGetExternal.mockReturnValue(
       makeClient({ terminalOrder: () => Promise.resolve({ data: null, error: DB_ERROR }) })
     );
-    await expect(contactsDB.phones.list('c-1')).rejects.toThrow('db error');
+    await expect(contactsDB.phones.list('11111111-1111-1111-1111-111111111111')).rejects.toThrow('db error');
   });
 });
 
@@ -459,7 +459,7 @@ describe('contactsDB.phones.list', () => {
 describe('contactsDB.emails.list', () => {
   const EMAIL_ROW = {
     id: 'e-1',
-    contact_id: 'c-1',
+    contact_id: '11111111-1111-1111-1111-111111111111',
     email: 'joao@x.com',
     email_type: 'work',
     is_primary: true,
@@ -470,21 +470,21 @@ describe('contactsDB.emails.list', () => {
     mockGetExternal.mockReturnValue(
       makeClient({ terminalOrder: () => Promise.resolve({ data: [EMAIL_ROW], error: null }) })
     );
-    expect(await contactsDB.emails.list('c-1')).toEqual([EMAIL_ROW]);
+    expect(await contactsDB.emails.list('11111111-1111-1111-1111-111111111111')).toEqual([EMAIL_ROW]);
   });
 
   it('returns [] when DB returns null data', async () => {
     mockGetExternal.mockReturnValue(
       makeClient({ terminalOrder: () => Promise.resolve({ data: null, error: null }) })
     );
-    expect(await contactsDB.emails.list('c-1')).toEqual([]);
+    expect(await contactsDB.emails.list('11111111-1111-1111-1111-111111111111')).toEqual([]);
   });
 
   it('propagates DB errors', async () => {
     mockGetExternal.mockReturnValue(
       makeClient({ terminalOrder: () => Promise.resolve({ data: null, error: DB_ERROR }) })
     );
-    await expect(contactsDB.emails.list('c-1')).rejects.toThrow('db error');
+    await expect(contactsDB.emails.list('11111111-1111-1111-1111-111111111111')).rejects.toThrow('db error');
   });
 });
 
