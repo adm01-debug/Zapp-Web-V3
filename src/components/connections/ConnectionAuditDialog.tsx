@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { getLogger } from '@/lib/logger';
 import { useMountedRef } from '@/hooks/useMountedRef';
 
@@ -29,13 +29,7 @@ export function ConnectionAuditDialog({
   const [loading, setLoading] = useState(false);
   const mountedRef = useMountedRef();
 
-  useEffect(() => {
-    if (open && instanceId) {
-      fetchLogs();
-    }
-  }, [open, instanceId]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const fetchLogs = async () => {
+  const fetchLogs = useCallback(async () => {
     setLoading(true);
     try {
       const data = await fetchConnectionAuditLogs(instanceId);
@@ -46,7 +40,13 @@ export function ConnectionAuditDialog({
     } finally {
       if (mountedRef.current) setLoading(false);
     }
-  };
+  }, [instanceId, mountedRef]);
+
+  useEffect(() => {
+    if (open && instanceId) {
+      void fetchLogs();
+    }
+  }, [open, instanceId, fetchLogs]);
 
   const getActionIcon = (action: string) => {
     if (
