@@ -17,12 +17,14 @@ AS $$ BEGIN RETURN NEW; END; $$;
 CREATE OR REPLACE FUNCTION public.is_queue_member_of_contact(_contact_id uuid, _user_id uuid)
 RETURNS boolean LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public','zapp','pg_catalog'
 AS $$ BEGIN RETURN zapp.is_queue_member_of_contact(_contact_id, _user_id); END; $$;
+DROP FUNCTION IF EXISTS public.log_rls_denied(text, text, jsonb);
 CREATE OR REPLACE FUNCTION public.log_rls_denied(p_resource text, p_required_role text, p_context jsonb)
 RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public','zapp','pg_catalog'
 AS $$ BEGIN PERFORM zapp.log_rls_denied(p_resource, p_required_role, p_context); END; $$;
 CREATE OR REPLACE FUNCTION public.on_role_change()
 RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public','zapp','pg_catalog'
 AS $$ BEGIN RETURN NEW; END; $$;
+DROP FUNCTION IF EXISTS public.purge_old_query_telemetry(integer);
 CREATE OR REPLACE FUNCTION public.purge_old_query_telemetry(p_days integer)
 RETURNS integer LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public','zapp','pg_catalog'
 AS $$ BEGIN RETURN zapp.purge_old_query_telemetry(p_days); END; $$;
