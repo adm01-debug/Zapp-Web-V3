@@ -131,13 +131,17 @@ for (const filePath of files) {
     const writeToPublicProxy =
       /\b(INSERT\s+INTO|UPDATE)\s+(public\.)(notifications|profiles|user_roles|failed_messages|dispatch_error_logs)\b/i;
     if (writeToPublicProxy.test(line)) {
-      const match = line.match(/\b(INSERT\s+INTO|UPDATE)\s+(public\.)(\w+)\b/i);
-      if (match && PUBLIC_VIEW_PROXIES.has(match[3].toLowerCase())) {
-        addViolation(
-          filePath, lineNum, 'ML-002',
-          `Writing to public.${match[3]} (VIEW proxy) at line ${lineNum}. ` +
-          `Use zapp.${match[3]} (physical table) to trigger Realtime CDC + correct RLS.`
-        );
+      // Allow per-line suppression with -- ignore-lint-ml002
+      const isExempt = /--\s*ignore-lint-ml002/i.test(line);
+      if (!isExempt) {
+        const match = line.match(/\b(INSERT\s+INTO|UPDATE)\s+(public\.)(\w+)\b/i);
+        if (match && PUBLIC_VIEW_PROXIES.has(match[3].toLowerCase())) {
+          addViolation(
+            filePath, lineNum, 'ML-002',
+            `Writing to public.${match[3]} (VIEW proxy) at line ${lineNum}. ` +
+            `Use zapp.${match[3]} (physical table) to trigger Realtime CDC + correct RLS.`
+          );
+        }
       }
     }
 
