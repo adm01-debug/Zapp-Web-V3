@@ -121,7 +121,7 @@ export function RetryMetricsPanel() {
 
   const { data, isLoading, refetch, isFetching, byInstance } = useRetryMetrics(filters);
 
-  const rows = data?.rows ?? [];
+  const rows = useMemo(() => data?.rows ?? [], [data]);
   const agg = data?.aggregates;
 
   const breaches = useMemo(

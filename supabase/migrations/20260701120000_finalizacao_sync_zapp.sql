@@ -28,6 +28,8 @@ ALTER TABLE zapp.instance_registry ADD COLUMN IF NOT EXISTS message_count_sent i
 ALTER TABLE zapp.instance_registry ADD COLUMN IF NOT EXISTS message_count_received integer DEFAULT 0;
 ALTER TABLE zapp.instance_registry ADD COLUMN IF NOT EXISTS error_logs text;
 ALTER TABLE zapp.instance_registry ADD COLUMN IF NOT EXISTS metadata jsonb DEFAULT '{}'::jsonb;
+ALTER TABLE zapp.instance_registry ADD COLUMN IF NOT EXISTS responsible_name text;
+ALTER TABLE zapp.instance_registry ADD COLUMN IF NOT EXISTS responsible_email text;
 
 -- 1.2 zapp.conversation_transfers (+7)
 ALTER TABLE zapp.conversation_transfers ADD COLUMN IF NOT EXISTS from_agent_id uuid;
@@ -54,28 +56,34 @@ ALTER TABLE public.departments ADD COLUMN IF NOT EXISTS whatsapp_mode text DEFAU
 ALTER TABLE public.departments ADD COLUMN IF NOT EXISTS whatsapp_api_key text;
 ALTER TABLE public.departments ADD COLUMN IF NOT EXISTS whatsapp_instance_id text;
 
--- 1.6 public.profiles (+2)
+-- 1.6 public.profiles (+3)
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS _admin_user_id uuid;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS online_status text DEFAULT 'offline'::text;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS is_online boolean DEFAULT false;
 
 -- ╔═══ SEÇÃO 2 — RECRIAÇÃO DAS VIEWS DE COMPATIBILIDADE ═══╗
-CREATE OR REPLACE VIEW public.instance_registry WITH (security_invoker=true) AS
+DROP VIEW IF EXISTS public.instance_registry;
+CREATE VIEW public.instance_registry WITH (security_invoker=true) AS
     SELECT id, instance_name, display_name, phone_number, department, responsible_name, responsible_email, is_active, webhook_url, webhook_enabled, auto_reply_enabled, auto_reply_message, business_hours_enabled, max_concurrent_chats, sla_first_response_minutes, sla_resolution_hours, bitrix_integration, n8n_workflows, config, notes, created_at, updated_at, slot_name, operator_name, operator_email, operator_since, operator_phone, usage_type, owner_id, status, connection_status, api_key, api_url, profile_picture, is_master, proxy_host, proxy_port, proxy_user, proxy_pass, settings, last_connected_at, message_count_sent, message_count_received, error_logs, metadata
     FROM zapp.instance_registry;
 
-CREATE OR REPLACE VIEW public.conversation_transfers WITH (security_invoker=true) AS
+DROP VIEW IF EXISTS public.conversation_transfers;
+CREATE VIEW public.conversation_transfers WITH (security_invoker=true) AS
     SELECT id, ticket_number, source_instance, source_conversation_id, source_message_id, source_operator, target_instance, target_conversation_id, target_operator, contact_id, remote_jid, contact_name, transfer_type, category, reason, context_summary, context_messages, tags, status, priority, created_at, updated_at, accepted_at, completed_at, expires_at, resolution_notes, resolution_type, from_agent_id, to_agent_id, from_queue_id, to_queue_id, sla_deadline, return_reason, metadata
     FROM zapp.conversation_transfers;
 
-CREATE OR REPLACE VIEW public.transfer_comments WITH (security_invoker=true) AS
+DROP VIEW IF EXISTS public.transfer_comments;
+CREATE VIEW public.transfer_comments WITH (security_invoker=true) AS
     SELECT id, transfer_id, author_name, author_instance, content, created_at, agent_id, metadata
     FROM zapp.transfer_comments;
 
-CREATE OR REPLACE VIEW zapp.departments WITH (security_invoker=true) AS
+DROP VIEW IF EXISTS zapp.departments;
+CREATE VIEW zapp.departments WITH (security_invoker=true) AS
     SELECT created_at, description, id, is_active, name, slug, updated_at, whatsapp_mode, whatsapp_api_key, whatsapp_instance_id
     FROM public.departments;
 
-CREATE OR REPLACE VIEW zapp.profiles WITH (security_invoker=true) AS
+DROP VIEW IF EXISTS zapp.profiles;
+CREATE VIEW zapp.profiles WITH (security_invoker=true) AS
     SELECT id, user_id, name, email, avatar_url, role, max_chats, department, is_online, last_seen, created_at, updated_at, access_level, birthday, can_download, department_id, is_active, job_title, nickname, permissions, phone, session_invalidated_at, signature, _admin_user_id, online_status
     FROM public.profiles;
 
@@ -140,7 +148,15 @@ DROP POLICY IF EXISTS "Custom scopes are viewable by everyone" ON zapp.inbox_cus
 CREATE POLICY "Custom scopes are viewable by everyone" ON zapp.inbox_custom_scopes FOR SELECT TO authenticated USING (true);
 DROP POLICY IF EXISTS "Only admins can manage custom scopes" ON zapp.inbox_custom_scopes;
 CREATE POLICY "Only admins can manage custom scopes" ON zapp.inbox_custom_scopes TO authenticated USING (public.is_admin_or_supervisor(auth.uid())) WITH CHECK (public.is_admin_or_supervisor(auth.uid()));
-CREATE OR REPLACE VIEW public.inbox_custom_scopes WITH (security_invoker=true) AS SELECT * FROM zapp.inbox_custom_scopes;
+-- public.inbox_custom_scopes may exist as TABLE from migration 20260527122016; migrate data then replace with VIEW
+DO $$ BEGIN
+  IF EXISTS (SELECT FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relname='inbox_custom_scopes' AND c.relkind='r') THEN
+    INSERT INTO zapp.inbox_custom_scopes SELECT * FROM public.inbox_custom_scopes ON CONFLICT (id) DO NOTHING;
+    DROP TABLE public.inbox_custom_scopes CASCADE;
+  END IF;
+END $$;
+DROP VIEW IF EXISTS public.inbox_custom_scopes;
+CREATE VIEW public.inbox_custom_scopes WITH (security_invoker=true) AS SELECT * FROM zapp.inbox_custom_scopes;
 
 -- 3.4 zapp.dlq_audit_log (+ view public.dlq_audit_log)
 CREATE TABLE IF NOT EXISTS zapp.dlq_audit_log (
@@ -155,7 +171,15 @@ CREATE TABLE IF NOT EXISTS zapp.dlq_audit_log (
 ALTER TABLE zapp.dlq_audit_log ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Admins view dlq" ON zapp.dlq_audit_log;
 CREATE POLICY "Admins view dlq" ON zapp.dlq_audit_log FOR SELECT TO authenticated USING ((EXISTS ( SELECT 1 FROM public.user_roles WHERE ((user_roles.user_id = auth.uid()) AND (user_roles.role = ANY (ARRAY['admin'::public.app_role, 'supervisor'::public.app_role]))))));
-CREATE OR REPLACE VIEW public.dlq_audit_log WITH (security_invoker=true) AS SELECT * FROM zapp.dlq_audit_log;
+-- public.dlq_audit_log may exist as TABLE from migration 20260521104452; migrate data then replace with VIEW
+DO $$ BEGIN
+  IF EXISTS (SELECT FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relname='dlq_audit_log' AND c.relkind='r') THEN
+    INSERT INTO zapp.dlq_audit_log(id,action,item_id,performed_by,reason,created_at) SELECT id,action,item_id,performed_by,reason,created_at FROM public.dlq_audit_log ON CONFLICT (id) DO NOTHING;
+    DROP TABLE public.dlq_audit_log CASCADE;
+  END IF;
+END $$;
+DROP VIEW IF EXISTS public.dlq_audit_log;
+CREATE VIEW public.dlq_audit_log WITH (security_invoker=true) AS SELECT * FROM zapp.dlq_audit_log;
 
 -- ╔═══ SEÇÃO 4 — TRIGGER: sincronismo online_status <-> is_online ═══╗
 CREATE OR REPLACE FUNCTION zapp.sync_profile_online_status()
@@ -175,7 +199,18 @@ ALTER TABLE evo.evolution_health_logs ADD COLUMN IF NOT EXISTS connection_id uui
 ALTER TABLE evo.evolution_health_logs ADD COLUMN IF NOT EXISTS error_count integer DEFAULT 0;
 ALTER TABLE evo.evolution_health_logs ADD COLUMN IF NOT EXISTS success_count integer DEFAULT 0;
 ALTER TABLE evo.evolution_health_logs ADD COLUMN IF NOT EXISTS created_at timestamp with time zone DEFAULT now();
-CREATE OR REPLACE VIEW public.evolution_health_logs AS
+ALTER TABLE evo.evolution_health_logs ADD COLUMN IF NOT EXISTS endpoint_tested text;
+ALTER TABLE evo.evolution_health_logs ADD COLUMN IF NOT EXISTS http_status_code integer;
+ALTER TABLE evo.evolution_health_logs ADD COLUMN IF NOT EXISTS metadata jsonb DEFAULT '{}'::jsonb;
+-- public.evolution_health_logs may exist as TABLE from migration 20260506193742; drop whatever exists then create VIEW
+DO $$ BEGIN
+  IF EXISTS (SELECT FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relname='evolution_health_logs' AND c.relkind='r') THEN
+    DROP TABLE public.evolution_health_logs CASCADE;
+  ELSIF EXISTS (SELECT FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relname='evolution_health_logs' AND c.relkind='v') THEN
+    DROP VIEW public.evolution_health_logs CASCADE;
+  END IF;
+END $$;
+CREATE VIEW public.evolution_health_logs AS
  SELECT id, instance_name, status, error_message, response_time_ms, online_instances, total_instances, endpoint_tested, http_status_code, metadata, performed_at, connection_id, error_count, success_count, created_at
  FROM evo.evolution_health_logs;
 

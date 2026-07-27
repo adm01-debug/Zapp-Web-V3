@@ -155,6 +155,10 @@ export const useMessageStatus = (contactId?: string) => {
       }
       return undefined;
     },
+    // busTick is an intentional invalidation trigger: getSendStatus reads from an
+    // external store; listing busTick here ensures memoized consumers see fresh values
+    // whenever the bus fires (even though the callback body doesn't reference it directly).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [statusUpdates, busTick]
   );
 
@@ -184,6 +188,8 @@ export const useMessageStatus = (contactId?: string) => {
         errorReason: db?.error_reason ?? undefined,
       };
     },
+    // busTick: intentional invalidation trigger (see getMessageStatus above)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [statusUpdates, busTick, getMessageStatus]
   );
 

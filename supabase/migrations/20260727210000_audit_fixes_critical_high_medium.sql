@@ -1,1 +1,148 @@
-LS0gPT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT0KLS0gQXVkaXQgRml4ZXMg4oCUIENyaXRpY2FsLCBIaWdoLCBhbmQgTWVkaXVtIGZpbmRpbmdzIGZyb20gMjAyNi0wNy0yNyBhdWRpdAotLQotLSBGaW5kaW5ncyBmaXhlZDoKLS0gICBDUklUSUNBTCAxICBCVUctMTkgcmVpbnRyb2R1Y2VkOiBycGNfbGlzdF9kaXNwYXRjaF9lcnJvcl9sb2dzX2N1cnNvciB1c2VkCi0tICAgICAgICAgICAgICAgZC5jcmVhdGVkX2F0IEFTIG9jY3VycmVkX2F0ICsgdW51c2VkIExFRlQgSk9JTiArIGN1cnNvciBzaWRlIG1pc21hdGNoCi0tICAgQ1JJVElDQUwgMiAgU3RhbGUgbm93KCkgY29uc3RhbnQgaW4gcGFydGlhbCBpbmRleCBvbiBwcm9jZXNzZWRfcmVxdWVzdHMKLS0gICBDUklUSUNBTCAzICBTdGFsZSBub3coKSBjb25zdGFudCBpbiBwYXJ0aWFsIGluZGV4IG9uIGFuYWx5dGljc19ldmVudHMKLS0gICBDUklUSUNBTCA0ICBjLnRlbGVmb25lIOKGkiBjLnBob25lIGluIGdldF9jb250YWN0X2ludGVsbGlnZW5jZV9ieV9waG9uZQotLSAgIEhJR0ggNiAgICAgIE1pc3NpbmcgUkVWT0tFIG9uIHJwY19saXN0X2Rpc3BhdGNoX2Vycm9yX2xvZ3NfY3Vyc29yIChQVUJMSUMgZ2V0cyBFWEVDVVRFKQotLSAgIEhJR0ggNyAgICAgIE1pc3NpbmcgUkVWT0tFIG9uIHJwY19kbHFfbGlzdF9hdWRpdF9jdXJzb3IKLS0gICBISUdIIDggICAgICBNaXNzaW5nIFJFVk9LRSBvbiBzZWFyY2hfY29udGFjdHNfY3Vyc29yCi0tICAgSElHSCA5ICAgICAgemFwcC5jYWxscyBTRUxFQ1QgcG9saWN5IFVTSU5HICh0cnVlKSDigJQgbm8gd29ya3NwYWNlIGlzb2xhdGlvbgotLSAgIEhJR0ggMTEgICAgIHNlYXJjaF9jb250YWN0c19jdXJzb3Igc2lsZW50bHkgc3dhbGxvd3MgaW52YWxpZCBzb3J0X2RpcmVjdGlvbiAoQlVHLTE1IHJlZ3Jlc3Npb24pCi0tICAgTUVESVVNIDEyICAgaW1hcF9zbXRwX2FjY291bnRzIFZJRVcgZ3JhbnRzIElOU0VSVC9VUERBVEUvREVMRVRFIHRvIGF1dGhlbnRpY2F0ZWQKLS0gICBNRURJVU0gMTMgICBmbl9ldm9sdXRpb25fc3RhdHVzX3Vua25vd24gU0VDREVGIGhhcyBwdWJsaWMgaW4gc2VhcmNoX3BhdGgKLS0gICBNRURJVU0gMTQgICBmbl9yZWZyZXNoX3JvbGVfcGVybWlzc2lvbnNfbXYgU0VDREVGIGhhcyBwdWJsaWMgaW4gc2VhcmNoX3BhdGgKLS0gICBNRURJVU0gMTUgICBpc19mZWF0dXJlX2VuYWJsZWQgU0VDREVGIGhhcyBwdWJsaWMgaW4gc2VhcmNoX3BhdGgKLS0gICBNRURJVU0gMTYgICBmbl90b3VjaF91cGRhdGVkX2F0IC8gZm5fdG91Y2hfcm9sZV9wZXJtaXNzaW9uc191cGRhdGVkX2F0IG1pc3NpbmcgU0VUIHNlYXJjaF9wYXRoCi0tICAgTUVESVVNIDE3ICAgZW1haWxfdHJhY2tlZF9saW5rcyBSTFMgVVNJTkcgKFRSVUUpIOKAlCBubyB0ZW5hbnQgaXNvbGF0aW9uCi0tICAgTUVESVVNIDE4ICAgZ2V0X2FsbF90YWJsZV9uYW1lcyBleHBvc2VzIHNjaGVtYSB0byBhdXRoZW50aWNhdGVkIHVzZXJzIChyZXN0cmljdCB0byBzZXJ2aWNlX3JvbGUpCi0tICAgTkVXIEJVRy0zOCAgQXV0aFByb3ZpZGVyIHN1YnNjcmliZXMgcHJvZmlsZXMgd2l0aCBzY2hlbWE6J3B1YmxpYycgKG5vLW9wKSDihpIgbmVlZHMgcHVibGljYXRpb24gdG9vCi0tICAgTkVXIEJVRy0zOSAgQXV0aFByb3ZpZGVyIHN1YnNjcmliZXMgdXNlcl9yb2xlcyB3aXRoIHNjaGVtYToncHVibGljJyAobm8tb3ApIOKGkiBuZWVkcyBwdWJsaWNhdGlvbgotLSAgIE5FVyBCVUctNDAgIHVzZUJyaWRnZVN0YXR1cyBzdWJzY3JpYmVzIHN5c3RlbV9oZWFsdGhfaW5jaWRlbnRzIHdpdGggc2NoZW1hOidwdWJsaWMnIChuby1vcCkKLS0KLS0gVHlwZVNjcmlwdCBmaXhlcyAoc2VwYXJhdGUgZWRpdHMpOgotLSAgIEF1dGhQcm92aWRlci50c3g6NDI0ICAgIHNjaGVtYToncHVibGljJyDihpIgc2NoZW1hOid6YXBwJyBmb3IgcHJvZmlsZXMKLS0gICBBdXRoUHJvdmlkZXIudHN4OjQ0MCAgICBzY2hlbWE6J3B1YmxpYycg4oaSIHNjaGVtYTonemFwcCcgZm9yIHVzZXJfcm9sZXMKLS0gICB1c2VCcmlkZ2VTdGF0dXMudHM6MjAyICBzY2hlbWE6J3B1YmxpYycg4oaSIHNjaGVtYTonemFwcCcgZm9yIHN5c3RlbV9oZWFsdGhfaW5jaWRlbnRzCi0tID09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09CgoKLS0gPT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT0KLS0gQ1JJVElDQUwgMSArIEhJR0ggNjogRml4IHJwY19saXN0X2Rpc3BhdGNoX2Vycm9yX2xvZ3NfY3Vyc29yCi0tICAgLSBSZW1vdmUgdW51c2VkIExFRlQgSk9JTiBldm8uZXZvbHV0aW9uX21lc3NhZ2VzIChhZGRzIHBsYW5uZXIgb3ZlcmhlYWQgb24gcGFydGl0aW9uZWQgdGFibGUpCi0tICAgLSBVc2UgZC5yZW1vdGVfamlkIGRpcmVjdGx5IChub3QgZW0ucmVtb3RlX2ppZCBmcm9tIHJlbW92ZWQgam9pbikKLS0gICAtIFVzZSBkLm9jY3VycmVkX2F0IGRpcmVjdGx5IChub3QgZC5jcmVhdGVkX2F0IEFTIG9jY3VycmVkX2F0KQotLSAgIC0gRml4IGN1cnNvcjogYm90aCBzaWRlcyBtdXN0IHJlZmVyZW5jZSB0aGUgc2FtZSBjb2x1bW4gKG9jY3VycmVkX2F0LCBub3QgY3JlYXRlZF9hdCkKLS0gICAtIEFkZCBtaXNzaW5nIFJFVk9LRSBiZWZvcmUgR1JBTlQKLS0gPT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT0KQ1JFQVRFIE9SIFJFUExBQ0UgRlVOQ1RJT04gemFwcC5ycGNfbGlzdF9kaXNwYXRjaF9lcnJvcl9sb2dzX2N1cnNvcigKICBwX2Zyb20gICAgICAgIHRpbWVzdGFtcHR6IERFRkFVTFQgTlVMTCwKICBwX3RvICAgICAgICAgIHRpbWVzdGFtcHR6IERFRkFVTFQgTlVMTCwKICBwX2luc3RhbmNlICAgIHRleHQgICAgICAgIERFRkFVTFQgTlVMTCwKICBwX2FnZW50ICAgICAgIHRleHQgICAgICAgIERFRkFVTFQgTlVMTCwKICBwX2Vycm9yX2NvZGUgIHRleHQgICAgICAgIERFRkFVTFQgTlVMTCwKICBwX3NlYXJjaCAgICAgIHRleHQgICAgICAgIERFRkFVTFQgTlVMTCwKICBwX2xpbWl0ICAgICAgIGludCAgICAgICAgIERFRkFVTFQgNTAsCiAgcF9jdXJzb3JfaWQgICB1dWlkICAgICAgICBERUZBVUxUIE5VTEwKKQpSRVRVUk5TIFRBQkxFKAogIGlkICAgICAgICAgICAgICAgIHV1aWQsCiAgZmFpbGVkX21lc3NhZ2VfaWQgdXVpZCwKICBpbnN0YW5jZV9uYW1lICAgICB0ZXh0LAogIHJlbW90ZV9qaWQgICAgICAgIHRleHQsCiAgY2hhbm5lbF90eXBlICAgICAgdGV4dCwKICBhZ2VudF9lbWFpbCAgICAgICB0ZXh0LAogIGFnZW50X3VzZXJfaWQgICAgIHV1aWQsCiAgZXJyb3JfY29kZSAgICAgICAgdGV4dCwKICBlcnJvcl9tZXNzYWdlICAgICB0ZXh0LAogIGh0dHBfc3RhdHVzICAgICAgIGludCwKICByZXRyeV9jb3VudCAgICAgICBpbnQsCiAgcGF5bG9hZCAgICAgICAgICAganNvbmIsCiAgY29udGV4dCAgICAgICAgICAganNvbmIsCiAgb2NjdXJyZWRfYXQgICAgICAgdGltZXN0YW1wdHosCiAgdG90YWxfY291bnQgICAgICAgYmlnaW50CikKTEFOR1VBR0UgcGxwZ3NxbApTVEFCTEUKU0VDVVJJVFkgREVGSU5FUgpTRVQgc2VhcmNoX3BhdGggPSB6YXBwCkFTICQkCkJFR0lOCiAgSUYgTk9UIHphcHAuaXNfYWRtaW5fb3Jfc3VwZXJ2aXNvcihhdXRoLnVpZCgpKSBUSEVOCiAgICBQRVJGT1JNIHphcHAubG9nX3Jsc19kZW5pZWQoCiAgICAgICdkaXNwYXRjaF9lcnJvcl9sb2dzJywgJ2FkbWlufHN1cGVydmlzb3InLAogICAgICBqc29uYl9idWlsZF9vYmplY3QoJ3JwYycsICdycGNfbGlzdF9kaXNwYXRjaF9lcnJvcl9sb2dzX2N1cnNvcicpCiAgICApOwogICAgUkFJU0UgRVhDRVBUSU9OICdmb3JiaWRkZW4nIFVTSU5HIEVSUkNPREUgPSAnNDI1MDEnOwogIEVORCBJRjsKCiAgUkVUVVJOIFFVRVJZCiAgV0lUSCBiYXNlIEFTICgKICAgIFNFTEVDVAogICAgICBkLmlkLAogICAgICBkLmZhaWxlZF9tZXNzYWdlX2lkLAogICAgICBkLmluc3RhbmNlX25hbWUsCiAgICAgIGQucmVtb3RlX2ppZCwgICAgICAgICAgIC0tIEZJWDogd2FzIGVtLnJlbW90ZV9qaWQgKGZyb20gcmVtb3ZlZCB1bnVzZWQgSk9JTikKICAgICAgZC5jaGFubmVsX3R5cGUsCiAgICAgIGQuYWdlbnRfZW1haWwsCiAgICAgIGQuYWdlbnRfdXNlcl9pZCwKICAgICAgZC5lcnJvcl9jb2RlLAogICAgICBkLmVycm9yX21lc3NhZ2UsCiAgICAgIGQuaHR0cF9zdGF0dXMsCiAgICAgIGQucmV0cnlfY291bnQsCiAgICAgIGQucGF5bG9hZCwKICAgICAgZC5jb250ZXh0LAogICAgICBkLm9jY3VycmVkX2F0ICAgICAgICAgICAtLSBGSVg6IHdhcyBkLmNyZWF0ZWRfYXQgQVMgb2NjdXJyZWRfYXQgKHdyb25nIGNvbHVtbikKICAgIEZST00gemFwcC5kaXNwYXRjaF9lcnJvcl9sb2dzIGQKICAgIC0tIEZJWDogcmVtb3ZlZCB1bnVzZWQgTEVGVCBKT0lOIGV2by5ldm9sdXRpb25fbWVzc2FnZXMgZW0gKGFkZGVkIHBsYW5uZXIgb3ZlcmhlYWQKICAgIC0tICAgICAgb24gYSAyNS1wYXJ0aXRpb24gdGFibGU7IG5vIGNvbHVtbnMgZnJvbSBlbSB3ZXJlIHVzZWQgaW4gU0VMRUNUIG9yIFdIRVJFKQogICAgV0hFUkUgKHBfZnJvbSAgICAgICBJUyBOVUxMIE9SIGQub2NjdXJyZWRfYXQgPj0gcF9mcm9tKQogICAgICBBTkQgKHBfdG8gICAgICAgICBJUyBOVUxMIE9SIGQub2NjdXJyZWRfYXQgPD0gcF90bykKICAgICAgQU5EIChwX2luc3RhbmNlICAgSVMgTlVMTCBPUiBkLmluc3RhbmNlX25hbWUgPSBwX2luc3RhbmNlKQogICAgICBBTkQgKHBfYWdlbnQgICAgICBJUyBOVUxMIE9SIGQuYWdlbnRfZW1haWwgICA9IHBfYWdlbnQpCiAgICAgIEFORCAocF9lcnJvcl9jb2RlIElTIE5VTEwgT1IgZC5lcnJvcl9jb2RlICAgID0gcF9lcnJvcl9jb2RlKQogICAgICBBTkQgKHBfc2VhcmNoICAgICBJUyBOVUxMCiAgICAgICAgICAgT1IgZC5lcnJvcl9tZXNzYWdlIElMSUtFICclJyB8fCBwX3NlYXJjaCB8fCAnJScKICAgICAgICAgICBPUiBkLmVycm9yX2NvZGUgICAgSUxJS0UgJyUnIHx8IHBfc2VhcmNoIHx8ICclJykKICApLAogIHRvdGFsIEFTIChTRUxFQ1QgQ09VTlQoKik6OmJpZ2ludCBBUyBjbnQgRlJPTSBiYXNlKQogIFNFTEVDVAogICAgYi5pZCwgYi5mYWlsZWRfbWVzc2FnZV9pZCwgYi5pbnN0YW5jZV9uYW1lLCBiLnJlbW90ZV9qaWQsCiAgICBiLmNoYW5uZWxfdHlwZSwgYi5hZ2VudF9lbWFpbCwgYi5hZ2VudF91c2VyX2lkLCBiLmVycm9yX2NvZGUsCiAgICBiLmVycm9yX21lc3NhZ2UsIGIuaHR0cF9zdGF0dXMsIGIucmV0cnlfY291bnQsIGIucGF5bG9hZCwKICAgIGIuY29udGV4dCwgYi5vY2N1cnJlZF9hdCwgdC5jbnQgQVMgdG90YWxfY291bnQKICBGUk9NIGJhc2UgYiwgdG90YWwgdAogIFdIRVJFIChwX2N1cnNvcl9pZCBJUyBOVUxMIE9SCiAgICAgICAgIChiLm9jY3VycmVkX2F0LCBiLmlkKSA8ICgKICAgICAgICAgICBTRUxFQ1QgYy5vY2N1cnJlZF9hdCwgYy5pZCAgICAgLS0gRklYOiB3YXMgYy5jcmVhdGVkX2F0IChjdXJzb3Igc2lkZSBtaXNtYXRjaCkKICAgICAgICAgICBGUk9NIHphcHAuZGlzcGF0Y2hfZXJyb3JfbG9ncyBjCiAgICAgICAgICAgV0hFUkUgYy5pZCA9IHBfY3Vyc29yX2lkCiAgICAgICAgICkpCiAgT1JERVIgQlkgYi5vY2N1cnJlZF9hdCBERVNDLCBiLmlkIERFU0MKICBMSU1JVCBDT0FMRVNDRShwX2xpbWl0LCA1MCk7CkVORDsKJCQ7CgpSRVZPS0UgQUxMIE9OIEZVTkNUSU9OIHphcHAucnBjX2xpc3RfZGlzcGF0Y2hfZXJyb3JfbG9nc19jdXJzb3IodGltZXN0YW1wdHosIHRpbWVzdGFtcHR6LCB0ZXh0LCB0ZXh0LCB0ZXh0LCB0ZXh0LCBpbnQsIHV1aWQpCiAgRlJPTSBQVUJMSUMsIGFub247CkdSQU5UIEVYRUNVVEUgT04gRlVOQ1RJT04gemFwcC5ycGNfbGlzdF9kaXNwYXRjaF9lcnJvcl9sb2dzX2N1cnNvcih0aW1lc3RhbXB0eiwgdGltZXN0YW1wdHosIHRleHQsIHRleHQsIHRleHQsIHRleHQsIGludCwgdXVpZCkKICBUTyBhdXRoZW50aWNhdGVkLCBzZXJ2aWNlX3JvbGU7CgoKLS0gPT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT0KLS0gSElHSCA3OiBBZGQgbWlzc2luZyBSRVZPS0UgZm9yIHJwY19kbHFfbGlzdF9hdWRpdF9jdXJzb3IKLS0gPT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT0KUkVWT0tFIEFMTCBPTiBGVU5DVElPTiB6YXBwLnJwY19kbHFfbGlzdF9hdWRpdF9jdXJzb3IoaW50LCB0ZXh0LCB1dWlkKQogIEZST00gUFVCTElDLCBhbm9uOwpHUkFOVCBFWEVDVVRFIE9OIEZVTkNUSU9OIHphcHAucnBjX2RscV9saXN0X2F1ZGl0X2N1cnNvcihpbnQsIHRleHQsIHV1aWQpCiAgVE8gYXV0aGVudGljYXRlZCwgc2VydmljZV9yb2xlOwoKCi0tID09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09Ci0tIEhJR0ggOCArIEhJR0ggMTE6IEZpeCBzZWFyY2hfY29udGFjdHNfY3Vyc29yCi0tICAgLSBSZXN0b3JlIFJBSVNFIEVYQ0VQVElPTiBmb3IgaW52YWxpZCBzb3J0X2RpcmVjdGlvbiAoQlVHLTE1IHJlZ3Jlc3Npb24pCi0tICAgLSBBZGQgbWlzc2luZyBSRVZPS0UgYmVmb3JlIEdSQU5UCi0tID09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09
+-- =============================================================================
+-- Audit Fixes — Critical, High, and Medium findings from 2026-07-27 audit
+--
+-- Findings fixed:
+--   CRITICAL 1  BUG-19 reintroduced: rpc_list_dispatch_error_logs_cursor used
+--               d.created_at AS occurred_at + unused LEFT JOIN + cursor side mismatch
+--   CRITICAL 2  Stale now() constant in partial index on processed_requests
+--   CRITICAL 3  Stale now() constant in partial index on analytics_events
+--   CRITICAL 4  c.telefone → c.phone in get_contact_intelligence_by_phone
+--   HIGH 6      Missing REVOKE on rpc_list_dispatch_error_logs_cursor (PUBLIC gets EXECUTE)
+--   HIGH 7      Missing REVOKE on rpc_dlq_list_audit_cursor
+--   HIGH 8      Missing REVOKE on search_contacts_cursor
+--   HIGH 9      zapp.calls SELECT policy USING (true) — no workspace isolation
+--   HIGH 11     search_contacts_cursor silently swallows invalid sort_direction (BUG-15 regression)
+--   MEDIUM 12   imap_smtp_accounts VIEW grants INSERT/UPDATE/DELETE to authenticated
+--   MEDIUM 13   fn_evolution_status_unknown SECDEF has public in search_path
+--   MEDIUM 14   fn_refresh_role_permissions_mv SECDEF has public in search_path
+--   MEDIUM 15   is_feature_enabled SECDEF has public in search_path
+--   MEDIUM 16   fn_touch_updated_at / fn_touch_role_permissions_updated_at missing SET search_path
+--   MEDIUM 17   email_tracked_links RLS USING (TRUE) — no tenant isolation
+--   MEDIUM 18   get_all_table_names exposes schema to authenticated users (restrict to service_role)
+--   NEW BUG-38  AuthProvider subscribes profiles with schema:'public' (no-op) → needs publication too
+--   NEW BUG-39  AuthProvider subscribes user_roles with schema:'public' (no-op) → needs publication
+--   NEW BUG-40  useBridgeStatus subscribes system_health_incidents with schema:'public' (no-op)
+--
+-- TypeScript fixes (separate edits):
+--   AuthProvider.tsx:424    schema:'public' → schema:'zapp' for profiles
+--   AuthProvider.tsx:440    schema:'public' → schema:'zapp' for user_roles
+--   useBridgeStatus.ts:202  schema:'public' → schema:'zapp' for system_health_incidents
+-- =============================================================================
+
+
+-- =============================================================================
+-- CRITICAL 1 + HIGH 6: Fix rpc_list_dispatch_error_logs_cursor
+--   - Remove unused LEFT JOIN evo.evolution_messages (adds planner overhead on partitioned table)
+--   - Use d.remote_jid directly (not em.remote_jid from removed join)
+--   - Use d.occurred_at directly (not d.created_at AS occurred_at)
+--   - Fix cursor: both sides must reference the same column (occurred_at, not created_at)
+--   - Add missing REVOKE before GRANT
+-- =============================================================================
+CREATE OR REPLACE FUNCTION zapp.rpc_list_dispatch_error_logs_cursor(
+  p_from        timestamptz DEFAULT NULL,
+  p_to          timestamptz DEFAULT NULL,
+  p_instance    text        DEFAULT NULL,
+  p_agent       text        DEFAULT NULL,
+  p_error_code  text        DEFAULT NULL,
+  p_search      text        DEFAULT NULL,
+  p_limit       int         DEFAULT 50,
+  p_cursor_id   uuid        DEFAULT NULL
+)
+RETURNS TABLE(
+  id                uuid,
+  failed_message_id uuid,
+  instance_name     text,
+  remote_jid        text,
+  channel_type      text,
+  agent_email       text,
+  agent_user_id     uuid,
+  error_code        text,
+  error_message     text,
+  http_status       int,
+  retry_count       int,
+  payload           jsonb,
+  context           jsonb,
+  occurred_at       timestamptz,
+  total_count       bigint
+)
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path = zapp
+AS $$
+BEGIN
+  IF NOT zapp.is_admin_or_supervisor(auth.uid()) THEN
+    PERFORM zapp.log_rls_denied(
+      'dispatch_error_logs', 'admin|supervisor',
+      jsonb_build_object('rpc', 'rpc_list_dispatch_error_logs_cursor')
+    );
+    RAISE EXCEPTION 'forbidden' USING ERRCODE = '42501';
+  END IF;
+
+  RETURN QUERY
+  WITH base AS (
+    SELECT
+      d.id,
+      d.failed_message_id,
+      d.instance_name,
+      d.remote_jid,           -- FIX: was em.remote_jid (from removed unused JOIN)
+      d.channel_type,
+      d.agent_email,
+      d.agent_user_id,
+      d.error_code,
+      d.error_message,
+      d.http_status,
+      d.retry_count,
+      d.payload,
+      d.context,
+      d.occurred_at           -- FIX: was d.created_at AS occurred_at (wrong column)
+    FROM zapp.dispatch_error_logs d
+    -- FIX: removed unused LEFT JOIN evo.evolution_messages em (added planner overhead
+    --      on a 25-partition table; no columns from em were used in SELECT or WHERE)
+    WHERE (p_from       IS NULL OR d.occurred_at >= p_from)
+      AND (p_to         IS NULL OR d.occurred_at <= p_to)
+      AND (p_instance   IS NULL OR d.instance_name = p_instance)
+      AND (p_agent      IS NULL OR d.agent_email   = p_agent)
+      AND (p_error_code IS NULL OR d.error_code    = p_error_code)
+      AND (p_search     IS NULL
+           OR d.error_message ILIKE '%' || p_search || '%'
+           OR d.error_code    ILIKE '%' || p_search || '%')
+  ),
+  total AS (SELECT COUNT(*)::bigint AS cnt FROM base)
+  SELECT
+    b.id, b.failed_message_id, b.instance_name, b.remote_jid,
+    b.channel_type, b.agent_email, b.agent_user_id, b.error_code,
+    b.error_message, b.http_status, b.retry_count, b.payload,
+    b.context, b.occurred_at, t.cnt AS total_count
+  FROM base b, total t
+  WHERE (p_cursor_id IS NULL OR
+         (b.occurred_at, b.id) < (
+           SELECT c.occurred_at, c.id     -- FIX: was c.created_at (cursor side mismatch)
+           FROM zapp.dispatch_error_logs c
+           WHERE c.id = p_cursor_id
+         ))
+  ORDER BY b.occurred_at DESC, b.id DESC
+  LIMIT COALESCE(p_limit, 50);
+END;
+$$;
+
+REVOKE ALL ON FUNCTION zapp.rpc_list_dispatch_error_logs_cursor(timestamptz, timestamptz, text, text, text, text, int, uuid)
+  FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION zapp.rpc_list_dispatch_error_logs_cursor(timestamptz, timestamptz, text, text, text, text, int, uuid)
+  TO authenticated, service_role;
+
+
+-- =============================================================================
+-- HIGH 7: Add missing REVOKE for rpc_dlq_list_audit_cursor
+-- =============================================================================
+REVOKE ALL ON FUNCTION zapp.rpc_dlq_list_audit_cursor(int, text, uuid)
+  FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION zapp.rpc_dlq_list_audit_cursor(int, text, uuid)
+  TO authenticated, service_role;
+
+
+-- =============================================================================
+-- HIGH 8 + HIGH 11: Fix search_contacts_cursor
+--   - Restore RAISE EXCEPTION for invalid sort_direction (BUG-15 regression)
+--   - Add missing REVOKE before GRANT
+-- =============================================================================
