@@ -21,13 +21,18 @@ function encodeCursor(c: CursorPayload): string {
   return btoa(JSON.stringify(c));
 }
 
+const ISO_TS_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})$/;
+const CURSOR_UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 function decodeCursor(raw: string): CursorPayload | null {
   try {
     const parsed = JSON.parse(atob(raw));
     if (
       parsed &&
       typeof parsed.created_at === "string" &&
-      typeof parsed.id === "string"
+      typeof parsed.id === "string" &&
+      ISO_TS_RE.test(parsed.created_at) &&
+      CURSOR_UUID_RE.test(parsed.id)
     ) {
       return parsed as CursorPayload;
     }

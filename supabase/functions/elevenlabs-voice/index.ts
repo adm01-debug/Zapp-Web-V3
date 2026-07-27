@@ -69,10 +69,13 @@ Deno.serve(async (req) => {
       const text: string = body?.text ?? "";
       const voiceId: string = body?.voiceId ?? "";
       if (!text || !voiceId) return errorResponse("'text' e 'voiceId' são obrigatórios.", 400, req);
+      if (!/^[a-zA-Z0-9_-]{1,100}$/.test(voiceId)) {
+        return errorResponse("Invalid voice ID", 400, req);
+      }
 
       const s = body?.settings ?? {};
       const resp = await fetch(
-        `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}?output_format=mp3_44100_128`,
+        `https://api.elevenlabs.io/v1/text-to-speech/${encodeURIComponent(voiceId)}?output_format=mp3_44100_128`,
         {
           method: "POST",
           headers: { "xi-api-key": ELEVENLABS_API_KEY, "Content-Type": "application/json" },

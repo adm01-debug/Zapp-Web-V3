@@ -22,12 +22,15 @@ Deno.serve(async (req) => {
     const ELEVENLABS_API_KEY = requireEnv("ELEVENLABS_API_KEY");
 
     const selectedVoiceId = voiceId || 'TY3h8ANhQUsJaa0Bga5F';
+    if (voiceId && !/^[a-zA-Z0-9_-]{1,100}$/.test(voiceId)) {
+      return errorResponse("Invalid voice ID", 400, req);
+    }
     const selectedModel = modelId || 'eleven_flash_v2_5';
 
     log.info(`Streaming TTS: "${text.substring(0, 50)}..." voice: ${selectedVoiceId}`);
 
     const response = await fetch(
-      `https://api.elevenlabs.io/v1/text-to-speech/${selectedVoiceId}/stream?output_format=mp3_44100_128`,
+      `https://api.elevenlabs.io/v1/text-to-speech/${encodeURIComponent(selectedVoiceId)}/stream?output_format=mp3_44100_128`,
       {
         method: 'POST',
         headers: {
