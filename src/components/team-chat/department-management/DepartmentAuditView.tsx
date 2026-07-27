@@ -31,9 +31,11 @@ export function DepartmentAuditView({ auditLogs, departmentName }: Props) {
     const csvContent = [headers, ...rows].map((r) => r.join(',')).join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
+    const objectUrl = URL.createObjectURL(blob);
+    link.href = objectUrl;
     link.download = `audit_${departmentName}_${format(new Date(), 'yyyyMMdd')}.csv`;
     link.click();
+    URL.revokeObjectURL(objectUrl);
   };
 
   return (

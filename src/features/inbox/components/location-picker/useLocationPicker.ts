@@ -27,6 +27,7 @@ export function useLocationPicker(open: boolean, activeTab: 'map' | 'current') {
   const [isSearching, setIsSearching] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState<SelectedLocation | null>(null);
   const mountedRef = useMountedRef();
+  const geocodeAbortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -59,9 +60,13 @@ export function useLocationPicker(open: boolean, activeTab: 'map' | 'current') {
   const reverseGeocode = useCallback(
     async (lng: number, lat: number) => {
       if (!mapboxToken) return;
+      geocodeAbortRef.current?.abort();
+      geocodeAbortRef.current = new AbortController();
+      const { signal } = geocodeAbortRef.current;
       try {
         const response = await fetch(
-          `https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?access_token=${mapboxToken}&language=pt`
+          `https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?access_token=${mapboxToken}&language=pt`,
+          { signal }
         );
         const data = await response.json();
         if (!mountedRef.current) return;
@@ -76,6 +81,7 @@ export function useLocationPicker(open: boolean, activeTab: 'map' | 'current') {
           setSelectedLocation({ lat, lng });
         }
       } catch (error) {
+        if (error instanceof DOMException && error.name === 'AbortError') return;
         if (!mountedRef.current) return;
         log.error('Error reverse geocoding:', error);
         setSelectedLocation({ lat, lng });
@@ -140,10 +146,14 @@ export function useLocationPicker(open: boolean, activeTab: 'map' | 'current') {
 
   const searchLocation = useCallback(async () => {
     if (!searchQuery.trim() || !mapboxToken) return;
+    geocodeAbortRef.current?.abort();
+    geocodeAbortRef.current = new AbortController();
+    const { signal } = geocodeAbortRef.current;
     setIsSearching(true);
     try {
       const response = await fetch(
-        `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(searchQuery)}.json?access_token=${mapboxToken}&language=pt&country=br`
+        `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(searchQuery)}.json?access_token=${mapboxToken}&language=pt&country=br`,
+        { signal }
       );
       const data = await response.json();
       if (!mountedRef.current) return;
@@ -164,6 +174,7 @@ export function useLocationPicker(open: boolean, activeTab: 'map' | 'current') {
         });
       }
     } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') return;
       if (mountedRef.current) log.error('Error searching location:', error);
     } finally {
       if (mountedRef.current) setIsSearching(false);

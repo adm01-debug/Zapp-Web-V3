@@ -145,7 +145,7 @@ export async function sendExternalMedia(
 
   const { data: signed, error: signError } = await supabase.storage
     .from('whatsapp-media')
-    .createSignedUrl(fileName, 604800) // ✅ fix: 7d TTL (era 1h — URLs quebravam após 1h);
+    .createSignedUrl(fileName, 604800); // ✅ fix: 7d TTL (era 1h — URLs quebravam após 1h);
   if (signError || !signed?.signedUrl) {
     log.error('media signed url failed', signError);
     throw new Error(signError?.message || 'Falha ao gerar URL do arquivo');
@@ -253,6 +253,7 @@ export async function sendExternalPtv(
       p_metadata: JSON.parse(JSON.stringify({ error: info })),
     });
 
+    URL.revokeObjectURL(localVideoUrl);
     throw new SendError(info.reason, info.detail, info.status);
   }
 
@@ -277,6 +278,7 @@ export async function sendExternalPtv(
       p_metadata: JSON.parse(JSON.stringify({ envelope })),
     });
 
+    URL.revokeObjectURL(localVideoUrl);
     throw new SendError(info.reason, info.detail, info.status);
   }
 

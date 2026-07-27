@@ -43,7 +43,7 @@ export function DegradedConnectionsBanner({ onNavigate, recentWindowMs = 10 * 60
     // `data` pode vir como SelectQueryError quando alguma coluna do select
     // não existe no schema atual — nesse caso, tratamos como lista vazia.
     const rows: DegradedInstance[] = Array.isArray(data)
-      ? (data as unknown as DegradedInstance[])
+      ? (data as unknown as DegradedInstance[]) // ignore-audit — Supabase SelectQueryError union type prevents direct widening to DegradedInstance[]; Array.isArray guard narrows at runtime
       : [];
     setDegraded(rows);
   }, [recentWindowMs]);
@@ -60,6 +60,7 @@ export function DegradedConnectionsBanner({ onNavigate, recentWindowMs = 10 * 60
       .subscribe();
     const interval = setInterval(fetchDegraded, 60_000);
     return () => {
+      channel.unsubscribe();
       supabase.removeChannel(channel);
       clearInterval(interval);
     };
@@ -112,14 +113,16 @@ export function DegradedConnectionsBanner({ onNavigate, recentWindowMs = 10 * 60
               ? `Rebaixamento mais recente em ${firstDegradedAt}.`
               : 'Latência alta ou estado intermitente detectado.'}
           </span>
-          <button type="button"
+          <button
+            type="button"
             onClick={() => onNavigate('connections')}
             className="ml-auto inline-flex items-center gap-1.5 rounded-md bg-warning-foreground/15 px-3 py-1 text-xs font-semibold transition-colors hover:bg-warning-foreground/25"
           >
             Ver conexões
             <ArrowRight className="h-3 w-3" />
           </button>
-          <button type="button"
+          <button
+            type="button"
             onClick={() => setDismissedIds(currentSignature)}
             className="shrink-0 rounded p-1 transition-colors hover:bg-warning-foreground/20"
             aria-label="Fechar alerta"

@@ -50,11 +50,21 @@ jobs:
             git fetch origin ${{ github.base_ref }}
             BASE="origin/${{ github.base_ref }}"
             LOCK_DIFF=$(git diff "$BASE"...HEAD --name-only -- bun.lock)
-            OLD_PKG=$(git show "$BASE:package.json" 2>/dev/null || echo '{}')
+            OLD_RAW=$(git show "$BASE:package.json" 2>/dev/null || echo '{}')
+            if echo "$OLD_RAW" | jq '.' >/dev/null 2>&1; then
+              OLD_PKG="$OLD_RAW"
+            else
+              OLD_PKG=$(echo "$OLD_RAW" | base64 -d 2>/dev/null || echo '{}')
+            fi
             NEW_PKG=$(cat package.json)
           else
             LOCK_DIFF=$(git diff HEAD^ HEAD --name-only -- bun.lock 2>/dev/null || true)
-            OLD_PKG=$(git show "HEAD^:package.json" 2>/dev/null || echo '{}')
+            OLD_RAW=$(git show "HEAD^:package.json" 2>/dev/null || echo '{}')
+            if echo "$OLD_RAW" | jq '.' >/dev/null 2>&1; then
+              OLD_PKG="$OLD_RAW"
+            else
+              OLD_PKG=$(echo "$OLD_RAW" | base64 -d 2>/dev/null || echo '{}')
+            fi
             NEW_PKG=$(cat package.json)
           fi
           # Compare only the dependency fields — scripts/version changes are irrelevant.
@@ -253,6 +263,34 @@ jobs:
           name: coverage-report
           path: coverage/
           retention-days: 7
+
+      - name: Coverage threshold gate (ratchet)
+        # Reads coverage/coverage-summary.json produced by the json-summary reporter
+        # and fails CI when any metric drops below the floor in vitest.config.ts.
+        # Vitest itself also enforces thresholds, so this step provides an explicit
+        # human-readable failure message. Raise the floor in vitest.config.ts as the
+        # suite grows — never lower it.
+        if: always()
+        run: |
+          SUMMARY="coverage/coverage-summary.json"
+          if [ ! -f "$SUMMARY" ]; then
+            echo "::warning title=Coverage gate::coverage-summary.json not found — skipping threshold check."
+            exit 0
+          fi
+          node - <<'JSEOF'
+          const fs = require('fs');
+          const s = JSON.parse(fs.readFileSync('coverage/coverage-summary.json','utf8')).total;
+          const floors = { lines: 25, functions: 18, branches: 15, statements: 24 };
+          let fail = false;
+          for (const [k, floor] of Object.entries(floors)) {
+            const pct = s[k]?.pct ?? 0;
+            const status = pct >= floor ? '✅' : '❌';
+            console.log(`${status} ${k}: ${pct.toFixed(1)}% (floor ${floor}%)`);
+            if (pct < floor) fail = true;
+          }
+          if (fail) { console.error('\n::error title=Coverage gate::One or more metrics are below the coverage floor. Raise coverage or adjust the floor intentionally.'); process.exit(1); }
+          else { console.log('\nCoverage gate passed.'); }
+          JSEOF
 
   build:
     name: Build

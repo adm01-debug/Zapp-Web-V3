@@ -1,0 +1,60 @@
+name: Secret Scan (gitleaks)
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  gitleaks:
+    name: Detect secrets
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install gitleaks
+        run: |
+          VERSION="8.21.2"
+          curl -sL "https://github.com/gitleaks/gitleaks/releases/download/v${VERSION}/gitleaks_${VERSION}_linux_x64.tar.gz" \
+            | tar -xz -C /usr/local/bin gitleaks
+          gitleaks version
+
+      - name: Scan full history (push to main)
+        if: github.event_name == 'push'
+        run: |
+          gitleaks detect \
+            --config=.gitleaks.toml \
+            --source=. \
+            --no-git=false \
+            --redact \
+            --exit-code=1 \
+            --report-format=sarif \
+            --report-path=gitleaks-report.sarif
+        continue-on-error: false
+
+      - name: Scan PR delta only
+        if: github.event_name == 'pull_request'
+        run: |
+          gitleaks detect \
+            --config=.gitleaks.toml \
+            --source=. \
+            --log-opts="origin/${{ github.base_ref }}...HEAD" \
+            --redact \
+            --exit-code=1 \
+            --report-format=sarif \
+            --report-path=gitleaks-report.sarif
+        continue-on-error: false
+
+      - name: Upload SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: gitleaks-report.sarif
+        continue-on-error: true

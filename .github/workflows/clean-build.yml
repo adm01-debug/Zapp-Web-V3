@@ -1,0 +1,70 @@
+name: Clean Build From Zero
+
+# Validates that the project builds reproducibly from a clean slate.
+# Runs weekly (Saturday 04h UTC) and on workflow_dispatch.
+# Does NOT use the bun cache — intentional, to catch lockfile drift.
+
+on:
+  schedule:
+    - cron: '0 4 * * 6'   # Saturday 04h UTC
+  workflow_dispatch:
+
+env:
+  CI: true
+  VITE_SUPABASE_URL: https://example.supabase.co
+  VITE_SUPABASE_ANON_KEY: test-anon-key
+  VITE_SUPABASE_PUBLISHABLE_KEY: test-anon-key
+  VITE_EXTERNAL_SUPABASE_URL: https://example.supabase.co
+  VITE_EXTERNAL_SUPABASE_ANON_KEY: test-anon-key
+
+jobs:
+  clean-build:
+    name: Fresh install + full build (no cache)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.3'
+          # Deliberately NO cache step — testing reproducibility from zero
+
+      - name: Verify no node_modules pre-exist
+        run: '[ ! -d node_modules ] && echo "Clean workspace confirmed" || (echo "::error::node_modules already exist — runner not clean" && exit 1)'
+
+      - name: Install dependencies (frozen lockfile)
+        run: bun install --frozen-lockfile
+        # --frozen-lockfile ensures bun.lock matches package.json exactly.
+        # If this fails, package.json was changed without updating bun.lock.
+
+      - name: TypeScript type check
+        run: node scripts/check-tsc-ratchet.mjs
+
+      - name: Unit tests
+        env:
+          NODE_OPTIONS: --max-old-space-size=6144
+        run: bun run test
+
+      - name: Production build
+        run: bunx vite build
+
+      - name: Measure build output
+        run: |
+          echo "=== Build output size ==="
+          du -sh dist/
+          echo ""
+          echo "=== Largest JS chunks ==="
+          find dist -name "*.js" -exec du -h {} \; | sort -rh | head -10
+          echo ""
+          echo "=== CSS ==="
+          find dist -name "*.css" -exec du -h {} \;
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: clean-build-dist-${{ github.run_id }}
+          path: dist/
+          retention-days: 7

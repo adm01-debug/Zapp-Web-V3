@@ -9,8 +9,8 @@ export async function fetchUnresolvedSecurityAlerts(): Promise<NormalizedSecurit
     .order('created_at', { ascending: false })
     .limit(10);
   if (error) throw error;
-  return (data ?? []).map((row) =>
-    normalizeSecurityAlert(row as unknown as Record<string, unknown>)
+  return (data ?? []).map(
+    (row) => normalizeSecurityAlert(row as unknown as Record<string, unknown>) // ignore-audit — Supabase row type for security_alerts has no index signature; bridge to Record<string,unknown> is intentional
   );
 }
 

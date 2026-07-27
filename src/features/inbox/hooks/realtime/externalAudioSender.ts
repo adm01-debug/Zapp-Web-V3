@@ -104,6 +104,7 @@ export async function sendExternalAudio(
       p_metadata: JSON.parse(JSON.stringify({ error: info, is_ptt: opts.isPtt ?? true })),
     });
 
+    URL.revokeObjectURL(localAudioUrl);
     throw new SendError(info.reason, info.detail, info.status);
   }
 
@@ -128,6 +129,7 @@ export async function sendExternalAudio(
       p_metadata: JSON.parse(JSON.stringify({ envelope, is_ptt: opts.isPtt ?? true })),
     });
 
+    URL.revokeObjectURL(localAudioUrl);
     throw new SendError(info.reason, info.detail, info.status);
   }
 

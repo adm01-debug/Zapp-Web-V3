@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useOfflineCache } from '@/hooks/useOfflineCache';
 import {
@@ -267,6 +266,7 @@ export function useRealtimeInbox() {
       .subscribe();
     return () => {
       cancelled = true;
+      channel.unsubscribe();
       supabase.removeChannel(channel);
     };
   }, [selectedContactId, profile?.id]);
@@ -282,7 +282,9 @@ export function useRealtimeInbox() {
           .eq('id', contactId)
           .maybeSingle();
         if (conv && conv.routing_status === 'pending') {
-          await dbFrom('team_conversations').update({ routing_status: 'assigned' }).eq('id', contactId);
+          await dbFrom('team_conversations')
+            .update({ routing_status: 'assigned' })
+            .eq('id', contactId);
         }
       } catch (err) {
         log.error('Error auto-assigning on reply:', err);

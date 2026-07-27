@@ -1,5 +1,5 @@
 import { motion, AnimatePresence, Variants } from 'framer-motion';
-import { ReactNode, useEffect, useState } from 'react';
+import { ReactNode, useEffect, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
 
 // Animated counter
@@ -12,7 +12,7 @@ interface AnimatedCounterProps {
 /** Smoothly counts up/down to `value` over `duration` seconds using a cubic-ease animation frame loop. */
 export function AnimatedCounter({ value, duration = 1, className }: AnimatedCounterProps) {
   const [displayValue, setDisplayValue] = useState(0);
-  const prevRef = { current: 0 };
+  const prevRef = useRef(0);
 
   useEffect(() => {
     let startTime: number;
@@ -31,7 +31,7 @@ export function AnimatedCounter({ value, duration = 1, className }: AnimatedCoun
     };
     frame = requestAnimationFrame(animate);
     return () => cancelAnimationFrame(frame);
-  }, [value, duration]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [value, duration]);
 
   return (
     <motion.span

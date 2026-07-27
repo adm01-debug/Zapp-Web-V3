@@ -63,7 +63,7 @@ export interface ReconcileResult {
 /** Resolves the effective audio sub-type of a message: `audio_meme`, `audio_ptt`, or `audio_recorded`. Non-audio messages return their original `message_type` unchanged. */
 function resolveAudioType(m: RealtimeMessage): string {
   if (m.message_type !== 'audio') return m.message_type;
-  const mExt = m as unknown as Record<string, unknown>;
+  const mExt = m as unknown as Record<string, unknown>; // ignore-audit — RealtimeMessage lacks index signature; bridge required to access non-typed runtime fields (media_meta, audio_meme_id)
   const isPtt = (mExt.media_meta as Record<string, unknown> | undefined)?.ptt === true;
   const isMeme = !!mExt.audio_meme_id;
   return isMeme ? 'audio_meme' : isPtt ? 'audio_ptt' : 'audio_recorded';

@@ -98,7 +98,7 @@ export function useWhatsAppTemplates() {
         toast.error('Erro ao carregar templates');
         return [] as WhatsAppTemplate[];
       }
-      return (data || []) as unknown as WhatsAppTemplate[];
+      return (data || []) as unknown as WhatsAppTemplate[]; // ignore-audit — Supabase row type for whatsapp_templates has no index signature for direct widening to WhatsAppTemplate[]
     },
     staleTime: 30_000,
   });

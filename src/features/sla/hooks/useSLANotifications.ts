@@ -165,6 +165,7 @@ export const useSLANotifications = () => {
 
     return () => {
       log.debug('Cleaning up subscription');
+      channel.unsubscribe();
       supabase.removeChannel(channel);
     };
   }, [user, settings, isQuietHours]);

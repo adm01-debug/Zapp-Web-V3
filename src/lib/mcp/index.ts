@@ -3,7 +3,11 @@ import whoamiTool from './tools/whoami';
 import listConnectionsTool from './tools/list-connections';
 import searchContactsTool from './tools/list-contacts';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL ?? 'https://supabase.atomicabr.com.br';
+const supabaseUrl =
+  (import.meta.env.VITE_SUPABASE_URL as string | undefined) ??
+  (() => {
+    throw new Error('[mcp] VITE_SUPABASE_URL env var is required');
+  })();
 
 /** MCP server definition for ZAPP Web: exposes whoami, list-connections, and list-contacts tools with Supabase OAuth auth. */
 export default defineMcp({

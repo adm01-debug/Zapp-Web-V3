@@ -13,12 +13,13 @@ const log = getLogger('RealtimeContacts');
 const FLUSH_DELAY_MS = 100;
 const BROADCAST_RE = /(^status@broadcast$|@broadcast$)/i;
 
-// Module-level aggregate metric: intentionally shared across all hook instances so
-// monitoring dashboards see a cumulative total, not per-component counts.
-// Not reactive state — consumers must poll getRealtimeDiscardedCount() for reads.
-const _metrics = { discarded: 0 };
-export function getRealtimeDiscardedCount(): number { return _metrics.discarded; }
-export function resetRealtimeDiscardedCount(): void { _metrics.discarded = 0; }
+// Discarded event count is tracked per-hook-instance via useRef (see below).
+// A module-global was previously used but leaked across HMR reloads and
+// aggregated across all mounted hook instances. The ref is read via the
+// returned getDiscardedCount() accessor — callers that stored the old
+// module-level getRealtimeDiscardedCount() should use that instead.
+/** @deprecated Use the getDiscardedCount() from the hook return value. */
+export function getRealtimeDiscardedCount(): number { return 0; }
 
 interface UseRealtimeContactsOptions {
   instance?: string;
@@ -136,6 +137,7 @@ export function useRealtimeContacts(options: UseRealtimeContactsOptions = {}) {
   const queryClient = useQueryClient();
   const pendingRef = useRef<Map<string, ContactChange>>(new Map());
   const flushTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const discardedCountRef = useRef(0);
 
   useEffect(() => {
     // FATOR X v6.2: externalSupabase nunca é null (fallback para o client
@@ -215,12 +217,12 @@ export function useRealtimeContacts(options: UseRealtimeContactsOptions = {}) {
         // Log como debug (não warn) — este caso não é mais esperado após o fix,
         // mas pode acontecer em DELETEs sem REPLICA IDENTITY FULL configurado
         // em outras tabelas.
-        _metrics.discarded++;
+        discardedCountRef.current++;
         log.debug('Payload sem remote_jid — descartando', {
           eventType: payload.eventType,
           hasNew: typeof payload.new === 'object' && Object.keys(payload.new ?? {}).length > 0,
           hasOld: typeof payload.old === 'object' && Object.keys(payload.old ?? {}).length > 0,
-          discardedTotal: _metrics.discarded,
+          discardedTotal: discardedCountRef.current,
         });
         return;
       }
@@ -290,4 +292,8 @@ export function useRealtimeContacts(options: UseRealtimeContactsOptions = {}) {
       client.removeChannel(channel);
     };
   }, [enabled, instance, queryClient]);
+
+  return {
+    getDiscardedCount: () => discardedCountRef.current,
+  };
 }

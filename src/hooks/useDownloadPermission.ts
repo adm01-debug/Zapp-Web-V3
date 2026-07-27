@@ -14,7 +14,7 @@ export function useDownloadPermission() {
         .from('profiles')
         .select('can_download')
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
       if (error || !data) return false;
       return data.can_download === true;
     },

@@ -90,6 +90,7 @@ export function useFailedMessageAlerts(enabled = true): void {
       });
 
     return () => {
+      channel.unsubscribe();
       supabase.removeChannel(channel).catch(() => {});
     };
   }, [enabled]);

@@ -4,6 +4,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Camera, Loader2, Trash2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { resolvePublicStorageUrl } from '@/lib/mediaUrl';
 import { updateProfileAvatarUrl } from '@/hooks/useProfileAvatarMutations';
 import { useAuth } from '@/features/auth';
 import { useActionFeedback } from '@/hooks/useActionFeedback';
@@ -40,12 +41,8 @@ export function AvatarUpload() {
           .upload(filePath, file, { upsert: true });
         if (uploadError) throw uploadError;
 
-        // Get public URL
-        const {
-          data: { publicUrl },
-        } = supabase.storage.from('avatars').getPublicUrl(filePath);
-
-        const urlWithCache = `${publicUrl}?t=${Date.now()}`;
+        const publicUrl = resolvePublicStorageUrl('avatars', filePath);
+        const urlWithCache = publicUrl ? `${publicUrl}?t=${Date.now()}` : '';
 
         // Update profile
         const { error: updateError } = await updateProfileAvatarUrl(user.id, urlWithCache);

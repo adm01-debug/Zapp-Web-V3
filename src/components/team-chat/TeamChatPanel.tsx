@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useEffect, useMemo, useState, useRef, memo } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
 import { getLogger } from '@/lib/logger';
@@ -81,7 +80,9 @@ const MediaContent = memo(function MediaContent({ msg }: { msg: TeamMessage }) {
             'max-h-48 cursor-pointer rounded-lg object-contain',
             msg.media_type === 'sticker' || msg.media_type === 'emoji' ? 'h-24 w-24' : 'max-w-full'
           )}
-          onClick={() => { if (msg.media_url) window.open(msg.media_url, '_blank', 'noopener,noreferrer'); }}
+          onClick={() => {
+            if (msg.media_url) window.open(msg.media_url, '_blank', 'noopener,noreferrer');
+          }}
         />
       );
     case 'video':
@@ -307,7 +308,8 @@ function TeamChatPanelContent({ conversation, onBack, onToggleDetails, showDetai
                   {s.filteredMessages.length} resultado{s.filteredMessages.length !== 1 ? 's' : ''}
                 </span>
               )}
-              <Button aria-label="Fechar busca"
+              <Button
+                aria-label="Fechar busca"
                 size="icon"
                 variant="ghost"
                 className="h-7 w-7 shrink-0"
@@ -413,7 +415,8 @@ function TeamChatPanelContent({ conversation, onBack, onToggleDetails, showDetai
                     exit={{ opacity: 0, y: 20 }}
                     className="absolute bottom-4 left-1/2 z-20 -translate-x-1/2"
                   >
-                    <Button aria-label="Rolar para o final"
+                    <Button
+                      aria-label="Rolar para o final"
                       size="sm"
                       className="gap-2 rounded-full bg-primary text-primary-foreground shadow-lg hover:bg-primary/90"
                       onClick={s.scrollToBottom}
@@ -552,7 +555,8 @@ function TeamChatPanelContent({ conversation, onBack, onToggleDetails, showDetai
                                           autoFocus
                                         />
                                         <div className="flex justify-end gap-1">
-                                          <Button aria-label="Cancelar edição"
+                                          <Button
+                                            aria-label="Cancelar edição"
                                             size="icon"
                                             variant="ghost"
                                             className="h-5 w-5"
@@ -560,7 +564,8 @@ function TeamChatPanelContent({ conversation, onBack, onToggleDetails, showDetai
                                           >
                                             <X className="h-3 w-3" />
                                           </Button>
-                                          <Button aria-label="Salvar edição"
+                                          <Button
+                                            aria-label="Salvar edição"
                                             size="icon"
                                             variant="ghost"
                                             className="h-5 w-5"

@@ -46,7 +46,7 @@ export function PaymentLinksView() {
     setLoading(true);
     const data = await fetchPaymentLinks();
     if (mountedRef.current) {
-      setLinks(data.map((row) => normalizePaymentLink(row as unknown as Record<string, unknown>)));
+      setLinks(data.map((row) => normalizePaymentLink(row as unknown as Record<string, unknown>))); // ignore-audit — Supabase row interface has no index signature for direct cast to Record<string,unknown>
       setLoading(false);
     }
   }, [mountedRef]);
@@ -63,6 +63,7 @@ export function PaymentLinksView() {
       )
       .subscribe();
     return () => {
+      channel.unsubscribe();
       supabase.removeChannel(channel).catch(() => {});
     };
   }, [fetchData]);

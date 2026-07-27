@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -319,37 +318,6 @@ export default function AdminAutomationLogsPage() {
           )}
         </SheetContent>
       </Sheet>
-    </div>
-  );
-}
-
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div className="space-y-2 rounded-md border p-3">
-      <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-        {title}
-      </h3>
-      {children}
-    </div>
-  );
-}
-
-function KV({ k, v, mono = false }: { k: string; v: string; mono?: boolean }) {
-  return (
-    <div className="flex justify-between gap-3 text-xs">
-      <span className="text-muted-foreground">{k}</span>
-      <span className={mono ? 'max-w-[280px] truncate' : 'max-w-[280px] truncate'}>{v}</span>
-    </div>
-  );
-}
-
-function Pre({ title, data }: { title: string; data: unknown }) {
-  return (
-    <div>
-      <Label className="text-xs">{title}</Label>
-      <pre className="mt-1 max-h-[200px] overflow-x-auto rounded-md border bg-muted/30 p-2 text-[11px]">
-        {JSON.stringify(data, null, 2)}
-      </pre>
     </div>
   );
 }

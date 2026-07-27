@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useMountedRef } from '@/hooks/useMountedRef';
 import { getLogger } from '@/lib/logger';
 import { useEmail } from '@/hooks/useEmailManagement';
@@ -47,8 +47,9 @@ export function useEmailHealthStatus() {
   const [isRetrying, setIsRetrying] = useState<Record<string, boolean>>({});
 
   const mountedRef = useMountedRef();
+  const loadAbortRef = useRef<AbortController | null>(null);
 
-  const loadHealth = async () => {
+  const loadHealth = async (signal?: AbortSignal) => {
     setLoading(true);
     try {
       const projectUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -59,6 +60,7 @@ export function useEmailHealthStatus() {
           Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
           'Content-Type': 'application/json',
         },
+        signal,
       });
       const dataFull = await fetchResponse.json();
 
@@ -79,6 +81,7 @@ export function useEmailHealthStatus() {
       });
       setFailuresData(dataFull.failuresResult || { items: [], total: 0 });
     } catch (error) {
+      if ((error instanceof DOMException && error.name === 'AbortError') || signal?.aborted) return;
       log.error('Error loading email health', error);
       toast.error('O serviço de telemetria do Email está indisponível.');
 
@@ -105,7 +108,10 @@ export function useEmailHealthStatus() {
   };
 
   useEffect(() => {
-    void loadHealth();
+    loadAbortRef.current?.abort();
+    const controller = new AbortController();
+    loadAbortRef.current = controller;
+    void loadHealth(controller.signal);
 
     const channel = supabase
       .channel('email-admin-status')
@@ -132,7 +138,6 @@ export function useEmailHealthStatus() {
             );
           }
         }
-
       )
       .on(
         'postgres_changes',
@@ -152,8 +157,9 @@ export function useEmailHealthStatus() {
       .subscribe();
 
     return () => {
-      channel.unsubscribe();
-      supabase.removeChannel(channel);
+      loadAbortRef.current?.abort();
+      void channel.unsubscribe();
+      supabase.removeChannel(channel).catch(() => {});
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters]);

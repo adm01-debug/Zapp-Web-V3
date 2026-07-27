@@ -50,10 +50,12 @@ export const VoiceChanger = memo(function VoiceChanger({
   }, [convertedAudioUrl]);
 
   const mountedRef = useRef(true);
+  const conversionAbortRef = useRef<AbortController | null>(null);
   useEffect(() => {
     mountedRef.current = true;
     return () => {
       mountedRef.current = false;
+      conversionAbortRef.current?.abort();
     };
   }, []);
   const progressIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -91,6 +93,11 @@ export const VoiceChanger = memo(function VoiceChanger({
       return;
     }
 
+    conversionAbortRef.current?.abort();
+    const convController = new AbortController();
+    conversionAbortRef.current = convController;
+    const convSignal = convController.signal;
+
     cleanup();
     setSelectedVoice(voice);
     setIsConverting(true);
@@ -100,7 +107,7 @@ export const VoiceChanger = memo(function VoiceChanger({
       let activeBlob = audioBlob;
       if (!activeBlob && audioUrl) {
         setConversionProgress(10);
-        const fetched = await fetch(audioUrl).then((r) => r.blob());
+        const fetched = await fetch(audioUrl, { signal: convSignal }).then((r) => r.blob());
         activeBlob = fetched;
       }
 
@@ -157,6 +164,7 @@ export const VoiceChanger = memo(function VoiceChanger({
             Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
           },
           body: formData,
+          signal: convSignal,
         }
       );
 
@@ -188,6 +196,7 @@ export const VoiceChanger = memo(function VoiceChanger({
         p_status: 'completed',
       });
     } catch (error: unknown) {
+      if (error instanceof DOMException && error.name === 'AbortError') return;
       const msg = error instanceof Error ? error.message : 'Erro desconhecido';
       const conversionDuration = Date.now() - conversionStartTime;
 

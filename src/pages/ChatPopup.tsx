@@ -1,6 +1,7 @@
 import { useState, useCallback, lazy, Suspense, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { resolvePublicStorageUrl } from '@/lib/mediaUrl';
 import { useMessages } from '@/features/inbox';
 import { useContactData } from '@/hooks/useContactData';
 import { Conversation } from '@/types/chat';
@@ -90,14 +91,12 @@ export default function ChatPopup() {
 
         if (uploadError) throw uploadError;
 
-        const { data: urlData } = supabase.storage.from('whatsapp-media').getPublicUrl(fileName);
-
         await dbFrom('messages').insert({
           contact_id: contactId,
           content: '🎵 Mensagem de áudio',
           sender: 'agent',
           message_type: 'audio',
-          media_url: urlData.publicUrl,
+          media_url: resolvePublicStorageUrl('whatsapp-media', fileName),
         });
       } catch (err) {
         log.error('Failed to send audio from popup:', err);

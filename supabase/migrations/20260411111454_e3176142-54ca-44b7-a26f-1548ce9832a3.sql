@@ -6,7 +6,7 @@ DROP TRIGGER IF EXISTS hash_reset_token ON public.password_reset_requests;
 DROP TRIGGER IF EXISTS protect_reset_token_trigger ON public.password_reset_requests;
 
 -- Now drop the column
-ALTER TABLE public.password_reset_requests DROP COLUMN reset_token;
+ALTER TABLE public.password_reset_requests DROP COLUMN IF EXISTS reset_token;
 
 -- Recreate safe view without token
 CREATE VIEW public.password_reset_requests_safe WITH (security_invoker = on) AS

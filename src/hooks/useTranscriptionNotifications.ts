@@ -60,7 +60,10 @@ export function useTranscriptionNotifications(options: TranscriptionNotification
               showBrowserNotif('Transcrição concluída', String(row.transcription ?? ''));
             }
             if (showToast && settings?.transcriptionNotificationEnabled) {
-              toast({ title: 'Transcrição concluída', description: String(row.transcription ?? '') });
+              toast({
+                title: 'Transcrição concluída',
+                description: String(row.transcription ?? ''),
+              });
             }
           }
         })
@@ -68,6 +71,7 @@ export function useTranscriptionNotifications(options: TranscriptionNotification
       .subscribe();
 
     return () => {
+      channel.unsubscribe();
       supabase.removeChannel(channel);
     };
   }, [enabled, showToast, playSound, showBrowserNotification, settings, isQuietHours]);

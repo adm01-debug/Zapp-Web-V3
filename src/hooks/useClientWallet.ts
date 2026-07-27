@@ -72,7 +72,7 @@ export function useClientWallet() {
       return {
         rules,
         agents: (allAgents ?? []) as Profile[],
-        connections: (allConnectionsResult.data ?? []) as unknown as Connection[],
+        connections: (allConnectionsResult.data ?? []) as unknown as Connection[], // ignore-audit — Supabase row type for whatsapp_connections has no index signature; bridge to local Connection[] is intentional
       };
     },
     staleTime: 30_000,

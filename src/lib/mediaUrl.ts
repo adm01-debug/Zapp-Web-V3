@@ -164,6 +164,29 @@ export function clearNegativeCache(): void {
 }
 
 // ---------------------------------------------------------------------------
+// Wrapper para Supabase Storage getPublicUrl
+// ---------------------------------------------------------------------------
+
+/**
+ * Resolve a URL pública de um objeto do Supabase Storage, aplicando sanitização.
+ *
+ * Substituição canônica de:
+ *   const { data } = supabase.storage.from(bucket).getPublicUrl(path);
+ *   return data.publicUrl;
+ *
+ * Por:
+ *   return resolvePublicStorageUrl(bucket, path);
+ *
+ * Garante que URLs com hosts internos (kong:8000) nunca cheguem ao browser,
+ * mesmo em ambientes de desenvolvimento ou após falhas de backfill.
+ */
+export function resolvePublicStorageUrl(bucket: string, path: string | null | undefined): string | null {
+  if (!bucket || !path) return null;
+  const url = resolveMediaUrl(bucket, path);
+  return sanitizeMediaUrl(url);
+}
+
+// ---------------------------------------------------------------------------
 // Resolução de URL final — combina tudo
 // ---------------------------------------------------------------------------
 
