@@ -99,14 +99,14 @@ describe('contactsDB.isConfigured', () => {
 describe('getClient safety guard', () => {
   it('throws a descriptive error when getExternalSupabase returns null', async () => {
     mockGetExternal.mockReturnValue(null);
-    await expect(contactsDB.getById('any')).rejects.toThrow(
+    await expect(contactsDB.getById('00000000-0000-0000-0000-000000000001')).rejects.toThrow(
       '[contactsDB] External Supabase not configured'
     );
   });
 
   it('error message mentions required env vars', async () => {
     mockGetExternal.mockReturnValue(null);
-    await expect(contactsDB.getById('any')).rejects.toThrow(
+    await expect(contactsDB.getById('00000000-0000-0000-0000-000000000001')).rejects.toThrow(
       'VITE_EXTERNAL_SUPABASE_URL'
     );
   });
