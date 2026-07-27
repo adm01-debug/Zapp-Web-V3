@@ -20,10 +20,15 @@ ADD COLUMN IF NOT EXISTS config JSONB DEFAULT '{}'::jsonb,
 ADD COLUMN IF NOT EXISTS notes TEXT;
 
 -- Update existing column types/defaults if needed to align
-ALTER TABLE public.instance_registry 
-ALTER COLUMN instance_name SET DATA TYPE VARCHAR,
-ALTER COLUMN display_name SET DATA TYPE VARCHAR,
-ALTER COLUMN phone_number SET DATA TYPE VARCHAR;
+-- Guard: TEXT and VARCHAR are synonymous in PG; view v_admin_sla_dashboard may block the cast.
+DO $ir_type_guard$ BEGIN
+  ALTER TABLE public.instance_registry
+  ALTER COLUMN instance_name SET DATA TYPE VARCHAR,
+  ALTER COLUMN display_name SET DATA TYPE VARCHAR,
+  ALTER COLUMN phone_number SET DATA TYPE VARCHAR;
+EXCEPTION WHEN OTHERS THEN
+  RAISE NOTICE 'SKIP ALTER COLUMN types on instance_registry: %', SQLERRM;
+END $ir_type_guard$;
 
 -- Add check constraint for department if it doesn't exist
 DO $$ 

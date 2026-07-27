@@ -46,6 +46,7 @@ USING (
 
 -- Restrict login_attempts to admin-only SELECT
 DROP POLICY IF EXISTS "Admin can view login attempts" ON public.login_attempts;
+DROP POLICY IF EXISTS "Only admins can view login attempts" ON public.login_attempts;
 CREATE POLICY "Only admins can view login attempts"
 ON public.login_attempts FOR SELECT
 TO authenticated

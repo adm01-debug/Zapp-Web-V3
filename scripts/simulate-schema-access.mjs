@@ -60,12 +60,14 @@ for (const t of zappTables) {
 }
 
 // -- Categoria 2: evo reads ---------------------------------------
+// ONLY tables that exist EXCLUSIVELY in the evo schema (partitions, no zapp VIEW proxy).
+// Tables that have VIEW proxies in zapp (evolution_contacts, evolution_media,
+// evolution_whatsapp_status, evolution_messages, evolution_conversations) must be accessed
+// via the default zapp client — NOT via .schema('evo') — to avoid PGRST205.
+// See CLAUDE.md rule #2.
 const evoTables = [
   'evolution_messages_wpp2',
-  'evolution_contacts',
-  'evolution_media',
   'evolution_conversations_wpp2',
-  'evolution_whatsapp_status',
 ];
 for (const t of evoTables) {
   let ok = true;

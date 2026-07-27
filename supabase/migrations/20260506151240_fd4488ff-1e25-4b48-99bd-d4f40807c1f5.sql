@@ -30,6 +30,7 @@ ALTER TABLE public.conversation_audit_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.media_cache ENABLE ROW LEVEL SECURITY;
 
 -- Políticas de acesso (admin/supervisor podem ver tudo)
+DROP POLICY IF EXISTS "Admins can view audit logs" ON public.conversation_audit_logs;
 CREATE POLICY "Admins can view audit logs" ON public.conversation_audit_logs
     FOR SELECT USING (auth.uid() IN (SELECT id FROM profiles WHERE role IN ('admin', 'supervisor')));
 

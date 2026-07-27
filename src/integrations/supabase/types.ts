@@ -7,20 +7,6 @@ export type Json =
   | Json[]
 
 export type Database = {
-  zapp: {
-    Tables: Record<string, never>
-    Views: Record<string, never>
-    Functions: Record<string, never>
-    Enums: Record<string, never>
-    CompositeTypes: Record<string, never>
-  }
-  evo: {
-    Tables: Record<string, never>
-    Views: Record<string, never>
-    Functions: Record<string, never>
-    Enums: Record<string, never>
-    CompositeTypes: Record<string, never>
-  }
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {

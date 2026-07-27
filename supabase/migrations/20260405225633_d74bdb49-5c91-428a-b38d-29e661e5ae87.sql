@@ -3,6 +3,7 @@
 DROP POLICY IF EXISTS "Block authenticated inserts on audit_logs" ON public.audit_logs;
 
 -- Allow authenticated users to insert their own audit logs
+DROP POLICY IF EXISTS "Users can insert own audit logs" ON public.audit_logs;
 CREATE POLICY "Users can insert own audit logs"
 ON public.audit_logs
 FOR INSERT

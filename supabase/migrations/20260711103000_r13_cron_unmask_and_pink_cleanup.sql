@@ -16,8 +16,16 @@ CREATE TABLE IF NOT EXISTS ops._fn_backups (
 );
 
 -- 2) Indice parcial p/ counts de falha de cron (usado pelo health score R13)
-CREATE INDEX IF NOT EXISTS idx_jrd_failed_start
-  ON cron.job_run_details (start_time) WHERE status='failed';
+-- Guard: cron.job_run_details nao existe em CI (vanilla postgres sem pg_cron)
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.tables
+    WHERE table_schema = 'cron' AND table_name = 'job_run_details'
+  ) THEN
+    EXECUTE 'CREATE INDEX IF NOT EXISTS idx_jrd_failed_start ON cron.job_run_details (start_time) WHERE status=''failed''';
+  END IF;
+END $$;
 
 -- 3) fn_system_health_score R13 — mudanca aplicada por substituicao validada
 --    sobre a base canonica R12 (guardas: exatamente 1 ocorrencia por bloco,

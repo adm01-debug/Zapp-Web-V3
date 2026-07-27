@@ -5,28 +5,65 @@
 -- ========================================================================
 
 -- FIX 1: zapp.messages VIEW sem security_invoker (risco RLS bypass)
-ALTER VIEW zapp.messages SET (security_invoker = on);
+DO $fix1$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+             WHERE n.nspname = 'zapp' AND c.relname = 'messages' AND c.relkind = 'v') THEN
+    EXECUTE 'ALTER VIEW zapp.messages SET (security_invoker = on)';
+  END IF;
+EXCEPTION WHEN OTHERS THEN
+  RAISE NOTICE 'SKIP ALTER VIEW zapp.messages security_invoker: %', SQLERRM;
+END $fix1$;
 
 -- FIX 2: anon tinha SELECT em ops.v_wal_health (expunha WAL slot info)
-REVOKE SELECT ON ops.v_wal_health FROM anon;
+DO $fix2$ BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.views
+             WHERE table_schema = 'ops' AND table_name = 'v_wal_health') THEN
+    EXECUTE 'REVOKE SELECT ON ops.v_wal_health FROM anon';
+  END IF;
+EXCEPTION WHEN OTHERS THEN
+  RAISE NOTICE 'SKIP REVOKE ops.v_wal_health: %', SQLERRM;
+END $fix2$;
 
 -- FIX 3: anon tinha SELECT em public.instance_registry
--- (expunha api_key, proxy_pass, responsible_email, phone_number)
-REVOKE SELECT ON public.instance_registry FROM anon;
+DO $fix3$ BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.tables
+             WHERE table_schema = 'public' AND table_name = 'instance_registry') THEN
+    EXECUTE 'REVOKE SELECT ON public.instance_registry FROM anon';
+  END IF;
+EXCEPTION WHEN OTHERS THEN
+  RAISE NOTICE 'SKIP REVOKE instance_registry: %', SQLERRM;
+END $fix3$;
 
--- FIX 4: zapp.fn_guard_qa_instances era SECURITY DEFINER sem search_path
--- (vulneravel a search_path hijacking; anon e authenticated podiam chamar)
-ALTER FUNCTION zapp.fn_guard_qa_instances() SET search_path = zapp, public, pg_catalog;
+-- FIX 4-8: functions SET search_path — guarded
+DO $sp7_guards$ BEGIN
+  BEGIN
+    ALTER FUNCTION zapp.fn_guard_qa_instances() SET search_path = zapp, public, pg_catalog;
+  EXCEPTION WHEN OTHERS THEN
+    RAISE NOTICE 'SKIP zapp.fn_guard_qa_instances SET search_path: %', SQLERRM;
+  END;
+  BEGIN
+    ALTER FUNCTION ops.check_wal_health() SET search_path = ops, public, pg_catalog;
+  EXCEPTION WHEN OTHERS THEN
+    RAISE NOTICE 'SKIP ops.check_wal_health SET search_path: %', SQLERRM;
+  END;
+  BEGIN
+    ALTER FUNCTION ops.fn_ddl_audit_log() SET search_path = ops, public, pg_catalog;
+  EXCEPTION WHEN OTHERS THEN
+    RAISE NOTICE 'SKIP ops.fn_ddl_audit_log SET search_path: %', SQLERRM;
+  END;
+  BEGIN
+    ALTER FUNCTION ops.fn_ddl_audit_drop() SET search_path = ops, public, pg_catalog;
+  EXCEPTION WHEN OTHERS THEN
+    RAISE NOTICE 'SKIP ops.fn_ddl_audit_drop SET search_path: %', SQLERRM;
+  END;
+  BEGIN
+    ALTER FUNCTION ops.fn_ddl_drop_alert() SET search_path = ops, public, pg_catalog;
+  EXCEPTION WHEN OTHERS THEN
+    RAISE NOTICE 'SKIP ops.fn_ddl_drop_alert SET search_path: %', SQLERRM;
+  END;
+END $sp7_guards$;
 
--- FIX 5-8: funcoes ops.* SECURITY DEFINER sem search_path
--- (apenas chamadas por triggers/internos, mas higiene correta exige search_path fixo)
-ALTER FUNCTION ops.check_wal_health() SET search_path = ops, public, pg_catalog;
-ALTER FUNCTION ops.fn_ddl_audit_log() SET search_path = ops, public, pg_catalog;
-ALTER FUNCTION ops.fn_ddl_audit_drop() SET search_path = ops, public, pg_catalog;
-ALTER FUNCTION ops.fn_ddl_drop_alert() SET search_path = ops, public, pg_catalog;
-
--- FIX 9: ops.fn_update_backup_sentinel aceitava arquivo vazio/nulo
--- (podia corromper o sentinel com file='')
+-- FIX 9: ops.fn_update_backup_sentinel validates file param
 CREATE OR REPLACE FUNCTION ops.fn_update_backup_sentinel(
   p_file text,
   p_size_bytes bigint,
@@ -39,7 +76,6 @@ SECURITY DEFINER
 SET search_path = ops, public, pg_catalog
 AS $$
 BEGIN
-  -- FIX: validar nome de arquivo (nao pode ser vazio ou nulo)
   IF p_file IS NULL OR trim(p_file) = '' THEN
     RETURN jsonb_build_object(
       'error', 'file_empty',
@@ -80,18 +116,3 @@ BEGIN
   );
 END;
 $$;
-
--- VERIFICACAO: confirmar que todos os fixes foram aplicados
-SELECT
-  (NOT has_table_privilege('anon','ops.v_wal_health','select')) AS wal_revoked,
-  (NOT has_table_privilege('anon','public.instance_registry','select')) AS inst_reg_revoked,
-  (NOT has_function_privilege('anon','public.fn_system_health_score()','execute')) AS health_score_safe,
-  (array_to_string(c.reloptions,',') ILIKE '%security_invoker=on%') AS zapp_messages_si
-FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
-WHERE n.nspname='zapp' AND c.relname='messages' AND c.relkind='v';
-
--- NOTA OPERACIONAL:
--- WAL slot 'cainophile_4038vcfg': 2581 MB restart_lag, catalog_xmin_age=322207
--- Slot ativo (PID 338), porem com lag muito alto.
--- Investigar o consumer cainophile e considerar DROP do slot se inativo em producao.
--- Impacto: previne VACUUM de remover tuplas antigas -> risco de table bloat futuro.

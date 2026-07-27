@@ -81,6 +81,7 @@ $$;
 -- ---------------------------------------------------------------------------
 
 -- Admins and supervisors can read all audit records
+DROP POLICY IF EXISTS "hmac_selftest_audit_select_admin_supervisor" ON zapp.hmac_selftest_audit;
 CREATE POLICY "hmac_selftest_audit_select_admin_supervisor"
   ON zapp.hmac_selftest_audit
   FOR SELECT
@@ -88,6 +89,7 @@ CREATE POLICY "hmac_selftest_audit_select_admin_supervisor"
   USING (zapp.is_admin_or_supervisor());
 
 -- Any authenticated user can insert their own execution record
+DROP POLICY IF EXISTS "hmac_selftest_audit_insert_own" ON zapp.hmac_selftest_audit;
 CREATE POLICY "hmac_selftest_audit_insert_own"
   ON zapp.hmac_selftest_audit
   FOR INSERT

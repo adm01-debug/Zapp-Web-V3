@@ -28,7 +28,8 @@ export function DemandForecast() {
 
   useEffect(() => {
     loadForecast();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional mount-only init
+  }, []);
 
   const loadForecast = async () => {
     setLoading(true);

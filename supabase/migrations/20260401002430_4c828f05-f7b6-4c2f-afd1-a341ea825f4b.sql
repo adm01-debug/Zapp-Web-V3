@@ -16,6 +16,7 @@ GRANT SELECT ON public.whatsapp_connections_public TO authenticated;
 
 -- Fix password_reset_requests SELECT: AND → OR
 DROP POLICY IF EXISTS "Users can view own reset requests safe" ON public.password_reset_requests;
+DROP POLICY IF EXISTS "Users can view own reset requests" ON public.password_reset_requests;
 CREATE POLICY "Users can view own reset requests"
 ON public.password_reset_requests FOR SELECT TO authenticated
 USING (user_id = auth.uid() OR is_admin_or_supervisor(auth.uid()));

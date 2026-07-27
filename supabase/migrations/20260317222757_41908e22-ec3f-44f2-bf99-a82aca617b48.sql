@@ -5,6 +5,7 @@
 
 -- messages - agent_id must be the authenticated user's profile
 DROP POLICY IF EXISTS "Authenticated users can insert messages" ON public.messages;
+DROP POLICY IF EXISTS "Users can insert messages" ON public.messages;
 CREATE POLICY "Users can insert messages" ON public.messages
   FOR INSERT TO authenticated
   WITH CHECK (
@@ -18,6 +19,7 @@ CREATE POLICY "Users can insert messages" ON public.messages
 
 -- tags - restrict to admin or use created_by
 DROP POLICY IF EXISTS "Authenticated users can insert tags" ON public.tags;
+DROP POLICY IF EXISTS "Users can insert tags" ON public.tags;
 CREATE POLICY "Users can insert tags" ON public.tags
   FOR INSERT TO authenticated
   WITH CHECK (

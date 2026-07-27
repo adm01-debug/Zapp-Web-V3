@@ -76,7 +76,8 @@ export const ExternalProductManagement: React.FC = () => {
     fetchCategories();
     fetchSuppliers();
     fetchProducts(buildFilters());
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional mount-only init
+  }, []);
 
   // Filter changes - debounced
   useEffect(() => {

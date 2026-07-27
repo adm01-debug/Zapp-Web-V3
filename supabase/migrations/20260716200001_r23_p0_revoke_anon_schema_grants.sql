@@ -18,16 +18,34 @@
 -- ----------------------------------------------------------------
 REVOKE SELECT ON ALL TABLES IN SCHEMA zapp        FROM anon;
 REVOKE SELECT ON ALL TABLES IN SCHEMA public      FROM anon;
-REVOKE SELECT ON ALL TABLES IN SCHEMA artes       FROM anon;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_namespace WHERE nspname = 'artes') THEN
+    EXECUTE 'REVOKE SELECT ON ALL TABLES IN SCHEMA artes FROM anon';
+  END IF;
+END $$;
 REVOKE SELECT ON ALL TABLES IN SCHEMA vendas      FROM anon;
 REVOKE SELECT ON ALL TABLES IN SCHEMA financeiro  FROM anon;
-REVOKE SELECT ON ALL TABLES IN SCHEMA logistica   FROM anon;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_namespace WHERE nspname = 'logistica') THEN
+    EXECUTE 'REVOKE SELECT ON ALL TABLES IN SCHEMA logistica FROM anon';
+  END IF;
+END $$;
 
 -- Explicit revoke on extension tables (owned by supabase_admin)
 -- Must revoke from PUBLIC pseudo-role (grantee=0), not anon
-REVOKE SELECT ON cron.job, cron.job_run_details             FROM PUBLIC;
-REVOKE DELETE ON cron.job_run_details                        FROM PUBLIC;
-REVOKE ALL    ON net.http_request_queue, net._http_response  FROM PUBLIC;
+-- Guard: cron.job_run_details and net tables may not exist in all environments
+DO $$ BEGIN
+  REVOKE SELECT ON cron.job FROM PUBLIC;
+  IF EXISTS (SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE n.nspname = 'cron' AND c.relname = 'job_run_details') THEN
+    REVOKE SELECT, DELETE ON cron.job_run_details FROM PUBLIC;
+  END IF;
+  IF EXISTS (SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE n.nspname = 'net' AND c.relname = 'http_request_queue') THEN
+    REVOKE ALL ON net.http_request_queue FROM PUBLIC;
+  END IF;
+  IF EXISTS (SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE n.nspname = 'net' AND c.relname = '_http_response') THEN
+    REVOKE ALL ON net._http_response FROM PUBLIC;
+  END IF;
+END $$;
 
 -- ----------------------------------------------------------------
 -- STEP 2: Seal default privileges – no future object auto-grants to anon
@@ -35,14 +53,19 @@ REVOKE ALL    ON net.http_request_queue, net._http_response  FROM PUBLIC;
 -- ----------------------------------------------------------------
 ALTER DEFAULT PRIVILEGES FOR ROLE postgres      IN SCHEMA zapp       REVOKE SELECT ON TABLES FROM anon;
 ALTER DEFAULT PRIVILEGES FOR ROLE postgres      IN SCHEMA public     REVOKE SELECT ON TABLES FROM anon;
-ALTER DEFAULT PRIVILEGES FOR ROLE postgres      IN SCHEMA artes      REVOKE SELECT ON TABLES FROM anon;
 ALTER DEFAULT PRIVILEGES FOR ROLE postgres      IN SCHEMA vendas     REVOKE SELECT ON TABLES FROM anon;
 ALTER DEFAULT PRIVILEGES FOR ROLE postgres      IN SCHEMA financeiro REVOKE SELECT ON TABLES FROM anon;
 ALTER DEFAULT PRIVILEGES FOR ROLE supabase_admin IN SCHEMA zapp      REVOKE SELECT ON TABLES FROM anon;
 ALTER DEFAULT PRIVILEGES FOR ROLE supabase_admin IN SCHEMA public    REVOKE SELECT ON TABLES FROM anon;
-ALTER DEFAULT PRIVILEGES FOR ROLE supabase_admin IN SCHEMA artes     REVOKE SELECT ON TABLES FROM anon;
 ALTER DEFAULT PRIVILEGES FOR ROLE supabase_admin IN SCHEMA vendas    REVOKE SELECT ON TABLES FROM anon;
 ALTER DEFAULT PRIVILEGES FOR ROLE supabase_admin IN SCHEMA financeiro REVOKE SELECT ON TABLES FROM anon;
+-- artes is an Evolution API instance name, not a PostgreSQL schema; guard with existence check
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_namespace WHERE nspname = 'artes') THEN
+    EXECUTE 'ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA artes REVOKE SELECT ON TABLES FROM anon';
+    EXECUTE 'ALTER DEFAULT PRIVILEGES FOR ROLE supabase_admin IN SCHEMA artes REVOKE SELECT ON TABLES FROM anon';
+  END IF;
+END $$;
 
 -- ----------------------------------------------------------------
 -- STEP 3: Verification (run after applying)

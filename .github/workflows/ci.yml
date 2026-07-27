@@ -68,9 +68,15 @@ jobs:
             NEW_PKG=$(cat package.json)
           fi
           # Compare only the dependency fields — scripts/version changes are irrelevant.
-          # OLD_PKG may be base64-encoded on the base branch (Lovable encodes files); suppress
-          # jq parse errors and use || true so set -e doesn't kill the step on invalid JSON.
-          OLD_DEPS=$(echo "$OLD_PKG" | jq -Sc '{d: (.dependencies // {}), dd: (.devDependencies // {}), pd: (.peerDependencies // {}), od: (.optionalDependencies // {})}' 2>/dev/null) || true
+          # If OLD_PKG is not valid JSON (e.g. base branch has corrupted content), skip the
+          # comparison entirely rather than comparing against a synthetic empty object, which
+          # would always appear as a "dep change" and produce a false-positive failure.
+          if ! echo "$OLD_PKG" | jq empty 2>/dev/null; then
+            echo "::warning::Base package.json could not be parsed as JSON — lockfile diff skipped."
+            echo "Lockfile consistency check skipped (base package.json unreadable)."
+            exit 0
+          fi
+          OLD_DEPS=$(echo "$OLD_PKG" | jq -Sc '{d: (.dependencies // {}), dd: (.devDependencies // {}), pd: (.peerDependencies // {}), od: (.optionalDependencies // {})}')
           NEW_DEPS=$(echo "$NEW_PKG" | jq -Sc '{d: (.dependencies // {}), dd: (.devDependencies // {}), pd: (.peerDependencies // {}), od: (.optionalDependencies // {})}')
           echo "Dependency fields changed: $([ "$OLD_DEPS" != "$NEW_DEPS" ] && echo yes || echo no)"
           echo "bun.lock changed:         ${LOCK_DIFF:-none}"

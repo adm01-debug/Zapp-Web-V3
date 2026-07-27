@@ -34,18 +34,24 @@ ADD COLUMN IF NOT EXISTS resolution_type TEXT;
 -- Priority conversion
 ALTER TABLE public.conversation_transfers ALTER COLUMN priority DROP DEFAULT;
 
-ALTER TABLE public.conversation_transfers 
-ALTER COLUMN priority TYPE INTEGER 
-USING (
-    CASE 
-        WHEN priority = 'P1' THEN 1
-        WHEN priority = 'P2' THEN 2
-        WHEN priority = 'P3' THEN 3
-        WHEN priority = 'P4' THEN 4
-        WHEN priority ~ '^\d+$' THEN priority::integer
-        ELSE 2
-    END
-);
+-- Guard: if priority is already INTEGER (from an earlier migration), the USING clause
+-- with priority='P1' comparisons fails at plan time — wrap to skip gracefully.
+DO $priority_type_guard$ BEGIN
+  ALTER TABLE public.conversation_transfers
+  ALTER COLUMN priority TYPE INTEGER
+  USING (
+      CASE
+          WHEN priority = 'P1' THEN 1
+          WHEN priority = 'P2' THEN 2
+          WHEN priority = 'P3' THEN 3
+          WHEN priority = 'P4' THEN 4
+          WHEN priority ~ '^\d+$' THEN priority::integer
+          ELSE 2
+      END
+  );
+EXCEPTION WHEN OTHERS THEN
+  RAISE NOTICE 'SKIP ALTER COLUMN priority TYPE INTEGER (already INTEGER or plan error): %', SQLERRM;
+END $priority_type_guard$;
 
 ALTER TABLE public.conversation_transfers ALTER COLUMN priority SET DEFAULT 2;
 
@@ -89,8 +95,10 @@ BEGIN
 
     RETURN v_transfer_id;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
+-- Drop old overload with RETURNS JSONB (different return type — CREATE OR REPLACE cannot change it)
+DROP FUNCTION IF EXISTS public.fn_accept_transfer(UUID, TEXT);
 CREATE OR REPLACE FUNCTION public.fn_accept_transfer(p_transfer_id UUID, p_operator TEXT)
 RETURNS BOOLEAN AS $$
 BEGIN
@@ -98,8 +106,10 @@ BEGIN
     WHERE id = p_transfer_id AND status = 'pending';
     RETURN FOUND;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
+-- Drop old overload with RETURNS public.conversation_transfers (different return type — CREATE OR REPLACE cannot change it)
+DROP FUNCTION IF EXISTS public.fn_complete_transfer(UUID, TEXT, TEXT);
 CREATE OR REPLACE FUNCTION public.fn_complete_transfer(p_transfer_id UUID, p_notes TEXT, p_type TEXT DEFAULT 'resolved')
 RETURNS BOOLEAN AS $$
 BEGIN
@@ -107,7 +117,7 @@ BEGIN
     WHERE id = p_transfer_id AND status IN ('accepted', 'in_progress');
     RETURN FOUND;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 CREATE OR REPLACE FUNCTION public.fn_return_transfer(p_transfer_id UUID, p_reason TEXT)
 RETURNS BOOLEAN AS $$
@@ -116,7 +126,7 @@ BEGIN
     WHERE id = p_transfer_id AND status IN ('accepted', 'in_progress');
     RETURN FOUND;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 CREATE OR REPLACE FUNCTION public.fn_transfer_comment(p_transfer_id UUID, p_author TEXT, p_instance TEXT, p_content TEXT)
 RETURNS UUID AS $$
@@ -126,7 +136,7 @@ BEGIN
     VALUES (p_transfer_id, p_author, p_instance, p_content) RETURNING id INTO v_id;
     RETURN v_id;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 -- Recreate Monitoring View
 CREATE OR REPLACE VIEW public.v_pending_transfers AS

@@ -134,7 +134,7 @@ export function useSipConnection() {
         `Erro ao conectar VoIP: ${err instanceof Error ? err.message : 'Falha na conexão'}`
       );
     }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [mountedRef]);
 
   const disconnect = useCallback(async () => {
     try {
@@ -153,7 +153,7 @@ export function useSipConnection() {
     } catch (err) {
       log.error('SIP disconnect error:', err);
     }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [mountedRef]);
 
   return { sipStatus, uaRef, connect, disconnect };
 }
