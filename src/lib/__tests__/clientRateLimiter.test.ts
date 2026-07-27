@@ -1,134 +1,130 @@
 /**
  * Tests para clientRateLimiter.ts
  */
-import { assertEquals, assertThrows } from "https://deno.land/std@0.224.0/assert/mod.ts";
+import { describe, it, expect } from 'vitest';
 
 import {
   clientRateLimiter,
   withRateLimit,
   RateLimitError,
-} from "../clientRateLimiter.ts";
+} from "../clientRateLimiter";
 
-Deno.test("clientRateLimiter: default rules exist", () => {
-  const stats = clientRateLimiter.getStats();
-  assertEquals(typeof stats.send_message, 'object');
-  assertEquals(typeof stats.create_contact, 'object');
-});
-
-Deno.test("clientRateLimiter: tryAcquire allows within limit", () => {
-  clientRateLimiter.resetAll();
-  const result = clientRateLimiter.tryAcquire('test_action_1');
-  assertEquals(result.allowed, true);
-  assertEquals(result.remaining >= 0, true);
-});
-
-Deno.test("clientRateLimiter: tryAcquire blocks after limit", () => {
-  clientRateLimiter.resetAll();
-  clientRateLimiter.setRule('test_action_2', 3, 60_000);
-
-  // First 3 calls should succeed
-  assertEquals(clientRateLimiter.tryAcquire('test_action_2').allowed, true);
-  assertEquals(clientRateLimiter.tryAcquire('test_action_2').allowed, true);
-  assertEquals(clientRateLimiter.tryAcquire('test_action_2').allowed, true);
-
-  // 4th call should be blocked
-  const blocked = clientRateLimiter.tryAcquire('test_action_2');
-  assertEquals(blocked.allowed, false);
-  assertEquals(blocked.remaining, 0);
-});
-
-Deno.test("clientRateLimiter: reset clears counter", () => {
-  clientRateLimiter.setRule('test_action_3', 1, 60_000);
-
-  clientRateLimiter.tryAcquire('test_action_3');
-  assertEquals(clientRateLimiter.tryAcquire('test_action_3').allowed, false);
-
-  clientRateLimiter.reset('test_action_3');
-  assertEquals(clientRateLimiter.tryAcquire('test_action_3').allowed, true);
-});
-
-Deno.test("clientRateLimiter: resetAll clears everything", () => {
-  clientRateLimiter.setRule('test_a', 1, 60_000);
-  clientRateLimiter.setRule('test_b', 1, 60_000);
-
-  clientRateLimiter.tryAcquire('test_a');
-  clientRateLimiter.tryAcquire('test_b');
-
-  clientRateLimiter.resetAll();
-
-  assertEquals(clientRateLimiter.tryAcquire('test_a').allowed, true);
-  assertEquals(clientRateLimiter.tryAcquire('test_b').allowed, true);
-});
-
-Deno.test("clientRateLimiter: getStats returns correct counts", () => {
-  clientRateLimiter.resetAll();
-  clientRateLimiter.setRule('test_stats', 5, 60_000);
-
-  clientRateLimiter.tryAcquire('test_stats');
-  clientRateLimiter.tryAcquire('test_stats');
-  clientRateLimiter.tryAcquire('test_stats');
-
-  const stats = clientRateLimiter.getStats();
-  assertEquals(stats.test_stats.used, 3);
-  assertEquals(stats.test_stats.limit, 5);
-  assertEquals(stats.test_stats.remaining, 2);
-});
-
-Deno.test("RateLimitError: contains retry info", () => {
-  const error = new RateLimitError('test', 'test_action', 5000);
-  assertEquals(error.action, 'test_action');
-  assertEquals(error.retryAfterMs, 5000);
-  assertEquals(error.name, 'RateLimitError');
-});
-
-Deno.test("withRateLimit: wraps function and applies limit", async () => {
-  clientRateLimiter.resetAll();
-  clientRateLimiter.setRule('test_wrap', 2, 60_000);
-
-  let callCount = 0;
-  const wrapped = withRateLimit('test_wrap', async (n: number) => {
-    callCount++;
-    return n * 2;
+describe('clientRateLimiter', () => {
+  it('default rules exist', () => {
+    const stats = clientRateLimiter.getStats();
+    expect(typeof stats.send_message).toEqual('object');
+    expect(typeof stats.create_contact).toEqual('object');
   });
 
-  // First 2 should succeed
-  const r1 = await wrapped(1);
-  assertEquals(r1, 2);
-  const r2 = await wrapped(2);
-  assertEquals(r2, 4);
-
-  // 3rd should throw
-  await assertThrows(
-    async () => await wrapped(3),
-    RateLimitError
-  );
-
-  assertEquals(callCount, 2); // Only 2 actual calls
-});
-
-Deno.test("withRateLimit: preserves function arguments", async () => {
-  clientRateLimiter.resetAll();
-  clientRateLimiter.setRule('test_args', 100, 60_000);
-
-  const wrapped = withRateLimit('test_args', async (a: string, b: number) => {
-    return `${a}-${b}`;
+  it('tryAcquire allows within limit', () => {
+    clientRateLimiter.resetAll();
+    const result = clientRateLimiter.tryAcquire('test_action_1');
+    expect(result.allowed).toEqual(true);
+    expect(result.remaining >= 0).toEqual(true);
   });
 
-  const result = await wrapped('hello', 42);
-  assertEquals(result, 'hello-42');
+  it('tryAcquire blocks after limit', () => {
+    clientRateLimiter.resetAll();
+    clientRateLimiter.setRule('test_action_2', 3, 60_000);
+
+    expect(clientRateLimiter.tryAcquire('test_action_2').allowed).toEqual(true);
+    expect(clientRateLimiter.tryAcquire('test_action_2').allowed).toEqual(true);
+    expect(clientRateLimiter.tryAcquire('test_action_2').allowed).toEqual(true);
+
+    const blocked = clientRateLimiter.tryAcquire('test_action_2');
+    expect(blocked.allowed).toEqual(false);
+    expect(blocked.remaining).toEqual(0);
+  });
+
+  it('reset clears counter', () => {
+    clientRateLimiter.setRule('test_action_3', 1, 60_000);
+
+    clientRateLimiter.tryAcquire('test_action_3');
+    expect(clientRateLimiter.tryAcquire('test_action_3').allowed).toEqual(false);
+
+    clientRateLimiter.reset('test_action_3');
+    expect(clientRateLimiter.tryAcquire('test_action_3').allowed).toEqual(true);
+  });
+
+  it('resetAll clears everything', () => {
+    clientRateLimiter.setRule('test_a', 1, 60_000);
+    clientRateLimiter.setRule('test_b', 1, 60_000);
+
+    clientRateLimiter.tryAcquire('test_a');
+    clientRateLimiter.tryAcquire('test_b');
+
+    clientRateLimiter.resetAll();
+
+    expect(clientRateLimiter.tryAcquire('test_a').allowed).toEqual(true);
+    expect(clientRateLimiter.tryAcquire('test_b').allowed).toEqual(true);
+  });
+
+  it('getStats returns correct counts', () => {
+    clientRateLimiter.resetAll();
+    clientRateLimiter.setRule('test_stats', 5, 60_000);
+
+    clientRateLimiter.tryAcquire('test_stats');
+    clientRateLimiter.tryAcquire('test_stats');
+    clientRateLimiter.tryAcquire('test_stats');
+
+    const stats = clientRateLimiter.getStats();
+    expect(stats.test_stats.used).toEqual(3);
+    expect(stats.test_stats.limit).toEqual(5);
+    expect(stats.test_stats.remaining).toEqual(2);
+  });
 });
 
-Deno.test("clientRateLimiter: window-based reset", async () => {
-  clientRateLimiter.resetAll();
-  // Set very short window for testing
-  clientRateLimiter.setRule('test_window', 1, 100); // 1 call per 100ms
+describe('RateLimitError', () => {
+  it('contains retry info', () => {
+    const error = new RateLimitError('test', 'test_action', 5000);
+    expect(error.action).toEqual('test_action');
+    expect(error.retryAfterMs).toEqual(5000);
+    expect(error.name).toEqual('RateLimitError');
+  });
+});
 
-  assertEquals(clientRateLimiter.tryAcquire('test_window').allowed, true);
-  assertEquals(clientRateLimiter.tryAcquire('test_window').allowed, false);
+describe('withRateLimit', () => {
+  it('wraps function and applies limit', async () => {
+    clientRateLimiter.resetAll();
+    clientRateLimiter.setRule('test_wrap', 2, 60_000);
 
-  // Wait for window to expire
-  await new Promise((r) => setTimeout(r, 150));
+    let callCount = 0;
+    const wrapped = withRateLimit('test_wrap', async (n: number) => {
+      callCount++;
+      return n * 2;
+    });
 
-  // Should be allowed again
-  assertEquals(clientRateLimiter.tryAcquire('test_window').allowed, true);
+    const r1 = await wrapped(1);
+    expect(r1).toEqual(2);
+    const r2 = await wrapped(2);
+    expect(r2).toEqual(4);
+
+    await expect(wrapped(3)).rejects.toBeInstanceOf(RateLimitError);
+
+    expect(callCount).toEqual(2);
+  });
+
+  it('preserves function arguments', async () => {
+    clientRateLimiter.resetAll();
+    clientRateLimiter.setRule('test_args', 100, 60_000);
+
+    const wrapped = withRateLimit('test_args', async (a: string, b: number) => {
+      return `${a}-${b}`;
+    });
+
+    const result = await wrapped('hello', 42);
+    expect(result).toEqual('hello-42');
+  });
+
+  it('window-based reset', async () => {
+    clientRateLimiter.resetAll();
+    clientRateLimiter.setRule('test_window', 1, 100);
+
+    expect(clientRateLimiter.tryAcquire('test_window').allowed).toEqual(true);
+    expect(clientRateLimiter.tryAcquire('test_window').allowed).toEqual(false);
+
+    await new Promise((r) => setTimeout(r, 150));
+
+    expect(clientRateLimiter.tryAcquire('test_window').allowed).toEqual(true);
+  });
 });

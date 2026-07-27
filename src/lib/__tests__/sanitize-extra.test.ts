@@ -1,7 +1,7 @@
 /**
  * Tests para sanitize-extra.ts
  */
-import { assertEquals, assertExists } from "https://deno.land/std@0.224.0/assert/mod.ts";
+import { describe, it, expect } from 'vitest';
 
 import {
   sanitizeEmail,
@@ -14,157 +14,176 @@ import {
   sanitizeLogMessage,
   truncate,
   validateFileSize,
-} from "../sanitize-extra.ts";
+} from "../sanitize-extra";
 
-Deno.test("sanitizeEmail: aceita email válido", () => {
-  assertEquals(sanitizeEmail("User@Example.com"), "user@example.com");
+describe('sanitizeEmail', () => {
+  it('aceita email válido', () => {
+    expect(sanitizeEmail("User@Example.com")).toEqual("user@example.com");
+  });
+
+  it('rejeita email sem @', () => {
+    expect(sanitizeEmail("notanemail")).toEqual(null);
+  });
+
+  it('rejeita email muito longo', () => {
+    const long = "a".repeat(300) + "@example.com";
+    expect(sanitizeEmail(long)).toEqual(null);
+  });
+
+  it('rejeita email com pontos consecutivos', () => {
+    expect(sanitizeEmail("user..name@example.com")).toEqual(null);
+  });
+
+  it('aceita email com subdomain', () => {
+    expect(sanitizeEmail("user@mail.example.com")).toEqual("user@mail.example.com");
+  });
+
+  it('rejeita null/undefined', () => {
+    expect(sanitizeEmail(null as unknown as string)).toEqual(null);
+    expect(sanitizeEmail(undefined as unknown as string)).toEqual(null);
+  });
 });
 
-Deno.test("sanitizeEmail: rejeita email sem @", () => {
-  assertEquals(sanitizeEmail("notanemail"), null);
+describe('normalizePhoneBR', () => {
+  it('normaliza telefone sem código do país', () => {
+    expect(normalizePhoneBR("11999998888")).toEqual("5511999998888");
+  });
+
+  it('mantém código do país se presente', () => {
+    expect(normalizePhoneBR("5511999998888")).toEqual("5511999998888");
+  });
+
+  it('aceita formatação com parênteses', () => {
+    expect(normalizePhoneBR("(11) 99999-8888")).toEqual("5511999998888");
+  });
+
+  it('rejeita telefone muito curto', () => {
+    expect(normalizePhoneBR("123")).toEqual(null);
+  });
+
+  it('rejeita telefone muito longo', () => {
+    expect(normalizePhoneBR("123456789012345")).toEqual(null);
+  });
 });
 
-Deno.test("sanitizeEmail: rejeita email muito longo", () => {
-  const long = "a".repeat(300) + "@example.com";
-  assertEquals(sanitizeEmail(long), null);
+describe('maskPhoneBR', () => {
+  it('formata 11 dígitos', () => {
+    expect(maskPhoneBR("11999998888")).toEqual("(11) 99999-8888");
+  });
+
+  it('formata 10 dígitos', () => {
+    expect(maskPhoneBR("1199998888")).toEqual("(11) 9999-8888");
+  });
 });
 
-Deno.test("sanitizeEmail: rejeita email com pontos consecutivos", () => {
-  assertEquals(sanitizeEmail("user..name@example.com"), null);
+describe('validateMimeType', () => {
+  it('aceita MIME permitido', () => {
+    expect(validateMimeType("image/png", ["image/png", "image/jpeg"])).toEqual(true);
+  });
+
+  it('rejeita MIME não permitido', () => {
+    expect(validateMimeType("application/x-evil", ["image/png"])).toEqual(false);
+  });
 });
 
-Deno.test("sanitizeEmail: aceita email com subdomain", () => {
-  assertEquals(sanitizeEmail("user@mail.example.com"), "user@mail.example.com");
+describe('validateFileExtension', () => {
+  it('aceita extensão permitida', () => {
+    expect(validateFileExtension("foto.png", ["png", "jpg"])).toEqual(true);
+  });
+
+  it('rejeita extensão perigosa', () => {
+    expect(validateFileExtension("virus.exe", ["png", "jpg"])).toEqual(false);
+  });
 });
 
-Deno.test("sanitizeEmail: rejeita null/undefined", () => {
-  assertEquals(sanitizeEmail(null as unknown as string), null);
-  assertEquals(sanitizeEmail(undefined as unknown as string), null);
+describe('sanitizeFilename', () => {
+  it('remove path traversal', () => {
+    expect(sanitizeFilename("../../etc/passwd")).toEqual("etcpasswd");
+  });
+
+  it('remove separadores', () => {
+    expect(sanitizeFilename("path/to/file.txt")).toEqual("pathtofile.txt");
+  });
+
+  it('trunca nomes longos', () => {
+    const long = "a".repeat(300) + ".txt";
+    const clean = sanitizeFilename(long);
+    expect(clean.length <= 255).toEqual(true);
+  });
 });
 
-Deno.test("normalizePhoneBR: normaliza telefone sem código do país", () => {
-  assertEquals(normalizePhoneBR("11999998888"), "5511999998888");
+describe('sanitizeUrl', () => {
+  it('aceita http', () => {
+    expect(sanitizeUrl("http://example.com")).toEqual("http://example.com");
+  });
+
+  it('aceita https', () => {
+    expect(sanitizeUrl("https://example.com")).toEqual("https://example.com");
+  });
+
+  it('rejeita javascript:', () => {
+    expect(sanitizeUrl("javascript:alert(1)")).toEqual(null);
+  });
+
+  it('rejeita data:', () => {
+    expect(sanitizeUrl("data:text/html,<script>")).toEqual(null);
+  });
+
+  it('aceita mailto', () => {
+    expect(sanitizeUrl("mailto:user@example.com")).toEqual("mailto:user@example.com");
+  });
+
+  it('aceita relative', () => {
+    expect(sanitizeUrl("/path/to/page")).toEqual("/path/to/page");
+  });
 });
 
-Deno.test("normalizePhoneBR: mantém código do país se presente", () => {
-  assertEquals(normalizePhoneBR("5511999998888"), "5511999998888");
+describe('sanitizeLogMessage', () => {
+  it('remove CPF', () => {
+    expect(sanitizeLogMessage("User CPF: 123.456.789-00")).toEqual("User CPF: [CPF]");
+  });
+
+  it('remove email', () => {
+    expect(sanitizeLogMessage("Contact: user@example.com")).toEqual("Contact: [EMAIL]");
+  });
+
+  it('remove bearer token', () => {
+    expect(
+      sanitizeLogMessage("Auth: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9")
+    ).toEqual("Auth: Bearer [TOKEN]");
+  });
+
+  it('remove API keys OpenAI', () => {
+    const key = "sk-" + "a".repeat(50);
+    expect(sanitizeLogMessage(`Key: ${key}`)).toEqual("Key: sk-[REDACTED]");
+  });
 });
 
-Deno.test("normalizePhoneBR: aceita formatação com parênteses", () => {
-  assertEquals(normalizePhoneBR("(11) 99999-8888"), "5511999998888");
+describe('truncate', () => {
+  it('trunca texto longo', () => {
+    expect(truncate("Hello World", 8)).toEqual("Hello...");
+  });
+
+  it('mantém texto curto', () => {
+    expect(truncate("Hi", 10)).toEqual("Hi");
+  });
 });
 
-Deno.test("normalizePhoneBR: rejeita telefone muito curto", () => {
-  assertEquals(normalizePhoneBR("123"), null);
-});
+describe('validateFileSize', () => {
+  it('aceita tamanho válido', () => {
+    const result = validateFileSize(1024 * 1024, 10 * 1024 * 1024);
+    expect(result.valid).toEqual(true);
+  });
 
-Deno.test("normalizePhoneBR: rejeita telefone muito longo", () => {
-  assertEquals(normalizePhoneBR("123456789012345"), null);
-});
+  it('rejeita arquivo vazio', () => {
+    const result = validateFileSize(0, 10 * 1024 * 1024);
+    expect(result.valid).toEqual(false);
+    expect(result.error).toBeDefined();
+  });
 
-Deno.test("maskPhoneBR: formata 11 dígitos", () => {
-  assertEquals(maskPhoneBR("11999998888"), "(11) 99999-8888");
-});
-
-Deno.test("maskPhoneBR: formata 10 dígitos", () => {
-  assertEquals(maskPhoneBR("1199998888"), "(11) 9999-8888");
-});
-
-Deno.test("validateMimeType: aceita MIME permitido", () => {
-  assertEquals(validateMimeType("image/png", ["image/png", "image/jpeg"]), true);
-});
-
-Deno.test("validateMimeType: rejeita MIME não permitido", () => {
-  assertEquals(validateMimeType("application/x-evil", ["image/png"]), false);
-});
-
-Deno.test("validateFileExtension: aceita extensão permitida", () => {
-  assertEquals(validateFileExtension("foto.png", ["png", "jpg"]), true);
-});
-
-Deno.test("validateFileExtension: rejeita extensão perigosa", () => {
-  assertEquals(validateFileExtension("virus.exe", ["png", "jpg"]), false);
-});
-
-Deno.test("sanitizeFilename: remove path traversal", () => {
-  assertEquals(sanitizeFilename("../../etc/passwd"), "etcpasswd");
-});
-
-Deno.test("sanitizeFilename: remove separadores", () => {
-  assertEquals(sanitizeFilename("path/to/file.txt"), "pathtofile.txt");
-});
-
-Deno.test("sanitizeFilename: trunca nomes longos", () => {
-  const long = "a".repeat(300) + ".txt";
-  const clean = sanitizeFilename(long);
-  assertEquals(clean.length <= 255, true);
-});
-
-Deno.test("sanitizeUrl: aceita http", () => {
-  assertEquals(sanitizeUrl("http://example.com"), "http://example.com");
-});
-
-Deno.test("sanitizeUrl: aceita https", () => {
-  assertEquals(sanitizeUrl("https://example.com"), "https://example.com");
-});
-
-Deno.test("sanitizeUrl: rejeita javascript:", () => {
-  assertEquals(sanitizeUrl("javascript:alert(1)"), null);
-});
-
-Deno.test("sanitizeUrl: rejeita data:", () => {
-  assertEquals(sanitizeUrl("data:text/html,<script>"), null);
-});
-
-Deno.test("sanitizeUrl: aceita mailto", () => {
-  assertEquals(sanitizeUrl("mailto:user@example.com"), "mailto:user@example.com");
-});
-
-Deno.test("sanitizeUrl: aceita relative", () => {
-  assertEquals(sanitizeUrl("/path/to/page"), "/path/to/page");
-});
-
-Deno.test("sanitizeLogMessage: remove CPF", () => {
-  assertEquals(sanitizeLogMessage("User CPF: 123.456.789-00"), "User CPF: [CPF]");
-});
-
-Deno.test("sanitizeLogMessage: remove email", () => {
-  assertEquals(sanitizeLogMessage("Contact: user@example.com"), "Contact: [EMAIL]");
-});
-
-Deno.test("sanitizeLogMessage: remove bearer token", () => {
-  assertEquals(
-    sanitizeLogMessage("Auth: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9"),
-    "Auth: Bearer [TOKEN]"
-  );
-});
-
-Deno.test("sanitizeLogMessage: remove API keys OpenAI", () => {
-  const key = "sk-" + "a".repeat(50);
-  assertEquals(sanitizeLogMessage(`Key: ${key}`), "Key: sk-[REDACTED]");
-});
-
-Deno.test("truncate: trunca texto longo", () => {
-  assertEquals(truncate("Hello World", 8), "Hello...");
-});
-
-Deno.test("truncate: mantém texto curto", () => {
-  assertEquals(truncate("Hi", 10), "Hi");
-});
-
-Deno.test("validateFileSize: aceita tamanho válido", () => {
-  const result = validateFileSize(1024 * 1024, 10 * 1024 * 1024);
-  assertEquals(result.valid, true);
-});
-
-Deno.test("validateFileSize: rejeita arquivo vazio", () => {
-  const result = validateFileSize(0, 10 * 1024 * 1024);
-  assertEquals(result.valid, false);
-  assertExists(result.error);
-});
-
-Deno.test("validateFileSize: rejeita arquivo muito grande", () => {
-  const result = validateFileSize(20 * 1024 * 1024, 10 * 1024 * 1024);
-  assertEquals(result.valid, false);
-  assertExists(result.error);
+  it('rejeita arquivo muito grande', () => {
+    const result = validateFileSize(20 * 1024 * 1024, 10 * 1024 * 1024);
+    expect(result.valid).toEqual(false);
+    expect(result.error).toBeDefined();
+  });
 });

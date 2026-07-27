@@ -35,7 +35,7 @@ jobs:
           fi
 
           # Check 1 : Duplicate exact filenames (though OS should prevent this)
-          DUPLICATES=$(find "$MIGRATIONS_DIR" -name "*.sql" -type f | xsort | sed 's|.*/||' | sort | uniq -d)
+          DUPLICATES=$(find "$MIGRATIONS_DIR" -name "*.sql" -type f | sed 's|.*/||' | sort | uniq -d)
 
           if [ -n "$DUPLICATES" ]; then
             echo "### ERROR: Duplicate migration filenames detected!"

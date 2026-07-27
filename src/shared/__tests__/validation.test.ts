@@ -1,9 +1,8 @@
 /**
  * Tests para validation.ts - Schemas Zod centralizados
  */
-import { assertEquals, assertExists } from "https://deno.land/std@0.224.0/assert/mod.ts";
+import { describe, it, expect } from 'vitest';
 
-// Re-import direto do schema (evita problemas com paths)
 import {
   sendMessageSchema,
   createContactSchema,
@@ -12,198 +11,212 @@ import {
   safeValidateInput,
   messageContentSchema,
   contactPhoneSchema,
-} from "../validation.ts";
+} from "../validation";
 
-Deno.test("messageContentSchema: deve aceitar mensagem válida", () => {
-  const result = messageContentSchema.safeParse("Olá, tudo bem?");
-  assertEquals(result.success, true);
-});
-
-Deno.test("messageContentSchema: deve rejeitar mensagem vazia", () => {
-  const result = messageContentSchema.safeParse("");
-  assertEquals(result.success, false);
-});
-
-Deno.test("messageContentSchema: deve rejeitar mensagem muito longa", () => {
-  const result = messageContentSchema.safeParse("a".repeat(5000));
-  assertEquals(result.success, false);
-});
-
-Deno.test("messageContentSchema: deve rejeitar só espaços", () => {
-  const result = messageContentSchema.safeParse("     ");
-  assertEquals(result.success, false);
-});
-
-Deno.test("contactPhoneSchema: deve aceitar telefone BR válido", () => {
-  const result = contactPhoneSchema.safeParse("11999998888");
-  assertEquals(result.success, true);
-});
-
-Deno.test("contactPhoneSchema: deve aceitar telefone com formatação", () => {
-  const result = contactPhoneSchema.safeParse("(11) 99999-8888");
-  assertEquals(result.success, true);
-});
-
-Deno.test("contactPhoneSchema: deve rejeitar telefone curto", () => {
-  const result = contactPhoneSchema.safeParse("123");
-  assertEquals(result.success, false);
-});
-
-Deno.test("sendMessageSchema: deve aceitar payload completo válido", () => {
-  const result = sendMessageSchema.safeParse({
-    contactId: "123e4567-e89b-12d3-a456-426614174000",
-    content: "Olá!",
-    messageType: "text",
+describe('messageContentSchema', () => {
+  it('deve aceitar mensagem válida', () => {
+    const result = messageContentSchema.safeParse("Olá, tudo bem?");
+    expect(result.success).toEqual(true);
   });
-  assertEquals(result.success, true);
-});
 
-Deno.test("sendMessageSchema: deve rejeitar contactId inválido (não-UUID)", () => {
-  const result = sendMessageSchema.safeParse({
-    contactId: "not-a-uuid",
-    content: "Olá!",
+  it('deve rejeitar mensagem vazia', () => {
+    const result = messageContentSchema.safeParse("");
+    expect(result.success).toEqual(false);
   });
-  assertEquals(result.success, false);
-});
 
-Deno.test("sendMessageSchema: deve usar messageType default 'text'", () => {
-  const result = sendMessageSchema.safeParse({
-    contactId: "123e4567-e89b-12d3-a456-426614174000",
-    content: "Olá!",
+  it('deve rejeitar mensagem muito longa', () => {
+    const result = messageContentSchema.safeParse("a".repeat(5000));
+    expect(result.success).toEqual(false);
   });
-  assertEquals(result.success, true);
-  if (result.success) {
-    assertEquals(result.data.messageType, "text");
-  }
-});
 
-Deno.test("createContactSchema: deve aceitar contato válido", () => {
-  const result = createContactSchema.safeParse({
-    name: "João Silva",
-    phone: "11999998888",
-    email: "joao@example.com",
-    tags: [],
+  it('deve rejeitar só espaços', () => {
+    const result = messageContentSchema.safeParse("     ");
+    expect(result.success).toEqual(false);
   });
-  assertEquals(result.success, true);
 });
 
-Deno.test("createContactSchema: deve rejeitar sem nome", () => {
-  const result = createContactSchema.safeParse({
-    phone: "11999998888",
+describe('contactPhoneSchema', () => {
+  it('deve aceitar telefone BR válido', () => {
+    const result = contactPhoneSchema.safeParse("11999998888");
+    expect(result.success).toEqual(true);
   });
-  assertEquals(result.success, false);
-});
 
-Deno.test("createContactSchema: deve rejeitar mais de 50 tags", () => {
-  const tags = Array(60).fill("123e4567-e89b-12d3-a456-426614174000");
-  const result = createContactSchema.safeParse({
-    name: "João",
-    phone: "11999998888",
-    tags,
+  it('deve aceitar telefone com formatação', () => {
+    const result = contactPhoneSchema.safeParse("(11) 99999-8888");
+    expect(result.success).toEqual(true);
   });
-  assertEquals(result.success, false);
-});
 
-Deno.test("retryConfigSchema: deve aceitar config válida", () => {
-  const result = retryConfigSchema.safeParse({
-    maxRetries: 3,
-    baseBackoffMs: 800,
-    maxBackoffMs: 6000,
-    timeoutMs: 30_000,
+  it('deve rejeitar telefone curto', () => {
+    const result = contactPhoneSchema.safeParse("123");
+    expect(result.success).toEqual(false);
   });
-  assertEquals(result.success, true);
 });
 
-Deno.test("retryConfigSchema: deve rejeitar maxBackoffMs < baseBackoffMs", () => {
-  const result = retryConfigSchema.safeParse({
-    maxRetries: 3,
-    baseBackoffMs: 800,
-    maxBackoffMs: 500, // < 800
-    timeoutMs: 30_000,
+describe('sendMessageSchema', () => {
+  it('deve aceitar payload completo válido', () => {
+    const result = sendMessageSchema.safeParse({
+      contactId: "123e4567-e89b-12d3-a456-426614174000",
+      content: "Olá!",
+      messageType: "text",
+    });
+    expect(result.success).toEqual(true);
   });
-  assertEquals(result.success, false);
-});
 
-Deno.test("retryConfigSchema: deve rejeitar timeoutMs < baseBackoffMs", () => {
-  const result = retryConfigSchema.safeParse({
-    maxRetries: 3,
-    baseBackoffMs: 800,
-    maxBackoffMs: 6000,
-    timeoutMs: 500, // < 800
+  it('deve rejeitar contactId inválido (não-UUID)', () => {
+    const result = sendMessageSchema.safeParse({
+      contactId: "not-a-uuid",
+      content: "Olá!",
+    });
+    expect(result.success).toEqual(false);
   });
-  assertEquals(result.success, false);
-});
 
-Deno.test("retryConfigSchema: deve rejeitar maxRetries > 10", () => {
-  const result = retryConfigSchema.safeParse({
-    maxRetries: 20,
-    baseBackoffMs: 800,
-    maxBackoffMs: 6000,
-    timeoutMs: 30_000,
+  it("deve usar messageType default 'text'", () => {
+    const result = sendMessageSchema.safeParse({
+      contactId: "123e4567-e89b-12d3-a456-426614174000",
+      content: "Olá!",
+    });
+    expect(result.success).toEqual(true);
+    if (result.success) {
+      expect(result.data.messageType).toEqual("text");
+    }
   });
-  assertEquals(result.success, false);
-});
 
-Deno.test("validateInput: deve retornar data em caso de sucesso", () => {
-  const data = validateInput(messageContentSchema, "Olá!");
-  assertEquals(data, "Olá!");
-});
-
-Deno.test("validateInput: deve throw em caso de erro", () => {
-  let threw = false;
-  try {
-    validateInput(messageContentSchema, "");
-  } catch {
-    threw = true;
-  }
-  assertEquals(threw, true);
-});
-
-Deno.test("safeValidateInput: deve retornar ok:true em caso de sucesso", () => {
-  const result = safeValidateInput(messageContentSchema, "Olá!");
-  assertEquals(result.ok, true);
-});
-
-Deno.test("safeValidateInput: deve retornar ok:false sem throw", () => {
-  const result = safeValidateInput(messageContentSchema, "");
-  assertEquals(result.ok, false);
-  if (!result.ok) {
-    assertExists(result.error);
-  }
-});
-
-Deno.test("sendMessageSchema: deve aceitar com mediaUrl", () => {
-  const result = sendMessageSchema.safeParse({
-    contactId: "123e4567-e89b-12d3-a456-426614174000",
-    content: "Imagem",
-    messageType: "image",
-    mediaUrl: "https://example.com/image.jpg",
+  it('deve aceitar com mediaUrl', () => {
+    const result = sendMessageSchema.safeParse({
+      contactId: "123e4567-e89b-12d3-a456-426614174000",
+      content: "Imagem",
+      messageType: "image",
+      mediaUrl: "https://example.com/image.jpg",
+    });
+    expect(result.success).toEqual(true);
   });
-  assertEquals(result.success, true);
+
+  it('deve aceitar mediaPayload null', () => {
+    const result = sendMessageSchema.safeParse({
+      contactId: "123e4567-e89b-12d3-a456-426614174000",
+      content: "Test",
+      mediaPayload: null,
+    });
+    expect(result.success).toEqual(true);
+  });
 });
 
-Deno.test("sendMessageSchema: deve aceitar mediaPayload null", () => {
-  const result = sendMessageSchema.safeParse({
-    contactId: "123e4567-e89b-12d3-a456-426614174000",
-    content: "Test",
-    mediaPayload: null,
+describe('createContactSchema', () => {
+  it('deve aceitar contato válido', () => {
+    const result = createContactSchema.safeParse({
+      name: "João Silva",
+      phone: "11999998888",
+      email: "joao@example.com",
+      tags: [],
+    });
+    expect(result.success).toEqual(true);
   });
-  assertEquals(result.success, true);
+
+  it('deve rejeitar sem nome', () => {
+    const result = createContactSchema.safeParse({
+      phone: "11999998888",
+    });
+    expect(result.success).toEqual(false);
+  });
+
+  it('deve rejeitar mais de 50 tags', () => {
+    const tags = Array(60).fill("123e4567-e89b-12d3-a456-426614174000");
+    const result = createContactSchema.safeParse({
+      name: "João",
+      phone: "11999998888",
+      tags,
+    });
+    expect(result.success).toEqual(false);
+  });
+
+  it('deve aceitar sem email (opcional)', () => {
+    const result = createContactSchema.safeParse({
+      name: "João",
+      phone: "11999998888",
+    });
+    expect(result.success).toEqual(true);
+  });
+
+  it('deve aceitar com tags vazias', () => {
+    const result = createContactSchema.safeParse({
+      name: "João",
+      phone: "11999998888",
+      tags: [],
+    });
+    expect(result.success).toEqual(true);
+  });
 });
 
-Deno.test("createContactSchema: deve aceitar sem email (opcional)", () => {
-  const result = createContactSchema.safeParse({
-    name: "João",
-    phone: "11999998888",
+describe('retryConfigSchema', () => {
+  it('deve aceitar config válida', () => {
+    const result = retryConfigSchema.safeParse({
+      maxRetries: 3,
+      baseBackoffMs: 800,
+      maxBackoffMs: 6000,
+      timeoutMs: 30_000,
+    });
+    expect(result.success).toEqual(true);
   });
-  assertEquals(result.success, true);
+
+  it('deve rejeitar maxBackoffMs < baseBackoffMs', () => {
+    const result = retryConfigSchema.safeParse({
+      maxRetries: 3,
+      baseBackoffMs: 800,
+      maxBackoffMs: 500,
+      timeoutMs: 30_000,
+    });
+    expect(result.success).toEqual(false);
+  });
+
+  it('deve rejeitar timeoutMs < baseBackoffMs', () => {
+    const result = retryConfigSchema.safeParse({
+      maxRetries: 3,
+      baseBackoffMs: 800,
+      maxBackoffMs: 6000,
+      timeoutMs: 500,
+    });
+    expect(result.success).toEqual(false);
+  });
+
+  it('deve rejeitar maxRetries > 10', () => {
+    const result = retryConfigSchema.safeParse({
+      maxRetries: 20,
+      baseBackoffMs: 800,
+      maxBackoffMs: 6000,
+      timeoutMs: 30_000,
+    });
+    expect(result.success).toEqual(false);
+  });
 });
 
-Deno.test("createContactSchema: deve aceitar com tags vazias", () => {
-  const result = createContactSchema.safeParse({
-    name: "João",
-    phone: "11999998888",
-    tags: [],
+describe('validateInput', () => {
+  it('deve retornar data em caso de sucesso', () => {
+    const data = validateInput(messageContentSchema, "Olá!");
+    expect(data).toEqual("Olá!");
   });
-  assertEquals(result.success, true);
+
+  it('deve throw em caso de erro', () => {
+    let threw = false;
+    try {
+      validateInput(messageContentSchema, "");
+    } catch {
+      threw = true;
+    }
+    expect(threw).toEqual(true);
+  });
+});
+
+describe('safeValidateInput', () => {
+  it('deve retornar ok:true em caso de sucesso', () => {
+    const result = safeValidateInput(messageContentSchema, "Olá!");
+    expect(result.ok).toEqual(true);
+  });
+
+  it('deve retornar ok:false sem throw', () => {
+    const result = safeValidateInput(messageContentSchema, "");
+    expect(result.ok).toEqual(false);
+    if (!result.ok) {
+      expect(result.error).toBeDefined();
+    }
+  });
 });
