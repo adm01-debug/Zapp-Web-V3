@@ -88,7 +88,7 @@ export function useAudioMessagePlayer({
         'postgres_changes',
         {
           event: '*',
-          schema: 'zapp',
+          schema: 'public',
           table: 'voice_conversion_queue',
           filter: `message_id=eq.${messageId}`,
         },
