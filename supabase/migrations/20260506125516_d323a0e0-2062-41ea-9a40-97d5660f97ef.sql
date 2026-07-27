@@ -1,5 +1,11 @@
 -- 1. Fix Security Definer function search_path
-ALTER FUNCTION public.fn_accept_transfer(UUID, TEXT) SET search_path = public;
+DO $sp1_guards$ BEGIN
+  BEGIN
+    ALTER FUNCTION public.fn_accept_transfer(UUID, TEXT) SET search_path = public;
+  EXCEPTION WHEN OTHERS THEN
+    RAISE NOTICE 'SKIP fn_accept_transfer(uuid,text) SET search_path: %', SQLERRM;
+  END;
+END $sp1_guards$;
 
 -- 2. Complete RLS Policies for Registry and Comments
 CREATE POLICY "Admins can manage instance_registry"

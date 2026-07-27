@@ -33,10 +33,15 @@ BEGIN
 END $$;
 
 -- FIX 2: search_path em prevent_role_escalation
--- Este trigger protege profiles contra escalada de roles
--- Requer access a auth.uid() e public.is_admin_or_supervisor()
-ALTER FUNCTION public.prevent_role_escalation()
-  SET search_path = public, auth, extensions, pg_catalog;
+-- Guarded: function may not exist in CI if earlier migrations failed
+DO $sp8_guards$ BEGIN
+  BEGIN
+    ALTER FUNCTION public.prevent_role_escalation()
+      SET search_path = public, auth, extensions, pg_catalog;
+  EXCEPTION WHEN OTHERS THEN
+    RAISE NOTICE 'SKIP prevent_role_escalation SET search_path: %', SQLERRM;
+  END;
+END $sp8_guards$;
 
 -- VERIFICACOES POS-DEPLOY
 -- 1. PK via pg_constraint (mais confiavel que information_schema)

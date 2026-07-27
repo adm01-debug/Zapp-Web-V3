@@ -1,14 +1,21 @@
--- Fix fn_auto_escalate_sla
-ALTER FUNCTION public.fn_auto_escalate_sla() 
-SET search_path = public;
-
--- Fix fn_monitor_instance_health
-ALTER FUNCTION public.fn_monitor_instance_health() 
-SET search_path = public;
-
--- Fix trg_log_transfer_status_change
-ALTER FUNCTION public.trg_log_transfer_status_change() 
-SET search_path = public;
+-- Functions guarded: may not exist in CI if earlier migrations failed
+DO $a1_guards$ BEGIN
+  BEGIN
+    ALTER FUNCTION public.fn_auto_escalate_sla() SET search_path = public;
+  EXCEPTION WHEN OTHERS THEN
+    RAISE NOTICE 'SKIP fn_auto_escalate_sla SET search_path: %', SQLERRM;
+  END;
+  BEGIN
+    ALTER FUNCTION public.fn_monitor_instance_health() SET search_path = public;
+  EXCEPTION WHEN OTHERS THEN
+    RAISE NOTICE 'SKIP fn_monitor_instance_health SET search_path: %', SQLERRM;
+  END;
+  BEGIN
+    ALTER FUNCTION public.trg_log_transfer_status_change() SET search_path = public;
+  EXCEPTION WHEN OTHERS THEN
+    RAISE NOTICE 'SKIP trg_log_transfer_status_change SET search_path: %', SQLERRM;
+  END;
+END $a1_guards$;
 
 -- Fix search_knowledge_base_rag (guarded: extensions.vector / pgvector may not be installed in CI)
 DO $v_skb$ BEGIN

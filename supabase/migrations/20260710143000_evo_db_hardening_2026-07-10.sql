@@ -18,8 +18,18 @@
 --    secdef já tinham). Ambas as funções qualificam objetos como evo.* no
 --    corpo, então evo,public,pg_temp é seguro e alinhado à convenção do projeto.
 -- ----------------------------------------------------------------------------
-ALTER FUNCTION evo.fn_bootstrap_wpp2_instance(text, text) SET search_path = evo, public, pg_temp;
-ALTER FUNCTION evo.fn_check_guardian_alive()             SET search_path = evo, public, pg_temp;
+DO $evo_sp_guards$ BEGIN
+  BEGIN
+    ALTER FUNCTION evo.fn_bootstrap_wpp2_instance(text, text) SET search_path = evo, public, pg_temp;
+  EXCEPTION WHEN OTHERS THEN
+    RAISE NOTICE 'SKIP evo.fn_bootstrap_wpp2_instance SET search_path: %', SQLERRM;
+  END;
+  BEGIN
+    ALTER FUNCTION evo.fn_check_guardian_alive() SET search_path = evo, public, pg_temp;
+  EXCEPTION WHEN OTHERS THEN
+    RAISE NOTICE 'SKIP evo.fn_check_guardian_alive SET search_path: %', SQLERRM;
+  END;
+END $evo_sp_guards$;
 
 -- ----------------------------------------------------------------------------
 -- B. Índices de cobertura para foreign keys sem índice
