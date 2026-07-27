@@ -199,6 +199,9 @@ ALTER TABLE evo.evolution_health_logs ADD COLUMN IF NOT EXISTS connection_id uui
 ALTER TABLE evo.evolution_health_logs ADD COLUMN IF NOT EXISTS error_count integer DEFAULT 0;
 ALTER TABLE evo.evolution_health_logs ADD COLUMN IF NOT EXISTS success_count integer DEFAULT 0;
 ALTER TABLE evo.evolution_health_logs ADD COLUMN IF NOT EXISTS created_at timestamp with time zone DEFAULT now();
+ALTER TABLE evo.evolution_health_logs ADD COLUMN IF NOT EXISTS endpoint_tested text;
+ALTER TABLE evo.evolution_health_logs ADD COLUMN IF NOT EXISTS http_status_code integer;
+ALTER TABLE evo.evolution_health_logs ADD COLUMN IF NOT EXISTS metadata jsonb DEFAULT '{}'::jsonb;
 -- public.evolution_health_logs may exist as TABLE from migration 20260506193742; drop whatever exists then create VIEW
 DO $$ BEGIN
   IF EXISTS (SELECT FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relname='evolution_health_logs' AND c.relkind='r') THEN
