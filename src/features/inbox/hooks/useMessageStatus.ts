@@ -155,7 +155,7 @@ export const useMessageStatus = (contactId?: string) => {
       }
       return undefined;
     },
-    [statusUpdates, busTick] // eslint-disable-line react-hooks/exhaustive-deps
+    [statusUpdates, busTick]
   );
 
   const getMessageStatusDetail = useCallback(
@@ -184,7 +184,7 @@ export const useMessageStatus = (contactId?: string) => {
         errorReason: db?.error_reason ?? undefined,
       };
     },
-    [statusUpdates, busTick, getMessageStatus] // eslint-disable-line react-hooks/exhaustive-deps
+    [statusUpdates, busTick, getMessageStatus]
   );
 
   const updateLocalStatus = useCallback((messageId: string, status: MessageUIStatus) => {
