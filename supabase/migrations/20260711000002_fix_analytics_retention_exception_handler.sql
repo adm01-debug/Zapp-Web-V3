@@ -88,13 +88,24 @@ EXCEPTION WHEN OTHERS THEN
   RAISE;
 END $$;
 
-ALTER FUNCTION ops.fn_analytics_log_retention(int) OWNER TO supabase_admin;
-
--- SECURITY DEFINER + dblink/VACUUM em _analytics: não pode ficar executável via PUBLIC.
--- REVOKE explícito aqui torna a migration auto-contida (não depende de script externo).
-REVOKE ALL ON FUNCTION ops.fn_analytics_log_retention(int) FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION ops.fn_analytics_log_retention(int)
-  TO postgres, supabase_admin;
+-- OWNER and GRANT guarded: supabase_admin role may not exist in CI
+DO $fn_ret_perms$ BEGIN
+  BEGIN
+    ALTER FUNCTION ops.fn_analytics_log_retention(int) OWNER TO supabase_admin;
+  EXCEPTION WHEN OTHERS THEN
+    RAISE NOTICE 'SKIP fn_analytics_log_retention OWNER TO supabase_admin: %', SQLERRM;
+  END;
+  REVOKE ALL ON FUNCTION ops.fn_analytics_log_retention(int) FROM PUBLIC;
+  BEGIN
+    GRANT EXECUTE ON FUNCTION ops.fn_analytics_log_retention(int) TO postgres, supabase_admin;
+  EXCEPTION WHEN OTHERS THEN
+    BEGIN
+      GRANT EXECUTE ON FUNCTION ops.fn_analytics_log_retention(int) TO postgres;
+    EXCEPTION WHEN OTHERS THEN
+      RAISE NOTICE 'SKIP GRANT fn_analytics_log_retention: %', SQLERRM;
+    END;
+  END;
+END $fn_ret_perms$;
 
 COMMENT ON FUNCTION ops.fn_analytics_log_retention(int) IS
   'S4-4 (2026-07-04): retencao de 14 dias nos logs do Logflare (_supabase/_analytics). Antes desta correcao o _supabase tinha 35 GB (76% do disco do host); apos rewrite-swap ficou com 709 MB. Roda diario via pg_cron (dblink local peer, sem senha). search_path corrigido (pg_catalog first), exception handler por-particao adicionado, public.dblink schema-qualificado, lock_timeout/statement_timeout no dblink, guarda p_days>0, outer EXCEPTION re-raises para alertar pg_cron em 2026-07-11 (GAP-02).';

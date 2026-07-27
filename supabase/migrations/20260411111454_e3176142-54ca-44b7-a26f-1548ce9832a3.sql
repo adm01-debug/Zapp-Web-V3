@@ -15,6 +15,7 @@ SELECT id, user_id, email, reason, status, reviewed_by, reviewed_at,
 FROM public.password_reset_requests;
 
 -- Recreate admin SELECT policy (no token filter needed since column is gone)
+DROP POLICY IF EXISTS "Admins can view reset requests" ON public.password_reset_requests;
 CREATE POLICY "Admins can view reset requests"
 ON public.password_reset_requests
 FOR SELECT

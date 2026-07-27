@@ -1,12 +1,22 @@
 
 -- Enable pg_net extension for HTTP calls from triggers
-CREATE EXTENSION IF NOT EXISTS pg_net WITH SCHEMA extensions;
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'pg_net') THEN
+    BEGIN
+      CREATE EXTENSION IF NOT EXISTS pg_net WITH SCHEMA extensions;
+    EXCEPTION WHEN OTHERS THEN
+      RAISE WARNING 'pg_net extension not available: %', SQLERRM;
+    END;
+  END IF;
+END $$;
 
 -- Function to notify Sicoob when agent replies to internal_chat contacts
 CREATE OR REPLACE FUNCTION public.notify_sicoob_on_reply()
 RETURNS trigger
 LANGUAGE plpgsql
 SECURITY DEFINER
+SET search_path = public, extensions
 AS $$
 DECLARE
   v_contact_type text;

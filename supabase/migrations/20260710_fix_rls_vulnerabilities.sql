@@ -1002,11 +1002,23 @@ CREATE POLICY "System access only" ON public.role_permissions
   USING (public.is_admin_or_supervisor(auth.uid()))
   WITH CHECK (public.is_admin_or_supervisor(auth.uid()));
 
-DROP POLICY IF EXISTS "System access only" ON public.profiles_public;
-CREATE POLICY "System access only" ON public.profiles_public
-  FOR ALL TO authenticated
-  USING (public.is_admin_or_supervisor(auth.uid()))
-  WITH CHECK (public.is_admin_or_supervisor(auth.uid()));
+DO $profiles_public_guard$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+    WHERE c.relname = 'profiles_public' AND n.nspname = 'public' AND c.relkind IN ('r','p')
+  ) THEN
+    RAISE NOTICE 'SKIP 20260710 — public.profiles_public not a base table';
+    RETURN;
+  END IF;
+  DROP POLICY IF EXISTS "System access only" ON public.profiles_public;
+  EXECUTE $pol$
+    CREATE POLICY "System access only" ON public.profiles_public
+      FOR ALL TO authenticated
+      USING (public.is_admin_or_supervisor(auth.uid()))
+      WITH CHECK (public.is_admin_or_supervisor(auth.uid()))
+  $pol$;
+END $profiles_public_guard$;
 
 DROP POLICY IF EXISTS "System access only" ON public.inbox_custom_scopes;
 CREATE POLICY "System access only" ON public.inbox_custom_scopes

@@ -1,6 +1,7 @@
 import { handleCors, errorResponse, getCorsHeaders, Logger, requireEnv, checkRateLimit } from "../_shared/validation.ts";
 import { requireUser, requireServiceRoleOrCron } from "../_shared/auth.ts";
 import { createZappAdminClient } from "../_shared/db-client.ts";
+import { getStoragePublicUrl } from "../_shared/storage-url.ts";
 
 const VOICE_PRESETS: Record<string, { voiceId: string; label: string; isCloned?: boolean }> = {
   // Masculinas
@@ -234,13 +235,11 @@ Deno.serve(async (req) => {
           .from('audio-memes')
           .upload(outputPath, audioBuffer, { contentType: 'audio/mpeg', upsert: true });
 
-        const { data: urlData } = supabaseClient.storage.from('audio-memes').getPublicUrl(outputPath);
-
         await supabaseClient
           .from('voice_conversion_queue')
-          .update({ 
-            status: 'completed', 
-            output_audio_url: urlData.publicUrl 
+          .update({
+            status: 'completed',
+            output_audio_url: getStoragePublicUrl('audio-memes', outputPath),
           })
           .eq('id', taskId);
       }

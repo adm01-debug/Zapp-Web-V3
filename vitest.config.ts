@@ -99,6 +99,7 @@ export default defineConfig({
       // contactsDB tests depende de VITE_EXTERNAL_SUPABASE_URL/ANON_KEY não configuradas em CI.
       // Requerem env vars de instância externa; rodados separadamente via script de integração.
       'src/lib/__tests__/contactsDB.test.ts',
+
     ],
     coverage: {
       provider: 'v8',

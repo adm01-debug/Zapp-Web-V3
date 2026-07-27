@@ -4,6 +4,7 @@ DROP POLICY IF EXISTS "Only admins can view reset requests" ON public.password_r
 
 -- Add admin SELECT on the safe view's base table scoped to hide tokens
 -- Admins can still read via the safe view (which excludes reset_token)
+DROP POLICY IF EXISTS "Admins can view reset requests" ON public.password_reset_requests;
 CREATE POLICY "Admins can view reset requests"
 ON public.password_reset_requests
 FOR SELECT

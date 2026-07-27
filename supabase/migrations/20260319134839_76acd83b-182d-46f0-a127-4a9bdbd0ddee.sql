@@ -5,6 +5,7 @@ DROP POLICY IF EXISTS "Admins can view whatsapp connections" ON public.whatsapp_
 DROP POLICY IF EXISTS "Admins can manage connections" ON public.whatsapp_connections;
 
 -- SELECT: all authenticated users (agents need instance_id for sending messages)
+DROP POLICY IF EXISTS "Authenticated users can view connections" ON public.whatsapp_connections;
 CREATE POLICY "Authenticated users can view connections" ON public.whatsapp_connections
   FOR SELECT TO authenticated
   USING (true);

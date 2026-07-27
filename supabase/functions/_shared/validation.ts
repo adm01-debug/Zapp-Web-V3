@@ -617,5 +617,39 @@ export const CommonSchemas = {
   nonEmpty: _z.string().min(1).trim(),
 } as const;
 
+// ─── withHandler — standardized Edge Function wrapper (E40) ─────────────────
 
+/**
+ * Wraps an Edge Function handler with:
+ *   - CORS preflight handling (OPTIONS → 204)
+ *   - Structured Logger instance scoped to the function name
+ *   - Global try/catch → 500 response with sanitized error log
+ *   - log.done() called automatically on both success and error paths
+ *
+ * Usage:
+ *   Deno.serve(withHandler("my-function", async (req, log) => {
+ *     // throw or return Response; no try/catch needed
+ *   }));
+ *
+ * The handler receives (req: Request, log: Logger) and must return a Response.
+ * On unhandled throw, withHandler returns errorResponse('Internal server error', 500).
+ */
+export function withHandler(
+  name: string,
+  handler: (req: Request, log: Logger) => Promise<Response>,
+): (req: Request) => Promise<Response> {
+  return async (req: Request): Promise<Response> => {
+    const cors = handleCors(req);
+    if (cors) return cors;
 
+    const log = new Logger(name);
+    try {
+      return await handler(req, log);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      log.error(`Unhandled error in ${name}`, { error: msg });
+      log.done(500);
+      return errorResponse('Internal server error', 500, req);
+    }
+  };
+}
