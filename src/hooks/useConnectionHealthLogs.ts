@@ -31,3 +31,23 @@ export async function fetchConnectionHealthLogsTimeline(): Promise<
   if (error) throw error;
   return (data ?? []) as Pick<HealthLog, 'id' | 'instance_id' | 'status' | 'checked_at'>[];
 }
+
+export interface WhatsappConnectionHealth {
+  id: string;
+  name: string;
+  instance_name: string | null;
+  status: string;
+  phone_number: string | null;
+  last_health_check: string | null;
+  health_status: string | null;
+  health_response_ms: number | null;
+}
+
+export async function fetchWhatsappConnectionsHealth(): Promise<WhatsappConnectionHealth[]> {
+  const { data, error } = await supabase
+    .from('whatsapp_connections')
+    .select('id, name, instance_name, status, phone_number, last_health_check, health_status, health_response_ms')
+    .order('name');
+  if (error) throw error;
+  return (data ?? []) as WhatsappConnectionHealth[];
+}
