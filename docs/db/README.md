@@ -9,6 +9,7 @@
 
 | Doc | Conteúdo |
 |---|---|
+| [`PLANO-DB-50-ETAPAS.md`](./PLANO-DB-50-ETAPAS.md) | **Plano de 50 etapas** para organizar o banco + KPIs (roadmap) |
 | [`ARCHITECTURE.md`](./ARCHITECTURE.md) | Mapa dos 225 schemas, camadas e onde mora cada dado |
 | [`SCHEMA-CONTRACT.md`](./SCHEMA-CONTRACT.md) | O que cada schema **pode** e **não pode** conter + direção de dependência |
 | [`BACKCOMPAT-VIEWS.md`](./BACKCOMPAT-VIEWS.md) | ⚠️ A fachada de views `public`/`zapp` e o cron que a recria (crítico) |
@@ -20,7 +21,7 @@
 
 ## Docs relacionados (já existentes no repo)
 
-- [`../../CLAUDE.md`](../../CLAUDE.md) — **contexto profundo** para agentes: regras de schema PostgREST, Realtime, histórico de bugs e sessões. Leitura complementar obrigatória.
+- [`../../CLAUDE.md`](../../CLAUDE.md) — **contexto profundo** para agentes: regras PostgREST, Realtime, histórico de bugs e sessões. Leitura complementar obrigatória.
 - [`../../AGENTS.md`](../../AGENTS.md) — **regras de engajamento** (resumo executivo das regras deste diretório).
 - `../SCHEMA_REFERENCE.md`, `../ARCHITECTURE_AND_FLOW.md` — referências anteriores de schema/arquitetura.
 
