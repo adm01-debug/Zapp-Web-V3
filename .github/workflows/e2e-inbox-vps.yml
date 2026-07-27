@@ -35,6 +35,8 @@ jobs:
       - run: echo "VPS E2E Inbox skipped on PRs — run manually via workflow_dispatch against the live VPS."
 
   validate-user:
+    permissions:
+      contents: read
     name: Pré-check — permissões CRM do E2E user
     if: github.event_name != 'pull_request'
     uses: ./.github/workflows/validate-e2e-user.yml
@@ -46,6 +48,8 @@ jobs:
       E2E_USER_EMAIL: ${{ secrets.E2E_USER_EMAIL }}
 
   seed-contacts:
+    permissions:
+      contents: read
     name: Pré-seed — contatos E2E
     if: github.event_name != 'pull_request'
     needs: [validate-user]
