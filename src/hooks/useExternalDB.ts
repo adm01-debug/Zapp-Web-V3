@@ -14,6 +14,14 @@ import type {
   ExternalTableName,
 } from '@/types/externalDB';
 
+// Dynamic table names are not statically typed — cast only the `from()` signature,
+// not the entire client, to keep the rest of the client fully typed.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnyQueryBuilder = any;
+function fromDynamic(table: string): AnyQueryBuilder {
+  return (getExternalSupabase().from as (t: string) => AnyQueryBuilder)(table);
+}
+
 // ─── Direct query helper ──────────────────────────────────────
 async function queryExternal<T = unknown>(params: {
   table: string;
@@ -27,9 +35,7 @@ async function queryExternal<T = unknown>(params: {
   validateEntityAccess(params.table, 'external');
   const start = performance.now();
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let query: any = (getExternalSupabase() as any)
-    .from(params.table)
+  let query: AnyQueryBuilder = fromDynamic(params.table)
     .select(params.select || '*', { count: params.countMode || undefined });
 
   if (params.filters) {
@@ -119,8 +125,7 @@ export function useExternalRPC<T = unknown>(options: UseExternalRPCOptions) {
     queryFn: async () => {
       validateRpcAccess(options.rpc, 'external');
       const start = performance.now();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await (getExternalSupabase() as any).rpc(options.rpc, options.params || {});
+      const { data, error } = await (getExternalSupabase().rpc as (fn: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: { message: string } | null }>)(options.rpc, options.params || {});
       const duration = Math.round(performance.now() - start);
       if (error) throw new Error(error.message);
       return {
@@ -221,18 +226,15 @@ export function useExternalMutation() {
       match?: Record<string, unknown>;
     }) => {
       validateEntityAccess(params.table, 'external');
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const client = getExternalSupabase() as any;
       if (params.action === 'insert') {
-        const { data, error } = await client
-          .from(params.table)
+        const { data, error } = await fromDynamic(params.table)
           .insert(params.data ?? {})
           .select();
         if (error) throw new Error(error.message);
         return data;
       }
       if (params.action === 'update') {
-        let q = client.from(params.table).update(params.data ?? {});
+        let q = fromDynamic(params.table).update(params.data ?? {});
         if (params.match) {
           for (const [k, v] of Object.entries(params.match)) q = q.eq(k, v as string);
         }
@@ -241,7 +243,7 @@ export function useExternalMutation() {
         return data;
       }
       if (params.action === 'delete') {
-        let q = client.from(params.table).delete();
+        let q = fromDynamic(params.table).delete();
         if (params.match) {
           for (const [k, v] of Object.entries(params.match)) q = q.eq(k, v as string);
         }
