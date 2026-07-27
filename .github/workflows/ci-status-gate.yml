@@ -106,19 +106,20 @@ jobs:
             BRANCH=$(gh pr view "${pr}" --repo "$GITHUB_REPOSITORY" --json headRefName \
               -q .headRefName 2>/dev/null || true)
 
-            RESULT=$(gh pr merge "${pr}" --repo "$GITHUB_REPOSITORY" --squash --admin 2>&1)
-            EXIT_CODE=$?
-            echo "$RESULT"
-
-            if [ $EXIT_CODE -eq 0 ]; then
+            # Use `if` to avoid bash -e exiting on non-zero merge exit code
+            if RESULT=$(gh pr merge "${pr}" --repo "$GITHUB_REPOSITORY" --squash --admin 2>&1); then
+              echo "$RESULT"
               echo "PR #${pr} merged OK (branch: ${BRANCH})"
               [ -n "$BRANCH" ] && MERGED_BRANCHES="${MERGED_BRANCHES} ${BRANCH}"
-            elif echo "$RESULT" | grep -qi "conflict\|not mergeable\|dirty\|behind\|CONFLICT"; then
-              echo "SKIPPED (merge conflict): PR #${pr} branch=${BRANCH}"
-              SKIPPED_CONFLICT="${SKIPPED_CONFLICT} ${pr}"
             else
-              echo "FAILED: Could not merge PR #${pr} — ${RESULT}"
-              FAILED="${FAILED} ${pr}"
+              echo "$RESULT"
+              if echo "$RESULT" | grep -qi "conflict\|not mergeable\|dirty\|behind\|CONFLICT"; then
+                echo "SKIPPED (merge conflict): PR #${pr} branch=${BRANCH}"
+                SKIPPED_CONFLICT="${SKIPPED_CONFLICT} ${pr}"
+              else
+                echo "FAILED: Could not merge PR #${pr}"
+                FAILED="${FAILED} ${pr}"
+              fi
             fi
           done
 
@@ -126,7 +127,7 @@ jobs:
 
           [ -n "$SKIPPED_CONFLICT" ] && echo "Skipped (conflicts):${SKIPPED_CONFLICT}"
           if [ -n "$FAILED" ]; then
-            echo "Failed:${FAILED}"
+            echo "Failed PRs (review required — enable Actions approvals in repo settings):${FAILED}"
             exit 1
           fi
           echo "Merge loop complete."
