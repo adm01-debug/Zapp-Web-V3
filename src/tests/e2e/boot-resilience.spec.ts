@@ -1,16 +1,36 @@
 /**
  * boot-resilience — valida que o SPA não trava em loop quando o backend
  * Supabase self-hosted está offline/lento. Bloqueia toda chamada ao host
- * supabase.atomicabr.com.br e verifica que:
+ * Supabase em uso (detectado via VITE_SUPABASE_URL ou fallback ao host de
+ * produção) e verifica que:
  *   1. #root recebe conteúdo mesmo sem backend.
  *   2. A página não entra em loop infinito de reload (safety-net removido).
  *   3. A UI de erro ou a tela /auth acaba renderizando (sem spinner eterno).
+ *
+ * NOTA CI: Em GitHub Actions, VITE_SUPABASE_URL é example.supabase.co (dummy);
+ * bloqueamos também esse host para que o SPA se comporte como offline.
  */
 import { test, expect } from '@playwright/test';
 
+// Deriva os hosts a bloquear do env (CI usa example.supabase.co; produção usa
+// supabase.atomicabr.com.br). Sempre inclui o host de produção como fallback.
+function buildSupabaseBlockPattern(): RegExp {
+  const hosts = new Set(['supabase.atomicabr.com.br']);
+  try {
+    const url = process.env.VITE_SUPABASE_URL;
+    if (url) hosts.add(new URL(url).hostname);
+  } catch {
+    // env inválido — ignora
+  }
+  const escaped = [...hosts].map((h) => h.replace(/\./g, '\\.')).join('|');
+  return new RegExp(escaped);
+}
+
+const SUPABASE_BLOCK = buildSupabaseBlockPattern();
+
 test.describe('boot resilience (backend offline)', () => {
   test.beforeEach(async ({ context }) => {
-    await context.route(/supabase\.atomicabr\.com\.br/, (route) => route.abort('failed'));
+    await context.route(SUPABASE_BLOCK, (route) => route.abort('failed'));
   });
 
   test('SPA monta e não reloada em loop com backend inacessível', async ({ page }) => {
@@ -27,6 +47,8 @@ test.describe('boot resilience (backend offline)', () => {
     // Aguarda janela onde reload-loop antigo (6s) dispararia várias vezes.
     await page.waitForTimeout(15_000);
 
+    // Fluxo normal: goto('/') + redirect /auth = 2–3 navegações.
+    // Loop antigo (6s) em 15s = 3 loops → 5+ navegações → reprovado.
     expect(navigations, 'não deve haver loop de reload').toBeLessThanOrEqual(3);
   });
 
