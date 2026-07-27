@@ -22,18 +22,18 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
   const [transcription, setTranscription] = useState('');
 
   const mountedRef = useRef(false);
-  useEffect(() => {
-    mountedRef.current = true;
-    return () => {
-      mountedRef.current = false;
-      // FIX #9: Cleanup completo em unmount para prevenir memory leaks
-      cleanupRecordingResources();
-      if (blobUrlRef.current) {
-        URL.revokeObjectURL(blobUrlRef.current);
-        blobUrlRef.current = null;
-      }
-    };
-  }, [cleanupRecordingResources]);
+
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const animationFrameRef = useRef<number | null>(null);
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const lastBlobRef = useRef<Blob | null>(null);
+  const lastTranscriptionRef = useRef<string>('');
+  const blobUrlRef = useRef<string | null>(null);
 
   /**
    * FIX #9: Libera todos os recursos do recorder (MediaStream, AudioContext,
@@ -97,17 +97,18 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
     mediaRecorderRef.current = null;
   }, []);
 
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const chunksRef = useRef<Blob[]>([]);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
-  const streamRef = useRef<MediaStream | null>(null);
-  const audioContextRef = useRef<AudioContext | null>(null);
-  const analyserRef = useRef<AnalyserNode | null>(null);
-  const animationFrameRef = useRef<number | null>(null);
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
-  const lastBlobRef = useRef<Blob | null>(null);
-  const lastTranscriptionRef = useRef<string>('');
-  const blobUrlRef = useRef<string | null>(null);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      // FIX #9: Cleanup completo em unmount para prevenir memory leaks
+      cleanupRecordingResources();
+      if (blobUrlRef.current) {
+        URL.revokeObjectURL(blobUrlRef.current);
+        blobUrlRef.current = null;
+      }
+    };
+  }, [cleanupRecordingResources]);
 
   const setBlobUrl = useCallback((url: string | null) => {
     if (blobUrlRef.current) {
