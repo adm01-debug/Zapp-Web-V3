@@ -17,6 +17,9 @@
  * NOTA: O Kong do Supabase self-hosted usa key-auth (header `apikey`),
  * NÃO `Authorization: Bearer`. Corrigido em 16/07/2026 após falha do
  * workflow #1 (HTTP 401).
+ *
+ * BUG FIX 27/07/2026: new URL('/generators/typescript', META) perdia o /pg
+ * da base URL. Agora usa concatenação direta.
  */
 import { writeFileSync, readFileSync } from 'node:fs';
 
@@ -25,7 +28,8 @@ const TOKEN = process.env.META_TOKEN || '';
 const SCHEMAS = (process.env.SCHEMAS || 'public,zapp,evo').trim();
 const OUT = process.env.OUT_FILE || 'src/integrations/supabase/types.ts';
 
-const headers = { 'content-type': 'application/json' };
+// Nota: NÃO enviar Content-Type em GET — Kong rejeita GET com application/json
+const headers = {};
 if (TOKEN) {
   // Kong key-auth: usa header `apikey` (não Authorization: Bearer)
   headers.apikey = TOKEN;
@@ -33,12 +37,15 @@ if (TOKEN) {
   headers.authorization = `Bearer ${TOKEN}`;
 }
 
-const url = new URL('/generators/typescript', META);
+// BUG FIX: new URL('/generators/typescript', META) perde o /pg do path base
+// Usar concatenação direta para preservar o path completo
+const url = new URL((META.endsWith('/') ? META : META + '/') + 'generators/typescript');
 url.searchParams.set('included_schemas', SCHEMAS);
 url.searchParams.set('detect_one_to_one_relationships', 'true');
 
 console.log(`→ Requisitando types.ts para schemas: ${SCHEMAS}`);
 console.log(`  META_URL=${META}`);
+console.log(`  URL resolvida: ${url.toString()}`);
 
 const res = await fetch(url, { headers });
 if (!res.ok) {
