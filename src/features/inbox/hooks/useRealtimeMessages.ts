@@ -404,6 +404,19 @@ export function useRealtimeMessages() {
     }
   }, [commitConversations, fetchContactsByIds]);
 
+  // ─── HANDLER REFS ──────────────────────────────────────────────────────────
+  // Store event handlers in refs so the realtime subscription useEffect only
+  // depends on fetchConversations (stable) instead of the full handler chain
+  // (which changes whenever notification settings load/update, causing unnecessary
+  // re-subscriptions that fetch 500 contacts + 1000 messages each time).
+  const handleNewMessageRef = useRef(handleNewMessage);
+  handleNewMessageRef.current = handleNewMessage;
+  const handleMessageUpdateRef = useRef(handleMessageUpdate);
+  handleMessageUpdateRef.current = handleMessageUpdate;
+  const handleMessageDeleteRef = useRef(handleMessageDelete);
+  handleMessageDeleteRef.current = handleMessageDelete;
+  // ───────────────────────────────────────────────────────────────────────────
+
   useEffect(() => {
     let active = true;
     void fetchConversations();
@@ -444,7 +457,8 @@ export function useRealtimeMessages() {
           if (active)
             wrapMessagesHandler(
               'useRealtimeMessages',
-              handleNewMessage
+              // Use ref to avoid stale closure and prevent re-subscription on handler changes
+              (p) => handleNewMessageRef.current(p)
             )(adaptEvoPayload(payload as RealtimePostgresChangesPayload<Record<string, unknown>>));
         }
       )
@@ -459,7 +473,7 @@ export function useRealtimeMessages() {
           if (active)
             wrapMessagesHandler(
               'useRealtimeMessages',
-              handleMessageUpdate
+              (p) => handleMessageUpdateRef.current(p)
             )(adaptEvoPayload(payload as RealtimePostgresChangesPayload<Record<string, unknown>>));
         }
       )
@@ -474,7 +488,7 @@ export function useRealtimeMessages() {
           if (active)
             wrapMessagesHandler(
               'useRealtimeMessages',
-              handleMessageDelete
+              (p) => handleMessageDeleteRef.current(p)
             )(adaptEvoPayload(payload as RealtimePostgresChangesPayload<Record<string, unknown>>));
         }
       )
@@ -486,7 +500,10 @@ export function useRealtimeMessages() {
       active = false;
       void dbRemoveChannel('messages', channel);
     };
-  }, [fetchConversations, handleNewMessage, handleMessageUpdate, handleMessageDelete]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fetchConversations]);
+  // ^^ Only depend on fetchConversations (stable); handlers are accessed via refs above
+  // to prevent re-subscriptions when notification settings load/change.
 
   const sendMessage = async (
     contactId: string,
@@ -556,10 +573,11 @@ export function useRealtimeMessages() {
         data: { user },
       } = await supabase.auth.getUser();
       if (user) {
+        // FIX: profiles.id = auth.uid() — use 'id', not 'user_id' (ghost column)
         await supabase
           .from('profiles')
           .update({ last_seen: new Date().toISOString() })
-          .eq('user_id', user.id);
+          .eq('id', user.id);
       }
     }, 5000);
 
