@@ -448,7 +448,9 @@ export const ConversationItem = memo(function ConversationItem({
 
   const quickPeekPreview = (
     <div className="space-y-1.5">
-      <p className="text-xs font-medium text-foreground">{conversation.contact.name}</p>
+      <p className="text-xs font-medium text-foreground">
+        {conversation.contact?.name ?? 'Contato'}
+      </p>
       {conversation.lastMessage?.content && (
         <p className="line-clamp-4 text-xs leading-relaxed text-muted-foreground">
           {conversation.lastMessage.content}

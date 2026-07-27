@@ -126,7 +126,9 @@ export async function dbRpc<P extends object, R>(
       merged as Record<string, unknown>
     );
     const durationMs = Math.round(performance.now() - startedAt);
-    const errorMessage = error ? (error.message ?? 'rpc error') : undefined;
+    const errorMessage = error
+      ? ((error as { message?: string }).message ?? 'rpc error')
+      : undefined;
 
     recordQueryEvent({
       operation: 'rpc',
