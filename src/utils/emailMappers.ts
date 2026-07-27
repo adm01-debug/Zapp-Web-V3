@@ -13,8 +13,7 @@ import {
  * Elimina a necessidade de casts 'as any' ou transformações repetitivas nos hooks.
  */
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type Raw = Record<string, any>;
+type Raw = Record<string, unknown>;
 
 export const emailMappers = {
   /**

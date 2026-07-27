@@ -3,7 +3,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { sanitizePostgrestFilter } from '@/lib/sanitize';
 import { toast } from 'sonner';
 import { newRequestId } from '@/lib/withRequestId';
-import { z } from 'zod';
 import {
   createCriticalPayloadSchemas,
   mapValidationIssuesToContractError,
@@ -24,7 +23,7 @@ export function useNewConversation(
   onConversationStarted?: (contactId: string) => void,
   onClose?: () => void
 ) {
-  const { sendTextPayloadSchema } = createCriticalPayloadSchemas(z);
+  const { sendTextPayloadSchema } = createCriticalPayloadSchemas();
   const [searchQuery, setSearchQuery] = useState('');
   const [contacts, setContacts] = useState<ContactResult[]>([]);
   const [selectedContact, setSelectedContact] = useState<ContactResult | null>(null);

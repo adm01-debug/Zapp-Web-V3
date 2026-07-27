@@ -1,3 +1,5 @@
+import { z } from 'zod';
+
 /** Contract Error Code. */
 export const ContractErrorCode = {
   INVALID_PAYLOAD: 'INVALID_PAYLOAD',
@@ -7,10 +9,7 @@ export const ContractErrorCode = {
 } as const;
 
 /** Contract Error Code. */
-export type ContractErrorCode = typeof ContractErrorCode[keyof typeof ContractErrorCode];
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type ZodLike = any; // ignore-audit — Zod's builder API has no simple structural equivalent without importing the full library
+export type ContractErrorCode = (typeof ContractErrorCode)[keyof typeof ContractErrorCode];
 
 type ValidationIssue = {
   path?: Array<string | number>;
@@ -18,7 +17,7 @@ type ValidationIssue = {
 };
 
 /** create Critical Payload Schemas. */
-export function createCriticalPayloadSchemas(z: ZodLike) {
+export function createCriticalPayloadSchemas() {
   const normalizedPhoneSchema = z
     .string()
     .min(6, 'Informe um número com DDI e DDD.')
@@ -35,7 +34,11 @@ export function createCriticalPayloadSchemas(z: ZodLike) {
     .max(10000, 'Mensagem excede 10000 caracteres.');
 
   const sendTextPayloadSchema = z.object({
-    instanceName: z.string().trim().min(1, 'Instância é obrigatória.').max(120, 'Instância inválida.'),
+    instanceName: z
+      .string()
+      .trim()
+      .min(1, 'Instância é obrigatória.')
+      .max(120, 'Instância inválida.'),
     number: normalizedPhoneSchema,
     text: messageTextSchema,
   });

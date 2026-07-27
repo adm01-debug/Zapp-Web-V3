@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import type { AnyFn } from '@/lib/silentErrorPrevention';
 
 interface UseDebounceOptions {
   /** Delay in milliseconds (default: 300) */
@@ -8,8 +9,7 @@ interface UseDebounceOptions {
 }
 
 /** Returns a debounced version of a callback that executes after specified delay. */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function useDebounce<T extends (...args: any[]) => any>(
+export function useDebounce<T extends AnyFn>(
   callback: T,
   optionsOrDelay: UseDebounceOptions | number = {}
 ): T {

@@ -27,10 +27,8 @@ interface QueryFactoryOptions<TData> extends Omit<UseQueryOptions<TData>, 'query
  * Deixamos o consumidor decidir a forma para não forçar o service a
  * desembrulhar prematuramente.
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const useListQuery = <TData = any>(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  queryKey: readonly any[],
+export const useListQuery = <TData = unknown>(
+  queryKey: readonly unknown[],
   queryFn: () => Promise<TData>,
   options?: QueryFactoryOptions<TData>
 ) => {
@@ -47,10 +45,8 @@ export const useListQuery = <TData = any>(
 /**
  * Factory for creating detail/get queries
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const useDetailQuery = <TData = any>(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  queryKey: readonly any[],
+export const useDetailQuery = <TData = unknown>(
+  queryKey: readonly unknown[],
   queryFn: () => Promise<TData>,
   enabled: boolean = true,
   options?: QueryFactoryOptions<TData>
@@ -69,10 +65,8 @@ export const useDetailQuery = <TData = any>(
 /**
  * Factory for creating search queries
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const useSearchQuery = <TData = any>(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  queryKey: readonly any[],
+export const useSearchQuery = <TData = unknown>(
+  queryKey: readonly unknown[],
   queryFn: () => Promise<TData[]>,
   enabled: boolean = true,
   options?: QueryFactoryOptions<TData[]>
@@ -95,10 +89,8 @@ export const useSearchQuery = <TData = any>(
  * NOTA: refetchInterval padrao removido — caller deve definir explicitamente
  * para evitar polling inadvertido em erros de permissao.
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const useRealtimeQuery = <TData = any>(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  queryKey: readonly any[],
+export const useRealtimeQuery = <TData = unknown>(
+  queryKey: readonly unknown[],
   queryFn: () => Promise<TData>,
   enabled: boolean = true,
   options?: QueryFactoryOptions<TData>
@@ -117,10 +109,8 @@ export const useRealtimeQuery = <TData = any>(
 /**
  * Factory for creating paginated queries
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const usePaginatedQuery = <TData = any>(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  queryKey: readonly any[],
+export const usePaginatedQuery = <TData = unknown>(
+  queryKey: readonly unknown[],
   queryFn: () => Promise<{ data: TData[]; total: number; page: number }>,
   options?: QueryFactoryOptions<{ data: TData[]; total: number; page: number }>
 ) => {
@@ -141,10 +131,8 @@ export const usePaginatedQuery = <TData = any>(
  * FIX 2026-07-16: substituido `return null` por throw para evitar
  * crash silencioso em qualquer consumidor que tente desestruturar o retorno.
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const useInfiniteQueryStub = <TData = any>(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  _queryKey: readonly any[],
+export const useInfiniteQueryStub = <TData = unknown>(
+  _queryKey: readonly unknown[],
   _queryFn: (pageParam: number) => Promise<TData[]>,
   _options?: QueryFactoryOptions<TData[]>
 ): never => {

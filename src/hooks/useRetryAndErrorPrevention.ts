@@ -16,6 +16,7 @@ import {
   fireAndForget,
   retryWithBackoff,
   withErrorRecovery,
+  type AnyFn,
   type ErrorSuppression,
   suppressError,
 } from '@/lib/silentErrorPrevention';
@@ -213,8 +214,7 @@ export function useFireAndForget() {
  * Hook for wrapping callbacks with automatic error logging.
  */
 /** Wraps callbacks with automatic error logging, fallback returns, and optional throwing. */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function useSafeCallback<T extends (...args: any[]) => any>(
+export function useSafeCallback<T extends AnyFn>(
   callback: T,
   options?: {
     name?: string;

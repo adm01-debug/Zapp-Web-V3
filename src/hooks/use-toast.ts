@@ -1,6 +1,5 @@
 /** Toast type alias. */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type Toast = { id: string; open: boolean; [key: string]: any }; // ignore-audit
+export type Toast = { id: string; open: boolean; [key: string]: unknown };
 type ToastState = { toasts: Toast[] };
 
 type ToastAction =
