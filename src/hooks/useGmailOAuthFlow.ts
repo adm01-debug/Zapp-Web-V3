@@ -295,6 +295,7 @@ export function useEmailOAuthFlow(): UseEmailOAuthFlowReturn {
       .subscribe();
 
     return () => {
+      channel.unsubscribe();
       supabase.removeChannel(channel);
     };
   }, [queryClient]);

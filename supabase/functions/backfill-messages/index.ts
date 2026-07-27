@@ -12,7 +12,8 @@ import { getCorsHeaders } from '../_shared/cors.ts';
  * Returns: { processed, inserted, skipped, errors, next_offset, done }
  */
 
-const EVOLUTION_URL = Deno.env.get('EVOLUTION_API_URL') ?? 'https://evolution.atomicabr.com.br';
+const EVOLUTION_URL = Deno.env.get('EVOLUTION_API_URL');
+if (!EVOLUTION_URL) throw new Error('[backfill] EVOLUTION_API_URL env var is required');
 const EVOLUTION_KEY = Deno.env.get('EVOLUTION_API_KEY');
 if (!EVOLUTION_KEY) throw new Error('[backfill] EVOLUTION_API_KEY env var is required');
 const INSTANCE = 'wpp2';
