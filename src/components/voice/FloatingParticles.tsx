@@ -154,7 +154,7 @@ export function FloatingParticles({ phase }: FloatingParticlesProps) {
       cancelAnimationFrame(animRef.current);
       window.removeEventListener('resize', resize);
     };
-  }, [phase]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [phase, prefersReduced]);
 
   return <canvas ref={canvasRef} className="pointer-events-none absolute inset-0 h-full w-full" />;
 }

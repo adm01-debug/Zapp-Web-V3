@@ -55,6 +55,12 @@ export function useTypingPresence({
     };
   }, [conversationId, currentUserId]);
 
+  const handleTypingStop = useCallback(() => {
+    if (!channelRef.current) return;
+    if (stopTimerRef.current) clearTimeout(stopTimerRef.current);
+    channelRef.current.track({ userId: currentUserId, userName: currentUserName, isTyping: false });
+  }, [currentUserId, currentUserName]);
+
   const handleTypingStart = useCallback(() => {
     if (!channelRef.current) return;
     if (stopTimerRef.current) clearTimeout(stopTimerRef.current);
@@ -62,14 +68,7 @@ export function useTypingPresence({
     stopTimerRef.current = setTimeout(() => {
       handleTypingStop();
     }, 3000);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentUserId, currentUserName]);
-
-  const handleTypingStop = useCallback(() => {
-    if (!channelRef.current) return;
-    if (stopTimerRef.current) clearTimeout(stopTimerRef.current);
-    channelRef.current.track({ userId: currentUserId, userName: currentUserName, isTyping: false });
-  }, [currentUserId, currentUserName]);
+  }, [currentUserId, currentUserName, handleTypingStop]);
 
   const isContactTyping = typingUsers.length > 0;
 
