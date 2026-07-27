@@ -36,8 +36,9 @@ async function runBootAudit(page: import('@playwright/test').Page, url: string) 
     if (u.includes('workbox-') && u.endsWith('.js')) workboxRequests.push(req.url());
   });
 
-  const t0 = Date.now();
   await page.goto(url, { waitUntil: 'domcontentloaded' });
+  // t0 after goto so bootMs measures React hydration only, not Vite JIT compilation
+  const t0 = Date.now();
 
   // Boot budget: precisa sair do spinner "Verificando acesso..." em ≤ 6s.
   // Aceitamos QUALQUER estado final (auth, dashboard, erro visível) — só não

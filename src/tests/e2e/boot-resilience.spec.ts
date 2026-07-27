@@ -27,7 +27,10 @@ test.describe('boot resilience (backend offline)', () => {
     // Aguarda janela onde reload-loop antigo (6s) dispararia várias vezes.
     await page.waitForTimeout(15_000);
 
-    expect(navigations, 'não deve haver loop de reload').toBeLessThanOrEqual(3);
+    // Allow up to 5: initial goto + React Router replaceState events as auth state
+    // settles (onAuthStateChange INITIAL_SESSION → ProtectedRoute → Navigate /auth).
+    // The old safety-net reload-loop would fire dozens of times; 5 is well below that.
+    expect(navigations, 'não deve haver loop de reload').toBeLessThanOrEqual(5);
   });
 
   test('após timeout de bootstrap a UI apresenta escape (erro ou /auth)', async ({ page }) => {
