@@ -6,7 +6,9 @@
  *
  * Background Sync API é usado para processamento em background.
  */
+import { getLogger } from '@/lib/logger';
 
+const log = getLogger('OfflineQueue');
 const DB_NAME = 'zapp-offline-queue';
 const STORE_NAME = 'pending-messages';
 const VERSION = 1;
@@ -184,10 +186,7 @@ export async function getQueueStats(): Promise<{
 }> {
   const count = await offlineQueue.count();
   const messages = await offlineQueue.getAll();
-  const oldest = messages.reduce(
-    (min, m) => (m.queuedAt < min ? m.queuedAt : min),
-    Date.now()
-  );
+  const oldest = messages.reduce((min, m) => (m.queuedAt < min ? m.queuedAt : min), Date.now());
 
   return {
     pending: count,
@@ -200,12 +199,12 @@ export async function getQueueStats(): Promise<{
  */
 export function setupOnlineListener(): () => void {
   const handleOnline = async () => {
-    console.log('[OfflineQueue] Online — processing queue');
+    log.info('Online — processing queue');
     await processQueue();
   };
 
   const handleOffline = () => {
-    console.log('[OfflineQueue] Offline — messages will be queued');
+    log.info('Offline — messages will be queued');
   };
 
   window.addEventListener('online', handleOnline);

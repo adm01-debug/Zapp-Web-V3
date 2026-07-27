@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * useExternalApiManagement
  *
@@ -456,7 +455,8 @@ export function useExternalMessages(
       setError(null);
       const evoMessages = await dedupedFetch(
         `inbox:initial:${remoteJid}:${CONVERSATION_PAGE_SIZE}:${DEFAULT_INSTANCE}`,
-        () => fetchMessagesByJid(remoteJid, CONVERSATION_PAGE_SIZE, undefined, undefined, instanceName),
+        () =>
+          fetchMessagesByJid(remoteJid, CONVERSATION_PAGE_SIZE, undefined, undefined, instanceName),
         { lockTtl: 10_000, resultTtl: 15_000, waitTimeout: 8_000 }
       );
       if (!mountedRef.current) return;
@@ -531,7 +531,14 @@ export function useExternalMessages(
       const dedupeKey = `older:${remoteJid}:${oldest}:${CONVERSATION_PAGE_SIZE}:${DEFAULT_INSTANCE}`;
       const older = await dedupedFetch(
         dedupeKey,
-        () => fetchMessagesByJid(remoteJid, CONVERSATION_PAGE_SIZE, oldest, controller.signal, instanceName),
+        () =>
+          fetchMessagesByJid(
+            remoteJid,
+            CONVERSATION_PAGE_SIZE,
+            oldest,
+            controller.signal,
+            instanceName
+          ),
         { lockTtl: 10_000, resultTtl: 30_000, waitTimeout: 8_000 }
       );
       if (!mountedRef.current || controller.signal.aborted) return;
