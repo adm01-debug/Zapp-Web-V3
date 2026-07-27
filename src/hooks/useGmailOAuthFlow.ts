@@ -40,6 +40,7 @@ interface UseEmailOAuthFlowReturn {
 
 const GMAIL_ACCOUNTS_KEY = ['gmail-accounts'] as const;
 
+/** Manages Gmail OAuth token lifecycle: polling expiry, refreshing tokens, and watching for push-notification changes. */
 export function useEmailOAuthFlow(): UseEmailOAuthFlowReturn {
   const queryClient = useQueryClient();
   const [tokenStatus, setTokenStatus] = useState<Record<string, TokenStatus>>({});

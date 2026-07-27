@@ -770,7 +770,7 @@ function useDepartmentsManagement() {
 }
 
 // ─── Section 5: Roles ────────────────────────────────────────────────────────
-
+/** Manages user role assignments: search, assignment dialog state, and CRUD operations against `zapp.user_roles`. */
 function useRolesManagement() {
   const [rolesSearch, setRolesSearch] = useState('');
   const [showAddRoleDialog, setShowAddRoleDialog] = useState(false);
@@ -921,6 +921,7 @@ function useRolesManagement() {
 
 const PERMISSIONS_QUERY_KEY = ['admin-route-permissions'] as const;
 
+/** Fetches and updates route-level permission rules, allowing admins to control which roles can access each application route. */
 function useRoutePermissionsManagement() {
   const [savingPermPath, setSavingPermPath] = useState<string | null>(null);
   const { toast } = useToast();
@@ -1010,7 +1011,7 @@ function useRoutePermissionsManagement() {
 }
 
 // ─── Section 7: Security ─────────────────────────────────────────────────────
-
+/** Runs HMAC webhook signature self-tests against a given Evolution API instance and surfaces pass/fail results. */
 function useHmacSecurityManagement(instance: string, includeNegative: boolean) {
   const [securityLoading, setSecurityLoading] = useState(false);
   const [securityResult, setSecurityResult] = useState<SelfTestResult | null>(null);

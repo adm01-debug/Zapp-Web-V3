@@ -115,6 +115,7 @@ export interface ConversationWithMessages {
 
 export type ConversationSendState = 'idle' | 'retrying' | 'failed';
 
+/** Subscribes to realtime conversation and message events, managing optimistic updates, deduplication, and send-state tracking. */
 export function useRealtimeMessages() {
   const [conversations, setConversations] = useState<ConversationWithMessages[]>([]);
   const [loading, setLoading] = useState(true);

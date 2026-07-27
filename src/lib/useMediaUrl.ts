@@ -115,6 +115,7 @@ interface CachedSignedUrl {
 // Cache global de sessão (sobrevive a re-renders, não a reloads)
 const signedUrlCache = new Map<string, CachedSignedUrl>();
 
+/** Returns a cached signed URL for the given storage key if it has not yet expired, or null. */
 function getCachedSignedUrl(key: string): string | null {
   const entry = signedUrlCache.get(key);
   if (!entry) return null;
@@ -125,10 +126,12 @@ function getCachedSignedUrl(key: string): string | null {
   return entry.url;
 }
 
+/** Stores a signed URL in the in-memory cache with a TTL of SIGNED_URL_TTL_MS. */
 function setCachedSignedUrl(key: string, url: string): void {
   signedUrlCache.set(key, { url, expiresAt: Date.now() + SIGNED_URL_TTL_MS });
 }
 
+/** Removes all entries from the in-memory signed URL cache; used in tests and on session logout. */
 export function clearSignedUrlCache(): void {
   signedUrlCache.clear();
 }

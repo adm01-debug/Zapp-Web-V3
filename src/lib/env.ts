@@ -33,6 +33,7 @@ const envSchema = z.object({
 // Parsing — falha rápido com mensagem clara
 // ---------------------------------------------------------------------
 
+/** Reads and validates all VITE_ environment variables, throwing a descriptive error on the first missing required key. */
 function parseEnv() {
   const rawEnv = {
     // Vite expõe variáveis com prefixo VITE_ para o frontend

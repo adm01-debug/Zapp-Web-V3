@@ -264,14 +264,14 @@ export interface EmailAttachment {
 }
 
 // ── Helper: verificar se error é de autenticação ────────────────────────
-
+/** Returns true if the given API error indicates an authentication failure (HTTP 401 or UNAUTHENTICATED status). */
 export function isAuthError(error: EmailApiError | null): boolean {
   if (!error) return false;
   return error.code === 401 || error.status === 'UNAUTHENTICATED';
 }
 
 // ── Helper: construir MIME message para Email API ──────────────────────────
-
+/** Builds a base64url-encoded RFC-2822 MIME message string suitable for the Gmail API `raw` field. */
 export function buildMimeMessage(params: {
   from: string;
   to: string[];

@@ -739,6 +739,7 @@ export interface CatalogFilters {
   ascending?: boolean;
 }
 
+/** Invokes a named action on the `promogifts-catalog` edge function and returns the typed response. */
 async function invokeAction<T = unknown>(
   action: string,
   params: Record<string, unknown> = {}
@@ -897,6 +898,7 @@ import { validateEntityAccess, validateRpcAccess } from '@/integrations/datasour
 const getDynamicClient = () => getExternalSupabase() as unknown as SupabaseClient; // ignore-audit — dynamic table names require untyped client; see comment above
 
 // ─── Direct query helper ────────────────────────────────────────────────
+/** Executes a SELECT query against the external Supabase database with filtering, ordering, and pagination. */
 async function queryExternal<T = unknown>(params: {
   table: string;
   select?: string;
@@ -1019,7 +1021,8 @@ export function useExternalRPC<T = unknown>(options: UseExternalRPCOptions) {
   });
 }
 
-// ─── Paginated table browser ────────────────────────────────────────────/** Provides paginated browsing of external database tables with filtering and sorting. */
+// ─── Paginated table browser ────────────────────────────────────────────
+/** Provides paginated browsing of external database tables with filtering and sorting. */
 export function useExternalTableBrowser<T = Record<string, unknown>>(
   tableName: ExternalTableName | string
 ) {
