@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
@@ -21,6 +21,8 @@ const VALID_ALERT_TYPES = ['critical', 'warning', 'info', 'sla_breach'];
 /** Subscribes to warroom_alerts in realtime and fires browser notifications and sounds for critical/warning/SLA-breach events. Logs errors before returning an empty array on fetch failure. */
 export function useWarRoomAlerts(_soundEnabled = true) {
   const { showNotification } = usePushNotifications();
+  const showNotificationRef = useRef(showNotification);
+  showNotificationRef.current = showNotification;
   const queryClient = useQueryClient();
 
   const { data: alerts = [] } = useQuery<WarRoomAlert[]>({
@@ -53,7 +55,7 @@ export function useWarRoomAlerts(_soundEnabled = true) {
 
           queryClient.invalidateQueries({ queryKey: ['warroom_alerts'] });
 
-          showNotification({
+          showNotificationRef.current({
             title: alert.title || 'Alerta',
             body: alert.message,
           });
@@ -67,7 +69,7 @@ export function useWarRoomAlerts(_soundEnabled = true) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [showNotification, queryClient]);
+  }, [queryClient]);
 
   const dismissAlert = useCallback(
     async (alertId: string) => {
