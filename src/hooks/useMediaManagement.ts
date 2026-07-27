@@ -120,11 +120,13 @@ export function useExportDataManagement() {
 
       const element = document.createElement('a');
       const file = new Blob([content], { type: mimeType });
-      element.href = URL.createObjectURL(file);
+      const objectUrl = URL.createObjectURL(file);
+      element.href = objectUrl;
       element.download = `export.${format}`;
       document.body.appendChild(element);
       element.click();
       document.body.removeChild(element);
+      URL.revokeObjectURL(objectUrl);
 
       setProgress(100);
     } catch (err) {

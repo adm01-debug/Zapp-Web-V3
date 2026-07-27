@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion } from '@/components/ui/motion';
 import { FloatingParticles } from '@/components/dashboard/FloatingParticles';
 import { AuroraBorealis } from '@/components/effects/AuroraBorealis';
@@ -50,6 +50,17 @@ export function AdminView() {
   const [newUserAvatarFile, setNewUserAvatarFile] = useState<File | null>(null);
   const [newUserGoogleServices, setNewUserGoogleServices] = useState({ google_sheets: false, google_docs: false, google_calendar: false, google_drive: false });
   const [creatingUser, setCreatingUser] = useState(false);
+
+  const editAvatarPreviewUrl = useMemo(() => {
+    if (!editAvatarFile) return undefined;
+    return URL.createObjectURL(editAvatarFile);
+  }, [editAvatarFile]);
+
+  useEffect(() => {
+    return () => {
+      if (editAvatarPreviewUrl) URL.revokeObjectURL(editAvatarPreviewUrl);
+    };
+  }, [editAvatarPreviewUrl]);
 
   const { users, auditLogs, loading, fetchData, handleRoleChange, handleToggleActive, handleSaveUser, handleCreateUser } = useAdminData(activeTab as 'users' | 'audit' | 'crm');
 
@@ -146,7 +157,7 @@ export function AdminView() {
             <div className="space-y-4 pt-4">
               <div className="flex items-center gap-4 mb-6">
                 <Avatar className="w-16 h-16">
-                  <AvatarImage src={editAvatarFile ? URL.createObjectURL(editAvatarFile) : (editingUser.avatar_url || undefined)} alt={editingUser.name || ""} />
+                  <AvatarImage src={editAvatarPreviewUrl ?? (editingUser.avatar_url || undefined)} alt={editingUser.name || ""} />
                   <AvatarFallback className="text-lg">{editingUser.name?.[0] || 'U'}</AvatarFallback>
                 </Avatar>
                 <div>

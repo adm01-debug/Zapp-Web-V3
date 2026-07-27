@@ -51,6 +51,7 @@ export function TeamPerformancePanel({ conversationId }: Props) {
     link.href = url;
     link.download = `performance_${conversationId}_${Date.now()}.json`;
     link.click();
+    URL.revokeObjectURL(url);
     log.info('Performance data exported');
   };
 

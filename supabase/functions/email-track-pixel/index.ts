@@ -70,6 +70,11 @@ function parseUserAgent(ua: string): { device: string; browser: string; os: stri
 }
 
 Deno.serve(async (req) => {
+  // CORS preflight
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { status: 204, headers: getCorsHeaders(req) });
+  }
+
   // Apenas GET
   if (req.method !== 'GET') {
     return new Response(PIXEL_GIF, { status: 200, headers: pixelHeaders(req) });
