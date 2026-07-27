@@ -72,9 +72,7 @@ export function SicoobBridgeDashboard() {
     },
   });
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   const mappings = data?.mappings ?? [];
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   const recentMessages = data?.recentMessages ?? [];
   const loading = isFetching;
   const loadData = () => {

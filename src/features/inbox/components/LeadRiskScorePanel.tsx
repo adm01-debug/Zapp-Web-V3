@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Slider } from '@/components/ui/slider';
 import { Button } from '@/components/ui/button';
@@ -39,11 +39,7 @@ export function LeadRiskScorePanel({ contactId }: LeadRiskScorePanelProps) {
   const [saving, setSaving] = useState(false);
   const [loaded, setLoaded] = useState(false);
 
-  useEffect(() => {
-    loadData();
-  }, [contactId]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     if (!isValidUUID(contactId)) {
       setLoaded(true);
       return;
@@ -60,7 +56,11 @@ export function LeadRiskScorePanel({ contactId }: LeadRiskScorePanelProps) {
       setConsentStatus(data.consent_status ?? '');
     }
     setLoaded(true);
-  };
+  }, [contactId]);
+
+  useEffect(() => {
+    loadData();
+  }, [contactId, loadData]);
 
   const save = async () => {
     if (!isValidUUID(contactId)) return;

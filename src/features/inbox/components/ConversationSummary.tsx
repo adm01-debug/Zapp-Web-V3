@@ -117,7 +117,7 @@ export function ConversationSummary({
       setSummary(null);
       setHasGenerated(false);
     }
-  }, [analysisPeriod, customDateFrom, customDateTo]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [analysisPeriod, customDateFrom, customDateTo, hasGenerated]);
   useEffect(() => {
     if (initialSummary) {
       setSummary(initialSummary as unknown as SummaryData);

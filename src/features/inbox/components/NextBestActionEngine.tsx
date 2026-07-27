@@ -170,7 +170,7 @@ export function NextBestActionEngine({ contactId, contactName }: NextBestActionP
     return () => {
       cancelled = true;
     };
-  }, [contactId, contactName]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [contactId, contactName, mountedRef]);
 
   const priorityColors = {
     high: 'border-destructive/30 bg-destructive/5',

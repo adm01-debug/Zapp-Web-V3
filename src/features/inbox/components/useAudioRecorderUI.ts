@@ -97,6 +97,13 @@ export function useAudioRecorderUI(
     },
   });
 
+  const handleUndoCancel = useCallback(() => {
+    const recovered = restoreRecording();
+    if (recovered) {
+      toast({ title: 'Áudio recuperado!', description: 'Continue revisando sua gravação.' });
+    }
+  }, [restoreRecording]);
+
   const handleCancel = useCallback(() => {
     if ((isRecording || isPaused) && duration > 2) {
       toast({
@@ -118,16 +125,7 @@ export function useAudioRecorderUI(
       cancelRecording(false);
     }
     onCancel?.();
-    // handleUndoCancel is stable — defined right below and only uses restoreRecording (stable)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isRecording, isPaused, duration, cancelRecording, onCancel]);
-
-  const handleUndoCancel = useCallback(() => {
-    const recovered = restoreRecording();
-    if (recovered) {
-      toast({ title: 'Áudio recuperado!', description: 'Continue revisando sua gravação.' });
-    }
-  }, [restoreRecording]);
+  }, [isRecording, isPaused, duration, cancelRecording, onCancel, handleUndoCancel]);
 
   // Keyboard shortcuts — only active when recording/paused
   useEffect(() => {
@@ -162,8 +160,7 @@ export function useAudioRecorderUI(
   useEffect(() => {
     startRecording();
     return () => cancelRecording();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [startRecording, cancelRecording]);
 
   // Playback progress tracking
   useEffect(() => {

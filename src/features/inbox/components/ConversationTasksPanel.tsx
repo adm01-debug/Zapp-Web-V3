@@ -1,5 +1,10 @@
-import { useState, useEffect } from 'react';
-import { fetchConversationTasks, createConversationTask, updateConversationTaskStatus, deleteConversationTask } from '../hooks/useConversationTasksData';
+import { useState, useEffect, useCallback } from 'react';
+import {
+  fetchConversationTasks,
+  createConversationTask,
+  updateConversationTaskStatus,
+  deleteConversationTask,
+} from '../hooks/useConversationTasksData';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -49,16 +54,16 @@ export function ConversationTasksPanel({ contactId, profileId }: ConversationTas
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
 
-  useEffect(() => {
-    loadTasks();
-  }, [contactId]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const loadTasks = async () => {
+  const loadTasks = useCallback(async () => {
     setLoading(true);
     const data = await fetchConversationTasks(contactId);
     setTasks(data);
     setLoading(false);
-  };
+  }, [contactId]);
+
+  useEffect(() => {
+    loadTasks();
+  }, [contactId, loadTasks]);
 
   const addTask = async () => {
     if (!newTitle.trim()) return;
@@ -82,7 +87,11 @@ export function ConversationTasksPanel({ contactId, profileId }: ConversationTas
 
   const toggleTask = async (task: Task) => {
     const newStatus = task.status === 'completed' ? 'pending' : 'completed';
-    await updateConversationTaskStatus(task.id, newStatus, newStatus === 'completed' ? new Date().toISOString() : null);
+    await updateConversationTaskStatus(
+      task.id,
+      newStatus,
+      newStatus === 'completed' ? new Date().toISOString() : null
+    );
     loadTasks();
   };
 
