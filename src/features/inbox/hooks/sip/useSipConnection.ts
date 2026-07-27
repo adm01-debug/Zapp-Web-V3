@@ -6,6 +6,8 @@ import { toast } from 'sonner';
 
 const log = getLogger('SipConnection');
 
+const MAX_RECONNECT_ATTEMPTS = 5;
+
 /** Connection lifecycle state of the SIP.js UserAgent. */
 export type SipStatus = 'disconnected' | 'connecting' | 'registered' | 'error';
 
@@ -24,7 +26,6 @@ export function useSipConnection() {
   const reconnectAttemptsRef = useRef(0);
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const mountedRef = useMountedRef();
-  const maxReconnectAttempts = 5;
 
   useEffect(
     () => () => {
@@ -34,7 +35,7 @@ export function useSipConnection() {
       }
       // Tear down the SIP registration and WebSocket transport on unmount, otherwise
       // the UserAgent keeps a registered session and an open socket alive in the background.
-      reconnectAttemptsRef.current = maxReconnectAttempts; // suppress auto-reconnect during teardown
+      reconnectAttemptsRef.current = MAX_RECONNECT_ATTEMPTS; // suppress auto-reconnect during teardown
       const registerer = registererRef.current;
       const ua = uaRef.current;
       if (ua) ua.transport.onDisconnect = () => {};
@@ -56,89 +57,93 @@ export function useSipConnection() {
     []
   );
 
-  const connect = useCallback(async (config: SipConfig) => {
-    try {
-      setSipStatus('connecting');
-      // Stop any existing UserAgent before creating a new one, so a reconnect
-      // does not leave a second registered session / open socket behind.
-      if (uaRef.current) {
-        uaRef.current.transport.onDisconnect = () => {};
-        try {
-          if (registererRef.current) await registererRef.current.unregister();
-        } catch {
-          /* ignore */
+  const connect = useCallback(
+    async (config: SipConfig) => {
+      try {
+        setSipStatus('connecting');
+        // Stop any existing UserAgent before creating a new one, so a reconnect
+        // does not leave a second registered session / open socket behind.
+        if (uaRef.current) {
+          uaRef.current.transport.onDisconnect = () => {};
+          try {
+            if (registererRef.current) await registererRef.current.unregister();
+          } catch {
+            /* ignore */
+          }
+          try {
+            await uaRef.current.stop();
+          } catch {
+            /* ignore */
+          }
+          uaRef.current = null;
+          registererRef.current = null;
         }
-        try {
-          await uaRef.current.stop();
-        } catch {
-          /* ignore */
+        const wsPort = config.wsPort || 8089;
+        const wsServer = `wss://${config.server}:${wsPort}/ws`;
+        const uri = UserAgent.makeURI(`sip:${config.user}@${config.server}`);
+        if (!uri) throw new Error('URI SIP inválida');
+
+        const ua = new UserAgent({
+          uri,
+          transportOptions: { server: wsServer, traceSip: false },
+          authorizationPassword: config.password,
+          authorizationUsername: config.user,
+          logLevel: 'warn',
+          displayName: config.user,
+        });
+
+        ua.transport.onDisconnect = () => {
+          if (!mountedRef.current) return;
+          setSipStatus('disconnected');
+          if (reconnectAttemptsRef.current < MAX_RECONNECT_ATTEMPTS) {
+            reconnectAttemptsRef.current++;
+            const delay = Math.min(1000 * Math.pow(2, reconnectAttemptsRef.current), 30000);
+            toast.info(
+              `Conexão perdida. Reconectando em ${delay / 1000}s... (tentativa ${reconnectAttemptsRef.current}/${MAX_RECONNECT_ATTEMPTS})`
+            );
+            if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
+            reconnectTimerRef.current = setTimeout(() => {
+              reconnectTimerRef.current = null;
+              if (mountedRef.current) connect(config);
+            }, delay);
+          } else {
+            toast.error('Não foi possível reconectar ao servidor VoIP.');
+            reconnectAttemptsRef.current = 0;
+          }
+        };
+
+        await ua.start();
+        if (!mountedRef.current) {
+          await ua.stop().catch(() => {});
+          return;
         }
-        uaRef.current = null;
-        registererRef.current = null;
+        const registerer = new Registerer(ua);
+        registerer.stateChange.addListener((state) => {
+          if (!mountedRef.current) return;
+          if (state === 'Registered') {
+            setSipStatus('registered');
+            reconnectAttemptsRef.current = 0;
+            toast.success('VoIP conectado!');
+          } else if (state === 'Unregistered' || state === 'Terminated')
+            setSipStatus('disconnected');
+        });
+        await registerer.register();
+        uaRef.current = ua;
+        registererRef.current = registerer;
+      } catch (err: unknown) {
+        log.error('SIP connection error:', err);
+        if (mountedRef.current) setSipStatus('error');
+        toast.error(
+          `Erro ao conectar VoIP: ${err instanceof Error ? err.message : 'Falha na conexão'}`
+        );
       }
-      const wsPort = config.wsPort || 8089;
-      const wsServer = `wss://${config.server}:${wsPort}/ws`;
-      const uri = UserAgent.makeURI(`sip:${config.user}@${config.server}`);
-      if (!uri) throw new Error('URI SIP inválida');
-
-      const ua = new UserAgent({
-        uri,
-        transportOptions: { server: wsServer, traceSip: false },
-        authorizationPassword: config.password,
-        authorizationUsername: config.user,
-        logLevel: 'warn',
-        displayName: config.user,
-      });
-
-      ua.transport.onDisconnect = () => {
-        if (!mountedRef.current) return;
-        setSipStatus('disconnected');
-        if (reconnectAttemptsRef.current < maxReconnectAttempts) {
-          reconnectAttemptsRef.current++;
-          const delay = Math.min(1000 * Math.pow(2, reconnectAttemptsRef.current), 30000);
-          toast.info(
-            `Conexão perdida. Reconectando em ${delay / 1000}s... (tentativa ${reconnectAttemptsRef.current}/${maxReconnectAttempts})`
-          );
-          if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
-          reconnectTimerRef.current = setTimeout(() => {
-            reconnectTimerRef.current = null;
-            if (mountedRef.current) connect(config);
-          }, delay);
-        } else {
-          toast.error('Não foi possível reconectar ao servidor VoIP.');
-          reconnectAttemptsRef.current = 0;
-        }
-      };
-
-      await ua.start();
-      if (!mountedRef.current) {
-        await ua.stop().catch(() => {});
-        return;
-      }
-      const registerer = new Registerer(ua);
-      registerer.stateChange.addListener((state) => {
-        if (!mountedRef.current) return;
-        if (state === 'Registered') {
-          setSipStatus('registered');
-          reconnectAttemptsRef.current = 0;
-          toast.success('VoIP conectado!');
-        } else if (state === 'Unregistered' || state === 'Terminated') setSipStatus('disconnected');
-      });
-      await registerer.register();
-      uaRef.current = ua;
-      registererRef.current = registerer;
-    } catch (err: unknown) {
-      log.error('SIP connection error:', err);
-      if (mountedRef.current) setSipStatus('error');
-      toast.error(
-        `Erro ao conectar VoIP: ${err instanceof Error ? err.message : 'Falha na conexão'}`
-      );
-    }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    },
+    [mountedRef]
+  );
 
   const disconnect = useCallback(async () => {
     try {
-      reconnectAttemptsRef.current = maxReconnectAttempts;
+      reconnectAttemptsRef.current = MAX_RECONNECT_ATTEMPTS;
       if (reconnectTimerRef.current) {
         clearTimeout(reconnectTimerRef.current);
         reconnectTimerRef.current = null;
@@ -153,7 +158,7 @@ export function useSipConnection() {
     } catch (err) {
       log.error('SIP disconnect error:', err);
     }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [mountedRef]);
 
   return { sipStatus, uaRef, connect, disconnect };
 }

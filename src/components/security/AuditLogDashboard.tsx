@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useMountedRef } from '@/hooks/useMountedRef';
 import { motion } from 'framer-motion';
 import {
@@ -62,16 +62,12 @@ export function AuditLogDashboard() {
   const [stats, setStats] = useState({ total: 0, today: 0, suspicious: 0, uniqueUsers: 0 });
   const mountedRef = useMountedRef();
 
-  useEffect(() => {
-    fetchLogs();
-  }, [actionFilter, entityFilter]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const fetchLogs = async () => {
+  const fetchLogs = useCallback(async () => {
     setLoading(true);
     try {
       const data = await fetchAuditLogs(
         actionFilter !== 'all' ? actionFilter : '',
-        entityFilter !== 'all' ? entityFilter : '',
+        entityFilter !== 'all' ? entityFilter : ''
       );
       if (!mountedRef.current) return;
       setLogs(data);
@@ -97,7 +93,11 @@ export function AuditLogDashboard() {
     } finally {
       if (mountedRef.current) setLoading(false);
     }
-  };
+  }, [actionFilter, entityFilter, mountedRef]);
+
+  useEffect(() => {
+    fetchLogs();
+  }, [fetchLogs]);
 
   const filteredLogs = logs.filter((log) => {
     if (!search) return true;

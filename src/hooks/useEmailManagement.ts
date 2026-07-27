@@ -240,7 +240,10 @@ export function useEmail() {
     queryKey: EMAIL_TOKEN_STATUS_KEY,
     queryFn: async () => {
       const { data, error: rpcErr } = await safeClient.rpc('rpc_email_token_status');
-      if (rpcErr && (rpcErr.message.includes('disponível') || rpcErr.message.includes('not found'))) {
+      if (
+        rpcErr &&
+        (rpcErr.message.includes('disponível') || rpcErr.message.includes('not found'))
+      ) {
         return GMAIL_MOCKS.tokenStatus;
       }
       if (!rpcErr && data) {
@@ -301,7 +304,9 @@ export function useEmail() {
       }
     } else {
       setSchemaStatus({ ok: true, lastChecked: new Date() });
-      const accs = emailMappers.accounts((Array.isArray(data) ? data : []) as Parameters<typeof emailMappers.accounts>[0]);
+      const accs = emailMappers.accounts(
+        (Array.isArray(data) ? data : []) as Parameters<typeof emailMappers.accounts>[0]
+      );
       setAccounts(accs);
       if (accs.length > 0) {
         setActiveAccountId((prev) => prev || accs[0].id);
@@ -1088,7 +1093,6 @@ export function useEmailSearch(accountId: string | null) {
 
 /** Tracks SLA metrics for email threads with configurable thresholds and status monitoring. */
 export function useEmailSLA(accountId: string | null, config: Partial<SLAConfig> = {}) {
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   const slaConfig: SLAConfig = { ...DEFAULT_SLA, ...config };
   const [records, setRecords] = useState<Record<string, EmailSLARecord>>({});
 

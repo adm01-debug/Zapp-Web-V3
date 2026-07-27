@@ -198,7 +198,7 @@ export function useRealtimeInbox() {
         );
       }
     });
-  }, [selectedMessages, selectedContactId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [selectedMessages, selectedContactId, messageQueue]);
 
   // Listen for SLA alerts
   useEffect(() => {
