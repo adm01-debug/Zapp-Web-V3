@@ -1,9 +1,1 @@
-src/components/queues/QueuesView.tsx
-src/components/team-chat/TeamChatPanel.tsx
-src/components/ui/chart.tsx
-src/features/dashboard/hooks/useDashboardVisualizationManagement.ts
-src/features/inbox/components/ChatPanel.tsx
-src/features/inbox/components/chat/useChatPanel.ts
-src/features/inbox/hooks/useRealtimeInbox.ts
-src/hooks/useExternalApiManagement.ts
 src/integrations/supabase/types-manual.ts
