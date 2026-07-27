@@ -80,12 +80,7 @@ export function useTeamChatPanel(conversation: TeamConversation) {
     if (settingsTimerRef.current) clearTimeout(settingsTimerRef.current);
     settingsTimerRef.current = setTimeout(() => saveSettings(), 100);
   };
-  const tts = useTextToSpeech({
-    initialVoiceId: settings.tts_voice_id,
-    initialSpeed: settings.tts_speed,
-    onVoiceChange: handleVoiceChange,
-    onSpeedChange: handleSpeedChange,
-  } as any);
+  const tts = useTextToSpeech();
 
   // Unified function to sync search filter with the infinite query cache
   const syncSearchWithCache = useCallback(

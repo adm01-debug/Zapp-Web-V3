@@ -77,22 +77,22 @@ export function NewConversationDialog({ open, onOpenChange, onCreated }: Props) 
 
     try {
       const payload: {
-        type: string;
-        departmentId?: string | null;
+        type: 'direct' | 'group' | 'department';
+        departmentId?: string;
         name?: string;
         memberIds?: string[];
       } = { type: tab };
 
       if (tab === 'department') {
         const dept = departments.find((d) => d.id === selectedDeptId);
-        payload.departmentId = selectedDeptId;
+        payload.departmentId = selectedDeptId ?? undefined;
         payload.name = dept?.name;
       } else {
         payload.name = tab === 'group' ? groupName.trim() || undefined : undefined;
         payload.memberIds = selectedIds;
       }
 
-      const result = await createMutation.mutateAsync(payload as any);
+      const result = await createMutation.mutateAsync(payload);
       setSelectedIds([]);
       setSelectedDeptId(null);
       setGroupName('');
