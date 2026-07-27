@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import type { MessageReaction } from '@/types/chat';
 import { supabase } from '@/integrations/supabase/client';
 import { dbFrom, dbTable, dbChannel, dbRemoveChannel } from '@/integrations/datasource/db';
 import { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
@@ -73,8 +74,7 @@ export interface RealtimeMessage {
   retry_total?: number | null;
   /** Cache do avatar do contato para mensagens recebidas. Propagado durante a hidratação/reconciliação. */
   contactAvatar?: string | null;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  reactions?: any[] | null;
+  reactions?: MessageReaction[] | null;
   /** Metadados de mídia (ex: ptt, isPtv). Presente em mensagens de áudio/vídeo. */
   media_meta?: { ptt?: boolean; isPtv?: boolean; [key: string]: unknown } | null;
   /** Referência ao audio meme (soundboard). Presente em mensagens otimistas enviadas via soundboard. */

@@ -34,7 +34,16 @@ REVOKE ALL ON FUNCTION public.cleanup_failed_messages() FROM public, anon;
 GRANT EXECUTE ON FUNCTION public.cleanup_failed_messages() TO authenticated, service_role;
 
 -- Garante extensão pg_cron
-CREATE EXTENSION IF NOT EXISTS pg_cron;
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'pg_cron') THEN
+    BEGIN
+      CREATE EXTENSION IF NOT EXISTS pg_cron;
+    EXCEPTION WHEN OTHERS THEN
+      RAISE WARNING 'pg_cron extension not available: %', SQLERRM;
+    END;
+  END IF;
+END $$;
 
 -- Remove job antigo (se existir) e agenda diário às 03:00 UTC
 DO $$
